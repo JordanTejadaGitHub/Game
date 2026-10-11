@@ -88,8 +88,9 @@ func _ready() -> void:
 	_bar_toggle.name = "TowerBarToggle"
 	_bar_toggle.focus_mode = Control.FOCUS_NONE
 	_bar_toggle.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_bar_toggle.custom_minimum_size = Vector2(48, 48)
-	_bar_toggle.add_theme_font_size_override("font_size", 24)
+	_bar_toggle.custom_minimum_size = Vector2(BAR_TOGGLE_W, BAR_TOGGLE_W)
+	_bar_toggle.theme_type_variation = &"HudButton"  # The same frame and drawn arrow as the damage meter's (screens_ui.md "HUD notes")
+	_bar_toggle.draw.connect(_draw_hide_arrow.bind(_bar_toggle))
 	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
 	add_child(_bar_toggle)
 	_build_tower_bar()
@@ -221,10 +222,12 @@ func _ready() -> void:
 	_maze_reward_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_maze_reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_maze_reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	UiStyle.number(_maze_reward_label, 16, UiStyle.GOLD)
+	# Right after the Dew total, small and muted ("+6 at rest" with the Dew glyph), not a counter of its own
+	# (screens_ui.md "HUD notes"); placed by _layout_top_row.
+	_maze_reward_label.add_theme_font_size_override("font_size", MAZE_FORECAST_SIZE)
+	_maze_reward_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	add_child(_maze_reward_label)
 	_maze_reward_tip = TapTip.attach(_maze_reward_label, "")
-	_add_counter_icon(_maze_reward_label, &"dew", 1)
 	_update_maze_income()
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
@@ -311,6 +314,16 @@ func _build_tower_bar() -> void:
 # shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
 const SLOT_MIN_WIDTH := 48.0
 const ARROW_W := 32.0  # Narrow and quiet
+const BAR_TOGGLE_W := 48.0  # The bar's hide arrow: a HUD button (UiStyle.HUD_BUTTON_H), as the damage meter's
+
+# A hide arrow's chevron, drawn (the ▾ ▴ glyphs aren't in the UI fonts): it points along the button's "arrow" meta.
+# The damage meter draws the same one (drift_meter.gd _draw_hide_arrow).
+func _draw_hide_arrow(button: Button) -> void:
+	var along: Vector2 = button.get_meta(&"arrow", Vector2.DOWN)
+	var across := Vector2(-along.y, along.x)
+	var centre := button.size / 2.0
+	button.draw_polyline(PackedVector2Array([centre - along * 4.0 + across * 8.0, centre + along * 4.0,
+		centre - along * 4.0 - across * 8.0]), button.get_theme_color(&"font_color"), 2.0, true)
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
 
@@ -329,19 +342,22 @@ func set_bar_hidden(hidden: bool) -> void:
 func _fit_tower_bar() -> void:
 	tower_bar.visible = not bar_hidden
 	clear_tool.visible = not bar_hidden
-	_bar_toggle.text = "▴" if bar_hidden else "▾"
-	_bar_toggle.tooltip_text = "Show tower bar" if bar_hidden else "Hide tower bar"
-	_bar_toggle.offset_left = -24
-	_bar_toggle.offset_right = 24
-	_bar_toggle.offset_bottom = -16 if bar_hidden else -20 - BUTTON_SIZE.y
-	_bar_toggle.offset_top = _bar_toggle.offset_bottom - 48
+	# The hide arrow: drawn (no font glyph), pointing where the bar goes. Hidden bar: alone, bottom centre. Shown:
+	# beside the bar's right end (placed below, once the bar's width is known), never over the slots.
+	_bar_toggle.set_meta(&"arrow", Vector2.UP if bar_hidden else Vector2.DOWN)
+	_bar_toggle.tooltip_text = "Show Warden bar" if bar_hidden else "Hide Warden bar"
+	_bar_toggle.queue_redraw()
+	_bar_toggle.offset_left = -BAR_TOGGLE_W / 2.0
+	_bar_toggle.offset_right = BAR_TOGGLE_W / 2.0
+	_bar_toggle.offset_bottom = -16.0
+	_bar_toggle.offset_top = -16.0 - BAR_TOGGLE_W
 	if bar_hidden:
 		for arrow in _bar_arrows:
 			arrow.visible = false
 		return
 	if _tower_buttons.is_empty():
 		return
-	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0
+	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0 - 2.0 * (BAR_TOGGLE_W + BAR_GAP)  # Room for the hide arrow at the end (kept symmetric: the bar stays centred)
 	var n := _tower_buttons.size()
 	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
 	var shown := n
@@ -385,6 +401,8 @@ func _fit_tower_bar() -> void:
 	tower_bar.offset_bottom = -16.0
 	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
 	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
+	_bar_toggle.offset_left = left + total + BAR_GAP  # Beside the bar's end (after its › arrow when it scrolls)
+	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
 	if is_inside_tree() and not get_tree().process_frame.is_connected(_recentre_bar):
 		get_tree().process_frame.connect(_recentre_bar, CONNECT_ONE_SHOT)
 
@@ -408,6 +426,9 @@ func _recentre_bar() -> void:
 	for part in parts:
 		part.offset_left += shift
 		part.offset_right += shift
+	if not bar_hidden:  # The hide arrow rides with the group (it isn't part of what's centred)
+		_bar_toggle.offset_left += shift
+		_bar_toggle.offset_right += shift
 
 func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidden: int) -> void:
 	if _bar_arrows.is_empty():
@@ -896,7 +917,7 @@ func _layout_top_row() -> void:
 			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(step[0])).x
 			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
 			counters_w += widths[label]
-		counters_w += gap * (counters.size() - 1)
+		counters_w += gap * (counters.size() - 1) + _maze_forecast_width()
 		if _leaves_max.text != "":
 			counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
 		var one_line_w := counters_w + (gap + buttons_w if not buttons.is_empty() else 0.0)
@@ -914,7 +935,7 @@ func _layout_top_row() -> void:
 			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(ROW_STEPS[0][0])).x
 			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
 			counters_w += widths[label]
-		counters_w += gap * (counters.size() - 1)
+		counters_w += gap * (counters.size() - 1) + _maze_forecast_width()
 	# Buttons: right end of line 1, or line 2 when wrapped.
 	var x := ROW_RIGHT
 	var button_top := ROW_TOP + (ROW_H + 4.0 if row_wrapped else 0.0)
@@ -947,6 +968,13 @@ func _layout_top_row() -> void:
 			_leaves_max.offset_top = top + 4.0  # Sits on the value's baseline
 			_leaves_max.offset_bottom = top + ROW_H
 			at -= max_w
+		if label == dew_label and _maze_forecast_width() > 0.0:  # "+6 at rest" right after the Dew total
+			var forecast_w := _maze_forecast_width()
+			_maze_reward_label.offset_right = at
+			_maze_reward_label.offset_left = at - (forecast_w - MAZE_FORECAST_GAP)
+			_maze_reward_label.offset_top = top + 4.0  # Sits low, by the total's baseline
+			_maze_reward_label.offset_bottom = top + ROW_H
+			at -= forecast_w
 		label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -975,14 +1003,16 @@ func _layout_top_row() -> void:
 		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
 		_place_counter_icon.call_deferred(_clears_label)
 
-	if _maze_reward_label != null:
-		var forecast_w := _maze_reward_label.get_theme_font("font").get_string_size(_maze_reward_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16.0 + COUNTER_ICON_GAP + 2.0
-		var forecast_right := _clears_label.offset_left - ROW_GAP if _clears_label != null and _clears_label.visible else ROW_RIGHT
-		_maze_reward_label.offset_right = forecast_right
-		_maze_reward_label.offset_left = forecast_right - forecast_w
-		_maze_reward_label.offset_top = bottom + ROW_PAD + 2.0
-		_maze_reward_label.offset_bottom = _maze_reward_label.offset_top + 22.0
-		_place_counter_icon.call_deferred(_maze_reward_label)
+
+const MAZE_FORECAST_SIZE := 14  # "+6 at rest" beside the Dew total: small
+const MAZE_FORECAST_GAP := 8.0  # Between the Dew total and its forecast
+
+# The room the maze forecast takes right after the Dew total (its text and the gap), 0 while it isn't shown.
+func _maze_forecast_width() -> float:
+	if _maze_reward_label == null or not _maze_reward_label.visible or _maze_reward_label.text == "":
+		return 0.0
+	return ceilf(_maze_reward_label.get_theme_font("font").get_string_size(_maze_reward_label.text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, MAZE_FORECAST_SIZE).x + 2.0) + MAZE_FORECAST_GAP
 
 # The row's global rect (the fog patch), for tests and the banner check.
 func resource_row_rect() -> Rect2:
@@ -1024,12 +1054,17 @@ func _update_maze_income() -> void:
 	if _maze_reward_label == null:
 		return
 	var amount: int = drift_director.get_maze_reward_projection()
-	_maze_reward_label.text = "+%d" % amount
-	var explanation := "Maze Dew: +%d Dew at the next rest if this defended route is maintained. Every 4 extra defended route cells earn +1 Dew, averaged across the block, up to 20 Dew per block. Separate from Wellspring interest." % amount
-	_maze_reward_label.tooltip_text = explanation
+	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
+	_maze_reward_label.text = "%s at rest" % UiStyle.dew_amount(amount, true)
+	var explanation := "Maze bonus: %s at the next rest for the extra route your Wardens defend (up to %d a block)." % [
+		UiStyle.dew_amount(amount, true), economy.BLOCK_CAP]
+	if not _maze_reward_tip.visible:  # A pinned tip keeps the hover tooltip off (TapTip)
+		_maze_reward_label.tooltip_text = explanation
 	_maze_reward_tip._label.text = explanation
-	var road_tip := "%s\n%s" % [IconInfo.resource_tooltip(&"path"), explanation]
-	%PathLabel.tooltip_text = road_tip
+	var road_tip := "%s\n%s\nEvery %d extra defended route cells earn +1 Dew, up to %d Dew a block." % [
+		IconInfo.resource_tooltip(&"path"), explanation, economy.CELLS_PER_DEW, economy.BLOCK_CAP]
+	if not _path_tip.visible:
+		%PathLabel.tooltip_text = road_tip
 	_path_tip._label.text = road_tip
 
 func _process(delta: float) -> void:

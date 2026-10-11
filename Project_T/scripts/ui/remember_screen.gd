@@ -442,7 +442,8 @@ func _update_info(root: TowerData) -> void:
 		parts.append(MISTY_TIP)
 	var text := "\n\n".join(parts)
 	_info_tip._label.text = text
-	(_info_tip.get_parent() as Control).tooltip_text = text
+	if is_instance_valid(_info_tip._host) and not _info_tip.visible:  # Its icon (a pinned tip sits on the tip layer, and keeps the hover tooltip off)
+		_info_tip._host.tooltip_text = text
 
 # --- Building -------------------------------------------------------------------------------------------
 

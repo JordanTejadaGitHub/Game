@@ -179,7 +179,7 @@ func discovery(id: StringName) -> void:
 		&"grow":
 			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose an unlocked form in its panel. Growing changes its abilities and costs Dew. Some forms must first be unlocked through Remember or the Memory Grove.")
 		&"nurture":
-			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", "Select a Warden, then choose Nurture and the improvement you want. Each rank costs Dew and strengthens its current form. Hover a choice to read its exact effect. At rank V, four matching picks earn a signature or mastery; mixed picks earn All-Rounder, +20% to its main job.")
+			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", "Select a Warden, then choose Nurture and the improvement you want. Each rank costs Dew and strengthens its current form. " + InputMode.text("Hover", "Tap") + " a choice to read its exact effect. At rank V, four matching picks earn a signature or mastery; mixed picks earn All-Rounder, +20% to its main job.")
 		&"dream":
 			lesson(&"discover_dream", &"dreamlight", "Choose a Dream", "Dreams change your run. Offers are random: pick a card that supports your Wardens, or experiment with a new build. Some cards pay off after you add more towers or combine statuses.")
 		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
@@ -319,6 +319,6 @@ func replay_guides() -> void:
 	_replaying = true
 	queue.clear()
 	queue.append([&"discover_nurture", &"rank", "Rank-V bonuses", "Four matching picks among your first five earn a signature or mastery. Other rank-V builds earn All-Rounder: +20% to their main job. Shared Training needs four matching picks on both bonded rank-IV kin."])
-	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Extra road must be covered by attacking Wardens to earn maze Dew. The top-right forecast shows the next rest's reward; each block has a shared cap."])
+	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Extra road must be covered by attacking Wardens to earn maze Dew. The forecast beside your Dew shows the next rest's reward; each block has a shared cap."])
 	queue.append([&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest."])
 	_show(queue.pop_front())

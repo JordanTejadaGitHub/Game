@@ -450,20 +450,29 @@ func _run() -> void:
 	tap.pressed = true
 	light.gui_input.emit(tap)
 	var light_tip: TapTip = main.get_node("HUD").dreamlight_tip
+	_check(light_tip.visible and light_tip._label.text.begins_with("Dreamlight") and light_tip._label.text.contains("(%d)" % dreams.dreamlight),
+		"tapping the counter explains it at the counter (no hover-only info)")
+	# Tips are opaque and on their own top layer, by the pointer (screens_ui.md "tips are opaque").
+	_check(light_tip.get_parent() is CanvasLayer and (light_tip.get_parent() as CanvasLayer).layer == UiStyle.TIP_LAYER,
+		"the tip draws on the top tip layer")
+	# One tip at a time (screens_ui.md "Icon help update"): pinned, its icon's hover tooltip is off.
 	light.mouse_entered.emit()
-	_check(not light_tip.visible and light.tooltip_text.begins_with("Dreamlight") and light.tooltip_text.contains("(%d)" % dreams.dreamlight),
-		"Dreamlight help is current on hover and clicking opens no popup")
+	_check(light_tip.visible and light.tooltip_text == "" and TapTip.pinned() == light_tip, "a pinned tip suppresses its icon's hover tooltip")
 	var above_right := UiStyle.tip_position(Vector2(400, 400), Vector2(200, 60), Vector2(1280, 800))
 	var flipped := UiStyle.tip_position(Vector2(1250, 20), Vector2(200, 60), Vector2(1280, 800))
 	_check(above_right == Vector2(416, 328) and flipped.x + 200.0 <= 1250.0 and flipped.y >= 20.0,
 		"tips sit above-right of the pointer and flip at the edges (%s, %s)" % [above_right, flipped])
-	light_tip.visible = false
-	# Resources explain themselves on hover; clicking leaves no help popup.
+	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
 	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
 	var dew_tip: TapTip = dew_label.get_children().filter(func(c: Node) -> bool: return c is TapTip)[0]
+	var dew_text := dew_label.tooltip_text
 	dew_label.gui_input.emit(tap)
-	_check(not dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "clicking Dew opens no persistent help")
+	_check(dew_tip.visible and dew_tip._label.text == dew_text, "tapping Dew shows the same text")
+	# Opening another icon swaps the tip: the Dreamlight one closed and has its hover tooltip back.
+	_check(not light_tip.visible and light.tooltip_text.begins_with("Dreamlight") and TapTip.pinned() == dew_tip, "another icon's tip replaces the pinned one (never two)")
+	dew_tip.toggle()
+	_check(not dew_tip.visible and dew_label.tooltip_text == dew_text and TapTip.pinned() == null, "tapping it again closes it and the hover tooltip returns")
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
 	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
 	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,

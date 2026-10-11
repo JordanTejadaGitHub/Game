@@ -53,6 +53,7 @@ func glide(points: PackedVector2Array, duration: float = 5.0) -> void:
 	if points.size() < 2:
 		return
 	_glide_points = points
+	_zoom_anchor_set = false
 	_glide_time = 0.0
 	_glide_duration = duration
 	_glide_lengths = PackedFloat32Array([0.0])  # Distance along the points: a steady pace whatever their spacing
@@ -99,10 +100,112 @@ func _process(delta: float) -> void:
 	delta = minf(delta, MAX_STEP)
 	if not _glide_points.is_empty():
 		_advance_glide(delta)
+	_read_camera_settings(delta)
 	_handle_input(delta)  # Handle WASD movement and zoom input
+	_edge_scroll_pan(delta)  # The pointer at a window edge
 	_clamp_camera_to_map()  # Keep the target inside the map bounds
-	_smooth_camera_movement(delta)  # Smoothly move the camera
+	_smooth_camera_movement(delta)  # Move the camera (at once when the player pans)
 	_smooth_zoom(delta)  # Smoothly adjust the zoom level
+	_follow_zoom_anchor()  # A wheel zoom keeps the point under the pointer
+	_snap = false
+
+# --- StarCraft 2 / Warcraft 3 style control (screens_ui.md "HUD notes", user 2026-10-11) -----------------------
+# Edge scrolling (a setting, on by default, with its speed; the cursor is kept in the window in fullscreen; only
+# while the window has focus), middle-mouse drag, the wheel zooming toward the pointer, and panning that is
+# immediate: no easing while the player moves the view and no drift after release. H / F and the first-run glide
+# still ease. Touch (pan_screen / zoom_by) is unchanged.
+const EDGE_SETTING := "edge_scroll"  # On by default
+const EDGE_SPEED_SETTING := "edge_scroll_speed"  # A share of the keyboard's speed, 0.25–1 (1 = the same)
+const EDGE_MARGIN := 6.0  # Viewport px from a window edge that pan
+var _edge_scroll := true
+var _edge_speed := 1.0
+var _settings_check := 0.0
+var _confined := false  # This node confined the cursor (fullscreen edge scrolling)
+var _dragging := false  # Middle mouse held on the map
+var _snap := false  # The player moved the view this frame: the camera goes there at once
+var _zoom_anchor_set := false  # A wheel zoom is easing toward the pointer
+var _zoom_anchor_world := Vector2.ZERO  # The map point under the pointer when the wheel turned
+var _zoom_anchor_offset := Vector2.ZERO  # The pointer from the view's centre (viewport px)
+
+# The settings, read twice a second (get_settings copies them), and the cursor confined to match.
+func _read_camera_settings(delta: float) -> void:
+	_settings_check -= delta
+	if _settings_check > 0.0:
+		return
+	_settings_check = 0.5
+	var settings := HeartwoodMemory.get_settings()
+	_edge_scroll = bool(settings.get(EDGE_SETTING, true))
+	_edge_speed = clampf(float(settings.get(EDGE_SPEED_SETTING, 1.0)), 0.25, 1.0)
+	_update_confine()
+
+# Edge scrolling is live: the setting is on, a real focused window, and not a touch device.
+func _edge_active() -> bool:
+	return _edge_scroll and DisplayServer.get_name() != "headless" and get_window().has_focus() and not InputMode.touch()
+
+# Fullscreen with edge scrolling: the cursor can't leave the window (a second monitor). Released when either ends,
+# and only ever undone by the node that set it.
+func _update_confine() -> void:
+	var want := _edge_active() and get_window().mode in [Window.MODE_FULLSCREEN, Window.MODE_EXCLUSIVE_FULLSCREEN]
+	if want and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
+		Input.mouse_mode = Input.MOUSE_MODE_CONFINED
+		_confined = true
+	elif not want and _confined:
+		if Input.mouse_mode == Input.MOUSE_MODE_CONFINED:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_confined = false
+
+func _exit_tree() -> void:
+	if _confined and Input.mouse_mode == Input.MOUSE_MODE_CONFINED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_confined = false
+
+# The player moves the view by `by` (map px): at once, ending any glide or zoom-to-pointer.
+func _pan_now(by: Vector2) -> void:
+	target_position += by
+	_snap = true
+	_glide_points = PackedVector2Array()
+	_zoom_anchor_set = false
+
+# The pointer within EDGE_MARGIN of a window edge pans that way, at the keyboard's speed × the setting.
+func _edge_scroll_pan(delta: float) -> void:
+	if _dragging or not _glide_points.is_empty() or not _edge_active() or modal_open():
+		return  # (A glide, the first-run tour or a jump to a Warden, isn't cut short by a pointer resting at an edge)
+	var window := get_window()
+	if not Rect2i(window.position, window.size).has_point(DisplayServer.mouse_get_position()):
+		return  # The pointer left the window (windowed mode): no scrolling from its last position
+	var view := get_viewport().get_visible_rect().size
+	var mouse := get_viewport().get_mouse_position()
+	var direction := Vector2.ZERO
+	if mouse.x <= EDGE_MARGIN:
+		direction.x -= 1.0
+	elif mouse.x >= view.x - 1.0 - EDGE_MARGIN:
+		direction.x += 1.0
+	if mouse.y <= EDGE_MARGIN:
+		direction.y -= 1.0
+	elif mouse.y >= view.y - 1.0 - EDGE_MARGIN:
+		direction.y += 1.0
+	if direction != Vector2.ZERO:
+		_pan_now(direction.normalized() * camera_speed * _edge_speed * delta)
+
+# Middle-mouse drag: the map follows the pointer (started on the map in _unhandled_input; motion read here so it
+# keeps going over a panel).
+func _input(event: InputEvent) -> void:
+	if not _dragging or not event is InputEventMouseMotion:
+		return
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or modal_open():
+		_dragging = false
+		return
+	_pan_now(-(event as InputEventMouseMotion).relative / camera_2d.zoom)
+
+# While a wheel zoom eases, the map point that was under the pointer stays under it.
+func _follow_zoom_anchor() -> void:
+	if not _zoom_anchor_set:
+		return
+	target_position = _zoom_anchor_world - _zoom_anchor_offset / camera_2d.zoom
+	_clamp_camera_to_map()
+	camera_2d.position = target_position
+	if _view_zoom.is_equal_approx(target_zoom):
+		_zoom_anchor_set = false
 
 func _advance_glide(delta: float) -> void:
 	for action in ["move_camera_up", "move_camera_down", "move_camera_left", "move_camera_right"]:
@@ -123,26 +226,38 @@ func _advance_glide(delta: float) -> void:
 
 # H / F: centre on the Heartwood / on the forest's edge.
 func _unhandled_input(event: InputEvent) -> void:
+	# Middle mouse pressed on the map (not over a panel: the UI takes those) starts a drag; its release ends it.
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_MIDDLE:
+		_dragging = (event as InputEventMouseButton).pressed and not modal_open()
+		return
 	var map_generator = get_node_or_null("%MapGenerator")
 	if map_generator == null:
 		return
 	if event.is_action_pressed("center_heartwood"):
 		target_position = MAP_GRID.calculate_map_position(map_generator.endPath)
 		_glide_points = PackedVector2Array()
+		_zoom_anchor_set = false
 	elif event.is_action_pressed("center_start"):
 		target_position = MAP_GRID.calculate_map_position(map_generator.startPath)
 		_glide_points = PackedVector2Array()
+		_zoom_anchor_set = false
 	# Wheel zoom here, not polled: a wheel over a panel (the Codex, Dreams this run, settings …) is
 	# used by the UI and never reaches this (screens_ui.md: UI scrolling never moves the map).
 	elif event.is_action_pressed("zoom_in") and not modal_open():
-		zoom_by_step(1.0)
+		zoom_by_step(1.0, true)
 	elif event.is_action_pressed("zoom_out") and not modal_open():
-		zoom_by_step(-1.0)
+		zoom_by_step(-1.0, true)
 
-func zoom_by_step(direction: float) -> void:
+# `toward_pointer` (the wheel): the map point under the pointer stays under it while the zoom eases.
+func zoom_by_step(direction: float, toward_pointer := false) -> void:
 	var zoom_min := _get_zoom_out_min()
 	target_zoom = (target_zoom * pow(zoom_step, direction)).clamp(Vector2.ONE * zoom_min,
 		Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
+	if toward_pointer and DisplayServer.get_name() != "headless":  # (Headless has no pointer: tests zoom on the centre)
+		_zoom_anchor_offset = get_viewport().get_mouse_position() - get_viewport().get_visible_rect().size / 2.0
+		_zoom_anchor_world = camera_2d.position + _zoom_anchor_offset / camera_2d.zoom
+		_zoom_anchor_set = true
+		_glide_points = PackedVector2Array()
 
 # A full-screen screen is up (pause menu with its Codex / settings, Dream, Omen, Remember, family
 # pick, results, boss dossier, nightmare card): the map stays put under it.
@@ -176,7 +291,7 @@ func _handle_input(delta: float) -> void:
 	if Input.is_action_pressed("move_camera_right"):  # D
 		direction.x += 1
 	if direction != Vector2.ZERO:
-		target_position += direction.normalized() * camera_speed * delta
+		_pan_now(direction.normalized() * camera_speed * delta)  # WASD and the arrows: one speed, no easing
 	var zoom_min := _get_zoom_out_min()
 	target_zoom = target_zoom.clamp(Vector2.ONE * zoom_min, Vector2.ONE * maxf(camera_zoom_in_max, zoom_min))
 
@@ -201,6 +316,9 @@ func _get_zoom_out_min() -> float:
 # Smoothly move the camera to the target position.
 # Using 1 - exp(-k * delta) makes the smoothing feel the same at any frame rate.
 func _smooth_camera_movement(delta: float) -> void:
+	if _snap:  # The player is panning (keys, edge, drag): immediate, so nothing drifts on after release
+		camera_2d.position = target_position
+		return
 	camera_2d.position = camera_2d.position.lerp(target_position, 1.0 - exp(-movement_smoothness * delta))
 
 # Smoothly adjust the camera's zoom level

@@ -141,6 +141,11 @@ func _ready() -> void:
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
 	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
+	# The camera (screens_ui.md "HUD notes"; game_camera_node.gd EDGE_SETTING / EDGE_SPEED_SETTING): edge scrolling
+	# on by default, its speed a share of the keyboard's (100 = the same).
+	_toggle(gameplay, "Edge scrolling", "edge_scroll", true,
+		"The pointer at a screen edge moves the camera. In fullscreen the pointer stays inside the window.")
+	_slider(gameplay, "Edge scrolling speed", "edge_scroll_speed", 0.25, 1.0, 0.05)
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")

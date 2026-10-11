@@ -62,7 +62,7 @@ func _run() -> void:
 	_check(forecast != null, "HUD has a top-right maze Dew forecast")
 	if forecast != null:
 		hud._update_maze_income()
-		_check(forecast.text == "+0", "HUD uses next-rest projection rather than raw route reward")
+		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(0, true), "HUD uses next-rest projection rather than raw route reward")
 		_check(main.get_node("%PathLabel").tooltip_text.contains("4 extra defended") and main.get_node("%PathLabel").tooltip_text.contains("20 Dew"), "road tooltip explains maze reward rate and cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}
@@ -73,7 +73,7 @@ func _run() -> void:
 	director.set_process(false)
 	if forecast != null:
 		hud._update_maze_income()
-		_check(forecast.text == "+%d" % expected, "forecast follows the next-rest reward")
+		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(expected, true), "forecast follows the next-rest reward")
 	var before := run.dew
 	var base: int = director.get_rest_bonus(1) + director.perfect_block_bonus
 	director._pay_rest_bonus()

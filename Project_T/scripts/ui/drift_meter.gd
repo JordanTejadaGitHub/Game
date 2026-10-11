@@ -113,7 +113,8 @@ func _ready() -> void:
 	_hide_arrow.focus_mode = Control.FOCUS_NONE
 	_hide_arrow.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
 	_hide_arrow.custom_minimum_size = Vector2(48, 48)
-	_hide_arrow.add_theme_font_size_override("font_size", 24)
+	_hide_arrow.theme_type_variation = &"HudButton"  # The same frame and drawn arrow as the Warden bar's (screens_ui.md "HUD notes")
+	_hide_arrow.draw.connect(_draw_hide_arrow)
 	_hide_arrow.pressed.connect(func() -> void: set_hidden(not hidden_by_player))
 	get_parent().add_child.call_deferred(_hide_arrow)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -202,11 +203,21 @@ func set_hidden(hidden: bool) -> void:
 	refresh()
 	_fit_hide_arrow()
 
+# The hide arrow's chevron, drawn (no font glyph), pointing along its "arrow" meta: the same as the Warden bar's
+# (hud.gd _draw_hide_arrow).
+func _draw_hide_arrow() -> void:
+	var along: Vector2 = _hide_arrow.get_meta(&"arrow", Vector2.RIGHT)
+	var across := Vector2(-along.y, along.x)
+	var centre := _hide_arrow.size / 2.0
+	_hide_arrow.draw_polyline(PackedVector2Array([centre - along * 4.0 + across * 8.0, centre + along * 4.0,
+		centre - along * 4.0 - across * 8.0]), _hide_arrow.get_theme_color(&"font_color"), 2.0, true)
+
 func _fit_hide_arrow() -> void:
 	if not is_instance_valid(_hide_arrow):
 		return
-	_hide_arrow.text = "‹" if hidden_by_player else "›"
-	_hide_arrow.tooltip_text = "Show DPS meter" if hidden_by_player else "Hide DPS meter"
+	_hide_arrow.set_meta(&"arrow", Vector2.LEFT if hidden_by_player else Vector2.RIGHT)  # Points where the meter goes
+	_hide_arrow.tooltip_text = "Show damage meter" if hidden_by_player else "Hide damage meter"
+	_hide_arrow.queue_redraw()
 	_hide_arrow.offset_right = -16.0 if hidden_by_player else offset_left - 4.0
 	_hide_arrow.offset_left = _hide_arrow.offset_right - 48.0
 	_hide_arrow.offset_top = offset_top
