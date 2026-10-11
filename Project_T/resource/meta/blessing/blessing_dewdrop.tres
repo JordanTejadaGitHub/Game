@@ -8,6 +8,7 @@ id = "blessing_dewdrop"
 display_name = "Stored Rain"
 description = "A targeted water attack on an already {damp} nightmare removes Damp and suppresses the whole attack, including splash, to leave a puddle for 4 s. The next different living ground nightmare entering it takes one doubled-base-power, non-critical hit; splash and target-conditional bonuses are not replayed. One puddle per Warden; a new one replaces the old."
 rarity = 1
+retired = true
 kind = 3
 tags = Array[String](["water"])
 requires = Array[String](["dewdrop"])

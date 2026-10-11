@@ -908,6 +908,8 @@ func _has_work() -> bool:
 			_out = _out.filter(func(n) -> bool: return is_instance_valid(n))
 			if not _out.is_empty():
 				return false
+	if _dream_state != null and _dream_state.calling == "nestling" and CALLINGS.uses_perches(self):
+		return has_enemy_in_range() or not CALLINGS.perch_targets(self).is_empty()  # Perches: from another Warden too
 	return has_enemy_in_range()  # Performance: whether one is in range, not which (find_target scores them)
 
 
@@ -2220,6 +2222,18 @@ func turnover_active() -> bool:
 	return _turnover_until > _anim_time and _has_rule(&"target_turnover")
 
 const DREAM_BUILD_RULES := preload("res://scripts/tower/dream_build_rules.gd")
+const CALLINGS := preload("res://scripts/combat/callings.gd")  # The first family's built-in rule (dream_council_review.md 11)
+var _volley_target: WeakRef = null  # Volley (Acorn's Calling): the nightmare this Warden's forced attack aims at
+
+# Volley: attack now, at `target` if this Warden aims and can reach it.
+func volley_now(target) -> void:
+	if not _t_attacks or withered_left > 0.0:
+		return
+	_cooldown = 0.0
+	_idle_search = 0.0
+	set_meta(CALLINGS.VOLLEY_META, true)
+	_volley_target = weakref(target) if is_instance_valid(target) else null
+
 var _build_derived_attack := false
 var _build_landing_context := false
 var _build_landing_primary: Node2D = null
@@ -2258,6 +2272,8 @@ func _release() -> void:
 		_boosted(boost, _release_attack)
 	if _dream_state != null and not _build_derived_attack:
 		_dream_state.on_original_attack_released(self)
+		if _dream_state.calling == "acorn":
+			CALLINGS.volley_release(self, _last_fired if is_instance_valid(_last_fired) and not _last_fired.is_cleansed else null)  # Volley
 	# Flurry (Grove card): every 5th attack fires twice; the extra shot never counts toward it.
 	if _dream_state and _has_rule(&"flurry") and _attack_count % DreamState.FLURRY_EVERY == 0:
 		_build_derived_attack = true
@@ -2269,6 +2285,7 @@ func _release() -> void:
 # (the Magpie's stolen buffs).
 const HIT_CARD_RULES: Array[StringName] = [&"crush", &"crowd_breaker", &"shiny_things"]  # (Patient Aim is crit chance now: DreamState.get_crit_chance_bonus)
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
+const UNIQUE_COOP_RULES: Array[StringName] = [&"crosswind", &"opening_fracture", &"afterroot"]  # DreamCooperation.before_hit / after_hit
 
 # True if any of `rules` is owned; cached with the shared rule cache under `key`.
 func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
@@ -2540,6 +2557,8 @@ func _release_attack() -> void:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
 			var swing := HelperCommons.area_attack_extra(self) if _dream_state else 0.0
+			if _dream_state and _dream_state.calling == "whirligig":
+				swing += CALLINGS.tailwind_wider(self)  # Tailwind: a pulse inside another wind Warden's reach spreads wider
 			if swing > 0.0:
 				in_range = _enemies_within_px(get_range_pixels() + swing * MAP_GRID.cell_size.x)  # Wide Swing: this pulse wider
 			if _dream_state:
@@ -2640,9 +2659,12 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		return false
 	var unique_direct := not effect_tick and not is_area and attack_data.attack_kind != TowerData.AttackKind.BEAM
 	var unique_hit_bonus := 1.0
+	# Performance (council): the cooperation bookkeeping only runs when one of its three cards is owned.
+	var unique_coop: bool = _dream_state != null and _any_rule(&"__unique_coop", UNIQUE_COOP_RULES)
 	if _dream_state != null:
 		_dream_state.unique_growth.before_primary(self, enemy, unique_direct)
-		unique_hit_bonus = DreamState.UNIQUE_COOP.before_hit(self, enemy, unique_direct, _dream_state._game_clock)
+		if unique_coop:
+			unique_hit_bonus = DreamState.UNIQUE_COOP.before_hit(self, enemy, unique_direct, _dream_state._game_clock)
 	var is_crit := false if effect_tick else (roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT)
 	if not effect_tick and _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
@@ -2711,8 +2733,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if reaction.tag != &"":
 		combo = reaction.tag
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
-	if build_rules != null and _has_rule(&"rhythm"):
-		dealt *= 0.90  # Price direct damage only; native status potency remains unchanged.
+	# (Fifth Beat's 10% price on every direct hit is gone: owner decision, dream_council_review.md 9.1.)
 	var health_before: int = enemy.health
 	var carry_before: float = enemy._soothe_carry
 	var previous_clean := _clear_minds_hit
@@ -2749,7 +2770,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		_shattering_blow(enemy, dealt)
 	if _dream_state and _has_rule(&"thousand_cuts") and is_instance_valid(enemy):
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
-	if _dream_state != null:
+	if unique_coop:
 		DreamState.UNIQUE_COOP.after_hit(self, enemy, is_crit, unique_direct, _dream_state._game_clock)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	var previous_native_direct := _unique_native_direct
@@ -2764,6 +2785,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if is_instance_valid(_kin):
 		_kin_night_chimes(enemy)
 		_kin.note_hit(self, enemy, dealt)  # Harmony strike when its kin hit this nightmare within 1 s
+	if _dream_state != null and _dream_state.calling != "":
+		CALLINGS.after_hit(self, enemy, dealt, is_area, effect_tick, combo)  # Lantern Ring, Splashback, Ringing, Perches
 	if is_crit:
 		crit_landed.emit(self, enemy)
 	return is_crit
@@ -3057,7 +3080,11 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone
 	var unique_before: int = enemy.statuses.applications
 	var unique_was_present: bool = enemy.statuses.has(status)
+	if _dream_state != null and _dream_state.calling == "rootling":
+		stacks = CALLINGS.anvil_stacks(self, enemy, status, stacks)  # Anvil: double stacks on a Rooted nightmare
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	if status == EnemyStatuses.SPORED and _dream_state != null and _dream_state.calling == "sporeling":
+		CALLINGS.take_root(self, enemy)  # Take Root: half the Poisoned cap Roots it, once
 	if _dream_state != null and stacks > 0 and native:
 		var accepted: bool = enemy.statuses.applications > unique_before
 		var previous_native_context = get_meta(&"unique_native_status_context") if has_meta(&"unique_native_status_context") else null
@@ -3090,6 +3117,8 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
 	if splash > 0.0 and _dream_state:
 		splash += HelperCommons.area_attack_extra(self) * MAP_GRID.cell_size.x  # Wide Swing: every 3rd splash wider
+		if _dream_state.calling == "whirligig":
+			splash += CALLINGS.tailwind_wider(self) * MAP_GRID.cell_size.x  # Tailwind: a splash thrown from inside a wind Warden's reach
 	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
 			and PathCloud.fog_at(get_tree(), where, "mistveil"):
 		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool
@@ -3201,18 +3230,28 @@ func fire_at(target: Node2D) -> void:
 		if was_primary:
 			note_primary_target(target)
 	_last_fired = target
-	var on_land := _build_projectile_landed.bind(attack_data, _hit_boost, was_primary, not _build_derived_attack)
+	var from := global_position + tower_data.get_attack_origin()
+	var calling: String = _dream_state.calling if _dream_state != null else ""
+	if calling == "nestling":
+		var perch = CALLINGS.perch_for(self, target)  # Perches: the bird launches from the Warden that reaches it
+		if perch != null:
+			from = perch.global_position
+	# Tailwind: a shot through another wind Warden's reach flies on to a second nightmare when it lands.
+	var tailwind: bool = calling == "whirligig" and not _build_derived_attack and is_instance_valid(target) \
+		and CALLINGS.shot_in_tailwind(self, from, target.global_position)
+	var on_land := _build_projectile_landed.bind(attack_data, _hit_boost, was_primary, not _build_derived_attack, tailwind)
 	var projectile := Projectile.new(target, attack_data, on_land)
 	if attack_data.projectile_returns and _dream_state:
 		projectile.return_multiplier = _dream_state.get_swoop_return_multiplier()  # Homing Instinct (swoops only)
 	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
-	projectile.position = global_position + tower_data.get_attack_origin()
+	projectile.position = from
 	add_child(projectile)
 
 # Capture primary identity with each flight, so switching while it is airborne does not reclassify it.
-func _build_projectile_landed(target, where: Vector2, data: TowerData, boost: float, was_primary: bool, was_original: bool) -> void:
+func _build_projectile_landed(target, where: Vector2, data: TowerData, boost: float, was_primary: bool, was_original: bool,
+		tailwind: bool = false) -> void:
 	var previous_original := _build_derived_attack
 	_build_derived_attack = not was_original
 	var previous_context := _build_landing_context
@@ -3223,6 +3262,16 @@ func _build_projectile_landed(target, where: Vector2, data: TowerData, boost: fl
 	_build_derived_attack = previous_original
 	_build_landing_context = previous_context
 	_build_landing_primary = previous_primary
+	if tailwind and is_inside_tree():
+		var next := CALLINGS.tailwind_next(self, target, where)  # Tailwind: the shot flies on (a smaller hit, never again)
+		if next != null:
+			var onward := Projectile.new(next, data, _tailwind_landed.bind(data, boost * CALLINGS.TAILWIND_SHARE))
+			onward.position = where
+			add_child(onward)
+
+func _tailwind_landed(target, _where: Vector2, data: TowerData, boost: float) -> void:
+	if target != null and is_instance_valid(target) and not target.is_cleansed:
+		run_as(data, boost, hit.bind(target, 1.0, false, ROLL_CRIT, &"tailwind"))
 
 # A projectile fired with `data` at ×`boost` lands. A bound method: the lambda this replaced lost its
 # captures by the time the projectile landed ("Lambda capture was freed") and dealt nothing.
@@ -4129,8 +4178,10 @@ func find_targets(count: int) -> Array:
 	var mode := get_target_mode()
 	# Perf (stacked drifts): each nightmare scored once, not twice per comparison inside the sort.
 	var scored: Array = []
-	for enemy in get_enemies_in_range():
-		scored.append([_target_score(enemy, mode), enemy])
+	var calling: String = _dream_state.calling if _dream_state != null else ""
+	var candidates: Array[Node2D] = CALLINGS.perch_targets(self) if calling == "nestling" and CALLINGS.uses_perches(self) else get_enemies_in_range()
+	for enemy in candidates:
+		scored.append([_target_score(enemy, mode) + (1e9 if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy) else 0.0), enemy])
 	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 	var ranked: Array = []
 	for i in mini(count, scored.size()):
@@ -4987,8 +5038,17 @@ func find_target() -> Node2D:
 		mode = TowerData.TargetMode.FASTEST  # Flock Together: hunts the fastest nightmare
 	var best: Node2D = null
 	var best_score := -INF
-	for enemy in get_enemies_in_range():
+	var calling: String = _dream_state.calling if _dream_state != null else ""
+	if _volley_target != null:  # Volley: this forced attack aims where the Acorn aimed, if it can reach
+		var forced = _volley_target.get_ref()
+		_volley_target = null
+		if is_instance_valid(forced) and not forced.is_cleansed and get_enemies_in_range().has(forced):
+			return forced
+	var candidates: Array[Node2D] = CALLINGS.perch_targets(self) if calling == "nestling" and CALLINGS.uses_perches(self) else get_enemies_in_range()
+	for enemy in candidates:
 		var score := _target_score(enemy, mode)
+		if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy):
+			score += 1e9  # Anvil: a Rooted nightmare in reach comes first
 		if score > best_score:
 			best_score = score
 			best = enemy

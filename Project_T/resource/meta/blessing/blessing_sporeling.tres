@@ -8,6 +8,7 @@ id = "blessing_sporeling"
 display_name = "Spore Reserve"
 description = "Switching primary targets moves up to 3 {spored} stacks from the previous living target to the new target, keeping their remaining time. Dead targets provide no stacks; this transfers rather than copies."
 rarity = 1
+retired = true
 kind = 3
 tags = Array[String](["spore"])
 requires = Array[String](["sporeling"])

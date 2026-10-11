@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rhythm"
 display_name = "Fifth Beat"
-description = "Every fifth consecutive original primary hit on the same nightmare echoes after 0.25 s at the full strength of that hit. Original direct hits deal 10% less. The echo is lost if its nightmare or Warden is gone."
+description = "Every 5th hit in a row on the same nightmare strikes again a moment later. Aiming Wardens only."
 rarity = 0
 kind = 3
 tags = Array[String](["swift"])

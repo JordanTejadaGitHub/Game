@@ -13,6 +13,7 @@ signal sapling_offered  # The Heartwood Sapling's card appears (once, after the 
 signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer and the pick
 
 const CARD_SIZE := Vector2(300, 400)  # Light pass (UI Asset's last page): 300 wide, the "Wake …" action at the foot
+const CALLING_FULL_HEIGHT := 620.0  # Below this viewport height a first-pick card shows only its Calling's name
 const CARD_PADDING := 32.0  # The box's top + bottom offsets inside a card
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
@@ -116,7 +117,10 @@ func get_available() -> Array[TowerData]:
 			result.append(data)
 	return result
 
+var _reason: StringName = &"first"  # The pick on screen (the first pick brings the family's Calling)
+
 func show_pick(reason: StringName = &"first") -> void:
+	_reason = reason
 	var available := get_available()
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else pick_count()
@@ -284,6 +288,11 @@ func choose(data: Resource) -> void:
 		dream_state.take(data)  # A Family Blessing
 	else:
 		dream_state.unlocked[data.get_id()] = true
+		if _reason == &"first" and data is TowerData and data.line != "memory":
+			dream_state.set_calling(data.get_id())  # The first family is the run's class (dream_council_review.md 11)
+			var hud := get_parent()
+			if dream_state.calling_title() != "" and hud != null and hud.has_method("show_toast"):
+				hud.show_toast("Calling: %s. %s" % [dream_state.calling_title(), IconInfo.format(dream_state.calling_text())])
 		dream_state.unlocks_changed.emit()
 	if should_offer_sapling():
 		_show_sapling()  # Right after the drift 50 family pick (run_design.md "The Heartwood Sapling")
@@ -435,6 +444,7 @@ func _make_card(data: TowerData) -> Button:
 	for pair in [["Sprout into it", _sprout_into_cost(data)], ["Plant", data.cost]]:
 		costs.add_child(_cost_part(pair[0], int(pair[1])))
 	_add_routes(box, data)
+	var calling_on_foot := _add_calling(box, data)  # A short screen: the Calling's name goes on the Wake button
 	var spare := Control.new()
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -442,6 +452,8 @@ func _make_card(data: TowerData) -> Button:
 	var wake := Button.new()  # Drawn as the framed primary; the press is the card's
 	wake.name = "Wake"
 	wake.text = "Wake %s" % data.display_name
+	if calling_on_foot != "":
+		wake.text = "Wake %s · %s" % [data.display_name, calling_on_foot]
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
@@ -805,3 +817,29 @@ func _add_memory_border(button: Button) -> void:
 		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
 		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
 	border.add_child(pulse)
+
+# The first pick only: the family's Calling, the built-in rule it brings for the whole run
+# (documentation/dream_council_review.md 11). Later picks bring none, so their cards don't show one.
+# Returns the Calling's name when the screen is too short for its lines (phones in landscape): the caller puts
+# it on the Wake button instead, and the toast after the pick gives the rule. "" otherwise.
+func _add_calling(box: VBoxContainer, data: TowerData) -> String:
+	if _reason != &"first" or dream_state.calling != "" or DreamState.CALLINGS.title(data.get_id()) == "":
+		return ""
+	if get_viewport_rect().size.y < CALLING_FULL_HEIGHT:
+		return DreamState.CALLINGS.title(data.get_id())
+	var title := Label.new()
+	title.name = "CallingName"
+	title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(title, 14)
+	title.add_theme_color_override("font_color", UiStyle.GOLD)
+	box.add_child(title)
+	var rule := Label.new()
+	rule.name = "CallingRule"
+	rule.text = IconInfo.format(DreamState.CALLINGS.text(data.get_id()))
+	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rule.add_theme_font_size_override("font_size", 14)
+	rule.add_theme_color_override("font_color", UiStyle.INK)
+	box.add_child(rule)
+	return ""

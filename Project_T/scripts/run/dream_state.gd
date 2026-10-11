@@ -320,6 +320,27 @@ var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var mystery_spent := false  # Mystery Dream was taken (it became another card; one copy)
 var waking_legendaries := false  # Waking Dreams: the next offer is 3 Legendaries (then every offer shows 2 cards)
+# The first family's Calling (documentation/dream_council_review.md 11): the family root taken at the run's FIRST family
+# pick ("" = none: dev runs with everything unlocked, saves from before Callings). Kept all run; saved.
+const CALLINGS := preload("res://scripts/combat/callings.gd")
+signal calling_changed(family: String)
+var calling := ""
+
+# The first family pick was made (FamilyPickScreen). Later picks never change the Calling.
+func set_calling(family: String) -> void:
+	if calling != "" or not CALLINGS.LINES.has(family):
+		return
+	calling = family
+	for tower in _towers():
+		tower.clear_dream_cache()
+	calling_changed.emit(family)
+
+# "Take Root" and its rule text for the HUD and the family pick ("" when the run has no Calling).
+func calling_title() -> String:
+	return CALLINGS.title(calling)
+
+func calling_text() -> String:
+	return CALLINGS.text(calling)
 const WAKING_LEGENDARIES := 3
 const WAKING_OFFER_SIZE := 2
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
@@ -360,6 +381,7 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	Tower._frost_drift = -1  # First Frost's count is static: a new run never inherits the last run's drift
 	# The price statics outlive a run (a sim or test may have changed them): each run starts from its own exports.
 	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier}
 	Tower.rank_costs = rank_costs.duplicate()
@@ -1563,7 +1585,7 @@ func get_effective_rank(tower: Tower) -> int:
 func get_live_bonus_text(card: UpgradeData) -> String:
 	match card.rule_id:
 		&"few_and_mighty":
-			return "+%d%%" % roundi(100 * FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - count_attackers(), 0))
+			return "+%d%%" % roundi(100 * minf(0.8, FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - count_attackers(), 0)))  # Capped like the effect (DreamEffects._few_and_mighty)
 		&"last_light":
 			return "×2" if count_attackers() <= LAST_LIGHT_MAX else "off"
 		&"many_hands":
@@ -2636,6 +2658,14 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 	match card.rule_id:
 		&"sprout_chorus":
 			return thicket_possible()
+		&"shared_mycelium":
+			return owned_statuses().has(EnemyStatuses.SPORED)  # (Its Needs stay its predecessor's: unique_dream_successors.md)
+		&"crossfire":
+			return count_attackers() >= 2  # Two Wardens must be able to hit one nightmare
+		&"drumbeat":
+			return count_attackers() >= 3  # An attacker needs two attacking neighbours
+		&"old_growth":
+			return _towers().any(func(t: Tower) -> bool: return t.tower_data.can_attack and drifts_stood(t) >= 5)  # Steadfast
 		&"specialist":
 			var minimum := 3 if act == 1 else 1
 			return _towers().any(func(t: Tower) -> bool: return t.rank >= minimum)
@@ -2888,6 +2918,7 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
+		"calling": calling,
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
@@ -2898,6 +2929,7 @@ func load_save(data: Dictionary) -> void:
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
+	calling = String(data.get("calling", ""))
 	waking_legendaries = bool(data.get("waking_legendaries", false))
 	sprouts_planted = int(data.get("sprouts_planted", 0))
 	unlocked.clear()
@@ -5161,6 +5193,8 @@ func on_original_attack_released(tower: Tower, _primary: Node2D = null) -> void:
 			cycle.clear()
 		_role_relay[key] = cycle
 
+const STEADFAST_HOLD := 0.4  # Seconds
+
 func on_original_primary_hit(tower: Tower, enemy: Node2D) -> void:
 	if not has_rule(&"old_growth") or not is_instance_valid(enemy) or enemy.health <= 0:
 		return
@@ -5174,7 +5208,15 @@ func on_original_primary_hit(tower: Tower, enemy: Node2D) -> void:
 	var id := enemy.get_instance_id()
 	if _game_clock < float(_role_pinned.get(id, -INF)):
 		return
-	if enemy.statuses.pin_steadfast():
+	# A normal Rooted (council fix): it goes through Tower.hold, so the Hold cooldown, Reactions and Rooted cards all see it.
+	if enemy.statuses.is_held():
+		return
+	if not enemy.has_method("apply_status"):  # A bare stand-in (tools, old tests): the plain pin
+		if enemy.statuses.pin_steadfast():
+			_role_pinned[id] = _game_clock + 4.0
+		return
+	tower.hold(enemy, STEADFAST_HOLD)
+	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		_role_pinned[id] = _game_clock + 4.0
 
 func canopy_range_bonus(tower: Tower) -> float:

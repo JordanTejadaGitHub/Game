@@ -1283,14 +1283,14 @@ func _test_blessing_dream(main: Node) -> void:
 	dreams.unlocked["sporeling"] = true
 	dreams.grown_wardens["sporeling"] = true
 	dreams.unlocks_changed.emit()
-	_check(dreams.can_offer(blessing, 2), "…offered once you own Sporeling")
+	_check(blessing.retired and not dreams.can_offer(blessing, 2), "…never offered: Spore Reserve is retired (its job is Sporeling's Calling, dream_council_review.md 11)")
 	var seen := false
-	for i in 200:
+	for i in 50:
 		dreams.dreams_seen = 0
-		if dreams.make_offer(30).has(blessing):  # Act 2 (Blessings may wait for it, Meta)
+		if dreams.make_offer(30).has(blessing):
 			seen = true
 			break
-	_check(seen, "a Blessing can turn up as a Dream")
+	_check(not seen, "a retired Blessing never turns up as a Dream")
 	dreams.take(blessing)
 	_check(not dreams.can_offer(blessing, 2), "…and only once")
 	_reset_dreams(main)

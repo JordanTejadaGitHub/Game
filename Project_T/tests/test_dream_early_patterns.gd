@@ -44,7 +44,7 @@ func _run() -> void:
 	baseline_carry = a._soothe_carry
 	one.hit(a, 1.0, false, Tower.NO_CRIT)
 	var priced: float = baseline_health - a.health + a._soothe_carry - baseline_carry
-	_check(is_equal_approx(priced, baseline * 0.90), "original direct hits pay exactly ten percent")
+	_check(is_equal_approx(priced, baseline), "Fifth Beat no longer prices original direct hits (owner decision 2026-10-11)")
 	rules.reset()
 	one.note_primary_target(a)
 	var speed: float = one.get_attacks_per_second()

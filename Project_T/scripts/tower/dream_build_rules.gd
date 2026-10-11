@@ -70,7 +70,7 @@ func direct_damage(tower, enemy, damage: float, is_primary: bool, actual_damage:
 	if damage <= 0.0:
 		return
 	if is_primary:
-		pattern_hit(tower, enemy, damage if actual_damage < 0.0 else actual_damage)
+		pattern_hit(tower, enemy, damage)  # Before defences: the echo and the bolt go through take_damage themselves
 	var key: int = enemy.get_instance_id()
 	var entry: Dictionary = stones.get(key, {})
 	var source = entry.source.get_ref() if not entry.is_empty() else null
@@ -92,7 +92,7 @@ func direct_damage(tower, enemy, damage: float, is_primary: bool, actual_damage:
 		if follower != null:
 			follower.take_damage(saved * 0.75, "stone", false, false, source, &"stone_relay")
 			cue(follower.global_position, Palette.MOONPATH)
-	if is_primary and living(enemy) and tower.tower_data.line == "stone" and tower._dream_state != null and tower._dream_state.has_card("blessing_pebbling"):
+	if is_primary and living(enemy) and tower.tower_data.line == "stone" and tower._dream_state != null and (tower._dream_state.has_card("blessing_pebbling") or tower._dream_state.calling == "pebbling"):
 		stones[key] = {"target": weakref(enemy), "source": weakref(tower), "damage": damage}
 		cue(enemy.global_position, Palette.MOONPATH)
 

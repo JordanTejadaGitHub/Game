@@ -8,6 +8,7 @@ id = "blessing_pebbling"
 display_name = "Stone Relay"
 description = "An original stone hit embeds one stone per living target, shared across all stone Wardens. The next direct hit from another family spends it to strike the first living follower along the route for 75% of the embedding hit. No follower: the stone is still spent."
 rarity = 1
+retired = true
 kind = 3
 tags = Array[String](["stone"])
 requires = Array[String](["pebbling"])

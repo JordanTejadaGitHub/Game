@@ -1,5 +1,9 @@
 # Dream Design: the in-run upgrade pool
 
+## Callings and council fixes — 2026-10-11 (after the integration below)
+
+The first family is the run's class: it brings a **Calling** (one built-in rule, kept all run). Stone Relay, Stored Rain and Spore Reserve left the Dream pool; their jobs are Callings now. Fifth Beat has no 10% price. The council review, the nine Callings, the checks and what was built: `dream_council_review.md` (sections 11–12 are current).
+
 ## Main integration of Dream build overhaul — 2026-10-11
 
 This section supersedes the prototype's original rarity/act gates and Rhythm descriptions. These approved prototype changes are integrated into the main checkout; newer status, unique successor, maze economy and onboarding changes remain. Start a new run to sample the corrected pool; old saved Dreams remain readable.
@@ -71,7 +75,7 @@ This section is current and supersedes conflicting older card tables below. Valu
 | `switchback` | Switchback | Rounding a bend in attacker reach slows 25% for 1 second; 3-second cooldown per nightmare, shared across covering Wardens. | Starting. |
 | `scarred_bark` | Scarred Bark | Future Dew pots +2% per actual leaf lost, capped +20%. Healing does not reset losses; prevented losses and maximum-leaf clamps do not count. | Grove; II unavailable pending its own design. |
 
-Canopy (Grove): each attacker milestone at 20, 30, and 40 checked at drift start awards a permanent +12% damage, once each. Selling retains earned bonuses; replanting alone cannot advance them. Old saves retain already-earned Canopy bonuses.
+Canopy (Grove): superseded by the role prototype above. Attackers in a connected cluster of six or more gain 1 range while that cluster has attacked six different nightmares in the last 3 s. (The old milestone version, +12% at 20, 30 and 40 attackers, only survives as bonuses already earned in old saves.)
 
 Guiding Light requires Lanternmoth, without Cozy Corners. Monoculture ignores Sprouts for its single-line condition and grants them no bonus. The Quiet Ones requires three Wardens with outputs already amplified by its existing hooks; plain walls, catcher income and Dreamcatcher effects do not qualify. These cards retain their starting/Grove placements and Deepened effects.
 

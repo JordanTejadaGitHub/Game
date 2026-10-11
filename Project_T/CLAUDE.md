@@ -456,7 +456,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (`pull_tiles`, `pull_once`: Rootcurl, Long Way Home), Hold (`hold_targets`: Tangleroot, Snugroot),
   Mark all at `marked_bonus` (Beacon; `EnemyStatuses.marked_extra`). Auras: `aura_radius` (1.5 = the 8
   around), `aura_per_warden` / `aura_max` (Grove Heart; Acorn +5%, Elder Stump +20% speed).
-  Dewcatcher = `dew_per_drift`; Wellspring = `rest_interest` (cap per Warden; all Wellsprings together pay at most `DewCatch.INTEREST_CAP` 120
+  Dewcatcher = `dew_per_drift`; Wellspring = `rest_interest` (cap per Warden; all Wellsprings together pay at most `DewCatch.INTEREST_CAP` 130
   a rest). Monsoon = PULSE + `rain`; Morning Fog = CLOUD + `cloud_slow` / `cloud_drowsy_per_second`.
   `tests/test_family_finals.gd`.
 - **Crowned Reactions** (a Reaction on a nightmare with a third status; `Reactions.CROWNED_BASE`):
@@ -636,3 +636,5 @@ No commit or push is authorized by this integration request.
 
 - Rank-V completion (2026-10-11): four matching picks among the first five grant the existing working signature or role Mastery. Other rank-V Wardens receive All-Rounder: +20% main job, including automatic Heartwood Sapling yield. Repeatable Kindred qualifies; one-time Kindred stays once only. Shared Training needs four matching picks on both kin at rank IV or above; it never grants early All-Rounder. Dreamcatcher bonuses affect actual Caught tick rate; nursery reach remains useful at its discount cap. Tests: test_signatures, test_catchers.
 - HUD arrows hide/reopen the DPS panel and tower bar without losing tower selection. Warden headers display live catcher bowls, catch strength/range and interest/caps. Pause → Replay guides provides animated nurture, maze and catcher explanations while preserving Hints settings and pause ownership.
+## Callings: the first family is the run's class (2026-10-11, uncommitted)
+The family taken at the FIRST family pick brings a Calling: one built-in rule kept all run (later families bring none). `DreamState.calling` (the family root's id, "" = none; `set_calling`, `calling_title` / `calling_text`, signal `calling_changed`; saved as "calling"); `FamilyPickScreen` sets it and shows it on the first pick's cards. Rules, names, texts and numbers: `scripts/combat/callings.gd` (preloaded as `Tower.CALLINGS` / `DreamState.CALLINGS`, no class_name): Take Root (Sporeling), Lantern Ring (Firefly Jar), Splashback (Dewdrop), Ringing (Bellflower), Volley (Acorn), Perches (Nestling), Lodged Stone (Pebbling, reuses `dream_build_rules.gd` stones), Anvil (Rootling), Tailwind (Whirligig). Stone Relay, Stored Rain and Spore Reserve are retired from offers (ids kept). Fifth Beat lost its 10% price; its echo and Crossfire's bolt store the hit before defences. Design, checks and the full fix list: `documentation/dream_council_review.md` sections 11–12. `tests/test_callings.gd`.
