@@ -463,7 +463,7 @@ The owner asked whether Rooting allows interesting builds. From the Reaction and
 
 ---
 
-## 12. Built on 2026-10-11 (uncommitted)
+## 12. Built on 2026-10-11 (committed as 67940fac, not pushed)
 
 The owner chose "bugs + Callings" for the first pass, with parse checks and targeted tests allowed.
 Nothing is committed. The 15-card Commons batch, the text rewrites of section 7 and the new Rares
