@@ -162,7 +162,7 @@ func start_intro() -> void:
 		return
 	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the road to the Heartwood. Dispel them before they arrive: each one that gets through costs leaves.")
 	lesson(&"intro_maze", &"path_length", "Build your maze", "Wardens are walls. Plant Sprouts to attack and Thornwalls to make the road longer. Keep a route to the Heartwood open, then start the drift when you are ready.")
-	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road covered by attackers also earns maze Dew at rests: +1 per %d extra defended cells, up to %d per block. The top-right +Dew counter forecasts the next rest." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP])
+	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road also earns maze Dew at rests: +1 per %d cells your route is longer than the forest's own path, up to %d per block. The number after your Dew total forecasts the next rest." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP])
 
 func skip_intro() -> void:
 	if not INTRO_IDS.has(shown_id):
@@ -319,6 +319,6 @@ func replay_guides() -> void:
 	_replaying = true
 	queue.clear()
 	queue.append([&"discover_nurture", &"rank", "Rank-V bonuses", "Four matching picks among your first five earn a signature or mastery. Other rank-V builds earn All-Rounder: +20% to their main job. Shared Training needs four matching picks on both bonded rank-IV kin."])
-	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Extra road must be covered by attacking Wardens to earn maze Dew. The forecast beside your Dew shows the next rest's reward; each block has a shared cap."])
+	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Every %d cells your walls add to the road earn +1 maze Dew, counted while nightmares walk. The forecast beside your Dew shows the next rest's reward, up to %d a block." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP]])
 	queue.append([&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest."])
 	_show(queue.pop_front())

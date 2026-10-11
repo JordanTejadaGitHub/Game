@@ -44,18 +44,18 @@ func _run() -> void:
 	map.route = _route(8)
 	_check(rules.preview(map, attackers) == 0, "three added cells round down")
 	map.route = _route(13)
-	_check(rules.preview(map, attackers) == 2, "eight added defended cells earn two Dew")
-	_check(rules.preview(map, []) == 0, "empty long corridors earn nothing")
+	_check(rules.preview(map, attackers) == 2, "eight added cells earn two Dew")
+	_check(rules.preview(map, []) == 2 and rules.preview(map) == 2 and rules.added_cells(map) == 8, "an empty wall detour earns the bonus: path length only (maze_economy.md, 2026-10-11)")
 	tower.tower_data.can_attack = false
-	_check(rules.preview(map, attackers) == 0, "support walls do not qualify as attackers")
+	_check(rules.preview(map, attackers) == 2, "Warden coverage no longer matters: non-attackers")
 	tower.tower_data.can_attack = true
 	tower.reach = 64.0
-	_check(rules.preview(map, attackers) == 0, "covering only the original route earns nothing")
+	_check(rules.preview(map, attackers) == 2, "Warden coverage no longer matters: short reach")
 	tower.global_position = Vector2(640, 0)
 	tower.reach = 128.0
-	_check(rules.preview(map, attackers) == 1, "partial extension coverage earns proportionate reward")
+	_check(rules.preview(map, attackers) == 2, "Warden coverage no longer matters: partial reach")
 	tower.reach = 100000.0
-	_check(rules.preview(map, [tower, tower]) == 2, "overlapping attacker ranges count each cell once")
+	_check(rules.preview(map, [tower, tower]) == 2, "more Wardens change nothing")
 	map.route = _route(105)
 	_check(rules.preview(map, attackers) == 20, "reward caps at twenty Dew")
 	rules.sample(1, 1, map, attackers)
@@ -79,8 +79,12 @@ func _run() -> void:
 	map.route = _route(21)
 	shrink.sample(1, 1, map, attackers)
 	shrink.observe(map, [])
-	shrink.observe(map, attackers)
-	_check(shrink.claim(1) == 0, "removing then restoring defense cannot resurrect sampled reward")
+	_check(shrink.projected(1, 1, shrink.preview(map)) == 4, "removing Wardens costs nothing: the route is as long")
+	map.route = _route(5)  # The walls come down mid-drift…
+	shrink.observe(map)
+	map.route = _route(21)  # …and go back up before the rest
+	shrink.observe(map)
+	_check(shrink.claim(1) == 0, "shortening then rebuilding the route cannot resurrect a sampled reward")
 	map.route = _route(21)
 	shrink.sample(2, 1, map, attackers)
 	map.route = _route(9)
@@ -119,7 +123,7 @@ func _run() -> void:
 	_check(fractional.preview(map, attackers) == 0, "missing route never earns a reward")
 	map.route = _route(13)
 	tower.minimum = 1000000.0
-	_check(rules.preview(map, attackers) == 0, "dead zones inside minimum attack range do not earn income")
+	_check(rules.preview(map, attackers) == 2, "attack ranges and dead zones do not matter")
 	tower.minimum = 0.0
 	var forecast = script.new()
 	_check(forecast.projected(1, 1, 20) == 20, "opening quick-rest projection uses its one drift")

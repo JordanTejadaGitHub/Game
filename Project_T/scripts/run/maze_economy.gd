@@ -1,7 +1,10 @@
 extends RefCounted
-# Guaranteed maze income: only added route length AND added defended cells qualify.
-# The generated baseline is immutable, and coverage compares both routes against
-# the same live attackers so natural terrain and overlapping ranges cannot farm Dew.
+# Maze income, by path length only (maze_economy.md "Path length only", user 2026-10-11: "the maze bonus is
+# confusing"): +1 Dew for every CELLS_PER_DEW cells the route is longer than the route the map generated (the
+# baseline, saved with the run), up to BLOCK_CAP a block. Walls alone earn it: no "defended" test, no coverage or
+# attacker comparison. The anti-farm guard stays: each drift snapshots the rate at its start and a shorter route
+# (path_changed, and while nightmares walk) lowers the unpaid snapshots, so lengthening just before the rest or
+# selling walls mid-block doesn't pay.
 const CELLS_PER_DEW := 4
 const BLOCK_CAP := 20
 var _baseline := PackedVector2Array()
@@ -11,40 +14,19 @@ func capture_baseline(map) -> void:
 	if _baseline.is_empty() and map != null:
 		_baseline = map.get_path_from(map.startPath).duplicate()
 
-func preview(map, attackers: Array) -> int:
+# Whole cells the route is longer than the generated one now (0 when it isn't).
+func added_cells(map) -> int:
 	if map == null or _baseline.is_empty():
 		return 0
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var added_length := maxi(0, int(map.route_length(route)) - int(map.route_length(_baseline)))
-	if added_length == 0:
-		return 0
-	var added_covered := maxi(0, _covered(map, route, attackers) - _covered(map, _baseline, attackers))
-	return mini(BLOCK_CAP, floori(float(mini(added_length, added_covered)) / CELLS_PER_DEW))
+	return maxi(0, int(map.route_length(route)) - int(map.route_length(_baseline)))
 
-func _covered(map, route: PackedVector2Array, attackers: Array) -> int:
-	var cells: Dictionary = {}
-	for point in route:
-		var cell := Vector2(floorf(point.x + 0.5), floorf(point.y + 0.5))
-		if cells.has(cell):
-			continue
-		cells[cell] = false
-		var at: Vector2 = map.MAP_GRID.calculate_map_position(cell)
-		for tower in attackers:
-			if not is_instance_valid(tower) or tower.tower_data == null or not tower.tower_data.can_attack:
-				continue
-			if tower is Node and tower.is_queued_for_deletion():
-				continue
-			var in_range: bool = tower._is_cell_in_range(cell) if tower.has_method("_is_cell_in_range") else tower.global_position.distance_to(at) <= tower.get_range_pixels()
-			if in_range:
-				cells[cell] = true
-				break
-	var count := 0
-	for covered in cells.values():
-		if covered:
-			count += 1
-	return count
+# The Dew that route length earns now: +1 per CELLS_PER_DEW added cells, capped. (`_unused`: callers used to pass
+# the attacking Wardens for the old defended-cells rule; nothing reads it.)
+func preview(map, _unused = null) -> int:
+	return mini(BLOCK_CAP, floori(float(added_cells(map)) / CELLS_PER_DEW))
 
-func sample(drift: int, block: int, map, attackers: Array) -> void:
+func sample(drift: int, block: int, map, _unused = null) -> void:
 	if drift < 1 or block < 1:
 		return
 	var key := str(block)
@@ -52,12 +34,12 @@ func sample(drift: int, block: int, map, attackers: Array) -> void:
 		_blocks[key] = {"samples": {}, "paid": 0}
 	var samples: Dictionary = _blocks[key]["samples"]
 	if not samples.has(str(drift)):
-		samples[str(drift)] = preview(map, attackers)
+		samples[str(drift)] = preview(map)
 
-# Observe after path/defense mutations and before claiming. Removing then rebuilding
+# Observe after path changes and before claiming. Shortening then rebuilding
 # a corridor cannot restore the higher reward of an already sampled drift.
-func observe(map, attackers: Array) -> void:
-	var current := preview(map, attackers)
+func observe(map, _unused = null) -> void:
+	var current := preview(map)
 	for row in _blocks.values():
 		var samples: Dictionary = row["samples"]
 		for drift in samples:

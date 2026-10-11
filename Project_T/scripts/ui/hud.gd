@@ -665,7 +665,7 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
 	var text := "Rest · %s" % UiStyle.dew_amount(bonus, true)
 	if drift_director.maze_reward_last > 0:
-		text += " · maze %s" % UiStyle.dew_amount(drift_director.maze_reward_last, true)
+		text += " · Maze %s" % UiStyle.dew_amount(drift_director.maze_reward_last, true)  # "Maze +7" (maze_economy.md)
 	if perfect:
 		text += " · perfect block"
 	show_toast(text)
@@ -1056,13 +1056,15 @@ func _update_maze_income() -> void:
 	var amount: int = drift_director.get_maze_reward_projection()
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
 	_maze_reward_label.text = "%s at rest" % UiStyle.dew_amount(amount, true)
-	var explanation := "Maze bonus: %s at the next rest for the extra route your Wardens defend (up to %d a block)." % [
-		UiStyle.dew_amount(amount, true), economy.BLOCK_CAP]
+	# Path length only (maze_economy.md, user 2026-10-11: "the maze bonus is confusing"): cells over the forest's path.
+	var explanation := "Your route is %d cells longer than the forest's path: %s at the next rest (%s per %d cells, up to %d)." % [
+		drift_director.get_maze_added_cells(), UiStyle.dew_amount(amount, true), UiStyle.dew_amount(1, true),
+		economy.CELLS_PER_DEW, economy.BLOCK_CAP]
 	if not _maze_reward_tip.visible:  # A pinned tip keeps the hover tooltip off (TapTip)
 		_maze_reward_label.tooltip_text = explanation
 	_maze_reward_tip._label.text = explanation
-	var road_tip := "%s\n%s\nEvery %d extra defended route cells earn +1 Dew, up to %d Dew a block." % [
-		IconInfo.resource_tooltip(&"path"), explanation, economy.CELLS_PER_DEW, economy.BLOCK_CAP]
+	var road_tip := "%s\nMaze bonus: %s at each rest for every %d cells your route is longer than the forest's path, up to %d a block." % [
+		IconInfo.resource_tooltip(&"path"), UiStyle.dew_amount(1, true), economy.CELLS_PER_DEW, economy.BLOCK_CAP]
 	if not _path_tip.visible:
 		%PathLabel.tooltip_text = road_tip
 	_path_tip._label.text = road_tip

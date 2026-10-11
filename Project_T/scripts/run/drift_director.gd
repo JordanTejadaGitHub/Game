@@ -187,22 +187,23 @@ var maze_reward_last := 0
 var _maze_preview := 0
 var _maze_refresh_left := 0.0
 
-func _maze_attackers() -> Array:
-	return get_tree().get_nodes_in_group(Tower.GROUP).filter(func(t) -> bool:
-		return t is Tower and t.tower_data.can_attack and not t.is_queued_for_deletion())
-
 func _maze_map() -> Node:
 	return get_node_or_null("%MapGenerator")
+
+# Whole cells the route is longer than the forest's own path now (the maze bonus's tip; maze_economy.md
+# "Path length only": no defended / attacker test any more).
+func get_maze_added_cells() -> int:
+	return maze_economy.added_cells(_maze_map())
 
 func _maze_changed() -> void:
 	_maze_refresh_left = 0.0
 	# Observe immediately: a temporary shorten-and-rebuild cannot restore unpaid credit.
 	if not resting:
-		maze_economy.observe(_maze_map(), _maze_attackers())
+		maze_economy.observe(_maze_map())
 
 func get_maze_reward_preview() -> int:
 	if _maze_refresh_left <= 0.0:
-		_maze_preview = maze_economy.preview(_maze_map(), _maze_attackers())
+		_maze_preview = maze_economy.preview(_maze_map())
 		_maze_refresh_left = 0.5
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	return _maze_preview if dreams == null or dreams.keeps_rest_bonus() else 0
@@ -277,7 +278,7 @@ func _process(delta: float) -> void:
 	if _maze_refresh_left <= 0.0:
 		get_maze_reward_preview()
 		if not resting:
-			maze_economy.observe(_maze_map(), _maze_attackers())
+			maze_economy.observe(_maze_map())
 	for number in _arriving.keys():
 		var arrival: Dictionary = _arriving[number]
 		arrival.clock += delta
@@ -455,7 +456,7 @@ func _start_drift() -> void:
 	_auto_timer = -1.0
 	drifts_started += 1
 	var number := drifts_started
-	maze_economy.sample(number, get_block(number), _maze_map(), _maze_attackers())
+	maze_economy.sample(number, get_block(number), _maze_map())
 	_active[number] = {"remaining": 0, "arriving": true, "leaked": false, "called_early": _called_early}
 	var mods := get_schedule_modifiers(number)
 	_arriving[number] = {
@@ -800,7 +801,7 @@ func _pay_rest_bonus() -> Array:
 		bonus += dreams.get_dew_per_clear()  # Morning Dew
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
-	maze_economy.observe(_maze_map(), _maze_attackers())
+	maze_economy.observe(_maze_map())
 	var maze_claim: int = maze_economy.claim(block)
 	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
 	bonus += maze_reward_last

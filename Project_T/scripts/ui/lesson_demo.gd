@@ -37,7 +37,7 @@ func _draw() -> void:
 				draw_circle(road[i].lerp(road[i + 1], distance / segment), 5, UiStyle.INK)
 				break
 			distance -= segment
-		draw_string(font, Vector2(22, 78), "+1 Dew / %d extra defended cells · cap %d / block" % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
+		draw_string(font, Vector2(22, 78), "+1 Dew / %d extra cells · cap %d / block" % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
 	elif topic == &"catch":
 		var steps := ["Dispel", "Catch bowl", "Rest harvest", "Bank interest"]
 		for i in 4:
