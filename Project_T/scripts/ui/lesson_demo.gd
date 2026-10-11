@@ -25,12 +25,26 @@ func _draw() -> void:
 		draw_string(font, Vector2(252, 30), "4 matching → signature", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.INK)
 		draw_string(font, Vector2(22, 68), "Mixed picks → All-Rounder: main job +20%", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, UiStyle.GOLD)
 	elif topic == &"maze":
-		var road := PackedVector2Array([Vector2(22, 24), Vector2(120, 24), Vector2(120, 50), Vector2(220, 50), Vector2(220, 24), Vector2(350, 24)])
+		# Path length only (maze_economy.md, user 2026-10-11): no Wardens in the picture. The forest's straight path
+		# (faint), then a wall each second bending the road around it: each bend is CELLS_PER_DEW cells longer, and
+		# the count beside it ticks up.
+		var cells: int = DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW
+		var walls := mini(int(clock), 2)  # 0, 1, then 2 walls (held for the loop's last 2 s)
+		draw_line(Vector2(22, 24), Vector2(350, 24), Color(UiStyle.INK_DIM, 0.3), 2.0)
+		var road := PackedVector2Array([Vector2(22, 24)])
+		for wall in walls:
+			var x := 120.0 + wall * 120.0
+			road.append_array(PackedVector2Array([Vector2(x - 20, 24), Vector2(x - 20, 50), Vector2(x + 20, 50), Vector2(x + 20, 24)]))
+			draw_rect(Rect2(x - 9, 15, 18, 18), UiStyle.INK_DIM)  # The wall, on the old path
+			draw_rect(Rect2(x - 9, 15, 18, 18), UiStyle.INK, false, 1.0)
+		road.append(Vector2(350, 24))
 		draw_polyline(road, UiStyle.INK_DIM, 8)
-		for at in [Vector2(85, 54), Vector2(184, 24), Vector2(284, 54)]:
-			draw_circle(at, 15, Color(UiStyle.GOLD, 0.18))
-			draw_circle(at, 6, UiStyle.GOLD)
-		var distance := clock / 4.0 * 478.0
+		var length := 0.0
+		for i in road.size() - 1:
+			length += road[i].distance_to(road[i + 1])
+		draw_string(font, Vector2(360, 22), "+%d cells" % (walls * cells), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK)
+		draw_string(font, Vector2(360, 42), "Dew +%d" % walls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD if walls > 0 else UiStyle.INK_DIM)
+		var distance := (clock - floorf(clock)) * length  # A nightmare walks the road as it is now
 		for i in road.size() - 1:
 			var segment := road[i].distance_to(road[i + 1])
 			if distance <= segment:
