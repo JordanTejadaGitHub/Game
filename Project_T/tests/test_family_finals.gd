@@ -126,6 +126,9 @@ func _run() -> void:
 	var b := _spawn(beacon.global_position + Vector2(0, 2 * CELL))
 	beacon._update_ability(0.1)
 	_check(a.statuses.has(EnemyStatuses.MARKED) and b.statuses.has(EnemyStatuses.MARKED), "Beacon Marks everything in range")
+	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.0), "Beacon partial buildup gives no damage bonus")
+	for pulse in 9:
+		beacon._update_ability(beacon.attack_data.ability_every)
 	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.0 + beacon.tower_data.marked_bonus), "its Marked is +marked_bonus (%.2f)" % a.statuses.get_damage_taken_multiplier())
 	beacon.queue_free()
 	await _clean()
@@ -197,8 +200,9 @@ func _run() -> void:
 	var chilled := _spawn(frost.global_position + Vector2(CELL, 0))
 	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
 	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 1 and not chilled.statuses.is_held(), "Hoarfrost: the first hit Soaks, no freeze yet")
-	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
-	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 2 and chilled.statuses.is_held(), "the second hit (2 Soaked) freezes it")
+	for i in 7:
+		frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
+	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 8 and chilled.statuses.is_held(), "the eighth hit (8 Soaked) freezes it")
 	frost.queue_free()
 	await _clean()
 
@@ -250,11 +254,11 @@ func _run() -> void:
 	var soaked: Array = []
 	for i in 12:
 		var e := _spawn(clapper.global_position + Vector2(20 + 4 * i, 10))
-		e.apply_status(EnemyStatuses.DAMP)
+		e.apply_status(EnemyStatuses.DAMP, 8)
 		soaked.append(e)
-	centre.apply_status(EnemyStatuses.DAMP)
+	centre.apply_status(EnemyStatuses.DAMP, 8)
 	var before_hp: Array = soaked.map(func(e) -> int: return e.health)
-	centre.apply_status(EnemyStatuses.STATIC, 5, 0.0, 10.0, 0, "light", clapper)
+	centre.apply_status(EnemyStatuses.STATIC, 10, 0.0, 10.0, 0, "light", clapper)
 	var arced := 0
 	for i in soaked.size():
 		if soaked[i].health < before_hp[i]:

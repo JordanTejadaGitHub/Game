@@ -22,6 +22,8 @@ const GOOD := Color("9cc46c")  # Sprig
 const CLOSE := UiStyle.BUTTON_GOLD
 const SHORT := UiStyle.POOR
 const OPEN_SETTING := "meter_open"
+var hidden_by_player := false
+var _hide_arrow := Button.new()
 
 var drift_director: DriftDirector
 var sort_by_share := false
@@ -107,6 +109,13 @@ func _init(director: DriftDirector = null) -> void:
 	drift_director = director
 
 func _ready() -> void:
+	_hide_arrow.name = "MeterToggle"
+	_hide_arrow.focus_mode = Control.FOCUS_NONE
+	_hide_arrow.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	_hide_arrow.custom_minimum_size = Vector2(48, 48)
+	_hide_arrow.add_theme_font_size_override("font_size", 24)
+	_hide_arrow.pressed.connect(func() -> void: set_hidden(not hidden_by_player))
+	get_parent().add_child.call_deferred(_hide_arrow)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_preset(Control.PRESET_CENTER_RIGHT)
 	grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -188,6 +197,21 @@ func _ready() -> void:
 		control.mouse_force_pass_scroll_events = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+func set_hidden(hidden: bool) -> void:
+	hidden_by_player = hidden
+	refresh()
+	_fit_hide_arrow()
+
+func _fit_hide_arrow() -> void:
+	if not is_instance_valid(_hide_arrow):
+		return
+	_hide_arrow.text = "‹" if hidden_by_player else "›"
+	_hide_arrow.tooltip_text = "Show DPS meter" if hidden_by_player else "Hide DPS meter"
+	_hide_arrow.offset_right = -16.0 if hidden_by_player else offset_left - 4.0
+	_hide_arrow.offset_left = _hide_arrow.offset_right - 48.0
+	_hide_arrow.offset_top = offset_top
+	_hide_arrow.offset_bottom = offset_top + 48.0
+
 func _gui_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN,
 			MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]) or event is InputEventPanGesture or event is InputEventMagnifyGesture:
@@ -211,6 +235,7 @@ func period() -> String:
 
 func _process(delta: float) -> void:
 	_fit()
+	_fit_hide_arrow()
 	_clock -= delta / maxf(Engine.time_scale, 0.001)
 	if _clock > 0.0:
 		return
@@ -286,7 +311,9 @@ func refresh() -> void:
 	var m := meter()
 	# Never in capture mode (marketing captures): the director hides it each frame, but a refresh after its turn
 	# showed it for one frame (Short Form Video).
-	visible = m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
+	var available := m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
+	_hide_arrow.visible = available
+	visible = available and not hidden_by_player
 	if not visible:
 		return
 	var b := m.get_benchmark()

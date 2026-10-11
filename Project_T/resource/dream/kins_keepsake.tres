@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "kins_keepsake"
+display_name = "Kin's Keepsake"
+description = "The first Harmony from each {kinship} each {drift} earns {dew:1}, up to {dew:6} per drift."
+rarity = 1
+kind = 3
+tags = Array[String](["kinship"])
+discovered_by = Array[String](["kinship:any"])
+max_stacks = 1
+rule_id = &"kins_keepsake"

@@ -33,7 +33,7 @@ static func all_cards() -> Array[UpgradeData]:
 		for file in ResourceLoader.list_directory(DREAM_DIR):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var card := load(DREAM_DIR + file) as UpgradeData
-				if card != null:
+				if card != null and not card.retired:
 					_all.append(card)
 		_all.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.display_name < b.display_name)
 	return _all

@@ -1,0 +1,58 @@
+extends SceneTree
+var failures := 0
+func check(ok: bool, message: String) -> void:
+	if not ok:
+		failures += 1
+		push_error(message)
+func _initialize() -> void:
+	var a := EnemyStatuses.new()
+	var b := EnemyStatuses.new()
+	var source_a := Node.new()
+	var source_b := Node.new()
+	a.apply(EnemyStatuses.SPORED, 2, 2.0, 4.0, 0, "mushroom", source_a)
+	a.apply(EnemyStatuses.SPORED, 3, 4.0, 8.0, 0, "mushroom", source_b)
+	check(a.transfer_spores_to(b) == 3, "moves three accepted stacks")
+	check(a.stacks(EnemyStatuses.SPORED) == 2 and b.stacks(EnemyStatuses.SPORED) == 3, "conserves count")
+	check(b._spore_batches.size() == 2 and b._spore_batches[0][0] == 2.0 and b._spore_batches[1][0] == 4.0, "preserves cohort clocks")
+	check(b._spore_batches[0][2] == source_a and b._spore_batches[1][2] == source_b, "preserves native contributors")
+	b.tick(2.1)
+	check(b.stacks(EnemyStatuses.SPORED) == 1, "transferred oldest cohort expires independently")
+	b.apply(EnemyStatuses.SPORED, 31)
+	check(a.transfer_spores_to(b) == 0 and a.stacks(EnemyStatuses.SPORED) == 2, "full recipient accepts nothing")
+	b.remove(EnemyStatuses.SPORED)
+	b.immune.append(EnemyStatuses.SPORED)
+	check(a.transfer_spores_to(b) == 0, "immune recipient accepts nothing")
+	a.apply(EnemyStatuses.DAMP, 1, 3.0)
+	a.preserve_other_statuses(EnemyStatuses.MARKED)
+	check(is_equal_approx(a.copy_duration(EnemyStatuses.SPORED), 5.0) and a.time_left(EnemyStatuses.DAMP) == 4.0, "Tour extends finite cohort clocks")
+	a.preserve_other_statuses(EnemyStatuses.STATIC)
+	check(a.time_left(EnemyStatuses.DAMP) == 4.0, "Tour cannot extend same lifetime twice")
+	a.remove(EnemyStatuses.DAMP)
+	a.apply(EnemyStatuses.DAMP, 1, 3.0)
+	a.preserve_other_statuses(EnemyStatuses.MARKED)
+	check(a.time_left(EnemyStatuses.DAMP) == 4.0, "new lifetime receives new extension")
+	a.marked_forever = true
+	a.static_forever = true
+	a.apply(EnemyStatuses.MARKED, 1, 5.0)
+	a.apply(EnemyStatuses.STATIC, 1, 2.0)
+	a.apply(EnemyStatuses.HELD, 1, 0.4)
+	a.preserve_other_statuses(EnemyStatuses.DROWSY)
+	check(a.time_left(EnemyStatuses.HELD) == 0.4 and a.time_left(EnemyStatuses.MARKED) == 5.0 and a.time_left(EnemyStatuses.STATIC) == 2.0, "Tour excludes control and persistent statuses")
+	var c := EnemyStatuses.new()
+	check(c.pin_steadfast() and not c.pin_steadfast(), "pin shares cooldown")
+	c.tick(0.5)
+	check(not c.has(EnemyStatuses.HELD) and not c.pin_steadfast(), "pin expires and cooldown persists")
+	c.tick(4.0)
+	check(c.pin_steadfast(), "pin returns after shared cooldown")
+	var boss := EnemyStatuses.new()
+	boss.is_boss = true
+	check(not boss.pin_steadfast(), "boss rejects pin")
+	var immune := EnemyStatuses.new()
+	immune.immune.append(EnemyStatuses.HELD)
+	check(not immune.pin_steadfast(), "immune rejects pin")
+	for tag in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
+		check(Reactions.is_effect(tag), "saved payload tag remains an effect")
+	source_a.free()
+	source_b.free()
+	print("Dream integration status tests: ", failures, " failures")
+	quit(failures)

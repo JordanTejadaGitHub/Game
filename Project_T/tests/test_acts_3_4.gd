@@ -466,7 +466,7 @@ func _run() -> void:
 	boss_sleep.statuses.tick(0.1)
 	_check(not boss_sleep.statuses.is_asleep(), "bosses never sleep")
 	var caught := _still("leaf_bug", route[10])
-	caught.apply_status(EnemyStatuses.MARKED)
+	caught.apply_status(EnemyStatuses.MARKED, 10)
 	caught.apply_status(EnemyStatuses.STATIC, 3)
 	caught.statuses.caught_time = 10.0
 	caught.statuses.caught_bonus = 0.6
@@ -506,7 +506,7 @@ func _run() -> void:
 		_take_card(dreams, card_id)
 	spawner._process(0.0)
 	var bright := _still("leaf_bug", route[5])
-	bright.apply_status(EnemyStatuses.MARKED)
+	bright.apply_status(EnemyStatuses.MARKED, 10)
 	bright._process(0.0)
 	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + DreamState.BRIGHT_MARKS_PER),
 		"Bright Marks: Marked +20 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
@@ -976,8 +976,8 @@ func _run() -> void:
 	hush_changes = hush.changes
 	hush.tick(5.0)
 	_check(hush.changes > hush_changes and hush.silence_time == 0.0, "its end bumps changes (the badge goes)")
-	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
-	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
+	_check(badged.statuses.describe(&"static") == "Charged 4/20 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
+	_check(badged.statuses.describe(&"damp") == "Soaked 1/8 · 4.0 s", "reaction buildup is shown for Soaked (%s)" % badged.statuses.describe(&"damp"))
 	badged.statuses.tick(1.0)
 	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 0.75), "the rim drains with the time left (%.2f)" % badged.statuses.time_share(&"damp"))
 	badged.statuses.apply(&"damp", 1, 4.0, 1.0)

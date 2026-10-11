@@ -12,3 +12,5 @@ kind = 3
 tags = Array[String](["overgrowth", "defining"])
 max_stacks = 1
 rule_id = &"small_hands"
+
+retired = true

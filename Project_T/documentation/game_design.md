@@ -6,6 +6,7 @@ placeholders).
 
 | Doc | Covers |
 |---|---|
+| `claude_handoff.md` | current takeover: approved changes, launch/tests, validation and remaining limits |
 | `pitch.md` | hook, tagline, store page, capsule and trailer concepts |
 | `story.md` | tone, premise, the Hollow, naming (Wardens, Dew, leaves, drifts) |
 | `run_design.md` | run structure, drifts, rests, rules, economy, scaling |

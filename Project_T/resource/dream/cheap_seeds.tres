@@ -5,11 +5,12 @@
 [resource]
 script = ExtResource("1_card")
 id = "cheap_seeds"
-display_name = "Cheap Seeds"
-description = "Sprouts cost {dew:3} less."
+display_name = "Scattered Seedlings"
+description = "Sprouts planted without touching another Sprout cost {dew:4} less. Later neighbors do not change the price paid."
 rarity = 0
 kind = 4
 tags = Array[String](["overgrowth"])
 max_stacks = 1
 rule_id = &"cheap_seeds"
-
+diagram = "..W....\n.......\n....ww.\n.......\n......."
+diagram_caption = "An isolated Sprout saves 4 Dew at planting. The touching pair gets no discount."

@@ -64,7 +64,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Attack")
 @export var can_attack: bool = true
 @export var attack_range: float = 2.5  # Reach in cells, measured from the tower's centre
-@export var damage: int = 20  # Soothe dealt per hit
+@export var damage: float = 20.0  # Soothe dealt per hit
 @export var attacks_per_second: float = 1.0
 @export var splash_radius: float = 0.0  # Cells; > 0 = projectile soothes everything near where it lands
 @export var projectile_speed: float = 400.0  # Pixels per second

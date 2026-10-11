@@ -13,3 +13,4 @@ tags = Array[String](["tempo", "daring"])
 max_stacks = 1
 deepens = "fresh_growth"
 rule_id = &"fresh_growth"
+retired = true

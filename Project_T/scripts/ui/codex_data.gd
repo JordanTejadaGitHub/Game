@@ -104,7 +104,7 @@ const GLOSSARY_SOURCE := [
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. Some nightmares shrug off area attacks; others take more.", ["Effect"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
-		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap ({damp} + {static}).", ["Chain", "Crowned Reaction"]],
+		["Reaction", "Two statuses reaching their buildup thresholds on one nightmare set off a named effect, like Thunderclap ({damp} + {static}).", ["Chain", "Crowned Reaction"]],
 		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
@@ -147,7 +147,7 @@ const SYNERGIES := {
 # gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
-		"Every arc also sets off Ignite on {spored} nightmares, and the spores carry {static} onto {damp} ones: new Thunderclaps follow."],
+		"Arcs can set off Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto {damp} ones: new Thunderclaps follow."],
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
@@ -157,7 +157,7 @@ const CROWNED := {
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
 		"A Cairn or Rockslide lob sets off the Shatter on every {damp} + {held} nightmare under it."],
 	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
-		"The ice shards carry lightning: each adds {static} to what it hits, so {damp} neighbors Thunderclap."],
+		"The ice shards carry lightning: each adds {static} to what it hits, helping neighbors build toward Thunderclap."],
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
@@ -452,14 +452,14 @@ static func signature_entries() -> Array:
 	var seen: Array = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, [])
 	if seen.is_empty():
 		return []
-	var out: Array = [["Signature", "A Warden at rank V with 3 or more of its ranks I–V on one Nurture choice gains that choice's signature, a new behaviour (the gold mark after its picks).",
+	var out: Array = [["Signature", "A Warden at rank V with four matching picks among ranks I–V gains a specialised signature or role mastery. Other rank-V Wardens gain All-Rounder: +20% to their main job. The gold mark explains the bonus.",
 		["Nurture choice", "Rank"], ""]]
 	for sig in Signatures.NAMES:
 		if not seen.has(String(sig)):
 			out.append(["???", "Not discovered yet.", ["Signature"], ""])
 			continue
 		var choice = Signatures.BY_CHOICE.find_key(sig)
-		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "?"
+		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "Role training"
 		var text: String = Signatures.TEXT.get(sig, "")
 		var answers: String = SIGNATURE_ANSWERS.get(sig, "")
 		out.append([String(Signatures.NAMES[sig]), "%s majority: %s.%s" % [by, text.left(1).to_upper() + text.substr(1),
@@ -635,7 +635,7 @@ static func dreams_for(key: String) -> Array[String]:
 			if not file.ends_with(".tres"):
 				continue
 			var card := load(DREAM_DIR + file) as UpgradeData
-			if card == null:
+			if card == null or card.retired:
 				continue
 			for k in card.get("discovered_by") if card.get("discovered_by") != null else []:
 				if not _dreams_by_key.has(k):

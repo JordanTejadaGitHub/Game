@@ -99,3 +99,7 @@ func _draw_grid() -> void:
 				var text := c
 				var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
 				_grid.draw_string(font, centre + Vector2(-size.x / 2.0, 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Palette.ROOT)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(_grid) and _grid.get_parent() == null:
+		_grid.free()

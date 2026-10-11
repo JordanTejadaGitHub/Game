@@ -6,11 +6,9 @@
 script = ExtResource("1_card")
 id = "drumbeat"
 display_name = "Drumbeat"
-description = "A Warden touching 2 or more other attacking Wardens attacks 30% faster."
+description = "An attacker touching at least 2 other attackers joins a relay. Every 2 distinct adjacent Wardens completing original attacks advances its next attack by 35% of one base attack interval. Repeated attacks from one neighbor cannot complete the relay."
 rarity = 1
 kind = 3
 tags = Array[String](["swift", "defining"])
 max_stacks = 1
 rule_id = &"drumbeat"
-diagram = ".......\n..aaa..\n..aWa..\n.......\n...w..."
-diagram_caption = "Touching 2+ Wardens: +30% attack speed. ✗ alone."

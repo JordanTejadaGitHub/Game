@@ -17,16 +17,16 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var max_stacks: int = 1  # 0 = stacks without limit (stat cards)
 @export var min_act: int = 1  # Legendary: 2
 @export var min_drift: int = 0  # Never offered before this drift (Double or Nothing: 10, when Omens begin)
+@export var retired: bool = false  # No new offers, run-pool sampling or Grove unlocks.
 @export var in_start_pool: bool = true  # false = unlocked in the Memory Grove (meta)
 # Deepened card ("II"): the id of the base card it upgrades. Only offered once the base is owned;
 # taking it replaces the base card's effect (the base stops counting), so this card carries the
 # whole new effect.
 @export var deepens: String = ""
-# Entwined card: `requires` lists its ingredients. Once all are owned it's guaranteed in the next
-# Dream offer (once; after that it's drawn normally).
+# Entwined card: `requires` lists its ingredients. Eligible cards use the normal random offer draw.
 @export var entwined: bool = false
 # Woven (Legendary): an Entwined card with 3 ingredients (`requires`, plus `requires_any` as one
-# "either" ingredient). Same guarantee; shown with a triple vine.
+# "either" ingredient). Uses the same random draw; shown with a triple vine.
 @export var woven: bool = false
 # Bittersweet cards (tag "bittersweet"): the lasting cost, shown on its own line in plum.
 @export_multiline var cost_description: String = ""

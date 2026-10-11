@@ -32,6 +32,7 @@ func _run() -> void:
 	_write(RunSaver.file_path, "{\"drift\": 12}")
 	_write(RunHistory.file_path, "[{\"result\": \"lost\"}]")
 
+	_write(RunSaver.file_path + ".bak", "{}")
 	SettingsPanel.start_over()
 	var fresh := HeartwoodMemory.load_data()
 	_check(fresh.seeds == 0 and fresh.runs_played == 0 and fresh.unlocks.is_empty(), "the Grove, Seeds and counts reset")
@@ -39,6 +40,7 @@ func _run() -> void:
 	_check(fresh.whispers_seen.is_empty(), "whispers show again (a first launch)")
 	_check(is_equal_approx(float(fresh.settings.music_volume), 0.2), "settings stay")
 	_check(not FileAccess.file_exists(RunSaver.file_path), "the saved run is deleted")
+	_check(not RunSaver.has_save(), "the backup cannot restore a run after profile reset")
 	_check(FileAccess.file_exists(RunHistory.file_path), "run history stays")
 	var backup := HeartwoodMemory.latest_backup()
 	_check(backup != "" and backup.get_base_dir() == dir, "a backup sits beside the (temp) profile")

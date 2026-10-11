@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "many_threads"
 display_name = "Many Threads"
-description = "Dreamcatchers Catch nightmares at 4 {drowsy} stacks, not only full."
+description = "Dreamcatchers Catch nightmares at 16 {drowsy} stacks, not only full."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "song"])

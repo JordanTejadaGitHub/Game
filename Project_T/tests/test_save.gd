@@ -50,6 +50,13 @@ func _run() -> void:
 	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"underdog", true)  # Underdog's mark
 	var ranked: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
 	ranked.rank = 2  # Nurture v3: one choice per rank, saved with the run
+	var saved_plant_order: int = ranked.get_meta(&"unique_plant_order", 0)
+	var saved_plant_rest: int = ranked.get_meta(&"unique_plant_rest", -1)
+	dreams.unique_growth.emergency_block = 3
+	dreams.stacks["quickened_sap"] = 1
+	dreams.stacks["quickened_sap_ii"] = 1
+	dreams.stacks["passing_thread"] = 1
+	dreams.bump_board()
 	var saved_choices: Array[int] = [ranked.focus_options()[0], ranked.focus_options()[-1]]
 	ranked.rank_choices.assign(saved_choices)
 	var obstacle_cell: Vector2 = map_generator.obstacles.keys()[0]
@@ -64,7 +71,9 @@ func _run() -> void:
 	var rolled := _drift_prints(director)  # Random drifts: the resumed run must meet the same ones
 	_check(RunSaver.has_save(), "a rest autosaves")
 	# The run history's record rides in the save (a Save & quit run is recorded whole).
+	var saved_maze: Dictionary = JSON.parse_string(JSON.stringify(director.maze_economy.to_save()))
 	var saved_file = JSON.parse_string(FileAccess.get_file_as_string(RUN_PATH))
+	_check(saved_file.get("maze_economy", {}) == saved_maze, "save contains generated maze baseline and payment ledger")
 	var history_rows := -1
 	if saved_file is Dictionary and saved_file.has("history"):
 		history_rows = saved_file.history.run.drifts.size()
@@ -81,6 +90,8 @@ func _run() -> void:
 	map_generator = main.get_node("%MapGenerator")
 	dreams = main.get_node("%DreamState")
 	_check(map_generator.map_seed == saved.seed, "the same map is rebuilt")
+	_check(JSON.parse_string(JSON.stringify(director.maze_economy.to_save())) == saved_maze,
+		"maze baseline and claimed ledger survive actual resume")
 	var resumed_history := root.get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
 	_check(resumed_history != null and int(resumed_history.run.get("resumed", 0)) == 1
 		and resumed_history.run.drifts.size() == history_rows, "Continue carries the run history on (resumed once, its drift rows kept)")
@@ -99,6 +110,11 @@ func _run() -> void:
 	_check(not map_generator.is_buildable(cell), "and it blocks its cell again")
 	_check(map_generator.get_obstacle(obstacle_cell) == null, "the tended obstacle stays gone")
 	_check(dreams.is_unlocked(family_id), "the family pick is remembered")
+	_check(tower != null and int(tower.get_meta(&"unique_plant_order", 0)) == saved_plant_order
+		and int(tower.get_meta(&"unique_plant_rest", -1)) == saved_plant_rest, "Fresh Beginnings planting order survives resume")
+	_check(dreams.unique_growth.emergency_block == 3, "Emergency Reserves block survives resume")
+	_check(dreams.rule_level(&"target_turnover") == 1 and dreams.has_rule(&"passing_thread"),
+		"legacy retired II effect and unique successor both survive resume")
 	_check(run_state.free_clears == 2 and run_state.fertile_cells.has(fertile_cell), "free clears and fertile cells restored")
 	_check(director.drifts_started == 5 and director.is_resting(), "resumes at the rest after drift 5")
 	_check(director.start_next_drift() and director.drifts_started == 6, "and plays on from drift 6")

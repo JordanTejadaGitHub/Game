@@ -2,12 +2,16 @@
 
 2D top-down maze tower defense with roguelite progression, built in **Godot 4.7** with **GDScript**.
 
+## Current takeover entry — 2026-10-11
+
+Read [documentation/claude_handoff.md](documentation/claude_handoff.md) before changing files. It records current-main integration, approved rank/All-Rounder rules, UI/onboarding fixes, D: launch/test commands, recorded validation and performance/playtest limits. Main has substantial uncommitted work: preserve it; do not automatically commit or push. Older prototype-only plans are historical and do not override this handoff.
+
 ## Game concept
 - **Towers are walls.** The player builds the maze; enemies path around towers to reach the goal.
   A placement that would fully block the path must be rejected.
 - Procedurally generated map each run (grass, stone border, trees/details from noise).
 - Waves of enemies; after each wave the player picks 1 of 3 random upgrades (roguelite).
-- Persistent meta-progression between runs via an autoload singleton (planned).
+- Persistent meta-progression between runs via the Memory Grove and profile autoload.
 - Art: 64x64 pixel art. Environment: original sheets in `assets/environment/<act>/`
   (`documentation/environment_assets.md`); creatures/Wardens from the generators in `tools/`.
 
@@ -25,8 +29,7 @@ one feature (pond, ruin, grove, log), +1 ridge at Blight 9, small tree groves an
 the Wardens build most of the maze; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
-**Run structure** (`run_design.md`, `acts_1_2.md`, `acts_3_4.md`, `demo_scope.md`): runs (demo too)
-are drifts 1–100 in blocks of 5 with rests, bosses at 25 / 50 / 75 / 100 (winning = dispelling the
+**Run structure** (`run_design.md`, `acts_1_2.md`, `acts_3_4.md`, `demo_scope.md`): full runs are drifts 1–100 (the demo ends at drift 50; `demo_scope.md`) in blocks of 5 with rests, bosses at 25 / 50 / 75 / 100 (winning = dispelling the
 Hollow Oak at drift 100). Title
 screen, pause menu, settings, results with Seeds, mid-run save. See "Run flow" and "Run end,
 saving, onboarding" below.
@@ -45,7 +48,7 @@ through `run_state.spend_dew(cost)` (returns false + emits `dew_short` when shor
 directly. HUD shows the Dew counter (`%DewLabel`), dims unaffordable Warden buttons.
 **Statuses, evolutions, Dreams** (first-playable scope of tower_design.md / dream_design.md): see
 "Dreams and Wardens" below.
-**Meta** (full game; inert in the demo): Memory Grove, Memories, milestones, Blight Levels, Family
+**Meta** (full game; the demo has about eight plantable Grove nodes, including Rootling, with Seeds and purchases carried forward): Memory Grove, Memories, milestones, Blight Levels, Family
 Blessings — see "Meta" below.
 Next up (full list in `documentation/design_plan.md`): the Memory Grove as a tech tree
 (`meta_design.md`; owned by the Meta Game chats, art in `assets/meta/`), Forests (biomes), localization, controller / Steam Deck,
@@ -54,7 +57,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 ## Dreams and Wardens
 - `EnemyStatuses` (RefCounted on each enemy, `enemy.statuses`): damp, drowsy, spored, marked,
   static with dream_design.md numbers; `enemy.apply_status(id, stacks, duration, potency, max)`.
-  Potency scales with the Warden's soothe (Spored = 25%/s per stack, Static bolt = 3×). Status dots
+  Potency scales with the Warden's soothe (Spored = 20%/s per stack, Static bolt = 16×). Status dots
   above the health bar. `take_damage` takes floats (fractions carry) and applies Marked.
 - Resistances (enemy_design.md): `take_damage(amount, line := "", is_area := false)`: soothe ×
   family (`EnemyData.resists` / `weak_to` vs `TowerData.line`: ×0.5 / ×1.5, constants on
@@ -98,7 +101,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - Card kinds from dream_design.md (2026-09-27): **Deepened** (`deepens` = base id, e.g.
   `evergreen_ii`; only offered once the base is owned; replaces the base: `_taken_cards()` drops it,
   rule code reads `rule_level(rule)` 0/1). **Entwined** (`entwined`, ingredients = `requires`;
-  guaranteed one slot in the next offer once all are owned, then normal). **Bittersweet** (tag
+  eligible for the normal random draw once its requirements are met). **Bittersweet** (tag
   `bittersweet`, `cost_description`, act 2+, max 1 per offer, off until `allow_bittersweet`):
   negative `max_leaves_add` / `leaves_now` (never offered if it'd end the run), `rest_bonus_add`,
   `creature_health_bonus`, `rare_dreams_add`, a `set_cost` above the base cost = surcharge, rules
@@ -276,7 +279,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   … longest chain ×N"; results use the tracker's run counts), shows the first-ever discovery card and
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
-## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
+## Meta (meta_design.md; demo scope: about eight plantable nodes, earned Seeds and carryover)
 - Grove = tech tree on the Heartwood: 91 `UnlockData` nodes (the lean Cards limb holds most build cards; the start pool is lean) (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
@@ -311,7 +314,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   the bud opens; a new perk goes into a free slot), dream-fruit = Memories (`memories_seen`, viewer
   with art), waystones / Carry = `LoadoutPanel` ("Carry into the dream"; Start run opens it first
   when perks are owned), Blight picker after the first win, Codex, "The forest remembered you".
-  Title: Memory Grove button (demo: greyed + Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
+  Title: Memory Grove button (demo: its small plantable Grove plus sleeping Full game nodes and Wishlist). `tests/test_meta.gd` (layout ↔ data, perks,
   milestones, migration, screen smoke test with a temp profile).
 - Balance simulation profiles (balance_simulation.md): `GrovePresets` (`scripts/meta/grove_presets.gd`)
   fresh / early / half / full; `MetaRun.load_preset(&"half")` writes it to `user://sim_heartwood.json`
@@ -575,7 +578,7 @@ Run headless to catch script/parse/runtime errors after every change (exit 0 and
 after the banner = clean):
 
 ```powershell
-& "D:\Program Files\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --quit-after 300
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\Projects\Game\Project_T\tools\godot_dev.ps1" smoke --headless --path "D:\Projects\Game\Project_T" --quit-after 300
 ```
 
 After adding a new `class_name`, run once with `--import` (same args, no `--quit-after`) so the
@@ -587,8 +590,49 @@ Gameplay logic can be tested headless with a `extends SceneTree` script run via
 
 **Nothing project-related on C:** (user, 2026-10-05). Run every test, sim and tool through the wrapper, which
 points user:// (`%APPDATA%`) at `D:\Projects\logs\userdata`: `bash /d/Projects/logs/scripts/godot_dev.sh <args>`
-or `& D:\Projects\logs\scripts\godot_dev.ps1 <name> <args>` (in PowerShell pass a bare `--` quoted: `'--'`).
+or `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\Projects\Game\Project_T\tools\godot_dev.ps1" <name> <args>` (in PowerShell pass a bare `--` quoted: `'--'`).
 Scratch files from game code go through `DevPaths.scratch(name)` (D: in dev builds, user:// elsewhere); logs,
 renders and captures go under `D:\Projects\logs\`, never a C: temp folder.
 
 Headless can't show visuals — for anything visual, ask the user to press Play and describe it.
+
+## Multi-tower status balance (2026-10-09)
+Poisoned: 20% hit damage per stack/s; independent 5 s application expiry; caps 32/48/64/80 (base/Driftspore/Puffball/Sporemother). Caught pauses batches; at cap only replaced stacks refresh. Brimming doubles Poisoned/Drowsy/Charged capacity; Charged and Thunderclap require twice the charge and deal 2.2× damage. See dream_design.md Multi-tower status balance and tools/status_balance.gd. Existing strongest-applier pooling, bounded control, random Dreams and Grove exclusives remain.
+Tower damage follow-up (2026-10-09): attacking forms +20% base damage, light forms +30% instead; damage uses float precision. Attack rates and buildup thresholds remain unchanged. See dream_design.md Tower damage support.
+Brimming update (2026-10-10): all six status caps and numeric reaction/stack-payoff requirements double; completed damaging payoffs are 2.2x stronger. Basic Poisoned gains capacity, control remains bounded. See dream_design.md All-status Brimming.
+
+### Exposed buildup (October 2026)
+Exposed requires 10 stacks before its damage vulnerability and dependent crit/damage bonuses activate. Partial stacks remain visible but give no Exposed bonus. Brimming requires 20 stacks; Pinned and Lightning Rod use the same 10/20 Exposed requirement. Bright Marks, Potency and Beacon strengthen the completed effect. Applications refresh the existing five-second duration; Hunter's Moon can preserve partial buildup.
+
+Starlit Aim's crit consumes half the required Exposed stacks (5 normally, 10 with Brimming), preserving remaining duration and applier bonuses. Partial stacks are not consumed. Hunter's Moon and Guiding Light describe stack applications explicitly; Called Shot needs full stacks. Bright Marks adds 30 percentage points to completed vulnerability, rather than setting the total to 30%.
+
+### Unique Dream successors (2026-10-10)
+Council-approved: keep Rolling Thunder II, Root Network II, Guiding Light II and Tender Care II. Retire the other fourteen II offers, preserving legacy saved-run effects; add independent unique successors with original rarity/family/discovery/Grove gates. See `documentation/unique_dream_successors.md` for the exact effects and safeguards. `dream_cooperation.gd`, `dream_path_rules.gd`, `dream_growth_rules.gd` hold focused helpers; Tower/Enemy/Kinships deliver direct/native/transition hooks. Poisoned cooperation uses actual native cohorts; synthetic applications cannot qualify. Grove-only Crosswind, Opening Fracture and Hushed Hedge remain exclusive. Growth planting order/rest serial and Emergency Reserves block are serialized. Tests `test_unique_dream_*`, `test_dream_cooperation`, `test_dream_path_rules`, `test_dream_growth` cover the new rules.
+### Defended maze economy (2026-10-10)
+Universal rest reward: +1 Dew per four added defended route cells, capped at 20 per block. MazeEconomy compares current route length and unique attacker coverage with the generated baseline under the same attackers. Drift snapshots and downward observations guard temporary maze farming; claims and baseline persist through RunSaver. The opening drift-one rest shares the block cap. Deep Sleep forfeits the base maze reward. Winding Path, costs, randomized Dreams and Grove exclusives remain unchanged. See documentation/maze_economy.md and test_maze_economy*.
+
+Maze funding follow-up: Sprout base10 Dew, +4 per5 paid. Five starting Sprouts leave10 Dew for walls. Act1 ordinary/non-elite health adds0–5% over drifts11–24; ordinary Act1 pots+15% from11, Act2 pots+20%. Bosses/elites/later-act health and boss/later-act pots unchanged. Grow/Nurture prices unchanged. See documentation/maze_economy.md and test_maze_funding.gd.
+
+- Onboarding (2026-10-11): LessonCard starts fresh first runs with three paused opening panels (Heartwood, maze, Dew), Next and Skip tutorial; contextual growth/nurture/Dream/status/flyer discoveries also queue paused Lessons. Hints toggles apply live, cards retain prior pause state and enforce pause while visible. See onboarding.md and test_initial_lessons.gd.
+
+
+## Dream build overhaul integrated on main (2026-10-11)
+
+Approved prototype mechanics are now integrated into the normal checkout, preserving the newer
+status cohorts and Brimming/Exposed balance, unique Dream successors, maze economy and onboarding.
+See the current section at the top of `documentation/dream_design.md` and
+`documentation/dream_prototype_playtest.md` for effects and playtest guidance.
+Stone Relay, Stored Rain and Spore Reserve replace three family multiplier packages and are
+Uncommon/Act 1 with their existing family requirements. Fifth Beat replaces Rhythm; Crossfire
+adds a second early attack-pattern opportunity. Drumbeat, Steadfast, Canopy and Grand Tour reward
+cadence, mature target turnover, busy connected clusters and accepted status sequencing.
+Twenty-two additional passive packages retire from new offers while legacy saves remain readable.
+Ordinary family offers allow two cards without guaranteeing either. Always-included basics,
+Half-Dreamed, speculative picks and Grove-exclusive builds remain. Retired-only Grove nodes cannot
+charge Seeds or prevent completion; Whirlwind Heart connects through Quickening.
+Prototype title labels and isolated-profile launchers are not part of the normal main project.
+No commit or push is authorized by this integration request.
+
+
+- Rank-V completion (2026-10-11): four matching picks among the first five grant the existing working signature or role Mastery. Other rank-V Wardens receive All-Rounder: +20% main job, including automatic Heartwood Sapling yield. Repeatable Kindred qualifies; one-time Kindred stays once only. Shared Training needs four matching picks on both kin at rank IV or above; it never grants early All-Rounder. Dreamcatcher bonuses affect actual Caught tick rate; nursery reach remains useful at its discount cap. Tests: test_signatures, test_catchers.
+- HUD arrows hide/reopen the DPS panel and tower bar without losing tower selection. Warden headers display live catcher bowls, catch strength/range and interest/caps. Pause → Replay guides provides animated nurture, maze and catcher explanations while preserving Hints settings and pause ownership.

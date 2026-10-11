@@ -2767,9 +2767,9 @@ func _cue_trailer_v3() -> Dictionary:
 	for i in 6:
 		_mix(stems.hits, _bell(r, hz([69, 72, 74, 76, 79, 81][i]), 0.25, 0.4, MUSIC_BOX, 1.1), r, cards + i * 0.05, 0.8)
 	var pick: float = h.pick  # The pick: a warm low bell and a glow
-	_mix(stems.hits, _bell(r, hz(62), 0.4, 0.6, MUSIC_BOX, 2.0), r, pick, 1.4)
-	_mix(stems.hits, _bell(r, hz(69), 0.3, 0.6, MUSIC_BOX, 1.8), r, pick + 0.08, 0.9)
-	_mix(stems.hits, _normalize(_glow_swell(1.0), 1.0), r, pick, 0.5)
+	_mix(stems.hits, _bell(r, hz(62), 0.4, 0.6, MUSIC_BOX, 1.0), r, pick, 1.4)  # Short: gone before growing starts
+	_mix(stems.hits, _bell(r, hz(69), 0.3, 0.6, MUSIC_BOX, 0.9), r, pick + 0.08, 0.9)
+	_mix(stems.hits, _normalize(_glow_swell(0.6), 1.0), r, pick, 0.5)
 	for k in 2:  # The glow spreading: soft warm tocks, Warden by Warden (the bar's last beat)
 		_mix(stems.top, _lowpass(_layers([[_thump(0.12, 180.0, 0.025), 1.0], [_glow_swell(0.4), 0.5]]), 1400.0), r, pick + 0.25 + k * 0.3, 0.3 + 0.03 * k)
 	_mix(stems.mid, _env(_mk_pad([53, 57, 60, 65], 0.8), r, swell(0.7, 0.1, 0.8)), r, h.grow_from - 0.7, 0.45)  # Lead-in
@@ -2782,21 +2782,30 @@ func _cue_trailer_v3() -> Dictionary:
 	for bar in range(7, 9):
 		for k in 6:
 			_mix(stems.perc, _mk_felt(r, 110.0), r, _t3(bar) + k * MK_EIGHTH, 0.3 + 0.03 * k + 0.05 * (bar - 7))
+	# Lined up with the picture (the user): each accent is built on its own and placed so it lands (reaches
+	# half its peak) exactly on its time, with tails short enough not to blur into the next one.
 	var steps: Array = h.grow_steps
 	for i in steps.size():
-		var at: float = steps[i]
 		var root: int = [62, 66, 69][i]
-		_mix(stems.hits, _bell(r, hz(root + 12), 0.3, 0.9, MUSIC_BOX, 2.0), r, at, 0.6 + 0.15 * i)
-		_mix(stems.hits, _env(_mk_pad([root, root + 7] if i < 2 else [56, 62, 65], 1.2), r, swell(0.05, 0.9, 1.2)), r, at, 0.5 + 0.2 * i)
-		_mix(stems.hits, _normalize(_glow_swell(0.8 + 0.2 * i), 1.0), r, at, 0.3 + 0.12 * i)
-	_mix(stems.low, _env(_bowed(r, 44, 1.2, 380.0), r, swell(0.1, 0.8, 1.2)), r, steps[2], 0.5)  # The silhouettes
-	var remember: float = h.remember  # A warm breath opening, then a soft bell
-	_mix(stems.hits, _normalize(_air(0.8, 600.0, 0.3, 0.4, 0.7), 1.0), r, remember - 0.2, 0.4)
-	_mix(stems.hits, _bell(r, hz(74), 0.3, 0.8, MUSIC_BOX, 1.6), r, remember, 0.7)
+		var step := _seg(0.8, r)
+		_mix(step, _bell(r, hz(root + 12), 0.3, 0.6, MUSIC_BOX, 0.8), r, 0.0, 0.6 + 0.15 * i)
+		_mix(step, _env(_mk_pad([root, root + 7] if i < 2 else [56, 62, 65], 0.75), r, swell(0.02, 0.5, 0.75)), r, 0.0, 0.5 + 0.2 * i)
+		_mix(step, _normalize(_glow_swell(0.6), 1.0), r, 0.0, 0.2 + 0.08 * i)
+		_mix_onset_at(stems.hits, step, steps[i], 1.0)
+	_mix(stems.low, _env(_bowed(r, 44, 0.9, 380.0), r, swell(0.05, 0.6, 0.9)), r, steps[2], 0.5)  # The silhouettes
+	var remember: float = h.remember  # The tree opening: a soft bell over a warm breath that swells into it
+	var opening := _seg(0.9, r)
+	_mix(opening, _bell(r, hz(74), 0.3, 0.6, MUSIC_BOX, 0.9), r, 0.25, 0.8)
+	_mix(opening, _normalize(_air(0.7, 600.0, 0.25, 0.4, 0.7), 1.0), r, 0.0, 0.3)
+	_mix_onset_at(stems.hits, opening, remember, 1.0)
 	var families: Array = h.families
 	var turns := [2, 4, 6]  # Light, root, song
 	for i in families.size():
-		_t3_family(stems, turns[i], families[i], TRAILER3_CHORDS[7])
+		var turn_to := {"hits": _seg(0.9, r)}
+		_t3_family(turn_to, turns[i], 0.3, TRAILER3_CHORDS[7])
+		var accent: PackedFloat32Array = turn_to.hits
+		_env_tail(accent, 0.55, 0.3)  # Gone before the next turn
+		_mix_onset_at(stems.hits, accent, families[i], 1.0)
 	var boss: float = h.boss
 	_mix(stems.low, _env(_mk_drone(0.8), r, swell(0.6, 0.2, 0.8)), r, boss - 0.6, 0.45)  # Lead-in to the bosses
 	for k in 3:  # The gallop's first hooves a beat early
@@ -2888,6 +2897,24 @@ func _cue_trailer_v3() -> Dictionary:
 	_mk_trim(stems, TRAILER3_LENGTH, 0.5)
 	_print_hits(stems.hits, [sting, maze_hit, chain, mush, ignite, cards, pick] + steps + [remember] + families + dispels + [turn, planted])
 	return stems
+
+# Mixes `seg` into `dst` so its onset (where it first reaches half its peak) lands exactly at `at`.
+func _mix_onset_at(dst: PackedFloat32Array, seg: PackedFloat32Array, at: float, gain: float) -> void:
+	var best := 0
+	for i in seg.size():
+		if absf(seg[i]) > absf(seg[best]):
+			best = i
+	var onset := 0
+	while onset < best and absf(seg[onset]) < 0.5 * absf(seg[best]):
+		onset += 1
+	_mix(dst, seg, SFX_RATE, at - float(onset) / SFX_RATE, gain)
+
+# Fades `seg` out from `from` s over `fade` s (silent after), in place.
+func _env_tail(seg: PackedFloat32Array, from: float, fade: float) -> void:
+	var start := int(from * SFX_RATE)
+	var span := maxi(int(fade * SFX_RATE), 1)
+	for i in range(start, seg.size()):
+		seg[i] *= clampf(1.0 - float(i - start) / span, 0.0, 1.0)
 
 # Prints where each hit actually peaks on the hits stem (the loudest point within −0.3…+0.6 s of its slot).
 func _print_hits(hits: PackedFloat32Array, times: Array) -> void:

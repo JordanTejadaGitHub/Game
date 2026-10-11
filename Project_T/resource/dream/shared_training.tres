@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shared_training"
 display_name = "Shared Training"
-description = "Two bonded kin with the same training gain its signature one rank sooner."
+description = "Two bonded kin with four matching picks each on the same training gain its signature or mastery at rank IV."
 rarity = 2
 kind = 3
 tags = Array[String](["kinship", "defining"])

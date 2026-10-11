@@ -17,3 +17,4 @@ rule_id = &"hollow_ground"
 diagram = ".......\n.PPPPP.\n...Q...\n.....w.\n......."
 diagram_caption = "Planted in a moved hollow: +1.5 range. ✗ not in a hollow."
 deepens = "hollow_ground"
+retired = true

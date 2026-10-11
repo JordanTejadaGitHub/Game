@@ -48,7 +48,7 @@ func _run() -> void:
 	_check(husk.resists.has("stone") and husk.weak_to.is_empty(), "the Husk (armoured) resists stone and has no weakness")
 
 	# --- Marked stacks multiplicatively with the family multiplier ---
-	beetle.apply_status(EnemyStatuses.MARKED)
+	beetle.apply_status(EnemyStatuses.MARKED, 10)
 	_check(_loss(beetle, 100.0, "spore") == floori(100 * EnemyData.WEAK_MULTIPLIER * 1.25), "Marked × weakness")
 
 	# --- Attack shape (Bee Swarm): single-target halved, area full ---

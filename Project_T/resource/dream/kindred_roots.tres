@@ -14,3 +14,4 @@ max_stacks = 1
 requires_tag = "nurture"
 min_rank_count = 1
 rule_id = &"kindred_roots"
+retired = true

@@ -47,16 +47,18 @@ const NIGHTMARE := preload("res://resource/enemy/leaf_bug.tres")  # A Shade
 const QUALIFYING := "WQ"
 const OTHERS := "aw"
 const WALLS := "TX"
-const SPROUT_CARDS: Array[String] = ["root_network", "root_network_ii", "sprout_chorus"]
+const SPROUT_CARDS: Array[String] = ["root_network", "root_network_ii", "sprout_chorus", "cheap_seeds"]
 # What each card shows in gold (the numbers from its caption): `text` on the favoured Warden's hits, its damage /
 # attack speed multipliers and extra range; `proc` pops on a nightmare passing a marked Thornwall (X).
 const EFFECTS := {
+	"cheap_seeds": {"planting_discount": -4},
+	"longer_roots": {"text": "+1 range", "range": 1.0},
+	"switchback": {"bend_slow": true},
 	"bitter_hedges": {"proc": "+8% taken"},
 	"briar_crown": {"text": "", "proc": "+25%"},
 	"cozy_corners": {"text": "+30%", "damage": 1.3},
-	"cozy_corners_ii": {"text": "+50%", "damage": 1.5},
+	"cozy_corners_ii": {"text": "+30%", "damage": 1.3},
 	"crossroads": {"text": "+40%", "damage": 1.4},
-	"drumbeat": {"text": "+30% speed", "speed": 1.3},
 	"forests_edge": {"text": "+35%", "damage": 1.35},
 	"heart_of_the_maze": {"text": "×2", "damage": 2.0},
 	"hedgerow_roots": {"text": "aura through the wall", "damage": 1.2},
@@ -66,11 +68,11 @@ const EFFECTS := {
 	"last_stand": {"text": "+35%", "damage": 1.35},
 	"overlap": {"text": "+40%", "damage": 1.4},
 	"root_network": {"text": "+18%", "damage": 1.18},
-	"root_network_ii": {"text": "+32%", "damage": 1.32},
+	"root_network_ii": {"text": "+24%", "damage": 1.24},
 	"rootbound": {"text": "×2 speed", "speed": 2.0},
 	"shared_light": {"text": "+12%", "damage": 1.12},
 	"solitude": {"text": "+45%", "damage": 1.45, "range": 0.5},
-	"sprout_chorus": {"text": "+24% speed", "speed": 1.24},
+	"sprout_chorus": {"text": "+30% speed", "speed": 1.3},
 	"straightaway": {"text": "+30%", "damage": 1.3, "range": 0.5},
 	"straightaway_ii": {"text": "+50%", "damage": 1.5, "range": 0.5},
 	"tended_stumps": {"text": "+25%", "damage": 1.25},
@@ -174,6 +176,10 @@ func show_card(for_card: UpgradeData) -> void:
 	var has_favoured := card.diagram.contains("W") or card.diagram.contains("Q")
 	_legend.text = "Gold numbers: the Warden the card favours · White: the others" if has_favoured \
 		else "Gold: what the card does to nightmares passing the marked Thornwalls"
+	if _effect.has("planting_discount"):
+		_legend.text = "Gold label: planting saves %s; attacks are unchanged" % UiStyle.dew_amount(4)
+	elif _effect.has("bend_slow"):
+		_legend.text = "Covered bends: 25% slower for 1 s; 3 s per-nightmare cooldown"
 	visible = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	set_process(true)
@@ -764,6 +770,14 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 		sprite.modulate = Color(1, 1, 1, 0.7)  # multiplier: the one that doesn't qualify reads dimmer
 	_world.add_child(sprite)
 	if not wall:
+		if QUALIFYING.contains(c) and _effect.has("planting_discount"):
+			var price_tag := Label.new()
+			price_tag.name = "PlantingDiscount"
+			price_tag.text = UiStyle.dew_amount(int(_effect.planting_discount))
+			price_tag.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))
+			price_tag.position = sprite.position + Vector2(-24, 12)
+			price_tag.add_theme_color_override("font_color", Palette.GOLD)
+			_world.add_child(price_tag)
 		var boosted := QUALIFYING.contains(c)
 		_wardens.append({"sprite": sprite, "data": data, "boosted": boosted, "cooldown": randf() * ATTACK_EVERY,
 			"attack_time": -1.0, "anim": randf() * 3.0,
@@ -842,7 +856,10 @@ func _move_walkers(delta: float) -> void:
 				sprite.queue_free()
 				_walkers.erase(walker)
 			continue
-		walker.distance += WALK_SPEED * delta * (BOG_SPEED if _letter_at(sprite.position) == "B" else 1.0)  # Bog (gift scenes)
+		if bool(_effect.get("bend_slow", false)):
+			_advance_switchback(walker, delta)
+		else:
+			walker.distance += WALK_SPEED * delta * (BOG_SPEED if _letter_at(sprite.position) == "B" else 1.0)  # Bog (gift scenes)
 		var at: Array = _along(walker.distance)
 		sprite.position = at[0]
 		var dir: Vector2 = at[1]
@@ -872,6 +889,38 @@ func _move_walkers(delta: float) -> void:
 			walker.distance = 0.0
 			walker.hits = 0.0
 			walker.procs = {}
+
+# Move through covered bends with bounded, per-walker slow and cooldown timers.
+func _advance_switchback(walker: Dictionary, delta: float) -> void:
+	var slow_left := float(walker.get("bend_slow_left", 0.0))
+	var cooldown := float(walker.get("bend_cooldown", 0.0))
+	var slowed_time := minf(delta, slow_left)
+	var travel := WALK_SPEED * (delta - slowed_time * 0.25)
+	var start := float(walker.distance)
+	var walked := 0.0
+	for i in range(1, _path.size() - 1):
+		walked += _path[i - 1].distance_to(_path[i])
+		if walked <= start or walked > start + travel:
+			continue
+		var incoming := (_path[i] - _path[i - 1]).normalized()
+		var outgoing := (_path[i + 1] - _path[i]).normalized()
+		if incoming.is_equal_approx(outgoing):
+			continue
+		var covered := _wardens.any(func(w: Dictionary) -> bool:
+			return w.sprite.position.distance_to(_path[i]) <= float(w.range) * CELL)
+		var distance_to_bend := walked - start
+		var arrival := distance_to_bend / (WALK_SPEED * 0.75) if distance_to_bend <= slowed_time * WALK_SPEED * 0.75 else slowed_time + (distance_to_bend - slowed_time * WALK_SPEED * 0.75) / WALK_SPEED
+		if not covered or cooldown > arrival or slow_left > arrival:
+			continue
+		var after := delta - arrival
+		travel = walked - start + WALK_SPEED * (after - minf(after, 1.0) * 0.25)
+		slow_left = arrival + 1.0
+		cooldown = arrival + 3.0
+		_float_text("-25% speed", _path[i], true)
+		break
+	walker.distance = start + travel
+	walker["bend_slow_left"] = maxf(0.0, slow_left - delta)
+	walker["bend_cooldown"] = maxf(0.0, cooldown - delta)
 
 func _animate_warden(warden: Dictionary, delta: float) -> void:
 	var sprite: Sprite2D = warden.sprite
@@ -961,7 +1010,8 @@ func _hit(walker: Dictionary, boosted: bool) -> void:
 		return
 	var damage: float = float(_effect.get("damage", 1.0)) if boosted else 1.0
 	walker.hits += damage
-	_float_text(hit_text(boosted), walker.sprite.position, boosted)
+	var gold_hit := boosted and not (_effect.has("planting_discount") or _effect.has("bend_slow"))
+	_float_text(hit_text(boosted), walker.sprite.position, gold_hit)
 
 # What a hit shows: "×2 · 20", "+30% · 13", "+30% speed · 10", or plain "10".
 func hit_text(boosted: bool) -> String:

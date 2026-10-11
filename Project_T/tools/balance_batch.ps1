@@ -15,6 +15,8 @@ param(
 	[string]$Godot = "D:\Program Files\Godot\Godot_v4.7.2-stable_win64_console.exe"
 )
 $project = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'balance_batch'
 $out = Join-Path $project "tools\balance_out"
 New-Item -ItemType Directory -Force $out | Out-Null
 Remove-Item (Join-Path $out "runs.csv") -ErrorAction SilentlyContinue  # A batch starts a fresh table

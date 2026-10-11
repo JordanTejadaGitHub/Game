@@ -66,6 +66,8 @@ var _tower_buttons: Array[Button] = []
 var _seed_badge: Control = null  # On the Sprout button
 var clear_tool: ClearToolButton  # Left of the Warden bar, CLEAR_TOOL_GAP apart
 var _bar_towers: Array[TowerData] = []
+var bar_hidden := false
+var _bar_toggle := Button.new()
 var _dew_flash: Tween
 var _leaf_flash: Tween
 var _toast_tween: Tween
@@ -83,6 +85,13 @@ func _ready() -> void:
 	clear_tool.anchor_top = 1.0
 	clear_tool.anchor_bottom = 1.0
 	add_child(clear_tool)
+	_bar_toggle.name = "TowerBarToggle"
+	_bar_toggle.focus_mode = Control.FOCUS_NONE
+	_bar_toggle.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_bar_toggle.custom_minimum_size = Vector2(48, 48)
+	_bar_toggle.add_theme_font_size_override("font_size", 24)
+	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
+	add_child(_bar_toggle)
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
 	if OS.has_feature("mobile"):  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
@@ -166,11 +175,13 @@ func _ready() -> void:
 	# Every resource explains itself on hover and tap (screens_ui.md "Stat and status icons").
 	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
-	TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
+	_path_tip = TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
 	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
 	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
 	owner.add_child.call_deferred(CardBloom.new())
+	owner.add_child.call_deferred(BriarCrownView.new())
+	owner.add_child.call_deferred(DreamTempoView.new())
 	# Grow onboarding (onboarding.md): ↑ / dot marks at rests, the first-grow spotlight, the drift 15 reminder (world).
 	owner.add_child.call_deferred(GrowHints.new(drift_director))
 	# Heartwood's Gifts (heartwood_gifts.md, Spire): the act-break gift and its screen.
@@ -205,6 +216,16 @@ func _ready() -> void:
 		clears_label.visible = n > 0
 	run_state.free_clears_changed.connect(update_clears)
 	update_clears.call(run_state.free_clears)
+	_maze_reward_label = Label.new()
+	_maze_reward_label.name = "MazeDewLabel"
+	_maze_reward_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_maze_reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_maze_reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiStyle.number(_maze_reward_label, 16, UiStyle.GOLD)
+	add_child(_maze_reward_label)
+	_maze_reward_tip = TapTip.attach(_maze_reward_label, "")
+	_add_counter_icon(_maze_reward_label, &"dew", 1)
+	_update_maze_income()
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
 		if enemy.enemy_data.cleanse_line != "":
@@ -298,7 +319,26 @@ func _fit_safe_area() -> void:
 	var view := get_viewport().get_visible_rect().size
 	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
 
+func set_bar_hidden(hidden: bool) -> void:
+	bar_hidden = hidden
+	if hidden and hover_card != null:
+		hover_card.visible = false
+		_hover_for = null
+	_fit_tower_bar()
+
 func _fit_tower_bar() -> void:
+	tower_bar.visible = not bar_hidden
+	clear_tool.visible = not bar_hidden
+	_bar_toggle.text = "▴" if bar_hidden else "▾"
+	_bar_toggle.tooltip_text = "Show tower bar" if bar_hidden else "Hide tower bar"
+	_bar_toggle.offset_left = -24
+	_bar_toggle.offset_right = 24
+	_bar_toggle.offset_bottom = -16 if bar_hidden else -20 - BUTTON_SIZE.y
+	_bar_toggle.offset_top = _bar_toggle.offset_bottom - 48
+	if bar_hidden:
+		for arrow in _bar_arrows:
+			arrow.visible = false
+		return
 	if _tower_buttons.is_empty():
 		return
 	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0
@@ -603,6 +643,8 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
 	var text := "Rest · %s" % UiStyle.dew_amount(bonus, true)
+	if drift_director.maze_reward_last > 0:
+		text += " · maze %s" % UiStyle.dew_amount(drift_director.maze_reward_last, true)
 	if perfect:
 		text += " · perfect block"
 	show_toast(text)
@@ -714,6 +756,10 @@ func _tower_icon(data: TowerData) -> Texture2D:
 # Dreamlight you have (DreamState.can_unlock). The screen pauses mid-drift and restores it on close.
 
 var remember_button := Button.new()
+var _path_tip: TapTip
+var _maze_reward_tip: TapTip
+var _maze_reward_label: Label
+
 var dreamlight_tip: TapTip  # The Dreamlight counter's tap tip
 var _remember_glow := 0.0
 
@@ -929,6 +975,15 @@ func _layout_top_row() -> void:
 		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
 		_place_counter_icon.call_deferred(_clears_label)
 
+	if _maze_reward_label != null:
+		var forecast_w := _maze_reward_label.get_theme_font("font").get_string_size(_maze_reward_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16.0 + COUNTER_ICON_GAP + 2.0
+		var forecast_right := _clears_label.offset_left - ROW_GAP if _clears_label != null and _clears_label.visible else ROW_RIGHT
+		_maze_reward_label.offset_right = forecast_right
+		_maze_reward_label.offset_left = forecast_right - forecast_w
+		_maze_reward_label.offset_top = bottom + ROW_PAD + 2.0
+		_maze_reward_label.offset_bottom = _maze_reward_label.offset_top + 22.0
+		_place_counter_icon.call_deferred(_maze_reward_label)
+
 # The row's global rect (the fog patch), for tests and the banner check.
 func resource_row_rect() -> Rect2:
 	var fog := get_node_or_null("ResourcesFog") as Control
@@ -965,6 +1020,18 @@ func can_remember_something() -> bool:
 var _remember_check := 0.0
 var _remember_ready := false
 
+func _update_maze_income() -> void:
+	if _maze_reward_label == null:
+		return
+	var amount: int = drift_director.get_maze_reward_projection()
+	_maze_reward_label.text = "+%d" % amount
+	var explanation := "Maze Dew: +%d Dew at the next rest if this defended route is maintained. Every 4 extra defended route cells earn +1 Dew, averaged across the block, up to 20 Dew per block. Separate from Wellspring interest." % amount
+	_maze_reward_label.tooltip_text = explanation
+	_maze_reward_tip._label.text = explanation
+	var road_tip := "%s\n%s" % [IconInfo.resource_tooltip(&"path"), explanation]
+	%PathLabel.tooltip_text = road_tip
+	_path_tip._label.text = road_tip
+
 func _process(delta: float) -> void:
 	var real := delta / maxf(Engine.time_scale, 0.001)
 	_remember_check -= real
@@ -975,9 +1042,10 @@ func _process(delta: float) -> void:
 	if _row_check <= 0.0:  # The top-right row follows its numbers, buttons and the banner (cheap key)
 		_row_check = 0.2
 		_update_boosts()
+		_update_maze_income()
 		var banner := get_node_or_null("DriftBanner")
 		var key := "%s|%s|%s|%s|%s|%s|%d" % [leaves_label.text, dew_label.text, %PathLabel.text,
-			"%s%s" % [(get_node("DreamlightLabel") as Label).text, _clears_label.text if _clears_label else ""], buff_lens_button.visible,
+			"%s|%s|%s" % [(get_node("DreamlightLabel") as Label).text, _clears_label.text if _clears_label else "", _maze_reward_label.text], buff_lens_button.visible,
 			banner.drawn_width() if banner != null and banner.has_method("drawn_width") else 0.0,
 			get_viewport().get_visible_rect().size.x]
 		if key != _row_key:
@@ -1174,3 +1242,9 @@ func _update_boosts() -> void:
 		top = _clears_label.offset_bottom + 4.0
 	boosts_legend.offset_right = ROW_RIGHT
 	boosts_legend.offset_top = top
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for control in [_hover_box, _hover_price]:
+			if is_instance_valid(control) and control.get_parent() == null:
+				control.free()

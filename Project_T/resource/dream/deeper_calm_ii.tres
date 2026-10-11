@@ -13,3 +13,4 @@ tags = Array[String]([])
 max_stacks = 1
 deepens = "deeper_calm"
 soothe_bonus = 0.5
+retired = true

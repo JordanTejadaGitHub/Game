@@ -33,6 +33,7 @@ var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's
 
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
+var _bowl_label: Label
 
 # A ready view for `data` (and `tower` when it's planted). `with_growth` adds "Grows into".
 static func build(data: TowerData, tower: Tower = null, dreams: DreamState = null, with_growth := true) -> WardenHeaderView:
@@ -149,6 +150,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	_tower = tower if is_instance_valid(tower) else _probe_for(data, dreams)
 	var notes: Array[String] = []
+	_bowl_label = null
 	title.text = data.display_name
 	portrait_atlas.atlas = data.texture
 	portrait_atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels (user, via UI Asset)
@@ -228,6 +230,15 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
 	else:
 		notes.append("A wall: no attack.")
+	if data.catch_share > 0.0:
+		var share := (data.catch_share + data.catch_per_rank * _tower.get_effective_rank() + DewCatch.DEW_BOWL_STEP * _tower._rule_stacks(&"dew_bowl") + Tower.FOCUS_STRONG_CATCH * _tower.choice_count(Tower.Focus.STRONG)) * Signatures.multiplier(_tower, &"catch")
+		_economy_line("Catch +%d%% · reach %.1f" % [roundi(share * 100), _tower.get_catch_radius()], "The best catcher in reach adds this share of dispelled nightmares' Dew to its bowl. Damp bonuses can add more; catchers do not stack.")
+		if is_instance_valid(tower):
+			_bowl_label = _economy_line("Bowl %.1f Dew" % tower.bowl, "The bowl pours into your bank at the next rest.")
+	if data.rest_interest > 0.0:
+		var rate := data.rest_interest + Tower.KINDRED_INTEREST * _tower.choice_count(Tower.Focus.KINDRED)
+		var cap := data.rest_interest_max + (DewCatch.DEEP_WELL_CAP if dreams != null and dreams.has_rule(&"deep_well") else 0) + NurtureChoices.WELL_CAP_KINDRED * _tower.choice_count(Tower.Focus.KINDRED)
+		_economy_line("Interest %d%% · cap %d" % [roundi(rate * 100), cap], "Paid on banked Dew after the Harvest, at rests. All Wellsprings together are limited to %d Dew per rest." % DewCatch.INTEREST_CAP)
 	if dreams != null and not compact:  # Compact: the panel puts them in Details
 		stats.add_child(DreamBonusView.make_rows(_tower) if is_instance_valid(tower)
 			else DreamBonusView.make_rows_at(data, _tower.cell))  # "Dreams on this Warden"
@@ -380,10 +391,10 @@ static func status_strength_text(status: StringName, potency: float, duration: f
 			return "Soaked: water hits +%d%%" % roundi(minf(EnemyStatuses.DAMP_WATER_BONUS * potency,
 				maxf(EnemyStatuses.SOAKED_CAP, EnemyStatuses.DAMP_WATER_BONUS)) * 100)
 		EnemyStatuses.MARKED:
-			return "Exposed: +%d%% damage taken" % roundi(minf(EnemyStatuses.MARKED_EXTRA * potency,
+			return "Exposed: +%d%% damage taken at full stacks" % roundi(minf(EnemyStatuses.MARKED_EXTRA * potency,
 				maxf(EnemyStatuses.EXPOSED_CAP, EnemyStatuses.MARKED_EXTRA)) * 100)
 		EnemyStatuses.DROWSY:
-			return "Drowsy −%d%% speed a stack" % roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * potency * 100)
+			return "Drowsy −%d%% speed a stack" % roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * 100)
 		EnemyStatuses.HELD:
 			var base := duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.HELD])
 			var held := minf(base * maxf(potency, 1.0), maxf(EnemyStatuses.HELD_POTENCY_CAP, base))
@@ -461,3 +472,16 @@ func stat_tip(stat: StringName) -> String:
 						else (entry.source.tower_data.display_name if entry.source is Tower and is_instance_valid(entry.source) else String(entry.kind).capitalize())
 					why.append("%s %s" % [source, BuffSources._signed(entry.amount, stat == &"range")])
 	return meaning + (" (%s)" % ", ".join(why) if not why.is_empty() else "")
+
+func _economy_line(text: String, tip: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 14)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	TapTip.attach(label, tip)
+	stats.add_child(label)
+	return label
+
+func _process(_delta: float) -> void:
+	if is_visible_in_tree() and is_instance_valid(_bowl_label) and is_instance_valid(_tower) and _tower != _probe:
+		_bowl_label.text = "Bowl %.1f Dew" % _tower.bowl

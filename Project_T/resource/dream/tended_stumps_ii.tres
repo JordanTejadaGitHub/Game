@@ -17,3 +17,4 @@ rule_id = &"tended_stumps"
 diagram = ".......\n..WWW..\n..WUW..\n..www..\n......."
 diagram_caption = "Touching a tended stump: +40%. ✗ one cell too far."
 deepens = "tended_stumps"
+retired = true

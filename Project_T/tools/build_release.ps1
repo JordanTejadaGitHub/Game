@@ -21,6 +21,8 @@ param(
 	[switch]$KeepOld
 )
 $VERSION_BASE = "0.1"
+. (Join-Path $PSScriptRoot 'dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'build'
 $ErrorActionPreference = "Stop"  # Until the native tools run: they write progress and notices to stderr
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $project = Split-Path -Parent $here

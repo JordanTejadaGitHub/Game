@@ -12,6 +12,8 @@ param(
 	[string]$Godot = "D:\Program Files\Godot\Godot_v4.7.2-stable_win64.exe"
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot '..\dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'capture'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path  # tools\marketing ($PSScriptRoot is empty in param defaults on 5.1)
 if ($Project -eq "") { $Project = (Resolve-Path (Join-Path $here "..\..")).Path }
 if ($Out -eq "") { $Out = Join-Path (Resolve-Path (Join-Path $here "..\..\..")).Path "marketing\raw" }

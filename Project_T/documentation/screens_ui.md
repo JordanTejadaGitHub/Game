@@ -1142,3 +1142,28 @@ For the coding chat. Items likely missing or different (verify in the game):
 - [ ] Selecting several Wardens: box select, double-click same kind, group grow / sell
 - [ ] Combat feedback: combo callouts, damage numbers setting, placement links, "from combos" stat,
       rest report, run report on results
+
+### High-stack status badges — 2026-10-10
+Status caps up to 8 use individual pips; larger caps use one compact proportional progress bar.
+Exact stack counts sit on the bottom-right corners of the icons in dark pills, and each badge's width accommodates
+its label, including three-digit counts. Counts are also shown at 1 when the cap is high.
+Full stacks retain a gold count, progress mark and icon glow. Expiry bars sit below the icons and count pills.
+Enemy details retain exact current/max counts. Capacity changes refresh the layout and full-stack
+marks even when no stack is added (for example, taking Brimming). Geometry regressions and an
+actual rendered preview cover 128–160-stack badges and compact low-cap badges.
+
+### Icon help update (2026-10-11)
+**Icon help: hover or tap, one tip at a time** (user, 2026-10-11; replaces the hover-only rule of the Codex pass). Hovering a resource, stat, status or other help icon shows its definition. Clicking or tapping it opens the same tip and keeps it open until the next click anywhere, Esc, or a tap on another icon (touch has no hover, so tap is the only way in). The two never show together: while a tip is pinned by a click, the hover tooltip for that icon is suppressed, and hovering another icon swaps the tip rather than adding a second. Dynamic text refreshes while the tip is open.
+
+**HUD notes (user, 2026-10-11):**
+- The Warden bar's hide arrow sits **beside** the bar (at its end), never on top of it, and uses the same arrow icon and button style as the DPS meter's hide arrow.
+- The maze bonus forecast sits **right after the Dew total** ("Dew 240 · +6 at rest"), small and muted, not as a separate counter. Its tip: "Maze bonus: +N at the next rest for the extra route your Wardens defend (up to 20 a block)."
+- **Camera, like StarCraft 2 / Warcraft 3:** edge scrolling (the pointer at a screen edge pans, on by default, a setting to turn it off and set its speed; the cursor is kept inside the window in fullscreen), arrow keys and WASD pan at the same speed, middle-mouse drag pans the map, the wheel zooms toward the pointer, panning is immediate with no drift after release, H / F still centre on the Heartwood / the start. Touch controls are unchanged.
+
+
+### Current main UI follow-up — 2026-10-11
+DPS uses right/left arrows to hide/reopen the entire meter; its body fold remains separate. The tower bar uses down/up arrows without losing build selection through hiding/rebuilding. Hide states are per HUD instance, not persisted settings.
+
+Shared Warden headers show catch percentage/reach, live bowl Dew and interest rate/per-Wellspring cap. Hover tips explain best-catcher selection, Harvest and the shared 130-Dew interest cap. Seedbearer descriptions say anywhere on valid ground; Twig Wall single/drag build previews use smaller art.
+
+Unlocked rank marks explain signatures, role Mastery or All-Rounder; generic marks do not index beyond the eight-icon atlas. Lessons explain the four-matching rule without advance signature-name hints. Pause → Replay guides provides paused nurture/maze/catcher animations, preserving Hints and discovery history. See `claude_handoff.md`, `onboarding.md` and `warden_stats.md` for current rules and recorded checks.

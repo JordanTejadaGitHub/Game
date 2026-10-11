@@ -184,7 +184,7 @@ static func on_spore_tick(enemy: Node2D) -> void:
 	enemy.statuses.veil_time = maxf(enemy.statuses.veil_time, 1.0)  # Blocks healing (Enemy.heal reads it)
 	if enemy.coat > 0.0:
 		enemy.coat = maxf(enemy.coat - enemy.coat_max * p(source, "shell_strip", 0.01), 0.0)
-		if is_final(source) and enemy.statuses.stacks(EnemyStatuses.SPORED) >= int(p(source, "crack_at", 8)):
+		if is_final(source) and enemy.statuses.stacks(EnemyStatuses.SPORED) >= Reactions.buildup_threshold(int(p(source, "crack_at", 32))):
 			enemy.coat = 0.0  # The shell cracks off at once
 
 # Prism Jar's aura: the crit chance `tower` gets from the strongest Prism within reach (no stacking; not itself).
@@ -323,6 +323,7 @@ static func _jet(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
 		return
+	tower.note_primary_target(target)
 	var from := tower.global_position
 	var dir := (target.global_position - from).normalized()
 	var length := (p(tower, "length", 6.0) + tower.area_bonus()) * CELL
@@ -576,6 +577,8 @@ static func _prism_beams(tower: Tower) -> void:
 	var share := p(tower, "beam_share", 0.5)
 	var colours: Array[Color] = [Palette.BLOSSOM, Palette.GLOW, Palette.DEWLIGHT]  # The white sheet tinted (Tower Assets)
 	var targets := tower.find_targets(int(p(tower, "beams", 3)))
+	if not targets.is_empty():
+		tower.note_primary_target(targets[0])
 	for i in targets.size():
 		tower.hit(targets[i], share)
 		var beam := Fx.segment(&"prism_beam", tower.global_position, targets[i].global_position, world(tower), 0.2)
@@ -694,6 +697,7 @@ static func _toll(tower: Tower) -> void:
 	ranked.sort_custom(func(x: Node2D, y: Node2D) -> bool: return x.health > y.health)
 	if ranked.is_empty():
 		return
+	tower.note_primary_target(ranked[0])
 	_toll_one(tower, ranked[0], 1.0)
 	if is_final(tower) and ranked.size() > 1:
 		_toll_one(tower, ranked[1], p(tower, "echo_share", 0.5))  # The toll echoes to the next-strongest
@@ -756,6 +760,7 @@ static func _thrum(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
 		return
+	tower.note_primary_target(target)
 	var dir := (target.global_position - tower.global_position).normalized()
 	var reach := tower.get_range_pixels()
 	var in_reach := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(tower.global_position) <= reach)
@@ -766,9 +771,11 @@ static func _thrum(tower: Tower) -> void:
 			return e.statuses.has(EnemyStatuses.DROWSY) and absf(dir.angle_to(e.global_position - tower.global_position)) <= cone).size()
 		half = minf(half + deg_to_rad(p(tower, "widen", 15.0)) / 2.0 * drowsy, deg_to_rad(p(tower, "cone_max", 180.0)) / 2.0)
 	var bonus := p(tower, "vs_drowsy", 0.3)
-	for e in in_reach:
-		if absf(dir.angle_to(e.global_position - tower.global_position)) <= half:
-			tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
+	var targets := in_reach.filter(func(e) -> bool:
+		return absf(dir.angle_to(e.global_position - tower.global_position)) <= half)
+	tower._area_count = targets.size()  # Crowd Breaker counts the final cone, including Resonance's widening.
+	for e in targets:
+		tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
 	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))  # The cone itself (what it hits)
 	var wave := Fx.play(&"sound_cone", tower.global_position, world(tower), reach / 48.0)
 	if wave:
@@ -841,7 +848,7 @@ static func damage_multiplier(tower: Tower) -> float:
 		# Kindred on a Seedbearer: its Sprouts deal 6% more damage per rank.
 		var seedbearer = instance_from_id(int(tower.get_meta(&"seeded_by")))
 		if seedbearer is Tower and is_instance_valid(seedbearer):
-			return 1.0 + NurtureChoices.SEED_KINDRED * seedbearer.choice_count(Tower.Focus.KINDRED)
+			return (1.0 + NurtureChoices.SEED_KINDRED * seedbearer.choice_count(Tower.Focus.KINDRED)) * Signatures.multiplier(seedbearer, &"offspring")
 		return 1.0
 	if tower.attack_data.special != RAMPART:
 		return 1.0
@@ -1128,9 +1135,9 @@ static func nurture_multiplier(tower: Tower) -> float:
 	var best := 0.0
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
-				and area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(tower, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			# Each log caps its own (audit b6f44fac: Mother Log 0.35 + 0.03 a rank reaches its 0.50 at V; Nurse Log 0.40)
-			best = maxf(best, minf(p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG),
+			best = maxf(best, minf((p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG)) * Signatures.multiplier(other, &"nursery"),
 				p(other, "nurse_cap", NurtureChoices.NURSE_CAP)))
 	return 1.0 - best
 
@@ -1143,7 +1150,7 @@ static func grow_multiplier(tower: Tower) -> float:
 			best = maxf(best, 0.10 * other.kin_share(NURSERY, "b"))
 	# Kindred on a Nurse Log: Wardens in its reach grow 2% cheaper per rank.
 	for other in logs(tower):
-		if area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			best = maxf(best, NurtureChoices.NURSE_KINDRED * other.choice_count(Tower.Focus.KINDRED))
 	return 1.0 - best
 
@@ -1153,7 +1160,7 @@ static func remember_rank(sold: Tower) -> void:
 		return
 	for other in logs(sold):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG and is_final(other) \
-				and area_distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(sold, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			var rings: Dictionary = other.get_meta(&"rings", {})
 			rings[sold.cell] = [sold.rank, Array(sold.rank_choices)]
 			other.set_meta(&"rings", rings)
@@ -1196,6 +1203,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
+			extra += (shards + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)) * (Signatures.multiplier(tower, &"shards") - 1.0)
 			if tower.signature() == Signatures.FIRSTBORN:
 				extra += shards * (Signatures.FIRSTBORN_SHARDS - 1.0)  # Firstborn: shards x1.5 (the fraction carries)
 				tower.signature_fired.emit(tower, Signatures.FIRSTBORN)
@@ -1251,13 +1259,12 @@ static func draw_seed_badge(tower: Tower) -> void:
 static func seeds_ready(tower: Tower) -> int:
 	return int(tower.get_meta(&"seeds_ready", 0)) if tower.attack_data.special == SEEDBEARER else 0
 
-# The cells beside a Seedbearer where its Sprout can go (TowerPlacer checks the path rule).
-static func seed_cells(tower: Tower) -> Array[Vector2]:
+# Seedbearer and Grove Keeper can plant anywhere; TowerPlacer checks legal placement and paths.
+static func seed_cells(_tower: Tower) -> Array[Vector2]:
 	var out: Array[Vector2] = []
-	for dx in [-1, 0, 1]:
-		for dy in [-1, 0, 1]:
-			if dx != 0 or dy != 0:
-				out.append(tower.cell + Vector2(dx, dy))
+	for y in Tower.MAP_GRID.size.y:
+		for x in Tower.MAP_GRID.size.x:
+			out.append(Vector2(x, y))
 	return out
 
 # TowerPlacer planted a Seedbearer's Sprout: it's its own, Grove Keeper's arrive at rank II, Nursery (a) beside the
@@ -1725,7 +1732,7 @@ class GroundZone extends Node2D:
 				var rain := damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0)
 				e.take_damage(rain * tower.crush_tick(e, rain), tower.tower_data.line, true, false, tower, &"rain")  # Crushing counts rain
 			elif damage_per_second > 0.0:
-				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true)
+				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"", false)
 			if not is_instance_valid(e) or e.is_cleansed:
 				continue
 			if status != &"":
@@ -1777,7 +1784,8 @@ class GroundZone extends Node2D:
 class InkField extends Node:
 	const TICK := 0.25
 	var marked := {}  # Enemy instance id -> [enemy, Tower, seconds of trail left]
-	var cells := {}  # Cell -> [expires at, Tower, Spored every N s, next tick at]
+	var cells := {}  # Cell -> [expires at, Tower, Spored every N s]
+	var _contacts := {}  # Enemy id -> [weak reference, last application time]; walking cells cannot bypass cadence
 	var _clock := 0.0
 	var _next := 0.0
 
@@ -1813,9 +1821,9 @@ class InkField extends Node:
 			if not enemy.is_flying():
 				var cell: Vector2 = enemy.get_current_cell()
 				if cells.has(cell):
-					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
+					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its cadence
 				else:
-					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
+					cells[cell] = [_clock + entry[2], entry[1], 1.0]
 				# The ink is drawn where it walked (story chat: "bugged and not clear, especially on vertical": it was a
 				# horizontal strip across each whole cell's centre): a piece from the last spot to here, rotated to the
 				# ribbon, every tick, so it follows turns and its fade matches how long the ink lasts.
@@ -1831,12 +1839,24 @@ class InkField extends Node:
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
 				cells.erase(cell)
 				continue
-			if _clock < ink[3]:
+		# Check contact each field tick, rather than only at a cell's shared damage time:
+		# a moving walker can leave that cell before the old timer ever fires.
+		for id in _contacts.keys():
+			var contact: Array = _contacts[id]
+			if contact[0].get_ref() == null or _clock - float(contact[1]) >= 1.0:
+				_contacts.erase(id)
+		for e in BranchKit.targetable(self):
+			if e.is_flying():
 				continue
-			ink[3] = _clock + ink[2]
-			for e in BranchKit.targetable(ink[1]):
-				if not e.is_flying() and e.get_current_cell() == cell:
-					e.apply_status(EnemyStatuses.SPORED, 1, 0.0, ink[1].get_damage() * Tower.SPORE_POTENCY, 0, "spore", ink[1])
+			var cell: Vector2 = e.get_current_cell()
+			if not cells.has(cell):
+				continue
+			var ink: Array = cells[cell]
+			var previous: Array = _contacts.get(e.get_instance_id(), [])
+			if not previous.is_empty() and _clock - float(previous[1]) < float(ink[2]):
+				continue
+			_contacts[e.get_instance_id()] = [weakref(e), _clock]
+			e.apply_status(EnemyStatuses.SPORED, 1, 0.0, ink[1].get_damage() * Tower.SPORE_POTENCY, 0, "spore", ink[1])
 
 	# Deliquescent: a dispelled Poisoned nightmare it marked melts into a 2-tile pool.
 	func _on_dispelled(enemy: Node2D) -> void:
@@ -1847,7 +1867,7 @@ class InkField extends Node:
 		var here: Vector2 = enemy.get_current_cell()
 		var pool: Array[Vector2] = [here, enemy.get_target_cell()]
 		for cell in pool:
-			cells[cell] = [_clock + ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)), tower, BranchKit.p(tower, "pool_every", 0.5), _clock]
+			cells[cell] = [_clock + ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)), tower, BranchKit.p(tower, "pool_every", 0.5)]
 			_show(cell, ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)))  # Lingering Ground: x1.5 (trail and pool)
 		marked.erase(enemy.get_instance_id())
 

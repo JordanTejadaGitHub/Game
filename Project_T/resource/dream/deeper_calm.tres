@@ -5,11 +5,12 @@
 [resource]
 script = ExtResource("1_card")
 id = "deeper_calm"
-display_name = "Deeper Calm"
-description = "All Wardens deal 25% more damage."
+display_name = "Clear Minds"
+description = "Direct hits deal 35% more damage to nightmares with no active statuses, before this hit applies its own."
 rarity = 1
-kind = 2
+kind = 3
 tags = Array[String]([])
 requires = Array[String]([])
 max_stacks = 1
-soothe_bonus = 0.25
+soothe_bonus = 0.0
+rule_id = &"clear_minds"

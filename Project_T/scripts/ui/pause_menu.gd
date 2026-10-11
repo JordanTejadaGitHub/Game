@@ -111,6 +111,18 @@ func _ready() -> void:
 	_whispers_toggle.toggled.connect(_set_whispers)
 	hints.add_child(_whispers_toggle)
 	side.add_child(hints)
+	var guides := Button.new()
+	guides.name = "ReplayGuides"
+	guides.text = "Replay guides"
+	guides.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	guides.focus_mode = Control.FOCUS_NONE
+	guides.pressed.connect(func() -> void:
+		visible = false
+		game_speed.set_paused(_was_paused)
+		var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as LessonCard
+		if lesson != null:
+			lesson.replay_guides())
+	side.add_child(guides)
 
 	_settings = SettingsPanel.new()
 	_settings.visible = false
@@ -229,7 +241,7 @@ func _key_chip_on(button: Button, key: String) -> void:
 # What leaving keeps: saved right now (at a rest with nothing open), else the last rest's save and what's lost.
 func quit_body() -> String:
 	if run_saver.can_save_now():
-		return "Your run is saved right now. You'll continue from here."
+		return "Your run will be saved before you leave. You'll continue from here."
 	var drift := RunSaver.saved_drift()
 	if drift <= 0:
 		return "This run hasn't been saved yet: leaving now loses it."
@@ -261,7 +273,10 @@ func _show_abandon() -> void:
 # Saves first when it can (at a rest with nothing open), then the title or the desktop.
 func _quit_to(desktop: bool) -> void:
 	if run_saver.can_save_now() and run_saver.autosave:
-		run_saver.save_now()
+		if not run_saver.save_now():
+			ask_quit()
+			_quit_body.text = "The run could not be saved. You're still here. Check that the save folder is writable and has free space, then try again."
+			return
 	if desktop:
 		RunSaver.safe_quit(get_tree())
 	else:
@@ -401,6 +416,8 @@ func _set_whispers(on: bool) -> void:
 	var whispers := get_node_or_null("%Whispers")
 	if whispers != null:
 		whispers.set_enabled(on)
+	for lesson in get_tree().get_nodes_in_group(LessonCard.GROUP):
+		lesson.set_enabled(on)
 
 # Ends the run as a loss (Seeds are still earned: the results screen banks them).
 func _abandon() -> void:

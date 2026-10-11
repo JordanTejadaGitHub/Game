@@ -40,19 +40,19 @@ func _test_status_numbers() -> void:
 	s.apply(EnemyStatuses.DAMP)
 	_check(is_equal_approx(s.get_speed_multiplier(), 1.0), "Damp no longer slows (status jobs: it conducts)")
 	s.apply(EnemyStatuses.DROWSY, 3)
-	_check(is_equal_approx(s.get_speed_multiplier(), 1.0 - 0.24), "3 Drowsy stacks slow 24%")
-	s.apply(EnemyStatuses.DROWSY, 10)
-	_check(s.stacks(EnemyStatuses.DROWSY) == 5, "Drowsy caps at 5")
-	s.apply(EnemyStatuses.MARKED)
+	_check(is_equal_approx(s.get_speed_multiplier(), 1.0 - 0.06), "3 Drowsy stacks slow 6%")
+	s.apply(EnemyStatuses.DROWSY, 30)
+	_check(s.stacks(EnemyStatuses.DROWSY) == 20, "Drowsy caps at 20")
+	s.apply(EnemyStatuses.MARKED, 10)
 	_check(is_equal_approx(s.get_damage_taken_multiplier(), 1.25), "Marked: +25% soothe taken")
 	# On a Damp nightmare Static never bolts (Thunderclap fires at 3 first; see test_reactions).
 	s.remove(EnemyStatuses.DAMP)
 	var bolt := 0.0
-	for i in 4:
+	for i in 19:
 		bolt += s.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)
-	_check(bolt == 0.0 and s.stacks(EnemyStatuses.STATIC) == 4, "4 Static charges: no bolt yet")
+	_check(bolt == 0.0 and s.stacks(EnemyStatuses.STATIC) == 19, "19 Static charges: no bolt yet")
 	bolt = s.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)
-	_check(is_equal_approx(bolt, 30.0) and not s.has(EnemyStatuses.STATIC), "5th Static charge: 3× bolt, reset")
+	_check(is_equal_approx(bolt, 160.0) and not s.has(EnemyStatuses.STATIC), "20th Static charge: 16× bolt, reset")
 	s.tick(4.1)
 	_check(not s.has(EnemyStatuses.DAMP) and not s.has(EnemyStatuses.DROWSY), "Damp and Drowsy wear off")
 
@@ -66,8 +66,8 @@ func _test_status_numbers() -> void:
 
 	var boss := EnemyStatuses.new()
 	boss.is_boss = true
-	boss.apply(EnemyStatuses.DROWSY, 10)
-	_check(boss.stacks(EnemyStatuses.DROWSY) == 3, "bosses cap Drowsy at 3")
+	boss.apply(EnemyStatuses.DROWSY, 30)
+	_check(boss.stacks(EnemyStatuses.DROWSY) == 12, "bosses cap Drowsy at 12")
 	var boss_bolt := 0.0
 	for i in 5:
 		boss_bolt += boss.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)
@@ -232,7 +232,7 @@ func _test_new_cards(main: Node) -> void:
 	dreams.unlocked["dewdrop"] = true
 	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II needs Evergreen")
 	dreams.take(_card(dreams, "evergreen"))
-	_check(dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II offered once Evergreen is owned")
+	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "retired Evergreen II stays out of offers even with its base owned")
 	dreams.take(_card(dreams, "evergreen_ii"))
 	_check(dreams.get_evolve_cost(driftspore) == roundi(driftspore.get_grow_price() * 0.6), "Evergreen II: 40%% off, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
 	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "a card deepens once")
@@ -332,7 +332,7 @@ func _test_card_effects(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams.take(_card(dreams, "quickened_sap"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.25), "Quickened Sap: one copy, +25% (dream_design.md de439ea8)")
+	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.0) and dreams.has_rule(&"target_turnover"), "Target Turnover has no unconditional attack speed bonus")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
 	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
@@ -721,7 +721,26 @@ func _test_passed_over(main: Node) -> void:
 	print("passed-over: after 2 passes %s is in %.0f%% of offers without fading, %.0f%% with" % [watched.id,
 		rates[0] * 100, rates[1] * 100])
 	_check(back_to_back == 0, "a passed-over card never comes back in the very next offer")
-	_check(rates[1] <= 0.25 and rates[1] < rates[0], "after 2 passes: at most ~1 offer in 4 (%.2f)" % rates[1])
+		# The whole-pool run fades other passed cards too; a strict comparison of its two
+	# conditional rates is not guaranteed as the catalogue grows. Pin the design bound,
+	# then isolate this card's weighting against an otherwise identical control.
+	_check(rates[1] <= 0.25, "after 2 passes: at most ~1 offer in 4 (%.2f)" % rates[1])
+	var control: UpgradeData = watched.duplicate()
+	control.id = "fade_control_fixture"
+	var isolated := []
+	for fading in [false, true]:
+		_reset_dreams_quiet(dreams)
+		dreams.dreams_seen = 100
+		dreams._rng.seed = 231
+		if fading:
+			dreams._passed_count[watched.id] = 2
+			dreams._passed_at[watched.id] = 98
+		var count := 0
+		for draw in 200:
+			if dreams._weighted_pick([watched, control], true) == watched:
+				count += 1
+		isolated.append(count)
+	_check(isolated[1] < isolated[0], "isolated passed card weighting lowers its selection rate")
 
 	# A reroll passes over every card it replaced.
 	_reset_dreams(main)
@@ -851,7 +870,7 @@ func _test_stray_dream(main: Node) -> void:
 	var offer := dreams.make_offer(15)
 	_check(dreams.current_stray != null and offer.has(dreams.current_stray) and dreams.is_stray(dreams.current_stray),
 		"…one Stray slot from drift 10")
-	# Weighting turned around: build cards ×0.25, soft Needs ignored
+	# Stray has neutral build-tag weighting and still ignores soft Needs
 	var in_build := _card(dreams, "cozy_corners")
 	dreams.take(_card(dreams, "crossroads"))  # Its archetype ("maze") joins the build
 	var plain := _card(dreams, "deeper_calm")
@@ -861,7 +880,7 @@ func _test_stray_dream(main: Node) -> void:
 	for i in 2000:
 		build_picks += 1 if dreams._weighted_pick([in_build, plain], true) == in_build else 0
 		soft_picks += 1 if dreams._weighted_pick([soft, plain], true) == soft else 0
-	_check(build_picks > 300 and build_picks < 500, "Stray: build cards ×0.25 (%d / 2000)" % build_picks)
+	_check(build_picks > 900 and build_picks < 1100, "Stray: build tags have normal odds (%d / 2000)" % build_picks)
 	_check(soft_picks > 900 and soft_picks < 1100, "Stray: soft Needs ignored (%d / 2000)" % soft_picks)
 	# No Entwined slot any more (dream_design.md "Combo cards are choices, not musts"): an offer with Conductive Soil
 	# eligible is still Stray + normal cards, Soil not forced first
@@ -1200,7 +1219,7 @@ func _test_run_pool(main: Node) -> void:
 	dreams.build_run_pool(11)
 	var available := {}
 	for card in dreams.pool:
-		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
+		if not card.retired and card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
 				and card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.id != "heartwoods_reach":
 			available[card.rarity] = int(available.get(card.rarity, 0)) + 1
 	for rarity in DreamState.RUN_POOL_FLOORS:
@@ -1258,8 +1277,8 @@ func _test_blessing_dream(main: Node) -> void:
 		if not dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == card.id):
 			dreams.pool.append(card)
 	var blessing := _card(dreams, "blessing_sporeling")
-	_check(blessing != null and blessing.rarity == UpgradeData.Rarity.RARE and blessing.max_stacks == 1 and blessing.tags == ["spore"],
-		"the Sporeling Blessing: Rare, one per run, the family line tag")
+	_check(blessing != null and blessing.rarity == UpgradeData.Rarity.UNCOMMON and blessing.max_stacks == 1 and blessing.tags == ["spore"],
+		"Spore Reserve: Uncommon, one per run, the family line tag")
 	_check(not dreams.can_offer(blessing, 2), "…not offered without the Sporeling family")
 	dreams.unlocked["sporeling"] = true
 	dreams.grown_wardens["sporeling"] = true
@@ -1328,7 +1347,7 @@ func _test_offer_shape(main: Node) -> void:
 		var offer := dreams.make_offer(12 + i % 60)
 		most_family = maxi(most_family, offer.filter(dreams.is_family_card).size())
 		most_plain = maxi(most_plain, offer.filter(func(c: UpgradeData) -> bool: return DreamState.PLAIN_STAT_CARDS.has(c.id)).size())
-	_check(most_family <= 1, "at most 1 family card per offer (saw %d)" % most_family)
+	_check(most_family <= 2, "at most 2 family mechanics per offer (saw %d)" % most_family)
 	_check(most_plain <= 1, "at most 1 plain stat card per offer (saw %d)" % most_plain)
 	# Build-defining cards (dream_design.md ee3d2851): normal offers draw them at their usual odds (no guarantee); a boss
 	# rest (the next act's weights) guarantees one unowned defining card rolled Rare+, and Legendaries are never guaranteed

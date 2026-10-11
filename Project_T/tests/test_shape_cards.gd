@@ -47,13 +47,15 @@ func _run() -> void:
 	nest.attack_data.crit_chance = 0.0
 	var target := _walker(Vector2(16, 4))
 	var before: float = target.health
+	var carry_before: float = target._soothe_carry
 	nest.projectile_landed(target, target.global_position)
-	var plain: float = before - target.health
+	var plain: float = before - target.health + target._soothe_carry - carry_before
 	_take(ShapeCards.SMALL_HANDS)
 	nest.clear_dream_cache()
 	before = target.health
+	carry_before = target._soothe_carry
 	nest.projectile_landed(target, target.global_position)
-	var handed: float = before - target.health
+	var handed: float = before - target.health + target._soothe_carry - carry_before
 	_check(plain > 0.0 and absf(handed / plain - (1.0 + ShapeCards.SMALL_HANDS_DAMAGE)) < 0.02,
 		"Small Hands: a swoop lands +35%% (%.2f -> %.2f)" % [plain, handed])
 	var brood := _plant("brood_cap", Vector2(4, 2))

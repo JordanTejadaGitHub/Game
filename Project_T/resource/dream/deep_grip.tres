@@ -13,3 +13,4 @@ tags = Array[String](["root", "held"])
 requires = Array[String](["rootling"])
 max_stacks = 1
 rule_id = &"deep_grip"
+retired = true

@@ -90,6 +90,8 @@ func _test_hits() -> void:
 	var moth := _plant("lanternmoth", Vector2(100, 104))
 	dreams.take(_card("called_shot"))
 	_check(not dreams.called_shot(moth, bird), "Called Shot: not on an unmarked nightmare")
+	bird.statuses.apply(EnemyStatuses.MARKED, bird.statuses.get_max_stacks(EnemyStatuses.MARKED) - 1, 5.0)
+	_check(not dreams.called_shot(moth, bird), "Called Shot rejects partial Exposed without consuming the Warden's chance")
 	bird.statuses.apply(EnemyStatuses.MARKED, 1, 5.0)
 	_check(dreams.called_shot(moth, bird) and not dreams.called_shot(moth, bird), "…a crit on the first hit on a Marked one, once")
 	_check(dreams.called_shot(a, bird), "…each Warden gets its own")

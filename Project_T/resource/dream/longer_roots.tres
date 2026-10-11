@@ -5,11 +5,14 @@
 [resource]
 script = ExtResource("1_card")
 id = "longer_roots"
-display_name = "Longer Roots"
-description = "All Wardens reach 1 cell further."
+display_name = "Back-row Roots"
+description = "Attacking Wardens not touching any route cell gain +1 range."
 rarity = 1
-kind = 2
+kind = 3
 tags = Array[String]([])
 requires = Array[String]([])
 max_stacks = 1
-range_bonus = 1.0
+range_bonus = 0.0
+rule_id = &"back_row_roots"
+diagram = "P...W..\nP......\nPw.....\nP......\nPPPPPPP"
+diagram_caption = "Back row W: +1 range. The dim Warden touches the route and gains none."

@@ -74,6 +74,10 @@ static func is_active() -> bool:
 
 func _ready() -> void:
 	if not is_active():
+		set_process(false)
+		# These controls have no parent until the developer dock is built.
+		for control in [_skip_to, _type, _count, _elite, _meter, _inspect, _inspect_panel, _dream, _dock, _dock_body]:
+			control.free()
 		queue_free()
 		return
 	layer = 50

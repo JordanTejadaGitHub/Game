@@ -13,3 +13,4 @@ tags = Array[String](["precision"])
 max_stacks = 1
 deepens = "lone_hunter"
 rule_id = &"lone_hunter"
+retired = true

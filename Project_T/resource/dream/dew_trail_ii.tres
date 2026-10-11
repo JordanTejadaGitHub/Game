@@ -15,3 +15,4 @@ requires = Array[String](["dewcatcher"])
 deepens = "dew_trail"
 rule_id = &"dew_trail"
 in_start_pool = false
+retired = true

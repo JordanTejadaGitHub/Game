@@ -27,6 +27,8 @@ static var next_map_seed := 0  # The next new run's map seed (SeedPicker, Rememb
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var family_screen: Control = %FamilyPickScreen
 
+var _resume_failed := false
+var _save_retry_after := 0.0
 var _dirty := false  # A rest began or a choice closed: save once nothing is open
 # Autosave only when this is the game actually being played (tests add the scene by hand).
 var autosave := true
@@ -39,8 +41,11 @@ func _notification(what: int) -> void:
 		# During a run the close button asks first (the pause menu's Quit… dialog: what's saved, title or desktop); a
 		# second close while it's asking, or once the run is over, quits.
 		var menu := get_tree().get_first_node_in_group(&"pause_menu")
-		if menu != null and not run_state.is_over and not menu.is_asking_quit():
-			menu.ask_quit()
+		if menu != null and not run_state.is_over:
+			if menu.is_asking_quit():
+				menu._quit_to(true)  # The second close still respects a failed save.
+			else:
+				menu.ask_quit()
 		else:
 			safe_quit(get_tree())
 	elif what == NOTIFICATION_APPLICATION_PAUSED:
@@ -120,15 +125,16 @@ static func write_snapshot(text: String, file_name: String, dir: String = SNAPSH
 static func saved_drift() -> int:
 	if not has_save():
 		return 0
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-	return int(parsed.get("drifts_started", 0)) + 1 if parsed is Dictionary else 0
+	var parsed := read_saved_run()
+	return int(parsed.get("drifts_started", 0)) + 1 if not parsed.is_empty() else 0
 
 static func has_save() -> bool:
-	return FileAccess.file_exists(file_path)
+	return FileAccess.file_exists(file_path) or FileAccess.file_exists(file_path + ".bak")
 
 static func delete_save() -> void:
-	if has_save():
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(file_path))
+	for path in [file_path, file_path + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Choice screens pause the tree
@@ -144,6 +150,7 @@ func _ready() -> void:
 	if resume_next:
 		resume_next = false
 		_saved_data = _read()
+		_resume_failed = _saved_data.is_empty()
 		if not _saved_data.is_empty():
 			map_generator.map_seed = int(_saved_data.map_seed)
 			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
@@ -161,15 +168,16 @@ func _ready() -> void:
 	if not _saved_data.is_empty():
 		_restore.call_deferred(_saved_data)
 	else:
-		_dirty = true  # Save the opening rest too, so Continue exists right away
+		_dirty = not _resume_failed  # Save the opening rest too, so Continue exists right away
 
-func _process(_delta: float) -> void:
-	if autosave and _dirty and can_save_now():
+func _process(delta: float) -> void:
+	_save_retry_after = maxf(0.0, _save_retry_after - delta)
+	if autosave and _dirty and _save_retry_after <= 0.0 and can_save_now():
 		save_now()
 
 # A save is only taken while resting with nothing waiting on the player.
 func can_save_now() -> bool:
-	if run_state.is_over or not drift_director.is_resting() or drift_director.awaiting_family_pick:
+	if _resume_failed or run_state.is_over or not drift_director.is_resting() or drift_director.awaiting_family_pick:
 		return false
 	if family_screen.visible or dream_state.is_offering() or dream_state.has_pending_offer():
 		return false
@@ -184,7 +192,6 @@ func can_save_now() -> bool:
 func save_now() -> bool:
 	if not can_save_now():
 		return false
-	_dirty = false
 	var towers: Array = []
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
@@ -196,6 +203,8 @@ func save_now() -> bool:
 				"gift_sprout": bool(tower.get_meta(&"gift_sprout", false)),  # Never raises the Sprout price
 				"sprout_line": bool(tower.get_meta(&"sprout_line", false)),  # Grown from a paid Sprout: still raises it
 				"twig": tower.twig,  # Twig Walls: a one-half Thornwall (walls planted before the card stay 2×2)
+				"unique_plant_order": int(tower.get_meta(&"unique_plant_order", 0)),
+				"unique_plant_rest": int(tower.get_meta(&"unique_plant_rest", -1)),
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
@@ -225,6 +234,7 @@ func save_now() -> bool:
 		"drifts_started": drift_director.drifts_started,
 		"drifts_cleared": drift_director.drifts_cleared,
 		"blocks_rested": drift_director.blocks_rested,
+		"maze_economy": drift_director.maze_economy.to_save(),
 		"bosses_cleansed": drift_director.bosses_cleansed,
 		"early_calls": drift_director.early_calls, "call_early_dew": drift_director.call_early_dew,
 		"auto_drift": drift_director.auto_drift,
@@ -245,24 +255,103 @@ func save_now() -> bool:
 		data["rank_dew_spent"] = run_state.rank_dew_spent
 	if "memory_seeds" in run_state:
 		data["memory_seeds"] = Array(run_state.memory_seeds)
-	var file := FileAccess.open(file_path, FileAccess.WRITE)
-	if file == null:
-		push_error("Could not write %s" % file_path)
-		return false
 	var text := JSON.stringify(data)
-	file.store_string(text)
-	if autosave and snapshots_on():  # Real game only (tests add the scene by hand)
+	if not _write_run(text):
+		_dirty = true
+		_save_retry_after = 1.0
+		return false
+	_dirty = false
+	_save_retry_after = 0.0
+	if autosave and snapshots_on():
 		write_snapshot(text, snapshot_name(map_generator.map_seed, drift_director.drifts_started, MetaRun.is_dev_run()))
 	return true
 
+# Commit a complete temporary file; retain the last readable run for recovery.
+static func _write_run(text: String) -> bool:
+	var temp := "%s.%d.tmp" % [file_path, OS.get_process_id()]
+	var file := FileAccess.open(temp, FileAccess.WRITE)
+	if file == null:
+		push_warning("Could not save the run: %s" % error_string(FileAccess.get_open_error()))
+		return false
+	file.store_string(text)
+	file.flush()
+	var error := file.get_error()
+	file.close()
+	if error != OK:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp))
+		return false
+	if not _parse_run(file_path).is_empty():
+		error = DirAccess.copy_absolute(ProjectSettings.globalize_path(file_path), ProjectSettings.globalize_path(file_path + ".bak"))
+		if error != OK:
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temp))
+			return false
+	error = DirAccess.rename_absolute(ProjectSettings.globalize_path(temp), ProjectSettings.globalize_path(file_path))
+	if error != OK:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp))
+	return error == OK
+
+static func _parse_run(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(path)) != OK or not json.data is Dictionary:
+		return {}
+	var data: Dictionary = json.data
+	if int(data.get("version", 0)) != VERSION:
+		return {}
+	for key in ["map_seed", "tended", "towers", "dew", "leaves", "max_leaves", "obstacles_tended", "omen_seeds",
+			"creatures_cleansed", "drifts_started", "drifts_cleared", "blocks_rested",
+			"bosses_cleansed", "auto_drift", "dreams"]:
+		if not data.has(key):
+			return {}
+	if not data.tended is Array or not data.towers is Array or not data.dreams is Dictionary:
+		return {}
+	for key in ["map_seed", "dew", "leaves", "max_leaves", "obstacles_tended", "omen_seeds",
+			"creatures_cleansed", "drifts_started", "drifts_cleared", "blocks_rested", "bosses_cleansed"]:
+		if not _is_number(data[key]):
+			return {}
+	if not data.auto_drift is bool:
+		return {}
+	for key in ["tended", "fertile_cells"]:
+		var cells = data.get(key, [])
+		if not cells is Array:
+			return {}
+		for cell in cells:
+			if not _is_coordinate(cell):
+				return {}
+	for saved in data.towers:
+		if not saved is Dictionary or not _is_coordinate(saved.get("cell")):
+			return {}
+		if not _is_number(saved.get("invested")) or not saved.get("data") is String:
+			return {}
+		if not ResourceLoader.exists(saved.data) or not load(saved.data) is TowerData:
+			return {}
+		if saved.has("half") and not _is_coordinate(saved.half):
+			return {}
+		for key in ["paid_ranks", "rank_choices"]:
+			var ranks = saved.get(key, [])
+			if not ranks is Array or not ranks.all(_is_number):
+				return {}
+		var legacy = saved.get("legacy", "")
+		if not legacy is String or (legacy != "" and (not ResourceLoader.exists(legacy) or not load(legacy) is TowerData)):
+			return {}
+	return data
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or (value is float and is_finite(value))
+
+static func _is_coordinate(value: Variant) -> bool:
+	return value is Array and value.size() == 2 and _is_number(value[0]) and _is_number(value[1])
+
+static func read_saved_run() -> Dictionary:
+	var data := _parse_run(file_path)
+	return data if not data.is_empty() else _parse_run(file_path + ".bak")
+
 func _read() -> Dictionary:
-	if not has_save():
-		return {}
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) != VERSION:
-		push_warning("Run save unreadable or from another version; starting a new run")
-		return {}
-	return parsed
+	var data := read_saved_run()
+	if data.is_empty():
+		push_warning("Run save unreadable or from another version; keeping it for recovery")
+	return data
 
 # Rebuilds the saved run on the freshly generated (same-seed) map. The run resumes resting.
 func _restore(data: Dictionary) -> void:
@@ -302,6 +391,8 @@ func _restore(data: Dictionary) -> void:
 			tower.set_meta(&"gift_sprout", true)
 		if bool(saved.get("sprout_line", false)):
 			tower.set_meta(&"sprout_line", true)
+		tower.set_meta(&"unique_plant_order", int(saved.get("unique_plant_order", 0)))
+		tower.set_meta(&"unique_plant_rest", int(saved.get("unique_plant_rest", -1)))
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
@@ -360,6 +451,8 @@ func _restore(data: Dictionary) -> void:
 	drift_director.drifts_started = int(data.drifts_started)
 	drift_director.drifts_cleared = int(data.drifts_cleared)
 	drift_director.blocks_rested = int(data.blocks_rested)
+	drift_director.maze_economy.load_save(data.get("maze_economy", {}))
+	drift_director._maze_changed()
 	drift_director.bosses_cleansed = int(data.bosses_cleansed)
 	drift_director.early_calls = int(data.get("early_calls", 0))
 	drift_director.call_early_dew = int(data.get("call_early_dew", 0))

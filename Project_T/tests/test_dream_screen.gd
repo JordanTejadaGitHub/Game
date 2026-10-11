@@ -151,8 +151,7 @@ func _run() -> void:
 		if not CardDiagram.has_diagram(card):
 			continue
 		with_diagram += 1
-		var rows: PackedStringArray = card.diagram.strip_edges().split("
-")
+		var rows: PackedStringArray = card.diagram.strip_edges().split("\n")
 		var shape_ok := rows.size() == 5 and Array(rows).all(func(r: String) -> bool: return r.length() == 7)
 		var chars_ok := Array(rows).all(func(r: String) -> bool:
 			for ch in r:
@@ -223,6 +222,55 @@ func _run() -> void:
 			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
 			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
 				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		# Role cards omit puppet previews until their actual mechanics can be represented.
+		for role_id in ["drumbeat", "old_growth", "canopy", "grand_tour", "blessing_pebbling", "blessing_dewdrop", "blessing_sporeling"]:
+			var role: UpgradeData = dreams._card_by_id(role_id)
+			_check(role != null and not CardScene.can_show(role) and not CardScene.EFFECTS.has(role_id),
+				role_id + ": no stale passive numerical preview; current description explains the role")
+		# Non-damage placement previews must show their actual role.
+		tester.show_card(load("res://resource/dream/cheap_seeds.tres"))
+		var discount_labels := tester._world.find_children("PlantingDiscount", "Label", true, false)
+		_check(discount_labels.size() == 1 and discount_labels[0].text == UiStyle.dew_amount(-4),
+			"Scattered Seedlings marks only the eligible Sprout's planting saving")
+		_check(tester._wardens.all(func(w: Dictionary) -> bool: return w.data == CardScene.SPROUT and is_equal_approx(w.every, CardScene.ATTACK_EVERY)),
+			"Scattered Seedlings shows Sprouts with unchanged attacks")
+		tester._spawn_walker()
+		var economy_walker: Dictionary = tester._walkers[0]
+		tester._hit(economy_walker, true)
+		_check(economy_walker.hits == 1.0 and tester.hit_text(true) == str(CardScene.BASE_HIT), "Scattered Seedlings never boosts an eligible Sprout's damage")
+		tester.show_card(load("res://resource/dream/longer_roots.tres"))
+		var back_row: Dictionary = tester._wardens.filter(func(w: Dictionary) -> bool: return w.boosted)[0]
+		_check(is_equal_approx(back_row.range, CardScene.RANGE_CELLS + 1.0), "Back-row Roots grants real puppet target reach")
+		tester._spawn_walker()
+		var range_walker: Dictionary = tester._walkers[0]
+		range_walker.sprite.position = back_row.sprite.position + Vector2(CardScene.CELL * (CardScene.RANGE_CELLS + 0.5), 0)
+		_check(tester._target(back_row) != null, "Back-row Roots can target beyond ordinary reach")
+		back_row.range = CardScene.RANGE_CELLS
+		_check(tester._target(back_row) == null, "the same distant target is outside ordinary reach")
+		tester.show_card(load("res://resource/dream/switchback.tres"))
+		tester._path.assign([Vector2(64,64), Vector2(128,64), Vector2(128,128), Vector2(192,128)])
+		tester._wardens[0].sprite.position = Vector2(128,64)
+		tester._spawn_walker(64.0 - CardScene.WALK_SPEED * 0.1)
+		var bend_walker: Dictionary = tester._walkers[0]
+		tester._move_walkers(0.2)
+		_check(is_equal_approx(bend_walker.distance, 64.0 + CardScene.WALK_SPEED * 0.1 * 0.75), "Switchback actually slows movement after rounding a covered bend")
+		var slowed_from: float = bend_walker.distance
+		tester._move_walkers(0.1)
+		_check(is_equal_approx(bend_walker.distance - slowed_from, CardScene.WALK_SPEED * 0.1 * 0.75), "Switchback keeps its slow during the one-second duration")
+		bend_walker.distance = 64.0 - CardScene.WALK_SPEED * 0.1
+		bend_walker["bend_slow_left"] = 0.0
+		tester._move_walkers(0.2)
+		_check(is_equal_approx(bend_walker.distance, 64.0 + CardScene.WALK_SPEED * 0.1), "Switchback does not retrigger before the shared three-second cooldown")
+		bend_walker.distance = 0.0
+		bend_walker["bend_slow_left"] = 0.0
+		bend_walker["bend_cooldown"] = 0.0
+		tester._wardens[0].sprite.position = Vector2(10000,10000)
+		tester._move_walkers(0.6)
+		_check(is_equal_approx(bend_walker.distance, CardScene.WALK_SPEED * 0.6), "Switchback ignores bends outside attacking reach")
+		bend_walker.distance = 0.0
+		bend_walker["bend_slow_left"] = 0.05
+		tester._move_walkers(0.1)
+		_check(is_equal_approx(bend_walker.distance, CardScene.WALK_SPEED * (0.05 * 0.75 + 0.05)), "Switchback resumes full speed when its slow expires")
 		# Real time (user: "make sure the video previews aren't sped up"): at 3× game speed the scene walks the same
 		# distance in the same frames as at 1×, and its sprites' frames don't run faster
 		var walked := {}

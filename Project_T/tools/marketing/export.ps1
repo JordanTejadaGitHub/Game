@@ -17,6 +17,8 @@ param(
 	[string]$Ffmpeg = "D:\Projects\ffmpeg\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe"
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot '..\dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'marketing_export'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path  # tools\marketing ($PSScriptRoot is empty in param defaults on 5.1)
 if ($Project -eq "") { $Project = (Resolve-Path (Join-Path $here "..\..")).Path }
 $marketing = Join-Path (Resolve-Path (Join-Path $here "..\..\..")).Path "marketing"

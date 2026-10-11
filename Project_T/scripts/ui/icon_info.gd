@@ -11,12 +11,12 @@ class_name IconInfo
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps farther between {damp} nightmares."],
-	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
-	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
-	&"marked": ["Exposed", "Takes 25% more from every Warden."],
-	&"static": ["Charged", "At 5 stacks (8 on bosses) it releases a bolt: 3× its charge as damage. Some Wardens release it sooner."],
-	&"held": ["Rooted", "Can't move for a moment."],
+	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build 8 stacks to unlock reactions."],
+	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup (20 stacks, 12 on bosses) enables sleep and Catch effects."],
+	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately."],
+	&"marked": ["Exposed", "At 10 stacks, takes 25% more from every Warden. Brimming requires 20 stacks. Partial stacks give no damage bonus."],
+	&"static": ["Charged", "At 20 stacks (30 on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup."],
+	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build 4 stacks for reactions."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],

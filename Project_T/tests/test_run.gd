@@ -81,11 +81,11 @@ func _test_blocks_and_rests() -> void:
 	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
 	var pots: Array[Vector2] = director.dew_pot_acts
 	var boss_pots: Array[float] = director.dew_pot_bosses
-	_check(is_equal_approx(director.get_dew_pot(1), pots[0].x) and is_equal_approx(director.get_dew_pot(24), pots[0].y)
-		and is_equal_approx(director.get_dew_pot(25), boss_pots[0]) and is_equal_approx(director.get_dew_pot(26), pots[1].x)
-		and is_equal_approx(director.get_dew_pot(49), pots[1].y) and is_equal_approx(director.get_dew_pot(50), boss_pots[1])
+	_check(is_equal_approx(director.get_dew_pot(1), pots[0].x) and is_equal_approx(director.get_dew_pot(24), pots[0].y * (1.0 + director.maze_act1_dew_bonus))
+		and is_equal_approx(director.get_dew_pot(25), boss_pots[0]) and is_equal_approx(director.get_dew_pot(26), pots[1].x * (1.0 + director.maze_act2_dew_bonus))
+		and is_equal_approx(director.get_dew_pot(49), pots[1].y * (1.0 + director.maze_act2_dew_bonus)) and is_equal_approx(director.get_dew_pot(50), boss_pots[1])
 		and is_equal_approx(director.get_dew_pot(75), boss_pots[2]) and director.get_dew_pot(100) == 0.0,
-		"the pot table: linear per act from dew_pot_acts, bosses from dew_pot_bosses, the win pays nothing")
+		"the pot table: linear act base with maze Dew bonuses; boss pots and the win stay separate")
 	# Fractions carry: three shares of 0.5 pay 1 Dew, then the third half waits.
 	run_state._dispel_dew_carry = 0.0
 	var halves := run_state._carried_dew(0.5) + run_state._carried_dew(0.5) + run_state._carried_dew(0.5)
@@ -112,7 +112,7 @@ func _test_blocks_and_rests() -> void:
 		"act 4 adds act4_health_multiplier ×%.2f on top (Spire)" % director.act4_health_multiplier)
 	# Block finales (Spire): every non-boss nightmare on a block's last drift from drift 15 (block_finale_health_from) has ×1.4 health on top.
 	var base_15 := director.get_growth(15) * director.get_early_multiplier(15) * director.get_health_multiplier(shade_data, 15)
-	_check(is_equal_approx(director.get_health_scale(shade_data, 15), base_15 * director.block_finale_health_multiplier)
+	_check(is_equal_approx(director.get_health_scale(shade_data, 15), base_15 * director.block_finale_health_multiplier * (1.0 + director.maze_act1_health_bonus * 5.0 / 14.0))
 		and is_equal_approx(director.get_health_scale(shade_data, 10), director.get_growth(10) * director.get_early_multiplier(10) * director.get_health_multiplier(shade_data, 10))
 		and is_equal_approx(director.get_health_scale(shade_data, 5), director.get_growth(5) * director.get_early_multiplier(5) * director.get_health_multiplier(shade_data, 5)),
 		"a block finale from drift 15 has ×%.1f health; drift 10 (only its elite) and the first block's finale (5) don't" % director.block_finale_health_multiplier)
@@ -148,8 +148,8 @@ func _test_blocks_and_rests() -> void:
 			"drift %d: %d elite(s) (%d listed)" % [number, elites.size(), listed])
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
-		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * director.act1_health_multiplier * director.get_health_multiplier(shade_data, 25)),
-		"act 1's boss has its own multiplier (no ramp); its escort takes ×1.15")
+		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * director.act1_health_multiplier * (1.0 + director.maze_act1_health_bonus) * director.get_health_multiplier(shade_data, 25)),
+		"act 1's boss has its own multiplier (no ramps); its escort takes the normal and maze health ramps")
 	_check(is_equal_approx(director.get_health_scale(stag, 50), director.act2_boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
 		"later bosses keep their act's multiplier (act 2's end)")
 

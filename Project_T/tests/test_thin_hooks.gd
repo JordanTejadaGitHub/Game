@@ -34,9 +34,12 @@ func _run() -> void:
 	_take("called_shot")
 	var shooter := _plant("firefly_jar", Vector2(5, 5))
 	var marked := _spawn(shooter.global_position + Vector2(CELL, 0))
-	marked.apply_status(EnemyStatuses.MARKED, 1, 4.0)
+	marked.apply_status(EnemyStatuses.MARKED, marked.statuses.get_max_stacks(EnemyStatuses.MARKED) - 1, 4.0)
 	var crits := [0]
 	shooter.crit_landed.connect(func(_t, _e) -> void: crits[0] += 1)
+	shooter.hit(marked, 1.0, false, Tower.NO_CRIT)
+	_check(crits[0] == 0, "Called Shot does not crit on partial Exposed")
+	marked.apply_status(EnemyStatuses.MARKED, 1, 4.0)
 	shooter.hit(marked, 1.0, false, Tower.NO_CRIT)
 	shooter.hit(marked, 1.0, false, Tower.NO_CRIT)
 	_check(crits[0] == 1, "Called Shot: the first hit on a Marked nightmare crits, only once (%d)" % crits[0])

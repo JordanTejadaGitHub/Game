@@ -14,3 +14,4 @@ requires = Array[String](["dreamcatcher"])
 max_stacks = 1
 deepens = "lullaby"
 rule_id = &"lullaby"
+retired = true

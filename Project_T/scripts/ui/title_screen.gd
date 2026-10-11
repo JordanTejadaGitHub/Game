@@ -181,6 +181,15 @@ func _seeds_row(seeds: int) -> HBoxContainer:
 	return row
 
 func _continue() -> void:
+	if RunSaver.read_saved_run().is_empty():
+		var dialog := AcceptDialog.new()
+		dialog.title = "Couldn't continue"
+		dialog.dialog_text = "This run's save cannot be read by this version. It has been kept. Starting a new run will replace it."
+		dialog.confirmed.connect(dialog.queue_free)
+		dialog.canceled.connect(dialog.queue_free)
+		add_child(dialog)
+		dialog.popup_centered()
+		return
 	RunSaver.resume_next = true
 	get_tree().change_scene_to_file(GAME_SCENE)
 

@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "guiding_light"
 display_name = "Guiding Light"
-description = "{marked} spreads to nightmares within 1 cell of the target."
+description = "Applied {marked} stacks also spread to nightmares within 1 cell of the target."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])
-requires = Array[String](["lanternmoth", "cozy_corners"])
+requires = Array[String](["lanternmoth"])
 max_stacks = 1
 entwined = true
 rule_id = &"guiding_light"

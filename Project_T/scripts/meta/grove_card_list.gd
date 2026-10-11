@@ -28,7 +28,8 @@ func show_for(unlock: UnlockData) -> void:
 	if unlock == null:
 		return
 	for card in cards_of(unlock):
-		add_child(_card_row(card, unlock.dream_cards.has(card.id + "_ii")))
+		var deeper := load_card(card.id + "_ii")
+		add_child(_card_row(card, deeper != null and not deeper.retired and unlock.dream_cards.has(deeper.id)))
 	for omen in omens_of(unlock):
 		add_child(_omen_row(omen))
 
@@ -42,7 +43,7 @@ static func cards_of(unlock: UnlockData) -> Array[UpgradeData]:
 		if id.ends_with("_ii") and unlock.dream_cards.has(id.trim_suffix("_ii")):
 			continue
 		var card := load_card(id)
-		if card != null:
+		if card != null and not card.retired:
 			result.append(card)
 	return result
 

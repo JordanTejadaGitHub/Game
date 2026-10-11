@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for Mossback, Boulderback (Pebbling branch A) and Dreamshroom (Bloomcap's final form),
-# warden_stats.md: ×2 vs Marked, Boulderback's 50% splash and guaranteed crit on Drowsy, Dreamshroom's
+# warden_stats.md: ×2 vs completed Exposed, Boulderback's splash and guaranteed crit on Drowsy, Dreamshroom's
 # sleep at full Drowsy (once; bosses never). Also their data and evolution links.
 #   godot --headless --path . --script res://tests/test_heavy_and_sleep.gd --fixed-fps 60
 
@@ -44,33 +44,37 @@ func _run() -> void:
 	var moss := _plant(mossback, Vector2(5, 5))
 	var plain := _spawn(moss.global_position + Vector2(CELL, 0))
 	var marked := _spawn(moss.global_position + Vector2(0, CELL))
-	marked.statuses.apply(EnemyStatuses.MARKED)
+	var partial := _spawn(moss.global_position + Vector2(-CELL, 0))
+	partial.statuses.apply(EnemyStatuses.MARKED, partial.statuses.get_max_stacks(EnemyStatuses.MARKED) - 1)
+	moss.hit(partial, 1.0, false, Tower.NO_CRIT)
+	marked.statuses.apply(EnemyStatuses.MARKED, marked.statuses.get_max_stacks(EnemyStatuses.MARKED))
 	moss.hit(plain, 1.0, false, Tower.NO_CRIT)
 	moss.hit(marked, 1.0, false, Tower.NO_CRIT)
-	var moss_damage: int = load("res://resource/tower/mossback.tres").damage
-	_check(_lost(plain) == moss_damage, "Mossback: its damage on a plain nightmare (%d)" % _lost(plain))
-	_check(_lost(marked) == int(moss_damage * 2.0 * (1.0 + EnemyStatuses.MARKED_EXTRA)), "×2 on Marked, on top of Marked's +25%% (%d)" % _lost(marked))
+	var moss_damage: float = moss.get_damage()
+	_check(is_equal_approx(_lost(partial), moss_damage), "partial Exposed does not activate vulnerability or Marked Blow")
+	_check(is_equal_approx(_lost(plain), moss_damage), "Mossback: its damage on a plain nightmare (%d)" % _lost(plain))
+	_check(is_equal_approx(_lost(marked), moss_damage * 2.0 * (1.0 + EnemyStatuses.MARKED_EXTRA)), "×2 on Marked, on top of Marked's +25%% (%d)" % _lost(marked))
 	await _clean()
 
-	# Boulderback: full hit on its target, 50% to the rest within 1 cell; always crits on Drowsy.
+	# Boulderback: full hit on its target, configured splash share within 1 cell; always crits on Drowsy.
 	var boulder := _plant(boulderback, Vector2(5, 5))
 	var target := _spawn(Vector2(12.5, 8.5) * CELL)
 	var near := _spawn(target.global_position + Vector2(0.8, 0) * CELL)
 	var far := _spawn(target.global_position + Vector2(2, 0) * CELL)
 	boulder.projectile_landed(target, target.global_position)
-	_check(_lost(target) == boulderback.damage and _lost(near) == int(boulderback.damage * boulderback.splash_share) and _lost(far) == 0,
+	_check(is_equal_approx(_lost(target), boulderback.damage) and is_equal_approx(_lost(near), boulderback.damage * boulderback.splash_share) and _lost(far) == 0,
 		"Boulderback: its damage on the target, splash_share within 1 cell (%d / %d / %d)" % [_lost(target), _lost(near), _lost(far)])
 	var sleepy := _spawn(boulder.global_position + Vector2(CELL, 0))
 	sleepy.statuses.apply(EnemyStatuses.DROWSY)
 	_check(boulder.roll_crit(sleepy), "Boulderback always crits on a Drowsy nightmare")
 	await _clean()
 
-	# Dreamshroom: 2 Drowsy per application; at full Drowsy a nightmare sleeps 3 s (status jobs, 2026-09-29), once.
+	# Dreamshroom: native application reaches full Drowsy, sleeps for configured duration, once.
 	var shroom := _plant(dreamshroom, Vector2(5, 5))
 	var dreamer := _spawn(shroom.global_position + Vector2(CELL, 0))
-	for i in 2:
-		shroom.apply_status_to(dreamer, shroom.get_damage())
-	_check(dreamer.statuses.stacks(EnemyStatuses.DROWSY) == 4 and not dreamer.statuses.is_asleep(), "4 Drowsy: still awake")
+	var sleep_cap: int = dreamer.statuses.get_max_stacks(EnemyStatuses.DROWSY)
+	dreamer.statuses.apply(EnemyStatuses.DROWSY, sleep_cap - dreamshroom.status_stacks)
+	_check(not dreamer.statuses.is_asleep(), "below full Drowsy: still awake")
 	shroom.apply_status_to(dreamer, shroom.get_damage())
 	_check(dreamer.statuses.is_asleep() and is_equal_approx(dreamer.statuses.sleep_time, dreamshroom.sleep_at_max_drowsy), "full Drowsy: asleep for its sleep_at_max_drowsy")
 	dreamer.statuses.sleep_time = 0.0
@@ -78,9 +82,9 @@ func _run() -> void:
 	_check(not dreamer.statuses.is_asleep(), "only once per nightmare")
 	var boss := _spawn(shroom.global_position + Vector2(0, CELL))
 	boss.statuses.is_boss = true
-	for i in 3:
+	for i in ceili(float(boss.statuses.get_max_stacks(EnemyStatuses.DROWSY)) / dreamshroom.status_stacks):
 		shroom.apply_status_to(boss, shroom.get_damage())
-	_check(not boss.statuses.is_asleep(), "bosses never fall asleep")
+	_check(boss.statuses.stacks(EnemyStatuses.DROWSY) == boss.statuses.get_max_stacks(EnemyStatuses.DROWSY) and not boss.statuses.is_asleep(), "bosses never fall asleep even at full Drowsy")
 
 	print("heavy and sleep test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -90,8 +94,8 @@ func _check(condition: bool, label: String) -> void:
 		failures += 1
 		printerr("FAIL: " + label)
 
-func _lost(enemy: Node2D) -> int:
-	return enemy.max_health - enemy.health
+func _lost(enemy: Node2D) -> float:
+	return float(enemy.max_health - enemy.health) + enemy._soothe_carry
 
 func _plant(data: TowerData, cell: Vector2) -> Tower:
 	var tower: Tower = placer.tower_scene.instantiate()

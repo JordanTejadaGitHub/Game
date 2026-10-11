@@ -11,6 +11,7 @@ extends Control
 const GROUP := &"lesson_card"
 const SEEN_KEY := "lessons_seen"
 const WIDTH := 420.0
+const INTRO_IDS := [&"intro_heartwood", &"intro_maze", &"intro_dew"]
 signal lesson_shown(id: StringName)
 
 var enabled := true  # The Hints setting ("whispers")
@@ -21,6 +22,8 @@ var shown_id: StringName = &""
 var _last_drift := -1  # drifts_started when the last Lesson showed
 var _plants_in_mode := 0  # Placements since build mode came on (the "Build mode" Lesson at the second)
 var _paused_it := false
+var _resume_pending := false
+var _replaying := false
 
 var main: Node
 var drift_director: DriftDirector
@@ -32,6 +35,8 @@ var _icon := TextureRect.new()
 var _title := Label.new()
 var _body := Label.new()
 var _ok := Button.new()
+var _skip := Button.new()
+var _demo: LessonDemo
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -74,6 +79,9 @@ func _ready() -> void:
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(WIDTH, 0)
 	box.add_child(_body)
+	_demo = LessonDemo.new()
+	_demo.visible = false
+	box.add_child(_demo)
 	_ok.name = "GotIt"
 	_ok.text = "Got it"
 	_ok.focus_mode = Control.FOCUS_NONE
@@ -82,6 +90,14 @@ func _ready() -> void:
 	UiStyle.primary(_ok)
 	_ok.pressed.connect(close)
 	box.add_child(_ok)
+	_skip.name = "SkipTutorial"
+	_skip.text = "Skip tutorial"
+	_skip.focus_mode = Control.FOCUS_NONE
+	_skip.custom_minimum_size = Vector2(160, UiStyle.HUD_BUTTON_H)
+	_skip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_skip.pressed.connect(skip_intro)
+	_skip.visible = false
+	box.add_child(_skip)
 	var memory := HeartwoodMemory.load_data()
 	enabled = bool(memory.settings.get("whispers", true))
 	seen = memory.get(SEEN_KEY, []).duplicate()
@@ -98,13 +114,33 @@ func _hook() -> void:
 	tower_seller = main.get_node_or_null("%TowerSeller")
 	dream_state = main.get_node_or_null("%DreamState")
 	game_speed = main.get_node_or_null("%GameSpeed")
+	if game_speed != null:
+		game_speed.changed.connect(func(on: bool, _speed: float) -> void:
+			if visible and not on:
+				game_speed.set_paused(true))
+	if enabled and get_tree().current_scene == main and HeartwoodMemory.is_first_run() and drift_director.drifts_started == 0:
+		start_intro()
+	var whispers := main.get_node_or_null("%Whispers")
+	if whispers != null:
+		whispers.whispered.connect(discovery)
 	if tower_placer != null:
 		tower_placer.tower_built.connect(_on_built)
 		if tower_placer.has_signal("build_mode_changed"):
 			tower_placer.build_mode_changed.connect(func(_on: bool) -> void: _plants_in_mode = 0)
 	if tower_seller != null:
 		tower_seller.tower_sold.connect(_on_sold)
+		tower_seller.selection_changed.connect(func(towers: Array[Tower]) -> void:
+			if not drift_director.is_resting():
+				return
+			var run := main.get_node("%RunState") as RunState
+			for tower in towers:
+				if tower.can_nurture() and run.can_afford(tower.get_nurture_cost()):
+					discovery(&"nurture")
+				for option in Tower.grow_options(dream_state, tower.tower_data):
+					if option[1] and run.can_afford(tower.get_grow_cost(option[0]).total):
+						discovery(&"grow"))
 	if dream_state != null:
+		dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void: discovery(&"dream"))
 		dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
 			if amount > 0:
 				lesson(&"dreamlight", &"dreamlight", "Dreamlight",
@@ -114,6 +150,42 @@ func _hook() -> void:
 		spawner.nightmare_restless.connect(func(_enemy: Node2D, _stacks: int) -> void:
 			lesson(&"restless", &"nightmare", "Turned around",
 				"Changing the route under them makes them restless and faster. Do it too often and they stop listening."))
+
+func set_enabled(on: bool) -> void:
+	enabled = on
+	if not on:
+		queue.clear()
+		close()
+
+func start_intro() -> void:
+	if not enabled or drift_director == null or drift_director.drifts_started != 0:
+		return
+	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the road to the Heartwood. Dispel them before they arrive: each one that gets through costs leaves.")
+	lesson(&"intro_maze", &"path_length", "Build your maze", "Wardens are walls. Plant Sprouts to attack and Thornwalls to make the road longer. Keep a route to the Heartwood open, then start the drift when you are ready.")
+	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road covered by attackers also earns maze Dew at rests: +1 per %d extra defended cells, up to %d per block. The top-right +Dew counter forecasts the next rest." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP])
+
+func skip_intro() -> void:
+	if not INTRO_IDS.has(shown_id):
+		return
+	for id in INTRO_IDS:
+		if not seen.has(String(id)):
+			seen.append(String(id))
+	queue = queue.filter(func(entry: Array) -> bool: return not INTRO_IDS.has(entry[0]))
+	_remember()
+	close()
+
+func discovery(id: StringName) -> void:
+	match id:
+		&"grow":
+			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose an unlocked form in its panel. Growing changes its abilities and costs Dew. Some forms must first be unlocked through Remember or the Memory Grove.")
+		&"nurture":
+			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", "Select a Warden, then choose Nurture and the improvement you want. Each rank costs Dew and strengthens its current form. Hover a choice to read its exact effect. At rank V, four matching picks earn a signature or mastery; mixed picks earn All-Rounder, +20% to its main job.")
+		&"dream":
+			lesson(&"discover_dream", &"dreamlight", "Choose a Dream", "Dreams change your run. Offers are random: pick a card that supports your Wardens, or experiment with a new build. Some cards pay off after you add more towers or combine statuses.")
+		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
+			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), IconInfo.status_tooltip(id))
+		&"flyer":
+			lesson(&"discover_flyer", &"nightmare", "Flying nightmares", "Flying nightmares ignore your maze. Keep attackers covering the approach to the Heartwood, and watch the coming-nightmare warnings.")
 
 # --- Triggers ---------------------------------------------------------------------------------------------------
 
@@ -127,6 +199,8 @@ func _on_built(tower: Tower) -> void:
 				InputMode.text("Build mode stays on. Right-click or Esc to stop building.",
 					"Build mode stays on. Tap Done to stop building."))
 	var data := tower.tower_data
+	if data.catch_share > 0.0:
+		lesson(&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest.")
 	if tower.get_meta(&"gift_sprout", false):
 		return
 	if data.get_id() == "sprout":  # The first time the Sprout price steps up (onboarding.md a599a72d)
@@ -168,7 +242,7 @@ func lesson(id: StringName, icon: StringName, title: String, text: String) -> vo
 	queue.append([id, icon, title, text])
 
 func can_show() -> bool:
-	if drift_director == null or not is_inside_tree():
+	if not enabled or drift_director == null or not is_inside_tree():
 		return false
 	if one_per_drift and drift_director.drifts_started == _last_drift and not drift_director.is_resting():  # Rests: one after another
 		return false
@@ -178,19 +252,32 @@ func can_show() -> bool:
 	return drift_director.pending_choice() == &"" and not RestScreens.any_open(self, drift_director)
 
 func _process(_delta: float) -> void:
+	if _resume_pending and not visible and not RestScreens.any_open(self, drift_director):
+		_resume_pending = false
+		if game_speed != null:
+			game_speed.set_paused(false)
 	if not visible and not queue.is_empty() and can_show():
 		_show(queue.pop_front())
 
 func _show(entry: Array) -> void:
+	if _resume_pending:
+		_paused_it = true
+		_resume_pending = false
 	shown_id = entry[0]
 	_icon.texture = IconInfo.icon(entry[1])
 	_icon.visible = _icon.texture != null
 	_title.text = entry[2]
+	_skip.visible = not _replaying and INTRO_IDS.has(shown_id)
+	_ok.text = "Next" if (_replaying and not queue.is_empty()) or (_skip.visible and shown_id != INTRO_IDS[-1]) else "Got it"
 	_body.text = entry[3]
+	_demo.topic = &"nurture" if shown_id == &"discover_nurture" else (&"maze" if shown_id == &"intro_maze" else (&"catch" if shown_id == &"guide_catch" else &""))
+	_demo.clock = 0.0
+	_demo.visible = _demo.topic != &""
 	visible = true
 	_last_drift = drift_director.drifts_started
-	seen.append(String(shown_id))
-	_remember()
+	if not _replaying:
+		seen.append(String(shown_id))
+		_remember()
 	if game_speed != null and not game_speed.paused:
 		_paused_it = true
 		game_speed.set_paused(true)
@@ -199,10 +286,17 @@ func _show(entry: Array) -> void:
 func close() -> void:
 	if not visible:
 		return
+	if (_replaying or INTRO_IDS.has(shown_id)) and not queue.is_empty() and (_replaying or INTRO_IDS.has(queue[0][0])):
+		_show(queue.pop_front())
+		return
 	visible = false
+	_replaying = false
 	shown_id = &""
 	if _paused_it and game_speed != null:
-		game_speed.set_paused(false)
+		if RestScreens.any_open(self, drift_director):
+			_resume_pending = true
+		else:
+			game_speed.set_paused(false)
 	_paused_it = false
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -217,3 +311,14 @@ func _remember() -> void:
 	var memory := HeartwoodMemory.load_data()
 	memory[SEEN_KEY] = seen
 	HeartwoodMemory.save_data(memory)
+
+# Explicit replay bypasses first-time/profile limits; it still owns and releases its pause.
+func replay_guides() -> void:
+	if main == null or game_speed == null:
+		return
+	_replaying = true
+	queue.clear()
+	queue.append([&"discover_nurture", &"rank", "Rank-V bonuses", "Four matching picks among your first five earn a signature or mastery. Other rank-V builds earn All-Rounder: +20% to their main job. Shared Training needs four matching picks on both bonded rank-IV kin."])
+	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Extra road must be covered by attacking Wardens to earn maze Dew. The top-right forecast shows the next rest's reward; each block has a shared cap."])
+	queue.append([&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest."])
+	_show(queue.pop_front())

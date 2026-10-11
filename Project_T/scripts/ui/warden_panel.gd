@@ -1017,7 +1017,7 @@ var _signature_sheet: Texture2D  # Loaded once (on the instance: a static textur
 
 func _signature_icon(sig: StringName) -> TextureRect:
 	var index := Signatures.NAMES.keys().find(sig)
-	if index < 0:
+	if index < 0 or index >= 8:
 		return null
 	if _signature_sheet == null and ResourceLoader.exists(SIGNATURE_MARKS_PATH):
 		_signature_sheet = load(SIGNATURE_MARKS_PATH)
@@ -1050,7 +1050,7 @@ func _add_signature_mark() -> void:
 	mark.mouse_filter = Control.MOUSE_FILTER_PASS
 	mark.text = "◆ " + String(Signatures.NAMES.get(sig, sig))
 	mark.add_theme_color_override("font_color", UiStyle.GOLD)
-	mark.tooltip_text = "Signature: %s." % Signatures.TEXT.get(sig, "")
+	mark.tooltip_text = "Signature: %s." % Signatures.text_for(_tower)
 	var icon := _signature_icon(sig)
 	if icon != null:
 		icon.tooltip_text = mark.tooltip_text
@@ -1613,7 +1613,7 @@ func _shake(button: Control) -> void:
 	CantAfford.shake(button)  # The Remember screen's shake (none under reduced motion)
 
 # Seedbearer / Grove Keeper with a ripe seed (Tower Code's BranchKit.seeds_ready, the golden seed badge): "Plant Sprout
-# (N)" lights the open cells beside it (TowerPlacer.begin_seed_choice) and a click there plants a free Sprout. At a
+# (N)" lights legal cells across the map (TowerPlacer.begin_seed_choice) and a click there plants a free Sprout. At a
 # rest only; the button is the way in on touch.
 func _seed_button() -> void:
 	var seeds := BranchKit.seeds_ready(_tower)
@@ -1621,7 +1621,7 @@ func _seed_button() -> void:
 		return
 	var button := _add_button("Plant Sprout (%d)" % seeds)
 	button.name = "PlantSprout"
-	button.tooltip_text = "A free Sprout in an open cell beside it. Pick the cell on the map" + InputMode.text(" (Esc cancels).", ".")
+	button.tooltip_text = "A free Sprout in any legal cell on the map. Pick the cell on the map" + InputMode.text(" (Esc cancels).", ".")
 	if not Tower.resting:
 		button.text = "Plant Sprout (%d) · at the next rest" % seeds
 		button.disabled = true
@@ -1630,7 +1630,7 @@ func _seed_button() -> void:
 	button.pressed.connect(func() -> void:
 		if not tower_placer.begin_seed_choice(tower):
 			_shake(button)
-			_toast("No open cell beside it"))
+			_toast("No legal planting cell"))
 
 func _toast(text: String) -> void:
 	var hud := get_parent()

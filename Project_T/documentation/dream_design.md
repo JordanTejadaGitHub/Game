@@ -1,10 +1,115 @@
 # Dream Design: the in-run upgrade pool
 
+## Main integration of Dream build overhaul — 2026-10-11
+
+This section supersedes the prototype's original rarity/act gates and Rhythm descriptions. These approved prototype changes are integrated into the main checkout; newer status, unique successor, maze economy and onboarding changes remain. Start a new run to sample the corrected pool; old saved Dreams remain readable.
+
+- Stone Relay, Stored Rain and Spore Reserve are now Uncommon/Act 1. Their family requirements and ordinary 60% seeded family sampling remain: a valid family does not guarantee the card. No Grove family unlock is granted.
+- Common Rhythm becomes **Fifth Beat**: five consecutive positive original primary hits on one nightmare schedule a full-strength echo 0.25 s later. Changing primary selection resets the streak. Ordinary original direct hits deal 10% less; applied status potency is unchanged. Echoes do not copy statuses, roll crits or trigger original-hit reactions, and are wasted if target/source disappears. Target defenses still apply to the stored hit.
+- **Crossfire**, an Uncommon Act 1 card without family requirements: two distinct Wardens' original positive primary hits on a target within 1 s send one bolt into the nearest grounded route follower within two route cells. It deals 40% of the weaker actual hit, with a shared 3 s cooldown on the original target. Missing followers still spend the rendezvous; there is no banked payoff. It copies no statuses and cannot recurse.
+- Small Hands, Many Talents and First Among Equals are retired from new offers; saved IDs and effects remain readable. Together with the previous family Blessing/shape retirements this removes the audited automatic damage packages. Conditional placement, enemy-state and genuine downside cards are retained. Useful reach/shape utility cards are not automatically retired.
+- Half-Dreamed, offer rarity/random weights, family sampling, always-included basics and Grove-exclusive archetypes remain intact. Crossfire/Fifth Beat are drawn normally, not forced into offers.
+
+Ruling: full-strength Fifth Beat echo is required for a real payoff. A half-strength echo plus 10% weaker originals yields only99% baseline damage even under perfect conditions; a full-strength echo yields108% before repeat defenses, with losses from switching, short-lived targets and wasted echoes. Values remain prototype tuning.
+
+
 Phase 2 of `design_plan.md`. Revised 2026-09-27 for **100-drift runs** (`run_design.md`): a
 Dream after every 5th drift (**19 per run**), and Warden families come from the first pick and the
 bosses, not from Dreams. Covers the first-playable scope from `tower_design.md` (Sprout,
 Thornwall, Sporeling, Firefly Jar, Dewdrop, their branches, and Thunderhead). Numbers are starting
 points.
+
+## Isolated role prototype (2026-10-09)
+
+This prototype section supersedes numerical legacy card descriptions below and in the earlier rework section. Full mechanics, project path, launcher and playtest questions: `dream_prototype_playtest.md`. Prototype branch: `codex/dream-build-overhaul` at `D:/Projects/GameDreamPrototype/Project_T`.
+
+Stone Relay (`blessing_pebbling`), Stored Rain (`blessing_dewdrop`) and Spore Reserve (`blessing_sporeling`) replace their whole-family damage/growth packages with original-attack role mechanics. They are Uncommon, Act 1, starting-pool family cards with unchanged family prerequisites (Early Builds v2 correction). Damage/evolution bonuses are zero. Stored Rain pays a doubled-base-power single hit if a different ground nightmare enters before expiration; its sacrificed splash, crit and target bonuses are not replayed. Drumbeat is a two-distinct-neighbor attack relay with 35% base cooldown advance; Steadfast is mature-Warden first-target pinning; Canopy is temporary range from a busy six-attacker connected cluster; Grand Tour is bounded preservation of other existing statuses when a new status lands. Canopy and Grand Tour remain Grove exclusive. Changed resources remove old demonstration diagrams/captions instead of displaying unrelated numerical rewards.
+
+The prototype does not increase nightmare health or impose the historical goal that Dreams supply half the damage. Judge them by changed targeting, route coverage, control, sequencing and choices; survival numbers and subjective feel need real playtests.
+
+New retirement dispositions (only new offers/sampling; stable resources are not deleted):
+
+| IDs | Reason |
+|---|---|
+| blessing_acorn, blessing_bellflower, blessing_firefly_jar, blessing_nestling, blessing_rootling, blessing_whirligig | Retire the generic +25% family damage/+25% cheaper growth package rather than invent six weak substitute mechanics. Native families remain playable. |
+| menagerie, the_long_walk | Numerical reward for normal variety/path growth; no changed attack or route decision. |
+| seasoned | Rank-II threshold soon becomes an automatic blanket +15% damage. |
+| many_hands | Repeated global damage reward for ordinary attacker-count growth; no position/timing mechanic. |
+| golden_harvest | Passive lifetime-income damage scaling, redundant with meaningful economy cards. |
+| tended_forest | Global cumulative damage from clears already rewarded by economy/placement cards. |
+| nimble_twigs, restless_roots | Simple base-attack-rate damage/speed packages; redundant with rhythm/target/attack-pattern choices. |
+| hummingheart | Converts already-earned speed bonuses into automatic extra damage. |
+| grove_of_kin | Global damage from bond count without changing bond behavior. |
+| kindred_roots | Pure damage accumulation from surrounding rank investment. Its II was already retired. |
+| thornheart | Family-only damage accumulation from owning more Brambles. |
+| deep_grip | Family multiplier on Rootling's native Hold, without changing its job. |
+
+Preservation dispositions for the rest of the audited active pool: keep limited Dew/clear/Nurture economy and survival (including Seedfall, Cheap Seeds, Evergreen, Tender Care and leaf-risk cards); keep spatial choices/structural range and the existing meaningful Sprout starting cards; keep conditional crit and attack-pattern/status propagation builds; keep genuine risks and tradeoffs. In particular Chosen Few keeps its -50% damage below rank III, Venom Bloom trades direct damage for Potency, Falling Weight requires Hold/sleep setup outside stone's native attack, and Monoculture/Few and Mighty/Solitude require committing to board constraints. Retain Root Network's connection topology, rhythm/turnover/watchful timing, and all unchanged native combinations. These are deliberate exceptions to blanket removal of numbers. Existing retired cards stay retired. No other active card is newly retired by this audit.
+
+Full Moon is unchanged. Half-Dreamed/speculative failure, 60% sampling, rarity weights, fading/pity, random family picks and structural Deepened replacement remain. Grove nodes keep readable resource IDs; retired cards cannot enter new offers even when a legacy Grove node lists them. No family or Grove placement is moved. Ordinary offers allow at most two mechanical family cards without guaranteeing either.
+
+
+Phase 2 of `design_plan.md`. Revised 2026-09-27 for **100-drift runs** (`run_design.md`): a
+Dream after every 5th drift (**19 per run**), and Warden families come from the first pick and the
+bosses, not from Dreams. Covers the first-playable scope from `tower_design.md` (Sprout,
+Thornwall, Sporeling, Firefly Jar, Dewdrop, their branches, and Thunderhead). Numbers are starting
+points.
+
+## Approved rework implemented 2026-10-09
+
+This section is current and supersedes conflicting older card tables below. Values are initial tuning values, not a claim of measured balance.
+
+| Existing resource ID | Current card | Effect | Pool / Deepened |
+|---|---|---|---|
+| `deeper_calm` | Clear Minds | Direct hits +35% against status-free nightmares; check before this hit applies statuses. Persistent effects excluded. | Starting, always included; II retired. |
+| `quickened_sap` | Target Turnover | Switching actual primary targets grants +35% attack speed for 3 seconds; refreshes without stacking. | Starting, always included; II replaces duration with 5 seconds. |
+| `longer_roots` | Back-row Roots | Attackers touching no route cell gain +1 range. Diagonal contact counts. | Starting, always included; II retired. |
+| `cheap_seeds` | Scattered Seedlings | A Sprout planted without touching another Sprout costs 4 Dew less. Later neighbors do not alter the price paid. | Starting. |
+| `dew_line` | Last Collection | Dispels within 3 cells of Heartwood pay +20% of their actual Dew share, including fractional carry. | Starting. |
+| `sprout_chorus` | Thicket | A Sprout touching another Sprout and at least 2 distinct route cells gains +30% attack speed. | Starting; offer gate checks a feasible legal pair instead of 6 planted Sprouts. |
+| `seedfall` | Seedfall | Sprouts start at 8 Dew and escalation is halved; no damage bonus. | Starting. |
+| `switchback` | Switchback | Rounding a bend in attacker reach slows 25% for 1 second; 3-second cooldown per nightmare, shared across covering Wardens. | Starting. |
+| `scarred_bark` | Scarred Bark | Future Dew pots +2% per actual leaf lost, capped +20%. Healing does not reset losses; prevented losses and maximum-leaf clamps do not count. | Grove; II unavailable pending its own design. |
+
+Canopy (Grove): each attacker milestone at 20, 30, and 40 checked at drift start awards a permanent +12% damage, once each. Selling retains earned bonuses; replanting alone cannot advance them. Old saves retain already-earned Canopy bonuses.
+
+Guiding Light requires Lanternmoth, without Cozy Corners. Monoculture ignores Sprouts for its single-line condition and grants them no bonus. The Quiet Ones requires three Wardens with outputs already amplified by its existing hooks; plain walls, catcher income and Dreamcatcher effects do not qualify. These cards retain their starting/Grove placements and Deepened effects.
+
+Impatient Night (Grove): Wardens deal 40% more damage while at least two early-called drifts have nightmares on the field. Scheduled arrivals alone do not count; the bonus ends with the overlap and never stacks. Calls remain manual. Full Moon remains unchanged.
+
+Council corrections: Half-Dreamed excludes only combinations needing more missing families than remaining family picks. Persistent effect ticks cannot crit or consume hit-only crit reactions; native status reactions remain. Reclaimed Earth halves the final planting price after escalation and other discounts.
+
+Rhythm, Undergrowth, Bountiful, Seedling Gift, Spinning Corners and the other leaf-risk cards remain unchanged. Core pool inclusion and the existing one-simple-combat-card offer limit are retained. Specialist requires rank III in act one, rank I from act two; Many Talents, Small Hands, Lingering Ground and Shared Training retain their existing gates.
+
+Structural Deepened upgrades replace their base effects:
+
+- Cozy Corners II: reach 2, same +30% damage.
+- Root Network II: diagonal connections, same +6% per member / +60% cap.
+- Shattering Blow II: radius 1.5, same 50% splash share.
+- Rolling Thunder II: same 3.5-cell reach, +2 Charged stacks; base three-arc limit remains.
+
+Retired higher-number II cards: Bad Dreams, In the Thick (`crowded_path`), Clear Minds, Dew Trail, Evergreen, Far Reach, Fresh Growth, Head Start, Heavy Eyelids, Hedge Maze, Hollow Ground, Homing Instinct, Kindred Roots, Last Breath, Lingering Splash, Lone Hunter, Back-row Roots, Momentum, Odd One Out, Seeping, Sharpened Light, Static Bloom, Still Target, Straightaway, Sweet Harmony, Tended Stumps and Twin Puff. Their bases remain. Retired resource identities remain readable for existing saves and developer tooling, but cannot enter new offers or sampled run pools and are omitted from the player codex and Grove nodes.
+
+Retained II cards: Target Turnover, Deep Water, Guiding Light, Old Friends, Ricochet, Static Field, Sunlit Rest, Tender Care, Thick Bark, Watchful Rest, Lullaby, Tangled Release and Thorn Snare. Spore Cascade II was not selected for removal and remains unchanged.
+
+Corrections: Stray Dream's reverse build-tag penalty removed; all its other weighting behavior retained. Few and Mighty caps at +80%, is not offered at 12+ attackers. Grandfather Stump names/requires Elder Stump and clarifies its 45% total aura cap. Deeper Rings refers to the one Eldest. First Frost describes the existing shared first-five non-boss / 1.5-second behavior. Nimble Twigs explicitly uses base attack rate; Steadfast carries the Tall tag. Entwined/Woven comments no longer promise a guaranteed offer.
+
+Half-Dreamed, speculative picks, passed-over fading, family randomness, combo availability through Wardens and Memory Grove placements remain. Crossroads, Wildwood Reclaimed and further unapproved combination/exploit work are deferred.
+
+## Signature feedback pass (2026-10-09)
+
+User-authorized focused implementation following council review of all 70 current defining cards and related behavior cards. This pass preserves mechanics, values, pool placement, Deepened replacement semantics, Half-Dreamed, random offers and Memory Grove exclusivity. It makes existing capabilities legible; it does not establish that subjective fun has improved.
+
+- Briar Crown: quiet crown on powered walls, actual strongest-source connection during inspection/building, bounded contact strikes. Thorny Walls shares the contact cue on its actual lash.
+- Ricochet / II: short local turn cue, short seed trail, distinct return tint.
+- Rooted Nightmares: static footprints on actual blocked half cells, removed on release; existing queues/rerouting retained.
+- Great Ripple: anticipatory footprint and timer-synchronized aftershock; current expanded filled-disk damage retained. Visual caps never cancel damage timers.
+- Impatient Night: live +40% overlap indicator beside early-call controls, driven by actual early-called drifts on the field.
+- Last Breath, Spillover, Shattering Blow / II, Dawnbreak and qualifying Overlap: bounded, coalesced actual-trigger bursts with unchanged damage.
+- Passing Dream, Hunter's Moon and Spore Cascade / II: bounded transfer cues only for accepted status applications, including statuses consumed immediately by a bolt or Reaction.
+- Target Turnover / II and Momentum: selected-Warden live timer/ramp tags using screen-size world labels.
+
+Sap Rising and Watchful Rest retain their existing pulse/ready effects. Other cards retain their existing attacks, placement previews, ranks, prices, counters or inspection feedback. Reduced motion, reduced flashes and effects quality remain respected. Full per-card dispositions: `dream_signature_review.md`.
 
 ## Goals
 
@@ -242,9 +347,7 @@ existing badges).
     path."*). The run's pool is fixed at run start; only family picks and discoveries add to it.
   - **Discovery mid-run** adds the discovered cards to this run's pool right away (you just did the
     thing; the half-dreamed rule still applies).
-  - **Unaffected:** Entwined guaranteed slots (their card joins the pool when due), Seed cards'
-    "calls", Banish (removes from the run's pool), the Stray slot (draws from the run's pool, outside
-    your tags).
+  - **Current:** Entwined cards use normal random offers; Seed cards do not guarantee family calls. Banish removes cards from the run pool. Stray draws without reverse build weighting.
   - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
     later show "dreams in reach this run" (optional).
   - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
@@ -268,8 +371,7 @@ existing badges).
     an unseen card is ~5× as likely as one you've skipped three times. (Revised the same day: a
     flat ×0.5 / ×0.25 faded every unchosen card equally, so after act 2 it changed nothing.)
   - **Taking** a card resets its count to 0 (stackable cards you like keep coming).
-  - A reroll counts as passing over every card it replaced. The Entwined guaranteed slot never
-    fades and never counts as passed. Rerolls, Banish and Let it pass work as before.
+  - A reroll counts as passing over every card it replaced, including Entwined cards. Rerolls, Banish and Let it pass work as before.
   - Measure: in a test run that skips the same card at every offer, it should turn up in at most
     ~1 offer in 4 after its second skip.
   - **The fade crosses rarities** (added the same day; simulation c64183a: Few and Mighty was often
@@ -1914,12 +2016,12 @@ read those choices, so the Nurture path shapes the build.
 |---|---|---|---|---|
 | 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **double the bonus from each rank's choice** (a true ×2; balance_simulation.md 43496006) | tall, nurture, defining |
 | 267 | **Many Talents** | Uncommon | A Warden deals **10% more damage for each different choice** among its ranks (up to +40%) | tall, nurture, defining |
-| 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with the same majority choice both get its rank V signature at **rank IV** | tall, kinship, defining |
+| 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with four matching picks each on the same choice both get its signature or mastery at **rank IV** | tall, kinship, defining |
 
 - Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
   the first rank, so they're doors into Tall as well.
 - **Shared Training waits** for Tower Code to build the rank V signatures, which Tower Discussion
-  has decided (warden_stats.md "Rank V signatures", 96d728dd): a Warden with 3+ of ranks I–V on one
+  has decided (warden_stats.md "Rank V signatures", 96d728dd): a Warden with 4+ of ranks I–V on one
   choice gets that choice's signature:
 
   | Choice | Signature |
@@ -1932,12 +2034,12 @@ read those choices, so the Nurture path shapes the build.
   | Yield | Firstborn |
   | Wide | Shelter |
   | Strong | Surge |
-  | Kindred | none |
+  | Kindred | Mastery on repeatable paths |
 
-  - **With Shared Training:** two kin that both have 3 of ranks I–IV on the same choice get its
+  - **With Shared Training:** two kin that both have 4 of ranks I–IV on the same choice get its
     signature at **rank IV**.
-  - Kindred has no signature, so a Kindred pair gains nothing; the card text says "the same choice"
-    and the Warden panel shows which.
+  - Repeatable Kindred and paths without a suitable signature gain role-specific Mastery. Other
+    rank-V Wardens gain All-Rounder (+20% to their main job); Shared Training grants no early All-Rounder.
   - Until the signatures are built, it isn't offered.
 - **Built:** cards 266–269 in 31b43636 (Roguelite Code, numbers 43496006). Specialist's and Brimming's hooks are Tower Code's. Shared Training is in offers from ebe67076 (signatures: Tower Code 105f2252, e951b540); like every Kinship card it waits for the profile's first Kinship.
 - **Discovery** (user, 2026-10-06: *"don't hint towards signatures"*): signatures are discoveries, with no panel preview. Shared Training is offered only **after the profile's first signature** (account-wide, like Kinship cards and the first Kinship). Its text names no specific signature: "Two bonded kin with the same training gain its signature one rank sooner."
@@ -1950,21 +2052,21 @@ builds."*
 
 | # | Card | Rarity | Effect | Tags |
 |---|---|---|---|---|
-| 269 | **Brimming** | Rare | Nightmares can hold **twice as many stacks** of every status | status, affliction, defining |
+| 269 | **Brimming** | Rare | Nightmares can hold **twice as many Poisoned and Drowsy stacks**; Charged thresholds stay unchanged | status, affliction, defining |
 
 What it does to each status (EnemyStatuses caps 2026-10-06):
 
 | Status | Cap | With Brimming | Effect |
 |---|---|---|---|
-| Spored | 8 | 16 | ticks climb twice as high: **poison soars** |
-| Charged (static) | 5 (bosses 8) | 10 (16) | the bolt fires at the cap, so **bolts come half as often**: Charge builds suffer |
+| Spored | 16 | 32 | more headroom for multiple towers and longer duration |
+| Charged (static) | 5 (bosses 8) | 5 (8) | discharge cycle unchanged (2026-10-09) |
 | Drowsy | 5 (bosses 3) | 10 (6) | deeper slow (the slow floor still holds); Dreamcatchers Catch at full Drowsy, so **catching takes twice as long** |
 | Soaked, Marked, Held | 1 | 1 | on/off statuses: unchanged |
 
 - It's a true doubling (×2 on the cap; text "twice as many" is correct). Heavy Eyelids' +2 Drowsy
   adds after the doubling.
-- Thunderclap's Charged threshold (`static_needed`) doesn't change. Only the bolt waits for the cap.
-- A real choice, not a flat boost: great for Sporeling, bad for Firefly / Stormcap, mixed for
+- Thunderclap's Charged threshold (`static_needed`) doesn't change. Brimming no longer changes the bolt threshold (2026-10-09).
+- A real choice, not a flat boost: great for sustained Sporeling stacking, neutral for Firefly / Stormcap, mixed for
   Bellflower / Dreamcatcher.
 
 ## Legendaries as high points (2026-10-06)
@@ -2006,7 +2108,7 @@ The Dreamlight / Dew numbers to drift 75 are being measured.
 | Specialist, Many Talents | a Warden at rank III+ (Balancing Discussion) |
 | Shared Training | a {kinship} on the map (it has the signature discovery gate too) |
 | Close Kin | a family with 2 branches unlocked (a Kinship is possible) |
-| Brimming | a Warden that applies a stacking status (Spored, Charged or Drowsy) |
+| Brimming | a Warden that applies Poisoned or Drowsy |
 | Small Hands | a Warden that sends things out (Brood Cap, Nestling line, Samara, Cairn, Hummingbird…) |
 | Lingering Ground | a Warden that leaves a ground effect (clouds, trails, rings, rubble, pools, lit tiles) |
 | Sap Rising | a Warden that doesn't attack (aura, catcher, Dreamcatcher) |
@@ -2280,7 +2382,7 @@ up with creature health and benefit from stat Dreams and evolutions.
 |---|---|---|---|---|
 | **Damp** | **Soaked**: no slow (changed 2026-09-29). Hits from the Dewdrop family deal **+20%**; the conductor for Reactions | 4 s, refreshed on reapply | no | Rain Lily 6 s; Mistveil fog keeps it on |
 | **Drowsy** | −8% speed per stack (**the** slowing status) | 3 s, refreshed | up to 5 (−40%) | Dreamshroom: at 5 stacks, sleep **3 s**, once per nightmare |
-| **Spored** | soothe per second per stack = 25% of the applier's soothe | 5 s, refreshed | up to 8 (Driftspore 12) | Puffball pops at 10+ |
+| **Spored** | soothe per second per stack = 20% of the applier's soothe | independent 5 s applications; Caught pauses expiry | up to 16 (Driftspore 24; Puffball 32; Sporemother 40) | Puffball applies area Poisoned; it no longer pops |
 | **Marked** | +25% soothe taken from all sources | 5 s | no | Beacon +35% |
 | **Static** | a charge; at 5 stacks, a free bolt worth 3× the applier's soothe, then reset | loses 1 stack per 2 s | up to 5 | |
 | **Held** | can't move; **firm** (nothing breaks it) | 1 s | no | Rootling line, Frostfern (Frozen) |
@@ -2656,3 +2758,123 @@ checks for).
 **Offers are random within the run's pool (2026-09-30, user):** the build tag weight ("Dreams steer your Dreams", 1.6 → 1.3) is **turned off (1.0)**. The player adapts their build to the random cards they get; nothing steers them down a path. Tag resonance (+10% per owned card of a tag, up to +50%) stays: committing is still rewarded, by choice.
 
 **No "Needs" line on cards (2026-10-01, user: "can remove the Needs Water"):** the Dream card face no longer shows a "Needs …" line (families, statuses or forms). The card text already names what it works with; a card for a family you don't have yet stays a quiet lure for the family pick. In "Dreams this run", a card that isn't doing anything yet is shown dimmed with a hover line "Not active yet: needs a Water Warden", so the information is there when asked.
+
+## Multi-tower status balance (2026-10-09)
+
+Poisoned uses independent timed application batches: new hits do not refresh every older stack.
+At capacity a new application replaces only its own number of oldest stacks, maintaining uptime
+without rejuvenating the entire pile. Batches are bounded by stack capacity and use no scene nodes.
+Base cap 32; Driftspore 48; Puffball 64; Sporemother 80. Per-stack damage is 20% of hit damage instead
+of 25%. A base Sporeling's 2 hits/s sustains about 10 stacks over 5 seconds: the expected 14 poison DPS
+matches its former saturated8-stack damage. More towers fill the extra capacity.
+
+Existing strongest-applier potency pooling is preserved while Poisoned remains active; credit is
+split by surviving stack contributors. Returned tick damage retains its source/family/contributor
+shares across expiry. Poisoned copies conservatively use the shortest remaining batch lifetime;
+this avoids rejuvenating old stacks but can shorten newer stacks when copied.
+
+The larger buildup pass below supersedes the initial Brimming and reaction rules. Movement floors,
+sleep cooldowns, Dream randomness and Grove-exclusive unlocks remain unchanged.
+No new Dream cards: Lasting Dreams, Bitter Sap, Spore Cascade and the existing consumption/spread
+cards already provide distinct ways to use the added headroom.
+
+Validation: tests/test_status_stacking.gd, expiry cases in tests/test_spore_credit.gd, existing
+status/reaction/rank/card/resistance tests; tools/status_balance.gd is a deterministic sustained
+single-target probe, not proof of full-run balance. Follow up with seeded wave playtests, especially
+Caught, duration+capacity cards, mixed-potency pooling and status-copy boards.
+Measured validation (2026-10-09): sustained-target probe gives one Sporeling 14 poison DPS,
+two 22.4 DPS, four 22.4 DPS at base capacity, and four 44.8 DPS at doubled capacity.
+A seeded real-wave smoke run (424242, full profile, grove style, forced Sporeling family)
+cleared drifts 1–25 including the first boss, lost no leaves, and dealt 37.1% of its damage
+through Poisoned. This one run validates integration, not comparative win rates or full-game balance.
+Focused regression scripts passed, with existing RID/ObjectDB teardown warnings in scene tests.
+## Status and reaction buildup — 2026-10-09
+This supersedes earlier status thresholds in this document. Extra Wardens are intended to contribute
+meaningful buildup rather than immediately saturating every payoff.
+
+| Status | Base capacity / threshold | Payoff |
+| --- | --- | --- |
+| Poisoned | 32; Driftspore 48, Puffball 64, Sporemother 80 | 20% applier damage per stack/s; independent 5 s expiry |
+| Drowsy | 20 normal, 12 bosses | 2% slow per stack; existing control floors and cooldowns |
+| Charged | 20 normal, 30 bosses | 16× charge potency at full buildup |
+| Soaked / Exposed / Rooted | 8 / 8 / 4 | Basic effects apply immediately; counts gate reactions |
+
+Thunderclap needs 8 Soaked and 10 Charged (15 bosses), dealing 12× damage with 6× arcs.
+Ignite needs 12 Poisoned and 8 Charged, with 4× poison ticks. Mushrooming needs 12 Poisoned
+and 8 Soaked. Smother needs 12 Poisoned and 4 Rooted. Drown needs 8 Soaked and full Drowsy.
+Pinned needs 8 Exposed plus 4 Rooted, full Drowsy or Asleep, and gives a 4× crit.
+Shatter needs 4 Rooted and 8 Soaked plus a crit/heavy hit, and gives a 4× hit.
+Lightning Rod needs 8 Exposed and the Thunderclap charge threshold.
+
+Advanced third-status gates: Tempest needs 6 Poisoned (below Mushrooming's gate so it remains
+reachable); Still Pool and Fairy Circle need 4 Rooted; Starfall and Prismstorm need 8 Charged.
+Avalanche secondary targets also need 8 Soaked and 4 Rooted. Existing Asleep and grown-Warden
+requirements remain. Early Charged releases scale their damage with stored charge / full capacity.
+
+Brimming doubles Poisoned, Drowsy and Charged capacity; Charged discharges and Thunderclaps
+need twice the charge and deal 2.2× damage. Heavy Eyelids adds 8 Drowsy capacity (4 bosses);
+its deepened version adds 12 (4 bosses). Many Threads catches at 16 Drowsy. Wall Drowsy caps at 12.
+No new Dreams are required for this pass. Random/speculative Dream offers and Memory Grove
+exclusives remain. These numbers need live playtesting; automated thresholds prove behavior,
+not long-run balance or win rates.
+
+Validation for the larger buildup pass: the sustained-target probe measures one Sporeling at 14
+poison DPS, two at 28, four at 44.8 (32-stack cap), and four at 56 with a 64-stack cap.
+Threshold, reaction, Crowned, family, kinship, gift and card regression suites pass.
+Seed 424242, full profile / Grove bot: lightning started drift 15 after surviving 13; poison
+started drift 25 after surviving 23, without defeating the first boss. These are balance flags,
+not passing full-run validation or evidence that thresholds alone caused the losses. The bot
+chose different Dreams and branches from the earlier smoke run. Live early-lightning and boss
+playtests, followed by a wider seed comparison, remain necessary.
+
+## Tower damage support for larger buildup — 2026-10-09
+Approved follow-up: attacking Warden resources receive +20% base damage; the light family receives
++30% instead. This covers 115 attacking forms, including 14 light forms. Non-attacking and zero-damage
+support forms are unchanged. TowerData.damage is a float so fractional increases are retained.
+Attack speed, status amounts, thresholds, costs, range, Dream selection and Grove access are unchanged.
+Damage-derived Poisoned, Charged and reaction payoffs scale naturally with the stronger applier.
+
+Examples: Sporeling 7 → 8.4; Firefly Jar 14 → 18.2; Pebbling 46 → 55.2; Driftspore 14 → 16.8.
+The sustained-target probe now measures 16.8 / 33.6 / 53.76 poison DPS for 1 / 2 / 4 Sporelings,
+with 67.2 for four at 64 capacity. These are stationary-target results, not win-rate claims.
+Validation after the damage increases: all 10 targeted suites passed (damage precision, buildup,
+reactions, family review/finals, Crowned, Puffball, resistances, ranks and card text), plus the
+sustained-target probe. Existing Godot teardown leak warnings remain.
+Seed 424242, full/Grove bot: poison survived 25 drifts, defeated the first boss and lost zero leaves;
+lightning survived 18 drifts, compared with 13 before the damage increase, but still did not reach
+the boss. Adaptive choices diverge, so these are smoke comparisons rather than isolated causal
+measurements or proof of full-run balance.
+
+## Lightning buildup Dream tuning — 2026-10-10
+Fireflies in the Grass adds 2 Charged every third hit from a Sprout touching a light-family Warden.
+Thunder Chimes adds 2 Charged per Chime Stone pulse target. Rolling Thunder arcs add 2 Charged;
+the deepened version adds 3. Existing range, three-arc cost, rarities, needs and unlock rules remain.
+Bitter Sap stays at +1 stack. This pass does not implement the proposed all-status double/half
+capacity pair; their payoff scaling remains a separate design decision.
+Gameplay regressions exercise the unchanged third-hit timing, both mixed-family contributions,
+and Rolling Thunder's two-charge delivery and three-target limit.
+
+## All-status Brimming — 2026-10-10
+Supersedes the earlier three-status version: Brimming doubles the buildup caps of Poisoned,
+Drowsy, Charged, Soaked, Exposed and Rooted. It is usable by any of those status-producing builds.
+Every numeric reaction requirement, including third-status Crowned gates, doubles with it.
+Freeze buildup, early discharges, Old Lichen shell cracking, Many Threads, wall Drowsy capacity
+and Sparking Spores' condition also follow the same capacity multiplier. Heavy Eyelids continues
+adding its bonus after the capacity multiplication, preserving the established interaction.
+
+Charged discharges and completed reaction damage receive 2.2x payoff. Poisoned's basic benefit
+is added capacity; Ignite, Smother and Mushrooming scale their completed poison reaction payoff.
+Pinned and Shatter scale their hit payoff. Secondary damage derived from an already scaled hit
+or stored bolt is normalized before reaction scaling, avoiding accidental duplicate bonuses.
+Basic status application, expiration rules, slow floors, control duration limits and cooldowns
+remain. Damage/threshold regressions and affected card, Crowned, rank, wall, freeze and poison
+credit suites pass. Existing teardown leak warnings remain; full-run Brimming balance is unproven.
+The proposed half-capacity Dream is not part of this change.
+
+### Exposed buildup (October 2026)
+Exposed requires 10 stacks before its damage vulnerability and dependent crit/damage bonuses activate. Partial stacks remain visible but give no Exposed bonus. Brimming requires 20 stacks; Pinned and Lightning Rod use the same 10/20 Exposed requirement. Bright Marks, Potency and Beacon strengthen the completed effect. Applications refresh the existing five-second duration; Hunter's Moon can preserve partial buildup.
+
+Starlit Aim's crit consumes half the required Exposed stacks (5 normally, 10 with Brimming), preserving remaining duration and applier bonuses. Partial stacks are not consumed. Hunter's Moon and Guiding Light describe stack applications explicitly; Called Shot needs full stacks. Bright Marks adds 30 percentage points to completed vulnerability, rather than setting the total to 30%.
+
+### Unique Dream successors (2026-10-10)
+Council-approved: keep Rolling Thunder II, Root Network II, Guiding Light II and Tender Care II. Retire the other fourteen II offers, preserving legacy saved-run effects; add independent unique successors with original rarity/family/discovery/Grove gates. See `documentation/unique_dream_successors.md` for the exact effects and safeguards. `dream_cooperation.gd`, `dream_path_rules.gd`, `dream_growth_rules.gd` hold focused helpers; Tower/Enemy/Kinships deliver direct/native/transition hooks. Poisoned cooperation uses actual native cohorts; synthetic applications cannot qualify. Grove-only Crosswind, Opening Fracture and Hushed Hedge remain exclusive. Growth planting order/rest serial and Emergency Reserves block are serialized. Tests `test_unique_dream_*`, `test_dream_cooperation`, `test_dream_path_rules`, `test_dream_growth` cover the new rules.

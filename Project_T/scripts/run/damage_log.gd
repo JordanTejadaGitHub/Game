@@ -431,7 +431,7 @@ func _spore_split(event: Event) -> Array:
 	if event.tag != &"spored" or not is_instance_valid(event.enemy) or event.amount <= 0.0:
 		return []
 	var statuses: EnemyStatuses = event.enemy.statuses
-	var appliers: Array = statuses.spore_credit()
+	var appliers: Array = statuses.spore_tick_credit if statuses.delivering_spore_tick else statuses.spore_credit()
 	var fog: Node = statuses.fog_source if is_instance_valid(statuses.fog_source) and event.combos.has(&"fog") else null
 	if appliers.is_empty() and fog == null:
 		return []

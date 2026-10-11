@@ -1,11 +1,8 @@
 extends PanelContainer
 class_name TapTip
 
-# Tooltips that also work by tap (screens_ui.md "Stat and status icons", platforms.md: no
-# hover-only information). TapTip.attach(control, text) sets the hover tooltip and, on a tap or
-# click, shows the same text in a small popup by the pointer for a few seconds. Tapping again
-# hides it. Tips are opaque and draw on their own top layer (UiStyle.tip_layer), above every panel,
-# above-right of the pointer so they never cover what's being pointed at ("tips are opaque").
+# Attached icon help uses native hover tooltips. Clicking never opens a popup.
+# Keep the text holder for live tooltip updates and explicit non-icon popups.
 
 const SHOW_TIME := 3.0
 
@@ -13,7 +10,7 @@ var _label := Label.new()
 var _timer := 0.0
 var _host: Control = null
 
-# Gives `control` a tooltip that also opens on tap. Returns the popup (for tests).
+# Gives control hover-only help. Returns its text holder for live updates.
 static func attach(control: Control, text: String) -> TapTip:
 	control.tooltip_text = text
 	if control.mouse_filter == Control.MOUSE_FILTER_IGNORE:
@@ -22,9 +19,8 @@ static func attach(control: Control, text: String) -> TapTip:
 	tip._label.text = text
 	tip._host = control
 	control.add_child(tip)
-	control.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			tip.toggle())
+	control.mouse_entered.connect(func() -> void:
+		control.tooltip_text = tip._label.text)
 	return tip
 
 func _init() -> void:

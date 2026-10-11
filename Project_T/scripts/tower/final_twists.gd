@@ -240,7 +240,7 @@ static func flare(tower: Tower) -> void:
 	field.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.get_remaining_distance() < b.get_remaining_distance())
 	for enemy in field.slice(0, FLARE_MARKS):
 		tower._apply_one_status(enemy, EnemyStatuses.MARKED, 1, tower.get_damage())
-		if is_instance_valid(enemy) and enemy.statuses.has(EnemyStatuses.MARKED):
+		if is_instance_valid(enemy) and enemy.statuses.is_exposed():
 			enemy.statuses.marked_extra = maxf(enemy.statuses.marked_extra, tower.attack_data.marked_bonus)
 	_fx(tower, &"beacon_flare", tower.global_position, GOLD)
 	_beacon_pulse(tower)

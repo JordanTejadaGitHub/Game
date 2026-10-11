@@ -39,7 +39,7 @@ const TEXT := {
 	&"drowsy": "{drowsy}: heavy-eyed and slow.",
 	&"spored": "{spored}: the poison keeps eating at it.",
 	&"marked": "{marked}: every Warden hits it harder.",
-	&"static": "{static}: five charges, and a bolt.",
+	&"static": "{static}: build enough charges, and lightning strikes.",
 	&"held": "{held}: it can't move. Now's the time.",
 	# Approved 2026-10-02 (story chat, user: "Players will get used to it."):
 	&"omen": "Face it, or let the sky stay clear.",  # The first Omen offer
@@ -105,8 +105,7 @@ func _ready() -> void:
 		unbound_source.nightmare_unbound.connect(func(_e: Node2D) -> void: whisper(&"unbound"))
 	if not enabled:
 		set_process(false)
-		return
-	if not _seen.has("start") and not memory.settings.get("reduced_motion", false):
+	if enabled and not _seen.has("start") and not memory.settings.get("reduced_motion", false):
 		_glide_along_path.call_deferred()  # After the camera is ready
 	if memory.runs_played > 0:
 		whisper(&"again")
@@ -272,7 +271,7 @@ func _choice_open() -> bool:
 	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
 	if pause != null and pause.visible:
 		return true
-	return drift_director != null and (drift_director.pending_choice() != &"" or drift_director.awaiting_family_pick)
+	return drift_director != null and (drift_director.pending_choice() != &"" or drift_director.awaiting_family_pick or RestScreens.any_open(self, drift_director))
 
 func _show_next() -> void:
 	if _queue.is_empty():

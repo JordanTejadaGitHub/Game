@@ -95,12 +95,13 @@ func _test_crits() -> void:
 	tower.crit_landed.connect(func(_t: Tower, _e: Node2D) -> void: crits[0] += 1)
 	await process_frame
 	tower.hit(enemy)
-	_check(enemy.health == enemy.max_health - roundi(data.damage * data.crit_multiplier), "a crit deals damage × multiplier")
+	_check(is_equal_approx(float(enemy.max_health - enemy.health) + enemy._soothe_carry, data.damage * data.crit_multiplier), "a crit deals damage × multiplier")
 	_check(enemy._crit_flash > 0.0 and crits[0] == 1, "a crit flashes and emits crit_landed")
 	data.crit_chance = 0.0
 	var before: int = enemy.health
+	var carry_before: float = enemy._soothe_carry
 	tower.hit(enemy)
-	_check(enemy.health == before - data.damage, "without a crit, plain damage")
+	_check(is_equal_approx(float(before - enemy.health) + enemy._soothe_carry - carry_before, data.damage), "without a crit, plain damage")
 	await _clean()
 
 func _test_snipers() -> void:
@@ -142,7 +143,7 @@ func _test_frost() -> void:
 	for enemy in [dry, damp]:  # Frostfern's hits (72 since 2ef6d56f) would dispel a Shade before the freeze wears off
 		enemy.max_health = 100000
 		enemy.health = 100000
-	damp.apply_status(EnemyStatuses.DAMP)
+	damp.apply_status(EnemyStatuses.DAMP, Reactions.buildup_threshold(frost.freeze_needs_stacks))
 	await process_frame
 	tower.hit(dry)
 	tower.hit(damp)
@@ -346,7 +347,7 @@ func _test_wind() -> void:
 	var two_away := _spawn_at(spinner.global_position + Vector2(2 * CELL, 0))
 	await process_frame
 	spinner._release()
-	_check(beside.health == beside.max_health - pin.damage, "Pinwheel's blades hit the tiles around it")
+	_check(is_equal_approx(float(beside.max_health - beside.health) + beside._soothe_carry, pin.damage), "Pinwheel's blades hit the tiles around it")
 	_check(two_away.health == two_away.max_health, "and nothing further away")
 	await _clean()
 

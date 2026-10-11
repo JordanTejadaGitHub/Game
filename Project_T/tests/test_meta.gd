@@ -134,11 +134,17 @@ func _run() -> void:
 	_check(family.offer.size() == family.families.size(), "Early Bloom: the first pick offers every family (%d)" % family.offer.size())
 	for data in family.families:
 		dreams.unlocked[data.get_id()] = true
-	# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): one per family,
-	# offered like any card once you own that family, from act 2 (their old boss-pick timing; design 2026-09-30).
+	# Prototype family roles are Uncommon Act 1 cards, still sampled and family gated.
 	var blessing: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "blessing_sporeling").front()
-	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.RARE
-		and blessing.max_stacks == 1 and blessing.min_act == 2, "a Family Blessing is a Rare Dream card that needs its family, from act 2")
+	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.UNCOMMON
+		and blessing.max_stacks == 1 and blessing.min_act == 1, "a family role is an Uncommon Act 1 Dream that still needs its family")
+	_check(blessing.display_name == "Spore Reserve" and blessing.kind == UpgradeData.Kind.RULE
+		and blessing.soothe_bonus == 0.0 and blessing.evolve_discount == 0.0, "Spore Reserve is a role rule without family stat/price bonuses")
+	var active_blessings := MetaRun.load_blessings().filter(func(b: UpgradeData) -> bool: return not b.retired)
+	_check(active_blessings.size() == 3, "three role Blessings remain active; six legacy packages are retired")
+	for role in active_blessings:
+		_check(role.id in ["blessing_pebbling", "blessing_dewdrop", "blessing_sporeling"]
+			and role.soothe_bonus == 0.0 and role.evolve_discount == 0.0, "active Blessing has no stale numerical package: " + role.id)
 	dreams.take(blessing)
 	_check(dreams.card_stacks(blessing.id) == 1, "a Blessing is taken like a card")
 	var blessed := MetaRun.load_blessings().map(func(b: UpgradeData) -> String: return b.requires[0] if not b.requires.is_empty() else "")
@@ -274,13 +280,13 @@ func _run() -> void:
 	var dew_before := run_state.dew
 	# The Dew pot (run_design.md) folds Rich Dew / dew_gain into the table: a dispel pays its plain Dew.
 	var expected_dew := 20
-	if dreams.has_rule(&"dew_line"):  # Kindling's random Common can be Dew Line: every 10th dispel pays twice
-		dreams._dispels_this_drift = 0
-		expected_dew += 20 / DreamState.DEW_LINE_EVERY
+	if dreams.has_rule(&"dew_line"):  # Kindling can grant Last Collection: +20% near the Heartwood
+		expected_dew += 4
 	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
 		main.add_child(enemy)
+		enemy.global_position = dreams.map_generator.MAP_GRID.calculate_map_position(dreams.map_generator.endPath)
 		run_state._on_enemy_cleansed(enemy)
 		enemy.queue_free()
 	_check(run_state.dew - dew_before == expected_dew, "Rich Dew carries fractions: 20 Dew becomes %d (%d)" % [expected_dew, run_state.dew - dew_before])
@@ -594,10 +600,10 @@ func _run() -> void:
 	# a row opens the full face.
 	grove_screen._select(_unlock(grove, "sharpened"))
 	var card_rows: GroveCardList = grove_screen._card_list
-	_check(grove_screen._card_list_scroll.visible and card_rows.get_child_count() == 4 and card_rows.has_node("still_target")
-		and not card_rows.has_node("still_target_ii"), "Sharpened lists its 4 cards, the IIs folded in (%d rows)" % card_rows.get_child_count())
-	_check(card_rows.get_node("still_target").find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text == "+ II"),
-		"a card with its II on the node is tagged + II")
+	_check(grove_screen._card_list_scroll.visible and card_rows.get_child_count() == 5 and card_rows.has_node("still_target") and card_rows.has_node("opening_fracture")
+		and not card_rows.has_node("still_target_ii"), "Sharpened lists its 5 cards, including Opening Fracture (%d rows)" % card_rows.get_child_count())
+	_check(not card_rows.get_node("shattering_blow").find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text == "+ II"),
+		"retired II is not advertised as a Grove upgrade")
 	(card_rows.get_node("still_target") as Button).pressed.emit()
 	await process_frame
 	_check(grove_screen.card_face.visible and grove_screen._backdrop.visible, "tapping a row opens the full card face")
@@ -1003,7 +1009,12 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 				"%s has its Ascension bloom" % node.id)
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
-		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
+		if node.id == "whirlwind_heart":
+			# Light Feet's numerical cards are retired; the existing visual branch remains readable.
+			_check(node.parent == "light_feet" and unlock.requires_all == ["quickening"], "Whirlwind Heart keeps its branch art while requiring active Quickening")
+			var retired_parent := _unlock(grove, "light_feet")
+			_check(retired_parent != null and GroveCardList.cards_of(retired_parent).is_empty(), "Light Feet legacy node remains readable without retired numerical cards")
+		elif node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
 			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free()
 				or (unlock.requires_all.is_empty() and unlock.requires_any.is_empty()),  # Drawn off a node it doesn't need (a start family, Stormheart)
 				"%s needs its parent %s" % [node.id, node.parent])

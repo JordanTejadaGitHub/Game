@@ -16,3 +16,4 @@ requires = Array[String](["dewdrop"])
 max_stacks = 1
 deepens = "deep_water"
 rule_id = &"deep_water"
+retired = true

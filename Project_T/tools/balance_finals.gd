@@ -3,13 +3,18 @@ extends SceneTree
 # Balance probe (not a test): one Warden form compared on a fixed board. Four copies of the candidate take
 # the four best spots by the path, then a fixed cast of eight other finals fills in; every Warden is
 # bought with real Dew (base, each growth, ranks I-IV with Power) so invested_dew is what a player pays.
-# No Dreams. Drifts FIRST..FIRST+COUNT-1 run with the Heartwood invulnerable; prints the candidate's
+# Optional fixed Dreams via --card=id; candidate interval override via --interval=seconds. Drifts FIRST..FIRST+COUNT-1 run with the Heartwood invulnerable; prints the candidate's
 # damage per Warden and per 100 Dew invested, its split (hit / cloud / status / combo, onto Asleep) and
 # the board's leak share.
 #   godot --headless --path . --script res://tools/balance_finals.gd --fixed-fps 60 -- --form=dreamshroom \
 #       [--drift=45] [--count=5] [--seed=7] [--out=<file.csv>]   (appends one row per run to --out)
 
 const SPEED := 4.0
+var interval := 0.0  # --interval=seconds: candidate attack interval, runtime only.
+var cards: Array[String] = []  # --card=id (repeatable): fixed Dreams for controlled comparisons.
+var candidate_data: TowerData
+var effective_candidate := 0.0
+var effective_total := 0.0
 var rank := 4  # --rank=N: ranks bought for every Warden (Power)
 const COPIES := 4
 const CAST := ["thunderhead", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]
@@ -63,6 +68,8 @@ func _run() -> void:
 		var value := arg.get_slice("=", 1)
 		match arg.get_slice("=", 0):
 			"--form": form_id = value
+			"--interval": interval = float(value)
+			"--card": cards.append(value)
 			"--drift": first = int(value)
 			"--count": count = int(value)
 			"--seed": map_seed = int(value)
@@ -80,6 +87,9 @@ func _run() -> void:
 			"--dummies": dummies = int(value)
 			"--dummy-kind": dummy_kind = value
 			"--seconds": dummy_seconds = float(value)
+	if interval > 0.0:
+		candidate_data = load("res://resource/tower/%s.tres" % form_id)
+		candidate_data.attacks_per_second = 1.0 / interval
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
@@ -112,6 +122,8 @@ func _run() -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var spawner = main.get_node("%EnemyContainer")
 	dreams.unlock_everything = true
+	for id in cards:
+		dreams.take(load("res://resource/dream/%s.tres" % id))
 	run_state.dew = 10000000
 	run_state.invulnerable = true
 	var rest: Array = cast.duplicate()
@@ -342,12 +354,14 @@ func _chain_to(id: String) -> Array[TowerData]:
 
 func _on_damage(event) -> void:
 	total += event.amount
+	effective_total += event.amount * DamageLog.effective_share(event)
 	if not is_instance_valid(event.source):
 		return
 	var key: int = event.source.get_instance_id()
 	by_tower[key] = by_tower.get(key, 0.0) + event.amount
 	if not candidates.has(event.source):
 		return
+	effective_candidate += event.amount * DamageLog.effective_share(event)
 	var combo := clampf(event.combo_amount, 0.0, event.amount)
 	split.combo += combo
 	if event.kind == &"hit" and event.tag == &"" and is_instance_valid(event.enemy):
@@ -389,6 +403,11 @@ func _report(director: DriftDirector) -> void:
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "sets": ";".join(node_sets), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1), "walls": snappedf(float(walls_built) / COPIES, 0.01), "wall_dew": wall_dew, "near_goal": near_goal, "focus": Tower.FOCUS_NAMES.get(cand_focus, "power-first"), "focus_ranks": candidates[0].choice_count(cand_focus) if cand_focus >= 0 else -1, "sprites_alive": snappedf(sprite_samples.x / maxf(sprite_samples.y, 1.0), 0.01)}
+	row["interval"] = interval
+	row["cards"] = "+".join(cards)
+	row["effective_candidate"] = roundi(effective_candidate)
+	row["effective_board"] = roundi(effective_total)
+	row["effective_per_100_dew"] = snappedf(100.0 * effective_candidate / maxf(invested, 1), 0.1)
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)

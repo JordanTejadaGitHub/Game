@@ -56,8 +56,24 @@ func _run() -> void:
 	_check(button != null and not button.disabled and button.text == "Plant Sprout (1)", "at a rest: \"Plant Sprout (1)\"")
 	if button != null:
 		button.pressed.emit()
-	_check(placer.is_choosing_seed(), "pressing it lights the cells beside it (the seed choice)")
+	_check(placer.is_choosing_seed(), "pressing it lights legal planting cells (the seed choice)")
 	placer.cancel_seed_choice()
+	var far := Vector2(-1, -1)
+	for y in Tower.MAP_GRID.size.y:
+		for x in Tower.MAP_GRID.size.x:
+			var candidate := Vector2(x, y)
+			if far.x < 0 and candidate.distance_to(tower.cell) > 6.0 and map.is_buildable(candidate) \
+					and not placer._cells_occupied([candidate]) and map.can_block_cells([candidate], PackedVector2Array(placer._walker_cells())):
+				far = candidate
+	_check(far.x >= 0, "a legal planting cell far from Seedbearer exists")
+	_check(placer.seed_cells_open(tower).has(far), "seed choices include distant legal cells")
+	_check(not placer.seed_cells_open(tower).has(tower.cell), "occupied cells remain excluded")
+	var dew_before: int = main.get_node("%RunState").dew
+	var sprout := placer.plant_seed(tower, far)
+	_check(sprout != null and sprout.cell == far, "Seedbearer plants its Sprout anywhere legal")
+	_check(BranchKit.seeds_ready(tower) == 0 and BranchKit.seeds_alive(tower) == 1, "distant planting consumes one seed and retains ownership")
+	_check(main.get_node("%RunState").dew == dew_before, "distant Sprout remains free")
+	_check(placer.plant_seed(tower, far) == null, "occupied placement and spent seeds cannot plant again")
 	main.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1

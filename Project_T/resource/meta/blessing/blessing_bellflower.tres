@@ -17,3 +17,4 @@ in_start_pool = true
 stat_line = "song"
 soothe_bonus = 0.25
 evolve_discount = 0.25
+retired = true

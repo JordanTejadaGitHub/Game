@@ -13,3 +13,4 @@ tags = Array[String](["swift"])
 max_stacks = 1
 rule_id = &"momentum"
 deepens = "momentum"
+retired = true

@@ -26,6 +26,11 @@ var _hit_anything := false
 var _anim := 0.0
 var _turns_left := 0
 var _storm := {}  # Carried Storm: the Reaction this seed passed through ({id, applier, colour})
+var _turn_cue := 0.0
+var _turn_corner := Vector2.ZERO
+var _turn_in := Vector2.ZERO
+var _turn_out := Vector2.ZERO
+var _signature_trail: Array[Vector2] = []
 var _stormed := {}  # Nightmares it already repeated on this throw
 
 func _init(tower: Tower, from: Vector2, direction: Vector2, length: float, damage_multiplier: float) -> void:
@@ -43,6 +48,11 @@ func _init(tower: Tower, from: Vector2, direction: Vector2, length: float, damag
 
 func _process(delta: float) -> void:
 	_anim += delta
+	_turn_cue = maxf(_turn_cue - delta, 0.0)
+	if _points.size() > 2:
+		_signature_trail.append(global_position)
+		if _signature_trail.size() > 6:
+			_signature_trail.pop_front()
 	queue_redraw()
 	if not is_instance_valid(_tower):
 		queue_free()
@@ -102,6 +112,10 @@ func _ricochet() -> bool:
 	var side := direction.orthogonal()
 	if side.dot(nearest.global_position - here) < 0.0:
 		side = -side
+	_turn_corner = here
+	_turn_in = direction
+	_turn_out = side
+	_turn_cue = 0.35
 	_points.append(here + side * (_points[1].distance_to(_points[0]) * 0.5))
 	return true
 
@@ -132,7 +146,10 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 		if dreams and dreams.has_rule(&"windborne_rain"):
 			pass_multiplier *= WINDBORNE_RAIN_DAMAGE  # Windborne Rain (dream_design.md 83c40cd7): the seeds Soak but deal 25% less
 		pass_multiplier *= ShapeCards.hands(_tower)  # Small Hands: +35%
+		var previous_serial = _tower.get_meta(&"unique_throw_serial", -1)
+		_tower.set_meta(&"unique_throw_serial", get_instance_id())
 		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, pass_multiplier, false, crit))
+		_tower.set_meta(&"unique_throw_serial", previous_serial)
 		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
 			_stormed[id] = true
 			Reactions.carry(_storm.id, enemy, _tower, _storm.applier if is_instance_valid(_storm.applier) else null)
@@ -142,8 +159,20 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 			enemy.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0, 0, "water", _tower)
 
 func _draw() -> void:
+	# A local bend and short trace identify the turn without outlining the whole flight.
+	var reduced := bool(Fx.setting("reduced_motion", false))
+	if _points.size() > 2:
+		var tint := Palette.MOONLIGHT if _returning else Palette.GOLD
+		for i in range(1, _signature_trail.size()):
+			draw_line(to_local(_signature_trail[i - 1]), to_local(_signature_trail[i]),
+				Color(tint, 0.12 + 0.24 * float(i) / _signature_trail.size()), 2.0)
+	if _turn_cue > 0.0:
+		var corner := to_local(_turn_corner)
+		var alpha := 0.65 if reduced else 0.65 * _turn_cue / 0.35
+		draw_polyline(PackedVector2Array([corner - _turn_in * 12.0, corner, corner + _turn_out * 12.0]),
+			Color(Palette.GOLD, alpha), 3.0)
 	var texture: Texture2D = _data.projectile_texture if is_instance_valid(_tower) else null
-	var spin := _anim * 18.0
+	var spin := 0.0 if reduced else _anim * 18.0
 	if texture == null:
 		# A maple seed: a round seed and one long wing, spinning.
 		var wing := Vector2.from_angle(spin) * 11.0
@@ -153,6 +182,6 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, spin)
 	var frames: int = _data.projectile_frames
 	var size := Vector2(texture.get_width() / float(frames), texture.get_height())
-	var frame := int(_anim * ANIMATION_FPS) % frames
+	var frame := 0 if reduced else int(_anim * ANIMATION_FPS) % frames
 	draw_texture_rect_region(texture, Rect2(-size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size))
 	draw_set_transform(Vector2.ZERO)

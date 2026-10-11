@@ -766,6 +766,9 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 			damage *= 1.0 + SWEET_BONUS[sweet]
 		harmony_block += 1
 		harmony_run += 1
+		var unique_dreams := _dreams()
+		if unique_dreams != null:
+			DreamState.UNIQUE_PATH.harmony(unique_dreams, pair.a, pair.b, enemy, unique_dreams.drift_director.drifts_started if unique_dreams.drift_director != null else 0)
 		_harmony_look(enemy.global_position, pair)
 		harmony_struck.emit(tower, enemy)
 		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).

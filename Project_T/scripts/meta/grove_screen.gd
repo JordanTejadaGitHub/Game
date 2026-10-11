@@ -400,7 +400,7 @@ func _update_card() -> void:
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	_card_needs.visible = _card_needs.visible and problem != DemoGrove.ASLEEP  # Asleep: no needs, it waits for the full game
 	var cost :=selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
-	var buyable := problem != "Grown" and problem != DemoGrove.ASLEEP and not selected.is_free()
+	var buyable := problem != "Grown" and problem != DemoGrove.ASLEEP and problem != "Dreams being reworked" and not selected.is_free()
 	_card_cost.visible = buyable
 	_card_price.text = str(cost)
 	_card_wallet.text = "of %d Seeds" % int(_memory.seeds)
@@ -408,6 +408,8 @@ func _update_card() -> void:
 	_plant.disabled = problem != ""
 	_plant.text = "Grow to level %d" % (level + 1) if level > 0 else "Plant"
 	match problem:
+		"Dreams being reworked":
+			_card_status.text = "This node’s Dreams are being reworked."
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
 		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
@@ -465,7 +467,7 @@ func open_card_face(card: UpgradeData) -> void:
 	if card.cost_description != "":
 		_face_text(card.cost_description, Palette.EMBER, 15)
 	var deeper := GroveCardList.load_card(card.id + "_ii")
-	if deeper != null and selected != null and selected.dream_cards.has(deeper.id):
+	if deeper != null and not deeper.retired and selected != null and selected.dream_cards.has(deeper.id):
 		_face_text("%s, Deepened: %s" % [deeper.display_name, deeper.description], UiStyle.GOLD, 14)
 	if CardScene.can_show(card):
 		var scene := CardScene.new()

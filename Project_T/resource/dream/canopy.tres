@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "When you've planted 20, 30 and 40 attacking Wardens this run, every Warden deals 12% more damage for good, each time (up to +36%)."
+description = "Attackers in an orthogonally connected cluster of at least 6 attackers gain +1 range while their cluster has attacked at least 6 distinct living targets in the past 3 s. Planting alone grants nothing."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])
 max_stacks = 1
 in_start_pool = false
-min_attackers = 15
+min_attackers = 6
 rule_id = &"canopy"

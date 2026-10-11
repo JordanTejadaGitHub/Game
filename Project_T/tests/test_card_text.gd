@@ -29,7 +29,11 @@ func _initialize() -> void:
 			continue
 		if not KNOWN.has(card.id):
 			_check(false, "%s: \"%s\" states %s, which no field carries (%s)" % [card.id, card.description, missing, Check.numeric_fields(card)])
-	_check(stat_cards >= 20, "the check sees the stat cards (%d)" % stat_cards)
+	_check(stat_cards > 0 and Check.is_stat_card(load("res://resource/dream/evergreen.tres")), "the check sees retained stat-field cards (%d)" % stat_cards)
+	var malformed := UpgradeData.new()
+	malformed.soothe_bonus = 0.10
+	malformed.description = "Wardens deal 25% more damage."
+	_check(not Check.unmatched(malformed).is_empty(), "the audit rejects a described bonus that differs from its field")
 	# Unlock cards read their Dew prices from the Warden ({grow_cost:id} / {plant_cost:id}): never a hand-written number
 	var unlock_cards := 0
 	for card in Check.load_cards():

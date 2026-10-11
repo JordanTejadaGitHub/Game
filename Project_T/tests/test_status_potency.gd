@@ -25,15 +25,15 @@ func _initialize() -> void:
 
 	# Exposed: +25% × Potency, at most +40%.
 	var m := EnemyStatuses.new()
-	m.apply(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "", strong)
+	m.apply(EnemyStatuses.MARKED, 10, 0.0, 1.0, 0, "", strong)
 	_check(is_equal_approx(m.get_damage_taken_multiplier(), 1.375), "Exposed at Potency 1.5: +37.5%% (%.3f)" % m.get_damage_taken_multiplier())
-	m.apply(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "", mighty)
+	m.apply(EnemyStatuses.MARKED, 10, 0.0, 1.0, 0, "", mighty)
 	_check(is_equal_approx(m.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.EXPOSED_CAP), "capped at +40%")
 
 	# Drowsy (rule 3, warden_stats.md b6f44fac): −8% a stack whatever the Potency; Potency lengthens it instead.
 	var d := EnemyStatuses.new()
 	d.apply(EnemyStatuses.DROWSY, 2, 0.0, 1.0, 0, "", strong)
-	_check(is_equal_approx(d.get_speed_multiplier(), 1.0 - 2 * 0.08), "2 Drowsy at Potency 1.5: still −16%% (%.2f)" % d.get_speed_multiplier())
+	_check(is_equal_approx(d.get_speed_multiplier(), 1.0 - 2 * 0.02), "2 Drowsy at Potency 1.5: still −4%% (%.2f)" % d.get_speed_multiplier())
 	var base_time: float = EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.DROWSY]
 	_check(is_equal_approx(d.time_left(EnemyStatuses.DROWSY), base_time * strong.get_potency()),
 		"and lasts ×1.5 (%.2f s)" % d.time_left(EnemyStatuses.DROWSY))

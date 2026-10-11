@@ -409,8 +409,8 @@ func _draw() -> void:
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
-		var frame := tower_data.get_frame_rect(0)
-		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
+		var art := get_build_preview_art()
+		draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
 		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
@@ -894,6 +894,22 @@ static func half_origin_at(world: Vector2) -> Vector2:
 # cursor and costs half (rounded up, at least 1). DreamState.twig_walls() (Roguelite Code); force_twig for tests.
 var force_twig := false
 
+# Single-placement and drag ghosts use the same art as a planted Twig Wall.
+func get_build_preview_art() -> Dictionary:
+	var texture: Texture2D = tower_data.texture
+	var frame := tower_data.get_frame_rect(0)
+	var offset := tower_data.get_sprite_offset()
+	var scale := 1.0
+	if twig_mode():
+		if ResourceLoader.exists(Tower.TWIG_TEXTURE):
+			texture = load(Tower.TWIG_TEXTURE) as Texture2D
+			frame = Rect2(Vector2.ZERO, Vector2(float(texture.get_width()) / tower_data.frame_count, texture.get_height()))
+			offset = Vector2(0, -4)
+		else:
+			scale = 0.5
+	return {"texture": texture, "frame": frame,
+		"rect": Rect2((-frame.size / 2.0 + offset) * scale, frame.size * scale)}
+
 func twig_mode(data: TowerData = null) -> bool:
 	var warden := data if data != null else tower_data
 	if warden == null or warden.get_id() != "thornwall":
@@ -1208,12 +1224,12 @@ func _walker_points() -> PackedVector2Array:
 # on that cell (Reclaimed Earth: fertile cells halve the first Warden).
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
-	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
+	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell, false)
 	var gifts := GiftGround.active_for(self)
 	if gifts:
 		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
-	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
+	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 14, 18, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
 	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
@@ -1234,6 +1250,8 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if cost > 0 and warden.get_id() == "sprout" and dream_state != null and dream_state.has_rule(&"bountiful") \
 			and (dream_state.sprouts_planted + 1 + planned_sprouts) % DreamState.BOUNTIFUL_EVERY == 0:
 		cost = 0
+	if cost > 0 and cell != NO_CELL and run_state.fertile_cells.has(cell):
+		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)  # Reclaimed Earth halves the final price, including escalation.
 	return cost
 
 @export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
@@ -1582,13 +1600,13 @@ func _draw_grow_choice() -> void:
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
 			"Grow into %s: pick a square (Esc to cancel)" % into.display_name, WorldLabel.cost_color(true))
 
-# --- Seedbearer's Sprout (branch expansion Phase 2): the player picks a cell beside it, at a rest ---
+# --- Seedbearer's Sprout (branch expansion Phase 2): the player picks any legal cell, at a rest ---
 
 signal seed_choice_changed(active: bool)
 var _seed_choice := {}  # {tower, cells, hover} while the player picks the cell
 var _sprout_data: TowerData = preload("res://resource/tower/sprout.tres")
 
-# Starts picking where a Seedbearer's ready Sprout grows: the open cells beside it (the path rule holds) show;
+# Starts picking where a Seedbearer's ready Sprout grows: legal cells across the map (the path rule holds) show;
 # clicking one plants a free Sprout, Esc / right-click cancels. Only at a rest, with a seed ready.
 func begin_seed_choice(seedbearer: Tower) -> bool:
 	if not Tower.resting or BranchKit.seeds_ready(seedbearer) <= 0:
@@ -1616,7 +1634,7 @@ func cancel_seed_choice() -> void:
 	seed_choice_changed.emit(false)
 	queue_redraw()
 
-# The cells beside `seedbearer` a Sprout can take now: free, buildable, not settling or Omen-locked, no nightmare
+# The map cells a Sprout from `seedbearer` can take now: free, buildable, not settling or Omen-locked, no nightmare
 # on it, and the path rule holds.
 func seed_cells_open(seedbearer: Tower) -> Array[Vector2]:
 	var out: Array[Vector2] = []
@@ -1673,7 +1691,7 @@ func _draw_seed_choice() -> void:
 	var tower: Tower = _seed_choice.tower
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
-			"Plant a Sprout: pick a cell beside it (Esc to cancel)", WorldLabel.cost_color(true))
+			"Plant a Sprout: pick any legal cell (Esc to cancel)", WorldLabel.cost_color(true))
 
 # Ascended forms are one per family (tower_design.md): while one is on the map, nothing else can grow
 # into it (selling it frees the slot). The reason to show on the Grow button, or "".
@@ -2221,8 +2239,8 @@ func _draw_stroke() -> void:
 		if tower_data.texture == null:
 			Tower.draw_placeholder(self, tint)
 		else:
-			var frame := tower_data.get_frame_rect(0)
-			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
+			var art := get_build_preview_art()
+			draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	if _stroke.is_empty():
 		return
 	draw_set_transform(Vector2.ZERO)

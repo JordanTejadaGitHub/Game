@@ -76,6 +76,7 @@ var _lit := {}  # Rootlight's lit path tiles this frame ({cell: true}; is_lit)
 var _lit_frame := -1
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
+var _root_footprints: Array[Vector2] = []  # Actual blocked half cells; static ground cue.
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
 # withered; a lantern was lit / snuffed.
@@ -268,6 +269,27 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 				rooted_cells[enemy.get_route_point()] = enemy
 		elif enemy.waiting:
 			waiting_cells[enemy.get_route_point()] = enemy
+
+	var footprints: Array[Vector2] = []
+	for point: Vector2 in rooted_cells:
+		for half in _halves_under(point):
+			if not footprints.has(half):
+				footprints.append(half)
+	if footprints != _root_footprints:
+		_root_footprints = footprints
+		queue_redraw()
+
+func _draw() -> void:
+	# Parent ground drawing stays beneath nightmare bodies; static in reduced motion.
+	var half_size := Tower.MAP_GRID.cell_size / FindPath.HALF
+	for half in _root_footprints:
+		var at := to_local(half * half_size)
+		var box := Rect2(at + Vector2.ONE * 2.0, half_size - Vector2.ONE * 4.0)
+		draw_rect(box, Color(Palette.OAK, 0.18), true)
+		draw_rect(box, Color(Palette.GOLD, 0.55), false, 2.0)
+		# Crossed twigs distinguish these obstructions from build previews.
+		draw_line(box.position + Vector2(4, 4), box.end - Vector2(4, 4), Color(Palette.OAK, 0.8), 2.0)
+		draw_line(box.position + Vector2(box.size.x - 4, 4), box.position + Vector2(4, box.size.y - 4), Color(Palette.OAK, 0.8), 2.0)
 
 # The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
 # Warden applies); coming and going marks them stale at once (signals in _ready).

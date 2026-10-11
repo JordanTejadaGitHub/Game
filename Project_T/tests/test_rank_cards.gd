@@ -45,17 +45,20 @@ func _run() -> void:
 	_check(is_equal_approx(mixed.get_rank_damage_multiplier(), mixed_plain), "Specialist: a mixed Warden is unchanged")
 	_clear_cards()
 
-	# Brimming: caps above 1 double (Poisoned 8 -> 16, a boss's Drowsy 3 -> 6); single-stack ones stay.
+	# Brimming: caps above 1 double (Poisoned 16 -> 32, a boss's Drowsy 3 -> 6); single-stack ones stay.
 	var walker := _walker()
 	var boss := _walker()
 	boss.statuses.is_boss = true
 	var spored: int = walker.statuses.get_max_stacks(EnemyStatuses.SPORED)
 	var marked: int = walker.statuses.get_max_stacks(EnemyStatuses.MARKED)
 	var boss_drowsy: int = boss.statuses.get_max_stacks(EnemyStatuses.DROWSY)
+	var charged: int = walker.statuses.get_max_stacks(EnemyStatuses.STATIC)
+	var boss_charged: int = boss.statuses.get_max_stacks(EnemyStatuses.STATIC)
 	_take(&"brimming")
 	await process_frame  # The rule is looked up once a frame
 	_check(walker.statuses.get_max_stacks(EnemyStatuses.SPORED) == spored * 2, "Brimming: Poisoned cap x2 (%d -> %d)" % [spored, walker.statuses.get_max_stacks(EnemyStatuses.SPORED)])
-	_check(walker.statuses.get_max_stacks(EnemyStatuses.MARKED) == marked, "Brimming: a 1-stack status stays 1")
+	_check(walker.statuses.get_max_stacks(EnemyStatuses.STATIC) == charged * 2 and boss.statuses.get_max_stacks(EnemyStatuses.STATIC) == boss_charged * 2, "Brimming doubles normal and boss Charged discharge thresholds")
+	_check(walker.statuses.get_max_stacks(EnemyStatuses.MARKED) == marked * 2, "Brimming: Exposed buildup cap doubles")
 	_check(boss.statuses.get_max_stacks(EnemyStatuses.DROWSY) == boss_drowsy * 2, "Brimming: bosses too (Drowsy %d -> %d)" % [boss_drowsy, boss.statuses.get_max_stacks(EnemyStatuses.DROWSY)])
 	walker.statuses.drowsy_cap_bonus = 1
 	_check(walker.statuses.get_max_stacks(EnemyStatuses.DROWSY) == EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.DROWSY] * 2 + 1,

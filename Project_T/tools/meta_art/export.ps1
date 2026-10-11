@@ -1,7 +1,9 @@
-﻿# Regenerates every sheet in assets/meta/ from grove_gen.html (built from the grove_*.js sources in this folder
+# Regenerates every sheet in assets/meta/ from grove_gen.html (built from the grove_*.js sources in this folder
 # plus the shared pixel helpers). Needs Chrome. Run from the project folder:  powershell -File tools/meta_art/export.ps1
 # To edit: change a grove_*.js file, then rebuild grove_gen.html with -Rebuild (helpers are kept inside grove_gen.html).
 param([switch]$Rebuild)
+. (Join-Path $PSScriptRoot '..\dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'meta_art'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $gen = Join-Path $here "grove_gen.html"
 if ($Rebuild) {

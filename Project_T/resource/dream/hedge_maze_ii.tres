@@ -13,3 +13,4 @@ tags = Array[String](["wall", "maze"])
 max_stacks = 1
 deepens = "hedge_maze"
 rule_id = &"hedge_maze"
+retired = true

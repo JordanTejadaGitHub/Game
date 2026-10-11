@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grand_tour"
 display_name = "Grand Tour"
-description = "Wardens deal 10% more damage for each different status your Wardens can apply (up to +70%)."
+description = "Applying a new status to a living nightmare gives its existing other statuses up to 1 extra second each. Each status lifetime can gain at most 1 second in total. Hold, sleep and persistent statuses cannot be extended."
 rarity = 2
 kind = 3
 tags = Array[String](["variety", "overgrowth"])

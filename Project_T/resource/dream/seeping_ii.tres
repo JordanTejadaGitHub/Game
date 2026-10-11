@@ -14,3 +14,4 @@ max_stacks = 1
 deepens = "seeping"
 rule_id = &"seeping"
 in_start_pool = false
+retired = true

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "root_network_ii"
 display_name = "Root Network II"
-description = "Sprouts touching (diagonals too) form a network: each Sprout deals 8% more damage per Sprout in its network (up to +80%)."
+description = "Connected Sprouts deal 6% more damage per Sprout in their network, up to +60%. Diagonal connections count too."
 rarity = 2
 kind = 3
 tags = Array[String](["sprout", "wide", "overgrowth"])
@@ -14,4 +14,4 @@ max_stacks = 1
 deepens = "root_network"
 rule_id = &"root_network"
 diagram = ".......\n.......\n.WWW...\n....W..\n......."
-diagram_caption = "Sprouts touching, diagonals too: +8% per Sprout in the network, +32% here."
+diagram_caption = "Sprouts touching, diagonals too: +6% per Sprout in the network, +24% here."

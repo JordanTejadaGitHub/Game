@@ -2,8 +2,8 @@ class_name Signatures
 extends Node
 
 # Rank V signatures (warden_stats.md "Rank V signatures", 96d728dd; numbers balance_simulation.md 43496006): a
-# Warden at rank V with 3+ of its ranks I–V on one choice gains that choice's signature. Shared Training
-# (dream_design.md 1269ed84): two kin with 3 of ranks I–IV on the same choice get it at rank IV.
+# Warden at rank V with 4+ of its ranks I–V on one choice gains that choice's signature. Shared Training
+# (dream_design.md 1269ed84): two kin with 4 of ranks I–IV on the same choice get it at rank IV.
 # Tower asks Tower.signature() (cached with its stats) and calls the static helpers here; this node (made in the
 # run's scene on first use) carries Spreading's statuses off dispelled nightmares.
 
@@ -15,13 +15,16 @@ const EXECUTIONER := &"executioner"
 const FIRSTBORN := &"firstborn"
 const SHELTER := &"shelter"
 const SURGE := &"surge"
+const ALL_ROUNDER := &"all_rounder"
+const MASTERY := &"mastery"
+const JOB_MULTIPLIER := 1.20
 
-# Choice -> signature (Kindred has none).
+# Choice -> existing behaviour. Repeatable Kindred uses role mastery.
 const BY_CHOICE := {Tower.Focus.POWER: CRUSHING, Tower.Focus.SWIFT: RELENTLESS, Tower.Focus.REACH: WATCHTOWER,
 	Tower.Focus.DEEP: SPREADING, Tower.Focus.KEEN: EXECUTIONER, Tower.Focus.YIELD: FIRSTBORN,
 	Tower.Focus.WIDE: SHELTER, Tower.Focus.STRONG: SURGE}
 const NAMES := {CRUSHING: "Crushing", RELENTLESS: "Relentless", WATCHTOWER: "Watchtower", SPREADING: "Spreading",
-	EXECUTIONER: "Executioner", FIRSTBORN: "Firstborn", SHELTER: "Shelter", SURGE: "Surge"}
+	EXECUTIONER: "Executioner", FIRSTBORN: "Firstborn", SHELTER: "Shelter", SURGE: "Surge", ALL_ROUNDER: "All-Rounder", MASTERY: "Mastery"}
 const TEXT := {
 	CRUSHING: "every 5th hit on an armoured nightmare lands x2 and strips 25% of its dread shell",
 	RELENTLESS: "a dispel starts its next cycle at once (at most every 0.5 s)",
@@ -31,9 +34,11 @@ const TEXT := {
 	FIRSTBORN: "what it makes arrives one step better",
 	SHELTER: "Wardens in its aura can't be withered, dimmed or trampled",
 	SURGE: "every 10 s its aura doubles for 2 s",
+	ALL_ROUNDER: "its main job is 20% stronger",
+	MASTERY: "its trained role gains a permanent 20% bonus",
 }
 
-# No signature where nothing fits the choice (signature audit a09297af); the choice itself still helps.
+# Existing behaviours excluded where they cannot work; these paths now use role mastery.
 const NONE_FOR := {
 	# User (c9de9302): every choice must help, signatures needn't exist on every Warden.
 	"jarlink": [Tower.Focus.SWIFT], "lightning_fence": [Tower.Focus.SWIFT],  # 0.25 s ticks: no cycle to restart
@@ -58,9 +63,11 @@ const NONE_FOR := {
 
 # Whether a Warden of `data` can have the signature of `which`.
 static func fits(data: TowerData, which: int) -> bool:
+	if data != null and not data.can_attack and data.dew_per_rank > 0.0:
+		return false
 	return BY_CHOICE.has(which) and not (data != null and NONE_FOR.get(data.get_id(), []).has(which))
 
-const NEEDED := 3  # Ranks on one choice
+const NEEDED := 4  # Ranks on one choice
 const RANK := 5  # The signature's rank (Shared Training: SHARED_RANK)
 const SHARED_RANK := 4
 const SHARED_TRAINING := &"shared_training"
@@ -85,31 +92,83 @@ const SURGE_MULTIPLIER := 2.0
 
 # --- Which signature -------------------------------------------------------------------------------------------
 
-# The choice held 3+ times among the first `ranks` entries of `choices` (Tower.Focus.NONE if none).
+# The choice held 4+ times among the first `ranks` entries of `choices` (Tower.Focus.NONE if none).
 static func majority(choices: Array, ranks: int) -> int:
 	var counts := {}
 	for i in mini(ranks, choices.size()):
 		counts[choices[i]] = int(counts.get(choices[i], 0)) + 1
 	for which in counts:
-		if counts[which] >= NEEDED and BY_CHOICE.has(which):
+		if counts[which] >= NEEDED and which != Tower.Focus.NONE:
 			return which
 	return Tower.Focus.NONE
 
 # The signature `tower` has now (&"" for none). Tower.signature() caches it.
 static func compute(tower: Tower) -> StringName:
+	tower._migrate_choices()  # Legacy/free ranks must be resolved before choosing a bonus.
 	var choices: Array = tower.rank_choices
 	if tower.rank >= RANK:
 		var which := majority(choices, RANK)
-		if which != Tower.Focus.NONE and fits(tower.tower_data, which):
-			return BY_CHOICE[which]
+		if which == Tower.Focus.NONE:
+			return ALL_ROUNDER
+		return BY_CHOICE[which] if fits(tower.tower_data, which) else MASTERY
 	if tower.rank >= SHARED_RANK and tower._has_rule(SHARED_TRAINING):
 		var which := majority(choices, SHARED_RANK)
-		if which != Tower.Focus.NONE and fits(tower.tower_data, which) and is_instance_valid(tower._kin):
+		if which != Tower.Focus.NONE and is_instance_valid(tower._kin):
 			for pair in tower._kin.get_pairs(tower):
 				var partner: Tower = pair.b if pair.a == tower else pair.a
+				if is_instance_valid(partner):
+					partner._migrate_choices()
 				if is_instance_valid(partner) and partner.rank >= SHARED_RANK and majority(partner.rank_choices, SHARED_RANK) == which:
-					return BY_CHOICE[which]
+					return BY_CHOICE[which] if fits(tower.tower_data, which) else MASTERY
 	return &""
+
+# Raw data only: also called while Tower builds its stat cache.
+static func job(tower: Tower) -> StringName:
+	var data := tower.tower_data
+	var special: StringName = tower.attack_data.special if tower.attack_data else &""
+	if special == BranchKit.NURSE_LOG:
+		return &"nursery"
+	if special == BranchKit.SEEDBEARER:
+		return &"offspring"
+	if special == BranchKit.DREAM_OAK:
+		return &"shards"
+	if data.caught_bonus > 0.0 or data.caught_shards:
+		return &"caught"
+	if data.catch_share > 0.0:
+		return &"catch"
+	if data.dew_per_rank > 0.0:
+		return &"yield"
+	if data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0:
+		return &"aura"
+	return &"damage"
+
+static func bonus_job(tower: Tower) -> StringName:
+	var sig := compute(tower)
+	if sig != ALL_ROUNDER and sig != MASTERY:
+		return &""
+	var role := job(tower)
+	if sig == MASTERY and role == &"damage":
+		match majority(tower.rank_choices, signature_rank(tower)):
+			Tower.Focus.SWIFT: return &"speed"
+			Tower.Focus.DEEP: return &"range"
+	return role
+
+static func multiplier(tower: Tower, role: StringName) -> float:
+	return JOB_MULTIPLIER if bonus_job(tower) == role else 1.0
+
+static func text_for(tower: Tower) -> String:
+	var sig := compute(tower)
+	if sig != ALL_ROUNDER and sig != MASTERY:
+		return TEXT.get(sig, "")
+	var descriptions := {
+		&"damage": "damage +20%", &"speed": "attack speed +20%",
+		&"range": "control reach +20%", &"catch": "catch income +20%",
+		&"caught": "Caught status tick rate +20%", &"yield": "Dew per drift +20%", &"aura": "aura strength +20%",
+		&"nursery": "nursery reach +20% and nurture discount +20% within its existing cap",
+		&"offspring": "its planted Sprouts deal +20% damage",
+		&"shards": "shard yield +20% (fractions carry; the source cap still applies)",
+	}
+	return descriptions.get(bonus_job(tower), TEXT.get(sig, ""))
 
 # The rank this Warden's signature arrives at (4 with Shared Training and a matching kin, else 5).
 static func signature_rank(tower: Tower) -> int:

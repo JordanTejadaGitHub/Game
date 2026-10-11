@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_eyelids_ii"
 display_name = "Heavy Eyelids II"
-description = "Nightmares can hold 3 more {drowsy} stacks (bosses 1 more)."
+description = "Nightmares can hold 12 more {drowsy} stacks (bosses 4 more)."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "sleep"])
@@ -14,3 +14,4 @@ max_stacks = 1
 deepens = "heavy_eyelids"
 rule_id = &"heavy_eyelids"
 in_start_pool = false
+retired = true

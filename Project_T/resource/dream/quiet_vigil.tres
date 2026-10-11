@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "quiet_vigil"
+display_name = "Quiet Vigil"
+description = "After 5 s with nothing in range, a Warden's next primary direct hit adds 3 {marked} stacks before dealing damage."
+rarity = 1
+kind = 3
+tags = Array[String](["precision"])
+max_stacks = 1
+rule_id = &"quiet_vigil"

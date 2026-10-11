@@ -1,6 +1,9 @@
 class_name GroveRules
 extends RefCounted
 
+const DREAM_BURST := preload("res://scripts/fx/dream_burst.gd")
+const RIPPLE_EFFECT := preload("res://scripts/fx/great_ripple.gd")
+
 # Grove build branches "Swift" and "Wide Reach" (dream_design.md; Roguelite Code's cards, 8a17671c): the
 # per-hit parts, read by rule id. DreamState carries the numbers. A Warden's own state lives in
 # Tower._grove. Restless Roots and Far Reach are DreamEffects rows (already in the Warden's stats).
@@ -68,9 +71,17 @@ static func area_attack(tower: Tower, where: Vector2, radius: float, share: floa
 				patch.global_position = where
 	if tower._has_rule(&"great_ripple"):
 		var wider := radius + DreamState.GREAT_RIPPLE_WIDER * Tower.MAP_GRID.cell_size.x
+		var ripple: Node2D = null
+		var world := Reactions._world(tower)
+		if world != null:
+			ripple = RIPPLE_EFFECT.play(wider, DreamState.GREAT_RIPPLE_DELAY, where, world)
 		tower.get_tree().create_timer(DreamState.GREAT_RIPPLE_DELAY, false).timeout.connect(func() -> void:
 			if not is_instance_valid(tower) or tower.is_queued_for_deletion():
+				if is_instance_valid(ripple):
+					ripple.queue_free()
 				return
+			if is_instance_valid(ripple):
+				ripple.release()
 			tower._grove[&"rippling"] = true  # The aftershock never sets off another
 			for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 				if enemy.global_position.distance_to(where) <= wider:
@@ -84,8 +95,12 @@ static func spillover(tower: Tower, enemy: Node2D, leftover: float) -> void:
 		return
 	var reach := DreamState.SPILLOVER_CELLS * Tower.MAP_GRID.cell_size.x
 	var at: Vector2 = enemy.global_position
+	var shown := false
 	for other in Tower.nightmares_near(tower.get_tree(), at, reach):
 		if other != enemy and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
+			if not shown:
+				DREAM_BURST.play(&"spillover", at, reach, Reactions._world(tower))
+				shown = true
 			other.take_damage(leftover, tower.tower_data.line, true, false, tower, &"spillover")
 
 # Lingering Splash's patch: 1 cell, LINGERING_SPLASH_TIME s, `per_second` effect damage to what's inside.

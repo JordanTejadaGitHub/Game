@@ -5,7 +5,7 @@ extends SceneTree
 # to stone (no trampling), Bastion drops rocks; Quaker stops sprints and Earthshaker cracks the path; Groundroot
 # grounds flyers; Deeproot roots near the Heartwood and Heartroot drags the first leak back; Thorncoil's thorns hurt held
 # nightmares and Crown spreads them; Nurse Log cheapens Nurture and Mother Log remembers a sold rank; Seedbearer's
-# seeds become free Sprouts beside it (Grove Keeper's at rank II); Dream Oak gathers shards from a mixed grove. Run from
+# seeds become free Sprouts anywhere legal (Grove Keeper's at rank II); Dream Oak gathers shards from a mixed grove. Run from
 # the project folder:
 #   godot --headless --path . --script res://tests/test_branch_phase2.gd --fixed-fps 60
 
@@ -235,7 +235,7 @@ func _test_seedbearer() -> void:
 	var cells: Array = placer.seed_cells_open(keeper)
 	var sprout: Tower = placer.plant_seed(keeper, cells[0]) if not cells.is_empty() else null
 	placer.cancel_seed_choice()
-	_check(sprout != null and sprout.tower_data.get_id() == "sprout" and sprout.invested_dew == 0, "a free Sprout beside it")
+	_check(sprout != null and sprout.tower_data.get_id() == "sprout" and sprout.invested_dew == 0, "a free Sprout on a legal cell")
 	_check(sprout != null and sprout.rank == 2, "Grove Keeper's Sprouts arrive at rank II")
 	_check(BranchKit.seeds_ready(keeper) == 0 and BranchKit.seeds_alive(keeper) == 1, "the seed is used")
 	Tower.resting = was

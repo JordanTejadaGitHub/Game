@@ -11,4 +11,4 @@ root = 1
 costs = Array[int]([30])
 order = 21
 icon = 14
-dream_cards = Array[String](["lingering_splash", "lingering_splash_ii"])
+dream_cards = Array[String](["lingering_splash"])
