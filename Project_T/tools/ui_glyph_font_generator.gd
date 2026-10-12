@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Saves the resource glyph font (UiStyle.GLYPH_FONT_PATH): the private-use characters UiStyle.GLYPHS drawn as the
-# Dew, Dreamlight and Seeds icons from assets/ui/icons.png, so any Label, Button, tooltip or RichTextLabel shows
+# Dew and Dreamlight HUD counters (assets/ui/hud_counters.png, the master drawing) and the Seeds icon (icons.png), so any Label, Button, tooltip or RichTextLabel shows
 # "<icon>15" through the theme fonts' fallback (user via Main Merger 2026-10-06: prices and rewards are the
 # resource icon and the number, never "15 Dew").
 # The font is a tiny TrueType file made here (a character map for the glyphs, empty outlines) with the icons as
@@ -12,23 +12,32 @@ extends SceneTree
 
 const ICONS := "res://assets/ui/icons.png"
 const ICONS_JSON := "res://assets/ui/icons.json"
-const PIXEL := 4  # Font pixels per art pixel in the atlas
+const HUD_JSON := "res://assets/ui/hud_icons.json"
+const ICON_HEIGHT := 64  # Atlas pixels: each drawing is upscaled by the whole number that brings it nearest (12 px × 5, 16 px × 4)
 const ICON_EM := 0.8  # The tallest icon fills this share of the font size, about the digits' height
 const PAD := 2  # Atlas pixels between glyphs
 
 func _initialize() -> void:
-	var sheet: Image = (load(ICONS) as Texture2D).get_image()
-	sheet.decompress()
-	sheet.convert(Image.FORMAT_RGBA8)
+	var sheet := _sheet(ICONS)
 	var json: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ICONS_JSON))
 	var frame: int = int(json.get("frame_size", 16))
 	var icons: Dictionary = json.icons
+	# The HUD counters (12 px, drawn by hand) are the master drawing of a resource that has one.
+	var hud: Dictionary = (JSON.parse_string(FileAccess.get_file_as_string(HUD_JSON)) as Dictionary).counters
+	var hud_sheet := _sheet(ICONS.get_base_dir().path_join(String(hud.image)))
+	var hud_frame: int = int(hud.frame_size)
 	var arts: Array[Image] = []
 	var tallest := 0
 	for entry in UiStyle.GLYPHS:
-		var art := sheet.get_region(Rect2i(int(icons[entry[1]]) * frame, 0, frame, frame))
+		var id: String = entry[1]
+		var art: Image
+		if hud.icons.has(id):
+			art = hud_sheet.get_region(Rect2i(int(hud.icons[id]) * hud_frame, 0, hud_frame, hud_frame))
+		else:
+			art = sheet.get_region(Rect2i(int(icons[id]) * frame, 0, frame, frame))
 		art = art.get_region(art.get_used_rect())  # Trimmed to its drawn pixels
-		art.resize(art.get_width() * PIXEL, art.get_height() * PIXEL, Image.INTERPOLATE_NEAREST)
+		var pixel := maxi(1, roundi(float(ICON_HEIGHT) / art.get_height()))  # So the three read the same size in text
+		art.resize(art.get_width() * pixel, art.get_height() * pixel, Image.INTERPOLATE_NEAREST)
 		arts.append(art)
 		tallest = maxi(tallest, art.get_height())
 	var size := int(round(tallest / ICON_EM))  # The font's own size: every icon keeps the same pixel scale
@@ -67,6 +76,12 @@ func _initialize() -> void:
 	var error := ResourceSaver.save(font, UiStyle.GLYPH_FONT_PATH)
 	print("Saved %s: size %d, %d glyphs (error %d)" % [UiStyle.GLYPH_FONT_PATH, size, arts.size(), error])
 	quit(error)
+
+func _sheet(path: String) -> Image:
+	var image: Image = (load(path) as Texture2D).get_image()
+	image.decompress()
+	image.convert(Image.FORMAT_RGBA8)
+	return image
 
 # A minimal TrueType font: `codes` map to glyphs 1…n (empty outlines), glyph 0 is .notdef. Just enough for FreeType
 # to give the font a face and a character map; the drawing comes from the bitmap cache.
