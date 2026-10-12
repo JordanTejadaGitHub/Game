@@ -1,162 +1,89 @@
 extends RichTextLabel
 
-# Heartwood whispers (onboarding.md): one-line italic hints at the top of the screen, in the story's
-# voice, each shown the first time it matters and then never again (remembered in HeartwoodMemory).
-# Off when the "Hints" setting is off (player-facing "Hints" since 2026-10-01; the code keeps "whispers").
-# Mostly polls simple conditions each frame, so it
-# needs no hooks in the systems it teaches.
-
-# The touch variant of a whisper that names a control (InputMode, user 2026-10-07: no keys on phones, no "touch" on PC).
-const TOUCH_TEXT := {
-	&"keep_placing": "Build mode stays on. Tap Done to stop building.",
-}
+# The Heartwood's voice (onboarding.md "Whisper hints removed", user 2026-10-12: "remove the whisper hints, they're
+# redundant with the tutorial popups"): one-line italic lines at the top of the screen. The teaching whispers are
+# gone (the Lessons, LessonCard, are the only teaching). What stays is not a tutorial:
+# - story beats: the run's first line during the opening camera glide (once per profile), a boss arriving, being
+#   dispelled or taking its toll, and the first leaf lost in a run (each once per run);
+# - the rule-breaker warning before a flyer / sprinter / burrower block: every time, never "once per profile";
+# - the blocked-placement refusal, as a toast ("A dream can bend, but never close.").
+# The "Hints" setting no longer switches these (it switches Lessons): set_enabled is kept for its callers and does
+# nothing. The profile's whispers_seen list is still read and written (old profiles load as they are).
 
 const TEXT := {
 	&"start": "Something moves at the edge of the dream.",
-	&"plant": "Plant a Warden near the path.",
-	&"keep_placing": "Build mode stays on. Right-click or Esc to stop building.",  # User 2026-10-06 (the one-shot reversed); touch: TOUCH_TEXT
-	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
-	&"walls": "Wardens are walls. Make them take the long way.",
-	&"flow": "They don't stop. They come in {drifts}, like fog.",
-	&"speed": "Pause if you need to think. They'll wait.",
-	&"rest": "Rest here. Rearrange the forest while they're gone.",  # (Rests refund 75%, not everything: onboarding.md)
-	&"save": "The forest will wait for you.",
-	&"cage": "Leave them a way through. They'll find one anyway, if you don't.",
-	&"grow": "That %s could grow. Click it.",  # The Warden's name (GrowHints, the first rest one can grow)
-	&"grow_more": "Your Wardens can become much more than this.",  # Drift 15, nothing grown or ranked yet (GrowHints)
-	&"kin": "Two of one family, planted close, learn from each other.",
-	&"unbound": "Turn them too often, and they stop listening.",
-	&"dead_wood": "Dead wood. I can't move it… yet.",
-	&"tend": "Clear it if you like. I keep count.",
-	&"chain": "One Reaction set off another: a chain. Reach 10 for a Dawnburst.",
+	&"again": "I'm dreaming again. Good.",
 	&"leaf": "It fed. A leaf blackens and falls.",
-	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
-	&"sell": "Selling gives back most of it during a {rest}, and half while nightmares walk.",  # 75% / 50% (TowerSeller)
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
-	&"again": "I'm dreaming again. Good.",
-	&"damp": "{damp}: water hits it harder, and lightning loves it.",  # Soaked no longer slows (IconInfo)
-	&"drowsy": "{drowsy}: heavy-eyed and slow.",
-	&"spored": "{spored}: the poison keeps eating at it.",
-	&"marked": "{marked}: every Warden hits it harder.",
-	&"static": "{static}: build enough charges, and lightning strikes.",
-	&"held": "{held}: it can't move. Now's the time.",
-	# Approved 2026-10-02 (story chat, user: "Players will get used to it."):
-	&"omen": "Face it, or let the sky stay clear.",  # The first Omen offer
-	&"dreamlight": "Dreamlight. Spend it, and your Wardens get ideas.",  # The first Dreamlight earned
-	&"boss_toll": "It took its toll, and went back into the dark.",  # The first boss to reach the Heartwood
-	&"rule_breaker": "This one doesn't keep to the path. Watch for it.",  # The first rule-breaker warning (RuleBreakers)
-	&"nurture": "Feed it Dew. It'll toughen up.",  # The first rank
-	&"let_pass": "None of these? Let them go. Something else will come.",  # The first Dream offer that can be let pass
+	&"boss_toll": "It took its toll, and went back into the dark.",  # A boss reached the Heartwood
+	&"rule_breaker": "This one doesn't keep to the path. Watch for it.",  # The rule-breaker warning (RuleBreakers)
 }
+const EACH_RUN: Array[StringName] = [&"leaf", &"boss", &"after_boss", &"boss_toll"]  # Story beats: once a run
+const EVERY_TIME: Array[StringName] = [&"rule_breaker"]  # A warning: whenever it applies
+const REFUSAL := "A dream can bend, but never close."  # The blocked-placement toast
+const REFUSAL_EVERY := 3000  # ms between two refusal toasts
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var tower_placer: TowerPlacer = %TowerPlacer
-@onready var obstacle_clearer: ObstacleClearer = %ObstacleClearer
-@onready var tower_container: Node2D = %TowerContainer
-@onready var dream_state: DreamState = %DreamState
 
-# A whisper is shown now (after any queued ahead of it; never for ones already seen). SoundHooks
-# gives the first chain's whisper the Dream-screen breath-in (audio_direction.md).
+# A line is shown now (after any queued ahead of it). SoundHooks listens.
 signal whispered(id: StringName)
 
-var enabled := true
-var term := ""  # The Codex term the showing whisper mentions ("" = none): tapping opens it
-var plain := ""  # The showing whisper's text without link markup
-var _seen: Array = []
+var enabled := true  # Always on: these lines are story and warnings, not Hints
+var term := ""  # The Codex term the showing line mentions ("" = none): tapping opens it
+var plain := ""  # The showing line's text without link markup
+var shown: Array[StringName] = []  # Every line shown this run, in order (tests)
+var _seen: Array = []  # The profile's list (once-per-profile lines; old ids stay in it)
+var _run_seen := {}  # EACH_RUN ids shown this run
+var _showing: StringName = &""  # The queue's head is on screen
+var _refused_at := -REFUSAL_EVERY
 
-# The pause menu's toggle. Turning off hides the current whisper and drops the queue.
-func set_enabled(on: bool) -> void:
-	enabled = on
-	set_process(on)
-	if not on:
-		_queue.clear()
-		if _tween:
-			_tween.kill()
-		modulate.a = 0.0
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		term = ""
+# Kept for the pause menu and the settings: Hints switch Lessons now, never these lines.
+func set_enabled(_on: bool) -> void:
+	pass
+
 var _queue: Array[StringName] = []
 var _tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	StatusLinks.hook(self)  # Status names in whispers are links
-	_style()  # The body face on a fog patch above the Warden bar (was Cormorant italic, top centre: hard to read)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a whisper with links or a term shows
+	StatusLinks.hook(self)  # Status names in a line are links
+	_style()
+	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a line with links or a term shows
 	var memory := HeartwoodMemory.load_data()
-	enabled = memory.settings.whispers
 	_seen = memory.get("whispers_seen", [])
 	modulate.a = 0.0
-	# The Clear tool lights up with the first clearing Dream (screens_ui.md "The Clear tool").
-	# Connected even while whispers are off: whisper() checks `enabled` itself.
-	obstacle_clearer.lock_changed.connect(func(locked: bool) -> void:
-		if not locked:
-			whisper(&"tend"))
-	# The first chain ever (tower_design.md "Chains"). ReactionTracker joins the run with the first
-	# Reaction, so catch it when it arrives.
-	owner.child_entered_tree.connect(func(node: Node) -> void:
-		if node is ReactionTracker:
-			node.chain_reached.connect(func(_count: int, _where: Vector2, _towers: Array) -> void: whisper(&"chain")))
-	# The first Unbound ever (run_design.md "No maze juggling"); connected even while whispers are off.
-	var unbound_source = %EnemyContainer
-	if unbound_source.has_signal("nightmare_unbound"):
-		unbound_source.nightmare_unbound.connect(func(_e: Node2D) -> void: whisper(&"unbound"))
-	if not enabled:
-		set_process(false)
-	if enabled and not _seen.has("start") and not memory.settings.get("reduced_motion", false):
+	if not _seen.has("start") and not memory.settings.get("reduced_motion", false):
 		_glide_along_path.call_deferred()  # After the camera is ready
 	if memory.runs_played > 0:
 		whisper(&"again")
 	whisper(&"start")
-	whisper(&"plant")
-	tower_placer.tower_built.connect(func(_tower: Tower) -> void: whisper(&"keep_placing"), CONNECT_ONE_SHOT)
-	var spawner = %EnemyContainer
-	spawner.enemy_cleansed.connect(func(_e: Node2D) -> void: whisper(&"first_cleanse"), CONNECT_ONE_SHOT)
+	# A boss dispelled (the family pick it brings), a boss coming, a boss's toll.
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason != &"first":
 			whisper(&"after_boss"))
-	# "Wardens are walls" once the first pick closes (the pick screen hid it when it came as the pick opened).
-	%FamilyPickScreen.family_chosen.connect(func(_offered: Array, _chosen: Resource) -> void:
-		if drift_director.drifts_started <= 1:
-			whisper(&"walls"))
-	# The approved lines (2026-10-02): the first Omen offer, Dreamlight, a boss's toll, a rule-breaker, a rank, Let it pass.
-	%OmenDirector.offer_ready.connect(func(_omens: Array[OmenData], _block: int) -> void: whisper(&"omen"))
-	dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
-		if amount > 0:
-			whisper(&"dreamlight"))
-	dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void:
-		if dream_state.can_skip():
-			whisper(&"let_pass"))
-	tower_container.child_entered_tree.connect(func(node: Node) -> void:
-		if node is Tower and not node.nurtured.is_connected(_on_nurtured):
-			node.nurtured.connect(_on_nurtured))
-	drift_director.drift_started.connect(func(number: int) -> void:
-		if number == 2:
-			whisper(&"flow")
-			whisper(&"speed"))
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
-		whisper(&"rest")
-		whisper(&"save")
 		if drift_director.is_boss_drift(drift_director.drifts_started + drift_director.drifts_per_block):
 			whisper(&"boss")
 		if not RuleBreakers.coming(drift_director).is_empty():
-			whisper(&"rule_breaker"))  # As the Coming strip and DriftPanel warn of it
+			whisper(&"rule_breaker"))  # The warning, as the Coming strip and DriftPanel show it: every time
 	run_state.leaves_changed.connect(func(leaves: int, _max: int) -> void:
 		if leaves < run_state.max_leaves:
 			whisper(&"leaf"))
-	# The first leaf lost to a flyer (a Phantom): it never walked the maze (onboarding.md).
 	%EnemyContainer.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
-		if enemy.has_method("is_flying") and enemy.is_flying():
-			whisper(&"flyer")
 		var data = enemy.get("enemy_data")
 		if data is EnemyData and data.is_boss:
 			whisper(&"boss_toll"))  # Acts 1–3: a flat leaf toll, then it leaves
-	%TowerSeller.tower_sold.connect(func(_t: Tower, _refund: int) -> void: whisper(&"sell"), CONNECT_ONE_SHOT)
-
-func _on_nurtured(_tower: Tower) -> void:
-	whisper(&"nurture")
+	# A placement that would close the path: the refusal toast.
+	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void:
+		if not tower_placer.hover_breaks_path() or Time.get_ticks_msec() - _refused_at < REFUSAL_EVERY:
+			return
+		_refused_at = Time.get_ticks_msec()
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast(REFUSAL))
 
 # First run: the camera glides from the forest's edge to the Heartwood along the path.
 func _glide_along_path() -> void:
@@ -170,15 +97,16 @@ func _glide_along_path() -> void:
 		points.append(map_generator.MAP_GRID.calculate_map_position(cell))
 	camera.glide_route(points)  # No glide when the whole route already fits on screen
 
-# Shows `id` once ever (queued behind whatever is showing).
-var _args := {}  # Whisper id -> the words for its %s (the grow whisper's Warden name)
-
-# `args` fill the text's %s ("That %s could grow." + ["Sporeling"]).
-func whisper(id: StringName, args: Array = []) -> void:
-	if not enabled or _seen.has(String(id)) or _queue.has(id):
+# Queues `id` behind whatever is showing: once per profile, once per run (EACH_RUN) or every time (EVERY_TIME). An id
+# with no line (a removed teaching whisper: GrowHints and old callers may still ask) is ignored. `_args` is unused now.
+func whisper(id: StringName, _args: Array = []) -> void:
+	if not TEXT.has(id) or _queue.has(id):
 		return
-	if not args.is_empty():
-		_args[id] = args
+	if EACH_RUN.has(id):
+		if _run_seen.has(id):
+			return
+	elif not EVERY_TIME.has(id) and _seen.has(String(id)):
+		return
 	_queue.append(id)
 	if _queue.size() == 1:
 		_show_next()
@@ -262,9 +190,8 @@ static func _lowest(node: Control) -> float:
 			bottom = maxf(bottom, child.get_global_rect().end.y)
 	return bottom
 
-# A choice screen (family pick, Dream, gift, Omen) is open: hints wait behind it (user screenshot: a hint across the
-# family cards), except the ones about that screen. One already showing pauses, hidden, and goes on after.
-const ON_CHOICE_SCREENS: Array[StringName] = [&"let_pass", &"omen"]
+# A choice screen (family pick, Dream, gift, Omen) is open: lines wait behind it (user screenshot: a hint across the
+# family cards). One already showing pauses, hidden, and goes on after.
 var _hidden_for_choice := false
 
 func _choice_open() -> bool:
@@ -277,13 +204,16 @@ func _show_next() -> void:
 	if _queue.is_empty():
 		return
 	var id: StringName = _queue[0]
-	if _choice_open() and not ON_CHOICE_SCREENS.has(id):
+	if _choice_open():
 		return  # _process shows it once the choice closes
-	_seen.append(String(id))
-	_remember()
-	var raw: String = TOUCH_TEXT.get(id, TEXT.get(id, "")) if InputMode.touch() else TEXT.get(id, "")
-	if _args.has(id):
-		raw = raw % _args[id]
+	_showing = id
+	shown.append(id)
+	if EACH_RUN.has(id):
+		_run_seen[id] = true
+	elif not EVERY_TIME.has(id) and not _seen.has(String(id)):
+		_seen.append(String(id))
+		_remember()
+	var raw: String = TEXT.get(id, "")
 	plain = IconInfo.format(raw)  # {damp} … become today's status names
 	var linked := StatusLinks.bbcode(raw)  # From the tokens: game terms become links too
 	text = "[center]%s[/center]" % linked
@@ -313,8 +243,9 @@ func _finish() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	term = ""
 	held = false
-	if not _queue.is_empty():
+	if not _queue.is_empty() and _showing != &"":
 		_queue.pop_front()
+	_showing = &""
 	_show_next()
 
 func _gui_input(event: InputEvent) -> void:
@@ -333,15 +264,14 @@ func _gui_input(event: InputEvent) -> void:
 		if _tween:
 			_tween.pause()
 
-# Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:
-	var showing := not _queue.is_empty() and _seen.has(String(_queue[0]))
+	var showing := not _queue.is_empty() and _showing == _queue[0]
 	if showing and visible:
 		var top := _clear_top()  # The strip can grow while a hint shows (a rest's Coming strip, the boss reminder)
 		if not is_equal_approx(top, offset_top):
 			offset_top = top
 			offset_bottom = top
-	var choice := _choice_open() and not (showing and ON_CHOICE_SCREENS.has(_queue[0]))
+	var choice := _choice_open()
 	if choice and showing and not _hidden_for_choice:
 		_hidden_for_choice = true  # Paused behind the choice screen
 		visible = false
@@ -354,24 +284,6 @@ func _process(_delta: float) -> void:
 			_tween.play()
 	elif not choice and not showing and not _queue.is_empty():
 		_show_next()  # One waited for the choice to close
-	if tower_placer.hover_breaks_path():
-		whisper(&"cage")
-	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).
-	if obstacle_clearer._hover_obstacle != null and obstacle_clearer.is_locked():
-		whisper(&"dead_wood")
-	for id in EnemyStatuses.ALL:
-		if not _seen.has(String(id)) and _any_creature_has(id):
-			whisper(id)
-	# Kinships (screens_ui.md "Kinship feedback", playtest fix): two branches of one family planted.
-	if not _seen.has("kin") and RestReport.two_branch_family(tower_container.get_children()) != "":
-		whisper(&"kin")
-	# "That Sporeling could grow. Click it." comes from GrowHints at the first rest a Warden can grow.
-
-func _any_creature_has(id: StringName) -> bool:
-	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-		if enemy.statuses.has(id):
-			return true
-	return false
 
 # Remembered in the player's profile, except in tests (the scene isn't the running game there).
 func _remember() -> void:

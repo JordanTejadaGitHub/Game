@@ -107,7 +107,7 @@ func _ready() -> void:
 	hints_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	hints.add_child(hints_label)
 	_whispers_toggle.focus_mode = Control.FOCUS_NONE
-	_whispers_toggle.tooltip_text = "The Heartwood's hints"
+	_whispers_toggle.tooltip_text = "Paused Lessons, the first time a rule matters"
 	_whispers_toggle.toggled.connect(_set_whispers)
 	hints.add_child(_whispers_toggle)
 	side.add_child(hints)

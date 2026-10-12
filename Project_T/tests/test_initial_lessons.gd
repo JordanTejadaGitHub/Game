@@ -122,12 +122,16 @@ func _run() -> void:
 	var flyer = spawner.get_child(spawner.get_child_count() - 1)
 	flyer.set_process(false)
 	spawner.enemy_reached_goal.emit(flyer)
-	var whispers = second.get_node("%Whispers")
-	_check(whispers._queue.has(&"flyer"), "enabling Hints after startup still detects a flying leak")
-	while not whispers._queue.is_empty() and whispers._queue[0] != &"flyer":
-		whispers._finish()
-	await _frames()
+	# The Lesson card watches the field itself now (the flyer whisper that used to set it off is gone, user 2026-10-12).
 	var discovered = second.get_node("HUD/LessonCard")
+	_check(discovered.shown_id == &"discover_flyer" or discovered.queue.any(func(q: Array) -> bool: return q[0] == &"discover_flyer"),
+		"enabling Hints after startup still detects a flying leak")
+	var whispers = second.get_node("%Whispers")
+	_check(not whispers._queue.has(&"flyer") and not whispers.TEXT.has(&"flyer"), "…and no teaching whisper says it")
+	while discovered.visible and discovered.shown_id != &"discover_flyer":
+		discovered.close()  # Any Lesson queued ahead of it
+		await _frames()
+	await _frames()
 	_check(discovered.visible and discovered.shown_id == &"discover_flyer" and paused, "the real flyer discovery opens a paused panel")
 	second.queue_free()
 	await _frames()

@@ -80,8 +80,8 @@ func _run() -> void:
 	var spore_mark: Array = hints.marks.filter(func(m: Dictionary) -> bool: return m.tower == spore)
 	_check(not spore_mark.is_empty() and spore_mark[0].rank, "the Sporeling gets the rank dot")
 	_check(hints.spotlight != null and hints._seen.has("spotlight"), "the first rest a Warden can grow: the spotlight")
-	_check(whispers._queue.has(&"grow") and String(whispers._args.get(&"grow", [""])[0]) == hints.spotlight.tower_data.display_name,
-		"…and the whisper names it (%s)" % [whispers._args.get(&"grow", [])])
+	_check(not whispers._queue.has(&"grow") and not whispers.TEXT.has(&"grow"),
+		"…with no whisper: the Grow Lesson teaches it (teaching whispers removed, user 2026-10-12)")
 	var lit := hints.spotlight
 	seller.set_selection([lit])
 	await process_frame
@@ -122,7 +122,7 @@ func _run() -> void:
 	# Drift 15: nothing grown or ranked this run → the reminder (a whisper, once per profile).
 	_check(not hints.grown_this_run(), "nothing grown yet")
 	hints._on_drift_started(GrowHints.REMIND_DRIFT)
-	_check(whispers._queue.has(&"grow_more"), "drift 15: \"Your Wardens can become much more than this.\"")
+	_check(not whispers._queue.has(&"grow_more"), "drift 15: no reminder whisper any more")
 	spore.rank = 1
 	_check(hints.grown_this_run(), "a ranked Warden counts as grown")
 

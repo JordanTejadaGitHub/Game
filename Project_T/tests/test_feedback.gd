@@ -125,8 +125,8 @@ func _run() -> void:
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
-	_check(whispers._queue.has(&"chain"), "the first chain ever whispers what a chain is")
-	_check(shown == [&"chain"], "whispered fires when it's shown (%s)" % [shown])
+	_check(not whispers._queue.has(&"chain") and not whispers.TEXT.has(&"chain"), "the first chain whispers nothing any more (teaching whispers removed, user 2026-10-12)")
+	_check(not shown.has(&"chain"), "…and no chain line is shown (%s)" % [shown])
 	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback.card_text)

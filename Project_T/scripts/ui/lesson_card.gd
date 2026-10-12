@@ -120,9 +120,12 @@ func _hook() -> void:
 				game_speed.set_paused(true))
 	if enabled and get_tree().current_scene == main and HeartwoodMemory.is_first_run() and drift_director.drifts_started == 0:
 		start_intro()
-	var whispers := main.get_node_or_null("%Whispers")
-	if whispers != null:
-		whispers.whispered.connect(discovery)
+	# The teaching whispers are gone (onboarding.md "Whisper hints removed", user 2026-10-12): the status and flyer
+	# Lessons, which their whispers used to set off, watch the field themselves (_watch_field, below), and two Lessons
+	# cover what only a whisper taught: "Rests" (the first rest) and "Speed and pause" (_watch_field).
+	if drift_director != null:
+		drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+			lesson(&"rests", &"dew", "Rests", "Between blocks the forest rests. Selling returns more here, and nothing moves until you start the next drift."))
 	if tower_placer != null:
 		tower_placer.tower_built.connect(_on_built)
 		if tower_placer.has_signal("build_mode_changed"):
@@ -151,6 +154,44 @@ func _hook() -> void:
 		spawner.nightmare_restless.connect(func(_enemy: Node2D, _stacks: int) -> void:
 			lesson(&"restless", &"nightmare", "Turned around",
 				"Changing the route under them makes them restless and faster. Do it too often and they stop listening."))
+	if spawner != null and spawner.has_signal("enemy_reached_goal"):  # The first leaf lost to a flyer
+		spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+			if is_instance_valid(enemy) and enemy.has_method("is_flying") and enemy.is_flying():
+				discovery(&"flyer"))
+
+# What the removed whispers used to notice by looking. Four times a second:
+# - a status on a nightmare for the first time: its status Lesson;
+# - a drift that has run longer than SPEED_LESSON_AFTER seconds (game time, not while paused): "Speed and pause".
+const SPEED_LESSON_AFTER := 20.0
+var _watch_left := 0.0
+var _drift_time := 0.0
+var _drift_watched := -1  # drifts_started the timer counts for
+
+func _watch_field(delta: float) -> void:
+	if not enabled or drift_director == null:
+		return
+	if drift_director.is_resting():
+		_drift_time = 0.0
+	elif not get_tree().paused:
+		if drift_director.drifts_started != _drift_watched:
+			_drift_watched = drift_director.drifts_started
+			_drift_time = 0.0
+		_drift_time += delta
+		if _drift_time > SPEED_LESSON_AFTER and not seen.has("speed_pause"):
+			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(
+				"%s pauses, %s changes speed. You can build while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")],
+				"The pause and speed buttons are beside Start. You can build while paused."))
+	_watch_left -= delta / maxf(Engine.time_scale, 0.001)
+	if _watch_left > 0.0:
+		return
+	_watch_left = 0.25
+	for id in EnemyStatuses.ALL:
+		if seen.has("discover_" + String(id)):
+			continue
+		for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+			if enemy.statuses.has(id):
+				discovery(id)
+				break
 
 func set_enabled(on: bool) -> void:
 	enabled = on
@@ -259,6 +300,7 @@ func _process(_delta: float) -> void:
 			game_speed.set_paused(false)
 	if visible and _over_choice != null and (not is_instance_valid(_over_choice) or not _over_choice.visible):
 		close()  # Its choice screen went away
+	_watch_field(_delta)
 	_check_choice_lessons()
 	if not visible and not queue.is_empty() and can_show():
 		_show(queue.pop_front())

@@ -165,6 +165,50 @@ func _run() -> void:
 	dreams.add_dreamlight(1, &"test")
 	_check(await _take(lessons) == &"dreamlight", "the first Dreamlight")
 
+	# The Lessons that took over from the teaching whispers (onboarding.md "Whisper hints removed", user 2026-10-12).
+	lessons.queue.clear()
+	lessons.close()
+	for id in ["speed_pause", "rests", "discover_damp"]:
+		lessons.seen.erase(id)
+	# Speed and pause: the first time a drift has run longer than 20 s.
+	director.resting = false
+	speed.set_paused(false)
+	lessons._drift_watched = director.drifts_started
+	lessons._drift_time = LessonCard.SPEED_LESSON_AFTER - 1.0
+	lessons._watch_field(0.016)
+	_check(not lessons.queue.any(func(q: Array) -> bool: return q[0] == &"speed_pause"), "under 20 s of a drift: no Speed and pause Lesson yet")
+	lessons._drift_time = LessonCard.SPEED_LESSON_AFTER + 1.0
+	lessons._watch_field(0.016)
+	await _frames(2)
+	_check(lessons.visible and lessons.shown_id == &"speed_pause" and speed.paused and lessons._body.text.contains("build while paused"),
+		"a drift running longer than 20 s: the Speed and pause Lesson opens and pauses (%s)" % lessons.shown_id)
+	lessons.close()
+	await _frames(1)
+	# Rests: the first rest (its own handler called alone: the real signal would also open the rest's screens).
+	director.resting = true
+	var rest_hooks: Array = director.rest_started.get_connections().filter(func(c: Dictionary) -> bool: return (c.callable as Callable).get_object() == lessons)
+	_check(rest_hooks.size() == 1, "the Rests Lesson listens for the first rest")
+	for hook in rest_hooks:
+		(hook.callable as Callable).call(1, false, 0, false)
+	speed.set_paused(false)
+	await _frames(2)
+	_check(lessons.visible and lessons.shown_id == &"rests" and speed.paused and lessons._body.text.contains("forest rests"),
+		"the first rest: the Rests Lesson opens and pauses (%s)" % lessons.shown_id)
+	lessons.close()
+	await _frames(1)
+	# A status on a nightmare: its Lesson, noticed by the card itself (the status whispers used to set it off).
+	var wet: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, false)
+	await _frames(1)
+	wet.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0, 5)
+	lessons._watch_left = 0.0
+	lessons._watch_field(0.016)
+	await _frames(2)
+	_check(lessons.visible and lessons.shown_id == &"discover_damp" and speed.paused, "the first Soaked nightmare: its status Lesson (%s)" % lessons.shown_id)
+	lessons.close()
+	await _frames(1)
+	var whisper_node = main.get_node("%Whispers")
+	_check(not whisper_node.shown.has(&"damp") and not whisper_node.shown.has(&"rest") and not whisper_node.shown.has(&"speed"), "…and no teaching whisper says any of it")
+
 	# Choice Lessons (onboarding.md "Choice Lessons", user 2026-10-12): each opens over its own choice screen the first
 	# time it offers, blocks picking until closed, shows once, and leaves the game paused for the choice.
 	lessons.queue.clear()

@@ -587,8 +587,8 @@ func _run() -> void:
 	whisper_node.enabled = true
 	whisper_node._seen = []
 	whisper_node._queue.clear()
-	whisper_node.whisper(&"damp")
-	_check(whisper_node.text.contains("[url=status:damp]Soaked") or whisper_node.text.contains("status:damp"), "whispers link their status words (%s)" % whisper_node.text)
+	whisper_node.whisper(&"damp")  # A removed teaching whisper: ignored (the status Lessons teach them, user 2026-10-12)
+	_check(not whisper_node.TEXT.has(&"damp") and not whisper_node._queue.has(&"damp"), "the status whispers are gone: the status Lessons teach them")
 	whisper_node.set_enabled(false)
 	# The icon sheet (assets/ui/icons.png + icons.json): every status and stat id has a 16×16 icon.
 	for id in [&"damp", &"static", &"elite", &"hidden", &"damage", &"potency", &"focus_deep", &"dreamlight_cost"]:
@@ -633,10 +633,10 @@ func _run() -> void:
 	clearer.set_process(false)  # Its hover follows the mouse each frame
 	clearer._hover_obstacle = load("res://resource/obstacle/tree.tres")
 	whispers._process(0.0)
-	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
+	_check(not whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers nothing any more (teaching whispers removed)")
 	dreams.clearing_open = true
 	clearer.lock_changed.emit(false)
-	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
+	_check(not whispers._queue.has(&"tend"), "…nor when clearing opens")
 
 	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
