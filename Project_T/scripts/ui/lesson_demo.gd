@@ -51,11 +51,11 @@ func _draw() -> void:
 				draw_circle(road[i].lerp(road[i + 1], distance / segment), 5, UiStyle.INK)
 				break
 			distance -= segment
-		draw_string(font, Vector2(22, 78), "+1 Dew / %d extra cells · cap %d / block" % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
+		draw_string(UiStyle.with_glyphs(font), Vector2(22, 78), "%s / %d extra cells · cap %d / block" % [UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
 	elif topic == &"catch":
 		var steps := ["Dispel", "Catch bowl", "Rest harvest", "Bank interest"]
 		for i in 4:
 			var x := 12 + i * 104
 			draw_rect(Rect2(x, 12, 96, 36), Color(UiStyle.GOLD if i == int(clock) else UiStyle.INK_DIM, 0.2))
 			draw_string(font, Vector2(x + 4, 34), steps[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK)
-		draw_string(font, Vector2(14, 76), "Best catcher counts · shared interest cap %d Dew" % DewCatch.INTEREST_CAP, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
+		draw_string(UiStyle.with_glyphs(font), Vector2(14, 76), "Best catcher counts · shared interest cap %s" % UiStyle.dew_amount(DewCatch.INTEREST_CAP), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)

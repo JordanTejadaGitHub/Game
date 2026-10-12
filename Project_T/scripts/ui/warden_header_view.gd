@@ -251,7 +251,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	if data.rest_interest > 0.0:
 		var rate := data.rest_interest + Tower.KINDRED_INTEREST * _tower.choice_count(Tower.Focus.KINDRED)
 		var cap := data.rest_interest_max + (DewCatch.DEEP_WELL_CAP if dreams != null and dreams.has_rule(&"deep_well") else 0) + NurtureChoices.WELL_CAP_KINDRED * _tower.choice_count(Tower.Focus.KINDRED)
-		_economy_line("Interest %d%% · cap %d" % [roundi(rate * 100), cap], "Paid on banked Dew after the Harvest, at rests. All Wellsprings together are limited to %d Dew per rest." % DewCatch.INTEREST_CAP)
+		_economy_line("Interest %d%% · cap %d" % [roundi(rate * 100), cap], "Paid on banked Dew after the Harvest, at rests. All Wellsprings together are limited to %s per rest." % UiStyle.dew_amount(DewCatch.INTEREST_CAP))
 	if dreams != null and not compact:  # Compact: the panel puts them in Details
 		stats.add_child(DreamBonusView.make_rows(_tower) if is_instance_valid(tower)
 			else DreamBonusView.make_rows_at(data, _tower.cell))  # "Dreams on this Warden"
