@@ -531,8 +531,9 @@ func _run() -> void:
 	lulled.statuses.caught_time = 0.1
 	lulled._process(0.0)
 	lulled._process(0.2)
-	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, 1.0), "Lullaby: Caught lingers 1 s after it lapses")
-	lulled._process(1.1)
+	var linger: float = DreamState.LULLABY_LINGER[0]  # Slow Waking: 3 s (card_review_2026-10-12.md 10, 30d7a265; was 1 s)
+	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, linger), "Lullaby: Caught lingers %s s after it lapses (%s)" % [linger, lulled.statuses.caught_time])
+	lulled._process(linger + 0.1)
 	_check(not lulled.statuses.is_caught(), "…once, then it ends")
 	# Tangled Release + Snare (ruling 2026-09-30): hold → release pull → Snare hold → done.
 	var snare_holder := SnareHolder.new()
