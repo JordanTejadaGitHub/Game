@@ -3240,7 +3240,9 @@ var sim_kinships := -1
 func count_kinships() -> int:
 	if sim_kinships >= 0:
 		return sim_kinships
-	var kinships = Kinships.find(self)
+	# Never creates the Kinships node (Kinships.find would): a card Need asks this at run start, while the scene is still
+	# setting up its children, and add_child fails there (test_meta: "Parent node is busy"). No node yet = no bonds.
+	var kinships: Node = get_tree().get_first_node_in_group(Kinships.GROUP) if is_inside_tree() else null
 	if kinships == null or not kinships.has_method("count"):
 		return 0
 	return int(kinships.call("count"))
