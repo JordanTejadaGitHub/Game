@@ -94,7 +94,6 @@ N("the_old_ones", "cards", "The Old Ones", 1104, 190, "elders", { legendary: tru
 N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
 N("rootbound", "cards", "Rootbound", 1228, 206, "seedbed", { legendary: true });  // Wild Planting was cut in the pool trim
 N("mixed_company", "cards", "Mixed Company", 1190, 270, "seedbed");
-N("menagerie", "cards", "Menagerie", 1170, 200, "mixed_company", { legendary: true });
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
@@ -109,8 +108,7 @@ N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
 N("eternal_static", "cards", "Eternal Charge", 1160, 690, "venom", { legendary: true });
 // Swift and Wide Reach near the trunk (where Storm and Spores grew); Daring, Hedgerows and Reclaiming below the limb.
 N("quickening", "cards", "Quickening", 760, 522, [742, 602]);
-N("light_feet", "cards", "Light Feet", 790, 452, "quickening");
-N("whirlwind_heart", "cards", "Whirlwind Heart", 800, 380, "light_feet", { legendary: true });
+N("whirlwind_heart", "cards", "Whirlwind Heart", 800, 380, "quickening", { legendary: true });
 N("broad_strokes", "cards", "Broad Strokes", 852, 482, [842, 560]);
 N("far_reach", "cards", "Far Reach", 870, 410, "broad_strokes");
 N("great_ripple", "cards", "Great Ripple", 884, 330, "far_reach", { legendary: true });
@@ -128,7 +126,6 @@ N("wildwood_reclaimed", "cards", "Wildwood Reclaimed", 1240, 550, "thorn_and_bra
 // Seeds (support and economy bets).
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
-N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
 // The Quiet Ones (support Wardens).
 N("old_wood", "cards", "Old Wood", 900, 620, [900, 540]);  // Catchers removed: its cards come with the Acorn family
 N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });

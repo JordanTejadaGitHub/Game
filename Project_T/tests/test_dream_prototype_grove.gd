@@ -7,13 +7,13 @@ func _check(ok: bool, label: String) -> void:
 		failures += 1
 		printerr("FAIL: " + label)
 func _run() -> void:
-	var unlock: UnlockData = load("res://resource/meta/grove/menagerie.tres")
-	var data := HeartwoodMemory.defaults()
-	data.seeds = 10000
-	data.unlocks["mixed_company"] = 1
-	_check(GroveCardList.cards_of(unlock).is_empty(), "retired Dreams are absent from Grove reward list")
+	# The three retired-only nodes are gone from the tree (card_review_2026-10-12.md 11 E); their card ids stay loadable.
+	for id in ["golden_harvest", "menagerie", "light_feet"]:
+		_check(HeartwoodMemory.get_unlock(id) == null, "%s is no longer a Grove node" % id)
 	_check(GroveCardList.load_card("menagerie") != null, "legacy card ID stays loadable")
-	_check(HeartwoodMemory.buy_problem(data, unlock) == "Dreams being reworked", "retired-only node cannot consume Seeds")
+	for node in HeartwoodMemory.load_grove():
+		_check(not (node.root == UnlockData.Root.DREAMS and not node.dream_cards.is_empty() and GroveCardList.cards_of(node).is_empty()),
+			"%s still gives a live card (no retired-only node left)" % node.id)
 	var live: UnlockData = load("res://resource/meta/grove/bitter_hedges.tres")
 	var cards := GroveCardList.cards_of(live)
 	_check(cards.any(func(c: UpgradeData) -> bool: return c.id == "bitter_hedges"), "mixed node retains live Grove-exclusive card")
@@ -26,6 +26,6 @@ func _run() -> void:
 	var whirlwind: UnlockData = load("res://resource/meta/grove/whirlwind_heart.tres")
 	var route_data := HeartwoodMemory.defaults()
 	route_data.unlocks["quickening"] = 1
-	_check(HeartwoodMemory.requirements_met(route_data, whirlwind), "retained Whirlwind build bypasses only dormant Light Feet connector")
+	_check(HeartwoodMemory.requirements_met(route_data, whirlwind), "Whirlwind Heart grows off Quickening (Light Feet is gone)")
 	print("Dream prototype Grove: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

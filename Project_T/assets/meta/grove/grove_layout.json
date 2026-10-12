@@ -1746,32 +1746,6 @@
    "display_level": 2
   },
   {
-   "id": "menagerie",
-   "section": "cards",
-   "name": "Menagerie",
-   "pos": [
-    1125,
-    334
-   ],
-   "parent": "mixed_company",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     1071,
-     253
-    ],
-    "frame_size": [
-     89,
-     115
-    ],
-    "frames": 5
-   },
-   "display_level": 3
-  },
-  {
    "id": "one_line",
    "section": "cards",
    "name": "One Line",
@@ -2099,32 +2073,6 @@
    "display_level": 1
   },
   {
-   "id": "light_feet",
-   "section": "cards",
-   "name": "Light Feet",
-   "pos": [
-    828,
-    386
-   ],
-   "parent": "quickening",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     767,
-     350
-    ],
-    "frame_size": [
-     97,
-     110
-    ],
-    "frames": 5
-   },
-   "display_level": 2
-  },
-  {
    "id": "whirlwind_heart",
    "section": "cards",
    "name": "Whirlwind Heart",
@@ -2132,7 +2080,7 @@
     818,
     311
    ],
-   "parent": "light_feet",
+   "parent": "quickening",
    "from": null,
    "levels": 1,
    "start": false,
@@ -2554,32 +2502,6 @@
     "frames": 5
    },
    "display_level": 2
-  },
-  {
-   "id": "golden_harvest",
-   "section": "cards",
-   "name": "Golden Harvest",
-   "pos": [
-    956,
-    368
-   ],
-   "parent": "deep_promises",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     922,
-     333
-    ],
-    "frame_size": [
-     150,
-     105
-    ],
-    "frames": 5
-   },
-   "display_level": 3
   },
   {
    "id": "old_wood",

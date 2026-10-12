@@ -41,7 +41,9 @@ func _initialize() -> void:
 		_check(not card.retired and card.is_deepened(), "%s remains active Deepened" % id)
 	for entry in [["whirligig_hidden", "ricochet_ii", "crosswind"], ["sharpened", "shattering_blow_ii", "opening_fracture"], ["thorn_and_bramble", "thorn_snare_ii", "hushed_hedge"]]:
 		var grove = load("res://resource/meta/grove/%s.tres" % entry[0])
-		_check(grove.dream_cards.has(entry[1]) and grove.dream_cards.has(entry[2]), "%s grants successor and preserves old profile ID" % entry[0])
+		# The retired II left the node's list (card_review_2026-10-12.md 11 E); its card file stays loadable for old saves.
+		_check(not grove.dream_cards.has(entry[1]) and grove.dream_cards.has(entry[2]) and ResourceLoader.exists("res://resource/dream/%s.tres" % entry[1]),
+			"%s grants the successor; the retired II is off the node but still loadable" % entry[0])
 	var rows := GroveCardList.new()
 	root.add_child(rows)
 	rows.show_for(load("res://resource/meta/grove/sharpened.tres"))
