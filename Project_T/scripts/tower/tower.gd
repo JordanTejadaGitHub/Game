@@ -4912,35 +4912,27 @@ func _redraw_root_network() -> void:
 		overlay.queue_redraw()
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
-# stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
-# with its family), then one rarity-coloured diamond per active position card (in build mode or while
-# Wardens are selected). Tapping the Warden opens its panel, which names them.
+# stacks on top of anything else): one rarity-coloured diamond per active position card (in build mode or while
+# Wardens are selected). Tapping the Warden opens its panel, which names them. The Kinship leaf is Kinships' own
+# badge now (Kinships.badge_towers / _draw_knots: above the sprite, at the vine's foot).
+# The base's slots, from the cell centre: grow bud (−18, 14) · Kinship leaf (0, 14) · Nurture dew (18, 14); rank
+# pips along y 27; buff pips along y 36; card diamonds up the left edge from y 0; Sunlit sun on the right edge at
+# y −4; target pip top right; the attack tracker over the head.
 func _draw_badges() -> void:
 	var items: Array = []
-	if is_instance_valid(_kin) and not _kin.get_pairs(self).is_empty():
-		items.append(["kin", _kin.get_pair(self)])
 	if badges_visible():
 		for row in _badge_cards:
 			items.append(["card", row])
 	var x := -MAP_GRID.cell_size.x / 2.0 + 7.0
-	var y := MAP_GRID.cell_size.y / 2.0 - 8.0
+	var y := 0.0  # The first diamond sits above the grow bud (y 6–22), the column runs up from there
 	for item in items:
 		var at := Vector2(x, y)
-		if item[0] == "kin":
-			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.NEWLEAF)
-			var leaf := Fx.texture(&"kin_leaf_icon")
-			if leaf:
-				draw_texture_rect(leaf, Rect2(at - Vector2(7, 7), Vector2(14, 14)), false, colour)
-			else:
-				for side in [-1.0, 1.0]:
-					draw_colored_polygon(PackedVector2Array([at, at + Vector2(3 * side, -6), at + Vector2(6 * side, -1)]), colour)
-		else:
-			var row: Dictionary = item[1]
-			var rarity: int = row.card.rarity if row.get("card") != null else 0
-			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
-			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
-			draw_colored_polygon(diamond, colour)
-			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(Palette.ROOT, 0.8), 1.0)
+		var row: Dictionary = item[1]
+		var rarity: int = row.card.rarity if row.get("card") != null else 0
+		var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
+		var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
+		draw_colored_polygon(diamond, colour)
+		draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(Palette.ROOT, 0.8), 1.0)
 		y -= 13.0
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.

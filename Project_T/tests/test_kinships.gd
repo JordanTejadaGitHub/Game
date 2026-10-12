@@ -112,6 +112,15 @@ func _run() -> void:
 		"a vertical pair's vine bows sideways (%s)" % bow)
 	var knots: Node2D = kin.get_node_or_null("KinKnots")
 	_check(knots != null and not knots.z_as_relative and knots.z_index > 0, "kin knots draw above the Wardens")
+	# The leaf badge (the user, 2026-10-12: "didn't see the feather"): both Wardens of a bonded pair wear the
+	# kin_leaf_icon, drawn by that layer above the sprites; none with Kinship effects Off.
+	var badged: Array = kin.badge_towers()
+	var leaf := Kinships.badge_texture()
+	_check(badged.has(top) and badged.has(below) and badged.has(drift), "both Wardens of every bonded pair wear the leaf badge (%d)" % badged.size())
+	_check(not badged.has(far_bloom), "an unbonded Warden wears none")
+	_check(leaf != null and leaf.resource_path.ends_with("kin_leaf_icon.png") and knots.visible and knots.is_visible_in_tree(),
+		"the badge is the kin_leaf_icon, on a visible layer")
+	_check(Kinships.BADGE_AT.y + Kinships.BADGE_RADIUS + 1.0 < 27.0 - 3.7, "the badge sits clear of the rank pips' row")
 	_check(kin.bow_offset({"a": drift, "b": bloom}) == Vector2.ZERO,
 		"a bond 2 cells across stays straight")
 	# A kin in reach but bonded elsewhere: the panel says why (user: "these two aren't kin"); an unrelated
