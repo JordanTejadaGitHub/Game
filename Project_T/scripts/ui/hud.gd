@@ -906,25 +906,38 @@ func _layout_top_row() -> void:
 	var counters_w := 0.0
 	var gap := ROW_GAP
 	row_wrapped = true
-	for step in ROW_STEPS:
-		row_compact = step[0] < ROW_STEPS[0][0]
-		_set_counter_size(counters, int(step[0]))
-		gap = float(step[1])
-		widths.clear()
-		counters_w = 0.0
-		for label: Label in counters:
-			var icon: TextureRect = _counter_icons.get(label)
-			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(step[0])).x
-			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
-			counters_w += widths[label]
-		counters_w += gap * (counters.size() - 1) + _maze_forecast_width()
-		if _leaves_max.text != "":
-			counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
-		var one_line_w := counters_w + (gap + buttons_w if not buttons.is_empty() else 0.0)
-		row_wrapped = screen_w + ROW_RIGHT - one_line_w - ROW_PAD < banner_right + BANNER_CLEARANCE
+	# The maze forecast gives way first (the row must never wrap for it, user 2026-10-12): the full "+N at rest" only
+	# with the counters at full size, else the short "+N" (the counters stepping down as before), else hidden (its
+	# rule stays on the Path counter's tip).
+	var forecast_w := 0.0
+	for form in [MAZE_FULL, MAZE_SHORT, MAZE_HIDDEN]:
+		for step in ROW_STEPS:
+			if form == MAZE_FULL and step != ROW_STEPS[0]:
+				break
+			row_compact = step[0] < ROW_STEPS[0][0]
+			_set_counter_size(counters, int(step[0]))
+			gap = float(step[1])
+			widths.clear()
+			counters_w = 0.0
+			for label: Label in counters:
+				var icon: TextureRect = _counter_icons.get(label)
+				var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(step[0])).x
+				widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+				counters_w += widths[label]
+			forecast_w = _maze_forecast_width(form)
+			counters_w += gap * (counters.size() - 1) + forecast_w
+			if _leaves_max.text != "":
+				counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
+			var one_line_w := counters_w + (gap + buttons_w if not buttons.is_empty() else 0.0)
+			row_wrapped = screen_w + ROW_RIGHT - one_line_w - ROW_PAD < banner_right + BANNER_CLEARANCE
+			if not row_wrapped:
+				break
 		if not row_wrapped:
+			_maze_form = form
 			break
 	if row_wrapped:  # Even the smallest step doesn't fit: back to full size, the buttons on a second line
+		_maze_form = MAZE_HIDDEN
+		forecast_w = 0.0
 		row_compact = false
 		_set_counter_size(counters, int(ROW_STEPS[0][0]))
 		gap = ROW_GAP
@@ -935,7 +948,10 @@ func _layout_top_row() -> void:
 			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(ROW_STEPS[0][0])).x
 			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
 			counters_w += widths[label]
-		counters_w += gap * (counters.size() - 1) + _maze_forecast_width()
+		counters_w += gap * (counters.size() - 1)
+	if _maze_reward_label != null:  # The form that fits
+		_maze_reward_label.visible = _maze_form != MAZE_HIDDEN and _maze_full != ""
+		_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	# Buttons: right end of line 1, or line 2 when wrapped.
 	var x := ROW_RIGHT
 	var button_top := ROW_TOP + (ROW_H + 4.0 if row_wrapped else 0.0)
@@ -968,8 +984,7 @@ func _layout_top_row() -> void:
 			_leaves_max.offset_top = top + 4.0  # Sits on the value's baseline
 			_leaves_max.offset_bottom = top + ROW_H
 			at -= max_w
-		if label == dew_label and _maze_forecast_width() > 0.0:  # "+6 at rest" right after the Dew total
-			var forecast_w := _maze_forecast_width()
+		if label == dew_label and forecast_w > 0.0:  # "+6 at rest" (or "+6") right after the Dew total
 			_maze_reward_label.offset_right = at
 			_maze_reward_label.offset_left = at - (forecast_w - MAZE_FORECAST_GAP)
 			_maze_reward_label.offset_top = top + 4.0  # Sits low, by the total's baseline
@@ -1007,11 +1022,18 @@ func _layout_top_row() -> void:
 const MAZE_FORECAST_SIZE := 14  # "+6 at rest" beside the Dew total: small
 const MAZE_FORECAST_GAP := 8.0  # Between the Dew total and its forecast
 
-# The room the maze forecast takes right after the Dew total (its text and the gap), 0 while it isn't shown.
-func _maze_forecast_width() -> float:
-	if _maze_reward_label == null or not _maze_reward_label.visible or _maze_reward_label.text == "":
+const MAZE_FULL := 0  # "+6 at rest"
+const MAZE_SHORT := 1  # "+6": the row is tight
+const MAZE_HIDDEN := 2  # No room even for that
+var _maze_form := MAZE_FULL  # Chosen by _layout_top_row
+var _maze_full := ""
+var _maze_short := ""
+
+# The room the maze forecast takes right after the Dew total in `form` (its text and the gap), 0 when hidden.
+func _maze_forecast_width(form: int = MAZE_FULL) -> float:
+	if _maze_reward_label == null or form == MAZE_HIDDEN or _maze_full == "":
 		return 0.0
-	return ceilf(_maze_reward_label.get_theme_font("font").get_string_size(_maze_reward_label.text,
+	return ceilf(_maze_reward_label.get_theme_font("font").get_string_size(_maze_short if form == MAZE_SHORT else _maze_full,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, MAZE_FORECAST_SIZE).x + 2.0) + MAZE_FORECAST_GAP
 
 # The row's global rect (the fog patch), for tests and the banner check.
@@ -1055,7 +1077,9 @@ func _update_maze_income() -> void:
 		return
 	var amount: int = drift_director.get_maze_reward_projection()
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
-	_maze_reward_label.text = "%s at rest" % UiStyle.dew_amount(amount, true)
+	_maze_short = UiStyle.dew_amount(amount, true)  # The row shows this when "at rest" doesn't fit (_layout_top_row)
+	_maze_full = "%s at rest" % _maze_short
+	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	# Path length only (maze_economy.md, user 2026-10-11: "the maze bonus is confusing"): cells over the forest's path.
 	var explanation := "Your route is %d cells longer than the forest's path: %s at the next rest (%s per %d cells, up to %d)." % [
 		drift_director.get_maze_added_cells(), UiStyle.dew_amount(amount, true), UiStyle.dew_amount(1, true),
