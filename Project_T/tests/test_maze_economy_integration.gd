@@ -55,7 +55,7 @@ func _run() -> void:
 	var extended: int = map.route_length(map.get_path_from(map.startPath))
 	_check(extended - initial >= 4, "actual walls create enough route extension")
 	var expected: int = director.get_maze_reward_preview()
-	_check(expected > 0 and expected <= 20 and expected == mini(20, (extended - initial) / 4), "the longer route has a capped live reward, by length alone")
+	_check(expected > 0 and expected == (extended - initial) / 4, "the longer route has a live reward by length alone, with no cap")
 	_check(director.get_maze_reward_projection() == 0, "active drift-one projection excludes future drift-five income")
 	var hud = main.get_node("HUD")
 	var forecast = hud.get_node_or_null("MazeDewLabel") as Label
@@ -63,7 +63,7 @@ func _run() -> void:
 	if forecast != null:
 		hud._update_maze_income()
 		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(0, true), "HUD uses next-rest projection rather than raw route reward")
-		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains maze reward rate and cap")
+		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("longer than the forest's path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}
 	director.maze_economy.load_save(reset)

@@ -228,8 +228,8 @@ func _process(_delta: float) -> void:
 
 	if not run_state.is_over:
 		_status_label.text += "\nMaze: %s next rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
-		_status_label.tooltip_text += "\nMaze bonus: %s at each rest for every %d cells your route is longer than the forest's path, up to %d a block. Counted while nightmares walk." % [
-			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP]
+		_status_label.tooltip_text += "\nMaze bonus: %s at each rest for every %d cells your route is longer than the forest's path. Counted while nightmares walk." % [
+			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
