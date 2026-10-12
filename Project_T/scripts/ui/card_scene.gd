@@ -51,6 +51,7 @@ const SPROUT_CARDS: Array[String] = ["root_network", "root_network_ii", "sprout_
 # What each card shows in gold (the numbers from its caption): `text` on the favoured Warden's hits, its damage /
 # attack speed multipliers and extra range; `proc` pops on a nightmare passing a marked Thornwall (X).
 const EFFECTS := {
+	"narrow_way": {"narrow": true},  # A before → after scene (show_card → _show_narrow_way): its numbers come from HelperCommons.NARROW_WAY
 	"cheap_seeds": {"planting_discount": true},  # The saving is DreamState.CHEAP_SEEDS_SHARE (the tag reads it)
 	"longer_roots": {"text": "+1 range", "range": 1.0},
 	"switchback": {"bend_slow": true},
@@ -167,7 +168,26 @@ func _ready() -> void:
 	set_process(false)
 
 # Builds and plays `for_card`'s scene (the pooled view is reused from card to card).
+# Narrow Way (user 2026-10-12: "narrow way should also have a video"): a before → after pair like the gift scenes.
+# Before: a full-width lane and one Warden beside it, plain hits. After: a Thornwall set half a cell into the lane
+# (letter n: a path cell whose upper half a wall covers) narrows a stretch to half a cell; the nightmares squeeze
+# through at NARROW_SQUEEZE width, the Wardens beside the narrow stretch (W) show the bonus and hit harder, and the one
+# beside the wide part (a) doesn't. The number is HelperCommons.NARROW_WAY, never typed here.
+const NARROW_BEFORE := ".......\n.......\nSPPPPPH\n..a....\n......."
+const NARROW_AFTER := ".......\n.......\nSPnnPPH\n..WW.a.\n......."
+const NARROW_SQUEEZE := 0.8  # As Enemy.SQUEEZE_WIDTH (half_cells.md "The look in a narrow gap")
+
+func _show_narrow_way(for_card: UpgradeData) -> void:
+	var percent := roundi(HelperCommons.NARROW_WAY * 100.0)
+	show_scene(NARROW_BEFORE, NARROW_AFTER, {"text": "+%d%%" % percent, "damage": 1.0 + HelperCommons.NARROW_WAY},
+		"Wardens beside a stretch of path only half a cell wide deal %d%% more damage." % percent)
+	card = for_card  # (show_scene is the gifts': it clears the card)
+	_legend.text = "Before, then after: a wall narrows the path, and the Wardens beside the narrow stretch hit harder"
+
 func show_card(for_card: UpgradeData) -> void:
+	if for_card != null and for_card.id == "narrow_way":
+		_show_narrow_way(for_card)
+		return
 	card = for_card
 	_in_scene = false
 	_effect = EFFECTS.get(card.id, {})
@@ -238,7 +258,7 @@ func _centre(cell: Vector2i) -> Vector2:
 	return Vector2(cell) * CELL + Vector2(CELL, CELL) / 2.0
 
 static func _is_path(c: String) -> bool:
-	return c == "P" or c == "+" or c == "S" or c == "H" or c == "B" or c == "r" or c.is_valid_int()
+	return c == "P" or c == "+" or c == "S" or c == "H" or c == "B" or c == "r" or c == "n" or c.is_valid_int()  # n: a narrowed path cell
 
 # The diagram letter under world position `at`.
 func _letter_at(at: Vector2) -> String:
@@ -277,6 +297,13 @@ func _build(diagram: String) -> void:
 					if n.x >= 0 and n.y >= 0 and n.x < COLS and n.y < ROWS and _is_path(_cell_at(rows, n.x, n.y)):
 						mask |= 1 << i
 				ground.set_cell(cell, EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
+			if c == "n":  # A Thornwall set half a cell into the lane: the path here is half a cell wide
+				var half_wall := Sprite2D.new()
+				half_wall.texture = THORNWALL.texture
+				half_wall.hframes = maxi(THORNWALL.frame_count, 1)
+				half_wall.offset = Vector2(0, -16) + THORNWALL.get_sprite_offset()  # As _add_warden: its bottom 64 px on its square
+				half_wall.position = _centre(cell) + Vector2(0, -CELL / 2.0)  # Half a cell up: it covers this cell's upper half
+				_world.add_child(half_wall)
 			if c == "S":
 				start = cell
 			elif c == "H":
@@ -862,6 +889,11 @@ func _move_walkers(delta: float) -> void:
 			walker.distance += WALK_SPEED * delta * (BOG_SPEED if _letter_at(sprite.position) == "B" else 1.0)  # Bog (gift scenes)
 		var at: Array = _along(walker.distance)
 		sprite.position = at[0]
+		# A narrowed cell (n): it squeezes through the open lower half, drawn NARROW_SQUEEZE wide, easing in and out.
+		var squeeze := lerpf(float(walker.get("squeeze", 0.0)), 1.0 if _letter_at(at[0]) == "n" else 0.0, 1.0 - exp(-12.0 * delta))
+		walker["squeeze"] = squeeze
+		sprite.position.y += CELL / 4.0 * squeeze
+		sprite.scale = Vector2.ONE * NIGHTMARE.sprite_scale * lerpf(1.0, NARROW_SQUEEZE, squeeze)
 		var dir: Vector2 = at[1]
 		var animation := &"walk_side" if absf(dir.x) >= absf(dir.y) else (&"walk_down" if dir.y > 0 else &"walk_up")
 		if sprite.animation != animation:

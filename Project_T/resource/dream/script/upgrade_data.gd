@@ -89,7 +89,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # W a Warden that qualifies (glows), w one that doesn't (dimmed, ✗), a another Warden, T Thornwall, X a
 # Thornwall outlined gold, O obstacle, Q a qualifying Warden on a cleared cell (a moved hollow), U a tended stump,
 # * a grass cell in range
-# (outlined), H the Heartwood, S the start. `diagram_caption`: one short line under it.
+# (outlined), H the Heartwood, S the start, n a path cell a wall narrows to half a cell (Narrow Way).
+# `diagram_caption`: one short line under it.
 @export_multiline var diagram: String = ""
 @export var diagram_caption: String = ""
 @export var extra_rules: Array[StringName] = []  # Rules this card also grants (pool trim merges: an absorbed card's rule id)
