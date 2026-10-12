@@ -1,6 +1,8 @@
 extends RefCounted
 ## Cooperative successor effects. Only native hooks record application history.
 
+const EXTRA_STACKS := 6  # Crossed Sparks / Shared Mycelium: extra stacks when two Wardens add the status within 2 s (was 2)
+
 static func before_hit(tower, enemy, direct: bool, now: float) -> float:
 	if not direct or not _live(tower) or not _enemy_live(enemy):
 		return 1.0
@@ -92,7 +94,7 @@ static func native_status(tower, enemy, id: StringName, accepted: bool, was_pres
 		var original_source = enemy.statuses.source(id)
 		var scale: float = enemy.statuses.duration_multipliers.get(id, 1.0) * enemy.statuses.duration_multiplier_all * enemy.statuses._potency_stretch(id, enemy.statuses._applier_potency(original_source))
 		var duration: float = enemy.statuses.time_left(id) / maxf(scale, 0.0001)
-		enemy.apply_status(id, 2, duration, enemy.statuses.potency(id), 0,
+		enemy.apply_status(id, EXTRA_STACKS, duration, enemy.statuses.potency(id), 0,
 			original_source.tower_data.line if _live(original_source) else tower.tower_data.line, original_source)
 	entries[tower.get_instance_id()] = {"source": weakref(tower), "time": now, "batch": native_batch}
 	enemy.set_meta(key, {"serial": serial, "entries": entries} if enemy.statuses.has(id) else {})

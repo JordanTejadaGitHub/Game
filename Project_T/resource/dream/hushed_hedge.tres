@@ -12,4 +12,6 @@ kind = 3
 tags = Array[String](["tending", "wall"])
 max_stacks = 1
 rule_id = &"hushed_hedge"
+excludes = Array[String](["thorn_snare"])
+cost_description = "Taking it removes {card:thorn_snare} from this run."
 in_start_pool = false

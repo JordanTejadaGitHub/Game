@@ -74,11 +74,11 @@ func _run() -> void:
 	_check(absf(_damage(spore, a) / fresh - 1.0) < 0.02, "…the others unchanged")
 	_clear()
 
-	# Growth Rings: +0.1 range a rank.
+	# Growth Rings: +0.25 range a rank instead of +0.1.
 	var plain_range := ranked.get_range_cells()
 	_take(&"growth_rings")
 	ranked._stats = {}
-	_check(is_equal_approx(ranked.get_range_cells() - plain_range, HelperCommons.GROWTH_RINGS * 3), "Growth Rings: +0.1 range per rank (%.2f)" % (ranked.get_range_cells() - plain_range))
+	_check(is_equal_approx(ranked.get_range_cells() - plain_range, HelperCommons.GROWTH_RINGS * 3), "Growth Rings: +0.25 range per rank instead of +0.1 (%.2f more)" % (ranked.get_range_cells() - plain_range))
 	_clear()
 	ranked._stats = {}
 

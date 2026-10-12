@@ -97,7 +97,7 @@ const GROVE_AREA_RULES: Array[StringName] = [&"lingering_splash", &"great_ripple
 const WALL_DROWSY_CAP := 12  # Drowsy from walls (Honeysuckle, Scented Hedge) stops here; Wardens' Drowsy can go past it
 const BRAMBLE_OATH := 0.5  # Bramble Oath (Seed card): +50%
 const WALL_TICK := 0.2
-const THORN_SNARE_TIME := [0.5, 1.0]
+const THORN_SNARE_TIME := [1.5, 2.0]  # Briar Trap 1.5 s (card_review_2026-10-12.md 10; II is legacy)
 # "Fewer, bigger cards" (dream_design.md de439ea8; Balancing e32b882d). Rule ids = card ids (Roguelite Code's data).
 const BESIDE_WALL := 1.1  # Cells from a full Thornwall's centre that count as passing beside it (a twig wall: 0.75)
 const THORNY_EVERY := 1.0  # Thorny Walls: a lash every second… (Balancing: 2 s was too weak, a paired sim)
@@ -1109,7 +1109,7 @@ func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
 	if rank > 0 and _has_rule(&"growth_rings"):
-		reach += HelperCommons.GROWTH_RINGS * rank  # Growth Rings: each Nurture rank +0.1 range
+		reach += HelperCommons.GROWTH_RINGS * rank  # Growth Rings: each Nurture rank +0.25 range instead of +0.1
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state:
@@ -2557,6 +2557,8 @@ func _release_attack() -> void:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
 			var swing := HelperCommons.area_attack_extra(self) if _dream_state else 0.0
+			if _dream_state:
+				swing += HelperCommons.pulse_extra(self)  # Wide Petals: pulses wider too
 			if _dream_state and _dream_state.calling == "whirligig":
 				swing += CALLINGS.tailwind_wider(self)  # Tailwind: a pulse inside another wind Warden's reach spreads wider
 			if swing > 0.0:
@@ -3088,7 +3090,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if _dream_state != null and stacks > 0 and native:
 		var accepted: bool = enemy.statuses.applications > unique_before
 		var previous_native_context = get_meta(&"unique_native_status_context") if has_meta(&"unique_native_status_context") else null
-		set_meta(&"unique_native_status_context", [potency, duration, max_stacks])
+		set_meta(&"unique_native_status_context", [potency, duration, max_stacks, stacks])  # stacks: Corner Sign doubles them
 		DreamState.UNIQUE_COOP.native_status(self, enemy, status, accepted, unique_was_present, _dream_state._game_clock)
 		DreamState.UNIQUE_PATH.native_status(self, enemy, status, accepted, _unique_native_direct, _dream_state._game_clock)
 		if previous_native_context == null:
@@ -3330,7 +3332,7 @@ func _update_ability(delta: float) -> void:
 func hold(enemy: Node2D, seconds: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	var bonus: float = _dream_state.get_held_bonus() if _dream_state else 0.0
+	var bonus: float = _dream_state.get_held_bonus(enemy) if _dream_state else 0.0  # Patient Roots (bosses: bounded)
 	if bonus > 0.0 and tower_data.line == "root":
 		bonus += PATIENT_ROOTS_ROOT_HOLD * _rule_power(&"patient_roots")
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)

@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "grand_tour"
 display_name = "Grand Tour"
-description = "Applying a new status to a living nightmare gives its existing other statuses up to 1 extra second each. Each status lifetime can gain at most 1 second in total. Hold, sleep and persistent statuses cannot be extended."
+description = "A nightmare carrying 3 or more different statuses takes 30% more damage from every Warden."
 rarity = 2
 kind = 3
 tags = Array[String](["variety", "overgrowth"])
 requires = Array[String]([])
 max_stacks = 1
-min_owned_statuses = 2
+min_owned_statuses = 3
 rule_id = &"grand_tour"
 in_start_pool = false

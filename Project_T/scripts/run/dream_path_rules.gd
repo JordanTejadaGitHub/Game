@@ -31,7 +31,8 @@ static func native_status(tower: Node, enemy: Node, id: StringName, accepted: bo
 	enemy.set_meta(&"unique_corner_sign", ledger)
 	var s: EnemyStatuses = enemy.statuses
 	var context: Array = tower.get_meta(&"unique_native_status_context", [s.potency(id), 0.0, 0])
-	enemy.apply_status(id, 1, float(context[1]), float(context[0]), int(context[2]), tower.tower_data.line, tower)
+	var extra: int = maxi(int(context[3]), 1) if context.size() > 3 else 1  # Double stacks: as many again as the hit applied (card_review_2026-10-12.md 10)
+	enemy.apply_status(id, extra, float(context[1]), float(context[0]), int(context[2]), tower.tower_data.line, tower)
 
 static func target_changed(tower: Node, old_target: Node, new_target: Node, now: float) -> void:
 	if old_target == new_target or not _live(old_target) or not _live(new_target) \
@@ -106,6 +107,8 @@ static func dispelled(dreams: DreamState, enemy: Node, _now: float) -> void:
 			source.tower_data.line if source is Tower else "", source)
 
 static func harmony(dreams: DreamState, a: Node, b: Node, enemy: Node, drift: int) -> void:
+	if true:
+		return  # Kin's Keepsake now pays at the rest (DreamState.get_rest_bonus_add); the per-Harmony Dew is gone
 	if not _enabled(dreams, &"kins_keepsake") or not is_instance_valid(a) or not is_instance_valid(b) or a == b \
 			or not is_instance_valid(enemy) or dreams.run_state == null:
 		return

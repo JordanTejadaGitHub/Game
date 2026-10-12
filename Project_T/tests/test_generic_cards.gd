@@ -207,9 +207,9 @@ func _test_helper_commons() -> void:
 	dreams.absorb_leak()
 	_check(dreams.light_steps_active() and dreams.close_shave_active() and _row(short.tower_data, short.cell, "close_shave", short).active,
 		"…a drift start / a leak turns them on")
-	_check(is_equal_approx(dreams.get_area_radius_add(), DreamState.WIDE_PETALS_RADIUS), "Wide Petals: +0.5 cells")
+	_check(is_equal_approx(dreams.get_area_radius_add(), DreamState.WIDE_PETALS_RADIUS), "Wide Petals: +0.75 cells (pulses get it from HelperCommons.pulse_extra)")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
-	_check(dreams.get_build_cost(sprout) == sprout.cost and dreams.get_build_cost_at(sprout, Vector2(80, 80)) == maxi(sprout.cost - 4, 1), "Scattered Seedlings: discount requires an isolated planting position")
+	_check(dreams.get_build_cost(sprout) == sprout.cost and dreams.get_build_cost_at(sprout, Vector2(80, 80)) == maxi(ceili(sprout.cost * DreamState.CHEAP_SEEDS_SHARE), 1), "Scattered Seedlings: an isolated planting position costs half")
 	var dew := run_state.dew
 	dreams._on_obstacle_cleared(Vector2(-9, -9), load("res://resource/obstacle/rock.tres"))
 	_check(run_state.dew == dew + DreamState.WEED_PULLER_DEW, "Weed Puller: a Mossy Boulder refunds 6 (%d)" % (run_state.dew - dew))
@@ -242,7 +242,7 @@ func _test_more_helpers() -> void:
 	_check(not _row(mid.tower_data, mid.cell, "undergrowth", mid).active, "Undergrowth: 1 Sprout touching isn't enough")
 	_plant("sprout", Vector2(102, 101))
 	dreams.bump_board()
-	_check(_row(mid.tower_data, mid.cell, "undergrowth", mid).active, "…2 Sprouts touching: +0.5 range")
+	_check(_row(mid.tower_data, mid.cell, "undergrowth", mid).active, "…2 Sprouts touching: +1 range")
 	_clear()
 	dreams._early_calls = 0
 	dreams._bold_opening_drift = -1
@@ -252,10 +252,15 @@ func _test_more_helpers() -> void:
 	dreams._bold_opening_drift = 11
 	_check(is_equal_approx(dreams.get_dew_pot_multiplier(13, true), plain), "…a later early call in the block gets nothing")
 	_check(is_equal_approx(dreams.get_dew_pot_multiplier(11, true) - plain, DreamState.BOLD_OPENING_POT), "…the opening drift itself keeps it")
+	# Groundskeeper (card_review_2026-10-12.md 10): half of a clear's price back at once, every kind; nothing at the rest
 	dreams._clears_this_block = 2
 	var base_add := dreams.get_rest_bonus_add()
 	dreams._clears_this_block = 0
-	_check(base_add - dreams.get_rest_bonus_add() == 2 * DreamState.GROUNDSKEEPER_DEW, "Groundskeeper: +3 per clear this block at the rest")
+	_check(base_add == dreams.get_rest_bonus_add(), "Groundskeeper: no rest payout any more")
+	var keeper_dew := run_state.dew
+	dreams.last_clear_paid = 12
+	dreams._on_obstacle_cleared(Vector2(-8, -8), load("res://resource/obstacle/tree.tres"))
+	_check(run_state.dew == keeper_dew + 6, "Groundskeeper: half the clear's price back at once (%d)" % (run_state.dew - keeper_dew))
 	_check(not dreams.board_can_use(_card("first_among_equals")), "First Among Equals: needs a ranked Warden")
 	var ranked := _plant("sporeling", Vector2(100, 100))
 	ranked.rank = 1
@@ -653,7 +658,7 @@ func _test_cards_227() -> void:
 			_check(card.in_start_pool != LEAN_GROVE.has(id) and not card.tags.is_empty(), "%s: pool (lean), tagged" % id)
 	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
-	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
+	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 3, "Desperate Bloom act 2+; Grand Tour needs 3 statuses")
 	for id in ["crowded_path", "last_breath", "thinning_the_herd"]:  # (Crowd Breaker is reach since da74709b)
 		_check(_card(id).tags.has("affliction") and not _card(id).tags.has("swarm"), "%s: swarm merged into affliction" % id)
 	_check(_card("shattering_blow").tags.has("precision") and not _card("shattering_blow").tags.has("swarm"), "Shattering Blow keeps precision only")
@@ -821,7 +826,7 @@ func _test_seed_cards() -> void:
 		"Sheltering Boughs on beside an aura Warden (+%d%%); Shared Light +4%% each (%.2f)" % [roundi(canopy.damage * 100), light.damage])
 	# Patient Roots and Bramble Oath's measure
 	dreams.take(_card("patient_roots"))
-	_check(dreams.get_held_bonus() == 0.5 and dreams.walls_added_tiles() >= 0, "Patient Roots: Held +0.5 s; walls' path tiles measured")
+	_check(dreams.get_held_bonus() == DreamState.PATIENT_ROOTS_HELD and DreamState.PATIENT_ROOTS_HELD == 1.0 and dreams.walls_added_tiles() >= 0, "Patient Roots: Rooted +1 s (bosses 0.25 s); walls' path tiles measured")
 	_clear()
 	_reset()
 

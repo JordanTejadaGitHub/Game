@@ -987,7 +987,7 @@ func _odd_one_out(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 		"reason": "" if on else "%d more of its kind on the map" % same}
 
 func _grand_tour(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"active": true, "note": "new statuses preserve other finite statuses by at most 1 s"}
+	return {"active": true, "note": "nightmares with %d or more different statuses take %d%% more damage" % [DreamState.GRAND_TOUR_STATUSES, roundi(DreamState.GRAND_TOUR_DAMAGE * 100)]}
 
 
 func route_neighbors(cell: Vector2) -> int:
@@ -1023,7 +1023,7 @@ func _cheap_seeds(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 	if spot.data.get_id() != "sprout":
 		return {}
 	var on := not board.touching(spot).any(func(o: Dictionary) -> bool: return _data(o).get_id() == "sprout")
-	return {"positional": true, "active": on, "cost": -4, "note": "at planting only",
+	return {"positional": true, "active": on, "cost": -floori(ds.get_build_cost(spot.data) * (1.0 - DreamState.CHEAP_SEEDS_SHARE)), "note": "at planting only",  # Half price
 		"reason": "" if on else "touching another Sprout"}
 
 # Early original-hit patterns report behavior, not an unconditional stat contribution.

@@ -782,11 +782,10 @@ func preserve_other_statuses(new_id: StringName) -> void:
 		status["full"] = maxf(float(status.get("full", status.time)), status.time)
 		changes += 1
 
+# Grand Tour was reworked (card_review_2026-10-12.md 10): it no longer extends other statuses. It is hit damage now
+# (DreamState.on_hit_multiplier). Kept as a no-op for its callers.
 func _grand_tour_new_status(id: StringName, applier: Node) -> void:
-	if is_instance_valid(applier) and applier.is_inside_tree():
-		var dreams = applier.get_tree().get_first_node_in_group(DreamState.GROUP)
-		if dreams != null and dreams.has_rule(&"grand_tour"):
-			preserve_other_statuses(id)
+	pass
 
 func pin_steadfast() -> bool:
 	if is_boss or HELD in immune or is_on_cooldown(&"steadfast_pin") or has(HELD) or hold_cooldown > 0.0:

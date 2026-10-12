@@ -173,7 +173,8 @@ const SHARED_LIGHT_MAX := 0.20
 const BRAMBLE_OATH_PER := 0.03  # Per BRAMBLE_OATH_TILES path tiles the walls add
 const BRAMBLE_OATH_TILES := 5
 const BRAMBLE_OATH_MAX := 0.30
-const PATIENT_ROOTS_HELD := 0.5
+const PATIENT_ROOTS_HELD := 1.0
+const PATIENT_ROOTS_HELD_BOSS := 0.25  # Bosses stay bounded
 const GOLDEN_HARVEST_PER := 0.02  # Per GOLDEN_HARVEST_STEP Dew earned this run (catchers and interest count double)
 const GOLDEN_HARVEST_STEP := 500
 const GOLDEN_HARVEST_MAX := 0.30
@@ -1672,7 +1673,7 @@ func rule_stacks(rule: StringName) -> int:
 
 # The rules of the taken cards (rule_id and extra_rules: a merged card grants the absorbed rule) ->
 # total stacks, rebuilt only when _taken_cards() rebuilds. Also sets the per-hit early-out flags.
-const HIT_RULES: Array[StringName] = [&"last_stand", &"hunters_patience", &"bitter_hedges", &"lone_hunter",
+const HIT_RULES: Array[StringName] = [&"grand_tour", &"last_stand", &"hunters_patience", &"bitter_hedges", &"lone_hunter",
 	&"rain_on_glass", &"skyward_gaze", &"deep_grip", &"head_start", &"deep_frost", &"falling_weight", &"murmur",
 	&"first_light"]  # Every rule on_hit_multiplier reads
 const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"seasoned_eye", &"full_moon",
@@ -1769,8 +1770,8 @@ func keeps_rest_bonus() -> bool:
 # Added to every rest (drift-clear) bonus; negative after Borrowed Dew. The bonus never goes below 0.
 func get_rest_bonus_add() -> int:
 	var add := 0
-	if has_rule(&"groundskeeper"):
-		add += GROUNDSKEEPER_DEW * _clears_this_block  # Groundskeeper: this block's clears
+	if has_rule(&"kins_keepsake"):
+		add += mini(KINS_KEEPSAKE_DEW * count_kinships(), KINS_KEEPSAKE_MAX)  # Kin's Keepsake: per Kinship on the map, each rest
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
@@ -1801,7 +1802,7 @@ func get_build_cost_at(data: TowerData, cell: Vector2, apply_fertile: bool = tru
 		return 0  # The charge is used in _on_tower_built
 	var cost := get_build_cost(data)
 	if data.get_id() == "sprout" and has_rule(&"cheap_seeds") and not effects().sprout_touching(cell):
-		cost = maxi(cost - CHEAP_SEEDS_DEW, 1)
+		cost = maxi(ceili(cost * CHEAP_SEEDS_SHARE), 1)
 	if apply_fertile and run_state.fertile_cells.has(cell):
 		cost = roundi(cost * FERTILE_DISCOUNT)
 	return cost
@@ -2563,8 +2564,8 @@ const SWITCHBACK_TIME := 1.0
 const SWITCHBACK_COOLDOWN := 3.0
 const CLOSE_GUARD_RANGE := 0.5  # Range <= CLOSE_GUARD_MAX_RANGE: more range
 const CLOSE_GUARD_MAX_RANGE := 3.0
-const WIDE_PETALS_RADIUS := 0.5  # Splashes and clouds wider
-const CHEAP_SEEDS_DEW := 4  # Sprouts cheaper
+const WIDE_PETALS_RADIUS := 0.75  # Splashes, pulses and clouds wider (pulses: HelperCommons.pulse_extra)
+const CHEAP_SEEDS_SHARE := 0.5  # Scattered Seedlings: a Sprout planted away from other Sprouts costs half
 const LIGHT_STEPS_SPEED := 0.30  # At each drift's start…
 const LIGHT_STEPS_TIME := 8.0  # …for this long
 const NIMBLE_TWIGS_DAMAGE := 0.20  # Wardens over NIMBLE_TWIGS_APS attacks a second (base)
@@ -2582,10 +2583,12 @@ var _close_shave_until := -1.0
 
 # Helper Commons 286-303 (dream_design.md ae90720e): Roguelite's hooks; the combat ones are Tower Code's.
 const BOUNTIFUL_EVERY := 5  # Every 5th Sprout you plant is free (TowerPlacer asks bountiful_next_free)
-const UNDERGROWTH_RANGE := 0.5  # Sprouts touching UNDERGROWTH_TOUCHING+ other Sprouts reach further
+const UNDERGROWTH_RANGE := 1.0  # Sprouts touching UNDERGROWTH_TOUCHING+ other Sprouts reach further
 const UNDERGROWTH_TOUCHING := 2
 const BOLD_OPENING_POT := 0.40  # The first drift you call early in each block: its pot holds this much more Dew
-const GROUNDSKEEPER_DEW := 3  # At each rest, per obstacle cleared that block
+const GROUNDSKEEPER_REFUND := 0.5  # Share of a clear's price given back at once (was 3 Dew a clear at the rest)
+const KINS_KEEPSAKE_DEW := 10  # Kin's Keepsake: Dew at each rest per Kinship on the map…
+const KINS_KEEPSAKE_MAX := 40  # …up to this
 var sprouts_planted := 0  # Sprouts planted this run (Bountiful); saved
 var _clears_this_block := 0  # Groundskeeper
 var _bold_opening_drift := -1  # The drift that took this block's Bold Opening
@@ -3140,6 +3143,8 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 		dew += card.dew_per_obstacle_clear * stacks[card.id]
 	if has_rule(&"weed_puller") and data != null and data.resource_path.get_file().begins_with("rock"):
 		dew += WEED_PULLER_DEW  # Weed Puller: a Mossy Boulder's clear refunds a little
+	if has_rule(&"groundskeeper"):
+		dew += floori(paid * GROUNDSKEEPER_REFUND)  # Groundskeeper: half of what the clear cost, at once, every kind (card_review_2026-10-12.md 10)
 	if has_rule(&"reclaimed_earth"):
 		dew += floori(paid * RECLAIMED_REFUND)  # 40% of what the clear cost: never a profit
 		run_state.fertile_cells[cell] = true
@@ -3383,6 +3388,8 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass") * rule_power(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		bonus += SKYWARD_BONUS * rule_power(&"skyward_gaze")
+	if has_rule(&"grand_tour") and enemy.statuses.count() >= GRAND_TOUR_STATUSES:
+		bonus += GRAND_TOUR_DAMAGE  # Grand Tour (reworked, card_review_2026-10-12.md 10): 3+ different statuses, every Warden's hits
 	bonus += _thin_family_hit_bonus(tower, enemy)  # Deep Grip, Murmur
 	var multiplier := 1.0 + bonus
 	if has_rule(&"first_light") and tower != null:
@@ -4033,9 +4040,12 @@ func golden_harvest_dew() -> int:
 func seed_grown(card: UpgradeData) -> bool:
 	return card.grows_with.any(func(id: String) -> bool: return count_wardens(id) > 0)
 
-# Patient Roots: seconds added to Held from any source (Tower / Enemy code add it).
-func get_held_bonus() -> float:
-	return PATIENT_ROOTS_HELD if has_rule(&"patient_roots") else 0.0
+# Patient Roots: seconds added to Rooted (Held) from any source (Tower / Enemy code add it); bosses get less.
+func get_held_bonus(enemy: Node = null) -> float:
+	if not has_rule(&"patient_roots"):
+		return 0.0
+	var boss: bool = is_instance_valid(enemy) and enemy.get("enemy_data") != null and enemy.enemy_data.is_boss
+	return PATIENT_ROOTS_HELD_BOSS if boss else PATIENT_ROOTS_HELD
 
 # Bramble Oath: path tiles the walls add (the route with walls vs without them), cached per route.
 var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
@@ -4389,7 +4399,7 @@ const LONG_LIGHT_LINGER := 3.0  # Seconds Rootlight's lit tiles stay lit
 const ROOT_WEB_SHARE := 0.5  # Touching nightmares Held for half as long (halved again on bosses)
 const ROOT_WEB_BOSS_SHARE := 0.25
 const ROOT_WEB_COOLDOWN := 1.0  # Never twice a second on one nightmare; never chains
-const LULLABY_LINGER: Array[float] = [1.0, 2.0]  # II
+const LULLABY_LINGER: Array[float] = [3.0, 4.0]  # II (legacy saves)
 const CHORUS_CELLS := 3.0
 const CHORUS_SYNC_WINDOW := 0.3  # Others whose attack is ready within this fire together
 const CHORUS_BONUS := 0.30
@@ -4570,8 +4580,8 @@ const SCARRED_BARK_PER := 0.02  # Future pots, per actual leaf lost; II awaits a
 const SCARRED_BARK_MAX := 0.20
 const DESPERATE_BLOOM_SPEED := 0.50  # Below half the max leaves
 const ODD_ONE_OUT_BONUS: Array[float] = [0.45, 0.65]  # The only one of its kind on the map (II)
-const GRAND_TOUR_PER := 0.10  # Per different status your Wardens apply
-const GRAND_TOUR_MAX := 0.70
+const GRAND_TOUR_STATUSES := 3  # Different statuses a nightmare must carry…
+const GRAND_TOUR_DAMAGE := 0.30  # …to take this much more hit damage from every Warden
 const CRUSH_BONUS: Array[float] = [0.30, 0.45]  # Area attacks vs a nightmare touching CRUSH_CROWD+ others (II)
 const CRUSH_CROWD := 2
 const CROWD_BREAKER_PER := 0.05  # An area attack, per nightmare it hits

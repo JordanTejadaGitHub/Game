@@ -49,9 +49,9 @@ func _run() -> void:
 	_native(a, e, EnemyStatuses.SPORED, 10.1)
 	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 2, "same native source grants no bonus")
 	_native(b, e, EnemyStatuses.SPORED, 10.2)
-	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 5, "two native sources add two Spored")
+	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 9, "two native sources add six Spored (card_review_2026-10-12.md 10; was two)")
 	_native(a, e, EnemyStatuses.SPORED, 10.3)
-	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 6, "shared cooldown prevents immediate repeat")
+	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 10, "shared cooldown prevents immediate repeat")
 	e.statuses.remove(EnemyStatuses.SPORED)
 	_native(b, e, EnemyStatuses.SPORED, 14.0)
 	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 1, "removal clears cooperation history")
@@ -79,8 +79,8 @@ func _run() -> void:
 	e.statuses.immune.erase(EnemyStatuses.STATIC)
 	_native(a, e, EnemyStatuses.STATIC, 24.0)
 	_native(b, e, EnemyStatuses.STATIC, 24.1)
-	_check(e.statuses.stacks(EnemyStatuses.STATIC) == 4, "Crossed Sparks adds two ordinary charges")
-	e.apply_status(EnemyStatuses.STATIC, 13, 5.0, 1.0, 0, "", a)
+	_check(e.statuses.stacks(EnemyStatuses.STATIC) == 8, "Crossed Sparks adds six ordinary charges")
+	e.apply_status(EnemyStatuses.STATIC, 9, 5.0, 1.0, 0, "", a)  # 8 + 9 + 2 natives = 19; the six bonus charges fill it
 	_native(b, e, EnemyStatuses.STATIC, 26.0)
 	_native(a, e, EnemyStatuses.STATIC, 26.2)
 	_check(not e.statuses.has(EnemyStatuses.STATIC), "bonus charges trigger the ordinary full-charge bolt")
@@ -126,7 +126,7 @@ func _run() -> void:
 	_native(a, e, EnemyStatuses.SPORED, 70.0, 0.25)
 	e.statuses.tick(0.5)
 	_native(b, e, EnemyStatuses.SPORED, 70.5)
-	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 4, "Caught preserves a short native cohort for cooperation")
+	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 8, "Caught preserves a short native cohort for cooperation")
 	main.queue_free()
 	main = null
 	await process_frame

@@ -84,8 +84,8 @@ const FEVER_REACH: Array[float] = [1.0, 1.5]  # Fever Pitch
 const STARFALL_REACH: Array[float] = [3.0, 5.0]  # Falling Stars
 const STARFALL_BOLT := 2.0  # Each pulled bolt ×2, and a crit
 const STARFALL_BOSS_BOLT := 1.5
-const PRISM_STATIC: Array[int] = [2, 3]  # Prism Heart
-const PRISM_REACH: Array[float] = [1.0, 1.5]
+const PRISM_STATIC: Array[int] = [2, 8]  # Prism Heart (card_review_2026-10-12.md 10: 8 stacks, twice as far)
+const PRISM_REACH: Array[float] = [1.0, 2.0]
 const NIGHTBLOOM_TIME: Array[float] = [4.0, 7.0]  # Endless Night
 const NIGHTBLOOM_WIDTH: Array[float] = [1.0, 1.5]
 const FAIRY_RING_TIME := 6.0
@@ -402,7 +402,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 # After a Shatter hit that dealt `dealt`: ice shards deal half of it to nightmares within 1 cell.
 static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var chain: int = enemy.statuses.chain_count if enemy.statuses.chain_time > 0.0 else 1
-	# Prismstorm: the shards carry lightning (2 Static each; Prism Heart: 3, and 0.5 cells further).
+	# Prismstorm: the shards carry lightning (2 Static each; Prism Heart: 8, and twice as far).
 	var prism: bool = enemy.statuses.prism_pending
 	enemy.statuses.prism_pending = false
 	var dreams := _dreams(enemy)

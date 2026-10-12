@@ -57,11 +57,17 @@ func _run() -> void:
 	dreams.stacks = {"kins_keepsake": 1}
 	var partner := _plant()
 	var before := dreams.run_state.dew
+	# Kin's Keepsake (card_review_2026-10-12.md 10): Dew at each rest per Kinship on the map, not per Harmony
 	rules.harmony(dreams, tower, partner, donor, 1)
-	rules.harmony(dreams, partner, tower, donor, 1)
-	_check(dreams.run_state.dew == before + 1, "same stable unordered kin pair pays once per drift")
 	rules.harmony(dreams, partner, tower, donor, 2)
-	_check(dreams.run_state.dew == before + 2, "new drift resets kin ledger")
+	_check(dreams.run_state.dew == before, "Kin's Keepsake no longer pays per Harmony")
+	dreams.sim_kinships = 0
+	var keepsake_base := dreams.get_rest_bonus_add()
+	dreams.sim_kinships = 2
+	_check(dreams.get_rest_bonus_add() - keepsake_base == 2 * DreamState.KINS_KEEPSAKE_DEW, "Kin's Keepsake: +10 Dew a rest per Kinship")
+	dreams.sim_kinships = 7
+	_check(dreams.get_rest_bonus_add() - keepsake_base == DreamState.KINS_KEEPSAKE_MAX, "…up to 40")
+	dreams.sim_kinships = -1
 	dreams.stacks = {"wake_ripple": 1}
 	receiver.statuses = EnemyStatuses.new()
 	donor.statuses.drowned = 1
@@ -95,7 +101,7 @@ func _run() -> void:
 	for i in 7:
 		var kin := _plant()
 		rules.harmony(dreams, tower, kin, donor, 3)
-	_check(dreams.run_state.dew == before + 6, "kin reward globally caps at six per drift")
+	_check(dreams.run_state.dew == before, "no Dew from Harmonies, however many pairs")
 	dreams.stacks = {"corner_sign": 1}
 	donor.statuses = EnemyStatuses.new()
 	donor.apply_status(EnemyStatuses.MARKED, 10)

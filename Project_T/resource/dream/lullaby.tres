@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lullaby"
 display_name = "Slow Waking"
-description = "A {caught} nightmare stays {caught} 1 s after leaving a Dreamcatcher's range."
+description = "A {caught} nightmare stays {caught} 3 s after leaving a Dreamcatcher's range."
 rarity = 1
 kind = 3
 tags = Array[String](["song"])

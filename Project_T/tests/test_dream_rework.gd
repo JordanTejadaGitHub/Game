@@ -13,7 +13,7 @@ func _run() -> void:
 	dreams.stacks = {"cheap_seeds": 1}
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_check(dreams.get_build_cost(sprout) == sprout.cost, "isolation discount needs a planting position")
-	_check(dreams.get_build_cost_at(sprout, Vector2(80, 80)) == sprout.cost - 4, "isolated planting saves four Dew")
+	_check(dreams.get_build_cost_at(sprout, Vector2(80, 80)) == maxi(ceili(sprout.cost * DreamState.CHEAP_SEEDS_SHARE), 1), "isolated planting costs half")
 	var neighbor := _plant("sprout", Vector2(81, 81))
 	_check(dreams.get_build_cost_at(sprout, Vector2(80, 80)) == sprout.cost, "diagonal Sprout removes discount")
 	neighbor.free()
