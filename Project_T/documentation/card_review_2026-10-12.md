@@ -124,3 +124,27 @@ Code words to remove everywhere: "primary attack target", "Aiming Wardens", "Lig
 4. `restless_dreams` (Waking Dreams) and `second_wind` steer the next Dream: keep as the two exceptions, or change?
 5. The three empty Grove nodes: remove, or give them new cards?
 6. Newer branches with no cards: write a card for each, or leave?
+
+## 10. Proposal for the 17 tiny cards (drafted 2026-10-12; numbers are starting points for Balancing)
+Rule: merge where cards share a theme, enlarge the ones with a clear identity, retire what has no idea of its own.
+Result: 17 cards become 10 (7 retired or merged away).
+
+| Card | Now | Proposal |
+|---|---|---|
+| `early_bird` (Common) | calling a drift early gives +5 Dew | **Retire.** `call_of_the_wild` already doubles early-call Dew; seven cards share this trigger. |
+| `emergency_reserves` (Common) | 8 Dew the first time leaves are lost in a block | **Retire.** It pays for leaking and is too small to matter. |
+| `moonflip` (Uncommon) | coin flip each rest: +25% or −15% damage | **Retire.** No decision, averages +5%. |
+| `weed_puller` (Common) | clearing a Mossy Boulder refunds 6 Dew | **Merge into Groundskeeper**, retire. |
+| `groundskeeper` (Common) | +3 Dew at a rest per obstacle cleared that block | **Enlarge:** "Clearing an obstacle gives back half its cost." (6–9 Dew each, at once, every kind.) |
+| `wide_swing` (Common) | every 3rd area attack is 0.75 cells wider | **Merge into Wide Petals**, retire. Wide Petals becomes "Splashes, pulses and clouds reach 0.75 cells wider." |
+| `kins_keepsake` (Uncommon) | 1 Dew per Kinship each drift, at most 6 | **Enlarge and simplify:** "At each rest, +10 Dew for every Kinship on the map (up to 40)." |
+| `cheap_seeds` / Scattered Seedlings (Common) | Sprouts not touching another Sprout cost 4 less | **Enlarge:** "A Sprout planted away from other Sprouts costs half." The spread-out answer to Undergrowth's cluster. |
+| `undergrowth` (Common) | Sprouts touching 2+ Sprouts reach 0.5 cells further | **Enlarge:** "Sprouts touching 2 or more other Sprouts get +1 range." (2.5 → 3.5.) |
+| `growth_rings` (Common) | each Nurture rank also gives +0.1 range | **Enlarge:** "Each Nurture rank gives +0.25 range instead of +0.1." (Rank V: +1.25 cells, was +0.5.) |
+| `patient_roots` (Uncommon) | Rooted lasts 0.5 s longer | **Enlarge:** "Rooted lasts 1 s longer (bosses 0.25 s)." Doubles a normal Root; bosses stay bounded. |
+| `lullaby` / Slow Waking (Uncommon) | Caught lasts 1 s after leaving a Dreamcatcher | **Enlarge:** 3 s. |
+| `thorn_snare` / Briar Trap (Uncommon) | each Thornwall Roots the first nightmare beside it for 0.5 s, once a drift | **Enlarge:** 1.5 s. Keep it and Hushed Hedge mutually exclusive (same trigger). |
+| `corner_sign` (Uncommon) | +1 status stack after a bend, once per bend | **Enlarge:** "After a nightmare passes a bend, each Warden's first status hit on it applies double stacks." Scales with the new high caps. |
+| `crossed_sparks` (Rare) | two Wardens add Charged within 2 s: +2 stacks | **Enlarge:** +6 (Charged now needs 20). `shared_mycelium` likewise: +6 Poisoned (cap 32). |
+| `prism_heart` (Rare, Woven) | Prismstorm shards fly 0.5 cells further, +3 Charged | **Enlarge:** "Prismstorm shards fly twice as far and add 8 Charged stacks." A Woven card is hard to reach; it should be worth it. |
+| `grand_tour` (Rare) | a new status adds up to 1 s to the others, once | **Rework:** "A nightmare carrying 3 or more different statuses takes 30% more damage from every Warden." The reward for a real multi-status build; different from Seeping (status damage only) and Lasting Dreams (duration). |
