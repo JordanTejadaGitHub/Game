@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_midsummer"
 display_name = "Midsummer"
-description = "Sunpetals can now grow into Midsummers ({dew:{grow_cost:midsummer}}): a brighter beam that ramps higher and carries on to the nightmare right behind its target. Switching targets keeps half its ramp."
+description = "Sunpetals can now grow into Midsummers ({dew:{grow_cost:midsummer}}): a brighter beam that grows stronger the longer it holds a target, and carries on to the nightmare right behind it. Switching targets keeps half of that strength."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

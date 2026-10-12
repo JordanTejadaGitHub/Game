@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "double_or_nothing"
 display_name = "Double or Nothing"
-description = "Every Omen you face pays double if you lose no leaf in its drifts, and nothing if you lose any."
+description = "Every Omen you face pays double if you lose no leaf in its {drifts}, and nothing if you lose any."
 rarity = 2
 kind = 3
 tags = Array[String](["strange"])

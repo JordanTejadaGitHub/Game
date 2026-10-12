@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "scented_hedge"
 display_name = "Scented Hedge"
-description = "Every Thornwall touching a Honeysuckle gives off its scent at half strength."
+description = "A Thornwall touching a Honeysuckle also makes nightmares beside it {drowsy}, at half strength."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "wall"])

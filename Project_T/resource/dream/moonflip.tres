@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "moonflip"
 display_name = "Moonflip"
-description = "At every rest a coin flips: for the next block all Wardens deal 25% more damage, or 15% less."
+description = "At every {rest} a coin flips: for the next {block} all Wardens deal 25% more damage, or 15% less."
 rarity = 1
 kind = 3
 tags = Array[String](["strange"])

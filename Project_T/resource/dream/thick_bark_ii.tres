@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thick_bark_ii"
 display_name = "Hardened Bark II"
-description = "The first 2 leaks each {block} cost no leaves, and a {perfect_block} regrows 1 leaf."
+description = "The first 2 nightmares to reach the Heartwood each {block} cost no leaves, and a {perfect_block} regrows 1 leaf."
 rarity = 0
 kind = 3
 tags = Array[String](["leaves"])

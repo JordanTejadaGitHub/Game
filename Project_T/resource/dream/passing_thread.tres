@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "passing_thread"
 display_name = "Passing Thread"
-description = "Switching primary attack targets copies 1 stack of the old target's fullest stackable status to the new target, with its remaining duration. Once per Warden every 2 s."
+description = "When a Warden changes target, it carries 1 stack of the old target's biggest status to the new one (every 2 s per Warden)."
 rarity = 1
 kind = 3
 tags = Array[String]([])

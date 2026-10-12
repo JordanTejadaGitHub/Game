@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "Attackers in an orthogonally connected cluster of at least 6 attackers gain +1 range while their cluster has attacked at least 6 distinct living targets in the past 3 s. Planting alone grants nothing."
+description = "A group of 6 or more touching attackers gets +1 range while it is fighting 6 or more nightmares."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])

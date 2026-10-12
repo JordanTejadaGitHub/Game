@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rhythm"
 display_name = "Fifth Beat"
-description = "Every 5th hit in a row on the same nightmare strikes again a moment later. Aiming Wardens only."
+description = "Every 5th hit in a row on the same nightmare strikes again a moment later. Only for Wardens that aim at one nightmare."
 rarity = 0
 kind = 3
 tags = Array[String](["swift"])

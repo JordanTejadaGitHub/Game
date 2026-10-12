@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_quiet_ones"
 display_name = "The Quiet Ones"
-description = "Quiet Wardens' damage and attack-speed auras are 50% stronger; their damage is 50% higher and their Drowsy wall scent is 50% faster. Needs 3 Wardens with an affected output. Catcher income and Dreamcatcher effects are unchanged."
+description = "Wardens that don't attack are 50% stronger: their auras, their damage, and the speed of their {drowsy} scent. Catcher income and Dreamcatchers are unchanged."
 rarity = 3
 kind = 3
 tags = Array[String](["tending"])

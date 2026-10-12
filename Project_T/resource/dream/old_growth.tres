@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_growth"
 display_name = "Steadfast"
-description = "Wardens that have stood 5 {drifts} briefly pin the first hit on each new primary target for 0.4 s. Each nightmare can be Pinned once every 4 s across all Wardens; bosses are immune. Growing keeps the age; selling resets it."
+description = "A Warden that has stood 5 {drifts} stops each new target for 0.4 s with its first hit (once per nightmare every 4 s; not bosses). Selling resets it."
 rarity = 2
 kind = 3
 tags = Array[String](["tall"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crossfire"
 display_name = "Crossfire"
-description = "When two Wardens hit the same nightmare within 1 s, a bolt strikes the walking nightmare behind it (within 2 cells) for 40% of the weaker hit. Once per nightmare every 3 s. Aiming Wardens only."
+description = "When two Wardens hit a nightmare within 1 s, the next nightmare behind it (within 2 cells) takes 40% of the weaker hit. Once per nightmare every 3 s."
 rarity = 1
 kind = 3
 tags = Array[String](["swift"])
