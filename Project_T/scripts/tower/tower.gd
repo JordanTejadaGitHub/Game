@@ -2435,13 +2435,14 @@ const PULSE_STYLES := {"root": "root", "wall": "root", "song": "song", "acorn": 
 	"stone": "stone", "spore": "spore"}
 const PULSE_ART_RADIUS := 120.0
 const PULSE_SPARKS_MAX := 3  # Sparks per pulse (the ring shows the area; perf: 50 pulsing Wardens made 500 sparks a second at 10)
+var _pulse_swing_px := 0.0  # This pulse's extra reach in px (Wide Petals, Wide Swing, Tailwind): the ripple shows it
 
 func _area_pulse_fx(in_range: Array) -> void:
 	var style: String = PULSE_STYLES.get(tower_data.line, "")
 	var world := Reactions._world(self)
 	if style == "" or world == null or attack_data.rain:
 		return
-	var reach := get_range_pixels()
+	var reach := get_range_pixels() + _pulse_swing_px
 	if Fx.reduced() and not Fx.on_screen(global_position, reach):
 		return  # Nobody sees it
 	# The user: "the circles don't look right" (the scaled sheet drew stepped, uneven arcs): a drawn ground ripple,
@@ -2561,6 +2562,7 @@ func _release_attack() -> void:
 				swing += HelperCommons.pulse_extra(self)  # Wide Petals: pulses wider too
 			if _dream_state and _dream_state.calling == "whirligig":
 				swing += CALLINGS.tailwind_wider(self)  # Tailwind: a pulse inside another wind Warden's reach spreads wider
+			_pulse_swing_px = maxf(swing, 0.0) * MAP_GRID.cell_size.x
 			if swing > 0.0:
 				in_range = _enemies_within_px(get_range_pixels() + swing * MAP_GRID.cell_size.x)  # Wide Swing: this pulse wider
 			if _dream_state:
