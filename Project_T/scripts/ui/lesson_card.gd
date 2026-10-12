@@ -140,7 +140,8 @@ func _hook() -> void:
 					if option[1] and run.can_afford(tower.get_grow_cost(option[0]).total):
 						discovery(&"grow"))
 	if dream_state != null:
-		dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void: discovery(&"dream"))
+		# (The Dream Lesson opens over the first offer now: a choice Lesson, _check_choice_lessons. It used to queue here
+		# and only showed after the pick, which taught nothing.)
 		dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
 			if amount > 0:
 				lesson(&"dreamlight", &"dreamlight", "Dreamlight",
@@ -256,8 +257,73 @@ func _process(_delta: float) -> void:
 		_resume_pending = false
 		if game_speed != null:
 			game_speed.set_paused(false)
+	if visible and _over_choice != null and (not is_instance_valid(_over_choice) or not _over_choice.visible):
+		close()  # Its choice screen went away
+	_check_choice_lessons()
 	if not visible and not queue.is_empty() and can_show():
 		_show(queue.pop_front())
+
+# --- Choice Lessons (onboarding.md "Choice Lessons: shown on top of the choice they explain", user 2026-10-12) ------
+# The one exception to "never over a choice screen": a Lesson that explains a choice opens OVER that screen the first
+# time it appears with an offer, before the player can pick. The cards stay visible behind the shade and take no input
+# until "Got it" (this card is raised above the screen and stops the mouse; keys stop here too). It closes back onto
+# the screen and never unpauses: the choice screen holds the pause. Once per profile, off with Hints.
+const CHOICE_SCREENS := {&"choice_family": "FamilyPickScreen", &"discover_dream": "DreamScreen", &"choice_omen": "OmenScreen"}
+var _over_choice: Control = null  # The choice screen the shown Lesson explains
+var _index_before := -1  # This card's place among the HUD's children, restored when it closes
+
+# True while a choice Lesson covers `screen` (the screens refuse picks meanwhile).
+static func covering(screen: Node) -> bool:
+	if screen == null or not screen.is_inside_tree():
+		return false
+	var card := screen.get_tree().get_first_node_in_group(GROUP) as LessonCard
+	return card != null and card.visible and card._over_choice == screen
+
+func _check_choice_lessons() -> void:
+	if not enabled or visible or main == null or get_parent() == null:
+		return
+	for id in CHOICE_SCREENS:
+		if seen.has(String(id)):
+			continue
+		var screen := get_parent().get_node_or_null(CHOICE_SCREENS[id]) as Control
+		if screen == null or not screen.visible or not _choice_offered(id, screen):
+			continue
+		_over_choice = screen
+		_index_before = get_index()
+		get_parent().move_child(self, get_parent().get_child_count() - 1)  # Above its screen, for drawing and for input
+		_show(_choice_entry(id))
+		return
+
+# The screen is really offering its choice (not just made visible): the first family pick, a Dream offer, an Omen offer.
+func _choice_offered(id: StringName, screen: Control) -> bool:
+	match id:
+		&"choice_family":
+			var offer = screen.get("offer")
+			return screen.get("_reason") == &"first" and offer is Array and not offer.is_empty()
+		&"discover_dream":
+			return dream_state != null and dream_state.is_offering()
+		&"choice_omen":
+			var omens := main.get_node_or_null("%OmenDirector")
+			return omens != null and not omens.current_offer.is_empty()
+	return false
+
+func _choice_entry(id: StringName) -> Array:
+	match id:
+		&"choice_family":
+			return [id, &"rank", "Wake a family", "Choose one of these Warden families. Your Sprouts can grow into it, and you can plant it directly.\n\n"
+				+ "Your first family is also your Calling: its special rule lasts the whole run. It's shown on each card.\n\n"
+				+ "Each card lists the forms that family can grow into this run.\n\n"
+				+ InputMode.text("\"Peek at the map\" shows the board first.", "Tap \"Peek at the map\" to look at the board first.")]
+		&"discover_dream":
+			var pass_dew: int = dream_state.skip_dew if dream_state != null else 0
+			return [id, &"dreamlight", "A Dream", "Pick one card, or let it pass for %s. Dreams last the whole run.\n\nA card that needs a Warden you don't have says so." % (
+				dew_text(pass_dew) if pass_dew > 0 else "nothing")]
+	return [id, &"nightmare", "An Omen", "An Omen makes the next block harder and pays you at the rest after it. Clear Skies skips it."]
+
+# Keys stop at a choice Lesson (Enter / Esc close it, below): none reaches the choice screen under it.
+func _input(event: InputEvent) -> void:
+	if visible and _over_choice != null and event is InputEventKey and not event.is_action("ui_cancel") and not event.is_action("ui_accept"):
+		get_viewport().set_input_as_handled()
 
 func _show(entry: Array) -> void:
 	if _resume_pending:
@@ -279,7 +345,7 @@ func _show(entry: Array) -> void:
 		seen.append(String(shown_id))
 		_remember()
 	if game_speed != null and not game_speed.paused:
-		_paused_it = true
+		_paused_it = _over_choice == null  # A choice Lesson never owns the pause: its screen does, and keeps it
 		game_speed.set_paused(true)
 	lesson_shown.emit(shown_id)
 
@@ -292,6 +358,11 @@ func close() -> void:
 	visible = false
 	_replaying = false
 	shown_id = &""
+	if _over_choice != null:  # A choice Lesson: back to its own place under the screens (their pause stays theirs)
+		_over_choice = null
+		if get_parent() != null and _index_before >= 0:
+			get_parent().move_child(self, mini(_index_before, get_parent().get_child_count() - 1))
+		_index_before = -1
 	if _paused_it and game_speed != null:
 		if RestScreens.any_open(self, drift_director):
 			_resume_pending = true

@@ -279,7 +279,7 @@ func _blessing_for(data: TowerData) -> UpgradeData:
 	return null
 
 func choose(data: Resource) -> void:
-	if not offer.has(data):
+	if not offer.has(data) or LessonCard.covering(self):  # No pick while "Wake a family" explains the screen
 		return
 	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
 	family_chosen.emit(offer.duplicate(), data)

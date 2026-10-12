@@ -507,7 +507,7 @@ func _dreams_row_point() -> Vector2:
 	return rect.position + Vector2(minf(rect.size.x, 24.0), 24.0)
 
 func _pick(card: UpgradeData, column: Control) -> void:
-	if _picking:
+	if _picking or LessonCard.covering(self):  # No pick while the "A Dream" Lesson explains the screen
 		return
 	if column == null or not is_instance_valid(column) or not is_inside_tree():
 		dream_state.choose(card)

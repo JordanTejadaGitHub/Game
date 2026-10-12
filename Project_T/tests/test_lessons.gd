@@ -165,6 +165,77 @@ func _run() -> void:
 	dreams.add_dreamlight(1, &"test")
 	_check(await _take(lessons) == &"dreamlight", "the first Dreamlight")
 
+	# Choice Lessons (onboarding.md "Choice Lessons", user 2026-10-12): each opens over its own choice screen the first
+	# time it offers, blocks picking until closed, shows once, and leaves the game paused for the choice.
+	lessons.queue.clear()
+	lessons.close()
+	for id in LessonCard.CHOICE_SCREENS:
+		lessons.seen.erase(String(id))
+	var hud := main.get_node("HUD")
+	# The first family pick.
+	var family := hud.get_node("FamilyPickScreen")
+	dreams.unlock_everything = false
+	speed.set_paused(false)
+	family.show_pick(&"first")
+	await _frames(3)
+	_check(family.visible and lessons.visible and lessons.shown_id == &"choice_family" and lessons._title.text == "Wake a family"
+		and lessons._body.text.contains("Calling") and speed.paused and LessonCard.covering(family) and lessons.get_index() > family.get_index(),
+		"Wake a family opens over the first family pick, above it, the game paused (%s)" % lessons.shown_id)
+	var calling_before: String = dreams.calling
+	if not family.offer.is_empty():
+		family.choose(family.offer[0])
+	_check(family.visible and dreams.calling == calling_before, "…and no family can be picked under it")
+	lessons.close()
+	await _frames(2)
+	_check(not lessons.visible and family.visible and speed.paused and not LessonCard.covering(family) and lessons.get_index() < family.get_index(),
+		"Got it closes back onto the pick, still paused, the card back under the screens")
+	family.visible = false
+	family.show_pick(&"first")
+	await _frames(3)
+	_check(family.visible and not lessons.visible, "…and it shows once")
+	family.visible = false
+	# The first Dream offer (it used to show after the pick).
+	var offer_cards := dreams.make_offer(5)
+	dreams.current_offer = offer_cards
+	dreams.offer_ready.emit(offer_cards, 5)
+	await _frames(3)
+	_check(dream_screen.visible and lessons.visible and lessons.shown_id == &"discover_dream" and lessons._title.text == "A Dream"
+		and speed.paused and LessonCard.covering(dream_screen), "A Dream opens over the first Dream offer (%s)" % lessons.shown_id)
+	var taken_before: int = dreams.stacks.size()
+	if not offer_cards.is_empty():
+		dream_screen._pick(offer_cards[0], null)
+	_check(dreams.is_offering() and dreams.stacks.size() == taken_before, "…and no card can be taken under it")
+	lessons.close()
+	await _frames(2)
+	_check(not lessons.visible and dream_screen.visible and speed.paused, "Got it closes back onto the offer, still paused")
+	dreams.current_offer = [] as Array[UpgradeData]
+	dream_screen.visible = false
+	# The first Omen offer.
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var omen_screen := hud.get_node("OmenScreen") as Control
+	var omen_offer := omens.make_offer(2)
+	omens.current_offer = omen_offer
+	omens.offer_ready.emit(omen_offer, 2)
+	await _frames(3)
+	_check(omen_screen.visible and lessons.visible and lessons.shown_id == &"choice_omen" and speed.paused and LessonCard.covering(omen_screen)
+		and lessons.get_index() > omen_screen.get_index() and lessons.mouse_filter == Control.MOUSE_FILTER_STOP,
+		"An Omen opens over the first Omen offer and takes the mouse (%s)" % lessons.shown_id)
+	lessons.close()
+	await _frames(2)
+	_check(not lessons.visible and omen_screen.visible and speed.paused, "Got it closes back onto the Omens, still paused")
+	omens.current_offer = [] as Array[OmenData]
+	omen_screen.visible = false
+	# Hints off: none of them.
+	for id in LessonCard.CHOICE_SCREENS:
+		lessons.seen.erase(String(id))
+	lessons.set_enabled(false)
+	family.show_pick(&"first")
+	await _frames(3)
+	_check(family.visible and not lessons.visible, "Hints off: no choice Lesson")
+	family.visible = false
+	lessons.enabled = true
+	speed.set_paused(false)
+
 	_check(not HeartwoodMemory.load_data().has(LessonCard.SEEN_KEY), "tests never write the profile")
 
 	main.queue_free()
