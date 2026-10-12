@@ -224,6 +224,17 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			detail_lines.append(strength)  # The panel's Details
 		elif strength != "":
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
+		# Wardens that Root by an ability, not by their attack's status (Tower Code): Tangleroot / Snugroot's timed
+		# hold (hold_time), Rootling's every-Nth-pulse hold (pulse_hold_time). Both go through Tower.hold, so the same
+		# Potency stretch, Patient Roots seconds and cap apply. attack_data, so a Graftling's copy is right.
+		var hold_seconds: float = attack.hold_time if attack.hold_targets > 0 else (attack.pulse_hold_time if attack.pulse_hold_every > 0 else 0.0)
+		if hold_seconds > 0.0 and attack.applies_status != EnemyStatuses.HELD:
+			var rooted := status_strength_text(EnemyStatuses.HELD, potency, hold_seconds,
+				_tower.held_card_seconds() if _tower.has_method("held_card_seconds") else 0.0)
+			if rooted != "" and compact:
+				detail_lines.append(rooted)
+			elif rooted != "":
+				second.append([rooted, EnemyStatuses.HELD, true])
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
 		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength (coverage is in the row)
