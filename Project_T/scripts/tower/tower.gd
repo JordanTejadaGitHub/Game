@@ -3329,14 +3329,19 @@ func _update_ability(delta: float) -> void:
 				pull(enemy, 0.5 * drag)  # Snare: the hold drags it back
 				_kin_fired(&"snare")
 
-# Holds `enemy` for `seconds` (+ Patient Roots: +0.25 s, the Rootling line another +0.25 s), credited to
-# this Warden (SupportLog "held_seconds").
-func hold(enemy: Node2D, seconds: float) -> void:
-	if not is_instance_valid(enemy) or enemy.is_cleansed:
-		return
+# The seconds Dream cards add to this Warden's Roots (Patient Roots: +1 s, bosses 0.25 s; the Rootling line another
+# +0.25 s), before the Potency stretch and its cap. Also for the Warden header's "Rooted N s" (no enemy = not a boss).
+func held_card_seconds(enemy: Node2D = null) -> float:
 	var bonus: float = _dream_state.get_held_bonus(enemy) if _dream_state else 0.0  # Patient Roots (bosses: bounded)
 	if bonus > 0.0 and tower_data.line == "root":
 		bonus += PATIENT_ROOTS_ROOT_HOLD * _rule_power(&"patient_roots")
+	return bonus
+
+# Holds `enemy` for `seconds` (+ held_card_seconds), credited to this Warden (SupportLog "held_seconds").
+func hold(enemy: Node2D, seconds: float) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	var bonus := held_card_seconds(enemy)
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		SupportLog.credit(self, &"held_seconds", seconds + bonus)
