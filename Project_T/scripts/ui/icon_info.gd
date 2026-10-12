@@ -10,13 +10,16 @@ class_name IconInfo
 # Display names (story.md "Status display names", screens_ui.md): the code ids never change, only
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
+# The six buildup statuses name {reactions} (a glossary link, user 2026-10-12: "the wet tutorial card should have the
+# underline explaining reactions") and read their stack numbers live ({stacks:need_damp} …: stack_number, below), so
+# Brimming's doubling shows.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build 8 stacks to unlock reactions."],
-	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup (20 stacks, 12 on bosses) enables sleep and Catch effects."],
-	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately."],
-	&"marked": ["Exposed", "At 10 stacks, takes 25% more from every Warden. Brimming requires 20 stacks. Partial stacks give no damage bonus."],
-	&"static": ["Charged", "At 20 stacks (30 on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup."],
-	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build 4 stacks for reactions."],
+	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build {stacks:need_damp} stacks to unlock {reactions}."],
+	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup ({stacks:cap_drowsy} stacks, {stacks:bosscap_drowsy} on bosses) enables sleep, Catch effects and {reactions}."],
+	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately. Build {stacks:need_spored} stacks for {reactions}."],
+	&"marked": ["Exposed", "At {stacks:need_marked} stacks, takes 25% more from every Warden and unlocks {reactions}. Partial stacks give no damage bonus."],
+	&"static": ["Charged", "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup. Build {stacks:need_static} stacks for {reactions}."],
+	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build {stacks:need_held} stacks for {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
@@ -33,7 +36,7 @@ const STATS := {
 	&"range": ["Range", "How far it reaches, in tiles."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
+	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
 	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest): each rank adds damage, speed and range."],
 	&"focus": ["Focus", "Each rank you pick one: Power, Swift, Reach or Deep."],
 	&"focus_power": ["Power focus", "Deals 18% more damage."],
@@ -238,6 +241,7 @@ const TERMS := {
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
+	&"reaction": ["Reaction", "Reactions", "Reaction"],  # {reaction} / {reactions}: always a capital, always a link (user 2026-10-12); also a plain word
 	# Branch effects of the 12 new branches (Tower Code's BranchKit; glossary "Branch effects"): {current}, {erosion}, …
 	&"current": ["Current", "Currents", "Current"],
 	&"erosion": ["Erosion", "Erosion", "Erosion"],
@@ -277,6 +281,22 @@ static func the_name(name: String, start := false) -> String:
 
 # Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
+# A status text's stack number, live (user 2026-10-12: never typed in): "need_<status>" = the stacks its Reactions
+# need (Reactions' thresholds: the lowest one for that status), "cap_<status>" = its full buildup, "bosscap_<status>"
+# = the same on a boss. All include Brimming's doubling (EnemyStatuses.cap_multiplier).
+static func stack_number(key: String) -> int:
+	var kind := key.get_slice("_", 0)
+	var status := StringName(key.substr(kind.length() + 1))
+	if kind == "need":
+		var needs := {&"damp": Reactions.SOAKED_NEEDED, &"held": Reactions.ROOTED_NEEDED, &"marked": Reactions.EXPOSED_NEEDED,
+			&"spored": Reactions.IGNITE_MIN_SPORES, &"static": Reactions.IGNITE_MIN_STATIC}
+		return Reactions.buildup_threshold(int(needs.get(status, 0)))
+	if kind == "cap" or kind == "bosscap":
+		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
+		probe.is_boss = kind == "bosscap"
+		return probe.get_max_stacks(status)
+	return 0
+
 static func format(text: String) -> String:
 	if not text.contains("{"):
 		return keep_units(text)
@@ -284,6 +304,12 @@ static func format(text: String) -> String:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
 	for token in term_tokens():
 		text = text.replace(token[0], token[2])
+	while text.contains("{stacks:"):  # Live stack numbers: "{stacks:need_damp}" -> "8" (16 with Brimming)
+		var from := text.find("{stacks:")
+		var to := text.find("}", from)
+		if to < 0:
+			break
+		text = text.substr(0, from) + str(stack_number(text.substr(from + 8, to - from - 8))) + text.substr(to + 1)
 	if text.contains("{family:"):
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))

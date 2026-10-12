@@ -76,7 +76,7 @@ static func bbcode(text: String) -> String:
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
 	return text
 
-const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell"]  # IconInfo.TERMS ids linked wherever their word appears
+const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction"]  # IconInfo.TERMS ids linked wherever their word appears
 static var _plain_regex := {}  # Term id -> RegEx for its word
 
 static func _plain_pattern(id: StringName) -> RegEx:

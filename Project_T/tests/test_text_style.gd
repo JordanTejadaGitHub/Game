@@ -228,6 +228,7 @@ const CAPS_EXCEPTIONS := [
 	"caught seed", "when caught", "caught %d", "caught this run",  # caught as in catching, not the Caught status
 	"fall asleep", "falls asleep", "not charged", "rooted for good", "hidden one", "hidden branch",  # ordinary words
 	"sunlit rest", "watchful rest",  # Dream card names
+	"crowned reaction discovered",  # Small caps (lower-cased on purpose)
 ]
 # Code lines whose strings are lookup keys, not text.
 const CAPS_SKIP_LINES := ["const ROLE_TERMS", "\"reveals hidden\": &"]
@@ -245,8 +246,9 @@ func _caps(owner: String, source: String, text: String, is_flavour := false) -> 
 			if not word.contains(" "):  # Deeply Blighted is a name the main lint checks
 				statuses.append(word)
 		statuses.append_array(STATUS_VERBS)
+		statuses.append_array(["reactions", "reaction"])  # A Reaction is a name too (user 2026-10-12); flavour is exempt like the statuses
 		_caps_rules = [
-			[RegEx.create_from_string("(?<![A-Za-z_%{])(" + "|".join(statuses) + ")(?![A-Za-z_])"), "a status in lower case (statuses are names)"],
+			[RegEx.create_from_string("(?<![A-Za-z_%{])(" + "|".join(statuses) + ")(?![A-Za-z_])"), "a status or Reaction in lower case (they are names)"],
 			[RegEx.create_from_string("(?<![A-Za-z_%{])(dew|dreamlight|seeds)(?![A-Za-z_])"), "a currency in lower case (Dew, Dreamlight, Seeds)"],
 			[RegEx.create_from_string("(?<=[a-z0-9,;] )(?:Drifts?|Rests?)(?![A-Za-z])"), "\"Drift\" / \"Rest\" capitalised mid-sentence"],
 		]

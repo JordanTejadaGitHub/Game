@@ -474,6 +474,21 @@ func _run() -> void:
 	dew_tip.toggle()
 	_check(not dew_tip.visible and dew_label.tooltip_text == dew_text and TapTip.pinned() == null, "tapping it again closes it and the hover tooltip returns")
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
+	# Reactions are a glossary term (user 2026-10-12: "the wet tutorial card should have the underline explaining
+	# reactions"): a capital and a link wherever the status texts show, with their stack numbers read live.
+	var soaked_tip := IconInfo.status_tooltip(&"damp")
+	var soaked_need := Reactions.buildup_threshold(Reactions.SOAKED_NEEDED)
+	_check(soaked_tip.contains("Build %d stacks to unlock Reactions." % soaked_need) and not soaked_tip.contains("{")
+		and IconInfo.status_tooltip(&"held").contains("Build %d stacks for Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
+		and IconInfo.stack_number("cap_drowsy") == EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.DROWSY] * EnemyStatuses.cap_multiplier()
+		and IconInfo.stack_number("bosscap_static") == EnemyStatuses.BOSS_MAX_STACKS[EnemyStatuses.STATIC] * EnemyStatuses.cap_multiplier(),
+		"status texts name Reactions and read their stack numbers live (%s)" % soaked_tip)
+	for status_id in [&"damp", &"drowsy", &"spored", &"marked", &"static", &"held"]:
+		_check(StatusLinks.bbcode(IconInfo.STATUSES[status_id][1]).contains("[url=term:reaction]"), "%s's text links Reactions" % status_id)
+	_check(StatusLinks.bbcode("Sets off Reactions sooner.").contains("[url=term:reaction]") and CodexData.definition("Reaction").begins_with("When a nightmare carries enough stacks"),
+		"the plain word Reactions is a glossary link, with its Codex entry")
+	var lesson_body := (main.get_node("HUD/LessonCard") as LessonCard)._body
+	_check(lesson_body is RichTextLabel and lesson_body.bbcode_enabled, "the Lesson card renders glossary links")
 	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
 	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,
 		"parts": [["Nurture II", "+20%"], ["Solitude", "+30%"]]}) == "Damage 18 → 27: base 18 · Nurture II +20% · Solitude +30%",

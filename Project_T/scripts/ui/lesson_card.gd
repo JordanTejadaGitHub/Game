@@ -33,7 +33,7 @@ var dream_state: DreamState
 var game_speed: GameSpeed
 var _icon := TextureRect.new()
 var _title := Label.new()
-var _body := Label.new()
+var _body: RichTextLabel = StatusLinks.make_label("", 16)  # Glossary words are links here too (user 2026-10-12: the Soaked card's "Reactions"): hover or tap for the tip
 var _ok := Button.new()
 var _skip := Button.new()
 var _demo: LessonDemo
@@ -335,7 +335,7 @@ func _show(entry: Array) -> void:
 	_title.text = entry[2]
 	_skip.visible = not _replaying and INTRO_IDS.has(shown_id)
 	_ok.text = "Next" if (_replaying and not queue.is_empty()) or (_skip.visible and shown_id != INTRO_IDS[-1]) else "Got it"
-	_body.text = entry[3]
+	_body.text = StatusLinks.bbcode(entry[3])  # Status names and glossary terms ({reactions} …) as links
 	_demo.topic = &"nurture" if shown_id == &"discover_nurture" else (&"maze" if shown_id == &"intro_maze" else (&"catch" if shown_id == &"guide_catch" else &""))
 	_demo.clock = 0.0
 	_demo.visible = _demo.topic != &""
