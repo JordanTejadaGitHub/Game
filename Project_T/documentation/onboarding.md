@@ -173,3 +173,16 @@ gone; the tables above that list them are history.
   Selling returns more here, and nothing moves until you start the next drift.").
 - **Settings:** the "Hints" toggle now only switches Lessons. "Replay guides" in the pause menu stays. The first-run
   camera glide stays.
+
+## Status Lessons point at the nightmare (user, 2026-10-12)
+User, on the Charged card: *"should come when you first see the status effect on the enemy, with the highlighting or
+something to make it noticeable."* A status Lesson fires the moment that status first lands on a nightmare that is on
+screen (not when the Warden is planted, and not if the nightmare is off screen: wait for one that is visible).
+- The game pauses. The nightmare gets a spotlight: the rest of the map dims a little, a soft ring sits round it, and
+  its new status badge pulses. A thin thread runs from the card to the badge.
+- The card opens beside the nightmare, never on top of it, and names what did it: "Your Firefly Jar's sparks are
+  building **Charged** on this nightmare."
+- Then one plain sentence for the status, with its live numbers, and the Reactions link. No internals ("scale with
+  stored buildup"). Charged: "At 20 stacks (30 on bosses) it is struck by a bolt for heavy damage. Other statuses
+  can set it off early as a Reaction."
+- "Got it" removes the spotlight and resumes. Once per status per profile. Reduced motion: no pulse, the ring stays.
