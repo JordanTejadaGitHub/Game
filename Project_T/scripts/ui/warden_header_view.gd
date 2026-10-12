@@ -217,7 +217,9 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		var potency := _tower.get_potency()
 		if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something (user), with what in its tip
 			second.append(["Potency %s" % str(snappedf(potency, 0.01)), &"potency"])  # Statuses and effect damage
-		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration)
+		# Patient Roots' seconds count in "Rooted N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
+		var held_extra: float = _tower.held_card_seconds() if attack.applies_status == EnemyStatuses.HELD and _tower.has_method("held_card_seconds") else 0.0
+		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration, held_extra)
 		if strength != "" and compact:
 			detail_lines.append(strength)  # The panel's Details
 		elif strength != "":
@@ -383,7 +385,7 @@ func _stat_row(parts: Array, icons := false) -> void:
 # with the same caps as EnemyStatuses: "Soaked: water hits +24%", "Exposed: +30% damage taken",
 # "Drowsy −9% speed a stack", "Rooted 1.2 s". "" for Poisoned / Charged (their damage is in the hit) or with
 # status Potency off.
-static func status_strength_text(status: StringName, potency: float, duration: float = 0.0) -> String:
+static func status_strength_text(status: StringName, potency: float, duration: float = 0.0, held_extra: float = 0.0) -> String:
 	if not Tower.status_potency_on:
 		return ""
 	match status:
@@ -396,7 +398,7 @@ static func status_strength_text(status: StringName, potency: float, duration: f
 		EnemyStatuses.DROWSY:
 			return "Drowsy −%d%% speed a stack" % roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * 100)
 		EnemyStatuses.HELD:
-			var base := duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.HELD])
+			var base := (duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.HELD])) + held_extra  # + Patient Roots, before the cap
 			var held := minf(base * maxf(potency, 1.0), maxf(EnemyStatuses.HELD_POTENCY_CAP, base))
 			return "Rooted %s s" % str(snappedf(held, 0.1))
 	return ""
