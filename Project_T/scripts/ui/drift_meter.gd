@@ -112,9 +112,11 @@ func _ready() -> void:
 	_hide_arrow.name = "MeterToggle"
 	_hide_arrow.focus_mode = Control.FOCUS_NONE
 	_hide_arrow.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_hide_arrow.custom_minimum_size = Vector2(48, 48)
-	_hide_arrow.theme_type_variation = &"HudButton"  # The same frame and drawn arrow as the Warden bar's (screens_ui.md "HUD notes")
+	_hide_arrow.custom_minimum_size = Vector2(HANDLE_TOUCH, HANDLE_TOUCH)
+	_hide_arrow.flat = true  # A small handle, not a HUD button (user 2026-10-12): its frame is drawn, 28 px inside a 44 px touch target
 	_hide_arrow.draw.connect(_draw_hide_arrow)
+	_hide_arrow.mouse_entered.connect(_hide_arrow.queue_redraw)  # Its frame lights on hover
+	_hide_arrow.mouse_exited.connect(_hide_arrow.queue_redraw)
 	_hide_arrow.pressed.connect(func() -> void: set_hidden(not hidden_by_player))
 	get_parent().add_child.call_deferred(_hide_arrow)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -203,25 +205,37 @@ func set_hidden(hidden: bool) -> void:
 	refresh()
 	_fit_hide_arrow()
 
-# The hide arrow's chevron, drawn (no font glyph), pointing along its "arrow" meta: the same as the Warden bar's
-# (hud.gd _draw_hide_arrow).
+# The hide arrow: a small handle (user 2026-10-12: about 60% of the 48 px HUD button, a lighter frame), HANDLE_SIZE
+# drawn in the middle of a HANDLE_TOUCH target (invisible padding, platforms.md). A thin frame and a drawn chevron
+# (no font glyph) pointing along its "arrow" meta. The Warden bar's is the same (hud.gd _draw_hide_arrow).
+const HANDLE_SIZE := 28.0
+const HANDLE_TOUCH := 44.0
 func _draw_hide_arrow() -> void:
 	var along: Vector2 = _hide_arrow.get_meta(&"arrow", Vector2.RIGHT)
 	var across := Vector2(-along.y, along.x)
 	var centre := _hide_arrow.size / 2.0
-	_hide_arrow.draw_polyline(PackedVector2Array([centre - along * 4.0 + across * 8.0, centre + along * 4.0,
-		centre - along * 4.0 - across * 8.0]), _hide_arrow.get_theme_color(&"font_color"), 2.0, true)
+	var lit := _hide_arrow.is_hovered()
+	var frame := Rect2(centre - Vector2(HANDLE_SIZE, HANDLE_SIZE) / 2.0, Vector2(HANDLE_SIZE, HANDLE_SIZE))
+	_hide_arrow.draw_rect(frame, Color(Palette.DREAD, 0.55))
+	_hide_arrow.draw_rect(frame, Color(UiStyle.GOLD, 0.6 if lit else 0.3), false, 1.0)
+	_hide_arrow.draw_polyline(PackedVector2Array([centre - along * 2.5 + across * 5.0, centre + along * 2.5,
+		centre - along * 2.5 - across * 5.0]), UiStyle.INK if lit else UiStyle.INK_DIM, 1.5, true)
 
 func _fit_hide_arrow() -> void:
 	if not is_instance_valid(_hide_arrow):
 		return
-	_hide_arrow.set_meta(&"arrow", Vector2.LEFT if hidden_by_player else Vector2.RIGHT)  # Points where the meter goes
-	_hide_arrow.tooltip_text = "Show damage meter" if hidden_by_player else "Hide damage meter"
-	_hide_arrow.queue_redraw()
-	_hide_arrow.offset_right = -16.0 if hidden_by_player else offset_left - 4.0
-	_hide_arrow.offset_left = _hide_arrow.offset_right - 48.0
-	_hide_arrow.offset_top = offset_top
-	_hide_arrow.offset_bottom = offset_top + 48.0
+	var arrow := Vector2.LEFT if hidden_by_player else Vector2.RIGHT  # Points where the meter goes
+	if _hide_arrow.get_meta(&"arrow", Vector2.ZERO) != arrow:
+		_hide_arrow.set_meta(&"arrow", arrow)
+		_hide_arrow.tooltip_text = "Show damage meter" if hidden_by_player else "Hide damage meter"
+		_hide_arrow.queue_redraw()
+	# Beside the meter's left edge, level with its header, never on top: the drawn handle ends 4 px from the card
+	# (its invisible padding may overlap). Hidden meter: at the screen's right edge.
+	var pad := (HANDLE_TOUCH - HANDLE_SIZE) / 2.0
+	_hide_arrow.offset_right = (-16.0 if hidden_by_player else offset_left - 4.0) + pad
+	_hide_arrow.offset_left = _hide_arrow.offset_right - HANDLE_TOUCH
+	_hide_arrow.offset_top = offset_top + (36.0 - HANDLE_TOUCH) / 2.0  # Centred on the 36 px header line
+	_hide_arrow.offset_bottom = _hide_arrow.offset_top + HANDLE_TOUCH
 
 func _gui_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN,
@@ -259,6 +273,7 @@ const GAP := 8.0
 const ROW_GUESS := 28.0  # A Warden row's height when none is listed to measure
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
 const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
+const OPEN_RESERVE := 408.0  # The open card's height with TOP_ROWS rows, "Last drift" and "and N more" (404 at 1280×800)
 var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
 var _user_open := false  # The player's open / closed choice (the header toggles it)
 var collapsed := false  # Header only while the nightmare info shows (tests)
@@ -277,13 +292,17 @@ func _fit() -> void:
 			_last.visible = false
 		refresh.call_deferred()
 	var screen_mid := get_viewport_rect().size.y / 2.0
-	var top := screen_mid + BASE_TOP
+	var panel := hud.get_node_or_null("DriftPanel") as Control
+	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
+	# The header keeps one place, open or closed (user 2026-10-12: "first clicking the maze DPS bugs out": closed, it
+	# sat at the centre line, and opening moved the whole card up to fit its rows, so the header left the pointer).
+	# It sits where the open card needs it: OPEN_RESERVE above the DriftPanel, never above TOP_LIMIT or below the
+	# old centre line.
+	var top := minf(maxf(bottom - OPEN_RESERVE, TOP_LIMIT), screen_mid + BASE_TOP)
 	var info := hud.get_node_or_null("NightmareInfo") as Control
 	if info != null and info.visible:
 		top = maxf(top, info.get_global_rect().end.y + GAP)
 	offset_top = top - screen_mid
-	var panel := hud.get_node_or_null("DriftPanel") as Control
-	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
 	var used := _header.size.y + _last.size.y + 32.0 + 28.0  # Header, last drift, tabs, margins (the summary scrolls)
 	var room := maxf(bottom - top - used, 0.0 if info != null and info.visible else 72.0)  # Two rows, or as few as fit under the info
 	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0

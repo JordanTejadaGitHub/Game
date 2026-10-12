@@ -41,6 +41,28 @@ func _run() -> void:
 	_check(during.contains("Maze ") and not during.contains("needs ~"), "in a drift: the maze's DPS, no estimate outside dev runs (" + during + ")")
 	_check(not "benchmark" in main.get_node("HUD/DriftPanel"), "the DriftPanel has no loose benchmark line")
 
+	# The first click on the header (user 2026-10-12: "first clicking the maze DPS bugs out": opening moved the whole
+	# card up, so the header left the pointer): it opens with its rows drawn, pins no tip, and the header stays put.
+	var window_was := root.size
+	root.size = Vector2i(1280, 800)
+	meter.set_open(false)
+	for f in 4:
+		await process_frame
+	var header_at: Vector2 = meter._header.get_global_rect().position
+	meter._header.pressed.emit()
+	for f in 4:
+		await process_frame
+	_check(meter._body.visible and meter._rows.get_child_count() >= 2 and TapTip.pinned() == null
+		and meter._header.get_global_rect().position.is_equal_approx(header_at),
+		"the first header click opens the meter in place (rows %d, header %s -> %s)" % [meter._rows.get_child_count(), header_at, meter._header.get_global_rect().position])
+	meter._header.pressed.emit()
+	for f in 2:
+		await process_frame
+	_check(not meter._body.visible and meter._header.get_global_rect().position.is_equal_approx(header_at), "…and a second click closes it in place")
+	root.size = window_was
+	for f in 2:
+		await process_frame
+
 	# The drift meter: header, rows, a click selects and glides.
 	meter.set_open(true)
 	_check(meter.visible and meter._header.text.contains("Maze ") and meter._rows.get_child_count() >= 2,

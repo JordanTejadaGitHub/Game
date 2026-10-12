@@ -39,7 +39,7 @@ func _run() -> void:
 				await process_frame
 			for button in [bar_arrow, meter_arrow]:
 				var rect: Rect2 = button.get_global_rect()
-				_check(root.get_visible_rect().encloses(rect) and rect.size.y >= 48, "hide control is on screen and touch-sized at %s" % view)
+				_check(root.get_visible_rect().encloses(rect) and rect.size.y >= 44 and rect.size.x >= 44, "hide control is on screen with a 44 px touch target at %s" % view)
 	main.queue_free()
 	await process_frame
 	print("hide controls: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

@@ -89,7 +89,9 @@ func _ready() -> void:
 	_bar_toggle.focus_mode = Control.FOCUS_NONE
 	_bar_toggle.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_bar_toggle.custom_minimum_size = Vector2(BAR_TOGGLE_W, BAR_TOGGLE_W)
-	_bar_toggle.theme_type_variation = &"HudButton"  # The same frame and drawn arrow as the damage meter's (screens_ui.md "HUD notes")
+	_bar_toggle.flat = true  # A small handle, not a HUD button (user 2026-10-12): its frame is drawn, BAR_HANDLE inside the touch target
+	_bar_toggle.mouse_entered.connect(_bar_toggle.queue_redraw)  # Its frame lights on hover
+	_bar_toggle.mouse_exited.connect(_bar_toggle.queue_redraw)
 	_bar_toggle.draw.connect(_draw_hide_arrow.bind(_bar_toggle))
 	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
 	add_child(_bar_toggle)
@@ -314,7 +316,8 @@ func _build_tower_bar() -> void:
 # shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
 const SLOT_MIN_WIDTH := 48.0
 const ARROW_W := 32.0  # Narrow and quiet
-const BAR_TOGGLE_W := 48.0  # The bar's hide arrow: a HUD button (UiStyle.HUD_BUTTON_H), as the damage meter's
+const BAR_TOGGLE_W := 44.0  # The bar's hide arrow: its touch target (invisible padding, platforms.md)…
+const BAR_HANDLE := 28.0  # …and the handle drawn in its middle (about 60% of a HUD button, user 2026-10-12), as the damage meter's
 
 # A hide arrow's chevron, drawn (the ▾ ▴ glyphs aren't in the UI fonts): it points along the button's "arrow" meta.
 # The damage meter draws the same one (drift_meter.gd _draw_hide_arrow).
@@ -322,8 +325,12 @@ func _draw_hide_arrow(button: Button) -> void:
 	var along: Vector2 = button.get_meta(&"arrow", Vector2.DOWN)
 	var across := Vector2(-along.y, along.x)
 	var centre := button.size / 2.0
-	button.draw_polyline(PackedVector2Array([centre - along * 4.0 + across * 8.0, centre + along * 4.0,
-		centre - along * 4.0 - across * 8.0]), button.get_theme_color(&"font_color"), 2.0, true)
+	var lit := button.is_hovered()
+	var frame := Rect2(centre - Vector2(BAR_HANDLE, BAR_HANDLE) / 2.0, Vector2(BAR_HANDLE, BAR_HANDLE))  # A small handle with a thin frame
+	button.draw_rect(frame, Color(Palette.DREAD, 0.55))
+	button.draw_rect(frame, Color(UiStyle.GOLD, 0.6 if lit else 0.3), false, 1.0)
+	button.draw_polyline(PackedVector2Array([centre - along * 2.5 + across * 5.0, centre + along * 2.5,
+		centre - along * 2.5 - across * 5.0]), UiStyle.INK if lit else UiStyle.INK_DIM, 1.5, true)
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
 
@@ -349,15 +356,15 @@ func _fit_tower_bar() -> void:
 	_bar_toggle.queue_redraw()
 	_bar_toggle.offset_left = -BAR_TOGGLE_W / 2.0
 	_bar_toggle.offset_right = BAR_TOGGLE_W / 2.0
-	_bar_toggle.offset_bottom = -16.0
-	_bar_toggle.offset_top = -16.0 - BAR_TOGGLE_W
+	_bar_toggle.offset_bottom = -16.0 + (BAR_TOGGLE_W - BAR_HANDLE) / 2.0  # The drawn handle's foot on the bar's baseline
+	_bar_toggle.offset_top = _bar_toggle.offset_bottom - BAR_TOGGLE_W
 	if bar_hidden:
 		for arrow in _bar_arrows:
 			arrow.visible = false
 		return
 	if _tower_buttons.is_empty():
 		return
-	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0 - 2.0 * (BAR_TOGGLE_W + BAR_GAP)  # Room for the hide arrow at the end (kept symmetric: the bar stays centred)
+	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0 - 2.0 * (BAR_HANDLE + BAR_GAP)  # Room for the hide arrow at the end (kept symmetric: the bar stays centred)
 	var n := _tower_buttons.size()
 	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
 	var shown := n
@@ -401,7 +408,7 @@ func _fit_tower_bar() -> void:
 	tower_bar.offset_bottom = -16.0
 	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
 	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
-	_bar_toggle.offset_left = left + total + BAR_GAP  # Beside the bar's end (after its › arrow when it scrolls)
+	_bar_toggle.offset_left = left + total + BAR_GAP - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0  # Beside the bar's end (after its › arrow when it scrolls): the drawn handle one gap away
 	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
 	if is_inside_tree() and not get_tree().process_frame.is_connected(_recentre_bar):
 		get_tree().process_frame.connect(_recentre_bar, CONNECT_ONE_SHOT)
