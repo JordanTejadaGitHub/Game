@@ -12,3 +12,4 @@ kind = 3
 tags = Array[String](["kinship"])
 max_stacks = 1
 rule_id = &"twin_strike"
+min_kinships = 1

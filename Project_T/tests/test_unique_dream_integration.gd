@@ -70,7 +70,7 @@ func _run() -> void:
 	rooted.apply_status(EnemyStatuses.HELD, 1, 0.05, 0.0, 0, "root", a)
 	rooted._process(0.2)
 	b.hit(rooted, 1.0, false, Tower.NO_CRIT)
-	_check(rooted.statuses.stacks(EnemyStatuses.MARKED) == 2, "natural Rooted expiry invokes Afterroot through Enemy processing")
+	_check(rooted.statuses.stacks(EnemyStatuses.MARKED) == 5, "natural Rooted expiry invokes Afterroot through Enemy processing")
 	_take("dream_residue")
 	var caught = _enemy()
 	caught.statuses.caught_time = 0.05

@@ -300,8 +300,12 @@ func _test_reaction_cards() -> void:
 	_check(not dreams.is_eligible(quick), "Quick Reactions needs 2 Reaction pairs")
 	_own("sporeling")  # + Ignite (Spored + Static), Mushrooming (Spored + Damp)
 	_check(dreams.count_reaction_pairs() == 3 and dreams.is_eligible(quick), "…offered with 3")
-	_check(dreams.is_eligible(_card("wildfire_spores")) and dreams.is_eligible(_card("deep_water")),
-		"Wildfire Spores (Sporeling + Firefly Jar) and Deep Water (Dewdrop) from the Grove")
+	_check(dreams.is_eligible(_card("wildfire_spores")),
+		"Wildfire Spores (Sporeling + Firefly Jar) from the Grove; Deep Water also needs a Drowsy source (card_review_2026-10-12.md 3)")
+	_own("bloomcap")  # A Drowsy source, only for this check (it would add Reaction pairs below)
+	_check(dreams.is_eligible(_card("deep_water")), "Deep Water (Dewdrop + a Drowsy source) from the Grove")
+	dreams.unlocked.erase("bloomcap")
+	dreams.grown_wardens.erase("bloomcap")
 	_check(not dreams.is_eligible(_card("dawnbreak"), 1) and dreams.is_eligible(_card("dawnbreak"), 2),
 		"Dawnbreak is a Legendary: act 2+")
 	_own("lanternmoth")  # Marked: + Lightning Rod (Marked + Static)

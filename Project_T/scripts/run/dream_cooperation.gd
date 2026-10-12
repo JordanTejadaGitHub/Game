@@ -2,6 +2,7 @@ extends RefCounted
 ## Cooperative successor effects. Only native hooks record application history.
 
 const EXTRA_STACKS := 6  # Crossed Sparks / Shared Mycelium: extra stacks when two Wardens add the status within 2 s (was 2)
+const AFTERROOT_EXPOSED := 5  # Afterroot: half of what Exposed needs (Brimming doubles it, like the need)
 
 static func before_hit(tower, enemy, direct: bool, now: float) -> float:
 	if not direct or not _live(tower) or not _enemy_live(enemy):
@@ -38,7 +39,7 @@ static func before_hit(tower, enemy, direct: bool, now: float) -> float:
 		elif source != tower:
 			enemy.remove_meta("unique_afterroot_ready")
 			enemy.set_meta("unique_afterroot_cooldown", now + 4.0)
-			enemy.apply_status(EnemyStatuses.MARKED, 2, 0.0, 0.0, 0, tower.tower_data.line, tower)
+			enemy.apply_status(EnemyStatuses.MARKED, Reactions.buildup_threshold(AFTERROOT_EXPOSED), 0.0, 0.0, 0, tower.tower_data.line, tower)
 	return multiplier
 
 static func after_hit(tower, enemy, is_crit: bool, direct: bool, now: float) -> void:

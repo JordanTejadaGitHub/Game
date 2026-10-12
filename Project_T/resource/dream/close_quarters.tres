@@ -12,3 +12,5 @@ kind = 3
 tags = Array[String](["kinship"])
 max_stacks = 1
 rule_id = &"close_quarters"
+min_kinships = 1
+discovered_by = Array[String](["kinship:any"])

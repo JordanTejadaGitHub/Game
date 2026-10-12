@@ -13,4 +13,6 @@ tags = Array[String](["strange"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"double_or_nothing"
+excludes = Array[String](["deep_sleep"])
+cost_description = "Taking it removes {card:deep_sleep} from this run."
 min_drift = 10

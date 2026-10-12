@@ -2708,9 +2708,24 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return can_clear()
 		&"twin_strike", &"close_quarters":
 			return kinship_possible()
+		&"hobble", &"opening_fracture", &"steady_aim", &"shattering_blow", &"sharpened_light":
+			return crit_possible()  # A crit card with no Warden that can crit does nothing (card_review_2026-10-12.md 3)
 	return true
 
 # Close Kin's door: a family with 2 of its branches unlocked this run, so a Kinship (two branches within reach) can form.
+# Whether anything in the run can crit: a Warden on the map with crit chance (its form's or from Dreams), or an
+# unlocked form that has some. The crit cards' Need.
+func crit_possible() -> bool:
+	if unlock_everything:
+		return true
+	for tower in _towers():
+		if tower.tower_data.can_attack and tower.get_raw_crit_chance() > 0.0:
+			return true
+	for data in _roster():
+		if data is TowerData and data.crit_chance > 0.0 and is_unlocked(data.get_id()):
+			return true
+	return false
+
 func kinship_possible() -> bool:
 	if sim_kinships >= 0:
 		return sim_kinships > 0 or unlock_everything
@@ -4718,6 +4733,10 @@ func in_run_pool(card: UpgradeData) -> bool:
 	if run_pool.is_empty():
 		build_run_pool()
 	_add_new_family_cards()
+	if card.deepens != "":  # A Deepened card is in the pool exactly when its base is (never sampled on its own)
+		var base := _card_by_id(card.deepens)
+		if base != null and base != card:
+			return in_run_pool(base)
 	if run_pool.has(card.id):
 		return true  # An Entwined card sampled out gets no guaranteed slot (dream_design.md "Exact rules", 2026-10-01)
 	return _run_pool_waiting.has(card.id) and discovery_met(card)
@@ -4751,6 +4770,8 @@ func build_run_pool(seed_value: int = -1) -> void:
 			continue
 		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
 			continue
+		if card.deepens != "" and not RUN_POOL_BASICS.has(card.deepens):
+			continue  # A Deepened card follows its base (in_run_pool): it never takes a pool slot of its own
 		var family := _card_family(card)
 		if RUN_POOL_BASICS.has(card.id) or (card.deepens != "" and RUN_POOL_BASICS.has(card.deepens)) \
 				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
@@ -4798,6 +4819,8 @@ func _sample_family(family: String) -> void:
 			continue
 		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
 			continue
+		if card.deepens != "":
+			continue  # Follows its base (in_run_pool)
 		by_rarity.get_or_add(card.rarity, []).append(card)
 		total += 1
 	var drawn: Array = []
