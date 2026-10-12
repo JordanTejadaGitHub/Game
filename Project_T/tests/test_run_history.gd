@@ -65,6 +65,27 @@ func _run() -> void:
 	history._on_damage(hit)
 	_check(float(history._open[90].damage) == 50.0 and float(history._open[91].damage) == 0.0,
 		"damage counts for the drift that spawned the nightmare, even after the next was called early")
+	# Balancing, the 2026-10-12 run: combo damage loses its overkill like the damage column (combo_share never passes 1);
+	# a leak and its leaves go on the leaking nightmare's own drift, with its kind, whichever signal comes first.
+	var finisher := DamageLog.Event.new()
+	finisher.enemy = straggler
+	finisher.amount = 100.0
+	finisher.overkill = 60.0
+	finisher.combo_amount = 80.0
+	finisher.combos.append(&"marked")
+	history._on_damage(finisher)
+	_check(is_equal_approx(float(history._open[90].combo_damage), 80.0 * DamageLog.effective_share(finisher))
+		and RunHistory.combo_share(history._open[90], "damage") <= 1.0,
+		"a row's combo damage loses the overkill share too (%s of %s)" % [history._open[90].combo_damage, history._open[90].damage])
+	history._last_leaves = 15
+	history._on_leaked(straggler)  # The leak first, then its leaves
+	history._on_leaves_changed(13, 15)
+	history._on_leaves_changed(12, 15)  # Leaves first (as RunState may be asked first), then the leak
+	history._on_leaked(straggler)
+	_check(int(history._open[90].leaks) == 2 and int(history._open[90].leaves_lost) == 3 and int(history._open[91].leaves_lost) == 0,
+		"leaves lost land on the drift the nightmare belonged to, not the latest (90: %s, 91: %s)" % [history._open[90].leaves_lost, history._open[91].leaves_lost])
+	_check(history._open[90].get("leaked", {}) == {"Nightmare": 2} and RunHistory.leaked_text({"Shade": 9, "Phantom": 4}) == "9 Shade, 4 Phantom",
+		"leaks are counted by kind on the row and listed in the report")
 	straggler.queue_free()
 	# Route profiles (Balancing: where the Dew sits on the route, where nightmares die).
 	var map: Node2D = main.get_node("%MapGenerator")

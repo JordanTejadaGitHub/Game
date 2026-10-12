@@ -70,11 +70,7 @@ func _ready() -> void:
 	if spawner != null:
 		spawner.child_entered_tree.connect(_on_spawned)
 		spawner.enemy_cleansed.connect(_on_dispelled)
-		spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
-			var row := _row_for(enemy)
-			if not row.is_empty():
-				row["leaks"] = int(row.get("leaks", 0)) + 1
-			_note_leak(enemy))
+		spawner.enemy_reached_goal.connect(_on_leaked)
 	drift_director.drift_arrived.connect(func(number: int) -> void:
 		if _open.has(number) and not _arrived.has(number):
 			_arrived[number] = true
@@ -310,6 +306,46 @@ func _route_bin(enemy: Node) -> int:
 			progress = 1.0 - left / longest
 	return clampi(int(progress * ROUTE_BINS), 0, ROUTE_BINS - 1)
 
+# A nightmare reached the Heartwood: a leak on its own drift's row, by kind too ("leaked": {name: count}; Balancing, the
+# 2026-10-12 run: a drift-47 wipe couldn't be read without knowing what got through), and its leaves on that row
+# (_on_leaves_changed).
+var _leak_row := {}  # The row of the leak just noted, until its leaves are counted
+var _leak_frame := -1
+var _unclaimed: Array = []  # [row they went to, leaves, frame]: leaves counted before their leak was noted
+
+func _on_leaked(enemy: Node2D) -> void:
+	var row := _row_for(enemy)
+	var frame := Engine.get_process_frames()
+	if not row.is_empty():
+		row["leaks"] = int(row.get("leaks", 0)) + 1
+		var kinds: Dictionary = row.get("leaked", {})
+		var kind := leak_name(enemy)
+		kinds[kind] = int(kinds.get(kind, 0)) + 1
+		row["leaked"] = kinds
+		if _unclaimed.size() == 3 and int(_unclaimed[2]) == frame:  # Its leaves were counted first: they are this row's
+			var given: Dictionary = _unclaimed[0]
+			if not given.is_empty():
+				given["leaves_lost"] = int(given.get("leaves_lost", 0)) - int(_unclaimed[1])
+			row["leaves_lost"] = int(row.get("leaves_lost", 0)) + int(_unclaimed[1])
+		else:
+			_leak_row = row
+			_leak_frame = frame
+	_unclaimed = []
+	_note_leak(enemy)
+
+# "Shade", or "Deeply Blighted Shade" for an elite.
+static func leak_name(enemy: Node) -> String:
+	if enemy == null or not is_instance_valid(enemy) or enemy.get("enemy_data") == null:
+		return "Nightmare"
+	var name: String = enemy.enemy_data.display_name
+	return "Deeply Blighted " + name if enemy.get("elite") == true else name
+
+# "9 Shade, 4 Phantom": the most first.
+static func leaked_text(kinds: Dictionary) -> String:
+	var names := kinds.keys()
+	names.sort_custom(func(a, b) -> bool: return int(kinds[a]) > int(kinds[b]) if int(kinds[a]) != int(kinds[b]) else String(a) < String(b))
+	return ", ".join(names.map(func(n) -> String: return "%d %s" % [int(kinds[n]), n]))
+
 func _note_leak(enemy: Node) -> void:
 	_route_block.leaked += 1
 	if enemy != null and is_instance_valid(enemy) and enemy.get("max_health") != null:
@@ -418,7 +454,11 @@ func _on_damage(event: DamageLog.Event) -> void:
 		var over := event.amount * (1.0 - DamageLog.effective_share(event))  # (the Target Dummy: none)
 		row["damage"] = float(row.get("damage", 0.0)) + event.amount - over
 		row["overkill"] = float(row.get("overkill", 0.0)) + over
-		_add_parts(row, 0.0, parts)
+		# The combo / Reaction / status parts lose the same overkill share as the damage column (Balancing, the
+		# 2026-10-12 run: combo_share passed 1.0 on drifts 39, 42 and 47, combo damage counted whole).
+		var kept := DamageLog.effective_share(event)
+		var effective: Array[float] = [parts[0] * kept, parts[1] * kept, parts[2] * kept]
+		_add_parts(row, 0.0, effective)
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
@@ -455,8 +495,18 @@ func _on_leaves_changed(leaves: int, _max: int) -> void:
 		run.first_leak = drift_director.drifts_started
 	var act := str(drift_director.get_act(maxi(drift_director.drifts_started, 1)))
 	run.leaves_lost_by_act[act] = int(run.leaves_lost_by_act.get(act, 0)) + lost
-	if not _drift.is_empty():
+	# On the row of the drift the leaking nightmare belonged to (Balancing, the 2026-10-12 run: drift 47's 13 leaks
+	# showed their 14 leaves on drift 49, the latest one). The leak signal and the leaves change come as a pair, in
+	# either order: a leak noted first names the row; leaves counted first move to it when the leak arrives.
+	var frame := Engine.get_process_frames()
+	if not _leak_row.is_empty() and _leak_frame == frame:
+		_leak_row["leaves_lost"] = int(_leak_row.get("leaves_lost", 0)) + lost
+		_leak_row = {}
+	elif not _drift.is_empty():  # No leak this frame yet (or none at all: a boss draining, a Dream's price)
 		_drift["leaves_lost"] = int(_drift.get("leaves_lost", 0)) + lost
+		_unclaimed = [_drift, lost, frame]
+	else:
+		_unclaimed = [{}, lost, frame]
 
 func _on_dew_changed(dew: int) -> void:
 	if dew > _last_dew:
@@ -645,6 +695,9 @@ static func report_text(record: Dictionary) -> String:
 	if record.has("route_blocks"):
 		lines.append("Heart share: %d%% of Warden Dew within %d cells of the Heartwood%s" % [roundi(float(record.get("heart_share", 0.0)) * 100.0),
 			int(HEART_REACH), " · heat map %s" % record.heat_map if record.has("heat_map") else ""])
+	for row in record.get("drifts", []):  # What got through, by kind (before the table: the table stays the last block)
+		if not (row.get("leaked", {}) as Dictionary).is_empty():
+			lines.append("Drift %d leaked: %s" % [int(row.drift), leaked_text(row.leaked)])
 	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share")
 	for row in record.get("drifts", []):
 		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
