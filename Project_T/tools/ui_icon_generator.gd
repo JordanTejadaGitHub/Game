@@ -676,10 +676,31 @@ func _ic_dew_cost() -> void:
 	_dt(13, 3, Color.WHITE)
 
 func _ic_dreamlight_cost() -> void:
-	var k := _rp("#fff8e0", "#d8b8ff", "#8a60c8")
-	_c_poly(PackedVector2Array([Vector2(8, 0.8), Vector2(13.2, 8), Vector2(8, 15.2), Vector2(2.8, 8)]), k)
-	_dt_line(Vector2i(6, 4), Vector2i(6, 8), Color("#fffbe8"))
-	_dt(8, 8, Color("#ffe890"))
+	# The same gem as dreamlight_hud (the master, user 2026-10-12), hand-placed at 16 px in the same
+	# Heartwood 32 inks (HUD_INK letters): a Wraithlight body, a one-pixel Heartlight edge on the upper
+	# left, Bruise on the lower right, the Glow dot, a Dread outline. No lavender, nothing to snap.
+	var rows := [
+		".......oo.......",
+		"......oHWo......",
+		".....oHWWUo.....",
+		"....oHWWWWUo....",
+		"...oHWWWWWWUo...",
+		"..oHWWWWWWWWUo..",
+		".oHHWWWWWWWWWUo.",
+		"oHHWWWGWWWWWWWUo",
+		"oHWWWWWWWWWWWUUo",
+		".oWWWWWWWWWWUUo.",
+		"..oWWWWWWWWUUo..",
+		"...oWWWWWWUUo...",
+		"....oWWWWUUo....",
+		".....oWWUUo.....",
+		"......oUUo......",
+		".......oo......."]
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if HUD_INK.has(row[x]):
+				_dt(x, y, Palette.color(HUD_INK[row[x]]))
 
 # Nightmare traits and boss abilities -------------------------------------------------------------
 # Cold nightmare colours: violet, slate, bone, sickly teal, mire green; small pink-red eyes.
