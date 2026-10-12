@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "thorn_and_bramble"
 display_name = "Thorn and Bramble"
-description = "Clearing Dreams join the pool: Tended Forest, Briar Trap, Hushed Hedge, Bramble Oath."
+description = "Clearing Dreams join the pool: Briar Trap, Hushed Hedge, Bramble Oath."
 root = 1
 costs = Array[int]([70])
 order = 44
 icon = 17
 requires_all = Array[String](["reclaimed_earth"])
-dream_cards = Array[String](["tended_forest", "thorn_snare", "thorn_snare_ii", "hushed_hedge", "bramble_oath"])
+dream_cards = Array[String](["thorn_snare", "hushed_hedge", "bramble_oath"])

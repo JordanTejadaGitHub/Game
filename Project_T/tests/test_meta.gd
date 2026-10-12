@@ -456,7 +456,7 @@ func _run() -> void:
 	for unlock in HeartwoodMemory.load_grove():
 		for card in unlock.dream_cards:
 			every_card[card] = unlock.id
-	for card: String in ["hunters_patience", "sharpened_light", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "great_ripple", "lucid_dreaming"]:
+	for card: String in ["hunters_patience", "sharpened_light", "scented_hedge", "tended_stumps", "hollow_ground", "great_ripple", "lucid_dreaming"]:
 		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
 	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
 	# Branch expansion in the Grove (meta_design.md 1f25e66e): family cards list their branches; Wider Roots.
@@ -984,7 +984,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 98 and grove.size() == 98 - parked, "98 Grove spots, %d nodes on the tree (layout %d, data %d)" % [98 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 95 and grove.size() == 95 - parked, "95 Grove spots, %d nodes on the tree (layout %d, data %d)" % [95 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
@@ -1011,10 +1011,10 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.id == "whirlwind_heart":
-			# Light Feet's numerical cards are retired; the existing visual branch remains readable.
-			_check(node.parent == "light_feet" and unlock.requires_all == ["quickening"], "Whirlwind Heart keeps its branch art while requiring active Quickening")
-			var retired_parent := _unlock(grove, "light_feet")
-			_check(retired_parent != null and GroveCardList.cards_of(retired_parent).is_empty(), "Light Feet legacy node remains readable without retired numerical cards")
+			# Light Feet is gone (card_review_2026-10-12.md 11 E): Whirlwind Heart hangs off Quickening in the layout and the data.
+			_check(node.parent == "quickening" and unlock.requires_all == ["quickening"], "Whirlwind Heart grows off Quickening")
+			_check(HeartwoodMemory.get_unlock("light_feet") == null and HeartwoodMemory.get_unlock("menagerie") == null
+				and HeartwoodMemory.get_unlock("golden_harvest") == null, "the three retired-only nodes are off the tree")
 		elif node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
 			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free()
 				or (unlock.requires_all.is_empty() and unlock.requires_any.is_empty()),  # Drawn off a node it doesn't need (a start family, Stormheart)
