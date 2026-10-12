@@ -230,7 +230,7 @@ func _run() -> void:
 		# Non-damage placement previews must show their actual role.
 		tester.show_card(load("res://resource/dream/cheap_seeds.tres"))
 		var discount_labels := tester._world.find_children("PlantingDiscount", "Label", true, false)
-		_check(discount_labels.size() == 1 and discount_labels[0].text == UiStyle.dew_amount(-4),
+		_check(discount_labels.size() == 1 and discount_labels[0].text == "%s -%d%%" % [UiStyle.DEW_GLYPH, roundi((1.0 - DreamState.CHEAP_SEEDS_SHARE) * 100.0)],
 			"Scattered Seedlings marks only the eligible Sprout's planting saving")
 		_check(tester._wardens.all(func(w: Dictionary) -> bool: return w.data == CardScene.SPROUT and is_equal_approx(w.every, CardScene.ATTACK_EVERY)),
 			"Scattered Seedlings shows Sprouts with unchanged attacks")

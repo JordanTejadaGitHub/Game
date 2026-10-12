@@ -51,7 +51,7 @@ const SPROUT_CARDS: Array[String] = ["root_network", "root_network_ii", "sprout_
 # What each card shows in gold (the numbers from its caption): `text` on the favoured Warden's hits, its damage /
 # attack speed multipliers and extra range; `proc` pops on a nightmare passing a marked Thornwall (X).
 const EFFECTS := {
-	"cheap_seeds": {"planting_discount": -4},
+	"cheap_seeds": {"planting_discount": true},  # The saving is DreamState.CHEAP_SEEDS_SHARE (the tag reads it)
 	"longer_roots": {"text": "+1 range", "range": 1.0},
 	"switchback": {"bend_slow": true},
 	"bitter_hedges": {"proc": "+8% taken"},
@@ -177,7 +177,7 @@ func show_card(for_card: UpgradeData) -> void:
 	_legend.text = "Gold numbers: the Warden the card favours · White: the others" if has_favoured \
 		else "Gold: what the card does to nightmares passing the marked Thornwalls"
 	if _effect.has("planting_discount"):
-		_legend.text = "Gold label: planting saves %s; attacks are unchanged" % UiStyle.dew_amount(4)
+		_legend.text = "Gold label: planting costs %d%% less; attacks are unchanged" % roundi((1.0 - DreamState.CHEAP_SEEDS_SHARE) * 100.0)
 	elif _effect.has("bend_slow"):
 		_legend.text = "Covered bends: 25% slower for 1 s; 3 s per-nightmare cooldown"
 	visible = true
@@ -773,7 +773,7 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 		if QUALIFYING.contains(c) and _effect.has("planting_discount"):
 			var price_tag := Label.new()
 			price_tag.name = "PlantingDiscount"
-			price_tag.text = UiStyle.dew_amount(int(_effect.planting_discount))
+			price_tag.text = "%s -%d%%" % [UiStyle.DEW_GLYPH, roundi((1.0 - DreamState.CHEAP_SEEDS_SHARE) * 100.0)]  # Half price since 30d7a265 (was a flat -4)
 			price_tag.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))
 			price_tag.position = sprite.position + Vector2(-24, 12)
 			price_tag.add_theme_color_override("font_color", Palette.GOLD)
