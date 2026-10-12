@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "second_wind"
 display_name = "Second Wind"
-description = "Call every {drift} of a {block} early: the next Dream offers 4 cards, one Rare or better."
+description = "Call 4 {drifts} of a {block} early: the next Dream offers 4 cards, one Rare or better."
 rarity = 2
 kind = 3
 tags = Array[String](["tempo", "dreams", "daring"])
