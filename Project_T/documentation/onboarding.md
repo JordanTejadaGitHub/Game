@@ -122,6 +122,18 @@ the map. At most one per drift (the rest queue).
 | **Dreamlight** | the first Dreamlight earned | "Dreamlight unlocks new forms on the Remember screen (Q)." |
 Copy texts use the live numbers and icons, never hard-coded values.
 
+### Choice Lessons: shown on top of the choice they explain (2026-10-12)
+User: *"there should be a tutorial card for the first family pick screen."* A Lesson that explains a choice screen is
+the one exception to "never during a choice screen": it opens **over** that screen the first time it appears, before
+the player can pick, and closes back onto it. The screen's cards stay visible behind it (dimmed). Once per profile,
+off with Hints, never over a different choice screen than its own.
+
+| Lesson | Fires | Text |
+|---|---|---|
+| **Wake a family** | the first family pick ever (after drift 1) opens | Title "Wake a family". "Choose one of these Warden families. Your Sprouts can grow into it, and you can plant it directly." · "Your first family is also your **Calling**: its special rule lasts the whole run. It's shown on each card." · "Each card lists the forms that family can grow into this run." (touch / PC hint line: "Peek at the map" looks at the board first.) |
+| **Choose a Dream** | the first Dream offer ever opens (it used to appear after the pick, which taught nothing) | Title "A Dream". "Pick one card, or let it pass for a little {dew}. Dreams last the whole run." · "A card that needs a Warden you don't have says so." |
+| **Face an Omen** | the first Omen offer ever opens | "An Omen makes the next block harder and pays you at the rest after it. Clear Skies skips it." |
+
 ## Forest Journal (later: not in the first playable or demo)
 
 **Update 2026-09-30:** the nightmare half of this is now the Codex's **Nightmares** section
