@@ -455,6 +455,8 @@ static func signature_entries() -> Array:
 	var out: Array = [["Signature", "A Warden at rank V with four matching picks among ranks I–V gains a specialised signature or role mastery. Other rank-V Wardens gain All-Rounder: +20% to their main job. The gold mark explains the bonus.",
 		["Nurture choice", "Rank"], ""]]
 	for sig in Signatures.NAMES:
+		if sig == Signatures.ALL_ROUNDER or sig == Signatures.MASTERY:
+			continue  # Not hidden signatures: the "Signature" entry above already says what the others get
 		if not seen.has(String(sig)):
 			out.append(["???", "Not discovered yet.", ["Signature"], ""])
 			continue

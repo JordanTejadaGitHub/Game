@@ -52,8 +52,17 @@ func _run() -> void:
 
 	# The panel: the way there at rank III, the mark at rank V.
 	var growing := _plant("sporeling", Vector2(10, 2), [P, P, S])
-	var crusher := _plant("sporeling", Vector2(4, 2), [P, P, S, P, R])
+	# Rank V (claude_handoff.md "Rank V and Shared Training"): four matching picks among the first five earn the
+	# signature; a mixed build earns All-Rounder.
+	var crusher := _plant("sporeling", Vector2(4, 2), [P, P, S, P, P])
+	var mixed := _plant("sporeling", Vector2(8, 2), [P, P, S, P, R])
 	await _frames(2)
+	seller.select(mixed)
+	await _frames(2)
+	var mixed_mark := panel.find_child("Signature", true, false) as Label
+	_check(mixed_mark != null and mixed_mark.text.contains("All-Rounder") and not mixed_mark.text.contains("Crushing"),
+		"rank V, three Power picks and two others: All-Rounder, not Crushing (%s)" % (mixed_mark.text if mixed_mark else "none"))
+	seller.select(null)
 	seller.select(growing)
 	await _frames(2)
 	_check(panel.find_child("SignatureHint", true, false) == null, "rank III: no hint (user: don't hint towards signatures)")
@@ -76,7 +85,7 @@ func _run() -> void:
 	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Crushing!"), "its name pops over the Warden")
 	var toast := main.get_node("%ToastLabel") as Label
 	_check(toast != null and toast.text.begins_with("Signature discovered: Crushing"), "the HUD says what it does (%s)" % (toast.text if toast else ""))
-	var later := _plant("sporeling", Vector2(6, 2), [P, P, P, S, R])
+	var later := _plant("sporeling", Vector2(6, 2), [P, P, P, P, R])
 	await _frames(1)
 	later.signature_fired.emit(later, Signatures.CRUSHING)
 	await _frames(1)
