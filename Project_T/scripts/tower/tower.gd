@@ -1490,12 +1490,17 @@ func focus_short(which: Focus) -> String:
 # [value now, value with one more rank of `which`] for `measure` (rank_choices is put back after).
 func _with_choice(which: Focus, measure: Callable) -> Array:
 	_migrate_choices()
+	# A trial measure of attack speed must not leave the Dream speed cap's live values at the trial's (17c63c08).
+	var live_top := _speed_top
+	var live_capped := speed_capped
 	var now: float = measure.call()
 	_previewing_choice = true  # _migrate_choices must not trim the trial entry (it would pop a real choice after)
 	rank_choices.append(which)
 	var after: float = measure.call()
 	rank_choices.pop_back()
 	_previewing_choice = false
+	_speed_top = live_top
+	speed_capped = live_capped
 	return [now, after]
 var _previewing_choice := false
 
