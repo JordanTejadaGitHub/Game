@@ -37,6 +37,9 @@ var _body: RichTextLabel = StatusLinks.make_label("", 16)  # Glossary words are 
 var _ok := Button.new()
 var _skip := Button.new()
 var _demo: LessonDemo
+var _centre: CenterContainer
+var _panel: PanelContainer
+var _spot_layer := Control.new()  # The spotlight's ring, badge pulse and thread
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -50,11 +53,17 @@ func _ready() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
-	var centre := CenterContainer.new()
+	_spot_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_spot_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spot_layer.draw.connect(_draw_spot)
+	add_child(_spot_layer)  # Over the shade, under the card
+	_centre = CenterContainer.new()
+	var centre := _centre
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var panel := PanelContainer.new()
+	_panel = PanelContainer.new()
+	var panel := _panel
 	panel.name = "Card"
 	var solid := UiStyle.panel(18.0, 18.0)  # Solid, like every paused card
 	solid.center_alpha = UiStyle.TIP_ALPHA
@@ -185,13 +194,104 @@ func _watch_field(delta: float) -> void:
 	if _watch_left > 0.0:
 		return
 	_watch_left = 0.25
+	# A status Lesson opens the moment its status is on a nightmare the player can see (onboarding.md "Status Lessons
+	# point at the nightmare"): never queued (the nightmare would be gone by the time it showed), so one that lands off
+	# screen, or while another card is up, waits for the next visible one.
+	if visible or not can_show():
+		return
 	for id in EnemyStatuses.ALL:
 		if seen.has("discover_" + String(id)):
 			continue
 		for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-			if enemy.statuses.has(id):
-				discovery(id)
-				break
+			if enemy.statuses.has(id) and on_screen(enemy):
+				_show([StringName("discover_" + String(id)), id, IconInfo.status_name(id), status_text(id, enemy), enemy])
+				return
+
+# --- Status Lessons point at the nightmare (onboarding.md, user 2026-10-12) ----------------------------------------
+# One plain sentence per status: live numbers, the Reactions link, no internals (the exact figures stay in the status
+# tooltip and the Codex).
+const STATUS_LINES := {
+	&"damp": "Water hits deal 20% more to it right away. At {stacks:need_damp} stacks it can set off {reactions}.",
+	&"drowsy": "It moves 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall asleep and set off {reactions}.",
+	&"spored": "Poison wears its health down over time, faster with every stack. At {stacks:need_spored} stacks it can set off {reactions}.",
+	&"marked": "At {stacks:need_marked} stacks it takes 25% more from every Warden and can set off {reactions}. Fewer stacks do nothing yet.",
+	&"static": "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it is struck by a bolt for heavy damage. Other statuses can set it off early as a {reaction}.",
+	&"held": "It can't move for a moment. At {stacks:need_held} stacks it can set off {reactions}.",
+}
+const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
+const SPOT_GAP := 56.0  # Between the nightmare and the card
+const SPOT_EDGE := 16.0  # The card stays this far inside the screen
+var _spot_enemy: Node2D = null  # The nightmare the shown status Lesson points at
+var _spot_status: StringName = &""
+var _spot_clock := 0.0
+
+# The card's text: who did it (the live Warden name, the status as a link), then the status's line.
+static func status_text(id: StringName, enemy: Node2D = null) -> String:
+	var source = enemy.statuses.source(id) if enemy != null and is_instance_valid(enemy) else null
+	var warden := "A Warden is"
+	if source is Tower and source.tower_data != null:
+		warden = "Your %s is" % source.tower_data.display_name
+	return "%s building {%s} on %s.\n\n%s" % [warden, id, "this nightmare" if enemy != null else "a nightmare", STATUS_LINES.get(id, "")]
+
+# Where the nightmare is on screen (this card's own space: the HUD's canvas).
+func _spot_at(enemy: Node2D, local := Vector2.ZERO) -> Vector2:
+	return enemy.get_global_transform_with_canvas() * local
+
+# The player can see it: inside the view, clear of the HUD's bars, and not under an open panel or screen.
+func on_screen(enemy: Node2D) -> bool:
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree() or not enemy.is_visible_in_tree():
+		return false
+	var view := Rect2(Vector2.ZERO, size).grow_individual(-SPOT_MARGIN[0], -SPOT_MARGIN[1], -SPOT_MARGIN[2], -SPOT_MARGIN[3])
+	return view.has_point(_spot_at(enemy)) and not WorldLabel.covered(enemy, Rect2(-16.0, -28.0, 32.0, 44.0))
+
+# The status's badge above the nightmare (Enemy draws them in a row), or just above its head.
+func _badge_at(enemy: Node2D) -> Vector2:
+	var ids = enemy.get("_hud_ids")
+	if ids is Array and ids.has(_spot_status) and enemy.has_method("_badge_centre"):
+		return _spot_at(enemy, enemy._badge_centre(ids.find(_spot_status)))
+	return _spot_at(enemy, Vector2(0.0, -30.0))
+
+# Beside the nightmare, on the side with more room, never over it, and inside the screen: the CenterContainer's rect
+# becomes that strip (the card centres itself in it). Each frame while it shows: the card's height settles a frame late.
+func _place_beside() -> void:
+	var at := _spot_at(_spot_enemy)
+	var card := _panel.size
+	var right := at.x < size.x / 2.0
+	var from := at.x + SPOT_GAP if right else SPOT_EDGE
+	var to := size.x - SPOT_EDGE if right else at.x - SPOT_GAP
+	if to - from < card.x:  # A screen too narrow for a side strip: keep it whole, against the far edge
+		from = size.x - SPOT_EDGE - card.x if right else SPOT_EDGE
+		to = from + card.x
+	var middle := clampf(at.y, SPOT_EDGE + card.y / 2.0, maxf(size.y - SPOT_EDGE - card.y / 2.0, SPOT_EDGE + card.y / 2.0))
+	_centre.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_centre.position = Vector2(from, middle - card.y / 2.0)
+	_centre.size = Vector2(to - from, card.y)
+
+func _end_spot() -> void:
+	if _spot_enemy == null and _spot_status == &"":
+		return
+	_spot_enemy = null
+	_spot_status = &""
+	_centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_spot_layer.queue_redraw()
+
+# A soft ring round the nightmare, a pulse on its new badge, a thin thread from the card to the badge. Reduced motion:
+# nothing pulses, the ring stays.
+func _draw_spot() -> void:
+	if not visible or not is_instance_valid(_spot_enemy):
+		return
+	var still := bool(Fx.setting("reduced_motion", false))
+	var at := _spot_at(_spot_enemy)
+	var zoom := _spot_enemy.get_global_transform_with_canvas().get_scale().x
+	var radius := maxf(34.0 * zoom, 26.0)
+	for i in 4:  # Soft: a few rings fading outwards
+		_spot_layer.draw_arc(at, radius + i * 3.0, 0.0, TAU, 48, Color(UiStyle.GOLD, 0.55 - 0.13 * i), 2.0, true)
+	var badge := _badge_at(_spot_enemy)
+	var beat := 0.5 if still else 0.5 + 0.5 * sin(_spot_clock * 5.0)
+	_spot_layer.draw_arc(badge, maxf(9.0 * zoom, 8.0) + 4.0 * beat, 0.0, TAU, 24, Color(Palette.HEARTLIGHT, 0.95 - 0.5 * beat), 2.0, true)
+	var card := _panel.get_global_rect()
+	var from := Vector2(card.position.x if card.position.x > at.x else card.end.x, clampf(badge.y, card.position.y + 12.0, card.end.y - 12.0))
+	_spot_layer.draw_line(from - global_position, badge, Color(UiStyle.GOLD, 0.7), 1.0, true)
 
 func set_enabled(on: bool) -> void:
 	enabled = on
@@ -225,7 +325,7 @@ func discovery(id: StringName) -> void:
 		&"dream":
 			lesson(&"discover_dream", &"dreamlight", "Choose a Dream", "Dreams change your run. Offers are random: pick a card that supports your Wardens, or experiment with a new build. Some cards pay off after you add more towers or combine statuses.")
 		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
-			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), IconInfo.status_tooltip(id))
+			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), status_text(id))  # Asked for by name (tests, replays): no nightmare to point at
 		&"flyer":
 			lesson(&"discover_flyer", &"nightmare", "Flying nightmares", "Flying nightmares ignore your maze. Keep attackers covering the approach to the Heartwood, and watch the coming-nightmare warnings.")
 
@@ -300,6 +400,13 @@ func _process(_delta: float) -> void:
 			game_speed.set_paused(false)
 	if visible and _over_choice != null and (not is_instance_valid(_over_choice) or not _over_choice.visible):
 		close()  # Its choice screen went away
+	if visible and _spot_status != &"":
+		if is_instance_valid(_spot_enemy):
+			_spot_clock += _delta / maxf(Engine.time_scale, 0.001)
+			_place_beside()
+			_spot_layer.queue_redraw()
+		else:
+			_end_spot()  # It went (a test freed it): the card stays, centred
 	_watch_field(_delta)
 	_check_choice_lessons()
 	if not visible and not queue.is_empty() and can_show():
@@ -372,6 +479,11 @@ func _show(entry: Array) -> void:
 		_paused_it = true
 		_resume_pending = false
 	shown_id = entry[0]
+	_end_spot()
+	if entry.size() > 4 and is_instance_valid(entry[4]):  # A status Lesson with its nightmare: the spotlight
+		_spot_enemy = entry[4]
+		_spot_status = entry[1]
+		_spot_clock = 0.0
 	_icon.texture = IconInfo.icon(entry[1])
 	_icon.visible = _icon.texture != null
 	_title.text = entry[2]
@@ -400,6 +512,7 @@ func close() -> void:
 	visible = false
 	_replaying = false
 	shown_id = &""
+	_end_spot()
 	if _over_choice != null:  # A choice Lesson: back to its own place under the screens (their pause stays theirs)
 		_over_choice = null
 		if get_parent() != null and _index_before >= 0:

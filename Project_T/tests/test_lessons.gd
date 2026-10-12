@@ -199,13 +199,41 @@ func _run() -> void:
 	# A status on a nightmare: its Lesson, noticed by the card itself (the status whispers used to set it off).
 	var wet: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, false)
 	await _frames(1)
+	# Status Lessons point at the nightmare (onboarding.md, user 2026-10-12): off screen nothing opens; on screen the
+	# card opens, pauses, and the spotlight is on that nightmare; "Got it" clears it.
+	wet.set_process(false)  # It stays where the test puts it
+	wet.set_physics_process(false)
+	var view_centre: Vector2 = root.get_camera_2d().get_screen_center_position() if root.get_camera_2d() != null else wet.global_position
+	wet.global_position = view_centre + Vector2(100000.0, 0.0)
 	wet.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0, 5)
+	speed.set_paused(false)
+	await _frames(2)
 	lessons._watch_left = 0.0
 	lessons._watch_field(0.016)
 	await _frames(2)
-	_check(lessons.visible and lessons.shown_id == &"discover_damp" and speed.paused, "the first Soaked nightmare: its status Lesson (%s)" % lessons.shown_id)
+	_check(not lessons.on_screen(wet) and not lessons.visible and not lessons.seen.has("discover_damp"),
+		"Soaked on a nightmare off screen: no card yet (visible %s)" % lessons.visible)
+	wet.global_position = view_centre
+	await _frames(2)
+	_check(lessons.on_screen(wet), "…the nightmare in the middle of the view counts as on screen (%s in %s)" % [lessons._spot_at(wet), lessons.size])
+	lessons._watch_left = 0.0
+	lessons._watch_field(0.016)
+	await _frames(3)
+	_check(lessons.visible and lessons.shown_id == &"discover_damp" and speed.paused, "the first Soaked nightmare in view: its status Lesson opens and pauses (%s)" % lessons.shown_id)
+	_check(lessons._spot_enemy == wet and lessons._spot_status == EnemyStatuses.DAMP, "the spotlight is on that nightmare and its Soaked badge")
+	var card_rect: Rect2 = lessons._panel.get_global_rect()
+	var wet_at: Vector2 = lessons._spot_at(wet)
+	_check(not card_rect.grow(20.0).has_point(wet_at) and Rect2(Vector2.ZERO, lessons.size).encloses(card_rect),
+		"the card sits beside the nightmare, not over it, inside the screen (%s, nightmare at %s)" % [card_rect, wet_at])
+	_check(lessons._body.text.contains("on this nightmare") and lessons._body.text.contains("Soaked") and lessons._body.text.contains("Reactions")
+		and not lessons._body.text.contains("{"), "it names the cause and the status, with the Reactions link (%s)" % lessons._body.text)
+	for id in EnemyStatuses.ALL:
+		var line := IconInfo.format(LessonCard.status_text(id))
+		_check(not line.contains("{") and not line.contains("buildup") and not line.contains("16×"), "%s's line has live numbers and no internals (%s)" % [id, line])
 	lessons.close()
 	await _frames(1)
+	_check(not lessons.visible and lessons._spot_enemy == null and lessons._spot_status == &"" and not speed.paused,
+		"\"Got it\" clears the spotlight and resumes")
 	var whisper_node = main.get_node("%Whispers")
 	_check(not whisper_node.shown.has(&"damp") and not whisper_node.shown.has(&"rest") and not whisper_node.shown.has(&"speed"), "…and no teaching whisper says any of it")
 
