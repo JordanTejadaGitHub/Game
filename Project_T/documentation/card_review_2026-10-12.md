@@ -148,3 +148,38 @@ Result: 17 cards become 10 (7 retired or merged away).
 | `crossed_sparks` (Rare) | two Wardens add Charged within 2 s: +2 stacks | **Enlarge:** +6 (Charged now needs 20). `shared_mycelium` likewise: +6 Poisoned (cap 32). |
 | `prism_heart` (Rare, Woven) | Prismstorm shards fly 0.5 cells further, +3 Charged | **Enlarge:** "Prismstorm shards fly twice as far and add 8 Charged stacks." A Woven card is hard to reach; it should be worth it. |
 | `grand_tour` (Rare) | a new status adds up to 1 s to the others, once | **Rework:** "A nightmare carrying 3 or more different statuses takes 30% more damage from every Warden." The reward for a real multi-status build; different from Seeping (status damage only) and Lasting Dreams (duration). |
+
+## 11. Proposal for the open decisions (drafted 2026-10-12, waiting for the user)
+**A. A new player's Legendaries.** Un-retire `the_long_walk` (start pool, the user's 2026-10-06 decision): three start
+Legendaries instead of two.
+
+**B. Weak Legendaries, enlarged** (starting numbers for Balancing):
+| Card | Now | Proposed |
+|---|---|---|
+| `crossroads` | +40% for a Warden touching two far-apart path tiles | double damage |
+| `full_moon` | +10% crit chance for all | +25%; crit above 100% still becomes crit damage |
+| `briar_crown` | a nightmare beside a Thornwall takes 25% of the strongest touching Warden's damage | 60% |
+| `restless_night` (Impatient Night) | +40% while two early-called drifts overlap | double damage while they overlap |
+| `the_old_ones` | Wardens touching a rank V Warden count one rank higher | two ranks higher |
+| `wildwood_reclaimed` | +30% on cleared cells, +2% per obstacle cleared (up to +60%) | +50%, +3% per obstacle (up to +100%) |
+
+**C. Overlaps: cut only what another card clearly covers.**
+- Retire `twin_strike` (Kinships already have their own bonuses; Overlap and Crossfire cover the trigger).
+- Retire `harvest_moon` (+15 Dew a rest; Common Morning Dew gives more).
+- Retire `quiet_vigil` (same trigger as Watchful Rest, weaker payoff). This replaces the "5 stacks" fix in section 3.
+- `reclaimed_earth` loses its "refunds 40%" line: Groundskeeper now gives half back. It keeps the half-price first Warden and the Sprout damage.
+- `flurry` and `rhythm` (Fifth Beat) exclude each other (every 5th attack repeats, twice over).
+- Keep the six call-early cards as the "daring" build, the idle pair Watchful Rest / Patient Aim (damage vs crit), and both Bittersweet damage cards.
+
+**D. Cards that steer the next Dream.** Keep `restless_dreams` (Waking Dreams) and `second_wind` as the two exceptions:
+they promise a rarity, never a named card, and both are paid for.
+
+**E. The three empty Grove nodes** (`golden_harvest` 120, `menagerie` 80, `light_feet` 60). Remove them from the tree
+(88 nodes); nothing depends on them. Meta Game Asset tidies the three twigs. No refunds (pre-release).
+
+**F. Newer branches with no cards.** Not now. After the next playtests, one card per branch as its own batch
+(Roguelite Mechanic Discussion designs it).
+
+**G. Paused tutorial cards.** Keep: they are the Lessons the user asked for on 2026-10-06 ("learning new things should
+pause and put a text up"), extended with a three-card opening that has Skip. onboarding.md's older "no tutorial
+windows" line is the one to retire.
