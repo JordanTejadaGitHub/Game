@@ -165,7 +165,7 @@ static func text_for(tower: Tower) -> String:
 		&"range": "control reach +20%", &"catch": "catch income +20%",
 		&"caught": "Caught status tick rate +20%", &"yield": "Dew per drift +20%", &"aura": "aura strength +20%",
 		&"nursery": "nursery reach +20% and nurture discount +20% within its existing cap",
-		&"offspring": "its planted Sprouts deal +20% damage",
+		&"offspring": "its planted Sprouts deal 20% more damage",
 		&"shards": "shard yield +20% (fractions carry; the source cap still applies)",
 	}
 	return descriptions.get(bonus_job(tower), TEXT.get(sig, ""))
