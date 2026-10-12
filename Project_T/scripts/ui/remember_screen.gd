@@ -18,7 +18,7 @@ signal node_selected(data: TowerData)  # A node tapped
 signal unlocked(data: TowerData)  # A successful unlock (Sound reads data.tier)
 signal unlock_rejected(data: TowerData)  # Not enough Dreamlight, or still locked
 
-const MOTE := "✦"  # Dreamlight
+const MOTE := UiStyle.DREAMLIGHT_GLYPH  # Dreamlight: the one icon everywhere (user 2026-10-12: "Dreamlight icon looks different on some things"; it was a gold star)
 const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const NAME_SIZE := 14  # Form names under the portraits (body font)
@@ -85,11 +85,12 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	frame.add_child(box)
 
-	# Header: "Remember", "Dreamlight 3 ✦", "Dreamlight unlocks, Dew grows."
+	# Header: "Remember", "Dreamlight <glyph>3", "Dreamlight unlocks, Dew grows."
 	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE, HEADER_COLOR)
 	_title.text = "Remember"
 	box.add_child(_title)
 	UiStyle.number(_light_line, 20)
+	_light_line.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))  # The Dreamlight glyph beside the number
 	box.add_child(_light_line)
 	var hint := Label.new()
 	hint.text = "Dreamlight unlocks, Dew grows."
@@ -274,6 +275,7 @@ func _build_phone() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.add_child(_title)
 	UiStyle.number(_light_line, 22)
+	_light_line.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))
 	_light_line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.add_child(_light_line)
 	var info := Button.new()
@@ -467,7 +469,7 @@ func _forms_of(tree: Array) -> Array[TowerData]:
 	return forms
 
 func _rebuild() -> void:
-	_light_line.text = "Dreamlight %d %s" % [dream_state.dreamlight, MOTE]
+	_light_line.text = "Dreamlight %s" % UiStyle.dreamlight_amount(dream_state.dreamlight)  # The glyph and the number, as everywhere
 	var trees := _trees()
 	for child in _tabs.get_children():
 		_tabs.remove_child(child)
@@ -1278,9 +1280,9 @@ class FormNode extends Button:
 			State.UNLOCKED:  # Its name in gold: unlocked this run, none planted yet
 				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 6)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above the motes, one line
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above its Dreamlight price, one line
 				var price: int = screen.dream_state.get_unlock_price(data)
-				text = MOTE.repeat(price) if price > 0 else "free"
+				text = UiStyle.dreamlight_amount(price) if price > 0 else "free"  # Its price: the Dreamlight glyph and the number
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
 			State.LOCKED:
 				text = data.display_name  # The chain on its line says it's locked
@@ -1298,7 +1300,7 @@ class FormNode extends Button:
 		if text != "":
 			# Counts and motes in the number face; names in the body font, readable (story chat: small caps were tiny)
 			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM
-			var font := UiStyle.body_font() if words else UiStyle.number_font()
+			var font := UiStyle.body_font() if words else UiStyle.with_glyphs(UiStyle.number_font())  # (The Dreamlight glyph is in the glyph font)
 			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
 

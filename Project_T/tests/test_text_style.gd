@@ -283,6 +283,10 @@ func _glyphs(owner: String, source: String, text: String) -> void:
 	if found != null and not GLYPH_EXCEPTIONS.any(func(e: String) -> bool: return text.contains(e)):
 		findings.get_or_add(owner + " glyphs", []).append("%s: \"%s\" (the icon and the number: UiStyle.dew_amount / {dew:N})  [%s]"
 			% [source, found.get_string(), text.left(90).replace("\n", " / ")])
+	# The gold star once stood for Dreamlight (user 2026-10-12: "Dreamlight icon looks different on some things"): never now.
+	if text.contains("✦"):
+		findings.get_or_add(owner + " glyphs", []).append("%s: the star stands for Dreamlight (UiStyle.dreamlight_amount / DREAMLIGHT_GLYPH)  [%s]"
+			% [source, text.left(90).replace("\n", " / ")])
 
 # Card wording, one way each (text_style.md, 2026-10-02): distances in cells, caps as "up to", Warden bonuses as
 # verbs. Its findings go under "<owner> wording": enforced for WORDING_ENFORCED, TODO for the rest until their sweep.

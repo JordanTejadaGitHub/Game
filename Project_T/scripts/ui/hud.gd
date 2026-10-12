@@ -793,7 +793,9 @@ var _remember_glow := 0.0
 
 func _add_remember_button() -> void:
 	remember_button.name = "RememberButton"
-	remember_button.text = "✦"
+	remember_button.text = ""
+	# The Dreamlight icon, the counter's own gem (user 2026-10-12: one Dreamlight icon everywhere; it was a gold star)
+	remember_button.icon = IconInfo.hud_icon(HUD_COUNTER_ICONS[&"dreamlight"]) if IconInfo.hud_icon(HUD_COUNTER_ICONS[&"dreamlight"]) != null else IconInfo.icon(&"dreamlight")
 	remember_button.tooltip_text = "Remember: spend Dreamlight on your families' branches and final forms."
 	remember_button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(remember_button, REMEMBER_SLOT)
@@ -863,7 +865,7 @@ const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton
 const TOP_ROW_GAP := 0.0  # The visible boxes are inset, so they sit 12 px apart
 # The top-right row as in the Moonlit Thread mock (screens_ui.md "Top-right layout, as in the Moonlit
 # Thread mock-up"): leaves · Dew · Dreamlight · path (icon + a big Cormorant number), then the icon
-# buttons Remember ✦ · Boosts · ? · ≡, all on one soft fog patch. When the buttons would run into the
+# buttons Remember (the Dreamlight icon) · Boosts · ? · ≡, all on one soft fog patch. When the buttons would run into the
 # drift banner's text (1280 wide), they wrap onto a second line inside the same patch. The nodes stay
 # direct HUD children (laid out here), so %DewLabel / HUD/MenuButton paths keep working.
 const ROW_RIGHT := -16.0
@@ -1105,7 +1107,7 @@ func _process(delta: float) -> void:
 	_remember_check -= real
 	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
 		_remember_check = 0.25
-		_remember_ready = can_remember_something()  # ✦ glows (below) when Dreamlight can buy something
+		_remember_ready = can_remember_something()  # The Remember icon glows (below) when Dreamlight can buy something
 	_row_check -= real
 	if _row_check <= 0.0:  # The top-right row follows its numbers, buttons and the banner (cheap key)
 		_row_check = 0.2
