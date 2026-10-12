@@ -153,6 +153,7 @@ func _run() -> void:
 	dreams.stacks = {"drumbeat": 1, "flurry": 1}
 	dreams.bump_board()
 	dreams._role_relay.clear()
+	dreams._role_drummed.clear()  # One trigger per attack: a fresh recipient for this case
 	relay_center._cooldown = 2.0
 	branch._attack_count = DreamState.FLURRY_EVERY - 1
 	branch._release()

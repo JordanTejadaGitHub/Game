@@ -14,3 +14,4 @@ min_kinships = 1
 discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 rule_id = &"rooted_bond"
+retired = true

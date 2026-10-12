@@ -985,14 +985,21 @@ func get_attacks_per_second() -> float:
 		_turnover_cached_active = turnover
 		clear_dream_cache()
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
+	var spin := momentum  # The Windmill's own spin-up is no Dream card: outside the cap
 	if _dream_state:
 		momentum += HelperCommons.speed_bonus(self)  # Rush, Close Quarters
 	if _dream_state and _any_rule(&"grove_speed", GROVE_SPEED_RULES):
 		momentum += GroveRules.speed_bonus(self)  # Momentum (a streak), Quickening (a dispel in range)
-	if _stats_fresh() and _stats.has(&"speed"):
-		return _stats[&"speed"] * (1.0 + momentum)
-	_stats[&"speed"] = _compute_attacks_per_second()
-	return _stats[&"speed"] * (1.0 + momentum)
+	if not (_stats_fresh() and _stats.has(&"speed")):
+		_stats[&"speed"] = _compute_attacks_per_second()
+	var total: float = _stats[&"speed"] * (1.0 + momentum)
+	var top: float = _speed_top * (1.0 + spin)
+	if _dream_state and momentum > spin and _speed_top > 0.0 and total > top:
+		total = maxf(top, _stats[&"speed"] * (1.0 + spin))  # The streak cards (Momentum, Quickening, Rush…) count inside the Dream cap
+	return total
+
+var speed_capped := false  # Its Dream attack-speed bonus is at the +150% cap (the Warden panel can say "capped")
+var _speed_top := 0.0  # Attacks a second at the Dream cap (set by _compute_attacks_per_second)
 
 func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
@@ -1004,15 +1011,25 @@ func _compute_attacks_per_second() -> float:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
 		dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
+	# Everything that isn't a Dream card (ranks, auras, the Omen, Gifts): the cards' cap is measured from here.
+	var plain := speed * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
 	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
+	# Dream cards together add at most +150% attack speed to one Warden (card_review_2026-10-12.md 1: The Last Light,
+	# Rootbound and Whirlwind Heart's doubling reached about x5). Ranks, auras and Kinships sit outside the cap.
+	var top := plain * (1.0 + DreamState.DREAM_SPEED_CAP)
+	speed_capped = _dream_state != null and bonus > top + 0.0001
+	if speed_capped:
+		bonus = top
 	var dim := 1.0 if dim_multiplier < 1.0 and is_sheltered() else dim_multiplier  # Shelter: no cold-lantern dimming
 	var aps := attack_data.attacks_per_second * bonus * dim \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
-	return aps * Signatures.multiplier(self, &"speed")
+	var signature: float = Signatures.multiplier(self, &"speed")
+	_speed_top = aps / maxf(bonus, 0.0001) * top * signature  # Attacks a second at the Dream cap
+	return aps * signature
 
 func get_range_cells() -> float:
 	if _stats_fresh() and _stats.has(&"range"):
@@ -2881,8 +2898,9 @@ func _legendary_hit_rules(enemy: Node2D, soothe: float) -> void:
 			enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, soothe, 0, "light", self)
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	if _has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0:
+	if _has_rule(&"rooted_nightmares") and _hits_landed % ROOTED_NIGHTMARES_EVERY == 0 and not s.is_on_cooldown(&"rooted_nightmares"):
 		var time := ROOTED_BOSS_TIME if s.is_boss else ROOTED_TIME
+		s.start_cooldown(&"rooted_nightmares", DreamState.ROOTED_NIGHTMARES_COOLDOWN)  # At most once every 4 s per nightmare (card_review_2026-10-12.md 1)
 		hold(enemy, time)
 
 # Twin Puff: every 3rd Sporeling attack (II: every 2nd) fires twice.

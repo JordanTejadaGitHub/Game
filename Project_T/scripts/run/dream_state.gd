@@ -24,6 +24,7 @@ const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 =
 const HEDGE_TOUCH_PER := [0.05, 0.08]  # Hedge Maze / II: per Thornwall touching the Warden (dream_design.md 7fc0665c, Balancing)
 const HEDGE_TOUCH_MAX := [0.30, 0.48]
 const SPORE_CASCADE_TARGETS := [2, 3]
+const SPORE_CASCADE_SHARE := 0.5  # Share of the dispelled nightmare's Poisoned stacks each target gets
 const TENDED_FOREST_PER_CLEAR := 0.02
 const TENDED_FOREST_MAX := 0.40
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
@@ -146,6 +147,9 @@ const HEAVY_AIR_BONUS := 0.40
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
 const WANDERING_MIND_REROLLS := 2
 const WINDING_PATH_TILES := 2  # +1 Dew per this many path tiles within a Warden's reach, at each rest (Balancing, 7fc0665c)
+const WINDING_PATH_MAX := 30  # At most this much Dew a rest (card_review_2026-10-12.md 1)
+const DREAM_SPEED_CAP := 1.5  # Dream cards together add at most +150% attack speed to one Warden (Tower._compute_attacks_per_second)
+const ROOTED_NIGHTMARES_COOLDOWN := 4.0  # Rooted Nightmares Roots one nightmare at most this often (seconds)
 const SHELTER_BONUS := 0.30
 const CLIFFSIDE_RANGE := 1.0
 const CLIFFSIDE_BONUS := 0.20  # …and +20% damage (dream_audit.md)
@@ -1762,6 +1766,10 @@ func thornwall_count() -> float:
 			count += wall_weight(tower)
 	return count
 
+# Winding Path's Dew at a rest: +1 per WINDING_PATH_TILES covered path tiles, capped.
+func winding_path_dew(power: float = 1.0) -> int:
+	return mini(roundi(covered_path_tiles() / WINDING_PATH_TILES * power), WINDING_PATH_MAX)
+
 # Deep Sleep (Bittersweet, dream_design.md e1e39b56): no rest bonus for the rest of the run. The base bonus (and the
 # perfect block's) becomes 0; Dreams that add to it (Morning Dew, Winding Path…) still add. DriftDirector asks.
 func keeps_rest_bonus() -> bool:
@@ -1775,7 +1783,7 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
-		add += roundi(covered_path_tiles() / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 2 covered path tiles
+		add += winding_path_dew(rule_power(&"winding_path"))  # Winding Path: +1 Dew per 2 covered path tiles, up to WINDING_PATH_MAX
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -3111,7 +3119,7 @@ func _on_tower_built(tower: Tower) -> void:
 		_walls_planted += 1  # Weathered Walls
 	if tower.tower_data.get_id() == "sprout":
 		sprouts_planted += 1  # Bountiful
-	_mark_fresh(tower)
+	# (Fresh Growth no longer marks planted Wardens: card_review_2026-10-12.md 1, sell-and-replant gave the whole board +50%)
 	_watch_growth(tower)
 	_discover_warden(tower)
 	_watch_nurture(tower)
@@ -3194,7 +3202,7 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_passing_dream(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
-	var spores: int = enemy.statuses.stacks(EnemyStatuses.SPORED)
+	var spores: int = ceili(enemy.statuses.stacks(EnemyStatuses.SPORED) * SPORE_CASCADE_SHARE)  # Half, rounded up (was all: it snowballed)
 	var potency: float = enemy.statuses.potency(EnemyStatuses.SPORED)
 	var duration: float = enemy.statuses.copy_duration(EnemyStatuses.SPORED)
 	var line: String = enemy.statuses.spore_line()
@@ -3567,7 +3575,7 @@ func _rest_rules(perfect: bool) -> void:
 		tower.remove_meta(&"fresh_growth")
 	_pick_underdogs()
 
-# Fresh Growth: planted or grown during a drift (not at a rest) marks a Warden until the next rest.
+# Fresh Growth: a Warden grown during a drift (not at a rest, never just planted) is marked until the next rest.
 func _mark_fresh(tower: Tower) -> void:
 	if has_rule(&"fresh_growth") and not drift_director.resting:
 		tower.set_meta(&"fresh_growth", true)
@@ -5120,6 +5128,7 @@ var _role_neighbors := {}
 var _role_clusters := {}
 var _role_recent := {}
 var _role_relay := {}
+var _role_drummed := {}  # Tower instance id -> true: Drumbeat already shortened its cooldown since its last own attack
 var _role_primary := {}
 var _role_pinned := {}
 var _role_canopy_on := {}
@@ -5134,6 +5143,7 @@ func clear_build_role_state() -> void:
 	_role_clusters.clear()
 	_role_recent.clear()
 	_role_relay.clear()
+	_role_drummed.clear()
 	_role_primary.clear()
 	_role_pinned.clear()
 	_role_canopy_on.clear()
@@ -5146,6 +5156,7 @@ func _build_role_topology() -> void:
 	_role_neighbors.clear()
 	_role_clusters.clear()
 	_role_relay.clear()
+	_role_drummed.clear()
 	var attackers: Array[Tower] = []
 	var cells := {}
 	for tower in _towers():
@@ -5188,11 +5199,14 @@ func on_original_attack_hit(tower: Tower, enemy: Node2D) -> void:
 func on_original_attack_released(tower: Tower, _primary: Node2D = null) -> void:
 	if not has_rule(&"drumbeat"):
 		return
+	_role_drummed.erase(tower.get_instance_id())  # Its own attack: its neighbours may hurry its next one again
 	_build_role_topology()
 	for recipient in _role_neighbors.get(tower.get_instance_id(), []):
 		var key: int = recipient.get_instance_id()
 		if _role_neighbors.get(key, []).size() < 2:
 			continue
+		if _role_drummed.has(key):
+			continue  # One trigger per attack of the recipient (card_review_2026-10-12.md 1)
 		var cycle: Dictionary = _role_relay.get(key, {})
 		cycle[tower.get_instance_id()] = true
 		if cycle.size() >= 2:
@@ -5200,6 +5214,7 @@ func on_original_attack_released(tower: Tower, _primary: Node2D = null) -> void:
 			var base: float = recipient.attack_data.attacks_per_second
 			if base > 0.0:
 				recipient._cooldown = maxf(0.0, recipient._cooldown - 0.35 / base)
+				_role_drummed[key] = true
 			cycle.clear()
 		_role_relay[key] = cycle
 

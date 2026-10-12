@@ -822,8 +822,8 @@ func _state_line(rule: StringName, power: float) -> String:
 			return ds.sunlit_line()
 		&"winding_path":
 			var tiles: int = ds.covered_path_tiles()  # Only the path within a Warden's reach (dream_design.md 7fc0665c)
-			return "Now: %s in reach · +%d Dew per rest" % [count_text(tiles, "path tile"),
-				roundi(tiles / DreamState.WINDING_PATH_TILES * power)]
+			return "Now: %s in reach · +%d Dew per rest (up to %d)" % [count_text(tiles, "path tile"),
+				ds.winding_path_dew(power), DreamState.WINDING_PATH_MAX]
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]
 		&"canopy":

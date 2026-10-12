@@ -303,7 +303,7 @@ func _test_economy() -> void:
 	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
 		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == 10 + dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, "Winding Path: +1 Dew per 2 path tiles in a Warden's reach (%d in reach, + Morning Dew's 10)" % dreams.covered_path_tiles())
+	_check(dreams.get_rest_bonus_add() == 10 + mini(dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, DreamState.WINDING_PATH_MAX), "Winding Path: +1 Dew per 2 path tiles in a Warden's reach, up to 30 (%d in reach, + Morning Dew's 10)" % dreams.covered_path_tiles())
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
@@ -344,7 +344,7 @@ func _test_stat_rules() -> void:
 	var start: Vector2 = map_generator.startPath
 	_check(_row(long if long else short, start + Vector2(2, 2), "forests_edge").active
 		and not _row(long if long else short, start + Vector2(4, 0), "forests_edge").active, "Forest's Edge: within 3 cells of the start")
-	# Fresh Growth: planted during a drift, until the next rest
+	# Fresh Growth: grown during a drift (not planted), until the next rest
 	dreams.take(_card("fresh_growth"))
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var tower := _plant("sporeling", Vector2(100, 100))
@@ -352,7 +352,7 @@ func _test_stat_rules() -> void:
 	dreams._mark_fresh(tower)
 	director.resting = true
 	var base := dreams.get_soothe_multiplier(tower)
-	_check(dreams.is_fresh(tower) and _row(tower.tower_data, tower.cell, "fresh_growth", tower).active, "Fresh Growth: planted during a drift")
+	_check(dreams.is_fresh(tower) and _row(tower.tower_data, tower.cell, "fresh_growth", tower).active, "Fresh Growth: grown during a drift (planting no longer marks: _on_tower_built doesn't call _mark_fresh)")
 	dreams._rest_rules(false)
 	_check(not dreams.is_fresh(tower) and is_equal_approx(base - dreams.get_soothe_multiplier(tower), 0.50), "…+50% until the next rest")
 	_clear()
@@ -998,7 +998,7 @@ func _test_live_lines() -> void:
 	_reset()
 	var fx := dreams.effects()
 	var line: String = fx.preview_line(_card("winding_path"))
-	_check(line == "Now: %s in reach · +%d Dew per rest" % [("%d path tiles" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path tile", dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES], "Winding Path: %s" % line)
+	_check(line == "Now: %s in reach · +%d Dew per rest (up to %d)" % [("%d path tiles" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path tile", dreams.winding_path_dew(), DreamState.WINDING_PATH_MAX], "Winding Path: %s" % line)
 	var dew := run_state.dew
 	run_state.dew = 275
 	line = fx.preview_line(_card("deep_well"))
