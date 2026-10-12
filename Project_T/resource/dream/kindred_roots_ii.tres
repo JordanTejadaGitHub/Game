@@ -13,3 +13,4 @@ tags = Array[String](["nurture", "maze", "tall"])
 max_stacks = 1
 deepens = "kindred_roots"
 rule_id = &"kindred_roots"
+retired = true

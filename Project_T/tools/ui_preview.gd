@@ -3,7 +3,7 @@ extends SceneTree
 # Renders the Moonlit Thread UI (documentation/ui_style.md) to PNGs so the look can be checked
 # without playing: the run HUD, the Dream choice, and a component sheet. Needs a window (not
 # --headless). Never touches the player's saves (main.tscn isn't the running scene).
-#   godot --path . --script res://tools/ui_preview.gd -- --out=C:/tmp/ui
+#   godot --path . --script res://tools/ui_preview.gd -- --out=D:/Projects/logs/ui_preview
 
 var out_dir := "user://ui_preview"
 

@@ -334,10 +334,10 @@ func _run() -> void:
 	# Resonant Hollow A: the Echo Hollow sets off 3 Static charges like a chime
 	var hollow: Tower = made[&"resonant_hollow"][0]
 	var charged := _spawn(hollow.global_position + Vector2(64, 0))
-	charged.statuses.apply(EnemyStatuses.STATIC, 3, 10.0, 10.0)
+	charged.statuses.apply(EnemyStatuses.STATIC, 12, 10.0, 10.0)
 	hollow.resonant_set_off(charged)
 	_check(not charged.statuses.has(EnemyStatuses.STATIC) and charged.health < charged.max_health,
-		"Resonant Hollow: the echo sets off Static at 3 charges")
+		"Resonant Hollow: the echo sets off Static at 12 charges")
 	# True Graft A: the Graftling copies at 100%
 	var graft: Tower = made[&"true_graft"][0]
 	_check(is_equal_approx(lerpf(graft.tower_data.copy_share, 1.0, graft.kin_share(&"true_graft", "a")), 1.0),

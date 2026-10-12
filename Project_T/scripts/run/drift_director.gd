@@ -18,6 +18,7 @@ class_name DriftDirector
 # - A drift is cleared when all its creatures (including split-off ones and followers) are
 #   cleansed or reached the Heartwood.
 
+signal early_overlap_changed
 signal drift_started(number: int)
 # `bonus` is 0 now that bonuses are paid at rests; `perfect` = no leaf lost to this drift.
 signal drift_cleared(number: int, bonus: int, perfect: bool)
@@ -62,7 +63,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var block_finale_elites := {10: 1, 15: 2, 30: 2, 60: 3}  # Drift 10 eased (it was the run's hardest point at 2); 30 / 60 one fewer (Balancing: act 2 finales took ~71% of act 2's leaves in human runs)
 # Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
 # block finale from `block_finale_health_from` has this much more health, on top of everything else.
-@export var block_finale_health_multiplier: float = 1.4
+@export var block_finale_health_multiplier: float = 1.2  # Balancing: act 2 finales still the run-ender with elites at 2 (was 1.4)
 @export var block_finale_health_from: int = 15  # Drift 10 keeps only its elite (Balancing: ×1.4 there ended a full-leaf run)
 
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
@@ -157,8 +158,9 @@ var blocks_rested := 0  # Rests reached (= blocks finished)
 var bosses_cleansed := 0
 var resting := true  # The run starts in a rest (build before drift 1)
 var awaiting_family_pick := false
-# Drifts on the field: {number: {"remaining": int, "arriving": bool, "leaked": bool}}.
+# Drifts on the field also retain whether their call was early.
 var _active := {}
+var _early_on_field := 0
 # Which drift each creature on the field belongs to: {enemy: number}.
 var _drift_of := {}
 # Arrivals still to come, per drift: {number: {"schedule": [[time, EnemyData, elite], ...], "clock": float}}.
@@ -174,7 +176,48 @@ var _own_drifts := false  # The drifts came from DEMO_DRIFTS_DIR (boss pools may
 # limited, and it ends with the act 2 boss (the Mire Hag) at DEMO_LAST_DRIFT. One curve for the demo and the full game (user, 2026-10-07).
 const DEMO_LAST_DRIFT := 50
 
+# Fund maze expansion without increasing the opening or the existing Act2 health ramp.
+@export var maze_act1_health_bonus := 0.05
+@export var maze_act1_dew_bonus := 0.15
+@export var maze_act2_dew_bonus := 0.20
+
+const MAZE_ECONOMY := preload("res://scripts/run/maze_economy.gd")
+var maze_economy = MAZE_ECONOMY.new()
+var maze_reward_last := 0
+var _maze_preview := 0
+var _maze_refresh_left := 0.0
+
+func _maze_map() -> Node:
+	return get_node_or_null("%MapGenerator")
+
+# Whole cells the route is longer than the forest's own path now (the maze bonus's tip; maze_economy.md
+# "Path length only": no defended / attacker test any more).
+func get_maze_added_cells() -> int:
+	return maze_economy.added_cells(_maze_map())
+
+func _maze_changed() -> void:
+	_maze_refresh_left = 0.0
+	# Observe immediately: a temporary shorten-and-rebuild cannot restore unpaid credit.
+	if not resting:
+		maze_economy.observe(_maze_map())
+
+func get_maze_reward_preview() -> int:
+	if _maze_refresh_left <= 0.0:
+		_maze_preview = maze_economy.preview(_maze_map())
+		_maze_refresh_left = 0.5
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	return _maze_preview if dreams == null or dreams.keeps_rest_bonus() else 0
+
+func get_maze_reward_projection() -> int:
+	var number := maxi(1, drifts_started + (1 if resting else 0))
+	var block := get_block(number)
+	var quick_rest := drifts_started == 0 or (drifts_started == 1 and not resting)
+	var last := 1 if quick_rest else mini(block * drifts_per_block, drifts.size())
+	return maze_economy.projected(block, last, get_maze_reward_preview(), drifts_per_block)
+
 func _ready() -> void:
+	maze_economy.capture_baseline(_maze_map())
+	_maze_map().path_changed.connect(_maze_changed)
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
 		_own_drifts = true
@@ -231,6 +274,11 @@ static func load_demo_drifts() -> Array[DriftData]:
 	return result
 
 func _process(delta: float) -> void:
+	_maze_refresh_left -= delta
+	if _maze_refresh_left <= 0.0:
+		get_maze_reward_preview()
+		if not resting:
+			maze_economy.observe(_maze_map())
 	for number in _arriving.keys():
 		var arrival: Dictionary = _arriving[number]
 		arrival.clock += delta
@@ -408,7 +456,8 @@ func _start_drift() -> void:
 	_auto_timer = -1.0
 	drifts_started += 1
 	var number := drifts_started
-	_active[number] = {"remaining": 0, "arriving": true, "leaked": false}
+	maze_economy.sample(number, get_block(number), _maze_map())
+	_active[number] = {"remaining": 0, "arriving": true, "leaked": false, "called_early": _called_early}
 	var mods := get_schedule_modifiers(number)
 	_arriving[number] = {
 		"schedule": drifts[number - 1].get_schedule(mods.get("count", 1.0), mods.get("flyers", 1.0),
@@ -461,6 +510,9 @@ func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> floa
 		scale *= get_early_multiplier(number)
 	if not data.is_boss and not elite and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
 		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md); its elites keep their own ×3 (Balancing, run 16)
+	if act == 1 and not data.is_boss and not elite:
+		var maze_ramp := clampf(float(number - 10) / 14.0, 0.0, 1.0)
+		scale *= 1.0 + maze_act1_health_bonus * maze_ramp
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
@@ -555,6 +607,7 @@ func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1
 		return  # No route (shouldn't happen: building never fully blocks the path)
 	_drift_of[enemy] = number
 	_active[number].remaining += 1
+	_refresh_early_overlap()
 	if share >= 0.0 and enemy.has_method("set_dew_share"):
 		enemy.set_dew_share(share)  # Its followers take their part of it (Enemy.FOLLOWER_DEW_SHARE)
 
@@ -578,7 +631,9 @@ func get_dew_pot(number: int) -> float:
 	var row: Vector2 = dew_pot_acts[clampi(act - 1, 0, dew_pot_acts.size() - 1)]
 	var first := (act - 1) * drifts_per_act + 1
 	var last := act * drifts_per_act - 1
-	return lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
+	var base := lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
+	var maze_bonus := maze_act1_dew_bonus if act == 1 and number >= 11 else (maze_act2_dew_bonus if act == 2 else 0.0)
+	return base * (1.0 + maze_bonus)
 
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
@@ -646,6 +701,21 @@ func _on_enemy_split(parent: Node2D, child: Node2D) -> void:
 	var number: int = _drift_of[parent]
 	_drift_of[child] = number
 	_active[number].remaining += 1
+	_refresh_early_overlap()
+
+# Count only drifts with nightmares actually on the field, not future scheduled arrivals.
+func early_drifts_on_field() -> int:
+	var count := 0
+	for drift: Dictionary in _active.values():
+		if drift.get("called_early", false) and int(drift.get("remaining", 0)) > 0:
+			count += 1
+	return count
+
+func _refresh_early_overlap() -> void:
+	var count := early_drifts_on_field()
+	if count != _early_on_field:
+		_early_on_field = count
+		early_overlap_changed.emit()
 
 # The drift that spawned `enemy` (split children and followers: their parent's), 0 if none.
 func drift_of(enemy: Node) -> int:
@@ -672,6 +742,7 @@ func _resolve(enemy: Node2D, leaked: bool) -> void:
 	_drift_of.erase(enemy)
 	var drift: Dictionary = _active[number]
 	drift.remaining -= 1
+	_refresh_early_overlap()
 	if leaked:
 		drift.leaked = true
 		_block_leaked = true
@@ -730,6 +801,10 @@ func _pay_rest_bonus() -> Array:
 		bonus += dreams.get_dew_per_clear()  # Morning Dew
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
+	maze_economy.observe(_maze_map())
+	var maze_claim: int = maze_economy.claim(block)
+	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
+	bonus += maze_reward_last
 	run_state.add_dew(bonus)
 	_block_leaked = false
 	return [bonus, perfect]

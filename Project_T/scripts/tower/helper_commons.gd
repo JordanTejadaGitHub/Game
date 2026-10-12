@@ -17,7 +17,7 @@ const SCATTER_TIME := 1.5  # …for 1.5 s
 const RUSH_FIELD := 10  # Rush: while 10+ nightmares are on the field…
 const RUSH := 0.20  # …all Wardens attack 20% faster
 const FIRST_AMONG_EQUALS := 0.50  # The highest-rank Warden deals +50%
-const GROWTH_RINGS := 0.1  # Each Nurture rank +0.1 range
+const GROWTH_RINGS := 0.15  # Each Nurture rank +0.25 range instead of +0.1 (this on top of Tower.RANK_RANGE)
 const HOBBLE_SLOW := 0.30  # Hobble: a crit slows 30%…
 const HOBBLE_TIME := 1.0  # …for 1 s
 const HEAD_OF_THE_LINE := 0.25  # +25% on the nightmare furthest along
@@ -163,6 +163,11 @@ static func area_attack_extra(tower: Tower) -> float:
 	var count := int(tower.get_meta(&"area_attacks", 0)) + 1
 	tower.set_meta(&"area_attacks", count)
 	return WIDE_SWING if count % WIDE_SWING_EVERY == 0 else 0.0
+
+# Wide Petals (card_review_2026-10-12.md 10): pulses reach wider too. Splashes and clouds get it from
+# DreamState.get_area_radius_add; a pulse adds this to the swing of each release.
+static func pulse_extra(tower: Tower) -> float:
+	return DreamState.WIDE_PETALS_RADIUS if tower._has_rule(&"wide_petals") else 0.0
 
 # After an area attack hit `hit`: Scatter slows them when 3+ were hit.
 static func area_attack_hit(tower: Tower, hit: Array) -> void:

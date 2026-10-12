@@ -37,6 +37,7 @@ func _run() -> void:
 	await _test_dewdrop()
 	await _test_firefly()
 	await _test_bellflower()
+	await _test_cone_crowd_breaker()
 	await _test_finals()
 	await _test_named_pairs()
 
@@ -129,9 +130,9 @@ func _test_sporeling() -> void:
 	var cracked = _spawn(Vector2(7, 8))
 	cracked.coat_max = 1000.0
 	cracked.coat = 1000.0
-	old._apply_one_status(cracked, EnemyStatuses.SPORED, 8, 20.0)
+	old._apply_one_status(cracked, EnemyStatuses.SPORED, 32, 20.0)
 	BranchKit.on_spore_tick(cracked)
-	_check(cracked.coat == 0.0, "Old Lichen: at 8 Spored the shell cracks off")
+	_check(cracked.coat == 0.0, "Old Lichen: at 32 Poisoned the shell cracks off")
 	await _clean()
 
 	# Brood Cap: a sprite walks up the path and bursts on the first nightmare, a hidden one too.
@@ -342,6 +343,38 @@ func _test_bellflower() -> void:
 
 # --- The finals' twists ---------------------------------------------------------------------------------------------
 
+# Crowd Breaker counts only targets inside this cone and resets for each attack.
+func _test_cone_crowd_breaker() -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	for id in ["thrum", "resonance"]:
+		var tower := _plant(id, Vector2(4, 12))
+		tower.attack_data = tower.attack_data.duplicate()
+		tower.attack_data.crit_chance = 0.0
+		tower.target_chosen = true
+		tower.target_mode = TowerData.TargetMode.STRONGEST
+		var front = _spawn(Vector2(6, 12))
+		front.max_health = 900000
+		front.health = 900000
+		var side = _spawn(Vector2(6, 13.2))
+		var behind = _spawn(Vector2(2, 12))
+		BranchKit.release(tower)
+		var baseline: float = front.max_health - front.health
+		dreams.take(load("res://resource/dream/crowd_breaker.tres"))
+		var before: float = front.health
+		BranchKit.release(tower)
+		_check(absf((before - front.health) - baseline * 1.10) <= 1.0,
+			"%s: two cone targets gain 10%% from Crowd Breaker; rear target excluded (damage %.1f, base %.1f)" % [id, before - front.health, baseline])
+		_check(behind.health == behind.max_health, "%s: Crowd Breaker does not hit behind the cone" % id)
+		side.queue_free()
+		await process_frame
+		before = front.health
+		BranchKit.release(tower)
+		_check(is_equal_approx(before - front.health, baseline),
+			"%s: single-target cone does not retain the previous crowd bonus" % id)
+		dreams.stacks.erase("crowd_breaker")
+		dreams.bump_board()
+		await _clean()
+
 func _test_finals() -> void:
 	# Hatchery: every 5th sprite is big and splits into 3 when it bursts.
 	var hatch := _plant("hatchery", _route_cell(10) + Vector2(0, 1))
@@ -385,8 +418,19 @@ func _test_finals() -> void:
 	var route := torrent._route()
 	var in_line = _spawn(route[8])
 	BranchKit.release(torrent)
-	var trails := main.get_children().filter(func(n) -> bool: return n is BranchKit.GroundZone and n.kind == &"wet")
-	_check(not trails.is_empty(), "Torrent: the jet leaves a wet trail (%d tiles)" % trails.size())
+	var puddles := BranchKit.Puddles.find(torrent)
+	var wet: Array = puddles.cells.keys()
+	_check(not wet.is_empty(), "Torrent: the jet leaves a wet trail (%d tiles)" % wet.size())
+	_check(wet.all(func(c) -> bool: return route.has(c)) and puddles.z_index == -1,
+		"…puddles on path cells only, on the ground (the user: \"update the wet trail from Torrent\")")
+	var before := wet.size()
+	BranchKit.release(torrent)
+	_check(puddles.cells.size() == before, "a second jet over the same cells merges, never stacks (%d)" % puddles.cells.size())
+	var walker = _spawn(wet[0])
+	walker.set_process(false)
+	puddles._soak()
+	_check(walker.statuses.has(EnemyStatuses.DAMP), "a walker on a puddle is Soaked")
+	puddles.cells.clear()
 	await _clean()
 
 	# Lightning Fence: catches flyers crossing it; a Jarlink fence doesn't.
@@ -534,7 +578,8 @@ func _clean() -> void:
 	for tower in container.get_children():
 		tower.queue_free()
 	for node in main.get_children():
-		if node is BranchKit.GroundZone or node is BranchKit.BroodSprite or node is BranchKit.LineFlash or node is BranchKit.ConeFlash:
+		if node is BranchKit.GroundZone or node is BranchKit.BroodSprite or node is BranchKit.LineFlash or node is BranchKit.ConeFlash \
+				or node is BranchKit.Puddles:
 			node.queue_free()
 	await process_frame
 

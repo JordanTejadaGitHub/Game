@@ -40,7 +40,10 @@ func _test_card_changes() -> void:
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
 			and card.in_start_pool == (id == "hunters_moon") and card.requires.is_empty() and card.requires_tag == "",
 			"%s: a Grove Legendary with no Needs (Hunter's Moon: start pool since 495076d2)" % id)
-		_check(dreams.is_eligible(card, 2) and not dreams.is_eligible(card, 1), "%s is offered from act 2" % id)
+		if id == "menagerie":
+			_check(card.retired and not dreams.is_eligible(card, 2), "Menagerie keeps its legacy identity but cannot enter new offers")
+		else:
+			_check(dreams.is_eligible(card, 2) and not dreams.is_eligible(card, 1), "%s is offered from act 2" % id)
 	for id in ["thousand_cuts", "seed_storm", "eye_of_the_tempest", "ring_of_rings"]:
 		_check(_card(id).rarity == UpgradeData.Rarity.RARE, "%s is now Rare" % id)
 	_check(_card("nightshade").potency_bonus == 0.0 and _card("the_old_ones").rank_crit_bonus == 0.0,
@@ -143,16 +146,32 @@ func _test_damage_legendaries() -> void:
 	run_state.leaves = 15
 	_clear_towers()
 
-	# Restless Night: +8% per early call this block, reset at rest
+	# Impatient Night: live overlap from distinct early-called drifts, not accumulated calls.
 	_reset()
 	a = _plant("sporeling", Vector2(100, 100), 0)
 	base = dreams.get_soothe_multiplier(a)
 	dreams.take(_card("restless_night"))
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var kept_active := director._active.duplicate(true)
 	dreams._early_calls = 3
-	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.24), "Restless Night: 3 early calls = +24%")
+	director._active = {1: {"called_early": true, "remaining": 1}, 2: {"called_early": false, "remaining": 1}, 3: {"called_early": true, "remaining": 0}}
+	director._refresh_early_overlap()
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a), base), "Impatient Night: past calls and scheduled arrivals grant no overlap damage")
+	director._active[3].remaining = 1
+	director._refresh_early_overlap()
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "Impatient Night: two early-called drifts on field grant double damage")
+	director._active[4] = {"called_early": true, "remaining": 1}
+	director._refresh_early_overlap()
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "Impatient Night: a third overlapping drift never stacks the bonus")
+	director._active[3].remaining = 0
+	director._active[4].remaining = 0
+	director._refresh_early_overlap()
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a), base), "Impatient Night: damage ends immediately when overlap ends")
+	director._active = kept_active
+	director._refresh_early_overlap()
 	dreams._on_rest_started(1, false, 0, true)
 	dreams._pending_drifts.clear()
-	_check(dreams._early_calls == 0, "…resets at the rest")
+	_check(dreams._early_calls == 0, "early-call telemetry still resets at rest")
 	_clear_towers()
 
 	# Crossroads: touching two route tiles 6+ steps apart
@@ -163,7 +182,7 @@ func _test_damage_legendaries() -> void:
 		var cross := _plant("sporeling", fold, 0)
 		base = dreams.get_soothe_multiplier(cross)
 		dreams.take(_card("crossroads"))
-		_check(is_equal_approx(dreams.get_soothe_multiplier(cross) - base, 0.40), "Crossroads: +40% where the route folds back")
+		_check(is_equal_approx(dreams.get_soothe_multiplier(cross) - base, DreamState.CROSSROADS_BONUS) and DreamState.CROSSROADS_BONUS == 1.0, "Crossroads: double damage where the route folds back")
 	var plain := _plant("sporeling", Vector2(200, 200), 0)
 	_check(dreams.get_crossroads_bonus(plain) == 0.0, "…nothing away from the route")
 	_clear_towers()
@@ -177,8 +196,8 @@ func _test_damage_legendaries() -> void:
 	var off_base := dreams.get_soothe_multiplier(off_clear)
 	dreams.clearing_open = true
 	dreams.take(_card("wildwood_reclaimed"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.36)
-		and is_equal_approx(dreams.get_soothe_multiplier(off_clear), off_base), "Wildwood: +30% +2% per clear, only on cleared cells")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.59)
+		and is_equal_approx(dreams.get_soothe_multiplier(off_clear), off_base), "Wildwood: +50% +3% per clear (3 clears), only on cleared cells")
 	run_state.tended_cells.clear()
 	_clear_towers()
 

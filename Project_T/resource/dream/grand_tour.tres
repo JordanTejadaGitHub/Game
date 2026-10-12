@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "grand_tour"
 display_name = "Grand Tour"
-description = "Wardens deal 10% more damage for each different status your Wardens can apply (up to +70%)."
+description = "A nightmare carrying 3 or more different statuses takes 30% more damage from every Warden."
 rarity = 2
 kind = 3
 tags = Array[String](["variety", "overgrowth"])
 requires = Array[String]([])
 max_stacks = 1
-min_owned_statuses = 2
+min_owned_statuses = 3
 rule_id = &"grand_tour"
 in_start_pool = false

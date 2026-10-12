@@ -73,13 +73,14 @@ func _run() -> void:
 	_check(container.get_child_count() == before + 2 and not placer.stroking and placer.build_mode,
 		"Confirm builds the two, build mode stays on (%d planted)" % (container.get_child_count() - before))
 	_check(touch._done.visible, "Done shows while building with nothing pending")
+	_check(placer._session_built.size() == 2, "the two built stay outlined blue while build mode lasts")
 
 	placer.select_tower(load("res://resource/tower/thornwall.tres"))
 	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
 	touch._cancel.pressed.emit()
 	_check(not placer.stroking, "Cancel drops the pending Wardens")
 	touch._done.pressed.emit()
-	_check(not placer.build_mode, "Done stops building")
+	_check(not placer.build_mode and placer._session_built.is_empty(), "Done stops building (and the blue outlines)")
 	placer.set_build_mode(false)
 	await process_frame
 

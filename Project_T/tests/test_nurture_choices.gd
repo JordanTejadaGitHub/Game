@@ -64,7 +64,7 @@ func _run() -> void:
 	swift._ability_timer = 10.0
 	swift._update_ability(1.0)
 	_check(10.0 - swift._ability_timer > plain + 0.1, "Swift: the hold timer runs faster (%.2f vs %.2f s)" % [10.0 - swift._ability_timer, plain])
-	_check(swift.focus_text(F.SWIFT).begins_with("holds every"), "Swift's line names the hold (%s)" % swift.focus_text(F.SWIFT))
+	_check(swift.focus_text(F.SWIFT).contains("% faster Roots (every "), "Swift's line names the hold (%s)" % swift.focus_text(F.SWIFT))
 	var picks := swift.rank_choices.duplicate()
 	for which in [F.POWER, F.SWIFT, F.REACH, F.DEEP, F.KEEN]:
 		swift.focus_text(which)

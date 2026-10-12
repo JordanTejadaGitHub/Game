@@ -5,11 +5,12 @@
 [resource]
 script = ExtResource("1_card")
 id = "quickened_sap"
-display_name = "Quickened Sap"
-description = "All Wardens attack 25% faster."
+display_name = "Target Turnover"
+description = "A Warden that changes target attacks 35% faster for 3 s."
 rarity = 1
-kind = 2
-tags = Array[String]([])
+kind = 3
+tags = Array[String](["swift"])
 requires = Array[String]([])
 max_stacks = 1
-attack_speed_bonus = 0.25
+attack_speed_bonus = 0.0
+rule_id = &"target_turnover"

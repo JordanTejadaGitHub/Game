@@ -144,9 +144,12 @@ enum { HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT }
 const HUD_PASSES := [HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
 const STACK_FONT_SIZE := 16
+const STACK_FONT_SIZE_BIG_COUNT := 14  # Three-digit counts cover less of their icon
 const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
 const STACK_POP_SCALE := 0.35  # …up to this much bigger
 const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
+const STACK_PIP_MIN := 2.0  # Small caps retain readable individual pips
+const STACK_PIP_CAP := 8  # Larger capacities use one bounded progress bar
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
@@ -245,6 +248,14 @@ var _steady_serial := -1
 # animation, the HUD, rounded corners and the squeeze) and catch up the frame it's back. Walking, statuses and
 # presence never pause.
 var _culled := false
+# The way in (StartGate, Environment Assets' mock): it comes out of the fog in the void and crosses the rope
+# bridge to the start along `_entry` (MapGenerator pixels) in ENTRY_TIME s, untargetable (out of the enemies
+# group) until it steps onto the island; then the route as before.
+const ENTRY_TIME := 1.5
+const ENTRY_FADE := 0.3  # Share of the way in over which it fades in out of the fog
+const ENTRY_Z := 0  # While crossing: over the deck (z -1) and under the fog (z 1): StartGate 0eb9153b layers them
+var _entry := PackedVector2Array()
+var _entry_time := 0.0
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -317,6 +328,8 @@ var _hud_changes := -1
 var _hud_ids: Array = []
 var _hud_total := 0  # Badge-worthy statuses in all (silence included): "+N" = this − the shown ones
 var _hud_stacks: Array[int] = []
+var _hud_badge_widths: Array[float] = []
+var _hud_caps: Array[int] = []
 var _hud_full: Array[bool] = []
 var _hud_colors: Array[Color] = []
 var _hud_icons: Array[Texture2D] = []
@@ -451,7 +464,13 @@ func _process(delta: float) -> void:
 		_web_cooldown = maxf(_web_cooldown - delta, 0.0)
 	elif statuses.marked_bonus != 0.0:
 		statuses.marked_bonus = 0.0
+	var unique_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	var unique_held := statuses.is_held()
+	var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
+	var unique_caught := statuses.is_caught()
 	var spore_soothe := statuses.tick(delta)
+	if unique_dreams != null and unique_held and not statuses.is_held() and statuses._hold_just_ended:
+		DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
 	if thin:
 		if was_caught and not statuses.is_caught():
 			_on_caught_lapsed()
@@ -460,13 +479,19 @@ func _process(delta: float) -> void:
 			_on_hold_ended()
 			if is_cleansed:
 				return
+	if unique_dreams != null and unique_caught and not statuses.is_caught():
+		var catcher_ref = get_meta(&"unique_catcher") if has_meta(&"unique_catcher") else null
+		var catcher = catcher_ref.get_ref() if catcher_ref is WeakRef else null
+		DreamState.UNIQUE_PATH.caught_exited(unique_dreams, self, catcher, unique_dreams._game_clock)
 	if spore_soothe > 0.0:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
 			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Soaked Rot: harder on Soaked nightmares
 		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
-		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
+		statuses.delivering_spore_tick = true
+		take_damage(spore_soothe, statuses.spore_tick_line, true, false, statuses.spore_tick_source,
 			&"spored")
+		statuses.delivering_spore_tick = false
 		if is_cleansed:
 			return
 	if statuses.smother_ended:
@@ -562,6 +587,9 @@ func _process(delta: float) -> void:
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
+	if not _entry.is_empty():
+		_update_entry(delta)  # Still crossing the bridge from the fog
+		return
 	if statuses.is_held() or statuses.is_asleep():
 		return  # Frozen / rooted in place, or asleep (Drown)
 	_charge_left = maxf(_charge_left - delta, 0.0)
@@ -596,6 +624,11 @@ func _process(delta: float) -> void:
 			position = target
 			remaining -= distance
 			_path_index += 1
+			if _path_index >= 2 and _path_index < _path.size():
+				var incoming: Vector2 = _path[_path_index - 1] - _path[_path_index - 2]
+				var outgoing: Vector2 = _path[_path_index] - _path[_path_index - 1]
+				if not incoming.normalized().is_equal_approx(outgoing.normalized()):
+					set_meta(&"unique_bend_serial", int(get_meta(&"unique_bend_serial", 0)) + 1)
 			_last_cell = _path[_path_index - 1]
 			_on_cell_reached()
 			if _leaping:
@@ -687,6 +720,44 @@ func flash_status(id: StringName) -> void:
 		if world:
 			Fx.status_flash(id, global_position, world)
 
+# Comes in along `points` (the fog, the bridge, the start's lane point; MapGenerator pixels) before its route.
+func enter_along(points: PackedVector2Array) -> void:
+	if points.size() < 2:
+		return
+	_entry = points
+	_entry_time = 0.0
+	position = points[0]
+	remove_from_group(GROUP)  # Not on the island yet: no Warden can reach it
+	modulate.a = 0.0  # It fades in out of the fog (its HUD with it)
+	z_index = ENTRY_Z  # Between the deck and the fog (it emerges from the fog)
+
+func is_entering() -> bool:
+	return not _entry.is_empty()
+
+# Walks the way in at an even pace; on the island it joins the enemies group and its route begins.
+func _update_entry(delta: float) -> void:
+	_entry_time += delta
+	var t := clampf(_entry_time / ENTRY_TIME, 0.0, 1.0)
+	var total := 0.0
+	for i in range(1, _entry.size()):
+		total += _entry[i].distance_to(_entry[i - 1])
+	var along := total * t
+	var previous := position
+	for i in range(1, _entry.size()):
+		var leg := _entry[i].distance_to(_entry[i - 1])
+		if along <= leg or i == _entry.size() - 1:
+			position = _entry[i - 1].lerp(_entry[i], clampf(along / maxf(leg, 0.001), 0.0, 1.0))
+			break
+		along -= leg
+	update_animation(position - previous)
+	modulate.a = clampf(t / ENTRY_FADE, 0.0, 1.0)
+	if t >= 1.0:
+		_entry = PackedVector2Array()
+		modulate.a = 1.0
+		z_index = 0  # On the island: y-sorted with the Wardens again
+		if not _hidden and not _untouchable and not is_cleansed:
+			add_to_group(GROUP)  # On the island: the Wardens can reach it
+
 # Target Dummy: back to the forest's edge to walk the maze again.
 func _restart_route() -> void:
 	var map_generator = get_parent().get("map_generator")  # The EnemyContainer's
@@ -774,6 +845,11 @@ func _update_hud(delta: float) -> void:
 	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
 		return  # No badges: nothing more to check
 	var changed := _hud_changes != statuses.changes
+	if not changed:
+		for i in _hud_ids.size():
+			if _hud_caps[i] != statuses.get_max_stacks(_hud_ids[i]):
+				changed = true
+				break
 	if changed:
 		_update_hud_layout()
 		_build_hud_pills(_hud_items[HUD_PILLS], overlay)
@@ -798,7 +874,7 @@ func _update_hud(delta: float) -> void:
 	var marks_key := _hud_changes << 16  # Below that: 4 bits of time-bar steps per icon (up to 4 icons)
 	for i in _hud_ids.size():
 		marks_key += _time_steps(i) << (i * 4)
-	if marks_key != _hud_marks_key or flashing or _hud_flashing:
+	if changed or marks_key != _hud_marks_key or flashing or _hud_flashing:
 		_hud_marks_key = marks_key
 		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
 		_build_hud_marks(_hud_items[HUD_MARKS], overlay)
@@ -852,6 +928,8 @@ func _update_hud_layout() -> void:
 		if statuses.stacks(id) > int(before.get(id, 0)):
 			_hud_pops[id] = STACK_POP_TIME
 	_hud_stacks.clear()
+	_hud_badge_widths.clear()
+	_hud_caps.clear()
 	_hud_full.clear()
 	_hud_colors.clear()
 	_hud_icons.clear()
@@ -859,6 +937,9 @@ func _update_hud_layout() -> void:
 		var stacks := statuses.stacks(id)
 		var cap := statuses.get_max_stacks(id)
 		_hud_stacks.append(stacks)
+		_hud_caps.append(cap)
+		var label_width := _stack_font_face().get_string_size(str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1, _stack_count_font_size(stacks)).x + 8.0
+		_hud_badge_widths.append(maxf(get_badge_size() + 2.0, label_width))
 		_hud_full.append(cap > 1 and stacks >= cap)
 		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
 		_hud_icons.append(_status_icon(id))
@@ -867,11 +948,16 @@ func _update_hud_layout() -> void:
 # room under each for its time bar.
 func _badge_centre(i: int) -> Vector2:
 	var r := get_badge_size() / 2.0
-	var step := r * 2.0 + STATUS_BADGE_GAP
+	var width := STATUS_BADGE_GAP * maxi(_hud_ids.size() - 1, 0)
+	for cell_width in _hud_badge_widths:
+		width += cell_width
 	var extra := _hud_total - _hud_ids.size()
-	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.6 if extra > 0 else 0.0)
-	return Vector2(-width / 2.0 + r + i * step, -r - TIME_BAR_GAP)
-
+	if extra > 0:
+		width += STATUS_BADGE_GAP + _stack_font_face().get_string_size("+%d" % extra, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
+	var x := -width / 2.0
+	for previous in i:
+		x += _hud_badge_widths[previous] + STATUS_BADGE_GAP
+	return Vector2(x + _hud_badge_widths[i] - r - 2.0, -r - TIME_BAR_GAP)
 func _time_steps(i: int) -> int:
 	return mini(ceili(statuses.time_share(_hud_ids[i]) * NightmareOverlay.TIME_STEPS), NightmareOverlay.TIME_STEPS)
 
@@ -906,7 +992,7 @@ func _build_hud_bars(item: RID) -> void:
 		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)
 
 # The marks around the status icons, from NightmareOverlay's atlas: a soft gold glow behind an icon at
-# max stacks, a row of pips above a stacking status's icon (one per stack it can hold, filled per
+# max stacks, small-cap pips or a high-cap progress bar above a status's icon (one per stack it can hold, filled per
 # stack, gold when full), a thin bar under each icon that shortens with the time left, a dot if the
 # icon sheet has none, and the flash when a combo just used the status.
 func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
@@ -924,15 +1010,30 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
 		var cap := statuses.get_max_stacks(id)
-		if cap > 1:  # Stack pips, centred over the icon
-			var pip := minf(STACK_PIP_MAX, (r * 2.0 - (cap - 1)) / cap)
-			var x := centre.x - (cap * pip + (cap - 1)) / 2.0
-			var y := centre.y - r - pip - 2.0
+		if cap > STACK_PIP_CAP:
+			var progress := Rect2(centre + Vector2(-r, -r - 6.0), Vector2(r * 2.0, 3.0))
+			atlas.draw_rect_region(item, progress.grow(1.0), solid, Color(Palette.VOID, 0.8))
+			atlas.draw_rect_region(item, progress, solid, Color(color, 0.25))
+			progress.size.x *= clampf(float(_hud_stacks[i]) / cap, 0.0, 1.0)
+			if progress.size.x > 0.0:
+				atlas.draw_rect_region(item, progress, solid, Palette.GOLD if _hud_full[i] else color)
+		elif cap > 1:  # Small caps use individual pips.
+			var width := r * 2.0
+			var most := maxi(int((width + 1.0) / (STACK_PIP_MIN + 1.0)), 1)  # Pips a row holds at the smallest size
+			var shown_cap := mini(cap, 20)  # Bounded progress pips; the tooltip keeps exact counts.
+			var shown_stacks := floori(float(_hud_stacks[i]) / cap * shown_cap)
+			var rows := ceili(float(shown_cap) / most)
+			var per_row := ceili(float(shown_cap) / rows)
+			var pip := minf(STACK_PIP_MAX, (width - (per_row - 1)) / per_row)
 			var lit: Color = Palette.GOLD if _hud_full[i] else color
-			for k in cap:
-				var at := Rect2(x + k * (pip + 1.0), y, pip, pip)
+			for k in shown_cap:
+				var row := floori(float(k) / per_row)
+				var in_row := mini(per_row, shown_cap - row * per_row)
+				var x := centre.x - (in_row * pip + (in_row - 1)) / 2.0
+				var y := centre.y - r - pip - 2.0 - row * (pip + 1.0)
+				var at := Rect2(x + (k - row * per_row) * (pip + 1.0), y, pip, pip)
 				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
-				atlas.draw_rect_region(item, at, dot, lit if k < _hud_stacks[i] else Color(color, 0.25))
+				atlas.draw_rect_region(item, at, dot, lit if k < shown_stacks else Color(color, 0.25))
 		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
 		atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
 		var steps := _time_steps(i)
@@ -966,7 +1067,7 @@ func _build_hud_pills(item: RID, overlay: NightmareOverlay) -> void:
 	var atlas: Texture2D = overlay.badge_atlas
 	var pill := overlay.badge_region(NightmareOverlay.MARK_PILL)
 	for i in _hud_ids.size():
-		if _hud_stacks[i] > 1:
+		if _hud_stacks[i] > 1 or _hud_caps[i] > STACK_PIP_CAP:
 			atlas.draw_rect_region(item, _stack_pill(i), pill, Color(Palette.VOID, 0.9))
 
 # Stack counts (bold, on their pills, from 2 stacks; gold at max) and "+N" past the last icon.
@@ -974,35 +1075,41 @@ func _build_hud_text(item: RID) -> void:
 	RenderingServer.canvas_item_clear(item)
 	var r := get_badge_size() / 2.0
 	for i in _hud_ids.size():
-		if _hud_stacks[i] > 1:
+		if _hud_stacks[i] > 1 or _hud_caps[i] > STACK_PIP_CAP:
 			var text := str(_hud_stacks[i])
+			var font_size := _stack_count_font_size(_hud_stacks[i])
 			var box := _stack_pill(i)
-			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
-			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + STACK_FONT_SIZE * 0.35)
-			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
+			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + font_size * 0.35)
+			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT, font_size)
 	var extra := _hud_total - _hud_ids.size()
 	if extra > 0:
-		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
+		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
 
-# Icon i's stack-count pill: sized to its number, over the icon's lower-right corner.
+# Icon i's stack-count pill: on the lower-right corner, with row space for its exact number.
 func _stack_pill(i: int) -> Rect2:
 	var r := get_badge_size() / 2.0
+	var font_size := _stack_count_font_size(_hud_stacks[i])
 	var width := _stack_font_face().get_string_size(str(_hud_stacks[i]), HORIZONTAL_ALIGNMENT_LEFT, -1,
-		STACK_FONT_SIZE).x + 8.0
-	var height := STACK_FONT_SIZE + 2.0
-	var corner := _badge_centre(i) + Vector2(r + 2.0, r + 1.0)  # The pill's lower-right corner
-	return Rect2(corner - Vector2(maxf(width, height), height), Vector2(maxf(width, height), height))
+		font_size).x + 8.0
+	var height := font_size + 2.0
+	var size := Vector2(maxf(width, height), height)
+	var centre := _badge_centre(i)
+	return Rect2(centre + Vector2(r + 2.0, r + 1.0) - size, size)
 
 # The stack-count font: NightmareOverlay's (an instance's, freed with the run: a Font kept in a static
 # is freed after the TextServer at exit and crashes).
 func _stack_font_face() -> Font:
 	return _spawner.overlay.stack_font
 
-func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+func _stack_count_font_size(count: int) -> int:
+	return STACK_FONT_SIZE_BIG_COUNT if count >= 100 else STACK_FONT_SIZE
+
+func _add_stack_text(item: RID, at: Vector2, text: String, color: Color, font_size: int = STACK_FONT_SIZE) -> void:
 	var font := _stack_font_face()
-	font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 3, Palette.VOID)
-	font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
+	font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 2 if font_size < STACK_FONT_SIZE else 3, Palette.VOID)
+	font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 func _end_smother_fx() -> void:
 	if has_meta(&"smother_fx") and not statuses.smothering:
@@ -1398,6 +1505,12 @@ func _update_trait(delta: float) -> void:
 
 # Called each time the creature reaches a cell centre on its path.
 func _on_cell_reached() -> void:
+	if _path_index >= 2 and _path_index < _path.size() and not is_flying():
+		var arrived: Vector2 = _path[_path_index - 1]
+		if arrived - _path[_path_index - 2] != _path[_path_index] - arrived:
+			var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+			if dreams != null:
+				dreams.switchback_at(self, arrived)
 	if enemy_data.ash_trail_time > 0.0:
 		_ash_cells[get_current_cell()] = enemy_data.ash_trail_time
 	if enemy_data.straight_charge_tiles > 0:
@@ -2037,7 +2150,7 @@ func _set_hidden(value: bool) -> void:
 	_hidden = value
 	if value:
 		remove_from_group(GROUP)
-	else:
+	elif not is_entering():  # (Still on the bridge: it joins once on the island)
 		add_to_group(GROUP)
 	sprite.self_modulate.a = HIDDEN_ALPHA if value else 1.0
 	_refresh_display_settings()
@@ -2208,7 +2321,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
-	if source is Tower and Reactions.is_effect(tag):
+	if source is Tower and Reactions.is_effect(tag) and tag not in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	if is_crit:
@@ -2370,7 +2483,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if line in enemy_data.weak_to:
 		event.combos.append(&"weak")
 		factor *= EnemyData.WEAK_MULTIPLIER
-	if statuses.has(EnemyStatuses.MARKED):
+	if statuses.is_exposed():
 		event.combos.append(&"marked")
 		factor *= taken / (taken - EnemyStatuses.MARKED_EXTRA)
 	if tag == &"spored" and statuses.is_in_fog():

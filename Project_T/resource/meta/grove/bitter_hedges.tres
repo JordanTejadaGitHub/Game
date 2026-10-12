@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "bitter_hedges"
 display_name = "Bitter Hedges"
-description = "Hedge Dreams join the pool: Bitter Hedges, Thornheart."
+description = "Bitter Hedges joins the pool."
 root = 1
 costs = Array[int]([40])
 order = 40
 icon = 16
-dream_cards = Array[String](["bitter_hedges", "thornheart"])
+dream_cards = Array[String](["bitter_hedges"])

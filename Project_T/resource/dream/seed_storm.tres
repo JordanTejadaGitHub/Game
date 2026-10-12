@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "seed_storm"
 display_name = "Seed Storm"
-description = "Every 5th throw bursts into 5 seeds in a fan."
+description = "Every 5th Samara-line throw bursts into 5 seeds in a fan."
 rarity = 2
 kind = 3
 tags = Array[String](["wind"])

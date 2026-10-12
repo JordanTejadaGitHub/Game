@@ -55,6 +55,16 @@ func _run() -> void:
 		_check(map.is_buildable_half(n) or _taken(placer, n), "the half beside it stays open (%s)" % n)
 	_check(twig.position.is_equal_approx(Tower.twig_centre(origin)), "it sits in its half (%s)" % twig.position)
 	_check(twig.sprite.texture != null and twig.sprite.texture.resource_path == Tower.TWIG_TEXTURE and twig.sprite.scale == Vector2.ONE, "drawn with its own 32 px art")
+	if not placer.has_method("get_build_preview_art"):
+		_check(false, "build preview uses dedicated Twig Wall art")
+	else:
+		var art: Dictionary = placer.get_build_preview_art()
+		_check(art.texture == twig.sprite.texture and art.frame.size == Vector2(32, 40), "build preview uses the planted Twig Wall texture and frame dimensions")
+		_check(art.rect == Rect2(-art.frame.size / 2.0 + twig.sprite.offset, art.frame.size), "build preview matches the planted Twig Wall size and offset")
+		placer.select_tower(sprout)
+		art = placer.get_build_preview_art()
+		_check(art.texture == sprout.texture and art.frame == sprout.get_frame_rect(0), "Twig Walls does not shrink attacking Warden previews")
+		placer.select_tower(wall)
 	_check(seller.get_tower_at_point(twig.position) == twig, "clicking it picks it")
 	_check(not placer.evolve(twig, load("res://resource/tower/bramble.tres")), "a twig wall can't grow into a Bramble")
 	_check(not big.twig, "walls planted before the card stay 2×2")

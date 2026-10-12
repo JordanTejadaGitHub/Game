@@ -91,6 +91,7 @@ func _ready() -> void:
 	BranchKit.spark_share_scale = spark_share_scale  # (Statics: a run starts from this scene's values)
 	BranchKit.spark_cap = spark_cap_per_target
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
+	tower_built.connect(_on_tower_built)  # Phones: this build mode's Wardens stay blue
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
 	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
@@ -213,6 +214,7 @@ func set_build_mode(active: bool) -> void:
 		cancel_stroke()
 	if not active:
 		_shift_chain = false
+		_session_built.clear()  # Phones: the blue outlines end with build mode
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	_update_visible()
@@ -342,6 +344,9 @@ func _draw() -> void:
 	if is_choosing_seed():
 		_draw_seed_choice()
 		return
+	if build_mode and tap_to_place:
+		_draw_placement_grid()  # Phones: the grid shows all through build mode, under the pending Wardens (user 2026-10-08)
+		_draw_session_built()  # …and the Wardens built since it started stay outlined blue
 	if stroking:
 		_draw_stroke()
 		return
@@ -353,7 +358,8 @@ func _draw() -> void:
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
 	if build_mode:
-		_draw_placement_grid()
+		if not tap_to_place:  # (Phones drew it above, every frame of build mode)
+			_draw_placement_grid()
 		_draw_ghost_footprint()
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(_ghost_centre(), tower_data.catch_radius \
@@ -403,8 +409,8 @@ func _draw() -> void:
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
-		var frame := tower_data.get_frame_rect(0)
-		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
+		var art := get_build_preview_art()
+		draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
 		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
@@ -622,6 +628,14 @@ func _draw_grow_preview() -> void:
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
 			continue
+		if into.special == BranchKit.BROOD:
+			# Brood Cap / Hatchery (user: "when hovering over brood cap upgrade, show the initial spawn and the length"):
+			# where its first sprite would drop and how far up the path sprites walk, as the build ghost shows it.
+			var walk := BranchKit.brood_walk(tower._route(), tower.global_position, float(into.special_params.get("sprite_speed", 3.0)))
+			for i in walk.size():
+				walk[i] = to_local(walk[i])
+			draw_set_transform(Vector2.ZERO)
+			BranchKit.draw_brood_walk(self, walk, true)
 		draw_set_transform(to_local(tower.global_position))
 		if into.can_attack:
 			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
@@ -880,6 +894,22 @@ static func half_origin_at(world: Vector2) -> Vector2:
 # cursor and costs half (rounded up, at least 1). DreamState.twig_walls() (Roguelite Code); force_twig for tests.
 var force_twig := false
 
+# Single-placement and drag ghosts use the same art as a planted Twig Wall.
+func get_build_preview_art() -> Dictionary:
+	var texture: Texture2D = tower_data.texture
+	var frame := tower_data.get_frame_rect(0)
+	var offset := tower_data.get_sprite_offset()
+	var scale := 1.0
+	if twig_mode():
+		if ResourceLoader.exists(Tower.TWIG_TEXTURE):
+			texture = load(Tower.TWIG_TEXTURE) as Texture2D
+			frame = Rect2(Vector2.ZERO, Vector2(float(texture.get_width()) / tower_data.frame_count, texture.get_height()))
+			offset = Vector2(0, -4)
+		else:
+			scale = 0.5
+	return {"texture": texture, "frame": frame,
+		"rect": Rect2((-frame.size / 2.0 + offset) * scale, frame.size * scale)}
+
 func twig_mode(data: TowerData = null) -> bool:
 	var warden := data if data != null else tower_data
 	if warden == null or warden.get_id() != "thornwall":
@@ -972,13 +1002,22 @@ const GRID_NEAR := 3.0  # Cells around the cursor that show half lines (and, in 
 const GRID_FOOTPRINT := Color(Palette.GOLD, 0.9)
 const GRID_REFUSED := Color(Palette.EMBER, 0.35)  # The palette has no red: Ember is "no" (INVALID_TINT's colour)
 
+# Where the grid's half lines (and Near cursor mode) centre: the ghost; on phones the last pending Warden, or the
+# middle of the view before the first tap (a touch screen has no hover).
+func _grid_cursor() -> Vector2:
+	if tap_to_place:
+		if stroking and not _stroke.is_empty():
+			return origin_centre(_stroke.back()) if half_placement() else MAP_GRID.calculate_map_position(_stroke.back())
+		if _hover_cell == NO_CELL:
+			return get_canvas_transform().affine_inverse() * (get_viewport_rect().size / 2.0)
+	return _ghost_centre()
 func _draw_placement_grid() -> void:
 	var mode := int(Fx.setting("placement_grid", 0))
 	if mode >= 2 or not half_placement():
 		return
 	draw_set_transform(Vector2.ZERO)
 	var size := MAP_GRID.cell_size
-	var cursor := _ghost_centre()
+	var cursor := _grid_cursor()
 	var near := GRID_NEAR * size.x
 	var lines := PackedVector2Array()
 	var halves := PackedVector2Array()
@@ -1185,12 +1224,12 @@ func _walker_points() -> PackedVector2Array:
 # on that cell (Reclaimed Earth: fertile cells halve the first Warden).
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
-	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
+	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell, false)
 	var gifts := GiftGround.active_for(self)
 	if gifts:
 		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
-	# sprout_per_step() Sprouts on the map add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
+	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 14, 18, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
 	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
@@ -1211,6 +1250,8 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if cost > 0 and warden.get_id() == "sprout" and dream_state != null and dream_state.has_rule(&"bountiful") \
 			and (dream_state.sprouts_planted + 1 + planned_sprouts) % DreamState.BOUNTIFUL_EVERY == 0:
 		cost = 0
+	if cost > 0 and cell != NO_CELL and run_state.fertile_cells.has(cell):
+		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)  # Reclaimed Earth halves the final price, including escalation.
 	return cost
 
 @export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
@@ -1256,14 +1297,21 @@ func sprout_per_step() -> int:
 func sprout_step_dew() -> int:
 	return SEEDFALL_STEP_DEW if sprout_price_halved() else SPROUT_STEP_DEW
 
-# Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
-func count_paid_sprouts() -> int:
+# Paid Sprouts still on the map in any form: Sprouts, and Wardens grown from a paid Sprout (Tower.evolve marks them
+# "sprout_line"; the user: "growing Sprouts shouldn't restart its interest cost"). Selling one lowers it; Seedling
+# Gift Sprouts never count.
+func count_sprout_line() -> int:
 	var count := 0
 	for tower in tower_container.get_children():
-		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.get_id() == "sprout" \
-				and not tower.get_meta(&"gift_sprout", false):
+		if not tower is Tower or tower.is_queued_for_deletion() or tower.get_meta(&"gift_sprout", false):
+			continue
+		if tower.tower_data.get_id() == "sprout" or tower.get_meta(&"sprout_line", false):
 			count += 1
 	return count
+
+# The count the Sprout price steps on (kept for the HUD and the Lesson): the same as count_sprout_line().
+func count_paid_sprouts() -> int:
+	return count_sprout_line()
 
 # Wardens that can be planted right now (unlocked this run), in roster order.
 func get_buildable_towers() -> Array[TowerData]:
@@ -1552,13 +1600,13 @@ func _draw_grow_choice() -> void:
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
 			"Grow into %s: pick a square (Esc to cancel)" % into.display_name, WorldLabel.cost_color(true))
 
-# --- Seedbearer's Sprout (branch expansion Phase 2): the player picks a cell beside it, at a rest ---
+# --- Seedbearer's Sprout (branch expansion Phase 2): the player picks any legal cell, at a rest ---
 
 signal seed_choice_changed(active: bool)
 var _seed_choice := {}  # {tower, cells, hover} while the player picks the cell
 var _sprout_data: TowerData = preload("res://resource/tower/sprout.tres")
 
-# Starts picking where a Seedbearer's ready Sprout grows: the open cells beside it (the path rule holds) show;
+# Starts picking where a Seedbearer's ready Sprout grows: legal cells across the map (the path rule holds) show;
 # clicking one plants a free Sprout, Esc / right-click cancels. Only at a rest, with a seed ready.
 func begin_seed_choice(seedbearer: Tower) -> bool:
 	if not Tower.resting or BranchKit.seeds_ready(seedbearer) <= 0:
@@ -1586,7 +1634,7 @@ func cancel_seed_choice() -> void:
 	seed_choice_changed.emit(false)
 	queue_redraw()
 
-# The cells beside `seedbearer` a Sprout can take now: free, buildable, not settling or Omen-locked, no nightmare
+# The map cells a Sprout from `seedbearer` can take now: free, buildable, not settling or Omen-locked, no nightmare
 # on it, and the path rule holds.
 func seed_cells_open(seedbearer: Tower) -> Array[Vector2]:
 	var out: Array[Vector2] = []
@@ -1643,7 +1691,7 @@ func _draw_seed_choice() -> void:
 	var tower: Tower = _seed_choice.tower
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
-			"Plant a Sprout: pick a cell beside it (Esc to cancel)", WorldLabel.cost_color(true))
+			"Plant a Sprout: pick any legal cell (Esc to cancel)", WorldLabel.cost_color(true))
 
 # Ascended forms are one per family (tower_design.md): while one is on the map, nothing else can grow
 # into it (selling it frees the slot). The reason to show on the Grow button, or "".
@@ -1741,6 +1789,31 @@ var _stroke_growth := 0
 # Touch (TouchBuild, user 2026-10-06): each tap on the map adds a pending Warden or takes one back; TouchBuild's Confirm
 # plants them (plant_stroke). One finger dragging pans the map, so there is no drag-to-build on touch.
 var tap_to_place := false
+const PENDING_TINT := Color(Palette.DEWLIGHT, 0.8)  # Phones: pending Wardens are blue (placed, not built yet)
+const PENDING_OUTLINE := Color(Palette.DEWLIGHT, 0.9)
+var _session_built: Array[Tower] = []  # Phones: Wardens built in this build mode stay outlined blue until it ends
+
+func _on_tower_built(tower: Tower) -> void:
+	if tap_to_place and build_mode:
+		_session_built.append(tower)
+		queue_redraw()
+
+# Phones: an outline (and a faint blue wash) over each Warden built since build mode started.
+func _draw_session_built() -> void:
+	draw_set_transform(Vector2.ZERO)
+	var half := MAP_GRID.cell_size / 2.0
+	for tower in _session_built:
+		if not is_instance_valid(tower) or tower.is_queued_for_deletion():
+			continue
+		var halves: Array[Vector2] = tower.get_halves()
+		if halves.is_empty():
+			continue
+		var box := Rect2(halves[0] * half, half)
+		for h in halves:
+			box = box.merge(Rect2(h * half, half))
+		var local := Rect2(to_local(box.position), box.size).grow(-2.0)
+		draw_rect(local, Color(PENDING_TINT, 0.14))
+		draw_rect(local, PENDING_OUTLINE, false, 2.0)
 var _tap_armed := false  # A press landed on the map: its release (if the finger didn't pan) is a tap
 
 # A tap at `world`: takes back the pending Warden under it, else adds one there (its cell, or with half cells the
@@ -2157,11 +2230,17 @@ func _draw_stroke() -> void:
 		draw_set_transform(origin_centre(c) if half_placement() else MAP_GRID.calculate_map_position(c))
 		var ok: bool = _stroke_plan.get(c, "x") == ""
 		var tint := VALID_TINT if ok else STROKE_SKIP_TINT
+		if ok and tap_to_place:  # Phones: a pending Warden glows blue in its outlined cell until Confirm (user 2026-10-08)
+			tint = PENDING_TINT
+			var foot := MAP_GRID.cell_size / (2.0 if twig_mode() else 1.0)  # A twig wall takes one half cell
+			var cell_rect := Rect2(-foot / 2.0, foot).grow(-2.0)
+			draw_rect(cell_rect, Color(PENDING_TINT, 0.18))
+			draw_rect(cell_rect, PENDING_OUTLINE, false, 2.0)
 		if tower_data.texture == null:
 			Tower.draw_placeholder(self, tint)
 		else:
-			var frame := tower_data.get_frame_rect(0)
-			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
+			var art := get_build_preview_art()
+			draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	if _stroke.is_empty():
 		return
 	draw_set_transform(Vector2.ZERO)

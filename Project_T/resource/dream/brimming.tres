@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "brimming"
 display_name = "Brimming"
-description = "Nightmares can hold twice as many stacks of every status."
+description = "Nightmares hold twice as many stacks of every status. Reactions need twice the buildup and hit 2.2 times as hard."
 rarity = 2
 kind = 3
 tags = Array[String](["status", "affliction", "defining"])
 max_stacks = 1
 rule_id = &"brimming"
 
-requires_any_status = Array[StringName]([&"spored", &"static", &"drowsy"])
+requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held"])

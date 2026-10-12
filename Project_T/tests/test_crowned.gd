@@ -46,9 +46,12 @@ func _run() -> void:
 	var b := _spawn(origin + Vector2(2, 0) * CELL)
 	var c := _spawn(origin + Vector2(2.8, 0) * CELL)
 	for e in [a, b]:
-		e.apply_status(EnemyStatuses.DAMP)
-		e.apply_status(EnemyStatuses.SPORED, 2, 5.0, 2.0, 0, "spore", sporeling)
-	a.apply_status(EnemyStatuses.STATIC, 3, 0.0, base, 0, "light", jar)
+		e.statuses.apply(EnemyStatuses.DAMP, 8)
+	a.statuses.apply(EnemyStatuses.SPORED, 6, 5.0, 2.0, 0, "spore", sporeling)
+	# Seed the adjacent target just below Ignite; the arriving arc completes its gate.
+	b.statuses.apply(EnemyStatuses.SPORED, 12, 5.0, 2.0, 0, "spore", sporeling)
+	b.statuses.apply(EnemyStatuses.STATIC, 7, 0.0, base, 0, "light", jar)
+	a.apply_status(EnemyStatuses.STATIC, 10, 0.0, base, 0, "light", jar)
 	tracker = main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	_check(tracker != null and tracker.counts.get(&"tempest", 0) == 1, "Tempest replaces the Thunderclap")
 	_check(tracker.counts.get(&"thunderclap", 0) == 0, "no plain Thunderclap alongside it")
@@ -62,9 +65,9 @@ func _run() -> void:
 
 	# --- Still Pool: Drown on a Held nightmare leaves a pool; the next walker in it sleeps ---
 	var d := _spawn(origin)
-	d.apply_status(EnemyStatuses.HELD, 1, 5.0)
-	d.apply_status(EnemyStatuses.DAMP)
-	d.apply_status(EnemyStatuses.DROWSY, 5)
+	d.apply_status(EnemyStatuses.HELD, 4, 5.0)
+	d.apply_status(EnemyStatuses.DAMP, 8)
+	d.apply_status(EnemyStatuses.DROWSY, 20)
 	_check(tracker.counts.get(&"still_pool", 0) == 1, "Still Pool replaces the Drown")
 	var pools := _grounds(CrownedGround.Kind.STILL_POOL)
 	_check(pools.size() == 1, "a still pool stays on its tile")
@@ -79,8 +82,8 @@ func _run() -> void:
 	# --- Fever Dream: Smother ends at full Drowsy; Spored resolves, neighbours catch Spored + Drowsy ---
 	var f := _spawn(origin)
 	var g := _spawn(origin + Vector2(0.8, 0) * CELL)
-	f.apply_status(EnemyStatuses.SPORED, 2, 5.0, 2.0, 0, "spore", sporeling)
-	f.apply_status(EnemyStatuses.DROWSY, 5)
+	f.apply_status(EnemyStatuses.SPORED, 12, 5.0, 2.0, 0, "spore", sporeling)
+	f.apply_status(EnemyStatuses.DROWSY, 20)
 	Reactions.on_smother_ended(f)
 	_check(tracker.counts.get(&"fever_dream", 0) == 1, "Fever Dream fires when Smother ends at full Drowsy")
 	_check(f.statuses.is_asleep() and f.statuses.has(EnemyStatuses.SPORED), "it falls asleep 2 s, no detonation (status jobs)")
@@ -92,9 +95,9 @@ func _run() -> void:
 	var i := _spawn(origin + Vector2(2, 0) * CELL)
 	var j := _spawn(origin + Vector2(5, 0) * CELL)
 	for e in [h, i, j]:
-		e.apply_status(EnemyStatuses.STATIC, 2, 0.0, base, 0, "light", jar)
-	h.apply_status(EnemyStatuses.MARKED)
-	h.apply_status(EnemyStatuses.HELD, 1, 5.0)
+		e.apply_status(EnemyStatuses.STATIC, 9, 0.0, base, 0, "light", jar)
+	h.apply_status(EnemyStatuses.MARKED, 10)
+	h.apply_status(EnemyStatuses.HELD, 4, 5.0)
 	_check(h.statuses.pinned, "Pinned first")
 	jar.hit(h, 1.0, false, Tower.NO_CRIT)
 	_check(tracker.counts.get(&"starfall", 0) == 1, "Starfall on the Pinned hit")
@@ -105,8 +108,8 @@ func _run() -> void:
 	var k := _spawn(origin)
 	var l := _spawn(origin + Vector2(0.7, 0) * CELL)
 	for e in [k, l]:
-		e.apply_status(EnemyStatuses.DAMP)
-		e.apply_status(EnemyStatuses.HELD, 1, 5.0)
+		e.apply_status(EnemyStatuses.DAMP, 8)
+		e.apply_status(EnemyStatuses.HELD, 4, 5.0)
 	cairn.hit(k, 1.0, false, Tower.NO_CRIT)
 	_check(tracker.counts.get(&"avalanche", 0) == 1, "a lobbed Shatter is an Avalanche")
 	_check(not l.statuses.is_held() and _lost(l) > 0, "it shattered the Damp + Held neighbour too")
@@ -115,9 +118,9 @@ func _run() -> void:
 	# --- Prismstorm: a Shatter on a charged nightmare; shards add 2 Static ---
 	var m := _spawn(origin)
 	var n := _spawn(origin + Vector2(0.7, 0) * CELL)
-	m.apply_status(EnemyStatuses.STATIC, 2, 0.0, base, 0, "light", jar)
-	m.apply_status(EnemyStatuses.DAMP)
-	m.apply_status(EnemyStatuses.HELD, 1, 5.0)
+	m.apply_status(EnemyStatuses.STATIC, 9, 0.0, base, 0, "light", jar)
+	m.apply_status(EnemyStatuses.DAMP, 8)
+	m.apply_status(EnemyStatuses.HELD, 4, 5.0)
 	pebbling.hit(m, 1.0, false, Tower.NO_CRIT)
 	_check(tracker.counts.get(&"prismstorm", 0) == 1, "a charged Shatter is a Prismstorm")
 	_check(n.statuses.stacks(EnemyStatuses.STATIC) >= 2, "the shards gave the neighbour 2 Static")
@@ -125,9 +128,9 @@ func _run() -> void:
 
 	# --- Nightbloom: Mushrooming at full Drowsy; nothing inside can wake ---
 	var o := _spawn(origin)
-	o.apply_status(EnemyStatuses.DROWSY, 5)
-	o.apply_status(EnemyStatuses.SPORED, 3, 5.0, 2.0, 0, "spore", sporeling)
-	o.apply_status(EnemyStatuses.DAMP)
+	o.apply_status(EnemyStatuses.DROWSY, 20)
+	o.apply_status(EnemyStatuses.SPORED, 12, 5.0, 2.0, 0, "spore", sporeling)
+	o.apply_status(EnemyStatuses.DAMP, 8)
 	_check(tracker.counts.get(&"nightbloom", 0) == 1, "Mushrooming at full Drowsy is a Nightbloom")
 	var blooms := _grounds(CrownedGround.Kind.NIGHTBLOOM)
 	_check(blooms.size() == 1, "its violet cloud grows")
@@ -142,9 +145,9 @@ func _run() -> void:
 	var map = main.get_node("%MapGenerator")
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var q := _spawn(Tower.MAP_GRID.calculate_map_position(route[6]))
-	q.apply_status(EnemyStatuses.HELD, 1, 5.0)
-	q.apply_status(EnemyStatuses.SPORED, 3, 5.0, 2.0, 0, "spore", sporeling)
-	q.apply_status(EnemyStatuses.DAMP)
+	q.apply_status(EnemyStatuses.HELD, 4, 5.0)
+	q.apply_status(EnemyStatuses.SPORED, 12, 5.0, 2.0, 0, "spore", sporeling)
+	q.apply_status(EnemyStatuses.DAMP, 8)
 	_check(tracker.counts.get(&"fairy_circle", 0) == 1, "Mushrooming on a Held nightmare is a Fairy Circle")
 	var rings := _grounds(CrownedGround.Kind.FAIRY_RING)
 	_check(rings.size() == 1 and rings[0]._cells.size() >= 2, "mushroom rings on the path tiles around it")
@@ -159,10 +162,10 @@ func _run() -> void:
 	# --- Storm Front: a Reaction completed by a Gust-copied status counts one more link ---
 	var r := _spawn(origin)
 	r.statuses.gust_time = 0.5
-	r.apply_status(EnemyStatuses.DAMP)
+	r.apply_status(EnemyStatuses.DAMP, 8)
 	var longest := tracker.longest_chain
 	tracker.longest_chain = 0
-	r.apply_status(EnemyStatuses.STATIC, 3, 0.0, base, 0, "light", jar)
+	r.apply_status(EnemyStatuses.STATIC, 10, 0.0, base, 0, "light", jar)
 	_check(tracker.longest_chain == 2, "Storm Front: a fresh Thunderclap counts as ×2 (%d)" % tracker.longest_chain)
 	tracker.longest_chain = maxi(longest, tracker.longest_chain)
 	await _clean()
@@ -195,8 +198,8 @@ func _run() -> void:
 	dreams_node.pool.append(rain_card)
 	dreams_node.take(rain_card)
 	var rained := _spawn(origin)
-	rained.apply_status(EnemyStatuses.SPORED, 3, 5.0, 2.0, 0, "spore", sporeling)
-	rained.apply_status(EnemyStatuses.DAMP)
+	rained.apply_status(EnemyStatuses.SPORED, 12, 5.0, 2.0, 0, "spore", sporeling)
+	rained.apply_status(EnemyStatuses.DAMP, 8)
 	var rain_clouds := main.get_children().filter(func(n: Node) -> bool: return n is ReactionCloud)
 	_check(rain_clouds.size() == 1 and is_equal_approx(rain_clouds[0]._duration, Reactions.MUSHROOM_CLOUD_TIME * Reactions.MUSHROOM_RAIN_TIME)
 		and rain_clouds[0]._radius >= CELL * 1.45, "Mushroom Rain: over the 8 tiles around, for half as long")
@@ -210,8 +213,8 @@ func _run() -> void:
 	hound.enemy_data.immune_while_sprinting = [&"held"] as Array[StringName]
 	hound.rolling = true
 	_check(Reactions.cant_be_held(hound), "a sprinting Night Hound can't be Held")
-	hound.apply_status(EnemyStatuses.DAMP)
-	hound.apply_status(EnemyStatuses.DROWSY, 5)
+	hound.apply_status(EnemyStatuses.DAMP, 8)
+	hound.apply_status(EnemyStatuses.DROWSY, 20)
 	_check(hound.statuses.sleep_time <= 0.0 and main.get_children().any(func(n) -> bool: return n is Reactions.PullUnder and n.enemy == hound),
 		"Drown pulls it under like everyone (status jobs: Drown never sleeps)")
 	hound.rolling = false

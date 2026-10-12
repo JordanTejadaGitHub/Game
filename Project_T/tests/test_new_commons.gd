@@ -65,16 +65,14 @@ func _run() -> void:
 	_check(main_hit > 0.0 and absf(main_hit / plain_area - 1.0) < 0.05, "…the attack's own target unchanged (%.1f)" % main_hit)
 	_clear()
 
-	# Rhythm: 5 hits in a row on one nightmare: +20% attack speed for 3 s.
+	# Fifth Beat preserves ordinary attack cadence; its echo has dedicated integration coverage.
 	_take(&"rhythm")
 	var speed := spore.get_attacks_per_second()
-	for i in 4:
+	spore.note_primary_target(near)
+	for i in 5:
 		spore.hit(near, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(spore.get_attacks_per_second(), speed), "Rhythm: not yet after 4")
-	spore.hit(near, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(spore.get_attacks_per_second(), speed * (1.0 + Tower.CARD_RHYTHM_SPEED)), "Rhythm: +20%% after 5 in a row (%.3f vs %.3f)" % [spore.get_attacks_per_second(), speed])
-	spore._anim_time += Tower.CARD_RHYTHM_TIME + 0.1
-	_check(is_equal_approx(spore.get_attacks_per_second(), speed), "…for 3 s")
+	_check(is_equal_approx(spore.get_attacks_per_second(), speed), "Fifth Beat has no former passive attack-speed bonus")
+
 	_clear()
 
 	print("new commons test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

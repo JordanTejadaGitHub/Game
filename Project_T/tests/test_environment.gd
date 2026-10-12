@@ -49,6 +49,11 @@ func _init() -> void:
 		and gate._bridge != null and gate._fog != null and gate._fog.get_width() == 4 * 192 and gate._fog.get_height() == 192,
 		"the start gate (the lane's rope bridge, the nightmare fog) stands at the start")
 	_check(absf(gate.lane) == 16.0 and gate.lane == lane_px, "the bridge runs on the lane's half row (%s px, route half %s)" % [gate.lane, first_half])
+	var walk := gate.walk_in()
+	_check(walk.size() == 3 and walk[0].distance_to(map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))) == 16.0
+		and walk[2] == map.MAP_GRID.calculate_map_position(first_half) and [16.0, 48.0].has(walk[1].distance_to(walk[2]))
+		and is_zero_approx((walk[1] - walk[0]).cross(walk[2] - walk[1])),
+		"the walk-in: the fog's centre on the lane, the bridge's landing, the route's first point, one straight line (%s)" % [walk])
 	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == -1 and env.get_cell_source_id(Vector2i(map.startPath)) == -1,
 		"no rope-bridge or mist tiles at the start any more")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
@@ -67,8 +72,12 @@ func _init() -> void:
 		_check(false, "no whole-cell path tile left (%s)" % cell)
 		break
 	var halves: Dictionary = map.path_layer.path_halves()
-	_check(halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath + Vector2(out)),
-		"the start's path runs out past the island's edge, under the bridge")
+	var edge_half := Vector2i((map.startPath * 2.0 + Vector2.ONE * 0.5 + Vector2(out) * 0.5).floor())  # The start cell's outer halves
+	_check(halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath and (h - edge_half) * out == Vector2i.ZERO),
+		"the start's path reaches the island's edge, where the bridge lands")
+	_check(not halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath + Vector2(out)),
+		"no path past the edge (no plug under the bridge's foot)")
+	_check(gate.z_index == -1 and gate.get_node("Fog").z_index == 2, "the deck at ground level under the nightmares, the fog over them")
 	_check(map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(map.path_layer.current_path[-1])))  # Ends on a Heartwood half
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	for cell in map.obstacles:

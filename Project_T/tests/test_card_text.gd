@@ -29,7 +29,11 @@ func _initialize() -> void:
 			continue
 		if not KNOWN.has(card.id):
 			_check(false, "%s: \"%s\" states %s, which no field carries (%s)" % [card.id, card.description, missing, Check.numeric_fields(card)])
-	_check(stat_cards >= 20, "the check sees the stat cards (%d)" % stat_cards)
+	_check(stat_cards > 0 and Check.is_stat_card(load("res://resource/dream/evergreen.tres")), "the check sees retained stat-field cards (%d)" % stat_cards)
+	var malformed := UpgradeData.new()
+	malformed.soothe_bonus = 0.10
+	malformed.description = "Wardens deal 25% more damage."
+	_check(not Check.unmatched(malformed).is_empty(), "the audit rejects a described bonus that differs from its field")
 	# Unlock cards read their Dew prices from the Warden ({grow_cost:id} / {plant_cost:id}): never a hand-written number
 	var unlock_cards := 0
 	for card in Check.load_cards():
@@ -76,6 +80,20 @@ func _initialize() -> void:
 				_check(false, "%s: %s" % [card.id, problem])
 		var stacking := Check.stacking_break(card)
 		_check(stacking == "", "%s: %s (\"%s\")" % [card.id, stacking, card.description])
+	# A card named in text is {card:id}: plain, never a status link (story chat, user: "Charged Feathers" linked "Charged")
+	_check(not StatusLinks.bbcode("removes {card:charged_feathers}").contains(StatusLinks.META_PREFIX)
+		and IconInfo.format("{card:charged_feathers}") == "Charged Feathers", "{card:x} renders the plain card name")
+	_check(not StatusLinks.bbcode("{omen:static_sky}, {omen:fog_bank}").contains(StatusLinks.META_PREFIX)
+		and IconInfo.format("{omen:static_sky}") == "Crackling Sky", "{omen:x} renders the plain Omen name")
+	var names: Array[String] = []
+	for card in Check.load_cards():
+		if StatusLinks.bbcode(card.display_name).contains(StatusLinks.META_PREFIX):
+			names.append(card.display_name)  # A name with a status word in it (Charged Bloom, Soaked Rot…)
+	for card in Check.load_cards():
+		for text in [card.description, card.cost_description, card.grows_text]:
+			_check(not IconInfo.format(text).contains("{card:"), "%s: a {card:x} with no card" % card.id)
+			for name in names:
+				_check(not text.contains(name), "%s names %s as plain text: write {card:id}" % [card.id, name])
 	print("card text test: %s (%d stat cards, %d known exceptions)" % ["PASS" if failures == 0 else "%d FAILED" % failures, stat_cards, KNOWN.size()])
 	quit(failures)
 

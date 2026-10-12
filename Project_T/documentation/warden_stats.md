@@ -242,8 +242,8 @@ text; Balancing Discussion sets every per-rank number marked *).
 ### Rank V signatures: specialise or stay flexible (2026-10-06)
 
 User design direction (via Meta Game Discussion): *Nurture choices should help create builds, not just
-add numbers.* **When a Warden reaches rank V and 3 or more of its ranks I–V are the same choice, it
-gains that choice's signature**, a new behaviour. A mixed Warden gets none but keeps its flexible
+add numbers.* **When a Warden reaches rank V and 4 or more of its ranks I–V are the same choice, it
+gains that choice's signature**, a new behaviour. A mixed Warden gains All-Rounder (+20% to its main job) and keeps its flexible
 stats. So each Warden asks "specialise or stay flexible", and one family plays differently by Nurture
 path. Meta Game Discussion proposed the set; Tower Discussion decided it (changes noted).
 
@@ -257,12 +257,12 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
 | **Yield** | **Firstborn** | **what it makes arrives one step better:** Seedbearer's Sprouts at rank I (Grove Keeper's at III), Brood sprites burst +50%, Dream Oak shards ×1.5 | was "spawns born at rank II": Grove Keeper's twist already gives rank II Sprouts |
 | **Wide** (supports) | **Shelter** | Wardens in its aura **can't be withered, dimmed or trampled** | re-homes the cut Bark Shield's job, so it's a build choice instead of a dead branch |
 | **Strong** (supports) | **Surge** | every **10 s** its aura **doubles for 2 s**, shown as a pulse through the cluster | — |
-| **Kindred** | — | none: Kindred is one-time on aura supports, so it can't be a majority | catchers' Kindred (repeatable) has no signature either: their Strong / Wide do |
+| **Kindred** | **Mastery** | Mastery on repeatable paths; one-time Kindred effects remain once only | repeatable Kindred paths now gain role-specific Mastery at four matching picks |
 
 - **Count:** ranks I–V only; Deeper Rings' VI–VII and free ranks count as the choice they were. A
-  Warden with only 2–3 choices still qualifies.
+  Warden needs four matching picks among its first five; later ranks cannot change the result.
 - **Old picks** that no longer apply (dimmed) still count toward the majority; the signature only
-  works where it can. The audit below keeps choices whose signature would do nothing off a Warden's list.
+  works where it can. Paths without a working signature now gain role-specific Mastery instead.
 - **Discovered, never hinted** (user, 2026-10-06: *"don't hint towards signatures"*): nothing
   announces a signature before it happens: no rank III preview, no card text naming them. The first
   time one fires ever: the discovery moment (name over the Warden, a toast) and its Codex entry
@@ -286,7 +286,7 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   | Surge | burst moments (boss phases, packed drifts) | — |
 
   So the same Mossback may go Power for an armoured act and Keen for an elite-heavy one, or stay
-  **mixed**: no signature, flexible stats, the third path. Signatures stay undiscovered until first
+  **mixed**: All-Rounder (+20% to its main job) plus flexible stats, the third path. Signatures stay undiscovered until first
   fired; the Codex entry, once found, names what each one answers.
 - **Cards:** Roguelite Mechanic Discussion is designing *Specialist / Many Talents / Shared Training*
   around this.
@@ -321,7 +321,7 @@ help; a **signature** need not exist on every Warden. The natural extensions sta
 the Warden's own damage; Relentless counts dispels by source and restarts the Warden's own cooldown,
 ability, grab or copy timer; Watchtower's 2 s linger; Spreading moves statuses, Held in full; Shelter
 and Surge on Prism Jar's aura). The ones that only filled a cell, each needing its own rule, are
-**cut** (no signature for that choice there):
+**replaced by Mastery** (the old signature does not work for that choice there):
 - **Deep (Spreading):** Rootcurl / Long Way Home, Groundroot / Earthbind, Quaker / Earthshaker, Echo
   Hollow / Whispering Hollow, Hushbell / Silence, Dreamcatcher / Great Dreamcatcher, Thorncoil / Crown
   of Thorns, Rootlight (the repeated pull / grab, reveal jump, echo repeat, silence, Caught and sleep
@@ -707,3 +707,17 @@ not by direct damage per Dew.
 - Do players evolve when space runs out, as intended, or hoard cheap Wardens?
 - Pull and Hold on bosses: fun, or trivialising? (Bosses get reduced effects.)
 - Economy Wardens: does Dewcatcher pay back fast enough to be picked, without being mandatory?
+
+## Maze funding follow-up — October 10, 2026
+
+Sprouts start at 10 Dew and retain +4 per five paid Sprouts (10,14,18,…). The 60-Dew opening can fund five Sprouts and three 3-Dew Thornwalls, leaving one Dew. Seedfall retains its own 8-Dew start and +2 escalation. Free Seedbearer/Gift Sprouts remain free.
+
+Ordinary non-elite Act1 enemies gain a linear additional health multiplier from zero through drift10 to +5% at drift24. Bosses, elites, Act2's existing health ramp and later-act health are unchanged. Ordinary Act1 drift pots gain15% from drift11, Act2 pots gain20%; boss pots and Acts3–4 pots are unchanged. Changes apply to total kill pots, preserving reward shares and modifiers.
+
+Evolution and Nurture prices remain unchanged so increased income leaves more room for maze expansion and additional status sources. The defended-maze reward remains separate, capped20 Dew per block. This is initial tuning, not proof that players choose larger mazes; compare coverage, walls, upgrades, ranks, survival and block duration in human playtests.
+
+Validation: test_maze_funding, test_sprout_price, test_opening (three seeds), test_dew_pot, test_economy, test_nurture, test_maze_economy_integration and headless startup.
+
+### Rank-V completion bonus (2026-10-11)
+Four matching picks among the first five activate the existing working signature. Paths without a suitable existing signature gain Mastery: +20% to their role (continuous attackers: speed; control: reach; economy/support: their main job). Kindred is included where it is repeatable. All other rank-V builds gain All-Rounder: +20% damage, catch income, aura strength, offspring damage, drift Dew or shard yield, according to their role. Nurse Log gains +20% reach and a stronger discount within its existing cap. Bonuses do not multiply both damage and speed. Shard fractions carry; economy and control caps remain.
+Shared Training requires four matching picks on both bonded rank-IV kin, on the same choice. No early All-Rounder is granted. Existing one-time Kindred effects remain once only.

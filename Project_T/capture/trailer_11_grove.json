@@ -4,12 +4,12 @@
 	"scene": "grove",
 	"grove": "fresh",
 	"size": [1920, 1080],
-	"length": 11.0,
+	"length": 7.0,
 	"captions": [],
 	"timeline": [
 		{"t": 0.0, "camera": "focus", "node": "rootling", "zoom": 2.5, "duration": 0.1},
 		{"t": 0.6, "plant": "rootling"},
-		{"t": 4.0, "camera": "fit", "duration": 2.5},
-		{"t": 4.0, "grove_grow": "full", "duration": 5.5}
+		{"t": 1.8, "camera": "fit", "duration": 2.0},
+		{"t": 1.8, "grove_grow": "full", "duration": 3.4}
 	]
 }

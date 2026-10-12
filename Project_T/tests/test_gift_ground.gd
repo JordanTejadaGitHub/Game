@@ -59,7 +59,7 @@ func _run() -> void:
 		Vector2(5, 10), Vector2(6, 10), Vector2(7, 10)])
 	var a := _spawn(Vector2(9, 12))
 	var b := _spawn(Vector2(12, 12))
-	for i in 20:
+	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.SPORED] + GiftGround.RING_SPORED_CAP:
 		ringed._apply_one_status(a, EnemyStatuses.SPORED, 1, 10.0)
 		unringed._apply_one_status(b, EnemyStatuses.SPORED, 1, 10.0)
 	_check(a.statuses.stacks(EnemyStatuses.SPORED) == b.statuses.stacks(EnemyStatuses.SPORED) + GiftGround.RING_SPORED_CAP,

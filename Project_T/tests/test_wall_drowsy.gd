@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for the wall Drowsy cap (warden_stats.md, the Honeysuckle row): Drowsy from walls stops at
-# 3 stacks on a nightmare (walls slow but can't put it to sleep alone); a Warden's Drowsy still goes past.
+# 12 stacks on a nightmare (walls slow but can't put it to sleep alone); a Warden's Drowsy still goes past.
 # Honeysuckle grows for 30 Dew. Run from the project folder:
 #   godot --headless --path . --script res://tests/test_wall_drowsy.gd --fixed-fps 60
 
@@ -36,7 +36,7 @@ func _run() -> void:
 	spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	var enemy: Node2D = spawner.get_child(spawner.get_child_count() - 1)
 	enemy.set_process(false)
-	for i in 10:
+	for i in 20:
 		honey._apply_one_status(enemy, EnemyStatuses.DROWSY, 1, 0.0)
 	_check(enemy.statuses.stacks(EnemyStatuses.DROWSY) == Tower.WALL_DROWSY_CAP,
 		"a Honeysuckle alone stops at %d Drowsy (%d)" % [Tower.WALL_DROWSY_CAP, enemy.statuses.stacks(EnemyStatuses.DROWSY)])

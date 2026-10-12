@@ -13,3 +13,4 @@ tags = Array[String](["wide", "overgrowth"])
 max_stacks = 1
 min_attackers = 15
 rule_id = &"many_hands"
+retired = true

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "groundskeeper"
 display_name = "Groundskeeper"
-description = "At each {rest}, {dew:+3} for every obstacle cleared that {block}."
+description = "Clearing an obstacle gives back half its cost."
 rarity = 0
 kind = 4
 tags = Array[String](["tending"])

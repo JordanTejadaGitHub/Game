@@ -11,12 +11,12 @@ class_name IconInfo
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more. Lightning jumps farther between {damp} nightmares."],
-	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
-	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
-	&"marked": ["Exposed", "Takes 25% more from every Warden."],
-	&"static": ["Charged", "At 5 stacks (8 on bosses) it releases a bolt: 3× its charge as damage. Some Wardens release it sooner."],
-	&"held": ["Rooted", "Can't move for a moment."],
+	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build 8 stacks to unlock reactions."],
+	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup (20 stacks, 12 on bosses) enables sleep and Catch effects."],
+	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately."],
+	&"marked": ["Exposed", "At 10 stacks, takes 25% more from every Warden. Brimming requires 20 stacks. Partial stacks give no damage bonus."],
+	&"static": ["Charged", "At 20 stacks (30 on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup."],
+	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build 4 stacks for reactions."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
@@ -288,6 +288,9 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
+	if text.contains("{card:") or text.contains("{omen:"):  # A Dream card or Omen: its name, plain
+		for found in card_pattern().search_all(text):
+			text = text.replace(found.get_string(), card_name(found.get_string(2), found.get_string(1)))
 	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
 		for found in nightmare_pattern().search_all(text):
 			text = text.replace(found.get_string(), nightmare_name(found.get_string(1)))
@@ -447,6 +450,23 @@ static func family_pattern() -> RegEx:
 		UiStyle.release_at_exit(func() -> void: _family_pattern = null)
 		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
 	return _family_pattern
+
+# "{card:charged_feathers}" -> "Charged Feathers", "{omen:static_sky}" -> "Crackling Sky": a Dream card or Omen named in text, always plain (story chat, user: the
+# "Charged" in a card name was linked as the status). StatusLinks keeps it out of the status links.
+static var _card_pattern: RegEx = null
+static func card_pattern() -> RegEx:
+	if _card_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _card_pattern = null)
+		_card_pattern = RegEx.create_from_string("\\{(card|omen):([a-z0-9_]+)\\}")  # 1: kind, 2: id
+	return _card_pattern
+
+static func card_name(id: String, kind: String = "card") -> String:
+	var path := ("res://resource/omen/%s.tres" if kind == "omen" else "res://resource/dream/%s.tres") % id
+	if ResourceLoader.exists(path):
+		var card = load(path)
+		if card is UpgradeData or card is OmenData:
+			return card.display_name
+	return id.capitalize()
 
 # The family's base Warden (resource/tower/<id>.tres), or null.
 static func family_data(id: String) -> TowerData:

@@ -865,6 +865,12 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Sprout price keeps counting grown Sprouts (Tower Code 7e3d3a1b, user: "growing Sprouts shouldn't restart its interest cost")
+
+The Sprout step counts paid Sprouts still on the map in any form, so a plant-then-grow loop no longer resets the next
+Sprout to base price; selling lowers it; Gift Sprouts and Seedfall unchanged; the 5-Sprout opening unchanged. Closes the
+loop beside the sprout-into-copy-price rule (526df9d7). Accepted; the next batches carry it.
+
 ## Free ranks don't charge on growth (Tower Code 221af5d7 / 0d59136d, story chat)
 
 A rank the player got free (Sunlit Rest, First Care, Ancient Stump, Seedbearer, Mother Log…) no longer charges its rank
@@ -976,7 +982,11 @@ obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 le
 the route's first stretch / opening cells are the suspect. **Cause found:** the opening ran along the open outer row on
 18 of 30 seeds (one-sided Warden spots). Fixed in 8ae842a1 (route picked with the ring shut, shortcuts closed, an edge
 tie-break); rerun on the final bf3cbe74 (tie-break dropped): act 1 passes (−3 / +3 / −10), route at 10 unchanged, but **d1–5
-leaks ~5×**, all Shades, from seeds 19, 24, 6 (and 16, 30): sent to Environment Code; a seeds-only rerun after their fix.
+leaks ~5×**, all Shades, from seeds 19, 24, 6 (and 16, 30): sent to Environment Code; a seeds-only rerun after their fix. **Merged by the
+user** (68e6f2f6). Seed 19: the route is longer (46 vs 41) yet 5 Shades leak at drift 1; likely the bot spending opening
+Sprouts on the one-sided edge row. **Confirmed the bot** (its wall planner, scored on route growth, pushes the route onto
+the edge row). The edge row stays walkable (a weak player choice, not an exploit); the bot learns to weigh coverage, then a
+recheck.
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
 → 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
 total health, for all three act 1 bosses. In fb11f4e4: drift 6 spacing 2.5 → 1.5 s (~9 s); Stag escorts 4 Husks + 18 Shades
@@ -1288,6 +1298,15 @@ Paper: Mossback 372 × 0.4 /s ≈ 150–165 DPS at range 1.75 (×2 on Marked); S
 crit (≈ 245 DPS + a ~2,000 opener per nightmare). On a 23 × 18 map, range 8–10 covers most of the route, so coverage likely
 decides it; Moonstone carried 62% of human run 24. **Probe queued:** each candidate added to saved bot boards (typical and
 serpentine) at its best and a median cell, effective damage over a block and leaves saved vs a control. Fix after the numbers.
+
+## Human run 27 (2026-10-08 17:44, build 09a3612c: finale elites 30: 2 in)
+
+Relayed by Balancing Code. Lost at **drift 45**; the user: "might be a bit too hard". Clean through drift 42. The Night Mare
+took 5 at 25. Omens: Blood Moon, Restless Wind. Drift 44 spawned 389k health; **the drift 45 finale leaked 5 for 11 leaves**.
+That's the fifth human run in a row lost at, or just after, an act 2 block finale, and the elites were already cut to 2.
+**Fix (cliff rule, no sim): `block_finale_health_multiplier` 1.4 → 1.2** (Tower Code, e9524077). The act 2 end curve (×4.5 at 45)
+stays as the user set it unless they ask to ease it; the option is `early_acts_health_multiplier` 4.5 → ~4.0.
+To check: whether Blood Moon covered 41–45.
 
 ## Human run 26 (2026-10-07 18:28, build c320f07c: finale fix in; 9-node Grove)
 

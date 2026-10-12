@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "When you've planted 20, 30 and 40 attacking Wardens this run, every Warden deals 12% more damage for good, each time (up to +36%)."
+description = "A group of 6 or more touching attackers gets +1 range while it is fighting 6 or more nightmares."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])
 max_stacks = 1
 in_start_pool = false
-min_attackers = 15
+min_attackers = 6
 rule_id = &"canopy"

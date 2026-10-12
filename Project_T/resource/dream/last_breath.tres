@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "last_breath"
 display_name = "Last Breath"
-description = "A dispelled nightmare bursts for 10% of its max health on nightmares within 1 cell (never chains)."
+description = "A dispelled nightmare bursts for 10% of its max health (a boss: 5%) on nightmares within 1 cell (never chains)."
 rarity = 1
 kind = 3
 tags = Array[String](["affliction", "defining"])

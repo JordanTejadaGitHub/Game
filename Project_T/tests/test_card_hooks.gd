@@ -52,13 +52,15 @@ func _run() -> void:
 
 	# Lantern Glow: +15% on a Warden's hits.
 	var before: float = target.health
+	var carry_before: float = target._soothe_carry
 	spore._attack_count = 1
 	spore.hit(target, 1.0, false, Tower.NO_CRIT)
-	var plain: float = before - target.health
+	var plain: float = before - target.health + target._soothe_carry - carry_before
 	_take(&"lantern_glow")
 	before = target.health
+	carry_before = target._soothe_carry
 	spore.hit(target, 1.0, false, Tower.NO_CRIT)
-	var glowing: float = before - target.health
+	var glowing: float = before - target.health + target._soothe_carry - carry_before
 	_check(plain > 0.0 and absf(glowing / plain - 1.15) < 0.02, "Lantern Glow: hits +15%% (%.2f -> %.2f)" % [plain, glowing])
 	_clear_cards()
 	spore.queue_free()

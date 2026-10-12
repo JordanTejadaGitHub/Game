@@ -16,3 +16,4 @@ shows_statuses = Array[StringName]([&"damp", &"drowsy"])
 requires = Array[String](["dewdrop"])
 max_stacks = 1
 rule_id = &"deep_water"
+requires_status = &"drowsy"

@@ -195,15 +195,16 @@ func path_halves() -> Dictionary:
 	var halves := {}
 	for point in current_path:
 		halves[FindPath.point_to_node(point)] = true
-	if not current_path.is_empty():  # From the first route half out to the island's edge, and one past it under the bridge
+	if not current_path.is_empty():  # From the first route half out to the island's edge, where the bridge lands (user: no
+		# square plug of path under the bridge's foot: nothing past the edge)
 		var step: Vector2i = {1: Vector2i.UP, 2: Vector2i.RIGHT, 4: Vector2i.DOWN, 8: Vector2i.LEFT}.get(_edge_mask(cell_start_path), Vector2i.ZERO)
 		var h := FindPath.point_to_node(current_path[0])
 		var size := Vector2i(grid.size) * FindPath.HALF
 		while step != Vector2i.ZERO:
 			h += step
-			halves[h] = true
 			if h.x < 0 or h.y < 0 or h.x >= size.x or h.y >= size.y:
 				break
+			halves[h] = true
 	return halves
 
 # path_dual.png's column for the display tile `at`: its corners are half cells at-1 .. at.

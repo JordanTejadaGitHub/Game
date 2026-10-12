@@ -51,7 +51,7 @@ func _test_requirements() -> void:
 	_check(not dreams.is_eligible(kindred), "Kindred Roots needs a nurture card first (follow-up)")
 	dreams.take(tender)
 	b.rank = 0
-	_check(dreams.is_eligible(kindred), "…then offered with 1 ranked Warden (round 2: was 2)")
+	_check(not dreams.is_eligible(kindred) and kindred.retired, "Kindred Roots is retired even when its nurture prerequisites are met")
 	a.rank = 0
 	_check(not dreams.is_eligible(kindred), "…and not with none")
 	var deeper := _card("deeper_rings")
@@ -100,8 +100,8 @@ func _test_nurture_effects() -> void:
 	var elder := _plant("sporeling", 0, 5)
 	var young := _plant("sporeling", 1, 2)
 	var far := _plant("sporeling", 6, 2)
-	_check(dreams.get_effective_rank(young) == 3 and dreams.get_effective_rank(far) == 2,
-		"The Old Ones: touching a rank V Warden counts one rank higher")
+	_check(dreams.get_effective_rank(young) == 4 and dreams.get_effective_rank(far) == 2,
+		"The Old Ones: touching a rank V Warden counts two ranks higher")
 	_check(dreams.get_effective_rank(elder) == 5, "…read from real ranks, so it doesn't chain")
 	_clear_towers()
 
@@ -182,7 +182,7 @@ func _test_wide_and_narrow() -> void:
 	_check(not dreams.is_eligible(many), "Many Hands needs 15+ attacking Wardens")
 	_plant("sporeling", 63, 0)
 	_plant("sporeling", 66, 0)
-	_check(dreams.is_eligible(many) and not dreams.is_eligible(few), "…offered at 16; Few and Mighty isn't (≤12)")
+	_check(not dreams.is_eligible(many) and many.retired and not dreams.is_eligible(few), "Many Hands is retired at sixteen attackers; Few and Mighty still needs fewer attackers")
 	var one: Tower = dreams._towers()[0]
 	var base := dreams.get_soothe_multiplier(one)
 	dreams.take(many)
@@ -217,15 +217,16 @@ func _test_wide_and_narrow() -> void:
 
 	_reset()
 	var chorus := _card("sprout_chorus")
-	var sprouts: Array[Tower] = []
-	for i in 5:
-		sprouts.append(_plant("sprout", i, 0))
-	_check(not dreams.is_eligible(chorus), "Sprout Chorus needs 6+ Sprouts")
-	sprouts.append(_plant("sprout", 5, 0))
-	_check(dreams.is_eligible(chorus), "…offered with 6")
+	var sprout_a := _plant_at("sprout", Vector2(80, 80), 0)
+	_plant_at("sprout", Vector2(81, 80), 0)
+	dreams._path_index = {Vector2(79, 80): 0, Vector2(80, 79): 1}
+	dreams.board_version += 1
+	_check(dreams.is_eligible(chorus), "Thicket can be offered with a feasible pair instead of six Sprouts")
 	dreams.take(chorus)
-	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(sprouts[2]), 0.32),
-		"Sprout Chorus: +8% per other Sprout within 2 cells (4 → +32%)")
+	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(sprout_a), 0.30), "Thicket: touching a Sprout and two distinct route cells gives +30% speed")
+	dreams._path_index.erase(Vector2(80, 79))
+	dreams.board_version += 1
+	_check(is_zero_approx(dreams.get_tower_attack_speed_bonus(sprout_a)), "Thicket: one adjacent route cell does not qualify")
 	_clear_towers()
 
 	_reset()
@@ -238,14 +239,16 @@ func _test_wide_and_narrow() -> void:
 	_check(dreams.get_tower_attack_speed_bonus(lights[0]) == 0.0, "…not with 6")
 	_clear_towers()
 
-	# Canopy: +12% at 20, 30 and 40 attacking Wardens planted this run, for good
+	# Canopy: large boards alone no longer grant permanent damage.
 	_reset()
 	var canopy_tower := _plant("sporeling", 0, 0)
 	base = dreams.get_soothe_multiplier(canopy_tower)
 	dreams.take(_card("canopy"))
-	dreams._attackers_planted = 31
-	_check(is_equal_approx(dreams.get_soothe_multiplier(canopy_tower) - base, 0.24), "Canopy: two steps reached = +24%")
-	dreams._attackers_planted = 0
+	for i in 30:
+		_plant_at("sprout", Vector2(100 + i, 100), 0)
+	dreams._on_drift_started(1)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(canopy_tower), base), "Canopy: board size and drift starts grant no passive damage")
+	dreams._canopy_peak = 0
 	_clear_towers()
 
 # Build-tag steering is off (2026-09-30): owning overgrowth cards neither lifts overgrowth nor pushes tall away;
@@ -273,7 +276,7 @@ func _test_direction_weighting() -> void:
 			wide_picks += 1
 	expected = 2000.0 * 0.4 / (0.4 + 1.0)
 	_check(absf(wide_picks - expected) < 110, "…an unmet soft Need weighs ×0.4 (%d / 2000, expected %d)" % [wide_picks, expected])
-	_check(dreams.can_offer(wide) and not dreams.is_eligible(wide), "…but never blocks the card (can_offer)")
+	_check(not dreams.can_offer(wide) and wide.retired, "Retired Many Hands is excluded from offers regardless of soft Needs")
 	_clear_towers()
 
 
@@ -297,8 +300,12 @@ func _test_reaction_cards() -> void:
 	_check(not dreams.is_eligible(quick), "Quick Reactions needs 2 Reaction pairs")
 	_own("sporeling")  # + Ignite (Spored + Static), Mushrooming (Spored + Damp)
 	_check(dreams.count_reaction_pairs() == 3 and dreams.is_eligible(quick), "…offered with 3")
-	_check(dreams.is_eligible(_card("wildfire_spores")) and dreams.is_eligible(_card("deep_water")),
-		"Wildfire Spores (Sporeling + Firefly Jar) and Deep Water (Dewdrop) from the Grove")
+	_check(dreams.is_eligible(_card("wildfire_spores")),
+		"Wildfire Spores (Sporeling + Firefly Jar) from the Grove; Deep Water also needs a Drowsy source (card_review_2026-10-12.md 3)")
+	_own("bloomcap")  # A Drowsy source, only for this check (it would add Reaction pairs below)
+	_check(dreams.is_eligible(_card("deep_water")), "Deep Water (Dewdrop + a Drowsy source) from the Grove")
+	dreams.unlocked.erase("bloomcap")
+	dreams.grown_wardens.erase("bloomcap")
 	_check(not dreams.is_eligible(_card("dawnbreak"), 1) and dreams.is_eligible(_card("dawnbreak"), 2),
 		"Dawnbreak is a Legendary: act 2+")
 	_own("lanternmoth")  # Marked: + Lightning Rod (Marked + Static)
@@ -436,8 +443,8 @@ func _test_grove_cards() -> void:
 	sleepy.apply_status(EnemyStatuses.DROWSY, 1, 3.0)
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.25), "Still Target: +25% vs Drowsy")
 	dreams.take(_card("full_moon"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.35)
-		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +10%, overflow → crit damage")
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.50)
+		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +25%, overflow → crit damage")
 	sleepy.free()
 	_clear_towers()
 
@@ -728,7 +735,7 @@ func _test_kinship_cards() -> void:
 	dreams.grove_cards.assign(["grove_of_kin", "kin_and_kindling"])
 	_check(not dreams.is_eligible(grove, 2), "Grove of Kin needs 2 Kinships")
 	kin.pairs = [{}, {}]
-	_check(dreams.is_eligible(grove, 2) and not dreams.is_eligible(grove, 1), "…offered with 2, from act 2")
+	_check(not dreams.is_eligible(grove, 2) and grove.retired and not dreams.is_eligible(grove, 1), "Retired Grove of Kin stays excluded even with two Kinships")
 	_check(not dreams.is_eligible(kindling), "Kin and Kindling needs a Reaction card too")
 	dreams.take(_card("seeping"))  # A Reaction card
 	_check(dreams.is_eligible(kindling), "…Entwined once a Kinship and a Reaction card are both there")
@@ -755,19 +762,19 @@ func _test_generic_rares() -> void:
 	_check(not _find(dreams.get_card_effects(sprout, diagonal.cell, diagonal), "root_network").active, "…diagonals don't join")
 	dreams.take(_card("root_network_ii"))
 	row = _find(dreams.get_card_effects(sprout, a.cell, a), "root_network_ii")
-	_check(row.active and is_equal_approx(row.damage, 0.32), "Root Network II: diagonals join, +8%% each (%s)" % row)
+	_check(row.active and is_equal_approx(row.damage, 0.24), "Root Network II: diagonals join, the same +6%% each (%s)" % row)
 	_clear_towers()
 
-	# Old Growth and Thinning the Herd (per-Warden damage)
+	# Steadfast has a role after five drifts; Thinning the Herd keeps its per-Warden damage.
 	_reset()
 	dreams.take(_card("old_growth"))
 	dreams.take(_card("thinning_the_herd"))
 	var warden := _plant("sporeling", 0, 0)
 	var base := dreams.get_soothe_multiplier(warden)
 	warden.set_meta(&"drifts_stood", 5)
-	_check(is_equal_approx(dreams.get_soothe_multiplier(warden) - base, 0.20), "Old Growth: 5 drifts = +20%")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(warden), base), "Steadfast: five drifts grant no passive damage")
 	warden.set_meta(&"drifts_stood", 15)
-	_check(is_equal_approx(dreams.get_soothe_multiplier(warden) - base, 0.40), "…15 drifts = +40%")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(warden), base), "Steadfast: fifteen drifts grant no passive damage")
 	var victim := Node2D.new()
 	main.add_child(victim)
 	victim.global_position = warden.global_position

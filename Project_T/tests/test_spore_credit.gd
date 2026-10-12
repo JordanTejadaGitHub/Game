@@ -66,6 +66,25 @@ func _run() -> void:
 	_check(fog_part > 0.0 and absf(fog_part / (fog_part + rest) - expected) < 0.03,
 		"in fog, the boosted part (%.0f%%) goes to Mistveil (got %.0f%%)" % [expected * 100, 100.0 * fog_part / maxf(fog_part + rest, 0.001)])
 
+	# The damage returned by tick belongs to the pre-expiry stack contributors.
+	enemy.statuses.remove(EnemyStatuses.SPORED)
+	enemy.statuses.set_in_fog(0.0)
+	enemy.statuses._fog_time = 0.0
+	enemy.apply_status(EnemyStatuses.SPORED, 3, 1.0, 2.0, 0, "spore", sporeling)
+	enemy.apply_status(EnemyStatuses.SPORED, 1, 2.0, 2.0, 0, "spore", puffball)
+	before_s = log.get_tower_stats(sporeling).get("run", 0.0)
+	before_p = log.get_tower_stats(puffball).get("run", 0.0)
+	enemy._process(1.0)
+	got_s = log.get_tower_stats(sporeling).get("run", 0.0) - before_s
+	got_p = log.get_tower_stats(puffball).get("run", 0.0) - before_p
+	_check(got_s > 0.0 and absf(got_s / maxf(got_s + got_p, 0.001) - 0.75) < 0.02,
+		"the expiry tick still credits both contributors 75/25")
+	enemy.statuses.remove(EnemyStatuses.SPORED)
+	enemy.apply_status(EnemyStatuses.SPORED, 1, 0.5, 2.0, 0, "spore", sporeling)
+	before_s = log.get_tower_stats(sporeling).get("run", 0.0)
+	enemy._process(0.5)
+	_check(log.get_tower_stats(sporeling).get("run", 0.0) > before_s,
+		"the last Poisoned tick retains its damage owner")
 	print("spore credit test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

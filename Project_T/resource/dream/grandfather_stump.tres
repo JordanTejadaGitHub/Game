@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "grandfather_stump"
 display_name = "Grandfather Stump"
-description = "Grove Heart gives +4% per nearby Warden, up to +45%."
+description = "Elder Stump gives +4 percentage points per nearby Warden, up to +45% total."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])
 max_stacks = 1
-requires = Array[String](["grove_heart"])
+requires = Array[String](["elder_stump"])
 rule_id = &"grandfather_stump"
 in_start_pool = false

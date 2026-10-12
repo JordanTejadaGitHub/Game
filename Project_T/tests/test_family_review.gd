@@ -95,10 +95,10 @@ func _test_bellflower_pulses() -> void:
 
 	var chime := _plant("chime_stone", Vector2(5, 5))
 	var charged := _spawn(chime.global_position + Vector2(CELL, 0))
-	charged.apply_status(EnemyStatuses.STATIC, 2, 0.0, 10.0, 0, "light", chime)
+	charged.apply_status(EnemyStatuses.STATIC, 11, 0.0, 10.0, 0, "light", chime)
 	var before := _lost(charged)
 	chime._release()  # +1 Static = 3: sets off a bolt
-	_check(not charged.statuses.has(EnemyStatuses.STATIC), "Chime Stone sets off a bolt at 3 Static")
+	_check(not charged.statuses.has(EnemyStatuses.STATIC), "Chime Stone sets off a bolt at 12 Charged")
 	_check(_lost(charged) - before > int(chime.get_damage()), "the bolt deals extra damage")
 	await _clean()
 
@@ -115,7 +115,7 @@ func _test_dreamcatcher() -> void:
 	var catcher := _plant("dreamcatcher", Vector2(5, 5))
 	var drowsy := _spawn(catcher.global_position + Vector2(CELL, 0))
 	var plain := _spawn(catcher.global_position + Vector2(0, CELL))
-	drowsy.apply_status(EnemyStatuses.DROWSY, 5)
+	drowsy.apply_status(EnemyStatuses.DROWSY, 20)
 	catcher._update_catch(1.0)
 	_check(drowsy.statuses.is_caught() and not plain.statuses.is_caught(), "full Drowsy in range is Caught")
 	# Status jobs (2026-09-29): Caught gives no damage bonus any more; its statuses stop wearing off.
@@ -145,8 +145,8 @@ func _test_echo() -> void:
 	var jar := _plant("firefly_jar", Vector2(1, 1))
 	await process_frame  # The Hollow listens once it's in the tree
 	var wet := _spawn(hollow.global_position + Vector2(CELL, 0))
-	wet.apply_status(EnemyStatuses.DAMP)
-	wet.apply_status(EnemyStatuses.STATIC, 3, 0.0, jar.get_damage(), 0, "light", jar)  # Thunderclap
+	wet.apply_status(EnemyStatuses.DAMP, 8)
+	wet.apply_status(EnemyStatuses.STATIC, 10, 0.0, jar.get_damage(), 0, "light", jar)  # Thunderclap
 	var after_clap := _lost(wet)
 	_check(after_clap > 0, "a Thunderclap goes off next to the Hollow")
 	await _wait(1.2)
@@ -163,9 +163,9 @@ func _test_echo() -> void:
 	var jar2 := _plant("firefly_jar", Vector2(1, 1))
 	await process_frame
 	var wet2 := _spawn(whisper.global_position + Vector2(CELL, 0))
-	wet2.apply_status(EnemyStatuses.DAMP)
+	wet2.apply_status(EnemyStatuses.DAMP, 8)
 	var longest := tracker.longest_chain
-	wet2.apply_status(EnemyStatuses.STATIC, 3, 0.0, jar2.get_damage(), 0, "light", jar2)
+	wet2.apply_status(EnemyStatuses.STATIC, 10, 0.0, jar2.get_damage(), 0, "light", jar2)
 	await _wait(1.2)
 	_check(tracker.longest_chain >= maxi(longest, 2), "Whispering Hollow's echo counts as a chain link")
 	await _clean()
@@ -191,16 +191,16 @@ func _test_echo() -> void:
 	listener.position = walker.global_position + Vector2(0, CELL)
 	var charger := _plant("firefly_jar", Vector2(1, 1))
 	await process_frame
-	walker.apply_status(EnemyStatuses.DAMP)
-	walker.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)  # Thunderclap
+	walker.apply_status(EnemyStatuses.DAMP, 8)
+	walker.apply_status(EnemyStatuses.STATIC, 10, 0.0, charger.get_damage(), 0, "light", charger)  # Thunderclap
 	var clap_at := walker.global_position
 	await _wait(1.25)
 	var echoed: Array = walker.recent_hits.filter(func(e) -> bool: return e.tag == &"echo" and e.source == listener)
 	_check(walker.global_position.distance_to(clap_at) > CELL and echoed.size() == 1,
 		"a walking Shade (moved %.0f px) still takes the echo 1 s later (%d echo hits)" % [walker.global_position.distance_to(clap_at), echoed.size()])
 	var doomed := _spawn(listener.global_position + Vector2(CELL, 0))
-	doomed.apply_status(EnemyStatuses.DAMP)
-	doomed.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)
+	doomed.apply_status(EnemyStatuses.DAMP, 8)
+	doomed.apply_status(EnemyStatuses.STATIC, 10, 0.0, charger.get_damage(), 0, "light", charger)
 	var died_at := doomed.global_position + Vector2(0, CELL * 2.0)  # Walked 2 cells on before it was dispelled
 	doomed.global_position = died_at
 	doomed.dispel()

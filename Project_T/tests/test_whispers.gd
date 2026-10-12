@@ -113,6 +113,10 @@ func _run() -> void:
 	whispers._queue.clear()
 	whispers._finish()
 	whispers._seen.erase("flow")
+	var dossier: BossDossier = main.get_node("HUD/BossDossier")
+	# Isolate the artificial family-choice toggle from the startup boss dossier's pending auto-open.
+	var dossier_processing := dossier.is_processing()
+	dossier.set_process(false)
 	var choice_director: DriftDirector = main.get_node("%DriftDirector")
 	choice_director.awaiting_family_pick = true
 	whispers.whisper(&"flow")
@@ -123,6 +127,7 @@ func _run() -> void:
 	for frame in 3:
 		await process_frame
 	_check(whispers._seen.has("flow") and whispers.visible, "…and shows once it closes")
+	dossier.set_process(dossier_processing)
 
 	# Drifts 1–6 for real (leaves can't fall: the block ends when the field is clear).
 	run_state.invulnerable = true

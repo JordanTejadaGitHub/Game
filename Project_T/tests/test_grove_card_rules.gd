@@ -44,8 +44,8 @@ func _run() -> void:
 	var charged := _spawn(Vector2(12.5, 8.5) * CELL)
 	var neighbour := _spawn(charged.global_position + Vector2(0.8, 0) * CELL)
 	var far := _spawn(charged.global_position + Vector2(3, 0) * CELL)
-	charged.apply_status(EnemyStatuses.STATIC, 5, 0.0, 10.0, 0, "light", jar)  # A 5-stack bolt
-	_check(_lost(neighbour) == int(30.0), "Static Field: the bolt also hits a nightmare within 1 tile (%d)" % _lost(neighbour))
+	charged.apply_status(EnemyStatuses.STATIC, 20, 0.0, 10.0, 0, "light", jar)  # A full 20-stack bolt
+	_check(_lost(neighbour) == int(EnemyStatuses.STATIC_BOLT_MULTIPLIER * 10.0), "Static Field: the bolt also hits a nightmare within 1 tile (%d)" % _lost(neighbour))
 	_check(_lost(far) == 0, "but not further")
 	await _clean()
 

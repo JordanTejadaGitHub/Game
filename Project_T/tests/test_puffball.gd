@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for the Puffball (tower_design.md "Spores don't pop"): its puff bursts on landing over 1
-# tile, 2 Poisoned to every nightmare there, nightmares it hits hold up to 16 Poisoned, and nothing pops.
+# tile, 2 Poisoned to every nightmare there, nightmares it hits hold up to 32 Poisoned, and nothing pops.
 # Sporemother breathes 2 Poisoned a second over everything in range.
 # Run from the project folder:
 #   godot --headless --path . --script res://tests/test_puffball.gd --fixed-fps 60
@@ -68,8 +68,11 @@ func _run() -> void:
 		"the burst Poisons (2) and soothes a nightmare within 1 tile")
 	_check(not b.statuses.has(EnemyStatuses.SPORED) and not c.statuses.has(EnemyStatuses.SPORED) and not d.statuses.has(EnemyStatuses.SPORED) \
 		and not far.statuses.has(EnemyStatuses.SPORED), "and nothing further away")
-	for i in 6:
+	target.health = 1000000
+	target.max_health = 1000000
+	for i in data.status_max_stacks:
 		tower.projectile_landed(target, target.global_position)
+		await process_frame  # Let the area-hit budget drain between applications.
 	_check(target.statuses.stacks(EnemyStatuses.SPORED) == data.status_max_stacks, "nightmares it hits hold up to %d Poisoned (%d)" % [
 		data.status_max_stacks, target.statuses.stacks(EnemyStatuses.SPORED)])
 	_check(not "pop_at_stacks" in data, "the pop is gone from the data")

@@ -22,6 +22,7 @@ class_name CaptureDirector
 #   {"plant_each": 0.5, "count": 20, "plant": "thornwall", "auto": "maze"}   one every 0.5 s (also with "spots": [[hx, hy], …])
 #   {"grow": [hx, hy], "into": "<form>"}  grows the Warden planted there in place (through any forms between)
 #   {"dream_offer": true, "rare": false}  a Dream offer now, as at a rest (with "quiet": false; pick it with pick_dream)
+#   {"badges": true}                    card badges under every Warden (as in build mode); {"remember": true} opens the Remember screen
 #   {"start": true}                      starts the next drift (the scene's "drift" first)
 #   {"speed": 0.25}                      game speed (slow motion < 1)
 #   {"spawn": "<enemy id>", "count": 1, "elite": false}
@@ -419,6 +420,7 @@ func _run(event: Dictionary) -> void:
 			at = clampi(at - int(float(event.get("spread", 1.0)) * 2.0 * i), 0, route.size() - 2)
 			enemy.position = map.MAP_GRID.calculate_map_position(route[at])
 			enemy.set_path(route.slice(at))
+			_skip_way_in(enemy)
 	if event.has("leaves"):
 		run_state.leaves = int(event.leaves)
 		run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
@@ -484,6 +486,11 @@ func _run(event: Dictionary) -> void:
 		if dreams.is_offering() and int(event.pick_dream) < dreams.current_offer.size():
 			print("Capture: picked %s at %.1f s" % [dreams.current_offer[int(event.pick_dream)].id, clip_time])
 			dreams.choose(dreams.current_offer[int(event.pick_dream)])
+	if event.has("badges"):  # Card badges under every Warden, as in build mode: the Wardens a Dream reaches
+		Tower.set_badges_visible(&"capture", bool(event.badges))
+	if event.has("remember"):  # Opens the Remember screen (each family's forms), as the rest panel's button
+		var focus := load("res://resource/tower/%s.tres" % event.focus) as TowerData if event.has("focus") else null
+		_main.get_node("%DreamState").open_remember(focus)  # "focus": "<warden id>" opens on that family
 	if event.has("camera"):
 		_cam = event.duplicate()
 		_cam.started = clip_time
@@ -540,6 +547,17 @@ func _update_ghost() -> void:
 	if t >= 1.0:
 		_ghost_at = _ghost_move.to
 		_ghost_move = {}
+
+# A nightmare placed mid-route is already on the island: no walk in from the start's fog (Enemy.enter_along),
+# or it would cross the bridge and then cut straight through the maze to its spot.
+func _skip_way_in(enemy: Node2D) -> void:
+	if not enemy.is_entering():
+		return
+	enemy._entry = PackedVector2Array()
+	enemy.modulate.a = 1.0
+	enemy.z_index = 0
+	if not enemy._hidden and not enemy._untouchable and not enemy.is_cleansed:  # As Enemy._update_entry
+		enemy.add_to_group("enemies")  # Enemy.GROUP
 
 # A free spot next to the route that would seal it: the ghost shows it refused.
 func _blocking_spot() -> Vector2:
@@ -609,6 +627,9 @@ func _process_grove(delta: float) -> void:
 	while _next < _events.size() and float(_events[_next].get("t", 0.0)) <= clip_time:
 		_run_grove(_events[_next])
 		_next += 1
+	if not bool(scene.get("grove_ui", false)):  # Planting opens the node's card over a 55% backdrop: tree only, never dimmed
+		_grove._backdrop.visible = false
+		_grove.card_face.visible = false
 	if not _grove_cam.is_empty():
 		var view = _grove.tree_view
 		var t := clampf((clip_time - float(_grove_cam.started)) / maxf(float(_grove_cam.duration), 0.001), 0.0, 1.0)

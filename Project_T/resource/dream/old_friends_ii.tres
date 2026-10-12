@@ -14,3 +14,4 @@ discovered_by = Array[String](["kinship:any"])
 max_stacks = 1
 deepens = "old_friends"
 rule_id = &"old_friends"
+retired = true

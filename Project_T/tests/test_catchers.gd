@@ -74,6 +74,16 @@ func _run() -> void:
 	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's higher catch applies")
 	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * well.tower_data.catch_share), "Wellspring: its catch (%.2f)" % (well.bowl - well_bowl))
 
+	# Wellspring Strong V adds catch income, including its rank-V mastery, not bank interest.
+	well.rank = 5
+	well.rank_choices.assign([Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG])
+	var strong_probe := _spawn(well.global_position)
+	_check(is_equal_approx(well.get_catch_share(strong_probe), 2.04), "Wellspring Strong V: catch rises from 90% to 204% (rank +50%, Strong +30%, then mastery x1.2)")
+	well_bowl = well.bowl
+	_check(DewCatch.catch(strong_probe, 10.0) == well and is_equal_approx(well.bowl - well_bowl, 20.4), "Wellspring Strong V: 10 Dew dispel adds 20.4 Dew to its Harvest bowl")
+	well.rank = 0
+	well.rank_choices.clear()
+
 	# Drift Dew goes into the bowl too
 	bowl = catcher.bowl
 	catcher._on_drift_cleared(1, 0, true)
@@ -272,17 +282,22 @@ func _run() -> void:
 	await _clean_towers()
 	await _clean()
 
-	# --- Many Threads: Dreamcatchers Catch at 4 Drowsy ---
+	# Many Threads catches at the current balance threshold, before full Drowsy.
 	var catcher2 := _plant("dreamcatcher", Vector2(5, 5))
 	var drowsy := _spawn(catcher2.global_position + Vector2(CELL, 0))
-	drowsy.apply_status(EnemyStatuses.DROWSY, 4, 10.0, 1.0)
+	var catch_threshold := Reactions.buildup_threshold(Tower.MANY_THREADS_DROWSY)
+	drowsy.apply_status(EnemyStatuses.DROWSY, catch_threshold - 1, 10.0, 1.0)
 	catcher2._update_catch(1.0)
-	var caught_before: bool = drowsy.statuses.is_caught()
+	_check(not drowsy.statuses.is_caught(), "partial Drowsy requires Many Threads")
 	_take("many_threads")
 	catcher2._catch_tick = 0.0
 	catcher2._update_catch(1.0)
-	_check(drowsy.statuses.is_caught() and (not caught_before or drowsy.statuses.get_max_stacks(EnemyStatuses.DROWSY) <= 4),
-		"Many Threads: Caught at 4 Drowsy")
+	_check(not drowsy.statuses.is_caught(), "Many Threads rejects one stack below its threshold")
+	drowsy.apply_status(EnemyStatuses.DROWSY, 1, 10.0, 1.0)
+	catcher2._catch_tick = 0.0
+	catcher2._update_catch(1.0)
+	_check(drowsy.statuses.is_caught() and catch_threshold < drowsy.statuses.get_max_stacks(EnemyStatuses.DROWSY),
+		"Many Threads catches at its threshold before full Drowsy")
 
 	print("catchers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()

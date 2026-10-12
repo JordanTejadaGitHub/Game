@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "charged_feathers"
 display_name = "Charged Feathers"
-description = "Each peck applies 1 {static} stack."
-cost_description = "Taking it removes Pollen Beaks from this run."
+description = "Your Hummingbird Bowers (and their forms) carry your Firefly Jars' sparks: each peck applies 1 {static} stack."
+cost_description = "Taking it removes {card:pollen_beaks} from this run."
 rarity = 2
 kind = 3
 tags = Array[String](["wing", "storm", "on-hit"])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "crossfire"
+display_name = "Crossfire"
+description = "When two Wardens hit a nightmare within 1 s, the next nightmare behind it (within 2 cells) takes 40% of the weaker hit. Once per nightmare every 3 s."
+rarity = 1
+kind = 3
+tags = Array[String](["swift"])
+max_stacks = 1
+rule_id = &"crossfire"

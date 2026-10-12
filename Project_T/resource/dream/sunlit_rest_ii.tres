@@ -14,3 +14,4 @@ tags = Array[String](["nurture", "tall"])
 max_stacks = 1
 deepens = "sunlit_rest"
 rule_id = &"sunlit_rest"
+retired = true

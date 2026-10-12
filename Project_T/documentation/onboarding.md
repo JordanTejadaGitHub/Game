@@ -7,11 +7,10 @@ has to nail (`pitch.md`).
 ## Principles
 
 - **Teach by doing, one thing at a time.** Each lesson appears the first time it matters, and is
-  dismissed by doing the thing, not by clicking "OK".
+  taught through play. Hints are brief whispers; Lessons pause to explain unfamiliar rules and close with "Got it" (see Lessons below).
 - **The Heartwood speaks.** Hints are one-line italic whispers at the top of the screen, in the
-  story's voice (*"They're coming for the dream. Don't let them reach me."*). No tutorial windows, no walls of text.
-- **Never punish learning.** Run 1 is a real run, but the first drifts are gentle and Seeds are
-  guaranteed, so even a quick loss moves the player forward.
+  story's voice (*"They're coming for the dream. Don't let them reach me."*). Lessons use a short centred card when a rule needs an explicit explanation.
+- **Never punish learning.** Run 1 is a real run, but the first drifts are gentle and Seeds follow the current economy in `meta_design.md`: there is no first-run Seed bonus, and an act 1 loss may not afford a Grove node.
 - **Hide what isn't needed yet.** Systems appear when the player can use them (see the table
   below).
 - **Skippable.** A **"Hints"** setting (on / off; was "Heartwood whispers", renamed 2026-10-01; the lines stay in the Heartwood's voice) for experienced players; restarting the
@@ -19,7 +18,7 @@ has to nail (`pitch.md`).
 
 ## Run 1: the core loop (and the first taste of meta)
 
-Runs are 100 drifts (`run_design.md`), so nearly all teaching happens in **act 1 (drifts 1–25)**;
+Full runs are 100 drifts; the demo ends at 50 (`run_design.md`, `demo_scope.md`), so nearly all teaching happens in **act 1 (drifts 1–25)**;
 a new player's first run will usually end (and open the Grove) somewhere in act 1 or 2. Lessons
 trigger at these moments:
 
@@ -57,8 +56,7 @@ trigger at these moments:
 1. Dormancy (or victory) moment: *"The Heartwood sinks into dreamless sleep. A seed falls, and
    remembers."*
 2. **Results screen** with the Seeds breakdown (drifts, dispelled, bosses, tended).
-3. **First-run bonus: +20 Seeds** ("The first seed"), so a very early loss still affords an
-   unlock.
+3. **No first-run Seed bonus.** Results use the current Seed formula; a very early loss does not guarantee a purchase.
 4. **The Memory Grove opens for the first time.** Memory 1 plays (*"Before the Heartwood, there
    were two trees…"*). The Heartwood guides the first purchase: 2–3 cheap unlocks glow (e.g.
    Morning Stores I, Charged Bloom, Pebbling line).
@@ -124,6 +122,18 @@ the map. At most one per drift (the rest queue).
 | **Dreamlight** | the first Dreamlight earned | "Dreamlight unlocks new forms on the Remember screen (Q)." |
 Copy texts use the live numbers and icons, never hard-coded values.
 
+### Choice Lessons: shown on top of the choice they explain (2026-10-12)
+User: *"there should be a tutorial card for the first family pick screen."* A Lesson that explains a choice screen is
+the one exception to "never during a choice screen": it opens **over** that screen the first time it appears, before
+the player can pick, and closes back onto it. The screen's cards stay visible behind it (dimmed). Once per profile,
+off with Hints, never over a different choice screen than its own.
+
+| Lesson | Fires | Text |
+|---|---|---|
+| **Wake a family** | the first family pick ever (after drift 1) opens | Title "Wake a family". "Choose one of these Warden families. Your Sprouts can grow into it, and you can plant it directly." · "Your first family is also your **Calling**: its special rule lasts the whole run. It's shown on each card." · "Each card lists the forms that family can grow into this run." (touch / PC hint line: "Peek at the map" looks at the board first.) |
+| **Choose a Dream** | the first Dream offer ever opens (it used to appear after the pick, which taught nothing) | Title "A Dream". "Pick one card, or let it pass for a little {dew}. Dreams last the whole run." · "A card that needs a Warden you don't have says so." |
+| **Face an Omen** | the first Omen offer ever opens | "An Omen makes the next block harder and pays you at the rest after it. Clear Skies skips it." |
+
 ## Forest Journal (later: not in the first playable or demo)
 
 **Update 2026-09-30:** the nightmare half of this is now the Codex's **Nightmares** section
@@ -136,6 +146,12 @@ goal. Entries could double as milestone progress (e.g. *"Dispel every kind of ni
 
 ## Demo fit
 
-The demo has no meta (`demo_scope.md`): a demo run is acts 1–2 (drifts 1–50), taught exactly as
-run 1 above. At the end, the Grove parts are replaced by a **teaser** (the Grove asleep, with the
-player's banked Seeds) and a wishlist screen.
+The demo teaches acts 1–2 (drifts 1–50) and the small demo Memory Grove (`demo_scope.md`, `meta_design.md`). About eight nodes are plantable with earned Seeds, including Rootling; the remaining tree is asleep and tagged "Full game". Purchases and banked Seeds carry into the full game. The demo ending also offers the wishlist link.
+
+## Initial and discovery panels (2026-10-11)
+Fresh first runs begin with three paused Lesson cards: Protect the Heartwood, Build your maze, and Earn Dew. Next advances without releasing the pause; Got it finishes, and Skip tutorial remembers all three as skipped. They use the existing Hints setting and once-per-profile lesson ledger. Continued runs beyond the opening do not start this sequence.
+Growth and nurture first become lessons when an affordable selected Warden can use them. The first Dream offer queues a lesson for after the choice screen closes. First observed status hints and flyers also queue paused definitions. Existing pricing, selling, Dreamlight and Restless lessons remain. All panels wait for other modal screens, preserve an existing manual pause, and reject attempts to unpause underneath them. Turning Hints off closes and clears pending lessons. Whispers wait while a Lesson covers the map.
+Nurture teaching directs players to the live special-bonus requirements rather than hard-coding an unimplemented rule change.
+
+### Replayable animated guides (2026-10-11)
+Pause → Replay guides shows three paused, looping explanations: four-matching rank-V specialisation versus All-Rounder; defended maze roads and Dew; catcher bowls, Harvest and capped Wellspring interest. They replay even with Hints disabled without changing that setting or discovery history. First-time nurture, maze and catcher lessons include the same animations. These are in-game animations rather than external video files.

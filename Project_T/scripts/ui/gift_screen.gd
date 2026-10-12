@@ -79,7 +79,7 @@ var arm: ChoiceArm
 var placing: StringName = &""  # The gift being placed (the cards hidden)
 var _cards := HBoxContainer.new()
 var _pass := Button.new()
-var _choose := Control.new()  # The cards' page (dim + centre)
+var _choose: Control  # The cards' page (dim + centre)
 var _dim := ColorRect.new()
 var _place_bar := PanelContainer.new()
 var _place_label := Label.new()

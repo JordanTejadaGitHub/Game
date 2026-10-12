@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fireflies_in_the_grass"
 display_name = "Fireflies in the Grass"
-description = "Sprouts touching a Firefly-line Warden add 1 {static} every 3rd hit."
+description = "Sprouts touching a Firefly-line Warden add 2 {static} every 3rd hit."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "sprout"])

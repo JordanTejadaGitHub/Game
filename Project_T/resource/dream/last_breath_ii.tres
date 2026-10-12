@@ -13,3 +13,4 @@ tags = Array[String](["affliction", "reach"])
 max_stacks = 1
 deepens = "last_breath"
 rule_id = &"last_breath"
+retired = true

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_pebbling"
 display_name = "Pebbling"
-description = "Sprouts can now grow into Pebblings ({dew:{grow_cost:pebbling}}), or plant one directly ({dew:{plant_cost:pebbling}}). Slow, heavy pebbles."
+description = "Sprouts can now grow into Pebblings ({dew:{grow_cost:pebbling}}), or plant one directly ({dew:{plant_cost:pebbling}}). A heavy pebble: {field:pebbling.splash_share:pct} splashes onto nightmares right beside its target, then it skips on to another close by for {field:pebbling.skip_share:pct} damage."
 rarity = 0
 kind = 0
 tags = Array[String](["stone"])

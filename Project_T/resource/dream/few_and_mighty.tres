@@ -11,6 +11,6 @@ rarity = 2
 kind = 3
 tags = Array[String](["narrow", "tall"])
 max_stacks = 1
-max_attackers = 12
+max_attackers = 11
 rule_id = &"few_and_mighty"
 in_start_pool = false

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hushed_hedge"
+display_name = "Hushed Hedge"
+description = "Each Thornwall gives 2 {drowsy} stacks to the first grounded nightmare that passes beside it each {drift}."
+rarity = 1
+kind = 3
+tags = Array[String](["tending", "wall"])
+max_stacks = 1
+rule_id = &"hushed_hedge"
+excludes = Array[String](["thorn_snare"])
+cost_description = "Taking it removes {card:thorn_snare} from this run."
+in_start_pool = false

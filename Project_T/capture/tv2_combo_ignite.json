@@ -1,0 +1,17 @@
+{
+	"title": "Trailer v2: combo, ignite (sporeling + firefly_jar).",
+	"note": "Marketing (user 2026-10-08 trailer v2, beat 5: two or three different combos; Reactions need a grown Warden, so final forms). Open island beside the straight: three of each final at rank 5, staggered either side; drift 20 (no flyer lane), a Husk crowd then Shades walk into them and are dispelled. Close (zoom 2.5).",
+	"seed": 4242, "size": [1920, 1080], "obstacles": "edge", "dew": 99999, "hud": "none", "drift": 30, "families": ["sporeling", "firefly_jar"], "length": 10.0, "captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [6.5, 10.2], "zoom": 2.0},
+		{"t": 0.0, "plant": "puffball", "at": [10, 18], "rank": 0, "tag": false},
+		{"t": 0.0, "plant": "puffball", "at": [18, 23], "rank": 0, "tag": false},
+		{"t": 0.0, "plant": "puffball", "at": [22, 18], "rank": 0, "tag": false},
+		{"t": 0.0, "plant": "thunderhead", "at": [10, 23], "rank": 0, "tag": false},
+		{"t": 0.0, "plant": "thunderhead", "at": [18, 18], "rank": 0, "tag": false},
+		{"t": 0.0, "plant": "thunderhead", "at": [22, 23], "rank": 0, "tag": false},
+		{"t": 0.3, "spawn": "bark_beetle", "count": 8, "elite": true, "progress": 0.3, "spread": 0.6},
+		{"t": 3.0, "spawn": "leaf_bug", "count": 8, "progress": 0.4, "spread": 0.6},
+		{"t": 6.0, "spawn": "bark_beetle", "count": 6, "progress": 0.4, "spread": 0.8}
+	]
+}

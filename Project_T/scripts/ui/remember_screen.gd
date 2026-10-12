@@ -18,7 +18,7 @@ signal node_selected(data: TowerData)  # A node tapped
 signal unlocked(data: TowerData)  # A successful unlock (Sound reads data.tier)
 signal unlock_rejected(data: TowerData)  # Not enough Dreamlight, or still locked
 
-const MOTE := "✦"  # Dreamlight
+const MOTE := UiStyle.DREAMLIGHT_GLYPH  # Dreamlight: the one icon everywhere (user 2026-10-12: "Dreamlight icon looks different on some things"; it was a gold star)
 const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const NAME_SIZE := 14  # Form names under the portraits (body font)
@@ -85,11 +85,12 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	frame.add_child(box)
 
-	# Header: "Remember", "Dreamlight 3 ✦", "Dreamlight unlocks, Dew grows."
+	# Header: "Remember", "Dreamlight <glyph>3", "Dreamlight unlocks, Dew grows."
 	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE, HEADER_COLOR)
 	_title.text = "Remember"
 	box.add_child(_title)
 	UiStyle.number(_light_line, 20)
+	_light_line.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))  # The Dreamlight glyph beside the number
 	box.add_child(_light_line)
 	var hint := Label.new()
 	hint.text = "Dreamlight unlocks, Dew grows."
@@ -274,6 +275,7 @@ func _build_phone() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.add_child(_title)
 	UiStyle.number(_light_line, 22)
+	_light_line.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))
 	_light_line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.add_child(_light_line)
 	var info := Button.new()
@@ -442,7 +444,8 @@ func _update_info(root: TowerData) -> void:
 		parts.append(MISTY_TIP)
 	var text := "\n\n".join(parts)
 	_info_tip._label.text = text
-	(_info_tip.get_parent() as Control).tooltip_text = text
+	if is_instance_valid(_info_tip._host) and not _info_tip.visible:  # Its icon (a pinned tip sits on the tip layer, and keeps the hover tooltip off)
+		_info_tip._host.tooltip_text = text
 
 # --- Building -------------------------------------------------------------------------------------------
 
@@ -466,7 +469,7 @@ func _forms_of(tree: Array) -> Array[TowerData]:
 	return forms
 
 func _rebuild() -> void:
-	_light_line.text = "Dreamlight %d %s" % [dream_state.dreamlight, MOTE]
+	_light_line.text = "Dreamlight %s" % UiStyle.dreamlight_amount(dream_state.dreamlight)  # The glyph and the number, as everywhere
 	var trees := _trees()
 	for child in _tabs.get_children():
 		_tabs.remove_child(child)
@@ -1277,9 +1280,9 @@ class FormNode extends Button:
 			State.UNLOCKED:  # Its name in gold: unlocked this run, none planted yet
 				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 6)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above the motes, one line
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above its Dreamlight price, one line
 				var price: int = screen.dream_state.get_unlock_price(data)
-				text = MOTE.repeat(price) if price > 0 else "free"
+				text = UiStyle.dreamlight_amount(price) if price > 0 else "free"  # Its price: the Dreamlight glyph and the number
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
 			State.LOCKED:
 				text = data.display_name  # The chain on its line says it's locked
@@ -1297,7 +1300,7 @@ class FormNode extends Button:
 		if text != "":
 			# Counts and motes in the number face; names in the body font, readable (story chat: small caps were tiny)
 			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM
-			var font := UiStyle.body_font() if words else UiStyle.number_font()
+			var font := UiStyle.body_font() if words else UiStyle.with_glyphs(UiStyle.number_font())  # (The Dreamlight glyph is in the glyph font)
 			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
 
@@ -1368,6 +1371,28 @@ void fragment() {
 			UiStyle.release_at_exit(func() -> void: _silhouette = null)  # Resources in a static var crash the exit (exit 139)
 		return _silhouette
 
+	# An Ascended form's art carries light rays, sparkles and motes (dithered, scattered pixels): flattened, they
+	# filled the disc as a dark square (user). This silhouette keeps only solid pixels (3+ of the 4 neighbours drawn),
+	# so the form's own shape reads.
+	static var _solid_silhouette: ShaderMaterial
+	static func solid_silhouette_material() -> ShaderMaterial:
+		if _solid_silhouette == null:
+			var shader := Shader.new()
+			shader.code = """shader_type canvas_item;
+uniform vec4 ink : source_color;
+void fragment() {
+	vec2 px = TEXTURE_PIXEL_SIZE;
+	float n = step(0.5, texture(TEXTURE, UV + vec2(px.x, 0.0)).a) + step(0.5, texture(TEXTURE, UV - vec2(px.x, 0.0)).a)
+		+ step(0.5, texture(TEXTURE, UV + vec2(0.0, px.y)).a) + step(0.5, texture(TEXTURE, UV - vec2(0.0, px.y)).a);
+	COLOR = vec4(ink.rgb, step(0.5, texture(TEXTURE, UV).a) * step(2.5, n) * COLOR.a);
+}
+"""
+			_solid_silhouette = ShaderMaterial.new()
+			_solid_silhouette.shader = shader
+			_solid_silhouette.set_shader_parameter("ink", Palette.DREAD)
+			UiStyle.release_at_exit(func() -> void: _solid_silhouette = null)  # Resources in a static var crash the exit (exit 139)
+		return _solid_silhouette
+
 	func _init(form: TowerData, side: float, silhouette: bool = false) -> void:
 		data = form
 		custom_minimum_size = Vector2(side, side)
@@ -1389,12 +1414,36 @@ void fragment() {
 			if box <= side:
 				stretch_mode = TextureRect.STRETCH_KEEP_CENTERED  # Fits: 1:1, crisp
 		if silhouette:  # Not unlocked this run: a dark silhouette (FormNode draws the moonlit disc behind it)
-			material = silhouette_material()
+			material = solid_silhouette_material() if data.tier >= DreamState.ASCENDED_TIER else silhouette_material()
 
 	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
 	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.
 	func _crop() -> Rect2:
+		if data.footprint > 1:  # A 2×2 form: WardenIcon crops those to a 64 px slot, a slice of its body (a dark square)
+			return Portrait.drawn_region(data)
 		return WardenIcon.visible_region(data)  # Centred by its drawn pixels, not its canvas (user, via UI Asset)
+
+	# Frame 0's rect trimmed to the pixels any frame draws (as WardenIcon.visible_region, for 2×2 forms too).
+	static var _drawn := {}
+	static func drawn_region(form: TowerData) -> Rect2:
+		var frame := form.get_frame_rect(0)
+		var key := "%s:%d" % [form.texture.resource_path, form.frame_count]
+		if _drawn.has(key):
+			return _drawn[key]
+		var result := frame
+		var image := form.texture.get_image()
+		if image != null and not image.is_empty():
+			if image.is_compressed():
+				image.decompress()
+			var used := Rect2i()
+			for i in maxi(form.frame_count, 1):
+				var part := image.get_region(Rect2i(form.get_frame_rect(i))).get_used_rect()
+				if part.size != Vector2i.ZERO:
+					used = part if used.size == Vector2i.ZERO else used.merge(part)
+			if used.size != Vector2i.ZERO:
+				result = Rect2(frame.position + Vector2(used.position), Vector2(used.size))
+		_drawn[key] = result
+		return result
 
 	func _process(delta: float) -> void:
 		if data.texture == null or data.frame_count <= 1:

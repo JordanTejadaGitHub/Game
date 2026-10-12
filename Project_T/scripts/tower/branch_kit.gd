@@ -184,7 +184,7 @@ static func on_spore_tick(enemy: Node2D) -> void:
 	enemy.statuses.veil_time = maxf(enemy.statuses.veil_time, 1.0)  # Blocks healing (Enemy.heal reads it)
 	if enemy.coat > 0.0:
 		enemy.coat = maxf(enemy.coat - enemy.coat_max * p(source, "shell_strip", 0.01), 0.0)
-		if is_final(source) and enemy.statuses.stacks(EnemyStatuses.SPORED) >= int(p(source, "crack_at", 8)):
+		if is_final(source) and enemy.statuses.stacks(EnemyStatuses.SPORED) >= Reactions.buildup_threshold(int(p(source, "crack_at", 32))):
 			enemy.coat = 0.0  # The shell cracks off at once
 
 # Prism Jar's aura: the crit chance `tower` gets from the strongest Prism within reach (no stacking; not itself).
@@ -323,6 +323,7 @@ static func _jet(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
 		return
+	tower.note_primary_target(target)
 	var from := tower.global_position
 	var dir := (target.global_position - from).normalized()
 	var length := (p(tower, "length", 6.0) + tower.area_bonus()) * CELL
@@ -349,12 +350,10 @@ static func _jet(tower: Tower) -> void:
 				cells.append(route[i])
 				if cells.size() >= int(p(tower, "trail_tiles", 3)):
 					break
-		for cell in cells:
-			var wet := GroundZone.new(tower, &"wet", Tower.MAP_GRID.calculate_map_position(cell), 0.5 * CELL,
-				p(tower, "trail_time", 3.0), 0.5)
-			wet.square = true
-			wet.status = EnemyStatuses.DAMP
-			world(tower).add_child(wet)
+		var puddles := Puddles.find(tower)  # Path cells only, on the ground; a second jet merges (story chat)
+		if puddles != null:
+			for cell in cells:
+				puddles.wet(cell, ShapeCards.ground_time(p(tower, "trail_time", 3.0)), tower)  # Lingering Ground: x1.5
 
 # --- Jarlink / Lightning Fence: two Jarlinks within 4 cells make an arc ---------------------------------------
 
@@ -578,6 +577,8 @@ static func _prism_beams(tower: Tower) -> void:
 	var share := p(tower, "beam_share", 0.5)
 	var colours: Array[Color] = [Palette.BLOSSOM, Palette.GLOW, Palette.DEWLIGHT]  # The white sheet tinted (Tower Assets)
 	var targets := tower.find_targets(int(p(tower, "beams", 3)))
+	if not targets.is_empty():
+		tower.note_primary_target(targets[0])
 	for i in targets.size():
 		tower.hit(targets[i], share)
 		var beam := Fx.segment(&"prism_beam", tower.global_position, targets[i].global_position, world(tower), 0.2)
@@ -696,6 +697,7 @@ static func _toll(tower: Tower) -> void:
 	ranked.sort_custom(func(x: Node2D, y: Node2D) -> bool: return x.health > y.health)
 	if ranked.is_empty():
 		return
+	tower.note_primary_target(ranked[0])
 	_toll_one(tower, ranked[0], 1.0)
 	if is_final(tower) and ranked.size() > 1:
 		_toll_one(tower, ranked[1], p(tower, "echo_share", 0.5))  # The toll echoes to the next-strongest
@@ -758,6 +760,7 @@ static func _thrum(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
 		return
+	tower.note_primary_target(target)
 	var dir := (target.global_position - tower.global_position).normalized()
 	var reach := tower.get_range_pixels()
 	var in_reach := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(tower.global_position) <= reach)
@@ -768,9 +771,11 @@ static func _thrum(tower: Tower) -> void:
 			return e.statuses.has(EnemyStatuses.DROWSY) and absf(dir.angle_to(e.global_position - tower.global_position)) <= cone).size()
 		half = minf(half + deg_to_rad(p(tower, "widen", 15.0)) / 2.0 * drowsy, deg_to_rad(p(tower, "cone_max", 180.0)) / 2.0)
 	var bonus := p(tower, "vs_drowsy", 0.3)
-	for e in in_reach:
-		if absf(dir.angle_to(e.global_position - tower.global_position)) <= half:
-			tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
+	var targets := in_reach.filter(func(e) -> bool:
+		return absf(dir.angle_to(e.global_position - tower.global_position)) <= half)
+	tower._area_count = targets.size()  # Crowd Breaker counts the final cone, including Resonance's widening.
+	for e in targets:
+		tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
 	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))  # The cone itself (what it hits)
 	var wave := Fx.play(&"sound_cone", tower.global_position, world(tower), reach / 48.0)
 	if wave:
@@ -843,7 +848,7 @@ static func damage_multiplier(tower: Tower) -> float:
 		# Kindred on a Seedbearer: its Sprouts deal 6% more damage per rank.
 		var seedbearer = instance_from_id(int(tower.get_meta(&"seeded_by")))
 		if seedbearer is Tower and is_instance_valid(seedbearer):
-			return 1.0 + NurtureChoices.SEED_KINDRED * seedbearer.choice_count(Tower.Focus.KINDRED)
+			return (1.0 + NurtureChoices.SEED_KINDRED * seedbearer.choice_count(Tower.Focus.KINDRED)) * Signatures.multiplier(seedbearer, &"offspring")
 		return 1.0
 	if tower.attack_data.special != RAMPART:
 		return 1.0
@@ -1130,9 +1135,9 @@ static func nurture_multiplier(tower: Tower) -> float:
 	var best := 0.0
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
-				and area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(tower, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			# Each log caps its own (audit b6f44fac: Mother Log 0.35 + 0.03 a rank reaches its 0.50 at V; Nurse Log 0.40)
-			best = maxf(best, minf(p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG),
+			best = maxf(best, minf((p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG)) * Signatures.multiplier(other, &"nursery"),
 				p(other, "nurse_cap", NurtureChoices.NURSE_CAP)))
 	return 1.0 - best
 
@@ -1145,7 +1150,7 @@ static func grow_multiplier(tower: Tower) -> float:
 			best = maxf(best, 0.10 * other.kin_share(NURSERY, "b"))
 	# Kindred on a Nurse Log: Wardens in its reach grow 2% cheaper per rank.
 	for other in logs(tower):
-		if area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			best = maxf(best, NurtureChoices.NURSE_KINDRED * other.choice_count(Tower.Focus.KINDRED))
 	return 1.0 - best
 
@@ -1155,7 +1160,7 @@ static func remember_rank(sold: Tower) -> void:
 		return
 	for other in logs(sold):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG and is_final(other) \
-				and area_distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(sold, other) <= (p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE)) * Signatures.multiplier(other, &"nursery"):
 			var rings: Dictionary = other.get_meta(&"rings", {})
 			rings[sold.cell] = [sold.rank, Array(sold.rank_choices)]
 			other.set_meta(&"rings", rings)
@@ -1198,6 +1203,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
+			extra += (shards + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)) * (Signatures.multiplier(tower, &"shards") - 1.0)
 			if tower.signature() == Signatures.FIRSTBORN:
 				extra += shards * (Signatures.FIRSTBORN_SHARDS - 1.0)  # Firstborn: shards x1.5 (the fraction carries)
 				tower.signature_fired.emit(tower, Signatures.FIRSTBORN)
@@ -1253,13 +1259,12 @@ static func draw_seed_badge(tower: Tower) -> void:
 static func seeds_ready(tower: Tower) -> int:
 	return int(tower.get_meta(&"seeds_ready", 0)) if tower.attack_data.special == SEEDBEARER else 0
 
-# The cells beside a Seedbearer where its Sprout can go (TowerPlacer checks the path rule).
-static func seed_cells(tower: Tower) -> Array[Vector2]:
+# Seedbearer and Grove Keeper can plant anywhere; TowerPlacer checks legal placement and paths.
+static func seed_cells(_tower: Tower) -> Array[Vector2]:
 	var out: Array[Vector2] = []
-	for dx in [-1, 0, 1]:
-		for dy in [-1, 0, 1]:
-			if dx != 0 or dy != 0:
-				out.append(tower.cell + Vector2(dx, dy))
+	for y in Tower.MAP_GRID.size.y:
+		for x in Tower.MAP_GRID.size.x:
+			out.append(Vector2(x, y))
 	return out
 
 # TowerPlacer planted a Seedbearer's Sprout: it's its own, Grove Keeper's arrive at rank II, Nursery (a) beside the
@@ -1509,6 +1514,112 @@ class BroodSprite extends Node2D:
 		draw_texture_rect_region(_tex, rect, region)
 
 
+# Puddles on path cells (story chat; the user: "update the wet trail from Torrent"; the Rootling ripple's rules): one
+# node per world on the ground (z −1), a soft puddle per route point (half grid), fading out over its time. A cell wetted again
+# merges (the later end wins), never stacks. Water puddles (Torrent's Flood) Soak the walkers on them every TICK s; ink
+# (Deliquescent's pool) is only the look, InkField does its Poisoned. Reduced effects: no shimmer.
+class Puddles extends Node2D:
+	const TICK := 0.5
+	const FADE := 1.0  # The last second fades out
+	const SIZE := 14.0  # Half-width in px: route points are 32 px apart (half grid), so neighbours join into one band
+	const REACH := 20.0  # A walker this close to a puddle's centre stands in it
+	var cells := {}  # cell -> [ends at, lasts, Tower that Soaks (or null), style]
+	var _clock := 0.0
+	var _next := 0.0
+
+	static func find(near: Node) -> Puddles:
+		var w := BranchKit.world(near)
+		if w == null:
+			return null
+		var node := w.get_node_or_null("Puddles") as Puddles
+		if node == null or node.is_queued_for_deletion():
+			node = Puddles.new()
+			node.name = "Puddles"
+			node.z_index = -1  # On the ground: under the Wardens and the nightmares
+			w.add_child(node)
+		return node
+
+	func wet(cell: Vector2, seconds: float, tower: Tower, style: StringName = &"water") -> void:
+		var old: Array = cells.get(cell, [])
+		var ends := _clock + seconds
+		if old.is_empty() or ends > float(old[0]):
+			cells[cell] = [ends, seconds, tower if tower != null else (old[2] if not old.is_empty() else null), style]
+
+	func has_puddle(cell: Vector2) -> bool:
+		return cells.has(cell) and _clock < float(cells[cell][0])
+
+	func _process(delta: float) -> void:
+		_clock += delta
+		if cells.is_empty():
+			return
+		for cell in cells.keys():
+			if _clock >= float(cells[cell][0]):
+				cells.erase(cell)
+		_next -= delta
+		if _next <= 0.0:
+			_next += TICK
+			_soak()
+		queue_redraw()
+
+	func _soak() -> void:
+		for e in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+			if not is_instance_valid(e) or e.is_cleansed or e.is_flying():
+				continue
+			# Route points sit on the half grid (32 px apart): a walker within REACH of a puddle's centre stands in it.
+			for cell in cells:
+				var entry: Array = cells[cell]
+				if entry[3] != &"water" or not is_instance_valid(entry[2]):
+					continue
+				if e.global_position.distance_to(Tower.MAP_GRID.calculate_map_position(cell)) <= REACH:
+					var tower: Tower = entry[2]
+					tower._apply_one_status(e, EnemyStatuses.DAMP, 1, tower.get_damage())
+					break  # One Soak a tick, however many puddles it touches (they merge)
+
+	func _draw() -> void:
+		var shimmer := not Fx.reduced()
+		for cell in cells:
+			var entry: Array = cells[cell]
+			var left := float(entry[0]) - _clock
+			var fade := clampf(left / FADE, 0.0, 1.0) * (0.6 + 0.4 * clampf(left / maxf(float(entry[1]), 0.01), 0.0, 1.0))
+			var at := Tower.MAP_GRID.calculate_map_position(cell)
+			var ink: bool = entry[3] == &"ink"
+			var rim := Palette.SHADE if ink else Palette.POOL
+			var core := Palette.BRUISE if ink else Palette.DEW
+			var glint := Palette.SPRIG if ink else Palette.DEWLIGHT
+			var seed := absi(hash(cell))
+			# Tower Assets' puddles (5f9da433): torrent_ / ink_puddle_a..d, the variant fixed per cell, frame 0 held under
+			# reduced effects. The drawn blob below stays as the fallback.
+			var sheet := _sheet(StringName(("ink_puddle_" if ink else "torrent_puddle_") + "abcd"[seed % 4]))
+			if not sheet.is_empty():
+				var tex: Texture2D = sheet[0]
+				var size: Vector2 = sheet[1]
+				var frame := int(_clock * float(sheet[3])) % int(sheet[2]) if shimmer else 0
+				draw_texture_rect_region(tex, Rect2((at - sheet[4]).round(), size), Rect2(Vector2(frame * size.x, 0), size),
+					Color(1, 1, 1, fade))  # multiplier (the fade)
+				continue
+			# A soft blob from three overlapping flattened circles, its shape fixed per cell.
+			for i in 3:
+				var off := Vector2(((seed >> (i * 4)) % 9) - 4.0, ((seed >> (i * 4 + 2)) % 7) - 3.0)
+				var r := SIZE * (0.62 + 0.08 * ((seed >> (i * 3)) % 4))
+				draw_set_transform(at + off, 0.0, Vector2(1.0, 0.72))
+				draw_circle(Vector2.ZERO, r + 2.0, Color(rim, 0.30 * fade))
+				draw_circle(Vector2.ZERO, r, Color(core, 0.38 * fade))
+			var phase := (_clock * 2.2 + float(seed % 628) / 100.0) if shimmer else 0.0
+			var glint_at := at + Vector2(sin(phase) * 5.0 - 3.0, -3.0)
+			draw_set_transform(glint_at, 0.0, Vector2(1.0, 0.45))
+			draw_circle(Vector2.ZERO, 4.0, Color(glint, (0.30 + (0.18 * sin(phase * 1.7) if shimmer else 0.0)) * fade))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# [texture, frame size, frames, fps, anchor] of a puddle sheet, [] if it isn't there. Held on the node, never static.
+	var _sheets := {}
+	func _sheet(id: StringName) -> Array:
+		if not _sheets.has(id):
+			var entry := Fx.info(id)
+			var tex := Fx.texture(id) if not entry.is_empty() else null
+			_sheets[id] = [] if tex == null else [tex, Vector2(entry.frame_size[0], entry.frame_size[1]), maxi(int(entry.get("frames", 1)), 1),
+				float(entry.get("fps", 5.0)), Vector2(entry.anchor[0], entry.anchor[1])]
+		return _sheets[id]
+
 # A patch of ground with an effect for a while: rain clouds, whirlpools, ink, wet trails. Ticks every `tick` s on the
 # nightmares inside (a square or a circle of `radius`).
 class GroundZone extends Node2D:
@@ -1558,11 +1669,6 @@ class GroundZone extends Node2D:
 						_art = Fx.play(&"rain_zone", global_position + Vector2(dx, dy) * CELL, self, 1.0, true, left) != null or _art
 			&"whirlpool":
 				_art = Fx.play(&"whirlpool", global_position, self, radius * 2.0 / CELL, true, left) != null
-			&"wet":  # Torrent's trail: the ink sheet, tinted water-blue
-				var trail := Fx.segment(&"ink_trail", global_position - Vector2(CELL / 2.0, 0), global_position + Vector2(CELL / 2.0, 0), self, left)
-				if trail:
-					trail.modulate = Palette.DEWLIGHT  # multiplier (a tint on the ink sheet)
-					_art = true
 
 	func _process(delta: float) -> void:
 		left -= delta
@@ -1626,7 +1732,7 @@ class GroundZone extends Node2D:
 				var rain := damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0)
 				e.take_damage(rain * tower.crush_tick(e, rain), tower.tower_data.line, true, false, tower, &"rain")  # Crushing counts rain
 			elif damage_per_second > 0.0:
-				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true)
+				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"", false)
 			if not is_instance_valid(e) or e.is_cleansed:
 				continue
 			if status != &"":
@@ -1659,7 +1765,7 @@ class GroundZone extends Node2D:
 		match kind:
 			&"rain":
 				colour = Palette.DEWLIGHT
-			&"whirlpool", &"wet":
+			&"whirlpool":
 				colour = Palette.DEWLIGHT
 			_:
 				colour = Palette.ORCHID  # Ink
@@ -1678,7 +1784,8 @@ class GroundZone extends Node2D:
 class InkField extends Node:
 	const TICK := 0.25
 	var marked := {}  # Enemy instance id -> [enemy, Tower, seconds of trail left]
-	var cells := {}  # Cell -> [expires at, Tower, Spored every N s, next tick at]
+	var cells := {}  # Cell -> [expires at, Tower, Spored every N s]
+	var _contacts := {}  # Enemy id -> [weak reference, last application time]; walking cells cannot bypass cadence
 	var _clock := 0.0
 	var _next := 0.0
 
@@ -1714,9 +1821,9 @@ class InkField extends Node:
 			if not enemy.is_flying():
 				var cell: Vector2 = enemy.get_current_cell()
 				if cells.has(cell):
-					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
+					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its cadence
 				else:
-					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
+					cells[cell] = [_clock + entry[2], entry[1], 1.0]
 				# The ink is drawn where it walked (story chat: "bugged and not clear, especially on vertical": it was a
 				# horizontal strip across each whole cell's centre): a piece from the last spot to here, rotated to the
 				# ribbon, every tick, so it follows turns and its fade matches how long the ink lasts.
@@ -1732,12 +1839,24 @@ class InkField extends Node:
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
 				cells.erase(cell)
 				continue
-			if _clock < ink[3]:
+		# Check contact each field tick, rather than only at a cell's shared damage time:
+		# a moving walker can leave that cell before the old timer ever fires.
+		for id in _contacts.keys():
+			var contact: Array = _contacts[id]
+			if contact[0].get_ref() == null or _clock - float(contact[1]) >= 1.0:
+				_contacts.erase(id)
+		for e in BranchKit.targetable(self):
+			if e.is_flying():
 				continue
-			ink[3] = _clock + ink[2]
-			for e in BranchKit.targetable(ink[1]):
-				if not e.is_flying() and e.get_current_cell() == cell:
-					e.apply_status(EnemyStatuses.SPORED, 1, 0.0, ink[1].get_damage() * Tower.SPORE_POTENCY, 0, "spore", ink[1])
+			var cell: Vector2 = e.get_current_cell()
+			if not cells.has(cell):
+				continue
+			var ink: Array = cells[cell]
+			var previous: Array = _contacts.get(e.get_instance_id(), [])
+			if not previous.is_empty() and _clock - float(previous[1]) < float(ink[2]):
+				continue
+			_contacts[e.get_instance_id()] = [weakref(e), _clock]
+			e.apply_status(EnemyStatuses.SPORED, 1, 0.0, ink[1].get_damage() * Tower.SPORE_POTENCY, 0, "spore", ink[1])
 
 	# Deliquescent: a dispelled Poisoned nightmare it marked melts into a 2-tile pool.
 	func _on_dispelled(enemy: Node2D) -> void:
@@ -1748,7 +1867,7 @@ class InkField extends Node:
 		var here: Vector2 = enemy.get_current_cell()
 		var pool: Array[Vector2] = [here, enemy.get_target_cell()]
 		for cell in pool:
-			cells[cell] = [_clock + ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)), tower, BranchKit.p(tower, "pool_every", 0.5), _clock]
+			cells[cell] = [_clock + ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)), tower, BranchKit.p(tower, "pool_every", 0.5)]
 			_show(cell, ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)))  # Lingering Ground: x1.5 (trail and pool)
 		marked.erase(enemy.get_instance_id())
 
@@ -1768,12 +1887,11 @@ class InkField extends Node:
 	func clock() -> float:
 		return _clock
 
-	# The ink on `cell` for `seconds` (Tower Assets' ink_trail across the cell).
+	# The ink on `cell` for `seconds`: an ink puddle (Puddles).
 	func _show(cell: Vector2, seconds: float) -> void:
-		var at := Tower.MAP_GRID.calculate_map_position(cell)
-		var ink := Fx.segment(&"ink_trail", at - Vector2(BranchKit.CELL / 2.0, 0), at + Vector2(BranchKit.CELL / 2.0, 0), get_parent(), seconds)
-		if ink:
-			ink.z_index = -1  # On the ground
+		var puddles := Puddles.find(get_parent())  # An ink puddle on the path cell (Torrent's rule: path only, on the ground)
+		if puddles != null:
+			puddles.wet(cell, seconds, null, &"ink")
 
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]

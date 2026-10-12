@@ -13,3 +13,4 @@ tags = Array[String]([])
 max_stacks = 1
 deepens = "longer_roots"
 range_bonus = 1.5
+retired = true

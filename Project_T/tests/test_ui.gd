@@ -455,18 +455,24 @@ func _run() -> void:
 	# Tips are opaque and on their own top layer, by the pointer (screens_ui.md "tips are opaque").
 	_check(light_tip.get_parent() is CanvasLayer and (light_tip.get_parent() as CanvasLayer).layer == UiStyle.TIP_LAYER,
 		"the tip draws on the top tip layer")
+	# One tip at a time (screens_ui.md "Icon help update"): pinned, its icon's hover tooltip is off.
+	light.mouse_entered.emit()
+	_check(light_tip.visible and light.tooltip_text == "" and TapTip.pinned() == light_tip, "a pinned tip suppresses its icon's hover tooltip")
 	var above_right := UiStyle.tip_position(Vector2(400, 400), Vector2(200, 60), Vector2(1280, 800))
 	var flipped := UiStyle.tip_position(Vector2(1250, 20), Vector2(200, 60), Vector2(1280, 800))
 	_check(above_right == Vector2(416, 328) and flipped.x + 200.0 <= 1250.0 and flipped.y >= 20.0,
 		"tips sit above-right of the pointer and flip at the edges (%s, %s)" % [above_right, flipped])
-	light_tip.visible = false
 	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
 	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
 	var dew_tip: TapTip = dew_label.get_children().filter(func(c: Node) -> bool: return c is TapTip)[0]
+	var dew_text := dew_label.tooltip_text
 	dew_label.gui_input.emit(tap)
-	_check(dew_tip.visible and dew_tip._label.text == dew_label.tooltip_text, "tapping Dew shows the same text")
+	_check(dew_tip.visible and dew_tip._label.text == dew_text, "tapping Dew shows the same text")
+	# Opening another icon swaps the tip: the Dreamlight one closed and has its hover tooltip back.
+	_check(not light_tip.visible and light.tooltip_text.begins_with("Dreamlight") and TapTip.pinned() == dew_tip, "another icon's tip replaces the pinned one (never two)")
 	dew_tip.toggle()
+	_check(not dew_tip.visible and dew_label.tooltip_text == dew_text and TapTip.pinned() == null, "tapping it again closes it and the hover tooltip returns")
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
 	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
 	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,
@@ -496,7 +502,9 @@ func _run() -> void:
 		var parts := DreamBonusView.get_stat_parts(planted.tower_data, planted.cell, &"damage", planted)
 		_check(not parts.is_empty() and is_equal_approx(parts.final, planted.get_damage())
 			and is_equal_approx(parts.base, planted.tower_data.damage), "the damage breakdown runs from base to the real value (%s)" % [parts])
-		_check(DreamBonusView.make_rows(planted) is Control, "rows build for a planted Warden")
+		var bonus_rows := DreamBonusView.make_rows(planted)
+		_check(bonus_rows is Control, "rows build for a planted Warden")
+		bonus_rows.free()
 		main.get_node("%TowerSeller").sell(bonus_cell)
 	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
 	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "undergrowth"
 display_name = "Undergrowth"
-description = "Sprouts touching 2 or more other Sprouts reach 0.5 cells further."
+description = "Sprouts touching 2 or more other Sprouts get +1 range."
 rarity = 0
 kind = 3
 tags = Array[String](["overgrowth"])

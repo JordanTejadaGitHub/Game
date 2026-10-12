@@ -1,14 +1,10 @@
 # Demo Scope
 
-Phase 4, topic 13 of `design_plan.md`. Revised 2026-09-27: **no meta progression in the demo**,
-and runs follow the 100-drift structure (`run_design.md`). The demo's job: **turn players into
-wishlists** (Steam Next Fest and before it). It should show both hooks (`pitch.md`) and a
-replayable run, then leave players wanting the Deep Wood and the Memory Grove.
-
+Phase 4, topic 13 of `design_plan.md`. Current scope: acts 1–2 (50 drifts), with a small spendable Memory Grove. The demo shows the maze and roguelite hooks, earns wishlists, and leaves acts 3–4 and the wider Grove for the full game.
 
 ## Decisions 2026-10-06 (user; these override the sections below where they disagree)
 - **The demo ends at drift 50.** Acts 1–2, two bosses (the Hollow Stag at 25, the Mire Hag at 50), about 45–60 min. Dispelling the Mire Hag ends the run with the demo ending (*"Deeper in the dream, something larger stirs…"*), Seeds banked, the Wishlist button and the Grove teaser. Acts 3–4 are a reason to buy. (Replaces "the demo runs all 100 drifts".)
-- **The demo plays by the current game rules**: Heartwood's Gifts at the drift 25 act break, today's Dream pool ("fewer, bigger cards"), prices, the room-to-maze map, half cells, the current difficulty curve. Only the content is limited (the 4 demo families, no Memory Grove spending, the Full game showcase). `DriftDirector.DEMO_RULES` and the old branch set retire. Balancing re-tunes acts 1–2 for the demo on these rules.
+- **The demo plays by the current game rules**: Heartwood's Gifts at the drift 25 act break, today's Dream pool ("fewer, bigger cards"), prices, the room-to-maze map, half cells, the current difficulty curve. Only the content is limited (the 4 starting families plus plantable Rootling, the small demo Grove, the Full game showcase). `DriftDirector.DEMO_RULES` and the old branch set retire. Balancing re-tunes acts 1–2 for the demo on these rules.
 - **Fixed bosses:** always the Hollow Stag and the Mire Hag (no boss pools in the demo). Closes the open question below.
 - Family picks: after drift 1 and after the drift 25 boss. Dreams: after drifts 5, 10, … 45 (9 per run, the boss Dream Rare+). Omens from drift 10 as in the full game.
 - Only acts 1–2 nightmares need finished art and sound for the public demo.
@@ -24,42 +20,32 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 ## Shape
 
-- **Now (2026-09-27, user decision): the demo runs all 100 drifts**, like the full game: the Hollow
-  Stag (25), the Mire Hag (50), the Moth Queen (75), the Hollow Oak (100; `acts_3_4.md`). About
-  1.5–2 hours at 1×.
-- **Decided (2026-09-28): the public demo is 100 drifts.** The full game's reasons to buy are the
-  Memory Grove, more families, Memories and the true ending, Blight Levels. Every nightmare needs
-  finished art and sound before the demo is public.
-- **Unlimited replays, no progression.** Every run starts the same way (new random map, new
-  Dreams), with nothing carried between demo runs.
-- **Seeds are still earned and saved** (not spendable in the demo). They carry into the full game
-  (`meta_design.md`, "Seeds from the demo").
-- **Mid-run save** works in the demo too (autosave at every rest).
-- Dispelling the Hollow Oak ends the run with a victory screen (if the demo ends at 50: the Mire
-  Hag, *"Deeper in the dream, something larger stirs…"*), the Seeds earned and banked, a **Wishlist** button, and a **teaser of the Memory Grove**
-  (see below).
+- Unlimited replays of drifts 1–50, with fixed Hollow Stag and Mire Hag bosses.
+- Seeds can be spent on the eight demo Grove nodes; purchases and banked Seeds carry into the full game.
+- Mid-run saving and speed controls work in the demo.
+- Dispelling the Mire Hag ends the run with Seeds, the demo ending and Wishlist link.
+
+Historical scope: the September 27–28 plan had 100 drifts and no spendable Grove. The October 6 decisions above supersede it.
 
 ## In the demo
 
 | Area | Included |
 |---|---|
-| Wardens | **Decided (user, 2026-09-28; Bellflower added 2026-10-01, meta_design.md a3375108): Sporeling, Firefly Jar, Dewdrop and Bellflower are the demo's families** (the same four every new full-game account starts with), with their branches and final forms (Dreamlight unlocks), plus Sprout and Thornwall (+ Bramble, Honeysuckle). The four family picks (drift 1, 25, 50, 75) can each offer a family you lack, so the drift 75 pick is never empty. Pebbling, Rootling, Acorn, Nestling and Whirligig are full-game only (dev toggles "Test Grove" / "Unlock all families" can still show them in debug builds) |
-| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (a pick with nothing left to offer gives +2 Dreamlight; Family Blessings are Rare Dream cards now, not pick fillers) |
-| Final forms | **shown but locked** ("in the full game") on Dream cards |
+| Wardens | Sporeling, Firefly Jar, Dewdrop and Bellflower start available for family picks, with their permitted branches and final forms, plus Sprout and Thornwall. Planting the demo Rootling node adds its family and two current branches; its hidden branch and other Grove families remain Full game content. |
+| Family picks | after drift 1 and the boss at 25 |
+| Final forms | those available to the demo families under current game rules; Grove-exclusive forms remain locked |
 | Kinships | **Slumber Rot, Rainfog, Storm Beacon, Night Chimes** (the demo families' main Kinships; Night Chimes added with Bellflower, 2026-10-01) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
-| Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
-| Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
-| Act 2 boss | **always the Mire Hag** in the demo; the full game draws from a pool of 3 per act (`enemy_design.md`, boss pools). Open question: should the demo's act 1 already draw from its pool (Hollow Stag / Night Mare / Scarecrow) to show off the feature, at the cost of two more bosses before launch? |
+| Dreams | after drifts 5, 10, … 45 (9 per run; the boss Dream Rare+) from the current demo pool and planted demo card nodes |
+| Nightmares | acts 1–2 as in `acts_1_2.md`, with the Hollow Stag and Mire Hag |
+| Bosses | fixed Hollow Stag at 25 and Mire Hag at 50; boss pools remain full-game content |
 | Map | the forest biome, fully procedural (ridges, tending) |
 | Story | the intro, and **Memory 1** as a story hook on the victory screen |
-| Onboarding | everything in `onboarding.md` for run 1 (Grove parts replaced by the teaser) |
+| Onboarding | run 1 teaching in `onboarding.md`, including the small demo Grove |
 | Basics | title screen, settings (audio, display, key rebinding), pause, speed controls, results screen, save |
 
 ### The Memory Grove teaser
 
-After every demo run, the results screen shows the Grove **greyed out and asleep**, with the
-player's banked Seeds: *"In the full game, every run grows your Memory Grove. Your 214 Seeds will
-be waiting."* It sells the meta without building it for the demo.
+After a demo run, the player can spend Seeds in the small demo Grove. The remaining tree is visible but asleep, tagged "Full game". After all eight nodes are planted, the Grove offers Wishlist on Steam (Steam / itch) or Unlock the full game (mobile).
 
 ### Show what the full game holds (user, 2026-10-05; Marketing's research, marketing.md §8)
 Locked full-game content is shown by **real name and icon with a "Full game" tag**, never hidden or "???",
@@ -88,15 +74,14 @@ demo and release builds, and **Test Grove runs don't bank Seeds**.
 
 **Demo mode toggle** (added 2026-09-27, user request): Settings → Developer → **Demo mode** on/off,
 overriding the `game/demo` project setting at runtime, so the full game (Memory Grove, Blight
-Levels, Seeds spending) and the demo (Grove teaser, Wishlist) can both be tested from one build.
+Levels, Seeds spending) and the demo (small Grove, Wishlist) can both be tested from one build.
 Debug builds only; exported builds always use the project setting. Switching returns to the title
 screen. Full-game runs made this way use the real profile, so it's clearly labelled.
 
 **The full game is the default** (user, 2026-10-02: "Make the full game default"): `game/demo` is
 `false` in project.godot, so a normal launch plays the full game with the Spire rules. **The demo
 build's export preset must set `game/demo = true`** (a feature-tag override or a demo-only
-project.godot); the demo then keeps the pre-Spire rules (`DriftDirector.DEMO_RULES`, no gifts, the
-old branch set). Tests that need the demo set `ResultsScreen.demo_override = 1` (`test_demo_rules`).
+project.godot); the demo uses the current game rules, including Gifts, with its 50-drift content limit and small Grove. Tests that need the demo set `ResultsScreen.demo_override = 1` (`test_demo_rules`).
 
 **Unlock all families** (added 2026-09-27): a second developer toggle for testing the *core game*:
 normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **every family in the
@@ -126,7 +111,7 @@ new profile"): Settings → Developer → **Start over as a new profile**, debug
   knowledge: combos / nightmares / Dreams / chains seen, whispers, intros, last first pick, boss
   records), **keeps settings** (volumes, keybinds, the Developer toggles), deletes the saved run
   (`run.json`), and **keeps `run_history.json` and `builds.json`** (balance data).
-- Returns to the title screen as a first launch (first-run whisper, first-run Seed bonus).
+- Returns to the title screen as a first launch (first-run whisper; no first-run Seed bonus).
 
 **Pick any card** (added 2026-09-28, user request: "for the dev run, allow picking cards from all
 the card selection"): in **any dev run** (Test Grove, Unlock all families or Dev Grove), the Dream
@@ -157,15 +142,13 @@ to drift N" at a rest.
 
 ## Not in the demo
 
-Acts 3–4, the Moth Queen and The Hollow Oak, the other act 2 nightmares, Pebbling / Rootling /
-Acorn, final forms, Legendary Dreams, the Memory Grove (spending Seeds), Memories 2–10, Blight
-Levels, the true ending, the Forest Journal.
+Acts 3–4, the Moth Queen and Hollow Oak, full-game boss pools, Grove nodes beyond the eight demo nodes, hidden branches and other Grove-exclusive content, Memories 2–10, Blight Levels, the true ending, and the later Warden journal.
 
 ## Decisions
 
 | Question | Decision |
 |---|---|
-| Meta in the demo | **None** for now; replay freely, no progression. Demo runs play the fresh-profile curve (`run_design.md` "Difficulty curve targets": wins are rare). **Maybe later: a few Memory Grove unlocks** as a taste of the meta (user, 2026-09-28) |
+| Meta in the demo | eight plantable Grove nodes, including Rootling; the rest sleeps with a Full game tag |
 | Seeds | **Earned and saved; all of them carry into the full game** |
 | Mid-run save | **Yes** |
 | Length | **Drifts 1–50** (acts 1–2, two bosses, two family picks) |

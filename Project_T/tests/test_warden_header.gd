@@ -31,7 +31,7 @@ func _run() -> void:
 	var texts := _texts(view.stats)
 	# One icon row, values only (light pass): each value is named Value_<stat id>.
 	var damage_value := view.stats.find_child("Value_damage", true, false) as Label
-	_check(damage_value != null and damage_value.text == str(driftspore.damage), "base damage %d (%s)" % [driftspore.damage, texts])
+	_check(damage_value != null and damage_value.text == BossDossier.thousands(roundi(driftspore.damage)), "base damage rounds to %d (%s)" % [roundi(driftspore.damage), texts])
 	_check(view.stats.find_child("Value_%s" % driftspore.applies_status, true, false) != null, "the status it applies, in the same row (%s)" % [texts])
 	var grows := _texts(view.growth)
 	_check(view.growth.visible and grows.any(func(t: String) -> bool: return t.to_lower() == "grows into") and grows.any(func(t: String) -> bool: return t.contains(UiStyle.DEW_GLYPH)),
@@ -77,7 +77,7 @@ func _run() -> void:
 		main.get_node("HUD").add_child(boosted)
 		await process_frame
 		var damage_line: String = (boosted.stats.find_child("Value_damage", true, false) as Label).text
-		_check(damage_line != str(driftspore.damage), "%s shows in the unplanted card (%s)" % [boost.id, damage_line])
+		_check(damage_line != BossDossier.thousands(roundi(driftspore.damage)), "%s shows in the unplanted card (%s)" % [boost.id, damage_line])
 		boosted.queue_free()
 
 	# Planted: the panel is built from the same view.
@@ -108,6 +108,22 @@ func _run() -> void:
 	await process_frame
 	_check(Tower.potency_uses(load("res://resource/tower/thornwall.tres")).is_empty() and not _texts(wall.stats).any(func(t: String) -> bool: return t.begins_with("Potency")),
 		"a wall shows no Potency (%s)" % [_texts(wall.stats)])
+
+	var well: Tower = placer.tower_scene.instantiate()
+	well.tower_data = load("res://resource/tower/wellspring.tres")
+	well.cell = Vector2(40, 40)
+	main.get_node("%TowerContainer").add_child(well)
+	well.rank = 5
+	well.rank_choices.assign([Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.WIDE])
+	well._stats.clear()
+	var economy := WardenHeaderView.build(well.tower_data, well, dreams, false)
+	main.get_node("HUD").add_child(economy)
+	await process_frame
+	var economy_text := " ".join(_texts(economy.stats))
+	_check(economy_text.contains("Catch +197%") and economy_text.contains("Interest") and economy_text.contains("cap"), "catch and interest show live nurture/mastery values: " + economy_text)
+	well.bowl = 12.5
+	await process_frame
+	_check(" ".join(_texts(economy.stats)).contains("Bowl 12.5 Dew"), "catcher bowl refreshes while the panel is open")
 
 	print("warden header test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()

@@ -7,10 +7,11 @@
 script = ExtResource("1_card")
 id = "dream_great_dreamcatcher"
 display_name = "Great Dreamcatcher"
-description = "Dreamcatchers can now grow into Great Dreamcatchers ({dew:{grow_cost:great_dreamcatcher}}): a wider net; {caught} nightmares' statuses stop wearing off and tick 25% harder; sleep in its range lasts 1 s longer, and {caught} nightmares leave {dreamlight} shards."
+description = "Dreamcatchers can now grow into Great Dreamcatchers ({dew:{grow_cost:great_dreamcatcher}}): a wider net; {caught} nightmares' statuses stop wearing off and tick 25% harder; {asleep} lasts 1 s longer in its range, and {caught} nightmares leave {dreamlight} shards."
 rarity = 2
 kind = 1
 tags = Array[String](["song"])
 requires = Array[String](["dreamcatcher"])
+in_start_pool = false
 max_stacks = 1
 unlocks = ExtResource("2_tower")

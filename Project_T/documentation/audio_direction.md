@@ -202,7 +202,70 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue (~75 s = 30 bars at 72 bpm)
+### 1. Trailer cue v3, current: 35.5 s (2026-10-08)
+
+The user's latest cut (spec given to Sound Code directly; built 564ec628, then the Dream section cut to one bar, 15.5–18.0, in 3605b983, so everything after it is back on the bar grid; `trailer_v3_*` in
+`editor_kit\4_music\`). Same character and rules as below. Hit start times (s):
+
+| Moment | Time |
+|---|---|
+| sting | 0.51 |
+| maze hit | 7.98 |
+| **chain peak (the loudest, −1.9 dB)** | **10.53** |
+| combos | 12.19 · 13.86 |
+| cards shimmer / pick (Dream section 15.5–18.0, one bar) | 15.8 · 17.17 (the bar's third beat) |
+| growth steps | 18.2 · 19.0 · 19.8 |
+| Remember tree | 20.7; family turns 21.4 · 22.1 · 22.8 |
+| bosses | from 23.0; dispels 24.67 · 26.33 · **28.0** (the last turns into the Grove) |
+| Grove | node planted 28.3; swell from 29.5 |
+| end card | chord + button 33.0; end 35.5 |
+
+### 1a′. Trailer cue v3, 30.5 s cut (superseded by the 38 s cut)
+
+The user re-cut the trailer to **30 s** (spec given to Sound Code directly; built aa290b31, overwriting
+`trailer_v3_*` in `editor_kit\4_music\`). Same sections and character as the 45.5 s spec below,
+compressed; the rules above still hold (the "crackling build" is a fast rolling build of warm blooms,
+no crackle). Measured (start / peak, s):
+
+| Moment | Time |
+|---|---|
+| sting / swell | 0.51 / 0.61; swell 1.05–2.15 into 3.0 |
+| maze hit | 7.98 / 8.05 (quick eighth-note plucks from 5.5) |
+| **chain peak (the loudest, −1.9 dB)** | **10.53 / 10.54** |
+| Mushrooming / Ignite | 12.19 / 12.35 · 13.86 / 13.90 |
+| Dream shimmer | bells 16.30, peak 16.56 (breath from 15.65) |
+| growing Wardens | 18.40 · 19.00 · 19.60 |
+| Remember reveal | strum 20.00, hum peak 20.15 |
+| boss dispels | 22.15 · 23.85 · **25.52** (−4.9 / −4.4 / −3.6 dB); the last is the turn into the Grove (peak 25.78) |
+| end card | chord + button from 28.00; clean end 30.50 |
+
+### 1b. Trailer cue v3, 45.5 s version (superseded by the 30.5 s cut)
+
+Replaces the user's earlier 78 s v3 request. The user edits the trailer from the editor kit and cuts
+the picture to this cue. **Fast and punchy: every beat lasts 1–3 bars.** Same world as v2.1: D minor,
+72 bpm, 3/4 (beat 0.833 s, bar 2.5 s), the same instruments, rounded and never sharp, and the score's
+rules (no dead air, every change prepared, the turn rather than a stop). **The bar grid starts at 3.0 s**
+(bars at 3.0 + n × 2.5); accents between bar lines sit on the hits stem.
+
+| Time | Card on screen | Music |
+|---|---|---|
+| 0.0–3.0 | (no text) eyes open in the dark | a **low cold drone** (never true silence); **soft cold sting at 0.5**; **swell 1.05–2.15** as ~20 more pairs open, into the downbeat at 3.0 |
+| 3.0–8.0 (2 bars) | "They're coming" | low, driving dread: dread1's pulse and the Hollow form (D–A♭–F) in bowed bass |
+| 8.0–13.0 (2 bars) | "Build a living maze" | a **soft harp pluck on each Warden placement (~every 0.55 s)** over a building pulse, the motif's warm form emerging; **hit 13.0** |
+| 13.0–18.0 (2 bars) | "Chain lightning through the whole crowd" | a fast build (the storm drive, eighth-note figures, bass climbing); **biggest hit of the cue at 18.0** = the chain peak (rolling warm bloom + far thunder, no crackle or buzz) |
+| 18.0–25.5 (3 bars) | "Discover new combos" | one combo per bar, **accents at 18.0, 20.5, 23.0**, each its Reaction's colour: water + lightning (Thunderclap: wet whumpf + far thunder), spores + water (Mushrooming: soft fleshy pops + damp exhale), spores + lightning (Ignite: warm fwoomp) |
+| 25.5–28.0 (1 bar) | "Pick a Dream to power your maze" | a dreamy lift (the percussion drops away); **shimmer at 26.5** (the pick: the Dream-screen breath + soft shimmer), then a warm glow swell as the Wardens light up |
+| 28.0–33.0 (2 bars) | "Grow over 100 Wardens" | warm, rising; **accents at 28.6, 29.8, 31.0** (Wardens growing, each a family's material), then a **reveal at 31.5** (the Remember tree: the Final Bloom harp strum + crown swell) |
+| 33.0–38.0 (2 bars) | "Defeat the bosses" | the heaviest, darkest section (the boss theme, bass an octave lower); **three boss dispels at 34.67, 36.33, 38.0** (every 2 beats), each bigger; **38.0 is the biggest and is the turn**: the bass A♭ rises to A under its ringing tail |
+| 38.0–43.0 (2 bars) | "Grow the Memory Grove" | warmth resolving: the Hope form (D–A–F♯) growing out of the turn |
+| 43.0–45.5 (1 bar) | "Wishlist on Steam" | a **held warm D major chord from 43.0** with the **end-card button on top**; a clean ending at 45.5 |
+
+Hits as parameters (`TRAILER3_HITS`): 0.5 · 1.05–2.15 · 3.0 · 13.0 · **18.0** (biggest) · 20.5 · 23.0 ·
+26.5 · 28.6 · 29.8 · 31.0 · 31.5 · 34.67 · 36.33 · **38.0** (boss, the turn) · 43.0 · 45.5 (end).
+Delivered to `D:\Projects\Game\marketing\editor_kit\4_music\`: `trailer_v3_full.wav` + stems
+`_low` / `_mid` / `_top` / `_perc` / `_hits` + `_voice`, 44.1 kHz stereo (overwrites the 78 s render).
+
+### 1a. Trailer cue v2.1 (~75 s = 30 bars at 72 bpm; superseded by v3)
 
 **v2 (2026-10-04, the user re-ordered the trailer: "discover combos, then straight to chain
 lightning").** The loud peak (the Dawnburst) now comes early, at 30 s; the ending is a **warm peak**

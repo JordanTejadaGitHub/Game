@@ -174,7 +174,10 @@ func lose_leaves(amount: int) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams and dreams.absorb_leak():
 		return  # Thick Bark saved this leak (whole, even a boss's)
-	leaves_lost += mini(amount, leaves)
+	var actual_loss := mini(amount, leaves)
+	leaves_lost += actual_loss
+	if dreams:
+		dreams.unique_growth.actual_leak(dreams, actual_loss)
 	leaves = maxi(leaves - amount, 0)
 	leaves_changed.emit(leaves, max_leaves)
 	if leaves == 0:
@@ -215,7 +218,7 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	var caught := DewCatch.catch(enemy, share)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null:
-		share *= 1.0 + dreams.dew_line_extra()  # Dew Line: every 10th dispel of a drift pays its share twice
+		share *= 1.0 + dreams.dew_line_extra(enemy)  # Last Collection: a share more near the Heartwood
 	earn_dew_at(_carried_dew(share), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
 
 # Pays whole Dew and carries the fraction to the next dispel (small shares aren't rounded away).

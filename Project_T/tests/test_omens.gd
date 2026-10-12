@@ -149,10 +149,13 @@ func _test_twists(main: Node) -> void:
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
 
+	omens.active = null
+	var plain_in_block := director.get_health_scale(bug, 11)
+	var plain_after_block := director.get_health_scale(bug, 16)
 	_activate(omens, "thick_blight", 3)
-	_check(is_equal_approx(director.get_health_scale(bug, 11), pow(director.health_growth_per_drift, 10) * director.get_early_multiplier(11) * 1.3),
+	_check(is_equal_approx(director.get_health_scale(bug, 11), plain_in_block * 1.3),
 		"Thick Blight: +30% health in its block")
-	_check(is_equal_approx(director.get_health_scale(bug, 16), pow(director.health_growth_per_drift, 15) * director.get_early_multiplier(16)),
+	_check(is_equal_approx(director.get_health_scale(bug, 16), plain_after_block),
 		"Thick Blight: only its own block")
 	_check(is_equal_approx(director.get_health_scale(stag, 15), director.act1_boss_health_multiplier), "bosses ignore Omens (act 1: no ramp either)")
 
@@ -767,6 +770,8 @@ func _test_extra_dew_estimate(main: Node) -> void:
 		var with_omen := 0.0
 		var without := 0.0
 		for n in range(drifts.x, drifts.y + 1):
+			# Record this block's current player pot, as the real drift-start signal does.
+			omens._on_drift_started(n)
 			with_omen += director.get_effective_pot(n)
 			omens.active = null
 			without += director.get_effective_pot(n)
@@ -776,7 +781,8 @@ func _test_extra_dew_estimate(main: Node) -> void:
 		_check(absf(estimate - actual) <= maxf(actual * 0.05, 5.0), "%s: about +%d extra Dew, the pot pays +%.0f" % [case[0], estimate, actual])
 		run_state.pot_earned_block = with_omen  # A clean block: every share dispelled
 		var paid := omens.paid_sentence(omens.active, 1, 0, 0, case[1])
-		_check(paid == "\uE000+%d extra" % floori(actual + 0.001) or paid == "\uE000+%d extra" % roundi(actual), "…the rest report: %s" % paid)
+		# Reporting floors a proportional share; floating point may land just below an integer.
+		_check(paid == "\uE000+%d extra" % floori(actual - 0.001) or paid == "\uE000+%d extra" % roundi(actual), "…the rest report: %s (actual extra %.4f)" % [paid, actual])
 		run_state.pot_earned_block = 0.0
 	omens.active = null
 

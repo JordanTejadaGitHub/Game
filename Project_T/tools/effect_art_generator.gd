@@ -3704,26 +3704,27 @@ func _root_lash(img: Image, f: int) -> void:
 
 
 # --- Torrent's wet trail (user, 2026-10-07: "update the wet trail from Torrent") ---------------------
-# Puddles on the path, never over Wardens: four variants of a soft flat puddle for one 64 px route
-# cell, kept inside its central ~44 px with a faint wet fringe, each with a quiet 4-frame shimmer.
+# Puddles on the path, never over Wardens: four variants of a soft flat puddle for one 32 px route
+# point (neighbours touch into one wet band), kept within ~28 px with a faint wet fringe, each with a
+# quiet 4-frame shimmer.
 # A deep rim reads on the pale path; the pale highlights read on the dark act 3-4 paths.
 # Deliquescent's ink pool gets the same set in Heartwood violets.
 const PUDDLE_WATER := {deep = Color("#2c4c5c"), mid = Color("#4c8ca4"), light = Color("#9cd4fc"), glint = Color("#dce8f4")}
 const PUDDLE_INK := {deep = Color("#140f26"), mid = Color("#4c3c74"), light = Color("#9a84e8"), glint = Color("#dce8f4")}
-# Each variant: the blobs it's made of (centre x, y, radius x, y) on the 64 px cell.
-const PUDDLES := {
-	"a": [Vector4(30, 32, 13, 9), Vector4(39, 36, 8, 6)],
-	"b": [Vector4(32, 30, 11, 8), Vector4(24, 36, 8, 5.5), Vector4(40, 35, 7, 5)],
-	"c": [Vector4(33, 32, 15, 7.5), Vector4(26, 28, 7, 5)],
-	"d": [Vector4(29, 34, 10, 7.5), Vector4(38, 29, 8, 6), Vector4(36, 38, 7, 4.5)],
+# Each variant: the blobs it's made of (centre x, y, radius x, y) on the 32 px frame.
+const PUDDLES := {  # rounder than wide, so the band closes up whichever way the route runs
+	"a": [Vector4(15.5, 16, 12.5, 11.5), Vector4(21, 19.5, 7, 6.5)],
+	"b": [Vector4(16, 15, 12, 11), Vector4(10.5, 19.5, 7, 6), Vector4(21.5, 18.5, 7, 6.5)],
+	"c": [Vector4(16, 16, 13, 11.5), Vector4(11, 12, 6.5, 5.5)],
+	"d": [Vector4(15, 16.5, 11.5, 11), Vector4(20.5, 12.5, 7, 6.5), Vector4(19.5, 21, 7, 6)],
 }
 
 func _puddle_effects() -> void:
 	for v: String in PUDDLES:
-		_sheet("torrent_puddle_" + v, Vector2i(64, 64), 4, 5, Vector2i(32, 32), true, "ground", _puddle.bind(v, PUDDLE_WATER),
-			{note = "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant %s of a-d; pick per cell), a quiet looped shimmer, z -1." % v})
-		_sheet("ink_puddle_" + v, Vector2i(64, 64), 4, 5, Vector2i(32, 32), true, "ground", _puddle.bind(v, PUDDLE_INK),
-			{note = "Deliquescent: an ink pool on one 64 px route cell (variant %s of a-d), the Torrent puddle in Heartwood violets, z -1." % v})
+		_sheet("torrent_puddle_" + v, Vector2i(32, 32), 4, 5, Vector2i(16, 16), true, "ground", _puddle.bind(v, PUDDLE_WATER),
+			{note = "Torrent: a wet puddle on one 32 px route point (neighbours touch into one wet band), within ~28 px (variant %s of a-d; pick per cell), a quiet looped shimmer, z -1." % v})
+		_sheet("ink_puddle_" + v, Vector2i(32, 32), 4, 5, Vector2i(16, 16), true, "ground", _puddle.bind(v, PUDDLE_INK),
+			{note = "Deliquescent: an ink pool on one 32 px route point (variant %s of a-d), the Torrent puddle in Heartwood violets, z -1." % v})
 
 func _puddle(img: Image, f: int, v: String, pal: Dictionary) -> void:
 	var blobs: Array = PUDDLES[v]
@@ -3732,11 +3733,11 @@ func _puddle(img: Image, f: int, v: String, pal: Dictionary) -> void:
 			if ((p - Vector2(b.x, b.y)) / (Vector2(b.z, b.w) + Vector2(grow, grow))).length() <= 1.0:
 				return true
 		return false
-	for y in 64:
-		for x in 64:
+	for y in 32:
+		for x in 32:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if not inside.call(p, 0.0):
-				if inside.call(p, 2.0):  # a faint wet fringe round it: the soft edge
+				if inside.call(p, 1.5):  # a faint wet fringe round it: the soft edge
 					img.set_pixel(x, y, Color(pal.deep, 0.4))
 				continue
 			var edge: bool = not (inside.call(p + Vector2.LEFT, 0.0) and inside.call(p + Vector2.RIGHT, 0.0) and inside.call(p + Vector2.UP, 0.0) and inside.call(p + Vector2.DOWN, 0.0))  # the rim: next to dry ground
@@ -3747,7 +3748,7 @@ func _puddle(img: Image, f: int, v: String, pal: Dictionary) -> void:
 	var b0: Vector4 = blobs[0]
 	var gx := b0.x - b0.z * 0.5 + f * b0.z * 0.3
 	var gy := b0.y - b0.w * 0.3 + (f % 2)
-	for i in 4:
+	for i in 3:
 		var q := Vector2(gx + i, gy)
 		if inside.call(q, -1.5):
 			img.set_pixel(int(q.x), int(q.y), Color(pal.glint, 0.75))

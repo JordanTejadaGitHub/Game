@@ -14,6 +14,8 @@ param(
 )
 # Not "Stop": PowerShell 5 turns Chrome's harmless stderr lines into errors. Failures are checked explicitly.
 $ErrorActionPreference = "Continue"
+. (Join-Path $PSScriptRoot '..\dev_environment.ps1')
+Set-HeartwoodDevEnvironment -Name 'environment_art'
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent (Split-Path -Parent $toolDir)
 $workDir = "D:\Projects\logs\userdata\environment_art_export"  # not %TEMP% (C:)

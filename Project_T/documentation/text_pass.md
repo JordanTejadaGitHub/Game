@@ -117,3 +117,9 @@ great_bell, wild_dew. Rule: one effect per line, every number stated, every term
 ### Docs (owners)
 dream_design.md Seeping / Thin Bark numbers and the Resonance contradiction (Roguelite Mechanic Discussion);
 CLAUDE.md INTEREST_CAP 80 → 120 and the boss bite 10 / 10 / 12 (Main Merger, with the user's OK).
+
+## Card names in text are links (user, 2026-10-12: "should have an underline showing what Flurry is")
+A card named inside another card's text (`{card:id}`, e.g. "Taking it removes Flurry from this run.") is underlined
+like a glossary term. Hovering or tapping it shows that card: its name, rarity and description. It is a card link,
+never a status link, so "Charged Feathers" still can't be read as the Charged status. Omen names (`{omen:id}`) work
+the same way.

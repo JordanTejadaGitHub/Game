@@ -1,0 +1,15 @@
+{
+	"title": "Trailer v2: the Mire Hag dies on the storm board (the first island).",
+	"note": "Marketing (user 2026-10-08 trailer v2, beat 8: different bosses dying on different mazes). the storm board on the first island (seed 4242, act 2 look, Ascended Wardens), unlike the Moth Queen's island; the Mire Hag placed 50% along, camera following it until it's dispelled.",
+	"seed": 4242, "size": [1920, 1080], "dew": 99999, "hud": "none", "drift": 45, "dreams": ["dawnbreak"], "length": 14.0, "captions": [],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.0, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "tidecaller", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "stormheart", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.3, "spawn": "great_toad", "progress": 0.5},
+		{"t": 0.3, "camera": "follow", "target": "boss", "zoom": 2.0}
+	]
+}

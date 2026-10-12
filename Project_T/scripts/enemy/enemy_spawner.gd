@@ -76,6 +76,7 @@ var _lit := {}  # Rootlight's lit path tiles this frame ({cell: true}; is_lit)
 var _lit_frame := -1
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
+var _root_footprints: Array[Vector2] = []  # Actual blocked half cells; static ground cue.
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
 # withered; a lantern was lit / snuffed.
@@ -134,8 +135,29 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 	var enemy := _create(enemy_data, health_scale, modifiers, elite)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
-	_spawn_followers(enemy, path_points)
+	var way_in := _way_in(enemy.position)
+	if not way_in.is_empty():
+		enemy.enter_along(way_in)  # Out of the fog and across the bridge first (flyers too: straight from the fog)
+	_spawn_followers(enemy, path_points, way_in)
 	return enemy
+
+# The way in from the start's fog (StartGate.walk_in: fog, bridge landing, `first`), one straight line that ends
+# on `first`, this nightmare's first route point in pixels (user 2026-10-12: no detour by the start cell's centre and
+# back), or [] without a gate (the way in is the start itself).
+func _way_in(first: Vector2) -> PackedVector2Array:
+	var gate = map_generator.get("start_gate") if map_generator != null else null
+	# The real game only (main.tscn running, like autosave): tests place and spawn nightmares by hand
+	var playing := owner != null and is_inside_tree() and get_tree().current_scene == owner
+	if gate == null or not (force_walk_in or playing):
+		return PackedVector2Array()
+	var points: PackedVector2Array = gate.walk_in(first)
+	if points.is_empty():
+		return points
+	if points[points.size() - 1] != first:
+		points.append(first)
+	return points
+
+static var force_walk_in := false  # Tests: walk in from the fog outside the real game too
 
 func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
 		elite: bool = false) -> Node2D:
@@ -168,7 +190,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 
 # A Mother Duck's Ducklings set off one after another right behind her. If she's cleansed while
 # they're still walking, they get lost and slow down.
-func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
+func _spawn_followers(leader: Node2D, path: PackedVector2Array, way_in: PackedVector2Array = PackedVector2Array()) -> void:
 	var data: EnemyData = leader.enemy_data
 	if data.followers == null or data.follower_count <= 0:
 		return
@@ -180,6 +202,8 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
 		follower.position = leader.position
 		follower.set_path(path)
 		follower.hold_time = data.follower_spacing * (i + 1)
+		if not way_in.is_empty():
+			follower.enter_along(way_in)  # Waits its hold_time in the fog, then crosses after the leader
 		followers.append(follower)
 		enemy_split.emit(leader, follower)
 	leader.dew_followers.append_array(followers)  # They share half its Dew pot share (Enemy.set_dew_share)
@@ -246,6 +270,27 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 				rooted_cells[enemy.get_route_point()] = enemy
 		elif enemy.waiting:
 			waiting_cells[enemy.get_route_point()] = enemy
+
+	var footprints: Array[Vector2] = []
+	for point: Vector2 in rooted_cells:
+		for half in _halves_under(point):
+			if not footprints.has(half):
+				footprints.append(half)
+	if footprints != _root_footprints:
+		_root_footprints = footprints
+		queue_redraw()
+
+func _draw() -> void:
+	# Parent ground drawing stays beneath nightmare bodies; static in reduced motion.
+	var half_size := Tower.MAP_GRID.cell_size / FindPath.HALF
+	for half in _root_footprints:
+		var at := to_local(half * half_size)
+		var box := Rect2(at + Vector2.ONE * 2.0, half_size - Vector2.ONE * 4.0)
+		draw_rect(box, Color(Palette.OAK, 0.18), true)
+		draw_rect(box, Color(Palette.GOLD, 0.55), false, 2.0)
+		# Crossed twigs distinguish these obstructions from build previews.
+		draw_line(box.position + Vector2(4, 4), box.end - Vector2(4, 4), Color(Palette.OAK, 0.8), 2.0)
+		draw_line(box.position + Vector2(box.size.x - 4, 4), box.position + Vector2(4, box.size.y - 4), Color(Palette.OAK, 0.8), 2.0)
 
 # The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
 # Warden applies); coming and going marks them stale at once (signals in _ready).

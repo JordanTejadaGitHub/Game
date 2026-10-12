@@ -11,7 +11,7 @@ class_name SettingsPanel
 
 signal closed
 
-var _growth_marks: CheckButton = null  # Under Hints: off while Hints is off
+var _growth_marks: CheckButton = null  # Independently adjustable growth marks
 
 # Rebindable keyboard actions and their labels.
 const REBINDABLE := [
@@ -125,11 +125,11 @@ func _ready() -> void:
 
 	var gameplay := _tab("Gameplay")
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
-	# something happens, and under them the Growth marks (GrowHints), so hints live in one place.
-	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints, the first time something happens.")
-	# A sub-option of Hints: indented one step, the same switch, dimmed only while Hints is off (_mark)
+	# something happens; Growth marks (GrowHints) remain independently adjustable.
+	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints and paused Lessons, the first time something happens.")
+	# Growth marks use their own saved setting, independently of Hints.
 	_growth_marks = _toggle(gameplay, "Growth marks", GrowHints.SETTING, true,
-		"At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.", SUB_INDENT)
+		"At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
@@ -141,6 +141,11 @@ func _ready() -> void:
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
 	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
+	# The camera (screens_ui.md "HUD notes"; game_camera_node.gd EDGE_SETTING / EDGE_SPEED_SETTING): edge scrolling
+	# on by default, its speed a share of the keyboard's (100 = the same).
+	_toggle(gameplay, "Edge scrolling", "edge_scroll", true,
+		"The pointer at a screen edge moves the camera. In fullscreen the pointer stays inside the window.")
+	_slider(gameplay, "Edge scrolling speed", "edge_scroll_speed", 0.25, 1.0, 0.05)
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")
@@ -166,7 +171,7 @@ func _ready() -> void:
 		var demo := CheckButton.new()
 		demo.text = "Demo mode (off: the full game on your real profile)"  # Short: the switch sits inline, as on every tab
 		demo.tooltip_text = "Off = the FULL GAME: the Memory Grove, Blight Levels, and Seeds spent from your real profile.\nOverrides the project's game/demo setting in this debug build only; exported builds always use the project setting.\nApplying a switch returns to the title screen."
-		demo.focus_mode = Control.FOCUS_NONE
+		demo.focus_mode = Control.FOCUS_ALL
 		demo.toggled.connect(func(on: bool) -> void: _set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0))
 		demo_row.add_child(demo)
 		box.add_child(demo_row)
@@ -209,7 +214,7 @@ func _ready() -> void:
 		name_row.add_child(label)
 		grid.add_child(name_row)
 		var button := Button.new()
-		button.focus_mode = Control.FOCUS_NONE
+		button.focus_mode = Control.FOCUS_ALL
 		button.custom_minimum_size = Vector2(140, 0)
 		button.pressed.connect(_listen.bind(pair[0]))
 		grid.add_child(button)
@@ -280,8 +285,7 @@ const RESET_WARNING := "This resets your Memory Grove, Seeds, records, discoveri
 # settings kept; the saved run goes too (it belongs to the old profile). Run history and builds stay.
 static func start_over() -> void:
 	HeartwoodMemory.reset_profile(true)
-	if FileAccess.file_exists(RunSaver.file_path):
-		DirAccess.remove_absolute(RunSaver.file_path)
+	RunSaver.delete_save()
 	NightmareIntro.session_seen.clear()
 
 # Puts the newest backup back (the current profile is backed up first, so this can be undone too).
@@ -298,7 +302,7 @@ func _profile_reset_box() -> VBoxContainer:
 	var start := Button.new()
 	start.name = "StartOver"
 	start.text = "Start over as a new profile"
-	start.focus_mode = Control.FOCUS_NONE
+	start.focus_mode = Control.FOCUS_ALL
 	box.add_child(start)
 	var confirm := VBoxContainer.new()  # Step two, in the panel (no pop-up)
 	confirm.name = "Confirm"
@@ -311,13 +315,13 @@ func _profile_reset_box() -> VBoxContainer:
 	var reset := Button.new()
 	reset.name = "Reset"
 	reset.text = "Reset"
-	reset.focus_mode = Control.FOCUS_NONE
+	reset.focus_mode = Control.FOCUS_ALL
 	row.add_child(reset)
 	ChoiceCard.danger(reset)  # Destructive: POOR, never the primary (ui_style.md button rule)
 	var cancel := Button.new()
 	cancel.name = "Cancel"
 	cancel.text = "Cancel"
-	cancel.focus_mode = Control.FOCUS_NONE
+	cancel.focus_mode = Control.FOCUS_ALL
 	row.add_child(cancel)
 	UiStyle.primary(cancel)  # The safe default
 	confirm.add_child(row)
@@ -325,7 +329,7 @@ func _profile_reset_box() -> VBoxContainer:
 	var restore := Button.new()
 	restore.name = "Restore"
 	restore.text = "Restore last backup"
-	restore.focus_mode = Control.FOCUS_NONE
+	restore.focus_mode = Control.FOCUS_ALL
 	var latest := HeartwoodMemory.latest_backup()
 	restore.disabled = latest == ""
 	restore.tooltip_text = latest.get_file() if latest != "" else "No backup yet."
@@ -511,7 +515,7 @@ func _environment_detail(box: VBoxContainer) -> void:
 		pick.add_item(option)
 	pick.set_item_tooltip(0, "Low on phones and tablets, Full elsewhere.")
 	pick.set_item_tooltip(2, "Still fog and mist, fewer particles: lighter on phones and older machines.")
-	pick.focus_mode = Control.FOCUS_NONE
+	pick.focus_mode = Control.FOCUS_ALL
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index - 1))
 	_put_pick(row, pick)
 	box.add_child(row)
@@ -522,7 +526,7 @@ func _choice(box: VBoxContainer, text: String, key: String, options: Array, defa
 	var pick := OptionButton.new()
 	for option in options:
 		pick.add_item(option)
-	pick.focus_mode = Control.FOCUS_NONE
+	pick.focus_mode = Control.FOCUS_ALL
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index))
 	_put_pick(row, pick)
 	box.add_child(row)
@@ -538,7 +542,7 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	slider.step = step
 	slider.custom_minimum_size.x = CONTROL_W - 44.0  # With its value: the column's width
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Level with its label in the 48 px row
-	slider.focus_mode = Control.FOCUS_NONE
+	slider.focus_mode = Control.FOCUS_ALL
 	slider.value_changed.connect(func(value: float) -> void: _set_value(key, value))
 	row.add_child(slider)
 	var shown := Label.new()  # The value on the right, in the number font (a 0–1 slider as 0–100)
@@ -577,7 +581,7 @@ func _keepsake_toggles(box: VBoxContainer) -> void:
 		var unlock := HeartwoodMemory.get_unlock(id)
 		check.text = unlock.display_name if unlock != null else String(id).capitalize()
 		check.tooltip_text = unlock.description if unlock != null else ""
-		check.focus_mode = Control.FOCUS_NONE
+		check.focus_mode = Control.FOCUS_ALL
 		check.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Its switch in the column, like every row
 		check.add_theme_font_size_override("font_size", TEXT_SIZE)
 		row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
@@ -614,7 +618,7 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	var check := CheckButton.new()
 	check.text = text
 	check.tooltip_text = tip
-	check.focus_mode = Control.FOCUS_NONE
+	check.focus_mode = Control.FOCUS_ALL
 	check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	check.add_theme_font_size_override("font_size", TEXT_SIZE)
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
@@ -634,7 +638,7 @@ func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Arr
 		pick.add_item(words[0])
 		if words.size() > 1:
 			pick.set_item_tooltip(pick.item_count - 1, String(preset[0]))
-	pick.focus_mode = Control.FOCUS_NONE
+	pick.focus_mode = Control.FOCUS_ALL
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
 	_put_pick(row, pick)
 	box.add_child(row)
@@ -652,7 +656,7 @@ func _choice_values(box: VBoxContainer, text: String, key: String, options: Arra
 	var pick := OptionButton.new()
 	for option in options:
 		pick.add_item(option)
-	pick.focus_mode = Control.FOCUS_NONE
+	pick.focus_mode = Control.FOCUS_ALL
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
 	_put_pick(row, pick)
 	box.add_child(row)
@@ -662,7 +666,7 @@ func _footer_button(row: HBoxContainer, text: String, action: Callable) -> Butto
 	var button := Button.new()
 	button.name = text.replace(" ", "")
 	button.text = text
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.custom_minimum_size = Vector2(96, UiStyle.HUD_BUTTON_H)
 	button.pressed.connect(action)
 	row.add_child(button)
@@ -923,8 +927,7 @@ func _mark() -> void:
 		var tab_name := String(tabs.get_tab_control(i).name)
 		var dirty: bool = _tab_keys.get(tab_name, []).any(func(key: String) -> bool: return is_changed(key))
 		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
-	if _growth_marks != null:
-		_growth_marks.disabled = not bool(_value("whispers"))  # Growth marks live under Hints
+
 	var fullscreen := bool(_value("fullscreen"))
 	window_size_pick.disabled = fullscreen
 	window_size_pick.tooltip_text = SIZE_FULLSCREEN_TIP if fullscreen else ""
@@ -1003,6 +1006,10 @@ func get_conflicts() -> Array:
 					by_key[code] = []
 				if not by_key[code].has(String(action)):
 					by_key[code].append(String(action))
+	# HUD's physical 1–9 shortcuts live outside InputMap, but still collide with rebound actions.
+	for code in range(KEY_1, KEY_9 + 1):
+		if by_key.has(code):
+			by_key[code].append("Warden slot %d" % (code - KEY_1 + 1))
 	var found := []
 	for code in by_key:
 		var actions: Array = by_key[code]

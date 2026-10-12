@@ -17,6 +17,7 @@ extends VBoxContainer
 var _status_label := Label.new()
 var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
 var finale_label := Label.new()  # Spire: "Finale (drift 10): clear it clean for a Rare dream" (tests)
+var impatient_label := Label.new()  # Live early-call overlap; no repeated combat particles.
 var moonflip_label := Label.new()  # Strange Dreams' Moonflip: "Moonflip +25%" for the block (Roguelite's moonflip_text)
 var _warning_key := ""
 var _remember_button := Button.new()
@@ -57,6 +58,18 @@ func _ready() -> void:
 	moonflip_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	moonflip_label.add_theme_constant_override("outline_size", 5)
 	add_child(moonflip_label)
+	impatient_label.name = "ImpatientNightLine"
+	impatient_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	impatient_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	impatient_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(impatient_label, 14, UiStyle.GOLD)
+	impatient_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	impatient_label.add_theme_constant_override("outline_size", 5)
+	add_child(impatient_label)
+	drift_director.early_overlap_changed.connect(_refresh_impatient)
+	dream_state.card_chosen.connect(func(_card: UpgradeData, _towers: Array, _impact: String) -> void: _refresh_impatient())
+	run_state.run_ended.connect(func(_won: bool) -> void: _refresh_impatient())
+	_refresh_impatient()
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
@@ -165,6 +178,7 @@ func _process(_delta: float) -> void:
 	_update_warning()
 	_update_finale()
 	_update_moonflip()
+	_status_label.tooltip_text = ""
 	var latest := drift_director.drifts_started
 	var next := latest + 1
 
@@ -211,6 +225,11 @@ func _process(_delta: float) -> void:
 	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
 		_start_button.text = "Resume" + UiStyle.key_suffix("Enter")
 		_start_button.disabled = false
+
+	if not run_state.is_over:
+		_status_label.text += "\nMaze: %s next rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
+		_status_label.tooltip_text += "\nMaze bonus: %s at each rest for every %d cells your route is longer than the forest's path, up to %d a block. Counted while nightmares walk." % [
+			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP]
 
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
@@ -285,3 +304,8 @@ func _update_warning() -> void:
 			lines.append(RuleBreakers.warning_line(item[0], item[1]))
 	warning_label.text = "\n".join(lines)
 	warning_label.visible = not lines.is_empty()
+
+# Driven by actual arrivals/resolutions, including split children; no scheduled-only activation.
+func _refresh_impatient() -> void:
+	impatient_label.visible = not run_state.is_over and dream_state.has_rule(&"restless_night") and drift_director.early_drifts_on_field() >= 2
+	impatient_label.text = "Impatient Night +%d%% · early calls overlap" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)

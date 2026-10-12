@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "nimble_twigs"
 display_name = "Nimble Twigs"
-description = "Wardens attacking more than once a second deal 20% more damage."
+description = "Wardens with a base attack rate above one attack per second deal 20% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["swift"])
 max_stacks = 1
 rule_id = &"nimble_twigs"
-
+retired = true

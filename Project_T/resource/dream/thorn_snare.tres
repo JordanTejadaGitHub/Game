@@ -6,10 +6,12 @@
 script = ExtResource("1_card")
 id = "thorn_snare"
 display_name = "Briar Trap"
-description = "Each Thornwall holds the first nightmare that passes beside it each {drift}: {held} for 0.5 s."
+description = "Each Thornwall holds the first nightmare that passes beside it each {drift}: {held} for 1.5 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "wall"])
 max_stacks = 1
 rule_id = &"thorn_snare"
+excludes = Array[String](["hushed_hedge"])
+cost_description = "Taking it removes {card:hushed_hedge} from this run."
 in_start_pool = false

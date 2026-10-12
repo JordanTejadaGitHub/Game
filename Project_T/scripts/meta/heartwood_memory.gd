@@ -454,6 +454,9 @@ static func buy_problem(data: Dictionary, unlock: UnlockData) -> String:
 			return "Grown" if is_grown(data, unlock) else DemoGrove.ASLEEP
 	if is_grown(data, unlock):
 		return "Grown"
+	# Prototype retirements stay readable, but a node with no live rewards must not spend Seeds.
+	if unlock.root == UnlockData.Root.DREAMS and not unlock.dream_cards.is_empty() and GroveCardList.cards_of(unlock).is_empty():
+		return "Dreams being reworked"
 	if unlock.is_free():
 		return "Grows by itself"
 	if not requirements_met(data, unlock):
@@ -518,7 +521,8 @@ static func has_sixth_slot(data: Dictionary) -> bool:
 
 # Every other Grove node at its max level (the Crown's requirement; the Crown itself doesn't count).
 static func tree_complete(data: Dictionary) -> bool:
-	return load_grove().all(func(u: UnlockData) -> bool: return u.crown or is_grown(data, u))
+	return load_grove().all(func(u: UnlockData) -> bool:
+		return u.crown or is_grown(data, u) or (u.root == UnlockData.Root.DREAMS and not u.dream_cards.is_empty() and GroveCardList.cards_of(u).is_empty()))
 
 # The perk ids carried: owned perks from the saved loadout, at most one per slot.
 static func get_loadout(data: Dictionary) -> Array[String]:
@@ -603,6 +607,11 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 		# "ui_scale" is a share (50–100%) of the largest scale that fits the window (UiStyle.apply_ui_scale:
 		# only the UI scales, never past its 1280×720 layout; the camera keeps the map its size).
 		UiStyle.apply_ui_scale(tree.root, float(settings.get("ui_scale", 1.0)))
+		var whispers := tree.current_scene.get_node_or_null("%Whispers") if tree.current_scene != null else null
+		if whispers != null:
+			whispers.set_enabled(bool(settings.get("whispers", true)))
+		for lesson in tree.get_nodes_in_group(LessonCard.GROUP):
+			lesson.set_enabled(bool(settings.get("whispers", true)))
 	if DisplayServer.get_name() != "headless":
 		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 		var changed := DisplayServer.window_get_mode() != mode

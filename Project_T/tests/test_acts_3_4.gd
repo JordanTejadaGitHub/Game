@@ -466,7 +466,7 @@ func _run() -> void:
 	boss_sleep.statuses.tick(0.1)
 	_check(not boss_sleep.statuses.is_asleep(), "bosses never sleep")
 	var caught := _still("leaf_bug", route[10])
-	caught.apply_status(EnemyStatuses.MARKED)
+	caught.apply_status(EnemyStatuses.MARKED, 10)
 	caught.apply_status(EnemyStatuses.STATIC, 3)
 	caught.statuses.caught_time = 10.0
 	caught.statuses.caught_bonus = 0.6
@@ -506,7 +506,7 @@ func _run() -> void:
 		_take_card(dreams, card_id)
 	spawner._process(0.0)
 	var bright := _still("leaf_bug", route[5])
-	bright.apply_status(EnemyStatuses.MARKED)
+	bright.apply_status(EnemyStatuses.MARKED, 10)
 	bright._process(0.0)
 	_check(is_equal_approx(bright.statuses.get_damage_taken_multiplier(), 1.0 + EnemyStatuses.MARKED_EXTRA + DreamState.BRIGHT_MARKS_PER),
 		"Bright Marks: Marked +20 percent more (%.2f)" % bright.statuses.get_damage_taken_multiplier())
@@ -531,8 +531,9 @@ func _run() -> void:
 	lulled.statuses.caught_time = 0.1
 	lulled._process(0.0)
 	lulled._process(0.2)
-	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, 1.0), "Lullaby: Caught lingers 1 s after it lapses")
-	lulled._process(1.1)
+	var linger: float = DreamState.LULLABY_LINGER[0]  # Slow Waking: 3 s (card_review_2026-10-12.md 10, 30d7a265; was 1 s)
+	_check(lulled.statuses.is_caught() and is_equal_approx(lulled.statuses.caught_time, linger), "Lullaby: Caught lingers %s s after it lapses (%s)" % [linger, lulled.statuses.caught_time])
+	lulled._process(linger + 0.1)
 	_check(not lulled.statuses.is_caught(), "…once, then it ends")
 	# Tangled Release + Snare (ruling 2026-09-30): hold → release pull → Snare hold → done.
 	var snare_holder := SnareHolder.new()
@@ -771,6 +772,27 @@ func _run() -> void:
 		hud_walker.statuses.remove(id)
 		hud_walker._process(step)
 		_check(shown and not hud_walker._hud_ids.has(id), "HUD: %s's badge comes and goes the same frame" % id)
+	# The way in (StartGate): out of the fog, across the bridge, untargetable until it's on the island.
+	spawner.force_walk_in = true
+	var gate_points: PackedVector2Array = map_generator.start_gate.walk_in()
+	var comer: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	spawner.force_walk_in = false
+	comer.set_process(false)
+	_check(comer.is_entering() and comer.position.is_equal_approx(gate_points[0]) and not comer.is_in_group(comer.GROUP),
+		"walk-in: a nightmare comes out of the fog, out of the Wardens' reach")
+	_check(is_zero_approx(comer.modulate.a) and comer.z_index == comer.ENTRY_Z, "…faded out in the fog, drawn over the bridge's deck")
+	var halfway := int(comer.ENTRY_TIME / step / 2.0)
+	for f in halfway:
+		comer._process(step)
+	_check(comer.is_entering() and not comer.is_in_group(comer.GROUP)
+		and comer.position.distance_to(gate_points[0]) > 32.0, "…crossing the bridge, still out of reach")
+	for f in halfway + 3:
+		comer._process(step)
+	var first_px: Vector2 = comer.grid.calculate_map_position(map_generator.get_path_from(map_generator.startPath)[0])
+	_check(not comer.is_entering() and comer.is_in_group(comer.GROUP) and comer.position.distance_to(first_px) < 24.0,
+		"…then on the island, on its route and targetable (%.0f px from the start)" % comer.position.distance_to(first_px))
+	_check(is_equal_approx(comer.modulate.a, 1.0) and comer.z_index == 0, "…fully faded in, y-sorted with the Wardens again")
+	comer.free()  # (Only this one: the HUD walker above is used below)
 	# Overkill (Balancing, run 24): a hit past the health left reports the excess, so RunHistory counts effective damage.
 	var overkilled := _still("leaf_bug", route[6])
 	overkilled.coat = 0.0
@@ -955,8 +977,8 @@ func _run() -> void:
 	hush_changes = hush.changes
 	hush.tick(5.0)
 	_check(hush.changes > hush_changes and hush.silence_time == 0.0, "its end bumps changes (the badge goes)")
-	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
-	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
+	_check(badged.statuses.describe(&"static") == "Charged 4/20 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
+	_check(badged.statuses.describe(&"damp") == "Soaked 1/8 · 4.0 s", "reaction buildup is shown for Soaked (%s)" % badged.statuses.describe(&"damp"))
 	badged.statuses.tick(1.0)
 	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 0.75), "the rim drains with the time left (%.2f)" % badged.statuses.time_share(&"damp"))
 	badged.statuses.apply(&"damp", 1, 4.0, 1.0)

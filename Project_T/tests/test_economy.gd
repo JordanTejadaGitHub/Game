@@ -71,6 +71,14 @@ func _run() -> void:
 	_check(run_state.dew == act_1_pay, "cleansing a Leaf Bug earns %d Dew (got %d)" % [act_1_pay, run_state.dew])
 	var popups := main.get_children().filter(func(n: Node) -> bool: return n is DewPopup)
 	_check(popups.size() == 1, "a +Dew popup appears")
+	# UI Asset's Dew popups (2026-10-07): normal Dew in Dewlight, caught Dew in Glow, the Harvest with its word.
+	var caught := DewPopup.new(5, Vector2.ZERO, DewCatch.GOLD)
+	var harvest := DewPopup.new(40, Vector2.ZERO, DewCatch.GOLD, "Harvest +40 Dew")
+	_check(popups.size() == 1 and popups[0]._word == "" and popups[0]._number_color == Palette.DEWLIGHT
+		and caught._word == "" and caught._number_color == Palette.GLOW and harvest._word == "harvest" and harvest._number_color == Palette.GLOW,
+		"Dew popups: Dewlight, caught in Glow, the Harvest says so")
+	caught.free()
+	harvest.free()
 	enemy.take_damage(enemy.max_health)
 	_check(run_state.dew == act_1_pay, "an already-cleansed creature doesn't pay twice")
 	await create_timer(1.5, true, true).timeout

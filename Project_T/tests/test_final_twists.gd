@@ -184,11 +184,15 @@ func _hoarfrost() -> void:
 	var neighbour := _spawn(victim.global_position + Vector2(0.8 * CELL, 0))
 	var second := _spawn(neighbour.global_position + Vector2(0.8 * CELL, 0))
 	var far := _spawn(victim.global_position + Vector2(0, 3 * CELL))
-	victim.statuses.apply(EnemyStatuses.DAMP, 2)
+	var freeze_threshold := Reactions.buildup_threshold(frost.attack_data.freeze_needs_stacks)
+	victim.statuses.apply(EnemyStatuses.DAMP, freeze_threshold - 2)
 	victim.freeze_cooldown = 0.0
-	frost.apply_status_to(victim, frost.get_damage())
 	frost.hit(victim, 1.0, false, Tower.NO_CRIT)
-	_check(victim.statuses.is_held() and victim.get_meta(&"hoar_frozen", false), "Hoarfrost freezes a twice-Soaked nightmare")
+	_check(not victim.statuses.is_held() and not victim.get_meta(&"hoar_frozen", false),
+		"Hoarfrost does not freeze one stack below its Soaked threshold")
+	frost.hit(victim, 1.0, false, Tower.NO_CRIT)
+	_check(victim.statuses.is_held() and victim.get_meta(&"hoar_frozen", false),
+		"Hoarfrost freezes exactly at its Soaked threshold")
 	victim.dispel()
 	await process_frame
 	_check(neighbour.statuses.is_held(), "Shatter chain: its shards freeze a nightmare within 1 cell")
