@@ -51,8 +51,9 @@ func _init() -> void:
 	_check(absf(gate.lane) == 16.0 and gate.lane == lane_px, "the bridge runs on the lane's half row (%s px, route half %s)" % [gate.lane, first_half])
 	var walk := gate.walk_in()
 	_check(walk.size() == 3 and walk[0].distance_to(map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))) == 16.0
-		and walk[1].distance_to(walk[2]) == 32.0 and walk[2].distance_to(map.MAP_GRID.calculate_map_position(first_half)) <= 16.0,
-		"the walk-in: the fog's centre on the lane, the bridge's landing, the start's lane point (%s)" % [walk])
+		and walk[2] == map.MAP_GRID.calculate_map_position(first_half) and [16.0, 48.0].has(walk[1].distance_to(walk[2]))
+		and is_zero_approx((walk[1] - walk[0]).cross(walk[2] - walk[1])),
+		"the walk-in: the fog's centre on the lane, the bridge's landing, the route's first point, one straight line (%s)" % [walk])
 	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == -1 and env.get_cell_source_id(Vector2i(map.startPath)) == -1,
 		"no rope-bridge or mist tiles at the start any more")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")

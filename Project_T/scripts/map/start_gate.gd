@@ -98,17 +98,30 @@ static func draw_fog(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame: 
 		canvas.draw_circle(centre, 80.0, Color(Palette.VOID, 0.9 * tint.a))
 
 # The way in for a nightmare (user 2026-10-07: "mobs just spawning out of nowhere"): from the fog's centre straight
-# along the bridge's lane to the start cell's lane point (its route half), in MapGenerator's space (pixels). Three
-# points: the fog, where the bridge lands on the island's edge, the start. The spawner walks it before the route.
-func walk_in() -> PackedVector2Array:
-	return walk_in_for(start, lane)
+# along the bridge's lane to the route's first point, in MapGenerator's space (pixels). Three points on one straight
+# line: the fog, where the bridge lands on the island's edge, the route's first point. The spawner walks it before the
+# route. It ends ON the route's first point, a half's centre (user 2026-10-12: ending on the start cell's centre, 16 px
+# further in or out, made nightmares run to the start and then back a bit). `to`: where this nightmare's route begins
+# (pixels; a flyer's differs from the drawn route's); left out, the drawn route's first point.
+func walk_in(to := Vector2.INF) -> PackedVector2Array:
+	if to == Vector2.INF:
+		var route: PackedVector2Array = map.path_layer.current_path if map != null else PackedVector2Array()
+		to = MAP_GRID.calculate_map_position(route[0] if not route.is_empty() else Vector2(start))
+	return walk_in_to(start, to)
 
-static func walk_in_for(cell: Vector2i, lane_px: float) -> PackedVector2Array:
+# The way in to `to` (pixels) for start `cell`: the fog's cell on `to`'s lane, `to` projected onto the island's edge, `to`.
+static func walk_in_to(cell: Vector2i, to: Vector2) -> PackedVector2Array:
 	var size := Vector2(MAP_GRID.cell_size)
 	var out := Vector2(outward(cell))
-	var across := Vector2(absf(out.y), absf(out.x)) * lane_px
 	var centre := MAP_GRID.calculate_map_position(Vector2(cell))
-	return PackedVector2Array([centre + out * size * (BRIDGE_CELLS + 1) + across, centre + out * size / 2.0 + across, centre + across])
+	var inside := (to - centre).dot(out)  # How far `to` sits toward the edge from the cell's centre (negative: further in)
+	var landing := to + out * (size.x / 2.0 - inside)
+	return PackedVector2Array([landing + out * size * (BRIDGE_CELLS + 0.5), landing, to])
+
+# The way in for a start whose route isn't known: it ends on the start cell's centre, `lane_px` across.
+static func walk_in_for(cell: Vector2i, lane_px: float) -> PackedVector2Array:
+	var out := Vector2(outward(cell))
+	return walk_in_to(cell, MAP_GRID.calculate_map_position(Vector2(cell)) + Vector2(absf(out.y), absf(out.x)) * lane_px)
 
 # The lane's offset across the bridge: the route's first half against the start cell's centre (±16 px).
 static func lane_offset(cell: Vector2i, first_point: Vector2) -> float:

@@ -141,15 +141,16 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 	_spawn_followers(enemy, path_points, way_in)
 	return enemy
 
-# The way in from the start's fog (StartGate.walk_in: fog, bridge landing, the start's lane point) on to
-# `first` (the route's first point, ≤ 16 px further), or [] without a gate (the way in is the start itself).
+# The way in from the start's fog (StartGate.walk_in: fog, bridge landing, `first`), one straight line that ends
+# on `first`, this nightmare's first route point in pixels (user 2026-10-12: no detour by the start cell's centre and
+# back), or [] without a gate (the way in is the start itself).
 func _way_in(first: Vector2) -> PackedVector2Array:
 	var gate = map_generator.get("start_gate") if map_generator != null else null
 	# The real game only (main.tscn running, like autosave): tests place and spawn nightmares by hand
 	var playing := owner != null and is_inside_tree() and get_tree().current_scene == owner
 	if gate == null or not (force_walk_in or playing):
 		return PackedVector2Array()
-	var points: PackedVector2Array = gate.walk_in()
+	var points: PackedVector2Array = gate.walk_in(first)
 	if points.is_empty():
 		return points
 	if points[points.size() - 1] != first:
