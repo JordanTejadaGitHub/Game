@@ -18,11 +18,13 @@ func _run() -> void:
 	for pair in [["pebbling", "Stone Relay"], ["dewdrop", "Stored Rain"], ["sporeling", "Spore Reserve"]]:
 		var card = dreams._card_by_id("blessing_" + pair[0])
 		_check(card != null and card.display_name == pair[1], "role identity: " + pair[0])
-		_check(not card.retired and card.rarity == UpgradeData.Rarity.UNCOMMON and card.min_act == 1 and card.in_start_pool, "ordinary Act 1 role placement: " + pair[0])
+		# Retired by the Callings (67940fac, dream_council_review.md 12): the first family's Calling carries the rule now;
+		# the ids and effects stay for old saves, never offered.
+		_check(card.retired, "role Blessing retired (its rule is the family's Calling): " + pair[0])
 		dreams.unlocked[pair[0]] = true
 		dreams.grown_wardens[pair[0]] = true
-		_check(dreams.can_offer(card, 2), "mechanical family role eligible after family grows: " + pair[0])
-		_check(dreams.can_offer(card, 1), "act-one access corrected: " + pair[0])
+		_check(not dreams.can_offer(card, 2), "retired role never offered, even after its family grows: " + pair[0])
+		_check(not dreams.can_offer(card, 1) and not dreams.can_offer(card, 4), "retired role never offered in any act: " + pair[0])
 		_check(card.soothe_bonus == 0.0 and card.evolve_discount == 0.0, "no passive family package: " + pair[0])
 	for id in ["full_moon", "chosen_few", "falling_weight", "cheap_seeds", "seedfall", "deeper_calm", "sprout_chorus", "switchback"]:
 		_check(not dreams._card_by_id(id).retired, "preserved meaningful choice: " + id)

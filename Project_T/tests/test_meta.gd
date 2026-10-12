@@ -134,14 +134,15 @@ func _run() -> void:
 	_check(family.offer.size() == family.families.size(), "Early Bloom: the first pick offers every family (%d)" % family.offer.size())
 	for data in family.families:
 		dreams.unlocked[data.get_id()] = true
-	# Prototype family roles are Uncommon Act 1 cards, still sampled and family gated.
+	# The three family roles (Stone Relay, Stored Rain, Spore Reserve) were retired by the Callings (67940fac,
+	# dream_council_review.md 12): the files stay readable for old saves, none is offered.
 	var blessing: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "blessing_sporeling").front()
-	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.UNCOMMON
-		and blessing.max_stacks == 1 and blessing.min_act == 1, "a family role is an Uncommon Act 1 Dream that still needs its family")
+	_check(blessing != null and blessing.retired and blessing.requires == ["sporeling"] and blessing.max_stacks == 1
+		and not dreams.can_offer(blessing, 1), "a retired family role stays readable, keeps its family Need and is never offered")
 	_check(blessing.display_name == "Spore Reserve" and blessing.kind == UpgradeData.Kind.RULE
 		and blessing.soothe_bonus == 0.0 and blessing.evolve_discount == 0.0, "Spore Reserve is a role rule without family stat/price bonuses")
 	var active_blessings := MetaRun.load_blessings().filter(func(b: UpgradeData) -> bool: return not b.retired)
-	_check(active_blessings.size() == 3, "three role Blessings remain active; six legacy packages are retired")
+	_check(active_blessings.size() == 0 and MetaRun.load_blessings().size() == 9, "all nine Blessings are retired, none active (%d active of %d)" % [active_blessings.size(), MetaRun.load_blessings().size()])
 	for role in active_blessings:
 		_check(role.id in ["blessing_pebbling", "blessing_dewdrop", "blessing_sporeling"]
 			and role.soothe_bonus == 0.0 and role.evolve_discount == 0.0, "active Blessing has no stale numerical package: " + role.id)
