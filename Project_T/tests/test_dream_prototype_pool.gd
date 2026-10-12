@@ -1,6 +1,6 @@
 extends SceneTree
 var failures := 0
-const RETIRED = ["small_hands", "many_talents", "first_among_equals", "menagerie", "the_long_walk", "seasoned", "many_hands", "golden_harvest", "tended_forest", "nimble_twigs", "restless_roots", "hummingheart", "grove_of_kin", "kindred_roots", "thornheart", "deep_grip", "blessing_acorn", "blessing_bellflower", "blessing_firefly_jar", "blessing_nestling", "blessing_rootling", "blessing_whirligig"]
+const RETIRED = ["small_hands", "many_talents", "first_among_equals", "menagerie", "seasoned", "many_hands", "golden_harvest", "tended_forest", "nimble_twigs", "restless_roots", "hummingheart", "grove_of_kin", "kindred_roots", "thornheart", "deep_grip", "blessing_acorn", "blessing_bellflower", "blessing_firefly_jar", "blessing_nestling", "blessing_rootling", "blessing_whirligig"]
 func _initialize() -> void:
 	_run.call_deferred()
 func _run() -> void:

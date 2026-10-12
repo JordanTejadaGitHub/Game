@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "briar_crown"
 display_name = "Briar Crown"
-description = "A nightmare stepping beside a Thornwall takes 25% of the damage of the strongest attacking Warden touching that wall."
+description = "A nightmare stepping beside a Thornwall takes 60% of the damage of the strongest attacking Warden touching that wall."
 rarity = 3
 kind = 3
 tags = Array[String](["wall", "maze"])

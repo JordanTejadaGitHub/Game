@@ -159,10 +159,10 @@ func _test_damage_legendaries() -> void:
 	_check(is_equal_approx(dreams.get_soothe_multiplier(a), base), "Impatient Night: past calls and scheduled arrivals grant no overlap damage")
 	director._active[3].remaining = 1
 	director._refresh_early_overlap()
-	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.40), "Impatient Night: two early-called drifts on field grant +40%")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "Impatient Night: two early-called drifts on field grant double damage")
 	director._active[4] = {"called_early": true, "remaining": 1}
 	director._refresh_early_overlap()
-	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.40), "Impatient Night: a third overlapping drift never stacks the bonus")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "Impatient Night: a third overlapping drift never stacks the bonus")
 	director._active[3].remaining = 0
 	director._active[4].remaining = 0
 	director._refresh_early_overlap()
@@ -182,7 +182,7 @@ func _test_damage_legendaries() -> void:
 		var cross := _plant("sporeling", fold, 0)
 		base = dreams.get_soothe_multiplier(cross)
 		dreams.take(_card("crossroads"))
-		_check(is_equal_approx(dreams.get_soothe_multiplier(cross) - base, 0.40), "Crossroads: +40% where the route folds back")
+		_check(is_equal_approx(dreams.get_soothe_multiplier(cross) - base, DreamState.CROSSROADS_BONUS) and DreamState.CROSSROADS_BONUS == 1.0, "Crossroads: double damage where the route folds back")
 	var plain := _plant("sporeling", Vector2(200, 200), 0)
 	_check(dreams.get_crossroads_bonus(plain) == 0.0, "…nothing away from the route")
 	_clear_towers()
@@ -196,8 +196,8 @@ func _test_damage_legendaries() -> void:
 	var off_base := dreams.get_soothe_multiplier(off_clear)
 	dreams.clearing_open = true
 	dreams.take(_card("wildwood_reclaimed"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.36)
-		and is_equal_approx(dreams.get_soothe_multiplier(off_clear), off_base), "Wildwood: +30% +2% per clear, only on cleared cells")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.59)
+		and is_equal_approx(dreams.get_soothe_multiplier(off_clear), off_base), "Wildwood: +50% +3% per clear (3 clears), only on cleared cells")
 	run_state.tended_cells.clear()
 	_clear_towers()
 

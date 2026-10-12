@@ -100,8 +100,8 @@ func _test_nurture_effects() -> void:
 	var elder := _plant("sporeling", 0, 5)
 	var young := _plant("sporeling", 1, 2)
 	var far := _plant("sporeling", 6, 2)
-	_check(dreams.get_effective_rank(young) == 3 and dreams.get_effective_rank(far) == 2,
-		"The Old Ones: touching a rank V Warden counts one rank higher")
+	_check(dreams.get_effective_rank(young) == 4 and dreams.get_effective_rank(far) == 2,
+		"The Old Ones: touching a rank V Warden counts two ranks higher")
 	_check(dreams.get_effective_rank(elder) == 5, "…read from real ranks, so it doesn't chain")
 	_clear_towers()
 
@@ -443,8 +443,8 @@ func _test_grove_cards() -> void:
 	sleepy.apply_status(EnemyStatuses.DROWSY, 1, 3.0)
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.25), "Still Target: +25% vs Drowsy")
 	dreams.take(_card("full_moon"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.35)
-		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +10%, overflow → crit damage")
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.50)
+		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +25%, overflow → crit damage")
 	sleepy.free()
 	_clear_towers()
 

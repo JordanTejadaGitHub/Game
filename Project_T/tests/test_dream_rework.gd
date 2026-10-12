@@ -316,14 +316,14 @@ func _impatient_overlap() -> void:
 	var enemies: Array[Node2D] = []
 	for number in [2, 3, 4, 5]:
 		director._active[number] = {"remaining": 0, "arriving": true, "leaked": false, "called_early": number != 3}
-		_check(is_equal_approx(attacker.get_damage(), baseline * (1.4 if number == 5 else 1.0)), "Impatient Night: scheduled drifts alone do not activate the bonus")
+		_check(is_equal_approx(attacker.get_damage(), baseline * (2.0 if number == 5 else 1.0)), "Impatient Night: scheduled drifts alone do not activate the bonus")
 		director._spawn(data, number)
 		var enemy: Node2D = director._drift_of.keys().filter(func(e: Node2D) -> bool: return director._drift_of[e] == number)[0]
 		enemies.append(enemy)
-		_check(is_equal_approx(attacker.get_damage(), baseline * (1.4 if number >= 4 else 1.0)), "Impatient Night: only distinct early-called drifts count, without stacking")
+		_check(is_equal_approx(attacker.get_damage(), baseline * (2.0 if number >= 4 else 1.0)), "Impatient Night: only distinct early-called drifts count, without stacking")
 	# Ending one of three early-called drifts retains the bonus; ending another removes it.
 	director._resolve(enemies[0], false)
-	_check(is_equal_approx(attacker.get_damage(), baseline * 1.4), "Impatient Night: two early-called drifts remain")
+	_check(is_equal_approx(attacker.get_damage(), baseline * 2.0), "Impatient Night: two early-called drifts remain")
 	director._resolve(enemies[2], false)
 	_check(is_equal_approx(attacker.get_damage(), baseline), "Impatient Night: damage cache loses bonus immediately when overlap ends")
 	for enemy in enemies:

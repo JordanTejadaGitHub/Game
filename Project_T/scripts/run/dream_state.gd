@@ -29,7 +29,7 @@ const TENDED_FOREST_PER_CLEAR := 0.02
 const TENDED_FOREST_MAX := 0.40
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
-const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
+const RECLAIMED_REFUND := 0.0  # Reclaimed Earth no longer refunds clears (card_review_2026-10-12.md 11 C: Groundskeeper gives half back)
 const BURN_BACK_PER_TREE := 0  # Burn Back: free now (Bittersweet rework, dream_design.md de439ea8)
 const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
@@ -70,7 +70,8 @@ const MONOCULTURE_BONUS := 1.00
 const ROOTBOUND_TOUCHING := 3
 const STILL_TARGET_CRIT := [0.25, 0.40]
 const STARLIT_AIM_CRIT := 0.25
-const FULL_MOON_CRIT := 0.10
+const FULL_MOON_CRIT := 0.25
+const OLD_ONES_RANKS := 2  # The Old Ones: Wardens touching a rank V+ Warden count this many ranks higher
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
 # The 10 card builds (dream_design.md "Pool trim", layer 2): the tags the Stray slot and build_packages
@@ -93,13 +94,13 @@ const PASSED_FADE := 0.6
 const PASSED_FLOOR := 0.1
 const NO_CELL := Vector2(-1, -1)
 # New Legendaries (dream_design.md "New Legendaries", 113–123).
-const CROSSROADS_BONUS := 0.40
+const CROSSROADS_BONUS := 1.0  # Double damage (was +40%; card_review_2026-10-12.md 11 B)
 const CROSSROADS_STEPS := 6
-const BRIAR_SHARE := 0.25
+const BRIAR_SHARE := 0.60
 const BRIAR_COOLDOWN := 1.0  # Seconds, per wall per nightmare
 const MENAGERIE_PER := 0.08
 const MENAGERIE_MAX := 0.80
-const IMPATIENT_OVERLAP_DAMAGE := 0.40
+const IMPATIENT_OVERLAP_DAMAGE := 1.0  # Double damage (was +40%)
 const LAST_LEAF_PER := 0.06
 const LAST_LEAF_MAX := 0.60
 const LUCID_EXTRA_CARDS := 1  # 3 → 4
@@ -108,9 +109,9 @@ const COURT_SHARE := 0.25  # Of the Eldest's rank bonuses, for Wardens touching 
 const HUNTERS_SPREAD := 2
 const HUNTERS_RANGE := 3.0  # Cells
 const HUNTERS_DURATION := 3600.0  # Marked "never expires" (EnemyStatuses keeps it; this is the fallback)
-const WILDWOOD_BASE := 0.30
-const WILDWOOD_PER_CLEAR := 0.02
-const WILDWOOD_MAX := 0.60
+const WILDWOOD_BASE := 0.50
+const WILDWOOD_PER_CLEAR := 0.03
+const WILDWOOD_MAX := 1.00
 # Generic Rares (dream_design.md "Generic Rares", 135–141)
 const ROOT_NETWORK_PER := [0.06, 0.06]  # Per Sprout in the network (II: diagonals count too)
 const ROOT_NETWORK_MAX := [0.60, 0.60]
@@ -1582,7 +1583,7 @@ func get_effective_rank(tower: Tower) -> int:
 	if has_rule(&"old_ones") and tower.rank > 0 and tower.rank < FREE_RANK_MAX:  # Never lifts past VII
 		for other in _touching(tower):
 			if other.rank >= 5:
-				return tower.rank + 1
+				return mini(tower.rank + OLD_ONES_RANKS, FREE_RANK_MAX)  # Two ranks higher (was one), never past VII
 	return tower.rank
 
 # A short live value for a card's icon in the Dreams row ("" = none): Few and Mighty, The Last
@@ -3169,7 +3170,6 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	if has_rule(&"groundskeeper"):
 		dew += floori(paid * GROUNDSKEEPER_REFUND)  # Groundskeeper: half of what the clear cost, at once, every kind (card_review_2026-10-12.md 10)
 	if has_rule(&"reclaimed_earth"):
-		dew += floori(paid * RECLAIMED_REFUND)  # 40% of what the clear cost: never a profit
 		run_state.fertile_cells[cell] = true
 	if dew > 0:
 		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))

@@ -546,7 +546,7 @@ func _old_ones(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 		return {}
 	var on: bool = spot.rank < DreamState.FREE_RANK_MAX and board.touching(spot).any(
 		func(o: Dictionary) -> bool: return DreamEffects._rank(o) >= 5)
-	return {"positional": true, "radius": 1.0, "active": on, "effect": "counts one rank higher",
+	return {"positional": true, "radius": 1.0, "active": on, "effect": "counts %d ranks higher" % DreamState.OLD_ONES_RANKS,
 		"reason": "" if on else "no rank V Warden touching it"}
 
 func _reclaimed_earth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:

@@ -12,3 +12,5 @@ kind = 3
 tags = Array[String](["swift"])
 max_stacks = 1
 rule_id = &"flurry"
+excludes = Array[String](["rhythm"])
+cost_description = "Taking it removes {card:rhythm} from this run."

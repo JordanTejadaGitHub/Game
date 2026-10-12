@@ -13,6 +13,7 @@ tags = Array[String](["seed", "acorn", "economy", "support"])
 max_stacks = 1
 rest_bonus_add = 15
 rule_id = &"harvest_moon"
+retired = true
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])
 grows_text = "The Harvest (your catchers' Dew at each {rest}) pays 50% more."

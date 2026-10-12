@@ -425,13 +425,13 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.stacks.erase("heartwoods_reach")
 
-	# Reclaimed Earth: refunds 40% of the Dew paid (never a profit), and the cell halves its first Warden
+	# Reclaimed Earth: no refund any more (Groundskeeper gives half back); the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))
 	run_state.dew = 100
 	cell = map_generator.obstacles.keys()[0]
 	var price := clearer.get_clear_cost(map_generator.get_obstacle(cell))
 	clearer.try_clear(cell)
-	_check(run_state.dew == 100 - price + floori(price * 0.4), "Reclaimed Earth: 40%% of the %d Dew paid back (dew %d)" % [price, run_state.dew])
+	_check(run_state.dew == 100 - price, "Reclaimed Earth no longer refunds the clear (card_review_2026-10-12.md 11 C): %d paid (dew %d)" % [price, run_state.dew])
 	_check(100 - run_state.dew > 0, "a clear never returns as much as it cost")
 	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == sprout.cost / 2, "fertile ground: a Sprout at half price")
 	placer.tower_data = sprout

@@ -21,7 +21,7 @@ func _initialize() -> void:
 		var card: UpgradeData = load(path)
 		_check(old.retired, "%s is retired" % old_id)
 		_check(card.id == SUCCESSORS[old_id] and card.rule_id == StringName(card.id), "%s has independent identity" % card.id)
-		_check((not card.retired or card.id == "emergency_reserves") and card.deepens.is_empty(), "%s is independently offered" % card.id)  # Emergency Reserves retired 2026-10-12 (card_review section 10)
+		_check((not card.retired or card.id in ["emergency_reserves", "quiet_vigil"]) and card.deepens.is_empty(), "%s is independently offered" % card.id)  # Emergency Reserves retired 2026-10-12 (card_review section 10)
 		_check(card.rarity == old.rarity and card.tags == old.tags, "%s preserves rarity/family" % card.id)
 		_check(card.in_start_pool == old.in_start_pool and card.discovered_by == old.discovered_by, "%s preserves access/discovery" % card.id)
 		var requirements := old.requires.duplicate()

@@ -67,7 +67,7 @@ func _run() -> void:
 	director._active = {1: {"called_early": true, "remaining": 1}, 2: {"called_early": true, "remaining": 1}}
 	director._refresh_early_overlap()
 	_check(panel.impatient_label.visible, "overlap signal immediately shows active bonus")
-	_check(panel.impatient_label.text.contains("40%"), "active cue reports actual bonus")
+	_check(panel.impatient_label.text.contains("100%"), "active cue reports actual bonus")
 	director._active[2].remaining = 0
 	director._refresh_early_overlap()
 	_check(not panel.impatient_label.visible, "cue ends immediately when overlap ends")
