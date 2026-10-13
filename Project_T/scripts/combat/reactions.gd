@@ -423,14 +423,14 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		var dreams := _dreams(target)
 		if dreams != null and dreams.has_method("get_bolt_multiplier"):
 			damage *= dreams.get_bolt_multiplier()  # Live Wire (Dream): Charged bolts +15% per stack
-		var gifts := GiftGround.active_for(target)
-		if gifts:
-			damage *= gifts.bolt_multiplier(target.global_position)  # Heartwood's Gift Lightning Tree: +25% within 2 cells
 	var rod := _find_rod(target)
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
 		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
+		var gifts := GiftGround.active_for(tracker) if tag == &"static" and tracker != null else null
+		if gifts:
+			gifts.second_strike(target, at, damage, tower)  # Heartwood's Gift Lightning Tree: bolts within its zone strike twice
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":

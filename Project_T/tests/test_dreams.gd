@@ -202,7 +202,7 @@ func _test_dream_flow(main: Node) -> void:
 	var dew := run_state.dew
 	dreams._show_next_offer()
 	dreams.skip()
-	_check(run_state.dew == dew + 15, "letting a Dream pass gives 15 Dew")
+	_check(run_state.dew == dew + dreams.skip_dew and dreams.skip_dew == 30, "letting a Dream pass gives 30 Dew")
 
 	# Eligibility
 	_check(not dreams.is_eligible(_card(dreams, "dream_stormcap")), "branch cards aren't Dreams any more (Dreamlight)")
@@ -348,7 +348,7 @@ func _test_card_effects(main: Node) -> void:
 	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.0) and dreams.has_rule(&"target_turnover"), "Target Turnover has no unconditional attack speed bonus")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
-	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
+	_check(run_state.dew == dew + 40 and dreams.get_dew_per_clear() == 0, "Morning Dew: +40 now, no Dew per clear")
 	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))

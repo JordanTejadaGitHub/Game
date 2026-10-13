@@ -69,6 +69,24 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and not _link_open():
 		visible = false
 
+# One line per landmark for the block: "Spring: Soaked 212 nightmares". From GiftGround's counts since the last rest
+# (Tower Code: take_block_counts, which clears them).
+const LANDMARK_LINES := {&"spring": "Spring: Soaked %d nightmares", &"lightning_tree": "Lightning Tree: %d extra bolts",
+	&"bell_stone": "Bell Stone: made %d nightmares Drowsy", &"mushroom_ring": "Mushroom Ring: Poisoned %d nightmares",
+	&"heartwood_roots": "Heartwood Roots: Rooted %d nightmares"}
+
+static func landmark_lines(near: Node, counts = null) -> String:
+	if counts == null:
+		var ground := near.get_tree().get_first_node_in_group(&"gift_ground") if near != null and near.is_inside_tree() else null
+		counts = ground.take_block_counts() if ground != null and ground.has_method("take_block_counts") else {}
+	var lines := ""
+	for id in counts:
+		if int(counts[id]) <= 0:
+			continue
+		var gift_name: String = HeartwoodGifts.POOL[id].name if HeartwoodGifts.POOL.has(id) else String(id).capitalize()
+		lines += "\n" + (String(LANDMARK_LINES[id]) % int(counts[id]) if LANDMARK_LINES.has(id) else "%s: %d" % [gift_name, int(counts[id])])
+	return lines
+
 func show_report(block: int) -> void:
 	var log := DamageLog.instance
 	if log == null:
@@ -110,6 +128,7 @@ func show_report(block: int) -> void:
 		text += "\nUnbound: %d" % unbound_block
 	if drift_director.block_pot > 0.0:  # The Dew pot: what this block paid of what it held (leaks lose their share)
 		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
+	text += landmark_lines(self)  # What each landmark did this block (heartwood_gifts.md "Gifts as landmarks")
 	text += finale_line(block)
 	if _omen_line != "":
 		text += "\n" + _omen_line

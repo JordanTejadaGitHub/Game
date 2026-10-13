@@ -97,7 +97,7 @@ func _run() -> void:
 	var harvest := floori(catcher.bowl + 0.0001) + floori(well.bowl + 0.0001)
 	run_state.dew = 500
 	director.rest_started.emit(1, false, 0, true)
-	var expected_interest := mini(floori((500 + harvest) * 0.08), 60)
+	var expected_interest := mini(floori((500 + harvest) * 0.08), 120)
 	_check(poured.size() == 1 and catcher.bowl == 0.0, "the Harvest pours the bowl")
 	_check(interest == [expected_interest], "then the Wellspring pays 8%% interest (%s, expected %d)" % [str(interest), expected_interest])
 	_check(run_state.dew == 500 + harvest + expected_interest, "Dew: harvest + interest (%d)" % (run_state.dew - 500))
@@ -109,7 +109,7 @@ func _run() -> void:
 		"SupportLog: Dew caught and paid per catcher")
 	_check(log.get_panel_line(catcher).begins_with("Caught this run: "), "panel line (%s)" % log.get_panel_line(catcher))
 
-	# Interest caps: 60 each, DewCatch.INTEREST_CAP together (130 since Balancing 2026-10-05)
+	# Interest caps: 120 each, DewCatch.INTEREST_CAP together (260; 60 and 130 before the Dew x2 second pass)
 	var well2 := _plant("wellspring", Vector2(8, 5))
 	var well3 := _plant("wellspring", Vector2(10, 5))
 	run_state.dew = 5000
@@ -124,14 +124,14 @@ func _run() -> void:
 	for w in [well, well2]:
 		w.interest_paid.connect(func(_t, amount: int) -> void: paid_now.append(amount))
 	_take("deep_well")
-	run_state.dew = 1500
+	run_state.dew = 2500  # 8% is past each cap (150 with Deep Well)
 	director.drift_started.emit(11)  # A new block: Still Waters watches
 	director.rest_started.emit(3, false, 0, true)
-	_check(paid_now.max() == 90 and paid_now.reduce(func(a, b): return a + b) == DewCatch.INTEREST_CAP,
-		"Deep Well: a Wellspring's cap is 90, all together still the shared cap (%s)" % str(paid_now))
+	_check(paid_now.max() == 150 and paid_now.reduce(func(a, b): return a + b) == DewCatch.INTEREST_CAP,
+		"Deep Well: a Wellspring's cap is 150, all together still the shared cap (%s)" % str(paid_now))
 	_take("overflowing_well")
 	var shards := dreams.dreamlight_shards
-	run_state.dew = 3000
+	run_state.dew = 6000  # Overflowing Well needs 100 Dew over the cap per shard now
 	director.rest_started.emit(6, false, 0, true)
 	_check(dreams.dreamlight_shards > shards, "Overflowing Well: interest over the cap becomes shards (%d)" % (dreams.dreamlight_shards - shards))
 

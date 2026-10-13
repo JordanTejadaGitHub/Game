@@ -133,8 +133,8 @@ func get_late_multiplier(number: int) -> float:
 @export var act_break_leaves: int = 1
 @export var auto_drift: bool = true  # Drifts in a block start by themselves
 @export var auto_drift_delay: float = 3.0  # Seconds after the previous drift finished arriving
-@export var call_early_seconds_per_dew: float = 2.0
-@export var call_early_cap: int = 10  # Max Dew for calling one drift early
+@export var call_early_seconds_per_dew: float = 1.0  # (2.0 before the Dew x2 second pass, 2026-10-13)
+@export var call_early_cap: int = 20  # Max Dew for calling one drift early (10 before the Dew x2 second pass)
 # The Dew pot (run_design.md "The Dew pot", 2026-10-01): each drift has a fixed Dew pot, split across the
 # nightmares it spawns by weight (EnemyData.dew_reward, Deeply Blighted ×3; a boss drift's boss takes half).
 # Added nightmares (Omens, extra_nightmares, splits, followers) share it; a leak loses its share. Per act:

@@ -197,7 +197,7 @@ func _run() -> void:
 	_check(Signatures.majority([Tower.Focus.KINDRED, Tower.Focus.KINDRED, Tower.Focus.KINDRED, Tower.Focus.KINDRED, W], 5) == Tower.Focus.KINDRED, "repeatable Kindred now qualifies for mastery")
 
 	var sapling := _plant("heartwood_sapling", Vector2(52, 32), [P, P, P, P, S])
-	_check(sapling.signature() == Signatures.MASTERY and is_equal_approx(sapling.get_drift_yield_exact(), (8.0 + 4.0 * 5) * 1.2), "Sapling: a specialised automatic economy form gets yield mastery, never a combat signature")
+	_check(sapling.signature() == Signatures.MASTERY and is_equal_approx(sapling.get_drift_yield_exact(), (16.0 + 8.0 * 5) * 1.2), "Sapling: a specialised automatic economy form gets yield mastery, never a combat signature")
 	var catcher := _plant("dreamcatcher", Vector2(56, 32), [ST, ST, ST, ST, D])
 	_check(is_equal_approx(1.0 + catcher.get_caught_tick_bonus(), (1.0 + NurtureChoices.CAUGHT_STRONG * 4) * 1.2), "Dreamcatcher mastery: actual Caught tick rate x1.2, not projectile damage")
 

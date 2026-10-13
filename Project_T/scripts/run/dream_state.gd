@@ -128,7 +128,7 @@ const BITTER_MAX := 0.40
 const BITTER_TIME := 2.0
 # Generic Commons and Uncommons (142–156) and the second batch (157–168)
 const GATHERED_DEW_PER := 0.10  # Morning Dew (absorbed Gathered Dew)
-const CALL_OF_THE_WILD_CEILING := 40  # The doubled early-call Dew never passes this. With the normal early-call cap of 10 the most is 20 (the card says 20)
+const CALL_OF_THE_WILD_CEILING := 40  # Call of the Wild: double the early-call Dew, up to this per drift (Dew x2 second pass: was 20)
 const LASTING_DREAMS_MULTIPLIER := 2.0  # Status duration (dream_design.md de439ea8)
 const SHARP_BEAKS_HITS := 2  # Multi-hit Wardens: hits added per attack (one copy, balance_simulation.md e32b882d)
 const LONGER_FLIGHT_CELLS := 2.0  # Samara line: cells further
@@ -147,8 +147,8 @@ const UNDERDOG := [[3, 0.40], [4, 0.60]]  # [Wardens, damage] (II)
 const HEAVY_AIR_BONUS := 0.40
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
 const WANDERING_MIND_REROLLS := 2
-const WINDING_PATH_TILES := 2  # +1 Dew per this many path tiles within a Warden's reach, at each rest (Balancing, 7fc0665c)
-const WINDING_PATH_MAX := 30  # At most this much Dew a rest (card_review_2026-10-12.md 1)
+const WINDING_PATH_TILES := 1  # (Dew x2 second pass: was 2) +1 Dew per this many path tiles within a Warden's reach, at each rest (Balancing, 7fc0665c)
+const WINDING_PATH_MAX := 60  # (was 30) At most this much Dew a rest (card_review_2026-10-12.md 1)
 const DREAM_SPEED_CAP := 1.5  # Dream cards together add at most +150% attack speed to one Warden (Tower._compute_attacks_per_second)
 const ROOTED_NIGHTMARES_COOLDOWN := 4.0  # Rooted Nightmares Roots one nightmare at most this often (seconds)
 const SHELTER_BONUS := 0.30
@@ -171,7 +171,7 @@ const SPARKING_SPORES_PER := 1.00  # Ignite detonations (one copy)
 const RAIN_ON_GLASS_PER := 0.70  # Light Wardens vs Soaked (one copy)
 # Seed cards (dream_design.md "Seed cards", 169–176)
 const DEEP_WELL_RATE := 0.05
-const DEEP_WELL_MAX := 40
+const DEEP_WELL_MAX := 80  # (Dew x2 second pass: was 40; the 5% stays)
 const KIND_CANOPY_BONUS := 0.35  # Sheltering Boughs (Balancing 738088c3)
 const SHARED_LIGHT_PER := 0.04
 const SHARED_LIGHT_MAX := 0.20
@@ -249,7 +249,7 @@ signal remember_requested(focus: TowerData)
 # compares one int instead of re-checking each field (mobile perf pass). Tests that edit `stacks` directly call bump_board().
 var rules_stamp := 0
 @export var cards_per_offer: int = 3
-@export var skip_dew: int = 15  # "Let it pass"
+@export var skip_dew: int = 30  # (Dew x2 second pass: was 15) "Let it pass"
 var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment): First Care's cost
 var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 1–5) has this many cards; 0 = normal
 @export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
@@ -2624,7 +2624,7 @@ const SEASONED_DAMAGE := 0.15  # Rank II+ Wardens
 const SEASONED_RANK := 2
 const CLOSE_SHAVE_SPEED := 0.30  # When a nightmare reaches the Heartwood…
 const CLOSE_SHAVE_TIME := 8.0  # …all Wardens, for this long
-const EARLY_BIRD_DEW := 5  # Calling a drift early
+const EARLY_BIRD_DEW := 10  # (was 5) Calling a drift early
 const MULCH_DAMAGE := 0.20  # A Warden on a cleared cell
 const WEED_PULLER_DEW := 6  # Clearing a Mossy Boulder refunds this
 const EDGE_OF_SIGHT_RANGE := 4.0  # Edge of Sight's Need: a Warden with this range or more
@@ -2637,8 +2637,8 @@ const UNDERGROWTH_RANGE := 1.0  # Sprouts touching UNDERGROWTH_TOUCHING+ other S
 const UNDERGROWTH_TOUCHING := 2
 const BOLD_OPENING_POT := 0.40  # The first drift you call early in each block: its pot holds this much more Dew
 const GROUNDSKEEPER_REFUND := 0.5  # Share of a clear's price given back at once (was 3 Dew a clear at the rest)
-const KINS_KEEPSAKE_DEW := 10  # Kin's Keepsake: Dew at each rest per Kinship on the map…
-const KINS_KEEPSAKE_MAX := 40  # …up to this
+const KINS_KEEPSAKE_DEW := 20  # (was 10) Kin's Keepsake: Dew at each rest per Kinship on the map…
+const KINS_KEEPSAKE_MAX := 80  # (was 40) …up to this
 var sprouts_planted := 0  # Sprouts planted this run (Bountiful); saved
 var _clears_this_block := 0  # Groundskeeper
 var _bold_opening_drift := -1  # The drift that took this block's Bold Opening
@@ -3606,11 +3606,11 @@ func _mystery_can_become(card: UpgradeData, act: int, common: bool) -> bool:
 func get_refund_share(base: float, _resting: bool) -> float:
 	return base
 
-# Call of the Wild: calling a drift early pays double, capped at 20 (DriftDirector.get_call_early_bonus).
+# Call of the Wild: calling a drift early pays double, up to 40 a drift (DriftDirector.get_call_early_bonus).
 func get_call_early_bonus(uncapped: int, cap: int) -> int:
 	if not has_rule(&"call_of_the_wild"):
 		return mini(uncapped, cap)
-	return mini(mini(uncapped, cap) * 2, maxi(CALL_OF_THE_WILD_CEILING, cap))
+	return mini(uncapped * 2, maxi(CALL_OF_THE_WILD_CEILING, cap))  # Double what the skipped time earns, up to 40 a drift
 
 # Thick Bark: RunState.lose_leaves asks this first; true = this leak is saved (whole, even a boss's).
 func absorb_leak() -> bool:
@@ -4586,7 +4586,7 @@ const FRESH_SOIL_BONUS := 0.20  # Reclaimed Earth (absorbed Fresh Soil)  # A Spr
 const FRESH_SOIL_COST := 7
 const QUICK_STEP_SPEED := 0.50  # All Wardens, while a drift called early is still arriving (dream_design.md de439ea8)
 const HURRIED_HARVEST_CAP := 40  # +1 Dew per nightmare of an early-called drift, per drift
-const HURRIED_HARVEST_DEW := 2  # Per nightmare
+const HURRIED_HARVEST_DEW := 4  # (was 2) Per nightmare
 const FURY_CELLS := 4  # Heartwood's Fury: from the Heartwood (Chebyshev)
 const FURY_PER := 0.03  # Last Stand (absorbed Heartwood's Fury)  # Per missing leaf
 const FURY_MAX := 0.30

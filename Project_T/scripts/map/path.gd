@@ -28,6 +28,7 @@ var path_drawn: Line2D = Line2D.new()
 # We'll call this function every time the player selects a unit.
 func initialize(walkable_cells: Array, cell_start: Vector2, cell_end: Vector2) -> void:
 	_pathGenerator = FindPath.new(grid, walkable_cells)
+	_pathGenerator.end_cell = cell_end  # Routes end at the Heartwood's base (FindPath._end_node)
 	current_path = _pathGenerator.calculate_point_path(cell_start, cell_end)
 	cell_start_path = cell_start
 	cell_end_path = cell_end
@@ -37,6 +38,7 @@ func initialize_new_path(walkable_cells: Array) -> void:
 	_pathGenerator = FindPath.new(grid, walkable_cells)
 	_pathGenerator.start_cell = cell_start_path
 	_pathGenerator.start_half = start_half
+	_pathGenerator.end_cell = cell_end_path
 
 # The route's fixed start node: the start cell's outer half on the bridge's lane (StartGate.start_half_for), or
 # (-1, -1) for none (the start cell's half nearest the Heartwood, as before). `cell`: the start cell, when it moves too

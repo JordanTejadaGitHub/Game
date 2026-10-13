@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "kins_keepsake"
 display_name = "Kin's Keepsake"
-description = "At each {rest}, {dew:+10} for every {kinship} on the map (up to {dew:40})."
+description = "At each {rest}, {dew:+20} for every {kinship} on the map (up to {dew:80})."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship"])

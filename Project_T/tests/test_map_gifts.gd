@@ -52,19 +52,19 @@ func _init() -> void:
 	shade.position = map.MAP_GRID.calculate_map_position(route_cells[3])
 	gifts._tick = 0.0
 	await process_frame
-	_check(is_equal_approx(shade.statuses.get_speed_multiplier(), 1.0 - MapGifts.MIRE_SLOW),
-		"bog: 20%% slower (%.2f)" % shade.statuses.get_speed_multiplier())
+	_check(is_equal_approx(shade.statuses.get_speed_multiplier(), 1.0 - MapGifts.mire_slow()) and is_equal_approx(MapGifts.mire_slow(), 0.35),
+		"bog: 35%% slower, the number from HeartwoodGifts (%.2f)" % shade.statuses.get_speed_multiplier())
 
-	# Heartwood Roots: the last 4 route cells before the Heartwood; +15% taken there.
+	# Heartwood Roots (a landmark, step I): the last 6 route cells before the Heartwood; +30% taken there.
 	var roots := gifts.roots_cells()
-	_check(roots.size() == 4 and not roots.has(map.endPath) and route_cells.has(roots[0]), "roots: the last 4 path cells")
+	_check(roots.size() == 6 and gifts.roots_count() == 6 and not roots.has(map.endPath) and route_cells.has(roots[0]), "roots: the last 6 path cells (%d)" % roots.size())
 	_give(gifts, run_state, MapGifts.HEARTWOOD_ROOTS, roots)
 	_check(not gifts.has_dual("roots") or gifts._dual_layers["roots"].get_used_cells().size() > 0, "the roots are drawn on the path's dual grid")
 	shade.position = map.MAP_GRID.calculate_map_position(roots[0])
 	gifts._tick = 0.0
 	await process_frame
-	_check(is_equal_approx(shade.statuses.get_damage_taken_multiplier(), 1.0 + MapGifts.ROOTS_TAKEN),
-		"roots: +15%% taken (%.2f)" % shade.statuses.get_damage_taken_multiplier())
+	_check(is_equal_approx(shade.statuses.get_damage_taken_multiplier(), 1.0 + gifts.roots_taken()) and is_equal_approx(gifts.roots_taken(), 0.3),
+		"roots: +30%% taken at step I (%.2f)" % shade.statuses.get_damage_taken_multiplier())
 	shade.free()
 
 	# Spring (pond tiles, blocked), Moonwell, Bell Stone (blocked), Lightning Tree (an obstacle).
@@ -154,8 +154,8 @@ func _init() -> void:
 	# The player tends a gift tree and the moved stone afterwards: they stay gone on resume.
 	var tended_before: int = run_state.obstacles_tended
 	map.clear_obstacle(ridge[1])
-	_check(run_state.obstacles_tended == tended_before + MapGifts.SOWN_TREE_SEEDS,
-		"tending a Sow a Ridge tree pays %d Seeds (instead of 1)" % MapGifts.SOWN_TREE_SEEDS)
+	_check(run_state.obstacles_tended == tended_before + MapGifts.sown_tree_seeds(),
+		"tending a Sow a Ridge tree pays %d Seeds (instead of 1)" % MapGifts.sown_tree_seeds())
 	map.clear_obstacle(lightning[0])
 	_check(gifts.lightning_trees().is_empty() and not gifts.gift_obstacles.has(ridge[1]), "tended gift trees leave the gifts' terrain")
 	_check(not map.get_path_from(map.startPath).is_empty(), "the way is still open")
@@ -186,8 +186,77 @@ func _init() -> void:
 	await process_frame
 	await _half_pieces_case()
 	await _half_log_case()
+	await _landmarks_case()
 	print("test_map_gifts: %d failure(s)" % failures)
 	quit(failures)
+
+# Gifts as landmarks (heartwood_gifts.md, approved 2026-10-13), the map side: Reshape (move or clear in one gift),
+# the standing zones, growth by step, the arrival's signals, and the log that is no Warden. Written by hand, never
+# run when it was added (no test runs then): the first run may need small fixes.
+func _landmarks_case() -> void:
+	var main := await _make_main()
+	var map = main.get_node("%MapGenerator")
+	var gifts: MapGifts = map.gifts
+	# Reshape: one obstacle moved, one cleared, through the effect; the limit and "picked twice" are refused.
+	var keys: Array = []
+	for k: Vector2 in map.obstacles:
+		if FindPath.is_whole_cell(k) and map.get_obstacle_cells(k).size() == 1 and not gifts.gift_obstacles.has(k):
+			keys.append(k)
+	var spot := Vector2(-1, -1)
+	for y in range(3, 30, 2):
+		for x in range(3, 40, 2):
+			if spot == Vector2(-1, -1) and gifts.can_place(MapGifts.SHIFT_STONES, [Vector2(x, y)]):
+				spot = Vector2(x, y)
+	_check(keys.size() >= 8 and spot != Vector2(-1, -1), "obstacles to reshape and a free spot (%d)" % keys.size())
+	if keys.size() >= 8 and spot != Vector2(-1, -1):
+		_check(gifts.can_reshape([keys[0]], [spot], [keys[1]]), "Reshape: move one, clear one (%s)" % gifts.refusal())
+		_check(not gifts.can_reshape([keys[0]], [spot], [keys[0]]), "…the same obstacle can't be moved and cleared")
+		_check(not gifts.can_reshape([], [], keys.slice(0, 7)), "…no more than 6 in all")
+		var count: int = map.obstacles.size()
+		MapGifts._effect(main, {"from": [keys[0] * 2.0], "to": [spot], "cells": [keys[1]]}, MapGifts.RESHAPE)
+		_check(not map.obstacles.has(keys[0]) and not map.obstacles.has(keys[1]) and map.obstacles.has(spot / 2.0)
+			and map.obstacles.size() == count - 1, "Reshape: the moved one stands on its new spot, the cleared one is gone")
+		_check(not map.get_path_from(map.startPath).is_empty(), "…and the way is open")
+	_check(MapGifts.reshape_placer_ready or not HeartwoodGifts.has_effect(MapGifts.RESHAPE),
+		"Reshape isn't offered before the gift screen can place it")
+	# A landmark: its zone reaches HeartwoodGifts.zone_cells past its edge, and both arrival signals fire (at once here:
+	# no window, so no animation).
+	var heard: Array = []
+	gifts.gift_arriving.connect(func(id: StringName, _from: Vector2, _to: Vector2, seconds: float) -> void: heard.append([id, seconds]))
+	gifts.gift_arrived.connect(func(id: StringName, _at: Vector2) -> void: heard.append([id]))
+	var well := _find(map, func(c: Vector2) -> Array: return [c], true)
+	var typed: Array[Vector2] = []
+	typed.assign(well)
+	gifts.apply(MapGifts.MOONWELL, typed)
+	var marks: Array = gifts.landmarks().filter(func(m: Dictionary) -> bool: return m.id == MapGifts.MOONWELL)
+	_check(marks.size() == 1 and marks[0].at == map.MAP_GRID.calculate_map_position(well[0])
+		and is_equal_approx(marks[0].radius, 32.0 + HeartwoodGifts.zone_cells(MapGifts.MOONWELL) * 64.0),
+		"the Moonwell's zone: its edge plus %s cells" % HeartwoodGifts.zone_cells(MapGifts.MOONWELL))
+	_check(heard.size() == 2 and heard[0][0] == MapGifts.MOONWELL and heard[1][0] == MapGifts.MOONWELL,
+		"the arrival: gift_arriving, then gift_arrived (%s)" % [heard])
+	_check(gifts.get_node_or_null("GiftZones") != null and gifts.get_node("GiftZones").z_index == 0 and gifts.z_index == -1,
+		"the zones are drawn on the ground")
+	# Growth: the step from the gifts node; the Moonwell draws larger, Heartwood Roots covers more path.
+	gifts.apply(MapGifts.HEARTWOOD_ROOTS, [] as Array[Vector2])
+	_check(gifts.root_cells.size() == 12 and gifts.roots_count() == 6, "roots at step I: 6 path cells (%d halves)" % gifts.root_cells.size())
+	var grown: Array = []
+	gifts.landmark_grew.connect(func(id: StringName, step: int, _at: Vector2) -> void: grown.append([id, step]))
+	gifts._on_gift_grew(MapGifts.MOONWELL, 2, {})
+	gifts._on_gift_grew(MapGifts.HEARTWOOD_ROOTS, 2, {})
+	_check(gifts.step(MapGifts.MOONWELL) == 2 and grown == [[MapGifts.MOONWELL, 2]], "the Moonwell grows to step II (%s)" % [grown])
+	var art := gifts.step_art("moonwell")
+	_check(art.size() == 3 and (art[2] > 1.0 or gifts._step_sheets.has("moonwell_2")), "…and draws from its step II sheet, or larger until it exists")
+	_check(gifts.roots_count() == 8 and gifts.root_cells.size() == 16 and is_equal_approx(gifts.roots_taken(), 0.45),
+		"roots at step II: 8 path cells, +45%% taken (%d halves)" % gifts.root_cells.size())
+	# The fallen log is no Warden: nothing can trample it or burrow under it.
+	var log_cells := _find(map, func(c: Vector2) -> Array: return [c, c + Vector2(1, 0), c + Vector2(2, 0)], true)
+	typed.assign(log_cells)
+	gifts.apply(MapGifts.FALLEN_GIANT, typed)
+	var spawner: Node = main.get_node("%EnemyContainer")
+	_check(gifts.is_log(log_cells[1]) and not gifts.is_log(log_cells[1] + Vector2(0, 2)) and spawner.tower_at_point(log_cells[1]) == null,
+		"the log is no Warden: trample and burrow, which only pick Wardens' cells, never find it")
+	main.free()
+	await process_frame
 
 # Gifts on half cells like Wardens (heartwood_gifts.md 2554c638), through the effect GiftPlacer's placement reaches:
 # "pieces" (half origins), "from" (obstacle keys × 2), "halves" (Mire / Roots route halves).
@@ -222,8 +291,8 @@ func _half_pieces_case() -> void:
 	_check(gifts._props.any(func(p: Node) -> bool: return p.kind == "tile" and p.position == map.MAP_GRID.calculate_map_position(key)),
 		"drawn by a prop at the piece's centre")
 	var tended_before := run_state.obstacles_tended
-	_check(map.clear_obstacle(key) and run_state.obstacles_tended == tended_before + MapGifts.SOWN_TREE_SEEDS,
-		"tending it pays %d Seeds" % MapGifts.SOWN_TREE_SEEDS)
+	_check(map.clear_obstacle(key) and run_state.obstacles_tended == tended_before + MapGifts.sown_tree_seeds(),
+		"tending it pays %d Seeds" % MapGifts.sown_tree_seeds())
 	_check(MapGifts.piece_halves(ridge[0]).all(func(h: Vector2) -> bool: return not map.path_layer.is_half_blocked(h)),
 		"tended: its halves open again")
 	# Shift the Stones: the other tree moves to a half-offset spot.
@@ -247,7 +316,7 @@ func _half_pieces_case() -> void:
 		walker.set_path(PackedVector2Array([bog[0], bog[1]]))
 		gifts._tick = 0.0
 		gifts._process(0.01)
-		_check(walker.statuses.slow_amount >= MapGifts.MIRE_SLOW, "a nightmare on a bog half is slowed")
+		_check(walker.statuses.slow_amount >= MapGifts.mire_slow(), "a nightmare on a bog half is slowed")
 	main.free()
 	await process_frame
 

@@ -1117,6 +1117,8 @@ func _gift_bonus(stat: StringName) -> float:
 			return gifts.range_bonus(self)
 		&"crit":
 			return gifts.crit_bonus(self)
+		&"crit_damage":
+			return gifts.crit_damage_bonus(self)
 	return 0.0
 
 func _gift_version() -> int:
@@ -2910,6 +2912,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
 		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
+		crit_multiplier += _gift_bonus(&"crit_damage")  # Gift: Fallen Giant (Lookout): crits hit harder
 		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
@@ -3275,14 +3278,13 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		duration *= deep  # Its strength side is Potency (get_potency)
 	var gifts := GiftGround.active_for(self)  # Heartwood's Gifts: Spring (Soaked lasts longer near it), Mushroom Ring (Poisoned cap)
 	if gifts:
-		if status == EnemyStatuses.DAMP:
-			var extra := gifts.soak_extra(enemy.global_position)
-			if extra > 0.0:
-				duration = (duration if duration > 0.0 else EnemyStatuses.DEFAULT_DURATION[status]) + extra
-		elif status == EnemyStatuses.SPORED:
-			var more := gifts.spored_cap_bonus(self)
-			if more > 0:
-				max_stacks = (max_stacks if max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[status]) + more  # From the base: the stored cap would compound
+		if status == EnemyStatuses.SPORED:
+			var more := gifts.spored_cap_share(self)  # Mushroom Ring: half again as much (the Spring Soaks by itself now)
+			if more > 0.0:
+				var cap: int = max_stacks if max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[status]
+				max_stacks = cap + roundi(cap * more)  # From the base: the stored cap would compound
+		elif status == EnemyStatuses.DROWSY and tower_data.line == "wall":
+			stacks = roundi(stacks * gifts.bramble_drowsy_rate(self))  # Bramble Verge: Brambles make nightmares Drowsy twice as fast
 	var at: Vector2 = enemy.global_position
 	if status == EnemyStatuses.DROWSY and tower_data.line == "wall":
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone

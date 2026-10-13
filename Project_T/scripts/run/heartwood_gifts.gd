@@ -20,7 +20,7 @@ signal gift_grew(id: StringName, step: int, placement: Dictionary)  # A landmark
 const GROUP := &"heartwood_gifts"
 const OFFER_SIZE := 3
 const MIN_MAP := 2
-const PASS_DEW := 30
+const PASS_DEW := 60  # Dew x2 second pass (was 30)
 const THICK_MIST_SPACING := 1.25
 
 # --- Gifts as landmarks (heartwood_gifts.md "Gifts as landmarks", approved by the user 2026-10-13) -------------------
@@ -54,7 +54,7 @@ const POOL := {
 	&"mire": {"name": "Mire", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"path", "size": 5,
 		"text": "Place a bog on 5 connected cells of path. Nightmares walk 35% slower there, and {held} lasts twice as long."},
 	&"reshape": {"name": "Reshape", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"reshape", "size": 6,
-		"text": "Move or clear up to 6 obstacles. Each one pays {dew:30} × the {act}."},
+		"text": "Move or clear up to 6 obstacles. Each one pays {dew:60} × the {act}."},
 	&"ancient_stump": {"name": "Elder Stumps", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"cells", "size": 3,
 		"text": "Place 3 stumps. A Warden planted on one gets 2 free {ranks}, and you choose each bonus."},
 	&"shifting_mist": {"name": "Shifting Mist", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"rim", "size": 3,
@@ -83,7 +83,7 @@ const POOL := {
 	&"glade": {"name": "Glade", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5, "retired": true,
 		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as cleared."},
 	&"shift_stones": {"name": "Shift the Stones", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"move", "size": 3, "retired": true,
-		"text": "Move up to 3 obstacles to empty cells. Each one moved pays {dew:30} × the {act}."},
+		"text": "Move up to 3 obstacles to empty cells. Each one moved pays {dew:60} × the {act}."},
 	&"thick_mist": {"name": "Thick Mist", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0, "retired": true,
 		"text": "For the next {act}, nightmares arrive 25% further apart."},
 }
@@ -103,7 +103,7 @@ const NUMBERS := {
 	&"sow_ridge": {"damage": 0.30, "tree_seeds": 2.0},
 	&"fallen_giant": {"crit_chance": 0.30, "crit_damage": 0.25},
 	&"mire": {"slow": 0.35, "rooted_multiplier": 2.0},
-	&"reshape": {"dew_per_obstacle": 30.0},
+	&"reshape": {"dew_per_obstacle": 60.0},
 	&"ancient_stump": {"free_ranks": 2.0},
 	&"shifting_mist": {"dew": 0.25},
 	&"bramble_verge": {"drowsy_rate": 2.0},
@@ -329,7 +329,7 @@ func get_spacing_multiplier(drift: int) -> float:
 # Map gifts all pay off (heartwood_gifts.md b3e464e6, user: "everything gives buffs or more resources"). Main's part:
 # Reshape (and the retired Shift the Stones) pays SHIFT_DEW × act per obstacle moved or cleared (Dew only: the fertile spot overlapped Ancient Stump, 8f46c6ac); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
 # pots (the act it opens: gifts come at the act break, `act` is the act that ended). Balancing Discussion sets the numbers.
-const SHIFT_DEW := 30
+const SHIFT_DEW := 60  # Dew x2 second pass (was 30)
 const MIST_POT_BONUS := 0.25  # (= NUMBERS shifting_mist dew; was 0.10)
 
 func _payoff(id: StringName, placement: Dictionary, act: int) -> void:

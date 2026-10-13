@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "morning_dew"
 display_name = "Morning Dew"
-description = "{dew:+20} now, {dew:+10} at every {rest}, and every {drift} holds 10% more {dew}."
+description = "{dew:+40} now, {dew:+20} at every {rest}, and every {drift} holds 10% more {dew}."
 rarity = 0
 kind = 4
 tags = Array[String](["economy", "tending"])
 requires = Array[String]([])
 max_stacks = 1
-dew_now = 20
-rest_bonus_add = 10
+dew_now = 40
+rest_bonus_add = 20
 extra_rules = Array[StringName]([&"gathered_dew"])

@@ -215,7 +215,7 @@ func _test_blocks_and_rests() -> void:
 	_check(director.start_next_drift(), "Start drift 6 (3 Husks and 4 Shades, 1.5 s apart)")
 	await _frames(2)
 	bonus_now[0] = director.get_call_early_bonus()
-	_check(bonus_now[0] == 4, "calling drift 7 early skips ~9 s = 4 Dew (%d)" % bonus_now[0])
+	_check(bonus_now[0] >= 8 and bonus_now[0] <= 9, "calling drift 7 early skips ~9 s = 8-9 Dew, 1 a second (%d)" % bonus_now[0])
 	dew = run_state.dew
 	director.start_next_drift()
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")

@@ -299,11 +299,11 @@ func _test_economy() -> void:
 	_check(seller.get_refund(tower) == 75, "selling: 75% at a rest (Fair Trade was cut)")
 	_check(dreams.get_call_early_bonus(7, 10) == 7, "call early: plain")
 	dreams.take(_card("call_of_the_wild"))
-	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 20 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40")
+	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 40 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40 a drift")
 	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
 		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == 10 + mini(dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, DreamState.WINDING_PATH_MAX), "Winding Path: +1 Dew per 2 path tiles in a Warden's reach, up to 30 (%d in reach, + Morning Dew's 10)" % dreams.covered_path_tiles())
+	_check(dreams.get_rest_bonus_add() == 20 + mini(dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, DreamState.WINDING_PATH_MAX), "Winding Path: +1 Dew per path cell in a Warden's range, up to 60 (%d in range, + Morning Dew's 20)" % dreams.covered_path_tiles())
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),

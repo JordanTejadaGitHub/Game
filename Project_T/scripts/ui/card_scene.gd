@@ -23,6 +23,10 @@ class_name CardScene
 #     form fills in with colour (Waking Root);
 #   "spacing": a line of nightmares leaves the start SPACING_GAP apart, × spacing in the After half (Thick Mist);
 #   "chip": a gold tag in the After half ("Dew pots +10%"); "bog": text once per nightmare stepping onto bog;
+#   "zone": {"letters", "cells", "word", "every"}: a landmark ACTING (heartwood_gifts.md "Gifts as landmarks"): in the
+#     After half its zone glows on the ground round the cells with those letters, and a nightmare walking through it
+#     shows `word` in gold, once per pass (every = 0: the Spring Soaks) or at each ring of a pulse that spreads from
+#     the landmark every `every` seconds (the Bell Stone rings, the Lightning Tree strikes);
 #   "crit": every third favoured hit is a crit with this word; "cleared": text over each obstacle (O) the After half
 #     moved or cleared.
 
@@ -610,7 +614,38 @@ func _draw_gift_ground(canvas: Node2D) -> void:
 				canvas.draw_circle(at + cell_size * 1.5 + Vector2.from_angle(TAU * i / 12.0) * CELL * 1.25, 6.0, Palette.EMBER)
 
 # The swap's gold pulse on the changed cells, and the Before / After tag in the corner.
+# --- A landmark's zone (effect key "zone") -----------------------------------------------------------------------
+var _zone_clock := 0.0
+
+func _zone_on() -> bool:
+	return _showing_after and _effect.get("zone") is Dictionary
+
+# The middle of the cells that carry the landmark's letters.
+func _zone_centre() -> Vector2:
+	var letters := String(_effect.zone.get("letters", ""))
+	var sum := Vector2.ZERO
+	var count := 0
+	for y in _rows.size():
+		for x in _rows[y].length():
+			if letters.contains(_rows[y][x]):
+				sum += (Vector2(x, y) + Vector2(0.5, 0.5)) * CELL
+				count += 1
+	return sum / count if count > 0 else Vector2(COLS, ROWS) * CELL / 2.0
+
+func _zone_radius() -> float:
+	return (float(_effect.zone.get("cells", 2.0)) + 0.5) * CELL
+
 func _draw_overlay(canvas: Node2D) -> void:
+	if _zone_on():  # The standing glow, and the ring of each pulse
+		var centre := _zone_centre()
+		var radius := _zone_radius()
+		canvas.draw_circle(centre, radius, Color(Palette.GOLD, 0.08))
+		canvas.draw_arc(centre, radius, 0.0, TAU, 48, Color(Palette.GOLD, 0.45), 2.0, true)
+		var every := float(_effect.zone.get("every", 0.0))
+		if every > 0.0:
+			var t := fmod(_zone_clock, every) / minf(every, 0.8)
+			if t < 1.0:
+				canvas.draw_arc(centre, radius * t, 0.0, TAU, 48, Color(Palette.HEARTLIGHT, 0.8 * (1.0 - t)), 3.0, true)
 	if _pulse_left > 0.0:
 		var a := _pulse_left / PULSE_TIME
 		for cell in _changed:
@@ -840,6 +875,7 @@ func _tick_scene(delta: float) -> bool:
 		_world.modulate.a = 1.0 - 0.65 * _fade_left / SWAP_FADE  # multiplier: the fade in
 	if _pulse_left > 0.0:
 		_pulse_left = maxf(_pulse_left - delta, 0.0)
+	_zone_clock += delta  # A landmark zone's pulse (effect key "zone")
 	if _overlay != null:
 		_overlay.queue_redraw()
 	_phase_left -= delta
@@ -906,6 +942,13 @@ func _move_walkers(delta: float) -> void:
 					walker.procs[i] = true
 					_float_text(proc, sprite.position, true)
 					walker.hits += 1.0
+		if _zone_on() and sprite.position.distance_to(_zone_centre()) <= _zone_radius():  # Inside a landmark's zone
+			var every := float(_effect.zone.get("every", 0.0))
+			var beat := floori(_zone_clock / every) if every > 0.0 else 0
+			if int(walker.procs.get("zone", -1)) != beat:
+				walker.procs["zone"] = beat
+				if String(_effect.zone.get("word", "")) != "":
+					_float_text(String(_effect.zone.get("word", "")), sprite.position, true)
 		var bog: String = _effect.get("bog", "")
 		if bog != "" and not walker.procs.has("bog") and _letter_at(sprite.position) == "B":  # Stepping onto the bog
 			walker.procs["bog"] = true

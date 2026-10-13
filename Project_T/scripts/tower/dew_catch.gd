@@ -9,14 +9,14 @@ extends RefCounted
 # RunState calls catch() on every dispel; the first catcher on the map hooks the rest (hook()).
 # Signals for Sound / UI are on Tower: dew_caught, harvest_poured, interest_paid.
 
-const INTEREST_CAP := 130  # All Wellsprings together pay at most this per rest (Balancing 2026-10-05: one Wellspring at Kindred V reaches 130)
+const INTEREST_CAP := 260  # All Wellsprings together pay at most this per rest (130 before the Dew x2 second pass, 2026-10-13: fixed Dew payouts doubled)
 const OLD_GROWTH_CATCH := 0.25  # Elder Stump with the Dewcatcher kin: +25% in its aura (× the bond's share)
 const DEW_BOWL_STEP := 0.15  # Dew Bowl (Seed card): +15% catch per stack
 const WIDE_BOWL_STEP := 0.5  # Dew Trail (any level): +0.5 cells catch radius (Wide Bowl merged into it)
 const DEW_TRAIL := [0.30, 0.50]  # Dew Trail / II: more when the caught nightmare is Damp (dream_audit.md)
 const HARVEST_MOON := 0.5  # Harvest Moon (Seed card): the Harvest pays +50%
 const DEEP_WELL_CAP := 30  # Deep Well (Seed card): each Wellspring's interest cap +30
-const OVERFLOW_PER_SHARD := 50  # Overflowing Well: each 50 Dew of interest over the cap = a Dreamlight shard
+const OVERFLOW_PER_SHARD := 100  # Overflowing Well: each 100 Dew (Dew x2 second pass: was 50) of interest over the cap = a Dreamlight shard
 const BOWL_FULL := 60.0  # Dew in the bowl that shows it full
 const GOLD := Palette.GLOW
 const DROPLETS_PER_SECOND := 6  # Catch droplets share the effects budget (below Harmony sparks)
