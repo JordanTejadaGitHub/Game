@@ -1192,3 +1192,14 @@ Exposed does nothing until it is full, so the moment it completes and every hit 
 - **Ending:** the mark fades when the stacks drop below full.
 - Reduced flashes: no flare, the outline stays. Partial stacks keep the dim badge with its count and no other effect.
 - The same idea applies to the other "nothing until full" states if playtests ask for it; start with Exposed.
+
+## Grow preview shows the new form's reach (user, 2026-10-13: "should have the Jarlink range when hovering over the upgrade")
+Pointing at a grow option on the Warden panel (touch: the first tap selects it, the second confirms) previews the
+form on the map, from the selected Warden's spot, until the pointer leaves:
+- its **range ring** (the new range beside the current one, as the build ghost does for position cards);
+- its **special area**, drawn as it will be: Jarlink's link range with a line to each Jarlink it would join (or
+  "no partner in range"), Jetreed's line, Undercurrent's whirlpool, Cairn's minimum and maximum range, Rootlight's
+  lit cells, an aura's cells, Brood Cap's first sprite (already built);
+- anything it would lose (a Kinship that breaks, a card bonus that switches off) in the same chips the build ghost uses.
+The same preview shows on the Remember screen's "Peek at the map" for a form about to be unlocked, if a Warden of
+that family is selected.
