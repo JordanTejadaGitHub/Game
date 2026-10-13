@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "dry_spell"
 display_name = "Dry Spell"
-description = "No Dew during this {block}. At the {rest} you get its whole Dew pot back, plus 25%."
+description = "For the next 5 {drifts}: nightmares give no Dew. At the {rest} you get all of it at once, plus 25%."
 flavor = "Not a drop of Dew falls tonight."
 creature_dew_multiplier = 0.0
 reward_pot_multiplier = 1.25

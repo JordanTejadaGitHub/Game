@@ -103,11 +103,11 @@ func get_seed_breakdown(drifts_cleared: int, bosses: int, _first_run: bool) -> A
 	for i in bosses:  # Bosses fall in act order
 		boss_seeds += boss_seeds_by_act[i] if i < boss_seeds_by_act.size() else SEEDS_PER_BOSS
 	var lines: Array = [
-		["Drifts survived from %d: %d" % [survival_seeds_from, survived], mini(survived / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
+		["Drifts survived after %d: %d" % [survival_seeds_from - 1, survived], mini(survived / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
 		["Nightmares dispelled: %d" % creatures_cleansed, cleansed_in_act_1 / maxi(act_1_cleanses_per_seed, 1)
 			+ cleansed_in_act_2 / maxi(act_2_cleanses_per_seed, 1) + later / maxi(late_cleanses_per_seed, 1)],
 		["Bosses dispelled: %d" % bosses, boss_seeds],
-		["Tended: %d" % obstacles_tended, obstacles_tended],
+		["Obstacles cleared: %d" % obstacles_tended, obstacles_tended],
 	]
 	if omen_seeds > 0:
 		lines.append(["Omens", omen_seeds])

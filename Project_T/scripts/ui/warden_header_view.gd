@@ -105,6 +105,27 @@ func set_corner(control: Control) -> void:
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
 const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 
+# A Warden of the Calling's family names the rule under its description (screens_ui.md "Where to recheck your
+# Calling"): "Calling · Lantern Ring", the rule in its tip. Nothing for other families or a run with no Calling.
+var _calling_line: Label = null
+
+func _show_calling(data: TowerData) -> void:
+	if _calling_line != null and is_instance_valid(_calling_line):
+		_calling_line.queue_free()
+	_calling_line = null
+	var dreams: DreamState = _tower._dream_state if is_instance_valid(_tower) else null
+	if dreams == null or data == null or dreams.calling == "" or dreams.calling_title() == "" \
+			or DreamState.CALLINGS.line_of(dreams.calling) != data.line:
+		return
+	_calling_line = Label.new()
+	_calling_line.name = "Calling"
+	_calling_line.text = "Calling · %s" % dreams.calling_title()
+	UiStyle.caps(_calling_line, 13, UiStyle.GOLD)
+	_calling_line.mouse_filter = Control.MOUSE_FILTER_STOP
+	TapTip.attach(_calling_line, IconInfo.format(dreams.calling_text()))
+	desc.get_parent().add_child(_calling_line)
+	desc.get_parent().move_child(_calling_line, desc.get_index() + 1)
+
 static func short_description(text: String) -> String:
 	var sentences := text.split(". ")
 	var short := text
@@ -174,6 +195,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		else:
 			desc.text += "\n[i]Still %s: %s[/i]" % [tower.legacy_data.display_name, StatusLinks.bbcode(tower.legacy_data.description)]
 	desc.visible = desc.text != ""
+	_show_calling(data)
 	for child in stats.get_children():
 		child.queue_free()
 	var attack := _tower.attack_data
@@ -194,7 +216,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
 		if reach > 0.0:  # Groundroot / Earthbind grab flyers beyond their attack range (Tower Code e530a46a)
-			main_row.append(["Grab %.1f" % reach, &"grab_reach"])
+			main_row.append(["Grab range %.1f" % reach, &"grab_reach"])
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
 		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
@@ -245,13 +267,13 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		notes.append("A wall: no attack.")
 	if data.catch_share > 0.0:
 		var share := (data.catch_share + data.catch_per_rank * _tower.get_effective_rank() + DewCatch.DEW_BOWL_STEP * _tower._rule_stacks(&"dew_bowl") + Tower.FOCUS_STRONG_CATCH * _tower.choice_count(Tower.Focus.STRONG)) * Signatures.multiplier(_tower, &"catch")
-		_economy_line("Catch +%d%% · reach %.1f" % [roundi(share * 100), _tower.get_catch_radius()], "The best catcher in reach adds this share of dispelled nightmares' Dew to its bowl. Damp bonuses can add more; catchers do not stack.")
+		_economy_line("Catch +%d%% · range %.1f" % [roundi(share * 100), _tower.get_catch_radius()], IconInfo.format("Catches part of the Dew from nightmares dispelled in range. Only the strongest catcher in range counts. {damp} nightmares give more."))
 		if is_instance_valid(tower):
-			_bowl_label = _economy_line("Bowl %.1f Dew" % tower.bowl, "The bowl pours into your bank at the next rest.")
+			_bowl_label = _economy_line("Caught %.1f Dew" % tower.bowl, "Paid to you at the next rest.")
 	if data.rest_interest > 0.0:
 		var rate := data.rest_interest + Tower.KINDRED_INTEREST * _tower.choice_count(Tower.Focus.KINDRED)
 		var cap := data.rest_interest_max + (DewCatch.DEEP_WELL_CAP if dreams != null and dreams.has_rule(&"deep_well") else 0) + NurtureChoices.WELL_CAP_KINDRED * _tower.choice_count(Tower.Focus.KINDRED)
-		_economy_line("Interest %d%% · cap %d" % [roundi(rate * 100), cap], "Paid on banked Dew after the Harvest, at rests. All Wellsprings together are limited to %s per rest." % UiStyle.dew_amount(DewCatch.INTEREST_CAP))
+		_economy_line("Interest %d%% · cap %d" % [roundi(rate * 100), cap], "Paid on the Dew you hold, at the rest. All Wellsprings together pay at most %s a rest." % UiStyle.dew_amount(DewCatch.INTEREST_CAP))
 	if dreams != null and not compact:  # Compact: the panel puts them in Details
 		stats.add_child(DreamBonusView.make_rows(_tower) if is_instance_valid(tower)
 			else DreamBonusView.make_rows_at(data, _tower.cell))  # "Dreams on this Warden"
@@ -301,7 +323,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 	var hidden := Tower.not_in_dream(dreams, data)  # Branch expansion: called back on Remember, not listed
 	if not hidden.is_empty():
 		var more := Label.new()
-		more.text = "%d more not in this dream" % hidden.size()
+		more.text = "%d more not in this run" % hidden.size()
 		more.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		TapTip.attach(more, "%s: call one back on Remember." % ", ".join(hidden.map(func(form: TowerData) -> String: return form.display_name)))
 		growth.add_child(more)
@@ -420,8 +442,8 @@ const SHAPE_TIPS := {&"single": "hits one nightmare at a time", &"splash": "hits
 	&"area": "hits everything in range at once", &"chain": "jumps from nightmare to nightmare", &"cloud": "leaves a cloud on the path",
 	&"trap": "sets traps on the path", &"beam": "a beam that grows stronger the longer it holds", &"birds": "sends birds out to strike",
 	&"seed": "a seed that flies out and back", &"patrol": "flies a patrol over the path", &"copy": "copies the strongest Warden beside it",
-	&"light": "lights path tiles that hurt nightmares", &"pull": "pulls nightmares back along the path",
-	&"spread": "spreads statuses between nightmares", &"aura": "boosts the Wardens near it", &"none": "doesn't attack: a wall"}
+	&"light": "lights cells of path that hurt nightmares", &"pull": "pulls nightmares back along the path",
+	&"spread": "spreads statuses between nightmares", &"aura": "boosts the Wardens in range", &"none": "doesn't attack: a wall"}
 
 static func shape_name(data: TowerData) -> String:
 	return String(Tower.ATTACK_SHAPE_NAMES.get(Tower.attack_shape(data), ""))
@@ -460,13 +482,13 @@ func stat_tip(stat: StringName) -> String:
 		_ when String(stat).begins_with("shape_"):
 			return shape_tip(attack)
 		&"grab_reach":
-			return "Grab reach: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
+			return "Grab range: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
 		&"crit_chance":
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":
 			meaning = "Critical hits deal ×%s damage" % str(attack.crit_multiplier)
 		&"path_length":  # Coverage (maze_feel.md #1: grow where it covers the most route)
-			return "Covers %d path tiles, counted once per pass." % _tower.get_coverage()
+			return "Covers %d cells of path, counted once per pass." % _tower.get_coverage()
 		&"potency":
 			var breakdown := DreamBonusView.stat_breakdown(_tower, stat) if _tower != _probe else ""
 			return potency_tip(_tower.get_potency(), _tower.get_potency_uses(),
@@ -481,7 +503,7 @@ func stat_tip(stat: StringName) -> String:
 		if LOCAL_BUFF_STATS.has(stat):
 			for entry in BuffSources.for_tower(_tower):
 				if entry.stat == LOCAL_BUFF_STATS[stat] and BuffSources.LOCAL_KINDS.has(entry.kind):
-					var source: String = "Kindred" if entry.get("kindred", false) \
+					var source: String = "Attuned" if entry.get("kindred", false) \
 						else (entry.source.tower_data.display_name if entry.source is Tower and is_instance_valid(entry.source) else String(entry.kind).capitalize())
 					why.append("%s %s" % [source, BuffSources._signed(entry.amount, stat == &"range")])
 	return meaning + (" (%s)" % ", ".join(why) if not why.is_empty() else "")
@@ -497,4 +519,4 @@ func _economy_line(text: String, tip: String) -> Label:
 
 func _process(_delta: float) -> void:
 	if is_visible_in_tree() and is_instance_valid(_bowl_label) and is_instance_valid(_tower) and _tower != _probe:
-		_bowl_label.text = "Bowl %.1f Dew" % _tower.bowl
+		_bowl_label.text = "Caught %.1f Dew" % _tower.bowl

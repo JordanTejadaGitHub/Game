@@ -154,7 +154,7 @@ func _run() -> void:
 	director.rest_started.emit(4, false, 0, false)
 	_check(_fired(whispers).has(&"boss"), "the rest before a boss block: something old has found the dream")
 	# The blocked-placement refusal is a toast (its trigger needs a hovered cell: test_ui / play).
-	_check(whispers.REFUSAL == "A dream can bend, but never close." and main.get_node("%TowerPlacer").build_rejected.get_connections().any(
+	_check(whispers.REFUSAL.ends_with("A dream can bend, but never close.") and whispers.REFUSAL.begins_with("Leave nightmares a way") and main.get_node("%TowerPlacer").build_rejected.get_connections().any(
 		func(c: Dictionary) -> bool: return (c.callable as Callable).get_object() == whispers),
 		"the refusal line is wired to build_rejected, as a toast")
 	dossier.set_process(dossier_processing)

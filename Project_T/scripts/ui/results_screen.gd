@@ -103,6 +103,7 @@ func _build(won: bool) -> void:
 		stirs.name = "DemoEnd"
 		UiStyle.whisper(stirs, 17)
 		_label(box, "“%s”" % MEMORY_1, 16, Palette.DEWLIGHT, true)
+		_label(box, "You've reached the end of the demo (drift %d). The full game continues to drift 100, with two more acts and more of the Memory Grove." % drift_director.drifts_started, 15, UiStyle.INK_DIM, true)
 
 	var stats := HBoxContainer.new()
 	stats.name = "RunStats"
@@ -174,6 +175,7 @@ func _build(won: bool) -> void:
 	total.add_child(_icon(&"seeds", 24))
 	UiStyle.number(_label(total, str(breakdown[-1][1]) if not breakdown.is_empty() else "0", 24, UiStyle.LIVE), 24, UiStyle.LIVE)
 	seeds.add_child(total)
+	_label(seeds, "Seeds grow permanent unlocks in the Memory Grove.", 14, UiStyle.INK_DIM, true)  # What Seeds are for (wording review 2026-10-13)
 	if not is_demo():
 		_label(box, "%d in the bank" % banked, 14, UiStyle.INK_DIM).name = "SeedsBanked"
 	if not_banked and not CaptureDirector.capturing():  # Captures force Test Grove: no dev line on screen

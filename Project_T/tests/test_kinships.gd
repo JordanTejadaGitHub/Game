@@ -53,11 +53,11 @@ func _run() -> void:
 		"Driftspore + Bloomcap within 2 cells: Slumber Rot")
 	_check(kin.get_pair(far_bloom).is_empty(), "a kin 8 cells away doesn't bond")
 	_check(is_equal_approx(drift.kin_share(&"slumber_rot", "a"), 0.5) and drift.kin_share(&"slumber_rot", "b") == 0.0,
-		"Sapling: the Driftspore side borrows 50%")
+		"Young: the Driftspore side borrows 50%")
 	_check(is_equal_approx(kin.family_bonus("spore"), Kinships.KINDRED_BONUS), "Kindred: the spore family +10%")
 	var base := drift.tower_data.damage * drift.get_rank_damage_multiplier()
 	_check(is_equal_approx(drift.get_damage(), base * 1.1), "and the Warden's damage shows it")
-	_check(kin.describe(drift).begins_with("Kin: Bloomcap · Slumber Rot · Sapling (5 drifts to Blooming)"),
+	_check(kin.describe(drift).begins_with("Kin: Bloomcap · Slumber Rot · Young (5 drifts to Blooming)"),
 		"panel line (%s)" % kin.describe(drift))
 
 	# --- Bond stages: counted in drifts, announced at the rest ---
@@ -129,7 +129,7 @@ func _run() -> void:
 	var stranger := _plant("standing_stone", Vector2(1, 9))
 	await process_frame
 	kin.refresh()
-	_check(kin.get_pairs(late).is_empty() and kin.unbonded_reason(late) == "No kin: the Bloomcap nearby is bonded to its Driftspore",
+	_check(kin.get_pairs(late).is_empty() and kin.unbonded_reason(late) == "No kin: the Bloomcap in range is bonded to its Driftspore",
 		"a would-be kin that's taken is explained (%s)" % kin.unbonded_reason(late))
 	_check(kin.unbonded_reason(stranger) == "", "another family: nothing to explain")
 	for tower in [top, below, late, stranger]:

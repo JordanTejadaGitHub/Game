@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "swarming_night"
 display_name = "Swarming Night"
-description = "Twice as many nightmares, each with 40% less health."
+description = "For the next 5 {drifts}: twice as many nightmares, each with 40% less health."
 flavor = "They come in a rush, thin as moths."
 requires_grove = "restless_omens"
 kind = 2

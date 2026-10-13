@@ -329,6 +329,8 @@ var waking_legendaries := false  # Waking Dreams: the next offer is 3 Legendarie
 # The first family's Calling (documentation/dream_council_review.md 11): the family root taken at the run's FIRST family
 # pick ("" = none: dev runs with everything unlocked, saves from before Callings). Kept all run; saved.
 const CALLINGS := preload("res://scripts/combat/callings.gd")
+const FIREFLY_LIGHTS := preload("res://scripts/combat/firefly_lights.gd")
+var firefly_lights: Node2D = null  # Made in _ready; null in a bare DreamState (tools, some tests)
 signal calling_changed(family: String)
 var calling := ""
 
@@ -411,6 +413,11 @@ func _ready() -> void:
 	var world := owner if owner != null else get_parent()
 	if world != null:
 		world.add_child.call_deferred(mark)
+	firefly_lights = FIREFLY_LIGHTS.new()  # The Firefly Jar class prototype: Lit, lights and forks (dream_council_review.md 20)
+	firefly_lights.name = "FireflyLights"
+	firefly_lights.set("dream_state", self)
+	if world != null:
+		world.add_child.call_deferred(firefly_lights)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
@@ -2329,6 +2336,15 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
+const CLASS_OFFER_UNTIL_DRIFT := 5  # The Dream at drift 5's rest (and any before it) draws from class cards only
+
+func _class_cards_of(cards: Array[UpgradeData], rarity: int) -> Array[UpgradeData]:
+	var out: Array[UpgradeData] = []
+	for card in cards:
+		if card.rarity == rarity:
+			out.append(card)
+	return out
+
 func make_offer(drift_number: int) -> Array[UpgradeData]:
 	dreams_seen += 1
 	_offer_drift = drift_number
@@ -2349,6 +2365,26 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	var boss_rest := drift_director.is_boss_drift(drift_number)
 	var act := drift_director.get_act(drift_number + 1 if boss_rest else drift_number)
 	_taken_this_offer.clear()
+	# The drift 5 Dream draws from class cards only (owner decision 2026-10-12, balance_simulation.md "Human run 29": a
+	# Firefly run saw no class card before drift 25). Every slot is a class card of the Calling's family, at the normal
+	# act 1 rarity odds; a rarity with none left falls to the next one down. Lent cards are not class cards; the
+	# two-family-cards limit does not apply. A Calling whose family has no class cards yet gets the normal offer.
+	if drift_number <= CLASS_OFFER_UNTIL_DRIFT and calling != "":
+		var class_cards: Array[UpgradeData] = []
+		for card in pool:
+			if card.calling == calling and can_offer(card, act):
+				class_cards.append(card)
+		while offer.size() < size and not class_cards.is_empty():
+			var rarity := _roll_rarity(1, false)
+			var of_rarity: Array[UpgradeData] = []
+			while rarity >= 0 and of_rarity.is_empty():
+				of_rarity = _class_cards_of(class_cards, rarity)
+				rarity -= 1  # None left at this rarity: the next one down
+			if of_rarity.is_empty():
+				of_rarity = class_cards  # Nothing at or below the roll: any class card left
+			var drawn: UpgradeData = of_rarity[_rng.randi_range(0, of_rarity.size() - 1)]
+			offer.append(drawn)
+			class_cards.erase(drawn)
 	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
 		waking_legendaries = false
 		size = maxi(size, WAKING_LEGENDARIES)
@@ -2415,6 +2451,10 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if card.retired or not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
+	if card.calling != "" and card.calling != calling:
+		return false  # A class card: only when that family was the run's first pick (its Calling)
+	if card.id == "lantern_glow" and calling == "firefly_jar":
+		return false  # Reads like the Firefly Calling: left out on a Firefly start
 	if is_excluded(card):
 		return false  # An exclusive pair: its partner was taken (Charged Feathers / Pollen Beaks)
 	if not in_run_pool(card):
@@ -2764,6 +2804,8 @@ var _family_card_cache := {}  # Card id -> whether it needs a Warden
 
 # A family card needs a Warden. Two may compete naturally; neither slot is guaranteed.
 func is_family_card(card: UpgradeData) -> bool:
+	if card.calling != "":
+		return true  # Class cards count as family cards for the two-per-offer limit
 	if not _family_card_cache.has(card.id):
 		_family_card_cache[card.id] = (card.requires + card.requires_any).any(func(id: String) -> bool:
 			return ResourceLoader.exists("res://resource/tower/%s.tres" % id))
@@ -2948,6 +2990,7 @@ func to_save() -> Dictionary:
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"calling": calling,
+		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
@@ -2959,6 +3002,8 @@ func load_save(data: Dictionary) -> void:
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
 	calling = String(data.get("calling", ""))
+	if firefly_lights != null:
+		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
 	waking_legendaries = bool(data.get("waking_legendaries", false))
 	sprouts_planted = int(data.get("sprouts_planted", 0))
 	unlocked.clear()
@@ -4731,7 +4776,13 @@ func run_pool_active() -> bool:
 	return run_pool_forced or _is_real_game()
 
 # Whether `card` is in this run's pool (draws the pool on first use).
+const LENT_TAG := "lent"  # A family's lent cards (dream_council_review.md 20)
+
 func in_run_pool(card: UpgradeData) -> bool:
+	if card.calling != "":
+		return card.calling == calling  # All of a class's cards are in the pool on that start (never the 60% family sample)
+	if card.tags.has(LENT_TAG):
+		return true  # Lent cards: in the pool for every owner of the family (its Needs gate the offer)
 	if not run_pool_active():
 		return true
 	if run_pool.is_empty():
@@ -4774,6 +4825,8 @@ func build_run_pool(seed_value: int = -1) -> void:
 			continue
 		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
 			continue
+		if card.calling != "" or card.tags.has(LENT_TAG):
+			continue  # Class and lent cards are never sampled (in_run_pool decides)
 		if card.deepens != "" and not RUN_POOL_BASICS.has(card.deepens):
 			continue  # A Deepened card follows its base (in_run_pool): it never takes a pool slot of its own
 		var family := _card_family(card)
@@ -4822,6 +4875,8 @@ func _sample_family(family: String) -> void:
 		if card.retired or _card_family(card) != family or not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 			continue
 		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+			continue
+		if card.calling != "" or card.tags.has(LENT_TAG):
 			continue
 		if card.deepens != "":
 			continue  # Follows its base (in_run_pool)
@@ -4940,12 +4995,12 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 			result.text = "%d of your Wardens qualify · %s" % [changed.size(), what]
 		else:
 			result.kind = &"stat"
-			result.text = "On your board · %s on %d %s" % [what, changed.size(), "Warden" if changed.size() == 1 else "Wardens"]
+			result.text = "On your map · %s on %d %s" % [what, changed.size(), "Warden" if changed.size() == 1 else "Wardens"]
 		return result
 	if card.kind == UpgradeData.Kind.ECONOMY or card.dew_now > 0 or card.rest_bonus_add != 0 or card.free_clears_add > 0:
 		var live := effects().preview_line(card)
 		result.kind = &"economy"
-		result.text = ("On your board · " + live.trim_prefix("Now: ")) if live != "" else _economy_line(card)
+		result.text = ("On your map · " + live.trim_prefix("Now: ")) if live != "" else _economy_line(card)
 		return result
 	if card.diagram != "":
 		result.kind = &"position"
@@ -4979,7 +5034,7 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
 		if not attackers.is_empty():  # A global rule (Glinting Dew: every Warden's crit): the line, but no Warden pulses
 			result.kind = &"trigger"
-			result.text = ("Reaches all %d attackers" % attackers.size()) if attackers.size() > 1 else "Reaches your attacker"
+			result.text = ("Reaches all %d attacking Wardens" % attackers.size()) if attackers.size() > 1 else "Reaches your attacking Warden"
 	return result
 
 func _card_active_on(card: UpgradeData, tower: Tower) -> bool:
@@ -4996,7 +5051,7 @@ func _economy_line(card: UpgradeData) -> String:
 		bits.append("+%d Dew every rest" % card.rest_bonus_add)
 	if card.free_clears_add > 0:
 		bits.append("%d half-price clears" % card.free_clears_add)  # free_clears are half price (RunState.try_clear)
-	return ("On your board · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
+	return ("On your map · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
 
 # A Warden's Dream multipliers now: {damage: 1 + Σ damage parts, speed: 1 + Σ speed parts, range: Σ range parts}.
 func _dream_stat_factors(tower: Tower) -> Dictionary:

@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "brittle_night"
 display_name = "Brittle Night"
-description = "Nightmares have 25% less health, but every leak costs double leaves."
+description = "For the next 5 {drifts}: nightmares have 25% less health, but each one that reaches the Heartwood takes twice as many leaves."
 flavor = "They crack at a touch. So does the Heartwood."
 requires_grove = "restless_omens"
 kind = 2

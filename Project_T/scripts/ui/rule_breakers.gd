@@ -31,7 +31,7 @@ const PLURALS := {EnemyData.Trait.FLYING: "Flyers", EnemyData.Trait.ROLLING: "Sp
 	EnemyData.Trait.LEAP: "Leapers", EnemyData.Trait.BURROW: "Burrowers", EnemyData.Trait.WANDER: "Wanderers"}
 const WARNINGS := {EnemyData.Trait.FLYING: "they ignore your maze", EnemyData.Trait.ROLLING: "they race down long straights",
 	EnemyData.Trait.TRAMPLE: "they break through walls", EnemyData.Trait.LEAP: "they leap over walls",
-	EnemyData.Trait.BURROW: "they tunnel under walls", EnemyData.Trait.WANDER: "they stray from the route"}
+	EnemyData.Trait.BURROW: "they tunnel under walls", EnemyData.Trait.WANDER: "they stray from the path"}
 
 var director: DriftDirector
 var map: Node
@@ -105,9 +105,9 @@ static func coming(drift_director: DriftDirector) -> Array:
 static func warning_line(data: EnemyData, drift: int) -> String:
 	var what: String = WARNINGS.get(data.trait_kind, "")
 	if data.trait_kind == EnemyData.Trait.FLYING and not data.is_through_walls():
-		what = "they fly along the route"
+		what = "they fly along the path"
 	if what == "":
-		what = data.trait_text.trim_suffix(".").to_lower()
+		what = data.trait_text.get_slice(":", 0).trim_suffix(".").to_lower()  # What it does (trait_text is "what it does: what to do" since Enemy Code 4162a071)
 	return "%s in drift %d: %s" % [PLURALS.get(data.trait_kind, data.display_name), drift, what]
 
 # "Phantom · flies".

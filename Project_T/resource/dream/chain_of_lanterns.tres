@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "chain_of_lanterns"
+display_name = "Chain of Lanterns"
+description = "A bolt on a Lit nightmare also forks to the 2 nearest Lit nightmares for half. Any {static} bolt counts."
+rarity = 1
+kind = 3
+tags = Array[String](["storm"])
+max_stacks = 1
+rule_id = &"chain_of_lanterns"
+calling = "firefly_jar"

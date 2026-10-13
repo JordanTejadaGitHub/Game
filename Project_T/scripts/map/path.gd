@@ -35,6 +35,22 @@ func initialize(walkable_cells: Array, cell_start: Vector2, cell_end: Vector2) -
 
 func initialize_new_path(walkable_cells: Array) -> void:
 	_pathGenerator = FindPath.new(grid, walkable_cells)
+	_pathGenerator.start_cell = cell_start_path
+	_pathGenerator.start_half = start_half
+
+# The route's fixed start node: the start cell's outer half on the bridge's lane (StartGate.start_half_for), or
+# (-1, -1) for none (the start cell's half nearest the Heartwood, as before). `cell`: the start cell, when it moves too
+# (Shifting Mist). Every route asked from the whole start cell begins there (FindPath._start_node).
+var start_half := Vector2i(-1, -1)
+
+func set_start_half(half: Vector2i, cell := Vector2.INF) -> void:
+	if cell != Vector2.INF:
+		cell_start_path = cell
+	start_half = half
+	if _pathGenerator != null:
+		_pathGenerator.start_cell = cell_start_path
+		_pathGenerator.start_half = half
+		_pathGenerator._straight_key = []  # The cached route may have begun on the other half
 
 func draw():
 	# We first clear any tiles on the tilemap, then let the Astar2D (PathFinder) find the

@@ -21,7 +21,7 @@ const TEXT := {
 }
 const EACH_RUN: Array[StringName] = [&"leaf", &"boss", &"after_boss", &"boss_toll"]  # Story beats: once a run
 const EVERY_TIME: Array[StringName] = [&"rule_breaker"]  # A warning: whenever it applies
-const REFUSAL := "A dream can bend, but never close."  # The blocked-placement toast
+const REFUSAL := "Leave nightmares a way to the Heartwood. A dream can bend, but never close."  # The blocked-placement toast
 const REFUSAL_EVERY := 3000  # ms between two refusal toasts
 
 @onready var run_state: RunState = %RunState

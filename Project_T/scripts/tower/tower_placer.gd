@@ -426,11 +426,11 @@ func _draw() -> void:
 	elif omen_locked(_ghost_cells()):
 		tag += " · the old way is open until the rest"  # Second Path (Omen)
 	elif hover_breaks_path():
-		tag += " · would close the dream"  # The forest's rule: it may bend, never close
+		tag += " · blocks the only path"  # The forest's rule: it may bend, never close
 	elif _halves_occupied(_ghost_halves()):
 		tag += " · nightmare here"
 	elif growth != 0:
-		tag += " · %+d path" % growth  # "Wardens are walls": how much longer the walk gets
+		tag += " · %+d cells of path" % growth  # "Wardens are walls": how much longer the walk gets
 	if _kin_here != "":
 		tag += " · Kin spot: forms %s" % _kin_here
 	if _heart_here:
@@ -758,7 +758,7 @@ func coverage_chip() -> Array:
 	var best := maxi(best_coverage(), 1)
 	var share := float(covers) / best
 	var colour: Color = BONUS_ON if share >= COVER_GOOD else (Palette.GLOW if share >= COVER_OK else BONUS_OFF)
-	return ["covers %d path tiles%s" % [covers, " · a top spot" if covers >= best else ""], colour]
+	return ["covers %d cells of path%s" % [covers, " · one of the best spots" if covers >= best else ""], colour]
 
 # Planted Wardens whose position cards this placement would turn off or on: [[tower, card name, on]].
 func get_neighbour_changes() -> Array:
@@ -2084,7 +2084,7 @@ func get_stroke_tag() -> String:
 	var name := tower_data.display_name + ("" if count == 1 else "s")
 	var tag := "%d %s · %d Dew" % [count, name, _stroke_cost]
 	if _stroke_growth != 0:
-		tag += " · %+d path" % _stroke_growth
+		tag += " · %+d cells of path" % _stroke_growth
 	var skipped := _stroke.size() - count
 	if skipped > 0:
 		tag += " · %d skipped" % skipped
@@ -2159,7 +2159,7 @@ func _plan_stroke_half() -> void:
 		elif unique_used:
 			why = "one per run"
 		elif not map_generator.can_block_halves(blocked + halves, points):
-			why = "would close the dream"
+			why = "blocks the only path"
 		else:
 			var cost := get_cost(null, home, planned_sprouts)
 			if cost > dew:
@@ -2206,7 +2206,7 @@ func _plan_stroke() -> void:
 		elif unique_used:
 			why = "one per run"
 		elif not map_generator.can_block_cells(blocked + cells, enemy_cells):
-			why = "would close the dream"
+			why = "blocks the only path"
 		else:
 			var cost := get_cost(null, c, planned_sprouts)
 			if cost > dew:

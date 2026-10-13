@@ -50,7 +50,7 @@ func _run() -> void:
 	main.get_node("HUD").add_child(grab_view)
 	await process_frame
 	var grab := grab_view.stats.find_child("Value_grab_reach", true, false) as Label
-	_check(grab != null and grab.text == "Grab %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
+	_check(grab != null and grab.text == "Grab range %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
 		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
 	# The attack shape chip (user: "can't tell if something is an aura attack or not"; Tower.attack_shape).
 	# UI Asset's shape icons (54cc7cfb): an icon-only chip in the first row, the name in its tip.
@@ -123,7 +123,7 @@ func _run() -> void:
 	_check(economy_text.contains("Catch +197%") and economy_text.contains("Interest") and economy_text.contains("cap"), "catch and interest show live nurture/mastery values: " + economy_text)
 	well.bowl = 12.5
 	await process_frame
-	_check(" ".join(_texts(economy.stats)).contains("Bowl 12.5 Dew"), "catcher bowl refreshes while the panel is open")
+	_check(" ".join(_texts(economy.stats)).contains("Caught 12.5 Dew"), "catcher bowl refreshes while the panel is open")
 
 	print("warden header test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()

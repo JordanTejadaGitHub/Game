@@ -149,6 +149,7 @@ func _run() -> void:
 	lessons.enabled = true
 
 	# Selling mid-drift, live refund numbers.
+	lessons.seen.append("speed_pause")  # A drift starting sets it off: checked on its own below
 	director.start_next_drift()
 	await _frames(2)
 	var tower := placer.tower_container.get_child(0) as Tower
@@ -168,23 +169,22 @@ func _run() -> void:
 	# The Lessons that took over from the teaching whispers (onboarding.md "Whisper hints removed", user 2026-10-12).
 	lessons.queue.clear()
 	lessons.close()
-	for id in ["speed_pause", "rests", "discover_damp"]:
+	for id in ["speed_pause", "rests", "dew_maze", "statuses_stack", "discover_damp", "rank_rules"]:
 		lessons.seen.erase(id)
-	# Speed and pause: the first time a drift has run longer than 20 s.
+	# Speed and pause: as a drift starts (wording review 2026-10-13, teaching order; its own handler called alone).
 	director.resting = false
 	speed.set_paused(false)
-	lessons._drift_watched = director.drifts_started
-	lessons._drift_time = LessonCard.SPEED_LESSON_AFTER - 1.0
-	lessons._watch_field(0.016)
-	_check(not lessons.queue.any(func(q: Array) -> bool: return q[0] == &"speed_pause"), "under 20 s of a drift: no Speed and pause Lesson yet")
-	lessons._drift_time = LessonCard.SPEED_LESSON_AFTER + 1.0
-	lessons._watch_field(0.016)
+	var drift_hooks: Array = director.drift_started.get_connections().filter(func(c: Dictionary) -> bool: return (c.callable as Callable).get_object() == lessons)
+	_check(drift_hooks.size() == 1, "the Speed and pause Lesson listens for a drift starting")
+	for hook in drift_hooks:
+		(hook.callable as Callable).call(1)
 	await _frames(2)
-	_check(lessons.visible and lessons.shown_id == &"speed_pause" and speed.paused and lessons._body.text.contains("build while paused"),
-		"a drift running longer than 20 s: the Speed and pause Lesson opens and pauses (%s)" % lessons.shown_id)
+	_check(lessons.visible and lessons.shown_id == &"speed_pause" and speed.paused and lessons._body.text.contains("plant while paused"),
+		"the first drift starting: the Speed and pause Lesson opens and pauses (%s)" % lessons.shown_id)
 	lessons.close()
 	await _frames(1)
-	# Rests: the first rest (its own handler called alone: the real signal would also open the rest's screens).
+	# Rests, then Dew and the Maze bonus: the first rest (its own handler called alone: the real signal would also open
+	# the rest's screens).
 	director.resting = true
 	var rest_hooks: Array = director.rest_started.get_connections().filter(func(c: Dictionary) -> bool: return (c.callable as Callable).get_object() == lessons)
 	_check(rest_hooks.size() == 1, "the Rests Lesson listens for the first rest")
@@ -192,10 +192,38 @@ func _run() -> void:
 		(hook.callable as Callable).call(1, false, 0, false)
 	speed.set_paused(false)
 	await _frames(2)
-	_check(lessons.visible and lessons.shown_id == &"rests" and speed.paused and lessons._body.text.contains("forest rests"),
+	_check(lessons.visible and lessons.shown_id == &"rests" and speed.paused and lessons._body.text.contains("forest is resting")
+		and lessons._body.text.contains("every %d drifts" % director.drifts_per_block),
 		"the first rest: the Rests Lesson opens and pauses (%s)" % lessons.shown_id)
 	lessons.close()
+	await _frames(2)
+	_check(lessons.visible and lessons.shown_id == &"dew_maze" and lessons._title.text == "Dew and the Maze bonus" and lessons._demo.topic == &"maze",
+		"…then Dew and the Maze bonus, at the same rest (%s)" % lessons.shown_id)
+	lessons.close()
 	await _frames(1)
+	# The rank V rules: once a Warden stands at rank IV (not on the first Nurture card).
+	var ranked: Tower = null
+	for candidate in main.get_node("%TowerContainer").get_children():
+		if candidate is Tower:
+			ranked = candidate
+			break
+	if ranked != null:
+		ranked.rank = LessonCard.RANK_RULES_AT
+		lessons._watch_left = 0.0
+		lessons._watch_field(0.016)
+		await _frames(2)
+		_check(lessons.visible and lessons.shown_id == &"rank_rules" and lessons._body.text.contains("All-Rounder") and lessons._demo.topic == &"nurture",
+			"a Warden at rank IV: the rank V rules (%s)" % lessons.shown_id)
+		lessons.close()
+		await _frames(1)
+		ranked.rank = 0
+	else:
+		_check(false, "a planted Warden to rank up (the fixture this check needs)")
+	lessons.seen.erase("discover_nurture")
+	lessons.discovery(&"nurture")
+	_check(lessons.queue.any(func(q: Array) -> bool: return q[0] == &"discover_nurture" and not String(q[3]).contains("All-Rounder") and not String(q[3]).contains("signature")),
+		"the first Nurture card no longer carries the rank V rules")
+	lessons.queue.clear()
 	# A status on a nightmare: its Lesson, noticed by the card itself (the status whispers used to set it off).
 	var wet: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, false)
 	await _frames(1)
@@ -219,13 +247,18 @@ func _run() -> void:
 	lessons._watch_left = 0.0
 	lessons._watch_field(0.016)
 	await _frames(3)
-	_check(lessons.visible and lessons.shown_id == &"discover_damp" and speed.paused, "the first Soaked nightmare in view: its status Lesson opens and pauses (%s)" % lessons.shown_id)
+	# "Statuses stack" comes first, once, on the same nightmare; the status's own Lesson follows on Got it.
+	_check(lessons.visible and lessons.shown_id == &"statuses_stack" and speed.paused and lessons._spot_enemy == wet and lessons._body.text.contains("adds a stack"),
+		"the first status in view: Statuses stack opens first and pauses (%s)" % lessons.shown_id)
+	lessons.close()
+	await _frames(3)
+	_check(lessons.visible and lessons.shown_id == &"discover_damp" and speed.paused, "…then the Soaked Lesson, without unpausing (%s)" % lessons.shown_id)
 	_check(lessons._spot_enemy == wet and lessons._spot_status == EnemyStatuses.DAMP, "the spotlight is on that nightmare and its Soaked badge")
 	var card_rect: Rect2 = lessons._panel.get_global_rect()
 	var wet_at: Vector2 = lessons._spot_at(wet)
 	_check(not card_rect.grow(20.0).has_point(wet_at) and Rect2(Vector2.ZERO, lessons.size).encloses(card_rect),
 		"the card sits beside the nightmare, not over it, inside the screen (%s, nightmare at %s)" % [card_rect, wet_at])
-	_check(lessons._body.text.contains("on this nightmare") and lessons._body.text.contains("Soaked") and lessons._body.text.contains("Reactions")
+	_check(lessons._body.text.contains("to this nightmare") and lessons._body.text.contains("Each hit adds one stack") and lessons._body.text.contains("Soaked") and lessons._body.text.contains("Reactions")
 		and not lessons._body.text.contains("{"), "it names the cause and the status, with the Reactions link (%s)" % lessons._body.text)
 	for id in EnemyStatuses.ALL:
 		var line := IconInfo.format(LessonCard.status_text(id))

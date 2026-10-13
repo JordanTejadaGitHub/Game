@@ -26,16 +26,16 @@ const BY_CHOICE := {Tower.Focus.POWER: CRUSHING, Tower.Focus.SWIFT: RELENTLESS, 
 const NAMES := {CRUSHING: "Crushing", RELENTLESS: "Relentless", WATCHTOWER: "Watchtower", SPREADING: "Spreading",
 	EXECUTIONER: "Executioner", FIRSTBORN: "Firstborn", SHELTER: "Shelter", SURGE: "Surge", ALL_ROUNDER: "All-Rounder", MASTERY: "Mastery"}
 const TEXT := {
-	CRUSHING: "every 5th hit on an armoured nightmare lands x2 and strips 25% of its dread shell",
-	RELENTLESS: "a dispel starts its next cycle at once (at most every 0.5 s)",
+	CRUSHING: "every 5th hit on an armoured nightmare deals ×2 damage and strips 25% of its Dread Shell",
+	RELENTLESS: "when it dispels a nightmare, its next attack is ready at once (at most every 0.5 s)",
 	WATCHTOWER: "reveals Hidden nightmares in its range",
 	SPREADING: "when a nightmare carrying its statuses is dispelled, half the stacks jump to the nearest one within 2 cells",
-	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and elites: the crit x1.5); every hit it lands deals 15% less",
-	FIRSTBORN: "what it makes arrives one step better",
-	SHELTER: "Wardens in its aura can't be withered, dimmed or trampled",
-	SURGE: "every 10 s its aura doubles for 2 s",
-	ALL_ROUNDER: "its main job is 20% stronger",
-	MASTERY: "its trained role gains a permanent 20% bonus",
+	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and Deeply Blighted: the crit deals ×1.5 damage); every hit it lands deals 15% less",
+	FIRSTBORN: "what it makes starts one step stronger",
+	SHELTER: "Wardens it boosts can't be withered, dimmed or trampled",
+	SURGE: "every 10 s its aura is twice as strong for 2 s",
+	ALL_ROUNDER: "mixed ranks: what it does best is 20% stronger",
+	MASTERY: "four ranks of one choice: what it does best is 20% stronger",
 }
 
 # Existing behaviours excluded where they cannot work; these paths now use role mastery.
@@ -163,17 +163,27 @@ static func multiplier(tower: Tower, role: StringName) -> float:
 
 static func text_for(tower: Tower) -> String:
 	var sig := compute(tower)
+	if sig == FIRSTBORN:
+		# Said per Warden (wording_review_2026-10-13.md 4): "one step stronger" means nothing until you know what it makes.
+		var special: StringName = tower.attack_data.special if tower.attack_data else &""
+		match special:
+			BranchKit.SEEDBEARER:
+				return "its Sprouts start one rank higher"
+			BranchKit.BROOD:
+				return "its sprites burst for 50% more"
+			BranchKit.DREAM_OAK:
+				return "it gathers 50% more shards"
 	if sig != ALL_ROUNDER and sig != MASTERY:
 		return TEXT.get(sig, "")
 	var descriptions := {
-		&"damage": "damage +20%", &"speed": "attack speed +20%",
-		&"range": "control reach +20%", &"catch": "catch income +20%",
-		&"caught": "Caught status tick rate +20%", &"yield": "Dew per drift +20%", &"aura": "aura strength +20%",
-		&"nursery": "nursery reach +20% and nurture discount +20% within its existing cap",
+		&"damage": "it deals 20% more damage", &"speed": "it attacks 20% faster",
+		&"range": "its range is 20% longer", &"catch": "it catches 20% more Dew",
+		&"caught": "statuses on its Caught nightmares hurt 20% more often", &"yield": "it gives 20% more Dew each drift", &"aura": "its aura is 20% stronger",
+		&"nursery": "it reaches 20% further; its discount is 20% bigger (same limit)",
 		&"offspring": "its planted Sprouts deal 20% more damage",
 		&"scent": "its status builds 20% faster (stacks a second)",
-		&"aura_crit": "aura crit bonus +20%",
-		&"shards": "shard yield +20% (fractions carry; the source cap still applies)",
+		&"aura_crit": "its crit aura is 20% stronger",
+		&"shards": "it gathers 20% more shards (the same limit a run)",
 	}
 	return descriptions.get(bonus_job(tower), TEXT.get(sig, ""))
 

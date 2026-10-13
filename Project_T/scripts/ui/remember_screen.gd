@@ -93,7 +93,7 @@ func _ready() -> void:
 	_light_line.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))  # The Dreamlight glyph beside the number
 	box.add_child(_light_line)
 	var hint := Label.new()
-	hint.text = "Dreamlight unlocks, Dew grows."
+	hint.text = REMEMBER_HINT
 	hint.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(hint)
 	_offer_line.name = "OfferLine"  # Branch expansion: the branches are random each run (story chat, user)
@@ -284,7 +284,7 @@ func _build_phone() -> void:
 	info.focus_mode = Control.FOCUS_NONE
 	info.custom_minimum_size = Vector2(48, 48)
 	bar.add_child(info)
-	_info_tip = TapTip.attach(info, "Dreamlight unlocks, Dew grows.")
+	_info_tip = TapTip.attach(info, REMEMBER_HINT)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(spacer)
@@ -436,7 +436,7 @@ func _pin_action() -> void:
 func _update_info(root: TowerData) -> void:
 	if _info_tip == null:
 		return
-	var parts: Array[String] = ["Dreamlight unlocks, Dew grows."]
+	var parts: Array[String] = [REMEMBER_HINT]
 	var offer := offer_line(root)
 	if offer != "":
 		parts.push_front(offer)
@@ -499,7 +499,7 @@ func _rebuild() -> void:
 func offer_line(root: TowerData) -> String:
 	if root == null or root.tier != 1 or dream_state.not_offered_branches(root).is_empty():
 		return ""
-	return "This dream offers %d of %d branches, different each run. Call others in with Dreamlight." % [  # As the family pick
+	return "This run offers %d of this family's %d branches, chosen at random. You can add one more for Dreamlight." % [  # As the family pick
 		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
 
 const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Borrowed Branch card. The Heartwood may offer them next run."
@@ -533,7 +533,7 @@ func _fill_misty(root: TowerData) -> void:
 	_misty.add_child(top)
 	if not forms.is_empty():
 		var head := Label.new()
-		head.text = "Not in this dream"
+		head.text = "Not in this run"
 		UiStyle.caps(head, 15)
 		head.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		head.tooltip_text = MISTY_TIP  # Hover or tap: why these aren't in the tree
@@ -582,7 +582,7 @@ func _fill_misty(root: TowerData) -> void:
 		call.focus_mode = Control.FOCUS_NONE
 		var problem := dream_state.call_back_problem(form)
 		var free := dream_state.free_calls > 0
-		call.text = "Call in, free" if free else "Call in  %d" % dream_state.call_back_cost(root)  # The Dreamlight glyph after it (no " · ")
+		call.text = "Add, free" if free else "Add  %d" % dream_state.call_back_cost(root)  # The Dreamlight glyph after it (no " · ")
 		if not free:
 			call.icon = IconInfo.icon(&"dreamlight")
 			call.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -908,7 +908,8 @@ func _add_combos(data: TowerData) -> void:
 
 # Branch expansion: a branch not in this run. Its silhouette and name, the line, what it does (to judge a call),
 # and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Borrowed Branch.
-const NOT_IN_DREAM_LINE := "Not in this dream. The Heartwood may remember it next time."
+const NOT_IN_DREAM_LINE := "Not in this run. Another run may offer it."
+const REMEMBER_HINT := "Spend Dreamlight here to unlock a form. Then pay Dew on the map to grow a Warden into it."
 
 func _fill_not_in_dream(data: TowerData) -> void:
 	var head := HBoxContainer.new()
@@ -937,7 +938,7 @@ func _add_call_back(data: TowerData) -> void:
 	_side_box.add_child(button)
 	var short := problem == "Not enough Dreamlight"
 	# "Call into this dream", then [Dreamlight] 3 at the right in GOLD, POOR when short (no " · "; user, Inkcap)
-	button.text = "Call into this dream, free (Borrowed Branch)" if free else "Call into this dream"
+	button.text = "Add to this run, free (Borrowed Branch)" if free else "Add to this run"
 	if not free:
 		_cost_on(button, cost, short)
 	if short:  # Dimmed, a press refuses (as Unlock)
@@ -1229,7 +1230,7 @@ class FormNode extends Button:
 			tooltip_text = data.display_name + " · from your Memory Grove: in every dream, beside the branches drawn"
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
-			tooltip_text = data.display_name + " · not in this dream"
+			tooltip_text = data.display_name + " · not in this run"
 		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"): no name, cost or button
 			portrait.modulate = Color(1, 1, 1, 0.85)  # multiplier: the shadow at .85
 			tooltip_text = "? · " + screen.veil_hint(data)

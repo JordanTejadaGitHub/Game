@@ -58,7 +58,7 @@ func _run() -> void:
 	_check(_text(rows).contains("Resists") and _text(rows).contains("Stone ×0.5") and _text(rows).contains("Weak to") and _text(rows).contains("Water ×1.5"),
 		"rows name the damage types (" + _text(rows) + ")")
 	var pebble := NightmareIcons.family("stone", &"resist")
-	_check(pebble.tip == "Resists Stone: Stone damage deals half to it.", "resist tooltip (%s)" % pebble.tip)
+	_check(pebble.tip == "Resists Stone: Stone Wardens deal half damage to it.", "resist tooltip (%s)" % pebble.tip)
 	_check(IconInfo.damage_type_name("wing") == "Talon" and IconInfo.damage_type_name("acorn") == "Plain"
 		and IconInfo.damage_type_text("light") == "Light damage", "damage type names (wing = Talon, acorn = Plain)")
 	_check(["spore", "stone", "water", "light", "root", "song", "wing", "wind", "acorn"].all(func(l: String) -> bool: return IconInfo.damage_type_icon(l) != null),

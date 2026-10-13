@@ -31,8 +31,8 @@ const GLYPH_COLOR := UiStyle.MOONLIGHT
 # Code); the rest are read from other EnemyData fields by traits_of(). Boss ability icons
 # (EnemyData.abilities "icon") use the same glyphs (draw_glyph).
 const TRAITS := {
-	&"flying": ["Flying", "Flies over the maze: walls don't bend its route."],
-	&"through_walls": ["Passes through walls", "Glides straight through the maze: walls don't bend its route."],
+	&"flying": ["Flying", "Flies over the maze: walls don't change its path."],
+	&"through_walls": ["Passes through walls", "Glides straight through the maze: walls don't change its path."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	&"dread_shell": ["Dread shell", "A shell absorbs part of every hit until it cracks for good."],
 	&"always_damp": ["Always {damp}", "It's always {damp}: lightning loves it."],
@@ -42,7 +42,7 @@ const TRAITS := {
 	&"wanders": ["Wanders", "Strays into dead-end pockets and back out, taking its time."],
 	&"splits": ["Splits", "Bursts into smaller nightmares when dispelled."],
 	&"trample": ["Tramples walls", "Knocks down Thornwalls next to it, for good."],
-	&"leap": ["Leaps", "Sinks and rises farther along the path, skipping tiles."],
+	&"leap": ["Leaps", "Sinks and rises farther along the path, skipping cells."],
 	&"mender": ["Mends", "Heals the nightmares near it."],
 	&"waker": ["Wakes others", "Shakes {drowsy} off the nightmares near it."],
 	&"revealer": ["Reveals", "Uncovers {hidden} nightmares near it, for your Wardens too."],
@@ -72,9 +72,9 @@ static func family(line: String, how: StringName, side: float = 28.0) -> Nightma
 	icon._face = IconInfo.damage_type_icon(line)
 	var name := IconInfo.damage_type_name(line)
 	if how == &"resist":
-		icon.tip = "Resists %s: %s damage deals half to it." % [name, name]
+		icon.tip = "Resists %s: %s Wardens deal half damage to it." % [name, name]
 	else:
-		icon.tip = "Weak to %s: %s damage deals 50%% more to it." % [name, name]
+		icon.tip = "Weak to %s: %s Wardens deal 50%% more damage to it." % [name, name]
 	return icon._sized(side)
 
 # A status crossed out (`how` = &"immune") or with "½" (&"short": `multiplier` of its duration).
@@ -87,13 +87,13 @@ static func status(status_id: StringName, how: StringName, multiplier: float = 1
 	icon.mode = how
 	var name := IconInfo.status_name(status_id)
 	if how == &"immune" and condition != "":
-		icon.tip = "Immune to %s %s: it doesn't take hold then." % [name, condition]
+		icon.tip = "Immune to %s %s: the status does nothing to it then." % [name, condition]
 	elif how == &"immune":
-		icon.tip = "Immune to %s: it never takes hold." % name
+		icon.tip = "Immune to %s: the status does nothing to it." % name
 	elif is_equal_approx(multiplier, 0.5):
-		icon.tip = "Shrugs off %s: it wears off twice as fast." % name
+		icon.tip = "%s wears off fast: it lasts half as long on it." % name
 	else:
-		icon.tip = "Shrugs off %s: it lasts %d%% as long." % [name, roundi(multiplier * 100.0)]
+		icon.tip = "%s wears off fast: it lasts %d%% as long on it." % [name, roundi(multiplier * 100.0)]
 	return icon._sized(side)
 
 static func trait_icon(trait_id: StringName, side: float = 28.0) -> NightmareIcons:
@@ -215,10 +215,13 @@ static func make_rows(data: EnemyData, side: float = 28.0, compact: bool = false
 		when.add_theme_color_override("font_color", IMMUNE_COLOR.lightened(0.4))
 		guarded.append(when)
 	var short := shrugs_off(data)
+	var fading: Array[Control] = []  # Its own row (wording review 2026-10-13: "Immune / shrugs off" was two things)
 	for status_id in short:
-		guarded.append(status(status_id, &"short", short[status_id], side))
+		fading.append(status(status_id, &"short", short[status_id], side))
 	if not guarded.is_empty():
-		box.add_child(_row("Immune / shrugs off", IMMUNE_COLOR.lightened(0.3), guarded, font))
+		box.add_child(_row("Immune to", IMMUNE_COLOR.lightened(0.3), guarded, font))
+	if not fading.is_empty():
+		box.add_child(_row("Wears off fast", IMMUNE_COLOR.lightened(0.3), fading, font))
 	if with_traits:
 		var icons: Array[Control] = []
 		for trait_id in traits_of(data):

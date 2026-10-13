@@ -370,7 +370,7 @@ func _few_and_mighty(spot: Dictionary, board: Board, _card: UpgradeData) -> Dict
 
 func _canopy(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := ds.canopy_range_bonus(spot.node)
-	return {"active": bonus > 0.0, "range": bonus, "note": "6 connected attackers / 6 recent living targets"}
+	return {"active": bonus > 0.0, "range": bonus, "note": "6 touching attacking Wardens fighting 6 nightmares"}
 
 
 func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -391,7 +391,7 @@ func _switchback(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	if not spot.data.can_attack:
 		return {}
 	return {"positional": true, "effect": "bend crossings slow 25% for 1 s (3 s cooldown)",
-		"note": "only bends within this Warden's attacking reach"}
+		"note": "only bends within this Warden's range"}
 
 func _close_guard(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
@@ -458,7 +458,7 @@ func _moonflip(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionar
 
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d path tiles" % ds.path_length}
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d cells of path" % ds.path_length}
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout":
@@ -512,7 +512,7 @@ func _sprout_chorus(spot: Dictionary, board: Board, _card: UpgradeData) -> Dicti
 	var route := route_neighbors(spot.cell)
 	var on := companion and route >= 2
 	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SPROUT_CHORUS_SPEED,
-		"note": "%d distinct route cells beside it" % route,
+		"note": "%d different path cells beside it" % route,
 		"reason": "" if on else "needs a touching Sprout and 2 distinct adjacent route cells"}
 
 func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -721,7 +721,7 @@ func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictio
 func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var tiles := ds.walls_added_tiles()
 	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / DreamState.BRAMBLE_OATH_TILES), DreamState.BRAMBLE_OATH_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d cells of path" % tiles,
 		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
 
 # Golden Harvest: every GOLDEN_HARVEST_STEP Dew earned this run (catchers' and interest Dew counting double) gives all
@@ -735,7 +735,7 @@ func _golden_harvest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Di
 # Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
 func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var touching := board.touching(spot).filter(func(o: Dictionary) -> bool: return DreamEffects._data(o).can_attack).size()
-	return {"active": spot.data.can_attack and touching >= 2, "positional": true, "radius": 1.0, "note": "2 distinct touching attackers relay 35% of a base interval"}
+	return {"active": spot.data.can_attack and touching >= 2, "positional": true, "radius": 1.0, "note": "two different touching Wardens attacking bring its next attack 35% sooner"}
 
 
 func _tended_stumps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -822,7 +822,7 @@ func _state_line(rule: StringName, power: float) -> String:
 			return ds.sunlit_line()
 		&"winding_path":
 			var tiles: int = ds.covered_path_tiles()  # Only the path within a Warden's reach (dream_design.md 7fc0665c)
-			return "Now: %s in reach · +%d Dew per rest (up to %d)" % [count_text(tiles, "path tile"),
+			return "Now: %s in range · +%d Dew per rest (up to %d)" % [count_text(tiles, "path cell"),
 				ds.winding_path_dew(power), DreamState.WINDING_PATH_MAX]
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]

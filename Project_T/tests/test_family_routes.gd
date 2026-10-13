@@ -111,7 +111,7 @@ func _run() -> void:
 	codex._build_families()
 	var list: Node = codex.find_child("BranchList", true, false)
 	var rows: Array = list.get_children().map(func(l: Control) -> String: return l.get_parsed_text() if l is RichTextLabel else l.text) if list != null else []  # Branch rows are RichTextLabels (role-line links)
-	_check(rows.size() == 7 and String(rows[0]).contains("2 offered each run") and String(rows[-1]).contains("hidden branch"),
+	_check(rows.size() == 7 and String(rows[0]).contains("2 offered each run") and String(rows[-1]).contains("Grove branch"),
 		"the Codex lists Sporeling's 5 branches + the hidden one, 2 offered each run (%s)" % [rows])
 	pause.close()
 	main.queue_free()

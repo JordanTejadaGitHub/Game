@@ -49,7 +49,7 @@ func _run() -> void:
 	placer.begin_stroke(Vector2(column, 0))
 	placer.extend_stroke(Vector2(column, Tower.MAP_GRID.size.y - 1) * h)
 	var plan := placer.get_stroke_plan()
-	var closing := plan.keys().filter(func(c) -> bool: return plan[c] == "would close the dream")
+	var closing := plan.keys().filter(func(c) -> bool: return plan[c] == "blocks the only path")
 	var green := plan.keys().filter(func(c) -> bool: return plan[c] == "")
 	_check(not closing.is_empty(), "a path-closing cell is marked red (%d)" % closing.size())
 	_check(not green.is_empty(), "the others are green (%d)" % green.size())

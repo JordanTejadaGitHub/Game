@@ -160,8 +160,9 @@ func _make_face_down_card() -> Button:
 	var top := _card_top(box, &"omen")
 	UiStyle.title(_add_line(top, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	_add_flavor(top, "Something's out there, waiting to be asked.")
-	var points: Array = [_add_bullet(box, "A twist for the next block", UiStyle.INK, FRONT_BODY_SIZE),
-		_add_bullet(box, "A reward if you survive it", UiStyle.INK, FRONT_BODY_SIZE)]
+	var points: Array = [_add_bullet(box, "A hidden twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, FRONT_BODY_SIZE),
+		_add_bullet(box, "A reward at the next rest, smaller for each leaf you lose", UiStyle.INK, FRONT_BODY_SIZE),
+		_add_bullet(box, "Once revealed, you must take one", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
 	_card_action(box, "Face it", false)  # Secondary: no card is the default (story chat)
 	_fit_card(button, box, points)
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
@@ -288,7 +289,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 			child.queue_free()  # Clear Skies goes: no backing out
 	if not omens.forced:
 		_title.text = "Choose the Omen"
-	_subtitle.text = "for drifts %d to %d, no going back" % [_drifts.x, _drifts.y]
+	_subtitle.text = "for drifts %d to %d. You must take one." % [_drifts.x, _drifts.y]
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
 		var tween := UiTime.tween(self)
@@ -561,7 +562,7 @@ func _make_clear_skies_card() -> Button:
 	_add_flavor(top, "The night stays still.")
 	var points: Array = [_add_bullet(box, "Nothing changes", UiStyle.INK_DIM, FRONT_BODY_SIZE),  # The same rules spot as Face an Omen's
 		_add_bullet(box, "No reward", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
-	UiStyle.caps(_add_line(box, "The default, Esc", UiStyle.INK_DIM, 13), 14)
-	_card_action(box, "Keep the night", false)
+	UiStyle.caps(_add_line(box, InputMode.text("Esc also skips", ""), UiStyle.INK_DIM, 13), 14)
+	_card_action(box, "Skip the Omen", false)
 	_fit_card(button, box, points)
 	return button

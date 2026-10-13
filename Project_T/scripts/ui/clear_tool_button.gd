@@ -9,7 +9,7 @@ class_name ClearToolButton
 # buttons above the tool. Icon: assets/ui/clear_tool.png (locked / available / active frames).
 
 const LOCKED_TEXT := "Clearing needs a Dream. Take a clearing card to tend the forest."  # Tooltip and tap toast (user)
-const TOOL_TIP := "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
+const TOOL_TIP := "Clear tool (0 / C): clear Withered Trees and Mossy Boulders off the map."
 # assets/ui/clear_tool.png: three 64×64 frames, locked / available / active (Game tower assets).
 const ICON_SHEET := preload("res://assets/ui/clear_tool.png")
 const FRAME_LOCKED := 0

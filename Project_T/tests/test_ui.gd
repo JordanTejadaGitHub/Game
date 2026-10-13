@@ -409,6 +409,43 @@ func _run() -> void:
 
 	# --- Dreams row: an icon per Dream, with Few and Mighty's live bonus following the Wardens ---
 	var row = main.get_node("%DreamsRow")
+	# Where to recheck your Calling (screens_ui.md, user 2026-10-13: "nowhere to recheck your Calling after you choose"):
+	# none set, nothing shows; once set it is the row's first icon, a section of "Dreams this run", a pause summary
+	# line, a line on its family's Wardens, and every family's Codex entry names its own.
+	var calling_pause = main.get_node("%PauseMenu")
+	row.refresh()
+	_check(dreams.calling == "" and row._calling_frame == null and row.calling_info().is_empty() and not row.get_list_text().contains("Calling")
+		and calling_pause.calling_line() == "" and not calling_pause.get_run_summary().contains("Calling"), "no Calling yet: nothing about one anywhere")
+	dreams.set_calling("firefly_jar")
+	row.refresh()
+	var calling_title: String = dreams.calling_title()
+	var jar_name: String = load("res://resource/tower/firefly_jar.tres").display_name
+	_check(calling_title != "" and row._calling_frame != null and row._calling_frame.get_index() == 0
+		and row._calling_frame.tooltip_text.begins_with("Calling · " + calling_title) and not row._calling_frame.tooltip_text.contains("{"),
+		"the Calling is the Dreams row's first icon, its tip the name and the rule (%s)" % (row._calling_frame.tooltip_text if row._calling_frame != null else "none"))
+	_check(row.get_list_text().contains("Calling: %s (%s)" % [calling_title, jar_name]), "Dreams this run lists the Calling with its family and rule")
+	row._toggle_list()
+	_check(row._list_box.find_child("CallingName", false, false) != null and row._list_box.find_child("CallingRule", false, false) != null
+		and row._list_box.find_child("CallingName", false, false).get_index() < 4, "…as a section at the top of the panel")
+	row._toggle_list()
+	_check(calling_pause.calling_line() == "%s (%s)" % [calling_title, jar_name] and calling_pause.get_run_summary().contains("Calling: %s (%s)" % [calling_title, jar_name]),
+		"the pause menu's run summary: Calling: name (family)")
+	var calling_header := WardenHeaderView.new()
+	root.add_child(calling_header)
+	var jar_probe: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+	jar_probe.tower_data = load("res://resource/tower/firefly_jar.tres")
+	jar_probe._dream_state = dreams
+	calling_header._tower = jar_probe
+	calling_header._show_calling(jar_probe.tower_data)
+	_check(calling_header._calling_line != null and calling_header._calling_line.text == "Calling · " + calling_title
+		and calling_header._calling_line.tooltip_text != "", "a Warden of the Calling's family names it under its description")
+	calling_header._show_calling(load("res://resource/tower/sporeling.tres"))
+	_check(calling_header._calling_line == null, "…and a Warden of another family doesn't")
+	jar_probe.free()
+	calling_header.queue_free()
+	dreams.calling = ""  # The rest of this test runs without a Calling, as before
+	row.refresh()
+	_check(row._calling_frame == null or row._calling_frame.is_queued_for_deletion(), "no Calling again: the icon goes")
 	var few: UpgradeData = null
 	for card in dreams.pool:
 		if card.id == "few_and_mighty":
@@ -478,8 +515,8 @@ func _run() -> void:
 	# reactions"): a capital and a link wherever the status texts show, with their stack numbers read live.
 	var soaked_tip := IconInfo.status_tooltip(&"damp")
 	var soaked_need := Reactions.buildup_threshold(Reactions.SOAKED_NEEDED)
-	_check(soaked_tip.contains("Build %d stacks to unlock Reactions." % soaked_need) and not soaked_tip.contains("{")
-		and IconInfo.status_tooltip(&"held").contains("Build %d stacks for Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
+	_check(soaked_tip.contains("At %d stacks it can set off Reactions." % soaked_need) and not soaked_tip.contains("{")
+		and IconInfo.status_tooltip(&"held").contains("At %d stacks it can set off Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
 		and IconInfo.stack_number("cap_drowsy") == EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.DROWSY] * EnemyStatuses.cap_multiplier()
 		and IconInfo.stack_number("bosscap_static") == EnemyStatuses.BOSS_MAX_STACKS[EnemyStatuses.STATIC] * EnemyStatuses.cap_multiplier(),
 		"status texts name Reactions and read their stack numbers live (%s)" % soaked_tip)
@@ -1112,8 +1149,8 @@ func _check_mist_full(main: Node) -> void:
 		"two nightmares held in the mist: calling the next drift early is refused")
 	panel._process(0.0)
 	var button: Button = panel._start_button
-	_check(button.disabled and button.tooltip_text.begins_with("The mist is full"),
-		"…and the Call early button greys out with \"The mist is full\"")
+	_check(button.disabled and button.tooltip_text.begins_with("Nightmares still arriving"),
+		"…and the Call early button greys out with \"Nightmares still arriving\"")
 	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
 	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
 	panel._process(0.0)

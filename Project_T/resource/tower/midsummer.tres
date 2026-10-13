@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Midsummer"
 role_line = "Beam, ramps up, very high damage"
-description = "A brighter beam that ramps much higher and carries on to the nightmare right behind its target. Switching targets keeps half its ramp."
+description = "A brighter beam that builds to far higher damage and also hits the nightmare behind its target. It keeps half its build-up when it switches target."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

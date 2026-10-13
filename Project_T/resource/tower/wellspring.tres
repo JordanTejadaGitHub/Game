@@ -8,7 +8,7 @@
 script = ExtResource("1_tdata")
 display_name = "Wellspring"
 role_line = "Area damage, economy"
-description = "Catches more: nightmares dispelled within 3 cells drop +90% Dew for the Harvest. At every rest, +8% of your banked Dew (up to 60; all Wellsprings together up to 130). Also +4 Dew each drift."
+description = "Pulses damage to every nightmare in range. Nightmares dispelled within {field:wellspring.catch_radius:cells} drop {pct:wellspring.catch_share} more Dew, paid at the rest. At every rest it also pays {field:wellspring.rest_interest:pct} of your banked Dew (up to {dew:{field:wellspring.rest_interest_max:count}}; all Wellsprings together up to {dew:130}), and {dew:{field:wellspring.dew_per_drift:count}} each drift."
 cost = 0
 role_tag = &"economy"
 line = "acorn"
