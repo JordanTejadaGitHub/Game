@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "winding_roads"
 display_name = "Winding Roads"
-description = "Forest's Edge joins the pool."
+description = "Adds the Dream card {card:forests_edge}: Wardens near the start of the path deal more damage."
 root = 1
 costs = Array[int]([50])
 order = 17

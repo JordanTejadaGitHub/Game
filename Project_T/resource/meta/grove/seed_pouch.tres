@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "seed_pouch"
 display_name = "Seed Pouch"
-description = "+10% Seeds from every run."
+description = "While carried: +10% Seeds from every run."
 root = 2
 costs = Array[int]([100])
 order = 4

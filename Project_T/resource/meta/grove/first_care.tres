@@ -6,8 +6,8 @@
 script = ExtResource("1_unlock")
 id = "first_care"
 display_name = "First Care"
-description = "Your first 3 Nurture ranks each run are free."
-sidegrade_description = "Your first 3 Nurture ranks each run are free. Costs: after that, Nurture costs 15% more this run."
+description = "While carried: your first 3 Nurture ranks each run are free."
+sidegrade_description = "While carried: your first 3 Nurture ranks each run are free. Costs: after that, Nurture costs 15% more for the rest of the run."
 root = 2
 costs = Array[int]([70])
 order = 10

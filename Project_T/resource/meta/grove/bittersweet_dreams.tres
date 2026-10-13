@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bittersweet_dreams"
 display_name = "Bittersweet Dreams"
-description = "Bittersweet Dreams join the pool: Deep Sleep, Waking Dreams."
+description = "Your runs can now offer Bittersweet Dream cards: big effects with a cost. Also adds two of them: {card:deep_sleep}, {card:restless_dreams}."
 root = 1
 costs = Array[int]([52])
 order = 19

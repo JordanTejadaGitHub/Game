@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "pebbling"
 display_name = "Pebbling family"
-description = "{family:pebbling} joins your {family_picks}: heavy hits. Branches: Mossback, Standing Stone."
+description = "{family:pebbling} can now appear as a choice at {family_picks}. Slow, heavy hits for tough nightmares. Also adds its Dream cards (listed below)."
 root = 0
 costs = Array[int]([50])
 order = 3

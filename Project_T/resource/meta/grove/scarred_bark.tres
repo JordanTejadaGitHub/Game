@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "scarred_bark"
 display_name = "Scarred Bark"
-description = "Daring Dreams join the pool: Scarred Bark, Thin Bark."
+description = "Adds two Dream cards for risky play: {card:scarred_bark}, {card:thin_bark}."
 root = 1
 costs = Array[int]([40])
 order = 36

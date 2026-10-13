@@ -39,7 +39,7 @@ func _init(tree_view: GroveTreeView) -> void:
 	box.add_theme_constant_override("separation", 10)
 	add_child(box)
 	var title := Label.new()
-	title.text = "Carry into the dream"
+	title.text = "Carry into the run"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Palette.GLOW)
@@ -124,9 +124,9 @@ func _rebuild() -> void:
 		_slots_row.add_child(_slot(MAX_SLOTS, true, normal, true))
 	var owned := _owned_perks()
 	if owned.is_empty():
-		_hint.text = "Plant perks on the Perks limb to carry them."
+		_hint.text = "No perks yet. Plant one in the Memory Grove."
 	elif _carried.size() >= slots:
-		_hint.text = "Every slot is full"
+		_hint.text = "All slots full"
 	else:
 		_hint.text = "Carrying %d of %d" % [_carried.size(), slots]
 	for unlock in owned:
@@ -160,7 +160,7 @@ func _slot(index: int, open: bool, carried_index: int, sixth: bool) -> Control:
 		button.tooltip_text = unlock.display_name
 		button.pressed.connect(toggle.bind(unlock.id))
 	elif not open:
-		button.tooltip_text = "Loadout slot %d grows on the Perks limb" % (index + 1)
+		button.tooltip_text = "Locked. Plant Perk slot %d in the Memory Grove." % (index + 1)
 	return button
 
 func _perk_button(unlock: UnlockData) -> Button:

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig_ascension"
 display_name = "Ascension: The Whirlwind"
-description = "The Whirlwind, {family:whirligig}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 600 Dew on a final form. A cyclone drifts along the path, carrying every status it touches."
+description = "Unlocks the Whirlwind, the {family:whirligig} family's strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a final form into it for 600 Dew. A cyclone drifts along the path and carries every status it touches."
 root = 0
 costs = Array[int]([120])
 order = 38

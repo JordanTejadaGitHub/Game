@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "leaf_or_dew"
 display_name = "Leaf or Dew"
-description = "Before each run, trade up to 3 leaves for 15 Dew each, or 15 Dew for each extra leaf. Your max leaves move with them."
+description = "While carried: before each run, trade up to 3 leaves for 15 Dew each, or pay 15 Dew for each extra leaf. Your max leaves change with them."
 root = 2
 costs = Array[int]([40])
 order = 46

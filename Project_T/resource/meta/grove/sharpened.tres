@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sharpened"
 display_name = "Sharpened"
-description = "Crit Dreams join the pool: Still Target, Shattering Blow, Opening Fracture, Hunter's Patience, Sharpened Light."
+description = "Adds five Dream cards for critical hits: {card:still_target}, {card:shattering_blow}, {card:opening_fracture}, {card:hunters_patience}, {card:sharpened_light}."
 root = 1
 costs = Array[int]([50])
 order = 6

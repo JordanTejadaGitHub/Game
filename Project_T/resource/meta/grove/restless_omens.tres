@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "restless_omens"
 display_name = "Restless Omens"
-description = "Four new Omens join the pool: {omen:swarming_night}, {omen:giants_walk}, {omen:brittle_night}, {omen:static_sky}."
+description = "Adds four Omens to the ones your runs can offer: {omen:swarming_night}, {omen:giants_walk}, {omen:brittle_night}, {omen:static_sky}."
 root = 1
 costs = Array[int]([40])
 order = 71

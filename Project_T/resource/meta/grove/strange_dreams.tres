@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "strange_dreams"
 display_name = "Strange Dreams"
-description = "Gamble Dreams join the pool: Mystery Dream, Double or Nothing, Wild Dew."
+description = "Adds three Dream cards that gamble: {card:mystery_dream}, {card:double_or_nothing}, {card:wild_dew}."
 root = 1
 costs = Array[int]([50])
 order = 70

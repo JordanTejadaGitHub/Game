@@ -10,16 +10,16 @@ signal picked(level: int)
 
 const LEVELS: Array[String] = [
 	"No Blight",
-	"Nightmares +10% health",
+	"Nightmares have 10% more health",
 	"The first family pick gives no Dreamlight",
-	"Bosses +25% health",
-	"Rest bonus −25%",
-	"One nightmare per drift is Deeply Blighted",
-	"No leaves regrow at act breaks",
-	"Nightmares +10% speed",
-	"Let it pass gives no Dew; Dreams lean Common",
-	"Clearing obstacles costs twice as much",
-	"The Hollow Oak Remembers",
+	"Bosses have 25% more health",
+	"Rest bonuses pay 25% less Dew",
+	"One nightmare in every drift is Deeply Blighted (3 times the health)",
+	"Leaves no longer regrow between acts",
+	"Nightmares move 10% faster",
+	"Skipping a Dream gives no Dew; Dreams are more often Common",
+	"Clearing obstacles costs twice as much, and one more line of obstacles crosses the map",
+	"The Hollow Oak rises once more after you first dispel it",
 ]
 
 var _pick := OptionButton.new()
@@ -104,4 +104,4 @@ func _describe(level: int) -> void:
 	var lines: Array[String] = []
 	for i in range(1, level + 1):
 		lines.append("%d. %s" % [i, LEVELS[i]])
-	_detail.text = ("\n".join(lines) + "\n\n+%d%% Seeds" % (level * 10)) if level > 0 else "The forest as it is."
+	_detail.text = ("\n".join(lines) + "\n\n+%d%% Seeds" % (level * 10)) if level > 0 else "No extra difficulty."

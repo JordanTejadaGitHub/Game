@@ -931,7 +931,7 @@ func _run() -> void:
 	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("StoreButton", true, false) != null,
 		"demo Grove screen: all planted shows the full-game line and Wishlist")
 	grove_screen._select(_unlock(grove, "pebbling"))
-	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Full game"), "an asleep node: Full game, no Plant")
+	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Not in the demo"), "an asleep node: not in the demo, no Plant")
 	grove_screen._select(_unlock(grove, "bitter_hedges"))
 	_check(grove_screen._card_list_scroll.visible and grove_screen._card_list.get_child_count() > 0, "an asleep card node still lists its cards (a preview)")
 	grove_screen._select(_unlock(grove, "deep_taproot"))

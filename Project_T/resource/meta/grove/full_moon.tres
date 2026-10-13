@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "full_moon"
 display_name = "Full Moon"
-description = "Legendary: Full Moon joins the pool."
+description = "Adds the Legendary Dream card {card:full_moon} to the cards your runs can offer."
 root = 1
 costs = Array[int]([120])
 order = 8

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "old_wood"
 display_name = "Old Wood"
-description = "Support Dreams join the pool: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, Scented Hedge, Many Threads."
+description = "Adds six Dream cards for support Wardens and Thornwalls: {card:overflowing_well}, {card:hedgerow_roots}, {card:grandfather_stump}, {card:living_walls}, {card:scented_hedge}, {card:many_threads}."
 root = 1
 costs = Array[int]([70])
 order = 61

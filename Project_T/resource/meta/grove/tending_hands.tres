@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "tending_hands"
 display_name = "Tending Hands"
-description = "Deeper Rings joins the pool."
+description = "Adds the Dream card {card:deeper_rings}: the Eldest can be nurtured to rank VII."
 root = 1
 costs = Array[int]([50])
 order = 9

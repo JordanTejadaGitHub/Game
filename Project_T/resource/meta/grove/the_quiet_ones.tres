@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_quiet_ones"
 display_name = "The Quiet Ones"
-description = "Legendary: The Quiet Ones joins the pool."
+description = "Adds the Legendary Dream card {card:the_quiet_ones} to the cards your runs can offer."
 root = 1
 costs = Array[int]([120])
 order = 62

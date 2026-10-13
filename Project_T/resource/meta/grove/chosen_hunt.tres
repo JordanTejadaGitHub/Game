@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "chosen_hunt"
 display_name = "Chosen Hunt"
-description = "When an act begins, choose its boss from the three in its pool."
+description = "While carried: when an act begins, choose its boss from three."
 root = 2
 costs = Array[int]([80])
 order = 47

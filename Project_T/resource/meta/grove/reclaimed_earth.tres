@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "reclaimed_earth"
 display_name = "Reclaimed Earth"
-description = "Clearing Dreams join the pool: Reclaimed Earth, Tended Stumps, Hollow Ground."
+description = "Adds three Dream cards for clearing obstacles: {card:reclaimed_earth}, {card:tended_stumps}, {card:hollow_ground}."
 root = 1
 costs = Array[int]([50])
 order = 43

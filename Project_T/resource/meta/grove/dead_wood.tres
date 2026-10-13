@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dead_wood"
 display_name = "Dead Wood"
-description = "Burn Back the Dead Wood joins the pool."
+description = "Adds the Dream card {card:burn_back}: clears every Withered Tree on the map at once."
 root = 1
 costs = Array[int]([40])
 order = 17
