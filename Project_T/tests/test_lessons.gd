@@ -166,6 +166,46 @@ func _run() -> void:
 	dreams.add_dreamlight(1, &"test")
 	_check(await _take(lessons) == &"dreamlight", "the first Dreamlight")
 
+	# A Lesson points at the control it names (user 2026-10-13: "the tutorial card for Remember should have a line
+	# pointing to the top right"): the Remember Lesson's pointer is the Remember button, the card sits clear of it,
+	# and Got it removes it.
+	lessons.queue.clear()
+	lessons.close()
+	lessons.seen.erase("dreamlight")
+	var remember: Button = main.get_node("HUD").remember_button
+	remember.visible = true
+	dreams.add_dreamlight(1, &"test")
+	await _frames(4)
+	_check(lessons.visible and lessons.shown_id == &"dreamlight" and lessons._point_nodes == [remember],
+		"the Remember Lesson points at the Remember button (%s)" % [lessons._point_nodes])
+	var pointed_card: Rect2 = lessons._panel.get_global_rect()
+	_check(not pointed_card.intersects(remember.get_global_rect()) and Rect2(Vector2.ZERO, lessons.size).grow(1.0).encloses(pointed_card),
+		"its card sits beside the button, not over it, inside the screen (%s, button %s)" % [pointed_card, remember.get_global_rect()])
+	lessons.close()
+	await _frames(1)
+	_check(lessons._point_nodes.is_empty(), "Got it removes the pointer")
+	# Nothing leaves the card (user 2026-10-13: "words come out of the card"): each demo's drawing stays inside its own
+	# rect, and the demo inside the card, with the widest numbers it can show.
+	for demo_topic in [&"maze", &"nurture", &"catch"]:
+		lessons.lesson(StringName("probe_demo_%s" % demo_topic), &"dew", "Demo", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also pays a Maze bonus at each rest: the small number beside your Dew shows how much.")
+		await _frames(2)
+		lessons._demo.topic = demo_topic
+		lessons._demo.visible = true
+		lessons._demo.clock = 3.5  # The loop's last stretch: the most walls, the biggest numbers
+		lessons._demo.set_process(false)
+		lessons._demo.custom_minimum_size.y = LessonDemo.HEIGHTS[demo_topic]  # As its _process sets it
+		lessons._demo.queue_redraw()
+		await _frames(4)
+		var demo_rect := Rect2(Vector2.ZERO, lessons._demo.size)
+		var card_now: Rect2 = lessons._panel.get_global_rect()
+		_check(lessons._demo.drawn_bounds.size.x > 0.0 and demo_rect.grow(0.5).encloses(lessons._demo.drawn_bounds),
+			"%s demo: everything it draws is inside its own rect (%s in %s)" % [demo_topic, lessons._demo.drawn_bounds, demo_rect])
+		_check(card_now.grow(0.5).encloses(lessons._demo.get_global_rect()) and Rect2(Vector2.ZERO, lessons.size).grow(1.0).encloses(card_now),
+			"%s demo: it sits inside the card, the card inside the screen (%s in %s)" % [demo_topic, lessons._demo.get_global_rect(), card_now])
+		lessons._demo.set_process(true)
+		lessons.close()
+		await _frames(1)
+
 	# The Lessons that took over from the teaching whispers (onboarding.md "Whisper hints removed", user 2026-10-12).
 	lessons.queue.clear()
 	lessons.close()
