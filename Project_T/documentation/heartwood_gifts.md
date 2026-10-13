@@ -98,3 +98,43 @@ Each gift now owns one kind of payoff:
 | Dreamlight / growth | Waking Root, Bramble Verge (free Bramble) |
 | Kinships | Old Kin (jumps a stage), Memory Seed (keeps age when moved) |
 Cards vs gifts: no gift repeats a Dream card's effect (Weathered Walls owns cheap Thornwalls).
+
+## Proposal: gifts as landmarks (drafted 2026-10-13, waiting for the user)
+User: *"gifts feel whatever right now."* Why: a gift comes after a boss, three times a run, yet most give a small
+bonus to the two or three Wardens touching one cell (+10% damage, +15% crit, +1 range on four sides), and several
+were left behind by the status rework (+2 Poisoned when the cap is 32, +1 Drowsy when it is 20, Soaked +1 s). A
+Dream card taken at any rest does more.
+
+**Idea: a gift is a landmark.** It is big, it does something on its own, it defines a part of the map to build
+around, and it grows.
+1. **Each landmark acts by itself**, not only as a bonus to neighbours: the Spring Soaks what walks past, the Bell
+   Stone rings, the Lightning Tree strikes.
+2. **A zone, not a cell:** effects reach 2–3 cells, shown as a standing glow on the ground, so a whole corner of the
+   maze is built around it.
+3. **Landmarks grow:** at every later act break each landmark you own grows one step (II, III): about +50% of its
+   numbers and a bigger look. The act 1 gift matters most by act 4.
+4. **The offer is three kinds:** one that reshapes the land, one landmark that fits a family you own (never one for a
+   family you lack), one boon for the run.
+5. **It is an event:** the Heartwood's roots run across the map to the spot, the landmark rises, the camera follows,
+   it has its own sound; at each rest the report says what it did ("Spring: Soaked 212 nightmares").
+
+| Gift | Now | Proposed (step I; numbers for Balancing) |
+|---|---|---|
+| **Spring** | Water Wardens touching +20%; Soaked +1 s nearby | A pond that **Soaks every nightmare passing within 2 cells** (2 stacks a second). Water Wardens touching it deal 40% more. |
+| **Lightning Tree** | Bolts within 2 cells +25% | **Every Charged bolt within 3 cells strikes twice** (the second at half), and the tree throws a bolt of its own every 6 s. |
+| **Bell Stone** | Song Wardens touching pulse 15% faster | **Rings every 5 s: nightmares within 3 cells gain 4 Drowsy.** Song Wardens touching it pulse 30% faster. |
+| **Mushroom Ring** | Spore Wardens touching: +2 Poisoned cap | **Nightmares crossing the ring are Poisoned** (6 stacks). Spore Wardens touching it can stack half again as much. |
+| **Moonwell** | Wardens on its 4 sides +1 range | **Wardens within 2 cells get +1.5 range and see Hidden nightmares.** |
+| **Heartwood Roots** | Last 4 path cells: +15% damage taken | Last 6 cells: **nightmares are Rooted for 1 s on entering and take 30% more damage** there. |
+| **Sow a Ridge** | 3–5 trees; touching Wardens +10% | 4–7 trees; **touching Wardens deal 30% more**; its trees pay 2 Seeds when cleared. |
+| **Fallen Giant** | Log 2–4; touching Wardens +15% crit | Log 3–5 that nothing can trample or burrow under; **touching Wardens +30% crit chance and crits hit harder**. |
+| **Mire** | 3 path cells, 20% slower | **5 path cells, 35% slower**, and Rooted lasts twice as long in it. |
+| **Reshape** (Glade + Shift the Stones, merged) | 5 free clears / move 3 for Dew | **Move or clear up to 6 obstacles; each pays 30 Dew × the act.** |
+| **Elder Stumps** (Ancient Stump) | 3 stumps: 1 free rank each | 3 stumps: a Warden planted on one gets **2 free ranks**. |
+| **Shifting Mist** | New start; +10% Dew this act | New start; **+25% Dew this act**. |
+| **Bramble Verge** | Free Bramble growth; +1 Drowsy cap | Free Bramble growth; **Brambles make nightmares Drowsy twice as fast**. |
+| **Old Kin** | One bond +1 stage | Keep. |
+| **Memory Seed** | One Warden keeps ranks when moved, this act | **Any Warden** keeps its ranks and bond when moved, this act. |
+| **Waking Root** | Next unlock costs 1 less Dreamlight | **The next form you unlock is free**, and +1 Dreamlight. |
+| **Thick Mist** | Nightmares arrive 25% further apart for an act | **Retire** (nothing to see or build around). |
+Control stays bounded: the Bell Stone and Roots don't stack with themselves, bosses take half.
