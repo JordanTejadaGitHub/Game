@@ -1216,3 +1216,43 @@ that family is selected.
   Jarlink is selected or in build mode. It follows the same rules as lit paths (path shape only, no squares, merges
   where two links overlap, steady under reduced motion), and goes the moment the link breaks. The same holds for
   every standing zone on the path: Undercurrent's whirlpool, fog and rain clouds, ink and puddles, lit cells.
+
+## Hit feedback on nightmares (user, 2026-10-13)
+User: *"enemies should have more of a hit feedback as well; being hit by different Wardens and statuses should have
+different hit feedback, like being hit by a Sprout vs the Jarlink's link."* Three layers, all inside the Fx budget
+and the reduce-flashes setting.
+
+**1. The nightmare reacts (every damaging hit).** A short flinch: a pale flash through its shader (about 60 ms) and a
+1–2 px recoil away from the hit, scaled by the hit's share of its health: a Sprout's tap barely shows, a heavy stone
+visibly jolts it. Bosses flinch less. Never changes its movement.
+
+**2. The hit looks like what hit it (one small effect at the hit point, per family):**
+| Source | Hit effect |
+|---|---|
+| Sprout | a small green puff |
+| Sporeling line | a spore burst that hangs a moment, green motes |
+| Firefly line | a warm spark and a brief crackle outline |
+| Dewdrop line | a splash with droplets |
+| Pebbling line | a stone chip and dust; the heaviest jolt |
+| Rootling line | roots lash at its feet (built) |
+| Bellflower line | a ring ripple passing through it |
+| Acorn line | a bounce pop |
+| Nestling line | a quick slash and a feather |
+| Whirligig line | a small swirl that tugs it sideways |
+| Thorny walls / thorns | a thorn scratch |
+Resisted hits keep the grey puff, weak hits the sparkle, crits the crit burst, on top.
+
+**3. Continuous damage looks continuous (no flash per tick):**
+| Source | While it lasts |
+|---|---|
+| Jarlink / Lightning Fence link | the nightmare is wrapped in jittering arcs for as long as it stands in the link, and twitches |
+| Beams (Sunpetal, Midsummer) | a bright spot where the beam lands, growing as it ramps |
+| Poisoned ticks | green bubbles rising off it, more with more stacks |
+| Clouds, fog, whirlpool | a tint and drips or swirls in the zone's colour while inside |
+| Charged bolt | a strike from above and a hard flash; the biggest single reaction |
+| Reactions | their own bursts (built); the nightmare's flinch is the large one |
+Statuses already show as icons; this is about the moment of damage.
+
+**Limits.** At most one hit effect per nightmare per source per 0.15 s; area hits show one effect per nightmare; with
+many nightmares on screen the small puffs thin out before the flinch does. Reduce flashes: no flash, the recoil and
+the small effects stay. Sound already differs by family (`hit_<family>`); the visuals now match it.
