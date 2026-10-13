@@ -749,8 +749,8 @@ func load_save(cells: Array) -> void:
 # fades out in three palette steps with no grid, and a stretch is never brighter than the three together. Gold path is
 # its own stretch, joined end to end with the plain glow.
 const GLOW_BANDS: Array[float] = [80.0, 56.0, 34.0]  # px wide, widest first: past the path's ribbon (~40 px), a soft edge on the grass
-const GLOW_BAND_ALPHA := 0.07  # Per band, added light: 0.21 at the path's centre
-const GOLD_BAND_ALPHA := 0.12  # Gold path: 0.36 at the centre
+const GLOW_BAND_ALPHA := 0.14  # Per band, added light: 0.42 at the path's centre (was 0.07; user, 2026-10-13: "increase the visibility")
+const GOLD_BAND_ALPHA := 0.22  # Gold path: 0.66 at the centre (was 0.12)
 var _glow_lines: Array[Line2D] = []
 var _glow_material: CanvasItemMaterial  # Added light (kept on this node, never static): it warms the pale path too
 
