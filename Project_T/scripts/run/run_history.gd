@@ -312,6 +312,9 @@ func _route_bin(enemy: Node) -> int:
 var _leak_row := {}  # The row of the leak just noted, until its leaves are counted
 var _leak_frame := -1
 var _unclaimed: Array = []  # [row they went to, leaves, frame]: leaves counted before their leak was noted
+const LEAVES_FIRST := 1
+const LEAK_FIRST := 2
+var _leak_order := 0  # 0 = not known yet
 
 func _on_leaked(enemy: Node2D) -> void:
 	var row := _row_for(enemy)
@@ -322,7 +325,13 @@ func _on_leaked(enemy: Node2D) -> void:
 		var kind := leak_name(enemy)
 		kinds[kind] = int(kinds.get(kind, 0)) + 1
 		row["leaked"] = kinds
-		if _unclaimed.size() == 3 and int(_unclaimed[2]) == frame:  # Its leaves were counted first: they are this row's
+		# Which comes first is fixed for a run (the order RunState and this node connected in), so it is learned from
+		# the first leak: once the leak is known to come first, leaves counted earlier in the frame are someone
+		# else's (a boss draining) and are never moved onto this row.
+		var leaves_first := _unclaimed.size() == 3 and int(_unclaimed[2]) == frame and _leak_order != LEAK_FIRST
+		if _leak_order == 0:
+			_leak_order = LEAVES_FIRST if leaves_first else LEAK_FIRST
+		if leaves_first:  # Its leaves were counted first: they are this row's
 			var given: Dictionary = _unclaimed[0]
 			if not given.is_empty():
 				given["leaves_lost"] = int(given.get("leaves_lost", 0)) - int(_unclaimed[1])

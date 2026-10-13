@@ -69,6 +69,11 @@ static func bbcode(text: String) -> String:
 		var found_all := _plain_pattern(id).search_all(text)
 		for i in range(found_all.size() - 1, -1, -1):
 			var found: RegExMatch = found_all[i]
+			if own_term != "" and IconInfo.TERMS[id][2] == own_term:
+				continue  # Its own glossary entry
+			var before := text.substr(0, found.get_start())
+			if (LONGER_TERMS.get(id, []) as Array).any(func(lead: String) -> bool: return before.to_lower().ends_with(lead.to_lower())):
+				continue  # Part of a longer term, which is its own entry
 			text = text.substr(0, found.get_start()) + "\u0001%d\u0001" % terms.size() + text.substr(found.get_end())
 			terms.append(_link(TERM_PREFIX + String(id), found.get_string()))
 	if text.contains("{nightmare:"):  # {nightmare:shellbound}: its name, ??? until met; a click opens its card
@@ -83,6 +88,8 @@ static func bbcode(text: String) -> String:
 
 const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction"]  # IconInfo.TERMS ids linked wherever their word appears
 static var _plain_regex := {}  # Term id -> RegEx for its word
+static var own_term := ""  # Set by a glossary entry while it builds its own text: that word isn't linked there (plain data)
+const LONGER_TERMS := {&"reaction": ["Crowned "]}  # A plain term isn't linked as the tail of a longer one ("Crowned Reaction")
 
 static func _plain_pattern(id: StringName) -> RegEx:
 	if not _plain_regex.has(id):

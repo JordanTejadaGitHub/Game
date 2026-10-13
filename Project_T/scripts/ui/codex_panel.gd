@@ -439,7 +439,9 @@ func _entry_card(group: String, entry: Array) -> Control:
 	UiStyle.display(name, 20)
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
+	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
 	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
+	StatusLinks.own_term = ""
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(text)
 	var example: String = entry[3] if entry.size() > 3 else ""

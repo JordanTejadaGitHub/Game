@@ -211,8 +211,9 @@ func get_maze_reward_preview() -> int:
 func get_maze_reward_projection() -> int:
 	var number := maxi(1, drifts_started + (1 if resting else 0))
 	var block := get_block(number)
-	var quick_rest := drifts_started == 0 or (drifts_started == 1 and not resting)
-	var last := 1 if quick_rest else mini(block * drifts_per_block, drifts.size())
+	# The block's rest, from the first drift on (maze_economy.md 2026-10-12: paid at block rests only, so the short rest
+	# after drift 1 has no forecast of its own).
+	var last := mini(block * drifts_per_block, drifts.size())
 	return maze_economy.projected(block, last, get_maze_reward_preview(), drifts_per_block)
 
 func _ready() -> void:
@@ -802,7 +803,10 @@ func _pay_rest_bonus() -> Array:
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
 	maze_economy.observe(_maze_map())
-	var maze_claim: int = maze_economy.claim(block)
+	# Paid at block rests only, never at the short rest after drift 1 (maze_economy.md 2026-10-12: with no cap, walls
+	# built before drift 1 and sold at that rest kept their payout). The samples stay for the block's own rest.
+	var block_rest := drifts_started % drifts_per_block == 0 or drifts_started >= drifts.size()
+	var maze_claim: int = maze_economy.claim(block) if block_rest else 0
 	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
 	bonus += maze_reward_last
 	run_state.add_dew(bonus)

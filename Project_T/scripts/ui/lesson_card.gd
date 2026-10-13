@@ -304,7 +304,7 @@ func start_intro() -> void:
 		return
 	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the road to the Heartwood. Dispel them before they arrive: each one that gets through costs leaves.")
 	lesson(&"intro_maze", &"path_length", "Build your maze", "Wardens are walls. Plant Sprouts to attack and Thornwalls to make the road longer. Keep a route to the Heartwood open, then start the drift when you are ready.")
-	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road also earns maze Dew at rests: +1 per %d cells your route is longer than the forest's own path. The number after your Dew total forecasts the next rest." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW)
+	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road also earns maze Dew at the rest after each block: +1 per %d cells your route is longer than the forest's own path. The number after your Dew total forecasts it." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW)
 
 func skip_intro() -> void:
 	if not INTRO_IDS.has(shown_id):
@@ -499,7 +499,9 @@ func _show(entry: Array) -> void:
 		seen.append(String(shown_id))
 		_remember()
 	if game_speed != null and not game_speed.paused:
-		_paused_it = _over_choice == null  # A choice Lesson never owns the pause: its screen does, and keeps it
+		# Not paused when it opened, so this card owns the pause, a choice Lesson too (its screen normally holds the pause
+		# already and this line isn't reached; if it didn't, close() resumes once every rest screen has closed).
+		_paused_it = true
 		game_speed.set_paused(true)
 	lesson_shown.emit(shown_id)
 
@@ -545,6 +547,6 @@ func replay_guides() -> void:
 	_replaying = true
 	queue.clear()
 	queue.append([&"discover_nurture", &"rank", "Rank-V bonuses", "Four matching picks among your first five earn a signature or mastery. Other rank-V builds earn All-Rounder: +20% to their main job. Shared Training needs four matching picks on both bonded rank-IV kin."])
-	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Every %d cells your walls add to the road earn +1 maze Dew, counted while nightmares walk. The forecast beside your Dew shows the next rest's reward." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW])
+	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Every %d cells your walls add to the road earn +1 maze Dew, counted while nightmares walk. The forecast beside your Dew shows the reward at this block's rest." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW])
 	queue.append([&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest."])
 	_show(queue.pop_front())

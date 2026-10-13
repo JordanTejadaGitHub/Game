@@ -404,12 +404,15 @@ const SAPLING_TERMS := ["Heartwood Sapling", "Permanent"]
 # The full game's branch expansion (the demo has its old branches and no Whole Tree): left out of the demo's glossary.
 const EXPANSION_TERMS := ["Whole Tree", "Not in this dream", "Current", "Erosion", "Arc", "Ink", "Spore-sprite"]
 static var _glossary_expansion := true
+static var _glossary_stacks := 0  # A live stack number when it was built: Brimming doubles them mid-run, and the texts read them
 
 # The glossary with today's status names and IconInfo's definitions filled in (built once, again
 # if the Sapling is switched on or off).
 static func glossary() -> Array:
-	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on():
+	var stacks := IconInfo.stack_number("need_damp")
+	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on() or _glossary_stacks != stacks:
 		_glossary = []
+		_glossary_stacks = stacks
 		_glossary_sapling = TowerPlacer.sapling_enabled
 		_glossary_expansion = DreamState.branch_expansion_on()
 	if _glossary.is_empty():

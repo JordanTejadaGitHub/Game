@@ -263,9 +263,18 @@ func _draw_swirl(canvas: Control) -> void:
 		canvas.draw_arc(centre, r, i * 1.2, i * 1.2 + PI * 1.4, 24, Color(OMEN_COLOR, 0.9 - i * 0.2), 3.0, true)
 
 # Flips `from` (the face-down card; null = none) to the revealed Omens; Clear Skies goes.
+# Every pick goes through here: none while the "An Omen" Lesson explains the screen (as DreamScreen._pick and
+# FamilyPickScreen), whatever sent it (a key, a focused button, a right-click).
+func _choose(omen: OmenData) -> void:
+	if LessonCard.covering(self):
+		return
+	omens.choose(omen)
+
 func _reveal(offer: Array[OmenData], from: Button) -> void:
+	if LessonCard.covering(self):
+		return
 	if offer.is_empty():
-		omens.choose(null)
+		_choose(null)
 		return
 	var act := drift_director.get_act(_drifts.y)
 	var fronts: Array[Button] = []
@@ -331,7 +340,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(omens.choose.bind(omen))
+	button.pressed.connect(_choose.bind(omen))
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
@@ -532,7 +541,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
 	if event.is_action_pressed("ui_cancel") or right_click:
-		omens.choose(null)
+		_choose(null)
 		get_viewport().set_input_as_handled()
 
 # The third card: Clear Skies, the default (highlighted). "Nothing changes. No reward."
@@ -540,7 +549,7 @@ func _make_clear_skies_card() -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(omens.choose.bind(null))
+	button.pressed.connect(_choose.bind(null))
 	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:

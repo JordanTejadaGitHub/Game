@@ -33,7 +33,8 @@ func _run() -> void:
 	main.get_node("%TowerContainer").add_child(attacker)
 	attacker.set_process(false)
 	_check(director.get_maze_reward_preview() == 0, "generated route coverage pays no expansion reward")
-	# Drift one's next rest must project only its already sampled reward.
+	# The maze bonus is paid at block rests only (maze_economy.md 2026-10-12): the forecast is the block's rest from the
+	# first drift on, and the short rest after drift 1 pays none of it.
 	director.maze_economy.sample(1, 1, map, [attacker])
 	director.drifts_started = 1
 	director.resting = false
@@ -56,13 +57,19 @@ func _run() -> void:
 	_check(extended - initial >= 4, "actual walls create enough route extension")
 	var expected: int = director.get_maze_reward_preview()
 	_check(expected > 0 and expected == (extended - initial) / 4, "the longer route has a live reward by length alone, with no cap")
-	_check(director.get_maze_reward_projection() == 0, "active drift-one projection excludes future drift-five income")
+	# Drift 1 was sampled before the walls went up (0), the other four drifts count at today's rate.
+	var block_forecast: int = floori(expected * 4.0 / 5.0)
+	_check(director.get_maze_reward_projection() == block_forecast, "during drift one the forecast is already the block rest's (%d, expected %d)" % [director.get_maze_reward_projection(), block_forecast])
+	var dew_before_one: int = run.dew
+	var paid_one: Array = director._pay_rest_bonus()  # The short rest after drift 1
+	_check(director.maze_reward_last == 0 and run.dew - dew_before_one == int(paid_one[0]) and int(director.maze_economy.to_save().blocks["1"].paid) == 0,
+		"the rest after drift 1 pays no maze bonus: the block's amount is still unclaimed")
 	var hud = main.get_node("HUD")
 	var forecast = hud.get_node_or_null("MazeDewLabel") as Label
 	_check(forecast != null, "HUD has a top-right maze Dew forecast")
 	if forecast != null:
 		hud._update_maze_income()
-		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(0, true), "HUD uses next-rest projection rather than raw route reward")
+		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(director.get_maze_reward_projection(), true), "the HUD shows the block rest's forecast from the start")
 		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("longer than the forest's path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}

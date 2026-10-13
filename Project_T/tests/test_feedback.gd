@@ -354,7 +354,7 @@ func _run() -> void:
 		whispers._seen = []
 		whispers._queue.clear()
 		whispers._process(0.0)
-		_check(whispers._seen.has("kin") or whispers._queue.has(&"kin"), "the Kinship whisper, once two branches of a family are planted")
+		_check(not whispers._queue.has(&"kin") and not whispers.TEXT.has(&"kin"), "two branches of a family whisper nothing any more (teaching whispers removed, user 2026-10-12)")
 		whispers._queue.clear()
 		whispers.set_enabled(false)
 		# No maze juggling: the Unbound whisper, the rest report's "Unbound: N", the info's Restless line.
@@ -366,7 +366,7 @@ func _run() -> void:
 			whispers._queue.clear()
 			report.unbound_block = 0
 			spawner.nightmare_unbound.emit(juggled)
-			_check(whispers._seen.has("unbound") or whispers._queue.has(&"unbound"), "the first Unbound whispers")
+			_check(not whispers._queue.has(&"unbound") and not whispers.TEXT.has(&"unbound"), "the first Unbound whispers nothing any more")
 			report.show_report(2)
 			_check(report._label.get_parsed_text().contains("Unbound: 1"), "the rest report counts Unbound nightmares")
 			whispers._queue.clear()

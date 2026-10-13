@@ -80,6 +80,7 @@ func _run() -> void:
 	history._last_leaves = 15
 	history._on_leaked(straggler)  # The leak first, then its leaves
 	history._on_leaves_changed(13, 15)
+	history._leak_order = 0  # The other order (a run has one or the other)
 	history._on_leaves_changed(12, 15)  # Leaves first (as RunState may be asked first), then the leak
 	history._on_leaked(straggler)
 	_check(int(history._open[90].leaks) == 2 and int(history._open[90].leaves_lost) == 3 and int(history._open[91].leaves_lost) == 0,
