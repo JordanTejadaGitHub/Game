@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lucid_dream"
 display_name = "Borrowed Branch"
-description = "Pick one of your families: unlock one of its branch Wardens you haven't found this run, free."
+description = "Pick one of your {families}: unlock one of its {branch} Wardens you haven't found this run, free."
 rarity = 2
 kind = 3
 tags = Array[String](["dreams"])

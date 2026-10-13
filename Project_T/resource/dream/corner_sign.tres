@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "corner_sign"
 display_name = "Corner Sign"
-description = "After a nightmare passes a bend, each Warden's first direct status hit on it applies double stacks. Once per bend, and at most once every 3 s for each Warden."
+description = "After a nightmare passes a bend, each Warden's first direct status hit on it applies double {stacks}. Once per bend, and at most once every 3 s for each Warden."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])

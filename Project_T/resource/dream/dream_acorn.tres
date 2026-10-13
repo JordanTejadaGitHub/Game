@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_acorn"
 display_name = "Acorn"
-description = "Sprouts can now grow into Acorns ({dew:{grow_cost:acorn}}), or plant one directly ({dew:{plant_cost:acorn}}). It throws acorns that bounce onto the nightmares beside its target, and Wardens in the cells around it deal {pct:acorn.aura_damage_bonus} more damage."
+description = "Sprouts can now {grow} into {warden:acorn}s ({dew:{grow_cost:acorn}}), or plant one directly ({dew:{plant_cost:acorn}}). It throws acorns that bounce onto the nightmares beside its target, and Wardens in the cells around it deal {pct:acorn.aura_damage_bonus} more damage."
 rarity = 0
 kind = 0
 tags = Array[String](["acorn"])

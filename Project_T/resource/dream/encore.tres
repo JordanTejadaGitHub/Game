@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "encore"
 display_name = "Encore"
-description = "An Echo Hollow's echo can echo once more, at half strength."
+description = "An {warden:echo_hollow}'s echo can echo once more, at half strength."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "reaction"])

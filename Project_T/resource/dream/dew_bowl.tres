@@ -15,4 +15,4 @@ dew_now = 50
 rule_id = &"dew_bowl"
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])
-grows_text = "Dewcatcher and Wellspring catch 15% more Dew."
+grows_text = "{warden:dewcatcher} and {warden:wellspring} catch 15% more {dew}."

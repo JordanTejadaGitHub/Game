@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "dream_residue"
 display_name = "Dream Residue"
-description = "When a nightmare leaves a Dreamcatcher's {caught} effect, it gains 2 {drowsy} stacks. Once per Dreamcatcher and nightmare every 3 s."
+description = "When a nightmare leaves a {warden:dreamcatcher}'s {caught} effect, it gains 2 {drowsy} {stacks}. Once per {warden:dreamcatcher} and nightmare every 3 s."
 rarity = 1
 kind = 3
 tags = Array[String](["song"])

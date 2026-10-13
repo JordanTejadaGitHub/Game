@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "passing_thread"
 display_name = "Passing Thread"
-description = "When a Warden changes target, it carries 1 stack of the old target's biggest status to the new one (every 2 s per Warden)."
+description = "When a Warden changes target, it carries 1 {stack} of the old target's biggest status to the new one (every 2 s per Warden)."
 rarity = 1
 kind = 3
 tags = Array[String]([])

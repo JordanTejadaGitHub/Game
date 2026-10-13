@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "bountiful_night"
 display_name = "Bountiful Night"
-description = "For the next 5 {drifts}: nightmares have 35% more health and give 50% more Dew."
+description = "For the next 5 {drifts}: nightmares have 35% more health and give 50% more {dew}."
 flavor = "A heavy harvest walks the path tonight."
 kind = 2
 health_multiplier = 1.35

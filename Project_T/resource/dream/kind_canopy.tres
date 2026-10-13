@@ -14,4 +14,4 @@ max_stacks = 1
 rule_id = &"kind_canopy"
 in_start_pool = false
 grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
-grows_text = "Acorn, Elder Stump and Grove Heart auras reach 1 cell further."
+grows_text = "{warden:acorn}, {warden:elder_stump} and {warden:grove_heart} auras reach 1 cell further."

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chorus"
 display_name = "Chorus"
-description = "Bellflower-line Wardens within 3 cells of each other pulse together, and a shared pulse deals 30% more."
+description = "{warden:bellflower}-line Wardens within 3 cells of each other pulse together, and a shared pulse deals 30% more."
 rarity = 2
 kind = 3
 tags = Array[String](["song"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wake_ripple"
 display_name = "Wake Ripple"
-description = "Dispelling a drowning nightmare gives 2 {damp} stacks to up to 3 nearby nightmares within 1 cell."
+description = "Dispelling a drowning nightmare gives 2 {damp} {stacks} to up to 3 nearby nightmares within 1 cell."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "sleep", "reaction"])

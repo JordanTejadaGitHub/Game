@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "first_among_equals"
 display_name = "First Among Equals"
-description = "Your highest-rank Warden deals 50% more damage."
+description = "Your highest-{rank} Warden deals 50% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["tall"])

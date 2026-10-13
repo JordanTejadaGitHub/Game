@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "growth_rings"
 display_name = "Growth Rings"
-description = "Each Nurture rank also gives +0.25 range."
+description = "Each Nurture {rank} also gives +0.25 range."
 rarity = 0
 kind = 3
 tags = Array[String](["tall"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "like_to_like"
 display_name = "Like to Like"
-description = "Needs another family's Warden near a Firefly Warden. Damage it deals to a {static} nightmare forks to the nearest other {static} nightmare, for half."
+description = "Needs another {family}'s Warden near a Firefly Warden. Damage it deals to a {static} nightmare forks to the nearest other {static} nightmare, for half."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "lent"])

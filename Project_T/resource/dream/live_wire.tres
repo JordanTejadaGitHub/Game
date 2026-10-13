@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "live_wire"
 display_name = "Live Wire"
-description = "Needs another family's Warden near a Firefly Warden. When it dispels a nightmare, by hit, poison or cloud, its hit forks to the nearest nightmare."
+description = "Needs another {family}'s Warden near a Firefly Warden. When it dispels a nightmare, by hit, poison or cloud, its hit forks to the nearest nightmare."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])

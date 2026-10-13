@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "leaf_fall"
 display_name = "Leaf Fall"
-description = "For the next 5 {drifts}: nightmares move 20% faster, and each one that reaches the Heartwood takes twice as many leaves."
+description = "For the next 5 {drifts}: nightmares move 20% faster, and each one that reaches the Heartwood takes twice as many {leaves}."
 flavor = "The Heartwood's leaves hang by a thread."
 kind = 1
 speed_multiplier = 1.2

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_grove_keeper"
 display_name = "Grove Keeper"
-description = "Seedbearers can now grow into Grove Keepers ({dew:{grow_cost:grove_keeper}}): a seed every {field:grove_keeper.special_params.seed_every:count} {drifts}, and its Sprouts arrive at rank II."
+description = "{warden:seedbearer}s can now {grow} into {warden:grove_keeper}s ({dew:{grow_cost:grove_keeper}}): a seed every {field:grove_keeper.special_params.seed_every:count} {drifts}, and its Sprouts arrive at {rank} II."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])

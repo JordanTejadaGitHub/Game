@@ -13,13 +13,13 @@ const NAMES := {"sporeling": "Take Root", "firefly_jar": "Lantern Light", "dewdr
 const TEXTS := {
 	"sporeling": "When {spored} on a nightmare is half full, it is {held} for 1.5 seconds. Once per nightmare.",
 	"firefly_jar": "Nightmares in a Firefly Warden's glow are Lit. When any Warden dispels a Lit nightmare, by hit, poison or cloud, half its hit forks to the nearest Lit nightmare. Your Firefly cards make forks bigger, further and more often.",
-	"dewdrop": "The first hit on a {damp} nightmare from another family also splashes the nightmares beside it.",
-	"bellflower": "Each Bellflower pulse adds to every status a nightmare already has: a tenth of that status's full stacks.",
-	"acorn": "Every 5th acorn, all Wardens next to the Acorn attack its target at once.",
-	"nestling": "A Nestling's bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
-	"pebbling": "A Pebbling's stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
+	"dewdrop": "The first hit on a {damp} nightmare from another {family} also splashes the nightmares beside it.",
+	"bellflower": "Each {warden:bellflower} pulse adds to every status a nightmare already has: a tenth of that status's {full} {stacks}.",
+	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
+	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
+	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
 	"rootling": "Every Warden in range turns to a {held} nightmare, and their hits on it add twice as much status.",
-	"whirligig": "Attacks that pass through a Whirligig's range go further: shots fly on to a second nightmare, and pulses and splashes spread 1 cell wider.",
+	"whirligig": "Attacks that pass through a {warden:whirligig}'s range go further: shots fly on to a second nightmare, and pulses and splashes spread 1 cell wider.",
 }
 
 # Starting numbers (Balancing sets the final ones).

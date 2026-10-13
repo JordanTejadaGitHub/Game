@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "seasoned"
 display_name = "Seasoned"
-description = "Rank II+ Wardens deal 15% more damage."
+description = "{Rank} II+ Wardens deal 15% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["tall"])

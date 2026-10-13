@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shared_mycelium"
 display_name = "Shared Mycelium"
-description = "When two different Wardens add {spored} within 2 s, the nightmare gains 6 extra {spored} stacks. Once per nightmare every 2 s."
+description = "When two different Wardens add {spored} within 2 s, the nightmare gains 6 extra {spored} {stacks}. Once per nightmare every 2 s."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])

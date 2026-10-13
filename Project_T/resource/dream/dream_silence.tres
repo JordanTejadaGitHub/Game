@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_silence"
 display_name = "Silence"
-description = "Hushbells can now grow into Silence ({dew:{grow_cost:silence}}): a wider hush that keeps nightmares {silenced} after they leave."
+description = "{warden:hushbell}s can now {grow} into Silence ({dew:{grow_cost:silence}}): a wider hush that keeps nightmares {silenced} after they leave."
 rarity = 2
 kind = 1
 tags = Array[String](["song"])

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_bastion"
 display_name = "Bastion"
-description = "Ramparts can now grow into Bastions ({dew:{grow_cost:bastion}}): its stone walls drop rocks on the path."
+description = "{warden:rampart}s can now {grow} into {warden:bastion}s ({dew:{grow_cost:bastion}}): its stone walls drop rocks on the path."
 rarity = 2
 kind = 1
 tags = Array[String](["stone"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "twin_puff"
 display_name = "Twin Puff"
-description = "Every 3rd Sporeling attack fires twice."
+description = "Every 3rd {warden:sporeling} attack fires twice."
 rarity = 1
 kind = 3
 tags = Array[String](["spore"])

@@ -14,4 +14,4 @@ max_stacks = 1
 rule_id = &"bramble_oath"
 in_start_pool = false
 grows_with = Array[String](["bramble", "honeysuckle"])
-grows_text = "Bramble and Honeysuckle are 50% stronger."
+grows_text = "{warden:bramble} and {warden:honeysuckle} are 50% stronger."

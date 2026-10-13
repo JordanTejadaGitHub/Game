@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "carried_on_the_wind"
 display_name = "Carried on the Wind"
-description = "Gust and Zephyr copy every stack of a status, not just one."
+description = "{warden:gust} and {warden:zephyr} copy every {stack} of a status, not just one."
 cost_description = "Only to one nightmare, not every one in range."
 rarity = 2
 kind = 3

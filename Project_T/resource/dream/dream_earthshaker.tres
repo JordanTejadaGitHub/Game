@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_earthshaker"
 display_name = "Earthshaker"
-description = "Quakers can now grow into Earthshakers ({dew:{grow_cost:earthshaker}}): a wider slam that cracks the path."
+description = "{warden:quaker}s can now {grow} into {warden:earthshaker}s ({dew:{grow_cost:earthshaker}}): a wider slam that cracks the path."
 rarity = 2
 kind = 1
 tags = Array[String](["stone"])

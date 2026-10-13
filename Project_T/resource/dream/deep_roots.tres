@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_roots"
 display_name = "Deep Roots"
-description = "The Heartwood can hold 3 more leaves, and regrows 3 now."
+description = "The Heartwood can hold 3 more {leaves}, and regrows 3 now."
 rarity = 0
 kind = 4
 tags = Array[String](["leaves"])

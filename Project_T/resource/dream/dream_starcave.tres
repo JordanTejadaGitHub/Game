@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_starcave"
 display_name = "Starcave"
-description = "Rootlights can now grow into Starcaves ({dew:{grow_cost:starcave}}): a bigger lit area; {held} lasts {field:starcave.lit_hold_multiplier} times as long on lit tiles, and {hidden} nightmares show in the light."
+description = "{warden:rootlight}s can now {grow} into {warden:starcave}s ({dew:{grow_cost:starcave}}): a bigger lit area; {held} lasts {field:starcave.lit_hold_multiplier} times as long on lit tiles, and {hidden} nightmares show in the light."
 rarity = 2
 kind = 1
 tags = Array[String](["root"])
