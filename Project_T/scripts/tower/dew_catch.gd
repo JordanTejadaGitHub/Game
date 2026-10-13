@@ -164,7 +164,7 @@ static func _pour_effect(tower: Tower, dew: int, delay: float) -> void:
 	if world == null:
 		return
 	var at := bowl_point(tower)
-	var popup := DewPopup.new(dew, at, GOLD, "Harvest +%d Dew" % dew)
+	var popup := DewPopup.new(dew, at, GOLD, "Catch +%d Dew" % dew)
 	popup.process_mode = Node.PROCESS_MODE_ALWAYS  # The rest's Dream screen pauses the game
 	world.add_child(popup)
 	if Fx.reduce_flashes():

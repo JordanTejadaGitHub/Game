@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Zephyr"
 role_line = "Spreads statuses, multi-target"
-description = "Spreads the most-afflicted nightmare's statuses to up to 7 others."
+description = "Spreads the statuses of the nightmare with the most statuses onto up to {field:zephyr.spread_targets:count} others."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

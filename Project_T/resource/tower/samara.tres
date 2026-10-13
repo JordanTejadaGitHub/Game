@@ -9,8 +9,8 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Samara"
-role_line = "Boomerang, hits a line"
-description = "Throws a spinning maple seed down a straight line and back through everything, carrying the first nightmare's statuses along it."
+role_line = "Seed flies out and back, hits a line"
+description = "Throws a spinning maple seed down a straight line and back, hitting everything both ways and carrying the first nightmare's statuses along the line."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

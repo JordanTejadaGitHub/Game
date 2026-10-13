@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Gust"
 role_line = "Spreads statuses, slow attacks"
-description = "Copies the statuses of the most-afflicted nightmare in range onto 3 nearby ones (half stacks)."
+description = "Copies the statuses of the nightmare with the most statuses in range onto {field:gust.spread_targets:count} others close to it (half the stacks)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

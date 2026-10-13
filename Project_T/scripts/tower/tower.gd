@@ -345,11 +345,11 @@ const CHAIN_BLOOM_SPLASH := 2.0  # Chain Bloom: Puffball puffs landing in fog co
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED, KEEN, YIELD }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
-	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
-const FOCUS_TEXT := {Focus.POWER: "deals %d%% more damage" % roundi(FOCUS_POWER * 100), Focus.SWIFT: "attacks %d%% faster" % roundi(FOCUS_SWIFT * 100),
-	Focus.REACH: "+0.3 range",
-	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
-	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source",
+	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Attuned", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
+const FOCUS_TEXT := {Focus.POWER: "hits harder: %d%% more damage" % roundi(FOCUS_POWER * 100), Focus.SWIFT: "attacks %d%% faster" % roundi(FOCUS_SWIFT * 100),
+	Focus.REACH: "more range: +0.3 cells",
+	Focus.DEEP: "stronger statuses: +25% Potency",
+	Focus.WIDE: "its aura reaches further: +0.2 cells", Focus.STRONG: "stronger aura: +5%", Focus.KINDRED: "takes every boost in full, not a reduced share",
 	Focus.KEEN: "+%d%% crit chance" % roundi(NurtureChoices.KEEN_CRIT * 100), Focus.YIELD: "makes more"}  # Read, not typed: it said 8% while Keen gives 10%
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
@@ -1206,7 +1206,7 @@ static func potency_uses(data: TowerData) -> Array[String]:
 		lines.append("{held} lasts longer")
 		statuses = true
 	if data.lit_hold_multiplier > 0.0:
-		lines.append("{held} lasts longer on its lit tiles")
+		lines.append("{held} lasts longer on its lit cells")
 		statuses = true
 	if data.attack_kind == TowerData.AttackKind.CLOUD:
 		lines.append("its cloud hits harder")
@@ -1328,7 +1328,7 @@ func focus_text(which: Focus) -> String:
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+%.1f catch radius%s" % [FOCUS_WIDE, _cells_note(get_catch_radius(), FOCUS_WIDE)]
+				return "+%.1f cells of catch range%s" % [FOCUS_WIDE, _cells_note(get_catch_radius(), FOCUS_WIDE)]
 			Focus.STRONG:
 				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
@@ -1369,7 +1369,7 @@ func focus_text(which: Focus) -> String:
 			return "range %.1f → %.1f cells" % [r[0], r[1]]
 		Focus.DEEP:
 			if attack_data.attack_kind == TowerData.AttackKind.SPREAD:  # Gust / Zephyr (audit b6f44fac): what Deep does for it
-				return "more stacks copied (statuses with stacks), +%d%% of them a rank" % roundi(NurtureChoices.GUST_STACKS * 100)
+				return "copies %d%% more stacks" % roundi(NurtureChoices.GUST_STACKS * 100)
 			var potency := _with_choice(which, func() -> float: return get_potency())
 			return "Potency %d%% → %d%% (stronger statuses and effects)" % [roundi(potency[0] * 100), roundi(potency[1] * 100)]
 		Focus.KEEN:
@@ -1388,7 +1388,7 @@ func focus_text(which: Focus) -> String:
 			return "%s alive %d → %d" % [thing, now, now + 1]
 		Focus.STRONG:
 			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:  # Dreamcatchers (audit b6f44fac)
-				return "statuses on Caught nightmares tick +%d%%" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
+				return "statuses on Caught nightmares hurt %d%% more" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit chance in its aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
@@ -1397,15 +1397,15 @@ func focus_text(which: Focus) -> String:
 				return "its aura +%d%%" % roundi(NurtureChoices.STRONG_ACORN * 100)
 		Focus.WIDE:
 			if special == BranchKit.DREAM_OAK:
-				return "families counted from +%.1f cells further%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
+				return "counts families %.1f cells further out%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
 			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
-				return "+%.1f cells of reach%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
+				return "+%.1f cells of range%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
 			return FOCUS_TEXT[which] + _cells_note(_wide_radius(), FOCUS_WIDE)
 		Focus.KINDRED:
 			if special == BranchKit.SEEDBEARER:
 				return "its Sprouts deal %d%% more damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
 			if special == BranchKit.NURSE_LOG:
-				return "Wardens in its reach grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
+				return "Wardens in its range grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 	return FOCUS_TEXT.get(which, "")
 
 # The radius (cells) Wide widens for this form now: a catcher's catch, Dream Oak's family count, Prism / Nurse Log's
@@ -1437,7 +1437,7 @@ func focus_short(which: Focus) -> String:
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+%s catch reach" % IconInfo._number(FOCUS_WIDE)
+				return "+%s catch range" % IconInfo._number(FOCUS_WIDE)
 			Focus.STRONG:
 				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
@@ -1469,7 +1469,7 @@ func focus_short(which: Focus) -> String:
 			return "+1 Sprout alive" if special == BranchKit.SEEDBEARER else "+1 sprite alive"
 		Focus.STRONG:
 			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:
-				return "+%d%% Caught ticks" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
+				return "+%d%% Caught damage" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
@@ -1477,13 +1477,13 @@ func focus_short(which: Focus) -> String:
 			return "+%d%% aura" % roundi((NurtureChoices.STRONG_ACORN if not is_aura_support() else FOCUS_STRONG_AURA) * 100)
 		Focus.WIDE:
 			if special == BranchKit.DREAM_OAK:
-				return "+%s count reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
+				return "+%s count range" % IconInfo._number(NurtureChoices.WIDE_STEP)
 			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
-				return "+%s reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
-			return "+%s aura reach" % IconInfo._number(FOCUS_WIDE)
+				return "+%s range" % IconInfo._number(NurtureChoices.WIDE_STEP)
+			return "+%s aura range" % IconInfo._number(FOCUS_WIDE)
 		Focus.KINDRED:
 			if special == BranchKit.SEEDBEARER:
-				return "+%d%% Sprout dmg" % roundi(NurtureChoices.SEED_KINDRED * 100)
+				return "+%d%% Sprout damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
 			if special == BranchKit.NURSE_LOG:
 				return "%d%% cheaper grows" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 			return "full boosts"
@@ -1592,7 +1592,7 @@ func _main_area() -> Array:
 		BranchKit.JET:
 			return [BranchKit.p(self, "length", 6.0) + now, "jet", per]
 		BranchKit.GROUNDROOT:
-			return [BranchKit.p(self, "ground_reach", 3.5) + now, "grab reach", per]
+			return [BranchKit.p(self, "ground_reach", 3.5) + now, "grab range", per]
 		BranchKit.DEEPROOT:
 			return [BranchKit.p(self, "goal_reach", 3.0) + area_bonus(NurtureChoices.REACH_GUARD), "guard ring", NurtureChoices.REACH_GUARD]
 		BranchKit.CLOUD:

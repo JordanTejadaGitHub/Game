@@ -9,8 +9,8 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Frostfern"
-role_line = "Freezes, single target, high damage"
-description = "Hits on nightmares with {field:frostfern.freeze_needs_stacks:count} {damp} leave them {frozen} for {field:frostfern.freeze_duration:seconds}."
+role_line = "Freezes, single target"
+description = "Freezes: a hit on a nightmare with {field:frostfern.freeze_needs_stacks:count} {damp} leaves it {frozen} for {field:frostfern.freeze_duration:seconds}. Pair it with Wardens that Soak."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -24,7 +24,7 @@ const REACH := 2.0  # Cells (square: Chebyshev)
 const REFRESH := 0.5  # Seconds between pairings
 const STAGE_DRIFTS: Array[int] = [0, 5, 10]  # Sapling, Blooming, Old Kin
 const STAGE_SHARE: Array[float] = [0.5, 0.75, 1.0]
-const STAGE_NAMES: Array[String] = ["Sapling", "Blooming", "Old Kin"]
+const STAGE_NAMES: Array[String] = ["Young", "Blooming", "Old Kin"]  # Shown names (the first was "Sapling": wording_review_2026-10-13.md; the Heartwood Sapling keeps its name)
 const HARMONY_WINDOW := 1.0  # Seconds between the two kin's hits
 const HARMONY_COOLDOWN := 2.0  # Per pair
 const HARMONY_OLD_KIN := 1.5
@@ -665,7 +665,7 @@ func unbonded_reason(tower: Tower) -> String:
 		var taken := get_pairs(other)
 		if taken.size() >= capacity:
 			var partner: Tower = taken[0].b if taken[0].a == other else taken[0].a
-			return "No kin: the %s nearby is bonded to its %s" % [other.tower_data.display_name,
+			return "No kin: the %s in range is bonded to its %s" % [other.tower_data.display_name,
 				partner.tower_data.display_name if is_instance_valid(partner) else "kin"]
 	return ""
 

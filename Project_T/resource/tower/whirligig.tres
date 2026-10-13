@@ -11,7 +11,7 @@
 script = ExtResource("1_tdata")
 display_name = "Whirligig"
 role_line = "Area damage, spreads statuses"
-description = "Gusts carry trouble along: every 3 s it copies one status (half the stacks) from the most afflicted nightmare in range onto a neighbour."
+description = "Its gusts damage every nightmare in range. Every {field:whirligig.copy_status_every:seconds} it copies one status (half the stacks) from the nightmare with the most statuses in range onto one beside it."
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

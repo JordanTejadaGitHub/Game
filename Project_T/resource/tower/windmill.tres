@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Windmill"
 role_line = "Short range, hits all around it, very fast attacks"
-description = "Bigger, faster blades; loves hairpin bends even more (+35% per extra path tile)."
+description = "Bigger, faster blades. It deals 35% more damage for each extra path cell among the 8 around it."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

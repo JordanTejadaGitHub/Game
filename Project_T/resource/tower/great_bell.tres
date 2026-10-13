@@ -7,8 +7,8 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Great Bell"
-role_line = "Area damage, Drowses, Charges, long range"
-description = "Every 8 s it tolls across a huge range: every nightmare falls Asleep, and every {static} nightmare releases its bolt at half strength."
+role_line = "Area damage, puts to sleep, Charges, long range"
+description = "Every 8 s it tolls across a huge range: every nightmare falls {asleep}, and every {static} nightmare is struck by its bolt for half damage."
 cost = 0
 line = "song"
 tier = 4
