@@ -154,7 +154,7 @@ func _run() -> void:
 
 	# Rest report: the maze line first, then Carrying / Underused.
 	var text := RestReport.meter_text(main.get_node("%RestReport"))
-	_check(text.contains("Maze ") and text.contains("Carrying: ") and text.contains("Underused: "),
+	_check(text.contains("whole maze: ") and text.contains("Did the most: ") and text.contains("Did little: "),
 		"the rest report's maze / carrying / underused lines (" + text.replace("\n", " | ") + ")")
 	# The last drift's DPS lives in the meter panel.
 	meter.refresh()

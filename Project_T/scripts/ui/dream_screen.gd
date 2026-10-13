@@ -234,11 +234,11 @@ func _make_card(card: UpgradeData) -> Button:
 	var secondary: Array[Label] = []
 	if card.entwined:  # The vine border says it; no "Entwined" label (user: "still don't know what Entwined is")
 		if card.woven:
-			secondary.append(_add_line(box, "Woven", ENTWINED_COLOR, SECONDARY_SIZE))
+			secondary.append(_add_line(box, "Woven: needs three Wardens", ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
-		secondary.append(_add_line(box, "Deepened · replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
+		secondary.append(_add_line(box, "Upgrade: replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
-		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
+		secondary.append(_add_line(box, "Bittersweet: has a cost", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	# No "Needs …" line (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the card text names what it
 	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
 	for label in secondary:

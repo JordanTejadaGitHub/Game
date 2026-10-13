@@ -194,7 +194,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
 		if reach > 0.0:  # Groundroot / Earthbind grab flyers beyond their attack range (Tower Code e530a46a)
-			main_row.append(["Pull range %.1f" % reach, &"grab_reach"])
+			main_row.append(["Grab range %.1f" % reach, &"grab_reach"])
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
 		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
@@ -460,7 +460,7 @@ func stat_tip(stat: StringName) -> String:
 		_ when String(stat).begins_with("shape_"):
 			return shape_tip(attack)
 		&"grab_reach":
-			return "Pull range: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
+			return "Grab range: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
 		&"crit_chance":
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":
@@ -481,7 +481,7 @@ func stat_tip(stat: StringName) -> String:
 		if LOCAL_BUFF_STATS.has(stat):
 			for entry in BuffSources.for_tower(_tower):
 				if entry.stat == LOCAL_BUFF_STATS[stat] and BuffSources.LOCAL_KINDS.has(entry.kind):
-					var source: String = "Kindred" if entry.get("kindred", false) \
+					var source: String = "Attuned" if entry.get("kindred", false) \
 						else (entry.source.tower_data.display_name if entry.source is Tower and is_instance_valid(entry.source) else String(entry.kind).capitalize())
 					why.append("%s %s" % [source, BuffSources._signed(entry.amount, stat == &"range")])
 	return meaning + (" (%s)" % ", ".join(why) if not why.is_empty() else "")

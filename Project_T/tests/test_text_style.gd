@@ -39,8 +39,10 @@ func _init() -> void:
 	for group in CodexData.glossary():
 		for entry in group[1]:
 			_lint("Main", "glossary %s" % entry[0], entry[1])
+			_one_name("Main", "glossary %s" % entry[0], entry[1])
 	for id in IconInfo.STATUSES:
 		_lint("Main", "status %s" % id, IconInfo.STATUSES[id][1])
+		_one_name("Main", "status %s" % id, IconInfo.STATUSES[id][1])
 	var whispers: Dictionary = (load("res://scripts/ui/whispers.gd") as Script).get_script_constant_map().get("TEXT", {})
 	for id in whispers:
 		_lint("Main", "whisper %s" % id, whispers[id], false, false, true)  # Shown through UiStyle.whisper(): flavour
@@ -162,6 +164,16 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 					else:
 						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true, flavour)
 	_caps_off = false
+
+# One name per thing (wording_review_2026-10-13.md section 1): the reference texts (glossary, statuses) never use the
+# old names. Only those texts: card and Warden text have their own owners and reviews.
+const OLD_NAMES := "(?i)\\b(road|roads|route|routes|leak|leaks|leaked|loadout|buff|buffs|tower bar|maze dew)\\b"
+func _one_name(owner: String, source: String, text: String) -> void:
+	var found := RegEx.create_from_string(OLD_NAMES).search(RegEx.create_from_string("\\{[^}]*\\}").sub(text, "", true))
+	if found != null:
+		if not findings.has(owner):
+			findings[owner] = []
+		findings[owner].append("%s: old name \"%s\" (path, reaches the Heartwood, perk slot, boost, Warden bar, Maze bonus)  [%s]" % [source, found.get_string(), text.left(90).replace("\n", " / ")])
 
 func _lint(owner: String, source: String, text: String, is_title := false, is_code := false, is_flavour := false) -> void:
 	var problems: Array[String] = []

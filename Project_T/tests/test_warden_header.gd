@@ -50,7 +50,7 @@ func _run() -> void:
 	main.get_node("HUD").add_child(grab_view)
 	await process_frame
 	var grab := grab_view.stats.find_child("Value_grab_reach", true, false) as Label
-	_check(grab != null and grab.text == "Pull range %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
+	_check(grab != null and grab.text == "Grab range %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
 		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
 	# The attack shape chip (user: "can't tell if something is an aura attack or not"; Tower.attack_shape).
 	# UI Asset's shape icons (54cc7cfb): an icon-only chip in the first row, the name in its tip.

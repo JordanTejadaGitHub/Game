@@ -85,7 +85,7 @@ const GLOSSARY_SOURCE := [
 		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its path and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
 		# EnemyData BURROW (burrow_max, burrow_min_saving) and laps() (lap_linger …): who has them is nightmares_line.
 		["Burrow", "Sinks under a Warden or wall beside it and comes up on the other side, when that shortens its path. Only a set number of times per trip.", ["Nightmare"]],
-		["Laps", "Reaching the Heartwood, it stays and drains leaves, and can't be hit while it's there. Then it gallops back to the start and comes again, staying a little longer each lap.", ["Leak", "Leaves"]],
+		["Laps", "Reaching the Heartwood, it stays and drains leaves, and can't be hit while it's there. Then it gallops back to the start and comes again, staying a little longer each lap.", ["Reaching the Heartwood", "Leaves"]],
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
@@ -218,7 +218,7 @@ const KINSHIP_TEXT := {
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
-	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
 	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and leaves nightmares {damp}.",
@@ -235,7 +235,7 @@ const KINSHIP_TEXT := {
 	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
 	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
-	&"jewel_thieves": "Every 6th peck steals a nightmare's buff ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
+	&"jewel_thieves": "Every 6th peck steals a nightmare's boost ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
