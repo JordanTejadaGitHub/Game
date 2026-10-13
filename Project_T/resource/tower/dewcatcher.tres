@@ -8,7 +8,7 @@
 script = ExtResource("1_tdata")
 display_name = "Dewcatcher"
 role_line = "Area damage, economy"
-description = "Pulses damage to every nightmare in range. Nightmares dispelled within {field:dewcatcher.catch_radius:cells} drop {pct:dewcatcher.catch_share} more Dew, paid at the rest. Also {dew:{field:dewcatcher.dew_per_drift:count}} each drift."
+description = "Pulses damage to every nightmare in range. Nightmares dispelled within {field:dewcatcher.catch_radius:cells} drop {pct:dewcatcher.catch_share} more {dew}, paid at the {rest}. Also {dew:{field:dewcatcher.dew_per_drift:count}} each {drift}."
 cost = 0
 role_tag = &"economy"
 line = "acorn"

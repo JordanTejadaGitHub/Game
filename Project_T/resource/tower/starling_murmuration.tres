@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Starling Murmuration"
 role_line = "Anti-air, multi-target"
-description = "Five starlings each hunt one of the five fastest nightmares in range; extra damage to Phantoms and sprinting Night Hounds."
+description = "Five starlings each hunt one of the five fastest nightmares in range; extra damage to {nightmare:dandelion_seed}s and sprinting {nightmare:hedgehog}s."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Great Dreamcatcher"
 role_line = "Single target, sets up statuses, economy"
-description = "Shoots one nightmare. {asleep} or fully {drowsy} nightmares in its range are {caught}: their statuses stop wearing off and hurt 25% more. {asleep} lasts 1 s longer in its range, and {caught} nightmares leave Dreamlight shards."
+description = "Shoots one nightmare. {asleep} or fully {drowsy} nightmares in its range are {caught}: their statuses stop wearing off and hurt 25% more. {asleep} lasts 1 s longer in its range, and {caught} nightmares leave {dreamlight} shards."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
