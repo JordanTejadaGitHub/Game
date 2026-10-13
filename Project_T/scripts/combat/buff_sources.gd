@@ -28,7 +28,8 @@ const COLORS := {
 	"omen": Palette.STONE, "gift": Palette.LEAF, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
 const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
-const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch", "crit": "crit chance"}
+const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch", "crit": "crit chance",
+	"crit_damage": "crit damage", "status_cap": "Poisoned cap"}  # (Gifts: Fallen Giant's Lookout, the Mushroom Ring)
 const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
 
 static func color(kind: String, source: Node = null) -> Color:
