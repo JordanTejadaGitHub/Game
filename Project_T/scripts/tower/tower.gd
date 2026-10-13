@@ -4898,11 +4898,8 @@ func _refresh_root_links() -> void:
 		for other in _other_towers():
 			if other.tower_data.get_id() != "sprout":
 				continue
-			var d: Vector2 = other.cell - cell
-			var side := absf(d.x) + absf(d.y) == 1.0
-			var corner := absf(d.x) == 1.0 and absf(d.y) == 1.0
-			if side or (diagonals and corner):
-				links.append(d)
+			if DreamEffects.sprouts_linked(cell, other.cell, diagonals):  # Footprints share an edge (half offsets too); II: a corner
+				links.append(other.cell - cell)
 	if links != _root_links:
 		_root_links = links
 		_redraw_root_network()
@@ -4914,7 +4911,7 @@ func _redraw_root_network() -> void:
 		return
 	var overlay := RootNetworkOverlay.find(get_parent())
 	if overlay:
-		overlay.queue_redraw()
+		overlay.refresh()  # It draws the pairs the rule counts (DreamEffects.root_pairs)
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
 # stacks on top of anything else): one rarity-coloured diamond per active position card (in build mode or while

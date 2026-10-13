@@ -104,18 +104,20 @@ func _run() -> void:
 		t._refresh_neighbours()
 	_check(root_a._root_links == [Vector2(1, 0)] and root_b._root_links.has(Vector2(-1, 0)),
 		"Root Network: Sprouts side by side glow along their shared edge")
-	# A vertical pair: drawn once, by the board's overlay, between the slab fronts (a user bug: each
-	# Sprout drew half a link under its own sprite, so vertical links were hidden).
+	# One root per connected pair, drawn by the board's overlay on the ground (user 2026-10-13: the old lines sat over
+	# the Wardens and the path, with stubs): the drawn links are exactly the pairs the rule counts.
 	var root_top := _plant("sprout", Vector2(3, 12))
 	var root_under := _plant("sprout", Vector2(3, 13))
 	for t in [root_top, root_under]:
 		t._refresh_neighbours()
+	dreams.bump_board()
 	var overlay := RootNetworkOverlay.find(container)
-	var vertical := overlay.get_segments().filter(func(s) -> bool:
-		return s[0] == root_top.global_position + RootNetworkOverlay.SLAB_FRONT \
-			and s[1] == root_under.global_position + RootNetworkOverlay.SLAB_FRONT)
-	_check(vertical.size() == 1, "a vertical pair has one link in the overlay, slab front to slab front")
-	_check(overlay.z_index == 1 and overlay.get_index() == 0, "the overlay draws over the Wardens' bodies, under their pips")
+	overlay.refresh()
+	var root_pairs_now: Array = dreams.effects().root_pairs()
+	_check(root_pairs_now.any(func(p) -> bool: return p.has(root_top) and p.has(root_under)) and root_pairs_now.any(func(p) -> bool: return p.has(root_a) and p.has(root_b))
+		and not root_pairs_now.any(func(p) -> bool: return p.has(root_c)), "the connected root_pairs_now: side by side and one above the other, not the diagonal")
+	_check(overlay.get_segments().size() == root_pairs_now.size(), "the drawn link count equals the connected pair count (%d vs %d)" % [overlay.get_segments().size(), root_pairs_now.size()])
+	_check(overlay.z_index == -1, "the roots lie on the ground, under the Wardens")
 	var pairs := overlay.get_segments().size()
 	_check(pairs == 2, "each link is drawn once (%d links for the two pairs)" % pairs)
 	root_top.queue_free()

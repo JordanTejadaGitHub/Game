@@ -771,12 +771,18 @@ func _update_dream_preview() -> void:
 	_ghost_rows.clear()
 	_neighbour_changes.clear()
 	_range_gain = 0.0
+	# Root Network: the ghost previews the roots a new Sprout would grow (RootNetworkOverlay; cleared here first).
+	var root_overlay: RootNetworkOverlay = RootNetworkOverlay.find(tower_container) if dream_state.has_rule(&"root_network") else null
+	if root_overlay != null:
+		root_overlay.set_ghost(Vector2.ZERO, [])
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell) \
 			or not dream_state.has_method("get_card_effects"):
 		return
 	for row in dream_state.get_card_effects(tower_data, _hover_cell):
 		if row.get("positional", false):
 			_ghost_rows.append(row)
+	if root_overlay != null and tower_data.get_id() == "sprout":
+		root_overlay.set_ghost(tower_container.to_global(MAP_GRID.calculate_map_position(_hover_cell)), dream_state.effects().root_ghost_links(_hover_cell))
 	_range_gain = maxf(dream_state.get_range_bonus_at(tower_data, _hover_cell) - dream_state.get_range_bonus(tower_data), 0.0)
 	# Kinships: the cells where this Warden would find a kin, and the one it would form here.
 	var kin := Kinships.find(self)
