@@ -1179,3 +1179,16 @@ rule, so it must always be one tap away:
   rule, since those are the Wardens it concerns.
 - **Codex → Families:** each family's entry lists its Calling, so a player can read all nine between runs.
 - **Run report:** the Calling is listed with the families.
+
+## Exposed at full stacks is visible (user, 2026-10-13: "when Exposed has full stacks, being hit should have a visual effect")
+Exposed does nothing until it is full, so the moment it completes and every hit after it must be seen.
+- **Completing:** when the stacks fill, a short flare on the nightmare (a ring of light closing in on it) and its
+  Exposed badge turns from dim to bright. The callout "Exposed" shows once, throttled like the others.
+- **While full:** a steady, quiet mark on the nightmare (a thin warm outline or a glint that circles it), so the
+  player can pick out which nightmares take the bonus. Cold nightmare, warm mark: palette colours only.
+- **Each hit on a fully Exposed nightmare:** a small warm spark at the hit point, on top of the Warden's own hit
+  effect, and the damage number (if numbers are on) in the Exposed colour. One per hit, capped by the Fx budget; area
+  hits spark once per nightmare.
+- **Ending:** the mark fades when the stacks drop below full.
+- Reduced flashes: no flare, the outline stays. Partial stacks keep the dim badge with its count and no other effect.
+- The same idea applies to the other "nothing until full" states if playtests ask for it; start with Exposed.
