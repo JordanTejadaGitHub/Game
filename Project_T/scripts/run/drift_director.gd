@@ -125,6 +125,11 @@ func get_late_multiplier(number: int) -> float:
 @export var rest_bonus_base: int = 30
 @export var rest_bonus_per_block: int = 4
 @export var perfect_block_bonus: int = 10  # No leaf lost in the whole block
+# "Health x2, Dew x2 trial" (balance_simulation.md; owner 2026-10-13: "have the enemies have more health so they reach
+# that 20 stack, but also increase the economy to support more Wardens"). Both at 1.0 give the numbers from before
+# the trial exactly, so it can be switched off.
+@export var trial_health_multiplier := 2.0  # Every nightmare's health, every drift: ordinary, Deeply Blighted, bosses, echoes, summons
+@export var trial_dew_multiplier := 2.0  # Every drift's Dew pot, the rest bonus and the perfect-block bonus (fixed-Dew cards, Omens, catchers: not yet)
 @export var act_break_leaves: int = 1
 @export var auto_drift: bool = true  # Drifts in a block start by themselves
 @export var auto_drift_delay: float = 3.0  # Seconds after the previous drift finished arriving
@@ -349,7 +354,7 @@ func is_boss_drift(number: int) -> bool:
 
 # Rest bonus after block `block` (20 + 10 × block), before the perfect bonus and Dreams.
 func get_rest_bonus(block: int) -> int:
-	return rest_bonus_base + rest_bonus_per_block * block
+	return roundi((rest_bonus_base + rest_bonus_per_block * block) * trial_dew_multiplier)  # The trial's Dew x2 (1.0 = as before)
 
 # Seconds until the next drift starts by itself (-1 = it won't: rest ahead, Auto-drift off, …).
 func get_auto_countdown() -> float:
@@ -514,7 +519,7 @@ func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> floa
 	if act == 1 and not data.is_boss and not elite:
 		var maze_ramp := clampf(float(number - 10) / 14.0, 0.0, 1.0)
 		scale *= 1.0 + maze_act1_health_bonus * maze_ramp
-	return scale * get_health_multiplier(data, number)
+	return scale * get_health_multiplier(data, number) * trial_health_multiplier  # The trial's health x2 (1.0 = as before)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
 # 26–50, ×1.045 from 51.
@@ -628,13 +633,13 @@ var block_pot := 0.0  # The pots of this block's drifts (rest report: "Dew this 
 func get_dew_pot(number: int) -> float:
 	var act := get_act(number)
 	if is_boss_drift(number):
-		return dew_pot_bosses[clampi(act - 1, 0, dew_pot_bosses.size() - 1)]
+		return dew_pot_bosses[clampi(act - 1, 0, dew_pot_bosses.size() - 1)] * trial_dew_multiplier
 	var row: Vector2 = dew_pot_acts[clampi(act - 1, 0, dew_pot_acts.size() - 1)]
 	var first := (act - 1) * drifts_per_act + 1
 	var last := act * drifts_per_act - 1
 	var base := lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
 	var maze_bonus := maze_act1_dew_bonus if act == 1 and number >= 11 else (maze_act2_dew_bonus if act == 2 else 0.0)
-	return base * (1.0 + maze_bonus)
+	return base * (1.0 + maze_bonus) * trial_dew_multiplier  # The trial's Dew x2 (1.0 = as before)
 
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
@@ -794,7 +799,7 @@ func _pay_rest_bonus() -> Array:
 	var block := get_block(drifts_started)
 	var perfect := not _block_leaked
 	var bonus := roundi(get_rest_bonus(block) * blight_rest_bonus_multiplier * rest_bonus_perk_multiplier) \
-		+ (perfect_block_bonus if perfect else 0)
+		+ (roundi(perfect_block_bonus * trial_dew_multiplier) if perfect else 0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams and not dreams.keeps_rest_bonus():
 		bonus = 0  # Deep Sleep: no rest bonus for the rest of the run (Dreams below still add)

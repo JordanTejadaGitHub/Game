@@ -28,25 +28,28 @@ func _run() -> void:
 	run_state.dew = 10000
 	# Sprouts are exempt from copies (+5% each, checked at the end): only the Sprout step prices them
 
+	# The step is every 10 Sprouts in the "Health x2, Dew x2 trial" (balance_simulation.md; it was every 5).
+	var per: int = placer.sprout_per_step()
+	_check(per == 10, "the Sprout price steps every 10 Sprouts (%d)" % per)
 	var planted: Array = []
-	for i in 5:
+	for i in per:
 		_check(placer.get_cost(sprout) == 10, "Sprout %d costs 10 (%d)" % [i + 1, placer.get_cost(sprout)])
 		planted.append(_build(placer, map, sprout))
-	_check(planted.all(func(t) -> bool: return t != null and t.invested_dew == 10), "the first five paid 10 each")
-	_check(placer.get_cost(sprout) == 14, "with 5 on the map the next costs 14 (%d)" % placer.get_cost(sprout))
-	seller.sell(planted[4].cell)
+	_check(planted.all(func(t) -> bool: return t != null and t.invested_dew == 10), "the first %d paid 10 each" % per)
+	_check(placer.get_cost(sprout) == 14, "with %d on the map the next costs 14 (%d)" % [per, placer.get_cost(sprout)])
+	seller.sell(planted[per - 1].cell)
 	_check(placer.get_cost(sprout) == 10, "selling one lowers it")
-	planted[3].evolve(sprout.evolves_to[0], 0)
-	_check(placer.count_paid_sprouts() == 4 and placer.get_cost(sprout) == 10, "a Sprout that grows still counts (the user: \"growing Sprouts shouldn't restart its interest cost\")")
+	planted[per - 2].evolve(sprout.evolves_to[0], 0)
+	_check(placer.count_paid_sprouts() == per - 1 and placer.get_cost(sprout) == 10, "a Sprout that grows still counts (the user: \"growing Sprouts shouldn't restart its interest cost\")")
 
 	# Seedling Gift: a charge plants one free, and it doesn't raise the price
 	run_state.add_sprout_charges(1)
 	var gift := _build(placer, map, sprout)
 	_check(gift.invested_dew == 0 and gift.get_meta(&"gift_sprout", false), "a gift Sprout is free")
-	_check(placer.count_paid_sprouts() == 4, "and doesn't count toward the price")
-	_build(placer, map, sprout)  # A fifth paid Sprout (with the grown one)
+	_check(placer.count_paid_sprouts() == per - 1, "and doesn't count toward the price")
+	_build(placer, map, sprout)  # One more paid Sprout: `per` counted again (with the grown one)
 
-	# A drag stroke: each Sprout priced after the ones before it (5 counted: 14, 14, 14)
+	# A drag stroke: each Sprout priced after the ones before it (`per` counted: 14, 14, 14)
 	var cells := _row_of_three(map, placer)
 	if cells.size() == 3:
 		placer.set_build_mode(true)
@@ -61,34 +64,34 @@ func _run() -> void:
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")
 
-	# Seedfall: its card sets the start, and the price rises +2 per 5 (half as fast)
+	# Seedfall: its card sets the start, and the price rises +2 per 10 (half as fast)
 	var start := 0
 	for card in dreams.pool:
 		if card.id == TowerPlacer.SEEDFALL_CARD:
 			start = card.set_cost
 			dreams.take(card)
 	var per_step := TowerPlacer.SEEDFALL_SPROUTS_PER_STEP
-	var paid := placer.count_paid_sprouts()  # 7 by now
+	var paid := placer.count_paid_sprouts()  # per + 3 by now
 	var expected := start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
 	_check(start > 0 and placer.get_cost(sprout) == expected, "Seedfall: Sprouts cost %d (%d with %d)" % [expected, placer.get_cost(sprout), paid])
-	while placer.count_paid_sprouts() < 16:
+	while placer.count_paid_sprouts() < per_step * 2 + 1:
 		if _build(placer, map, sprout) == null:
 			break
 	paid = placer.count_paid_sprouts()
 	expected = start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
-	_check(paid < 16 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
+	_check(paid < per_step * 2 + 1 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
 		"never rise" if per_step == 0 else "rise +2 per %d" % per_step, paid, placer.get_cost(sprout)])
 
 	# Copies (user via Balancing 2026-10-04): each planted Warden costs +5% per copy of its kind on the map;
 	# walls and Sprouts are exempt, selling lowers it, a grown one counts under its new form.
 	var step := placer.copy_cost_step
-	_check(is_equal_approx(step, 0.08), "copies cost +8%% each (be7b5a94; %.2f)" % step)
+	_check(is_equal_approx(step, 0.04), "copies cost +4%% each (the Health x2, Dew x2 trial; was 0.08, be7b5a94; %.2f)" % step)
 	var spore: TowerData = load("res://resource/tower/sporeling.tres")
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	var base := dreams.get_build_cost(spore)
 	var had := placer.count_copies(spore)  # The Sprout grown above became a Sporeling: it counts
 	_check(had == 1, "a Sprout grown into a Sporeling counts as a Sporeling (%d)" % had)
-	_check(placer.get_cost(spore) == roundi(base * (1.0 + step * had)), "the next Sporeling pays +8%% per copy (%d of base %d)" % [placer.get_cost(spore), base])
+	_check(placer.get_cost(spore) == roundi(base * (1.0 + step * had)), "the next Sporeling pays +4%% per copy (%d of base %d)" % [placer.get_cost(spore), base])
 	var spores: Array = [_build(placer, map, spore), _build(placer, map, spore)]
 	_check(spores.all(func(t) -> bool: return t != null), "two Sporelings planted")
 	_check(spores[1].invested_dew == roundi(base * (1.0 + step * (had + 1))), "each paid after the ones before it (%d)" % spores[1].invested_dew)

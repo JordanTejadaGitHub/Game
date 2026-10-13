@@ -1277,7 +1277,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)  # Reclaimed Earth halves the final price, including escalation.
 	return cost
 
-@export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
+@export var copy_cost_step := 0.04  # +4% per copy on the map ("Health x2, Dew x2 trial": more Wardens; was 0.08, be7b5a94. 0 = off, the sims' A/B)
 # Sparkler / Starburst sweeps (Balancing): x every form's spark_share, and the sparks one nightmare can take a burst.
 # They write BranchKit's statics, read at burst time, so a --set after _ready lands.
 @export var spark_share_scale := 1.0:
@@ -1308,10 +1308,10 @@ func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
 
 const SEEDFALL_CARD := "seedfall"
-const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map…
+const SPROUTS_PER_STEP := 10  # Every 10 Sprouts on the map… ("Health x2, Dew x2 trial"; was 5)
 const SPROUT_STEP_DEW := 4  # …add +4 Dew to the next one
-const SEEDFALL_SPROUTS_PER_STEP := 5  # Seedfall: the price rises half as fast…
-const SEEDFALL_STEP_DEW := 2  # …+2 per 5
+const SEEDFALL_SPROUTS_PER_STEP := 10  # Seedfall: the price rises half as fast… (with the trial: every 10 too, or it would step sooner than the base)
+const SEEDFALL_STEP_DEW := 2  # …+2 per 10
 
 # The Sprout price rule now (Seedfall or not), for the HUD's tooltip, ↑ tag and toast.
 func sprout_per_step() -> int:

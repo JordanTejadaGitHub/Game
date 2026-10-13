@@ -16,7 +16,7 @@ signal sprout_charges_changed(charges: int)  # For the Warden bar's seed badge (
 signal run_ended(won: bool)
 signal dew_spent(cost: int)  # Every spend (RunHistory sorts them into planting, growth, ranks, clears)
 
-@export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
+@export var starting_dew: int = 120  # "Health x2, Dew x2 trial" (balance_simulation.md; was 60: run_design.md "Opening rule")
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
 # Dispel Dew is each nightmare's share of its drift's Dew pot (DriftDirector, run_design.md "The Dew pot");

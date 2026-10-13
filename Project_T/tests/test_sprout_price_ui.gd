@@ -26,7 +26,7 @@ func _run() -> void:
 	for i in range(3, path.size() - 3):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset
-			if planted >= 6 or path.has(cell) or not map_generator.can_block(cell):
+			if planted >= TowerPlacer.SPROUTS_PER_STEP + 1 or path.has(cell) or not map_generator.can_block(cell):
 				continue
 			placer.tower_data = sprout
 			if placer._try_build(cell):
@@ -35,10 +35,10 @@ func _run() -> void:
 				await process_frame
 				if hud.toast_label.visible and hud.toast_label.text.begins_with("Sprouts now cost"):
 					toasts.append(hud.toast_label.text)
-	_check(planted == 6, "planted 6 Sprouts (%d)" % planted)
+	_check(planted == TowerPlacer.SPROUTS_PER_STEP + 1, "planted one past the first step (%d)" % planted)  # 11 in the Health x2, Dew x2 trial (the step is every 10)
 	var button: Button = hud.tower_bar.get_node("Warden_sprout")
 	var tag := button.get_node_or_null("SproutRise") as Label
-	_check(tag != null and tag.visible and tag.text == "↑ 6/%d" % (TowerPlacer.SPROUTS_PER_STEP * 2), "the tag counts to the next rise (%s)" % (tag.text if tag else "none"))
+	_check(tag != null and tag.visible and tag.text == "↑ %d/%d" % [TowerPlacer.SPROUTS_PER_STEP + 1, TowerPlacer.SPROUTS_PER_STEP * 2], "the tag counts to the next rise (%s)" % (tag.text if tag else "none"))
 	var price_line := String(button.get_meta(&"price_line", ""))
 	_check(price_line.contains("Every %d Sprouts you plant add %s" % [TowerPlacer.SPROUTS_PER_STEP, UiStyle.dew_amount(TowerPlacer.SPROUT_STEP_DEW, true)]) and price_line.contains("next rise at %d Sprouts" % (TowerPlacer.SPROUTS_PER_STEP * 2)),
 		"the hover card's price line states the rule (%s)" % price_line)
