@@ -307,6 +307,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_tick_settling(delta)
 	_tick_long_press()
+	_sync_link_fx()  # The previewed links' arcs follow what the last draw asked for (none once nothing is previewed)
 	if not _grow_preview.is_empty():
 		_grow_preview_time += delta
 		queue_redraw()  # The new form idles
@@ -338,6 +339,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	_link_wanted.clear()  # The link previews drawn below ask again for their arcs (_sync_link_fx)
 	if is_choosing_square():
 		_draw_grow_choice()
 		return
@@ -397,6 +399,11 @@ func _draw() -> void:
 	_draw_card_areas()
 	if tower_data.special == BranchKit.JARLINK:
 		_draw_fence_preview()  # The arc this jar would make (Balancing: players couldn't tell which jar links to which)
+	if tower_data.special == BranchKit.JET:
+		# A jet planted directly: its line and the path cells it would cross, as the grow preview shows them.
+		draw_set_transform(Vector2.ZERO)
+		_draw_special_preview(tower_data, _ghost_centre(), _hover_cell, Tower.get_range_for(tower_data, dream_state) + _range_gain, null)
+		draw_set_transform(_ghost_centre())
 	if tower_data.special == BranchKit.BROOD:
 		# Brood Cap: the stretch its sprites would walk from here, and where they'd give up.
 		var walk := BranchKit.brood_walk(_hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath),
@@ -498,6 +505,7 @@ var _grow_preview_time := 0.0
 # range bright over the current faint one (a sniper's dead zone too), and a 2×2 form's squares.
 func show_grow_preview(pairs: Array) -> void:
 	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and is_form_open(p[1]))
+	_grow_chip_cache.clear()
 	_grow_preview_time = 0.0
 	_fade_previewed()
 	_update_visible()
@@ -645,14 +653,20 @@ func _draw_grow_preview() -> void:
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
 			continue
-		if into.special == BranchKit.BROOD:
-			# Brood Cap / Hatchery (user: "when hovering over brood cap upgrade, show the initial spawn and the length"):
-			# where its first sprite would drop and how far up the path sprites walk, as the build ghost shows it.
-			var walk := BranchKit.brood_walk(tower._route(), tower.global_position, float(into.special_params.get("sprite_speed", 3.0)))
-			for i in walk.size():
-				walk[i] = to_local(walk[i])
-			draw_set_transform(Vector2.ZERO)
-			BranchKit.draw_brood_walk(self, walk, true)
+		# The new form's special area as it will really be, from this Warden's spot (screens_ui.md "Grow preview shows
+		# the new form's reach"): a Jarlink's link and the path it crosses, a jet's line, the whirlpool, the cloud, the
+		# burst, the rings' cells, the lit path, Brood Cap's first sprite and its walk.
+		draw_set_transform(Vector2.ZERO)
+		_draw_special_preview(into, tower.global_position, tower.cell, preview_range(tower, into), tower)
+		# What it would gain there: the Kinship it forms, its position cards on or off (the build ghost's chips).
+		var chip_at := to_local(tower.global_position)
+		var chip_y := chip_at.y - MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(into.get_sprite_offset().y, 0.0)
+		var chip_key := "%d:%s" % [tower.get_instance_id(), into.get_id()]
+		if not _grow_chip_cache.has(chip_key):
+			_grow_chip_cache[chip_key] = grow_chips(tower, into)  # Once per preview: the query walks the whole card list
+		for chip in _grow_chip_cache[chip_key]:
+			WorldLabel.draw_tag(self, chip_at.x, chip_y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
+			chip_y -= CHIP_STEP
 		draw_set_transform(to_local(tower.global_position))
 		if into.can_attack:
 			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
@@ -859,26 +873,178 @@ func _draw_kin_spots() -> void:
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
 # Jarlink's build ghost: the arc to the jar it would link with (BranchKit.fence_partner_at) and the cells it covers.
 func _draw_fence_preview() -> void:
-	var reach := float(tower_data.special_params.get("link_range", 4.5))
-	var partner := BranchKit.fence_partner_at(self, _hover_cell, reach)
 	draw_set_transform(Vector2.ZERO)
-	var here := to_local(MAP_GRID.calculate_map_position(_hover_cell))
-	# Its link range (user 2026-10-05: "have Jarlink have its range connection"), and every jar inside it.
-	BranchKit.draw_link_area(self, here, reach)
+	_draw_link_preview(_hover_cell, float(tower_data.special_params.get("link_range", 4.5)), null)
+	draw_set_transform(_ghost_centre())
+
+# --- Reach previews: the build ghost and the grow preview share them (screens_ui.md "Grow preview shows the new
+# form's reach", 7f06b5a0 / b0761f65; the user: "should have the Jarlink range when hovering over the upgrade", "and
+# also what the visible connected path would look like") ---------------------------------------------------------
+
+# The route the previews measure against: the one the ghost's placement would leave, else the current one.
+func preview_route() -> PackedVector2Array:
+	return _hover_path if build_mode and not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath)
+
+# The path cells among `cells` (whole cells: where a nightmare can stand), in route order.
+func crossed_path_cells(cells: Dictionary) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for cell in Tower.route_cells(preview_route()):
+		if cells.has(cell):
+			out.append(cell)
+	return out
+
+# What a Jarlink on `cell` would link (`skip`: the Warden growing into one): {reach, partner (the jar the game
+# would really link, BranchKit.fence_partner_at, or null), candidates (every jar in reach), cells (the path cells
+# its arc would cross: BranchKit._arc_cells, the very cells the live arc damages)}.
+func link_preview(cell: Vector2, reach: float, skip: Tower = null) -> Dictionary:
+	var partner := BranchKit.fence_partner_at(self, cell, reach, skip)
+	var at := MAP_GRID.calculate_map_position(cell)
+	var candidates: Array = []
 	for other in get_tree().get_nodes_in_group(Tower.GROUP):
-		if other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
-				and BranchKit.area_distance_at(MAP_GRID.calculate_map_position(_hover_cell), other) <= reach:
-			BranchKit.draw_link_mark(self, to_local(other.global_position), other == partner)
+		if other != skip and other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
+				and BranchKit.area_distance_at(at, other) <= reach:
+			candidates.append(other)
+	var cells: Array[Vector2] = []
 	if partner != null:
-		var to := to_local(partner.global_position)
-		for cell in BranchKit._arc_cells(_hover_cell, partner.cell):
-			var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
-			draw_rect(rect.grow(-4), Color(BranchKit.LINK_COLOR, 0.12))
-		draw_dashed_line(here, to, Color(BranchKit.LINK_COLOR, 0.8), 2.0, 6.0)  # The arc it would make
+		cells = crossed_path_cells(BranchKit._arc_cells(cell, partner.cell))
+	return {"reach": reach, "partner": partner, "candidates": candidates, "cells": cells}
+
+# A jet from `from` (px) of `length` cells toward the path in `reach_px`: {to (px), cells (path cells it crosses)}.
+# It aims at the nightmare furthest along, so the sample is the route point in range nearest the Heartwood.
+func jet_preview(from: Vector2, length: float, reach_px: float) -> Dictionary:
+	var aim = _sample_point(from, reach_px)
+	if aim == null:
+		return {}
+	var dir: Vector2 = ((aim as Vector2) - from).normalized()
+	var to := from + dir * length * MAP_GRID.cell_size.x
+	return {"to": to, "cells": crossed_path_cells(BranchKit.jet_cells(from, dir, length * MAP_GRID.cell_size.x, preview_route()))}
+
+# The route point (px) within `reach_px` of `from` that is furthest along the path, or null: where a Warden's
+# first target would stand.
+func _sample_point(from: Vector2, reach_px: float) -> Variant:
+	var route := preview_route()
+	for i in range(route.size() - 1, -1, -1):
+		var at := MAP_GRID.calculate_map_position(route[i])
+		if at.distance_to(from) <= reach_px:
+			return at
+	return null
+
+func _draw_path_cells(cells: Array, colour: Color) -> void:
+	for cell in cells:
+		var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size).grow(-4)
+		draw_rect(rect, Color(colour, 0.3))
+		draw_rect(rect, Color(colour, 0.85), false, 1.5)
+
+# The link a Jarlink on `cell` would make (draw transform: identity): its link range, every jar in reach (the real
+# partner strong, the others faint), the arc itself (Tower Assets' arc_fence at reduced strength, a child node
+# kept by _sync_link_fx) and the path cells it crosses; or "no partner in range".
+func _draw_link_preview(cell: Vector2, reach: float, skip: Tower) -> void:
+	var link := link_preview(cell, reach, skip)
+	var from := MAP_GRID.calculate_map_position(cell)
+	var here := to_local(from)
+	BranchKit.draw_link_area(self, here, reach)
+	var partner: Tower = link.partner
+	for other in link.candidates:
+		var at := to_local(other.global_position)
+		BranchKit.draw_link_mark(self, at, other == partner)
+		if other != partner:
+			draw_dashed_line(here, at, Color(BranchKit.LINK_COLOR, 0.3), 1.0, 6.0)  # Another jar it could link: fainter
+	if partner != null:
+		_draw_path_cells(link.cells, BranchKit.LINK_COLOR)
+		draw_dashed_line(here, to_local(partner.global_position), Color(BranchKit.LINK_COLOR, 0.8), 2.0, 6.0)
+		_link_wanted["%s>%s" % [from, partner.global_position]] = [from, partner.global_position]
 	else:
 		WorldLabel.draw_tag(self, here.x, here.y - MAP_GRID.cell_size.y - 10.0,
-			"no Jarlink within %s cells" % IconInfo._number(reach), Color(BranchKit.LINK_COLOR, 0.9))
-	draw_set_transform(_ghost_centre())
+			"no partner in range (%s cells)" % IconInfo._number(reach), Color(BranchKit.LINK_COLOR, 0.9))
+
+# The preview arcs: the real arc effect at reduced strength, one node per previewed link, made and freed here (never
+# while drawing). Nothing is left once no preview asks for it.
+var _link_wanted := {}  # "from>to" -> [from px, to px], refilled by each _draw
+var _link_fx := {}  # "from>to" -> the Fx.segment node
+var _grow_chip_cache := {}  # "tower id:form" -> grow_chips, for the preview showing now
+
+func _sync_link_fx() -> void:
+	if not visible:
+		_link_wanted.clear()  # No ghost and no grow preview: every preview arc goes
+	for key in _link_fx.keys():
+		if not _link_wanted.has(key) or not is_instance_valid(_link_fx[key]):
+			if is_instance_valid(_link_fx[key]):
+				_link_fx[key].queue_free()
+			_link_fx.erase(key)
+	for key in _link_wanted:
+		if not _link_fx.has(key):
+			var arc := Fx.segment(&"arc_fence", _link_wanted[key][0], _link_wanted[key][1], self, 36000.0)
+			if arc != null:
+				arc.modulate.a = 0.55  # multiplier (the preview: the real arc, quieter)
+				_link_fx[key] = arc
+
+# A form's special area as it will really be, from a Warden standing at `from` (px) on `cell` (draw transform:
+# identity). `reach_cells`: its range there. Samples (a whirlpool, a cloud, a burst) sit where its first target would.
+func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_cells: float, skip: Tower) -> void:
+	var reach_px := Tower.range_to_pixels(reach_cells)
+	var params: Dictionary = data.special_params
+	var sample = _sample_point(from, reach_px)
+	match data.special:
+		BranchKit.JARLINK:
+			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip)
+		BranchKit.JET:
+			var jet := jet_preview(from, float(params.get("length", 6.0)), reach_px)
+			if not jet.is_empty():
+				_draw_path_cells(jet.cells, Palette.DEWLIGHT)
+				draw_line(to_local(from), to_local(jet.to), Color(Palette.DEWLIGHT, 0.8), 3.0)
+		BranchKit.WHIRLPOOL:
+			if sample != null:
+				draw_arc(to_local(sample), float(params.get("radius", 1.5)) * MAP_GRID.cell_size.x, 0.0, TAU, 40, Color(Palette.DEWLIGHT, 0.8), 2.0)
+		BranchKit.CLOUD:
+			if sample != null:
+				var half := MAP_GRID.cell_size * 1.5  # Its rain covers the 3×3 cells around the spot
+				var spot: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(sample))
+				draw_rect(Rect2(to_local(spot) - half, half * 2.0), Color(Palette.DEWLIGHT, 0.8), false, 2.0)
+		BranchKit.SPARKLER:
+			if sample != null:
+				draw_arc(to_local(sample), float(params.get("burst_radius", 1.5)) * MAP_GRID.cell_size.x, 0.0, TAU, 40, Color(Palette.GLOW, 0.8), 2.0)
+		BranchKit.BROOD:
+			var walk := BranchKit.brood_walk(preview_route(), from, float(params.get("sprite_speed", 3.0)))
+			for i in walk.size():
+				walk[i] = to_local(walk[i])
+			BranchKit.draw_brood_walk(self, walk, true)
+	if data.attack_kind == TowerData.AttackKind.TRAP:
+		# Rings: the path cells in range they can use.
+		var cells: Array[Vector2] = []
+		for c in Tower.route_cells(preview_route()):
+			if MAP_GRID.calculate_map_position(c).distance_to(from) <= reach_px:
+				cells.append(c)
+		_draw_path_cells(cells, Palette.NEWLEAF)
+	elif data.attack_kind == TowerData.AttackKind.LIGHT:
+		var lit := {}
+		var all := {}
+		for point in preview_route():
+			var half_cell := FindPath.point_to_node(point)
+			all[half_cell] = true
+			var at: Vector2 = MAP_GRID.calculate_map_position(point)
+			if MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at)).distance_to(from) <= reach_px:
+				lit[half_cell] = at
+		Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL)
+
+# What growing `tower` into `into` would gain, as the build ghost's chips ([[text, on], …]): the Kinship it would
+# form there, and the new form's position cards on or off at its cell. (Growing never breaks a Kinship: a Warden
+# keeps its branch from then on.)
+func grow_chips(tower: Tower, into: TowerData) -> Array:
+	var chips := []
+	var kin := Kinships.find(self)
+	if kin != null and kin.get_pair(tower).is_empty():
+		var bond: Dictionary = kin.preview(into, tower.cell)
+		if not bond.is_empty() and bond.get("partner") != tower:
+			chips.append(["Forms Kinship: %s" % bond.get("name", ""), true])
+	if dream_state != null and dream_state.has_method("get_card_effects"):
+		for row in dream_state.get_card_effects(into, tower.cell):
+			if not row.get("positional", false):
+				continue
+			if row.active:
+				chips.append(["%s ✓ %s" % [row.name, row.get("effect", "")], true])
+			else:
+				chips.append(["%s ✗ %s" % [row.name, row.get("reason", "")], false])
+	return chips
 
 func _draw_card_areas() -> void:
 	var done := {}
