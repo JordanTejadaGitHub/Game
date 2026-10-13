@@ -126,7 +126,7 @@ func _ready() -> void:
 	var gameplay := _tab("Gameplay")
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
 	# something happens; Growth marks (GrowHints) remain independently adjustable.
-	_toggle(gameplay, "Hints", "whispers", true, "Paused Lessons that explain a rule the first time it matters. The Heartwood's story lines and warnings always show.")
+	_toggle(gameplay, "Lessons", "whispers", true, "Short paused lessons the first time a rule matters. The Heartwood's story lines and warnings always show.")
 	# Growth marks use their own saved setting, independently of Hints.
 	_growth_marks = _toggle(gameplay, "Growth marks", GrowHints.SETTING, true,
 		"At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")

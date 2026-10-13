@@ -102,18 +102,18 @@ func _ready() -> void:
 	var hints := HBoxContainer.new()
 	hints.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	var hints_label := Label.new()
-	hints_label.text = "Hints"  # The Heartwood's hints (were "Heartwood whispers")
+	hints_label.text = "Lessons"  # The paused cards (were "Hints", before that "Heartwood whispers")
 	hints_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hints_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	hints.add_child(hints_label)
 	_whispers_toggle.focus_mode = Control.FOCUS_NONE
-	_whispers_toggle.tooltip_text = "Paused Lessons, the first time a rule matters"
+	_whispers_toggle.tooltip_text = "Short lessons the first time a rule matters."
 	_whispers_toggle.toggled.connect(_set_whispers)
 	hints.add_child(_whispers_toggle)
 	side.add_child(hints)
 	var guides := Button.new()
 	guides.name = "ReplayGuides"
-	guides.text = "Replay guides"
+	guides.text = "Replay lessons"
 	guides.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	guides.focus_mode = Control.FOCUS_NONE
 	guides.pressed.connect(func() -> void:

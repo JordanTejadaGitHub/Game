@@ -26,15 +26,16 @@ func _run() -> void:
 		_check(false, "new players automatically get opening lesson panels")
 	else:
 		_check(lessons.visible and lessons.shown_id == &"intro_heartwood" and speed.paused and paused, "first opening panel appears and pauses the actual game")
-		for id in [&"intro_maze", &"intro_dew"]:
+		for id in [&"intro_maze"]:  # Two opening cards (wording review 2026-10-13: no Dew card before drift 1)
 			lessons.close()
 			_check(lessons.visible and lessons.shown_id == id and speed.paused, "Next advances to %s without unpausing" % id)
+		_check(lessons._title.text == "Plant and start" and lessons._body.text.contains("called a drift") and not lessons._demo.visible, "the second opening card is Plant and start (%s)" % lessons._title.text)
 		lessons.close()
 		_check(not lessons.visible and not speed.paused, "finishing opening panels restores running state")
 		lessons.start_intro()
 		await _frames()
 		_check(not lessons.visible, "opening panels do not repeat on the same profile")
-		_check(HeartwoodMemory.load_data().get("lessons_seen", []).has("intro_dew"), "opening completion is saved to the temporary profile")
+		_check(HeartwoodMemory.load_data().get("lessons_seen", []).has("intro_maze"), "opening completion is saved to the temporary profile")
 		lessons.one_per_drift = false
 		var choice := main.get_node("HUD/DreamScreen") as Control
 		choice.visible = true
@@ -84,7 +85,7 @@ func _run() -> void:
 		lessons.start_intro()
 		await _frames()
 		lessons.skip_intro()
-		_check(not lessons.visible and not speed.paused, "Skip tutorial dismisses all opening panels and restores pause")
+		_check(not lessons.visible and not speed.paused, "Skip lessons dismisses all opening panels and restores pause")
 		lessons.start_intro()
 		await _frames()
 		_check(not lessons.visible, "skipped opening panels stay skipped")
