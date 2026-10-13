@@ -998,7 +998,7 @@ func _test_live_lines() -> void:
 	_reset()
 	var fx := dreams.effects()
 	var line: String = fx.preview_line(_card("winding_path"))
-	_check(line == "Now: %s in reach · +%d Dew per rest (up to %d)" % [("%d path tiles" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path tile", dreams.winding_path_dew(), DreamState.WINDING_PATH_MAX], "Winding Path: %s" % line)
+	_check(line == "Now: %s in range · +%d Dew per rest (up to %d)" % [("%d path cells" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path cell", dreams.winding_path_dew(), DreamState.WINDING_PATH_MAX], "Winding Path: %s" % line)
 	var dew := run_state.dew
 	run_state.dew = 275
 	line = fx.preview_line(_card("deep_well"))

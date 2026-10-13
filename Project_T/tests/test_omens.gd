@@ -360,7 +360,7 @@ func _test_new_omens(main: Node) -> void:
 		run_state.won = won_before
 		run_state.leaves_lost = lost_before  # Later checks measure their own blocks' losses
 		boss.free()
-	_check(not by_id["leaf_fall"].description.contains("drains"), "Leaf Fall's text: just \"Every leak costs double leaves.\"")
+	_check(not by_id["leaf_fall"].description.contains("drains"), "Leaf Fall's text never says drains")
 	# Never for a block with a boss drift (a doubled flat boss leak would end the run): blocks 5 / 10 / 15 / 20
 	omens.active = null
 	var leaf_fall_offered := func(block: int) -> bool:
@@ -480,7 +480,7 @@ func _test_teeth(main: Node) -> void:
 	omens.omen_rewarded.connect(func(_o: OmenData, summary: String) -> void: paid.append(summary))
 	# Crowded Paths (60 Dew): clean = all, 1 leaf lost = 75% (rounded down), 4+ = nothing
 	_activate(omens, "crowded_paths", 3)
-	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "Reward: \uE000+60, minus \uE00015 for each leaf you lose in these drifts.", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
+	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "At the rest: \uE000+60. Each leaf lost: \uE00015 less.", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
 	run_state.leaves_lost += 1
 	_check(omens.get_reward_status() == "You'd get 75% right now: 1 leaf lost.", "…the tag follows the losses (%s)" % omens.get_reward_status())
 	var dew := run_state.dew
@@ -671,7 +671,7 @@ func _test_active_tag(main: Node) -> void:
 	# One compact line (user), in segments (light pass): [icon] "Stubborn Blight │ drifts 16–20 │ +40 Dew"; the twist and the reward rule in the tooltip
 	_check(tag.text.strip_edges() == "Stubborn Blight  │  drifts 16–20  │  \uE000+40" and not tag.text.contains("\n"),
 		"the tag: one compact line with the live reward (%s)" % tag.text.strip_edges())
-	_check(tag.tooltip_text.begins_with("Statuses last a third as long.") and tag.tooltip_text.contains("Reward: \uE000+40, minus \uE00010")
+	_check(tag.tooltip_text.begins_with("For the next 5 drifts: statuses last a third as long.") and tag.tooltip_text.contains("At the rest: \uE000+40. Each leaf lost: \uE00010 less.")
 		and tag.tooltip_text.ends_with("You'd get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
 	var rich: RichTextLabel = tag.get_node_or_null("TagText")
 	_check(rich != null and not rich.text.contains(UiStyle.POOR.to_html(false)) and tag.get_theme_stylebox("normal") is MoonStyleBox,
@@ -700,21 +700,21 @@ func _test_reward_words(main: Node) -> void:
 	var by_id := {}
 	for omen in omens.pool:
 		by_id[omen.id] = omen
-	_check(omens.reward_sentence(by_id["stubborn_blight"], 1) == "Reward: \uE000+40, minus \uE00010 for each leaf you lose in these drifts.",
+	_check(omens.reward_sentence(by_id["stubborn_blight"], 1) == "At the rest: \uE000+40. Each leaf lost: \uE00010 less.",
 		"Dew: the concrete cut per leaf (%s)" % omens.reward_sentence(by_id["stubborn_blight"], 1))
-	_check(omens.reward_sentence(by_id["thick_blight"], 1) == "Reward: your next Dream offers 5 cards, if you lose at most 1 leaf in these drifts.",
+	_check(omens.reward_sentence(by_id["thick_blight"], 1) == "At the rest: your next Dream offers 5 cards, if you lose at most 1 leaf.",
 		"a Dream reward: kept with at most 1 leaf lost, not cut (%s)" % omens.reward_sentence(by_id["thick_blight"], 1))
 	var mixed := omens.reward_sentence(by_id["hard_bark"], 1)
-	_check(mixed == "Reward: \uE000+25, minus \uE0006 for each leaf you lose, and a Rare+ card in your next Dream if you lose at most 1 leaf.",
+	_check(mixed == "At the rest: \uE000+25 and a Rare or better card in your next Dream. Each leaf lost: \uE0006 less. Lose 2 leaves and the Dream reward is gone.",
 		"Dew and a Dream reward: both, in words (%s)" % mixed)
 	_check(omens.reward_sentence(by_id["blood_moon"], 1) == OmenDirector.DOUBLE_EDGED_LINE and not mixed.contains("%"),
-		"double-edged: \"No other reward: the extra Dew is the prize.\"; no percentages")
+		"double-edged: the extra Dew is the reward; no percentages")
 	_check(omens.paid_sentence(by_id["hard_bark"], 1, 0, 2, 0) == "Reward: \uE000+12 (2 leaves lost). The Dream reward is gone.",
 		"paid with 2 leaves lost (%s)" % omens.paid_sentence(by_id["hard_bark"], 1, 0, 2, 0))
 	# The card's bullets: one per reward, each with its own condition
-	_check(omens.reward_bullets(by_id["hard_bark"], 1) == ["\uE000+25, minus \uE0006 for each leaf you lose", "A Rare+ card in your next Dream, if you lose at most 1 leaf"],
+	_check(omens.reward_bullets(by_id["hard_bark"], 1) == ["\uE000+25, \uE0006 less for each leaf lost", "A Rare or better card in your next Dream, if you lose at most 1 leaf"],
 		"Hard Bark's bullets (%s)" % [omens.reward_bullets(by_id["hard_bark"], 1)])
-	_check(omens.reward_bullets(by_id["wilting"], 1) == ["\uE000+30, minus \uE0007 for each leaf you lose", "Next Dream offers 4 cards, if you lose at most 1 leaf"],
+	_check(omens.reward_bullets(by_id["wilting"], 1) == ["\uE000+30, \uE0007 less for each leaf lost", "Next Dream offers 4 cards, if you lose at most 1 leaf"],
 		"Wilting's bullets (%s)" % [omens.reward_bullets(by_id["wilting"], 1)])
 	_check(omens.reward_bullets(by_id["blood_moon"], 1, 4).size() == 1 and omens.reward_bullets(by_id["blood_moon"], 1, 4)[0].begins_with("About \uE000+"), "Blood Moon: one bullet, the computed extra Dew")
 
@@ -733,7 +733,7 @@ func _test_bullets_match_data(main: Node) -> void:
 		if omen.reward_dew > 0 or omen.reward_pot_multiplier > 0.0:
 			expected += 1
 			if omen.reward_dew > 0:
-				_check(bullets[0] == "\uE000+%d, minus \uE000%d for each leaf you lose" % [omen.reward_dew, floori(omen.reward_dew * 0.25)],
+				_check(bullets[0] == "\uE000+%d, \uE000%d less for each leaf lost" % [omen.reward_dew, floori(omen.reward_dew * 0.25)],
 					"%s: +%d Dew with its cut per leaf (%s)" % [omen.id, omen.reward_dew, bullets[0]])
 		if omen.reward_seeds > 0:
 			expected += 1
@@ -749,7 +749,7 @@ func _test_bullets_match_data(main: Node) -> void:
 	for omen in omens.pool:
 		if omen.id == "heavy_rain":
 			heavy = omen
-	_check(not OmenDirector.is_dew_prize(heavy) and omens.reward_bullets(heavy, 1) == ["\uE000+45, minus \uE00011 for each leaf you lose"],
+	_check(not OmenDirector.is_dew_prize(heavy) and omens.reward_bullets(heavy, 1) == ["\uE000+45, \uE00011 less for each leaf lost"],
 		"Heavy Rain lists its own +45 Dew")
 	_check(omens.paid_sentence(heavy, 1, 0, 1, 0) == "Reward: \uE000+33 (1 leaf lost).", "…and its rest report is cut like any reward (%s)" % omens.paid_sentence(heavy, 1, 0, 1, 0))
 	_activate(omens, "heavy_rain", 3)

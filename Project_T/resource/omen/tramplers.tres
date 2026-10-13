@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "tramplers"
 display_name = "Tramplers"
-description = "Each {drift}, the first nightmare to pass a Thornwall tramples it (no refund)."
+description = "For the next 5 {drifts}: each {drift}, the first nightmare to pass a Thornwall tramples it (no refund)."
 flavor = "Something heavy is coming through the hedges."
 min_drift = 26
 kind = 4

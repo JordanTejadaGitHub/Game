@@ -4940,12 +4940,12 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 			result.text = "%d of your Wardens qualify · %s" % [changed.size(), what]
 		else:
 			result.kind = &"stat"
-			result.text = "On your board · %s on %d %s" % [what, changed.size(), "Warden" if changed.size() == 1 else "Wardens"]
+			result.text = "On your map · %s on %d %s" % [what, changed.size(), "Warden" if changed.size() == 1 else "Wardens"]
 		return result
 	if card.kind == UpgradeData.Kind.ECONOMY or card.dew_now > 0 or card.rest_bonus_add != 0 or card.free_clears_add > 0:
 		var live := effects().preview_line(card)
 		result.kind = &"economy"
-		result.text = ("On your board · " + live.trim_prefix("Now: ")) if live != "" else _economy_line(card)
+		result.text = ("On your map · " + live.trim_prefix("Now: ")) if live != "" else _economy_line(card)
 		return result
 	if card.diagram != "":
 		result.kind = &"position"
@@ -4979,7 +4979,7 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
 		if not attackers.is_empty():  # A global rule (Glinting Dew: every Warden's crit): the line, but no Warden pulses
 			result.kind = &"trigger"
-			result.text = ("Reaches all %d attackers" % attackers.size()) if attackers.size() > 1 else "Reaches your attacker"
+			result.text = ("Reaches all %d attacking Wardens" % attackers.size()) if attackers.size() > 1 else "Reaches your attacking Warden"
 	return result
 
 func _card_active_on(card: UpgradeData, tower: Tower) -> bool:
@@ -4996,7 +4996,7 @@ func _economy_line(card: UpgradeData) -> String:
 		bits.append("+%d Dew every rest" % card.rest_bonus_add)
 	if card.free_clears_add > 0:
 		bits.append("%d half-price clears" % card.free_clears_add)  # free_clears are half price (RunState.try_clear)
-	return ("On your board · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
+	return ("On your map · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
 
 # A Warden's Dream multipliers now: {damage: 1 + Σ damage parts, speed: 1 + Σ speed parts, range: Σ range parts}.
 func _dream_stat_factors(tower: Tower) -> Dictionary:

@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "stubborn_blight"
 display_name = "Stubborn Blight"
-description = "Statuses last a third as long."
+description = "For the next 5 {drifts}: statuses last a third as long."
 flavor = "They shake off every charm."
 status_duration_multiplier = 0.33
 reward_dew = 40

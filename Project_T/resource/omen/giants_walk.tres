@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "giants_walk"
 display_name = "Giants' Walk"
-description = "Half as many nightmares, each with 2.4× health. Every leak costs 1 more leaf."
+description = "For the next 5 {drifts}: half as many nightmares, each with 2.4× health. Each one that reaches the Heartwood takes 1 more leaf."
 flavor = "Few come tonight. They are very large."
 requires_grove = "restless_omens"
 kind = 2

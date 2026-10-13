@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "lean_season"
 display_name = "Lean Season"
-description = "No {rest} bonus after this {block}."
+description = "For the next 5 {drifts}: nothing changes, but the {rest} after them pays no {rest} bonus."
 flavor = "A thin season, with a strange gift at its end."
 kind = 1
 min_drift = 26

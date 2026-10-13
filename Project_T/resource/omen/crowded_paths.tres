@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "crowded_paths"
 display_name = "Crowded Paths"
-description = "45% more nightmares in every {drift}."
+description = "For the next 5 {drifts}: 45% more nightmares."
 flavor = "The path fills with footsteps."
 count_multiplier = 1.45
 reward_dew = 60
