@@ -48,6 +48,8 @@ func _init() -> void:
 	_firework_effects()
 	_root_pulse_effects()
 	_puddle_effects()
+	_exposed_effects()
+	_hit_feedback_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3756,3 +3758,366 @@ func _puddle(img: Image, f: int, v: String, pal: Dictionary) -> void:
 		var t := Vector2(b0.x + b0.z * 0.4, b0.y - b0.w * 0.35)
 		if inside.call(t, -1.5):
 			img.set_pixel(int(t.x), int(t.y), pal.glint)
+
+# --- Exposed at full stacks (screens_ui.md "Exposed at full stacks is visible", user 2026-10-13) -----
+# Warm light on a cold nightmare, three moments: the stacks filling (a ring of light closing in), the
+# steady mark while it stays full (a faint dotted halo with two glints circling it), and a spark on each
+# hit it takes (a small gold diamond opening: the crit is a cross star, the area hit a round ring).
+# The flare and the mark come in three sizes; pick by the nightmare's body (bounds.json top / bottom).
+# [suffix, mark radii, flare outer radius]
+const EXPOSED_SIZES := [["", Vector2(18, 14), 30.0], ["_mid", Vector2(30, 24), 46.0], ["_big", Vector2(54, 46), 92.0]]
+
+func _exposed_effects() -> void:
+	for s: Array in EXPOSED_SIZES:
+		var suffix: String = s[0]
+		var radii: Vector2 = s[1]
+		var outer: float = s[2]
+		var side := int(outer) * 2 + 4
+		var fits := "a body up to ~%d px across" % int(radii.x * 2.0 - 6.0)
+		_sheet("exposed_complete" + suffix, Vector2i(side, side), 6, 16, Vector2i(side / 2, side / 2), false, "status",
+			_exposed_complete.bind(radii, outer),
+			{note = "Exposed reaching full stacks: a ring of light closing in on the nightmare (anchor = its body centre), %s. ~0.38 s; ends on the exposed_mark%s halo. Skip under reduced flashes." % [fits, suffix]})
+		var mark := Vector2i(int(radii.x) * 2 + 8, int(radii.y) * 2 + 8)
+		_sheet("exposed_mark" + suffix, mark, 6, 6, mark / 2, true, "status", _exposed_mark.bind(radii),
+			{note = "A fully Exposed nightmare: a faint dotted halo with two glints circling it, looped (anchor = its body centre), %s. Quiet on purpose: fine on 20 nightmares at once. Fade it out when the stacks drop." % fits})
+	_sheet("exposed_hit", Vector2i(16, 16), 4, 16, Vector2i(8, 8), false, "status", _exposed_hit,
+		{note = "Each hit on a fully Exposed nightmare: a small gold diamond opening at the hit point, over the Warden's own hit effect. ~0.25 s; one per hit (area hits: one per nightmare)."})
+
+func _exposed_complete(img: Image, f: int, radii: Vector2, outer: float) -> void:
+	var c := Vector2(img.get_width() / 2.0, img.get_height() / 2.0)
+	var squash := radii.y / radii.x
+	var t: float = [0.0, 0.3, 0.6, 0.85, 1.0, 1.0][f]
+	var rx := lerpf(outer, radii.x, t)
+	var r := Vector2(rx, lerpf(outer, rx * squash, t))  # a circle far out, the halo's ellipse as it lands
+	var a: float = [0.4, 0.75, 1.0, 1.0, 1.0, 0.4][f]
+	var col: Color = [GOLD, GOLD, GOLD, WARM, CORE, GOLD][f]
+	var thick: float = [1.5, 1.5, 1.5, 2.0, 2.5, 1.5][f]
+	_ring(img, c, r, thick, Color(col, a), f == 0 or f == 5, f)
+	# Four ticks riding the ring inwards, like a mark being set.
+	for k in 4:
+		var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0)
+		var on := c + d * r
+		var tick: float = [3.0, 4.0, 5.0, 4.0, 3.0, 0.0][f]
+		if tick > 0.0:
+			_line(img, on, on + d * tick, Color(WARM if f >= 2 else GOLD, a))
+	if f == 4:  # it lands: a glint at each quarter
+		for k in 4:
+			var d := Vector2.from_angle(k * TAU / 4.0)
+			_star(img, c + d * r, 3, CORE, WARM)
+	elif f == 5:
+		for k in 4:
+			var d := Vector2.from_angle(k * TAU / 4.0)
+			var p := c + d * (r + Vector2(2, 2))
+			_px(img, int(p.x), int(p.y), Color(WARM, 0.75))
+
+func _exposed_mark(img: Image, f: int, radii: Vector2) -> void:
+	var c := Vector2(img.get_width() / 2.0, img.get_height() / 2.0)
+	var dots := int((radii.x + radii.y) * PI / 3.0) / 2 * 2  # a dot every ~3 px, an even count so the halo is symmetric
+	for k in dots:  # amber, so it reads on the pale path as well as on grass
+		var d := Vector2.from_angle(k * TAU / dots)
+		var p := c + d * radii
+		_px(img, int(p.x), int(p.y), Color(AMBER, 0.75))
+	var big := radii.x >= 30.0
+	for g in 2:  # two glints half a turn apart; six frames carry each to the other's place
+		var turn := g * PI + f * PI / 6.0
+		for i in range(7, -1, -1):  # tail first, so the head is drawn last
+			var p := c + Vector2.from_angle(turn - i * 3.0 / (radii.x + radii.y)) * radii
+			var col: Color = [CORE, CORE, WARM, WARM, GOLD, GOLD, Color(GOLD, 0.75), Color(GOLD, 0.75)][i]
+			_px(img, int(p.x), int(p.y), col)
+			if big and i < 4:  # a thicker head on the larger halos
+				var inward := (c - p).normalized()
+				_px(img, int(p.x + inward.x * 1.2), int(p.y + inward.y * 1.2), col)
+
+func _exposed_hit(img: Image, f: int) -> void:
+	var c := Vector2i(8, 8)
+	var r: int = [1, 3, 5, 6][f]
+	var a: float = [1.0, 1.0, 0.75, 0.4][f]
+	for y in range(-r, r + 1):
+		for x in range(-r, r + 1):
+			var m := absi(x) + absi(y)
+			if f == 0 and m <= r:
+				_px(img, c.x + x, c.y + y, CORE)
+			elif f == 1 and m == r:
+				_px(img, c.x + x, c.y + y, WARM)
+			elif f == 2 and m == r and (x == 0 or y == 0 or absi(x) == absi(y) + 1 or absi(y) == absi(x) + 1):
+				_px(img, c.x + x, c.y + y, Color(GOLD, a))
+			elif f == 3 and m == r and (x == 0 or y == 0):
+				_px(img, c.x + x, c.y + y, Color(GOLD, a))
+	if f == 1:
+		_px(img, c.x, c.y, CORE)
+		for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			_px(img, c.x + n.x, c.y + n.y, WARM)
+	elif f == 2:
+		_px(img, c.x, c.y, Color(WARM, 0.75))
+
+# --- Hit feedback on nightmares (screens_ui.md "Hit feedback on nightmares", user 2026-10-13) --------
+# The hit looks like what hit it: one small effect at the hit point per family, in the family's colours,
+# bright enough to read on a cold dark body. Rootling keeps root_lash. Continuous damage gets loops:
+# arcs wrapping a nightmare in a link, poison bubbles, a beam's landing spot; the Charged bolt is one
+# strike from above, the biggest of them.
+const HIT := 24
+const HIT_FAMILIES := {
+	"sprout": "Sprout: a small green puff.",
+	"spore": "Sporeling line: a spore burst whose motes hang a moment.",
+	"light": "Firefly line: a warm spark and a brief crackle outline.",
+	"water": "Dewdrop line: a splash with droplets.",
+	"stone": "Pebbling line: a stone chip and dust (give it the heaviest jolt).",
+	"bell": "Bellflower line: a double ring ripple passing through it.",
+	"acorn": "Acorn line: a bounce pop, the nut hopping off.",
+	"wing": "Nestling line: a quick slash and a feather.",
+	"wind": "Whirligig line: a small swirl drifting sideways (flip it for the tug direction).",
+	"thorn": "Thorny walls / thorns: a thorn scratch.",
+}
+const HF_GREEN := [Color("#5c944c"), Color("#9cc46c"), Color("#d4ec9c")]
+const HF_CREAM := Color("#fff4dc")
+const HF_WATER := [Color("#4c8ca4"), Color("#9cd4fc"), Color("#dce8f4")]
+const HF_STONE := [Color("#5c5a78"), Color("#8c8cac"), Color("#b4b0c8")]
+const HF_DUST := Color("#bca48c")
+const HF_NUT := [Color("#8c5c34"), Color("#bca48c")]
+const HF_STATIC := Color("#ffe890")  # the palette has no pure yellow: #fff27a snaps to lichen green
+const HF_PINK := Color("#ec9cf4")
+# [suffix, radii] of the body a link wraps in arcs (the three sizes of the Exposed halo)
+const LINK_SIZES := [["", Vector2(18, 14)], ["_mid", Vector2(30, 24)], ["_big", Vector2(54, 46)]]
+
+func _hit_feedback_effects() -> void:
+	for family: String in HIT_FAMILIES:
+		var frames := 6 if family == "spore" else 5
+		_sheet("hit_" + family, Vector2i(HIT, HIT), frames, 12 if family == "spore" else 16, Vector2i(HIT / 2, HIT / 2), false,
+			"status", _hit_family.bind(family), {note = HIT_FAMILIES[family] + " Anchor = the hit point."})
+	for s: Array in LINK_SIZES:
+		var suffix: String = s[0]
+		var radii: Vector2 = s[1]
+		var size := Vector2i(int(radii.x) * 2 + 12, int(radii.y) * 2 + 12)
+		_sheet("link_arcs" + suffix, size, 4, 14, size / 2, true, "status", _link_arcs.bind(radii),
+			{note = "Jarlink / Lightning Fence: jittering arcs wrapped round a nightmare while it stands in the link, looped (anchor = its body centre), a body up to ~%d px across." % int(radii.x * 2.0 - 6.0)})
+	for n in 3:
+		_sheet("poison_bubbles_%d" % (n + 1), Vector2i(24, 32), 6, 8, Vector2i(12, 24), true, "status", _poison_bubbles.bind(n),
+			{note = "Poisoned ticks: green bubbles rising off the nightmare, looped; density %d of 3 (more stacks, more bubbles). Anchor = its body centre; the bubbles rise 24 px above it." % (n + 1)})
+	_sheet("beam_spot", Vector2i(24, 24), 4, 12, Vector2i(12, 12), true, "status", _beam_spot.bind(3.0),
+		{note = "Beams (Sunpetal, Midsummer): the bright spot where the beam lands, looped (anchor = the landing point). Swap to beam_spot_big as the beam ramps."})
+	_sheet("beam_spot_big", Vector2i(40, 40), 4, 12, Vector2i(20, 20), true, "status", _beam_spot.bind(6.0),
+		{note = "Beams at full ramp: the larger landing spot, looped (anchor = the landing point)."})
+	_sheet("bolt_strike", Vector2i(48, 96), 6, 18, Vector2i(24, 80), false, "status", _bolt_strike,
+		{note = "Charged bolt: a strike from above onto the nightmare (anchor = the strike point, its body centre; the bolt comes down 80 px). ~0.33 s; the biggest single hit reaction."})
+
+func _hit_family(img: Image, f: int, family: String) -> void:
+	var c := Vector2(HIT / 2.0, HIT / 2.0)
+	var a: float = [1.0, 1.0, 1.0, 0.75, 0.4, 0.4][f]
+	var t := float(f)
+	match family:
+		"sprout":
+			var out: float = [1.0, 3.5, 5.5, 7.0, 8.0][f]
+			var blob: float = [3.0, 3.2, 2.8, 2.2, 1.6][f]
+			for k in 3:
+				var p := c + Vector2.from_angle(k * TAU / 3.0 - PI / 2.0) * out
+				_disc(img, p, blob, Color(HF_GREEN[1], a))
+				_disc(img, p + Vector2(-0.7, -0.7), blob - 1.3, Color(HF_GREEN[2], a))
+			if f == 0:
+				_disc(img, c, 2.5, HF_CREAM)
+			elif f < 4:  # a leaf flicked up
+				_px(img, int(c.x) + 2 + f, int(c.y) - 4 - f * 2, HF_GREEN[2])
+				_px(img, int(c.x) + 3 + f, int(c.y) - 4 - f * 2, HF_GREEN[1])
+		"spore":
+			var reach: float = [2.0, 6.0, 8.5, 9.5, 10.0, 10.5][f]
+			if f == 0:
+				_disc(img, c, 3.0, HF_GREEN[2])
+			elif f == 1:
+				_disc(img, c, 5.0, Color(HF_GREEN[1], 0.4), true)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 77
+			for k in 8:  # the motes: out fast, then they hang and drift up
+				var d := Vector2.from_angle(k * TAU / 8.0 + rng.randf_range(-0.3, 0.3))
+				var p := c + d * reach * rng.randf_range(0.55, 1.0) + Vector2(0, -maxf(0.0, f - 2.0))
+				var col: Color = HF_PINK if k % 4 == 1 else HF_GREEN[2]
+				var fade: float = [1.0, 1.0, 1.0, 1.0, 0.75, 0.4][f]
+				_px(img, int(p.x), int(p.y), Color(col, fade))
+				_px(img, int(p.x) + 1, int(p.y), Color(col, fade))
+				if f < 5:
+					_px(img, int(p.x), int(p.y) + 1, Color(HF_GREEN[1], fade))
+					_px(img, int(p.x) + 1, int(p.y) + 1, Color(HF_GREEN[0], fade))
+		"light":
+			var arm: int = [3, 5, 3, 2, 0][f]
+			if arm > 0:
+				_star(img, c, arm, CORE, WARM)
+			if f == 0:
+				_disc(img, c, 2.0, CORE)
+			var r: float = [0.0, 6.5, 8.5, 9.5, 10.0][f]
+			if f >= 1:  # the crackle outline: three jagged arcs
+				for k in 3:
+					var from := k * TAU / 3.0 + f * 0.5
+					var pts: Array = []
+					for j in 5:
+						pts.append(c + Vector2.from_angle(from + j * 0.26) * (r + (1.3 if j % 2 == 0 else -1.3)))
+					if f < 4 or k == 0:
+						_poly_line(img, pts, Color(HF_STATIC if f < 3 else GOLD, a))
+		"water":
+			if f == 0:
+				_disc(img, c, 2.8, HF_WATER[2])
+				_disc(img, c + Vector2(0.5, 0.5), 1.5, HF_WATER[1])
+			else:
+				var r: float = [0.0, 4.0, 6.0, 7.5, 8.5][f]
+				_ring(img, c + Vector2(0, 2), Vector2(r, r * 0.5), 1.2, Color(HF_WATER[1], a))
+				for k in 5:  # droplets thrown up, falling back
+					var v := Vector2((k - 2) * 1.5, -3.6 + absf(k - 2) * 0.6)
+					var p := c + v * t + Vector2(0, 0.55 * t * t)
+					_px(img, int(p.x), int(p.y), Color(HF_WATER[2], a))
+					_px(img, int(p.x), int(p.y) + 1, Color(HF_WATER[1], a))
+					if f < 3:
+						_px(img, int(p.x) + 1, int(p.y) + 1, Color(HF_WATER[0], a))
+		"stone":
+			if f == 0:
+				_star(img, c, 3, HF_CREAM, HF_STONE[2])
+			else:
+				for k in 4:  # chips flying off, turning as they go
+					var v := Vector2([-2.2, -1.0, 1.4, 2.4][k], [-1.6, -2.6, -2.4, -1.2][k])
+					var p := c + v * t + Vector2(0, 0.35 * t * t)
+					_disc(img, p + Vector2(0.5, 0.5), 1.6 if f < 3 else 1.1, Color(HF_STONE[1], a))
+					_px(img, int(p.x), int(p.y), Color(HF_CREAM, a))  # the lit facet: pale, so it reads on a dark body
+					_px(img, int(p.x) + (k + f) % 2, int(p.y) - 1, Color(HF_STONE[2], a))
+				var spread: float = [0.0, 3.0, 5.0, 6.5, 7.5][f]
+				for side: int in [-1, 1]:  # dust rolling out low
+					_disc(img, c + Vector2(side * spread, 4), 3.2 - f * 0.4, Color(HF_DUST, 0.75 if f < 3 else 0.4), f >= 3, f)
+		"bell":
+			var r: float = [3.0, 6.0, 8.5, 10.0, 11.0][f]
+			_ring(img, c, Vector2(r, r), 1.2, Color(LILAC_PALE if f < 2 else LILAC, a))
+			if f >= 1:
+				_ring(img, c, Vector2(r - 3.5, r - 3.5), 1.2, Color(LILAC, 0.75 if f < 3 else 0.4))
+			if f == 0:
+				_disc(img, c, 1.5, HF_CREAM)
+		"acorn":
+			if f == 0:
+				_star(img, c, 3, HF_CREAM, WARM)
+			else:
+				var out: float = [0.0, 4.0, 6.5, 8.0, 9.0][f]
+				for k in 4:  # the pop: four short dashes
+					var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0)
+					_line(img, c + d * out, c + d * (out + (3.0 if f < 3 else 1.5)), Color(HF_CREAM if f < 3 else HF_NUT[1], a))
+				var p := c + Vector2(2.0 * t, -3.2 * t + 0.6 * t * t)  # the nut bouncing off
+				_disc(img, p, 2.4, Color(HF_NUT[0], a))
+				_disc(img, p + Vector2(-0.5, -0.8), 1.2, Color(HF_NUT[1], a))
+		"wing":
+			var from := Vector2(4, 5)
+			var to := Vector2(20, 18)
+			var head: float = [0.45, 1.0, 1.0, 1.0, 1.0][f]
+			var tail: float = [0.0, 0.0, 0.35, 0.65, 0.85][f]
+			for i in 33:  # a crescent cut
+				var s := i / 32.0
+				if s < tail or s > head:
+					continue
+				var p := from.lerp(to, s) + Vector2(1, -1) * sin(s * PI) * 3.0
+				_px(img, int(p.x), int(p.y), Color(HF_CREAM, a))
+				if absf(s - 0.5) < 0.3 and f < 3:
+					_px(img, int(p.x), int(p.y) + 1, Color(HF_WATER[2], a))
+			if f >= 1:  # a feather rocking down
+				var q := Vector2(15 + (f % 2) * 2, 6 + f * 3)
+				for i in 4:
+					_px(img, int(q.x) + i, int(q.y) - i / 2, Color(HF_CREAM if i > 0 else HF_STONE[1], a))
+				_px(img, int(q.x) + 2, int(q.y) + 1, Color(HF_STONE[2], a))
+		"wind":
+			var shift := Vector2(f * 1.2 - 2.0, 0)
+			for arm in 2:
+				for i in 14:
+					var s := i / 13.0
+					var ang := arm * PI + f * 0.9 + s * 3.6
+					var p := c + shift + Vector2.from_angle(ang) * (2.0 + s * (5.0 + f)) * Vector2(1.0, 0.7)
+					if f >= 3 and i % 2 == 1:
+						continue
+					_px(img, int(p.x), int(p.y), Color(HF_CREAM if s > 0.5 else HF_WATER[2], a))
+					if s > 0.5 and f < 3:  # the outer sweep is two pixels thick while it is fresh
+						_px(img, int(p.x), int(p.y) + 1, Color(HF_WATER[2], a))
+		"thorn":
+			var shown: int = [1, 2, 3, 3, 3][f]
+			for k in shown:  # three raking lines, one after another
+				var from := Vector2(6 + k * 4, 5 + k)
+				var to := from + Vector2(5, 11)
+				var bright: bool = f - k <= 1 and f < 3
+				_line(img, from, to, Color(HF_CREAM if bright else HF_GREEN[2], a))
+				if bright:
+					_line(img, from + Vector2(1, 0), to.lerp(from, 0.4) + Vector2(1, 0), Color(HF_GREEN[1], a))
+			if f <= 2:  # the tip of the thorn
+				_px(img, 18 + f, 17 + f, HF_NUT[0])
+				_px(img, 17 + f, 16 + f, HF_NUT[1])
+
+func _link_arcs(img: Image, f: int, radii: Vector2) -> void:
+	var c := Vector2(img.get_width() / 2.0, img.get_height() / 2.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 311 + f * 17
+	var big := radii.x >= 30.0
+	for k in 3:  # three arcs hugging the body, somewhere new each frame
+		var from := k * TAU / 3.0 + f * 1.3 + rng.randf_range(-0.4, 0.4)
+		var sweep := rng.randf_range(0.9, 1.5)
+		var steps := maxi(5, int(sweep * (radii.x + radii.y) / 8.0))
+		var pts: Array = []
+		for j in steps + 1:
+			var jag := 0.0 if j == 0 or j == steps else rng.randf_range(-0.16, 0.16)
+			pts.append(c + Vector2.from_angle(from + sweep * j / steps) * radii * (1.0 + jag))
+		if big:
+			for d: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+				var glow: Array = []
+				for p: Vector2 in pts:
+					glow.append(p + d)
+				_poly_line(img, glow, Color(GOLD, 0.75))
+		_poly_line(img, pts, HF_STATIC if k != f % 3 else CORE)
+		var tip: Vector2 = pts[pts.size() - 1]
+		_px(img, int(tip.x), int(tip.y), CORE)
+		_px(img, int(tip.x) + 1, int(tip.y) - 1, Color(HF_STATIC, 0.75))
+
+func _poison_bubbles(img: Image, f: int, density: int) -> void:
+	var count: int = [2, 4, 7][density]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 53  # the denser sheets keep the bubbles of the sparser ones and add more
+	for k in count:
+		var x := 5.0 + rng.randf() * 14.0
+		var phase := rng.randi_range(0, 5)
+		var large := rng.randf() < 0.45
+		var step := (f + phase) % 6  # six steps up, then it has gone: the loop closes
+		var p := Vector2(x + sin((step + k) * 1.3) * 1.2, 26.0 - step * 4.4)
+		if step == 5:  # the pop
+			for d: Vector2i in [Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -2)]:
+				_px(img, int(p.x) + d.x, int(p.y) + d.y, Color(HF_GREEN[2], 0.75))
+			continue
+		if large and step > 0:
+			_ring(img, p, Vector2(2.5, 2.5), 1.0, HF_GREEN[1])
+			_px(img, int(p.x) - 1, int(p.y) - 1, HF_CREAM)
+		else:
+			_px(img, int(p.x), int(p.y), HF_GREEN[2])
+			_px(img, int(p.x) + 1, int(p.y), HF_GREEN[1])
+			_px(img, int(p.x), int(p.y) + 1, HF_GREEN[1])
+			_px(img, int(p.x) + 1, int(p.y) + 1, HF_GREEN[0])
+
+func _beam_spot(img: Image, f: int, core: float) -> void:
+	var c := Vector2(img.get_width() / 2.0, img.get_height() / 2.0)
+	var breathe: float = [0.0, 0.6, 0.0, -0.5][f]
+	_disc(img, c, core * 2.6 + breathe, Color(GOLD, 0.4), true, f)
+	_disc(img, c, core * 1.7 + breathe, Color(WARM, 0.75))
+	_disc(img, c, core + breathe * 0.5, CORE)
+	for k in 4:  # short rays turning round it
+		var d := Vector2.from_angle(k * TAU / 4.0 + f * TAU / 16.0)
+		_line(img, c + d * (core * 2.0), c + d * (core * 3.2 + breathe), Color(WARM, 0.75))
+
+func _bolt_strike(img: Image, f: int) -> void:
+	var hit := Vector2(24, 80)
+	var lean: float = [6.0, -4.0, 3.0, -2.0, 0.0, 0.0][f]
+	var top := Vector2(24.0 + lean, 0)
+	var a: float = [0.75, 1.0, 1.0, 0.75, 0.4, 0.4][f]
+	if f == 0:  # the leader finding its way down
+		_bolt(img, top, hit, 5, Color(HF_STATIC, a), Color(GOLD, 0.4), 8, 5.0, 1)
+	elif f <= 2:
+		_bolt(img, top, hit, 9 + f, CORE, HF_STATIC, 8, 7.0 - f, 2)
+		_bolt(img, top.lerp(hit, 0.45), hit + Vector2(-14 + f * 22, -26), 20 + f, WARM, Color(GOLD, 0.75), 4, 3.0, 1)
+	elif f == 3:
+		_bolt(img, top.lerp(hit, 0.3), hit, 14, Color(HF_STATIC, a), Color(GOLD, 0.4), 6, 4.0, 1)
+	if f == 1:  # the hard flash where it lands
+		_disc(img, hit, 11.0, Color(HF_STATIC, 0.4), true)
+		_disc(img, hit, 7.0, Color(WARM, 0.75))
+		_disc(img, hit, 4.0, CORE)
+		_star(img, hit, 9, CORE, HF_STATIC)
+	elif f == 2:
+		_disc(img, hit, 4.0, Color(WARM, 0.75))
+		_ring(img, hit, Vector2(11, 8), 1.5, HF_STATIC)
+		_sparks(img, hit, 8, 9.0, 4.0, CORE, 0.3)
+	elif f == 3:
+		_ring(img, hit, Vector2(14, 10), 1.2, Color(GOLD, 0.75))
+		_sparks(img, hit, 8, 13.0, 3.0, Color(HF_STATIC, 0.75), 0.3)
+	elif f >= 4:
+		_sparks(img, hit + Vector2(0, f - 3), 6, 15.0 + (f - 4) * 2.0, 2.0, Color(GOLD, a), 0.6)
