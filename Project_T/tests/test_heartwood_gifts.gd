@@ -43,8 +43,32 @@ func _run() -> void:
 
 	# The draw.
 	var offer := gifts.draw(1)
-	var maps := offer.filter(func(id: StringName) -> bool: return HeartwoodGifts.POOL[id].map)
-	_check(offer.size() == 3 and maps.size() >= 2 and offer == gifts.draw(1), "3 gifts, at least 2 shaping the map, the same draw for the same act (%s)" % [offer])
+	# Gifts as landmarks (heartwood_gifts.md, approved 2026-10-13): one gift of each kind, never a retired one.
+	var kinds: Array = offer.map(func(id: StringName) -> StringName: return HeartwoodGifts.kind_of(id))
+	_check(offer.size() == 3 and kinds == [HeartwoodGifts.KIND_LAND, HeartwoodGifts.KIND_LANDMARK, HeartwoodGifts.KIND_BOON] and offer == gifts.draw(1),
+		"3 gifts, one of each kind (land, landmark, boon), the same draw for the same act (%s)" % [offer])
+	_check(not gifts.can_offer(&"thick_mist") and not gifts.can_offer(&"glade") and not gifts.can_offer(&"shift_stones") and gifts.can_offer(&"reshape"),
+		"Thick Mist, Glade and Shift the Stones are retired; Reshape replaces the two")
+	if not dreams.unlock_everything:
+		var had_bells: bool = dreams.unlocked.has("bellflower")
+		dreams.unlocked.erase("bellflower")
+		_check(not gifts.can_offer(&"bell_stone") and gifts.can_offer(&"moonwell"), "a landmark is only offered for a family the player owns; an 'any' landmark always")
+		dreams.unlocked["bellflower"] = true
+		_check(gifts.can_offer(&"bell_stone"), "...and is offered once the family is theirs")
+		if not had_bells:
+			dreams.unlocked.erase("bellflower")
+	# Landmarks grow one step at each later act break, up to III; the numbers come from one place.
+	gifts.taken.append({"id": "moonwell", "act": 1, "placement": {}, "step": 1, "grown_act": 1})
+	gifts.grow_landmarks(1)
+	_check(gifts.step_of(&"moonwell") == 1, "a landmark doesn't grow at the act break it was taken at")
+	gifts.grow_landmarks(2)
+	gifts.grow_landmarks(2)
+	_check(gifts.step_of(&"moonwell") == 2, "one step at the next act break, once (a resumed run doesn't grow it twice)")
+	gifts.grow_landmarks(3)
+	gifts.grow_landmarks(4)
+	_check(gifts.step_of(&"moonwell") == HeartwoodGifts.MAX_STEP and is_equal_approx(gifts.value(&"moonwell", "range"), 3.0)
+		and is_equal_approx(HeartwoodGifts.stat(&"moonwell", "range", 1), 1.5) and gifts.step_of(&"spring") == 0, "III is the top; value() reads the step's number")
+	gifts.taken.pop_back()
 
 	# An act break: after the Dream, before the Omen; Start waits.
 	director.drifts_started = 25
@@ -62,7 +86,7 @@ func _run() -> void:
 		"after the Dream the gift screen opens and holds Start (%s)" % director.pending_choice())
 	_check(main.get_node("HUD/DriftPanel").PENDING_TEXT[&"gift"] == "Choose a gift", "the Start button names it")
 	_check(screen.preview != null and screen.preview.get_meta(&"gift", &"") == gifts.current_offer[0], "the first card's mini-scene plays above the cards")
-	_check(HeartwoodGifts.POOL.keys().all(func(id: StringName) -> bool: return GiftScreen.SCENES.has(id)), "every gift has a before / after scene")
+	_check(HeartwoodGifts.POOL.keys().all(func(id: StringName) -> bool: return GiftScreen.SCENES.has(id) or id == &"reshape"), "every gift has a before / after scene (Reshape's is Main Merger's to add)")
 	for id in GiftScreen.SCENES:
 		screen.show_scene(id)
 		for frame in 3:
@@ -193,14 +217,14 @@ func _run() -> void:
 	var log_start := Vector2(-1, -1)
 	for y in range(2, 16):
 		for x in range(2, 18):
-			if log_start == Vector2(-1, -1) and lp._cell_ok(Vector2(x, y)) and lp._line(Vector2(x, y), Vector2(x + 3, y)).all(lp._cell_ok):
+			if log_start == Vector2(-1, -1) and lp._cell_ok(Vector2(x, y)) and lp._line(Vector2(x, y), Vector2(x + int(lp.size[1]) - 1, y)).all(lp._cell_ok):
 				log_start = Vector2(x, y)
 	lp.click(log_start)
 	_check(lp.cells == [log_start], "the log's start is picked")
 	lp.hover = log_start + Vector2(9, 0)
 	_check(lp.length_tag().begins_with("%d / %d · max" % [int(lp.size[1]), int(lp.size[1])]), "past the limit the tag says max (%s)" % lp.length_tag())
 	lp.hover = log_start
-	_check(lp.length_tag().contains("1 more"), "too short: the tag counts what's missing (%s)" % lp.length_tag())
+	_check(lp.length_tag().contains("%d more" % (int(lp.size[0]) - 1)), "too short: the tag counts what's missing (%s)" % lp.length_tag())
 	lp.undo()
 	_check(lp.cells.is_empty() and screen.placing == &"fallen_giant", "Undo takes back the start; still placing")
 	lp.click(log_start)

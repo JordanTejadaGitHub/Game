@@ -13,6 +13,9 @@ class_name HeartwoodGifts
 signal offer_ready(gifts: Array[StringName], act: int)
 signal offer_closed
 signal gift_taken(id: StringName, placement: Dictionary)
+# The two signals the other systems hook (the API note at the end of heartwood_gifts.md):
+signal gift_placed(id: StringName, placement: Dictionary, step: int)  # A gift was taken and applied (step 1)
+signal gift_grew(id: StringName, step: int, placement: Dictionary)  # A landmark gained a step at an act break
 
 const GROUP := &"heartwood_gifts"
 const OFFER_SIZE := 3
@@ -20,50 +23,116 @@ const MIN_MAP := 2
 const PASS_DEW := 30
 const THICK_MIST_SPACING := 1.25
 
-# id -> {name, group, text, map: changes the map, place: how it's placed (GiftPlacer), size}.
+# --- Gifts as landmarks (heartwood_gifts.md "Gifts as landmarks", approved by the user 2026-10-13) -------------------
+# Every gift has a kind. The offer is one of each (draw):
+#   land      reshapes the map
+#   landmark  a zone that acts by itself, and grows; `family` says whose build it fits ("any" = everyone's). It is
+#             only offered when that family is the player's.
+#   boon      a bonus for the run
+const KIND_LAND := &"land"
+const KIND_LANDMARK := &"landmark"
+const KIND_BOON := &"boon"
+const KINDS: Array[StringName] = [KIND_LAND, KIND_LANDMARK, KIND_BOON]
+const ANY_FAMILY := "any"
+const MAX_STEP := 3  # Landmarks grow I -> II -> III, one step at each later act break
+const STEP_NAMES: Array[String] = ["", "I", "II", "III"]
+const GROWS_LINE := "It grows at each later {act} break."  # Shown under a landmark's text (the gift screen)
+
+# id -> {name, kind, family, group, text, map: changes the map, place: how it's placed (GiftPlacer), size, retired}.
 # place: &"none"; &"chain" (adjacent cells, size [min, max]); &"line" (straight, [min, max]); &"cell" (one);
 # &"cells" (size n, anywhere); &"path" (size n connected route cells); &"area" (size Vector2i); &"move" (n obstacles);
-# &"warden" (pick a Warden); &"kinship" (pick a bonded Warden); &"rim" (pick 1 of `size` new start spots: Environment's
-# MapGifts.start_options / route_from_start).
+# &"obstacles" (clear n); &"reshape" (move OR clear up to n obstacles: placement "from" / "to" for the moved ones and
+# "cells" for the cleared ones); &"warden"; &"kinship" (pick a bonded Warden); &"rim" (pick 1 of `size` new start
+# spots: Environment's MapGifts.start_options / route_from_start).
+# `text` is the step I text (its numbers are NUMBERS at step 1). `retired`: never offered, kept so a saved run that
+# took it still loads and still works.
 const POOL := {
-	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
-		"text": "Draw a wall of 3–5 Withered Trees, cell by cell. Attacking Wardens touching it deal 10% more damage. Clearing one of its trees later gives {seeds:2} instead of {seeds:1}."},
-	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
-		"text": "Place a Fallen Log 2–4 cells long, in a straight line. Attacking Wardens touching it get +15% crit chance. It can't be cleared this run."},
-	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
-		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as cleared."},  # Picked one by one (user)
-	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
-		"text": "Move up to 3 obstacles to empty cells. Each one moved pays {dew:30} × the {act}."},
-	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,
-		"text": "Place a bog on 3 connected cells of path. Nightmares walk 20% slower there."},
-	&"spring": {"name": "Spring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(2, 2),
-		"text": "Place a 2×2 pond. Water Wardens touching it deal 20% more damage, and {damp} lasts 1 s longer within 2 cells of it."},
-	&"mushroom_ring": {"name": "Mushroom Ring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(3, 3),
-		"text": "Place a ring of toadstools on a 3×3 patch. Spore Wardens touching it can stack 2 more {spored} on each nightmare."},
-	&"lightning_tree": {"name": "Lightning Tree", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a dead tree on one empty cell. {static} bolts within 2 cells of it deal 25% more damage."},
-	&"moonwell": {"name": "Moonwell", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a lit stone on one empty cell. Wardens on its four sides get +1 range."},
-	&"bell_stone": {"name": "Bell Stone", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a singing stone on one empty cell. Song Wardens touching it pulse 15% faster."},
-	&"ancient_stump": {"name": "Ancient Stump", "group": "Living ground", "map": true, "place": &"cells", "size": 3,
-		"text": "Place 3 stumps. A Warden planted on one gets a free {rank}, and you choose the bonus."},
-	&"heartwood_roots": {"name": "Heartwood Roots", "group": "The nightmares' way", "map": true, "place": &"none", "size": 0,
-		"text": "Roots cover the last 4 cells of path before the Heartwood. Nightmares there take 15% more damage."},
-	&"thick_mist": {"name": "Thick Mist", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
-		"text": "For the next {act}, nightmares arrive 25% further apart."},
-	&"bramble_verge": {"name": "Bramble Verge", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
-		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). Nightmares touching a {warden:bramble} can hold 1 more {drowsy} {stack}."},
-	&"old_kin": {"name": "Old Kin", "group": "Heartwood and kin", "map": false, "place": &"kinship", "size": 1,
+	&"sow_ridge": {"name": "Sow a Ridge", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"chain", "size": [4, 7],
+		"text": "Draw a wall of 4–7 Withered Trees, cell by cell. Attacking Wardens touching it deal 30% more damage. Clearing one of its trees later gives {seeds:2} instead of {seeds:1}."},
+	&"fallen_giant": {"name": "Fallen Giant", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"line", "size": [3, 5],
+		"text": "Place a Fallen Log 3–5 cells long, in a straight line. Nothing can trample it or burrow under it. Attacking Wardens touching it get +30% crit chance, and their crits hit 25% harder."},
+	&"mire": {"name": "Mire", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"path", "size": 5,
+		"text": "Place a bog on 5 connected cells of path. Nightmares walk 35% slower there, and {held} lasts twice as long."},
+	&"reshape": {"name": "Reshape", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"reshape", "size": 6,
+		"text": "Move or clear up to 6 obstacles. Each one pays {dew:30} × the {act}."},
+	&"ancient_stump": {"name": "Elder Stumps", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"cells", "size": 3,
+		"text": "Place 3 stumps. A Warden planted on one gets 2 free {ranks}, and you choose each bonus."},
+	&"shifting_mist": {"name": "Shifting Mist", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"rim", "size": 3,
+		"text": "Move where nightmares come from: pick one of 3 spots on the edge of the map, or keep the current one. They come from there for the rest of the run. This {act}'s {drifts} give 25% more {dew}."},
+	&"spring": {"name": "Spring", "kind": KIND_LANDMARK, "family": "dewdrop", "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(2, 2),
+		"text": "Place a 2×2 pond. It makes every nightmare passing within 2 cells {damp} (2 {stacks} a second). Water Wardens touching it deal 40% more damage."},
+	&"lightning_tree": {"name": "Lightning Tree", "kind": KIND_LANDMARK, "family": "firefly_jar", "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
+		"text": "Place a dead tree on one empty cell. Every {static} bolt within 3 cells of it strikes twice, the second for half damage, and the tree throws a bolt of its own every 6 s."},
+	&"bell_stone": {"name": "Bell Stone", "kind": KIND_LANDMARK, "family": "bellflower", "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
+		"text": "Place a singing stone on one empty cell. It rings every 5 s: nightmares within 3 cells gain 4 {drowsy} {stacks} (bosses half). Song Wardens touching it pulse 30% faster."},
+	&"mushroom_ring": {"name": "Mushroom Ring", "kind": KIND_LANDMARK, "family": "sporeling", "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(3, 3),
+		"text": "Place a ring of toadstools on a 3×3 patch. Nightmares crossing it gain 6 {spored} {stacks}. Spore Wardens touching it can stack half again as much {spored}."},
+	&"moonwell": {"name": "Moonwell", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
+		"text": "Place a lit stone on one empty cell. Wardens within 2 cells get +1.5 range and see {hidden} nightmares."},
+	&"heartwood_roots": {"name": "Heartwood Roots", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"none", "size": 0,
+		"text": "Roots cover the last 6 cells of path before the Heartwood. Nightmares are {held} for 1 s on entering (bosses half) and take 30% more damage there."},
+	&"bramble_verge": {"name": "Bramble Verge", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
+		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). {warden:bramble}s make nightmares {drowsy} twice as fast."},
+	&"old_kin": {"name": "Old Kin", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"kinship", "size": 1,
 		"text": "Pick two bonded Wardens: their bond grows one step now. Bonds formed next {act} start one step stronger."},
-	&"shifting_mist": {"name": "Shifting Mist", "group": "Heartwood and kin", "map": true, "place": &"rim", "size": 3,
-		"text": "Move where nightmares come from: pick one of 3 spots on the edge of the map, or keep the current one. They come from there for the rest of the run. This {act}'s {drifts} give 10% more {dew}."},
-	&"waking_root": {"name": "Waking Root", "group": "Heartwood and kin", "map": false, "place": &"none", "size": 0,
-		"text": "The next form you unlock costs 1 less {dreamlight}."},
-	&"memory_seed": {"name": "Memory Seed", "group": "Heartwood and kin", "map": false, "place": &"warden", "size": 1,
-		"text": "Choose a Warden. This {act}, selling and replanting it keeps its {ranks} and its {kinship} age."},
+	&"memory_seed": {"name": "Memory Seed", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
+		"text": "This {act}, any Warden you sell and plant again keeps its {ranks} and its {kinship} age."},
+	&"waking_root": {"name": "Waking Root", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
+		"text": "The next form you unlock is free, and you gain {dreamlight:+1}."},
+	# Retired (never offered; a saved run that took one still loads and works). Reshape replaced Glade and Shift the Stones.
+	&"glade": {"name": "Glade", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5, "retired": true,
+		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as cleared."},
+	&"shift_stones": {"name": "Shift the Stones", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"move", "size": 3, "retired": true,
+		"text": "Move up to 3 obstacles to empty cells. Each one moved pays {dew:30} × the {act}."},
+	&"thick_mist": {"name": "Thick Mist", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0, "retired": true,
+		"text": "For the next {act}, nightmares arrive 25% further apart."},
 }
 const BUILT_IN: Array[StringName] = [&"thick_mist"]  # Effects that live here
+
+# The numbers behind the texts, in ONE place: Tower Code (gift_ground.gd), Environment Code (map_gifts.gd) and the
+# screens read them here (HeartwoodGifts.number, or value() for the step the player's gift has reached), never a copy.
+# A landmark's numbers are [step I, II, III] (about +50% a step); a single number never grows. Balancing sets the
+# final values.
+const NUMBERS := {
+	&"spring": {"soak_stacks_per_second": [2.0, 3.0, 4.0], "water_damage": [0.40, 0.60, 0.80]},
+	&"lightning_tree": {"second_strike_share": [0.50, 0.75, 1.00], "bolt_every": [6.0, 4.5, 3.0]},
+	&"bell_stone": {"ring_every": 5.0, "drowsy_stacks": [4.0, 6.0, 8.0], "song_pulse_speed": [0.30, 0.45, 0.60], "boss_share": 0.5},
+	&"mushroom_ring": {"spored_stacks": [6.0, 9.0, 12.0], "spore_cap_share": [0.50, 0.75, 1.00]},
+	&"moonwell": {"range": [1.5, 2.25, 3.0], "reveals_hidden": 1.0},
+	&"heartwood_roots": {"path_cells": [6.0, 8.0, 10.0], "root_time": 1.0, "damage_taken": [0.30, 0.45, 0.60], "boss_share": 0.5},
+	&"sow_ridge": {"damage": 0.30, "tree_seeds": 2.0},
+	&"fallen_giant": {"crit_chance": 0.30, "crit_damage": 0.25},
+	&"mire": {"slow": 0.35, "rooted_multiplier": 2.0},
+	&"reshape": {"dew_per_obstacle": 30.0},
+	&"ancient_stump": {"free_ranks": 2.0},
+	&"shifting_mist": {"dew": 0.25},
+	&"bramble_verge": {"drowsy_rate": 2.0},
+	&"waking_root": {"free_unlocks": 1.0, "dreamlight": 1.0},
+}
+# A landmark's zone: how far from its edge it acts, in cells. The standing glow on the ground is this big.
+# 0 = the gift's own ground is the zone (the ring's patch, the rooted path cells).
+const ZONE_CELLS := {&"spring": 2.0, &"lightning_tree": 3.0, &"bell_stone": 3.0, &"mushroom_ring": 0.0, &"moonwell": 2.0,
+	&"heartwood_roots": 0.0}
+
+static func kind_of(id: StringName) -> StringName:
+	return POOL[id].kind if POOL.has(id) else &""
+
+# The family root id a landmark fits ("any": everyone's).
+static func family_of(id: StringName) -> String:
+	return String(POOL[id].family) if POOL.has(id) else ANY_FAMILY
+
+static func is_retired(id: StringName) -> bool:
+	return POOL.has(id) and bool(POOL[id].get("retired", false))
+
+static func zone_cells(id: StringName) -> float:
+	return float(ZONE_CELLS.get(id, 0.0))
+
+# One of a gift's numbers at growth step `step` (1-3; a number that never grows is the same at every step).
+static func stat(id: StringName, key: String, step: int = 1) -> float:
+	var found = NUMBERS.get(id, {}).get(key, 0.0)
+	if found is Array:
+		return float(found[clampi(step, 1, found.size()) - 1])
+	return float(found)
 
 static var _effects := {}  # Gift id -> Callable(main, placement): registered by the owning systems
 
@@ -116,6 +185,7 @@ func _on_rest_started(_block: int, boss_rest: bool, _bonus: int, _perfect: bool)
 	if not boss_rest or not drift_director.has_next_drift():
 		return
 	var act := drift_director.get_act(drift_director.drifts_started)
+	grow_landmarks(act)  # Before the new offer: the landmarks from earlier act breaks each gain a step
 	if taken.any(func(t: Dictionary) -> bool: return int(t.act) == act) or passed.has(act):
 		return  # Already given this act (a resumed run)
 	current_offer = draw(act)
@@ -128,34 +198,70 @@ func _on_rest_started(_block: int, boss_rest: bool, _bonus: int, _perfect: bool)
 func is_offering() -> bool:
 	return waiting
 
-# 3 gifts with an effect, never taken this run, at least MIN_MAP shaping the map (as many as there are), in a
-# seeded order (the map seed and the act: a resumed run draws the same).
+# Landmarks grow (heartwood_gifts.md "Gifts as landmarks" 3): at every act break after the one a landmark was taken at,
+# it gains one step, up to MAX_STEP. The step is kept on the gift's record ("step", saved) with the act it last grew
+# at ("grown_act"), so a resumed run never grows it twice. gift_grew tells the owners to rebuild their numbers and look.
+func grow_landmarks(act: int) -> void:
+	for record in taken:
+		var id := StringName(record.id)
+		if kind_of(id) != KIND_LANDMARK or is_retired(id):
+			continue
+		var step := int(record.get("step", 1))
+		if step >= MAX_STEP or int(record.get("grown_act", record.act)) >= act:
+			continue
+		record["step"] = step + 1
+		record["grown_act"] = act
+		gift_grew.emit(id, step + 1, record.get("placement", {}))
+
+# The growth step of gift `id` (1-3; 0 = not taken). Tower Code and Environment Code read this, never a copy.
+func step_of(id: StringName) -> int:
+	for record in taken:
+		if StringName(record.id) == id:
+			return int(record.get("step", 1))
+	return 0
+
+# One of the player's gift's numbers at the step it has reached (0.0 when the gift isn't taken).
+func value(id: StringName, key: String) -> float:
+	var step := step_of(id)
+	return stat(id, key, step) if step > 0 else 0.0
+
+# Whether `id` can be offered now: it has an effect, isn't retired, wasn't taken this run, and a landmark fits a
+# family the player owns ("any" fits everyone).
+func can_offer(id: StringName) -> bool:
+	if not POOL.has(id) or is_retired(id) or not has_effect(id) or has_taken(id):
+		return false
+	if kind_of(id) != KIND_LANDMARK or family_of(id) == ANY_FAMILY:
+		return true
+	var dreams := drift_director.get_node_or_null("%DreamState")
+	return dreams != null and dreams.has_method("is_unlocked") and dreams.is_unlocked(family_of(id))
+
+# One gift of each kind (land, landmark, boon), never one taken this run, in a seeded order (the map seed and the
+# act: a resumed run draws the same). The landmark fits a family the player owns. A kind with nothing to offer gives
+# its slot to another kind, so the offer is 3 while the pool can fill it.
 func draw(act: int) -> Array[StringName]:
 	var rng := RandomNumberGenerator.new()
 	var map := drift_director.get_node_or_null("%MapGenerator")
 	rng.seed = hash([int(map.map_seed) if map != null else 0, act, "heartwood_gifts"])
-	var taken_ids := taken.map(func(t: Dictionary) -> StringName: return StringName(t.id))
-	var maps: Array[StringName] = []
-	var others: Array[StringName] = []
+	var by_kind := {}
+	for kind in KINDS:
+		by_kind[kind] = []
 	for id in POOL:
-		if taken_ids.has(id) or not has_effect(id):
-			continue
-		(maps if POOL[id].map else others).append(id)
-	_shuffle(maps, rng)
-	_shuffle(others, rng)
+		if can_offer(id):
+			by_kind[kind_of(id)].append(id)
 	var offer: Array[StringName] = []
-	for id in maps.slice(0, MIN_MAP):
-		offer.append(id)
-	var rest: Array[StringName] = []
-	rest.append_array(maps.slice(MIN_MAP))
-	rest.append_array(others)
-	_shuffle(rest, rng)
-	for id in rest:
+	var spare: Array = []
+	for kind in KINDS:
+		var options: Array = by_kind[kind]
+		_shuffle(options, rng)
+		if not options.is_empty():
+			offer.append(options[0])
+		spare.append_array(options.slice(1))
+	_shuffle(spare, rng)
+	for id in spare:
 		if offer.size() >= OFFER_SIZE:
 			break
 		offer.append(id)
-	_shuffle(offer, rng)
-	return offer
+	return offer  # In kind order: land, landmark, boon
 
 static func _shuffle(list: Array, rng: RandomNumberGenerator) -> void:
 	for i in range(list.size() - 1, 0, -1):
@@ -178,12 +284,13 @@ func choose(id: StringName, placement: Dictionary = {}) -> void:
 		place["cells"] = map.gifts.roots_cells()  # The route at pick time (on resume the Wardens come back after)
 		if map.gifts.has_method("roots_halves"):
 			place["halves"] = map.gifts.roots_halves()  # Half precision (heartwood_gifts.md 2554c638)
-	var record := {"id": String(id), "act": offer_act, "placement": _plain(place)}
+	var record := {"id": String(id), "act": offer_act, "placement": _plain(place), "step": 1, "grown_act": offer_act}
 	taken.append(record)
 	_apply(id, record.placement, false)
 	_payoff(id, place, offer_act)  # Once, at the pick (the Dew is in the run save's total)
 	_close()
 	gift_taken.emit(id, placement)
+	gift_placed.emit(id, placement, 1)
 
 func let_pass() -> void:
 	if not waiting:
@@ -208,6 +315,7 @@ func _apply(id: StringName, placement: Dictionary, restoring: bool) -> void:
 	if _effects.has(id):
 		var data := placement.duplicate(true)
 		data["restoring"] = restoring
+		data["step"] = maxi(step_of(id), 1)  # A landmark's growth step (a resumed run rebuilds it at the step it had)
 		_effects[id].call(drift_director.owner, data)
 
 # Thick Mist: the act after the one it was taken at leaves the mist further apart (DriftDirector schedule "spacing").
@@ -219,15 +327,17 @@ func get_spacing_multiplier(drift: int) -> float:
 	return 1.0
 
 # Map gifts all pay off (heartwood_gifts.md b3e464e6, user: "everything gives buffs or more resources"). Main's part:
-# Shift the Stones pays SHIFT_DEW × act per stone moved (Dew only: the fertile spot overlapped Ancient Stump, 8f46c6ac); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
+# Reshape (and the retired Shift the Stones) pays SHIFT_DEW × act per obstacle moved or cleared (Dew only: the fertile spot overlapped Ancient Stump, 8f46c6ac); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
 # pots (the act it opens: gifts come at the act break, `act` is the act that ended). Balancing Discussion sets the numbers.
 const SHIFT_DEW := 30
-const MIST_POT_BONUS := 0.10
+const MIST_POT_BONUS := 0.25  # (= NUMBERS shifting_mist dew; was 0.10)
 
 func _payoff(id: StringName, placement: Dictionary, act: int) -> void:
-	if id != &"shift_stones":
+	if id != &"shift_stones" and id != &"reshape":
 		return
 	var froms := cells_of(placement, "from")
+	if id == &"reshape":
+		froms.append_array(cells_of(placement, "cells"))  # Reshape pays for every obstacle moved or cleared
 	if froms.is_empty():
 		return
 	var map := drift_director.get_node_or_null("%MapGenerator")

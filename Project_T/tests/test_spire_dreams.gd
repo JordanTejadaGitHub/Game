@@ -97,26 +97,27 @@ func _run() -> void:
 	if branch != null:
 		var full := dreams.get_unlock_cost(branch)
 		dreams.add_unlock_discount(1)
-		_check(dreams.get_unlock_price(branch) == maxi(full - 1, 0) and dreams.get_unlock_cost(branch) == full,
-			"Waking Root: %d Dreamlight → %d (the cost stays the \"0 = owned\" answer)" % [full, dreams.get_unlock_price(branch)])
+		_check(dreams.get_unlock_price(branch) == 0 and dreams.get_unlock_cost(branch) == full,
+			"Waking Root: %d Dreamlight → %d, free (the cost stays the \"0 = owned\" answer)" % [full, dreams.get_unlock_price(branch)])
 		saved = JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
 		dreams.unlock_discounts = 0
 		dreams.load_save(saved)
 		_check(dreams.unlock_discounts == 1, "…saved with the run")
 		# Any path: the Warden panel's refusal (TowerSeller) reads the same lower price
 		var seller = main.get_node("%TowerSeller")
-		dreams.dreamlight = maxi(full - 1, 0)
-		_check(not seller.refuse_if_short([branch], branch, false, 0), "the Warden panel doesn't refuse at the lower price")
+		dreams.dreamlight = 0
+		_check(not seller.refuse_if_short([branch], branch, false, 0), "the Warden panel doesn't refuse: the next form is free")
 		dreams.dreamlight = 5
-		_check(dreams.unlock_with_dreamlight(branch) and dreams.dreamlight == 5 - maxi(full - 1, 0), "…and the unlock pays the lower price")
+		_check(dreams.unlock_with_dreamlight(branch) and dreams.dreamlight == 5, "…and the unlock costs nothing")
 		_check(dreams.unlock_discounts == 0, "…one use")
 
 	# At an act break the gift screen comes before the Omen: the Omen waits while a gift is offering, then shows
 	# The gift registry has Waking Root (it only enters the draw once registered); restoring doesn't add twice
 	_check(HeartwoodGifts.has_effect(&"waking_root"), "Waking Root is registered with HeartwoodGifts")
+	var light_before: int = dreams.dreamlight
 	DreamState._waking_root_gift(main, {})
 	DreamState._waking_root_gift(main, {"restoring": true})
-	_check(dreams.unlock_discounts == 1, "…its effect adds one discount, and a resumed run keeps the saved one (%d)" % dreams.unlock_discounts)
+	_check(dreams.unlock_discounts == 1 and dreams.dreamlight == light_before + 1, "…its effect adds one free unlock and 1 Dreamlight, and a resumed run keeps the saved ones (%d)" % dreams.unlock_discounts)
 	dreams.unlock_discounts = 0
 	var gifts := HeartwoodGifts.find(main)
 	_check(gifts != null, "the HUD makes HeartwoodGifts")

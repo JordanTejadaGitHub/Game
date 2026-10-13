@@ -608,10 +608,10 @@ func get_unlock_cost(data: TowerData) -> int:
 # the "0 = owned" answer for every other caller).
 func get_unlock_price(data: TowerData) -> int:
 	var cost := get_unlock_cost(data)
-	return maxi(cost - 1, 0) if cost > 0 and unlock_discounts > 0 else cost
+	return 0 if cost > 0 and unlock_discounts > 0 else cost  # Waking Root: the next form is free (was 1 less)
 
 # Heartwood's Gifts (heartwood_gifts.md, Spire branch): Waking Root = the next `count` forms unlocked (Remember screen,
-# Warden panel: every price reads get_unlock_price) each cost 1 less Dreamlight (never below 0). Used by
+# Warden panel: every price reads get_unlock_price) are each free (heartwood_gifts.md "Gifts as landmarks": was 1 less), and the gift also gives Dreamlight. Used by
 # unlock_with_dreamlight; saved with the run.
 var unlock_discounts := 0
 
@@ -625,7 +625,8 @@ static func _waking_root_gift(main: Node, placement: Dictionary) -> void:
 		return
 	var dreams := main.get_node_or_null("%DreamState") as DreamState
 	if dreams != null:
-		dreams.add_unlock_discount(1)
+		dreams.add_unlock_discount(int(HeartwoodGifts.stat(&"waking_root", "free_unlocks")))
+		dreams.add_dreamlight(int(HeartwoodGifts.stat(&"waking_root", "dreamlight")), &"gift")
 
 # Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
 # unlocked, or it's a hidden branch the Memory Grove hasn't opened. Ascended forms: from drift 51,

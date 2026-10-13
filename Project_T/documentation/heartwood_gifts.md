@@ -144,3 +144,73 @@ short API note at the end of this file); then in parallel: Tower Code (the effec
 Environment Code (placing, zones, drawing, the arrival), Environment Assets (art in three growth steps), Main Merger
 (the gift screen, card scenes, rest report lines). Sound Code adds the arrival and the landmark sounds after.
 Balancing sets the final numbers when sims are back; until then the table's numbers stand.
+
+## API for the gift code (Roguelite Code, 2026-10-13; `scripts/run/heartwood_gifts.gd` is the one source)
+Read the numbers from `HeartwoodGifts`; never copy them. `HeartwoodGifts.find(node)` gives the run's gifts node.
+
+**Ids, kinds, families, placing**
+| Id | Name | Kind | Family | `place` / `size` |
+|---|---|---|---|---|
+| `sow_ridge` | Sow a Ridge | land | any | chain, 4–7 |
+| `fallen_giant` | Fallen Giant | land | any | line, 3–5 |
+| `mire` | Mire | land | any | path, 5 |
+| `reshape` | Reshape | land | any | **reshape**, 6 (new mode: move or clear; placement `from` / `to` for the moved, `cells` for the cleared) |
+| `ancient_stump` | Elder Stumps | land | any | cells, 3 |
+| `shifting_mist` | Shifting Mist | land | any | rim, 3 |
+| `spring` | Spring | landmark | `dewdrop` | area 2×2 |
+| `lightning_tree` | Lightning Tree | landmark | `firefly_jar` | cell |
+| `bell_stone` | Bell Stone | landmark | `bellflower` | cell |
+| `mushroom_ring` | Mushroom Ring | landmark | `sporeling` | area 3×3 |
+| `moonwell` | Moonwell | landmark | any | cell |
+| `heartwood_roots` | Heartwood Roots | landmark | any | none (the path's last cells) |
+| `bramble_verge` | Bramble Verge | boon | any | none |
+| `old_kin` | Old Kin | boon | any | kinship |
+| `memory_seed` | Memory Seed | boon | any | none (was a Warden pick: now every Warden) |
+| `waking_root` | Waking Root | boon | any | none |
+Retired, still in `POOL` with `retired = true` so saved runs load and their effects keep working: `glade`,
+`shift_stones`, `thick_mist`. Keep their registered effects.
+
+**The offer:** `draw(act)` gives one gift of each kind, in the order land, landmark, boon. `can_offer(id)` is the rule:
+it has a registered effect, isn't retired, wasn't taken this run, and a landmark's family is the player's (or "any").
+A kind with nothing to offer hands its slot to another kind. A gift only enters the offer once its effect is
+registered (`HeartwoodGifts.register(id, callable)`), so **`reshape` is not offered until its effect and placer exist**.
+
+**Numbers by step** (`HeartwoodGifts.stat(id, key, step)`; for the player's gift at the step it has reached:
+`gifts.value(id, key)`; `gifts.step_of(id)` is 1–3, 0 = not taken). Landmarks grow; the rest have one value.
+| Id | Key | I | II | III |
+|---|---|---|---|---|
+| `spring` | `soak_stacks_per_second` | 2 | 3 | 4 |
+| `spring` | `water_damage` | 0.40 | 0.60 | 0.80 |
+| `lightning_tree` | `second_strike_share` | 0.50 | 0.75 | 1.00 |
+| `lightning_tree` | `bolt_every` (s) | 6 | 4.5 | 3 |
+| `bell_stone` | `drowsy_stacks` | 4 | 6 | 8 |
+| `bell_stone` | `song_pulse_speed` | 0.30 | 0.45 | 0.60 |
+| `bell_stone` | `ring_every` (s), `boss_share` | 5, 0.5 | same | same |
+| `mushroom_ring` | `spored_stacks` | 6 | 9 | 12 |
+| `mushroom_ring` | `spore_cap_share` | 0.50 | 0.75 | 1.00 |
+| `moonwell` | `range` | 1.5 | 2.25 | 3.0 |
+| `moonwell` | `reveals_hidden` | 1 | 1 | 1 |
+| `heartwood_roots` | `path_cells` | 6 | 8 | 10 |
+| `heartwood_roots` | `damage_taken` | 0.30 | 0.45 | 0.60 |
+| `heartwood_roots` | `root_time` (s), `boss_share` | 1.0, 0.5 | same | same |
+One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_chance` 0.30, `crit_damage` 0.25 ·
+`mire` `slow` 0.35, `rooted_multiplier` 2 · `reshape` `dew_per_obstacle` 30 (× the act; paid here, in `_payoff`) ·
+`ancient_stump` `free_ranks` 2 · `shifting_mist` `dew` 0.25 (applied here, `get_dew_pot_multiplier`) ·
+`bramble_verge` `drowsy_rate` 2 · `waking_root` `free_unlocks` 1, `dreamlight` 1 (applied in `DreamState`).
+`crit_damage` 0.25 is my starting number: the table says only "crits hit harder".
+
+**Zone radius** (`HeartwoodGifts.zone_cells(id)`, cells from the gift's edge; the standing glow is this big):
+`spring` 2 · `lightning_tree` 3 · `bell_stone` 3 · `moonwell` 2 · `mushroom_ring` 0 (its own 3×3 patch) ·
+`heartwood_roots` 0 (its path cells). The radius does not grow with the step.
+
+**Signals** (on the gifts node)
+- `gift_placed(id, placement, step)`: a gift was taken and applied; `step` is 1. (`gift_taken(id, placement)` still fires.)
+- `gift_grew(id, step, placement)`: a landmark gained a step. It fires at each act break after the one the gift was
+  taken at, before that break's offer, up to step III. Rebuild your numbers and the look from `step`.
+- The registered effect callable also gets `placement["step"]` (and `placement["restoring"]` on a resumed run), so a
+  resumed run rebuilds a landmark at the step it had. The step is saved with the gift's record.
+
+**Who does what next:** Tower Code: the effects in `gift_ground.gd` from the numbers above (Memory Seed now covers every
+Warden; Elder Stumps bank 2 ranks). Environment Code: the `reshape` placer mode and effect, zones, drawing, growth
+looks. Main Merger: the gift screen (kinds, the `GROWS_LINE` under landmarks, step names `STEP_NAMES`), a scene for
+`reshape`, rest report lines. Card texts in `POOL` are the step I texts.
