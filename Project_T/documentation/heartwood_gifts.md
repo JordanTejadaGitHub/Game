@@ -99,7 +99,7 @@ Each gift now owns one kind of payoff:
 | Kinships | Old Kin (jumps a stage), Memory Seed (keeps age when moved) |
 Cards vs gifts: no gift repeats a Dream card's effect (Weathered Walls owns cheap Thornwalls).
 
-## Proposal: gifts as landmarks (drafted 2026-10-13, waiting for the user)
+## Gifts as landmarks (approved by the user 2026-10-13; replaces the pool table above where they differ)
 User: *"gifts feel whatever right now."* Why: a gift comes after a boss, three times a run, yet most give a small
 bonus to the two or three Wardens touching one cell (+10% damage, +15% crit, +1 range on four sides), and several
 were left behind by the status rework (+2 Poisoned when the cap is 32, +1 Drowsy when it is 20, Soaked +1 s). A
@@ -138,3 +138,9 @@ around, and it grows.
 | **Waking Root** | Next unlock costs 1 less Dreamlight | **The next form you unlock is free**, and +1 Dreamlight. |
 | **Thick Mist** | Nightmares arrive 25% further apart for an act | **Retire** (nothing to see or build around). |
 Control stays bounded: the Bell Stone and Roots don't stack with themselves, bosses take half.
+
+**Build order and owners (approved 2026-10-13).** Roguelite Code first (the pool, kinds, growth steps, ids and a
+short API note at the end of this file); then in parallel: Tower Code (the effects in `gift_ground.gd`),
+Environment Code (placing, zones, drawing, the arrival), Environment Assets (art in three growth steps), Main Merger
+(the gift screen, card scenes, rest report lines). Sound Code adds the arrival and the landmark sounds after.
+Balancing sets the final numbers when sims are back; until then the table's numbers stand.
