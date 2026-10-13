@@ -851,7 +851,7 @@ func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 		leaf.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		mark.add_child(leaf)
 		var words := Label.new()
-		words.text = "New from the Grove"
+		words.text = "New from the Memory Grove"
 		words.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		words.add_theme_font_size_override("font_size", 12)
 		words.add_theme_color_override("font_color", GROVE_COLOR)
@@ -1245,7 +1245,7 @@ func _branch_list(root: TowerData) -> Control:
 			parts[0] += " → " + (final.display_name if _form_in_scope(final) else "???")
 		parts[0] = parts[0].replace("[", "[lb]")
 		if hidden.has(branch):
-			parts.append("the Grove's hidden branch")
+			parts.append("its Grove branch")
 		var line := StatusLinks.make_label("", 15, UiStyle.INK if known else GROVE_COLOR)
 		line.text = " · ".join(parts)
 		var role := IconInfo.role_text(branch)
@@ -1429,7 +1429,7 @@ func _family_links(root: TowerData) -> Control:
 		for k in kin:
 			var line := Label.new()
 			var found := seen.has(String(k.id))
-			line.text = ("%s · %s + %s · Sapling, Blooming, Old Kin" % [k.name, k.a, k.b]) if found else "??? · %s + %s" % [k.a, k.b]
+			line.text = ("%s · %s + %s · Young, Blooming, Old Kin" % [k.name, k.a, k.b]) if found else "??? · %s + %s" % [k.a, k.b]
 			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			line.add_theme_font_size_override("font_size", 15)
 			box.add_child(line)
@@ -1448,7 +1448,7 @@ func _family_links(root: TowerData) -> Control:
 		combos.add_child(family_chip)
 	if combos.get_child_count() == 0:
 		var none := Label.new()
-		none.text = "None in reach yet."
+		none.text = "None in range yet."
 		none.add_theme_font_size_override("font_size", 15)
 		combos.add_child(none)
 	box.add_child(combos)

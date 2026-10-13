@@ -23,10 +23,10 @@ const REBINDABLE := [
 	["clear_tool", "Clear tool"],
 	["grow_option_1", "Grow into 1st option"], ["grow_option_2", "Grow into 2nd option"],
 	["grow_option_3", "Grow into 3rd option"],
-	["buff_lens", "Buff lens"],
+	["buff_lens", "Show boosts"],
 	["cycle_target", "Cycle targeting"],
-	["center_heartwood", "Center on the Heartwood"],
-	["center_start", "Center on the start"],
+	["center_heartwood", "Centre on the Heartwood"],
+	["center_start", "Centre on the start"],
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -108,18 +108,20 @@ func _ready() -> void:
 	_toggle(display, "Fullscreen", "fullscreen")
 	window_size_pick = _choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
-	_toggle(display, "V-sync", VSYNC_SETTING, true)
+	_toggle(display, "Smooth frames (V-sync)", VSYNC_SETTING, true, "Stops screen tearing. Turn off if the game feels delayed.")
 	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
 	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
 	# (UiStyle.UI_SIZES; user, 2026-10-01), not a slider.
-	_choice_nearest(display, "UI size", "ui_scale", UiStyle.UI_SIZES, 1.0)
+	_choice_nearest(display, "Text and button size", "ui_scale", UiStyle.UI_SIZES, 1.0)
+	_tip_last(display, "The map does not zoom.")
 	# Effects quality (platforms.md thinning ladder as a switch; the story chat 2026-10-01: performance shouldn't need the
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
 	# animation. Fx can also step down by itself when frames run long (Tower Code).
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
 	# Placement grid in build mode (Tower Code 0bc2b870, half_cells.md "Placement feel"): whole-cell lines over buildable
 	# ground, half lines near the ghost.
-	_choice(display, "Placement grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
+	_choice(display, "Build grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
+	_tip_last(display, "Shows grid lines while planting a Warden.")
 	_environment_detail(display)
 	_keepsake_toggles(display)
 
@@ -129,30 +131,34 @@ func _ready() -> void:
 	_toggle(gameplay, "Lessons", "whispers", true, "Short paused lessons the first time a rule matters. The Heartwood's story lines and warnings always show.")
 	# Growth marks use their own saved setting, independently of Hints.
 	_growth_marks = _toggle(gameplay, "Growth marks", GrowHints.SETTING, true,
-		"At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")
+		"At rests, a mark on Wardens that can grow now and a dewdrop when you can afford a rank.")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
-	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
-	_choice(gameplay, "Rest summary", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
+	_tip_last(gameplay, "Numbers over nightmares when hit. Big hits shows only crits and Reactions.")
+	_choice(gameplay, "Damage per second labels", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
+	_tip_last(gameplay, "Shows each Warden's damage per second under it.")
+	_choice(gameplay, "Summary card at rests", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
-	_toggle(gameplay, "Always show resist / weak pips on nightmares", ResistPips.SETTING, false)
-	_choice(gameplay, "Kinship effects", "kinship_effects", ["Full", "Subtle", "Off"], 0)
+	_toggle(gameplay, "Always show resistance markers", ResistPips.SETTING, false, "Small marks showing which damage a nightmare resists or is weak to.")
+	_choice(gameplay, "Kinship visuals", "kinship_effects", ["Full", "Subtle", "Off"], 0)
+	_tip_last(gameplay, "The vines between bonded Wardens. Subtle draws fewer.")
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
-	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
+	_choice_values(gameplay, "Omen offers", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
+	_tip_last(gameplay, "Never always skips them.")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
 	# The camera (screens_ui.md "HUD notes"; game_camera_node.gd EDGE_SETTING / EDGE_SPEED_SETTING): edge scrolling
 	# on by default, its speed a share of the keyboard's (100 = the same).
-	_toggle(gameplay, "Edge scrolling", "edge_scroll", true,
+	_toggle(gameplay, "Move camera at screen edge", "edge_scroll", true,
 		"The pointer at a screen edge moves the camera. In fullscreen the pointer stays inside the window.")
-	_slider(gameplay, "Edge scrolling speed", "edge_scroll_speed", 0.25, 1.0, 0.05)
+	_slider(gameplay, "Screen edge camera speed", "edge_scroll_speed", 0.25, 1.0, 0.05)
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")
 	_toggle(box, "Reduce flashes", "reduce_flashes")
-	_toggle(box, "Hit-stop on big hits", "hitstop")
-	_toggle(box, "High-contrast route line", RouteLine.SETTING, false)
-	_toggle(box, "Outline Deeply Blighted nightmares", "blight_outline", false, "Marks them by shape, not by color alone.")
+	_toggle(box, "Brief freeze on big hits", "hitstop")
+	_toggle(box, "High-contrast path line", RouteLine.SETTING, false)
+	_toggle(box, "Outline Deeply Blighted nightmares", "blight_outline", false, "Marks them by shape, not by colour alone.")
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
@@ -160,7 +166,7 @@ func _ready() -> void:
 		_toggle(box, "Test Grove: every Warden unlocked (from the next run)", TestGrove.SETTING)
 		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
-		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
+		_toggle(box, "Secret 6th perk slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
 			false, "For testing: The Heartwood's Crown isn't planted and no Seeds are banked.")
 		_toggle(box, "Keep balance snapshots (a copy of each rest's save)", RunSaver.SNAPSHOT_SETTING,
 			false, "For Balancing's --from-save: writes to D:\\Projects\\logs\\balancing\\snapshots, the newest 40.\nYour run save is not changed.")
@@ -520,6 +526,16 @@ func _environment_detail(box: VBoxContainer) -> void:
 	_put_pick(row, pick)
 	box.add_child(row)
 	_register(key, -1, func() -> void: pick.selected = clampi(int(_value(key)) + 1, 0, 2))
+
+# A tooltip for the row just added (the choice helpers that return nothing).
+func _tip_last(box: VBoxContainer, tip: String) -> void:
+	var row := box.get_child(box.get_child_count() - 1) as Control
+	if row == null:
+		return
+	row.tooltip_text = tip
+	for child in row.get_children():
+		if child is Control:
+			(child as Control).tooltip_text = tip
 
 func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> OptionButton:
 	var row := _label_row(text, key)

@@ -71,7 +71,7 @@ func _run() -> void:
 		event.combos.assign([&"conducted"])
 		event.combo_amount = 12.0
 		log.report(event)
-	_check(callouts._alive.size() == 1 and callouts._alive[0][1] == "Conducted!", "one Conducted! callout (throttled)")
+	_check(callouts._alive.size() == 1 and callouts._alive[0][1] == "Conducted", "one Conducted callout (throttled)")
 	_check(log.combo_counts_block.get(&"conducted", 0) == 2 and log.combo_counts_run.get(&"conducted", 0) == 2, "combos are counted")
 	var top := log.get_top_towers("block", 3)
 	_check(not top.is_empty() and top[0].tower == storm and roundi(top[0].amount) == 24, "Stormcap tops the block report")
@@ -264,7 +264,7 @@ func _run() -> void:
 		if not seen_now.has(String(combo.id)) and codex._entries.has(String(combo.id)):
 			var locked_card: Control = codex._entries[String(combo.id)]
 			var labels := locked_card.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels.filter(func(t: String) -> bool: return t != "New from the Grove") == ["???"],
+			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels.filter(func(t: String) -> bool: return t != "New from the Memory Grove") == ["???"],
 				"a locked combo shows only ??? (%s: %s)" % [combo.id, labels])
 			break
 	codex._search.text = "dreamlight"

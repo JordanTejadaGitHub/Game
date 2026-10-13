@@ -11,8 +11,8 @@ const REDUCED_MAX_ALIVE := 1  # Effects quality Reduced
 const REDUCED_COOLDOWN := 2.0
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
-const WORDS := {&"conducted": "Conducted!", &"asleep": "Asleep!",
-	&"crit": "Critical!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
+const WORDS := {&"conducted": "Conducted", &"asleep": "Asleep",  # No exclamation marks (wording review 2026-10-13)
+	&"crit": "Crit", &"weak": "Weak", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
 const USES_STATUS := {&"conducted": &"damp", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
@@ -20,7 +20,7 @@ const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit"]
 # Matchups (user 2026-10-07): every hit from a family the nightmare is weak to pops "Weak!", every hit
 # from one it resists "Strong!", but never stacked: a new hit re-pops the nightmare's word in place.
 # Combo words above win and replace it. Ids match CodexData.CALLOUT_ENTRIES (&"resisted" = "Strong!").
-const MATCHUP_WORDS := {&"weak": "Weak!", &"resisted": "Strong!"}
+const MATCHUP_WORDS := {&"weak": "Weak", &"resisted": "Resisted"}
 const MAX_MATCHUPS := 8  # Matchup words on screen at once (their own budget, so combos still show)
 const REDUCED_MAX_MATCHUPS := 3
 const WEAK_COLOUR := Palette.NEWLEAF
@@ -167,7 +167,7 @@ func _on_signature(tower: Tower, id: StringName) -> void:
 	var key := StringName("signature:" + String(id))
 	if first or (_cooldowns.get(key, 0.0) <= 0.0 and _alive.size() < (REDUCED_MAX_ALIVE if Fx.reduced() else MAX_ALIVE)):
 		_cooldowns[key] = SIGNATURE_COOLDOWN
-		_alive.append([0.0, String(Signatures.NAMES.get(id, String(id).capitalize())) + "!", UiStyle.GOLD, tower, tower.global_position, &""])
+		_alive.append([0.0, String(Signatures.NAMES.get(id, String(id).capitalize())), UiStyle.GOLD, tower, tower.global_position, &""])
 	if not first:
 		return
 	discovered.append(id)
@@ -225,7 +225,7 @@ const LIFT := 46.0  # The word's middle above the nightmare's centre
 const ICON_GAP := 6.0
 const MATCHUP_LABELS := {&"weak": "weak", &"resisted": "strong"}
 # The status icon drawn before a combo word (16 px art ×1).
-const WORD_ICONS := {"Conducted!": &"damp", "Asleep!": &"drowsy", "Critical!": &"crit_chance"}
+const WORD_ICONS := {"Conducted": &"damp", "Asleep": &"drowsy", "Crit": &"crit_chance"}
 var _display_font: Font
 var _caps_font: Font
 var _icons := {}  # Icon id -> Texture2D (or null)

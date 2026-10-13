@@ -962,7 +962,7 @@ func _not_in_dream_button(data: TowerData) -> void:
 		return
 	var button := Button.new()
 	button.name = "NotInDream"
-	button.text = "%d more not in this dream: Remember" % hidden.size()
+	button.text = "%d more not in this run: Remember" % hidden.size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_content.add_child(button)
@@ -971,7 +971,7 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.add_theme_font_override("font", UiStyle.body_font())
 	button.add_theme_font_size_override("font_size", ROW_NOTE_SIZE)
 	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
+	button.tooltip_text = "%s: not in this run. Add one on the Remember screen." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
 

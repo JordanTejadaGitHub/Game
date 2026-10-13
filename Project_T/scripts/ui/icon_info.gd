@@ -14,16 +14,16 @@ class_name IconInfo
 # underline explaining reactions") and read their stack numbers live ({stacks:need_damp} …: stack_number, below), so
 # Brimming's doubling shows.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build {stacks:need_damp} stacks to unlock {reactions}."],
-	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup ({stacks:cap_drowsy} stacks, {stacks:bosscap_drowsy} on bosses) enables sleep, Catch effects and {reactions}."],
-	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately. Build {stacks:need_spored} stacks for {reactions}."],
-	&"marked": ["Exposed", "At {stacks:need_marked} stacks, takes 25% more from every Warden and unlocks {reactions}. Partial stacks give no damage bonus."],
-	&"static": ["Charged", "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup. Build {stacks:need_static} stacks for {reactions}."],
-	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build {stacks:need_held} stacks for {reactions}."],
+	&"damp": ["Soaked", "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}."],
+	&"drowsy": ["Drowsy", "Walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}."],
+	&"spored": ["Poisoned", "Takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}."],
+	&"marked": ["Exposed", "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}."],
+	&"static": ["Charged", "Lightning builds up on it. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored charge). At {stacks:need_static} stacks it can set off {reactions}."],
+	&"held": ["Rooted", "Cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
-	&"elite": ["Deeply Blighted", "An elite: 3× health, a triple share of the Dew, and it takes 2 leaves."],
+	&"elite": ["Deeply Blighted", "A stronger nightmare: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
@@ -33,23 +33,23 @@ const STATUSES := {
 const STATS := {
 	&"damage": ["Damage", "How much each hit deals."],
 	&"attack_speed": ["Attack speed", "Attacks per second."],
-	&"range": ["Range", "How far it reaches, in tiles."],
+	&"range": ["Range", "How far it attacks, in cells."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
-	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest): each rank adds damage, speed and range."],
-	&"focus": ["Focus", "Each rank you pick one: Power, Swift, Reach or Deep."],
-	&"focus_power": ["Power focus", "Deals 18% more damage."],
-	&"focus_swift": ["Swift focus", "Attacks 12% faster."],
-	&"focus_reach": ["Reach focus", "+0.3 range."],
-	&"focus_deep": ["Deep focus", "+25% Potency."],
+	&"potency": ["Potency", "How strong this Warden's statuses are. Higher Potency: harder {spored} and {static}, stronger slows, longer {held}. Raise it with the Deep choice."],
+	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest). Each rank adds damage and attack speed, and you choose one improvement."],
+	&"focus": ["Nurture choice", "Each rank you choose one improvement. Attacking Wardens: Power, Swift, Reach or Deep. Support Wardens have their own."],
+	&"focus_power": ["Power", "Hits harder: +18% damage."],
+	&"focus_swift": ["Swift", "Attacks faster: +12%."],
+	&"focus_reach": ["Reach", "More range: +0.3 cells."],
+	&"focus_deep": ["Deep", "Stronger statuses: +25% Potency."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
 	&"dreamlight_cost": ["Dreamlight cost", "Dreamlight to unlock this form for the run."],
 }
 const RESOURCES := {
 	&"dew": ["Dew", "Spent on Wardens, growth, Nurture and clearing. Earned by dispelling nightmares and at rests."],
 	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (open it any time; a drift pauses)."],
-	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches it takes leaves. Lose them all and the dream goes dark."],
+	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches the Heartwood takes leaves. Lose them all and the run ends."],
 	&"seeds": ["Seeds", "Earned every run, win or lose; spent in the Memory Grove."],
 	&"path": ["Path length", "How many cells the nightmares walk. Longer is better."],
 }
