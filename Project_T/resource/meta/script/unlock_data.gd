@@ -63,7 +63,7 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 # The text the node card and loadout show: the sidegrade one while sidegrade perks are on (the Hades style's
 # plain-power perks have their pure-Sidegrade text here, for the developer style).
 const PURE_SIDEGRADE_TEXT := {
-	"morning_stores": "While carried: +10 starting {dew} per level, up to +30. Costs: {drifts} 1–5 pay 15% less {dew} per level.",
+	"morning_stores": "While carried: +20 starting {dew} per level, up to +60. Costs: {drifts} 1–5 pay 15% less {dew} per level.",
 	"rested_roots": "While carried: +20% {rest} bonus per level, up to +40%. Costs: every {drift} pays 5% less {dew} per level.",
 	"deep_taproot": "While carried: +1 max {leaf} per level, up to +3. Costs: no {leaf} regrows at act breaks.",
 }

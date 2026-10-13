@@ -96,11 +96,11 @@ static func set_keepsake_shown(id: String, shown: bool) -> void:
 	settings[KEEPSAKES_HIDDEN_SETTING] = hidden
 	HeartwoodMemory.save_settings(settings)
 
-# Leaf or Dew (Grove option node, meta_design.md f7a357de): before a run, trade up to 3 leaves for 15 Dew each, or
-# up to 45 Dew for leaves. A step moves max leaves with current leaves, so traded leaves don't regrow at act breaks.
+# Leaf or Dew (Grove option node, meta_design.md f7a357de): before a run, trade up to 3 leaves for 30 Dew each, or
+# up to 90 Dew for leaves. A step moves max leaves with current leaves, so traded leaves don't regrow at act breaks.
 # The Grove's Start run sets leaf_dew_trade (+N = leaves into Dew, −N = Dew into leaves); the run applies it once.
 const LEAF_DEW_NODE := "leaf_or_dew"
-const LEAF_DEW_RATE := 15
+const LEAF_DEW_RATE := 30  # Doubled with the Dew x2 economy (Balancing 2026-10-13, second pass)
 const LEAF_DEW_MAX := 3
 static var leaf_dew_trade := 0
 
