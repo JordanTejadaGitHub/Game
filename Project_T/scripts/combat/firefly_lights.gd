@@ -745,14 +745,21 @@ func load_save(cells: Array) -> void:
 
 # The glow is a soft band along the path's own line (user 2026-10-13, "fix the lit area": it was a flat square per lit
 # cell, centred on whole cells while the path is a half-cell lane, so pale squares with gaps sat on the grass beside
-# it). Each lit stretch of the route is three nested round-jointed lines (GLOW_BANDS: wide and faint to narrow), so it
-# fades out in three palette steps with no grid, and a stretch is never brighter than the three together. Gold path is
-# its own stretch, joined end to end with the plain glow.
-const GLOW_BANDS: Array[float] = [80.0, 56.0, 34.0]  # px wide, widest first: past the path's ribbon (~40 px), a soft edge on the grass
-const GLOW_BAND_ALPHA := 0.10  # Per band, added light: 0.30 at the path's centre (0.07 was too faint, 0.14 "a bit too blinding" where the path winds: user, 2026-10-13)
-const GOLD_BAND_ALPHA := 0.16  # Gold path: 0.48 at the centre
+# it). Each lit stretch of the route is three nested round-jointed lines (GLOW_BANDS: wide and dim to narrow and
+# bright), so it fades out in three steps with no grid. Gold path is its own stretch, joined end to end.
+# One group, one cap (user, the same day, a 102-Warden maze at drift 35: "large and bright, several cells wide ...
+# stepped blocks ... the main thing on screen"): the first version added every band and every stretch on top of the
+# others, 80 px wide, so close lanes merged into bright slabs. Now the lines are opaque inside one CanvasGroup (a
+# brighter band covers a dimmer one, lanes side by side just meet) and the group is added to the map once at
+# GLOW_CAP: nowhere is brighter than one lit path's centre, however the maze winds. The bands hug the path's ribbon
+# (~40 px) with a few pixels of soft edge.
+const GLOW_BANDS: Array[float] = [52.0, 40.0, 26.0]  # px wide, widest first
+const GLOW_SHARES: Array[float] = [0.2, 0.42, 0.65]  # Each band's share of GLOW_CAP: a lit path's centre adds 0.65 × the cap
+const GOLD_SHARES: Array[float] = [0.3, 0.65, 1.0]  # Gold path: the full cap at its centre
+const GLOW_CAP := 0.34  # The most light the glow ever adds (the group's alpha)
+const GLOW_SHADER := "shader_type canvas_item;\nrender_mode unshaded, blend_add;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;\nvoid fragment() {\n\tvec4 c = textureLod(screen_texture, SCREEN_UV, 0.0);\n\tif (c.a > 0.0001) {\n\t\tc.rgb /= c.a;\n\t}\n\tCOLOR *= c;\n}\n"
 var _glow_lines: Array[Line2D] = []
-var _glow_material: CanvasItemMaterial  # Added light (kept on this node, never static): it warms the pale path too
+var _glow_group: CanvasGroup  # Every glow line, flattened, then added to the map once (kept on this node, never static)
 
 func _draw() -> void:
 	_lay_glow.call_deferred()  # Lines are nodes: laid after the draw, whenever anything here asked for a redraw
@@ -764,9 +771,9 @@ func _draw() -> void:
 			draw_circle(to_local(spot) + Vector2(-10 + 10 * i, -14), 3.0, Color(Palette.HEARTLIGHT, 0.9))
 
 func _exit_tree() -> void:
-	for line in _glow_lines:
-		if is_instance_valid(line):
-			line.queue_free()
+	if is_instance_valid(_glow_group):
+		_glow_group.queue_free()
+	_glow_group = null
 	_glow_lines.clear()
 
 func _lay_glow() -> void:
@@ -775,9 +782,25 @@ func _lay_glow() -> void:
 			line.queue_free()
 	_glow_lines.clear()
 	if not class_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
+		if is_instance_valid(_glow_group):
+			_glow_group.visible = false
 		return
 	var map: Node2D = dream_state.map_generator
-	var ground: Node2D = map.path_layer  # The lines lie on the path layer: over the path's ribbon, under everything else
+	if not is_instance_valid(_glow_group):
+		_glow_group = CanvasGroup.new()
+		_glow_group.name = "FireflyGlow"
+		_glow_group.fit_margin = 32.0
+		_glow_group.clear_margin = 32.0
+		var shader := Shader.new()
+		shader.code = GLOW_SHADER
+		var material := ShaderMaterial.new()
+		material.shader = shader
+		_glow_group.material = material
+		_glow_group.self_modulate = Color(1, 1, 1, GLOW_CAP)  # multiplier: the cap on the added light
+		map.path_layer.add_child(_glow_group)  # On the path layer: over the path's ribbon, under everything else
+	_glow_group.visible = true
+	var ground: Node2D = _glow_group
+	var runs: Array = []  # [points, bright, joins_before, joins_after] per lit stretch
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var gold := _rule(WHERE_LIGHTS_MEET)
 	var states := PackedInt32Array()  # Per route point: 0 dark, 1 glow, 2 gold path
@@ -803,24 +826,24 @@ func _lay_glow() -> void:
 			points.append(ground.to_local(map.to_global(Tower.MAP_GRID.calculate_map_position(route[i]))))
 		if points.size() == 1:
 			points.append(points[0] + Vector2(0.5, 0.0))  # One lit point: a round spot
-		var bright := states[from] == 2
-		for width in GLOW_BANDS:
+		runs.append([points, states[from] == 2, joins_before, joins_after])
+		from = to + 1
+	# Band by band over every stretch, dimmest first: a lane's bright centre is never covered by its neighbour's edge
+	for band in GLOW_BANDS.size():
+		for run: Array in runs:
+			var share: float = GOLD_SHARES[band] if run[1] else GLOW_SHARES[band]
+			var base: Color = Palette.GOLD if run[1] else Palette.GLOW
 			var line := Line2D.new()
-			line.points = points
-			line.width = width
-			line.default_color = Color(Palette.GOLD if bright else Palette.GLOW, GOLD_BAND_ALPHA if bright else GLOW_BAND_ALPHA)
+			line.points = run[0]
+			line.width = GLOW_BANDS[band]
+			line.default_color = Color(base.r * share, base.g * share, base.b * share, 1.0)  # multiplier: the band's share of the light (opaque in the group)
 			line.joint_mode = Line2D.LINE_JOINT_ROUND
-			line.begin_cap_mode = Line2D.LINE_CAP_NONE if joins_before else Line2D.LINE_CAP_ROUND
-			line.end_cap_mode = Line2D.LINE_CAP_NONE if joins_after else Line2D.LINE_CAP_ROUND
+			line.begin_cap_mode = Line2D.LINE_CAP_NONE if run[2] else Line2D.LINE_CAP_ROUND
+			line.end_cap_mode = Line2D.LINE_CAP_NONE if run[3] else Line2D.LINE_CAP_ROUND
 			line.round_precision = 6
 			line.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			if _glow_material == null:
-				_glow_material = CanvasItemMaterial.new()
-				_glow_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-			line.material = _glow_material
 			ground.add_child(line)
 			_glow_lines.append(line)
-		from = to + 1
 
 func _light_spot(light: int) -> Vector2:
 	for source in _sources:
