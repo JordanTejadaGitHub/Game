@@ -50,7 +50,7 @@ var _card_label := Label.new()  # The rule, one Mist line (15 px)
 var _card_title := Label.new()  # "Thunderclap" (display 34, in the Reaction's colour)
 var _card_icons := HFlowContainer.new()  # The recipe: status icons ×1.5 + names, "+", "→" the Reaction; a chain's Reactions
 var _card_caps := Label.new()  # "combo discovered" (caps, Mist)
-var _card_sub := Label.new()  # "a Reaction: two statuses meet on one nightmare" (Mist)
+var _card_sub: RichTextLabel = StatusLinks.make_label("", 14, UiStyle.INK_DIM)  # "a Reaction: two statuses meet on one nightmare" (Mist; status names are links)
 var _head := HBoxContainer.new()  # The disc and the name
 var _disc := PanelContainer.new()  # A 60 px dark disc with the Reaction's icon ×3 (or a chain's ×N)
 var _disc_box := StyleBoxFlat.new()
@@ -66,8 +66,8 @@ var _last_reaction_enemy = null  # The nightmare the latest Reaction fired on (a
 const CARD_WIDTH := 470.0
 const DISC := 60.0
 const CARD_EDGE := 16.0  # Kept from the screen's sides
-const CARD_TOP := 90.0  # Clear of the drift banner
-const CARD_BOTTOM := 110.0  # Clear of the Warden bar
+const CARD_TOP := 200.0  # Clear of the drift banner, the top-right counters, their button row and the Omen tag (layout units: the HUD's base is 1280×720 at every resolution and UI scale)
+const CARD_BOTTOM := 170.0  # Clear of the Warden bar and the DriftPanel
 const RING_REACH := 42.0  # The ring's outer radius (world px, ComboRing)
 const CARD_GAP := 40.0  # From the ring's edge to the card
 var _dim := TextureRect.new()  # The world dimmed behind a pausing card, the nightmare left lit
@@ -147,7 +147,7 @@ func _ready() -> void:
 	style.shadow_size = 14
 	_card.add_theme_stylebox_override("panel", style)
 	var inner := CARD_WIDTH - 44.0
-	UiStyle.caps(_card_caps, 14, UiStyle.INK_DIM)
+	UiStyle.caps(_card_caps, 14)  # The normal caps colour (user's screenshot 2026-10-13: dimmed, it was nearly invisible)
 	_disc_box.bg_color = Palette.NIGHT
 	_disc_box.set_border_width_all(1)
 	_disc_box.set_corner_radius_all(999)  # Clamped to half the size: a circle
@@ -239,6 +239,13 @@ func _ready() -> void:
 		piece.flip_v = corner[2]
 		piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		piece.set_anchors_and_offsets_preset(corner[0], Control.PRESET_MODE_MINSIZE)
+		# Out into the card's padding (windowed look 2026-10-13: at the content's corners they covered the first
+		# letter of the header and of the foot line).
+		var out := Vector2(18.0 if corner[1] else -18.0, 14.0 if corner[2] else -14.0)
+		piece.offset_left += out.x
+		piece.offset_right += out.x
+		piece.offset_top += out.y
+		piece.offset_bottom += out.y
 		_crown_corners.add_child(piece)
 	_card.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -634,6 +641,14 @@ class _LegendaryGem extends Control:
 	func _draw() -> void:
 		UiStyle.draw_gem(self, size / 2.0, 18.0, UpgradeData.Rarity.LEGENDARY)
 
+# "Exposed + Rooted, on a nightmare that is also Charged": a Crowned Reaction's three statuses, as tokens (links
+# where the text is drawn with StatusLinks).
+static func crowned_line(combo: Dictionary) -> String:
+	var statuses: Array = combo.get("statuses", [])
+	if statuses.size() < 3:
+		return "a Reaction on a nightmare with a third status"
+	return "{%s} + {%s}, on a nightmare that is also {%s}" % [statuses[0], statuses[1], statuses[-1]]
+
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
 	if combo.is_empty():
@@ -644,8 +659,8 @@ static func discovery_text(id: StringName) -> String:
 		var families: Array[String] = []
 		for family in combo.families:
 			families.append(CodexData.FAMILY_NAMES.get(family, family))
-		return "Crowned Reaction discovered: %s\n%s · %s\n%s\nAdded to the Codex." % [combo.name,
-			CodexData.crowned_recipe(combo), ", ".join(families), combo.text]
+		return "Crowned Reaction discovered: %s\n%s\n%s\nFrom %s. Added to the Codex." % [combo.name,
+			IconInfo.format(crowned_line(combo)), combo.text, ", ".join(families)]
 	return "Combo discovered: %s\n%s\n%s\nAdded to the Codex." % [combo.name, CodexData.ingredients_text(combo), combo.text]
 
 func _show_next() -> void:
@@ -859,7 +874,8 @@ func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 				var families: Array[String] = []
 				for family in combo.families:
 					families.append(CodexData.FAMILY_NAMES.get(family, family))
-				sub = "a Reaction with a third status: %s" % ", ".join(families)
+				sub = crowned_line(combo)  # What happened: the two statuses and the third, each a link
+				foot = "From %s · added to the Codex" % ", ".join(families)
 			"Kinship":
 				caps = "kinship discovered"
 				hero = CodexData.family_icon(CodexData.LINE_FAMILIES.get(combo.get("line", ""), ""))
@@ -873,7 +889,7 @@ func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 	_card_title.text = title
 	UiStyle.display(_card_title, 34)
 	_card_title.add_theme_color_override("font_color", colour)
-	_card_sub.text = sub
+	_card_sub.text = StatusLinks.bbcode(sub)
 	_card_sub.visible = sub != ""
 	_card_label.text = rule
 	_card_label.visible = rule != ""
@@ -895,7 +911,10 @@ func _build_recipe(id: StringName, combo: Dictionary, colour: Color) -> void:
 	match combo.get("kind", ""):
 		"Crowned":
 			var base := Reactions.get_data(combo.base)
-			parts.append([IconInfo.icon(combo.base), base.display_name if base != null else String(combo.base).capitalize()])
+			for status in (base.statuses if base != null else []):  # The base Reaction's two statuses, then the third
+				parts.append([IconInfo.icon(status), IconInfo.status_name(status)])
+			if base == null:
+				parts.append([IconInfo.icon(combo.base), String(combo.base).capitalize()])
 			parts.append([IconInfo.icon(combo.statuses[-1]), IconInfo.status_name(combo.statuses[-1])])
 		"Kinship":
 			parts.append([null, combo.get("a", "?")])
@@ -980,7 +999,10 @@ func _place_card() -> void:
 	_card.reset_size()
 	var screen := get_viewport().get_visible_rect().size
 	var card_size := _card.size
-	var pos := (screen - card_size) / 2.0
+	# Centred in the safe area (clear of the banner and the top-right HUD above, the bars below); beside the nightmare
+	# when there is one, clamped into the same area.
+	var safe := Rect2(CARD_EDGE, CARD_TOP, screen.x - CARD_EDGE * 2.0, maxf(screen.y - CARD_TOP - CARD_BOTTOM, 0.0))
+	var pos := Vector2((screen.x - card_size.x) / 2.0, safe.position.y + (safe.size.y - card_size.y) / 2.0 if card_size.y <= safe.size.y else (screen.y - card_size.y) / 2.0)
 	_thread.on = false
 	if is_instance_valid(_card_enemy) and _card_enemy.is_inside_tree():
 		var canvas: Transform2D = (_card_enemy as Node2D).get_global_transform_with_canvas()
@@ -990,7 +1012,7 @@ func _place_card() -> void:
 		pos.x = at.x + ring + CARD_GAP if right else at.x - ring - CARD_GAP - card_size.x
 		pos.y = at.y - card_size.y / 2.0
 		pos.x = clampf(pos.x, CARD_EDGE, maxf(CARD_EDGE, screen.x - card_size.x - CARD_EDGE))
-		pos.y = clampf(pos.y, CARD_TOP, maxf(CARD_TOP, screen.y - card_size.y - CARD_BOTTOM))
+		pos.y = clampf(pos.y, CARD_TOP, maxf(CARD_TOP, screen.y - card_size.y - CARD_BOTTOM)) if card_size.y <= safe.size.y else (screen.y - card_size.y) / 2.0
 		var edge_x := pos.x if right else pos.x + card_size.x
 		var to := Vector2(edge_x, clampf(at.y, pos.y + 16.0, pos.y + card_size.y - 16.0))
 		if absf(to.x - at.x) > ring:  # Room for a thread (the card isn't pushed over the ring)

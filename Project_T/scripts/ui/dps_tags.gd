@@ -143,6 +143,10 @@ func _draw() -> void:
 	var full_all := _meter_open()
 	var s := WorldLabel.text_scale(self)
 	var towers: Array = _shown_towers().filter(func(t) -> bool: return is_instance_valid(t) and _rows.has(t.get_instance_id()))
+	# A discovery card is open (the game is paused on the moment): no tags near the ringed nightmare, so it reads.
+	var moment := _discovery_spot()
+	if moment != Vector2.INF:
+		towers = towers.filter(func(t) -> bool: return t.global_position.distance_to(moment) > DISCOVERY_CLEAR)
 	towers.sort_custom(func(a, b) -> bool:
 		var fa := focus.has(a)
 		var fb := focus.has(b)
@@ -207,6 +211,16 @@ func _draw_parts(at: Vector2, parts: Dictionary, color: Color) -> void:
 	if parts.star:
 		x += MARK_GAP
 		MoonStyleBox.draw_mark(get_canvas_item(), Vector2(x + MARK_SIZE.x / 2.0, at.y - 5.0))  # The 7×4 Heartwood sprout
+
+const DISCOVERY_CLEAR := 160.0  # World px round the nightmare a discovery card points at
+
+# The nightmare the open discovery card rings (ComboFeedback), or Vector2.INF.
+func _discovery_spot() -> Vector2:
+	var feedback := get_tree().get_first_node_in_group(ComboFeedback.GROUP)
+	if feedback == null or not feedback.has_method("showing") or not feedback.showing():
+		return Vector2.INF
+	var enemy = feedback.get("_card_enemy")
+	return (enemy as Node2D).global_position if is_instance_valid(enemy) and enemy is Node2D else Vector2.INF
 
 # Where a tag goes: {text, parts, width, anchor, rect (world)}, or {} under the Warden panel. The focus tag stays in place.
 func _place(s: float, base: Vector2, r: Dictionary, full: bool, in_focus: bool) -> Dictionary:

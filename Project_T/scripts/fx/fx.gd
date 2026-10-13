@@ -268,11 +268,9 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
 	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
 	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
-	for i in MAX_CALLOUTS:
-		if not _callouts_alive.any(func(c) -> bool: return is_instance_valid(c) \
-				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
-			break
-		at.y -= CALLOUT_CLEAR.y
+	# One column for every word at a spot (WorldLabel.callout_slot, shared with CombatCallouts and the chain badge):
+	# a word that would land on a live one moves up a line; a line is a whole callout tall.
+	at = WorldLabel.callout_slot(at + Vector2(0.0, -FxCallout.LIFT), key if key != &"" else StringName(text), CALLOUT_LIFE) + Vector2(0.0, FxCallout.LIFT)
 	var node := FxCallout.new(text, colour, icon)
 	parent.add_child(node)
 	node.global_position = at
@@ -309,13 +307,13 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	# One badge, updated in place (the callout redo); a new one only when there's none here.
 	if is_instance_valid(_badge) and _badge.get_parent() == parent and _badge is FxBadge:
 		(_badge as FxBadge).set_count(count)
-		_badge.global_position = where + BADGE_OFFSET
+		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
 	else:
 		if is_instance_valid(_badge):
 			_badge.queue_free()
 		_badge = FxBadge.new(count)
 		parent.add_child(_badge)
-		_badge.global_position = where + BADGE_OFFSET
+		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
 	if count == 5 or count == 10:
 		_hitstop(parent)
 		if not reduce_flashes() and bright_flash_ok():

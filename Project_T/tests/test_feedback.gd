@@ -386,7 +386,7 @@ func _run() -> void:
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 8 and CodexData.combos().size() == 14, "8 Crowned Reactions, apart from the 14 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
-		and ComboFeedback.discovery_text(&"tempest").contains("Thunderclap + Poisoned"), "a Crowned discovery card names its recipe")
+		and ComboFeedback.discovery_text(&"tempest").contains("on a nightmare that is also Poisoned") and not ComboFeedback.discovery_text(&"tempest").contains("{"), "a Crowned discovery card says what happened: the two statuses and the third")
 	var was_demo = ProjectSettings.get_setting("game/demo", false)
 	ProjectSettings.set_setting("game/demo", false)
 	codex.open(&"combos")

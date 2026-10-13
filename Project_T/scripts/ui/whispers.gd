@@ -198,6 +198,9 @@ func _choice_open() -> bool:
 	var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as Control  # A Lesson card is up (user 2026-10-13:
 	if lesson != null and lesson.visible:  # story lines and warnings never show over or behind a card or a choice)
 		return true
+	var discovery := get_tree().get_first_node_in_group(ComboFeedback.GROUP)  # A discovery card is a paused card too
+	if discovery != null and discovery.has_method("showing") and discovery.showing():
+		return true
 	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
 	if pause != null and pause.visible:
 		return true
