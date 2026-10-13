@@ -495,6 +495,7 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 		var phantom: bool = e.is_flying() and e.enemy_data.flying_icon == &"through_walls"
 		if phantom and not final:
 			continue
+		Fx.sustain(e, Fx.SUSTAIN_LINK, tower, 1.0, [tower, partner])  # Wrapped in arcs while it stands in the link (it checks the segment itself)
 		var turn := tower.get_meta(&"fence_turn", 0) as int
 		tower.set_meta(&"fence_turn", turn + 1)
 		var striker: Tower = tower if turn % 2 == 0 else partner
@@ -1797,6 +1798,7 @@ class GroundZone extends Node2D:
 				var rain := damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0)
 				e.take_damage(rain * tower.crush_tick(e, rain), tower.tower_data.line, true, false, tower, &"rain")  # Crushing counts rain
 			elif damage_per_second > 0.0:
+				Fx.sustain(e, Fx.SUSTAIN_ZONE, tower)  # A zone's tick, not a hit (before it lands: Fx reads it)
 				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"", false)
 			if not is_instance_valid(e) or e.is_cleansed:
 				continue

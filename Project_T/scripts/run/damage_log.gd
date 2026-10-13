@@ -144,6 +144,7 @@ func _process(delta: float) -> void:
 
 func report(event: Event) -> void:
 	event.time = _clock
+	Fx.damage_feedback(event)  # The hit looks like what hit it (screens_ui.md "Hit feedback on nightmares")
 	if is_instance_valid(event.source):
 		var tower := event.source as Tower
 		event.source_name = tower.tower_data.display_name if tower else str(event.source.name)

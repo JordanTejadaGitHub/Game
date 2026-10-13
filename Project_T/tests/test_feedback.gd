@@ -437,6 +437,44 @@ func _run() -> void:
 	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
 	_check(struck.size() == 1, "no spark event once it isn't Exposed")
 
+	# --- Hit feedback on nightmares (screens_ui.md; the user 2026-10-13: "like being hit by a Sprout vs the
+	# Jarlink's link"): a hit plays its family's effect, a link tick wraps the nightmare in arcs instead, and the arcs
+	# go when it leaves the link.
+	var fb_placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var fb_at := Tower.MAP_GRID.calculate_map_position(Vector2(6, 6))
+	var fb_victim: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	fb_victim.set_process(false)
+	fb_victim.max_health = 1000000
+	fb_victim.health = 1000000
+	fb_victim.global_position = fb_at + Vector2(96, 0)
+	var fb_sprout := _loose(fb_placer, "sprout", fb_at + Vector2(96, 64))
+	Fx.last_hit_effect = &""
+	fb_sprout.hit(fb_victim, 1.0, false, Tower.NO_CRIT)
+	var sprout_effect := Fx.last_hit_effect
+	_check(sprout_effect == Fx.hit_effect("sprout")[0] and Fx.sustained(fb_victim).is_empty(),
+		"a Sprout's hit plays the Sprout hit effect (%s), no overlay" % sprout_effect)
+	_check(Fx.hit_effect("sprout")[0] != Fx.hit_effect("light")[0] and Fx.hit_effect("stone")[0] != Fx.hit_effect("water")[0]
+		and Fx.hit_effect("wall", &"thorns")[0] == Fx.hit_effect("thorns")[0], "the families' hit effects differ; thorns have their own")
+	var fb_a := _loose(fb_placer, "jarlink", fb_at)
+	var fb_b := _loose(fb_placer, "jarlink", fb_at + Vector2(192, 0))
+	await process_frame
+	Fx.last_hit_effect = &""
+	for jar in [fb_a, fb_b]:
+		BranchKit._update_fence(jar, 0.0)
+	for i in 8:
+		await process_frame  # (Area hits land over a few frames)
+	var arcs := Fx.sustain_of(fb_victim, Fx.SUSTAIN_LINK)
+	_check(arcs != null and Fx.sustained(fb_victim) == [Fx.SUSTAIN_LINK] and fb_victim.health < 1000000,
+		"a Jarlink tick wraps the nightmare in arcs (its sustained state: %s)" % str(Fx.sustained(fb_victim)))
+	_check(Fx.last_hit_effect == &"" and (arcs == null or String(arcs.name) != String(sprout_effect)),
+		"…and plays no hit effect: a tick isn't a Sprout's hit (%s)" % Fx.last_hit_effect)
+	fb_victim.global_position += Vector2(0, 200)
+	await process_frame
+	await process_frame
+	_check(Fx.sustain_of(fb_victim, Fx.SUSTAIN_LINK) == null and Fx.sustained(fb_victim).is_empty(), "it left the link: the arcs are gone")
+	for loose in [fb_sprout, fb_a, fb_b, fb_victim]:
+		loose.queue_free()
+
 	main.queue_free()
 	await process_frame
 	print("feedback test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
@@ -450,6 +488,16 @@ func _free_cell(map_generator, from_index: int) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# A Warden of `id` standing at `at` (px), outside the build flow, not acting on its own.
+func _loose(placer: TowerPlacer, id: String, at: Vector2) -> Tower:
+	var tower: Tower = placer.tower_scene.instantiate()
+	tower.tower_data = load("res://resource/tower/%s.tres" % id)
+	tower.cell = Tower.MAP_GRID.calculate_grid_coordinates(at)
+	tower.position = at
+	placer.get_node("%TowerContainer").add_child(tower)
+	tower.set_process(false)
+	return tower
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
