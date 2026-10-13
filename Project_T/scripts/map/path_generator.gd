@@ -118,7 +118,7 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	var a := point_to_node(start)
 	var b := point_to_node(end)
 	if is_whole_cell(end):
-		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
+		b = _end_node(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
 	if is_whole_cell(start):
 		a = _start_node(start, Vector2(b))
 	if not _walkable_node(a) or not _walkable_node(b):
@@ -154,7 +154,7 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 	var a := point_to_node(start)
 	var b := point_to_node(end)
 	if is_whole_cell(end):
-		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
+		b = _end_node(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
 	if is_whole_cell(start):
 		a = _start_node(start, Vector2(b))
 	if not _walkable_node(a) or not _walkable_node(b):
@@ -353,4 +353,25 @@ var start_half := Vector2i(-1, -1)
 func _start_node(cell: Vector2, toward: Vector2) -> Vector2i:
 	if cell == start_cell and start_half.x >= 0 and _walkable_node(start_half):
 		return start_half
+	return _nearest_half(cell, toward)
+
+# The map's end (user 2026-10-13: "fix the path connected to grove, should be connecting to the base"): the Heartwood
+# stands with its base on the bottom of its cell, and a route ending on the cell's nearest half often ran into the
+# middle of the tree. A route to the whole `end_cell` ends on its bottom row, on the half nearer where it comes from.
+# (-1, -1): no map end (any whole cell ends on its nearest half).
+var end_cell := Vector2(-1, -1)
+
+func _end_node(cell: Vector2, toward: Vector2) -> Vector2i:
+	if cell == end_cell:
+		var best := Vector2i(-1, -1)
+		var best_d := INF
+		for h in halves_of_cell(cell):
+			if int(h.y) % HALF != HALF - 1 or not _walkable_node(Vector2i(h)):
+				continue  # Not the base row
+			var d: float = absf(h.x - toward.x) + absf(h.y - toward.y)
+			if d < best_d:
+				best_d = d
+				best = Vector2i(h)
+		if best.x >= 0:
+			return best
 	return _nearest_half(cell, toward)
