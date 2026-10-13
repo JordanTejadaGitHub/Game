@@ -802,9 +802,11 @@ func _crown_tree(base: Vector2, scale: float) -> void:
 
 
 func _spore_mushrooms() -> void:
-	# Pale glowing mushrooms on its knees and shoulders.
-	for m in [Vector3(TITAN_X - 70, 266, 4), Vector3(TITAN_X - 60, 268, 3), Vector3(TITAN_X - 36, 266, 5),
-			Vector3(TITAN_X + 40, 268, 4), Vector3(TITAN_X + 72, 267, 5), Vector3(TITAN_X - 80, 123, 3),
+	# Pale glowing mushrooms beside its shoulder trees and along its base. The five at the base root in
+	# the dark waterline band itself (they once stood on the knees, which the mist now hides, and floated).
+	var foot := WATER_Y - 2.0
+	for m in [Vector3(TITAN_X - 70, foot, 4), Vector3(TITAN_X - 60, foot + 1.0, 3), Vector3(TITAN_X - 36, foot, 5),
+			Vector3(TITAN_X + 40, foot + 1.0, 4), Vector3(TITAN_X + 72, foot, 5), Vector3(TITAN_X - 80, 123, 3),
 			Vector3(TITAN_X + 66, 129, 3)]:
 		var p := Vector2(m.x, m.y)
 		var s := int(m.z)
