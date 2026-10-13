@@ -398,6 +398,45 @@ func _run() -> void:
 		"the demo's Codex leaves them out")
 	ProjectSettings.set_setting("game/demo", was_demo)
 
+	# --- Exposed at full stacks is visible (screens_ui.md, last section; the user 2026-10-13: "when Exposed has full
+	# stacks, being hit should have a visual effect"): the callout once on completing, the mark only while Exposed,
+	# the spark event on a hit that took the bonus. (Written by hand, not run: no test runs until the user says.) ---
+	callouts._alive.clear()
+	callouts._cooldowns.clear()
+	var exposed: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	exposed.set_process(false)
+	exposed.max_health = 100000
+	exposed.health = 100000
+	var completed: Array = []
+	callouts.status_completed.connect(func(status: StringName, _enemy: Node2D) -> void: completed.append(status))
+	var struck: Array = []
+	storm.exposed_struck.connect(func(_tower: Tower, enemy: Node2D) -> void: struck.append(enemy))
+	var need: int = exposed.statuses.get_max_stacks(EnemyStatuses.MARKED)
+	exposed.apply_status(EnemyStatuses.MARKED, need - 1, 0.0, 1.0, 0, "light", storm)
+	_check(not exposed.statuses.is_exposed() and Fx.exposed_mark_of(exposed) == null and completed.is_empty(),
+		"partial Exposed (%d of %d): no mark, no callout" % [need - 1, need])
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck.is_empty(), "…and a hit on it emits no spark event")
+	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
+	_check(exposed.statuses.is_exposed() and completed == [&"marked"], "Exposed completing: its callout fires (%s)" % [completed])
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Exposed" and c[3] == exposed), "…the word \"Exposed\" on that nightmare")
+	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
+	_check(completed.size() == 1, "another application while it is full: no second callout")
+	var mark := Fx.exposed_mark_of(exposed)
+	_check(mark != null and mark.get_parent() != spawner and not (mark.get_parent() is Tower),
+		"the mark exists while it is Exposed, never under the nightmares' container")
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck == [exposed], "a hit on a fully Exposed nightmare emits the spark event (%d)" % struck.size())
+	exposed.statuses.remove(EnemyStatuses.MARKED)
+	if mark != null:
+		mark._process(0.1)
+		_check(mark.ending and Fx.exposed_mark_of(exposed) == null, "the stacks gone: the mark ends at once")
+		mark._process(0.5)  # Its fade is over: it frees itself
+	await process_frame
+	_check(not is_instance_valid(mark) or mark.is_queued_for_deletion(), "…and is removed")
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck.size() == 1, "no spark event once it isn't Exposed")
+
 	main.queue_free()
 	await process_frame
 	print("feedback test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
