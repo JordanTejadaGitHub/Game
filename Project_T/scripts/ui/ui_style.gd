@@ -63,14 +63,11 @@ const FONT_DIR := "res://assets/ui/fonts/"
 
 # Resource glyphs (user via Main Merger 2026-10-06: every price or reward is the resource icon and the number,
 # never "15 Dew"): private-use characters that the glyph font (tools/ui_glyph_font_generator.gd) draws as the
-# resource's one drawing, a fallback of every theme face, so plain Labels, Buttons and tooltips show them. The HUD
-# counter's drawing is the master (user 2026-10-12: "Dreamlight icon looks different on some things"): Dew and
-# Dreamlight come from hud_counters.png, Seeds (no HUD counter) from icons.png. [char, icon id in hud_icons.json
-# "counters", else icons.json]
+# icons.png art, a fallback of every theme face, so plain Labels, Buttons and tooltips show them. [char, icon id]
 const DEW_GLYPH := ""
 const DREAMLIGHT_GLYPH := ""
 const SEEDS_GLYPH := ""
-const GLYPHS := [[0xE000, "dew_hud"], [0xE001, "dreamlight_hud"], [0xE002, "seeds"]]
+const GLYPHS := [[0xE000, "dew"], [0xE001, "dreamlight"], [0xE002, "seeds"]]
 const GLYPH_FONT_PATH := "res://assets/ui/fonts/heartwood_glyphs.res"
 
 # "15" with the Dew icon first; signed: "+30" / "-5" (the number keeps its own colour: GOLD, or POOR when short).
