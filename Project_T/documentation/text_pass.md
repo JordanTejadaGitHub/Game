@@ -123,3 +123,72 @@ A card named inside another card's text (`{card:id}`, e.g. "Taking it removes Fl
 like a glossary term. Hovering or tapping it shows that card: its name, rarity and description. It is a card link,
 never a status link, so "Charged Feathers" still can't be read as the Charged status. Omen names (`{omen:id}`) work
 the same way.
+
+## Keywords are always links (user, 2026-10-13: "keywords that aren't generic have the underline with it")
+**Rule.** Any word with a meaning special to this game is a **keyword**. Every keyword has a glossary entry (one or
+two plain sentences, under 30 words, no other keyword it could do without) and a token, and wherever it appears in
+player text it is underlined; hovering or tapping it shows the entry (TapTip: one tip at a time).
+- Link the **first** time the keyword appears in a card, panel, Lesson or tooltip block, not every time.
+- Never link a keyword inside its own entry, or as part of a longer keyword ("Crowned Reaction").
+- **Names are links too:** a Dream card ({card:id}), an Omen ({omen:id}), a nightmare ({nightmare:id}) and a Warden
+  (new: {warden:id}, showing its role line and description).
+- **Generic words are not keywords** and stay plain: damage, attack speed, range, path, cell, wall, map, run, health,
+  boss, wave. (The stat icons explain themselves where they show.)
+- Every screen that shows text draws it with the link renderer: Lessons, Dream cards, Omens, gifts, the Warden and
+  nightmare panels, the dossier, Grove node cards, the Remember screen, the Codex, results. A plain engine tooltip
+  can't hold a link: there the keyword stays plain and the tip itself is the explanation.
+- `test_text_style` fails when a keyword is written as a plain word in player text instead of its token.
+
+**Keywords that already have an entry:** the statuses (Soaked, Drowsy, Poisoned, Exposed, Charged, Rooted, Asleep,
+Caught, Frozen, Hidden, Silenced), Deeply Blighted, Potency, rank, Nurture choice (Power, Swift, Reach, Deep), Dew,
+Dreamlight, leaves, Seeds, drift, block, rest, perfect block, family pick, dread shell, Kinship, Harmony strike,
+Reaction, Current, Erosion, arc, ink, spore-sprite, Whole Tree.
+
+**Keywords that need an entry** (drafts):
+| Keyword | Entry |
+|---|---|
+| Warden | A forest spirit you plant. It attacks nightmares, and it blocks the path like a wall. |
+| nightmare | What walks the path toward the Heartwood. Dispel it before it arrives. |
+| Heartwood | The tree you protect. Each nightmare that reaches it takes leaves; at no leaves the run ends. |
+| dispel | To defeat a nightmare. It pays Dew. |
+| Sprout | The cheapest Warden. It can grow into any family you have picked this run. |
+| family | A line of Wardens that share a theme and a status, such as Sporeling or Firefly Jar. |
+| grow | Pay Dew to turn a Warden into a stronger form of its family. |
+| branch | A second-step form of a family. A run offers two of each family's branches. |
+| final form | The third step of a branch, unlocked with Dreamlight. |
+| Ascended | A family's strongest form, from the Memory Grove, late in a run. |
+| Nurture | Pay Dew to raise a Warden's rank. Each rank lets you choose one improvement. |
+| signature | A special rule a Warden gains at rank V when four of its ranks took the same choice. |
+| Mastery | The rank V reward for four matching ranks on a Warden with no signature: 20% better at what it does. |
+| All-Rounder | The rank V reward for mixed choices: 20% better at what it does. |
+| Wide / Strong / Attuned | The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full. |
+| stack | One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. |
+| full | A status at its most stacks. Some statuses do nothing until they are full. |
+| Crowned Reaction | A stronger Reaction, set off on a nightmare that also carries a third status. |
+| Chain | Reactions setting each other off within a second. The number counts them. |
+| Calling | The rule your first family brings. It lasts the whole run. |
+| Dream | A card you choose at a rest. It changes your run until it ends. |
+| rarity (Common, Uncommon, Rare, Legendary) | How strong and how seldom a Dream card is. |
+| Bittersweet | A strong Dream card with a cost. |
+| Upgrade (was Deepened) | A Dream card that replaces a weaker card you already have. |
+| Woven | A Dream card that needs three particular Wardens. |
+| New cards (reroll) | Swap the Dream cards on offer for different ones. Limited per run. |
+| Banish | Remove a Dream card from this run's offers. |
+| Omen | A harder next block that you may accept for a reward at the rest after it. |
+| gift | Terrain the Heartwood offers after a boss. You place it on the map and it gives a bonus. |
+| act | 25 drifts ending in a boss. A full run has four. |
+| Start / call early | Starting the next drift before the current one has finished arriving pays a little Dew. |
+| Maze bonus | Dew paid at each rest for a path longer than the starting path. |
+| catcher | A Warden that collects extra Dew from nightmares dispelled in its range. |
+| interest | Dew a Wellspring pays at a rest, a share of the Dew you hold. |
+| aura | A bonus a support Warden gives to the Wardens around it. |
+| crit (critical hit) | A hit that deals extra damage. Only some Wardens can crit. |
+| flyer | A nightmare that flies over your Wardens instead of walking the maze. |
+| resists / weak to | A nightmare takes half damage from a family it resists, and half again as much from one it is weak to. |
+| restless | A nightmare made faster by having its path changed while it walks. |
+| Remember | The screen where Dreamlight unlocks new forms during a run. |
+| Memory Grove | The tree between runs where Seeds unlock families, Dream cards and perks for later runs. |
+| node | One unlock on the Memory Grove. |
+| perk | A bonus from the Memory Grove that only works while carried in a perk slot. |
+| Blight Level | An optional, harder way to play, opened after your first win. |
+| Memory | A piece of the story, found on the Memory Grove. |
