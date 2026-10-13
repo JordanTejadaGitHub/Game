@@ -300,7 +300,7 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	var newest: FxCallout = null
 	for c in _callouts_alive:
 		if is_instance_valid(c) and c is FxCallout and absf(c.global_position.x - where.x) < CALLOUT_CLEAR.x \
-				and absf(c.global_position.y - where.y) < CALLOUT_CLEAR.y * MAX_CALLOUTS:
+				and absf(c.global_position.y - where.y) < WorldLabel.CALLOUT_CLEAR.y * MAX_CALLOUTS:  # The shared column's lines (40 px since 065db19e: a callout two lines up is still in reach)
 			newest = c
 	if newest != null:
 		newest.set_count(count)
