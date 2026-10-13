@@ -267,6 +267,8 @@ func _show_number(event: Event) -> void:
 	elif event.family_multiplier < 1.0:
 		color = Palette.MIST
 		size = 12
+	elif event.combos.has(&"marked"):
+		color = EnemyStatuses.COLORS.get(EnemyStatuses.MARKED, Palette.GOLD)  # The hit took the Exposed bonus (screens_ui.md "Exposed at full stacks is visible"; Tower Code)
 	if event.kind == &"status":
 		size = 11
 		color = color.darkened(0.15)

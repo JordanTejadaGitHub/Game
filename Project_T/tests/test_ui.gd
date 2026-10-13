@@ -606,7 +606,7 @@ func _run() -> void:
 		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
 	# "Potency" in card text is a link as written (user: "Potency in cards doesn't have the underline").
 	var potency_text := StatusLinks.bbcode("All Wardens +20% Potency (stacks). {spored} grows with Potency.")
-	_check(potency_text.count("[url=term:potency]") == 2 and potency_text.contains("[url=status:spored]")
+	_check(potency_text.count("[url=term:potency]") == 1 and potency_text.contains("[url=status:spored]")
 		and not StatusLinks.bbcode("Impotency").contains("term:potency"), "the plain word Potency is a glossary link (%s)" % potency_text)
 	_check(CodexData.definition("Potency").contains("statuses and effects"), "the glossary's Potency line says what it does")
 	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.

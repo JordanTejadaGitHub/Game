@@ -19,6 +19,7 @@ signal attack_released(tower: Tower)
 signal crit_landed(tower: Tower, enemy: Node2D)
 # A hit from this Warden landed on `enemy` (sound: the impact). Every attack kind goes through hit().
 signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
+signal exposed_struck(tower: Tower, enemy: Node2D)  # Its hit landed on a fully Exposed nightmare (the bonus applied): the spark, for Sound too
 # The first grow into a final form this run (TowerPlacer.evolve, with Fx.final_bloom): sound.
 signal final_bloomed(tower: Tower)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
@@ -2766,9 +2767,15 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var carry_before: float = enemy._soothe_carry
 	var previous_clean := _clear_minds_hit
 	_clear_minds_hit = clear_minds
+	var was_exposed: bool = enemy.statuses.is_exposed()  # The Exposed bonus applies to this hit
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	_clear_minds_hit = previous_clean
 	var actual_dealt: float = float(health_before - enemy.health) + enemy._soothe_carry - carry_before
+	if was_exposed and actual_dealt > 0.0:
+		# Exposed at full stacks is visible (screens_ui.md, last section): a warm spark where the hit landed, once per
+		# nightmare per hit (an area attack calls hit() once for each nightmare). The event is tagged "marked" by Enemy.
+		exposed_struck.emit(self, enemy)
+		Fx.exposed_hit(enemy, aim_at(enemy))
 	if build_rules != null and dealt > 0.0 and actual_dealt > 0.0:
 		build_rules.direct_damage(self, enemy, dealt, original_primary, actual_dealt)
 		if _dream_state != null:

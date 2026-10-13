@@ -114,6 +114,21 @@ func _matchup_callout(event: DamageLog.Event) -> void:
 	_alive.append([0.0, MATCHUP_WORDS[tag], colour, event.enemy, event.enemy.global_position, tag])
 	_note_seen(tag)
 
+# A status just reached full strength on `enemy` (Tower Code's Fx.exposed_check: Exposed does nothing until it is
+# full, so the moment shows; screens_ui.md "Exposed at full stacks is visible"): its name once, throttled like the
+# combo words. True when the word was shown.
+signal status_completed(status: StringName, enemy: Node2D)
+func status_complete(enemy: Node2D, status: StringName) -> bool:
+	var key := StringName("full:" + String(status))
+	var reduced := Fx.reduced()
+	if not is_instance_valid(enemy) or _cooldowns.get(key, 0.0) > 0.0 or _callout_for(enemy) != null \
+			or _combo_count() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
+		return false
+	_cooldowns[key] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
+	_alive.append([0.0, IconInfo.status_name(status), Color(EnemyStatuses.COLORS.get(status, Palette.GOLD)), enemy, enemy.global_position, &""])
+	status_completed.emit(status, enemy)
+	return true
+
 func _callout_for(enemy: Node) -> Variant:
 	for callout in _alive:
 		if callout[3] == enemy:

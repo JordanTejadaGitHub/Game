@@ -170,6 +170,8 @@ static func grown(s: EnemyStatuses, ids: Array) -> bool:
 static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
+	if _id == MARKED:
+		Fx.exposed_check(enemy)  # Exposed just filled: its flare, mark and callout (screens_ui.md, last section)
 	var s: EnemyStatuses = enemy.statuses
 	if s.count() < 2:
 		return
