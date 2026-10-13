@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower_hidden"
 display_name = "Grove branch: Echo Hollow"
-description = "Bellflowers can grow into Echo Hollows, then Whispering Hollows: they repeat Reactions that happen in range. Also adds the {card:encore} card."
+description = "{warden:bellflower}s can grow into {warden:echo_hollow}s, then {warden:whispering_hollow}s: they repeat {reactions} that happen in range. Also adds the {card:encore} card."
 root = 0
 costs = Array[int]([60])
 order = 25

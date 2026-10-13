@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar_ascension"
 display_name = "Ascension: Stormheart"
-description = "Unlocks Stormheart, the {family:firefly_jar} family's strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a final form into it for 600 Dew. Lightning chains to every nightmare in range."
+description = "Unlocks {warden:stormheart}, the {family:firefly_jar} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. Lightning chains to every nightmare in range."
 root = 0
 costs = Array[int]([120])
 order = 31

@@ -6,8 +6,8 @@
 script = ExtResource("1_unlock")
 id = "wider_dreams"
 display_name = "Wider Dreams"
-description = "While carried: each Dream offers 4 cards instead of 3."
-sidegrade_description = "While carried: each Dream offers 4 cards instead of 3. Costs: skipping a Dream (Let it pass) gives no Dew."
+description = "While carried: each {dream} offers 4 cards instead of 3."
+sidegrade_description = "While carried: each {dream} offers 4 cards instead of 3. Costs: skipping a {dream} (Let it pass) gives no {dew}."
 root = 2
 costs = Array[int]([150])
 order = 15

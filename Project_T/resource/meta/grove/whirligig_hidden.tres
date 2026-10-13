@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig_hidden"
 display_name = "Grove branch: Samara"
-description = "Whirligigs can grow into Samaras, then Autumn Gales: they throw a seed that flies out and comes back. Also adds its Dream cards (listed below)."
+description = "{warden:whirligig}s can grow into {warden:samara}s, then {warden:autumn_gale}s: they throw a seed that flies out and comes back. Also adds its {dream} cards (listed below)."
 root = 0
 costs = Array[int]([80])
 order = 28

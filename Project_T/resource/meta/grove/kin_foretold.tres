@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "kin_foretold"
 display_name = "Kin Foretold"
-description = "While carried: every {family_pick} also shows which families the next {family_pick} will offer."
+description = "While carried: every {family_pick} also shows which {families} the next {family_pick} will offer."
 root = 2
 costs = Array[int]([60])
 order = 48

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "second_thoughts"
 display_name = "Second Thoughts"
-description = "While carried: +1 Dream reroll per run per level, up to 3. Always: adds the {card:wandering_mind} card."
+description = "While carried: +1 {dream} reroll per run per level, up to 3. Always: adds the {card:wandering_mind} card."
 root = 2
 costs = Array[int]([50, 100, 150])
 order = 12

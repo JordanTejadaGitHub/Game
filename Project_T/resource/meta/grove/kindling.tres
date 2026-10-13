@@ -6,8 +6,8 @@
 script = ExtResource("1_unlock")
 id = "kindling"
 display_name = "Kindling"
-description = "While carried: start with a random Common Dream card."
-sidegrade_description = "While carried: start with a random Common Dream card. Costs: your first Dream offers only 2 cards."
+description = "While carried: start with a random Common {dream} card."
+sidegrade_description = "While carried: start with a random Common {dream} card. Costs: your first {dream} offers only 2 cards."
 root = 2
 costs = Array[int]([90])
 order = 7

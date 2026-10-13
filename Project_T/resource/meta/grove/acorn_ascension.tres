@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "acorn_ascension"
 display_name = "Ascension: Grandmother Oak"
-description = "Unlocks Grandmother Oak, the {family:acorn} family's strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a final form into it for 600 Dew. Wardens in range deal more damage and attack faster, and it earns Dew every {drift}."
+description = "Unlocks {warden:grandmother_oak}, the {family:acorn} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. Wardens in range deal more damage and attack faster, and it earns {dew} every {drift}."
 root = 0
 costs = Array[int]([120])
 order = 36

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Adds two Dream cards for mixing families and statuses: {card:mixed_grove}, {card:grand_tour}."
+description = "Adds two {dream} cards for mixing {families} and statuses: {card:mixed_grove}, {card:grand_tour}."
 root = 1
 costs = Array[int]([40])
 order = 13

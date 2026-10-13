@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirlwind_heart"
 display_name = "Whirlwind Heart"
-description = "Adds the Legendary Dream card {card:whirlwind_heart} to the cards your runs can offer."
+description = "Adds the {legendary} {dream} card {card:whirlwind_heart} to the cards your runs can offer."
 root = 1
 costs = Array[int]([120])
 order = 3

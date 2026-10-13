@@ -6,8 +6,8 @@
 script = ExtResource("1_unlock")
 id = "deep_taproot"
 display_name = "Deep Taproot"
-description = "While carried: +1 max leaf per level, up to +3."
-sidegrade_description = "While carried: +1 max leaf per level, up to +2."
+description = "While carried: +1 max {leaf} per level, up to +3."
+sidegrade_description = "While carried: +1 max {leaf} per level, up to +2."
 root = 2
 costs = Array[int]([25, 50, 75])
 order = 11

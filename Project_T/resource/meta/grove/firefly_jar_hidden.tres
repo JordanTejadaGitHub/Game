@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "firefly_jar_hidden"
 display_name = "Grove branch: Sunpetal"
-description = "Firefly Jars can grow into Sunpetals, then Midsummers: a beam that grows stronger the longer it stays on one nightmare."
+description = "{warden:firefly_jar}s can grow into {warden:sunpetal}s, then {warden:midsummer}s: a beam that grows stronger the longer it stays on one nightmare."
 root = 0
 costs = Array[int]([60])
 order = 21

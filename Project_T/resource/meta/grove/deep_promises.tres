@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "deep_promises"
 display_name = "Deep Promises"
-description = "Adds two Dream cards that pay off later in a run: {card:deep_well}, {card:shared_light}."
+description = "Adds two {dream} cards that pay off later in a run: {card:deep_well}, {card:shared_light}."
 root = 1
 costs = Array[int]([70])
 order = 51

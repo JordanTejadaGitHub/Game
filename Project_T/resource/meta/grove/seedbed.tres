@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "seedbed"
 display_name = "Seedbed"
-description = "Adds two Dream cards for planting many Wardens: {card:seedling_gift}, {card:canopy}."
+description = "Adds two {dream} cards for planting many Wardens: {card:seedling_gift}, {card:canopy}."
 root = 1
 costs = Array[int]([60])
 order = 12

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "eternal_static"
 display_name = "Eternal Charge"
-description = "Adds the Legendary Dream card {card:eternal_static} to the cards your runs can offer."
+description = "Adds the {legendary} {dream} card {card:eternal_static} to the cards your runs can offer."
 root = 1
 costs = Array[int]([80])
 order = 35

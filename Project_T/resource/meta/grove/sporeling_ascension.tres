@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sporeling_ascension"
 display_name = "Ascension: Sporemother"
-description = "Unlocks Sporemother, the {family:sporeling} family's strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a final form into it for 600 Dew. A constant spore storm that pops nightmares like a Puffball."
+description = "Unlocks {warden:sporemother}, the {family:sporeling} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. A constant spore storm that pops nightmares like a {warden:puffball}."
 root = 0
 costs = Array[int]([120])
 order = 30

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bitter_hedges"
 display_name = "Bitter Hedges"
-description = "Adds the Dream card {card:bitter_hedges}: nightmares that walk past your Thornwalls take more damage."
+description = "Adds the {dream} card {card:bitter_hedges}: nightmares that walk past your {thornwalls} take more damage."
 root = 1
 costs = Array[int]([40])
 order = 40

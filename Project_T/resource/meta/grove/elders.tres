@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "elders"
 display_name = "Elders"
-description = "Adds the Dream card {card:few_and_mighty}: the fewer attacking Wardens you have, the stronger each one is."
+description = "Adds the {dream} card {card:few_and_mighty}: the fewer attacking Wardens you have, the stronger each one is."
 root = 1
 costs = Array[int]([30])
 order = 10

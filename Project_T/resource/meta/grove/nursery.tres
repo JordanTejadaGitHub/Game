@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nursery"
 display_name = "Nursery"
-description = "Adds two Dream cards for Nurture: {card:nursery}, {card:chosen_few}."
+description = "Adds two {dream} cards for {nurture}: {card:nursery}, {card:chosen_few}."
 root = 1
 costs = Array[int]([70])
 order = 10

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "thorn_and_bramble"
 display_name = "Thorn and Bramble"
-description = "Adds three Dream cards for Thornwalls: {card:thorn_snare}, {card:hushed_hedge}, {card:bramble_oath}."
+description = "Adds three {dream} cards for {thornwalls}: {card:thorn_snare}, {card:hushed_hedge}, {card:bramble_oath}."
 root = 1
 costs = Array[int]([70])
 order = 44

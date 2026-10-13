@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "lucid_dreaming"
 display_name = "Lucid Dreaming"
-description = "Adds the Legendary Dream card {card:lucid_dreaming} to the cards your runs can offer."
+description = "Adds the {legendary} {dream} card {card:lucid_dreaming} to the cards your runs can offer."
 root = 1
 costs = Array[int]([80])
 order = 20

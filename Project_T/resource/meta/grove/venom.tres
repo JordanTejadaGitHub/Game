@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "venom"
 display_name = "Venom"
-description = "Adds the Dream card {card:venom_bloom}: statuses and Reactions deal double damage."
+description = "Adds the {dream} card {card:venom_bloom}: statuses and {reactions} deal double damage."
 root = 1
 costs = Array[int]([40])
 order = 33
