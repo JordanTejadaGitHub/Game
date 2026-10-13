@@ -43,6 +43,10 @@ const MARKED_EXTRA := 0.25
 const _EMPTY: Array = []  # Read-only (a const array): tick() starts its expired list here, copying on the first expiry
 const STATIC_BOLT_MULTIPLIER := 16.0
 const STATIC_DECAY_TIME := 2.0  # Seconds per lost Static stack
+# Seconds per lost stack once a status's timer runs out (balance_simulation.md "Statuses vanish whole: drain one stack
+# at a time"; owner playtest 2026-10-13). The others (Poisoned's own batches, Rooted) end as before. Lasting Dreams,
+# Deep ranks and Potency lengthen the timer only, never the drain.
+const DECAY_TIME := {DAMP: 0.5, DROWSY: 0.5, MARKED: 1.0, STATIC: STATIC_DECAY_TIME}
 const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
@@ -643,11 +647,12 @@ func tick(delta: float) -> float:
 				status.time = 1.0  # Never expires, never bleeds off
 				status["full"] = 1.0
 				continue
-			if id == STATIC and status.stacks > 1:
-				status.stacks -= 1  # Static bleeds off one charge at a time
+			if status.stacks > 1 and DECAY_TIME.has(id):
+				status.stacks -= 1  # Drains one stack at a time (never starts a sleep: only an application does)
 				changes += 1
-				status.time = STATIC_DECAY_TIME
-				status["full"] = STATIC_DECAY_TIME
+				var drain: float = DECAY_TIME[id]
+				status.time = drain
+				status["full"] = drain  # The badge's rim and counter tick down with the drain
 			else:
 				if expired.is_empty():
 					expired = []

@@ -53,8 +53,21 @@ func _test_status_numbers() -> void:
 	_check(bolt == 0.0 and s.stacks(EnemyStatuses.STATIC) == 19, "19 Static charges: no bolt yet")
 	bolt = s.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)
 	_check(is_equal_approx(bolt, 160.0) and not s.has(EnemyStatuses.STATIC), "20th Static charge: 16× bolt, reset")
-	s.tick(4.1)
+	# Statuses drain a stack at a time (balance_simulation.md "Statuses vanish whole"): the timer, then one stack per
+	# drain time (Drowsy 0.5 s, Exposed 1 s).
+	s.tick(3.05)
+	_check(s.stacks(EnemyStatuses.DROWSY) == 19 and is_equal_approx(s.time_left(EnemyStatuses.DROWSY), EnemyStatuses.DECAY_TIME[EnemyStatuses.DROWSY]),
+		"Drowsy's timer ran out: one stack drains, the next after 0.5 s (%d)" % s.stacks(EnemyStatuses.DROWSY))
+	s.tick(2.0)
+	_check(s.stacks(EnemyStatuses.MARKED) == 9 and is_equal_approx(s.get_damage_taken_multiplier(), 1.0), "Exposed drains to 9: its bonus stops")
+	for i in 19:
+		s.tick(0.51)
 	_check(not s.has(EnemyStatuses.DAMP) and not s.has(EnemyStatuses.DROWSY), "Damp and Drowsy wear off")
+	var re := EnemyStatuses.new()
+	re.apply(EnemyStatuses.DAMP, 3)
+	re.tick(4.05)
+	re.apply(EnemyStatuses.DAMP, 1)
+	_check(re.stacks(EnemyStatuses.DAMP) == 3 and is_equal_approx(re.time_left(EnemyStatuses.DAMP), 4.0), "an application refills the timer")
 
 	var spores := EnemyStatuses.new()
 	spores.apply(EnemyStatuses.SPORED, 3, 0.0, 2.0)
