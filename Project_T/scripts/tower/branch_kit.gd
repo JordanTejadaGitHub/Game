@@ -549,6 +549,32 @@ static func on_link(point: Vector2, from: Vector2, to: Vector2) -> bool:
 	var t := clampf((point - from).dot(seg) / maxf(seg.length_squared(), 1.0), 0.0, 1.0)
 	return point.distance_to(from + seg * t) <= LINK_HALF_WIDTH + LINK_BODY
 
+# The strip of ground a body must stand in to be struck: the segment widened by the link's width and a body's radius.
+static func link_band(from: Vector2, to: Vector2) -> PackedVector2Array:
+	var side := (to - from).normalized().orthogonal() * (LINK_HALF_WIDTH + LINK_BODY)
+	return PackedVector2Array([from + side, to + side, to - side, from - side])
+
+# Draws exactly where the link strikes on the path (the user's screenshot, 2026-10-13: the mark was whole half-cell
+# blocks, so a link clipping a block's corner lit a square beside the lightning): the link's band, cut to each struck
+# path half. `halves`: {half: its centre px}, from link_points. `canvas` draws in its own local space.
+static func draw_link_strike(canvas: Node2D, from: Vector2, to: Vector2, halves: Dictionary, colour: Color, strength: float) -> void:
+	var band := link_band(from, to)
+	for half in halves:
+		var c: Vector2 = halves[half]
+		var square := PackedVector2Array([c + Vector2(-16, -16), c + Vector2(16, -16), c + Vector2(16, 16), c + Vector2(-16, 16)])
+		for piece: PackedVector2Array in Geometry2D.intersect_polygons(band, square):
+			var area := 0.0
+			for i in piece.size():
+				area += piece[i].cross(piece[(i + 1) % piece.size()])
+			if piece.size() < 3 or absf(area) < 8.0:
+				continue  # A sliver: nothing to see, and it can't be triangulated
+			var local := PackedVector2Array()
+			for point in piece:
+				local.append(canvas.to_local(point))
+			canvas.draw_colored_polygon(local, Color(colour, strength))
+			local.append(local[0])
+			canvas.draw_polyline(local, Color(Palette.HEARTLIGHT, minf(strength + 0.3, 0.9)), 1.0)
+
 # The points of `route` (route coordinates: one per path half) the link strikes: what the ground mark and the
 # previews show. A nightmare walks from point to point, so it is hit exactly on these.
 static func link_points(from: Vector2, to: Vector2, route: PackedVector2Array) -> PackedVector2Array:
@@ -2091,7 +2117,7 @@ class FenceLayer extends Node2D:
 				all[FindPath.point_to_node(point)] = true
 			for point in BranchKit.link_points(end_a, end_b, route):
 				halves[FindPath.point_to_node(point)] = Tower.MAP_GRID.calculate_map_position(point)
-			_marks[key] = [stamp, halves, all, a, b]
+			_marks[key] = [stamp, halves, all, a, b, end_a, end_b]
 			_ground.queue_redraw()
 
 	# A link just struck something: its mark brightens for a moment (steady under reduced motion).
@@ -2105,8 +2131,8 @@ class FenceLayer extends Node2D:
 			out.merge(_marks[key][1])
 		return out
 
-	const MARK_QUIET := 0.3  # The mark's alpha in play…
-	const MARK_FULL := 0.5  # …and in build mode / with Wardens selected
+	const MARK_QUIET := 0.42  # The mark's alpha in play…
+	const MARK_FULL := 0.62  # …and in build mode / with Wardens selected
 	const HEAT_TIME := 0.4
 	var _marks := {}  # "id:id" -> [stamp, {half: centre px}, {route half: true}, jar a, jar b]
 	var _ground := Node2D.new()
@@ -2122,12 +2148,10 @@ class FenceLayer extends Node2D:
 
 	# Overlapping links merge: each half is drawn once, never brighter than the cap.
 	func _draw_ground() -> void:
-		var lit := {}
-		var all := {}
+		# Each link's own strike band, cut to the path halves it strikes: the mark lies under the lightning, nowhere else.
 		for key in _marks:
-			lit.merge(_marks[key][1])
-			all.merge(_marks[key][2])
-		Tower.LitPaths.draw_halves(_ground, lit, all, MARK_FULL if _full else MARK_QUIET, BranchKit.LINK_COLOR, Palette.HEARTLIGHT)
+			var mark: Array = _marks[key]
+			BranchKit.draw_link_strike(_ground, mark[5], mark[6], mark[1], BranchKit.LINK_COLOR, MARK_FULL if _full else MARK_QUIET)
 
 	func touches(at: Vector2, reach: float) -> bool:
 		for key in arcs:

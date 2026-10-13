@@ -961,7 +961,11 @@ func _draw_link_preview(cell: Vector2, reach: float, skip: Tower, spot: Vector2 
 		if other != partner:
 			draw_dashed_line(here, at, Color(BranchKit.LINK_COLOR, 0.3), 1.0, 6.0)  # Another jar it could link: fainter
 	if partner != null:
-		_draw_path_points(link.points, BranchKit.LINK_COLOR)  # The path it would strike, on the path's own shape
+		# The path it would strike: the link's own band cut to the path, exactly as the linked pair's ground mark draws it.
+		var struck := {}
+		for point in link.points:
+			struck[FindPath.point_to_node(point)] = MAP_GRID.calculate_map_position(point)
+		BranchKit.draw_link_strike(self, from, BranchKit.link_end(partner), struck, BranchKit.LINK_COLOR, 0.62)
 		# The arc where it will really run: the link's ground segment, in from each base (as BranchKit.FenceLayer draws it).
 		var end := BranchKit.link_end(partner)
 		var along := (end - from).normalized()
