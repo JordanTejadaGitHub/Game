@@ -9,7 +9,7 @@ extends RefCounted
 # RunState calls catch() on every dispel; the first catcher on the map hooks the rest (hook()).
 # Signals for Sound / UI are on Tower: dew_caught, harvest_poured, interest_paid.
 
-const INTEREST_CAP := 130  # All Wellsprings together pay at most this per rest (Balancing 2026-10-05: one Wellspring at Kindred V reaches 130)
+const INTEREST_CAP := 260  # All Wellsprings together pay at most this per rest (130 before the Dew x2 second pass, 2026-10-13: fixed Dew payouts doubled)
 const OLD_GROWTH_CATCH := 0.25  # Elder Stump with the Dewcatcher kin: +25% in its aura (× the bond's share)
 const DEW_BOWL_STEP := 0.15  # Dew Bowl (Seed card): +15% catch per stack
 const WIDE_BOWL_STEP := 0.5  # Dew Trail (any level): +0.5 cells catch radius (Wide Bowl merged into it)
