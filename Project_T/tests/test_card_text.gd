@@ -80,11 +80,27 @@ func _initialize() -> void:
 				_check(false, "%s: %s" % [card.id, problem])
 		var stacking := Check.stacking_break(card)
 		_check(stacking == "", "%s: %s (\"%s\")" % [card.id, stacking, card.description])
-	# A card named in text is {card:id}: plain, never a status link (story chat, user: "Charged Feathers" linked "Charged")
-	_check(not StatusLinks.bbcode("removes {card:charged_feathers}").contains(StatusLinks.META_PREFIX)
-		and IconInfo.format("{card:charged_feathers}") == "Charged Feathers", "{card:x} renders the plain card name")
-	_check(not StatusLinks.bbcode("{omen:static_sky}, {omen:fog_bank}").contains(StatusLinks.META_PREFIX)
-		and IconInfo.format("{omen:static_sky}") == "Crackling Sky", "{omen:x} renders the plain Omen name")
+	# A card named in text is {card:id}: a card link, never a status link (story chat, user: "Charged Feathers" linked
+	# "Charged"; text_pass.md "Card names in text are links", user 2026-10-12: "should have an underline showing what Flurry is")
+	var feathers := StatusLinks.bbcode("removes {card:charged_feathers}")
+	_check(not feathers.contains(StatusLinks.META_PREFIX) and feathers.contains("[url=card:charged_feathers]")
+		and IconInfo.format("{card:charged_feathers}") == "Charged Feathers", "{card:x} is a card link, plain text gets the name (%s)" % feathers)
+	var skies := StatusLinks.bbcode("{omen:static_sky}, {omen:fog_bank}")
+	_check(not skies.contains(StatusLinks.META_PREFIX) and skies.contains("[url=omen:static_sky]")
+		and IconInfo.format("{omen:static_sky}") == "Crackling Sky", "{omen:x} is an Omen link, plain text gets the name")
+	# A cost line naming Flurry: the link's tip holds Flurry's name, rarity and description.
+	var flurry: UpgradeData = load("res://resource/dream/flurry.tres")
+	var cost_line := StatusLinks.make_label("Taking it removes {card:flurry} from this run.", 15)
+	root.add_child(cost_line)
+	var flurry_tip := StatusLinks.card_tip("card:flurry")
+	_check(cost_line.text.contains("[url=card:flurry]") and flurry_tip.get("name", "") == flurry.display_name
+		and String(flurry_tip.get("text", "")).contains(IconInfo.format(flurry.description))
+		and String(flurry_tip.get("text", "")).begins_with(UpgradeData.rarity_name(flurry.rarity)) and not String(flurry_tip.get("text", "")).contains("{"),
+		"{card:flurry} in a cost line: a card link whose tip is Flurry's rarity and description (%s)" % [flurry_tip])
+	# (The popup itself, opening on a tap and closing on a second, needs a window: test_ui covers StatusLinks popups.)
+	_check(StatusLinks.card_tip("omen:static_sky").get("name", "") == "Crackling Sky" and StatusLinks.card_tip("card:no_such_card").is_empty(),
+		"an Omen link has its tip; a link to nothing has none")
+	cost_line.queue_free()
 	var names: Array[String] = []
 	for card in Check.load_cards():
 		if StatusLinks.bbcode(card.display_name).contains(StatusLinks.META_PREFIX):

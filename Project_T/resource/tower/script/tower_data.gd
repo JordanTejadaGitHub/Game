@@ -27,6 +27,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # One short line of what sets this form apart (tower_design.md "Role lines", 8c737201): the family pick, Remember,
 # Codex Families and the grow list show it in place of the tag words. Unique within its family (test_role_lines).
 @export var role_line: String = ""
+# Heavy (Firefly class prototype, dream_council_review.md 20): one slow, big hit at a main target. Set by hand on
+# each form (the spec's Heavy list); Hammerfall, Knock-On and Spotlight fork a heavy Warden's hit.
+@export var heavy: bool = false
 @export_multiline var description: String = ""  # One line for the Warden panel
 @export var cost: int = 10  # Dew cost to build
 @export var texture: Texture2D  # Tower sprite; leave empty to draw a placeholder block

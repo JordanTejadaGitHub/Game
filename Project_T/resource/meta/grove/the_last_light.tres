@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_last_light"
 display_name = "The Last Light"
-description = "Legendary: The Last Light joins the pool."
+description = "Adds the {legendary} {dream} card {card:the_last_light} to the cards your runs can offer."
 root = 1
 costs = Array[int]([120])
 order = 16

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "evergreen_ii"
 display_name = "Evergreen II"
-description = "Growing Wardens costs 40% less Dew."
+description = "Growing Wardens costs 40% less {dew}."
 rarity = 1
 kind = 4
 tags = Array[String](["economy"])

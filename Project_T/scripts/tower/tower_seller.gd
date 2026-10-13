@@ -841,7 +841,7 @@ func _draw() -> void:
 		return
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
-	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)
+	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, Palette.HEARTLIGHT, UiStyle.display_font(), 17)  # The Warden's name: the display face
 
 # --- Targeting (screens_ui.md "Targeting") -------------------------------------------------------------
 

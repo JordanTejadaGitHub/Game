@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Grove Heart"
 role_line = "Area damage, support, boosts damage, speeds allies"
-description = "Pulses the nightmares in range. Wardens within {field:grove_heart.aura_radius:cells} deal {pct:grove_heart.aura_damage_bonus} more damage and attack {pct:grove_heart.aura_speed_bonus} faster, 3% more for each Warden in that area (up to 45%)."
+description = "Pulses damage to the nightmares in range. Wardens within {field:grove_heart.aura_radius:cells} deal {pct:grove_heart.aura_damage_bonus} more damage and attack {pct:grove_heart.aura_speed_bonus} faster, 3% more for each Warden in that area (up to 45%)."
 cost = 0
 role_tag = &"support"
 line = "acorn"

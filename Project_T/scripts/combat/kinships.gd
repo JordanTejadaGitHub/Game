@@ -24,7 +24,7 @@ const REACH := 2.0  # Cells (square: Chebyshev)
 const REFRESH := 0.5  # Seconds between pairings
 const STAGE_DRIFTS: Array[int] = [0, 5, 10]  # Sapling, Blooming, Old Kin
 const STAGE_SHARE: Array[float] = [0.5, 0.75, 1.0]
-const STAGE_NAMES: Array[String] = ["Sapling", "Blooming", "Old Kin"]
+const STAGE_NAMES: Array[String] = ["Young", "Blooming", "Old Kin"]  # Shown names (the first was "Sapling": wording_review_2026-10-13.md; the Heartwood Sapling keeps its name)
 const HARMONY_WINDOW := 1.0  # Seconds between the two kin's hits
 const HARMONY_COOLDOWN := 2.0  # Per pair
 const HARMONY_OLD_KIN := 1.5
@@ -665,7 +665,7 @@ func unbonded_reason(tower: Tower) -> String:
 		var taken := get_pairs(other)
 		if taken.size() >= capacity:
 			var partner: Tower = taken[0].b if taken[0].a == other else taken[0].a
-			return "No kin: the %s nearby is bonded to its %s" % [other.tower_data.display_name,
+			return "No kin: the %s in range is bonded to its %s" % [other.tower_data.display_name,
 				partner.tower_data.display_name if is_instance_valid(partner) else "kin"]
 	return ""
 
@@ -897,22 +897,44 @@ func _draw() -> void:
 var _knots := Node2D.new()
 const KNOT_RADIUS := 3.0
 
-# One knot per bonded Warden, at its base's front edge, in the family colour (Subtle: fainter; Off: none).
-func _draw_knots() -> void:
-	var mode := _effects()
-	if mode == 2:
-		return
-	var alpha := 0.9 if mode == 0 else 0.55
-	var seen := {}
+# The Kinship leaf badge (the user, 2026-10-12: "didn't see the feather"; the knot was a plain gold dot and the leaf a
+# dull 14 px mark under the sprite): one per bonded Warden where its vine meets its base, above the sprites, the
+# kin_leaf_icon at its own size on a dark disc, in the Warden's branch colour (Subtle: fainter; Off: none). It has its
+# own slot on the base: between the grow bud (left) and the Nurture dew (right), above the rank pips' row.
+const LEAF_BADGE := &"kin_leaf_icon"
+const BADGE_AT := Vector2(0, 14)  # From the Warden's centre: the slab's front, clear of the rank pips (y 27)
+const BADGE_RADIUS := 8.0
+
+# The bonded Wardens that wear a leaf badge now ([] with Kinship effects Off).
+func badge_towers() -> Array:
+	var out: Array = []
+	if _effects() == 2:
+		return out
 	for pair in pairs:
 		if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
 			continue
 		for tower in [pair.a, pair.b]:
-			if seen.has(tower):
-				continue
-			seen[tower] = true
-			var at := _knots.to_local(tower.global_position + ARCH_FOOT)
-			draw_knot(_knots, at, _colour(pair), alpha)
+			if not out.has(tower):
+				out.append(tower)
+	return out
+
+# The badge's art (Tower Assets' kin_leaf_icon), null if the sheet is missing (then the drawn knot stands in).
+static func badge_texture() -> Texture2D:
+	return Fx.texture(LEAF_BADGE)
+
+func _draw_knots() -> void:
+	var alpha := 1.0 if _effects() == 0 else 0.7
+	var leaf := badge_texture()
+	for tower in badge_towers():
+		var at: Vector2 = _knots.to_local(tower.global_position + BADGE_AT).round()
+		var colour := branch_colour(tower)
+		if leaf == null:
+			draw_knot(_knots, at, colour, alpha)
+			continue
+		_knots.draw_circle(at, BADGE_RADIUS + 1.0, Color(colour, 0.9 * alpha))  # A thin rim in its colour
+		_knots.draw_circle(at, BADGE_RADIUS, Color(Palette.ROOT, 0.92 * alpha))  # Dark: the leaf reads on any slab
+		var size := leaf.get_size()
+		_knots.draw_texture_rect(leaf, Rect2(at - (size / 2.0).floor(), size), false, Color(colour.lightened(0.25), alpha))  # multiplier (a tint on the pale leaf)
 
 static func draw_knot(canvas: CanvasItem, at: Vector2, colour: Color, alpha: float) -> void:
 	canvas.draw_circle(at, KNOT_RADIUS + 1.5, Color(Palette.DEEPMOSS, 0.7 * alpha))

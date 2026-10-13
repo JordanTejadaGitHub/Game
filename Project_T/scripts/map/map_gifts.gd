@@ -172,8 +172,8 @@ func start_options(count: int) -> Array[Vector2]:
 # fog at its end (StartGate's art, frame 0), drawn on `canvas` (any CanvasItem in the map's space) at `alpha`.
 func draw_start_ghost(canvas: CanvasItem, cell: Vector2, alpha: float = 0.6) -> void:
 	var tint := Color(1, 1, 1, alpha)  # A multiplier on the art, not a colour
-	var route := route_from_start(cell)
-	var lane := StartGate.lane_offset(Vector2i(cell), route[0] if not route.is_empty() else cell)
+	var half := StartGate.start_half_for(Vector2i(cell), map.endPath)  # The lane the bridge will stand on there
+	var lane := StartGate.lane_offset(Vector2i(cell), FindPath.node_to_point(half))
 	StartGate.draw_gate(canvas, Vector2i(cell), lane, 0, load(EnvironmentTiles.shared_path("rope_bridge_lane")),
 		load(EnvironmentTiles.shared_path("nightmare_fog")), MAP_GRID.calculate_map_position(cell), tint)
 
@@ -187,7 +187,14 @@ func route_from_start(spot: Vector2) -> PackedVector2Array:
 		if map.path_layer.is_half_blocked(h):
 			opened.append(h)
 			map.path_layer.set_half_blocked(h, false)
-	var route: PackedVector2Array = map.path_layer.get_finder().straightest_point_path(spot, map.endPath)  # As draw() will
+	var finder: FindPath = map.path_layer.get_finder()
+	var real_cell := finder.start_cell
+	var real_half := finder.start_half
+	finder.start_cell = spot  # From this spot's own start half (its outer half on the bridge's lane), as it will be
+	finder.start_half = StartGate.start_half_for(Vector2i(spot), map.endPath)
+	var route: PackedVector2Array = finder.straightest_point_path(spot, map.endPath)  # As draw() will
+	finder.start_cell = real_cell
+	finder.start_half = real_half
 	for h in opened:
 		map.path_layer.set_half_blocked(h, true)
 	map.probe_end(version)

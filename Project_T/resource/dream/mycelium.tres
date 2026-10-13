@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mycelium"
 display_name = "Mycelium"
-description = "Sprouts touching a Sporeling-line Warden apply 1 {spored} on hit."
+description = "Sprouts touching a {warden:sporeling}-line Warden apply 1 {spored} on hit."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "sprout"])

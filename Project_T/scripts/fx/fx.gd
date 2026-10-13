@@ -403,7 +403,130 @@ static func _shake(parent: Node, pixels: float) -> void:
 	tween.tween_property(camera, "offset", rest, 0.03)
 
 
+# --- Exposed at full stacks is visible (screens_ui.md, last section; the user 2026-10-13: "when Exposed has full
+# stacks, being hit should have a visual effect") ---------------------------------------------------
+# Completing: a flare on the nightmare and one "Exposed" callout. While full: a quiet mark that follows it and goes
+# the moment it's no longer Exposed (or is dispelled). Each hit that took the bonus: a small warm spark at the hit
+# point. Tower Assets' exposed_complete / exposed_mark / exposed_hit when the sheets exist; stand-ins until then.
+const EXPOSED_COMPLETE := &"exposed_complete"
+const EXPOSED_MARK := &"exposed_mark"
+const EXPOSED_HIT := &"exposed_hit"
+const EXPOSED_META := &"fx_exposed_mark"  # On the nightmare: its mark node while it's fully Exposed
+const EXPOSED_MARKS_MAX := 40  # Marks drawn at once (Beacon can fill a whole drift); the rest are tracked, not drawn
+const EXPOSED_MARKS_REDUCED := 16
+const EXPOSED_HIT_GAP_MS := 40  # Sparks at most this often (a pulse over a full drift is one spark a frame, not fifty)
+const EXPOSED_HIT_GAP_REDUCED_MS := 150
+static var _exposed_marks := 0
+static var _exposed_hit_msec := 0
+
+static func has_effect(effect: StringName) -> bool:
+	return not info(effect).is_empty()
+
+# An Exposed application landed on `enemy` (Reactions.on_status): if that filled its stacks, the completion shows.
+# True when this call completed it (once per time it fills).
+static func exposed_check(enemy: Node2D) -> bool:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.statuses.is_exposed():
+		return false
+	var held = enemy.get_meta(EXPOSED_META) if enemy.has_meta(EXPOSED_META) else null
+	if held != null and is_instance_valid(held) and not held.ending:
+		return false  # Already full: nothing new
+	var world := Reactions._world(enemy)
+	if world == null:
+		return false
+	var mark := FxExposedMark.new(enemy, _exposed_marks >= (EXPOSED_MARKS_REDUCED if reduced() else EXPOSED_MARKS_MAX))
+	world.add_child(mark)  # Never under %EnemyContainer (its children are all nightmares)
+	enemy.set_meta(EXPOSED_META, mark)
+	if not reduce_flashes():  # Reduce flashes: no flare; the mark stays
+		if has_effect(EXPOSED_COMPLETE):
+			play(EXPOSED_COMPLETE, enemy.global_position, world)
+		else:
+			status_flash(&"marked", enemy.global_position, world)  # Stand-in until the sheet lands
+	var callouts := enemy.get_tree().get_first_node_in_group(&"combat_callouts") if enemy.is_inside_tree() else null
+	if callouts != null and callouts.has_method("status_complete"):
+		callouts.status_complete(enemy, &"marked")  # "Exposed", once, throttled like the combo words
+	return true
+
+# The nightmare's mark while it's fully Exposed (null otherwise).
+static func exposed_mark_of(enemy: Node) -> Node2D:
+	if not is_instance_valid(enemy) or not enemy.has_meta(EXPOSED_META):
+		return null
+	var held = enemy.get_meta(EXPOSED_META)
+	return held if held != null and is_instance_valid(held) and not held.ending else null
+
+# A hit on a fully Exposed nightmare took the bonus: a small warm spark at the hit point (thinned when busy).
+static func exposed_hit(enemy: Node2D, at: Vector2) -> Node2D:
+	if not is_instance_valid(enemy):
+		return null
+	var now := Time.get_ticks_msec()
+	if now - _exposed_hit_msec < (EXPOSED_HIT_GAP_REDUCED_MS if reduced() else EXPOSED_HIT_GAP_MS):
+		return null
+	var world := Reactions._world(enemy)
+	if world == null or not on_screen(at):
+		return null
+	_exposed_hit_msec = now
+	if has_effect(EXPOSED_HIT):
+		return play(EXPOSED_HIT, at, world)
+	var spark := play(&"area_hit", at, world, 0.75)  # Stand-in until the sheet lands
+	if spark != null:
+		spark.modulate = Palette.GOLD  # multiplier (the Exposed colour on the pale spark)
+	return spark
+
+
 # --- Nodes --------------------------------------------------------------------------------------
+
+# The quiet mark on a fully Exposed nightmare: Tower Assets' looping exposed_mark, or a thin warm ring with a glint
+# circling it. Follows the nightmare; fades out and frees itself once it isn't Exposed any more. `quiet` = over the
+# cap: it only keeps track (so the completion doesn't fire again), drawing nothing.
+class FxExposedMark extends Node2D:
+	const FADE := 0.25
+	const RADIUS := 15.0
+	var enemy: Node2D
+	var quiet := false
+	var ending := false
+	var _age := 0.0
+	var _fade := 1.0
+	var _art: Node2D = null
+
+	func _init(target: Node2D, is_quiet: bool = false) -> void:
+		enemy = target
+		quiet = is_quiet
+		name = "Fx_exposed_mark"
+		z_index = 2  # Over the nightmare, under the lighting pass
+
+	func _ready() -> void:
+		Fx._exposed_marks += 1
+		if is_instance_valid(enemy):
+			global_position = enemy.global_position
+		if not quiet and Fx.has_effect(Fx.EXPOSED_MARK):
+			_art = Fx.play(Fx.EXPOSED_MARK, global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
+
+	func _exit_tree() -> void:
+		Fx._exposed_marks = maxi(Fx._exposed_marks - 1, 0)
+		if is_instance_valid(enemy) and enemy.has_meta(Fx.EXPOSED_META) and enemy.get_meta(Fx.EXPOSED_META) == self:
+			enemy.remove_meta(Fx.EXPOSED_META)
+
+	func _process(delta: float) -> void:
+		if not ending and (not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.statuses.is_exposed()):
+			ending = true  # The stacks dropped, or it was dispelled
+		if ending:
+			_fade -= delta / FADE
+			if _fade <= 0.0:
+				queue_free()
+				return
+			modulate.a = _fade  # multiplier (the fade)
+		if is_instance_valid(enemy):
+			global_position = enemy.global_position
+		_age += delta
+		if not quiet and _art == null:
+			queue_redraw()
+
+	func _draw() -> void:
+		if quiet or _art != null:
+			return
+		var colour: Color = EnemyStatuses.COLORS.get(EnemyStatuses.MARKED, Palette.GOLD)
+		draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 28, Color(colour, 0.45), 1.0)
+		if not bool(Fx.setting("reduced_motion", false)):
+			draw_circle(Vector2.from_angle(_age * 2.4) * RADIUS, 1.5, Color(Palette.HEARTLIGHT, 0.9))  # The glint circling it
 
 # One sheet playing at its anchor. Frees itself at the end (or after `seconds` when looping).
 # A soft ring that swells and fades on a Warden that helped make a Reaction (under the Wardens).

@@ -277,6 +277,54 @@ func _run() -> void:
 		_check(panel._free_rank() and panel._can_afford_a_rank(), "a banked rank is free in the Warden panel")
 		poor.banked_ranks = 0
 
+	# --- Grow preview shows the new form's reach (screens_ui.md, 7f06b5a0 / b0761f65; the user: "should have the Jarlink
+	# range when hovering over the upgrade", "and also what the visible connected path would look like"). Written by
+	# hand, not run: no test runs until the user says. ---
+	dreams.unlock_everything = true
+	var jar_data: TowerData = load("res://resource/tower/jarlink.tres")
+	var on_route := Tower.route_cells(map.get_path_from(map.startPath))
+	var across: Array = []  # Two open cells with one path cell between them
+	for i in range(3, on_route.size() - 3):
+		for side in [Vector2.UP, Vector2.LEFT]:
+			var one_side: Vector2 = on_route[i] + side
+			var far_side: Vector2 = on_route[i] - side
+			if across.is_empty() and not on_route.has(one_side) and not on_route.has(far_side) and map.is_buildable(one_side) and map.is_buildable(far_side):
+				across = [one_side, far_side]
+	_check(across.size() == 2, "found two open cells across the path")
+	if across.size() == 2:
+		var jar := _stand(placer, jar_data, across[0])
+		var firefly := _stand(placer, load("res://resource/tower/firefly_jar.tres"), across[1])
+		await process_frame
+		var reach := float(jar_data.special_params.get("link_range", 4.5))
+		placer.show_grow_preview([[firefly, jar_data]])
+		_check(placer.is_previewing_growth(), "pointing at Grow into Jarlink: the preview is up")
+		var link: Dictionary = placer.link_preview(firefly.cell, reach, firefly)
+		_check(is_equal_approx(link.reach, reach) and link.partner == jar and link.candidates.has(jar),
+			"…with the link range (%.1f cells) and the jar it would really link to" % reach)
+		var live: Array = []  # The cells the live arc damages for these two positions, on the path
+		var arc_cells := BranchKit._arc_cells(firefly.cell, jar.cell)
+		for cell in on_route:
+			if arc_cells.has(cell):
+				live.append(cell)
+		_check(not live.is_empty() and Array(link.cells) == live,
+			"the previewed crossed path cells are the cells the live arc damages (%s vs %s)" % [link.cells, live])
+		_check(placer.link_preview(firefly.cell, 0.5, firefly).partner == null, "no jar in reach: no partner (the tag says so)")
+		await process_frame
+		placer.hide_grow_preview()
+		await process_frame
+		await process_frame
+		_check(not placer.is_previewing_growth() and placer._link_wanted.is_empty() and placer._link_fx.is_empty(),
+			"leaving the option removes the preview: no arc lingers")
+		# A jet's line: every previewed cell is a path cell inside the live jet's own test.
+		var jet: Dictionary = placer.jet_preview(firefly.global_position, 6.0, Tower.range_to_pixels(3.0))
+		if not jet.is_empty():
+			var dir: Vector2 = (jet.to - firefly.global_position).normalized()
+			var in_live_jet := BranchKit.jet_cells(firefly.global_position, dir, 6.0 * 64.0, map.get_path_from(map.startPath))
+			var jet_ok: bool = not jet.cells.is_empty()
+			for cell in jet.cells:
+				jet_ok = jet_ok and on_route.has(cell) and in_live_jet.has(cell)
+			_check(jet_ok, "a jet's previewed cells are path cells the live jet's test covers (%d)" % jet.cells.size())
+
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
@@ -313,6 +361,16 @@ func _build(placer: TowerPlacer, map, data: TowerData) -> Tower:
 			if map.is_buildable(cell) and placer._try_build(cell):
 				return placer.get_tower_at(cell) if placer.has_method("get_tower_at") else _last(placer)
 	return null
+
+# A Warden stood on `cell` by hand (no price, no placement rules).
+func _stand(placer: TowerPlacer, data: TowerData, cell: Vector2) -> Tower:
+	var tower: Tower = placer.tower_scene.instantiate()
+	tower.tower_data = data
+	tower.cell = cell
+	tower.position = Tower.MAP_GRID.calculate_map_position(cell)
+	placer.get_node("%TowerContainer").add_child(tower)
+	tower.set_process(false)
+	return tower
 
 func _last(placer: TowerPlacer) -> Tower:
 	var container := placer.get_node("%TowerContainer")

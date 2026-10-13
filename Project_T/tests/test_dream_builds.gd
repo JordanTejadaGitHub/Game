@@ -756,7 +756,12 @@ func _test_generic_rares() -> void:
 	var alone := _plant_at("sprout", Vector2(100, 102), 0)
 	var diagonal := _plant_at("sprout", Vector2(103, 101), 0)
 	var row := _find(dreams.get_card_effects(sprout, a.cell, a), "root_network")
-	_check(row.active and is_equal_approx(row.damage, 0.18) and row.note == "network of 3", "Root Network: 3 in a row = +18%% each (%s)" % row)
+	_check(row.active and is_equal_approx(row.damage, 0.18) and row.note == "Network of 3: +18%", "Root Network: 3 in a row = +18%% each (%s)" % row)
+	# Connected = the two footprints share an edge (user 2026-10-13). Half offsets count; across a half-wide path doesn't.
+	_check(not DreamEffects.sprouts_linked(Vector2(5, 5), Vector2(6.5, 5), false) and not DreamEffects.sprouts_linked(Vector2(5, 5), Vector2(6.5, 5), true),
+		"two Sprouts across a half-wide path (1.5 cells apart) are not connected, with or without II")
+	_check(DreamEffects.sprouts_linked(Vector2(5, 5), Vector2(6, 5.5), false) and not DreamEffects.sprouts_linked(Vector2(5, 5), Vector2(6, 6), false)
+		and DreamEffects.sprouts_linked(Vector2(5, 5), Vector2(6, 6), true), "half an edge shared connects; a corner only with II")
 	_check(is_equal_approx(dreams.get_soothe_multiplier(a), 1.18), "…and it's real damage")
 	_check(not _find(dreams.get_card_effects(sprout, alone.cell, alone), "root_network").active, "…a lone Sprout has no network")
 	_check(not _find(dreams.get_card_effects(sprout, diagonal.cell, diagonal), "root_network").active, "…diagonals don't join")

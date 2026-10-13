@@ -319,6 +319,21 @@ static func share_bolt(enemy: Node2D, damage: float, source: Node) -> void:
 
 # A jet (tower_design.md "Branch review"): its target takes the small hit plus a share of its max health (bosses
 # less); the jet carries on down the line with the small hit only. Torrent's Flood trail as before.
+# Whether a point `rel` px from the jet's mouth is inside the jet (its length along `dir`, 0.45 cells to each side).
+# The live jet and the previews (TowerPlacer.jet_preview) both ask here, so they can't disagree.
+static func in_jet(rel: Vector2, dir: Vector2, length: float) -> bool:
+	var along := rel.dot(dir)
+	return along >= 0.0 and along <= length and absf(rel.cross(dir)) <= CELL * 0.45
+
+# The whole cells of `route` a jet from `from` (px) along `dir` for `length` px crosses.
+static func jet_cells(from: Vector2, dir: Vector2, length: float, route: PackedVector2Array) -> Dictionary:
+	var cells := {}
+	for point in route:
+		var at := Tower.MAP_GRID.calculate_map_position(point)
+		if in_jet(at - from, dir, length):
+			cells[Tower.MAP_GRID.calculate_grid_coordinates(at)] = true
+	return cells
+
 static func _jet(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
@@ -334,9 +349,7 @@ static func _jet(tower: Tower) -> void:
 	for e in targetable(tower):
 		if e == target or e.is_flying():
 			continue
-		var rel: Vector2 = e.global_position - from
-		var along := rel.dot(dir)
-		if along < 0.0 or along > length or absf(rel.cross(dir)) > CELL * 0.45:
+		if not in_jet(e.global_position - from, dir, length):
 			continue
 		tower.hit(e, 1.0)  # Down the line: the small hit only
 	Fx.segment(&"water_jet", from, from + dir * length, world(tower), 0.25)
@@ -451,7 +464,7 @@ static func stat_lines(tower: Tower) -> Array[String]:
 	if tower == null or tower.attack_data == null:
 		return lines
 	if tower.tower_data.can_attack and tower.is_inside_tree():  # maze_feel.md: where it covers everything
-		lines.append("Covers %d path tiles" % tower.get_coverage())
+		lines.append("Covers %d path cells" % tower.get_coverage())
 	if tower.attack_data.special == JARLINK:
 		lines.append("Arc: %s damage a second to each nightmare touching it (with a Jarlink within %s cells)" % [
 			BossDossier.thousands(roundi(arc_dps(tower))), IconInfo._number(link_range(tower))])

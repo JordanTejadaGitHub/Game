@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hushed_hedge"
 display_name = "Hushed Hedge"
-description = "Each Thornwall gives 2 {drowsy} stacks to the first grounded nightmare that passes beside it each {drift}."
+description = "Each Thornwall gives 2 {drowsy} {stacks} to the first grounded nightmare that passes beside it each {drift}."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "wall"])

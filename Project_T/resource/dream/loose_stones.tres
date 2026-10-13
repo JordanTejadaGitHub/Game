@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "loose_stones"
 display_name = "Loose Stones"
-description = "Cairn and Rockslide stones break into 3 on landing: 35% each onto random tiles within 1.5 cells."
+description = "{warden:cairn} and {warden:rockslide} stones break into 3 on landing: 35% each onto random tiles within 1.5 cells."
 rarity = 1
 kind = 3
 tags = Array[String](["stone"])

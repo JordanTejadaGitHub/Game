@@ -158,9 +158,7 @@ func refresh() -> void:
 		spotlight = null  # Grown, sold, or no longer affordable
 	if spotlight == null and not growable.is_empty() and not _seen.has("spotlight"):
 		spotlight = _nearest_to_view(growable)
-		_note("spotlight")
-		if whispers != null and whispers.has_method("whisper"):
-			whispers.whisper(&"grow", [spotlight.tower_data.display_name])
+		_note("spotlight")  # (No whisper with it any more: the "Grow your Wardens" Lesson teaches it, user 2026-10-12)
 	_redraw()
 
 # An unlocked form it can afford now (ranked Wardens pay the rank difference: Tower.get_grow_cost).
@@ -194,9 +192,8 @@ func _pulse(kind: StringName) -> void:
 	if panel != null and panel.has_method("pulse"):
 		panel.pulse(kind)  # Tower Code's WardenPanel hook
 
-func _on_drift_started(number: int) -> void:
-	if number == REMIND_DRIFT and not grown_this_run() and whispers != null and whispers.has_method("whisper"):
-		whispers.whisper(&"grow_more")  # Whispers are once per profile
+func _on_drift_started(_number: int) -> void:
+	pass  # The drift-15 "your Wardens can become much more" whisper is gone with the teaching whispers (user 2026-10-12)
 
 # Any Dew spent on growing or ranks this run (RunHistory's spend record), else any grown or ranked Warden.
 func grown_this_run() -> bool:

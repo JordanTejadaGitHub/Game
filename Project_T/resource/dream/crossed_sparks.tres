@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "crossed_sparks"
 display_name = "Crossed Sparks"
-description = "When two different Wardens add {static} within 2 s, the nightmare gains 6 extra {static} stacks. Once per nightmare every 2 s."
+description = "When two different Wardens add {static} within 2 s, the nightmare gains 6 extra {static} {stacks}. Once per nightmare every 2 s."
 rarity = 2
 kind = 3
 tags = Array[String](["storm"])
 requires = Array[String](["firefly_jar"])
 max_stacks = 1
 rule_id = &"crossed_sparks"
+retired = true
 in_start_pool = true

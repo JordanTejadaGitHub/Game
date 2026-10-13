@@ -175,7 +175,7 @@ Legendaries instead of two.
 they promise a rarity, never a named card, and both are paid for.
 
 **E. The three empty Grove nodes** (`golden_harvest` 120, `menagerie` 80, `light_feet` 60). Remove them from the tree
-(88 nodes); nothing depends on them. Meta Game Asset tidies the three twigs. No refunds (pre-release).
+(three fewer nodes: 95 node files, 92 on the tree with the Memory Wardens parked); nothing depends on them. Meta Game Asset tidies the three twigs. No refunds (pre-release).
 
 **F. Newer branches with no cards.** Not now. After the next playtests, one card per branch as its own batch
 (Roguelite Mechanic Discussion designs it).

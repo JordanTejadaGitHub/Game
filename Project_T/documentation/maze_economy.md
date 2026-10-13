@@ -2,7 +2,7 @@
 
 ## Path length only (user, 2026-10-11: "the maze bonus is confusing"; replaces the defended-cells rule below)
 
-**The rule a player reads:** *+1 Dew for every 4 cells your route is longer than the forest's own path, up to 20 a rest.*
+**The rule a player reads:** *+1 Dew for every 4 cells your route is longer than the forest's own path.* (No cap since 2026-10-12, user: the map's size is the limit; it was 20 a block.)
 
 - **Added cells** = your route's length in whole cells minus the route the map generated (the baseline, saved with the run).
   Nothing else: no "defended" test, no coverage comparison, no unique-attacker count. Walls alone earn it, which is the
@@ -10,10 +10,10 @@
 - **Measured at the route's shortest during the block:** the bonus uses the shortest your route was while nightmares
   walked in that block, so lengthening it just before the rest, or selling walls mid-block, doesn't pay. Said to the
   player as "counted while nightmares walk".
-- Cap 20 Dew a block (80 added cells); the drift-one rest shares the first block's cap, as before. Deep Sleep still
+- No cap. **Paid at block rests only** (after drifts 5, 10, 15…), not at the short rest after drift 1 (2026-10-12: with no cap, walls built before drift 1 and sold at that rest kept their payout). Deep Sleep still
   forfeits it. Winding Path and the other cards are unchanged.
 - **Shown** right after the Dew total as "+N at rest" (screens_ui.md "HUD notes"). Tip: "Your route is 28 cells longer
-  than the forest's path: +7 at the next rest (+1 per 4 cells, up to 20)." The Path counter's tip says the same. The
+  than the forest's path: +7 at the next rest (+1 per 4 cells)." The Path counter's tip says the same. The
   build ghost's "+N path" tag is already the number that feeds it.
 - The rest payout lists it as "Maze +7".
 

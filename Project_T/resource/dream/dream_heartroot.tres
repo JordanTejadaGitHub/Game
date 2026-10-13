@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_heartroot"
 display_name = "Heartroot"
-description = "Deeproots can now grow into Heartroots ({dew:{grow_cost:heartroot}}): once per {drift}, the first nightmare to reach the Heartwood is dragged back."
+description = "{warden:deeproot}s can now {grow} into {warden:heartroot}s ({dew:{grow_cost:heartroot}}): once per {drift}, the first nightmare to reach the Heartwood is dragged back."
 rarity = 2
 kind = 1
 tags = Array[String](["root"])

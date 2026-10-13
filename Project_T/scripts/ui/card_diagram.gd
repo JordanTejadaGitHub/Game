@@ -65,9 +65,13 @@ func _draw_grid() -> void:
 			var rect := Rect2(Vector2(x, y) * CELL, Vector2(CELL, CELL))
 			var inner := rect.grow(-1.0)
 			var centre := rect.get_center()
-			var is_path := c == "P" or c == "+" or c.is_valid_int()
+			var is_path := c == "P" or c == "+" or c == "n" or c.is_valid_int()
 			_grid.draw_rect(inner, Palette.PATH if is_path else Palette.DEEPMOSS)
 			match c:
+				"n":  # A narrowed path cell (Narrow Way): a wall over its upper half, the lower half open
+					var half := Rect2(inner.position, Vector2(inner.size.x, inner.size.y / 2.0))
+					_grid.draw_rect(half, Palette.MOSS)
+					_grid.draw_rect(half, Palette.LEAF, false, 1.0)
 				"T", "X":
 					_grid.draw_rect(inner.grow(-3.0), Palette.MOSS)
 					_grid.draw_rect(inner.grow(-3.0), Palette.LEAF, false, 1.0)

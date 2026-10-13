@@ -502,6 +502,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 	_seen.append(String(id))
 	block_new.append(id)
 	_remember_discovery(id)
+	CodexData.clear_lists()  # Texts naming this combo read "???" until now: the lists are formatted again on next use
 	if not before.is_empty():
 		var typed: Array[UpgradeData] = []
 		typed.assign(before)

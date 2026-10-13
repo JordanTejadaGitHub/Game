@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "slot_5"
-display_name = "Loadout slot 5"
-description = "Carry 5 perks into the dream."
+display_name = "Perk slot 5"
+description = "Adds a fifth {perk} slot: carry 5 {perks} into a run."
 root = 2
 costs = Array[int]([220])
 order = 23

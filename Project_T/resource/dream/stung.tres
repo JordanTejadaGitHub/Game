@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "stung"
 display_name = "Stung"
-description = "Each leaf lost this {block} makes all Wardens deal 10% more damage until the {rest} (up to +30%)."
+description = "Each {leaf} lost this {block} makes all Wardens deal 10% more damage until the {rest} (up to +30%)."
 rarity = 0
 kind = 3
 tags = Array[String](["daring"])

@@ -78,7 +78,7 @@ func _run() -> void:
 	var plain_range := ranked.get_range_cells()
 	_take(&"growth_rings")
 	ranked._stats = {}
-	_check(is_equal_approx(ranked.get_range_cells() - plain_range, HelperCommons.GROWTH_RINGS * 3), "Growth Rings: +0.25 range per rank instead of +0.1 (%.2f more)" % (ranked.get_range_cells() - plain_range))
+	_check(is_equal_approx(ranked.get_range_cells() - plain_range, HelperCommons.GROWTH_RINGS_OWN * 3), "Growth Rings: +0.25 range per Nurture rank (%.2f more)" % (ranked.get_range_cells() - plain_range))
 	_clear()
 	ranked._stats = {}
 

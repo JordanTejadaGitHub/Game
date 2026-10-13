@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Driftspore"
 role_line = "Poisons, fast attacks, single target"
-description = "Two {spored} stacks per puff, and nightmares can hold more of them."
+description = "Fast puffs that add {field:driftspore.status_stacks:count} {spored} {stacks} each. Its targets can hold up to {field:driftspore.status_max_stacks:count} {spored}, so the damage climbs higher."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -155,3 +155,34 @@ Nurture teaching directs players to the live special-bonus requirements rather t
 
 ### Replayable animated guides (2026-10-11)
 Pause → Replay guides shows three paused, looping explanations: four-matching rank-V specialisation versus All-Rounder; defended maze roads and Dew; catcher bowls, Harvest and capped Wellspring interest. They replay even with Hints disabled without changing that setting or discovery history. First-time nurture, maze and catcher lessons include the same animations. These are in-game animations rather than external video files.
+## Whisper hints removed (user, 2026-10-12: "remove the whisper hints, they're redundant with the tutorial popups")
+The Lessons (paused cards) are now the only teaching. The one-line Heartwood whispers that taught a mechanic are
+gone; the tables above that list them are history.
+
+- **Removed:** every teaching whisper: planting, "Wardens are walls", drifts flow / Auto-drift, rests and refunds,
+  saving, growing and its reminder, Nurture, obstacles, speed and pause, selling, Omens, Dreamlight, "let it pass",
+  status tooltips-as-whispers. Where one taught something no Lesson covers, it is not replaced unless listed below.
+- **Kept, because they are not tutorials:**
+  - **Warnings:** the rule-breaker warning when a flyer / sprinter / burrower drift is coming (kept on purpose,
+    2026-10-02: players learn to watch for it). It shows as a normal warning line, every time, not once per profile.
+  - **Feedback:** the blocked-placement line ("A dream can bend, but never close.") as the refusal toast.
+  - **Story beats:** the run's first line during the opening camera glide, a boss arriving and being dispelled, a
+    leaf lost for the first time in a run, the run-end line. Short, in the Heartwood's voice, never instructions.
+- **New Lessons to cover real gaps:** "Speed and pause" (the first time a drift runs longer than 20 s: "Space pauses,
+  Tab changes speed. You can build while paused.") and "Rests" (the first rest: "Between blocks the forest rests.
+  Selling returns more here, and nothing moves until you start the next drift.").
+- **Settings:** the "Hints" toggle now only switches Lessons. "Replay guides" in the pause menu stays. The first-run
+  camera glide stays.
+
+## Status Lessons point at the nightmare (user, 2026-10-12)
+User, on the Charged card: *"should come when you first see the status effect on the enemy, with the highlighting or
+something to make it noticeable."* A status Lesson fires the moment that status first lands on a nightmare that is on
+screen (not when the Warden is planted, and not if the nightmare is off screen: wait for one that is visible).
+- The game pauses. The nightmare gets a spotlight: the rest of the map dims a little, a soft ring sits round it, and
+  its new status badge pulses. A thin thread runs from the card to the badge.
+- The card opens beside the nightmare, never on top of it, and names what did it: "Your Firefly Jar's sparks are
+  building **Charged** on this nightmare."
+- Then one plain sentence for the status, with its live numbers, and the Reactions link. No internals ("scale with
+  stored buildup"). Charged: "At 20 stacks (30 on bosses) it is struck by a bolt for heavy damage. Other statuses
+  can set it off early as a Reaction."
+- "Got it" removes the spotlight and resumes. Once per status per profile. Reduced motion: no pulse, the ring stays.

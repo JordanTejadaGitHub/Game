@@ -12,3 +12,9 @@ kind = 3
 tags = Array[String](["maze"])
 max_stacks = 1
 rule_id = &"narrow_way"
+diagram = ".......
+.......
+SPnnPPH
+..WW.a.
+......."
+diagram_caption = "Beside the half-cell stretch: the bonus. ✗ beside the wide path."

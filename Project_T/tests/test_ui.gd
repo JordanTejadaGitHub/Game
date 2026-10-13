@@ -409,6 +409,43 @@ func _run() -> void:
 
 	# --- Dreams row: an icon per Dream, with Few and Mighty's live bonus following the Wardens ---
 	var row = main.get_node("%DreamsRow")
+	# Where to recheck your Calling (screens_ui.md, user 2026-10-13: "nowhere to recheck your Calling after you choose"):
+	# none set, nothing shows; once set it is the row's first icon, a section of "Dreams this run", a pause summary
+	# line, a line on its family's Wardens, and every family's Codex entry names its own.
+	var calling_pause = main.get_node("%PauseMenu")
+	row.refresh()
+	_check(dreams.calling == "" and row._calling_frame == null and row.calling_info().is_empty() and not row.get_list_text().contains("Calling")
+		and calling_pause.calling_line() == "" and not calling_pause.get_run_summary().contains("Calling"), "no Calling yet: nothing about one anywhere")
+	dreams.set_calling("firefly_jar")
+	row.refresh()
+	var calling_title: String = dreams.calling_title()
+	var jar_name: String = load("res://resource/tower/firefly_jar.tres").display_name
+	_check(calling_title != "" and row._calling_frame != null and row._calling_frame.get_index() == 0
+		and row._calling_frame.tooltip_text.begins_with("Calling · " + calling_title) and not row._calling_frame.tooltip_text.contains("{"),
+		"the Calling is the Dreams row's first icon, its tip the name and the rule (%s)" % (row._calling_frame.tooltip_text if row._calling_frame != null else "none"))
+	_check(row.get_list_text().contains("Calling: %s (%s)" % [calling_title, jar_name]), "Dreams this run lists the Calling with its family and rule")
+	row._toggle_list()
+	_check(row._list_box.find_child("CallingName", false, false) != null and row._list_box.find_child("CallingRule", false, false) != null
+		and row._list_box.find_child("CallingName", false, false).get_index() < 4, "…as a section at the top of the panel")
+	row._toggle_list()
+	_check(calling_pause.calling_line() == "%s (%s)" % [calling_title, jar_name] and calling_pause.get_run_summary().contains("Calling: %s (%s)" % [calling_title, jar_name]),
+		"the pause menu's run summary: Calling: name (family)")
+	var calling_header := WardenHeaderView.new()
+	root.add_child(calling_header)
+	var jar_probe: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+	jar_probe.tower_data = load("res://resource/tower/firefly_jar.tres")
+	jar_probe._dream_state = dreams
+	calling_header._tower = jar_probe
+	calling_header._show_calling(jar_probe.tower_data)
+	_check(calling_header._calling_line != null and calling_header._calling_line.text == "Calling · " + calling_title
+		and calling_header._calling_line.tooltip_text != "", "a Warden of the Calling's family names it under its description")
+	calling_header._show_calling(load("res://resource/tower/sporeling.tres"))
+	_check(calling_header._calling_line == null, "…and a Warden of another family doesn't")
+	jar_probe.free()
+	calling_header.queue_free()
+	dreams.calling = ""  # The rest of this test runs without a Calling, as before
+	row.refresh()
+	_check(row._calling_frame == null or row._calling_frame.is_queued_for_deletion(), "no Calling again: the icon goes")
 	var few: UpgradeData = null
 	for card in dreams.pool:
 		if card.id == "few_and_mighty":
@@ -474,6 +511,21 @@ func _run() -> void:
 	dew_tip.toggle()
 	_check(not dew_tip.visible and dew_label.tooltip_text == dew_text and TapTip.pinned() == null, "tapping it again closes it and the hover tooltip returns")
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
+	# Reactions are a glossary term (user 2026-10-12: "the wet tutorial card should have the underline explaining
+	# reactions"): a capital and a link wherever the status texts show, with their stack numbers read live.
+	var soaked_tip := IconInfo.status_tooltip(&"damp")
+	var soaked_need := Reactions.buildup_threshold(Reactions.SOAKED_NEEDED)
+	_check(soaked_tip.contains("At %d stacks it can set off Reactions." % soaked_need) and not soaked_tip.contains("{")
+		and IconInfo.status_tooltip(&"held").contains("At %d stacks it can set off Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
+		and IconInfo.stack_number("cap_drowsy") == EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.DROWSY] * EnemyStatuses.cap_multiplier()
+		and IconInfo.stack_number("bosscap_static") == EnemyStatuses.BOSS_MAX_STACKS[EnemyStatuses.STATIC] * EnemyStatuses.cap_multiplier(),
+		"status texts name Reactions and read their stack numbers live (%s)" % soaked_tip)
+	for status_id in [&"damp", &"drowsy", &"spored", &"marked", &"static", &"held"]:
+		_check(StatusLinks.bbcode(IconInfo.STATUSES[status_id][1]).contains("[url=term:reaction]"), "%s's text links Reactions" % status_id)
+	_check(StatusLinks.bbcode("Sets off Reactions sooner.").contains("[url=term:reaction]") and CodexData.definition("Reaction").begins_with("When a nightmare carries enough stacks"),
+		"the plain word Reactions is a glossary link, with its Codex entry")
+	var lesson_body := (main.get_node("HUD/LessonCard") as LessonCard)._body
+	_check(lesson_body is RichTextLabel and lesson_body.bbcode_enabled, "the Lesson card renders glossary links")
 	# Dream bonuses on Wardens (DreamBonusView): breakdown text, and rows styled active / off.
 	_check(DreamBonusView.format_breakdown(&"damage", {"base": 18.0, "final": 27.0,
 		"parts": [["Nurture II", "+20%"], ["Solitude", "+30%"]]}) == "Damage 18 → 27: base 18 · Nurture II +20% · Solitude +30%",
@@ -554,7 +606,7 @@ func _run() -> void:
 		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
 	# "Potency" in card text is a link as written (user: "Potency in cards doesn't have the underline").
 	var potency_text := StatusLinks.bbcode("All Wardens +20% Potency (stacks). {spored} grows with Potency.")
-	_check(potency_text.count("[url=term:potency]") == 2 and potency_text.contains("[url=status:spored]")
+	_check(potency_text.count("[url=term:potency]") == 1 and potency_text.contains("[url=status:spored]")
 		and not StatusLinks.bbcode("Impotency").contains("term:potency"), "the plain word Potency is a glossary link (%s)" % potency_text)
 	_check(CodexData.definition("Potency").contains("statuses and effects"), "the glossary's Potency line says what it does")
 	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.
@@ -572,8 +624,8 @@ func _run() -> void:
 	whisper_node.enabled = true
 	whisper_node._seen = []
 	whisper_node._queue.clear()
-	whisper_node.whisper(&"damp")
-	_check(whisper_node.text.contains("[url=status:damp]Soaked") or whisper_node.text.contains("status:damp"), "whispers link their status words (%s)" % whisper_node.text)
+	whisper_node.whisper(&"damp")  # A removed teaching whisper: ignored (the status Lessons teach them, user 2026-10-12)
+	_check(not whisper_node.TEXT.has(&"damp") and not whisper_node._queue.has(&"damp"), "the status whispers are gone: the status Lessons teach them")
 	whisper_node.set_enabled(false)
 	# The icon sheet (assets/ui/icons.png + icons.json): every status and stat id has a 16×16 icon.
 	for id in [&"damp", &"static", &"elite", &"hidden", &"damage", &"potency", &"focus_deep", &"dreamlight_cost"]:
@@ -618,10 +670,10 @@ func _run() -> void:
 	clearer.set_process(false)  # Its hover follows the mouse each frame
 	clearer._hover_obstacle = load("res://resource/obstacle/tree.tres")
 	whispers._process(0.0)
-	_check(whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers Dead wood, not Tend")
+	_check(not whispers._queue.has(&"dead_wood") and not whispers._queue.has(&"tend"), "a locked obstacle whispers nothing any more (teaching whispers removed)")
 	dreams.clearing_open = true
 	clearer.lock_changed.emit(false)
-	_check(whispers._queue.has(&"tend"), "Tend comes once clearing opens")
+	_check(not whispers._queue.has(&"tend"), "…nor when clearing opens")
 
 	# --- The Clear tool: locked until clearing opens, then a toggle for ObstacleClearer's tool mode ---
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
@@ -1097,8 +1149,8 @@ func _check_mist_full(main: Node) -> void:
 		"two nightmares held in the mist: calling the next drift early is refused")
 	panel._process(0.0)
 	var button: Button = panel._start_button
-	_check(button.disabled and button.tooltip_text.begins_with("The mist is full"),
-		"…and the Call early button greys out with \"The mist is full\"")
+	_check(button.disabled and button.tooltip_text.begins_with("Nightmares still arriving"),
+		"…and the Call early button greys out with \"Nightmares still arriving\"")
 	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
 	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
 	panel._process(0.0)

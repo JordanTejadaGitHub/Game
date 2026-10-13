@@ -78,7 +78,7 @@ func _run() -> void:
 	_check(grow_lines.size() == 2 and not texts.any(func(t: String) -> bool: return t.contains(DreamState.NOT_IN_DREAM + " (")),
 		"the panel shows 2 grow lines, no dead \"not in this dream\" buttons (%s)" % [texts])
 	var more := panel._content.get_node_or_null("NotInDream") as Button
-	_check(more != null and more.text == "3 more not in this dream: Remember" and more.tooltip_text.contains(hidden[0].display_name),
+	_check(more != null and more.text == "3 more not in this run: Remember" and more.tooltip_text.contains(hidden[0].display_name),
 		"one quiet line points at Remember, in the info part (it scrolls; the actions stay put)")
 	var asked := [null]
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: asked[0] = focus)
@@ -88,7 +88,7 @@ func _run() -> void:
 
 	var header := WardenHeaderView.build(base, tower, dreams)
 	var lines: Array = header.growth.get_children().map(func(c: Node) -> String: return c.text if c is Label else "")
-	_check(lines.has("3 more not in this dream") and lines.filter(func(t: String) -> bool: return t.contains("test_b")).size() == 2,
+	_check(lines.has("3 more not in this run") and lines.filter(func(t: String) -> bool: return t.contains("test_b")).size() == 2,
 		"the hover card lists the 2 and counts the rest (%s)" % [lines])
 	header.free()
 

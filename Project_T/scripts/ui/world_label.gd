@@ -5,7 +5,6 @@ class_name WorldLabel
 # draw_tag does it; other world text can use text_scale() / begin_screen_size() the same way.
 
 const FONT_SIZE := 14
-const BACKGROUND := Color(UiStyle.FOG, 0.75)
 const AFFORDABLE_COLOR := UiStyle.INK
 const UNAFFORDABLE_COLOR := UiStyle.POOR  # The palette has no red
 
@@ -38,7 +37,6 @@ static func begin_screen_size(canvas: CanvasItem, anchor: Vector2) -> void:
 static func end_screen_size(canvas: CanvasItem) -> void:
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-# Draws `text` on a dark tag, horizontally centred on `center_x`, with its baseline at `baseline_y`.
 # Screen rects world labels keep clear of (an open panel, user: "24 DPS" showing through the see-through Warden
 # panel): {key: Rect2 in the viewport's canvas space}. Plain data, so a static is safe.
 static var covers := {}
@@ -67,17 +65,53 @@ static func covered(canvas: CanvasItem, local_rect: Rect2) -> bool:
 			return true
 	return false
 
+# The 1 px outline and the soft halo that replace the tag's box (user-approved "Warden labels" redo, 2026-10-12): a
+# label reads over grass, path and Wardens without a rectangle.
+const OUTLINE := Palette.DREAD
+const OUTLINE_PX := 1
+const HALO_PAD := Vector2(12.0, 5.0)  # The halo reaches this far past the text, screen px
+static var _halo: GradientTexture2D = null
+
+# Radial: Void 0.8 at the centre, 0.5 at 55%, nothing at the edge. Released at exit (a static texture otherwise crashes
+# the exit).
+static func _halo_texture() -> GradientTexture2D:
+	if _halo == null:
+		UiStyle.release_at_exit(func() -> void: _halo = null)
+		var gradient := Gradient.new()
+		gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+		gradient.colors = PackedColorArray([Color(Palette.VOID, 0.8), Color(Palette.VOID, 0.5), Color(Palette.VOID, 0.0)])
+		_halo = GradientTexture2D.new()
+		_halo.gradient = gradient
+		_halo.fill = GradientTexture2D.FILL_RADIAL
+		_halo.fill_from = Vector2(0.5, 0.5)
+		_halo.fill_to = Vector2(1.0, 0.5)
+		_halo.width = 64
+		_halo.height = 32
+	return _halo
+
+# The faint edgeless halo behind a label: `text_rect` is the text's own box (the halo pads it itself).
+static func draw_halo(canvas: CanvasItem, text_rect: Rect2) -> void:
+	canvas.draw_texture_rect(_halo_texture(), text_rect.grow_individual(HALO_PAD.x, HALO_PAD.y, HALO_PAD.x, HALO_PAD.y), false)
+
+# A string with the 1 px Dread outline under it.
+static func draw_outlined(canvas: CanvasItem, font: Font, at: Vector2, text: String, size: int, color: Color) -> void:
+	canvas.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, OUTLINE_PX, Color(OUTLINE, color.a))
+	canvas.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+
+# Draws `text` horizontally centred on `center_x`, with its baseline at `baseline_y`: no box, the body font at 14 px in
+# the caller's colour, outlined, over the halo. `font` / `size` for a label in another face (the hovered Warden's name).
 static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, text: String,
-		color: Color = AFFORDABLE_COLOR) -> void:
-	var font := UiStyle.with_glyphs(ThemeDB.fallback_font)  # UiStyle.dew_amount's icon draws in world tags too
-	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
-	var origin := Vector2(center_x - size.x / 2, baseline_y)
+		color: Color = AFFORDABLE_COLOR, font: Font = null, size: int = FONT_SIZE) -> void:
+	if font == null:
+		font = UiStyle.with_glyphs(UiStyle.body_font())  # UiStyle.dew_amount's icon draws in world tags too
+	var extent := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
+	var origin := Vector2(center_x - extent.x / 2, baseline_y)
 	var s := text_scale(canvas)
-	if covered(canvas, Rect2(Vector2(center_x, baseline_y) + Vector2(-size.x / 2 - 6, -size.y) * s, (size + Vector2(12, 6)) * s)):
+	if covered(canvas, Rect2(Vector2(center_x, baseline_y) + Vector2(-extent.x / 2 - 6, -extent.y) * s, (extent + Vector2(12, 6)) * s)):
 		return  # Under an open panel
 	begin_screen_size(canvas, Vector2(center_x, baseline_y))
-	canvas.draw_rect(Rect2(origin + Vector2(-6, -size.y), size + Vector2(12, 6)), BACKGROUND)
-	canvas.draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, color)
+	draw_halo(canvas, Rect2(origin + Vector2(0, -extent.y + 3.0), extent))
+	draw_outlined(canvas, font, origin, text, size, color)
 	end_screen_size(canvas)
 
 # Text colour for a price the player can / can't currently pay.

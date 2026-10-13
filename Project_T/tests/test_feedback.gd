@@ -71,7 +71,7 @@ func _run() -> void:
 		event.combos.assign([&"conducted"])
 		event.combo_amount = 12.0
 		log.report(event)
-	_check(callouts._alive.size() == 1 and callouts._alive[0][1] == "Conducted!", "one Conducted! callout (throttled)")
+	_check(callouts._alive.size() == 1 and callouts._alive[0][1] == "Conducted", "one Conducted callout (throttled)")
 	_check(log.combo_counts_block.get(&"conducted", 0) == 2 and log.combo_counts_run.get(&"conducted", 0) == 2, "combos are counted")
 	var top := log.get_top_towers("block", 3)
 	_check(not top.is_empty() and top[0].tower == storm and roundi(top[0].amount) == 24, "Stormcap tops the block report")
@@ -125,8 +125,8 @@ func _run() -> void:
 	var tracker := ReactionTracker.find(main)
 	tracker.record(&"thunderclap", shade, 1, [storm])
 	tracker.record(&"thunderclap", shade, 3, [storm])
-	_check(whispers._queue.has(&"chain"), "the first chain ever whispers what a chain is")
-	_check(shown == [&"chain"], "whispered fires when it's shown (%s)" % [shown])
+	_check(not whispers._queue.has(&"chain") and not whispers.TEXT.has(&"chain"), "the first chain whispers nothing any more (teaching whispers removed, user 2026-10-12)")
+	_check(not shown.has(&"chain"), "…and no chain line is shown (%s)" % [shown])
 	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback.card_text)
@@ -264,7 +264,7 @@ func _run() -> void:
 		if not seen_now.has(String(combo.id)) and codex._entries.has(String(combo.id)):
 			var locked_card: Control = codex._entries[String(combo.id)]
 			var labels := locked_card.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels.filter(func(t: String) -> bool: return t != "New from the Grove") == ["???"],
+			_check(locked_card.find_children("*", "StatusIcon", true, false).is_empty() and labels.filter(func(t: String) -> bool: return t != "New from the Memory Grove") == ["???"],
 				"a locked combo shows only ??? (%s: %s)" % [combo.id, labels])
 			break
 	codex._search.text = "dreamlight"
@@ -354,7 +354,7 @@ func _run() -> void:
 		whispers._seen = []
 		whispers._queue.clear()
 		whispers._process(0.0)
-		_check(whispers._seen.has("kin") or whispers._queue.has(&"kin"), "the Kinship whisper, once two branches of a family are planted")
+		_check(not whispers._queue.has(&"kin") and not whispers.TEXT.has(&"kin"), "two branches of a family whisper nothing any more (teaching whispers removed, user 2026-10-12)")
 		whispers._queue.clear()
 		whispers.set_enabled(false)
 		# No maze juggling: the Unbound whisper, the rest report's "Unbound: N", the info's Restless line.
@@ -366,7 +366,7 @@ func _run() -> void:
 			whispers._queue.clear()
 			report.unbound_block = 0
 			spawner.nightmare_unbound.emit(juggled)
-			_check(whispers._seen.has("unbound") or whispers._queue.has(&"unbound"), "the first Unbound whispers")
+			_check(not whispers._queue.has(&"unbound") and not whispers.TEXT.has(&"unbound"), "the first Unbound whispers nothing any more")
 			report.show_report(2)
 			_check(report._label.get_parsed_text().contains("Unbound: 1"), "the rest report counts Unbound nightmares")
 			whispers._queue.clear()
@@ -397,6 +397,45 @@ func _run() -> void:
 	_check(not codex._entries.has("tempest") or not is_instance_valid(codex._entries["tempest"]) or codex._entries["tempest"].is_queued_for_deletion(),
 		"the demo's Codex leaves them out")
 	ProjectSettings.set_setting("game/demo", was_demo)
+
+	# --- Exposed at full stacks is visible (screens_ui.md, last section; the user 2026-10-13: "when Exposed has full
+	# stacks, being hit should have a visual effect"): the callout once on completing, the mark only while Exposed,
+	# the spark event on a hit that took the bonus. (Written by hand, not run: no test runs until the user says.) ---
+	callouts._alive.clear()
+	callouts._cooldowns.clear()
+	var exposed: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	exposed.set_process(false)
+	exposed.max_health = 100000
+	exposed.health = 100000
+	var completed: Array = []
+	callouts.status_completed.connect(func(status: StringName, _enemy: Node2D) -> void: completed.append(status))
+	var struck: Array = []
+	storm.exposed_struck.connect(func(_tower: Tower, enemy: Node2D) -> void: struck.append(enemy))
+	var need: int = exposed.statuses.get_max_stacks(EnemyStatuses.MARKED)
+	exposed.apply_status(EnemyStatuses.MARKED, need - 1, 0.0, 1.0, 0, "light", storm)
+	_check(not exposed.statuses.is_exposed() and Fx.exposed_mark_of(exposed) == null and completed.is_empty(),
+		"partial Exposed (%d of %d): no mark, no callout" % [need - 1, need])
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck.is_empty(), "…and a hit on it emits no spark event")
+	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
+	_check(exposed.statuses.is_exposed() and completed == [&"marked"], "Exposed completing: its callout fires (%s)" % [completed])
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Exposed" and c[3] == exposed), "…the word \"Exposed\" on that nightmare")
+	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
+	_check(completed.size() == 1, "another application while it is full: no second callout")
+	var mark := Fx.exposed_mark_of(exposed)
+	_check(mark != null and mark.get_parent() != spawner and not (mark.get_parent() is Tower),
+		"the mark exists while it is Exposed, never under the nightmares' container")
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck == [exposed], "a hit on a fully Exposed nightmare emits the spark event (%d)" % struck.size())
+	exposed.statuses.remove(EnemyStatuses.MARKED)
+	if mark != null:
+		mark._process(0.1)
+		_check(mark.ending and Fx.exposed_mark_of(exposed) == null, "the stacks gone: the mark ends at once")
+		mark._process(0.5)  # Its fade is over: it frees itself
+	await process_frame
+	_check(not is_instance_valid(mark) or mark.is_queued_for_deletion(), "…and is removed")
+	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
+	_check(struck.size() == 1, "no spark event once it isn't Exposed")
 
 	main.queue_free()
 	await process_frame

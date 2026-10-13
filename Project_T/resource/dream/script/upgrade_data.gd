@@ -18,6 +18,9 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_act: int = 1  # Legendary: 2
 @export var min_drift: int = 0  # Never offered before this drift (Double or Nothing: 10, when Omens begin)
 @export var retired: bool = false  # No new offers, run-pool sampling or Grove unlocks.
+# A class card (dream_council_review.md 20): the family id whose Calling it belongs to (DreamState.calling). Only
+# offered when that family was the run's first pick; "" = an ordinary card.
+@export var calling: String = ""
 @export var in_start_pool: bool = true  # false = unlocked in the Memory Grove (meta)
 # Deepened card ("II"): the id of the base card it upgrades. Only offered once the base is owned;
 # taking it replaces the base card's effect (the base stops counting), so this card carries the
@@ -89,7 +92,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # W a Warden that qualifies (glows), w one that doesn't (dimmed, ✗), a another Warden, T Thornwall, X a
 # Thornwall outlined gold, O obstacle, Q a qualifying Warden on a cleared cell (a moved hollow), U a tended stump,
 # * a grass cell in range
-# (outlined), H the Heartwood, S the start. `diagram_caption`: one short line under it.
+# (outlined), H the Heartwood, S the start, n a path cell a wall narrows to half a cell (Narrow Way).
+# `diagram_caption`: one short line under it.
 @export_multiline var diagram: String = ""
 @export var diagram_caption: String = ""
 @export var extra_rules: Array[StringName] = []  # Rules this card also grants (pool trim merges: an absorbed card's rule id)

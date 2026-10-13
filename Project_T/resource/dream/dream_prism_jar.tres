@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_prism_jar"
 display_name = "Prism Jar"
-description = "Firefly Jars can now grow into Prism Jars ({dew:{grow_cost:prism_jar}}): Wardens around it crit more often and harder."
+description = "{warden:firefly_jar}s can now {grow} into {warden:prism_jar}s ({dew:{grow_cost:prism_jar}}): Wardens around it crit more often and harder."
 rarity = 1
 kind = 1
 tags = Array[String](["light"])

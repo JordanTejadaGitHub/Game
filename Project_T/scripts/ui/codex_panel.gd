@@ -439,7 +439,9 @@ func _entry_card(group: String, entry: Array) -> Control:
 	UiStyle.display(name, 20)
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
+	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
 	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
+	StatusLinks.own_term = ""
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(text)
 	var example: String = entry[3] if entry.size() > 3 else ""
@@ -849,7 +851,7 @@ func _add_card(card: Control, id: StringName, discovered: bool) -> void:
 		leaf.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		mark.add_child(leaf)
 		var words := Label.new()
-		words.text = "New from the Grove"
+		words.text = "New from the Memory Grove"
 		words.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		words.add_theme_font_size_override("font_size", 12)
 		words.add_theme_color_override("font_color", GROVE_COLOR)
@@ -1243,7 +1245,7 @@ func _branch_list(root: TowerData) -> Control:
 			parts[0] += " → " + (final.display_name if _form_in_scope(final) else "???")
 		parts[0] = parts[0].replace("[", "[lb]")
 		if hidden.has(branch):
-			parts.append("the Grove's hidden branch")
+			parts.append("its Grove branch")
 		var line := StatusLinks.make_label("", 15, UiStyle.INK if known else GROVE_COLOR)
 		line.text = " · ".join(parts)
 		var role := IconInfo.role_text(branch)
@@ -1286,6 +1288,21 @@ func _family_header(root: TowerData) -> Control:
 	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
 	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(role)
+	# Its Calling: the rule a run keeps when this is the first family picked (screens_ui.md "Where to recheck your
+	# Calling": all nine can be read between runs).
+	var calling_name: String = DreamState.CALLINGS.title(root.get_id())
+	if calling_name != "":
+		var calling := Label.new()
+		calling.name = "Calling"
+		calling.text = "Calling · %s" % calling_name
+		UiStyle.caps(calling, 14, UiStyle.GOLD)
+		calling.tooltip_text = "The rule your run keeps when this is the first family you pick."
+		calling.mouse_filter = Control.MOUSE_FILTER_PASS
+		box.add_child(calling)
+		var calling_rule := StatusLinks.make_label(DreamState.CALLINGS.text(root.get_id()), 15)
+		calling_rule.name = "CallingRule"
+		calling_rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(calling_rule)
 	var statuses := _family_statuses(root)
 	if not statuses.is_empty():
 		var row := HBoxContainer.new()
@@ -1427,7 +1444,7 @@ func _family_links(root: TowerData) -> Control:
 		for k in kin:
 			var line := Label.new()
 			var found := seen.has(String(k.id))
-			line.text = ("%s · %s + %s · Sapling, Blooming, Old Kin" % [k.name, k.a, k.b]) if found else "??? · %s + %s" % [k.a, k.b]
+			line.text = ("%s · %s + %s · Young, Blooming, Old Kin" % [k.name, k.a, k.b]) if found else "??? · %s + %s" % [k.a, k.b]
 			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			line.add_theme_font_size_override("font_size", 15)
 			box.add_child(line)
@@ -1446,7 +1463,7 @@ func _family_links(root: TowerData) -> Control:
 		combos.add_child(family_chip)
 	if combos.get_child_count() == 0:
 		var none := Label.new()
-		none.text = "None in reach yet."
+		none.text = "None in range yet."
 		none.add_theme_font_size_override("font_size", 15)
 		combos.add_child(none)
 	box.add_child(combos)

@@ -1,13 +1,15 @@
 extends SceneTree
 
-# Hints (the Heartwood's whispers) audit (story chat 2026-10-01, user: "fix any Heartwood whispers that got lost"): a
-# fresh profile plays drifts 1–6 for real, then each remaining trigger is fired the way the game fires it, and every
-# line in Whispers.TEXT must have fired (or be listed in ELSEWHERE, covered by another test). Temp profile.
+# The Heartwood's voice after "Whisper hints removed" (onboarding.md, user 2026-10-12: "remove the whisper hints,
+# they're redundant with the tutorial popups"): the teaching whispers no longer fire; the story beats (the run's first
+# line, a boss coming / dispelled / its toll, the first leaf lost in a run), the rule-breaker warning (every time) and
+# the refusal toast's text stay. The line's look and timing are as before. Temp profile.
 
-# Lines whose trigger another test drives (they poll the mouse / need a whole setup): id -> where.
-const ELSEWHERE := {&"cage": "test_ui (hover a placement that would close the path)",
-	&"dead_wood": "test_ui (hover an obstacle while clearing is locked)", &"tend": "test_ui (clearing opens)",
-	&"grow": "test_grow_hints (the first rest a Warden can grow)", &"grow_more": "test_grow_hints (drift 15)"}
+# Teaching whispers that are gone: asking for one does nothing.
+const REMOVED: Array[StringName] = [&"plant", &"keep_placing", &"first_cleanse", &"walls", &"flow", &"speed", &"rest",
+	&"save", &"cage", &"grow", &"grow_more", &"kin", &"unbound", &"dead_wood", &"tend", &"chain", &"flyer", &"sell",
+	&"damp", &"drowsy", &"spored", &"marked", &"static", &"held", &"omen", &"dreamlight", &"nurture", &"let_pass"]
+const KEPT: Array[StringName] = [&"start", &"again", &"leaf", &"boss", &"after_boss", &"boss_toll", &"rule_breaker"]
 
 var failures := 0
 
@@ -21,22 +23,18 @@ func _check(ok: bool, what: String) -> void:
 func _initialize() -> void:
 	_run.call_deferred()
 
+# Every line shown or waiting.
 func _fired(whispers: Node) -> Array:
-	var ids: Array = []
-	for id in whispers._seen:
-		ids.append(StringName(id))
+	var ids: Array = whispers.shown.duplicate()
 	for id in whispers._queue:
 		if not ids.has(id):
 			ids.append(id)
 	return ids
 
-func _free_cell(map: Node, from_x: int) -> Vector2:
-	for y in range(2, 16):
-		for x in range(from_x, 21):
-			var cell := Vector2(x, y)
-			if map.is_buildable(cell) and not map.get_path_if_blocked(cell).is_empty():
-				return cell
-	return Vector2(-1, -1)
+# Ends whatever shows or waits, so the next line can be seen on its own.
+func _clear(whispers: Node) -> void:
+	whispers._queue.clear()
+	whispers._finish()
 
 func _run() -> void:
 	HeartwoodMemory.file_path = "user://test_whispers_%d.json" % OS.get_process_id()
@@ -49,16 +47,19 @@ func _run() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var run_state: RunState = main.get_node("%RunState")
 	var spawner = main.get_node("%EnemyContainer")
-	var family = main.get_node("%FamilyPickScreen")
-	var map: Node = main.get_node("%MapGenerator")
-	var placer: TowerPlacer = main.get_node("%TowerPlacer")
-	var seller: TowerSeller = main.get_node("%TowerSeller")
-	_check(whispers.enabled, "a fresh profile has hints on")
-	_check(_fired(whispers).has(&"start") and _fired(whispers).has(&"plant"), "run start: start, plant")
+	_check(_fired(whispers).has(&"start"), "run start: the story's first line")
+	var texts: Array = whispers.TEXT.keys()
+	_check(KEPT.all(func(id: StringName) -> bool: return texts.has(id)) and texts.size() == KEPT.size(),
+		"only the story beats and the warning have a line (%s)" % [texts])
+	for id in REMOVED:
+		whispers.whisper(id)
+	_check(REMOVED.all(func(id: StringName) -> bool: return not _fired(whispers).has(id)), "the teaching whispers are gone: asking for one does nothing")
+	# Hints off switches Lessons, not these lines.
+	whispers.set_enabled(false)
+	_check(whispers.enabled and whispers.is_processing(), "the Hints setting doesn't switch the Heartwood's story lines and warnings")
 
-	# Readable, in the Heartwood's place (user: "go back to how it was before, but more readable, and lasting a bit longer
-	# no matter the speed"): the italic whisper at 26 px with a dark outline and shadow over a faint feathered mist (no
-	# box), top centre; on screen in real time; hover / tap holds, a second tap dismisses; one at a time.
+	# Readable, in the Heartwood's place: the italic whisper at 26 px with a dark outline and shadow over a faint
+	# feathered mist (no box), top centre; on screen in real time; hover / tap holds, a second tap dismisses.
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS  # A real 1280×720 layout (as test_ui)
 	root.content_scale_size = UiStyle.LAYOUT_MIN
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
@@ -75,173 +76,132 @@ func _run() -> void:
 		"26 px whisper italic, outlined, over a faint feathered mist (no box)")
 	var hint_rect: Rect2 = whispers.get_global_rect()
 	_check(hint_rect.position.y < 300.0 and absf(hint_rect.get_center().x - 640.0) < 2.0, "top centre, as before (%s)" % hint_rect)
-	# Never across the Coming strip or the banner (user screenshot): it sits under whichever reaches lowest.
-	var covered := false
-	for node in main.get_node("HUD").get_children():
-		if node is Control and node.visible and node != whispers and (node is ComingStrip or node.name == "DriftBanner"):
-			if Rect2(node.get_global_rect().position, Vector2(node.get_global_rect().size.x, whispers._lowest(node) - node.get_global_rect().position.y)).intersects(hint_rect):
-				covered = true
-	_check(not covered, "the hint sits under the Coming strip and the banner, never across them")
 	_check(is_equal_approx(whispers.show_time("Short."), 7.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 10.0),
 		"on screen 7 s at least, 3 s + 0.07 s a character for long lines")
-	# Real time: at 3× speed a 7 s hint is still up after 4 real seconds (12 game seconds).
-	for id in whispers._queue:  # (Queued ones did fire: kept for the audit below)
-		if not whispers._seen.has(String(id)):
-			whispers._seen.append(String(id))
-	whispers._queue.clear()
-	whispers._seen.erase("speed")
+	# Real time: at 3× speed a 7 s line is still up after 4 real seconds (12 game seconds).
+	var dossier: BossDossier = main.get_node("HUD/BossDossier")
+	var dossier_processing := dossier.is_processing()
+	dossier.set_process(false)  # Its startup auto-open is a rest screen: lines wait behind those
+	dossier.visible = false
+	_clear(whispers)
 	Engine.time_scale = 3.0
-	whispers.whisper(&"speed")
+	whispers.whisper(&"boss")
 	for frame in 60 * 4:
 		await process_frame
-	_check(whispers.modulate.a > 0.9, "3× speed doesn't shorten it (still showing after 4 real seconds)")
+	_check(whispers.modulate.a > 0.9 and whispers.shown.has(&"boss"), "3× speed doesn't shorten it (still showing after 4 real seconds)")
 	Engine.time_scale = 1.0
-	var showing := String(whispers._queue[0]) if not whispers._queue.is_empty() else ""
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	whispers.term = ""
 	whispers._gui_input(click)
-	_check(whispers.held, "a tap holds the hint")
+	_check(whispers.held, "a tap holds the line")
 	whispers._gui_input(click)
-	_check(not whispers.held and (whispers._queue.is_empty() or String(whispers._queue[0]) != showing),
-		"a second tap dismisses it, and the next queued one follows (one at a time)")
-	# Behind a choice screen (user screenshot: a hint across the family cards): it waits, then shows once it closes.
-	for id in whispers._queue:
-		if not whispers._seen.has(String(id)):
-			whispers._seen.append(String(id))
-	whispers._queue.clear()
-	whispers._finish()
-	whispers._seen.erase("flow")
-	var dossier: BossDossier = main.get_node("HUD/BossDossier")
-	# Isolate the artificial family-choice toggle from the startup boss dossier's pending auto-open.
-	var dossier_processing := dossier.is_processing()
-	dossier.set_process(false)
-	var choice_director: DriftDirector = main.get_node("%DriftDirector")
-	choice_director.awaiting_family_pick = true
-	whispers.whisper(&"flow")
-	for frame in 3:
-		await process_frame
-	_check(not whispers._seen.has("flow") and whispers.modulate.a < 0.1, "a hint waits while a choice screen is open")
-	choice_director.awaiting_family_pick = false
-	for frame in 3:
-		await process_frame
-	_check(whispers._seen.has("flow") and whispers.visible, "…and shows once it closes")
-	dossier.set_process(dossier_processing)
+	_check(not whispers.held and whispers._queue.is_empty(), "a second tap dismisses it")
 
-	# Drifts 1–6 for real (leaves can't fall: the block ends when the field is clear).
-	run_state.invulnerable = true
-	run_state.dew = 500
-	placer.select_tower(load("res://resource/tower/sprout.tres"))
-	placer._try_build(_free_cell(map, 8))
-	placer.set_build_mode(false)
-	director.set_auto_drift(true)
-	Engine.time_scale = 8.0
-	director.start_next_drift()
-	var rested := [false]  # (A lambda captures a local by value: an array carries the change out)
-	var walls_checked := [false]
-	director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _p: bool) -> void: rested[0] = true, CONNECT_ONE_SHOT)
-	for frame in 60 * 400:
-		if director.awaiting_family_pick and not family.offer.is_empty():
-			if not walls_checked[0]:
-				walls_checked[0] = true
-				_check(not _fired(whispers).has(&"walls"), "\"Wardens are walls\" waits while the first pick is open")
-			family.choose(family.offer[0])
-			director.start_next_drift()  # After the pick the run waits for Start (test_run)
-		if rested[0]:
-			break
-		await process_frame
-	_check(rested[0], "the first block reaches its rest (drift %d)" % director.drifts_started)
-	await process_frame
-	var fired := _fired(whispers)
-	for id in [&"walls", &"flow", &"speed", &"rest", &"save"]:
-		_check(fired.has(id), "drifts 1–5 fire \"%s\"" % id)
-	var dreams: DreamState = main.get_node("%DreamState")
-	for frame in 30:  # The rest's Dream offer (built deferred) holds Start, as in play: let it pass
-		if dreams.is_offering() or dreams.has_pending_offer():
-			dreams.skip()
-		if director.pending_choice() == &"":
-			break
-		await process_frame
-	director.start_next_drift()
-	for frame in 60:
-		await process_frame
-	_check(director.drifts_started >= 6, "drift 6 starts (%d)" % director.drifts_started)
-	Engine.time_scale = 1.0
-
-	# The rest, fired as the game fires them. Each status on its own nightmare (together they'd set off Reactions).
-	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
-	var enemy: Node2D = null
-	for status in EnemyStatuses.ALL:
-		enemy = spawner.spawn_enemy(shade, 1.0, {}, false)
-		await process_frame
-		enemy.apply_status(status, 1, 5.0, 1.0, 5)
-		for frame in 2:  # Hints poll the field for statuses
-			await process_frame
-	enemy.unkillable = false
-	enemy.dispel()  # The first dispel
+	# Behind a choice screen: a line waits, then shows once it closes.
+	_clear(whispers)
+	director.awaiting_family_pick = true
+	whispers.whisper(&"after_boss")
 	for frame in 3:
 		await process_frame
+	_check(not whispers.shown.has(&"after_boss") and whispers.modulate.a < 0.1, "a line waits while a choice screen is open")
+	director.awaiting_family_pick = false
+	for frame in 3:
+		await process_frame
+	_check(whispers.shown.has(&"after_boss") and whispers.visible, "…and shows once it closes")
+
+	# A line already on screen when the first family pick opens (user 2026-10-13: "still see whispers when clicking first
+	# family"): hidden at once, nothing new shown while the pick is open, back once it closes. The same under a Lesson card.
+	_clear(whispers)
+	whispers._run_seen.erase(&"boss")
+	whispers.whisper(&"boss")
+	for frame in 3:
+		await process_frame
+	_check(whispers.shown.has(&"boss") and whispers.visible and whispers._showing == &"boss", "a story line is on screen")
+	var shown_before: int = whispers.shown.size()
+	director.awaiting_family_pick = true
+	whispers.whisper(&"rule_breaker")
+	for frame in 3:
+		await process_frame
+	_check(not whispers.visible and whispers.shown.size() == shown_before, "the family pick opens: the line is hidden, and no other is shown behind it")
+	director.awaiting_family_pick = false
+	for frame in 3:
+		await process_frame
+	_check(whispers.visible, "…and it comes back once the pick closes")
+	var lesson_card := main.get_node("HUD/LessonCard") as Control
+	lesson_card.visible = true
+	for frame in 3:
+		await process_frame
+	_check(not whispers.visible, "a Lesson card up: the line is hidden under it too")
+	lesson_card.visible = false
+	for frame in 3:
+		await process_frame
+	_check(whispers.visible, "…and back when the card closes")
+	_check(not whispers.TEXT.values().any(func(line: String) -> bool: return line.contains("old friend") or line.contains("the long way")),
+		"the old first-pick lines are gone")
+	# Story beats, once a run each. The first leaf lost:
+	_clear(whispers)
 	run_state.invulnerable = false
 	run_state.lose_leaves(1)
-	var crow: EnemyData = load("res://resource/enemy/crow.tres")
-	var flyer: Node2D = spawner.spawn_enemy(crow, 1.0, {}, false)
-	await process_frame
-	spawner.enemy_reached_goal.emit(flyer)
-	spawner.nightmare_unbound.emit(flyer)
-	var tracker := ReactionTracker.new()
-	main.add_child(tracker)
-	await process_frame
-	tracker.chain_reached.emit(3, Vector2.ZERO, [])
-	var built := seller.get_tower_at(_free_cell(map, 8))
-	for tower in main.get_node("%TowerContainer").get_children():
-		if tower is Tower:
-			seller.tower_sold.emit(tower, 0)
-			break
-	run_state.dew = 2000  # (Drifts 1–6 spent some: the two branches always get planted)
-	placer.select_tower(load("res://resource/tower/driftspore.tres"))
-	placer._try_build(_free_cell(map, 10))
-	placer.select_tower(load("res://resource/tower/bloomcap.tres"))
-	placer._try_build(_free_cell(map, 16))
-	placer.set_build_mode(false)
-	director.drifts_started = 20  # The rest before the boss block
-	director.rest_started.emit(4, false, 0, false)
+	_check(_fired(whispers).has(&"leaf"), "the first leaf lost in a run: the Heartwood says so")
+	_clear(whispers)
+	run_state.lose_leaves(1)
+	_check(not whispers._queue.has(&"leaf") and whispers.shown.count(&"leaf") == 1, "…once a run, not for every leaf")
+	# A boss dispelled (the family pick it brings) already showed above; a second one this run says nothing more.
 	director.family_pick_requested.emit(&"boss")
-	# The approved lines (2026-10-02): a rule-breaker warning (Phantoms come at drift 31), the first Omen offer, a boss at
-	# the Heartwood, the first rank (Dreamlight and Let it pass came with drifts 1–5 for real).
-	director.drifts_started = 30
-	director.resting = true
-	director.rest_started.emit(6, false, 0, false)
-	var no_omens: Array[OmenData] = []
-	main.get_node("%OmenDirector").offer_ready.emit(no_omens, 7)
+	_check(not whispers._queue.has(&"after_boss") and whispers.shown.count(&"after_boss") == 1, "a boss dispelled: once a run")
+	# A boss's toll at the Heartwood.
 	var stag: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"), 1.0, {}, false)
 	await process_frame
 	spawner.enemy_reached_goal.emit(stag)
-	for tower in main.get_node("%TowerContainer").get_children():
-		if tower is Tower:
-			tower.nurtured.emit(tower)
-			break
-	for frame in 3:
-		await process_frame
-	fired = _fired(whispers)
-	var missing: Array = []
-	for id in whispers.TEXT:
-		if not fired.has(id) and not ELSEWHERE.has(id) and id != &"again":
-			missing.append(id)
-	_check(missing.is_empty(), "every hint fires (never fired: %s)" % [missing])
+	_check(_fired(whispers).has(&"boss_toll"), "a boss reaching the Heartwood: its toll")
+	# A flyer reaching the goal teaches nothing here any more (the flyer Lesson does).
+	var flyer: Node2D = spawner.spawn_enemy(load("res://resource/enemy/crow.tres"), 1.0, {}, false)
+	await process_frame
+	spawner.enemy_reached_goal.emit(flyer)
+	_check(not _fired(whispers).has(&"flyer"), "a flyer's leak whispers nothing")
+
+	# The rule-breaker warning: every time one is coming, never "once per profile" (Phantoms come at drift 31).
+	_clear(whispers)
+	whispers.shown.clear()
+	director.drifts_started = 30
+	director.resting = true
+	if not RuleBreakers.coming(director).is_empty():
+		director.rest_started.emit(6, false, 0, false)
+		_check(_fired(whispers).has(&"rule_breaker"), "a rule-breaker block coming: the warning line")
+		_clear(whispers)
+		director.rest_started.emit(6, false, 0, false)
+		_check(whispers._queue.has(&"rule_breaker") or whispers.shown.count(&"rule_breaker") >= 2, "…again the next time: a warning, not a one-off hint")
+		_check(not whispers._seen.has("rule_breaker"), "the warning isn't written to the profile's once-only list")
+	else:
+		_check(false, "drift 31 brings a rule-breaker (the fixture this check needs)")
+	# The rest before a boss block.
+	_clear(whispers)
+	whispers._run_seen.erase(&"boss")
+	director.drifts_started = 20
+	director.rest_started.emit(4, false, 0, false)
+	_check(_fired(whispers).has(&"boss"), "the rest before a boss block: something old has found the dream")
+	# The blocked-placement refusal is a toast (its trigger needs a hovered cell: test_ui / play).
+	_check(whispers.REFUSAL.ends_with("A dream can bend, but never close.") and whispers.REFUSAL.begins_with("Leave nightmares a way") and main.get_node("%TowerPlacer").build_rejected.get_connections().any(
+		func(c: Dictionary) -> bool: return (c.callable as Callable).get_object() == whispers),
+		"the refusal line is wired to build_rejected, as a toast")
+	dossier.set_process(dossier_processing)
 	main.queue_free()
 	await process_frame
 
-	# "The Heartwood dreams again": the second run on a profile.
+	# "I'm dreaming again": the second run on a profile. An old profile's whispers_seen (with removed ids) loads as it is.
 	var memory := HeartwoodMemory.load_data()
 	memory.runs_played = 1
+	memory["whispers_seen"] = ["start", "plant", "walls", "damp"]
 	HeartwoodMemory.save_data(memory)
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
 	await process_frame
-	_check(_fired(main.get_node("%Whispers")).has(&"again"), "a second run: \"The Heartwood dreams again.\"")
-	print("  covered elsewhere: %s" % [ELSEWHERE.keys()])
+	var second = main.get_node("%Whispers")
+	_check(_fired(second).has(&"again") and not _fired(second).has(&"start"), "a second run: \"I'm dreaming again.\", and the first line stays once per profile")
+	_check(second._seen.has("plant") and second._seen.has("damp"), "an old profile's seen list is kept as it is")
 	main.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))

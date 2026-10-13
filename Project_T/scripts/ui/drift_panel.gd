@@ -197,7 +197,7 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
 		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
-		_status_label.text = "Resting, %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		_status_label.text = "Resting: selling refunds %d%%" % roundi(tower_seller.build_phase_refund * 100)
 		_status_label.tooltip_text = "Drift %d pays %s, shared among its nightmares." % [next, UiStyle.dew_amount(roundi(drift_director.get_effective_pot(next)))]
 		_start_button.text = ("Start boss drift %d" if drift_director.is_boss_drift(next) else "Start drift %d") % next + UiStyle.key_suffix("Enter")
 	elif drift_director.can_start_next_drift():
@@ -206,10 +206,10 @@ func _process(_delta: float) -> void:
 			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
 		_start_button.text = "Call drift %d early, %s" % [next, UiStyle.dew_amount(bonus, true)] if bonus > 0 \
-			else "Start drift %d now" % next
+			else "Start drift %d" % next
 	elif drift_director.is_mist_full() and drift_director.get_block(next) == drift_director.get_block(latest):
-		_status_label.text = "The mist is full"  # Calling early waits until the queue is out
-		_start_button.text = "Start drift %d now" % next
+		_status_label.text = "Nightmares still arriving"  # Calling early waits until the queue is out
+		_start_button.text = "Start drift %d" % next
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
@@ -227,11 +227,11 @@ func _process(_delta: float) -> void:
 		_start_button.disabled = false
 
 	if not run_state.is_over:
-		_status_label.text += "\nMaze: %s next rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
-		_status_label.tooltip_text += "\nMaze bonus: %s at each rest for every %d cells your route is longer than the forest's path, up to %d a block. Counted while nightmares walk." % [
-			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP]
+		_status_label.text += "\nMaze bonus: %s at rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
+		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
+			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 
-const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
+const MIST_FULL := "Nightmares still arriving: the mist holds them back until there is room on the path. You can call the next drift early once they are out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
 const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",

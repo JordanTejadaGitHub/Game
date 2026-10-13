@@ -15,6 +15,7 @@
 script = ExtResource("1_tdata")
 display_name = "Pebbling"
 role_line = "Area damage, high damage, slow attacks"
+heavy = true
 cost = 30
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -32,7 +33,7 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
 attack_origin = Vector2(14, -18)
-description = "A heavy pebble: 40% splashes onto nightmares right beside its target, then it skips on to one within 1 cell for three-quarters damage."
+description = "A slow, heavy pebble: 40% of the hit splashes onto nightmares right beside its target, then it skips on to one within 1 cell for three-quarters damage."
 line = "stone"
 tier = 1
 evolve_cost = 20

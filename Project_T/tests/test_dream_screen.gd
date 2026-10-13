@@ -219,9 +219,35 @@ func _run() -> void:
 		await process_frame
 		for card in dreams.pool.filter(func(c: UpgradeData) -> bool: return CardDiagram.has_diagram(c)):
 			tester.show_card(card)
+			if tester._in_scene and not tester._showing_after:
+				tester._swap()  # A before → after scene (Narrow Way): its After half shows the favoured Wardens
 			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
 			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
 				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		# Narrow Way (user 2026-10-12: "narrow way should also have a video"): before, a full lane and a plain Warden;
+		# after, a wall narrows a stretch to half a cell, the Wardens beside it show the card's bonus (its number from
+		# HelperCommons.NARROW_WAY) and the one beside the wide part doesn't; nightmares squeeze through.
+		var narrow_card: UpgradeData = load("res://resource/dream/narrow_way.tres")
+		var narrow_pct := roundi(HelperCommons.NARROW_WAY * 100.0)
+		tester.show_card(narrow_card)
+		_check(CardScene.can_show(narrow_card) and tester._in_scene and not tester._showing_after and tester.card == narrow_card
+			and not tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) and tester._wardens.size() == 1,
+			"Narrow Way: the Before half is a full lane with one plain Warden (%d Wardens)" % tester._wardens.size())
+		_check(tester._caption.text.contains("%d%% more damage" % narrow_pct) and tester._caption.text.contains("half a cell wide"),
+			"Narrow Way: the caption is the card's words with its number (%s)" % tester._caption.text)
+		tester._swap()
+		var narrow_boosted: Array = tester._wardens.filter(func(w: Dictionary) -> bool: return w.boosted)
+		_check(tester._showing_after and narrow_boosted.size() == 2 and tester._wardens.size() == 3 and tester._rows[2].contains("nn")
+			and tester.hit_text(true) == "+%d%% · %d" % [narrow_pct, roundi(CardScene.BASE_HIT * (1.0 + HelperCommons.NARROW_WAY))]
+			and tester.hit_text(false) == str(CardScene.BASE_HIT),
+			"Narrow Way: after, the two Wardens beside the narrow stretch show the bonus, the one by the wide path doesn't (%s)" % tester.hit_text(true))
+		tester._spawn_walker(0.0)
+		var squeezed: Dictionary = tester._walkers[-1]
+		squeezed.distance = CardScene.CELL * 2.0  # Inside the narrowed cells (and still there half a second on)
+		for f in 30:
+			tester._move_walkers(1.0 / 60.0)
+		_check(float(squeezed.get("squeeze", 0.0)) > 0.9 and squeezed.sprite.scale.x < 0.9 * CardScene.NIGHTMARE.sprite_scale,
+			"Narrow Way: a nightmare in the half-cell gap is drawn squeezed (%.2f)" % float(squeezed.get("squeeze", 0.0)))
 		# Role cards omit puppet previews until their actual mechanics can be represented.
 		for role_id in ["drumbeat", "old_growth", "canopy", "grand_tour", "blessing_pebbling", "blessing_dewdrop", "blessing_sporeling"]:
 			var role: UpgradeData = dreams._card_by_id(role_id)

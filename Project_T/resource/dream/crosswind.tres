@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crosswind"
 display_name = "Crosswind"
-description = "The Samara line deals 25% more direct damage to a nightmare hit by a different Warden in the last 1 s. Once per nightmare each throw."
+description = "The {warden:samara} line deals 25% more direct damage to a nightmare hit by a different Warden in the last 1 s. Once per nightmare each throw."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])

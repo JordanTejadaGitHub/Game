@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_jarlink"
 display_name = "Jarlink"
-description = "Firefly Jars can now grow into Jarlinks ({dew:{grow_cost:jarlink}}): two within {field:jarlink.special_params.link_range:cells} join with an {arc}, a lightning wall for the nightmares touching it."
+description = "{warden:firefly_jar}s can now {grow} into {warden:jarlink}s ({dew:{grow_cost:jarlink}}): two within {field:jarlink.special_params.link_range:cells} join with an {arc}, a lightning wall for the nightmares touching it."
 rarity = 1
 kind = 1
 tags = Array[String](["light"])

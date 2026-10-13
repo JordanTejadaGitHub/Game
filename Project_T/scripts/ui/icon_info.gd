@@ -10,17 +10,20 @@ class_name IconInfo
 # Display names (story.md "Status display names", screens_ui.md): the code ids never change, only
 # these names. Text anywhere can say {damp} / {static} …; format() puts in the current names, and
 # StatusLinks turns them into links.
+# The six buildup statuses name {reactions} (a glossary link, user 2026-10-12: "the wet tutorial card should have the
+# underline explaining reactions") and read their stack numbers live ({stacks:need_damp} …: stack_number, below), so
+# Brimming's doubling shows.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more immediately. Build 8 stacks to unlock reactions."],
-	&"drowsy": ["Drowsy", "2% slower per stack. Full buildup (20 stacks, 12 on bosses) enables sleep and Catch effects."],
-	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack. Each application wears off separately."],
-	&"marked": ["Exposed", "At 10 stacks, takes 25% more from every Warden. Brimming requires 20 stacks. Partial stacks give no damage bonus."],
-	&"static": ["Charged", "At 20 stacks (30 on bosses) it releases a bolt: 16× its charge as damage. Early releases scale with stored buildup."],
-	&"held": ["Rooted", "Can't move for a moment, starting immediately. Build 4 stacks for reactions."],
+	&"damp": ["Soaked", "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}."],
+	&"drowsy": ["Drowsy", "Walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}."],
+	&"spored": ["Poisoned", "Takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}."],
+	&"marked": ["Exposed", "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}."],
+	&"static": ["Charged", "Lightning builds up on it. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored charge). At {stacks:need_static} stacks it can set off {reactions}."],
+	&"held": ["Rooted", "Cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
-	&"elite": ["Deeply Blighted", "An elite: 3× health, a triple share of the Dew, and it takes 2 leaves."],
+	&"elite": ["Deeply Blighted", "A stronger nightmare: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
@@ -30,23 +33,23 @@ const STATUSES := {
 const STATS := {
 	&"damage": ["Damage", "How much each hit deals."],
 	&"attack_speed": ["Attack speed", "Attacks per second."],
-	&"range": ["Range", "How far it reaches, in tiles."],
+	&"range": ["Range", "How far it attacks, in cells."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
-	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest): each rank adds damage, speed and range."],
-	&"focus": ["Focus", "Each rank you pick one: Power, Swift, Reach or Deep."],
-	&"focus_power": ["Power focus", "Deals 18% more damage."],
-	&"focus_swift": ["Swift focus", "Attacks 12% faster."],
-	&"focus_reach": ["Reach focus", "+0.3 range."],
-	&"focus_deep": ["Deep focus", "+25% Potency."],
+	&"potency": ["Potency", "How strong this Warden's statuses are. Higher Potency: harder {spored} and {static}, stronger slows, longer {held}. Raise it with the Deep choice."],
+	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest). Each rank adds damage and attack speed, and you choose one improvement."],
+	&"focus": ["Nurture choice", "Each rank you choose one improvement. Attacking Wardens: Power, Swift, Reach or Deep. Support Wardens have their own."],
+	&"focus_power": ["Power", "Hits harder: deals 18% more damage."],
+	&"focus_swift": ["Swift", "Attacks faster: +12%."],
+	&"focus_reach": ["Reach", "More range: +0.3 cells."],
+	&"focus_deep": ["Deep", "Stronger statuses: +25% Potency."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
 	&"dreamlight_cost": ["Dreamlight cost", "Dreamlight to unlock this form for the run."],
 }
 const RESOURCES := {
 	&"dew": ["Dew", "Spent on Wardens, growth, Nurture and clearing. Earned by dispelling nightmares and at rests."],
 	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (open it any time; a drift pauses)."],
-	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches it takes leaves. Lose them all and the dream goes dark."],
+	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches the Heartwood takes leaves. Lose them all and the run ends."],
 	&"seeds": ["Seeds", "Earned every run, win or lose; spent in the Memory Grove."],
 	&"path": ["Path length", "How many cells the nightmares walk. Longer is better."],
 }
@@ -167,7 +170,7 @@ const ROLE_TAG_WORDS := {&"control": "holds the line", &"setup": "sets up combos
 # (the first two counter tags), else its role tag's words, else "".
 static func role_text(form: TowerData) -> String:
 	if form != null and form.role_line != "":
-		return form.role_line
+		return ("Heavy, " if form.heavy else "") + form.role_line  # The Heavy tag (Firefly class prototype): bar, panel, grow list
 	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
 	if words.is_empty() and form != null:
 		var tag = form.get("role_tag")
@@ -238,6 +241,7 @@ const TERMS := {
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
+	&"reaction": ["Reaction", "Reactions", "Reaction"],  # {reaction} / {reactions}: always a capital, always a link (user 2026-10-12); also a plain word
 	# Branch effects of the 12 new branches (Tower Code's BranchKit; glossary "Branch effects"): {current}, {erosion}, …
 	&"current": ["Current", "Currents", "Current"],
 	&"erosion": ["Erosion", "Erosion", "Erosion"],
@@ -245,6 +249,68 @@ const TERMS := {
 	&"ink": ["ink", "ink", "Ink", "inks"],
 	&"spore_sprite": ["spore-sprite", "spore-sprites", "Spore-sprite"],
 	&"whole_tree": ["Whole Tree", "Whole Tree", "Whole Tree"],
+	# Keywords are always links (text_pass.md "Keywords are always links", user 2026-10-13): every word with a meaning
+	# special to this game has a token here and an entry in the Codex glossary (the third word is the entry's name).
+	# {id} / {plural} / {Id} as above. StatusLinks.AUTO_TERMS lists the ones also linked as plain words.
+	&"warden": ["Warden", "Wardens", "Warden"],
+	&"nightmare": ["nightmare", "nightmares", "Nightmare"],
+	&"heartwood": ["Heartwood", "Heartwood", "Heartwood"],
+	&"dispel": ["dispel", "dispels", "Dispel"],
+	&"sprout": ["Sprout", "Sprouts", "Sprout"],
+	&"family": ["family", "families", "Family", "families"],
+	&"grow": ["grow", "grows", "Grow"],
+	&"branch": ["branch", "branches", "Branch", "branches"],
+	&"final_form": ["final form", "final forms", "Final form"],
+	&"grove_branch": ["Grove branch", "Grove branches", "Grove branch", "grove_branches"],
+	&"ascended": ["Ascended", "Ascended", "Ascended", "ascendeds"],
+	&"nurture": ["Nurture", "Nurture", "Nurture"],
+	&"rank": ["rank", "ranks", "Rank"],
+	&"nurture_choice": ["Nurture choice", "Nurture choices", "Nurture choice"],
+	&"signature": ["signature", "signatures", "Signature"],
+	&"mastery": ["Mastery", "Mastery", "Mastery", "masteries"],
+	&"all_rounder": ["All-Rounder", "All-Rounder", "All-Rounder"],
+	&"wide": ["Wide", "Wide", "Wide, Strong, Attuned", "wides"],
+	&"strong": ["Strong", "Strong", "Wide, Strong, Attuned", "strongs"],
+	&"attuned": ["Attuned", "Attuned", "Wide, Strong, Attuned", "attuneds"],
+	&"eldest": ["Eldest", "Eldest", "Eldest", "eldests"],
+	&"thornwall": ["Thornwall", "Thornwalls", "Thornwall"],
+	&"stack": ["stack", "stacks", "Stack"],
+	&"full": ["full", "full", "Full"],
+	&"crowned_reaction": ["Crowned Reaction", "Crowned Reactions", "Crowned Reaction"],
+	&"chain": ["Chain", "Chains", "Chain"],
+	&"calling": ["Calling", "Callings", "Calling"],
+	&"dream": ["Dream", "Dreams", "Dream"],
+	&"rarity": ["rarity", "rarities", "Rarity", "rarities"],
+	&"legendary": ["Legendary", "Legendaries", "Legendary", "legendaries"],
+	&"bittersweet": ["Bittersweet", "Bittersweet", "Bittersweet"],
+	&"upgrade": ["Upgrade", "Upgrades", "Upgrade"],
+	&"woven": ["Woven", "Woven", "Woven"],
+	&"new_cards": ["New cards", "New cards", "New cards", "new_cardss"],
+	&"banish": ["Banish", "Banishes", "Banish", "banishes"],
+	&"omen": ["Omen", "Omens", "Omen"],
+	&"gift": ["gift", "gifts", "Gift"],
+	&"act": ["act", "acts", "Act"],
+	&"call_early": ["call early", "call early", "Call early", "call_earlys"],
+	&"maze_bonus": ["Maze bonus", "Maze bonus", "Maze bonus"],
+	&"catcher": ["catcher", "catchers", "Catcher"],
+	&"interest": ["interest", "interest", "Interest"],
+	&"aura": ["aura", "auras", "Aura"],
+	&"crit": ["crit", "crits", "Crit"],
+	&"critical_hit": ["critical hit", "critical hits", "Crit"],
+	&"flyer": ["flyer", "flyers", "Flying"],
+	&"resists": ["resists", "resists", "Resists and Weak to", "resistss"],
+	&"weak_to": ["weak to", "weak to", "Resists and Weak to"],
+	&"restless": ["restless", "restless", "Restless", "restlesss"],
+	&"remember": ["Remember", "Remember", "Remember screen"],
+	&"memory_grove": ["Memory Grove", "Memory Grove", "Memory Grove"],
+	&"node": ["node", "nodes", "Node"],
+	&"perk": ["perk", "perks", "Perks"],
+	&"blight_level": ["Blight Level", "Blight Levels", "Blight Levels"],
+	&"memory": ["Memory", "Memories", "Memories", "memories"],
+	&"dew": ["Dew", "Dew", "Dew", "dews"],
+	&"seeds": ["Seeds", "Seeds", "Seeds", "seedss"],
+	&"leaves": ["leaves", "leaves", "Leaves", "leavess"],
+	&"leaf": ["leaf", "leaves", "Leaves", "leafs"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -277,6 +343,22 @@ static func the_name(name: String, start := false) -> String:
 
 # Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
+# A status text's stack number, live (user 2026-10-12: never typed in): "need_<status>" = the stacks its Reactions
+# need (Reactions' thresholds: the lowest one for that status), "cap_<status>" = its full buildup, "bosscap_<status>"
+# = the same on a boss. All include Brimming's doubling (EnemyStatuses.cap_multiplier).
+static func stack_number(key: String) -> int:
+	var kind := key.get_slice("_", 0)
+	var status := StringName(key.substr(kind.length() + 1))
+	if kind == "need":
+		var needs := {&"damp": Reactions.SOAKED_NEEDED, &"held": Reactions.ROOTED_NEEDED, &"marked": Reactions.EXPOSED_NEEDED,
+			&"spored": Reactions.IGNITE_MIN_SPORES, &"static": Reactions.IGNITE_MIN_STATIC}
+		return Reactions.buildup_threshold(int(needs.get(status, 0)))
+	if kind == "cap" or kind == "bosscap":
+		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
+		probe.is_boss = kind == "bosscap"
+		return probe.get_max_stacks(status)
+	return 0
+
 static func format(text: String) -> String:
 	if not text.contains("{"):
 		return keep_units(text)
@@ -284,11 +366,17 @@ static func format(text: String) -> String:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
 	for token in term_tokens():
 		text = text.replace(token[0], token[2])
+	while text.contains("{stacks:"):  # Live stack numbers: "{stacks:need_damp}" -> "8" (16 with Brimming)
+		var from := text.find("{stacks:")
+		var to := text.find("}", from)
+		if to < 0:
+			break
+		text = text.substr(0, from) + str(stack_number(text.substr(from + 8, to - from - 8))) + text.substr(to + 1)
 	if text.contains("{family:"):
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
-	if text.contains("{card:") or text.contains("{omen:"):  # A Dream card or Omen: its name, plain
+	if text.contains("{card:") or text.contains("{omen:") or text.contains("{warden:"):  # A Dream card, Omen or Warden: its name, plain
 		for found in card_pattern().search_all(text):
 			text = text.replace(found.get_string(), card_name(found.get_string(2), found.get_string(1)))
 	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
@@ -457,14 +545,14 @@ static var _card_pattern: RegEx = null
 static func card_pattern() -> RegEx:
 	if _card_pattern == null:
 		UiStyle.release_at_exit(func() -> void: _card_pattern = null)
-		_card_pattern = RegEx.create_from_string("\\{(card|omen):([a-z0-9_]+)\\}")  # 1: kind, 2: id
+		_card_pattern = RegEx.create_from_string("\\{(card|omen|warden):([a-z0-9_]+)\\}")  # 1: kind, 2: id ({warden:graftling}: the tower file's name; a plural is plain text after it)
 	return _card_pattern
 
 static func card_name(id: String, kind: String = "card") -> String:
-	var path := ("res://resource/omen/%s.tres" if kind == "omen" else "res://resource/dream/%s.tres") % id
+	var path := ("res://resource/omen/%s.tres" if kind == "omen" else ("res://resource/tower/%s.tres" if kind == "warden" else "res://resource/dream/%s.tres")) % id
 	if ResourceLoader.exists(path):
 		var card = load(path)
-		if card is UpgradeData or card is OmenData:
+		if card is UpgradeData or card is OmenData or card is TowerData:
 			return card.display_name
 	return id.capitalize()
 

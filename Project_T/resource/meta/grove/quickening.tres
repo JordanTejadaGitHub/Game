@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "quickening"
 display_name = "Quickening"
-description = "Hunt's Rush joins the pool."
+description = "Adds the {dream} card {card:quickening}: a Warden attacks faster for a while after a nightmare is dispelled in its range."
 root = 1
 costs = Array[int]([30])
 order = 1

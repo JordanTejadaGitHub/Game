@@ -38,12 +38,12 @@ func _run() -> void:
 	beetle.take_damage(10.0, "spore")
 	beetle.take_damage(10.0, "spore")
 	var words: Array = callouts._alive.filter(func(c: Array) -> bool: return c[3] == beetle)
-	_check(words.size() == 1 and words[0][1] == "Weak!", "weak hits pop one Weak! per nightmare, never stacked (%s)" % [words])
+	_check(words.size() == 1 and words[0][1] == "Weak", "weak hits pop one Weak per nightmare, never stacked (%s)" % [words])
 	words[0][0] = 0.5  # Partway through its life: the next hit pops it again
 	beetle.take_damage(10.0, "spore")
 	_check(words[0][0] == 0.0, "another weak hit re-pops the same Weak!")
 	hound.take_damage(10.0, "stone")
-	_check(callouts._alive.any(func(c: Array) -> bool: return c[3] == hound and c[1] == "Strong!"), "a resisted hit pops Strong!")
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[3] == hound and c[1] == "Resisted"), "a resisted hit pops Resisted")
 	var husk: EnemyData = load("res://resource/enemy/bark_beetle.tres")
 	_check(husk.resists.has("stone") and husk.weak_to.is_empty(), "the Husk (armoured) resists stone and has no weakness")
 

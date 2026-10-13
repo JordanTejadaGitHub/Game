@@ -19,6 +19,31 @@ func _run() -> void:
 	ResultsScreen.demo_override = 0
 	MetaRun.force_all_families = false
 
+	# A cold start (crash 2026-10-13: a Crowned Reaction's description named a combo with {combo:x}; formatting it
+	# while the lists were still being built started the build again: stack overflow). Every list, from empty caches,
+	# in every order, returns, and its texts are formatted; so does every Reaction's and Kinship's text on its own.
+	for first in [&"crowned", &"combos", &"kinships", &"get_any"]:
+		CodexData.clear_lists()
+		var built: Array = []
+		match first:
+			&"crowned": built = CodexData.crowned()
+			&"combos": built = CodexData.combos()
+			&"kinships": built = CodexData.kinships()
+			_: built = [CodexData.get_any(&"thunderclap")]
+		_check(not built.is_empty() and built.all(func(e: Dictionary) -> bool: return not e.is_empty() and not String(e.get("text", "")).contains("{")),
+			"cold start, %s first: the list builds and its texts are formatted (%d entries)" % [first, built.size()])
+	CodexData.clear_lists()
+	_check(IconInfo.format("{named_combo:thunderclap} and {named_combo:tempest}") == "Thunderclap and Tempest",
+		"a combo token formats from a cold start (%s)" % IconInfo.format("{named_combo:thunderclap} and {named_combo:tempest}"))
+	for data in Reactions.all() + Reactions.crowned():
+		CodexData.clear_lists()
+		_check(not IconInfo.format(data.description).contains("{"), "%s: its description formats from a cold start" % data.id)
+	for id in CodexData.KINSHIP_TEXT:
+		CodexData.clear_lists()
+		_check(not IconInfo.format(CodexData.KINSHIP_TEXT[id]).contains("{"), "Kinship %s: its text formats from a cold start" % id)
+	_check(CodexData.crowned().size() == CodexData.CROWNED.size() and CodexData.get_any(&"thunderclap").get("name", "") == "Thunderclap",
+		"the lists are whole after all that")
+
 	# No Pebbling in the Grove: its combos wait there.
 	var profile := HeartwoodMemory.load_data()
 	HeartwoodMemory.save_data(profile)
@@ -119,14 +144,14 @@ func _run() -> void:
 	var fresh := HeartwoodMemory.defaults()
 	HeartwoodMemory.save_data(fresh)
 	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Weak") and names.has("Strong") and not names.has("Critical") and not names.has("Thunderclap"),
+	_check(names.has("Weak") and names.has("Resisted") and not names.has("Critical hit") and not names.has("Thunderclap"),
 		"before seeing them: only Weak and Strong (%s)" % [names])
 	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
 	fresh["combos_seen"] = ["thunderclap"]
 	HeartwoodMemory.save_data(fresh)
 	names = CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Critical") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
-	_check(CodexData.definition("Critical").begins_with("A critical hit"), "Critical means a critical hit (the callout was Shattered!)")
+	_check(names.has("Critical hit") and names.has("Thunderclap"), "seen callouts join the glossary (%s)" % [names])
+	_check(CodexData.definition("Critical hit").begins_with("A critical hit"), "Critical means a critical hit (the callout was Shattered!)")
 
 	codex.queue_free()
 	ResultsScreen.demo_override = -1

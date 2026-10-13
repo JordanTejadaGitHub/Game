@@ -651,6 +651,14 @@ func _build(data: EnemyData, drift: int) -> void:
 	var rows := NightmareIcons.make_rows(data, 24.0, false, true)
 	if rows.get_child_count() > 0:
 		right.add_child(rows)
+	# The one line to remember, in bold above "What it does" (wording review 2026-10-13): the boss's first tip (Enemy
+	# Code 4162a071 wrote each boss's tips[0] as its headline, e.g. the Huntsman's "Dispel his hounds first…").
+	var tips = data.get("tips")
+	if tips is Array and not tips.is_empty() and String(tips[0]) != "":
+		var headline := StatusLinks.make_label(String(tips[0]), 16, UiStyle.INK)
+		headline.name = "Headline"
+		headline.add_theme_font_override("normal_font", UiStyle.body_medium_font())
+		right.add_child(headline)
 	if data.abilities.size() > 0:
 		right.add_child(_section("What it does"))
 		for i in data.abilities.size():

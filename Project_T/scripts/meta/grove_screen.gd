@@ -104,7 +104,7 @@ func _build_demo_done() -> void:
 	box.add_theme_constant_override("separation", 8)
 	demo_done.add_child(box)
 	var line := Label.new()
-	line.text = "Your tree keeps growing in the full game."
+	line.text = "Your Memory Grove keeps growing in the full game."
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.add_theme_font_size_override("font_size", 18)
 	line.add_theme_color_override("font_color", Palette.HEARTLIGHT)
@@ -208,7 +208,7 @@ func _build_card() -> void:
 	_card_levels.add_child(_card_level_text)
 	box.add_child(_card_levels)
 	var needs_title := Label.new()
-	needs_title.text = "needs"
+	needs_title.text = "Plant first"
 	UiStyle.caps(needs_title)
 	_card_needs.add_child(needs_title)
 	_card_chips.add_theme_constant_override("h_separation", 6)
@@ -409,14 +409,14 @@ func _update_card() -> void:
 	_plant.text = "Grow to level %d" % (level + 1) if level > 0 else "Plant"
 	match problem:
 		"Dreams being reworked":
-			_card_status.text = "This node’s Dreams are being reworked."
+			_card_status.text = "This node’s Dream cards are being reworked."
 		"Grown":
-			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
+			_card_status.text = "Grown" if not selected.start else "Grown from the start"
 		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
 			_card_status.text = "Grows by itself."
 		DemoGrove.ASLEEP:  # The demo Grove: the rest of the tree sleeps until the full game
-			_card_status.text = "Full game. Level %s grows there." % _roman(level + 1) if level > 0 \
-				else "Full game. It sleeps until then."
+			_card_status.text = "Not in the demo. Level %s grows in the full game." % _roman(level + 1) if level > 0 \
+				else "Not in the demo. This node grows in the full game."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
@@ -425,12 +425,12 @@ func _update_card() -> void:
 	_card_status.add_theme_color_override("font_color", Palette.SPRIG if problem == "Grown" else Palette.MIST)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
 	_carry.visible = selected.is_perk() and DemoGrove.level(_memory, selected) > 0
-	_carry.text = "Put back" if carried else "Carry into the dream"
+	_carry.text = "Put back" if carried else "Carry into the run"
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
-		_carry.text = "Loadout full"
-	if _carry.visible and not carried and _card_status.text in ["", "In bloom"]:  # Perks work only while carried
-		_card_status.text = "Carry it to use it."
+		_carry.text = "All slots full"
+	if _carry.visible and not carried and _card_status.text in ["", "Grown"]:  # Perks work only while carried
+		_card_status.text = "Perks only work while carried. Tap Carry into the run."
 		_card_status.visible = true
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
@@ -576,12 +576,12 @@ func _requirement_chips(unlock: UnlockData) -> Array:
 		var names: Array[String] = []
 		for id in unlock.requires_any:
 			names.append(_requirement_name(id))
-		var text := " or ".join(names) if unlock.requires_any_count <= 1 \
+		var text := ("One of: " + ", ".join(names) if names.size() > 1 else names[0]) if unlock.requires_any_count <= 1 \
 			else ("%d of %s" % [unlock.requires_any_count, ", ".join(names)] if names.size() <= 5
 				else "any %d other %s nodes" % [unlock.requires_any_count, SECTION_NAMES.get(unlock.get_section(), "").to_lower()])
 		chips.append([text, owned >= unlock.requires_any_count])
 	if unlock.crown:
-		chips.append(["every other node grown", HeartwoodMemory.tree_complete(_memory)])
+		chips.append(["Every other node Grown", HeartwoodMemory.tree_complete(_memory)])
 	return chips
 
 func _chip(text: String, met: bool) -> PanelContainer:
@@ -703,7 +703,7 @@ func _check_crown() -> void:
 		data.sixth_stone_risen = true
 		changed = true
 		tree_view.play_sixth_rise()
-		_message.text = "The Heartwood wears its crown. A sixth waystone rises from its roots."
+		_message.text = "The Heartwood wears its crown. You can carry a sixth perk."
 	if changed:
 		HeartwoodMemory.save_data(data)
 		_refresh()
@@ -871,9 +871,9 @@ func _show_leaf_dew() -> void:
 	var trade := MetaRun.leaf_dew_trade
 	var rate := MetaRun.LEAF_DEW_RATE
 	if trade > 0:
-		_leaf_dew_label.text = "%d fewer leaves (max too)\n+%d Dew" % [trade, trade * rate]
+		_leaf_dew_label.text = "%d fewer leaves and max leaves\n+%d Dew" % [trade, trade * rate]
 	elif trade < 0:
-		_leaf_dew_label.text = "%d more leaves (max too)\n−%d Dew" % [-trade, -trade * rate]
+		_leaf_dew_label.text = "%d more leaves and max leaves\n−%d Dew" % [-trade, -trade * rate]
 	else:
 		_leaf_dew_label.text = "No trade"
 
@@ -1052,5 +1052,5 @@ static func family_branches_text(unlock: UnlockData) -> String:
 				" → " + ", ".join(finals) if not finals.is_empty() else ""])
 	if lines.is_empty():
 		return ""
-	var dreams := "\nIn your dreams: %d a run." % DreamState.BRANCH_OFFER_SIZE if lines.size() > DreamState.BRANCH_OFFER_SIZE else ""
+	var dreams := "\nEach run offers %d of these, chosen at random." % DreamState.BRANCH_OFFER_SIZE if lines.size() > DreamState.BRANCH_OFFER_SIZE else ""
 	return "\n\nBranches:\n" + "\n".join(lines) + dreams

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "many_talents"
 display_name = "Many Talents"
-description = "A Warden deals 10% more damage for each different choice among its ranks (up to +40%)."
+description = "A Warden deals 10% more damage for each different choice among its {ranks} (up to +40%)."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall", "defining"])

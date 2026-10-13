@@ -383,6 +383,7 @@ func _refresh() -> void:
 			_add_button("Rank %s: only the Eldest grows further" % Tower.rank_name(_tower.rank)).disabled = true
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
+	_add_glow_button()  # Fireflies in the Grass (Firefly class prototype): a Sprout the player chooses to glow
 	var refund := tower_seller.get_refund(_tower)
 	# Buttons show the action and its price (screens_ui.md "Less hand-holding"); the refund rule is the tooltip.
 	var note := "Half the Dew back while nightmares walk." if not drift_director.is_build_phase() else ""
@@ -962,7 +963,7 @@ func _not_in_dream_button(data: TowerData) -> void:
 		return
 	var button := Button.new()
 	button.name = "NotInDream"
-	button.text = "%d more not in this dream: Remember" % hidden.size()
+	button.text = "%d more not in this run: Remember" % hidden.size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_content.add_child(button)
@@ -971,7 +972,7 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.add_theme_font_override("font", UiStyle.body_font())
 	button.add_theme_font_size_override("font_size", ROW_NOTE_SIZE)
 	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
+	button.tooltip_text = "%s: not in this run. Add one on the Remember screen." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
 
@@ -1078,6 +1079,30 @@ func _clear_not_in_dream() -> void:
 	if old != null:
 		_content.remove_child(old)
 		old.queue_free()
+
+# Fireflies in the Grass (dream_council_review.md 20): one Sprout per Firefly Warden can be made a small light of its
+# own. A button, so it works on touch. The rules (count, not inside a glow) are FireflyLights.lit_sprout_blocker.
+func _add_glow_button() -> void:
+	var lights = dream_state.get("firefly_lights")
+	if lights == null or _tower == null or _tower.tower_data.get_id() != "sprout" or dream_state.calling != "firefly_jar":
+		return
+	if not dream_state.has_rule(&"lit_sprouts"):
+		return
+	var lit: bool = _tower.get_meta(&"lit_sprout", false)
+	var why: String = lights.lit_sprout_blocker(_tower)
+	var button := _add_button("Stop glowing" if lit else "Glow: a small light")
+	button.disabled = not lit and why != ""
+	if lit:
+		button.tooltip_text = "Fireflies in the Grass: this Sprout is a light of its own."
+	else:
+		button.tooltip_text = "Fireflies in the Grass: " + (why if why != "" else "make this Sprout a small light of its own.")
+	button.pressed.connect(_toggle_glow.bind(not lit))
+
+func _toggle_glow(on: bool) -> void:
+	var lights = dream_state.get("firefly_lights")
+	if lights != null and is_instance_valid(_tower):
+		lights.set_lit_sprout(_tower, on)
+	_refresh()
 
 func _add_button(text: String) -> Button:
 	var button := Button.new()

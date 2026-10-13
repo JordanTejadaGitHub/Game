@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bright_marks"
 display_name = "Bright Marks"
-description = "Adds 30 percentage points to damage taken at full {marked} stacks (normally 25% to 55%)."
+description = "Adds 30 percentage points to damage taken at {full} {marked} {stacks} (normally 25% to 55%)."
 rarity = 0
 kind = 3
 tags = Array[String](["light", "mark"])

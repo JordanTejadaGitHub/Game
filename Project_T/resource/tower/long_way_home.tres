@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Long Way Home"
 role_line = "Area damage, pulls back"
-description = "Every 5 s, drags the nightmare furthest along back 4 cells (each nightmare only once; bosses 1 cell)."
+description = "Its roots damage every nightmare in range. Every {field:long_way_home.ability_every:seconds} it drags the nightmare furthest along the path back {field:long_way_home.pull_tiles:count} cells (each nightmare only once; bosses 1 cell)."
 cost = 0
 role_tag = &"control"
 line = "root"

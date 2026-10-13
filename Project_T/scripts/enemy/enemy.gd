@@ -1059,7 +1059,11 @@ func _build_hud_icons(item: RID) -> void:
 		if _hud_pops.has(_hud_ids[i]):
 			var t: float = 1.0 - _hud_pops[_hud_ids[i]] / STACK_POP_TIME  # 0 -> 1
 			s *= 1.0 + STACK_POP_SCALE * sin(PI * t)
-		icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+		# Exposed does nothing until it is full: its badge is dim while partial, bright once it completes
+		# (screens_ui.md "Exposed at full stacks is visible"; Tower Code).
+		var dim: bool = _hud_ids[i] == EnemyStatuses.MARKED and not statuses.is_exposed()
+		icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false,
+			Color(1, 1, 1, 0.5) if dim else Color.WHITE)  # multiplier
 
 # The dark pill behind each stack count (lower right of the icon, from 2 stacks).
 func _build_hud_pills(item: RID, overlay: NightmareOverlay) -> void:

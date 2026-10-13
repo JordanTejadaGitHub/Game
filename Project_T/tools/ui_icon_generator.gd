@@ -676,10 +676,13 @@ func _ic_dew_cost() -> void:
 	_dt(13, 3, Color.WHITE)
 
 func _ic_dreamlight_cost() -> void:
-	var k := _rp("#fff8e0", "#d8b8ff", "#8a60c8")
+	# THE Dreamlight icon (user 2026-10-13: "think I prefer the pink"; it replaces the purple gem of 681dab5e
+	# everywhere): a tall pink diamond in named Heartwood 32 colours, Blossom body, Heartlight on the left
+	# edge, Wraithlight on the lower right, the Glow dot. dreamlight_hud is the same diamond at 12 px.
+	var k := _rpn("heartlight", "blossom", "wraithlight")
 	_c_poly(PackedVector2Array([Vector2(8, 0.8), Vector2(13.2, 8), Vector2(8, 15.2), Vector2(2.8, 8)]), k)
-	_dt_line(Vector2i(6, 4), Vector2i(6, 8), Color("#fffbe8"))
-	_dt(8, 8, Color("#ffe890"))
+	_dt_line(Vector2i(6, 4), Vector2i(6, 8), Palette.color("heartlight"))
+	_dt(8, 8, Palette.color("glow"))
 
 # Nightmare traits and boss abilities -------------------------------------------------------------
 # Cold nightmare colours: violet, slate, bone, sickly teal, mire green; small pink-red eyes.
@@ -1416,7 +1419,7 @@ const HUD_INK := {
 	"o": "dread", "H": "heartlight", "G": "glow", "g": "gold",
 	"N": "newleaf", "S": "sprig", "L": "leaf", "b": "oak",
 	"D": "dewlight", "d": "dew", "P": "pool",
-	"W": "wraithlight", "U": "bruise",
+	"W": "wraithlight", "U": "bruise", "B": "blossom",
 	"m": "moonpath", "p": "path", "l": "loam",
 	"M": "mist", "s": "stone", "C": "moonlight", "Q": "moss", "q": "deepmoss",
 }
@@ -1450,16 +1453,16 @@ const HUD_COUNTERS := {
 		"...oooo....."],
 	"dreamlight_hud": [
 		".....oo.....",
-		"....oHWo....",
-		"...oHWWUo...",
-		"..oHWWWWUo..",
-		".oHWWWWWWUo.",
-		"oHHWWGWWWWUo",
-		"oHWWWWWWWUUo",
-		".oWWWWWWUUo.",
-		"..oWWWWUUo..",
-		"...oWWUUo...",
-		"....oUUo....",
+		"....oHBo....",
+		"....oHBo....",
+		"...oHBBWo...",
+		"...oHBBWo...",
+		"..oHHBGBWo..",
+		"..oHBBBBWo..",
+		"...oBBBWo...",
+		"...oBBBWo...",
+		"....oBWo....",
+		"....oWWo....",
 		".....oo....."],
 	# The pale path winding across a round patch of moss to the Heartwood's warm glow, a wisp of cold route mist over it.
 	"path_hud": [

@@ -39,8 +39,11 @@ func _init() -> void:
 	for group in CodexData.glossary():
 		for entry in group[1]:
 			_lint("Main", "glossary %s" % entry[0], entry[1])
+			_one_name("Main", "glossary %s" % entry[0], entry[1])
+	_keywords()
 	for id in IconInfo.STATUSES:
 		_lint("Main", "status %s" % id, IconInfo.STATUSES[id][1])
+		_one_name("Main", "status %s" % id, IconInfo.STATUSES[id][1])
 	var whispers: Dictionary = (load("res://scripts/ui/whispers.gd") as Script).get_script_constant_map().get("TEXT", {})
 	for id in whispers:
 		_lint("Main", "whisper %s" % id, whispers[id], false, false, true)  # Shown through UiStyle.whisper(): flavour
@@ -163,6 +166,56 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true, flavour)
 	_caps_off = false
 
+# Keywords are always links (text_pass.md "Keywords are always links", user 2026-10-13): every keyword has a token and a
+# glossary entry of at most 30 words, and the ones linked as plain words (StatusLinks.PLAIN_TERMS) really are: a link
+# the first time in a block, plain after that, plain inside their own entry, never inside a longer keyword. A keyword
+# that is also an ordinary word (full, grow, act, stack…) links through its token only, so a plain-word check on
+# those would flag ordinary English: there is none.
+const ENTRY_WORDS := 30
+func _keywords() -> void:
+	var problems: Array[String] = []
+	for id in IconInfo.TERMS:
+		var entry_name: String = IconInfo.TERMS[id][2]
+		var entry := CodexData.definition(entry_name)
+		if entry == "":
+			problems.append("keyword %s: no glossary entry \"%s\"" % [id, entry_name])
+		if StatusLinks.bbcode("a {%s} b" % id).count("[url=term:%s]" % id) != 1:
+			problems.append("keyword %s: its token is not a link" % id)
+	for id in StatusLinks.PLAIN_TERMS:
+		var word: String = IconInfo.TERMS[id][0]
+		var entry_name: String = IconInfo.TERMS[id][2]
+		var entry := IconInfo.format(CodexData.definition(entry_name))
+		if entry.split(" ", false).size() > ENTRY_WORDS and not [&"potency", &"reaction", &"dread_shell", &"thornwall", &"eldest", &"legendary"].has(id):
+			problems.append("keyword %s: its entry is over %d words" % [id, ENTRY_WORDS])
+		var twice := StatusLinks.bbcode("The %s here, the %s there." % [word, word])
+		if twice.count("[url=term:%s]" % id) != 1:
+			problems.append("keyword %s: the plain word links %d times in a block (once)" % [id, twice.count("[url=term:%s]" % id)])
+		StatusLinks.own_term = entry_name
+		if StatusLinks.bbcode("The %s here." % word).contains("[url=term:%s]" % id):
+			problems.append("keyword %s: linked inside its own entry" % id)
+		StatusLinks.own_term = ""
+	if StatusLinks.bbcode("A Crowned Reaction and a Reaction.").count("[url=term:reaction]") != 1:
+		problems.append("Reaction links inside Crowned Reaction")
+	if StatusLinks.bbcode("Calling early pays Dew.").contains("term:calling") or StatusLinks.bbcode("Dream Oak grows.").contains("term:dream"):
+		problems.append("a keyword links inside a name or a verb (Calling early, Dream Oak)")
+	var named := StatusLinks.bbcode("Beside a {warden:sporeling}.")
+	if not named.contains("[url=warden:sporeling]") or StatusLinks.card_tip("warden:sporeling").get("text", "") == "":
+		problems.append("{warden:id} is not a name link with a tip (%s)" % named)
+	for problem in problems:
+		if not findings.has("Main"):
+			findings["Main"] = []
+		findings["Main"].append(problem)
+
+# One name per thing (wording_review_2026-10-13.md section 1): the reference texts (glossary, statuses) never use the
+# old names. Only those texts: card and Warden text have their own owners and reviews.
+const OLD_NAMES := "(?i)\\b(road|roads|route|routes|leak|leaks|leaked|loadout|buff|buffs|tower bar|maze dew)\\b"
+func _one_name(owner: String, source: String, text: String) -> void:
+	var found := RegEx.create_from_string(OLD_NAMES).search(RegEx.create_from_string("\\{[^}]*\\}").sub(text, "", true))
+	if found != null:
+		if not findings.has(owner):
+			findings[owner] = []
+		findings[owner].append("%s: old name \"%s\" (path, reaches the Heartwood, perk slot, boost, Warden bar, Maze bonus)  [%s]" % [source, found.get_string(), text.left(90).replace("\n", " / ")])
+
 func _lint(owner: String, source: String, text: String, is_title := false, is_code := false, is_flavour := false) -> void:
 	var problems: Array[String] = []
 	var lower := text.to_lower()
@@ -228,6 +281,7 @@ const CAPS_EXCEPTIONS := [
 	"caught seed", "when caught", "caught %d", "caught this run",  # caught as in catching, not the Caught status
 	"fall asleep", "falls asleep", "not charged", "rooted for good", "hidden one", "hidden branch",  # ordinary words
 	"sunlit rest", "watchful rest",  # Dream card names
+	"crowned reaction discovered",  # Small caps (lower-cased on purpose)
 ]
 # Code lines whose strings are lookup keys, not text.
 const CAPS_SKIP_LINES := ["const ROLE_TERMS", "\"reveals hidden\": &"]
@@ -245,8 +299,9 @@ func _caps(owner: String, source: String, text: String, is_flavour := false) -> 
 			if not word.contains(" "):  # Deeply Blighted is a name the main lint checks
 				statuses.append(word)
 		statuses.append_array(STATUS_VERBS)
+		statuses.append_array(["reactions", "reaction"])  # A Reaction is a name too (user 2026-10-12); flavour is exempt like the statuses
 		_caps_rules = [
-			[RegEx.create_from_string("(?<![A-Za-z_%{])(" + "|".join(statuses) + ")(?![A-Za-z_])"), "a status in lower case (statuses are names)"],
+			[RegEx.create_from_string("(?<![A-Za-z_%{])(" + "|".join(statuses) + ")(?![A-Za-z_])"), "a status or Reaction in lower case (they are names)"],
 			[RegEx.create_from_string("(?<![A-Za-z_%{])(dew|dreamlight|seeds)(?![A-Za-z_])"), "a currency in lower case (Dew, Dreamlight, Seeds)"],
 			[RegEx.create_from_string("(?<=[a-z0-9,;] )(?:Drifts?|Rests?)(?![A-Za-z])"), "\"Drift\" / \"Rest\" capitalised mid-sentence"],
 		]

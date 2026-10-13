@@ -149,12 +149,12 @@ static func support_text(near: Node, period: String) -> String:
 	var lines: Array[String] = []
 	var totals: Dictionary = support.get_totals(period)
 	if period == "block" and int(totals.get("dew_paid", 0)) > 0:
-		lines.append("Harvest %s" % UiStyle.dew_amount(int(totals.dew_paid), true))
+		lines.append("Catchers collected %s" % UiStyle.dew_amount(int(totals.dew_paid), true))
 	var top: Dictionary = support.get_top_support(period)
 	if not top.is_empty():
 		lines.append("%s: %s" % ["Top support" if period == "block" else "Best supporter", top.get("text", "")])
 	if period == "block" and int(totals.get("path_tiles", 0)) > 0:
-		lines.append("Your walls added %d path tiles" % int(totals.path_tiles))
+		lines.append("Your walls added %d cells of path" % int(totals.path_tiles))
 	var held := float(totals.get("held_seconds", 0.0))
 	var pulled := int(totals.get("tiles_pulled", 0))
 	if held >= 1.0 or pulled > 0:
@@ -343,18 +343,18 @@ static func meter_text(near: Node) -> String:
 	var s: Dictionary = meter.get_block_summary()
 	if float(s.get("maze_dps", 0.0)) <= 0.0:
 		return ""
-	var line := "Maze %s DPS" % DriftMeter.fmt(s.maze_dps)
+	var line := "Damage per second, whole maze: %s" % DriftMeter.fmt(s.maze_dps)
 	var change := DriftMeter.change_text(s.get("change"))
 	if change != "":
 		line += " · %s vs last block" % change
 	if DriftMeter.show_estimate() and float(s.get("needed_dps", 0.0)) > 0.0:  # Dev-only (playtest fixes 2026-09-30)
-		line += " · next drift needs ~%s" % DriftMeter.fmt(s.needed_dps)
+		line += " · next drift needs about %s" % DriftMeter.fmt(s.needed_dps)
 	var lines: Array[String] = [line]
 	var carrying: Array = s.get("carrying", [])
 	if not carrying.is_empty():
-		lines.append("Carrying: " + ", ".join(carrying.map(func(r: Dictionary) -> String: return r.name)))
+		lines.append("Did the most: " + ", ".join(carrying.map(func(r: Dictionary) -> String: return r.name)))
 	for r in s.get("underused", []):
-		lines.append("Underused: %s%s" % [r.name, " (%s)" % r.reason if String(r.get("reason", "")) != "" else ""])
+		lines.append("Did little: %s%s" % [r.name, " (%s)" % r.reason if String(r.get("reason", "")) != "" else ""])
 	var improved: Dictionary = s.get("most_improved", {})
 	if not improved.is_empty():
 		lines.append("Most improved: %s %s" % [improved.name, DriftMeter.change_text(improved.get("change"))])

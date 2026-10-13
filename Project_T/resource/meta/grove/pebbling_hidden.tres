@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "pebbling_hidden"
-display_name = "Hidden branch: Cairn"
-description = "Pebblings can grow into Cairns, then Rockslides."
+display_name = "Grove branch: Cairn"
+description = "{warden:pebbling}s can grow into {warden:cairn}s, then {warden:rockslide}s: they throw stones over the maze onto the path. Also adds the {card:loose_stones} card."
 root = 0
 costs = Array[int]([50])
 order = 23

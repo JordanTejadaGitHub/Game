@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "warm_hearth"
 display_name = "Warm Hearth"
-description = "Aura bonuses are 50% stronger on Sprouts, and Acorns cost {dew:12}."
+description = "Aura bonuses are 50% stronger on Sprouts, and {warden:acorn}s cost {dew:12}."
 rarity = 1
 kind = 3
 tags = Array[String](["overgrowth", "sprout"])

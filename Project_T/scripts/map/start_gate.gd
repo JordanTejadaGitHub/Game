@@ -46,8 +46,7 @@ func set_start(cell: Vector2i) -> void:
 
 func _follow_route() -> void:
 	position = MAP_GRID.calculate_map_position(Vector2(start))
-	var route: PackedVector2Array = map.path_layer.current_path if map != null else PackedVector2Array()
-	var new_lane := lane_offset(start, route[0] if not route.is_empty() else Vector2(start))
+	var new_lane := lane_offset(start, _first_point())
 	if new_lane != lane:
 		lane = new_lane
 		queue_redraw()
@@ -105,9 +104,32 @@ static func draw_fog(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame: 
 # (pixels; a flyer's differs from the drawn route's); left out, the drawn route's first point.
 func walk_in(to := Vector2.INF) -> PackedVector2Array:
 	if to == Vector2.INF:
-		var route: PackedVector2Array = map.path_layer.current_path if map != null else PackedVector2Array()
-		to = MAP_GRID.calculate_map_position(route[0] if not route.is_empty() else Vector2(start))
+		to = MAP_GRID.calculate_map_position(_first_point())
 	return walk_in_to(start, to)
+
+# Where every route from the start begins (route point, full-cell units): the map's fixed start half (the start cell's
+# outer half on the bridge's lane, PathGenerator.start_half), so the bridge never changes lane when the route does.
+# Without one (an older map object): the drawn route's first point, else the start cell.
+func _first_point() -> Vector2:
+	if map == null:
+		return Vector2(start)
+	var half: Vector2i = map.path_layer.start_half
+	if half.x >= 0 and Vector2i((Vector2(half) / 2.0).floor()) == start:
+		return FindPath.node_to_point(half)
+	var route: PackedVector2Array = map.path_layer.current_path
+	return route[0] if not route.is_empty() else Vector2(start)
+
+# The route's fixed start half for start `cell` (half-cell coordinates): the outer half (touching the island's edge,
+# where the bridge lands), on the side of the cell nearer `toward` (the Heartwood's cell). Only the two cells decide
+# it, so a save or Shifting Mist's replay rebuilds the same one.
+static func start_half_for(cell: Vector2i, toward: Vector2) -> Vector2i:
+	var out := outward(cell)
+	var half := cell * 2
+	if out.x != 0:
+		half += Vector2i(1 if out.x > 0 else 0, 1 if toward.y > cell.y else 0)
+	else:
+		half += Vector2i(1 if toward.x > cell.x else 0, 1 if out.y > 0 else 0)
+	return half
 
 # The way in to `to` (pixels) for start `cell`: the fog's cell on `to`'s lane, `to` projected onto the island's edge, `to`.
 static func walk_in_to(cell: Vector2i, to: Vector2) -> PackedVector2Array:

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "where_lights_meet"
+display_name = "Where Lights Meet"
+description = "Path lit by two or more Firefly Wardens glows gold. Any Warden's dispel there forks once for each Firefly Warden lighting it, up to 4."
+rarity = 0
+kind = 3
+tags = Array[String](["storm"])
+max_stacks = 1
+rule_id = &"where_lights_meet"
+calling = "firefly_jar"

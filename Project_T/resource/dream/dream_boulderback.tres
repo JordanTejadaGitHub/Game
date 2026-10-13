@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_boulderback"
 display_name = "Boulderback"
-description = "Mossbacks can now grow into Boulderbacks ({dew:{grow_cost:boulderback}}): a crushing hit that splashes {field:boulderback.splash_share:pct} of its damage; double damage on {marked} nightmares, and it always crits on {drowsy} ones."
+description = "{warden:mossback}s can now {grow} into {warden:boulderback}s ({dew:{grow_cost:boulderback}}): a crushing hit that splashes {field:boulderback.splash_share:pct} of its damage; double damage on {marked} nightmares, and it always crits on {drowsy} ones."
 rarity = 2
 kind = 1
 tags = Array[String](["stone"])

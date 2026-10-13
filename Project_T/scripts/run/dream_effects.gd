@@ -69,6 +69,7 @@ func _init(dream_state: DreamState) -> void:
 class Board:
 	var entries: Array = []  # Spot dicts {data, cell, rank, node}
 	var by_cell := {}  # Cell -> spot
+	var roots := {}  # Root Network, worked out on first ask (DreamEffects.root_networks)
 	var attackers := 0
 	var walls := 0.0  # Thornwall line Wardens; a twig wall (Twig Walls) counts half
 	var lines := {}  # Attacking Wardens' lines
@@ -370,7 +371,7 @@ func _few_and_mighty(spot: Dictionary, board: Board, _card: UpgradeData) -> Dict
 
 func _canopy(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := ds.canopy_range_bonus(spot.node)
-	return {"active": bonus > 0.0, "range": bonus, "note": "6 connected attackers / 6 recent living targets"}
+	return {"active": bonus > 0.0, "range": bonus, "note": "6 touching attacking Wardens fighting 6 nightmares"}
 
 
 func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -391,7 +392,7 @@ func _switchback(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	if not spot.data.can_attack:
 		return {}
 	return {"positional": true, "effect": "bend crossings slow 25% for 1 s (3 s cooldown)",
-		"note": "only bends within this Warden's attacking reach"}
+		"note": "only bends within this Warden's range"}
 
 func _close_guard(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
@@ -458,7 +459,7 @@ func _moonflip(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionar
 
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d path tiles" % ds.path_length}
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d cells of path" % ds.path_length}
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout":
@@ -512,7 +513,7 @@ func _sprout_chorus(spot: Dictionary, board: Board, _card: UpgradeData) -> Dicti
 	var route := route_neighbors(spot.cell)
 	var on := companion and route >= 2
 	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SPROUT_CHORUS_SPEED,
-		"note": "%d distinct route cells beside it" % route,
+		"note": "%d different path cells beside it" % route,
 		"reason": "" if on else "needs a touching Sprout and 2 distinct adjacent route cells"}
 
 func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -562,28 +563,96 @@ func _root_network(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictio
 	if spot.data.get_id() != "sprout":
 		return {}
 	var level := ds.rule_level(&"root_network")
-	# Flood fill from the spot through the board's Sprouts: sides only (II: diagonals too)
-	var is_sprout := func(cell: Vector2) -> bool:
-		var o = board.by_cell.get(cell)
-		return o != null and cell != spot.cell and DreamEffects._data(o).get_id() == "sprout"
-	var steps: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
-	if level > 0:
-		steps.append_array([Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)])
-	var network := {spot.cell: true}
-	var frontier: Array[Vector2] = [spot.cell]
-	while not frontier.is_empty():
-		var cell: Vector2 = frontier.pop_back()
-		for step in steps:
-			var next: Vector2 = cell + step
-			if not network.has(next) and is_sprout.call(next):
-				network[next] = true
-				frontier.append(next)
-	var size := network.size()
+	var size := root_network_size(spot, board)
 	var on := size >= 2
-	return {"positional": true, "radius": 1.0, "active": on,
-		"damage": minf(DreamState.ROOT_NETWORK_PER[level] * size, DreamState.ROOT_NETWORK_MAX[level]),
-		"note": "network of %d" % size,
+	var bonus := minf(DreamState.ROOT_NETWORK_PER[level] * size, DreamState.ROOT_NETWORK_MAX[level])
+	return {"positional": true, "radius": 1.0, "active": on, "damage": bonus,
+		"note": "Network of %d: +%d%%" % [size, roundi(bonus * 100)],
 		"reason": "" if on else ("no Sprout beside it" if level == 0 else "no Sprout around it")}
+
+# Root Network: two Sprouts are connected when their footprints share an edge (user 2026-10-13). A Sprout is one
+# cell at any half offset, so "beside" is exactly 1 cell apart on one axis and less than a cell on the other (they
+# share at least half an edge). 1.5 cells apart, across a half-wide path, is not connected. II (`diagonals`): corners too.
+static func sprouts_linked(a: Vector2, b: Vector2, diagonals: bool) -> bool:
+	var dx := absf(a.x - b.x)
+	var dy := absf(a.y - b.y)
+	if (is_equal_approx(dx, 1.0) and dy < 0.75) or (is_equal_approx(dy, 1.0) and dx < 0.75):
+		return true
+	return diagonals and is_equal_approx(dx, 1.0) and is_equal_approx(dy, 1.0)
+
+# The board's Root Network, worked out once per board and card level: every connected pair of Sprouts (`pairs`, each
+# once), the network each Sprout cell belongs to (`of`) and each network's size. The rule's bonus and the drawn roots
+# (RootNetworkOverlay) both read this, so the drawing links exactly the Sprouts the damage counts.
+func root_networks(board: Board) -> Dictionary:
+	var level := ds.rule_level(&"root_network")
+	if board.roots.get("level", -1) == level:
+		return board.roots
+	var cells: Array[Vector2] = []
+	for o in board.entries:
+		if _data(o).get_id() == "sprout":
+			cells.append(o.cell)
+	var parent: Array[int] = []
+	for i in cells.size():
+		parent.append(i)
+	var pairs: Array = []
+	for i in cells.size():
+		for j in range(i + 1, cells.size()):
+			if sprouts_linked(cells[i], cells[j], level > 0):
+				pairs.append([cells[i], cells[j]])
+				var a := _root_of(parent, i)
+				var b := _root_of(parent, j)
+				if a != b:
+					parent[a] = b
+	var of := {}
+	var sizes := {}
+	for i in cells.size():
+		var id := _root_of(parent, i)
+		of[cells[i]] = id
+		sizes[id] = int(sizes.get(id, 0)) + 1
+	board.roots = {"level": level, "pairs": pairs, "of": of, "sizes": sizes}
+	return board.roots
+
+func _root_of(parent: Array[int], i: int) -> int:
+	while parent[i] != i:
+		i = parent[i]
+	return i
+
+# How many Sprouts are in the network of `spot` (itself included; 1 = alone). A Sprout not on the board (the build
+# ghost) joins every network it would touch.
+func root_network_size(spot: Dictionary, board: Board) -> int:
+	var networks := root_networks(board)
+	if board.holds(spot) and networks.of.has(spot.cell):
+		return int(networks.sizes[networks.of[spot.cell]])
+	var joined := {}
+	var level := ds.rule_level(&"root_network")
+	for cell in networks.of:
+		if cell != spot.cell and sprouts_linked(spot.cell, cell, level > 0):
+			joined[networks.of[cell]] = true
+	var size := 1
+	for id in joined:
+		size += int(networks.sizes[id])
+	return size
+
+# Every connected pair on the map as [Sprout, Sprout] (the nodes), each pair once: what RootNetworkOverlay draws.
+func root_pairs() -> Array:
+	var board := _shared_board()
+	var out: Array = []
+	for pair in root_networks(board).pairs:
+		var a = board.by_cell.get(pair[0])
+		var b = board.by_cell.get(pair[1])
+		if a != null and b != null and is_instance_valid(a.node) and is_instance_valid(b.node):
+			out.append([a.node, b.node])
+	return out
+
+# The Sprouts on the map a new Sprout on `cell` would connect to (the build ghost's preview).
+func root_ghost_links(cell: Vector2) -> Array:
+	var board := _shared_board()
+	var level := ds.rule_level(&"root_network")
+	var out: Array = []
+	for o in board.entries:
+		if _data(o).get_id() == "sprout" and o.cell != cell and is_instance_valid(o.node) and sprouts_linked(cell, o.cell, level > 0):
+			out.append(o.node)
+	return out
 
 func _first_light(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	return {"effect": "first hit on each nightmare ×3"}
@@ -721,7 +790,7 @@ func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictio
 func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var tiles := ds.walls_added_tiles()
 	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / DreamState.BRAMBLE_OATH_TILES), DreamState.BRAMBLE_OATH_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d cells of path" % tiles,
 		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
 
 # Golden Harvest: every GOLDEN_HARVEST_STEP Dew earned this run (catchers' and interest Dew counting double) gives all
@@ -735,7 +804,7 @@ func _golden_harvest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Di
 # Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
 func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var touching := board.touching(spot).filter(func(o: Dictionary) -> bool: return DreamEffects._data(o).can_attack).size()
-	return {"active": spot.data.can_attack and touching >= 2, "positional": true, "radius": 1.0, "note": "2 distinct touching attackers relay 35% of a base interval"}
+	return {"active": spot.data.can_attack and touching >= 2, "positional": true, "radius": 1.0, "note": "two different touching Wardens attacking bring its next attack 35% sooner"}
 
 
 func _tended_stumps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -822,7 +891,7 @@ func _state_line(rule: StringName, power: float) -> String:
 			return ds.sunlit_line()
 		&"winding_path":
 			var tiles: int = ds.covered_path_tiles()  # Only the path within a Warden's reach (dream_design.md 7fc0665c)
-			return "Now: %s in reach · +%d Dew per rest (up to %d)" % [count_text(tiles, "path tile"),
+			return "Now: %s in range · +%d Dew per rest (up to %d)" % [count_text(tiles, "path cell"),
 				ds.winding_path_dew(power), DreamState.WINDING_PATH_MAX]
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]

@@ -1167,3 +1167,45 @@ DPS uses right/left arrows to hide/reopen the entire meter; its body fold remain
 Shared Warden headers show catch percentage/reach, live bowl Dew and interest rate/per-Wellspring cap. Hover tips explain best-catcher selection, Harvest and the shared 130-Dew interest cap. Seedbearer descriptions say anywhere on valid ground; Twig Wall single/drag build previews use smaller art.
 
 Unlocked rank marks explain signatures, role Mastery or All-Rounder; generic marks do not index beyond the eight-icon atlas. Lessons explain the four-matching rule without advance signature-name hints. Pause → Replay guides provides paused nurture/maze/catcher animations, preserving Hints and discovery history. See `claude_handoff.md`, `onboarding.md` and `warden_stats.md` for current rules and recorded checks.
+## Where to recheck your Calling (user, 2026-10-13: "nowhere to recheck your Calling after you choose")
+The Calling is shown on the first family pick and in one toast, then never again. It is the run's biggest standing
+rule, so it must always be one tap away:
+- **Dreams row (top left):** the first icon is the Calling, before the Dream cards: the family's emblem in a distinct
+  frame (not a rarity gem), so it reads as "your class". Hover or tap: "Calling · Lantern Ring" and its rule text.
+- **"Dreams this run":** a "Calling" section at the top with the name, the family and the full rule; the Dream cards
+  follow.
+- **Pause menu run summary:** one line, "Calling: Lantern Ring (Firefly Jar)".
+- **Warden panel:** on a Warden of the Calling's family, a small "Calling" line under the description naming the
+  rule, since those are the Wardens it concerns.
+- **Codex → Families:** each family's entry lists its Calling, so a player can read all nine between runs.
+- **Run report:** the Calling is listed with the families.
+
+## Exposed at full stacks is visible (user, 2026-10-13: "when Exposed has full stacks, being hit should have a visual effect")
+Exposed does nothing until it is full, so the moment it completes and every hit after it must be seen.
+- **Completing:** when the stacks fill, a short flare on the nightmare (a ring of light closing in on it) and its
+  Exposed badge turns from dim to bright. The callout "Exposed" shows once, throttled like the others.
+- **While full:** a steady, quiet mark on the nightmare (a thin warm outline or a glint that circles it), so the
+  player can pick out which nightmares take the bonus. Cold nightmare, warm mark: palette colours only.
+- **Each hit on a fully Exposed nightmare:** a small warm spark at the hit point, on top of the Warden's own hit
+  effect, and the damage number (if numbers are on) in the Exposed colour. One per hit, capped by the Fx budget; area
+  hits spark once per nightmare.
+- **Ending:** the mark fades when the stacks drop below full.
+- Reduced flashes: no flare, the outline stays. Partial stacks keep the dim badge with its count and no other effect.
+- The same idea applies to the other "nothing until full" states if playtests ask for it; start with Exposed.
+
+## Grow preview shows the new form's reach (user, 2026-10-13: "should have the Jarlink range when hovering over the upgrade")
+Pointing at a grow option on the Warden panel (touch: the first tap selects it, the second confirms) previews the
+form on the map, from the selected Warden's spot, until the pointer leaves:
+- its **range ring** (the new range beside the current one, as the build ghost does for position cards);
+- its **special area**, drawn as it will be: Jarlink's link range with a line to each Jarlink it would join (or
+  "no partner in range"), Jetreed's line, Undercurrent's whirlpool, Cairn's minimum and maximum range, Rootlight's
+  lit cells, an aura's cells, Brood Cap's first sprite (already built);
+- anything it would lose (a Kinship that breaks, a card bonus that switches off) in the same chips the build ghost uses.
+The same preview shows on the Remember screen's "Peek at the map" for a form about to be unlocked, if a Warden of
+that family is selected.
+- **The link itself** (user, same day: "and also what the visible connected path would look like"): for Jarlink /
+  Lightning Fence the preview draws the lightning line exactly where it will run between the two Wardens, in the
+  real effect's look at reduced strength, and highlights the **path cells it crosses**, since those are where
+  nightmares take the damage. With several possible partners, it shows the one the game would pick, and the others
+  fainter. The same goes for the build ghost when planting a Jarlink directly, and for any other form that joins
+  two Wardens or draws a line across the path.

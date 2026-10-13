@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "fireflies_in_the_grass"
 display_name = "Fireflies in the Grass"
-description = "Sprouts touching a Firefly-line Warden add 2 {static} every 3rd hit."
-rarity = 1
+description = "For each Firefly Warden you own, one Sprout of your choice glows: a small light of its own."
+rarity = 0
 kind = 3
 tags = Array[String](["storm", "sprout"])
-requires = Array[String](["firefly_jar"])
 max_stacks = 1
-rule_id = &"fireflies_in_the_grass"
+rule_id = &"lit_sprouts"
+calling = "firefly_jar"

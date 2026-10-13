@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dreamroot"
 display_name = "Dreamroot"
-description = "Dream Oaks can now grow into Dreamroots ({dew:{grow_cost:dreamroot}}): shards double on a perfect block."
+description = "{warden:dream_oak}s can now {grow} into {warden:dreamroot}s ({dew:{grow_cost:dreamroot}}): shards double on a perfect block."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])

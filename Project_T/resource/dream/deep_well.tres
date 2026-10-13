@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_well"
 display_name = "Deep Well"
-description = "At every {rest}, 5% interest on your banked Dew (up to {dew:40})."
+description = "At every {rest}, 5% {interest} on your banked {dew} (up to {dew:40})."
 rarity = 2
 kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])
@@ -14,4 +14,4 @@ max_stacks = 1
 rule_id = &"deep_well"
 in_start_pool = false
 grows_with = Array[String](["wellspring"])
-grows_text = "Wellspring's interest cap is 30 higher (90)."
+grows_text = "{warden:wellspring}'s {interest} cap is 30 higher (90)."

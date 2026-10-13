@@ -15,77 +15,87 @@ const GLOSSARY_SOURCE := [
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
 		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from Caught nightmares make at most {dreamlight:2} a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
-		["The Dew pot", "Each drift pays a set pot of Dew, shared out among its nightmares as they are dispelled. A nightmare that leaks takes its share with it.", ["Dew", "Act"]],
+		["The Dew pot", "Each drift pays a set pot of Dew, shared out among its nightmares as they are dispelled. A nightmare that reaches the Heartwood takes its share with it.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
 		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
 		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+10}.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
-		["Act", "25 drifts ending in a boss. Between acts the season changes and the Heartwood regrows a leaf.", ["Boss", "Leaves"]],
+		["Act", "25 drifts ending in a boss. A full run has four.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings a family pick, Dreamlight and a rare Dream.", ["Family pick", "Dreamlight"]],
 		["Family pick", "After drift 1 and after each boss: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead.", ["Family", "Dreamlight"]],
-		["Dream", "A card chosen at each rest: a lasting change to your Wardens, nightmares or economy for this run.", ["Rarity", "Let it pass"]],
-		["Omen", "From drift 10: a twist for the next block with a reward if you survive it. Clear Skies skips it.", ["Rest"]],
-		["Call early", "Starting the next drift while the current one is still arriving, for a little extra Dew.", ["Auto-drift"]],
+		["Dream", "A card you choose at a rest. It changes your run until it ends.", ["Rarity", "Let it pass"]],
+		["Omen", "A harder next block that you may accept for a reward at the rest after it. Offered from drift 10.", ["Rest"]],
+		["Call early", "Starting the next drift before the current one has finished arriving pays a little Dew.", ["Auto-drift"]],
+		["Maze bonus", "Dew paid at each block's rest for a path longer than the starting path.", ["Dew", "Rest"]],
+		["Gift", "Terrain the Heartwood offers after a boss. You place it on the map and it gives a bonus.", ["Boss"]],
 		["Auto-drift", "Drifts in a block start by themselves a few seconds after the last one arrived.", ["Call early", "Block"]],
 		["Mist", "Where nightmares enter. With the path full it holds the rest back until there's room; a \"+N\" over it counts them. While it holds any, the next drift can't be called early.", ["Call early"]],
-		["Remember screen", "Spend Dreamlight on a family's branches and final forms. The Remember button at the top right opens it any time (a drift pauses).", ["Dreamlight"]],
-		["Close call", "A nightmare past 85% of its route: the Heartwood trembles and its last stretch glows cold.", ["Leaves"], "Three close calls in a block: time to lengthen the maze."],
-		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],
+		["Remember screen", "The screen where Dreamlight unlocks new forms during a run. The Remember button opens it.", ["Dreamlight"]],
+		["Close call", "A nightmare past 85% of its path: the Heartwood trembles and its last stretch glows cold.", ["Leaves"], "Three close calls in a block: time to lengthen the maze."],
+		["Chain", "Reactions setting each other off within a second. The number counts them; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],
 	]],
 	["Wardens", [
-		["Warden", "A small spirit that guards one spot. It's also a wall: nightmares walk around them.", ["Family", "Thornwall"]],
-		["Family", "A Warden line (Sporeling, Dewdrop, …) with its own statuses, branches and final forms.", ["Branch", "Family pick"]],
-		["Branch", "A Warden a family grows into. Unlocked with Dreamlight, then grown with Dew.", ["Grow", "Final form"], "A Sporeling grows into a branch such as Driftspore, and Driftspore into its final form, Puffball."],
-		["Final form", "The last step of a branch, unlocked with Dreamlight and grown with Dew.", ["Branch", "Ascended"]],
-		["Hidden branch", "A secret branch the Memory Grove can open late, once you own the family.", ["Memory Grove"]],
-		["Grow", "Grow a Warden into an unlocked next form in place, for Dew. Its ranks come along.", ["Branch", "Nurture"]],
-		["Nurture", "Spend Dew to raise a Warden's rank: more damage, speed and range, plus one choice per rank.", ["Rank", "Nurture choice"]],
-		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage, speed and range.", ["Nurture", "Eldest"]],
+		["Warden", "A forest spirit you plant. It attacks nightmares, and it blocks the path like a wall.", ["Family", "Thornwall"]],
+		["Heartwood", "The tree you protect. Each nightmare that reaches it takes leaves; at no leaves the run ends.", ["Leaves"]],
+		["Family", "A line of Wardens that share a theme and a status, such as Sporeling or Firefly Jar.", ["Branch", "Family pick"]],
+		["Branch", "A second-step form of a family. A run offers two of each family's branches.", ["Grow", "Final form"], "A Sporeling grows into a branch such as Driftspore, and Driftspore into its final form, Puffball."],
+		["Final form", "The third step of a branch, unlocked with Dreamlight.", ["Branch", "Ascended"]],
+		["Grove branch", "An extra branch of a family, opened in the Memory Grove. It is offered on top of the run's two.", ["Memory Grove"]],
+		["Grow", "Pay Dew to turn a Warden into a stronger form of its family.", ["Branch", "Nurture"]],
+		["Nurture", "Pay Dew to raise a Warden's rank. Each rank lets you choose one improvement.", ["Rank", "Nurture choice"]],
+		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage and attack speed.", ["Nurture", "Eldest"]],
 		["Eldest", "A Legendary Dream lets one Warden a run grow past rank V; it wears a crown.", ["Rank", "Nurture"]],
-		["Sprout", "The cheapest Warden: plant it anywhere as a wall, then grow it into one of your families once you've picked one.", ["Family pick", "Warden"]],
-		["Aura", "A Warden that strengthens the Wardens around it instead of (or as well as) attacking: the 8 cells around it, or its range.", ["Boosts"]],
-		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher's line pours Dew after each drift (its harvest); a Wellspring adds interest on your Dew at each rest, at most 120 a rest for all of them together.", ["Dew", "Rest"]],
-		["Nurture choice", "Each rank you pick how it grows: Power, Swift, Reach or Deep.", ["Nurture", "Potency"]],
+		["Sprout", "The cheapest Warden. It can grow into any family you have picked this run.", ["Family pick", "Warden"]],
+		["Aura", "A bonus a support Warden gives to the Wardens around it.", ["Boosts"]],
+		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 130 a rest for all Wellsprings together.", ["Dew", "Rest"]],
+		["Nurture choice", "Each rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
+		["Wide, Strong, Attuned", "The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full.", ["Nurture choice", "Aura"]],
+		["Signature", "A special rule a Warden gains at rank V when four of its ranks took the same choice.", ["Nurture choice", "Rank"]],
+		["Mastery", "The rank V reward for four matching ranks on a Warden with no signature: 20% better at what it does.", ["Signature"]],
+		["All-Rounder", "The rank V reward for mixed choices: 20% better at what it does.", ["Signature"]],
+		["Calling", "The rule your first family brings. It lasts the whole run.", ["Family pick"]],
+		["Catcher", "A Warden that collects extra Dew from nightmares dispelled in its range.", ["Dew"]],
+		["Interest", "Dew a Wellspring pays at a rest, a share of the Dew you hold.", ["Dew"]],
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
-		["Clear tool", "Tend Withered Trees and move Mossy Boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
-		["Ascended", "A family's endgame Warden, from drift 51: unlocked with Dreamlight, grown from a final form for Dew. One per family per run.", ["Final form", "Ascension"]],
+		["Clear tool", "Clear Withered Trees and Mossy Boulders off the map to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
+		["Ascended", "A family's strongest form, from the Memory Grove, late in a run.", ["Final form", "Ascension"]],
 		["Kinship", "Two branches of the same family within 2 cells of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
 		["Blooming and Old Kin", "A Kinship's stages: it bonds young, is Blooming after 5 drifts together and Old Kin after 10, each stage stronger.", ["Kinship"]],
 		["Harmony strike", "When two Wardens in a Kinship hit the same nightmare within 1 s, petals burst on it for extra damage (at most every 2 s per pair).", ["Kinship"]],
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
 		["Kindred", "Two different branches of one family on the map: that family's Wardens deal 10% more damage.", ["Whole Tree", "Kinship"]],
 		["Whole Tree", "Three different branches of one family on the map at once (a branch or its final form each): that family's Wardens deal 20% more damage, in place of Kindred's 10%. Announced at the next rest.", ["Kindred"]],
-		["Not in this dream", "A family has five branches and each run offers two of them (plus the Grove's hidden one). The others are not in this dream: misty on the Remember screen, where you can call one in for {dreamlight:3}, once per family.", ["Branch", "Remember screen"]],
+		["Not in this run", "A family has five branches and each run offers two of them, chosen at random (plus its Grove branch). The others are not in this run: misty on the Remember screen, where you can add one for {dreamlight:3}, once per family.", ["Branch", "Remember screen"]],
 	]],
 	["Branch effects", [
-		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one reaches each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others at half.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
+		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
 		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
 		["Arc", "Two Jarlinks within 4 cells join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
-		["Ink", "An Inkcap shot on a {spored} nightmare inks every path tile it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 path tiles for 4 s that adds {spored} twice a second.", ["{spored}"]],
+		["Ink", "An Inkcap shot on a {spored} nightmare inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
 	["Damage types", [
 		["Damage type", "Every Warden deals one type of damage: Spore, Stone, Water, Light, Root, Song, Talon, Wind, or Plain. The Warden panel and the Warden bar say which (\"Light damage\").", ["Resists and Weak to", "Plain damage"]],
-		["Resists and Weak to", "A nightmare that resists a damage type takes half from it (×0.5); one weak to it takes 50% more (×1.5). It's the type that counts, not which Warden deals it.", ["Damage type"]],
+		["Resists and Weak to", "A nightmare takes half damage from a damage type it resists, and half again as much from one it is weak to.", ["Damage type"]],
 		["Effect damage type", "Effects keep their source's type: {spored} ticks deal the type of the Warden that applied them, {static} bolts deal Light, clouds, rings and seeds deal their maker's type, and Reactions the type of the Warden that set them off.", ["Damage type"]],
 		["Plain damage", "Sprouts, Thornwalls and Acorns deal Plain damage: never resisted, never weak.", ["Damage type"]],
 		["Talon", "The Nestling family's damage type: beaks and claws.", ["Damage type"]],
 	]],
 	["Nightmares", [
-		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
-		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
-		["Deeply Blighted", "An elite nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
-		["Leak", "A nightmare that reaches the Heartwood: it takes leaves (most take 1, elites 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
+		["Nightmare", "What walks the path toward the Heartwood. Dispel it before it arrives.", ["Dispel"]],
+		["Dispel", "To defeat a nightmare. It pays Dew.", ["Nightmare"]],
+		["Deeply Blighted", "A stronger nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
+		["Reaching the Heartwood", "A nightmare that reaches the Heartwood takes leaves (most take 1, Deeply Blighted 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
 		["Dread shell", "A shell that absorbs part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
-		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
-		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
-		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its route and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
+		["Flying", "A flyer flies over your Wardens instead of walking the maze.", ["Nightmare"]],
+		["Restless", "A nightmare made faster by having its path changed while it walks: +20% speed each time. Three times and it is Unbound.", ["Unbound"]],
+		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its path and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
 		# EnemyData BURROW (burrow_max, burrow_min_saving) and laps() (lap_linger …): who has them is nightmares_line.
-		["Burrow", "Sinks under a Warden or wall beside it and comes up on the other side, when that cuts its route short. Only a set number of times per trip.", ["Nightmare"]],
-		["Laps", "Reaching the Heartwood, it stays and drains leaves, and can't be hit while it's there. Then it gallops back to the start and comes again, staying a little longer each lap.", ["Leak", "Leaves"]],
+		["Burrow", "Sinks under a Warden or wall beside it and comes up on the other side, when that shortens its path. Only a set number of times per trip.", ["Nightmare"]],
+		["Laps", "Reaching the Heartwood, it stays and drains leaves, and can't be hit while it's there. Then it gallops back to the start and comes again, staying a little longer each lap.", ["Reaching the Heartwood", "Leaves"]],
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
@@ -100,31 +110,34 @@ const GLOSSARY_SOURCE := [
 		["{silenced}", "{tip:silenced}", []],
 	]],
 	["Combat", [
-		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
+		["Crit", "A critical hit: a hit that deals extra damage. Only some Wardens can crit.", ["Pinned", "Potency"]],
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. Some nightmares shrug off area attacks; others take more.", ["Effect"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
-		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
-		["Reaction", "Two statuses reaching their buildup thresholds on one nightmare set off a named effect, like Thunderclap ({damp} + {static}).", ["Chain", "Crowned Reaction"]],
-		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
+		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
+		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count.", ["Reaction"]],
+		["Full", "A status at its most stacks. Some statuses do nothing until they are full.", ["Stack"]],
+		["Reaction", "When a nightmare carries enough stacks of two different statuses, they set each other off for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
+		["Crowned Reaction", "A stronger Reaction, set off on a nightmare that also carries a third status.", ["Reaction", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],
 	["Dreams", [
-		["Rarity", "Common, Uncommon, Rare, Legendary: the shape and color of a Dream card's gem.", ["Legendary"]],
-		["Deepened", "A stronger \"II\" version of a rule card you already own. It replaces the first.", ["Dream"]],
-		["Bittersweet", "A strong Dream with a cost written on it.", ["Dream"]],
+		["Rarity", "How strong and how seldom a Dream card is: Common, Uncommon, Rare or Legendary. The gem's shape and colour show it.", ["Legendary"]],
+		["Upgrade", "A Dream card that replaces a weaker card you already have.", ["Dream"]],
+		["Bittersweet", "A strong Dream card with a cost.", ["Dream"]],
 		["Legendary", "The rarest Dreams, grown in the Memory Grove.", ["Memory Grove"]],
 		["Let it pass", "Skip a Dream offer for a little Dew.", ["Dream"]],
-		["Reroll", "Redraw a Dream offer (a Memory Grove perk).", ["Loadout"]],
-		["Banish", "Remove a card from this run's pool (a Memory Grove perk).", ["Loadout"]],
-		["Woven", "A three-ingredient Legendary that strengthens a Crowned Reaction.", ["Crowned Reaction", "Legendary"]],
+		["New cards", "Swap the Dream cards on offer for different ones. Limited per run.", ["Perks"]],
+		["Banish", "Remove a Dream card from this run's offers.", ["Perks"]],
+		["Woven", "A Dream card that needs three particular Wardens.", ["Crowned Reaction", "Legendary"]],
 	]],
 	["The Memory Grove", [
-		["Memory Grove", "The Heartwood's tree of lasting unlocks, grown with Seeds between runs.", ["Seeds", "Loadout"]],
-		["Memories", "The Hollow's story, told in ten Memories that ripen as the Grove grows.", ["Memory Grove"]],
-		["Loadout", "The perks you carry into a run, set on the waystones at the Heartwood's roots: one at first, up to five as the Grove grows.", ["Memory Grove"]],
+		["Memory Grove", "The tree between runs where Seeds unlock families, Dream cards and perks for later runs.", ["Seeds", "Perks"]],
+		["Node", "One unlock on the Memory Grove.", ["Memory Grove", "Seeds"]],
+		["Memories", "A Memory is a piece of the story, found on the Memory Grove.", ["Memory Grove"]],
+		["Perks", "A perk is a bonus from the Memory Grove. It only works while carried in a perk slot.", ["Memory Grove"]],
 		["Ascension", "The Grove node that lets a family's Ascended Warden appear in runs.", ["Ascended", "Memory Grove"]],
-		["Blight Levels", "Harder runs for more Seeds, opened by your first win.", ["Seeds"]],
+		["Blight Levels", "A Blight Level is an optional, harder way to play, opened after your first win.", ["Seeds"]],
 		["Milestones", "Feats that unlock things for free (and are Steam achievements).", ["Memory Grove"]],
 	]],
 ]
@@ -183,9 +196,38 @@ static var _kinship_list: Array[Dictionary] = []
 static var _combo_list: Array[Dictionary] = []
 static var _index := {}  # id -> its dictionary (combos first, then Crowned, then Kinships)
 
+# Re-entrant-safe (crash 2026-10-13: a Reaction's description named another combo with {combo:x}; formatting it
+# asked get_any, whose index was empty because this build was still running, so it built again: stack overflow).
+# All three lists are built together in two passes: first every entry with its id, name and RAW text, and the
+# index over them; only then are the texts formatted. A lookup made while formatting (IconInfo.format ->
+# get_any) finds the names in the index and never starts another build.
+static var _filling := false
+
+static func _fill() -> void:
+	if _filling or not _index.is_empty():
+		return
+	_filling = true
+	_combo_list = _build_combos()
+	_crowned_list = _build_crowned()
+	_kinship_list = _build_kinships()
+	for c in _combo_list + _crowned_list + _kinship_list:
+		if not _index.has(c.id):
+			_index[c.id] = c
+	for c in _combo_list + _crowned_list + _kinship_list:  # The same dictionaries as in the index: names first, text second
+		c["text"] = IconInfo.format(String(c.get("raw", ""))) + String(c.get("after", ""))
+	_filling = false
+
+# Forgets the lists (a new combo was discovered: a text naming it read "???"; tests: a cold start).
+static func clear_lists() -> void:
+	if _filling:
+		return
+	_combo_list = []
+	_crowned_list = []
+	_kinship_list = []
+	_index = {}
+
 static func crowned() -> Array[Dictionary]:
-	if _crowned_list.is_empty():
-		_crowned_list = _build_crowned()
+	_fill()
 	return _crowned_list.duplicate()
 
 static func _build_crowned() -> Array[Dictionary]:
@@ -196,15 +238,12 @@ static func _build_crowned() -> Array[Dictionary]:
 		var statuses: Array = (base.statuses.duplicate() if base else []) + [c[2]]
 		var data := Reactions.get_data(id)
 		list.append({"id": id, "name": data.display_name if data else c[0], "kind": "Crowned", "base": c[1],
-			"statuses": statuses, "families": c[3], "text": IconInfo.format(data.description if data else c[4]), "by": ""})
+			"statuses": statuses, "families": c[3], "text": "", "raw": data.description if data else c[4], "by": ""})
 	return list
 
 # A combo, a Crowned Reaction or a Kinship by id ({} if none).
 static func get_any(id: StringName) -> Dictionary:
-	if _index.is_empty():
-		for c in combos() + crowned() + kinships():
-			if not _index.has(c.id):
-				_index[c.id] = c
+	_fill()  # While the lists are being formatted the index already holds every name: no second build
 	return _index.get(id, {})
 
 # Kinships (tower_design.md "Kinships"; Tower Code's Kinships.KINSHIPS: id -> [name, line, branch A,
@@ -218,7 +257,7 @@ const KINSHIP_TEXT := {
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
-	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
 	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and leaves nightmares {damp}.",
@@ -235,7 +274,7 @@ const KINSHIP_TEXT := {
 	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
 	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
-	&"jewel_thieves": "Every 6th peck steals a nightmare's buff ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
+	&"jewel_thieves": "Every 6th peck steals a nightmare's boost ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
@@ -244,8 +283,7 @@ const KINSHIP_GROWTH := "Within 2 cells they bond; the bond grows (Blooming at 5
 
 # [{id, name, kind "Kinship", line, a, b (Warden names), text}], or [] before Kinships exist.
 static func kinships() -> Array[Dictionary]:
-	if _kinship_list.is_empty():
-		_kinship_list = _build_kinships()
+	_fill()
 	return _kinship_list.duplicate()
 
 static func _build_kinships() -> Array[Dictionary]:
@@ -259,7 +297,7 @@ static func _build_kinships() -> Array[Dictionary]:
 		var k: Array = table[id]
 		list.append({"id": id, "name": k[0], "kind": "Kinship", "line": k[1], "a": _warden_name(k[2]),
 			"b": _warden_name(k[3]), "statuses": [],
-			"text": IconInfo.format(KINSHIP_TEXT.get(id, "")) + " " + KINSHIP_GROWTH, "by": ""})
+			"text": "", "raw": KINSHIP_TEXT.get(id, ""), "after": " " + KINSHIP_GROWTH, "by": ""})
 	return list
 
 static func _warden_name(id: String) -> String:
@@ -286,22 +324,21 @@ const FAMILY_ICONS := "res://assets/meta/icons/family_icons.png"
 
 # Every combo: [{id, name, kind ("Synergy" / "Reaction"), statuses, text, by}], synergies first.
 static func combos() -> Array[Dictionary]:
-	if _combo_list.is_empty():
-		_combo_list = _build_combos()
+	_fill()
 	return _combo_list.duplicate()
 
 static func _build_combos() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	for id in SYNERGIES:
 		var s: Array = SYNERGIES[id]
-		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": IconInfo.format(s[2]), "by": s[3]})
+		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": "", "raw": s[2], "by": s[3]})
 	var reactions := Reactions.all()
 	reactions.sort_custom(func(a: ReactionData, b: ReactionData) -> bool: return a.display_name < b.display_name)
 	for data in reactions:
 		if CROWNED.has(data.id):
 			continue  # Crowned Reactions are their own list (crowned())
 		list.append({"id": data.id, "name": data.display_name, "kind": "Reaction", "statuses": data.statuses,
-			"text": IconInfo.format(data.description), "by": ""})
+			"text": "", "raw": data.description, "by": ""})
 	return list
 
 # --- What the Codex covers (screens_ui.md "What the Codex covers") ---------------------------------
@@ -402,14 +439,17 @@ static var _glossary_sapling := false  # TowerPlacer.sapling_enabled when it was
 # Terms only while the Heartwood Sapling is in runs (TowerPlacer.sapling_enabled; run_design.md).
 const SAPLING_TERMS := ["Heartwood Sapling", "Permanent"]
 # The full game's branch expansion (the demo has its old branches and no Whole Tree): left out of the demo's glossary.
-const EXPANSION_TERMS := ["Whole Tree", "Not in this dream", "Current", "Erosion", "Arc", "Ink", "Spore-sprite"]
+const EXPANSION_TERMS := ["Whole Tree", "Not in this run", "Current", "Erosion", "Arc", "Ink", "Spore-sprite"]
 static var _glossary_expansion := true
+static var _glossary_stacks := 0  # A live stack number when it was built: Brimming doubles them mid-run, and the texts read them
 
 # The glossary with today's status names and IconInfo's definitions filled in (built once, again
 # if the Sapling is switched on or off).
 static func glossary() -> Array:
-	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on():
+	var stacks := IconInfo.stack_number("need_damp")
+	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on() or _glossary_stacks != stacks:
 		_glossary = []
+		_glossary_stacks = stacks
 		_glossary_sapling = TowerPlacer.sapling_enabled
 		_glossary_expansion = DreamState.branch_expansion_on()
 	if _glossary.is_empty():
@@ -452,7 +492,7 @@ static func signature_entries() -> Array:
 	var seen: Array = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, [])
 	if seen.is_empty():
 		return []
-	var out: Array = [["Signature", "A Warden at rank V with four matching picks among ranks I–V gains a specialised signature or role mastery. Other rank-V Wardens gain All-Rounder: +20% to their main job. The gold mark explains the bonus.",
+	var out: Array = [["Your signatures", "Nurture a Warden to rank V. Four ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does.",
 		["Nurture choice", "Rank"], ""]]
 	for sig in Signatures.NAMES:
 		if sig == Signatures.ALL_ROUNDER or sig == Signatures.MASTERY:
@@ -461,11 +501,11 @@ static func signature_entries() -> Array:
 			out.append(["???", "Not discovered yet.", ["Signature"], ""])
 			continue
 		var choice = Signatures.BY_CHOICE.find_key(sig)
-		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "Role training"
+		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "matching"
 		var text: String = Signatures.TEXT.get(sig, "")
 		var answers: String = SIGNATURE_ANSWERS.get(sig, "")
-		out.append([String(Signatures.NAMES[sig]), "%s majority: %s.%s" % [by, text.left(1).to_upper() + text.substr(1),
-			(" Answers %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
+		out.append([String(Signatures.NAMES[sig]), "Four %s ranks: %s.%s" % [by, text.left(1).to_upper() + text.substr(1),
+			(" Good against %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
 	return out
 
 # One entry per damage type, with who deals it, from the data (IconInfo.DAMAGE_TYPES + LINE_FAMILIES):
@@ -489,11 +529,11 @@ static func damage_type_entries(existing: Array) -> Array:
 const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
-	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
+	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
-	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle and \"Weak!\").", []],
-	[&"resisted", "Strong", "A hit from a family this nightmare resists (its shield): ×0.5 damage (the gray puff and \"Strong!\").", []],
+	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle and \"Weak\").", []],
+	[&"resisted", "Resisted", "A hit from a family this nightmare resists (its shield): half damage (the grey puff and \"Resisted\").", []],
 ]
 const ALWAYS_SHOWN := [&"weak", &"resisted"]
 

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tender_care"
 display_name = "Tender Care"
-description = "Every Warden's first Nurture rank is free."
+description = "Every Warden's first Nurture {rank} is free."
 rarity = 0
 kind = 4
 tags = Array[String](["nurture", "tall"])

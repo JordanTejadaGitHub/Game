@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grandfather_stump"
 display_name = "Grandfather Stump"
-description = "Elder Stump gives +4 percentage points per nearby Warden, up to +45% total."
+description = "{warden:elder_stump} gives +4 percentage points per nearby Warden, up to +45% total."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])

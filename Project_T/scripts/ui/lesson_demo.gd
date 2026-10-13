@@ -22,8 +22,9 @@ func _draw() -> void:
 			var at := Vector2(36 + i * 42, 26)
 			draw_circle(at, 13, UiStyle.GOLD if i < mini(int(clock * 1.5), 4) else UiStyle.INK_DIM)
 			draw_string(font, at + Vector2(-4, 5), "P" if i < 4 else "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.FOG)
-		draw_string(font, Vector2(252, 30), "4 matching → signature", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.INK)
-		draw_string(font, Vector2(22, 68), "Mixed picks → All-Rounder: main job +20%", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, UiStyle.GOLD)
+		draw_string(font, Vector2(252, 30), "Four Power → signature", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.INK)
+		draw_string(font, Vector2(22, 54), "P = a Power rank, S = a Swift rank", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK_DIM)  # The legend (wording review 2026-10-13)
+		draw_string(font, Vector2(22, 76), "Mixed ranks → All-Rounder: 20% stronger", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, UiStyle.GOLD)
 	elif topic == &"maze":
 		# Path length only (maze_economy.md, user 2026-10-11): no Wardens in the picture. The forest's straight path
 		# (faint), then a wall each second bending the road around it: each bend is CELLS_PER_DEW cells longer, and
@@ -43,7 +44,7 @@ func _draw() -> void:
 		for i in road.size() - 1:
 			length += road[i].distance_to(road[i + 1])
 		draw_string(font, Vector2(360, 22), "+%d cells" % (walls * cells), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK)
-		draw_string(font, Vector2(360, 42), "Dew +%d" % walls, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD if walls > 0 else UiStyle.INK_DIM)
+		draw_string(font, Vector2(360, 42), "Maze bonus +%d" % walls, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.GOLD if walls > 0 else UiStyle.INK_DIM)
 		var distance := (clock - floorf(clock)) * length  # A nightmare walks the road as it is now
 		for i in road.size() - 1:
 			var segment := road[i].distance_to(road[i + 1])
@@ -51,11 +52,11 @@ func _draw() -> void:
 				draw_circle(road[i].lerp(road[i + 1], distance / segment), 5, UiStyle.INK)
 				break
 			distance -= segment
-		draw_string(UiStyle.with_glyphs(font), Vector2(22, 78), "%s / %d extra cells · cap %d / block" % [UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
+		draw_string(UiStyle.with_glyphs(font), Vector2(22, 78), "%s / %d extra cells" % [UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
 	elif topic == &"catch":
-		var steps := ["Dispel", "Catch bowl", "Rest harvest", "Bank interest"]
+		var steps := ["Dispelled", "Dew collected", "Paid at rest", "Wellsprings"]
 		for i in 4:
 			var x := 12 + i * 104
 			draw_rect(Rect2(x, 12, 96, 36), Color(UiStyle.GOLD if i == int(clock) else UiStyle.INK_DIM, 0.2))
 			draw_string(font, Vector2(x + 4, 34), steps[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK)
-		draw_string(UiStyle.with_glyphs(font), Vector2(14, 76), "Best catcher counts · shared interest cap %s" % UiStyle.dew_amount(DewCatch.INTEREST_CAP), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
+		draw_string(UiStyle.with_glyphs(font), Vector2(14, 76), "Strongest catcher counts · all Wellsprings together pay at most %s" % UiStyle.dew_amount(DewCatch.INTEREST_CAP), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.GOLD)

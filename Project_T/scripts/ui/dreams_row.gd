@@ -23,6 +23,11 @@ var _icons: Array[DreamIcon] = []
 var _shown_key := ""  # Which cards / stacks the icons were built for
 var _clock := 0.0
 var _fog := UiStyle.fog_patch()
+# The run's Calling (screens_ui.md "Where to recheck your Calling", user 2026-10-13: "nowhere to recheck your Calling
+# after you choose"): the first icon, the family's base Warden in a gold frame (not a rarity gem); its tip is the
+# name and the rule. Nothing when the run has none (dev runs, old saves).
+var _calling_frame: PanelContainer = null
+var _calling_shown := ""  # The family the frame was built for
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -51,6 +56,7 @@ func _ready() -> void:
 	_card_tip = DreamMarks.MarkTip.new()
 	add_child(_card_tip)
 	dream_state.card_taken.connect(func(_card: UpgradeData) -> void: refresh())
+	dream_state.calling_changed.connect(func(_family: String) -> void: refresh())
 	refresh.call_deferred()  # After a resumed run has loaded its Dreams
 
 func _process(delta: float) -> void:
@@ -61,7 +67,50 @@ func _process(delta: float) -> void:
 	refresh()
 
 # Rebuilds the icons when the cards changed, and updates every live bonus.
+# "Lantern Ring" / "Firefly Jar" / the rule with its tokens as words: {} when the run has no Calling.
+func calling_info() -> Dictionary:
+	if dream_state == null or dream_state.calling == "" or dream_state.calling_title() == "":
+		return {}
+	var family := IconInfo.family_data(dream_state.calling)
+	return {"name": dream_state.calling_title(), "family": family.display_name if family != null else dream_state.calling.capitalize(),
+		"text": dream_state.calling_text(), "data": family}
+
+func _refresh_calling() -> void:
+	var family: String = dream_state.calling if not calling_info().is_empty() else ""
+	if family == _calling_shown:
+		return
+	_calling_shown = family
+	if _calling_frame != null:
+		_calling_frame.queue_free()
+		_calling_frame = null
+	if family == "":
+		return
+	var info := calling_info()
+	_calling_frame = PanelContainer.new()
+	_calling_frame.name = "Calling"
+	var frame := UiStyle.card(UiStyle.GOLD)  # Moonlit Thread: fog with the gold thread, where Dreams wear a rarity gem
+	frame.shadow_size = 0
+	for side in ["left", "right", "top", "bottom"]:
+		frame.set("content_margin_" + side, 2.0)
+	_calling_frame.add_theme_stylebox_override("panel", frame)
+	_calling_frame.custom_minimum_size = ICON_SIZE + Vector2(4, 4)
+	_calling_frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_calling_frame.mouse_filter = Control.MOUSE_FILTER_STOP
+	var face := TextureRect.new()
+	face.texture = WardenIcon.make(info.data)
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_calling_frame.add_child(face)
+	TapTip.attach(_calling_frame, "Calling · %s\n%s" % [info.name, IconInfo.format(info.text)])
+	_row.add_child(_calling_frame)
+	_row.move_child(_calling_frame, 0)  # Before the Dream cards
+	if _list.visible:
+		_build_list()
+
 func refresh() -> void:
+	_refresh_calling()
 	var cards := dream_state.get_taken_cards()
 	var key := ",".join(cards.map(func(c: UpgradeData) -> String: return "%s:%d:%s" % [c.id, dream_state.card_stacks(c.id), _dormant(c)]))
 	if key != _shown_key:
@@ -91,9 +140,11 @@ func refresh() -> void:
 
 # A fog patch behind the icons (ui_style.md: the Dreams row has fog, no thread).
 func _draw() -> void:
-	if _icons.is_empty():
+	if _icons.is_empty() and _calling_frame == null:
 		return
 	var width := 0.0
+	if _calling_frame != null:
+		width = _calling_frame.position.x + _calling_frame.size.x
 	for icon in _icons:
 		width = maxf(width, icon.position.x + icon.size.x)
 	draw_style_box(_fog, Rect2(_row.position - Vector2(10, 6), Vector2(width, _row.size.y) + Vector2(20, 12)))
@@ -132,6 +183,9 @@ static func group_of(card: UpgradeData) -> String:
 # Plain text of the list (tests, and the pause menu's run summary).
 func get_list_text() -> String:
 	var lines: Array[String] = ["Dreams this run"]
+	var calling := calling_info()
+	if not calling.is_empty():
+		lines.append("Calling: %s (%s): %s" % [calling.name, calling.family, IconInfo.format(calling.text)])
 	if dream_state.supply_line() != "":
 		lines.append(dream_state.supply_line())
 	for icon in _icons:
@@ -156,6 +210,23 @@ func _build_list() -> void:
 	title.text = "Dreams this run"
 	UiStyle.title(title, 20)
 	_list_box.add_child(title)
+	var calling := calling_info()
+	if not calling.is_empty():  # The run's standing rule, above the cards
+		var calling_head := Label.new()
+		calling_head.text = "Calling"
+		UiStyle.caps(calling_head)
+		_list_box.add_child(calling_head)
+		var calling_line := HSeparator.new()
+		calling_line.modulate = Color(UiStyle.GOLD, 0.35)
+		_list_box.add_child(calling_line)
+		var calling_name := Label.new()
+		calling_name.name = "CallingName"
+		calling_name.text = "%s · %s family" % [calling.name, calling.family]
+		UiStyle.title(calling_name, 16, UiStyle.GOLD)
+		_list_box.add_child(calling_name)
+		var calling_rule := StatusLinks.make_label(calling.text, 14, UiStyle.INK)
+		calling_rule.name = "CallingRule"
+		_list_box.add_child(calling_rule)
 	if dream_state.supply_line() != "":  # Rerolls and let-gos are a run-long supply (DreamState)
 		var supply := Label.new()
 		supply.name = "Supply"

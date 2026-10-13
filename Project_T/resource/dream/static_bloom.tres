@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "static_bloom"
 display_name = "Charged Bloom"
-description = "Stormcap chains also make nightmares {drowsy} (1 stack)."
+description = "{warden:stormcap} chains also make nightmares {drowsy} (1 {stack})."
 cost_description = "The chains jump 1 fewer time."
 rarity = 2
 kind = 3

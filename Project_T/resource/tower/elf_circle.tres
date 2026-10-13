@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Elf Circle"
 role_line = "Traps, Poisons, high damage, can't hit flyers"
-description = "Many more rings (up to 9), and they wait until a nightmare steps on them."
+description = "Plants up to {field:elf_circle.trap_max:count} rings. They never fade: each stays until a nightmare steps on it."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

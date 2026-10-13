@@ -42,10 +42,10 @@ func _run() -> void:
 	_check(InputMode.key(&"no_such_action", "x") == "x", "an unbound action falls back")
 	for mode in [0, 1]:
 		InputMode.force = mode
-		var whispers: GDScript = load("res://scripts/ui/whispers.gd")  # No class_name
-		var whisper: String = whispers.TOUCH_TEXT.get(&"keep_placing", "") if InputMode.touch() else whispers.TEXT[&"keep_placing"]
+		# The build-mode line is a Lesson now (the teaching whisper is gone, user 2026-10-12): its two variants.
+		var whisper: String = InputMode.text("Build mode stays on. Right-click or Esc to stop building.", "Build mode stays on. Tap Done to stop building.")
 		var wrong := _has_any(whisper, InputMode.PC_WORDS if mode == 1 else InputMode.TOUCH_WORDS)
-		_check(whisper != "" and wrong == "", "the build-mode whisper on %s has no '%s' (%s)" % ["touch" if mode == 1 else "PC", wrong, whisper])
+		_check(whisper != "" and wrong == "", "the build-mode Lesson on %s has no '%s' (%s)" % ["touch" if mode == 1 else "PC", wrong, whisper])
 	InputMode.force = -2
 
 	# Every script: no string names both, and InputMode.text's variants stay on their side.

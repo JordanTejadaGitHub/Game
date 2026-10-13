@@ -10,11 +10,11 @@ extends SceneTree
 # case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
 const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
 	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
-	"area damage", "chains", "hits a line", "cone", "beam", "boomerang", "lobs over walls", "hits all around it",
-	"rain cloud", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts the Rooted", "slows",
+	"area damage", "chains", "hits a line", "hits a cone", "beam", "seed flies out and back", "lobs over walls", "hits all around it",
+	"rains on the path", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts the Rooted", "slows",
 	"Roots", "Roots the leader", "Roots the leaders", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
 	"Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour",
-	"reveals Hidden", "guards the goal", "removes boosts", "crits", "repeats combos", "traps", "summons helpers",
+	"reveals Hidden", "guards the goal", "removes boosts", "crits", "repeats Reactions", "traps", "summons helpers",
 	"plants free Sprouts", "copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall",
 	"can't hit up close", "can't hit flyers", "doesn't attack"]
 
@@ -32,8 +32,8 @@ const GROUND_ONLY_SPECIALS := [&"brood", &"whirlpool"]
 
 # Every line names the attack's shape (164cd0b5: a form keeps its family's base shape), read from the data: the
 # shape terms a form may use. A special's own shape (helpers, the whirlpool's shared hits, a rain cloud…) counts.
-const SPECIAL_SHAPES := {&"brood": ["summons helpers"], &"whirlpool": ["spreads damage"], &"cloud": ["rain cloud", "area damage"],
-	&"jet": ["hits a line"], &"jarlink": ["hits a line"], &"thrum": ["cone"], &"sparkler": ["area damage"]}
+const SPECIAL_SHAPES := {&"brood": ["summons helpers"], &"whirlpool": ["spreads damage"], &"cloud": ["rains on the path", "area damage"],
+	&"jet": ["hits a line"], &"jarlink": ["hits a line"], &"thrum": ["hits a cone"], &"sparkler": ["area damage"]}
 
 static func shape_terms(data: TowerData) -> Array:
 	if SPECIAL_SHAPES.has(data.special):

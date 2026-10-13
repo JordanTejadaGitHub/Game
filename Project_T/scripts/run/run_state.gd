@@ -16,7 +16,7 @@ signal sprout_charges_changed(charges: int)  # For the Warden bar's seed badge (
 signal run_ended(won: bool)
 signal dew_spent(cost: int)  # Every spend (RunHistory sorts them into planting, growth, ranks, clears)
 
-@export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
+@export var starting_dew: int = 120  # "Health x2, Dew x2 trial" (balance_simulation.md; was 60: run_design.md "Opening rule")
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
 # Dispel Dew is each nightmare's share of its drift's Dew pot (DriftDirector, run_design.md "The Dew pot");
@@ -103,11 +103,11 @@ func get_seed_breakdown(drifts_cleared: int, bosses: int, _first_run: bool) -> A
 	for i in bosses:  # Bosses fall in act order
 		boss_seeds += boss_seeds_by_act[i] if i < boss_seeds_by_act.size() else SEEDS_PER_BOSS
 	var lines: Array = [
-		["Drifts survived from %d: %d" % [survival_seeds_from, survived], mini(survived / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
+		["Drifts survived after %d: %d" % [survival_seeds_from - 1, survived], mini(survived / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
 		["Nightmares dispelled: %d" % creatures_cleansed, cleansed_in_act_1 / maxi(act_1_cleanses_per_seed, 1)
 			+ cleansed_in_act_2 / maxi(act_2_cleanses_per_seed, 1) + later / maxi(late_cleanses_per_seed, 1)],
 		["Bosses dispelled: %d" % bosses, boss_seeds],
-		["Tended: %d" % obstacles_tended, obstacles_tended],
+		["Obstacles cleared: %d" % obstacles_tended, obstacles_tended],
 	]
 	if omen_seeds > 0:
 		lines.append(["Omens", omen_seeds])

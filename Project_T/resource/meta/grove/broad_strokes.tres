@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "broad_strokes"
 display_name = "Broad Strokes"
-description = "Lingering Splash joins the pool."
+description = "Adds the {dream} card {card:lingering_splash}: area attacks leave a patch that keeps damaging nightmares."
 root = 1
 costs = Array[int]([30])
 order = 21

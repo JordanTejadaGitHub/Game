@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "last_spark"
+display_name = "Last Spark"
+description = "A {static} nightmare that is dispelled, or walks out of its last light, throws its charge as a bolt at the nearest Lit nightmare."
+rarity = 2
+kind = 3
+tags = Array[String](["storm"])
+max_stacks = 1
+rule_id = &"last_spark"
+calling = "firefly_jar"

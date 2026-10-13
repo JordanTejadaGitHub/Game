@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deeper_rings"
 display_name = "Deeper Rings"
-description = "The Eldest can be nurtured to rank VII."
+description = "The Eldest can be nurtured to {rank} VII."
 rarity = 2
 kind = 3
 tags = Array[String](["nurture", "tall", "defining"])

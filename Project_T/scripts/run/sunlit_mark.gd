@@ -40,10 +40,12 @@ func _process(delta: float) -> void:
 func _reduced() -> bool:
 	return bool(Fx.setting("reduced_motion", false))
 
-# Where the sun sits on a Warden: its tile's bottom-right, above the rank pips (the card badges run up the left edge).
+# Where the sun sits on a Warden: its tile's right edge, above the Nurture dew hint (GrowHints, y 6–22: at y 12 the
+# sun sat on top of it) and below the target pip (Tower Code, the user 2026-10-12: one slot per mark; the card badges
+# run up the left edge).
 static func spot_on(tower: Tower) -> Vector2:
 	var half := Vector2(Tower.MAP_GRID.cell_size) / 2.0
-	return tower.global_position + Vector2(half.x - 9.0, half.y - 20.0)
+	return tower.global_position + Vector2(half.x - 9.0, -4.0)
 
 func get_targets() -> Array[Tower]:
 	return _targets

@@ -19,6 +19,7 @@ signal attack_released(tower: Tower)
 signal crit_landed(tower: Tower, enemy: Node2D)
 # A hit from this Warden landed on `enemy` (sound: the impact). Every attack kind goes through hit().
 signal hit_landed(tower: Tower, enemy: Node2D, is_area: bool, is_crit: bool)
+signal exposed_struck(tower: Tower, enemy: Node2D)  # Its hit landed on a fully Exposed nightmare (the bonus applied): the spark, for Sound too
 # The first grow into a final form this run (TowerPlacer.evolve, with Fx.final_bloom): sound.
 signal final_bloomed(tower: Tower)
 # A beam (Sunpetal line) hit its target; `ramp` is its current damage multiplier.
@@ -345,11 +346,11 @@ const CHAIN_BLOOM_SPLASH := 2.0  # Chain Bloom: Puffball puffs landing in fog co
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED, KEEN, YIELD }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
-	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
-const FOCUS_TEXT := {Focus.POWER: "deals %d%% more damage" % roundi(FOCUS_POWER * 100), Focus.SWIFT: "attacks %d%% faster" % roundi(FOCUS_SWIFT * 100),
-	Focus.REACH: "+0.3 range",
-	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
-	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source",
+	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Attuned", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
+const FOCUS_TEXT := {Focus.POWER: "hits harder: %d%% more damage" % roundi(FOCUS_POWER * 100), Focus.SWIFT: "attacks %d%% faster" % roundi(FOCUS_SWIFT * 100),
+	Focus.REACH: "more range: +0.3 cells",
+	Focus.DEEP: "stronger statuses: +25% Potency",
+	Focus.WIDE: "its aura reaches further: +0.2 cells", Focus.STRONG: "stronger aura: +5%", Focus.KINDRED: "takes every boost in full, not a reduced share",
 	Focus.KEEN: "+%d%% crit chance" % roundi(NurtureChoices.KEEN_CRIT * 100), Focus.YIELD: "makes more"}  # Read, not typed: it said 8% while Keen gives 10%
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
@@ -1027,7 +1028,7 @@ func _compute_attacks_per_second() -> float:
 	var dim := 1.0 if dim_multiplier < 1.0 and is_sheltered() else dim_multiplier  # Shelter: no cold-lantern dimming
 	var aps := attack_data.attacks_per_second * bonus * dim \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
-	var signature: float = Signatures.multiplier(self, &"speed")
+	var signature: float = Signatures.multiplier(self, &"speed") * Signatures.multiplier(self, &"scent")  # scent: Honeysuckle's main job is its status rate
 	_speed_top = aps / maxf(bonus, 0.0001) * top * signature  # Attacks a second at the Dream cap
 	return aps * signature
 
@@ -1126,7 +1127,9 @@ func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
 	if rank > 0 and _has_rule(&"growth_rings"):
-		reach += HelperCommons.GROWTH_RINGS * rank  # Growth Rings: each Nurture rank +0.25 range instead of +0.1
+		# Growth Rings: +0.25 range a rank in all, and like every rank's range it stops at VII. Its own Nurture ranks
+		# carry no flat range (each is a Focus choice), so they get the whole 0.25; borrowed ranks top up their 0.1.
+		reach += HelperCommons.GROWTH_RINGS_OWN * mini(rank, STAT_TOP_RANK) + HelperCommons.GROWTH_RINGS * _plain_ranks()
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state:
@@ -1204,7 +1207,7 @@ static func potency_uses(data: TowerData) -> Array[String]:
 		lines.append("{held} lasts longer")
 		statuses = true
 	if data.lit_hold_multiplier > 0.0:
-		lines.append("{held} lasts longer on its lit tiles")
+		lines.append("{held} lasts longer on its lit cells")
 		statuses = true
 	if data.attack_kind == TowerData.AttackKind.CLOUD:
 		lines.append("its cloud hits harder")
@@ -1326,7 +1329,7 @@ func focus_text(which: Focus) -> String:
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+%.1f catch radius%s" % [FOCUS_WIDE, _cells_note(get_catch_radius(), FOCUS_WIDE)]
+				return "+%.1f cells of catch range%s" % [FOCUS_WIDE, _cells_note(get_catch_radius(), FOCUS_WIDE)]
 			Focus.STRONG:
 				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
@@ -1367,7 +1370,7 @@ func focus_text(which: Focus) -> String:
 			return "range %.1f → %.1f cells" % [r[0], r[1]]
 		Focus.DEEP:
 			if attack_data.attack_kind == TowerData.AttackKind.SPREAD:  # Gust / Zephyr (audit b6f44fac): what Deep does for it
-				return "more stacks copied (statuses with stacks), +%d%% of them a rank" % roundi(NurtureChoices.GUST_STACKS * 100)
+				return "copies %d%% more stacks" % roundi(NurtureChoices.GUST_STACKS * 100)
 			var potency := _with_choice(which, func() -> float: return get_potency())
 			return "Potency %d%% → %d%% (stronger statuses and effects)" % [roundi(potency[0] * 100), roundi(potency[1] * 100)]
 		Focus.KEEN:
@@ -1386,7 +1389,7 @@ func focus_text(which: Focus) -> String:
 			return "%s alive %d → %d" % [thing, now, now + 1]
 		Focus.STRONG:
 			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:  # Dreamcatchers (audit b6f44fac)
-				return "statuses on Caught nightmares tick +%d%%" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
+				return "statuses on Caught nightmares hurt %d%% more" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit chance in its aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
@@ -1395,15 +1398,15 @@ func focus_text(which: Focus) -> String:
 				return "its aura +%d%%" % roundi(NurtureChoices.STRONG_ACORN * 100)
 		Focus.WIDE:
 			if special == BranchKit.DREAM_OAK:
-				return "families counted from +%.1f cells further%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
+				return "counts families %.1f cells further out%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
 			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
-				return "+%.1f cells of reach%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
+				return "+%.1f cells of range%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
 			return FOCUS_TEXT[which] + _cells_note(_wide_radius(), FOCUS_WIDE)
 		Focus.KINDRED:
 			if special == BranchKit.SEEDBEARER:
 				return "its Sprouts deal %d%% more damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
 			if special == BranchKit.NURSE_LOG:
-				return "Wardens in its reach grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
+				return "Wardens in its range grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 	return FOCUS_TEXT.get(which, "")
 
 # The radius (cells) Wide widens for this form now: a catcher's catch, Dream Oak's family count, Prism / Nurse Log's
@@ -1435,7 +1438,7 @@ func focus_short(which: Focus) -> String:
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+%s catch reach" % IconInfo._number(FOCUS_WIDE)
+				return "+%s catch range" % IconInfo._number(FOCUS_WIDE)
 			Focus.STRONG:
 				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
@@ -1467,7 +1470,7 @@ func focus_short(which: Focus) -> String:
 			return "+1 Sprout alive" if special == BranchKit.SEEDBEARER else "+1 sprite alive"
 		Focus.STRONG:
 			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:
-				return "+%d%% Caught ticks" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
+				return "+%d%% Caught damage" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
@@ -1475,13 +1478,13 @@ func focus_short(which: Focus) -> String:
 			return "+%d%% aura" % roundi((NurtureChoices.STRONG_ACORN if not is_aura_support() else FOCUS_STRONG_AURA) * 100)
 		Focus.WIDE:
 			if special == BranchKit.DREAM_OAK:
-				return "+%s count reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
+				return "+%s count range" % IconInfo._number(NurtureChoices.WIDE_STEP)
 			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
-				return "+%s reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
-			return "+%s aura reach" % IconInfo._number(FOCUS_WIDE)
+				return "+%s range" % IconInfo._number(NurtureChoices.WIDE_STEP)
+			return "+%s aura range" % IconInfo._number(FOCUS_WIDE)
 		Focus.KINDRED:
 			if special == BranchKit.SEEDBEARER:
-				return "+%d%% Sprout dmg" % roundi(NurtureChoices.SEED_KINDRED * 100)
+				return "+%d%% Sprout damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
 			if special == BranchKit.NURSE_LOG:
 				return "%d%% cheaper grows" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 			return "full boosts"
@@ -1590,7 +1593,7 @@ func _main_area() -> Array:
 		BranchKit.JET:
 			return [BranchKit.p(self, "length", 6.0) + now, "jet", per]
 		BranchKit.GROUNDROOT:
-			return [BranchKit.p(self, "ground_reach", 3.5) + now, "grab reach", per]
+			return [BranchKit.p(self, "ground_reach", 3.5) + now, "grab range", per]
 		BranchKit.DEEPROOT:
 			return [BranchKit.p(self, "goal_reach", 3.0) + area_bonus(NurtureChoices.REACH_GUARD), "guard ring", NurtureChoices.REACH_GUARD]
 		BranchKit.CLOUD:
@@ -2109,7 +2112,7 @@ func _refresh_neighbours() -> void:
 		if touching:
 			_touch_lines[data.line] = true  # Mycelium, Fireflies in the Grass
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
-			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
+			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus * Signatures.multiplier(other, &"aura_crit"))  # Auras don't stack with themselves (All-Rounder / Mastery: its main job)
 		# A Warden that doesn't attack (Thornwall) can't use damage or speed boosts: it takes no aura at all, so no
 		# chips, threads or Buffs rows (user: a selected Thornwall showed "+30% speed"). Falloff is per receiver.
 		if tower_data.can_attack and (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
@@ -2532,6 +2535,178 @@ class GroundRipple extends Node2D:
 		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
 		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
 
+# Lit path (the user, 2026-10-13: "can you make lit paths more visible"; before: faint grey squares, mostly on the
+# grass): one node per world on the ground (z −1: over the path tiles, under Wardens and nightmares) that washes the
+# path halves every light Warden lights (Rootlight, Starcave), following the half-cell route (bends and all), never
+# the grass. Zones merge: a half lit by two Wardens is drawn once, no brighter. A brighter rim marks where the light
+# ends along the path. Full strength in build mode and while Wardens are selected, a notch quieter otherwise. It
+# redraws only when a zone or that strength changes; the slow breath is the node's alpha (steady under reduced
+# motion). A nightmare standing in the light wears a faint warm rim (the child above the nightmares).
+class LitPaths extends Node2D:
+	const WASH := Palette.GOLD  # Warm and saturated: reads on the pale act 1 path and the darker late ones
+	const RIM := Palette.HEARTLIGHT
+	const QUIET := 0.5  # The wash's alpha in play…
+	const FULL := 0.68  # …and in build mode / on selection (the ghost's preview too)
+	const HALF_PX := 16.0  # A path half is 32 px wide
+	const INSET := 4.0  # Kept off the grass on the sides with no path
+	const BREATH := 0.14  # Share of its alpha the slow breath takes away
+	const CHECK := 0.25  # Seconds between looks at the Wardens, the strength and who stands in the light
+	const RIM_MAX := 24  # Nightmare rims drawn at once
+	var _zones := {}  # Tower instance id -> [Tower, {half: its centre px}, {route half: true}, {lit whole cell: true}]
+	var _full := false
+	var _check := 0.0
+	var _time := 0.0
+	var _rims := Node2D.new()
+	var _inside: Array = []  # Nightmares standing in the light now
+
+	static func find(near: Node) -> LitPaths:
+		var w := Reactions._world(near)
+		if w == null:
+			return null
+		var node := w.get_node_or_null("LitPaths") as LitPaths
+		if node == null or node.is_queued_for_deletion():
+			node = LitPaths.new()
+			node.name = "LitPaths"
+			node.z_index = -1  # On the ground
+			w.add_child(node)
+		return node
+
+	func _ready() -> void:
+		_rims.name = "LitRims"
+		_rims.z_as_relative = false
+		_rims.z_index = 1  # Above the y-sorted nightmares, under the lighting pass
+		_rims.draw.connect(_draw_rims)
+		add_child(_rims)
+
+	# `tower` lights these halves now ({} = none any more). `route`: every half of its route, to tell path from grass.
+	func set_zone(tower: Tower, halves: Dictionary, route: Dictionary, cells: Dictionary) -> void:
+		var id := tower.get_instance_id()
+		if halves.is_empty():
+			if _zones.erase(id):
+				queue_redraw()
+			return
+		_zones[id] = [tower, halves, route, cells]
+		queue_redraw()
+
+	# Every lit half (merged), for tests and the ghost.
+	func lit_halves() -> Dictionary:
+		var lit := {}
+		for id in _zones:
+			lit.merge(_zones[id][1])
+		return lit
+
+	func _process(delta: float) -> void:
+		_time += delta
+		_check -= delta
+		if _check <= 0.0:
+			_check = CHECK
+			var full := Tower.badges_visible()  # Build mode, or Wardens selected
+			var changed := full != _full
+			_full = full
+			for id in _zones.keys():
+				var tower = _zones[id][0]
+				if not is_instance_valid(tower) or tower.is_queued_for_deletion() or not tower._a_lit:
+					_zones.erase(id)  # Sold, or grown into a form that lights nothing
+					changed = true
+			if changed:
+				queue_redraw()
+			_find_inside()
+		var still := _zones.is_empty() or bool(Fx.setting("reduced_motion", false))
+		modulate.a = 1.0 if still else 1.0 - BREATH * (0.5 + 0.5 * sin(_time * 1.5))  # multiplier (the slow breath: no redraw)
+		if not _inside.is_empty():
+			_rims.queue_redraw()  # They walk: the rims follow
+
+	func _find_inside() -> void:
+		var had := not _inside.is_empty()
+		_inside.clear()
+		if not _zones.is_empty():
+			var cells := {}
+			for id in _zones:
+				cells.merge(_zones[id][3])
+			for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+				if _inside.size() >= RIM_MAX:
+					break
+				if is_instance_valid(enemy) and not enemy.is_cleansed and cells.has(Tower.MAP_GRID.calculate_grid_coordinates(enemy.global_position)):
+					_inside.append(enemy)
+		if had or not _inside.is_empty():
+			_rims.queue_redraw()
+
+	func _draw_rims() -> void:
+		for enemy in _inside:
+			if is_instance_valid(enemy) and not enemy.is_cleansed:
+				_rims.draw_arc(_rims.to_local(Tower.aim_at(enemy)), 13.0, 0.0, TAU, 20, Color(WASH, 0.55), 1.5)
+
+	func _draw() -> void:
+		var lit := {}
+		var route := {}
+		for id in _zones:
+			lit.merge(_zones[id][1])
+			route.merge(_zones[id][2])
+		draw_halves(self, lit, route, FULL if _full else QUIET)
+
+	# The wash over `lit` ({half: its centre px, world}) on `canvas`: each half a block of the path's width, flush
+	# where the path goes on, held INSET off the grass elsewhere, with a rim where the path leaves the light.
+	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float) -> void:
+		var wash := Color(WASH, strength)
+		var rim := Color(RIM, minf(strength + 0.4, 0.95))
+		var edge := Color(RIM, strength * 0.7)
+		var sides: Array[Vector2i] = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+		for h: Vector2i in lit:
+			var centre: Vector2 = canvas.to_local(lit[h])
+			var reach: Array[float] = [HALF_PX, HALF_PX, HALF_PX, HALF_PX]  # Left, right, up, down
+			var ends: Array[bool] = [false, false, false, false]
+			var grass: Array[bool] = [false, false, false, false]
+			for i in 4:
+				var next: Vector2i = h + sides[i]
+				if lit.has(next):
+					continue
+				if route.has(next):
+					ends[i] = true  # The path goes on unlit: the light ends here
+				else:
+					reach[i] = HALF_PX - INSET  # Grass
+					grass[i] = true
+			var rect := Rect2(centre + Vector2(-reach[0], -reach[2]), Vector2(reach[0] + reach[1], reach[2] + reach[3]))
+			canvas.draw_rect(rect, wash)
+			# A soft bright edge along the grass sides, so the lit stretch reads as a band of light.
+			if grass[0]:
+				canvas.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), edge, 1.0)
+			if grass[1]:
+				canvas.draw_line(rect.position + Vector2(rect.size.x, 0), rect.end, edge, 1.0)
+			if grass[2]:
+				canvas.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), edge, 1.0)
+			if grass[3]:
+				canvas.draw_line(rect.position + Vector2(0, rect.size.y), rect.end, edge, 1.0)
+			if ends[0]:
+				canvas.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), rim, 2.0)
+			if ends[1]:
+				canvas.draw_line(rect.position + Vector2(rect.size.x, 0), rect.end, rim, 2.0)
+			if ends[2]:
+				canvas.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), rim, 2.0)
+			if ends[3]:
+				canvas.draw_line(rect.position + Vector2(0, rect.size.y), rect.end, rim, 2.0)
+
+# The halves this Warden lights now, pushed to the world's LitPaths only when they changed (its route or its range).
+var _lit_key := 0
+func _push_lit() -> void:
+	var cells := {}
+	for at in _lit_cells:
+		cells[at] = true
+	var halves := {}
+	var route_halves := {}
+	for p in _route():
+		var h := FindPath.point_to_node(p)
+		route_halves[h] = true
+		var at := MAP_GRID.calculate_map_position(p)
+		if cells.has(MAP_GRID.calculate_grid_coordinates(at)):
+			halves[h] = at
+	var key := halves.hash()
+	if key == _lit_key:
+		return
+	_lit_key = key
+	var paths := LitPaths.find(self)
+	if paths != null:
+		paths.set_zone(self, halves, route_halves, cells)
+
 # The attack's shape for the UI (story chat; Main's attack-type chip): &"single", &"splash", &"area", &"chain", &"cloud",
 # &"trap", &"beam", &"birds", &"seed", &"patrol", &"copy", &"light", &"pull", &"spread", &"aura", &"none" (walls).
 const ATTACK_SHAPE_NAMES := {&"single": "Single target", &"splash": "Splash", &"area": "Area", &"chain": "Chain",
@@ -2764,9 +2939,15 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var carry_before: float = enemy._soothe_carry
 	var previous_clean := _clear_minds_hit
 	_clear_minds_hit = clear_minds
+	var was_exposed: bool = enemy.statuses.is_exposed()  # The Exposed bonus applies to this hit
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	_clear_minds_hit = previous_clean
 	var actual_dealt: float = float(health_before - enemy.health) + enemy._soothe_carry - carry_before
+	if was_exposed and actual_dealt > 0.0:
+		# Exposed at full stacks is visible (screens_ui.md, last section): a warm spark where the hit landed, once per
+		# nightmare per hit (an area attack calls hit() once for each nightmare). The event is tagged "marked" by Enemy.
+		exposed_struck.emit(self, enemy)
+		Fx.exposed_hit(enemy, aim_at(enemy))
 	if build_rules != null and dealt > 0.0 and actual_dealt > 0.0:
 		build_rules.direct_damage(self, enemy, dealt, original_primary, actual_dealt)
 		if _dream_state != null:
@@ -3124,12 +3305,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 			set_meta(&"unique_native_status_context", previous_native_context)
 	if status == EnemyStatuses.DROWSY:
 		SupportLog.credit(self, &"drowsy", stacks)  # Honeysuckle's panel line and the rest report
-	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
-	if status == EnemyStatuses.MARKED and _dream_state and _has_rule(&"guiding_light"):
-		var reach := (2.0 if _rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
-		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
-			if other != enemy and other.global_position.distance_to(at) <= reach:
-				other.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	# (Guiding Light no longer spreads Exposed: it forks a hit on a fully Exposed nightmare, in firefly_lights.gd.
+	# Owner ruling 2026-10-12, dream_council_review.md 21.)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).
@@ -3987,7 +4164,7 @@ func _update_wall(delta: float) -> void:
 		return
 	_wall_tick = WALL_TICK
 	# Briar Trap (id thorn_snare; "Fewer, bigger cards" de439ea8): each Thornwall (twig walls too) holds the first
-	# nightmare passing beside it each drift, 0.5 s (II 1 s); no rare-kind or trample trigger any more.
+	# nightmare passing beside it each drift, 1.5 s (II, legacy saves: 2 s); no rare-kind or trample trigger any more.
 	var snare_id := &"thorn_snare"  # Briar Trap's card and rule id (Roguelite Code)
 	var snare := _rule_stacks(snare_id) > 0
 	var thorny := _rule_stacks(&"thorny_walls") > 0
@@ -4561,7 +4738,7 @@ func _light() -> void:
 				_lit_until.erase(at)
 			else:
 				_lit_cells.append(at)
-	queue_redraw()
+	_push_lit()  # The wash on the path (LitPaths): only when its lit halves changed
 	for enemy in get_enemies_in_range():
 		hit(enemy, 1.0, true)
 
@@ -4719,10 +4896,7 @@ func _draw() -> void:
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
 	_draw_rank_pips()
-	for at in _lit_cells:
-		var centre := to_local(MAP_GRID.calculate_map_position(at))
-		var half := MAP_GRID.cell_size / 2.0 - Vector2(6, 6)
-		draw_rect(Rect2(centre - half, half * 2.0), Color(LIGHT_COLOR, 0.12))
+	# (The lit path is drawn by the world's LitPaths, on the path's own shape: see _push_lit.)
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()
@@ -4893,11 +5067,8 @@ func _refresh_root_links() -> void:
 		for other in _other_towers():
 			if other.tower_data.get_id() != "sprout":
 				continue
-			var d: Vector2 = other.cell - cell
-			var side := absf(d.x) + absf(d.y) == 1.0
-			var corner := absf(d.x) == 1.0 and absf(d.y) == 1.0
-			if side or (diagonals and corner):
-				links.append(d)
+			if DreamEffects.sprouts_linked(cell, other.cell, diagonals):  # Footprints share an edge (half offsets too); II: a corner
+				links.append(other.cell - cell)
 	if links != _root_links:
 		_root_links = links
 		_redraw_root_network()
@@ -4909,38 +5080,30 @@ func _redraw_root_network() -> void:
 		return
 	var overlay := RootNetworkOverlay.find(get_parent())
 	if overlay:
-		overlay.queue_redraw()
+		overlay.refresh()  # It draws the pairs the rule counts (DreamEffects.root_pairs)
 
 # Badges in one column up the tile's left edge, clear of the rank pips along the bottom (so nothing
-# stacks on top of anything else): a leaf pair when the Warden is in a Kinship (always shown, tinted
-# with its family), then one rarity-coloured diamond per active position card (in build mode or while
-# Wardens are selected). Tapping the Warden opens its panel, which names them.
+# stacks on top of anything else): one rarity-coloured diamond per active position card (in build mode or while
+# Wardens are selected). Tapping the Warden opens its panel, which names them. The Kinship leaf is Kinships' own
+# badge now (Kinships.badge_towers / _draw_knots: above the sprite, at the vine's foot).
+# The base's slots, from the cell centre: grow bud (−18, 14) · Kinship leaf (0, 14) · Nurture dew (18, 14); rank
+# pips along y 27; buff pips along y 36; card diamonds up the left edge from y 0; Sunlit sun on the right edge at
+# y −4; target pip top right; the attack tracker over the head.
 func _draw_badges() -> void:
 	var items: Array = []
-	if is_instance_valid(_kin) and not _kin.get_pairs(self).is_empty():
-		items.append(["kin", _kin.get_pair(self)])
 	if badges_visible():
 		for row in _badge_cards:
 			items.append(["card", row])
 	var x := -MAP_GRID.cell_size.x / 2.0 + 7.0
-	var y := MAP_GRID.cell_size.y / 2.0 - 8.0
+	var y := 0.0  # The first diamond sits above the grow bud (y 6–22), the column runs up from there
 	for item in items:
 		var at := Vector2(x, y)
-		if item[0] == "kin":
-			var colour: Color = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.NEWLEAF)
-			var leaf := Fx.texture(&"kin_leaf_icon")
-			if leaf:
-				draw_texture_rect(leaf, Rect2(at - Vector2(7, 7), Vector2(14, 14)), false, colour)
-			else:
-				for side in [-1.0, 1.0]:
-					draw_colored_polygon(PackedVector2Array([at, at + Vector2(3 * side, -6), at + Vector2(6 * side, -1)]), colour)
-		else:
-			var row: Dictionary = item[1]
-			var rarity: int = row.card.rarity if row.get("card") != null else 0
-			var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
-			var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
-			draw_colored_polygon(diamond, colour)
-			draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(Palette.ROOT, 0.8), 1.0)
+		var row: Dictionary = item[1]
+		var rarity: int = row.card.rarity if row.get("card") != null else 0
+		var colour: Color = BADGE_COLORS[clampi(rarity, 0, BADGE_COLORS.size() - 1)]
+		var diamond := PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)])
+		draw_colored_polygon(diamond, colour)
+		draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(Palette.ROOT, 0.8), 1.0)
 		y -= 13.0
 
 # Small warm pips along the bottom of the tile, one per Nurture rank, with the Focus icon after them.

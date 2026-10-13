@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_old_ones"
 display_name = "The Old Ones"
-description = "Wardens at rank V or higher make the Wardens touching them count two ranks higher."
+description = "Wardens at {rank} V or higher make the Wardens touching them count two {ranks} higher."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture", "tall"])

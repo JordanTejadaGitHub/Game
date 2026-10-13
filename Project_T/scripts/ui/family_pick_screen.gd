@@ -290,9 +290,8 @@ func choose(data: Resource) -> void:
 		dream_state.unlocked[data.get_id()] = true
 		if _reason == &"first" and data is TowerData and data.line != "memory":
 			dream_state.set_calling(data.get_id())  # The first family is the run's class (dream_council_review.md 11)
-			var hud := get_parent()
-			if dream_state.calling_title() != "" and hud != null and hud.has_method("show_toast"):
-				hud.show_toast("Calling: %s. %s" % [dream_state.calling_title(), IconInfo.format(dream_state.calling_text())])
+			# No toast for it (user 2026-10-13: "still see whispers when clicking first family"): the Wake a family Lesson
+			# explains Callings, and the Calling stays on screen as the Dreams row's first icon (DreamsRow).
 		dream_state.unlocks_changed.emit()
 	if should_offer_sapling():
 		_show_sapling()  # Right after the drift 50 family pick (run_design.md "The Heartwood Sapling")
@@ -329,7 +328,7 @@ func _show_sapling() -> void:
 		card.add_child(icon)
 	for line in [["The Heartwood Sapling", 22, UiStyle.INK],
 			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, UiStyle.INK],
-			["It doesn't attack. After every drift it yields %s, +%d per rank, and every %d drifts %s. Nurture it for more; leaks wither it a little."
+			["It doesn't attack. After every drift it yields %s, +%d per rank, and every %d drifts %s. Nurture it for more; each nightmare that reaches the Heartwood withers it a little."
 				% ([UiStyle.dew_amount(data.dew_per_drift), data.dew_per_rank, data.dreamlight_every, UiStyle.dreamlight_amount(1, true)] if data != null
 					else [UiStyle.dew_amount(8), 4, 10, UiStyle.dreamlight_amount(1, true)]), 15, UiStyle.MOONLIGHT],  # From the data
 			["Not now? You can plant it later from the rest panel.", 13, UiStyle.WHISPER]]:
@@ -608,12 +607,12 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		for branch: TowerData in missing:
 			row.add_child(_icon(branch, NOT_IN_DREAM_ICON, true))
 		var words := Label.new()
-		words.text = "%d not in this dream" % missing.size()
+		words.text = "%d not in this run" % missing.size()
 		words.add_theme_font_size_override("font_size", 12)
 		words.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
-		row.tooltip_text = "%s: not in this dream. Call one in on Remember for %s." % [
+		row.tooltip_text = "%s: not in this run. Add one on the Remember screen for %s." % [
 			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), UiStyle.dreamlight_amount(dream_state.call_back_cost(data))]
 		box.add_child(row)
 
@@ -652,7 +651,7 @@ func _route_lane(branch: TowerData) -> Control:
 
 # "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
 const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
-const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %s, once per family."
+const OFFER_TIP := "The others aren't in this run. Add one on the Remember screen for %s, once per family."
 
 func _offer_line(data: TowerData, size: int, regular: int) -> Label:
 	var line := _lane_line(OFFER_LINE % [size, regular], 12, UiStyle.INK_DIM, "OfferLine")

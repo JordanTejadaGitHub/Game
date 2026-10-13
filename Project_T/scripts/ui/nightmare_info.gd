@@ -154,7 +154,7 @@ static func restless_text(enemy: Node) -> String:
 		return ""
 	var info: Dictionary = enemy.get_restless_info()
 	if info.get("unbound", false):
-		return "Unbound: ignores the maze, tramples Wardens on its route"
+		return "Unbound: ignores the maze, tramples Wardens on its path"
 	var stacks := int(info.get("stacks", 0))
 	if stacks <= 0:
 		return ""

@@ -11,7 +11,7 @@ extends Control
 const GROUP := &"lesson_card"
 const SEEN_KEY := "lessons_seen"
 const WIDTH := 420.0
-const INTRO_IDS := [&"intro_heartwood", &"intro_maze", &"intro_dew"]
+const INTRO_IDS := [&"intro_heartwood", &"intro_maze"]  # The opening cards, before drift 1 (wording review 2026-10-13: no Dew card before a nightmare has paid any)
 signal lesson_shown(id: StringName)
 
 var enabled := true  # The Hints setting ("whispers")
@@ -33,10 +33,13 @@ var dream_state: DreamState
 var game_speed: GameSpeed
 var _icon := TextureRect.new()
 var _title := Label.new()
-var _body := Label.new()
+var _body: RichTextLabel = StatusLinks.make_label("", 16)  # Glossary words are links here too (user 2026-10-12: the Soaked card's "Reactions"): hover or tap for the tip
 var _ok := Button.new()
 var _skip := Button.new()
 var _demo: LessonDemo
+var _centre: CenterContainer
+var _panel: PanelContainer
+var _spot_layer := Control.new()  # The spotlight's ring, badge pulse and thread
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -50,11 +53,17 @@ func _ready() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
-	var centre := CenterContainer.new()
+	_spot_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_spot_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spot_layer.draw.connect(_draw_spot)
+	add_child(_spot_layer)  # Over the shade, under the card
+	_centre = CenterContainer.new()
+	var centre := _centre
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var panel := PanelContainer.new()
+	_panel = PanelContainer.new()
+	var panel := _panel
 	panel.name = "Card"
 	var solid := UiStyle.panel(18.0, 18.0)  # Solid, like every paused card
 	solid.center_alpha = UiStyle.TIP_ALPHA
@@ -91,7 +100,7 @@ func _ready() -> void:
 	_ok.pressed.connect(close)
 	box.add_child(_ok)
 	_skip.name = "SkipTutorial"
-	_skip.text = "Skip tutorial"
+	_skip.text = "Skip lessons"
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.custom_minimum_size = Vector2(160, UiStyle.HUD_BUTTON_H)
 	_skip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -120,9 +129,20 @@ func _hook() -> void:
 				game_speed.set_paused(true))
 	if enabled and get_tree().current_scene == main and HeartwoodMemory.is_first_run() and drift_director.drifts_started == 0:
 		start_intro()
-	var whispers := main.get_node_or_null("%Whispers")
-	if whispers != null:
-		whispers.whispered.connect(discovery)
+	# The teaching whispers are gone (onboarding.md "Whisper hints removed", user 2026-10-12): the status and flyer
+	# Lessons, which their whispers used to set off, watch the field themselves (_watch_field, below), and two Lessons
+	# cover what only a whisper taught: "Rests" (the first rest) and "Speed and pause" (_watch_field).
+	if drift_director != null:
+		drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+			# Rests, then Dew and the Maze bonus, one after the other at the first rest (wording review 2026-10-13, teaching order).
+			lesson(&"rests", &"dew", "Rests", "The forest is resting. Nothing moves until you press Start, and selling a Warden gives %s. After this, a rest comes every %d drifts." % [
+				"all its Dew back" if tower_seller == null or tower_seller.build_phase_refund >= 1.0 else "%d%% of its Dew back" % roundi(tower_seller.build_phase_refund * 100.0),
+				drift_director.drifts_per_block])
+			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path pays a Maze bonus at the rest that ends every %d drifts: the small number beside your Dew shows how much." % drift_director.drifts_per_block))
+		drift_director.drift_started.connect(func(_number: int) -> void:  # Speed and pause: as the first drift starts
+			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(
+				"%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")],
+				"The pause and speed buttons are beside Start. You can plant while paused.")))
 	if tower_placer != null:
 		tower_placer.tower_built.connect(_on_built)
 		if tower_placer.has_signal("build_mode_changed"):
@@ -145,25 +165,155 @@ func _hook() -> void:
 		dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
 			if amount > 0:
 				lesson(&"dreamlight", &"dreamlight", "Dreamlight",
-					"Dreamlight unlocks new forms on the Remember screen. Spend it at a rest."))
+					"Dreamlight unlocks new forms for your Wardens. Press Remember beside Start at a rest to spend it."))
 	var spawner := main.get_node_or_null("%EnemyContainer")
 	if spawner != null and spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_enemy: Node2D, _stacks: int) -> void:
 			lesson(&"restless", &"nightmare", "Turned around",
-				"Changing the route under them makes them restless and faster. Do it too often and they stop listening."))
+				"Re-routing nightmares mid-walk makes them restless: they speed up. Keep doing it and they ignore the new path."))
+	if spawner != null and spawner.has_signal("enemy_reached_goal"):  # The first leaf lost to a flyer
+		spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+			if is_instance_valid(enemy) and enemy.has_method("is_flying") and enemy.is_flying():
+				discovery(&"flyer"))
+
+# What the removed whispers used to notice by looking. Four times a second:
+# - a status on a nightmare for the first time: its status Lesson;
+# - a Warden at rank IV: the rank V rules.
+var _watch_left := 0.0
+
+func _watch_field(delta: float) -> void:
+	if not enabled or drift_director == null:
+		return
+	_watch_left -= delta / maxf(Engine.time_scale, 0.001)
+	if _watch_left > 0.0:
+		return
+	_watch_left = 0.25
+	# A status Lesson opens the moment its status is on a nightmare the player can see (onboarding.md "Status Lessons
+	# point at the nightmare"): never queued (the nightmare would be gone by the time it showed), so one that lands off
+	# screen, or while another card is up, waits for the next visible one.
+	if visible or not can_show():
+		return
+	if not seen.has("rank_rules") and tower_placer != null and tower_placer.tower_container != null:  # The rank V rules, once a Warden is one rank away
+		for tower in tower_placer.tower_container.get_children():
+			if tower is Tower and tower.rank >= RANK_RULES_AT:
+				lesson(&"rank_rules", &"rank", "Rank V", RANK_TEXT)
+				break
+	for id in EnemyStatuses.ALL:
+		if seen.has("discover_" + String(id)):
+			continue
+		for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+			if enemy.statuses.has(id) and on_screen(enemy):
+				var entry := [StringName("discover_" + String(id)), id, IconInfo.status_name(id), status_text(id, enemy), enemy]
+				if seen.has("statuses_stack"):
+					_show(entry)
+				else:  # Once, before the first status Lesson: what a status and a stack are; its own Lesson follows on Got it
+					_after = entry
+					_show([&"statuses_stack", id, "Statuses stack", STACK_TEXT, enemy])
+				return
+
+# --- Status Lessons point at the nightmare (onboarding.md, user 2026-10-12) ----------------------------------------
+# One plain sentence per status: live numbers, the Reactions link, no internals (the exact figures stay in the status
+# tooltip and the Codex).
+const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a stack; the icon above a nightmare shows how many. Two full statuses on one nightmare set off a {reaction}."
+const RANK_RULES_AT := 4  # Rank IV: the next rank is the one the rules are about
+var _after: Array = []  # The status Lesson that follows "Statuses stack"
+const STATUS_LINES := {
+	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}.",
+	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}.",
+	&"spored": "It takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}.",
+	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}.",
+	&"static": "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it is struck by a bolt for heavy damage. Other statuses can set it off early as a {reaction}.",
+	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}.",
+}
+const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
+const SPOT_GAP := 56.0  # Between the nightmare and the card
+const SPOT_EDGE := 16.0  # The card stays this far inside the screen
+var _spot_enemy: Node2D = null  # The nightmare the shown status Lesson points at
+var _spot_status: StringName = &""
+var _spot_clock := 0.0
+
+# The card's text: who did it (the live Warden name, the status as a link), then the status's line.
+static func status_text(id: StringName, enemy: Node2D = null) -> String:
+	var source = enemy.statuses.source(id) if enemy != null and is_instance_valid(enemy) else null
+	var warden := "A Warden is"
+	if source is Tower and source.tower_data != null:
+		warden = "Your %s is" % source.tower_data.display_name
+	return "%s adding {%s} to %s. Each hit adds one stack.\n\n%s" % [warden, id, "this nightmare" if enemy != null else "a nightmare", STATUS_LINES.get(id, "")]
+
+# Where the nightmare is on screen (this card's own space: the HUD's canvas).
+func _spot_at(enemy: Node2D, local := Vector2.ZERO) -> Vector2:
+	return enemy.get_global_transform_with_canvas() * local
+
+# The player can see it: inside the view, clear of the HUD's bars, and not under an open panel or screen.
+func on_screen(enemy: Node2D) -> bool:
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree() or not enemy.is_visible_in_tree():
+		return false
+	var view := Rect2(Vector2.ZERO, size).grow_individual(-SPOT_MARGIN[0], -SPOT_MARGIN[1], -SPOT_MARGIN[2], -SPOT_MARGIN[3])
+	return view.has_point(_spot_at(enemy)) and not WorldLabel.covered(enemy, Rect2(-16.0, -28.0, 32.0, 44.0))
+
+# The status's badge above the nightmare (Enemy draws them in a row), or just above its head.
+func _badge_at(enemy: Node2D) -> Vector2:
+	var ids = enemy.get("_hud_ids")
+	if ids is Array and ids.has(_spot_status) and enemy.has_method("_badge_centre"):
+		return _spot_at(enemy, enemy._badge_centre(ids.find(_spot_status)))
+	return _spot_at(enemy, Vector2(0.0, -30.0))
+
+# Beside the nightmare, on the side with more room, never over it, and inside the screen: the CenterContainer's rect
+# becomes that strip (the card centres itself in it). Each frame while it shows: the card's height settles a frame late.
+func _place_beside() -> void:
+	var at := _spot_at(_spot_enemy)
+	var card := _panel.size
+	var right := at.x < size.x / 2.0
+	var from := at.x + SPOT_GAP if right else SPOT_EDGE
+	var to := size.x - SPOT_EDGE if right else at.x - SPOT_GAP
+	if to - from < card.x:  # A screen too narrow for a side strip: keep it whole, against the far edge
+		from = size.x - SPOT_EDGE - card.x if right else SPOT_EDGE
+		to = from + card.x
+	var middle := clampf(at.y, SPOT_EDGE + card.y / 2.0, maxf(size.y - SPOT_EDGE - card.y / 2.0, SPOT_EDGE + card.y / 2.0))
+	_centre.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_centre.position = Vector2(from, middle - card.y / 2.0)
+	_centre.size = Vector2(to - from, card.y)
+
+func _end_spot() -> void:
+	if _spot_enemy == null and _spot_status == &"":
+		return
+	_spot_enemy = null
+	_spot_status = &""
+	_centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_spot_layer.queue_redraw()
+
+# A soft ring round the nightmare, a pulse on its new badge, a thin thread from the card to the badge. Reduced motion:
+# nothing pulses, the ring stays.
+func _draw_spot() -> void:
+	if not visible or not is_instance_valid(_spot_enemy):
+		return
+	var still := bool(Fx.setting("reduced_motion", false))
+	var at := _spot_at(_spot_enemy)
+	var zoom := _spot_enemy.get_global_transform_with_canvas().get_scale().x
+	var radius := maxf(34.0 * zoom, 26.0)
+	for i in 4:  # Soft: a few rings fading outwards
+		_spot_layer.draw_arc(at, radius + i * 3.0, 0.0, TAU, 48, Color(UiStyle.GOLD, 0.55 - 0.13 * i), 2.0, true)
+	var badge := _badge_at(_spot_enemy)
+	var beat := 0.5 if still else 0.5 + 0.5 * sin(_spot_clock * 5.0)
+	_spot_layer.draw_arc(badge, maxf(9.0 * zoom, 8.0) + 4.0 * beat, 0.0, TAU, 24, Color(Palette.HEARTLIGHT, 0.95 - 0.5 * beat), 2.0, true)
+	var card := _panel.get_global_rect()
+	var from := Vector2(card.position.x if card.position.x > at.x else card.end.x, clampf(badge.y, card.position.y + 12.0, card.end.y - 12.0))
+	_spot_layer.draw_line(from - global_position, badge, Color(UiStyle.GOLD, 0.7), 1.0, true)
 
 func set_enabled(on: bool) -> void:
 	enabled = on
 	if not on:
 		queue.clear()
+		_after = []
 		close()
 
 func start_intro() -> void:
 	if not enabled or drift_director == null or drift_director.drifts_started != 0:
 		return
-	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the road to the Heartwood. Dispel them before they arrive: each one that gets through costs leaves.")
-	lesson(&"intro_maze", &"path_length", "Build your maze", "Wardens are walls. Plant Sprouts to attack and Thornwalls to make the road longer. Keep a route to the Heartwood open, then start the drift when you are ready.")
-	lesson(&"intro_dew", &"dew", "Earn Dew", "Dispelling nightmares earns Dew to build, grow and nurture Wardens. A longer road also earns maze Dew at rests: +1 per %d cells your route is longer than the forest's own path, up to %d per block. The number after your Dew total forecasts the next rest." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP])
+	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the path to the Heartwood. Dispel them before they arrive: each one that reaches the Heartwood costs leaves.")
+	lesson(&"intro_maze", &"path_length", "Plant and start", InputMode.text(
+		"Wardens are walls. Pick a Sprout from the bar below and click the ground to plant it; Thornwalls make the path longer. Press Start (%s) to let in the first wave, called a drift." % InputMode.key(&"start_drift", "Enter"),
+		"Wardens are walls. Pick a Sprout from the bar below and tap the ground to plant it; Thornwalls make the path longer. Tap Start to let in the first wave, called a drift."))
 
 func skip_intro() -> void:
 	if not INTRO_IDS.has(shown_id):
@@ -178,15 +328,17 @@ func skip_intro() -> void:
 func discovery(id: StringName) -> void:
 	match id:
 		&"grow":
-			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose an unlocked form in its panel. Growing changes its abilities and costs Dew. Some forms must first be unlocked through Remember or the Memory Grove.")
+			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose a form in its panel. Growing costs Dew and changes what it does.")
 		&"nurture":
-			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", "Select a Warden, then choose Nurture and the improvement you want. Each rank costs Dew and strengthens its current form. " + InputMode.text("Hover", "Tap") + " a choice to read its exact effect. At rank V, four matching picks earn a signature or mastery; mixed picks earn All-Rounder, +20% to its main job.")
+			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", InputMode.text(
+				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "R"),
+				"Select a Warden and tap Nurture to make it stronger for Dew. Each rank lets you choose one improvement. Tap a choice to read it."))
 		&"dream":
-			lesson(&"discover_dream", &"dreamlight", "Choose a Dream", "Dreams change your run. Offers are random: pick a card that supports your Wardens, or experiment with a new build. Some cards pay off after you add more towers or combine statuses.")
+			lesson(&"discover_dream", &"dreamlight", "A Dream", "Pick one card. You don't have to take one. Dreams last the whole run.")
 		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
-			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), IconInfo.status_tooltip(id))
+			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), status_text(id))  # Asked for by name (tests, replays): no nightmare to point at
 		&"flyer":
-			lesson(&"discover_flyer", &"nightmare", "Flying nightmares", "Flying nightmares ignore your maze. Keep attackers covering the approach to the Heartwood, and watch the coming-nightmare warnings.")
+			lesson(&"discover_flyer", &"nightmare", "Flyers", "Flyers ignore your maze and go straight for the Heartwood. Keep attacking Wardens near it, and check which nightmares are coming before each block.")
 
 # --- Triggers ---------------------------------------------------------------------------------------------------
 
@@ -197,11 +349,11 @@ func _on_built(tower: Tower) -> void:
 		_plants_in_mode += 1
 		if _plants_in_mode >= 2:
 			lesson(&"build_mode", &"rank", "Build mode",
-				InputMode.text("Build mode stays on. Right-click or Esc to stop building.",
-					"Build mode stays on. Tap Done to stop building."))
+				InputMode.text("Build mode stays on. Right-click or Esc to stop planting.",
+					"Build mode stays on. Tap Done to stop planting."))
 	var data := tower.tower_data
 	if data.catch_share > 0.0:
-		lesson(&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest.")
+		lesson(&"guide_catch", &"dew", "Catchers", CATCH_TEXT)
 	if tower.get_meta(&"gift_sprout", false):
 		return
 	if data.get_id() == "sprout":  # The first time the Sprout price steps up (onboarding.md a599a72d)
@@ -259,6 +411,14 @@ func _process(_delta: float) -> void:
 			game_speed.set_paused(false)
 	if visible and _over_choice != null and (not is_instance_valid(_over_choice) or not _over_choice.visible):
 		close()  # Its choice screen went away
+	if visible and _spot_status != &"":
+		if is_instance_valid(_spot_enemy):
+			_spot_clock += _delta / maxf(Engine.time_scale, 0.001)
+			_place_beside()
+			_spot_layer.queue_redraw()
+		else:
+			_end_spot()  # It went (a test freed it): the card stays, centred
+	_watch_field(_delta)
 	_check_choice_lessons()
 	if not visible and not queue.is_empty() and can_show():
 		_show(queue.pop_front())
@@ -310,15 +470,13 @@ func _choice_offered(id: StringName, screen: Control) -> bool:
 func _choice_entry(id: StringName) -> Array:
 	match id:
 		&"choice_family":
-			return [id, &"rank", "Wake a family", "Choose one of these Warden families. Your Sprouts can grow into it, and you can plant it directly.\n\n"
-				+ "Your first family is also your Calling: its special rule lasts the whole run. It's shown on each card.\n\n"
-				+ "Each card lists the forms that family can grow into this run.\n\n"
-				+ InputMode.text("\"Peek at the map\" shows the board first.", "Tap \"Peek at the map\" to look at the board first.")]
+			return [id, &"rank", "Wake a family", "Choose one Warden family. Your Sprouts can grow into it, or you can plant it directly.\n\n"
+				+ "Your first family also brings a Calling, a rule that lasts all run, shown on its card."]
 		&"discover_dream":
 			var pass_dew: int = dream_state.skip_dew if dream_state != null else 0
-			return [id, &"dreamlight", "A Dream", "Pick one card, or let it pass for %s. Dreams last the whole run.\n\nA card that needs a Warden you don't have says so." % (
+			return [id, &"dreamlight", "A Dream", "Pick one card. You don't have to take one: Let it pass gives %s instead. Dreams last the whole run.\n\nA card that needs a Warden you don't have says so." % (
 				dew_text(pass_dew) if pass_dew > 0 else "nothing")]
-	return [id, &"nightmare", "An Omen", "An Omen makes the next block harder and pays you at the rest after it. Clear Skies skips it."]
+	return [id, &"nightmare", "Face an Omen", "An Omen makes the next %d drifts harder and pays a reward at the rest after them. You can skip it: nothing changes, no reward." % (drift_director.drifts_per_block if drift_director != null else 5)]
 
 # Keys stop at a choice Lesson (Enter / Esc close it, below): none reaches the choice screen under it.
 func _input(event: InputEvent) -> void:
@@ -330,13 +488,18 @@ func _show(entry: Array) -> void:
 		_paused_it = true
 		_resume_pending = false
 	shown_id = entry[0]
+	_end_spot()
+	if entry.size() > 4 and is_instance_valid(entry[4]):  # A status Lesson with its nightmare: the spotlight
+		_spot_enemy = entry[4]
+		_spot_status = entry[1]
+		_spot_clock = 0.0
 	_icon.texture = IconInfo.icon(entry[1])
 	_icon.visible = _icon.texture != null
 	_title.text = entry[2]
 	_skip.visible = not _replaying and INTRO_IDS.has(shown_id)
 	_ok.text = "Next" if (_replaying and not queue.is_empty()) or (_skip.visible and shown_id != INTRO_IDS[-1]) else "Got it"
-	_body.text = entry[3]
-	_demo.topic = &"nurture" if shown_id == &"discover_nurture" else (&"maze" if shown_id == &"intro_maze" else (&"catch" if shown_id == &"guide_catch" else &""))
+	_body.text = StatusLinks.bbcode(entry[3])  # Status names and glossary terms ({reactions} …) as links
+	_demo.topic = &"nurture" if shown_id == &"rank_rules" else (&"maze" if shown_id == &"dew_maze" else (&"catch" if shown_id == &"guide_catch" and _replaying else &""))
 	_demo.clock = 0.0
 	_demo.visible = _demo.topic != &""
 	visible = true
@@ -345,19 +508,28 @@ func _show(entry: Array) -> void:
 		seen.append(String(shown_id))
 		_remember()
 	if game_speed != null and not game_speed.paused:
-		_paused_it = _over_choice == null  # A choice Lesson never owns the pause: its screen does, and keeps it
+		# Not paused when it opened, so this card owns the pause, a choice Lesson too (its screen normally holds the pause
+		# already and this line isn't reached; if it didn't, close() resumes once every rest screen has closed).
+		_paused_it = true
 		game_speed.set_paused(true)
 	lesson_shown.emit(shown_id)
 
 func close() -> void:
 	if not visible:
 		return
+	if not _after.is_empty():  # "Statuses stack" hands over to the status's own Lesson, on the same nightmare
+		var following := _after
+		_after = []
+		if following.size() > 4 and is_instance_valid(following[4]):
+			_show(following)
+			return
 	if (_replaying or INTRO_IDS.has(shown_id)) and not queue.is_empty() and (_replaying or INTRO_IDS.has(queue[0][0])):
 		_show(queue.pop_front())
 		return
 	visible = false
 	_replaying = false
 	shown_id = &""
+	_end_spot()
 	if _over_choice != null:  # A choice Lesson: back to its own place under the screens (their pause stays theirs)
 		_over_choice = null
 		if get_parent() != null and _index_before >= 0:
@@ -384,12 +556,15 @@ func _remember() -> void:
 	HeartwoodMemory.save_data(memory)
 
 # Explicit replay bypasses first-time/profile limits; it still owns and releases its pause.
+const CATCH_TEXT := "This Warden catches extra Dew when a nightmare is dispelled in its range. It is paid to you at the next rest."
+const RANK_TEXT := "At rank V a Warden earns a mark. Four ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does."
+
 func replay_guides() -> void:
 	if main == null or game_speed == null:
 		return
 	_replaying = true
 	queue.clear()
-	queue.append([&"discover_nurture", &"rank", "Rank-V bonuses", "Four matching picks among your first five earn a signature or mastery. Other rank-V builds earn All-Rounder: +20% to their main job. Shared Training needs four matching picks on both bonded rank-IV kin."])
-	queue.append([&"intro_maze", &"path_length", "Maze Dew", "Every %d cells your walls add to the road earn +1 maze Dew, counted while nightmares walk. The forecast beside your Dew shows the next rest's reward, up to %d a block." % [DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW, DriftDirector.MAZE_ECONOMY.BLOCK_CAP]])
-	queue.append([&"guide_catch", &"dew", "Catcher income", "The strongest catcher in reach collects extra Dew in its bowl when a nightmare is dispelled. At a rest, bowls pour into the bank first; Wellsprings then pay capped interest."])
+	queue.append([&"rank_rules", &"rank", "Rank V", RANK_TEXT])
+	queue.append([&"dew_maze", &"path_length", "Maze bonus", "Every %d cells your walls add to the path earn +1 Maze bonus, counted while nightmares walk. The number beside your Dew shows what the rest ending this block will pay." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW])
+	queue.append([&"guide_catch", &"dew", "Catchers", CATCH_TEXT])
 	_show(queue.pop_front())

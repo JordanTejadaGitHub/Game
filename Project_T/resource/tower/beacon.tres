@@ -10,7 +10,8 @@
 script = ExtResource("1_tdata")
 display_name = "Beacon"
 role_line = "Exposes, multi-target, long range"
-description = "Every 2 s, adds a {marked} stack to every nightmare in range. At full stacks, its {marked} is stronger: +50% damage taken."
+heavy = true
+description = "Every 2 s, adds a {marked} {stack} to every nightmare in range. At {full} stacks, its {marked} is stronger: +50% damage taken."
 cost = 0
 counter_tags = Array[StringName]([&"detection"])
 line = "light"

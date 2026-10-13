@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "acorn"
 display_name = "Acorn family"
-description = "{family:acorn} joins your {family_picks}: support and Dew. Dew Trail joins the pool."
+description = "{family:acorn} can now appear as a choice at {family_picks}. Strengthens Wardens in range and earns {dew}. Also adds the {card:dew_trail} card."
 root = 0
 costs = Array[int]([70])
 order = 6

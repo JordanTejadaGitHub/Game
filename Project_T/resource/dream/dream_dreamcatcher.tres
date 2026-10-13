@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dreamcatcher"
 display_name = "Dreamcatcher"
-description = "Bellflowers can now grow into Dreamcatchers ({dew:{grow_cost:dreamcatcher}}): {asleep} or fully {drowsy} nightmares in its range are {caught}: their statuses stop wearing off while they stay {caught}."
+description = "{warden:bellflower}s can now {grow} into {warden:dreamcatcher}s ({dew:{grow_cost:dreamcatcher}}): {asleep} or fully {drowsy} nightmares in its range are {caught}: their statuses stop wearing off while they stay {caught}."
 rarity = 1
 kind = 1
 tags = Array[String](["song"])
