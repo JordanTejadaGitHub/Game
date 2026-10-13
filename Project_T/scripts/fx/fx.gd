@@ -438,7 +438,7 @@ static func exposed_check(enemy: Node2D) -> bool:
 	enemy.set_meta(EXPOSED_META, mark)
 	if not reduce_flashes():  # Reduce flashes: no flare; the mark stays
 		if has_effect(EXPOSED_COMPLETE):
-			play(EXPOSED_COMPLETE, enemy.global_position, world)
+			play(sized(EXPOSED_COMPLETE, enemy), Tower.aim_at(enemy), world)
 		else:
 			status_flash(&"marked", enemy.global_position, world)  # Stand-in until the sheet lands
 	var callouts := enemy.get_tree().get_first_node_in_group(&"combat_callouts") if enemy.is_inside_tree() else null
@@ -486,6 +486,32 @@ const HIT_STAND_INS := {
 	"song": [&"toll_ring", 0.5], "acorn": [&"firework_pop", 0.6], "wing": [&"peck_spark", 1.0],
 	"wind": [&"dark_swirl", 0.6], "thorns": [&"thorns", 0.7], "wall": [&"thorns", 0.7]}
 const HIT_DEFAULT := [&"area_hit", 0.75]
+# Tower Assets f37e0b90: sheets not named hit_<line>. The Rootling line keeps root_lash (its scale from the stand-ins).
+const HIT_ART := {"song": &"hit_bell", "thorns": &"hit_thorn", "wall": &"hit_thorn", "root": &"hit_root"}
+const BODY_MID := 30.0  # Body sizes the sheets come in: up to 30 px across plain, up to 54 "_mid", larger "_big"
+const BODY_BIG := 54.0
+const BODY_META := &"fx_body_suffix"
+
+# `effect` in the size that fits the nightmare's drawn body (exposed_mark, link_arcs…: "", "_mid", "_big"), by its
+# art's solid height (Enemy's bounds.json) at its scale; the plain sheet when there is no sized one.
+static func sized(effect: StringName, enemy: Node) -> StringName:
+	if not is_instance_valid(enemy):
+		return effect
+	if not enemy.has_meta(BODY_META):
+		var suffix := ""
+		var sprite: AnimatedSprite2D = enemy.get("sprite") as AnimatedSprite2D
+		var frames := sprite.sprite_frames if sprite != null else null
+		if frames != null and frames.has_animation(&"walk_side") and frames.get_frame_count(&"walk_side") > 0:
+			var tex := frames.get_frame_texture(&"walk_side", 0)
+			var sheet: String = tex.atlas.resource_path if tex is AtlasTexture else tex.resource_path
+			var all_bounds: Dictionary = enemy._art_bounds() if enemy.has_method("_art_bounds") else {}  # (enemy.gd has no class_name)
+			var bounds: Dictionary = all_bounds.get(sheet.get_file().get_basename(), {})
+			var tall: float = float(bounds.bottom) - float(bounds.top) if bounds.has("top") and bounds.has("bottom") else tex.get_height() * 0.6
+			tall *= absf(sprite.scale.y)
+			suffix = "_big" if tall > BODY_BIG else ("_mid" if tall > BODY_MID else "")
+		enemy.set_meta(BODY_META, suffix)
+	var fitted := StringName(String(effect) + String(enemy.get_meta(BODY_META)))
+	return fitted if has_effect(fitted) else effect
 const HIT_GAP_MS := 150  # One hit effect per nightmare per source
 const HIT_PER_SECOND := 40  # Small puffs a second on screen; past it they thin out (the flinch doesn't)
 const HIT_PER_SECOND_REDUCED := 14
@@ -506,7 +532,7 @@ static var last_hit_effect := &""  # The last hit effect played (tests)
 # The hit effect for a source of `line` whose damage carried `tag`: [effect id, scale].
 static func hit_effect(line: String, tag: StringName = &"") -> Array:
 	var key := "thorns" if tag == &"thorns" else line
-	var art := StringName("hit_" + key)
+	var art: StringName = HIT_ART.get(key, StringName("hit_" + key))
 	if has_effect(art):
 		return [art, 1.0]
 	return HIT_STAND_INS.get(key, HIT_DEFAULT)
@@ -571,8 +597,8 @@ static func _bolt_strike(enemy: Node2D) -> void:
 	if world == null:
 		return
 	_bolt_msec = now
-	last_hit_effect = &"hit_bolt" if has_effect(&"hit_bolt") else &"thunderhead_strike"
-	play(last_hit_effect, enemy.global_position, world, 1.0 if has_effect(&"hit_bolt") else 0.7)
+	last_hit_effect = &"bolt_strike" if has_effect(&"bolt_strike") else &"thunderhead_strike"  # Tower Assets f37e0b90: its anchor is the strike point
+	play(last_hit_effect, Tower.aim_at(enemy) if last_hit_effect == &"bolt_strike" else enemy.global_position, world, 1.0 if last_hit_effect == &"bolt_strike" else 0.7)
 
 # Continuous damage on `enemy`: attaches (or refreshes) the looping overlay of `kind` and sets its sustained state.
 # The overlay goes the frame its source stops: the link when the nightmare leaves the segment (`link` = the two
@@ -640,6 +666,7 @@ class FxSustain extends Node2D:
 	var _seed := 0
 	var _stamp := 0
 	var _art: Node2D = null
+	var _art_shown := &"-"
 
 	func _init(target: Node2D, of_kind: StringName, is_quiet: bool = false) -> void:
 		enemy = target
@@ -651,9 +678,30 @@ class FxSustain extends Node2D:
 	func _ready() -> void:
 		Fx._sustains += 1
 		_follow()
-		var art := StringName("sustain_" + String(kind))
-		if not quiet and Fx.has_effect(art):
-			_art = Fx.play(art, global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
+		_fit_art()
+
+	# Tower Assets' looping sheet for this overlay now (f37e0b90), &"" = drawn: the link's arcs in the body's size,
+	# Poisoned's bubbles by stacks (each denser sheet keeps the sparser one's bubbles), the beam's spot by its ramp.
+	func _art_id() -> StringName:
+		var id := &""
+		if kind == Fx.SUSTAIN_LINK:
+			id = Fx.sized(&"link_arcs", enemy)
+		elif kind == Fx.SUSTAIN_POISON:
+			id = &"poison_bubbles_3" if strength >= 24.0 else (&"poison_bubbles_2" if strength >= 10.0 else &"poison_bubbles_1")
+		elif kind == Fx.SUSTAIN_BEAM:
+			id = &"beam_spot_big" if strength >= 0.5 else &"beam_spot"
+		return id if id != &"" and Fx.has_effect(id) else &""
+
+	func _fit_art() -> void:
+		if quiet:
+			return
+		var id := _art_id()
+		if id == _art_shown:
+			return
+		_art_shown = id
+		if _art != null and is_instance_valid(_art):
+			_art.queue_free()
+		_art = Fx.play(id, global_position, self, 1.0, true, 9999.0) if id != &"" else null  # Loops until this node goes
 
 	func _exit_tree() -> void:
 		Fx._sustains = maxi(Fx._sustains - 1, 0)
@@ -710,6 +758,7 @@ class FxSustain extends Node2D:
 		if _roll <= 0.0:
 			_roll = ROLL * (4.0 if Fx.reduce_flashes() else 1.0)  # Reduce flashes: the arcs barely jitter
 			_seed += 1
+			_fit_art()  # The stacks or the ramp may have moved to the next sheet
 		if not quiet and _art == null:
 			queue_redraw()
 
@@ -772,9 +821,9 @@ class FxExposedMark extends Node2D:
 	func _ready() -> void:
 		Fx._exposed_marks += 1
 		if is_instance_valid(enemy):
-			global_position = enemy.global_position
-		if not quiet and Fx.has_effect(Fx.EXPOSED_MARK):
-			_art = Fx.play(Fx.EXPOSED_MARK, global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
+			global_position = Tower.aim_at(enemy)  # The body centre (the sheets' anchor)
+		if not quiet and Fx.has_effect(Fx.sized(Fx.EXPOSED_MARK, enemy)):
+			_art = Fx.play(Fx.sized(Fx.EXPOSED_MARK, enemy), global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
 
 	func _exit_tree() -> void:
 		Fx._exposed_marks = maxi(Fx._exposed_marks - 1, 0)
@@ -791,7 +840,7 @@ class FxExposedMark extends Node2D:
 				return
 			modulate.a = _fade  # multiplier (the fade)
 		if is_instance_valid(enemy):
-			global_position = enemy.global_position
+			global_position = Tower.aim_at(enemy)  # The body centre (the sheets' anchor)
 		_age += delta
 		if not quiet and _art == null:
 			queue_redraw()
