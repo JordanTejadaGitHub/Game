@@ -105,6 +105,46 @@ func _run() -> void:
 	_check(toad._path_index == index_before + leap_steps,"Toad leaps 3 tiles ahead (%d → %d)" % [index_before, toad._path_index])
 	_check(neighbour.statuses.has(EnemyStatuses.DAMP), "creatures by the landing get Damp")
 
+	# --- Hit feedback (screens_ui.md "Hit feedback on nightmares", layer 1): a hit makes it flinch, a tick doesn't ---
+	var husk: Node2D = spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
+	husk.set_process(false)
+	var stood: Vector2 = husk.position
+	var rest_offset: Vector2 = husk.sprite.offset
+	var hitter := Node2D.new()
+	main.add_child(hitter)
+	hitter.global_position = husk.global_position + Vector2(-100, 0)  # The hit comes from its left
+	husk.take_damage(husk.max_health * 0.1, "", false, false, hitter)
+	_check(is_equal_approx(husk._flinch_left, husk.FLINCH_TIME) and is_equal_approx(husk._recoil.length(), husk.RECOIL_MAX)
+		and husk._recoil.x > 0.0, "a heavy hit: the sprite recoils %.1f px away from the hit" % husk._recoil.length())
+	_check(is_equal_approx(husk._flash_shown, husk.FLASH_MAX) and husk.sprite.offset != rest_offset,
+		"and it flashes pale (hit_flash %.2f)" % husk._flash_shown)
+	_check(husk.position == stood, "the body never moves: only the sprite")
+	husk._update_flinch(husk.FLINCH_TIME)
+	_check(husk._recoil == Vector2.ZERO and husk._flash_shown == 0.0 and husk.sprite.offset.is_equal_approx(rest_offset),
+		"then both return to rest")
+	husk.take_damage(1.0)
+	_check(husk._recoil.length() >= husk.RECOIL_MIN - 0.001 and husk._recoil.length() < husk.RECOIL_MIN + 0.2
+		and husk._flash_shown >= husk.FLASH_MIN - 0.001, "a tap still registers (%.2f px)" % husk._recoil.length())
+	husk._update_flinch(husk.FLINCH_TIME)
+	husk.take_damage(5.0, "spore", true, false, null, &"spored")
+	_check(husk._flinch_left == 0.0 and husk._flash_shown == 0.0 and husk._recoil == Vector2.ZERO,
+		"a Poisoned tick doesn't flinch or flash")
+	_check(husk.is_sustained(&"spored") and husk.is_sustained(), "it marks the sustained state instead (for the Wardens' overlays)")
+	husk._update_sustained(husk.SUSTAIN_HOLD + 0.01)
+	_check(not husk.is_sustained(&"spored"), "which ends a moment after the last tick")
+	husk.set_sustained(husk.ARC_TAG, true)
+	husk._update_sustained(5.0)
+	husk._update_flinch(0.016)
+	_check(husk.is_sustained(husk.ARC_TAG) and husk._recoil != Vector2.ZERO, "a source can hold it (the Jarlink's arc): it twitches meanwhile")
+	husk.set_sustained(husk.ARC_TAG, false)
+	husk._update_flinch(0.016)
+	_check(not husk.is_sustained() and husk._recoil == Vector2.ZERO, "and is still again once the arc lets go")
+	var big: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"))
+	big.set_process(false)
+	big.take_damage(big.max_health * 0.2)
+	_check(is_equal_approx(big._recoil.length(), big.RECOIL_MAX * big.BOSS_FLINCH), "a boss flinches half as far (%.1f px)" % big._recoil.length())
+	hitter.free()
+
 	print("creatures test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
