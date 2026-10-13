@@ -144,6 +144,7 @@ func _ready() -> void:
 	_dev_free.toggled.connect(func(_on: bool) -> void: _fill_side(selected))
 	footer.add_child(_dev_free)
 	peek = ChoicePeek.new(self, [dim, center], "Back to Remember")
+	peek.changed.connect(_preview_on_map)  # Peeking shows the looked-at form on the Wardens that can grow into it
 	var peek_button := peek.make_peek_button()
 	if peek_button is Button:
 		UiStyle.quiet(peek_button)
@@ -182,6 +183,7 @@ func open(focus_form: TowerData = null) -> void:
 
 func close() -> void:
 	visible = false
+	_preview_on_map(false)  # No form left previewed on the map
 	game_speed.set_paused(_was_paused)
 	dream_state.remember_closed()
 	closed.emit()
@@ -293,6 +295,7 @@ func _build_phone() -> void:
 	_dev_free.toggled.connect(func(_on: bool) -> void: _fill_side(selected))
 	bar.add_child(_dev_free)
 	peek = ChoicePeek.new(self, [dim, _margin], "Back to Remember")
+	peek.changed.connect(_preview_on_map)  # Peeking shows the looked-at form on the Wardens that can grow into it
 	var peek_button := peek.make_peek_button()
 	if peek_button is Button:
 		UiStyle.quiet(peek_button)
@@ -1058,6 +1061,21 @@ func _refuse_unlock(data: TowerData, button: Button) -> void:
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
 	dream_state.dreamlight_short.emit(dream_state.get_unlock_price(data))  # The HUD flashes the Dreamlight counter
+
+# "Peek at the map" shows the form being looked at on every planted Warden that can grow into it (Tower Code's grow
+# preview, 2c4da247: its sprite in place, its range, link, jet line and special areas); gone on coming back.
+func _preview_on_map(peeking: bool) -> void:
+	var placer := get_node_or_null("%TowerPlacer") as TowerPlacer
+	if placer == null:
+		return
+	if not peeking or selected == null:
+		placer.hide_grow_preview()
+		return
+	var pairs: Array = []
+	for tower in placer.tower_container.get_children():
+		if tower is Tower and tower.tower_data != null and tower.tower_data.evolves_to.has(selected):
+			pairs.append([tower, selected])
+	placer.show_grow_preview(pairs)  # (It keeps only forms already unlocked: a locked form shows nothing yet)
 
 func _select(data: TowerData) -> void:
 	selected = data
