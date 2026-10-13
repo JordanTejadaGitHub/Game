@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_well"
 display_name = "Deep Well"
-description = "At every {rest}, 5% {interest} on your banked {dew} (up to {dew:40})."
+description = "At every {rest}, 5% {interest} on your banked {dew} (up to {dew:80})."
 rarity = 2
 kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])

@@ -194,7 +194,7 @@ registered (`HeartwoodGifts.register(id, callable)`), so **`reshape` is not offe
 | `heartwood_roots` | `damage_taken` | 0.30 | 0.45 | 0.60 |
 | `heartwood_roots` | `root_time` (s), `boss_share` | 1.0, 0.5 | same | same |
 One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_chance` 0.30, `crit_damage` 0.25 ·
-`mire` `slow` 0.35, `rooted_multiplier` 2 · `reshape` `dew_per_obstacle` 30 (× the act; paid here, in `_payoff`) ·
+`mire` `slow` 0.35, `rooted_multiplier` 2 · `reshape` `dew_per_obstacle` 60 (× the act; paid here, in `_payoff`) ·
 `ancient_stump` `free_ranks` 2 · `shifting_mist` `dew` 0.25 (applied here, `get_dew_pot_multiplier`) ·
 `bramble_verge` `drowsy_rate` 2 · `waking_root` `free_unlocks` 1, `dreamlight` 1 (applied in `DreamState`).
 `crit_damage` 0.25 is my starting number: the table says only "crits hit harder".

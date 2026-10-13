@@ -16,7 +16,7 @@ const WIDE_BOWL_STEP := 0.5  # Dew Trail (any level): +0.5 cells catch radius (W
 const DEW_TRAIL := [0.30, 0.50]  # Dew Trail / II: more when the caught nightmare is Damp (dream_audit.md)
 const HARVEST_MOON := 0.5  # Harvest Moon (Seed card): the Harvest pays +50%
 const DEEP_WELL_CAP := 30  # Deep Well (Seed card): each Wellspring's interest cap +30
-const OVERFLOW_PER_SHARD := 50  # Overflowing Well: each 50 Dew of interest over the cap = a Dreamlight shard
+const OVERFLOW_PER_SHARD := 100  # Overflowing Well: each 100 Dew (Dew x2 second pass: was 50) of interest over the cap = a Dreamlight shard
 const BOWL_FULL := 60.0  # Dew in the bowl that shows it full
 const GOLD := Palette.GLOW
 const DROPLETS_PER_SECOND := 6  # Catch droplets share the effects budget (below Harmony sparks)

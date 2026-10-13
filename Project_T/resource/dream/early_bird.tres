@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "early_bird"
 display_name = "Early Bird"
-description = "Calling a {drift} early gives {dew:+5}."
+description = "Calling a {drift} early gives {dew:+10}."
 rarity = 0
 kind = 4
 tags = Array[String](["daring"])

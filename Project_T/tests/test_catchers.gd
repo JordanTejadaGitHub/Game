@@ -131,7 +131,7 @@ func _run() -> void:
 		"Deep Well: a Wellspring's cap is 90, all together still the shared cap (%s)" % str(paid_now))
 	_take("overflowing_well")
 	var shards := dreams.dreamlight_shards
-	run_state.dew = 3000
+	run_state.dew = 6000  # Overflowing Well needs 100 Dew over the cap per shard now
 	director.rest_started.emit(6, false, 0, true)
 	_check(dreams.dreamlight_shards > shards, "Overflowing Well: interest over the cap becomes shards (%d)" % (dreams.dreamlight_shards - shards))
 

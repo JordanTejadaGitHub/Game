@@ -59,7 +59,7 @@ func _run() -> void:
 	var dew: int = dreams.run_state.dew
 	dreams.run_state.lose_leaves(1)
 	dreams.run_state.lose_leaves(1)
-	_check(dreams.run_state.dew == dew + 8, "actual RunState leaf loss pays Emergency Reserves once")
+	_check(dreams.run_state.dew == dew + 16, "actual RunState leaf loss pays Emergency Reserves once")
 	_take("fresh_beginnings")
 	var newest := _plant("sporeling", Vector2(10, 2))
 	dreams._on_tower_built(newest)

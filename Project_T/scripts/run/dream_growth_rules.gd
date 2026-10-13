@@ -32,8 +32,8 @@ func actual_leak(dreams: DreamState, lost: int) -> void:
 	if emergency_block == block:
 		return
 	emergency_block = block
-	dreams.run_state.add_dew(8)
-	dreams._credit("emergency_reserves", "dew", 8.0)
+	dreams.run_state.add_dew(16)  # Dew x2 second pass (was 8)
+	dreams._credit("emergency_reserves", "dew", 16.0)
 func wall(dreams: DreamState, tower: Tower, enemy: Node2D, drift: int) -> void:
 	if not dreams.has_rule(&"hushed_hedge") or not is_instance_valid(enemy) or enemy.is_cleansed or enemy.is_flying():
 		return

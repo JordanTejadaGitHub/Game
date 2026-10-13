@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "harvest_moon"
 display_name = "Harvest Moon"
-description = "{dew:+15} at every {rest}."
+description = "{dew:+30} at every {rest}."
 rarity = 1
 kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])
 max_stacks = 1
-rest_bonus_add = 15
+rest_bonus_add = 30
 rule_id = &"harvest_moon"
 retired = true
 in_start_pool = false
