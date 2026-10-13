@@ -19,6 +19,31 @@ func _run() -> void:
 	ResultsScreen.demo_override = 0
 	MetaRun.force_all_families = false
 
+	# A cold start (crash 2026-10-13: a Crowned Reaction's description named a combo with {combo:x}; formatting it
+	# while the lists were still being built started the build again: stack overflow). Every list, from empty caches,
+	# in every order, returns, and its texts are formatted; so does every Reaction's and Kinship's text on its own.
+	for first in [&"crowned", &"combos", &"kinships", &"get_any"]:
+		CodexData.clear_lists()
+		var built: Array = []
+		match first:
+			&"crowned": built = CodexData.crowned()
+			&"combos": built = CodexData.combos()
+			&"kinships": built = CodexData.kinships()
+			_: built = [CodexData.get_any(&"thunderclap")]
+		_check(not built.is_empty() and built.all(func(e: Dictionary) -> bool: return not e.is_empty() and not String(e.get("text", "")).contains("{")),
+			"cold start, %s first: the list builds and its texts are formatted (%d entries)" % [first, built.size()])
+	CodexData.clear_lists()
+	_check(IconInfo.format("{named_combo:thunderclap} and {named_combo:tempest}") == "Thunderclap and Tempest",
+		"a combo token formats from a cold start (%s)" % IconInfo.format("{named_combo:thunderclap} and {named_combo:tempest}"))
+	for data in Reactions.all() + Reactions.crowned():
+		CodexData.clear_lists()
+		_check(not IconInfo.format(data.description).contains("{"), "%s: its description formats from a cold start" % data.id)
+	for id in CodexData.KINSHIP_TEXT:
+		CodexData.clear_lists()
+		_check(not IconInfo.format(CodexData.KINSHIP_TEXT[id]).contains("{"), "Kinship %s: its text formats from a cold start" % id)
+	_check(CodexData.crowned().size() == CodexData.CROWNED.size() and CodexData.get_any(&"thunderclap").get("name", "") == "Thunderclap",
+		"the lists are whole after all that")
+
 	# No Pebbling in the Grove: its combos wait there.
 	var profile := HeartwoodMemory.load_data()
 	HeartwoodMemory.save_data(profile)

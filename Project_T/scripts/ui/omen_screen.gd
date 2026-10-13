@@ -160,7 +160,7 @@ func _make_face_down_card() -> Button:
 	var top := _card_top(box, &"omen")
 	UiStyle.title(_add_line(top, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	_add_flavor(top, "Something's out there, waiting to be asked.")
-	var points: Array = [_add_bullet(box, "A hidden twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, FRONT_BODY_SIZE),
+	var points: Array = [_add_bullet(box, "A secret twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, FRONT_BODY_SIZE),
 		_add_bullet(box, "A reward at the next rest, smaller for each leaf you lose", UiStyle.INK, FRONT_BODY_SIZE),
 		_add_bullet(box, "Once revealed, you must take one", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
 	_card_action(box, "Face it", false)  # Secondary: no card is the default (story chat)

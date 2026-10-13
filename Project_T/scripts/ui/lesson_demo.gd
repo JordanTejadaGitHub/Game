@@ -54,7 +54,7 @@ func _draw() -> void:
 			distance -= segment
 		draw_string(UiStyle.with_glyphs(font), Vector2(22, 78), "%s / %d extra cells" % [UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.GOLD)
 	elif topic == &"catch":
-		var steps := ["Dispelled", "Dew caught", "Paid at rest", "Wellsprings"]
+		var steps := ["Dispelled", "Dew collected", "Paid at rest", "Wellsprings"]
 		for i in 4:
 			var x := 12 + i * 104
 			draw_rect(Rect2(x, 12, 96, 36), Color(UiStyle.GOLD if i == int(clock) else UiStyle.INK_DIM, 0.2))

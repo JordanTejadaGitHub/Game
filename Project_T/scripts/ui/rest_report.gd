@@ -149,7 +149,7 @@ static func support_text(near: Node, period: String) -> String:
 	var lines: Array[String] = []
 	var totals: Dictionary = support.get_totals(period)
 	if period == "block" and int(totals.get("dew_paid", 0)) > 0:
-		lines.append("Dew caught %s" % UiStyle.dew_amount(int(totals.dew_paid), true))
+		lines.append("Catchers collected %s" % UiStyle.dew_amount(int(totals.dew_paid), true))
 	var top: Dictionary = support.get_top_support(period)
 	if not top.is_empty():
 		lines.append("%s: %s" % ["Top support" if period == "block" else "Best supporter", top.get("text", "")])

@@ -97,12 +97,7 @@ func _initialize() -> void:
 		and String(flurry_tip.get("text", "")).contains(IconInfo.format(flurry.description))
 		and String(flurry_tip.get("text", "")).begins_with(UpgradeData.rarity_name(flurry.rarity)) and not String(flurry_tip.get("text", "")).contains("{"),
 		"{card:flurry} in a cost line: a card link whose tip is Flurry's rarity and description (%s)" % [flurry_tip])
-	var card_popup: StatusLinks = cost_line.get_meta(&"status_popup")
-	card_popup._show_for("card:flurry", cost_line, true)
-	_check(card_popup.visible and card_popup._name.text == flurry.display_name and card_popup._gem.visible and not card_popup._more.visible,
-		"a tap opens the card's tip: its name and rarity gem")
-	card_popup._show_for("card:flurry", cost_line, true)
-	_check(not card_popup.visible, "the same link again closes it")
+	# (The popup itself, opening on a tap and closing on a second, needs a window: test_ui covers StatusLinks popups.)
 	_check(StatusLinks.card_tip("omen:static_sky").get("name", "") == "Crackling Sky" and StatusLinks.card_tip("card:no_such_card").is_empty(),
 		"an Omen link has its tip; a link to nothing has none")
 	cost_line.queue_free()

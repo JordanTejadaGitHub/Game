@@ -39,7 +39,7 @@ const STATS := {
 	&"potency": ["Potency", "How strong this Warden's statuses are. Higher Potency: harder {spored} and {static}, stronger slows, longer {held}. Raise it with the Deep choice."],
 	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest). Each rank adds damage and attack speed, and you choose one improvement."],
 	&"focus": ["Nurture choice", "Each rank you choose one improvement. Attacking Wardens: Power, Swift, Reach or Deep. Support Wardens have their own."],
-	&"focus_power": ["Power", "Hits harder: +18% damage."],
+	&"focus_power": ["Power", "Hits harder: deals 18% more damage."],
 	&"focus_swift": ["Swift", "Attacks faster: +12%."],
 	&"focus_reach": ["Reach", "More range: +0.3 cells."],
 	&"focus_deep": ["Deep", "Stronger statuses: +25% Potency."],

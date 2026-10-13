@@ -196,9 +196,38 @@ static var _kinship_list: Array[Dictionary] = []
 static var _combo_list: Array[Dictionary] = []
 static var _index := {}  # id -> its dictionary (combos first, then Crowned, then Kinships)
 
+# Re-entrant-safe (crash 2026-10-13: a Reaction's description named another combo with {combo:x}; formatting it
+# asked get_any, whose index was empty because this build was still running, so it built again: stack overflow).
+# All three lists are built together in two passes: first every entry with its id, name and RAW text, and the
+# index over them; only then are the texts formatted. A lookup made while formatting (IconInfo.format ->
+# get_any) finds the names in the index and never starts another build.
+static var _filling := false
+
+static func _fill() -> void:
+	if _filling or not _index.is_empty():
+		return
+	_filling = true
+	_combo_list = _build_combos()
+	_crowned_list = _build_crowned()
+	_kinship_list = _build_kinships()
+	for c in _combo_list + _crowned_list + _kinship_list:
+		if not _index.has(c.id):
+			_index[c.id] = c
+	for c in _combo_list + _crowned_list + _kinship_list:  # The same dictionaries as in the index: names first, text second
+		c["text"] = IconInfo.format(String(c.get("raw", ""))) + String(c.get("after", ""))
+	_filling = false
+
+# Forgets the lists (a new combo was discovered: a text naming it read "???"; tests: a cold start).
+static func clear_lists() -> void:
+	if _filling:
+		return
+	_combo_list = []
+	_crowned_list = []
+	_kinship_list = []
+	_index = {}
+
 static func crowned() -> Array[Dictionary]:
-	if _crowned_list.is_empty():
-		_crowned_list = _build_crowned()
+	_fill()
 	return _crowned_list.duplicate()
 
 static func _build_crowned() -> Array[Dictionary]:
@@ -209,15 +238,12 @@ static func _build_crowned() -> Array[Dictionary]:
 		var statuses: Array = (base.statuses.duplicate() if base else []) + [c[2]]
 		var data := Reactions.get_data(id)
 		list.append({"id": id, "name": data.display_name if data else c[0], "kind": "Crowned", "base": c[1],
-			"statuses": statuses, "families": c[3], "text": IconInfo.format(data.description if data else c[4]), "by": ""})
+			"statuses": statuses, "families": c[3], "text": "", "raw": data.description if data else c[4], "by": ""})
 	return list
 
 # A combo, a Crowned Reaction or a Kinship by id ({} if none).
 static func get_any(id: StringName) -> Dictionary:
-	if _index.is_empty():
-		for c in combos() + crowned() + kinships():
-			if not _index.has(c.id):
-				_index[c.id] = c
+	_fill()  # While the lists are being formatted the index already holds every name: no second build
 	return _index.get(id, {})
 
 # Kinships (tower_design.md "Kinships"; Tower Code's Kinships.KINSHIPS: id -> [name, line, branch A,
@@ -257,8 +283,7 @@ const KINSHIP_GROWTH := "Within 2 cells they bond; the bond grows (Blooming at 5
 
 # [{id, name, kind "Kinship", line, a, b (Warden names), text}], or [] before Kinships exist.
 static func kinships() -> Array[Dictionary]:
-	if _kinship_list.is_empty():
-		_kinship_list = _build_kinships()
+	_fill()
 	return _kinship_list.duplicate()
 
 static func _build_kinships() -> Array[Dictionary]:
@@ -272,7 +297,7 @@ static func _build_kinships() -> Array[Dictionary]:
 		var k: Array = table[id]
 		list.append({"id": id, "name": k[0], "kind": "Kinship", "line": k[1], "a": _warden_name(k[2]),
 			"b": _warden_name(k[3]), "statuses": [],
-			"text": IconInfo.format(KINSHIP_TEXT.get(id, "")) + " " + KINSHIP_GROWTH, "by": ""})
+			"text": "", "raw": KINSHIP_TEXT.get(id, ""), "after": " " + KINSHIP_GROWTH, "by": ""})
 	return list
 
 static func _warden_name(id: String) -> String:
@@ -299,22 +324,21 @@ const FAMILY_ICONS := "res://assets/meta/icons/family_icons.png"
 
 # Every combo: [{id, name, kind ("Synergy" / "Reaction"), statuses, text, by}], synergies first.
 static func combos() -> Array[Dictionary]:
-	if _combo_list.is_empty():
-		_combo_list = _build_combos()
+	_fill()
 	return _combo_list.duplicate()
 
 static func _build_combos() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	for id in SYNERGIES:
 		var s: Array = SYNERGIES[id]
-		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": IconInfo.format(s[2]), "by": s[3]})
+		list.append({"id": id, "name": s[0], "kind": "Synergy", "statuses": s[1], "text": "", "raw": s[2], "by": s[3]})
 	var reactions := Reactions.all()
 	reactions.sort_custom(func(a: ReactionData, b: ReactionData) -> bool: return a.display_name < b.display_name)
 	for data in reactions:
 		if CROWNED.has(data.id):
 			continue  # Crowned Reactions are their own list (crowned())
 		list.append({"id": data.id, "name": data.display_name, "kind": "Reaction", "statuses": data.statuses,
-			"text": IconInfo.format(data.description), "by": ""})
+			"text": "", "raw": data.description, "by": ""})
 	return list
 
 # --- What the Codex covers (screens_ui.md "What the Codex covers") ---------------------------------
