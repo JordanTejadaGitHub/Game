@@ -1209,3 +1209,10 @@ that family is selected.
   nightmares take the damage. With several possible partners, it shows the one the game would pick, and the others
   fainter. The same goes for the build ghost when planting a Jarlink directly, and for any other form that joins
   two Wardens or draws a line across the path.
+- **Once linked, the hit path stays marked** (user, same day: "the Jarlinks should still show the visible path that
+  is being hit by their link after placed together"): the path cells a link crosses keep a quiet, steady mark for as
+  long as the link exists: a faint charge along those cells in the family's light colour, on the ground under
+  nightmares. It brightens while a nightmare is inside it or the link ticks, and shows at full strength when either
+  Jarlink is selected or in build mode. It follows the same rules as lit paths (path shape only, no squares, merges
+  where two links overlap, steady under reduced motion), and goes the moment the link breaks. The same holds for
+  every standing zone on the path: Undercurrent's whirlpool, fog and rain clouds, ink and puddles, lit cells.
