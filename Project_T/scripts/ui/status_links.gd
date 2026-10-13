@@ -20,6 +20,7 @@ const NIGHTMARE_PREFIX := "nightmare:"  # Nightmares ({nightmare:shellbound}): p
 const COMBO_PREFIX := "combo:"  # Combos ({combo:thunderclap}): name, statuses, what it does, times set off; ??? until found
 const CARD_PREFIX := "card:"  # Dream cards named in text ({card:flurry}): name, rarity gem, description. Never a status link (text_pass.md "Card names in text are links")
 const OMEN_PREFIX := "omen:"  # Omens ({omen:static_sky}): name and what it does
+const WARDEN_PREFIX := "warden:"  # Wardens ({warden:graftling}): portrait, name, role line and description
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
 const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px gold underline (ui_style.md "Links")
@@ -45,48 +46,80 @@ var _shown_meta := ""  # The link the popup shows (a tap on the same card link c
 # `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
 # as a [url] link, other "[" escaped.
 static func bbcode(text: String) -> String:
+	_seen.clear()  # A keyword is a link the first time it appears in a block (text_pass.md "Keywords are always links")
 	# Term tokens first, as placeholders (no letters: the status pattern never matches inside them).
 	var terms: Array = []
 	if text.contains("{"):
 		for token in IconInfo.term_tokens():
 			while text.contains(token[0]):
 				text = text.replace(token[0], "\u0001%d\u0001" % terms.size())
-				terms.append(_link(TERM_PREFIX + String(token[1]), token[2]))
+				terms.append(token[2] if _own(token[1]) else _once(TERM_PREFIX + String(token[1]), token[2]))
 		for found in IconInfo.family_pattern().search_all(text):  # {family:dewdrop}
 			var id := found.get_string(1)
 			var data := IconInfo.family_data(id)
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
-			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
+			terms.append(_once(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
 		for found in IconInfo.card_pattern().search_all(text):  # {card:charged_feathers}, {omen:static_sky}: plain, never a status link
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
-			terms.append(_link(found.get_string(1) + ":" + found.get_string(2), IconInfo.card_name(found.get_string(2), found.get_string(1)).replace("[", "[lb]")))
+			terms.append(_once(found.get_string(1) + ":" + found.get_string(2), IconInfo.card_name(found.get_string(2), found.get_string(1)).replace("[", "[lb]")))
 		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(combo_link(StringName(found.get_string(1)), found.get_string().begins_with("{named_")))
 	# Terms written as plain words (user: "Potency in cards doesn't have the underline"): whole word, any case, singular
 	# or plural, linked as written ("A dread shell", "Dread shells").
-	for id in PLAIN_TERMS:
-		var found_all := _plain_pattern(id).search_all(text)
-		for i in range(found_all.size() - 1, -1, -1):
-			var found: RegExMatch = found_all[i]
-			if own_term != "" and IconInfo.TERMS[id][2] == own_term:
-				continue  # Its own glossary entry
+	for id in auto_terms():  # Longest word first: a shorter keyword never links inside a longer one ("Crowned Reaction")
+		if _own(id) or text.findn(String(IconInfo.TERMS[id][0])) < 0:
+			continue  # Its own glossary entry, or not in this text
+		var linked := ""
+		var at := 0
+		for found in _plain_pattern(id).search_all(text):
 			var before := text.substr(0, found.get_start())
 			if (LONGER_TERMS.get(id, []) as Array).any(func(lead: String) -> bool: return before.to_lower().ends_with(lead.to_lower())):
 				continue  # Part of a longer term, which is its own entry
-			text = text.substr(0, found.get_start()) + "\u0001%d\u0001" % terms.size() + text.substr(found.get_end())
-			terms.append(_link(TERM_PREFIX + String(id), found.get_string()))
+			linked += text.substr(at, found.get_start() - at) + "\u0001%d\u0001" % terms.size()
+			terms.append(_once(TERM_PREFIX + String(id), found.get_string()))
+			at = found.get_end()
+		text = linked + text.substr(at)
 	if text.contains("{nightmare:"):  # {nightmare:shellbound}: its name, ??? until met; a click opens its card
 		for found in IconInfo.nightmare_pattern().search_all(text):
 			var kind := found.get_string(1)
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
-			terms.append(_link(NIGHTMARE_PREFIX + kind, IconInfo.nightmare_name(kind)))
-	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
+			terms.append(_once(NIGHTMARE_PREFIX + kind, IconInfo.nightmare_name(kind)))
+	text = _statuses(IconInfo.format(text).replace("[", "[lb]"), true)
 	for i in terms.size():
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
 	return text
 
-const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction"]  # IconInfo.TERMS ids linked wherever their word appears
+# Keywords linked wherever their word appears, token or not (text_pass.md "Keywords are always links"): IconInfo.TERMS
+# ids. Only words that mean one thing in this game: a keyword that is also an ordinary word (full, grow, act, stack,
+# family, branch, node, gift, interest, Warden, nightmare…) links through its token only.
+const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction", &"crowned_reaction", &"chain", &"calling",
+	&"nurture_choice", &"nurture", &"signature", &"mastery", &"all_rounder", &"attuned", &"ascended", &"final_form",
+	&"grove_branch", &"sprout", &"thornwall", &"eldest", &"dream", &"legendary", &"bittersweet", &"woven", &"banish",
+	&"omen", &"maze_bonus", &"catcher", &"aura", &"crit", &"critical_hit", &"flyer", &"restless", &"remember",
+	&"memory_grove", &"perk", &"blight_level"]
+const NOT_BEFORE := {&"calling": " early"}  # "Calling early" is the verb, not the Calling
+static var _seen := {}  # Link metas already linked in the block being built
+static var _auto_order: Array[StringName] = []
+
+# PLAIN_TERMS, longest word first.
+static func auto_terms() -> Array[StringName]:
+	if _auto_order.is_empty():
+		_auto_order.assign(PLAIN_TERMS)
+		_auto_order.sort_custom(func(a: StringName, b: StringName) -> bool: return String(IconInfo.TERMS[a][0]).length() > String(IconInfo.TERMS[b][0]).length())
+	return _auto_order
+
+# The link the first time `meta` appears in the block, the plain word after that.
+static func _once(meta: String, word: String) -> String:
+	if _seen.has(meta):
+		return word
+	_seen[meta] = true
+	return _link(meta, word)
+
+# The block being built is this term's own glossary entry: its word stays plain there.
+static func _own(id: StringName) -> bool:
+	return own_term != "" and IconInfo.TERMS.has(id) and String(IconInfo.TERMS[id][2]) == own_term
+
 static var _plain_regex := {}  # Term id -> RegEx for its word
 static var own_term := ""  # Set by a glossary entry while it builds its own text: that word isn't linked there (plain data)
 const LONGER_TERMS := {&"reaction": ["Crowned "]}  # A plain term isn't linked as the tail of a longer one ("Crowned Reaction")
@@ -96,7 +129,13 @@ static func _plain_pattern(id: StringName) -> RegEx:
 		if _plain_regex.is_empty():
 			UiStyle.release_at_exit(func() -> void: _plain_regex.clear())
 		var regex := RegEx.new()
-		regex.compile("(?i)\\b" + _escape(IconInfo.TERMS[id][0]) + "s?\\b")  # Any case, and the plural
+		# The word or its plural, whole. A capitalised keyword (Chain, Calling, Dream) only as written ("chain" is a
+		# word), and never as the first word of a name ("Dream Oak", "Chain Bloom").
+		var word := String(IconInfo.TERMS[id][0])
+		var forms := _escape(String(IconInfo.TERMS[id][1])) + "|" + _escape(word)
+		var capital := word.left(1) != word.left(1).to_lower()
+		var not_before := "(?!%s)" % _escape(String(NOT_BEFORE[id])) if NOT_BEFORE.has(id) else ""
+		regex.compile(("" if capital else "(?i)") + "\\b(?:" + forms + ")\\b" + ("(?! [A-Z])" if capital else "") + not_before)
 		_plain_regex[id] = regex
 	return _plain_regex[id]
 
@@ -139,7 +178,7 @@ static func _link(meta: String, word: String) -> String:
 	return "[url=%s][u color=#%s][color=#%s]%s[/color][/u][/url]" % [meta, LINK_LINE.to_html(true),
 		LINK_COLOR.to_html(false), word]
 
-static func _statuses(text: String) -> String:
+static func _statuses(text: String, once: bool = false) -> String:
 	if _pattern == null:
 		var names: Array = []
 		for id in IconInfo.STATUSES:
@@ -153,7 +192,8 @@ static func _statuses(text: String) -> String:
 	for found in _pattern.search_all(text):
 		var id := IconInfo.status_id(found.get_string())
 		out += text.substr(at, found.get_start() - at)
-		out += _link(META_PREFIX + String(id), found.get_string())
+		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
+		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
 		at = found.get_end()
 	return out + text.substr(at)
 
@@ -179,7 +219,8 @@ static func role_bbcode(role: String) -> String:
 		var id: StringName = ROLE_TERMS[found.get_string().to_lower()]
 		out += role.substr(at, found.get_start() - at)
 		var known := IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id)
-		out += _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
+		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
+		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
 		at = found.get_end()
 	return out + role.substr(at)
 
@@ -269,7 +310,7 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	var is_family := meta.begins_with(FAMILY_PREFIX)
 	var is_combo := meta.begins_with(COMBO_PREFIX)
 	var is_nightmare := meta.begins_with(NIGHTMARE_PREFIX)
-	var is_card := meta.begins_with(CARD_PREFIX) or meta.begins_with(OMEN_PREFIX)
+	var is_card := meta.begins_with(CARD_PREFIX) or meta.begins_with(OMEN_PREFIX) or meta.begins_with(WARDEN_PREFIX)
 	if is_card:
 		_show_card(meta, host, tapped)
 		return
@@ -345,6 +386,13 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 # The card (or Omen) a card link names: {name, rarity (-1 for an Omen), text}, or {} when there is none. A retired
 # card is still a file, so it still shows.
 static func card_tip(meta: String) -> Dictionary:
+	if meta.begins_with(WARDEN_PREFIX):  # A Warden: what it is for (its role line), then what it does
+		var form := IconInfo.family_data(meta.get_slice(":", 1))
+		if form == null:
+			return {}
+		var role := IconInfo.role_text(form)
+		return {"name": form.display_name, "rarity": -1, "icon": WardenIcon.make(form),
+			"text": (role + "\n" if role != "" else "") + IconInfo.format(form.description)}
 	var omen := meta.begins_with(OMEN_PREFIX)
 	var id := meta.get_slice(":", 1)
 	var path := ("res://resource/omen/%s.tres" if omen else "res://resource/dream/%s.tres") % id
@@ -377,7 +425,8 @@ func _show_card(meta: String, host: Control, tapped: bool) -> void:
 	_is_combo = false
 	_is_nightmare = false
 	_more.visible = false
-	_icon.visible = false
+	_icon.texture = tip.get("icon")
+	_icon.visible = _icon.texture != null
 	_gem_rarity = maxi(int(tip.rarity), 0)
 	_gem.visible = int(tip.rarity) >= 0
 	_gem.queue_redraw()

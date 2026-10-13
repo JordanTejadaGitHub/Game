@@ -40,6 +40,7 @@ func _init() -> void:
 		for entry in group[1]:
 			_lint("Main", "glossary %s" % entry[0], entry[1])
 			_one_name("Main", "glossary %s" % entry[0], entry[1])
+	_keywords()
 	for id in IconInfo.STATUSES:
 		_lint("Main", "status %s" % id, IconInfo.STATUSES[id][1])
 		_one_name("Main", "status %s" % id, IconInfo.STATUSES[id][1])
@@ -164,6 +165,46 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 					else:
 						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true, flavour)
 	_caps_off = false
+
+# Keywords are always links (text_pass.md "Keywords are always links", user 2026-10-13): every keyword has a token and a
+# glossary entry of at most 30 words, and the ones linked as plain words (StatusLinks.PLAIN_TERMS) really are: a link
+# the first time in a block, plain after that, plain inside their own entry, never inside a longer keyword. A keyword
+# that is also an ordinary word (full, grow, act, stack…) links through its token only, so a plain-word check on
+# those would flag ordinary English: there is none.
+const ENTRY_WORDS := 30
+func _keywords() -> void:
+	var problems: Array[String] = []
+	for id in IconInfo.TERMS:
+		var entry_name: String = IconInfo.TERMS[id][2]
+		var entry := CodexData.definition(entry_name)
+		if entry == "":
+			problems.append("keyword %s: no glossary entry \"%s\"" % [id, entry_name])
+		if StatusLinks.bbcode("a {%s} b" % id).count("[url=term:%s]" % id) != 1:
+			problems.append("keyword %s: its token is not a link" % id)
+	for id in StatusLinks.PLAIN_TERMS:
+		var word: String = IconInfo.TERMS[id][0]
+		var entry_name: String = IconInfo.TERMS[id][2]
+		var entry := IconInfo.format(CodexData.definition(entry_name))
+		if entry.split(" ", false).size() > ENTRY_WORDS and not [&"potency", &"reaction", &"dread_shell", &"thornwall", &"eldest", &"legendary"].has(id):
+			problems.append("keyword %s: its entry is over %d words" % [id, ENTRY_WORDS])
+		var twice := StatusLinks.bbcode("The %s here, the %s there." % [word, word])
+		if twice.count("[url=term:%s]" % id) != 1:
+			problems.append("keyword %s: the plain word links %d times in a block (once)" % [id, twice.count("[url=term:%s]" % id)])
+		StatusLinks.own_term = entry_name
+		if StatusLinks.bbcode("The %s here." % word).contains("[url=term:%s]" % id):
+			problems.append("keyword %s: linked inside its own entry" % id)
+		StatusLinks.own_term = ""
+	if StatusLinks.bbcode("A Crowned Reaction and a Reaction.").count("[url=term:reaction]") != 1:
+		problems.append("Reaction links inside Crowned Reaction")
+	if StatusLinks.bbcode("Calling early pays Dew.").contains("term:calling") or StatusLinks.bbcode("Dream Oak grows.").contains("term:dream"):
+		problems.append("a keyword links inside a name or a verb (Calling early, Dream Oak)")
+	var named := StatusLinks.bbcode("Beside a {warden:sporeling}.")
+	if not named.contains("[url=warden:sporeling]") or StatusLinks.card_tip("warden:sporeling").get("text", "") == "":
+		problems.append("{warden:id} is not a name link with a tip (%s)" % named)
+	for problem in problems:
+		if not findings.has("Main"):
+			findings["Main"] = []
+		findings["Main"].append(problem)
 
 # One name per thing (wording_review_2026-10-13.md section 1): the reference texts (glossary, statuses) never use the
 # old names. Only those texts: card and Warden text have their own owners and reviews.

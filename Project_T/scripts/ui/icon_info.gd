@@ -249,6 +249,68 @@ const TERMS := {
 	&"ink": ["ink", "ink", "Ink", "inks"],
 	&"spore_sprite": ["spore-sprite", "spore-sprites", "Spore-sprite"],
 	&"whole_tree": ["Whole Tree", "Whole Tree", "Whole Tree"],
+	# Keywords are always links (text_pass.md "Keywords are always links", user 2026-10-13): every word with a meaning
+	# special to this game has a token here and an entry in the Codex glossary (the third word is the entry's name).
+	# {id} / {plural} / {Id} as above. StatusLinks.AUTO_TERMS lists the ones also linked as plain words.
+	&"warden": ["Warden", "Wardens", "Warden"],
+	&"nightmare": ["nightmare", "nightmares", "Nightmare"],
+	&"heartwood": ["Heartwood", "Heartwood", "Heartwood"],
+	&"dispel": ["dispel", "dispels", "Dispel"],
+	&"sprout": ["Sprout", "Sprouts", "Sprout"],
+	&"family": ["family", "families", "Family", "families"],
+	&"grow": ["grow", "grows", "Grow"],
+	&"branch": ["branch", "branches", "Branch", "branches"],
+	&"final_form": ["final form", "final forms", "Final form"],
+	&"grove_branch": ["Grove branch", "Grove branches", "Grove branch", "grove_branches"],
+	&"ascended": ["Ascended", "Ascended", "Ascended", "ascendeds"],
+	&"nurture": ["Nurture", "Nurture", "Nurture"],
+	&"rank": ["rank", "ranks", "Rank"],
+	&"nurture_choice": ["Nurture choice", "Nurture choices", "Nurture choice"],
+	&"signature": ["signature", "signatures", "Signature"],
+	&"mastery": ["Mastery", "Mastery", "Mastery", "masteries"],
+	&"all_rounder": ["All-Rounder", "All-Rounder", "All-Rounder"],
+	&"wide": ["Wide", "Wide", "Wide, Strong, Attuned", "wides"],
+	&"strong": ["Strong", "Strong", "Wide, Strong, Attuned", "strongs"],
+	&"attuned": ["Attuned", "Attuned", "Wide, Strong, Attuned", "attuneds"],
+	&"eldest": ["Eldest", "Eldest", "Eldest", "eldests"],
+	&"thornwall": ["Thornwall", "Thornwalls", "Thornwall"],
+	&"stack": ["stack", "stacks", "Stack"],
+	&"full": ["full", "full", "Full"],
+	&"crowned_reaction": ["Crowned Reaction", "Crowned Reactions", "Crowned Reaction"],
+	&"chain": ["Chain", "Chains", "Chain"],
+	&"calling": ["Calling", "Callings", "Calling"],
+	&"dream": ["Dream", "Dreams", "Dream"],
+	&"rarity": ["rarity", "rarities", "Rarity", "rarities"],
+	&"legendary": ["Legendary", "Legendaries", "Legendary", "legendaries"],
+	&"bittersweet": ["Bittersweet", "Bittersweet", "Bittersweet"],
+	&"upgrade": ["Upgrade", "Upgrades", "Upgrade"],
+	&"woven": ["Woven", "Woven", "Woven"],
+	&"new_cards": ["New cards", "New cards", "New cards", "new_cardss"],
+	&"banish": ["Banish", "Banishes", "Banish", "banishes"],
+	&"omen": ["Omen", "Omens", "Omen"],
+	&"gift": ["gift", "gifts", "Gift"],
+	&"act": ["act", "acts", "Act"],
+	&"call_early": ["call early", "call early", "Call early", "call_earlys"],
+	&"maze_bonus": ["Maze bonus", "Maze bonus", "Maze bonus"],
+	&"catcher": ["catcher", "catchers", "Catcher"],
+	&"interest": ["interest", "interest", "Interest"],
+	&"aura": ["aura", "auras", "Aura"],
+	&"crit": ["crit", "crits", "Crit"],
+	&"critical_hit": ["critical hit", "critical hits", "Crit"],
+	&"flyer": ["flyer", "flyers", "Flying"],
+	&"resists": ["resists", "resists", "Resists and Weak to", "resistss"],
+	&"weak_to": ["weak to", "weak to", "Resists and Weak to"],
+	&"restless": ["restless", "restless", "Restless", "restlesss"],
+	&"remember": ["Remember", "Remember", "Remember screen"],
+	&"memory_grove": ["Memory Grove", "Memory Grove", "Memory Grove"],
+	&"node": ["node", "nodes", "Node"],
+	&"perk": ["perk", "perks", "Perks"],
+	&"blight_level": ["Blight Level", "Blight Levels", "Blight Levels"],
+	&"memory": ["Memory", "Memories", "Memories", "memories"],
+	&"dew": ["Dew", "Dew", "Dew", "dews"],
+	&"seeds": ["Seeds", "Seeds", "Seeds", "seedss"],
+	&"leaves": ["leaves", "leaves", "Leaves", "leavess"],
+	&"leaf": ["leaf", "leaves", "Leaves", "leafs"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -314,7 +376,7 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
-	if text.contains("{card:") or text.contains("{omen:"):  # A Dream card or Omen: its name, plain
+	if text.contains("{card:") or text.contains("{omen:") or text.contains("{warden:"):  # A Dream card, Omen or Warden: its name, plain
 		for found in card_pattern().search_all(text):
 			text = text.replace(found.get_string(), card_name(found.get_string(2), found.get_string(1)))
 	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
@@ -483,14 +545,14 @@ static var _card_pattern: RegEx = null
 static func card_pattern() -> RegEx:
 	if _card_pattern == null:
 		UiStyle.release_at_exit(func() -> void: _card_pattern = null)
-		_card_pattern = RegEx.create_from_string("\\{(card|omen):([a-z0-9_]+)\\}")  # 1: kind, 2: id
+		_card_pattern = RegEx.create_from_string("\\{(card|omen|warden):([a-z0-9_]+)\\}")  # 1: kind, 2: id ({warden:graftling}: the tower file's name; a plural is plain text after it)
 	return _card_pattern
 
 static func card_name(id: String, kind: String = "card") -> String:
-	var path := ("res://resource/omen/%s.tres" if kind == "omen" else "res://resource/dream/%s.tres") % id
+	var path := ("res://resource/omen/%s.tres" if kind == "omen" else ("res://resource/tower/%s.tres" if kind == "warden" else "res://resource/dream/%s.tres")) % id
 	if ResourceLoader.exists(path):
 		var card = load(path)
-		if card is UpgradeData or card is OmenData:
+		if card is UpgradeData or card is OmenData or card is TowerData:
 			return card.display_name
 	return id.capitalize()
 
