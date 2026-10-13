@@ -70,7 +70,7 @@ func _run() -> void:
 	if forecast != null:
 		hud._update_maze_income()
 		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(director.get_maze_reward_projection(), true), "the HUD shows the block rest's forecast from the start")
-		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("longer than the forest's path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
+		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("longer than the starting path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}
 	director.maze_economy.load_save(reset)

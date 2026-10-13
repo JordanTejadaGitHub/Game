@@ -1112,8 +1112,8 @@ func _check_mist_full(main: Node) -> void:
 		"two nightmares held in the mist: calling the next drift early is refused")
 	panel._process(0.0)
 	var button: Button = panel._start_button
-	_check(button.disabled and button.tooltip_text.begins_with("The mist is full"),
-		"…and the Call early button greys out with \"The mist is full\"")
+	_check(button.disabled and button.tooltip_text.begins_with("Nightmares still arriving"),
+		"…and the Call early button greys out with \"Nightmares still arriving\"")
 	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
 	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
 	panel._process(0.0)

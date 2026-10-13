@@ -179,7 +179,7 @@ func _ready() -> void:
 	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
 	_path_tip = TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
-	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
+	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Unlocked: %s" % card.display_name))
 	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
 	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
 	owner.add_child.call_deferred(CardBloom.new())
@@ -236,7 +236,7 @@ func _ready() -> void:
 		if enemy.enemy_data.cleanse_line != "":
 			show_toast(enemy.enemy_data.cleanse_line))
 	spawner.wall_trampled.connect(func(_cell: Vector2, by: Node2D) -> void:
-		show_toast("%s tramples a Thornwall!" % IconInfo.the_name(by.enemy_data.display_name, true)))
+		show_toast("%s tramples a Thornwall." % IconInfo.the_name(by.enemy_data.display_name, true)))
 	toast_label.modulate.a = 0.0
 	# Counters are icon + number (ui_style.md, the mock); the words stay in their tooltips.
 	_add_counter_icon(dew_label, &"dew", 2)
@@ -1090,13 +1090,13 @@ func _update_maze_income() -> void:
 	_maze_full = "%s at rest" % _maze_short
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	# Path length only (maze_economy.md, user 2026-10-11: "the maze bonus is confusing"): cells over the forest's path.
-	var explanation := "Your route is %d cells longer than the forest's path: %s at this block's rest (%s per %d cells)." % [
+	var explanation := "Your path is %d cells longer than the starting path: %s at this block's rest (%s per %d cells)." % [
 		drift_director.get_maze_added_cells(), UiStyle.dew_amount(amount, true), UiStyle.dew_amount(1, true),
 		economy.CELLS_PER_DEW]  # No cap (user 2026-10-12): the map's size is the limit
 	if not _maze_reward_tip.visible:  # A pinned tip keeps the hover tooltip off (TapTip)
 		_maze_reward_label.tooltip_text = explanation
 	_maze_reward_tip._label.text = explanation
-	var road_tip := "%s\nMaze bonus: %s at each block's rest for every %d cells your route is longer than the forest's path." % [
+	var road_tip := "%s\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path." % [
 		IconInfo.resource_tooltip(&"path"), UiStyle.dew_amount(1, true), economy.CELLS_PER_DEW]
 	if not _path_tip.visible:
 		%PathLabel.tooltip_text = road_tip

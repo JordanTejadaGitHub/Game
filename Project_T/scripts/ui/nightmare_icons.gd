@@ -31,8 +31,8 @@ const GLYPH_COLOR := UiStyle.MOONLIGHT
 # Code); the rest are read from other EnemyData fields by traits_of(). Boss ability icons
 # (EnemyData.abilities "icon") use the same glyphs (draw_glyph).
 const TRAITS := {
-	&"flying": ["Flying", "Flies over the maze: walls don't bend its route."],
-	&"through_walls": ["Passes through walls", "Glides straight through the maze: walls don't bend its route."],
+	&"flying": ["Flying", "Flies over the maze: walls don't change its path."],
+	&"through_walls": ["Passes through walls", "Glides straight through the maze: walls don't change its path."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	&"dread_shell": ["Dread shell", "A shell absorbs part of every hit until it cracks for good."],
 	&"always_damp": ["Always {damp}", "It's always {damp}: lightning loves it."],
@@ -42,7 +42,7 @@ const TRAITS := {
 	&"wanders": ["Wanders", "Strays into dead-end pockets and back out, taking its time."],
 	&"splits": ["Splits", "Bursts into smaller nightmares when dispelled."],
 	&"trample": ["Tramples walls", "Knocks down Thornwalls next to it, for good."],
-	&"leap": ["Leaps", "Sinks and rises farther along the path, skipping tiles."],
+	&"leap": ["Leaps", "Sinks and rises farther along the path, skipping cells."],
 	&"mender": ["Mends", "Heals the nightmares near it."],
 	&"waker": ["Wakes others", "Shakes {drowsy} off the nightmares near it."],
 	&"revealer": ["Reveals", "Uncovers {hidden} nightmares near it, for your Wardens too."],
