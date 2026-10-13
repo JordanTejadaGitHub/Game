@@ -193,7 +193,6 @@ static func _statuses(text: String, once: bool = false) -> String:
 		var id := IconInfo.status_id(found.get_string())
 		out += text.substr(at, found.get_start() - at)
 		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
-		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
 		at = found.get_end()
 	return out + text.substr(at)
 
@@ -219,8 +218,7 @@ static func role_bbcode(role: String) -> String:
 		var id: StringName = ROLE_TERMS[found.get_string().to_lower()]
 		out += role.substr(at, found.get_start() - at)
 		var known := IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id)
-		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
-		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
+		out += _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
 		at = found.get_end()
 	return out + role.substr(at)
 
