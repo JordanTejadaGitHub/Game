@@ -147,6 +147,7 @@ func _ready() -> void:
 	rng.seed = 7
 	for i in MOTES:
 		_motes.append(Vector3(rng.randf_range(80, 1200), rng.randf_range(120, 820), rng.randf() * TAU))
+	_build_limb_labels()
 	resized.connect(fit)
 	fit.call_deferred()
 
@@ -379,6 +380,7 @@ func _process(delta: float) -> void:
 			rect.grow = breath * ART_PX  # Whole art pixels, so the crown's 2 px checkers never split into stripes
 			rect.queue_redraw()
 	_layer.queue_redraw()
+	_place_limb_labels()  # They follow pan and zoom at a fixed screen size
 
 # --- Drawing (tree space) ---
 
@@ -398,43 +400,83 @@ func _draw_layer() -> void:
 	for node in _nodes:
 		if not is_concealed(node.id):
 			_draw_node(node, font)
-	_draw_limb_labels(font)
 
 # The three limbs, named on the tree with one line each (wording_review_2026-10-13.md section 7), so a first-time
-# player knows what each side of the Memory Grove holds. Above each limb's highest node, in the limb's colour.
+# player knows what each side of the Memory Grove holds. Screen-space panels (user: "can barely read the top parts"
+# when they were drawn in tree space): a fixed size that follows the UI scale and never the tree zoom, the UI fonts,
+# on a fog patch. Each sits just above its limb's highest node (to_screen of the spot) and follows pan and zoom.
 const LIMB_LABELS := {
 	"families": ["Families", "New Warden families for the family pick"],
 	"cards": ["Cards", "More Dream cards for your runs"],
 	"perks": ["Perks", "Bonuses you carry into a run"],
 }
-const LIMB_LABEL_RISE := 30.0  # Tree px above the limb's highest node
-var _limb_spots := {}  # Section -> Vector2 (tree space), from the layout
+const LIMB_LABEL_ORDER: Array[String] = ["families", "perks", "cards"]  # Placed in this order; a later one steps aside
+const LIMB_LABEL_RISE := 22.0  # Tree px from the limb's highest node up to the label's foot (clear of the node)
+const LIMB_TITLE_SIZE := 22
+const LIMB_LINE_SIZE := 15
+const LIMB_LABEL_GAP := 8.0  # Screen px kept between two labels
+var top_reserved := 0.0  # Screen px at the top a label must stay out of (GroveScreen: its message line, the demo panel)
+var _limb_spots := {}  # Section -> Vector2 (tree space): the foot of its label
+var _limb_panels := {}  # Section -> PanelContainer (screen space, a child of this view)
 
-func _draw_limb_labels(font: Font) -> void:
-	if _limb_spots.is_empty():
-		var bounds := {}  # Section -> [min x, max x, min y]
-		for node in _nodes:
-			var pos := vec(node.pos)
-			var limb := str(node.section)
-			if not bounds.has(limb):
-				bounds[limb] = [pos.x, pos.x, pos.y]
-			bounds[limb] = [minf(bounds[limb][0], pos.x), maxf(bounds[limb][1], pos.x), minf(bounds[limb][2], pos.y)]
-		for limb in bounds:
-			_limb_spots[limb] = Vector2((bounds[limb][0] + bounds[limb][1]) / 2.0, maxf(bounds[limb][2] - LIMB_LABEL_RISE, 24.0))
-	for section in LIMB_LABELS:
-		if not _limb_spots.has(section):
+func _build_limb_labels() -> void:
+	var bounds := {}  # Section -> [min x, max x, min y]
+	for node in _nodes:
+		var pos := vec(node.pos)
+		var limb := str(node.section)
+		if not bounds.has(limb):
+			bounds[limb] = [pos.x, pos.x, pos.y]
+		bounds[limb] = [minf(bounds[limb][0], pos.x), maxf(bounds[limb][1], pos.x), minf(bounds[limb][2], pos.y)]
+	for limb in bounds:
+		_limb_spots[limb] = Vector2((bounds[limb][0] + bounds[limb][1]) / 2.0, bounds[limb][2] - LIMB_LABEL_RISE)
+	for section in LIMB_LABEL_ORDER:
+		if not _limb_spots.has(section) or not LIMB_LABELS.has(section):
 			continue
-		var at: Vector2 = _limb_spots[section]
+		var panel := PanelContainer.new()
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_theme_stylebox_override("panel", UiStyle.fog_patch())
+		var box := VBoxContainer.new()
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_theme_constant_override("separation", 0)
+		panel.add_child(box)
+		var title := Label.new()
+		title.text = str(LIMB_LABELS[section][0])
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var colour: Color = SECTION_COLOR.get(section, Palette.HEARTLIGHT)
-		_draw_limb_text(font, str(LIMB_LABELS[section][0]), at, 14, colour)
-		_draw_limb_text(font, str(LIMB_LABELS[section][1]), at + Vector2(0, 11), 8, Palette.MOONLIGHT)
+		UiStyle.title(title, LIMB_TITLE_SIZE, colour)
+		box.add_child(title)
+		var line := Label.new()
+		line.text = str(LIMB_LABELS[section][1])
+		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.add_theme_font_size_override("font_size", LIMB_LINE_SIZE)
+		line.add_theme_color_override("font_color", UiStyle.INK)
+		box.add_child(line)
+		add_child(panel)  # Over the world, in screen space: the tree's zoom never scales it
+		_limb_panels[section] = panel
 
-# One centred, outlined line of a limb label at `at` (tree space).
-func _draw_limb_text(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
-	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var spot := Vector2(at.x - width / 2.0, at.y)
-	_layer.draw_string_outline(font, spot, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, Color(Palette.VOID, 0.9))
-	_layer.draw_string(font, spot, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+# Each label's foot at its spot on screen, centred. A label that would touch one placed before it steps aside
+# (left or right, away from that one); one reaching into `top_reserved` hides.
+func _place_limb_labels() -> void:
+	var placed: Array[Rect2] = []
+	for section in LIMB_LABEL_ORDER:
+		if not _limb_panels.has(section):
+			continue
+		var panel: PanelContainer = _limb_panels[section]
+		var extent := panel.get_combined_minimum_size()
+		var foot := to_screen(_limb_spots[section])
+		var rect := Rect2(foot - Vector2(extent.x / 2.0, extent.y), extent)
+		for other in placed:
+			if rect.grow(LIMB_LABEL_GAP / 2.0).intersects(other.grow(LIMB_LABEL_GAP / 2.0)):
+				if rect.get_center().x < other.get_center().x:
+					rect.position.x = other.position.x - extent.x - LIMB_LABEL_GAP
+				else:
+					rect.position.x = other.end.x + LIMB_LABEL_GAP
+		panel.size = extent
+		panel.position = rect.position.round()
+		panel.visible = not _memory.is_empty() and rect.position.y >= top_reserved
+		placed.append(rect)
 
 func _branch_texture(id: String) -> Texture2D:
 	if not _branch_textures.has(id):
