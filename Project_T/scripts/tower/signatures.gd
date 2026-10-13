@@ -140,6 +140,11 @@ static func job(tower: Tower) -> StringName:
 		return &"yield"
 	if data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0:
 		return &"aura"
+	if data.aura_crit_bonus > 0.0:
+		return &"aura_crit"  # White Stag: its only job is the crit aura
+	# No damage of its own, but a status it lays down on a rhythm (Honeysuckle's scent): +20% damage would be +0.
+	if data.can_attack and data.damage <= 0.0 and data.applies_status != &"" and data.attack_kind != TowerData.AttackKind.COPY:
+		return &"scent"
 	return &"damage"
 
 static func bonus_job(tower: Tower) -> StringName:
@@ -166,6 +171,8 @@ static func text_for(tower: Tower) -> String:
 		&"caught": "Caught status tick rate +20%", &"yield": "Dew per drift +20%", &"aura": "aura strength +20%",
 		&"nursery": "nursery reach +20% and nurture discount +20% within its existing cap",
 		&"offspring": "its planted Sprouts deal 20% more damage",
+		&"scent": "its status builds 20% faster (stacks a second)",
+		&"aura_crit": "aura crit bonus +20%",
 		&"shards": "shard yield +20% (fractions carry; the source cap still applies)",
 	}
 	return descriptions.get(bonus_job(tower), TEXT.get(sig, ""))

@@ -1027,7 +1027,7 @@ func _compute_attacks_per_second() -> float:
 	var dim := 1.0 if dim_multiplier < 1.0 and is_sheltered() else dim_multiplier  # Shelter: no cold-lantern dimming
 	var aps := attack_data.attacks_per_second * bonus * dim \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
-	var signature: float = Signatures.multiplier(self, &"speed")
+	var signature: float = Signatures.multiplier(self, &"speed") * Signatures.multiplier(self, &"scent")  # scent: Honeysuckle's main job is its status rate
 	_speed_top = aps / maxf(bonus, 0.0001) * top * signature  # Attacks a second at the Dream cap
 	return aps * signature
 
@@ -1126,7 +1126,9 @@ func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
 	if rank > 0 and _has_rule(&"growth_rings"):
-		reach += HelperCommons.GROWTH_RINGS * rank  # Growth Rings: each Nurture rank +0.25 range instead of +0.1
+		# Growth Rings: +0.25 range a rank in all, and like every rank's range it stops at VII. Its own Nurture ranks
+		# carry no flat range (each is a Focus choice), so they get the whole 0.25; borrowed ranks top up their 0.1.
+		reach += HelperCommons.GROWTH_RINGS_OWN * mini(rank, STAT_TOP_RANK) + HelperCommons.GROWTH_RINGS * _plain_ranks()
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state:
@@ -2109,7 +2111,7 @@ func _refresh_neighbours() -> void:
 		if touching:
 			_touch_lines[data.line] = true  # Mycelium, Fireflies in the Grass
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
-			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
+			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus * Signatures.multiplier(other, &"aura_crit"))  # Auras don't stack with themselves (All-Rounder / Mastery: its main job)
 		# A Warden that doesn't attack (Thornwall) can't use damage or speed boosts: it takes no aura at all, so no
 		# chips, threads or Buffs rows (user: a selected Thornwall showed "+30% speed"). Falloff is per receiver.
 		if tower_data.can_attack and (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
@@ -3987,7 +3989,7 @@ func _update_wall(delta: float) -> void:
 		return
 	_wall_tick = WALL_TICK
 	# Briar Trap (id thorn_snare; "Fewer, bigger cards" de439ea8): each Thornwall (twig walls too) holds the first
-	# nightmare passing beside it each drift, 0.5 s (II 1 s); no rare-kind or trample trigger any more.
+	# nightmare passing beside it each drift, 1.5 s (II, legacy saves: 2 s); no rare-kind or trample trigger any more.
 	var snare_id := &"thorn_snare"  # Briar Trap's card and rule id (Roguelite Code)
 	var snare := _rule_stacks(snare_id) > 0
 	var thorny := _rule_stacks(&"thorny_walls") > 0
