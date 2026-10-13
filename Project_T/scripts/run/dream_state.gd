@@ -128,7 +128,7 @@ const BITTER_MAX := 0.40
 const BITTER_TIME := 2.0
 # Generic Commons and Uncommons (142–156) and the second batch (157–168)
 const GATHERED_DEW_PER := 0.10  # Morning Dew (absorbed Gathered Dew)
-const CALL_OF_THE_WILD_CAP := 40
+const CALL_OF_THE_WILD_CEILING := 40  # The doubled early-call Dew never passes this. With the normal early-call cap of 10 the most is 20 (the card says 20)
 const LASTING_DREAMS_MULTIPLIER := 2.0  # Status duration (dream_design.md de439ea8)
 const SHARP_BEAKS_HITS := 2  # Multi-hit Wardens: hits added per attack (one copy, balance_simulation.md e32b882d)
 const LONGER_FLIGHT_CELLS := 2.0  # Samara line: cells further
@@ -2719,6 +2719,8 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 func crit_possible() -> bool:
 	if unlock_everything:
 		return true
+	if has_rule(&"still_target") or has_rule(&"starlit_aim"):
+		return true  # These give every Warden crit chance, but only against a nightmare (get_crit_chance_bonus): no enemy to ask here
 	for tower in _towers():
 		if tower.tower_data.can_attack and tower.get_raw_crit_chance() > 0.0:
 			return true
@@ -3562,7 +3564,7 @@ func get_refund_share(base: float, _resting: bool) -> float:
 func get_call_early_bonus(uncapped: int, cap: int) -> int:
 	if not has_rule(&"call_of_the_wild"):
 		return mini(uncapped, cap)
-	return mini(mini(uncapped, cap) * 2, maxi(CALL_OF_THE_WILD_CAP, cap))
+	return mini(mini(uncapped, cap) * 2, maxi(CALL_OF_THE_WILD_CEILING, cap))
 
 # Thick Bark: RunState.lose_leaves asks this first; true = this leak is saved (whole, even a boss's).
 func absorb_leak() -> bool:
@@ -4846,7 +4848,7 @@ func _sample_family(family: String) -> void:
 
 # --- Drumbeat and Overlap (cards 248–249, 2026-09-30): one more card for each Grove build branch ------------------
 const DRUMBEAT_TOUCHING := 2  # Other attacking Wardens in the 8 cells
-const DRUMBEAT_SPEED := 0.30
+const DRUMBEAT_ADVANCE := 0.35  # Of one base attack interval: how much sooner the recipient's next attack comes
 const OVERLAP_WINDOW := 1.0  # Seconds
 const OVERLAP_BONUS := 0.40
 
@@ -5216,7 +5218,6 @@ func _build_role_topology() -> void:
 func on_original_attack_hit(tower: Tower, enemy: Node2D) -> void:
 	if not has_rule(&"canopy") or not is_instance_valid(enemy) or enemy.health <= 0:
 		return
-	_build_role_topology()
 	_role_recent[tower.get_instance_id()] = _role_recent.get(tower.get_instance_id(), {})
 	_role_recent[tower.get_instance_id()][enemy.get_instance_id()] = [weakref(enemy), _game_clock]
 	_update_canopy_roles()
@@ -5238,7 +5239,7 @@ func on_original_attack_released(tower: Tower, _primary: Node2D = null) -> void:
 			# Advance only the next timer. No attack invocation, proc, or recursive release.
 			var base: float = recipient.attack_data.attacks_per_second
 			if base > 0.0:
-				recipient._cooldown = maxf(0.0, recipient._cooldown - 0.35 / base)
+				recipient._cooldown = maxf(0.0, recipient._cooldown - DRUMBEAT_ADVANCE / base)
 				_role_drummed[key] = true
 			cycle.clear()
 		_role_relay[key] = cycle
