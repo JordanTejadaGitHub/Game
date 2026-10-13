@@ -14,6 +14,9 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 424242
 	root.add_child(main)
 	await process_frame
+	# These checks use the untrialled numbers: the health x2 / Dew x2 trial also doubles Omen Dew rewards
+	# (OmenDirector._reward_dew; 1.0 = the numbers as they were).
+	main.get_node("%DriftDirector").trial_dew_multiplier = 1.0
 	var omens: OmenDirector = main.get_node("%OmenDirector")
 	_check(omens.pool.size() == 27, "27 Omens in the pool, 4 of them Restless Omens from the Grove (%d)" % omens.pool.size())
 	await _test_flow(main)
