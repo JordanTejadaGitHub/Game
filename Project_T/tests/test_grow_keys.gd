@@ -301,13 +301,10 @@ func _run() -> void:
 		var link: Dictionary = placer.link_preview(firefly.cell, reach, firefly)
 		_check(is_equal_approx(link.reach, reach) and link.partner == jar and link.candidates.has(jar),
 			"…with the link range (%.1f cells) and the jar it would really link to" % reach)
-		var live: Array = []  # The cells the live arc damages for these two positions, on the path
-		var arc_cells := BranchKit._arc_cells(firefly.cell, jar.cell)
-		for cell in on_route:
-			if arc_cells.has(cell):
-				live.append(cell)
-		_check(not live.is_empty() and Array(link.cells) == live,
-			"the previewed crossed path cells are the cells the live arc damages (%s vs %s)" % [link.cells, live])
+		# The route points the live link strikes for these two positions: the one geometry (BranchKit.link_points).
+		var live := BranchKit.link_points(BranchKit.link_end(firefly), BranchKit.link_end(jar), map.get_path_from(map.startPath))
+		_check(not live.is_empty() and link.points == live,
+			"the previewed path is the path the live link strikes (%s vs %s)" % [link.points, live])
 		_check(placer.link_preview(firefly.cell, 0.5, firefly).partner == null, "no jar in reach: no partner (the tag says so)")
 		await process_frame
 		placer.hide_grow_preview()

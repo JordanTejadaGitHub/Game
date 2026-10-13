@@ -482,12 +482,13 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 		tower.set_meta(&"fence_tick", left)
 		return
 	tower.set_meta(&"fence_tick", left + FENCE_TICK)
-	var cells := _arc_cells(tower.cell, partner.cell)
+	var link_from := link_end(tower)  # The one segment: what is drawn is what is hit
+	var link_to := link_end(partner)
 	var final := is_final(tower) or is_final(partner)
 	var id := tower.get_instance_id()
 	for e in targetable(tower):
 		var inside := "fence_in_%d" % id
-		if not cells.has(Tower.MAP_GRID.calculate_grid_coordinates(e.global_position)):
+		if not on_link(e.global_position, link_from, link_to):
 			if e.has_meta(inside):
 				e.remove_meta(inside)  # Left the arc: a flyer can be charged again on its next crossing
 			continue
@@ -499,6 +500,7 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 		var striker: Tower = tower if turn % 2 == 0 else partner
 		var dps := p(striker, "arc_dps", 60.0)
 		striker.hit(e, dps * FENCE_TICK / maxf(float(striker.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"fence")
+		FenceLayer.find(tower).heat()  # Its ground mark brightens while it strikes
 		if not is_instance_valid(e) or e.is_cleansed:
 			continue
 		if e.is_flying() and not e.has_meta(inside):
@@ -523,15 +525,38 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 		if is_instance_valid(e):
 			e.set_meta(spark_key, spark)
 
-# The cells an arc from cell `a` to cell `b` passes over (the jars' own cells left out).
-static func _arc_cells(a: Vector2, b: Vector2) -> Dictionary:
-	var cells := {}
-	var steps := int(ceilf(a.distance_to(b) * 4.0))
-	for i in range(1, steps):
-		var c := a.lerp(b, float(i) / steps).round()
-		if c != a and c != b:
-			cells[c] = true
-	return cells
+# --- The link's one geometry (the user's playtest, 2026-10-13: "the visible link doesn't match what's actually being
+# hit on the path"). The mismatch: the damage read whole cells sampled between the jars' home cells (a jar planted at
+# a half offset is 16–32 px away from its home cell's centre, and any nightmare anywhere in a 64 px cell was hit),
+# while the arc was drawn between the jar tips, well above the ground. Now a link is ONE ground segment between the
+# two Wardens' footprint centres with one width; the damage, the arc, the marked path and every preview ask here. ---
+const LINK_HALF_WIDTH := 12.0  # Px to each side of the segment the lightning strikes
+const LINK_BODY := 10.0  # A nightmare's ground radius: its body touches the link this far out
+const LINK_MIN_SPAN := 1.5  # Cells between the two centres for a link to exist (jars side by side make none)
+const LINK_TRIM := 18.0  # Px the drawn arc starts in from each centre (the jars' own bases; no path can be there)
+
+# Where a Warden's end of a link is: its footprint's centre on the ground.
+static func link_end(tower: Tower) -> Vector2:
+	return tower.global_position
+
+# Whether two ends are far enough apart to make a link.
+static func link_spans(from: Vector2, to: Vector2) -> bool:
+	return from.distance_to(to) >= LINK_MIN_SPAN * CELL - 0.01
+
+# Whether a body standing on `point` (its ground position) is struck by the link from `from` to `to`.
+static func on_link(point: Vector2, from: Vector2, to: Vector2) -> bool:
+	var seg := to - from
+	var t := clampf((point - from).dot(seg) / maxf(seg.length_squared(), 1.0), 0.0, 1.0)
+	return point.distance_to(from + seg * t) <= LINK_HALF_WIDTH + LINK_BODY
+
+# The points of `route` (route coordinates: one per path half) the link strikes: what the ground mark and the
+# previews show. A nightmare walks from point to point, so it is hit exactly on these.
+static func link_points(from: Vector2, to: Vector2, route: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for point in route:
+		if on_link(Tower.MAP_GRID.calculate_map_position(point), from, to):
+			out.append(point)
+	return out
 
 # Bonds are sticky (Tower Discussion, as Kinships): a jar keeps its partner while both stand, stay in range and still
 # make an arc; only an unbonded jar looks for one, and it never takes a jar that's already linked to another.
@@ -542,7 +567,7 @@ static func _fence_partner(tower: Tower) -> Tower:
 	var held = tower.get_meta(FENCE_BOND) if tower.has_meta(FENCE_BOND) else null
 	if _bond_holds(tower, held, reach):
 		return held
-	var partner := fence_partner_at(tower, tower.cell, reach, tower)
+	var partner := fence_partner_at(tower, tower.cell, reach, tower, link_end(tower))
 	if partner != null:
 		tower.set_meta(FENCE_BOND, partner)
 		partner.set_meta(FENCE_BOND, tower)
@@ -553,7 +578,7 @@ static func _fence_partner(tower: Tower) -> Tower:
 static func _bond_holds(tower: Tower, other, reach: float) -> bool:
 	return is_instance_valid(other) and other is Tower and other.is_inside_tree() and not other.is_queued_for_deletion() \
 		and other.attack_data != null and other.attack_data.special == JARLINK \
-		and area_distance(tower, other) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
+		and area_distance(tower, other) <= reach and link_spans(link_end(tower), link_end(other))
 
 # Whether `jar` is linked to a jar other than `except` (its bond still holding).
 static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
@@ -565,7 +590,8 @@ static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
 # The Jarlink a jar on `cell` would link to: the nearest unbonded one within `reach` whose arc would cover at least one
 # cell (side by side jars make no arc: Balancing, a second pair planted beside the first cross-linked into nothing).
 # `skip`: the jar itself. Also the build ghost's preview (TowerPlacer).
-static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node = null) -> Tower:
+static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node = null, at: Vector2 = Vector2.INF) -> Tower:
+	var here := at if at != Vector2.INF else Tower.MAP_GRID.calculate_map_position(cell)  # Its real spot (a half offset isn't its home cell's centre)
 	var best: Tower = null
 	var best_d := INF
 	for other in near.get_tree().get_nodes_in_group(Tower.GROUP):
@@ -573,8 +599,8 @@ static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node
 			continue
 		if _bonded_elsewhere(other, skip):
 			continue  # Sticky: never steals a jar from its arc
-		var d := area_distance_at(Tower.MAP_GRID.calculate_map_position(cell), other)  # Rule 1: by distance
-		if d <= reach and d < best_d and not _arc_cells(cell, other.cell).is_empty():
+		var d := area_distance_at(here, other)  # Rule 1: by distance
+		if d <= reach and d < best_d and link_spans(here, link_end(other)):
 			best_d = d
 			best = other
 	return best
@@ -2039,15 +2065,69 @@ class FenceLayer extends Node2D:
 
 	func note(a: Tower, b: Tower) -> void:
 		var key := "%d:%d" % [a.get_instance_id(), b.get_instance_id()]
-		var from := a.global_position + a.tower_data.get_attack_origin()  # Jar to jar
-		var to := b.global_position + b.tower_data.get_attack_origin()
+		# The lightning runs along the link's own ground segment (BranchKit.link_end to link_end), so what you see on
+		# the path is what gets hit; it only starts in from the jars' bases (LINK_TRIM), where no path can be.
+		var end_a := BranchKit.link_end(a)
+		var end_b := BranchKit.link_end(b)
+		var along := (end_b - end_a).normalized()
+		var from := end_a + along * BranchKit.LINK_TRIM
+		var to := end_b - along * BranchKit.LINK_TRIM
 		var arc: Array = arcs.get(key, [])
 		var node = arc[3] if arc.size() > 3 else null
-		if arc.is_empty() or not arc[0].is_equal_approx(from) or not arc[1].is_equal_approx(to) or not is_instance_valid(node):
+		var changed: bool = arc.is_empty() or not arc[0].is_equal_approx(from) or not arc[1].is_equal_approx(to)
+		if changed or not is_instance_valid(node):
 			if is_instance_valid(node):
 				node.queue_free()  # A jar moved: a new arc
 			node = Fx.segment(&"arc_fence", from, to, self, ARC_SECONDS)  # Tower Assets' looping zigzag, kept alive while linked
 		arcs[key] = [from, to, Engine.get_process_frames(), node]
+		# The path it strikes stays marked on the ground while they are linked (screens_ui.md "Once linked, the hit
+		# path stays marked"): the route points BranchKit.link_points gives, re-read when the link or the route changes.
+		var route: PackedVector2Array = a._route()
+		var stamp := [end_a, end_b, route.size(), route[0] if not route.is_empty() else Vector2.ZERO, route[route.size() - 1] if not route.is_empty() else Vector2.ZERO].hash()
+		if not _marks.has(key) or _marks[key][0] != stamp:
+			var halves := {}
+			var all := {}
+			for point in route:
+				all[FindPath.point_to_node(point)] = true
+			for point in BranchKit.link_points(end_a, end_b, route):
+				halves[FindPath.point_to_node(point)] = Tower.MAP_GRID.calculate_map_position(point)
+			_marks[key] = [stamp, halves, all, a, b]
+			_ground.queue_redraw()
+
+	# A link just struck something: its mark brightens for a moment (steady under reduced motion).
+	func heat() -> void:
+		_heat = HEAT_TIME
+
+	# Every path half a link marks now ({half: its centre px}), merged: for tests and the Warden panel.
+	func marked_halves() -> Dictionary:
+		var out := {}
+		for key in _marks:
+			out.merge(_marks[key][1])
+		return out
+
+	const MARK_QUIET := 0.3  # The mark's alpha in play…
+	const MARK_FULL := 0.5  # …and in build mode / with Wardens selected
+	const HEAT_TIME := 0.4
+	var _marks := {}  # "id:id" -> [stamp, {half: centre px}, {route half: true}, jar a, jar b]
+	var _ground := Node2D.new()
+	var _heat := 0.0
+	var _full := false
+
+	func _ready() -> void:
+		_ground.name = "LinkGround"
+		_ground.z_as_relative = false
+		_ground.z_index = -1  # On the ground: over the path tiles, under Wardens and nightmares
+		_ground.draw.connect(_draw_ground)
+		add_child(_ground)
+
+	# Overlapping links merge: each half is drawn once, never brighter than the cap.
+	func _draw_ground() -> void:
+		var lit := {}
+		var all := {}
+		for key in _marks:
+			lit.merge(_marks[key][1])
+			all.merge(_marks[key][2])
+		Tower.LitPaths.draw_halves(_ground, lit, all, MARK_FULL if _full else MARK_QUIET, BranchKit.LINK_COLOR, Palette.HEARTLIGHT)
 
 	func touches(at: Vector2, reach: float) -> bool:
 		for key in arcs:
@@ -2058,13 +2138,22 @@ class FenceLayer extends Node2D:
 				return true
 		return false
 
-	func _process(_delta: float) -> void:
+	func _process(delta: float) -> void:
 		var frame := Engine.get_process_frames()
 		for key in arcs.keys():
 			if frame - int(arcs[key][2]) > 2:
 				if arcs[key].size() > 3 and is_instance_valid(arcs[key][3]):
 					arcs[key][3].queue_free()
 				arcs.erase(key)  # The pair broke (sold, moved apart)
+				if _marks.erase(key):
+					_ground.queue_redraw()  # Its mark goes with it, at once
+		var full := Tower.badges_visible()  # Build mode, or Wardens selected: full strength
+		if full != _full:
+			_full = full
+			_ground.queue_redraw()
+		_heat = maxf(_heat - delta, 0.0)
+		var still := bool(Fx.setting("reduced_motion", false))
+		_ground.modulate.a = 1.0 if still or _heat > 0.0 else 0.8  # multiplier (brighter while it strikes; no redraw)
 		queue_redraw()
 
 	func _draw() -> void:

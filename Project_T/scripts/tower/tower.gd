@@ -2646,10 +2646,10 @@ class LitPaths extends Node2D:
 
 	# The wash over `lit` ({half: its centre px, world}) on `canvas`: each half a block of the path's width, flush
 	# where the path goes on, held INSET off the grass elsewhere, with a rim where the path leaves the light.
-	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float) -> void:
-		var wash := Color(WASH, strength)
-		var rim := Color(RIM, minf(strength + 0.4, 0.95))
-		var edge := Color(RIM, strength * 0.7)
+	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float, wash_colour: Color = WASH, rim_colour: Color = RIM) -> void:
+		var wash := Color(wash_colour, strength)
+		var rim := Color(rim_colour, minf(strength + 0.4, 0.95))
+		var edge := Color(rim_colour, strength * 0.7)
 		var sides: Array[Vector2i] = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
 		for h: Vector2i in lit:
 			var centre: Vector2 = canvas.to_local(lit[h])

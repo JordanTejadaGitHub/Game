@@ -874,7 +874,7 @@ func _draw_kin_spots() -> void:
 # Jarlink's build ghost: the arc to the jar it would link with (BranchKit.fence_partner_at) and the cells it covers.
 func _draw_fence_preview() -> void:
 	draw_set_transform(Vector2.ZERO)
-	_draw_link_preview(_hover_cell, float(tower_data.special_params.get("link_range", 4.5)), null)
+	_draw_link_preview(_hover_cell, float(tower_data.special_params.get("link_range", 4.5)), null, _ghost_centre())
 	draw_set_transform(_ghost_centre())
 
 # --- Reach previews: the build ghost and the grow preview share them (screens_ui.md "Grow preview shows the new
@@ -893,21 +893,32 @@ func crossed_path_cells(cells: Dictionary) -> Array[Vector2]:
 			out.append(cell)
 	return out
 
-# What a Jarlink on `cell` would link (`skip`: the Warden growing into one): {reach, partner (the jar the game
-# would really link, BranchKit.fence_partner_at, or null), candidates (every jar in reach), cells (the path cells
-# its arc would cross: BranchKit._arc_cells, the very cells the live arc damages)}.
-func link_preview(cell: Vector2, reach: float, skip: Tower = null) -> Dictionary:
-	var partner := BranchKit.fence_partner_at(self, cell, reach, skip)
-	var at := MAP_GRID.calculate_map_position(cell)
+# What a Jarlink on `cell` would link (`skip`: the Warden growing into one; `from`: its real spot in px, when it
+# isn't its home cell's centre): {reach, from, partner (the jar the game would really link,
+# BranchKit.fence_partner_at, or null), candidates (every jar in reach), points (the route points its link would
+# strike: BranchKit.link_points, the one geometry the live link damages with)}.
+func link_preview(cell: Vector2, reach: float, skip: Tower = null, from: Vector2 = Vector2.INF) -> Dictionary:
+	var at: Vector2 = from if from != Vector2.INF else MAP_GRID.calculate_map_position(cell)
+	var partner := BranchKit.fence_partner_at(self, cell, reach, skip, at)
 	var candidates: Array = []
 	for other in get_tree().get_nodes_in_group(Tower.GROUP):
 		if other != skip and other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
 				and BranchKit.area_distance_at(at, other) <= reach:
 			candidates.append(other)
-	var cells: Array[Vector2] = []
+	var points := PackedVector2Array()
 	if partner != null:
-		cells = crossed_path_cells(BranchKit._arc_cells(cell, partner.cell))
-	return {"reach": reach, "partner": partner, "candidates": candidates, "cells": cells}
+		points = BranchKit.link_points(at, BranchKit.link_end(partner), preview_route())
+	return {"reach": reach, "from": at, "partner": partner, "candidates": candidates, "points": points}
+
+# The path halves at route `points`, highlighted on the path's own shape (the lit path's wash, in `colour`).
+func _draw_path_points(points: PackedVector2Array, colour: Color) -> void:
+	var lit := {}
+	var all := {}
+	for point in preview_route():
+		all[FindPath.point_to_node(point)] = true
+	for point in points:
+		lit[FindPath.point_to_node(point)] = MAP_GRID.calculate_map_position(point)
+	Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL, colour, Palette.HEARTLIGHT)
 
 # A jet from `from` (px) of `length` cells toward the path in `reach_px`: {to (px), cells (path cells it crosses)}.
 # It aims at the nightmare furthest along, so the sample is the route point in range nearest the Heartwood.
@@ -938,9 +949,9 @@ func _draw_path_cells(cells: Array, colour: Color) -> void:
 # The link a Jarlink on `cell` would make (draw transform: identity): its link range, every jar in reach (the real
 # partner strong, the others faint), the arc itself (Tower Assets' arc_fence at reduced strength, a child node
 # kept by _sync_link_fx) and the path cells it crosses; or "no partner in range".
-func _draw_link_preview(cell: Vector2, reach: float, skip: Tower) -> void:
-	var link := link_preview(cell, reach, skip)
-	var from := MAP_GRID.calculate_map_position(cell)
+func _draw_link_preview(cell: Vector2, reach: float, skip: Tower, spot: Vector2 = Vector2.INF) -> void:
+	var link := link_preview(cell, reach, skip, spot)
+	var from: Vector2 = link.from
 	var here := to_local(from)
 	BranchKit.draw_link_area(self, here, reach)
 	var partner: Tower = link.partner
@@ -950,9 +961,13 @@ func _draw_link_preview(cell: Vector2, reach: float, skip: Tower) -> void:
 		if other != partner:
 			draw_dashed_line(here, at, Color(BranchKit.LINK_COLOR, 0.3), 1.0, 6.0)  # Another jar it could link: fainter
 	if partner != null:
-		_draw_path_cells(link.cells, BranchKit.LINK_COLOR)
-		draw_dashed_line(here, to_local(partner.global_position), Color(BranchKit.LINK_COLOR, 0.8), 2.0, 6.0)
-		_link_wanted["%s>%s" % [from, partner.global_position]] = [from, partner.global_position]
+		_draw_path_points(link.points, BranchKit.LINK_COLOR)  # The path it would strike, on the path's own shape
+		# The arc where it will really run: the link's ground segment, in from each base (as BranchKit.FenceLayer draws it).
+		var end := BranchKit.link_end(partner)
+		var along := (end - from).normalized()
+		var arc_from := from + along * BranchKit.LINK_TRIM
+		var arc_to := end - along * BranchKit.LINK_TRIM
+		_link_wanted["%s>%s" % [arc_from, arc_to]] = [arc_from, arc_to]
 	else:
 		WorldLabel.draw_tag(self, here.x, here.y - MAP_GRID.cell_size.y - 10.0,
 			"no partner in range (%s cells)" % IconInfo._number(reach), Color(BranchKit.LINK_COLOR, 0.9))
@@ -986,7 +1001,7 @@ func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_
 	var sample = _sample_point(from, reach_px)
 	match data.special:
 		BranchKit.JARLINK:
-			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip)
+			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip, from)
 		BranchKit.JET:
 			var jet := jet_preview(from, float(params.get("length", 6.0)), reach_px)
 			if not jet.is_empty():
