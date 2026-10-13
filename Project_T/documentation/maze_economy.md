@@ -10,7 +10,7 @@
 - **Measured at the route's shortest during the block:** the bonus uses the shortest your route was while nightmares
   walked in that block, so lengthening it just before the rest, or selling walls mid-block, doesn't pay. Said to the
   player as "counted while nightmares walk".
-- No cap. The drift-one rest pays what the route earned, and the drift-five rest the block's amount minus that. Deep Sleep still
+- No cap. **Paid at block rests only** (after drifts 5, 10, 15…), not at the short rest after drift 1 (2026-10-12: with no cap, walls built before drift 1 and sold at that rest kept their payout). Deep Sleep still
   forfeits it. Winding Path and the other cards are unchanged.
 - **Shown** right after the Dew total as "+N at rest" (screens_ui.md "HUD notes"). Tip: "Your route is 28 cells longer
   than the forest's path: +7 at the next rest (+1 per 4 cells)." The Path counter's tip says the same. The
