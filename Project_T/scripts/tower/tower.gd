@@ -2535,6 +2535,178 @@ class GroundRipple extends Node2D:
 		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
 		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
 
+# Lit path (the user, 2026-10-13: "can you make lit paths more visible"; before: faint grey squares, mostly on the
+# grass): one node per world on the ground (z −1: over the path tiles, under Wardens and nightmares) that washes the
+# path halves every light Warden lights (Rootlight, Starcave), following the half-cell route (bends and all), never
+# the grass. Zones merge: a half lit by two Wardens is drawn once, no brighter. A brighter rim marks where the light
+# ends along the path. Full strength in build mode and while Wardens are selected, a notch quieter otherwise. It
+# redraws only when a zone or that strength changes; the slow breath is the node's alpha (steady under reduced
+# motion). A nightmare standing in the light wears a faint warm rim (the child above the nightmares).
+class LitPaths extends Node2D:
+	const WASH := Palette.GOLD  # Warm and saturated: reads on the pale act 1 path and the darker late ones
+	const RIM := Palette.HEARTLIGHT
+	const QUIET := 0.5  # The wash's alpha in play…
+	const FULL := 0.68  # …and in build mode / on selection (the ghost's preview too)
+	const HALF_PX := 16.0  # A path half is 32 px wide
+	const INSET := 4.0  # Kept off the grass on the sides with no path
+	const BREATH := 0.14  # Share of its alpha the slow breath takes away
+	const CHECK := 0.25  # Seconds between looks at the Wardens, the strength and who stands in the light
+	const RIM_MAX := 24  # Nightmare rims drawn at once
+	var _zones := {}  # Tower instance id -> [Tower, {half: its centre px}, {route half: true}, {lit whole cell: true}]
+	var _full := false
+	var _check := 0.0
+	var _time := 0.0
+	var _rims := Node2D.new()
+	var _inside: Array = []  # Nightmares standing in the light now
+
+	static func find(near: Node) -> LitPaths:
+		var w := Reactions._world(near)
+		if w == null:
+			return null
+		var node := w.get_node_or_null("LitPaths") as LitPaths
+		if node == null or node.is_queued_for_deletion():
+			node = LitPaths.new()
+			node.name = "LitPaths"
+			node.z_index = -1  # On the ground
+			w.add_child(node)
+		return node
+
+	func _ready() -> void:
+		_rims.name = "LitRims"
+		_rims.z_as_relative = false
+		_rims.z_index = 1  # Above the y-sorted nightmares, under the lighting pass
+		_rims.draw.connect(_draw_rims)
+		add_child(_rims)
+
+	# `tower` lights these halves now ({} = none any more). `route`: every half of its route, to tell path from grass.
+	func set_zone(tower: Tower, halves: Dictionary, route: Dictionary, cells: Dictionary) -> void:
+		var id := tower.get_instance_id()
+		if halves.is_empty():
+			if _zones.erase(id):
+				queue_redraw()
+			return
+		_zones[id] = [tower, halves, route, cells]
+		queue_redraw()
+
+	# Every lit half (merged), for tests and the ghost.
+	func lit_halves() -> Dictionary:
+		var lit := {}
+		for id in _zones:
+			lit.merge(_zones[id][1])
+		return lit
+
+	func _process(delta: float) -> void:
+		_time += delta
+		_check -= delta
+		if _check <= 0.0:
+			_check = CHECK
+			var full := Tower.badges_visible()  # Build mode, or Wardens selected
+			var changed := full != _full
+			_full = full
+			for id in _zones.keys():
+				var tower = _zones[id][0]
+				if not is_instance_valid(tower) or tower.is_queued_for_deletion() or not tower._a_lit:
+					_zones.erase(id)  # Sold, or grown into a form that lights nothing
+					changed = true
+			if changed:
+				queue_redraw()
+			_find_inside()
+		var still := _zones.is_empty() or bool(Fx.setting("reduced_motion", false))
+		modulate.a = 1.0 if still else 1.0 - BREATH * (0.5 + 0.5 * sin(_time * 1.5))  # multiplier (the slow breath: no redraw)
+		if not _inside.is_empty():
+			_rims.queue_redraw()  # They walk: the rims follow
+
+	func _find_inside() -> void:
+		var had := not _inside.is_empty()
+		_inside.clear()
+		if not _zones.is_empty():
+			var cells := {}
+			for id in _zones:
+				cells.merge(_zones[id][3])
+			for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+				if _inside.size() >= RIM_MAX:
+					break
+				if is_instance_valid(enemy) and not enemy.is_cleansed and cells.has(Tower.MAP_GRID.calculate_grid_coordinates(enemy.global_position)):
+					_inside.append(enemy)
+		if had or not _inside.is_empty():
+			_rims.queue_redraw()
+
+	func _draw_rims() -> void:
+		for enemy in _inside:
+			if is_instance_valid(enemy) and not enemy.is_cleansed:
+				_rims.draw_arc(_rims.to_local(Tower.aim_at(enemy)), 13.0, 0.0, TAU, 20, Color(WASH, 0.55), 1.5)
+
+	func _draw() -> void:
+		var lit := {}
+		var route := {}
+		for id in _zones:
+			lit.merge(_zones[id][1])
+			route.merge(_zones[id][2])
+		draw_halves(self, lit, route, FULL if _full else QUIET)
+
+	# The wash over `lit` ({half: its centre px, world}) on `canvas`: each half a block of the path's width, flush
+	# where the path goes on, held INSET off the grass elsewhere, with a rim where the path leaves the light.
+	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float) -> void:
+		var wash := Color(WASH, strength)
+		var rim := Color(RIM, minf(strength + 0.4, 0.95))
+		var edge := Color(RIM, strength * 0.7)
+		var sides: Array[Vector2i] = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+		for h: Vector2i in lit:
+			var centre: Vector2 = canvas.to_local(lit[h])
+			var reach: Array[float] = [HALF_PX, HALF_PX, HALF_PX, HALF_PX]  # Left, right, up, down
+			var ends: Array[bool] = [false, false, false, false]
+			var grass: Array[bool] = [false, false, false, false]
+			for i in 4:
+				var next: Vector2i = h + sides[i]
+				if lit.has(next):
+					continue
+				if route.has(next):
+					ends[i] = true  # The path goes on unlit: the light ends here
+				else:
+					reach[i] = HALF_PX - INSET  # Grass
+					grass[i] = true
+			var rect := Rect2(centre + Vector2(-reach[0], -reach[2]), Vector2(reach[0] + reach[1], reach[2] + reach[3]))
+			canvas.draw_rect(rect, wash)
+			# A soft bright edge along the grass sides, so the lit stretch reads as a band of light.
+			if grass[0]:
+				canvas.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), edge, 1.0)
+			if grass[1]:
+				canvas.draw_line(rect.position + Vector2(rect.size.x, 0), rect.end, edge, 1.0)
+			if grass[2]:
+				canvas.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), edge, 1.0)
+			if grass[3]:
+				canvas.draw_line(rect.position + Vector2(0, rect.size.y), rect.end, edge, 1.0)
+			if ends[0]:
+				canvas.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), rim, 2.0)
+			if ends[1]:
+				canvas.draw_line(rect.position + Vector2(rect.size.x, 0), rect.end, rim, 2.0)
+			if ends[2]:
+				canvas.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), rim, 2.0)
+			if ends[3]:
+				canvas.draw_line(rect.position + Vector2(0, rect.size.y), rect.end, rim, 2.0)
+
+# The halves this Warden lights now, pushed to the world's LitPaths only when they changed (its route or its range).
+var _lit_key := 0
+func _push_lit() -> void:
+	var cells := {}
+	for at in _lit_cells:
+		cells[at] = true
+	var halves := {}
+	var route_halves := {}
+	for p in _route():
+		var h := FindPath.point_to_node(p)
+		route_halves[h] = true
+		var at := MAP_GRID.calculate_map_position(p)
+		if cells.has(MAP_GRID.calculate_grid_coordinates(at)):
+			halves[h] = at
+	var key := halves.hash()
+	if key == _lit_key:
+		return
+	_lit_key = key
+	var paths := LitPaths.find(self)
+	if paths != null:
+		paths.set_zone(self, halves, route_halves, cells)
+
 # The attack's shape for the UI (story chat; Main's attack-type chip): &"single", &"splash", &"area", &"chain", &"cloud",
 # &"trap", &"beam", &"birds", &"seed", &"patrol", &"copy", &"light", &"pull", &"spread", &"aura", &"none" (walls).
 const ATTACK_SHAPE_NAMES := {&"single": "Single target", &"splash": "Splash", &"area": "Area", &"chain": "Chain",
@@ -4566,7 +4738,7 @@ func _light() -> void:
 				_lit_until.erase(at)
 			else:
 				_lit_cells.append(at)
-	queue_redraw()
+	_push_lit()  # The wash on the path (LitPaths): only when its lit halves changed
 	for enemy in get_enemies_in_range():
 		hit(enemy, 1.0, true)
 
@@ -4724,10 +4896,7 @@ func _draw() -> void:
 	if tower_data.texture == null:
 		draw_placeholder(self, tower_data.placeholder_color)
 	_draw_rank_pips()
-	for at in _lit_cells:
-		var centre := to_local(MAP_GRID.calculate_map_position(at))
-		var half := MAP_GRID.cell_size / 2.0 - Vector2(6, 6)
-		draw_rect(Rect2(centre - half, half * 2.0), Color(LIGHT_COLOR, 0.12))
+	# (The lit path is drawn by the world's LitPaths, on the path's own shape: see _push_lit.)
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()

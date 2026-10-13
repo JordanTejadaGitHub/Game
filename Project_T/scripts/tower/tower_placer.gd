@@ -406,6 +406,23 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO)
 		BranchKit.draw_brood_walk(self, walk, true)
 		draw_set_transform(_ghost_centre())
+	if tower_data.attack_kind == TowerData.AttackKind.LIGHT:
+		# A light Warden (Rootlight, Starcave): the path it would light from here, at full strength, on the path's
+		# own shape (Tower.LitPaths: the same wash the planted ones draw).
+		var lit_route: PackedVector2Array = _hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath)
+		var lit_reach := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
+		var lit := {}
+		var lit_all := {}
+		for point in lit_route:
+			var half := FindPath.point_to_node(point)
+			lit_all[half] = true
+			var at: Vector2 = MAP_GRID.calculate_map_position(point)
+			var cell_centre: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at))
+			if cell_centre.distance_to(_ghost_centre()) <= lit_reach:  # As Tower._light: whole cells whose centre is in range
+				lit[half] = at
+		draw_set_transform(Vector2.ZERO)
+		Tower.LitPaths.draw_halves(self, lit, lit_all, Tower.LitPaths.FULL)
+		draw_set_transform(_ghost_centre())
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
