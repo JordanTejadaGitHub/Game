@@ -1203,3 +1203,9 @@ form on the map, from the selected Warden's spot, until the pointer leaves:
 - anything it would lose (a Kinship that breaks, a card bonus that switches off) in the same chips the build ghost uses.
 The same preview shows on the Remember screen's "Peek at the map" for a form about to be unlocked, if a Warden of
 that family is selected.
+- **The link itself** (user, same day: "and also what the visible connected path would look like"): for Jarlink /
+  Lightning Fence the preview draws the lightning line exactly where it will run between the two Wardens, in the
+  real effect's look at reduced strength, and highlights the **path cells it crosses**, since those are where
+  nightmares take the damage. With several possible partners, it shows the one the game would pick, and the others
+  fainter. The same goes for the build ghost when planting a Jarlink directly, and for any other form that joins
+  two Wardens or draws a line across the path.
