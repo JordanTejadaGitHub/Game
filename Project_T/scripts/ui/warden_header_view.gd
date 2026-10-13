@@ -105,6 +105,27 @@ func set_corner(control: Control) -> void:
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
 const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 
+# A Warden of the Calling's family names the rule under its description (screens_ui.md "Where to recheck your
+# Calling"): "Calling · Lantern Ring", the rule in its tip. Nothing for other families or a run with no Calling.
+var _calling_line: Label = null
+
+func _show_calling(data: TowerData) -> void:
+	if _calling_line != null and is_instance_valid(_calling_line):
+		_calling_line.queue_free()
+	_calling_line = null
+	var dreams: DreamState = _tower._dream_state if is_instance_valid(_tower) else null
+	if dreams == null or data == null or dreams.calling == "" or dreams.calling_title() == "" \
+			or DreamState.CALLINGS.line_of(dreams.calling) != data.line:
+		return
+	_calling_line = Label.new()
+	_calling_line.name = "Calling"
+	_calling_line.text = "Calling · %s" % dreams.calling_title()
+	UiStyle.caps(_calling_line, 13, UiStyle.GOLD)
+	_calling_line.mouse_filter = Control.MOUSE_FILTER_STOP
+	TapTip.attach(_calling_line, IconInfo.format(dreams.calling_text()))
+	desc.get_parent().add_child(_calling_line)
+	desc.get_parent().move_child(_calling_line, desc.get_index() + 1)
+
 static func short_description(text: String) -> String:
 	var sentences := text.split(". ")
 	var short := text
@@ -174,6 +195,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		else:
 			desc.text += "\n[i]Still %s: %s[/i]" % [tower.legacy_data.display_name, StatusLinks.bbcode(tower.legacy_data.description)]
 	desc.visible = desc.text != ""
+	_show_calling(data)
 	for child in stats.get_children():
 		child.queue_free()
 	var attack := _tower.attack_data

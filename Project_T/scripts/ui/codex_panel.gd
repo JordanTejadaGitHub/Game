@@ -1288,6 +1288,21 @@ func _family_header(root: TowerData) -> Control:
 	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
 	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(role)
+	# Its Calling: the rule a run keeps when this is the first family picked (screens_ui.md "Where to recheck your
+	# Calling": all nine can be read between runs).
+	var calling_name: String = DreamState.CALLINGS.title(root.get_id())
+	if calling_name != "":
+		var calling := Label.new()
+		calling.name = "Calling"
+		calling.text = "Calling · %s" % calling_name
+		UiStyle.caps(calling, 14, UiStyle.GOLD)
+		calling.tooltip_text = "The rule your run keeps when this is the first family you pick."
+		calling.mouse_filter = Control.MOUSE_FILTER_PASS
+		box.add_child(calling)
+		var calling_rule := StatusLinks.make_label(DreamState.CALLINGS.text(root.get_id()), 15)
+		calling_rule.name = "CallingRule"
+		calling_rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(calling_rule)
 	var statuses := _family_statuses(root)
 	if not statuses.is_empty():
 		var row := HBoxContainer.new()

@@ -540,6 +540,7 @@ func _sort_spends() -> void:
 
 func _on_run_ended(won: bool) -> void:
 	_flush_rows()
+	run["calling"] = dream_state.calling_title() if dream_state != null else ""  # "" on dev runs and old saves
 	if _route_block.leaked > 0 or _route_block.dispels.any(func(n: int) -> bool: return n > 0):  # A block cut short
 		_flush_route_block(ceili(drift_director.drifts_started / float(drift_director.drifts_per_block)))
 	if _may_write() and not _saved:
@@ -669,7 +670,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Leaves lost by act: %s · first leak: drift %d · close calls: %d" % [JSON.stringify(record.get("leaves_lost_by_act", {})),
 		int(record.get("first_leak", 0)), int(record.get("close_calls", 0))])
 	lines.append("Families: %s" % ", ".join(record.get("family_picks", []).map(func(p: Dictionary) -> String:
-		return "%s (of %s, drift %d)" % [p.chosen, "/".join(p.offered), int(p.drift)])))
+		return "%s (of %s, drift %d)" % [p.chosen, "/".join(p.offered), int(p.drift)]))
+		+ (" · Calling: %s" % record.calling if String(record.get("calling", "")) != "" else ""))
 	lines.append("Dreams: %s" % ", ".join(record.get("dreams_taken", []).map(func(d: Array) -> String: return "%s@%d" % [d[0], int(d[1])])))
 	lines.append("Dream offers: %s" % ", ".join(record.get("dream_offers", []).map(func(o: Array) -> String:
 		return "%d: %s → %s" % [int(o[0]), "/".join(o[1]), o[2] if o[2] != "" else "passed"])))

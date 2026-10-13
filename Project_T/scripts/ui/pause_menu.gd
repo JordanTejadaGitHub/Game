@@ -322,6 +322,8 @@ func _fill_facts() -> void:
 		dreams += dream_state.stacks[id]
 	_fact(&"path_length", "drift", "%d of %d" % [drift_director.drifts_started, drift_director.get_total_drifts()])
 	_fact(&"rank", "dreams", str(dreams))
+	if calling_line() != "":
+		_fact(&"", "calling", calling_line())
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.get("active") != null:
 		_fact(&"omen", "omen", omens.active.display_name)
@@ -385,6 +387,14 @@ func close() -> void:
 	(_settings.get_meta("row") as Control).visible = true
 	game_speed.set_paused(_was_paused)
 
+# "Lantern Ring (Firefly Jar)": the run's Calling and its family (screens_ui.md "Where to recheck your Calling"), or ""
+# when the run has none (dev runs, old saves).
+func calling_line() -> String:
+	if dream_state == null or dream_state.calling == "" or dream_state.calling_title() == "":
+		return ""
+	var family := IconInfo.family_data(dream_state.calling)
+	return "%s (%s)" % [dream_state.calling_title(), family.display_name if family != null else dream_state.calling.capitalize()]
+
 # Drift, Dreams, families, active Omen and time played, for the side panel.
 func get_run_summary() -> String:
 	var lines: Array[String] = ["This run"]
@@ -398,6 +408,8 @@ func get_run_summary() -> String:
 		if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
 			families.append(data.display_name)
 	lines.append("Families: %s" % (", ".join(families) if not families.is_empty() else "none yet"))
+	if calling_line() != "":
+		lines.append("Calling: " + calling_line())
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.get("active") != null:
 		lines.append("Omen: %s" % omens.active.display_name)
