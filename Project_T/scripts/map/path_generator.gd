@@ -120,7 +120,7 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	if is_whole_cell(end):
 		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
 	if is_whole_cell(start):
-		a = _nearest_half(start, Vector2(b))
+		a = _start_node(start, Vector2(b))
 	if not _walkable_node(a) or not _walkable_node(b):
 		return PackedVector2Array()
 	var nodes := _astar.get_id_path(a, b)
@@ -156,7 +156,7 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 	if is_whole_cell(end):
 		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
 	if is_whole_cell(start):
-		a = _nearest_half(start, Vector2(b))
+		a = _start_node(start, Vector2(b))
 	if not _walkable_node(a) or not _walkable_node(b):
 		return PackedVector2Array()
 	if a == b:
@@ -342,3 +342,15 @@ func _nearest_half(cell: Vector2, toward: Vector2) -> Vector2i:
 			best_d = d
 			best = Vector2i(h)
 	return best
+
+# The map's start (user 2026-10-13: the route began with a stub, one half into the island and back out along the edge,
+# because a route from the whole start cell left from its half nearest the Heartwood): `start_half` is the start cell's
+# outer half on the bridge's lane, fixed for the run (PathGenerator.set_start_half). A route asked from the whole
+# start cell always begins there, so it never doubles back through its own start. Any other whole cell: its nearest half.
+var start_cell := Vector2(-1, -1)
+var start_half := Vector2i(-1, -1)
+
+func _start_node(cell: Vector2, toward: Vector2) -> Vector2i:
+	if cell == start_cell and start_half.x >= 0 and _walkable_node(start_half):
+		return start_half
+	return _nearest_half(cell, toward)

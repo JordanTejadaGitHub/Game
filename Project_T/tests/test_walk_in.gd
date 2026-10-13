@@ -33,19 +33,54 @@ func _run() -> void:
 		var side := StartGate.outward(Vector2i(map.startPath))
 		if not seen.has(side):
 			seen[side] = true
-			_side_case(main, map, "seed %d, start %s going %s" % [map_seed, map.startPath, side])
+			_side_case(main, map, "seed %d, start %s going %s" % [map_seed, map.startPath, side], false)
+			_side_case(main, map, "seed %d, start %s going %s, walled" % [map_seed, map.startPath, side], true)
 		main.free()
 		await process_frame
 	_check(seen.size() == 4, "a start on every side within %d seeds (%d)" % [SEEDS, seen.size()])
 	print("test_walk_in: %d failure(s)" % failures)
 	quit(failures)
 
-func _side_case(main: Node, map: Node, label: String) -> void:
+func _side_case(main: Node, map: Node, label: String, walled: bool) -> void:
 	var spawner = main.get_node("%EnemyContainer")
+	var lane_before: float = map.start_gate.lane
+	if walled:  # The user's screenshot: Wardens wall the direct way in, the route is forced along the island's edge
+		var inward: Vector2 = map.startPath - Vector2(StartGate.outward(Vector2i(map.startPath)))
+		var side_step := Vector2(absf(inward.y - map.startPath.y), absf(inward.x - map.startPath.x))
+		var blocked := 0
+		for cell: Vector2 in [inward, inward + side_step, inward - side_step, map.startPath + side_step]:
+			if map.can_block(cell):
+				map.block_cell(cell)
+				blocked += 1
+		_check(blocked >= 2, "%s: Wardens wall the way in (%d)" % [label, blocked])
+		map.start_gate._process(0.0)
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	_check(route.size() >= 3, "%s: a route" % label)
 	if route.size() < 3:
 		return
+	# The route begins on the map's fixed start half (the start cell's outer half on the bridge's lane) and never comes
+	# back to the start cell, or turns straight back on itself, once it has left
+	var half: Vector2i = map.path_layer.start_half
+	var out_i := StartGate.outward(Vector2i(map.startPath))
+	_check(half == StartGate.start_half_for(Vector2i(map.startPath), map.endPath) and route[0] == FindPath.node_to_point(half)
+		and Vector2((Vector2(half) / 2.0).floor()) == map.startPath
+		and not map.path_layer.get_finder().is_walkable(FindPath.node_to_point(half + out_i)),
+		"%s: the route begins on the start's outer half (%s, route %s)" % [label, half, route[0]])
+	_check(is_equal_approx(map.start_gate.lane, lane_before) and absf(map.start_gate.lane) == 16.0,
+		"%s: the bridge keeps its lane (%s, was %s)" % [label, map.start_gate.lane, lane_before])
+	_check(not map.is_buildable_half(Vector2(half)), "%s: the start half can't be built on" % label)
+	var left_start := false
+	for i in route.size():
+		var cell := (Vector2(FindPath.point_to_node(route[i])) / 2.0).floor()
+		if cell != map.startPath:
+			left_start = true
+		elif left_start:
+			_check(false, "%s: the route comes back to the start cell (point %d, %s)" % [label, i, route[i]])
+			break
+		if i >= 2 and (route[i] - route[i - 1]).is_equal_approx(route[i - 2] - route[i - 1]):
+			_check(false, "%s: the route doubles back (point %d, %s)" % [label, i, route[i]])
+			break
+	_check(map.path_layer.path_halves().has(half), "%s: the drawn path starts on that half" % label)
 	var first: Vector2 = map.MAP_GRID.calculate_map_position(route[0])
 	var second: Vector2 = map.MAP_GRID.calculate_map_position(route[1])
 	var walk: PackedVector2Array = map.start_gate.walk_in()

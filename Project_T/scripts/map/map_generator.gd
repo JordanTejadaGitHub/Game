@@ -84,6 +84,7 @@ func _ready() -> void:
 	move_child(island_lip, ground_layer.get_index())
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
+	path_layer.set_start_half(StartGate.start_half_for(Vector2i(startPath), endPath))  # The route always begins on the start's outer half, on the bridge's lane
 
 	# Obstacles can sit on any open cell, so the route winds around them. Keep start/end clear.
 	var skip := unwalkable_cells.duplicate()
@@ -646,7 +647,7 @@ func move_start(new_start: Vector2) -> void:
 	environment_object_layer.move_start(Vector2i(old), Vector2i(new_start))
 	unwalkable_cells = environment_object_layer.unwalkable_cells  # (The old start is plain ground now: it stays open.)
 	startPath = new_start
-	path_layer.cell_start_path = new_start
+	path_layer.set_start_half(StartGate.start_half_for(Vector2i(new_start), endPath), new_start)  # The new start's own outer half
 	if layout != null:
 		layout.start = Vector2i(new_start)
 	if dream_void != null:
