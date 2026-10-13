@@ -111,6 +111,35 @@ func _run() -> void:
 		await process_frame
 	_check(whispers.shown.has(&"after_boss") and whispers.visible, "…and shows once it closes")
 
+	# A line already on screen when the first family pick opens (user 2026-10-13: "still see whispers when clicking first
+	# family"): hidden at once, nothing new shown while the pick is open, back once it closes. The same under a Lesson card.
+	_clear(whispers)
+	whispers._run_seen.erase(&"boss")
+	whispers.whisper(&"boss")
+	for frame in 3:
+		await process_frame
+	_check(whispers.shown.has(&"boss") and whispers.visible and whispers._showing == &"boss", "a story line is on screen")
+	var shown_before: int = whispers.shown.size()
+	director.awaiting_family_pick = true
+	whispers.whisper(&"rule_breaker")
+	for frame in 3:
+		await process_frame
+	_check(not whispers.visible and whispers.shown.size() == shown_before, "the family pick opens: the line is hidden, and no other is shown behind it")
+	director.awaiting_family_pick = false
+	for frame in 3:
+		await process_frame
+	_check(whispers.visible, "…and it comes back once the pick closes")
+	var lesson_card := main.get_node("HUD/LessonCard") as Control
+	lesson_card.visible = true
+	for frame in 3:
+		await process_frame
+	_check(not whispers.visible, "a Lesson card up: the line is hidden under it too")
+	lesson_card.visible = false
+	for frame in 3:
+		await process_frame
+	_check(whispers.visible, "…and back when the card closes")
+	_check(not whispers.TEXT.values().any(func(line: String) -> bool: return line.contains("old friend") or line.contains("the long way")),
+		"the old first-pick lines are gone")
 	# Story beats, once a run each. The first leaf lost:
 	_clear(whispers)
 	run_state.invulnerable = false

@@ -290,9 +290,8 @@ func choose(data: Resource) -> void:
 		dream_state.unlocked[data.get_id()] = true
 		if _reason == &"first" and data is TowerData and data.line != "memory":
 			dream_state.set_calling(data.get_id())  # The first family is the run's class (dream_council_review.md 11)
-			var hud := get_parent()
-			if dream_state.calling_title() != "" and hud != null and hud.has_method("show_toast"):
-				hud.show_toast("Calling: %s. %s" % [dream_state.calling_title(), IconInfo.format(dream_state.calling_text())])
+			# No toast for it (user 2026-10-13: "still see whispers when clicking first family"): the Wake a family Lesson
+			# explains Callings, and the Calling stays on screen as the Dreams row's first icon (DreamsRow).
 		dream_state.unlocks_changed.emit()
 	if should_offer_sapling():
 		_show_sapling()  # Right after the drift 50 family pick (run_design.md "The Heartwood Sapling")

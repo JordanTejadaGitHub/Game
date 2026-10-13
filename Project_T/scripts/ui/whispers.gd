@@ -78,7 +78,7 @@ func _ready() -> void:
 			whisper(&"boss_toll"))  # Acts 1–3: a flat leaf toll, then it leaves
 	# A placement that would close the path: the refusal toast.
 	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void:
-		if not tower_placer.hover_breaks_path() or Time.get_ticks_msec() - _refused_at < REFUSAL_EVERY:
+		if _choice_open() or not tower_placer.hover_breaks_path() or Time.get_ticks_msec() - _refused_at < REFUSAL_EVERY:
 			return
 		_refused_at = Time.get_ticks_msec()
 		var hud := owner.get_node_or_null("HUD") if owner != null else null
@@ -195,6 +195,9 @@ static func _lowest(node: Control) -> float:
 var _hidden_for_choice := false
 
 func _choice_open() -> bool:
+	var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as Control  # A Lesson card is up (user 2026-10-13:
+	if lesson != null and lesson.visible:  # story lines and warnings never show over or behind a card or a choice)
+		return true
 	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
 	if pause != null and pause.visible:
 		return true
