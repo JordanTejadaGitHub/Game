@@ -73,20 +73,29 @@ func _run() -> void:
 	_check(b.health == b_health, "Splashback: once per Soaking")
 	await _clean()
 
-	# Lantern Ring: another family's hit inside a light Warden's reach adds Charged.
+	# Lantern Light (the Firefly class prototype, dream_council_review.md 20; it replaced Lantern Ring): nightmares in a
+	# Firefly Warden's glow are Lit, and any Warden's dispel of a Lit nightmare forks half its hit to the nearest Lit one.
 	dreams.calling = "firefly_jar"
-	CALLINGS._zone_frame = -1000
 	var jar := _plant("firefly_jar", Vector2(6, 2))
-	CALLINGS._zone_frame = -1000
+	dreams.bump_board()
+	var lights = dreams.firefly_lights
+	await process_frame
+	await process_frame
 	a = _spawn(jar.global_position + Vector2(40, 0))
+	b = _spawn(jar.global_position + Vector2(80, 0))
 	far = _spawn(Vector2(1200, 1000))
+	_check(lights != null and lights.is_lit(a) and lights.is_lit(b) and not lights.is_lit(far), "Lantern Light: nightmares in the Jar's glow are Lit")
 	sprout.hit(a, 1.0, false, Tower.NO_CRIT)
-	_check(a.statuses.stacks(EnemyStatuses.STATIC) == 1, "Lantern Ring: a hit inside the Jar's reach adds Charged")
-	sprout.hit(far, 1.0, false, Tower.NO_CRIT)
-	_check(far.statuses.stacks(EnemyStatuses.STATIC) == 0, "Lantern Ring: nothing outside the reach")
-	var before: int = a.statuses.stacks(EnemyStatuses.STATIC)
-	jar.hit(a, 1.0, false, Tower.NO_CRIT)
-	_check(a.statuses.stacks(EnemyStatuses.STATIC) == before + maxi(jar.attack_data.status_stacks, 1), "Lantern Ring: the Jar's own hit adds only its own Charged")
+	_check(a.statuses.stacks(EnemyStatuses.STATIC) == 0, "Lantern Ring is gone: another Warden's hit in the glow adds no Charged")
+	var thrown: int = lights.forks_thrown
+	b_health = b.health
+	a.health = 1
+	sprout.hit(a, 1.0, false, Tower.NO_CRIT)  # The Sprout dispels a Lit nightmare
+	await process_frame
+	await process_frame
+	_check(lights.forks_thrown == thrown + 1 and b.health < b_health, "Lantern Light: a dispel in the glow forks to the nearest Lit nightmare")
+	_check(b_health - b.health <= ceili(sprout.get_damage() * lights.CALLING_SHARE) + 1, "...for half the dispelling Warden's hit")
+	_check(b.statuses.stacks(EnemyStatuses.STATIC) == 0 and far.health == far.max_health, "a fork adds no status, and nothing outside the glow is struck")
 	await _clean()
 
 	# Ringing: a Bellflower pulse deepens every stacking status already there.

@@ -10,6 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Moonstone"
 role_line = "Longest range, single target, crits, can't hit up close"
+heavy = true
 description = "Range 10. Its first hit on each nightmare is always a crit, and its crits hit ×4. Nightmares right beside it are safe from it."
 cost = 0
 texture = ExtResource("2_tex")

@@ -170,7 +170,7 @@ const ROLE_TAG_WORDS := {&"control": "holds the line", &"setup": "sets up combos
 # (the first two counter tags), else its role tag's words, else "".
 static func role_text(form: TowerData) -> String:
 	if form != null and form.role_line != "":
-		return form.role_line
+		return ("Heavy, " if form.heavy else "") + form.role_line  # The Heavy tag (Firefly class prototype): bar, panel, grow list
 	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
 	if words.is_empty() and form != null:
 		var tag = form.get("role_tag")

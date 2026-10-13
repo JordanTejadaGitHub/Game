@@ -14,6 +14,7 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 display_name = "Whetstone"
 role_line = "Single target, finishes off the weak, high damage"
+heavy = true
 description = "Finishes off the weak: its hits on a nightmare below 30% health deal ×2.5 damage (×1.5 on bosses)."
 cost = 0
 placeholder_color = Color(0.54902, 0.54902, 0.67451, 1)

@@ -18,6 +18,9 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_act: int = 1  # Legendary: 2
 @export var min_drift: int = 0  # Never offered before this drift (Double or Nothing: 10, when Omens begin)
 @export var retired: bool = false  # No new offers, run-pool sampling or Grove unlocks.
+# A class card (dream_council_review.md 20): the family id whose Calling it belongs to (DreamState.calling). Only
+# offered when that family was the run's first pick; "" = an ordinary card.
+@export var calling: String = ""
 @export var in_start_pool: bool = true  # false = unlocked in the Memory Grove (meta)
 # Deepened card ("II"): the id of the base card it upgrades. Only offered once the base is owned;
 # taking it replaces the base card's effect (the base stops counting), so this card carries the

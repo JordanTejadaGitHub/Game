@@ -13,6 +13,7 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 display_name = "Torrent"
 role_line = "Boss killer, hits a line, Soaks"
+heavy = true
 description = "A heavier jet: {field:torrent.special_params.erosion:pct} of max health a hit (0.75% on bosses). It leaves a wet trail {field:torrent.special_params.trail_tiles:count} cells long that Soaks nightmares crossing it."
 cost = 0
 placeholder_color = Color(0.611765, 0.831373, 0.988235, 1)

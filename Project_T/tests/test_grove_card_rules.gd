@@ -49,15 +49,26 @@ func _run() -> void:
 	_check(_lost(far) == 0, "but not further")
 	await _clean()
 
-	# Guiding Light: Marked spreads to nightmares within 1 tile of the target.
+	# Guiding Light, reworked (owner ruling 2026-10-12, dream_council_review.md 21): Firefly spreads damage, never
+	# statuses. A hit on a fully Exposed nightmare forks to nightmares within 1 cell, for half (firefly_lights.gd).
 	_rule(&"guiding_light")
 	var moth := _plant("lanternmoth", Vector2(5, 5))
 	var target := _spawn(Vector2(12.5, 8.5) * CELL)
 	var beside := _spawn(target.global_position + Vector2(0.9, 0) * CELL)
 	var away := _spawn(target.global_position + Vector2(3, 0) * CELL)
 	moth.apply_status_to(target, moth.get_damage())
-	_check(beside.statuses.has(EnemyStatuses.MARKED) and not away.statuses.has(EnemyStatuses.MARKED),
-		"Guiding Light: Marked spreads within 1 tile")
+	_check(not beside.statuses.has(EnemyStatuses.MARKED) and not away.statuses.has(EnemyStatuses.MARKED),
+		"Guiding Light no longer spreads Exposed")
+	target.apply_status(EnemyStatuses.MARKED, target.statuses.get_max_stacks(EnemyStatuses.MARKED), 5.0, 0.0, 0, "light", moth)
+	await process_frame  # FireflyLights hooks the DamageLog
+	var beside_health: int = beside.health
+	var away_health: int = away.health
+	moth.hit(target, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	await process_frame
+	_check(target.statuses.is_exposed() and beside.health < beside_health and away.health == away_health,
+		"Guiding Light: a hit on a fully Exposed nightmare forks to those within 1 cell (%d -> %d)" % [beside_health, beside.health])
+	_check(not beside.statuses.has(EnemyStatuses.MARKED), "...and the fork adds no status")
 	await _clean()
 
 	# Twin Puff: every 3rd Sporeling attack fires twice.

@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "crossfire"
 display_name = "Crossfire"
-description = "When two Wardens hit a nightmare within 1 s, the next nightmare behind it (within 2 cells) takes 40% of the weaker hit. Once per nightmare every 3 s."
+description = "When a Firefly Warden and another family's Warden near it hit one nightmare within 1 s, the hit forks to the 2 behind for half."
 rarity = 1
 kind = 3
-tags = Array[String](["swift"])
+tags = Array[String](["storm", "lent"])
 max_stacks = 1
-rule_id = &"crossfire"
+rule_id = &"lent_crossfire"
+requires = Array[String](["firefly_jar"])

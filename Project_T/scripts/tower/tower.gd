@@ -3126,12 +3126,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 			set_meta(&"unique_native_status_context", previous_native_context)
 	if status == EnemyStatuses.DROWSY:
 		SupportLog.credit(self, &"drowsy", stacks)  # Honeysuckle's panel line and the rest report
-	# Guiding Light: Marked spreads to nightmares within 1 tile of the target (II: 2 tiles).
-	if status == EnemyStatuses.MARKED and _dream_state and _has_rule(&"guiding_light"):
-		var reach := (2.0 if _rule_level(&"guiding_light") > 0 else 1.0) * MAP_GRID.cell_size.x
-		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):
-			if other != enemy and other.global_position.distance_to(at) <= reach:
-				other.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	# (Guiding Light no longer spreads Exposed: it forks a hit on a fully Exposed nightmare, in firefly_lights.gd.
+	# Owner ruling 2026-10-12, dream_council_review.md 21.)
 
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).

@@ -7,12 +7,12 @@ extends RefCounted
 # Family root id -> its line (a Calling covers the whole line: branches and final forms too).
 const LINES := {"sporeling": "spore", "firefly_jar": "light", "dewdrop": "water", "bellflower": "song",
 	"acorn": "acorn", "nestling": "wing", "pebbling": "stone", "rootling": "root", "whirligig": "wind"}
-const NAMES := {"sporeling": "Take Root", "firefly_jar": "Lantern Ring", "dewdrop": "Splashback",
+const NAMES := {"sporeling": "Take Root", "firefly_jar": "Lantern Light", "dewdrop": "Splashback",
 	"bellflower": "Ringing", "acorn": "Volley", "nestling": "Perches", "pebbling": "Lodged Stone",
 	"rootling": "Anvil", "whirligig": "Tailwind"}
 const TEXTS := {
 	"sporeling": "When {spored} on a nightmare is half full, it is {held} for 1.5 seconds. Once per nightmare.",
-	"firefly_jar": "Any Warden's hit on a nightmare in a Firefly Jar's range also adds {static}.",
+	"firefly_jar": "Nightmares in a Firefly Warden's glow are Lit. When any Warden dispels a Lit nightmare, by hit, poison or cloud, half its hit forks to the nearest Lit nightmare. Your Firefly cards make forks bigger, further and more often.",
 	"dewdrop": "The first hit on a {damp} nightmare from another family also splashes the nightmares beside it.",
 	"bellflower": "Each Bellflower pulse adds to every status a nightmare already has: a tenth of that status's full stacks.",
 	"acorn": "Every 5th acorn, all Wardens next to the Acorn attack its target at once.",
@@ -26,8 +26,6 @@ const TEXTS := {
 const TAKE_ROOT_SHARE := 0.5  # Of the Poisoned cap
 const TAKE_ROOT_TIME := 1.5
 const TAKE_ROOT_BOSS_TIME := 0.75
-const LANTERN_RING_EVERY := 0.5  # Seconds between the stacks one nightmare gains from other Wardens' hits
-const RING_META := &"calling_ring_next"
 const SPLASHBACK_SHARE := 0.5  # Of the hit, to each nightmare beside it
 const SPLASHBACK_CELLS := 1.0
 const RINGING_SHARE := 0.1  # Of each status's cap, per pulse
@@ -102,8 +100,6 @@ static func after_hit(tower, enemy, dealt: float, is_area: bool, effect_tick: bo
 	if calling == "" or effect_tick or combo == &"splashback" or combo == &"tailwind":
 		return
 	match calling:
-		"firefly_jar":
-			_lantern_ring(tower, enemy)
 		"dewdrop":
 			_splashback(tower, enemy, dealt)
 		"bellflower":
@@ -112,19 +108,8 @@ static func after_hit(tower, enemy, dealt: float, is_area: bool, effect_tick: bo
 		"nestling":
 			_perch_status(tower, enemy)
 
-# Lantern Ring: another family's hit inside a light Warden's reach adds 1 Charged, credited to that Warden.
-static func _lantern_ring(tower, enemy) -> void:
-	if tower.tower_data.line == "light" or not _living(enemy):
-		return
-	# At most one stack per nightmare every LANTERN_RING_EVERY seconds, however many Wardens hit it (a crowd of fast
-	# hitters would otherwise set bolts off several times as often as the Jar itself).
-	var now: float = tower._dream_state._game_clock
-	if now < float(enemy.get_meta(RING_META, -INF)):
-		return
-	var jar = zone_warden_at(tower, "light", enemy.global_position)
-	if jar != null:
-		enemy.set_meta(RING_META, now + LANTERN_RING_EVERY)
-		enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, jar.get_damage(), 0, "light", jar)
+# (Lantern Ring, the first Firefly Calling, is retired: its always-on Charged is gone. Lantern Light lives in
+# scripts/combat/firefly_lights.gd, which listens to damage events itself: nothing here calls it.)
 
 # Splashback: once per Soaking, another family's hit splashes onto the nightmares beside the Soaked one.
 static func _splashback(tower, enemy, dealt: float) -> void:
