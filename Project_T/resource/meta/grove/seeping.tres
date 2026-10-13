@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "seeping"
 display_name = "Seeping"
-description = "Seeping joins the pool: potent poison."
+description = "Adds the {dream} card {card:seeping}: statuses and {reactions} deal more damage for each status on the nightmare."
 root = 1
 costs = Array[int]([50])
 order = 32

@@ -398,6 +398,43 @@ func _draw_layer() -> void:
 	for node in _nodes:
 		if not is_concealed(node.id):
 			_draw_node(node, font)
+	_draw_limb_labels(font)
+
+# The three limbs, named on the tree with one line each (wording_review_2026-10-13.md section 7), so a first-time
+# player knows what each side of the Memory Grove holds. Above each limb's highest node, in the limb's colour.
+const LIMB_LABELS := {
+	"families": ["Families", "New Warden families for the family pick"],
+	"cards": ["Cards", "More Dream cards for your runs"],
+	"perks": ["Perks", "Bonuses you carry into a run"],
+}
+const LIMB_LABEL_RISE := 30.0  # Tree px above the limb's highest node
+var _limb_spots := {}  # Section -> Vector2 (tree space), from the layout
+
+func _draw_limb_labels(font: Font) -> void:
+	if _limb_spots.is_empty():
+		var bounds := {}  # Section -> [min x, max x, min y]
+		for node in _nodes:
+			var pos := vec(node.pos)
+			var limb := str(node.section)
+			if not bounds.has(limb):
+				bounds[limb] = [pos.x, pos.x, pos.y]
+			bounds[limb] = [minf(bounds[limb][0], pos.x), maxf(bounds[limb][1], pos.x), minf(bounds[limb][2], pos.y)]
+		for limb in bounds:
+			_limb_spots[limb] = Vector2((bounds[limb][0] + bounds[limb][1]) / 2.0, maxf(bounds[limb][2] - LIMB_LABEL_RISE, 24.0))
+	for section in LIMB_LABELS:
+		if not _limb_spots.has(section):
+			continue
+		var at: Vector2 = _limb_spots[section]
+		var colour: Color = SECTION_COLOR.get(section, Palette.HEARTLIGHT)
+		_draw_limb_text(font, str(LIMB_LABELS[section][0]), at, 14, colour)
+		_draw_limb_text(font, str(LIMB_LABELS[section][1]), at + Vector2(0, 11), 8, Palette.MOONLIGHT)
+
+# One centred, outlined line of a limb label at `at` (tree space).
+func _draw_limb_text(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var spot := Vector2(at.x - width / 2.0, at.y)
+	_layer.draw_string_outline(font, spot, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, Color(Palette.VOID, 0.9))
+	_layer.draw_string(font, spot, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 func _branch_texture(id: String) -> Texture2D:
 	if not _branch_textures.has(id):

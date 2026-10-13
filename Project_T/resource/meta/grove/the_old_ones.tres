@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "the_old_ones"
 display_name = "The Old Ones"
-description = "Legendary: The Old Ones and Endless Rings join the pool."
+description = "Adds two {legendary} {dream} cards to the cards your runs can offer: {card:the_old_ones}, {card:endless_rings}."
 root = 1
 costs = Array[int]([150])
 order = 12

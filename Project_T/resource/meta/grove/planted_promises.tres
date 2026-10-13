@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "planted_promises"
 display_name = "Planted Promises"
-description = "Seed Dreams join the pool: Dew Bowl, {card:kind_canopy}, {card:patient_roots}."
+description = "Adds three {dream} cards that pay off later in a run: {card:dew_bowl}, {card:kind_canopy}, {card:patient_roots}."
 root = 1
 costs = Array[int]([50])
 order = 50

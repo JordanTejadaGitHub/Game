@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling"
 display_name = "Nestling family"
-description = "{family:nestling} joins your {family_picks}: birds, mobile and fast. Branches: Wren's Nest, Magpie Perch."
+description = "{family:nestling} can now appear as a choice at {family_picks}. Fast birds that fly out to hunt nightmares. Also adds the {card:shiny_things} card."
 root = 0
 costs = Array[int]([120])
 order = 7

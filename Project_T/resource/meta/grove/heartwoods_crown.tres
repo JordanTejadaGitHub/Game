@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "heartwoods_crown"
 display_name = "The Heartwood's Crown"
-description = "Every other node has grown. A sixth waystone rises: carry 6 perks into the dream."
+description = "Every other {node} is Grown. Adds a sixth {perk} slot: carry 6 {perks} into a run."
 root = 2
 costs = Array[int]([250])
 order = 30

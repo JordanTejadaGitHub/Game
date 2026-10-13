@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "last_stand"
 display_name = "Last Stand"
-description = "Daring Dreams join the pool: Desperate Bloom, Second Wind, Last Stand."
+description = "Adds three {dream} cards for risky play: {card:desperate_bloom}, {card:second_wind}, {card:last_stand}."
 root = 1
 costs = Array[int]([50])
 order = 37

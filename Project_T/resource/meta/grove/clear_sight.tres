@@ -6,8 +6,8 @@
 script = ExtResource("1_unlock")
 id = "clear_sight"
 display_name = "Clear Sight"
-description = "Start holding Heartwood's Reach: clearing opens from {drift} 1."
-sidegrade_description = "Start holding Heartwood's Reach: clearing opens from {drift} 1. Costs: the map has one more ridge."
+description = "While carried: start with the {card:heartwoods_reach} card, so you can clear obstacles from {drift} 1."
+sidegrade_description = "While carried: start with the {card:heartwoods_reach} card, so you can clear obstacles from {drift} 1. Costs: the map has one more line of obstacles."
 root = 2
 costs = Array[int]([80])
 order = 5

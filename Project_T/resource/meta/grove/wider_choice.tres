@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "wider_choice"
 display_name = "Wider Choice"
-description = "Every {family_pick} shows 3 families instead of 2."
+description = "While carried: every {family_pick} shows 3 {families} instead of 2."
 root = 2
 costs = Array[int]([80])
 order = 72

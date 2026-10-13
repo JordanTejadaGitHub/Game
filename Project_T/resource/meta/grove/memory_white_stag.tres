@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "memory_white_stag"
 display_name = "Memory Warden: The White Stag"
-description = "Grows the first time you dispel the Hollow Stag, and can be your reward after that boss. A great aura: nightmares in it are slower and take more damage."
+description = "Grows the first time you dispel the Hollow Stag. After that it can be your reward for dispelling that boss. Nightmares in its range are slower and take more damage."
 root = 0
 costs = Array[int]([])
 order = 40

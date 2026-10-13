@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower"
 display_name = "Bellflower family"
-description = "In your {family_picks} from the start: sleep and its payoffs. Its Dream cards join the pool."
+description = "{family:bellflower} is a choice at {family_picks} from your first run. Song that makes nightmares {drowsy} until they fall asleep. Also adds its {dream} cards (listed below)."
 root = 0
 costs = Array[int]([])
 order = 5
