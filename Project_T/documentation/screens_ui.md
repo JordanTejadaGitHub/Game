@@ -1167,3 +1167,15 @@ DPS uses right/left arrows to hide/reopen the entire meter; its body fold remain
 Shared Warden headers show catch percentage/reach, live bowl Dew and interest rate/per-Wellspring cap. Hover tips explain best-catcher selection, Harvest and the shared 130-Dew interest cap. Seedbearer descriptions say anywhere on valid ground; Twig Wall single/drag build previews use smaller art.
 
 Unlocked rank marks explain signatures, role Mastery or All-Rounder; generic marks do not index beyond the eight-icon atlas. Lessons explain the four-matching rule without advance signature-name hints. Pause → Replay guides provides paused nurture/maze/catcher animations, preserving Hints and discovery history. See `claude_handoff.md`, `onboarding.md` and `warden_stats.md` for current rules and recorded checks.
+## Where to recheck your Calling (user, 2026-10-13: "nowhere to recheck your Calling after you choose")
+The Calling is shown on the first family pick and in one toast, then never again. It is the run's biggest standing
+rule, so it must always be one tap away:
+- **Dreams row (top left):** the first icon is the Calling, before the Dream cards: the family's emblem in a distinct
+  frame (not a rarity gem), so it reads as "your class". Hover or tap: "Calling · Lantern Ring" and its rule text.
+- **"Dreams this run":** a "Calling" section at the top with the name, the family and the full rule; the Dream cards
+  follow.
+- **Pause menu run summary:** one line, "Calling: Lantern Ring (Firefly Jar)".
+- **Warden panel:** on a Warden of the Calling's family, a small "Calling" line under the description naming the
+  rule, since those are the Wardens it concerns.
+- **Codex → Families:** each family's entry lists its Calling, so a player can read all nine between runs.
+- **Run report:** the Calling is listed with the families.
