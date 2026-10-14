@@ -49,14 +49,21 @@ func _run() -> void:
 		"3 gifts, one of each kind (land, landmark, boon), the same draw for the same act (%s)" % [offer])
 	_check(not gifts.can_offer(&"thick_mist") and not gifts.can_offer(&"glade") and not gifts.can_offer(&"shift_stones") and gifts.can_offer(&"reshape"),
 		"Thick Mist, Glade and Shift the Stones are retired; Reshape replaces the two")
-	if not dreams.unlock_everything:
-		var had_bells: bool = dreams.unlocked.has("bellflower")
-		dreams.unlocked.erase("bellflower")
-		_check(not gifts.can_offer(&"bell_stone") and gifts.can_offer(&"moonwell"), "a landmark is only offered for a family the player owns; an 'any' landmark always")
-		dreams.unlocked["bellflower"] = true
-		_check(gifts.can_offer(&"bell_stone"), "...and is offered once the family is theirs")
-		if not had_bells:
-			dreams.unlocked.erase("bellflower")
+	# Every gift is generic: no landmark needs a family. Old Kin needs a Kinship on the map.
+	var kin_before: int = dreams.sim_kinships
+	dreams.sim_kinships = 0
+	_check(gifts.can_offer(&"bell_stone") and gifts.can_offer(&"spring") and gifts.can_offer(&"moonwell") and not gifts.can_offer(&"old_kin"),
+		"landmarks are offered whatever the families; Old Kin is not offered with no Kinship on the map")
+	dreams.sim_kinships = 1
+	_check(gifts.can_offer(&"old_kin") == HeartwoodGifts.has_effect(&"old_kin"), "...and is offered once the map has one")
+	dreams.sim_kinships = kin_before
+	for gift_id in HeartwoodGifts.POOL:
+		var gift_text := String(HeartwoodGifts.POOL[gift_id].text)
+		var names_family := false
+		for word in ["{damp}", "{spored}", "{static}", "{drowsy}", "{marked}", "Water Wardens", "Song Wardens", "Spore Wardens"]:
+			names_family = names_family or gift_text.contains(word)
+		_check(HeartwoodGifts.is_retired(gift_id) or (not names_family and HeartwoodGifts.family_of(gift_id) == HeartwoodGifts.ANY_FAMILY),
+			"%s names no family and no family status" % gift_id)
 	# Landmarks grow one step at each later act break, up to III; the numbers come from one place.
 	gifts.taken.append({"id": "moonwell", "act": 1, "placement": {}, "step": 1, "grown_act": 1})
 	gifts.grow_landmarks(1)

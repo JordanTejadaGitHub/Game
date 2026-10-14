@@ -26,8 +26,9 @@ const THICK_MIST_SPACING := 1.25
 # --- Gifts as landmarks (heartwood_gifts.md "Gifts as landmarks", approved by the user 2026-10-13) -------------------
 # Every gift has a kind. The offer is one of each (draw):
 #   land      reshapes the map
-#   landmark  a zone that acts by itself, and grows; `family` says whose build it fits ("any" = everyone's). It is
-#             only offered when that family is the player's.
+#   landmark  a zone that acts by itself, and grows
+# Every gift is generic (the amendment, user 2026-10-13): no effect or text names a family, a family's status or an
+# attacking Warden, and no gift needs a family. `family` is "any" on every gift (kept for the screens that read it).
 #   boon      a bonus for the run
 const KIND_LAND := &"land"
 const KIND_LANDMARK := &"landmark"
@@ -50,7 +51,7 @@ const POOL := {
 	&"sow_ridge": {"name": "Sow a Ridge", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"chain", "size": [4, 7],
 		"text": "Draw a wall of 4–7 Withered Trees, cell by cell. Attacking Wardens touching it deal 30% more damage. Clearing one of its trees later gives {seeds:2} instead of {seeds:1}."},
 	&"fallen_giant": {"name": "Fallen Giant", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"line", "size": [3, 5],
-		"text": "Place a Fallen Log 3–5 cells long, in a straight line. Nothing can trample it or burrow under it. Attacking Wardens touching it get +30% crit chance, and their crits hit 25% harder."},
+		"text": "Place a Fallen Log 3–5 cells long, in a straight line. Nothing can trample it or burrow under it. Attacking Wardens touching it get +20% crit chance, even ones that never crit."},
 	&"mire": {"name": "Mire", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"path", "size": 5,
 		"text": "Place a bog on 5 connected cells of path. Nightmares walk 35% slower there, and {held} lasts twice as long."},
 	&"reshape": {"name": "Reshape", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"reshape", "size": 6,
@@ -59,20 +60,20 @@ const POOL := {
 		"text": "Place 3 stumps. A Warden planted on one gets 2 free {ranks}, and you choose each bonus."},
 	&"shifting_mist": {"name": "Shifting Mist", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"rim", "size": 3,
 		"text": "Move where nightmares come from: pick one of 3 spots on the edge of the map, or keep the current one. They come from there for the rest of the run. This {act}'s {drifts} give 25% more {dew}."},
-	&"spring": {"name": "Spring", "kind": KIND_LANDMARK, "family": "dewdrop", "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(2, 2),
-		"text": "Place a 2×2 pond. It makes every nightmare passing within 2 cells {damp} (2 {stacks} a second). Water Wardens touching it deal 40% more damage."},
-	&"lightning_tree": {"name": "Lightning Tree", "kind": KIND_LANDMARK, "family": "firefly_jar", "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a dead tree on one empty cell. Every {static} bolt within 3 cells of it strikes twice, the second for half damage, and the tree throws a bolt of its own every 6 s."},
-	&"bell_stone": {"name": "Bell Stone", "kind": KIND_LANDMARK, "family": "bellflower", "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a singing stone on one empty cell. It rings every 5 s: nightmares within 3 cells gain 4 {drowsy} {stacks} (bosses half). Song Wardens touching it pulse 30% faster."},
-	&"mushroom_ring": {"name": "Mushroom Ring", "kind": KIND_LANDMARK, "family": "sporeling", "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(3, 3),
-		"text": "Place a ring of toadstools on a 3×3 patch. Nightmares crossing it gain 6 {spored} {stacks}. Spore Wardens touching it can stack half again as much {spored}."},
+	&"spring": {"name": "Spring", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(2, 2),
+		"text": "Place a 2×2 pond. Attacking Wardens within 2 cells of it attack 25% faster."},
+	&"lightning_tree": {"name": "Lightning Tree", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
+		"text": "Place a dead tree on one empty cell. Every 4 s it strikes the strongest nightmare within 3 cells for heavy damage. The strike grows as nightmares get tougher."},
+	&"bell_stone": {"name": "Bell Stone", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
+		"text": "Place a singing stone on one empty cell. It rings every 6 s: nightmares within 3 cells walk 30% slower for 2 s (bosses half as much)."},
+	&"mushroom_ring": {"name": "Mushroom Ring", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(3, 3),
+		"text": "Place a ring of toadstools on a 3×3 patch. Any status a Warden puts on a nightmare standing in it lands with half again as many {stacks}."},
 	&"moonwell": {"name": "Moonwell", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
 		"text": "Place a lit stone on one empty cell. Wardens within 2 cells get +1.5 range and see {hidden} nightmares."},
 	&"heartwood_roots": {"name": "Heartwood Roots", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"none", "size": 0,
 		"text": "Roots cover the last 6 cells of path before the Heartwood. Nightmares are {held} for 1 s on entering (bosses half) and take 30% more damage there."},
 	&"bramble_verge": {"name": "Bramble Verge", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
-		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). {warden:bramble}s make nightmares {drowsy} twice as fast."},
+		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). Nightmares beside a {warden:bramble} walk 20% slower."},
 	&"old_kin": {"name": "Old Kin", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"kinship", "size": 1,
 		"text": "Pick two bonded Wardens: their bond grows one step now. Bonds formed next {act} start one step stronger."},
 	&"memory_seed": {"name": "Memory Seed", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
@@ -94,19 +95,20 @@ const BUILT_IN: Array[StringName] = [&"thick_mist"]  # Effects that live here
 # A landmark's numbers are [step I, II, III] (about +50% a step); a single number never grows. Balancing sets the
 # final values.
 const NUMBERS := {
-	&"spring": {"soak_stacks_per_second": [2.0, 3.0, 4.0], "water_damage": [0.40, 0.60, 0.80]},
-	&"lightning_tree": {"second_strike_share": [0.50, 0.75, 1.00], "bolt_every": [6.0, 4.5, 3.0]},
-	&"bell_stone": {"ring_every": 5.0, "drowsy_stacks": [4.0, 6.0, 8.0], "song_pulse_speed": [0.30, 0.45, 0.60], "boss_share": 0.5},
-	&"mushroom_ring": {"spored_stacks": [6.0, 9.0, 12.0], "spore_cap_share": [0.50, 0.75, 1.00]},
+	&"spring": {"attack_speed": [0.25, 0.375, 0.50]},
+	# strike_damage is x the drift's health growth x the health trial (gift_ground.gd), so it keeps pace with the run.
+	&"lightning_tree": {"strike_every": 4.0, "strike_damage": [150.0, 225.0, 300.0]},
+	&"bell_stone": {"ring_every": 6.0, "slow": [0.30, 0.45, 0.60], "slow_seconds": 2.0, "boss_share": 0.5},
+	&"mushroom_ring": {"status_stacks_share": [0.50, 0.75, 1.00]},
 	&"moonwell": {"range": [1.5, 2.25, 3.0], "reveals_hidden": 1.0},
 	&"heartwood_roots": {"path_cells": [6.0, 8.0, 10.0], "root_time": 1.0, "damage_taken": [0.30, 0.45, 0.60], "boss_share": 0.5},
 	&"sow_ridge": {"damage": 0.30, "tree_seeds": 2.0},
-	&"fallen_giant": {"crit_chance": 0.30, "crit_damage": 0.25},
+	&"fallen_giant": {"crit_chance": 0.20},
 	&"mire": {"slow": 0.35, "rooted_multiplier": 2.0},
 	&"reshape": {"dew_per_obstacle": 60.0},
 	&"ancient_stump": {"free_ranks": 2.0},
 	&"shifting_mist": {"dew": 0.25},
-	&"bramble_verge": {"drowsy_rate": 2.0},
+	&"bramble_verge": {"slow": 0.20},
 	&"waking_root": {"free_unlocks": 1.0, "dreamlight": 1.0},
 }
 # A landmark's zone: how far from its edge it acts, in cells. The standing glow on the ground is this big.
@@ -117,7 +119,7 @@ const ZONE_CELLS := {&"spring": 2.0, &"lightning_tree": 3.0, &"bell_stone": 3.0,
 static func kind_of(id: StringName) -> StringName:
 	return POOL[id].kind if POOL.has(id) else &""
 
-# The family root id a landmark fits ("any": everyone's).
+# Always "any" since every gift is generic (kept for callers).
 static func family_of(id: StringName) -> String:
 	return String(POOL[id].family) if POOL.has(id) else ANY_FAMILY
 
@@ -225,18 +227,18 @@ func value(id: StringName, key: String) -> float:
 	var step := step_of(id)
 	return stat(id, key, step) if step > 0 else 0.0
 
-# Whether `id` can be offered now: it has an effect, isn't retired, wasn't taken this run, and a landmark fits a
-# family the player owns ("any" fits everyone).
+# Whether `id` can be offered now: it has an effect, isn't retired and wasn't taken this run. No gift needs a family.
+# Old Kin needs a Kinship on the map (it grows a bond: with none it would do nothing).
 func can_offer(id: StringName) -> bool:
 	if not POOL.has(id) or is_retired(id) or not has_effect(id) or has_taken(id):
 		return false
-	if kind_of(id) != KIND_LANDMARK or family_of(id) == ANY_FAMILY:
+	if id != &"old_kin":
 		return true
 	var dreams := drift_director.get_node_or_null("%DreamState")
-	return dreams != null and dreams.has_method("is_unlocked") and dreams.is_unlocked(family_of(id))
+	return dreams != null and dreams.has_method("count_kinships") and int(dreams.count_kinships()) > 0
 
 # One gift of each kind (land, landmark, boon), never one taken this run, in a seeded order (the map seed and the
-# act: a resumed run draws the same). The landmark fits a family the player owns. A kind with nothing to offer gives
+# act: a resumed run draws the same). A kind with nothing to offer gives
 # its slot to another kind, so the offer is 3 while the pool can fill it.
 func draw(act: int) -> Array[StringName]:
 	var rng := RandomNumberGenerator.new()

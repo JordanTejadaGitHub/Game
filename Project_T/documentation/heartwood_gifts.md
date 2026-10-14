@@ -157,10 +157,10 @@ Read the numbers from `HeartwoodGifts`; never copy them. `HeartwoodGifts.find(no
 | `reshape` | Reshape | land | any | **reshape**, 6 (new mode: move or clear; placement `from` / `to` for the moved, `cells` for the cleared) |
 | `ancient_stump` | Elder Stumps | land | any | cells, 3 |
 | `shifting_mist` | Shifting Mist | land | any | rim, 3 |
-| `spring` | Spring | landmark | `dewdrop` | area 2×2 |
-| `lightning_tree` | Lightning Tree | landmark | `firefly_jar` | cell |
-| `bell_stone` | Bell Stone | landmark | `bellflower` | cell |
-| `mushroom_ring` | Mushroom Ring | landmark | `sporeling` | area 3×3 |
+| `spring` | Spring | landmark | any | area 2×2 |
+| `lightning_tree` | Lightning Tree | landmark | any | cell |
+| `bell_stone` | Bell Stone | landmark | any | cell |
+| `mushroom_ring` | Mushroom Ring | landmark | any | area 3×3 |
 | `moonwell` | Moonwell | landmark | any | cell |
 | `heartwood_roots` | Heartwood Roots | landmark | any | none (the path's last cells) |
 | `bramble_verge` | Bramble Verge | boon | any | none |
@@ -169,9 +169,12 @@ Read the numbers from `HeartwoodGifts`; never copy them. `HeartwoodGifts.find(no
 | `waking_root` | Waking Root | boon | any | none |
 Retired, still in `POOL` with `retired = true` so saved runs load and their effects keep working: `glade`,
 `shift_stones`, `thick_mist`. Keep their registered effects.
+Every gift is generic (the amendment below): `family` is "any" on all of them and `family_of(id)` always returns
+"any"; it is kept only so callers still parse. Drop the "fits a family" line from the cards.
 
 **The offer:** `draw(act)` gives one gift of each kind, in the order land, landmark, boon. `can_offer(id)` is the rule:
-it has a registered effect, isn't retired, wasn't taken this run, and a landmark's family is the player's (or "any").
+it has a registered effect, isn't retired and wasn't taken this run. No gift needs a family. `old_kin` is only
+offered when the map has a Kinship (`DreamState.count_kinships() > 0`).
 A kind with nothing to offer hands its slot to another kind. A gift only enters the offer once its effect is
 registered (`HeartwoodGifts.register(id, callable)`), so **`reshape` is not offered until its effect and placer exist**.
 
@@ -179,25 +182,24 @@ registered (`HeartwoodGifts.register(id, callable)`), so **`reshape` is not offe
 `gifts.value(id, key)`; `gifts.step_of(id)` is 1–3, 0 = not taken). Landmarks grow; the rest have one value.
 | Id | Key | I | II | III |
 |---|---|---|---|---|
-| `spring` | `soak_stacks_per_second` | 2 | 3 | 4 |
-| `spring` | `water_damage` | 0.40 | 0.60 | 0.80 |
-| `lightning_tree` | `second_strike_share` | 0.50 | 0.75 | 1.00 |
-| `lightning_tree` | `bolt_every` (s) | 6 | 4.5 | 3 |
-| `bell_stone` | `drowsy_stacks` | 4 | 6 | 8 |
-| `bell_stone` | `song_pulse_speed` | 0.30 | 0.45 | 0.60 |
-| `bell_stone` | `ring_every` (s), `boss_share` | 5, 0.5 | same | same |
-| `mushroom_ring` | `spored_stacks` | 6 | 9 | 12 |
-| `mushroom_ring` | `spore_cap_share` | 0.50 | 0.75 | 1.00 |
+| `spring` | `attack_speed` (attacking Wardens in the zone) | 0.25 | 0.375 | 0.50 |
+| `lightning_tree` | `strike_damage` (× the drift's health growth × the health trial) | 150 | 225 | 300 |
+| `lightning_tree` | `strike_every` (s) | 4 | same | same |
+| `bell_stone` | `slow` (a plain slow, no status) | 0.30 | 0.45 | 0.60 |
+| `bell_stone` | `ring_every` (s), `slow_seconds`, `boss_share` | 6, 2, 0.5 | same | same |
+| `mushroom_ring` | `status_stacks_share` (extra stacks, rounded up, inside the caps, never Rooted) | 0.50 | 0.75 | 1.00 |
 | `moonwell` | `range` | 1.5 | 2.25 | 3.0 |
 | `moonwell` | `reveals_hidden` | 1 | 1 | 1 |
 | `heartwood_roots` | `path_cells` | 6 | 8 | 10 |
 | `heartwood_roots` | `damage_taken` | 0.30 | 0.45 | 0.60 |
 | `heartwood_roots` | `root_time` (s), `boss_share` | 1.0, 0.5 | same | same |
-One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_chance` 0.30, `crit_damage` 0.25 ·
+One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_chance` 0.20 (Wardens with no crit too) ·
 `mire` `slow` 0.35, `rooted_multiplier` 2 · `reshape` `dew_per_obstacle` 60 (× the act; paid here, in `_payoff`) ·
 `ancient_stump` `free_ranks` 2 · `shifting_mist` `dew` 0.25 (applied here, `get_dew_pot_multiplier`) ·
-`bramble_verge` `drowsy_rate` 2 · `waking_root` `free_unlocks` 1, `dreamlight` 1 (applied in `DreamState`).
-`crit_damage` 0.25 is my starting number: the table says only "crits hit harder".
+`bramble_verge` `slow` 0.20 (nightmares beside a Bramble) · `waking_root` `free_unlocks` 1, `dreamlight` 1 (applied in `DreamState`).
+Removed keys (the amendment): `soak_stacks_per_second`, `water_damage`, `second_strike_share`, `bolt_every`,
+`drowsy_stacks`, `song_pulse_speed`, `spored_stacks`, `spore_cap_share`, `crit_damage`, `drowsy_rate`. `stat()` gives 0
+for a key that is gone. `strike_damage` is Tower Code's starting number.
 
 **Zone radius** (`HeartwoodGifts.zone_cells(id)`, cells from the gift's edge; the standing glow is this big):
 `spring` 2 · `lightning_tree` 3 · `bell_stone` 3 · `moonwell` 2 · `mushroom_ring` 0 (its own 3×3 patch) ·
