@@ -200,6 +200,13 @@ static func crit_aura(tower: Tower) -> float:
 	return best
 
 # Prism Jar's aura, crit damage: the strongest Prism within reach adds this to crit damage (Balancing: +25%).
+# The base reach (cells) of a special's aura that isn't a TowerData aura (AuraView.is_aura misses it): Prism Jar's
+# crit aura. 0 = none. A planted one's live reach (Wide ranks) is Tower._wide_radius().
+static func special_aura(data: TowerData) -> float:
+	if data == null or data.special != PRISM:
+		return 0.0
+	return float(data.special_params.get("aura_radius", 1.5))
+
 static func crit_damage_aura(tower: Tower) -> float:
 	if not tower.is_inside_tree():
 		return 0.0

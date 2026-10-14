@@ -795,6 +795,8 @@ func _draw() -> void:
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
+		elif BranchKit.special_aura(selected.attack_data) > 0.0:
+			AuraView.draw_shape(self, AuraView.cells(selected.global_position, selected._wide_radius()))  # Prism Jar's crit aura (user: "prism jar doesn't show the aura range")
 		_draw_brood(selected)
 		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").

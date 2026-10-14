@@ -382,6 +382,9 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO)
 		AuraView.draw_ghost(self, tower_data, _ghost_centre(),
 			tower_container.get_children())
+	elif BranchKit.special_aura(tower_data) > 0.0:  # Prism Jar's crit aura: the cells it covers
+		draw_set_transform(Vector2.ZERO)
+		AuraView.draw_shape(self, AuraView.cells(_ghost_centre(), BranchKit.special_aura(tower_data)))
 	draw_set_transform(_ghost_centre())
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
@@ -682,6 +685,10 @@ func _draw_grow_preview() -> void:
 		if into.aura_radius > 0.0:  # A form with an aura: the cells it would cover (open "grow aura previews" item)
 			var reach := Tower.range_to_pixels(into.aura_radius)
 			draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(BuffSources.color(into.get_id()), 0.7), 2.0)
+		elif BranchKit.special_aura(into) > 0.0:  # Prism Jar's crit aura: the cells it would cover
+			draw_set_transform(Vector2.ZERO)
+			AuraView.draw_shape(self, AuraView.cells(tower.global_position, BranchKit.special_aura(into)))
+			draw_set_transform(to_local(tower.global_position))
 		if into.texture == null:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:
