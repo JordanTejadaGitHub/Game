@@ -31,12 +31,24 @@ const BRAMBLE_VERGE := &"bramble_verge"
 # act by themselves in a zone (HeartwoodGifts.zone_cells from the gift's edge): _process checks the nightmares every
 # TICK and only tests the ones inside a zone's rectangle. Control is bounded: one Bell Stone ring and one Roots hold
 # however the gift is laid out, bosses take `boss_share` of the stacks and of the Root time. Gift statuses carry no
-# Warden (source null, as Omens' do); the Lightning Tree's own bolt is credited to the gift in the DamageLog (a
-# source node named after it) under the "static" effect tag. `counts` feeds the rest report.
+# Warden (source null, as Omens' do); the Lightning Tree's strike is credited to the gift in the DamageLog (a
+# source node named after it) under the "gift" tag. `counts` feeds the rest report.
+# Amendment "every gift is generic" (b08a3a27, the user 2026-10-13: "make sure the new gifts are generic so they help
+# all families"): no gift names a family, a family's status or a Warden. Spring = attack speed in its zone; Lightning
+# Tree = its own strike; Bell Stone = a plain slow; Mushroom Ring = more stacks of any Warden status on a nightmare
+# inside it; Fallen Giant = crit chance for anyone; Bramble Verge = a plain slow beside Brambles.
 const TICK := 0.25
-const SPORE_FALLBACK := "res://resource/tower/sporeling.tres"  # The ring's Poisoned and the tree's bolt hit as hard as the
-const LIGHT_FALLBACK := "res://resource/tower/firefly_jar.tres"  # strongest Warden of their family on the map; alone, as its base form
-var counts := {}  # Gift id -> what it did this run (nightmares Soaked, bolts thrown, rings, Poisoned, Rooted)
+const GIFT_TAG := &"gift"  # The Lightning Tree's damage (not a hit, not a status tick, not a Reaction)
+# The amendment's numbers until HeartwoodGifts.NUMBERS carries these keys (Roguelite Code's pool update): read from
+# there the moment they exist (num), [step I, II, III] or one value. Nothing here once they land.
+const PENDING := {
+	&"spring": {"attack_speed": [0.25, 0.375, 0.5]},
+	&"lightning_tree": {"strike_every": 4.0, "strike_damage": [150.0, 225.0, 300.0]},
+	&"bell_stone": {"slow": [0.30, 0.45, 0.60], "slow_seconds": 2.0},
+	&"mushroom_ring": {"status_stacks_share": [0.5, 0.75, 1.0]},
+	&"bramble_verge": {"slow": 0.20},
+}
+var counts := {}  # Gift id -> what it did this run (strikes, nightmares slowed by a ring, Rooted)
 var counts_block := {}  # …since the last rest (Main's rest report reads and clears it: take_block_counts)
 var _tick := 0.0
 var _bell_left := 0.0
@@ -60,7 +72,11 @@ func _on_gift_grew(_id: StringName, _step: int, _placement: Dictionary) -> void:
 # One of gift `id`'s numbers at the step the player's has reached (step I when it's only marked: tests).
 func num(id: StringName, key: String) -> float:
 	var gifts := _gifts()
-	return HeartwoodGifts.stat(id, key, maxi(gifts.step_of(id) if gifts else 0, 1))
+	var step := maxi(gifts.step_of(id) if gifts else 0, 1)
+	if not HeartwoodGifts.NUMBERS.get(id, {}).has(key) and PENDING.get(id, {}).has(key):
+		var found = PENDING[id][key]  # Not in the pool yet (see PENDING)
+		return float(found[clampi(step, 1, found.size()) - 1]) if found is Array else float(found)
+	return HeartwoodGifts.stat(id, key, step)
 
 func _zone(id: StringName) -> int:
 	return int(HeartwoodGifts.zone_cells(id))
@@ -112,19 +128,14 @@ func buff_rows(tower: Tower) -> Array:
 	var rows: Array = []
 	if not tower.tower_data.can_attack:
 		return rows
-	if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1):
-		rows.append(["Spring", "damage", num(SPRING, "water_damage")])
+	if speed_bonus(tower) > 0.0:
+		rows.append(["Spring", "attack_speed", speed_bonus(tower)])
 	if sheltered(tower):
 		rows.append(["Sheltered (Sow a Ridge)", "damage", num(SOW_RIDGE, "damage")])
 	if moonlit(tower):
 		rows.append(["Moonwell (sees Hidden)", "range", num(MOONWELL, "range")])
 	if lookout(tower):
 		rows.append(["Lookout (Fallen Giant)", "crit", num(FALLEN_GIANT, "crit_chance")])
-		rows.append(["Lookout (Fallen Giant)", "crit_damage", num(FALLEN_GIANT, "crit_damage")])
-	if tower.tower_data.line == "song" and near(BELL_STONE, tower.get_cells(), 1):
-		rows.append(["Bell Stone", "attack_speed", num(BELL_STONE, "song_pulse_speed")])
-	if spored_cap_share(tower) > 0.0:
-		rows.append(["Mushroom Ring", "status_cap", spored_cap_share(tower)])
 	return rows
 
 const BRAMBLE := "bramble"  # Bramble Verge: Thornwall -> Bramble grows free this run (Bramble unlocked), and Brambles make nightmares Drowsy twice as fast
@@ -343,10 +354,9 @@ func _changed() -> void:
 
 # --- What the gifts do (Tower, Reactions, TowerPlacer read these) ------------------------------------------
 
-# Spring: a water Warden touching the pond; Sow a Ridge: a Warden touching one of its standing trees.
+# Sow a Ridge: a Warden touching one of its standing trees.
 func damage_bonus(tower: Tower) -> float:
-	return (num(SPRING, "water_damage") if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1) else 0.0) \
-		+ (num(SOW_RIDGE, "damage") if sheltered(tower) else 0.0)
+	return num(SOW_RIDGE, "damage") if sheltered(tower) else 0.0
 
 # Moonwell: an attacking Warden within its zone (2 cells, all 8 directions).
 func moonlit(tower: Tower) -> bool:
@@ -355,33 +365,21 @@ func moonlit(tower: Tower) -> bool:
 func range_bonus(tower: Tower) -> float:
 	return num(MOONWELL, "range") if moonlit(tower) else 0.0
 
-# Fallen Giant (Lookout): crit chance for an attacking Warden touching the log, and its crits hit harder.
+# Fallen Giant (Lookout): an attacking Warden touching the log has this much crit chance on top of its own, a Warden
+# that never crits too (its crits use the usual multiplier: Tower.hit).
 func crit_bonus(tower: Tower) -> float:
 	return num(FALLEN_GIANT, "crit_chance") if lookout(tower) else 0.0
 
-func crit_damage_bonus(tower: Tower) -> float:
-	return num(FALLEN_GIANT, "crit_damage") if lookout(tower) else 0.0
-
-# Bell Stone: a song Warden touching it pulses faster.
+# Spring: every attacking Warden within its zone (2 cells) attacks faster.
 func speed_bonus(tower: Tower) -> float:
-	return num(BELL_STONE, "song_pulse_speed") if tower.tower_data.line == "song" and near(BELL_STONE, tower.get_cells(), 1) else 0.0
+	return num(SPRING, "attack_speed") if tower.tower_data.can_attack and near(SPRING, tower.get_cells(), _zone(SPRING)) else 0.0
 
-# Mushroom Ring: a spore Warden touching it can stack this share more Poisoned (0.5 = half again the cap).
-func spored_cap_share(tower: Tower) -> float:
-	return num(MUSHROOM_RING, "spore_cap_share") if tower.tower_data.line == "spore" and near(MUSHROOM_RING, tower.get_cells(), 1) else 0.0
-
-# Bramble Verge: how many times as fast a Bramble makes nightmares Drowsy (1.0 without the gift).
-func bramble_drowsy_rate(tower: Tower) -> float:
-	return num(BRAMBLE_VERGE, "drowsy_rate") if bramble_verge and tower.tower_data.get_id() == BRAMBLE else 1.0
-
-# Lightning Tree: a Charged bolt that struck `target` within the tree's zone strikes a second time at a share of its
-# damage (credited to the Warden whose bolt it was; a plain strike: it sets off nothing further).
-func second_strike(target, at: Vector2, damage: float, tower: Node) -> void:  # (`target` untyped: the first strike may have freed it)
-	if damage <= 0.0 or not in_zone(LIGHTNING_TREE, at):
-		return
-	if is_instance_valid(target) and not target.is_cleansed:
-		target.take_damage(damage * num(LIGHTNING_TREE, "second_strike_share"), "light", false, false, tower, &"static")
-		_count(LIGHTNING_TREE)
+# Mushroom Ring: `stacks` of a status a Warden puts on a nightmare standing at `at`: half again as many inside the
+# ring (rounded up; the status's own cap still holds). Rooted is a duration, not stacks: unchanged.
+func ring_stacks(status: StringName, stacks: int, at: Vector2) -> int:
+	if stacks <= 0 or status == EnemyStatuses.HELD or not in_zone(MUSHROOM_RING, at):
+		return stacks
+	return ceili(stacks * (1.0 + num(MUSHROOM_RING, "status_stacks_share")))
 
 # --- Zones (px) ---------------------------------------------------------------------------------------------
 
@@ -420,12 +418,11 @@ func _process(delta: float) -> void:
 	var terrain := _map_gifts()
 	var roots: bool = terrain != null and not terrain.root_cells.is_empty()
 	var bog: bool = terrain != null and not terrain.bog_cells.is_empty()
-	var spring := zone_rects(SPRING)
 	var tree := zone_rects(LIGHTNING_TREE)
 	var bell := zone_rects(BELL_STONE)
-	var ring := zone_rects(MUSHROOM_RING)
 	var moon: bool = not marks.get(MOONWELL, []).is_empty()
-	if spring.is_empty() and tree.is_empty() and bell.is_empty() and ring.is_empty() and not moon and not roots and not bog:
+	var brambles: Dictionary = _bramble_cells() if bramble_verge else {}
+	if tree.is_empty() and bell.is_empty() and brambles.is_empty() and not moon and not roots and not bog:
 		return
 	var spawner: Node = get_parent().get_node_or_null("%EnemyContainer") if get_parent() else null
 	if spawner == null or spawner.get_child_count() == 0:
@@ -436,46 +433,35 @@ func _process(delta: float) -> void:
 		if _bell_left <= 0.0:
 			_bell_left = num(BELL_STONE, "ring_every")
 			ringing = true
-	var throwing := false
+	var striking := false
 	if not tree.is_empty():
 		_tree_left -= step
-		throwing = _tree_left <= 0.0
-	var soak := num(SPRING, "soak_stacks_per_second") * step if not spring.is_empty() else 0.0
+		striking = _tree_left <= 0.0
+	var bell_slow := num(BELL_STONE, "slow") if ringing else 0.0
+	var bell_seconds := num(BELL_STONE, "slow_seconds") if ringing else 0.0
+	var bramble_slow := num(BRAMBLE_VERGE, "slow") if not brambles.is_empty() else 0.0
 	var rung := 0
-	var struck: Node2D = null
+	var strongest: Node2D = null
 	var revealers: Array = _moonlit_wardens() if moon else []
 	for enemy in spawner.get_enemies():
 		var at: Vector2 = enemy.global_position
 		var boss: bool = enemy.enemy_data.is_boss
-		if soak > 0.0 and _inside(spring, at):
-			# Spring: Soaked builds while it walks past (fractions carry on the nightmare).
-			var carried: float = float(enemy.get_meta(&"gift_soak", 0.0)) + soak
-			var whole := int(carried)
-			enemy.set_meta(&"gift_soak", carried - whole)
-			if whole > 0:
-				if not enemy.has_meta(&"gift_soaked"):
-					enemy.set_meta(&"gift_soaked", true)
-					_count(SPRING)  # Nightmares Soaked, once each
-				enemy.apply_status(EnemyStatuses.DAMP, whole, 0.0, 0.0, 0, "water")
 		if ringing and _inside(bell, at):
-			# Bell Stone: one ring however many stones stand; bosses take a share.
-			var stacks := num(BELL_STONE, "drowsy_stacks") * (num(BELL_STONE, "boss_share") if boss else 1.0)
-			if int(stacks) > 0:
-				enemy.apply_status(EnemyStatuses.DROWSY, int(stacks), 0.0, 0.0, 0, "song")
-				rung += 1
-		if not ring.is_empty():
-			# Mushroom Ring: Poisoned once per crossing (again only after it has left the ring).
-			var on_ring := _inside(ring, at) and not enemy.is_flying()
-			if on_ring and not enemy.has_meta(&"gift_ring"):
-				var spores := num(MUSHROOM_RING, "spored_stacks") * (num(BELL_STONE, "boss_share") if boss else 1.0)
-				enemy.apply_status(EnemyStatuses.SPORED, int(spores), 0.0, _family_damage("spore", SPORE_FALLBACK), 0, "spore")
-				_count(MUSHROOM_RING)
-			if on_ring:
-				enemy.set_meta(&"gift_ring", true)
-			elif enemy.has_meta(&"gift_ring"):
-				enemy.remove_meta(&"gift_ring")
-		if throwing and struck == null and not enemy.is_hidden() and _inside(tree, at):
-			struck = enemy  # The first in the zone: the list runs oldest first, so the one furthest along
+			# Bell Stone: one ring however many stones stand; a plain slow (bosses a share of it), never a status.
+			_slow(enemy, bell_slow * (num(BELL_STONE, "boss_share") if boss else 1.0), bell_seconds)
+			rung += 1
+		if bramble_slow > 0.0 and not enemy.is_flying():
+			# Bramble Verge: a plain slow while it walks beside a Bramble (one of the 8 cells around it).
+			var cell := Tower.MAP_GRID.calculate_grid_coordinates(at)
+			var beside := false
+			for x in range(-1, 2):
+				for y in range(-1, 2):
+					if brambles.has(cell + Vector2(x, y)):
+						beside = true
+			if beside:
+				_slow(enemy, bramble_slow * (num(BELL_STONE, "boss_share") if boss else 1.0), TICK * 1.6)
+		if striking and not enemy.is_hidden() and _inside(tree, at) and (strongest == null or enemy.health > strongest.health):
+			strongest = enemy  # The Lightning Tree picks the strongest in its zone
 		if roots or bog:
 			_ground(enemy, terrain, roots, bog, boss)
 		if not revealers.is_empty() and (enemy.enemy_data.hidden or enemy.is_hidden()):
@@ -485,12 +471,37 @@ func _process(delta: float) -> void:
 					break
 	if rung > 0:
 		_count(BELL_STONE, rung)
-	if struck != null:
-		# Lightning Tree: its own bolt, as hard as the strongest light Warden's (a Charged bolt's 16×), credited to the gift.
-		_tree_left = num(LIGHTNING_TREE, "bolt_every")
-		struck.take_damage(_family_damage("light", LIGHT_FALLBACK) * EnemyStatuses.STATIC_BOLT_MULTIPLIER, "light", false, false,
-			source_of(LIGHTNING_TREE), &"static")
+	if strongest != null:
+		# Lightning Tree: its own strike, heavy and growing with the run's health (so with the act), credited to the gift.
+		_tree_left = num(LIGHTNING_TREE, "strike_every")
+		strongest.take_damage(num(LIGHTNING_TREE, "strike_damage") * _health_scale(), "", false, false, source_of(LIGHTNING_TREE), GIFT_TAG)
 		_count(LIGHTNING_TREE)
+
+# A plain slow (EnemyStatuses' extra slow, as the Mire's: the strongest one counts, the slow floors still hold).
+static func _slow(enemy: Node2D, amount: float, seconds: float) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, amount)
+	s.slow_time = maxf(s.slow_time, seconds)
+
+# How much tougher this drift's nightmares are than the first drift's (the growth per drift and the health trial).
+func _health_scale() -> float:
+	if _director == null:
+		return 1.0
+	return _director.get_growth(maxi(_director.drifts_started, 1)) * _director.trial_health_multiplier
+
+# The Brambles' cells, kept until a Warden is planted, sold or grown.
+func _bramble_cells() -> Dictionary:
+	var towers := get_tree().get_nodes_in_group(Tower.GROUP)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	var key: int = towers.size() * 100003 + (dreams.board_version if dreams else 0)
+	if key != _thorn_key:
+		_thorn_key = key
+		_thorn_cells = {}
+		for tower in towers:
+			if tower is Tower and tower.tower_data != null and tower.tower_data.get_id() == BRAMBLE:
+				for c in tower.get_cells():
+					_thorn_cells[c] = true
+	return _thorn_cells
 
 static func _inside(rects: Array, at: Vector2) -> bool:
 	for rect in rects:
@@ -525,17 +536,6 @@ func _moonlit_wardens() -> Array:
 			out.append(tower)
 	return out
 
-# The hit damage of the strongest Warden of `line` on the map; with none, the family's base form's.
-func _family_damage(line: String, fallback: String) -> float:
-	var best := 0.0
-	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
-		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.line == line and tower.tower_data.can_attack:
-			best = maxf(best, tower.get_damage())
-	if best <= 0.0:
-		var data := load(fallback) as TowerData
-		best = float(data.damage) if data != null else 1.0
-	return best
-
 # Bramble Verge: Thornwalls cost half.
 func cost_multiplier(_data: TowerData) -> float:
 	return 1.0  # No gift changes planting prices now (Bramble Verge was "Thornwalls half price" until 8f46c6ac)
@@ -544,7 +544,7 @@ func cost_multiplier(_data: TowerData) -> float:
 func free_growth(from: TowerData, into: TowerData) -> bool:
 	return bramble_verge and from != null and into != null and from.get_id() == THORNWALL and into.get_id() == BRAMBLE
 
-# (Bramble Verge's +1 Drowsy cap is gone: Brambles make nightmares Drowsy twice as fast instead, bramble_drowsy_rate.
+# (Bramble Verge gives no Drowsy cap: Brambles slow the nightmares beside them, a plain slow, in _process.
 # Kept at 0 for Reactions.drowsy_cap_bonus.)
 func drowsy_cap_bonus(_enemy: Node2D) -> int:
 	return 0

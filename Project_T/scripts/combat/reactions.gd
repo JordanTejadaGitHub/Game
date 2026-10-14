@@ -428,9 +428,6 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
 		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
-		var gifts := GiftGround.active_for(tracker) if tag == &"static" and tracker != null else null
-		if gifts:
-			gifts.second_strike(target, at, damage, tower)  # Heartwood's Gift Lightning Tree: bolts within its zone strike twice
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":

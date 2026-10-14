@@ -1016,7 +1016,7 @@ func _compute_attacks_per_second() -> float:
 	var plain := speed * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
-	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
+	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Spring
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
 	# Dream cards together add at most +150% attack speed to one Warden (card_review_2026-10-12.md 1: The Last Light,
@@ -1103,7 +1103,7 @@ func _stats_fresh() -> bool:
 	_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
 	return false
 
-# Heartwood's Gifts (GiftGround): Spring (&"damage"), Bell Stone (&"speed"), Moonwell (&"range") for this Warden.
+# Heartwood's Gifts (GiftGround): Sow a Ridge (&"damage"), Spring (&"speed"), Moonwell (&"range"), Fallen Giant (&"crit") for this Warden.
 func _gift_bonus(stat: StringName) -> float:
 	var gifts := GiftGround.active_for(self)
 	if gifts == null:
@@ -1117,8 +1117,6 @@ func _gift_bonus(stat: StringName) -> float:
 			return gifts.range_bonus(self)
 		&"crit":
 			return gifts.crit_bonus(self)
-		&"crit_damage":
-			return gifts.crit_damage_bonus(self)
 	return 0.0
 
 func _gift_version() -> int:
@@ -2912,7 +2910,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
 		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
-		crit_multiplier += _gift_bonus(&"crit_damage")  # Gift: Fallen Giant (Lookout): crits hit harder
+		if crit_multiplier <= 1.0:
+			crit_multiplier = 2.0  # A Warden that never crits but did (Gift Fallen Giant's Lookout): the usual multiplier (TowerData's default)
 		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
@@ -3276,15 +3275,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep  # Its strength side is Potency (get_potency)
-	var gifts := GiftGround.active_for(self)  # Heartwood's Gifts: Spring (Soaked lasts longer near it), Mushroom Ring (Poisoned cap)
+	var gifts := GiftGround.active_for(self)
 	if gifts:
-		if status == EnemyStatuses.SPORED:
-			var more := gifts.spored_cap_share(self)  # Mushroom Ring: half again as much (the Spring Soaks by itself now)
-			if more > 0.0:
-				var cap: int = max_stacks if max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[status]
-				max_stacks = cap + roundi(cap * more)  # From the base: the stored cap would compound
-		elif status == EnemyStatuses.DROWSY and tower_data.line == "wall":
-			stacks = roundi(stacks * gifts.bramble_drowsy_rate(self))  # Bramble Verge: Brambles make nightmares Drowsy twice as fast
+		stacks = gifts.ring_stacks(status, stacks, enemy.global_position)  # Gift Mushroom Ring: any Warden's status on a nightmare inside it lands with half again as many stacks
 	var at: Vector2 = enemy.global_position
 	if status == EnemyStatuses.DROWSY and tower_data.line == "wall":
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone

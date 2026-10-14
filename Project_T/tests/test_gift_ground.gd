@@ -37,75 +37,67 @@ func _run() -> void:
 	var gifts := GiftGround.find(main)
 	_check(gifts != null and GiftGround.active() == gifts, "the gift ground is made on first use")
 
-	# Spring (landmark): a water Warden touching the pond deals more; nightmares within 2 cells are Soaked by the pond
-	# itself, 2 stacks a second; one far away isn't.
-	var wet := _plant("dewdrop", Vector2(4, 4))
-	var dry := _plant("dewdrop", Vector2(14, 4))
-	var plain := dry.get_damage()
+	# Every gift is generic (heartwood_gifts.md "Amendment: every gift is generic", the user 2026-10-13).
+	# Spring: every attacking Warden within 2 cells attacks faster, whatever its family; one far away doesn't.
+	var wet := _plant("sporeling", Vector2(3, 4))
+	var dry := _plant("sporeling", Vector2(14, 4))
+	var plain := dry.get_attacks_per_second()
+	var plain_damage := dry.get_damage()
 	gifts.add_mark(GiftGround.SPRING, [Vector2(5, 4), Vector2(6, 4), Vector2(5, 5), Vector2(6, 5)])
-	_check(is_equal_approx(wet.get_damage(), plain * (1.0 + HeartwoodGifts.stat(&"spring", "water_damage"))) and is_equal_approx(dry.get_damage(), plain),
-		"Spring: the water Warden touching it +40%% (%.1f vs %.1f), the far one unchanged" % [wet.get_damage(), plain])
-	var soaked := _spawn(Vector2(6, 7))
-	var far_soaked := _spawn(Vector2(14, 6))
+	_check(is_equal_approx(wet.get_attacks_per_second(), plain * (1.0 + gifts.num(GiftGround.SPRING, "attack_speed"))) and is_equal_approx(dry.get_attacks_per_second(), plain)
+		and is_equal_approx(wet.get_damage(), plain_damage),
+		"Spring: a Warden 2 cells away attacks 25%% faster (%.2f vs %.2f), no damage bonus, the far one unchanged" % [wet.get_attacks_per_second(), plain])
+	var passer := _spawn(Vector2(6, 7))
 	for i in 4:
 		_tick(gifts)
-	_check(soaked.statuses.stacks(EnemyStatuses.DAMP) == int(HeartwoodGifts.stat(&"spring", "soak_stacks_per_second")) and not far_soaked.statuses.has(EnemyStatuses.DAMP),
-		"Spring: a second within 2 cells Soaks 2 stacks (%d), none far away" % soaked.statuses.stacks(EnemyStatuses.DAMP))
-	_check(int(gifts.counts.get(GiftGround.SPRING, 0)) == 1, "…counted once for the rest report")
+	_check(passer.statuses.count() == 0, "Spring: it puts no status on nightmares")
 	await _clean()
 	gifts.marks.erase(GiftGround.SPRING)
 	gifts._changed()
 
-	# Mushroom Ring (landmark): a spore Warden touching it can stack half again as much Poisoned; a nightmare crossing
-	# the ring is Poisoned once per crossing.
-	var ringed := _plant("sporeling", Vector2(4, 8))
-	var unringed := _plant("sporeling", Vector2(14, 8))
+	# Mushroom Ring: any status a Warden puts on a nightmare inside the ring lands with half again as many stacks
+	# (rounded up), whatever the family; outside it, as usual; crossing the ring alone does nothing.
 	gifts.add_mark(GiftGround.MUSHROOM_RING, [Vector2(5, 8), Vector2(6, 8), Vector2(7, 8), Vector2(5, 9), Vector2(6, 9), Vector2(7, 9),
 		Vector2(5, 10), Vector2(6, 10), Vector2(7, 10)])
-	var a := _spawn(Vector2(9, 12))
+	var ring_share := gifts.num(GiftGround.MUSHROOM_RING, "status_stacks_share")
+	var a := _spawn(Vector2(6, 9))
 	var b := _spawn(Vector2(12, 12))
-	var base_cap: int = EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.SPORED]
-	var ring_cap := base_cap + roundi(base_cap * HeartwoodGifts.stat(&"mushroom_ring", "spore_cap_share"))
-	for i in ring_cap + 4:
-		ringed._apply_one_status(a, EnemyStatuses.SPORED, 1, 10.0)
-		unringed._apply_one_status(b, EnemyStatuses.SPORED, 1, 10.0)
-	_check(a.statuses.stacks(EnemyStatuses.SPORED) == ring_cap and b.statuses.stacks(EnemyStatuses.SPORED) == base_cap,
-		"Mushroom Ring: half again the Poisoned cap (%d vs %d)" % [a.statuses.stacks(EnemyStatuses.SPORED), b.statuses.stacks(EnemyStatuses.SPORED)])
-	var crosser := _spawn(Vector2(6, 9))
 	_tick(gifts)
-	var ring_stacks := int(HeartwoodGifts.stat(&"mushroom_ring", "spored_stacks"))
-	_check(crosser.statuses.stacks(EnemyStatuses.SPORED) == ring_stacks, "Mushroom Ring: crossing it Poisons 6 (%d)" % crosser.statuses.stacks(EnemyStatuses.SPORED))
-	_tick(gifts)
-	_check(crosser.statuses.stacks(EnemyStatuses.SPORED) == ring_stacks, "…once per crossing")
-	crosser.global_position = Tower.MAP_GRID.calculate_map_position(Vector2(12, 9))
-	_tick(gifts)
-	crosser.global_position = Tower.MAP_GRID.calculate_map_position(Vector2(6, 9))
-	_tick(gifts)
-	_check(crosser.statuses.stacks(EnemyStatuses.SPORED) == ring_stacks * 2, "…and again on the next crossing (%d)" % crosser.statuses.stacks(EnemyStatuses.SPORED))
+	_check(a.statuses.count() == 0, "Mushroom Ring: standing in it gives no status by itself")
+	for pair in [["sporeling", EnemyStatuses.SPORED], ["dewdrop", EnemyStatuses.DAMP], ["firefly_jar", EnemyStatuses.STATIC]]:
+		var giver := _plant(pair[0], Vector2(4, 12))
+		giver._apply_one_status(a, pair[1], 3, 10.0)
+		giver._apply_one_status(b, pair[1], 3, 10.0)
+		_check(a.statuses.stacks(pair[1]) == ceili(3 * (1.0 + ring_share)) and b.statuses.stacks(pair[1]) == 3,
+			"Mushroom Ring: %s lands with half again as many stacks inside (%d vs %d)" % [pair[1], a.statuses.stacks(pair[1]), b.statuses.stacks(pair[1])])
+		giver.queue_free()
+	_check(gifts.ring_stacks(EnemyStatuses.HELD, 1, a.global_position) == 1, "…Rooted isn't stacks: unchanged")
 	await _clean()
 	gifts.marks.erase(GiftGround.MUSHROOM_RING)
 	gifts._changed()
 
-	# Lightning Tree (landmark): a Charged bolt within 3 cells strikes a second time at half damage; the tree throws
-	# its own bolt every 6 s, credited to the gift.
+	# Lightning Tree: no Charged interaction; every 4 s it strikes the strongest nightmare within 3 cells, credited
+	# to the gift.
 	gifts.add_mark(GiftGround.LIGHTNING_TREE, [Vector2(8, 14)])
-	gifts._tree_left = 999.0  # (Its own bolt is checked after)
+	gifts._tree_left = 999.0
 	var struck := _spawn(Vector2(10, 14))
+	var weak := _spawn(Vector2(9, 14))
+	weak.health = 50000
 	var unstruck := _spawn(Vector2(16, 14))
 	Reactions.strike_bolt(struck, 100.0, null)
 	Reactions.strike_bolt(unstruck, 100.0, null)
-	var near_lost: int = struck.max_health - struck.health
-	var far_lost: int = unstruck.max_health - unstruck.health
-	_check(far_lost > 0 and absf(float(near_lost) / far_lost - (1.0 + HeartwoodGifts.stat(&"lightning_tree", "second_strike_share"))) < 0.03,
-		"Lightning Tree: bolts within 3 cells strike twice, the second at half (%d vs %d)" % [near_lost, far_lost])
+	_check(struck.max_health - struck.health == unstruck.max_health - unstruck.health and struck.health < struck.max_health,
+		"Lightning Tree: a Charged bolt beside it is a plain bolt")
 	var before_own: int = struck.health
-	var far_before: int = unstruck.health
 	gifts._tree_left = 0.0
 	_tick(gifts)
-	_check(struck.health < before_own and unstruck.health == far_before and is_equal_approx(gifts._tree_left, HeartwoodGifts.stat(&"lightning_tree", "bolt_every")),
-		"Lightning Tree: it throws its own bolt at a nightmare in its zone, then waits 6 s")
+	_check(struck.health < before_own and weak.health == 50000 and unstruck.max_health - unstruck.health == struck.max_health - before_own
+		and is_equal_approx(gifts._tree_left, gifts.num(GiftGround.LIGHTNING_TREE, "strike_every")),
+		"Lightning Tree: it strikes the strongest nightmare in its zone (%d), not the weaker or the far one, then waits" % (before_own - struck.health))
 	_check(gifts.source_of(GiftGround.LIGHTNING_TREE).name == "Lightning Tree", "…credited to the gift by name")
 	await _clean()
+	gifts.marks.erase(GiftGround.LIGHTNING_TREE)
+	gifts._changed()
 
 	# Moonwell (landmark): Wardens within 2 cells get +1.5 range (the diagonal too), one 3 cells away doesn't; they
 	# reveal Hidden nightmares in their range.
@@ -123,20 +115,19 @@ func _run() -> void:
 	gifts.marks.erase(GiftGround.MOONWELL)
 	gifts._changed()
 
-	# Bell Stone (landmark): a song Warden touching it pulses faster; every 5 s nightmares within 3 cells gain 4 Drowsy.
+	# Bell Stone: no Warden bonus; every ring slows the nightmares within 3 cells for 2 s, a plain slow (no status).
 	gifts.add_mark(GiftGround.BELL_STONE, [Vector2(3, 14)])
 	var ringing := _plant("bellflower", Vector2(4, 15))
 	var quiet := _plant("bellflower", Vector2(16, 2))
-	_check(is_equal_approx(ringing.get_attacks_per_second(), quiet.get_attacks_per_second() * (1.0 + HeartwoodGifts.stat(&"bell_stone", "song_pulse_speed"))),
-		"Bell Stone: song Wardens touching it 30%% faster (%.2f vs %.2f)" % [ringing.get_attacks_per_second(), quiet.get_attacks_per_second()])
+	_check(is_equal_approx(ringing.get_attacks_per_second(), quiet.get_attacks_per_second()), "Bell Stone: no bonus for the Warden beside it")
 	var hearer := _spawn(Vector2(5, 12))
 	var deaf := _spawn(Vector2(12, 14))
 	gifts._bell_left = 0.0
 	_tick(gifts)
-	_check(hearer.statuses.stacks(EnemyStatuses.DROWSY) == int(HeartwoodGifts.stat(&"bell_stone", "drowsy_stacks")) and not deaf.statuses.has(EnemyStatuses.DROWSY),
-		"Bell Stone: its ring gives 4 Drowsy within 3 cells (%d)" % hearer.statuses.stacks(EnemyStatuses.DROWSY))
-	_tick(gifts)
-	_check(hearer.statuses.stacks(EnemyStatuses.DROWSY) == int(HeartwoodGifts.stat(&"bell_stone", "drowsy_stacks")), "…and not again before the next ring")
+	_check(is_equal_approx(hearer.statuses.slow_amount, gifts.num(GiftGround.BELL_STONE, "slow")) and is_equal_approx(hearer.statuses.slow_time, gifts.num(GiftGround.BELL_STONE, "slow_seconds"))
+		and hearer.statuses.count() == 0 and deaf.statuses.slow_time <= 0.0,
+		"Bell Stone: its ring slows nightmares within 3 cells 30%% for 2 s, with no status (%.2f for %.1f s)" % [hearer.statuses.slow_amount, hearer.statuses.slow_time])
+	_check(is_equal_approx(gifts._bell_left, gifts.num(GiftGround.BELL_STONE, "ring_every")), "…then it waits for the next ring")
 	await _clean()
 	gifts.marks.erase(GiftGround.BELL_STONE)
 	gifts._changed()
@@ -164,8 +155,8 @@ func _run() -> void:
 	_check(is_equal_approx(sheltered.get_damage(), base_damage * (1.0 + HeartwoodGifts.stat(&"sow_ridge", "damage"))),
 		"Sow a Ridge: Sheltered +30%% (%.2f vs %.2f)" % [sheltered.get_damage(), base_damage])
 	_check(is_equal_approx(sheltered.get_range_cells(), base_range), "Fallen Giant: no range now (%.2f)" % sheltered.get_range_cells())
-	_check(is_equal_approx(sheltered.get_raw_crit_chance() - open_far.get_raw_crit_chance(), HeartwoodGifts.stat(&"fallen_giant", "crit_chance")) and is_equal_approx(gifts.crit_damage_bonus(sheltered), HeartwoodGifts.stat(&"fallen_giant", "crit_damage")) and gifts.crit_damage_bonus(open_far) == 0.0,
-		"Fallen Giant: Lookout +30%% crit and harder crits (%.2f vs %.2f)" % [sheltered.get_raw_crit_chance(), open_far.get_raw_crit_chance()])
+	_check(is_equal_approx(sheltered.get_raw_crit_chance() - open_far.get_raw_crit_chance(), HeartwoodGifts.stat(&"fallen_giant", "crit_chance")) and is_equal_approx(open_far.get_raw_crit_chance(), 0.0),
+		"Fallen Giant: Lookout gives a Warden that never crits its crit chance (%.2f vs %.2f)" % [sheltered.get_raw_crit_chance(), open_far.get_raw_crit_chance()])
 	_check(is_equal_approx(open_far.get_damage(), base_damage), "a Warden away from the tree isn't Sheltered")
 	var labels: Array = BuffSources.for_tower(sheltered).map(func(e: Dictionary) -> String: return e.label)
 	_check(labels.any(func(l: String) -> bool: return l.begins_with("Gift Sheltered")) and labels.any(func(l: String) -> bool: return l.begins_with("Gift Lookout")),
@@ -216,10 +207,14 @@ func _run() -> void:
 	_check(placer.get_cost(thorn) == full, "Bramble Verge: Thornwalls keep their price (%d of %d)" % [placer.get_cost(thorn), full])
 	_check(paid > 0 and grower.get_grow_cost(bramble_data).total == 0,
 		"Bramble Verge: Thornwall -> Bramble is free (%d -> %d)" % [paid, grower.get_grow_cost(bramble_data).total])
-	# Brambles make nightmares Drowsy twice as fast (the +1 Drowsy cap is gone); a Thornwall doesn't.
+	# Brambles slow the nightmares beside them, a plain slow (no Drowsy, no cap bonus); away from one, nothing.
 	var briar := _plant("bramble", Vector2(9, 5))
-	_check(is_equal_approx(gifts.bramble_drowsy_rate(briar), HeartwoodGifts.stat(&"bramble_verge", "drowsy_rate")) and is_equal_approx(gifts.bramble_drowsy_rate(grower), 1.0)
-		and Reactions.drowsy_cap_bonus(_spawn(Vector2(10, 5))) == 0, "Bramble Verge: Brambles apply Drowsy at twice the rate, no cap bonus")
+	var brushed := _spawn(Vector2(10, 5))
+	var clear_of := _spawn(Vector2(14, 12))
+	_tick(gifts)
+	_check(is_equal_approx(brushed.statuses.slow_amount, gifts.num(GiftGround.BRAMBLE_VERGE, "slow")) and brushed.statuses.slow_time > 0.0 and brushed.statuses.count() == 0
+		and clear_of.statuses.slow_time <= 0.0 and Reactions.drowsy_cap_bonus(brushed) == 0,
+		"Bramble Verge: 20%% slower beside a Bramble, no status (%.2f)" % brushed.statuses.slow_amount)
 	briar.queue_free()
 	await _clean()
 
