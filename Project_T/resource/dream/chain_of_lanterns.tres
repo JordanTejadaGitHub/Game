@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "chain_of_lanterns"
 display_name = "Chain of Lanterns"
-description = "A bolt, Toll or Reaction on a Lit nightmare also jumps that hit to the 2 nearest Lit nightmares, at half damage."
+description = "A bolt, {toll} or Reaction on a {lit} nightmare also {jumps} that hit to the 2 nearest {lit} nightmares, at half damage."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"chain_of_lanterns"
 requires = Array[String](["firefly_jar"])
-tip = "Lit: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."
+tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."

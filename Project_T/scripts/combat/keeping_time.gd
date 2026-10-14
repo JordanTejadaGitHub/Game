@@ -117,6 +117,41 @@ func _start_pips() -> int:
 func _ready() -> void:
 	super._ready()
 	add_to_group(GROUP)
+	_pip_layer = Node2D.new()
+	_pip_layer.name = "TollPips"
+	_pip_layer.z_index = PIP_Z  # Over the nightmares (this node lies with the ground)
+	_pip_layer.draw.connect(_draw_pips)
+	add_child(_pip_layer)
+
+# The Toll count over each nightmare (council 2026-10-13: "a player won't understand rules they can't see"): 4 small
+# pips above it, the filled ones gold. Shown only while Tolls are on and the nightmare has started counting.
+const PIP_Z := 8
+const PIP_OFFSET := Vector2(0.0, -44.0)  # Above the health bar
+const PIP_GAP := 6.0
+const PIP_RADIUS := 2.0
+var _pip_layer: Node2D
+var _pips_shown := false
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if _pip_layer != null and (tolls_on() or _pips_shown):
+		_pips_shown = tolls_on()
+		_pip_layer.queue_redraw()  # Only while Tolls are on (and once more to clear them)
+
+func _draw_pips() -> void:
+	if dream_state == null or not tolls_on():
+		return
+	for enemy in enemies():
+		if not enemy.has_meta(PIPS_META):
+			continue
+		var filled := int(enemy.get_meta(PIPS_META))
+		var at: Vector2 = enemy.global_position + PIP_OFFSET - Vector2(PIP_GAP * (TOLL_EVERY - 1) / 2.0, 0.0)
+		for k in TOLL_EVERY:
+			var spot := at + Vector2(PIP_GAP * k, 0.0)
+			if k < filled:
+				_pip_layer.draw_circle(spot, PIP_RADIUS, Palette.GOLD)
+			else:
+				_pip_layer.draw_circle(spot, PIP_RADIUS, Color(Palette.MOONLIGHT, 0.35))
 
 static func is_pulsing(tower) -> bool:
 	return tower is Tower and tower.attack_data != null and tower.attack_data.attack_kind == TowerData.AttackKind.PULSE

@@ -185,6 +185,9 @@ func _make_card(card: UpgradeData) -> Button:
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += " · " + _roman(stack_count + 1)
+	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
+	if kind != "":
+		rarity.text += " · " + kind  # "Rare · Calling: Spore Print" / "Common · Sporeling family" (Roguelite Code)
 	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
 	var gem_row := HBoxContainer.new()

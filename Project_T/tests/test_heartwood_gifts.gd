@@ -161,7 +161,7 @@ func _run() -> void:
 	director.rest_started.emit(10, true, 0, false)
 	var dew := run_state.dew
 	gifts.let_pass()
-	_check(run_state.dew == dew + 60 and gifts.passed == [2], "Let them pass: +30 Dew × act 2")
+	_check(run_state.dew == dew + HeartwoodGifts.PASS_DEW * 2 and gifts.passed == [2], "Let them pass: %d Dew × act 2" % HeartwoodGifts.PASS_DEW)
 
 	# Thick Mist: the next act's arrivals further apart.
 	gifts.taken.append({"id": "thick_mist", "act": 1, "placement": {}})

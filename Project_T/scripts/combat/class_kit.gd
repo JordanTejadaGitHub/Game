@@ -184,7 +184,10 @@ func _refresh_route() -> bool:
 func index_of(enemy) -> int:
 	if enemy.is_flying():
 		return -1
-	return int(_index.get(enemy.get_target_cell(), -1))
+	var i := int(_index.get(enemy.get_target_cell(), -1))
+	if i >= 0 and enemy.global_position.distance_squared_to(_route_px[i]) <= cell() * cell():
+		return i  # Its next step is on the route and close by: the usual case
+	return nearest_point(enemy.global_position, 0.75)  # Placed, pushed or pulled off its usual step: where it stands
 
 # The route point nearest `at`, if within `cells` of it (-1: none).
 func nearest_point(at: Vector2, cells: float) -> int:

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "join_in"
 display_name = "Join In"
-description = "Hits from other Wardens touching a bell count as its rings (Sprouts count); another {family}'s Wardens near a bell count too. Each Warden, once a second."
-tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a Toll: it lands again at half damage (on a Bellflower start the first Toll is ring 2). Works for: any other Warden touching a bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Hits from other Wardens {touching} a bell count as its rings (Sprouts count); another {family}'s Wardens {near} a bell count too. Each Warden, once a second."
+tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a {toll}: it lands again at half damage (on a Bellflower start the first {toll} is ring 2). Works for: any other Warden {touching} a bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "lent"])

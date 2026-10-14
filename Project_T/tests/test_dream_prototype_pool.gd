@@ -26,7 +26,7 @@ func _run() -> void:
 		_check(not dreams.can_offer(card, 2), "retired role never offered, even after its family grows: " + pair[0])
 		_check(not dreams.can_offer(card, 1) and not dreams.can_offer(card, 4), "retired role never offered in any act: " + pair[0])
 		_check(card.soothe_bonus == 0.0 and card.evolve_discount == 0.0, "no passive family package: " + pair[0])
-	for id in ["full_moon", "chosen_few", "falling_weight", "cheap_seeds", "seedfall", "deeper_calm", "sprout_chorus", "switchback"]:
+	for id in ["full_moon", "chosen_few", "falling_weight", "cheap_seeds", "seedfall", "sprout_chorus", "switchback"]:  # (deeper_calm retired 2026-10-13)
 		_check(not dreams._card_by_id(id).retired, "preserved meaningful choice: " + id)
 	for id in ["canopy", "grand_tour"]:
 		var card = dreams._card_by_id(id)

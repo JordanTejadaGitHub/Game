@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rounds"
 display_name = "Rounds"
-description = "A Toll is heard again: when that nightmare walks into the next bell's range, within 4 steps, it lands once more, at half damage."
+description = "A {toll} is heard again: when that nightmare walks into the next bell's range, within 4 {steps}, it lands once more, at half damage."
 tip = "Works for: bells. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 1
 kind = 3

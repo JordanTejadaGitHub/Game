@@ -2423,6 +2423,8 @@ func _soaked_boosts_water() -> bool:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
 	return dreams == null or dreams.soaked_boosts_water()
 
+var _batch_dreams: DreamState = null  # The run's DreamState, found on the first hit (performance: once, not per damage event)
+
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
@@ -2432,7 +2434,9 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
 	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
-	var batch_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # Looked up once, not per hit
+	var batch_dreams := _batch_dreams if is_instance_valid(_batch_dreams) else null
 	if batch_dreams != null:
 		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
 	if is_crit:

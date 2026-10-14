@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "kept_ground"
 display_name = "Kept Ground"
-description = "A mushroom on path touching only one spore Warden grows back 6 s after it is stepped on."
-tip = "Works for: spore Wardens, by where they stand. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "A {mushroom} on path {touching} only one spore Warden grows back 6 s after it is stepped on."
+tip = "A {dose}: 3 {spored} at once (what a {mushroom} gives when stepped on). Works for: spore Wardens, by where they stand. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 0
 kind = 3
 tags = Array[String](["spore"])

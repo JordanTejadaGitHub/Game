@@ -86,7 +86,7 @@ func _run() -> void:
 	one.note_primary_target(b)
 	one.hit(b, 1.0, false, Tower.NO_CRIT)
 	_check(rules.echoes.is_empty() and rules.beats[one.get_instance_id()].count == 1, "target switch restarts count")
-	_take("crossfire")
+	_old_crossfire()
 	rules.reset()
 	one.note_primary_target(a)
 	two.note_primary_target(a)
@@ -193,3 +193,13 @@ func _clean() -> void:
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame
+
+# The old Crossfire (DreamBuildRules: two Wardens within 1 s fork 40% to the nightmares behind) is the rule `crossfire`;
+# the Crossfire card is the Firefly family's lent card (rule lent_crossfire) since the Firefly class, so the test lends one.
+func _old_crossfire() -> void:
+	var old := UpgradeData.new()
+	old.id = "old_crossfire_rule"
+	old.rule_id = &"crossfire"
+	dreams.pool.append(old)
+	dreams.stacks[old.id] = 1
+	dreams.bump_board()

@@ -170,7 +170,7 @@ func _test_wide_and_narrow() -> void:
 	_reset()
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	dreams.take(_card("seedfall"))
-	_check(dreams.get_build_cost(sprout) == 8, "Seedfall: Sprouts start at 8")
+	_check(dreams.get_build_cost(sprout) == 10, "Seedfall: Sprouts always cost 10 (reworked 2026-10-13)")
 
 	# Counts: only attacking Wardens (Thornwalls never)
 	var many := _card("many_hands")
@@ -791,8 +791,8 @@ func _test_generic_rares() -> void:
 
 	# First Light and Bitter Hedges (per hit)
 	dreams.take(_card("first_light"))
-	_check(dreams.on_hit_multiplier(warden, victim) == 3.0 and dreams.on_hit_multiplier(warden, victim) == 1.0,
-		"First Light: ×3 on a Warden's first hit on a nightmare only")
+	_check(dreams.batch_damage_multiplier(victim, warden, &"") == 3.0 and dreams.batch_damage_multiplier(victim, warden, &"") == 1.0,
+		"First Light: ×3 on a Warden's first damage to a nightmare only (by source, 2026-10-13)")
 	dreams.take(_card("bitter_hedges"))
 	var wall := _plant_at("thornwall", Vector2(105, 101), 0)
 	_plant_at("thornwall", Vector2(106, 101), 0)

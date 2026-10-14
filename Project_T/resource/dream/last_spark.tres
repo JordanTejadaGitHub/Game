@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "last_spark"
 display_name = "Last Spark"
-description = "A {static} nightmare that is dispelled, or walks out of its last light, throws its charge as a bolt at the nearest Lit nightmare."
+description = "A {static} nightmare that is dispelled, or walks out of its last light, throws its charge as a bolt at the nearest {lit} nightmare."
 rarity = 2
 kind = 3
 tags = Array[String](["storm"])

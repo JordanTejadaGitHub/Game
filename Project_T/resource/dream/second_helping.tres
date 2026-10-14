@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "second_helping"
 display_name = "Second Helping"
-description = "Needs another {family}'s Warden touching a spore Warden. After a nightmare takes a dose, that Warden's next hit adds 3 of its own status."
-tip = "Mushrooms: grown by Leaf Litter and Side by Side (on a Sporeling start, also by every {spored} dispel). A dose is 3 {spored} at once. Works for: another {family}'s Warden. A bet: it does little until you own another {family}."
+description = "Needs another {family}'s Warden {touching} a spore Warden. After a nightmare gets 3 {spored} at once, that Warden's next hit adds 3 of its own status."
+tip = "A {dose}: 3 {spored} at once (what a {mushroom} gives when stepped on). Mushrooms: grown by Leaf Litter and Side by Side (on a Sporeling start, also by every {spored} dispel). A {dose} is 3 {spored} at once. Works for: another {family}'s Warden. A bet: it does little until you own another {family}."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "lent"])

@@ -43,7 +43,7 @@ func _run() -> void:
 	_check(a.get_meta(&"unique_vigil_ready", false) and not vigil.statuses.has(EnemyStatuses.MARKED), "cloud cannot spend Quiet Vigil")
 	a.hit(vigil, 1.0, false, Tower.NO_CRIT)
 	_check(vigil.statuses.stacks(EnemyStatuses.MARKED) == 3 and not a.get_meta(&"unique_vigil_ready", false), "ordinary primary hit spends readiness on three Exposed stacks")
-	_take("passing_thread")
+	_carry_card(dreams)
 	var donor = _enemy()
 	var recipient = _enemy()
 	donor.apply_status(EnemyStatuses.DAMP, 4, 2.0, 1.0)
@@ -120,3 +120,17 @@ func _check(ok: bool, label: String) -> void:
 	if not ok:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The old Passing Thread (a target switch carries one status) is the rule passing_thread_carry since 2026-10-13: no card
+# grants it now, so the test lends one.
+func _carry_card(state: DreamState) -> void:
+	for card in state.pool:
+		if card.id == "passing_thread_carry":
+			state.stacks[card.id] = 1
+			return
+	var carry := UpgradeData.new()
+	carry.id = "passing_thread_carry"
+	carry.rule_id = &"passing_thread_carry"
+	state.pool.append(carry)
+	state.stacks[carry.id] = 1
+	state.bump_board()

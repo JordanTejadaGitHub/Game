@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "levee"
 display_name = "Levee"
-description = "A row of up to 2 walls between two {warden:dewdrop}s carries their water along the path beside it. Sprouts are not walls."
+description = "A row of up to 2 walls between two {warden:dewdrop}s carries their {water} along the path beside it. Sprouts are not walls."
 tip = "Works for: {warden:dewdrop}s. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 0
 kind = 3

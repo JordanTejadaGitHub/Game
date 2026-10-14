@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "deep_pool"
 display_name = "Deep Pool"
-description = "Needs another {family}'s status. Wardens touching water deal 10% more to nightmares in it for each status they carry besides {damp}."
-tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A bet: {damp} alone gives nothing; each other status on the nightmare adds 10%."
+description = "Needs another {family}'s status. Wardens {touching} {water} deal 10% more to nightmares in it for each status they carry besides {damp}."
+tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A bet: {damp} alone gives nothing; each other status on the nightmare adds 10%."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])

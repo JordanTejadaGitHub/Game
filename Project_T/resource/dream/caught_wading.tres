@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "caught_wading"
 display_name = "Caught Wading"
-description = "The first time a nightmare is {damp} in a water, up to 3 other Wardens touching it hit it once, free. When fully {damp}, up to 4 near a {warden:dewdrop} do."
-tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A free hit is one hit outside the Warden's normal attacks, at most once a second each, and never harder than the {warden:dewdrop}'s own hit."
+description = "The first time a nightmare is {damp} in a {water}, up to 3 other Wardens {touching} it hit it once, free. When fully {damp}, up to 4 {near} a {warden:dewdrop} do."
+tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A free hit is one hit outside the Warden's normal attacks, at most once a second each, and never harder than the {warden:dewdrop}'s own hit."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "the_water_remembers"
 display_name = "The Water Remembers"
-description = "Needs another {family}'s status. A nightmare walking back into a {warden:dewdrop}'s water gets back the other families' statuses that wore off since it left."
-tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: another {family}'s statuses. A bet: it does little until you own another {family}."
+description = "Needs another {family}'s status. A nightmare walking back into a {warden:dewdrop}'s {water} gets back the other families' statuses that wore off since it left."
+tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: another {family}'s statuses. A bet: it does little until you own another {family}."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])

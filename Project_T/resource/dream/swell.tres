@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "swell"
 display_name = "Swell"
-description = "A {warden:dewdrop}'s splash that lands in water spreads through that water, up to 4 steps each way, at half damage outside its own circle."
+description = "A {warden:dewdrop}'s splash that lands in {water} spreads through that {water}, up to 4 {steps} each way, at half damage outside its own circle."
 tip = "Works for: {warden:dewdrop}s. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 1
 kind = 3

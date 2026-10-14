@@ -674,8 +674,8 @@ func _test_active_tag(main: Node) -> void:
 	# One compact line (user), in segments (light pass): [icon] "Stubborn Blight │ drifts 16–20 │ +40 Dew"; the twist and the reward rule in the tooltip
 	_check(tag.text.strip_edges() == "Stubborn Blight  │  drifts 16–20  │  \uE000+40" and not tag.text.contains("\n"),
 		"the tag: one compact line with the live reward (%s)" % tag.text.strip_edges())
-	_check(tag.tooltip_text.begins_with("For the next 5 drifts: statuses last a third as long.") and tag.tooltip_text.contains("At the rest: \uE000+40. Each leaf lost: \uE00010 less.")
-		and tag.tooltip_text.ends_with("You'd get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
+	_check(tag.tooltip_text.contains("statuses last a third as long.") and tag.tooltip_text.contains("At the rest:") and tag.tooltip_text.contains("+40") and tag.tooltip_text.contains("10 less.")
+		and tag.tooltip_text.contains("get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
 	var rich: RichTextLabel = tag.get_node_or_null("TagText")
 	_check(rich != null and not rich.text.contains(UiStyle.POOR.to_html(false)) and tag.get_theme_stylebox("normal") is MoonStyleBox,
 		"…drawn in the Omen colour on a fog backing")

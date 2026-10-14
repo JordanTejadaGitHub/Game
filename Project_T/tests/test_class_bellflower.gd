@@ -58,7 +58,7 @@ func _check_pool(family: String, lent: Array, class_count: int = 12) -> void:
 	var class_cards: Array = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.calling == family and not c.retired)
 	_check(class_cards.size() == class_count, "%s has %d class cards (%d)" % [family, class_count, class_cards.size()])
 	for card in class_cards:
-		_check(card.rule_id != &"" and card.description != "" and card.tip.begins_with("Works for:"), "%s says who it works for" % card.id)
+		_check(card.rule_id != &"" and card.description != "" and card.tip.contains("Works for:"), "%s says who it works for" % card.id)
 		_check(dreams.in_run_pool(card) == (dreams.calling == family), "%s is in the pool only on a %s start" % [card.id, family])
 	for id in lent:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)

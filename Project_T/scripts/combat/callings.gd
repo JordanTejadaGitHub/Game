@@ -14,10 +14,10 @@ const NAMES := {"sporeling": "Spore Print", "firefly_jar": "Lantern Light", "dew
 	"bellflower": "Keeping Time", "acorn": "Volley", "nestling": "Perches", "pebbling": "Lodged Stone",
 	"rootling": "Anvil", "whirligig": "Tailwind"}
 const TEXTS := {
-	"sporeling": "A {spored} nightmare dispelled by any Warden leaves a mushroom on the path. The next nightmare to step on it takes a dose: 3 {spored} at once. Flyers pass over.",
-	"firefly_jar": "Nightmares in a Firefly Warden's glow are Lit. When any Warden dispels a Lit nightmare, half that hit's damage jumps to the nearest Lit nightmare.",
-	"dewdrop": "The path touching your {warden:dewdrop}s is water. A {warden:dewdrop}'s hit there ripples: nightmares within 4 steps in that water are {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
-	"bellflower": "Every 4th ring on a nightmare is a Toll: it lands again, at half damage. Each nightmare starts with 2 of its 4 pips filled.",
+	"sporeling": "A {spored} nightmare dispelled by any Warden leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {spored} at once. Flyers pass over.",
+	"firefly_jar": "Nightmares in a Firefly Warden's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit's damage {jumps} to the nearest {lit} nightmare.",
+	"dewdrop": "The path touching your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there ripples: nightmares within 4 {steps} in that {water} are {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
+	"bellflower": "Every 4th ring on a nightmare is a {toll}: it lands again, at half damage. Each nightmare starts with 2 of its 4 pips filled.",
 	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",

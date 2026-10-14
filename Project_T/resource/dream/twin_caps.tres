@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "twin_caps"
 display_name = "Twin Caps"
-description = "Each mushroom has two caps: it doses two different nightmares before it is used up. Mushrooms grow back 2 s slower."
-tip = "Works for: any mushroom. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Each {mushroom} has two caps: it {doses} two different nightmares before it is used up. Mushrooms grow back 2 s slower."
+tip = "A {dose}: 3 {spored} at once (what a {mushroom} gives when stepped on). Works for: any {mushroom}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 1
 kind = 3
 tags = Array[String](["spore"])

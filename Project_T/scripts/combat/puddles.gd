@@ -560,10 +560,16 @@ func extra_targets(tower, candidates: Array[Node2D]) -> Array[Node2D]:
 func _draw() -> void:
 	if not active():
 		return
-	var half := cell() * 0.25
+	# Soft overlapping pools along the wet path (not squares): a deep body, a lighter centre, a glint
+	var r := cell() * 0.42
 	for water in waters:
 		for i in water.points:
 			var at: Vector2 = _route_px[int(i)]
-			draw_rect(Rect2(at - Vector2(half, half), Vector2(half, half) * 2.0), Color(Palette.POOL, 0.45))
+			draw_circle(at, r, Color(Palette.POOL, 0.28))
+		for i in water.points:
+			var at: Vector2 = _route_px[int(i)]
+			draw_circle(at, r * 0.55, Color(Palette.DEW, 0.18))
+			if int(i) % 3 == 0:
+				draw_circle(at + Vector2(-r * 0.3, -r * 0.25), 1.5, Color(Palette.DEWLIGHT, 0.6))
 		if float(water.steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
 			draw_circle(_route_px[int(water.last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end

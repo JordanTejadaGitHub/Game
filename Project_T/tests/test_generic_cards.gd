@@ -280,7 +280,7 @@ func _test_pool() -> void:
 	dreams.unlocked["dewdrop"] = true
 	_check(not dreams.is_eligible(_card("heavy_air")), "…Dewdrop isn't (Soaked no longer slows)")
 	dreams.unlocked["bellflower"] = true
-	_check(dreams.is_eligible(_card("heavy_air")), "…Bellflower (Drowsy) is")
+	_check(not dreams.is_eligible(_card("heavy_air")), "…Heavy Air is retired from offers (2026-10-13)")
 	# Offer gate (Grove sim, balancing): Heavy Eyelids needs a Drowsy source. Patient Roots stays ungated: it's a Seed
 	# card, offered before its Wardens on purpose (it calls the Rootling family to the next pick).
 	_check(_card("heavy_eyelids").requires_status == &"drowsy" and dreams._meets_needs(_card("heavy_eyelids")),
@@ -299,11 +299,11 @@ func _test_economy() -> void:
 	_check(seller.get_refund(tower) == 75, "selling: 75% at a rest (Fair Trade was cut)")
 	_check(dreams.get_call_early_bonus(7, 10) == 7, "call early: plain")
 	dreams.take(_card("call_of_the_wild"))
-	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 40 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40 a drift")
-	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
-		"Call of the Wild: +10% pot only on a drift called early")
+	_check(dreams.get_call_early_bonus(7, 10) == 7, "Call of the Wild no longer doubles the early-call Dew (2026-10-13)")
+	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.1),
+		"Call of the Wild adds nothing to the pot: its 25% is paid when the called drift is cleared with no leaf lost")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == 20 + mini(dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, DreamState.WINDING_PATH_MAX), "Winding Path: +1 Dew per path cell in a Warden's range, up to 60 (%d in range, + Morning Dew's 20)" % dreams.covered_path_tiles())
+	_check(dreams.get_rest_bonus_add() == 20 and is_equal_approx(dreams.get_maze_multiplier(), DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path: the maze's rest Dew x3, nothing added to the rest bonus (Morning Dew's 20 only)")
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
@@ -351,10 +351,9 @@ func _test_stat_rules() -> void:
 	director.resting = false
 	dreams._mark_fresh(tower)
 	director.resting = true
-	var base := dreams.get_soothe_multiplier(tower)
-	_check(dreams.is_fresh(tower) and _row(tower.tower_data, tower.cell, "fresh_growth", tower).active, "Fresh Growth: grown during a drift (planting no longer marks: _on_tower_built doesn't call _mark_fresh)")
-	dreams._rest_rules(false)
-	_check(not dreams.is_fresh(tower) and is_equal_approx(base - dreams.get_soothe_multiplier(tower), 0.50), "…+50% until the next rest")
+	_check(dreams.is_fresh(tower) and is_equal_approx(_row(tower.tower_data, tower.cell, "fresh_growth", tower).speed, DreamState.BATCH.FRESH_GROWTH_SPEED), "Fresh Growth: grown during a drift, it attacks twice as fast")
+	dreams._game_clock += DreamState.BATCH.FRESH_GROWTH_TIME + 0.1
+	_check(not dreams.is_fresh(tower), "…for 8 s")
 	_clear()
 
 func _test_hit_rules() -> void:
@@ -596,7 +595,7 @@ func _test_catalogue() -> void:
 	# Live Wire (a jump now, Tower Code) and Thin Bark
 	_check(dreams.get_bolt_multiplier() == 1.0, "no bigger bolts from Live Wire")
 	dreams.take(_card("live_wire"))
-	_check(dreams.get_bolt_multiplier() == 1.0 and dreams.has_rule(&"live_wire"), "Live Wire: bolts jump instead (Tower Code), never bigger")
+	_check(dreams.get_bolt_multiplier() == 1.0 and dreams.has_rule(&"lent_live_wire"), "Live Wire: bolts jump instead, never bigger")
 	_check(_card("thin_bark").soothe_bonus == 0.75 and _card("thin_bark").max_leaves_add == 0, "Thin Bark: +75% damage; its price halves max leaves (rule)")
 	_clear()
 	_reset()
@@ -810,7 +809,7 @@ func _test_seed_cards() -> void:
 	_check(run_state.dew == 315, "Deep Well: 5%% interest on 300 banked Dew (%d)" % run_state.dew)
 	run_state.dew = 5000
 	dreams._rest_rules(false)
-	_check(run_state.dew == 5040, "…up to 40")
+	_check(run_state.dew == 5000 + DreamState.DEEP_WELL_MAX, "…up to %d" % DreamState.DEEP_WELL_MAX)
 	# Sheltering Boughs (was Kind Canopy: touching an aura Warden, dream_design.md e1e39b56) and Shared Light (touching Wardens)
 	dreams.take(_card("kind_canopy"))
 	dreams.take(_card("shared_light"))
@@ -998,7 +997,7 @@ func _test_live_lines() -> void:
 	_reset()
 	var fx := dreams.effects()
 	var line: String = fx.preview_line(_card("winding_path"))
-	_check(line == "Now: %s in range · +%d Dew per rest (up to %d)" % [("%d path cells" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path cell", dreams.winding_path_dew(), DreamState.WINDING_PATH_MAX], "Winding Path: %s" % line)
+	_check(line == "The Dew your maze pays at each rest: x%d" % roundi(DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path's live line (%s)" % line)
 	var dew := run_state.dew
 	run_state.dew = 275
 	line = fx.preview_line(_card("deep_well"))
@@ -1208,7 +1207,9 @@ func _test_card_feel() -> void:
 	_reset()
 	var a := _plant("sporeling", Vector2(100, 100))
 	var b := _plant("sporeling", Vector2(102, 100))
-	dreams._bend_cells = {Vector2(101, 100): true}
+	var inside_before: Array = dreams.batch.bend_inside
+	dreams.batch.bend_inside = [a.global_position, b.global_position]  # Both on the inside of a bend (Cozy Corners, 2026-10-13)
+	dreams.bump_board()
 	var calm := _card("cozy_corners")
 	var impact := dreams.preview_card_impact(calm)
 	_check(impact.kind == &"position" and impact.towers.size() == 2 and impact.text == "2 of your Wardens qualify · +30% damage",
@@ -1242,6 +1243,7 @@ func _test_card_feel() -> void:
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
 	_check(absf(dreams.get_card_credit("cozy_corners", &"run").damage - 30.0) < 0.01, "…kept in the run save")
 	dreams.card_credit = {"block": {}, "run": {}}
+	dreams.batch.bend_inside = inside_before
 	_clear()
 
 # Combo cards are choices, not musts (dream_design.md 83c40cd7): the exclusive pair, every changed card's trade on
@@ -1327,5 +1329,5 @@ func _test_impact_conditions() -> void:
 	_check(sunlit.towers.size() == 1 and sunlit.text == "Reaches one of your Wardens",
 		"Sunlit Rest counts the one Warden the next rest raises, not all attackers (%s)" % sunlit.text)
 	var glint := dreams.preview_card_impact(_card("glinting_dew"))
-	_check(glint.text == "Reaches all 3 attackers" and glint.towers.is_empty(), "a global card: \"%s\", nothing pulses" % glint.text)
+	_check(glint.text == "Reaches all 3 attacking Wardens" and glint.towers.is_empty(), "a global card: \"%s\", nothing pulses" % glint.text)
 	_clear()

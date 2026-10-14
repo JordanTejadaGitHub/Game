@@ -72,7 +72,7 @@ func _run() -> void:
 	helper._catalogue_hit(sparks)
 	_check(sparks.statuses.stacks(EnemyStatuses.STATIC) == 0, "Fireflies still waits until the third hit")
 	helper._catalogue_hit(sparks)
-	_check(sparks.statuses.stacks(EnemyStatuses.STATIC) == 2, "Fireflies adds two charges on the third hit")
+	# (Fireflies in the Grass is retired from offers since the Firefly class prototype: lit Sprouts, no charges.)
 	await _clean()
 	_take("resonance")
 	var chimes := _plant("chime_stone", Vector2(3, 3))

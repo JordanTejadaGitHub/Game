@@ -37,41 +37,14 @@ func _run() -> void:
 		_check(CALLINGS.title(family) != "" and CALLINGS.text(family) != "", "%s has a Calling name and text" % family)
 		_check(ResourceLoader.exists("res://resource/tower/%s.tres" % family), "%s is a Warden" % family)
 
-	# Take Root: half the Poisoned cap Roots the nightmare, once.
+	# (Take Root and Splashback, the first Sporeling and Dewdrop Callings, are retired: Spore Print and Puddles are
+	# tested in test_class_sporeling.gd and test_class_dewdrop.gd.)
 	var spore := _plant("sporeling", Vector2(2, 2))
-	var a = _spawn(Vector2(200, 160))
-	var cap: int = a.statuses.get_max_stacks(EnemyStatuses.SPORED)
-	spore._apply_one_status(a, EnemyStatuses.SPORED, cap / 2 - 2, 1.0)
-	_check(not a.statuses.is_held(), "below half the cap: not Rooted")
-	spore._apply_one_status(a, EnemyStatuses.SPORED, 3, 1.0)
-	_check(a.statuses.is_held(), "Take Root: half the Poisoned cap Roots it")
-	a.statuses.remove(EnemyStatuses.HELD)
-	a.statuses.hold_cooldown = 0.0
-	spore._apply_one_status(a, EnemyStatuses.SPORED, 3, 1.0)
-	_check(not a.statuses.is_held(), "Take Root: once per nightmare")
-	dreams.calling = "dewdrop"
-	var b = _spawn(Vector2(200, 160))
-	spore._apply_one_status(b, EnemyStatuses.SPORED, cap, 1.0)
-	_check(not b.statuses.is_held(), "another Calling: Poisoned never Roots")
-	await _clean()
-
-	# Splashback: another family's first hit on a Soaked nightmare splashes beside it, once per Soaking.
 	var sprout := _plant("sprout", Vector2(3, 2))
-	var water := _plant("dewdrop", Vector2(4, 2))
-	a = _spawn(Vector2(220, 200))
-	b = _spawn(Vector2(250, 200))
-	var far = _spawn(Vector2(600, 600))
-	a.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0, 0, "water", water)
-	var b_health: int = b.health
-	water.hit(a, 1.0, false, Tower.NO_CRIT)
-	_check(b.health == b_health, "Splashback: a water hit never splashes")
-	sprout.hit(a, 1.0, false, Tower.NO_CRIT)
-	_check(b.health < b_health, "Splashback: another family's hit splashes onto the nightmare beside it")
-	_check(far.health == far.max_health, "Splashback: only nightmares within a cell")
-	b_health = b.health
-	sprout.hit(a, 1.0, false, Tower.NO_CRIT)
-	_check(b.health == b_health, "Splashback: once per Soaking")
-	await _clean()
+	var a: Node2D
+	var b: Node2D
+	var far: Node2D
+	var b_health := 0
 
 	# Lantern Light (the Firefly class prototype, dream_council_review.md 20; it replaced Lantern Ring): nightmares in a
 	# Firefly Warden's glow are Lit, and any Warden's dispel of a Lit nightmare forks half its hit to the nearest Lit one.

@@ -384,7 +384,7 @@ func _make_class_nodes(world: Node) -> void:
 	spore_print = SPORE_PRINT.new()
 	spore_print.name = "SporePrint"
 	puddles = PUDDLES.new()
-	puddles.name = "Puddles"
+	puddles.name = "DewdropWater"  # Not "Puddles": that name is BranchKit.Puddles (Torrent's wet trail)
 	keeping_time = KEEPING_TIME.new()
 	keeping_time.name = "KeepingTime"
 	for node in [spore_print, puddles, keeping_time]:
@@ -1852,8 +1852,27 @@ func leaves_lost_in_block() -> int:
 	return batch.leaves_lost(self)
 
 # Enemy.take_damage: First Light, Passing Thread, Hot on Their Heels, Long Way Round, Front Line (1.0 with none).
+# Performance (test_perf_stress): which of these hooks are on is worked out once a frame, not on every damage event.
+var _hook_frame := -1
+var _hook_batch := false
+var _hook_water := false
+var _hook_bells := false
+
 func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
-	return (batch.damage_multiplier(self, enemy, source, tag) if batch.uses_damage_hook(self) else 1.0) * class_damage_multiplier(enemy, source, tag)
+	var frame := Engine.get_process_frames()
+	if frame != _hook_frame:
+		_hook_frame = frame
+		_hook_batch = batch.uses_damage_hook(self)
+		_hook_water = puddles != null and puddles.active() and (has_rule(&"wash_away") or has_rule(&"deep_pool") or has_rule(&"riptide"))
+		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
+	if not _hook_batch and not _hook_water and not _hook_bells:
+		return 1.0
+	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
+	if _hook_water:
+		multiplier *= puddles.damage_multiplier(enemy, source, tag)
+	if _hook_bells:
+		multiplier *= keeping_time.damage_multiplier(enemy, source, tag)
+	return multiplier
 
 # Tower's wall tick: one Thorny Walls lash on `enemy` (0 = it has taken its ceiling), and Snag.
 func thorny_lash(wall: Tower, enemy: Node2D) -> float:
@@ -1881,6 +1900,20 @@ func answer_line(card: UpgradeData) -> String:
 # The rest report's lines from these cards for the rest just begun ("\nGrowth Rings: lost…").
 func batch_report_lines() -> String:
 	return batch.report_lines(self)
+
+# What kind of family card this is, for the card face (council, built_player.md: "I can't tell which cards work
+# because I started as X and which because I own X"): "Calling: Spore Print" on a class card, "Sporeling family" on a
+# card any owner of the family can get, "" otherwise. Never the word "lent".
+func card_kind_line(card: UpgradeData) -> String:
+	if card == null:
+		return ""
+	if card.calling != "":
+		return "Calling: %s" % CALLINGS.title(card.calling)
+	if card.tags.has(LENT_TAG) and not card.requires.is_empty():
+		var path := "res://resource/tower/%s.tres" % card.requires[0]
+		var root: TowerData = load(path) if ResourceLoader.exists(path) else null
+		return "%s family" % (root.display_name if root != null else card.requires[0].capitalize())
+	return ""
 
 func is_wager(card: UpgradeData) -> bool:
 	return card != null and card.tags.has(BATCH.WAGER_TAG)

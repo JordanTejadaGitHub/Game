@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "run_off"
 display_name = "Run-Off"
-description = "Needs another {family}'s status. When a {damp} nightmare is dispelled near a {warden:dewdrop}, other families' statuses on it move to the nearest {damp} nightmare."
+description = "Needs another {family}'s status. When a {damp} nightmare is dispelled {near} a {warden:dewdrop}, other families' statuses on it move to the nearest {damp} nightmare."
 tip = "Works for: another {family}'s statuses. A bet: it does little until you own another {family}."
 rarity = 1
 kind = 3

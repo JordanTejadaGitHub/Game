@@ -780,6 +780,25 @@ func add_quiet(id: StringName, amount: int) -> int:
 	changes += 1
 	return added
 
+# A dose never raises a nightmare's Poisoned limit (dream_council_review.md 20: "the limit unchanged"): after one lands,
+# put the limit back to `cap` and drop the oldest stacks over it. (Roguelite Code: a dose credited to a bigger spore
+# form raised a full 32 to 64, and the badge showed half.)
+func keep_spore_cap(cap: int) -> void:
+	if not has(SPORED) or cap <= 0:
+		return
+	_active[SPORED]["cap"] = cap
+	var over := _spore_count() - cap
+	while over > 0 and not _spore_batches.is_empty():
+		var batch: Array = _spore_batches[0]
+		var removed := mini(int(batch[1]), over)
+		batch[1] -= removed
+		over -= removed
+		if batch[1] <= 0:
+			_spore_batches.remove_at(0)
+	_active[SPORED].stacks = _spore_count()
+	_rebuild_spore_credit()
+	changes += 1
+
 # Knell: Poisoned's oldest batch is used up (its stacks go; the status ends with its last batch).
 func drop_oldest_spore_batch() -> void:
 	if not has(SPORED) or _spore_batches.is_empty():

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "it_grows_on_you"
 display_name = "It Grows on You"
-description = "Each dose a nightmare takes is 1 bigger than its last, up to 6 {spored} at once. Any mushroom counts."
-tip = "Works for: any mushroom, whoever's dispel grew it. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Each {mushroom} a nightmare steps on gives it 1 more {spored} than the last: 3, then 4, then 5, up to 6."
+tip = "Works for: any {mushroom}, whoever's dispel grew it. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])
