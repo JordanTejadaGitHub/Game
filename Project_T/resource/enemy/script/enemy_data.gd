@@ -161,7 +161,8 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # numbers, as in abilities; read them with get_intro_lines) and one hint in the boss-tip voice.
 @export var intro_lines: Array[String] = []
 @export var hint: String = ""
-# Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
+# No longer read: get_defences picks the FLYING icon from is_through_walls() (a route flyer that kept the
+# default once showed "Passes through walls": the Crow). Kept so .tres files that set it still load.
 @export var flying_icon: StringName = &"through_walls"
 
 @export_group("Drift roll")
@@ -232,8 +233,8 @@ func get_defences() -> Dictionary:
 		shorter[&"held"] = BOSS_HELD_SHARE
 	var traits: Array[StringName] = []
 	match trait_kind:
-		Trait.FLYING:
-			traits.append(flying_icon)
+		Trait.FLYING:  # The icon follows how it flies: straight through the walls, or along the route (Crow, Moth Queen)
+			traits.append(&"through_walls" if is_through_walls() else &"flying")
 		Trait.ROLLING:
 			traits.append(&"sprints")
 		Trait.BURROW:
