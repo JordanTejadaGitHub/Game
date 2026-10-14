@@ -55,7 +55,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Acts 3–4 (acts_3_4.md): growth eases back so the late game doesn't run away (≈ ×100 at drift 100).
 @export var endgame_health_growth_per_drift: float = 1.045
 @export var endgame_growth_from: int = 51
-@export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
+@export var guaranteed_elite_from: int = 36  # Balancing 2026-10-14: was 31; act 2 leaks were mostly single Deeply Blighted nightmares, runs 31/33/35/36 (31 itself was 26 before run_design.md f2eb4f8)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
 # Block finales (spire_difficulty.md, Slay the Spire's elite fights): the last drift of every block
 # (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
