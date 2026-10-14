@@ -1209,13 +1209,15 @@ that family is selected.
   nightmares take the damage. With several possible partners, it shows the one the game would pick, and the others
   fainter. The same goes for the build ghost when planting a Jarlink directly, and for any other form that joins
   two Wardens or draws a line across the path.
-- **Once linked, the hit path stays marked** (user, same day: "the Jarlinks should still show the visible path that
-  is being hit by their link after placed together"): the path cells a link crosses keep a quiet, steady mark for as
-  long as the link exists: a faint charge along those cells in the family's light colour, on the ground under
-  nightmares. It brightens while a nightmare is inside it or the link ticks, and shows at full strength when either
-  Jarlink is selected or in build mode. It follows the same rules as lit paths (path shape only, no squares, merges
-  where two links overlap, steady under reduced motion), and goes the moment the link breaks. The same holds for
-  every standing zone on the path: Undercurrent's whirlpool, fog and rain clouds, ink and puddles, lit cells.
+- **The hit path shows on selection only** (user, same day: "the Jarlinks should still show the visible path that
+  is being hit by their link after placed together"; revised 2026-10-14: "remove the blue highlights when no Jarlink
+  tower is selected"): the path cells a link crosses are marked **only while a Jarlink (or another linking form) is
+  selected, hovered, being grown into, or planted from the build ghost**. With nothing selected the field shows
+  just the lightning itself: no cell highlight. The mark is a faint charge in the family's light colour on the ground
+  under nightmares, follows the lit-path rules (path shape only, **never cell squares**, merges where two links
+  overlap, steady under reduced motion), and goes the moment the selection or the link ends. This rule is only for
+  link marks; zones that are gameplay in their own right (puddles, lit cells, fog and rain clouds, Undercurrent's
+  whirlpool) stay visible as before.
 
 ## Hit feedback on nightmares (user, 2026-10-13)
 User: *"enemies should have more of a hit feedback as well; being hit by different Wardens and statuses should have
