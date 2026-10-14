@@ -3,6 +3,8 @@ class_name DreamState
 const UNIQUE_PATH := preload("res://scripts/run/dream_path_rules.gd")
 const UNIQUE_COOP := preload("res://scripts/run/dream_cooperation.gd")
 var unique_growth = preload("res://scripts/run/dream_growth_rules.gd").new()
+const BATCH := preload("res://scripts/run/dream_batch_rules.gd")
+var batch = BATCH.new()  # The run-shaping generic cards (dream_council_review.md 24): numbers, state and rules
 
 # Dreams (in-run upgrades, documentation/dream_design.md): which Wardens are unlocked this run,
 # which cards were taken (stat cards stack), and the Dream offer at every rest (boss rests: Rare+).
@@ -343,6 +345,53 @@ func set_calling(family: String) -> void:
 		tower.clear_dream_cache()
 	calling_changed.emit(family)
 
+# --- The Sporeling, Dewdrop and Bellflower classes (dream_council_review.md 20; scripts/combat/spore_print.gd,
+# puddles.gd, keeping_time.gd, each beside FireflyLights in the world). What Tower and Enemy ask: ---------------------
+const SPORE_PRINT := preload("res://scripts/combat/spore_print.gd")
+const PUDDLES := preload("res://scripts/combat/puddles.gd")
+const KEEPING_TIME := preload("res://scripts/combat/keeping_time.gd")
+var spore_print: Node2D = null  # Made in _ready; null in a bare DreamState (tools, some tests)
+var puddles: Node2D = null
+var keeping_time: Node2D = null
+
+# The stacks a Warden's own application of `status` adds (Open Season, Second Helping, Overnight: never fewer).
+func class_stacks(tower: Tower, enemy: Node2D, status: StringName, stacks: int) -> int:
+	if spore_print != null and spore_print.active():
+		return spore_print.own_stacks(tower, enemy, status, stacks)
+	return stacks
+
+# A Warden added its own status to a nightmare (Wake Ripple carries it along the water).
+func class_status(tower: Tower, enemy: Node2D, status: StringName) -> void:
+	if puddles != null and puddles.active():
+		puddles.status_applied(tower, enemy, status)
+
+# What the classes multiply one damage event by (Wash Away, Rude Awakening; 1.0 with neither).
+func class_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
+	var multiplier := 1.0
+	if puddles != null and puddles.active():
+		multiplier *= puddles.damage_multiplier(enemy, source, tag)
+	if keeping_time != null and keeping_time.active():
+		multiplier *= keeping_time.damage_multiplier(enemy, source, tag)
+	return multiplier
+
+# Across the Water: a Warden touching water also reaches Soaked nightmares further along it.
+func class_targets(tower: Tower, candidates: Array[Node2D]) -> Array[Node2D]:
+	if puddles != null and puddles.active():
+		return puddles.extra_targets(tower, candidates)
+	return candidates
+
+func _make_class_nodes(world: Node) -> void:
+	spore_print = SPORE_PRINT.new()
+	spore_print.name = "SporePrint"
+	puddles = PUDDLES.new()
+	puddles.name = "Puddles"
+	keeping_time = KEEPING_TIME.new()
+	keeping_time.name = "KeepingTime"
+	for node in [spore_print, puddles, keeping_time]:
+		node.set("dream_state", self)
+		if world != null:
+			world.add_child.call_deferred(node)
+
 # "Take Root" and its rule text for the HUD and the family pick ("" when the run has no Calling).
 func calling_title() -> String:
 	return CALLINGS.title(calling)
@@ -367,8 +416,8 @@ var path_length := 0  # Tiles in the current route (The Long Walk); updated with
 var _rng := RandomNumberGenerator.new()
 # A bend trigger is shared across Wardens; overlapping coverage never stacks it.
 func switchback_at(enemy: Node2D, bend: Vector2) -> void:
-	if not has_rule(&"switchback") or enemy.is_flying():
-		return
+	if not has_rule(&"switchback") or enemy.is_flying() or not batch.is_bend_point(bend):
+		return  # (A half-cell jog is not a bend)
 	if _game_clock < float(enemy.get_meta(&"switchback_until", -1.0)):
 		return
 	var at: Vector2 = map_generator.MAP_GRID.calculate_map_position(bend)
@@ -418,6 +467,7 @@ func _ready() -> void:
 	firefly_lights.set("dream_state", self)
 	if world != null:
 		world.add_child.call_deferred(firefly_lights)
+	_make_class_nodes(world)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
@@ -452,6 +502,8 @@ func _ready() -> void:
 	drift_director.rest_started.connect(bump_board.unbind(4))
 	drift_director.drift_started.connect(bump_board.unbind(1))
 	run_state.leaves_changed.connect(bump_board.unbind(2))
+	run_state.leaves_changed.connect(_batch_leaves_changed)
+	drift_director.drift_cleared.connect(_batch_drift_cleared)
 	eldest_changed.connect(bump_board.unbind(1))
 	_update_bends()
 
@@ -1373,6 +1425,8 @@ func _watch_nurture(tower: Tower) -> void:
 		tower.nurtured.connect(_on_tower_nurtured)
 
 func _on_tower_nurtured(tower: Tower) -> void:
+	if is_instance_valid(tower):
+		_mark_fresh(tower)  # Fresh Growth: a Nurture during a drift sets it off too
 	if _court_pending and get_eldest() == null and is_instance_valid(tower):
 		set_eldest(tower)
 
@@ -1416,7 +1470,11 @@ func _on_drift_started(number: int) -> void:
 		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
 	if has_rule(&"light_steps"):  # Light Steps: each drift starts with a burst of speed
 		_light_steps_until = _game_clock + LIGHT_STEPS_TIME
-	if number > 1 and drift_director._arriving.has(number - 1):
+	# Called early = at least DriftDirector.call_early_min_seconds of the last drift's arrival skipped (a press one
+	# second before the end counted before: dream_council_review.md 24).
+	var early: bool = number > 1 and drift_director.is_calling_early()
+	batch.drift_started(self, number, early)
+	if early:
 		if has_rule(&"early_bird"):
 			run_state.add_dew(EARLY_BIRD_DEW)  # Early Bird: calling a drift early
 		if _early_calls == 0:
@@ -1436,6 +1494,7 @@ func _on_drift_started(number: int) -> void:
 func _process(delta: float) -> void:
 	if not get_tree().paused:
 		_game_clock += delta  # Murmur's 1 s window
+		batch.tick(self)
 		if has_rule(&"canopy"):
 			_role_sample += delta
 			if _role_sample >= 0.2:
@@ -1779,6 +1838,59 @@ func thornwall_count() -> float:
 func winding_path_dew(power: float = 1.0) -> int:
 	return mini(roundi(covered_path_tiles() / WINDING_PATH_TILES * power), WINDING_PATH_MAX)
 
+# --- The run-shaping batch (dream_batch_rules.gd): what the other systems ask -----------------------------------------
+# DriftDirector._pay_rest_bonus: the base rest bonus's multiplier (Held Breath, A Clean Night) and the maze Dew's
+# (Winding Path).
+func get_rest_bonus_multiplier() -> float:
+	return batch.rest_bonus_multiplier(self)
+
+func get_maze_multiplier() -> float:
+	return batch.maze_multiplier(self)
+
+# Leaves actually lost this block (never the rest's `perfect` flag: a leak Hardened Bark absorbs breaks that).
+func leaves_lost_in_block() -> int:
+	return batch.leaves_lost(self)
+
+# Enemy.take_damage: First Light, Passing Thread, Hot on Their Heels, Long Way Round, Front Line (1.0 with none).
+func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
+	return (batch.damage_multiplier(self, enemy, source, tag) if batch.uses_damage_hook(self) else 1.0) * class_damage_multiplier(enemy, source, tag)
+
+# Tower's wall tick: one Thorny Walls lash on `enemy` (0 = it has taken its ceiling), and Snag.
+func thorny_lash(wall: Tower, enemy: Node2D) -> float:
+	return batch.thorny_lash(self, wall, enemy)
+
+func snag(wall: Tower, drift: int) -> void:
+	batch.snag(self, wall, drift)
+
+# TowerPlacer: Growth Rings asks once before the first plant of a clean block (true = refuse this press).
+func plant_needs_confirm() -> bool:
+	return batch.rings_blocks_plant(self)
+
+# Seedfall: every Sprout costs SEEDFALL_PRICE and the price never climbs (TowerPlacer asks).
+func sprout_price_fixed() -> bool:
+	return has_card("seedfall")
+
+# The "Wager" / "Price" line under a card's text, in the player's own numbers ("" = none), and a matchup card's
+# "what it answers" line. With tokens: the screens format them (IconInfo.format).
+func stake_line(card: UpgradeData) -> String:
+	return batch.stake_line(self, card) if card != null else ""
+
+func answer_line(card: UpgradeData) -> String:
+	return batch.answer_line(self, card) if card != null else ""
+
+# The rest report's lines from these cards for the rest just begun ("\nGrowth Rings: lost…").
+func batch_report_lines() -> String:
+	return batch.report_lines(self)
+
+func is_wager(card: UpgradeData) -> bool:
+	return card != null and card.tags.has(BATCH.WAGER_TAG)
+
+func _batch_drift_cleared(number: int, _bonus: int, _perfect: bool) -> void:
+	batch.drift_cleared.call_deferred(self, number)  # Deferred: a last nightmare's leaf is lost in the same signal
+
+func _batch_leaves_changed(_leaves: int, _max: int) -> void:
+	batch.leaves_changed(self)
+
 # Deep Sleep (Bittersweet, dream_design.md e1e39b56): no rest bonus for the rest of the run. The base bonus (and the
 # perfect block's) becomes 0; Dreams that add to it (Morning Dew, Winding Path…) still add. DriftDirector asks.
 func keeps_rest_bonus() -> bool:
@@ -1791,8 +1903,7 @@ func get_rest_bonus_add() -> int:
 		add += mini(KINS_KEEPSAKE_DEW * count_kinships(), KINS_KEEPSAKE_MAX)  # Kin's Keepsake: per Kinship on the map, each rest
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
-	if has_rule(&"winding_path"):
-		add += winding_path_dew(rule_power(&"winding_path"))  # Winding Path: +1 Dew per 2 covered path tiles, up to WINDING_PATH_MAX
+	# (Winding Path no longer adds here: it triples the maze's own rest Dew, get_maze_multiplier.)
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -1971,10 +2082,12 @@ func _update_bends() -> void:
 		for cell in route_cells(path[i]):
 			if not _path_index.has(cell):
 				_path_index[cell] = ceili(i / 2.0)  # Crossroads, Briar Crown
-	for i in range(1, path.size() - 1):
-		if path[i] - path[i - 1] != path[i + 1] - path[i]:
-			for cell in route_cells(path[i]):
-				_bend_cells[cell] = true
+	# A bend = a turn with one full cell of straight path on each side (BATCH.bend_indices: the one definition every
+	# per-bend card reads; a half-cell jog is not a bend).
+	for i in BATCH.bend_indices(path):
+		for cell in route_cells(path[i]):
+			_bend_cells[cell] = true
+	batch.route_changed(self, path)
 	# Straightaway: tiles of straight stretches of STRAIGHT_TILES+ (a run of equal steps a..b covers
 	# points a..b)
 	_straight_cells.clear()
@@ -2162,6 +2275,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
 	_second_wind()
+	var block_calls := _early_calls
 	_early_calls = 0  # Early-call rewards count per block
 	_clears_this_block = 0  # Groundskeeper paid (the rest bonus came first)
 	_bold_opening_drift = -1
@@ -2175,6 +2289,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if has_rule(&"sunlit_rest"):
 		unique_raised = sunlit_rest()
 	unique_growth.rest(self, unique_raised)
+	batch.rest(self, block_calls, unique_raised)  # Growth Rings, Press On, A Clean Night; then the new block's marks
 	if has_rule(&"seedling_gift"):
 		run_state.add_sprout_charges(1)
 	_pending_drifts.append(drift_director.drifts_started)
@@ -2337,6 +2452,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
+const CLASS_OFFER_CARDS := 1  # The owner, 2026-10-13: the drift 5 Dream holds one class card; its other slots are the normal draw
 const CLASS_OFFER_UNTIL_DRIFT := 5  # The Dream at drift 5's rest (and any before it) draws from class cards only
 
 func _class_cards_of(cards: Array[UpgradeData], rarity: int) -> Array[UpgradeData]:
@@ -2370,20 +2486,17 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	# Firefly run saw no class card before drift 25). Every slot is a class card of the Calling's family, at the normal
 	# act 1 rarity odds; a rarity with none left falls to the next one down. Lent cards are not class cards; the
 	# two-family-cards limit does not apply. A Calling whose family has no class cards yet gets the normal offer.
+	# The owner wants both this and the later cap (dream_council_review.md 23, ruling 1): every offer after this one
+	# holds at most one class card (_draw_card).
 	if drift_number <= CLASS_OFFER_UNTIL_DRIFT and calling != "":
 		var class_cards: Array[UpgradeData] = []
 		for card in pool:
 			if card.calling == calling and can_offer(card, act):
 				class_cards.append(card)
-		while offer.size() < size and not class_cards.is_empty():
-			var rarity := _roll_rarity(1, false)
-			var of_rarity: Array[UpgradeData] = []
-			while rarity >= 0 and of_rarity.is_empty():
-				of_rarity = _class_cards_of(class_cards, rarity)
-				rarity -= 1  # None left at this rarity: the next one down
-			if of_rarity.is_empty():
-				of_rarity = class_cards  # Nothing at or below the roll: any class card left
-			var drawn: UpgradeData = of_rarity[_rng.randi_range(0, of_rarity.size() - 1)]
+		while offer.size() < mini(size, CLASS_OFFER_CARDS) and not class_cards.is_empty():
+			# Evenly among the class cards, not by rarity (council 2026-10-13: by rarity a family's one Common class card
+			# showed in about 93% of runs)
+			var drawn: UpgradeData = class_cards[_rng.randi_range(0, class_cards.size() - 1)]
 			offer.append(drawn)
 			class_cards.erase(drawn)
 	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
@@ -2709,6 +2822,11 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 	if act < 0:
 		act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
 	match card.rule_id:
+		&"snag":
+			return batch.flyers_due(self, BATCH.SNAG_FLYERS_WITHIN)  # Only while a flyer is due soon (a gate, not a weight)
+		&"dark_skies":
+			var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+			return omens != null and not omens.force_omen and omens.get_mode() != "never"  # Its Price must be a real one
 		&"sprout_chorus":
 			return thicket_possible()
 		&"shared_mycelium":
@@ -2742,7 +2860,7 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return can_clear() and count_obstacles() > 0  # Clearing open and something left to clear
 		&"wide_swing", &"scatter":
 			return _towers().any(func(t: Tower) -> bool: return HelperCommons.is_area_attack(t.tower_data))  # Tower Code's own set (lobbers too)
-		&"first_among_equals", &"growth_rings":
+		&"first_among_equals":
 			return _towers().any(func(t: Tower) -> bool: return t.rank >= 1)
 		&"forest_floor":
 			return count_obstacles() > 0
@@ -2800,7 +2918,7 @@ func _defining_choice(card: UpgradeData, rarity: int, offer: Array[UpgradeData],
 	return can_offer(card, act) and not (family_taken and is_family_card(card))
 
 # The simple combat cards (at most one per offer). Keep the existing offer limit for the reworked basics.
-const PLAIN_STAT_CARDS: Array[String] = ["deeper_calm", "quickened_sap", "longer_roots", "bitter_sap", "glinting_dew"]
+const PLAIN_STAT_CARDS: Array[String] = ["longer_roots"]  # (The other four are retired: dream_council_review.md 23)
 var _family_card_cache := {}  # Card id -> whether it needs a Warden
 
 # A family card needs a Warden. Two may compete naturally; neither slot is guaranteed.
@@ -2817,11 +2935,22 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 	# At most 1 Legendary per offer from the draw (story chat 2026-10-07: a boss Dream showed 3). The explicit sources
 	# (Waking Dreams' 3, Lean Season's, the boss rest's slot) add theirs before the draw; the draw never adds another.
 	var has_legendary := exclude.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
+	# At most ONE class card per offer (owner ruling 2026-10-13, dream_council_review.md 22: seven of 15 cards shown in a
+	# Firefly playtest were class cards). It also counts as one of the two family cards. Nothing is reserved or weighted:
+	# an offer may hold none. Rerolls build a whole offer and Banish draws its replacement here, so both follow it.
+	# The one exception is the class-only Dream at drift 5's rest (make_offer), which never comes through here.
+	var has_class := exclude.any(func(c: UpgradeData) -> bool: return c.calling != "")
+	# At most one wager per offer (dream_council_review.md 24, ruling 1); none before the drift 10 rest (their min_drift).
+	var has_wager := exclude.any(is_wager)
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
 		if has_legendary and card.rarity == UpgradeData.Rarity.LEGENDARY:
+			continue
+		if has_class and card.calling != "":
+			continue
+		if has_wager and is_wager(card):
 			continue
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
 			continue  # Lucid Dreaming: no Commons
@@ -2975,7 +3104,7 @@ func _line_of(tower_id: String) -> String:
 # Everything a resumed run needs (saved at a rest, so there's no open offer to keep).
 func to_save() -> Dictionary:
 	return {
-		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
+		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
@@ -2992,12 +3121,14 @@ func to_save() -> Dictionary:
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"calling": calling,
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
+		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
 func load_save(data: Dictionary) -> void:
 	unique_growth.load_save(data.get("unique_growth", {}))
+	batch.load_save(data.get("batch", {}))
 	clear_build_role_state()
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
@@ -3005,6 +3136,8 @@ func load_save(data: Dictionary) -> void:
 	calling = String(data.get("calling", ""))
 	if firefly_lights != null:
 		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
+	if spore_print != null:
+		spore_print.set("saved", data.get("mushrooms", []))  # Applied once the route and the Wardens are back
 	waking_legendaries = bool(data.get("waking_legendaries", false))
 	sprouts_planted = int(data.get("sprouts_planted", 0))
 	unlocked.clear()
@@ -3179,6 +3312,7 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 # tracks attackers committed at drift start.
 func _on_tower_built(tower: Tower) -> void:
 	unique_growth.planted(self, tower)
+	batch.planted(self, tower)  # Growth Rings' window, Heartwood's Reach's rank on a cleared cell
 	if tower.tower_data.get_id() == "thornwall":
 		_walls_planted += 1  # Weathered Walls
 	if tower.tower_data.get_id() == "sprout":
@@ -3465,13 +3599,7 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 		bonus += GRAND_TOUR_DAMAGE  # Grand Tour (reworked, card_review_2026-10-12.md 10): 3+ different statuses, every Warden's hits
 	bonus += _thin_family_hit_bonus(tower, enemy)  # Deep Grip, Murmur
 	var multiplier := 1.0 + bonus
-	if has_rule(&"first_light") and tower != null:
-		var key := "%d:%d" % [tower.get_instance_id(), enemy.get_instance_id()]
-		if not _first_hits.has(key):
-			_first_hits[key] = true
-			multiplier *= FIRST_LIGHT_MULTIPLIER
-			if _first_hits.size() > 4096:
-				_first_hits.clear()  # Forget long-gone nightmares now and then
+	# (First Light moved to batch.damage_multiplier: counted by source in Enemy.take_damage, so status ticks count.)
 	return multiplier
 
 # Last Stand: within LAST_STAND_CELLS of the Heartwood.
@@ -3534,8 +3662,8 @@ func get_dew_pot_multiplier(number: int, called_early: bool) -> float:
 	var bonus := get_dew_gain_bonus()
 	if has_rule(&"scarred_bark"):
 		bonus += minf(SCARRED_BARK_PER * run_state.leaves_lost, SCARRED_BARK_MAX)
-	if called_early and has_rule(&"call_of_the_wild"):
-		bonus += CALL_OF_THE_WILD_POT * rule_power(&"call_of_the_wild")
+	# (Call of the Wild is no longer in the pot: its 25% is paid when the called drift is cleared with no leaf lost,
+	# batch.drift_cleared.)
 	if called_early and has_rule(&"bold_opening") and (_early_calls == 0 or _bold_opening_drift == number):
 		bonus += BOLD_OPENING_POT  # Bold Opening: the first drift called early this block
 	return (1.0 + bonus) * wild_dew_roll(number)
@@ -3608,9 +3736,7 @@ func get_refund_share(base: float, _resting: bool) -> float:
 
 # Call of the Wild: calling a drift early pays double, up to 40 a drift (DriftDirector.get_call_early_bonus).
 func get_call_early_bonus(uncapped: int, cap: int) -> int:
-	if not has_rule(&"call_of_the_wild"):
-		return mini(uncapped, cap)
-	return mini(uncapped * 2, maxi(CALL_OF_THE_WILD_CEILING, cap))  # Double what the skipped time earns, up to 40 a drift
+	return mini(uncapped, cap)  # (Call of the Wild no longer doubles it: dream_council_review.md 24)
 
 # Thick Bark: RunState.lose_leaves asks this first; true = this leak is saved (whole, even a boss's).
 func absorb_leak() -> bool:
@@ -3642,8 +3768,7 @@ func _rest_rules(perfect: bool) -> void:
 
 # Fresh Growth: a Warden grown during a drift (not at a rest, never just planted) is marked until the next rest.
 func _mark_fresh(tower: Tower) -> void:
-	if has_rule(&"fresh_growth") and not drift_director.resting:
-		tower.set_meta(&"fresh_growth", true)
+	batch.grown(self, tower)  # Grow or Nurture, during a drift, on a Warden that stood at the last rest
 
 func _watch_growth(tower: Tower) -> void:
 	if tower.has_signal("evolved") and not tower.evolved.is_connected(_mark_fresh):
@@ -3652,7 +3777,7 @@ func _watch_growth(tower: Tower) -> void:
 		tower.evolved.connect(_discover_warden)
 
 func is_fresh(tower: Tower) -> bool:
-	return tower != null and tower.get_meta(&"fresh_growth", false)
+	return batch.is_fresh(self, tower)
 
 # Underdog: the attacking Wardens that soothed least this block get a mark for the next block
 # (Tower Code's glow reads is_underdog).
@@ -3975,6 +4100,7 @@ func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[Upgrade
 	if has_rule(&"sunlit_rest"):
 		unique_raised = sunlit_rest()
 	unique_growth.rest(self, unique_raised)
+	batch.rest(self, 0, unique_raised)
 	if has_rule(&"seedling_gift"):
 		run_state.add_sprout_charges(1)
 	var taken: Array[UpgradeData] = []
@@ -4763,10 +4889,17 @@ func in_hollow(cell: Vector2) -> bool:
 # 60% of each held family's cards (and at each later family pick: _sample_family), plus 60% per rarity of everything else available
 # (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
 # nothing; a card discovered mid-run joins at once; an Entwined card only if it was drawn. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
-const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
-	"evergreen", "morning_dew"]
+# One plain anchor per job (dream_council_review.md 23 to 24): maze longer_roots, economy morning_dew, tempo quick_step,
+# risk thick_bark (deep_roots a second), tending tender_care. Evergreen moved to the random pool. The 12 run-shaping
+# batch cards (BATCH.BATCH) are always in the pool too: never guaranteed, never weighted.
+const RUN_POOL_BASICS: Array[String] = ["longer_roots", "deep_roots", "thick_bark", "morning_dew", "quick_step", "tender_care"]
+
+func _always_in_pool(card: UpgradeData) -> bool:
+	if card.id == "heartwoods_reach":
+		return count_obstacles() >= card.min_obstacles  # The clearing opener keeps its own rule: only on maps worth clearing
+	return RUN_POOL_BASICS.has(card.id) or BATCH.BATCH.has(card.id) or (card.deepens != "" and RUN_POOL_BASICS.has(card.deepens))
 @export var run_pool_share := 0.6  # Share of each rarity drawn into a run's pool (an export so sims can set it: --set=%DreamState.run_pool_share=0.7)
-const RUN_POOL_FLOORS := {UpgradeData.Rarity.COMMON: 12, UpgradeData.Rarity.UNCOMMON: 12, UpgradeData.Rarity.RARE: 6,
+const RUN_POOL_FLOORS := {UpgradeData.Rarity.COMMON: 12, UpgradeData.Rarity.UNCOMMON: 12, UpgradeData.Rarity.RARE: 12,
 	UpgradeData.Rarity.LEGENDARY: 3}
 var run_pool_forced := false
 var run_pool := {}  # Card id -> true (empty = not drawn yet)
@@ -4831,9 +4964,10 @@ func build_run_pool(seed_value: int = -1) -> void:
 		if card.deepens != "" and not RUN_POOL_BASICS.has(card.deepens):
 			continue  # A Deepened card follows its base (in_run_pool): it never takes a pool slot of its own
 		var family := _card_family(card)
-		if RUN_POOL_BASICS.has(card.id) or (card.deepens != "" and RUN_POOL_BASICS.has(card.deepens)) \
-				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
+		if _always_in_pool(card):
 			run_pool[card.id] = true
+		elif card.id == "heartwoods_reach":
+			pass  # Too few obstacles on this map
 		elif family != "":
 			pass  # Family cards: a seeded 60% joins when the family is held (_sample_family), not the core
 		elif not discovery_met(card):

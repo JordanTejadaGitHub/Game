@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "switchback"
 display_name = "Switchback"
-description = "Nightmares rounding a bend in an attacking Warden's reach are slowed by 25% for 1 s. Each nightmare can trigger this once every 3 s."
+description = "Nightmares rounding a bend in an attacking Warden's range are slowed by 25% for 1 s. Once every 3 s each."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

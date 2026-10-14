@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "side_by_side"
+display_name = "Side by Side"
+description = "Needs another {family}'s Warden. Path touching it and a spore Warden grows a mushroom on each step every 3 s."
+tip = "Mushrooms: grown by Leaf Litter and Side by Side (on a Sporeling start, also by every {spored} dispel). A dose is 3 {spored} at once. Works for: a spore Warden and another {family}'s Warden. A bet: it does little until you own another {family}."
+rarity = 1
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"side_by_side"
+requires = Array[String](["sporeling"])
+retired = true

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "on_the_beat"
+display_name = "On the Beat"
+description = "When a bell rings, each Warden touching it that is at least halfway to its next attack attacks now. Each Warden, once every 2 s."
+tip = "A bell rings each time it hits. Not other bells. A Warden that has only just attacked waits as usual, so slow Wardens are never doubled. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"on_the_beat"
+requires = Array[String](["bellflower"])

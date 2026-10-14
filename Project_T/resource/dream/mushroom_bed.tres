@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mushroom_bed"
+display_name = "Mushroom Bed"
+description = "Path touching 2 spore Wardens grows a mushroom on each step every 5 s. Needs no dispels."
+tip = "Works for: spore Wardens, by where they stand. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 0
+kind = 3
+tags = Array[String](["spore"])
+max_stacks = 1
+rule_id = &"mushroom_bed"
+calling = "sporeling"
+retired = true

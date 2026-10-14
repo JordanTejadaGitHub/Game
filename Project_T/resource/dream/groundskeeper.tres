@@ -12,3 +12,4 @@ kind = 4
 tags = Array[String](["tending"])
 max_stacks = 1
 rule_id = &"groundskeeper"
+retired = true

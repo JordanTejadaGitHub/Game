@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sleep_no_more"
+display_name = "Sleep No More"
+description = "The hit that wakes a sleeping nightmare, from any Warden, lands in full on every nightmare touching it too."
+tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a Toll: it lands again at half damage (on a Bellflower start the first Toll is ring 2). Works for: any Warden. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"sleep_no_more"
+requires = Array[String](["bellflower"])

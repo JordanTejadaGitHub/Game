@@ -130,6 +130,9 @@ func show_report(block: int) -> void:
 		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
 	text += landmark_lines(self)  # What each landmark did this block (heartwood_gifts.md "Gifts as landmarks")
 	text += finale_line(block)
+	var batch_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if batch_dreams != null and batch_dreams.has_method("batch_report_lines"):
+		text += batch_dreams.batch_report_lines()  # "Growth Rings: lost (you planted this block)", "Held Breath: rest bonus tripled"
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""

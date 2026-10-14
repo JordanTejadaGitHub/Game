@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "class_wake_ripple"
+display_name = "Wake Ripple"
+description = "Needs another {family}'s Warden touching water. When it adds its status to a nightmare in it, the ripple carries 1 {stack} to the others in that water."
+tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: another {family}'s Warden touching water. A bet: it does little until you own another {family}."
+rarity = 1
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"class_wake_ripple"
+requires = Array[String](["dewdrop"])
+retired = true

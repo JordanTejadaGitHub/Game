@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sound_carries"
+display_name = "Sound Carries"
+description = "A pulsing bell's ring carries 4 steps down the path past its range, at half damage, stopping at the next bell's range. Carried rings count."
+tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a Toll: it lands again at half damage (on a Bellflower start the first Toll is ring 2). Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 0
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"sound_carries"
+requires = Array[String](["bellflower"])
+retired = true

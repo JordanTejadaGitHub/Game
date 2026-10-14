@@ -134,6 +134,7 @@ func get_late_multiplier(number: int) -> float:
 @export var auto_drift: bool = true  # Drifts in a block start by themselves
 @export var auto_drift_delay: float = 3.0  # Seconds after the previous drift finished arriving
 @export var call_early_seconds_per_dew: float = 1.0  # (2.0 before the Dew x2 second pass, 2026-10-13)
+@export var call_early_min_seconds: float = 10.0  # A call is "early" for Dream cards only with this much of the arrival skipped (dream_council_review.md 24: a press one second before the end counted)
 @export var call_early_cap: int = 20  # Max Dew for calling one drift early (10 before the Dew x2 second pass)
 # The Dew pot (run_design.md "The Dew pot", 2026-10-01): each drift has a fixed Dew pot, split across the
 # nightmares it spawns by weight (EnemyData.dew_reward, Deeply Blighted ×3; a boss drift's boss takes half).
@@ -219,7 +220,9 @@ func get_maze_reward_projection() -> int:
 	# The block's rest, from the first drift on (maze_economy.md 2026-10-12: paid at block rests only, so the short rest
 	# after drift 1 has no forecast of its own).
 	var last := mini(block * drifts_per_block, drifts.size())
-	return maze_economy.projected(block, last, get_maze_reward_preview(), drifts_per_block)
+	var projected: int = maze_economy.projected(block, last, get_maze_reward_preview(), drifts_per_block)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	return roundi(projected * dreams.get_maze_multiplier()) if dreams else projected  # Winding Path: tripled
 
 func _ready() -> void:
 	maze_economy.capture_baseline(_maze_map())
@@ -395,6 +398,18 @@ func pending_choice() -> StringName:
 		return &"omen"
 	return &""
 
+# Seconds of the current drift's arrival that starting the next one right now would skip (0: nothing is arriving).
+func get_arrival_skipped() -> float:
+	if resting or not _arriving.has(drifts_started):
+		return 0.0
+	var schedule: Array = _arriving[drifts_started].schedule
+	return maxf(float(schedule[-1][0]) - float(_arriving[drifts_started].clock), 0.0) if not schedule.is_empty() else 0.0
+
+# Whether starting the next drift right now counts as calling it early for Dream cards: the last one is still
+# arriving with at least call_early_min_seconds of its arrival left to skip.
+func would_call_early() -> bool:
+	return is_arriving() and get_arrival_skipped() >= call_early_min_seconds
+
 # Dew for starting the next drift right now: +1 per `call_early_seconds_per_dew` seconds of the
 # current drift's arrival that are skipped, capped. 0 when resting or when it has finished arriving.
 func get_call_early_bonus() -> int:
@@ -421,8 +436,9 @@ func start_next_drift() -> bool:
 	var bonus := get_call_early_bonus()
 	if bonus > 0:
 		run_state.add_dew(bonus)
-	_called_early = is_arriving()  # Call of the Wild: a drift called early has its pot +10%
-	if _called_early:  # Run history (balancing: "the user calls most drifts early")
+	var arriving := is_arriving()
+	_called_early = would_call_early()  # For Dream cards (and the run history's called_early column): 10 s or more skipped
+	if arriving:  # Run history (balancing: "the user calls most drifts early")
 		early_calls += 1
 		call_early_dew += bonus
 	_start_drift()
@@ -804,6 +820,9 @@ func _pay_rest_bonus() -> Array:
 	if dreams and not dreams.keeps_rest_bonus():
 		bonus = 0  # Deep Sleep: no rest bonus for the rest of the run (Dreams below still add)
 	if dreams:
+		# Held Breath (x3 with no leaf lost this block, 0 with one) and A Clean Night (0 with one): leaves actually
+		# lost, not `perfect`, which a leak Hardened Bark absorbs still breaks.
+		bonus = roundi(bonus * dreams.get_rest_bonus_multiplier())
 		bonus += dreams.get_dew_per_clear()  # Morning Dew
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
@@ -812,6 +831,8 @@ func _pay_rest_bonus() -> Array:
 	# built before drift 1 and sold at that rest kept their payout). The samples stay for the block's own rest.
 	var block_rest := drifts_started % drifts_per_block == 0 or drifts_started >= drifts.size()
 	var maze_claim: int = maze_economy.claim(block) if block_rest else 0
+	if dreams:
+		maze_claim = roundi(maze_claim * dreams.get_maze_multiplier())  # Winding Path: tripled
 	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
 	bonus += maze_reward_last
 	run_state.add_dew(bonus)

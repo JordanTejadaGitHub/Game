@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "winding_path"
 display_name = "Winding Path"
-description = "At each {rest}, {dew:+1} for every cell of path within a Warden's range (up to {dew:60})."
+description = "The {dew} your maze pays at each {rest} is tripled."
 rarity = 0
 kind = 3
 tags = Array[String](["maze", "economy"])

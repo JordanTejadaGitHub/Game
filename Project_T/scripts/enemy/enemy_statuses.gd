@@ -760,6 +760,40 @@ func spore_credit() -> Array:
 			out.append([entry[0], float(entry[1]) / total])
 	return out
 
+# The quiet add (dream_council_review.md 20 "New shared code"): stacks go up to the normal limit; the clock, strength and
+# source do not change; it never starts a status that is not there; Poisoned joins its oldest live batch; never Rooted.
+# Charged stops one short of a bolt. Returns the stacks added. (Roguelite Code; the class and lent cards use it.)
+func add_quiet(id: StringName, amount: int) -> int:
+	if amount <= 0 or id == HELD or not has(id):
+		return 0
+	var status: Dictionary = _active[id]
+	var cap := get_max_stacks(id)
+	if id == STATIC:
+		cap -= 1
+	var added := clampi(cap - int(status.stacks), 0, amount)
+	if added <= 0:
+		return 0
+	status.stacks = int(status.stacks) + added
+	if id == SPORED and not _spore_batches.is_empty():
+		_spore_batches[0][1] = int(_spore_batches[0][1]) + added
+		_rebuild_spore_credit()
+	changes += 1
+	return added
+
+# Knell: Poisoned's oldest batch is used up (its stacks go; the status ends with its last batch).
+func drop_oldest_spore_batch() -> void:
+	if not has(SPORED) or _spore_batches.is_empty():
+		return
+	_spore_batches.remove_at(0)
+	var left := _spore_count()
+	if left <= 0:
+		remove(SPORED)
+		return
+	_active[SPORED].stacks = left
+	_active[SPORED].time = _spore_remaining()
+	_rebuild_spore_credit()
+	changes += 1
+
 # Puts it to sleep for `seconds` (longest wins), unless it woke less than SLEEP_COOLDOWN ago (or is a
 # boss). Every sleep source goes through here. Returns whether it's asleep now.
 func sleep(seconds: float) -> bool:

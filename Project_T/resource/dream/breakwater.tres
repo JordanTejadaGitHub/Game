@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "breakwater"
+display_name = "Breakwater"
+description = "A fully {damp} nightmare leaving water 14 or more steps long takes a wave: 3 s of damage from the strongest {warden:dewdrop} touching it."
+tip = "Works for: {warden:dewdrop}s. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 2
+kind = 3
+tags = Array[String](["water"])
+max_stacks = 1
+rule_id = &"breakwater"
+calling = "dewdrop"

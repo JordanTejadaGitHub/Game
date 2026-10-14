@@ -12,4 +12,4 @@ kind = 3
 tags = Array[String](["tending"])
 max_stacks = 1
 rule_id = &"mulch"
-
+retired = true

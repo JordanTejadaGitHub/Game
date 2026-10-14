@@ -1,0 +1,288 @@
+extends Node2D
+# What the Sporeling, Dewdrop and Bellflower class scripts share (dream_council_review.md 20 "Shared rules"; the
+# Firefly Jar's firefly_lights.gd is the model): who a card works for, the four distances, the route by steps, the
+# free hit and the nap. Each class script extends this, sets FAMILY / LINE through _family() and _line(), and listens
+# to damage events (on_damage) and a poll (on_poll). DreamState makes the three nodes in the world, beside
+# FireflyLights. No class_name: DreamState preloads the class scripts.
+# Every number is a paper starting value (Balancing tunes them after the owner's playtest).
+
+const TOUCH_CELLS := 1.0  # Two Wardens touching: centres within 1 cell on both axes; two nightmares: within 1 cell
+const PATH_TOUCH_CELLS := 1.25  # A Warden touches path: a route point within 1.25 cells of its centre on both axes
+const NEAR_CELLS := 2.0  # Near: within 2 cells on both axes
+const FREE_HIT_EVERY := 1.0  # One free hit per Warden a second, across every card
+const NAP_SECONDS := 1.0  # The one nap rule: fixed 1 s, never on a sleeper, never bosses
+const POLL := 0.1
+const FREE_HIT_TAG := &"free_hit"
+const FREE_META := &"ck_free_next"  # On a Warden: when it may give its next free hit
+# Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
+const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
+	&"riptide", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell"]
+
+var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
+var _hooked := false
+var _poll_in := 0.0
+var _route := PackedVector2Array()  # The route's points, start to Heartwood (half-cell steps: 2 points = 1 step)
+var _route_px: Array = []  # Vector2: each point in px
+var _index := {}  # Route point -> its index
+var _route_serial := -1
+var _board := -1
+
+func _family() -> String:
+	return ""
+
+func _line() -> String:
+	return ""
+
+# The card rule ids this script acts on when the family was NOT the first pick (its lent cards).
+func _lent_rules() -> Array:
+	return []
+
+func _ready() -> void:
+	z_index = -1  # With the ground: under Wardens and nightmares
+	if dream_state != null and dream_state.get("drift_director") != null:
+		dream_state.drift_director.rest_started.connect(_rest_started.unbind(4))
+
+func _rest_started() -> void:
+	on_rest()
+
+func on_rest() -> void:
+	pass
+
+# Every damage event while this class or one of its lent cards is on. `source`: the Warden credited, or null.
+# `is_hit`: a Warden's own hit (never a tick, a bolt, a Reaction or anything a class card dealt). `tagged`: a class
+# card or a Reaction dealt it: nothing but a dispel may be read from it.
+func on_damage(_event, _source, _enemy, _is_hit: bool, _dispel: bool, _tagged: bool) -> void:
+	pass
+
+func on_poll() -> void:
+	pass
+
+func on_board() -> void:
+	pass
+
+# --- Who this is on for ---------------------------------------------------------------------------------------------
+
+func class_on() -> bool:
+	return dream_state != null and dream_state.calling == _family()
+
+func rule(id: StringName) -> bool:
+	return dream_state != null and dream_state.has_rule(id)
+
+func lent_on() -> bool:
+	for id in _lent_rules():
+		if rule(id):
+			return true
+	return false
+
+func active() -> bool:
+	return class_on() or lent_on()
+
+func cell() -> float:
+	return Tower.MAP_GRID.cell_size.x
+
+func now() -> float:
+	return dream_state._game_clock
+
+func resting() -> bool:
+	return dream_state.drift_director != null and dream_state.drift_director.resting
+
+# --- Who a card works for -------------------------------------------------------------------------------------------
+
+# A Warden of this family, any form.
+func is_own(tower) -> bool:
+	return tower is Tower and tower.tower_data != null and tower.tower_data.line == _line() and tower.tower_data.can_attack
+
+# Any other Warden: every attacking Warden not of this family, Sprouts included.
+func is_other(tower) -> bool:
+	return tower is Tower and tower.tower_data != null and tower.tower_data.can_attack and tower.tower_data.line != _line() \
+		and tower.tower_data.line != "wall"
+
+# Another family's Warden: not this family, not a Sprout, not a wall.
+func is_other_family(tower) -> bool:
+	return is_other(tower) and tower.tower_data.get_id() != "sprout"
+
+static func is_wall(tower) -> bool:
+	return tower is Tower and tower.tower_data != null and tower.tower_data.line == "wall"
+
+static func living(enemy) -> bool:
+	return is_instance_valid(enemy) and not enemy.is_queued_for_deletion() and not enemy.is_cleansed and enemy.health > 0
+
+func towers() -> Array:
+	return get_tree().get_nodes_in_group(Tower.GROUP).filter(_tower_ok)
+
+func _tower_ok(tower) -> bool:
+	return is_instance_valid(tower) and not tower.is_queued_for_deletion() and tower.tower_data != null
+
+func own_towers() -> Array:
+	return towers().filter(is_own)
+
+func enemies() -> Array:
+	return get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(living)
+
+# The status a Warden's own attack adds ("" = none; never Rooted: no class card adds, counts or speeds it).
+static func status_of(tower) -> StringName:
+	if not (tower is Tower) or tower.attack_data == null:
+		return &""
+	var status: StringName = tower.attack_data.applies_status
+	return &"" if status == EnemyStatuses.HELD else status
+
+# --- Distances ------------------------------------------------------------------------------------------------------
+
+func within(a: Vector2, b: Vector2, cells: float) -> bool:
+	var reach := cells * cell() + 1.0
+	return absf(a.x - b.x) <= reach and absf(a.y - b.y) <= reach
+
+func touching(a, b) -> bool:
+	return a != b and within(a.global_position, b.global_position, TOUCH_CELLS)
+
+func near(a: Vector2, b: Vector2) -> bool:
+	return within(a, b, NEAR_CELLS)
+
+func touches_point(tower, at: Vector2) -> bool:
+	return within(tower.global_position, at, PATH_TOUCH_CELLS)
+
+# The strongest Warden passing `test` that is near `at` (2 cells), or null.
+func strongest_near(at: Vector2, test: Callable, skip = null):
+	var best = null
+	var best_dps := -1.0
+	for tower in towers():
+		if tower == skip or not test.call(tower) or not near(tower.global_position, at):
+			continue
+		var dps: float = tower.get_damage() * tower.get_attacks_per_second()
+		if dps > best_dps:
+			best_dps = dps
+			best = tower
+	return best
+
+func nightmares_touching(enemy, limit: int) -> Array:
+	var at: Vector2 = enemy.global_position
+	var reach := TOUCH_CELLS * cell()
+	var found: Array = []
+	for other in Tower.nightmares_near(get_tree(), at, reach):
+		if other != enemy and living(other) and other.global_position.distance_to(at) <= reach:
+			found.append(other)
+	found.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	return found.slice(0, limit)
+
+# --- The route ------------------------------------------------------------------------------------------------------
+
+func _refresh_route() -> bool:
+	var serial: int = dream_state.batch.route_serial
+	if serial == _route_serial and not _route.is_empty():
+		return false
+	_route_serial = serial
+	var map = dream_state.map_generator
+	_route = map.get_path_from(map.startPath)
+	_route_px.clear()
+	_index.clear()
+	for i in _route.size():
+		_route_px.append(Tower.MAP_GRID.calculate_map_position(_route[i]))
+		_index[_route[i]] = i
+	return true
+
+# A walking nightmare's place on the route (-1: a flyer, or off the route).
+func index_of(enemy) -> int:
+	if enemy.is_flying():
+		return -1
+	return int(_index.get(enemy.get_target_cell(), -1))
+
+# The route point nearest `at`, if within `cells` of it (-1: none).
+func nearest_point(at: Vector2, cells: float) -> int:
+	var best := -1
+	var best_d := (cells * cell()) ** 2
+	for i in _route_px.size():
+		var d: float = at.distance_squared_to(_route_px[i])
+		if d <= best_d:
+			best_d = d
+			best = i
+	return best
+
+# The route indices a Warden touches (the path rule).
+func points_touching(tower) -> Array:
+	var found: Array = []
+	for i in _route_px.size():
+		if touches_point(tower, _route_px[i]):
+			found.append(i)
+	return found
+
+# The route indices inside a Warden's reach.
+func points_in_reach(tower) -> Array:
+	var found: Array = []
+	var reach: float = tower.get_range_pixels()
+	for i in _route_px.size():
+		if tower.global_position.distance_to(_route_px[i]) <= reach:
+			found.append(i)
+	return found
+
+# --- Free hits and naps ---------------------------------------------------------------------------------------------
+
+func second_of(tower) -> float:
+	return tower.get_damage() * tower.get_attacks_per_second()
+
+# The one free-hit rule: that nightmare only; the Warden's hit, never more than one second of its damage (x `scale`);
+# its status once, as its own application; one per Warden a second across every card (extra ones are dropped). It is
+# not a hit for anything else: its tag keeps it out of every count.
+# `cap`: the most it may deal (Caught Wading: the Dewdrop's own hit).
+func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF) -> bool:
+	if not (tower is Tower) or not is_instance_valid(tower) or not living(enemy) or tower.attack_data == null:
+		return false
+	if now() < float(tower.get_meta(FREE_META, -INF)):
+		return false
+	tower.set_meta(FREE_META, now() + FREE_HIT_EVERY)
+	var amount: float = minf(minf(tower.get_damage(), second_of(tower)) * scale, cap)
+	if amount <= 0.0:
+		return false
+	_line_fx(tower.global_position, enemy.global_position, 3.0)
+	enemy.take_damage(amount, tower.tower_data.line, false, false, tower, tag)
+	var status := status_of(tower)
+	if status != &"" and living(enemy):
+		tower._apply_one_status(enemy, status, maxi(int(tower.attack_data.status_stacks), 1), tower.get_damage(), false)
+	return true
+
+# Damage a card deals in a Warden's name (never a hit for anything else: `tag` is one of CLASS_TAGS).
+func strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false) -> void:
+	if amount <= 0.0 or not living(enemy):
+		return
+	var line: String = tower.tower_data.line if tower is Tower and is_instance_valid(tower) else _line()
+	enemy.take_damage(amount, line, is_area, false, tower if is_instance_valid(tower) else null, tag)
+
+# The one nap rule: 1 s, never on a sleeper, never a boss. True when it fell asleep.
+func nap(enemy) -> bool:
+	if not living(enemy) or enemy.statuses.is_boss or enemy.statuses.is_asleep():
+		return false
+	return enemy.statuses.sleep(NAP_SECONDS) and enemy.statuses.is_asleep()
+
+# A thin line between two points for a moment (free hits, carried stacks): the card's "what you see", in placeholder form.
+func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
+	var world := Reactions._world(self)
+	if world != null:
+		world.add_child(ChainBolt.new(PackedVector2Array([from, to]), color, width))
+
+# --- The loop -------------------------------------------------------------------------------------------------------
+
+func _process(delta: float) -> void:
+	if dream_state == null:
+		return
+	if not _hooked and DamageLog.instance != null:
+		DamageLog.instance.damage_dealt.connect(_on_damage)
+		_hooked = true
+	if not active():
+		return
+	if _refresh_route() or _board != int(dream_state.board_version):
+		_board = int(dream_state.board_version)
+		on_board()
+	_poll_in -= delta
+	if _poll_in <= 0.0:
+		_poll_in = POLL
+		on_poll()
+
+func _on_damage(event) -> void:
+	if dream_state == null or not active() or not is_instance_valid(event.enemy):
+		return
+	var tagged: bool = event.tag in CLASS_TAGS or event.kind == &"reaction"
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
+	var dispel: bool = event.enemy.health <= 0
+	if (tagged or source == null) and not dispel:
+		return
+	var is_hit: bool = source != null and not tagged and event.kind == &"hit" and event.tag == &""
+	on_damage(event, source, event.enemy, is_hit, dispel, tagged or source == null)

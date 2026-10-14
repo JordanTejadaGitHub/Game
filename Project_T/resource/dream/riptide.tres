@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "riptide"
+display_name = "Riptide"
+description = "A {damp} nightmare walking back into a {warden:dewdrop}'s water wades at half speed for 2 s. Each Warden touching that water hits it double, once."
+tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A bet: your path must cross the same water twice. Each Warden's first hit on it in those 2 s lands double."
+rarity = 2
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"riptide"
+requires = Array[String](["dewdrop"])

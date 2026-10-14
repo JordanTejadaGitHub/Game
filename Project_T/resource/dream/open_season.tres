@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "open_season"
+display_name = "Open Season"
+description = "When a nightmare steps on a mushroom, each spore Warden's next attack on it is a dose too."
+tip = "Works for: spore Wardens. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 1
+kind = 3
+tags = Array[String](["spore"])
+max_stacks = 1
+rule_id = &"open_season"
+calling = "sporeling"
+retired = true

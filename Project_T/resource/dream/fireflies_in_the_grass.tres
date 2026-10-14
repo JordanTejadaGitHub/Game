@@ -13,3 +13,4 @@ tags = Array[String](["storm", "sprout"])
 max_stacks = 1
 rule_id = &"lit_sprouts"
 calling = "firefly_jar"
+retired = true

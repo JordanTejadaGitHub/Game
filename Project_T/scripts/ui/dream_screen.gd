@@ -224,6 +224,15 @@ func _make_card(card: UpgradeData) -> Button:
 	# much the damage boost is… also how many it affects"): the pick shows it instead (the flight, the Wardens' pulse).
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+	# Wagers and priced cards: one line in the player's own numbers ("Wager · Stake: this block's 46 Dew. Win: 138.",
+	# "Price · …"); matchup cards: what they answer and the player's number (Roguelite Code, dream_council_review.md 24).
+	if dream_state != null and dream_state.has_method("stake_line"):
+		var stake: String = dream_state.stake_line(card)
+		if stake != "":
+			_add_linked_line(box, stake, BITTERSWEET_COLOR, 15)
+		var answer: String = dream_state.answer_line(card)
+		if answer != "":
+			_add_linked_line(box, answer, UiStyle.INK_DIM, 14)
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
 		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.

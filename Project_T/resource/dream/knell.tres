@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "knell"
+display_name = "Knell"
+description = "Every 4th ring on a nightmare sets off one status from another {family}'s Warden: it deals the damage that status would and clears it."
+tip = "Works for: another {family}'s statuses. A bet. {spored} ticks once and loses its oldest {stacks}. {static} goes off as a bolt, which keeps it from bigger Reactions. {full} {damp}: up to 2 {warden:dewdrop}s hit it, and it dries."
+rarity = 2
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"knell"
+requires = Array[String](["bellflower"])

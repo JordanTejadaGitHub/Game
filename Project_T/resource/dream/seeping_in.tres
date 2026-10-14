@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "seeping_in"
+display_name = "Seeping In"
+description = "Every 6 steps a nightmare walks within a spore Warden's range, each status it carries gains 3. Never starts one."
+tip = "A step is one cell of path. Steps a nightmare is pulled or pushed back over do not count again. Safe."
+rarity = 1
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"every status, whoever added it"
+requires = Array[String](["sporeling"])

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "both_banks"
+display_name = "Both Banks"
+description = "A lone {warden:dewdrop} with water on two sides splashes both: each splash also lands on the front nightmare in its other water, at half damage."
+tip = "Works for: a lone {warden:dewdrop}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 1
+kind = 3
+tags = Array[String](["water"])
+max_stacks = 1
+rule_id = &"both_banks"
+calling = "dewdrop"
+retired = true

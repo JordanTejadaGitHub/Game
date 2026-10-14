@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lanternway"
 display_name = "Lanternway"
-description = "A bolt in any light also forks to the front nightmare in each of the next 3 lights ahead, for half."
+description = "A bolt in any light also jumps to the front nightmare in each of the next 3 lights ahead at half damage."
 rarity = 2
 kind = 3
 tags = Array[String](["storm"])

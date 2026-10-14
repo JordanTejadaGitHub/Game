@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "the_water_remembers"
+display_name = "The Water Remembers"
+description = "Needs another {family}'s status. A nightmare walking back into a {warden:dewdrop}'s water gets back the other families' statuses that wore off since it left."
+tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: another {family}'s statuses. A bet: it does little until you own another {family}."
+rarity = 1
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"the_water_remembers"
+requires = Array[String](["dewdrop"])

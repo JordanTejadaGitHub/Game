@@ -13,3 +13,4 @@ tags = Array[String](["status", "affliction"])
 max_stacks = 1
 requires_any_status = Array[StringName]([&"drowsy"])
 rule_id = &"heavy_air"
+retired = true

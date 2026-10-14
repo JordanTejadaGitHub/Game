@@ -40,7 +40,7 @@ const LANTERNWAY_SHARE := 0.5
 const AMBUSH_SHARE := 0.5  # Ambush
 const SPARK_MAX := 3  # Waiting Spark: sparks that can wait in one light
 const SPARK_TIME := 5.0
-const LIVE_WIRE_SHARE := 1.0  # Lent: the full hit, per dispel
+const LIVE_WIRE_SHARE := 0.5  # Nothing Wasted's Live Wire part: half the hit, per dispel (owner 2026-10-13: never more than the Calling)
 const CROSSFIRE_WINDOW := 1.0  # Lent
 const CROSSFIRE_TARGETS := 2
 const CROSSFIRE_SHARE := 0.5
@@ -117,7 +117,22 @@ func _rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
 
 func _lent_on() -> bool:
-	return _rule(LENT_LIVE_WIRE) or _rule(LENT_CROSSFIRE) or _rule(LIKE_TO_LIKE)
+	return _rule(LENT_LIVE_WIRE) or _rule(LENT_CROSSFIRE) or _rule(LIKE_TO_LIKE) or _lit_lent()
+
+# More lent cards than class cards (the owner and the council, 2026-10-13, lent_consolidated.md): Lit, the glow and the
+# lights belong to every owner of the family; only the Calling's own payoff (a dispel of a Lit nightmare jumps half its
+# hit) stays with the first pick. These lent cards work in the light, on any start that owns a Firefly Warden.
+const LIT_LENT: Array[StringName] = [HAMMERFALL, KNOCK_ON, SPOTLIGHT, SIGNAL_FIRES, NOTHING_WASTED, CHAIN_OF_LANTERNS]  # (Ambush retired, Spotlight lent: owner 2026-10-13)
+
+func _lit_lent() -> bool:
+	for id in LIT_LENT:
+		if _rule(id):
+			return true
+	return false
+
+# Whether the lights are worked out: the Firefly start, or any owner holding a card that works in the light.
+func _lit_on() -> bool:
+	return class_on() or _lit_lent()
 
 func _cell() -> float:
 	return Tower.MAP_GRID.cell_size.x
@@ -149,7 +164,7 @@ func _process(delta: float) -> void:
 	if not _hooked and DamageLog.instance != null:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 		_hooked = true
-	var on := class_on()
+	var on := _lit_on()
 	if not on and not _lent_on():
 		if not _sources.is_empty() or not _glow.is_empty():
 			_sources.clear()
@@ -190,7 +205,7 @@ func _rebuild() -> void:
 			jars.append(tower)
 		elif tower.tower_data.get_id() == "sprout" and tower.get_meta(LIT_SPROUT_META, false):
 			sprouts.append(tower)
-	if not class_on():
+	if not _lit_on():
 		for tower in jars:
 			_sources.append({"tower": tower, "sprout": false, "light": _sources.size()})  # Lent cards only ask "near a Firefly Warden"
 		return
@@ -220,13 +235,17 @@ func _rebuild() -> void:
 					parent[a] = b
 			else:
 				owner_of[cell] = i
+	var names := {}  # Union-find root -> the light's stable id: the smallest cell code among its Jars
 	for i in jars.size():
-		var light := _find(parent, i)
+		var root := _find(parent, i)
+		names[root] = mini(int(names.get(root, 1 << 30)), _cell_code(jars[i]))
+	for i in jars.size():
+		var light := int(names[_find(parent, i)])
 		_sources.append({"tower": jars[i], "sprout": false, "light": light})
 		for cell in cells_of[i]:
 			_note(cell, light, true)
 	for j in sprouts.size():
-		var light := jars.size() + j  # Always its own light, and never gold path
+		var light := -1 - _cell_code(sprouts[j])  # Always its own light (negative ids), and never gold path
 		_sources.append({"tower": sprouts[j], "sprout": true, "light": light})
 		for cell in path:
 			var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
@@ -235,6 +254,10 @@ func _rebuild() -> void:
 	for cell in _glow:
 		_max_lit_step = maxi(_max_lit_step, int(path.get(cell, -1)))
 	queue_redraw()  # Twice a second at most: the glow follows planting, selling, growing and new cards
+
+# A Warden's cell as one number (half cells count): stable while it stands there.
+func _cell_code(tower) -> int:
+	return roundi(tower.cell.x * 2.0) * 1000 + roundi(tower.cell.y * 2.0)
 
 func _find(parent: Array, i: int) -> int:
 	while int(parent[i]) != i:
@@ -266,7 +289,7 @@ func sources_at(at: Vector2) -> Array:
 	return out
 
 func is_lit(enemy) -> bool:
-	return class_on() and is_instance_valid(enemy) and not sources_at(enemy.global_position).is_empty()
+	return _lit_on() and is_instance_valid(enemy) and not sources_at(enemy.global_position).is_empty()
 
 func lights_of(sources: Array) -> Array:
 	var out: Array = []
@@ -399,9 +422,12 @@ func _next_event() -> int:
 	return _event
 
 func _on_damage(event) -> void:
+	if dream_state != null and is_instance_valid(event.enemy) and event.tag != FORK_TAG and _rule(CHAIN_OF_LANTERNS) \
+			and (event.kind == &"reaction" or event.tag == &"toll") and _lit_on():
+		_chain_more(event)
 	if dream_state == null or event.tag == FORK_TAG or event.kind == &"reaction" or not is_instance_valid(event.enemy):
 		return  # A fork triggers nothing; a Reaction's own lightning gets nothing added
-	var on := class_on()
+	var on := _lit_on()
 	var lent := _lent_on()
 	var guiding := _rule(GUIDING_LIGHT)
 	if not on and not lent and not guiding:
@@ -422,6 +448,18 @@ func _on_damage(event) -> void:
 		_class_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 	if lent:
 		_lent_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
+
+# Chain of Lanterns on a Toll or a Reaction (a bolt goes through _class_rules): half of it jumps to the 2 nearest Lit.
+func _chain_more(event) -> void:
+	var enemy = event.enemy
+	var sources := sources_at(enemy.global_position)
+	if sources.is_empty():
+		return
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
+	var cap := brightness(source, sources) if source != null else _base_jar_dps * BRIGHTNESS_SECONDS
+	var id := _next_event()
+	for target in nearest_lit(enemy.global_position, [enemy], CHAIN_TARGETS):
+		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, cap, {"final": true})
 
 # Guiding Light (owner ruling 2026-10-12, dream_council_review.md 21): a hit on a fully Exposed nightmare forks to the
 # nightmares within 1 cell of it (II: 2 cells), for half. It no longer spreads Exposed stacks.
@@ -459,10 +497,11 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 		# Lantern Light; on gold path Where Lights Meet replaces it: one fork per Firefly Warden lighting it.
 		var count := mini(jars, MEET_MAX) if jars >= 2 and _rule(WHERE_LIGHTS_MEET) else 1
 		var targets := nearest_lit(at, [enemy], count)
-		for target in targets:
-			_fork(id, source, at, target, size * CALLING_SHARE, cap, {"heavy": knock})
-		if targets.is_empty():
-			_wait(lights, source, size * CALLING_SHARE, cap)
+		if class_on():  # The Calling's own payoff: the first pick only
+			for target in targets:
+				_fork(id, source, at, target, size * CALLING_SHARE, cap, {"heavy": knock})
+			if targets.is_empty():
+				_wait(lights, source, size * CALLING_SHARE, cap)
 		if _rule(NOTHING_WASTED) and (is_hit or is_bolt) and event.overkill > 0.0 and not targets.is_empty():
 			_fork(id, source, at, targets[0], minf(event.overkill, event.amount), cap, {"heavy": knock})  # The larger of the two lands
 		if _rule(SIGNAL_FIRES):
@@ -501,8 +540,9 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 					continue
 				var others: Array = _enemies().filter(func(e) -> bool:
 					return e != enemy and lights_of(sources_at(e.global_position)).has(light))
-				for other in others.slice(0, SPOTLIGHT_MAX):
-					_fork(id, source, at, other, event.base * SPOTLIGHT_SHARE, cap, {"heavy": true})
+				var fan: Array = others.slice(0, SPOTLIGHT_MAX)
+				for other in fan:  # The cap covers the whole fan (council, new_lent_td.md)
+					_fork(id, source, at, other, minf(event.base * SPOTLIGHT_SHARE, cap / maxf(fan.size(), 1.0)), cap, {"heavy": true})
 				break
 		if _rule(AMBUSH):
 			var ambushed: Dictionary = enemy.get_meta(AMBUSH_META, {})
@@ -592,7 +632,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	if jar == null:
 		return
 	var cap: float = jar.get_damage() * jar.get_attacks_per_second() * BRIGHTNESS_SECONDS
-	if dispel and _rule(LENT_LIVE_WIRE):
+	if dispel and _rule(LENT_LIVE_WIRE) and not (class_on() and is_lit(enemy)):  # On a Firefly start it replaces the Calling's jump, never adds one
 		var targets := _near_enemies(at, [enemy])
 		if not targets.is_empty():
 			_fork(id, source, at, targets[0], _hit_size(source, is_hit, false) * LIVE_WIRE_SHARE, cap)
@@ -763,7 +803,7 @@ var _glow_group: CanvasGroup  # Every glow line, flattened, then added to the ma
 
 func _draw() -> void:
 	_lay_glow.call_deferred()  # Lines are nodes: laid after the draw, whenever anything here asked for a redraw
-	if not class_on():
+	if not _lit_on():
 		return
 	for light in _sparks:
 		var spot := _light_spot(int(light))
@@ -781,7 +821,7 @@ func _lay_glow() -> void:
 		if is_instance_valid(line):
 			line.queue_free()
 	_glow_lines.clear()
-	if not class_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
+	if not _lit_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
 		if is_instance_valid(_glow_group):
 			_glow_group.visible = false
 		return

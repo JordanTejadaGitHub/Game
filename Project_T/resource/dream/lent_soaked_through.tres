@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lent_soaked_through"
+display_name = "Soaked Through"
+description = "Needs another {family}'s Warden near a {warden:dewdrop}. When a nightmare near it becomes fully {damp}, each such Warden hits it once, free. Up to 4."
+tip = "Works for: another {family}'s Wardens near a {warden:dewdrop}. A bet: it does little until you own another {family}."
+rarity = 1
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"lent_soaked_through"
+requires = Array[String](["dewdrop"])
+retired = true

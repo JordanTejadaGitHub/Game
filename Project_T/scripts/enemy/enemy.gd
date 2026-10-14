@@ -2430,6 +2430,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if source is Tower and Reactions.is_effect(tag) and tag not in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
+	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
+	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
+	var batch_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if batch_dreams != null:
+		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "clean_night"
+display_name = "A Clean Night"
+description = "Lose no {leaf} for 2 {blocks} in a row: gain {dreamlight:+1}. Lose a {leaf} in a {block}: its {rest} bonus pays nothing."
+rarity = 2
+kind = 3
+tags = Array[String](["daring", "wager", "defining"])
+max_stacks = 1
+min_drift = 10
+rule_id = &"clean_night"
+excludes = Array[String](["held_breath", "deep_sleep"])

@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"overlap"
 diagram = ".......\n.PPPPP.\n.W.*.W.\n.......\n......."
 diagram_caption = "Two area Wardens covering the same spot: +40%."
+retired = true

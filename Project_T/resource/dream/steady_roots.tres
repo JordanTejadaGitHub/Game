@@ -13,3 +13,4 @@ tags = Array[String](["tall"])
 max_stacks = 1
 rule_id = &"steady_roots"
 nurture_discount = 0.15
+retired = true

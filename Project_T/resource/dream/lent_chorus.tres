@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lent_chorus"
+display_name = "Chorus"
+description = "Every 4th ring on a nightmare, the bell also repeats the last hit another {family}'s Warden near it landed there, at half damage."
+tip = "Works for: another {family}'s Wardens near a bell. A bet: it does little until you own another {family}."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"lent_chorus"
+requires = Array[String](["bellflower"])
+retired = true

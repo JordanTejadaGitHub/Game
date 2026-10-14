@@ -28,7 +28,7 @@ func _run() -> void:
 	dreams.set_calling("sporeling")
 	dreams.set_calling("dewdrop")
 	_check(dreams.calling == "sporeling", "only the first family brings its Calling")
-	_check(dreams.calling_title() == "Take Root" and dreams.calling_text() != "", "the Calling has a name and a rule text")
+	_check(dreams.calling_title() == "Spore Print" and dreams.calling_text() != "", "the Calling has a name and a rule text")
 	var saved: Dictionary = dreams.to_save()
 	dreams.calling = ""
 	dreams.load_save(saved)

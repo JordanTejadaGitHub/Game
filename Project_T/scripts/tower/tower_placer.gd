@@ -1343,6 +1343,9 @@ func _try_build(cell: Vector2) -> bool:
 		_toast_frozen()
 		build_rejected.emit(cell)
 		return false
+	if dream_state != null and dream_state.plant_needs_confirm():
+		build_rejected.emit(cell)  # Growth Rings: the first plant of a clean block asks once (a toast; plant again)
+		return false
 	if is_unique_placed(tower_data):
 		build_rejected.emit(cell)
 		return false
@@ -1402,6 +1405,9 @@ func _try_build_half(origin: Vector2) -> bool:
 		return false
 	if not map_generator.can_block_halves(halves, _walker_points()):
 		build_rejected.emit(home)
+		return false
+	if dream_state != null and dream_state.plant_needs_confirm():
+		build_rejected.emit(home)  # Growth Rings: the first plant of a clean block asks once (a toast; plant again)
 		return false
 	var cost := get_cost(null, home)
 	if not run_state.spend_dew(cost):
@@ -1500,7 +1506,9 @@ const SEEDFALL_STEP_DEW := 2  # …+2 per 10
 
 # The Sprout price rule now (Seedfall or not), for the HUD's tooltip, ↑ tag and toast.
 func sprout_per_step() -> int:
-	return SEEDFALL_SPROUTS_PER_STEP if sprout_price_halved() else SPROUTS_PER_STEP
+	if dream_state != null and dream_state.sprout_price_fixed():
+		return 0  # Seedfall (reworked 2026-10-13): Sprouts always cost 10 Dew, the price never climbs (the HUD says "fixed")
+	return SPROUTS_PER_STEP
 
 func sprout_step_dew() -> int:
 	return SEEDFALL_STEP_DEW if sprout_price_halved() else SPROUT_STEP_DEW

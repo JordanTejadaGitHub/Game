@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "across_the_water"
+display_name = "Across the Water"
+description = "Any Warden touching water also reaches {damp} nightmares up to 3 steps further along that water."
+tip = "Water: the path touching a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: any Warden touching water. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 1
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"across_the_water"
+requires = Array[String](["dewdrop"])

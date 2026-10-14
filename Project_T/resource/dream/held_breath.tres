@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "held_breath"
+display_name = "Held Breath"
+description = "Lose no {leaf} in a {block}: its {rest} bonus is tripled. Lose a {leaf}: it pays nothing."
+rarity = 1
+kind = 3
+tags = Array[String](["economy", "daring", "wager"])
+max_stacks = 1
+min_drift = 10
+rule_id = &"held_breath"
+excludes = Array[String](["clean_night", "deep_sleep"])
