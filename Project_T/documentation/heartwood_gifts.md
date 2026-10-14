@@ -214,3 +214,18 @@ One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_cha
 Warden; Elder Stumps bank 2 ranks). Environment Code: the `reshape` placer mode and effect, zones, drawing, growth
 looks. Main Merger: the gift screen (kinds, the `GROWS_LINE` under landmarks, step names `STEP_NAMES`), a scene for
 `reshape`, rest report lines. Card texts in `POOL` are the step I texts.
+
+### Amendment: every gift is generic (user, 2026-10-13: "make sure the new gifts are generic so they help all families")
+No gift names a family or needs one. This replaces the four family landmarks in the table above and the offer rule
+"a landmark that fits a family you own": the offer is simply one land gift, one landmark, one boon.
+| Gift | Proposed above | Now (helps every build) |
+|---|---|---|
+| **Spring** | Soaks passers-by; water Wardens +40% | **Wardens within 2 cells attack 25% faster.** |
+| **Lightning Tree** | Charged bolts strike twice; its own bolt | **Strikes the strongest nightmare within 3 cells every 4 s** for heavy damage that grows with the act. No status needed. |
+| **Bell Stone** | Rings Drowsy; song Wardens faster | **Rings every 6 s: nightmares within 3 cells are slowed by 30% for 2 s** (bosses 15%). A plain slow, not a status. |
+| **Mushroom Ring** | Poisons crossers; spore Wardens' cap | **Any status a Warden puts on a nightmare inside the ring lands with half again as many stacks.** Whatever your families apply. |
+| **Fallen Giant** | Touching Wardens +30% crit chance | **Touching Wardens have a 20% chance to crit** (or +20% if they already can), so it works for families with no crit. |
+| **Bramble Verge** | Brambles make nightmares Drowsy faster | Free Bramble growth, and **Brambles slow nightmares beside them by 20%** (a plain slow). |
+| **Old Kin** | One bond grows a step | Only offered when the map has a Kinship; otherwise it is not in the offer. |
+Unchanged and already generic: Moonwell, Heartwood Roots, Sow a Ridge, Mire, Reshape, Elder Stumps, Shifting Mist,
+Memory Seed, Waking Root. Check on every gift: its text names no family, no family status, and no Warden.
