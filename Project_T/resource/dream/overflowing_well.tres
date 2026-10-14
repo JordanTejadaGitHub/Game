@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "overflowing_well"
 display_name = "Overflowing Well"
-description = "{warden:wellspring} {interest} past its cap isn't lost: every {dew:50} over it becomes a {dreamlight} shard."
+description = "{warden:wellspring} {interest} past its cap isn't lost: every {dew:100} over it becomes a {dreamlight} shard."
 rarity = 2
 kind = 3
 tags = Array[String](["support", "acorn", "dreamlight"])

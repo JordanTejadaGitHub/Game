@@ -781,9 +781,13 @@ func _draw_jar_link(jar: Tower) -> void:
 	BranchKit.draw_link_area(self, jar.position, BranchKit.link_range(jar))
 	var partner = jar.get_meta(BranchKit.FENCE_BOND) if jar.has_meta(BranchKit.FENCE_BOND) else null
 	if is_instance_valid(partner) and partner is Tower:
-		var from := jar.position + jar.tower_data.get_attack_origin()
-		var to: Vector2 = partner.position + partner.tower_data.get_attack_origin()
-		draw_line(from, to, Color(BranchKit.LINK_COLOR, 0.6), 4.0)
+		# Along the link's own ground segment (BranchKit.link_end: the one geometry the damage, the arc and the path
+		# mark use), not jar tip to jar tip: the user's screenshot showed this line well above the lightning.
+		var end_a := BranchKit.link_end(jar)
+		var end_b := BranchKit.link_end(partner)
+		var along := (end_b - end_a).normalized()
+		draw_line(to_local(end_a + along * BranchKit.LINK_TRIM), to_local(end_b - along * BranchKit.LINK_TRIM),
+			Color(BranchKit.LINK_COLOR, 0.6), 4.0)
 		BranchKit.draw_link_mark(self, partner.position, true)
 
 func _draw() -> void:

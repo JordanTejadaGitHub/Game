@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "caught_wading"
+display_name = "Caught Wading"
+description = "The first time a nightmare is {damp} in a {water}, up to 3 other Wardens {touching} it hit it once, free. When fully {damp}, up to 4 {near} a {warden:dewdrop} do."
+tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A free hit is one hit outside the Warden's normal attacks, at most once a second each, and never harder than the {warden:dewdrop}'s own hit."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"caught_wading"
+requires = Array[String](["dewdrop"])
+extra_rules = Array[StringName]([&"lent_soaked_through"])

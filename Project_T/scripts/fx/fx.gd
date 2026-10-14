@@ -268,11 +268,9 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
 	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
 	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
-	for i in MAX_CALLOUTS:
-		if not _callouts_alive.any(func(c) -> bool: return is_instance_valid(c) \
-				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
-			break
-		at.y -= CALLOUT_CLEAR.y
+	# One column for every word at a spot (WorldLabel.callout_slot, shared with CombatCallouts and the chain badge):
+	# a word that would land on a live one moves up a line; a line is a whole callout tall.
+	at = WorldLabel.callout_slot(at + Vector2(0.0, -FxCallout.LIFT), key if key != &"" else StringName(text), CALLOUT_LIFE) + Vector2(0.0, FxCallout.LIFT)
 	var node := FxCallout.new(text, colour, icon)
 	parent.add_child(node)
 	node.global_position = at
@@ -302,20 +300,20 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	var newest: FxCallout = null
 	for c in _callouts_alive:
 		if is_instance_valid(c) and c is FxCallout and absf(c.global_position.x - where.x) < CALLOUT_CLEAR.x \
-				and absf(c.global_position.y - where.y) < CALLOUT_CLEAR.y * MAX_CALLOUTS:
+				and absf(c.global_position.y - where.y) < WorldLabel.CALLOUT_CLEAR.y * MAX_CALLOUTS:  # The shared column's lines (40 px since 065db19e: a callout two lines up is still in reach)
 			newest = c
 	if newest != null:
 		newest.set_count(count)
 	# One badge, updated in place (the callout redo); a new one only when there's none here.
 	if is_instance_valid(_badge) and _badge.get_parent() == parent and _badge is FxBadge:
 		(_badge as FxBadge).set_count(count)
-		_badge.global_position = where + BADGE_OFFSET
+		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
 	else:
 		if is_instance_valid(_badge):
 			_badge.queue_free()
 		_badge = FxBadge.new(count)
 		parent.add_child(_badge)
-		_badge.global_position = where + BADGE_OFFSET
+		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
 	if count == 5 or count == 10:
 		_hitstop(parent)
 		if not reduce_flashes() and bright_flash_ok():
@@ -438,7 +436,7 @@ static func exposed_check(enemy: Node2D) -> bool:
 	enemy.set_meta(EXPOSED_META, mark)
 	if not reduce_flashes():  # Reduce flashes: no flare; the mark stays
 		if has_effect(EXPOSED_COMPLETE):
-			play(EXPOSED_COMPLETE, enemy.global_position, world)
+			play(sized(EXPOSED_COMPLETE, enemy), Tower.aim_at(enemy), world)
 		else:
 			status_flash(&"marked", enemy.global_position, world)  # Stand-in until the sheet lands
 	var callouts := enemy.get_tree().get_first_node_in_group(&"combat_callouts") if enemy.is_inside_tree() else null
@@ -472,7 +470,332 @@ static func exposed_hit(enemy: Node2D, at: Vector2) -> Node2D:
 	return spark
 
 
+# --- Hit feedback on nightmares (screens_ui.md "Hit feedback on nightmares", layers 2 and 3; the user 2026-10-13:
+# "being hit by different Wardens and statuses should have different hit feedback, like being hit by a Sprout vs the
+# Jarlink's link") ---------------------------------------------------------------------------------------------
+# Layer 2: one small effect at the hit point, by the source's family. Tower Assets' sheet `hit_<line>` (hit_thorns
+# for thorns) when it exists; until then the nearest existing effect, [id, scale]. Layer 3: continuous damage keeps
+# a looping overlay on the nightmare (`sustain_<kind>` when the sheet exists, drawn until then) and sets its
+# sustained state (Fx.sustained(enemy), for Enemy's flinch: a tick isn't a hit). DamageLog.report calls
+# damage_feedback for every damage event; the Jarlink link attaches its own overlay (it knows the segment).
+const HIT_STAND_INS := {
+	"sprout": [&"sprout_puff", 0.7], "spore": [&"dream_spore_puff", 0.8], "light": [&"spark_burst", 0.6],
+	"water": [&"harvest_splash", 0.6], "stone": [&"landing_dust", 0.9], "root": [&"root_lash", 1.0],
+	"song": [&"toll_ring", 0.5], "acorn": [&"firework_pop", 0.6], "wing": [&"peck_spark", 1.0],
+	"wind": [&"dark_swirl", 0.6], "thorns": [&"thorns", 0.7], "wall": [&"thorns", 0.7]}
+const HIT_DEFAULT := [&"area_hit", 0.75]
+# Tower Assets f37e0b90: sheets not named hit_<line>. The Rootling line keeps root_lash (its scale from the stand-ins).
+const HIT_ART := {"song": &"hit_bell", "thorns": &"hit_thorn", "wall": &"hit_thorn", "root": &"hit_root"}
+const BODY_MID := 30.0  # Body sizes the sheets come in: up to 30 px across plain, up to 54 "_mid", larger "_big"
+const BODY_BIG := 54.0
+const BODY_META := &"fx_body_suffix"
+
+# `effect` in the size that fits the nightmare's drawn body (exposed_mark, link_arcs…: "", "_mid", "_big"), by its
+# art's solid height (Enemy's bounds.json) at its scale; the plain sheet when there is no sized one.
+static func sized(effect: StringName, enemy: Node) -> StringName:
+	if not is_instance_valid(enemy):
+		return effect
+	if not enemy.has_meta(BODY_META):
+		var suffix := ""
+		var sprite: AnimatedSprite2D = enemy.get("sprite") as AnimatedSprite2D
+		var frames := sprite.sprite_frames if sprite != null else null
+		if frames != null and frames.has_animation(&"walk_side") and frames.get_frame_count(&"walk_side") > 0:
+			var tex := frames.get_frame_texture(&"walk_side", 0)
+			var sheet: String = tex.atlas.resource_path if tex is AtlasTexture else tex.resource_path
+			var all_bounds: Dictionary = enemy._art_bounds() if enemy.has_method("_art_bounds") else {}  # (enemy.gd has no class_name)
+			var bounds: Dictionary = all_bounds.get(sheet.get_file().get_basename(), {})
+			var tall: float = float(bounds.bottom) - float(bounds.top) if bounds.has("top") and bounds.has("bottom") else tex.get_height() * 0.6
+			tall *= absf(sprite.scale.y)
+			suffix = "_big" if tall > BODY_BIG else ("_mid" if tall > BODY_MID else "")
+		enemy.set_meta(BODY_META, suffix)
+	var fitted := StringName(String(effect) + String(enemy.get_meta(BODY_META)))
+	return fitted if has_effect(fitted) else effect
+const HIT_GAP_MS := 150  # One hit effect per nightmare per source
+const HIT_PER_SECOND := 40  # Small puffs a second on screen; past it they thin out (the flinch doesn't)
+const HIT_PER_SECOND_REDUCED := 14
+const HIT_TIMES_META := &"fx_hit_times"  # On the nightmare: {source id: msec of its last hit effect}
+const SUSTAIN_META := &"fx_sustained"  # On the nightmare: {kind: its FxSustain}
+const SUSTAIN_LINK := &"link"  # Jarlink / Lightning Fence: arcs wrapping it
+const SUSTAIN_BEAM := &"beam"  # The landing spot, growing with the ramp
+const SUSTAIN_POISON := &"poison"  # Bubbles, more with more stacks
+const SUSTAIN_ZONE := &"zone"  # Clouds, fog, rain, whirlpools: drips in the zone's colour
+const SUSTAIN_MAX := 48  # Overlays drawn at once; the rest only keep the state
+const SUSTAIN_MAX_REDUCED := 20
+const BOLT_GAP_MS := 120  # Charged bolts' strikes from above, at most this often
+static var _hit_times: Array[int] = []
+static var _sustains := 0
+static var _bolt_msec := 0
+static var last_hit_effect := &""  # The last hit effect played (tests)
+
+# The hit effect for a source of `line` whose damage carried `tag`: [effect id, scale].
+static func hit_effect(line: String, tag: StringName = &"") -> Array:
+	var key := "thorns" if tag == &"thorns" else line
+	var art: StringName = HIT_ART.get(key, StringName("hit_" + key))
+	if has_effect(art):
+		return [art, 1.0]
+	return HIT_STAND_INS.get(key, HIT_DEFAULT)
+
+# Every damage event (DamageLog.report). Chooses the layer: a looping overlay for continuous damage, the strike for
+# a Charged bolt, nothing for Reactions (their own bursts), the family's hit effect for the rest.
+static func damage_feedback(event) -> void:
+	var enemy: Node2D = event.enemy
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree():
+		return
+	var tag: StringName = event.tag
+	var tower: Tower = event.source as Tower if is_instance_valid(event.source) else null
+	if tag == &"fence":
+		return  # BranchKit keeps the link's overlay
+	if tag == &"spored":
+		sustain(enemy, SUSTAIN_POISON, null, float(enemy.statuses.stacks(EnemyStatuses.SPORED)))
+		return
+	if tag == &"cloud" or tag == &"rain" or tag == &"fog" or tag == &"drown":
+		sustain(enemy, SUSTAIN_ZONE, tower)
+		return
+	if tag == &"static":
+		_bolt_strike(enemy)
+		return
+	if tower == null or (tag != &"thorns" and tag != &"" and tag != &"conducted" and tag != &"flurry_copy"):
+		return  # Reactions and other effect damage show themselves
+	if tag == &"" and tower.attack_data != null and tower.attack_data.attack_kind == TowerData.AttackKind.BEAM \
+			and tower._beam_target == enemy:
+		var top: float = maxf(tower.attack_data.beam_ramp_max - 1.0, 0.01)
+		sustain(enemy, SUSTAIN_BEAM, tower, clampf((tower._beam_ramp - 1.0) / top, 0.0, 1.0))
+		return
+	var zone := sustain_of(enemy, SUSTAIN_ZONE)
+	if zone != null and zone.source == tower and zone.fresh():
+		return  # A whirlpool's or puddle's tick, not a hit
+	var now := Time.get_ticks_msec()
+	var times: Dictionary = enemy.get_meta(HIT_TIMES_META) if enemy.has_meta(HIT_TIMES_META) else {}
+	var id := tower.get_instance_id()
+	if now - int(times.get(id, -HIT_GAP_MS)) < HIT_GAP_MS:
+		return
+	while not _hit_times.is_empty() and now - _hit_times[0] > 1000:
+		_hit_times.pop_front()
+	if _hit_times.size() >= (HIT_PER_SECOND_REDUCED if reduced() else HIT_PER_SECOND):
+		return  # Busy: the small puffs thin first
+	var at: Vector2 = Tower.aim_at(enemy)
+	if not on_screen(at):
+		return
+	var world := Reactions._world(enemy)
+	if world == null:
+		return
+	times[id] = now
+	enemy.set_meta(HIT_TIMES_META, times)
+	_hit_times.append(now)
+	var chosen := hit_effect(tower.tower_data.line, tag)
+	last_hit_effect = chosen[0]
+	play(chosen[0], at, world, chosen[1])
+
+# A Charged bolt: the strike from above, the biggest single reaction.
+static func _bolt_strike(enemy: Node2D) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _bolt_msec < BOLT_GAP_MS or not on_screen(enemy.global_position):
+		return
+	var world := Reactions._world(enemy)
+	if world == null:
+		return
+	_bolt_msec = now
+	last_hit_effect = &"bolt_strike" if has_effect(&"bolt_strike") else &"thunderhead_strike"  # Tower Assets f37e0b90: its anchor is the strike point
+	play(last_hit_effect, Tower.aim_at(enemy) if last_hit_effect == &"bolt_strike" else enemy.global_position, world, 1.0 if last_hit_effect == &"bolt_strike" else 0.7)
+
+# Continuous damage on `enemy`: attaches (or refreshes) the looping overlay of `kind` and sets its sustained state.
+# The overlay goes the frame its source stops: the link when the nightmare leaves the segment (`link` = the two
+# jars), the beam when it leaves the target, Poisoned when the stacks go, a zone when its ticks stop. `strength`:
+# the beam's ramp 0..1, Poisoned's stacks.
+static func sustain(enemy: Node2D, kind: StringName, source: Node = null, strength: float = 1.0, link: Array = []) -> Node2D:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.is_inside_tree():
+		return null
+	var held := sustain_of(enemy, kind)
+	if held != null:
+		held.refresh(source, strength, link)
+		return held
+	var world := Reactions._world(enemy)
+	if world == null:
+		return null
+	var node := FxSustain.new(enemy, kind, _sustains >= (SUSTAIN_MAX_REDUCED if reduced() else SUSTAIN_MAX))
+	node.refresh(source, strength, link)
+	var all: Dictionary = enemy.get_meta(SUSTAIN_META) if enemy.has_meta(SUSTAIN_META) else {}
+	all[kind] = node
+	enemy.set_meta(SUSTAIN_META, all)
+	world.add_child(node)  # Never under %EnemyContainer (its children are all nightmares)
+	return node
+
+# The nightmare's live overlay of `kind` (null when none).
+static func sustain_of(enemy: Node, kind: StringName) -> FxSustain:
+	if not is_instance_valid(enemy) or not enemy.has_meta(SUSTAIN_META):
+		return null
+	var held = (enemy.get_meta(SUSTAIN_META) as Dictionary).get(kind)
+	return held if held != null and is_instance_valid(held) and not held.is_queued_for_deletion() else null
+
+# The kinds of continuous damage on `enemy` right now (its sustained state; empty = none).
+static func sustained(enemy: Node) -> Array[StringName]:
+	var kinds: Array[StringName] = []
+	if is_instance_valid(enemy) and enemy.has_meta(SUSTAIN_META):
+		var all: Dictionary = enemy.get_meta(SUSTAIN_META)
+		for kind in all:
+			if sustain_of(enemy, kind) != null:
+				kinds.append(kind)
+	return kinds
+
+# Its source stopped: the overlay goes now.
+static func sustain_end(enemy: Node, kind: StringName) -> void:
+	var held := sustain_of(enemy, kind)
+	if held != null:
+		held.end()
+
+
 # --- Nodes --------------------------------------------------------------------------------------
+
+# A looping overlay on a nightmare taking continuous damage (see sustain). Follows it, checks its source every
+# frame and frees itself the frame the source stops. `quiet` = over the cap: it keeps the state, drawing nothing.
+class FxSustain extends Node2D:
+	const HOLD := {&"link": 0.4, &"beam": 0.3, &"poison": 0.8, &"zone": 0.6}  # Seconds without a tick before it goes anyway
+	const FRESH_MS := 60
+	const ROLL := 0.07  # The arcs re-roll this often
+	var enemy: Node2D
+	var kind: StringName
+	var source: Node
+	var strength := 1.0
+	var quiet := false
+	var _link: Array = []
+	var _left := 0.0
+	var _age := 0.0
+	var _roll := 0.0
+	var _seed := 0
+	var _stamp := 0
+	var _art: Node2D = null
+	var _art_shown := &"-"
+
+	func _init(target: Node2D, of_kind: StringName, is_quiet: bool = false) -> void:
+		enemy = target
+		kind = of_kind
+		quiet = is_quiet
+		name = "Fx_sustain_" + String(of_kind)
+		z_index = 2  # Over the nightmare, under the lighting pass
+
+	func _ready() -> void:
+		Fx._sustains += 1
+		_follow()
+		_fit_art()
+
+	# Tower Assets' looping sheet for this overlay now (f37e0b90), &"" = drawn: the link's arcs in the body's size,
+	# Poisoned's bubbles by stacks (each denser sheet keeps the sparser one's bubbles), the beam's spot by its ramp.
+	func _art_id() -> StringName:
+		var id := &""
+		if kind == Fx.SUSTAIN_LINK:
+			id = Fx.sized(&"link_arcs", enemy)
+		elif kind == Fx.SUSTAIN_POISON:
+			id = &"poison_bubbles_3" if strength >= 24.0 else (&"poison_bubbles_2" if strength >= 10.0 else &"poison_bubbles_1")
+		elif kind == Fx.SUSTAIN_BEAM:
+			id = &"beam_spot_big" if strength >= 0.5 else &"beam_spot"
+		return id if id != &"" and Fx.has_effect(id) else &""
+
+	func _fit_art() -> void:
+		if quiet:
+			return
+		var id := _art_id()
+		if id == _art_shown:
+			return
+		_art_shown = id
+		if _art != null and is_instance_valid(_art):
+			_art.queue_free()
+		_art = Fx.play(id, global_position, self, 1.0, true, 9999.0) if id != &"" else null  # Loops until this node goes
+
+	func _exit_tree() -> void:
+		Fx._sustains = maxi(Fx._sustains - 1, 0)
+		_forget()
+
+	func refresh(from: Node, power: float, link: Array) -> void:
+		source = from
+		strength = power
+		_link = link
+		_left = HOLD.get(kind, 0.5)
+		_stamp = Time.get_ticks_msec()
+
+	# Refreshed just now (this frame's tick came from its source).
+	func fresh() -> bool:
+		return Time.get_ticks_msec() - _stamp <= FRESH_MS
+
+	func end() -> void:
+		_forget()
+		queue_free()
+
+	func _forget() -> void:
+		if is_instance_valid(enemy) and enemy.has_meta(Fx.SUSTAIN_META):
+			var all: Dictionary = enemy.get_meta(Fx.SUSTAIN_META)
+			if all.get(kind) == self:
+				all.erase(kind)
+
+	func _follow() -> void:
+		if is_instance_valid(enemy):
+			global_position = Tower.aim_at(enemy)
+
+	# Whether its source still reaches the nightmare.
+	func _still() -> bool:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or _left <= 0.0:
+			return false
+		if kind == Fx.SUSTAIN_POISON:
+			return enemy.statuses.has(EnemyStatuses.SPORED)
+		if kind == Fx.SUSTAIN_LINK and _link.size() == 2:
+			var a = _link[0]
+			var b = _link[1]
+			return is_instance_valid(a) and is_instance_valid(b) and a.is_inside_tree() and b.is_inside_tree() \
+				and BranchKit.on_link(enemy.global_position, BranchKit.link_end(a), BranchKit.link_end(b))
+		if kind == Fx.SUSTAIN_BEAM:
+			return is_instance_valid(source) and source is Tower and source._beam_target == enemy
+		return true
+
+	func _process(delta: float) -> void:
+		_left -= delta
+		if not _still():
+			end()
+			return
+		_follow()
+		_age += delta
+		_roll -= delta
+		if _roll <= 0.0:
+			_roll = ROLL * (4.0 if Fx.reduce_flashes() else 1.0)  # Reduce flashes: the arcs barely jitter
+			_seed += 1
+			_fit_art()  # The stacks or the ramp may have moved to the next sheet
+		if not quiet and _art == null:
+			queue_redraw()
+
+	func _draw() -> void:
+		if quiet or _art != null:
+			return
+		if kind == Fx.SUSTAIN_LINK:
+			_draw_arcs()
+		elif kind == Fx.SUSTAIN_BEAM:
+			var r := 3.0 + 5.0 * strength
+			draw_circle(Vector2.ZERO, r + 2.0, Color(Palette.GOLD, 0.35))
+			draw_circle(Vector2.ZERO, r, Color(Palette.HEARTLIGHT, 0.85))
+		elif kind == Fx.SUSTAIN_POISON:
+			_draw_rising(clampi(int(strength / 8.0) + 1, 1, 6), EnemyStatuses.COLORS.get(EnemyStatuses.SPORED, Palette.MOSS), -1.0)
+		else:
+			var line: String = source.tower_data.line if is_instance_valid(source) and source is Tower else "water"
+			_draw_rising(3, EnemyStatuses.COLORS.get(EnemyStatuses.SPORED, Palette.MOSS) if line == "spore" else Palette.DEW, 1.0)
+
+	# Three short jittering arcs wrapping the body, in the link's colour.
+	func _draw_arcs() -> void:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = _seed * 7919 + get_instance_id() % 1000
+		for i in 3:
+			var turn := rng.randf() * TAU
+			var points := PackedVector2Array()
+			for step in 5:
+				var angle := turn + step * 0.45
+				points.append(Vector2.from_angle(angle) * Vector2(12.0, 15.0) + Vector2(rng.randf_range(-3, 3), rng.randf_range(-3, 3)))
+			draw_polyline(points, Color(BranchKit.LINK_COLOR, 0.9), 1.0)
+			draw_circle(points[points.size() - 1], 1.0, Color(Palette.HEARTLIGHT, 0.9))
+
+	# `count` small dots in `colour` around the body: rising (direction -1: bubbles) or falling (1: drips).
+	func _draw_rising(count: int, colour: Color, direction: float) -> void:
+		var still := bool(Fx.setting("reduced_motion", false))
+		for i in count:
+			var phase := fmod(_age * 0.9 + i * 0.37, 1.0) if not still else 0.4
+			var x := -10.0 + fmod(i * 7.3, 20.0)
+			var y := (6.0 - 22.0 * phase) if direction < 0.0 else (-12.0 + 20.0 * phase)
+			draw_circle(Vector2(x, y), 1.5 if direction < 0.0 else 1.0, Color(colour, 0.85 * (1.0 - phase)))
 
 # The quiet mark on a fully Exposed nightmare: Tower Assets' looping exposed_mark, or a thin warm ring with a glint
 # circling it. Follows the nightmare; fades out and frees itself once it isn't Exposed any more. `quiet` = over the
@@ -496,9 +819,9 @@ class FxExposedMark extends Node2D:
 	func _ready() -> void:
 		Fx._exposed_marks += 1
 		if is_instance_valid(enemy):
-			global_position = enemy.global_position
-		if not quiet and Fx.has_effect(Fx.EXPOSED_MARK):
-			_art = Fx.play(Fx.EXPOSED_MARK, global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
+			global_position = Tower.aim_at(enemy)  # The body centre (the sheets' anchor)
+		if not quiet and Fx.has_effect(Fx.sized(Fx.EXPOSED_MARK, enemy)):
+			_art = Fx.play(Fx.sized(Fx.EXPOSED_MARK, enemy), global_position, self, 1.0, true, 9999.0)  # Loops until this node goes
 
 	func _exit_tree() -> void:
 		Fx._exposed_marks = maxi(Fx._exposed_marks - 1, 0)
@@ -515,7 +838,7 @@ class FxExposedMark extends Node2D:
 				return
 			modulate.a = _fade  # multiplier (the fade)
 		if is_instance_valid(enemy):
-			global_position = enemy.global_position
+			global_position = Tower.aim_at(enemy)  # The body centre (the sheets' anchor)
 		_age += delta
 		if not quiet and _art == null:
 			queue_redraw()

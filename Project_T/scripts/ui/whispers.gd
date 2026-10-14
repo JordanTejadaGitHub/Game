@@ -44,6 +44,15 @@ var _refused_at := -REFUSAL_EVERY
 func set_enabled(_on: bool) -> void:
 	pass
 
+# Tests only (a run never sets it): no lines at all, the queue dropped and the line on screen ended. Tests that waited
+# out the onboarding lines used set_enabled(false), which no longer switches them (the Hints change, 2026-10-12).
+var muted := false
+
+func mute() -> void:
+	muted = true
+	_queue.clear()
+	_finish()
+
 var _queue: Array[StringName] = []
 var _tween: Tween
 
@@ -100,7 +109,7 @@ func _glide_along_path() -> void:
 # Queues `id` behind whatever is showing: once per profile, once per run (EACH_RUN) or every time (EVERY_TIME). An id
 # with no line (a removed teaching whisper: GrowHints and old callers may still ask) is ignored. `_args` is unused now.
 func whisper(id: StringName, _args: Array = []) -> void:
-	if not TEXT.has(id) or _queue.has(id):
+	if muted or not TEXT.has(id) or _queue.has(id):
 		return
 	if EACH_RUN.has(id):
 		if _run_seen.has(id):
@@ -197,6 +206,9 @@ var _hidden_for_choice := false
 func _choice_open() -> bool:
 	var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as Control  # A Lesson card is up (user 2026-10-13:
 	if lesson != null and lesson.visible:  # story lines and warnings never show over or behind a card or a choice)
+		return true
+	var discovery := get_tree().get_first_node_in_group(ComboFeedback.GROUP)  # A discovery card is a paused card too
+	if discovery != null and discovery.has_method("showing") and discovery.showing():
 		return true
 	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
 	if pause != null and pause.visible:

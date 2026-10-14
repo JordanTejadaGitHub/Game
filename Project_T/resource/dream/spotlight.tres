@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "spotlight"
 display_name = "Spotlight"
-description = "A heavy Warden's hit on the front Lit nightmare also forks to every other nightmare in that light, for a quarter. Up to 6."
+description = "A {heavy} Warden's hit on the front {lit} nightmare also {jumps} to every other nightmare in that light, at a quarter damage. Up to 6."
 rarity = 2
 kind = 3
-tags = Array[String](["storm"])
+tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"spotlight"
-calling = "firefly_jar"
+requires = Array[String](["firefly_jar"])
+tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells). A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines). The front nightmare is the one furthest along the path. The whole fan never deals more than the Firefly Warden's brightness."

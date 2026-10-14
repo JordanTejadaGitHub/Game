@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "levee"
+display_name = "Levee"
+description = "A row of up to 2 walls between two {warden:dewdrop}s carries their {water} along the path beside it. Sprouts are not walls."
+tip = "Works for: {warden:dewdrop}s. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 0
+kind = 3
+tags = Array[String](["water"])
+max_stacks = 1
+rule_id = &"levee"
+calling = "dewdrop"

@@ -114,6 +114,38 @@ static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, tex
 	draw_outlined(canvas, font, origin, text, size, color)
 	end_screen_size(canvas)
 
+# One placement for every word that pops over a spot in the world (user's screenshot 2026-10-13: "Chain ×3",
+# "Starfall ×3" and "Pinned" drawn on top of each other): Reaction callouts and the chain badge (Fx) and the combat
+# words (CombatCallouts) all ask here. A word that would land on a live one moves up a line, in a column; the same
+# word again at the same spot takes the slot it already has (one label, not three). `at` is where the word's
+# middle will be, in world px. Plain data, so a static is safe.
+const CALLOUT_CLEAR := Vector2(130.0, 40.0)  # Two words closer than this stack: a line is one Reaction callout tall
+const CALLOUT_LINES := 6
+static var _callout_slots: Array = []  # [Vector2 at, int expires (msec), StringName key]
+
+static func callout_slot(at: Vector2, key: StringName = &"", seconds: float = 1.0) -> Vector2:
+	var now := Time.get_ticks_msec()
+	_callout_slots = _callout_slots.filter(func(s: Array) -> bool: return int(s[1]) > now)
+	var until := now + int(seconds * 1000.0)
+	if key != &"":
+		for slot in _callout_slots:
+			var held: Vector2 = slot[0]
+			if slot[2] == key and absf(held.x - at.x) < CALLOUT_CLEAR.x and absf(held.y - at.y) < CALLOUT_CLEAR.y * CALLOUT_LINES:
+				slot[1] = until
+				return held  # The same word, here already: its own slot again
+	for line in CALLOUT_LINES:
+		var taken := false
+		for slot in _callout_slots:
+			var held: Vector2 = slot[0]
+			if absf(held.x - at.x) < CALLOUT_CLEAR.x and absf(held.y - at.y) < CALLOUT_CLEAR.y:
+				taken = true
+				break
+		if not taken:
+			break
+		at.y -= CALLOUT_CLEAR.y  # Up a line
+	_callout_slots.append([at, until, key])
+	return at
+
 # Text colour for a price the player can / can't currently pay.
 static func cost_color(affordable: bool) -> Color:
 	return AFFORDABLE_COLOR if affordable else UNAFFORDABLE_COLOR

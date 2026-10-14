@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "pass_it_round"
+display_name = "Pass It Round"
+description = "Each different kind of attacking Warden {touching} a spore Warden adds 3 {spored} at once with its first hit on each nightmare. Sprouts count."
+tip = "A {dose}: 3 {spored} at once (what a {mushroom} gives when stepped on). No {mushrooms} needed: the {dose} rides the other Warden's first hit. Works for: any Warden; more for each other {family}. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"pass_it_round"
+requires = Array[String](["sporeling"])

@@ -911,6 +911,9 @@ func _has_work() -> bool:
 				return false
 	if _dream_state != null and _dream_state.calling == "nestling" and CALLINGS.uses_perches(self):
 		return has_enemy_in_range() or not CALLINGS.perch_targets(self).is_empty()  # Perches: from another Warden too
+	if _dream_state != null and _dream_state.has_rule(&"across_the_water") and not has_enemy_in_range():
+		var none: Array[Node2D] = []
+		return not _dream_state.class_targets(self, none).is_empty()  # Across the Water
 	return has_enemy_in_range()  # Performance: whether one is in range, not which (find_target scores them)
 
 
@@ -1016,7 +1019,7 @@ func _compute_attacks_per_second() -> float:
 	var plain := speed * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
-	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
+	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Spring
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
 	# Dream cards together add at most +150% attack speed to one Warden (card_review_2026-10-12.md 1: The Last Light,
@@ -1103,7 +1106,7 @@ func _stats_fresh() -> bool:
 	_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
 	return false
 
-# Heartwood's Gifts (GiftGround): Spring (&"damage"), Bell Stone (&"speed"), Moonwell (&"range") for this Warden.
+# Heartwood's Gifts (GiftGround): Sow a Ridge (&"damage"), Spring (&"speed"), Moonwell (&"range"), Fallen Giant (&"crit") for this Warden.
 func _gift_bonus(stat: StringName) -> float:
 	var gifts := GiftGround.active_for(self)
 	if gifts == null:
@@ -1126,10 +1129,7 @@ func _gift_version() -> int:
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
-	if rank > 0 and _has_rule(&"growth_rings"):
-		# Growth Rings: +0.25 range a rank in all, and like every rank's range it stops at VII. Its own Nurture ranks
-		# carry no flat range (each is a Focus choice), so they get the whole 0.25; borrowed ranks top up their 0.1.
-		reach += HelperCommons.GROWTH_RINGS_OWN * mini(rank, STAT_TOP_RANK) + HelperCommons.GROWTH_RINGS * _plain_ranks()
+	# (Growth Rings no longer adds range: it is the "plant nothing this block" free rank now, dream_batch_rules.gd.)
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state:
@@ -2646,10 +2646,10 @@ class LitPaths extends Node2D:
 
 	# The wash over `lit` ({half: its centre px, world}) on `canvas`: each half a block of the path's width, flush
 	# where the path goes on, held INSET off the grass elsewhere, with a rim where the path leaves the light.
-	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float) -> void:
-		var wash := Color(WASH, strength)
-		var rim := Color(RIM, minf(strength + 0.4, 0.95))
-		var edge := Color(RIM, strength * 0.7)
+	static func draw_halves(canvas: Node2D, lit: Dictionary, route: Dictionary, strength: float, wash_colour: Color = WASH, rim_colour: Color = RIM) -> void:
+		var wash := Color(wash_colour, strength)
+		var rim := Color(rim_colour, minf(strength + 0.4, 0.95))
+		var edge := Color(rim_colour, strength * 0.7)
 		var sides: Array[Vector2i] = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
 		for h: Vector2i in lit:
 			var centre: Vector2 = canvas.to_local(lit[h])
@@ -2910,6 +2910,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
 		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
+		if crit_multiplier <= 1.0:
+			crit_multiplier = 2.0  # A Warden that never crits but did (Gift Fallen Giant's Lookout): the usual multiplier (TowerData's default)
 		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
@@ -3273,16 +3275,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep  # Its strength side is Potency (get_potency)
-	var gifts := GiftGround.active_for(self)  # Heartwood's Gifts: Spring (Soaked lasts longer near it), Mushroom Ring (Poisoned cap)
+	var gifts := GiftGround.active_for(self)
 	if gifts:
-		if status == EnemyStatuses.DAMP:
-			var extra := gifts.soak_extra(enemy.global_position)
-			if extra > 0.0:
-				duration = (duration if duration > 0.0 else EnemyStatuses.DEFAULT_DURATION[status]) + extra
-		elif status == EnemyStatuses.SPORED:
-			var more := gifts.spored_cap_bonus(self)
-			if more > 0:
-				max_stacks = (max_stacks if max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[status]) + more  # From the base: the stored cap would compound
+		stacks = gifts.ring_stacks(status, stacks, enemy.global_position)  # Gift Mushroom Ring: any Warden's status on a nightmare inside it lands with half again as many stacks
 	var at: Vector2 = enemy.global_position
 	if status == EnemyStatuses.DROWSY and tower_data.line == "wall":
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone
@@ -3290,9 +3285,12 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	var unique_was_present: bool = enemy.statuses.has(status)
 	if _dream_state != null and _dream_state.calling == "rootling":
 		stacks = CALLINGS.anvil_stacks(self, enemy, status, stacks)  # Anvil: double stacks on a Rooted nightmare
+	if _dream_state != null and native:
+		stacks = _dream_state.class_stacks(self, enemy, status, stacks)  # The starter classes: a Warden's own next application (Open Season, Second Helping, Overnight)
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
-	if status == EnemyStatuses.SPORED and _dream_state != null and _dream_state.calling == "sporeling":
-		CALLINGS.take_root(self, enemy)  # Take Root: half the Poisoned cap Roots it, once
+	if _dream_state != null and native and stacks > 0:
+		_dream_state.class_status(self, enemy, status)  # …and who hears of it (Wake Ripple)
+	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
 	if _dream_state != null and stacks > 0 and native:
 		var accepted: bool = enemy.statuses.applications > unique_before
 		var previous_native_context = get_meta(&"unique_native_status_context") if has_meta(&"unique_native_status_context") else null
@@ -4170,8 +4168,11 @@ func _update_wall(delta: float) -> void:
 	var thorny := _rule_stacks(&"thorny_walls") > 0
 	var scent := _scented_by() if _rule_stacks(&"scented_hedge") > 0 else null
 	var hush := _has_rule(&"hushed_hedge")
-	if not snare and scent == null and not thorny and not hush:
+	var snag := _has_rule(&"snag")  # Snag: a flyer crossing this wall lands and walks (Roguelite Code's batch rules)
+	if not snare and scent == null and not thorny and not hush and not snag:
 		return
+	if snag:
+		_dream_state.snag(self, _dream_state.drift_director.drifts_started if _dream_state.drift_director else 0)
 	var level: int = mini(_rule_level(snare_id), THORN_SNARE_TIME.size() - 1) if snare else 0
 	var drift: int = _dream_state.drift_director.drifts_started if _dream_state.drift_director else 0
 	if thorny:
@@ -4197,9 +4198,12 @@ func _update_wall(delta: float) -> void:
 				_briar_drift = drift
 				hold(nearest, THORN_SNARE_TIME[level])
 			if lash:
-				# Thorny Walls: the wall's own hit (Dream damage cards apply), credited to it.
-				_dream_state.wall_struck.emit(self, self, nearest.global_position)
-				nearest.take_damage(THORNY_DAMAGE * _dream_bonus(&"soothe"), tower_data.line, false, false, self, &"hit")
+				# Thorny Walls: the wall's own hit, credited to it. 3 x the drift's health growth, with a ceiling per
+				# nightmare (DreamState.thorny_lash: 0 once this one has taken its share from thorns).
+				var lash_damage: float = _dream_state.thorny_lash(self, nearest)
+				if lash_damage > 0.0:
+					_dream_state.wall_struck.emit(self, self, nearest.global_position)
+					nearest.take_damage(lash_damage, tower_data.line, false, false, self, &"hit")
 	var cell_px := MAP_GRID.cell_size.x
 	if scent != null:
 		_scent_time -= WALL_TICK
@@ -4389,6 +4393,8 @@ func find_targets(count: int) -> Array:
 	var scored: Array = []
 	var calling: String = _dream_state.calling if _dream_state != null else ""
 	var candidates: Array[Node2D] = CALLINGS.perch_targets(self) if calling == "nestling" and CALLINGS.uses_perches(self) else get_enemies_in_range()
+	if _dream_state != null and _dream_state.has_rule(&"across_the_water"):
+		candidates = _dream_state.class_targets(self, candidates.duplicate())  # Across the Water: further along its water (a copy: the range list is cached)
 	for enemy in candidates:
 		scored.append([_target_score(enemy, mode) + (1e9 if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy) else 0.0), enemy])
 	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
@@ -5240,6 +5246,8 @@ func find_target() -> Node2D:
 		if is_instance_valid(forced) and not forced.is_cleansed and get_enemies_in_range().has(forced):
 			return forced
 	var candidates: Array[Node2D] = CALLINGS.perch_targets(self) if calling == "nestling" and CALLINGS.uses_perches(self) else get_enemies_in_range()
+	if _dream_state != null and _dream_state.has_rule(&"across_the_water"):
+		candidates = _dream_state.class_targets(self, candidates.duplicate())  # Across the Water: further along its water (a copy: the range list is cached)
 	for enemy in candidates:
 		var score := _target_score(enemy, mode)
 		if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy):

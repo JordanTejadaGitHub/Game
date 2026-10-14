@@ -437,7 +437,7 @@ func _run() -> void:
 	jar_probe._dream_state = dreams
 	calling_header._tower = jar_probe
 	calling_header._show_calling(jar_probe.tower_data)
-	_check(calling_header._calling_line != null and calling_header._calling_line.text == "Calling · " + calling_title
+	_check(calling_header._calling_line != null and calling_header._calling_line.text == ("Calling · " + calling_title).to_lower()  # (A caps label: UiStyle.caps lowers its text)
 		and calling_header._calling_line.tooltip_text != "", "a Warden of the Calling's family names it under its description")
 	calling_header._show_calling(load("res://resource/tower/sporeling.tres"))
 	_check(calling_header._calling_line == null, "…and a Warden of another family doesn't")
@@ -513,10 +513,10 @@ func _run() -> void:
 	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
 	# Reactions are a glossary term (user 2026-10-12: "the wet tutorial card should have the underline explaining
 	# reactions"): a capital and a link wherever the status texts show, with their stack numbers read live.
-	var soaked_tip := IconInfo.status_tooltip(&"damp")
+	var soaked_tip := IconInfo.status_tooltip(&"damp").replace("\u00a0", " ")  # (Numbers keep their unit on a non-breaking space)
 	var soaked_need := Reactions.buildup_threshold(Reactions.SOAKED_NEEDED)
 	_check(soaked_tip.contains("At %d stacks it can set off Reactions." % soaked_need) and not soaked_tip.contains("{")
-		and IconInfo.status_tooltip(&"held").contains("At %d stacks it can set off Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
+		and IconInfo.status_tooltip(&"held").replace("\u00a0", " ").contains("At %d stacks it can set off Reactions." % Reactions.buildup_threshold(Reactions.ROOTED_NEEDED))
 		and IconInfo.stack_number("cap_drowsy") == EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.DROWSY] * EnemyStatuses.cap_multiplier()
 		and IconInfo.stack_number("bosscap_static") == EnemyStatuses.BOSS_MAX_STACKS[EnemyStatuses.STATIC] * EnemyStatuses.cap_multiplier(),
 		"status texts name Reactions and read their stack numbers live (%s)" % soaked_tip)

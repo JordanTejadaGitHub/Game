@@ -201,7 +201,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	if lost >= 0 and not is_dew_prize(omen):
 		share = share_for(lost)
 		dreams = dreams_kept_for(lost)
-	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
+	var dew := floori((_reward_dew(omen, scale) + get_pot_reward(omen, block)) * share)
 	if dew > 0:
 		parts.append(UiStyle.dew_amount(dew, true))
 	elif omen.reward_pot_multiplier > 0.0 and block <= 0:  # Dry Spell before its block is known
@@ -284,7 +284,7 @@ func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
 # there's no number to cut (Dry Spell before its block is known, tree Seeds only).
 func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 	var scale := _act_scale(act)
-	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * REWARD_CUT_PER_LEAF)
+	var dew := floori((_reward_dew(omen, scale) + get_pot_reward(omen, block)) * REWARD_CUT_PER_LEAF)
 	var seeds := floori(roundi(omen.reward_seeds * scale) * REWARD_CUT_PER_LEAF)
 	if dew > 0 and seeds > 0:
 		return "%s and %s less" % [UiStyle.dew_amount(dew), UiStyle.seeds_amount(seeds)]
@@ -311,7 +311,7 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 		return bullets
 	var scale := _act_scale(act)
 	var keep := ", if you lose at most 1 leaf"
-	var dew := roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
+	var dew := _reward_dew(omen, scale) + get_pot_reward(omen, block)
 	if dew > 0:
 		var cut := floori(dew * REWARD_CUT_PER_LEAF)
 		bullets.append("%s%s, %s for each leaf lost" % [UiStyle.dew_amount(dew, true), " at the rest" if omen.reward_pot_multiplier > 0.0 else "",
@@ -380,7 +380,7 @@ func _reward_parts(omen: OmenData, act: int, block: int, share: float, dreams: b
 	var scale := _act_scale(act)
 	var scaled: Array = []
 	var dream_all: Array = []
-	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
+	var dew := floori((_reward_dew(omen, scale) + get_pot_reward(omen, block)
 		+ (_extra_rest_bonus(omen, rest_bonus) if rest_bonus >= 0 and omen.reward_rest_bonus_multiplier > 1.0 else 0)) * share)
 	if dew > 0:
 		scaled.append(UiStyle.dew_amount(dew, true))
@@ -728,7 +728,7 @@ func _try_show() -> void:
 			gifts.offer_closed.connect(_try_show_later, CONNECT_ONE_SHOT)
 		return
 	_offer_waiting = false
-	if force_omen:  # A Blight Level: the cards at once, and one must be taken
+	if force_omen or dark_skies():  # A Blight Level, or the Dark Skies card: the cards at once, and one must be taken
 		forced = true
 		_show_cards()
 	elif get_mode() == "never":
@@ -841,7 +841,7 @@ func _pay_reward(rest_bonus: int) -> void:
 	stats.share += share
 	var act := drift_director.get_act(drift_director.drifts_started)
 	var scale := _act_scale(act)
-	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus) + get_pot_reward(omen, block)) * share)
+	var dew := floori((_reward_dew(omen, scale) + dark_skies_dew(scale) + _extra_rest_bonus(omen, rest_bonus) + get_pot_reward(omen, block)) * share)
 	run_state.add_dew(dew)
 	stats.dew += dew
 	if omen.rest_bonus_multiplier < 1.0:  # Lean Season: this rest's bonus shrinks (the twist, never scaled)
@@ -865,6 +865,17 @@ func _pay_reward(rest_bonus: int) -> void:
 		dream_state.add_extra_cards(omen.reward_extra_dream_cards * dream_times(share))
 	omen_rewarded.emit(omen, paid_sentence(omen, act, rest_bonus, lost, block))
 
+# Dark Skies (Dream card, act 2+; dream_council_review.md 24): Clear Skies can no longer be chosen (its Price), and
+# every Omen seen through pays DARK_SKIES_DEW more, scaled like any Omen Dew reward (the act, the trial, its share).
+func dark_skies() -> bool:
+	return dream_state != null and dream_state.has_rule(&"dark_skies")
+
+func dark_skies_dew(scale: float) -> int:
+	if not dark_skies():
+		return 0
+	var trial: float = drift_director.trial_dew_multiplier if drift_director != null and "trial_dew_multiplier" in drift_director else 1.0
+	return roundi(DreamState.BATCH.DARK_SKIES_DEW * scale * trial)
+
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).
 func _on_run_ended(won: bool) -> void:
 	showing = false
@@ -873,6 +884,13 @@ func _on_run_ended(won: bool) -> void:
 	_offer_waiting = false
 	if won and active != null:
 		_pay_reward(0)
+
+# An Omen's Dew reward at act scale `scale`, times the trial's Dew multiplier (Balancing, "Trial run 1": a flat reward
+# is worth half when every pot is doubled; DriftDirector.trial_dew_multiplier 1.0 = the numbers as they were). Seeds
+# are not scaled. Every sentence, bullet, tag and payout reads this, so the screen shows what is paid.
+func _reward_dew(omen: OmenData, scale: float) -> int:
+	var trial: float = drift_director.trial_dew_multiplier if drift_director != null and "trial_dew_multiplier" in drift_director else 1.0
+	return roundi(omen.reward_dew * scale * trial)
 
 func _act_scale(act: int) -> float:
 	return ACT_REWARD_SCALE[clampi(act, 1, ACT_REWARD_SCALE.size()) - 1]

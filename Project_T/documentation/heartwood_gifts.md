@@ -98,3 +98,136 @@ Each gift now owns one kind of payoff:
 | Dreamlight / growth | Waking Root, Bramble Verge (free Bramble) |
 | Kinships | Old Kin (jumps a stage), Memory Seed (keeps age when moved) |
 Cards vs gifts: no gift repeats a Dream card's effect (Weathered Walls owns cheap Thornwalls).
+
+## Gifts as landmarks (approved by the user 2026-10-13; replaces the pool table above where they differ)
+User: *"gifts feel whatever right now."* Why: a gift comes after a boss, three times a run, yet most give a small
+bonus to the two or three Wardens touching one cell (+10% damage, +15% crit, +1 range on four sides), and several
+were left behind by the status rework (+2 Poisoned when the cap is 32, +1 Drowsy when it is 20, Soaked +1 s). A
+Dream card taken at any rest does more.
+
+**Idea: a gift is a landmark.** It is big, it does something on its own, it defines a part of the map to build
+around, and it grows.
+1. **Each landmark acts by itself**, not only as a bonus to neighbours: the Spring Soaks what walks past, the Bell
+   Stone rings, the Lightning Tree strikes.
+2. **A zone, not a cell:** effects reach 2–3 cells, shown as a standing glow on the ground, so a whole corner of the
+   maze is built around it.
+3. **Landmarks grow:** at every later act break each landmark you own grows one step (II, III): about +50% of its
+   numbers and a bigger look. The act 1 gift matters most by act 4.
+4. **The offer is three kinds:** one that reshapes the land, one landmark that fits a family you own (never one for a
+   family you lack), one boon for the run.
+5. **It is an event:** the Heartwood's roots run across the map to the spot, the landmark rises, the camera follows,
+   it has its own sound; at each rest the report says what it did ("Spring: Soaked 212 nightmares").
+
+| Gift | Now | Proposed (step I; numbers for Balancing) |
+|---|---|---|
+| **Spring** | Water Wardens touching +20%; Soaked +1 s nearby | A pond that **Soaks every nightmare passing within 2 cells** (2 stacks a second). Water Wardens touching it deal 40% more. |
+| **Lightning Tree** | Bolts within 2 cells +25% | **Every Charged bolt within 3 cells strikes twice** (the second at half), and the tree throws a bolt of its own every 6 s. |
+| **Bell Stone** | Song Wardens touching pulse 15% faster | **Rings every 5 s: nightmares within 3 cells gain 4 Drowsy.** Song Wardens touching it pulse 30% faster. |
+| **Mushroom Ring** | Spore Wardens touching: +2 Poisoned cap | **Nightmares crossing the ring are Poisoned** (6 stacks). Spore Wardens touching it can stack half again as much. |
+| **Moonwell** | Wardens on its 4 sides +1 range | **Wardens within 2 cells get +1.5 range and see Hidden nightmares.** |
+| **Heartwood Roots** | Last 4 path cells: +15% damage taken | Last 6 cells: **nightmares are Rooted for 1 s on entering and take 30% more damage** there. |
+| **Sow a Ridge** | 3–5 trees; touching Wardens +10% | 4–7 trees; **touching Wardens deal 30% more**; its trees pay 2 Seeds when cleared. |
+| **Fallen Giant** | Log 2–4; touching Wardens +15% crit | Log 3–5 that nothing can trample or burrow under; **touching Wardens +30% crit chance and crits hit harder**. |
+| **Mire** | 3 path cells, 20% slower | **5 path cells, 35% slower**, and Rooted lasts twice as long in it. |
+| **Reshape** (Glade + Shift the Stones, merged) | 5 free clears / move 3 for Dew | **Move or clear up to 6 obstacles; each pays 30 Dew × the act.** |
+| **Elder Stumps** (Ancient Stump) | 3 stumps: 1 free rank each | 3 stumps: a Warden planted on one gets **2 free ranks**. |
+| **Shifting Mist** | New start; +10% Dew this act | New start; **+25% Dew this act**. |
+| **Bramble Verge** | Free Bramble growth; +1 Drowsy cap | Free Bramble growth; **Brambles make nightmares Drowsy twice as fast**. |
+| **Old Kin** | One bond +1 stage | Keep. |
+| **Memory Seed** | One Warden keeps ranks when moved, this act | **Any Warden** keeps its ranks and bond when moved, this act. |
+| **Waking Root** | Next unlock costs 1 less Dreamlight | **The next form you unlock is free**, and +1 Dreamlight. |
+| **Thick Mist** | Nightmares arrive 25% further apart for an act | **Retire** (nothing to see or build around). |
+Control stays bounded: the Bell Stone and Roots don't stack with themselves, bosses take half.
+
+**Build order and owners (approved 2026-10-13).** Roguelite Code first (the pool, kinds, growth steps, ids and a
+short API note at the end of this file); then in parallel: Tower Code (the effects in `gift_ground.gd`),
+Environment Code (placing, zones, drawing, the arrival), Environment Assets (art in three growth steps), Main Merger
+(the gift screen, card scenes, rest report lines). Sound Code adds the arrival and the landmark sounds after.
+Balancing sets the final numbers when sims are back; until then the table's numbers stand.
+
+## API for the gift code (Roguelite Code, 2026-10-13; `scripts/run/heartwood_gifts.gd` is the one source)
+Read the numbers from `HeartwoodGifts`; never copy them. `HeartwoodGifts.find(node)` gives the run's gifts node.
+
+**Ids, kinds, families, placing**
+| Id | Name | Kind | Family | `place` / `size` |
+|---|---|---|---|---|
+| `sow_ridge` | Sow a Ridge | land | any | chain, 4–7 |
+| `fallen_giant` | Fallen Giant | land | any | line, 3–5 |
+| `mire` | Mire | land | any | path, 5 |
+| `reshape` | Reshape | land | any | **reshape**, 6 (new mode: move or clear; placement `from` / `to` for the moved, `cells` for the cleared) |
+| `ancient_stump` | Elder Stumps | land | any | cells, 3 |
+| `shifting_mist` | Shifting Mist | land | any | rim, 3 |
+| `spring` | Spring | landmark | any | area 2×2 |
+| `lightning_tree` | Lightning Tree | landmark | any | cell |
+| `bell_stone` | Bell Stone | landmark | any | cell |
+| `mushroom_ring` | Mushroom Ring | landmark | any | area 3×3 |
+| `moonwell` | Moonwell | landmark | any | cell |
+| `heartwood_roots` | Heartwood Roots | landmark | any | none (the path's last cells) |
+| `bramble_verge` | Bramble Verge | boon | any | none |
+| `old_kin` | Old Kin | boon | any | kinship |
+| `memory_seed` | Memory Seed | boon | any | none (was a Warden pick: now every Warden) |
+| `waking_root` | Waking Root | boon | any | none |
+Retired, still in `POOL` with `retired = true` so saved runs load and their effects keep working: `glade`,
+`shift_stones`, `thick_mist`. Keep their registered effects.
+Every gift is generic (the amendment below): `family` is "any" on all of them and `family_of(id)` always returns
+"any"; it is kept only so callers still parse. Drop the "fits a family" line from the cards.
+
+**The offer:** `draw(act)` gives one gift of each kind, in the order land, landmark, boon. `can_offer(id)` is the rule:
+it has a registered effect, isn't retired and wasn't taken this run. No gift needs a family. `old_kin` is only
+offered when the map has a Kinship (`DreamState.count_kinships() > 0`).
+A kind with nothing to offer hands its slot to another kind. A gift only enters the offer once its effect is
+registered (`HeartwoodGifts.register(id, callable)`), so **`reshape` is not offered until its effect and placer exist**.
+
+**Numbers by step** (`HeartwoodGifts.stat(id, key, step)`; for the player's gift at the step it has reached:
+`gifts.value(id, key)`; `gifts.step_of(id)` is 1–3, 0 = not taken). Landmarks grow; the rest have one value.
+| Id | Key | I | II | III |
+|---|---|---|---|---|
+| `spring` | `attack_speed` (attacking Wardens in the zone) | 0.25 | 0.375 | 0.50 |
+| `lightning_tree` | `strike_damage` (× the drift's health growth × the health trial) | 150 | 225 | 300 |
+| `lightning_tree` | `strike_every` (s) | 4 | same | same |
+| `bell_stone` | `slow` (a plain slow, no status) | 0.30 | 0.45 | 0.60 |
+| `bell_stone` | `ring_every` (s), `slow_seconds`, `boss_share` | 6, 2, 0.5 | same | same |
+| `mushroom_ring` | `status_stacks_share` (extra stacks, rounded up, inside the caps, never Rooted) | 0.50 | 0.75 | 1.00 |
+| `moonwell` | `range` | 1.5 | 2.25 | 3.0 |
+| `moonwell` | `reveals_hidden` | 1 | 1 | 1 |
+| `heartwood_roots` | `path_cells` | 6 | 8 | 10 |
+| `heartwood_roots` | `damage_taken` | 0.30 | 0.45 | 0.60 |
+| `heartwood_roots` | `root_time` (s), `boss_share` | 1.0, 0.5 | same | same |
+One value: `sow_ridge` `damage` 0.30, `tree_seeds` 2 · `fallen_giant` `crit_chance` 0.20 (Wardens with no crit too) ·
+`mire` `slow` 0.35, `rooted_multiplier` 2 · `reshape` `dew_per_obstacle` 60 (× the act; paid here, in `_payoff`) ·
+`ancient_stump` `free_ranks` 2 · `shifting_mist` `dew` 0.25 (applied here, `get_dew_pot_multiplier`) ·
+`bramble_verge` `slow` 0.20 (nightmares beside a Bramble) · `waking_root` `free_unlocks` 1, `dreamlight` 1 (applied in `DreamState`).
+Removed keys (the amendment): `soak_stacks_per_second`, `water_damage`, `second_strike_share`, `bolt_every`,
+`drowsy_stacks`, `song_pulse_speed`, `spored_stacks`, `spore_cap_share`, `crit_damage`, `drowsy_rate`. `stat()` gives 0
+for a key that is gone. `strike_damage` is Tower Code's starting number.
+
+**Zone radius** (`HeartwoodGifts.zone_cells(id)`, cells from the gift's edge; the standing glow is this big):
+`spring` 2 · `lightning_tree` 3 · `bell_stone` 3 · `moonwell` 2 · `mushroom_ring` 0 (its own 3×3 patch) ·
+`heartwood_roots` 0 (its path cells). The radius does not grow with the step.
+
+**Signals** (on the gifts node)
+- `gift_placed(id, placement, step)`: a gift was taken and applied; `step` is 1. (`gift_taken(id, placement)` still fires.)
+- `gift_grew(id, step, placement)`: a landmark gained a step. It fires at each act break after the one the gift was
+  taken at, before that break's offer, up to step III. Rebuild your numbers and the look from `step`.
+- The registered effect callable also gets `placement["step"]` (and `placement["restoring"]` on a resumed run), so a
+  resumed run rebuilds a landmark at the step it had. The step is saved with the gift's record.
+
+**Who does what next:** Tower Code: the effects in `gift_ground.gd` from the numbers above (Memory Seed now covers every
+Warden; Elder Stumps bank 2 ranks). Environment Code: the `reshape` placer mode and effect, zones, drawing, growth
+looks. Main Merger: the gift screen (kinds, the `GROWS_LINE` under landmarks, step names `STEP_NAMES`), a scene for
+`reshape`, rest report lines. Card texts in `POOL` are the step I texts.
+
+### Amendment: every gift is generic (user, 2026-10-13: "make sure the new gifts are generic so they help all families")
+No gift names a family or needs one. This replaces the four family landmarks in the table above and the offer rule
+"a landmark that fits a family you own": the offer is simply one land gift, one landmark, one boon.
+| Gift | Proposed above | Now (helps every build) |
+|---|---|---|
+| **Spring** | Soaks passers-by; water Wardens +40% | **Wardens within 2 cells attack 25% faster.** |
+| **Lightning Tree** | Charged bolts strike twice; its own bolt | **Strikes the strongest nightmare within 3 cells every 4 s** for heavy damage that grows with the act. No status needed. |
+| **Bell Stone** | Rings Drowsy; song Wardens faster | **Rings every 6 s: nightmares within 3 cells are slowed by 30% for 2 s** (bosses 15%). A plain slow, not a status. |
+| **Mushroom Ring** | Poisons crossers; spore Wardens' cap | **Any status a Warden puts on a nightmare inside the ring lands with half again as many stacks.** Whatever your families apply. |
+| **Fallen Giant** | Touching Wardens +30% crit chance | **Touching Wardens have a 20% chance to crit** (or +20% if they already can), so it works for families with no crit. |
+| **Bramble Verge** | Brambles make nightmares Drowsy faster | Free Bramble growth, and **Brambles slow nightmares beside them by 20%** (a plain slow). |
+| **Old Kin** | One bond grows a step | Only offered when the map has a Kinship; otherwise it is not in the offer. |
+Unchanged and already generic: Moonwell, Heartwood Roots, Sow a Ridge, Mire, Reshape, Elder Stumps, Shifting Mist,
+Memory Seed, Waking Root. Check on every gift: its text names no family, no family status, and no Warden.

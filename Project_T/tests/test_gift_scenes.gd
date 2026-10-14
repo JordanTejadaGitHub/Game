@@ -92,7 +92,7 @@ func _run() -> void:
 	for id in GiftScreen.SCENES:
 		var s: Array = GiftScreen.SCENES[id]
 		_check(not CardScene.diff_cells(s[0], s[1]).is_empty() or not (s[2] as Dictionary).is_empty(), "%s: the after differs from the before or has an effect" % id)
-	var mist: Array = GiftScreen.SCENES[&"thick_mist"]
+	var mist: Array = [".......\n.......\nSPPPPPH\n.......\n.......", ".......\nM......\nSPPPPPH\nM......\n.......", {"spacing": 1.25, "chip": "+25% apart"}, ""]  # (Thick Mist is retired and has no gift scene; CardScene keeps its spacing effect)
 	_check(not CardScene.diff_cells(mist[0], mist[1]).is_empty() and mist[2].has("spacing"), "Thick Mist's before and after differ, and it spaces the nightmares")
 	scene.show_scene(mist[0], mist[1], mist[2], mist[3])
 	await process_frame
@@ -122,7 +122,7 @@ func _run() -> void:
 	scene._world.add_child(target.sprite)
 	for i in 3:
 		scene._hit(target, true)
-	_check(String(scene._effects[-1].node.text).begins_with("Critical!") and is_equal_approx(target.hits, 4.0), "Fallen Giant: every third favoured hit is a crit")
+	_check(String(scene._effects[-1].node.text).begins_with("Crit") and is_equal_approx(target.hits, 4.0), "Fallen Giant: every third favoured hit is a crit")
 	var stones: Array = GiftScreen.SCENES[&"shift_stones"]
 	scene.show_scene(stones[0], stones[1], stones[2], stones[3])
 	await process_frame

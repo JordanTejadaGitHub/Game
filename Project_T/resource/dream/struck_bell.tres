@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "struck_bell"
+display_name = "Struck Bell"
+description = "Every 4th ring on a nightmare lands again at half damage. Hits from another {family}'s Wardens near a bell count as rings."
+tip = "Works for: another {family}'s Wardens near a bell. A bet: it does little until you own another {family}."
+rarity = 0
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"struck_bell"
+requires = Array[String](["bellflower"])
+retired = true

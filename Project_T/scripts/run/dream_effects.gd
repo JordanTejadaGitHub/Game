@@ -23,7 +23,7 @@ const REPORTERS := {
 	&"cozy_corners": "_cozy_corners", &"hedge_maze": "_hedge_maze", &"tended_forest": "_tended_forest",
 	&"kindred_roots": "_kindred_roots", &"chosen_few": "_chosen_few", &"many_hands": "_many_hands",
 	&"few_and_mighty": "_few_and_mighty", &"canopy": "_canopy", &"solitude": "_solitude",
-	&"the_long_walk": "_long_walk", &"monoculture": "_monoculture", &"crossroads": "_crossroads",
+	&"the_long_walk": "_long_walk", &"full_voice": "_full_voice", &"monoculture": "_monoculture", &"crossroads": "_crossroads",
 	&"menagerie": "_menagerie", &"restless_night": "_restless_night", &"last_leaf": "_last_leaf",
 	&"wildwood_reclaimed": "_wildwood", &"sprout_chorus": "_sprout_chorus", &"last_light": "_last_light",
 	&"rootbound": "_rootbound", &"court_of_the_eldest": "_court", &"old_ones": "_old_ones",
@@ -314,11 +314,14 @@ func _plain(spot: Dictionary, card: UpgradeData) -> Dictionary:
 	return row
 
 func _cozy_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var level := ds.rule_level(&"cozy_corners")
-	var reach: int = DreamState.COZY_CORNERS_REACH[level]
-	var on := ds.is_beside_bend(spot.cell, reach)
-	return {"positional": true, "radius": float(reach), "active": on, "damage": DreamState.COZY_CORNERS_BONUS[level],
-		"reason": "" if on else ("no bend in the path in the 8 cells around it" if reach == 1 else "no bend in the path within %d cells, diagonals included" % reach)}
+	# Reworked (dream_council_review.md 24): the one Warden on the inside of each bend, the cell the path turns
+	# around. Two bends around one wall tip pay that Warden once.
+	if not spot.data.can_attack:
+		return {}
+	var at: Vector2 = spot.node.global_position if spot.node != null else Tower.footprint_centre(spot.cell, spot.data.footprint)
+	var on: bool = ds.batch.on_inside_corner(ds, at)
+	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.BATCH.COZY_CORNERS_BONUS,
+		"reason": "" if on else "not on the inside of a bend in the path"}
 
 func _hedge_maze(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	# Per Warden (dream_design.md 7fc0665c): +5% for each Thornwall among the 8 cells around it (a twig wall half), capped
@@ -457,9 +460,17 @@ func _moonflip(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionar
 	var bonus := ds.moonflip_bonus()
 	return {"run_wide": true, "active": true, "damage": bonus, "note": "this block's coin: %s" % ("heads" if bonus > 0.0 else "tails")}
 
+# Full Voice (Bellflower class): a pulsing bell's reach grows half a cell with each pulse that Tolls, up to 4 cells in
+# all, and resets when its reach is empty (keeping_time.gd counts the steps on the bell).
+func _full_voice(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.data.line != "song" or spot.data.attack_kind != TowerData.AttackKind.PULSE:
+		return {}
+	var grown: float = ds.keeping_time.voice_cells(spot.node, spot.data.attack_range) if ds.keeping_time != null and spot.node != null else 0.0
+	return {"active": grown > 0.0, "range": grown, "reason": "" if grown > 0.0 else "no pulse has Tolled since its reach was last empty"}
+
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var bonus := DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d cells of path" % ds.path_length}
+	var bonus := minf(DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES), DreamState.BATCH.LONG_WALK_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "your path: %d cells, +%d%%" % [ds.path_length, roundi(bonus * 100)]}
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout":
@@ -712,9 +723,13 @@ func _skyward_gaze(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 		roundi(DreamState.SKYWARD_BONUS * 100), roundi(DreamState.SKYWARD_RANGE)]}
 
 func _fresh_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var on: bool = ds.is_fresh(spot.node) if spot.node != null else not ds.drift_director.resting
-	return {"active": on, "damage": DreamState.FRESH_GROWTH_BONUS[ds.rule_level(&"fresh_growth")],
-		"reason": "" if on else "not planted or grown during this drift"}
+	# Reworked (dream_council_review.md 24): Grow or Nurture during a drift: it and every Warden touching it attack
+	# twice as fast for 8 s (once per Warden per drift; only a Warden that stood at the last rest sets it off).
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.node != null and ds.is_fresh(spot.node)
+	return {"active": on, "speed": DreamState.BATCH.FRESH_GROWTH_SPEED,
+		"reason": "" if on else "Grow or Nurture a Warden here during a drift"}
 
 func _underdog(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
@@ -890,9 +905,7 @@ func _state_line(rule: StringName, power: float) -> String:
 		&"sunlit_rest":
 			return ds.sunlit_line()
 		&"winding_path":
-			var tiles: int = ds.covered_path_tiles()  # Only the path within a Warden's reach (dream_design.md 7fc0665c)
-			return "Now: %s in range · +%d Dew per rest (up to %d)" % [count_text(tiles, "path cell"),
-				ds.winding_path_dew(power), DreamState.WINDING_PATH_MAX]
+			return "The Dew your maze pays at each rest: x%d" % roundi(DreamState.BATCH.WINDING_PATH_MULTIPLIER)
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]
 		&"canopy":

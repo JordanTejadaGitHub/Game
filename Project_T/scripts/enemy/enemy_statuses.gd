@@ -43,6 +43,10 @@ const MARKED_EXTRA := 0.25
 const _EMPTY: Array = []  # Read-only (a const array): tick() starts its expired list here, copying on the first expiry
 const STATIC_BOLT_MULTIPLIER := 16.0
 const STATIC_DECAY_TIME := 2.0  # Seconds per lost Static stack
+# Seconds per lost stack once a status's timer runs out (balance_simulation.md "Statuses vanish whole: drain one stack
+# at a time"; owner playtest 2026-10-13). The others (Poisoned's own batches, Rooted) end as before. Lasting Dreams,
+# Deep ranks and Potency lengthen the timer only, never the drain.
+const DECAY_TIME := {DAMP: 0.5, DROWSY: 0.5, MARKED: 1.0, STATIC: STATIC_DECAY_TIME}
 const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
@@ -643,11 +647,12 @@ func tick(delta: float) -> float:
 				status.time = 1.0  # Never expires, never bleeds off
 				status["full"] = 1.0
 				continue
-			if id == STATIC and status.stacks > 1:
-				status.stacks -= 1  # Static bleeds off one charge at a time
+			if status.stacks > 1 and DECAY_TIME.has(id):
+				status.stacks -= 1  # Drains one stack at a time (never starts a sleep: only an application does)
 				changes += 1
-				status.time = STATIC_DECAY_TIME
-				status["full"] = STATIC_DECAY_TIME
+				var drain: float = DECAY_TIME[id]
+				status.time = drain
+				status["full"] = drain  # The badge's rim and counter tick down with the drain
 			else:
 				if expired.is_empty():
 					expired = []
@@ -754,6 +759,59 @@ func spore_credit() -> Array:
 		if is_instance_valid(entry[0]):
 			out.append([entry[0], float(entry[1]) / total])
 	return out
+
+# The quiet add (dream_council_review.md 20 "New shared code"): stacks go up to the normal limit; the clock, strength and
+# source do not change; it never starts a status that is not there; Poisoned joins its oldest live batch; never Rooted.
+# Charged stops one short of a bolt. Returns the stacks added. (Roguelite Code; the class and lent cards use it.)
+func add_quiet(id: StringName, amount: int) -> int:
+	if amount <= 0 or id == HELD or not has(id):
+		return 0
+	var status: Dictionary = _active[id]
+	var cap := get_max_stacks(id)
+	if id == STATIC:
+		cap -= 1
+	var added := clampi(cap - int(status.stacks), 0, amount)
+	if added <= 0:
+		return 0
+	status.stacks = int(status.stacks) + added
+	if id == SPORED and not _spore_batches.is_empty():
+		_spore_batches[0][1] = int(_spore_batches[0][1]) + added
+		_rebuild_spore_credit()
+	changes += 1
+	return added
+
+# A dose never raises a nightmare's Poisoned limit (dream_council_review.md 20: "the limit unchanged"): after one lands,
+# put the limit back to `cap` and drop the oldest stacks over it. (Roguelite Code: a dose credited to a bigger spore
+# form raised a full 32 to 64, and the badge showed half.)
+func keep_spore_cap(cap: int) -> void:
+	if not has(SPORED) or cap <= 0:
+		return
+	_active[SPORED]["cap"] = cap
+	var over := _spore_count() - cap
+	while over > 0 and not _spore_batches.is_empty():
+		var batch: Array = _spore_batches[0]
+		var removed := mini(int(batch[1]), over)
+		batch[1] -= removed
+		over -= removed
+		if batch[1] <= 0:
+			_spore_batches.remove_at(0)
+	_active[SPORED].stacks = _spore_count()
+	_rebuild_spore_credit()
+	changes += 1
+
+# Knell: Poisoned's oldest batch is used up (its stacks go; the status ends with its last batch).
+func drop_oldest_spore_batch() -> void:
+	if not has(SPORED) or _spore_batches.is_empty():
+		return
+	_spore_batches.remove_at(0)
+	var left := _spore_count()
+	if left <= 0:
+		remove(SPORED)
+		return
+	_active[SPORED].stacks = left
+	_active[SPORED].time = _spore_remaining()
+	_rebuild_spore_credit()
+	changes += 1
 
 # Puts it to sleep for `seconds` (longest wins), unless it woke less than SLEEP_COOLDOWN ago (or is a
 # boss). Every sleep source goes through here. Returns whether it's asleep now.

@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 attack_speed_bonus = 0.0
 rule_id = &"target_turnover"
+retired = true

@@ -73,7 +73,7 @@ func calling_info() -> Dictionary:
 		return {}
 	var family := IconInfo.family_data(dream_state.calling)
 	return {"name": dream_state.calling_title(), "family": family.display_name if family != null else dream_state.calling.capitalize(),
-		"text": dream_state.calling_text(), "data": family}
+		"text": DreamState.CALLINGS.tooltip(dream_state.calling), "data": family}
 
 func _refresh_calling() -> void:
 	var family: String = dream_state.calling if not calling_info().is_empty() else ""

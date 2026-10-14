@@ -53,8 +53,21 @@ func _test_status_numbers() -> void:
 	_check(bolt == 0.0 and s.stacks(EnemyStatuses.STATIC) == 19, "19 Static charges: no bolt yet")
 	bolt = s.apply(EnemyStatuses.STATIC, 1, 0.0, 10.0)
 	_check(is_equal_approx(bolt, 160.0) and not s.has(EnemyStatuses.STATIC), "20th Static charge: 16× bolt, reset")
-	s.tick(4.1)
+	# Statuses drain a stack at a time (balance_simulation.md "Statuses vanish whole"): the timer, then one stack per
+	# drain time (Drowsy 0.5 s, Exposed 1 s).
+	s.tick(3.05)
+	_check(s.stacks(EnemyStatuses.DROWSY) == 19 and is_equal_approx(s.time_left(EnemyStatuses.DROWSY), EnemyStatuses.DECAY_TIME[EnemyStatuses.DROWSY]),
+		"Drowsy's timer ran out: one stack drains, the next after 0.5 s (%d)" % s.stacks(EnemyStatuses.DROWSY))
+	s.tick(2.0)
+	_check(s.stacks(EnemyStatuses.MARKED) == 9 and is_equal_approx(s.get_damage_taken_multiplier(), 1.0), "Exposed drains to 9: its bonus stops")
+	for i in 19:
+		s.tick(0.51)
 	_check(not s.has(EnemyStatuses.DAMP) and not s.has(EnemyStatuses.DROWSY), "Damp and Drowsy wear off")
+	var re := EnemyStatuses.new()
+	re.apply(EnemyStatuses.DAMP, 3)
+	re.tick(4.05)
+	re.apply(EnemyStatuses.DAMP, 1)
+	_check(re.stacks(EnemyStatuses.DAMP) == 3 and is_equal_approx(re.time_left(EnemyStatuses.DAMP), 4.0), "an application refills the timer")
 
 	var spores := EnemyStatuses.new()
 	spores.apply(EnemyStatuses.SPORED, 3, 0.0, 2.0)
@@ -189,7 +202,7 @@ func _test_dream_flow(main: Node) -> void:
 	var dew := run_state.dew
 	dreams._show_next_offer()
 	dreams.skip()
-	_check(run_state.dew == dew + 15, "letting a Dream pass gives 15 Dew")
+	_check(run_state.dew == dew + dreams.skip_dew and dreams.skip_dew == 30, "letting a Dream pass gives 30 Dew")
 
 	# Eligibility
 	_check(not dreams.is_eligible(_card(dreams, "dream_stormcap")), "branch cards aren't Dreams any more (Dreamlight)")
@@ -248,15 +261,19 @@ func _test_new_cards(main: Node) -> void:
 	# A U-turn: the path turns at (12, 10) and (12, 12); the Warden inside it at (11, 11) is diagonal
 	# to both corners and counts as beside a bend (the user's Dreamcatcher bug).
 	dreams._bend_cells = {Vector2(12, 10): true, Vector2(12, 12): true}
+	_check(dreams.is_beside_bend(Vector2(11, 11), 1), "a Warden inside a U-turn is beside a bend (Corner Sign)")
+	# Cozy Corners (reworked 2026-10-13): the one Warden covering the inside corner of a bend
 	var catcher: TowerData = load("res://resource/tower/sporeling.tres")
+	var inside_before: Array = dreams.batch.bend_inside
+	dreams.batch.bend_inside = [Tower.footprint_centre(Vector2(11, 11), 1)]
 	var cozy: Array = dreams.get_card_effects(catcher, Vector2(11, 11)).filter(func(r: Dictionary) -> bool:
 		return r.id == "cozy_corners_ii" or r.id == "cozy_corners")
-	_check(dreams.is_beside_bend(Vector2(11, 11), 1) and not cozy.is_empty() and cozy[0].active,
-		"a Warden inside a U-turn is beside a bend")
-	dreams._bend_cells = {}
+	_check(not cozy.is_empty() and cozy[0].active, "Cozy Corners: the Warden on the inside of a bend")
+	dreams.batch.bend_inside = []
 	cozy = dreams.get_card_effects(catcher, Vector2(11, 11)).filter(func(r: Dictionary) -> bool:
 		return r.id == "cozy_corners_ii" or r.id == "cozy_corners")
-	_check(not cozy[0].active and "diagonals included" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
+	_check(not cozy[0].active and "inside of a bend" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
+	dreams.batch.bend_inside = inside_before
 	dreams._bend_cells = bends
 
 	# Entwined: drawn at normal odds once the ingredients come together (no guaranteed slot)
@@ -335,7 +352,7 @@ func _test_card_effects(main: Node) -> void:
 	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.0) and dreams.has_rule(&"target_turnover"), "Target Turnover has no unconditional attack speed bonus")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
-	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
+	_check(run_state.dew == dew + 40 and dreams.get_dew_per_clear() == 0, "Morning Dew: +40 now, no Dew per clear")
 	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
@@ -375,7 +392,8 @@ func _test_clearing_cards(main: Node) -> void:
 	dreams.take(opener)
 	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
 	_check(not dreams.opens_clearing(opener), "…and no longer says so")
-	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
+	_check(clearer.try_clear(locked_cell) and dreams.free_first_clears == 4, "…and its next 5 clears are free (2026-10-13: 4 left)")
+	dreams.free_first_clears = 0
 	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
 	_reset_dreams(main)
@@ -403,16 +421,17 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.take(opener)
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
-		and run_state.free_clears == 3 and opener.max_stacks == 1,
-		"Heartwood's Reach (one copy): half price (tree %d, boulder %d) and 3 half-price clears" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
-	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
+	_check(clearer.get_clear_cost(tree) == 0 and dreams.free_first_clears == 5 and opener.max_stacks == 1,
+		"Heartwood's Reach (one copy, reworked 2026-10-13): the next 5 clears are free (%d left)" % dreams.free_first_clears)
+	dreams.free_first_clears = 0
+	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
+	_check(clearer.get_clear_cost(tree) == tree.clear_cost + 3, "every clear so far adds +1 Dew (%d)" % clearer.get_clear_cost(tree))
 	run_state.tended_cells.clear()
 	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
-	# The charges: used first, half price (never free), still +1 Seed each
+	# The charges (RunState.free_clears; no longer from Heartwood's Reach): used first, half price, still +1 Seed each
+	run_state.add_free_clears(3 - run_state.free_clears)
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
@@ -1198,9 +1217,9 @@ func _test_run_pool(main: Node) -> void:
 	again.sort()
 	other.sort()
 	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
-	_check(first.has("quickened_sap") and first.has("morning_dew"), "the core: the basics")
+	_check(first.has("longer_roots") and first.has("morning_dew") and first.has("tender_care"), "the core: the basics")
 	# A held family's cards are not core (user: "there shouldn't always be a family card"): a seeded ~60%, never all
-	var spore_cards := _family_cards(dreams, "sporeling")
+	var spore_cards := _family_cards(dreams, "sporeling").filter(_sampled_family_card)  # Class and lent cards are never sampled
 	var spore_in := spore_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
 	_check(spore_cards.size() < 5 or (spore_in < spore_cards.size() and spore_in >= floori(spore_cards.size() * 0.4)),
 		"Sporeling's cards: about 60%% drawn, never all (%d of %d)" % [spore_in, spore_cards.size()])
@@ -1219,13 +1238,13 @@ func _test_run_pool(main: Node) -> void:
 	dreams.build_run_pool(11)
 	var available := {}
 	for card in dreams.pool:
-		if not card.retired and card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
+		if not card.retired and card.in_start_pool and dreams._card_family(card) == "" and not dreams._always_in_pool(card) and card.calling == "" and not card.tags.has(DreamState.LENT_TAG) and card.deepens == "" and dreams.discovery_met(card) \
 				and card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.id != "heartwoods_reach":
 			available[card.rarity] = int(available.get(card.rarity, 0)) + 1
 	for rarity in DreamState.RUN_POOL_FLOORS:
 		var drawn := dreams.pool.filter(func(c: UpgradeData) -> bool:
 			return c.rarity == rarity and dreams.run_pool.has(c.id) and dreams._card_family(c) == "" \
-				and not DreamState.RUN_POOL_BASICS.has(c.id) and c.id != "heartwoods_reach").size()
+				and not dreams._always_in_pool(c) and c.calling == "" and not c.tags.has(DreamState.LENT_TAG) and c.id != "heartwoods_reach").size()
 		_check(drawn >= mini(DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))),
 			"rarity %d: %d drawn, floor %d of %d available" % [rarity, drawn, DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))])
 	var before := dreams.run_pool.size()
@@ -1465,3 +1484,7 @@ func _family_cards(dreams: DreamState, family: String) -> Array:
 				and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION:
 			out.append(c)
 	return out
+
+# A family card the run pool samples (not a class card, not a lent card: those are always in or never).
+func _sampled_family_card(card: UpgradeData) -> bool:
+	return card.calling == "" and not card.tags.has(DreamState.LENT_TAG)

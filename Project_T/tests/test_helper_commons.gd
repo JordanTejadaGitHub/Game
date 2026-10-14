@@ -74,12 +74,7 @@ func _run() -> void:
 	_check(absf(_damage(spore, a) / fresh - 1.0) < 0.02, "…the others unchanged")
 	_clear()
 
-	# Growth Rings: +0.25 range a rank instead of +0.1.
-	var plain_range := ranked.get_range_cells()
-	_take(&"growth_rings")
-	ranked._stats = {}
-	_check(is_equal_approx(ranked.get_range_cells() - plain_range, HelperCommons.GROWTH_RINGS_OWN * 3), "Growth Rings: +0.25 range per Nurture rank (%.2f more)" % (ranked.get_range_cells() - plain_range))
-	_clear()
+	# (Growth Rings no longer adds range: it is the "plant nothing this block" free rank, 2026-10-13; test_generic_cards.)
 	ranked._stats = {}
 
 	# Stung: +10% per leaf lost this block, up to +30%, not at a rest.

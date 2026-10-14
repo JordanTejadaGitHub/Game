@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "guiding_light_ii"
 display_name = "Guiding Light II"
-description = "A hit on a fully {marked} nightmare forks to nightmares within 2 cells of it, for half."
+description = "A hit on a fully {marked} nightmare also jumps to nightmares within 2 cells of it at half damage."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])

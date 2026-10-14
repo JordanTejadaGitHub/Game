@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "waiting_spark"
 display_name = "Waiting Spark"
-description = "A fork with nowhere to go waits in its light for 5 s. Up to 3 wait; all strike the next nightmare to enter."
+description = "A jump with no target waits in its light as a spark for 5 s. Up to 3 wait and strike the next nightmare to enter."
 rarity = 1
 kind = 3
 tags = Array[String](["storm"])
 max_stacks = 1
 rule_id = &"waiting_spark"
 calling = "firefly_jar"
+retired = true

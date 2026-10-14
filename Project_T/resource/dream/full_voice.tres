@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "full_voice"
+display_name = "Full Voice"
+description = "Each pulse that Tolls makes a pulsing bell's range half a cell bigger, up to 4 cells. It resets when its range is empty."
+tip = "Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 0
+kind = 3
+tags = Array[String](["song"])
+max_stacks = 1
+rule_id = &"full_voice"
+calling = "bellflower"
+retired = true

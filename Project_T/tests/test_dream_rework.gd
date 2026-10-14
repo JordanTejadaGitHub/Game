@@ -161,6 +161,7 @@ func _combat_and_positions(attacker: Tower) -> void:
 	_check(not dreams.get_card_effects(a.tower_data, a.cell, a).any(func(row: Dictionary) -> bool: return row.id == "sprout_chorus" and row.active), "one route cell is not enough for Thicket")
 
 	dreams.stacks = {"switchback": 1}
+	dreams.batch.bend_points[attacker.cell] = true  # A real bend (a full cell of straight path on each side: 2026-10-13)
 	dreams._game_clock = 10.0
 	first.statuses = EnemyStatuses.new()
 	dreams.switchback_at(first, attacker.cell)
@@ -174,7 +175,7 @@ func _combat_and_positions(attacker: Tower) -> void:
 
 	dreams.stacks.clear()
 	dreams.build_run_pool(424242)
-	for id in ["deeper_calm", "quickened_sap", "longer_roots"]:
+	for id in ["longer_roots", "morning_dew", "tender_care", "quick_step"]:  # The basics since 2026-10-13
 		_check(dreams.run_pool.has(id), "core inclusion retained: " + id)
 	for card in dreams.pool:
 		if card.retired:

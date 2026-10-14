@@ -822,7 +822,18 @@ func _add_memory_border(button: Button) -> void:
 # Returns the Calling's name when the screen is too short for its lines (phones in landscape): the caller puts
 # it on the Wake button instead, and the toast after the pick gives the rule. "" otherwise.
 func _add_calling(box: VBoxContainer, data: TowerData) -> String:
-	if _reason != &"first" or dream_state.calling != "" or DreamState.CALLINGS.title(data.get_id()) == "":
+	if DreamState.CALLINGS.title(data.get_id()) == "":
+		return ""
+	if _reason != &"first" or dream_state.calling != "":
+		# A later pick (council 2026-10-13, built_player.md): say plainly it brings no Calling, only its family's cards
+		var none := Label.new()
+		none.name = "NoCalling"
+		none.text = "No Calling. Adds %s family cards to your Dreams." % data.display_name
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		none.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.caps(none, 13)
+		none.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		box.add_child(none)
 		return ""
 	if get_viewport_rect().size.y < CALLING_FULL_HEIGHT:
 		return DreamState.CALLINGS.title(data.get_id())

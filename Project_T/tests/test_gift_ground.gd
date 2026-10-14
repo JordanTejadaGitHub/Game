@@ -37,62 +37,100 @@ func _run() -> void:
 	var gifts := GiftGround.find(main)
 	_check(gifts != null and GiftGround.active() == gifts, "the gift ground is made on first use")
 
-	# Spring: a water Warden beside the pond deals +20%; Soaked lasts 1 s longer within 2 cells.
-	var wet := _plant("dewdrop", Vector2(4, 4))
-	var dry := _plant("dewdrop", Vector2(14, 4))
-	var plain := dry.get_damage()
+	# Every gift is generic (heartwood_gifts.md "Amendment: every gift is generic", the user 2026-10-13).
+	# Spring: every attacking Warden within 2 cells attacks faster, whatever its family; one far away doesn't.
+	var wet := _plant("sporeling", Vector2(3, 4))
+	var dry := _plant("sporeling", Vector2(14, 4))
+	var plain := dry.get_attacks_per_second()
+	var plain_damage := dry.get_damage()
 	gifts.add_mark(GiftGround.SPRING, [Vector2(5, 4), Vector2(6, 4), Vector2(5, 5), Vector2(6, 5)])
-	_check(is_equal_approx(wet.get_damage(), plain * (1.0 + GiftGround.SPRING_DAMAGE)) and is_equal_approx(dry.get_damage(), plain),
-		"Spring: the water Warden beside it +20%% (%.1f vs %.1f), the far one unchanged" % [wet.get_damage(), plain])
-	var soaked := _spawn(Vector2(6, 6))
-	var far_soaked := _spawn(Vector2(14, 6))
-	wet._apply_one_status(soaked, EnemyStatuses.DAMP, 1, 10.0)
-	wet._apply_one_status(far_soaked, EnemyStatuses.DAMP, 1, 10.0)
-	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.DAMP) - far_soaked.statuses.time_left(EnemyStatuses.DAMP), GiftGround.SPRING_SOAK_SECONDS),
-		"Spring: Soaked lasts 1 s longer within 2 cells (%.1f vs %.1f)" % [soaked.statuses.time_left(EnemyStatuses.DAMP), far_soaked.statuses.time_left(EnemyStatuses.DAMP)])
+	_check(is_equal_approx(wet.get_attacks_per_second(), plain * (1.0 + gifts.num(GiftGround.SPRING, "attack_speed"))) and is_equal_approx(dry.get_attacks_per_second(), plain)
+		and is_equal_approx(wet.get_damage(), plain_damage),
+		"Spring: a Warden 2 cells away attacks 25%% faster (%.2f vs %.2f), no damage bonus, the far one unchanged" % [wet.get_attacks_per_second(), plain])
+	var passer := _spawn(Vector2(6, 7))
+	for i in 4:
+		_tick(gifts)
+	_check(passer.statuses.count() == 0, "Spring: it puts no status on nightmares")
 	await _clean()
+	gifts.marks.erase(GiftGround.SPRING)
+	gifts._changed()
 
-	# Mushroom Ring: a spore Warden touching it raises the Poisoned cap by 2.
-	var ringed := _plant("sporeling", Vector2(4, 8))
-	var unringed := _plant("sporeling", Vector2(14, 8))
+	# Mushroom Ring: any status a Warden puts on a nightmare inside the ring lands with half again as many stacks
+	# (rounded up), whatever the family; outside it, as usual; crossing the ring alone does nothing.
 	gifts.add_mark(GiftGround.MUSHROOM_RING, [Vector2(5, 8), Vector2(6, 8), Vector2(7, 8), Vector2(5, 9), Vector2(6, 9), Vector2(7, 9),
 		Vector2(5, 10), Vector2(6, 10), Vector2(7, 10)])
-	var a := _spawn(Vector2(9, 12))
+	var ring_share := gifts.num(GiftGround.MUSHROOM_RING, "status_stacks_share")
+	var a := _spawn(Vector2(6, 9))
 	var b := _spawn(Vector2(12, 12))
-	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.SPORED] + GiftGround.RING_SPORED_CAP:
-		ringed._apply_one_status(a, EnemyStatuses.SPORED, 1, 10.0)
-		unringed._apply_one_status(b, EnemyStatuses.SPORED, 1, 10.0)
-	_check(a.statuses.stacks(EnemyStatuses.SPORED) == b.statuses.stacks(EnemyStatuses.SPORED) + GiftGround.RING_SPORED_CAP,
-		"Mushroom Ring: +2 Poisoned cap (%d vs %d)" % [a.statuses.stacks(EnemyStatuses.SPORED), b.statuses.stacks(EnemyStatuses.SPORED)])
+	_tick(gifts)
+	_check(a.statuses.count() == 0, "Mushroom Ring: standing in it gives no status by itself")
+	for pair in [["sporeling", EnemyStatuses.SPORED], ["dewdrop", EnemyStatuses.DAMP], ["firefly_jar", EnemyStatuses.STATIC]]:
+		var giver := _plant(pair[0], Vector2(4, 12))
+		giver._apply_one_status(a, pair[1], 3, 10.0)
+		giver._apply_one_status(b, pair[1], 3, 10.0)
+		_check(a.statuses.stacks(pair[1]) == ceili(3 * (1.0 + ring_share)) and b.statuses.stacks(pair[1]) == 3,
+			"Mushroom Ring: %s lands with half again as many stacks inside (%d vs %d)" % [pair[1], a.statuses.stacks(pair[1]), b.statuses.stacks(pair[1])])
+		giver.queue_free()
+	_check(gifts.ring_stacks(EnemyStatuses.HELD, 1, a.global_position) == 1, "…Rooted isn't stacks: unchanged")
 	await _clean()
+	gifts.marks.erase(GiftGround.MUSHROOM_RING)
+	gifts._changed()
 
-	# Lightning Tree: a Charged bolt within 2 cells deals +25%.
+	# Lightning Tree: no Charged interaction; every 4 s it strikes the strongest nightmare within 3 cells, credited
+	# to the gift.
 	gifts.add_mark(GiftGround.LIGHTNING_TREE, [Vector2(8, 14)])
-	var struck := _spawn(Vector2(9, 14))
+	gifts._tree_left = 999.0
+	var struck := _spawn(Vector2(10, 14))
+	var weak := _spawn(Vector2(9, 14))
+	weak.health = 50000
 	var unstruck := _spawn(Vector2(16, 14))
 	Reactions.strike_bolt(struck, 100.0, null)
 	Reactions.strike_bolt(unstruck, 100.0, null)
-	var near_lost: int = struck.max_health - struck.health
-	var far_lost: int = unstruck.max_health - unstruck.health
-	_check(far_lost > 0 and absf(float(near_lost) / far_lost - (1.0 + GiftGround.LIGHTNING_BOLT)) < 0.03,
-		"Lightning Tree: bolts within 2 cells +25%% (%d vs %d)" % [near_lost, far_lost])
+	_check(struck.max_health - struck.health == unstruck.max_health - unstruck.health and struck.health < struck.max_health,
+		"Lightning Tree: a Charged bolt beside it is a plain bolt")
+	var before_own: int = struck.health
+	gifts._tree_left = 0.0
+	_tick(gifts)
+	_check(struck.health < before_own and weak.health == 50000 and unstruck.max_health - unstruck.health == struck.max_health - before_own
+		and is_equal_approx(gifts._tree_left, gifts.num(GiftGround.LIGHTNING_TREE, "strike_every")),
+		"Lightning Tree: it strikes the strongest nightmare in its zone (%d), not the weaker or the far one, then waits" % (before_own - struck.health))
+	_check(gifts.source_of(GiftGround.LIGHTNING_TREE).name == "Lightning Tree", "…credited to the gift by name")
 	await _clean()
+	gifts.marks.erase(GiftGround.LIGHTNING_TREE)
+	gifts._changed()
 
-	# Moonwell: the 4 orthogonal cells get +1 range; a diagonal one doesn't.
+	# Moonwell (landmark): Wardens within 2 cells get +1.5 range (the diagonal too), one 3 cells away doesn't; they
+	# reveal Hidden nightmares in their range.
 	gifts.add_mark(GiftGround.MOONWELL, [Vector2(10, 10)])
-	var beside := _plant("firefly_jar", Vector2(10, 11))
-	var corner := _plant("firefly_jar", Vector2(11, 11))
-	_check(is_equal_approx(beside.get_range_cells() - corner.get_range_cells(), GiftGround.MOONWELL_RANGE),
-		"Moonwell: +1 range beside it, not on the diagonal (%.1f vs %.1f)" % [beside.get_range_cells(), corner.get_range_cells()])
+	var beside := _plant("firefly_jar", Vector2(11, 12))
+	var corner := _plant("firefly_jar", Vector2(13, 10))
+	_check(is_equal_approx(beside.get_range_cells() - corner.get_range_cells(), HeartwoodGifts.stat(&"moonwell", "range")),
+		"Moonwell: +1.5 range within 2 cells, not 3 away (%.1f vs %.1f)" % [beside.get_range_cells(), corner.get_range_cells()])
+	var lurker := _spawn(Vector2(11, 13))
+	lurker._revealed_time = 0.0
+	lurker._hidden = true
+	_tick(gifts)
+	_check(lurker._revealed_time > 0.0, "Moonwell: its Wardens reveal a Hidden nightmare in their range")
 	await _clean()
+	gifts.marks.erase(GiftGround.MOONWELL)
+	gifts._changed()
 
-	# Bell Stone: a song Warden within 1 cell pulses 15% faster.
+	# Bell Stone: no Warden bonus; every ring slows the nightmares within 3 cells for 2 s, a plain slow (no status).
 	gifts.add_mark(GiftGround.BELL_STONE, [Vector2(3, 14)])
 	var ringing := _plant("bellflower", Vector2(4, 15))
 	var quiet := _plant("bellflower", Vector2(16, 2))
-	_check(is_equal_approx(ringing.get_attacks_per_second(), quiet.get_attacks_per_second() * (1.0 + GiftGround.BELL_SPEED)),
-		"Bell Stone: song Wardens within 1 cell 15%% faster (%.2f vs %.2f)" % [ringing.get_attacks_per_second(), quiet.get_attacks_per_second()])
+	_check(is_equal_approx(ringing.get_attacks_per_second(), quiet.get_attacks_per_second()), "Bell Stone: no bonus for the Warden beside it")
+	var hearer := _spawn(Vector2(5, 12))
+	var deaf := _spawn(Vector2(12, 14))
+	gifts._bell_left = 0.0
+	_tick(gifts)
+	_check(is_equal_approx(hearer.statuses.slow_amount, gifts.num(GiftGround.BELL_STONE, "slow")) and is_equal_approx(hearer.statuses.slow_time, gifts.num(GiftGround.BELL_STONE, "slow_seconds"))
+		and hearer.statuses.count() == 0 and deaf.statuses.slow_time <= 0.0,
+		"Bell Stone: its ring slows nightmares within 3 cells 30%% for 2 s, with no status (%.2f for %.1f s)" % [hearer.statuses.slow_amount, hearer.statuses.slow_time])
+	_check(is_equal_approx(gifts._bell_left, gifts.num(GiftGround.BELL_STONE, "ring_every")), "…then it waits for the next ring")
 	await _clean()
+	gifts.marks.erase(GiftGround.BELL_STONE)
+	gifts._changed()
 
 	# Sow a Ridge: an attacking Warden touching a standing tree is Sheltered (+10%); walls get nothing; a tended
 	# tree shelters no one. Fallen Giant: an attacking Warden touching the log gets +15% crit ("Lookout").
@@ -114,11 +152,11 @@ func _run() -> void:
 	_check(is_equal_approx(sheltered.get_damage(), base_damage), "no shelter before the gift")
 	gifts.add_mark(GiftGround.SOW_RIDGE, [tree])
 	gifts.add_mark(GiftGround.FALLEN_GIANT, [tree])
-	_check(is_equal_approx(sheltered.get_damage(), base_damage * (1.0 + GiftGround.SHELTERED_DAMAGE)),
-		"Sow a Ridge: Sheltered +10%% (%.2f vs %.2f)" % [sheltered.get_damage(), base_damage])
+	_check(is_equal_approx(sheltered.get_damage(), base_damage * (1.0 + HeartwoodGifts.stat(&"sow_ridge", "damage"))),
+		"Sow a Ridge: Sheltered +30%% (%.2f vs %.2f)" % [sheltered.get_damage(), base_damage])
 	_check(is_equal_approx(sheltered.get_range_cells(), base_range), "Fallen Giant: no range now (%.2f)" % sheltered.get_range_cells())
-	_check(is_equal_approx(sheltered.get_raw_crit_chance() - open_far.get_raw_crit_chance(), GiftGround.LOOKOUT_CRIT),
-		"Fallen Giant: Lookout +15%% crit (%.2f vs %.2f)" % [sheltered.get_raw_crit_chance(), open_far.get_raw_crit_chance()])
+	_check(is_equal_approx(sheltered.get_raw_crit_chance() - open_far.get_raw_crit_chance(), HeartwoodGifts.stat(&"fallen_giant", "crit_chance")) and is_equal_approx(open_far.get_raw_crit_chance(), 0.0),
+		"Fallen Giant: Lookout gives a Warden that never crits its crit chance (%.2f vs %.2f)" % [sheltered.get_raw_crit_chance(), open_far.get_raw_crit_chance()])
 	_check(is_equal_approx(open_far.get_damage(), base_damage), "a Warden away from the tree isn't Sheltered")
 	var labels: Array = BuffSources.for_tower(sheltered).map(func(e: Dictionary) -> String: return e.label)
 	_check(labels.any(func(l: String) -> bool: return l.begins_with("Gift Sheltered")) and labels.any(func(l: String) -> bool: return l.begins_with("Gift Lookout")),
@@ -147,10 +185,10 @@ func _run() -> void:
 	var price := placer.get_cost(null, stump)
 	_check(placer._try_build(stump), "(setup) a Sporeling planted on the stump")
 	var on_stump := _tower_at(stump)
-	_check(on_stump != null and on_stump.rank == 0 and on_stump.banked_ranks == 1 and on_stump.get_nurture_cost() == 0,
-		"Ancient Stump: a banked rank, free to spend (rank %d, banked %d)" % [on_stump.rank if on_stump else -1, on_stump.banked_ranks if on_stump else -1])
+	_check(on_stump != null and on_stump.rank == 0 and on_stump.banked_ranks == int(HeartwoodGifts.stat(&"ancient_stump", "free_ranks")) and on_stump.get_nurture_cost() == 0,
+		"Elder Stumps: 2 banked ranks, free to spend (rank %d, banked %d)" % [on_stump.rank if on_stump else -1, on_stump.banked_ranks if on_stump else -1])
 	var dew_before: int = main.get_node("%RunState").dew
-	_check(placer.nurture(on_stump) and on_stump.rank == 1 and on_stump.banked_ranks == 0 and on_stump.paid_ranks.is_empty()
+	_check(placer.nurture(on_stump) and on_stump.rank == 1 and on_stump.banked_ranks == 1 and on_stump.paid_ranks.is_empty()
 		and main.get_node("%RunState").dew == dew_before and on_stump.invested_dew == price,
 		"…Nurture spends it: rank I, no Dew, not a paid rank (invested %d of %d)" % [on_stump.invested_dew, price])
 	await _clean()
@@ -169,16 +207,14 @@ func _run() -> void:
 	_check(placer.get_cost(thorn) == full, "Bramble Verge: Thornwalls keep their price (%d of %d)" % [placer.get_cost(thorn), full])
 	_check(paid > 0 and grower.get_grow_cost(bramble_data).total == 0,
 		"Bramble Verge: Thornwall -> Bramble is free (%d -> %d)" % [paid, grower.get_grow_cost(bramble_data).total])
-	var wall := _plant("thornwall", Vector2(9, 5))
-	var touching := _spawn(Vector2(10, 5))
-	var apart := _spawn(Vector2(14, 12))
-	_check(Reactions.drowsy_cap_bonus(touching) == 0, "Bramble Verge: a Thornwall alone gives no Drowsy cap")
-	wall.queue_free()
-	await process_frame
+	# Brambles slow the nightmares beside them, a plain slow (no Drowsy, no cap bonus); away from one, nothing.
 	var briar := _plant("bramble", Vector2(9, 5))
-	touching = _spawn(Vector2(10, 5))
-	_check(Reactions.drowsy_cap_bonus(touching) == GiftGround.BRAMBLE_DROWSY_CAP and Reactions.drowsy_cap_bonus(apart) == 0,
-		"Bramble Verge: +1 Drowsy cap touching a Bramble, none away from it")
+	var brushed := _spawn(Vector2(10, 5))
+	var clear_of := _spawn(Vector2(14, 12))
+	_tick(gifts)
+	_check(is_equal_approx(brushed.statuses.slow_amount, gifts.num(GiftGround.BRAMBLE_VERGE, "slow")) and brushed.statuses.slow_time > 0.0 and brushed.statuses.count() == 0
+		and clear_of.statuses.slow_time <= 0.0 and Reactions.drowsy_cap_bonus(brushed) == 0,
+		"Bramble Verge: 20%% slower beside a Bramble, no status (%.2f)" % brushed.statuses.slow_amount)
 	briar.queue_free()
 	await _clean()
 
@@ -202,7 +238,7 @@ func _run() -> void:
 	await _clean()
 	kin.refresh()
 
-	# Memory Seed: the chosen Warden keeps its ranks and its bond's age through a sale and a replant.
+	# Memory Seed: any Warden keeps its ranks and its bond's age through a sale and a replant.
 	var seed_cell := _open_cell()
 	placer.tower_data = load("res://resource/tower/stormcap.tres")
 	placer._try_build(seed_cell)
@@ -216,7 +252,7 @@ func _run() -> void:
 	var bond: Array = kin.get_pairs(seeded)
 	if bond.size() == 1:
 		kin.ages[bond[0].key] = 7
-	gifts.set_memory_seed(seed_cell, director.get_act(maxi(director.drifts_started, 1)))
+	gifts.set_memory_seed(GiftGround.NO_CELL, director.get_act(maxi(director.drifts_started, 1)))
 	seller.sell(seed_cell)
 	await process_frame
 	kin.refresh()
@@ -249,10 +285,9 @@ func _run() -> void:
 		offerer.taken.append(record)
 		offerer._apply(&"lightning_tree", record.placement, false)
 	var by_tree := _spawn(tree_cell + Vector2(1, 0))
-	_check(is_equal_approx(gifts.bolt_multiplier(by_tree.global_position), 1.0 + GiftGround.LIGHTNING_BOLT),
-		"a taken, standing Lightning Tree boosts bolts beside it")
+	_check(gifts.in_zone(GiftGround.LIGHTNING_TREE, by_tree.global_position), "a taken, standing Lightning Tree's zone covers the cell beside it")
 	map.clear_obstacle(tree_cell)
-	_check(is_equal_approx(gifts.bolt_multiplier(by_tree.global_position), 1.0), "tended away, its bolt bonus is gone")
+	_check(not gifts.in_zone(GiftGround.LIGHTNING_TREE, by_tree.global_position), "tended away, its zone is gone")
 
 	print("gift ground test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
@@ -275,6 +310,11 @@ func _spawn(cell: Vector2) -> Node2D:
 	enemy.max_health = 100000
 	enemy.health = 100000
 	return enemy
+
+# One landmark check now (the ground checks every GiftGround.TICK).
+func _tick(gifts: GiftGround) -> void:
+	gifts._tick = GiftGround.TICK
+	gifts._process(GiftGround.TICK)
 
 func _open_cell() -> Vector2:
 	for x in range(3, 20):

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hot_on_their_heels"
+display_name = "Hot on Their Heels"
+description = "Each {drift} you call early: Wardens deal 10% more damage until the {rest}, up to 40%. A lost {leaf} clears it."
+rarity = 2
+kind = 3
+tags = Array[String](["tempo", "daring", "defining"])
+max_stacks = 1
+min_drift = 10
+rule_id = &"hot_on_their_heels"
+tip = "Early means at least 10 s of the last {drift}'s arrival is skipped."

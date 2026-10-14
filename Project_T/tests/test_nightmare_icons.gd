@@ -66,7 +66,7 @@ func _run() -> void:
 	var wight_rows := NightmareIcons.make_rows(wight)
 	_check(not _icons(wight_rows, NightmareIcons.Kind.STATUS, &"immune").is_empty(), "the Barrow Wight shows a crossed-out Rooted")
 	var short := _icons(wight_rows, NightmareIcons.Kind.STATUS, &"short")
-	_check(short.size() == 1 and short[0].id == "drowsy" and short[0].tip.contains("twice as fast"),
+	_check(short.size() == 1 and short[0].id == "drowsy" and short[0].tip.contains("half as long"),
 		"…and Drowsy with ½ (%s)" % (short[0].tip if not short.is_empty() else "none"))
 	_check(NightmareIcons.traits_of(queen).has(&"flying"), "the Moth Queen has the Flying trait icon")
 	_check(NightmareIcons.shrugs_off(stag).has(&"held"), "bosses shrug off Rooted (½)")
@@ -172,7 +172,7 @@ func _run() -> void:
 	var omens := root.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
 	_check(dossier != null and intro != null, "the dossier and the introduction card exist")
-	main.get_node("%Whispers").set_enabled(false)  # Deterministic: no onboarding whispers to wait for
+	main.get_node("%Whispers").mute()  # Deterministic: no story line on screen for the dossier to wait for
 	var intro_first := false
 	for i in 150:
 		await process_frame

@@ -65,7 +65,7 @@ func _run() -> void:
 	await process_frame
 	_check(dreams.is_unlocked(target.get_id()), "the pinned Unlock unlocks it")
 	var tip_text: String = screen._info_tip._label.text
-	_check(tip_text.contains("Dreamlight unlocks") and (screen.offer_line(sporeling) == "" or tip_text.contains(screen.offer_line(sporeling))),
+	_check(tip_text.contains("Spend Dreamlight") and (screen.offer_line(sporeling) == "" or tip_text.contains(screen.offer_line(sporeling))),
 		"the ? tip explains Dreamlight and the branch offer")
 	_check(not screen._offer_line.visible, "no offer line in the layout (it's in the tip)")
 	screen.close()

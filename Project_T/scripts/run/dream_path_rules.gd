@@ -36,8 +36,8 @@ static func native_status(tower: Node, enemy: Node, id: StringName, accepted: bo
 
 static func target_changed(tower: Node, old_target: Node, new_target: Node, now: float) -> void:
 	if old_target == new_target or not _live(old_target) or not _live(new_target) \
-			or not _enabled(_dreams(tower), &"passing_thread"):
-		return
+			or not _enabled(_dreams(tower), &"passing_thread_carry"):
+		return  # (Passing Thread is the second-pass card now, dream_batch_rules.gd; no live card grants this carry rule)
 	if now - float(tower.get_meta(&"unique_passing_thread_time", -INF)) < 2.0:
 		return
 	var donor: EnemyStatuses = old_target.statuses

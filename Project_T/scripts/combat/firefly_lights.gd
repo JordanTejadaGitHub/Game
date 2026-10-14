@@ -40,7 +40,7 @@ const LANTERNWAY_SHARE := 0.5
 const AMBUSH_SHARE := 0.5  # Ambush
 const SPARK_MAX := 3  # Waiting Spark: sparks that can wait in one light
 const SPARK_TIME := 5.0
-const LIVE_WIRE_SHARE := 1.0  # Lent: the full hit, per dispel
+const LIVE_WIRE_SHARE := 0.5  # Nothing Wasted's Live Wire part: half the hit, per dispel (owner 2026-10-13: never more than the Calling)
 const CROSSFIRE_WINDOW := 1.0  # Lent
 const CROSSFIRE_TARGETS := 2
 const CROSSFIRE_SHARE := 0.5
@@ -117,7 +117,22 @@ func _rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
 
 func _lent_on() -> bool:
-	return _rule(LENT_LIVE_WIRE) or _rule(LENT_CROSSFIRE) or _rule(LIKE_TO_LIKE)
+	return _rule(LENT_LIVE_WIRE) or _rule(LENT_CROSSFIRE) or _rule(LIKE_TO_LIKE) or _lit_lent()
+
+# More lent cards than class cards (the owner and the council, 2026-10-13, lent_consolidated.md): Lit, the glow and the
+# lights belong to every owner of the family; only the Calling's own payoff (a dispel of a Lit nightmare jumps half its
+# hit) stays with the first pick. These lent cards work in the light, on any start that owns a Firefly Warden.
+const LIT_LENT: Array[StringName] = [HAMMERFALL, KNOCK_ON, SPOTLIGHT, SIGNAL_FIRES, NOTHING_WASTED, CHAIN_OF_LANTERNS]  # (Ambush retired, Spotlight lent: owner 2026-10-13)
+
+func _lit_lent() -> bool:
+	for id in LIT_LENT:
+		if _rule(id):
+			return true
+	return false
+
+# Whether the lights are worked out: the Firefly start, or any owner holding a card that works in the light.
+func _lit_on() -> bool:
+	return class_on() or _lit_lent()
 
 func _cell() -> float:
 	return Tower.MAP_GRID.cell_size.x
@@ -149,7 +164,7 @@ func _process(delta: float) -> void:
 	if not _hooked and DamageLog.instance != null:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 		_hooked = true
-	var on := class_on()
+	var on := _lit_on()
 	if not on and not _lent_on():
 		if not _sources.is_empty() or not _glow.is_empty():
 			_sources.clear()
@@ -190,7 +205,7 @@ func _rebuild() -> void:
 			jars.append(tower)
 		elif tower.tower_data.get_id() == "sprout" and tower.get_meta(LIT_SPROUT_META, false):
 			sprouts.append(tower)
-	if not class_on():
+	if not _lit_on():
 		for tower in jars:
 			_sources.append({"tower": tower, "sprout": false, "light": _sources.size()})  # Lent cards only ask "near a Firefly Warden"
 		return
@@ -220,13 +235,17 @@ func _rebuild() -> void:
 					parent[a] = b
 			else:
 				owner_of[cell] = i
+	var names := {}  # Union-find root -> the light's stable id: the smallest cell code among its Jars
 	for i in jars.size():
-		var light := _find(parent, i)
+		var root := _find(parent, i)
+		names[root] = mini(int(names.get(root, 1 << 30)), _cell_code(jars[i]))
+	for i in jars.size():
+		var light := int(names[_find(parent, i)])
 		_sources.append({"tower": jars[i], "sprout": false, "light": light})
 		for cell in cells_of[i]:
 			_note(cell, light, true)
 	for j in sprouts.size():
-		var light := jars.size() + j  # Always its own light, and never gold path
+		var light := -1 - _cell_code(sprouts[j])  # Always its own light (negative ids), and never gold path
 		_sources.append({"tower": sprouts[j], "sprout": true, "light": light})
 		for cell in path:
 			var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
@@ -235,6 +254,10 @@ func _rebuild() -> void:
 	for cell in _glow:
 		_max_lit_step = maxi(_max_lit_step, int(path.get(cell, -1)))
 	queue_redraw()  # Twice a second at most: the glow follows planting, selling, growing and new cards
+
+# A Warden's cell as one number (half cells count): stable while it stands there.
+func _cell_code(tower) -> int:
+	return roundi(tower.cell.x * 2.0) * 1000 + roundi(tower.cell.y * 2.0)
 
 func _find(parent: Array, i: int) -> int:
 	while int(parent[i]) != i:
@@ -266,7 +289,7 @@ func sources_at(at: Vector2) -> Array:
 	return out
 
 func is_lit(enemy) -> bool:
-	return class_on() and is_instance_valid(enemy) and not sources_at(enemy.global_position).is_empty()
+	return _lit_on() and is_instance_valid(enemy) and not sources_at(enemy.global_position).is_empty()
 
 func lights_of(sources: Array) -> Array:
 	var out: Array = []
@@ -399,9 +422,12 @@ func _next_event() -> int:
 	return _event
 
 func _on_damage(event) -> void:
+	if dream_state != null and is_instance_valid(event.enemy) and event.tag != FORK_TAG and _rule(CHAIN_OF_LANTERNS) \
+			and (event.kind == &"reaction" or event.tag == &"toll") and _lit_on():
+		_chain_more(event)
 	if dream_state == null or event.tag == FORK_TAG or event.kind == &"reaction" or not is_instance_valid(event.enemy):
 		return  # A fork triggers nothing; a Reaction's own lightning gets nothing added
-	var on := class_on()
+	var on := _lit_on()
 	var lent := _lent_on()
 	var guiding := _rule(GUIDING_LIGHT)
 	if not on and not lent and not guiding:
@@ -422,6 +448,18 @@ func _on_damage(event) -> void:
 		_class_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 	if lent:
 		_lent_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
+
+# Chain of Lanterns on a Toll or a Reaction (a bolt goes through _class_rules): half of it jumps to the 2 nearest Lit.
+func _chain_more(event) -> void:
+	var enemy = event.enemy
+	var sources := sources_at(enemy.global_position)
+	if sources.is_empty():
+		return
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
+	var cap := brightness(source, sources) if source != null else _base_jar_dps * BRIGHTNESS_SECONDS
+	var id := _next_event()
+	for target in nearest_lit(enemy.global_position, [enemy], CHAIN_TARGETS):
+		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, cap, {"final": true})
 
 # Guiding Light (owner ruling 2026-10-12, dream_council_review.md 21): a hit on a fully Exposed nightmare forks to the
 # nightmares within 1 cell of it (II: 2 cells), for half. It no longer spreads Exposed stacks.
@@ -459,10 +497,11 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 		# Lantern Light; on gold path Where Lights Meet replaces it: one fork per Firefly Warden lighting it.
 		var count := mini(jars, MEET_MAX) if jars >= 2 and _rule(WHERE_LIGHTS_MEET) else 1
 		var targets := nearest_lit(at, [enemy], count)
-		for target in targets:
-			_fork(id, source, at, target, size * CALLING_SHARE, cap, {"heavy": knock})
-		if targets.is_empty():
-			_wait(lights, source, size * CALLING_SHARE, cap)
+		if class_on():  # The Calling's own payoff: the first pick only
+			for target in targets:
+				_fork(id, source, at, target, size * CALLING_SHARE, cap, {"heavy": knock})
+			if targets.is_empty():
+				_wait(lights, source, size * CALLING_SHARE, cap)
 		if _rule(NOTHING_WASTED) and (is_hit or is_bolt) and event.overkill > 0.0 and not targets.is_empty():
 			_fork(id, source, at, targets[0], minf(event.overkill, event.amount), cap, {"heavy": knock})  # The larger of the two lands
 		if _rule(SIGNAL_FIRES):
@@ -501,8 +540,9 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 					continue
 				var others: Array = _enemies().filter(func(e) -> bool:
 					return e != enemy and lights_of(sources_at(e.global_position)).has(light))
-				for other in others.slice(0, SPOTLIGHT_MAX):
-					_fork(id, source, at, other, event.base * SPOTLIGHT_SHARE, cap, {"heavy": true})
+				var fan: Array = others.slice(0, SPOTLIGHT_MAX)
+				for other in fan:  # The cap covers the whole fan (council, new_lent_td.md)
+					_fork(id, source, at, other, minf(event.base * SPOTLIGHT_SHARE, cap / maxf(fan.size(), 1.0)), cap, {"heavy": true})
 				break
 		if _rule(AMBUSH):
 			var ambushed: Dictionary = enemy.get_meta(AMBUSH_META, {})
@@ -592,7 +632,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	if jar == null:
 		return
 	var cap: float = jar.get_damage() * jar.get_attacks_per_second() * BRIGHTNESS_SECONDS
-	if dispel and _rule(LENT_LIVE_WIRE):
+	if dispel and _rule(LENT_LIVE_WIRE) and not (class_on() and is_lit(enemy)):  # On a Firefly start it replaces the Calling's jump, never adds one
 		var targets := _near_enemies(at, [enemy])
 		if not targets.is_empty():
 			_fork(id, source, at, targets[0], _hit_size(source, is_hit, false) * LIVE_WIRE_SHARE, cap)
@@ -745,18 +785,25 @@ func load_save(cells: Array) -> void:
 
 # The glow is a soft band along the path's own line (user 2026-10-13, "fix the lit area": it was a flat square per lit
 # cell, centred on whole cells while the path is a half-cell lane, so pale squares with gaps sat on the grass beside
-# it). Each lit stretch of the route is three nested round-jointed lines (GLOW_BANDS: wide and faint to narrow), so it
-# fades out in three palette steps with no grid, and a stretch is never brighter than the three together. Gold path is
-# its own stretch, joined end to end with the plain glow.
-const GLOW_BANDS: Array[float] = [80.0, 56.0, 34.0]  # px wide, widest first: past the path's ribbon (~40 px), a soft edge on the grass
-const GLOW_BAND_ALPHA := 0.07  # Per band, added light: 0.21 at the path's centre
-const GOLD_BAND_ALPHA := 0.12  # Gold path: 0.36 at the centre
+# it). Each lit stretch of the route is three nested round-jointed lines (GLOW_BANDS: wide and dim to narrow and
+# bright), so it fades out in three steps with no grid. Gold path is its own stretch, joined end to end.
+# One group, one cap (user, the same day, a 102-Warden maze at drift 35: "large and bright, several cells wide ...
+# stepped blocks ... the main thing on screen"): the first version added every band and every stretch on top of the
+# others, 80 px wide, so close lanes merged into bright slabs. Now the lines are opaque inside one CanvasGroup (a
+# brighter band covers a dimmer one, lanes side by side just meet) and the group is added to the map once at
+# GLOW_CAP: nowhere is brighter than one lit path's centre, however the maze winds. The bands hug the path's ribbon
+# (~40 px) with a few pixels of soft edge.
+const GLOW_BANDS: Array[float] = [52.0, 40.0, 26.0]  # px wide, widest first
+const GLOW_SHARES: Array[float] = [0.2, 0.42, 0.65]  # Each band's share of GLOW_CAP: a lit path's centre adds 0.65 × the cap
+const GOLD_SHARES: Array[float] = [0.3, 0.65, 1.0]  # Gold path: the full cap at its centre
+const GLOW_CAP := 0.34  # The most light the glow ever adds (the group's alpha)
+const GLOW_SHADER := "shader_type canvas_item;\nrender_mode unshaded, blend_add;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;\nvoid fragment() {\n\tvec4 c = textureLod(screen_texture, SCREEN_UV, 0.0);\n\tif (c.a > 0.0001) {\n\t\tc.rgb /= c.a;\n\t}\n\tCOLOR *= c;\n}\n"
 var _glow_lines: Array[Line2D] = []
-var _glow_material: CanvasItemMaterial  # Added light (kept on this node, never static): it warms the pale path too
+var _glow_group: CanvasGroup  # Every glow line, flattened, then added to the map once (kept on this node, never static)
 
 func _draw() -> void:
 	_lay_glow.call_deferred()  # Lines are nodes: laid after the draw, whenever anything here asked for a redraw
-	if not class_on():
+	if not _lit_on():
 		return
 	for light in _sparks:
 		var spot := _light_spot(int(light))
@@ -764,9 +811,9 @@ func _draw() -> void:
 			draw_circle(to_local(spot) + Vector2(-10 + 10 * i, -14), 3.0, Color(Palette.HEARTLIGHT, 0.9))
 
 func _exit_tree() -> void:
-	for line in _glow_lines:
-		if is_instance_valid(line):
-			line.queue_free()
+	if is_instance_valid(_glow_group):
+		_glow_group.queue_free()
+	_glow_group = null
 	_glow_lines.clear()
 
 func _lay_glow() -> void:
@@ -774,10 +821,26 @@ func _lay_glow() -> void:
 		if is_instance_valid(line):
 			line.queue_free()
 	_glow_lines.clear()
-	if not class_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
+	if not _lit_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
+		if is_instance_valid(_glow_group):
+			_glow_group.visible = false
 		return
 	var map: Node2D = dream_state.map_generator
-	var ground: Node2D = map.path_layer  # The lines lie on the path layer: over the path's ribbon, under everything else
+	if not is_instance_valid(_glow_group):
+		_glow_group = CanvasGroup.new()
+		_glow_group.name = "FireflyGlow"
+		_glow_group.fit_margin = 32.0
+		_glow_group.clear_margin = 32.0
+		var shader := Shader.new()
+		shader.code = GLOW_SHADER
+		var material := ShaderMaterial.new()
+		material.shader = shader
+		_glow_group.material = material
+		_glow_group.self_modulate = Color(1, 1, 1, GLOW_CAP)  # multiplier: the cap on the added light
+		map.path_layer.add_child(_glow_group)  # On the path layer: over the path's ribbon, under everything else
+	_glow_group.visible = true
+	var ground: Node2D = _glow_group
+	var runs: Array = []  # [points, bright, joins_before, joins_after] per lit stretch
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var gold := _rule(WHERE_LIGHTS_MEET)
 	var states := PackedInt32Array()  # Per route point: 0 dark, 1 glow, 2 gold path
@@ -803,24 +866,24 @@ func _lay_glow() -> void:
 			points.append(ground.to_local(map.to_global(Tower.MAP_GRID.calculate_map_position(route[i]))))
 		if points.size() == 1:
 			points.append(points[0] + Vector2(0.5, 0.0))  # One lit point: a round spot
-		var bright := states[from] == 2
-		for width in GLOW_BANDS:
+		runs.append([points, states[from] == 2, joins_before, joins_after])
+		from = to + 1
+	# Band by band over every stretch, dimmest first: a lane's bright centre is never covered by its neighbour's edge
+	for band in GLOW_BANDS.size():
+		for run: Array in runs:
+			var share: float = GOLD_SHARES[band] if run[1] else GLOW_SHARES[band]
+			var base: Color = Palette.GOLD if run[1] else Palette.GLOW
 			var line := Line2D.new()
-			line.points = points
-			line.width = width
-			line.default_color = Color(Palette.GOLD if bright else Palette.GLOW, GOLD_BAND_ALPHA if bright else GLOW_BAND_ALPHA)
+			line.points = run[0]
+			line.width = GLOW_BANDS[band]
+			line.default_color = Color(base.r * share, base.g * share, base.b * share, 1.0)  # multiplier: the band's share of the light (opaque in the group)
 			line.joint_mode = Line2D.LINE_JOINT_ROUND
-			line.begin_cap_mode = Line2D.LINE_CAP_NONE if joins_before else Line2D.LINE_CAP_ROUND
-			line.end_cap_mode = Line2D.LINE_CAP_NONE if joins_after else Line2D.LINE_CAP_ROUND
+			line.begin_cap_mode = Line2D.LINE_CAP_NONE if run[2] else Line2D.LINE_CAP_ROUND
+			line.end_cap_mode = Line2D.LINE_CAP_NONE if run[3] else Line2D.LINE_CAP_ROUND
 			line.round_precision = 6
 			line.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			if _glow_material == null:
-				_glow_material = CanvasItemMaterial.new()
-				_glow_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-			line.material = _glow_material
 			ground.add_child(line)
 			_glow_lines.append(line)
-		from = to + 1
 
 func _light_spot(light: int) -> Vector2:
 	for source in _sources:

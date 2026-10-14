@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "overnight"
+display_name = "Overnight"
+description = "Needs another {family}'s status. A spore Warden's attack adds 3 {spored} at once to a nightmare carrying one (once a second). At 6 {spored}, each other status gains 5, once."
+tip = "A {dose}: 3 {spored} at once (what a {mushroom} gives when stepped on). Works for: a spore Warden, on another {family}'s status. A bet: it does little until you own another {family}."
+rarity = 2
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"overnight"
+requires = Array[String](["sporeling"])
+extra_rules = Array[StringName]([&"hothouse"])

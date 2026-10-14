@@ -7,19 +7,30 @@ extends RefCounted
 # Family root id -> its line (a Calling covers the whole line: branches and final forms too).
 const LINES := {"sporeling": "spore", "firefly_jar": "light", "dewdrop": "water", "bellflower": "song",
 	"acorn": "acorn", "nestling": "wing", "pebbling": "stone", "rootling": "root", "whirligig": "wind"}
-const NAMES := {"sporeling": "Take Root", "firefly_jar": "Lantern Light", "dewdrop": "Splashback",
-	"bellflower": "Ringing", "acorn": "Volley", "nestling": "Perches", "pebbling": "Lodged Stone",
+# Sporeling, Dewdrop and Bellflower got their class Callings on 2026-10-13 (dream_council_review.md 20): Spore Print,
+# Puddles and Keeping Time, in scripts/combat/spore_print.gd, puddles.gd and keeping_time.gd. Their first Callings
+# (Take Root, Splashback, Ringing) are retired: a saved run keeps its family id as its Calling and plays the new rule.
+const NAMES := {"sporeling": "Spore Print", "firefly_jar": "Lantern Light", "dewdrop": "Puddles",
+	"bellflower": "Keeping Time", "acorn": "Volley", "nestling": "Perches", "pebbling": "Lodged Stone",
 	"rootling": "Anvil", "whirligig": "Tailwind"}
 const TEXTS := {
-	"sporeling": "When {spored} on a nightmare is half full, it is {held} for 1.5 seconds. Once per nightmare.",
-	"firefly_jar": "Nightmares in a Firefly Warden's glow are Lit. When any Warden dispels a Lit nightmare, by hit, poison or cloud, half its hit forks to the nearest Lit nightmare. Your Firefly cards make forks bigger, further and more often.",
-	"dewdrop": "The first hit on a {damp} nightmare from another {family} also splashes the nightmares beside it.",
-	"bellflower": "Each {warden:bellflower} pulse adds to every status a nightmare already has: a tenth of that status's {full} {stacks}.",
+	"sporeling": "A {spored} nightmare dispelled by any Warden leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {spored} at once. Flyers pass over.",
+	"firefly_jar": "Nightmares in a Firefly Warden's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit's damage {jumps} to the nearest {lit} nightmare.",
+	"dewdrop": "The path touching your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there ripples: nightmares within 4 {steps} in that {water} are {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
+	"bellflower": "Every 4th ring on a nightmare is a {toll}: it lands again, at half damage. Each nightmare starts with 2 of its 4 pips filled.",
 	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
 	"rootling": "Every Warden in range turns to a {held} nightmare, and their hits on it add twice as much status.",
 	"whirligig": "Attacks that pass through a {warden:whirligig}'s range go further: shots fly on to a second nightmare, and pulses and splashes spread 1 cell wider.",
+}
+
+# Small print a card leaves out: shown after the text in tooltips (tooltip()).
+const DETAILS := {
+	"firefly_jar": "Any dispel counts: by hit, poison or cloud. Your Firefly cards make jumps bigger, further and more often.",
+	"sporeling": "Your Sporeling cards grow mushrooms and hand out doses. Mushrooms stay through a {rest}; 40 at most. Weak against flyers.",
+	"dewdrop": "Touching: within 1.25 cells of the Warden. A step is one cell of path. Your Dewdrop cards pay as nightmares leave the water, walk back in, or wade past other Wardens.",
+	"bellflower": "A ring is a hit from one of your bells, any form. Rings closer than half a second count as one. Your Bellflower cards make Tolls carry, grow and wake sleepers.",
 }
 
 # Starting numbers (Balancing sets the final ones).
@@ -51,6 +62,11 @@ static func title(family: String) -> String:
 
 static func text(family: String) -> String:
 	return String(TEXTS.get(family, ""))
+
+# The rule with its small print, for tooltips (the card shows text() alone).
+static func tooltip(family: String) -> String:
+	var more := String(DETAILS.get(family, ""))
+	return text(family) if more == "" else "%s %s" % [text(family), more]
 
 static func line_of(family: String) -> String:
 	return String(LINES.get(family, ""))
@@ -100,11 +116,8 @@ static func after_hit(tower, enemy, dealt: float, is_area: bool, effect_tick: bo
 	if calling == "" or effect_tick or combo == &"splashback" or combo == &"tailwind":
 		return
 	match calling:
-		"dewdrop":
-			_splashback(tower, enemy, dealt)
-		"bellflower":
-			if is_area and tower.tower_data.line == "song" and tower.attack_data.attack_kind == TowerData.AttackKind.PULSE:
-				_ringing(enemy)
+		# (Splashback and Ringing, the first Dewdrop and Bellflower Callings, are retired: _splashback and _ringing
+		# below are kept unused. Puddles and Keeping Time listen to damage events themselves.)
 		"nestling":
 			_perch_status(tower, enemy)
 

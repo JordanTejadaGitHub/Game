@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "chain_of_lanterns"
 display_name = "Chain of Lanterns"
-description = "A bolt on a Lit nightmare also forks to the 2 nearest Lit nightmares for half. Any {static} bolt counts."
+description = "A bolt, {toll} or Reaction on a {lit} nightmare also {jumps} that hit to the 2 nearest {lit} nightmares, at half damage."
 rarity = 1
 kind = 3
-tags = Array[String](["storm"])
+tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"chain_of_lanterns"
-calling = "firefly_jar"
+requires = Array[String](["firefly_jar"])
+tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."

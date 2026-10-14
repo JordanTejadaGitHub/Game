@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "mycelium"
 display_name = "Mycelium"
-description = "Sprouts touching a {warden:sporeling}-line Warden apply 1 {spored} on hit."
+description = "Sprouts {touching} a spore Warden puff spores too: each hit adds 1 {spored}."
 rarity = 1
 kind = 3
-tags = Array[String](["spore", "sprout"])
+tags = Array[String](["spore", "sprout", "lent"])
 requires = Array[String](["sporeling"])
 max_stacks = 1
 rule_id = &"mycelium"
+tip = "Works for: Sprouts. Safe: it works with this {family} and Sprouts alone."

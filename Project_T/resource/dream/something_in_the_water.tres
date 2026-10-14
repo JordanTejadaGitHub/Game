@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "something_in_the_water"
+display_name = "Something in the Water"
+description = "Needs another {family}'s Warden near a {warden:dewdrop}. Its splash adds 1 to each status that Warden has put on the nightmare. Once a second."
+tip = "Works for: a {warden:dewdrop} near another {family}'s Warden. A bet: it does little until you own another {family}."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"something_in_the_water"
+requires = Array[String](["dewdrop"])
+retired = true

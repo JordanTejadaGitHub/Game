@@ -3,7 +3,7 @@ extends SceneTree
 # Headless test for "Sprouts cost more, walls do the maze" (warden_stats.md): every 5 Sprouts on the map
 # add +4 Dew to the next one's price (10 for the first 5, 14 at 5-9, …); selling one lowers it (a grown one still counts);
 # Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the ones before it;
-# Seedfall sets the start (its card) and the price rises +2 per 5. Run:
+# Seedfall: Sprouts always cost 10, the price never climbs. Run:
 #   godot --headless --path . --script res://tests/test_sprout_price.gd --fixed-fps 60
 
 const MAP_SEED := 42
@@ -64,22 +64,22 @@ func _run() -> void:
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")
 
-	# Seedfall: its card sets the start, and the price rises +2 per 10 (half as fast)
+	# Seedfall (reworked 2026-10-13): Sprouts always cost 10; the price never climbs
 	var start := 0
 	for card in dreams.pool:
 		if card.id == TowerPlacer.SEEDFALL_CARD:
 			start = card.set_cost
 			dreams.take(card)
-	var per_step := TowerPlacer.SEEDFALL_SPROUTS_PER_STEP
+	var per_step := placer.sprout_per_step()  # 0 with Seedfall: the price never climbs
 	var paid := placer.count_paid_sprouts()  # per + 3 by now
 	var expected := start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
 	_check(start > 0 and placer.get_cost(sprout) == expected, "Seedfall: Sprouts cost %d (%d with %d)" % [expected, placer.get_cost(sprout), paid])
-	while placer.count_paid_sprouts() < per_step * 2 + 1:
+	while placer.count_paid_sprouts() < maxi(per_step, 10) * 2 + 1:
 		if _build(placer, map, sprout) == null:
 			break
 	paid = placer.count_paid_sprouts()
 	expected = start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
-	_check(paid < per_step * 2 + 1 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
+	_check(paid < maxi(per_step, 10) * 2 + 1 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
 		"never rise" if per_step == 0 else "rise +2 per %d" % per_step, paid, placer.get_cost(sprout)])
 
 	# Copies (user via Balancing 2026-10-04): each planted Warden costs +5% per copy of its kind on the map;

@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "signal_fires"
 display_name = "Signal Fires"
-description = "Any Warden's dispel in one light also forks, for half, to the front nightmare in the next light ahead."
+description = "Any Warden's dispel in one light also {jumps}, at half damage, to the front nightmare in the next light ahead."
 rarity = 1
 kind = 3
-tags = Array[String](["storm"])
+tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"signal_fires"
-calling = "firefly_jar"
+requires = Array[String](["firefly_jar"])
+tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."

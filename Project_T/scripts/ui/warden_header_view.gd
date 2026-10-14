@@ -122,7 +122,7 @@ func _show_calling(data: TowerData) -> void:
 	_calling_line.text = "Calling · %s" % dreams.calling_title()
 	UiStyle.caps(_calling_line, 13, UiStyle.GOLD)
 	_calling_line.mouse_filter = Control.MOUSE_FILTER_STOP
-	TapTip.attach(_calling_line, IconInfo.format(dreams.calling_text()))
+	TapTip.attach(_calling_line, IconInfo.format(DreamState.CALLINGS.tooltip(dreams.calling)))
 	desc.get_parent().add_child(_calling_line)
 	desc.get_parent().move_child(_calling_line, desc.get_index() + 1)
 

@@ -176,6 +176,54 @@
 			"loop": false,
 			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; the ring of light that follows is drawn in code (BeaconRing)."
 		},
+		"beam_spot": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "beam_spot.png",
+			"fps": 12.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "Beams (Sunpetal, Midsummer): the bright spot where the beam lands, looped (anchor = the landing point). Swap to beam_spot_big as the beam ramps."
+		},
+		"beam_spot_big": {
+			"anchor": [
+				20,
+				20
+			],
+			"file": "beam_spot_big.png",
+			"fps": 12.0,
+			"frame_size": [
+				40,
+				40
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "Beams at full ramp: the larger landing spot, looped (anchor = the landing point)."
+		},
+		"bolt_strike": {
+			"anchor": [
+				24,
+				80
+			],
+			"file": "bolt_strike.png",
+			"fps": 18.0,
+			"frame_size": [
+				48,
+				96
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Charged bolt: a strike from above onto the nightmare (anchor = the strike point, its body centre; the bolt comes down 80 px). ~0.33 s; the biggest single hit reaction."
+		},
 		"brood_end": {
 			"anchor": [
 				12,
@@ -910,6 +958,118 @@
 			"loop": false,
 			"note": "Executioner (rank V signature): the finishing crit under 20% (anchor = the nightmare). One gold crescent sweep, then it fades. ~0.33 s; distinct from Whetstone's straight clean_cut."
 		},
+		"exposed_complete": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "exposed_complete.png",
+			"fps": 16.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Exposed reaching full stacks: a ring of light closing in on the nightmare (anchor = its body centre), a body up to ~30 px across. ~0.38 s; ends on the exposed_mark halo. Skip under reduced flashes."
+		},
+		"exposed_complete_big": {
+			"anchor": [
+				94,
+				94
+			],
+			"file": "exposed_complete_big.png",
+			"fps": 16.0,
+			"frame_size": [
+				188,
+				188
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Exposed reaching full stacks: a ring of light closing in on the nightmare (anchor = its body centre), a body up to ~102 px across. ~0.38 s; ends on the exposed_mark_big halo. Skip under reduced flashes."
+		},
+		"exposed_complete_mid": {
+			"anchor": [
+				48,
+				48
+			],
+			"file": "exposed_complete_mid.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				96
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Exposed reaching full stacks: a ring of light closing in on the nightmare (anchor = its body centre), a body up to ~54 px across. ~0.38 s; ends on the exposed_mark_mid halo. Skip under reduced flashes."
+		},
+		"exposed_hit": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "exposed_hit.png",
+			"fps": 16.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": false,
+			"note": "Each hit on a fully Exposed nightmare: a small gold diamond opening at the hit point, over the Warden's own hit effect. ~0.25 s; one per hit (area hits: one per nightmare)."
+		},
+		"exposed_mark": {
+			"anchor": [
+				22,
+				18
+			],
+			"file": "exposed_mark.png",
+			"fps": 6.0,
+			"frame_size": [
+				44,
+				36
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "A fully Exposed nightmare: a faint dotted halo with two glints circling it, looped (anchor = its body centre), a body up to ~30 px across. Quiet on purpose: fine on 20 nightmares at once. Fade it out when the stacks drop."
+		},
+		"exposed_mark_big": {
+			"anchor": [
+				58,
+				50
+			],
+			"file": "exposed_mark_big.png",
+			"fps": 6.0,
+			"frame_size": [
+				116,
+				100
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "A fully Exposed nightmare: a faint dotted halo with two glints circling it, looped (anchor = its body centre), a body up to ~102 px across. Quiet on purpose: fine on 20 nightmares at once. Fade it out when the stacks drop."
+		},
+		"exposed_mark_mid": {
+			"anchor": [
+				34,
+				28
+			],
+			"file": "exposed_mark_mid.png",
+			"fps": 6.0,
+			"frame_size": [
+				68,
+				56
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "A fully Exposed nightmare: a faint dotted halo with two glints circling it, looped (anchor = its body centre), a body up to ~54 px across. Quiet on purpose: fine on 20 nightmares at once. Fade it out when the stacks drop."
+		},
 		"fairy_circle_ring": {
 			"anchor": [
 				32,
@@ -1229,6 +1389,166 @@
 			"kind": "support",
 			"loop": false,
 			"note": "UI: where the harvested Dew lands on the Dew counter."
+		},
+		"hit_acorn": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_acorn.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Acorn line: a bounce pop, the nut hopping off. Anchor = the hit point."
+		},
+		"hit_bell": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_bell.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Bellflower line: a double ring ripple passing through it. Anchor = the hit point."
+		},
+		"hit_light": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_light.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Firefly line: a warm spark and a brief crackle outline. Anchor = the hit point."
+		},
+		"hit_spore": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_spore.png",
+			"fps": 12.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Sporeling line: a spore burst whose motes hang a moment. Anchor = the hit point."
+		},
+		"hit_sprout": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_sprout.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Sprout: a small green puff. Anchor = the hit point."
+		},
+		"hit_stone": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_stone.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Pebbling line: a stone chip and dust (give it the heaviest jolt). Anchor = the hit point."
+		},
+		"hit_thorn": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_thorn.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Thorny walls / thorns: a thorn scratch. Anchor = the hit point."
+		},
+		"hit_water": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_water.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Dewdrop line: a splash with droplets. Anchor = the hit point."
+		},
+		"hit_wind": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_wind.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Whirligig line: a small swirl drifting sideways (flip it for the tug direction). Anchor = the hit point."
+		},
+		"hit_wing": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "hit_wing.png",
+			"fps": 16.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Nestling line: a quick slash and a feather. Anchor = the hit point."
 		},
 		"ignite": {
 			"anchor": [
@@ -1649,6 +1969,54 @@
 			"note": "Anchor is the impact point; the bolt falls from the top.",
 			"reaction": "Marked + Static"
 		},
+		"link_arcs": {
+			"anchor": [
+				24,
+				20
+			],
+			"file": "link_arcs.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				40
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "Jarlink / Lightning Fence: jittering arcs wrapped round a nightmare while it stands in the link, looped (anchor = its body centre), a body up to ~30 px across."
+		},
+		"link_arcs_big": {
+			"anchor": [
+				60,
+				52
+			],
+			"file": "link_arcs_big.png",
+			"fps": 14.0,
+			"frame_size": [
+				120,
+				104
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "Jarlink / Lightning Fence: jittering arcs wrapped round a nightmare while it stands in the link, looped (anchor = its body centre), a body up to ~102 px across."
+		},
+		"link_arcs_mid": {
+			"anchor": [
+				36,
+				30
+			],
+			"file": "link_arcs_mid.png",
+			"fps": 14.0,
+			"frame_size": [
+				72,
+				60
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "Jarlink / Lightning Fence: jittering arcs wrapped round a nightmare while it stands in the link, looped (anchor = its body centre), a body up to ~54 px across."
+		},
 		"lob_shadow": {
 			"anchor": [
 				8,
@@ -1859,6 +2227,54 @@
 			"kind": "reaction",
 			"loop": false,
 			"reaction": "Marked + Held or asleep"
+		},
+		"poison_bubbles_1": {
+			"anchor": [
+				12,
+				24
+			],
+			"file": "poison_bubbles_1.png",
+			"fps": 8.0,
+			"frame_size": [
+				24,
+				32
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "Poisoned ticks: green bubbles rising off the nightmare, looped; density 1 of 3 (more stacks, more bubbles). Anchor = its body centre; the bubbles rise 24 px above it."
+		},
+		"poison_bubbles_2": {
+			"anchor": [
+				12,
+				24
+			],
+			"file": "poison_bubbles_2.png",
+			"fps": 8.0,
+			"frame_size": [
+				24,
+				32
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "Poisoned ticks: green bubbles rising off the nightmare, looped; density 2 of 3 (more stacks, more bubbles). Anchor = its body centre; the bubbles rise 24 px above it."
+		},
+		"poison_bubbles_3": {
+			"anchor": [
+				12,
+				24
+			],
+			"file": "poison_bubbles_3.png",
+			"fps": 8.0,
+			"frame_size": [
+				24,
+				32
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "Poisoned ticks: green bubbles rising off the nightmare, looped; density 3 of 3 (more stacks, more bubbles). Anchor = its body centre; the bubbles rise 24 px above it."
 		},
 		"prism_beam": {
 			"anchor": [

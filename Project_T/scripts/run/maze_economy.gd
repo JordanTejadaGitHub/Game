@@ -5,7 +5,7 @@ extends RefCounted
 # attacker comparison. The anti-farm guard stays: each drift snapshots the rate at its start and a shorter route
 # (path_changed, and while nightmares walk) lowers the unpaid snapshots, so lengthening just before the rest or
 # selling walls mid-block doesn't pay.
-const CELLS_PER_DEW := 4
+const CELLS_PER_DEW := 2  # (4 before the Dew x2 second pass, 2026-10-13)
 var _baseline := PackedVector2Array()
 var _blocks: Dictionary = {}
 

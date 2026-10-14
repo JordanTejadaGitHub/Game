@@ -6,10 +6,12 @@
 script = ExtResource("1_card")
 id = "call_of_the_wild"
 display_name = "Call of the Wild"
-description = "Calling a {drift} early gives double {dew} (up to {dew:20} per {drift}), and that {drift} holds 10% more {dew}."
+description = "{drifts} you call early pay 25% more {dew}. Lose a {leaf} in one and it pays no bonus."
 rarity = 0
 kind = 3
-tags = Array[String](["tempo", "economy", "daring"])
+tags = Array[String](["tempo", "economy", "daring", "wager"])
 max_stacks = 1
 rule_id = &"call_of_the_wild"
-extra_rules = Array[StringName]([&"hurried_harvest"])
+extra_rules = Array[StringName]([])
+min_drift = 10
+tip = "Early means at least 10 s of the last {drift}'s arrival is skipped. The bonus is paid when the called {drift} is cleared."

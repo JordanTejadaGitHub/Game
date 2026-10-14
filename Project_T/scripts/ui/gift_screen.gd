@@ -17,7 +17,7 @@ const HINTS := {
 	&"line": "Click where it starts, then where it ends (%d–%d cells, straight).",
 	&"cell": "Click a cell.",
 	&"cells": "Click %d cells.",
-	&"path": "Click %d connected cells of the route.",
+	&"path": "Click %d connected cells of the path.",
 	&"area": "Click where it goes (%d×%d).",
 	&"move": "Click an obstacle, then where it goes (up to %d).",
 	&"warden": "Click one of your Wardens.",
@@ -33,41 +33,41 @@ const HINTS := {
 # 2026-10-07): the effect's gold numbers, chips and keys (CardScene's header lists them).
 const SCENES := {
 	&"sow_ridge": [".......\n.......\nSPPPPPH\n..a....\n.......", ".......\n.PPPPP.\nSP.O.PH\n..WO...\n...O...",
-		{"text": "+10%", "damage": 1.1}, "A ridge: they take the long road, and Wardens touching it hit 10% harder."],
+		{"text": "+30%", "damage": 1.3}, "A ridge: they take the long way round, and Wardens touching it deal 30% more damage."],
 	&"fallen_giant": [".......\n.......\nSPPPPPH\n...a...\n.......", ".......\n.PPPPP.\nSPLLLPH\n...W...\n.......",
-		{"crit": "Critical!"}, "A fallen giant they walk around; Wardens touching it get +15% crit chance."],
+		{"crit": "Crit"}, "A fallen giant nothing can trample: Wardens touching it can crit, whatever their family."],
 	&"glade": [".OO....\n.OO.O..\nSPPPPPH\n....O..\n.......", ".OO....\n.......\nSPPPPPH\n.......\n.......",
 		{"cleared": "free · tended"}, "The obstacles you pick are cleared for free, and each counts as tended."],
 	&"shift_stones": ["....OO.\n.......\nSPPPPPH\n.......\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...",
 		{"cleared": UiStyle.DEW_GLYPH + "+30"}, "The stones move where you need a wall, and each one pays Dew."],
-	&"mire": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSPBBBPH\n.......\n.......",
-		{"bog": "-20% speed"}, "Bog underfoot: they slow to 80%."],
+	&"mire": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSBBBBBH\n.......\n.......",
+		{"bog": "35% slower"}, "Bog underfoot: they walk 35% slower, and Rooted lasts twice as long there."],
 	&"spring": [".......\n...a...\n.......\nSPPPPPH\n.......", ".......\n.~~W...\n.~~....\nSPPPPPH\n.......",
-		{"text": "+20%", "damage": 1.2}, "Water Wardens beside the spring hit harder."],
+		{"zone": {"letters": "~", "cells": 2.0, "word": "", "every": 0.0}, "text": "+25% speed", "speed": 1.25}, "Wardens near the Spring attack faster, whatever their family."],
 	&"mushroom_ring": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n.kkkW..\nSPPPPPH\n.kkk...\n.......",
-		{"text": "+2 Poisoned cap"}, "Spore Wardens touching the ring poison deeper."],
+		{"zone": {"letters": "k", "cells": 1.0, "word": "+50% stacks", "every": 0.0}}, "Any status put on a nightmare standing in the ring lands with more stacks."],
 	&"lightning_tree": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n..z.W..\nSPPPPPH\n.......\n.......",
-		{"text": "+25% bolts", "damage": 1.25}, "Bolts near the dead tree strike harder."],
+		{"zone": {"letters": "z", "cells": 3.0, "word": "struck", "every": 1.6}}, "The Lightning Tree strikes the strongest nightmare near it, again and again."],
 	&"moonwell": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...mW..\nSPPPPPH\n.......\n.......",
-		{"text": "+1 range", "range": 1.0}, "Wardens beside the moonwell see further."],
+		{"zone": {"letters": "m", "cells": 2.0, "word": "", "every": 0.0}, "text": "+1.5 range", "range": 1.5}, "Wardens near the Moonwell reach further and see Hidden nightmares."],
 	&"bell_stone": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...bW..\nSPPPPPH\n.......\n.......",
-		{"text": "+15% speed", "speed": 1.15}, "Song Wardens beside the stone pulse faster."],
+		{"zone": {"letters": "b", "cells": 3.0, "word": "30% slower", "every": 1.6}}, "The Bell Stone rings: nightmares near it walk slower for a moment."],
 	&"ancient_stump": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n.u.R.u.\nSPPPPPH\n.......\n.......",
-		{"text": "rank I", "damage": 1.1}, "Plant on a stump: the Warden starts at rank I."],
+		{"text": "rank II", "damage": 1.2}, "Plant on a stump: the Warden gets 2 free ranks."],
 	&"heartwood_roots": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n....W..\nSPrrrrH\n.......\n.......",
-		{"text": "+15% taken", "damage": 1.15}, "Roots before the Heartwood: they take more there."],
-	&"thick_mist": [".......\n.......\nSPPPPPH\n.......\n.......", ".......\nM......\nSPPPPPH\nM......\n.......",
-		{"spacing": HeartwoodGifts.THICK_MIST_SPACING, "chip": "+25% apart"}, "Next act, they leave the mist 25% further apart."],
+		{"text": "+30% taken", "damage": 1.3}, "Roots before the Heartwood: nightmares are Rooted on entering and take more damage there."],
+	&"reshape": ["....OO.\n.......\nSPPPPPH\n....O..\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...",
+		{"cleared": UiStyle.DEW_GLYPH + "+30"}, "Move the obstacles into a wall, or clear them away; each one pays Dew."],
 	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
-		{"proc": "+1 Drowsy cap"}, "Thornwalls grow into Bramble free; it makes nightmares Drowsy."],
+		{"proc": "20% slower"}, "Thornwalls grow into Bramble free; Brambles slow the nightmares beside them."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
 		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
 	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......",
-		{"chip": UiStyle.DEW_GLYPH + " pots +10%"}, "The start mist moves: a new way in, and this act's Dew pots are +10%."],
+		{"chip": UiStyle.DEW_GLYPH + " +25%"}, "The start moves: a new way in, and this act's drifts give 25% more Dew."],
 	&"waking_root": [".......\n...f...\n.......\nSPPPPPH\n.......", ".......\n...f...\n.......\nSPPPPPH\n.......",
-		{"unlock": true, "price_from": 2, "price_to": 1}, "The next form you unlock costs 1 less Dreamlight."],
+		{"unlock": true, "price_from": 2, "price_to": 0}, "The next form you unlock is free."],
 	&"memory_seed": [".......\n.a.....\nSPPPPPH\n.......\n.......", ".......\n.....W.\nSPPPPPH\n.......\n.......",
-		{"text": "keeps its ranks"}, "Move a Warden this act: it keeps its ranks and kin."],
+		{"text": "keeps its ranks"}, "This act, a Warden you sell and plant again keeps its ranks and its Kinship."],
 }
 
 var drift_director: DriftDirector
@@ -182,9 +182,84 @@ func _ready() -> void:
 	UiStyle.primary(_plant)
 	_plant.pressed.connect(confirm_placing)
 	bar.add_child(_plant)
+	_hook_landmarks.call_deferred()  # After the map has made its gifts node
 	gifts.offer_closed.connect(func() -> void:
 		if visible:
 			_close())
+
+# --- A landmark arrives, and grows (heartwood_gifts.md "Gifts as landmarks" 5 and 3) -------------------------------
+# The arrival: the camera follows the Heartwood's roots to the spot (Environment Code's MapGifts.gift_arriving /
+# gift_arrived), holds a moment, then goes back where it was. Moving the view yourself ends it (the camera drops a
+# glide on any pan), and then it doesn't go back. None under reduced motion.
+const ARRIVAL_HOLD := 0.8
+const ARRIVAL_BACK := 1.0
+var _arrival_home := Vector2.INF  # Where the view was before the glide
+
+func _hook_landmarks() -> void:
+	var map := drift_director.get_node_or_null("%MapGenerator") if drift_director != null else null
+	var map_gifts = map.get("gifts") if map != null else null
+	if map_gifts != null and map_gifts.has_signal("gift_arriving"):
+		map_gifts.gift_arriving.connect(_on_gift_arriving)
+		map_gifts.gift_arrived.connect(_on_gift_arrived)
+	if gifts != null and gifts.has_signal("gift_grew"):
+		gifts.gift_grew.connect(_on_gift_grew)
+
+func _camera() -> Node:
+	return get_tree().get_first_node_in_group(&"game_camera")
+
+func _on_gift_arriving(_id: StringName, from: Vector2, to: Vector2, seconds: float) -> void:
+	var camera := _camera()
+	var view := get_viewport().get_camera_2d()
+	if camera == null or view == null or not camera.has_method("glide") or bool(Fx.setting("reduced_motion", false)):
+		return
+	_arrival_home = view.get_screen_center_position()
+	camera.glide(PackedVector2Array([_arrival_home, from, to]), maxf(seconds, 0.6))
+
+func _on_gift_arrived(_id: StringName, at: Vector2) -> void:
+	if _arrival_home == Vector2.INF:
+		return
+	var home := _arrival_home
+	_arrival_home = Vector2.INF
+	await get_tree().create_timer(ARRIVAL_HOLD, true, false, true).timeout
+	var camera := _camera()
+	var view := get_viewport().get_camera_2d() if is_inside_tree() else null
+	if camera == null or view == null or view.get_screen_center_position().distance_to(at) > 96.0:
+		return  # The player moved the view meanwhile: it stays where they put it
+	camera.glide(PackedVector2Array([at, home]), ARRIVAL_BACK)
+
+# A landmark grew a step at an act break: one short line each, in one toast.
+var _grew: Array[String] = []
+
+func _on_gift_grew(id: StringName, step: int, _placement: Dictionary) -> void:
+	_grew.append(growth_line(id, step))
+	if _grew.size() == 1:
+		_show_growth.call_deferred()
+
+func _show_growth() -> void:
+	var hud := get_parent()
+	if hud != null and hud.has_method("show_toast") and not _grew.is_empty():
+		hud.show_toast("\n".join(_grew))
+	_grew.clear()
+
+# "The Spring grows: it now Soaks 3 stacks a second." Numbers from HeartwoodGifts at the new step.
+static func growth_line(id: StringName, step: int) -> String:
+	var gift_name: String = HeartwoodGifts.POOL[id].name if HeartwoodGifts.POOL.has(id) else String(id).capitalize()
+	var head := "The %s grows" % gift_name if not gift_name.ends_with("s") else "The %s grow" % gift_name
+	match id:
+		&"spring":
+			return "%s: Wardens near it now attack %d%% faster." % [head, roundi(HeartwoodGifts.stat(id, "attack_speed", step) * 100.0)]
+		&"lightning_tree":
+			return "%s: it now strikes every %s s, and harder." % [head, str(snappedf(HeartwoodGifts.stat(id, "strike_every", step), 0.1))]
+		&"bell_stone":
+			return "%s: its ring now slows nightmares by %d%% for %s s." % [head, roundi(HeartwoodGifts.stat(id, "slow", step) * 100.0), str(snappedf(HeartwoodGifts.stat(id, "slow_seconds", step), 0.1))]
+		&"mushroom_ring":
+			return "%s: statuses put on nightmares inside it now land with %d%% more stacks." % [head, roundi(HeartwoodGifts.stat(id, "status_stacks_share", step) * 100.0)]
+		&"moonwell":
+			return "%s: Wardens near it now get +%s range." % [head, str(snappedf(HeartwoodGifts.stat(id, "range", step), 0.01))]
+		&"heartwood_roots":
+			return "%s: they now cover %d cells of path, and nightmares there take %d%% more damage." % [head,
+				roundi(HeartwoodGifts.stat(id, "path_cells", step)), roundi(HeartwoodGifts.stat(id, "damage_taken", step) * 100.0)]
+	return "%s (step %s)." % [head, HeartwoodGifts.STEP_NAMES[clampi(step, 0, HeartwoodGifts.STEP_NAMES.size() - 1)]]
 
 # Opens once the Dream (and the family pick) are done: DriftDirector.pending_choice() names the gift.
 func _process(_delta: float) -> void:
@@ -202,7 +277,7 @@ func open() -> void:
 		child.queue_free()
 	for id in gifts.current_offer:
 		_cards.add_child(_card(id))
-	_pass.text = "Let them pass, +%d" % gifts.pass_dew()  # The Dew glyph after it (no " · ")
+	_pass.text = "Skip the gifts, +%d" % gifts.pass_dew()  # The Dew glyph after it (no " · ")
 	if not gifts.current_offer.is_empty():
 		show_scene(gifts.current_offer[0])
 	visible = true
@@ -212,6 +287,10 @@ func open() -> void:
 # A gift card styled like the Dream cards (user: plain centred text looked unfinished): its emblem (UI Asset's gift
 # icon "gift_<id>" once drawn, else its category's glyph), the name in the display font, the category in small caps
 # in its colour, and the text in the body font with status words linked. Solid, like every paused card.
+# The three kinds an offer holds (heartwood_gifts.md "Gifts as landmarks"): the small label on each card, its glyph
+# and colour.
+const KIND_LABELS := {&"land": "Shape the land", &"landmark": "Landmark", &"boon": "Boon"}
+const KIND_STYLE := {&"land": [&"stone", Palette.MOONLIGHT], &"landmark": [&"root", Palette.SPRIG], &"boon": [&"leaves", UiStyle.GOLD]}
 const GROUP_STYLE := {
 	"Shape the land": [&"stone", Palette.MOONLIGHT],
 	"Living ground": [&"root", Palette.SPRIG],
@@ -242,7 +321,8 @@ const CARD_SIZE := Vector2(300, 220)  # Light pass: 300 wide, grows with its tex
 
 func _card(id: StringName) -> Button:
 	var gift: Dictionary = HeartwoodGifts.POOL[id]
-	var style: Array = GROUP_STYLE.get(gift.group, [&"leaves", UiStyle.GOLD])
+	var kind: StringName = HeartwoodGifts.kind_of(id)
+	var style: Array = KIND_STYLE.get(kind, GROUP_STYLE.get(gift.group, [&"leaves", UiStyle.GOLD]))
 	var colour: Color = style[1]
 	var button := Button.new()
 	button.name = String(id)
@@ -299,7 +379,7 @@ func _card(id: StringName) -> Button:
 	names.add_child(title)
 	var group := Label.new()
 	group.name = "Category"
-	group.text = gift.group
+	group.text = KIND_LABELS.get(kind, gift.group)
 	UiStyle.caps(group, 13, colour)
 	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	names.add_child(group)
@@ -312,6 +392,11 @@ func _card(id: StringName) -> Button:
 	for i in range(1, sentences.size()):
 		var line := String(sentences[i]).trim_suffix(".")
 		box.add_child(_bullet(line))
+	if kind == HeartwoodGifts.KIND_LANDMARK:  # That it grows (no family line: every gift is generic, heartwood_gifts.md "Amendment")
+		var grows := StatusLinks.make_label(HeartwoodGifts.GROWS_LINE, 14, UiStyle.INK_DIM)
+		grows.name = "Grows"
+		grows.mouse_filter = Control.MOUSE_FILTER_PASS
+		box.add_child(grows)
 	var spare := Control.new()
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -350,10 +435,34 @@ func _bullet(text: String) -> Control:
 	return row
 
 # Plays gift `id`'s before → after mini-scene in the preview (a still after-diagram under reduced motion).
+# A gift's scene with its numbers read from HeartwoodGifts at the step the player's landmark has reached (step I on
+# the offer): [before, after, effect, caption].
+func scene_for(id: StringName) -> Array:
+	var scene: Array = (SCENES[id] as Array).duplicate(true)
+	var step := maxi(gifts.step_of(id), 1) if gifts != null else 1
+	var effect: Dictionary = scene[2]
+	if effect.get("zone") is Dictionary and HeartwoodGifts.zone_cells(id) > 0.0:
+		effect.zone["cells"] = HeartwoodGifts.zone_cells(id)
+	match id:
+		&"spring":
+			effect["speed"] = 1.0 + HeartwoodGifts.stat(id, "attack_speed", step)
+			effect["text"] = "+%d%% speed" % roundi(HeartwoodGifts.stat(id, "attack_speed", step) * 100.0)
+		&"bell_stone":
+			effect.zone["word"] = "%d%% slower" % roundi(HeartwoodGifts.stat(id, "slow", step) * 100.0)
+		&"mushroom_ring":
+			effect.zone["word"] = "+%d%% stacks" % roundi(HeartwoodGifts.stat(id, "status_stacks_share", step) * 100.0)
+		&"moonwell":
+			effect["range"] = HeartwoodGifts.stat(id, "range", step)
+			effect["text"] = "+%s range" % str(snappedf(HeartwoodGifts.stat(id, "range", step), 0.01))
+		&"heartwood_roots":
+			effect["damage"] = 1.0 + HeartwoodGifts.stat(id, "damage_taken", step)
+			effect["text"] = "+%d%% taken" % roundi(HeartwoodGifts.stat(id, "damage_taken", step) * 100.0)
+	return scene
+
 func show_scene(id: StringName) -> void:
 	if not SCENES.has(id) or preview == null:
 		return
-	var scene: Array = SCENES[id]
+	var scene: Array = scene_for(id)
 	preview.show_scene(scene[0], scene[1], scene[2], scene[3])
 	preview.set_meta(&"gift", id)
 
@@ -892,7 +1001,7 @@ class GiftPlacer extends Node2D:
 	# The real art MapGifts will put down (its own sheets and tiles, so the preview always matches), see-through on the
 	# picked cells plus the hovered next step, a thin footprint outline, and the effect's reach as a dashed square.
 	const GHOST_ALPHA := 0.6
-	const REACH := {&"moonwell": 1, &"bell_stone": 1, &"lightning_tree": 2, &"spring": 2}  # Cells around the footprint
+	# (The reach is the landmark's zone: HeartwoodGifts.zone_cells(id), cells from the footprint's edge.)
 
 	# The picked cells plus what the next click would add.
 	func _ghost_preview(picked: Array) -> Array:
@@ -914,6 +1023,7 @@ class GiftPlacer extends Node2D:
 
 	# Draws the ghost of `ghost` cells; false when this gift has no art to show (the caller draws plain marks).
 	func _draw_ghost(ghost: Array) -> bool:
+		_draw_zone(ghost)  # Before the art, and also when this gift has none to show
 		var gifts = map.get("gifts")
 		if gifts == null or ghost.is_empty() or not gifts.get("_sheets") is Dictionary:
 			return false
@@ -972,12 +1082,42 @@ class GiftPlacer extends Node2D:
 		for c in ghost:  # The footprint: a thin outline, the cold tint when it can't go there
 			draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size).grow(-2),
 				Color(Palette.SPRIG if ok else Palette.EMBER, 0.7), false, 1.5)
-		if REACH.has(id):
+		return true
+
+	# The zone a landmark will hold, round the ghost: its reach, the path cells and the planted Wardens inside it.
+	func _draw_zone(ghost: Array) -> void:
+		if ghost.is_empty() or map == null:
+			return
+		var cell_size := Vector2(map.MAP_GRID.cell_size)
+		var zone := HeartwoodGifts.zone_cells(id)
+		if zone > 0.0:  # The zone it will hold, and what falls inside it: your Wardens and the path
 			var box := Rect2(map.MAP_GRID.calculate_map_position(ghost[0]) - cell_size / 2.0, cell_size)
 			for c in ghost:
 				box = box.merge(Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size))
-			_dashed_rect(box.grow(cell_size.x * REACH[id]), Color(Palette.SPRIG, 0.55))
-		return true
+			var reach := box.grow(cell_size.x * zone)
+			draw_rect(reach, Color(Palette.SPRIG, 0.07))
+			_dashed_rect(reach, Color(Palette.SPRIG, 0.55))
+			var inside := zone_contents(reach)
+			for point in inside.path:  # Cells of path in the zone: a small dot each
+				draw_circle(point, 4.0, Color(Palette.SPRIG, 0.8))
+			for tower in inside.wardens:  # Planted Wardens in the zone: ringed
+				draw_arc(to_local(tower.global_position), cell_size.x * 0.46, 0.0, TAU, 24, Color(UiStyle.GOLD, 0.9), 2.0, true)
+			var label_at := Vector2(reach.get_center().x, reach.position.y - 8.0)
+			WorldLabel.draw_tag(self, label_at.x, label_at.y, "%d Wardens · %d cells of path in its zone" % [inside.wardens.size(), inside.path.size()], Palette.SPRIG)
+
+	# What a zone (a rect in this node's space) holds: {wardens: planted Wardens, path: the centres of its path cells}.
+	func zone_contents(reach: Rect2) -> Dictionary:
+		var wardens: Array = []
+		var container := director.get_node_or_null("%TowerContainer")
+		for tower in (container.get_children() if container != null else []):
+			if tower is Tower and reach.has_point(to_local(tower.global_position)):
+				wardens.append(tower)
+		var path: Array[Vector2] = []
+		for cell in Tower.route_cells(map.get_path_from(map.startPath)):
+			var at: Vector2 = map.MAP_GRID.calculate_map_position(cell)
+			if reach.has_point(at):
+				path.append(at)
+		return {"wardens": wardens, "path": path}
 
 	# A sprite whose bottom 64 px sit on `cell` (tall art overhangs the cells above), as MapGifts' props and trees.
 	func _tall(texture: Texture2D, region: Rect2, cell: Vector2, tint: Color) -> void:

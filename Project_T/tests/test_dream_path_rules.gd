@@ -34,7 +34,8 @@ func _run() -> void:
 	_check(donor.statuses.stacks(EnemyStatuses.SPORED) == 2, "new bend respects pair cooldown")
 	rules.native_status(tower, donor, EnemyStatuses.SPORED, true, true, 3.0)
 	_check(donor.statuses.stacks(EnemyStatuses.SPORED) == 3, "later native hit can pay cooled new bend")
-	dreams.stacks = {"passing_thread": 1}
+	dreams.stacks = {}
+	_carry_card(dreams)
 	donor.statuses = EnemyStatuses.new()
 	donor.apply_status(EnemyStatuses.SPORED, 4, 5.0, 7.0, 0, "mushroom", tower)
 	donor.statuses.tick(2.0)
@@ -108,7 +109,8 @@ func _run() -> void:
 	donor.set_meta(&"unique_bend_serial", 3)
 	rules.native_status(tower, donor, EnemyStatuses.MARKED, true, true, 6.0)
 	_check(donor.statuses.stacks(EnemyStatuses.MARKED) == 10, "Corner Sign respects normal status cap")
-	dreams.stacks = {"passing_thread": 1}
+	dreams.stacks = {}
+	_carry_card(dreams)
 	donor.statuses = EnemyStatuses.new()
 	donor.apply_status(EnemyStatuses.HELD, 4)
 	receiver.statuses = EnemyStatuses.new()
@@ -162,3 +164,18 @@ func _check(ok: bool, label: String) -> void:
 	if not ok:
 		failures += 1
 		printerr("FAIL: " + label)
+
+
+# The old Passing Thread (a target switch carries one status) is the rule passing_thread_carry since 2026-10-13: no card
+# grants it now, so the test lends one.
+func _carry_card(state: DreamState) -> void:
+	for card in state.pool:
+		if card.id == "passing_thread_carry":
+			state.stacks[card.id] = 1
+			return
+	var carry := UpgradeData.new()
+	carry.id = "passing_thread_carry"
+	carry.rule_id = &"passing_thread_carry"
+	state.pool.append(carry)
+	state.stacks[carry.id] = 1
+	state.bump_board()

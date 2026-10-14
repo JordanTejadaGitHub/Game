@@ -1,0 +1,553 @@
+extends RefCounted
+# The run-shaping generic Dream cards (dream_council_review.md 22 to 24; the owner 2026-10-13: "a different job, but
+# the generic cards should be good for every class"). DreamState holds one of these (`batch`) and calls in; Tower,
+# Enemy, TowerPlacer, DriftDirector and OmenDirector ask DreamState. Every number is a starting point for Balancing
+# and lives here, in one place.
+
+# --- Numbers ------------------------------------------------------------------------------------------------------
+const GROWTH_RINGS_MAX_RANK := 3  # The free rank never lifts a Warden past rank III (banked ranks count)
+const GROWTH_RINGS_CONFIRM_SECONDS := 6.0  # A second plant within this long confirms giving the rank up
+const REACH_RANK := 1  # Heartwood's Reach: the first Warden planted on each cleared cell arrives with this many free ranks
+const SEEDFALL_PRICE := 10  # Seedfall: every Sprout costs this; the price never climbs
+const WINDING_PATH_MULTIPLIER := 3.0  # Winding Path: the maze's rest Dew, tripled
+const CALL_OF_THE_WILD_SHARE := 0.25  # Call of the Wild: a drift called early pays this much more of its Dew…
+const PRESS_ON_CALLS := 3  # Press On: this many drifts of a block called early, and no leaf lost…
+const PRESS_ON_LEAVES := 1  # …regrows this many leaves, once a block
+const FRESH_GROWTH_SPEED := 1.0  # Fresh Growth: +100% attack speed ("twice as fast")…
+const FRESH_GROWTH_TIME := 8.0  # …for this long, on the Warden and every Warden touching it
+const HELD_BREATH_WIN := 3.0  # Held Breath: a clean block's rest bonus is tripled; a leaf lost pays 0
+const THORNY_LASH := 3.0  # Thorny Walls: the lash is this x the drift's health growth (DriftDirector.get_growth)…
+const THORNY_CEILING := 0.25  # …and thorns never take more than this share of one nightmare's health
+const THORNY_BOSS_CEILING := 0.10  # (bosses and Deeply Blighted nightmares)
+const THORNY_TWIG_SHARE := 0.25  # A twig wall lashes for a quarter
+const COZY_CORNERS_BONUS := 0.30  # Cozy Corners: the Warden on the inside of a bend
+const PASSING_THREAD_BONUS := 0.5  # Passing Thread: from a Warden's second stretch of route on
+const PASSING_THREAD_GAP := 3  # Route cells out of reach between two stretches for the later one to count as a new pass
+const BEND_STRAIGHT_STEPS := 2  # A bend has one full cell (2 half-cell steps) of straight path on each side
+const SNAG_SECONDS := 4.0  # Snag: a snagged flyer walks the maze this long
+const SNAG_FLYERS_WITHIN := 10  # Snag is only offered while a flyer is due within this many drifts
+const SNAG_REACH := 0.75  # Cells from a Thornwall's centre a flyer must pass within
+const LONG_WAY_PER_BEND := 0.02  # Long Way Round: bosses and Deeply Blighted take this much more per bend behind them…
+const LONG_WAY_MAX := 0.40  # …up to this
+const DARK_SKIES_DEW := 50  # Dark Skies: every Omen seen through pays this much more (x the act and the Omen's share)
+const HEELS_PER_CALL := 0.10  # Hot on Their Heels: per drift called early this block…
+const HEELS_MAX := 0.40  # …up to this, until the rest; a leaf lost clears it
+const CLEAN_NIGHT_BLOCKS := 2  # A Clean Night: this many clean blocks in a row…
+const CLEAN_NIGHT_DREAMLIGHT := 1  # …give this much Dreamlight; a leaf lost pays no rest bonus at that rest
+const FRONT_LINE_FIRST := 0.30  # Front Line: damage taken in the first half of the route: +30%…
+const FRONT_LINE_SECOND := 0.30  # …and 30% less in the second
+const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
+const LONG_WALK_MAX := 0.60  # The Long Walk's cap
+const WAGER_TAG := "wager"  # At most one per offer (DreamState._draw_card); none before the drift 10 rest (min_drift)
+const WAGER_FROM_DRIFT := 10
+const PRICE_TAG := "price"  # A permanent cost: a "Price" line, never a "Wager" line
+# The 12 batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted.
+const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path", "call_of_the_wild",
+	"press_on", "fresh_growth", "held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]
+
+# --- State (saved with the run: to_save / load_save) ----------------------------------------------------------------
+var rings_planted := false  # Growth Rings: something was planted since the last rest's start
+var rings_result := ""  # "", "lost", or the Warden's name that got the rank: the rest report's line for the rest just begun
+var leaves_mark := 0  # RunState.leaves_lost when the block began: leaves lost this block = leaves_lost - this
+var press_on_paid := false  # Press On: paid this block
+var reach_cells := {}  # Heartwood's Reach: cleared cells whose free rank is used ("x,y" -> true)
+var clean_streak := 0  # A Clean Night: clean blocks in a row
+var heels := 0  # Hot on Their Heels: early calls counted this block (cleared by a lost leaf)
+var held_result := ""  # Held Breath: "tripled" / "lost" for the rest just begun
+# Not saved (a save is made at a rest, with nothing on the field):
+var _rings_confirm_until := -1.0
+var _rings_confirmed := false
+var _wild := {}  # Call of the Wild: drift number -> {leaves: leaves_lost at its start, pot: its Dew}
+var _first := {}  # First Light: "cell:nightmare id" -> true
+var _snagged := {}  # Snag: wall instance id -> drift number
+var route_serial := 0  # Bumped whenever the route changes (Passing Thread's stretches are cached per Warden)
+var bend_points := {}  # Route point (grid, half-cell) -> true: the route's bends (see bend_indices)
+var bend_inside := []  # Vector2 (px): the inside corner of each bend (Cozy Corners)
+var bend_left := []  # float (px): each bend's distance from the Heartwood along the route (Long Way Round)
+var route_px := 0.0  # The route's length in px
+var _route_index := {}  # Route point -> its index on the route (Passing Thread)
+
+func to_save() -> Dictionary:
+	return {"rings_planted": rings_planted, "leaves_mark": leaves_mark, "press_on_paid": press_on_paid,
+		"reach_cells": reach_cells.keys(), "clean_streak": clean_streak, "heels": heels}
+
+func load_save(data: Dictionary) -> void:
+	rings_planted = bool(data.get("rings_planted", false))
+	leaves_mark = int(data.get("leaves_mark", 0))
+	press_on_paid = bool(data.get("press_on_paid", false))
+	reach_cells.clear()
+	for key in data.get("reach_cells", []):
+		reach_cells[String(key)] = true
+	clean_streak = int(data.get("clean_streak", 0))
+	heels = int(data.get("heels", 0))
+
+# --- Shared rules -------------------------------------------------------------------------------------------------
+
+# Leaves actually lost this block: a leak Hardened Bark absorbs is not a leaf lost (the rest's `perfect` flag is
+# "nothing reached the Heartwood", which that leak breaks).
+func leaves_lost(dreams: DreamState) -> int:
+	return maxi(dreams.run_state.leaves_lost - leaves_mark, 0)
+
+func clean_block(dreams: DreamState) -> bool:
+	return leaves_lost(dreams) == 0
+
+# The bends of a half-cell route: the indices of the points where it turns with at least one full cell of straight
+# path before and after. A half-cell jog is not a bend. Every per-bend card reads this one list (Switchback, Corner
+# Sign, Cozy Corners, Long Way Round).
+static func bend_indices(path: PackedVector2Array) -> PackedInt32Array:
+	var bends := PackedInt32Array()
+	for i in range(BEND_STRAIGHT_STEPS, path.size() - BEND_STRAIGHT_STEPS):
+		var before: Vector2 = path[i] - path[i - 1]
+		var after: Vector2 = path[i + 1] - path[i]
+		if before.is_equal_approx(after):
+			continue
+		var straight := true
+		for k in range(1, BEND_STRAIGHT_STEPS):
+			if not (path[i - k] - path[i - k - 1]).is_equal_approx(before) or not (path[i + k + 1] - path[i + k]).is_equal_approx(after):
+				straight = false
+		if straight:
+			bends.append(i)
+	return bends
+
+# DreamState._update_bends calls this with the new route: the bend list and what each bend card needs from it.
+func route_changed(dreams: DreamState, path: PackedVector2Array) -> void:
+	route_serial += 1
+	bend_points.clear()
+	bend_inside.clear()
+	bend_left.clear()
+	_route_index.clear()
+	var grid = dreams.map_generator.MAP_GRID
+	var cell_px: float = grid.cell_size.x
+	var left := PackedFloat32Array()
+	left.resize(path.size())
+	var total := 0.0
+	for i in range(path.size() - 1, -1, -1):
+		if i < path.size() - 1:
+			total += path[i].distance_to(path[i + 1]) * cell_px
+		left[i] = total
+		_route_index[path[i]] = i
+	route_px = total
+	for i in bend_indices(path):
+		bend_points[path[i]] = true
+		var before: Vector2 = (path[i] - path[i - 1]).normalized()
+		var after: Vector2 = (path[i + 1] - path[i]).normalized()
+		# The inside of the turn: one lane's width (half a cell) diagonally back and towards where the path goes
+		bend_inside.append(grid.calculate_map_position(path[i] + (after - before) * 0.5))
+		bend_left.append(left[i])
+
+func is_bend_point(point: Vector2) -> bool:
+	return bend_points.has(point)
+
+func bend_count() -> int:
+	return bend_left.size()
+
+# A nightmare's share of its route walked, 0..1 (a flyer: of its own line).
+func route_share(enemy: Node2D) -> float:
+	var left: float = enemy.get_remaining_distance()
+	var total := route_px
+	if enemy.is_flying() or total <= 0.0:
+		total = maxf(float(enemy.get_meta(&"batch_route_total", 0.0)), left)
+		enemy.set_meta(&"batch_route_total", total)
+	return clampf(1.0 - left / total, 0.0, 1.0) if total > 0.0 else 0.0
+
+# Bends of the route behind a walking nightmare, read from where it stands (pull-backs and laps cannot farm it).
+func bends_behind(enemy: Node2D) -> int:
+	if enemy.is_flying():
+		return 0
+	var left: float = enemy.get_remaining_distance()
+	var count := 0
+	for at in bend_left:
+		if float(at) > left:
+			count += 1
+	return count
+
+# --- Rests --------------------------------------------------------------------------------------------------------
+
+# The base rest bonus's multiplier (DriftDirector._pay_rest_bonus, before Morning Dew and the maze's Dew): Held
+# Breath triples a clean block's and pays nothing with a leaf lost; A Clean Night pays nothing with a leaf lost.
+func rest_bonus_multiplier(dreams: DreamState) -> float:
+	var clean := clean_block(dreams)
+	held_result = ""
+	if dreams.has_rule(&"held_breath"):
+		held_result = "tripled" if clean else "lost"
+		return HELD_BREATH_WIN if clean else 0.0
+	if dreams.has_rule(&"clean_night") and not clean:
+		return 0.0
+	return 1.0
+
+func maze_multiplier(dreams: DreamState) -> float:
+	return WINDING_PATH_MULTIPLIER if dreams.has_rule(&"winding_path") else 1.0
+
+# At each rest's start, before the block's counters reset: Growth Rings, Press On, A Clean Night. `excluded`: Wardens
+# another free-rank card raised at this rest.
+func rest(dreams: DreamState, early_calls: int, excluded: Array) -> void:
+	var clean := clean_block(dreams)
+	rings_result = ""
+	if dreams.has_rule(&"growth_rings"):
+		rings_result = "lost"
+		if not rings_planted:
+			var top := _rings_target(dreams, excluded)
+			rings_result = "no Warden below rank III"
+			if top != null:
+				top.bank_rank()
+				rings_result = top.tower_data.display_name
+				dreams._credit("growth_rings", "dew", float(Tower.RANK_COSTS[mini(top.rank + top.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
+				dreams.sunlit_granted.emit([top])
+	if dreams.has_rule(&"press_on") and not press_on_paid and clean and early_calls >= PRESS_ON_CALLS:
+		dreams.run_state.regrow_leaves(PRESS_ON_LEAVES)
+		dreams._credit("press_on", "leaves", float(PRESS_ON_LEAVES))
+	if dreams.has_rule(&"clean_night"):
+		clean_streak = clean_streak + 1 if clean else 0
+		if clean_streak >= CLEAN_NIGHT_BLOCKS:
+			clean_streak = 0
+			dreams.add_dreamlight(CLEAN_NIGHT_DREAMLIGHT, &"dream")
+	else:
+		clean_streak = 0
+	# A new window and a new block
+	rings_planted = false
+	_rings_confirmed = false
+	press_on_paid = false
+	heels = 0
+	leaves_mark = dreams.run_state.leaves_lost
+	_wild.clear()
+	_snagged.clear()
+	for tower in dreams._towers():
+		tower.set_meta(&"batch_stood_at_rest", true)  # Fresh Growth: only Wardens standing at the last rest
+
+# Growth Rings: the block's top Warden by damage among those that can still take a free rank up to III.
+func _rings_target(dreams: DreamState, excluded: Array) -> Tower:
+	var log := DamageLog.instance
+	if log == null:
+		return null
+	for row in log.get_top_towers("block", 50):
+		var tower: Tower = row.get("tower") as Tower
+		if tower == null or not is_instance_valid(tower) or excluded.has(tower) or not tower.can_nurture():
+			continue
+		if DreamState.ranks_with_banked(tower) >= mini(GROWTH_RINGS_MAX_RANK, dreams.get_max_rank_for(tower)):
+			continue
+		return tower
+	return null
+
+# The rest report's lines for the rest just begun ("" = none).
+func report_lines(dreams: DreamState) -> String:
+	var text := ""
+	if dreams.has_rule(&"growth_rings") and rings_result != "":
+		text += "\nGrowth Rings: %s" % ("lost (you planted this block)" if rings_result == "lost" else
+			(rings_result if rings_result.begins_with("no ") else "a free rank waits on %s" % rings_result))
+	if dreams.has_rule(&"held_breath") and held_result != "":
+		text += "\nHeld Breath: rest bonus %s" % held_result
+	return text
+
+# --- Planting -----------------------------------------------------------------------------------------------------
+
+# Growth Rings: the first plant of a clean window asks once (TowerPlacer refuses that press and toasts; the next
+# plant within GROWTH_RINGS_CONFIRM_SECONDS, or any plant after it this window, goes through).
+func rings_blocks_plant(dreams: DreamState) -> bool:
+	if not dreams.has_rule(&"growth_rings") or rings_planted or _rings_confirmed:
+		return false
+	if DisplayServer.get_name() == "headless":
+		return false  # Sims and tests plant without a player to ask
+	var now := Time.get_ticks_msec() / 1000.0  # Real time: building works while paused
+	if now <= _rings_confirm_until:
+		_rings_confirmed = true
+		return false
+	_rings_confirm_until = now + GROWTH_RINGS_CONFIRM_SECONDS
+	var hud: Node = dreams.owner.get_node_or_null("HUD") if dreams.owner != null else null
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast("Growth Rings: planting gives up this block's free rank. Plant again to confirm.")
+	return true
+
+func rings_line(dreams: DreamState) -> String:
+	return "Now: you planted this block, no free rank at the next rest" if rings_planted else "Now: nothing planted, a free rank at the next rest"
+
+# Every plant (TowerPlacer.tower_built: free ones and ones made while paused too). Selling it does not undo this.
+func planted(dreams: DreamState, tower: Tower) -> void:
+	rings_planted = true
+	tower.set_meta(&"batch_stood_at_rest", false)
+	if not dreams.has_card("heartwoods_reach") or not tower.tower_data.can_attack:
+		return
+	# Heartwood's Reach: the first Warden on each cleared cell arrives at rank I. One rank per Warden, however many
+	# cleared cells its footprint covers, and every covered cell is used up. A Thornwall never uses a cell up.
+	var fresh := false
+	for cell in tower.get_cells():
+		var key := "%d,%d" % [roundi(cell.x), roundi(cell.y)]
+		if dreams.run_state.tended_cells.has(cell) and not reach_cells.has(key):
+			reach_cells[key] = true
+			fresh = true
+	if fresh and tower.can_nurture():
+		tower.bank_rank(REACH_RANK)
+		dreams._credit("heartwoods_reach", "dew", float(Tower.RANK_COSTS[0]))
+
+# --- Calling early ------------------------------------------------------------------------------------------------
+
+# A drift started. `early`: called with at least DriftDirector.call_early_min_seconds of arrival skipped.
+func drift_started(dreams: DreamState, number: int, early: bool) -> void:
+	_first.clear()
+	if not early:
+		return
+	if dreams.has_rule(&"hot_on_their_heels") and clean_block(dreams):
+		heels += 1
+		dreams.bump_board()
+	if dreams.has_rule(&"call_of_the_wild"):
+		_wild[number] = {"leaves": dreams.run_state.leaves_lost, "pot": dreams.drift_director.get_effective_pot(number, true)}
+
+# A drift was cleared (deferred by DreamState, so a last nightmare's leaf is counted): Call of the Wild pays its
+# bonus when no leaf was lost since that drift began.
+func drift_cleared(dreams: DreamState, number: int) -> void:
+	if not _wild.has(number):
+		return
+	var record: Dictionary = _wild[number]
+	_wild.erase(number)
+	if dreams.run_state.leaves_lost > int(record.leaves) or dreams.run_state.is_over:
+		return
+	var dew := roundi(float(record.pot) * CALL_OF_THE_WILD_SHARE)
+	if dew > 0:
+		dreams.run_state.add_dew(dew)
+		dreams._credit("call_of_the_wild", "dew", float(dew))
+
+func leaves_changed(dreams: DreamState) -> void:
+	if heels > 0 and not clean_block(dreams):
+		heels = 0  # Hot on Their Heels: a lost leaf clears it
+		dreams.bump_board()
+
+func heels_bonus(dreams: DreamState) -> float:
+	return minf(HEELS_PER_CALL * heels, HEELS_MAX) if dreams.has_rule(&"hot_on_their_heels") else 0.0
+
+# --- Growing during a drift ---------------------------------------------------------------------------------------
+
+# Fresh Growth: a Warden grown or Nurtured during a drift, if it stood at the last rest: it and every Warden touching
+# it attack twice as fast for 8 s. Each Warden can receive the burst once per drift.
+func grown(dreams: DreamState, tower: Tower) -> void:
+	if not dreams.has_rule(&"fresh_growth") or dreams.drift_director.resting or not is_instance_valid(tower):
+		return
+	if not tower.get_meta(&"batch_stood_at_rest", true):
+		return  # Planted this block: selling, replanting and regrowing buys nothing
+	var drift: int = dreams.drift_director.drifts_started
+	var cell_px: float = tower.MAP_GRID.cell_size.x
+	var any := false
+	for other in dreams._towers():
+		if not other.tower_data.can_attack or int(other.get_meta(&"batch_fresh_drift", -1)) == drift:
+			continue
+		var away: Vector2 = (other.global_position - tower.global_position).abs()
+		if other != tower and maxf(away.x, away.y) > cell_px * 1.05:
+			continue  # Touching: the 8 cells around it
+		other.set_meta(&"batch_fresh_drift", drift)
+		other.set_meta(&"batch_fresh_until", dreams._game_clock + FRESH_GROWTH_TIME)
+		any = true
+	if any:
+		_fresh_until = maxf(_fresh_until, dreams._game_clock + FRESH_GROWTH_TIME)
+		dreams.bump_board()
+
+var _fresh_until := -1.0
+
+func is_fresh(dreams: DreamState, tower: Tower) -> bool:
+	return tower != null and float(tower.get_meta(&"batch_fresh_until", -1.0)) > dreams._game_clock
+
+# DreamState._process: the bursts end (the Wardens' card rows are rebuilt once).
+func tick(dreams: DreamState) -> void:
+	if _fresh_until > 0.0 and dreams._game_clock >= _fresh_until:
+		_fresh_until = -1.0
+		dreams.bump_board()
+
+# --- The maze cards -----------------------------------------------------------------------------------------------
+
+# Cozy Corners: whether the Warden at `at` (px) covers the inside corner of a bend. One Warden per bend; two bends
+# around one wall tip pay that Warden once.
+func on_inside_corner(dreams: DreamState, at: Vector2) -> bool:
+	var half: float = dreams.map_generator.MAP_GRID.cell_size.x * 0.5 + 1.0
+	for corner in bend_inside:
+		var away: Vector2 = (corner - at).abs()
+		if maxf(away.x, away.y) <= half:
+			return true
+	return false
+
+# Passing Thread: the stretches of route in a Warden's range, as [first index, last index] pairs in route order,
+# joined when fewer than PASSING_THREAD_GAP cells of route lie between them. Cached on the Warden per route and range.
+func thread_stretches(dreams: DreamState, tower: Tower) -> Array:
+	var reach: float = tower.get_range_pixels()
+	var key := [route_serial, roundi(reach), tower.global_position]
+	if tower.get_meta(&"batch_thread_key", []) == key:
+		return tower.get_meta(&"batch_thread", [])
+	var grid = dreams.map_generator.MAP_GRID
+	var points: Array = _route_index.keys()
+	points.sort_custom(_by_route_index)
+	var stretches := []
+	var start := -1
+	var last := -1
+	for i in points.size():
+		var inside: bool = grid.calculate_map_position(points[i]).distance_to(tower.global_position) <= reach
+		if inside:
+			if start < 0:
+				start = i
+			last = i
+		elif start >= 0 and i - last > PASSING_THREAD_GAP * 2:  # Half-cell steps
+			stretches.append([start, last])
+			start = -1
+	if start >= 0:
+		stretches.append([start, last])
+	tower.set_meta(&"batch_thread_key", key)
+	tower.set_meta(&"batch_thread", stretches)
+	return stretches
+
+func _by_route_index(a: Vector2, b: Vector2) -> bool:
+	return int(_route_index[a]) < int(_route_index[b])
+
+# How many times the route passes `tower` (the build ghost and the Warden panel: "passes this Warden 3 times").
+func thread_passes(dreams: DreamState, tower: Tower) -> int:
+	return thread_stretches(dreams, tower).size()
+
+# Whether `enemy` is on its second or later pass of `tower`: it stands on a later stretch than the first. Read from
+# its place on the route, so a pull-back cannot farm it; a flyer on its straight line never passes twice.
+func on_later_pass(dreams: DreamState, tower: Tower, enemy: Node2D) -> bool:
+	if enemy.is_flying():
+		return false
+	var stretches := thread_stretches(dreams, tower)
+	if stretches.size() < 2:
+		return false
+	var index: int = int(_route_index.get(enemy.get_target_cell(), -1))
+	return index >= int(stretches[1][0])
+
+# --- Damage -------------------------------------------------------------------------------------------------------
+
+# Enemy.take_damage asks once per damage event: what the batch cards and the Rares multiply it by. `source` is the
+# Warden credited (ticks and clouds keep their applier), so status damage counts like hits.
+func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: StringName) -> float:
+	var multiplier := 1.0
+	var tower := source as Tower
+	if tower != null and tower.tower_data.can_attack:
+		if dreams.has_rule(&"first_light"):
+			# Keyed by the Warden's cell, not its node: selling and replanting mid-drift does not re-arm it
+			var key := "%s:%d" % [tower.cell, enemy.get_instance_id()]
+			if not _first.has(key):
+				_first[key] = true
+				multiplier *= FIRST_LIGHT_MULTIPLIER
+				if _first.size() > 8192:
+					_first.clear()
+		if dreams.has_rule(&"passing_thread") and on_later_pass(dreams, tower, enemy):
+			multiplier *= 1.0 + PASSING_THREAD_BONUS
+		multiplier *= 1.0 + heels_bonus(dreams)
+	if dreams.has_rule(&"long_way_round") and (enemy.enemy_data.is_boss or enemy.elite):
+		multiplier *= 1.0 + minf(LONG_WAY_PER_BEND * bends_behind(enemy), LONG_WAY_MAX)
+	if dreams.has_rule(&"front_line"):
+		multiplier *= 1.0 + FRONT_LINE_FIRST if route_share(enemy) < 0.5 else 1.0 - FRONT_LINE_SECOND
+	return multiplier
+
+func uses_damage_hook(dreams: DreamState) -> bool:
+	return dreams.has_rule(&"first_light") or dreams.has_rule(&"passing_thread") or dreams.has_rule(&"hot_on_their_heels") \
+		or dreams.has_rule(&"long_way_round") or dreams.has_rule(&"front_line")
+
+# Thorny Walls: the damage of one lash on `enemy` (0 = this nightmare has taken its ceiling from thorns). 3 x the
+# drift's health growth, never a share of health; a twig wall a quarter.
+func thorny_lash(dreams: DreamState, wall: Tower, enemy: Node2D) -> float:
+	var growth: float = dreams.drift_director.get_growth(maxi(dreams.drift_director.drifts_started, 1))
+	var lash := THORNY_LASH * growth * (THORNY_TWIG_SHARE if wall.twig else 1.0)
+	var heavy: bool = enemy.enemy_data.is_boss or enemy.elite
+	var ceiling: float = float(enemy.max_health) * (THORNY_BOSS_CEILING if heavy else THORNY_CEILING)
+	var taken := float(enemy.get_meta(&"batch_thorns", 0.0))
+	lash = minf(lash, ceiling - taken)
+	if lash <= 0.0:
+		return 0.0
+	enemy.set_meta(&"batch_thorns", taken + lash)
+	return lash
+
+func thorny_now(dreams: DreamState) -> float:
+	return THORNY_LASH * dreams.drift_director.get_growth(maxi(dreams.drift_director.drifts_started, 1))
+
+# Snag: a flyer crossing a Thornwall that touches an attacking Warden lands and walks the maze for 4 s. Once per
+# flyer; each wall once a drift; never a boss (Enemy.ground refuses one). Tower's wall tick calls this.
+func snag(dreams: DreamState, wall: Tower, drift: int) -> void:
+	if int(_snagged.get(wall.get_instance_id(), -1)) == drift or not _touches_attacker(dreams, wall):
+		return
+	var reach: float = wall.MAP_GRID.cell_size.x * SNAG_REACH
+	for enemy in Tower.nightmares_near(wall.get_tree(), wall.global_position, reach):
+		if not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.is_flying() or enemy.enemy_data.is_boss:
+			continue
+		if enemy.get_meta(&"batch_snagged", false) or enemy.global_position.distance_to(wall.global_position) > reach:
+			continue
+		enemy.set_meta(&"batch_snagged", true)
+		_snagged[wall.get_instance_id()] = drift
+		enemy.ground(SNAG_SECONDS)
+		return
+
+func _touches_attacker(dreams: DreamState, wall: Tower) -> bool:
+	var cell_px: float = wall.MAP_GRID.cell_size.x
+	for other in dreams._towers():
+		if other == wall or not other.tower_data.can_attack:
+			continue
+		var away: Vector2 = (other.global_position - wall.global_position).abs()
+		if maxf(away.x, away.y) <= cell_px * 1.05:
+			return true
+	return false
+
+# Whether a flying nightmare (not a boss) arrives within the next `within` drifts.
+func flyers_due(dreams: DreamState, within: int) -> bool:
+	var director: DriftDirector = dreams.drift_director
+	for number in range(director.drifts_started + 1, mini(director.drifts_started + within, director.drifts.size()) + 1):
+		for group in director.drifts[number - 1].groups:
+			for entry in group.entries:
+				if entry.enemy != null and entry.enemy.trait_kind == EnemyData.Trait.FLYING and not entry.enemy.is_boss:
+					return true
+	return false
+
+# Thornwalls a flyer's straight line from the start to the Heartwood crosses that touch an attacking Warden (Snag's
+# card: "Thornwalls under the flight line: 4").
+func snag_walls(dreams: DreamState) -> int:
+	var grid = dreams.map_generator.MAP_GRID
+	var from: Vector2 = grid.calculate_map_position(dreams.map_generator.startPath)
+	var to: Vector2 = grid.calculate_map_position(dreams.map_generator.endPath)
+	var reach: float = grid.cell_size.x * SNAG_REACH
+	var count := 0
+	for tower in dreams._towers():
+		if tower.tower_data.line != "wall" or not _touches_attacker(dreams, tower):
+			continue
+		var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(tower.global_position, from, to)
+		if nearest.distance_to(tower.global_position) <= reach:
+			count += 1
+	return count
+
+# --- Wager and Price lines ------------------------------------------------------------------------------------------
+
+# The line under a wager's or a priced card's text, in the player's own numbers ("" = neither). One format:
+# "Wager · Stake: this block's 46 Dew. Win: 138."
+func stake_line(dreams: DreamState, card: UpgradeData) -> String:
+	var director: DriftDirector = dreams.drift_director
+	var next_drift := mini(director.drifts_started + 1, maxi(director.drifts.size(), 1))
+	var block := director.get_block(next_drift)
+	var bonus := director.get_rest_bonus(block)
+	match card.rule_id:
+		&"held_breath":
+			return "Wager · Stake: this {block}'s {dew:%d}. Win: {dew:%d}." % [bonus, roundi(bonus * HELD_BREATH_WIN)]
+		&"clean_night":
+			return "Wager · Stake: this {block}'s {dew:%d}. Win: {dreamlight:+%d} for %d clean {blocks} in a row." % [
+				bonus, CLEAN_NIGHT_DREAMLIGHT, CLEAN_NIGHT_BLOCKS]
+		&"call_of_the_wild":
+			var pot := roundi(director.get_effective_pot(next_drift, true) * CALL_OF_THE_WILD_SHARE)
+			return "Wager · Stake: the bonus itself. Win: about {dew:%d} on the next {drift} you call early." % pot
+		&"press_on":
+			return "Wager · Stake: %d {drifts} called early in a {block}. Win: %d {leaf} back." % [PRESS_ON_CALLS, PRESS_ON_LEAVES]
+		&"dark_skies":
+			return "Price · You must pick an Omen at every {rest} that offers one, for the rest of the run."
+		&"front_line":
+			return "Price · Nightmares take %d%% less damage in the second half of their route." % roundi(FRONT_LINE_SECOND * 100)
+	return ""
+
+# What a matchup card answers and the player's own number (Snag, Long Way Round), or a card's live line ("" = none).
+func answer_line(dreams: DreamState, card: UpgradeData) -> String:
+	match card.rule_id:
+		&"snag":
+			return "Thornwalls under the flight line that touch an attacking Warden: %d." % snag_walls(dreams)
+		&"long_way_round":
+			var bends := bend_count()
+			return "Your route: %d bends. Up to +%d%% by the Heartwood." % [bends, roundi(minf(LONG_WAY_PER_BEND * bends, LONG_WAY_MAX) * 100)]
+		&"thorny_walls":
+			return "Lash now: %d damage." % roundi(thorny_now(dreams))
+		&"growth_rings":
+			return rings_line(dreams)
+		&"winding_path":  # The player's own number, in the HUD's words (the forecast is already tripled once the card is held)
+			var owned: bool = dreams.has_rule(&"winding_path")
+			var now_dew: int = dreams.drift_director.get_maze_reward_projection()
+			var base := roundi(now_dew / WINDING_PATH_MULTIPLIER) if owned else now_dew
+			return "Your maze now: {dew:+%d} at the {rest}. With this: {dew:+%d}." % [base, roundi(base * WINDING_PATH_MULTIPLIER)]
+		&"clean_night":
+			return "{dreamlight} unlocks new Warden forms."
+	return ""

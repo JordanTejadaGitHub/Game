@@ -12,3 +12,4 @@ kind = 3
 tags = Array[String](["precision"])
 max_stacks = 1
 rule_id = &"head_of_the_line"
+retired = true

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "narrows"
+display_name = "Narrows"
+description = "Status hits on a nightmare {touching} a spore Warden and another kind of attacking Warden add 3 {stacks} at once. Once a second per Warden."
+tip = "A status hit is a Warden's own hit that adds its status (not a tick). Another kind: any attacking Warden that is not a spore Warden; Sprouts count. {static} and {marked} gain 1 more, not 2. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"narrows"
+requires = Array[String](["sporeling"])

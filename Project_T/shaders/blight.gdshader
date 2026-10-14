@@ -32,6 +32,12 @@ uniform float crack : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 crack_color : source_color = vec3(0.988, 0.831, 0.486);
 uniform float crack_cell_px = 9.0;  // Size of the cracked shards, in texture pixels
 
+// Hit flinch (screens_ui.md "Hit feedback on nightmares"): 0..1, a pale flash through the body for ~60 ms.
+// Per nightmare (an instance uniform: the material is shared), set by Enemy.flinch; 0 under reduce flashes.
+instance uniform float hit_flash : hint_range(0.0, 1.0) = 0.0;
+// Heartwood 32 "Moonlight" #dce8f4: cold, like everything on a nightmare.
+uniform vec3 flash_color : source_color = vec3(0.863, 0.910, 0.957);
+
 vec2 hash2(vec2 p) {
 	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
 	return fract(sin(p) * 43758.5453);
@@ -67,6 +73,7 @@ void fragment() {
 	float alpha = mix(base_alpha - shimmer * wave, 1.0, glow);
 	vec3 lit = color.rgb * (1.0 + glow * glow_strength);
 	COLOR = vec4(mix(color.rgb, lit, blight), color.a * mix(1.0, alpha, blight));
+	COLOR.rgb = mix(COLOR.rgb, flash_color, hit_flash);  // The flinch: the whole body pales for a moment
 
 	if (color.a < 0.5) {
 		vec2 px = TEXTURE_PIXEL_SIZE;

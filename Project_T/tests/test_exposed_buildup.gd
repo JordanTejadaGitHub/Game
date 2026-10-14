@@ -9,7 +9,7 @@ func _initialize() -> void:
 	status.apply(EnemyStatuses.MARKED, 1)
 	_check(is_equal_approx(status.get_damage_taken_multiplier(), 1.25), "the tenth stack activates the existing 25% bonus")
 	status.tick(5.1)
-	_check(is_equal_approx(status.get_damage_taken_multiplier(), 1.0), "the damage bonus ends when Exposed expires")
+	_check(is_equal_approx(status.get_damage_taken_multiplier(), 1.0), "the damage bonus ends when Exposed drains below ten")
 	var bright := EnemyStatuses.new()
 	bright.marked_bonus = 0.05
 	bright.apply(EnemyStatuses.MARKED, 1)

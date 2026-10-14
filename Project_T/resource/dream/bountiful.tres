@@ -12,3 +12,4 @@ kind = 4
 tags = Array[String](["overgrowth"])
 max_stacks = 1
 rule_id = &"bountiful"
+retired = true

@@ -13,6 +13,12 @@ extends Node2D
 # Art from assets/environment/<act>/ (Environment Assets); a placeholder in palette colours while a sheet is missing.
 
 signal gifts_changed  # Terrain or ground changed
+# The arrival (heartwood_gifts.md "Gifts as landmarks" 5): a gift was planted, the Heartwood's roots run along the
+# ground `from` the Heartwood `to` the spot (MapGenerator pixels) for `seconds` (0 under reduced motion: it is just
+# there), then the landmark rises and gift_arrived fires. For Sound and Main Merger's camera.
+signal gift_arriving(id: StringName, from: Vector2, to: Vector2, seconds: float)
+signal gift_arrived(id: StringName, at: Vector2)
+signal landmark_grew(id: StringName, step: int, at: Vector2)  # An act break's growth: the flourish plays at `at`
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const TREE_DATA := preload("res://resource/obstacle/tree.tres")
@@ -31,14 +37,32 @@ const BELL_STONE := &"bell_stone"
 const ANCIENT_STUMP := &"ancient_stump"
 const HEARTWOOD_ROOTS := &"heartwood_roots"
 const SHIFTING_MIST := &"shifting_mist"  # Replaced Deeper Glade (heartwood_gifts.md 0c552b28)
+const RESHAPE := &"reshape"  # Glade + Shift the Stones in one gift: move or clear (heartwood_gifts.md "Gifts as landmarks")
 const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_STONES, MIRE, SPRING, MUSHROOM_RING,
 	LIGHTNING_TREE, MOONWELL, BELL_STONE, ANCIENT_STUMP, HEARTWOOD_ROOTS, SHIFTING_MIST]
+# Reshape's effect is here, but a gift is offered as soon as its effect is registered, and the gift screen has no
+# "reshape" placing mode yet. Main Merger's GiftPlacer sets this true (before the run's map is made) once it has one.
+static var reshape_placer_ready := false
 
-# Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
-const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
-const SOWN_TREE_SEEDS := 2  # Sow a Ridge: each of its trees tended pays this many Seeds in all (instead of the usual 1)
-const ROOTS_CELLS := 4
-const ROOTS_TAKEN := 0.15
+# Numbers: read from HeartwoodGifts (the one source; Balancing tunes them there), never copied here.
+static func mire_slow() -> float:  # Through EnemyStatuses' extra slow: the slow floors still hold
+	return HeartwoodGifts.stat(MIRE, "slow")
+
+static func sown_tree_seeds() -> int:  # Sow a Ridge: each of its trees tended pays this many Seeds in all (instead of the usual 1)
+	return int(HeartwoodGifts.stat(SOW_RIDGE, "tree_seeds"))
+
+# The growth step (1-3) of each gift on the map: from the effect's placement.step and HeartwoodGifts.gift_grew.
+var steps := {}
+
+func step(id: StringName) -> int:
+	return clampi(int(steps.get(id, 1)), 1, 3)
+
+func roots_count() -> int:  # Path cells Heartwood Roots covers at its step
+	return int(HeartwoodGifts.stat(HEARTWOOD_ROOTS, "path_cells", step(HEARTWOOD_ROOTS)))
+
+func roots_taken() -> float:
+	return HeartwoodGifts.stat(HEARTWOOD_ROOTS, "damage_taken", step(HEARTWOOD_ROOTS))
+
 const TICK := 0.2  # s between ground checks on the nightmares
 
 # Art (Environment Assets 46525c97): sheet name → [frame size, frames].
@@ -72,14 +96,26 @@ static func register_effects() -> void:
 	for id in TERRAIN_GIFTS:
 		if not HeartwoodGifts.has_effect(id):
 			HeartwoodGifts.register(id, _effect.bind(id))
+	if reshape_placer_ready and not HeartwoodGifts.has_effect(RESHAPE):
+		HeartwoodGifts.register(RESHAPE, _effect.bind(RESHAPE))
 
-# HeartwoodGifts' call: placement.cells (Shift the Stones: placement.from, pairwise), placement.restoring.
+# HeartwoodGifts' call: placement.cells (Shift the Stones: placement.from, pairwise), placement.restoring,
+# placement.step (a landmark's growth step, 1-3).
 static func _effect(main: Node, placement: Dictionary, id: StringName) -> void:
 	var map_generator := main.get_node_or_null("%MapGenerator")
 	if map_generator == null or map_generator.gifts == null:
 		return
 	var run_state := main.get_node_or_null("%RunState")
 	var tended: Array = run_state.tended_cells if run_state != null else []
+	map_generator.gifts.steps[id] = clampi(int(placement.get("step", 1)), 1, 3)
+	if id == RESHAPE:  # "from" (obstacle keys × 2) go to "to" (half origins), pairwise; "cells" (obstacle keys) are cleared
+		var moved: Array[Vector2] = []
+		moved.assign(HeartwoodGifts.cells_of(placement, "from").map(func(p: Vector2) -> Vector2: return p / 2.0))
+		var to: Array[Vector2] = []
+		to.assign(HeartwoodGifts.cells_of(placement, "to").map(func(p: Vector2) -> Vector2: return p / 2.0))
+		map_generator.gifts.reshape(moved, to, HeartwoodGifts.cells_of(placement), bool(placement.get("restoring", false)),
+			int(placement.get("tended_before", -1)), tended)
+		return
 	# Half cells (heartwood_gifts.md 2554c638): "pieces" are Warden-style half origins (a 2×2 each; key = origin / 2,
 	# x.5 when half-offset), "from" the obstacles Shift the Stones picked up (their keys × 2), "halves" the route
 	# halves Mire / Heartwood Roots picked. An older placement has whole "cells" (and whole-cell "from").
@@ -98,8 +134,12 @@ func _ready() -> void:
 	map.path_changed.connect(queue_redraw)
 	map.path_changed.connect(_draw_duals)
 	_load_sheets()
+	_zones = GiftZones.new()
+	_zones.name = "GiftZones"
+	_zones.gifts = self
+	add_child(_zones)  # On the ground with this node (z -1): under everything standing
 
-# The cells Heartwood Roots grows over now: the last ROOTS_CELLS of the route before the Heartwood (for the
+# The cells Heartwood Roots grows over now: the last roots_count() of the route before the Heartwood (for the
 # gift screen's preview; HeartwoodGifts saves them as the placement, since the route moves).
 func roots_cells() -> Array[Vector2]:
 	var cells: Array[Vector2] = []
@@ -109,11 +149,11 @@ func roots_cells() -> Array[Vector2]:
 		if cell == map.endPath or cell == map.startPath or cells.has(cell):
 			continue
 		cells.append(cell)
-		if cells.size() >= ROOTS_CELLS:
+		if cells.size() >= roots_count():
 			break
 	return cells
 
-# The route halves Heartwood Roots grows over by default: the last ROOTS_CELLS × 2 of the route before the Heartwood.
+# The route halves Heartwood Roots grows over by default: the last roots_count() × 2 of the route before the Heartwood.
 func roots_halves() -> Array[Vector2]:
 	var halves: Array[Vector2] = []
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
@@ -123,7 +163,7 @@ func roots_halves() -> Array[Vector2]:
 		if cell == map.endPath or cell == map.startPath or halves.has(h):
 			continue
 		halves.append(h)
-		if halves.size() >= ROOTS_CELLS * 2:
+		if halves.size() >= roots_count() * 2:
 			break
 	return halves
 
@@ -246,6 +286,10 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 			stumps.append_array(cells)
 		HEARTWOOD_ROOTS:
 			root_cells.append_array(_halves_for(halves, cells) if not (halves.is_empty() and cells.is_empty()) else roots_halves())
+			_roots_on = true
+			# A resumed run at step II / III: the save holds the cells of the pick (step I). The Wardens come back after
+			# the gifts, so the longer stretch is taken from the route once they stand (_process).
+			_roots_regrow_in = 1.0 if restoring and step(HEARTWOOD_ROOTS) > 1 else -1.0
 		SHIFTING_MIST:  # Replayed on a resume: the regenerated map starts at the old start again
 			if not cells.is_empty():
 				map.move_start(cells[0])
@@ -253,6 +297,8 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 	map.path_layer.draw()
 	map.path_changed.emit()
 	queue_redraw()
+	if not restoring:
+		_arrive(gift, _spot_of(cells, halves), cells)
 	gifts_changed.emit()
 
 # Mire / Roots halves: the picked route halves (route points → their half), or a whole cell's 4 (older placements).
@@ -276,6 +322,185 @@ func _covers(halves: Array[Vector2], point: Vector2) -> bool:
 	if FindPath.is_whole_cell(point):
 		return FindPath.halves_of_cell(point).any(func(h: Vector2) -> bool: return halves.has(h))
 	return halves.has(Vector2(FindPath.point_to_node(point)))
+
+# Reshape: the obstacles on `from` go to `to` (pairwise; obstacle keys, full-cell units, x.5 when half-offset), the
+# ones on `cleared` are tended away. `restoring` / `tended_before` / `tended` as apply().
+func reshape(from: Array[Vector2], to: Array[Vector2], cleared: Array[Vector2], restoring := false, tended_before := -1,
+		tended: Array = []) -> void:
+	for cell in cleared:
+		_clear(cell, restoring)
+	for i in mini(from.size(), to.size()):
+		_move_obstacle(from[i], to[i], restoring and tended.slice(maxi(tended_before, 0)).has(to[i]))
+	_rebuild_props()
+	map.path_layer.draw()
+	map.path_changed.emit()
+	queue_redraw()
+	gifts_changed.emit()
+	if not restoring:
+		var spots: Array[Vector2] = to if not to.is_empty() else cleared
+		_arrive(RESHAPE, _spot_of(spots, []), [])
+
+# Whether Reshape may move `from` to `to` (half origins) and clear `cleared` (obstacle keys): every picked key is an
+# obstacle, picked once, at most `limit` in all; every landing spot free once the picked ones are gone, and the way
+# stays open. refusal() says why not. (GiftPlacer's "reshape" mode asks this.)
+func can_reshape(from: Array, to: Array, cleared: Array, limit: int = int(HeartwoodGifts.POOL[RESHAPE].size)) -> bool:
+	_refusal = &""
+	var picked: Array = from + cleared
+	if picked.size() > limit or from.size() < to.size():
+		_refusal = &"occupied"
+		return false
+	for i in picked.size():
+		if not map.obstacles.has(picked[i]) or picked.find(picked[i]) != i:
+			_refusal = &"occupied"
+			return false
+	var opened: Array[Vector2] = []  # The picked obstacles' halves, open while the landing spots are checked
+	var version: int = map.probe_begin()
+	for key: Vector2 in picked:
+		for cell in map.get_obstacle_cells(key):
+			for h in (FindPath.halves_of_cell(cell) if FindPath.is_whole_cell(cell) else piece_halves(cell * 2.0)):
+				if map.path_layer.is_half_blocked(h):
+					opened.append(h)
+					map.path_layer.set_half_blocked(h, false)
+	var ok := can_place(SHIFT_STONES, to)
+	var why := _refusal
+	for h in opened:
+		map.path_layer.set_half_blocked(h, true)
+	map.probe_end(version)
+	_refusal = why
+	return ok
+
+# The fallen log is no Warden: nothing tramples it or burrows under it (both only ever pick Wardens' cells). True for a
+# route point or whole cell under a Fallen Giant, for anything new that would break or pass under a blocked cell.
+func is_log(point: Vector2) -> bool:
+	for l: Array in logs:
+		for cell: Vector2 in l:
+			if FindPath.is_whole_cell(point):
+				if absf(cell.x - point.x) < 1.0 and absf(cell.y - point.y) < 1.0:
+					return true
+			elif piece_halves(cell * 2.0).has(Vector2(FindPath.point_to_node(point))):
+				return true
+	return false
+
+# --- Landmarks: zones, growth, the arrival (heartwood_gifts.md "Gifts as landmarks") ------------------------------
+
+const ARRIVAL_ROOTS := 1.0  # s the roots take from the Heartwood to the spot
+const ARRIVAL_RISE := 0.5  # s the landmark takes to rise
+const GROW_RISE := 0.45  # s of the grow flourish
+const ZONE_COLORS := {SPRING: Palette.DEWLIGHT, LIGHTNING_TREE: Palette.GLOW, BELL_STONE: Palette.ORCHID,
+	MOONWELL: Palette.MOONLIGHT, MUSHROOM_RING: Palette.SPRIG}
+var _zones: GiftZones
+var _roots_on := false
+var _roots_regrow_in := -1.0
+var _hooked := false
+var _rise := {}  # Landmark id -> 0..1 while it rises (the arrival, the grow flourish); absent = standing
+
+# Every landmark standing on the map: {id, at (its centre, MapGenerator pixels), extent (px from the centre to its
+# edge), radius (px: the edge plus HeartwoodGifts.zone_cells), color}. The zone is the standing glow; Tower Code's
+# effects use the same reach.
+func landmarks() -> Array:
+	var out: Array = []
+	var cell := float(MAP_GRID.cell_size.x)
+	if not spring_cells.is_empty():
+		var top := Vector2(_min_x(spring_cells), _min_y(spring_cells))
+		out.append(_landmark(SPRING, MAP_GRID.calculate_map_position(top + Vector2(0.5, 0.5)), cell))
+	for at in lightning_trees():
+		out.append(_landmark(LIGHTNING_TREE, MAP_GRID.calculate_map_position(at), cell / 2.0))
+	for at in bell_stones:
+		out.append(_landmark(BELL_STONE, MAP_GRID.calculate_map_position(at), cell / 2.0))
+	for at in moonwells:
+		out.append(_landmark(MOONWELL, MAP_GRID.calculate_map_position(at), cell / 2.0))
+	for top in rings:
+		out.append(_landmark(MUSHROOM_RING, MAP_GRID.calculate_map_position(top + Vector2.ONE), cell * 1.5))
+	return out
+
+func _landmark(id: StringName, at: Vector2, extent: float) -> Dictionary:
+	return {"id": id, "at": at, "extent": extent, "radius": extent + HeartwoodGifts.zone_cells(id) * MAP_GRID.cell_size.x,
+		"color": ZONE_COLORS.get(id, Palette.GLOW)}
+
+# The centre (MapGenerator pixels) of what a gift was put on: its pieces, else its route halves.
+func _spot_of(cells: Array[Vector2], halves: Array[Vector2]) -> Vector2:
+	var sum := Vector2.ZERO
+	if not cells.is_empty():
+		for cell in cells:
+			sum += MAP_GRID.calculate_map_position(cell)
+		return sum / cells.size()
+	if halves.is_empty():
+		return MAP_GRID.calculate_map_position(map.endPath)
+	for h in halves:
+		sum += (h + Vector2(0.5, 0.5)) * Vector2(MAP_GRID.cell_size) / 2.0
+	return sum / halves.size()
+
+# The arrival: roots from the Heartwood to the spot, then the landmark rises. Reduced motion (or no tree yet: a test
+# applying gifts by hand): it is just there, and both signals fire at once.
+func _arrive(id: StringName, spot: Vector2, _cells: Array) -> void:
+	var from := MAP_GRID.calculate_map_position(map.endPath)
+	var still := bool(Fx.setting("reduced_motion", false)) or not is_inside_tree() or DisplayServer.get_name() == "headless"
+	if still or from.distance_to(spot) < 1.0:
+		gift_arriving.emit(id, from, spot, 0.0)
+		gift_arrived.emit(id, spot)
+		return
+	_rise[id] = 0.0
+	_redraw_props()
+	var arrival := GiftArrival.new()
+	arrival.name = "GiftArrival"
+	arrival.gifts = self
+	arrival.id = id
+	arrival.from = from
+	arrival.to = spot
+	add_child(arrival)
+	gift_arriving.emit(id, from, spot, ARRIVAL_ROOTS + ARRIVAL_RISE)
+
+func _set_rise(id: StringName, share: float) -> void:
+	if share >= 1.0:
+		_rise.erase(id)
+	else:
+		_rise[id] = share
+	_redraw_props()
+	queue_redraw()
+
+func rise_of(kind: String) -> float:
+	return float(_rise.get(FALLEN_GIANT if kind == "fallen_log" else StringName(kind), 1.0))
+
+func _redraw_props() -> void:
+	for prop in _props:
+		if is_instance_valid(prop):
+			prop.queue_redraw()
+
+# HeartwoodGifts.gift_grew: a landmark gained a step at an act break. Its look and zone follow, with a short flourish.
+func _on_gift_grew(id: StringName, new_step: int, _placement: Dictionary) -> void:
+	steps[id] = clampi(new_step, 1, 3)
+	if id == HEARTWOOD_ROOTS and _roots_on:
+		root_cells = roots_halves()  # The longer stretch, on today's route
+		_draw_duals()
+	_redraw_props()
+	queue_redraw()
+	if _zones != null:
+		_zones.queue_redraw()
+	gifts_changed.emit()
+	for mark: Dictionary in landmarks():
+		if mark.id != id:
+			continue
+		landmark_grew.emit(id, new_step, mark.at)
+		if bool(Fx.setting("reduced_motion", false)) or DisplayServer.get_name() == "headless":
+			continue
+		var bloom := GiftArrival.new()
+		bloom.name = "GiftGrow"
+		bloom.gifts = self
+		bloom.id = id
+		bloom.from = mark.at
+		bloom.to = mark.at
+		bloom.grow_only = true
+		bloom.ring_radius = float(mark.radius)
+		bloom.ring_color = mark.color
+		add_child(bloom)
+
+func _hook_gifts() -> void:
+	var node := HeartwoodGifts.find(map)
+	if node == null:
+		return
+	_hooked = true
+	if not node.gift_grew.is_connected(_on_gift_grew):
+		node.gift_grew.connect(_on_gift_grew)
 
 # --- Placing pieces (GiftPlacer, Main's gift_screen.gd; heartwood_gifts.md 2554c638) ---------------------------
 # A piece is a Warden's footprint: the 2×2 halves from half origin `origin`.
@@ -338,11 +563,19 @@ func _process(delta: float) -> void:
 	var frame := int(_frame_time)
 	_frame_time = fmod(_frame_time + delta * EnvironmentTiles.FPS, EnvironmentTiles.FRAMES)
 	if int(_frame_time) != frame:
-		if not rings.is_empty() and _sheets.has("mushroom_ring"):
+		if (not rings.is_empty() and step_art("mushroom_ring")[0] != null) or (step(SPRING) > 1 and not spring_cells.is_empty()):
 			queue_redraw()
 		for prop in _props:
 			if _sheets.has(prop.kind) and ANIMATED.has(prop.kind):
 				prop.queue_redraw()
+	if not _hooked:
+		_hook_gifts()
+	if _roots_regrow_in > 0.0:
+		_roots_regrow_in -= delta
+		if _roots_regrow_in <= 0.0 and _roots_on:
+			root_cells = roots_halves()  # A resumed run: the grown stretch, now the Wardens stand
+			_draw_duals()
+			queue_redraw()
 	if bog_cells.is_empty() and root_cells.is_empty():
 		return
 	_tick -= delta
@@ -357,9 +590,9 @@ func _process(delta: float) -> void:
 		var s: EnemyStatuses = enemy.statuses
 		if bog_cells.has(half) and not enemy.is_flying():  # Flyers pass over the bog
 			s.slow_time = maxf(s.slow_time, TICK * 1.6)
-			s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, MIRE_SLOW)
+			s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, mire_slow())
 		if root_cells.has(half):
-			s.ground_taken = ROOTS_TAKEN
+			s.ground_taken = roots_taken()
 			s.ground_taken_time = maxf(s.ground_taken_time, TICK * 1.6)
 
 # --- Terrain changes ---------------------------------------------------------------------------------
@@ -422,10 +655,10 @@ func _data_for(kind: String) -> ObstacleData:
 
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 	if gift_obstacles.has(cell):
-		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: SOWN_TREE_SEEDS in all (RunState already counted the usual 1)
+		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: sown_tree_seeds() in all (RunState already counted the usual 1)
 			var run_state: Node = map.get_node_or_null("%RunState")
 			if run_state != null and not run_state.clearing_without_seeds:
-				run_state.obstacles_tended += SOWN_TREE_SEEDS - 1
+				run_state.obstacles_tended += sown_tree_seeds() - 1
 		gift_obstacles.erase(cell)
 		_rebuild_props()
 		gifts_changed.emit()
@@ -462,11 +695,41 @@ func _load_sheets() -> void:
 		var path := EnvironmentTiles.sheet_path(sheet, act)
 		if ResourceLoader.exists(path):
 			_sheets[sheet] = load(path)
+	_step_sheets.clear()
+	for kind: String in STEP_ART:
+		for grown in STEP_ART[kind].size():
+			var path := EnvironmentTiles.sheet_path("%s_%d" % [kind, grown + 2], act)
+			if ResourceLoader.exists(path):
+				_step_sheets["%s_%d" % [kind, grown + 2]] = load(path)
 	_load_dual_sheets()
 
 func frame_region(sheet: String, column: int) -> Rect2:
 	var size: Vector2i = ART[sheet][0]
 	return Rect2(Vector2(column * size.x, 0), Vector2(size))
+
+# Growth looks (heartwood_gifts.md "Landmarks grow": a bigger look at steps II and III). Environment Assets' sheets
+# are `<kind>_2.png` and `<kind>_3.png` beside the step I sheet in each act's folder, 4 frames in a row of the frame
+# size below (the bottom 64 px on the landmark's cell, the rest overhangs up and to the sides; the ring and the
+# Spring's bloom cover their own patch). Until a sheet exists, the step I art is drawn larger from its base
+# (STEP_SCALE): a stand-in, not the look.
+const STEP_ART := {
+	"moonwell": [Vector2i(96, 96), Vector2i(128, 128)], "bell_stone": [Vector2i(64, 96), Vector2i(96, 128)],
+	"lightning_tree": [Vector2i(128, 160), Vector2i(160, 192)], "mushroom_ring": [Vector2i(192, 192), Vector2i(192, 192)],
+	"spring": [Vector2i(128, 128), Vector2i(128, 128)],  # A bloom over the 2×2 pond (the pond tiles stay)
+}
+const STEP_SCALE: Array[float] = [1.0, 1.0, 1.25, 1.5]  # By step, without that step's sheet
+var _step_sheets := {}  # "<kind>_<step>" -> Texture2D
+
+# What a landmark of `kind` draws at its step: [texture, frame size (Vector2), scale]. The scale is 1 with that
+# step's own sheet. [null, …] without any art (the placeholder).
+func step_art(kind: String) -> Array:
+	var at := step(StringName(kind))
+	var own: Texture2D = _step_sheets.get("%s_%d" % [kind, at])
+	if own != null:
+		return [own, Vector2(STEP_ART[kind][at - 2]), 1.0]
+	if _sheets.has(kind):
+		return [_sheets[kind], Vector2(ART[kind][0]), STEP_SCALE[at] if STEP_ART.has(kind) else 1.0]
+	return [null, Vector2(MAP_GRID.cell_size), STEP_SCALE[at] if STEP_ART.has(kind) else 1.0]
 
 func _draw() -> void:
 	var cell_size := Vector2(MAP_GRID.cell_size)
@@ -486,10 +749,19 @@ func _draw() -> void:
 		var mask := _mask(cell, func(c: Vector2) -> bool: return spring_cells.has(c))
 		draw_texture_rect_region(pond.texture, Rect2(MAP_GRID.calculate_map_position(cell) - cell_size / 2.0, cell_size),
 			pond.get_tile_texture_region(Vector2i(mask, 0)))
+	if step(SPRING) > 1 and not spring_cells.is_empty() and _step_sheets.has("spring_%d" % step(SPRING)):
+		var bloom: Texture2D = _step_sheets["spring_%d" % step(SPRING)]  # The grown Spring: a bloom over the 2×2 pond
+		var size := Vector2(STEP_ART["spring"][step(SPRING) - 2])
+		var centre := MAP_GRID.calculate_map_position(Vector2(_min_x(spring_cells), _min_y(spring_cells)) + Vector2(0.5, 0.5))
+		draw_texture_rect_region(bloom, Rect2(centre - size / 2.0, size), Rect2(Vector2(int(_frame_time) * size.x, 0), size),
+			Color(1, 1, 1, rise_of("spring")))  # multiplier
 	for top in rings:
 		var at := MAP_GRID.calculate_map_position(top) - cell_size / 2.0
-		if _sheets.has("mushroom_ring"):
-			draw_texture_rect_region(_sheets.mushroom_ring, Rect2(at, cell_size * 3), frame_region("mushroom_ring", int(_frame_time)))
+		var ring_art := step_art("mushroom_ring")
+		if ring_art[0] != null:  # The same 3×3 patch at every step: a fuller ring, not a wider one
+			var frame: Vector2 = ring_art[1]
+			draw_texture_rect_region(ring_art[0], Rect2(at, cell_size * 3), Rect2(Vector2(int(_frame_time) * frame.x, 0), frame),
+				Color(1, 1, 1, rise_of("mushroom_ring")))  # multiplier
 		else:  # Placeholder: a ring of toadstools
 			var centre := at + cell_size * 1.5
 			for i in 12:
@@ -565,11 +837,19 @@ class GiftProp extends Node2D:
 				var size := Vector2(region.size)
 				draw_texture_rect_region(source.texture, Rect2(Vector2(-size.x / 2.0, 32.0 - size.y), size), region)  # Bottom on the piece
 			return
-		var sheet: Texture2D = gifts._sheets.get(kind)
+		# A landmark draws at its growth step (its own sheet, else the step I art larger) and rises from its base while it
+		# arrives or grows: both from the base line (y 32: the bottom of its cell).
+		var art := gifts.step_art(kind)
+		var rise := gifts.rise_of(kind)
+		var grown: float = art[2]
+		var lift := 0.35 + 0.65 * rise  # It comes up out of the ground
+		draw_set_transform(Vector2(0.0, 32.0 * (1.0 - grown * lift)), 0.0, Vector2(grown, grown * lift))
+		modulate.a = clampf(rise * 2.0, 0.0, 1.0)  # multiplier
+		var sheet: Texture2D = art[0]
 		if sheet != null:
-			var size := Vector2(MapGifts.ART[kind][0])
+			var size: Vector2 = art[1]
 			var at := Vector2(-size.x / 2.0, 32.0 - size.y)  # Tall sprites put their bottom 64 px on the cell
-			draw_texture_rect_region(sheet, Rect2(at, size), gifts.frame_region(kind, piece if piece >= 0 else int(gifts._frame_time)))
+			draw_texture_rect_region(sheet, Rect2(at, size), Rect2(Vector2((piece if piece >= 0 else int(gifts._frame_time)) * size.x, 0), size))
 			return
 		match kind:  # Placeholders in palette colours
 			"fallen_log":
@@ -655,3 +935,128 @@ func _draw_duals() -> void:
 					if mask == 15:
 						mask = PathGenerator.DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, PathGenerator.DUAL_FULL_VARIANTS.size(), 7)]
 					layer.set_cell(at, 0, Vector2i(mask, 0))
+
+# --- The standing zones -------------------------------------------------------------------------------------------
+# Each landmark's reach as a quiet glow on the ground in its colour, so a corner of the maze is built around it. The
+# lit paths' rules: on the ground (under everything standing), round and soft (the shared light disc: no squares),
+# one disc per landmark so nothing stacks in steps, steady under reduced motion; brighter with a thin rim in build
+# mode and while Wardens are selected (Tower.badges_visible), when the player is deciding where to build.
+class GiftZones extends Node2D:
+	const QUIET := 0.09  # The glow's alpha in play…
+	const FULL := 0.2  # …and in build mode / with a selection
+	const CHECK := 0.25  # s between looks at the mode
+	const BREATH := 0.12  # Share of its alpha the slow breath takes away
+	var gifts: MapGifts
+	var _disc: Texture2D  # Held here: draw commands don't keep the shared light disc alive
+	var _full := false
+	var _check := 0.0
+	var _time := 0.0
+	var _count := -1
+
+	func _ready() -> void:
+		_disc = EnvironmentLighting.light_texture()
+		gifts.gifts_changed.connect(queue_redraw)
+
+	func _process(delta: float) -> void:
+		_time += delta
+		_check -= delta
+		if _check <= 0.0:
+			_check = CHECK
+			var full := Tower.badges_visible()
+			var count := gifts.landmarks().size()
+			if full != _full or count != _count:
+				_full = full
+				_count = count
+				queue_redraw()
+		var still := _count <= 0 or bool(Fx.setting("reduced_motion", false))
+		modulate.a = 1.0 if still else 1.0 - BREATH * (0.5 + 0.5 * sin(_time * 1.2))  # multiplier (the slow breath: no redraw)
+
+	func _draw() -> void:
+		for mark: Dictionary in gifts.landmarks():
+			var radius: float = mark.radius
+			var colour: Color = mark.color
+			var at: Vector2 = mark.at
+			var strength := (FULL if _full else QUIET) * clampf(gifts.rise_of(String(mark.id)), 0.0, 1.0)
+			# The disc fades to nothing at its rim, so it's drawn a little past the reach and the rim line marks the reach
+			var size := Vector2.ONE * radius * 2.3
+			draw_texture_rect(_disc, Rect2(at - size / 2.0, size), false, Color(colour, strength * 2.2))
+			draw_arc(at, radius, 0.0, TAU, clampi(int(radius / 3.0), 24, 96), Color(colour, strength * (2.0 if _full else 1.0)), 1.5 if _full else 1.0)
+
+# --- The arrival and the grow flourish ----------------------------------------------------------------------------
+# The arrival: the Heartwood's roots run along the ground from `from` to `to` (ARRIVAL_ROOTS s), then the landmark
+# rises there (ARRIVAL_RISE s; MapGifts._rise) and gift_arrived fires; the roots sink back. Any click or key skips to
+# the end. It runs while the game is paused (the gift is taken at a rest). `grow_only`: the act break's flourish, a
+# ring out to the zone while the landmark swells into its new step.
+class GiftArrival extends Node2D:
+	const FADE := 0.6  # s the roots take to sink back
+	const WOBBLE := 9.0  # px the root wanders off the straight line
+	const STEP := 14.0  # px between the root's points
+	var gifts: MapGifts
+	var id: StringName
+	var from: Vector2
+	var to: Vector2
+	var grow_only := false
+	var ring_radius := 0.0
+	var ring_color := Palette.GLOW
+	var _time := 0.0
+	var _points := PackedVector2Array()
+	var _done := false
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		if grow_only:
+			gifts._set_rise(id, 0.55)
+			return
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([from, to])
+		var steps := maxi(int(from.distance_to(to) / STEP), 2)
+		var side := (to - from).normalized().orthogonal()
+		for i in steps + 1:
+			var share := float(i) / steps
+			var sway := sin(share * PI) * WOBBLE  # Pinned at both ends
+			_points.append(from.lerp(to, share) + side * (sin(share * 11.0 + rng.randf() * 0.6) * sway + rng.randf_range(-2.0, 2.0)))
+
+	func _unhandled_input(event: InputEvent) -> void:
+		if grow_only or _done:
+			return
+		if (event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed and not event.echo) \
+				or (event is InputEventScreenTouch and event.pressed):
+			_time = maxf(_time, MapGifts.ARRIVAL_ROOTS + MapGifts.ARRIVAL_RISE)  # Skipped: it stands at once
+
+	func _process(delta: float) -> void:
+		_time += delta / maxf(Engine.time_scale, 0.01)  # Real seconds, whatever the game speed
+		if grow_only:
+			var share := clampf(_time / MapGifts.GROW_RISE, 0.0, 1.0)
+			gifts._set_rise(id, 0.55 + 0.45 * share)
+			queue_redraw()
+			if share >= 1.0:
+				gifts._set_rise(id, 1.0)
+				queue_free()
+			return
+		if not _done:
+			var rise := clampf((_time - MapGifts.ARRIVAL_ROOTS) / MapGifts.ARRIVAL_RISE, 0.0, 1.0)
+			gifts._set_rise(id, rise)
+			if rise >= 1.0:
+				_done = true
+				_time = 0.0
+				gifts.gift_arrived.emit(id, to)
+		elif _time >= FADE:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		if grow_only:
+			var share := clampf(_time / MapGifts.GROW_RISE, 0.0, 1.0)
+			draw_arc(to, maxf(ring_radius * share, 4.0), 0.0, TAU, 64, Color(ring_color, 0.7 * (1.0 - share)), 2.0)
+			return
+		var reach := 1.0 if _done else clampf(_time / MapGifts.ARRIVAL_ROOTS, 0.0, 1.0)
+		var alpha := 1.0 - clampf(_time / FADE, 0.0, 1.0) if _done else 1.0
+		var shown := maxi(int(_points.size() * reach), 2)
+		var line := _points.slice(0, mini(shown, _points.size()))
+		if line.size() < 2:
+			return
+		draw_polyline(line, Color(Palette.ROOT, 0.9 * alpha), 7.0)
+		draw_polyline(line, Color(Palette.BARK, alpha), 4.0)
+		draw_polyline(line, Color(Palette.OAK, 0.8 * alpha), 1.5)
+		if not _done:
+			draw_circle(line[line.size() - 1], 5.0, Color(Palette.OAK, alpha))  # The growing tip

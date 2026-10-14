@@ -311,6 +311,19 @@ const TERMS := {
 	&"seeds": ["Seeds", "Seeds", "Seeds", "seedss"],
 	&"leaves": ["leaves", "leaves", "Leaves", "leavess"],
 	&"leaf": ["leaf", "leaves", "Leaves", "leafs"],
+	# The starter classes' words (Roguelite Code 2026-10-14; the council's "words still unclear" list): each links to its
+	# glossary line under "Classes" (CodexData).
+	&"mushroom": ["mushroom", "mushrooms", "Mushroom"],
+	&"dose": ["dose", "doses", "Dose"],
+	&"lit": ["Lit", "Lit", "Lit", "lits"],
+	&"jump": ["jump", "jumps", "Jump"],
+	&"water": ["water", "water", "Water", "waters"],
+	&"toll": ["Toll", "Tolls", "Toll"],
+	&"free_hit": ["free hit", "free hits", "Free hit"],
+	&"heavy": ["heavy", "heavy", "Heavy Warden", "heavys"],
+	&"step": ["step", "steps", "Step"],
+	&"touching": ["touching", "touching", "Touching", "touchings"],
+	&"near": ["near", "near", "Near", "nears"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.

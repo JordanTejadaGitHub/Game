@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "long_way_round"
+display_name = "Long Way Round"
+description = "Bosses and Deeply Blighted nightmares take 2% more damage for each bend behind them, up to 40%."
+rarity = 1
+kind = 3
+tags = Array[String](["maze"])
+max_stacks = 1
+min_act = 2
+rule_id = &"long_way_round"
+tip = "Answers bosses. A bend has a full cell of straight path on each side."

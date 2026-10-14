@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "passing_thread"
 display_name = "Passing Thread"
-description = "When a Warden changes target, it carries 1 {stack} of the old target's biggest status to the new one (every 2 s per Warden)."
+description = "Wardens deal 50% more damage to a nightmare the second time it passes them."
 rarity = 1
 kind = 3
-tags = Array[String]([])
+tags = Array[String](["maze"])
 max_stacks = 1
 rule_id = &"passing_thread"
+tip = "A second pass: the path leaves the Warden's range for 3 cells or more and comes back into it."

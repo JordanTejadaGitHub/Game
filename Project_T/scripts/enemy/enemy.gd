@@ -251,6 +251,33 @@ var _culled := false
 # The way in (StartGate, Environment Assets' mock): it comes out of the fog in the void and crosses the rope
 # bridge to the start along `_entry` (MapGenerator pixels) in ENTRY_TIME s, untargetable (out of the enemies
 # group) until it steps onto the island; then the route as before.
+# Hit feedback, layer 1 (screens_ui.md "Hit feedback on nightmares"): every damaging hit makes it flinch: a
+# pale flash through its shader (hit_flash, FLASH_TIME) and the SPRITE recoils 1–2 px away from the hit, by the
+# hit's share of its health (a floor so a tap shows, a ceiling so nothing jumps; bosses less). Visual only: the
+# body, its route position and its HUD never move. Continuous sources (SUSTAINED_TAGS) don't flinch per tick:
+# they keep a "sustained" state the Wardens' overlays hook (set_sustained / is_sustained / sustained_changed).
+const FLINCH_TIME := 0.1  # The recoil settles back over this long (real seconds)
+const FLASH_TIME := 0.06
+const RECOIL_MIN := 1.0  # px, the lightest hit
+const RECOIL_MAX := 2.0  # px, a hit of RECOIL_FULL_SHARE of its max health or more
+const RECOIL_FULL_SHARE := 0.1
+const FLASH_MIN := 0.3  # Flash strength of the lightest hit…
+const FLASH_MAX := 0.6  # …and of a heavy one
+const BOSS_FLINCH := 0.5  # Bosses flinch half as far and half as bright
+const NO_SOURCE := Vector2(INF, INF)  # flinch(): no hit position: back along its path
+const SUSTAINED_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog", &"rain", &"beam", &"fence", &"whirlpool",
+	&"lingering_splash"]
+const SUSTAIN_HOLD := 0.3  # A tick keeps its sustained state on this long (game seconds) without the source saying
+const ARC_TAG := &"fence"  # Jarlink / Lightning Fence arcs: it twitches while they hold it
+const ARC_TWITCH := 0.7  # px
+signal sustained_changed(enemy: Node2D, tag: StringName, on: bool)
+var _flinch_left := 0.0
+var _flinch_recoil := Vector2.ZERO  # The recoil at its start (px); eases back to zero
+var _flinch_flash := 0.0  # The flash at its start
+var _recoil := Vector2.ZERO  # Added to the sprite's offset only (recoil + arc twitch)
+var _flash_shown := 0.0  # The hit_flash the shader has now (set only when it changes)
+var _sustained := {}  # tag -> game seconds left (INF = held by its source until cleared)
+
 const ENTRY_TIME := 1.5
 const ENTRY_FADE := 0.3  # Share of the way in over which it fades in out of the fog
 const ENTRY_Z := 0  # While crossing: over the deck (z -1) and under the fog (z 1): StartGate 0eb9153b layers them
@@ -430,7 +457,7 @@ func _ready() -> void:
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	_measure_bar_offset()
 	_measure_foot_lift()
-	sprite.offset = _body_offset() / sprite.scale
+	sprite.offset = (_body_offset() + _recoil) / sprite.scale
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
@@ -516,6 +543,10 @@ func _process(delta: float) -> void:
 		_crit_flash = maxf(_crit_flash - delta, 0.0)
 	if _pose_left > 0.0:
 		_pose_left = maxf(_pose_left - delta, 0.0)
+	if not _sustained.is_empty():
+		_update_sustained(delta)
+	if _flinch_left > 0.0 or _recoil != Vector2.ZERO or _sustained.has(ARC_TAG):  # (One timer; nothing when at rest)
+		_update_flinch(delta / maxf(Engine.time_scale, 0.001))
 	if freeze_cooldown > 0.0:
 		freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	if push_cooldown > 0.0:
@@ -1289,7 +1320,7 @@ func _update_squeeze(delta: float) -> void:
 		return
 	sprite.scale.x = sprite.scale.x / _squeeze * next
 	_squeeze = next
-	sprite.offset = _body_offset() / sprite.scale  # The rounded-corner offset and foot lift stay in world pixels
+	sprite.offset = (_body_offset() + _recoil) / sprite.scale  # The rounded-corner offset and foot lift stay in world pixels
 
 # Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
 # across its walking direction blocked.
@@ -1343,6 +1374,77 @@ func _point_px(index: int) -> Vector2:
 		_target_px = grid.calculate_map_position(_path[index])
 	return _target_px
 
+# A hit landed: flash and recoil. `share` = the hit's damage / its max health; `from` = where it came from in
+# global pixels (NO_SOURCE: it recoils back along its path). No allocations; _update_flinch plays it out.
+func flinch(share: float, from: Vector2 = NO_SOURCE) -> void:
+	if _culled or is_cleansed:
+		return
+	var strength := clampf(share / RECOIL_FULL_SHARE, 0.0, 1.0)
+	var scale_by := BOSS_FLINCH if enemy_data.is_boss else 1.0
+	var away := Vector2.ZERO
+	if from != NO_SOURCE:
+		away = global_position - from
+	if away.length_squared() < 1.0 and _path_index < _path.size():
+		away = position - _point_px(_path_index)  # Back along its path
+	if away.length_squared() < 1.0:
+		away = Vector2.UP
+	_flinch_recoil = away.normalized() * lerpf(RECOIL_MIN, RECOIL_MAX, strength) * scale_by
+	_flinch_flash = 0.0 if Fx.reduce_flashes() else lerpf(FLASH_MIN, FLASH_MAX, strength) * scale_by
+	_flinch_left = FLINCH_TIME
+	_update_flinch(0.0)
+
+# Plays the flinch out (real seconds: game speed doesn't shorten it), plus the arc twitch; back at rest it
+# leaves the sprite's offset and the shader's flash exactly where they were.
+func _update_flinch(real_delta: float) -> void:
+	_flinch_left = maxf(_flinch_left - real_delta, 0.0)
+	var t := _flinch_left / FLINCH_TIME  # 1 -> 0
+	_recoil = _flinch_recoil * t
+	if _sustained.has(ARC_TAG):  # Wrapped in arcs: a small jitter for as long as they hold it
+		var now := Time.get_ticks_msec() * 0.001
+		_recoil += Vector2(sin(now * 83.0), cos(now * 61.0)) * ARC_TWITCH
+	var flash := _flinch_flash * clampf((_flinch_left - (FLINCH_TIME - FLASH_TIME)) / FLASH_TIME, 0.0, 1.0)
+	if flash != _flash_shown:
+		_flash_shown = flash
+		sprite.set_instance_shader_parameter(&"hit_flash", flash)
+	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+
+# Continuous damage (arcs, beams, clouds, Poisoned ticks): no flinch per tick. `tag`'s source holds the state
+# (on = true until it clears it), and every tick of a SUSTAINED_TAGS source refreshes it for SUSTAIN_HOLD s
+# by itself. Wardens' overlays read is_sustained(tag) or listen to sustained_changed.
+func set_sustained(tag: StringName, on: bool) -> void:
+	if on:
+		var was := _sustained.has(tag)
+		_sustained[tag] = INF
+		if not was:
+			sustained_changed.emit(self, tag, true)
+	elif _sustained.erase(tag):
+		sustained_changed.emit(self, tag, false)
+
+# Whether `tag`'s continuous source is on it now (no tag: any of them).
+func is_sustained(tag: StringName = &"") -> bool:
+	return not _sustained.is_empty() if tag == &"" else _sustained.has(tag)
+
+func _note_sustained_tick(tag: StringName) -> void:
+	if not _sustained.has(tag):
+		_sustained[tag] = SUSTAIN_HOLD
+		sustained_changed.emit(self, tag, true)
+	elif _sustained[tag] < SUSTAIN_HOLD:
+		_sustained[tag] = SUSTAIN_HOLD
+
+# The tick-refreshed sustained states run out SUSTAIN_HOLD s after their last tick (held ones stay).
+func _update_sustained(delta: float) -> void:
+	var ended := &""  # (No key list made: one ends a frame at most, the next the frame after)
+	for tag: StringName in _sustained:
+		var left: float = _sustained[tag]
+		if left == INF:
+			continue
+		_sustained[tag] = left - delta
+		if left - delta <= 0.0:
+			ended = tag
+	if ended != &"":
+		_sustained.erase(ended)
+		sustained_changed.emit(self, ended, false)
+
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
 
@@ -1367,7 +1469,7 @@ func _round_corners() -> void:
 	if offset == _corner_offset:
 		return
 	_corner_offset = offset
-	sprite.offset = _body_offset() / sprite.scale
+	sprite.offset = (_body_offset() + _recoil) / sprite.scale
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 
@@ -2321,6 +2423,8 @@ func _soaked_boosts_water() -> bool:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
 	return dreams == null or dreams.soaked_boosts_water()
 
+var _batch_dreams: DreamState = null  # The run's DreamState, found on the first hit (performance: once, not per damage event)
+
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
@@ -2328,6 +2432,13 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if source is Tower and Reactions.is_effect(tag) and tag not in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
+	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
+	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # Looked up once, not per hit
+	var batch_dreams := _batch_dreams if is_instance_valid(_batch_dreams) else null
+	if batch_dreams != null:
+		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)
@@ -2372,6 +2483,11 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if health == 0 and not _try_rise():
 		_cleanse()
 		return
+	if soothe > 0.0:  # It felt that: a flinch, or (continuous sources) the sustained state their overlays hook
+		if tag in SUSTAINED_TAGS:
+			_note_sustained_tick(tag)
+		else:
+			flinch(soothe / maxf(max_health, 1.0), source.global_position if source is Node2D else NO_SOURCE)
 	_check_health_thresholds()
 	if (enemy_data.charges_at_half or (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE
 			and enemy_data.straight_charge_tiles <= 0)) and not _startled and health <= max_health / 2:

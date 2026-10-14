@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mixed_company"
+display_name = "Mixed Company"
+description = "Status hits on a nightmare carrying {spored} and two other statuses add twice the {stacks}. Once a second per Warden. Not {drowsy}."
+tip = "A bet: it needs three statuses on one nightmare, so usually two families besides the spore Wardens. Doubles only the hit's own {stacks}."
+rarity = 2
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"any Warden that adds a status"
+requires = Array[String](["sporeling"])

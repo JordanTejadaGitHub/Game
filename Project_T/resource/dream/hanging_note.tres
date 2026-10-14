@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hanging_note"
+display_name = "Hanging Note"
+description = "A pulsing bell's Toll leaves a note on the path for 2 s. Nightmares walking into it are struck, at half damage. One per bell."
+tip = "Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+rarity = 1
+kind = 3
+tags = Array[String](["song"])
+max_stacks = 1
+rule_id = &"hanging_note"
+calling = "bellflower"
+retired = true

@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "heartwoods_reach"
 display_name = "Heartwood's Reach"
-description = "Clearing costs half. Your next 3 clears are halved again."
+description = "You can clear obstacles. Your next 5 clears are free. The first Warden planted on each cleared cell arrives at {rank} I."
 rarity = 0
 kind = 4
 tags = Array[String](["clearing", "opener", "tending"])
 max_stacks = 1
 min_obstacles = 8
-clear_discount = 0.5
-free_clears_add = 3
+clear_discount = 0.0
+free_clears_add = 0
+free_first_clears_add = 5

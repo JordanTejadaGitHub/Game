@@ -138,11 +138,10 @@ func _hook() -> void:
 			lesson(&"rests", &"dew", "Rests", "The forest is resting. Nothing moves until you press Start, and selling a Warden gives %s. After this, a rest comes every %d drifts." % [
 				"all its Dew back" if tower_seller == null or tower_seller.build_phase_refund >= 1.0 else "%d%% of its Dew back" % roundi(tower_seller.build_phase_refund * 100.0),
 				drift_director.drifts_per_block])
-			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path pays a Maze bonus at the rest that ends every %d drifts: the small number beside your Dew shows how much." % drift_director.drifts_per_block))
+			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also pays a Maze bonus at each rest: the small number beside your Dew shows how much."))
 		drift_director.drift_started.connect(func(_number: int) -> void:  # Speed and pause: as the first drift starts
-			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(
-				"%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")],
-				"The pause and speed buttons are beside Start. You can plant while paused.")))
+			var keys := "%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")]
+			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(keys, "The pause and speed buttons are beside Start. You can plant while paused.")))
 	if tower_placer != null:
 		tower_placer.tower_built.connect(_on_built)
 		if tower_placer.has_signal("build_mode_changed"):
@@ -165,7 +164,7 @@ func _hook() -> void:
 		dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
 			if amount > 0:
 				lesson(&"dreamlight", &"dreamlight", "Dreamlight",
-					"Dreamlight unlocks new forms for your Wardens. Press Remember beside Start at a rest to spend it."))
+					"Dreamlight unlocks new forms for your Wardens. Press Remember, at the top right, to spend it."))
 	var spawner := main.get_node_or_null("%EnemyContainer")
 	if spawner != null and spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_enemy: Node2D, _stacks: int) -> void:
@@ -260,12 +259,13 @@ func _badge_at(enemy: Node2D) -> Vector2:
 
 # Beside the nightmare, on the side with more room, never over it, and inside the screen: the CenterContainer's rect
 # becomes that strip (the card centres itself in it). Each frame while it shows: the card's height settles a frame late.
-func _place_beside() -> void:
-	var at := _spot_at(_spot_enemy)
+func _place_beside(at: Vector2 = Vector2.INF, gap: float = SPOT_GAP) -> void:
+	if at == Vector2.INF:
+		at = _spot_at(_spot_enemy)
 	var card := _panel.size
 	var right := at.x < size.x / 2.0
-	var from := at.x + SPOT_GAP if right else SPOT_EDGE
-	var to := size.x - SPOT_EDGE if right else at.x - SPOT_GAP
+	var from := at.x + gap if right else SPOT_EDGE
+	var to := size.x - SPOT_EDGE if right else at.x - gap
 	if to - from < card.x:  # A screen too narrow for a side strip: keep it whole, against the far edge
 		from = size.x - SPOT_EDGE - card.x if right else SPOT_EDGE
 		to = from + card.x
@@ -274,9 +274,104 @@ func _place_beside() -> void:
 	_centre.position = Vector2(from, middle - card.y / 2.0)
 	_centre.size = Vector2(to - from, card.y)
 
-func _end_spot() -> void:
-	if _spot_enemy == null and _spot_status == &"":
+# --- Lessons point at the control they name (user 2026-10-13: "the tutorial card for Remember should have a line
+# pointing to the top right") -----------------------------------------------------------------------------------
+# While the card is open a thin thread runs from it to each control (or Warden) the Lesson names, and the control
+# glows; the card sits beside the first one, so the thread is short and starts at the card's edge, never across
+# its text. Reduced motion: no pulse, the thread and a steady glow stay. Gone on Got it.
+var _point_nodes: Array = []  # Controls (HUD) or Node2Ds (a Warden) the shown Lesson points at
+
+# What `id`'s Lesson points at now: only what is on screen (a hidden Warden bar: its arrow instead).
+func point_targets(id: StringName, entry: Array = []) -> Array:
+	var hud := get_parent()
+	if hud == null:
+		return []
+	var found: Array = []
+	var drift_panel := hud.find_child("DriftPanel", true, false)
+	match id:
+		&"dreamlight":
+			found = [hud.get("remember_button")]
+		&"intro_maze":
+			var slots = hud.get("_tower_buttons")
+			var slot = slots[0] if slots is Array and not slots.is_empty() else null  # The Sprout: the bar's first slot
+			if not (slot is Control and slot.is_visible_in_tree()):
+				slot = hud.get("_bar_toggle")  # The bar is tucked away: its arrow brings it back
+			found = [slot, drift_panel.get("_start_button") if drift_panel != null else null]
+		&"speed_pause":
+			if drift_panel != null:
+				found = [drift_panel.get("_pause_button")]
+				var speeds = drift_panel.get("_speed_buttons")
+				if speeds is Array and not speeds.is_empty():
+					found.append(speeds[-1])
+		&"dew_maze":
+			found = [hud.get_node_or_null("MazeDewLabel")]
+		&"discover_nurture":
+			found = [hud.find_child("NurtureHeading", true, false)]
+		&"guide_catch":
+			found = [entry[4] if entry.size() > 4 else null]  # The catcher just planted
+	return found.filter(func(node) -> bool:
+		return node != null and is_instance_valid(node) and (node is Control or node is Node2D) and node.is_visible_in_tree())
+
+# Where a pointed-at node is on screen.
+func _point_rect(node) -> Rect2:
+	if node is Control:
+		return (node as Control).get_global_rect()
+	var half := maxf(32.0 * (node as Node2D).get_global_transform_with_canvas().get_scale().x, 24.0)
+	return Rect2(_spot_at(node) - Vector2(half, half), Vector2(half, half) * 2.0)
+
+# The card beside the first control: left, right, above or below it, whichever is nearest while staying on screen and
+# off every control it points at. None fits: the card stays centred.
+const POINT_GAP := 28.0
+
+func _place_near() -> void:
+	var rects: Array[Rect2] = []
+	for node in _point_nodes:
+		var rect := _point_rect(node)
+		rect.position -= global_position
+		rects.append(rect)
+	var card := _panel.size
+	var target := rects[0]
+	var middle := target.get_center()
+	var best := Vector2.INF
+	var best_score := INF
+	for spot in [Vector2(target.position.x - POINT_GAP - card.x, middle.y - card.y / 2.0), Vector2(target.end.x + POINT_GAP, middle.y - card.y / 2.0),
+			Vector2(middle.x - card.x / 2.0, target.position.y - POINT_GAP - card.y), Vector2(middle.x - card.x / 2.0, target.end.y + POINT_GAP)]:
+		var at := Vector2(clampf(spot.x, SPOT_EDGE, maxf(size.x - card.x - SPOT_EDGE, SPOT_EDGE)), clampf(spot.y, SPOT_EDGE, maxf(size.y - card.y - SPOT_EDGE, SPOT_EDGE)))
+		var placed := Rect2(at, card)
+		if rects.any(func(r: Rect2) -> bool: return r.grow(8.0).intersects(placed)):
+			continue  # It would cover a control it points at
+		var score := placed.get_center().distance_to(middle)
+		if score < best_score:
+			best_score = score
+			best = at
+	if best == Vector2.INF:
+		_centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		return
+	_centre.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_centre.position = best
+	_centre.size = card
+
+func _draw_points() -> void:
+	var still := bool(Fx.setting("reduced_motion", false))
+	var beat := 0.5 if still else 0.5 + 0.5 * sin(_spot_clock * 4.0)
+	var card := _panel.get_global_rect()
+	for node in _point_nodes:
+		if not is_instance_valid(node) or not node.is_visible_in_tree():
+			continue
+		var rect := _point_rect(node).grow(4.0)
+		rect.position -= global_position
+		_spot_layer.draw_rect(rect, Color(UiStyle.GOLD, 0.10 + 0.08 * beat))  # The glow, over the shade
+		_spot_layer.draw_rect(rect.grow(1.0 + 2.0 * beat), Color(UiStyle.GOLD, 0.9 - 0.4 * beat), false, 2.0)
+		var centre := rect.get_center() + global_position
+		var from := Vector2(clampf(centre.x, card.position.x, card.end.x), clampf(centre.y, card.position.y, card.end.y))  # On the card's edge, nearest the control
+		var to := Vector2(clampf(from.x, rect.position.x + global_position.x, rect.end.x + global_position.x), clampf(from.y, rect.position.y + global_position.y, rect.end.y + global_position.y))
+		if from.distance_to(to) > 4.0:
+			_spot_layer.draw_line(from - global_position, to - global_position, Color(UiStyle.GOLD, 0.7), 1.0, true)
+
+func _end_spot() -> void:
+	if _spot_enemy == null and _spot_status == &"" and _point_nodes.is_empty():
+		return
+	_point_nodes = []
 	_spot_enemy = null
 	_spot_status = &""
 	_centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -285,7 +380,10 @@ func _end_spot() -> void:
 # A soft ring round the nightmare, a pulse on its new badge, a thin thread from the card to the badge. Reduced motion:
 # nothing pulses, the ring stays.
 func _draw_spot() -> void:
-	if not visible or not is_instance_valid(_spot_enemy):
+	if not visible:
+		return
+	_draw_points()
+	if not is_instance_valid(_spot_enemy):
 		return
 	var still := bool(Fx.setting("reduced_motion", false))
 	var at := _spot_at(_spot_enemy)
@@ -311,9 +409,8 @@ func start_intro() -> void:
 	if not enabled or drift_director == null or drift_director.drifts_started != 0:
 		return
 	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the path to the Heartwood. Dispel them before they arrive: each one that reaches the Heartwood costs leaves.")
-	lesson(&"intro_maze", &"path_length", "Plant and start", InputMode.text(
-		"Wardens are walls. Pick a Sprout from the bar below and click the ground to plant it; Thornwalls make the path longer. Press Start (%s) to let in the first wave, called a drift." % InputMode.key(&"start_drift", "Enter"),
-		"Wardens are walls. Pick a Sprout from the bar below and tap the ground to plant it; Thornwalls make the path longer. Tap Start to let in the first wave, called a drift."))
+	var on_pc := "Wardens are walls. Pick a Sprout from the bar below and click the ground to plant it; Thornwalls make the path longer. Press Start (%s) to let in the first wave, called a drift." % InputMode.key(&"start_drift", "Enter")
+	lesson(&"intro_maze", &"path_length", "Plant and start", InputMode.text(on_pc, "Wardens are walls. Pick a Sprout from the bar below and tap the ground to plant it; Thornwalls make the path longer. Tap Start to let in the first wave, called a drift."))
 
 func skip_intro() -> void:
 	if not INTRO_IDS.has(shown_id):
@@ -353,7 +450,8 @@ func _on_built(tower: Tower) -> void:
 					"Build mode stays on. Tap Done to stop planting."))
 	var data := tower.tower_data
 	if data.catch_share > 0.0:
-		lesson(&"guide_catch", &"dew", "Catchers", CATCH_TEXT)
+		if enabled and not seen.has("guide_catch") and shown_id != &"guide_catch" and not queue.any(func(q: Array) -> bool: return q[0] == &"guide_catch"):
+			queue.append([&"guide_catch", &"dew", "Catchers", CATCH_TEXT, tower])  # With the Warden, for the pointer
 	if tower.get_meta(&"gift_sprout", false):
 		return
 	if data.get_id() == "sprout":  # The first time the Sprout price steps up (onboarding.md a599a72d)
@@ -411,6 +509,14 @@ func _process(_delta: float) -> void:
 			game_speed.set_paused(false)
 	if visible and _over_choice != null and (not is_instance_valid(_over_choice) or not _over_choice.visible):
 		close()  # Its choice screen went away
+	if visible and not _point_nodes.is_empty() and _spot_status == &"":  # Beside the control it names
+		_point_nodes = _point_nodes.filter(func(node) -> bool: return is_instance_valid(node) and node.is_visible_in_tree())
+		if _point_nodes.is_empty():
+			_end_spot()
+		else:
+			_spot_clock += _delta / maxf(Engine.time_scale, 0.001)
+			_place_near()
+			_spot_layer.queue_redraw()
 	if visible and _spot_status != &"":
 		if is_instance_valid(_spot_enemy):
 			_spot_clock += _delta / maxf(Engine.time_scale, 0.001)
@@ -489,7 +595,8 @@ func _show(entry: Array) -> void:
 		_resume_pending = false
 	shown_id = entry[0]
 	_end_spot()
-	if entry.size() > 4 and is_instance_valid(entry[4]):  # A status Lesson with its nightmare: the spotlight
+	_point_nodes = point_targets(shown_id, entry) if not _replaying and _over_choice == null else []
+	if entry.size() > 4 and is_instance_valid(entry[4]) and EnemyStatuses.ALL.has(entry[1]):  # A status Lesson with its nightmare: the spotlight
 		_spot_enemy = entry[4]
 		_spot_status = entry[1]
 		_spot_clock = 0.0

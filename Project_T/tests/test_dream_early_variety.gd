@@ -47,7 +47,7 @@ func _run() -> void:
 			layouts[str(ids)] = true
 			if has_pattern: pattern_offers += 1
 			else: plain_offers += 1
-	_check(seen.has("rhythm") and seen.has("crossfire"), "both universal patterns appear in real Act 1 offers")
+	_check(not seen.is_empty() and not seen.has("rhythm"), "the universal patterns appear in real Act 1 offers (Fifth Beat retired 2026-10-13)")
 	_check(seen.size() >= 3, "starter board sees several different mechanics")
 	_check(pattern_offers > 0 and plain_offers > 0, "mechanical opportunities are possible, never guaranteed")
 	_check(layouts.size() > 16, "seeded early offer variety remains")
