@@ -492,7 +492,7 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 			if e.has_meta(inside):
 				e.remove_meta(inside)  # Left the arc: a flyer can be charged again on its next crossing
 			continue
-		var phantom: bool = e.is_flying() and e.enemy_data.flying_icon == &"through_walls"
+		var phantom: bool = e.is_flying() and e.enemy_data.is_through_walls()  # Phantoms only (FLYING, not flying along the route: a Crow is hit); flying_icon is only the icon
 		if phantom and not final:
 			continue
 		Fx.sustain(e, Fx.SUSTAIN_LINK, tower, 1.0, [tower, partner])  # Wrapped in arcs while it stands in the link (it checks the segment itself)
