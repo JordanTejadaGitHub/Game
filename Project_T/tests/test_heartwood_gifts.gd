@@ -94,25 +94,25 @@ func _run() -> void:
 	_check(main.get_node("HUD/DriftPanel").PENDING_TEXT[&"gift"] == "Choose a gift", "the Start button names it")
 	_check(screen.preview != null and screen.preview.get_meta(&"gift", &"") == gifts.current_offer[0], "the first card's mini-scene plays above the cards")
 	_check(HeartwoodGifts.POOL.keys().all(func(id: StringName) -> bool: return GiftScreen.SCENES.has(id) or id == &"thick_mist"), "every gift has a before / after scene (Reshape too; retired Thick Mist has none)")
-	# Gifts as landmarks (heartwood_gifts.md, approved 2026-10-13): the card names its kind; a landmark says which
-	# family it fits and that it grows; its scene shows it acting in its zone, with the numbers of its step.
+	# Gifts as landmarks (heartwood_gifts.md, approved 2026-10-13): the card names its kind; a landmark says that
+	# it grows (no family line: every gift is generic, 8c8a8cb0); its scene shows it acting in its zone, with its step's numbers.
 	var spring_card: Button = screen._card(&"spring")
 	root.add_child(spring_card)
-	_check((spring_card.find_child("Category", true, false) as Label).text == "Landmark" and spring_card.find_child("Fits", true, false) != null
-		and spring_card.find_child("Grows", true, false) != null, "the Spring's card: Landmark, the family it fits, and that it grows")
+	_check((spring_card.find_child("Category", true, false) as Label).text.to_lower() == "landmark" and spring_card.find_child("Fits", true, false) == null
+		and spring_card.find_child("Grows", true, false) != null, "the Spring's card: Landmark, no family line, and that it grows")
 	spring_card.queue_free()
 	var ridge_card: Button = screen._card(&"sow_ridge")
 	root.add_child(ridge_card)
-	_check((ridge_card.find_child("Category", true, false) as Label).text == "Shape the land" and ridge_card.find_child("Grows", true, false) == null,
+	_check((ridge_card.find_child("Category", true, false) as Label).text.to_lower() == "shape the land" and ridge_card.find_child("Grows", true, false) == null,
 		"Sow a Ridge's card: Shape the land, no growth line")
 	ridge_card.queue_free()
 	var bell: Array = screen.scene_for(&"bell_stone")
 	_check(bell[2].get("zone") is Dictionary and is_equal_approx(float(bell[2].zone.cells), HeartwoodGifts.zone_cells(&"bell_stone"))
-		and String(bell[2].zone.word) == "+%d Drowsy" % roundi(HeartwoodGifts.stat(&"bell_stone", "drowsy_stacks", 1)) and float(bell[2].zone.every) > 0.0,
+		and String(bell[2].zone.word) == "%d%% slower" % roundi(HeartwoodGifts.stat(&"bell_stone", "slow", 1) * 100.0) and float(bell[2].zone.every) > 0.0,
 		"the Bell Stone's scene rings in its zone with its step's numbers (%s)" % [bell[2]])
-	_check(GiftScreen.growth_line(&"spring", 2) == "The Spring grows: it now Soaks %d stacks a second." % roundi(HeartwoodGifts.stat(&"spring", "soak_stacks_per_second", 2)),
+	_check(GiftScreen.growth_line(&"spring", 2) == "The Spring grows: Wardens near it now attack %d%% faster." % roundi(HeartwoodGifts.stat(&"spring", "attack_speed", 2) * 100.0) and HeartwoodGifts.stat(&"spring", "attack_speed", 2) > 0.0,
 		"a landmark's growth line reads its new step (%s)" % GiftScreen.growth_line(&"spring", 2))
-	_check(RestReport.landmark_lines(null, {&"spring": 212, &"lightning_tree": 38, &"moonwell": 0}) == "\nSpring: Soaked 212 nightmares\nLightning Tree: 38 extra bolts",
+	_check(RestReport.landmark_lines(null, {&"bell_stone": 212, &"lightning_tree": 38, &"moonwell": 0}) == "\nBell Stone: slowed 212 nightmares\nLightning Tree: struck 38 times",
 		"the rest report credits each landmark in one line")
 	for id in GiftScreen.SCENES:
 		screen.show_scene(id)

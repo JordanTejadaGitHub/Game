@@ -69,10 +69,10 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and not _link_open():
 		visible = false
 
-# One line per landmark for the block: "Spring: Soaked 212 nightmares". From GiftGround's counts since the last rest
+# One line per landmark for the block: "Bell Stone: slowed 212 nightmares". From GiftGround's counts since the last rest
 # (Tower Code: take_block_counts, which clears them).
-const LANDMARK_LINES := {&"spring": "Spring: Soaked %d nightmares", &"lightning_tree": "Lightning Tree: %d extra bolts",
-	&"bell_stone": "Bell Stone: made %d nightmares Drowsy", &"mushroom_ring": "Mushroom Ring: Poisoned %d nightmares",
+const LANDMARK_LINES := {&"lightning_tree": "Lightning Tree: struck %d times", &"bell_stone": "Bell Stone: slowed %d nightmares",
+	# (Tower Code's counts, 79818423: strikes, nightmares slowed by a ring, Rooted. The Spring, Mushroom Ring and Moonwell count nothing.)
 	&"heartwood_roots": "Heartwood Roots: Rooted %d nightmares"}
 
 static func landmark_lines(near: Node, counts = null) -> String:

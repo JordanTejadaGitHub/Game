@@ -35,7 +35,7 @@ const SCENES := {
 	&"sow_ridge": [".......\n.......\nSPPPPPH\n..a....\n.......", ".......\n.PPPPP.\nSP.O.PH\n..WO...\n...O...",
 		{"text": "+30%", "damage": 1.3}, "A ridge: they take the long way round, and Wardens touching it deal 30% more damage."],
 	&"fallen_giant": [".......\n.......\nSPPPPPH\n...a...\n.......", ".......\n.PPPPP.\nSPLLLPH\n...W...\n.......",
-		{"crit": "Crit"}, "A fallen giant nothing can trample: Wardens touching it crit more often, and harder."],
+		{"crit": "Crit"}, "A fallen giant nothing can trample: Wardens touching it can crit, whatever their family."],
 	&"glade": [".OO....\n.OO.O..\nSPPPPPH\n....O..\n.......", ".OO....\n.......\nSPPPPPH\n.......\n.......",
 		{"cleared": "free · tended"}, "The obstacles you pick are cleared for free, and each counts as tended."],
 	&"shift_stones": ["....OO.\n.......\nSPPPPPH\n.......\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...",
@@ -43,15 +43,15 @@ const SCENES := {
 	&"mire": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSBBBBBH\n.......\n.......",
 		{"bog": "35% slower"}, "Bog underfoot: they walk 35% slower, and Rooted lasts twice as long there."],
 	&"spring": [".......\n...a...\n.......\nSPPPPPH\n.......", ".......\n.~~W...\n.~~....\nSPPPPPH\n.......",
-		{"zone": {"letters": "~", "cells": 2.0, "word": "Soaked", "every": 0.0}, "text": "+40%", "damage": 1.4}, "The Spring Soaks every nightmare that walks past; Water Wardens touching it deal 40% more damage."],
+		{"zone": {"letters": "~", "cells": 2.0, "word": "", "every": 0.0}, "text": "+25% speed", "speed": 1.25}, "Wardens near the Spring attack faster, whatever their family."],
 	&"mushroom_ring": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n.kkkW..\nSPPPPPH\n.kkk...\n.......",
-		{"zone": {"letters": "k", "cells": 1.0, "word": "+6 Poisoned", "every": 0.0}}, "Nightmares crossing the ring are Poisoned; Spore Wardens touching it stack more."],
+		{"zone": {"letters": "k", "cells": 1.0, "word": "+50% stacks", "every": 0.0}}, "Any status put on a nightmare standing in the ring lands with more stacks."],
 	&"lightning_tree": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n..z.W..\nSPPPPPH\n.......\n.......",
-		{"zone": {"letters": "z", "cells": 3.0, "word": "second strike", "every": 1.6}}, "Every Charged bolt near the tree strikes twice, and the tree throws bolts of its own."],
+		{"zone": {"letters": "z", "cells": 3.0, "word": "struck", "every": 1.6}}, "The Lightning Tree strikes the strongest nightmare near it, again and again."],
 	&"moonwell": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...mW..\nSPPPPPH\n.......\n.......",
 		{"zone": {"letters": "m", "cells": 2.0, "word": "", "every": 0.0}, "text": "+1.5 range", "range": 1.5}, "Wardens near the Moonwell reach further and see Hidden nightmares."],
 	&"bell_stone": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...bW..\nSPPPPPH\n.......\n.......",
-		{"zone": {"letters": "b", "cells": 3.0, "word": "+4 Drowsy", "every": 1.6}, "text": "+30% speed", "speed": 1.3}, "The Bell Stone rings: nightmares near it grow Drowsy; Song Wardens touching it pulse faster."],
+		{"zone": {"letters": "b", "cells": 3.0, "word": "30% slower", "every": 1.6}}, "The Bell Stone rings: nightmares near it walk slower for a moment."],
 	&"ancient_stump": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n.u.R.u.\nSPPPPPH\n.......\n.......",
 		{"text": "rank II", "damage": 1.2}, "Plant on a stump: the Warden gets 2 free ranks."],
 	&"heartwood_roots": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n....W..\nSPrrrrH\n.......\n.......",
@@ -59,7 +59,7 @@ const SCENES := {
 	&"reshape": ["....OO.\n.......\nSPPPPPH\n....O..\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...",
 		{"cleared": UiStyle.DEW_GLYPH + "+30"}, "Move the obstacles into a wall, or clear them away; each one pays Dew."],
 	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
-		{"proc": "Drowsy ×2"}, "Thornwalls grow into Bramble free; Brambles make nightmares Drowsy twice as fast."],
+		{"proc": "20% slower"}, "Thornwalls grow into Bramble free; Brambles slow the nightmares beside them."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
 		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
 	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......",
@@ -247,14 +247,13 @@ static func growth_line(id: StringName, step: int) -> String:
 	var head := "The %s grows" % gift_name if not gift_name.ends_with("s") else "The %s grow" % gift_name
 	match id:
 		&"spring":
-			return "%s: it now Soaks %d stacks a second." % [head, roundi(HeartwoodGifts.stat(id, "soak_stacks_per_second", step))]
+			return "%s: Wardens near it now attack %d%% faster." % [head, roundi(HeartwoodGifts.stat(id, "attack_speed", step) * 100.0)]
 		&"lightning_tree":
-			return "%s: the second strike hits for %d%%, and it throws a bolt every %s s." % [head,
-				roundi(HeartwoodGifts.stat(id, "second_strike_share", step) * 100.0), str(snappedf(HeartwoodGifts.stat(id, "bolt_every", step), 0.1))]
+			return "%s: it now strikes every %s s, and harder." % [head, str(snappedf(HeartwoodGifts.stat(id, "strike_every", step), 0.1))]
 		&"bell_stone":
-			return "%s: each ring now adds %d Drowsy." % [head, roundi(HeartwoodGifts.stat(id, "drowsy_stacks", step))]
+			return "%s: its ring now slows nightmares by %d%% for %s s." % [head, roundi(HeartwoodGifts.stat(id, "slow", step) * 100.0), str(snappedf(HeartwoodGifts.stat(id, "slow_seconds", step), 0.1))]
 		&"mushroom_ring":
-			return "%s: crossing it now adds %d Poisoned." % [head, roundi(HeartwoodGifts.stat(id, "spored_stacks", step))]
+			return "%s: statuses put on nightmares inside it now land with %d%% more stacks." % [head, roundi(HeartwoodGifts.stat(id, "status_stacks_share", step) * 100.0)]
 		&"moonwell":
 			return "%s: Wardens near it now get +%s range." % [head, str(snappedf(HeartwoodGifts.stat(id, "range", step), 0.01))]
 		&"heartwood_roots":
@@ -393,13 +392,7 @@ func _card(id: StringName) -> Button:
 	for i in range(1, sentences.size()):
 		var line := String(sentences[i]).trim_suffix(".")
 		box.add_child(_bullet(line))
-	if kind == HeartwoodGifts.KIND_LANDMARK:  # Which family it fits, and that it grows
-		var family: String = HeartwoodGifts.family_of(id)
-		if family != HeartwoodGifts.ANY_FAMILY:
-			var fits := StatusLinks.make_label("Fits your {family:%s} Wardens." % family, 14, colour)
-			fits.name = "Fits"
-			fits.mouse_filter = Control.MOUSE_FILTER_PASS
-			box.add_child(fits)
+	if kind == HeartwoodGifts.KIND_LANDMARK:  # That it grows (no family line: every gift is generic, heartwood_gifts.md "Amendment")
 		var grows := StatusLinks.make_label(HeartwoodGifts.GROWS_LINE, 14, UiStyle.INK_DIM)
 		grows.name = "Grows"
 		grows.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -452,14 +445,12 @@ func scene_for(id: StringName) -> Array:
 		effect.zone["cells"] = HeartwoodGifts.zone_cells(id)
 	match id:
 		&"spring":
-			effect["damage"] = 1.0 + HeartwoodGifts.stat(id, "water_damage", step)
-			effect["text"] = "+%d%%" % roundi(HeartwoodGifts.stat(id, "water_damage", step) * 100.0)
+			effect["speed"] = 1.0 + HeartwoodGifts.stat(id, "attack_speed", step)
+			effect["text"] = "+%d%% speed" % roundi(HeartwoodGifts.stat(id, "attack_speed", step) * 100.0)
 		&"bell_stone":
-			effect.zone["word"] = "+%d Drowsy" % roundi(HeartwoodGifts.stat(id, "drowsy_stacks", step))
-			effect["speed"] = 1.0 + HeartwoodGifts.stat(id, "song_pulse_speed", step)
-			effect["text"] = "+%d%% speed" % roundi(HeartwoodGifts.stat(id, "song_pulse_speed", step) * 100.0)
+			effect.zone["word"] = "%d%% slower" % roundi(HeartwoodGifts.stat(id, "slow", step) * 100.0)
 		&"mushroom_ring":
-			effect.zone["word"] = "+%d Poisoned" % roundi(HeartwoodGifts.stat(id, "spored_stacks", step))
+			effect.zone["word"] = "+%d%% stacks" % roundi(HeartwoodGifts.stat(id, "status_stacks_share", step) * 100.0)
 		&"moonwell":
 			effect["range"] = HeartwoodGifts.stat(id, "range", step)
 			effect["text"] = "+%s range" % str(snappedf(HeartwoodGifts.stat(id, "range", step), 0.01))

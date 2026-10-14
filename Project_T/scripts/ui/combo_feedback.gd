@@ -147,7 +147,7 @@ func _ready() -> void:
 	style.shadow_size = 14
 	_card.add_theme_stylebox_override("panel", style)
 	var inner := CARD_WIDTH - 44.0
-	UiStyle.caps(_card_caps, 14)  # The normal caps colour (user's screenshot 2026-10-13: dimmed, it was nearly invisible)
+	UiStyle.caps(_card_caps, 14, UiStyle.INK)  # Ink, not the dim caps colour (user's screenshot 2026-10-13: it was nearly invisible; caps() defaults to the dim one)
 	_disc_box.bg_color = Palette.NIGHT
 	_disc_box.set_border_width_all(1)
 	_disc_box.set_corner_radius_all(999)  # Clamped to half the size: a circle
