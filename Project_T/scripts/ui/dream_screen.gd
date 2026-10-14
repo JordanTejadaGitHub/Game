@@ -185,11 +185,13 @@ func _make_card(card: UpgradeData) -> Button:
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += " · " + _roman(stack_count + 1)
-	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
-	if kind != "":
-		rarity.text += " · " + kind  # "Rare · Calling: Spore Print" / "Common · Sporeling family" (Roguelite Code)
 	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
+	# One line that never widens the card (user screenshot: a Calling's "Common · Calling: Lantern Ring" pushed the
+	# whole card wider than its button): it fills the row and ends in "…" instead.
+	rarity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rarity.clip_text = true
+	rarity.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	var gem_row := HBoxContainer.new()
 	gem_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem_row.add_theme_constant_override("separation", 8)
@@ -205,6 +207,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# No build-defining mark on the card (user 2026-10-07: "remove the build-around-it icon"); the tag stays in the data
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
+	_add_kind_line(box, card)
 	var name_label := Label.new()
 	name_label.text = card.display_name
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -344,6 +347,23 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
+
+# What kind of family card this is, on its own wrapping line under the rarity (Roguelite Code's card_kind_line): "Calling ·
+# Lantern Ring" on a Calling card (the Warden header's form), "Sporeling family" on a lent card, nothing otherwise.
+func _add_kind_line(box: VBoxContainer, card: UpgradeData) -> void:
+	var kind: String = dream_state.card_kind_line(card) if dream_state != null and dream_state.has_method("card_kind_line") else ""
+	if kind == "":
+		return
+	if card.calling != "":
+		kind = "Calling · %s" % DreamState.CALLINGS.title(card.calling)
+	var label := Label.new()
+	label.name = "KindLine"
+	label.text = kind
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(label, 14, Color(UpgradeData.rarity_color(card.rarity), 0.7))
+	label.text = label.text.to_upper().left(1) + label.text.substr(1)
+	box.add_child(label)
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
 	var label := Label.new()
