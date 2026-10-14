@@ -1504,6 +1504,23 @@ class BroodSprite extends Node2D:
 		BranchKit.world(t).add_child(sprite)
 		sprite.global_position = Tower.MAP_GRID.calculate_map_position(path[best])
 
+	# The route moved (a Warden planted, sold, an obstacle cleared): walk the new one from the point of it nearest, as
+	# nightmares re-route (the owner, 2026-10-14: "the mushrooms don't run correctly going vertical" / "Go off the
+	# path": they kept the route they hatched on and walked its old stretch across the grass).
+	func _ready() -> void:
+		var map = tower._dream_state.map_generator if is_instance_valid(tower) and tower._dream_state != null else null
+		if map != null and map.has_signal(&"path_changed"):
+			map.path_changed.connect(_on_path_changed)
+
+	func _on_path_changed() -> void:
+		if not is_instance_valid(tower):
+			return
+		var fresh := tower._route()
+		if fresh.is_empty():
+			return
+		route = fresh
+		index = mini(BranchKit.brood_spawn_index(route, global_position) + 1, route.size() - 1)  # To the nearest point first
+
 	# Crusted Brood (a): a Lichenling shot hatches a sprite right on its target (a burst at `share`).
 	static func burst_at(t: Tower, enemy: Node2D, share: float) -> void:
 		t.hit(enemy, share, true)
