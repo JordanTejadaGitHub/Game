@@ -82,7 +82,7 @@ func _run() -> void:
 	crusher.signature_fired.emit(crusher, Signatures.CRUSHING)
 	await _frames(1)
 	_check(callouts.discovered == [Signatures.CRUSHING], "the first Crushing is a discovery (%s)" % [callouts.discovered])
-	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Crushing!"), "its name pops over the Warden")
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Crushing"), "its name pops over the Warden")  # (Callouts have no exclamation marks, wording review 2026-10-13)
 	var toast := main.get_node("%ToastLabel") as Label
 	_check(toast != null and toast.text.begins_with("Signature discovered: Crushing"), "the HUD says what it does (%s)" % (toast.text if toast else ""))
 	var later := _plant("sporeling", Vector2(6, 2), [P, P, P, P, R])

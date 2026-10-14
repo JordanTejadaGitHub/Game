@@ -145,7 +145,7 @@ func _run() -> void:
 	# Placement cards show a diagram (dream_design.md, user: "confusing cards like Crossroads should have a diagram"):
 	# every diagram is 5 rows of 7 legend characters with a qualifying Warden and a caption; hovering Crossroads in an
 	# offer shows it beside the card, on screen; leaving hides it.
-	var legend := ".P+123456789WwaTXOQU*HS"
+	var legend := ".P+123456789WwaTXOQU*HSn"  # n: a path cell narrowed by a half-offset wall (Narrow Way)
 	var with_diagram := 0
 	for card in dreams.pool:
 		if not CardDiagram.has_diagram(card):

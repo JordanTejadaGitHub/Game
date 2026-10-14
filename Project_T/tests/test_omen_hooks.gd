@@ -76,7 +76,7 @@ func _check(condition: bool, label: String) -> void:
 		printerr("FAIL: " + label)
 
 func _build(placer: TowerPlacer, map, data: TowerData) -> Tower:
-	var path: PackedVector2Array = map.get_path_from(map.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (route points are half-cell centres)
 	var container: Node = placer.tower_container
 	for i in range(6, path.size() - 3):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:

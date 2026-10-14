@@ -37,7 +37,7 @@ func _run() -> void:
 	var intro := main.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
 	_check(gifts != null and intro != null, "the gifts and the intro card exist")
 	director.resting = true
-	main.get_node("%Whispers").set_enabled(false)  # The act 1 dossier waits for onboarding hints (up to 8 s): none here
+	main.get_node("%Whispers").mute()  # The act 1 dossier waits for onboarding hints (up to 8 s): none here
 	# The act 1 boss rest: a gift is offered; a new nightmare waits for its introduction at the same time.
 	gifts._on_rest_started(5, true, 0, false)
 	intro._pending = [load("res://resource/enemy/leaf_bug.tres")]

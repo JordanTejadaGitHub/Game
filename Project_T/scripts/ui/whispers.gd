@@ -44,6 +44,15 @@ var _refused_at := -REFUSAL_EVERY
 func set_enabled(_on: bool) -> void:
 	pass
 
+# Tests only (a run never sets it): no lines at all, the queue dropped and the line on screen ended. Tests that waited
+# out the onboarding lines used set_enabled(false), which no longer switches them (the Hints change, 2026-10-12).
+var muted := false
+
+func mute() -> void:
+	muted = true
+	_queue.clear()
+	_finish()
+
 var _queue: Array[StringName] = []
 var _tween: Tween
 
@@ -100,7 +109,7 @@ func _glide_along_path() -> void:
 # Queues `id` behind whatever is showing: once per profile, once per run (EACH_RUN) or every time (EVERY_TIME). An id
 # with no line (a removed teaching whisper: GrowHints and old callers may still ask) is ignored. `_args` is unused now.
 func whisper(id: StringName, _args: Array = []) -> void:
-	if not TEXT.has(id) or _queue.has(id):
+	if muted or not TEXT.has(id) or _queue.has(id):
 		return
 	if EACH_RUN.has(id):
 		if _run_seen.has(id):

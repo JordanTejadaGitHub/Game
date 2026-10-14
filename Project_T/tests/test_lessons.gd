@@ -44,6 +44,7 @@ func _take(lessons: LessonCard) -> StringName:
 	return id
 
 func _run() -> void:
+	root.size = Vector2i(1280, 720)  # A real screen: the HUD lays out, Lesson cards and pointers place against it
 	var pid := OS.get_process_id()
 	HeartwoodMemory.file_path = "user://test_lessons_%d.json" % pid
 	RunSaver.file_path = "user://test_lessons_run_%d.json" % pid
@@ -232,8 +233,8 @@ func _run() -> void:
 		(hook.callable as Callable).call(1, false, 0, false)
 	speed.set_paused(false)
 	await _frames(2)
-	_check(lessons.visible and lessons.shown_id == &"rests" and speed.paused and lessons._body.text.contains("forest is resting")
-		and lessons._body.text.contains("every %d drifts" % director.drifts_per_block),
+	_check(lessons.visible and lessons.shown_id == &"rests" and speed.paused and lessons._body.text.replace("\u00a0", " ").contains("forest is resting")
+		and lessons._body.text.replace("\u00a0", " ").contains("every %d drifts" % director.drifts_per_block),
 		"the first rest: the Rests Lesson opens and pauses (%s)" % lessons.shown_id)
 	lessons.close()
 	await _frames(2)

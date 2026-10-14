@@ -140,9 +140,8 @@ func _hook() -> void:
 				drift_director.drifts_per_block])
 			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also pays a Maze bonus at each rest: the small number beside your Dew shows how much."))
 		drift_director.drift_started.connect(func(_number: int) -> void:  # Speed and pause: as the first drift starts
-			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(
-				"%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")],
-				"The pause and speed buttons are beside Start. You can plant while paused.")))
+			var keys := "%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")]
+			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(keys, "The pause and speed buttons are beside Start. You can plant while paused.")))
 	if tower_placer != null:
 		tower_placer.tower_built.connect(_on_built)
 		if tower_placer.has_signal("build_mode_changed"):
@@ -410,9 +409,8 @@ func start_intro() -> void:
 	if not enabled or drift_director == null or drift_director.drifts_started != 0:
 		return
 	lesson(&"intro_heartwood", &"leaves", "Protect the Heartwood", "Nightmares enter at the forest edge and follow the path to the Heartwood. Dispel them before they arrive: each one that reaches the Heartwood costs leaves.")
-	lesson(&"intro_maze", &"path_length", "Plant and start", InputMode.text(
-		"Wardens are walls. Pick a Sprout from the bar below and click the ground to plant it; Thornwalls make the path longer. Press Start (%s) to let in the first wave, called a drift." % InputMode.key(&"start_drift", "Enter"),
-		"Wardens are walls. Pick a Sprout from the bar below and tap the ground to plant it; Thornwalls make the path longer. Tap Start to let in the first wave, called a drift."))
+	var on_pc := "Wardens are walls. Pick a Sprout from the bar below and click the ground to plant it; Thornwalls make the path longer. Press Start (%s) to let in the first wave, called a drift." % InputMode.key(&"start_drift", "Enter")
+	lesson(&"intro_maze", &"path_length", "Plant and start", InputMode.text(on_pc, "Wardens are walls. Pick a Sprout from the bar below and tap the ground to plant it; Thornwalls make the path longer. Tap Start to let in the first wave, called a drift."))
 
 func skip_intro() -> void:
 	if not INTRO_IDS.has(shown_id):

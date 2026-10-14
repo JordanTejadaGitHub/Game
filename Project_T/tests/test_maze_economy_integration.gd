@@ -70,7 +70,7 @@ func _run() -> void:
 	if forecast != null:
 		hud._update_maze_income()
 		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(director.get_maze_reward_projection(), true), "the HUD shows the block rest's forecast from the start")
-		_check(main.get_node("%PathLabel").tooltip_text.contains("every 4 cells") and main.get_node("%PathLabel").tooltip_text.contains("longer than the starting path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
+		_check(main.get_node("%PathLabel").tooltip_text.contains("every %d cells" % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW) and main.get_node("%PathLabel").tooltip_text.contains("longer than the starting path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}
 	director.maze_economy.load_save(reset)
@@ -82,9 +82,10 @@ func _run() -> void:
 		hud._update_maze_income()
 		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(expected, true), "forecast follows the next-rest reward")
 	var before := run.dew
-	var base: int = director.get_rest_bonus(1) + director.perfect_block_bonus
-	director._pay_rest_bonus()
-	_check(director.maze_reward_last == expected and run.dew - before == base + expected, "actual rest pays the separate maze bonus")
+	# The rest pays its whole bonus at once (DriftDirector computes the base: Dew x2 pass and Dream multipliers); the maze part
+	# is what this checks, and that it is included in what was paid.
+	var paid: Array = director._pay_rest_bonus()
+	_check(director.maze_reward_last == expected and run.dew - before == int(paid[0]) and int(paid[0]) >= expected, "actual rest pays the separate maze bonus (maze %d of %d expected, Dew +%d, paid %d)" % [director.maze_reward_last, expected, run.dew - before, int(paid[0])])
 	director._pay_rest_bonus()
 	_check(director.maze_reward_last == 0, "repeating rest cannot duplicate maze payment")
 	var saved: Dictionary = director.maze_economy.to_save()
