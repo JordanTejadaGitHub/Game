@@ -6,12 +6,11 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 2
 display_name = "Gravecrawler"
 health = 180
 speed = 75.0
 dew_reward = 5
-resists = Array[String](["wing"])
-weak_to = Array[String](["song"])
 trait_kind = 5
 trait_text = "Burrows under one Warden or wall each trip: build two deep where it matters."
 intro_lines = Array[String](["Burrows under a Warden or wall when that's a shortcut, {burrow_max} per trip, and surfaces on the other side."])

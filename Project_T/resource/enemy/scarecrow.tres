@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 3
 display_name = "The Scarecrow"
 health = 2600
 speed = 45.0
 dew_reward = 40
 leaf_cost = 5
 is_boss = true
-resists = Array[String](["stone", "wing"])
-weak_to = Array[String](["spore"])
 grief_spawn = ExtResource("3_crow")
 grief_count = 2
 grief_at = Array[float]([0.8, 0.6, 0.4, 0.2])

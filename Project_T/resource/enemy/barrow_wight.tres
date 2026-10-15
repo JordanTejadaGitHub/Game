@@ -6,17 +6,18 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 0
 display_name = "Barrow Wight"
 health = 600
 speed = 40.0
 dew_reward = 15
 leaf_cost = 2
-resists = Array[String](["wind"])
-weak_to = Array[String](["spore"])
+coat_per_hit = 8
+coat_total = 240
 status_immune = Array[StringName]([&"held"])
 status_duration_multipliers = {&"drowsy": 0.5}
-trait_text = "Slow and very tough. It can't be {held}, and {drowsy} wears off fast: rely on damage, not on stopping it."
-intro_lines = Array[String](["Older than the forest, and very hard to dispel.", "{drowsy} lasts half as long on it, and roots can't get a grip: it can't be {held}."])
-hint = "{spored} works on it as well as on anything."
+trait_text = "Slow, very tough, and it wears a {dread_shell}. It can't be {held}, and {drowsy} wears off fast: crack it with heavy hits."
+intro_lines = Array[String](["Older than the forest, and very hard to dispel. A {dread_shell} takes {coat_per_hit} off every hit until it has absorbed {coat_total}.", "{drowsy} lasts half as long on it, and roots can't get a grip: it can't be {held}."])
+hint = "Heavy hits crack its shell; after that, {spored} works on it as well as on anything."
 intro_drift = 63
 roll_tags = Array[StringName]([&"heavy"])

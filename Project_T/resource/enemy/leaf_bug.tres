@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_fbja3")
+kind = 5
 display_name = "Shade"
 health = 100
 speed = 102.4

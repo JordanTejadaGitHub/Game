@@ -6,12 +6,11 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "Watcher"
 health = 200
 speed = 80.0
 dew_reward = 6
-resists = Array[String](["song"])
-weak_to = Array[String](["stone"])
 status_immune = Array[StringName]([&"drowsy"])
 wake_radius = 1.5
 trait_text = "Never sleeps, and wakes {drowsy} and {asleep} nightmares near it: dispel it first."

@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Hollow Oak"
 health = 30000
 speed = 35.0
@@ -13,8 +14,6 @@ dew_reward = 100
 leaf_cost = 5
 is_boss = true
 stays_at_heartwood = true
-resists = Array[String](["root", "stone"])
-weak_to = Array[String](["water"])
 wither_interval = 10.0
 wither_time = 6.0
 wither_reach = 3.0

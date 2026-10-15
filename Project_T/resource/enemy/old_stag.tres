@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Hollow Stag"
 health = 3000
 speed = 44.8
 dew_reward = 40
 leaf_cost = 5
 is_boss = true
-resists = Array[String](["stone","root"])
-weak_to = Array[String](["water"])
 trait_kind = 3
 straight_charge_tiles = 4
 straight_charge_multiplier = 2.5

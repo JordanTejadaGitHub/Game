@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 3
 display_name = "Widow"
 health = 220
 speed = 75.0
 dew_reward = 6
 split_into = ExtResource("3_split")
 split_count = 6
-resists = Array[String](["wing"])
-weak_to = Array[String](["song"])
 trait_text = "Bursts into fast {nightmare:spiderling}s when dispelled: dispel it far from the Heartwood."
 intro_lines = Array[String](["A bloated, many-legged shadow. Dispelled, it bursts into {split_count} fast {split_into:name}s."])
 hint = "Keep a Warden that hits many at once near where it falls."

@@ -2444,7 +2444,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		var world := Reactions._world(self)
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
-	var family := enemy_data.get_soothe_multiplier(line, is_area)
+	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
 	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
@@ -2453,10 +2453,6 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	sorrowing = false  # (Her walk comes back at once: update_animation)
-	if line in enemy_data.resists:
-		_mark_hit(-1)
-	elif line in enemy_data.weak_to:
-		_mark_hit(1)
 	var pierce := pierce_coat_once
 	pierce_coat_once = false
 	if coat > 0.0 and soothe > 0.0 and not pierce:
@@ -2605,9 +2601,6 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 		event.crit_multiplier = source.attack_data.crit_multiplier
 		event.combos.append(&"crit")
 		factor *= event.crit_multiplier
-	if line in enemy_data.weak_to:
-		event.combos.append(&"weak")
-		factor *= EnemyData.WEAK_MULTIPLIER
 	if statuses.is_exposed():
 		event.combos.append(&"marked")
 		factor *= taken / (taken - EnemyStatuses.MARKED_EXTRA)
