@@ -30,7 +30,8 @@ const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters 
 const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
 const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
 const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud", &"leaves": &"leaf_hud", &"path_length": &"path_hud"}
-const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud"}
+const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud",
+	&"DreamsButton": &"dreams_hud"}  # Phones: UI Asset 9e0cf814
 const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
 @onready var tower_bar: HBoxContainer = %TowerBar  # One row by construction (user: "should not stack")
@@ -422,7 +423,8 @@ func _add_phone_buttons() -> void:
 		button.process_mode = Node.PROCESS_MODE_ALWAYS
 		_place_top_button(button, [0.0, ROW_BUTTON])
 		add_child(button)
-	dreams_button.draw.connect(_draw_dreams_glyph)
+	if dreams_button.icon == null:  # UI Asset's dreams_hud glyph (HUD_GLYPHS) once it's in the sheet; gems until then
+		dreams_button.draw.connect(_draw_dreams_glyph)
 	# Damage: the pixel damage icon (UI Asset review: no code-drawn shapes, they land on fractional sizes at UI 0.9)
 	var damage_icon := IconInfo.icon(&"damage")
 	if damage_icon != null:
