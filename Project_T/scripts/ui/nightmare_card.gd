@@ -77,6 +77,13 @@ static func health_at(data: EnemyData, drift: int, director: DriftDirector) -> i
 	var scale := director.get_health_scale(data, drift) if director != null else 1.0
 	return maxi(roundi(data.health * scale), 1)
 
+# The scaled dread-shell numbers for its text at `drift` (Enemy Code 1c659ed3: the per-hit soak grows with the drift),
+# for get_intro_lines / get_ability / format_text. `drift` 0 = the run's current drift; {} outside a run (base values).
+static func text_values(data: EnemyData, director: DriftDirector, drift: int = 0) -> Dictionary:
+	if data == null or director == null:
+		return {}
+	return data.shell_values_at(director, drift if drift > 0 else maxi(director.drifts_started, 1))
+
 # Frame 0 of the kind's walk-down (or first) animation, for portraits.
 static var _portraits := {}  # EnemyData path -> its cropped portrait
 

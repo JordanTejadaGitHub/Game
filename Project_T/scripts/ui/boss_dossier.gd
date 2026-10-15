@@ -577,7 +577,7 @@ func _add_coming_rows() -> void:
 	UiStyle.caps(head, 14, NightmareIntro.NEW_COLOR)
 	box.add_child(head)
 	for data in whats_coming:
-		box.add_child(NightmareIntro.make_row(data))
+		box.add_child(NightmareIntro.make_row(data, NightmareCard.text_values(data, drift_director)))  # Shell numbers now
 	_content.add_child(box)
 
 func boss_data(drift: int) -> EnemyData:
@@ -662,7 +662,7 @@ func _build(data: EnemyData, drift: int) -> void:
 	if data.abilities.size() > 0:
 		right.add_child(_section("What it does"))
 		for i in data.abilities.size():
-			right.add_child(_ability_row(data.get_ability(i)))
+			right.add_child(_ability_row(data.get_ability(i, NightmareCard.text_values(data, drift_director, drift))))  # Shell numbers at its drift
 
 # One stake under the portrait: the quiet label on the left, the value (an icon before it) on the right.
 func _stake(label_text: String, value: String, icon_id: StringName = &"", colour: Color = UiStyle.GOLD) -> HBoxContainer:

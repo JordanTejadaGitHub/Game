@@ -207,7 +207,7 @@ func marker_lines() -> Dictionary:
 	var data: EnemyData = _boss.enemy_data
 	var percent := RegEx.create_from_string("([0-9]+)%")
 	for i in data.abilities.size():
-		var ability := data.get_ability(i)
+		var ability := data.get_ability(i, NightmareCard.text_values(data, drift_director))  # Shell numbers at this drift
 		var when := String(ability.get("when", ""))
 		if not when.contains("health"):
 			continue

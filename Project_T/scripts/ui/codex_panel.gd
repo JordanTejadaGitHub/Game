@@ -623,6 +623,16 @@ func _status_of(term: String) -> StringName:
 	return &""
 
 # The Nightmare Kind an entry names (EnemyData.Kind), -1 for none or Plain (most nightmares: no list).
+# The run's DriftDirector when the Codex is opened in a run (pause menu), else null (the Grove, the title).
+func _run_director() -> DriftDirector:
+	var node: Node = get_parent()
+	while node != null:
+		var found := node.get_node_or_null("%DriftDirector") as DriftDirector
+		if found != null:
+			return found
+		node = node.get_parent()
+	return null
+
 func _kind_of(term: String) -> int:
 	var kind = EnemyData.KIND_NAMES.find_key(term)
 	return -1 if kind == null or kind == EnemyData.Kind.PLAIN else int(kind)
@@ -2059,12 +2069,13 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	var lines: Array[String] = []
 	if data.trait_text != "":
 		lines.append(data.trait_text)
-	lines.append_array(data.get_intro_lines())
+	var values := NightmareCard.text_values(data, _run_director())  # In a run: shell numbers at the current drift
+	lines.append_array(data.get_intro_lines(values))
 	if not lines.is_empty():
 		box.add_child(StatusLinks.make_label("\n".join(lines), UiStyle.TIP_SIZE))
 	if data.hint != "":
 		var hint := Label.new()
-		hint.text = data.format_text(data.hint)
+		hint.text = data.format_text(data.hint, values)
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		UiStyle.whisper(hint, 16)
 		box.add_child(hint)
@@ -2079,7 +2090,7 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	box.add_child(facts)
 	if data.is_boss:  # Its dossier's abilities (no "What helps": the ability and resist rows say enough)
 		for i in data.abilities.size():
-			var ability := data.get_ability(i)
+			var ability := data.get_ability(i, values)
 			var when := String(ability.get("when", ""))
 			box.add_child(StatusLinks.make_label("%s%s: %s" % [ability.get("name", ""), " (" + when + ")" if when != "" else "",
 				ability.get("text", "")], 15))
