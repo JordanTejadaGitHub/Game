@@ -10,12 +10,21 @@ const GROWTH_RINGS_CONFIRM_SECONDS := 6.0  # A second plant within this long con
 const REACH_RANK := 1  # Heartwood's Reach: the first Warden planted on each cleared cell arrives with this many free ranks
 const SEEDFALL_PRICE := 10  # Seedfall: every Sprout costs this; the price never climbs
 const WINDING_PATH_MULTIPLIER := 3.0  # Winding Path: the maze's rest Dew, tripled
-const CALL_OF_THE_WILD_SHARE := 0.25  # Call of the Wild: a drift called early pays this much more of its Dew…
-const PRESS_ON_CALLS := 3  # Press On: this many drifts of a block called early, and no leaf lost…
-const PRESS_ON_LEAVES := 1  # …regrows this many leaves, once a block
+# The six run-shaping redesigns (stake_redesign.md with dream_council_review.md 26's numbers, owner 2026-10-14): no
+# card keeps a stake. Wager and Price lines are gone; Clipped Wings is not built (Dark Skies retires).
+const CALL_OF_THE_WILD_PER_SECOND := 0.01  # Call of the Wild: a drift called early holds +1% Dew per second of arrival skipped…
+const CALL_OF_THE_WILD_MAX := 0.30  # …up to +30%
+const PRESS_ON_EVERY := 5  # Press On: every 5th drift you call early…
+const PRESS_ON_LEAVES := 1  # …regrows this many leaves, at once
+const NIPPED_BONUS := 0.20  # Nipped in the Bud (id held_breath): dispels before halfway along the route pay +20% Dew
+const NIPPED_SHARE := 0.5
+const HARD_WON_DISPELS := 80  # Hard-Won Rings (id clean_night): every 80 nightmares a Warden dispels…
+const HARD_WON_MAX_RANK := 4  # …give it a free rank, up to rank IV
+const GAUNTLET_BONUS := 0.30  # Gauntlet (id front_line): between two attacking Wardens, one on each side of the path
+const GAUNTLET_SIDE := Vector2(0.35, 1.4)  # Cells to the side of the path a Warden's centre may stand (the near and far edge)
+const GAUNTLET_ALONG := 0.75  # …and at most this far along it
 const FRESH_GROWTH_SPEED := 1.0  # Fresh Growth: +100% attack speed ("twice as fast")…
 const FRESH_GROWTH_TIME := 8.0  # …for this long, on the Warden and every Warden touching it
-const HELD_BREATH_WIN := 3.0  # Held Breath: a clean block's rest bonus is tripled; a leaf lost pays 0
 const THORNY_LASH := 3.0  # Thorny Walls: the lash is this x the drift's health growth (DriftDirector.get_growth)…
 const THORNY_CEILING := 0.25  # …and thorns never take more than this share of one nightmare's health
 const THORNY_BOSS_CEILING := 0.10  # (bosses and Deeply Blighted nightmares)
@@ -29,18 +38,11 @@ const SNAG_FLYERS_WITHIN := 10  # Snag is only offered while a flyer is due with
 const SNAG_REACH := 0.75  # Cells from a Thornwall's centre a flyer must pass within
 const LONG_WAY_PER_BEND := 0.02  # Long Way Round: bosses and Deeply Blighted take this much more per bend behind them…
 const LONG_WAY_MAX := 0.40  # …up to this
-const DARK_SKIES_DEW := 50  # Dark Skies: every Omen seen through pays this much more (x the act and the Omen's share)
+const DARK_SKIES_DEW := 50  # Dark Skies (retired 2026-10-14; an old save keeps it): every Omen seen through pays this much more
 const HEELS_PER_CALL := 0.10  # Hot on Their Heels: per drift called early this block…
 const HEELS_MAX := 0.40  # …up to this, until the rest; a leaf lost clears it
-const CLEAN_NIGHT_BLOCKS := 2  # A Clean Night: this many clean blocks in a row…
-const CLEAN_NIGHT_DREAMLIGHT := 1  # …give this much Dreamlight; a leaf lost pays no rest bonus at that rest
-const FRONT_LINE_FIRST := 0.30  # Front Line: damage taken in the first half of the route: +30%…
-const FRONT_LINE_SECOND := 0.30  # …and 30% less in the second
 const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
 const LONG_WALK_MAX := 0.60  # The Long Walk's cap
-const WAGER_TAG := "wager"  # At most one per offer (DreamState._draw_card); none before the drift 10 rest (min_drift)
-const WAGER_FROM_DRIFT := 10
-const PRICE_TAG := "price"  # A permanent cost: a "Price" line, never a "Wager" line
 # The 12 batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted.
 const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path", "call_of_the_wild",
 	"press_on", "fresh_growth", "held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]
@@ -49,15 +51,15 @@ const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "w
 var rings_planted := false  # Growth Rings: something was planted since the last rest's start
 var rings_result := ""  # "", "lost", or the Warden's name that got the rank: the rest report's line for the rest just begun
 var leaves_mark := 0  # RunState.leaves_lost when the block began: leaves lost this block = leaves_lost - this
-var press_on_paid := false  # Press On: paid this block
+var press_on_calls := 0  # Press On: drifts called early so far (never resets; every 5th regrows a leaf)
 var reach_cells := {}  # Heartwood's Reach: cleared cells whose free rank is used ("x,y" -> true)
-var clean_streak := 0  # A Clean Night: clean blocks in a row
+var hard_won := {}  # Hard-Won Rings: a Warden's cell ("x,y") -> nightmares it dispelled (selling resets it)
 var heels := 0  # Hot on Their Heels: early calls counted this block (cleared by a lost leaf)
-var held_result := ""  # Held Breath: "tripled" / "lost" for the rest just begun
+var _gauntlet := {}  # Gauntlet: route point -> true, between two attacking Wardens (rebuilt with the board or the route)
+var _gauntlet_key := ""
 # Not saved (a save is made at a rest, with nothing on the field):
 var _rings_confirm_until := -1.0
 var _rings_confirmed := false
-var _wild := {}  # Call of the Wild: drift number -> {leaves: leaves_lost at its start, pot: its Dew}
 var _first := {}  # First Light: "cell:nightmare id" -> true
 var _snagged := {}  # Snag: wall instance id -> drift number
 var route_serial := 0  # Bumped whenever the route changes (Passing Thread's stretches are cached per Warden)
@@ -68,17 +70,21 @@ var route_px := 0.0  # The route's length in px
 var _route_index := {}  # Route point -> its index on the route (Passing Thread)
 
 func to_save() -> Dictionary:
-	return {"rings_planted": rings_planted, "leaves_mark": leaves_mark, "press_on_paid": press_on_paid,
-		"reach_cells": reach_cells.keys(), "clean_streak": clean_streak, "heels": heels}
+	return {"rings_planted": rings_planted, "leaves_mark": leaves_mark, "press_on_calls": press_on_calls,
+		"reach_cells": reach_cells.keys(), "hard_won": hard_won.duplicate(), "heels": heels}
 
 func load_save(data: Dictionary) -> void:
 	rings_planted = bool(data.get("rings_planted", false))
 	leaves_mark = int(data.get("leaves_mark", 0))
-	press_on_paid = bool(data.get("press_on_paid", false))
+	press_on_calls = int(data.get("press_on_calls", 0))
 	reach_cells.clear()
 	for key in data.get("reach_cells", []):
 		reach_cells[String(key)] = true
-	clean_streak = int(data.get("clean_streak", 0))
+	hard_won.clear()
+	var saved_won = data.get("hard_won", {})
+	if saved_won is Dictionary:
+		for key in saved_won:
+			hard_won[String(key)] = int(saved_won[key])
 	heels = int(data.get("heels", 0))
 
 # --- Shared rules -------------------------------------------------------------------------------------------------
@@ -163,16 +169,9 @@ func bends_behind(enemy: Node2D) -> int:
 
 # --- Rests --------------------------------------------------------------------------------------------------------
 
-# The base rest bonus's multiplier (DriftDirector._pay_rest_bonus, before Morning Dew and the maze's Dew): Held
-# Breath triples a clean block's and pays nothing with a leaf lost; A Clean Night pays nothing with a leaf lost.
-func rest_bonus_multiplier(dreams: DreamState) -> float:
-	var clean := clean_block(dreams)
-	held_result = ""
-	if dreams.has_rule(&"held_breath"):
-		held_result = "tripled" if clean else "lost"
-		return HELD_BREATH_WIN if clean else 0.0
-	if dreams.has_rule(&"clean_night") and not clean:
-		return 0.0
+# The base rest bonus's multiplier (DriftDirector._pay_rest_bonus). No card stakes the rest bonus any more (Held
+# Breath and A Clean Night became Nipped in the Bud and Hard-Won Rings, 2026-10-14).
+func rest_bonus_multiplier(_dreams: DreamState) -> float:
 	return 1.0
 
 func maze_multiplier(dreams: DreamState) -> float:
@@ -180,8 +179,7 @@ func maze_multiplier(dreams: DreamState) -> float:
 
 # At each rest's start, before the block's counters reset: Growth Rings, Press On, A Clean Night. `excluded`: Wardens
 # another free-rank card raised at this rest.
-func rest(dreams: DreamState, early_calls: int, excluded: Array) -> void:
-	var clean := clean_block(dreams)
+func rest(dreams: DreamState, _early_calls: int, excluded: Array) -> void:
 	rings_result = ""
 	if dreams.has_rule(&"growth_rings"):
 		rings_result = "lost"
@@ -193,23 +191,11 @@ func rest(dreams: DreamState, early_calls: int, excluded: Array) -> void:
 				rings_result = top.tower_data.display_name
 				dreams._credit("growth_rings", "dew", float(Tower.RANK_COSTS[mini(top.rank + top.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
 				dreams.sunlit_granted.emit([top])
-	if dreams.has_rule(&"press_on") and not press_on_paid and clean and early_calls >= PRESS_ON_CALLS:
-		dreams.run_state.regrow_leaves(PRESS_ON_LEAVES)
-		dreams._credit("press_on", "leaves", float(PRESS_ON_LEAVES))
-	if dreams.has_rule(&"clean_night"):
-		clean_streak = clean_streak + 1 if clean else 0
-		if clean_streak >= CLEAN_NIGHT_BLOCKS:
-			clean_streak = 0
-			dreams.add_dreamlight(CLEAN_NIGHT_DREAMLIGHT, &"dream")
-	else:
-		clean_streak = 0
 	# A new window and a new block
 	rings_planted = false
 	_rings_confirmed = false
-	press_on_paid = false
 	heels = 0
 	leaves_mark = dreams.run_state.leaves_lost
-	_wild.clear()
 	_snagged.clear()
 	for tower in dreams._towers():
 		tower.set_meta(&"batch_stood_at_rest", true)  # Fresh Growth: only Wardens standing at the last rest
@@ -234,8 +220,6 @@ func report_lines(dreams: DreamState) -> String:
 	if dreams.has_rule(&"growth_rings") and rings_result != "":
 		text += "\nGrowth Rings: %s" % ("lost (you planted this block)" if rings_result == "lost" else
 			(rings_result if rings_result.begins_with("no ") else "a free rank waits on %s" % rings_result))
-	if dreams.has_rule(&"held_breath") and held_result != "":
-		text += "\nHeld Breath: rest bonus %s" % held_result
 	return text
 
 # --- Planting -----------------------------------------------------------------------------------------------------
@@ -288,22 +272,95 @@ func drift_started(dreams: DreamState, number: int, early: bool) -> void:
 	if dreams.has_rule(&"hot_on_their_heels") and clean_block(dreams):
 		heels += 1
 		dreams.bump_board()
-	if dreams.has_rule(&"call_of_the_wild"):
-		_wild[number] = {"leaves": dreams.run_state.leaves_lost, "pot": dreams.drift_director.get_effective_pot(number, true)}
+	if dreams.has_rule(&"press_on"):
+		# Press On: every 5th drift called early regrows a leaf at once (the count carries over between blocks)
+		press_on_calls += 1
+		if press_on_calls % PRESS_ON_EVERY == 0:
+			dreams.run_state.regrow_leaves(PRESS_ON_LEAVES)
+			dreams._credit("press_on", "leaves", float(PRESS_ON_LEAVES))
 
-# A drift was cleared (deferred by DreamState, so a last nightmare's leaf is counted): Call of the Wild pays its
-# bonus when no leaf was lost since that drift began.
-func drift_cleared(dreams: DreamState, number: int) -> void:
-	if not _wild.has(number):
+# Call of the Wild: the share more Dew drift `number` holds when called early (+1% per second of the drift before it
+# still to arrive, up to +30%). DreamState.get_dew_pot_multiplier asks, at the drift's start and for the forecast.
+func wild_bonus(dreams: DreamState, number: int) -> float:
+	if not dreams.has_rule(&"call_of_the_wild") or dreams.drift_director == null:
+		return 0.0
+	return minf(CALL_OF_THE_WILD_PER_SECOND * dreams.drift_director.arrival_left(number - 1), CALL_OF_THE_WILD_MAX)
+
+# Nipped in the Bud: a nightmare dispelled before it is halfway along its route pays this share more (run_state's Dew).
+func nipped_extra(dreams: DreamState, enemy: Node2D) -> float:
+	if not dreams.has_rule(&"held_breath") or not is_instance_valid(enemy):
+		return 0.0
+	return NIPPED_BONUS if route_share(enemy) < NIPPED_SHARE else 0.0
+
+# Hard-Won Rings: a nightmare's health reached 0 under `tower`'s damage (exact kills count). Every 80 give it a free
+# rank, banked, up to rank IV. Counted by the Warden's cell: growing keeps it, selling resets it (DreamState).
+func hard_won_dispel(dreams: DreamState, tower: Tower) -> void:
+	if not dreams.has_rule(&"clean_night") or tower == null or not tower.tower_data.can_attack:
 		return
-	var record: Dictionary = _wild[number]
-	_wild.erase(number)
-	if dreams.run_state.leaves_lost > int(record.leaves) or dreams.run_state.is_over:
+	var key := "%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)]
+	var count := int(hard_won.get(key, 0)) + 1
+	if count < HARD_WON_DISPELS:
+		hard_won[key] = count
 		return
-	var dew := roundi(float(record.pot) * CALL_OF_THE_WILD_SHARE)
-	if dew > 0:
-		dreams.run_state.add_dew(dew)
-		dreams._credit("call_of_the_wild", "dew", float(dew))
+	hard_won[key] = 0
+	if tower.can_nurture() and DreamState.ranks_with_banked(tower) < mini(HARD_WON_MAX_RANK, dreams.get_max_rank_for(tower)):
+		tower.bank_rank()
+		dreams._credit("clean_night", "dew", float(Tower.RANK_COSTS[mini(tower.rank + tower.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
+		dreams.sunlit_granted.emit([tower])
+
+func hard_won_sold(tower: Tower) -> void:
+	hard_won.erase("%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)])
+
+func hard_won_of(tower: Tower) -> int:
+	return int(hard_won.get("%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)], 0))
+
+# Gauntlet: route points with an attacking Warden (not a Sprout or a wall) on each side of the path. Rebuilt when the
+# board or the route changes.
+func gauntlet_at(dreams: DreamState, enemy: Node2D) -> bool:
+	if enemy.is_flying():
+		return false
+	var key := "%d:%d" % [int(dreams.board_version), route_serial]
+	if key != _gauntlet_key:
+		_gauntlet_key = key
+		_build_gauntlet(dreams)
+	return _gauntlet.has(enemy.get_target_cell())
+
+func _build_gauntlet(dreams: DreamState) -> void:
+	_gauntlet.clear()
+	var grid = dreams.map_generator.MAP_GRID
+	var cell_px: float = grid.cell_size.x
+	var walls: Array = dreams._towers().filter(func(t: Tower) -> bool:
+		return t.tower_data.can_attack and t.tower_data.line != "wall" and t.tower_data.get_id() != "sprout")
+	if walls.size() < 2:
+		return
+	var path: PackedVector2Array = dreams.map_generator.get_path_from(dreams.map_generator.startPath)
+	for i in path.size():
+		var along: Vector2 = (path[mini(i + 1, path.size() - 1)] - path[maxi(i - 1, 0)]).normalized()
+		if along == Vector2.ZERO:
+			continue
+		var side := Vector2(-along.y, along.x)
+		var at: Vector2 = grid.calculate_map_position(path[i])
+		var left := false
+		var right := false
+		for tower in walls:
+			var away: Vector2 = (tower.global_position - at) / cell_px
+			if absf(away.dot(along)) > GAUNTLET_ALONG:
+				continue
+			var across: float = away.dot(side)
+			if across >= GAUNTLET_SIDE.x and across <= GAUNTLET_SIDE.y:
+				left = true
+			elif across <= -GAUNTLET_SIDE.x and across >= -GAUNTLET_SIDE.y:
+				right = true
+			if left and right:
+				_gauntlet[path[i]] = true
+				break
+
+func gauntlet_count(dreams: DreamState) -> int:
+	var key := "%d:%d" % [int(dreams.board_version), route_serial]
+	if key != _gauntlet_key:
+		_gauntlet_key = key
+		_build_gauntlet(dreams)
+	return _gauntlet.size()
 
 func leaves_changed(dreams: DreamState) -> void:
 	if heels > 0 and not clean_block(dreams):
@@ -428,8 +485,8 @@ func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: St
 		multiplier *= 1.0 + heels_bonus(dreams)
 	if dreams.has_rule(&"long_way_round") and (enemy.enemy_data.is_boss or enemy.elite):
 		multiplier *= 1.0 + minf(LONG_WAY_PER_BEND * bends_behind(enemy), LONG_WAY_MAX)
-	if dreams.has_rule(&"front_line"):
-		multiplier *= 1.0 + FRONT_LINE_FIRST if route_share(enemy) < 0.5 else 1.0 - FRONT_LINE_SECOND
+	if dreams.has_rule(&"front_line") and gauntlet_at(dreams, enemy):  # Gauntlet (id front_line)
+		multiplier *= 1.0 + GAUNTLET_BONUS
 	return multiplier
 
 func uses_damage_hook(dreams: DreamState) -> bool:
@@ -505,31 +562,8 @@ func snag_walls(dreams: DreamState) -> int:
 			count += 1
 	return count
 
-# --- Wager and Price lines ------------------------------------------------------------------------------------------
-
-# The line under a wager's or a priced card's text, in the player's own numbers ("" = neither). One format:
-# "Wager · Stake: this block's 46 Dew. Win: 138."
-func stake_line(dreams: DreamState, card: UpgradeData) -> String:
-	var director: DriftDirector = dreams.drift_director
-	var next_drift := mini(director.drifts_started + 1, maxi(director.drifts.size(), 1))
-	var block := director.get_block(next_drift)
-	var bonus := director.get_rest_bonus(block)
-	match card.rule_id:
-		&"held_breath":
-			return "Wager · Stake: this {block}'s {dew:%d}. Win: {dew:%d}." % [bonus, roundi(bonus * HELD_BREATH_WIN)]
-		&"clean_night":
-			return "Wager · Stake: this {block}'s {dew:%d}. Win: {dreamlight:+%d} for %d clean {blocks} in a row." % [
-				bonus, CLEAN_NIGHT_DREAMLIGHT, CLEAN_NIGHT_BLOCKS]
-		&"call_of_the_wild":
-			var pot := roundi(director.get_effective_pot(next_drift, true) * CALL_OF_THE_WILD_SHARE)
-			return "Wager · Stake: the bonus itself. Win: about {dew:%d} on the next {drift} you call early." % pot
-		&"press_on":
-			return "Wager · Stake: %d {drifts} called early in a {block}. Win: %d {leaf} back." % [PRESS_ON_CALLS, PRESS_ON_LEAVES]
-		&"dark_skies":
-			return "Price · You must pick an Omen at every {rest} that offers one, for the rest of the run."
-		&"front_line":
-			return "Price · Nightmares take %d%% less damage in the second half of their route." % roundi(FRONT_LINE_SECOND * 100)
-	return ""
+# --- Card lines -----------------------------------------------------------------------------------------------------
+# (The Wager and Price lines are gone, 2026-10-14: no card keeps a stake. Bittersweet cards keep cost_description.)
 
 # What a matchup card answers and the player's own number (Snag, Long Way Round), or a card's live line ("" = none).
 func answer_line(dreams: DreamState, card: UpgradeData) -> String:
@@ -548,6 +582,8 @@ func answer_line(dreams: DreamState, card: UpgradeData) -> String:
 			var now_dew: int = dreams.drift_director.get_maze_reward_projection()
 			var base := roundi(now_dew / WINDING_PATH_MULTIPLIER) if owned else now_dew
 			return "Your maze now: {dew:+%d} at the {rest}. With this: {dew:+%d}." % [base, roundi(base * WINDING_PATH_MULTIPLIER)]
-		&"clean_night":
-			return "{dreamlight} unlocks new Warden forms."
+		&"front_line":
+			return "Gauntlet path on your route now: %d steps." % gauntlet_count(dreams)
+		&"press_on":
+			return "Drifts called early so far: %d. The next leaf at %d." % [press_on_calls, (press_on_calls / PRESS_ON_EVERY + 1) * PRESS_ON_EVERY]
 	return ""

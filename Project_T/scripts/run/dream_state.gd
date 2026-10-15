@@ -1898,11 +1898,8 @@ func plant_needs_confirm() -> bool:
 func sprout_price_fixed() -> bool:
 	return has_card("seedfall")
 
-# The "Wager" / "Price" line under a card's text, in the player's own numbers ("" = none), and a matchup card's
-# "what it answers" line. With tokens: the screens format them (IconInfo.format).
-func stake_line(card: UpgradeData) -> String:
-	return batch.stake_line(self, card) if card != null else ""
-
+# A matchup card's "what it answers" line, or a card's live line, in the player's own numbers ("" = none). With tokens:
+# the screens format them (IconInfo.format). (The Wager and Price lines are gone, 2026-10-14: no card keeps a stake.)
 func answer_line(card: UpgradeData) -> String:
 	return batch.answer_line(self, card) if card != null else ""
 
@@ -1924,12 +1921,8 @@ func card_kind_line(card: UpgradeData) -> String:
 		return "%s family" % (root.display_name if root != null else card.requires[0].capitalize())
 	return ""
 
-func is_wager(card: UpgradeData) -> bool:
-	return card != null and card.tags.has(BATCH.WAGER_TAG)
-
-func _batch_drift_cleared(number: int, _bonus: int, _perfect: bool) -> void:
-	batch.drift_cleared.call_deferred(self, number)  # Deferred: a last nightmare's leaf is lost in the same signal
-
+func _batch_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
+	pass  # (Call of the Wild no longer pays on a clear: it raises the called drift's pot, 2026-10-14)
 
 func _batch_leaves_changed(_leaves: int, _max: int) -> void:
 	batch.leaves_changed(self)
@@ -3043,8 +3036,7 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 	# an offer may hold none. Rerolls build a whole offer and Banish draws its replacement here, so both follow it.
 	# The one exception is the class-only Dream at drift 5's rest (make_offer), which never comes through here.
 	var has_class := exclude.any(func(c: UpgradeData) -> bool: return c.calling != "")
-	# At most one wager per offer (dream_council_review.md 24, ruling 1); none before the drift 10 rest (their min_drift).
-	var has_wager := exclude.any(is_wager)
+	# (The one-wager-per-offer rule is gone with the wagers, 2026-10-14.)
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
@@ -3052,8 +3044,6 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 		if has_legendary and card.rarity == UpgradeData.Rarity.LEGENDARY:
 			continue
 		if has_class and card.calling != "":
-			continue
-		if has_wager and is_wager(card):
 			continue
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
 			continue  # Lucid Dreaming: no Commons
@@ -3407,6 +3397,7 @@ func sunlit_line() -> String:
 
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
+	batch.hard_won_sold(tower)  # Hard-Won Rings: selling resets its count
 	if is_eldest(tower):
 		set_eldest(null)  # The title is free again; its ranks above V are lost
 	if not has_rule(&"remembered_care") or tower.rank <= 0:
@@ -3491,10 +3482,13 @@ func _passing_dream(enemy: Node2D) -> void:
 
 # Last Collection pays an extra share only near the Heartwood. Fractional Dew is carried by RunState.
 func dew_line_extra(enemy: Node2D = null) -> float:
-	if not has_rule(&"dew_line") or not is_instance_valid(enemy):
+	if not is_instance_valid(enemy):
 		return 0.0
+	var extra := batch.nipped_extra(self, enemy)  # Nipped in the Bud: dispelled before halfway, +20%
+	if not has_rule(&"dew_line"):
+		return extra
 	var heartwood: Vector2 = map_generator.MAP_GRID.calculate_map_position(map_generator.endPath)
-	return 0.20 if enemy.global_position.distance_to(heartwood) <= 3.0 * map_generator.MAP_GRID.cell_size.x else 0.0
+	return extra + (0.20 if enemy.global_position.distance_to(heartwood) <= 3.0 * map_generator.MAP_GRID.cell_size.x else 0.0)
 
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
@@ -3772,8 +3766,8 @@ func get_dew_pot_multiplier(number: int, called_early: bool) -> float:
 	var bonus := get_dew_gain_bonus()
 	if has_rule(&"scarred_bark"):
 		bonus += minf(SCARRED_BARK_PER * run_state.leaves_lost, SCARRED_BARK_MAX)
-	# (Call of the Wild is no longer in the pot: its 25% is paid when the called drift is cleared with no leaf lost,
-	# batch.drift_cleared.)
+	if called_early:
+		bonus += batch.wild_bonus(self, number)  # Call of the Wild: +1% per second of arrival skipped, up to +30%
 	if called_early and has_rule(&"bold_opening") and (_early_calls == 0 or _bold_opening_drift == number):
 		bonus += BOLD_OPENING_POT  # Bold Opening: the first drift called early this block
 	return (1.0 + bonus) * wild_dew_roll(number)
@@ -4599,6 +4593,11 @@ func _on_damage_dealt(event) -> void:
 		note_discovery(EVENT_CRIT_MARKED)
 	if not stacks.is_empty():
 		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
+	# Hard-Won Rings: the event that takes a nightmare's health to 0 counts for its Warden (exact kills too), once
+	if has_rule(&"clean_night") and is_instance_valid(event.enemy) and event.enemy.health <= 0 and event.source is Tower \
+			and not event.enemy.get_meta(&"batch_won", false) and not event.enemy.get("is_echo"):
+		event.enemy.set_meta(&"batch_won", true)
+		batch.hard_won_dispel(self, event.source)
 
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).

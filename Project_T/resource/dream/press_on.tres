@@ -6,11 +6,10 @@
 script = ExtResource("1_card")
 id = "press_on"
 display_name = "Press On"
-description = "Call 3 {drifts} of a {block} early and lose no {leaf}: regrow 1 {leaf}."
+description = "Every 5th {drift} you call early regrows 1 {leaf}."
 rarity = 1
 kind = 3
-tags = Array[String](["tempo", "daring", "wager"])
+tags = Array[String](["tempo"])
 max_stacks = 1
-min_drift = 10
 rule_id = &"press_on"
-tip = "Early means at least 10 s of the last {drift}'s arrival is skipped. Once a {block}, paid at the {rest}."
+tip = "Early means at least 10 s of the last {drift}'s arrival is skipped. The count carries over between {blocks}; the {leaf} grows back at once."

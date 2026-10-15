@@ -405,6 +405,14 @@ func get_arrival_skipped() -> float:
 	var schedule: Array = _arriving[drifts_started].schedule
 	return maxf(float(schedule[-1][0]) - float(_arriving[drifts_started].clock), 0.0) if not schedule.is_empty() else 0.0
 
+# Seconds of drift `number`'s arrival still to come (0 when it has finished arriving or is not known). Call of the Wild
+# (Roguelite Code, 2026-10-14) reads the drift before the one being started.
+func arrival_left(number: int) -> float:
+	if not _arriving.has(number):
+		return 0.0
+	var schedule: Array = _arriving[number].schedule
+	return maxf(float(schedule[-1][0]) - float(_arriving[number].clock), 0.0) if not schedule.is_empty() else 0.0
+
 # Whether starting the next drift right now counts as calling it early for Dream cards: the last one is still
 # arriving with at least call_early_min_seconds of its arrival left to skip.
 func would_call_early() -> bool:
