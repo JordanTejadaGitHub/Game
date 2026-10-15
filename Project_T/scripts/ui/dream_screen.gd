@@ -35,6 +35,19 @@ var _held_for_diagram := false  # A long-press showed the diagram: that release 
 var _looked: Button = null
 var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (clicks meant for the map)
 const LONG_PRESS := 0.45
+# Phone layout (UiStyle.is_phone(); mobile_ui_proto Dream.dc.html): header row (title + subtitle left, Peek right), the
+# cards across the width, a bottom row of Let it pass · hint · Take. The tap looks (lifts it, dims the rest); the Take
+# button (or a second tap) takes it. Tablets keep the centred layout and the "Tap again to take" line. PC: untouched.
+const PHONE_MARGIN := 44.0  # Left and right of the header, cards and bottom row (the HUD layer already fits the safe area)
+const PHONE_GAP := 12.0  # Between the cards
+const PHONE_LIFT := 1.04  # The looked card's scale (from its foot: it rises)
+const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word, not the card
+var _phone := false
+var _subtitle: Label = null  # Phones: "after drift 10 · take one"
+var _phone_hint: Label = null  # Phones: "Tap a card to look at it" / "Take it, or tap another"
+var _take: Button = null  # Phones: "Take <card>"
+var _looked_card: UpgradeData = null
+var _link_tap_ms := -100000
 
 func _ready() -> void:
 	WorldLabel.cover_while_visible(self, &"dream_screen")  # No world tags (DPS, hover names) over a full-screen screen
@@ -45,47 +58,154 @@ func _ready() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	center.add_child(box)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE)
-	box.add_child(_title)
-	_cards.add_theme_constant_override("separation", 16)
-	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(_cards)
+	_phone = UiStyle.is_phone()
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.pressed.connect(dream_state.skip)
 	_reroll.focus_mode = Control.FOCUS_NONE
 	_reroll.pressed.connect(func() -> void:
 		_rerolled_in = dream_state.current_offer_drift  # Before: the reroll shows the new offer at once
 		dream_state.reroll())
-	var skip_row := HBoxContainer.new()
-	skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	skip_row.add_theme_constant_override("separation", 16)
-	skip_row.add_child(_reroll)
-	skip_row.add_child(_skip)
 	if TouchBuild.mobile_controls():  # Phones: 48 px tap targets (platforms.md; mobile only)
 		_skip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 		_reroll.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_dev_any.text = "Dev: any card…"
 	_dev_any.focus_mode = Control.FOCUS_NONE
 	_dev_any.pressed.connect(func() -> void: DevCardPicker.open(self, dream_state, dream_state.choose_any))
-	skip_row.add_child(_dev_any)
-	box.add_child(skip_row)
-	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
-	var peek_button := peek.make_peek_button()
-	UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
-	box.add_child(peek_button)
+	if _phone:
+		_build_phone_layout(dim)
+	else:
+		var center := CenterContainer.new()
+		center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(center)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 18)
+		center.add_child(box)
+		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE)
+		box.add_child(_title)
+		_cards.add_theme_constant_override("separation", 16)
+		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_child(_cards)
+		var skip_row := HBoxContainer.new()
+		skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		skip_row.add_theme_constant_override("separation", 16)
+		skip_row.add_child(_reroll)
+		skip_row.add_child(_skip)
+		skip_row.add_child(_dev_any)
+		box.add_child(skip_row)
+		peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
+		var peek_button := peek.make_peek_button()
+		UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
+		box.add_child(peek_button)
 	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)
 	dream_state.offer_closed.connect(_on_closed)
 	dream_state.mystery_revealed.connect(_on_mystery_revealed)
+
+# Phones only: header row, the cards across the width (scrolling if a card runs tall), the bottom thumb row.
+func _build_phone_layout(dim: Control) -> void:
+	var margin := MarginContainer.new()
+	margin.name = "PhoneLayout"
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", int(PHONE_MARGIN))
+	margin.add_theme_constant_override("margin_right", int(PHONE_MARGIN))
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	add_child(margin)
+	var root := VBoxContainer.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_theme_constant_override("separation", 10)
+	margin.add_child(root)
+	# Header: "A Dream" + the small caps subtitle on the left, Peek at the map on the right
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_theme_constant_override("separation", 10)
+	root.add_child(header)
+	UiStyle.title(_title, 28)
+	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(_title)
+	_subtitle = Label.new()
+	_subtitle.name = "Subtitle"
+	_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_subtitle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.caps(_subtitle, 15, UiStyle.INK_DIM)
+	header.add_child(_subtitle)
+	# The cards: three (or more) equal columns filling the width and the height between header and bottom row
+	var scroll := ScrollContainer.new()
+	scroll.name = "CardScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.add_child(scroll)
+	_cards.add_theme_constant_override("separation", int(PHONE_GAP))
+	_cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var pad := MarginContainer.new()  # Room above the cards for the looked one's lift (the scroll clips)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pad.add_theme_constant_override("margin_top", 12)
+	pad.add_child(_cards)
+	scroll.add_child(pad)
+	# Bottom: Let it pass (left thumb) · the hint · Take (right thumb); reroll and dev beside Let it pass
+	var bottom := HBoxContainer.new()
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_theme_constant_override("separation", 12)
+	root.add_child(bottom)
+	bottom.add_child(_skip)
+	bottom.add_child(_reroll)
+	bottom.add_child(_dev_any)
+	_dev_any.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	_phone_hint = Label.new()
+	_phone_hint.name = "PhoneHint"
+	_phone_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_phone_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_phone_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_phone_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_phone_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_phone_hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_phone_hint.custom_minimum_size.x = 120
+	UiStyle.whisper(_phone_hint, 17)  # The italic voice
+	bottom.add_child(_phone_hint)
+	_take = Button.new()
+	_take.name = "TakeButton"
+	_take.focus_mode = Control.FOCUS_NONE
+	_take.custom_minimum_size = Vector2(188, 56)
+	UiStyle.primary(_take)
+	_take.pressed.connect(_take_looked)
+	bottom.add_child(_take)
+	peek = ChoicePeek.new(self, [dim, margin], "Back to the Dream")
+	var peek_button := peek.make_peek_button()
+	UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
+	peek_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(peek_button)
+	_update_phone_bar()
+
+# Phones: the bottom row follows the looked card ("Take Lantern Glow", dim until a card is looked at).
+func _update_phone_bar() -> void:
+	if _take == null:
+		return
+	var can_take := _looked != null and is_instance_valid(_looked) and _looked_card != null
+	_take.disabled = not can_take
+	_take.modulate.a = 1.0 if can_take else 0.55  # multiplier: dim until there's something to take
+	_take.text = "Take %s" % _looked_card.display_name if can_take else "Take"
+	_phone_hint.text = "Take it, or tap another" if can_take else "Tap a card to look at it"
+
+func _take_looked() -> void:
+	if _looked == null or not is_instance_valid(_looked) or _looked_card == null:
+		return
+	_pick(_looked_card, _looked.get_parent() as Control)
+
+# Phones: an underlined word's tap shows its tip; the same tap reaching the card underneath must not look at / take it.
+func _on_link_tapped(_meta: Variant) -> void:
+	_link_tap_ms = Time.get_ticks_msec()
+
+func _link_just_tapped() -> bool:
+	return TouchBuild.mobile_controls() and Time.get_ticks_msec() - _link_tap_ms < LINK_TAP_MS
 
 func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	if not visible:
@@ -94,6 +214,12 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_title.text = "A Dream, after drift %d" % drift_number
 	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
 		_title.text += " · take %d" % dream_state.picks_left if dream_state.picks_left > 1 else " · take 1 more"
+	if _phone:  # "A Dream" with "after drift 10 · take one" beside it
+		_title.text = "A Dream"
+		var take := "take one"
+		if dream_state.has_rule(&"lucid_dreaming"):
+			take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
+		_subtitle.text = ("after drift %d · %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps)
 	_skip.text = "Let it pass, %s" % UiStyle.dew_amount(dream_state.skip_dew, true) if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
@@ -106,11 +232,17 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	var gap := float(_cards.get_theme_constant("separation"))
 	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
 	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
+	if _phone:  # Equal columns across the width between the side margins (a little spare for a scroll bar)
+		room = get_viewport_rect().size.x - 2.0 * PHONE_MARGIN - PHONE_GAP * (cards.size() - 1) - 16.0
+		_card_width = floorf(room / maxf(cards.size(), 1.0))
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
 		child.queue_free()
 	for card in cards:
 		var column := VBoxContainer.new()
+		if _phone:
+			column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		column.add_child(_make_card(card))
 		if show_let_go:  # Let Go (Memory Grove)
 			var let_go := Button.new()
@@ -121,8 +253,10 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			let_go.pressed.connect(func() -> void:
 				_let_go_in = dream_state.current_offer_drift
 				dream_state.banish(card))
+			if _phone:
+				let_go.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 			column.add_child(let_go)
-		if TouchBuild.mobile_controls():
+		if TouchBuild.mobile_controls() and not _phone:  # Tablets; phones have the Take button and the bottom hint
 			var hint := Label.new()
 			hint.name = "TapHint"
 			hint.text = " "  # Holds its line from the start, so the row never shifts
@@ -133,6 +267,8 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	visible = true
 	_picking = false
 	_looked = null
+	_looked_card = null
+	_update_phone_bar()
 	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
 	_flip_in(_cards.get_children(), cards)  # One by one, each with its rarity flare
 
@@ -144,6 +280,8 @@ func _make_card(card: UpgradeData) -> Button:
 		if _held_for_diagram:
 			_held_for_diagram = false  # The long-press was to look, not to take
 			return
+		if _link_just_tapped():
+			return  # Touch: the tap was on an underlined word (its tip shows), not on the card
 		if TouchBuild.mobile_controls() and _looked != button:
 			_look_at(card, button)  # Phones: the first tap looks
 			return
@@ -368,6 +506,8 @@ func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -
 func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> RichTextLabel:
 	var label := StatusLinks.make_label(text, font_size, color)
 	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	if TouchBuild.mobile_controls():  # Touch: a tap on a word shows its tip without looking at / taking the card
+		label.meta_clicked.connect(_on_link_tapped)
 	box.add_child(label)
 	return label
 
@@ -411,18 +551,31 @@ func show_diagram(card: UpgradeData, button: Control) -> void:
 # Phones: the first tap on a card. The others dim, its diagram shows, "Tap again to take" under it.
 func _look_at(card: UpgradeData, button: Button) -> void:
 	_looked = button
+	_looked_card = card
 	for column in _cards.get_children():
 		var looked := button.get_parent() == column
 		var face := _card_box(column)
 		if face != null:
 			face.modulate = Color(1, 1, 1, 1.0 if looked else 0.55)  # multiplier
+			if _phone:
+				_lift(face, looked)
 		var hint := column.get_node_or_null("TapHint") as Label
 		if hint != null:
 			hint.text = "Tap again to take" if looked else " "
+	_update_phone_bar()
 	if CardDiagram.has_diagram(card):
 		show_diagram(card, button)
 	else:
 		hide_diagram()
+
+# Phones: the looked card rises a little from its foot; the others settle back. Reduced motion: no lift (the dim says it).
+func _lift(face: Control, up: bool) -> void:
+	if bool(Fx.setting("reduced_motion", false)):
+		face.scale = Vector2.ONE
+		return
+	face.pivot_offset = Vector2(face.size.x / 2.0, face.size.y)
+	var target := Vector2.ONE * (PHONE_LIFT if up else 1.0)
+	UiTime.tween(face).tween_property(face, "scale", target, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func hide_diagram() -> void:
 	if _diagram != null and is_instance_valid(_diagram):

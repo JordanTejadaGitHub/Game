@@ -57,6 +57,8 @@ func _ready() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	offset_bottom = -120.0  # Above the Warden bar
+	if UiStyle.is_phone():
+		offset_bottom = -32.0  # Phones: level with the Warden dock, in the bottom centre it leaves free (hud.gd PHONE_CENTRE_RESERVE)
 	offset_top = offset_bottom - BUTTON_HEIGHT
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for pair in [[_plant, "Confirm", _on_plant], [_cancel, "Cancel", _on_cancel]]:
@@ -120,7 +122,9 @@ func _refresh() -> void:
 	_plant.visible = pending
 	_cancel.visible = pending
 	_done.visible = (building or selling) and not pending
-	_sell.visible = mobile_controls() and seller != null and seller.has_method("set_sell_mode") and (building or selling) and not pending
+	# (Phone layouts: Sell is the Warden dock's last slot, hud.gd sell_slot.)
+	_sell.visible = mobile_controls() and not UiStyle.is_phone() and seller != null and seller.has_method("set_sell_mode") \
+		and (building or selling) and not pending
 	if visible and tower_placer.has_method("get_stroke_tag"):
 		var plan: Dictionary = tower_placer.get_stroke_plan()
 		var count: int = plan.values().count("")

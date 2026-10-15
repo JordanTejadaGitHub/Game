@@ -102,14 +102,17 @@ func _run() -> void:
 	await _drag(slot.get_global_rect().get_center(), Vector2(-150, 0))
 	_check(camera.target_position.distance_to(cam_before) < 1.0, "a drag that starts on the Warden bar doesn't move the map")
 
-	# Sell (phones, Tower Code's sell mode): the toggle beside Done; a tap sells, a pan never does; off = building again
+	# Sell (phones, Tower Code's sell mode): the Warden dock's Sell slot (Mobile UI 2026-10-15); a tap sells, a pan never
+	# does; off = building again
 	_close_screens()
 	await process_frame
 	placer.select_tower(load("res://resource/tower/thornwall.tres"))
 	touch._refresh()
-	_check(touch._sell.visible and touch._done.visible, "building: Sell and Done on the touch bar")
-	touch._sell.button_pressed = true
-	_check(seller.sell_mode and not placer.build_mode and touch.visible and touch._sell.button_pressed, "Sell turns sell mode on (the bar stays)")
+	var hud = main.get_node("HUD")
+	_check(hud.sell_slot != null and hud.sell_slot.is_visible_in_tree() and touch._done.visible and not touch._sell.visible,
+		"building: Sell is the Warden dock's last slot, Done on the touch bar")
+	hud.sell_slot.button_pressed = true
+	_check(seller.sell_mode and not placer.build_mode and touch.visible and hud.sell_slot.button_pressed, "Sell turns sell mode on (the bar stays)")
 	var victim: Tower = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).back()
 	var count_before: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
 	await _drag(_screen_of(victim.global_position), Vector2(-90, 0))
@@ -118,9 +121,9 @@ func _run() -> void:
 	await _tap(_screen_of(victim.global_position))
 	var count_after: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
 	_check(count_after == count_before - 1, "sell mode: a tap sells the Warden (%d → %d)" % [count_before, count_after])
-	touch._sell.button_pressed = false
+	hud.sell_slot.button_pressed = false
 	_check(not seller.sell_mode and placer.build_mode, "Sell off: back to building")
-	touch._sell.button_pressed = true
+	hud.sell_slot.button_pressed = true
 	touch._done.pressed.emit()
 	_check(not seller.sell_mode and not placer.build_mode, "Done in sell mode leaves it")
 
@@ -162,7 +165,7 @@ func _run() -> void:
 	var pause_menu := main.get_node("HUD/PauseMenu") as CanvasItem
 	_back()
 	_check(not placer.stroking and placer.build_mode and not pause_menu.visible, "Back drops the pending Wardens first")
-	touch._sell.button_pressed = true
+	hud.sell_slot.button_pressed = true
 	_back()
 	_check(not seller.sell_mode and placer.build_mode and not pause_menu.visible, "…then leaves sell mode")
 	_back()
@@ -181,14 +184,15 @@ func _run() -> void:
 	_check(screen.visible and dreams.is_offering(), "a Dream offer is up")
 	var faces: Array = screen._cards.get_children().map(func(c: Node) -> Control: return screen._card_box(c))
 	(faces[0] as Button).pressed.emit()
-	var hint0: Label = screen._cards.get_child(0).get_node("TapHint")
-	_check(dreams.is_offering() and hint0.text == "Tap again to take" and faces[1].modulate.a < 1.0, "first tap: looks, the others dim, nothing taken")
+	_check(dreams.is_offering() and screen._take != null and not screen._take.disabled and screen._take.text.begins_with("Take ")
+		and screen._phone_hint.text == "Take it, or tap another" and faces[1].modulate.a < 1.0,
+		"first tap: looks, the others dim, Take is ready, nothing taken")
 	(faces[1] as Button).pressed.emit()
-	_check(dreams.is_offering() and hint0.text.strip_edges() == "" and screen._looked == faces[1], "a tap on another card looks at that one instead")
-	(faces[1] as Button).pressed.emit()
+	_check(dreams.is_offering() and screen._looked == faces[1], "a tap on another card looks at that one instead")
+	screen._take.pressed.emit()
 	for i in 60:
 		await process_frame
-	_check(not dreams.is_offering(), "the second tap on the same card takes it")
+	_check(not dreams.is_offering(), "Take takes the looked card")
 
 	main.queue_free()
 	await process_frame

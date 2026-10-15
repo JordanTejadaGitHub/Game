@@ -109,6 +109,13 @@ func _refresh_calling() -> void:
 	if _list.visible:
 		_build_list()
 
+# Phones: the icon strip goes (the HUD's Dreams button opens "Dreams this run" instead; Mobile UI).
+var strip_hidden := false:
+	set(value):
+		strip_hidden = value
+		_row.visible = not value
+		queue_redraw()
+
 func refresh() -> void:
 	_refresh_calling()
 	var cards := dream_state.get_taken_cards()
@@ -140,7 +147,7 @@ func refresh() -> void:
 
 # A fog patch behind the icons (ui_style.md: the Dreams row has fog, no thread).
 func _draw() -> void:
-	if _icons.is_empty() and _calling_frame == null:
+	if strip_hidden or (_icons.is_empty() and _calling_frame == null):
 		return
 	var width := 0.0
 	if _calling_frame != null:

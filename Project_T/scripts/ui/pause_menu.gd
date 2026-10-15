@@ -38,6 +38,12 @@ func _ready() -> void:
 	dim.color = Color(UiStyle.FOG, 0.6)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
+	if UiStyle.is_phone():
+		_build_phone()  # A rail and a page (phones only; the PC keeps the panel below)
+		add_to_group(GROUP)
+		WorldLabel.cover_while_visible(self, &"pause_menu")
+		visible = false
+		return
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
@@ -84,6 +90,24 @@ func _ready() -> void:
 	side.custom_minimum_size = Vector2(240, 0)
 	side.add_theme_constant_override("separation", 12)
 	columns.add_child(side)
+	_fill_run_side(side)
+
+	_settings = SettingsPanel.new()
+	_settings.visible = false
+	_settings.closed.connect(func() -> void:
+		_settings.visible = false
+		row.visible = true)
+	center.add_child(_settings)
+	_settings.set_meta("row", row)
+
+	_build_quit_box(center, row)
+	add_to_group(GROUP)
+	WorldLabel.cover_while_visible(self, &"pause_menu")  # No world tags over the menu
+	visible = false
+
+# "This run" (icon rows, the families' emblems), the Lessons switch and Replay lessons: the PC panel's right column, the
+# phone menu's first page.
+func _fill_run_side(side: VBoxContainer) -> void:
 	var head := Label.new()
 	head.text = "This run"
 	UiStyle.caps(head, 14)
@@ -116,26 +140,149 @@ func _ready() -> void:
 	guides.text = "Replay lessons"
 	guides.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	guides.focus_mode = Control.FOCUS_NONE
-	guides.pressed.connect(func() -> void:
-		visible = false
-		game_speed.set_paused(_was_paused)
-		var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as LessonCard
-		if lesson != null:
-			lesson.replay_guides())
+	guides.pressed.connect(_replay_guides)
 	side.add_child(guides)
 
+func _replay_guides() -> void:
+	visible = false
+	game_speed.set_paused(_was_paused)
+	var lesson := get_tree().get_first_node_in_group(LessonCard.GROUP) as LessonCard
+	if lesson != null:
+		lesson.replay_guides()
+
+# --- Phones (mobile only; mobile_ui_proto Options.dc.html) ---------------------------------------------------------
+# A full-height rail on the left: "Paused", "Drift N of 100 · N leaves", Resume (the primary), the pages This run / Codex
+# / Settings as toggles, Save & quit… (the Quit dialog), and "Abandon run…" apart at the foot in ember. The chosen page
+# fills the rest: This run (facts, families, Lessons, Replay lessons), the Codex or Settings, each in one solid pane.
+const PHONE_RAIL_W := 200.0  # (250 left the Codex's Families tree, 790 wide, past a 1100-wide phone view)
+const PHONE_MARGIN := 16
+var _phone := false
+var _phone_root: HBoxContainer
+var _status_line := Label.new()
+var _run_page := VBoxContainer.new()
+var _pane_buttons := {}  # Page -> its rail toggle
+var _pane := &"run"
+var _pending_pane := &""  # Settings asked "Apply your changes?" first: the page to show once it closes
+
+func _build_phone() -> void:
+	_phone = true
+	var margin := MarginContainer.new()
+	margin.name = "PhoneLayout"
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		margin.add_theme_constant_override(side, PHONE_MARGIN)
+	add_child(margin)
+	_phone_root = HBoxContainer.new()
+	_phone_root.add_theme_constant_override("separation", 12)
+	margin.add_child(_phone_root)
+
+	var rail := PanelContainer.new()
+	rail.name = "Rail"
+	rail.custom_minimum_size.x = PHONE_RAIL_W
+	_solid(rail)
+	_phone_root.add_child(rail)
+	var rail_scroll := ScrollContainer.new()  # Short phones: the rail scrolls rather than leave the screen
+	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rail.add_child(rail_scroll)
+	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_menu.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_menu.add_theme_constant_override("separation", 8)
+	rail_scroll.add_child(_menu)
+	var title := Label.new()
+	title.text = "Paused"
+	UiStyle.display(title, 30)
+	_menu.add_child(title)
+	_status_line.name = "Status"
+	_status_line.add_theme_font_size_override("font_size", 15)
+	_status_line.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_menu.add_child(_status_line)
+	UiStyle.primary(_add_button("Resume", close))
+	for pane in [[&"run", "This run"], [&"codex", "Codex"], [&"settings", "Settings"]]:
+		var toggle := _add_button(pane[1], _show_pane.bind(pane[0]))
+		toggle.name = "Page" + String(pane[1]).replace(" ", "")
+		toggle.toggle_mode = true
+		_pane_buttons[pane[0]] = toggle
+	_save_button = _add_button("Save & quit…", ask_quit)
+	_save_button.name = "Quit"
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_menu.add_child(spacer)
+	var abandon := _add_button("Abandon run…", _ask_abandon)
+	abandon.name = "AbandonRun"
+	_danger(abandon)
+
+	var pane_box := PanelContainer.new()
+	pane_box.name = "Pane"
+	pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_solid(pane_box)
+	_phone_root.add_child(pane_box)
+	var run_scroll := ScrollContainer.new()
+	run_scroll.name = "RunPage"
+	run_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pane_box.add_child(run_scroll)
+	_run_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_run_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_run_page.add_theme_constant_override("separation", 12)
+	run_scroll.add_child(_run_page)
+	_fill_run_side(_run_page)
+	codex = CodexPanel.new()
+	codex.embedded = true
+	pane_box.add_child(codex)
+	codex.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # The pane draws the frame
+	codex.visibility_changed.connect(_on_phone_codex_visibility)
 	_settings = SettingsPanel.new()
 	_settings.visible = false
-	_settings.closed.connect(func() -> void:
-		_settings.visible = false
-		row.visible = true)
-	center.add_child(_settings)
-	_settings.set_meta("row", row)
+	pane_box.add_child(_settings)
+	_settings.fill_pane()
+	_settings.closed.connect(_on_phone_settings_closed)
+	_settings.set_meta("row", _phone_root)
 
-	_build_quit_box(center, row)
-	add_to_group(GROUP)
-	WorldLabel.cover_while_visible(self, &"pause_menu")  # No world tags over the menu
-	visible = false
+	var center := CenterContainer.new()  # The Quit dialog, over everything
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	_build_quit_box(center, _phone_root)
+	_show_pane(&"run")
+
+# Phones: one page in the pane. Leaving Settings with unapplied changes asks first (Apply / Discard / Keep editing).
+func _show_pane(pane: StringName) -> void:
+	if _pane == &"settings" and pane != &"settings" and _settings.visible and _settings.has_changes():
+		_pending_pane = pane
+		_settings.request_close()
+		_sync_pane_buttons()
+		return
+	_pane = pane
+	_run_page.get_parent().visible = pane == &"run"
+	_settings.visible = pane == &"settings"
+	if pane == &"codex":
+		if not codex.visible:
+			codex.open()
+	else:
+		codex.visible = false
+	_sync_pane_buttons()
+
+func _sync_pane_buttons() -> void:
+	for id in _pane_buttons:
+		(_pane_buttons[id] as Button).set_pressed_no_signal(id == _pane)
+
+# The Codex's ✕ on a phone: back to This run.
+func _on_phone_codex_visibility() -> void:
+	if visible and not codex.visible and _pane == &"codex":
+		_show_pane(&"run")
+
+func _on_phone_settings_closed() -> void:
+	var target := _pending_pane if _pending_pane != &"" else &"run"
+	_pending_pane = &""
+	_pane = &"run"  # Closed: nothing left to ask about
+	_show_pane(target)
+
+func _phone_status() -> String:
+	return "Drift %d of %d · %d leaves" % [drift_director.drifts_started, drift_director.get_total_drifts(), run_state.leaves]
+
+# Phones: "Abandon run…" in the rail goes straight to the dialog's second page (still a confirm).
+func _ask_abandon() -> void:
+	ask_quit()
+	_show_abandon()
 
 # --- Quit… (roguelite standard: one dialog for every way out) ----------------------------------------------------
 const GROUP := &"pause_menu"
@@ -252,8 +399,9 @@ func ask_quit() -> void:
 	if not visible:
 		open()
 	(_quit_box.get_meta("row") as Control).visible = false
-	_settings.visible = false
-	codex.visible = false
+	if not _phone:  # Phones: the page stays as it was under the dialog (Cancel comes back to it)
+		_settings.visible = false
+		codex.visible = false
 	_quit_body.text = quit_body()
 	_quit_page.visible = true
 	_abandon_page.visible = false
@@ -310,6 +458,10 @@ func open() -> void:
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
 	_fill_facts()
+	if _phone:
+		_status_line.text = _phone_status()
+		_phone_root.visible = true
+		_show_pane(&"run")
 	visible = true
 
 # "This run" (light pass): icon, label, value per row; the families as emblems (their names when there's no art).
@@ -376,6 +528,13 @@ func _fact(icon_id: StringName, label: String, value: String) -> void:
 func open_codex(tab: StringName = &"", entry: String = "") -> void:
 	if not visible:
 		open()
+	if _phone:  # The Codex page beside the rail
+		_pane = &"codex"
+		_run_page.get_parent().visible = false
+		_settings.visible = false
+		codex.open(tab, entry)
+		_sync_pane_buttons()
+		return
 	(_settings.get_meta("row") as Control).visible = false
 	codex.open(tab, entry)
 
@@ -418,6 +577,9 @@ func get_run_summary() -> String:
 	return "\n".join(lines)
 
 func _show_settings() -> void:
+	if _phone:
+		_show_pane(&"settings")
+		return
 	(_settings.get_meta("row") as Control).visible = false
 	_settings.visible = true
 

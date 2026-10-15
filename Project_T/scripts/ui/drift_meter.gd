@@ -23,6 +23,11 @@ const CLOSE := UiStyle.BUTTON_GOLD
 const SHORT := UiStyle.POOR
 const OPEN_SETTING := "meter_open"
 var hidden_by_player := false
+var arrow_hidden := false:  # Phones: the HUD's Damage button opens and closes the meter, so its side handle goes (Mobile UI)
+	set(value):
+		arrow_hidden = value
+		if is_instance_valid(_hide_arrow) and value:
+			_hide_arrow.visible = false
 var _hide_arrow := Button.new()
 
 var drift_director: DriftDirector
@@ -342,7 +347,7 @@ func refresh() -> void:
 	# Never in capture mode (marketing captures): the director hides it each frame, but a refresh after its turn
 	# showed it for one frame (Short Form Video).
 	var available := m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
-	_hide_arrow.visible = available
+	_hide_arrow.visible = available and not arrow_hidden
 	visible = available and not hidden_by_player
 	if not visible:
 		return

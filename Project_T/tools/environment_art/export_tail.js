@@ -44,6 +44,14 @@ for (const A of ACTS) {
   emit(d + "path_dual.png", strip(Array.from({ length: 19 }, (_, k) => getImg("pdual:" + k))));
   emit(d + "bog_path_dual.png", strip(Array.from({ length: 19 }, (_, k) => getImg("bogd:" + k))));  // Mire, half-cell
   emit(d + "heartwood_roots_dual.png", strip(Array.from({ length: 19 }, (_, k) => getImg("rootsd:" + k))));  // overlay, half-cell
+  // Gifts as landmarks: rows = growth step (I, II, III), columns = 4 frames; each step bottom-centred in step III's cell.
+  const steps = key => stack([0, 1, 2].map(st => frames(key + ":" + st)));
+  emit(d + "landmark_spring.png", steps("lmspring"));  // 160×160 cells
+  emit(d + "landmark_lightning_tree.png", steps("lmtree"));  // 128×176
+  emit(d + "landmark_bell_stone.png", steps("lmbell"));  // 96×128
+  emit(d + "landmark_mushroom_ring.png", steps("lmring"));  // 192×224
+  emit(d + "landmark_moonwell.png", steps("lmwell"));  // 128×128
+  emit(d + "landmark_heartwood_roots_dual.png", stack([0, 1, 2].map(st => strip(Array.from({ length: 19 }, (_, k) => getImg("lmroots:" + (k + 19 * st)))))));  // 19 columns × 3 steps
   // ground_patch.png: rows = kind (deep moss, worn earth, fern / flower bed, act accent, glade ring), 19 tiles of 64×64: 0–15 = corner mask, 16–18 = more full tiles.
   emit(d + "ground_patch.png", stack([0, 1, 2, 3, 4].map(r => strip(Array.from({ length: 19 }, (_, k) => getImg("gpatch:" + (r * 19 + k)))))));
   emit(d + "fallen_log.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("flog:" + k))));  // W end, E-W middle, E end, N end, N-S middle, S end
@@ -82,6 +90,9 @@ for (const A of ACTS) {
     // The start: the narrow bridge on the lane (rope_bridge.png's layout) and the black fog it comes out of (4 frames, 192 px).
     emit("dream/rope_bridge_lane.png", strip([getImg("lbridge:0"), getImg("lbridge:1")]));
     emit("dream/nightmare_fog.png", frames("nfog", 4));
+    // The landmark's arrival: the root-run strip (4 tileable variants of 64×32) and the rise burst (6 frames of 96×96).
+    emit("dream/root_run.png", strip([0, 1, 2, 3].map(v => getImg("rrun:" + v))));
+    emit("dream/root_rise.png", frames("rrise", 6));
     emit("dream/cloud_shadows.png", strip([0, 1, 2, 3, 4, 5].map(v => getImg("cloud:" + v))));
     emit("dream/mist_banks.png", getImg("mistbank"));
     emit("dream/route_mist.png", getImg("route:0"));

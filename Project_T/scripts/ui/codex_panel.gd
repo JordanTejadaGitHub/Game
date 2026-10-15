@@ -61,13 +61,24 @@ var _combo_count := Label.new()
 var _entries := {}  # Term or combo id -> its Control (for jumps)
 var _families := VBoxContainer.new()  # The Families page
 var family_cards := {}  # Family base id -> its section (tests)
+# Phones (mobile only; mobile_ui_proto Options): the glossary is a list and a page. The left column (PHONE_LIST_W) holds the
+# search and every group with its entries under it; the right pane shows the one entry picked (big name, its group as
+# the kind line, the text, "See also" as 48 px chips). `embedded`: the phone pause menu's pane sizes the Codex.
+const PHONE_LIST_W := 200.0
+const PHONE_TERM_INDENT := 26.0
+var embedded := false  # Set before adding (phone pause menu): no own width or height, the pane's rect
+var _phone := false
+var _term := ""  # Phones: the glossary entry shown ("" = the first in the list)
+var _term_group := ""
+var _groups_scroll: ScrollContainer
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
+	_phone = UiStyle.is_phone()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)
+	box.custom_minimum_size = Vector2.ZERO if embedded else Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)
 	_box = box
 	add_child(box)
 	# The title on the left, a quiet ✕ on the right (light pass: no Close button at the foot).
@@ -89,6 +100,8 @@ func _ready() -> void:
 	close.pressed.connect(func() -> void: visible = false)
 	header.add_child(close)
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if _phone:
+		tabs.add_theme_font_size_override("font_size", 17)  # The section row: bigger tabs (it scrolls when they overflow)
 	tabs.tab_changed.connect(func(_t: int) -> void: _fit_height.call_deferred())
 	box.add_child(tabs)
 
@@ -99,11 +112,14 @@ func _ready() -> void:
 	glossary_page.add_theme_constant_override("separation", 12)
 	tabs.add_child(glossary_page)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(GROUP_LIST_WIDTH, 0)
+	left.custom_minimum_size = Vector2(PHONE_LIST_W if _phone else GROUP_LIST_WIDTH, 0)
 	left.add_theme_constant_override("separation", 6)
 	glossary_page.add_child(left)
 	_search.placeholder_text = "Search terms…"
 	_search.custom_minimum_size = Vector2(0, 40)
+	if _phone:
+		_search.placeholder_text = "Search the Codex"
+		_search.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_search.text_changed.connect(func(_t: String) -> void: _search_timer.start())
 	_search.text_submitted.connect(func(_t: String) -> void:
 		_search_timer.stop()
@@ -116,6 +132,7 @@ func _ready() -> void:
 	_search_timer.timeout.connect(_filter_glossary)
 	add_child(_search_timer)
 	var groups_scroll := ScrollContainer.new()
+	_groups_scroll = groups_scroll
 	groups_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	groups_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_group_list.add_theme_constant_override("separation", 4)
@@ -163,6 +180,9 @@ var _box: VBoxContainer
 
 func _fit_height() -> void:
 	if _box == null or not is_inside_tree():
+		return
+	if embedded:
+		_box.custom_minimum_size = Vector2.ZERO  # The phone pause menu's pane sets the size
 		return
 	var page := tabs.get_current_tab_control()
 	var chrome := 48.0 + 8.0 + 48.0 + 16.0  # The header row, a gap, the tab bar, a little air
@@ -230,11 +250,15 @@ func jump(name: String) -> void:
 	var group := _group_of(name)
 	if group != "":
 		_group = group
+		_term = name
+		_term_group = group
 	_search.text = ""
 	_search_timer.stop()
 	_filter_glossary()  # Shows the term's group (making its cards the first time)
 	tabs.current_tab = 0
 	_focus.call_deferred(_glossary_scroll, _entries.get(name))
+	if _phone:
+		_scroll_to_term.call_deferred()
 
 func _focus(scroll: ScrollContainer, target: Control) -> void:
 	if not is_instance_valid(target) or not scroll.is_ancestor_of(target):
@@ -313,7 +337,11 @@ func _filter_glossary() -> void:
 	_none_label.text = "Nothing matches \"%s\"." % _search.text.strip_edges()
 	_none_label.visible = not any
 	for button in _group_list.get_children():
+		if button.has_meta(&"term"):
+			continue  # Phones: an entry row (_phone_filter)
 		(button as Button).set_pressed_no_signal(button.get_meta(&"group", "") == _group and query == "")
+	if _phone:
+		_phone_filter(query)
 	_fit_height.call_deferred()  # A group's length sets the panel's
 
 # The group containing `term`, or "".
@@ -338,30 +366,97 @@ func _build_group_list(all_groups: Array) -> void:
 		button.icon = IconInfo.icon(GROUP_ICONS.get(group[0], &"note"))
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.add_theme_constant_override("icon_max_width", 16)
-		button.custom_minimum_size = Vector2(0, 40)
+		button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H if _phone else 40.0)
 		_list_row_look(button)  # Light pass v2: a quiet list, the chosen group with a gold bar
 		var name: String = group[0]
 		button.set_meta(&"group", name)
 		button.pressed.connect(func() -> void:
 			_group = name
+			_term = ""
 			_search.text = ""  # (Setting text emits no text_changed)
 			_search_timer.stop()
 			_filter_glossary())
 		_group_list.add_child(button)
+		if _phone:
+			for entry in group[1]:
+				_group_list.add_child(_term_row(name, String(entry[0])))
+
+# Phones: one entry in the left list, under its group (shown by _phone_filter).
+func _term_row(group: String, term: String) -> Button:
+	var button := Button.new()
+	button.text = term
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.toggle_mode = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.add_theme_font_size_override("font_size", 16)
+	_list_row_look(button, PHONE_TERM_INDENT)
+	button.set_meta(&"group", group)
+	button.set_meta(&"term", term)
+	button.visible = false
+	button.pressed.connect(_pick_term.bind(group, term))
+	return button
+
+func _pick_term(group: String, term: String) -> void:
+	_term = term
+	_term_group = group
+	_filter_glossary()
+
+# Phones: the list shows the chosen group's entries (or every match while searching); the page shows only the picked one,
+# under its group's caps header (the kind line).
+func _phone_filter(query: String) -> void:
+	var shown: Array = []  # [group, term] in list order
+	for button in _group_list.get_children():
+		if not button.has_meta(&"term"):
+			continue
+		var group: String = button.get_meta(&"group")
+		var term: String = button.get_meta(&"term")
+		var on := group == _group
+		if query != "":
+			on = String(_haystacks.get("%s/%s" % [group, term], "")).contains(query)
+		button.visible = on
+		if on:
+			shown.append([group, term])
+	var picked: Array = []
+	for pair in shown:
+		if pair[1] == _term and (picked.is_empty() or pair[0] == _term_group):
+			picked = pair
+	if picked.is_empty() and not shown.is_empty():
+		picked = shown[0]
+	_term = picked[1] if not picked.is_empty() else ""
+	_term_group = picked[0] if not picked.is_empty() else ""
+	for button in _group_list.get_children():
+		if button.has_meta(&"term"):
+			(button as Button).set_pressed_no_signal(button.get_meta(&"group") == _term_group and button.get_meta(&"term") == _term)
+	for title in _sections:
+		var section: Dictionary = _sections[title]
+		for node in section.nodes:
+			node.visible = title == _term_group
+		for term in section.cards:
+			section.cards[term].visible = title == _term_group and term == _term
+	_glossary_scroll.scroll_vertical = 0
+
+func _scroll_to_term() -> void:
+	for button in _group_list.get_children():
+		if button.has_meta(&"term") and button.get_meta(&"term") == _term and (button as Control).visible:
+			_groups_scroll.ensure_control_visible(button)
+			return
 
 # A group in the list (light pass v2): no box; hover a faint wash; the chosen one a faint gold wash with a gold bar on the
 # left; its text dim until chosen.
-func _list_row_look(button: Button) -> void:
+func _list_row_look(button: Button, indent: float = 10.0) -> void:
 	var empty := StyleBoxEmpty.new()
-	empty.content_margin_left = 10
+	empty.content_margin_left = indent
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = Color(UiStyle.MOON_MIST, 0.06)
-	hover.content_margin_left = 10
+	hover.content_margin_left = indent
 	var chosen := StyleBoxFlat.new()
 	chosen.bg_color = Color(UiStyle.GOLD, 0.08)
 	chosen.border_width_left = 2
 	chosen.border_color = UiStyle.GOLD
-	chosen.content_margin_left = 10
+	chosen.content_margin_left = indent
 	button.add_theme_stylebox_override("normal", empty)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", chosen)
@@ -436,11 +531,11 @@ func _entry_card(group: String, entry: Array) -> Control:
 	row.add_child(body)
 	var name := Label.new()
 	name.text = term
-	UiStyle.display(name, 20)
+	UiStyle.display(name, 30 if _phone else 20)  # Phones: one entry per page, its name big
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
 	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
-	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
+	var text := StatusLinks.make_label(entry[1], 17 if _phone else 15)  # Status names are links
 	StatusLinks.own_term = ""
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(text)
@@ -464,13 +559,17 @@ func _entry_card(group: String, entry: Array) -> Control:
 	if entry.size() > 2 and not entry[2].is_empty():
 		# "See also: Rest, Nurture" as underlined words right under the entry (light pass v2; a click jumps there).
 		var words: Array[String] = []
+		var chips: Array = []  # Phones: [target, name] as chips
 		for other in entry[2]:
 			var combo := _find_combo(other)
 			if not combo.is_empty() and not CodexData.is_discovered(combo.id):
 				continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
 			var shown_name := IconInfo.format(String(other))
 			words.append("[url=%s][color=#%s]%s[/color][/url]" % [String(other), UiStyle.INK.to_html(false), shown_name])
-		if not words.is_empty():
+			chips.append([String(other), shown_name])
+		if _phone and not chips.is_empty():
+			_see_also_chips(body, chips)
+		elif not words.is_empty():
 			var links := RichTextLabel.new()
 			links.name = "SeeAlso"
 			links.bbcode_enabled = true
@@ -484,6 +583,22 @@ func _entry_card(group: String, entry: Array) -> Control:
 			links.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			body.add_child(links)
 	return card
+
+# Phones: "See also" as a caps line and a row of 48 px gold chips (a tap jumps there).
+func _see_also_chips(body: VBoxContainer, chips: Array) -> void:
+	var head := Label.new()
+	head.text = "See also"
+	UiStyle.caps(head, 13)
+	body.add_child(head)
+	var flow := HFlowContainer.new()
+	flow.name = "SeeAlso"
+	flow.add_theme_constant_override("h_separation", 8)
+	flow.add_theme_constant_override("v_separation", 8)
+	for pair in chips:
+		var chip := _chip(pair[1], jump.bind(pair[0]))
+		chip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		flow.add_child(chip)
+	body.add_child(flow)
 
 # A small gold link chip (disabled with no action: a "???" combo).
 func _chip(text: String, on_press: Callable = Callable()) -> Button:

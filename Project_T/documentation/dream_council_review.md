@@ -2524,3 +2524,188 @@ live cards; check the fog nightmares before retiring Lantern Glow.
 4. **Wager and Price lines: yes.** **Press On gives a leaf back: yes** (up to one a block; for
    Balancing to check). **"Jumps" replaces "fork"** in all player-facing Firefly text, with "at
    half damage" for "for half". The owner also approved committing this document.
+
+---
+
+## 25. Lent cards carry the theme: what was ruled and built (2026-10-13 and 14)
+
+**Source.** These rulings were made by the owner with Roguelite Code after further council passes,
+not in this chat. Recorded at Roguelite Code's request from its report and checked against the
+commits (a4bbdcf8, 20b92d39: "tests pass for the new cards"), `CLAUDE.md` "Starter class sets",
+and the work files `lent_consolidated.md`, `lent_built.md`, `lent_formula_others.md`,
+`sporeling_stack_cards.md`, `built_*.md` and `new_lent_*.md` in `D:\Projects\logs\dream_council\`.
+Where this section and sections 20 to 24 disagree, this section is the newer ruling.
+
+### The rulings
+
+1. **A Calling is the first pick's only.** *"Callings should only be on the first family you get,
+   then the lent cards should be more generic so every family can use."*
+2. **Each starter has 3 class-only cards and 7 lent cards** (was 12 class and 3 lent). The lent
+   cards give the family's theme to every family and never use the Calling.
+3. **A later owner gets the family's place, never the Calling's payoff.** Holding one of the
+   family's lent cards switches on its place: Lit (Firefly Jar), water (Dewdrop), doses (Sporeling),
+   the ring count and Tolls (Bellflower). The automatic payoff (the jump on every dispel, the ripple,
+   a mushroom from every Poisoned dispel, the two filled pips) stays with the first pick.
+4. **The drift 5 Dream holds one class card, drawn evenly, and the other slots are the normal
+   draw.** This replaces section 23's "class-only drift 5 offer stays": three class cards from
+   three was the same offer every run.
+5. **Big payoffs come only from the right cards, never from owning families.** *"Sometimes we want
+   the big payoff from getting the perfect cards, but only if you get the right cards, not just
+   mixing those 3 families."* No blanket caps; owning families alone pays nothing.
+6. **The generic batch is as in section 24.**
+
+### The sets as built
+
+| Family | Class-only (3) | Lent (7) |
+|---|---|---|
+| Sporeling | It Grows on You, Kept Ground, Twin Caps | Mycelium, Pass It Round, Narrows, Seeping In, Second Helping, Overnight, Mixed Company |
+| Firefly Jar | Where Lights Meet, Lanternway, Last Spark | Hammerfall, Knock-On, Spotlight, Signal Fires, Chain of Lanterns, Crossfire, Nothing Wasted |
+| Dewdrop | Levee, Breakwater, Swell | Caught Wading, Across the Water, Wash Away, Deep Pool, The Water Remembers, Run-Off, Riptide |
+| Bellflower | Rising Song, Overture, Rounds | Join In, On the Beat, Nod Off, Sleep No More, Refrain, Rude Awakening, Knell |
+
+- **New cards:** Narrows, Seeping In, Mixed Company (Sporeling: "stacks pile up", from
+  `sporeling_stack_cards.md`), Deep Pool (Dewdrop; "Deep Water" was taken), On the Beat
+  (Bellflower; replaces Sound Carries).
+- **Each lent set** has at least two safe cards, at least one Rare, and one big payoff: Mixed
+  Company, Spotlight, Run-Off or Wash Away, Knell.
+- **Changed in round 2:** Nothing Wasted jumps only the overkill (Live Wire is separate again);
+  Chain of Lanterns also jumps from Tolls and Reactions; Riptide is a 50% slow for 2 s plus the
+  bank's first hits double, with no "lone"; Run-Off moves to Uncommon; Rude Awakening is one
+  doubled waking hit per bell a second; only Join In, Nod Off, Refrain and Knell switch Tolls on
+  for a later owner.
+- **Retired across both rounds** include Mushroom Bed, Open Season, Spore Haze, Kicked Up, Hothouse,
+  Leaf Litter, Side by Side, Everything Grows, Fireflies in the Grass, Waiting Spark, Like to Like,
+  Backwash, There and Back, Both Banks, Soaked Through, Wake Ripple, Something in the Water, Call
+  and Answer, Full Voice, Hanging Note, Struck Bell, Sound Carries. Ids are kept for old saves.
+  `CLAUDE.md` "Starter class sets" has the full lists and the code map.
+
+### What this changes in earlier sections
+
+- Section 20's 12-and-3 tables are superseded by the table above.
+- Section 21's ruling on Run-Off, Wake Ripple and Something in the Water: Run-Off stays (now
+  Uncommon); the other two are retired.
+- Section 23's ruling 1 (class-only drift 5 offer) is replaced by ruling 4 above.
+
+### Owner ruling: the boss-rest Dream shows the new family (2026-10-14)
+
+*"should have a family lent card from the other family on drift 25 from the family i chose"*
+
+At a boss rest (drifts 25, 50, 75), the family pick comes first. The Dream that follows holds one
+lent card from the family just chosen, drawn evenly from its seven, of any rarity (the rest of the
+offer keeps the boss rest's Rare-or-better draw). It mirrors the drift 5 rule (one class card,
+drawn evenly). This is the one place a lent card is put in front of the player; which one is still
+random. If the chosen family is the player's own Calling family or no new family was taken, the
+slot is the normal draw.
+
+### Owner ruling: bigger family sets (2026-10-14)
+
+After a Firefly run on the new sets showed 2 Firefly cards and no lent card in 18 cards offered
+(run history, build 7baf0f0a): *"think we need to increase the family lent cards to 10 then and
+class cards to 5."*
+
+- Each starter: **5 class-only cards and 10 lent cards** (was 3 and 7). Twenty new cards across the
+  four starters. Retired cards may come back where they fit.
+- Paper effect on how often a family card appears (three cards an offer, about 60 generics after
+  the section 24 retirements): about 0.5 family cards an offer with one family and the old sets;
+  about 0.8 with the new sets; about 1.2 once a second family's 10 lent cards join.
+- The "family slot" (one card of each offer drawn from the player's families) was offered as an
+  alternative and not taken.
+
+### The four starters at 5 class-only and 10 lent (design, 2026-10-14; unreviewed, nothing built)
+
+Full specs: `expand_sporeling_firefly.md`, `expand_dewdrop_bellflower.md` in the work folder.
+
+| Family | Class-only (5) | Lent (10) |
+|---|---|---|
+| Sporeling | It Grows on You, Kept Ground, Twin Caps, **Mushroom Bed** (revived), **Open Season** (revived) | the 7 + **Breathe It In** (C), **Sitting Ducks** (U, bet), **Among the Caps** (R, bet) |
+| Firefly Jar | Where Lights Meet, Lanternway, Last Spark, **Fireflies in the Grass** (revived), **Firefly Trail** (new) | the 7 + **Sparks Fly** (C), **Floodlight** (C, bet), **Brushfire** (R, bet) |
+| Dewdrop | Levee, Swell, Breakwater, **Soaked to the Bone** (new), **Both Banks** (revived) | the 7 + **Shallows** (C), **Knee-Deep** (C), **Downstream** (R, bet; Wake Ripple reworked) |
+| Bellflower | Rounds, Overture, Rising Song, **Bell to Bell** (new), **Full Voice** (revived) | the 7 + **Ringing Ears** (C), **Second Verse** (U, bet), **Clashing Notes** (R, bet) |
+
+Each class's 5 class-only cards now support two boards: Sporeling Bed and Carpet; Firefly Storm and
+Lanternway; Dewdrop Flood and Crossings; Bellflower Peal and Crescendo.
+
+### Owner ruling: lent cards never give the Calling's abilities (2026-10-14)
+
+*"don't think cards should work like that. Whats the point of a calling then. lent cards shouldn't
+give the callings abilities"* (after a Sporeling start was offered Spotlight, whose text needs Lit
+nightmares, and the owner asked how nightmares are Lit without the Calling).
+
+- **This reverses ruling 3 of section 25** ("a later owner gets the family's place"). The place
+  (Lit and the glow, water, the ring count and Tolls, mushrooms and doses) belongs to the Calling,
+  so only the first pick has it. It restores the rule first written in section 13: lent
+  (sub-class) cards never use the Calling's setup.
+- **Lent cards must work from what any owner of the family has:** the family's Wardens, where they
+  stand, their attacks, and the family's status (Poisoned, Charged, Soaked, Drowsy). The family's
+  thing still shows (Firefly: damage jumps; Sporeling: statuses stack quickly; Dewdrop and
+  Bellflower: their own themes) but is triggered by the Wardens, never by Lit, water, Tolls or
+  doses.
+- **Class-only cards keep using the Calling's setup.**
+- **Every lent card is to be re-checked:** keep it if it never needs the place; rewrite it if it
+  does. The expansion of section 25's last table is designed under the old rule, so its lent cards
+  are re-checked too.
+
+---
+
+## 26. Council pass on the lent rewrite, the class-only expansion and the stake redesigns (2026-10-14; nothing built)
+
+Reviews: `noplace_roguelite.md`, `noplace_td.md`, `noplace_player.md`. Designs:
+`lent_noplace_sporeling_firefly.md`, `lent_noplace_dewdrop_bellflower.md`, `expand_*.md`,
+`stake_redesign.md` (all in the work folder). Nothing was run.
+
+**Verdict: the ruling holds and the shape is right; not ready to build as written.** The player:
+starting a family is "clearly special now"; a later pick gets "stand next to it" bonuses, and "that
+gap feels right". Firefly is the weakest second pick. Bellflower's first pick is only just ahead of
+its second pick.
+
+**What would ship broken**
+- **Setup words left in lent cards:** Chain of Lanterns still says "Toll" (Bellflower's setup) and
+  its code has its own Lit gate. Rule: no lent text or tip names Lit, light, glow, water, lone,
+  Toll, ring, pip, mushroom or dose.
+- **Lit leaks in code** after `LIT_LENT` goes: `sources_at` / `nearest_lit` never check Lit, and
+  `brightness()` with an empty list returns no cap, so lent jumps could go uncapped.
+- **Hammerfall and Thunderstruck:** uncapped with Firefly's own heavy forms (Lanternmoth jumps 35
+  every hit). Count only another family's heavy Warden.
+- **Charged dependence, corrected facts:** Jarlink, Lightning Fence, Sparkler and Starburst do add
+  Charged; Lanternmoth, Beacon, Prism Jar, Rainbow Prism, Sunpetal and Midsummer don't. Sparks Fly
+  (a Common) switches off when a Jar grows into one of those; trigger it on "hit by a Firefly Warden
+  in the last 2 s" instead. Keep Charged gates on the Rare bets only.
+- **Sleep cards are dead for a later owner:** Sleep No More, Rude Awakening and Sitting Ducks need a
+  sleeper, and Nod Off is the only lent source. Only a hit worth 10% of health wakes a sleeper, so
+  Sleep No More almost never fires; make it the first hit within 1 s of waking.
+- **Bellflower forms with no Drowsy** (Chime Stone, Thrum, Hushbell, Echo Hollow, Dreamcatchers):
+  Nod Off, Refrain and Second Verse do nothing there; their tips must say so. Ringing Ears only
+  works on the tier-1 bell; rewrite.
+- **A slow bug:** Knee-Deep's repeated slow keeps the largest earlier slow alive, so Riptide's or
+  Drown's 2 s slow lasts as long as the nightmare stays near. Each slow needs its own expiry.
+- **Too strong:** Waterlogged (doubles Poisoned and Drowsy; ×1.5 and never Drowsy, hooked at
+  `Enemy.apply_status`), Clashing Notes and Knell (once per nightmare every 8 s, not 4).
+- **Old saves:** a later owner holding a retired card (Leaf Litter) still gets mushrooms; retired
+  cards' effects are lost on Continue, against the "preserve legacy saved-run effects" convention.
+
+**Pairs:** too strong Sporeling+Dewdrop (Waterlogged), Firefly+Bellflower (Knell, Clashing Notes),
+Bellflower+Dewdrop (Drowsy control); near-dead Dewdrop+Sporeling (the ripple already fills Soaked);
+weak Firefly+Sporeling.
+
+**Stakes:** Call of the Wild keep; Press On every 5th early call; Nipped in the Bud 20%; Hard-Won
+Rings 80 dispels, up to rank IV, kills counted on health reaching 0; Clipped Wings cut (roguelite)
+or timed (tower defence); Gauntlet 30%, Sprouts don't count.
+
+**Class-only:** Signal Fires replaces Firefly Trail (approved by the roguelite reviewer); Last Spark
+to Uncommon; Fireflies in the Grass gets its rest-only check; on Bellflower the old Join In (other
+Wardens' hits count as rings) replaces Full Voice as class-only, which also lifts the first pick.
+
+**Size:** about 1,400 lines across the four families and the stakes. Order: shared plumbing,
+Sporeling, Firefly (with a new test file), Dewdrop, Bellflower, each turning its setup off in the
+same commit as its rewrites; class-only revivals; stakes separately.
+
+### Owner rulings on section 26 (2026-10-14): "go with your recommendations"
+
+1. Firefly class-only: **Signal Fires** (moved from lent); Firefly Trail is not built.
+2. Bellflower class-only: **the old Join In** ("other Wardens' hits count as rings") replaces Full
+   Voice.
+3. Sleep cards for a later owner are **labelled bets** ("Needs a sleeping nightmare"), still
+   offered.
+4. Hard-Won Rings: **80 dispels per rank, up to rank IV.**
+5. **Clipped Wings is cut;** Snag stays the flyer answer.
+6. Stack cards on one hit **add together**, within the existing caps.

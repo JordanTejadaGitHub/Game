@@ -2151,13 +2151,16 @@ function bogDual(A, k) {
 // Roots breaking through the path: one long sinuous root per tile (tapered ends, a small rootlet), kept
 // inside the tile and the path, in ~70% of tiles. (Lanes running from tile to tile made a woven grid,
 // since a dual tile can't know which way its corridor runs; short pieces read as dropped twigs.)
-function rootsDual(A, k) {
+function rootsDual(A, k, step = 0) {  // step: the landmark's growth (0 = as before; I, II, III = 0, 1, 2: more tiles rooted, then two roots a tile)
   const out = new Img(DUAL, DUAL), L = new Img(DUAL, DUAL), s = SEED + 795 + k * 17, F = dualField(k > 15 ? 15 : k);
   const D = dualD(k > 15 ? 15 : k);  // pathDual's edge
   const rootFn = (x, y, nx) => nx < -.3 ? "#bca48c" : nx > .5 ? "#5c3c24" : "#8c5c34";  // light wood, low on the path (dark roots read as crawling nightmares)
-  if (hash(k, 9, s) < .45) return out;
-  for (let tries = 0; tries < 6; tries++) {
-    const a = hash(tries, 1, s) * Math.PI, len = 22 + hash(tries, 2, s) * 6, cx = 14 + hash(tries, 3, s) * 4, cy = 14 + hash(tries, 4, s) * 4;
+  if (hash(k, 9, s) < [.45, .15, 0][step]) return out;
+  for (let n = 0; n < (step === 2 ? 2 : 1); n++) for (let tries = n * 10; tries < n * 10 + 6; tries++) {
+    // Step III's two roots run side by side (the same heading, 5 px either side): two crossing at the tile's middle
+    // read as a spider on the path.
+    const a = hash(tries - n * 10, 1, s) * Math.PI + (n ? .2 : 0), len = 22 + hash(tries, 2, s) * 6, side = step === 2 ? (n ? 5 : -5) : 0;
+    const cx = 14 + hash(tries, 3, s) * 4 - Math.sin(a) * side, cy = 14 + hash(tries, 4, s) * 4 + Math.cos(a) * side;
     const pts = Array.from({ length: 7 }, (_, i) => {
       const t = i / 6 - .5, wob = Math.sin(t * Math.PI * 2 + hash(tries, 5, s) * 6) * 3;
       return [cx + Math.cos(a) * t * len - Math.sin(a) * wob, cy + Math.sin(a) * t * len + Math.cos(a) * wob];
@@ -2173,7 +2176,7 @@ function rootsDual(A, k) {
   }
   out.stamp(L, "#5c3c24");  // a Bark outline, never near-black
   for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL - 1; x++)  // a warm glint of sap
-    if (L.alpha(x, y) && L.alpha(x + 1, y) && hash(x, y, s + 6) < .025) { out.set(x, y, "#e9a83c"); out.set(x + 1, y, "#fcd47c"); y = DUAL; break; }
+    if (L.alpha(x, y) && L.alpha(x + 1, y) && hash(x, y, s + 6) < .025 + step * .02) { out.set(x, y, "#e9a83c"); out.set(x + 1, y, "#fcd47c"); y = DUAL; break; }
   return out;
 }
 // Ancient Stump (a Warden planted on one starts at rank I): a broad old cut stump seen from above,
@@ -2284,6 +2287,241 @@ function nightmareFog(f) {
   return L;
 }
 
+// ---------- Gifts as landmarks (heartwood_gifts.md "Gifts as landmarks", approved 2026-10-13) ----------
+// A gift is a landmark that grows: each has three steps (I, II, III), each clearly bigger and richer than the last.
+// Sheets: landmark_<id>.png per act, rows = step (I, II, III), columns = 4 frames; the cell is step III's size and every
+// step is bottom-centred in it, standing on its footprint like the trees (the footprint's bottom edge = the cell's).
+//   landmark_spring.png         160×160 cells (footprint 2×2 = 128 px wide)
+//   landmark_lightning_tree.png 128×176 cells (footprint 1 cell)
+//   landmark_bell_stone.png      96×128 cells (footprint 1 cell)
+//   landmark_mushroom_ring.png  192×224 cells (footprint 3×3 = the bottom 192 px)
+//   landmark_moonwell.png       128×128 cells (footprint 1 cell)
+//   landmark_heartwood_roots_dual.png: heartwood_roots_dual's 19 columns, rows = step (denser roots over the path)
+// The old gift sheets stay as they are until Environment Code switches over.
+const LM_WOOD = (x, y, nx) => nx < -.3 ? "#bca48c" : nx > .5 ? "#5c3c24" : "#8c5c34";  // light root wood (never a dark blob)
+
+// Spring: a pond that wells up; more lilies, reeds and rim stones each step, and at III a rock with a small fall.
+function lmSpring(A, step, f) {
+  const W = 160, H = 160, out = new Img(W, H), s = SEED + 6100, g = A.grass;
+  const cx = 80, cy = [124, 120, 118][step], rx = [38, 50, 58][step], ry = [20, 27, 32][step];
+  const Dp = (x, y) => Math.hypot((x + .5 - cx) / rx, (y + .5 - cy) / ry) + (pnoise(x, y, 14, s) - .5) * .14;
+  if (step === 2) {  // the rock the water falls from, behind the pond
+    const R = new Img(W, H);
+    blob(R, cx - 6, cy - ry - 16, 27, 25, STONE_RAMP, { lump: .1, seed: s + 1, tex: .12, rim: true });
+    blob(R, cx + 24, cy - ry - 4, 14, 13, STONE_RAMP, { lump: .1, seed: s + 2, tex: .12, rim: true });
+    mossPass(R, cx - 6, cy - ry - 16, 27, 25, g, s + 3, .6);
+    out.stamp(R, ST.out);
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Dp(x, y);
+    if (d > 1.14) continue;
+    let c;
+    if (d > 1.06) c = "#241c14";  // the dark wet bank
+    else if (d > 1) c = "#6c5c5c";
+    else {
+      const t = 1 - d, ring = Math.abs(((d * 5 + f * .25) % 1) - .5);  // slow rings spreading from where it wells up
+      c = t < .14 ? "#4c8ca4" : ring < .035 && pnoise(x, y, 9, s + 4) > .52 ? "#9cd4fc" : t > .62 ? "#2c4c5c" : pnoise(x, y, 12, s + 5) > .56 ? "#4c8ca4" : "#2c4c5c";
+    }
+    out.set(x, y, c);
+  }
+  // The welling water: a small bright boil in the middle (bigger each step).
+  const boil = [0, 1, 0, -1][f];
+  ellipseRaw(out, cx + (step === 2 ? -6 : 0), cy - (step === 2 ? ry * .45 : 2), 3 + step * 1.5 + boil * .5, 1.6 + step * .7, (x, y, dx, dy) => dx < 0 && dy < 0 ? "#dce8f4" : "#9cd4fc");
+  if (step === 2) {  // the fall: a narrow ribbon down the rock into the pond, streaks slipping down each frame
+    const fx = cx - 9, top = cy - ry - 34, bot = cy - ry * .45;
+    for (let y = top; y <= bot; y++) for (let x = fx; x < fx + 7; x++) {
+      const edge = x === fx || x === fx + 6;
+      out.set(x, y, edge ? "#4c8ca4" : hash(x, Math.floor((y - f * 3) / 4), s + 6) < .35 ? "#dce8f4" : "#9cd4fc");
+    }
+    for (let i = -7; i <= 7; i++) if ((i + f) % 3) out.set(fx + 3 + i, bot + 2 + Math.abs(i) * .25, "#dce8f4");  // foam where it lands
+  }
+  // Rim stones.
+  const S = new Img(W, H), nStones = [4, 7, 10][step];
+  for (let k = 0; k < nStones; k++) {
+    const a = (k / nStones + hash(k, 1, s) * .06) * Math.PI * 2 + .5;
+    if (step === 2 && Math.sin(a) < -.75) continue;  // the rock stands there
+    blob(S, cx + Math.cos(a) * rx * 1.08, cy + Math.sin(a) * ry * 1.1, 3.5 + hash(k, 2, s) * 3.5, 2.6 + hash(k, 3, s) * 2.4, STONE_RAMP, { lump: .1, seed: s + 10 + k, tex: .1, rim: true });
+  }
+  out.stamp(S, ST.out);
+  // Reeds at the back rim, lilies on the water.
+  for (let k = 0; k < [0, 3, 5][step]; k++) {
+    const x = Math.round(cx + (k - ([0, 3, 5][step] - 1) / 2) * 13 + 34 * (k % 2 ? 1 : -1) * .6), y0 = Math.round(cy - ry * .78), h = 9 + Math.floor(hash(k, 4, s) * 7);
+    for (let i = 0; i < h; i++) { out.set(x + (i > h * .6 ? [0, 1, 0, -1][f] * (k % 2 ? 1 : -1) : 0), y0 - i, i < 2 ? "#1c3c2c" : "#34643c"); }
+    out.set(x, y0 - h, "#5c3c24"); out.set(x, y0 - h - 1, "#5c3c24"); out.set(x, y0 - h - 2, "#8c5c34");
+  }
+  for (let k = 0; k < [2, 4, 7][step]; k++) {
+    const a = hash(k, 5, s) * Math.PI * 2, r = .3 + hash(k, 6, s) * .45;
+    const lx = Math.round(cx + Math.cos(a) * rx * r), ly = Math.round(cy + Math.sin(a) * ry * r * .9 + 3) + ((f + k) % 4 === 2 ? 1 : 0);
+    ellipseRaw(out, lx, ly, 4, 2.4, (x, y, dx, dy) => dx > .2 && Math.abs(dy) < .4 ? "#2c4c5c" : dy < -.2 ? "#5c944c" : "#34643c");  // a pad with its notch
+    if (k % 2 === 0) { out.set(lx - 1, ly - 2, A.dots[0]); out.set(lx, ly - 3, A.dots[1]); out.set(lx + 1, ly - 2, A.dots[0]); out.set(lx, ly - 2, A.dots[2]); }  // a bloom
+  }
+  return out;
+}
+
+// Lightning Tree: a split, scorched dead tree with static in its bark. Each step is a bigger tree with more forks,
+// more veins of static and a wider spark between its tops.
+function lmLightningTree(A, step, f) {
+  const W = 128, H = 176, out = new Img(W, H), L = new Img(W, H), seed = SEED + 6200, k = [.62, .88, 1.22][step];
+  const bx = 64, by = H - 9, P = (x, y) => [bx + x * k, by - y * k];
+  const S = (x0, y0, x1, y1, w0, w1) => { const a = P(x0, y0), b = P(x1, y1); stroke(L, a[0], a[1], b[0], b[1], Math.max(1.4, w0 * k), Math.max(1, w1 * k), deadFn); };
+  ellipseRaw(out, bx, by + 2, 22 * k, 5.5 * k, SHADOW(.36));
+  S(-4, 2, -19, -2, 5, 2); S(5, 2, 21, -2, 5, 2); S(0, 1, -2, -4, 4, 2);  // roots
+  S(-2, 0, -9, 62, 13, 7); S(3, 0, 11, 68, 13, 7);  // the split trunk
+  S(-9, 60, -20, 96, 6, 2.5); S(-9, 58, -2, 90, 5, 2); S(11, 66, 24, 100, 6, 2.5); S(11, 64, 4, 96, 5, 2);
+  if (step >= 1) { S(-20, 96, -28, 111, 2.6, 1.2); S(24, 100, 30, 116, 2.6, 1.2); S(-6, 40, -24, 56, 4, 1.6); }
+  if (step === 2) { S(-14, 78, -36, 93, 4, 1.5); S(16, 84, 38, 97, 4, 1.5); S(-2, 90, -5, 114, 3, 1.2); S(4, 96, 9, 122, 3, 1.2); S(9, 44, 30, 60, 4, 1.6); S(-36, 93, -42, 106, 2, 1); }
+  out.stamp(L, DEAD[0]);
+  for (let y = 5; y <= 58; y += .5) { const p = P(Math.sin(y * .32) * 1.2 + .5, y); out.set(p[0], p[1], "#140f26"); if (k > 1) out.set(p[0] + 1, p[1], "#140f26"); }  // the charred cleft
+  const vein = f % 2 ? "#dce8f4" : "#9a84e8";
+  const veins = [[-6, 6, 44, 1], [7, 8, 46, 2], [-13, 66, 22, 3], [15, 72, 22, 4], [-1, 62, 20, 5]].slice(0, [2, 3, 5][step]);
+  for (const [x0, y0, len, n] of veins) {
+    let x = x0;
+    for (let i = 0; i < len; i += .6) { x += (hash(Math.floor(i), n, seed) < .5 ? -1 : 1) * .35; const p = P(x, y0 + i); if (L.alpha(Math.floor(p[0]), Math.floor(p[1]))) { out.set(p[0], p[1], vein); out.set(p[0] + 1, p[1], "#9a84e8"); } }
+  }
+  const arc = (a, b, lift, on) => { if (!on) return; const p0 = P(a[0], a[1]), p1 = P(b[0], b[1]); for (let i = 0; i <= 14; i++) { const t = i / 14; out.set(p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t - Math.sin(t * Math.PI) * lift * k + (i % 2), i % 3 ? "#9a84e8" : "#fff4dc"); } };
+  arc([-20, 96], [24, 100], 6, f === 2);
+  if (step >= 1) arc([-28, 111], [-2, 90], 4, f === 0);
+  if (step === 2) { arc([4, 96], [38, 97], 5, f === 1); arc([-36, 93], [-5, 114], 5, f === 3); }
+  for (let n = 0; n < [0, 3, 6][step]; n++) {  // loose sparks drifting off the tops
+    const p = P(-30 + hash(n, 7, seed) * 62, 100 + hash(n, 8, seed) * 22 + ((f + n) % 4) * 2);
+    if ((f + n) % 4 < 2) out.set(p[0], p[1], (f + n) % 2 ? "#dce8f4" : "#9a84e8");
+  }
+  mossFlecks(out, L, seed);
+  return out;
+}
+
+// Bell Stone: a singing standing stone with a bronze bell in its hollow. Each step is a taller stone with more runes,
+// a bigger bell and more rings of sound; at III two small stones stand with it.
+function lmBellStone(A, step, f) {
+  const W = 96, H = 128, out = new Img(W, H), L = new Img(W, H), s = SEED + 6300, g = A.grass;
+  const cx = 48, rx = [12, 16, 21][step], ry = [19, 30, 44][step], cy = H - 9 - ry, hy = cy - ry * .4;
+  ellipseRaw(out, cx, H - 8, rx + 6 + step * 6, 5 + step, SHADOW(.4));
+  if (step === 2) {
+    const B = new Img(W, H);
+    blob(B, cx - 31, H - 19, 8, 11, STONE_RAMP, { lump: .08, seed: s + 5, tex: .12, rim: true });
+    blob(B, cx + 32, H - 17, 7, 9, STONE_RAMP, { lump: .08, seed: s + 6, tex: .12, rim: true });
+    mossPass(B, cx - 31, H - 19, 8, 11, g, s + 7, .6);
+    out.stamp(B, ST.out);
+  }
+  blob(L, cx, cy, rx, ry, STONE_RAMP, { lump: .06, seed: s + step, tex: .12, rim: true });
+  const hr = 3.2 + step * 1.4;
+  ellipseRaw(L, cx, hy, hr, hr * 1.3, "#140f26");  // the hollow it sings through
+  mossPass(L, cx, cy, rx, ry, g, s + 2, .72);
+  out.stamp(L, ST.out);
+  const b = 1 + step * .55, swing = step ? [0, 1, 0, -1][f] : 0;
+  out.set(cx, hy - hr * 1.3 + 1, "#5c3c24"); out.set(cx, hy - hr * 1.3 + 2, "#5c3c24");
+  ellipseRaw(out, cx + swing, hy + .5, 1.8 * b, 2.3 * b, (x, y, dx, dy) => dy > .5 ? "#5c3c24" : dx < 0 ? "#e9a83c" : "#b8662c");
+  const lit = f === 1 || f === 2, RUNE = [[-2, 0], [-1, 1], [0, 2], [1, 1], [2, 0], [0, 4], [0, 5]];
+  for (let r = 0; r <= step; r++) for (const [dx, dy] of RUNE) out.set(cx + dx, hy + hr * 1.3 + 5 + r * 10 + dy, lit && (f + r) % 2 === 1 || lit && step === 0 ? "#fcd47c" : lit ? "#e9a83c" : ST.d1);
+  for (let j = 0; j <= step; j++) {  // rings of sound, only beside the stone
+    const r = 9 + f * 4 + j * 8;
+    for (let a = 0; a < 80; a += 2) {
+      const t = a / 80 * Math.PI * 2;
+      if (Math.abs(Math.cos(t)) < .5) continue;
+      out.set(cx + Math.cos(t) * r * 1.12, hy + Math.sin(t) * r * .75, CA("#b4b0c8", clamp(.65 - f * .14 - j * .12, .15, 1)));
+    }
+  }
+  return out;
+}
+
+// Mushroom Ring: a fairy ring on a 3×3 patch. More and taller toadstools each step; at III a second, inner ring and
+// spores rising.
+function lmMushroomRing(A, step, f) {
+  const W = 192, H = 224, out = new Img(W, H), s = SEED + 6400, g = A.grass, ox = 96, oy = 32 + 98, RX = 76, RY = 70;
+  const band = [.045, .055, .07][step];
+  for (let y = 32; y < H; y++) for (let x = 0; x < W; x++) {
+    const r = Math.hypot((x + .5 - ox) / RX, (y + .5 - oy) / RY) + (pnoise(x, y, 8, s) - .5) * .06;
+    if (Math.abs(r - 1) < band && pnoise(x, y, 5, s + 1) > .34) out.set(x, y, Math.abs(r - 1) < band * .45 ? g[4] : g[3]);
+  }
+  const caps = [], n = [9, 13, 17][step];
+  for (let k = 0; k < n; k++) {
+    const a = k / n * Math.PI * 2 + (hash(k, 1, s) - .5) * .3, rr = 1 + (hash(k, 2, s) - .5) * .08;
+    caps.push([ox + Math.cos(a) * RX * rr, oy + Math.sin(a) * RY * rr, [.85, 1.2, 1.6][step] + hash(k, 3, s) * [.4, .7, 1.1][step], k]);
+  }
+  if (step === 2) for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + .4; caps.push([ox + Math.cos(a) * RX * .42, oy + Math.sin(a) * RY * .42, .9 + hash(k, 4, s) * .35, 20 + k]); }
+  caps.sort((p, q) => p[1] - q[1]).forEach(([cx, cy, z, k]) => {
+    const pulse = [0, .5, 1, .5][(f + k) % 4];
+    if (pulse > 0) for (let a = 0; a < 24; a++) {  // the cap's breath of glow: a broken ring, brighter at its peak
+      if (pulse < 1 && a % 2) continue;
+      out.set(cx + Math.cos(a / 24 * Math.PI * 2) * 7.5 * z, cy - 4.5 * z + Math.sin(a / 24 * Math.PI * 2) * 5.2 * z, CA("#ec9cf4", .5 + pulse * .3));
+    }
+    ellipseRaw(out, cx, cy + 1, 4.5 * z, 1.6 * z, SHADOW(.4));
+    for (let y = Math.round(cy - 4 * z); y <= cy; y++) for (let w = 0; w < Math.max(2, Math.round(z * 1.6)); w++) out.set(cx - Math.max(2, Math.round(z * 1.6)) / 2 + w, y, w === 0 ? "#b4b0c8" : "#8c8cac");
+    ellipseRaw(out, cx, cy - 4.5 * z, 4.2 * z, 2.6 * z, (x, y, dx, dy) => dy > .45 ? "#4c3c74" : dx < -.1 && dy < -.1 ? "#ec9cf4" : "#bc44dc");
+    out.set(cx - 1.5 * z, cy - 5.5 * z, "#fff4dc"); if (z > 1) out.set(cx + 1.5 * z, cy - 4.8 * z, "#fff4dc"); if (z > 1.5) out.set(cx, cy - 6.2 * z, "#fff4dc");
+  });
+  for (let m = 0; m < [0, 4, 10][step]; m++) {  // spores rising inside the ring
+    const x = ox - 50 + hash(m, 5, s) * 100, y = oy - 30 + hash(m, 6, s) * 60 - ((f + m) % 4) * 4;
+    out.set(x, y, (f + m) % 4 === 3 ? "#bc44dc" : "#ec9cf4");
+  }
+  return out;
+}
+
+// Moonwell: still water holding the moon's reflection. Each step is a wider basin with a brighter moon and more
+// motes; at III two standing stones flank it, their runes lit by the water.
+function lmMoonwell(A, step, f) {
+  const W = 128, H = 128, out = new Img(W, H), L = new Img(W, H), s = SEED + 6500, wob = [0, 1, 0, -1][f];
+  const cx = 64, R = [21, 30, 40][step], ry = [13, 17, 22][step], cy = H - 9 - ry;
+  ellipseRaw(out, cx, cy + ry * .6, R + 2, ry * .55, SHADOW(.4));
+  if (step === 2) {
+    const B = new Img(W, H);
+    blob(B, cx - R + 13, cy - ry * .5 - 15, 8, 21, STONE_RAMP, { lump: .07, seed: s + 5, tex: .12, rim: true });  // standing behind the basin, their feet hidden by its rim
+    blob(B, cx + R - 13, cy - ry * .5 - 12, 8, 18, STONE_RAMP, { lump: .07, seed: s + 6, tex: .12, rim: true });
+    out.stamp(B, ST.out);
+    for (const [sx, sy] of [[cx - R + 13, cy - ry * .5 - 24], [cx + R - 13, cy - ry * .5 - 19]]) for (const [dx, dy] of [[0, 0], [-1, 1], [1, 1], [0, 2], [0, 4], [0, 5]]) out.set(sx + dx, sy + dy, f % 2 ? "#dce8f4" : "#9cd4fc");
+  }
+  blob(L, cx, cy, R, ry, STONE_RAMP, { lump: .08, seed: s + step, tex: .12, rim: true });
+  out.stamp(L, ST.out);
+  ellipseRaw(out, cx, cy - 2, R * .67, ry * .58, (x, y, dx, dy) => dy < -.75 ? ST.d2 : pnoise(x, y, 7, s + 1) - dy * .35 > .6 ? "#4c8ca4" : "#2c4c5c");
+  ellipseRaw(out, cx + 2 + wob, cy - 2.5, 3.4 + step * 1.6, 2.2 + step * .9, (x, y, dx, dy) => dx < 0 && dy < 0 ? "#fff4dc" : "#dce8f4");
+  for (let i = -5 - step * 3; i <= 5 + step * 3; i += 2) out.set(cx - 1 + i - wob, cy + 2 + step * 1.5, "#9cd4fc");
+  for (let k = 0; k < [4, 6, 9][step]; k++) {  // motes of moonlight rising
+    const ph = (f + k) % 4, n = [4, 6, 9][step], x = cx - R * .62 + (k + .5) * (R * 1.24 / n) + (k % 2), y = cy - ry * .6 - ph * (5 + step);
+    out.set(x, y, ph === 3 ? "#9a84e8" : "#dce8f4"); if (ph < 2) out.set(x, y + 1, CA("#9a84e8", .6));
+  }
+  return out;
+}
+
+// The arrival: the Heartwood's roots run across the map to the spot, then the landmark rises.
+// root_run.png (dream/, 4 variants of 64×32): two light roots travelling along the ground, entering and leaving every
+// tile on the same two lanes (y 11 and 21) with no wiggle at the ends, so any variants tile; rootlets and a little
+// turned earth beside them. The game lays it along the run and rotates it.
+function rootRun(v) {
+  const W = 64, H = 32, out = new Img(W, H), L = new Img(W, H), s = SEED + 6600 + v * 31;
+  for (const [lane, n] of [[11, 0], [21, 1]]) {
+    const ph = hash(n, 1, s) * 6.28, amp = 3 + hash(n, 2, s) * 2, pt = t => [t * W, lane + Math.sin(t * Math.PI * 2 + ph) * amp * Math.sin(Math.PI * t) ** 2];
+    for (let i = 0; i < 16; i++) { const a = pt(i / 16), b = pt((i + 1) / 16); stroke(L, a[0], a[1], b[0], b[1], 2.6, 2.6, LM_WOOD); }
+    for (let r = 0; r < 2; r++) {  // a rootlet curling off
+      const t = .22 + hash(n, 3 + r, s) * .56, p = pt(t), dir = hash(n, 5 + r, s) < .5 ? -1 : 1, len = 5 + hash(n, 7 + r, s) * 4;
+      stroke(L, p[0], p[1], p[0] + len * .7, p[1] + dir * len * .6, 1.8, 1, LM_WOOD);
+    }
+  }
+  for (let i = 0; i < 9; i++) { const x = 3 + hash(i, 9, s) * 58, y = 3 + hash(i, 10, s) * 26; if (!L.alpha(Math.floor(x), Math.floor(y))) { out.set(x, y, "#241c14"); out.set(x + 1, y, "#5c3c24"); } }  // turned earth
+  out.stamp(L, "#5c3c24");
+  return out;
+}
+// root_rise.png (dream/, 6 frames of 96×96): the short burst where the landmark appears: roots break out of a mound
+// and spread, earth flies, then a warm glint as the landmark takes its place over it.
+function rootRise(f) {
+  const W = 96, out = new Img(W, W), L = new Img(W, W), s = SEED + 6700, t = (f + 1) / 6, cx = 48, cy = 58;
+  ellipseRaw(out, cx, cy + 2, 6 + 16 * t, 3 + 6 * t, (x, y, dx, dy) => dy < -.3 ? "#5c3c24" : "#241c14");  // the mound of turned earth
+  for (let r = 0; r < 8; r++) {
+    const a = r / 8 * Math.PI * 2 + hash(r, 1, s) * .5, len = (16 + hash(r, 2, s) * 20) * t, curl = (hash(r, 3, s) - .5) * 1.2;
+    let x = cx, y = cy;
+    for (let i = 0; i < len; i += 2) {
+      const aa = a + curl * (i / 36), nx = x + Math.cos(aa) * 2, ny = y + Math.sin(aa) * 2 * .62;
+      stroke(L, x, y, nx, ny, Math.max(1, 4 - i * .09), Math.max(1, 3.8 - i * .09), LM_WOOD);
+      x = nx; y = ny;
+    }
+  }
+  out.stamp(L, "#5c3c24");
+  if (f < 4) for (let c = 0; c < 12; c++) {  // earth flying out, falling back
+    const a = hash(c, 4, s) * Math.PI * 2, d = 8 + t * 34 * (.5 + hash(c, 5, s) * .5);
+    out.set(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .6 - Math.sin(t * Math.PI) * 10, c % 3 ? "#5c3c24" : "#241c14");
+  }
+  if (f >= 4) for (const [dx, dy, c] of [[0, 0, "#fff4dc"], [-1, 0, "#fcd47c"], [1, 0, "#fcd47c"], [0, -1, "#fcd47c"], [0, 1, "#fcd47c"], [-3, 0, "#e9a83c"], [3, 0, "#e9a83c"], [0, -3, "#e9a83c"]]) if (f === 5 || Math.abs(dx) + Math.abs(dy) < 3) out.set(cx + dx, cy - 6 + dy, c);
+  return out;
+}
 // Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
 // (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
 const ROCK_SCALE = .68;
@@ -2355,11 +2593,20 @@ const BUILD = {
   bog: (A, m) => bogTile(A, m),
   bogd: (A, k) => bogDual(A, k),
   rootsd: (A, k) => rootsDual(A, k),
+  // Gifts as landmarks: v = the growth step (0, 1, 2 = I, II, III).
+  lmspring: (A, v, f) => lmSpring(A, v, f),
+  lmtree: (A, v, f) => lmLightningTree(A, v, f),
+  lmbell: (A, v, f) => lmBellStone(A, v, f),
+  lmring: (A, v, f) => lmMushroomRing(A, v, f),
+  lmwell: (A, v, f) => lmMoonwell(A, v, f),
+  lmroots: (A, k) => rootsDual(A, k % 19, Math.floor(k / 19)),  // k = column + 19 × step
+  rrun: (A, v) => rootRun(v),
+  rrise: (A, v, f) => rootRise(f),
   astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
-const TILES = new Set(["lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
+const ANIM = new Set(["lmspring", "lmtree", "lmbell", "lmring", "lmwell", "rrise", "nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["lmring", "lmroots", "rrun", "rrise", "lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

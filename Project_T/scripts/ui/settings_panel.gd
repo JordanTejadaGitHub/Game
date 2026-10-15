@@ -282,6 +282,24 @@ func _phone_pass() -> void:
 	for button in find_children("*", "BaseButton", true, false):
 		var control := button as Control
 		control.custom_minimum_size.y = maxf(control.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
+	if not UiStyle.is_phone():
+		return
+	# Phones (mobile_ui_proto Options): the tabs a bigger row, every setting row PHONE_ROW_H tall (name and note on the
+	# left, its slider / switch / choice on the right; the buttons above are already 48 tall).
+	tabs.add_theme_font_size_override("font_size", 17)
+	for key in _dots:
+		var row := (_dots[key] as Control).get_parent() as Control
+		if row is HBoxContainer:
+			row.custom_minimum_size.y = maxf(row.custom_minimum_size.y, PHONE_ROW_H)
+
+const PHONE_ROW_H := 56.0
+
+# The phone pause menu's pane (mobile only): no own width or height, the tabs take what the pane leaves.
+func fill_pane() -> void:
+	custom_minimum_size = Vector2.ZERO
+	tabs.custom_minimum_size.y = 0.0
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # The pane draws the frame
 
 # --- Start over as a new profile (demo_scope.md "Reset to a new profile"; Developer, debug builds) ---
 

@@ -8,7 +8,7 @@ const MAP_GRID = preload("res://resource/map/map_grid.tres")  # The shared grid 
 @export var movement_smoothness: float = 12.0  # How quickly the camera catches up to its target (higher = snappier)
 
 # Camera zoom settings
-@export var camera_zoom_in_max: float = 2.5  # Maximum zoom-in level (was 1.4; user: "allow zooming in more")
+@export var camera_zoom_in_max: float = 3.5  # Maximum zoom-in level (was 1.4, then 2.5; user 2026-10-15: "zoom a little more in", desktop and mobile)
 @export var camera_zoom_out_min: float = 0.5  # Minimum zoom-out level
 @export var zoom_step: float = 1.1  # Each wheel notch multiplies the zoom by this (even steps at both ends)
 @export var zoom_smoothness: float = 10.0  # How quickly the zoom catches up to its target (higher = snappier)
