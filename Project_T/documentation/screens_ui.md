@@ -633,6 +633,14 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Remember tree:** the lines from the root to every **unlocked or grown** node glow gold (the path
   you've taken reads at a glance); locked lines stay dim. The **Ascended** node uses the same node
   size as the others (its art scaled to fit the disc; its crown sits above, not bigger).
+- **A final form is readable before its branch is unlocked** (user, 2026-10-15: "show information about the 2nd
+  form even if the 1st form isn't unlocked in the Remember tree, keep the silhouette though"): until its branch is
+  unlocked, a final form keeps its **silhouette** on the tree and in the side panel (the reveal of its art is still
+  the reward), but its **name, description, stats, combos and Dreamlight cost** all show, so you can plan the path.
+  Its Unlock button is off, with the line *"Unlock {branch} first"*. Ascended forms keep the full veil ("?") until a
+  final of the family is unlocked. Grove-hidden forms ("???", Memory Grove) are unchanged.
+- **The Remember button** (top right) uses the **Dreamlight icon**, the counter's pink diamond (2026-10-12 rule: one
+  Dreamlight icon everywhere), never a separate Remember glyph.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
