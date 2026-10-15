@@ -170,6 +170,14 @@ static func grown(s: EnemyStatuses, ids: Array) -> bool:
 static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
+	if _half_need:  # Clashing Notes' half need is for its own nightmare only: a status landing elsewhere checks in full
+		_half_need = false
+		_on_status(enemy, _id, source)
+		_half_need = true
+		return
+	_on_status(enemy, _id, source)
+
+static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if _id == MARKED:
 		Fx.exposed_check(enemy)  # Exposed just filled: its flare, mark and callout (screens_ui.md, last section)
 	var s: EnemyStatuses = enemy.statuses
@@ -203,10 +211,38 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 		_smother(enemy, source)
 
 static func buildup_threshold(base: int) -> int:
+	if _half_need and base in HALF_NEED_BASES:
+		return ceili(base * EnemyStatuses.cap_multiplier() / 2.0)
 	return base * EnemyStatuses.cap_multiplier()
 
 static func thunderclap_threshold(statuses: EnemyStatuses) -> int:
-	return (THUNDERCLAP_STATIC_BOSS if statuses.is_boss else THUNDERCLAP_STATIC) * EnemyStatuses.cap_multiplier()
+	var need: int = (THUNDERCLAP_STATIC_BOSS if statuses.is_boss else THUNDERCLAP_STATIC) * EnemyStatuses.cap_multiplier()
+	return ceili(need / 2.0) if _half_need else need
+
+# Clashing Notes (Bellflower lent card, Roguelite Code 2026-10-14; dream_council_review.md 26): a bell's hit on a Drowsy
+# nightmare sets off any Reaction it is halfway to. Poisoned, Charged and Soaked count at half their need; Drowsy and
+# Exposed must still be full; never Pinned, Shatter or Smother (Rooted). Grown, cooldowns and Crowned are unchanged.
+# The half need holds only while this nightmare's own check runs (on_status for any other nightmare clears it).
+static var _half_need := false
+const HALF_NEED_BASES: Array[int] = [SOAKED_NEEDED, IGNITE_MIN_STATIC, IGNITE_MIN_SPORES, MUSHROOM_MIN_SPORES]
+
+static func check_at_half(enemy: Node2D, source: Node) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.count() < 2:
+		return
+	var s: EnemyStatuses = enemy.statuses
+	_half_need = true
+	if s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.stacks(STATIC) >= thunderclap_threshold(s) and grown(s, [DAMP, STATIC]):
+		_thunderclap(enemy, source)
+	if not enemy.is_cleansed and s.stacks(SPORED) >= buildup_threshold(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= buildup_threshold(IGNITE_MIN_STATIC) \
+			and grown(s, [SPORED, STATIC]):
+		_ignite(enemy, source)
+	if not enemy.is_cleansed and s.stacks(SPORED) >= buildup_threshold(MUSHROOM_MIN_SPORES) and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) \
+			and grown(s, [SPORED, DAMP]):
+		_mushrooming(enemy, source)
+	if not enemy.is_cleansed and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY) \
+			and grown(s, [DAMP, DROWSY]):
+		_drown(enemy, source)
+	_half_need = false
 
 # --- Potency (tower_design.md "Potency: effect damage") ---------------------------------------------
 

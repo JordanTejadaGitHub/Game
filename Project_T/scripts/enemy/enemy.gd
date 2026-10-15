@@ -2507,6 +2507,10 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
 	var was_held := statuses.is_held()
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if is_instance_valid(_batch_dreams) and _batch_dreams.has_rule(&"waterlogged"):
+		duration = _batch_dreams.class_duration(source, self, id, duration)  # Waterlogged (Roguelite Code): every application, carried ones too
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hum_along"
+display_name = "Hum Along"
+description = "Hits from other Wardens {touching} a bell add 1 {drowsy}. Each Warden, once every 2 s. Sprouts count."
+tip = "The bell's own {drowsy}, on the nightmare hit; only a bell that makes {drowsy} counts. It never sets off Nod Off or Refrain by itself. Works for: any other Warden touching a bell. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"hum_along"
+requires = Array[String](["bellflower"])

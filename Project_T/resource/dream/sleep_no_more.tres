@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "sleep_no_more"
 display_name = "Sleep No More"
-description = "The hit that wakes a sleeping nightmare, from any Warden, lands in full on every nightmare {touching} it too."
-tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a {toll}: it lands again at half damage (on a Bellflower start the first {toll} is ring 2). Works for: any Warden. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Needs a sleeping nightmare. The first hit on it within 1 s of waking, from any Warden, lands in full on every nightmare {touching} it too."
+tip = "Sleep comes from Nod Off, Dreamshroom and The Great Bell. Up to 6 others; never more than a second of that Warden's damage. A bet: it does nothing until something of yours puts nightmares to sleep."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

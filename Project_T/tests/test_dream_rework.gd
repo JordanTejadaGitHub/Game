@@ -165,13 +165,14 @@ func _combat_and_positions(attacker: Tower) -> void:
 	dreams._game_clock = 10.0
 	first.statuses = EnemyStatuses.new()
 	dreams.switchback_at(first, attacker.cell)
-	_check(is_equal_approx(first.statuses.slow_amount, 0.25) and is_equal_approx(first.statuses.slow_time, 1.0), "covered bend crossing slows the nightmare")
-	first.statuses.slow_time = 0.0
+	# Timed slows keep their own expiry since 2026-10-14 (EnemyStatuses.timed_slows, dream_council_review.md 26 fix 7)
+	_check(is_equal_approx(first.statuses.timed_slow(), 0.25) and is_equal_approx(first.statuses.timed_slow_left(0.25), 1.0), "covered bend crossing slows the nightmare")
+	first.statuses.timed_slows.clear()
 	dreams.switchback_at(first, attacker.cell)
-	_check(is_zero_approx(first.statuses.slow_time), "overlapping coverage cannot refresh within cooldown")
+	_check(is_zero_approx(first.statuses.timed_slow()), "overlapping coverage cannot refresh within cooldown")
 	dreams._game_clock = 13.0
 	dreams.switchback_at(first, attacker.cell)
-	_check(is_equal_approx(first.statuses.slow_time, 1.0), "another bend can trigger after three seconds")
+	_check(is_equal_approx(first.statuses.timed_slow_left(0.25), 1.0), "another bend can trigger after three seconds")
 
 	dreams.stacks.clear()
 	dreams.build_run_pool(424242)

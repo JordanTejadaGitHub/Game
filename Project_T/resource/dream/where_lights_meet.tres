@@ -13,3 +13,4 @@ tags = Array[String](["storm"])
 max_stacks = 1
 rule_id = &"where_lights_meet"
 calling = "firefly_jar"
+tip = "Works for: Firefly Wardens whose glows cross, and every Warden's dispel on that gold path. Safe."

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "knell"
 display_name = "Knell"
-description = "Every 4th ring on a nightmare sets off one status from another {family}'s Warden: it deals the damage that status would and clears it."
-tip = "Works for: another {family}'s statuses. A bet. {spored} ticks once and loses its oldest {stacks}. {static} goes off as a bolt, which keeps it from bigger Reactions. {full} {damp}: up to 2 {warden:dewdrop}s hit it, and it dries."
+description = "Needs another {family}'s status. A bell's hit on a {drowsy} nightmare sets off one status another {family} put on it: its damage at once, then gone."
+tip = "Each nightmare, once every 8 s. {spored} ticks once and loses its oldest {stacks}. {static} goes off as a bolt, which keeps it from bigger Reactions. {full} {damp}: up to 2 {warden:dewdrop}s hit it, and it dries. Never Rooted, Exposed or {drowsy}. A bet."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

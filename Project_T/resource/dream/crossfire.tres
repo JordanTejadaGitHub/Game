@@ -13,3 +13,4 @@ tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"lent_crossfire"
 requires = Array[String](["firefly_jar"])
+tip = "Behind: further back on the path. Once per nightmare every 3 s. Works for: another family's Warden near a Firefly Warden. A bet: both must hit one nightmare."

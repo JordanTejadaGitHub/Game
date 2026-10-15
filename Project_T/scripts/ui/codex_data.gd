@@ -72,7 +72,7 @@ const GLOSSARY_SOURCE := [
 	["Classes", [
 		["Mushroom", "A small mushroom on the path (Sporeling cards). The next walking nightmare to step on it takes a dose; flyers pass over. Mushrooms stay through rests, 40 at most.", ["Dose", "Calling"]],
 		["Dose", "3 {spored} at once: what a mushroom gives the nightmare that steps on it.", ["Mushroom"]],
-		["Lit", "A nightmare inside a Firefly Warden's glow (3 cells). Firefly cards jump damage between Lit nightmares.", ["Jump"]],
+		["Lit", "A nightmare inside a Firefly Warden's glow (its attack range, at least 3 cells). Firefly cards jump damage between Lit nightmares.", ["Jump"]],
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump never sets off another jump.", ["Lit"]],
 		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). Dewdrop cards work on nightmares standing in it.", ["Touching"]],
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],

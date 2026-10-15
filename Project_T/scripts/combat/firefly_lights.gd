@@ -65,6 +65,31 @@ const WAITING_SPARK := &"waiting_spark"
 const LENT_LIVE_WIRE := &"lent_live_wire"
 const LENT_CROSSFIRE := &"lent_crossfire"
 const LIKE_TO_LIKE := &"like_to_like"
+# Lent, 2026-10-14 (lent_noplace_sporeling_firefly.md with dream_council_review.md 26's fixes)
+const SPARKS_FLY := &"sparks_fly"
+const SPARKS_EVERY_HIT := 3  # Sparks Fly: every 3rd hit a Warden lands on a nightmare…
+const SPARKS_WINDOW := 2.0  # …a Firefly Warden hit in the last 2 s…
+const SPARKS_SHARE := 0.5  # …jumps on at half
+const FLASHOVER := &"flashover"
+const FLASHOVER_SHARE := 0.5  # Flashover: an area attack on 2+ nightmares jumps half to the nearest one it missed
+const FLASHOVER_MIN := 2
+const SPARKLERS := ["sparkler", "starburst"]  # Firefly area forms: they count for Flashover beside another Firefly Warden
+const THUNDERSTRUCK := &"thunderstruck"
+const THUNDER_SHARE := 0.25  # Thunderstruck: a heavy hit on a Charged nightmare fans a quarter to every Charged one near it…
+const THUNDER_MAX := 6  # …up to this many
+const BRUSHFIRE := &"brushfire"
+const BRUSH_SHARE := 0.5  # Brushfire: half a Charged nightmare's damage over time, each second
+const BRUSH_EVERY := 1.0
+const BRUSH_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog"]  # Damage over time (not bolts, Reactions or jumps)
+const GATHERING_STORM := &"gathering_storm"
+const GATHER_STEP := 0.25  # Gathering Storm: each jump a nightmare takes makes the next 25% stronger…
+const GATHER_MAX := 2.0  # …up to double…
+const GATHER_RESET := 2.0  # …reset after 2 s without one
+const CHAIN_REACTIONS: Array[StringName] = [&"thunderclap", &"ignite", &"lightning_rod", &"tempest"]  # Reactions that spend Charged
+const SPARKS_META := &"ff_sparks"  # On a nightmare: {Warden id: hits counted}
+const FF_HIT_META := &"ff_firefly_hit"  # On a nightmare: [time, WeakRef]: the last Firefly Warden hit (Sparks Fly)
+const SPARKS_FRAME_META := &"ff_sparks_frame"  # On a Warden: the frame its last hit was counted (an area attack counts once)
+const GATHER_META := &"ff_gather"  # On a nightmare: [jumps, last time] (Gathering Storm)
 const GUIDING_LIGHT := &"guiding_light"  # A general card (needs Lanternmoth), reworked to fork: Firefly spreads damage, never statuses
 const GUIDING_SHARE := 0.5
 const GUIDING_CELLS: Array[float] = [1.0, 2.0]  # II
@@ -93,6 +118,10 @@ var _sparks := {}  # Light id -> Array of {amount, source, until, cap}
 var _signal_next := {}  # Light id -> clock
 var _base_jar_dps := 0.0
 var forks_thrown := 0  # This run (tests and the owner's eye)
+var _flashes := {}  # Flashover: Warden id -> {frame, source: WeakRef, hits: Array, base}: one attack's hits, struck next frame
+var _brush := {}  # Brushfire: nightmare id -> {enemy: WeakRef, source: WeakRef, amount}: this second's damage over time
+var _brush_in := BRUSH_EVERY
+var _heavy_now := false  # This event is a new heavy attack (worked out once per event: _new_heavy_attack has a clock)
 var saved_sprouts: Array = []  # From the run save (DreamState.load_save); applied once the Wardens are back
 
 func _ready() -> void:
@@ -116,23 +145,30 @@ func class_on() -> bool:
 func _rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
 
+# Lent cards never give the Calling's setup (owner 2026-10-14, dream_council_review.md 25-26): Lit, the glow, lights and
+# gold path are the first pick's only. The lent cards work from Firefly Wardens, where Wardens stand, their attacks and
+# Charged; they never read Lit (no sources_at, nearest_lit or is_lit in a lent path).
+const LENT_RULES: Array[StringName] = [HAMMERFALL, KNOCK_ON, THUNDERSTRUCK, CHAIN_OF_LANTERNS, NOTHING_WASTED, LENT_CROSSFIRE,
+	SPARKS_FLY, FLASHOVER, BRUSHFIRE, GATHERING_STORM, LENT_LIVE_WIRE, LIKE_TO_LIKE]  # (Live Wire, Like to Like: retired; old saves)
+
 func _lent_on() -> bool:
-	return _rule(LENT_LIVE_WIRE) or _rule(LENT_CROSSFIRE) or _rule(LIKE_TO_LIKE) or _lit_lent()
-
-# More lent cards than class cards (the owner and the council, 2026-10-13, lent_consolidated.md): Lit, the glow and the
-# lights belong to every owner of the family; only the Calling's own payoff (a dispel of a Lit nightmare jumps half its
-# hit) stays with the first pick. These lent cards work in the light, on any start that owns a Firefly Warden.
-const LIT_LENT: Array[StringName] = [HAMMERFALL, KNOCK_ON, SPOTLIGHT, SIGNAL_FIRES, NOTHING_WASTED, CHAIN_OF_LANTERNS]  # (Ambush retired, Spotlight lent: owner 2026-10-13)
-
-func _lit_lent() -> bool:
-	for id in LIT_LENT:
+	for id in LENT_RULES:
 		if _rule(id):
 			return true
 	return false
 
-# Whether the lights are worked out: the Firefly start, or any owner holding a card that works in the light.
+# Cards retired or moved to class-only that worked in the light when a later owner could hold them: an old save holding
+# one keeps the lights on Continue (the "keep a retired card's effect" convention).
+const LEGACY_LIT: Array[StringName] = [SPOTLIGHT, SIGNAL_FIRES]
+
+# Whether the lights are worked out: the Firefly start (or an old save's legacy card).
 func _lit_on() -> bool:
-	return class_on() or _lit_lent()
+	if class_on():
+		return true
+	for id in LEGACY_LIT:
+		if _rule(id):
+			return true
+	return false
 
 func _cell() -> float:
 	return Tower.MAP_GRID.cell_size.x
@@ -147,6 +183,11 @@ static func is_firefly(tower) -> bool:
 static func is_other_family(tower) -> bool:
 	return tower is Tower and tower.tower_data != null and tower.tower_data.can_attack and tower.tower_data.line != LINE \
 		and tower.tower_data.line != "wall" and tower.tower_data.get_id() != "sprout"
+
+# Any other attacking Warden: not this family, not a wall; Sprouts count.
+static func is_other(tower) -> bool:
+	return tower is Tower and tower.tower_data != null and tower.tower_data.can_attack and tower.tower_data.line != LINE \
+		and tower.tower_data.line != "wall"
 
 static func is_heavy(tower) -> bool:
 	if not (tower is Tower) or tower.attack_data == null:
@@ -180,6 +221,13 @@ func _process(delta: float) -> void:
 		if _poll_in <= 0.0:
 			_poll_in = POLL
 			_poll()
+	if not _flashes.is_empty():
+		_flash_over()
+	if not _brush.is_empty() and not get_tree().paused:
+		_brush_in -= delta
+		if _brush_in <= 0.0:
+			_brush_in = BRUSH_EVERY
+			_brush_fire()
 	_flush()
 
 func _towers() -> Array:
@@ -212,7 +260,6 @@ func _rebuild() -> void:
 	var allowed := jars.size() if _rule(LIT_SPROUTS) else 0
 	while sprouts.size() > allowed:
 		sprouts.pop_back().remove_meta(LIT_SPROUT_META)  # One glowing Sprout per Firefly Warden: a sold Jar frees the newest pick
-	var reach := GLOW_CELLS * _cell()
 	var touch := SPROUT_TOUCH * _cell()
 	var parent: Array = []  # Union-find over the Jars: glows sharing a path cell are one light
 	for i in jars.size():
@@ -221,6 +268,7 @@ func _rebuild() -> void:
 	var path: Dictionary = dream_state._path_index
 	for i in jars.size():
 		var mine: Array = []
+		var reach := glow_reach(jars[i])
 		for cell in path:
 			if jars[i].global_position.distance_to(Tower.MAP_GRID.calculate_map_position(cell)) <= reach:
 				mine.append(cell)
@@ -272,10 +320,14 @@ func _note(cell: Vector2, light: int, jar: bool) -> void:
 		entry.lights.append(light)
 	_glow[cell] = entry
 
+# How far a Firefly Warden's glow reaches: its attack range as it is now (ranks, forms and cards that add range grow
+# it; owner 2026-10-14: "it doesn't grow when range grows"), never less than GLOW_CELLS.
+func glow_reach(tower) -> float:
+	return maxf(GLOW_CELLS * _cell(), tower.get_range_pixels())
+
 # The sources lighting `at` (by distance, so flyers count).
 func sources_at(at: Vector2) -> Array:
 	var out: Array = []
-	var reach := GLOW_CELLS * _cell()
 	var touch := SPROUT_TOUCH * _cell()
 	for source in _sources:
 		var tower = source.tower
@@ -284,7 +336,7 @@ func sources_at(at: Vector2) -> Array:
 		if source.sprout:
 			if absf(at.x - tower.global_position.x) <= touch and absf(at.y - tower.global_position.y) <= touch:
 				out.append(source)
-		elif tower.global_position.distance_to(at) <= reach:
+		elif tower.global_position.distance_to(at) <= glow_reach(tower):
 			out.append(source)
 	return out
 
@@ -422,11 +474,12 @@ func _next_event() -> int:
 	return _event
 
 func _on_damage(event) -> void:
-	if dream_state != null and is_instance_valid(event.enemy) and event.tag != FORK_TAG and _rule(CHAIN_OF_LANTERNS) \
-			and (event.kind == &"reaction" or event.tag == &"toll") and _lit_on():
-		_chain_more(event)
-	if dream_state == null or event.tag == FORK_TAG or event.kind == &"reaction" or not is_instance_valid(event.enemy):
-		return  # A fork triggers nothing; a Reaction's own lightning gets nothing added
+	if dream_state == null or event.tag == FORK_TAG or not is_instance_valid(event.enemy):
+		return  # A fork triggers nothing
+	if event.kind == &"reaction":
+		if _rule(CHAIN_OF_LANTERNS) and event.tag in CHAIN_REACTIONS:
+			_chain_more(event)  # A Reaction that spends Charged (by its tag: Thunderclap and Ignite remove Charged first)
+		return  # A Reaction's own lightning gets nothing else added
 	var on := _lit_on()
 	var lent := _lent_on()
 	var guiding := _rule(GUIDING_LIGHT)
@@ -444,22 +497,31 @@ func _on_damage(event) -> void:
 	var dispel: bool = enemy.health <= 0
 	var is_bolt: bool = event.kind == &"bolt"
 	var is_hit: bool = event.kind == &"hit" and event.tag == &""
+	# One clock for every heavy rule on this event (a second call would read the clock this one just set)
+	_heavy_now = is_hit and (is_heavy(source) or source.tower_data.get_id() == "sprout") \
+		and (_rule(SPOTLIGHT) or _rule(HAMMERFALL) or _rule(THUNDERSTRUCK)) and _new_heavy_attack(source)
 	if on:
 		_class_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 	if lent:
 		_lent_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 
-# Chain of Lanterns on a Toll or a Reaction (a bolt goes through _class_rules): half of it jumps to the 2 nearest Lit.
+# Chain of Lanterns on a Reaction that spends Charged: half of it jumps to the 2 nearest other nightmares near it.
 func _chain_more(event) -> void:
 	var enemy = event.enemy
-	var sources := sources_at(enemy.global_position)
-	if sources.is_empty():
-		return
 	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
-	var cap := brightness(source, sources) if source != null else _base_jar_dps * BRIGHTNESS_SECONDS
 	var id := _next_event()
-	for target in nearest_lit(enemy.global_position, [enemy], CHAIN_TARGETS):
-		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, cap, {"final": true})
+	for target in _near_enemies(enemy.global_position, [enemy]).slice(0, CHAIN_TARGETS):
+		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, _lent_cap(source, null), {"final": true})
+
+# The most a lent card's jump may deal (never "no cap" for another family: brightness() is never asked with no light).
+# A Firefly Warden's own jumps stay uncapped, as the Calling's are; another family's are capped at 3 s of the Firefly
+# Warden `jar` (the one near it, or the one that Charged the nightmare), or of a base Firefly Jar when there is none.
+func _lent_cap(source, jar) -> float:
+	if is_instance_valid(source) and is_firefly(source):
+		return INF
+	if is_instance_valid(jar) and is_firefly(jar):
+		return jar.get_damage() * jar.get_attacks_per_second() * BRIGHTNESS_SECONDS
+	return _base_jar_dps * BRIGHTNESS_SECONDS
 
 # Guiding Light (owner ruling 2026-10-12, dream_council_review.md 21): a hit on a fully Exposed nightmare forks to the
 # nightmares within 1 cell of it (II: 2 cells), for half. It no longer spreads Exposed stacks.
@@ -486,11 +548,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 	if sources.is_empty():
 		return  # Class cards follow the light: the nightmare that was hit must be Lit
 	var lights := lights_of(sources)
-	var cap := brightness(source, sources)
-	var heavy := false
-	if is_hit and (is_heavy(source) or (source.tower_data.get_id() == "sprout" and _rule(HAMMERFALL))):
-		heavy = _new_heavy_attack(source)  # One fork per attack, from the first nightmare it hits
-	var knock: bool = heavy and is_heavy(source)  # Knock-On: real heavy Wardens only, never a Sprout
+	var cap := brightness(source, sources)  # Never an empty list here: the nightmare is Lit
 	if dispel:
 		var size := _hit_size(source, is_hit, is_bolt)
 		var jars := jars_at(sources)
@@ -499,11 +557,9 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 		var targets := nearest_lit(at, [enemy], count)
 		if class_on():  # The Calling's own payoff: the first pick only
 			for target in targets:
-				_fork(id, source, at, target, size * CALLING_SHARE, cap, {"heavy": knock})
+				_fork(id, source, at, target, size * CALLING_SHARE, cap)
 			if targets.is_empty():
 				_wait(lights, source, size * CALLING_SHARE, cap)
-		if _rule(NOTHING_WASTED) and (is_hit or is_bolt) and event.overkill > 0.0 and not targets.is_empty():
-			_fork(id, source, at, targets[0], minf(event.overkill, event.amount), cap, {"heavy": knock})  # The larger of the two lands
 		if _rule(SIGNAL_FIRES):
 			_signal(id, source, at, enemy, lights, size * SIGNAL_SHARE, cap)
 		if _rule(LAST_SPARK) and enemy.statuses.has(EnemyStatuses.STATIC):
@@ -512,9 +568,6 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 			if charge > 0.0 and not spark_to.is_empty():
 				_fork(_next_event(), enemy.statuses.source(EnemyStatuses.STATIC), at, spark_to[0], charge, INF, {"final": true})
 	if is_bolt:
-		if _rule(CHAIN_OF_LANTERNS):
-			for target in nearest_lit(at, [enemy], CHAIN_TARGETS):
-				_fork(id, source, at, target, event.base * CHAIN_SHARE, cap)
 		if _rule(LANTERNWAY):
 			var step := _step_of(enemy)
 			var seen := lights.duplicate()
@@ -530,11 +583,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 					_fork(id, source, from, front, event.base * LANTERNWAY_SHARE, cap)
 					from = front.global_position
 	if is_hit:
-		if heavy and _rule(HAMMERFALL):
-			var targets := nearest_lit(at, [enemy])
-			if not targets.is_empty():
-				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, cap, {"heavy": knock})
-		if heavy and is_heavy(source) and _rule(SPOTLIGHT):
+		if _heavy_now and is_heavy(source) and _rule(SPOTLIGHT):  # (Spotlight: retired 2026-10-14; an old save keeps it)
 			for light in lights:
 				if front_in(light) != enemy:
 					continue
@@ -555,7 +604,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 				enemy.set_meta(AMBUSH_META, ambushed)
 				var targets := nearest_lit(at, [enemy])
 				if not targets.is_empty():
-					_fork(id, source, at, targets[0], event.base * AMBUSH_SHARE, cap, {"heavy": knock})
+					_fork(id, source, at, targets[0], event.base * AMBUSH_SHARE, cap)
 
 # One fork per heavy attack: the first hit after most of its attack time has passed starts a new one.
 func _new_heavy_attack(source) -> bool:
@@ -620,12 +669,42 @@ func _near_enemies(at: Vector2, skip: Array) -> Array:
 	return found
 
 func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_bolt: bool) -> void:
-	if is_bolt:
-		return  # Bolts never fork from a lent card
 	var at: Vector2 = enemy.global_position
 	var now := _now()
-	if _rule(LENT_CROSSFIRE) and is_hit:
-		_crossfire(id, event, source, enemy, at, now)
+	if is_bolt:
+		# Chain of Lanterns: a bolt also jumps half to the 2 nearest other nightmares near it
+		if _rule(CHAIN_OF_LANTERNS):
+			var cap_bolt := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
+			for target in _near_enemies(at, [enemy]).slice(0, CHAIN_TARGETS):
+				_fork(id, source, at, target, event.base * CHAIN_SHARE, cap_bolt)
+		return
+	if is_firefly(source) and event.kind == &"hit" and _rule(SPARKS_FLY):
+		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Sparks Fly: hit by a Firefly Warden (any form) just now
+	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and enemy.statuses.has(EnemyStatuses.STATIC):
+		_brush_add(event, source, enemy)
+	if is_hit:
+		if _rule(LENT_CROSSFIRE):
+			_crossfire(id, event, source, enemy, at, now)
+		if _rule(NOTHING_WASTED):
+			_nothing_wasted(id, event, source, enemy, at)
+		if _rule(FLASHOVER):
+			_flash_note(event, source, enemy)
+		if _rule(SPARKS_FLY) and is_other(source):
+			_sparks_fly(id, event, source, enemy, at, now)
+	if _heavy_now:
+		# Hammerfall: another family's heavy Warden, or a Sprout, near a Firefly Warden jumps half of each attack
+		if _rule(HAMMERFALL) and (is_other_family(source) and is_heavy(source) or source.tower_data.get_id() == "sprout"):
+			var jar = firefly_near(source)
+			var targets := _near_enemies(at, [enemy]) if jar != null else []
+			if not targets.is_empty():
+				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": is_heavy(source)})
+		# Thunderstruck: another family's heavy Warden's hit on a Charged nightmare fans a quarter to every Charged one near it
+		if _rule(THUNDERSTRUCK) and is_other_family(source) and is_heavy(source) and enemy.statuses.has(EnemyStatuses.STATIC):
+			var cap_fan := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
+			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.has(EnemyStatuses.STATIC)).slice(0, THUNDER_MAX)
+			for other in fan:  # The cap covers the whole fan
+				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true})
+	# Live Wire and Like to Like: retired (2026-10-13 / earlier); an old save keeps them
 	if not is_other_family(source):
 		return
 	var jar = firefly_near(source)
@@ -650,6 +729,108 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			if other.statuses.has(EnemyStatuses.STATIC):
 				_fork(id, source, at, other, amount * LIKE_SHARE, cap)
 				break
+
+# Nothing Wasted: a hit a nightmare resists, from a Firefly Warden or a Warden near one, jumps the damage resisted to the
+# nearest nightmare near it that doesn't resist that family.
+func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
+	var line: String = source.tower_data.line
+	if enemy.enemy_data == null or not enemy.enemy_data.resists.has(line) or event.family_multiplier >= 1.0:
+		return
+	var jar = source if is_firefly(source) else firefly_near(source)
+	if jar == null:
+		return
+	var resisted: float = event.base * (1.0 - event.family_multiplier)
+	for other in _near_enemies(at, [enemy]):
+		if other.enemy_data != null and not other.enemy_data.resists.has(line):
+			_fork(id, source, at, other, resisted, _lent_cap(source, jar))
+			return
+
+# Sparks Fly: every 3rd hit a Warden (not a Firefly Warden; Sprouts count) lands on a nightmare a Firefly Warden hit in
+# the last 2 s jumps on at half. Counted per Warden and nightmare; an area attack counts once.
+func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float) -> void:
+	var lit: Array = enemy.get_meta(FF_HIT_META, [])
+	if lit.is_empty() or now - float(lit[0]) > SPARKS_WINDOW:
+		return
+	if int(source.get_meta(SPARKS_FRAME_META, -1)) == Engine.get_process_frames():
+		return
+	source.set_meta(SPARKS_FRAME_META, Engine.get_process_frames())
+	var counts: Dictionary = enemy.get_meta(SPARKS_META, {})
+	var n := int(counts.get(source.get_instance_id(), 0)) + 1
+	counts[source.get_instance_id()] = n % SPARKS_EVERY_HIT
+	enemy.set_meta(SPARKS_META, counts)
+	if n < SPARKS_EVERY_HIT:
+		return
+	var targets := _near_enemies(at, [enemy])
+	if not targets.is_empty():
+		_fork(id, source, at, targets[0], event.base * SPARKS_SHARE, _lent_cap(source, lit[1].get_ref()))
+
+# Flashover: one attack's hits are gathered by Warden and frame; the next frame, an area attack that hit 2 or more
+# jumps half (of the largest hit) to the nearest nightmare it missed. Another family's Warden near a Firefly Warden;
+# Sparkler and Starburst near another Firefly Warden.
+func _flash_note(event, source, enemy) -> void:
+	var sid: int = source.get_instance_id()
+	var frame := Engine.get_process_frames()
+	var entry: Dictionary = _flashes.get(sid, {})
+	if entry.is_empty() or int(entry.frame) != frame:
+		if not entry.is_empty():
+			return  # The last attack's hits are still waiting (struck next frame)
+		if is_firefly(source) and not SPARKLERS.has(source.tower_data.get_id()):
+			return
+		if not is_other(source) and not is_firefly(source):
+			return
+		entry = {"frame": frame, "source": weakref(source), "hits": [], "base": 0.0}
+		_flashes[sid] = entry
+	entry.hits.append(weakref(enemy))
+	entry.base = maxf(float(entry.base), event.base)
+
+func _flash_over() -> void:
+	var frame := Engine.get_process_frames()
+	for sid in _flashes.keys():
+		var entry: Dictionary = _flashes[sid]
+		if int(entry.frame) >= frame:
+			continue
+		_flashes.erase(sid)
+		var source = entry.source.get_ref()
+		if not is_instance_valid(source) or entry.hits.size() < FLASHOVER_MIN:
+			continue
+		var jar = firefly_near(source)
+		if jar == null:
+			continue
+		var hit: Array = []
+		var centre := Vector2.ZERO
+		for ref in entry.hits:
+			var e = ref.get_ref()
+			if is_instance_valid(e):
+				hit.append(e)
+				centre += e.global_position
+		if hit.is_empty():
+			continue
+		centre /= hit.size()
+		var targets := _near_enemies(centre, hit)
+		if not targets.is_empty():
+			_fork(_next_event(), source, centre, targets[0], float(entry.base) * FLASHOVER_SHARE, _lent_cap(source, jar), {"final": true})
+
+# Brushfire: a Charged nightmare's damage over time this second, by its source.
+func _brush_add(event, source, enemy) -> void:
+	var key: int = enemy.get_instance_id()
+	var entry: Dictionary = _brush.get(key, {"enemy": weakref(enemy), "source": weakref(source), "amount": 0.0})
+	entry.amount = float(entry.amount) + event.amount
+	_brush[key] = entry
+
+func _brush_fire() -> void:
+	var entries := _brush.values()
+	_brush.clear()
+	for entry in entries:
+		var enemy = entry.enemy.get_ref()
+		var source = entry.source.get_ref()
+		if not _living(enemy) or not is_instance_valid(source) or not enemy.statuses.has(EnemyStatuses.STATIC):
+			continue
+		var targets := _near_enemies(enemy.global_position, [enemy])
+		if not targets.is_empty():
+			var cap := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
+			if is_firefly(source):
+				cap = _lent_cap(null, source)  # Damage over time is never a Firefly hit: always capped
+			_fork(_next_event(), source, enemy.global_position, targets[0], float(entry.amount) * BRUSH_SHARE, cap, {"final": true})
 
 func _new_like_hit(source, now: float) -> bool:
 	if int(source.get_meta(&"ff_like_frame", -1)) == Engine.get_process_frames():
@@ -715,6 +896,14 @@ func _strike(request: Dictionary) -> void:
 		return
 	var source = request.source if is_instance_valid(request.source) else null
 	var amount: float = request.amount
+	if _rule(GATHERING_STORM):
+		# Gathering Storm: each jump a nightmare takes makes the next one on it 25% stronger, up to double; re-capped, so
+		# another family's jump still never passes its brightness
+		var now := _now()
+		var gather: Array = target.get_meta(GATHER_META, [0, -INF])
+		var taken := int(gather[0]) if now - float(gather[1]) <= GATHER_RESET else 0
+		amount = minf(amount * minf(1.0 + GATHER_STEP * taken, GATHER_MAX), float(request.cap))
+		target.set_meta(GATHER_META, [taken + 1, now])
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position
@@ -724,7 +913,7 @@ func _strike(request: Dictionary) -> void:
 	target.take_damage(amount, source.tower_data.line if source is Tower else LINE, false, false, source, FORK_TAG)
 	# A nightmare dispelled by a fork gives no fork. Knock-On is the one exception: a heavy Warden's fork, one more hop.
 	if request.get("heavy", false) and not request.get("final", false) and _rule(KNOCK_ON) and not _living(target):
-		var next := nearest_lit(at, [target])
+		var next := _near_enemies(at, [target]).slice(0, 1)
 		if not next.is_empty():
 			var hop := request.duplicate()
 			hop.from = at
@@ -740,6 +929,8 @@ func lit_sprout_blocker(sprout) -> String:
 		return "needs Fireflies in the Grass"
 	if not (sprout is Tower) or sprout.tower_data.get_id() != "sprout":
 		return "only a Sprout can glow"
+	if not _resting():
+		return "choose at a rest"  # Never mid-drift: a light moved to chase a pack (dream_council_review.md 26, fix 12)
 	if sprout.get_meta(LIT_SPROUT_META, false):
 		return ""
 	var jars := 0
@@ -747,7 +938,7 @@ func lit_sprout_blocker(sprout) -> String:
 	for tower in _towers():
 		if is_firefly(tower):
 			jars += 1
-			if tower.global_position.distance_to(sprout.global_position) <= GLOW_CELLS * _cell():
+			if tower.global_position.distance_to(sprout.global_position) <= glow_reach(tower):
 				return "already inside a Firefly Warden's glow"
 		elif tower.get_meta(LIT_SPROUT_META, false):
 			lit += 1
@@ -755,9 +946,14 @@ func lit_sprout_blocker(sprout) -> String:
 		return "one glowing Sprout for each Firefly Warden"
 	return ""
 
+func _resting() -> bool:
+	return dream_state == null or dream_state.get("drift_director") == null or dream_state.drift_director.resting
+
 func set_lit_sprout(sprout, on: bool) -> bool:
 	if on and lit_sprout_blocker(sprout) != "":
 		return false
+	if not on and not _resting():
+		return false  # Chosen at a rest only, either way
 	if on:
 		sprout.set_meta(LIT_SPROUT_META, true)
 	elif sprout.has_meta(LIT_SPROUT_META):
@@ -794,9 +990,9 @@ func load_save(cells: Array) -> void:
 # GLOW_CAP: nowhere is brighter than one lit path's centre, however the maze winds. The bands hug the path's ribbon
 # (~40 px) with a few pixels of soft edge.
 const GLOW_BANDS: Array[float] = [52.0, 40.0, 26.0]  # px wide, widest first
-const GLOW_SHARES: Array[float] = [0.2, 0.42, 0.65]  # Each band's share of GLOW_CAP: a lit path's centre adds 0.65 × the cap
-const GOLD_SHARES: Array[float] = [0.3, 0.65, 1.0]  # Gold path: the full cap at its centre
-const GLOW_CAP := 0.34  # The most light the glow ever adds (the group's alpha)
+const GLOW_SHARES: Array[float] = [0.25, 0.5, 0.75]  # Each band's share of GLOW_CAP: a lit path's centre adds 0.75 × the cap
+const GOLD_SHARES: Array[float] = [0.35, 0.7, 1.0]  # Gold path: the full cap at its centre
+const GLOW_CAP := 0.55  # The most light the glow ever adds (the group's alpha). Owner 2026-10-14 "too faint": was 0.34 (a lit centre ~0.22, now ~0.41)
 const GLOW_SHADER := "shader_type canvas_item;\nrender_mode unshaded, blend_add;\nuniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;\nvoid fragment() {\n\tvec4 c = textureLod(screen_texture, SCREEN_UV, 0.0);\n\tif (c.a > 0.0001) {\n\t\tc.rgb /= c.a;\n\t}\n\tCOLOR *= c;\n}\n"
 var _glow_lines: Array[Line2D] = []
 var _glow_group: CanvasGroup  # Every glow line, flattened, then added to the map once (kept on this node, never static)

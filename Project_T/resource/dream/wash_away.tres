@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "wash_away"
 display_name = "Wash Away"
-description = "A {damp} nightmare in {water} loses half its resistance to every Warden {touching} that {water}. Not bosses."
-tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: any Warden {touching} the {water}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "A {damp} nightmare loses half its resistance to Wardens {near} a {warden:dewdrop}. Not bosses."
+tip = "Resistance: the grey puff, half damage from that family; it becomes three quarters. Works for: any Warden near a {warden:dewdrop}. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])

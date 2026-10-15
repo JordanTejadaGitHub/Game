@@ -360,10 +360,19 @@ func class_stacks(tower: Tower, enemy: Node2D, status: StringName, stacks: int) 
 		return spore_print.own_stacks(tower, enemy, status, stacks)
 	return stacks
 
-# A Warden added its own status to a nightmare (Wake Ripple carries it along the water).
-func class_status(tower: Tower, enemy: Node2D, status: StringName) -> void:
-	if puddles != null and puddles.active():
-		puddles.status_applied(tower, enemy, status)
+# A Warden's own status application was accepted on a nightmare (Tower._apply_one_status; never for carried or free
+# applications): Caught Wading, Nod Off, Refrain, Second Verse. `stacks`: what it added.
+func class_status(tower: Tower, enemy: Node2D, status: StringName, stacks: int = 1) -> void:
+	for node in [spore_print, puddles, keeping_time]:
+		if node != null and node.active():
+			node.status_applied(tower, enemy, status, stacks)
+
+# Waterlogged (Enemy.apply_status asks, so every application counts, carried ones too): how long `status` lasts on
+# `enemy` from `source` (`duration` 0 = the status's default).
+func class_duration(source: Node, enemy: Node2D, status: StringName, duration: float) -> float:
+	if puddles == null or not has_rule(&"waterlogged") or not puddles.active():
+		return duration
+	return puddles.status_duration(source, enemy, status, duration)
 
 # What the classes multiply one damage event by (Wash Away, Rude Awakening; 1.0 with neither).
 func class_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
@@ -1921,6 +1930,7 @@ func is_wager(card: UpgradeData) -> bool:
 func _batch_drift_cleared(number: int, _bonus: int, _perfect: bool) -> void:
 	batch.drift_cleared.call_deferred(self, number)  # Deferred: a last nightmare's leaf is lost in the same signal
 
+
 func _batch_leaves_changed(_leaves: int, _max: int) -> void:
 	batch.leaves_changed(self)
 
@@ -2488,6 +2498,59 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 const CLASS_OFFER_CARDS := 1  # The owner, 2026-10-13: the drift 5 Dream holds one class card; its other slots are the normal draw
 const CLASS_OFFER_UNTIL_DRIFT := 5  # The Dream at drift 5's rest (and any before it) draws from class cards only
 
+# Cards that do nothing until other cards are held (owner 2026-10-14: "was offered a card that needed more cards"): the
+# card id -> the rule ids, any one of which it needs. Gathering Storm also works with the Firefly Calling's own jumps.
+const CARD_NEEDS := {
+	"knock_on": [&"hammerfall", &"thunderstruck"],  # Heavy jumps
+	"gathering_storm": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"lent_crossfire",
+		&"thunderstruck", &"brushfire", &"guiding_light"],  # Any jump
+}
+
+func card_needs_met(card: UpgradeData) -> bool:
+	if not CARD_NEEDS.has(card.id):
+		return true
+	if card.id == "gathering_storm" and calling == "firefly_jar":
+		return true  # Lantern Light jumps on every dispel
+	for id in CARD_NEEDS[card.id]:
+		if has_rule(id):
+			return true
+	return false
+
+var _new_family := ""  # The family taken at the last family pick ("" = a Blessing or none) and the drift it came at
+var _new_family_drift := -1
+
+# The boss rest's Dream shows the family just chosen (owner 2026-10-14, dream_council_review.md 25; "the secondary family
+# coming in should have a guaranteed spot" at 25, 50 and 75): one of its lent cards, drawn evenly, any rarity. None
+# only when no family was taken at this boss's pick, it is the Calling's family, or every one of its cards is taken.
+# The guarantee skips the board, discovery and "grown" gates of can_offer: just after the pick no Warden of the new
+# family stands on the map yet, so those gates would turn every one of its cards away.
+func _new_family_lent_card(drift_number: int, act: int, offer: Array[UpgradeData]) -> UpgradeData:
+	if _new_family == "" or _new_family == calling or _new_family_drift != drift_number:
+		return null
+	var lent: Array[UpgradeData] = []
+	var any: Array[UpgradeData] = []  # Fallback: any other card of that family (every lent card taken or banished)
+	for card in pool:
+		if card.calling != "" or not card.requires.has(_new_family) or offer.has(card) or not _new_family_can_show(card, act):
+			continue
+		if card.tags.has(LENT_TAG):
+			lent.append(card)
+		elif card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION:
+			any.append(card)
+	var from := lent if not lent.is_empty() else any
+	if from.is_empty():
+		return null
+	return from[_rng.randi_range(0, from.size() - 1)]
+
+# The guaranteed slot's own check: the card is live, not banished, not used up, and its act has come.
+func _new_family_can_show(card: UpgradeData, act: int) -> bool:
+	if card.retired or _banished.has(card.id) or is_excluded(card) or act < card.min_act:
+		return false
+	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
+		return false
+	if card.is_deepened() and not has_card(card.deepens) or not card_needs_met(card):
+		return false  # Never a card that needs other cards you don't hold (owner 2026-10-14, a drift 25 Firefly offer)
+	return card.in_start_pool or grove_cards.has(card.id) or card.tags.has(LENT_TAG)
+
 func _class_cards_of(cards: Array[UpgradeData], rarity: int) -> Array[UpgradeData]:
 	var out: Array[UpgradeData] = []
 	for card in cards:
@@ -2532,6 +2595,11 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 			var drawn: UpgradeData = class_cards[_rng.randi_range(0, class_cards.size() - 1)]
 			offer.append(drawn)
 			class_cards.erase(drawn)
+	# A boss rest after a new family: one slot is that family's lent card (it counts toward the two family cards)
+	if boss_rest and offer.size() < size:
+		var lent_card := _new_family_lent_card(drift_number, act, offer)
+		if lent_card != null:
+			offer.append(lent_card)
 	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
 		waking_legendaries = false
 		size = maxi(size, WAKING_LEGENDARIES)
@@ -2616,6 +2684,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # Branches and final forms are unlocked with Dreamlight now
 	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
 		return false
+	if not card_needs_met(card):
+		return false  # A card that works only with other cards (Knock-On, Gathering Storm) waits for them
 	if card.is_deepened() and not has_card(card.deepens):
 		return false
 	if card.tags.has("clearing") and not unlocks_clearing(card) and not can_clear():
@@ -3154,6 +3224,7 @@ func to_save() -> Dictionary:
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"calling": calling,
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
+		"new_family": [_new_family, _new_family_drift],  # The boss rest's guaranteed card survives a save between the pick and its Dream
 		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
@@ -3169,6 +3240,10 @@ func load_save(data: Dictionary) -> void:
 	calling = String(data.get("calling", ""))
 	if firefly_lights != null:
 		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
+	var new_family: Array = data.get("new_family", ["", -1])
+	if new_family.size() == 2:
+		_new_family = String(new_family[0])
+		_new_family_drift = int(new_family[1])
 	if spore_print != null:
 		spore_print.set("saved", data.get("mushrooms", []))  # Applied once the route and the Wardens are back
 	waking_legendaries = bool(data.get("waking_legendaries", false))
@@ -3598,6 +3673,8 @@ func _combo_families(card: UpgradeData) -> Dictionary:
 # A family pick was made (FamilyPickScreen): the families it offered but the player didn't take are
 # "declined" until the next pick (their half-dreamed cards ×0.3). `chosen` = "" for a Blessing.
 func note_family_pick(offered: Array, chosen: String) -> void:
+	_new_family = chosen
+	_new_family_drift = drift_director.drifts_started if drift_director != null else -1
 	_declined_families.clear()
 	for id in offered:
 		if id != chosen:

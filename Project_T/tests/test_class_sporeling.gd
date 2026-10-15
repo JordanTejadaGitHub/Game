@@ -9,6 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.spore_print)
 const CELL := 64.0
+const LENT := ["mycelium", "overnight", "pass_it_round", "second_helping", "narrows", "seeping_in", "mixed_company",
+	"breathe_it_in", "sitting_ducks", "hemmed_in"]
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -80,9 +82,9 @@ func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("sporeling") == "Spore Print", "Sporeling's Calling is Spore Print")
 	dreams.calling = "firefly_jar"
-	_check_pool("sporeling", ["mycelium", "overnight", "pass_it_round", "second_helping", "narrows", "seeping_in", "mixed_company"], 3)
+	_check_pool("sporeling", LENT, 5)  # 5 class-only and 10 lent (owner 2026-10-14)
 	dreams.calling = "sporeling"
-	_check_pool("sporeling", ["mycelium", "overnight", "pass_it_round", "second_helping", "narrows", "seeping_in", "mixed_company"], 3)
+	_check_pool("sporeling", LENT, 5)
 	await _frames(3)
 	var route: Array = klass._route_px
 	_check(route.size() > 12, "the class node knows the route")
@@ -157,6 +159,85 @@ func _run() -> void:
 	e.apply_status(EnemyStatuses.STATIC, 1, 5.0, 1.0, 0, "light", second)
 	e.statuses.add_quiet(EnemyStatuses.STATIC, 99)
 	_check(e.statuses.has(EnemyStatuses.STATIC) and e.statuses.stacks(EnemyStatuses.STATIC) == e.statuses.get_max_stacks(EnemyStatuses.STATIC) - 1, "Charged stops one short of a bolt")
+	await _clean()
+
+	# A later owner (owner 2026-10-14, dream_council_review.md 25-26): lent cards never give mushrooms or doses.
+	dreams.calling = "firefly_jar"
+	dreams.stacks.clear()
+	for id in LENT:
+		_take(id)
+	klass.mushrooms.clear()
+	var q: Vector2 = route[8]
+	var s1 := _plant("sporeling", q + Vector2(CELL, 0))
+	var killer := _plant("sprout", q + Vector2(CELL * 4, CELL * 4))
+	await _frames(3)
+	_check(klass.active() and not klass.place_on(), "a later owner holding every lent card: the node wakes, the setup stays off")
+	var g = _spawn(q)
+	g.apply_status(EnemyStatuses.SPORED, 1, 5.0, 1.0, 0, "spore", s1)
+	g.health = 1
+	killer.hit(g, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(klass.mushrooms.is_empty() and klass._regrow.is_empty(), "...a Poisoned dispel leaves no mushroom on a later start")
+	await _clean()
+
+	# Each stack card on its own (only that card held), on a later start.
+	var far := Vector2(CELL * 30, CELL * 30)  # Away from the route: nothing else touches these nightmares
+	dreams.stacks.clear()
+	_take("breathe_it_in")
+	var b1 := _plant("sporeling", far)
+	var b2 := _plant("sporeling", far + Vector2(CELL, 0))
+	var h = _spawn(far + Vector2(CELL * 0.5, CELL))
+	b1._apply_one_status(h, EnemyStatuses.SPORED, 1, b1.get_damage())
+	_check(h.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.BREATHE_EXTRA, "Breathe It In: inside another spore Warden's range, a 1-stack hit lands %d" % (1 + klass.BREATHE_EXTRA))
+	b1._apply_one_status(h, EnemyStatuses.SPORED, 1, b1.get_damage())
+	_check(h.statuses.stacks(EnemyStatuses.SPORED) == 2 + klass.BREATHE_EXTRA, "...once a second per Warden")
+	await _clean()
+
+	dreams.stacks.clear()
+	_take("hemmed_in")
+	var left_spore := _plant("sporeling", far)
+	var drop := _plant("dewdrop", far + Vector2(CELL, 0))
+	var right_spore := _plant("sporeling", far + Vector2(CELL * 2, 0))
+	var k = _spawn(far + Vector2(CELL, CELL))
+	drop._apply_one_status(k, EnemyStatuses.DAMP, 1, drop.get_damage())
+	_check(k.statuses.stacks(EnemyStatuses.DAMP) == 2, "Hemmed In: a Dewdrop touching two spore Wardens doubles its Soaked (%d)" % k.statuses.stacks(EnemyStatuses.DAMP))
+	right_spore.queue_free()
+	await process_frame
+	var k2 = _spawn(far + Vector2(CELL, CELL))
+	drop._apply_one_status(k2, EnemyStatuses.DAMP, 1, drop.get_damage())
+	_check(k2.statuses.stacks(EnemyStatuses.DAMP) == 1, "...touching only one: nothing extra")
+	left_spore.queue_free()
+	await _clean()
+
+	dreams.stacks.clear()
+	_take("sitting_ducks")
+	var duck_spore := _plant("sporeling", far)
+	var duck_drop := _plant("dewdrop", far + Vector2(CELL * 4, 0))
+	var held = _spawn(far + Vector2(CELL, CELL))
+	var walking = _spawn(far + Vector2(CELL, CELL))
+	held.apply_status(EnemyStatuses.HELD, 1, 3.0, 1.0, 0, "root", null)
+	duck_drop._apply_one_status(held, EnemyStatuses.DAMP, 1, duck_drop.get_damage())
+	duck_drop.remove_meta(klass.DUCKS_META)
+	duck_drop._apply_one_status(walking, EnemyStatuses.DAMP, 1, duck_drop.get_damage())
+	_check(held.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.DUCKS_EXTRA and walking.statuses.stacks(EnemyStatuses.DAMP) == 1,
+		"Sitting Ducks: a held nightmare near a spore Warden takes %d, a walking one 1" % (1 + klass.DUCKS_EXTRA))
+	_check(duck_spore != null, "(the spore Warden stands near)")
+	await _clean()
+
+	dreams.stacks.clear()
+	_take("second_helping")
+	var helper_spore := _plant("sporeling", far)
+	var partner := _plant("dewdrop", far + Vector2(CELL, 0))
+	var m = _spawn(far + Vector2(0, CELL))
+	await _frames(2)
+	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
+	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 1, "Second Helping: nothing before the spore Warden's first hit")
+	helper_spore.hit(m, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
+	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.HELPING_STACKS, "...after it, the partner's next hit adds %d" % klass.HELPING_STACKS)
+	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
+	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 2 + klass.HELPING_STACKS, "...once per nightmare for that spore Warden")
 	await _clean()
 	print("test_class_sporeling: %d failures" % failures)
 	quit(failures)

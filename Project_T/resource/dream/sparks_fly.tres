@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sparks_fly"
+display_name = "Sparks Fly"
+description = "Every 3rd hit a Warden lands on a nightmare a Firefly Warden hit in the last 2 s {jumps} to the nearest other nightmare at half damage. Sprouts count; Firefly Wardens don't."
+tip = "Counted for each Warden on each nightmare; an area attack counts once. Any Firefly form's hit counts. Works for: quick Wardens of any family beside your Firefly Wardens. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["storm", "lent"])
+max_stacks = 1
+rule_id = &"sparks_fly"
+requires = Array[String](["firefly_jar"])

@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "chain_of_lanterns"
 display_name = "Chain of Lanterns"
-description = "A bolt, {toll} or Reaction on a {lit} nightmare also {jumps} that hit to the 2 nearest {lit} nightmares, at half damage."
+description = "A bolt, or a Reaction that spends {static}, also {jumps} half of it to the 2 nearest other nightmares {near} it."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"chain_of_lanterns"
 requires = Array[String](["firefly_jar"])
-tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."
+tip = "Bolts come from {static}. Reactions that spend it: Thunderclap, Ignite, Lightning Rod. {static} comes from Firefly Jars, Jarlink, Lightning Fence, Sparkler, Starburst and the Storm forms (not Lanternmoth, Beacon or the Prism forms), and from Chime Stone and Lullaby Bell. Works for: Charged makers and Reactions. Safe."

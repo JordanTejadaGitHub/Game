@@ -185,11 +185,12 @@ func _make_card(card: UpgradeData) -> Button:
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += " · " + _roman(stack_count + 1)
-	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
-	if kind != "":
-		rarity.text += " · " + kind  # "Rare · Calling: Spore Print" / "Common · Sporeling family" (Roguelite Code)
 	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
+	# Wraps instead of widening the card (owner screenshot 2026-10-14: a long header pushed the body text past the edge)
+	rarity.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rarity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rarity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var gem_row := HBoxContainer.new()
 	gem_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem_row.add_theme_constant_override("separation", 8)
@@ -205,6 +206,16 @@ func _make_card(card: UpgradeData) -> Button:
 	# No build-defining mark on the card (user 2026-10-07: "remove the build-around-it icon"); the tag stays in the data
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
+	# "Calling: Spore Print" / "Sporeling family" on its own line under the rarity, wrapping at the card's width
+	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
+	if kind != "":
+		var kind_label := Label.new()
+		kind_label.name = "KindLine"
+		kind_label.text = kind
+		kind_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		kind_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.caps(kind_label, 15, UpgradeData.rarity_color(card.rarity))
+		box.add_child(kind_label)
 	var name_label := Label.new()
 	name_label.text = card.display_name
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

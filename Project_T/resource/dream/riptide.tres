@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "riptide"
 display_name = "Riptide"
-description = "A {damp} nightmare walking back into a {warden:dewdrop}'s {water} wades at half speed for 2 s. Each Warden {touching} that {water} hits it double, once."
-tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. A bet: your path must cross the same {water} twice. Each Warden's first hit on it in those 2 s lands double."
+description = "A {damp} nightmare walking back into a {warden:dewdrop}'s range wades at half speed for 2 s; each Warden {near} that {warden:dewdrop} hits it double, once."
+tip = "Walking back: it comes back in at least 3 {steps} further along the path than where it left (a pull back doesn't count). Each Warden's first hit on it in those 2 s lands double. Once for each nightmare and {warden:dewdrop}. A bet: your path must pass the same {warden:dewdrop} twice."
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])

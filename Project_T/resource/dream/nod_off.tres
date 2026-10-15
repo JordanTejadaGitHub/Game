@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "nod_off"
 display_name = "Nod Off"
-description = "A nightmare's first {toll} puts it to sleep for 1 s. One sleeper for each bell. Not bosses."
-tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a {toll}: it lands again at half damage (on a Bellflower start the first {toll} is ring 2). Works for: bells; every Warden gains from the stop. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "The first time a bell makes a nightmare {drowsy}, it falls asleep for 1 s. One sleeper for each bell. Not bosses."
+tip = "Bell forms that make no {drowsy} (Chime Stone, Thrum, Hushbell, Echo Hollow, the Dreamcatchers) don't set it off. Works for: bells; every Warden gains from the stop. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

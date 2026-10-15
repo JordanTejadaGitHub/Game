@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "breathe_it_in"
+display_name = "Breathe It In"
+description = "A spore Warden's {spored} hit on a nightmare inside another spore Warden's range adds 2 more. Once a second per Warden."
+tip = "Range: the other spore Warden's attack range, any form. Works for: spore Wardens whose ranges overlap. Safe: two spore Wardens are enough."
+rarity = 0
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"breathe_it_in"
+requires = Array[String](["sporeling"])

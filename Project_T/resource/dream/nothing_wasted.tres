@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "nothing_wasted"
 display_name = "Nothing Wasted"
-description = "When any Warden dispels a {lit} nightmare, the damage left over {jumps} to the nearest {lit} nightmare."
+description = "A hit that a nightmare resists, from a Firefly Warden or a Warden {near} one, {jumps} the damage resisted to the nearest nightmare that doesn't."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"nothing_wasted"
 requires = Array[String](["firefly_jar"])
-tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells), for anyone who owns a Firefly Warden."
+tip = "Resisted: the grey puff, half damage from that family. Once per hit. Works for: any family facing nightmares that resist it. Safe: most nightmares resist some family."

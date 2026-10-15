@@ -9,6 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.keeping_time)
 const CELL := 64.0
+const LENT := ["hum_along", "on_the_beat", "ringing_ears", "nod_off", "sleep_no_more", "refrain", "second_verse",
+	"rude_awakening", "knell", "clashing_notes"]
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -80,9 +82,9 @@ func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("bellflower") == "Keeping Time", "Bellflower's Calling is Keeping Time")
 	dreams.calling = "dewdrop"
-	_check_pool("bellflower", ["knell", "on_the_beat", "join_in", "nod_off", "rude_awakening", "sleep_no_more", "refrain"], 3)
+	_check_pool("bellflower", LENT, 5)  # 5 class-only and 10 lent (owner 2026-10-14)
 	dreams.calling = "bellflower"
-	_check_pool("bellflower", ["knell", "on_the_beat", "join_in", "nod_off", "rude_awakening", "sleep_no_more", "refrain"], 3)
+	_check_pool("bellflower", LENT, 5)
 	await _frames(3)
 	var route: Array = klass._route_px
 	var at: Vector2 = route[10]
@@ -110,17 +112,20 @@ func _run() -> void:
 	klass.ring(a, bell, 10.0)
 	_check(klass.tolls == 2, "...and it Tolls once the second is up")
 
-	# Nod Off: a nightmare's first Toll puts it to sleep for 1 s; the nap never lands on a sleeper.
+	# Nod Off (2026-10-14): the first time a bell makes a nightmare Drowsy it naps 1 s; never on a sleeper; one per bell.
 	_take("nod_off")
 	var b = _spawn(at)
-	b.set_meta(klass.PIPS_META, klass.TOLL_EVERY - 1)
-	klass.ring(b, bell, 10.0)
-	_check(b.statuses.is_asleep() and b.statuses.sleep_time <= klass.NAP_SECONDS + 0.01, "Nod Off: asleep for %s s" % klass.NAP_SECONDS)
+	bell._apply_one_status(b, EnemyStatuses.DROWSY, 1, bell.get_damage())
+	_check(b.statuses.is_asleep() and b.statuses.sleep_time <= klass.NAP_SECONDS + 0.01, "Nod Off: a bell's first Drowsy, asleep for %s s" % klass.NAP_SECONDS)
 	_check(not klass.nap(b), "the nap never lands on a sleeper")
 	var c = _spawn(at)
-	c.set_meta(klass.PIPS_META, klass.TOLL_EVERY - 1)
-	klass.ring(c, bell, 10.0)
+	bell._apply_one_status(c, EnemyStatuses.DROWSY, 1, bell.get_damage())
 	_check(not c.statuses.is_asleep(), "one sleeper for each bell")
+	var immune = _spawn(at)
+	immune.statuses.immune.append(EnemyStatuses.DROWSY)
+	var other_bell := _plant("bellflower", at + Vector2(CELL * 8, 0))
+	other_bell._apply_one_status(immune, EnemyStatuses.DROWSY, 1, other_bell.get_damage())
+	_check(not immune.statuses.is_asleep(), "Nod Off: a Drowsy-immune nightmare never naps (only an accepted status counts)")
 
 	# Rising Song: each pulse that Tolls makes the landing bigger, up to double.
 	_take("rising_song")
@@ -131,7 +136,7 @@ func _run() -> void:
 	klass.ring(d, bell, 100.0)
 	_check(health - d.health <= ceili(100.0 * klass.RISING_MAX) + 1, "Rising Song: a Toll's landing is at most double the ring")
 
-	# Join In: another Warden touching the bell fills pips with its hits, once a second.
+	# Join In (class-only since 2026-10-14): another Warden touching the bell fills pips with its hits, once a second.
 	_take("join_in")
 	var sprout := _plant("sprout", at + Vector2(CELL, CELL))
 	await _frames(2)
@@ -139,10 +144,56 @@ func _run() -> void:
 	sprout.hit(e, 1.0, false, Tower.NO_CRIT)
 	await _frames(2)
 	_check(int(e.get_meta(klass.PIPS_META, klass.PIPS_FILLED)) == klass.PIPS_FILLED + 1, "Join In: a touching Warden's hit counts as a ring")
+	await _clean()
 
-	# A later Bellflower owner counts rings from 0 pips: the head start is the Calling's.
+	# A later owner (owner 2026-10-14, dream_council_review.md 25-26): no rings, pips or Tolls, whatever lent cards are held.
 	dreams.calling = "dewdrop"
-	_check(klass._start_pips() == 0, "no Calling: Tolls count from 0 pips")
+	dreams.stacks.clear()
+	for id in LENT:
+		_take(id)
+	var later_bell := _plant("bellflower", at + Vector2(CELL, 0))
+	await _frames(2)
+	_check(klass._start_pips() == 0 and klass.active() and not klass.tolls_on(), "a later Bellflower owner holding every lent card has no Tolls")
+	var f = _spawn(at)
+	klass.ring(f, later_bell, 10.0)
+	_check(not f.has_meta(klass.PIPS_META), "...and rings fill no pips")
+	await _clean()
+
+	# Hum Along: another Warden's hit beside a bell adds 1 Drowsy (the bell's, not native), once every 2 s.
+	dreams.stacks.clear()
+	_take("hum_along")
+	var spot := Vector2(CELL * 30, CELL * 30)
+	_plant("bellflower", spot)
+	var hummer := _plant("sprout", spot + Vector2(CELL, 0))
+	await _frames(2)
+	var g = _spawn(spot + Vector2(CELL * 2, 0))
+	hummer.hit(g, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(g.statuses.stacks(EnemyStatuses.DROWSY) == 1, "Hum Along: a hit beside a bell adds 1 Drowsy")
+	hummer.hit(g, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(g.statuses.stacks(EnemyStatuses.DROWSY) == 1, "...once every 2 s per Warden")
+	await _clean()
+
+	# Knell: a bell's hit on a Drowsy nightmare cashes another family's status; once per nightmare every 8 s.
+	dreams.stacks.clear()
+	_take("knell")
+	var k_bell := _plant("bellflower", spot)
+	var k_spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var k = _spawn(spot + Vector2(CELL, 0))
+	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 10, k_spore.get_damage())
+	k.apply_status(EnemyStatuses.DROWSY, 2, 3.0, 1.0, 0, "song", k_bell)
+	var poisoned: int = k.statuses.stacks(EnemyStatuses.SPORED)
+	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(k.statuses.stacks(EnemyStatuses.SPORED) < poisoned, "Knell: the bell's hit on a Drowsy nightmare cashes its Poisoned")
+	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)
+	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 1, k_spore.get_damage())
+	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)
+	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(k.statuses.stacks(EnemyStatuses.SPORED) >= poisoned, "...once per nightmare every %d s" % int(klass.KNELL_EVERY))
 	dreams.calling = "bellflower"
 	await _clean()
 	print("test_class_bellflower: %d failures" % failures)

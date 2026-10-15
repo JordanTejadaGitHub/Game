@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "hammerfall"
 display_name = "Hammerfall"
-description = "A {heavy} Warden's hit on a {lit} nightmare also {jumps} to the nearest other {lit} nightmare at half damage. Sprouts count as heavy for this."
+description = "Another {family}'s {heavy} Warden {near} a Firefly Warden {jumps} half of each attack to the nearest other nightmare. Sprouts count too."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"hammerfall"
 requires = Array[String](["firefly_jar"])
-tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells). A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines). The front nightmare is the one furthest along the path."
+tip = "Nearest: within 2 cells of the one it hit. Once per attack. A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines, Frostfern, Silver Bell). Firefly Wardens' own heavy forms don't count. Works for: another family's heavy Wardens, and Sprouts, near a Firefly Warden. Safe."

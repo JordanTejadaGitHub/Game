@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "second_verse"
+display_name = "Second Verse"
+description = "Needs another {family}'s status. A {drowsy} nightmare leaving a bell's range gets the last status another {family}'s Warden gave it again, same {stacks}."
+tip = "It only adds to a status still on it, never above the limit; {static} stops one short of a bolt. Once for each nightmare and bell. Bell forms that make no {drowsy} (Chime Stone, Thrum, Hushbell, Echo Hollow, the Dreamcatchers) don't set it off. A bet: it does little until a Warden of another {family} adds a status."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"second_verse"
+requires = Array[String](["bellflower"])

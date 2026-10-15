@@ -13,4 +13,4 @@ tags = Array[String](["storm", "sprout"])
 max_stacks = 1
 rule_id = &"lit_sprouts"
 calling = "firefly_jar"
-retired = true
+tip = "Choose on the Sprout's panel, at a rest. A glowing Sprout lights the path touching it, as bright as a base Firefly Jar. Never gold path. Not inside a Firefly Warden's glow. Works for: Sprouts, on a Lanternway board. Safe."

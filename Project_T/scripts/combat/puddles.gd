@@ -4,7 +4,8 @@ extends "res://scripts/combat/class_kit.gd"
 # steps in that water are Soaked. (Dewdrops already hit Soaked nightmares harder: the built Soaked rule.)
 # A water is one unbroken run of wet route points; it knows its Dewdrops, its bank (other attacking Wardens touching
 # it) and its length in steps. A Dewdrop is lone while no other attacking Warden touches any of its waters.
-# The 3 lent cards (Something in the Water, Soaked Through, Run-Off) use "near a Dewdrop" and no water.
+# Water is the first pick's only (place_on, 2026-10-14); the 5 class cards use it. The 10 lent cards never do: they use
+# "near a Dewdrop" (2 cells), "a Dewdrop's range" and Soaked, for any Dewdrop owner.
 # Every number is a paper starting value.
 
 const GROUP := &"puddles"
@@ -51,6 +52,20 @@ const SOMETHING := &"something_in_the_water"  # Lent
 const SOAKED_THROUGH := &"lent_soaked_through"  # Lent
 const RUN_OFF := &"run_off"  # Lent
 
+# Lent and class, 2026-10-14 (lent_noplace_dewdrop_bellflower.md, expand_dewdrop_bellflower.md, dream_council_review.md 26)
+const SHALLOWS := &"shallows"
+const SHALLOWS_EVERY := 1.0  # Shallows: each other Warden touching a Dewdrop adds 1 Soaked with a hit, once a second
+const KNEE_DEEP := &"knee_deep"
+const KNEE_SLOW := 0.1  # Knee-Deep: a Soaked nightmare in a Dewdrop's range walks this much slower…
+const KNEE_SLOW_FULL := 0.2  # …this much when fully Soaked…
+const KNEE_TIME := 0.25  # …re-applied each poll, so it ends soon after it leaves or dries
+const ACROSS_EXTRA_CELLS := 1.0  # Across the Water: Wardens near a Dewdrop reach Soaked nightmares this far past their range
+const RETURN_STEPS := 3  # Walking back into a Dewdrop's range: at least this many route steps past where it left (pulls don't count)
+const WATERLOGGED := &"waterlogged"
+const WATERLOGGED_FACTOR := 1.5  # Waterlogged: other families' statuses on a Soaked nightmare last this much longer (never Drowsy)
+const SOAKED_BONE := &"soaked_to_the_bone"  # Class: walking back into a lone Dewdrop's water fills Soaked at once
+const RANGE_META := &"pd_range"  # On a nightmare: {Dewdrop key: [inside: bool, exit route index]}
+const SHALLOWS_META := &"pd_shallows_next"  # On a Warden
 const WATER_META := &"pd_water"  # On a nightmare: the water it stands in (-1 none)
 const SEEN_META := &"pd_seen"  # On a nightmare: {Dewdrop cell key: true}: it has walked this Dewdrop's water
 const LEFT_META := &"pd_left"  # On a nightmare: {Dewdrop id: {status: [stacks, potency, line, WeakRef]}} (The Water Remembers)
@@ -63,7 +78,8 @@ var waters: Array = []  # [{id, first, last, points: {index: true}, dewdrops: Ar
 var _water_at := {}  # Route index -> index into `waters`
 var _lone := {}  # Dewdrop instance id -> true
 var _waters_of := {}  # Warden instance id -> Array of indices into `waters` (Dewdrops and bank Wardens)
-var _across := {}  # Warden instance id -> {route index: true}: where it reaches along the water
+var _across := {}  # Warden instance id -> {route index: true}: where it reaches along the water (unused since 2026-10-14)
+var _near_dew := {}  # Warden instance id -> the strongest Dewdrop near it, or null (cleared with the board)
 var _riptides: Array = []  # [{enemy: WeakRef, tower: WeakRef, amount, ticks, wait}]
 var ripples := 0  # This run (tests and the owner's eye)
 
@@ -73,11 +89,16 @@ func _family() -> String:
 func _line() -> String:
 	return LINE
 
-# More lent cards than class cards (the owner and the council, 2026-10-13, lent_consolidated.md): the water belongs to
-# every owner of the family; only the Calling's ripple stays with the first pick. Levee, Breakwater and Riptide stay
-# class cards; these are lent, for any start that owns a Dewdrop.
+# Lent cards never give the Calling's setup (owner 2026-10-14, dream_council_review.md 25-26): water, lone water and the
+# ripple are the first pick's only (place_on). The lent cards work from Dewdrops, where Wardens stand ("near a Dewdrop":
+# 2 cells; "a Dewdrop's range": its attack range) and Soaked.
 func _lent_rules() -> Array:
-	return [SOMETHING, SOAKED_THROUGH, RUN_OFF, CAUGHT_WADING, ACROSS, WASH_AWAY, WAKE_RIPPLE, REMEMBERS, RIPTIDE, DEEP_POOL]  # (Riptide lent, Swell class: owner 2026-10-13)
+	return [CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, REMEMBERS, RUN_OFF, WASH_AWAY, RIPTIDE, WATERLOGGED,
+		SOMETHING, SOAKED_THROUGH]  # (Something in the Water, Soaked Through: retired, need no water; old saves keep them)
+
+# Wake Ripple (retired) carried statuses along the water: an old save holding it keeps the water on Continue.
+func _legacy_rules() -> Array:
+	return [WAKE_RIPPLE]
 
 func _ready() -> void:
 	super._ready()
@@ -91,7 +112,8 @@ func on_board() -> void:
 	_lone.clear()
 	_waters_of.clear()
 	_across.clear()
-	if not active():
+	_near_dew.clear()
+	if not place_on():  # Water is the Calling's (the first pick, or an old save's Wake Ripple)
 		queue_redraw()
 		return
 	var dewdrops := own_towers()
@@ -232,6 +254,15 @@ func _fully_soaked(enemy) -> bool:
 
 # --- Damage events ----------------------------------------------------------------------------------------------------
 
+# The strongest Dewdrop near `tower` (2 cells on both axes; a Dewdrop is near itself), or null. Cached per board.
+func dewdrop_near(tower):
+	var id: int = tower.get_instance_id()
+	if _near_dew.has(id) and (_near_dew[id] == null or is_instance_valid(_near_dew[id])):
+		return _near_dew[id]
+	var found = strongest_near(tower.global_position, is_own)
+	_near_dew[id] = found
+	return found
+
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -> void:
 	if dispel and rule(RUN_OFF):
 		_run_off(enemy)
@@ -239,7 +270,9 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		return
 	if rule(SOMETHING) and is_own(source) and living(enemy):
 		_something(source, enemy)
-	if not active() or not is_own(source):
+	if rule(SHALLOWS) and is_other(source) and living(enemy):
+		_shallows(source, enemy)
+	if not place_on() or not is_own(source):
 		return
 	var w := water_of(enemy)
 	if w < 0 or not touches_water(source, w):
@@ -271,6 +304,20 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 				if living(front):
 					source._apply_one_status(front, EnemyStatuses.DAMP, maxi(int(source.attack_data.status_stacks), 1), source.get_damage(), false)
 
+# Shallows: a hit from another Warden touching a Dewdrop that Soaks adds 1 Soaked, the Dewdrop's own application (not
+# native: it never counts as a Dewdrop Soaking it). Each Warden, once a second; the main target only.
+func _shallows(source, enemy) -> void:
+	if now() < float(source.get_meta(SHALLOWS_META, -INF)):
+		return
+	var dewdrop = null
+	for tower in own_towers():
+		if status_of(tower) == EnemyStatuses.DAMP and touching(tower, source) and (dewdrop == null or second_of(tower) > second_of(dewdrop)):
+			dewdrop = tower
+	if dewdrop == null:
+		return
+	source.set_meta(SHALLOWS_META, now() + SHALLOWS_EVERY)
+	dewdrop._apply_one_status(enemy, EnemyStatuses.DAMP, 1, dewdrop.get_damage(), false)
+
 func _front_in(w: int):
 	var front = null
 	var best := -1
@@ -287,8 +334,24 @@ func on_poll() -> void:
 	if rule(SOAKED_THROUGH):
 		for enemy in enemies():
 			_soaked_through(enemy)
-	if not active():
+	var ranges := rule(REMEMBERS) or rule(RIPTIDE)
+	var knee := rule(KNEE_DEEP)
+	if ranges or knee:
+		var dewdrops := own_towers()
+		for enemy in enemies():
+			if enemy.is_flying():
+				continue  # Flyers never walk back in, and Knee-Deep never slows them
+			if ranges:
+				_track_ranges(enemy, dewdrops)
+			if knee and _soaked(enemy):
+				for tower in dewdrops:
+					if tower.global_position.distance_to(enemy.global_position) <= tower.get_range_pixels():
+						HelperCommons.slow(enemy, KNEE_SLOW_FULL if _fully_soaked(enemy) else KNEE_SLOW, KNEE_TIME)
+						break
+	_tick_riptides()
+	if not place_on():
 		return
+	# The water (the first pick only): walking in and out (Breakwater, Soaked to the Bone, Both Banks' lanes)
 	for enemy in enemies():
 		if enemy.is_flying():
 			continue
@@ -301,15 +364,39 @@ func on_poll() -> void:
 				_left(enemy, was_water)
 			if w >= 0:
 				_entered(enemy, waters[w])
-		if w >= 0 and rule(CAUGHT_WADING) and _soaked(enemy) and _once(enemy, "wading:" + _water_key(waters[w])):
-			# Caught Wading: the first time it is Soaked in a water, each other Warden touching that water hits it once, free
-			var fired := 0
-			for tower in waters[w].bank:
-				if fired >= CAUGHT_WARDENS:
-					break
-				if is_instance_valid(tower) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, _dewdrop_hit(waters[w].dewdrops)):
-					fired += 1  # Never more than the Dewdrop's own hit (owner 2026-10-13: growing the Dewdrop matters)
-	_tick_riptides()
+
+# Each Dewdrop's range, per walking nightmare: leaving it records where; coming back in at least 3 route steps further
+# along is "walking back in" (a pull back into the same range never counts). The Water Remembers and Riptide.
+func _track_ranges(enemy, dewdrops: Array) -> void:
+	var i := index_of(enemy)
+	if i < 0:
+		return
+	var seen: Dictionary = enemy.get_meta(RANGE_META, {})
+	for tower in dewdrops:
+		var key := _key(tower)
+		var inside: bool = tower.global_position.distance_to(enemy.global_position) <= tower.get_range_pixels()
+		var row: Array = seen.get(key, [false, -1])
+		if inside == bool(row[0]):
+			continue
+		if not inside:
+			seen[key] = [false, i]  # It left: where, and what it carried
+			var left: Dictionary = enemy.get_meta(LEFT_META, {})
+			left[key] = _other_statuses(enemy)
+			enemy.set_meta(LEFT_META, left)
+			continue
+		seen[key] = [true, int(row[1])]
+		if int(row[1]) >= 0 and i - int(row[1]) >= RETURN_STEPS * 2 and living(enemy):
+			_walked_back(enemy, tower, key)
+	enemy.set_meta(RANGE_META, seen)
+
+func _walked_back(enemy, tower, key: String) -> void:
+	if rule(REMEMBERS) and _once(enemy, "remembers:" + key):
+		_remember(enemy, key)
+	if rule(RIPTIDE) and _soaked(enemy) and _once(enemy, "riptide:" + key):
+		# Riptide: it wades at half speed for 2 s (a slow, never Rooted), and each Warden near that Dewdrop lands its first
+		# hit on it double in those 2 s
+		HelperCommons.slow(enemy, RIPTIDE_SLOW, RIPTIDE_SECONDS)
+		enemy.set_meta(RIP_META, {"until": now() + RIPTIDE_SECONDS, "at": tower.global_position, "done": {}})
 
 func _left(enemy, water: Dictionary) -> void:
 	var seen: Dictionary = enemy.get_meta(SEEN_META, {})
@@ -347,17 +434,15 @@ func _entered(enemy, water: Dictionary) -> void:
 	for tower in water.dewdrops:
 		if not is_instance_valid(tower) or not seen.has(_key(tower)) or not living(enemy):
 			continue
-		# It walks back into this Dewdrop's water
-		var id := _key(tower)
-		if rule(REMEMBERS) and _once(enemy, "remembers:" + id):
-			_remember(enemy, id)
-		if rule(RIPTIDE) and _soaked(enemy) and _once(enemy, "riptide:" + id):
-			# Riptide (council 2026-10-13): it wades at half speed for 2 s (a slow, never Rooted), and each Warden touching
-			# that water lands its first hit on it double. No "lone", no damage of its own.
-			HelperCommons.slow(enemy, RIPTIDE_SLOW, RIPTIDE_SECONDS)
-			enemy.set_meta(RIP_META, {"until": now() + RIPTIDE_SECONDS, "water": water_of(enemy), "done": {}})
+		# It walks back into this Dewdrop's water (The Water Remembers and Riptide read the Dewdrop's range now: _walked_back)
 		if not is_lone(tower):
 			continue
+		if rule(SOAKED_BONE) and _once(enemy, "bone:" + _key(tower)):
+			# Soaked to the Bone (class): fully Soaked at once, the Dewdrop's own application up to the limit
+			var room: int = enemy.statuses.get_max_stacks(EnemyStatuses.DAMP) - enemy.statuses.stacks(EnemyStatuses.DAMP)  # (The application's own cap clamps it)
+			if room > 0:
+				Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
+				tower._apply_one_status(enemy, EnemyStatuses.DAMP, room, tower.get_damage(), false)
 		if rule(THERE_AND_BACK):
 			free_hit(tower, enemy)  # There and Back: hit once, free, by that lone Dewdrop
 
@@ -425,8 +510,10 @@ func _remember(enemy, dewdrop_id: String) -> void:
 # Wake Ripple (DreamState.class_status tells us): another family's Warden touching water added its status to a
 # nightmare in it: the ripple carries 1 stack to the others within 4 steps in that water (that Warden's own
 # application of 1, once a second for each receiver; Charged stops one short of a bolt).
-func status_applied(tower, enemy, status: StringName) -> void:
-	if not active() or not rule(WAKE_RIPPLE) or not is_other_family(tower) or status == EnemyStatuses.HELD or not living(enemy):
+func status_applied(tower, enemy, status: StringName, _stacks: int) -> void:
+	if rule(CAUGHT_WADING) and status == EnemyStatuses.DAMP and is_own(tower) and living(enemy):
+		_caught_wading(tower, enemy)
+	if not place_on() or not rule(WAKE_RIPPLE) or not is_other_family(tower) or status == EnemyStatuses.HELD or not living(enemy):
 		return
 	var w := water_of(enemy)
 	if w < 0 or not touches_water(tower, w):
@@ -439,6 +526,34 @@ func status_applied(tower, enemy, status: StringName) -> void:
 			continue
 		other.set_meta(CARRY_META, now() + RIPPLE_EVERY)
 		tower._apply_one_status(other, status, 1, tower.get_damage(), false)
+
+# Caught Wading: when a Dewdrop first Soaks a nightmare, up to 3 other Wardens near that Dewdrop hit it once, free; again
+# when it is fully Soaked. Never more than the Dewdrop's own hit; once each per nightmare.
+func _caught_wading(dewdrop, enemy) -> void:
+	var full := _fully_soaked(enemy)
+	if not _once(enemy, "wading_full" if full else "wading"):
+		return
+	if full:
+		_once(enemy, "wading")  # Full at the first touch: the first half is spent too
+	var fired := 0
+	for tower in towers():
+		if fired >= CAUGHT_WARDENS:
+			break
+		if tower != dewdrop and is_other(tower) and near(tower.global_position, dewdrop.global_position) \
+				and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage()):
+			fired += 1
+
+# Waterlogged (DreamState.class_duration, from Enemy.apply_status: every application counts): another family's status
+# from a Warden near a Dewdrop, on a nightmare Soaked at that moment, lasts half again as long. Never Soaked, Drowsy or
+# Rooted. `duration` 0 = the status's default.
+func status_duration(source, enemy, status: StringName, duration: float) -> float:
+	if status == EnemyStatuses.DAMP or status == EnemyStatuses.DROWSY or status == EnemyStatuses.HELD:
+		return duration
+	if not (source is Tower) or not is_instance_valid(source) or not is_other(source) or not _soaked(enemy) or dewdrop_near(source) == null:
+		return duration
+	if duration <= 0.0:
+		duration = float(EnemyStatuses.DEFAULT_DURATION.get(status, 0.0))
+	return duration * WATERLOGGED_FACTOR
 
 # Something in the Water (lent): a Dewdrop's splash adds 1, quietly, to each status another family's Warden near it has
 # put on that nightmare (at most two statuses; once a second for each Dewdrop; it never starts a status).
@@ -506,59 +621,43 @@ func _run_off(enemy) -> void:
 # Wash Away: a Soaked nightmare in water loses half its family resistance to every Warden touching that water (x0.5
 # becomes x0.75). Not bosses. Status length, immunities, the blight coat and shape multipliers stay.
 func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
-	if not active() or not (source is Tower):
-		return 1.0
-	var w := water_of(enemy)
-	if w < 0 or not touches_water(source, w):
-		return 1.0
+	if not active() or not (source is Tower) or not is_instance_valid(source) or not _soaked(enemy):
+		return 1.0  # Every Dewdrop damage card reads a Soaked nightmare
 	var multiplier := 1.0
-	if rule(WASH_AWAY) and not enemy.statuses.is_boss and _soaked(enemy) and enemy.enemy_data.resists.has(source.tower_data.line):
+	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades
+		var rip: Dictionary = enemy.get_meta(RIP_META)
+		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()) and near(source.global_position, rip.at):
+			rip.done[source.get_instance_id()] = true
+			multiplier *= 2.0
+	if not (rule(WASH_AWAY) or rule(DEEP_POOL)) or dewdrop_near(source) == null:
+		return multiplier
+	# Wash Away: a Soaked nightmare loses half its resistance to Wardens near a Dewdrop (x0.5 becomes x0.75). Not bosses.
+	if rule(WASH_AWAY) and not enemy.statuses.is_boss and enemy.enemy_data.resists.has(source.tower_data.line):
 		multiplier *= WASH_AWAY_FACTOR
-	if rule(DEEP_POOL):  # Deep Pool: +10% for each status it carries besides Soaked (never Rooted)
+	if rule(DEEP_POOL) and tag == &"":  # Deep Pool: hits deal +10% for each status it carries besides Soaked (never Rooted)
 		var others := 0
 		for id in enemy.statuses.active_ids():
 			if id != EnemyStatuses.DAMP and id != EnemyStatuses.HELD:
 				others += 1
 		multiplier *= 1.0 + DEEP_POOL_PER_STATUS * others
-	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden's first hit on it while it wades
-		var rip: Dictionary = enemy.get_meta(RIP_META)
-		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()):
-			rip.done[source.get_instance_id()] = true
-			multiplier *= 2.0
 	return multiplier
 
 # Across the Water: any Warden touching water also reaches Soaked nightmares up to 3 steps further along that water
 # (never more than 5 cells from it). Adds them to its target list.
 func extra_targets(tower, candidates: Array[Node2D]) -> Array[Node2D]:
-	if not active() or not rule(ACROSS) or _waters_of.get(tower.get_instance_id(), []).is_empty():
+	if not active() or not rule(ACROSS) or not tower.tower_data.can_attack or dewdrop_near(tower) == null:
 		return candidates
-	var id: int = tower.get_instance_id()
-	if not _across.has(id):
-		var reach := {}
-		for i in points_in_reach(tower):
-			reach[i] = true
-		var further := {}
-		for w in _waters_of[id]:
-			for i in waters[int(w)].points:
-				if reach.has(i) or tower.global_position.distance_to(_route_px[int(i)]) > ACROSS_CELLS * cell():
-					continue
-				for k in range(-ACROSS_STEPS * 2, ACROSS_STEPS * 2 + 1):
-					if reach.has(int(i) + k):
-						further[i] = true
-						break
-		_across[id] = further
-	var further_points: Dictionary = _across[id]
-	if further_points.is_empty():
-		return candidates
-	for enemy in enemies():
-		if not candidates.has(enemy) and _soaked(enemy) and further_points.has(index_of(enemy)):
+	# Across the Water: Wardens near a Dewdrop reach Soaked nightmares up to 1 cell past their range
+	var reach: float = tower.get_range_pixels() + ACROSS_EXTRA_CELLS * cell()
+	for enemy in Tower.nightmares_near(get_tree(), tower.global_position, reach):
+		if not candidates.has(enemy) and living(enemy) and _soaked(enemy) and tower.global_position.distance_to(enemy.global_position) <= reach:
 			candidates.append(enemy)
 	return candidates
 
 # --- Drawing: the water ---------------------------------------------------------------------------------------------------
 
 func _draw() -> void:
-	if not active():
+	if not place_on():
 		return
 	# Soft overlapping pools along the wet path (not squares): a deep body, a lighter centre, a glint
 	var r := cell() * 0.42

@@ -154,6 +154,9 @@ var slow_time := 0.0:  # Drown on bosses (and Held-immune nightmares): an extra 
 		if value > 0.0:
 			_timers_live = true
 var slow_amount := 0.0
+# Timed slows that each keep their own expiry (HelperCommons.slow; dream_council_review.md 26, fix 7): a small slow
+# re-applied every poll (Knee-Deep) can no longer keep an earlier, bigger one (Riptide, Drown) alive. [[amount, left]]
+var timed_slows: Array = []
 var ground_taken := 0.0  # Heartwood Roots (MapGifts): extra soothe taken while on the marked cells
 var ground_taken_time := 0.0:  # Refreshed by MapGifts while the nightmare stands there
 	set(value):
@@ -501,6 +504,32 @@ func is_in_stag_aura() -> bool:
 func is_held() -> bool:
 	return has(HELD)
 
+# A slow of `amount` for `seconds` with its own expiry (one entry per amount: the same slow again only refreshes it).
+func add_slow(amount: float, seconds: float) -> void:
+	if amount <= 0.0 or seconds <= 0.0:
+		return
+	for timed in timed_slows:
+		if is_equal_approx(float(timed[0]), amount):
+			timed[1] = maxf(float(timed[1]), seconds)
+			_timers_live = true
+			return
+	timed_slows.append([amount, seconds])
+	_timers_live = true
+	changes += 1  # Speed is read again
+
+# The largest timed slow running and its time left (0, 0 = none).
+func timed_slow() -> float:
+	var best := 0.0
+	for timed in timed_slows:
+		best = maxf(best, float(timed[0]))
+	return best
+
+func timed_slow_left(amount: float) -> float:
+	for timed in timed_slows:
+		if is_equal_approx(float(timed[0]), amount):
+			return float(timed[1])
+	return 0.0
+
 # Movement speed multiplier from slows.
 # `extra_slow` adds slows that aren't statuses (none right now; the Tangled Dream was cut).
 func get_speed_multiplier(extra_slow: float = 0.0) -> float:
@@ -511,8 +540,10 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)  # Rule 3: Potency lengthens Drowsy instead (the floor bound almost at once)
 	if is_in_stag_aura():
 		slow += STAG_SLOW
-	if slow_time > 0.0:
-		slow += slow_amount
+	var extra := slow_amount if slow_time > 0.0 else 0.0
+	for timed in timed_slows:  # Slows never add up: the largest running one counts, as with slow_amount
+		extra = maxf(extra, float(timed[0]))
+	slow += extra
 	# Slow and sleep have limits (tower_design.md, 2026-10-01): all slows together never take a nightmare below
 	# SLOW_FLOOR of its speed (bosses / elites higher). Full stops (Held, Asleep) are separate.
 	var floor_share := SLOW_FLOOR_BOSS if is_boss else (SLOW_FLOOR_ELITE if is_elite else SLOW_FLOOR)
@@ -565,6 +596,13 @@ func _tick_timers(delta: float) -> void:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if not timed_slows.is_empty():
+		for i in range(timed_slows.size() - 1, -1, -1):
+			timed_slows[i][1] = float(timed_slows[i][1]) - delta
+			if float(timed_slows[i][1]) <= 0.0:
+				timed_slows.remove_at(i)
+		if not timed_slows.is_empty():
+			_timers_live = true
 	if silence_time > _silence_last + 0.0001:  # Silenced (again): BranchKit sets silence_time directly
 		silence_full = silence_time
 		if _silence_last <= 0.0:

@@ -3288,8 +3288,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if _dream_state != null and native:
 		stacks = _dream_state.class_stacks(self, enemy, status, stacks)  # The starter classes: a Warden's own next application (Open Season, Second Helping, Overnight)
 	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
-	if _dream_state != null and native and stacks > 0:
-		_dream_state.class_status(self, enemy, status)  # …and who hears of it (Wake Ripple)
+	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
+		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
 	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
 	if _dream_state != null and stacks > 0 and native:
 		var accepted: bool = enemy.statuses.applications > unique_before

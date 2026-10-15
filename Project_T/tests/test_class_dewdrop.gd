@@ -9,6 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
+const LENT := ["caught_wading", "shallows", "knee_deep", "across_the_water", "deep_pool", "the_water_remembers", "run_off",
+	"wash_away", "riptide", "waterlogged"]
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -80,9 +82,9 @@ func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("dewdrop") == "Puddles", "Dewdrop's Calling is Puddles")
 	dreams.calling = "sporeling"
-	_check_pool("dewdrop", ["run_off", "caught_wading", "across_the_water", "wash_away", "deep_pool", "the_water_remembers", "riptide"], 3)
+	_check_pool("dewdrop", LENT, 5)  # 5 class-only and 10 lent (owner 2026-10-14)
 	dreams.calling = "dewdrop"
-	_check_pool("dewdrop", ["run_off", "caught_wading", "across_the_water", "wash_away", "deep_pool", "the_water_remembers", "riptide"], 3)
+	_check_pool("dewdrop", LENT, 5)
 	await _frames(3)
 	var route: Array = klass._route_px
 	var at: Vector2 = route[10]
@@ -116,25 +118,72 @@ func _run() -> void:
 	_check(health - b.health <= ceili(maxf(drop.get_damage(), klass.second_of(drop))) + 1, "a free hit is at most the Warden's hit")
 	_check(not klass.free_hit(drop, b), "one free hit per Warden a second")
 
-	# (Backwash and There and Back are retired from offers: Dewdrop keeps 3 class cards, 2026-10-13.)
-	# A second-pick owner gets the water but not the ripple (the Calling stays with the first pick).
-	dreams.calling = "sporeling"
-	_take("across_the_water")
-	klass.on_board()
-	_check(not klass.waters.is_empty(), "a later Dewdrop owner with a water card still has water")
-	var dry = _spawn(route[12])
-	drop.hit(a, 1.0, false, Tower.NO_CRIT)
-	await _frames(2)
-	_check(not dry.statuses.has(EnemyStatuses.DAMP), "...but no ripple: that is the Calling, first pick only")
-	dreams.calling = "dewdrop"
+	# (Backwash and There and Back are retired from offers.)
 	var sprout := _plant("sprout", at + Vector2(-CELL, 0))
 	await _frames(2)
 	klass.on_board()
 	_check(sprout != null and not klass.is_lone(drop), "a Warden planted on the bank ends lone")
 
-	# Wash Away: half the family resistance, for Wardens touching the water, on a Soaked nightmare in it.
-	_take("wash_away")
-	_check(is_equal_approx(klass.damage_multiplier(far, drop), 1.0), "Wash Away does nothing outside the water")
+	# A later owner (owner 2026-10-14, dream_council_review.md 25-26): no water and no ripple, whatever lent cards are held.
+	dreams.calling = "sporeling"
+	for id in LENT:
+		_take(id)
+	klass.on_board()
+	_check(klass.active() and not klass.place_on() and klass.waters.is_empty(), "a later Dewdrop owner holding every lent card has no water")
+	var dry = _spawn(route[12])
+	drop.hit(a, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(not dry.statuses.has(EnemyStatuses.DAMP) or klass.index_of(dry) == klass.index_of(a), "...and no ripple")
+	await _clean()
+
+	# Wash Away: a Soaked nightmare, for Wardens near a Dewdrop; nothing unless both.
+	var spot := Vector2(CELL * 30, CELL * 30)
+	var w_drop := _plant("dewdrop", spot)
+	var w_near := _plant("sprout", spot + Vector2(CELL, 0))
+	var w_far := _plant("sprout", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var resister = _spawn(spot + Vector2(CELL, CELL))
+	resister.enemy_data = resister.enemy_data.duplicate(true)
+	resister.enemy_data.resists.assign(["sprout"])
+	_check(is_equal_approx(klass.damage_multiplier(resister, w_near), 1.0), "Wash Away: nothing on a dry nightmare")
+	w_drop._apply_one_status(resister, EnemyStatuses.DAMP, 1, w_drop.get_damage())
+	_check(is_equal_approx(klass.damage_multiplier(resister, w_near), klass.WASH_AWAY_FACTOR), "...Soaked, hit by a Warden near a Dewdrop: half its resistance gone")
+	_check(is_equal_approx(klass.damage_multiplier(resister, w_far), 1.0), "...a Warden far from any Dewdrop gets nothing")
+	await _clean()
+
+	# Shallows: a hit from another Warden touching a Dewdrop adds 1 Soaked, once a second.
+	var s_drop := _plant("dewdrop", spot)
+	var s_sprout := _plant("sprout", spot + Vector2(CELL, 0))
+	await _frames(2)
+	var wet = _spawn(spot + Vector2(CELL * 2, 0))
+	s_sprout.hit(wet, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(wet.statuses.stacks(EnemyStatuses.DAMP) == 1 and s_drop != null, "Shallows: the Sprout's hit beside a Dewdrop adds 1 Soaked")
+	s_sprout.hit(wet, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(wet.statuses.stacks(EnemyStatuses.DAMP) == 1, "...once a second per Warden")
+	await _clean()
+
+	# Knee-Deep and the slow fix (fix 7): Knee-Deep's repeated small slow never keeps a bigger one alive.
+	var k_drop := _plant("dewdrop", spot)
+	await _frames(2)
+	var wader = _spawn(spot + Vector2(CELL, 0))
+	k_drop._apply_one_status(wader, EnemyStatuses.DAMP, 1, k_drop.get_damage())
+	HelperCommons.slow(wader, klass.RIPTIDE_SLOW, 0.3)
+	for i in 6:
+		klass.on_poll()
+		wader.statuses._tick_timers(0.1)
+	_check(is_equal_approx(wader.statuses.timed_slow(), klass.KNEE_SLOW), "Knee-Deep keeps its 10%%; the 50%% slow ran out on time (%.2f)" % wader.statuses.timed_slow())
+	await _clean()
+
+	# Waterlogged: another family's status near a Dewdrop on a Soaked nightmare lasts x1.5; never Drowsy.
+	var l_drop := _plant("dewdrop", spot)
+	var l_spore := _plant("sporeling", spot + Vector2(CELL, 0))
+	await _frames(2)
+	var logged = _spawn(spot + Vector2(CELL, CELL))
+	l_drop._apply_one_status(logged, EnemyStatuses.DAMP, 1, l_drop.get_damage())
+	_check(is_equal_approx(klass.status_duration(l_spore, logged, EnemyStatuses.SPORED, 5.0), 5.0 * klass.WATERLOGGED_FACTOR), "Waterlogged: Poisoned lasts x%.1f" % klass.WATERLOGGED_FACTOR)
+	_check(is_equal_approx(klass.status_duration(l_spore, logged, EnemyStatuses.DROWSY, 3.0), 3.0), "...never Drowsy")
 	await _clean()
 	print("test_class_dewdrop: %d failures" % failures)
 	quit(failures)

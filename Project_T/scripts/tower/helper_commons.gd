@@ -136,10 +136,10 @@ static func after_crit(tower: Tower, enemy: Node2D) -> void:
 	if any_held(tower) and is_instance_valid(enemy) and not enemy.is_cleansed and tower._has_rule(&"hobble"):
 		slow(enemy, HOBBLE_SLOW, HOBBLE_TIME)
 
+# Each slow keeps its own expiry (dream_council_review.md 26, fix 7): a small slow re-applied often can no longer keep a
+# bigger, shorter one alive.
 static func slow(enemy: Node2D, amount: float, seconds: float) -> void:
-	var s: EnemyStatuses = enemy.statuses
-	s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, amount)
-	s.slow_time = maxf(s.slow_time, seconds)
+	enemy.statuses.add_slow(amount, seconds)
 
 # --- Attack speed ----------------------------------------------------------------------------------------------------
 

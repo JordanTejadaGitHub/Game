@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "flashover"
+display_name = "Flashover"
+description = "Needs an area Warden {near} a Firefly Warden. Its pulse or splash on 2 or more nightmares {jumps} half to the nearest one it missed."
+tip = "Half of the most it landed on one nightmare. Once per pulse or splash. Sparkler and Starburst count when near another Firefly Warden. Works for: Wardens that hit an area. A bet: it does little until one stands near a Firefly Warden."
+rarity = 0
+kind = 3
+tags = Array[String](["storm", "lent"])
+max_stacks = 1
+rule_id = &"flashover"
+requires = Array[String](["firefly_jar"])

@@ -96,7 +96,7 @@ func _run() -> void:
 	# Hobble: a crit slows the nightmare.
 	_take(&"hobble")
 	spore.hit(a, 1.0, false, Tower.CRIT)
-	_check(a.statuses.slow_time > 0.0 and is_equal_approx(a.statuses.slow_amount, HelperCommons.HOBBLE_SLOW), "Hobble: a crit slows 30%")
+	_check(is_equal_approx(a.statuses.timed_slow(), HelperCommons.HOBBLE_SLOW), "Hobble: a crit slows 30%")
 	_clear()
 
 	# Rush: +20% attack speed while 10+ nightmares are on the field.
@@ -117,7 +117,7 @@ func _run() -> void:
 		crowd.append(_walker(rootling.global_position + Vector2(20 + 10 * i, 0)))
 	_take(&"scatter")
 	rootling._release_attack()
-	_check(crowd.all(func(e) -> bool: return e.statuses.slow_time > 0.0), "Scatter: a pulse hitting 3+ slows them")
+	_check(crowd.all(func(e) -> bool: return e.statuses.timed_slow() > 0.0), "Scatter: a pulse hitting 3+ slows them")
 	_clear()
 	var edge := _walker(rootling.global_position + Vector2(rootling.get_range_pixels() + 30.0, 0))
 	_take(&"wide_swing")

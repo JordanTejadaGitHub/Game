@@ -75,7 +75,29 @@ func lent_on() -> bool:
 	return false
 
 func active() -> bool:
-	return class_on() or lent_on()
+	return class_on() or lent_on() or _legacy_on()
+
+# The Calling's setup (mushrooms and doses, water and the ripple, the ring count, pips and Tolls) is the first pick's only
+# (owner 2026-10-14, dream_council_review.md 25 "lent cards never give the Calling's abilities"): lent cards never switch
+# it on and never read it. The one exception is an old save: a later owner already holding a card that was retired or
+# moved to class-only keeps that card's old effect on Continue (_legacy_rules).
+func place_on() -> bool:
+	return class_on() or _legacy_on()
+
+# Retired or moved card ids that needed the setup when a later owner could hold them (old saves only).
+func _legacy_rules() -> Array:
+	return []
+
+func _legacy_on() -> bool:
+	for id in _legacy_rules():
+		if rule(id):
+			return true
+	return false
+
+# A Warden's own status application was accepted on a nightmare (DreamState.class_status, from Tower._apply_one_status;
+# never for carried or free applications). `stacks`: what it added.
+func status_applied(_tower, _enemy, _status: StringName, _stacks: int) -> void:
+	pass
 
 func cell() -> float:
 	return Tower.MAP_GRID.cell_size.x
