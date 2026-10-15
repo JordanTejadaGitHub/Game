@@ -163,6 +163,8 @@ func on_board() -> void:
 	for point in _bed:
 		if not mushrooms.has(point) and not _regrow.has(point):
 			_regrow[point] = float(_bed[point]) + _slower()
+	for k in _route.size():  # Where each mushroom is drawn: once per board or route change
+		_spots[_route[k]] = _work_out_spot(k)
 	queue_redraw()
 
 # Nothing grows by waiting (owner ruling, section 21): when a rest starts, every step that can grow a mushroom is
@@ -558,36 +560,43 @@ func _draw() -> void:
 		if _index.has(point) and not mushrooms.has(point):
 			_draw_mushroom(_spot(point)[0], MUSHROOM_SPROUT_SCALE, 0.5, false)
 
-# Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner).
-# Route points are half-cell lane centres, so on a corridor a full cell wide the walking line runs along one edge and a
-# mushroom there sat against the Warden beside it (Story chat / user screenshot, 2026-10-14). The drawn spot is the middle
-# of the open corridor across the route's direction: up to SPOT_SIDE_HALVES open half cells on each side (never a
-# Warden's, obstacle's or border half). [px, along] with `along` the route's direction there (Twin Caps line up on it).
-# Cached until the board or the route changes (on_board clears it).
-const SPOT_SIDE_HALVES := 1
+# Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner,
+# saves). Route points are half-cell lane centres, while the drawn path fills the whole corridor between the Wardens, so
+# where the walking line runs along one side of a corridor the mushrooms did too, pressed against the Wardens' bases
+# (user screenshots 2026-10-14 and 15, v0.1.5). The drawn spot is the middle of the open corridor across the route's
+# direction: the open half cells between the nearest blocked half (Warden, obstacle, border) on each side, looking up
+# to SPOT_SEARCH_HALVES each way. If one side finds no block that close (open ground), the route point stays. A bend
+# keeps its point. [px, along], `along` the route's direction (Twin Caps line up on it). Worked out for every route
+# point in on_board (when the board or the route changes), never per frame.
+# (The first version looked one half each way only, so corridors wider than one cell came out a quarter cell short.)
+const SPOT_SEARCH_HALVES := 4
 var _spots := {}
 
 func _spot(point: Vector2) -> Array:
-	if _spots.has(point):
-		return _spots[point]
-	var i := int(_index[point])
+	if not _spots.has(point):
+		_spots[point] = _work_out_spot(int(_index[point]))
+	return _spots[point]
+
+func _work_out_spot(i: int) -> Array:
 	var at: Vector2 = _route_px[i]
 	var along: Vector2 = (_route_px[mini(i + 1, _route_px.size() - 1)] - _route_px[maxi(i - 1, 0)]).normalized()
-	var spot := [at, Vector2.RIGHT]
 	var map = dream_state.map_generator if dream_state != null else null
-	if map != null and along != Vector2.ZERO and (is_zero_approx(along.x) or is_zero_approx(along.y)):  # Straight; a bend keeps its point
-		var across := Vector2(-along.y, along.x).round()
-		var h: Vector2 = map.pixels_to_half(at)
-		var sides := [0, 0]
-		for s in 2:
-			var dir: Vector2 = across if s == 0 else -across
-			for k in range(1, SPOT_SIDE_HALVES + 1):
-				if map.path_layer.is_half_blocked(h + dir * k):
-					break
-				sides[s] = k
-		spot = [at + across * (sides[0] - sides[1]) * 0.5 * cell() * 0.5, along]
-	_spots[point] = spot
-	return spot
+	if map == null or along == Vector2.ZERO or not (is_zero_approx(along.x) or is_zero_approx(along.y)):
+		return [at, Vector2.RIGHT if along == Vector2.ZERO else along]  # A bend (or no map): its point
+	var across := Vector2(-along.y, along.x).round()
+	var h: Vector2 = map.pixels_to_half(at)
+	var open := [0, 0]  # Open half cells beside the route's own half, each side
+	for side in 2:
+		var dir: Vector2 = across if side == 0 else -across
+		var walled := false
+		for k in range(1, SPOT_SEARCH_HALVES + 1):
+			if map.path_layer.is_half_blocked(h + dir * k):
+				walled = true
+				break
+			open[side] = k
+		if not walled:
+			return [at, along]  # Open ground on this side: no corridor to centre in
+	return [at + across * (open[0] - open[1]) * 0.5 * cell() * 0.5, along]
 
 # The mushroom art: the first frame of the spore sprite sheet (the Brood Cap's walking mushrooms, Tower Assets), standing
 # with its stem on the route point. The plain shape is only the fallback when the sheet is missing.
