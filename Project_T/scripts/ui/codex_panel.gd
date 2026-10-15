@@ -120,6 +120,9 @@ func _ready() -> void:
 	if _phone:
 		_search.placeholder_text = "Search the Codex"
 		_search.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		var field := UiStyle.button_box()  # Gold 45% outline (the secondary frame) on the theme's field fill
+		field.bg_color = Color(UiStyle.FOG, 0.7)
+		_search.add_theme_stylebox_override("normal", field)
 	_search.text_changed.connect(func(_t: String) -> void: _search_timer.start())
 	_search.text_submitted.connect(func(_t: String) -> void:
 		_search_timer.stop()

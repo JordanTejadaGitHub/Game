@@ -201,20 +201,29 @@ func _build_phone() -> void:
 		var toggle := _add_button(pane[1], _show_pane.bind(pane[0]))
 		toggle.name = "Page" + String(pane[1]).replace(" ", "")
 		toggle.toggle_mode = true
+		_page_toggle_look(toggle)
 		_pane_buttons[pane[0]] = toggle
-	_save_button = _add_button("Save & quit…", ask_quit)
+	_save_button = _add_button("Save & quit…", ask_quit)  # Secondary, Resume's size (the theme's plain frame)
 	_save_button.name = "Quit"
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_menu.add_child(spacer)
+	_gap(_menu, 16.0)  # Set apart even when the rail scrolls
 	var abandon := _add_button("Abandon run…", _ask_abandon)
 	abandon.name = "AbandonRun"
+	abandon.custom_minimum_size.y = 40  # Smaller than the choices above (still a tap target)
+	abandon.add_theme_font_size_override("font_size", 14)
 	_danger(abandon)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		abandon.add_theme_color_override(state, UiStyle.INK)  # Ember outline, ink text (ui_style.md)
 
 	var pane_box := PanelContainer.new()
 	pane_box.name = "Pane"
 	pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_solid(pane_box)
+	var pane_fill := pane_box.get_theme_stylebox("panel")
+	if pane_fill is MoonStyleBox:
+		(pane_fill as MoonStyleBox).diamond = false  # Nested beside the rail: only the outermost panel has the sprout
 	_phone_root.add_child(pane_box)
 	var run_scroll := ScrollContainer.new()
 	run_scroll.name = "RunPage"
@@ -260,6 +269,18 @@ func _show_pane(pane: StringName) -> void:
 	else:
 		codex.visible = false
 	_sync_pane_buttons()
+
+# Phones: a rail page toggle reads as a tab, never a primary or a pressed frame: the plain secondary frame, and the
+# open page adds the Glow underline (the active-tab look) with Glow text.
+func _page_toggle_look(toggle: Button) -> void:
+	for state in ["pressed", "hover_pressed"]:
+		var box := UiStyle.fog_patch(14.0, 6.0)
+		box.corner_radius = 2
+		box.frame_color = Color(UiStyle.BUTTON_GOLD, 0.7 if state == "hover_pressed" else 0.45)
+		box.underline = true
+		toggle.add_theme_stylebox_override(state, box)
+	for state in ["font_pressed_color", "font_hover_pressed_color"]:
+		toggle.add_theme_color_override(state, UiStyle.GOLD)
 
 func _sync_pane_buttons() -> void:
 	for id in _pane_buttons:

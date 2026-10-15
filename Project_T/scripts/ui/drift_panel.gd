@@ -215,6 +215,8 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Rest after drift %d" % block_end
 	if _unconfirmed_wardens():
 		_start_button.text = "Confirm your Wardens first"
+	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
+		_status_label.visible = not _phone_panel_open()
 	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
 	var pending := drift_director.pending_choice()
 	if pending != &"" and not run_state.is_over:
@@ -232,6 +234,16 @@ func _process(_delta: float) -> void:
 		_status_label.text += "\nMaze bonus: %s at rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
+
+func _phone_panel_open() -> bool:
+	var hud := get_parent()
+	if hud == null:
+		return false
+	for panel_name in ["DriftMeter", "WardenPanel"]:
+		var panel := hud.get_node_or_null(panel_name) as CanvasItem
+		if panel != null and panel.visible:
+			return true
+	return false
 
 const MIST_FULL := "Nightmares still arriving: the mist holds them back until there is room on the path. You can call the next drift early once they are out."
 

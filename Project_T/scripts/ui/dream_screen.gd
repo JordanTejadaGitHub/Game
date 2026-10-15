@@ -41,6 +41,8 @@ const LONG_PRESS := 0.45
 const PHONE_MARGIN := 44.0  # Left and right of the header, cards and bottom row (the HUD layer already fits the safe area)
 const PHONE_GAP := 12.0  # Between the cards
 const PHONE_LIFT := 1.04  # The looked card's scale (from its foot: it rises)
+const PHONE_DIM_ALPHA := 0.45  # The cards not looked at (the looked one keeps full alpha and its rarity thread; no blur)
+const PHONE_CHOICE_SIZE := Vector2(188, 56)  # Take and Let it pass: both real choices, the same size
 const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word, not the card
 var _phone := false
 var _subtitle: Label = null  # Phones: "after drift 10 · take one"
@@ -169,13 +171,19 @@ func _build_phone_layout(dim: Control) -> void:
 	_phone_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_phone_hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_phone_hint.custom_minimum_size.x = 120
+	_phone_hint.theme_type_variation = &"WhisperLabel"  # The whisper's dark shadow (FOG), no panel
 	UiStyle.whisper(_phone_hint, 17)  # The italic voice
 	bottom.add_child(_phone_hint)
 	_take = Button.new()
 	_take.name = "TakeButton"
 	_take.focus_mode = Control.FOCUS_NONE
-	_take.custom_minimum_size = Vector2(188, 56)
 	UiStyle.primary(_take)
+	# Take and Let it pass are both real choices: the same size, Take primary, Let it pass the normal framed button
+	for choice: Button in [_take, _skip]:
+		choice.custom_minimum_size = PHONE_CHOICE_SIZE
+		choice.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		choice.clip_text = true  # A long card name trims instead of widening one button past the other
+		choice.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_take.pressed.connect(_take_looked)
 	bottom.add_child(_take)
 	peek = ChoicePeek.new(self, [dim, margin], "Back to the Dream")
@@ -556,7 +564,8 @@ func _look_at(card: UpgradeData, button: Button) -> void:
 		var looked := button.get_parent() == column
 		var face := _card_box(column)
 		if face != null:
-			face.modulate = Color(1, 1, 1, 1.0 if looked else 0.55)  # multiplier
+			var dim_alpha := PHONE_DIM_ALPHA if _phone else 0.55
+			face.modulate = Color(1, 1, 1, 1.0 if looked else dim_alpha)  # multiplier
 			if _phone:
 				_lift(face, looked)
 		var hint := column.get_node_or_null("TapHint") as Label

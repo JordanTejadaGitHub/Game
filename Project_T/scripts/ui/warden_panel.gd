@@ -58,14 +58,19 @@ var _choosing := false  # The Nurture button / R opened the rank choices: 1–4 
 var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; the next tap grows)
 var _touch := false
 # Phones (UiStyle.is_phone, mobile redesign "Warden drawer"): the panel is a full-height drawer on the right edge, the
-# map visible to its left. Header (portrait, name, rank line, round close), a Damage / Speed / Reach grid, the grow
-# options two to a row, everything else scrolling in the middle, and Sell beside a big Nurture at the bottom (under the
-# right thumb). The PC layout is untouched: every phone change checks _phone.
+# map visible to its left, on the card background with one sprout on its top thread. Header (portrait, name, rank line,
+# round close), one icon row of stats, the grow options (two to a row only when each fits whole), everything else
+# scrolling in the middle, and a quiet Sell beside a plain Nurture at the bottom (under the right thumb; no primary).
+# The PC layout is untouched: every phone change checks _phone.
 var _phone := false
-var _phone_stats := GridContainer.new()  # Phones: Damage / Speed / Reach tiles under the header (the full rows go in Details)
+var _phone_stats := HBoxContainer.new()  # Phones: one icon row (damage, speed, reach, Potency) under the header (the full rows go in Details)
+var _inner := 0.0  # The content width (the panel less its margins and the scroll bar)
 const PHONE_WIDTH := 350.0  # In the phone layout base (UiStyle.PHONE_LAYOUT_MIN, 1100 × 540)
-const PHONE_FOOTER_H := 56.0  # Sell and Nurture: taller than HUD_BUTTON_H, the thumb's targets
+const PHONE_FOOTER_H := UiStyle.HUD_BUTTON_H  # Sell and Nurture: the same 48 px as a grow option (no primary on the panel)
 const PHONE_SELL_W := 112.0  # Sell stays small beside Nurture
+const PHONE_CENTER_ALPHA := 0.92  # card_bg, ~90% (ui_style.md)
+const PHONE_EDGE_ALPHA := 0.88
+const PHONE_STAT_ICON := 32.0  # A 16 px stat icon at 2×
 const PHONE_PORTRAIT := 48.0
 
 func _ready() -> void:
@@ -81,11 +86,19 @@ func _ready() -> void:
 	var frame := get_theme_stylebox("panel").duplicate() as StyleBox
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
-	if _phone and frame is MoonStyleBox:  # Phones: the drawer is solid (the map and the HUD under it showed through)
-		frame.set("center_alpha", 1.0)
-		frame.set("edge_alpha", 1.0)
+	if _phone and frame is MoonStyleBox:  # Phones: the card background (card_bg: Night → Void, ~90%), one sprout on its top thread
+		var moon := frame as MoonStyleBox
+		moon.fog_color = UiStyle.FOG
+		moon.glow_color = UiStyle.CARD_BG
+		moon.center_alpha = PHONE_CENTER_ALPHA
+		moon.edge_alpha = PHONE_EDGE_ALPHA
+		moon.thread = MoonStyleBox.TopLine.GOLD
+		moon.diamond = true
+		moon.side_edges = false
+		moon.frame_color = Color(UiStyle.FOG, 0.0)
 	add_theme_stylebox_override("panel", frame)
 	var inner := width - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT) - SCROLL_BAR  # Room for the info part's scroll bar
+	_inner = inner
 	_buffs_open = details_choice
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -108,9 +121,7 @@ func _ready() -> void:
 	if _phone:
 		_portrait.custom_minimum_size = Vector2(PHONE_PORTRAIT, PHONE_PORTRAIT)
 		_phone_stats.name = "PhoneStats"
-		_phone_stats.columns = 3
-		_phone_stats.add_theme_constant_override("h_separation", 6)
-		_phone_stats.add_theme_constant_override("v_separation", 6)
+		_phone_stats.add_theme_constant_override("separation", 12)
 		_phone_stats.visible = false
 		content.add_child(_phone_stats)
 	_ranks_row.name = "RankPicks"
@@ -1357,7 +1368,7 @@ func _growth_note() -> String:
 # A key chip at the right of a footer button (Sell: X); its text keeps clear of it. A changed text (a block reason)
 # drops it.
 func _key_on(button: Button, key: String) -> void:
-	if key == "":
+	if key == "" or _phone:  # Phones: no keyboard, no key chips
 		return
 	var chip := UiStyle.key_chip(key)
 	chip.name = "Key"
@@ -1515,6 +1526,7 @@ static func _is_price(text: String) -> bool:
 
 func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	button.set_meta(&"short", short)
+	button.set_meta(&"poor_price", poor_price)  # Phones: a grow row moved back to one column redraws with it
 	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
 	var label: String = button.get_meta(&"label", "")
 	var price: String = button.get_meta(&"price", "")
@@ -1600,8 +1612,6 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
 	chip.visible = chip.text != "" and not _phone  # Phones: no keyboard, no key chips
-	if _phone and button.get_meta(&"phone_primary", false) and not short and not button.disabled:
-		button.theme_type_variation = &"PrimaryButton"  # Phones: the footer's Nurture, when it's the best next step
 
 # A row that can't be pressed, with its reason as the small line ("Needs 3 free cells beside it", "Awake elsewhere").
 # A row's name is never cut (user, Jarlink: "Unlock Lightning F…"): it steps down a font size or two until it fits its
@@ -1766,8 +1776,8 @@ func _dock_right() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	grow_vertical = Control.GROW_DIRECTION_BOTH
 
-# Damage / Speed / Reach as three tiles (the header's own formulas); hidden for walls, auras and a Graftling with
-# nothing to copy. Each tile explains its stat on tap (IconInfo).
+# Damage, speed, reach (+ Potency when it does something) as one icon row (the header's own formulas); hidden for
+# walls, auras and a Graftling with nothing to copy. Each stat explains itself on tap (IconInfo).
 func _fill_phone_stats() -> void:
 	for child in _phone_stats.get_children():
 		_phone_stats.remove_child(child)
@@ -1780,33 +1790,41 @@ func _fill_phone_stats() -> void:
 	var range_text := "%.1f" % _tower.get_range_cells()
 	if _tower.attack_data != null and _tower.attack_data.min_range > 0.0:
 		range_text = "%.1f–%.1f" % [_tower.attack_data.min_range, _tower.get_range_cells()]
-	_phone_stats.add_child(_phone_stat_tile("Damage", BossDossier.thousands(roundi(_tower.get_damage())), &"damage"))
-	_phone_stats.add_child(_phone_stat_tile("Speed", "%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"))
-	_phone_stats.add_child(_phone_stat_tile("Reach", range_text, &"range"))
+	_phone_stats.add_child(_phone_stat_tile(BossDossier.thousands(roundi(_tower.get_damage())), &"damage"))
+	_phone_stats.add_child(_phone_stat_tile("%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"))
+	_phone_stats.add_child(_phone_stat_tile(range_text, &"range"))
+	if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something, as in the header
+		_phone_stats.add_child(_phone_stat_tile(str(snappedf(_tower.get_potency(), 0.01)), &"potency"))
 
-func _phone_stat_tile(caption: String, value: String, stat: StringName) -> PanelContainer:
-	var tile := PanelContainer.new()
-	tile.add_theme_stylebox_override("panel", UiStyle.fog_patch(8.0, 4.0))
-	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", -2)
-	tile.add_child(column)
-	var head := Label.new()
-	head.text = caption
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(head, 12)
-	column.add_child(head)
+# One stat as icon + number (no caps word, no frame: UI owner's review); a tap explains it (IconInfo), 48 px tall.
+func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
+	var cell := HBoxContainer.new()
+	cell.name = "Stat_" + String(stat)
+	cell.add_theme_constant_override("separation", 4)
+	cell.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	cell.mouse_filter = Control.MOUSE_FILTER_PASS  # The drawer still scrolls under a drag
+	var texture := IconInfo.icon(stat)
+	if texture != null:
+		var icon := TextureRect.new()
+		icon.texture = texture
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(PHONE_STAT_ICON, PHONE_STAT_ICON)
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(icon)
 	var number := Label.new()
 	number.text = value
 	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	number.clip_text = true
-	number.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.size_flags_vertical = Control.SIZE_FILL
 	UiStyle.number(number, 20)
-	column.add_child(number)
+	cell.add_child(number)
 	var tip := IconInfo.stat_tooltip(stat)
 	if tip != "":
-		TapTip.attach(column, tip)
-	return tile
+		TapTip.attach(cell, tip)
+	return cell
 
 # After a build (one Warden or a group): Details joins the scrolling rows, Close becomes the header's round button,
 # Nurture leaves the rows for the footer beside Sell (or Back while its choices are open). Every button keeps its
@@ -1830,6 +1848,7 @@ func _phone_arrange() -> void:
 			_footer.remove_child(child)  # The PC's 16 px gap between Sell and Close
 			child.queue_free()
 	_add_phone_close()
+	_phone_grow_columns()
 	var target_chip := _portrait.get_parent().get_node_or_null("TargetChip") as Control
 	if target_chip != null:
 		target_chip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
@@ -1847,8 +1866,7 @@ func _phone_arrange() -> void:
 		_buttons.remove_child(nurture)
 		_footer.add_child(nurture)
 		nurture.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nurture.custom_minimum_size.y = PHONE_FOOTER_H
-		nurture.set_meta(&"phone_primary", nurture.get_meta(&"primary", false))
+		nurture.custom_minimum_size.y = PHONE_FOOTER_H  # A plain choice row like the grow options: same height, no primary
 		_apply_price(nurture)
 	elif _choosing:
 		var back := _add_footer_button("Back")
@@ -1861,18 +1879,20 @@ func _phone_arrange() -> void:
 	if sell != null:
 		_phone_sell(sell, _footer.get_child_count() > 1)
 
-# Sell: small, ember (POOR), no key chip; a long line (a block reason, "Press again") takes half the row and says
-# itself whole in its tip.
+# Sell: a quiet text button (Mist words, no box, no key chip) with a 48 px hit area (UI owner's review); a long line
+# (a block reason, "Press again") takes half the row and says itself whole in its tip.
 func _phone_sell(sell: Button, beside: bool) -> void:
 	var key := sell.get_node_or_null("Key")
 	if key != null:
 		key.queue_free()
-	if not sell.has_theme_color_override("font_color"):
-		_danger_footer(sell)
-	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		var box := sell.get_theme_stylebox(state).duplicate() as StyleBox
-		box.content_margin_right = 6.0  # The key chip's room, not needed
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := StyleBoxEmpty.new()  # No frame (the group Sell's POOR frame included)
+		box.content_margin_left = 6.0
+		box.content_margin_right = 6.0
 		sell.add_theme_stylebox_override(state, box)
+	for state in FONT_STATES:
+		sell.add_theme_color_override(state, UiStyle.INK if state == "font_hover_color" or state == "font_pressed_color" else UiStyle.INK_DIM)
+	sell.add_theme_color_override("font_disabled_color", Color(UiStyle.INK_DIM, 0.6))
 	sell.custom_minimum_size = Vector2(PHONE_SELL_W, PHONE_FOOTER_H)
 	sell.clip_text = true
 	sell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1882,6 +1902,47 @@ func _phone_sell(sell: Button, beside: bool) -> void:
 	if long:
 		sell.tooltip_text = sell.text + ("\n\n" + sell.tooltip_text if sell.tooltip_text != "" else "")
 	_footer.move_child(sell, 0)
+
+# Grow options two to a row only while every cell shows itself whole (name, then its price or note in Mist under it,
+# never cut: UI owner's review); otherwise one full-width column.
+const PHONE_GRID_NAME_SIZE := 14  # The smallest a name may step down to in a half-width cell
+
+func _phone_grow_columns() -> void:
+	var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
+	if grid == null or grid.is_queued_for_deletion() or grid.get_child_count() == 0:
+		return
+	var first := grid.get_child(0) as Button
+	var margin := first.get_theme_stylebox("normal").get_margin(SIDE_LEFT) + 8.0  # The row overlay's insets (_row_look)
+	var room := (_inner - float(grid.get_theme_constant("h_separation"))) / 2.0 - margin
+	if _grid_cells_fit(grid, room):
+		return
+	var at := grid.get_index()
+	var cells := grid.get_children()
+	_buttons.remove_child(grid)
+	grid.queue_free()
+	for i in cells.size():
+		var button := cells[i] as Button
+		grid.remove_child(button)
+		_buttons.add_child(button)
+		_buttons.move_child(button, at + i)
+		button.set_meta(&"narrow", false)
+		button.size_flags_horizontal = Control.SIZE_FILL
+		_row_look(button, button.get_meta(&"short", false), button.get_meta(&"poor_price", true))
+
+func _grid_cells_fit(grid: GridContainer, room: float) -> bool:
+	for cell in grid.get_children():
+		var row := cell.get_node_or_null("Row")
+		if row == null:
+			return false
+		var name_label := row.get_node("Lines").get_child(0) as Label
+		var note_label := row.get_node("Lines").get_child(1) as Label
+		var font := name_label.get_theme_font("font")
+		if font.get_string_size(name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, PHONE_GRID_NAME_SIZE).x > room:
+			return false
+		font = note_label.get_theme_font("font")
+		if note_label.text != "" and font.get_string_size(note_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ROW_NOTE_SIZE).x > room:
+			return false
+	return true
 
 # The round close button at the end of the header's line (tagged as its corner: the next build's set_corner clears it).
 func _add_phone_close() -> void:

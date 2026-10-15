@@ -372,9 +372,11 @@ func _make_sell_slot() -> void:
 	sell_slot.focus_mode = Control.FOCUS_NONE
 	sell_slot.theme_type_variation = &"WardenSlot"
 	sell_slot.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
-	sell_slot.add_theme_color_override("font_color", UiStyle.POOR)
+	# A tool slot like Clear (UI Asset review 2026-10-15: Ember means "can't afford"): Mist caption, the slot frame; the
+	# selected look (gold border) only while sell mode is on.
+	sell_slot.add_theme_color_override("font_color", UiStyle.MOON_MIST)
 	sell_slot.add_theme_color_override("font_pressed_color", UiStyle.INK)
-	sell_slot.add_theme_color_override("font_hover_color", UiStyle.POOR)
+	sell_slot.add_theme_color_override("font_hover_color", UiStyle.INK)
 	var dew := IconInfo.icon(&"dew")
 	if dew != null:
 		sell_slot.icon = dew
@@ -421,7 +423,12 @@ func _add_phone_buttons() -> void:
 		_place_top_button(button, [0.0, ROW_BUTTON])
 		add_child(button)
 	dreams_button.draw.connect(_draw_dreams_glyph)
-	damage_button.draw.connect(_draw_damage_glyph)
+	# Damage: the pixel damage icon (UI Asset review: no code-drawn shapes, they land on fractional sizes at UI 0.9)
+	var damage_icon := IconInfo.icon(&"damage")
+	if damage_icon != null:
+		damage_button.icon = damage_icon
+	else:
+		damage_button.draw.connect(_draw_damage_glyph)
 	dreams_button.toggled.connect(_on_dreams_button)
 	damage_button.toggled.connect(_on_damage_button)
 	_setup_phone_panels.call_deferred()  # After the damage meter and the Dreams row are ready
@@ -439,9 +446,9 @@ func _setup_phone_panels() -> void:
 
 # Three small rarity gems: this run's Dreams.
 func _draw_dreams_glyph() -> void:
-	var centre := dreams_button.size / 2.0
+	var centre := (dreams_button.size / 2.0).floor()  # Whole pixels (UI Asset: no fractional shapes; a pixel icon is asked for)
 	for i in 3:  # (r 4 read as "…" on a phone: user screenshot)
-		UiStyle.draw_gem(dreams_button, centre + Vector2((i - 1) * 11.0, 0.0), 5.5, i + 1)
+		UiStyle.draw_gem(dreams_button, centre + Vector2((i - 1) * 11.0, 0.0), 5.0, i + 1)
 
 # Three bars, tall to short: the damage meter.
 func _draw_damage_glyph() -> void:

@@ -2305,6 +2305,13 @@ func get_stroke_cells() -> Array[Vector2]:
 func get_stroke_tag() -> String:
 	var count := _stroke_plan.values().count("")
 	var name := tower_data.display_name + ("" if count == 1 else "s")
+	if UiStyle.is_phone():  # Phones (UI Asset review 2026-10-15: no " · " strings): "5 Sprouts   ◆70   +5 path   1 skipped"
+		var parts: Array[String] = ["%d %s" % [count, name], UiStyle.dew_amount(_stroke_cost)]
+		if _stroke_growth != 0:
+			parts.append("%+d path" % _stroke_growth)
+		if _stroke.size() - count > 0:
+			parts.append("%d skipped" % (_stroke.size() - count))
+		return "   ".join(parts)
 	var tag := "%d %s · %d Dew" % [count, name, _stroke_cost]
 	if _stroke_growth != 0:
 		tag += " · %+d cells of path" % _stroke_growth

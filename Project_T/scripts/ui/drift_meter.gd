@@ -177,6 +177,11 @@ func _ready() -> void:
 		UiStyle.caps(tab, 14, UiStyle.INK)
 		var summary: bool = pair[2]
 		tab.pressed.connect(func() -> void: show_block_summary(summary))
+		if UiStyle.is_phone():  # The active tab is a Glow underline, never a framed (primary-looking) box (UI Asset review)
+			tab.flat = true
+			tab.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+			tab.draw.connect(_draw_tab_underline.bind(tab))
+			tab.toggled.connect(func(_on: bool) -> void: tab.queue_redraw())
 		tabs.add_child(tab)
 	_wardens_tab.set_pressed_no_signal(true)
 	_body.add_child(tabs)
@@ -204,6 +209,11 @@ func _ready() -> void:
 	for control in [self, _scroll, _rows, _body, _header, _sort]:
 		control.mouse_force_pass_scroll_events = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
+
+# Phones: the active tab's Glow underline, 2 px, 4 px in from its ends.
+func _draw_tab_underline(tab: Button) -> void:
+	if tab.button_pressed:
+		tab.draw_rect(Rect2(4.0, tab.size.y - 4.0, tab.size.x - 8.0, 2.0), UiStyle.GOLD)
 
 func set_hidden(hidden: bool) -> void:
 	hidden_by_player = hidden

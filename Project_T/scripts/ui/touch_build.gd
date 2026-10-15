@@ -14,6 +14,7 @@ class_name TouchBuild
 # Touch mode turns on with the first screen touch and off with real mouse movement. Made by the HUD.
 
 const BUTTON_HEIGHT := 52.0
+const PHONE_BUTTON_W := 150.0  # Phones: Confirm, Cancel and Done the same width
 const PAN_SLOP := 14.0  # Screen pixels a finger moves before a touch is a pan instead of a tap
 
 # The current gesture, for the map tools (static: there is one touch screen).
@@ -66,6 +67,8 @@ func _ready() -> void:
 		button.text = pair[1]
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(170 if button == _plant else 110, BUTTON_HEIGHT)
+		if UiStyle.is_phone():
+			button.custom_minimum_size.x = PHONE_BUTTON_W  # Confirm / Cancel / Done one size (UI Asset review 2026-10-15)
 		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(pair[2])
 		if button == _plant:
@@ -76,6 +79,9 @@ func _ready() -> void:
 	_done.focus_mode = Control.FOCUS_NONE
 	_done.custom_minimum_size = Vector2(110, BUTTON_HEIGHT)
 	_done.add_theme_font_size_override("font_size", 18)
+	if UiStyle.is_phone():
+		_done.custom_minimum_size.x = PHONE_BUTTON_W
+		UiStyle.primary(_done)  # Phones: Done is the primary when it shows instead of Confirm (it never shows beside it)
 	_done.tooltip_text = "Stop building."
 	_done.pressed.connect(_on_done)
 	add_child(_done)

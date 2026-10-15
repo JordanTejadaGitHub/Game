@@ -100,7 +100,16 @@ func _ready() -> void:
 	if peek_button is Button:
 		UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
 		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	box.add_child(peek_button)
+	if UiStyle.is_phone() and peek_button is Control:
+		# Phones: Peek in the top-right corner (as the Dream screen's), not under the cards: the first pick's Calling
+		# lines made the column 14 px taller than a 540-tall view (test_phone_layout). On `dim`, so a peek hides it too.
+		dim.add_child(peek_button)
+		peek_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		peek_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		peek_button.offset_right = -44.0
+		peek_button.offset_top = 10.0
+	else:
+		box.add_child(peek_button)
 	# A press for 0.6 s after the cards show never picks (Roguelite's ChoiceArm; user: "sometimes I click on cards when
 	# waves end because I'm trying to place towers").
 	arm = ChoiceArm.attach(self, _cards)
