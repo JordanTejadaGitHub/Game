@@ -247,11 +247,15 @@ func select(tower: Tower) -> void:
 	set_selection([tower] if tower != null else [])
 
 func set_selection(towers: Array) -> void:
+	var before := selection.size()
 	selection.clear()
 	for tower in towers:
 		if tower is Tower and is_instance_valid(tower) and not tower.is_queued_for_deletion() \
 				and not selection.has(tower):
 			selection.append(tower)
+	if OS.is_debug_build() and selection.size() > maxi(before, 1) + 4:
+		# Where a big selection came from (the user: "still seeing selected wardens increasing"): the call chain in the log.
+		print("Selection %d -> %d: %s" % [before, selection.size(), " < ".join(get_stack().slice(1, 4).map(func(f: Dictionary) -> String: return "%s:%d" % [f.function, f.line]))])
 	_selection_updated()
 
 func _selection_updated() -> void:
@@ -688,7 +692,10 @@ func _starts_selection(event: InputEvent) -> bool:
 
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
-	var shift := mouse != null and mouse.shift_pressed
+	# Shift / Ctrl count only when the key is down by both the click and the key state (the user, 2026-10-15, PC: the
+	# selection kept growing; a Shift whose release went to another window, e.g. Win+Shift+S, made every click add).
+	var shift := mouse != null and mouse.shift_pressed and Input.is_key_pressed(KEY_SHIFT)
+	var whole_map := mouse != null and ((mouse.ctrl_pressed and Input.is_key_pressed(KEY_CTRL)) or (mouse.meta_pressed and Input.is_key_pressed(KEY_META)))
 	if mouse != null and mouse.double_click and TouchBuild.is_touch():
 		# Phones (user 2026-10-15: double tap is how you select several): the same kind and rank ON SCREEN, under the
 		# finger, never the modifier keys (a phone's emulated taps may carry them: "244 Wardens selected" from the
@@ -699,7 +706,7 @@ func _on_press(event: InputEvent) -> void:
 			_pressing = false
 			return
 	elif mouse != null and mouse.double_click and _hover_tower != null:
-		select_same_as(_hover_tower, mouse.ctrl_pressed or mouse.meta_pressed, mouse.alt_pressed, shift)
+		select_same_as(_hover_tower, whole_map, mouse.alt_pressed, shift)
 		_pressing = false
 		return
 	_pressing = true
