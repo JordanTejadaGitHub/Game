@@ -632,7 +632,7 @@ func _add_blight_elites(schedule: Array) -> void:
 
 func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1.0) -> void:
 	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number, elite),
-		get_spawn_modifiers(data, number), elite)
+		get_spawn_modifiers(data, number), elite, get_growth(number))  # Growth: the dread shell's per-hit soak
 	if enemy == null:
 		return  # No route (shouldn't happen: building never fully blocks the path)
 	_drift_of[enemy] = number

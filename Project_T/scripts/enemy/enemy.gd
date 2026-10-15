@@ -123,6 +123,9 @@ var speed: float
 var is_cleansed := false
 # Multiplies `enemy_data.health` (set before adding to the tree; drifts grow creatures this way).
 var health_scale := 1.0
+# DriftDirector.get_growth of its drift (set before adding to the tree): grows the dread shell's per-hit soak, which
+# must not follow health_scale (Balancing, balance_simulation.md "Dread shells after Nightmare Kinds").
+var coat_growth := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
@@ -450,7 +453,9 @@ func _ready() -> void:
 	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
 	coat_max = enemy_data.coat_total * health_scale * modifiers.get("coat", 1.0)
 	coat = coat_max
-	_coat_per_hit = enemy_data.coat_per_hit * health_scale * modifiers.get("coat", 1.0)
+	# The per-hit soak grows with the drift's growth only (health_scale rises ~×38 by drift 45, heavy hits ~×3–8);
+	# the shell's total keeps health_scale. Hard Bark ("coat") and strip_buff work on both.
+	_coat_per_hit = enemy_data.coat_per_hit * coat_growth * modifiers.get("coat", 1.0)
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames

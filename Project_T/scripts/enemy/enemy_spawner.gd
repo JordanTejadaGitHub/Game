@@ -26,6 +26,8 @@ var eclipse_left := 0.0
 # Health scale of the latest drift's (non-boss) arrivals: what boss spawns (brood, Grief) grow by,
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
+# …and that drift's DriftDirector.get_growth: the dread shell's per-hit soak for summons that don't pass their own.
+var drift_coat_growth := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
 var root_web_share := 0.0  # Root Web: touching nightmares are Held for this share of a hold
 var root_web_boss_share := 0.0  # …and bosses for this share
@@ -123,16 +125,18 @@ func has_room() -> bool:
 # Spawns a creature at the start of the maze. Returns it, or null if there's no route.
 # `modifiers`: Omen multipliers for the creature (see Enemy.modifiers). `elite`: Deeply Blighted.
 # Flyers float straight at the Heartwood; a Mother Duck brings her Ducklings in single file.
+# `coat_growth`: DriftDirector.get_growth of its drift (the dread shell's per-hit soak; Enemy.coat_growth).
 func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Dictionary = {},
-		elite: bool = false) -> Node2D:
+		elite: bool = false, coat_growth: float = 1.0) -> Node2D:
 	var path_points: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	if path_points.is_empty():
 		return null
 	if not enemy_data.is_boss:
 		drift_health_scale = health_scale
+		drift_coat_growth = coat_growth
 	if enemy_data.trait_kind == EnemyData.Trait.FLYING and not enemy_data.flies_along_route:  # Moth Queen keeps the route
 		path_points = _flight_path(enemy_data.flight_weave)
-	var enemy := _create(enemy_data, health_scale, modifiers, elite)
+	var enemy := _create(enemy_data, health_scale, modifiers, elite, coat_growth)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
 	var way_in := _way_in(enemy.position)
@@ -160,14 +164,16 @@ func _way_in(first: Vector2) -> PackedVector2Array:
 static var force_walk_in := false  # Tests: walk in from the fog outside the real game too
 
 func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
-		elite: bool = false) -> Node2D:
-	return _create_prepared(enemy_scene.instantiate(), enemy_data, health_scale, modifiers, elite)
+		elite: bool = false, coat_growth: float = -1.0) -> Node2D:
+	return _create_prepared(enemy_scene.instantiate(), enemy_data, health_scale, modifiers, elite, coat_growth)
 
 # _create for an enemy already instantiated (so flags like is_echo are set before its _ready).
+# `coat_growth` < 0 = the latest drift's (drift_coat_growth).
 func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
-		elite: bool = false) -> Node2D:
+		elite: bool = false, coat_growth: float = -1.0) -> Node2D:
 	enemy.enemy_data = enemy_data
 	enemy.health_scale = health_scale
+	enemy.coat_growth = coat_growth if coat_growth > 0.0 else drift_coat_growth
 	enemy.modifiers = modifiers
 	enemy.elite = elite
 	enemy.cleansed.connect(_on_enemy_cleansed)
@@ -198,7 +204,7 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array, way_in: PackedVe
 	# A boss's followers (the Huntsman's hounds) grow with the drift like its escort, not its fixed scale.
 	var scale: float = drift_health_scale if data.is_boss else leader.health_scale
 	for i in data.follower_count:
-		var follower := _create(data.followers, scale, leader.modifiers)
+		var follower := _create(data.followers, scale, leader.modifiers, false, leader.coat_growth)
 		follower.position = leader.position
 		follower.set_path(path)
 		follower.hold_time = data.follower_spacing * (i + 1)
@@ -425,7 +431,7 @@ func _split(parent: Node2D) -> void:
 	if share >= 0.0:
 		parent.dew_share = share * (1.0 - parent.SPLIT_CHILDREN_DEW_SHARE)
 	for i in data.split_count:
-		var child := _create(data.split_into, parent.health_scale, parent.modifiers)
+		var child := _create(data.split_into, parent.health_scale, parent.modifiers, false, parent.coat_growth)
 		child.position = parent.position + back * SPLIT_SPACING * i
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
 		if child_share >= 0.0:

@@ -225,9 +225,10 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var single_target_multiplier: float = 1.0
 @export var area_multiplier: float = 1.0
 # Dread shell (the Armoured Kind): each hit loses `coat_per_hit` soothe (min 1) until the coat has soaked up
-# `coat_total`, then it crumbles for good. Both scale with the creature's health_scale.
-# Balancing: placeholder (Balancing Discussion sets them): the Husk 5 / 120, the Barrow Wight 8 / 240 and the
-# Barrow King 15 / 2400 were added 2026-10-15 like the Shellbound's 6 / 100 (about 40% / 15% of base health).
+# `coat_total`, then it crumbles for good. The total scales with health_scale, the per-hit soak with the drift's
+# DriftDirector.get_growth only (Enemy.coat_growth; balance_simulation.md "Dread shells after Nightmare Kinds").
+# Balancing 2026-10-15: Husk 10 / 100, Shellbound 15 / 150, Barrow Wight 20 / 300. The Barrow King's 15 / 2400 is
+# still Enemy Code's placeholder (Balancing: placeholder).
 @export var coat_per_hit: int = 0
 @export var coat_total: int = 0
 @export var cracked_frames: SpriteFrames  # Swapped in once the coat breaks (Shellbound's cracked shell)
@@ -308,8 +309,9 @@ func laps() -> bool:
 # Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
 # {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),
 # {field:list_pct} → "67% and 33%", {field:name} → a linked resource's display_name. Tokens that
-# aren't fields of this resource (status tokens like {damp}) are left for IconInfo.format.
-func format_text(text: String) -> String:
+# aren't fields of this resource (status tokens like {damp}) are left for IconInfo.format. `values` overrides
+# fields (shell_values_at: the dread shell at the current drift).
+func format_text(text: String, values: Dictionary = {}) -> String:
 	if not text.contains("{"):
 		return text
 	var token := RegEx.create_from_string("\\{(\\w+)(?::(\\w+))?\\}")
@@ -319,9 +321,9 @@ func format_text(text: String) -> String:
 	var result := text
 	for found in token.search_all(text):
 		var field := found.get_string(1)
-		if not fields.has(field):
+		if not fields.has(field) and not values.has(field):
 			continue
-		result = result.replace(found.get_string(), _format_value(get(field), found.get_string(2)))
+		result = result.replace(found.get_string(), _format_value(values.get(field, get(field)), found.get_string(2)))
 	return result
 
 static func _format_value(value: Variant, style: String) -> String:
@@ -369,18 +371,27 @@ func is_through_walls() -> bool:
 	return trait_kind == Trait.FLYING and not flies_along_route
 
 # The intro card's lines with their numbers filled in (status tokens stay for IconInfo).
-func get_intro_lines() -> Array[String]:
+func get_intro_lines(values: Dictionary = {}) -> Array[String]:
 	var lines: Array[String] = []
 	for line in intro_lines:
-		lines.append(format_text(line))
+		lines.append(format_text(line, values))
 	return lines
 
 # An ability entry with its numbers filled in (see format_text); status tokens stay for IconInfo.
-func get_ability(index: int) -> Dictionary:
+func get_ability(index: int, values: Dictionary = {}) -> Dictionary:
 	var ability: Dictionary = abilities[index].duplicate()
-	ability["text"] = format_text(ability.get("text", ""))
-	ability["when"] = format_text(ability.get("when", ""))
+	ability["text"] = format_text(ability.get("text", ""), values)
+	ability["when"] = format_text(ability.get("when", ""), values)
 	return ability
+
+# The dread shell as it spawns at drift `drift` (DriftDirector `director`), for format_text / get_intro_lines /
+# get_ability `values`: {"coat_per_hit": base × get_growth(drift), "coat_total": base × get_health_scale(drift)}, as
+# Enemy._ready sets them (before Omens). {} without a shell or a director.
+func shell_values_at(director: Node, drift: int) -> Dictionary:
+	if coat_per_hit <= 0 or director == null or not director.has_method("get_growth"):
+		return {}
+	return {"coat_per_hit": coat_per_hit * float(director.get_growth(drift)),
+		"coat_total": coat_total * float(director.get_health_scale(self, drift))}
 
 # Soothe multiplier for a hit from Warden family `line`: always 1 since Nightmare Kinds (2026-10-15: no damage
 # types, no attack-shape multipliers). Kept so callers stay safe.
