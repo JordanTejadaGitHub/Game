@@ -687,9 +687,16 @@ func _starts_selection(event: InputEvent) -> bool:
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
 	var shift := mouse != null and mouse.shift_pressed
-	# Phones: no double-tap "same kind" (platforms.md: it fights the touch flow; user 2026-10-15: a double tap kept
-	# growing the selection to "244 Wardens selected"); a tap selects the one Warden.
-	if mouse != null and mouse.double_click and _hover_tower != null and not TouchBuild.is_touch():
+	if mouse != null and mouse.double_click and TouchBuild.is_touch():
+		# Phones (user 2026-10-15: double tap is how you select several): the same kind and rank ON SCREEN, under the
+		# finger, never the modifier keys (a phone's emulated taps may carry them: "244 Wardens selected" from the
+		# whole map), never adding to the selection.
+		var tapped := get_tower_at_point(get_canvas_transform().affine_inverse() * mouse.position)
+		if tapped != null:
+			select_same_as(tapped, false, false)
+			_pressing = false
+			return
+	elif mouse != null and mouse.double_click and _hover_tower != null:
 		select_same_as(_hover_tower, mouse.ctrl_pressed or mouse.meta_pressed, mouse.alt_pressed, shift)
 		_pressing = false
 		return

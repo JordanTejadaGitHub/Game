@@ -1829,6 +1829,26 @@ func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
 # After a build (one Warden or a group): Details joins the scrolling rows, Close becomes the header's round button,
 # Nurture leaves the rows for the footer beside Sell (or Back while its choices are open). Every button keeps its
 # handlers; only where it sits changes.
+# Phones (platforms.md "Select all of this kind"; user 2026-10-15: multi-select must not rest on a double tap alone):
+# with one Warden shown, a row selects every Warden of its kind on the map, any rank.
+func _add_select_kind() -> void:
+	if tower_seller.selection.size() != 1 or not is_instance_valid(_tower):
+		return
+	var same: Array[Tower] = tower_seller.get_same_kind(_tower.tower_data, true)
+	if same.size() < 2:
+		return
+	var button := Button.new()
+	button.name = "SelectKind"
+	button.text = "Select all %d %ss" % [same.size(), _tower.tower_data.display_name]
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.pressed.connect(_select_kind.bind(_tower))
+	_buttons.add_child(button)
+
+func _select_kind(tower: Tower) -> void:
+	if is_instance_valid(tower):
+		tower_seller.select_same_as(tower, true, true)
+
 func _phone_arrange() -> void:
 	if not _phone:
 		return
@@ -1848,6 +1868,7 @@ func _phone_arrange() -> void:
 			_footer.remove_child(child)  # The PC's 16 px gap between Sell and Close
 			child.queue_free()
 	_add_phone_close()
+	_add_select_kind()
 	_phone_grow_columns()
 	var target_chip := _portrait.get_parent().get_node_or_null("TargetChip") as Control
 	if target_chip != null:
