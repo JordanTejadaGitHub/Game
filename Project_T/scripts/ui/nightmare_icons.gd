@@ -1,17 +1,24 @@
 extends Control
 class_name NightmareIcons
 
-# Resistances and immunities as icons (screens_ui.md "Nightmare info", added 2026-09-28): one small
-# icon control, three kinds:
-# - a damage type (enemy_design.md "Damage types": the Warden's TowerData.line; IconInfo names it) =
-#   its type icon (a coloured initial until the art), with a grey shield (resists, ×0.5) or a warm
-#   spark (weak to, ×1.5); rows show it with its name: "Resists [icon] Stone ×0.5";
+# A nightmare's Kind, immunities and traits as icons (screens_ui.md "Nightmare info", added 2026-09-28; Nightmare
+# Kinds, enemy_design.md ed6f573b, replaced the damage-type icons): one small icon control, two kinds:
 # - a status = IconInfo's sheet icon, crossed out (immune) or with "½" (wears off faster);
 # - a trait (Flying, Hidden, Dread shell, Passes through walls, …): a drawn glyph in a dark disc.
-# Every icon explains itself on hover and on tap (TapTip). make_rows(data) builds the "Resists /
-# Weak to / Immune" rows for the nightmare info, the Coming strip and the boss dossier.
+# Every icon explains itself on hover and on tap (TapTip). make_rows(data) builds the Kind badge (kind_row: its glyph
+# and EnemyData.get_kind_line(), the Kind's name linked to its glossary entry; Plain shows none) and the "Immune /
+# Wears off fast / Traits" rows for the nightmare info, the first-appearance card, the boss dossier, the Codex and the
+# Coming strip.
 
-enum Kind { FAMILY, STATUS, TRAIT }
+enum Kind { FAMILY, STATUS, TRAIT }  # (FAMILY: unused since damage types went; kept so the values stay put)
+
+# The Kind badge's glyph: a trait glyph that shows what the Kind does (draw_glyph).
+const KIND_GLYPHS := {EnemyData.Kind.ARMOURED: &"dread_shell", EnemyData.Kind.FLYING: &"flying",
+	EnemyData.Kind.HIDDEN: &"hidden", EnemyData.Kind.SWARM: &"swarm", EnemyData.Kind.FAST: &"sprints"}
+# The IconInfo.TERMS id of each Kind's glossary entry (the badge's link; Warden tags link the same).
+const KIND_TERMS := {EnemyData.Kind.ARMOURED: &"kind_armoured", EnemyData.Kind.FLYING: &"kind_flying",
+	EnemyData.Kind.HIDDEN: &"kind_hidden", EnemyData.Kind.SWARM: &"kind_swarm", EnemyData.Kind.FAST: &"kind_fast",
+	EnemyData.Kind.PLAIN: &"kind_plain"}
 
 # Damage line -> its family's base Warden (the face shown). "support" is Acorn's line in the docs.
 const LINE_WARDENS := {"spore": "sporeling", "stone": "pebbling", "water": "dewdrop", "light": "firefly_jar",
@@ -21,8 +28,6 @@ const TOWER_DIR := "res://resource/tower/"
 # How a line reads in a sentence ("stone Wardens deal half damage to it").
 const LINE_WORDS := {"acorn": "Acorn", "support": "Acorn"}
 
-const RESIST_COLOR := UiStyle.INK_DIM
-const WEAK_COLOR := Palette.GOLD
 const IMMUNE_COLOR := UiStyle.POOR
 const DISC_COLOR := Color(Palette.DREAD, 0.9)
 const GLYPH_COLOR := UiStyle.MOONLIGHT
@@ -49,33 +54,45 @@ const TRAITS := {
 	&"ash": ["Ash trail", "Its burning trail clears {spored} from nightmares walking on it."],
 	&"thief": ["Steals Dew", "Takes Dew as well as leaves if it reaches the Heartwood."],
 	&"followers": ["Brings followers", "Others walk behind it in single file, and get lost without it."],
-	&"swarm": ["Swarm", "Single-target hits deal less to it."],
 	&"bulky": ["Bulky", "Area hits deal less to it."],
 }
 
 var kind := Kind.TRAIT
 var id := ""  # Line, status id or trait id
-var mode := &""  # FAMILY: &"resist" / &"weak"; STATUS: &"immune" / &"short"
+var mode := &""  # STATUS: &"immune" / &"short"
 var tip := ""
-var _face: Texture2D = null
 
 # --- Builders --------------------------------------------------------------------------------------
 
-# A damage type (enemy_design.md "Damage types": the Warden's TowerData.line) with a shield (`how` =
-# &"resist") or spark (&"weak"). The type's icon from the sheet, else a disc in its colour with its
-# initial. `side` in px.
-static func family(line: String, how: StringName, side: float = 28.0) -> NightmareIcons:
+# The Kind's glyph alone (the Coming strip), its tip the Kind's line; null for Plain.
+static func kind_icon(data: EnemyData, side: float = 28.0) -> NightmareIcons:
+	if data == null or not KIND_GLYPHS.has(data.kind):
+		return null
 	var icon := NightmareIcons.new()
-	icon.kind = Kind.FAMILY
-	icon.id = line
-	icon.mode = how
-	icon._face = IconInfo.damage_type_icon(line)
-	var name := IconInfo.damage_type_name(line)
-	if how == &"resist":
-		icon.tip = "Resists %s: %s Wardens deal half damage to it." % [name, name]
-	else:
-		icon.tip = "Weak to %s: %s Wardens deal 50%% more damage to it." % [name, name]
+	icon.kind = Kind.TRAIT
+	icon.id = String(KIND_GLYPHS[data.kind])
+	icon.tip = data.get_kind_line()
 	return icon._sized(side)
+
+# The Kind badge: its glyph, then "Armoured: heavy hits and armour breakers crack its shell.", the Kind's name
+# as a link to its glossary entry (hover / tap). null for Plain (no badge).
+static func kind_row(data: EnemyData, side: float = 28.0, font: int = 15) -> HBoxContainer:
+	var icon := kind_icon(data, side)
+	if icon == null:
+		return null
+	var row := HBoxContainer.new()
+	row.name = "KindBadge"
+	row.add_theme_constant_override("separation", 6)
+	row.add_child(icon)
+	var name := data.get_kind_name()
+	var rest := data.get_kind_line().trim_prefix(name + ":").strip_edges()
+	var text := StatusLinks.make_label("", font, UiStyle.INK)
+	text.name = "KindLine"
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	text.text = "%s: %s" % [StatusLinks._link(StatusLinks.TERM_PREFIX + String(KIND_TERMS[data.kind]), name), rest]
+	row.add_child(text)
+	return row
 
 # A status crossed out (`how` = &"immune") or with "½" (&"short": `multiplier` of its duration).
 # `condition` (get_defences' "conditional"): immune only then, e.g. "while sprinting".
@@ -150,7 +167,6 @@ static func traits_of(data: EnemyData) -> Array[StringName]:
 	if data.ash_trail_time > 0.0: extra.append(&"ash")
 	if data.steals_dew > 0: extra.append(&"thief")
 	if data.followers != null and data.follower_count > 0: extra.append(&"followers")
-	if data.single_target_multiplier < 1.0: extra.append(&"swarm")
 	if data.area_multiplier < 1.0: extra.append(&"bulky")
 	for trait_id in extra:
 		if not out.has(trait_id):
@@ -168,39 +184,25 @@ static func shrugs_off(data: EnemyData) -> Dictionary:
 			out[StringName(status_id)] = m
 	return out
 
-# The "Resists ×0.5 / Weak to ×1.5 / Immune" rows for `data` (each hidden when empty) plus a traits
-# row. `side` = icon size; `compact` = resist and weak icons only, in one row, no captions (the
-# Coming strip). Returns an empty box when there's nothing to show.
+# The Kind badge (none for Plain), then the "Immune / Wears off fast" rows for `data` (each hidden when empty) plus a
+# traits row. `side` = icon size; `compact` = the Kind's glyph only, no captions (the Coming strip). Returns an empty
+# box when there's nothing to show.
 static func make_rows(data: EnemyData, side: float = 28.0, compact: bool = false, with_traits: bool = true) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	var d := defences(data)
-	var resists: Array = d.get("resists", []).filter(in_build)
-	var weak: Array = d.get("weak_to", []).filter(in_build)
 	if compact:
-		var row := HFlowContainer.new()
-		row.alignment = FlowContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("h_separation", 1)
-		for line in resists:
-			row.add_child(family(line, &"resist", side))
-		for line in weak:
-			row.add_child(family(line, &"weak", side))
-		if row.get_child_count() > 0:
+		var glyph := kind_icon(data, side)
+		if glyph != null:
+			var row := HFlowContainer.new()
+			row.alignment = FlowContainer.ALIGNMENT_CENTER
+			row.add_child(glyph)
 			box.add_child(row)
-		else:
-			row.free()
 		return box
 	var font := int(maxf(side * 0.5, 13.0))
-	if not resists.is_empty():
-		var icons: Array[Control] = []
-		for line in resists:
-			icons.append(_typed(line, &"resist", side, font, EnemyData.RESIST_MULTIPLIER))
-		box.add_child(_row("Resists", RESIST_COLOR, icons, font))
-	if not weak.is_empty():
-		var icons: Array[Control] = []
-		for line in weak:
-			icons.append(_typed(line, &"weak", side, font, EnemyData.WEAK_MULTIPLIER))
-		box.add_child(_row("Weak to", WEAK_COLOR, icons, font))
+	var badge := kind_row(data, side, font)
+	if badge != null:
+		box.add_child(badge)
 	var guarded: Array[Control] = []
 	for status_id in d.get("immune", []):
 		guarded.append(status(StringName(status_id), &"immune", 0.0, side))
@@ -230,21 +232,6 @@ static func make_rows(data: EnemyData, side: float = 28.0, compact: bool = false
 			box.add_child(_row("Traits", GLYPH_COLOR, icons, font))
 	return box
 
-# A damage type's icon, name and multiplier ("[icon] Stone ×0.5"); the whole entry taps to its tip.
-static func _typed(line: String, how: StringName, side: float, font: int, multiplier: float) -> Control:
-	var entry := HBoxContainer.new()
-	entry.add_theme_constant_override("separation", 3)
-	var icon := family(line, how, side)
-	entry.add_child(icon)
-	var name := Label.new()
-	name.text = "%s ×%s" % [IconInfo.damage_type_name(line), _num(multiplier)]
-	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", font)
-	name.add_theme_color_override("font_color", IconInfo.damage_type_color(line).lightened(0.2))
-	TapTip.attach(name, icon.tip)
-	entry.add_child(name)
-	return entry
-
 static func _row(caption: String, colour: Color, icons: Array[Control], font: int) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 3)
@@ -270,42 +257,8 @@ static func _num(value: float) -> String:
 
 func _draw() -> void:
 	match kind:
-		Kind.FAMILY: _draw_family()
 		Kind.STATUS: _draw_status()
 		_: _draw_trait()
-
-func _draw_family() -> void:
-	var c := size / 2.0
-	var r := minf(size.x, size.y) / 2.0 - 1.0
-	var frame := RESIST_COLOR if mode == &"resist" else WEAK_COLOR
-	var type_colour := IconInfo.damage_type_color(id)
-	draw_circle(c, r, Palette.NIGHT if mode == &"resist" else Palette.ROOT)
-	if _face != null:  # The damage type's pixel-art icon, whole-number scaled
-		var scale := maxf(floorf(r * 1.6 / 16.0), 1.0)
-		var side := Vector2(16, 16) * scale
-		draw_texture_rect(_face, Rect2(c - side / 2.0, side), false)
-	else:  # Until the art: a disc in the type's colour with its initial
-		draw_circle(c, r * 0.72, type_colour)
-		var font := ThemeDB.fallback_font
-		var letter := IconInfo.damage_type_name(id).left(1)
-		var fs := int(r * 1.0)
-		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(font, c + Vector2(-w / 2.0, fs * 0.36), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Palette.DREAD)
-	draw_arc(c, r, 0.0, TAU, 28, frame, 2.0, true)
-	# The badge, bottom right: a small shield (resists) or a four-point spark (weak).
-	var b := c + Vector2(r * 0.62, r * 0.62)
-	var s := maxf(r * 0.42, 4.0)
-	if mode == &"resist":
-		var shield := PackedVector2Array([b + Vector2(-s, -s), b + Vector2(s, -s), b + Vector2(s, 0.1 * s),
-			b + Vector2(0, s * 1.1), b + Vector2(-s, 0.1 * s)])
-		draw_colored_polygon(shield, RESIST_COLOR)
-		draw_polyline(shield + PackedVector2Array([shield[0]]), Palette.ROOT, 1.0)
-	else:
-		draw_circle(b, s * 0.9, Palette.ROOT)
-		var spark := PackedVector2Array()
-		for i in 8:
-			spark.append(b + Vector2.from_angle(TAU * i / 8.0 - PI / 2.0) * (s * 1.1 if i % 2 == 0 else s * 0.35))
-		draw_colored_polygon(spark, WEAK_COLOR)
 
 func _draw_status() -> void:
 	var c := size / 2.0

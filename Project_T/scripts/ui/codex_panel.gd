@@ -47,13 +47,13 @@ const CARD_ICON := 32.0
 const WIDE_CODEX := 1100.0  # Viewport width from which the entry cards sit in two columns
 # Each glossary group's icon in the left pane (assets/ui/icons.png ids).
 const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": &"crit_chance", "Wardens": &"rank", "Signatures": &"rank",
-	"Nightmares": &"nightmare", "Statuses": &"damp", "Damage types": &"damage_type", "Dreams": &"dreamlight",
+	"Nightmares": &"nightmare", "Statuses": &"damp", "Nightmare Kinds": &"nightmare", "Dreams": &"dreamlight",
 	"The Memory Grove": &"seeds", "Combat callouts": &"crit_damage", "Nightmares you've met": &"nightmare"}
 # Terms with an icon of their own (the rest use their group's).
 const TERM_ICONS := {"Dew": &"dew", "Dreamlight": &"dreamlight", "Dreamlight shard": &"dreamlight", "Leaves": &"leaves",
 	"Seeds": &"seeds", "Rank": &"rank", "Nurture": &"rank", "Potency": &"potency", "Crit": &"crit_chance",
 	"Deeply Blighted": &"deeply_blighted", "Hidden": &"hidden", "Flying": &"flying", "Dread shell": &"dread_shell",
-	"Omen": &"omen", "Damage type": &"damage_type", "Plain damage": &"plain", "Talon": &"wing",
+	"Omen": &"omen", "Armoured": &"dread_shell",
 	"Nurture choice": &"focus_power", "Clear tool": &"dew_cost", "Close call": &"leaves"}
 var _combos := VBoxContainer.new()
 var _combos_scroll := ScrollContainer.new()
@@ -504,24 +504,22 @@ func _entry_card(group: String, entry: Array) -> Control:
 	glossary_cards_built += 1
 	var term: String = entry[0]
 	var status := _status_of(term) if group == "Statuses" else &""
-	var line := _damage_line_of(term) if group == "Damage types" else ""
+	var kind := _kind_of(term) if group == "Nightmare Kinds" else -1
 	var rim := UiStyle.MOONLIGHT
 	if status != &"":
 		rim = EnemyStatuses.COLORS.get(status, rim)
-	elif line != "":
-		rim = IconInfo.damage_type_color(line)
 	var card := PanelContainer.new()
 	var style := StyleBoxEmpty.new()  # Light pass v2: no box round an entry
 	style.content_margin_top = 2
 	style.content_margin_bottom = 2
 	card.add_theme_stylebox_override("panel", style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.set_meta(&"rim", rim)  # Its status / damage-type colour, on the icon's side (kept for the extras)
+	card.set_meta(&"rim", rim)  # Its status colour, on the icon's side (kept for the extras)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	card.add_child(row)
 	var icon := TextureRect.new()
-	icon.texture = _term_icon(group, term, status, line)
+	icon.texture = _term_icon(group, term, status)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -557,8 +555,8 @@ func _entry_card(group: String, entry: Array) -> Control:
 		body.add_child(muted)
 	if status != &"":
 		_status_extras(body, status)
-	if line != "":
-		_damage_extras(body, line)
+	if kind >= 0:
+		_kind_extras(body, kind)
 	if entry.size() > 2 and not entry[2].is_empty():
 		# "See also: Rest, Nurture" as underlined words right under the entry (light pass v2; a click jumps there).
 		var words: Array[String] = []
@@ -624,19 +622,16 @@ func _status_of(term: String) -> StringName:
 			return id
 	return &""
 
-func _damage_line_of(term: String) -> String:
-	for line in IconInfo.DAMAGE_TYPES:
-		if IconInfo.damage_type_name(line) == term:
-			return line
-	return ""
+# The Nightmare Kind an entry names (EnemyData.Kind), -1 for none or Plain (most nightmares: no list).
+func _kind_of(term: String) -> int:
+	var kind = EnemyData.KIND_NAMES.find_key(term)
+	return -1 if kind == null or kind == EnemyData.Kind.PLAIN else int(kind)
 
-func _term_icon(group: String, term: String, status: StringName, line: String) -> Texture2D:
+func _term_icon(group: String, term: String, status: StringName) -> Texture2D:
 	if status != &"":
 		var tex := IconInfo.icon(status)
 		if tex != null:
 			return tex
-	if line != "":
-		return IconInfo.damage_type_icon(line)
 	if TERM_ICONS.has(term):
 		return IconInfo.icon(TERM_ICONS[term])
 	return IconInfo.icon(GROUP_ICONS.get(group, &"note"))
@@ -713,10 +708,11 @@ func _family_applies(root: TowerData, status: StringName) -> bool:
 	return false
 
 # A damage type card: the nightmares weak to it and resisting it (??? until met).
-func _damage_extras(body: VBoxContainer, line: String) -> void:
+# A Kind's entry: the nightmares of that Kind, faces once met, ??? until then.
+func _kind_extras(body: VBoxContainer, kind: int) -> void:
 	var seen := NightmareCodex.seen()
-	for side in [["Weak to it", "weak_to"], ["Resist it", "resists"]]:
-		var kinds := NightmareCodex.all_kinds().filter(func(d: EnemyData) -> bool: return (d.get(side[1]) as Array).has(line))
+	for side in [["Nightmares", kind]]:
+		var kinds := NightmareCodex.all_kinds().filter(func(d: EnemyData) -> bool: return d.kind == side[1])
 		if kinds.is_empty():
 			continue
 		var row := HFlowContainer.new()
@@ -1399,10 +1395,6 @@ func _family_header(root: TowerData) -> Control:
 	UiStyle.display(name, 28)
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	box.add_child(name)
-	var kind := Label.new()
-	kind.text = IconInfo.damage_type_text(root.line)
-	UiStyle.caps(kind, 15, IconInfo.damage_type_color(root.line))
-	box.add_child(kind)
 	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
 	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(role)
@@ -1795,7 +1787,7 @@ func _setup_dreams_page() -> void:
 		_group_filter.add_item(group)
 	_family_filter.add_item("Any family")
 	for line in IconInfo.DAMAGE_TYPES:
-		_family_filter.add_item(IconInfo.damage_type_name(line))
+		_family_filter.add_item(NightmareIcons.family_name(line))  # By family (damage types are gone)
 		_family_filter.set_item_metadata(_family_filter.item_count - 1, line)
 	for pick in [_rarity_filter, _group_filter, _family_filter]:
 		pick.focus_mode = Control.FOCUS_NONE
@@ -1920,7 +1912,7 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		box.add_child(CardDiagram.make(card))
 	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]
 	for tag in card.tags:
-		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
+		facts.append(NightmareIcons.family_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())  # A family tag by its family
 	var tags := Label.new()
 	tags.text = " · ".join(facts)
 	UiStyle.caps(tags, 14)  # Plain small caps separated by " · " (ui_style.md "Dream card")

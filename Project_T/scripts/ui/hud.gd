@@ -172,7 +172,7 @@ func _ready() -> void:
 	# The run history (balance_simulation.md "Run history"): saved at every run end, shown in the Codex.
 	add_child(RunHistory.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
-	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
+	# The immune flash (a refused status), drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
 	# Touch: Plant / Cancel for a pending drag-to-build stroke, two-finger pan and pinch (TouchBuild).
 	add_child(TouchBuild.new(tower_placer, owner.get_node_or_null("GameCameraNode")))

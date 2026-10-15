@@ -8,7 +8,7 @@ class_name RestReport
 
 # ({damp} … are filled in with today's status names by IconInfo.format.)
 const COMBO_LINES := {&"conducted": "Lightning through {damp}", &"asleep": "Put to sleep",
-	&"crit": "Critical hits", &"weak": "Hits on weaknesses", &"marked": "Hits on {marked}", &"fog": "{spored} in fog",
+	&"crit": "Critical hits", &"marked": "Hits on {marked}", &"fog": "{spored} in fog",
 	&"static": "{static} bolts"}
 # Reaction damage tags that aren't a Reaction's own id (Echo Hollow's repeats): kept off the combo
 # lines like the Reactions themselves.

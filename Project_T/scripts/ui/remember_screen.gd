@@ -835,11 +835,7 @@ func _header_names(head: HBoxContainer, data: TowerData) -> void:
 	var tier := Label.new()
 	tier.text = _tier_name(data)
 	tier.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	kind.add_child(tier)
-	var damage_kind := Label.new()
-	damage_kind.text = "%s damage" % IconInfo.damage_type_name(data.line)  # No icon (user): the damage type in its colour
-	damage_kind.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
-	kind.add_child(damage_kind)
+	kind.add_child(tier)  # (No damage type since Nightmare Kinds, enemy_design.md ed6f573b)
 
 # What it does (linked) and its stats as one icon row, as the Warden panel (light pass).
 func _description_and_stats(data: TowerData) -> void:

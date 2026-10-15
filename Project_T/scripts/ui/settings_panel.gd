@@ -140,7 +140,6 @@ func _ready() -> void:
 	_choice(gameplay, "Summary card at rests", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
-	_toggle(gameplay, "Always show resistance markers", ResistPips.SETTING, false, "Small marks showing which damage a nightmare resists or is weak to.")
 	_choice(gameplay, "Kinship visuals", "kinship_effects", ["Full", "Subtle", "Off"], 0)
 	_tip_last(gameplay, "The vines between bonded Wardens. Subtle draws fewer.")
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.

@@ -298,8 +298,15 @@ const TERMS := {
 	&"crit": ["crit", "crits", "Crit"],
 	&"critical_hit": ["critical hit", "critical hits", "Crit"],
 	&"flyer": ["flyer", "flyers", "Flying"],
-	&"resists": ["resists", "resists", "Resists and Weak to", "resistss"],
-	&"weak_to": ["weak to", "weak to", "Resists and Weak to"],
+	# Nightmare Kinds (enemy_design.md ed6f573b): each links to its Kind's glossary entry (CodexData.kind_entries); the
+	# Kind badge and the Warden tags that answer it (StatusLinks.ROLE_KIND_TERMS) link here.
+	&"kind": ["Kind", "Kinds", "Nightmare Kind"],
+	&"kind_armoured": ["Armoured", "Armoured", "Armoured", "kind_armoureds"],
+	&"kind_flying": ["Flying", "Flying", "Flying", "kind_flyings"],
+	&"kind_hidden": ["Hidden", "Hidden", "Hidden", "kind_hiddens"],
+	&"kind_swarm": ["Swarm", "Swarms", "Swarm"],
+	&"kind_fast": ["Fast", "Fast", "Fast", "kind_fasts"],
+	&"kind_plain": ["Plain", "Plain", "Plain", "kind_plains"],
 	&"restless": ["restless", "restless", "Restless", "restlesss"],
 	&"remember": ["Remember", "Remember", "Remember screen"],
 	&"memory_grove": ["Memory Grove", "Memory Grove", "Memory Grove"],

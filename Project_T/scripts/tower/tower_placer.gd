@@ -439,8 +439,6 @@ func _draw() -> void:
 		var art := get_build_preview_art()
 		draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
-	if tower_data.can_attack:
-		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()

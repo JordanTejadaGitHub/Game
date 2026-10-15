@@ -50,19 +50,16 @@ func _run() -> void:
 	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
 
 	# --- The icon rows --------------------------------------------------------------------------
+	# Nightmare Kinds (enemy_design.md ed6f573b): one Kind badge with its line; Plain shows none; no damage types.
 	var rows := NightmareIcons.make_rows(stag)
-	var resist_icons := _icons(rows, NightmareIcons.Kind.FAMILY, &"resist")
-	var weak_icons := _icons(rows, NightmareIcons.Kind.FAMILY, &"weak")
-	_check(resist_icons.size() == stag.resists.size() and weak_icons.size() == stag.weak_to.size(),
-		"the Hollow Stag's rows: %d resist, %d weak icons" % [resist_icons.size(), weak_icons.size()])
-	_check(_text(rows).contains("Resists") and _text(rows).contains("Stone ×0.5") and _text(rows).contains("Weak to") and _text(rows).contains("Water ×1.5"),
-		"rows name the damage types (" + _text(rows) + ")")
-	var pebble := NightmareIcons.family("stone", &"resist")
-	_check(pebble.tip == "Resists Stone: Stone Wardens deal half damage to it.", "resist tooltip (%s)" % pebble.tip)
-	_check(IconInfo.damage_type_name("wing") == "Talon" and IconInfo.damage_type_name("acorn") == "Plain"
-		and IconInfo.damage_type_text("light") == "Light damage", "damage type names (wing = Talon, acorn = Plain)")
-	_check(["spore", "stone", "water", "light", "root", "song", "wing", "wind", "acorn"].all(func(l: String) -> bool: return IconInfo.damage_type_icon(l) != null),
-		"every damage type (and Plain) has its sheet icon")
+	_check(not _text(rows).contains("Resists") and not _text(rows).contains("Weak to"), "no damage-type rows (" + _text(rows) + ")")
+	var queen_rows := NightmareIcons.make_rows(queen)
+	var kind_badge := queen_rows.find_child("KindBadge", true, false)
+	_check(kind_badge != null and _text(queen_rows).contains(queen.get_kind_line().trim_prefix("Flying:").strip_edges()),
+		"the Moth Queen's Kind badge reads its line (" + _text(queen_rows) + ")")
+	var plain := load("res://resource/enemy/leaf_bug.tres") as EnemyData
+	_check(plain.kind == EnemyData.Kind.PLAIN and NightmareIcons.make_rows(plain).find_child("KindBadge", true, false) == null,
+		"a Plain nightmare (the Shade) shows no Kind badge")
 	var wight_rows := NightmareIcons.make_rows(wight)
 	_check(not _icons(wight_rows, NightmareIcons.Kind.STATUS, &"immune").is_empty(), "the Barrow Wight shows a crossed-out Rooted")
 	var short := _icons(wight_rows, NightmareIcons.Kind.STATUS, &"short")
@@ -73,7 +70,7 @@ func _run() -> void:
 	for art_id in NightmareIcons.TRAITS.keys() + [&"charge", &"sink", &"eclipse", &"brood", &"sapling", &"grief", &"rises"]:
 		_check(IconInfo.icon(art_id) != null, "the sheet has the " + String(art_id) + " icon (used over the drawn glyph)")
 	var empty := NightmareIcons.make_rows(load("res://resource/enemy/leaf_bug.tres"), 16.0, true)
-	_check(empty.get_child_count() == 0 or not stag.resists.is_empty(), "a compact row with nothing to show is empty")
+	_check(empty.get_child_count() == 0, "a compact row with nothing to show is empty (the Shade is Plain)")
 
 	NightmareIntro.pause_in_tests = true  # This test checks the cards that open by themselves (first rest, mid-block)
 	var main: Node = load("res://scenes/main.tscn").instantiate()
@@ -102,20 +99,13 @@ func _run() -> void:
 	_check(body.contains("Awake: can't fall asleep again"), "the info lists the status limits under the statuses: Awake (%s)" % body)
 	enemy.statuses.sleep_cooldown = 0.0
 
-	# --- Map pips in context -------------------------------------------------------------------
+	# --- Immune flash (the resist / weak pips went with damage types: Nightmare Kinds) -------------
 	var pips: ResistPips = null
 	for child in main.get_children():
 		if child is ResistPips:
 			pips = child
-	_check(pips != null, "the map pips layer exists")
+	_check(pips != null, "the immune flash layer exists")
 	if pips != null:
-		_check(pips.get_lines().is_empty(), "no pips without context")
-		placer.select_tower(load("res://resource/tower/pebbling.tres"))
-		_check(pips.get_lines() == ["stone"], "placing a Pebbling compares against stone (%s)" % str(pips.get_lines()))
-		_check(ResistPips.pip_for(stag, ["stone"]) == -1, "the Stag resists stone: shield pip")
-		_check(ResistPips.pip_for(stag, ["water"]) == 1, "the Stag is weak to water: spark pip")
-		_check(ResistPips.pip_for(stag, ["stone", "water"]) == 2, "a mixed selection shows both")
-		placer.set_build_mode(false)
 		# Immune flash: once, throttled.
 		spawner.status_refused.emit(enemy, &"held")
 		spawner.status_refused.emit(enemy, &"held")

@@ -12,22 +12,15 @@ const REDUCED_COOLDOWN := 2.0
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
 const WORDS := {&"conducted": "Conducted", &"asleep": "Asleep",  # No exclamation marks (wording review 2026-10-13)
-	&"crit": "Crit", &"weak": "Weak", &"marked": "", &"fog": "", &"static": ""}
+	&"crit": "Crit", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
 const USES_STATUS := {&"conducted": &"damp", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
 const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit"]
-# Matchups (user 2026-10-07): every hit from a family the nightmare is weak to pops "Weak!", every hit
-# from one it resists "Strong!", but never stacked: a new hit re-pops the nightmare's word in place.
-# Combo words above win and replace it. Ids match CodexData.CALLOUT_ENTRIES (&"resisted" = "Strong!").
-const MATCHUP_WORDS := {&"weak": "Weak", &"resisted": "Resisted"}
-const MAX_MATCHUPS := 8  # Matchup words on screen at once (their own budget, so combos still show)
-const REDUCED_MAX_MATCHUPS := 3
-const WEAK_COLOUR := Palette.NEWLEAF
-const STRONG_COLOUR := Palette.WRAITHLIGHT  # cold violet: Mist was the same value as the pale path and hard to see (user 2026-10-07)
+# (No "Weak" / "Resisted" matchup words since Nightmare Kinds, enemy_design.md ed6f573b: damage types are gone.)
 
 var _cooldowns := {}  # tag -> seconds left
-var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset, matchup tag or &""]
+var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset, &"" (was the matchup tag)]
 var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
@@ -79,39 +72,11 @@ func _on_damage(event: DamageLog.Event) -> void:
 	var tag := _pick(event)
 	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: one at a time, slower repeats
 	if tag == &"" or _combo_count() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE) or _cooldowns.get(tag, 0.0) > 0.0:
-		_matchup_callout(event)
 		return
-	var existing: Variant = _callout_for(event.enemy)
-	if existing != null and existing[5] == &"":
+	if _callout_for(event.enemy) != null:
 		return  # One callout per nightmare at a time
-	if existing != null:
-		_alive.erase(existing)  # A combo word replaces the nightmare's Weak / Strong
 	_cooldowns[tag] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
 	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, _slot(event.enemy.global_position, WORDS[tag]), &""])
-	_note_seen(tag)
-
-# "Weak!" / "Strong!" on every weak / resisted hit, one per nightmare: a new hit re-pops it in place.
-func _matchup_callout(event: DamageLog.Event) -> void:
-	var tag := &""
-	if event.combos.has(&"weak"):
-		tag = &"weak"
-	elif event.family_multiplier > 0.0 and event.family_multiplier < 1.0:
-		tag = &"resisted"
-	if tag == &"":
-		return
-	var colour: Color = WEAK_COLOUR if tag == &"weak" else STRONG_COLOUR
-	var existing: Variant = _callout_for(event.enemy)
-	if existing != null:
-		if existing[5] != &"":  # Its Weak / Strong: pop it again
-			existing[0] = 0.0
-			existing[1] = MATCHUP_WORDS[tag]
-			existing[2] = colour
-			existing[5] = tag
-		return  # A combo word is showing: leave it
-	var matchups := _alive.size() - _combo_count()
-	if matchups >= (REDUCED_MAX_MATCHUPS if Fx.reduced() else MAX_MATCHUPS):
-		return
-	_alive.append([0.0, MATCHUP_WORDS[tag], colour, event.enemy, _slot(event.enemy.global_position, MATCHUP_WORDS[tag]), tag])
 	_note_seen(tag)
 
 # A status just reached full strength on `enemy` (Tower Code's Fx.exposed_check: Exposed does nothing until it is
@@ -228,21 +193,17 @@ func _process(delta: float) -> void:
 		_drawn = not _alive.is_empty()
 
 # The look (UI Asset's "Combo moments", approved 2026-10-07): a combo word is its status icon and the word in
-# Cormorant SemiBold 17 px with a 1 px Dread outline, no pill; a matchup is a small triangle and "weak" /
-# "strong" in Cormorant SC 14 px (Newleaf / Mist). Both pop from 125% to 100% over POP_TIME, rise RISE px
-# and fade over LIFE. (The Reaction tier's pill is Fx.reaction's.)
+# Cormorant SemiBold 17 px with a 1 px Dread outline, no pill. It pops from 125% to 100% over POP_TIME, rises RISE px
+# and fades over LIFE. (The Reaction tier's pill is Fx.reaction's.)
 const WORD_SIZE := 17
-const MATCHUP_SIZE := 14
 const POP_TIME := 0.12
 const POP_FROM := 1.25
 const RISE := 18.0
 const LIFT := 46.0  # The word's middle above the nightmare's centre
 const ICON_GAP := 6.0
-const MATCHUP_LABELS := {&"weak": "weak", &"resisted": "resisted"}
 # The status icon drawn before a combo word (16 px art ×1).
 const WORD_ICONS := {"Conducted": &"damp", "Asleep": &"drowsy", "Crit": &"crit_chance"}
 var _display_font: Font
-var _caps_font: Font
 var _icons := {}  # Icon id -> Texture2D (or null)
 
 # Where a word's anchor goes: the shared column (WorldLabel.callout_slot), so it never lands on a Reaction callout,
@@ -261,7 +222,6 @@ func _word_icon(text: String) -> Texture2D:
 func _draw() -> void:
 	if _display_font == null:
 		_display_font = UiStyle.display_font()
-		_caps_font = UiStyle.caps_font()
 	var screen_scale := WorldLabel.text_scale(self)  # Keeps its screen size when zoomed in (as begin_screen_size)
 	for callout in _alive:
 		var age: float = callout[0]
@@ -272,10 +232,7 @@ func _draw() -> void:
 		var centre := anchor + Vector2(0.0, -LIFT - RISE * t)  # The word's middle, in world px
 		# Screen size around the nightmare, then the pop around the word's own middle.
 		draw_set_transform(anchor + (centre - anchor) * screen_scale, 0.0, Vector2.ONE * screen_scale * pop)
-		if callout[5] != &"":
-			_draw_matchup(callout[5], callout[2], alpha)
-		else:
-			_draw_word(String(callout[1]).trim_suffix("!"), _word_icon(callout[1]), callout[2], alpha)
+		_draw_word(String(callout[1]).trim_suffix("!"), _word_icon(callout[1]), callout[2], alpha)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # A combo word centred on the origin: its status icon, then the word.
@@ -291,19 +248,3 @@ func _draw_word(text: String, icon: Texture2D, colour: Color, alpha: float) -> v
 	var at := Vector2(x, baseline)
 	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, 2, Color(Palette.DREAD, alpha))
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, Color(colour, alpha))
-
-# "▲ weak" / "▼ strong" centred on the origin (the triangle is drawn: the fonts have no arrow glyphs).
-func _draw_matchup(tag: StringName, colour: Color, alpha: float) -> void:
-	var font := _caps_font
-	var text: String = MATCHUP_LABELS.get(tag, "")
-	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE).x
-	var x := -(width + 12.0) / 2.0
-	var tip := -3.5 if tag == &"weak" else 3.5  # Up for weak, down for strong
-	var points := PackedVector2Array([Vector2(x, -tip), Vector2(x + 8.0, -tip), Vector2(x + 4.0, tip)])
-	var outline := Color(Palette.DREAD, alpha)
-	draw_colored_polygon(points, Color(colour, alpha))
-	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), outline, 1.0, true)
-	var baseline := font.get_ascent(MATCHUP_SIZE) - font.get_height(MATCHUP_SIZE) / 2.0
-	var at := Vector2(x + 12.0, baseline)
-	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, 3, outline)  # 3 px: reads on the pale path too
-	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, Color(colour, alpha))

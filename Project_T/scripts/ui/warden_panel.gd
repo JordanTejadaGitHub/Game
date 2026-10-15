@@ -22,7 +22,7 @@ var _title := _header.title
 var _portrait := _header.portrait  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
 var _portrait_atlas := _header.portrait_atlas
 var _portrait_time := 0.0
-var _damage_type := _header.damage_type  # Under the title: the damage type name in its colour (one Warden)
+var _damage_type := _header.damage_type  # Under the title: the small line (its rank); no damage types since Nightmare Kinds
 var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
 var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
@@ -1343,7 +1343,7 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
 	TapTip.attach(row, tip)  # Hover or tap (screens_ui.md "Every icon can be hovered or tapped")
 	var icon := TextureRect.new()
-	icon.texture = IconInfo.damage_type_icon(line)
+	icon.texture = CodexData.family_icon(CodexData.LINE_FAMILIES.get(line, ""))  # The family's icon (damage types are gone)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.custom_minimum_size = Vector2(16, 16)

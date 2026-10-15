@@ -362,8 +362,9 @@ func _sleeping_text(card: UpgradeData) -> String:
 	var reason: String = dream_state.not_active_reason(card) if dream_state.has_method("not_active_reason") else ""
 	if reason != "":
 		return reason  # "Not active yet: needs a Water Warden" (dream_design.md 2026-10-01)
-	var text: String = dream_state.missing_families_text(card) if dream_state.has_method("missing_families_text") else ""
-	return IconInfo.format(text) if text != "" else _needs_text(card)
+	var needs: Array = dream_state.missing_needs(card) if dream_state.has_method("missing_needs") else []
+	var text := NeedsRow.text(needs)  # By family, never a damage type (Nightmare Kinds)
+	return text if text != "" else _needs_text(card)
 
 # A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"), or not active yet
 # (needs a Warden you don't have): shown greyed, its hover says why.
