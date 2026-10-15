@@ -11,17 +11,17 @@ func _initialize() -> void:
 	_check(s.stacks(EnemyStatuses.SPORED) == 16, "a second tower can contribute beyond the old eight-stack cap")
 	for i in 41:
 		s.tick(0.1)
-	_check(s.stacks(EnemyStatuses.SPORED) == 8, "older stacks expire without removing newer applications")
+	_check(s.stacks(EnemyStatuses.SPORED) == 16, "the pile shares one clock: the newer application keeps all 16 (owner 2026-10-15)")
 	for i in 11:
 		s.tick(0.1)
-	_check(not s.has(EnemyStatuses.SPORED), "new stacks expire instead of refreshing the entire pile")
+	_check(not s.has(EnemyStatuses.SPORED), "...and all of it wears off together 5 s after the last application")
 	var staggered := EnemyStatuses.new()
 	staggered.apply(EnemyStatuses.SPORED, 4)
 	staggered.tick(1.0)
 	staggered.apply(EnemyStatuses.SPORED, 4)
 	for i in 41:
 		staggered.tick(0.1)
-	_check(staggered.stacks(EnemyStatuses.SPORED) == 4, "reapplication does not extend older stacks")
+	_check(staggered.stacks(EnemyStatuses.SPORED) == 8, "reapplication refreshes the whole pile")
 	_check(load("res://resource/tower/driftspore.tres").status_max_stacks == 48, "Driftspore retains larger capacity")
 	var brimming = load("res://resource/dream/brimming.tres")
 	_check(EnemyStatuses.STATIC in brimming.requires_any_status, "Brimming supports larger Charged buildup and payoff")
@@ -29,14 +29,14 @@ func _initialize() -> void:
 	copied.apply(EnemyStatuses.SPORED, 4)
 	copied.tick(1.0)
 	copied.apply(EnemyStatuses.SPORED, 4)
-	_check(is_equal_approx(copied.copy_duration(EnemyStatuses.SPORED), 4.0), "copies cannot refresh older stacks to the newest lifetime")
+	_check(is_equal_approx(copied.copy_duration(EnemyStatuses.SPORED), 5.0), "copies take the pile's one clock")
 	var capped := EnemyStatuses.new()
 	capped.apply(EnemyStatuses.SPORED, 16)
 	capped.tick(1.0)
 	capped.apply(EnemyStatuses.SPORED, 1)
 	for i in 41:
 		capped.tick(0.1)
-	_check(capped.stacks(EnemyStatuses.SPORED) == 1, "at capacity only the replaced stack receives a fresh lifetime")
+	_check(capped.stacks(EnemyStatuses.SPORED) == 17, "a later application keeps the earlier stacks too")
 	var caught := EnemyStatuses.new()
 	caught.apply(EnemyStatuses.SPORED, 4)
 	caught.caught_time = 10.0

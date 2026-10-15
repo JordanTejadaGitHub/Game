@@ -717,7 +717,19 @@ func _add_spore_batch(amount: int, duration: float, applier: Node, cap: int) -> 
 		if batch[1] <= 0:
 			_spore_batches.remove_at(0)
 	_spore_batches.append([duration, amount, applier])
+	_share_spore_clock()
 	_rebuild_spore_credit()
+
+# Poisoned lasts until it wears off (owner 2026-10-15: "Poison shouldn't tick down, should last until it wears off"):
+# the whole pile shares one clock. Every application refreshes it, and every stack goes at once when nothing has
+# poisoned the nightmare for that long. The batches stay (who applied which stacks: credit, Knell, the cap).
+# (Replaces the 2026-10-09 rule "each application expires on its own".)
+func _share_spore_clock() -> void:
+	var longest := 0.0
+	for batch in _spore_batches:
+		longest = maxf(longest, float(batch[0]))
+	for batch in _spore_batches:
+		batch[0] = longest
 
 func _tick_spore_batches(delta: float) -> void:
 	var expired := false
@@ -912,8 +924,9 @@ func transfer_spores_to(other: EnemyStatuses, max_stacks: int = 3) -> int:
 		remaining -= amount
 		if batch[1] <= 0:
 			_spore_batches.remove_at(0)
-	# Keep cohort expiry order for later native capacity replacements.
+	# Keep cohort expiry order for later native capacity replacements, then the moved stacks join the pile's one clock.
 	other._spore_batches.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	other._share_spore_clock()
 	receiver.stacks = other._spore_count()
 	receiver.time = other._spore_remaining()
 	receiver["full"] = maxf(float(receiver.get("full", 0.0)), receiver.time)
