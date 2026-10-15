@@ -270,6 +270,44 @@ numbers: Gravecrawler, Night Hound, Shellbound, Watcher, Lantern Bearer, Wraith,
 | Dream Thief (`dream_thief`) | intro_lines | "A grinning shape clutching stolen light. If it reaches the Heartwood it takes {steals_dew} Dew; dispel it and it drops double." |
 | Weeper (`weeper`) | intro_lines | "Mends nightmares within {mend_radius} cells for {mend_rate:pct} of their health each second." |
 
+## Nightmare Kinds (2026-10-15, replaces damage types)
+
+User: *"let's update the enemy typing to make it easier"*, then *"make sure it corresponds with the Lichenling and
+heavy Wardens, not another typing"* and *"yes let's do that"* (option A: drop damage types entirely).
+
+**The rule:** what a nightmare **does** tells you what beats it, and the Warden tags already on every card ("Breaks
+armour", "Reveals Hidden", "Can't hit flyers", area / single target) tell you who does that. There is no typing
+chart to learn.
+
+| Kind | What it does | Answered by (existing Warden tags) | Nightmares |
+|---|---|---|---|
+| **Armoured** | a dread shell takes a flat amount off every hit until it breaks (the Shellbound's rule, "Dread shell" below) | **heavy** Wardens (`TowerData.heavy`: the Pebbling line, Torrent, Prism Jar, Moonstone…), **Breaks armour** (Lichenling), the **Crushing** signature | Husk, Shellbound, Barrow Wight; boss: the Barrow King |
+| **Flying** | skips the maze | any Warden that hits flyers (not "Can't hit flyers"), Groundroot pulling them down; only the Lightning Fence's link touches a Phantom | Crow, Phantom; boss: the Moth Queen |
+| **Hidden** | can't be targeted until revealed (a Burrower is Hidden while underground) | **Reveals Hidden** (Brood Cap, Quaker) | Lurker, Gravecrawler |
+| **Swarm** | splits or arrives as a crowd of small bodies | **area** attacks (pulses, clouds, splash, chains) | Whisper Swarm, Widow (→ Creeps), Mourner (→ Sobs), Lantern Bearer (→ Wraiths); bosses: the Huntsman (pack), the Scarecrow (crows) |
+| **Fast** | outruns a thin maze (sprints, rolls, wanders) | **slows and holds** (Soaked, Drowsy, Rooted) | Night Hound, Sleepwalker |
+| *Plain* | nothing special, or only its own ability (Watcher wakes, Weeper mends, Ash Crawler clears Poisoned, Drowned One slips slows) | anything | Shade, Sob, Creep, Wraith, Ash Crawler, Dream Thief, Drowned One, Watcher, Weeper, Will-o'-Wisp; other bosses keep their own abilities |
+
+**What changes**
+- **Damage types are gone.** No `resists` / `weak_to` (the ×0.5 / ×1.5 by family), no "Light damage" label on
+  Wardens, no damage-type icons, pips or Codex page, no "Weak!" / "Strong!" callouts, no act 1 "40% resistant" rule.
+  Every Warden deals full damage to every nightmare; `TowerData.line` stays only as the family tag (Dream cards,
+  Kinships, Blessings).
+- **The Whisper Swarm's single-target ×0.5 is gone** (an invisible shape rule on one nightmare); it is a Swarm.
+- **Armoured gets real teeth:** the Husk and the Barrow Wight get a dread shell like the Shellbound (numbers:
+  Balancing). The shell is the only damage reduction left, and it is visible (a cracked plate that chips as it
+  breaks).
+- **Status resistances stay** (the table under "Status resistance" below): they are part of a nightmare's own
+  ability and show on its card.
+- **Shown as one Kind badge** on the nightmare (hover / tap info, first-appearance card, boss dossier, Codex) with
+  one line: *"Armoured: heavy hits and armour breakers crack its shell."* The Warden card's matching tag is
+  underlined to the same glossary entry, so the two link up.
+- **Balance:** removing ×0.5 / ×1.5 moves effective health; Balancing re-checks acts 1–2 (the shells' numbers and
+  any health trim) before release.
+
+*Superseded: the damage-type parts of "Resistances" below (kinds 1 and 2, the family tally, the act 1 rule) are
+history; kinds 3 (dread shell) and 4 (status resistance) remain.*
+
 ## Resistances
 
 Resistances give the 4 family picks per run weight: some nightmares are easy for your families and
