@@ -114,6 +114,8 @@ var strip_hidden := false:
 	set(value):
 		strip_hidden = value
 		_row.visible = not value
+		if value:
+			_list.set_meta(&"tips_beside", true)  # Word tips (StatusLinks) open beside the list, never over its text
 		queue_redraw()
 
 func refresh() -> void:
@@ -331,6 +333,8 @@ func _card_row(source: DreamIcon) -> Control:
 	UiStyle.number(live, 15, UiStyle.INK_DIM if source.live.begins_with("off") else UiStyle.GOLD)
 	row.add_child(live)
 	frame.gui_input.connect(func(event: InputEvent) -> void:
+		if strip_hidden:
+			return  # Phones: the row already shows the whole card; its tip only covered the list (user screenshot)
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_card_tip.show_card(frame, card, frame.get_global_rect().get_center(), DreamMarks.MarkTip.TAP_TIME)
 			frame.accept_event())
