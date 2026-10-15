@@ -1796,7 +1796,7 @@ func _fill_phone_stats() -> void:
 	if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something, as in the header
 		_phone_stats.add_child(_phone_stat_tile(str(snappedf(_tower.get_potency(), 0.01)), &"potency"))
 
-# One stat as icon + number (no caps word, no frame: UI owner's review); a tap explains it (IconInfo), 48 px tall.
+# One stat as icon + number (no caps word, no frame: UI owner's review); a tap explains it for this Warden, 48 px tall.
 func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
 	var cell := HBoxContainer.new()
 	cell.name = "Stat_" + String(stat)
@@ -1821,7 +1821,9 @@ func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
 	number.size_flags_vertical = Control.SIZE_FILL
 	UiStyle.number(number, 20)
 	cell.add_child(number)
-	var tip := IconInfo.stat_tooltip(stat)
+	# The header's own tip for this Warden (Potency: what it does on it), so phone and PC say the same; the header falls
+	# back to IconInfo for stats it doesn't explain per Warden
+	var tip := _header.stat_tip(stat)
 	if tip != "":
 		TapTip.attach(cell, tip)
 	return cell
