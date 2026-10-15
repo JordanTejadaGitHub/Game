@@ -2417,7 +2417,17 @@ func banish(card: UpgradeData) -> bool:
 	var was_stray := card == current_stray
 	var boss_rest := drift_director.is_boss_drift(current_offer_drift)
 	var act := drift_director.get_act(current_offer_drift + 1 if boss_rest else current_offer_drift)
-	var replacement := _draw_card(act, current_offer, boss_rest, was_stray)
+	var replacement: UpgradeData = null
+	if current_offer_drift <= CLASS_OFFER_UNTIL_DRIFT and calling != "":
+		# The drift 5 Dream is class cards only (owner 2026-10-15): another one replaces it
+		var class_cards: Array[UpgradeData] = []
+		for other in pool:
+			if other.calling == calling and not current_offer.has(other) and can_offer(other, act):
+				class_cards.append(other)
+		if not class_cards.is_empty():
+			replacement = class_cards[_rng.randi_range(0, class_cards.size() - 1)]
+	if replacement == null:
+		replacement = _draw_card(act, current_offer, boss_rest, was_stray)
 	if was_stray:
 		current_stray = replacement
 	if replacement != null:
@@ -2495,8 +2505,8 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
-const CLASS_OFFER_CARDS := 1  # The owner, 2026-10-13: the drift 5 Dream holds one class card; its other slots are the normal draw
-const CLASS_OFFER_UNTIL_DRIFT := 5  # The Dream at drift 5's rest (and any before it) draws from class cards only
+const CLASS_OFFER_CARDS := 99  # Every slot (owner 2026-10-15: "make all the cards in drift 5 calling cards"; was 1 since 2026-10-13)
+const CLASS_OFFER_UNTIL_DRIFT := 5  # The Dream at drift 5's rest (and any before it) is class cards only; after it they are never offered
 
 # Cards that do nothing until other cards are held (owner 2026-10-14: "was offered a card that needed more cards"): the
 # card id -> the rule ids, any one of which it needs. Gathering Storm also works with the Firefly Calling's own jumps.
@@ -2582,8 +2592,8 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	# Firefly run saw no class card before drift 25). Every slot is a class card of the Calling's family, at the normal
 	# act 1 rarity odds; a rarity with none left falls to the next one down. Lent cards are not class cards; the
 	# two-family-cards limit does not apply. A Calling whose family has no class cards yet gets the normal offer.
-	# The owner wants both this and the later cap (dream_council_review.md 23, ruling 1): every offer after this one
-	# holds at most one class card (_draw_card).
+	# Owner 2026-10-15: "remove calling cards from the pool after the initial drift 5 and make all the cards in drift 5
+	# calling cards": every slot here is a class card (drawn evenly), and no later Dream offers one (can_offer).
 	if drift_number <= CLASS_OFFER_UNTIL_DRIFT and calling != "":
 		var class_cards: Array[UpgradeData] = []
 		for card in pool:
@@ -2668,6 +2678,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if card.calling != "" and card.calling != calling:
 		return false  # A class card: only when that family was the run's first pick (its Calling)
+	if card.calling != "" and _offer_drift > CLASS_OFFER_UNTIL_DRIFT:
+		return false  # Class cards belong to the drift 5 Dream alone (owner 2026-10-15)
 	if card.id == "lantern_glow" and calling == "firefly_jar":
 		return false  # Reads like the Firefly Calling: left out on a Firefly start
 	if is_excluded(card):
