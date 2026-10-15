@@ -687,7 +687,9 @@ func _starts_selection(event: InputEvent) -> bool:
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
 	var shift := mouse != null and mouse.shift_pressed
-	if mouse != null and mouse.double_click and _hover_tower != null:
+	# Phones: no double-tap "same kind" (platforms.md: it fights the touch flow; user 2026-10-15: a double tap kept
+	# growing the selection to "244 Wardens selected"); a tap selects the one Warden.
+	if mouse != null and mouse.double_click and _hover_tower != null and not TouchBuild.is_touch():
 		select_same_as(_hover_tower, mouse.ctrl_pressed or mouse.meta_pressed, mouse.alt_pressed, shift)
 		_pressing = false
 		return
