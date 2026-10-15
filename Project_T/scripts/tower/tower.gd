@@ -1224,9 +1224,99 @@ static func potency_uses(data: TowerData) -> Array[String]:
 		lines.append("its Reactions hit harder")  # A status it applies can complete a Reaction it gets the credit for
 	return lines
 
-# The same for this Warden's live attack (a Graftling reports what it copies).
+# What Potency does on a Warden, with the live numbers at `potency` (the user: "potency still doesn't tell what it does
+# per warden"): one short line per use, with the Potency 1.0 number beside it when they differ. Status strengths come
+# from WardenHeaderView.status_strength_text (the same caps EnemyStatuses applies); effect damage (Poisoned ticks,
+# Charged bolts, clouds, thorns, rain, Reactions) is multiplied by Potency in Enemy.take_damage. `tower` gives the
+# live hit damage (its cloud's damage a second) and Patient Roots' seconds; without it those lines stay plain.
+# The same uses as potency_uses (the bar hover, no Warden yet), so both are empty together.
+static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null) -> Array[String]:
+	var lines: Array[String] = []
+	if data == null or not data.can_attack:
+		return lines
+	var p := potency
+	var statuses := false
+	var held_extra: float = tower.held_card_seconds() if tower != null else 0.0
+	for id in [data.applies_status, data.extra_status]:
+		if not POTENCY_STATUS_LINES.has(id):
+			continue
+		var line := ""
+		match id:
+			EnemyStatuses.SPORED:
+				line = "{spored}: each stack deals %d%% of its hit damage a second%s" % [roundi(SPORE_POTENCY * p * 100.0),
+					_at_potency_one(p, "%d%%" % roundi(SPORE_POTENCY * 100.0))]
+			EnemyStatuses.STATIC:
+				line = "{static} bolts deal ×%s its hit%s" % [_potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER * p),
+					_at_potency_one(p, "×%s" % _potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER))]
+			EnemyStatuses.DROWSY:
+				var base_time: float = data.status_duration if data.status_duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[id])
+				line = "{drowsy} lasts %s s%s" % [_potency_number(base_time * maxf(p, 1.0)), _at_potency_one(p, "%s s" % _potency_number(base_time))]
+			_:
+				line = _strength_line(id, WardenHeaderView.status_strength_text(id, p, data.status_duration),
+					WardenHeaderView.status_strength_text(id, 1.0, data.status_duration), p)
+		if line == "":
+			line = POTENCY_STATUS_LINES[id]  # Status Potency off (Balancing's A/B): the plain line
+		if not lines.has(line):
+			lines.append(line)
+			statuses = true
+	var hold_seconds: float = data.status_duration if data.applies_status == EnemyStatuses.HELD \
+		else (data.hold_time if data.hold_targets > 0 else (data.pulse_hold_time if data.pulse_hold_every > 0 else 0.0))
+	if data.pulse_hold_every > 0 or data.hold_targets > 0 or data.applies_status == EnemyStatuses.HELD:
+		var held := _strength_line(EnemyStatuses.HELD, WardenHeaderView.status_strength_text(EnemyStatuses.HELD, p, hold_seconds, held_extra),
+			WardenHeaderView.status_strength_text(EnemyStatuses.HELD, 1.0, hold_seconds, held_extra), p)
+		lines.append(held if held != "" else "{held} lasts longer")
+		statuses = true
+	if data.lit_hold_multiplier > 0.0:
+		lines.append("{held} lasts longer on its lit cells")
+		statuses = true
+	if data.attack_kind == TowerData.AttackKind.CLOUD:
+		if tower != null:
+			# PathCloud: a share of one hit per tick, spread over the cloud's duration, tagged "cloud" (an effect: × Potency).
+			var per_second := tower.get_damage() / maxf(data.cloud_duration, 0.01) * p
+			lines.append("its cloud deals %s a second to each nightmare in it%s" % [_potency_number(per_second),
+				_at_potency_one(p, _potency_number(per_second / maxf(p, 0.01)))])
+		else:
+			lines.append("its cloud deals ×%s damage" % _potency_number(p))
+	match data.special:
+		BranchKit.THORNCOIL:
+			lines.append("its thorns deal ×%s damage" % _potency_number(p))
+		BranchKit.CLOUD:
+			lines.append("its rain deals ×%s damage" % _potency_number(p))
+		BranchKit.GROUNDROOT:
+			lines.append("grounded flyers stay down longer")
+		BranchKit.QUAKER:
+			lines.append("{hidden} nightmares stay revealed longer")
+	if statuses:
+		lines.append("its Reactions deal ×%s damage" % _potency_number(p))  # A status it applies can complete a Reaction it gets the credit for
+	return lines
+
+# "Soaked: water hits +24%" / "Rooted 1.3 s" as a Potency line with its Potency 1.0 number: "{damp}: water hits +24%
+# (+20% at Potency 1.0)", "{held} lasts 1.3 s (1.0 s at Potency 1.0)". "" when there's no strength text.
+static func _strength_line(id: StringName, live: String, base: String, p: float) -> String:
+	if live == "":
+		return ""
+	if id == EnemyStatuses.HELD:
+		var live_s := live.trim_prefix("Rooted ")
+		return "{held} lasts %s%s" % [live_s, _at_potency_one(p, base.trim_prefix("Rooted ")) if base != live else ""]
+	var token := "{damp}" if id == EnemyStatuses.DAMP else "{marked}"
+	var what := live.split(": ", true, 1)
+	var then := base.split(": ", true, 1)
+	var text := "%s: %s" % [token, what[1] if what.size() > 1 else live]
+	if base != live:
+		var number := (then[1] if then.size() > 1 else base).get_slice(" ", 2) if id == EnemyStatuses.DAMP else (then[1] if then.size() > 1 else base).get_slice(" ", 0)
+		text += _at_potency_one(p, number)
+	return text
+
+# " (×1.0 number at Potency 1.0)" when `p` isn't 1.0, else "".
+static func _at_potency_one(p: float, base: String) -> String:
+	return "" if is_equal_approx(p, 1.0) else " (%s at Potency 1.0)" % base
+
+static func _potency_number(value: float) -> String:
+	return str(snappedf(value, 0.1)) if value < 10.0 else str(roundi(value))
+
+# The same for this Warden's live attack (a Graftling reports what it copies), with its live numbers.
 func get_potency_uses() -> Array[String]:
-	return potency_uses(attack_data if attack_data != null else tower_data)
+	return potency_uses_at(attack_data if attack_data != null else tower_data, get_potency(), self)
 
 # Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
 # it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
