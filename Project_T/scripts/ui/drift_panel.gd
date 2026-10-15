@@ -213,6 +213,8 @@ func _process(_delta: float) -> void:
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
+	if _unconfirmed_wardens():
+		_start_button.text = "Confirm your Wardens first"
 	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
 	var pending := drift_director.pending_choice()
 	if pending != &"" and not run_state.is_over:
@@ -238,7 +240,17 @@ const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &
 	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
+# Phones (tap to place, Mobile UI; user 2026-10-15): ghost Wardens waiting for Confirm hold the drift back. Starting one
+# now would leave them unplanted (or plant them mid-drift by surprise), so Start asks for Confirm or Cancel first.
+func _unconfirmed_wardens() -> bool:
+	return bool(tower_placer.get("tap_to_place")) and bool(tower_placer.get("stroking"))
+
 func _on_start_pressed() -> void:
+	if _unconfirmed_wardens():
+		var hud := get_parent()
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("Confirm or cancel your Wardens before the drift starts.")
+		return
 	var pending := drift_director.pending_choice()
 	if pending == &"" and game_speed.paused and not drift_director.is_resting():
 		game_speed.set_paused(false)  # Paused mid-drift: Resume only, never a call early (user)
