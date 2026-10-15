@@ -16,7 +16,7 @@ class_name IconInfo
 const STATUSES := {
 	&"damp": ["Soaked", "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}."],
 	&"drowsy": ["Drowsy", "Walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}."],
-	&"spored": ["Poisoned", "Takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}."],
+	&"spored": ["Poisoned", "Takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
 	&"marked": ["Exposed", "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}."],
 	&"static": ["Charged", "Lightning builds up on it. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored charge). At {stacks:need_static} stacks it can set off {reactions}."],
 	&"held": ["Rooted", "Cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}."],
