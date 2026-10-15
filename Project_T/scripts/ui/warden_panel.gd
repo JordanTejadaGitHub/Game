@@ -81,6 +81,9 @@ func _ready() -> void:
 	var frame := get_theme_stylebox("panel").duplicate() as StyleBox
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
+	if _phone and frame is MoonStyleBox:  # Phones: the drawer is solid (the map and the HUD under it showed through)
+		frame.set("center_alpha", 1.0)
+		frame.set("edge_alpha", 1.0)
 	add_theme_stylebox_override("panel", frame)
 	var inner := width - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT) - SCROLL_BAR  # Room for the info part's scroll bar
 	_buffs_open = details_choice

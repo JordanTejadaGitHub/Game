@@ -440,8 +440,8 @@ func _setup_phone_panels() -> void:
 # Three small rarity gems: this run's Dreams.
 func _draw_dreams_glyph() -> void:
 	var centre := dreams_button.size / 2.0
-	for i in 3:
-		UiStyle.draw_gem(dreams_button, centre + Vector2((i - 1) * 9.0, 0.0), 4.0, i)
+	for i in 3:  # (r 4 read as "…" on a phone: user screenshot)
+		UiStyle.draw_gem(dreams_button, centre + Vector2((i - 1) * 11.0, 0.0), 5.5, i + 1)
 
 # Three bars, tall to short: the damage meter.
 func _draw_damage_glyph() -> void:
@@ -1365,6 +1365,11 @@ const OVERLAY_ORDER := ["FamilyPickScreen", "DreamScreen", "OmenScreen", "Rememb
 	"BossDossier", "ResultsScreen", "PauseMenu"]
 
 func _raise_overlays() -> void:
+	# Phones: the Warden drawer covers the right edge (the top-right row, the counters, the drift panel), so it draws
+	# above the rest of the HUD; full-screen overlays still go over it (user screenshots 2026-10-15).
+	var panel := get_node_or_null("WardenPanel")
+	if phone() and panel != null:
+		move_child(panel, get_child_count() - 1)
 	for overlay_name in OVERLAY_ORDER:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:

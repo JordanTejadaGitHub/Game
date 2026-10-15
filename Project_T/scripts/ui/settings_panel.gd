@@ -112,7 +112,7 @@ func _ready() -> void:
 	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
 	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
 	# (UiStyle.UI_SIZES; user, 2026-10-01), not a slider.
-	_choice_nearest(display, "Text and button size", "ui_scale", UiStyle.UI_SIZES, 1.0)
+	_choice_nearest(display, "Text and button size", "ui_scale", UiStyle.ui_sizes(), 1.0)  # Phones: two sizes
 	_tip_last(display, "The map does not zoom.")
 	# Effects quality (platforms.md thinning ladder as a switch; the story chat 2026-10-01: performance shouldn't need the
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle

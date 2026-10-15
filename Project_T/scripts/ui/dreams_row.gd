@@ -258,7 +258,10 @@ func _build_list() -> void:
 		_list_box.add_child(line)
 		for icon in icons:
 			_list_box.add_child(_card_row(icon))
-	_list_scroll.custom_minimum_size = Vector2(LIST_WIDTH, minf(_list_box.get_combined_minimum_size().y, LIST_MAX_HEIGHT))
+	var cap := LIST_MAX_HEIGHT
+	if strip_hidden:  # Phones: the list (and its Close) end above the Warden dock (user screenshot 2026-10-15)
+		cap = maxf(minf(cap, get_viewport_rect().size.y - 300.0), 140.0)
+	_list_scroll.custom_minimum_size = Vector2(LIST_WIDTH, minf(_list_box.get_combined_minimum_size().y, cap))
 
 func _card_row(source: DreamIcon) -> Control:
 	var card := source.card
