@@ -1,6 +1,6 @@
 extends SceneTree
 var failures := 0
-const PATTERNS := ["rhythm", "crossfire", "drumbeat", "thorny_walls", "sprout_chorus", "switchback"]
+const PATTERNS := ["rhythm", "crossfire", "thorny_walls", "sprout_chorus", "switchback", "cozy_corners", "passing_thread"]  # (Drumbeat retired 2026-10-15: On the Beat is Bellflower's)
 func _initialize() -> void:
 	_run.call_deferred()
 func _check(ok: bool, message: String) -> void:

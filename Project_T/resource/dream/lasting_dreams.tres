@@ -13,3 +13,4 @@ tags = Array[String](["status", "affliction"])
 max_stacks = 1
 min_owned_statuses = 1
 rule_id = &"lasting_dreams"
+retired = true
