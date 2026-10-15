@@ -319,5 +319,9 @@ func _add_build_label() -> void:
 	timer.timeout.connect(func() -> void:
 		var text := BuildInfo.label_if_ready()
 		if text != "":
-			label.text = ("Build " + text) if OS.is_debug_build() else ("v" + text if text != "release" else "")
+			var version := BuildInfo.version()  # The version on PC too (the user), before the exact build in debug
+			if OS.is_debug_build():
+				label.text = ("v%s · " % version if version != "" else "") + "Build " + text
+			else:
+				label.text = "v" + version if version != "" else ("v" + text if text != "release" else "")
 			timer.queue_free())

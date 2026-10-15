@@ -112,6 +112,24 @@ static func git_state() -> Dictionary:
 		return state
 	return {}
 
+# The version number to show (the user: "can you add the version number on PC"): an exported build's own
+# (application/config/version, stamped by tools/build_release.ps1); playing from the editor or a debug run, the
+# latest release built from this checkout (builds/versions.log next to the project) with a "+": newer than it.
+# "" when neither is known.
+static func version() -> String:
+	var stamped := String(ProjectSettings.get_setting("application/config/version", ""))
+	if stamped != "":
+		return stamped
+	if not OS.is_debug_build():
+		return ""
+	var log_path := ProjectSettings.globalize_path("res://").path_join("../builds/versions.log").simplify_path()
+	if not FileAccess.file_exists(log_path):
+		return ""
+	var lines := FileAccess.get_file_as_string(log_path).strip_edges().split("
+")
+	var tag := lines[lines.size() - 1].strip_edges().get_slice(" ", 0) if not lines.is_empty() else ""
+	return tag.trim_prefix("v") + "+" if tag.begins_with("v") else ""
+
 # Exported builds: the info written by write_baked() before export, else just the version.
 static func _baked() -> Dictionary:
 	if FileAccess.file_exists(BAKED_PATH):
