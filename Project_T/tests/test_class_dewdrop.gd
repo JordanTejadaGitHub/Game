@@ -136,19 +136,17 @@ func _run() -> void:
 	_check(not dry.statuses.has(EnemyStatuses.DAMP) or klass.index_of(dry) == klass.index_of(a), "...and no ripple")
 	await _clean()
 
-	# Wash Away: a Soaked nightmare, for Wardens near a Dewdrop; nothing unless both.
+	# Wash Away (2026-10-15, resistances gone): a Soaked nightmare's shell takes double from Wardens near a Dewdrop; nothing unless both.
 	var spot := Vector2(CELL * 30, CELL * 30)
 	var w_drop := _plant("dewdrop", spot)
 	var w_near := _plant("sprout", spot + Vector2(CELL, 0))
 	var w_far := _plant("sprout", spot + Vector2(CELL * 6, 0))
 	await _frames(2)
-	var resister = _spawn(spot + Vector2(CELL, CELL))
-	resister.enemy_data = resister.enemy_data.duplicate(true)
-	resister.enemy_data.resists.assign(["sprout"])
-	_check(is_equal_approx(klass.damage_multiplier(resister, w_near), 1.0), "Wash Away: nothing on a dry nightmare")
-	w_drop._apply_one_status(resister, EnemyStatuses.DAMP, 1, w_drop.get_damage())
-	_check(is_equal_approx(klass.damage_multiplier(resister, w_near), klass.WASH_AWAY_FACTOR), "...Soaked, hit by a Warden near a Dewdrop: half its resistance gone")
-	_check(is_equal_approx(klass.damage_multiplier(resister, w_far), 1.0), "...a Warden far from any Dewdrop gets nothing")
+	var shelled = _spawn(spot + Vector2(CELL, CELL))
+	_check(is_equal_approx(klass.shell_multiplier(shelled, w_near), 1.0), "Wash Away: nothing on a dry nightmare")
+	w_drop._apply_one_status(shelled, EnemyStatuses.DAMP, 1, w_drop.get_damage())
+	_check(is_equal_approx(klass.shell_multiplier(shelled, w_near), klass.WASH_AWAY_SHELL), "...Soaked, hit by a Warden near a Dewdrop: its shell takes double")
+	_check(is_equal_approx(klass.shell_multiplier(shelled, w_far), 1.0), "...a Warden far from any Dewdrop gets nothing")
 	await _clean()
 
 	# Shallows: a hit from another Warden touching a Dewdrop adds 1 Soaked, once a second.

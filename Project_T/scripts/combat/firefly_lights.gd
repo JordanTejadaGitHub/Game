@@ -730,19 +730,18 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 				_fork(id, source, at, other, amount * LIKE_SHARE, cap)
 				break
 
-# Nothing Wasted: a hit a nightmare resists, from a Firefly Warden or a Warden near one, jumps the damage resisted to the
-# nearest nightmare near it that doesn't resist that family.
+# Nothing Wasted: the damage a nightmare's shell (the blight coat) soaks up from a hit, by a Firefly Warden or a Warden
+# near one, jumps to the nearest nightmare near it without a shell. (Resistances are gone, enemy_design.md ed6f573b:
+# it read the resisted part before.)
 func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
-	var line: String = source.tower_data.line
-	if enemy.enemy_data == null or not enemy.enemy_data.resists.has(line) or event.family_multiplier >= 1.0:
+	if event.coat_soaked <= 0.0:
 		return
 	var jar = source if is_firefly(source) else firefly_near(source)
 	if jar == null:
 		return
-	var resisted: float = event.base * (1.0 - event.family_multiplier)
 	for other in _near_enemies(at, [enemy]):
-		if other.enemy_data != null and not other.enemy_data.resists.has(line):
-			_fork(id, source, at, other, resisted, _lent_cap(source, jar))
+		if float(other.coat) <= 0.0:
+			_fork(id, source, at, other, event.coat_soaked, _lent_cap(source, jar))
 			return
 
 # Sparks Fly: every 3rd hit a Warden (not a Firefly Warden; Sprouts count) lands on a nightmare a Firefly Warden hit in

@@ -24,7 +24,7 @@ const RIPTIDE_SLOW := 0.5  # …walking this much slower…
 const RIPTIDE_DAMAGE_SECONDS := 3.0  # …taking this many seconds of that Dewdrop's damage over it
 const RIPTIDE_TICK := 0.5
 const CAUGHT_WARDENS := 3  # Caught Wading
-const WASH_AWAY_FACTOR := 1.5  # Wash Away: a family resistance of x0.5 becomes x0.75
+const WASH_AWAY_SHELL := 2.0  # Wash Away: a Soaked nightmare's shell takes this much damage from Wardens near a Dewdrop
 const SWELL_SHARE := 0.5
 const ACROSS_STEPS := 3  # Across the Water: this many steps further along the water…
 const ACROSS_CELLS := 5.0  # …never more than this far from the Warden
@@ -629,11 +629,8 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()) and near(source.global_position, rip.at):
 			rip.done[source.get_instance_id()] = true
 			multiplier *= 2.0
-	if not (rule(WASH_AWAY) or rule(DEEP_POOL)) or dewdrop_near(source) == null:
+	if not rule(DEEP_POOL) or dewdrop_near(source) == null:
 		return multiplier
-	# Wash Away: a Soaked nightmare loses half its resistance to Wardens near a Dewdrop (x0.5 becomes x0.75). Not bosses.
-	if rule(WASH_AWAY) and not enemy.statuses.is_boss and enemy.enemy_data.resists.has(source.tower_data.line):
-		multiplier *= WASH_AWAY_FACTOR
 	if rule(DEEP_POOL) and tag == &"":  # Deep Pool: hits deal +10% for each status it carries besides Soaked (never Rooted)
 		var others := 0
 		for id in enemy.statuses.active_ids():
@@ -641,6 +638,15 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 				others += 1
 		multiplier *= 1.0 + DEEP_POOL_PER_STATUS * others
 	return multiplier
+
+# Wash Away (Enemy.take_damage asks through DreamState.shell_multiplier): a Soaked nightmare's shell (the blight coat)
+# takes double damage from Wardens near a Dewdrop. Not bosses. (Resistances are gone, enemy_design.md ed6f573b.)
+func shell_multiplier(enemy, source) -> float:
+	if not active() or not rule(WASH_AWAY) or not (source is Tower) or not is_instance_valid(source):
+		return 1.0
+	if enemy.statuses.is_boss or not _soaked(enemy) or dewdrop_near(source) == null:
+		return 1.0
+	return WASH_AWAY_SHELL
 
 # Across the Water: any Warden touching water also reaches Soaked nightmares up to 3 steps further along that water
 # (never more than 5 cells from it). Adds them to its target list.

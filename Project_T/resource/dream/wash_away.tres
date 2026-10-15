@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "wash_away"
 display_name = "Wash Away"
-description = "A {damp} nightmare loses half its resistance to Wardens {near} a {warden:dewdrop}. Not bosses."
-tip = "Resistance: the grey puff, half damage from that family; it becomes three quarters. Works for: any Warden near a {warden:dewdrop}. Safe."
+description = "A {damp} nightmare's shell takes double damage from Wardens {near} a {warden:dewdrop}. Not bosses."
+tip = "A shell: the grey crust on a nightmare's health bar that soaks up part of each hit until it breaks. The hit itself is unchanged; the shell just breaks twice as fast. Works for: any Warden near a {warden:dewdrop}. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])

@@ -2462,7 +2462,8 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if coat > 0.0 and soothe > 0.0 and not pierce:
 		# Each hit loses up to _coat_per_hit (always keeping at least 1), never more than the coat has left.
 		var soaked := minf(minf(_coat_per_hit, coat), soothe - minf(soothe, 1.0))
-		coat -= soaked
+		var shell := batch_dreams.shell_multiplier(self, source) if batch_dreams != null else 1.0  # Wash Away: the shell takes double (Roguelite Code)
+		coat -= minf(soaked * shell, coat)
 		soothe -= soaked
 		if coat <= 0.0:
 			coat = 0.0

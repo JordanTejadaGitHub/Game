@@ -1867,12 +1867,19 @@ var _hook_batch := false
 var _hook_water := false
 var _hook_bells := false
 
+# How much more of the blight coat (the shell) a hit takes off (Wash Away; 1.0 without it). Enemy.take_damage asks only
+# while the nightmare has a coat.
+func shell_multiplier(enemy: Node2D, source: Node) -> float:
+	if puddles == null or not has_rule(&"wash_away"):
+		return 1.0
+	return puddles.shell_multiplier(enemy, source)
+
 func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
 	var frame := Engine.get_process_frames()
 	if frame != _hook_frame:
 		_hook_frame = frame
 		_hook_batch = batch.uses_damage_hook(self)
-		_hook_water = puddles != null and puddles.active() and (has_rule(&"wash_away") or has_rule(&"deep_pool") or has_rule(&"riptide"))
+		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide"))  # (Wash Away is a shell card now: shell_multiplier)
 		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
 	if not _hook_batch and not _hook_water and not _hook_bells:
 		return 1.0
