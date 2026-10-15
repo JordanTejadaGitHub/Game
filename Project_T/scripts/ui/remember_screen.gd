@@ -719,9 +719,10 @@ func count_on_map(data: TowerData) -> int:
 
 # --- Side panel -----------------------------------------------------------------------------------------
 
-# A form whose look stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
-# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Shown as a dim
-# "?" with no portrait, stats or cost. Dev "unlock free" shows everything.
+# A form whose art stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
+# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Its silhouette
+# shows on the tree and in the side panel; its info shows unless is_info_hidden (user 2026-10-15, screens_ui.md
+# 6f9e5401). Dev "unlock free" shows everything.
 func is_veiled(data: TowerData) -> bool:
 	if data == null or _dev_free.button_pressed or dream_state.unlock_everything or dream_state.is_unlocked(data.get_id()):
 		return false
@@ -732,12 +733,21 @@ func is_veiled(data: TowerData) -> bool:
 		return branch != null and branch.tier == 2 and not dream_state.is_unlocked(branch.get_id())
 	return false
 
-# The step that unveils `data`: "Unlock Stormcap to see what it becomes".
+# A veiled form whose name, text, stats and cost stay hidden too: only an Ascended form whose family's Grove node
+# (<family>_ascension) isn't planted. A veiled final always shows its info (user 2026-10-15).
+func is_info_hidden(data: TowerData) -> bool:
+	if not is_veiled(data) or data.tier < DreamState.ASCENDED_TIER:
+		return false
+	var family := dream_state.family_of(data.get_id())
+	var node := HeartwoodMemory.get_unlock(family + "_ascension") if family != "" else null
+	return node == null or HeartwoodMemory.node_level(HeartwoodMemory.load_data(), node) <= 0
+
+# The step that unveils `data`: "Unlock Stormcap first".
 func veil_hint(data: TowerData) -> String:
 	if data.tier >= DreamState.ASCENDED_TIER:
-		return "Unlock a final form of this family to see what it becomes"
+		return "Unlock a final form of this family first"
 	var branch := dream_state._parent_in_tree(data)
-	return "Unlock %s to see what it becomes" % (branch.display_name if branch != null else "its branch")
+	return "Unlock %s first" % (branch.display_name if branch != null else "its branch")
 
 func _fill_side(data: TowerData) -> void:
 	if _action_box != null:
@@ -755,7 +765,7 @@ func _fill_side_content(data: TowerData) -> void:
 	if data == null:
 		_line("No family to remember yet.", UiStyle.INK_DIM, 15)
 		return
-	if is_veiled(data):  # Only the "?" and how to reveal it
+	if is_info_hidden(data):  # Only the "?" and how to reveal it
 		var mark := Label.new()
 		mark.text = "?"
 		UiStyle.display(mark, 22)
@@ -770,7 +780,7 @@ func _fill_side_content(data: TowerData) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
-	head.add_child(Portrait.new(data, 72.0, grove))  # A Grove-locked form stays a silhouette here too (user)
+	head.add_child(Portrait.new(data, 72.0, grove or is_veiled(data)))  # A Grove-locked or veiled form stays a silhouette here too (user)
 	if grove:  # run_design.md: a Grove-locked form shows only its silhouette, "???", "Locked" and the invitation
 		var grove_name := Label.new()
 		grove_name.text = UNKNOWN_NAME
@@ -1058,7 +1068,8 @@ func _add_unlock(data: TowerData) -> void:
 		_side_box.add_child(free)
 		return
 	var blocker := dream_state.get_unlock_blocker(data)
-	if blocker != "":
+	var veiled := is_veiled(data)  # Its branch (or a final) first: the button says so (user 2026-10-15)
+	if blocker != "" and not veiled:
 		_line("Locked: " + blocker, UiStyle.INK_DIM, 13)
 	# The one detail-panel button (user, Bramble: "Dreamlight is not centred"; as Call into this dream, b5735f56): 12 px
 	# under the text, "Unlock" centred, the Dreamlight glyph and its cost at the right in GOLD, POOR when short; no " · ".
@@ -1071,10 +1082,12 @@ func _add_unlock(data: TowerData) -> void:
 	button.custom_minimum_size = Vector2(0, 48)
 	var price := dream_state.get_unlock_price(data)  # Waking Root (Heartwood's Gifts): 1 less, once
 	var short := price - dream_state.dreamlight  # > 0: can't afford
-	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
+	button.disabled = blocker != "" or veiled  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	button.text = "Unlock" if price > 0 else "Unlock, free"
+	if veiled:
+		button.text = veil_hint(data)  # Its Dreamlight cost stays at the right
 	if price > 0:
 		_cost_on(button, price, blocker == "" and short > 0)
 	if price < cost:
@@ -1440,10 +1453,11 @@ class FormNode extends Button:
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this run"
-		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"): no name, cost or button
+		var info_hidden := screen.is_info_hidden(data)
+		if veiled:  # A final not revealed yet: its dark silhouette (user: "show the silhouette still"), its name and role under it
 			portrait.modulate = Color(1, 1, 1, 0.85)  # multiplier: the shadow at .85
-			tooltip_text = "? · " + screen.veil_hint(data)
-		if not veiled and state != State.GROVE and data.tier >= 2 and not row:  # Phones: the role is in the detail panel
+			tooltip_text = ("?" if info_hidden else data.display_name) + " · " + screen.veil_hint(data)
+		if not info_hidden and state != State.GROVE and data.tier >= 2 and not row:  # Phones: the role is in the detail panel
 			_add_role(IconInfo.role_text(data))
 		pressed.connect(func() -> void: screen._select(data))
 
@@ -1483,7 +1497,7 @@ class FormNode extends Button:
 			draw_circle(centre, PORTRAIT / 2.0 - 1, Color(Palette.VOID, 0.25))  # ~75%: the shadow still reads as a Warden
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
-		if screen.is_veiled(data):  # Not revealed yet: only its shadow, no name, cost or glow
+		if screen.is_info_hidden(data):  # An Ascended form without its Grove node: only its shadow, no name, cost or glow
 			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
@@ -1541,7 +1555,7 @@ class FormNode extends Button:
 			_draw_leaf(centre + Vector2(r - 8, -r + 8))
 		elif data.tier == 2 and screen.dream_state.is_hidden_branch(data):
 			_draw_leaf(centre + Vector2(-r + 8, -r + 8))
-		var name_text := "?" if veiled else name_shown()
+		var name_text := "?" if screen.is_info_hidden(data) else name_shown()
 		var name_colour := UiStyle.INK
 		if RememberScreen.is_unlocked_state(state):
 			name_colour = UiStyle.GOLD  # Yours this run
