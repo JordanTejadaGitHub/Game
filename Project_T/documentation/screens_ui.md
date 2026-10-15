@@ -637,8 +637,10 @@ From a user playtest with screenshots; each line is the rule going forward.
   form even if the 1st form isn't unlocked in the Remember tree, keep the silhouette though"): until its branch is
   unlocked, a final form keeps its **silhouette** on the tree and in the side panel (the reveal of its art is still
   the reward), but its **name, description, stats, combos and Dreamlight cost** all show, so you can plan the path.
-  Its Unlock button is off, with the line *"Unlock {branch} first"*. Ascended forms keep the full veil ("?") until a
-  final of the family is unlocked. Grove-hidden forms ("???", Memory Grove) are unchanged.
+  Its Unlock button is off, with the line *"Unlock {branch} first"*. **Ascended forms follow the same rule once their
+  Grove node (`<family>_ascension`) is planted** (user, same day: "yes if they have it unlocked in the Grove"):
+  silhouette plus full info, button off with *"Unlock a final form of this family first"*. Without the Grove node
+  the Ascended form stays Grove-hidden as today. Other Grove-hidden forms ("???", Memory Grove) are unchanged.
 - **The Remember button** (top right) uses the **Dreamlight icon**, the counter's pink diamond (2026-10-12 rule: one
   Dreamlight icon everywhere), never a separate Remember glyph.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
