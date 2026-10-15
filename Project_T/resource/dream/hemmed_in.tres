@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hemmed_in"
 display_name = "Hemmed In"
-description = "Needs another {family}'s Warden. If it is {touching} two spore Wardens, its status hits add double {stacks}. {drowsy} is never doubled."
+description = "Needs another {family}'s Warden. If it is {touching} two spore Wardens, every status it puts on a nightmare lands with double {stacks}. {drowsy} never doubles."
 tip = "Works for: another {family}'s Warden set between two spore Wardens. {static} and {marked} gain the extra at most once a second. It adds to Narrows and Mixed Company on the same hit. A bet: it does nothing until one stands there."
 rarity = 2
 kind = 3

@@ -4398,9 +4398,9 @@ func dew_harvested() -> int:
 # A card never names a Warden you don't have: combo cards show their statuses (lit if one of your
 # Wardens applies it, dim if not), Warden Needs show the family, card ingredients stay by name.
 
-# What a half-dreamed or sleeping card still needs, by damage type (dream_design.md "Named by damage
-# type"): [{family: "whirligig", type: "Wind", line: "wind", form: "Samara" or ""}] (form = the
-# specific Warden when the card needs one, for its tooltip: "Samara, a Wind Warden").
+# What a half-dreamed or sleeping card still needs, by family (damage types are gone, enemy_design.md ed6f573b):
+# [{family: "whirligig", name: "Whirligig", line: "wind", form: "Samara" or ""}] (form = the specific Warden when the
+# card needs one, for its tooltip). `name` is the family's display name, as NeedsRow.family_word.
 func missing_needs(card: UpgradeData) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for id in card.requires:
@@ -4409,25 +4409,25 @@ func missing_needs(card: UpgradeData) -> Array[Dictionary]:
 			continue
 		var data := IconInfo.family_data(family)
 		var line: String = data.line if data != null else ""
-		out.append({"family": family, "line": line, "type": IconInfo.damage_type_name(line),
+		out.append({"family": family, "line": line, "name": data.display_name if data != null else family.capitalize(),
 			"form": get_display_name(id) if id != family else ""})
 	return out
 
-# The one line a half-dreamed or sleeping card shows: "Needs Wind" ("" = none; "half-dreamed" stays an
+# The one line a half-dreamed or sleeping card shows: "Needs Whirligig" ("" = none; "half-dreamed" stays an
 # internal name). The Dream card draws it with the type's emblem and a link.
 func missing_families_text(card: UpgradeData) -> String:
 	var needs := missing_needs(card)
-	return "" if needs.is_empty() else "Needs " + " and ".join(needs.map(func(n: Dictionary) -> String: return n.type))
+	return "" if needs.is_empty() else "Needs " + " and ".join(needs.map(func(n: Dictionary) -> String: return String(n.name)))
 
 # Why a taken card isn't working yet, for "Dreams this run"'s hover ("" = it's active): "Not active yet: needs a
-# Water Warden" / "…needs a Warden that applies Soaked" (dream_design.md 2026-10-01: the card face has no Needs line).
+# Dewdrop Warden" / "…needs a Warden that applies Soaked" (dream_design.md 2026-10-01: the card face has no Needs line).
 func not_active_reason(card: UpgradeData) -> String:
 	if card == null:
 		return ""
 	var needs := missing_needs(card)
 	if not needs.is_empty():
 		return "Not active yet: needs %s" % " and ".join(needs.map(func(n: Dictionary) -> String:
-			return "a%s %s Warden" % ["n" if "AEIOU".contains(String(n.type).left(1)) else "", n.type]))
+			return "a%s %s Warden" % ["n" if "AEIOU".contains(String(n.name).left(1)) else "", n.name]))
 	var parts := needs_parts(card)
 	var missing: Array = parts.statuses.filter(func(s: Array) -> bool: return not s[1]).map(func(s: Array) -> String:
 		return IconInfo.status_name(s[0]))
