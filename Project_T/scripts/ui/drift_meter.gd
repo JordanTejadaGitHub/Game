@@ -278,6 +278,7 @@ const GAP := 8.0
 const ROW_GUESS := 28.0  # A Warden row's height when none is listed to measure
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
 const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
+const PHONE_STATUS_ROOM := 56.0  # Phones: the drift panel's status lines above its box ("Resting: …", "Maze bonus: …")
 const OPEN_RESERVE := 408.0  # The open card's height with TOP_ROWS rows, "Last drift" and "and N more" (404 at 1280×800)
 var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
 var _user_open := false  # The player's open / closed choice (the header toggles it)
@@ -304,6 +305,15 @@ func _fit() -> void:
 	# It sits where the open card needs it: OPEN_RESERVE above the DriftPanel, never above TOP_LIMIT or below the
 	# old centre line.
 	var top := minf(maxf(bottom - OPEN_RESERVE, TOP_LIMIT), screen_mid + BASE_TOP)
+	# Phones (arrow_hidden: the HUD's Damage button opens it): it drops down right under that button, and ends above the
+	# drift panel's status lines too (user screenshot 2026-10-15: "and N more" sat on "Resting: selling refunds").
+	var phone_top := -1.0
+	if arrow_hidden:
+		var button := hud.get_node_or_null("DamageButton") as Control
+		if button != null and button.is_visible_in_tree():
+			phone_top = button.get_global_rect().end.y + GAP
+			top = phone_top
+		bottom -= PHONE_STATUS_ROOM
 	var info := hud.get_node_or_null("NightmareInfo") as Control
 	if info != null and info.visible:
 		top = maxf(top, info.get_global_rect().end.y + GAP)
@@ -322,7 +332,7 @@ func _fit() -> void:
 	if get_viewport_rect().size.y < UiStyle.LAYOUT_MIN.y * 0.5:
 		return  # No real screen (headless stand-in window): nothing to fit into
 	if top + height > bottom:
-		var highest := TOP_LIMIT
+		var highest := phone_top if phone_top >= 0.0 else TOP_LIMIT
 		if info != null and info.visible:
 			highest = maxf(highest, info.get_global_rect().end.y + GAP)
 		top = maxf(bottom - height, highest)
