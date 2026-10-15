@@ -1547,6 +1547,18 @@ const HUD_GLYPHS := {
 		"...oGgo...",
 		"...oggo...",
 		"...oooo..."],
+	# Dreams this run: a Dream card with its gem.
+	"dreams_hud": [
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oGGooGgo.",
+		".oGoHoogo.",
+		".oGoooogo.",
+		".oGGooggo.",
+		".oGGGgggo.",
+		".oGgggggo.",
+		".oggggggo.",
+		".oooooooo."],
 }
 
 func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
