@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hammerfall"
 display_name = "Hammerfall"
-description = "Another {family}'s {heavy} Warden {near} a Firefly Warden {jumps} half of each attack to the nearest other nightmare. Sprouts count too."
+description = "Another {family}'s {heavy} Warden, or a Sprout, {near} a Firefly Warden: half of each attack {jumps} to the nearest other nightmare."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "bell_to_bell"
 display_name = "Bell to Bell"
-description = "A nightmare walking into another bell's range has its Toll pips filled back up to 2 of 4. Once for each bell."
-tip = "Another bell: not the one that last rang it. It only raises. Works for: a row of bells. Safe."
+description = "When a nightmare walks into a different bell's range, its pips rise to at least 2 of 4. Once for each bell."
+tip = "Different: not the bell that last rang it. It never lowers the count. Works for: a row of bells. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["song"])

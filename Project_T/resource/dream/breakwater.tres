@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "breakwater"
 display_name = "Breakwater"
-description = "A fully {damp} nightmare leaving {water} 14 or more {steps} long takes a wave: 3 s of damage from the strongest {warden:dewdrop} {touching} it."
+description = "A {full} {damp} nightmare leaving a stretch of {water} at least 14 {steps} long takes 3 s of damage from that {water}'s strongest {warden:dewdrop}."
 tip = "Works for: {warden:dewdrop}s. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 2
 kind = 3

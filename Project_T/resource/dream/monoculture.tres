@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "monoculture"
 display_name = "Monoculture"
-description = "If your non-Sprout attacking Wardens are all one line, those Wardens deal 100% more damage. Sprouts do not break the condition and receive no bonus."
+description = "If all your attacking Wardens except Sprouts are from one {family}, they deal 100% more damage. Sprouts don't break this and get no bonus."
 rarity = 3
 kind = 3
 tags = Array[String](["narrow", "tall"])

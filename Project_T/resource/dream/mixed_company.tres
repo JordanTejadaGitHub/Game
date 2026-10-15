@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Status hits on a nightmare carrying {spored} and two other statuses add twice the {stacks}. Once a second per Warden. Not {drowsy}."
+description = "Status hits on a nightmare with {spored} and two other statuses add double {stacks}. Once a second per Warden. {drowsy} is never doubled."
 tip = "A bet: it needs three statuses on one nightmare, so usually two families besides the spore Wardens. Doubles only the hit's own {stacks}."
 rarity = 2
 kind = 3

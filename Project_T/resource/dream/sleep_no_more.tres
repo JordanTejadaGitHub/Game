@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sleep_no_more"
 display_name = "Sleep No More"
-description = "Needs a sleeping nightmare. The first hit on it within 1 s of waking, from any Warden, lands in full on every nightmare {touching} it too."
+description = "Needs a way to put nightmares to sleep. The first hit on one within 1 s of waking also lands in full on every nightmare {touching} it."
 tip = "Sleep comes from Nod Off, Dreamshroom and The Great Bell. Up to 6 others; never more than a second of that Warden's damage. A bet: it does nothing until something of yours puts nightmares to sleep."
 rarity = 1
 kind = 3

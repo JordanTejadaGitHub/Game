@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "long_way_round"
 display_name = "Long Way Round"
-description = "Bosses and Deeply Blighted nightmares take 2% more damage for each bend behind them, up to 40%."
+description = "Bosses and Deeply Blighted nightmares take 2% more damage for each bend they have already walked round, up to 40%."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])

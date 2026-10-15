@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "waterlogged"
 display_name = "Waterlogged"
-description = "Needs another {family}'s status. On a {damp} nightmare, other families' statuses from Wardens {near} a {warden:dewdrop} last half again as long."
+description = "Needs another {family}'s status. On a {damp} nightmare, other families' statuses from Wardens {near} a {warden:dewdrop} last 50% longer."
 tip = "Set when the status lands: the Warden near a {warden:dewdrop}, the nightmare {damp} at that moment. Never {drowsy}, {damp} or Rooted. A bet: it does little until a Warden of another family that adds a status stands near a {warden:dewdrop}."
 rarity = 2
 kind = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "close_quarters"
 display_name = "Close Quarters"
-description = "Kin touching each other attack 20% faster."
+description = "Two Wardens in a {kinship} that are {touching} each other attack 20% faster."
 rarity = 0
 kind = 3
 tags = Array[String](["kinship"])

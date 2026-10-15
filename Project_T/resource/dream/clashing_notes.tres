@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "clashing_notes"
 display_name = "Clashing Notes"
-description = "Needs another {family}'s status. A bell's hit on a {drowsy} nightmare sets off any Reaction it is halfway to. Each nightmare, once every 8 s."
-tip = "Halfway: {spored}, {static} and {damp} count at half what the Reaction needs; {drowsy} and {marked} must still be full. Thunderclap, Ignite, Drown and the {spored} with {damp} Reaction; never a Reaction with Rooted. A grown Warden is still needed. A bet."
+description = "Needs another {family}'s status. A bell's hit on a {drowsy} nightmare sets off a Reaction it has half the {stacks} for. Each nightmare, once every 8 s."
+tip = "Half: {spored}, {static} and {damp} need only half their usual {stacks}; {drowsy} must still be {full}. Works for Thunderclap, Ignite, Drown and the {spored}-with-{damp} Reaction, never one with Rooted. One of the statuses must still come from a grown Warden (a branch or final form). A bet."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

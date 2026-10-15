@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "odd_one_out"
 display_name = "Odd One Out"
-description = "A Warden that's the only one of its kind on the map deals 45% more damage."
+description = "A Warden with no other Warden of the same form on the map deals 45% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["variety", "overgrowth"])

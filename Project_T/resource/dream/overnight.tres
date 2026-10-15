@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "overnight"
 display_name = "Overnight"
-description = "Needs another {family}'s status. A spore Warden's attack adds 3 {spored} at once to a nightmare carrying one (once a second). At 6 {spored}, each other status gains 5, once."
+description = "Needs another {family}'s status. A spore Warden's hit on a nightmare with one adds 3 {spored} (once a second). At 6 {spored}, its other statuses each gain 5, once."
 tip = "Works for: a spore Warden, on a nightmare carrying another {family}'s status. The 5 comes once per nightmare. A bet: it does little until you own another {family}."
 rarity = 2
 kind = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "A group of 6 or more touching attackers gets +1 range while it is fighting 6 or more nightmares."
+description = "A group of 6 or more attacking Wardens, all linked by touching, gets +1 range while it has hit 6 or more different nightmares in the last 3 s."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])

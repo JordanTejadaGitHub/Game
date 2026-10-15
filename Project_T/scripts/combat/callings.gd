@@ -14,10 +14,10 @@ const NAMES := {"sporeling": "Spore Print", "firefly_jar": "Lantern Light", "dew
 	"bellflower": "Keeping Time", "acorn": "Volley", "nestling": "Perches", "pebbling": "Lodged Stone",
 	"rootling": "Anvil", "whirligig": "Tailwind"}
 const TEXTS := {
-	"sporeling": "A {spored} nightmare dispelled by any Warden leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {spored} at once. Flyers pass over.",
-	"firefly_jar": "Nightmares in a Firefly Warden's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit's damage {jumps} to the nearest {lit} nightmare.",
-	"dewdrop": "The path touching your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there ripples: nightmares within 4 {steps} in that {water} are {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
-	"bellflower": "Every 4th ring on a nightmare is a {toll}: it lands again, at half damage. Each nightmare starts with 2 of its 4 pips filled.",
+	"sporeling": "When any Warden dispels a {spored} nightmare, it leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {spored} at once. Flyers pass over.",
+	"firefly_jar": "Nightmares in a Firefly Warden's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit {jumps} to the nearest other {lit} nightmare.",
+	"dewdrop": "The path {touching} your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there makes nightmares within 4 {steps} in that {water} {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
+	"bellflower": "Each hit from a bell fills a pip on the nightmare. At 4 pips it is a {toll}: the hit lands again at half damage. Nightmares start with 2 pips filled.",
 	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
@@ -27,10 +27,10 @@ const TEXTS := {
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "Any dispel counts: by hit, poison or cloud. Your Firefly cards make jumps bigger, further and more often.",
-	"sporeling": "Your Sporeling cards grow mushrooms and hand out doses. Mushrooms stay through a {rest}; 40 at most. Weak against flyers.",
-	"dewdrop": "Touching: within 1.25 cells of the Warden. A step is one cell of path. Your Dewdrop cards pay as nightmares leave the water, walk back in, or wade past other Wardens.",
-	"bellflower": "A ring is a hit from one of your bells, any form. Rings closer than half a second count as one. Your Bellflower cards make Tolls carry, grow and wake sleepers.",
+	"firefly_jar": "Glow: a Firefly Warden's attack range. Any dispel counts: by hit, poison or cloud. Only the 5 Lantern Light cards (offered because you started with Firefly Jar) use {lit} nightmares and lights; your other Firefly cards work from Firefly Wardens themselves, for anyone.",
+	"sporeling": "Mushrooms stay through a {rest}; 40 at most. Only the 5 Spore Print cards (offered because you started with Sporeling) grow or use {mushrooms} and {doses}; your other Sporeling cards work without them, for anyone. Weak against flyers.",
+	"dewdrop": "{touching}: within 1.25 cells of the Warden. A {step} is one cell of path. Each nightmare is soaked this way at most once a second. Only the 5 Puddles cards (offered because you started with Dewdrop) use {water}; your other Dewdrop cards work from where {warden:dewdrop}s stand and {damp}, for anyone.",
+	"bellflower": "A bell is any Bellflower form. Hits closer than half a second fill one pip, and each nightmare takes at most one {toll} a second. Only the 5 Keeping Time cards (offered because you started with Bellflower) use pips and {tolls}; your other Bellflower cards work from bells and {drowsy}, for anyone.",
 }
 
 # Starting numbers (Balancing sets the final ones).

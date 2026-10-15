@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "pass_it_round"
 display_name = "Pass It Round"
-description = "Each different kind of attacking Warden {touching} a spore Warden adds 3 {spored} at once with its first hit on each nightmare. Sprouts count."
-tip = "One kind: one Warden form. Works for: any Warden {touching} a spore Warden, more for each other kind. Safe."
+description = "Each different Warden form {touching} a spore Warden adds 3 {spored} with its first hit on each nightmare. Sprouts count."
+tip = "Form: one exact Warden, so two Acorns are one form and an Acorn and its grown form are two. Spore Wardens don't count. Works for: a mix of Wardens around a spore Warden. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "lent"])
