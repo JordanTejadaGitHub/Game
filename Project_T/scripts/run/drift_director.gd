@@ -109,7 +109,7 @@ func get_late_multiplier(number: int) -> float:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.20  # Balancing be7b5a94 (with copy pricing 0.08; was 1.30 after half cells, 1.15, 1.25, 1.35).
+@export var act1_health_multiplier: float = 1.40  # Balancing 2026-10-15: was 1.20; under health/Dew x2 act 1 had become trivial (2,000-4,100 Dew banked by drift 25). (Earlier: be7b5a94 with copy pricing 0.08; 1.30 after half cells, 1.15, 1.25, 1.35)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
@@ -117,7 +117,7 @@ func get_late_multiplier(number: int) -> float:
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
-@export var act2_steep_value: float = 3.45  # Drift 37: on the straight line 2.0 @26 → 4.5 @45, so no knee (Spire, Balancing Discussion; was 3.3, 2.9, 2.3, 1.995)
+@export var act2_steep_value: float = 3.2  # Balancing 2026-10-15: was 3.45; drifts 34-40 felt hard after an easy act 1 (run 38). (Earlier: on the straight line 2.0 @26 -> 4.5 @45; 3.3, 2.9, 2.3, 1.995)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 11  # The intro drifts before it are unchanged (Balancing 2026-10-05: 11, so drift 10 isn't also the first finale)
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
