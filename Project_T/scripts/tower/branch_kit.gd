@@ -2187,7 +2187,7 @@ class FenceLayer extends Node2D:
 		var looked := {}
 		if seller == null:
 			return looked
-		var towers: Array = Array(seller.selection)
+		var towers: Array = seller.selection.duplicate()  # A copy: Array(typed) is the SAME array, and appending the hovered Warden grew the selection every frame (0526496a; the user: "hovering over a warden increases selection")
 		var hovered = seller.get("_hover_tower")
 		if is_instance_valid(hovered):
 			towers.append(hovered)
