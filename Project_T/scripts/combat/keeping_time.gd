@@ -193,10 +193,13 @@ func _process(delta: float) -> void:
 func _draw_pips() -> void:
 	if dream_state == null or not tolls_on():
 		return
+	var start := _start_pips()
 	for enemy in enemies():
-		if not enemy.has_meta(PIPS_META):
+		if not enemy.has_meta(PIPS_META) and start <= 0:
 			continue
-		var filled := int(enemy.get_meta(PIPS_META))
+		# Shown from the start (owner 2026-10-15: "feels like the pip starts at 3"): the 2 filled ones were only drawn
+		# after the first ring, which had already made them 3
+		var filled := int(enemy.get_meta(PIPS_META, start))
 		var at: Vector2 = enemy.global_position + PIP_OFFSET - Vector2(PIP_GAP * (TOLL_EVERY - 1) / 2.0, 0.0)
 		for k in TOLL_EVERY:
 			var spot := at + Vector2(PIP_GAP * k, 0.0)
