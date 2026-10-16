@@ -229,14 +229,19 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
 		_subtitle.text = ("after drift %d · %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps)
 	_skip.text = "Let it pass, %s" % UiStyle.dew_amount(dream_state.skip_dew, true) if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
-	_skip.visible = dream_state.can_skip()  # Restless Dreams
+	_skip.visible = dream_state.can_skip()  # Restless Dreams (and never on a Calling pick: can_skip)
+	var growing: bool = dream_state.is_calling_offer()  # Calling evolutions (Roguelite Code 2026-10-16): no reroll or let-go
+	if growing:
+		_title.text = "Your Calling grows" if _phone else "Your Calling grows, after drift %d" % drift_number
+		if _phone:
+			_subtitle.text = dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style"
 	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
 	_reroll.text = dream_state.reroll_label()
 	_reroll.tooltip_text = dream_state.reroll_tip()
 	_reroll.disabled = dream_state.rerolls_left <= 0
-	_reroll.visible = dream_state.rerolls_left > 0 or _rerolled_in == drift_number
-	var show_let_go: bool = dream_state.banishes_left > 0 or _let_go_in == drift_number
+	_reroll.visible = (dream_state.rerolls_left > 0 or _rerolled_in == drift_number) and not growing
+	var show_let_go: bool = (dream_state.banishes_left > 0 or _let_go_in == drift_number) and not growing
 	var gap := float(_cards.get_theme_constant("separation"))
 	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
 	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
@@ -327,7 +332,7 @@ func _make_card(card: UpgradeData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	var rarity := Label.new()
-	rarity.text = UpgradeData.rarity_name(card.rarity)
+	rarity.text = UpgradeData.rarity_name(card.rarity) if not card.tags.has("calling_evolution") else "Calling"
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += " · " + _roman(stack_count + 1)

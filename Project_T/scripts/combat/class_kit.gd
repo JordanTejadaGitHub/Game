@@ -76,6 +76,16 @@ func class_on() -> bool:
 func rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
 
+# A Calling evolution on the path (DreamState.calling_path; scripts/combat/calling_paths.gd). Only the Calling's own
+# family ever has them, so it implies class_on().
+func evo(id: StringName) -> bool:
+	return dream_state != null and class_on() and dream_state.has_evolution(id)
+
+# Credit an effect to its card or evolution (DreamState.note_card: callouts and the rest report).
+func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
+	if dream_state != null:
+		dream_state.note_card(id, at)
+
 func lent_on() -> bool:
 	for id in _lent_rules():
 		if rule(id):

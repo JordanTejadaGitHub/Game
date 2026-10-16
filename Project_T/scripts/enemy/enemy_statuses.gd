@@ -299,6 +299,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		_lifecycle[id] = lifecycle_serial(id) + 1
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
+	var was_stacks := int(status.stacks)  # A status reaching its most is a moment (status_filled)
 	status.stacks = mini(status.stacks + stacks, cap)
 
 	var strength := _applier_potency(source)
@@ -330,6 +331,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status["peak"] = maxi(int(status.get("peak", 0)), int(status.stacks))  # Ebb brings half of this back
 	pending_linger.erase(id)
 	_active[id] = status
+	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC:
+		status_filled.emit(id)  # (Charged at its most is a bolt instead)
 	applications += 1
 	changes += 1
 	if fresh and status.stacks > 0:
@@ -836,6 +839,8 @@ func add_quiet(id: StringName, amount: int) -> int:
 	if added <= 0:
 		return 0
 	status.stacks = int(status.stacks) + added
+	if int(status.stacks) >= get_max_stacks(id):
+		status_filled.emit(id)
 	if id == SPORED and not _spore_batches.is_empty():
 		_spore_batches[0][1] = int(_spore_batches[0][1]) + added
 		_rebuild_spore_credit()
@@ -908,6 +913,9 @@ func preserve_other_statuses(new_id: StringName) -> void:
 const LINGER_MAX := 4.0
 const LINGER_MAX_STATIC := 2.0
 signal status_ran_out(id: StringName, peak: int, source: Node, potency: float, line: String)  # Ran out of time (not spent)
+# A status just reached its most stacks (owner 2026-10-16: "make these dream cards more noticeable"): the nightmare flashes
+# it, so every card that stacks or keeps statuses shows its payoff.
+signal status_filled(id: StringName)
 
 static func can_linger(id: StringName) -> bool:
 	return id != HELD and id != DROWSY  # Soaked lingers too: a Dewdrop build keeps its own Thunderclap and Drown setups (owner 2026-10-15: "with its own family")

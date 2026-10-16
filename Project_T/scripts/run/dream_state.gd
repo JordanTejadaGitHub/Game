@@ -336,6 +336,62 @@ var firefly_lights: Node2D = null  # Made in _ready; null in a bare DreamState (
 signal calling_changed(family: String)
 var calling := ""
 
+# --- Calling evolutions (scripts/combat/calling_paths.gd; owner 2026-10-16) ---------------------------------------------
+# The Calling grows at the drift 5, 25, 50 and 75 rests: a style, a follow-up, a capstone, the style's other follow-up.
+# The pick is an offer of its own in the Dream queue, before that rest's Dream (drift 5: instead of it), so it waits
+# for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
+const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
+signal calling_grew(id: StringName)
+var calling_path: Array[StringName] = []
+var offering_calling := false
+var _calling_offered := {}  # Drift -> true: its Calling offer was shown (the Dream for the same drift follows)
+
+func has_evolution(id: StringName) -> bool:
+	return calling_path.has(id)
+
+func calling_path_text() -> String:
+	return CALLING_PATHS.path_text(calling_title(), calling_path) if calling != "" else ""
+
+# The Calling's offer for the rest after `drift`, or [] (not a Calling drift, nothing left, a Calling without evolutions,
+# or an old save that took class cards: it keeps them and never evolves; no migration, pre-release).
+func _calling_offer_for(drift: int) -> Array[UpgradeData]:
+	var out: Array[UpgradeData] = []
+	if calling == "" or _calling_offered.has(drift) or CALLING_PATHS.stage_of(drift) < 0 or not CALLING_PATHS.has_paths(calling):
+		return out
+	for card in pool:
+		if card.calling == calling and card_stacks(card.id) > 0:
+			return out
+	for id in CALLING_PATHS.next_ids(calling, calling_path):
+		out.append(CALLING_PATHS.card(id))
+	return out
+
+func _choose_calling(card: UpgradeData) -> void:
+	var id := StringName(card.id)
+	if not calling_path.has(id):
+		calling_path.append(id)
+	offering_calling = false
+	current_offer = []
+	for tower in _towers():
+		tower.clear_dream_cache()
+	bump_board()
+	calling_grew.emit(id)
+	note_card(id, Vector2.INF)
+	offer_closed.emit()
+	_show_next_offer()
+
+# --- Credit for card effects (owner 2026-10-16: "make these dream cards and evolutions more noticeable") ----------------
+# Every card and evolution effect reports here with its id: the HUD can call out a card the first time it fires in a
+# drift, and the rest report can list "Your Dreams this block" (UI: Main Merger). `at` = where (Vector2.INF: nowhere).
+signal card_fired(id: StringName, at: Vector2)
+var card_counts_block := {}  # id -> times this block (the block being played)
+var card_counts_last_block := {}  # The block just finished: what the rest report reads
+var card_counts_run := {}
+
+func note_card(id: StringName, at: Vector2, times: int = 1) -> void:
+	card_counts_block[id] = int(card_counts_block.get(id, 0)) + times
+	card_counts_run[id] = int(card_counts_run.get(id, 0)) + times
+	card_fired.emit(id, at)
+
 # The first family pick was made (FamilyPickScreen). Later picks never change the Calling.
 func set_calling(family: String) -> void:
 	if calling != "" or not CALLINGS.LINES.has(family):
@@ -2308,7 +2364,7 @@ func has_legendary_left() -> bool:
 
 # Restless Dreams (bittersweet) takes "Let it pass" away for the rest of the run.
 func can_skip() -> bool:
-	return not has_rule(&"restless_dreams")
+	return not has_rule(&"restless_dreams") and not offering_calling  # A Calling always grows
 
 # Name of a Warden id or card id, for Entwined ingredient lists.
 func get_display_name(id: String) -> String:
@@ -2325,6 +2381,9 @@ func get_display_name(id: String) -> String:
 func is_offering() -> bool:
 	return not current_offer.is_empty()
 
+func is_calling_offer() -> bool:
+	return offering_calling and not current_offer.is_empty()
+
 # An offer is queued but not built yet (built deferred, so rest rewards like Omens land first).
 func has_pending_offer() -> bool:
 	return not _pending_drifts.is_empty()
@@ -2333,6 +2392,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if not drift_director.has_next_drift() or run_state.is_over:
 		return
 	_second_wind()
+	card_counts_last_block = card_counts_block  # "Your Dreams this block" (note_card)
+	card_counts_block = {}
 	var block_calls := _early_calls
 	_early_calls = 0  # Early-call rewards count per block
 	_clears_this_block = 0  # Groundskeeper paid (the rest bonus came first)
@@ -2358,6 +2419,16 @@ func _show_next_offer() -> void:
 	if _pending_drifts.is_empty() or is_offering() or _remember_open:
 		return
 	current_offer_drift = _pending_drifts.pop_front()
+	var grow := _calling_offer_for(current_offer_drift)
+	if not grow.is_empty():
+		_calling_offered[current_offer_drift] = true
+		if current_offer_drift > CLASS_OFFER_UNTIL_DRIFT:
+			_pending_drifts.push_front(current_offer_drift)  # That rest's Dream comes next (drift 5: the style pick is its Dream)
+		offering_calling = true
+		current_offer = grow
+		picks_left = 1
+		offer_ready.emit(current_offer, current_offer_drift)
+		return
 	_before_offer = _offer_counters()
 	current_offer = make_offer(current_offer_drift)
 	if current_offer.is_empty():
@@ -2367,6 +2438,9 @@ func _show_next_offer() -> void:
 
 func choose(card: UpgradeData) -> void:
 	if not current_offer.has(card):
+		return
+	if offering_calling:
+		_choose_calling(card)
 		return
 	var mystery: UpgradeData = null
 	if card.rule_id == &"mystery_dream":  # Face-down: it becomes another card, revealed at once
@@ -2392,7 +2466,7 @@ func choose(card: UpgradeData) -> void:
 
 # "Let it pass": no card, a little Dew instead.
 func skip() -> void:
-	if not is_offering() or not can_skip():
+	if not is_offering() or not can_skip() or offering_calling:
 		return
 	run_state.add_dew(skip_dew)
 	_close_offer()
@@ -2407,7 +2481,7 @@ func _close_offer() -> void:
 # Second Thoughts (Grove): a new offer for the same Dream. It counts as the same Dream (pity, Omen
 # rewards and Entwined guarantees are rolled back first), so only the cards change.
 func reroll() -> bool:
-	if not is_offering() or rerolls_left <= 0:
+	if not is_offering() or rerolls_left <= 0 or offering_calling:
 		return false
 	rerolls_left -= 1
 	var remaining_picks := picks_left
@@ -2423,7 +2497,7 @@ func reroll() -> bool:
 
 # Let Go (Grove): `card` leaves this run's pool for good; another card takes its place in the offer.
 func banish(card: UpgradeData) -> bool:
-	if not current_offer.has(card) or banishes_left <= 0:
+	if not current_offer.has(card) or banishes_left <= 0 or offering_calling:
 		return false
 	banishes_left -= 1
 	_banished[card.id] = true
@@ -3248,6 +3322,7 @@ func to_save() -> Dictionary:
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"calling": calling,
+		"calling_path": Array(calling_path).map(func(i) -> String: return String(i)),
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
 		"new_family": [_new_family, _new_family_drift],  # The boss rest's guaranteed card survives a save between the pick and its Dream
 		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
@@ -3263,6 +3338,10 @@ func load_save(data: Dictionary) -> void:
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
 	calling = String(data.get("calling", ""))
+	calling_path.clear()
+	for id in data.get("calling_path", []):
+		if CALLING_PATHS.PATHS.has(StringName(id)):
+			calling_path.append(StringName(id))
 	if firefly_lights != null:
 		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
 	var new_family: Array = data.get("new_family", ["", -1])

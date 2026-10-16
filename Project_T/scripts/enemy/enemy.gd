@@ -428,6 +428,7 @@ func _notification(what: int) -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	statuses.status_filled.connect(flash_status)  # A status at its most flashes (Roguelite Code, 2026-10-16)
 	var parent := get_parent()
 	if parent != null and parent.has_method("route_around"):
 		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name

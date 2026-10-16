@@ -14,3 +14,4 @@ tags = Array[String](["spore"])
 max_stacks = 1
 rule_id = &"mushroom_bed"
 calling = "sporeling"
+retired = true
