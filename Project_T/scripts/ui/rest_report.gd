@@ -138,9 +138,7 @@ func show_report(block: int) -> void:
 		text += batch_dreams.batch_report_lines()  # "Growth Rings: lost (you planted this block)", "Held Breath: rest bonus tripled"
 	text += fired_text(batch_dreams)  # "Your Dreams this block: Mycelium ×14, …"
 	if batch_dreams != null and batch_dreams.has_method("reaction_build_lines"):  # Power budget (Roguelite Code 73c2f686)
-		var boosted: Array = batch_dreams.reaction_build_lines()
-		if not boosted.is_empty():
-			text += "\nReactions your build boosts: " + ", ".join(boosted)  # Strongest first
+		text = _with_boosted_reactions(text, batch_dreams.reaction_build_lines())
 	last_gauge = gauge(get_tree().get_first_node_in_group(RunHistory.GROUP) if is_inside_tree() else null, drift_director,
 		batch_dreams, close_calls.block_count if close_calls != null else 0)
 	text += strength_text(last_gauge)
@@ -513,6 +511,19 @@ static func two_branch_family(towers: Array) -> String:
 
 func _link_open() -> bool:
 	return _label.get_children().any(func(c: Node) -> bool: return c is StatusLinks and c.visible)
+
+# The Reactions the build boosts (owner review 2026-10-16: the multiplier seen working; Balancing Discussion), one per
+# line, strongest first ("Ignite x2.1 from your build"), right under the block's Reactions line; at the end when the
+# block had no Reaction line.
+static func _with_boosted_reactions(text: String, boosted: Array) -> String:
+	if boosted.is_empty():
+		return text
+	var lines := "\n" + "\n".join(boosted.map(func(line) -> String: return "  " + String(line)))
+	var at := text.find("\nReactions: ")
+	if at < 0:
+		return text + "\nReactions your build boosts:" + lines
+	var end := text.find("\n", at + 1)
+	return (text + lines) if end < 0 else text.substr(0, end) + lines + text.substr(end)
 
 # Shared with the results screen (the whole run). `reactions` {id: n} and `longest_chain` add a
 # Reactions line (screens_ui.md "Reactions": per type and the longest chain).
