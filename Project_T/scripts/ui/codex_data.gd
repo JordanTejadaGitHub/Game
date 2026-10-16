@@ -147,6 +147,8 @@ const GLOSSARY_SOURCE := [
 		["Blight Levels", "A Blight Level is an optional, harder way to play, opened after your first win.", ["Seeds"]],
 		["Milestones", "Feats that unlock things for free (and are Steam achievements).", ["Memory Grove"]],
 	]],
+	["Keywords", [  # Keyword chips (2026-10-16): one entry per keyword, generated (keyword_entries); last, so older entries keep their popups
+	]],
 ]
 
 # The 7 synergies: id -> [name, ingredient statuses, what it does, which Wardens set it off].
@@ -475,6 +477,8 @@ static func glossary() -> Array:
 					_example(entry)])  # [3]: one muted example line
 			if group[0] == "Nightmare Kinds":
 				entries.append_array(kind_entries())
+			if group[0] == "Keywords":
+				entries.append_array(keyword_entries())
 			if not entries.is_empty():  # The demo's "Branch effects" is empty
 				_glossary.append([group[0], entries])
 	var out: Array = _glossary
@@ -519,6 +523,22 @@ static func signature_entries() -> Array:
 # twice): "Armoured" -> "Heavy hits and armour breakers crack its shell." Who carries it is nightmares_line.
 const KIND_RELATED := {EnemyData.Kind.ARMOURED: ["Dread shell", "Heavy Warden"], EnemyData.Kind.SWARM: ["Area attack"],
 	EnemyData.Kind.FAST: ["{drowsy}", "{held}"]}
+
+# The Codex Keywords section (keyword chips 2026-10-16; Roguelite Code's DreamState.KEYWORDS): each keyword's name and
+# glossary line, the words the Makes / Uses chips name. KEYWORD_IDS maps an entry name back to its id (its chip icon).
+static var KEYWORD_IDS := {}  # Entry name -> keyword id (plain data)
+
+static func keyword_entries() -> Array:
+	var out: Array = []
+	for id in DreamState.KEYWORDS.KEYWORDS:
+		var entry: Dictionary = DreamState.KEYWORDS.glossary(id)
+		var text := String(entry.get("text", ""))
+		if text == "":
+			continue
+		var name := String(entry.get("name", String(id).capitalize()))
+		KEYWORD_IDS[name] = id
+		out.append([name, IconInfo.format(text), [], ""])
+	return out
 
 static func kind_entries() -> Array:
 	var out: Array = []

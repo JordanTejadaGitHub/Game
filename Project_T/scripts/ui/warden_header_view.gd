@@ -17,6 +17,7 @@ var portrait := TextureRect.new()  # The Warden's idle art (the panel animates i
 var portrait_atlas := AtlasTexture.new()
 var damage_type := HBoxContainer.new()  # The small line under the name (the panel's rank); was the damage type
 var desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
+var keywords := VBoxContainer.new()  # Its keyword chips (_show_keywords)
 var stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var growth := VBoxContainer.new()  # "Grows into" (the hover card and Codex; the panel has its Grow buttons)
 
@@ -63,6 +64,8 @@ func _init() -> void:
 	desc = StatusLinks.make_label("", 16)
 	desc.custom_minimum_size = Vector2(WIDTH, 0)
 	add_child(desc)
+	keywords.name = "Keywords"
+	add_child(keywords)  # What it makes, as keyword chips (KeywordRow), under the description
 	stats.add_theme_constant_override("separation", 2)
 	add_child(stats)
 	growth.add_theme_constant_override("separation", 2)
@@ -108,6 +111,19 @@ const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrap
 # A Warden of the Calling's family names the rule under its description (screens_ui.md "Where to recheck your
 # Calling"): "Calling · Lantern Ring", the rule in its tip. Nothing for other families or a run with no Calling.
 var _calling_line: Label = null
+
+# Keyword chips (2026-10-16; Roguelite Code b4ff3d08): what this Warden makes (its roles' keywords and its statuses);
+# a planted one reads its attack (a Graftling's copy). Shared by the Warden panel, the bar's hover card (what the build
+# ghost plants) and the Codex.
+func _show_keywords(data: TowerData, tower: Tower) -> void:
+	for child in keywords.get_children():
+		keywords.remove_child(child)
+		child.queue_free()
+	var chips: Array = DreamState.KEYWORDS.chips_for_tower(tower) if is_instance_valid(tower) else DreamState.KEYWORDS.chips_for_warden(data)
+	var row := KeywordRow.make(chips)
+	if row != null:
+		keywords.add_child(row)
+	keywords.visible = row != null
 
 func _show_calling(data: TowerData) -> void:
 	if _calling_line != null and is_instance_valid(_calling_line):
@@ -196,6 +212,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			desc.text += "\n[i]Still %s: %s[/i]" % [tower.legacy_data.display_name, StatusLinks.bbcode(tower.legacy_data.description)]
 	desc.visible = desc.text != ""
 	_show_calling(data)
+	_show_keywords(data, tower)
 	for child in stats.get_children():
 		child.queue_free()
 	var attack := _tower.attack_data

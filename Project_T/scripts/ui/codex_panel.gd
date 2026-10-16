@@ -642,6 +642,8 @@ func _term_icon(group: String, term: String, status: StringName) -> Texture2D:
 		var tex := IconInfo.icon(status)
 		if tex != null:
 			return tex
+	if group == "Keywords" and CodexData.KEYWORD_IDS.has(term):
+		return KeywordIcons.make_texture(CodexData.KEYWORD_IDS[term])  # Its chip's icon (a new texture, held by the card)
 	if TERM_ICONS.has(term):
 		return IconInfo.icon(TERM_ICONS[term])
 	return IconInfo.icon(GROUP_ICONS.get(group, &"note"))

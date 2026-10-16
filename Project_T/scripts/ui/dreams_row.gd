@@ -305,6 +305,9 @@ func _card_row(source: DreamIcon) -> Control:
 	name.text = card.display_name + (("  ×%d" % source.stacks) if source.stacks > 1 else "")
 	UiStyle.title(name, 16, UpgradeData.rarity_color(card.rarity))
 	text.add_child(name)
+	var keyword_row := KeywordRow.make(DreamState.KEYWORDS.chips_for_card(card))  # Keyword chips (2026-10-16), under the name
+	if keyword_row != null:
+		text.add_child(keyword_row)
 	if dream_state.has_method("opened_clearing") and dream_state.opened_clearing(card):
 		var opened := Label.new()
 		opened.text = DreamState.OPENED_CLEARING_LINE  # dream_design.md "Make the unlock obvious"

@@ -474,6 +474,8 @@ func _draw() -> void:
 	var ghost := ghost_tag_origin()
 	WorldLabel.draw_tag(self, ghost.x, ghost.y + MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
+	# What it makes, as keyword chips under the tag (keyword chips 2026-10-16; Main Merger)
+	WorldLabel.draw_keywords(self, ghost.x, ghost.y + MAP_GRID.cell_size.y / 2.0 + 34.0, DreamState.KEYWORDS.chips_for_warden(tower_data))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
 	var y := ghost.y - MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.get_sprite_offset().y, 0.0)
 	if received != "":

@@ -114,6 +114,37 @@ static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, tex
 	draw_outlined(canvas, font, origin, text, size, color)
 	end_screen_size(canvas)
 
+# Keyword chips under a world tag (the build ghost; keyword chips 2026-10-16, icon and word, never an icon alone): each
+# KeywordIcons icon then its word, the row centred on `center_x`, its middle at `mid_y`, screen-sized like draw_tag.
+# Makes in gold, uses in Mist. `chips` = DreamState.KEYWORDS' [{id, kind, label}].
+const KEYWORD_ICON := 14.0
+const KEYWORD_GAP := 10.0
+static func draw_keywords(canvas: CanvasItem, center_x: float, mid_y: float, chips: Array) -> void:
+	if chips.is_empty():
+		return
+	var font := UiStyle.with_glyphs(UiStyle.body_font())
+	var size := FONT_SIZE - 1
+	var widths: Array[float] = []
+	var total := 0.0
+	for chip in chips:
+		var width := KEYWORD_ICON + 3.0 + font.get_string_size(String(chip.get("label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		widths.append(width)
+		total += width
+	total += KEYWORD_GAP * (chips.size() - 1)
+	var s := text_scale(canvas)
+	if covered(canvas, Rect2(Vector2(center_x - total / 2.0 * s, mid_y - 10.0 * s), Vector2(total, 20.0) * s)):
+		return
+	begin_screen_size(canvas, Vector2(center_x, mid_y))
+	draw_halo(canvas, Rect2(Vector2(center_x - total / 2.0, mid_y - 9.0), Vector2(total, 18.0)))
+	var x := center_x - total / 2.0
+	for i in chips.size():
+		var chip: Dictionary = chips[i]
+		KeywordIcons.draw(canvas, StringName(chip.get("id", &"")), Vector2(x + KEYWORD_ICON / 2.0, mid_y), KEYWORD_ICON)
+		var colour := UiStyle.GOLD if StringName(chip.get("kind", &"makes")) == &"makes" else UiStyle.INK_DIM
+		draw_outlined(canvas, font, Vector2(x + KEYWORD_ICON + 3.0, mid_y + 5.0), String(chip.get("label", "")), size, colour)
+		x += widths[i] + KEYWORD_GAP
+	end_screen_size(canvas)
+
 # One placement for every word that pops over a spot in the world (user's screenshot 2026-10-13: "Chain ×3",
 # "Starfall ×3" and "Pinned" drawn on top of each other): Reaction callouts and the chain badge (Fx) and the combat
 # words (CombatCallouts) all ask here. A word that would land on a live one moves up a line, in a column; the same
