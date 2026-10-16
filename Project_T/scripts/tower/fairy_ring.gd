@@ -66,6 +66,8 @@ func _set_off(stepper: Node2D = null) -> void:
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy.global_position.distance_to(global_position) <= reach:
 			caught.append(enemy)
+	if stepper != null and _tower._dream_state != null:
+		_tower._dream_state.role_cards.snare_line(_tower, stepper)  # Card pass 2026-10-16, Snare Line: the stepper's statuses spread first
 	var crit := _tower.roll_crit(caught[0]) if not caught.is_empty() else false
 	_tower._area_count = caught.size()  # Crowd Breaker
 	for enemy in caught:

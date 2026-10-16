@@ -128,6 +128,8 @@ var chain_time := 0.0:
 			_timers_live = true
 var chain_towers: Array = []  # Wardens that took part in that chain so far
 var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
+var skip_reaction_wait := false  # Card pass 2026-10-16, Called from Afar: its next Reaction skips its wait (Reactions._fire spends it)
+var bound_pause := false  # Card pass 2026-10-16, Bound and Burning (owned): while Rooted, its other statuses don't run down
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
 var mushroom_time := 0.0:  # Mushrooming: Spored ticks harder while > 0
 	set(value):
@@ -678,9 +680,12 @@ func tick(delta: float) -> float:
 	# (Iterates the dictionary itself, no keys() copy: this runs for every nightmare every frame.)
 	if not _active.is_empty() and caught_time <= 0.0:
 		var expired: Array = _EMPTY  # Shared until something expires (perf: no new array every frame)
+		var bound_now := bound_pause and _active.has(HELD)  # Card pass 2026-10-16, Bound and Burning
 		for id in _active:
 			var status: Dictionary = _active[id]
 			status["age"] = float(status.get("age", 0.0)) + delta  # Old Rain
+			if bound_now and id != HELD:
+				continue  # Bound and Burning: while Rooted its other statuses don't run down (Rooted itself still does)
 			if id == SPORED:
 				_tick_spore_batches(delta)
 				status.stacks = _spore_count()

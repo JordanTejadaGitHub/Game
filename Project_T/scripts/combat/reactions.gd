@@ -909,7 +909,12 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	var s: EnemyStatuses = enemy.statuses
 	var key := cooldown_id if cooldown_id != &"" else id
 	if s.is_on_cooldown(key):
-		return 1 if ignore_cooldown else 0
+		if ignore_cooldown or not s.skip_reaction_wait:
+			return 1 if ignore_cooldown else 0
+		s.skip_reaction_wait = false  # Card pass 2026-10-16, Called from Afar: a far hit lets this one skip its wait
+		var afar := _dreams(enemy)
+		if afar != null:
+			afar.role_cards.afar_spent(enemy)
 	var data := get_data(key)
 	var dreams := _dreams(enemy)
 	var cooldown: float = data.cooldown if data else 1.5
@@ -945,6 +950,8 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	if tracker:
 		tracker.record(id, enemy, chain, all_towers)
 		tracker.note_spot(id, enemy.global_position, _tower_of(towers[0] if not towers.is_empty() else null, null))
+	if dreams and dreams.role_cards.fire_live():
+		dreams.role_cards.reaction_fired(enemy, id, key, towers)  # Card pass 2026-10-16: Heavy Heart's copies, Homesick's window
 	if chain - links < DAWNBURST_CHAIN and chain >= DAWNBURST_CHAIN:
 		_dawnburst(enemy)
 	return chain

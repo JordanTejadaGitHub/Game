@@ -5,6 +5,9 @@ const UNIQUE_COOP := preload("res://scripts/run/dream_cooperation.gd")
 var unique_growth = preload("res://scripts/run/dream_growth_rules.gd").new()
 const BATCH := preload("res://scripts/run/dream_batch_rules.gd")
 var batch = BATCH.new()  # The run-shaping generic cards (dream_council_review.md 24): numbers, state and rules
+# Card pass 2026-10-16 (slice 4 A): the role-payoff, Nurture-choice and Towering cards (numbers, rules, transient state).
+const ROLE_CARDS := preload("res://scripts/run/dream_role_cards.gd")
+var role_cards = ROLE_CARDS.new(self)
 
 # Dreams (in-run upgrades, documentation/dream_design.md): which Wardens are unlocked this run,
 # which cards were taken (stat cards stack), and the Dream offer at every rest (boss rests: Rare+).
@@ -2863,6 +2866,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.min_tier_owned > 0 and not has_grown_tier(card.min_tier_owned):
 		return false
+	if role_cards.has_need(card.rule_id) and not role_cards.needs_met(card.rule_id):
+		return false  # Card pass 2026-10-16: One Bough, Deep Grain, Towering (board Needs in dream_role_cards.gd)
 	return true
 
 # Branch-role and form Needs (card pass 2026-10-16): read from the Wardens built or grown this run (grown_wardens), never
@@ -4347,10 +4352,13 @@ func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", 
 		return _rx_base
 	return _rx_base * get_reaction_card_multiplier(enemy, id, tower)
 
-# The Reaction cards' part alone (x1 until a Reaction card exists: card pass slice 2 is plumbing only). Reactions uses it
-# bare for the bonus parts of Pinned's crit, Shatter's main hit and the Ignite / Tempest burn.
-func get_reaction_card_multiplier(_enemy: Node2D = null, _id: StringName = &"", _tower: Node = null) -> float:
-	return 1.0
+# The Reaction cards' part alone. Reactions uses it bare for the bonus parts of Pinned's crit, Shatter's main hit and the
+# Ignite / Tempest burn. Card pass 2026-10-16 (slice 4 A): Homesick (x2 on the Reaction after a pull) and Mother's Hand
+# (+25% for a setter touching a support Warden), in dream_role_cards.gd; both multiply (the synergy lane).
+func get_reaction_card_multiplier(enemy: Node2D = null, id: StringName = &"", tower: Node = null) -> float:
+	if not role_cards.reaction_live():
+		return 1.0
+	return role_cards.reaction_multiplier(enemy, id, tower)
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
@@ -4490,6 +4498,8 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 		needs.append(WardenRoles.label(card.requires_role) + " grown this run")
 	if card.min_tier_owned > 0 and not has_grown_tier(card.min_tier_owned):
 		needs.append(["", "a base Warden", "a branch form", "a final form", "an Ascended form"][clampi(card.min_tier_owned, 0, 4)] + " grown this run")
+	if role_cards.has_need(card.rule_id) and not role_cards.needs_met(card.rule_id):
+		needs.append(role_cards.need_text(card.rule_id))  # Card pass 2026-10-16
 	if needs.is_empty() and not is_eligible(card, act):
 		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
 	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)

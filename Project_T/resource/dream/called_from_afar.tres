@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "called_from_afar"
+display_name = "Called from Afar"
+description = "A hit from a Warden 4 or more cells away lets its target's next {reaction} go off at once, without waiting. Each nightmare, once every 3 s."
+tip = "Works for: long-range Wardens (Cairn, Moonstone, Standing Stone). A star glints on the nightmare while it waits."
+rarity = 2
+kind = 3
+tags = Array[String](["role", "sniper", "reaction"])
+max_stacks = 1
+min_act = 2
+rule_id = &"called_from_afar"
+requires_role = &"sniper"

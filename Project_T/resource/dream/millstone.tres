@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "millstone"
+display_name = "Millstone"
+description = "A heavy Warden's hit on a nightmare with a {full} status deals 60% more, and 40% of it lands on nightmares within 1 cell."
+tip = "Works for: heavy Wardens (forms that hit hard, like Mossback or Jetreed). Any {full} status counts. The splash is area damage. Multiplies with your other Dream damage."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "heavy"])
+max_stacks = 1
+min_act = 1
+rule_id = &"millstone"
+requires_role = &"heavy"

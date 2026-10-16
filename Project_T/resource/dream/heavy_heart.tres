@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "heavy_heart"
+display_name = "Heavy Heart"
+description = "When a heavy Warden's hit sets off a {reaction}, the same {reaction} also goes off on the 2 nightmares nearest its target."
+tip = "Only on nightmares within 3 cells that carry one of that {reaction}'s statuses. Each copy waits its own cooldown and uses up its statuses as usual; a copy never copies again. Works for: heavy Wardens in a {reaction} build."
+rarity = 2
+kind = 3
+tags = Array[String](["role", "heavy", "reaction"])
+max_stacks = 1
+min_act = 2
+rule_id = &"heavy_heart"
+requires_role = &"heavy"
+min_owned_statuses = 2

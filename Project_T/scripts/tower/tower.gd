@@ -1000,6 +1000,7 @@ func get_attacks_per_second() -> float:
 	var spin := momentum  # The Windmill's own spin-up is no Dream card: outside the cap
 	if _dream_state:
 		momentum += HelperCommons.speed_bonus(self)  # Rush, Close Quarters
+		momentum += _dream_state.role_cards.speed_bonus(self)  # Card pass 2026-10-16, One Bough (inside the Dream cap)
 	if _dream_state and _any_rule(&"grove_speed", GROVE_SPEED_RULES):
 		momentum += GroveRules.speed_bonus(self)  # Momentum (a streak), Quickening (a dispel in range)
 	if not (_stats_fresh() and _stats.has(&"speed")):
@@ -2882,6 +2883,8 @@ func _release_attack() -> void:
 				if _set_off_static(enemy):
 					statics += 1
 			_resonant_echo(in_range)
+			if _dream_state:
+				_dream_state.role_cards.area_attack(self, in_range)  # Card pass 2026-10-16, Shared Fever (3+ hit)
 			if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
 				GroveRules.area_attack(self, global_position, get_range_pixels(), 1.0)  # A pulse is an area attack
 			if statics > 0 and attack_data.tier >= 4:
@@ -2969,6 +2972,10 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
 	if not effect_tick and not is_crit and crit == ROLL_CRIT and _attack_count > 0 and _attack_count % GLINT_EVERY == 0 and _has_rule(&"glinting_dew"):
 		is_crit = true  # Glinting Dew: every 5th attack of this Warden crits (its own crit damage)
+	# Card pass 2026-10-16 (slice 4 A): the role, Nurture and Towering cards (DreamState.role_cards), behind one flag.
+	var roles = _dream_state.role_cards if _dream_state != null and _dream_state.role_cards.hit_live() else null
+	if roles != null and not effect_tick and not is_crit and crit == ROLL_CRIT and roles.old_hand(self, enemy):
+		is_crit = true  # Old Hand: from rank III every 6th hit on a nightmare with a full status (rank V: every 4th)
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
@@ -3001,6 +3008,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		soothe *= Signatures.EXECUTE_PRICE  # Executioner's price: every hit 15% weaker, crits too
 	if sig == Signatures.CRUSHING and combo != &"spored" and combo != &"static":
 		soothe *= _crushing(enemy, soothe_multiplier)  # Crushing: every 5th x2, cracks the shell (ticks by their share)
+	var role_hit: Array = [1.0, false, false]
+	var role_previous: Array = []
+	if roles != null:
+		role_hit = roles.hit_multiplier(self, enemy, effect_tick)  # Millstone, Towering: the synergy bucket (multiplies)
+		role_previous = roles.begin_hit(self, enemy)  # Heavy Heart: Reactions this hit sets off
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := {"crit": false, "crit_multiplier": attack_data.crit_multiplier,
 		"multiplier": 1.0, "shatter": false, "tag": &""} if effect_tick else Reactions.before_hit(enemy, self, is_crit)
@@ -3031,6 +3043,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if _dream_state:
 		dealt *= _commons_hit_multiplier(enemy, is_area, is_crit)  # Ripples, Edge of Sight, Steady Aim
+	dealt *= float(role_hit[0])  # Card pass 2026-10-16: synergy, outside the plain cap
 	if reaction.tag != &"":
 		combo = reaction.tag
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
@@ -3043,6 +3056,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	_clear_minds_hit = previous_clean
 	var actual_dealt: float = float(health_before - enemy.health) + enemy._soothe_carry - carry_before
+	if roles != null:
+		roles.after_hit(self, enemy, dealt, health_before, damage_line, effect_tick, role_hit)  # Millstone's splash, Towering's carry, Called from Afar
 	if was_exposed and actual_dealt > 0.0:
 		# Exposed at full stacks is visible (screens_ui.md, last section): a warm spark where the hit landed, once per
 		# nightmare per hit (an area attack calls hit() once for each nightmare). The event is tagged "marked" by Enemy.
@@ -3084,6 +3099,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	_unique_native_direct = unique_direct
 	apply_status_to(enemy, soothe)
 	_unique_native_direct = previous_native_direct
+	if roles != null:
+		roles.end_hit(role_previous)  # Card pass 2026-10-16: Heavy Heart's window ends
 	if attack_data.special != &"":
 		BranchKit.on_hit(self, enemy)  # The expansion branches' on-hit effects (Inkcap's ink, Crusted Brood)
 	_after_hit(enemy, is_crit)
@@ -3385,7 +3402,10 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		stacks = CALLINGS.anvil_stacks(self, enemy, status, stacks)  # Anvil: double stacks on a Rooted nightmare
 	if _dream_state != null and native:
 		stacks = _dream_state.class_stacks(self, enemy, status, stacks)  # The starter classes: a Warden's own next application (Open Season, Second Helping, Overnight)
-	enemy.apply_status(status, stacks, duration, potency, max_stacks, tower_data.line, self)
+	var role_extra := 0  # Card pass 2026-10-16: Mother's Hand, One Bough, Deep Grain. In the application only: the Calling hears `stacks`
+	if _dream_state != null and native and stacks > 0 and _dream_state.role_cards.stack_live():
+		role_extra = _dream_state.role_cards.extra_stacks(self, status)
+	enemy.apply_status(status, stacks + role_extra, duration, potency, max_stacks, tower_data.line, self)
 	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
 		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
 	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
@@ -3460,6 +3480,12 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	if _dream_state and _has_rule(&"scatter"):
 		HelperCommons.area_attack_hit(self, get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e) -> bool:
 			return e.global_position.distance_to(where) <= splash))  # Scatter: a splash that hit 3+ slows them
+	if _dream_state and _dream_state.role_cards.on(&"shared_fever"):  # Card pass 2026-10-16, Shared Fever: a splash on 3+
+		var splashed: Array = []
+		for e in nightmares_near(get_tree(), where, splash):
+			if is_instance_valid(e) and not e.is_cleansed and e.global_position.distance_to(where) <= splash:
+				splashed.append(e)
+		_dream_state.role_cards.area_attack(self, splashed)
 	if attack_data.lob:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
@@ -3609,6 +3635,8 @@ func _update_ability(delta: float) -> void:
 				if not is_instance_valid(enemy) or enemy.is_cleansed:
 					return
 				pull(enemy, tiles)
+				if _dream_state != null:
+					_dream_state.role_cards.pulled_back(self, enemy)  # Card pass 2026-10-16, Homesick
 				var snare := kin_share(&"snare", "a")
 				if snare > 0.0:
 					hold(enemy, 0.5 * snare)  # Snare: the pull ends in a hold
@@ -3849,6 +3877,10 @@ func _chain_strike(first: Node2D) -> void:
 		if next == null:
 			break
 		hits.append(next)
+	var tangled_from := hits.size()  # Card pass 2026-10-16, Tangled Lightning: 2 more jumps, statused nightmares only
+	var tangled_to := tangled_from
+	if _dream_state != null:
+		tangled_to += int(_dream_state.role_cards.tangle(self, hits))
 	if attack_data.chain_all_in_range:
 		# Stormheart: the chain goes on until every nightmare in range is struck.
 		for enemy in get_enemies_in_range():
@@ -3875,6 +3907,8 @@ func _chain_strike(first: Node2D) -> void:
 		points.append(aim_at(enemy))  # The bolt strikes the body
 		var falloff := maxf(1.0 - attack_data.chain_falloff * i, 0.1)  # Stormheart: −15% per jump
 		hit(enemy, falloff, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets and not attack_data.chain_all_in_range else &"")
+		if i >= tangled_from and i < tangled_to:
+			_dream_state.role_cards.tangled_hit(self, enemy)  # Tangled Lightning: +1 stack of a status it carries
 		var beacon := kin_share(&"storm_beacon", "a")
 		if beacon > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
@@ -4806,6 +4840,8 @@ func _grab(target: Node2D) -> void:
 		return
 	if target.enemy_data.is_boss:
 		pull(target, attack_data.pull_boss_tiles)
+		if _dream_state != null:
+			_dream_state.role_cards.pulled_back(self, target)  # Card pass 2026-10-16, Homesick
 		grab_finished.emit(self, target)
 		return
 	var behind: PackedVector2Array = target.get_cells_behind()
@@ -4818,6 +4854,8 @@ func _grab(target: Node2D) -> void:
 			best = i
 	if best >= 0:
 		target.pull_back_to(best)
+		if _dream_state != null:
+			_dream_state.role_cards.pulled_back(self, target)  # Card pass 2026-10-16, Homesick
 	grab_finished.emit(self, target)  # The drag is instant: it ends right away
 
 # Rootlight: glowing roots light the path tiles in range; nightmares there are soothed and Marked.
@@ -4868,6 +4906,11 @@ func _update_beam(delta: float) -> void:
 	var fast: bool = _beam_target.statuses.has(EnemyStatuses.DROWSY) or _beam_target.statuses.is_held()
 	var rate := attack_data.beam_ramp_per_second * (BEAM_RAMP_FAST if fast else 1.0) \
 		* (1.0 + NurtureChoices.RAMP_SWIFT * choice_count(Focus.SWIFT))  # Swift: the beam ramps faster (audit b6f44fac)
+	var kindled: float = _dream_state.role_cards.kindled(_beam_target) if _dream_state != null else 1.0
+	if kindled > 1.0 and _beam_ramp < attack_data.beam_ramp_max:
+		_dream_state.role_cards.note_kindled(_beam_target.global_position)  # Card pass 2026-10-16, Kindled Gaze
+	_kindled = kindled > 1.0  # The beam whitens (_draw_beam)
+	rate *= kindled
 	_beam_ramp = minf(_beam_ramp + rate * delta, attack_data.beam_ramp_max)
 	_beam_behind = _find_behind(_beam_target) if attack_data.beam_behind_share > 0.0 else null
 	_beam_tick += delta
@@ -4889,6 +4932,7 @@ func _update_beam(delta: float) -> void:
 	queue_redraw()
 
 var _beam_layer: Node2D = null  # Made the first time this Warden beams (_beam_layer_ready)
+var _kindled := false  # Card pass 2026-10-16, Kindled Gaze: this beam is ramping fast (drawn whiter)
 
 # The beam draws on its own layer above the sprite (Tower._draw is under it: the Warden's art hid the start
 # of its own beam, so it seemed to come from the slab). Only beaming Wardens get one.
@@ -4916,7 +4960,7 @@ func _draw_beam() -> void:
 		if not is_instance_valid(target):
 			continue
 		var to := to_local(aim_at(target))  # The body (drawn raised)
-		_beam_layer.draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
+		_beam_layer.draw_line(from, to, Color(Palette.MOONLIGHT if _kindled else _beam_data().beam_color, 0.35), width * 2.0)  # Kindled Gaze: whiter
 		_beam_layer.draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
 		from = to  # Midsummer's beam carries on from the target to the one behind it
 	_beam_layer.draw_circle(tower_data.get_attack_origin(), 2.0 + _beam_ramp, Color(Palette.HEARTLIGHT, 0.8))  # The glow at its source

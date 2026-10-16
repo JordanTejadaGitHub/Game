@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bound_and_burning"
+display_name = "Bound and Burning"
+description = "While a nightmare is {held} or frozen, its other statuses don't run down, and every status added to it lands 2 more {stacks}."
+tip = "Not {drowsy}. Works for: Wardens that hold (Tangleroot, Snugroot, freezes, the Witch Ring)."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "hold", "affliction"])
+max_stacks = 1
+min_act = 1
+rule_id = &"bound_and_burning"
+requires_role = &"hold"

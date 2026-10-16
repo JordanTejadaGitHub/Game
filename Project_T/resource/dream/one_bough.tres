@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "one_bough"
+display_name = "One Bough"
+description = "3+ grown Wardens of one {family}, all the same branch: they attack 20% faster and add 1 more {stack} with each status."
+tip = "Needs those 3 grown Wardens on the map. Base Wardens and Sprouts don't count. Never {held}."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "growth"])
+max_stacks = 1
+min_act = 1
+rule_id = &"one_bough"
+

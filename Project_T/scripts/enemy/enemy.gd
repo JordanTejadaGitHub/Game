@@ -2518,6 +2518,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if is_instance_valid(_batch_dreams) and _batch_dreams.wants_duration_hook():
 		duration = _batch_dreams.class_duration(source, self, id, duration)  # Dewdrop's lingering cards (Roguelite Code): every application, carried ones too
+	if stacks > 0 and is_instance_valid(_batch_dreams):
+		stacks += _batch_dreams.role_cards.bound_stacks(self, id)  # Card pass 2026-10-16, Bound and Burning: +2 while Rooted (never Drowsy)
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "kindled_gaze"
+display_name = "Kindled Gaze"
+description = "Beams ramp up twice as fast on a nightmare carrying 2 or more statuses."
+tip = "Works for: beam Wardens (Sunpetal, Midsummer). The beam turns white while it ramps fast."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "beam"])
+max_stacks = 1
+min_act = 1
+rule_id = &"kindled_gaze"
+requires_role = &"beam"

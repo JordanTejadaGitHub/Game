@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "homesick"
+display_name = "Homesick"
+description = "A nightmare pulled back has every status on it topped up to full time, and the next {reaction} on it within 3 s deals double."
+tip = "Works for: Wardens whose job is pulling (Rootcurl, Long Way Home, The Pond Keeper). Topping up counts toward a status's linger limit."
+rarity = 2
+kind = 3
+tags = Array[String](["role", "pull", "reaction"])
+max_stacks = 1
+min_act = 2
+rule_id = &"homesick"
+requires_role = &"pull"
