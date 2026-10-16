@@ -15,6 +15,12 @@ signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer 
 const CARD_SIZE := Vector2(300, 400)  # Light pass (UI Asset's last page): 300 wide, the "Wake …" action at the foot
 const CALLING_FULL_HEIGHT := 620.0  # Below this viewport height a first-pick card shows only its Calling's name
 const CARD_PADDING := 32.0  # The box's top + bottom offsets inside a card
+# Phones (UiStyle.is_phone(); user 2026-10-15: "the family cards are the same and the text seems too small compared to
+# the card"): the cards share the view's width and every card font is PHONE_TEXT_BUMP bigger. The PC is unchanged.
+const PHONE_TEXT_BUMP := 3
+const PHONE_SIDE_MARGIN := 44.0  # Each side, as the Peek button's corner
+const CARD_GAP := 16
+const PHONE_CARD_MIN_H := 300.0  # A phone card's floor (the tallest card sets the row)
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
 	&"first": "Oh. I know you.",
@@ -76,22 +82,24 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Phones: the cards and Peek fit 540 tall
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(_title, 28)
+	UiStyle.display(_title, 28 + (2 if UiStyle.is_phone() else 0))
 	_title.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(_title)
 	_subtitle.name = "Subtitle"
 	_subtitle.text = "Choose a family to wake"
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	if UiStyle.is_phone():
+		_subtitle.add_theme_font_size_override("font_size", UiStyle.BODY_SIZE + 2)
 	box.add_child(_subtitle)
-	_cards.add_theme_constant_override("separation", 16)
+	_cards.add_theme_constant_override("separation", CARD_GAP)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
 	_foretold_line.name = "Foretold"
 	_foretold_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_foretold_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_foretold_line.custom_minimum_size.x = 520
-	_foretold_line.add_theme_font_size_override("font_size", 15)
+	_foretold_line.add_theme_font_size_override("font_size", _fs(15))
 	_foretold_line.add_theme_color_override("font_color", UiStyle.MOON_MIST)
 	_foretold_line.visible = false
 	box.add_child(_foretold_line)
@@ -345,7 +353,7 @@ func _show_sapling() -> void:
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_font_size_override("font_size", _fs(line[1]))
 		label.add_theme_color_override("font_color", line[2])
 		card.add_child(label)
 	var row := HBoxContainer.new()
@@ -370,14 +378,27 @@ func _show_sapling() -> void:
 # card grows to fit it, at least CARD_SIZE tall; the row then gives every card the tallest's height.
 func _fit_card(button: Button, box: Control) -> void:
 	var fit := func() -> void:
-		var needed := box.get_combined_minimum_size().y + CARD_PADDING
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+		var needed := box.get_combined_minimum_size().y + (box.offset_top - box.offset_bottom if UiStyle.is_phone() else CARD_PADDING)  # Phones: the real offsets
+		var card := _card_size()
+		button.custom_minimum_size = Vector2(card.x, maxf(card.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 
+# A card font size: `size` on the PC, PHONE_TEXT_BUMP bigger on phones.
+func _fs(size: int) -> int:
+	return size + PHONE_TEXT_BUMP if UiStyle.is_phone() else size
+
+# CARD_SIZE on the PC. Phones: the cards share the view's width inside PHONE_SIDE_MARGIN sides, with a lower floor.
+func _card_size() -> Vector2:
+	if not UiStyle.is_phone():
+		return CARD_SIZE
+	var count := maxi(offer.size(), 1)
+	var room := get_viewport_rect().size.x - 2.0 * PHONE_SIDE_MARGIN - CARD_GAP * (count - 1)
+	return Vector2(floorf(room / count), PHONE_CARD_MIN_H)
+
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(data))
 	UiStyle.card_button(button, Palette.SPRIG)  # Moonlit Thread card (ui_style.md)
@@ -385,11 +406,11 @@ func _make_card(data: TowerData) -> Button:
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = 20
-	box.offset_top = 18
-	box.offset_right = -20
-	box.offset_bottom = -14
-	box.add_theme_constant_override("separation", 8)
+	box.offset_left = 14 if UiStyle.is_phone() else 20  # Phones: thinner sides, more room for the bigger text
+	box.offset_top = 14 if UiStyle.is_phone() else 18
+	box.offset_right = -14 if UiStyle.is_phone() else -20
+	box.offset_bottom = -12 if UiStyle.is_phone() else -14
+	box.add_theme_constant_override("separation", 6 if UiStyle.is_phone() else 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
@@ -428,7 +449,7 @@ func _make_card(data: TowerData) -> Button:
 	title.text = data.display_name
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.title(title, 26)
+	UiStyle.title(title, _fs(26))
 	names.add_child(title)
 	var chips := HFlowContainer.new()
 	chips.add_theme_constant_override("h_separation", 6)
@@ -441,7 +462,7 @@ func _make_card(data: TowerData) -> Button:
 	job.text = IconInfo.format(data.description)
 	job.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	job.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	job.add_theme_font_size_override("font_size", 15)
+	job.add_theme_font_size_override("font_size", _fs(15))
 	job.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(job)
 	var costs := HBoxContainer.new()  # "Sprout into it [Dew] 15   Plant [Dew] 25"
@@ -465,6 +486,9 @@ func _make_card(data: TowerData) -> Button:
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	if UiStyle.is_phone():
+		wake.add_theme_font_size_override("font_size", _fs(UiStyle.BUTTON_SIZE))
+		wake.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # "Wake … · its Calling" wraps in a narrow card
 	# Secondary, like the Dream cards: no card is the default (the hovered card is the emphasis; story chat)
 	ChoiceCard.link_cue(wake)  # Lights with the card (hover, press)
 	box.add_child(wake)
@@ -507,7 +531,7 @@ func _status_chip(status: StringName) -> Control:
 	chip.add_child(row)
 	var icon := TextureRect.new()
 	icon.texture = IconInfo.icon(status)
-	icon.custom_minimum_size = Vector2(16, 16)
+	icon.custom_minimum_size = Vector2(_fs(16), _fs(16))
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -516,7 +540,7 @@ func _status_chip(status: StringName) -> Control:
 	row.add_child(icon)
 	var label := Label.new()
 	label.text = IconInfo.status_name(status)
-	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_font_size_override("font_size", _fs(13))
 	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
@@ -529,13 +553,13 @@ func _cost_part(words: String, dew: int) -> Control:
 	part.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var label := Label.new()
 	label.text = words
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", _fs(14))
 	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	part.add_child(label)
 	var icon := TextureRect.new()
 	icon.texture = IconInfo.icon(&"dew")
-	icon.custom_minimum_size = Vector2(14, 14)
+	icon.custom_minimum_size = Vector2(_fs(14), _fs(14))
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -544,7 +568,7 @@ func _cost_part(words: String, dew: int) -> Control:
 	part.add_child(icon)
 	var number := Label.new()
 	number.text = str(dew)
-	UiStyle.number(number, 16)
+	UiStyle.number(number, _fs(16))
 	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	part.add_child(number)
 	return part
@@ -597,9 +621,19 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	var head := Label.new()
 	head.name = "RoutesHead"
 	head.text = "Dreams into" if regular <= size else OFFER_LINE % [size, regular]
-	UiStyle.caps(head, 13, UiStyle.WHISPER)
+	UiStyle.caps(head, _fs(13), UiStyle.WHISPER)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(head)
+	# Phones: the "not in this run" silhouettes sit beside the head (it already says "2 of 5"), a row shorter; a flow, so
+	# a narrow card wraps them under it instead of widening.
+	var head_row: HFlowContainer = HFlowContainer.new() if UiStyle.is_phone() else null
+	if head_row != null:
+		head_row.name = "RoutesRow"
+		head_row.add_theme_constant_override("h_separation", 8)
+		head_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(head_row)
+		head_row.add_child(head)
+	else:
+		box.add_child(head)
 	if regular > size:
 		head.name = "OfferLine"
 		head.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -616,14 +650,19 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		for branch: TowerData in missing:
 			row.add_child(_icon(branch, NOT_IN_DREAM_ICON, true))
 		var words := Label.new()
+		words.visible = head_row == null or regular <= size  # Phones: "2 of 5" on the head says it
 		words.text = "%d not in this run" % missing.size()
-		words.add_theme_font_size_override("font_size", 12)
+		words.add_theme_font_size_override("font_size", _fs(12))
 		words.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
 		row.tooltip_text = "%s: not in this run. Add one on the Remember screen for %s." % [
 			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), UiStyle.dreamlight_amount(dream_state.call_back_cost(data))]
-		box.add_child(row)
+		if head_row != null:
+			row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			head_row.add_child(row)
+		else:
+			box.add_child(row)
 
 # One lane: the branch (portrait, name, role). No final form (user, 2026-10-02: "don't show the final evolution in the
 # card"; finals stay hidden until their branch is unlocked). Hover / tap: name, role and counters.
@@ -639,12 +678,12 @@ func _route_lane(branch: TowerData) -> Control:
 	words.add_theme_constant_override("separation", -2)
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	words.add_child(_lane_line(branch.display_name, 13, UiStyle.INK, "Name"))
+	words.add_child(_lane_line(branch.display_name, _fs(13), UiStyle.INK, "Name"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove's hidden branch" + (", " + role if role != "" else "")
 	if role != "":
-		var role_label := StatusLinks.make_role_label(role, 11, UiStyle.GOLD)  # Its glossary words are links (user: "Silences")
+		var role_label := StatusLinks.make_role_label(role, _fs(11), UiStyle.GOLD, UiStyle.is_phone())  # Its glossary words are links (user: "Silences"); phones: one " · " run, not points
 		role_label.name = "Role"
 		words.add_child(role_label)
 	lane.add_child(words)
@@ -663,7 +702,7 @@ const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
 const OFFER_TIP := "The others aren't in this run. Add one on the Remember screen for %s, once per family."
 
 func _offer_line(data: TowerData, size: int, regular: int) -> Label:
-	var line := _lane_line(OFFER_LINE % [size, regular], 12, UiStyle.INK_DIM, "OfferLine")
+	var line := _lane_line(OFFER_LINE % [size, regular], _fs(12), UiStyle.INK_DIM, "OfferLine")
 	line.mouse_filter = Control.MOUSE_FILTER_PASS
 	line.tooltip_text = OFFER_TIP % UiStyle.dreamlight_amount(dream_state.call_back_cost(data))
 	return line
@@ -707,7 +746,7 @@ func _frame(data: TowerData) -> Texture2D:
 # A Family Blessing: the same card shape, with a golden blessing border.
 func _make_blessing_card(card: UpgradeData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(card))
 	UiStyle.card_button(button, UiStyle.GOLD)  # Moonlit Thread card (ui_style.md)
@@ -724,7 +763,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_font_size_override("font_size", _fs(line[1]))
 		label.add_theme_color_override("font_color", line[2])
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
@@ -738,7 +777,7 @@ const MEMORY_GLOW := Palette.DEEPMOSS
 
 func _make_memory_card(data: TowerData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(data))
 	UiStyle.card_button(button, MEMORY_GOLD)
@@ -759,7 +798,7 @@ func _make_memory_card(data: TowerData) -> Button:
 	_fit_card(button, box)
 	var heading := Label.new()
 	heading.text = "A Memory returns"
-	heading.add_theme_font_size_override("font_size", 14)
+	heading.add_theme_font_size_override("font_size", _fs(14))
 	heading.add_theme_color_override("font_color", MEMORY_GOLD)
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(heading)
@@ -785,7 +824,7 @@ func _make_memory_card(data: TowerData) -> Button:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.add_theme_font_size_override("font_size", line[1])
+		label.add_theme_font_size_override("font_size", _fs(line[1]))
 		label.add_theme_color_override("font_color", line[2])
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(label)
@@ -840,7 +879,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		none.text = "No Calling. Adds %s family cards to your Dreams." % data.display_name
 		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		none.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(none, 13)
+		UiStyle.caps(none, _fs(13))
 		none.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		box.add_child(none)
 		return ""
@@ -850,7 +889,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	title.name = "CallingName"
 	title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(title, 14)
+	UiStyle.caps(title, _fs(14))
 	title.add_theme_color_override("font_color", UiStyle.GOLD)
 	box.add_child(title)
 	var rule := Label.new()
@@ -858,7 +897,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	rule.text = IconInfo.format(DreamState.CALLINGS.text(data.get_id()))
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rule.add_theme_font_size_override("font_size", 14)
+	rule.add_theme_font_size_override("font_size", _fs(14))
 	rule.add_theme_color_override("font_color", UiStyle.INK)
 	box.add_child(rule)
 	return ""
