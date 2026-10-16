@@ -157,7 +157,11 @@ const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
 const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
-	&"dawnbreak", &"echo"]
+	&"dawnbreak", &"echo", &"starfall", &"avalanche", &"drown", &"fever_dream", &"carried_storm"]
+# Reactions that change a Warden's own hit (card pass slice 1, council card_pass_td.md 1a): only the bonus is the
+# Reaction's. Tag -> the multiplier it put on the hit (Shatter and Pinned also × EnemyStatuses.charged_payoff_multiplier).
+const REACTION_BONUS_ONLY := {&"shatter": Reactions.SHATTER_MULTIPLIER, &"pinned": Reactions.PINNED_MULTIPLIER,
+	&"lightning_rod": Reactions.ROD_MULTIPLIER}
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Palette.STONE
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
@@ -2482,7 +2486,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
 		statuses.sleep_time = 0.0
 	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag,
-		maxf(soothe - health_before, 0.0))
+		maxf(soothe - health_before, 0.0), is_area)
 	if health == 0 and not _try_rise():
 		_cleanse()
 		return
@@ -2591,7 +2595,7 @@ func _on_caught_lapsed() -> void:
 
 # Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
 func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,
-		is_crit: bool, source: Node, tag: StringName, overkill: float = 0.0) -> void:
+		is_crit: bool, source: Node, tag: StringName, overkill: float = 0.0, is_area: bool = false) -> void:
 	var damage_log := DamageLog.instance
 	if damage_log == null:
 		return
@@ -2624,9 +2628,20 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 		# (Balancing: the sims and "from combos" couldn't see it); still credited to the Spored applier.
 		event.combos.append(&"ignite")
 		factor *= statuses.burn_rate
+	# Reaction damage, classified by tag first (card pass slice 1; RunHistory filed it all as combo, so runs showed
+	# Reactions at 0-1%): a Reaction's own damage is all of it; Shatter, Pinned and Lightning Rod only their bonus on the
+	# hit (Shatter's shards, an area hit, are all the Reaction's); Ignite's burn stays a Spored tick, its share through
+	# the "ignite" combo above.
+	if tag in REACTION_TAGS:
+		var bonus: float = REACTION_BONUS_ONLY.get(tag, 0.0)
+		if bonus > 0.0 and tag != &"lightning_rod":
+			bonus *= EnemyStatuses.charged_payoff_multiplier()
+		event.reaction_amount = dealt * (1.0 - 1.0 / bonus) if bonus > 1.0 and not (tag == &"shatter" and is_area) else dealt
+	elif event.combos.has(&"ignite"):
+		event.reaction_amount = dealt * (1.0 - 1.0 / statuses.burn_rate)
 	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
 		event.combos.append(tag)
-		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
+		event.combo_amount = event.reaction_amount if tag in REACTION_TAGS else dealt  # The whole hit only happened thanks to the combo (a hit Reaction: its bonus)
 	else:
 		event.combo_amount = dealt * (1.0 - 1.0 / factor)
 	recent_hits.append(event)

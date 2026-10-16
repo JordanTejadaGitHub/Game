@@ -471,6 +471,9 @@ func _on_damage(event: DamageLog.Event) -> void:
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
+	if event.reaction_amount > 0.0:  # Classified by tag first (Enemy._report_damage; card pass slice 1): the Reaction's own part
+		var own := minf(event.reaction_amount, event.amount)
+		return [maxf(event.combo_amount - own, 0.0), own, 0.0]  # (Ignite: the rest of its combo part is fog)
 	var combo := event.combo_amount
 	var reaction := maxf(event.amount - combo, 0.0) if reaction_ids.has(event.tag) else 0.0
 	var status := event.amount if event.kind != &"hit" and event.combos.is_empty() and reaction == 0.0 else 0.0
