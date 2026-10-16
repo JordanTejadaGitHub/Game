@@ -124,6 +124,20 @@ func _ready() -> void:
 		_phone_stats.add_theme_constant_override("separation", 12)
 		_phone_stats.visible = false
 		content.add_child(_phone_stats)
+		_phone_chips.name = "PhoneChips"
+		_phone_chips.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # The row is the tap target (chips ignore input)
+		_phone_chips.add_theme_constant_override("h_separation", 6)
+		_phone_chips.add_theme_constant_override("v_separation", 4)
+		_phone_chips.mouse_filter = Control.MOUSE_FILTER_STOP
+		_phone_chips.gui_input.connect(_on_chips_input)
+		_phone_chips.visible = false
+		content.add_child(_phone_chips)
+		_chip_line.name = "ChipLine"
+		_chip_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_chip_line.add_theme_font_size_override("font_size", 15)
+		_chip_line.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		_chip_line.visible = false
+		content.add_child(_chip_line)
 	_ranks_row.name = "RankPicks"
 	_ranks_row.add_theme_constant_override("h_separation", 8)
 	content.add_child(_ranks_row)
@@ -242,6 +256,7 @@ func _refresh() -> void:
 		_damage_type.visible = true
 	if _phone:
 		_fill_phone_stats()
+		_fill_phone_chips()
 	_fill_rank_picks()
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
@@ -626,6 +641,8 @@ func _refresh_group() -> void:
 	_key_on(close, "Esc")
 	close.pressed.connect(tower_seller.select.bind(null))
 	_phone_stats.visible = false  # One Warden's numbers only
+	_phone_chips.visible = false
+	_chip_line.visible = false
 	_phone_arrange()
 
 # Portrait and count for one kind in the selection.
@@ -1808,6 +1825,42 @@ func _dock_right() -> void:
 
 # Damage, speed, reach (+ Potency when it does something) as one icon row (the header's own formulas); hidden for
 # walls, auras and a Graftling with nothing to copy. Each stat explains itself on tap (IconInfo).
+# Phones: what this Warden makes, as keyword chips (UiStyle.chip, UI Code 6ca563a2; DreamKeywords.chips_for_tower). The
+# chips ignore input: the 48 px row takes the tap, and the chip under the finger shows its glossary line below (the
+# same chip again hides it).
+const DreamKeywords := preload("res://scripts/run/dream_keywords.gd")
+const PHONE_CHIP_ICON := 20
+var _phone_chips := HFlowContainer.new()
+var _chip_line := Label.new()
+var _chip_shown: StringName = &""
+
+func _fill_phone_chips() -> void:
+	for child in _phone_chips.get_children():
+		_phone_chips.remove_child(child)
+		child.queue_free()
+	var chips: Array[Dictionary] = DreamKeywords.chips_for_tower(_tower)
+	for c in chips:
+		_phone_chips.add_child(UiStyle.chip(c.id, c.kind, c.label, PHONE_CHIP_ICON))
+	_phone_chips.visible = not chips.is_empty()
+	if not chips.any(func(c: Dictionary) -> bool: return c.id == _chip_shown):
+		_chip_shown = &""
+	_chip_line.visible = _chip_shown != &""
+
+func _on_chips_input(event: InputEvent) -> void:
+	var press := event as InputEventMouseButton
+	if press == null or not press.pressed or press.button_index != MOUSE_BUTTON_LEFT:
+		return
+	for chip in _phone_chips.get_children():
+		if chip is Control and (chip as Control).get_global_rect().grow(3.0).has_point(press.global_position):
+			var id: StringName = chip.get_meta(&"keyword", &"")
+			_chip_shown = &"" if id == _chip_shown else id
+			if _chip_shown != &"":
+				var entry := DreamKeywords.glossary(_chip_shown)
+				_chip_line.text = "%s: %s" % [entry.name, entry.text] if String(entry.text) != "" else String(entry.name)
+			_chip_line.visible = _chip_shown != &""
+			_phone_chips.accept_event()
+			return
+
 func _fill_phone_stats() -> void:
 	for child in _phone_stats.get_children():
 		_phone_stats.remove_child(child)
