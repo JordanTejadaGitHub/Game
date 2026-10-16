@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "across_the_water"
 display_name = "Across the Water"
-description = "Any Warden {touching} {water} also reaches {damp} nightmares up to 3 {steps} further along that {water}."
-tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: any Warden {touching} {water}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Wardens {near} a {warden:dewdrop} reach {damp} nightmares up to 1 cell beyond their range."
+tip = "A {warden:dewdrop} counts as near itself. Works for: any attacking Warden near a {warden:dewdrop}, Sprouts too. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"across_the_water"
 requires = Array[String](["dewdrop"])
+retired = true

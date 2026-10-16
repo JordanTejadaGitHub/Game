@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sprout_chorus"
 display_name = "Thicket"
-description = "Sprouts touching another Sprout and beside at least 2 distinct route cells attack 30% faster."
+description = "Sprouts {touching} another Sprout and at least 2 different path cells attack 30% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["sprout", "wide", "overgrowth", "defining"])

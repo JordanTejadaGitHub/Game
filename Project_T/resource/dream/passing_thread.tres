@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "passing_thread"
 display_name = "Passing Thread"
-description = "Wardens deal 50% more damage to a nightmare the second time it passes them."
+description = "Wardens deal 25% more damage to a nightmare from the second time it passes them."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])
 max_stacks = 1
 rule_id = &"passing_thread"
-tip = "A second pass: the path leaves the Warden's range for 3 cells or more and comes back into it."
+tip = "Second pass: the path leaves the Warden's range for 3 cells or more and comes back into it. Multiplies with your other Dream damage."

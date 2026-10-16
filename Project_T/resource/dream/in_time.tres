@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "in_time"
+display_name = "In Time"
+description = "Every 5th hit a Warden {touching} a bell makes on the same nightmare lands again 0.25 s later."
+tip = "Bells count too, and so do Sprouts. Counted for each Warden and nightmare; an area attack counts once. Repeats the damage, not the status. Works for: any Warden {touching} a bell. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"in_time"
+requires = Array[String](["bellflower"])

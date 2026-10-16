@@ -316,7 +316,7 @@ func _test_new_cards(main: Node) -> void:
 		and run_state.dew - dew_before == paid[0], "Deep Sleep: no rest bonus, only what Dreams add (%d)" % paid[0])
 	var sprout_tower := Tower.new()
 	sprout_tower.tower_data = load("res://resource/tower/sprout.tres")
-	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.8), "Deep Sleep: +80% soothe")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.0), "Deep Sleep: no flat soothe (card pass 2026-10-16: +80% per hit on nightmares with 2+ statuses)")
 	_check((main.get_node("%OmenDirector") as OmenDirector).omens_locked(), "Deep Sleep: Omens can't be faced (the rest skips their offer)")
 	sprout_tower.free()
 	dreams.stacks.erase("deep_sleep")
@@ -336,7 +336,7 @@ func _test_new_cards(main: Node) -> void:
 	run_state.max_leaves = 15
 	run_state.leaves = 14
 	dreams.take(_card(dreams, "thin_bark"))  # Thin Bark (de439ea8): max leaves halved, those above lost now
-	_check(run_state.max_leaves == 8 and run_state.leaves == 8, "Thin Bark: 15 max leaves become 8, 14 leaves become 8 (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	_check(run_state.max_leaves == 15 and run_state.leaves == 14, "Thin Bark: no leaves cost any more (card pass 2026-10-16: its cost is -30% on base Wardens, branches and Sprouts) (%d/%d)" % [run_state.leaves, run_state.max_leaves])
 	dreams.stacks.erase("thin_bark")
 	run_state.max_leaves = 20
 	run_state.leaves = 20
@@ -1233,7 +1233,7 @@ func _test_run_pool(main: Node) -> void:
 			if dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id):
 				drawn_ids.append(c.id)
 		family_draws[",".join(drawn_ids)] = true
-	_check(family_draws.size() > 1, "…a different family sample on another map seed (%d different over 5 seeds)" % family_draws.size())
+	_check(spore_cards.size() < 3 or family_draws.size() > 1, "…a different family sample on another map seed (%d different over 5 seeds)" % family_draws.size())
 	dreams.map_generator.map_seed = seed_before
 	dreams.build_run_pool(11)
 	var available := {}
@@ -1487,4 +1487,4 @@ func _family_cards(dreams: DreamState, family: String) -> Array:
 
 # A family card the run pool samples (not a class card, not a lent card: those are always in or never).
 func _sampled_family_card(card: UpgradeData) -> bool:
-	return card.calling == "" and not card.tags.has(DreamState.LENT_TAG)
+	return card.calling == "" and not card.tags.has(DreamState.LENT_TAG) and not card.retired  # (Retired cards are never drawn)

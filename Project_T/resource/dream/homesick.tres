@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "homesick"
+display_name = "Homesick"
+description = "When a nightmare is pulled back, its statuses are topped up to full time, and its next {reaction} within 3 s deals double."
+tip = "Full time: each status starts its time over, within its usual limit. Works for: the Puddles {calling}'s Whirlpool and Drowning Deep, and Wardens that pull ({warden:rootcurl}, {warden:long_way_home}). A bet: you need something that pulls."
+rarity = 2
+kind = 3
+tags = Array[String](["role", "pull", "reaction"])
+max_stacks = 1
+min_act = 2
+rule_id = &"homesick"
+requires_role = &"pull"

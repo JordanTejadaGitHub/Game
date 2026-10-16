@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "afterroot"
 display_name = "Afterroot"
-description = "When {held} wears off naturally, a direct hit from a different Warden within 2 s adds 5 {marked} {stacks}. Once per nightmare every 4 s."
+description = "When {held} ends, another Warden's next hit on that nightmare within 2 s adds 5 {stacks} of {marked}. Each nightmare once every 4 s."
 rarity = 1
 kind = 3
 tags = Array[String](["root", "held"])
 requires = Array[String](["rootling"])
 max_stacks = 1
 rule_id = &"afterroot"
+tip = "Another Warden: not the one that made it {held}. Only when {held} runs out, not when a {reaction} spends it. Direct hits only. {card:brimming} makes it 10. Works for: {warden:tangleroot} and {warden:snugroot} with a second Warden. Safe."

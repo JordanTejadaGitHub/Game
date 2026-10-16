@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nursery"
 display_name = "Cradle"
-description = "Seedling Gift's free Sprouts arrive at {rank} II, and Sprouts Nurture for half price."
+description = "{card:seedling_gift}'s free Sprouts arrive at {rank} II, and Nurturing a Sprout costs half."
 rarity = 2
 kind = 3
 tags = Array[String](["nurture", "sprout", "tall"])

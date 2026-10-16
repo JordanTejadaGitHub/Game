@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "falling_weight"
 display_name = "Falling Weight"
-description = "The {warden:pebbling} line deals 45% more to {held} or {asleep} nightmares."
+description = "{warden:pebbling} and its forms deal 45% more damage to {held} or {asleep} nightmares."
 rarity = 1
 kind = 3
 tags = Array[String](["stone", "held"])
 requires = Array[String](["pebbling"])
 max_stacks = 1
 rule_id = &"falling_weight"
+tip = "Safe."

@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "rising_song"
 display_name = "Rising Song"
-description = "A pulsing bell's {tolls} land again harder each time: half a ring, then three quarters, up to double. It resets when its range is empty."
-tip = "Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Each time a pulsing bell's hits make a {toll}, its next {tolls} land harder: half the ring, then three quarters, then full, up to double."
+tip = "It resets when no nightmare is in that bell's range. Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 2
 kind = 3
 tags = Array[String](["song"])
 max_stacks = 1
 rule_id = &"class_rising_song"
 calling = "bellflower"
+retired = true

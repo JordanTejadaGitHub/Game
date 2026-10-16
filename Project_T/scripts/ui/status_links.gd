@@ -42,6 +42,11 @@ var _hide_in := -1.0
 var _gem := Control.new()  # A card link's rarity gem (drawn; hidden for everything else)
 var _gem_rarity := 0
 var _shown_meta := ""  # The link the popup shows (a tap on the same card link closes it)
+# Phones (TouchBuild.is_touch(); Mobile UI, user 2026-10-15 "make sure touch works with underlined words"): no hover, a
+# touch anywhere outside the tip closes it; when that touch was on the word it shows, its tap must not open it again.
+const TOUCH_REOPEN_MS := 700
+var _touch_closed_meta := ""
+var _touch_closed_ms := 0
 
 # `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
 # as a [url] link, other "[" escaped.
@@ -200,14 +205,19 @@ static func _statuses(text: String, once: bool = false) -> String:
 # for Silences, it has the underline of what it means"): word -> IconInfo STATUSES / STATS id. A vocabulary word not
 # here, or an id with no entry, stays plain.
 const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "soaks": &"damp",
-	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen", "reveals hidden": &"hidden",
+	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen",
 	"crits": &"crit_chance", "puts to sleep": &"asleep"}  # Tower Discussion cae6d300: "Stuns" became "Puts to sleep"
+# Tags that answer a Nightmare Kind (enemy_design.md ed6f573b) link to that Kind's glossary entry (IconInfo.TERMS), the
+# same entry as the nightmare's Kind badge, so the two link up.
+const ROLE_KIND_TERMS := {"breaks armour": &"kind_armoured", "cracks armour": &"kind_armoured", "heavy": &"kind_armoured",
+	"reveals hidden": &"kind_hidden", "hits flyers": &"kind_flying", "anti-air": &"kind_flying",
+	"area damage": &"kind_swarm", "thins swarms": &"kind_swarm", "crowd clearer": &"kind_swarm", "slows": &"kind_fast"}
 static var _role_pattern: RegEx = null
 
-# `role` as bbcode: its ROLE_TERMS words (any case, whole words) as links, other "[" escaped.
+# `role` as bbcode: its ROLE_TERMS / ROLE_KIND_TERMS words (any case, whole words) as links, other "[" escaped.
 static func role_bbcode(role: String) -> String:
 	if _role_pattern == null:
-		var words: Array = ROLE_TERMS.keys()
+		var words: Array = ROLE_TERMS.keys() + ROLE_KIND_TERMS.keys()
 		words.sort_custom(func(a: String, b: String) -> bool: return a.length() > b.length())
 		UiStyle.release_at_exit(func() -> void: _role_pattern = null)
 		_role_pattern = RegEx.create_from_string("(?i)\\b(" + "|".join(words.map(func(w: String) -> String: return _escape(w))) + ")\\b")
@@ -215,10 +225,14 @@ static func role_bbcode(role: String) -> String:
 	var out := ""
 	var at := 0
 	for found in _role_pattern.search_all(role):
-		var id: StringName = ROLE_TERMS[found.get_string().to_lower()]
+		var word := found.get_string().to_lower()
 		out += role.substr(at, found.get_start() - at)
-		var known := IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id)
-		out += _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
+		if ROLE_KIND_TERMS.has(word):
+			out += _link(TERM_PREFIX + String(ROLE_KIND_TERMS[word]), found.get_string())
+		else:
+			var id: StringName = ROLE_TERMS[word]
+			var known := IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id)
+			out += _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
 		at = found.get_end()
 	return out + role.substr(at)
 
@@ -260,7 +274,7 @@ static func hook(label: RichTextLabel) -> void:
 	label.add_child(popup)
 	label.set_meta(&"status_popup", popup)  # It moves to the tip layer when shown (tests find it here)
 	label.meta_clicked.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, true))
-	label.meta_hover_started.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, false))
+	label.meta_hover_started.connect(popup._on_hover_started.bind(label))
 	label.meta_hover_ended.connect(func(_meta: Variant) -> void: popup._hide_soon())
 
 static func _escape(s: String) -> String:
@@ -303,7 +317,33 @@ func _init() -> void:
 	mouse_entered.connect(func() -> void: _hide_in = -1.0)
 	mouse_exited.connect(_hide_soon)
 
+# Hover (PC). A phone has no hover: its emulated mouse can report one just before the tap, which then read as "the same
+# word again" and closed the tip it had just opened.
+func _on_hover_started(meta: Variant, label: RichTextLabel) -> void:
+	if TouchBuild.is_touch():
+		return
+	_show_for(String(meta), label, false)
+
+# Phones: a touch outside the tip closes it (the word's own tap, if it lands on the word, then stays closed).
+func _input(event: InputEvent) -> void:
+	if not visible or not (event is InputEventScreenTouch) or not event.pressed or not TouchBuild.is_touch():
+		return
+	if get_global_rect().has_point((event as InputEventScreenTouch).position):
+		return  # On the tip itself (its "More in the Codex")
+	_touch_closed_meta = _shown_meta
+	_touch_closed_ms = Time.get_ticks_msec()
+	visible = false
+
+# Whether this tap is the one that just closed the tip on the same word (phones): it stays closed.
+func _closed_by_this_tap(meta: String, tapped: bool) -> bool:
+	if not tapped or meta != _touch_closed_meta or Time.get_ticks_msec() - _touch_closed_ms > TOUCH_REOPEN_MS:
+		return false
+	_touch_closed_meta = ""
+	return true
+
 func _show_for(meta: String, host: Control, tapped: bool) -> void:
+	if _closed_by_this_tap(meta, tapped):
+		return
 	var is_term := meta.begins_with(TERM_PREFIX)
 	var is_family := meta.begins_with(FAMILY_PREFIX)
 	var is_combo := meta.begins_with(COMBO_PREFIX)
@@ -353,12 +393,12 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 		_icon.visible = _icon.texture != null
 		_name.text = combo.get("name", String(id)) if found else "???"
 		_text.text = combo_tip_text(id)
-	elif is_family:  # A family: its base Warden's icon, "Dewdrop family", its damage type and identity
+	elif is_family:  # A family: its base Warden's icon, "Dewdrop family" and its identity
 		var data := IconInfo.family_data(String(id))
 		_icon.texture = WardenIcon.make(data) if data != null else null  # Its base Warden (no family emblems)
 		_icon.visible = _icon.texture != null
 		_name.text = "%s family" % (data.display_name if data != null else String(id).capitalize())
-		_text.text = ("%s. %s" % [IconInfo.damage_type_text(data.line), IconInfo.format(data.description)]) if data != null else ""
+		_text.text = IconInfo.format(data.description) if data != null else ""  # (No damage type: Nightmare Kinds)
 	elif is_term:  # A game term: its name and the Codex glossary's line, no icon
 		_icon.visible = false
 		_name.text = term_name(id)

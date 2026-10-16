@@ -23,6 +23,11 @@ const CLOSE := UiStyle.BUTTON_GOLD
 const SHORT := UiStyle.POOR
 const OPEN_SETTING := "meter_open"
 var hidden_by_player := false
+var arrow_hidden := false:  # Phones: the HUD's Damage button opens and closes the meter, so its side handle goes (Mobile UI)
+	set(value):
+		arrow_hidden = value
+		if is_instance_valid(_hide_arrow) and value:
+			_hide_arrow.visible = false
 var _hide_arrow := Button.new()
 
 var drift_director: DriftDirector
@@ -34,6 +39,7 @@ var block_summary := false  # The "Last block" tab is showing (not the Wardens)
 var _wardens_tab := Button.new()
 var _block_tab := Button.new()
 var _summary := StatusLinks.make_label("", UiStyle.TIP_SIZE)  # The last block's summary (RestReport's text)
+var _ribbon := StrengthRibbon.new()  # The strength gauge's ribbon over it (RestReport.last_gauge)
 var _header := Button.new()
 var _sort := Button.new()
 var _rows := VBoxContainer.new()
@@ -172,6 +178,11 @@ func _ready() -> void:
 		UiStyle.caps(tab, 14, UiStyle.INK)
 		var summary: bool = pair[2]
 		tab.pressed.connect(func() -> void: show_block_summary(summary))
+		if UiStyle.is_phone():  # The active tab is a Glow underline, never a framed (primary-looking) box (UI Asset review)
+			tab.flat = true
+			tab.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+			tab.draw.connect(_draw_tab_underline.bind(tab))
+			tab.toggled.connect(func(_on: bool) -> void: tab.queue_redraw())
 		tabs.add_child(tab)
 	_wardens_tab.set_pressed_no_signal(true)
 	_body.add_child(tabs)
@@ -188,7 +199,11 @@ func _ready() -> void:
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_summary.name = "BlockSummary"
 	UiStyle.tip_body(_summary, WIDTH - 36.0)
-	_scroll.add_child(_summary)
+	var summary_box := VBoxContainer.new()  # The strength ribbon, then the summary text (both scroll)
+	summary_box.name = "BlockSummaryBox"
+	summary_box.add_child(_ribbon)
+	summary_box.add_child(_summary)
+	_scroll.add_child(summary_box)
 	_scroll.visible = false
 	_body.add_child(_scroll)
 	_user_open = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
@@ -199,6 +214,11 @@ func _ready() -> void:
 	for control in [self, _scroll, _rows, _body, _header, _sort]:
 		control.mouse_force_pass_scroll_events = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
+
+# Phones: the active tab's Glow underline, 2 px, 4 px in from its ends.
+func _draw_tab_underline(tab: Button) -> void:
+	if tab.button_pressed:
+		tab.draw_rect(Rect2(4.0, tab.size.y - 4.0, tab.size.x - 8.0, 2.0), UiStyle.GOLD)
 
 func set_hidden(hidden: bool) -> void:
 	hidden_by_player = hidden
@@ -273,6 +293,7 @@ const GAP := 8.0
 const ROW_GUESS := 28.0  # A Warden row's height when none is listed to measure
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
 const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
+const PHONE_STATUS_ROOM := 56.0  # Phones: the drift panel's status lines above its box ("Resting: …", "Maze bonus: …")
 const OPEN_RESERVE := 408.0  # The open card's height with TOP_ROWS rows, "Last drift" and "and N more" (404 at 1280×800)
 var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
 var _user_open := false  # The player's open / closed choice (the header toggles it)
@@ -299,13 +320,22 @@ func _fit() -> void:
 	# It sits where the open card needs it: OPEN_RESERVE above the DriftPanel, never above TOP_LIMIT or below the
 	# old centre line.
 	var top := minf(maxf(bottom - OPEN_RESERVE, TOP_LIMIT), screen_mid + BASE_TOP)
+	# Phones (arrow_hidden: the HUD's Damage button opens it): it drops down right under that button, and ends above the
+	# drift panel's status lines too (user screenshot 2026-10-15: "and N more" sat on "Resting: selling refunds").
+	var phone_top := -1.0
+	if arrow_hidden:
+		var button := hud.get_node_or_null("DamageButton") as Control
+		if button != null and button.is_visible_in_tree():
+			phone_top = button.get_global_rect().end.y + GAP
+			top = phone_top
+		bottom -= PHONE_STATUS_ROOM
 	var info := hud.get_node_or_null("NightmareInfo") as Control
 	if info != null and info.visible:
 		top = maxf(top, info.get_global_rect().end.y + GAP)
 	offset_top = top - screen_mid
 	var used := _header.size.y + _last.size.y + 32.0 + 28.0  # Header, last drift, tabs, margins (the summary scrolls)
 	var room := maxf(bottom - top - used, 0.0 if info != null and info.visible else 72.0)  # Two rows, or as few as fit under the info
-	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
+	var wanted: float = (_summary.get_parent() as Control).get_combined_minimum_size().y if block_summary else 0.0  # The ribbon and the text
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	# Never over the DriftPanel (user: "maze dps shouldn't go over the call drift"): the whole card
 	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
@@ -317,7 +347,7 @@ func _fit() -> void:
 	if get_viewport_rect().size.y < UiStyle.LAYOUT_MIN.y * 0.5:
 		return  # No real screen (headless stand-in window): nothing to fit into
 	if top + height > bottom:
-		var highest := TOP_LIMIT
+		var highest := phone_top if phone_top >= 0.0 else TOP_LIMIT
 		if info != null and info.visible:
 			highest = maxf(highest, info.get_global_rect().end.y + GAP)
 		top = maxf(bottom - height, highest)
@@ -342,7 +372,7 @@ func refresh() -> void:
 	# Never in capture mode (marketing captures): the director hides it each frame, but a refresh after its turn
 	# showed it for one frame (Short Form Video).
 	var available := m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
-	_hide_arrow.visible = available
+	_hide_arrow.visible = available and not arrow_hidden
 	visible = available and not hidden_by_player
 	if not visible:
 		return
@@ -421,6 +451,8 @@ func _update_view() -> void:
 		if _summary.get_meta(&"source", "") != text:
 			_summary.set_meta(&"source", text)
 			_summary.text = StatusLinks.bbcode(text)
+			var report := drift_director.get_node_or_null("%RestReport") as RestReport if drift_director != null else null
+			_ribbon.set_gauge(report.last_gauge if report != null else {})
 
 # The last block's summary (RestReport builds it at every rest), or a line saying it comes at the first rest.
 func block_summary_text() -> String:

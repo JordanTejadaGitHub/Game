@@ -13,6 +13,29 @@ class_name EnemyData
 @export var trait_text: String = ""  # One line for the hover panel, e.g. "Sprints down long straight corridors."
 @export var cleanse_line: String = ""  # Shown when cleansed (bosses), e.g. "The Old Stag remembers the way home."
 
+# Nightmare Kind (enemy_design.md "Nightmare Kinds", 2026-10-15; replaces damage types): what it does, which tells
+# the player what beats it (the Warden tags already say who does that). One badge + one line in the UI.
+enum Kind { ARMOURED, FLYING, HIDDEN, SWARM, FAST, PLAIN }
+@export var kind: Kind = Kind.PLAIN
+
+const KIND_NAMES := {Kind.ARMOURED: "Armoured", Kind.FLYING: "Flying", Kind.HIDDEN: "Hidden", Kind.SWARM: "Swarm",
+	Kind.FAST: "Fast", Kind.PLAIN: "Plain"}
+const KIND_LINES := {
+	Kind.ARMOURED: "Armoured: heavy hits and armour breakers crack its shell.",
+	Kind.FLYING: "Flying: it skips the maze; only Wardens that hit flyers can reach it.",
+	Kind.HIDDEN: "Hidden: it can't be targeted until a Warden reveals it.",
+	Kind.SWARM: "Swarm: it comes as a crowd of small bodies; area attacks catch them all.",
+	Kind.FAST: "Fast: it outruns a thin maze; slows and holds keep it in reach.",
+	Kind.PLAIN: "Plain: nothing special; any Warden answers it.",
+}
+
+func get_kind_name() -> String:
+	return KIND_NAMES.get(kind, "Plain")
+
+# The Kind badge's one line ("Armoured: heavy hits and armour breakers crack its shell.").
+func get_kind_line() -> String:
+	return KIND_LINES.get(kind, "")
+
 # Movement / boss trait (documentation/acts_1_2.md, acts_3_4.md).
 enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var trait_kind: Trait = Trait.NONE
@@ -161,7 +184,8 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # numbers, as in abilities; read them with get_intro_lines) and one hint in the boss-tip voice.
 @export var intro_lines: Array[String] = []
 @export var hint: String = ""
-# Trait icon for FLYING: &"through_walls" (Phantom, glides through them) or &"flying" (Moth Queen).
+# No longer read: get_defences picks the FLYING icon from is_through_walls() (a route flyer that kept the
+# default once showed "Passes through walls": the Crow). Kept so .tres files that set it still load.
 @export var flying_icon: StringName = &"through_walls"
 
 @export_group("Drift roll")
@@ -194,16 +218,17 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 
 # See documentation/enemy_design.md, "Resistances". Never makes a creature immune to soothe.
 @export_group("Resistances")
-# Warden families (TowerData.line: spore, stone, water, light, root). Sprout, wall and acorn are
-# neutral and never resisted.
+# NO LONGER READ (Nightmare Kinds, 2026-10-15: damage types are gone, every Warden deals full damage). Kept so old
+# saves, .tres files and scripts still load; every .tres has them empty. Main Merger removes the UI.
 @export var resists: Array[String] = []
 @export var weak_to: Array[String] = []
-# Attack shape (Bee Swarm): single-target = projectile without splash, chain, Static bolt;
-# area = splash, pulse, cloud, Spored.
 @export var single_target_multiplier: float = 1.0
 @export var area_multiplier: float = 1.0
-# Blight coat (Badger): each hit loses `coat_per_hit` soothe (min 1) until the coat has soaked up
-# `coat_total`, then it crumbles for good. Both scale with the creature's health_scale.
+# Dread shell (the Armoured Kind): each hit loses `coat_per_hit` soothe (min 1) until the coat has soaked up
+# `coat_total`, then it crumbles for good. The total scales with health_scale, the per-hit soak with the drift's
+# DriftDirector.get_growth only (Enemy.coat_growth; balance_simulation.md "Dread shells after Nightmare Kinds").
+# Balancing 2026-10-15: Husk 10 / 100, Shellbound 15 / 150, Barrow Wight 20 / 300. The Barrow King's 15 / 2400 is
+# still Enemy Code's placeholder (Balancing: placeholder).
 @export var coat_per_hit: int = 0
 @export var coat_total: int = 0
 @export var cracked_frames: SpriteFrames  # Swapped in once the coat breaks (Shellbound's cracked shell)
@@ -213,27 +238,27 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 @export var immune_while_sprinting: Array[StringName] = []
 @export var status_duration_multipliers: Dictionary = {}
 
-const RESIST_MULTIPLIER := 0.5
+const RESIST_MULTIPLIER := 0.5  # Unused since Nightmare Kinds (2026-10-15); kept for the UI scripts still naming them
 const WEAK_MULTIPLIER := 1.5
 const BOSS_HELD_SHARE := 0.5  # Holds last half as long on bosses (Tower.ROOTED_BOSS_TIME, freezes)
 
 # Everything the UI shows about how this nightmare takes damage and statuses (nightmare info, boss
 # dossier, "Coming this block"):
-#   resists / weak_to   Warden families (TowerData.line), ×RESIST_MULTIPLIER / ×WEAK_MULTIPLIER
-#   immune              status ids that never take (shown crossed out)
+#   kind                the Nightmare Kind (Kind enum); get_kind_name() / get_kind_line() for its badge
+#   resists / weak_to   always empty now (damage types are gone; kept so readers stay safe)
+#   immune             status ids that never take (shown crossed out)
 #   conditional         {status id: "while sprinting"}: immune only at those times (crossed out + label)
 #   shorter             {status id: duration share} for statuses that wear off faster (shown "½")
 #   traits              trait icon ids: through_walls / flying, hidden, dread_shell, always_damp,
 #                       ignores_slows, sprints, burrows, wanders, splits
-#   single_target / area   attack-shape multipliers when not 1 (Whisper Swarm)
 func get_defences() -> Dictionary:
 	var shorter := status_duration_multipliers.duplicate()
 	if is_boss and not &"held" in status_immune:
 		shorter[&"held"] = BOSS_HELD_SHARE
 	var traits: Array[StringName] = []
 	match trait_kind:
-		Trait.FLYING:
-			traits.append(flying_icon)
+		Trait.FLYING:  # The icon follows how it flies: straight through the walls, or along the route (Crow, Moth Queen)
+			traits.append(&"through_walls" if is_through_walls() else &"flying")
 		Trait.ROLLING:
 			traits.append(&"sprints")
 		Trait.BURROW:
@@ -254,13 +279,9 @@ func get_defences() -> Dictionary:
 	if trait_kind == Trait.ROLLING:
 		for id in immune_while_sprinting:
 			conditional[id] = "while sprinting"
-	var result := {"resists": resists.duplicate(), "weak_to": weak_to.duplicate(),
+	var no_lines: Array[String] = []
+	return {"kind": kind, "resists": no_lines, "weak_to": no_lines.duplicate(),
 		"immune": status_immune.duplicate(), "conditional": conditional, "shorter": shorter, "traits": traits}
-	if single_target_multiplier != 1.0:
-		result["single_target"] = single_target_multiplier
-	if area_multiplier != 1.0:
-		result["area"] = area_multiplier
-	return result
 
 # The nightmares this one brings with it (for "It brings"): [{"data": EnemyData, "count": int,
 # "how": "follows" | "when dispelled" | "every N s" | "at 67% and 33% health"}]. Drift escorts
@@ -288,8 +309,9 @@ func laps() -> bool:
 # Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
 # {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),
 # {field:list_pct} → "67% and 33%", {field:name} → a linked resource's display_name. Tokens that
-# aren't fields of this resource (status tokens like {damp}) are left for IconInfo.format.
-func format_text(text: String) -> String:
+# aren't fields of this resource (status tokens like {damp}) are left for IconInfo.format. `values` overrides
+# fields (shell_values_at: the dread shell at the current drift).
+func format_text(text: String, values: Dictionary = {}) -> String:
 	if not text.contains("{"):
 		return text
 	var token := RegEx.create_from_string("\\{(\\w+)(?::(\\w+))?\\}")
@@ -299,9 +321,9 @@ func format_text(text: String) -> String:
 	var result := text
 	for found in token.search_all(text):
 		var field := found.get_string(1)
-		if not fields.has(field):
+		if not fields.has(field) and not values.has(field):
 			continue
-		result = result.replace(found.get_string(), _format_value(get(field), found.get_string(2)))
+		result = result.replace(found.get_string(), _format_value(values.get(field, get(field)), found.get_string(2)))
 	return result
 
 static func _format_value(value: Variant, style: String) -> String:
@@ -349,24 +371,29 @@ func is_through_walls() -> bool:
 	return trait_kind == Trait.FLYING and not flies_along_route
 
 # The intro card's lines with their numbers filled in (status tokens stay for IconInfo).
-func get_intro_lines() -> Array[String]:
+func get_intro_lines(values: Dictionary = {}) -> Array[String]:
 	var lines: Array[String] = []
 	for line in intro_lines:
-		lines.append(format_text(line))
+		lines.append(format_text(line, values))
 	return lines
 
 # An ability entry with its numbers filled in (see format_text); status tokens stay for IconInfo.
-func get_ability(index: int) -> Dictionary:
+func get_ability(index: int, values: Dictionary = {}) -> Dictionary:
 	var ability: Dictionary = abilities[index].duplicate()
-	ability["text"] = format_text(ability.get("text", ""))
-	ability["when"] = format_text(ability.get("when", ""))
+	ability["text"] = format_text(ability.get("text", ""), values)
+	ability["when"] = format_text(ability.get("when", ""), values)
 	return ability
 
-# Soothe multiplier for a hit from Warden family `line` (area or single-target).
-func get_soothe_multiplier(line: String, is_area: bool) -> float:
-	var multiplier := area_multiplier if is_area else single_target_multiplier
-	if line in resists:
-		multiplier *= RESIST_MULTIPLIER
-	elif line in weak_to:
-		multiplier *= WEAK_MULTIPLIER
-	return multiplier
+# The dread shell as it spawns at drift `drift` (DriftDirector `director`), for format_text / get_intro_lines /
+# get_ability `values`: {"coat_per_hit": base × get_growth(drift), "coat_total": base × get_health_scale(drift)}, as
+# Enemy._ready sets them (before Omens). {} without a shell or a director.
+func shell_values_at(director: Node, drift: int) -> Dictionary:
+	if coat_per_hit <= 0 or director == null or not director.has_method("get_growth"):
+		return {}
+	return {"coat_per_hit": coat_per_hit * float(director.get_growth(drift)),
+		"coat_total": coat_total * float(director.get_health_scale(self, drift))}
+
+# Soothe multiplier for a hit from Warden family `line`: always 1 since Nightmare Kinds (2026-10-15: no damage
+# types, no attack-shape multipliers). Kept so callers stay safe.
+func get_soothe_multiplier(_line: String, _is_area: bool) -> float:
+	return 1.0

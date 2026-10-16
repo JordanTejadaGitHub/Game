@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "lingering_ground"
 display_name = "Lingering Ground"
-description = "Ground effects (clouds, trails, rings, rubble, pools, lit cells) last 50% longer."
+description = "Ground effects last 50% longer."
 rarity = 1
 kind = 3
 tags = Array[String](["affliction", "defining"])
 max_stacks = 1
 rule_id = &"lingering_ground"
+tip = "Ground effects: clouds, trails, rings, rubble, pools, cracks, fog and lit cells. Works for: {warden:fairy_ring} and its forms, {warden:morning_fog}."

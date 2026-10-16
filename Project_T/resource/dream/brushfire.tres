@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "brushfire"
+display_name = "Brushfire"
+description = "For 2 s after a Firefly Warden hits a nightmare, half the status damage it takes {jumps} to the nearest other nightmare."
+tip = "Status damage: {spored} ticks, clouds and fog, not bolts or {reactions}. Nearest: within 2 cells. Each nightmare once a second. At most 3 s of that Firefly Warden's damage. Works for: {spored} and cloud Wardens {near} a Firefly Warden. A bet: needs both."
+rarity = 2
+kind = 3
+tags = Array[String](["storm", "lent"])
+max_stacks = 1
+rule_id = &"brushfire"
+requires = Array[String](["firefly_jar"])

@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Mourning Mother"
 health = 14000
 speed = 45.0
 dew_reward = 80
 leaf_cost = 5
 is_boss = true
-resists = Array[String](["stone", "light"])
-weak_to = Array[String](["song"])
 regen_rate = 0.02
 regen_delay = 1.5
 regen_cap = 0.25

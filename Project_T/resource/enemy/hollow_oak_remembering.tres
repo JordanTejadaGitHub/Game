@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Hollow Oak"
 health = 26000
 speed = 35.0
@@ -13,8 +14,6 @@ dew_reward = 100
 leaf_cost = 5
 is_boss = true
 stays_at_heartwood = true
-resists = Array[String](["spore", "water"])
-weak_to = Array[String](["light"])
 echo_at = Array[float]([0.75, 0.5, 0.25])
 echo_share = 0.2
 rises_from_blight = 10

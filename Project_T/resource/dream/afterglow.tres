@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "afterglow"
+display_name = "Afterglow"
+description = "Every 5th link of a {chain} gives nightmares within 2 cells 2 {stacks} of each status in that {reaction}."
+tip = "These {stacks} never add links to the {chain}. Never {held}. At most twice a second. Offered after 20 {reactions} this run."
+rarity = 1
+kind = 3
+tags = Array[String](["reaction", "scaler"])
+max_stacks = 1
+min_act = 1
+rule_id = &"afterglow"
+requires_reactions_seen = 20

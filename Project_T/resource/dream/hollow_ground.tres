@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hollow_ground"
 display_name = "Hollow Ground"
-description = "A Warden planted where you cleared a Mossy Boulder or Thorn-Sapling gets +1 range."
+description = "Wardens planted where you cleared a Mossy Boulder, Thorn-Sapling or Fallen Log get +1 range."
 rarity = 1
 kind = 3
 tags = Array[String](["clearing", "tending", "defining"])
@@ -16,3 +16,4 @@ min_obstacles = 8
 rule_id = &"hollow_ground"
 diagram = ".......\n.PPPPP.\n...Q...\n.....w.\n......."
 diagram_caption = "Planted in a moved hollow: +1 range. ✗ not in a hollow."
+tip = "Withered Trees don't count. Walls don't count."

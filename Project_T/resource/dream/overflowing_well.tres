@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "overflowing_well"
 display_name = "Overflowing Well"
-description = "{warden:wellspring} {interest} past its cap isn't lost: every {dew:100} over it becomes a {dreamlight} shard."
+description = "Each {dew:100} of {warden:wellspring} {interest} past its cap becomes a {dreamlight} shard instead of being lost."
 rarity = 2
 kind = 3
 tags = Array[String](["support", "acorn", "dreamlight"])
@@ -14,3 +14,4 @@ max_stacks = 1
 requires = Array[String](["wellspring"])
 rule_id = &"overflowing_well"
 in_start_pool = false
+tip = "10 shards make {dreamlight:1}. Shards give at most {dreamlight:2} a run."

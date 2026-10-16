@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "dew_line"
 display_name = "Last Collection"
-description = "Nightmares dispelled within 3 cells of the Heartwood pay 20% more of their actual {dew} share."
+description = "Nightmares dispelled within 3 cells of the Heartwood pay 20% more {dew}."
 rarity = 0
 kind = 4
 tags = Array[String](["economy"])

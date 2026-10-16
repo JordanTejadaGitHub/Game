@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tended_stumps"
 display_name = "Tended Stumps"
-description = "Each tended stump (a Withered Tree you cleared) gives the Wardens touching it 25% more damage (a Warden counts its best stump once)."
+description = "Wardens {touching} a tended stump deal 25% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["clearing", "tending", "defining"])
@@ -16,3 +16,4 @@ min_obstacles = 8
 rule_id = &"tended_stumps"
 diagram = ".......\n..WWW..\n..WUW..\n..www..\n......."
 diagram_caption = "Touching a tended stump: +25%. ✗ one cell too far."
+tip = "Tended stump: a Withered Tree you cleared. Several stumps don't add up. Only attacking Wardens."

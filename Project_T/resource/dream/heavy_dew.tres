@@ -16,3 +16,4 @@ status_duration_add = 4
 status_id = &"damp"
 stat_line = "water"
 splash_bonus = 1.0
+retired = true

@@ -361,7 +361,7 @@ func _build(data: EnemyData) -> void:
 	corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(corner)
 	_content.add_child(head)
-	var lines: Array = data.get_intro_lines() if data.has_method("get_intro_lines") else []
+	var lines: Array = data.get_intro_lines(NightmareCard.text_values(data, drift_director, _drift))  # Shell numbers at that drift
 	if not lines.is_empty():
 		_content.add_child(StatusLinks.make_label("\n".join(lines), 16, UiStyle.INK))
 	var rows := NightmareIcons.make_rows(data, 30.0)
@@ -391,7 +391,7 @@ func _build(data: EnemyData) -> void:
 # One new nightmare as a short row: portrait, name, its trait in a word, its tip. Tapping it opens the full card in
 # place (intro lines and resists below the row), so no second screen ever opens on top. Shared with the boss dossier's
 # "What's coming".
-static func make_row(data: EnemyData) -> Control:
+static func make_row(data: EnemyData, values: Dictionary = {}) -> Control:  # values: NightmareCard.text_values (shell numbers)
 	var row := VBoxContainer.new()
 	row.name = "New_" + kind_of(data)
 	row.add_theme_constant_override("separation", 4)
@@ -434,7 +434,7 @@ static func make_row(data: EnemyData) -> Control:
 	details.name = "Details"
 	details.visible = false
 	details.add_theme_constant_override("separation", 6)
-	var lines: Array = data.get_intro_lines() if data.has_method("get_intro_lines") else []
+	var lines: Array = data.get_intro_lines(values)
 	if not lines.is_empty():
 		details.add_child(StatusLinks.make_label("\n".join(lines), 15, UiStyle.INK))
 	elif data.trait_text != "":
@@ -478,7 +478,7 @@ func open_list(kinds: Array, drift: int = 0) -> void:
 		UiStyle.caps(when, 13)
 		_content.add_child(when)
 	for data in kinds:
-		_content.add_child(make_row(data))
+		_content.add_child(make_row(data, NightmareCard.text_values(data, drift_director, _drift)))  # Shell numbers at that drift
 		_remember(data)
 	_next.text = "Continue"
 	visible = true

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_standing_stone"
 display_name = "Standing Stone"
-description = "{warden:pebbling}s can now {grow} into {warden:standing_stone}s ({dew:{grow_cost:standing_stone}}): one slow, heavy shot that hits harder the further away; it can't hit nightmares right beside it."
+description = "{warden:pebbling}s can now {grow} into {warden:standing_stone}s ({dew:{grow_cost:standing_stone}}): one slow, heavy attack that hits harder the further away the nightmare is; it can't hit nightmares {near} it."
 rarity = 1
 kind = 1
 tags = Array[String](["stone"])

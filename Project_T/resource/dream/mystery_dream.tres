@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mystery_dream"
 display_name = "Mystery Dream"
-description = "Face-down. When taken, it becomes a random Uncommon or Rare Dream you could be offered now."
+description = "When taken, it becomes a random Uncommon or Rare Dream you could be offered now."
 rarity = 1
 kind = 3
 tags = Array[String](["strange"])

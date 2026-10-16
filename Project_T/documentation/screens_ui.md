@@ -633,6 +633,16 @@ From a user playtest with screenshots; each line is the rule going forward.
 - **Remember tree:** the lines from the root to every **unlocked or grown** node glow gold (the path
   you've taken reads at a glance); locked lines stay dim. The **Ascended** node uses the same node
   size as the others (its art scaled to fit the disc; its crown sits above, not bigger).
+- **A final form is readable before its branch is unlocked** (user, 2026-10-15: "show information about the 2nd
+  form even if the 1st form isn't unlocked in the Remember tree, keep the silhouette though"): until its branch is
+  unlocked, a final form keeps its **silhouette** on the tree and in the side panel (the reveal of its art is still
+  the reward), but its **name, description, stats, combos and Dreamlight cost** all show, so you can plan the path.
+  Its Unlock button is off, with the line *"Unlock {branch} first"*. **Ascended forms follow the same rule once their
+  Grove node (`<family>_ascension`) is planted** (user, same day: "yes if they have it unlocked in the Grove"):
+  silhouette plus full info, button off with *"Unlock a final form of this family first"*. Without the Grove node
+  the Ascended form stays Grove-hidden as today. Other Grove-hidden forms ("???", Memory Grove) are unchanged.
+- **The Remember button** (top right) uses the **Dreamlight icon**, the counter's pink diamond (2026-10-12 rule: one
+  Dreamlight icon everywhere), never a separate Remember glyph.
 - **Warden panel → Remember:** a Grow button for a form you haven't unlocked (needs Dreamlight or
   its branch first) **opens the Remember tree on that node** instead of doing nothing.
 - **Sell button** shows its hotkey icon (**X**, or the rebound key) like other hotkeyed buttons.
@@ -1209,13 +1219,15 @@ that family is selected.
   nightmares take the damage. With several possible partners, it shows the one the game would pick, and the others
   fainter. The same goes for the build ghost when planting a Jarlink directly, and for any other form that joins
   two Wardens or draws a line across the path.
-- **Once linked, the hit path stays marked** (user, same day: "the Jarlinks should still show the visible path that
-  is being hit by their link after placed together"): the path cells a link crosses keep a quiet, steady mark for as
-  long as the link exists: a faint charge along those cells in the family's light colour, on the ground under
-  nightmares. It brightens while a nightmare is inside it or the link ticks, and shows at full strength when either
-  Jarlink is selected or in build mode. It follows the same rules as lit paths (path shape only, no squares, merges
-  where two links overlap, steady under reduced motion), and goes the moment the link breaks. The same holds for
-  every standing zone on the path: Undercurrent's whirlpool, fog and rain clouds, ink and puddles, lit cells.
+- **The hit path shows on selection only** (user, same day: "the Jarlinks should still show the visible path that
+  is being hit by their link after placed together"; revised 2026-10-14: "remove the blue highlights when no Jarlink
+  tower is selected"): the path cells a link crosses are marked **only while a Jarlink (or another linking form) is
+  selected, hovered, being grown into, or planted from the build ghost**. With nothing selected the field shows
+  just the lightning itself: no cell highlight. The mark is a faint charge in the family's light colour on the ground
+  under nightmares, follows the lit-path rules (path shape only, **never cell squares**, merges where two links
+  overlap, steady under reduced motion), and goes the moment the selection or the link ends. This rule is only for
+  link marks; zones that are gameplay in their own right (puddles, lit cells, fog and rain clouds, Undercurrent's
+  whirlpool) stay visible as before.
 
 ## Hit feedback on nightmares (user, 2026-10-13)
 User: *"enemies should have more of a hit feedback as well; being hit by different Wardens and statuses should have

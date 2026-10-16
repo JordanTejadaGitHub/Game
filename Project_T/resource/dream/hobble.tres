@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hobble"
 display_name = "Hobble"
-description = "A crit slows the nightmare 30% for 1 s."
+description = "When a crit lands, the nightmare is slowed 30% for 1 s."
 rarity = 0
 kind = 3
 tags = Array[String](["precision"])

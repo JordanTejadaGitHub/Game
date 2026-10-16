@@ -112,7 +112,7 @@ func _ready() -> void:
 	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
 	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
 	# (UiStyle.UI_SIZES; user, 2026-10-01), not a slider.
-	_choice_nearest(display, "Text and button size", "ui_scale", UiStyle.UI_SIZES, 1.0)
+	_choice_nearest(display, "Text and button size", "ui_scale", UiStyle.ui_sizes(), 1.0)  # Phones: two sizes
 	_tip_last(display, "The map does not zoom.")
 	# Effects quality (platforms.md thinning ladder as a switch; the story chat 2026-10-01: performance shouldn't need the
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
@@ -140,7 +140,6 @@ func _ready() -> void:
 	_choice(gameplay, "Summary card at rests", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
-	_toggle(gameplay, "Always show resistance markers", ResistPips.SETTING, false, "Small marks showing which damage a nightmare resists or is weak to.")
 	_choice(gameplay, "Kinship visuals", "kinship_effects", ["Full", "Subtle", "Off"], 0)
 	_tip_last(gameplay, "The vines between bonded Wardens. Subtle draws fewer.")
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
@@ -282,6 +281,24 @@ func _phone_pass() -> void:
 	for button in find_children("*", "BaseButton", true, false):
 		var control := button as Control
 		control.custom_minimum_size.y = maxf(control.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
+	if not UiStyle.is_phone():
+		return
+	# Phones (mobile_ui_proto Options): the tabs a bigger row, every setting row PHONE_ROW_H tall (name and note on the
+	# left, its slider / switch / choice on the right; the buttons above are already 48 tall).
+	tabs.add_theme_font_size_override("font_size", 17)
+	for key in _dots:
+		var row := (_dots[key] as Control).get_parent() as Control
+		if row is HBoxContainer:
+			row.custom_minimum_size.y = maxf(row.custom_minimum_size.y, PHONE_ROW_H)
+
+const PHONE_ROW_H := 56.0
+
+# The phone pause menu's pane (mobile only): no own width or height, the tabs take what the pane leaves.
+func fill_pane() -> void:
+	custom_minimum_size = Vector2.ZERO
+	tabs.custom_minimum_size.y = 0.0
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # The pane draws the frame
 
 # --- Start over as a new profile (demo_scope.md "Reset to a new profile"; Developer, debug builds) ---
 

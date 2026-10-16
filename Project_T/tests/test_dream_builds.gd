@@ -453,7 +453,7 @@ func _test_grove_cards() -> void:
 	var a := _plant("sporeling", 0, 0)
 	var base := dreams.get_soothe_multiplier(a)
 	dreams.take(_card("the_long_walk"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.01 * (dreams.path_length / 2)), "The Long Walk: +1% per 2 path tiles")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a), base), "The Long Walk: no flat soothe (card pass 2026-10-16: Reactions +2% per 4 cells walked in range)")
 	_reset()
 	a = _plant("sporeling", 0, 0)
 	_plant("driftspore", 5, 0)

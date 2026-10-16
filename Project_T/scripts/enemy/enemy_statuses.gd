@@ -128,6 +128,8 @@ var chain_time := 0.0:
 			_timers_live = true
 var chain_towers: Array = []  # Wardens that took part in that chain so far
 var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
+var skip_reaction_wait := false  # Card pass 2026-10-16, Called from Afar: its next Reaction skips its wait (Reactions._fire spends it)
+var bound_pause := false  # Card pass 2026-10-16, Bound and Burning (owned): while Rooted, its other statuses don't run down
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
 var mushroom_time := 0.0:  # Mushrooming: Spored ticks harder while > 0
 	set(value):
@@ -154,6 +156,9 @@ var slow_time := 0.0:  # Drown on bosses (and Held-immune nightmares): an extra 
 		if value > 0.0:
 			_timers_live = true
 var slow_amount := 0.0
+# Timed slows that each keep their own expiry (HelperCommons.slow; dream_council_review.md 26, fix 7): a small slow
+# re-applied every poll (Knee-Deep) can no longer keep an earlier, bigger one (Riptide, Drown) alive. [[amount, left]]
+var timed_slows: Array = []
 var ground_taken := 0.0  # Heartwood Roots (MapGifts): extra soothe taken while on the marked cells
 var ground_taken_time := 0.0:  # Refreshed by MapGifts while the nightmare stands there
 	set(value):
@@ -296,6 +301,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		_lifecycle[id] = lifecycle_serial(id) + 1
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
+	var was_stacks := int(status.stacks)  # A status reaching its most is a moment (status_filled)
 	status.stacks = mini(status.stacks + stacks, cap)
 
 	var strength := _applier_potency(source)
@@ -303,6 +309,11 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		* duration_multiplier_all * _potency_stretch(id, strength)  # Rule 3: Potency past a cap lengthens it
 	if length >= status.time:
 		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
+		# …and the linger cap counts from this landing (it bounds how long a status outlives it). Hard cards 2026-10-16 (TD):
+		# Steeped's stretch spends the same room, so every Dewdrop card shares the 4 s cap
+		status["lingered"] = float(pending_linger.get(id, 0.0))
+		status["landed"] = length  # Topped Up puts it back to this, never more
+		status["stretched"] = float(pending_linger.get(id, 0.0))  # Steeped / Pooling / High Tide made this landing longer
 	status.time = maxf(status.time, length)
 	if id == SPORED:
 		_add_spore_batch(mini(stacks, cap), length, source, cap)
@@ -321,13 +332,17 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		status["full"] = maxf(status.get("full", 0.0), held)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
+	status["peak"] = maxi(int(status.get("peak", 0)), int(status.stacks))  # Ebb brings half of this back
+	pending_linger.erase(id)
 	_active[id] = status
+	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC:
+		status_filled.emit(id)  # (Charged at its most is a bolt instead)
 	applications += 1
 	changes += 1
 	if fresh and status.stacks > 0:
 		_grand_tour_new_status(id, source)
 	# When both buildup gates are met, Thunderclap goes first (Reactions), so no bolt here then.
-	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.buildup_threshold(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
+	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
 		_active.erase(STATIC)
 		changes += 1
 		if static_forever and potency > 0.0:
@@ -501,6 +516,32 @@ func is_in_stag_aura() -> bool:
 func is_held() -> bool:
 	return has(HELD)
 
+# A slow of `amount` for `seconds` with its own expiry (one entry per amount: the same slow again only refreshes it).
+func add_slow(amount: float, seconds: float) -> void:
+	if amount <= 0.0 or seconds <= 0.0:
+		return
+	for timed in timed_slows:
+		if is_equal_approx(float(timed[0]), amount):
+			timed[1] = maxf(float(timed[1]), seconds)
+			_timers_live = true
+			return
+	timed_slows.append([amount, seconds])
+	_timers_live = true
+	changes += 1  # Speed is read again
+
+# The largest timed slow running and its time left (0, 0 = none).
+func timed_slow() -> float:
+	var best := 0.0
+	for timed in timed_slows:
+		best = maxf(best, float(timed[0]))
+	return best
+
+func timed_slow_left(amount: float) -> float:
+	for timed in timed_slows:
+		if is_equal_approx(float(timed[0]), amount):
+			return float(timed[1])
+	return 0.0
+
 # Movement speed multiplier from slows.
 # `extra_slow` adds slows that aren't statuses (none right now; the Tangled Dream was cut).
 func get_speed_multiplier(extra_slow: float = 0.0) -> float:
@@ -511,8 +552,10 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)  # Rule 3: Potency lengthens Drowsy instead (the floor bound almost at once)
 	if is_in_stag_aura():
 		slow += STAG_SLOW
-	if slow_time > 0.0:
-		slow += slow_amount
+	var extra := slow_amount if slow_time > 0.0 else 0.0
+	for timed in timed_slows:  # Slows never add up: the largest running one counts, as with slow_amount
+		extra = maxf(extra, float(timed[0]))
+	slow += extra
 	# Slow and sleep have limits (tower_design.md, 2026-10-01): all slows together never take a nightmare below
 	# SLOW_FLOOR of its speed (bosses / elites higher). Full stops (Held, Asleep) are separate.
 	var floor_share := SLOW_FLOOR_BOSS if is_boss else (SLOW_FLOOR_ELITE if is_elite else SLOW_FLOOR)
@@ -565,6 +608,13 @@ func _tick_timers(delta: float) -> void:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if not timed_slows.is_empty():
+		for i in range(timed_slows.size() - 1, -1, -1):
+			timed_slows[i][1] = float(timed_slows[i][1]) - delta
+			if float(timed_slows[i][1]) <= 0.0:
+				timed_slows.remove_at(i)
+		if not timed_slows.is_empty():
+			_timers_live = true
 	if silence_time > _silence_last + 0.0001:  # Silenced (again): BranchKit sets silence_time directly
 		silence_full = silence_time
 		if _silence_last <= 0.0:
@@ -611,8 +661,8 @@ func tick(delta: float) -> float:
 	spore_tick_line = ""
 	spore_tick_credit = _EMPTY
 	if has(SPORED):
-		smothering = stacks(HELD) >= Reactions.buildup_threshold(Reactions.ROOTED_NEEDED) and stacks(SPORED) >= Reactions.buildup_threshold(Reactions.SMOTHER_MIN_SPORES) and Reactions.grown(self, [HELD, SPORED])
-		_spore_timer += delta * (SMOTHER_SPORE_RATE * charged_payoff_multiplier() if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
+		smothering = stacks(HELD) >= Reactions.need(Reactions.ROOTED_NEEDED) and stacks(SPORED) >= Reactions.need(Reactions.SMOTHER_MIN_SPORES) and Reactions.grown(self, [HELD, SPORED])
+		_spore_timer += delta * (SMOTHER_SPORE_RATE * reaction_payoff(&"smother") if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
 		if _spore_timer >= SPORE_TICK:
 			spore_tick_source = source(SPORED)
 			spore_tick_line = spore_line()
@@ -620,7 +670,7 @@ func tick(delta: float) -> float:
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
-			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + ((1.0 + MUSHROOM_SPORE_BONUS) * charged_payoff_multiplier() - 1.0 if mushroom_time > 0.0 else 0.0) \
+			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + ((1.0 + MUSHROOM_SPORE_BONUS) * reaction_payoff(&"mushrooming") - 1.0 if mushroom_time > 0.0 else 0.0) \
 				+ get_caught_tick_bonus()
 			spore_damage += per_tick * (1.0 + bonus)
 	else:
@@ -632,8 +682,12 @@ func tick(delta: float) -> float:
 	# (Iterates the dictionary itself, no keys() copy: this runs for every nightmare every frame.)
 	if not _active.is_empty() and caught_time <= 0.0:
 		var expired: Array = _EMPTY  # Shared until something expires (perf: no new array every frame)
+		var bound_now := bound_pause and _active.has(HELD)  # Card pass 2026-10-16, Bound and Burning
 		for id in _active:
 			var status: Dictionary = _active[id]
+			status["age"] = float(status.get("age", 0.0)) + delta  # Old Rain
+			if bound_now and id != HELD:
+				continue  # Bound and Burning: while Rooted its other statuses don't run down (Rooted itself still does)
 			if id == SPORED:
 				_tick_spore_batches(delta)
 				status.stacks = _spore_count()
@@ -657,11 +711,17 @@ func tick(delta: float) -> float:
 				if expired.is_empty():
 					expired = []
 				expired.append(id)
+		var ran_out: Array = []
 		for id in expired:
+			var gone: Dictionary = _active.get(id, {})
+			if not gone.is_empty():
+				ran_out.append([id, int(gone.get("peak", gone.get("stacks", 1))), gone.get("source"), float(gone.get("potency", 0.0)), String(gone.get("line", ""))])
 			remove(id)
 			if id == HELD:
 				hold_cooldown = HOLD_COOLDOWN_BOSS if is_boss else HOLD_COOLDOWN  # A Hold ran out: a breather first
 				_hold_just_ended = true
+		for row in ran_out:  # After the loop: a listener may put the status back (Ebb)
+			status_ran_out.emit(row[0], row[1], row[2] if is_instance_valid(row[2]) else null, row[3], row[4])
 	if marked_extra != 0.0 and not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
@@ -679,7 +739,19 @@ func _add_spore_batch(amount: int, duration: float, applier: Node, cap: int) -> 
 		if batch[1] <= 0:
 			_spore_batches.remove_at(0)
 	_spore_batches.append([duration, amount, applier])
+	_share_spore_clock()
 	_rebuild_spore_credit()
+
+# Poisoned lasts until it wears off (owner 2026-10-15: "Poison shouldn't tick down, should last until it wears off"):
+# the whole pile shares one clock. Every application refreshes it, and every stack goes at once when nothing has
+# poisoned the nightmare for that long. The batches stay (who applied which stacks: credit, Knell, the cap).
+# (Replaces the 2026-10-09 rule "each application expires on its own".)
+func _share_spore_clock() -> void:
+	var longest := 0.0
+	for batch in _spore_batches:
+		longest = maxf(longest, float(batch[0]))
+	for batch in _spore_batches:
+		batch[0] = longest
 
 func _tick_spore_batches(delta: float) -> void:
 	var expired := false
@@ -726,6 +798,24 @@ func _static_tick_multiplier() -> float:
 # Early discharge specialists get the energy accumulated, not a full bolt from one charge.
 func stored_bolt_damage() -> float:
 	return potency(STATIC) * STATIC_BOLT_MULTIPLIER * float(stacks(STATIC)) / maxf(get_max_stacks(STATIC), 1.0) * _static_tick_multiplier()
+
+# Brimming and Reactions (owner 2026-10-16, option A; balance_simulation.md "Human run 41"): a Reaction needs its normal
+# amounts, and hits x2.2 only if, when it fired, this nightmare carried twice the normal need of every status it needs
+# (Reactions._decide_payoff writes it here by Reaction id and by its base Reaction). x1 without Brimming.
+var brim_payoff := {}
+func reaction_payoff(id: StringName) -> float:
+	if cap_multiplier() <= 1:
+		return 1.0
+	return float(brim_payoff.get(id, 1.0))
+
+# Status `id`'s cap without Brimming's doubling (a Reaction's "full Drowsy"): bosses their own cap, Heavy Eyelids added.
+func normal_cap(id: StringName) -> int:
+	var full := get_max_stacks(id)
+	var mult := cap_multiplier()
+	if mult <= 1:
+		return full
+	var bonus := drowsy_cap_bonus if id == DROWSY else 0
+	return maxi(ceili(float(full - bonus) / mult) + bonus, 1)
 
 static func charged_payoff_multiplier() -> float:
 	return 2.2 if cap_multiplier() > 1 else 1.0
@@ -774,6 +864,8 @@ func add_quiet(id: StringName, amount: int) -> int:
 	if added <= 0:
 		return 0
 	status.stacks = int(status.stacks) + added
+	if int(status.stacks) >= get_max_stacks(id):
+		status_filled.emit(id)
 	if id == SPORED and not _spore_batches.is_empty():
 		_spore_batches[0][1] = int(_spore_batches[0][1]) + added
 		_rebuild_spore_credit()
@@ -840,6 +932,74 @@ func preserve_other_statuses(new_id: StringName) -> void:
 		status["full"] = maxf(float(status.get("full", status.time)), status.time)
 		changes += 1
 
+# --- Lingering (Dewdrop's lent cards, owner 2026-10-15: "statuses linger") ---------------------------------------------
+# Every Dewdrop card that makes a status last longer goes through linger(): all of them together add at most LINGER_MAX s
+# to one status's life (LINGER_MAX_STATIC for Charged), so nothing stays up for ever. Never Rooted or Drowsy.
+const LINGER_MAX := 4.0
+const LINGER_MAX_STATIC := 2.0
+signal status_ran_out(id: StringName, peak: int, source: Node, potency: float, line: String)  # Ran out of time (not spent)
+# A status just reached its most stacks (owner 2026-10-16: "make these dream cards more noticeable"): the nightmare flashes
+# it, so every card that stacks or keeps statuses shows its payoff.
+signal status_filled(id: StringName)
+
+static func can_linger(id: StringName) -> bool:
+	return id != HELD and id != DROWSY  # Soaked lingers too: a Dewdrop build keeps its own Thunderclap and Drown setups (owner 2026-10-15: "with its own family")
+
+# Adds up to `seconds` to `id`'s time left, within the cap. Returns the seconds added.
+func linger(id: StringName, seconds: float) -> float:
+	if seconds <= 0.0 or not can_linger(id) or not _active.has(id) or (id == MARKED and marked_forever) or (id == STATIC and static_forever):
+		return 0.0
+	var status: Dictionary = _active[id]
+	var room: float = (LINGER_MAX_STATIC if id == STATIC else LINGER_MAX) - float(status.get("lingered", 0.0))
+	var added := minf(seconds, room)
+	if added <= 0.0:
+		return 0.0
+	status["lingered"] = float(status.get("lingered", 0.0)) + added
+	if id == SPORED:
+		for batch in _spore_batches:
+			batch[0] += added
+		status.time = _spore_remaining()
+	else:
+		status.time += added
+	status["full"] = maxf(float(status.get("full", status.time)), status.time)
+	changes += 1
+	return added
+
+# Topped Up: `id`'s time back to what it had when it last landed (never longer). The time given back counts toward the
+# linger cap, so a Dewdrop hitting every second can't keep a status up for ever (council 2026-10-15).
+func top_up(id: StringName) -> void:
+	if not can_linger(id) or not _active.has(id):
+		return
+	var status: Dictionary = _active[id]
+	var landed: float = float(status.get("landed", status.get("full", status.time)))
+	if landed > status.time:
+		linger(id, landed - status.time)
+
+# Seconds a Dewdrop card added to the landing about to happen (DreamState.class_duration, at most LINGER_MAX), by
+# status: apply() books them as "stretched" (the badge's lingering look; a landing's own length, so not the cap).
+var pending_linger := {}
+
+# Whether `id` lasts longer than it would have (the lingering look on its badge).
+func is_lingering(id: StringName) -> bool:
+	return _active.has(id) and (float(_active[id].get("lingered", 0.0)) > 0.0 or float(_active[id].get("stretched", 0.0)) > 0.0)
+
+# How long `id` has been on the nightmare without wearing off, and the most stacks it has had in that time.
+func age(id: StringName) -> float:
+	return float(_active[id].get("age", 0.0)) if _active.has(id) else 0.0
+
+func peak(id: StringName) -> int:
+	return int(_active[id].get("peak", _active[id].stacks)) if _active.has(id) else 0
+
+func oldest_age() -> float:
+	var best := 0.0
+	for id in _active:
+		best = maxf(best, float(_active[id].get("age", 0.0)))
+	return best
+
+# Old Rain: the oldest status's age just before a Reaction spent it (Enemy.apply_status stamps it; same frame only).
+var reaction_age := 0.0
+var reaction_age_frame := -1
+
 # Grand Tour was reworked (card_review_2026-10-12.md 10): it no longer extends other statuses. It is hit damage now
 # (DreamState.on_hit_multiplier). Kept as a no-op for its callers.
 func _grand_tour_new_status(id: StringName, applier: Node) -> void:
@@ -874,8 +1034,9 @@ func transfer_spores_to(other: EnemyStatuses, max_stacks: int = 3) -> int:
 		remaining -= amount
 		if batch[1] <= 0:
 			_spore_batches.remove_at(0)
-	# Keep cohort expiry order for later native capacity replacements.
+	# Keep cohort expiry order for later native capacity replacements, then the moved stacks join the pile's one clock.
 	other._spore_batches.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	other._share_spore_clock()
 	receiver.stacks = other._spore_count()
 	receiver.time = other._spore_remaining()
 	receiver["full"] = maxf(float(receiver.get("full", 0.0)), receiver.time)

@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "opening_fracture"
 display_name = "Opening Fracture"
-description = "A direct critical hit primes a nightmare for 2 s. The next direct hit from a different Warden deals 40% more damage. Once per nightmare every 3 s."
+description = "After a direct crit, another Warden's next direct hit on that nightmare within 2 s deals 40% more. Each nightmare once every 3 s."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "precision", "reach"])
 max_stacks = 1
 rule_id = &"opening_fracture"
 in_start_pool = false
+tip = "Direct: a hit on one nightmare, not an area attack, beam or status damage."

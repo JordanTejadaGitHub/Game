@@ -26,7 +26,10 @@ func _run() -> void:
 	for n in range(6, director.drifts.size() + 1):
 		rolled_any = rolled_any or DriftRoller.template_of(director, n) != &""
 	_check(director.random_drifts and rolled_any, "DriftDirector rolls the drifts at startup")
-	# Guaranteed elites skip a kind on its intro drift (human run 5): drift 31 teaches the Phantom
+	# Guaranteed elites skip a kind on its intro drift (human run 5): drift 31 teaches the Phantom (checked with the old
+	# start, 31: the guaranteed elite starts at 36 since Balancing 2026-10-14)
+	var elite_from := director.guaranteed_elite_from
+	director.guaranteed_elite_from = 31
 	var phantom: EnemyData = load("res://resource/enemy/dandelion_seed.tres")
 	var intro := [[0.0, phantom, false], [1.0, phantom, false], [2.0, phantom, false], [3.0, phantom, false]]
 	for attempt in 20:
@@ -43,6 +46,7 @@ func _run() -> void:
 	var later := intro.duplicate(true)
 	director.add_guaranteed_elite(later, 32)
 	_check(later.any(func(a: Array) -> bool: return a.size() > 2 and a[2]), "a normal drift 32 still gets its elite")
+	director.guaranteed_elite_from = elite_from
 	# Block finales (spire_difficulty.md): the last drift of a block gets 1 / 2 / 3 / 4 elites from 10 / 15 / 30 / 60
 	var ten_shades := []
 	for i in 10:

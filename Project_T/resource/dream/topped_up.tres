@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "topped_up"
+display_name = "Topped Up"
+description = "A {warden:dewdrop}'s hit resets every status on the nightmare to its starting time. Each nightmare once a second."
+tip = "Never longer than when it landed, and at most 4 s extra in all ({static} 2 s). Never {held} or {drowsy}. Works for: every family's statuses, with a {warden:dewdrop} after your status Wardens. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"topped_up"
+requires = Array[String](["dewdrop"])

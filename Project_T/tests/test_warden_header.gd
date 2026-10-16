@@ -27,7 +27,7 @@ func _run() -> void:
 	main.get_node("HUD").add_child(view)
 	await process_frame
 	_check(view.title.text == driftspore.display_name, "the name (%s)" % view.title.text)
-	_check((view.damage_type.get_child(0) as Label).text == IconInfo.damage_type_text(driftspore.line), "the damage type as text")
+	_check((view.damage_type.get_child(0) as Label).text == " · ".join(WardenHeaderView.role_tags(driftspore)) and view.damage_type.visible == (not WardenHeaderView.role_tags(driftspore).is_empty()), "the role tags under the name (%s)" % (view.damage_type.get_child(0) as Label).text)
 	var texts := _texts(view.stats)
 	# One icon row, values only (light pass): each value is named Value_<stat id>.
 	var damage_value := view.stats.find_child("Value_damage", true, false) as Label

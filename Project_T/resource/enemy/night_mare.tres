@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Night Mare"
 health = 3430
 speed = 110.0
 dew_reward = 40
 leaf_cost = 3
 is_boss = true
-resists = Array[String](["root"])
-weak_to = Array[String](["light"])
 lap_linger = 10.0
 lap_linger_step = 4.0
 lap_speed_multiplier = 1.3

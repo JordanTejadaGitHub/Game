@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "endless_rings"
 display_name = "Endless Rings"
-description = "The Eldest has no max {rank}. Past VII each {rank} costs 1.2 times the one before (VIII {dew:216}, IX {dew:259}, …, times the tier) and makes it deal 10% more damage. Taking it names your Eldest, and Wardens touching the Eldest get 25% of its {rank} bonuses."
+description = "Your {eldest} has no highest {rank}. Each {rank} past VII adds 15% damage."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture", "tall"])
@@ -15,4 +15,4 @@ min_act = 2
 max_rank_set = 99
 rule_id = &"endless_rings"
 in_start_pool = false
-extra_rules = Array[StringName]([&"court_of_the_eldest"])
+tip = "Each {rank} past VII costs 20% more than the one before: VIII {dew:216}, IX {dew:259} and so on, before its form's multiplier. Taking it names your {eldest}."

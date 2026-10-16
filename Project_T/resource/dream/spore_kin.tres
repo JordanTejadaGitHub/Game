@@ -14,3 +14,4 @@ requires = Array[String](["sporeling"])
 max_stacks = 1
 rule_id = &"spore_kin"
 min_kinships = 1
+retired = true

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "tangled_lightning"
+display_name = "Tangled Lightning"
+description = "Chain attacks hit 2 more nightmares, only ones carrying a status, and add 1 {stack} of a status each already has."
+tip = "Never starts a new status. Never {held}. Works for: {warden:stormcap} and its forms."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "chain", "reaction"])
+max_stacks = 1
+min_act = 1
+rule_id = &"tangled_lightning"
+requires_role = &"chain"

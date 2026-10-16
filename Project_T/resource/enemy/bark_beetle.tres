@@ -6,14 +6,16 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 0
 display_name = "Husk"
 health = 300
 speed = 57.6
 dew_reward = 8
 leaf_cost = 1
-resists = Array[String](["stone"])
-trait_text = "Slow and very tough: give it a long path past many Wardens."
-intro_lines = Array[String](["A hollow husk of dead bark with something moving inside: it takes a lot to dispel."])
+coat_per_hit = 10
+coat_total = 100
+trait_text = "A {dread_shell} blocks part of every hit until it breaks, and it is slow and very tough: heavy hits first, then a long path."
+intro_lines = Array[String](["A hollow husk of dead bark with something moving inside: it takes a lot to dispel.", "Its bark is a {dread_shell}: it takes {coat_per_hit} off every hit until it has absorbed {coat_total}."])
 hint = "It comes slowly, so a few more turns in your maze buy a lot of time."
 intro_drift = 6
 roll_tags = Array[StringName]([&"heavy"])

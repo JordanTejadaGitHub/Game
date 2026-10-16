@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "crown_of_leaves"
+display_name = "Crown of Leaves"
+description = "{reactions} a {final_form} takes part in deal 30% more damage, or 60% more for an {ascended} form."
+tip = "Takes part: it added one of the statuses, or landed the hit that set it off. Offered once you grow a {final_form} this run. Multiplies with your other Dream damage."
+rarity = 2
+kind = 3
+tags = Array[String](["form", "reaction"])
+max_stacks = 1
+min_act = 2
+rule_id = &"crown_of_leaves"
+min_tier_owned = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "scented_hedge"
 display_name = "Scented Hedge"
-description = "A Thornwall touching a {warden:honeysuckle} also makes nightmares beside it {drowsy}, at half strength."
+description = "A Thornwall {touching} a {warden:honeysuckle} gives off its {drowsy} scent too, half as often."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "wall"])
@@ -14,3 +14,4 @@ max_stacks = 1
 requires = Array[String](["honeysuckle"])
 rule_id = &"scented_hedge"
 in_start_pool = false
+tip = "The wall's scent reaches as far as the {warden:honeysuckle}'s range, measured from the wall. Walls add {drowsy} only up to 12 {stacks} (24 with {card:brimming})."

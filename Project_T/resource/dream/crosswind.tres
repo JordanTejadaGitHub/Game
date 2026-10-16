@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crosswind"
 display_name = "Crosswind"
-description = "The {warden:samara} line deals 25% more direct damage to a nightmare hit by a different Warden in the last 1 s. Once per nightmare each throw."
+description = "{warden:samara} and its forms deal 25% more damage to a nightmare another Warden hit in the last 1 s."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
@@ -14,3 +14,4 @@ requires = Array[String](["samara"])
 max_stacks = 1
 rule_id = &"crosswind"
 in_start_pool = false
+tip = "Direct hits only. Once per throw on each nightmare. Safe."

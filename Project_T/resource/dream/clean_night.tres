@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1_card")
 id = "clean_night"
-display_name = "A Clean Night"
-description = "Lose no {leaf} for 2 {blocks} in a row: gain {dreamlight:+1}. Lose a {leaf} in a {block}: its {rest} bonus pays nothing."
+display_name = "Hard-Won Rings"
+description = "Every 80 nightmares a Warden dispels give it a free Nurture {rank}, up to {rank} IV."
 rarity = 2
 kind = 3
-tags = Array[String](["daring", "wager", "defining"])
+tags = Array[String](["tending", "defining"])
 max_stacks = 1
 min_drift = 10
 rule_id = &"clean_night"
-excludes = Array[String](["held_breath", "deep_sleep"])
+tip = "Counted when its damage brings a nightmare to 0 health. Echoes don't count. Selling resets the count; growing keeps it. The {rank} waits until you Nurture."

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "brimming"
 display_name = "Brimming"
-description = "Nightmares hold twice as many {stacks} of every status. Reactions need twice the buildup and hit 2.2 times as hard."
+description = "Nightmares hold twice as many {stacks} of every status. {reactions} set off with twice the usual {stacks} hit 2.2 times as hard."
 rarity = 2
 kind = 3
 tags = Array[String](["status", "affliction", "defining"])
@@ -16,3 +16,4 @@ rule_id = &"brimming"
 requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held"])
 min_act = 2
 min_owned_statuses = 2
+tip = "{reactions} still fire at their usual count. Offered from {act} 2 once your Wardens add 2 different statuses."

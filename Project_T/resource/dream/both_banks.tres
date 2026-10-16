@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "both_banks"
 display_name = "Both Banks"
-description = "A lone {warden:dewdrop} with water on two sides splashes both: each splash also lands on the front nightmare in its other water, at half damage."
-tip = "Works for: a lone {warden:dewdrop}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "A lone {warden:dewdrop} touching two separate stretches of {water}: each splash in one also hits the front nightmare in the other, at half damage."
+tip = "Lone: no other attacking Warden touches its {water} (walls are fine). Front: the one furthest along the path. Works for: a lone {warden:dewdrop}. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["water"])

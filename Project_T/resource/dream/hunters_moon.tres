@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "hunters_moon"
 display_name = "Hunter's Moon"
-description = "Each Warden's first hit on a nightmare leaves 1 {marked} {stack} that never fades. At 10 {stacks} the nightmare is {marked}. Dispelling it passes 1 {stack} to each of the 2 nearest."
+description = "Each Warden's first hit on a nightmare adds 1 {stack} of {marked} that never wears off. Dispelling it gives the 2 nearest 1 {stack}."
 rarity = 3
 kind = 3
 tags = Array[String](["mark", "precision"])
 max_stacks = 1
 min_act = 2
 rule_id = &"hunters_moon"
+tip = "Never wears off: once a Warden has hit it, none of its {marked} {stacks} fade. {marked} works from {stacks:need_marked} {stacks}. Nearest: within 3 cells."

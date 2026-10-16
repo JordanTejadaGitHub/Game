@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "restless_night"
 display_name = "Impatient Night"
-description = "Wardens deal double damage while nightmares from at least 2 {drifts} you called early are on the field. The bonus ends when the overlap ends and does not stack."
+description = "While nightmares from 2 or more {drifts} you called early are on the field, Wardens deal 100% more damage."
 rarity = 3
 kind = 3
 tags = Array[String](["tempo", "daring"])

@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "head_start"
 display_name = "Head Start"
-description = "Nightmares of a {drift} you called early take 40% more damage for their first 10 s."
+description = "Nightmares from a {drift} you called early take 40% more damage for their first 10 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tempo", "daring", "defining"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"head_start"
+tip = "Called early: at least 10 s of the last {drift}'s arrival skipped."

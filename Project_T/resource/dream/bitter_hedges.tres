@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bitter_hedges"
 display_name = "Bitter Hedges"
-description = "Nightmares walking past a Thornwall take 8% more damage for 2 s, +8% for each more Thornwall they pass (up to +40%)."
+description = "Nightmares take 8% more damage from hits for each Thornwall they passed in the last 2 s, up to +40%."
 rarity = 2
 kind = 3
 tags = Array[String](["wall", "maze"])
@@ -17,3 +17,4 @@ rule_id = &"bitter_hedges"
 diagram = ".......\n.XX.X..\nPPPPPPP\n..X....\n......."
 diagram_caption = "Each Thornwall a nightmare walks past: +8% damage taken for 2 s (up to +40%)."
 in_start_pool = false
+tip = "Passed: stepped on a path cell sharing a side with it. Works for: mazes with Thornwalls along the path."

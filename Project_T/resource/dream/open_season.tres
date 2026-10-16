@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "open_season"
 display_name = "Open Season"
-description = "When a nightmare steps on a mushroom, each spore Warden's next attack on it is a dose too."
-tip = "Works for: spore Wardens. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "When a nightmare steps on a {mushroom}, each spore Warden's next attack on it within 4 s is a {dose} too."
+tip = "Works for: spore Wardens. Once per Warden and nightmare every 2 s. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["spore"])

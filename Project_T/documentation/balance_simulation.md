@@ -1299,6 +1299,453 @@ crit (≈ 245 DPS + a ~2,000 opener per nightmare). On a 23 × 18 map, range 8�
 decides it; Moonstone carried 62% of human run 24. **Probe queued:** each candidate added to saved bot boards (typical and
 serpentine) at its best and a median cell, effective damage over a block and leaves saved vs a control. Fix after the numbers.
 
+## Firefly class cards, edit 4 "forks" (2026-10-12, paper only, no sim; dream_council_review.md section 20)
+
+Replaces the section below (the Lit / crit draft). Basis: Jar 18.2 × 1.5 /s, bolt 16 × 18.2 = 291, Shade 100 health at drift 1,
+Sprout 12, Pebbling 55.2 × 0.75, Mossback 446.4 × 0.4, Prism Jar 136.5 × 1.0, Sporeling 8.4 × 2.
+**Finding:** a fork per dispel is worth (fork ÷ the nightmare's health): half a Jar hit is 9% of a Shade at drift 1, ~5% by
+drift 20, ~2% late in act 2. Forks per hit and per bolt don't shrink. So the dispel cards (the Calling, Where Lights
+Meet, Nothing Wasted, Signal Fires, Live Wire) are act 1 cards and the per-hit cards carry act 2.
+
+| Thing | Number | Reason |
+|---|---|---|
+| Glow, next light, Sprout lights | 3 cells; 8 steps; one per Firefly Warden | kept |
+| Calling fork | half the hit; ticks and clouds **half a second** of hit × attack rate (was a second) | a Sporeling's tick fork was 16.8 against a Jar's 9.1; never sized from the poison itself |
+| Brightness | 3 s of hit × attack rate of the lighting Warden (base Jar 82) | Pebbling's 27.6 passes whole, Mossback's 223 is cut to 82; Prism Jar (410) passes it whole |
+| Where Lights Meet | one per Firefly Warden, up to 4 | +18% on gold path with 2 Jars at drift 1, fading with health: strong early, not a carry |
+| Chain of Lanterns | 2 at half | one bolt's worth, as Live Wire was |
+| Lanternway | 3 lights at half | +150% of a bolt, needs four lights |
+| Last Spark | **half** the stored share (was all) | all of it gave Jars +80% on swarms: every stack became 0.8 of a hit |
+| Hammerfall | **a quarter** (was half); Sprouts count | half was +50% to every heavy hit from a Common |
+| Knock-On | one more hop at **the full hit** (was the fork's size) | a quarter-hit fork dispels ~5–15% of the time; at fork size the bet paid nothing |
+| Spotlight | a quarter to **up to 4** (was 6) | +100% of a heavy hit in a packed light; 6 was +150% |
+| Signal Fires, Ambush, Waiting Spark | half, once a light a second; half; 3 sparks 5 s | kept |
+| Nothing Wasted | leftover, at most the hit, **to the second-nearest when the Calling also forks** | under "largest wins" it added ~⅛ of a hit per dispel beside the Calling |
+| Live Wire | full hit **to the 2 nearest** (was 1) | one full hit per dispel is 3–15% for that Warden: no bet |
+| Crossfire | 2 behind at half **the stronger hit** (was the weaker), 3 s wait | the weaker hit is nearly always the Jar's 18 |
+| Like to Like | half for hits; **a third** for ticks and clouds | with Sporeling most nightmares are Charged: half was a flat +50% poison |
+| Bounds | one per nightmare per event, 6 per event, bosses half | kept; a bell's ring is one event however many it dispels |
+
+**Offers (estimates, ±10 points; all 12 in the pool, taking every direction card seen = upper bound):** 3 of a chosen
+direction's 5 by drift 25 ~3%, any direction ~9%; by drift 50 ~12% chosen, ~27% any (with the Rare: ~9% / ~22%). At the
+30% ceiling: no rarity weights. A class card shows in ~37% of offers with one family, ~32% with two, ~29% with three.
+**Bosses:** Firefly alone cleared act 1's boss in runs 23, 25 and 28 (the Stag in 20 s) with no forks at all; act 2's
+comes after the second family.
+
+## Firefly class cards, first draft (superseded): starting numbers (2026-10-12, paper only, no sim; dream_council_review.md section 13)
+
+Basis: Jar 18.2 × 1.5 /s, Charged cap 20 (bosses 30), bolt 16 × potency, default crit ×2.0, live start pool 54 C / 96 U /
+37 R / 3 L, rarity odds 65 / 28 / 7 (act 1) and 50 / 32 / 15 / 3 (act 2), pity after 3 offers, boss rest all Rare+.
+
+| Card | Number | Why |
+|---|---|---|
+| Lit radius | 3 cells | kept |
+| Lone Watch | +1 cell, attack on entry; **no other Firefly Warden within 6 cells** (was 4) | at 4 apart two radius-3 lights still overlap, so Storm and Lanternway were one board |
+| Lantern Ring | 1 Charged, once per nightmare a second | kept |
+| Crossed Beams | +1 Charged, **only on hits that already add Charged** | doubles a Jar's charging in the overlap; enough for a Common |
+| Chain of Lanterns | 3 nearest for half | kept (Live Wire, a Common, is one full jump); the extra strikes never chain, jump or add Charged |
+| Hammerfall | **20%** (was 25%) | 25% for every slow Warden of any family matched a Rare Blessing |
+| Spotlight | crits at **×1.5**, direct hits on the one target only | most Wardens already aim at the furthest nightmare, so ×2.0 doubled all slow single-target damage |
+| Ambush | crits at **×1.5** | re-arms at every light: at ×2.0 it beat First Light (Rare, ×3 once) |
+| Firefly Trail | **25%** after 3 lights (was 30%), its own multiplier beside Exposed | about +12% for the whole board over a walk |
+| Flashpoint | 3 Charged, **once per nightmare a second** | with Ambush five Wardens gave 15 Charged per light |
+| Carried Spark | 4 Charged | kept |
+| Afterglow | 3 s | kept |
+| Spotters | +1 cell | kept |
+
+**Rule for all of them:** Charged added by a class card carries the potency of the Firefly Warden whose light it is (the
+strongest covering one), never the hitting Warden's; otherwise a heavy hitter of another family sets a 16× bolt.
+Keen ranks and Prism Jar's aura add to the ×1.5 as they do to any crit.
+
+**Offer odds (estimates, ±10 points):** with the 60% sample a chosen direction's Rare is seen in ~20% of runs by drift 25
+(nearly all at the boss rest), ~25% by 45, ~32% with the drift 50 rest; any class card shows in ~27% of act 1 offers and
+~2.3 class cards are seen by 45. A direction complete (Rare + 2 more) by 50: ~4% chosen, ~10% any. **Decision: class cards
+skip the 60% sample (all 12 in the pool).** Then: Rare ~33% by 25, ~42% by 45; a class card in ~41% of act 1 offers, ~3.8
+seen by 45; complete by 50 ~13% chosen, ~30% any, which is the ceiling. Three families owned: a class card in ~22% of
+offers sampled, ~34% unsampled. The two-per-offer limit rarely binds.
+**Act 1:** not too weak to clear (pre-Calling Firefly runs 23, 25, 28 held 13–15 leaves through act 1), but the weakest
+Calling by raw power until a class card lands. No number added; watch the prototype runs.
+
+## Charged rarely fires: leftover charge leaps (decision, 2026-10-13; from run history, no sim)
+
+The user: "the enemy dies before they get to full stacks of Charged most of the time." Run history (`combos.static` =
+bolts fired, `route_blocks.dispels`):
+
+| Run | Charged sources | Dispels | Bolts | Bolts per 100 dispels |
+|---|---|---|---|---|
+| 30 (10-13, to drift 30) | 6 Firefly Jars | 905 | 7 | 0.8 |
+| 29 (10-12, to drift 30) | 8 Firefly Jars | 944 | 15 | 1.6 |
+| 28 (10-12, to drift 49) | 10 Sparklers, 3 Prism Jars, 1 Jar | 1,839 | 677 | 37 |
+| 10-09 (to drift 10) | 1 Jar, 2 Sparklers | 124 | 21 | 17 |
+
+A Jar board fires about one bolt per 100 dispels: one Jar needs 13 s on a nightmare its board dispels in 1–3 s. A stack is
+worth 0.8 of a hit (16 × potency ÷ 20), so the Jar is 27 damage a second on streams and 49 only on a target that lives.
+Sparkler bursts complete Charged; plain hits don't.
+
+**ON HOLD (user, 2026-10-13): "it's an effect that Whirligig has."** Whirligig's line copies statuses between nightmares;
+the leap moves damage, but it reads alike. Tower Code has not been given the spec. Alternatives put to the user: keep it
+as a Firefly fork (damage only, the class's own word), or drop it for B (threshold 10, bosses 15, bolt 8 × potency;
+Thunderclap 10 → 5; flat Charged on cards halved) alongside the health and Dew ×1.5 trial the user proposed (health
+×1.5 drifts 1–50, Dew pots, rest bonus and starting Dew ×1.5, Sprout step every 8, copy cost 5%; ×1.5 alone lifts Jar
+boards from ~1 to ~3 bolts per 100 dispels). Nothing below is live until the user picks.
+**User, same day: "the point is that we offer cards to help build Charge so cards feel more impactful."** So the base
+rule stays (20 stacks, no leap, no lower threshold): a bare Jar board is meant to fire rarely, and cards switch the
+bolts on. **Gap found:** after the fork rework no live card builds Charged from a Firefly-only board (only Eternal
+Static, a Grove Legendary; the rest need Bellflower, a Reaction or a Grove pair), while three class cards pay only on
+bolts (Chain of Lanterns, Lanternway, Last Spark). Run 31 took all three and fired too few bolts to matter.
+**User, same day: "helping increase statuses or having fast status is another family's job, that's where the families
+help."** So no charge-building Firefly class cards either: the targets below are withdrawn and no prompt went out. Charged
+on ordinary nightmares is meant to come from the second family (from drift 25) and from tough targets before it.
+Accepted consequence: on a Firefly start the bolt cards (Chain of Lanterns, Lanternway, Last Spark) pay little in act 1.
+What is left of the complaint is the user's own proposal, the health and Dew ×1.5 trial (more hits per nightmare).
+**Withdrawn: number targets for charge-building class cards** (design: Roguelite Mechanic Discussion): an ordinary nightmare takes
+5–9 Jar hits on a Jar board today (8–13 with health ×1.5). No card: bolts on tough targets only. One card: a bolt on
+most ordinary nightmares (+8 to +12 stacks over a nightmare's life). Two: nearly every one. Add the stacks up front, per
+Warden per nightmare (e.g. "a Firefly Warden's first hit on a nightmare adds 4 Charged"), not per hit: +1 per hit
+doubles bolt damage on bosses (a Jar 27 → 71 a second) from one Common.
+
+**Decision (on hold): A.** When a nightmare with Charged is dispelled before its threshold, the charge leaps to the nearest
+nightmare within 2 cells as damage: **0.5 × the full bolt × stacks ÷ threshold** (0.4 of a hit per stack, the stored
+potency). **Minimum 3 stacks** (15% of the threshold, rounded; 6 with Brimming), not a quarter: with one or two Jars a
+Shade dies at 2–4 stacks and a quarter would still waste most of it. A leap is damage only: no stacks move, it's an
+effect (Potency applies, "light" line), **not a bolt** for Lightning Rod, Thunderclap, Chain of Lanterns or Lanternway,
+and a nightmare it dispels leaps its own charge (bounded: every stack is spent once). With Passing Dream the stacks jump
+instead and there is no leap. Nobody in reach: the charge is lost.
+- **Not B or C:** both keep the per-stack value and only halve the wait (6.7 s for one Jar), which a stream still beats.
+- **Brimming and the Reactions don't move:** the formula reads the live threshold and bolt, so Brimming (40 stacks, bolt
+  ×2.2) gives 0.44 of a hit per stack by itself; Thunderclap's 10 Charged is unchanged because a leap is not a bolt.
+- **Last Spark (class Rare) keeps its job as the upgrade:** the leap at the full stored share, to the nearest Lit
+  nightmare at any distance, and also when a Charged nightmare walks out of its last light. (It replaces "half the
+  stored share" in the fork table above.)
+- **Size of the change:** Jar-line hits on streams go from 1.0 to about 1.4 of a hit where 3+ stacks are reached; a full
+  bolt (1.8) stays clearly better. It lifts the weakest Calling in act 1; watch Sparkler boards, already at 37 bolts per 100.
+
+**The other "nothing until full" statuses.** Drowsy is not one: −2% speed per stack from the first; sleep at 20 is
+extra (no Drowsy board in the last 14 runs to count sleeps). **Exposed has the same fault:** nothing below 10 stacks,
+and a Lanternmoth adds one a second. Runs 29 and 30 had 8 Lanternmoths each and Exposed carried 12% and 3% of damage; it
+completes only on the front nightmare, and only with many moths. Recommended, not decided (it reverses the 2026-10-09
+"no partial Exposed" rule, so it's the owner's and Tower Discussion's call): partial Exposed pays its share (2.5% per
+stack to 25% at 10); crits, Pinned and Lightning Rod still need the full 10.
+
+## Health ×2, Dew ×2 trial (user direction 2026-10-13; paper only, for playtest)
+
+The user: "keep it basic but have the enemies have more health so they reach that 20 stack, but also increase the economy
+to support more Wardens." No leap, no threshold change, no charge cards.
+**Sizing.** Charged reached on a nightmare ≈ its health × the Jars' share of damage ÷ a Jar's hit (18.2). Today a Shade is
+~160 health at drift 10 and ~330 at 20, so 5–11 stacks on a Jar-led board (Jars 60% of damage). 20 stacks needs about ×3.5
+at drift 10 and ×1.8 at drift 20. **×1.5 would not get there; ×2 does from about drift 15 on a Jar-led board** and not
+before (drifts 1–9 never will: the board is five Sprouts and a Jar). More than ×2 runs out of map: run 31 already
+planted 85 Wardens at ×1 on 414 cells.
+**Trial numbers (Tower Code):**
+- Nightmare health ×2 on every drift, bosses and Deeply Blighted included (one new export, default 2.0).
+- Dew ×2: every drift's pot, the boss pots, the rest bonus (30 + 4 per block → 60 + 8), the perfect-block bonus (10 → 20),
+  `starting_dew` 60 → 120 (one new export for the pots and bonuses).
+- Planting more, not just growing more: Sprout price step every 10 Sprouts (was 5); `copy_cost_step` 0.08 → 0.04.
+- Unchanged: Warden, grow, Nurture and clear prices; leaves; the boss bite; Seeds; the Charged rule; every act multiplier.
+- Left for a second pass if the trial is kept: every flat Dew number (Omen rewards, the maze reward's 20 a block,
+  Dewcatcher, Wellspring's 130 cap, call-early Dew, cards and perks that pay fixed Dew). They are worth half in the trial.
+**Expect:** fights of the same length if the Dew is spent, about twice the hits per nightmare, boards near twice the
+size. Difficulty should be near today's but can't be checked on paper; statuses that scale with hits (Poisoned, Exposed
+at 10, Drowsy) all get stronger at once, so Sporeling boards are the first place it may tip easy. Judge from the user's runs.
+
+### Trial run 1 (human run 32, 2026-10-13 12:26, build dacfe9 / b0761f65: health ×2, Dew ×2, starting Dew 120)
+
+Firefly Jar start: 9 Jars, 43 Sprouts, route 81, one Dream of note (Where Lights Meet). **Lost at drift 15 in 4 minutes**:
+drift 8 leaked 2 Shades, the drift 15 finale leaked 12 (73% of its health dealt). **Dew banked and unspent: 498 at
+drift 8, ~600 at 9–10, 932 at the end** (1,974 earned, 1,162 spent, 180 of it on growing, none on ranks).
+**Read:** not a test of the numbers yet: the board held about 60% of the Dew it was paid. Either the Dew arrives faster
+than it can be placed (twice the planting in the same rests), or it was saved. Asked the user which.
+**User: "couldn't place because of the Omen."** Frozen Ground (no planting, growing or Nurture during a drift) was taken
+at the drift 10 rest, so drifts 11–15 paid ~715 Dew that sat unspent until the run ended at the finale. Its reward is a
+flat 75 Dew, half its old worth under the trial, for the same lock. **Change: Omen Dew rewards × `trial_dew_multiplier`
+now, not in the second pass** (Roguelite Code): an Omen is chosen every block, so a half-price reward skews every
+choice in the trial. Still open: ~500–600 Dew sat unspent at drifts 8–10, before the Omen, and drift 8 leaked.
+**The thing the trial was for moved:** combo damage (Charged bolts on a Jar-only board) was 4–13% of each drift from
+drift 6; at ×1 the same board showed 0% until drift 10 and ~0–5% after (run 30).
+
+### Trial run 2 (human run 33, 2026-10-13 14:23, build 26a532 / f37e0b90: health ×2, Dew ×2; 0-node Grove)
+
+Firefly Jar start, Bellflower at 25. 20 Sparklers, 10 Chime Stones, 8 Jars, 6 Lullaby Bells, 40 Sprouts, 44 Thornwalls;
+route **185**; ranks 2,421 Dew. **Lost at drift 50 to the Great Toad** (89% of the drift's health dealt, 5 leaves left
+for its bite). 14 / 15 through act 1 (the Night Mare in 32 s), **15 / 15 through drift 40**; every act 2 leak was one
+Deeply Blighted nightmare (Phantom at 41, 46, 49; Night Hound at 45) for 10 leaves. The user: **"the amount of tower I
+made was at the right spot."**
+**Read:** the trial does what it was for. Combos 71% of damage (3–18% in act 1 on Jars alone, 35–79% in act 2 once the
+bells charge everything): Charged now completes. Difficulty about where run 28 was (14 / 15 through 46 at ×1); no change.
+**Watch:** one Lullaby Bell dealt 40% of all damage, 85% of it from combos. Bolts are sized by the strongest Warden that
+charged the nightmare while Sparklers and Chime Stones supply the stacks, so ranks poured into one bell size every
+bolt on the board. Not touched on one run. Also 1,000–2,300 Dew banked at several rests (two Frozen Ground blocks).
+Next, if the user keeps the trial: the second pass (every fixed Dew amount × the trial multiplier).
+
+**User on run 33: "didn't really see the other family's cards."** Bellflower was picked at 25; of the 12 cards in the
+four offers after it, two were Bellflower's (Wide Petals at 40, Resonance at 45). Paper: a second family brings about 5
+non-form cards into a pool of ~88 after the 60% sample, so ~6% of slots, a card in ~1 offer in 6, about one card seen
+per act. That matches. Options put to the user (an exception to "nothing promised", like the drift 5 class Dream): the
+Dream at the rest where a family is picked holds one sure card of that family; and / or a new family's cards skip the
+60% sample (about +0.5 seen per act).
+
+**Decision (user, 2026-10-13): option A.** The Dream at the rest where a family is picked (drifts 25 / 50 / 75) holds one
+sure card of that family: one slot, drawn at random from its cards that can be offered (hard Needs met, form unlocks
+left out), any rarity even though the boss rest's other slots are Rare+; it counts toward the two-family-cards limit;
+if the family has no card to offer the slot draws as normal. The 60% sample stays. Nothing else is weighted or promised.
+
+### KEPT (user, 2026-10-13: "let's keep the health and dew numbers"). Second pass: fixed Dew amounts ×2
+
+Health ×2 and Dew ×2 are the game's numbers now (the `trial_*` exports stay as the knobs, at 2.0). Rule for the second
+pass: **every fixed Dew payout doubles; every price and every percentage stays.**
+
+| Owner | Thing | Was → now |
+|---|---|---|
+| Tower Code | Dewcatcher `dew_per_drift` | 6 → 12 |
+| | Wellspring `dew_per_drift`, `rest_interest_max`; `DewCatch.INTEREST_CAP` | 4 → 8, 60 → 120; 130 → 260 (interest stays 8%) |
+| | Grandmother Oak `dew_per_drift` | 15 → 30 |
+| | Heartwood Sapling `dew_per_drift`, `dew_per_rank` | 8 → 16, 4 → 8 |
+| | Magpie's Hoard `crit_dew`, `crit_dew_per_drift` | 1 → 2, 25 → 50 |
+| | Call early: `call_early_seconds_per_dew`, `call_early_cap` | 2.0 → 1.0 s, 10 → 20 |
+| | Maze reward: `MazeEconomy.CELLS_PER_DEW`, the per-block cap where one applies | 4 → 2, 20 → 40 |
+| Roguelite Code | Dew Bowl `dew_now` | 50 → 100 |
+| | Harvest Moon `rest_bonus_add` | 15 → 30 |
+| | Morning Dew `dew_now`, `rest_bonus_add` | 20 → 40, 10 → 20 |
+| | Call of the Wild's cap | 20 → 40 |
+| | Deep Well's cap (5% stays) | 40 → 80 |
+| | Kin's Keepsake per Kinship, cap | 10 → 20, 40 → 80 |
+| | Overflowing Well, Dew per shard | 50 → 100 |
+| | Winding Path, cap | +1 per 2 tiles → +1 per tile, 30 → 60 |
+| | `skip_dew` ("Let it pass"), `EARLY_BIRD_DEW`, `HURRIED_HARVEST_DEW` | 15 → 30, 5 → 10, 2 → 4 |
+| | Heartwood gifts `PASS_DEW`, `SHIFT_DEW` | 30 → 60 each |
+| Meta Game Code | Morning Stores `starting_dew` per level | 10 → 20 |
+
+Meta Game Code, f5360c0e (branch `claude/meta-game-code-implementation-4f7502`, untested, not on main): Morning Stores
+20 per level and Leaf or Dew 15 → 30 Dew per leaf, both ways (agreed: a leaf keeps its price relative to income).
+**Sprout Bed's cost stays 30 less starting Dew:** its two free Sprouts are still worth about 20 Dew at unchanged prices.
+
+Roguelite Code, 01d22b20 (local main, untested): the list above, plus Emergency Reserves 8 → 16 (retired, saved runs
+only) and Reshape's 60. Call of the Wild's rule changed with it: it doubles what the skipped time earns, up to 40 (it
+used to double the capped 10). **Follow-ups from their left-alone list:** Deep Well's Wellspring line +30 → +60 (cap 180
+on the new 120); Golden Harvest's threshold 500 → 1,000 Dew earned (income doubled, so the same pace).
+
+Unchanged on purpose: Warden, grow, Nurture and clear prices (and cards that set a price: Seedfall, Warm Hearth,
+Weathered Walls, Endless Rings; Weed Puller's 6 refunds part of a price); Rich Dew, Dew Line, Wild Dew and every other
+percentage; Seeds.
+
+## Silver Bell / Vesper Bell check (user, 2026-10-15: "seemed really good"; paper, `branch_kit._toll`)
+
+Each toll hits the nightmare with the **most health** in range and fills its Drowsy to the cap (−40% speed, down to the
+slow floor; bosses 3 stacks); Vesper also tolls the next-strongest at half damage and half the fill. Range 6, heavy.
+| Form (total Dew from a Sprout) | Damage a second | Range | Extra |
+|---|---|---|---|
+| Silver Bell (160) | 72 | 6 | the strongest in range fully Drowsy every 2.5 s |
+| Prism Jar (165) | 137 | 3 | crit aura |
+| Mossback (160) | 179 | 1.75 | 10% crits |
+| Vesper Bell (460) | 168 + 84 | 6 | two strongest slowed |
+| Rainbow Prism (465) | 312 + beams | 3 | crit aura |
+**Read:** not over on damage (about half to four fifths of the Firefly and stone heavies per Dew). What makes it feel
+strong is the rule, not the number: twice the range of the others (about four times the area) and it always picks the
+toughest nightmare and slows it fully, which is exactly the act 2 problem of late (single Deeply Blighted nightmares).
+Bellflower starts also sit at the top of the history (drifts 95, 62, 45, 40). No change; if bell boards keep out-lasting
+the rest, the first lever is range 6 → 5, then Vesper's echo fill.
+
+## Human run 38 (2026-10-14 23:58, release 0.1.4, build 57080b: elites from 36, Lanternmoth 70)
+
+Bellflower start (Keeping Time), Firefly Jar at 25. 7 Bellflowers, 6 Vesper Bells, 3 Silver Bells, 3 Rainbow Prisms, 15
+Sprouts: **34 attackers**, ranks 3,417 Dew. The user: **"went from very easy to hard."** 15 / 15 and closest ≤ 0.42
+through all of act 1 (the Night Mare in 22 s) and ≤ 0.34 until drift 33; **4,120 Dew banked at drift 25**, spent at 26.
+Then drift 34 four Phantoms, 35 two, 38 eight Shades (38 has twice drift 37's health: 24 Shades, 8 Husks, 6 Night Hounds
+against 20 Shades and 2 Lantern Bearers), dead at 40.
+**Read: act 1 is too easy since health and Dew ×2.** Runs 33, 35, 36 and 38 held 14–18 leaves through act 1 with closest
+≤ 0.6, and three of the last four banked 2,000–4,100 Dew by drift 25. The surplus all lands at the act break, so act 2
+starts fine and the felt cliff comes at 34–40, where Phantoms fly past a bell board and drift 38 doubles 37.
+**Decision (user, 2026-10-15: "let's do that"):** act 1 health 1.2 → 1.4 (`act1_health_multiplier`, the ramp from drift 3
+to 20, held to 25; the act 1 boss keeps its own ×1.75) so the Dew gets spent during act 1, and the act 2 steep point
+3.45 → 3.2 (`act2_steep_value`, drifts 37–44 about 5–7% lighter; 26 and 45 unchanged). Dew unchanged.
+
+## Human run 37 (2026-10-14 15:15, build 9e4774 / 051f0672: elites from 36 in)
+
+Sporeling start (Spore Print), Firefly Jar at 25. 12 Inkcaps, 12 Stormcaps, 3 Thunderheads, 29 Sprouts, route 110, 0 Dew on
+ranks; Poisoned ticks 37% of damage. 15 / 15 through drift 19; then drift 23 two Deeply Blighted Husks (the act's one
+listed elite drift), 24 four Sobs, 25 five of the Scarecrow's Crows: 13 leaves in three drifts, 2 left into act 2, dead
+at 32. **Banked Dew: ~1,700 at drift 20 rising to 2,422 at 25** while those leaks happened; spent at the act break.
+**Read:** no number change. Second run running where ~2,000 Dew was held through the end of act 1 (run 35 too), by the
+look for the second family at 25. If that's deliberate, the pick at 25 makes hoarding the right play and the boss block
+pays for it; asked the user why.
+
+## Human run 36 (2026-10-14 14:25, build 97554b / 64641583: Lanternmoth 70 in; elites still from 31)
+
+Firefly Jar start, Bellflower at 25. 19 Lanternmoths, 8 Lullaby Bells, 5 Jars, 35 Sprouts, route 109, 0 Dew on ranks,
+combos 26%. **15 / 15 through drift 31**, the Stag in 41 s; lost at drift 40. Leaks: Deeply Blighted Phantoms at 32, 33
+and 39, a Deeply Blighted Husk at 35 (4 leaves under Leaf Fall), a Deeply Blighted Lantern Bearer at 37, two Night Hounds
+at 38. **The fourth run in the elite pattern**, played before the 31 → 36 change was built (not yet in Tower Code's
+hands). Lanternmoths at 70 no longer sink the board: 19 of them held act 1 and early act 2 clean.
+
+## Human run 35 (2026-10-14 12:35, same build as run 34; 0-node Grove)
+
+Sporeling start (Spore Print), Firefly Jar at 25. 27 Driftspores, 5 Rainbow Prisms, 35 Sprouts, route 109; Poisoned ticks
+27% of damage. **18 / 18 leaves through drift 29** (Deep Roots), the Stag in 40 s; lost at **drift 45**. About 2,000 Dew
+sat banked from drift 17 to 29, spent at the 30 rest on the Firefly finals (saved for the new family, by the look).
+**Act 2 pattern, third run running (31, 33, 35):** the leaks are single Deeply Blighted nightmares, mostly Phantoms. Here
+7 of 9 leaked nightmares were Deeply Blighted (Phantoms at 33, 37, 42; a Lantern Bearer, a Shade) at 2 leaves each,
+then two Sobs at 44. Since drift 31 every drift without an elite gets one, and at health ×2 a Deeply Blighted Phantom has
+about six ordinary Phantoms' health and flies over the maze. **Decision (user, 2026-10-14): `guaranteed_elite_from` 31 → 36**
+(Tower Code). Drifts that list their own Deeply Blighted keep them; elites stay ×3; the second elite from 76 is unchanged.
+
+## Human run 34 (2026-10-14 12:31, build 36dd26 / c5f931fb: health and Dew ×2 kept) and the Lanternmoth fix
+
+Firefly Jar start. **Every Jar grown into a Lanternmoth** (5, 600 Dew of 912 spent) plus 12 Sprouts. Lost at **drift 10 in
+2 minutes**: the finale leaked 11 Shades and a Husk for 14 leaves. The drift 5 Dream held one class card (Lanternway).
+**Lanternmoth, fourth run:** runs 29, 30 and 34 grew 5–8 and ended at 30, 30 and 10. A Jar is 27 damage a second for 25
+Dew; growing it to a Lanternmoth (120) adds about 8, where 120 Dew of new Jars adds about 130. Its Exposed needs 10
+stacks on one nightmare and a moth adds one a second. It's the first grow on the Firefly panel and reads as the
+upgrade. **Decision: Lanternmoth damage 35.1 → 70** (Tower Code). The grow then adds about 43 a second for 120, still
+well below planting, which suits a long-range support form, but no longer a trap. Partial Exposed (2.5% a stack) is
+still with the user.
+
+## Generic batch and the four class sets: watch list (2026-10-14; built a4bbdcf8 / 20b92d39; paper only)
+
+Numbers are named constants in `dream_batch_rules.gd`, `spore_print.gd`, `puddles.gd`, `keeping_time.gd`,
+`firefly_lights.gd`. Council watch list: Narrows, Overnight on a Dewdrop start, Chain of Lanterns (now also forks Tolls
+and Reactions), Deep Pool with Wash Away, Thorny Walls, Call of the Wild 25%, Held Breath ×3, Press On's leaf, Cozy
+Corners 30%, Nothing Wasted, Knell on Poisoned, Rude Awakening with many bells. Paper reads, with Dew and health ×2:
+- **Overnight on a Dewdrop start:** everything is Soaked, so each spore attack adds 3 more Poisoned once a second: a
+  Sporeling holds ~25 stacks instead of 10, ×2.5 its poison, with no condition left. First to cut (3 → 2) if it shows.
+- **Chain of Lanterns forking Tolls and Reactions:** +100% of every Toll and Reaction on Lit nightmares (2 at half). A
+  Bellflower second family Tolls every 4th ring on everything in range; run 33's bells already did 70% of damage
+  through combos. Watch first on Firefly + Bellflower.
+- **Thorny Walls:** with 40+ Thornwalls the 25% ceiling binds on every ordinary nightmare: a quarter of all health for
+  walls that cost 3 Dew. Fine if it needs that many walls; 15% if it shows up on ordinary mazes.
+- **Held Breath ×3:** a clean block's rest bonus at block 8 is (30 + 32) × 2 = 124, so +248 a clean block; a player who
+  holds 15 leaves through act 2 (run 33) banks ~+1,500 by drift 40, about 12% of income. Right for an Uncommon bet;
+  too much for a Common.
+- **Call of the Wild 25%:** calling every drift early is +25% income. Fine with the risk; watch whether it's always taken.
+- Differ from my 2026-10-12 fork numbers (the council's call stands unless runs say otherwise): Hammerfall 0.5 (mine
+  0.25), Spotlight up to 6 (mine 4), Like to Like ticks 0.5 (mine a third).
+No run data on any of them yet.
+
+## Statuses vanish whole: drain one stack at a time (decision, 2026-10-13; paper + run history, no sim)
+
+The user: "does it seem enemies are losing their statuses fast". Checked in `enemy_statuses.gd`: Soaked (4 s), Drowsy (3 s)
+and Exposed (5 s) lose every stack when the timer ends; Charged waits 2 s then loses one stack per 2 s; Poisoned
+applications end one by one after 5 s. The 2026-10-09 rework raised the stacks needed 4–10× and left the timers.
+The run history counts only Charged bolts and hits on Exposed nightmares, not how often each threshold was reached, so
+this is decided on paper.
+
+**Decision 1: Soaked, Drowsy and Exposed drain like Charged.** After the timer, one stack at a time; an application
+resets the timer as now. Drain per stack: **Soaked 0.5 s, Drowsy 0.5 s, Exposed 1 s** (a full 8 / 20 / 10 is gone 4 / 10 /
+10 s after the timer). Charged (2 s per stack), Poisoned and Rooted unchanged.
+**Decision 2: no longer timers.** Drain already fixes "a 3 s retarget wipes 20 stacks"; longer timers on top would buff
+every status Warden twice, and Poisoned 5 → 8 s alone lifts every spore Warden's sustained stacks by 60%.
+Lasting Dreams, Deep ranks and Potency lengthen the timer before the drain starts; the drain rate is fixed.
+**Decision 3 (Charged): none of the hub's three.** The user ruled the same day: the base rule stays (20 / 30, no leap, no
+lower threshold, no extra stacks); building statuses faster is the second family's job; the fix is the health ×2 /
+Dew ×2 trial. Its first run showed bolts at 4–13% of each drift's damage on a Jar-only board from drift 6.
+**Brimming:** nothing moves. Doubled stacks take twice as long to drain at the same rate.
+**Control stays bounded:** Rooted, freeze, the sleep cooldown (4 s, bosses never sleep) and the slow floor are untouched;
+draining Drowsy can't start a sleep (sleep needs 20 by application).
+
+**Reachability, one nightmare under steady fire.** In one Warden's range for about 5 s a pass; under fire 10–20 s in
+act 1 and 15–30 s in act 2 in all (about the same in the ×2 trial once the Dew is spent).
+
+| Starter | Job seen from | Threshold | One alone | Two | Out of range, before | After |
+|---|---|---|---|---|---|---|
+| Firefly Jar (1.5 Charged a second) | the bolt only | 20 | 13.3 s | 6.7 s | −1 per 2 s after 2 s | same |
+| Dewdrop (1.2 Soaked a second) | stack 1 (+20% water) | 8 for Reactions | 6.7 s | 3.3 s | all gone at 4 s | −1 per 0.5 s after 4 s |
+| Bellflower (1 Drowsy per 2 pulses) | stack 1 (−2% speed each) | 20 to sleep | 40 s | 20 s | all gone at 3 s | −1 per 0.5 s after 3 s |
+| Sporeling (2 Poisoned a second) | stack 1 (holds 10 = its damage doubled) | 12 for Reactions, cap 32 | never (10) | 3 s | each ends after 5 s | same |
+| Lanternmoth, tier 2 (1 Exposed a second) | nothing below 10 | 10 | 10 s | 5 s | all gone at 5 s | −1 per 1 s after 5 s |
+
+Against the rule "one starter visibly does its job; Reaction thresholds reward two or more": Dewdrop and Sporeling
+pass. **The Jar's bolt needs three passes or three Jars** (the trial's job). **Bellflower's Drowsy is 2–3 stacks (−4 to
+−6%) per pass, not visible**; left alone, because Bellflower boards are the strongest in the history (drifts 95, 62, 45)
+and its seen job is the ring. **Exposed gives nothing until 10**, a one-moth pass barely reaches it; partial Exposed
+(2.5% a stack) is still with the owner.
+
+## One class card per offer: paper check (2026-10-13; dream_council_review.md section 22; no sim)
+
+Per slot a class card is drawn ~14% of the time with one family, ~12% with two, ~11% with three (12 class cards among
+the run's ~28 Commons / ~29 Uncommons / ~14 Rares; ±3 points). Per offer of three:
+
+| | Exactly one class card | None | (two or more, before the limit) |
+|---|---|---|---|
+| Act 1, one family | ~3.7 in 10 | ~6.3 | 0.5 |
+| Act 2, two families | ~3.2 | ~6.8 | 0.4 |
+| Act 3, three families | ~2.9 | ~7.1 | 0.3 |
+| A boss rest (all Rare+) | ~5 | ~5 | 1 |
+
+The three prototype runs agree: 5 of their 15 freely drawn offers held a class card. **The council's "about four offers
+in five" is wrong; it is about one in three.** The limit itself changes almost nothing (it only touches the 1 offer in 20
+that held two), because a player takes one card per offer anyway.
+
+3 of a direction's 5 held, rests counted through drift 20 / 45 / 70, every useful class card taken:
+
+| | By 25 | By 50 | By 75 |
+|---|---|---|---|
+| A direction fixed before the run | ~1% | ~12% | ~29% |
+| The direction of the first class card taken (how people play) | ~2% | ~20% | ~40% |
+| Any direction, taking every class card | ~3% (7% with the 25 rest) | ~31% | ~58% |
+| Middle row, if the drift 5 Dream still holds one sure class card | ~4% | ~26% | ~45% |
+
+Against the 30% / 50% ceiling the middle row is about 10 points under, 5 with a sure class card at drift 5.
+**Proposal:** keep one sure class card in the drift 5 Dream and change nothing else. If that is dropped, class cards
+draw at ×1.5 weight inside their rarity (about 5 offers in 10 in act 1, 4 in 10 later; middle row ~30% / ~52%).
+Not both: together they pass the ceiling (~36% / ~57%).
+
+## Human run 31 (2026-10-13 07:44, build c019e2 / d373bb7f, same as run 30; 0-node Grove)
+
+Firefly Jar start, Dewdrop at 25. **65 Sprouts**, 10 Sparklers, 6 Cloudlets, 4 Dewdrops, no Jar left; route **111**, 0 Dew on
+ranks, combos 6%. Class cards in 4 of 7 offers (three at drift 5, then Last Spark / Waiting Spark, Lanternway, Like to
+Like); taken: Chain of Lanterns, Last Spark, Lanternway, Like to Like. Lost at **drift 38**: 13–14 leaves through 31, then a
+bleed, not a wipe: drift 32 four Phantoms (one Deeply Blighted), 34 and 35 a Deeply Blighted Husk each, 38 a Deeply
+Blighted Phantom. **Every leak was a flyer or a Deeply Blighted nightmare.**
+**Read:** no change. A wide Sprout board with a long maze loses to what the maze and small hits don't answer (flyers,
+×3 health). That's the intended counter, and the losses came a few leaves at a time. Ranks: 0 Dew in runs 29 and 31,
+78 in run 30. On paper rank I is 25 Dew for about +2.6 damage a second on a Sparkler; a Sprout at 62 Dew gives 12 and a
+wall. Watch whether Nurture is simply the worse buy in acts 1–2. The bolt cards were taken with no Jar on the map by
+the end; without a fork / bolt damage line their worth can't be read.
+
+## Human run 30 (2026-10-13 07:28, build c019e2 / d373bb7f: fork prototype + the class-only drift 5 Dream; 0-node Grove)
+
+Firefly Jar start, Dewdrop at 25. 6 Jars, **8 Lanternmoths**, 17 Sprouts, Jetreed, Torrent; route 65, ranks 78 Dew, **combos 3%**.
+The drift 5 Dream showed three class cards (Waiting Spark / Knock-On / Where Lights Meet): the rule works. Class cards
+taken: Waiting Spark, Where Lights Meet, Lanternway. **15 / 15 through drift 28** (the Stag in 33 s), then **drift 29
+leaked 14 Shades for 14 leaves** (76% of its health dealt), dead at 30. Fog Bank (every Warden −1 range) was the last
+Omen taken, so very likely on that block; drift 28 was already at 0.82.
+**Read:** no curve change. The fourth "full Heartwood gone in one drift", again under a chosen Omen (runs 24, 26, 28, 30).
+**Lanternmoth flag:** runs 29 and 30 both grew 8 (about 1,300 Dew of 2,000 grown) and both ended at 30 with combos 12% / 3%.
+It is 35.1 damage a second at the price of a Prism Jar's 136.5, and its Exposed needs 10 stacks on one nightmare, which
+a Shade stream never reaches. A support form read as the damage pick. To Tower Discussion / Tower Code once the user
+says why they built them. Still no fork damage line in the report, so the class cards can't be weighed.
+
+## Human run 29 (2026-10-12 22:40, build ac4e72 / 83ab7b5b + the uncommitted Firefly fork prototype; 0-node Grove)
+
+Firefly Jar start (Lantern Light forks), Sporeling at 25. 8 Jars, 8 Lanternmoths, 8 Bloomcaps, 14 Sprouts, route 71,
+**0 Dew on ranks**, 652 Dew banked at 25, combos 12%. Lost at **drift 30**: 15 / 15 through 14, the drift 15 finale −8
+(6 leaks, one Deeply Blighted), the Scarecrow down in 43 s, the drift 30 finale −8 (4 Night Hounds, 3 Shades).
+The user: "difficulty was ok", but **"cards early wasn't meaningful. Want players to feel something early"**, and some
+keywords are unclear to a new player.
+**Read:** no difficulty change. The four act 1 picks were Momentum, Steady Roots (never used: no ranks bought), Head of
+the Line (+25% on the front nightmare) and Glinting Dew (every 5th attack a crit, the combo share's rise to ~17% from
+drift 21). Their numbers are fine; all four are passives with nothing to see. **No class card was offered before drift
+25** (only the lent Live Wire at 5, which needs a second family); on the paper odds that happens in ~16% of Firefly starts.
+So it's a feel and offer question, not card power. **Decision (user, 2026-10-12): the drift 5 Dream draws from the
+class cards only.** Every slot is a random class card of the Calling's family at the normal act 1 rarity odds; lent
+cards are left out (they need a second family); the two-family-cards limit doesn't apply to this offer; a family with
+no class cards yet gets the normal offer. Nothing else is promised or weighted. Paper effect: with one class card held
+from drift 5, 3 of a direction's 5 by drift 50 rises from ~12% to ~20% chosen and from ~27% to ~35–40% any (upper
+bounds: every direction card seen is taken). A little over the 30% ceiling; watch it in runs before touching rarity. The report has no line for fork damage, so the
+Calling can't be weighed from runs yet (Main Merger).
+
+## Human run 28 (2026-10-12 14:32, build c82139 / 33a95553: finale health 1.2 in; 0-node Grove)
+
+Firefly Jar + Dewdrop from 25: 10 Sparklers, 3 Prism Jars (30% of damage), 3 Torrents, Jetreed, 21 Sprouts, route 83, 0 clears,
+**combos 58%** (Reactions 0%). Lost at **drift 49**. Act 1: −2 at the drift 10 finale, the Hollow Stag down in 20 s.
+**Act 2: 14 / 15 through drift 46, every finale (30 / 35 / 40 / 45) clean, closest ≤ 0.63**: the finale fixes hold.
+Then **drift 47 leaked 13 for all 14 leaves** (28 Shades, 8 Hedgehogs, 4 Phantoms, 2 Lantern Bearers; 356k health, 94% of it
+dealt), with Thick Blight on the block. Drift 46 was heavier (444k) and clean, so it was the mix, not the health: the
+leakers carried ~20k health between them, i.e. small or nearly-dispelled nightmares. The report can't say which kind.
+**Read:** no number change from one run. A 0-node profile reaching 49 with one life lost before 47 puts act 2 in range.
+The open pattern is "a full Heartwood gone in one drift" (runs 23, 24, 28). Asked for: leaks by kind per drift in the run
+report (Main Merger). Report bugs: the leaves lost sit on drift 49's row, the leaks on 47's; `combo_share` passes 1.0
+(drifts 39, 42, 47), so combo damage still counts overkill.
+
 ## Human run 27 (2026-10-08 17:44, build 09a3612c: finale elites 30: 2 in)
 
 Relayed by Balancing Code. Lost at **drift 45**; the user: "might be a bit too hard". Clean through drift 42. The Night Mare

@@ -16,7 +16,7 @@ class_name IconInfo
 const STATUSES := {
 	&"damp": ["Soaked", "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}."],
 	&"drowsy": ["Drowsy", "Walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}."],
-	&"spored": ["Poisoned", "Takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}."],
+	&"spored": ["Poisoned", "Takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
 	&"marked": ["Exposed", "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}."],
 	&"static": ["Charged", "Lightning builds up on it. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored charge). At {stacks:need_static} stacks it can set off {reactions}."],
 	&"held": ["Rooted", "Cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}."],
@@ -298,8 +298,15 @@ const TERMS := {
 	&"crit": ["crit", "crits", "Crit"],
 	&"critical_hit": ["critical hit", "critical hits", "Crit"],
 	&"flyer": ["flyer", "flyers", "Flying"],
-	&"resists": ["resists", "resists", "Resists and Weak to", "resistss"],
-	&"weak_to": ["weak to", "weak to", "Resists and Weak to"],
+	# Nightmare Kinds (enemy_design.md ed6f573b): each links to its Kind's glossary entry (CodexData.kind_entries); the
+	# Kind badge and the Warden tags that answer it (StatusLinks.ROLE_KIND_TERMS) link here.
+	&"kind": ["Kind", "Kinds", "Nightmare Kind"],
+	&"kind_armoured": ["Armoured", "Armoured", "Armoured", "kind_armoureds"],
+	&"kind_flying": ["Flying", "Flying", "Flying", "kind_flyings"],
+	&"kind_hidden": ["Hidden", "Hidden", "Hidden", "kind_hiddens"],
+	&"kind_swarm": ["Swarm", "Swarms", "Swarm"],
+	&"kind_fast": ["Fast", "Fast", "Fast", "kind_fasts"],
+	&"kind_plain": ["Plain", "Plain", "Plain", "kind_plains"],
 	&"restless": ["restless", "restless", "Restless", "restlesss"],
 	&"remember": ["Remember", "Remember", "Remember screen"],
 	&"memory_grove": ["Memory Grove", "Memory Grove", "Memory Grove"],
@@ -365,7 +372,7 @@ static func stack_number(key: String) -> int:
 	if kind == "need":
 		var needs := {&"damp": Reactions.SOAKED_NEEDED, &"held": Reactions.ROOTED_NEEDED, &"marked": Reactions.EXPOSED_NEEDED,
 			&"spored": Reactions.IGNITE_MIN_SPORES, &"static": Reactions.IGNITE_MIN_STATIC}
-		return Reactions.buildup_threshold(int(needs.get(status, 0)))
+		return Reactions.need(int(needs.get(status, 0)))  # A Reaction's need: the normal amount, Brimming or not (owner 2026-10-16)
 	if kind == "cap" or kind == "bosscap":
 		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
 		probe.is_boss = kind == "bosscap"

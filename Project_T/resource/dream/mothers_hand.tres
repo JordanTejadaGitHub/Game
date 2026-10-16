@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mothers_hand"
+display_name = "Mother's Hand"
+description = "A Warden {touching} a support Warden adds 1 more {stack} with each status, and its {reactions} deal 25% more."
+tip = "Support Wardens: auras, catchers and other helpers. Never {held}. The {reaction} bonus multiplies with your other {reaction} bonuses. Works for: status Wardens {touching} a {warden:dreamcatcher}."
+rarity = 1
+kind = 3
+tags = Array[String](["role", "support", "reaction"])
+max_stacks = 1
+min_act = 1
+rule_id = &"mothers_hand"
+requires_role = &"support"

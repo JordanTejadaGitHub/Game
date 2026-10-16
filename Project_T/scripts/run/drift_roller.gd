@@ -13,9 +13,8 @@ class_name DriftRoller
 # Per drift: a template (DriftTemplate, weighted by act) picks a lead type and 1–3 more from the
 # pool; the budget is shared (each type ≥ MIN_SHARE) and turned into counts, then checked:
 #   - total within ±BUDGET_TOLERANCE of the budget,
-#   - no family resisted by more than RESIST_CAP_ACT1 (act 1) / RESIST_CAP of the rolled health
-#     (the hand-made elites it keeps are a fixed design choice and aren't counted),
-#   - acts 2–4: no block leans on the same resisted family (> LEAN_SHARE) in more than MAX_LEANS drifts,
+#   - (the resisted-family caps and the block's leans went with damage types: Nightmare Kinds, 2026-10-15;
+#     RESIST_CAP*, LEAN_SHARE and MAX_LEANS stay, unread, for old callers),
 #   - never all flyers / through-walls, at most one limited template (Swarm, Special) per block,
 #     never the same template twice in a row.
 # A roll that fails is tried again (the hand-made drift stays if nothing fits).
@@ -249,8 +248,6 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 		types.append(data)
 	# Shares: the lead's, then the rest split so each other type gets at least MIN_SHARE.
 	var lead_share := rng.randf_range(template.lead_share_min, template.lead_share_max)
-	if not lead.resists.is_empty():
-		lead_share = minf(lead_share, cap - 0.05)  # A resisting lead stays under the fairness cap (act 1: Husk-led Heavy)
 	while types.size() > 1 and (1.0 - lead_share) / (types.size() - 1) < MIN_SHARE:
 		types.pop_back()
 	if types.size() == 1:
@@ -353,34 +350,19 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 		mix.append([lead, elites, true])
 	return mix
 
-# The resisted families this drift leans on (for the block's count), or null if the drift breaks
-# a fairness rule: a family resisted by too much of its health, a family the block already leans on
-# MAX_LEANS times, or nothing but flyers.
-static func _leans_if_fair(mix: Array, act: int, state: Dictionary) -> Variant:
+# The resisted families this drift leans on (always none since damage types went: Nightmare Kinds, 2026-10-15),
+# or null if the drift breaks the one fairness rule left here: nothing but flyers.
+static func _leans_if_fair(mix: Array, _act: int, _state: Dictionary) -> Variant:
 	var total := 0.0
-	var resisted := {}
 	var all_flyers := true
 	for slot in mix:
 		var data: EnemyData = slot[0]
-		var cost: float = slot[1] * data.get_roll_cost() * (ELITE_COST if slot[2] else 1.0)
-		total += cost
-		for family in data.resists:
-			resisted[family] = resisted.get(family, 0.0) + cost
+		total += slot[1] * data.get_roll_cost() * (ELITE_COST if slot[2] else 1.0)
 		if data.trait_kind != EnemyData.Trait.FLYING:
 			all_flyers = false
 	if all_flyers or total <= 0.0:
 		return null
-	var cap := RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP
-	var leans: Array = []
-	for family in resisted:
-		var share: float = resisted[family] / total
-		if share > cap:
-			return null
-		if share > LEAN_SHARE and act >= 2:  # The block rule is for acts 2–4 (act 1 has two types)
-			if state.leans.get(family, 0) >= MAX_LEANS:
-				return null
-			leans.append(family)
-	return leans
+	return []
 
 # One group, the kinds mixed evenly over the hand-made drift's arrival window.
 static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: int = 2) -> DriftData:

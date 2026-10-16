@@ -8,7 +8,7 @@ class_name RestReport
 
 # ({damp} … are filled in with today's status names by IconInfo.format.)
 const COMBO_LINES := {&"conducted": "Lightning through {damp}", &"asleep": "Put to sleep",
-	&"crit": "Critical hits", &"weak": "Hits on weaknesses", &"marked": "Hits on {marked}", &"fog": "{spored} in fog",
+	&"crit": "Critical hits", &"marked": "Hits on {marked}", &"fog": "{spored} in fog",
 	&"static": "{static} bolts"}
 # Reaction damage tags that aren't a Reaction's own id (Echo Hollow's repeats): kept off the combo
 # lines like the Reactions themselves.
@@ -27,6 +27,8 @@ var _finale_lost_before := 0  # RunState.leaves_lost when it started
 # The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
 signal block_report_ready(block: int)
 var last_block_text := ""
+var last_gauge := {}  # The strength gauge at the last rest (gauge(); the meter's Last block tab draws its ribbon)
+var ribbon := StrengthRibbon.new()
 var last_block := 0
 
 func _ready() -> void:
@@ -37,6 +39,7 @@ func _ready() -> void:
 	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(box)
 	box.add_child(_label)
+	box.add_child(ribbon)  # The strength gauge's route ribbon (tap: what carried the block)
 	dreams_label.name = "DreamsCredit"
 	dreams_label.bbcode_enabled = true
 	dreams_label.fit_content = true
@@ -133,6 +136,11 @@ func show_report(block: int) -> void:
 	var batch_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if batch_dreams != null and batch_dreams.has_method("batch_report_lines"):
 		text += batch_dreams.batch_report_lines()  # "Growth Rings: lost (you planted this block)", "Held Breath: rest bonus tripled"
+	text += fired_text(batch_dreams)  # "Your Dreams this block: Mycelium ×14, …"
+	last_gauge = gauge(get_tree().get_first_node_in_group(RunHistory.GROUP) if is_inside_tree() else null, drift_director,
+		batch_dreams, close_calls.block_count if close_calls != null else 0)
+	text += strength_text(last_gauge)
+	ribbon.set_gauge(last_gauge)
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""
@@ -143,6 +151,173 @@ func show_report(block: int) -> void:
 	# No automatic rest report (screens_ui.md, user: "isn't needed"): the damage meter's "Last block"
 	# tab shows it on demand; the Gameplay setting "Rest summary" (off by default) brings the card back.
 	visible = auto_show()
+
+# "Your Dreams this block" (owner 2026-10-16: "make these dream cards and evolutions more noticeable"): how often each
+# card and Calling evolution fired in the block just ended (DreamState.card_counts_last_block, Roguelite Code 3f058f07),
+# most first, at most FIRED_SHOWN.
+const FIRED_SHOWN := 6
+static func fired_text(dreams: Node) -> String:
+	if dreams == null or not ("card_counts_last_block" in dreams):
+		return ""
+	var counts: Dictionary = dreams.card_counts_last_block
+	if counts.is_empty():
+		return ""
+	var ids: Array = counts.keys()
+	ids.sort_custom(func(a, b) -> bool: return int(counts[a]) > int(counts[b]))
+	var parts: Array[String] = []
+	for id in ids.slice(0, FIRED_SHOWN):
+		var name: String = DreamState.CALLING_PATHS.display_name(StringName(id)) if DreamState.CALLING_PATHS.PATHS.has(StringName(id)) \
+			else (dreams.get_display_name(String(id)) if dreams.has_method("get_display_name") else String(id).capitalize())
+		parts.append("%s ×%d" % [name, int(counts[id])])
+	return "\nYour Dreams this block: " + ", ".join(parts) + (" …" if ids.size() > FIRED_SHOWN else "")
+
+# The strength gauge (card pass slice 1 "measure first", council card_pass_power.md section 4 and card_pass_player.md 5;
+# owner approved 2026-10-16). From data recorded each block, read once at rest_started (RunHistory's route_blocks:
+# 10 bins of route progress with the health dispelled in each, bosses and echoes left out, and its drift rows):
+# - the health-weighted median share of the route nightmares reached before being dispelled, and the worst 10%;
+# - a tag: Overpowered (median under OVERPOWERED_SHARE, no leak), Strong, Holding, Struggling (HOLDING_SHARE or more,
+#   any leak, a close call, or the worst 10% at CLOSE_SHARE);
+# - the weak spot (Struggling) or what carried it (Overpowered), from the damage lanes and the cards that fired;
+# - next block "if you add nothing": the median × the next block's health over this one's (DriftDirector.get_health_scale);
+# - overkill share, the damage lanes and the top 2 cards (DreamState.card_counts_last_block).
+# Starting thresholds for Balancing.
+const OVERPOWERED_SHARE := 0.33
+const STRONG_SHARE := 0.45
+const HOLDING_SHARE := 0.65
+const CLOSE_SHARE := 0.9  # The worst 10% this far along: close calls
+const WEAK_LANE := 0.10  # A lane under this share is named as the weak spot
+const GAUGE_REFERENCE := "res://resource/enemy/leaf_bug.tres"  # A plain nightmare: the health scale by drift
+
+static func gauge(history: Node, director: DriftDirector, dreams: Node, close_calls: int = 0) -> Dictionary:
+	if history == null or not ("run" in history):
+		return {}
+	var blocks: Array = history.run.get("route_blocks", [])
+	if blocks.is_empty():
+		return {}
+	var now: Dictionary = blocks[-1]
+	var health: Array = now.get("dispel_health", [])
+	var median := route_quantile(health, 0.5)
+	if median < 0.0:
+		return {}
+	var worst := route_quantile(health, 0.9)
+	var leaked := int(now.get("leaked", 0))
+	var block := int(now.get("block", 0))
+	var per := director.drifts_per_block if director != null else 5
+	var first := (block - 1) * per + 1
+	var lanes := {"Reactions": 0.0, "combos": 0.0, "statuses": 0.0}
+	var damage := 0.0
+	var overkill := 0.0
+	var spawned := 0.0
+	for row in history.run.get("drifts", []):
+		var number := int(row.get("drift", 0))
+		if number < first or number >= first + per:
+			continue
+		damage += float(row.get("damage", 0.0))
+		overkill += float(row.get("overkill", 0.0))
+		spawned += float(row.get("health_spawned", 0.0))
+		lanes["Reactions"] += float(row.get("reaction_damage", 0.0))
+		lanes["combos"] += float(row.get("combo_damage", 0.0))
+		lanes["statuses"] += float(row.get("status_damage", 0.0))
+	var shares := {}
+	if damage > 0.0:
+		var plain := damage
+		for lane in lanes:
+			shares[lane] = clampf(lanes[lane] / damage, 0.0, 1.0)
+			plain -= lanes[lane]
+		shares["plain hits"] = clampf(plain / damage, 0.0, 1.0)
+	var order: Array = shares.keys()
+	order.sort_custom(func(a, b) -> bool: return float(shares[a]) > float(shares[b]))
+	var cards: Array[String] = []
+	var counts: Dictionary = dreams.card_counts_last_block if dreams != null and "card_counts_last_block" in dreams else {}
+	var ids: Array = counts.keys()
+	ids.sort_custom(func(a, b) -> bool: return int(counts[a]) > int(counts[b]))
+	for id in ids.slice(0, 2):
+		cards.append("%s ×%d" % [_card_name(dreams, String(id)), int(counts[id])])
+	var tag := "Holding"
+	if median >= HOLDING_SHARE or leaked > 0 or close_calls > 0 or worst >= CLOSE_SHARE:
+		tag = "Struggling"
+	elif median < OVERPOWERED_SHARE:
+		tag = "Overpowered"
+	elif median < STRONG_SHARE:
+		tag = "Strong"
+	var why: Array[String] = []
+	if tag == "Struggling":
+		for lane in ["Reactions", "combos"]:
+			if shares.has(lane) and float(shares[lane]) < WEAK_LANE:
+				why.append("%s %d%%" % [lane, roundi(float(shares[lane]) * 100.0)])
+		if counts.is_empty():
+			why.append("no Dream card fired")
+		if leaked > 0:
+			why.append("%d leak%s" % [leaked, "" if leaked == 1 else "s"])
+	elif tag == "Overpowered" and not order.is_empty():
+		why.append("%s %d%%" % [order[0], roundi(float(shares[order[0]]) * 100.0)])
+	var next := -1.0
+	if director != null and first + per <= director.get_total_drifts():
+		var reference := load(GAUGE_REFERENCE) as EnemyData
+		var this_h := 0.0
+		var next_h := 0.0
+		for i in per:
+			this_h += director.get_health_scale(reference, first + i)
+			next_h += director.get_health_scale(reference, mini(first + per + i, director.get_total_drifts()))
+		if this_h > 0.0:
+			next = median * next_h / this_h
+	var bins: Array = []
+	var total := 0.0
+	for h in health:
+		total += float(h)
+	for h in health:
+		bins.append(float(h) / total if total > 0.0 else 0.0)
+	var before := route_quantile(blocks[-2].get("dispel_health", []), 0.5) if blocks.size() > 1 else -1.0
+	var detail: Array[String] = []
+	if not order.is_empty():
+		detail.append("Damage: " + ", ".join(order.slice(0, 3).map(func(l) -> String: return "%s %d%%" % [l, roundi(float(shares[l]) * 100.0)])))
+	if spawned > 0.0:
+		detail.append("Overkill: %d%% of their health" % roundi(overkill / spawned * 100.0))
+	if not cards.is_empty():
+		detail.append("Top Dreams: " + ", ".join(cards))
+	detail.append("Worst 10%%: %d%% along the route" % roundi(worst * 100.0))
+	return {"block": block, "median": median, "worst": worst, "before": before, "leaked": leaked, "tag": tag, "why": why,
+		"next": next, "bins": bins, "shares": shares, "overkill": overkill / spawned if spawned > 0.0 else 0.0,
+		"cards": cards, "detail": "\n".join(detail)}
+
+static func _card_name(dreams: Node, id: String) -> String:
+	if DreamState.CALLING_PATHS.PATHS.has(StringName(id)):
+		return DreamState.CALLING_PATHS.display_name(StringName(id))
+	return dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
+
+# The gauge as report lines ("" when there's nothing to say).
+static func strength_text(g: Dictionary) -> String:
+	if g.is_empty():
+		return ""
+	var median := float(g.median)
+	var before := float(g.get("before", -1.0))
+	var against := ""
+	if before >= 0.0:
+		var change := roundi((median - before) * 100.0)
+		against = " (last block %d%%, %s)" % [roundi(before * 100.0), "same" if change == 0 else ("%+d" % change)]
+	var why: Array = g.get("why", [])
+	var text := "\nStrength: %s%s · nightmares dispelled %d%% along the route (by health)%s" % [g.tag,
+		(": " + " · ".join(why)) if not why.is_empty() else "", roundi(median * 100.0), against]
+	var next := float(g.get("next", -1.0))
+	if next >= 0.0:
+		text += "\nNext block, if you add nothing: %s" % ("they reach the Heartwood" if next >= 1.0 else "about %d%%" % roundi(next * 100.0))
+	if String(g.get("detail", "")) != "":
+		text += "\n" + String(g.detail)
+	return text
+
+# The route share by which `quantile` of the dispelled health was dispelled (each bin at its middle), -1 with none.
+static func route_quantile(health: Array, quantile: float) -> float:
+	var total := 0.0
+	for h in health:
+		total += float(h)
+	if total <= 0.0:
+		return -1.0
+	var running := 0.0
+	for i in health.size():
+		running += float(health[i])
+		if running >= total * quantile:
+			return (i + 0.5) / float(health.size())
+	return 1.0
 
 const SETTING := "rest_summary"  # 0 = off (default), 1 = the card at every rest
 static func auto_show() -> bool:

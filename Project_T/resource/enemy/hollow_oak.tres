@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "The Hollow Oak"
 health = 30000
 speed = 35.0
@@ -16,8 +17,6 @@ dew_reward = 100
 leaf_cost = 5
 is_boss = true
 stays_at_heartwood = true
-resists = Array[String](["light", "song"])
-weak_to = Array[String](["spore"])
 sapling = ExtResource("3_sapling")
 sapling_interval = 8.0
 grief_spawn = ExtResource("4_grief")

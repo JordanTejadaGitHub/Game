@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "rain_on_glass"
 display_name = "Rain on Glass"
-description = "The {family:firefly_jar} line deals 70% more damage to {damp} nightmares."
-cost_description = "Their hits dry the nightmare: its {damp} ends."
+description = "{family:firefly_jar} Wardens deal 70% more damage to {damp} nightmares."
+cost_description = "Their hits end the nightmare's {damp}."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "storm", "reaction"])

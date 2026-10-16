@@ -107,8 +107,12 @@ func _ready() -> void:
 			_offer_ids = [])
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null:
-		omens.offer_ready.connect(func(_o: Array, _b: int) -> void: _omen_offers += 1)
+		_omens = omens
+		omens.offer_ready.connect(func(_o: Array, block: int) -> void:
+			_omen_offers += 1
+			_omen_offer_block = block)  # Clear Skies unless an Omen starts before the block does (_note_clear_skies)
 		omens.omen_started.connect(func(omen: OmenData, first: int, last: int) -> void:
+			_omen_offer_block = -1
 			run.omens.append({"id": String(omen.resource_path.get_file().get_basename()), "name": omen.display_name,
 				"drifts": [first, last], "reward": ""}))
 		omens.omen_rewarded.connect(func(omen: OmenData, summary: String) -> void:
@@ -207,7 +211,24 @@ func _row_for(enemy: Node) -> Dictionary:
 		return _drift
 	return _open.get(_origin.get(enemy.get_instance_id(), 0), _drift)
 
+# Clear Skies by block (Balancing Discussion, the owner's 2026-10-16 run: "which block each Omen covered"): an Omen
+# offer whose block starts with no Omen chosen was Clear Skies; its drifts go into "clear_skies_drifts".
+var _omens: Node = null
+var _omen_offer_block := -1
+
+func _note_clear_skies(number: int) -> void:
+	if _omen_offer_block < 0 or _omens == null or not _omens.has_method("get_block_range"):
+		return
+	var drifts: Vector2i = _omens.get_block_range(_omen_offer_block)
+	if number < drifts.x:
+		return
+	_omen_offer_block = -1
+	if not run.has("clear_skies_drifts"):
+		run["clear_skies_drifts"] = []
+	run.clear_skies_drifts.append([drifts.x, drifts.y])
+
 func _on_drift_started(number: int) -> void:
+	_note_clear_skies(number)
 	_close_drift()
 	if run.seed == 0:
 		var map := drift_director.get_node_or_null("%MapGenerator")
@@ -278,9 +299,10 @@ func _on_spawned(node: Node) -> void:
 
 func _on_dispelled(enemy: Node2D) -> void:
 	var id := enemy.get_instance_id()
-	var bin := _route_bin(enemy)
-	_route_block.dispels[bin] += 1
-	_route_block.dispel_health[bin] += float(enemy.get("max_health") if enemy.get("max_health") != null else 0)
+	if not _off_gauge(enemy):  # Bosses and echoes have their own bar: not in the route bins (the strength gauge's)
+		var bin := _route_bin(enemy)
+		_route_block.dispels[bin] += 1
+		_route_block.dispel_health[bin] += float(enemy.get("max_health") if enemy.get("max_health") != null else 0)
 	var map := drift_director.get_node_or_null("%MapGenerator") as Node2D
 	if map != null:
 		var cell := Vector2i(map.MAP_GRID.calculate_grid_coordinates(map.to_local(enemy.global_position)))
@@ -289,6 +311,14 @@ func _on_dispelled(enemy: Node2D) -> void:
 		var seen: Array = _boss_seen[id]
 		run.bosses.append({"kind": seen[0], "drift": seen[2], "dispelled": true, "seconds": snappedf(_clock - seen[1], 0.1)})
 		_boss_seen.erase(id)
+
+# A boss or a boss's echo: kept out of the route bins and the block's leaks (RestReport's strength gauge; council
+# card_pass_power.md section 4).
+static func _off_gauge(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	var data = enemy.get("enemy_data")
+	return enemy.get("is_echo") == true or (data != null and data.is_boss)
 
 static func _new_route_block() -> Dictionary:
 	var zeros: Array = []
@@ -356,6 +386,9 @@ static func leaked_text(kinds: Dictionary) -> String:
 	return ", ".join(names.map(func(n) -> String: return "%d %s" % [int(kinds[n]), n]))
 
 func _note_leak(enemy: Node) -> void:
+	if _off_gauge(enemy):
+		_route_block.boss_leaked = int(_route_block.get("boss_leaked", 0)) + 1
+		return
 	_route_block.leaked += 1
 	if enemy != null and is_instance_valid(enemy) and enemy.get("max_health") != null:
 		_route_block.leaked_health += int(enemy.max_health)
@@ -471,6 +504,9 @@ func _on_damage(event: DamageLog.Event) -> void:
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
+	if event.reaction_amount > 0.0:  # Classified by tag first (Enemy._report_damage; card pass slice 1): the Reaction's own part
+		var own := minf(event.reaction_amount, event.amount)
+		return [maxf(event.combo_amount - own, 0.0), own, 0.0]  # (Ignite: the rest of its combo part is fog)
 	var combo := event.combo_amount
 	var reaction := maxf(event.amount - combo, 0.0) if reaction_ids.has(event.tag) else 0.0
 	var status := event.amount if event.kind != &"hit" and event.combos.is_empty() and reaction == 0.0 else 0.0
@@ -652,6 +688,10 @@ static func load_runs() -> Array:
 	return parsed if parsed is Array else []
 
 # A plain-text report of one run, for sharing ("Copy run report").
+# " (drifts 41-45)" for a [first, last] pair ("" without one).
+static func _drifts_text(drifts: Array) -> String:
+	return " (drifts %d-%d)" % [int(drifts[0]), int(drifts[1])] if drifts.size() >= 2 else ""
+
 static func report_text(record: Dictionary) -> String:
 	var lines: Array[String] = []
 	lines.append("Heartwood TD run · %s · %s%s%s" % [record.get("date", ""), record.get("version", ""),
@@ -665,6 +705,8 @@ static func report_text(record: Dictionary) -> String:
 			" · later on %s" % ", ".join(record.get("later_builds", []).map(func(b: Dictionary) -> String: return b.id)) if record.has("later_builds") else ""])
 	if record.has("balance"):
 		lines.append("Balance: " + JSON.stringify(record.balance))
+	if not record.get("route_repairs", []).is_empty():  # A Continue found no route and fixed it (RunSaver._repair_route)
+		lines.append("Route repairs on Continue: " + JSON.stringify(record.route_repairs))
 	lines.append("Result: %s · drift %d · %s · seed %d · Blight %d%s" % [record.get("result", ""), int(record.get("survived", 0)),
 		_time_text(float(record.get("seconds", 0.0))), int(record.get("seed", 0)), int(record.get("blight", 0)), " · demo" if record.get("demo", false) else ""])
 	lines.append("Leaves lost by act: %s · first leak: drift %d · close calls: %d" % [JSON.stringify(record.get("leaves_lost_by_act", {})),
@@ -675,8 +717,11 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Dreams: %s" % ", ".join(record.get("dreams_taken", []).map(func(d: Array) -> String: return "%s@%d" % [d[0], int(d[1])])))
 	lines.append("Dream offers: %s" % ", ".join(record.get("dream_offers", []).map(func(o: Array) -> String:
 		return "%d: %s → %s" % [int(o[0]), "/".join(o[1]), o[2] if o[2] != "" else "passed"])))
-	lines.append("Dreams passed: %d · Omens: %s · Clear Skies: %d" % [record.get("dreams_skipped", []).size(),
-		", ".join(record.get("omens", []).map(func(o: Dictionary) -> String: return o.name)), int(record.get("clear_skies", 0))])
+	# Each Omen with the block it covered, "Thick Blight (drifts 41-45)"; Clear Skies the same way (older records: a count)
+	var skies: Array = record.get("clear_skies_drifts", [])
+	lines.append("Dreams passed: %d · Omens: %s · Clear Skies: %s" % [record.get("dreams_skipped", []).size(),
+		", ".join(record.get("omens", []).map(func(o: Dictionary) -> String: return "%s%s" % [o.name, _drifts_text(o.get("drifts", []))])),
+		(", ".join(skies.map(func(d: Array) -> String: return _drifts_text(d).strip_edges())) if not skies.is_empty() else str(int(record.get("clear_skies", 0))))])
 	lines.append("Bosses: %s" % ", ".join(record.get("bosses", []).map(func(b: Dictionary) -> String:
 		return "%s d%d %s" % [b.kind, int(b.drift), ("%d s" % roundi(b.seconds)) if b.dispelled else "not dispelled"])))
 	var dew: Dictionary = record.get("dew", {})

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_seedbearer"
 display_name = "Seedbearer"
-description = "{warden:acorn}s can now {grow} into {warden:seedbearer}s ({dew:{grow_cost:seedbearer}}): free Sprouts to plant anywhere on valid ground every few drifts."
+description = "{warden:acorn}s can now {grow} into {warden:seedbearer}s ({dew:{grow_cost:seedbearer}}): free Sprouts to plant anywhere on open ground every few {drifts}."
 rarity = 1
 kind = 1
 tags = Array[String](["acorn"])

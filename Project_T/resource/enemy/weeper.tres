@@ -6,12 +6,11 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 5
 display_name = "Weeper"
 health = 160
 speed = 70.0
 dew_reward = 5
-resists = Array[String](["water"])
-weak_to = Array[String](["light"])
 mend_radius = 1.5
 mend_rate = 0.02
 trait_text = "Heals the nightmares around it: dispel it first."

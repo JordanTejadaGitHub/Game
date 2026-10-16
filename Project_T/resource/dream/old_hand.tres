@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "old_hand"
+display_name = "Old Hand"
+description = "From {rank} III, every 6th attack a Warden makes on a nightmare with a {full} status is a crit; from {rank} V, every 4th."
+tip = "Counted for each Warden, by attacks: a pulse counts once. Beams never count."
+rarity = 1
+kind = 3
+tags = Array[String](["nurture", "crit"])
+max_stacks = 1
+min_act = 1
+rule_id = &"old_hand"
+requires_tag = "nurture"
+requires_tag_count = 0
+min_rank_count = 1
+min_rank_owned = 3

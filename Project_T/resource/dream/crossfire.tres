@@ -6,10 +6,12 @@
 script = ExtResource("1_card")
 id = "crossfire"
 display_name = "Crossfire"
-description = "When a Firefly Warden and another {family}'s Warden {near} it hit one nightmare within 1 s, the hit {jumps} to 2 behind at half damage."
+description = "When a Firefly Warden and another {family}'s Warden {near} it hit one nightmare within 1 s, half the hit {jumps} to the 2 behind it."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"lent_crossfire"
 requires = Array[String](["firefly_jar"])
+tip = "Behind: the nearest nightmares that are no further along the path. It jumps half of the smaller hit. Each nightmare once every 3 s. At most 3 s of the Firefly Warden's damage. A bet: both must hit one nightmare."
+retired = true

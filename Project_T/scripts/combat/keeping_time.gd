@@ -30,7 +30,7 @@ const SLEEP_NO_MORE_OTHERS := 6
 const NOTE_SECONDS := 2.0  # Hanging Note
 const NOTE_CELLS := 0.5  # …about 1 cell wide
 const REFRAIN_SECONDS := 2.0  # Refrain: a Tolled nightmare rings on this long…
-const REFRAIN_EVERY := 2.0  # …each Warden once per this long
+const REFRAIN_EVERY := 4.0  # …each Warden once per this long (a bell makes a nightmare Drowsy about every 2 s)
 const CHORUS_SHARE := 0.5  # Chorus: the stored hit again at half…
 const CHORUS_SECONDS := 0.5  # …never more than this many seconds of that Warden's damage
 const KNELL_DEWDROPS := 2  # Knell on Soaked: up to this many Dewdrops near it hit it once, free
@@ -52,12 +52,42 @@ const STRUCK_BELL := &"struck_bell"  # Lent
 const CHORUS := &"lent_chorus"  # Lent
 const KNELL := &"knell"  # Lent
 const ON_THE_BEAT := &"on_the_beat"  # Lent (took Sound Carries' slot, 2026-10-13)
-const BEAT_EVERY := 2.0  # On the Beat: each Warden once every 2 s…
-const BEAT_HALFWAY := 0.5  # …and only if it is at least this far to its next attack (so slow Wardens never double)
+const BEAT_EVERY := 3.0  # On the Beat: each Warden once every 3 s, and never more often than every 2 of its own attacks…
+const BEAT_HALFWAY := 0.25  # …and only with at most this share of its wait left (council 2026-10-15: slow Wardens never double)
 const BEAT_META := &"kt_beat_next"  # On a Warden
 const BEAT_FRAME_META := &"kt_beat_frame"  # On a bell: the frame it last set the beat
 const RUDE_NEXT_META := &"kt_rude_next"  # On a bell: Rude Awakening, one doubled waking hit per bell a second
 
+# Lent and class, 2026-10-14 (lent_noplace_dewdrop_bellflower.md, expand_dewdrop_bellflower.md, dream_council_review.md 26)
+const HUM_ALONG := &"hum_along"  # Lent (the old Join In's slot): other Wardens touching a bell add 1 Drowsy with a hit
+const HUM_EVERY := 2.0  # …each Warden once every 2 s
+const RINGING_EARS := &"ringing_ears"
+const EARS_CROWD := 3  # Ringing Ears: a bell's attack on this many nightmares or more adds 1 Drowsy to each…
+const EARS_EVERY := 2.0  # …once every 2 s per bell
+const SECOND_VERSE := &"second_verse"
+const CLASHING_NOTES := &"clashing_notes"
+const CLASH_EVERY := 8.0  # Clashing Notes and Knell: each nightmare once every 8 s (fix 9)
+const KNELL_EVERY := 6.0  # Hard cards 2026-10-16 (was 8): each nightmare once every 6 s
+const KNELL_REPEATS_MAX := 3  # Knell: a bell's hit lands again once per other-family status on the nightmare, up to 3 times…
+const KNELL_REPEAT_GAP := 0.2  # …0.2 s apart…
+const KNELL_REPEAT_SHARE := 1.0  # …each the whole hit (a shooting bell)…
+const KNELL_PULSE_SHARE := 0.5  # …or half of it from a pulsing bell (it hits a crowd at once; TD)
+const WAKE_HIT_WINDOW := 1.0  # Sleep No More: the first hit within 1 s of waking
+const BELL_TO_BELL := &"bell_to_bell"  # Class: walking into another bell's range fills pips back up to 2
+const HUM_META := &"kt_hum_next"  # On a Warden
+const EARS_META := &"kt_ears_next"  # On a bell
+const DROWSED_META := &"kt_drowsed"  # On a nightmare: a bell has made it Drowsy before (Nod Off: the first time)
+const LAST_OTHER_META := &"kt_last_other"  # On a nightmare: [status, stacks] the last application from another family's Warden
+const VERSE_META := &"kt_verse"  # On a nightmare: {bell id: true} Second Verse paid
+const B2B_META := &"kt_b2b"  # On a nightmare: {bell id: true} Bell to Bell paid
+const INSIDE_META := &"kt_inside"  # On a nightmare: {bell id: true} the bells whose range it is in (Second Verse, Bell to Bell)
+const KNELL_NEXT_META := &"kt_knell_next"  # On a nightmare
+const CLASH_NEXT_META := &"kt_clash_next"  # On a nightmare
+const HELD_SEEN_META := &"kt_held"  # On a nightmare: held at the last poll
+const FREED_META := &"kt_freed"  # On a nightmare: when its Hold ended
+const HOLD_COUNT_META := &"kt_holds"  # On a nightmare: its Hold count
+const RUDE_HOLD_META := &"kt_rude_hold"  # On a nightmare: the Hold Rude Awakening paid for
+const LAST_RINGER_META := &"kt_last_ringer"  # On a nightmare: the bell that last rang it (Bell to Bell)
 const PIPS_META := &"kt_pips"  # On a nightmare: pips filled
 const RING_META := &"kt_ring_at"  # On a nightmare: its last counted ring
 const TOLL_META := &"kt_toll_next"  # On a nightmare: when it may Toll again
@@ -81,11 +111,111 @@ const STEP_META := &"kt_step_frame"  # On a bell: the frame its pulse last grew 
 const PULSE_META := &"kt_pulse_frame"  # On a bell: the frame of its last pulse (Sound Carries: once per pulse)
 const SLEEPER_META := &"kt_sleeper"  # On a bell: WeakRef to the nightmare it put to sleep (one sleeper for each bell)
 
+# Trait rework (owner 2026-10-15, trait_lent_proposal.js): the lent cards make things happen again, in rhythm, for every
+# family, bells included ("with its own family"). A repeat is damage only (CLASS_TAGS: it never sets a card off again).
+const IN_TIME := &"in_time"
+const IN_TIME_EVERY := 5  # In Time: every 5th hit a Warden touching a bell (or a bell) lands on one nightmare… (4th until the council's 2026-10-15 review)
+const IN_TIME_DELAY := 0.25  # …lands again this long after
+const IN_TIME_META := &"kt_in_time"  # On a nightmare: {Warden id: hits counted}
+const IN_TIME_FRAME_META := &"kt_in_time_frame"  # On a Warden: the frame its last hit was counted (an area attack counts once)
+const ENCORE := &"curtain_call"  # Curtain Call ("Encore" was taken: Echo Hollow's entwined card)
+const ENCORE_EVERY := 3.0  # Encore: a Warden touching a bell (or a bell) that dispels a nightmare attacks again at once, once in 3 s
+const ENCORE_META := &"kt_encore_next"  # On a Warden
+const REPRISE := &"reprise"
+const REPRISE_DELAY := 1.0  # Reprise: a Reaction in a bell's range plays again this long after…
+const REPRISE_SHARE := 0.5  # …at half…
+const REPRISE_EVERY := 8.0  # …each nightmare once in 8 s
+const REPRISE_META := &"kt_reprise_next"  # On a nightmare
+const DA_CAPO := &"da_capo"
+const DA_CAPO_SHARE := 0.5  # Da Capo: a hit that happens again happens a third time, at half…
+const DA_CAPO_EVERY := 4.0  # …each Warden once in 4 s
+const DA_CAPO_DELAY := 0.25
+const DA_CAPO_META := &"kt_da_capo_next"  # On a Warden
+const RUDE_WARDENS := 3  # Rude Awakening: waking or let go, the last hit from up to this many Wardens lands again…
+const RUDE_RECENT := 3.0  # …hits from the last 3 s only; one replay per bell a second (the nearest bell answers)
+const LAST_HITS_META := &"kt_last_hits"  # On a nightmare: {Warden id: [WeakRef, base, time]}
+const BELL_HIT_META := &"kt_bell_hit"  # On a nightmare: {bell id: true}: that bell has hit it (Second Verse)
+var _later: Array = []  # Repeats waiting: [{at, tower: WeakRef, enemy: WeakRef, amount, tag, again: bool}]
+
 var _reach := {}  # Bell instance id -> {route index: true}
 var _carry := {}  # Bell instance id -> Array of route indices past its reach (Sound Carries)
 var _exit := {}  # Bell instance id -> the last route index inside its reach
 var _notes: Array = []  # Hanging notes: [{at: Vector2, until, amount, bell: WeakRef, struck: {id: true}}]
 var tolls := 0  # This run (tests and the owner's eye)
+var _ears := {}  # Ringing Ears: bell id -> {frame, bell: WeakRef, hits: Array of WeakRef}: one attack's hits, next frame
+
+# --- Calling evolutions (scripts/combat/calling_paths.gd; council calling_evolution_*.md, owner 2026-10-16) -----------
+# Read with evo(id) (class_kit: only the Calling's own run has them, so they imply class_on() and Tolls). Every number is a
+# paper starting value (Balancing). Each one shows itself on screen (a ring, a thread, a note, a dial, a flash) and credits
+# its id (DreamState.note_card). Damage they deal reuses Bellflower tags already in class_kit.CLASS_TAGS, so nothing they
+# deal sets a card or the Calling off again.
+const EVO_CARRYING := &"kt_evo_carrying_tune"  # Spread
+const TUNE_STEPS := CARRY_STEPS  # Carrying Tune: a ring carries this many steps down the path (a pulse: past its reach; a shot: past its target)…
+const TUNE_SHARE := 0.5  # …at half; carried rings fill pips…
+const TUNE_MAX := 4  # …a shot's carry reaches up to this many nightmares (a pulse's covers its stretch, as Sound Carries)
+const TUNE_FRAME_META := &"kt_evo_tune_frame"  # On a bell: the frame its shot last carried (one carry per attack)
+const EVO_HAND := &"kt_evo_hand_to_hand"
+const HAND_PIPS := 2  # Hand to Hand: a new bell's first ring on a nightmare fills this many pips
+const HAND_META := &"kt_evo_hand"  # On a nightmare: {bell id: true}: bells that took it hand to hand
+const EVO_PEAL := &"kt_evo_peal"
+const PEAL_STEPS := 4  # Peal: a Toll fills 1 pip on every nightmare within this many steps…
+const PEAL_MAX := 8  # …up to this many, never the last pip (TD fix 2: only a real ring Tolls, so a pack can't Toll itself)
+const EVO_NOTE := &"kt_evo_lingering_note"
+const LINGER_SECONDS := 2.0  # Lingering Note: a Toll's note stays this long; each nightmare walking through rings once
+const EVO_CHOIR := &"kt_evo_night_choir"
+const CHOIR_WARDENS := 3  # Night Choir: up to this many Wardens touching the note, strongest first…
+const CHOIR_SHARE := 0.5  # …land their last hit (stored before defences) again at half…
+const CHOIR_CAP_SECONDS := 1.0  # …never more than this many seconds of that Warden's damage
+const EVO_STEADY := &"kt_evo_steady_beat"  # Focus
+const STEADY_BELLS := 2  # Steady Beat: in reach of this many bells (read at its first ring)…
+const STEADY_PIPS := 3  # …a nightmare starts with this many pips…
+const STEADY_SHARE := 1.0  # …and its Tolls there land in full
+const EVO_CRESCENDO := &"kt_evo_crescendo"
+const CRESC_STEP := 0.25  # Crescendo: each Toll on a nightmare makes its next one this much stronger…
+const CRESC_MAX := 2.0  # …up to double
+const CRESC_GLOW_STEPS := 4  # (CRESC_MAX - 1) / CRESC_STEP: the pips are brightest from here
+const CRESC_META := &"kt_evo_cresc"  # On a nightmare: its Tolls so far
+const EVO_MIDNIGHT := &"kt_evo_midnight_bell"
+const MIDNIGHT_RINGS := 12  # Midnight Bell: the 12th ring on a nightmare (once each)…
+const MIDNIGHT_BOSS := 0.5  # …bosses take this share
+const MIDNIGHT_SECONDS := 1.5  # The clock face shows this long
+const RINGS_META := &"kt_evo_rings"  # On a nightmare: its rings so far (a dial over the pips counts them)
+const MIDNIGHT_META := &"kt_evo_midnight"  # On a nightmare: its Midnight Toll has rung
+const EVO_HUSH := &"kt_evo_hush_a_bye"
+const HUSH_DROWSY := 2  # Hush-a-bye: a Toll adds this much Drowsy (the bell's application, never native)…
+const HUSH_TOLLS := 3  # …this many Tolls…
+const HUSH_WINDOW := 6.0  # …within this long and it naps (class_kit.nap: 1 s, never bosses or a sleeper)…
+const HUSH_EVERY := 8.0  # …each nightmare once in this long
+const HUSH_META := &"kt_evo_hush"  # On a nightmare: [its recent Toll times]
+const HUSH_NEXT_META := &"kt_evo_hush_next"
+const HUSHED_META := &"kt_evo_hushed"  # On a nightmare: asleep from Hush-a-bye (Sleeping Hall reads its waking)
+const EVO_HALL := &"kt_evo_sleeping_hall"
+const HALL_WINDOW := 3.0  # Sleeping Hall (TD SLEEP_WINDOW): within this long of a Hush-a-bye nap ending, its next Toll…
+const HALL_OTHERS := 4  # …also lands on up to this many nightmares touching it…
+const HALL_SHARE := 0.5  # …at half
+const HALL_META := &"kt_evo_hall"  # On a nightmare: until when its next Toll spreads
+const EVO_ACCOMP := &"kt_evo_accompaniment"  # Support
+const ACCOMP_EVERY := 1.0  # Accompaniment: another Warden touching a bell fills a pip once a second (a Sprout: every hit)
+const EVO_COUNTER := &"kt_evo_counterpoint"
+const COUNTER_CELLS := 4.0  # Counterpoint: the nearest bell within this many cells answers another Warden's Toll…
+const COUNTER_EVERY := 1.0  # …each bell once in this long (its ring is its free hit, and fills a pip)
+const COUNTER_META := &"kt_evo_counter_next"  # On a bell
+const EVO_SYMPHONY := &"kt_evo_symphony"
+const SYMPHONY_WARDENS := 4  # Symphony: a Toll whose pips this many different Wardens filled…
+const SYMPHONY_SHARE := 0.5  # …lands each one's last hit again at half (never more than a second of its damage)…
+const SYMPHONY_EVERY := 6.0  # …each nightmare once in this long
+const SYMPHONY_META := &"kt_evo_symphony_next"
+const EVO_CHIME := &"kt_evo_chime_of_many"
+const CHIME_STACKS := 1  # Chime of Many: a Toll adds this to each status (quiet: never starts one; never Drowsy or Rooted)…
+const CHIME_OTHERS := 4  # …on the nightmare and up to this many touching it
+const EVO_CHORD := &"kt_evo_last_chord"
+const CHORD_STATUSES := 3  # Last Chord: a Toll on a nightmare carrying this many statuses sets off what's halfway there…
+const CHORD_EVERY := 8.0  # …each nightmare once in this long (spent only when one goes off)
+const CHORD_META := &"kt_evo_chord_next"
+const FILLERS_META := &"kt_evo_fillers"  # On a nightmare (Accompaniment on): [[Warden id (0 = none), another Warden's: bool]] per pip
+var _last_hit_of := {}  # Warden id -> its last hit, before defences (Night Choir, Symphony)
+var _clocks: Array = []  # Midnight Bell's clock faces: [{enemy: WeakRef, at, until}]
+var _overlap := {}  # Steady Beat: route index -> true where 2 or more bells reach (drawn as a double ring)
 
 func _family() -> String:
 	return FAMILY
@@ -93,26 +223,38 @@ func _family() -> String:
 func _line() -> String:
 	return LINE
 
-# More lent cards than class cards (the owner and the council, 2026-10-13, lent_consolidated.md): every owner holding
-# one of these counts rings and Tolls on every 4th; only the Calling's head start (2 of 4 pips filled, so the first
-# Toll is ring 2) stays with the first pick. Rising Song, Overture and Rounds stay class cards.
+# Lent cards never give the Calling's setup (owner 2026-10-14, dream_council_review.md 25-26): the ring count, pips and
+# Tolls are the first pick's only (place_on). The lent cards work from bells, where Wardens stand, their attacks and
+# Drowsy; none counts rings, fills pips or reads a Toll.
 func _lent_rules() -> Array:
-	return [STRUCK_BELL, CHORUS, KNELL, SOUND_CARRIES, JOIN_IN, NOD_OFF, RUDE_AWAKENING, SLEEP_NO_MORE, REFRAIN, ON_THE_BEAT]
+	return [ON_THE_BEAT, IN_TIME, NOD_OFF, REFRAIN, SECOND_VERSE, KNELL, ENCORE, REPRISE, RUDE_AWAKENING, DA_CAPO,
+		HUM_ALONG, RINGING_EARS, SLEEP_NO_MORE, CLASHING_NOTES]  # (The last four: retired 2026-10-15; old saves keep them)
 
-# Tolls for a later owner come only with the cards that talk about rings or Tolls (owner 2026-10-13): Rude Awakening
-# and Sleep No More do only what they say. Struck Bell and Chorus ride in on Join In and Refrain (extra_rules).
-const TOLL_RULES: Array[StringName] = [JOIN_IN, NOD_OFF, REFRAIN, KNELL, SOUND_CARRIES, STRUCK_BELL, CHORUS]  # (On the Beat is about the bell's ring, not Tolls)
+# Cards retired or moved to class-only that counted rings when a later owner could hold them: an old save holding one
+# keeps the Tolls on Continue.
+func _legacy_rules() -> Array:
+	return [JOIN_IN, SOUND_CARRIES, STRUCK_BELL, CHORUS]
 
 func tolls_on() -> bool:
-	if class_on():
-		return true
-	for id in TOLL_RULES:
-		if rule(id):
-			return true
-	return false
+	return place_on()
 
 func _start_pips() -> int:
 	return PIPS_FILLED if class_on() else 0
+
+# The pips a nightmare starts with at its first ring (Steady Beat: 3 where 2 or more bells reach).
+func _start_for(enemy) -> int:
+	if evo(EVO_STEADY) and _bells_reaching(enemy) >= STEADY_BELLS:
+		return STEADY_PIPS
+	return _start_pips()
+
+func _bells_reaching(enemy) -> int:
+	var count := 0
+	for bell in bells():
+		if _in_reach(bell, enemy):
+			count += 1
+			if count >= STEADY_BELLS:
+				break
+	return count
 
 func _ready() -> void:
 	super._ready()
@@ -134,6 +276,10 @@ var _pips_shown := false
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if not _ears.is_empty():
+		_ears_flush()
+	if dream_state != null and not _clocks.is_empty():
+		_clocks = _clocks.filter(func(c) -> bool: return now() < float(c.until))
 	if _pip_layer != null and (tolls_on() or _pips_shown):
 		_pips_shown = tolls_on()
 		_pip_layer.queue_redraw()  # Only while Tolls are on (and once more to clear them)
@@ -141,17 +287,42 @@ func _process(delta: float) -> void:
 func _draw_pips() -> void:
 	if dream_state == null or not tolls_on():
 		return
+	var start := _start_pips()
+	var colours := evo(EVO_ACCOMP)  # Accompaniment: pips another Warden filled are pink
+	var cresc := evo(EVO_CRESCENDO)  # Crescendo: the pips grow bigger and brighter
+	var midnight := evo(EVO_MIDNIGHT)  # Midnight Bell: a dial over the pips counts to 12
 	for enemy in enemies():
-		if not enemy.has_meta(PIPS_META):
+		if not enemy.has_meta(PIPS_META) and start <= 0:
 			continue
-		var filled := int(enemy.get_meta(PIPS_META))
+		# Shown from the start (owner 2026-10-15: "feels like the pip starts at 3"): the 2 filled ones were only drawn
+		# after the first ring, which had already made them 3
+		var filled := int(enemy.get_meta(PIPS_META, start))
 		var at: Vector2 = enemy.global_position + PIP_OFFSET - Vector2(PIP_GAP * (TOLL_EVERY - 1) / 2.0, 0.0)
+		var roster: Array = enemy.get_meta(FILLERS_META, []) if colours else []
+		var swell := mini(int(enemy.get_meta(CRESC_META, 0)), CRESC_GLOW_STEPS) if cresc else 0
+		var radius := PIP_RADIUS + 0.25 * swell
 		for k in TOLL_EVERY:
 			var spot := at + Vector2(PIP_GAP * k, 0.0)
 			if k < filled:
-				_pip_layer.draw_circle(spot, PIP_RADIUS, Palette.GOLD)
+				var colour: Color = Palette.GOLD
+				if k < roster.size() and bool(roster[k][1]):
+					colour = Palette.BLOSSOM
+				elif swell >= CRESC_GLOW_STEPS:
+					colour = Palette.GLOW
+				_pip_layer.draw_circle(spot, radius, colour)
 			else:
 				_pip_layer.draw_circle(spot, PIP_RADIUS, Color(Palette.MOONLIGHT, 0.35))
+		if midnight and enemy.has_meta(RINGS_META) and not enemy.has_meta(MIDNIGHT_META):
+			var share := clampf(float(enemy.get_meta(RINGS_META)) / MIDNIGHT_RINGS, 0.0, 1.0)
+			var dial: Vector2 = enemy.global_position + PIP_OFFSET + Vector2(0.0, -8.0)
+			_pip_layer.draw_arc(dial, 4.0, -PI / 2.0, -PI / 2.0 + TAU * share, 16, Color(Palette.MOONLIGHT, 0.7), 1.0)
+	for c in _clocks:  # Midnight Bell: a clock face at midnight over the nightmare
+		var who = c.enemy.get_ref()
+		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -14.0)
+		_pip_layer.draw_circle(centre, 8.0, Color(Palette.NIGHT, 0.7))
+		_pip_layer.draw_arc(centre, 8.0, 0.0, TAU, 24, Palette.GOLD, 1.5)
+		_pip_layer.draw_line(centre, centre + Vector2(0.0, -6.0), Palette.HEARTLIGHT, 1.5)
+		_pip_layer.draw_line(centre, centre + Vector2(0.0, -4.0), Palette.GOLD, 2.0)
 
 static func is_pulsing(tower) -> bool:
 	return tower is Tower and tower.attack_data != null and tower.attack_data.attack_kind == TowerData.AttackKind.PULSE
@@ -182,6 +353,17 @@ func on_board() -> void:
 				break  # It stops at the next bell's reach
 			carried.append(i)
 		_carry[id] = carried
+	# Steady Beat: the stretches 2 or more bells reach, drawn as a double ring on the path
+	_overlap.clear()
+	if evo(EVO_STEADY):
+		var count := {}
+		for id in _reach:
+			for i in _reach[id]:
+				count[i] = int(count.get(i, 0)) + 1
+		for i in count:
+			if int(count[i]) >= STEADY_BELLS:
+				_overlap[i] = true
+	queue_redraw()
 
 # A bell whose reach holds route index `i` (not `skip`), or null.
 func _bell_at(i: int, skip = null):
@@ -198,10 +380,19 @@ func _in_reach(bell, enemy) -> bool:
 # One ring on `enemy` from `bell` (its own hit, a carried ring, or another Warden's counted hit). `amount`: the ring's
 # damage, before the nightmare's defences: what a Toll lands again.
 # `counted`: another Warden's hit counted as a ring (Join In, Struck Bell): its Toll never grows Full Voice or Rising Song.
-func ring(enemy, bell, amount: float, counted: bool = false) -> void:
+# `filler`: Accompaniment's Warden whose hit this ring is (its Toll repeats that Warden's hit and status), or null.
+func ring(enemy, bell, amount: float, counted: bool = false, filler = null) -> void:
 	if not living(enemy) or not is_instance_valid(bell) or not tolls_on():
 		return
-	var pips := int(enemy.get_meta(PIPS_META, _start_pips()))
+	var fresh: bool = not enemy.has_meta(PIPS_META)
+	var pips := _start_for(enemy) if fresh else int(enemy.get_meta(PIPS_META))
+	if fresh and pips > _start_pips():
+		Reactions._effect(&"toll_ring", enemy.global_position, self, 0.5)  # Steady Beat: it starts a pip ahead
+	var handed_from := -1  # Hand to Hand: the bell that rang it before this one (-1: none)
+	if not counted:
+		if evo(EVO_HAND):
+			handed_from = _handed_from(enemy, bell)
+		enemy.set_meta(LAST_RINGER_META, bell.get_instance_id())  # Bell to Bell: "another bell" is not the one that last rang it
 	var answered := false
 	if rule(CALL_AND_ANSWER) and enemy.has_meta(ANSWER_META):
 		# Call and Answer: after a Toll, the next bell down the path, within 4 steps, Tolls it on its first ring
@@ -214,7 +405,17 @@ func ring(enemy, bell, amount: float, counted: bool = false) -> void:
 	if not answered and not overture:
 		if now() - float(enemy.get_meta(RING_META, -INF)) < RING_MERGE:
 			return  # Rings closer than half a second count as one
-		pips += 1
+		var add := 1
+		if handed_from != -1:
+			add = HAND_PIPS
+			_hand_to_hand(enemy, bell, handed_from)
+		pips += add
+		if evo(EVO_ACCOMP):
+			_fill(enemy, pips - add, add, filler if is_instance_valid(filler) else bell, is_instance_valid(filler))
+		if evo(EVO_MIDNIGHT) and _count_rings(enemy, add):
+			_midnight(enemy)
+			if not living(enemy):
+				return
 	enemy.set_meta(RING_META, now())
 	if pips < TOLL_EVERY and not answered and not overture:
 		enemy.set_meta(PIPS_META, pips)
@@ -224,23 +425,48 @@ func ring(enemy, bell, amount: float, counted: bool = false) -> void:
 		return
 	enemy.set_meta(PIPS_META, 0)
 	enemy.set_meta(TOLL_META, now() + TOLL_WAIT)
-	_toll(enemy, bell, amount, overture, counted)
+	_toll(enemy, bell, amount, overture, counted, filler)
 
 func _reach_width(bell) -> int:
 	return _reach.get(bell.get_instance_id(), {}).size()
 
-func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false) -> void:
+func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, filler = null) -> void:
 	tolls += 1
 	var on := active()
 	var pulsing := is_pulsing(bell)
 	var share := TOLL_SHARE
 	if on and pulsing and not overture and rule(RISING_SONG):
 		share = minf(TOLL_SHARE + RISING_STEP * int(bell.get_meta(RISING_META, 0)), RISING_MAX)  # Overture's Tolls always land at half
-	var landing := amount * share
-	var first: bool = not enemy.has_meta(TOLLED_META)
+	var at: Vector2 = enemy.global_position
+	var evolved: bool = class_on() and not dream_state.calling_path.is_empty()
+	var roster: Array = []
+	var full := false
+	var swell := 1.0
+	if evolved:
+		roster = enemy.get_meta(FILLERS_META, [])
+		enemy.remove_meta(FILLERS_META)
+		if evo(EVO_STEADY) and _bells_reaching(enemy) >= STEADY_BELLS:
+			share = maxf(share, STEADY_SHARE)  # Steady Beat: in full
+			full = true
+		if evo(EVO_CRESCENDO):
+			var n := int(enemy.get_meta(CRESC_META, 0))
+			swell = minf(1.0 + CRESC_STEP * n, CRESC_MAX)
+			enemy.set_meta(CRESC_META, n + 1)
+	# Accompaniment: another Warden's Toll is that Warden's hit again (its own status comes with it, below)
+	var striker = filler if evolved and is_instance_valid(filler) else bell
+	var landing := amount * share * swell
 	enemy.set_meta(TOLLED_META, true)
-	Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
-	strike(bell, enemy, landing, &"toll", true)
+	Reactions._effect(&"landing_dust", at, self, 0.5)
+	strike(striker, enemy, landing, &"toll", true)
+	if full:
+		Reactions._effect(&"toll_ring", at, self, 0.8)
+		credit(EVO_STEADY, at)
+	if swell > 1.0:
+		credit(EVO_CRESCENDO, at)
+	if striker != bell:
+		_accompanied(striker, enemy, at)
+	if evolved:
+		_evolved_toll(enemy, bell, at, landing, amount, roster, striker != bell)
 	if on:
 		_grow(bell, pulsing and not counted)  # Growth is per pulse of the bell itself, never per counted hit
 		var i := index_of(enemy)
@@ -248,20 +474,13 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false) ->
 			enemy.set_meta(ROUNDS_META, {"bell": bell.get_instance_id(), "index": i, "amount": amount * ROUNDS_SHARE})
 		if rule(CALL_AND_ANSWER):
 			enemy.set_meta(ANSWER_META, {"bell": bell.get_instance_id(), "index": i})
-		if rule(REFRAIN):
-			enemy.set_meta(REFRAIN_META, now() + REFRAIN_SECONDS)
 		if rule(HANGING_NOTE) and pulsing:
 			_hang_note(bell, enemy.global_position, landing)
-		if rule(NOD_OFF) and first and living(enemy):
-			var sleeper = bell.get_meta(SLEEPER_META).get_ref() if bell.has_meta(SLEEPER_META) else null
-			if not (living(sleeper) and sleeper.statuses.is_asleep()) and nap(enemy):  # One sleeper for each bell
-				bell.set_meta(SLEEPER_META, weakref(enemy))
+	# (Nod Off, Refrain and Knell no longer read Tolls: lent cards trigger from a bell's Drowsy, 2026-10-14.)
 	if not living(enemy):
 		return
 	if rule(CHORUS):
-		_chorus(enemy, bell)
-	if rule(KNELL):
-		_knell(enemy, bell)
+		_chorus(enemy, bell)  # (Retired; an old save keeps it)
 
 # Full Voice and Rising Song: one step per pulse that Tolls, however many nightmares that pulse Tolled.
 func _grow(bell, pulsing: bool) -> void:
@@ -280,12 +499,367 @@ func voice_cells(bell, base_range: float) -> float:
 		return 0.0
 	return clampf(VOICE_STEP * int(bell.get_meta(VOICE_META, 0)), 0.0, maxf(VOICE_MAX_CELLS - base_range, 0.0))
 
-func _hang_note(bell, at: Vector2, amount: float) -> void:
+# `rings`: Lingering Note's note (nightmares walking through ring once; `amount` is the hit a Toll would land again);
+# otherwise Hanging Note's (they are struck for `amount`). `skip`: the Tolled nightmare standing in it.
+func _hang_note(bell, at: Vector2, amount: float, rings: bool = false, skip = null) -> void:
 	for i in range(_notes.size() - 1, -1, -1):
 		if _notes[i].bell.get_ref() == bell:
 			_notes.remove_at(i)  # One per bell
-	_notes.append({"at": at, "until": now() + NOTE_SECONDS, "amount": amount, "bell": weakref(bell), "struck": {}})
+	var struck := {}
+	if is_instance_valid(skip):
+		struck[skip.get_instance_id()] = true
+	var choir: Array = []
+	if rings and evo(EVO_CHOIR):  # Night Choir: the Wardens touching the note, strongest first
+		var beside: Array = towers().filter(func(t) -> bool: return t.tower_data.can_attack and touches_point(t, at))
+		beside.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
+		for tower in beside.slice(0, CHOIR_WARDENS):
+			choir.append(weakref(tower))
+	_notes.append({"at": at, "until": now() + (LINGER_SECONDS if rings else NOTE_SECONDS), "amount": amount, "bell": weakref(bell),
+		"struck": struck, "rings": rings, "choir": choir})
 	queue_redraw()
+
+# --- Calling evolutions: what a ring and a Toll add (see the EVO_ constants) ----------------------------------------------
+
+# Everything an evolution adds to a Toll, after it landed. `at`: where it was; `landing`: what it dealt; `amount`: the
+# ring's hit; `roster`: who filled its pips; `partner`: another Warden's Toll (Accompaniment).
+func _evolved_toll(enemy, bell, at: Vector2, landing: float, amount: float, roster: Array, partner: bool) -> void:
+	if evo(EVO_PEAL):
+		_peal(enemy, at)
+	if evo(EVO_NOTE):
+		_hang_note(bell, at, amount, true, enemy)
+		Reactions._effect(&"chorus_note", at, self, 0.6)
+	if not living(enemy):
+		return
+	if evo(EVO_HALL) and now() < float(enemy.get_meta(HALL_META, -INF)):
+		_hall(enemy, bell, at, landing)
+	if evo(EVO_SYMPHONY):
+		_symphony(enemy, roster, at)
+	if evo(EVO_HUSH) and living(enemy):
+		_hushabye(enemy, bell)
+	if evo(EVO_COUNTER) and partner and living(enemy):
+		_counterpoint(enemy, at)
+	if evo(EVO_CHIME) and living(enemy):
+		_chime(enemy, at)
+	if evo(EVO_CHORD) and living(enemy):
+		_last_chord(enemy, bell)
+
+# Accompaniment: who filled each pip, in order (0 = no Warden: a starting pip, Peal's). The pips show it, Symphony counts it.
+func _fill(enemy, before: int, add: int, who, other: bool) -> void:
+	var roster: Array = (enemy.get_meta(FILLERS_META, []) as Array).slice(0, maxi(before, 0))
+	while roster.size() < before:
+		roster.append([0, false])
+	var id: int = who.get_instance_id() if is_instance_valid(who) else 0
+	for k in add:
+		roster.append([id, other])
+	enemy.set_meta(FILLERS_META, roster)
+
+# Fills one pip without a ring (Peal, Counterpoint): never the last one, so only a real ring Tolls.
+func _add_pip(enemy, who = null) -> bool:
+	var pips := int(enemy.get_meta(PIPS_META)) if enemy.has_meta(PIPS_META) else _start_for(enemy)
+	if pips >= TOLL_EVERY - 1:
+		return false
+	if evo(EVO_ACCOMP):
+		_fill(enemy, pips, 1, who, false)
+	enemy.set_meta(PIPS_META, pips + 1)
+	return true
+
+# Up to `limit` living nightmares within a cell of `at` (not `skip`), nearest first.
+func _touching_at(at: Vector2, skip, limit: int) -> Array:
+	var reach := TOUCH_CELLS * cell()
+	var found: Array = []
+	for other in Tower.nightmares_near(get_tree(), at, reach):
+		if other != skip and living(other) and other.global_position.distance_to(at) <= reach:
+			found.append(other)
+	found.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	return found.slice(0, limit)
+
+# Adds `stacks` to `id` quietly (never starts it; Charged stops one short of a bolt).
+func _quiet(enemy, id: StringName, stacks: int) -> int:
+	if id == EnemyStatuses.STATIC:
+		stacks = mini(stacks, enemy.statuses.get_max_stacks(id) - 1 - enemy.statuses.stacks(id))
+	return enemy.statuses.add_quiet(id, stacks) if stacks > 0 else 0
+
+# Carrying Tune for a shooting bell: the ring carries 4 steps down the path from its target, at half, to up to 4
+# nightmares, stopping at the next bell's reach. Carried rings fill pips.
+func _carry_from(bell, target, base: float) -> void:
+	var i0 := index_of(target)
+	if i0 < 0:
+		return
+	var last := mini(i0 + TUNE_STEPS * 2, _route.size() - 1)
+	for k in range(i0 + 1, last + 1):
+		if _bell_at(k, bell) != null:
+			last = k - 1  # It stops at the next bell's reach
+			break
+	if last <= i0:
+		return
+	var found: Array = []
+	for enemy in Tower.nightmares_near(get_tree(), target.global_position, TUNE_STEPS * cell()):
+		if enemy == target or not living(enemy):
+			continue
+		var j := index_of(enemy)
+		if j > i0 and j <= last:
+			found.append([j, enemy])
+	found.sort_custom(func(a, b) -> bool: return int(a[0]) < int(b[0]))
+	var from: Vector2 = target.global_position
+	var carried := 0
+	for row in found.slice(0, TUNE_MAX):
+		var enemy = row[1]
+		if not living(enemy):
+			continue
+		_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
+		strike(bell, enemy, base * TUNE_SHARE, &"carried_ring", true)
+		ring(enemy, bell, base * TUNE_SHARE)
+		carried += 1
+	if carried > 0:
+		credit(EVO_CARRYING, from)
+
+# Hand to Hand: the bell that rang this nightmare before `bell`, if `bell` hasn't taken it hand to hand yet (-1: none).
+func _handed_from(enemy, bell) -> int:
+	if not enemy.has_meta(LAST_RINGER_META):
+		return -1
+	var last := int(enemy.get_meta(LAST_RINGER_META))
+	if last == bell.get_instance_id() or (enemy.get_meta(HAND_META, {}) as Dictionary).has(bell.get_instance_id()):
+		return -1
+	return last
+
+func _hand_to_hand(enemy, bell, from_id: int) -> void:
+	var done: Dictionary = enemy.get_meta(HAND_META, {})
+	done[bell.get_instance_id()] = true
+	enemy.set_meta(HAND_META, done)
+	var before = instance_from_id(from_id) if is_instance_id_valid(from_id) else null
+	if before is Node2D:
+		_line_fx(before.global_position, enemy.global_position, 1.5, Palette.GOLD)  # Handed from the last bell
+	Reactions._effect(&"toll_ring", enemy.global_position, self, 0.4)
+	credit(EVO_HAND, enemy.global_position)
+
+# Peal: a Toll fills 1 pip on every nightmare within 4 steps (up to 8), never its last pip.
+func _peal(enemy, at: Vector2) -> void:
+	var i0 := index_of(enemy) if living(enemy) else nearest_point(at, 1.0)
+	var filled := 0
+	for other in Tower.nightmares_near(get_tree(), at, PEAL_STEPS * cell()):
+		if filled >= PEAL_MAX:
+			break
+		if other == enemy or not living(other):
+			continue
+		var j := index_of(other) if i0 >= 0 else -1
+		if j >= 0:
+			if absi(j - i0) > PEAL_STEPS * 2:
+				continue
+		elif other.global_position.distance_to(at) > PEAL_STEPS * cell():
+			continue
+		if _add_pip(other):
+			filled += 1
+			_line_fx(at, other.global_position, 1.0, Palette.GOLD)
+	if filled > 0:
+		Reactions._effect(&"toll_ring", at, self, 1.2)
+		credit(EVO_PEAL, at)
+
+# Lingering Note / Night Choir: a nightmare walked into a ringing note.
+func _note_heard(note: Dictionary, enemy) -> void:
+	var bell = note.bell.get_ref()
+	if not is_instance_valid(bell) or not living(enemy):
+		return
+	var sang := 0
+	for ref in note.choir:
+		var tower = ref.get_ref()
+		if not is_instance_valid(tower) or not _last_hit_of.has(tower.get_instance_id()) or not living(enemy):
+			continue
+		var hit := minf(float(_last_hit_of[tower.get_instance_id()]) * CHOIR_SHARE, second_of(tower) * CHOIR_CAP_SECONDS)
+		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.HEARTLIGHT)
+		strike(tower, enemy, hit, &"chorus_repeat")
+		sang += 1
+	if sang > 0:
+		credit(EVO_CHOIR, note.at)
+	Reactions._effect(&"chorus_note", note.at, self, 0.5)
+	credit(EVO_NOTE, note.at)
+	ring(enemy, bell, float(note.amount))
+
+# Midnight Bell: the 12th ring on a nightmare (once each). True when this ring reached it.
+func _count_rings(enemy, add: int) -> bool:
+	if enemy.has_meta(MIDNIGHT_META):
+		return false
+	var n := int(enemy.get_meta(RINGS_META, 0)) + add
+	enemy.set_meta(RINGS_META, n)
+	if n < MIDNIGHT_RINGS:
+		return false
+	enemy.set_meta(MIDNIGHT_META, true)
+	return true
+
+# The Midnight Toll: every status on it that deals damage pays out at once and stays (Knell's maths, nothing used up):
+# Poisoned ticks once, Charged bolts for the charge it has, Soaked calls up to 2 Dewdrops near it for a free hit. Bosses half.
+func _midnight(enemy) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	var scale := MIDNIGHT_BOSS if s.is_boss else 1.0
+	var at: Vector2 = enemy.global_position
+	_clocks.append({"enemy": weakref(enemy), "at": at, "until": now() + MIDNIGHT_SECONDS})
+	Reactions._effect(&"toll_ring", at, self, 1.4)
+	credit(EVO_MIDNIGHT, at)
+	if s.has(EnemyStatuses.SPORED):
+		enemy.flash_status(EnemyStatuses.SPORED)
+		strike(s.source(EnemyStatuses.SPORED), enemy, s.stacks(EnemyStatuses.SPORED) * s.potency(EnemyStatuses.SPORED) * EnemyStatuses.SPORE_TICK * scale,
+			&"knell", true)
+	if living(enemy) and s.has(EnemyStatuses.STATIC):
+		enemy.flash_status(EnemyStatuses.STATIC)
+		strike(s.source(EnemyStatuses.STATIC), enemy, s.stored_bolt_damage() * scale, &"knell")
+	if living(enemy) and s.has(EnemyStatuses.DAMP):
+		enemy.flash_status(EnemyStatuses.DAMP)
+		var fired := 0
+		for tower in towers():
+			if fired >= KNELL_DEWDROPS:
+				break
+			if tower.tower_data.line == "water" and tower.tower_data.can_attack and near(tower.global_position, at) \
+					and free_hit(tower, enemy, scale):
+				fired += 1
+
+# Hush-a-bye: a Toll adds 2 Drowsy (the bell's, never native: no lent card reads it); 3 Tolls within 6 s and it naps.
+func _hushabye(enemy, bell) -> void:
+	var at: Vector2 = enemy.global_position
+	bell._apply_one_status(enemy, EnemyStatuses.DROWSY, HUSH_DROWSY, bell.get_damage(), false)
+	if not living(enemy):
+		return
+	if enemy.statuses.has(EnemyStatuses.DROWSY):
+		enemy.flash_status(EnemyStatuses.DROWSY)
+		credit(EVO_HUSH, at)
+	var times: Array = (enemy.get_meta(HUSH_META, []) as Array).filter(func(t) -> bool: return now() - float(t) <= HUSH_WINDOW)
+	times.append(now())
+	if times.size() >= HUSH_TOLLS and now() >= float(enemy.get_meta(HUSH_NEXT_META, -INF)) and nap(enemy):
+		enemy.set_meta(HUSH_NEXT_META, now() + HUSH_EVERY)
+		enemy.set_meta(HUSHED_META, true)
+		times.clear()
+		Reactions._effect(&"chorus_note", at, self, 1.0)
+		credit(EVO_HUSH, at)
+	enemy.set_meta(HUSH_META, times)
+
+# Sleeping Hall: the first Toll within 3 s of a Hush-a-bye nap ending also lands on up to 4 nightmares touching it, at half.
+func _hall(enemy, bell, at: Vector2, landing: float) -> void:
+	enemy.remove_meta(HALL_META)
+	var hit := 0
+	for other in _touching_at(at, enemy, HALL_OTHERS):
+		_line_fx(at, other.global_position, 2.0, Palette.BLOSSOM)
+		strike(bell, other, landing * HALL_SHARE, &"toll", true)
+		hit += 1
+	if hit > 0:
+		Reactions._effect(&"toll_ring", at, self, 1.3)
+		credit(EVO_HALL, at)
+
+# Accompaniment: another Warden's Toll brings its status again (its own application, never native, so no lent card or
+# Calling rule reads it again).
+func _accompanied(partner, enemy, at: Vector2) -> void:
+	_line_fx(partner.global_position, at, 2.0, Palette.BLOSSOM)
+	credit(EVO_ACCOMP, at)
+	var status := status_of(partner)
+	if status == &"" or not living(enemy):
+		return
+	partner._apply_one_status(enemy, status, maxi(int(partner.attack_data.status_stacks), 1), partner.get_damage(), false)
+	if living(enemy) and enemy.statuses.has(status):
+		enemy.flash_status(status)
+
+# Accompaniment: a hit from another Warden touching a bell fills a pip (once a second; a Sprout's every hit). True when
+# the Warden touches a bell (the old Join In then stays quiet).
+func _accompany(source, enemy, base: float) -> bool:
+	var bell = null
+	var best := INF
+	for other in bells():
+		if touching(other, source):
+			var d: float = other.global_position.distance_squared_to(source.global_position)
+			if d < best:
+				best = d
+				bell = other
+	if bell == null:
+		return false
+	if source.tower_data.get_id() != "sprout":
+		if now() < float(source.get_meta(JOIN_META, -INF)):
+			return true
+		source.set_meta(JOIN_META, now() + ACCOMP_EVERY)
+	_line_fx(source.global_position, bell.global_position, 1.0, Palette.BLOSSOM)
+	ring(enemy, bell, base, true, source)
+	return true
+
+# Counterpoint: another Warden's Toll: the nearest ready bell within 4 cells rings it too (its free hit, and a pip).
+func _counterpoint(enemy, at: Vector2) -> void:
+	var bell = null
+	var best := (COUNTER_CELLS * cell()) ** 2
+	for other in bells():
+		var d: float = other.global_position.distance_squared_to(at)
+		if d <= best and now() >= float(other.get_meta(COUNTER_META, -INF)):
+			best = d
+			bell = other
+	if bell == null:
+		return
+	bell.set_meta(COUNTER_META, now() + COUNTER_EVERY)
+	if not free_hit(bell, enemy):
+		return
+	if living(enemy):
+		_add_pip(enemy, bell)
+	Reactions._effect(&"toll_ring", at, self, 0.6)
+	credit(EVO_COUNTER, at)
+
+# Symphony: a Toll whose pips 4 different Wardens filled: each one's last hit lands again at half (once in 6 s each).
+func _symphony(enemy, roster: Array, at: Vector2) -> void:
+	if now() < float(enemy.get_meta(SYMPHONY_META, -INF)):
+		return
+	var ids := {}
+	for row in roster:
+		if int(row[0]) != 0:
+			ids[int(row[0])] = true
+	if ids.size() < SYMPHONY_WARDENS:
+		return
+	enemy.set_meta(SYMPHONY_META, now() + SYMPHONY_EVERY)
+	var sang := 0
+	for id in ids:
+		if not living(enemy):
+			break
+		if not is_instance_id_valid(id) or not _last_hit_of.has(id):
+			continue
+		var tower = instance_from_id(id)
+		if not (tower is Tower):
+			continue
+		_line_fx(tower.global_position, at, 1.5, Palette.HEARTLIGHT)
+		strike(tower, enemy, minf(float(_last_hit_of[id]) * SYMPHONY_SHARE, second_of(tower)), &"chorus_repeat")
+		sang += 1
+	if sang > 0:
+		Reactions._effect(&"chorus_note", at, self, 1.2)
+		credit(EVO_SYMPHONY, at)
+
+# Chime of Many: a Toll adds 1 to each status on the nightmare and up to 4 touching it (quiet; never Drowsy or Rooted).
+func _chime(enemy, at: Vector2) -> void:
+	var targets: Array = [enemy]
+	targets.append_array(_touching_at(at, enemy, CHIME_OTHERS))
+	var fed := 0
+	for target in targets:
+		if not living(target):
+			continue
+		for id in target.statuses.active_ids():
+			if id == EnemyStatuses.HELD or id == EnemyStatuses.DROWSY:
+				continue
+			var added := _quiet(target, id, CHIME_STACKS)
+			if added > 0:
+				fed += added
+				target.flash_status(id)  # Quiet adds made visible (player review: "+1 stack" must show)
+	if fed > 0:
+		Reactions._effect(&"toll_ring", at, self, 1.0)
+		credit(EVO_CHIME, at)
+
+# Last Chord: a Toll on a nightmare carrying 3 statuses sets off any Reaction it is halfway to (Clashing Notes' check).
+# The 8 s wait is spent only when one goes off.
+func _last_chord(enemy, bell) -> void:
+	if now() < float(enemy.get_meta(CHORD_META, -INF)):
+		return
+	var count := 0
+	for id in enemy.statuses.active_ids():
+		if id != EnemyStatuses.HELD:
+			count += 1
+	if count < CHORD_STATUSES:
+		return
+	var at: Vector2 = enemy.global_position
+	var health: float = enemy.health
+	var changes: int = enemy.statuses.changes
+	Reactions.check_at_half(enemy, bell)
+	if living(enemy) and enemy.health >= health and enemy.statuses.changes == changes:
+		return  # Nothing went off
+	enemy.set_meta(CHORD_META, now() + CHORD_EVERY)
+	Reactions._effect(&"chorus_note", at, self, 1.4)
+	credit(EVO_CHORD, at)
 
 # Chorus (lent): on a Toll the bell also repeats the last hit another family's Warden near it landed there, at half
 # (never more than half a second of that Warden's damage); its status comes with it as a quiet add.
@@ -303,80 +877,164 @@ func _chorus(enemy, bell) -> void:
 	if status != &"" and living(enemy):
 		enemy.statuses.add_quiet(status, 1)
 
-# Knell (lent): a Toll sets off one status from another family's Warden, the fullest first: it pays out at once and is
-# used up. Never Rooted, Exposed or Drowsy.
-func _knell(enemy, _bell) -> void:
+# Knell (lent; hard cards 2026-10-16, one rule for every status): a bell's hit lands again once for each status other
+# families put on the nightmare ({held} never counts), up to KNELL_REPEATS_MAX, KNELL_REPEAT_GAP s apart, each adding 1
+# of the bell's own status (not native: no class / cooperation / role extras). Repeats are tagged `knell` (a class tag:
+# they never set In Time, Refrain or Knell off again); Da Capo may add its third. Nothing is used up. The repeats queued.
+func _knell(enemy, bell, base: float) -> int:
 	var statuses: EnemyStatuses = enemy.statuses
-	var chosen := &""
-	var fullest := -1.0
-	for id in [EnemyStatuses.SPORED, EnemyStatuses.STATIC, EnemyStatuses.DAMP]:
-		if not statuses.has(id) or not is_other_family(statuses.source(id)):
+	var count := 0
+	for id in statuses.active_ids():
+		if id != EnemyStatuses.HELD and is_other_family(statuses.source(id)):
+			count += 1
+	count = mini(count, KNELL_REPEATS_MAX)
+	if count <= 0:
+		return 0
+	var share := KNELL_PULSE_SHARE if is_pulsing(bell) else KNELL_REPEAT_SHARE
+	for k in range(1, count + 1):
+		_later.append({"at": now() + KNELL_REPEAT_GAP * k, "tower": weakref(bell), "enemy": weakref(enemy),
+			"amount": base * share, "tag": &"knell", "again": true, "status": status_of(bell)})
+	credit(KNELL, enemy.global_position)
+	return count
+
+# Another family's status is on it (Knell and Clashing Notes need one).
+func _carries_other(enemy) -> bool:
+	var statuses: EnemyStatuses = enemy.statuses
+	for id in statuses.active_ids():
+		if id != EnemyStatuses.DROWSY and id != EnemyStatuses.HELD and is_other_family(statuses.source(id)):
+			return true
+	return false
+
+# Hum Along (lent): a hit from another Warden touching a bell that makes Drowsy adds 1 Drowsy, the bell's application
+# (not native: it never counts as a bell making it Drowsy, so it cannot set off Nod Off or Refrain or loop).
+func _hum_along(source, enemy) -> void:
+	var bell = null
+	for other in bells():
+		if status_of(other) == EnemyStatuses.DROWSY and touching(other, source) and (bell == null or second_of(other) > second_of(bell)):
+			bell = other
+	if bell == null:
+		return
+	source.set_meta(HUM_META, now() + HUM_EVERY)
+	_line_fx(source.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	bell._apply_one_status(enemy, EnemyStatuses.DROWSY, 1, bell.get_damage(), false)
+
+# Ringing Ears (lent): a bell's attack's hits, gathered by frame; the next frame, an attack on 3 or more nightmares adds
+# 1 Drowsy to each (the bell's own application), once every 2 s per bell. Any song form that attacks counts.
+func _ears_note(bell, enemy) -> void:
+	var id: int = bell.get_instance_id()
+	var frame := Engine.get_process_frames()
+	var entry: Dictionary = _ears.get(id, {})
+	if entry.is_empty() or int(entry.frame) != frame:
+		if not entry.is_empty() or now() < float(bell.get_meta(EARS_META, -INF)):
+			return
+		entry = {"frame": frame, "bell": weakref(bell), "hits": []}
+		_ears[id] = entry
+	entry.hits.append(weakref(enemy))
+
+func _ears_flush() -> void:
+	var frame := Engine.get_process_frames()
+	for id in _ears.keys():
+		var entry: Dictionary = _ears[id]
+		if int(entry.frame) >= frame:
 			continue
-		var share: float = float(statuses.stacks(id)) / maxf(statuses.get_max_stacks(id), 1.0)
-		if id == EnemyStatuses.DAMP and share < 1.0:
-			continue  # Soaked must be full
-		if share > fullest:
-			fullest = share
-			chosen = id
-	var source = statuses.source(chosen) if chosen != &"" else null
-	match chosen:
-		EnemyStatuses.SPORED:  # It ticks once more, at once; its oldest batch is gone
-			strike(source, enemy, statuses.stacks(chosen) * statuses.potency(chosen) * EnemyStatuses.SPORE_TICK, &"knell", true)
+		_ears.erase(id)
+		var bell = entry.bell.get_ref()
+		if not is_instance_valid(bell) or entry.hits.size() < EARS_CROWD:
+			continue
+		bell.set_meta(EARS_META, now() + EARS_EVERY)
+		for ref in entry.hits:
+			var enemy = ref.get_ref()
 			if living(enemy):
-				statuses.drop_oldest_spore_batch()
-		EnemyStatuses.STATIC:  # It goes off as a bolt for the charge it has; all its Charged is used
-			var bolt: float = statuses.stored_bolt_damage()
-			statuses.remove(chosen)
-			strike(source, enemy, bolt, &"knell")
-		EnemyStatuses.DAMP:  # Up to 2 Dewdrops near it hit it once, free; it is wrung dry
-			var fired := 0
-			for tower in towers():
-				if fired >= KNELL_DEWDROPS:
-					break
-				if tower.tower_data.line == "water" and tower.tower_data.can_attack and near(tower.global_position, enemy.global_position) \
-						and free_hit(tower, enemy):
-					fired += 1
-			if living(enemy):
-				statuses.remove(chosen)
+				bell._apply_one_status(enemy, EnemyStatuses.DROWSY, 1, bell.get_damage(), true)
+
+# A Warden's own accepted status application (DreamState.class_status): a bell making a nightmare Drowsy (Nod Off,
+# Refrain), another family's status (Second Verse remembers the last one).
+func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
+	if not living(enemy):
+		return
+	if is_own(tower) and status == EnemyStatuses.DROWSY:
+		if rule(NOD_OFF) and not enemy.has_meta(DROWSED_META):
+			# Nod Off: the first time a bell makes it Drowsy, it naps 1 s (one sleeper for each bell; never bosses)
+			var sleeper = tower.get_meta(SLEEPER_META).get_ref() if tower.has_meta(SLEEPER_META) else null
+			if not (living(sleeper) and sleeper.statuses.is_asleep()) and nap(enemy):
+				tower.set_meta(SLEEPER_META, weakref(enemy))
+		enemy.set_meta(DROWSED_META, true)
+	elif rule(SECOND_VERSE) and is_other_family(tower) and status != EnemyStatuses.DROWSY and status != EnemyStatuses.HELD:
+		enemy.set_meta(LAST_OTHER_META, [status, stacks])
 
 # --- Damage events ------------------------------------------------------------------------------------------------------
 
-func on_damage(event, source, enemy, is_hit: bool, _dispel: bool, tagged: bool) -> void:
+# Reprise listens to Reactions, which every other class card ignores (class_kit filters them out).
+func _on_damage(event) -> void:
+	if dream_state != null and rule(REPRISE) and is_instance_valid(event.enemy) and is_reaction_burst(event):
+		_reprise(event)
+	super._on_damage(event)
+
+func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -> void:
+	if dispel and is_hit and rule(ENCORE):
+		_encore(source)  # A hit's dispel only (a status tick's never counts)
+	if is_hit and not tagged and source != null and (evo(EVO_CHOIR) or evo(EVO_SYMPHONY)):
+		_last_hit_of[source.get_instance_id()] = float(event.base)  # Night Choir, Symphony: each Warden's last hit, before defences
 	if tagged or source == null or not is_hit or not living(enemy):
 		return
-	var on := active()
+	if rule(SLEEP_NO_MORE):
+		_sleep_no_more(event, source, enemy)  # (Retired 2026-10-15; an old save keeps it)
+	if rule(RUDE_AWAKENING):
+		_note_last_hit(source, enemy, event.base)
+	if rule(IN_TIME):
+		_in_time(source, enemy, event.base)
+	if rule(REFRAIN):
+		_refrain(source, enemy, event.base)
+	if not living(enemy):
+		return
 	if is_own(source):
+		if rule(SECOND_VERSE):
+			var hit: Dictionary = enemy.get_meta(BELL_HIT_META, {})
+			hit[source.get_instance_id()] = true
+			enemy.set_meta(BELL_HIT_META, hit)
 		if rule(ON_THE_BEAT) and int(source.get_meta(BEAT_FRAME_META, -1)) != Engine.get_process_frames():
 			source.set_meta(BEAT_FRAME_META, Engine.get_process_frames())
 			_beat(source)
-		if on and is_pulsing(source) and int(source.get_meta(PULSE_META, -1)) != Engine.get_process_frames():
-			source.set_meta(PULSE_META, Engine.get_process_frames())
-			if rule(SOUND_CARRIES):
-				_carry_ring(source, event.base)
+		if rule(RINGING_EARS):
+			_ears_note(source, enemy)
+		# Knell (hard cards 2026-10-16): a bell's hit lands again once per other-family status on it, up to 3. Each
+		# nightmare once every 6 s
+		if rule(KNELL) and now() >= float(enemy.get_meta(KNELL_NEXT_META, -INF)) and _knell(enemy, source, event.base) > 0:
+			enemy.set_meta(KNELL_NEXT_META, now() + KNELL_EVERY)
+		if rule(CLASHING_NOTES) and living(enemy) and enemy.statuses.has(EnemyStatuses.DROWSY) and _carries_other(enemy) \
+				and now() >= float(enemy.get_meta(CLASH_NEXT_META, -INF)):
+			enemy.set_meta(CLASH_NEXT_META, now() + CLASH_EVERY)  # (Retired 2026-10-15; an old save keeps it)
+			Reactions.check_at_half(enemy, source)
+		if not living(enemy) or not tolls_on():
+			return
+		if is_pulsing(source):
+			if int(source.get_meta(PULSE_META, -1)) != Engine.get_process_frames():
+				source.set_meta(PULSE_META, Engine.get_process_frames())
+				if rule(SOUND_CARRIES) or evo(EVO_CARRYING):
+					_carry_ring(source, event.base)
+		elif evo(EVO_CARRYING) and int(source.get_meta(TUNE_FRAME_META, -1)) != Engine.get_process_frames():
+			source.set_meta(TUNE_FRAME_META, Engine.get_process_frames())  # Carrying Tune: a shooting bell carries from its target
+			_carry_from(source, enemy, event.base)
 		ring(enemy, source, event.base)
 		return
 	# Another Warden's hit
-	if on and rule(SLEEP_NO_MORE):
-		_sleep_no_more(event, source, enemy)
-	if on and rule(REFRAIN) and is_other_family(source) and now() < float(enemy.get_meta(REFRAIN_META, -INF)) \
-			and now() >= float(source.get_meta(REFRAIN_NEXT_META, -INF)):
-		# Refrain: a Tolled nightmare rings on: the next hit from another family's Warden lands again, in full
-		enemy.remove_meta(REFRAIN_META)
-		enemy.remove_meta(LAST_HIT_META)
-		if free_hit(source, enemy, 1.0, &"refrain"):
-			source.set_meta(REFRAIN_NEXT_META, now() + REFRAIN_EVERY)
-		return
 	if not is_other(source):
+		return
+	if rule(HUM_ALONG) and now() >= float(source.get_meta(HUM_META, -INF)):
+		_hum_along(source, enemy)
+	if not tolls_on():
+		return
+	if evo(EVO_ACCOMP) and _accompany(source, enemy, event.base):
 		return
 	var counted = null
 	for bell in bells():
 		if not _in_reach(bell, enemy):
 			continue
-		if on and rule(JOIN_IN) and touching(source, bell):
-			counted = bell  # Join In: any other Warden touching a bell (Sprouts count)
+		if rule(JOIN_IN) and touching(source, bell):
+			counted = bell  # Join In (class-only since 2026-10-14): any other Warden touching a bell counts as its ring
 			break
 		if rule(STRUCK_BELL) and is_other_family(source) and near(source.global_position, bell.global_position):
-			counted = bell  # Struck Bell: another family's Warden near a bell
+			counted = bell  # Struck Bell (retired): another family's Warden near a bell
 			break
 	if rule(CHORUS) and is_other_family(source) and strongest_near(source.global_position, is_own) != null:
 		enemy.set_meta(LAST_HIT_META, {"source": weakref(source), "base": event.base})  # Stored before defences
@@ -389,16 +1047,136 @@ func on_damage(event, source, enemy, is_hit: bool, _dispel: bool, tagged: bool) 
 # next attack attacks now. Each Warden once every 2 s. Only the bell's own ring counts, so it never loops with Join In.
 func _beat(bell) -> void:
 	for tower in towers():
-		if tower == bell or is_own(tower) or not tower.tower_data.can_attack or not touching(tower, bell):
+		if tower == bell or not tower.tower_data.can_attack or not touching(tower, bell):  # Other bells too (own family, 2026-10-15)
 			continue
 		if now() < float(tower.get_meta(BEAT_META, -INF)):
 			continue
 		var period: float = 1.0 / maxf(tower.get_attacks_per_second(), 0.01)
 		if tower._cooldown > period * BEAT_HALFWAY:
 			continue  # Not halfway yet: a slow Warden is never doubled
-		tower.set_meta(BEAT_META, now() + BEAT_EVERY)
+		tower.set_meta(BEAT_META, now() + maxf(BEAT_EVERY, 2.0 * period))
 		tower._cooldown = 0.0
 		_line_fx(bell.global_position, tower.global_position, 1.5, Palette.BLOSSOM)
+
+# --- Again, in rhythm (trait rework 2026-10-15) -----------------------------------------------------------------------
+
+# Whether `tower` is a bell or touches one (In Time, Encore).
+func _by_a_bell(tower) -> bool:
+	return is_own(tower) or bells().any(func(b) -> bool: return touching(b, tower))
+
+# A hit lands again now (In Time's delayed repeat, Refrain, Rude Awakening): damage only. Da Capo: a third time, at half.
+func _again(tower, enemy, amount: float, tag: StringName) -> void:
+	if not is_instance_valid(tower) or not living(enemy):
+		return
+	_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	strike(tower, enemy, amount, tag)
+	if rule(DA_CAPO) and living(enemy) and now() >= float(tower.get_meta(DA_CAPO_META, -INF)):
+		tower.set_meta(DA_CAPO_META, now() + DA_CAPO_EVERY)
+		_later.append({"at": now() + DA_CAPO_DELAY, "tower": weakref(tower), "enemy": weakref(enemy),
+			"amount": amount * DA_CAPO_SHARE, "tag": &"da_capo", "again": false})
+
+func _tick_later() -> void:
+	for i in range(_later.size() - 1, -1, -1):
+		var row: Dictionary = _later[i]
+		if now() < float(row.at):
+			continue
+		_later.remove_at(i)
+		var tower = row.tower.get_ref()
+		var enemy = row.enemy.get_ref()
+		if bool(row.again):
+			_again(tower, enemy, float(row.amount), row.tag)
+		elif is_instance_valid(tower) and living(enemy):
+			strike(tower, enemy, float(row.amount), row.tag)
+		var row_status: StringName = row.get("status", &"")  # Knell's repeats add 1 of the bell's status (hard cards 2026-10-16)
+		if row_status != &"" and is_instance_valid(tower) and living(enemy):
+			tower._apply_one_status(enemy, row_status, 1, tower.get_damage(), false)
+
+# In Time: every 4th hit a Warden touching a bell (or a bell) lands on one nightmare lands again a moment later. Counted
+# for each Warden and nightmare; an area attack counts once. Sprouts count.
+func _in_time(source, enemy, base: float) -> void:
+	if not source.tower_data.can_attack or not _by_a_bell(source):
+		return
+	if int(source.get_meta(IN_TIME_FRAME_META, -1)) == Engine.get_process_frames():
+		return
+	source.set_meta(IN_TIME_FRAME_META, Engine.get_process_frames())
+	var counts: Dictionary = enemy.get_meta(IN_TIME_META, {})
+	var n := int(counts.get(source.get_instance_id(), 0)) + 1
+	counts[source.get_instance_id()] = n % IN_TIME_EVERY
+	enemy.set_meta(IN_TIME_META, counts)
+	if n >= IN_TIME_EVERY:
+		_later.append({"at": now() + IN_TIME_DELAY, "tower": weakref(source), "enemy": weakref(enemy), "amount": base,
+			"tag": &"in_time", "again": true})
+
+# Refrain: after a bell hits a nightmare, the next hit on it from another Warden (another bell too; Sprouts count) within
+# 2 s lands twice. Each Warden once every 4 s.
+func _refrain(source, enemy, base: float) -> void:
+	var pending: Array = enemy.get_meta(REFRAIN_META) if enemy.has_meta(REFRAIN_META) and enemy.get_meta(REFRAIN_META) is Array else []
+	if not pending.is_empty() and now() < float(pending[0]) and int(pending[1]) != source.get_instance_id() \
+			and now() >= float(source.get_meta(REFRAIN_NEXT_META, -INF)):
+		enemy.remove_meta(REFRAIN_META)
+		source.set_meta(REFRAIN_NEXT_META, now() + REFRAIN_EVERY)
+		_again(source, enemy, base, &"refrain")
+	if is_own(source) and living(enemy):
+		enemy.set_meta(REFRAIN_META, [now() + REFRAIN_SECONDS, source.get_instance_id()])
+
+# Encore: a Warden touching a bell (or a bell) that dispels a nightmare attacks again at once. Each Warden once in 3 s.
+func _encore(source) -> void:
+	if not source.tower_data.can_attack or now() < float(source.get_meta(ENCORE_META, -INF)) or not _by_a_bell(source):
+		return
+	source.set_meta(ENCORE_META, now() + maxf(ENCORE_EVERY, 2.0 / maxf(source.get_attacks_per_second(), 0.01)))  # Never doubles a slow Warden
+	source._cooldown = 0.0
+	Reactions._effect(&"landing_dust", source.global_position, self, 0.5)
+
+# Reprise: a Reaction on a nightmare in a bell's range plays again 1 s later, at half. Each nightmare once in 8 s; never an
+# Echo Hollow echo (that is already a Reaction heard again).
+func _reprise(event) -> void:
+	var enemy = event.enemy
+	if event.tag == &"echo" or event.tag == &"carried_storm" or not living(enemy) or event.base <= 0.0:
+		return
+	if now() < float(enemy.get_meta(REPRISE_META, -INF)):
+		return
+	var bell = null
+	for other in bells():
+		if other.global_position.distance_to(enemy.global_position) <= other.get_range_pixels():
+			bell = other
+			break
+	if bell == null:
+		return
+	enemy.set_meta(REPRISE_META, now() + REPRISE_EVERY)
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else bell
+	_later.append({"at": now() + REPRISE_DELAY, "tower": weakref(source), "enemy": weakref(enemy),
+		"amount": event.base * REPRISE_SHARE, "tag": &"reprise", "again": false})
+
+# Rude Awakening: the last hit from each of the last 3 Wardens to hit it, remembered (before defences).
+func _note_last_hit(source, enemy, base: float) -> void:
+	var hits: Dictionary = enemy.get_meta(LAST_HITS_META, {})
+	hits[source.get_instance_id()] = [weakref(source), base, now()]
+	if hits.size() > RUDE_WARDENS:
+		var oldest = null
+		for id in hits:
+			if oldest == null or float(hits[id][2]) < float(hits[oldest][2]):
+				oldest = id
+		hits.erase(oldest)
+	enemy.set_meta(LAST_HITS_META, hits)
+
+# Rude Awakening: it woke or was let go: those hits land again (once per sleep or Hold: on_poll sees the change once).
+func _rude_awakening(enemy) -> void:
+	var hits: Dictionary = enemy.get_meta(LAST_HITS_META, {})
+	enemy.remove_meta(LAST_HITS_META)
+	var bell = null
+	var best := INF
+	for other in bells():
+		var d: float = other.global_position.distance_squared_to(enemy.global_position)
+		if d < best:
+			best = d
+			bell = other
+	if bell != null and now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
+		return  # Once a second for each bell (with no bell on the map, each sleep or Hold still replays once)
+	if bell != null:
+		bell.set_meta(RUDE_NEXT_META, now() + 1.0)
+	for id in hits:
+		if now() - float(hits[id][2]) <= RUDE_RECENT:
+			_again(hits[id][0].get_ref(), enemy, float(hits[id][1]), &"rude_replay")
 
 # Sound Carries: a pulsing bell's ring carries 4 steps down the path past its reach, at half, stopping at the next
 # bell's reach. Carried rings count; each nightmare takes one per pulse.
@@ -406,15 +1184,29 @@ func _carry_ring(bell, base: float) -> void:
 	var carried: Array = _carry.get(bell.get_instance_id(), [])
 	if carried.is_empty():
 		return
+	var tune := evo(EVO_CARRYING)  # Carrying Tune: the same carry, shown as sound running down the path
+	var share := TUNE_SHARE if tune else CARRY_SHARE
+	var exit := clampi(int(_exit.get(bell.get_instance_id(), int(carried[0]))), 0, maxi(_route_px.size() - 1, 0))
+	var from: Vector2 = _route_px[exit] if exit < _route_px.size() else bell.global_position
+	var heard := 0
 	for enemy in enemies():
 		if carried.has(index_of(enemy)) and not _in_reach(bell, enemy):
-			strike(bell, enemy, base * CARRY_SHARE, &"carried_ring", true)
-			ring(enemy, bell, base * CARRY_SHARE)
+			if tune:
+				_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
+			strike(bell, enemy, base * share, &"carried_ring", true)
+			ring(enemy, bell, base * share)
+			heard += 1
+	if tune and heard > 0:
+		credit(EVO_CARRYING, from)
 
-# Sleep No More: the hit that wakes a sleeping nightmare lands in full on every nightmare touching it too (up to 6;
-# never more than one second of that Warden's damage).
+# Sleep No More: the first hit within 1 s of a nightmare waking (any Warden's; the hit that wakes it counts) lands in
+# full on every nightmare touching it too (up to 6; never more than one second of that Warden's damage). Once per sleep.
+# (Fix 5, 2026-10-14: only a hit of a tenth of its health wakes a sleeper, so "the hit that wakes it" almost never came.)
 func _sleep_no_more(event, source, enemy) -> void:
-	if not enemy.get_meta(ASLEEP_META, false) or enemy.statuses.is_asleep():
+	if enemy.statuses.is_asleep():
+		return
+	var woke_now: bool = enemy.get_meta(ASLEEP_META, false)  # Asleep at the last poll, awake now: this hit woke it
+	if not woke_now and now() - float(enemy.get_meta(WOKE_META, -INF)) > WAKE_HIT_WINDOW:
 		return
 	var sleep := int(enemy.get_meta(SLEEP_META, 0))
 	if int(enemy.get_meta(BURST_META, -1)) == sleep:
@@ -424,6 +1216,33 @@ func _sleep_no_more(event, source, enemy) -> void:
 	for other in nightmares_touching(enemy, SLEEP_NO_MORE_OTHERS):
 		strike(source, other, minf(event.base, second_of(source)), &"sleep_no_more", true)
 
+# Bell to Bell (class): walking into another bell's range fills its pips back up to 2 (only raises; once for each bell).
+func _bell_to_bell(enemy, bell) -> void:
+	if int(enemy.get_meta(LAST_RINGER_META, -1)) == bell.get_instance_id():
+		return
+	var done: Dictionary = enemy.get_meta(B2B_META, {})
+	if done.has(bell.get_instance_id()):
+		return
+	done[bell.get_instance_id()] = true
+	enemy.set_meta(B2B_META, done)
+	if int(enemy.get_meta(PIPS_META, 0)) < PIPS_FILLED:
+		enemy.set_meta(PIPS_META, PIPS_FILLED)
+
+# Second Verse (lent): a Drowsy nightmare leaving a bell's range gets the last status another family's Warden gave it
+# again, the same stacks, as a quiet add (never starts one, never above the limit, Charged one short of a bolt). Once for
+# each nightmare and bell.
+func _second_verse(enemy, bell) -> void:
+	if not enemy.get_meta(BELL_HIT_META, {}).has(bell.get_instance_id()) or not enemy.has_meta(LAST_OTHER_META):
+		return  # (Trait rework 2026-10-15: that bell has hit it; it no longer needs Drowsy)
+	var paid: Dictionary = enemy.get_meta(VERSE_META, {})
+	if paid.has(bell.get_instance_id()):
+		return
+	var last: Array = enemy.get_meta(LAST_OTHER_META)
+	if enemy.statuses.add_quiet(StringName(last[0]), int(last[1])) > 0:
+		paid[bell.get_instance_id()] = true
+		enemy.set_meta(VERSE_META, paid)
+		_line_fx(bell.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+
 # --- The poll: sleepers, busy bells, Rounds, hanging notes -------------------------------------------------------------------
 
 func on_poll() -> void:
@@ -432,16 +1251,44 @@ func on_poll() -> void:
 	var all := bells()
 	var drift: int = dream_state.drift_director.drifts_started if dream_state.drift_director != null else 0
 	var busy := {}
+	var verse := rule(SECOND_VERSE)
+	var bell_to_bell := tolls_on() and rule(BELL_TO_BELL)
 	for enemy in enemies():
 		var asleep: bool = enemy.statuses.is_asleep()
 		if asleep and not enemy.get_meta(ASLEEP_META, false):
 			enemy.set_meta(SLEEP_META, int(enemy.get_meta(SLEEP_META, 0)) + 1)
 		elif not asleep and enemy.get_meta(ASLEEP_META, false):
 			enemy.set_meta(WOKE_META, now())
+			if enemy.has_meta(HUSHED_META):  # Sleeping Hall: a Hush-a-bye nap ended: its next Toll within 3 s spreads
+				enemy.remove_meta(HUSHED_META)
+				if evo(EVO_HALL) and living(enemy):
+					enemy.set_meta(HALL_META, now() + HALL_WINDOW)
+					Reactions._effect(&"chorus_note", enemy.global_position, self, 0.5)
+			if rule(RUDE_AWAKENING) and living(enemy):
+				_rude_awakening(enemy)
 		enemy.set_meta(ASLEEP_META, asleep)
+		var held: bool = enemy.statuses.is_held()  # Rude Awakening counts a Hold ending too (fix 5)
+		if held and not enemy.get_meta(HELD_SEEN_META, false):
+			enemy.set_meta(HOLD_COUNT_META, int(enemy.get_meta(HOLD_COUNT_META, 0)) + 1)
+		elif not held and enemy.get_meta(HELD_SEEN_META, false):
+			enemy.set_meta(FREED_META, now())
+			if rule(RUDE_AWAKENING) and living(enemy):
+				_rude_awakening(enemy)
+		enemy.set_meta(HELD_SEEN_META, held)
+		var inside: Dictionary = enemy.get_meta(INSIDE_META, {}) if verse or bell_to_bell else {}
+		var now_inside := {}
 		for bell in all:
 			if _in_reach(bell, enemy):
 				busy[bell.get_instance_id()] = true
+				now_inside[bell.get_instance_id()] = true
+				if bell_to_bell and not inside.has(bell.get_instance_id()):
+					_bell_to_bell(enemy, bell)
+			elif verse and inside.has(bell.get_instance_id()):
+				_second_verse(enemy, bell)
+		if verse or bell_to_bell:
+			enemy.set_meta(INSIDE_META, now_inside)
+		for bell in all:
+			if _in_reach(bell, enemy):
 				# Rounds: a Toll is heard again when that nightmare walks into the next bell's reach, within 4 steps
 				if enemy.has_meta(ROUNDS_META):
 					var rounds: Dictionary = enemy.get_meta(ROUNDS_META)
@@ -467,12 +1314,14 @@ func on_poll() -> void:
 			bell.set_meta(VOICE_META, 0)
 			dream_state.bump_board()
 	_tick_notes()
+	_tick_later()
 
 # Hanging Note: nightmares walking into the note are struck, at half, once each. Not a ring.
 func _tick_notes() -> void:
 	if _notes.is_empty():
 		return
 	var reach := NOTE_CELLS * cell()
+	var heard: Array = []  # Lingering Note: [note, nightmare], rung after the walk (a ring may Toll and move the note)
 	for i in range(_notes.size() - 1, -1, -1):
 		var note: Dictionary = _notes[i]
 		var bell = note.bell.get_ref()
@@ -483,43 +1332,43 @@ func _tick_notes() -> void:
 		for enemy in Tower.nightmares_near(get_tree(), note.at, reach):
 			if living(enemy) and not note.struck.has(enemy.get_instance_id()) and enemy.global_position.distance_to(note.at) <= reach:
 				note.struck[enemy.get_instance_id()] = true
-				strike(bell, enemy, float(note.amount), &"hanging_note", true)
+				if bool(note.get("rings", false)):
+					heard.append([note, enemy])
+				else:
+					strike(bell, enemy, float(note.amount), &"hanging_note", true)
+	for row in heard:
+		_note_heard(row[0], row[1])
 
 func on_rest() -> void:
 	_notes.clear()
+	_later.clear()
+	_clocks.clear()
+	_last_hit_of.clear()
 	queue_redraw()
 
 # --- What the other systems ask (through DreamState) --------------------------------------------------------------------
 
-# Rude Awakening: the next hit on a nightmare waking from any sleep, from any Warden, deals double (the hit that wakes
-# it counts; within 2 s of waking; once per sleep).
+# Rude Awakening: the next hit on a nightmare waking from any sleep, or let go from a Hold, from any Warden, deals
+# double (the hit that wakes it counts; within 2 s; once per sleep or Hold).
 func damage_multiplier(enemy, source, tag: StringName) -> float:
-	if not rule(RUDE_AWAKENING) or not (source is Tower) or tag != &"":
-		return 1.0
-	var asleep: bool = enemy.statuses.is_asleep()
-	if not asleep and now() - float(enemy.get_meta(WOKE_META, -INF)) > RUDE_WINDOW:
-		return 1.0
-	var sleep := int(enemy.get_meta(SLEEP_META, 0)) + (1 if asleep and not enemy.get_meta(ASLEEP_META, false) else 0)
-	if int(enemy.get_meta(RUDE_META, -1)) == sleep:
-		return 1.0
-	# One doubled waking hit per bell a second (the nearest bell answers for it), so it grows with the cards, not
-	# with how many cheap bells stand on the map
-	var bell = null
-	var best := INF
-	for other in bells():
-		var d: float = other.global_position.distance_squared_to(enemy.global_position)
-		if d < best:
-			best = d
-			bell = other
-	if bell == null or now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
-		return 1.0
-	bell.set_meta(RUDE_NEXT_META, now() + 1.0)
-	enemy.set_meta(RUDE_META, sleep)
-	return RUDE_MULTIPLIER
+	return 1.0  # (Trait rework 2026-10-15: Rude Awakening replays hits now, _rude_awakening; this was its doubled hit)
 
 # --- Drawing: the hanging notes ---------------------------------------------------------------------------------------------
 
 func _draw() -> void:
+	for i in _overlap:  # Steady Beat: a double ring on each step 2 or more bells reach
+		if int(i) % 2 != 0 or int(i) >= _route_px.size():
+			continue
+		var p: Vector2 = _route_px[int(i)]
+		draw_arc(p, cell() * 0.22, 0.0, TAU, 16, Color(Palette.GOLD, 0.35), 1.5)
+		draw_arc(p, cell() * 0.32, 0.0, TAU, 16, Color(Palette.GOLD, 0.2), 1.0)
 	for note in _notes:
+		if bool(note.get("rings", false)):  # Lingering Note: a note glyph (Night Choir's glows pale when Wardens sing in it)
+			var tint: Color = Palette.HEARTLIGHT if not (note.choir as Array).is_empty() else Palette.GOLD
+			draw_arc(note.at, NOTE_CELLS * cell(), 0.0, TAU, 24, Color(tint, 0.5), 1.5)
+			draw_circle(note.at + Vector2(-3.0, 4.0), 3.5, tint)
+			draw_line(note.at + Vector2(0.5, 4.0), note.at + Vector2(0.5, -8.0), tint, 1.5)
+			draw_line(note.at + Vector2(0.5, -8.0), note.at + Vector2(5.0, -5.0), tint, 1.5)
+			continue
 		draw_circle(note.at, NOTE_CELLS * cell(), Color(Palette.BLOSSOM, 0.25))
 		draw_arc(note.at, NOTE_CELLS * cell(), 0.0, TAU, 24, Color(Palette.BLOSSOM, 0.8), 2.0)

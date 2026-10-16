@@ -200,6 +200,13 @@ static func crit_aura(tower: Tower) -> float:
 	return best
 
 # Prism Jar's aura, crit damage: the strongest Prism within reach adds this to crit damage (Balancing: +25%).
+# The base reach (cells) of a special's aura that isn't a TowerData aura (AuraView.is_aura misses it): Prism Jar's
+# crit aura. 0 = none. A planted one's live reach (Wide ranks) is Tower._wide_radius().
+static func special_aura(data: TowerData) -> float:
+	if data == null or data.special != PRISM:
+		return 0.0
+	return float(data.special_params.get("aura_radius", 1.5))
+
 static func crit_damage_aura(tower: Tower) -> float:
 	if not tower.is_inside_tree():
 		return 0.0
@@ -492,7 +499,7 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 			if e.has_meta(inside):
 				e.remove_meta(inside)  # Left the arc: a flyer can be charged again on its next crossing
 			continue
-		var phantom: bool = e.is_flying() and e.enemy_data.flying_icon == &"through_walls"
+		var phantom: bool = e.is_flying() and e.enemy_data.is_through_walls()  # Phantoms only (FLYING, not flying along the route: a Crow is hit); flying_icon is only the icon
 		if phantom and not final:
 			continue
 		Fx.sustain(e, Fx.SUSTAIN_LINK, tower, 1.0, [tower, partner])  # Wrapped in arcs while it stands in the link (it checks the segment itself)
@@ -555,26 +562,23 @@ static func link_band(from: Vector2, to: Vector2) -> PackedVector2Array:
 	var side := (to - from).normalized().orthogonal() * (LINK_HALF_WIDTH + LINK_BODY)
 	return PackedVector2Array([from + side, to + side, to - side, from - side])
 
-# Draws exactly where the link strikes on the path (the user's screenshot, 2026-10-13: the mark was whole half-cell
-# blocks, so a link clipping a block's corner lit a square beside the lightning): the link's band, cut to each struck
-# path half. `halves`: {half: its centre px}, from link_points. `canvas` draws in its own local space.
-static func draw_link_strike(canvas: Node2D, from: Vector2, to: Vector2, halves: Dictionary, colour: Color, strength: float) -> void:
-	var band := link_band(from, to)
-	for half in halves:
-		var c: Vector2 = halves[half]
-		var square := PackedVector2Array([c + Vector2(-16, -16), c + Vector2(16, -16), c + Vector2(16, 16), c + Vector2(-16, 16)])
-		for piece: PackedVector2Array in Geometry2D.intersect_polygons(band, square):
-			var area := 0.0
-			for i in piece.size():
-				area += piece[i].cross(piece[(i + 1) % piece.size()])
-			if piece.size() < 3 or absf(area) < 8.0:
-				continue  # A sliver: nothing to see, and it can't be triangulated
-			var local := PackedVector2Array()
-			for point in piece:
-				local.append(canvas.to_local(point))
-			canvas.draw_colored_polygon(local, Color(colour, strength))
-			local.append(local[0])
-			canvas.draw_polyline(local, Color(Palette.HEARTLIGHT, minf(strength + 0.3, 0.9)), 1.0)
+# Draws the path a link strikes (`halves`: {half: its centre px}, from link_points, merged across links by the caller) in
+# the path's own shape, as lit paths are drawn (Tower.LitPaths.draw_halves: one wash over the path halves, kept off the
+# grass, an end rim where the path goes on unstruck). The user, 2026-10-14 (screens_ui.md 810f2dbe): no cell squares.
+# `route_halves`: {half: true} of the whole route (read from the map when not given). `canvas` draws in its local space.
+static func draw_link_strike(canvas: Node2D, _from: Vector2, _to: Vector2, halves: Dictionary, colour: Color, strength: float,
+		route_halves: Dictionary = {}) -> void:
+	if halves.is_empty():
+		return
+	var route := route_halves
+	if route.is_empty():
+		route = {}
+		var dreams: DreamState = canvas.get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if canvas.is_inside_tree() else null
+		var map = dreams.map_generator if dreams != null else null
+		if map != null:
+			for point in map.get_path_from(map.startPath):
+				route[FindPath.point_to_node(point)] = true
+	Tower.LitPaths.draw_halves(canvas, halves, route, strength, colour, Palette.HEARTLIGHT)
 
 # The points of `route` (route coordinates: one per path half) the link strikes: what the ground mark and the
 # previews show. A nightmare walks from point to point, so it is hit exactly on these.
@@ -839,7 +843,7 @@ static func _thrum(tower: Tower) -> void:
 	var bonus := p(tower, "vs_drowsy", 0.3)
 	var targets := in_reach.filter(func(e) -> bool:
 		return absf(dir.angle_to(e.global_position - tower.global_position)) <= half)
-	tower._area_count = targets.size()  # Crowd Breaker counts the final cone, including Resonance's widening.
+	tower.set_area_count(targets.size())  # Crowd Breaker counts the final cone, including Resonance's widening (frame-stamped, hard cards 2026-10-16).
 	for e in targets:
 		tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
 	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))  # The cone itself (what it hits)
@@ -2137,7 +2141,8 @@ class FenceLayer extends Node2D:
 			for point in BranchKit.link_points(end_a, end_b, route):
 				halves[FindPath.point_to_node(point)] = Tower.MAP_GRID.calculate_map_position(point)
 			_marks[key] = [stamp, halves, all, a, b, end_a, end_b]
-			_ground.queue_redraw()
+			if _shown.has(key):
+				_ground.queue_redraw()
 
 	# A link just struck something: its mark brightens for a moment (steady under reduced motion).
 	func heat() -> void:
@@ -2150,13 +2155,12 @@ class FenceLayer extends Node2D:
 			out.merge(_marks[key][1])
 		return out
 
-	const MARK_QUIET := 0.42  # The mark's alpha in play…
-	const MARK_FULL := 0.62  # …and in build mode / with Wardens selected
+	const MARK_FULL := 0.62  # The mark's alpha (it shows only while one of its jars is selected or hovered)
 	const HEAT_TIME := 0.4
 	var _marks := {}  # "id:id" -> [stamp, {half: centre px}, {route half: true}, jar a, jar b]
 	var _ground := Node2D.new()
 	var _heat := 0.0
-	var _full := false
+	var _shown := {}  # Keys of the links whose mark shows now (a jar of the pair selected or hovered)
 
 	func _ready() -> void:
 		_ground.name = "LinkGround"
@@ -2165,12 +2169,34 @@ class FenceLayer extends Node2D:
 		_ground.draw.connect(_draw_ground)
 		add_child(_ground)
 
-	# Overlapping links merge: each half is drawn once, never brighter than the cap.
+	# Only the links of a selected or hovered jar (the user, 2026-10-14: "remove the blue highlights when no jarlink tower
+	# is selected"; the build ghost and the grow preview draw their own). Overlapping links merge: each half drawn once.
 	func _draw_ground() -> void:
-		# Each link's own strike band, cut to the path halves it strikes: the mark lies under the lightning, nowhere else.
+		var lit := {}
+		var route := {}
+		for key in _shown:
+			if _marks.has(key):
+				lit.merge(_marks[key][1])
+				route.merge(_marks[key][2])
+		if not lit.is_empty():
+			BranchKit.draw_link_strike(_ground, Vector2.ZERO, Vector2.ZERO, lit, BranchKit.LINK_COLOR, MARK_FULL, route)
+
+	# The links whose jars the player is looking at: selected (TowerSeller.selection) or hovered.
+	func _looked_at() -> Dictionary:
+		var seller := get_parent().get_node_or_null("%TowerSeller") if get_parent() else null
+		var looked := {}
+		if seller == null:
+			return looked
+		var towers: Array = seller.selection.duplicate()  # A copy: Array(typed) is the SAME array, and appending the hovered Warden grew the selection every frame (0526496a; the user: "hovering over a warden increases selection")
+		var hovered = seller.get("_hover_tower")
+		if is_instance_valid(hovered):
+			towers.append(hovered)
+		if towers.is_empty():
+			return looked
 		for key in _marks:
-			var mark: Array = _marks[key]
-			BranchKit.draw_link_strike(_ground, mark[5], mark[6], mark[1], BranchKit.LINK_COLOR, MARK_FULL if _full else MARK_QUIET)
+			if towers.has(_marks[key][3]) or towers.has(_marks[key][4]):
+				looked[key] = true
+		return looked
 
 	func touches(at: Vector2, reach: float) -> bool:
 		for key in arcs:
@@ -2190,9 +2216,9 @@ class FenceLayer extends Node2D:
 				arcs.erase(key)  # The pair broke (sold, moved apart)
 				if _marks.erase(key):
 					_ground.queue_redraw()  # Its mark goes with it, at once
-		var full := Tower.badges_visible()  # Build mode, or Wardens selected: full strength
-		if full != _full:
-			_full = full
+		var shown := _looked_at()
+		if shown.hash() != _shown.hash():
+			_shown = shown
 			_ground.queue_redraw()
 		_heat = maxf(_heat - delta, 0.0)
 		var still := bool(Fx.setting("reduced_motion", false))

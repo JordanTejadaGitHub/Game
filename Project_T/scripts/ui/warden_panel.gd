@@ -22,7 +22,7 @@ var _title := _header.title
 var _portrait := _header.portrait  # Left of the title: the Warden's idle art, animated (screens_ui.md "Selected vs hovered")
 var _portrait_atlas := _header.portrait_atlas
 var _portrait_time := 0.0
-var _damage_type := _header.damage_type  # Under the title: the damage type name in its colour (one Warden)
+var _damage_type := _header.damage_type  # Under the title: the small line (its rank); no damage types since Nightmare Kinds
 var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
 var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
@@ -57,17 +57,48 @@ var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
 var _choosing := false  # The Nurture button / R opened the rank choices: 1–4 pick one, Esc / R close
 var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; the next tap grows)
 var _touch := false
+# Phones (UiStyle.is_phone, mobile redesign "Warden drawer"): the panel is a full-height drawer on the right edge, the
+# map visible to its left, on the card background with one sprout on its top thread. Header (portrait, name, rank line,
+# round close), one icon row of stats, the grow options (two to a row only when each fits whole), everything else
+# scrolling in the middle, and a quiet Sell beside a plain Nurture at the bottom (under the right thumb; no primary).
+# The PC layout is untouched: every phone change checks _phone.
+var _phone := false
+var _phone_stats := HBoxContainer.new()  # Phones: one icon row (damage, speed, reach, Potency) under the header (the full rows go in Details)
+var _inner := 0.0  # The content width (the panel less its margins and the scroll bar)
+const PHONE_WIDTH := 350.0  # In the phone layout base (UiStyle.PHONE_LAYOUT_MIN, 1100 × 540)
+const PHONE_FOOTER_H := UiStyle.HUD_BUTTON_H  # Sell and Nurture: the same 48 px as a grow option (no primary on the panel)
+const PHONE_SELL_W := 112.0  # Sell stays small beside Nurture
+const PHONE_CENTER_ALPHA := 0.92  # card_bg, ~90% (ui_style.md)
+const PHONE_EDGE_ALPHA := 0.88
+const PHONE_STAT_ICON := 32.0  # A 16 px stat icon at 2×
+const PHONE_PORTRAIT := 48.0
 
 func _ready() -> void:
+	_phone = UiStyle.is_phone()
 	set_meta(&"tips_beside", true)  # Term tips from its text open beside it, not over it (StatusLinks)
-	custom_minimum_size = Vector2(PANEL_WIDTH, 0)
-	offset_right = offset_left + PANEL_WIDTH  # The scene had it 300 wide
+	var width := PHONE_WIDTH if _phone else PANEL_WIDTH
+	custom_minimum_size = Vector2(width, 0)
+	if _phone:
+		_dock_right()
+	else:
+		offset_right = offset_left + PANEL_WIDTH  # The scene had it 300 wide
 	# The fog panel's inner margin one step down (story chat 2026-10-05: "Warden panel is too large").
 	var frame := get_theme_stylebox("panel").duplicate() as StyleBox
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
+	if _phone and frame is MoonStyleBox:  # Phones: the card background (card_bg: Night → Void, ~90%), one sprout on its top thread
+		var moon := frame as MoonStyleBox
+		moon.fog_color = UiStyle.FOG
+		moon.glow_color = UiStyle.CARD_BG
+		moon.center_alpha = PHONE_CENTER_ALPHA
+		moon.edge_alpha = PHONE_EDGE_ALPHA
+		moon.thread = MoonStyleBox.TopLine.GOLD
+		moon.diamond = true
+		moon.side_edges = false
+		moon.frame_color = Color(UiStyle.FOG, 0.0)
 	add_theme_stylebox_override("panel", frame)
-	var inner := PANEL_WIDTH - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT) - SCROLL_BAR  # Room for the info part's scroll bar
+	var inner := width - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT) - SCROLL_BAR  # Room for the info part's scroll bar
+	_inner = inner
 	_buffs_open = details_choice
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -87,6 +118,12 @@ func _ready() -> void:
 	_scroll.add_child(content)
 	_content = content
 	content.add_child(_header)
+	if _phone:
+		_portrait.custom_minimum_size = Vector2(PHONE_PORTRAIT, PHONE_PORTRAIT)
+		_phone_stats.name = "PhoneStats"
+		_phone_stats.add_theme_constant_override("separation", 12)
+		_phone_stats.visible = false
+		content.add_child(_phone_stats)
 	_ranks_row.name = "RankPicks"
 	_ranks_row.add_theme_constant_override("h_separation", 8)
 	content.add_child(_ranks_row)
@@ -97,6 +134,8 @@ func _ready() -> void:
 	_notes.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	content.add_child(_notes)
 	content.add_child(_groups)
+	if _phone:
+		content.add_child(_buttons)  # Phones: the grow rows and choices scroll with the info; Sell / Nurture stay in the footer
 	# Details (light pass): "This run", Kinship, combos, Buffs, Dreams on it, the rest of the description.
 	_details.name = "Details"
 	_details.add_theme_constant_override("separation", 4)
@@ -113,8 +152,13 @@ func _ready() -> void:
 	_map_note.add_theme_font_size_override("font_size", 14)
 	_map_note.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_details.add_child(_map_note)
+	if _phone:  # Phones: the full stat rows (crit, statuses, coverage …) open with Details; the grid shows the main three
+		_stats.get_parent().remove_child(_stats)
+		_details.add_child(_stats)
+		_details.move_child(_stats, 0)
 	_buttons.add_theme_constant_override("separation", 0)  # Rows: 48 px each, the hit areas touch
-	box.add_child(_buttons)  # Actions: never scrolled away
+	if not _phone:
+		box.add_child(_buttons)  # Actions: never scrolled away
 	_footer.add_theme_constant_override("separation", 4)  # + the 16 px gap = 24 between Sell and Close
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
@@ -196,6 +240,8 @@ func _refresh() -> void:
 		var rank_text := "Rank %s" % Tower.rank_name(_tower.rank) + (" · Eldest" if _is_eldest(_tower) else "")
 		sub.text = rank_text if not _damage_type.visible else sub.text + " · " + rank_text
 		_damage_type.visible = true
+	if _phone:
+		_fill_phone_stats()
 	_fill_rank_picks()
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
@@ -294,6 +340,12 @@ func _refresh() -> void:
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
+			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
+			if note != "":
+				label += " · " + note
+			var wakes := _wakes(next)
+			if not wakes.is_empty():
+				button.tooltip_text += "\n\nWakes: " + ", ".join(wakes) + " (Dream cards you hold that wait for this job)"
 			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -349,6 +401,7 @@ func _refresh() -> void:
 			if not _choosing or not _tower.needs_focus():
 				_nurture_gap()  # Apart from the grow rows (user: "a little separation")
 				var nurture := _add_button("")
+				nurture.set_meta(&"nurture_main", true)  # Phones move it into the footer (_phone_arrange)
 				_as_choice(nurture)  # The same weight as the grow rows (no primary)
 				nurture.set_meta(&"key", UiStyle.key_suffix("R"))
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
@@ -393,6 +446,7 @@ func _refresh() -> void:
 		note = "This rest's %s comes back in full." % UiStyle.dew_amount(_tower.rest_dew)
 	_details_toggle()
 	var sell := _add_footer_button("Sell %s+%s" % [UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
+	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
@@ -406,8 +460,10 @@ func _refresh() -> void:
 	gap.custom_minimum_size.x = 16.0
 	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
+	close.set_meta(&"close", true)
 	_key_on(close, "Esc")
 	close.pressed.connect(tower_seller.select.bind(null))
+	_phone_arrange()
 
 func _is_eldest(tower: Tower) -> bool:
 	return dream_state.has_method("is_eldest") and dream_state.is_eldest(tower)
@@ -515,6 +571,7 @@ func _refresh_group() -> void:
 		var nurturable := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
 		_nurture_gap()
 		var open := _add_button("")
+		open.set_meta(&"nurture_main", true)  # Phones move it into the footer (_phone_arrange)
 		_as_choice(open)
 		open.set_meta(&"key", UiStyle.key_suffix("R"))
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
@@ -551,6 +608,7 @@ func _refresh_group() -> void:
 	var in_drift := not drift_director.is_build_phase()
 	_details_toggle()
 	var sell := _add_footer_button("Sell %d %s+%s" % [selection.size(), UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
+	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
@@ -564,8 +622,11 @@ func _refresh_group() -> void:
 	gap.custom_minimum_size.x = 16.0
 	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
+	close.set_meta(&"close", true)
 	_key_on(close, "Esc")
 	close.pressed.connect(tower_seller.select.bind(null))
+	_phone_stats.visible = false  # One Warden's numbers only
+	_phone_arrange()
 
 # Portrait and count for one kind in the selection.
 func _group_row(data: TowerData, count: int) -> Control:
@@ -937,6 +998,30 @@ static func _grow_tip(changes: String, form: TowerData) -> String:
 		tip += "\n\n" + IconInfo.format(form.description)  # {spored}-style tokens as words
 	return tip
 
+# A grow row's small line (owner 2026-10-16: see which Dream cards a form wakes): its role tags (WardenRoles), then the
+# held cards it would wake, "Heavy, Area · wakes Hammerfall".
+func _grow_note(form: TowerData) -> String:
+	var parts: Array[String] = []
+	var tags := WardenHeaderView.role_tags(form)
+	if not tags.is_empty():
+		parts.append(", ".join(tags))
+	var wakes := _wakes(form)
+	if not wakes.is_empty():
+		parts.append("wakes " + ", ".join(wakes))
+	return " · ".join(parts)
+
+# The Dream cards the player holds that wait for a job `form` has (UpgradeData.requires_role, not yet met by a Warden
+# built or grown this run: DreamState.has_grown_role), by name.
+func _wakes(form: TowerData) -> Array[String]:
+	var out: Array[String] = []
+	if dream_state == null or not dream_state.has_method("has_grown_role"):
+		return out
+	for card in dream_state.get_taken_cards():
+		var role = card.get("requires_role")
+		if role != null and role != &"" and WardenRoles.has_role(form, role) and not dream_state.has_grown_role(role):
+			out.append(dream_state.get_display_name(card.id))
+	return out
+
 # First Care's free ranks, or this Warden's banked ones (Ancient Stump, Tower Code 0d59136d): the next rank costs nothing.
 func _free_rank() -> bool:
 	if is_instance_valid(_tower) and int(_tower.get("banked_ranks") if _tower.get("banked_ranks") != null else 0) > 0:
@@ -1144,6 +1229,8 @@ func _all_buttons() -> Array:
 			out.append_array(child.get_children())
 		else:
 			out.append(child)
+	if _phone:
+		out.append_array(_footer.get_children())  # Phones: Nurture sits in the footer (prices, refusals, pulses reach it)
 	return out
 
 # Every option it can act on now is always shown (story chat; only not-in-this-dream forms wait, behind their Remember
@@ -1154,7 +1241,7 @@ const GROW_GRID := false
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	_as_choice(button)
-	if GROW_GRID and count > MAX_ROWS:
+	if (GROW_GRID and count > MAX_ROWS) or (_phone and count >= 2):  # Phones: two to a row, the price under the name
 		var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
 		if grid == null or grid.is_queued_for_deletion():
 			grid = GridContainer.new()
@@ -1286,7 +1373,7 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
 	TapTip.attach(row, tip)  # Hover or tap (screens_ui.md "Every icon can be hovered or tapped")
 	var icon := TextureRect.new()
-	icon.texture = IconInfo.damage_type_icon(line)
+	icon.texture = CodexData.family_icon(CodexData.LINE_FAMILIES.get(line, ""))  # The family's icon (damage types are gone)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.custom_minimum_size = Vector2(16, 16)
@@ -1311,7 +1398,7 @@ func _growth_note() -> String:
 # A key chip at the right of a footer button (Sell: X); its text keeps clear of it. A changed text (a block reason)
 # drops it.
 func _key_on(button: Button, key: String) -> void:
-	if key == "":
+	if key == "" or _phone:  # Phones: no keyboard, no key chips
 		return
 	var chip := UiStyle.key_chip(key)
 	chip.name = "Key"
@@ -1397,6 +1484,9 @@ func _add_footer_button(text: String) -> Button:
 func _fit_height() -> void:
 	if _content == null:
 		return
+	if _phone:
+		_scroll.custom_minimum_size.y = 0.0  # Phones: a full-height drawer, the middle takes whatever room is left
+		return
 	if visible and _row_limit() != _built_limit:
 		_built_limit = _row_limit()
 		_refresh.call_deferred()  # Crossed SHORT_SCREEN with a long grow list: rebuild with the new limit
@@ -1466,6 +1556,7 @@ static func _is_price(text: String) -> bool:
 
 func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	button.set_meta(&"short", short)
+	button.set_meta(&"poor_price", poor_price)  # Phones: a grow row moved back to one column redraws with it
 	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
 	var label: String = button.get_meta(&"label", "")
 	var price: String = button.get_meta(&"price", "")
@@ -1550,7 +1641,7 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 		price_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
-	chip.visible = chip.text != ""
+	chip.visible = chip.text != "" and not _phone  # Phones: no keyboard, no key chips
 
 # A row that can't be pressed, with its reason as the small line ("Needs 3 free cells beside it", "Awake elsewhere").
 # A row's name is never cut (user, Jarlink: "Unlock Lightning F…"): it steps down a font size or two until it fits its
@@ -1698,3 +1789,247 @@ func pulse(kind: StringName) -> int:
 			tween.tween_property(button, "modulate", Color(1.5, 1.35, 1.0), 0.25)  # A multiplier (glow), not a colour
 			tween.tween_property(button, "modulate", Color.WHITE, 0.6)
 	return count
+
+# --- Phones: the Warden drawer (mobile redesign; PC never reaches these) --------------------------------------------
+
+# Docked to the right edge, full height: the map stays visible to its left. The HUD layer is already fitted into the
+# notch-safe area (UiStyle.safe_transform, hud.gd), so the edges here are safe.
+func _dock_right() -> void:
+	anchor_top = 0.0
+	anchor_bottom = 1.0
+	anchor_right = 1.0
+	anchor_left = 1.0
+	offset_left = -PHONE_WIDTH
+	offset_right = 0.0
+	offset_top = 0.0
+	offset_bottom = 0.0
+	grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	grow_vertical = Control.GROW_DIRECTION_BOTH
+
+# Damage, speed, reach (+ Potency when it does something) as one icon row (the header's own formulas); hidden for
+# walls, auras and a Graftling with nothing to copy. Each stat explains itself on tap (IconInfo).
+func _fill_phone_stats() -> void:
+	for child in _phone_stats.get_children():
+		_phone_stats.remove_child(child)
+		child.queue_free()
+	var data := _tower.tower_data
+	var copying := data.attack_kind == TowerData.AttackKind.COPY and _tower.get_copied() == null
+	_phone_stats.visible = data.can_attack and data.attack_kind != TowerData.AttackKind.AURA and not copying
+	if not _phone_stats.visible:
+		return
+	var range_text := "%.1f" % _tower.get_range_cells()
+	if _tower.attack_data != null and _tower.attack_data.min_range > 0.0:
+		range_text = "%.1f–%.1f" % [_tower.attack_data.min_range, _tower.get_range_cells()]
+	_phone_stats.add_child(_phone_stat_tile(BossDossier.thousands(roundi(_tower.get_damage())), &"damage"))
+	_phone_stats.add_child(_phone_stat_tile("%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"))
+	_phone_stats.add_child(_phone_stat_tile(range_text, &"range"))
+	if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something, as in the header
+		_phone_stats.add_child(_phone_stat_tile(str(snappedf(_tower.get_potency(), 0.01)), &"potency"))
+
+# One stat as icon + number (no caps word, no frame: UI owner's review); a tap explains it for this Warden, 48 px tall.
+func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
+	var cell := HBoxContainer.new()
+	cell.name = "Stat_" + String(stat)
+	cell.add_theme_constant_override("separation", 4)
+	cell.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	cell.mouse_filter = Control.MOUSE_FILTER_PASS  # The drawer still scrolls under a drag
+	var texture := IconInfo.icon(stat)
+	if texture != null:
+		var icon := TextureRect.new()
+		icon.texture = texture
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(PHONE_STAT_ICON, PHONE_STAT_ICON)
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(icon)
+	var number := Label.new()
+	number.text = value
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.size_flags_vertical = Control.SIZE_FILL
+	UiStyle.number(number, 20)
+	cell.add_child(number)
+	# The header's own tip for this Warden (Potency: what it does on it), so phone and PC say the same; the header falls
+	# back to IconInfo for stats it doesn't explain per Warden
+	var tip := _header.stat_tip(stat)
+	if tip != "":
+		TapTip.attach(cell, tip)
+	return cell
+
+# After a build (one Warden or a group): Details joins the scrolling rows, Close becomes the header's round button,
+# Nurture leaves the rows for the footer beside Sell (or Back while its choices are open). Every button keeps its
+# handlers; only where it sits changes.
+# Phones (platforms.md "Select all of this kind"; user 2026-10-15: multi-select must not rest on a double tap alone):
+# with one Warden shown, a row selects every Warden of its kind on the map, any rank.
+func _add_select_kind() -> void:
+	if tower_seller.selection.size() != 1 or not is_instance_valid(_tower):
+		return
+	var same: Array[Tower] = tower_seller.get_same_kind(_tower.tower_data, true)
+	if same.size() < 2:
+		return
+	var button := Button.new()
+	button.name = "SelectKind"
+	button.text = "Select all %d %ss" % [same.size(), _tower.tower_data.display_name]
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.pressed.connect(_select_kind.bind(_tower))
+	_buttons.add_child(button)
+
+func _select_kind(tower: Tower) -> void:
+	if is_instance_valid(tower):
+		tower_seller.select_same_as(tower, true, true)
+
+func _phone_arrange() -> void:
+	if not _phone:
+		return
+	_footer.add_theme_constant_override("separation", 8)
+	var details := _footer.get_node_or_null("DetailsToggle") as Button
+	if details != null:
+		_footer.remove_child(details)
+		_buttons.add_child(details)
+	var sell: Button = null
+	for child in _footer.get_children():
+		if child.get_meta(&"close", false):
+			_footer.remove_child(child)
+			child.queue_free()
+		elif child.get_meta(&"sell", false):
+			sell = child
+		elif not child is Button:
+			_footer.remove_child(child)  # The PC's 16 px gap between Sell and Close
+			child.queue_free()
+	_add_phone_close()
+	_add_select_kind()
+	_phone_grow_columns()
+	var target_chip := _portrait.get_parent().get_node_or_null("TargetChip") as Control
+	if target_chip != null:
+		target_chip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	var nurture: Button = null
+	for child in _buttons.get_children():
+		if child is Button and child.get_meta(&"nurture_main", false):
+			nurture = child
+	if nurture != null:
+		var before := nurture.get_index() - 1
+		if before >= 0:
+			var gap := _buttons.get_child(before)
+			if not gap is Button and gap is Control and (gap as Control).custom_minimum_size.y == NURTURE_GAP:
+				_buttons.remove_child(gap)  # Its separator above the rows: nothing to separate in the footer
+				gap.queue_free()
+		_buttons.remove_child(nurture)
+		_footer.add_child(nurture)
+		nurture.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nurture.custom_minimum_size.y = PHONE_FOOTER_H  # A plain choice row like the grow options: same height, no primary
+		_apply_price(nurture)
+	elif _choosing:
+		var back := _add_footer_button("Back")
+		back.name = "ChoicesBack"
+		back.tooltip_text = "Close the rank choices"
+		back.custom_minimum_size.y = PHONE_FOOTER_H
+		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		back.pressed.connect(_toggle_choices)
+		_phone_reveal_choices.call_deferred()
+	if sell != null:  # Phones: no Sell in the drawer (user 2026-10-16); the Warden dock's Sell slot sells
+		_footer.remove_child(sell)
+		sell.queue_free()
+
+# Sell: a quiet text button (Mist words, no box, no key chip) with a 48 px hit area (UI owner's review); a long line
+# (a block reason, "Press again") takes half the row and says itself whole in its tip.
+func _phone_sell(sell: Button, beside: bool) -> void:
+	var key := sell.get_node_or_null("Key")
+	if key != null:
+		key.queue_free()
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := StyleBoxEmpty.new()  # No frame (the group Sell's POOR frame included)
+		box.content_margin_left = 6.0
+		box.content_margin_right = 6.0
+		sell.add_theme_stylebox_override(state, box)
+	for state in FONT_STATES:
+		sell.add_theme_color_override(state, UiStyle.INK if state == "font_hover_color" or state == "font_pressed_color" else UiStyle.INK_DIM)
+	sell.add_theme_color_override("font_disabled_color", Color(UiStyle.INK_DIM, 0.6))
+	sell.custom_minimum_size = Vector2(PHONE_SELL_W, PHONE_FOOTER_H)
+	sell.clip_text = true
+	sell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	sell.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var long := sell.text.length() > 14
+	sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL if (long or not beside) else Control.SIZE_FILL
+	if long:
+		sell.tooltip_text = sell.text + ("\n\n" + sell.tooltip_text if sell.tooltip_text != "" else "")
+	_footer.move_child(sell, 0)
+
+# Grow options two to a row only while every cell shows itself whole (name, then its price or note in Mist under it,
+# never cut: UI owner's review); otherwise one full-width column.
+const PHONE_GRID_NAME_SIZE := 14  # The smallest a name may step down to in a half-width cell
+
+func _phone_grow_columns() -> void:
+	var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
+	if grid == null or grid.is_queued_for_deletion() or grid.get_child_count() == 0:
+		return
+	var first := grid.get_child(0) as Button
+	var margin := first.get_theme_stylebox("normal").get_margin(SIDE_LEFT) + 8.0  # The row overlay's insets (_row_look)
+	var room := (_inner - float(grid.get_theme_constant("h_separation"))) / 2.0 - margin
+	if _grid_cells_fit(grid, room):
+		return
+	var at := grid.get_index()
+	var cells := grid.get_children()
+	_buttons.remove_child(grid)
+	grid.queue_free()
+	for i in cells.size():
+		var button := cells[i] as Button
+		grid.remove_child(button)
+		_buttons.add_child(button)
+		_buttons.move_child(button, at + i)
+		button.set_meta(&"narrow", false)
+		button.size_flags_horizontal = Control.SIZE_FILL
+		_row_look(button, button.get_meta(&"short", false), button.get_meta(&"poor_price", true))
+
+func _grid_cells_fit(grid: GridContainer, room: float) -> bool:
+	for cell in grid.get_children():
+		var row := cell.get_node_or_null("Row")
+		if row == null:
+			return false
+		var name_label := row.get_node("Lines").get_child(0) as Label
+		var note_label := row.get_node("Lines").get_child(1) as Label
+		var font := name_label.get_theme_font("font")
+		if font.get_string_size(name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, PHONE_GRID_NAME_SIZE).x > room:
+			return false
+		font = note_label.get_theme_font("font")
+		if note_label.text != "" and font.get_string_size(note_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ROW_NOTE_SIZE).x > room:
+			return false
+	return true
+
+# The round close button at the end of the header's line (tagged as its corner: the next build's set_corner clears it).
+func _add_phone_close() -> void:
+	var close := Button.new()
+	close.name = "PhoneClose"
+	close.theme_type_variation = &"HudButton"  # Square like every other HUD button (user 2026-10-16: it was a circle)
+	close.focus_mode = Control.FOCUS_NONE
+	close.tooltip_text = "Close"
+	close.custom_minimum_size = Vector2(UiStyle.HUD_BUTTON_H, UiStyle.HUD_BUTTON_H)
+	close.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	close.set_meta(&"corner", true)
+	close.draw.connect(_draw_close.bind(close))
+	close.pressed.connect(tower_seller.select.bind(null))
+	_portrait.get_parent().add_child(close)
+
+func _draw_close(button: Button) -> void:
+	var centre := (button.size / 2.0).floor()
+	var colour := UiStyle.GOLD if button.is_hovered() else UiStyle.INK_DIM
+	var s := 6.0
+	button.draw_line(centre + Vector2(-s, -s), centre + Vector2(s, s), colour, 2.0, true)
+	button.draw_line(centre + Vector2(s, -s), centre + Vector2(-s, s), colour, 2.0, true)
+
+# The rank choices opened from the footer's Nurture: scroll them into view (they sit in the middle's rows).
+func _phone_reveal_choices() -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(_scroll) or not _choosing:
+		return
+	var last: Control = null
+	for child in _buttons.get_children():
+		if child is Button and child.has_meta(&"choice"):
+			last = child
+	if last != null:
+		_scroll.ensure_control_visible(last)
+	var heading := _buttons.get_node_or_null("NurtureHeading") as Control
+	if heading != null:
+		_scroll.ensure_control_visible(heading)

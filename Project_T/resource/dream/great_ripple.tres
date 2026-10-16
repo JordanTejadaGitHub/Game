@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "great_ripple"
 display_name = "Great Ripple"
-description = "Every area attack hits again 1 s later in a ring 1 cell wider, at 50% (an aftershock)."
+description = "Every area attack hits again 1 s later in a ring 1 cell wider, at half damage."
 rarity = 3
 kind = 3
 tags = Array[String](["reach"])
@@ -14,3 +14,4 @@ max_stacks = 1
 in_start_pool = false
 rule_id = &"great_ripple"
 min_act = 2
+tip = "The second hit never crits and never ripples again."

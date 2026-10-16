@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "clashing_notes"
+display_name = "Clashing Notes"
+description = "Needs another {family}'s status. A bell's hit on a {drowsy} nightmare sets off a Reaction it has half the {stacks} for. Each nightmare, once every 8 s."
+tip = "Half: {spored}, {static} and {damp} need only half their usual {stacks}; {drowsy} must still be {full}. Works for Thunderclap, Ignite, Drown and the {spored}-with-{damp} Reaction, never one with Rooted. One of the statuses must still come from a grown Warden (a branch or final form). A bet."
+rarity = 2
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"clashing_notes"
+requires = Array[String](["bellflower"])
+retired = true

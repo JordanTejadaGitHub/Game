@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "sap_rising"
 display_name = "Sap Rising"
-description = "Wardens that don't attack (auras, catchers, {warden:dreamcatcher}s) pulse the 8 cells around them every 2 s, for damage that grows with the bonus they give."
+description = "Every 2 s, each support Warden hits every nightmare {touching} it. The hit grows stronger every {drift}."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "defining"])
 max_stacks = 1
 rule_id = &"sap_rising"
+tip = "Support Warden: an aura Warden, catcher or {warden:dreamcatcher}. Walls don't count. It counts as an area attack. At most a quarter of a nightmare's health; bosses and Deeply Blighted a tenth. Works for: support Wardens beside the path. Safe."

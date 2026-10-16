@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "knock_on"
 display_name = "Knock-On"
-description = "Needs another {jump} card. When a {heavy} Warden's {jump} dispels a nightmare, it {jumps} once more to the nearest {lit} nightmare, at the same damage."
+description = "Needs Hammerfall or Thunderstruck. When one of their {jumps} from a {heavy} Warden dispels a nightmare, it {jumps} again to the nearest other nightmare, same damage."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"knock_on"
 requires = Array[String](["firefly_jar"])
-tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells). A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines). The front nightmare is the one furthest along the path. Jump cards: Hammerfall, Spotlight, Nothing Wasted, Chain of Lanterns."
+tip = "Heavy: slow, hard-hitting Wardens (the Acorn and Pebbling lines, Frostfern, Silver Bell). A Sprout's Hammerfall jump doesn't count. The second jump never jumps again. A bet: it needs a heavy jump card first."
+retired = true

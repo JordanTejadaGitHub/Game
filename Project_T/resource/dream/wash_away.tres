@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "wash_away"
 display_name = "Wash Away"
-description = "A {damp} nightmare in {water} loses half its resistance to every Warden {touching} that {water}. Not bosses."
-tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: any Warden {touching} the {water}. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "A {damp} nightmare's {dread_shell} takes double damage from Wardens {near} a {warden:dewdrop}. Not bosses."
+tip = "{dread_shell}: the grey crust on a nightmare's health bar that soaks up part of each hit until it breaks. The hit itself is unchanged; it just breaks twice as fast. Works for: any Warden near a {warden:dewdrop}. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"wash_away"
 requires = Array[String](["dewdrop"])
+retired = true

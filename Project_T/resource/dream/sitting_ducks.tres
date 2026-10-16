@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sitting_ducks"
+display_name = "Sitting Ducks"
+description = "Needs a way to put nightmares to sleep or {held}. Statuses added to one {near} a spore Warden get 2 more {stacks}. Once a second per Warden."
+tip = "Asleep or {held}: Rootling Holds, Nod Off, Dreamshroom. {static} and {marked} gain 1 more, not 2; {drowsy} hits never gain. A bet: it does little until a Warden of yours stops nightmares."
+rarity = 1
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"sitting_ducks"
+requires = Array[String](["sporeling"])
+retired = true

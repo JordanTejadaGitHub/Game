@@ -232,7 +232,26 @@ var _tab_scroll: ScrollContainer = null
 var _top_bar: HBoxContainer = null
 var _top_spacer: Control = null
 var _phone_box: VBoxContainer = null
-const PHONE_COMPACT_HEIGHT := 640.0  # Below this the tabs share the top bar (no title): the tree keeps its room
+const PHONE_COMPACT_HEIGHT := 640.0  # Below this the tabs share the top bar: the tree keeps its room
+
+# Phones grow the tree sideways (user 2026-10-15, mobile_ui_proto Remember.dc.html): the root at the left, a trunk line,
+# the branches in a column, each branch's final form to its right (the Ascended form in a last column). A node is a
+# row: the disc, its name and a small line under it ("In this dream" / the price / "Needs Driftspore").
+const PHONE_ROW_W := 184.0
+const PHONE_ROW_H := 54.0  # >= 44 px even at PHONE_ROW_SCALE_MIN
+const PHONE_ROW_GAP := 2.0
+const PHONE_COL_GAP := 30.0  # Between columns: the trunk runs in the middle of it
+const PHONE_LABEL_H := 24.0  # The column labels ("Branches · 1") above the rows
+const PHONE_LABEL_SIZE := 13
+const PHONE_DISC := 44.0
+const PHONE_DISC_X := 4.0
+const PHONE_ROW_NAME := 16
+const PHONE_ROW_SUB := 12
+const PHONE_ROW_SCALE_MIN := 0.82  # Rows stay >= 44 px; a taller tree scrolls instead
+const PHONE_ROW_SCALE_MAX := 1.3
+const PHONE_HOLDER_MIN := Vector2(320, 140)
+var _tree_scroll: ScrollContainer = null
+var _tree_sizer: Control = null
 
 # The phone layout: Android / iOS builds (and TouchBuild.force_mobile / `-- --mobile` for testing on a PC).
 static func phone_layout() -> bool:
@@ -342,11 +361,24 @@ func _build_phone() -> void:
 	_tree_holder.name = "TreeHolder"
 	_tree_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tree_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_tree_holder.custom_minimum_size = TREE_SIZE * PHONE_TREE_SCALE_MIN
+	_tree_holder.custom_minimum_size = PHONE_HOLDER_MIN
 	_tree_holder.mouse_filter = Control.MOUSE_FILTER_PASS
 	left.add_child(_tree_holder)
+	# The sideways tree scrolls when it can't fit (many branches on a short phone); usually it fits
+	_tree_scroll = ScrollContainer.new()
+	_tree_scroll.name = "TreeScroll"
+	_tree_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_tree_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_tree_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_tree_holder.add_child(_tree_scroll)
+	_tree_sizer = Control.new()
+	_tree_sizer.name = "TreeSizer"
+	_tree_sizer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tree_sizer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_tree_sizer.mouse_filter = Control.MOUSE_FILTER_PASS
+	_tree_scroll.add_child(_tree_sizer)
 	_canvas = TreeCanvas.new(self)
-	_tree_holder.add_child(_canvas)
+	_tree_sizer.add_child(_canvas)
 	_tree_holder.resized.connect(_fit_tree)
 	var misty_scroll := ScrollContainer.new()
 	misty_scroll.name = "MistyScroll"
@@ -405,7 +437,7 @@ func _set_compact(compact: bool) -> void:
 	if _tab_scroll == null or (_tab_scroll.get_parent() == _top_bar) == compact:
 		return
 	_tab_scroll.get_parent().remove_child(_tab_scroll)
-	_title.visible = not compact
+	_title.visible = true  # One header row on short phones too: Remember, Dreamlight, the tabs, Peek, Done (the tabs swipe)
 	_top_spacer.visible = not compact
 	if compact:
 		_tab_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -416,14 +448,18 @@ func _set_compact(compact: bool) -> void:
 		_phone_box.add_child(_tab_scroll)
 		_phone_box.move_child(_tab_scroll, _top_bar.get_index() + 1)
 
-# The tree scales to the room beside the panel (never so small its nodes drop under ~60 px), centred.
+# The sideways tree scales to the room beside the panel (its rows never under ~44 px: a taller tree scrolls), centred.
 func _fit_tree() -> void:
-	if _tree_holder == null:
+	if _tree_holder == null or _canvas == null:
 		return
 	var room := _tree_holder.size
-	var s := clampf(minf(room.x / TREE_SIZE.x, room.y / TREE_SIZE.y), PHONE_TREE_SCALE_MIN, PHONE_TREE_SCALE_MAX)
+	var tree_size := _canvas.custom_minimum_size
+	if tree_size.x <= 0.0 or tree_size.y <= 0.0:
+		return
+	var s := clampf(minf(room.x / tree_size.x, room.y / tree_size.y), PHONE_ROW_SCALE_MIN, PHONE_ROW_SCALE_MAX)
 	_canvas.scale = Vector2(s, s)
-	_canvas.position = ((room - TREE_SIZE * s) / 2.0).max(Vector2.ZERO)
+	_tree_sizer.custom_minimum_size = tree_size * s
+	_canvas.position = ((room - tree_size * s) / 2.0).max(Vector2.ZERO)
 
 # Phones: the panel's Unlock / Call in button leaves the scroll and sits at the panel's foot, full width.
 func _pin_action() -> void:
@@ -489,6 +525,8 @@ func _rebuild() -> void:
 	if selected == null or not _forms_of(shown).has(selected):
 		selected = _first_to_unlock(shown)
 	_canvas.show_tree(shown)
+	if phone_layout():
+		_fit_tree()  # The sideways tree's size follows its branch count
 	_fill_side(selected)
 	_fill_misty(shown[0])
 	_offer_line.text = offer_line(shown[0])
@@ -681,9 +719,10 @@ func count_on_map(data: TowerData) -> int:
 
 # --- Side panel -----------------------------------------------------------------------------------------
 
-# A form whose look stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
-# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Shown as a dim
-# "?" with no portrait, stats or cost. Dev "unlock free" shows everything.
+# A form whose art stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
+# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Its silhouette
+# shows on the tree and in the side panel; its info shows unless is_info_hidden (user 2026-10-15, screens_ui.md
+# 6f9e5401). Dev "unlock free" shows everything.
 func is_veiled(data: TowerData) -> bool:
 	if data == null or _dev_free.button_pressed or dream_state.unlock_everything or dream_state.is_unlocked(data.get_id()):
 		return false
@@ -694,12 +733,21 @@ func is_veiled(data: TowerData) -> bool:
 		return branch != null and branch.tier == 2 and not dream_state.is_unlocked(branch.get_id())
 	return false
 
-# The step that unveils `data`: "Unlock Stormcap to see what it becomes".
+# A veiled form whose name, text, stats and cost stay hidden too: only an Ascended form whose family's Grove node
+# (<family>_ascension) isn't planted. A veiled final always shows its info (user 2026-10-15).
+func is_info_hidden(data: TowerData) -> bool:
+	if not is_veiled(data) or data.tier < DreamState.ASCENDED_TIER:
+		return false
+	var family := dream_state.family_of(data.get_id())
+	var node := HeartwoodMemory.get_unlock(family + "_ascension") if family != "" else null
+	return node == null or HeartwoodMemory.node_level(HeartwoodMemory.load_data(), node) <= 0
+
+# The step that unveils `data`: "Unlock Stormcap first".
 func veil_hint(data: TowerData) -> String:
 	if data.tier >= DreamState.ASCENDED_TIER:
-		return "Unlock a final form of this family to see what it becomes"
+		return "Unlock a final form of this family first"
 	var branch := dream_state._parent_in_tree(data)
-	return "Unlock %s to see what it becomes" % (branch.display_name if branch != null else "its branch")
+	return "Unlock %s first" % (branch.display_name if branch != null else "its branch")
 
 func _fill_side(data: TowerData) -> void:
 	if _action_box != null:
@@ -717,7 +765,7 @@ func _fill_side_content(data: TowerData) -> void:
 	if data == null:
 		_line("No family to remember yet.", UiStyle.INK_DIM, 15)
 		return
-	if is_veiled(data):  # Only the "?" and how to reveal it
+	if is_info_hidden(data):  # Only the "?" and how to reveal it
 		var mark := Label.new()
 		mark.text = "?"
 		UiStyle.display(mark, 22)
@@ -732,7 +780,7 @@ func _fill_side_content(data: TowerData) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
-	head.add_child(Portrait.new(data, 72.0, grove))  # A Grove-locked form stays a silhouette here too (user)
+	head.add_child(Portrait.new(data, 72.0, grove or is_veiled(data)))  # A Grove-locked or veiled form stays a silhouette here too (user)
 	if grove:  # run_design.md: a Grove-locked form shows only its silhouette, "???", "Locked" and the invitation
 		var grove_name := Label.new()
 		grove_name.text = UNKNOWN_NAME
@@ -787,11 +835,7 @@ func _header_names(head: HBoxContainer, data: TowerData) -> void:
 	var tier := Label.new()
 	tier.text = _tier_name(data)
 	tier.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	kind.add_child(tier)
-	var damage_kind := Label.new()
-	damage_kind.text = "%s damage" % IconInfo.damage_type_name(data.line)  # No icon (user): the damage type in its colour
-	damage_kind.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
-	kind.add_child(damage_kind)
+	kind.add_child(tier)  # (No damage type since Nightmare Kinds, enemy_design.md ed6f573b)
 
 # What it does (linked) and its stats as one icon row, as the Warden panel (light pass).
 func _description_and_stats(data: TowerData) -> void:
@@ -1020,7 +1064,8 @@ func _add_unlock(data: TowerData) -> void:
 		_side_box.add_child(free)
 		return
 	var blocker := dream_state.get_unlock_blocker(data)
-	if blocker != "":
+	var veiled := is_veiled(data)  # Its branch (or a final) first: the button says so (user 2026-10-15)
+	if blocker != "" and not veiled:
 		_line("Locked: " + blocker, UiStyle.INK_DIM, 13)
 	# The one detail-panel button (user, Bramble: "Dreamlight is not centred"; as Call into this dream, b5735f56): 12 px
 	# under the text, "Unlock" centred, the Dreamlight glyph and its cost at the right in GOLD, POOR when short; no " · ".
@@ -1033,10 +1078,12 @@ func _add_unlock(data: TowerData) -> void:
 	button.custom_minimum_size = Vector2(0, 48)
 	var price := dream_state.get_unlock_price(data)  # Waking Root (Heartwood's Gifts): 1 less, once
 	var short := price - dream_state.dreamlight  # > 0: can't afford
-	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
+	button.disabled = blocker != "" or veiled  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	button.text = "Unlock" if price > 0 else "Unlock, free"
+	if veiled:
+		button.text = veil_hint(data)  # Its Dreamlight cost stays at the right
 	if price > 0:
 		_cost_on(button, price, blocker == "" and short > 0)
 	if price < cost:
@@ -1086,6 +1133,8 @@ func _select(data: TowerData) -> void:
 	_fill_side(data)
 	if _side_scroll != null:
 		_side_scroll.scroll_vertical = 0  # Phones: a new form's details start at the top
+	if _tree_scroll != null and _canvas.nodes.has(data):
+		_tree_scroll.ensure_control_visible(_canvas.nodes[data])  # Phones: a scrolled tree keeps the chosen row in view
 	if _body is VBoxContainer:  # Phones: the panel slides up into view
 		_side.modulate.a = 0.0
 		var tween := UiTime.tween(self)
@@ -1100,6 +1149,8 @@ class TreeCanvas extends Control:
 	var screen: RememberScreen
 	var nodes := {}  # TowerData -> FormNode
 	var edges: Array = []  # [parent TowerData, child TowerData]
+	var rows_mode := false  # Phones: sideways, nodes as rows (_layout_rows)
+	var labels: Array = []  # Phones: [left x, text] column labels above the rows
 	var _bloom_edge: Array = []
 	var _bloom_t := 0.0
 
@@ -1114,6 +1165,7 @@ class TreeCanvas extends Control:
 			node.queue_free()
 		nodes.clear()
 		edges.clear()
+		labels.clear()
 		if tree.is_empty():
 			queue_redraw()
 			return
@@ -1130,8 +1182,13 @@ class TreeCanvas extends Control:
 			else:
 				shown.append(branch)
 		shown.append_array(hidden)
-		var lanes := maxi(shown.size(), 1)
 		var ascended: TowerData = tree[2] if tree.size() > 2 else null
+		rows_mode = RememberScreen.phone_layout()
+		if rows_mode:  # Phones: the tree grows left to right
+			_layout_rows(root, shown, ascended)
+			queue_redraw()
+			return
+		var lanes := maxi(shown.size(), 1)
 		var rows := 4 if ascended != null else 3
 		_place(root, Vector2(TREE_SIZE.x / 2.0, _row_y(0, rows)))
 		for i in shown.size():
@@ -1167,6 +1224,138 @@ class TreeCanvas extends Control:
 		var node: Control = nodes[data]
 		return node.position + Vector2(NODE_SIZE.x / 2.0, PORTRAIT / 2.0 + 4)
 
+	# Phones: the root in the left column (centred on its branches), the branches in the next, each branch's finals
+	# beside it, the Ascended form in a last column; column labels on top. The canvas sizes itself to the tree.
+	func _layout_rows(root: TowerData, shown: Array, ascended: TowerData) -> void:
+		var pitch := PHONE_ROW_H + PHONE_ROW_GAP
+		var column := PHONE_ROW_W + PHONE_COL_GAP
+		var slots := 0
+		var finals_shown: Array[TowerData] = []
+		for branch in shown:
+			slots += maxi((branch[1] as Array).size(), 1)
+		slots = maxi(slots, 1)
+		var middle := PHONE_LABEL_H + slots * pitch / 2.0
+		_place_row(root, Vector2(0.0, middle))
+		var slot := 0
+		for branch_entry in shown:
+			var branch: TowerData = branch_entry[0]
+			var finals: Array = branch_entry[1]
+			var span := maxi(finals.size(), 1)
+			_place_row(branch, Vector2(column, PHONE_LABEL_H + (slot + span / 2.0) * pitch))
+			edges.append([root, branch])
+			for j in finals.size():
+				var final: TowerData = finals[j]
+				_place_row(final, Vector2(column * 2.0, PHONE_LABEL_H + (slot + j + 0.5) * pitch))
+				finals_shown.append(final)
+				edges.append([branch, final])
+				if ascended != null and final.evolves_to.has(ascended):
+					edges.append([final, ascended])
+			slot += span
+		var branches: Array[TowerData] = []
+		for branch_entry in shown:
+			branches.append(branch_entry[0])
+		var columns := 1
+		if not branches.is_empty():
+			columns = 2
+			labels.append([column, _column_label("Branches", branches)])
+		if not finals_shown.is_empty():
+			columns = 3
+			labels.append([column * 2.0, _column_label("Final forms", finals_shown)])
+		if ascended != null:
+			columns = 4
+			_place_row(ascended, Vector2(column * 3.0, middle))
+			var crown: Array[TowerData] = [ascended]
+			labels.append([column * 3.0, _column_label("Ascended", crown)])
+		custom_minimum_size = Vector2(columns * PHONE_ROW_W + (columns - 1) * PHONE_COL_GAP, PHONE_LABEL_H + slots * pitch)
+		size = custom_minimum_size
+
+	# "Branches · <glyph>1": the column's Dreamlight price when every form still to unlock there costs the same.
+	func _column_label(text: String, forms: Array[TowerData]) -> String:
+		var price := -1
+		for form in forms:
+			var state := screen.state_of(form)
+			if RememberScreen.is_unlocked_state(state) or state == State.GROVE or state == State.NOT_IN_DREAM:
+				continue
+			var cost: int = screen.dream_state.get_unlock_price(form)
+			if price >= 0 and cost != price:
+				return text
+			price = cost
+		return text if price <= 0 else "%s · %s" % [text, UiStyle.dreamlight_amount(price)]
+
+	# A row node with its left edge at x and its middle at y.
+	func _place_row(data: TowerData, left_middle: Vector2) -> void:
+		var node := FormNode.new(screen, data)
+		node.position = Vector2(left_middle.x, left_middle.y - PHONE_ROW_H / 2.0)
+		add_child(node)
+		nodes[data] = node
+
+	# Phones: an edge as a right-angled line: out of the parent's row, along the trunk between the columns, into the
+	# child's disc (straight across when they share a row).
+	func _edge_points(edge: Array) -> PackedVector2Array:
+		var parent: Control = nodes[edge[0]]
+		var child: Control = nodes[edge[1]]
+		var a := parent.position + Vector2(PHONE_ROW_W, PHONE_ROW_H / 2.0)
+		var b := child.position + Vector2(PHONE_DISC_X, PHONE_ROW_H / 2.0)
+		var trunk := child.position.x - PHONE_COL_GAP / 2.0
+		var points := PackedVector2Array([a])
+		if absf(a.y - b.y) > 0.5:
+			points.append(Vector2(trunk, a.y))
+			points.append(Vector2(trunk, b.y))
+		points.append(b)
+		return points
+
+	# The first `t` (0..1) of a line's length.
+	static func _part_of(points: PackedVector2Array, t: float) -> PackedVector2Array:
+		var total := 0.0
+		for i in range(1, points.size()):
+			total += points[i - 1].distance_to(points[i])
+		var left := total * clampf(t, 0.0, 1.0)
+		var part := PackedVector2Array([points[0]])
+		for i in range(1, points.size()):
+			var length := points[i - 1].distance_to(points[i])
+			if length >= left:
+				part.append(points[i - 1].lerp(points[i], left / maxf(length, 0.001)))
+				return part
+			left -= length
+			part.append(points[i])
+		return part
+
+	func _draw_rows() -> void:
+		var font := UiStyle.with_glyphs(UiStyle.caps_font())
+		for label in labels:
+			draw_string(font, Vector2(label[0] + PHONE_DISC_X, PHONE_LABEL_H - 8.0), label[1], HORIZONTAL_ALIGNMENT_LEFT, -1, PHONE_LABEL_SIZE, UiStyle.INK_DIM)
+		# Dim lines first, the lit (unlocked) ones over them: a shared trunk stays gold up to each unlocked branch
+		var lit: Array = []
+		for edge in edges:
+			if not nodes.has(edge[0]) or not nodes.has(edge[1]):
+				continue
+			var points := _edge_points(edge)
+			var child_state: int = screen.state_of(edge[1])
+			if screen.is_veiled(edge[1]):
+				draw_polyline(points, Color(UiStyle.MOON_MIST, 0.16), 1.0, true)
+			elif child_state == State.GROWN or child_state == State.UNLOCKED:
+				lit.append(points)
+			else:
+				draw_polyline(points, LINE_LOCKED, 2.5, true)
+				if child_state == State.LOCKED:  # The thin chain
+					_draw_chain(points)
+		for points in lit:
+			draw_polyline(points, Color(PATH_GLOW, 0.25), 8.0, true)
+			draw_polyline(points, PATH_GLOW, 3.0, true)
+		if not _bloom_edge.is_empty() and nodes.has(_bloom_edge[0]) and nodes.has(_bloom_edge[1]):
+			var part := _part_of(_edge_points(_bloom_edge), _bloom_t)
+			if part.size() >= 2:
+				draw_polyline(part, BLOOM_COLOR, 5.0, true)
+			draw_circle(part[part.size() - 1], 8.0 * (1.0 - _bloom_t * 0.5), Color(BLOOM_COLOR, 0.8))
+
+	func _draw_chain(points: PackedVector2Array) -> void:
+		for i in range(1, points.size()):
+			var a := points[i - 1]
+			var b := points[i]
+			var steps := int(a.distance_to(b) / 10.0)
+			for k in steps:
+				draw_circle(a.lerp(b, (k + 0.5) / float(steps)), 2.0, Color(LINE_LOCKED, 0.8))
+
 	# An unlock: light runs from the parent to the new form.
 	func bloom(data: TowerData) -> void:
 		for edge in edges:
@@ -1183,6 +1372,9 @@ class TreeCanvas extends Control:
 				return
 
 	func _draw() -> void:
+		if rows_mode:
+			_draw_rows()
+			return
 		for edge in edges:
 			if not nodes.has(edge[0]) or not nodes.has(edge[1]):
 				continue
@@ -1215,22 +1407,28 @@ class FormNode extends Button:
 	var screen: RememberScreen
 	var data: TowerData
 	var portrait: Portrait
+	var row := false  # Phones: a row (disc, name, a small line under it) in the sideways tree
 	var _pulse := 0.0
 
 	func _init(owner_screen: RememberScreen, form: TowerData) -> void:
 		screen = owner_screen
 		data = form
-		custom_minimum_size = NODE_SIZE
-		size = NODE_SIZE
+		row = RememberScreen.phone_layout()
+		var box := Vector2(PHONE_ROW_W, PHONE_ROW_H) if row else NODE_SIZE
+		custom_minimum_size = box
+		size = box
 		flat = true
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
 		var veiled := screen.is_veiled(data)
-		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM or veiled)  # Silhouettes: not planted, not in this dream, or not revealed yet
+		var side := PHONE_DISC if row else PORTRAIT
+		portrait = Portrait.new(data, side, state == State.GROVE or state == State.NOT_IN_DREAM or veiled)  # Silhouettes: not planted, not in this dream, or not revealed yet
 		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4 + PORTRAIT_NUDGE)  # The plinth a little below centre
+		if row:
+			portrait.position = disc_centre() - Vector2(side, side) / 2.0 + Vector2(0, PORTRAIT_NUDGE * side / PORTRAIT)
 		add_child(portrait)
 		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) and state != State.GROVE else null  # Never on an unknown (???) form
 		if emblem != null:  # A small branch badge on the portrait's shoulder (the portrait stays: story chat)
@@ -1241,6 +1439,8 @@ class FormNode extends Button:
 			badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			badge.size = Vector2(EMBLEM_BADGE, EMBLEM_BADGE)
 			badge.position = Vector2((NODE_SIZE.x + PORTRAIT) / 2.0 - EMBLEM_BADGE + 2, 2)
+			if row:  # On the disc's shoulder
+				badge.position = disc_centre() + Vector2(PHONE_DISC / 2.0 - EMBLEM_BADGE + 4, -PHONE_DISC / 2.0 - 2)
 			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(badge)
 		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
@@ -1249,12 +1449,17 @@ class FormNode extends Button:
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this run"
-		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"): no name, cost or button
+		var info_hidden := screen.is_info_hidden(data)
+		if veiled:  # A final not revealed yet: its dark silhouette (user: "show the silhouette still"), its name and role under it
 			portrait.modulate = Color(1, 1, 1, 0.85)  # multiplier: the shadow at .85
-			tooltip_text = "? · " + screen.veil_hint(data)
-		if not veiled and state != State.GROVE and data.tier >= 2:
+			tooltip_text = ("?" if info_hidden else data.display_name) + " · " + screen.veil_hint(data)
+		if not info_hidden and state != State.GROVE and data.tier >= 2 and not row:  # Phones: the role is in the detail panel
 			_add_role(IconInfo.role_text(data))
 		pressed.connect(func() -> void: screen._select(data))
+
+	# Phones: the disc's centre in a row node.
+	func disc_centre() -> Vector2:
+		return Vector2(PHONE_DISC_X + PHONE_DISC / 2.0, PHONE_ROW_H / 2.0)
 
 	# Its role line under the name, small and muted like the family pick's lanes (story chat; Tower Code 7824a02e), its
 	# glossary words links (user: "Silences"): ROLE_WIDTH wide, centred under the node, in the gap below. The base sits
@@ -1277,6 +1482,9 @@ class FormNode extends Button:
 			queue_redraw()
 
 	func _draw() -> void:
+		if row:
+			_draw_row()
+			return
 		var state := screen.state_of(data)
 		var centre := Vector2(NODE_SIZE.x / 2.0, 4 + PORTRAIT / 2.0)
 		# (No waystone disc under the portrait: offset below it, it read as a doubled ghost ring: story chat screenshot)
@@ -1285,7 +1493,7 @@ class FormNode extends Button:
 			draw_circle(centre, PORTRAIT / 2.0 - 1, Color(Palette.VOID, 0.25))  # ~75%: the shadow still reads as a Warden
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
-		if screen.is_veiled(data):  # Not revealed yet: only its shadow, no name, cost or glow
+		if screen.is_info_hidden(data):  # An Ascended form without its Grove node: only its shadow, no name, cost or glow
 			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
@@ -1322,6 +1530,84 @@ class FormNode extends Button:
 			var font := UiStyle.body_font() if words else UiStyle.with_glyphs(UiStyle.number_font())  # (The Dreamlight glyph is in the glyph font)
 			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
+
+	# Phones: the row (Remember.dc.html): a gold pill when chosen, the disc, the name beside it and its line under it.
+	func _draw_row() -> void:
+		var state := screen.state_of(data)
+		var veiled := screen.is_veiled(data)
+		var centre := disc_centre()
+		var r := PHONE_DISC / 2.0
+		if screen.selected == data:
+			_draw_pill(Rect2(Vector2.ZERO, size), Color(UiStyle.GOLD, 0.12), Color(UiStyle.GOLD, 0.6))
+		UiStyle.draw_moon_disc(self, centre, r - 1)
+		if veiled:
+			draw_circle(centre, r - 1, Color(Palette.VOID, 0.25))
+		if screen.selected == data:
+			draw_arc(centre, r + 2, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
+		elif state == State.CAN_UNLOCK and not veiled:
+			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
+			draw_arc(centre, r + 1, 0.0, TAU, 40, Color(UiStyle.GOLD, glow), 3.0, true)
+		if state == State.GROVE:
+			_draw_leaf(centre + Vector2(r - 8, -r + 8))
+		elif data.tier == 2 and screen.dream_state.is_hidden_branch(data):
+			_draw_leaf(centre + Vector2(-r + 8, -r + 8))
+		var name_text := "?" if screen.is_info_hidden(data) else name_shown()
+		var name_colour := UiStyle.INK
+		if RememberScreen.is_unlocked_state(state):
+			name_colour = UiStyle.GOLD  # Yours this run
+		elif veiled or state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM:
+			name_colour = UiStyle.INK_DIM
+		var text_x := PHONE_DISC_X + PHONE_DISC + 8.0
+		var room := size.x - text_x - 6.0
+		var name_font := UiStyle.display_font()
+		var name_size := PHONE_ROW_NAME
+		while name_size > NAME_FLOOR_SIZE and name_font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x > room:
+			name_size -= 1
+		draw_string(name_font, Vector2(text_x, size.y / 2.0 - 3.0), name_text, HORIZONTAL_ALIGNMENT_LEFT, room, name_size, name_colour)
+		var sub := _row_sub(state, veiled)
+		var sub_font := UiStyle.with_glyphs(UiStyle.body_font())
+		var sub_size := PHONE_ROW_SUB
+		while sub_size > NAME_FLOOR_SIZE and sub_font.get_string_size(sub[0], HORIZONTAL_ALIGNMENT_LEFT, -1, sub_size).x > room:
+			sub_size -= 1
+		draw_string(sub_font, Vector2(text_x, size.y / 2.0 + 13.0), sub[0], HORIZONTAL_ALIGNMENT_LEFT, room, sub_size, sub[1])
+
+	# The small line under a row's name and its colour: [text, Color].
+	func _row_sub(state: State, veiled: bool) -> Array:
+		if veiled or state == State.LOCKED:
+			return [_needs_line(), UiStyle.OFF]
+		match state:
+			State.GROWN:
+				return ["×%d on the map" % screen.count_on_map(data), UiStyle.LIVE]
+			State.UNLOCKED:
+				return ["In this dream", UiStyle.LIVE]
+			State.CAN_UNLOCK, State.NEEDS_LIGHT:
+				var price: int = screen.dream_state.get_unlock_price(data)
+				var colour := Palette.BLOSSOM if state == State.CAN_UNLOCK else UiStyle.POOR
+				return [UiStyle.dreamlight_amount(price) if price > 0 else "Free", colour]  # The glyph and number say Dreamlight (test_text_style)
+			State.GROVE:
+				return ["Memory Grove", UiStyle.OFF]
+			State.NOT_IN_DREAM:
+				return ["Not in this run", UiStyle.OFF]
+		return ["", UiStyle.OFF]
+
+	# "Needs Driftspore": the form to unlock first.
+	func _needs_line() -> String:
+		if data.tier >= DreamState.ASCENDED_TIER:
+			return "Needs a final form"
+		var parent := screen.dream_state._parent_in_tree(data)
+		return "Needs " + parent.display_name if parent != null else "Locked"
+
+	# A rounded pill filling `rect` (the chosen row's highlight).
+	func _draw_pill(rect: Rect2, fill: Color, edge: Color) -> void:
+		var r := rect.size.y / 2.0
+		var points := PackedVector2Array()
+		for i in 13:  # The right end, top to bottom, then the left end, bottom to top
+			points.append(Vector2(rect.end.x - r, rect.position.y + r) + Vector2.from_angle(-PI / 2.0 + PI * i / 12.0) * r)
+		for i in 13:
+			points.append(Vector2(rect.position.x + r, rect.position.y + r) + Vector2.from_angle(PI / 2.0 + PI * i / 12.0) * r)
+		draw_colored_polygon(points, fill)
+		points.append(points[0])
+		draw_polyline(points, edge, 1.0, true)
 
 	# The name this node shows: "???" for a form the Memory Grove hasn't planted (user), else its own.
 	func name_shown() -> String:

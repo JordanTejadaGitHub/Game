@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "scarred_bark"
 display_name = "Scarred Bark"
-description = "Future {drift} {dew} pots gain +2% per leaf actually lost this run, up to +20%. Regrowing leaves does not lower it."
+description = "Each {leaf} lost this run makes later {drift} {dew} pots 2% bigger, up to +20%."
 rarity = 1
 kind = 3
 tags = Array[String](["leaves", "daring", "defining"])
@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 rule_id = &"scarred_bark"
 in_start_pool = false
+tip = "Regrown leaves still count."

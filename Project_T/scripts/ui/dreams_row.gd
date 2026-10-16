@@ -57,6 +57,8 @@ func _ready() -> void:
 	add_child(_card_tip)
 	dream_state.card_taken.connect(func(_card: UpgradeData) -> void: refresh())
 	dream_state.calling_changed.connect(func(_family: String) -> void: refresh())
+	if dream_state.has_signal("calling_grew"):  # A Calling evolution taken: the badge shows the new path
+		dream_state.calling_grew.connect(func(_id: StringName) -> void: refresh())
 	refresh.call_deferred()  # After a resumed run has loaded its Dreams
 
 func _process(delta: float) -> void:
@@ -67,16 +69,20 @@ func _process(delta: float) -> void:
 	refresh()
 
 # Rebuilds the icons when the cards changed, and updates every live bonus.
-# "Lantern Ring" / "Firefly Jar" / the rule with its tokens as words: {} when the run has no Calling.
+# "Lantern Ring" / "Firefly Jar" / the rule with its tokens as words: {} when the run has no Calling. "path" = the
+# Calling and the evolutions taken ("Spore Print → Fairy Ring → …", DreamState.calling_path_text; Roguelite Code
+# 3f058f07), the name where nothing has grown yet.
 func calling_info() -> Dictionary:
 	if dream_state == null or dream_state.calling == "" or dream_state.calling_title() == "":
 		return {}
 	var family := IconInfo.family_data(dream_state.calling)
+	var path: String = dream_state.calling_path_text() if dream_state.has_method("calling_path_text") else ""
 	return {"name": dream_state.calling_title(), "family": family.display_name if family != null else dream_state.calling.capitalize(),
-		"text": DreamState.CALLINGS.tooltip(dream_state.calling), "data": family}
+		"text": DreamState.CALLINGS.tooltip(dream_state.calling), "data": family, "path": path if path != "" else dream_state.calling_title()}
 
 func _refresh_calling() -> void:
-	var family: String = dream_state.calling if not calling_info().is_empty() else ""
+	var info_now := calling_info()
+	var family: String = (dream_state.calling + "|" + String(info_now.path)) if not info_now.is_empty() else ""  # Rebuilt when it grows
 	if family == _calling_shown:
 		return
 	_calling_shown = family
@@ -103,11 +109,20 @@ func _refresh_calling() -> void:
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_calling_frame.add_child(face)
-	TapTip.attach(_calling_frame, "Calling · %s\n%s" % [info.name, IconInfo.format(info.text)])
+	TapTip.attach(_calling_frame, "Calling · %s\n%s" % [info.path, IconInfo.format(info.text)])  # Its path as it grows
 	_row.add_child(_calling_frame)
 	_row.move_child(_calling_frame, 0)  # Before the Dream cards
 	if _list.visible:
 		_build_list()
+
+# Phones: the icon strip goes (the HUD's Dreams button opens "Dreams this run" instead; Mobile UI).
+var strip_hidden := false:
+	set(value):
+		strip_hidden = value
+		_row.visible = not value
+		if value:
+			_list.set_meta(&"tips_beside", true)  # Word tips (StatusLinks) open beside the list, never over its text
+		queue_redraw()
 
 func refresh() -> void:
 	_refresh_calling()
@@ -140,7 +155,7 @@ func refresh() -> void:
 
 # A fog patch behind the icons (ui_style.md: the Dreams row has fog, no thread).
 func _draw() -> void:
-	if _icons.is_empty() and _calling_frame == null:
+	if strip_hidden or (_icons.is_empty() and _calling_frame == null):
 		return
 	var width := 0.0
 	if _calling_frame != null:
@@ -185,7 +200,7 @@ func get_list_text() -> String:
 	var lines: Array[String] = ["Dreams this run"]
 	var calling := calling_info()
 	if not calling.is_empty():
-		lines.append("Calling: %s (%s): %s" % [calling.name, calling.family, IconInfo.format(calling.text)])
+		lines.append("Calling: %s (%s): %s" % [calling.path, calling.family, IconInfo.format(calling.text)])
 	if dream_state.supply_line() != "":
 		lines.append(dream_state.supply_line())
 	for icon in _icons:
@@ -221,7 +236,7 @@ func _build_list() -> void:
 		_list_box.add_child(calling_line)
 		var calling_name := Label.new()
 		calling_name.name = "CallingName"
-		calling_name.text = "%s · %s family" % [calling.name, calling.family]
+		calling_name.text = "%s · %s family" % [calling.path, calling.family]
 		UiStyle.title(calling_name, 16, UiStyle.GOLD)
 		_list_box.add_child(calling_name)
 		var calling_rule := StatusLinks.make_label(calling.text, 14, UiStyle.INK)
@@ -251,7 +266,10 @@ func _build_list() -> void:
 		_list_box.add_child(line)
 		for icon in icons:
 			_list_box.add_child(_card_row(icon))
-	_list_scroll.custom_minimum_size = Vector2(LIST_WIDTH, minf(_list_box.get_combined_minimum_size().y, LIST_MAX_HEIGHT))
+	var cap := LIST_MAX_HEIGHT
+	if strip_hidden:  # Phones: the list (and its Close) end above the Warden dock (user screenshot 2026-10-15)
+		cap = maxf(minf(cap, get_viewport_rect().size.y - 300.0), 140.0)
+	_list_scroll.custom_minimum_size = Vector2(LIST_WIDTH, minf(_list_box.get_combined_minimum_size().y, cap))
 
 func _card_row(source: DreamIcon) -> Control:
 	var card := source.card
@@ -321,6 +339,8 @@ func _card_row(source: DreamIcon) -> Control:
 	UiStyle.number(live, 15, UiStyle.INK_DIM if source.live.begins_with("off") else UiStyle.GOLD)
 	row.add_child(live)
 	frame.gui_input.connect(func(event: InputEvent) -> void:
+		if strip_hidden:
+			return  # Phones: the row already shows the whole card; its tip only covered the list (user screenshot)
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_card_tip.show_card(frame, card, frame.get_global_rect().get_center(), DreamMarks.MarkTip.TAP_TIME)
 			frame.accept_event())
@@ -348,8 +368,9 @@ func _sleeping_text(card: UpgradeData) -> String:
 	var reason: String = dream_state.not_active_reason(card) if dream_state.has_method("not_active_reason") else ""
 	if reason != "":
 		return reason  # "Not active yet: needs a Water Warden" (dream_design.md 2026-10-01)
-	var text: String = dream_state.missing_families_text(card) if dream_state.has_method("missing_families_text") else ""
-	return IconInfo.format(text) if text != "" else _needs_text(card)
+	var needs: Array = dream_state.missing_needs(card) if dream_state.has_method("missing_needs") else []
+	var text := NeedsRow.text(needs)  # By family, never a damage type (Nightmare Kinds)
+	return text if text != "" else _needs_text(card)
 
 # A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"), or not active yet
 # (needs a Warden you don't have): shown greyed, its hover says why.

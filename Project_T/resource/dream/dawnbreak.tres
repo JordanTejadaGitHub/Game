@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "dawnbreak"
 display_name = "Dawnbreak"
-description = "A ×10 Reaction chain sets off a Dawnburst: 10% of max health to every nightmare within 4 cells (bosses 2%)."
+description = "Every 10th link of a {chain} sets off a Dawnburst: nightmares within 4 cells take 10% of their maximum health (bosses 2%)."
+tip = "Links 10, 20, 30 and so on. Each nightmare once every 3 s."
 rarity = 3
 kind = 3
 tags = Array[String](["reaction", "affliction"])

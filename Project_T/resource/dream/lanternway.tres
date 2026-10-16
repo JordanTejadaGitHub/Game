@@ -13,3 +13,5 @@ tags = Array[String](["storm"])
 max_stacks = 1
 rule_id = &"lanternway"
 calling = "firefly_jar"
+tip = "A light: one Firefly Warden's glow, or glows that touch; a glowing Sprout is its own. Works for: separate lights down the route, and anything that makes bolts. Safe."
+retired = true

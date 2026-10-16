@@ -47,13 +47,13 @@ const CARD_ICON := 32.0
 const WIDE_CODEX := 1100.0  # Viewport width from which the entry cards sit in two columns
 # Each glossary group's icon in the left pane (assets/ui/icons.png ids).
 const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": &"crit_chance", "Wardens": &"rank", "Signatures": &"rank",
-	"Nightmares": &"nightmare", "Statuses": &"damp", "Damage types": &"damage_type", "Dreams": &"dreamlight",
+	"Nightmares": &"nightmare", "Statuses": &"damp", "Nightmare Kinds": &"nightmare", "Dreams": &"dreamlight",
 	"The Memory Grove": &"seeds", "Combat callouts": &"crit_damage", "Nightmares you've met": &"nightmare"}
 # Terms with an icon of their own (the rest use their group's).
 const TERM_ICONS := {"Dew": &"dew", "Dreamlight": &"dreamlight", "Dreamlight shard": &"dreamlight", "Leaves": &"leaves",
 	"Seeds": &"seeds", "Rank": &"rank", "Nurture": &"rank", "Potency": &"potency", "Crit": &"crit_chance",
 	"Deeply Blighted": &"deeply_blighted", "Hidden": &"hidden", "Flying": &"flying", "Dread shell": &"dread_shell",
-	"Omen": &"omen", "Damage type": &"damage_type", "Plain damage": &"plain", "Talon": &"wing",
+	"Omen": &"omen", "Armoured": &"dread_shell",
 	"Nurture choice": &"focus_power", "Clear tool": &"dew_cost", "Close call": &"leaves"}
 var _combos := VBoxContainer.new()
 var _combos_scroll := ScrollContainer.new()
@@ -61,13 +61,24 @@ var _combo_count := Label.new()
 var _entries := {}  # Term or combo id -> its Control (for jumps)
 var _families := VBoxContainer.new()  # The Families page
 var family_cards := {}  # Family base id -> its section (tests)
+# Phones (mobile only; mobile_ui_proto Options): the glossary is a list and a page. The left column (PHONE_LIST_W) holds the
+# search and every group with its entries under it; the right pane shows the one entry picked (big name, its group as
+# the kind line, the text, "See also" as 48 px chips). `embedded`: the phone pause menu's pane sizes the Codex.
+const PHONE_LIST_W := 200.0
+const PHONE_TERM_INDENT := 26.0
+var embedded := false  # Set before adding (phone pause menu): no own width or height, the pane's rect
+var _phone := false
+var _term := ""  # Phones: the glossary entry shown ("" = the first in the list)
+var _term_group := ""
+var _groups_scroll: ScrollContainer
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
+	_phone = UiStyle.is_phone()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)
+	box.custom_minimum_size = Vector2.ZERO if embedded else Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)
 	_box = box
 	add_child(box)
 	# The title on the left, a quiet ✕ on the right (light pass: no Close button at the foot).
@@ -89,6 +100,8 @@ func _ready() -> void:
 	close.pressed.connect(func() -> void: visible = false)
 	header.add_child(close)
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if _phone:
+		tabs.add_theme_font_size_override("font_size", 17)  # The section row: bigger tabs (it scrolls when they overflow)
 	tabs.tab_changed.connect(func(_t: int) -> void: _fit_height.call_deferred())
 	box.add_child(tabs)
 
@@ -99,11 +112,17 @@ func _ready() -> void:
 	glossary_page.add_theme_constant_override("separation", 12)
 	tabs.add_child(glossary_page)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(GROUP_LIST_WIDTH, 0)
+	left.custom_minimum_size = Vector2(PHONE_LIST_W if _phone else GROUP_LIST_WIDTH, 0)
 	left.add_theme_constant_override("separation", 6)
 	glossary_page.add_child(left)
 	_search.placeholder_text = "Search terms…"
 	_search.custom_minimum_size = Vector2(0, 40)
+	if _phone:
+		_search.placeholder_text = "Search the Codex"
+		_search.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		var field := UiStyle.button_box()  # Gold 45% outline (the secondary frame) on the theme's field fill
+		field.bg_color = Color(UiStyle.FOG, 0.7)
+		_search.add_theme_stylebox_override("normal", field)
 	_search.text_changed.connect(func(_t: String) -> void: _search_timer.start())
 	_search.text_submitted.connect(func(_t: String) -> void:
 		_search_timer.stop()
@@ -116,6 +135,7 @@ func _ready() -> void:
 	_search_timer.timeout.connect(_filter_glossary)
 	add_child(_search_timer)
 	var groups_scroll := ScrollContainer.new()
+	_groups_scroll = groups_scroll
 	groups_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	groups_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_group_list.add_theme_constant_override("separation", 4)
@@ -163,6 +183,9 @@ var _box: VBoxContainer
 
 func _fit_height() -> void:
 	if _box == null or not is_inside_tree():
+		return
+	if embedded:
+		_box.custom_minimum_size = Vector2.ZERO  # The phone pause menu's pane sets the size
 		return
 	var page := tabs.get_current_tab_control()
 	var chrome := 48.0 + 8.0 + 48.0 + 16.0  # The header row, a gap, the tab bar, a little air
@@ -230,11 +253,15 @@ func jump(name: String) -> void:
 	var group := _group_of(name)
 	if group != "":
 		_group = group
+		_term = name
+		_term_group = group
 	_search.text = ""
 	_search_timer.stop()
 	_filter_glossary()  # Shows the term's group (making its cards the first time)
 	tabs.current_tab = 0
 	_focus.call_deferred(_glossary_scroll, _entries.get(name))
+	if _phone:
+		_scroll_to_term.call_deferred()
 
 func _focus(scroll: ScrollContainer, target: Control) -> void:
 	if not is_instance_valid(target) or not scroll.is_ancestor_of(target):
@@ -313,7 +340,11 @@ func _filter_glossary() -> void:
 	_none_label.text = "Nothing matches \"%s\"." % _search.text.strip_edges()
 	_none_label.visible = not any
 	for button in _group_list.get_children():
+		if button.has_meta(&"term"):
+			continue  # Phones: an entry row (_phone_filter)
 		(button as Button).set_pressed_no_signal(button.get_meta(&"group", "") == _group and query == "")
+	if _phone:
+		_phone_filter(query)
 	_fit_height.call_deferred()  # A group's length sets the panel's
 
 # The group containing `term`, or "".
@@ -338,30 +369,97 @@ func _build_group_list(all_groups: Array) -> void:
 		button.icon = IconInfo.icon(GROUP_ICONS.get(group[0], &"note"))
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.add_theme_constant_override("icon_max_width", 16)
-		button.custom_minimum_size = Vector2(0, 40)
+		button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H if _phone else 40.0)
 		_list_row_look(button)  # Light pass v2: a quiet list, the chosen group with a gold bar
 		var name: String = group[0]
 		button.set_meta(&"group", name)
 		button.pressed.connect(func() -> void:
 			_group = name
+			_term = ""
 			_search.text = ""  # (Setting text emits no text_changed)
 			_search_timer.stop()
 			_filter_glossary())
 		_group_list.add_child(button)
+		if _phone:
+			for entry in group[1]:
+				_group_list.add_child(_term_row(name, String(entry[0])))
+
+# Phones: one entry in the left list, under its group (shown by _phone_filter).
+func _term_row(group: String, term: String) -> Button:
+	var button := Button.new()
+	button.text = term
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.toggle_mode = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.add_theme_font_size_override("font_size", 16)
+	_list_row_look(button, PHONE_TERM_INDENT)
+	button.set_meta(&"group", group)
+	button.set_meta(&"term", term)
+	button.visible = false
+	button.pressed.connect(_pick_term.bind(group, term))
+	return button
+
+func _pick_term(group: String, term: String) -> void:
+	_term = term
+	_term_group = group
+	_filter_glossary()
+
+# Phones: the list shows the chosen group's entries (or every match while searching); the page shows only the picked one,
+# under its group's caps header (the kind line).
+func _phone_filter(query: String) -> void:
+	var shown: Array = []  # [group, term] in list order
+	for button in _group_list.get_children():
+		if not button.has_meta(&"term"):
+			continue
+		var group: String = button.get_meta(&"group")
+		var term: String = button.get_meta(&"term")
+		var on := group == _group
+		if query != "":
+			on = String(_haystacks.get("%s/%s" % [group, term], "")).contains(query)
+		button.visible = on
+		if on:
+			shown.append([group, term])
+	var picked: Array = []
+	for pair in shown:
+		if pair[1] == _term and (picked.is_empty() or pair[0] == _term_group):
+			picked = pair
+	if picked.is_empty() and not shown.is_empty():
+		picked = shown[0]
+	_term = picked[1] if not picked.is_empty() else ""
+	_term_group = picked[0] if not picked.is_empty() else ""
+	for button in _group_list.get_children():
+		if button.has_meta(&"term"):
+			(button as Button).set_pressed_no_signal(button.get_meta(&"group") == _term_group and button.get_meta(&"term") == _term)
+	for title in _sections:
+		var section: Dictionary = _sections[title]
+		for node in section.nodes:
+			node.visible = title == _term_group
+		for term in section.cards:
+			section.cards[term].visible = title == _term_group and term == _term
+	_glossary_scroll.scroll_vertical = 0
+
+func _scroll_to_term() -> void:
+	for button in _group_list.get_children():
+		if button.has_meta(&"term") and button.get_meta(&"term") == _term and (button as Control).visible:
+			_groups_scroll.ensure_control_visible(button)
+			return
 
 # A group in the list (light pass v2): no box; hover a faint wash; the chosen one a faint gold wash with a gold bar on the
 # left; its text dim until chosen.
-func _list_row_look(button: Button) -> void:
+func _list_row_look(button: Button, indent: float = 10.0) -> void:
 	var empty := StyleBoxEmpty.new()
-	empty.content_margin_left = 10
+	empty.content_margin_left = indent
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = Color(UiStyle.MOON_MIST, 0.06)
-	hover.content_margin_left = 10
+	hover.content_margin_left = indent
 	var chosen := StyleBoxFlat.new()
 	chosen.bg_color = Color(UiStyle.GOLD, 0.08)
 	chosen.border_width_left = 2
 	chosen.border_color = UiStyle.GOLD
-	chosen.content_margin_left = 10
+	chosen.content_margin_left = indent
 	button.add_theme_stylebox_override("normal", empty)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", chosen)
@@ -406,24 +504,22 @@ func _entry_card(group: String, entry: Array) -> Control:
 	glossary_cards_built += 1
 	var term: String = entry[0]
 	var status := _status_of(term) if group == "Statuses" else &""
-	var line := _damage_line_of(term) if group == "Damage types" else ""
+	var kind := _kind_of(term) if group == "Nightmare Kinds" else -1
 	var rim := UiStyle.MOONLIGHT
 	if status != &"":
 		rim = EnemyStatuses.COLORS.get(status, rim)
-	elif line != "":
-		rim = IconInfo.damage_type_color(line)
 	var card := PanelContainer.new()
 	var style := StyleBoxEmpty.new()  # Light pass v2: no box round an entry
 	style.content_margin_top = 2
 	style.content_margin_bottom = 2
 	card.add_theme_stylebox_override("panel", style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.set_meta(&"rim", rim)  # Its status / damage-type colour, on the icon's side (kept for the extras)
+	card.set_meta(&"rim", rim)  # Its status colour, on the icon's side (kept for the extras)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	card.add_child(row)
 	var icon := TextureRect.new()
-	icon.texture = _term_icon(group, term, status, line)
+	icon.texture = _term_icon(group, term, status)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -436,11 +532,11 @@ func _entry_card(group: String, entry: Array) -> Control:
 	row.add_child(body)
 	var name := Label.new()
 	name.text = term
-	UiStyle.display(name, 20)
+	UiStyle.display(name, 30 if _phone else 20)  # Phones: one entry per page, its name big
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
 	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
-	var text := StatusLinks.make_label(entry[1], 15)  # Status names are links
+	var text := StatusLinks.make_label(entry[1], 17 if _phone else 15)  # Status names are links
 	StatusLinks.own_term = ""
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(text)
@@ -459,18 +555,22 @@ func _entry_card(group: String, entry: Array) -> Control:
 		body.add_child(muted)
 	if status != &"":
 		_status_extras(body, status)
-	if line != "":
-		_damage_extras(body, line)
+	if kind >= 0:
+		_kind_extras(body, kind)
 	if entry.size() > 2 and not entry[2].is_empty():
 		# "See also: Rest, Nurture" as underlined words right under the entry (light pass v2; a click jumps there).
 		var words: Array[String] = []
+		var chips: Array = []  # Phones: [target, name] as chips
 		for other in entry[2]:
 			var combo := _find_combo(other)
 			if not combo.is_empty() and not CodexData.is_discovered(combo.id):
 				continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
 			var shown_name := IconInfo.format(String(other))
 			words.append("[url=%s][color=#%s]%s[/color][/url]" % [String(other), UiStyle.INK.to_html(false), shown_name])
-		if not words.is_empty():
+			chips.append([String(other), shown_name])
+		if _phone and not chips.is_empty():
+			_see_also_chips(body, chips)
+		elif not words.is_empty():
 			var links := RichTextLabel.new()
 			links.name = "SeeAlso"
 			links.bbcode_enabled = true
@@ -484,6 +584,22 @@ func _entry_card(group: String, entry: Array) -> Control:
 			links.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			body.add_child(links)
 	return card
+
+# Phones: "See also" as a caps line and a row of 48 px gold chips (a tap jumps there).
+func _see_also_chips(body: VBoxContainer, chips: Array) -> void:
+	var head := Label.new()
+	head.text = "See also"
+	UiStyle.caps(head, 13)
+	body.add_child(head)
+	var flow := HFlowContainer.new()
+	flow.name = "SeeAlso"
+	flow.add_theme_constant_override("h_separation", 8)
+	flow.add_theme_constant_override("v_separation", 8)
+	for pair in chips:
+		var chip := _chip(pair[1], jump.bind(pair[0]))
+		chip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		flow.add_child(chip)
+	body.add_child(flow)
 
 # A small gold link chip (disabled with no action: a "???" combo).
 func _chip(text: String, on_press: Callable = Callable()) -> Button:
@@ -506,19 +622,26 @@ func _status_of(term: String) -> StringName:
 			return id
 	return &""
 
-func _damage_line_of(term: String) -> String:
-	for line in IconInfo.DAMAGE_TYPES:
-		if IconInfo.damage_type_name(line) == term:
-			return line
-	return ""
+# The Nightmare Kind an entry names (EnemyData.Kind), -1 for none or Plain (most nightmares: no list).
+# The run's DriftDirector when the Codex is opened in a run (pause menu), else null (the Grove, the title).
+func _run_director() -> DriftDirector:
+	var node: Node = get_parent()
+	while node != null:
+		var found := node.get_node_or_null("%DriftDirector") as DriftDirector
+		if found != null:
+			return found
+		node = node.get_parent()
+	return null
 
-func _term_icon(group: String, term: String, status: StringName, line: String) -> Texture2D:
+func _kind_of(term: String) -> int:
+	var kind = EnemyData.KIND_NAMES.find_key(term)
+	return -1 if kind == null or kind == EnemyData.Kind.PLAIN else int(kind)
+
+func _term_icon(group: String, term: String, status: StringName) -> Texture2D:
 	if status != &"":
 		var tex := IconInfo.icon(status)
 		if tex != null:
 			return tex
-	if line != "":
-		return IconInfo.damage_type_icon(line)
 	if TERM_ICONS.has(term):
 		return IconInfo.icon(TERM_ICONS[term])
 	return IconInfo.icon(GROUP_ICONS.get(group, &"note"))
@@ -595,10 +718,11 @@ func _family_applies(root: TowerData, status: StringName) -> bool:
 	return false
 
 # A damage type card: the nightmares weak to it and resisting it (??? until met).
-func _damage_extras(body: VBoxContainer, line: String) -> void:
+# A Kind's entry: the nightmares of that Kind, faces once met, ??? until then.
+func _kind_extras(body: VBoxContainer, kind: int) -> void:
 	var seen := NightmareCodex.seen()
-	for side in [["Weak to it", "weak_to"], ["Resist it", "resists"]]:
-		var kinds := NightmareCodex.all_kinds().filter(func(d: EnemyData) -> bool: return (d.get(side[1]) as Array).has(line))
+	for side in [["Nightmares", kind]]:
+		var kinds := NightmareCodex.all_kinds().filter(func(d: EnemyData) -> bool: return d.kind == side[1])
 		if kinds.is_empty():
 			continue
 		var row := HFlowContainer.new()
@@ -1281,10 +1405,6 @@ func _family_header(root: TowerData) -> Control:
 	UiStyle.display(name, 28)
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	box.add_child(name)
-	var kind := Label.new()
-	kind.text = IconInfo.damage_type_text(root.line)
-	UiStyle.caps(kind, 15, IconInfo.damage_type_color(root.line))
-	box.add_child(kind)
 	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
 	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(role)
@@ -1677,7 +1797,7 @@ func _setup_dreams_page() -> void:
 		_group_filter.add_item(group)
 	_family_filter.add_item("Any family")
 	for line in IconInfo.DAMAGE_TYPES:
-		_family_filter.add_item(IconInfo.damage_type_name(line))
+		_family_filter.add_item(NightmareIcons.family_name(line))  # By family (damage types are gone)
 		_family_filter.set_item_metadata(_family_filter.item_count - 1, line)
 	for pick in [_rarity_filter, _group_filter, _family_filter]:
 		pick.focus_mode = Control.FOCUS_NONE
@@ -1802,7 +1922,7 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		box.add_child(CardDiagram.make(card))
 	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]
 	for tag in card.tags:
-		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
+		facts.append(NightmareIcons.family_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())  # A family tag by its family
 	var tags := Label.new()
 	tags.text = " · ".join(facts)
 	UiStyle.caps(tags, 14)  # Plain small caps separated by " · " (ui_style.md "Dream card")
@@ -1949,12 +2069,13 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	var lines: Array[String] = []
 	if data.trait_text != "":
 		lines.append(data.trait_text)
-	lines.append_array(data.get_intro_lines())
+	var values := NightmareCard.text_values(data, _run_director())  # In a run: shell numbers at the current drift
+	lines.append_array(data.get_intro_lines(values))
 	if not lines.is_empty():
 		box.add_child(StatusLinks.make_label("\n".join(lines), UiStyle.TIP_SIZE))
 	if data.hint != "":
 		var hint := Label.new()
-		hint.text = data.format_text(data.hint)
+		hint.text = data.format_text(data.hint, values)
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		UiStyle.whisper(hint, 16)
 		box.add_child(hint)
@@ -1969,7 +2090,7 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	box.add_child(facts)
 	if data.is_boss:  # Its dossier's abilities (no "What helps": the ability and resist rows say enough)
 		for i in data.abilities.size():
-			var ability := data.get_ability(i)
+			var ability := data.get_ability(i, values)
 			var when := String(ability.get("when", ""))
 			box.add_child(StatusLinks.make_label("%s%s: %s" % [ability.get("name", ""), " (" + when + ")" if when != "" else "",
 				ability.get("text", "")], 15))

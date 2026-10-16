@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "long_shadows"
 display_name = "Long Shadows"
-description = "Wardens with range 5 or more reach 2 cells further."
+description = "Wardens with range 5 or more get +2 range."
 rarity = 1
 kind = 3
 tags = Array[String](["range"])
@@ -15,3 +15,4 @@ max_stacks = 1
 requires_any = Array[String](["standing_stone", "lanternmoth"])
 in_start_pool = false
 rule_id = &"long_shadows"
+tip = "Counts the Warden's own range, before Nurture and Dreams."

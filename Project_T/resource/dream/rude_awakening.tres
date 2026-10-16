@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "rude_awakening"
 display_name = "Rude Awakening"
-description = "The next hit on a nightmare waking from any sleep, from any Warden, deals double damage."
-tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a {toll}: it lands again at half damage (on a Bellflower start the first {toll} is ring 2). Works for: any Warden. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Needs nightmares {asleep} or {held}. When one wakes or is freed, the last hit from each of up to 3 Wardens lands again."
+tip = "Only hits from the last 3 s. Once per sleep or {held}. Each bell once a second. Works for: any family, with {card:nod_off} or a Warden that makes nightmares {held}. A bet: needs a sleep or {held} maker."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

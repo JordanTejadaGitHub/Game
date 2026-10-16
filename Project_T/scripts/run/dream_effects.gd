@@ -27,7 +27,7 @@ const REPORTERS := {
 	&"menagerie": "_menagerie", &"restless_night": "_restless_night", &"last_leaf": "_last_leaf",
 	&"wildwood_reclaimed": "_wildwood", &"sprout_chorus": "_sprout_chorus", &"last_light": "_last_light",
 	&"rootbound": "_rootbound", &"court_of_the_eldest": "_court", &"old_ones": "_old_ones",
-	&"reclaimed_earth": "_reclaimed_earth",
+	&"reclaimed_earth": "_reclaimed_earth", &"wide_petals": "_wide_petals",
 	&"root_network": "_root_network", &"first_light": "_first_light", &"last_stand": "_last_stand",
 	&"old_growth": "_old_growth", &"hunters_patience": "_hunters_patience", &"thinning_the_herd": "_thinning_the_herd",
 	&"bitter_hedges": "_bitter_hedges",
@@ -47,6 +47,7 @@ const REPORTERS := {
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
 	&"sunlit_rest": "_sunlit_rest",
+	&"thin_bark": "_thin_bark", &"deep_sleep": "_deep_sleep",  # Card pass 2026-10-16 (4 B): reworks (DreamState.reaction_cards)
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -468,9 +469,16 @@ func _full_voice(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	var grown: float = ds.keeping_time.voice_cells(spot.node, spot.data.attack_range) if ds.keeping_time != null and spot.node != null else 0.0
 	return {"active": grown > 0.0, "range": grown, "reason": "" if grown > 0.0 else "no pulse has Tolled since its reach was last empty"}
 
+# The Long Walk (card pass 2026-10-16 rework): Reactions only, by covered route walked; no damage row any more.
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var bonus := minf(DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES), DreamState.BATCH.LONG_WALK_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "your path: %d cells, +%d%%" % [ds.path_length, roundi(bonus * 100)]}
+	return ds.reaction_cards.long_walk_row()
+
+# Thin Bark and Deep Sleep (card pass 2026-10-16 reworks; numbers in dream_reaction_cards.gd). Thin Bark is a plain row.
+func _thin_bark(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	return ds.reaction_cards.thin_bark_row(_data(spot))
+
+func _deep_sleep(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	return ds.reaction_cards.deep_sleep_row(_data(spot))
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout":
@@ -843,6 +851,13 @@ func _restless_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dic
 	var on: bool = spot.data.attacks_per_second < DreamState.RESTLESS_ROOTS_BELOW
 	return {"active": on, "speed": DreamState.RESTLESS_ROOTS_SPEED,
 		"reason": "" if on else "attacks %.2f times a second (needs under 1)" % spot.data.attacks_per_second}
+
+# Wide Petals (absorbed Far Reach, card pass 2026-10-16): area Wardens also reach a little further.
+func _wide_petals(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := DreamState.has_area_attack(spot.data)
+	return {"active": on, "range": DreamState.WIDE_PETALS_RANGE, "reason": "" if on else "no area attack"}
 
 func _far_reach(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:

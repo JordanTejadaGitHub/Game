@@ -5,12 +5,13 @@
 [resource]
 script = ExtResource("1_card")
 id = "the_water_remembers"
-display_name = "The Water Remembers"
-description = "Needs another {family}'s status. A nightmare walking back into a {warden:dewdrop}'s {water} gets back the other families' statuses that wore off since it left."
-tip = "Water: the path {touching} a {warden:dewdrop} (1.25 cells), for anyone who owns a {warden:dewdrop}. Works for: another {family}'s statuses. A bet: it does little until you own another {family}."
+display_name = "The Tide Remembers"
+description = "Needs another {family}'s status. When a nightmare comes back into a {warden:dewdrop}'s range, statuses from other families that ran out since it left come back."
+tip = "Comes back: re-enters 3 or more {steps} further along the path; a pull back doesn't count. Statuses return as they were when it left, for 3 s. Once for each {warden:dewdrop} and nightmare. A bet: your path must pass the same {warden:dewdrop} twice."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"the_water_remembers"
 requires = Array[String](["dewdrop"])
+retired = true

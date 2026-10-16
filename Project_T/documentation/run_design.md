@@ -7,6 +7,15 @@ exports, `TowerData`, `EnemyData`, `DriftData`), so tuning never needs code chan
 
 ## Decisions
 
+**2026-10-13 (user): every nightmare has twice the health and the run pays twice the Dew.** `DriftDirector`
+`trial_health_multiplier` 2.0 and `trial_dew_multiplier` 2.0 (pots, boss pots, rest bonus, perfect block, Omen Dew),
+starting Dew 120, Sprout price step every 10, copy cost 4%. Prices are unchanged, so boards are about twice the size
+and each nightmare takes about twice the hits. Health and Dew figures further down this file are the old ×1 numbers.
+Why and the runs behind it: balance_simulation.md "Health ×2, Dew ×2".
+**2026-10-15 (user):** act 1 health ramps to ×1.4 (was 1.2) and act 2's steep point at drift 37 is ×3.2 (was 3.45):
+act 1 had become trivial under ×2 (2,000–4,100 Dew banked by drift 25) while drifts 34–40 felt hard. Balance_simulation.md
+"Human run 38".
+
 | Question | Decision |
 |---|---|
 | Run length | **1–2 hours** (100 drifts); saved and resumable |
@@ -282,7 +291,7 @@ After the act 2 boss (drift 50), the Heartwood offers **one Sapling** of itself 
 | Lever | Was | Now |
 |---|---|---|
 | Health growth | ×1.045 per drift all run | **×1.045 for drifts 1–25, ×1.055 for 26–50, ×1.045 from 51** (≈ ×11 by drift 50, ×100 by drift 100; `acts_3_4.md`) |
-| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 31** (was 26; moved 2026-09-29: the Grove-player batch had half of all runs die at drifts 28–29, the act 2 opening, before any final form could be grown) (a random non-boss kind from that drift) |
+| Elites | block finales only | **one Deeply Blighted nightmare in every drift from drift 36** (31 until 2026-10-14: four runs in a row lost act 2 to single Deeply Blighted nightmares under health ×2, mostly Phantoms; balance_simulation.md "Human run 35"; was 26 before 31; moved 2026-09-29: the Grove-player batch had half of all runs die at drifts 28–29, the act 2 opening, before any final form could be grown) (a random non-boss kind from that drift) |
 | Family resist / weak | ×0.65 / ×1.35 | **×0.5 / ×1.5** (`enemy_design.md`) |
 | Nurture | flat cost, +15% damage per rank | **Nurture v2**: cost × tier, +10% per rank, a Focus at rank III (`warden_stats.md`) |
 

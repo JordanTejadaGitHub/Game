@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "murmur"
 display_name = "Murmur"
-description = "A {family:nestling}-line bird's hit on a nightmare another bird hit in the last second deals 30% more."
+description = "A {family:nestling} Warden's hit deals 30% more to a nightmare another {family:nestling} Warden hit in the last 1 s."
 rarity = 2
 kind = 3
 tags = Array[String](["wing"])

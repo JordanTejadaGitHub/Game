@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "momentum"
 display_name = "Momentum"
-description = "A Warden attacking the same nightmare again attacks 6% faster per hit (up to +45%); a new target resets it."
+description = "A Warden attacks 6% faster for each hit in a row on the same nightmare, up to +45%. A new target starts it over."
 rarity = 1
 kind = 3
 tags = Array[String](["swift", "defining"])
 max_stacks = 1
 rule_id = &"momentum"
+tip = "Area attacks don't count."

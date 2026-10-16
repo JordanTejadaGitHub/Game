@@ -14,9 +14,17 @@ const NAP_SECONDS := 1.0  # The one nap rule: fixed 1 s, never on a sleeper, nev
 const POLL := 0.1
 const FREE_HIT_TAG := &"free_hit"
 const FREE_META := &"ck_free_next"  # On a Warden: when it may give its next free hit
+# What every lent card means by "a Reaction" (council 2026-10-15: one list for Reprise, Chain of Lanterns, Old Rain):
+# the Reactions' burst damage tags, crowned ones included; never an Echo Hollow echo or a carried storm.
+const REACTION_BURSTS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
+	&"avalanche", &"starfall", &"fever_dream", &"drown", &"popped", &"tempest", &"mushrooming", &"smother"]
+
+static func is_reaction_burst(event) -> bool:
+	return event.tag in REACTION_BURSTS or (event.kind == &"reaction" and event.tag != &"echo" and event.tag != &"carried_storm")
 # Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
-	&"riptide", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell"]
+	&"riptide", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
+	&"in_time", &"reprise", &"rude_replay", &"da_capo"]  # (Bellflower repeats, 2026-10-15)
 
 var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
 var _hooked := false
@@ -68,6 +76,16 @@ func class_on() -> bool:
 func rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
 
+# A Calling evolution on the path (DreamState.calling_path; scripts/combat/calling_paths.gd). Only the Calling's own
+# family ever has them, so it implies class_on().
+func evo(id: StringName) -> bool:
+	return dream_state != null and class_on() and dream_state.has_evolution(id)
+
+# Credit an effect to its card or evolution (DreamState.note_card: callouts and the rest report).
+func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
+	if dream_state != null:
+		dream_state.note_card(id, at)
+
 func lent_on() -> bool:
 	for id in _lent_rules():
 		if rule(id):
@@ -75,7 +93,29 @@ func lent_on() -> bool:
 	return false
 
 func active() -> bool:
-	return class_on() or lent_on()
+	return class_on() or lent_on() or _legacy_on()
+
+# The Calling's setup (mushrooms and doses, water and the ripple, the ring count, pips and Tolls) is the first pick's only
+# (owner 2026-10-14, dream_council_review.md 25 "lent cards never give the Calling's abilities"): lent cards never switch
+# it on and never read it. The one exception is an old save: a later owner already holding a card that was retired or
+# moved to class-only keeps that card's old effect on Continue (_legacy_rules).
+func place_on() -> bool:
+	return class_on() or _legacy_on()
+
+# Retired or moved card ids that needed the setup when a later owner could hold them (old saves only).
+func _legacy_rules() -> Array:
+	return []
+
+func _legacy_on() -> bool:
+	for id in _legacy_rules():
+		if rule(id):
+			return true
+	return false
+
+# A Warden's own status application was accepted on a nightmare (DreamState.class_status, from Tower._apply_one_status;
+# never for carried or free applications). `stacks`: what it added.
+func status_applied(_tower, _enemy, _status: StringName, _stacks: int) -> void:
+	pass
 
 func cell() -> float:
 	return Tower.MAP_GRID.cell_size.x
@@ -113,8 +153,16 @@ func towers() -> Array:
 func _tower_ok(tower) -> bool:
 	return is_instance_valid(tower) and not tower.is_queued_for_deletion() and tower.tower_data != null
 
+# This family's Wardens, cached for the frame (council 2026-10-15: every status landing asked for them several times).
+var _own_cache: Array = []
+var _own_frame := -1
+
 func own_towers() -> Array:
-	return towers().filter(is_own)
+	var frame := Engine.get_process_frames()
+	if frame != _own_frame:
+		_own_frame = frame
+		_own_cache = towers().filter(is_own)
+	return _own_cache.filter(_tower_ok)
 
 func enemies() -> Array:
 	return get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(living)

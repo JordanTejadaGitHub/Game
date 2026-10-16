@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lucid_dreaming"
 display_name = "Lucid Dreaming"
-description = "Dream offers show 4 cards and you take 2. Commons are no longer offered."
+description = "Dreams offer 4 cards and you take 2. Commons are no longer offered."
 rarity = 3
 kind = 3
 tags = Array[String](["dreams"])

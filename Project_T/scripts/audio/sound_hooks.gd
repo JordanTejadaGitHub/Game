@@ -876,9 +876,8 @@ func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> voi
 	_attack_counts[key] = int(_attack_counts.get(key, 0)) + (1 if kind == TowerData.AttackKind.PULSE else 0)
 	if id == &"":
 		return
-	var line: String = tower.tower_data.line  # The line Enemy.take_damage resists by
-	var resisted: bool = line in enemy.enemy_data.resists
-	var weak: bool = not resisted and line in enemy.enemy_data.weak_to
+	var resisted := false  # No damage types since Nightmare Kinds (2026-10-15): no _dull / hit_full by family
+	var weak := false
 	var at: Vector2 = tower.global_position if kind == TowerData.AttackKind.PULSE else enemy.global_position
 	var tonal := data.line == "song"
 	var pitch := 1.0 if tonal else _weight_pitch(enemy) * pow(CHAIN_STEP_PITCH, hits_before)

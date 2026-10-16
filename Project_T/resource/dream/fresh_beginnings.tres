@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "fresh_beginnings"
 display_name = "Fresh Beginnings"
-description = "At each {rest}, the newest attacking Warden planted since the previous rest banks a free Nurture {rank}, up to {rank} V."
+description = "At each {rest}, the newest attacking Warden you planted since the last {rest} gets a free Nurture {rank}."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall"])
 max_stacks = 1
 rule_id = &"fresh_beginnings"
-tip = "Choose its {rank} upgrade when tending it. Existing {rank} caps apply. A Warden receiving Sunlit Rest cannot also bank this {rank}."
+tip = "The {rank} waits until you Nurture. Never past that Warden's highest {rank}. A Warden that gets {card:sunlit_rest}'s {rank} can't also get this one."

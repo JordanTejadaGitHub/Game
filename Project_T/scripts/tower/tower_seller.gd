@@ -55,6 +55,8 @@ var _dragging := false
 var _press_screen := Vector2.ZERO
 var _press_world := Vector2.ZERO
 var _press_shift := false
+var _press_view := Transform2D()  # The camera when the press began: a pan before the drag starts means no box
+var _box_blocked := false  # This press can't become a box (the view panned under it)
 var _blooms: Array = []  # [[tower, seconds until it starts]]; negative = seconds since it started
 
 # Q / E / Z (screens_ui.md hotkeys): grow the selection into the Warden panel's 1st / 2nd / 3rd option.
@@ -245,11 +247,15 @@ func select(tower: Tower) -> void:
 	set_selection([tower] if tower != null else [])
 
 func set_selection(towers: Array) -> void:
+	var before := selection.size()
 	selection.clear()
 	for tower in towers:
 		if tower is Tower and is_instance_valid(tower) and not tower.is_queued_for_deletion() \
 				and not selection.has(tower):
 			selection.append(tower)
+	if OS.is_debug_build() and selection.size() > maxi(before, 1) + 4:
+		# Where a big selection came from (the user: "still seeing selected wardens increasing"): the call chain in the log.
+		print("Selection %d -> %d: %s" % [before, selection.size(), " < ".join(get_stack().slice(1, 4).map(func(f: Dictionary) -> String: return "%s:%d" % [f.function, f.line]))])
 	_selection_updated()
 
 func _selection_updated() -> void:
@@ -686,13 +692,27 @@ func _starts_selection(event: InputEvent) -> bool:
 
 func _on_press(event: InputEvent) -> void:
 	var mouse := event as InputEventMouseButton
-	var shift := mouse != null and mouse.shift_pressed
-	if mouse != null and mouse.double_click and _hover_tower != null:
-		select_same_as(_hover_tower, mouse.ctrl_pressed or mouse.meta_pressed, mouse.alt_pressed, shift)
+	# Shift / Ctrl count only when the key is down by both the click and the key state (the user, 2026-10-15, PC: the
+	# selection kept growing; a Shift whose release went to another window, e.g. Win+Shift+S, made every click add).
+	var shift := mouse != null and mouse.shift_pressed and Input.is_key_pressed(KEY_SHIFT)
+	var whole_map := mouse != null and ((mouse.ctrl_pressed and Input.is_key_pressed(KEY_CTRL)) or (mouse.meta_pressed and Input.is_key_pressed(KEY_META)))
+	if mouse != null and mouse.double_click and TouchBuild.is_touch():
+		# Phones (user 2026-10-15: double tap is how you select several): the same kind and rank ON SCREEN, under the
+		# finger, never the modifier keys (a phone's emulated taps may carry them: "244 Wardens selected" from the
+		# whole map), never adding to the selection.
+		var tapped := get_tower_at_point(get_canvas_transform().affine_inverse() * mouse.position)
+		if tapped != null:
+			select_same_as(tapped, false, false)
+			_pressing = false
+			return
+	elif mouse != null and mouse.double_click and _hover_tower != null:
+		select_same_as(_hover_tower, whole_map, mouse.alt_pressed, shift)
 		_pressing = false
 		return
 	_pressing = true
 	_dragging = false
+	_box_blocked = false
+	_press_view = get_canvas_transform()
 	_press_shift = shift
 	_press_screen = get_viewport().get_mouse_position()
 	if mouse != null and TouchBuild.is_touch():
@@ -715,14 +735,15 @@ func _input(event: InputEvent) -> void:
 		return
 	if _dragging:
 		_dragging = false
-		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
-		var inside := get_towers_in_rect(box)
+		var inside := get_towers_in_rect(_box_rect())
 		if _press_shift:
 			_add_or_remove(inside)
 		else:
 			set_selection(inside)
 		queue_redraw()
 		return
+	if _box_blocked and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:
+		return  # A press the view panned under and that then moved: neither a box nor a click
 	# A plain click: one Warden, or empty ground clears.
 	var tower := get_tower_at_point(_press_world)
 	if _press_shift:
@@ -730,6 +751,13 @@ func _input(event: InputEvent) -> void:
 			_add_or_remove([tower])
 	else:
 		select(tower)
+
+# The selection box in world space: the press's screen point and the pointer, both through today's camera (the user's
+# "124 Wardens selected", v0.1.5: the box was pinned to the map where the press began, so an edge scroll during a drag
+# stretched it across the map; now it is the rectangle on screen).
+func _box_rect() -> Rect2:
+	var view := get_canvas_transform().affine_inverse()
+	return Rect2(view * _press_screen, Vector2.ZERO).expand(view * get_viewport().get_mouse_position())
 
 # What the range ring was last drawn for: a grow, a rank or a 2×2 move changes the ring at once (user: "a bit of
 # pause when a warden upgrades in terms of its UI range indicator": it waited for the mouse to change cells).
@@ -747,7 +775,13 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	if not active:
 		return
-	if _pressing and not _dragging and not sell_mode and not TouchBuild.is_touch() \
+	if _pressing and not TouchBuild.is_touch() and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_pressing = false  # Its release never reached us (focus lost): a later release must not finish this press as a box
+		_dragging = false
+		queue_redraw()
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and get_canvas_transform() != _press_view:
+		_box_blocked = true  # The view moved before the drag began (edge scroll, middle drag, WASD): a pan, never a box
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and not TouchBuild.is_touch() \
 			and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box
 		_dragging = true
 	if _dragging:
@@ -795,6 +829,8 @@ func _draw() -> void:
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
+		elif BranchKit.special_aura(selected.attack_data) > 0.0:
+			AuraView.draw_shape(self, AuraView.cells(selected.global_position, selected._wide_radius()))  # Prism Jar's crit aura (user: "prism jar doesn't show the aura range")
 		_draw_brood(selected)
 		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
@@ -827,7 +863,7 @@ func _draw() -> void:
 			"Press %s again to sell for +%d Dew" % [_sell_key_name(), refund],
 			Palette.GLOW)
 	if _dragging:
-		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
+		var box := _box_rect()
 		draw_rect(box, Color(SELECTED_COLOR, 0.08))
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:

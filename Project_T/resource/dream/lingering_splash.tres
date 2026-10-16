@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "lingering_splash"
 display_name = "Lingering Splash"
-description = "Every 3rd area attack leaves a patch (1 cell, 2 s) that deals 25% of that hit each second to nightmares inside."
+description = "Every 3rd area attack a Warden makes leaves a patch for 2 s that deals 25% of that hit each second to nightmares in it."
 rarity = 1
 kind = 3
 tags = Array[String](["reach", "defining"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"lingering_splash"
+tip = "Patch: 1 cell wide. Counted for each Warden."

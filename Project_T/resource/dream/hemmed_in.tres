@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hemmed_in"
+display_name = "Hemmed In"
+description = "Needs another {family}'s Warden. If it is {touching} two spore Wardens, every status it puts on a nightmare lands with double {stacks}. {drowsy} never doubles."
+tip = "Works for: another {family}'s Warden set between two spore Wardens. {static} and {marked} gain the extra at most once a second. Adds with the other stack cards; one hit gains at most twice its own {stacks} (at least 3). A bet: it does little until you plant that sandwich."
+rarity = 2
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"hemmed_in"
+requires = Array[String](["sporeling"])
+retired = true

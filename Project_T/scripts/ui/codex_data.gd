@@ -72,7 +72,7 @@ const GLOSSARY_SOURCE := [
 	["Classes", [
 		["Mushroom", "A small mushroom on the path (Sporeling cards). The next walking nightmare to step on it takes a dose; flyers pass over. Mushrooms stay through rests, 40 at most.", ["Dose", "Calling"]],
 		["Dose", "3 {spored} at once: what a mushroom gives the nightmare that steps on it.", ["Mushroom"]],
-		["Lit", "A nightmare inside a Firefly Warden's glow (3 cells). Firefly cards jump damage between Lit nightmares.", ["Jump"]],
+		["Lit", "A nightmare inside a Firefly Warden's glow (its attack range, at least 3 cells). Firefly cards jump damage between Lit nightmares.", ["Jump"]],
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump never sets off another jump.", ["Lit"]],
 		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). Dewdrop cards work on nightmares standing in it.", ["Touching"]],
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],
@@ -89,12 +89,8 @@ const GLOSSARY_SOURCE := [
 		["Ink", "An Inkcap shot on a {spored} nightmare inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
-	["Damage types", [
-		["Damage type", "Every Warden deals one type of damage: Spore, Stone, Water, Light, Root, Song, Talon, Wind, or Plain. The Warden panel and the Warden bar say which (\"Light damage\").", ["Resists and Weak to", "Plain damage"]],
-		["Resists and Weak to", "A nightmare takes half damage from a damage type it resists, and half again as much from one it is weak to.", ["Damage type"]],
-		["Effect damage type", "Effects keep their source's type: {spored} ticks deal the type of the Warden that applied them, {static} bolts deal Light, clouds, rings and seeds deal their maker's type, and Reactions the type of the Warden that set them off.", ["Damage type"]],
-		["Plain damage", "Sprouts, Thornwalls and Acorns deal Plain damage: never resisted, never weak.", ["Damage type"]],
-		["Talon", "The Nestling family's damage type: beaks and claws.", ["Damage type"]],
+	["Nightmare Kinds", [
+		["Nightmare Kind", "What a nightmare does, shown as a badge on its card: Armoured, Flying, Hidden, Swarm or Fast (Plain shows none). Its line says what beats it, and the Warden tags that answer it link to the same entry. Every Warden deals full damage to every nightmare.", ["Armoured", "Flying", "Hidden", "Swarm", "Fast"]],
 	]],
 	["Nightmares", [
 		["Nightmare", "What walks the path toward the Heartwood. Dispel it before it arrives.", ["Dispel"]],
@@ -102,8 +98,6 @@ const GLOSSARY_SOURCE := [
 		["Deeply Blighted", "A stronger nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
 		["Reaching the Heartwood", "A nightmare that reaches the Heartwood takes leaves (most take 1, Deeply Blighted 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
 		["Dread shell", "A shell that absorbs part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
-		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
-		["Flying", "A flyer flies over your Wardens instead of walking the maze.", ["Nightmare"]],
 		["Restless", "A nightmare made faster by having its path changed while it walks: +20% speed each time. Three times and it is Unbound.", ["Unbound"]],
 		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its path and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
 		# EnemyData BURROW (burrow_max, burrow_min_saving) and laps() (lap_linger …): who has them is nightmares_line.
@@ -124,7 +118,7 @@ const GLOSSARY_SOURCE := [
 	]],
 	["Combat", [
 		["Crit", "A critical hit: a hit that deals extra damage. Only some Wardens can crit.", ["Pinned", "Potency"]],
-		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. Some nightmares shrug off area attacks; others take more.", ["Effect"]],
+		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count.", ["Reaction"]],
@@ -479,8 +473,8 @@ static func glossary() -> Array:
 				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s)),
 					_example(entry)])  # [3]: one muted example line
-			if group[0] == "Damage types":
-				entries.append_array(damage_type_entries(entries))
+			if group[0] == "Nightmare Kinds":
+				entries.append_array(kind_entries())
 			if not entries.is_empty():  # The demo's "Branch effects" is empty
 				_glossary.append([group[0], entries])
 	var out: Array = _glossary
@@ -521,34 +515,33 @@ static func signature_entries() -> Array:
 			(" Good against %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
 	return out
 
-# One entry per damage type, with who deals it, from the data (IconInfo.DAMAGE_TYPES + LINE_FAMILIES):
-# "Spore: the Sporeling family's damage." Types already written by hand (Talon) are kept as they are.
-static func damage_type_entries(existing: Array) -> Array:
+# One entry per Nightmare Kind (enemy_design.md ed6f573b), its line from the data (EnemyData.KIND_LINES, never typed
+# twice): "Armoured" -> "Heavy hits and armour breakers crack its shell." Who carries it is nightmares_line.
+const KIND_RELATED := {EnemyData.Kind.ARMOURED: ["Dread shell", "Heavy Warden"], EnemyData.Kind.SWARM: ["Area attack"],
+	EnemyData.Kind.FAST: ["{drowsy}", "{held}"]}
+
+static func kind_entries() -> Array:
 	var out: Array = []
-	for line in IconInfo.DAMAGE_TYPES:
-		var name := IconInfo.damage_type_name(line)
-		if existing.any(func(e: Array) -> bool: return e[0] == name):
-			continue
-		var family: String = LINE_FAMILIES.get(line, "")
-		var who := "the %s family" % FAMILY_NAMES.get(family, family.capitalize()) if family != "" else "some Wardens"
-		out.append([name, "%s damage, dealt by %s. Some nightmares resist it, others are weak to it." % [name, who],
-			["Damage type", "Resists and Weak to"], ""])
+	for kind in EnemyData.KIND_NAMES:
+		var name: String = EnemyData.KIND_NAMES[kind]
+		var line: String = EnemyData.KIND_LINES.get(kind, "")
+		line = line.trim_prefix(name + ": ")
+		out.append([name, line.left(1).to_upper() + line.substr(1),
+			(["Nightmare Kind"] + KIND_RELATED.get(kind, [])).map(func(s: String) -> String: return IconInfo.format(s)), ""])
 	return out
 
 # Combat callouts (screens_ui.md, user: "been seeing 'Shattered' but don't know what it means"): every
 # word that pops over nightmares gets a plain line, linking to its Codex combo. An entry shows once
 # its callout has been seen on this profile (callouts_seen; Reactions: combos_seen), so it never
-# spoils a "???" combo. "Strong" (resisted) and "Weak" are basics: always there.
+# spoils a "???" combo.
 const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
-	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle and \"Weak\").", []],
-	[&"resisted", "Resisted", "A hit from a family this nightmare resists (its shield): half damage (the grey puff and \"Resisted\").", []],
 ]
-const ALWAYS_SHOWN := [&"weak", &"resisted"]
+const ALWAYS_SHOWN: Array[StringName] = []  # (Weak and Resisted went with damage types: Nightmare Kinds)
 
 static func callout_entries() -> Array:
 	var profile := HeartwoodMemory.load_data()
@@ -579,7 +572,10 @@ static func _example(entry: Array) -> String:
 # Terms some nightmares carry (user: "the nightmares that wear a dread shell" as links, read from the data, never typed):
 # glossary name -> the line's wording. term_nightmares() reads each kind's EnemyData.
 const NIGHTMARE_TERMS := {"dread shell": "Worn by %s.", "flying": "Nightmares: %s.", "hidden": "Nightmares: %s.", "burrow": "Nightmares: %s.",
-	"laps": "Nightmares: %s."}
+	"laps": "Nightmares: %s.", "armoured": "Nightmares: %s.", "swarm": "Nightmares: %s.", "fast": "Nightmares: %s."}
+# The Kinds among them: read from EnemyData.kind (Plain lists nobody: it's most of them).
+const KIND_TERMS := {"armoured": EnemyData.Kind.ARMOURED, "flying": EnemyData.Kind.FLYING, "hidden": EnemyData.Kind.HIDDEN,
+	"swarm": EnemyData.Kind.SWARM, "fast": EnemyData.Kind.FAST}
 
 static func term_nightmares(term: String) -> Array[String]:
 	var kinds: Array[String] = []
@@ -588,13 +584,11 @@ static func term_nightmares(term: String) -> Array[String]:
 		return kinds
 	for data in NightmareCodex.all_kinds():
 		var has := false
+		if KIND_TERMS.has(key):
+			has = data.kind == KIND_TERMS[key]
 		match key:
 			"dread shell":
 				has = data.coat_total > 0 or data.coat_per_hit > 0
-			"flying":
-				has = data.trait_kind == EnemyData.Trait.FLYING
-			"hidden":
-				has = data.hidden
 			"burrow":
 				has = data.trait_kind == EnemyData.Trait.BURROW
 			"laps":

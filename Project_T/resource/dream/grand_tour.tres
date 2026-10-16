@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grand_tour"
 display_name = "Grand Tour"
-description = "A nightmare carrying 3 or more different statuses takes 30% more damage from every Warden."
+description = "Nightmares carrying 3 or more different statuses take 30% more damage from hits."
 rarity = 2
 kind = 3
 tags = Array[String](["variety", "overgrowth"])

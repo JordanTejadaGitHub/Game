@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "steady_aim"
 display_name = "Steady Aim"
-description = "Crits deal 40% more against nightmares above half their health."
+description = "Crits deal 40% more damage to nightmares above half their health."
 rarity = 0
 kind = 3
 tags = Array[String](["precision"])

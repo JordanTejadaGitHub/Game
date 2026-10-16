@@ -5,12 +5,11 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 1
 display_name = "Phantom"
 health = 60
 speed = 64.0
 dew_reward = 3
-resists = Array[String](["root"])
-weak_to = Array[String](["water"])
 status_immune = Array[StringName]([&"held"])
 trait_kind = 1
 trait_text = "Flies straight to the Heartwood, over your walls: guard the cells around the Heartwood."

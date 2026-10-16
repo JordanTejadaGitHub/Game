@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "overture"
 display_name = "Overture"
-description = "When a {drift}'s first nightmare enters a pulsing bell's range, every ring is a {toll} until that range is empty. Up to 8 s."
-tip = "Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
+description = "Once a {drift}, when nightmares first enter a pulsing bell's range, every hit from that bell is a {toll} until its range is empty (up to 8 s)."
+tip = "Each nightmare still takes at most one {toll} a second. Works for: a pulsing bell. Safe: it works with this {family}, Sprouts and Thornwalls alone."
 rarity = 1
 kind = 3
 tags = Array[String](["song"])
 max_stacks = 1
 rule_id = &"overture"
 calling = "bellflower"
+retired = true

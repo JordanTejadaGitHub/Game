@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nightshade"
 display_name = "Nightshade"
-description = "Status and Reaction damage is doubled on nightmares carrying 4 or more statuses."
+description = "Status, cloud and {reaction} damage is doubled on nightmares with 4 or more statuses."
 rarity = 3
 kind = 3
 tags = Array[String](["potency", "affliction"])
@@ -14,3 +14,4 @@ max_stacks = 1
 min_act = 2
 rule_id = &"nightshade"
 in_start_pool = false
+tip = "Each status counts once, however many {stacks}. Hits don't count."

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "curtain_call"
+display_name = "Curtain Call"
+description = "When a Warden {touching} a bell dispels a nightmare, it attacks again at once. Each Warden once every 3 s."
+tip = "Bells count too. Only a hit's dispel counts. Never more often than every 2 of its own attacks. Works for: any Warden {touching} a bell. Safe."
+rarity = 1
+kind = 3
+tags = Array[String](["song", "lent"])
+max_stacks = 1
+rule_id = &"curtain_call"
+requires = Array[String](["bellflower"])

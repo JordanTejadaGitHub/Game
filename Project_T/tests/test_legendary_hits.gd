@@ -158,12 +158,11 @@ func _run() -> void:
 	_check(not placer.nurture(elder), "the placer won't buy VI without the confirm")
 	_check(dreams.make_eldest(elder) and placer.nurture(elder) and elder.rank == 6, "confirmed: it grows to VI")
 	_check(friend.get_max_rank() == 5 and not friend.can_nurture(), "everyone else stops at V")
-	# Endless Rings carries Court of the Eldest (pool trim)
+	# Hard cards 2026-10-16: Endless Rings no longer carries Court of the Eldest
 	var alone := _plant("sprout", Vector2(12, 12))
 	alone.rank = 5
 	alone.focus = Tower.Focus.POWER
-	_check(friend.get_court_ranks() > 0.0 and alone.get_court_ranks() == 0.0, "Court: only Wardens touching the Eldest share its ranks")
-	_check(friend.get_damage() > alone.get_damage(), "and hit harder for it")
+	_check(friend.get_court_ranks() == 0.0 and alone.get_court_ranks() == 0.0, "No Court: Wardens touching the Eldest share none of its ranks")
 
 	print("legendary hits test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

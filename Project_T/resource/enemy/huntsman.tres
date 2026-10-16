@@ -7,14 +7,13 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 3
 display_name = "The Huntsman"
 health = 6500
 speed = 65.0
 dew_reward = 60
 leaf_cost = 5
 is_boss = true
-resists = Array[String](["spore"])
-weak_to = Array[String](["stone"])
 followers = ExtResource("3_hound")
 follower_count = 4
 follower_spacing = 0.35

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_stormcap"
 display_name = "Stormcap"
-description = "{warden:firefly_jar}s can now {grow} into {warden:stormcap}s ({dew:{grow_cost:stormcap}}): chain lightning, stronger through {damp} nightmares."
+description = "{warden:firefly_jar}s can now {grow} into {warden:stormcap}s ({dew:{grow_cost:stormcap}}): lightning that {jumps} from nightmare to nightmare, stronger through {damp} ones."
 rarity = 1
 kind = 1
 tags = Array[String](["light", "storm"])

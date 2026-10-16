@@ -123,6 +123,9 @@ var speed: float
 var is_cleansed := false
 # Multiplies `enemy_data.health` (set before adding to the tree; drifts grow creatures this way).
 var health_scale := 1.0
+# DriftDirector.get_growth of its drift (set before adding to the tree): grows the dread shell's per-hit soak, which
+# must not follow health_scale (Balancing, balance_simulation.md "Dread shells after Nightmare Kinds").
+var coat_growth := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
@@ -154,7 +157,11 @@ const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
 const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
-	&"dawnbreak", &"echo"]
+	&"dawnbreak", &"echo", &"starfall", &"avalanche", &"drown", &"fever_dream", &"carried_storm"]
+# Reactions that change a Warden's own hit (card pass slice 1, council card_pass_td.md 1a): only the bonus is the
+# Reaction's. Tag -> the multiplier it put on the hit (Shatter and Pinned also × EnemyStatuses.charged_payoff_multiplier).
+const REACTION_BONUS_ONLY := {&"shatter": Reactions.SHATTER_MULTIPLIER, &"pinned": Reactions.PINNED_MULTIPLIER,
+	&"lightning_rod": Reactions.ROD_MULTIPLIER}
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Palette.STONE
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
@@ -425,6 +432,7 @@ func _notification(what: int) -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	statuses.status_filled.connect(flash_status)  # A status at its most flashes (Roguelite Code, 2026-10-16)
 	var parent := get_parent()
 	if parent != null and parent.has_method("route_around"):
 		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name
@@ -450,7 +458,9 @@ func _ready() -> void:
 	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
 	coat_max = enemy_data.coat_total * health_scale * modifiers.get("coat", 1.0)
 	coat = coat_max
-	_coat_per_hit = enemy_data.coat_per_hit * health_scale * modifiers.get("coat", 1.0)
+	# The per-hit soak grows with the drift's growth only (health_scale rises ~×38 by drift 45, heavy hits ~×3–8);
+	# the shell's total keeps health_scale. Hard Bark ("coat") and strip_buff work on both.
+	_coat_per_hit = enemy_data.coat_per_hit * coat_growth * modifiers.get("coat", 1.0)
 
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
@@ -2444,7 +2454,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		var world := Reactions._world(self)
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
-	var family := enemy_data.get_soothe_multiplier(line, is_area)
+	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
 	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
@@ -2453,16 +2463,13 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	sorrowing = false  # (Her walk comes back at once: update_animation)
-	if line in enemy_data.resists:
-		_mark_hit(-1)
-	elif line in enemy_data.weak_to:
-		_mark_hit(1)
 	var pierce := pierce_coat_once
 	pierce_coat_once = false
 	if coat > 0.0 and soothe > 0.0 and not pierce:
 		# Each hit loses up to _coat_per_hit (always keeping at least 1), never more than the coat has left.
 		var soaked := minf(minf(_coat_per_hit, coat), soothe - minf(soothe, 1.0))
-		coat -= soaked
+		var shell := batch_dreams.shell_multiplier(self, source) if batch_dreams != null else 1.0  # Wash Away: the shell takes double (Roguelite Code)
+		coat -= minf(soaked * shell, coat)
 		soothe -= soaked
 		if coat <= 0.0:
 			coat = 0.0
@@ -2479,7 +2486,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
 		statuses.sleep_time = 0.0
 	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag,
-		maxf(soothe - health_before, 0.0))
+		maxf(soothe - health_before, 0.0), is_area)
 	if health == 0 and not _try_rise():
 		_cleanse()
 		return
@@ -2507,6 +2514,12 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
 	var was_held := statuses.is_held()
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if is_instance_valid(_batch_dreams) and _batch_dreams.wants_duration_hook():
+		duration = _batch_dreams.class_duration(source, self, id, duration)  # Dewdrop's lingering cards (Roguelite Code): every application, carried ones too
+	if stacks > 0 and is_instance_valid(_batch_dreams):
+		stacks += _batch_dreams.role_cards.bound_stacks(self, id)  # Card pass 2026-10-16, Bound and Burning: +2 while Rooted (never Drowsy)
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
@@ -2517,7 +2530,10 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		var charger: Node = statuses.bolt_source if is_instance_valid(statuses.bolt_source) else source
 		Reactions.strike_bolt(self, bolt, charger, &"static")
 	if not is_cleansed and id in statuses.ALL:
-		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
+		if is_instance_valid(_batch_dreams) and _batch_dreams.wants_reaction_hook():
+			_batch_dreams.class_reaction(self, id, source)  # Old Rain / Never Quite Dry wrap the check (Roguelite Code)
+		else:
+			Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
 
 # --- Thin-family Dream cards (dream_design.md 2026-09-30; values from DreamState, via the spawner) ---
 
@@ -2554,8 +2570,11 @@ func _on_hold_ended() -> void:
 	if _release_spent:
 		_release_spent = false  # This was the Snare hold after a release pull: it ends there
 		return
-	if tiles <= 0.0 or is_flying():
-		return
+	if tiles <= 0.0 or is_flying() or has_meta(&"tangled_released"):
+		return  # Tangled Release: once per nightmare (card pass 2026-10-16: repeated holds were a hidden stall)
+	set_meta(&"tangled_released", true)
+	if enemy_data.is_boss:
+		tiles *= 0.5  # Bosses half as far
 	if holder == null or not is_instance_valid(holder):
 		push_back(tiles * grid.cell_size.x)
 		return
@@ -2578,7 +2597,7 @@ func _on_caught_lapsed() -> void:
 
 # Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
 func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,
-		is_crit: bool, source: Node, tag: StringName, overkill: float = 0.0) -> void:
+		is_crit: bool, source: Node, tag: StringName, overkill: float = 0.0, is_area: bool = false) -> void:
 	var damage_log := DamageLog.instance
 	if damage_log == null:
 		return
@@ -2600,9 +2619,6 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 		event.crit_multiplier = source.attack_data.crit_multiplier
 		event.combos.append(&"crit")
 		factor *= event.crit_multiplier
-	if line in enemy_data.weak_to:
-		event.combos.append(&"weak")
-		factor *= EnemyData.WEAK_MULTIPLIER
 	if statuses.is_exposed():
 		event.combos.append(&"marked")
 		factor *= taken / (taken - EnemyStatuses.MARKED_EXTRA)
@@ -2614,9 +2630,20 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 		# (Balancing: the sims and "from combos" couldn't see it); still credited to the Spored applier.
 		event.combos.append(&"ignite")
 		factor *= statuses.burn_rate
+	# Reaction damage, classified by tag first (card pass slice 1; RunHistory filed it all as combo, so runs showed
+	# Reactions at 0-1%): a Reaction's own damage is all of it; Shatter, Pinned and Lightning Rod only their bonus on the
+	# hit (Shatter's shards, an area hit, are all the Reaction's); Ignite's burn stays a Spored tick, its share through
+	# the "ignite" combo above.
+	if tag in REACTION_TAGS:
+		var bonus: float = REACTION_BONUS_ONLY.get(tag, 0.0)
+		if bonus > 0.0 and tag != &"lightning_rod":
+			bonus *= statuses.reaction_payoff(tag)  # Brimming's x2.2 only where this Reaction earned it (Reactions._decide_payoff)
+		event.reaction_amount = dealt * (1.0 - 1.0 / bonus) if bonus > 1.0 and not (tag == &"shatter" and is_area) else dealt
+	elif event.combos.has(&"ignite"):
+		event.reaction_amount = dealt * (1.0 - 1.0 / statuses.burn_rate)
 	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
 		event.combos.append(tag)
-		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
+		event.combo_amount = event.reaction_amount if tag in REACTION_TAGS else dealt  # The whole hit only happened thanks to the combo (a hit Reaction: its bonus)
 	else:
 		event.combo_amount = dealt * (1.0 - 1.0 / factor)
 	recent_hits.append(event)

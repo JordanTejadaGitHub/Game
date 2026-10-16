@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "fresh_growth"
 display_name = "Fresh Growth"
-description = "Grow or Nurture a Warden during a {drift}: it and every Warden touching it attack twice as fast for 8 s."
+description = "When you Grow or Nurture a Warden during a {drift}, it and every Warden {touching} it attack 100% faster for 8 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tempo", "daring"])
 max_stacks = 1
 rule_id = &"fresh_growth"
-tip = "Only a Warden that stood at the last {rest} sets it off. Each Warden gets the burst once a {drift}."
+tip = "Only a Warden that stood at the last {rest} sets it off. Each Warden once a {drift}."

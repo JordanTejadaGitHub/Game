@@ -382,6 +382,9 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO)
 		AuraView.draw_ghost(self, tower_data, _ghost_centre(),
 			tower_container.get_children())
+	elif BranchKit.special_aura(tower_data) > 0.0:  # Prism Jar's crit aura: the cells it covers
+		draw_set_transform(Vector2.ZERO)
+		AuraView.draw_shape(self, AuraView.cells(_ghost_centre(), BranchKit.special_aura(tower_data)))
 	draw_set_transform(_ghost_centre())
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
@@ -436,8 +439,6 @@ func _draw() -> void:
 		var art := get_build_preview_art()
 		draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
-	if tower_data.can_attack:
-		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
 	if run_state.fertile_cells.has(_hover_cell):
 		tag += " (fertile)"
 	var growth := get_hover_path_growth()
@@ -682,6 +683,10 @@ func _draw_grow_preview() -> void:
 		if into.aura_radius > 0.0:  # A form with an aura: the cells it would cover (open "grow aura previews" item)
 			var reach := Tower.range_to_pixels(into.aura_radius)
 			draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(BuffSources.color(into.get_id()), 0.7), 2.0)
+		elif BranchKit.special_aura(into) > 0.0:  # Prism Jar's crit aura: the cells it would cover
+			draw_set_transform(Vector2.ZERO)
+			AuraView.draw_shape(self, AuraView.cells(tower.global_position, BranchKit.special_aura(into)))
+			draw_set_transform(to_local(tower.global_position))
 		if into.texture == null:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:
@@ -1443,7 +1448,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if gifts:
 		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
-	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 14, 18, …); Seedling
+	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 15, 20, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
 	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
@@ -1499,8 +1504,8 @@ func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
 
 const SEEDFALL_CARD := "seedfall"
-const SPROUTS_PER_STEP := 10  # Every 10 Sprouts on the map… ("Health x2, Dew x2 trial"; was 5)
-const SPROUT_STEP_DEW := 4  # …add +4 Dew to the next one
+const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map… (Balancing 2026-10-16: was +4 per 10 (Dew x2 trial); Sprouts out-valued walls (35-65 per board))
+const SPROUT_STEP_DEW := 5  # …add +5 Dew to the next one
 const SEEDFALL_SPROUTS_PER_STEP := 10  # Seedfall: the price rises half as fast… (with the trial: every 10 too, or it would step sooner than the base)
 const SEEDFALL_STEP_DEW := 2  # …+2 per 10
 
@@ -2298,6 +2303,13 @@ func get_stroke_cells() -> Array[Vector2]:
 func get_stroke_tag() -> String:
 	var count := _stroke_plan.values().count("")
 	var name := tower_data.display_name + ("" if count == 1 else "s")
+	if UiStyle.is_phone():  # Phones (UI Asset review 2026-10-15: no " · " strings): "5 Sprouts   ◆70   +5 path   1 skipped"
+		var parts: Array[String] = ["%d %s" % [count, name], UiStyle.dew_amount(_stroke_cost)]
+		if _stroke_growth != 0:
+			parts.append("%+d path" % _stroke_growth)
+		if _stroke.size() - count > 0:
+			parts.append("%d skipped" % (_stroke.size() - count))
+		return "   ".join(parts)
 	var tag := "%d %s · %d Dew" % [count, name, _stroke_cost]
 	if _stroke_growth != 0:
 		tag += " · %+d cells of path" % _stroke_growth

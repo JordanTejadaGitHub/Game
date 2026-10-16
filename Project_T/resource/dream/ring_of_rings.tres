@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "ring_of_rings"
 display_name = "Ring of Rings"
-description = "{named_combo:fairy_circle} rings last until stepped on (up to 60 s)."
-cost_description = "{named_combo:fairy_circle} can fire half as often."
+description = "{named_combo:fairy_circle} rings stay until a nightmare steps on them and add 3 {stacks} of {spored} instead of 2."
+cost_description = "{named_combo:fairy_circle} can happen only half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
@@ -19,3 +19,4 @@ min_act = 2
 entwined = true
 woven = true
 rule_id = &"ring_of_rings"
+tip = "Rings still fade after 60 s."

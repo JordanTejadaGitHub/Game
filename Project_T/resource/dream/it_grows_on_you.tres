@@ -14,3 +14,4 @@ tags = Array[String](["spore"])
 max_stacks = 1
 rule_id = &"it_grows_on_you"
 calling = "sporeling"
+retired = true

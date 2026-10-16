@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"spotlight"
 requires = Array[String](["firefly_jar"])
 tip = "{lit}: a nightmare in a Firefly Warden's glow (3 cells). A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines). The front nightmare is the one furthest along the path. The whole fan never deals more than the Firefly Warden's brightness."
+retired = true

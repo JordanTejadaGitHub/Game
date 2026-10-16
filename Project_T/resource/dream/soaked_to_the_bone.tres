@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "soaked_to_the_bone"
+display_name = "Soaked to the Bone"
+description = "A nightmare coming back into a lone {warden:dewdrop}'s {water} is {full} {damp} at once."
+tip = "Lone: no other attacking Warden touches its {water} (walls are fine). Coming back: it walked through this {warden:dewdrop}'s {water} before. Once for each nightmare and {warden:dewdrop}. Flyers never come back in. Works for: a lone {warden:dewdrop}. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water"])
+max_stacks = 1
+rule_id = &"soaked_to_the_bone"
+calling = "dewdrop"
+retired = true

@@ -301,7 +301,7 @@ func _test_economy() -> void:
 	dreams.take(_card("call_of_the_wild"))
 	_check(dreams.get_call_early_bonus(7, 10) == 7, "Call of the Wild no longer doubles the early-call Dew (2026-10-13)")
 	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.1),
-		"Call of the Wild adds nothing to the pot: its 25% is paid when the called drift is cleared with no leaf lost")
+		"Call of the Wild: nothing more with no arrival skipped (+1% a second skipped, up to +30%)")
 	dreams.take(_card("winding_path"))
 	_check(dreams.get_rest_bonus_add() == 20 and is_equal_approx(dreams.get_maze_multiplier(), DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path: the maze's rest Dew x3, nothing added to the rest bonus (Morning Dew's 20 only)")
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
@@ -596,7 +596,7 @@ func _test_catalogue() -> void:
 	_check(dreams.get_bolt_multiplier() == 1.0, "no bigger bolts from Live Wire")
 	dreams.take(_card("live_wire"))
 	_check(dreams.get_bolt_multiplier() == 1.0 and dreams.has_rule(&"lent_live_wire"), "Live Wire: bolts jump instead, never bigger")
-	_check(_card("thin_bark").soothe_bonus == 0.75 and _card("thin_bark").max_leaves_add == 0, "Thin Bark: +75% damage; its price halves max leaves (rule)")
+	_check(_card("thin_bark").soothe_bonus == 0.0 and _card("thin_bark").max_leaves_add == 0, "Thin Bark: a Dream row now (finals +100%, the rest -30%; card pass 2026-10-16)")
 	_clear()
 	_reset()
 

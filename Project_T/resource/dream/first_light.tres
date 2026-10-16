@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "first_light"
 display_name = "First Light"
-description = "Each Warden's first hit on a nightmare deals ×3 damage. Status damage counts as a hit."
+description = "Each Warden's first damage to each nightmare is tripled, even a status tick."
 rarity = 2
 kind = 3
 tags = Array[String](["precision", "defining"])

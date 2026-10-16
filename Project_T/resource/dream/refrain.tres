@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "refrain"
 display_name = "Refrain"
-description = "Needs another {family}'s Warden. A Tolled nightmare rings on for 2 s: the next hit on it from that Warden lands again, in full."
-tip = "A ring is a hit from a bell. Every 4th ring on a nightmare is a {toll}: it lands again at half damage (on a Bellflower start the first {toll} is ring 2). Works for: another {family}'s Warden, anywhere. A bet: it does little until you own another {family}."
+description = "After a bell hits a nightmare, the next hit on it from another Warden within 2 s lands twice. Each Warden once every 4 s."
+tip = "Another Warden: any but that bell; other bells and Sprouts count. Repeats the damage, not the status. Works for: Wardens of any family that hit the same nightmares as a bell. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

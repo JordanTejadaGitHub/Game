@@ -503,7 +503,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Firefly Jar | base | 30 (+20) | 3 | 12 × 1.5 | 18 | projectile | Static 1 |
 | ✓ Stormcap | branch | +45 | 3 | 14 × 1.2 | 17 × up to 3 | chain | chains to 3 (jump 1.5); vs Damp: **+2 jumps**, jump 2.5 |
 | ✓ Thunderhead | final | +90 | 3.5 | 20 × 1.3 | 26 × up to 4 | chain | every **5th** attack strikes **every Damp creature** in range. **Proposed:** chain 4 (currently the default 3) |
-| ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 | 12 | projectile | Marked; **reveals** fog-hidden creatures in range |
+| ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 (**70** since 2026-10-14, Balancing: human runs 29, 30, 34; was 35.1) | 12 (now 70) | projectile | Marked; **reveals** fog-hidden creatures in range |
 | Beacon | final | +90 | 5 | 16 × 1.0 | 16 | projectile + pulse | every 2 s, **Marks everything** in range; its Marked is **+35%** |
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
 | ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8%; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage 68 → 170 (×2.5, after the beam fix; was 0.28×).* |

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "kin_and_kindling"
 display_name = "Kin and Kindling"
-description = "{harmonies} apply both Wardens' statuses (1 {stack} each) to the nightmare."
-cost_description = "They deal no damage."
+description = "{harmonies} add 1 {stack} of each of the two Wardens' statuses to the nightmare."
+cost_description = "{harmonies} deal no damage."
 rarity = 2
 kind = 3
 tags = Array[String](["kinship", "reaction"])
@@ -17,3 +17,4 @@ entwined = true
 requires_tag = "reaction"
 min_kinships = 1
 rule_id = &"kin_and_kindling"
+tip = "These {stacks} can complete {reactions}."

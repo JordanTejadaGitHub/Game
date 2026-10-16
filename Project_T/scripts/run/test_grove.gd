@@ -150,7 +150,7 @@ func spawn(data: EnemyData, count: int = 1, elite: bool = false) -> Node2D:
 func _spawn_one(data: EnemyData, elite: bool) -> Node2D:
 	var number := maxi(drift_director.drifts_started, 1)
 	return spawner.spawn_enemy(data, drift_director.get_health_scale(data, number),
-		drift_director.get_spawn_modifiers(data, number), elite)
+		drift_director.get_spawn_modifiers(data, number), elite, drift_director.get_growth(number))
 
 # The Target Dummy: slow, never dispelled, walks the maze again at the end. Toggles it.
 func toggle_dummy(data: EnemyData = null) -> Node2D:
@@ -160,8 +160,9 @@ func toggle_dummy(data: EnemyData = null) -> Node2D:
 		return null
 	data = data if data != null else _selected_type()
 	var modifiers := {"speed": DUMMY_SPEED}
-	dummy = spawner.spawn_enemy(data, drift_director.get_health_scale(data, maxi(drift_director.drifts_started, 1)),
-		modifiers)
+	var number := maxi(drift_director.drifts_started, 1)
+	dummy = spawner.spawn_enemy(data, drift_director.get_health_scale(data, number), modifiers, false,
+		drift_director.get_growth(number))
 	if dummy != null:
 		dummy.unkillable = true
 		dummy.loops_route = true
@@ -251,9 +252,7 @@ func get_inspect_text(enemy: Node2D) -> String:
 		enemy.health, enemy.max_health]]
 	if enemy.coat > 0.0:
 		lines.append("Blight coat %.0f / %.0f" % [enemy.coat, enemy.coat_max])
-	if not data.resists.is_empty() or not data.weak_to.is_empty():
-		lines.append("Resists %s · weak to %s" % [", ".join(data.resists) if not data.resists.is_empty() else "—",
-			", ".join(data.weak_to) if not data.weak_to.is_empty() else "—"])
+	lines.append(data.get_kind_line())  # Nightmare Kinds (2026-10-15) replaced the resists / weak to line
 	lines.append("Taken ×%.2f · speed ×%.2f" % [enemy.statuses.get_damage_taken_multiplier(),
 		enemy.statuses.get_speed_multiplier()])
 	for status in enemy.statuses.snapshot():

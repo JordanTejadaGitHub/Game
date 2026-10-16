@@ -30,7 +30,8 @@ const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters 
 const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
 const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
 const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud", &"leaves": &"leaf_hud", &"path_length": &"path_hud"}
-const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud"}
+const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud",
+	&"DreamsButton": &"dreams_hud"}  # Phones: UI Asset 9e0cf814
 const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
 @onready var tower_bar: HBoxContainer = %TowerBar  # One row by construction (user: "should not stack")
@@ -95,6 +96,11 @@ func _ready() -> void:
 	_bar_toggle.draw.connect(_draw_hide_arrow.bind(_bar_toggle))
 	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
 	add_child(_bar_toggle)
+	if phone():
+		_make_sell_slot()  # Before the bar is laid out (it sits at the dock's left end)
+		var clearer := get_node_or_null("%ObstacleClearer")
+		if clearer != null and clearer.has_signal("lock_changed"):
+			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
 	if OS.has_feature("mobile"):  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
@@ -125,6 +131,8 @@ func _ready() -> void:
 	_add_menu_button()
 	_add_buff_lens_button()
 	_add_remember_button()
+	if phone():
+		_add_phone_buttons()
 	# "Coming this block" (top centre, under the drift banner) and the new-nightmare introduction
 	# card (before the dossier in the rest order), both from screens_ui.md.
 	var strip := ComingStrip.new(drift_director)
@@ -164,7 +172,7 @@ func _ready() -> void:
 	# The run history (balance_simulation.md "Run history"): saved at every run end, shown in the Codex.
 	add_child(RunHistory.new(drift_director))
 	_raise_overlays.call_deferred()  # After everything above (and deferred adds) is in
-	# Resist / weak pips and the immune flash, drawn in the world over the nightmares.
+	# The immune flash (a refused status), drawn in the world over the nightmares.
 	owner.add_child.call_deferred(ResistPips.new())
 	# Touch: Plant / Cancel for a pending drag-to-build stroke, two-finger pan and pinch (TouchBuild).
 	add_child(TouchBuild.new(tower_placer, owner.get_node_or_null("GameCameraNode")))
@@ -339,6 +347,231 @@ func _fit_safe_area() -> void:
 	var view := get_viewport().get_visible_rect().size
 	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
 
+# --- Phones (Mobile UI, the "Heartwood Phone HUD" prototype; user 2026-10-15) ---------------------------------------------
+# The Warden bar is a dock at the bottom LEFT (the left thumb) with a Sell slot at its end; the bottom centre stays free
+# for the touch build bar (Confirm / Cancel / Done); the top-right row adds Dreams (this run's Dreams) and Damage (the
+# damage meter, closed until asked). Desktop is unchanged.
+const PHONE_MARGIN := 16.0
+const PHONE_CENTRE_RESERVE := 160.0  # Half the touch build bar, kept clear at the bottom centre
+const PHONE_TOP_ROW := ["MenuButton", "CodexButton", "DamageButton", "DreamsButton", "BuffLensButton", "RememberButton"]  # Right to left
+var sell_slot: Button = null
+var dreams_button := Button.new()
+var damage_button := Button.new()
+
+static func phone() -> bool:
+	return UiStyle.is_phone()
+
+func _top_row_names() -> Array:
+	return PHONE_TOP_ROW if phone() else TOP_ROW
+
+func _make_sell_slot() -> void:
+	sell_slot = Button.new()
+	sell_slot.name = "SellSlot"
+	sell_slot.text = "Sell"
+	sell_slot.tooltip_text = "Sell mode: tap a Warden to sell it. Tap Sell again to stop."
+	sell_slot.toggle_mode = true
+	sell_slot.focus_mode = Control.FOCUS_NONE
+	sell_slot.theme_type_variation = &"WardenSlot"
+	sell_slot.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
+	# A tool slot like Clear (UI Asset review 2026-10-15: Ember means "can't afford"): Mist caption, the slot frame; the
+	# selected look (gold border) only while sell mode is on.
+	sell_slot.add_theme_color_override("font_color", UiStyle.MOON_MIST)
+	sell_slot.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	sell_slot.add_theme_color_override("font_hover_color", UiStyle.INK)
+	var dew := IconInfo.icon(&"dew")
+	if dew != null:
+		sell_slot.icon = dew
+		sell_slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sell_slot.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		sell_slot.expand_icon = true
+		sell_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sell_slot.anchor_left = 0.5
+	sell_slot.anchor_right = 0.5
+	sell_slot.anchor_top = 1.0
+	sell_slot.anchor_bottom = 1.0
+	sell_slot.process_mode = Node.PROCESS_MODE_ALWAYS  # Selling works while paused, as building does
+	sell_slot.toggled.connect(_on_sell_slot)
+	_shadowed(sell_slot)
+	add_child(sell_slot)
+
+var _sell_from_building := false  # Sell mode was turned on while building: turning it off goes back to building
+
+func _on_sell_slot(on: bool) -> void:
+	var seller := get_node_or_null("%TowerSeller") as TowerSeller
+	if seller == null or not seller.has_method("set_sell_mode"):
+		sell_slot.set_pressed_no_signal(false)
+		return
+	if on:
+		_sell_from_building = tower_placer.build_mode
+		if tower_placer.build_mode:
+			tower_placer.set_build_mode(false)
+		seller.set_sell_mode(true)
+		return
+	seller.set_sell_mode(false)
+	if _sell_from_building and tower_placer.tower_data != null:
+		tower_placer.set_build_mode(true)  # Back to building the same Warden (as TouchBuild's Back does)
+	_sell_from_building = false
+
+func _add_phone_buttons() -> void:
+	for pair in [[dreams_button, "DreamsButton", "Dreams this run"], [damage_button, "DamageButton", "Damage meter"]]:
+		var button: Button = pair[0]
+		button.name = pair[1]
+		button.text = ""
+		button.tooltip_text = pair[2]
+		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.process_mode = Node.PROCESS_MODE_ALWAYS
+		_place_top_button(button, [0.0, ROW_BUTTON])
+		add_child(button)
+	if dreams_button.icon == null:  # UI Asset's dreams_hud glyph (HUD_GLYPHS) once it's in the sheet; gems until then
+		dreams_button.draw.connect(_draw_dreams_glyph)
+	# Damage: the pixel damage icon (UI Asset review: no code-drawn shapes, they land on fractional sizes at UI 0.9)
+	var damage_icon := IconInfo.icon(&"damage")
+	if damage_icon != null:
+		damage_button.icon = damage_icon
+	else:
+		damage_button.draw.connect(_draw_damage_glyph)
+	dreams_button.toggled.connect(_on_dreams_button)
+	damage_button.toggled.connect(_on_damage_button)
+	_setup_phone_panels.call_deferred()  # After the damage meter and the Dreams row are ready
+
+# Phones: the damage meter starts closed (the Damage button opens it; its side handle goes), the Dreams row's strip of
+# icons goes (the Dreams button opens the list).
+func _setup_phone_panels() -> void:
+	var meter := get_node_or_null("DriftMeter")
+	if meter != null and meter.has_method("set_hidden"):
+		meter.set("arrow_hidden", true)
+		meter.set_hidden(true)
+	var row := get_node_or_null("DreamsRow")
+	if row != null:
+		row.set("strip_hidden", true)
+
+# Three small rarity gems: this run's Dreams.
+func _draw_dreams_glyph() -> void:
+	var centre := (dreams_button.size / 2.0).floor()  # Whole pixels (UI Asset: no fractional shapes; a pixel icon is asked for)
+	for i in 3:  # (r 4 read as "…" on a phone: user screenshot)
+		UiStyle.draw_gem(dreams_button, centre + Vector2((i - 1) * 11.0, 0.0), 5.0, i + 1)
+
+# Three bars, tall to short: the damage meter.
+func _draw_damage_glyph() -> void:
+	var centre := damage_button.size / 2.0
+	var colours := [UiStyle.GOLD, UiStyle.BUTTON_GOLD, UiStyle.POOR]
+	for i in 3:
+		var h := 14.0 - i * 4.0
+		damage_button.draw_rect(Rect2(centre + Vector2(-9.0 + i * 6.5, 7.0 - h), Vector2(5.0, h)), colours[i])
+	damage_button.draw_line(centre + Vector2(-10.0, 7.5), centre + Vector2(10.0, 7.5), UiStyle.INK_DIM, 1.0)
+
+func _on_dreams_button(on: bool) -> void:
+	var row := get_node_or_null("DreamsRow")
+	if row == null or not row.has_method("_toggle_list"):
+		return
+	var list := row.get("_list") as Control
+	if list != null and list.visible != on:
+		row.call("_toggle_list")
+	if on:
+		damage_button.button_pressed = false  # One panel at a time
+
+func _on_damage_button(on: bool) -> void:
+	var meter := get_node_or_null("DriftMeter")
+	if meter != null and meter.has_method("set_hidden"):
+		meter.set_hidden(not on)
+		if on and meter.has_method("set_open"):
+			meter.set_open(true)
+	if on:
+		dreams_button.button_pressed = false
+
+# The buttons follow their panels (the list's own Close, a Warden picked, the meter's header).
+func _sync_phone_buttons() -> void:
+	var row := get_node_or_null("DreamsRow")
+	var list := row.get("_list") as Control if row != null else null
+	if list != null and dreams_button.button_pressed != list.visible:
+		dreams_button.set_pressed_no_signal(list.visible)
+	var meter := get_node_or_null("DriftMeter")
+	if meter != null:
+		var open := not bool(meter.get("hidden_by_player"))
+		if damage_button.button_pressed != open:
+			damage_button.set_pressed_no_signal(open)
+
+# The dock: Clear, the Wardens (‹ › when they don't fit), Sell, then the hide handle, from the left edge to the reserved
+# centre. Slots size as on desktop (SLOT_MIN_WIDTH … BUTTON_SIZE.x).
+func _fit_tower_bar_phone() -> void:
+	tower_bar.visible = not bar_hidden
+	clear_tool.visible = not bar_hidden
+	if sell_slot != null:
+		sell_slot.visible = not bar_hidden
+	_bar_toggle.set_meta(&"arrow", Vector2.UP if bar_hidden else Vector2.DOWN)
+	_bar_toggle.tooltip_text = "Show Warden bar" if bar_hidden else "Hide Warden bar"
+	_bar_toggle.queue_redraw()
+	var half := get_viewport().get_visible_rect().size.x / 2.0
+	var left := -half + PHONE_MARGIN
+	_bar_toggle.offset_bottom = -16.0 + (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
+	_bar_toggle.offset_top = _bar_toggle.offset_bottom - BAR_TOGGLE_W
+	if bar_hidden:
+		for arrow in _bar_arrows:
+			arrow.visible = false
+		_bar_toggle.offset_left = left
+		_bar_toggle.offset_right = left + BAR_TOGGLE_W
+		return
+	if _tower_buttons.is_empty():
+		return
+	var clear_on := not _clearing_locked()  # Phones: no Clear slot until a clearing Dream unlocks clearing (user 2026-10-15)
+	clear_tool.visible = clear_on
+	var room := half - PHONE_MARGIN - PHONE_CENTRE_RESERVE - (BAR_HANDLE + BAR_GAP)
+	var n := _tower_buttons.size()
+	var fixed := 2 if clear_on else 1  # Sell, and the Clear tool once unlocked
+	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
+	var shown := n
+	if width < SLOT_MIN_WIDTH:
+		width = SLOT_MIN_WIDTH
+		var inner := room - 2.0 * (ARROW_W + BAR_GAP) - fixed * width - fixed * CLEAR_TOOL_GAP
+		shown = clampi(floori((inner + BAR_GAP) / (width + BAR_GAP)), 1, n)
+	width = minf(width, BUTTON_SIZE.x)
+	_bar_offset = clampi(_bar_offset, 0, n - shown)
+	var icon := mini(SLOT_SPRITE, int(width) - 12)
+	for i in n:
+		var button: Button = _tower_buttons[i]
+		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+		button.add_theme_constant_override("icon_max_width", icon)
+		button.visible = i >= _bar_offset and i < _bar_offset + shown
+		if button == _seed_badge_button():
+			_seed_badge.position.x = width - 14
+	clear_tool.add_theme_constant_override("icon_max_width", icon)
+	clear_tool.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
+	clear_tool.add_theme_color_override("font_color", UiStyle.MOON_MIST)
+	_shadowed(clear_tool)
+	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+	var scrolling := shown < n
+	var bar_width := width * shown + BAR_GAP * (shown - 1)
+	# Left to right (user 2026-10-15): Sell at the left end, the Wardens, then Clear (once unlocked).
+	var x := left
+	if sell_slot != null:
+		sell_slot.add_theme_constant_override("icon_max_width", mini(icon, 28))
+		sell_slot.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+		_place_slot(sell_slot, x, width)
+		x += width + CLEAR_TOOL_GAP
+	x += ARROW_W + BAR_GAP if scrolling else 0.0
+	_place_slot(tower_bar, x, bar_width)
+	_place_bar_arrows(scrolling, x, x + bar_width, n - shown)
+	x += bar_width + (BAR_GAP + ARROW_W if scrolling else 0.0)
+	if clear_on:
+		x += CLEAR_TOOL_GAP
+		_place_slot(clear_tool, x, width)
+		x += width
+	x += BAR_GAP
+	_bar_toggle.offset_left = x - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
+	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
+
+func _clearing_locked() -> bool:
+	var clearer = clear_tool.get("clearer") if clear_tool != null else null
+	return clearer != null and clearer.has_method("is_locked") and clearer.is_locked()
+
+# A bottom-anchored control (anchored on the bottom centre) from `x` (from the centre), `width` wide, 16 px up.
+func _place_slot(control: Control, x: float, width: float) -> void:
+	control.offset_left = x
+	control.offset_right = x + width
+	control.offset_bottom = -16.0
+	control.offset_top = -16.0 - BUTTON_SIZE.y
+
 func set_bar_hidden(hidden: bool) -> void:
 	bar_hidden = hidden
 	if hidden and hover_card != null:
@@ -347,6 +580,9 @@ func set_bar_hidden(hidden: bool) -> void:
 	_fit_tower_bar()
 
 func _fit_tower_bar() -> void:
+	if phone():
+		_fit_tower_bar_phone()
+		return
 	tower_bar.visible = not bar_hidden
 	clear_tool.visible = not bar_hidden
 	# The hide arrow: drawn (no font glyph), pointing where the bar goes. Hidden bar: alone, bottom centre. Shown:
@@ -417,6 +653,8 @@ func _fit_tower_bar() -> void:
 # to the right and the group drifts off-centre (user: "Tower bar isn't centred still"). Next frame, from what is drawn:
 # shift the whole group (Clear tool, bar, arrows) so its middle is the screen's middle.
 func _recentre_bar() -> void:
+	if phone():
+		return  # Phones: the dock sits at the left edge, not centred
 	if not is_instance_valid(tower_bar) or not tower_bar.is_visible_in_tree():
 		return
 	var parts: Array[Control] = [clear_tool, tower_bar]
@@ -523,6 +761,8 @@ func _on_sell_mode(on: bool) -> void:
 	(_sell_hint.get_node("Text") as Label).text = InputMode.text("Sell mode: click a Warden. Right-click or Esc to stop.",
 		"Sell mode: tap a Warden to sell it. Tap Sell again to stop.")
 	_sell_hint.visible = on
+	if sell_slot != null:
+		sell_slot.set_pressed_no_signal(on)
 	tower_bar.modulate.a = 0.55 if on else 1.0  # multiplier: the bar steps back while selling
 	var dew := IconInfo.icon(&"dew") if on else null
 	if dew != null:
@@ -898,7 +1138,7 @@ func _layout_top_row() -> void:
 	var counters: Array = [%PathLabel, get_node_or_null("DreamlightLabel"), dew_label, leaves_label]  # Right to left
 	counters = counters.filter(func(c) -> bool: return c != null)
 	var buttons: Array = []
-	for name in TOP_ROW:
+	for name in _top_row_names():
 		var button := get_node_or_null(name) as Button
 		if button != null and button.visible:
 			buttons.append(button)
@@ -1121,6 +1361,8 @@ func _process(delta: float) -> void:
 		if key != _row_key:
 			_row_key = key
 			_layout_top_row()
+		if phone():
+			_sync_phone_buttons()
 	_remember_glow += real
 	remember_button.modulate = Color.WHITE.lerp(Color(1.35, 1.2, 0.8), 0.5 + 0.5 * sin(_remember_glow * 4.0)) \
 		if _remember_ready else Color.WHITE  # A multiplier (glow pulse)
@@ -1132,6 +1374,11 @@ const OVERLAY_ORDER := ["FamilyPickScreen", "DreamScreen", "OmenScreen", "Rememb
 	"BossDossier", "ResultsScreen", "PauseMenu"]
 
 func _raise_overlays() -> void:
+	# Phones: the Warden drawer covers the right edge (the top-right row, the counters, the drift panel), so it draws
+	# above the rest of the HUD; full-screen overlays still go over it (user screenshots 2026-10-15).
+	var panel := get_node_or_null("WardenPanel")
+	if phone() and panel != null:
+		move_child(panel, get_child_count() - 1)
 	for overlay_name in OVERLAY_ORDER:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:

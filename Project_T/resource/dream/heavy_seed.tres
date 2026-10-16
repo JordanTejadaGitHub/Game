@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_seed"
 display_name = "Heavy Seed"
-description = "The {warden:samara} line's seed hits for double on its way back."
+description = "Seeds from {warden:samara} and its forms deal double damage on their way back."
 rarity = 1
 kind = 3
 tags = Array[String](["wind"])

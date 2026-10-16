@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_windmill"
 display_name = "Windmill"
-description = "{warden:pinwheel}s can now {grow} into {warden:windmill}s ({dew:{grow_cost:windmill}}): bigger, faster blades; loves hairpin bends."
+description = "{warden:pinwheel}s can now {grow} into {warden:windmill}s ({dew:{grow_cost:windmill}}): bigger, faster blades; loves bends."
 rarity = 2
 kind = 1
 tags = Array[String](["wind"])

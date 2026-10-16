@@ -14,6 +14,7 @@ class_name TouchBuild
 # Touch mode turns on with the first screen touch and off with real mouse movement. Made by the HUD.
 
 const BUTTON_HEIGHT := 52.0
+const PHONE_BUTTON_W := 150.0  # Phones: Confirm, Cancel and Done the same width
 const PAN_SLOP := 14.0  # Screen pixels a finger moves before a touch is a pan instead of a tap
 
 # The current gesture, for the map tools (static: there is one touch screen).
@@ -57,6 +58,8 @@ func _ready() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	offset_bottom = -120.0  # Above the Warden bar
+	if UiStyle.is_phone():
+		offset_bottom = -32.0  # Phones: level with the Warden dock, in the bottom centre it leaves free (hud.gd PHONE_CENTRE_RESERVE)
 	offset_top = offset_bottom - BUTTON_HEIGHT
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for pair in [[_plant, "Confirm", _on_plant], [_cancel, "Cancel", _on_cancel]]:
@@ -64,6 +67,8 @@ func _ready() -> void:
 		button.text = pair[1]
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(170 if button == _plant else 110, BUTTON_HEIGHT)
+		if UiStyle.is_phone():
+			button.custom_minimum_size.x = PHONE_BUTTON_W  # Confirm / Cancel / Done one size (UI Asset review 2026-10-15)
 		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(pair[2])
 		if button == _plant:
@@ -74,6 +79,9 @@ func _ready() -> void:
 	_done.focus_mode = Control.FOCUS_NONE
 	_done.custom_minimum_size = Vector2(110, BUTTON_HEIGHT)
 	_done.add_theme_font_size_override("font_size", 18)
+	if UiStyle.is_phone():
+		_done.custom_minimum_size.x = PHONE_BUTTON_W
+		UiStyle.primary(_done)  # Phones: Done is the primary when it shows instead of Confirm (it never shows beside it)
 	_done.tooltip_text = "Stop building."
 	_done.pressed.connect(_on_done)
 	add_child(_done)
@@ -117,10 +125,17 @@ func _refresh() -> void:
 	var building: bool = tower_placer != null and bool(tower_placer.get("build_mode"))
 	var selling: bool = mobile_controls() and seller != null and bool(seller.get("sell_mode"))
 	visible = touch_mode and (pending or building or selling)  # Done all through build (and sell) mode, Confirm / Cancel with pending Wardens
+	# Not under a full-screen screen (a Dream, the pause menu …): it showed through the Dream screen's bottom row (user
+	# screenshot 2026-10-16). It comes back when the screen closes (_process).
+	_under_modal = visible and camera != null and camera.has_method("modal_open") and camera.modal_open()
+	if _under_modal:
+		visible = false
 	_plant.visible = pending
 	_cancel.visible = pending
 	_done.visible = (building or selling) and not pending
-	_sell.visible = mobile_controls() and seller != null and seller.has_method("set_sell_mode") and (building or selling) and not pending
+	# (Phone layouts: Sell is the Warden dock's last slot, hud.gd sell_slot.)
+	_sell.visible = mobile_controls() and not UiStyle.is_phone() and seller != null and seller.has_method("set_sell_mode") \
+		and (building or selling) and not pending
 	if visible and tower_placer.has_method("get_stroke_tag"):
 		var plan: Dictionary = tower_placer.get_stroke_plan()
 		var count: int = plan.values().count("")
@@ -128,14 +143,18 @@ func _refresh() -> void:
 		_plant.tooltip_text = tower_placer.get_stroke_tag()
 		_plant.disabled = plan.values().count("") == 0
 
+var _under_modal := false  # Hidden only because a full-screen screen is up
+
 func _process(_delta: float) -> void:
-	if visible:
+	if visible or _under_modal:
 		_refresh()  # The plan changes as Dew and the board change
 
 func _on_plant() -> void:
 	var planted: int = tower_placer.plant_stroke()
 	if tower_placer.has_method("after_player_placement"):
 		tower_placer.after_player_placement(planted > 0)  # TowerPlacer's hook (build mode now stays on: Done stops it)
+	if mobile_controls():
+		tower_placer.set_build_mode(false)  # Phones: Confirm ends building (user 2026-10-16); pick a Warden to build again
 	_refresh()
 
 # Done: out of sell mode, or out of build mode.

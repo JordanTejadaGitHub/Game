@@ -67,8 +67,9 @@ func _run() -> void:
 	var bird := _spawn(wren.global_position + Vector2(CELL, 0))
 	wren.fire_at(bird)
 	var swoops := wren.get_children().filter(func(c) -> bool: return c is Projectile)
-	_check(not swoops.is_empty() and swoops[0].return_multiplier > 1.0,
-		"Homing Instinct: the swoop flies home faster (%s)" % [swoops.map(func(p) -> float: return p.return_multiplier)])
+	# Reworked 2026-10-16 (card pass): a swoop that dispels its target swoops again at the nearest nightmare; no return speed.
+	_check(not swoops.is_empty() and swoops[0].reswoops == Projectile.HOMING_RESWOOPS and is_equal_approx(swoops[0].return_multiplier, 1.0),
+		"Homing Instinct: the swoop may swoop again (%s)" % [swoops.map(func(p) -> int: return p.reswoops)])
 
 	# Long Light.
 	_take("long_light")

@@ -15,7 +15,7 @@ const WIDTH := 280.0
 var title := Label.new()
 var portrait := TextureRect.new()  # The Warden's idle art (the panel animates it)
 var portrait_atlas := AtlasTexture.new()
-var damage_type := HBoxContainer.new()  # The damage type name in its colour (no icon: user, 2026-09-30)
+var damage_type := HBoxContainer.new()  # The small line under the name (the panel's rank); was the damage type
 var desc: RichTextLabel  # What it does, with its status words as links (StatusLinks)
 var stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var growth := VBoxContainer.new()  # "Grows into" (the hover card and Codex; the panel has its Grow buttons)
@@ -350,15 +350,27 @@ func _grow_preview_on(line: Label, next: TowerData, unlocked: bool) -> void:
 func tower_grow_cost(next: TowerData, dreams: DreamState) -> int:
 	return _tower.get_grow_cost(next).total if is_instance_valid(_tower) and _tower != _probe else dreams.get_evolve_cost(next)
 
+# The small line under the name: the form's role tags (owner 2026-10-16: so players see which Dream cards a form wakes;
+# WardenRoles, card pass), "Heavy · Area", hidden when it has none; the Warden panel adds its rank after them. (It held
+# the damage type until Nightmare Kinds, enemy_design.md ed6f573b.)
+const ROLE_TAG_NAMES := {WardenRoles.HEAVY: "Heavy", WardenRoles.AREA: "Area", WardenRoles.CHAIN: "Chain",
+	WardenRoles.BEAM: "Beam", WardenRoles.TRAP: "Trap", WardenRoles.PULL: "Pull", WardenRoles.HOLD: "Hold",
+	WardenRoles.SNIPER: "Long range", WardenRoles.SUPPORT: "Support"}
+const ROLE_TAGS_TIP := "Its jobs. Some Dream cards wake only once you have grown a Warden with one of them."
+
+static func role_tags(data: TowerData) -> Array[String]:
+	var out: Array[String] = []
+	for role in WardenRoles.roles(data):
+		out.append(String(ROLE_TAG_NAMES.get(role, String(role).capitalize())))
+	return out
+
 func _show_damage_type(data: TowerData) -> void:
-	damage_type.visible = data.can_attack
-	if not data.can_attack:
-		return
 	var label := damage_type.get_child(0) as Label
-	label.text = IconInfo.damage_type_text(data.line)
-	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
+	label.text = " · ".join(role_tags(data))
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	damage_type.visible = label.text != ""
 	if label.tooltip_text == "":
-		TapTip.attach(label, "Nightmares can resist or be weak to a damage type.")  # Hover or tap
+		TapTip.attach(label, ROLE_TAGS_TIP)  # Hover or tap
 
 # An unplanted Warden's stats: a Tower that never enters the tree, reading this run's Dreams.
 func _probe_for(data: TowerData, dreams: DreamState) -> Tower:

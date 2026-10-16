@@ -140,12 +140,12 @@ func _run() -> void:
 	MetaRun.force_all_families = false
 
 	# Combat callouts in the glossary (user: "been seeing 'Shattered' but don't know what it means"): a
-	# callout's line appears once it's been seen; Weak / Resisted always; a Reaction once discovered.
+	# callout's line appears once it's been seen; a Reaction once discovered (Weak / Resisted went with damage types).
 	var fresh := HeartwoodMemory.defaults()
 	HeartwoodMemory.save_data(fresh)
 	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Weak") and names.has("Resisted") and not names.has("Critical hit") and not names.has("Thunderclap"),
-		"before seeing them: only Weak and Strong (%s)" % [names])
+	_check(not names.has("Weak") and not names.has("Resisted") and not names.has("Critical hit") and not names.has("Thunderclap"),
+		"before seeing them: none (%s)" % [names])
 	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
 	fresh["combos_seen"] = ["thunderclap"]
 	HeartwoodMemory.save_data(fresh)

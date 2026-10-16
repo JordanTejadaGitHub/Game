@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chosen_few"
 display_name = "Chosen Few"
-description = "{Rank} V+ Wardens deal 100% more damage."
+description = "Wardens at {rank} V or higher deal 100% more damage."
 cost_description = "Wardens below {rank} III deal 50% less damage."
 rarity = 2
 kind = 3

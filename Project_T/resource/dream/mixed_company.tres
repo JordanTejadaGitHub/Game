@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Status hits on a nightmare carrying {spored} and two other statuses add twice the {stacks}. Once a second per Warden. Not {drowsy}."
-tip = "A bet: it needs three statuses on one nightmare, so usually two families besides the spore Wardens. Doubles only the hit's own {stacks}."
+description = "Hits on a nightmare {near} a spore Warden add 1 more {stack} for each status it carries, up to 4 more. Each Warden once a second."
+tip = "Count: statuses on it before the hit, any family's. {held} never counts. {static} and {marked} get at most 2 more, {drowsy} 1. Never past {full}; {static} stops 1 short of a bolt. Works for: status Wardens behind a spore Warden. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "lent"])
 max_stacks = 1
-rule_id = &"any Warden that adds a status"
+rule_id = &"mixed_company"
 requires = Array[String](["sporeling"])

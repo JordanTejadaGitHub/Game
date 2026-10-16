@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+kind = 1
 display_name = "Crow"
 health = 120
 speed = 190.0

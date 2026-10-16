@@ -213,6 +213,10 @@ func _process(_delta: float) -> void:
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
+	if _unconfirmed_wardens():
+		_start_button.text = "Confirm your Wardens first"
+	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
+		_status_label.visible = not _phone_panel_open()
 	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
 	var pending := drift_director.pending_choice()
 	if pending != &"" and not run_state.is_over:
@@ -231,6 +235,16 @@ func _process(_delta: float) -> void:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 
+func _phone_panel_open() -> bool:
+	var hud := get_parent()
+	if hud == null:
+		return false
+	for panel_name in ["DriftMeter", "WardenPanel"]:
+		var panel := hud.get_node_or_null(panel_name) as CanvasItem
+		if panel != null and panel.visible:
+			return true
+	return false
+
 const MIST_FULL := "Nightmares still arriving: the mist holds them back until there is room on the path. You can call the next drift early once they are out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
@@ -238,17 +252,37 @@ const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &
 	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
+# Phones (tap to place, Mobile UI; user 2026-10-15): ghost Wardens waiting for Confirm hold the drift back. Starting one
+# now would leave them unplanted (or plant them mid-drift by surprise), so Start asks for Confirm or Cancel first.
+func _unconfirmed_wardens() -> bool:
+	return bool(tower_placer.get("tap_to_place")) and bool(tower_placer.get("stroking"))
+
+# Start / call early also ends the player's pause (user 2026-10-16: "pausing the game then pressing next drift should
+# resume the game"; replaces "paused mid-drift: Resume only"), through GameSpeed so the II button and the pause stay in
+# step, at the speed they had (1× / 2× / 3×). The pause menu open: Start does nothing. A choice screen or a Lesson keeps
+# its own pause (a waiting choice reopens instead).
 func _on_start_pressed() -> void:
-	var pending := drift_director.pending_choice()
-	if pending == &"" and game_speed.paused and not drift_director.is_resting():
-		game_speed.set_paused(false)  # Paused mid-drift: Resume only, never a call early (user)
+	if _overlay_open(&"pause_menu") or _overlay_open(LessonCard.GROUP):  # (PauseMenu has no class_name: its GROUP)
 		return
+	if _unconfirmed_wardens():
+		var hud := get_parent()
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("Confirm or cancel your Wardens before the drift starts.")
+		return
+	var pending := drift_director.pending_choice()
 	if pending == &"":
-		drift_director.start_next_drift()
-		if game_speed.paused:
-			game_speed.set_paused(false)  # At a rest: the drift starts and the game runs, one press
+		var was_paused := game_speed.paused
+		drift_director.start_next_drift()  # Or a call early mid-drift (the director refuses what it can't start)
+		if was_paused:
+			game_speed.set_paused(false)
 		return
 	reopen_choice(pending)
+
+func _overlay_open(group: StringName) -> bool:
+	for node in get_tree().get_nodes_in_group(group):
+		if node is CanvasItem and node.is_visible_in_tree():
+			return true
+	return false
 
 # Brings the waiting choice screen back (out of its peek); Enter does the same.
 func reopen_choice(pending: StringName) -> void:

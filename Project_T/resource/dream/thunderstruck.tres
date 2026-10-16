@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "thunderstruck"
+display_name = "Thunderstruck"
+description = "When a {heavy} Warden {near} a Firefly Warden hits a nightmare with a status, a quarter {jumps} to up to 4 others with a status."
+tip = "Each {jump} adds 1 {stack} of {static} from the Firefly Warden; bosses get none. Any family's status counts. Once per attack. At most 1.5 s of the Firefly Warden's damage in all. Works for: {heavy} Wardens among status Wardens. A bet: needs both."
+rarity = 2
+kind = 3
+tags = Array[String](["storm", "lent"])
+max_stacks = 1
+rule_id = &"thunderstruck"
+requires = Array[String](["firefly_jar"])

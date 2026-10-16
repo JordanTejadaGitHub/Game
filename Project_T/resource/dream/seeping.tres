@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "seeping"
 display_name = "Seeping"
-description = "Status and Reaction damage is 8% higher for each status on the nightmare (up to +40%)."
+description = "Status and {reaction} damage is 8% higher for each status on the nightmare, up to +40%."
 rarity = 1
 kind = 3
 tags = Array[String](["potency", "reaction", "affliction", "defining"])
@@ -14,3 +14,4 @@ max_stacks = 1
 min_owned_statuses = 2
 rule_id = &"seeping"
 in_start_pool = false
+tip = "Offered once your Wardens add 2 different statuses."

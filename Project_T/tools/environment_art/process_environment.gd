@@ -24,11 +24,21 @@ const KINDS := {
 	"tree_round": DetailPass.Kind.OBSTACLE, "tree_pine": DetailPass.Kind.OBSTACLE,
 	"tree_flowering": DetailPass.Kind.OBSTACLE, "void_islets": DetailPass.Kind.OBSTACLE,
 	"heartwood": DetailPass.Kind.WARDEN,
+	# Gifts as landmarks (three growth steps as rows): props in the calm pass, the roots a tile overlay.
+	"landmark_spring": DetailPass.Kind.OBSTACLE, "landmark_lightning_tree": DetailPass.Kind.OBSTACLE,
+	"landmark_bell_stone": DetailPass.Kind.OBSTACLE, "landmark_moonwell": DetailPass.Kind.OBSTACLE,
+	"landmark_heartwood_roots_dual": DetailPass.Kind.TILE,
+}
+# Frame sizes of the landmark sheets (each step bottom-centred in step III's cell).
+const LANDMARK_FRAMES := {
+	"landmark_spring": Vector2i(160, 160), "landmark_lightning_tree": Vector2i(128, 176),
+	"landmark_bell_stone": Vector2i(96, 128), "landmark_moonwell": Vector2i(128, 128),
 }
 # Palette snap only: soft alpha overlays and the seamless 256 px void (a per-64 pass would seam it).
 const SNAP_ONLY := ["nightmare_fog", "edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood",
 	"heartwood_stage_0", "heartwood_stage_1", "heartwood_stage_2", "heartwood_stage_3", "dream_fruit",
-	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
+	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring",
+	"landmark_mushroom_ring", "root_run", "root_rise"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
 const NO_GRAIN := ["grass", "island_edge", "island_lip", "island_underside", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
@@ -105,9 +115,12 @@ func _detail(img: Image, sheet: String) -> void:
 		frame = Vector2i(64, 128)  # The S lip, its cliff and the vines reaching into the cell below
 	elif sheet == "withered_tree" or sheet == "lightning_tree":
 		frame = Vector2i(96, 128)  # Big trees: the bottom 64 px rows are the cell, centred
+	elif LANDMARK_FRAMES.has(sheet):
+		frame = LANDMARK_FRAMES[sheet]
 	# Ground tiles in the pass's calm mode (Theme Code 3426257d; the AI-look audit, 2026-10-04): no random
 	# grain, no seam dither, nothing isolated left behind. Props keep the full pass (they passed the audit).
-	DetailPass.apply_sheet(img, frame, kind, 0, texture, kind == DetailPass.Kind.TILE)
+	# The landmarks take the calm pass too (heartwood_gifts.md: "calm DetailPass").
+	DetailPass.apply_sheet(img, frame, kind, 0, texture, kind == DetailPass.Kind.TILE or sheet.begins_with("landmark_"))
 
 # Mean OKLab lightness of the opaque pixels.
 func _mean_l(img: Image) -> float:

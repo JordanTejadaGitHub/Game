@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "twig_walls"
 display_name = "Twig Walls"
-description = "Thornwalls you plant take a quarter of the space and cost half as much."
+description = "Thornwalls you plant take a quarter of a cell and cost half as much."
 rarity = 2
 kind = 3
 tags = Array[String](["maze", "defining"])

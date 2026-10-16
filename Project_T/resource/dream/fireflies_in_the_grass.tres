@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "fireflies_in_the_grass"
 display_name = "Fireflies in the Grass"
-description = "For each Firefly Warden you own, one Sprout of your choice glows: a small light of its own."
+description = "For each Firefly Warden you own, one Sprout of your choice can glow like a small Firefly Jar: path {touching} it is {lit}."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "sprout"])
 max_stacks = 1
 rule_id = &"lit_sprouts"
 calling = "firefly_jar"
+tip = "Choose on the Sprout's panel, at a {rest}. The Sprout can't stand in a Firefly Warden's glow, and its light never turns path gold. Works for: Sprouts, on a Lanternway board. Safe."
 retired = true

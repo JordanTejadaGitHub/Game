@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "knee_deep"
+display_name = "Knee-Deep"
+description = "A {damp} nightmare in a {warden:dewdrop}'s range walks 10% slower, 20% when fully {damp}."
+tip = "It ends as soon as the nightmare leaves the range or dries. Slows never take a nightmare below half speed. Not flyers. Works for: {warden:dewdrop}s; every Warden gains from the time. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"knee_deep"
+requires = Array[String](["dewdrop"])
+retired = true

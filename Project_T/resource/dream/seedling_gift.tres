@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "seedling_gift"
 display_name = "Seedling Gift"
-description = "At every {rest}, gain a free Sprout charge: your next Sprout costs no {dew}."
+description = "At each {rest}, your next Sprout becomes free."
 rarity = 2
 kind = 4
 tags = Array[String](["sprout", "economy", "overgrowth", "defining"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"seedling_gift"
+tip = "Free Sprouts you don't use wait for later."

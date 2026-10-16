@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "pollen_beaks"
 display_name = "Pollen Beaks"
-description = "Your {warden:hummingbird_bower}s (and their forms) carry your {warden:sporeling}s' spores: each peck applies 1 {spored} {stack}."
+description = "Each peck from {warden:hummingbird_bower} and its forms adds 1 {stack} of {spored}."
 cost_description = "Taking it removes {card:charged_feathers} from this run."
 rarity = 2
 kind = 3

@@ -24,6 +24,7 @@ var _age := 0.0
 var _tick := 0.0
 var sleep_seconds := 1.0  # STILL_POOL: seconds a walker entering is pulled under (Deep Stillness: 1.5)
 var until_stepped := false  # FAIRY_RING: Ring of Rings
+var ring_stacks := RING_STACKS  # FAIRY_RING: Poisoned per ring (Ring of Rings: +50%, card pass 2026-10-16)
 var potency := 0.0  # FAIRY_RING: the Spored it gives, credited to…
 var line := ""
 var source: Node = null  # …this Warden
@@ -113,7 +114,7 @@ func _ring(enemy: Node2D) -> void:
 		effect.queue_free()
 	_effects.erase(cell)
 	Reactions._touch(enemy, chain, [source] if is_instance_valid(source) else [])
-	enemy.apply_status(EnemyStatuses.SPORED, RING_STACKS, 0.0, potency, 0, line,
+	enemy.apply_status(EnemyStatuses.SPORED, ring_stacks, 0.0, potency, 0, line,
 		source if is_instance_valid(source) else null)
 	if is_instance_valid(enemy) and not enemy.is_cleansed:
 		enemy.apply_status(EnemyStatuses.DAMP, 1, 0.0, 0.0, 0, "water", source if is_instance_valid(source) else null)
