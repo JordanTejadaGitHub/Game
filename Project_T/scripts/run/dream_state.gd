@@ -2201,7 +2201,7 @@ func card_kind_line(card: UpgradeData) -> String:
 	if card == null:
 		return ""
 	if card.calling != "":
-		return "Calling: %s" % CALLINGS.title(card.calling)
+		return ""  # The card's top line already says "Calling · <name>" (screens_ui.md 844fa70a: no second Calling line)
 	if card.tags.has(LENT_TAG) and not card.requires.is_empty():
 		var path := "res://resource/tower/%s.tres" % card.requires[0]
 		var root: TowerData = load(path) if ResourceLoader.exists(path) else null
