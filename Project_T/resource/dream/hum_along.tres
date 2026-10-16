@@ -14,3 +14,4 @@ tags = Array[String](["song", "lent"])
 max_stacks = 1
 rule_id = &"hum_along"
 requires = Array[String](["bellflower"])
+retired = true

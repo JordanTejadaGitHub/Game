@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "never_quite_dry"
+display_name = "Never Quite Dry"
+description = "Needs another {family}'s status. A {reaction} on a nightmare {near} a {warden:dewdrop} leaves the statuses it spent at half their stacks."
+tip = "Once for each nightmare every 3 s. Never Rooted. Works for: every family's {reaction}s. A bet: needs {reaction}s."
+rarity = 2
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"never_quite_dry"
+requires = Array[String](["dewdrop"])

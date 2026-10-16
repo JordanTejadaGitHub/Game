@@ -81,6 +81,7 @@ func _run() -> void:
 	for id in LENT:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
 		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has("firefly_jar") and not card.retired, "%s is a lent Firefly card" % id)
+		_check(lights.LENT_RULES.has(card.rule_id), "%s's rule (%s) is one firefly_lights.gd reads" % [id, card.rule_id])
 		var words := (" " + card.description + " " + card.tip + " ").to_lower()
 		for word in SETUP_WORDS:
 			_check(not words.contains(word), "%s never names the Calling's setup (%s)" % [id, word.strip_edges()])
@@ -150,6 +151,33 @@ func _run() -> void:
 		await process_frame
 	await _frames(1)
 	_check(lights.forks_thrown == thrown + 1, "...after a Firefly Warden's hit, the 3rd hit jumps (%d)" % (lights.forks_thrown - thrown))
+	await _clean()
+
+	# Thunderstruck (trait rework 2026-10-15): another family's heavy Warden near a Firefly Warden: its hit on a nightmare
+	# carrying ANY status (not only Charged) fans THUNDER_SHARE to up to THUNDER_MAX near it that carry a status, the whole
+	# fan at most THUNDER_CAP_SECONDS of the Firefly Warden's damage.
+	dreams.stacks.clear()
+	_take("thunderstruck")
+	jar = _plant("firefly_jar", far)
+	var t_rock := _plant("pebbling", far + Vector2(CELL, 0))
+	await _frames(2)
+	var struck = _spawn(far + Vector2(CELL * 2, 0))
+	var soaked = _spawn(far + Vector2(CELL * 2, CELL))
+	_spawn(far + Vector2(CELL * 2, -CELL))  # No status: the fan skips it (one fork, not two)
+	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0, 1.0, 0, "water", null)
+	thrown = lights.forks_thrown
+	t_rock.hit(struck, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(lights.forks_thrown == thrown, "Thunderstruck: nothing when the struck nightmare carries no status")
+	struck.apply_status(EnemyStatuses.DAMP, 1, 4.0, 1.0, 0, "water", null)  # Soaked, not Charged
+	t_rock.remove_meta(lights.HEAVY_META)  # A new heavy attack
+	thrown = lights.forks_thrown
+	var soaked_before: float = soaked.health
+	t_rock.hit(struck, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	var fan_cap: float = jar.get_damage() * jar.get_attacks_per_second() * lights.THUNDER_CAP_SECONDS
+	_check(lights.forks_thrown == thrown + 1 and soaked.health < soaked_before, "...a Soaked nightmare fans to the one near it with a status (%d)" % (lights.forks_thrown - thrown))
+	_check(soaked_before - soaked.health <= fan_cap + 1.0, "...never more than %.1f s of the Firefly Warden" % lights.THUNDER_CAP_SECONDS)
 	await _clean()
 
 	# Fireflies in the Grass: chosen at a rest only (fix 12).

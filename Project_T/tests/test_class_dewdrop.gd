@@ -9,8 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
-const LENT := ["caught_wading", "shallows", "knee_deep", "across_the_water", "deep_pool", "the_water_remembers", "run_off",
-	"wash_away", "riptide", "waterlogged"]
+const LENT := ["steeped", "topped_up", "dripping", "ebb", "the_water_remembers", "pooling", "waterlogged", "high_tide",
+	"old_rain", "never_quite_dry"]  # Trait rework 2026-10-15: statuses linger
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -64,7 +64,8 @@ func _check_pool(family: String, lent: Array, class_count: int = 12) -> void:
 		_check(dreams.in_run_pool(card) == (dreams.calling == family), "%s is in the pool only on a %s start" % [card.id, family])
 	for id in lent:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
-		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family), "%s is a lent %s card" % [id, family])
+		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family) and not card.retired, "%s is a lent %s card" % [id, family])
+		_check(klass._lent_rules().has(card.rule_id), "%s's rule (%s) is one the class script reads" % [id, card.rule_id])
 		_check(dreams.in_run_pool(card), "%s is in the pool whatever the first pick" % id)
 
 func _setup() -> void:
@@ -136,52 +137,143 @@ func _run() -> void:
 	_check(not dry.statuses.has(EnemyStatuses.DAMP) or klass.index_of(dry) == klass.index_of(a), "...and no ripple")
 	await _clean()
 
-	# Wash Away (2026-10-15, resistances gone): a Soaked nightmare's shell takes double from Wardens near a Dewdrop; nothing unless both.
+	# (Wash Away, Shallows, Knee-Deep, Caught Wading, Across the Water, Deep Pool, Riptide and Run-Off are retired, 2026-10-15.)
+	# Steeped and Pooling (Enemy.apply_status asks status_duration): Steeped, a Warden touching a Dewdrop (a Dewdrop touches
+	# itself) lands STEEPED_SHARE longer; Pooling, inside two Dewdrops' ranges POOLING_SHARE longer; together within LINGER_MAX;
+	# never Drowsy or Rooted.
 	var spot := Vector2(CELL * 30, CELL * 30)
-	var w_drop := _plant("dewdrop", spot)
-	var w_near := _plant("sprout", spot + Vector2(CELL, 0))
-	var w_far := _plant("sprout", spot + Vector2(CELL * 6, 0))
-	await _frames(2)
-	var shelled = _spawn(spot + Vector2(CELL, CELL))
-	_check(is_equal_approx(klass.shell_multiplier(shelled, w_near), 1.0), "Wash Away: nothing on a dry nightmare")
-	w_drop._apply_one_status(shelled, EnemyStatuses.DAMP, 1, w_drop.get_damage())
-	_check(is_equal_approx(klass.shell_multiplier(shelled, w_near), klass.WASH_AWAY_SHELL), "...Soaked, hit by a Warden near a Dewdrop: its shell takes double")
-	_check(is_equal_approx(klass.shell_multiplier(shelled, w_far), 1.0), "...a Warden far from any Dewdrop gets nothing")
-	await _clean()
-
-	# Shallows: a hit from another Warden touching a Dewdrop adds 1 Soaked, once a second.
+	dreams.stacks.clear()
+	_take("steeped")
 	var s_drop := _plant("dewdrop", spot)
-	var s_sprout := _plant("sprout", spot + Vector2(CELL, 0))
+	var s_spore := _plant("sporeling", spot + Vector2(CELL, 0))
+	var s_far := _plant("sporeling", spot + Vector2(CELL * 8, 0))
 	await _frames(2)
-	var wet = _spawn(spot + Vector2(CELL * 2, 0))
-	s_sprout.hit(wet, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(wet.statuses.stacks(EnemyStatuses.DAMP) == 1 and s_drop != null, "Shallows: the Sprout's hit beside a Dewdrop adds 1 Soaked")
-	s_sprout.hit(wet, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(wet.statuses.stacks(EnemyStatuses.DAMP) == 1, "...once a second per Warden")
+	var st = _spawn(spot + Vector2(CELL * 8, CELL * 6))  # Inside no Dewdrop's range
+	var spore_base: float = EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED]
+	var damp_base: float = EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.DAMP]
+	_check(is_equal_approx(klass.status_duration(s_spore, st, EnemyStatuses.SPORED, 0.0), spore_base + minf(spore_base * klass.STEEPED_SHARE, EnemyStatuses.LINGER_MAX)),
+		"Steeped: Poisoned from a spore Warden touching a Dewdrop lasts %d%% longer" % roundi(klass.STEEPED_SHARE * 100.0))
+	_check(is_equal_approx(klass.status_duration(s_drop, st, EnemyStatuses.DAMP, 0.0), damp_base + minf(damp_base * klass.STEEPED_SHARE, EnemyStatuses.LINGER_MAX)),
+		"...a Dewdrop touches itself")
+	_check(is_equal_approx(klass.status_duration(s_far, st, EnemyStatuses.SPORED, 5.0), 5.0), "...a Warden touching no Dewdrop: as it was")
+	_check(is_equal_approx(klass.status_duration(s_spore, st, EnemyStatuses.DROWSY, 3.0), 3.0), "...never Drowsy")
+	st.statuses.pending_linger.clear()
+	s_spore._apply_one_status(st, EnemyStatuses.SPORED, 1, s_spore.get_damage())
+	_check(st.statuses.is_lingering(EnemyStatuses.SPORED), "...the landing shows it lingers")
+	_take("pooling")
+	var s_drop2 := _plant("dewdrop", spot + Vector2(0, CELL * 2))
+	await _frames(2)
+	var pool = _spawn(spot + Vector2(0, CELL))  # Inside both Dewdrops' ranges
+	_check(is_equal_approx(klass.status_duration(s_far, pool, EnemyStatuses.SPORED, 5.0), 5.0 + minf(5.0 * klass.POOLING_SHARE, EnemyStatuses.LINGER_MAX)),
+		"Pooling: inside two Dewdrops' ranges a status lasts %d%% longer" % roundi(klass.POOLING_SHARE * 100.0))
+	_check(is_equal_approx(klass.status_duration(s_spore, pool, EnemyStatuses.SPORED, 10.0), 10.0 + minf(10.0 * (klass.STEEPED_SHARE + klass.POOLING_SHARE), EnemyStatuses.LINGER_MAX)),
+		"...Steeped and Pooling add, at most %.0f s more" % EnemyStatuses.LINGER_MAX)
+	pool.statuses.pending_linger.clear()
+	_check(s_drop2 != null, "(the second Dewdrop stands)")
 	await _clean()
 
-	# Knee-Deep and the slow fix (fix 7): Knee-Deep's repeated small slow never keeps a bigger one alive.
-	var k_drop := _plant("dewdrop", spot)
+	# The linger cap (EnemyStatuses.linger): everything that adds time after a landing adds at most LINGER_MAX (Charged
+	# LINGER_MAX_STATIC); never Rooted or Drowsy.
+	dreams.stacks.clear()
+	var lg_drop := _plant("dewdrop", spot)
 	await _frames(2)
-	var wader = _spawn(spot + Vector2(CELL, 0))
-	k_drop._apply_one_status(wader, EnemyStatuses.DAMP, 1, k_drop.get_damage())
-	HelperCommons.slow(wader, klass.RIPTIDE_SLOW, 0.3)
-	for i in 6:
-		klass.on_poll()
-		wader.statuses._tick_timers(0.1)
-	_check(is_equal_approx(wader.statuses.timed_slow(), klass.KNEE_SLOW), "Knee-Deep keeps its 10%%; the 50%% slow ran out on time (%.2f)" % wader.statuses.timed_slow())
+	var lg = _spawn(spot + Vector2(CELL, 0))
+	lg_drop._apply_one_status(lg, EnemyStatuses.DAMP, 1, lg_drop.get_damage())
+	var lg_left: float = lg.statuses.time_left(EnemyStatuses.DAMP)
+	_check(is_equal_approx(lg.statuses.linger(EnemyStatuses.DAMP, 100.0), EnemyStatuses.LINGER_MAX), "linger: at most %.0f s on one landing" % EnemyStatuses.LINGER_MAX)
+	_check(is_equal_approx(lg.statuses.time_left(EnemyStatuses.DAMP), lg_left + EnemyStatuses.LINGER_MAX) and lg.statuses.is_lingering(EnemyStatuses.DAMP), "...the time left grows by it")
+	_check(is_zero_approx(lg.statuses.linger(EnemyStatuses.DAMP, 1.0)), "...and no more after that")
+	lg.apply_status(EnemyStatuses.STATIC, 1, 2.0, 1.0, 0, "light", null)
+	_check(is_equal_approx(lg.statuses.linger(EnemyStatuses.STATIC, 100.0), EnemyStatuses.LINGER_MAX_STATIC), "...Charged at most %.0f s" % EnemyStatuses.LINGER_MAX_STATIC)
+	_check(not EnemyStatuses.can_linger(EnemyStatuses.HELD) and not EnemyStatuses.can_linger(EnemyStatuses.DROWSY), "...never Rooted or Drowsy")
 	await _clean()
 
-	# Waterlogged: another family's status near a Dewdrop on a Soaked nightmare lasts x1.5; never Drowsy.
+	# Dripping: leaving a Dewdrop's range, every status keeps DRIPPING_SECONDS longer.
+	dreams.stacks.clear()
+	_take("dripping")
+	var d_drop := _plant("dewdrop", at + Vector2(CELL, 0))
+	await _frames(2)
+	var dr = _spawn(at)
+	d_drop._apply_one_status(dr, EnemyStatuses.DAMP, 1, d_drop.get_damage())
+	klass._track_ranges(dr, [d_drop])  # Inside
+	var wet_left: float = dr.statuses.time_left(EnemyStatuses.DAMP)
+	var out_i := -1
+	for i in range(11, route.size()):
+		var point: Vector2 = route[i]
+		if point.distance_to(d_drop.global_position) > d_drop.get_range_pixels() + CELL:
+			out_i = i
+			break
+	_check(out_i >= 0, "(the route leaves the Dewdrop's range)")
+	if out_i >= 0:
+		dr.global_position = route[out_i]
+		klass._track_ranges(dr, [d_drop])  # Left
+		_check(is_equal_approx(dr.statuses.time_left(EnemyStatuses.DAMP), wet_left + klass.DRIPPING_SECONDS), "Dripping: leaving the range, Soaked keeps %.0f s longer" % klass.DRIPPING_SECONDS)
+	await _clean()
+
+	# Topped Up: a Dewdrop's hit puts every status back to its time at landing; once a second per nightmare.
+	dreams.stacks.clear()
+	_take("topped_up")
+	var t_drop := _plant("dewdrop", spot)
+	var t_spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var tu = _spawn(spot + Vector2(CELL, 0))
+	t_spore._apply_one_status(tu, EnemyStatuses.SPORED, 1, t_spore.get_damage())
+	var landed: float = tu.statuses.time_left(EnemyStatuses.SPORED)
+	tu.statuses.tick(1.5)
+	_check(tu.statuses.time_left(EnemyStatuses.SPORED) < landed - 1.0, "(its time runs down)")
+	t_drop.hit(tu, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(absf(tu.statuses.time_left(EnemyStatuses.SPORED) - landed) < 0.01, "Topped Up: the Dewdrop's hit puts Poisoned back to its landing time")
+	tu.statuses.tick(1.5)
+	t_drop.hit(tu, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(tu.statuses.time_left(EnemyStatuses.SPORED) < landed - 1.0, "...once a second per nightmare")
+	await _clean()
+
+	# Slow to Dry (rule id waterlogged): on a Soaked nightmare near a Dewdrop, another family's status can't run out before
+	# its Soaked does (it lingers to match, within the linger cap).
+	dreams.stacks.clear()
+	_take("waterlogged")
 	var l_drop := _plant("dewdrop", spot)
-	var l_spore := _plant("sporeling", spot + Vector2(CELL, 0))
+	var l_spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
 	await _frames(2)
-	var logged = _spawn(spot + Vector2(CELL, CELL))
-	l_drop._apply_one_status(logged, EnemyStatuses.DAMP, 1, l_drop.get_damage())
-	_check(is_equal_approx(klass.status_duration(l_spore, logged, EnemyStatuses.SPORED, 5.0), 5.0 * klass.WATERLOGGED_FACTOR), "Waterlogged: Poisoned lasts x%.1f" % klass.WATERLOGGED_FACTOR)
-	_check(is_equal_approx(klass.status_duration(l_spore, logged, EnemyStatuses.DROWSY, 3.0), 3.0), "...never Drowsy")
+	var logged = _spawn(spot + Vector2(CELL, 0))
+	logged.apply_status(EnemyStatuses.DAMP, 1, 8.0, 1.0, 0, "water", l_drop)
+	l_spore._apply_one_status(logged, EnemyStatuses.SPORED, 1, l_spore.get_damage())
+	var sp_left: float = logged.statuses.time_left(EnemyStatuses.SPORED)
+	var soak_left: float = logged.statuses.time_left(EnemyStatuses.DAMP)
+	_check(sp_left < soak_left, "(Poisoned would dry first)")
+	klass._slow_to_dry(logged)
+	_check(is_equal_approx(logged.statuses.time_left(EnemyStatuses.SPORED), sp_left + minf(soak_left - sp_left, EnemyStatuses.LINGER_MAX)),
+		"Slow to Dry: Poisoned lingers to match its Soaked")
+	var dry_far = _spawn(spot + Vector2(CELL * 12, CELL * 12))  # Near no Dewdrop
+	dry_far.apply_status(EnemyStatuses.DAMP, 1, 8.0, 1.0, 0, "water", l_drop)
+	l_spore._apply_one_status(dry_far, EnemyStatuses.SPORED, 1, l_spore.get_damage())
+	var far_left: float = dry_far.statuses.time_left(EnemyStatuses.SPORED)
+	klass._slow_to_dry(dry_far)
+	_check(is_equal_approx(dry_far.statuses.time_left(EnemyStatuses.SPORED), far_left), "...near no Dewdrop: nothing")
+	await _clean()
+
+	# Ebb (EnemyStatuses.status_ran_out): a status running out in a Dewdrop's range comes back at half its most stacks, for
+	# EBB_SECONDS; once per status and nightmare; never Drowsy.
+	dreams.stacks.clear()
+	_take("ebb")
+	var e_drop := _plant("dewdrop", spot)
+	var e_spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var eb = _spawn(spot + Vector2(CELL, 0))
+	var peak := 8
+	klass._ebb(EnemyStatuses.SPORED, peak, e_spore, 1.0, "spore", eb)
+	_check(eb.statuses.stacks(EnemyStatuses.SPORED) == maxi(int(peak / 2.0), 1), "Ebb: a status that ran out comes back at half its most (%d)" % eb.statuses.stacks(EnemyStatuses.SPORED))
+	eb.statuses.remove(EnemyStatuses.SPORED)
+	klass._ebb(EnemyStatuses.SPORED, peak, e_spore, 1.0, "spore", eb)
+	_check(not eb.statuses.has(EnemyStatuses.SPORED), "...once per status and nightmare")
+	klass._ebb(EnemyStatuses.DROWSY, peak, e_spore, 1.0, "song", eb)
+	_check(not eb.statuses.has(EnemyStatuses.DROWSY), "...never Drowsy")
+	var ebb_far = _spawn(spot + Vector2(CELL * 12, CELL * 12))  # In no Dewdrop's range
+	klass._ebb(EnemyStatuses.SPORED, peak, e_spore, 1.0, "spore", ebb_far)
+	_check(not ebb_far.statuses.has(EnemyStatuses.SPORED), "...outside a Dewdrop's range: gone for good")
+	_check(e_drop != null, "(the Dewdrop stands)")
 	await _clean()
 	print("test_class_dewdrop: %d failures" % failures)
 	quit(failures)

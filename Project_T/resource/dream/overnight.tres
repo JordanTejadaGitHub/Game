@@ -6,9 +6,9 @@
 script = ExtResource("1_card")
 id = "overnight"
 display_name = "Overnight"
-description = "Needs another {family}'s status. A spore Warden's hit on a nightmare with one adds 3 {spored} (once a second). At 6 {spored}, its other statuses each gain 5, once."
-tip = "Works for: a spore Warden, on a nightmare carrying another {family}'s status. The 5 comes once per nightmare. A bet: it does little until you own another {family}."
-rarity = 2
+description = "Needs another {family}'s status. A spore Warden's hit adds 2 {stacks} to each status other families put on the nightmare."
+tip = "Once a second for each spore Warden and nightmare. Never starts a status. Never Rooted; {static} stops one short of a bolt. Works for: spore Wardens behind other families' status Wardens. A bet: it needs both."
+rarity = 1
 kind = 3
 tags = Array[String](["spore", "lent"])
 max_stacks = 1

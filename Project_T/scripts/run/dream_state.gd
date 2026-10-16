@@ -370,9 +370,24 @@ func class_status(tower: Tower, enemy: Node2D, status: StringName, stacks: int =
 # Waterlogged (Enemy.apply_status asks, so every application counts, carried ones too): how long `status` lasts on
 # `enemy` from `source` (`duration` 0 = the status's default).
 func class_duration(source: Node, enemy: Node2D, status: StringName, duration: float) -> float:
-	if puddles == null or not has_rule(&"waterlogged") or not puddles.active():
+	if puddles == null or not puddles.active():
 		return duration
 	return puddles.status_duration(source, enemy, status, duration)
+
+# Whether Enemy.apply_status should ask class_duration (Dewdrop's lingering cards: Steeped, Pooling).
+func wants_duration_hook() -> bool:
+	return has_rule(&"steeped") or has_rule(&"pooling")
+
+# Whether a status landing should run its Reaction check through class_reaction (Old Rain, Never Quite Dry).
+func wants_reaction_hook() -> bool:
+	return has_rule(&"old_rain") or has_rule(&"never_quite_dry")
+
+# Runs Reactions.on_status for `enemy`, with Old Rain's age stamp and Never Quite Dry's half-back around it.
+func class_reaction(enemy: Node2D, id: StringName, source: Node) -> void:
+	if puddles == null or not puddles.active():
+		Reactions.on_status(enemy, id, source)
+		return
+	puddles.around_reaction(enemy, id, source)
 
 # What the classes multiply one damage event by (Wash Away, Rude Awakening; 1.0 with neither).
 func class_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
@@ -1879,7 +1894,7 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 	if frame != _hook_frame:
 		_hook_frame = frame
 		_hook_batch = batch.uses_damage_hook(self)
-		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide"))  # (Wash Away is a shell card now: shell_multiplier)
+		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide") or has_rule(&"high_tide") or has_rule(&"old_rain"))  # (Wash Away is a shell card now: shell_multiplier)
 		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
 	if not _hook_batch and not _hook_water and not _hook_bells:
 		return 1.0
@@ -2514,6 +2529,7 @@ const CARD_NEEDS := {
 	"knock_on": [&"hammerfall", &"thunderstruck"],  # Heavy jumps
 	"gathering_storm": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"lent_crossfire",
 		&"thunderstruck", &"brushfire", &"guiding_light"],  # Any jump
+	"da_capo": [&"in_time", &"refrain", &"rude_awakening"],  # A hit that lands again (trait rework 2026-10-15)
 }
 
 func card_needs_met(card: UpgradeData) -> bool:

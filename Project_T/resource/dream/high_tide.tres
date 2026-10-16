@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "high_tide"
+display_name = "High Tide"
+description = "Hits from Wardens {near} a {warden:dewdrop} deal 10% more for each status on the nightmare with more than 75% of its time left, up to +40%."
+tip = "Fresh statuses count: Topped Up and Steeped keep them fresh. Works for: any Warden near a {warden:dewdrop}. A bet: you need several statuses landing on the same nightmares."
+rarity = 2
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"high_tide"
+requires = Array[String](["dewdrop"])

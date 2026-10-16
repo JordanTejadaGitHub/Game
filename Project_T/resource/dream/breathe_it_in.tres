@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "breathe_it_in"
 display_name = "Breathe It In"
-description = "A spore Warden's {spored} hit on a nightmare inside another spore Warden's range adds 2 more. Once a second per Warden."
-tip = "Range: the other spore Warden's attack range, any form. Works for: spore Wardens whose ranges overlap. Safe: two spore Wardens are enough."
+description = "Statuses added to a nightmare inside a spore Warden's range get 1 more {stack}. Each Warden, once a second."
+tip = "Any family's status, the spore Wardens' own {spored} too; {drowsy} too, never past its usual most. Never Rooted. Works for: every Warden whose targets walk through a spore Warden's range. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "lent"])

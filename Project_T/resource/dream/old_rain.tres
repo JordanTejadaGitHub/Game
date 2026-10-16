@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "old_rain"
+display_name = "Old Rain"
+description = "A {reaction} on a nightmare {near} a {warden:dewdrop} deals 40% more if the nightmare has carried a status for 6 s or longer."
+tip = "Its burst only; damage over time after it is unchanged. Lingering cards make statuses old. Works for: every family's {reaction}s. A bet: needs {reaction}s."
+rarity = 2
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"old_rain"
+requires = Array[String](["dewdrop"])

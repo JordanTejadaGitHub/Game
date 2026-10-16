@@ -14,3 +14,4 @@ tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"wash_away"
 requires = Array[String](["dewdrop"])
+retired = true

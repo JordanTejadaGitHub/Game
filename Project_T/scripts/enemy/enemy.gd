@@ -2511,8 +2511,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	var was_held := statuses.is_held()
 	if _batch_dreams == null and is_inside_tree():
 		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if is_instance_valid(_batch_dreams) and _batch_dreams.has_rule(&"waterlogged"):
-		duration = _batch_dreams.class_duration(source, self, id, duration)  # Waterlogged (Roguelite Code): every application, carried ones too
+	if is_instance_valid(_batch_dreams) and _batch_dreams.wants_duration_hook():
+		duration = _batch_dreams.class_duration(source, self, id, duration)  # Dewdrop's lingering cards (Roguelite Code): every application, carried ones too
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
@@ -2523,7 +2523,10 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		var charger: Node = statuses.bolt_source if is_instance_valid(statuses.bolt_source) else source
 		Reactions.strike_bolt(self, bolt, charger, &"static")
 	if not is_cleansed and id in statuses.ALL:
-		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
+		if is_instance_valid(_batch_dreams) and _batch_dreams.wants_reaction_hook():
+			_batch_dreams.class_reaction(self, id, source)  # Old Rain / Never Quite Dry wrap the check (Roguelite Code)
+		else:
+			Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
 
 # --- Thin-family Dream cards (dream_design.md 2026-09-30; values from DreamState, via the spawner) ---
 

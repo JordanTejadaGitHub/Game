@@ -9,8 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.spore_print)
 const CELL := 64.0
-const LENT := ["mycelium", "overnight", "pass_it_round", "second_helping", "narrows", "seeping_in", "mixed_company",
-	"breathe_it_in", "sitting_ducks", "hemmed_in"]
+const LENT := ["mycelium", "overnight", "pass_it_round", "narrows", "seeping_in", "mixed_company", "breathe_it_in",
+	"sitting_ducks", "hemmed_in", "gone_to_seed"]  # Trait rework 2026-10-15: Second Helping retired, Gone to Seed new
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -64,7 +64,8 @@ func _check_pool(family: String, lent: Array, class_count: int = 12) -> void:
 		_check(dreams.in_run_pool(card) == (dreams.calling == family), "%s is in the pool only on a %s start" % [card.id, family])
 	for id in lent:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
-		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family), "%s is a lent %s card" % [id, family])
+		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family) and not card.retired, "%s is a lent %s card" % [id, family])
+		_check(klass._lent_rules().has(card.rule_id), "%s's rule (%s) is one the class script reads" % [id, card.rule_id])
 		_check(dreams.in_run_pool(card), "%s is in the pool whatever the first pick" % id)
 
 func _setup() -> void:
@@ -183,14 +184,22 @@ func _run() -> void:
 	# Each stack card on its own (only that card held), on a later start.
 	var far := Vector2(CELL * 30, CELL * 30)  # Away from the route: nothing else touches these nightmares
 	dreams.stacks.clear()
+	# Breathe It In (trait rework 2026-10-15): any Warden's status landing inside a spore Warden's range, the spore
+	# Warden's own included, adds BREATHE_ONE more; once a second per Warden.
 	_take("breathe_it_in")
 	var b1 := _plant("sporeling", far)
-	var b2 := _plant("sporeling", far + Vector2(CELL, 0))
-	var h = _spawn(far + Vector2(CELL * 0.5, CELL))
+	var b_drop := _plant("dewdrop", far + Vector2(CELL * 6, 0))  # Not touching: only the nightmare's place counts
+	var h = _spawn(far + Vector2(CELL, 0))
+	b_drop._apply_one_status(h, EnemyStatuses.DAMP, 1, b_drop.get_damage())
+	_check(h.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.BREATHE_ONE, "Breathe It In: another family's 1-stack Soaked inside a spore Warden's range lands %d" % (1 + klass.BREATHE_ONE))
+	b_drop._apply_one_status(h, EnemyStatuses.DAMP, 1, b_drop.get_damage())
+	_check(h.statuses.stacks(EnemyStatuses.DAMP) == 2 + klass.BREATHE_ONE, "...once a second per Warden")
 	b1._apply_one_status(h, EnemyStatuses.SPORED, 1, b1.get_damage())
-	_check(h.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.BREATHE_EXTRA, "Breathe It In: inside another spore Warden's range, a 1-stack hit lands %d" % (1 + klass.BREATHE_EXTRA))
-	b1._apply_one_status(h, EnemyStatuses.SPORED, 1, b1.get_damage())
-	_check(h.statuses.stacks(EnemyStatuses.SPORED) == 2 + klass.BREATHE_EXTRA, "...once a second per Warden")
+	_check(h.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.BREATHE_ONE, "...the spore Warden's own Poisoned counts too")
+	b_drop.remove_meta(klass.BREATHE_META)
+	var h_out = _spawn(far + Vector2(CELL * 14, CELL * 14))  # Outside every spore Warden's range
+	b_drop._apply_one_status(h_out, EnemyStatuses.DAMP, 1, b_drop.get_damage())
+	_check(h_out.statuses.stacks(EnemyStatuses.DAMP) == 1, "...outside a spore Warden's range: nothing extra")
 	await _clean()
 
 	dreams.stacks.clear()
@@ -224,20 +233,77 @@ func _run() -> void:
 	_check(duck_spore != null, "(the spore Warden stands near)")
 	await _clean()
 
+	# (Second Helping is retired, 2026-10-15.)
+	# Pass It Round (trait rework): a Warden touching a spore Warden, or a spore Warden itself, adds PASS_STACKS more with
+	# its first application on each nightmare.
 	dreams.stacks.clear()
-	_take("second_helping")
-	var helper_spore := _plant("sporeling", far)
-	var partner := _plant("dewdrop", far + Vector2(CELL, 0))
-	var m = _spawn(far + Vector2(0, CELL))
+	_take("pass_it_round")
+	var p_spore := _plant("sporeling", far)
+	var p_drop := _plant("dewdrop", far + Vector2(CELL, 0))
+	var p_lone := _plant("dewdrop", far + Vector2(CELL * 6, 0))
+	var p = _spawn(far + Vector2(CELL, CELL))
+	p_drop._apply_one_status(p, EnemyStatuses.DAMP, 1, p_drop.get_damage())
+	_check(p.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.PASS_STACKS, "Pass It Round: a Dewdrop touching a spore Warden: its first Soaked lands %d" % (1 + klass.PASS_STACKS))
+	p_drop._apply_one_status(p, EnemyStatuses.DAMP, 1, p_drop.get_damage())
+	_check(p.statuses.stacks(EnemyStatuses.DAMP) == 2 + klass.PASS_STACKS, "...only the first application on each nightmare")
+	var p2 = _spawn(far + Vector2(CELL * 6, CELL))
+	p_lone._apply_one_status(p2, EnemyStatuses.DAMP, 1, p_lone.get_damage())
+	_check(p2.statuses.stacks(EnemyStatuses.DAMP) == 1, "...a Warden touching no spore Warden: nothing extra")
+	p_spore._apply_one_status(p2, EnemyStatuses.SPORED, 1, p_spore.get_damage())
+	_check(p2.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.PASS_STACKS, "...a spore Warden touches itself")
+	await _clean()
+
+	# Mycelium (trait rework): a Sprout touching a spore Warden: its hit adds 1, quietly, to every other status on the nightmare.
+	dreams.stacks.clear()
+	_take("mycelium")
+	_plant("sporeling", far)
+	var my_sprout := _plant("sprout", far + Vector2(CELL, 0))
+	var my_drop := _plant("dewdrop", far + Vector2(CELL * 6, 0))
 	await _frames(2)
-	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
-	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 1, "Second Helping: nothing before the spore Warden's first hit")
-	helper_spore.hit(m, 1.0, false, Tower.NO_CRIT)
+	var my = _spawn(far + Vector2(CELL, CELL))
+	my_drop._apply_one_status(my, EnemyStatuses.DAMP, 1, my_drop.get_damage())
+	my_sprout.hit(my, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(my.statuses.stacks(EnemyStatuses.DAMP) == 2, "Mycelium: a Sprout touching a spore Warden adds 1 Soaked with its hit (%d)" % my.statuses.stacks(EnemyStatuses.DAMP))
+	await _clean()
+
+	# Overnight (trait rework): a spore Warden's hit adds OVERNIGHT_FEED to each status other families put on the nightmare;
+	# once a second for each spore Warden and nightmare.
+	dreams.stacks.clear()
+	_take("overnight")
+	var o_spore := _plant("sporeling", far)
+	var o_drop := _plant("dewdrop", far + Vector2(CELL * 6, 0))
 	await _frames(2)
-	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
-	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.HELPING_STACKS, "...after it, the partner's next hit adds %d" % klass.HELPING_STACKS)
-	partner._apply_one_status(m, EnemyStatuses.DAMP, 1, partner.get_damage())
-	_check(m.statuses.stacks(EnemyStatuses.DAMP) == 2 + klass.HELPING_STACKS, "...once per nightmare for that spore Warden")
+	var o = _spawn(far + Vector2(CELL, 0))
+	o_drop._apply_one_status(o, EnemyStatuses.DAMP, 1, o_drop.get_damage())
+	o_spore.hit(o, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(o.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.OVERNIGHT_FEED, "Overnight: the spore Warden's hit adds %d to the Dewdrop's Soaked" % klass.OVERNIGHT_FEED)
+	o_spore.hit(o, 1.0, false, Tower.NO_CRIT)
+	await _frames(1)
+	_check(o.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.OVERNIGHT_FEED, "...once a second")
+	await _clean()
+
+	# Gone to Seed (new 2026-10-15): a Warden's status filling on a nightmare near a spore Warden: every other status gains
+	# SEED_STACKS, quietly; once per nightmare in SEED_EVERY s.
+	dreams.stacks.clear()
+	_take("gone_to_seed")
+	var g_spore := _plant("sporeling", far)
+	var g_drop := _plant("dewdrop", far + Vector2(CELL * 6, 0))
+	var sd = _spawn(far + Vector2(CELL, 0))
+	g_spore._apply_one_status(sd, EnemyStatuses.SPORED, 1, g_spore.get_damage())
+	var full: int = sd.statuses.get_max_stacks(EnemyStatuses.DAMP)
+	g_drop._apply_one_status(sd, EnemyStatuses.DAMP, full - 1, g_drop.get_damage())
+	_check(sd.statuses.stacks(EnemyStatuses.SPORED) == 1, "Gone to Seed: nothing before a status fills")
+	g_drop._apply_one_status(sd, EnemyStatuses.DAMP, 1, g_drop.get_damage())
+	_check(sd.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.SEED_STACKS, "...Soaked fills near a spore Warden: Poisoned gains %d" % klass.SEED_STACKS)
+	g_drop._apply_one_status(sd, EnemyStatuses.DAMP, 1, g_drop.get_damage())
+	_check(sd.statuses.stacks(EnemyStatuses.SPORED) == 1 + klass.SEED_STACKS, "...once per nightmare in %d s" % int(klass.SEED_EVERY))
+	var bare = _spawn(far + Vector2(CELL * 8, CELL * 8))  # Not near a spore Warden
+	g_spore._apply_one_status(bare, EnemyStatuses.SPORED, 1, g_spore.get_damage())
+	g_drop._apply_one_status(bare, EnemyStatuses.DAMP, full, g_drop.get_damage())
+	_check(bare.statuses.stacks(EnemyStatuses.SPORED) == 1, "...far from any spore Warden: nothing")
+	_check(g_spore != null, "(the spore Warden stands near the first)")
 	await _clean()
 	print("test_class_sporeling: %d failures" % failures)
 	quit(failures)

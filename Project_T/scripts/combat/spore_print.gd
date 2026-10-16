@@ -75,6 +75,21 @@ const DUCKS_META := &"sp_ducks_next"  # On a Warden
 const HEMMED_IN := &"hemmed_in"
 const HEMMED_SPORES := 2  # Hemmed In: another family's Warden touching this many spore Wardens doubles its status hits
 const HEMMED_META := &"sp_hemmed_next"  # On a Warden: Charged and Exposed extra at most once a second
+# Trait rework (owner 2026-10-15, trait_lent_proposal.js): the lent cards make ANY family's status stack faster, the
+# spore Wardens' own Poisoned included. Drowsy counts too, within its normal cap (the owner asked about a bigger Drowsy
+# cap; answer: no, include it in the stacking instead; STACK_DROWSY switches it off).
+const STACK_DROWSY := true
+const BREATHE_ONE := 1  # Breathe It In: any Warden's status landing inside a spore Warden's range: 1 more, once a second per Warden
+const PASS_STACKS := 3  # Pass It Round: a Warden touching a spore Warden (a spore Warden touches itself): 3 more with its first application on each nightmare
+const PASS_META := &"sp_pass"  # On a nightmare: {Warden id: true}
+const MYCELIUM := &"mycelium"
+const MYCELIUM_SPROUTS := 3  # Mycelium: at most this many Sprouts feed one nightmare a second
+const MYCELIUM_META := &"sp_mycelium"  # On a nightmare: [second started, Sprouts counted]
+const OVERNIGHT_FEED := 2  # Overnight: a spore Warden's hit adds this many to each status other families put on the nightmare
+const GONE_TO_SEED := &"gone_to_seed"
+const SEED_STACKS := 5  # Gone to Seed: a Warden's hit fills a status near a spore Warden: every other status on it gains this many
+const SEED_EVERY := 2.0  # …once per nightmare in this long
+const SEED_META := &"sp_seed_next"  # On a nightmare
 const FIRST_HIT_META := &"sp_first_hit"  # On a nightmare: {spore Warden id: true}: it has hit it (Second Helping)
 
 const DOSES_META := &"sp_doses"  # On a nightmare: doses it stepped on (It Grows on You)
@@ -108,8 +123,8 @@ func _line() -> String:
 # Lent cards never give the Calling's setup (owner 2026-10-14, dream_council_review.md 25-26): mushrooms and doses are
 # the first pick's only (place_on). The lent cards work from spore Wardens, where they stand and Poisoned.
 func _lent_rules() -> Array:
-	return [OVERNIGHT, PASS_IT_ROUND, SECOND_HELPING, NARROWS, SEEPING_IN, MIXED_COMPANY, BREATHE_IN, SITTING_DUCKS, HEMMED_IN,
-		HOTHOUSE]  # Hothouse: retired, needs no mushroom; an old save keeps it
+	return [OVERNIGHT, PASS_IT_ROUND, MYCELIUM, NARROWS, SEEPING_IN, MIXED_COMPANY, BREATHE_IN, SITTING_DUCKS, HEMMED_IN, GONE_TO_SEED,
+		SECOND_HELPING, HOTHOUSE]  # Second Helping (2026-10-15), Hothouse: retired; an old save keeps them
 
 # Retired lent cards that grew or read mushrooms: an old save holding one keeps the mushrooms on Continue.
 func _legacy_rules() -> Array:
@@ -228,8 +243,10 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, _tagged: bool) 
 			if place_on():
 				_fell(enemy)
 		elif is_hit:
-			if rule(PASS_IT_ROUND):
-				_pass_it_round(source, enemy)
+			if rule(MYCELIUM) and source.tower_data.get_id() == "sprout":
+				_mycelium(source, enemy)
+			if rule(OVERNIGHT) and is_own(source):
+				_overnight(source, enemy)
 			if rule(SECOND_HELPING) and is_own(source):
 				_first_spore_hit(source, enemy)
 			if rule(SPORE_HAZE) and _haze.has(source.get_instance_id()):
@@ -252,7 +269,68 @@ func _fell(enemy) -> void:
 	elif rule(LEAF_LITTER) and strongest_near(at, is_own) != null:
 		leave_mushroom(at)  # Leaf Litter: dispelled near a spore Warden, Poisoned or not
 
-# Pass It Round: each different kind of attacking Warden touching a spore Warden gives a dose with its first hit on
+# Mycelium (trait rework): a Sprout touching a spore Warden: its hit adds 1 to every status the nightmare already has besides
+# the Poisoned it puffs (Tower._catalogue_hit), quietly. At most 3 Sprouts on one nightmare a second.
+func _mycelium(sprout, enemy) -> void:
+	if not living(enemy) or not own_towers().any(func(t) -> bool: return touching(t, sprout)):
+		return
+	var count: Array = enemy.get_meta(MYCELIUM_META, [-INF, 0])
+	if now() - float(count[0]) >= 1.0:
+		count = [now(), 0]
+	if int(count[1]) >= MYCELIUM_SPROUTS:
+		return
+	count[1] = int(count[1]) + 1
+	enemy.set_meta(MYCELIUM_META, count)
+	for id in enemy.statuses.active_ids():
+		if _stackable(id) and id != EnemyStatuses.SPORED:
+			_feed(enemy, id, 1)
+
+# Overnight (trait rework; was +3 Poisoned): a spore Warden's hit adds 2 to each status other families put on the nightmare,
+# quietly. Once a second for each spore Warden and nightmare.
+func _overnight(spore, enemy) -> void:
+	if not living(enemy):
+		return
+	var next: Dictionary = enemy.get_meta(NIGHT_META, {})
+	if now() < float(next.get(spore.get_instance_id(), -INF)):
+		return
+	var fed := false
+	for id in enemy.statuses.active_ids():
+		if _stackable(id) and is_other_family(enemy.statuses.source(id)):
+			fed = _feed(enemy, id, OVERNIGHT_FEED) > 0 or fed
+	if fed:
+		next[spore.get_instance_id()] = now() + OVERNIGHT_EVERY
+		enemy.set_meta(NIGHT_META, next)
+
+# Whether the stack cards may add to `id` (never Rooted; Drowsy only with STACK_DROWSY, within its normal cap).
+func _stackable(id: StringName) -> bool:
+	return id != EnemyStatuses.HELD and (STACK_DROWSY or id != EnemyStatuses.DROWSY)
+
+# Adds `stacks` to `id` quietly (no clock, strength or source change). Charged stops one short of a bolt.
+func _feed(enemy, id: StringName, stacks: int) -> int:
+	if id == EnemyStatuses.STATIC:
+		stacks = mini(stacks, enemy.statuses.get_max_stacks(id) - 1 - enemy.statuses.stacks(id))
+	return enemy.statuses.add_quiet(id, stacks) if stacks > 0 else 0
+
+# Gone to Seed (DreamState.class_status: a Warden's own accepted application): a status filled on a nightmare near a
+# spore Warden: every other status on it gains 5, quietly (so it never sets off another fill). Once per nightmare in 2 s.
+func status_applied(_tower, enemy, status: StringName, stacks: int) -> void:
+	if not rule(GONE_TO_SEED) or not living(enemy) or status == EnemyStatuses.HELD:
+		return
+	var statuses: EnemyStatuses = enemy.statuses
+	var most: int = statuses.get_max_stacks(status)
+	if statuses.stacks(status) < most or statuses.stacks(status) - stacks >= most or now() < float(enemy.get_meta(SEED_META, -INF)):
+		return
+	if strongest_near(enemy.global_position, is_own) == null:
+		return
+	var fed := false
+	for id in statuses.active_ids():
+		if id != status and _stackable(id):
+			fed = _feed(enemy, id, SEED_STACKS) > 0 or fed
+	if fed:
+		enemy.set_meta(SEED_META, now() + SEED_EVERY)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
+
+# (Unused since 2026-10-15: Pass It Round adds stacks in _stack_cards.) Pass It Round: each different kind of attacking Warden touching a spore Warden gives a dose with its first hit on
 # each nightmare (one per kind per nightmare; spore forms and walls don't count; needs no mushroom, so flyers too).
 func _pass_it_round(source, enemy) -> void:
 	if not is_other(source) or not living(enemy):
@@ -416,7 +494,7 @@ func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 				enemy.set_meta(OPEN_BY_META, by)
 				stacks = maxi(stacks, DOSE)
 		# Overnight (lent): 3 at once on a nightmare carrying another family's status, once a second each
-		if rule(OVERNIGHT) and stacks < OVERNIGHT_STACKS and _carries_other(enemy):
+		if false and rule(OVERNIGHT) and stacks < OVERNIGHT_STACKS and _carries_other(enemy):  # (Its old +3 Poisoned: _overnight since 2026-10-15)
 			var next: Dictionary = enemy.get_meta(NIGHT_META, {})
 			if now() >= float(next.get(id, -INF)):
 				next[id] = now() + OVERNIGHT_EVERY
@@ -442,22 +520,31 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 	if rule(NARROWS) and now() >= float(tower.get_meta(NARROWS_META, -INF)) and _in_narrows(tower, enemy):
 		tower.set_meta(NARROWS_META, now() + STACK_EVERY)
 		extra += NARROWS_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else NARROWS_EXTRA
-	if rule(MIXED_COMPANY) and status != EnemyStatuses.DROWSY and now() >= float(tower.get_meta(MIXED_META, -INF)) and _mixed(enemy):
+	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)) and _mixed(enemy):
 		tower.set_meta(MIXED_META, now() + STACK_EVERY)
-		extra += base  # Twice the hit's own stacks: never other cards' bonuses, never Drowsy (it would double sleep)
+		extra += base  # Twice the hit's own stacks: never other cards' bonuses (Drowsy within its cap: STACK_DROWSY)
 	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
-	# Breathe It In: a spore Warden's Poisoned hit on a nightmare inside another spore Warden's range
-	if rule(BREATHE_IN) and status == EnemyStatuses.SPORED and is_own(tower) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
-			and own_towers().any(func(t) -> bool: return t != tower and t.global_position.distance_to(enemy.global_position) <= t.get_range_pixels()):
+	# Breathe It In (trait rework; was spore-on-spore Poisoned): any Warden's status landing on a nightmare inside a spore
+	# Warden's range (its own included) adds 1 more. Once a second per Warden
+	if rule(BREATHE_IN) and _stackable(status) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
+			and own_towers().any(func(t) -> bool: return t.global_position.distance_to(enemy.global_position) <= t.get_range_pixels()):
 		tower.set_meta(BREATHE_META, now() + STACK_EVERY)
-		extra += BREATHE_EXTRA
+		extra += BREATHE_ONE
+	# Pass It Round (trait rework; was a Poisoned dose): a Warden touching a spore Warden (a spore Warden touches itself) adds
+	# 3 more of its own status with its first application on each nightmare
+	if rule(PASS_IT_ROUND) and _stackable(status) and (is_own(tower) or own_towers().any(func(t) -> bool: return touching(t, tower))):
+		var passed: Dictionary = enemy.get_meta(PASS_META, {})
+		if not passed.has(tower.get_instance_id()):
+			passed[tower.get_instance_id()] = true
+			enemy.set_meta(PASS_META, passed)
+			extra += PASS_STACKS
 	# Sitting Ducks: any status hit on a held or sleeping nightmare near a spore Warden (never Drowsy: it would lengthen sleep)
-	if rule(SITTING_DUCKS) and status != EnemyStatuses.DROWSY and now() >= float(tower.get_meta(DUCKS_META, -INF)) \
+	if rule(SITTING_DUCKS) and _stackable(status) and now() >= float(tower.get_meta(DUCKS_META, -INF)) \
 			and (enemy.statuses.is_held() or enemy.statuses.is_asleep()) and strongest_near(enemy.global_position, is_own) != null:
 		tower.set_meta(DUCKS_META, now() + STACK_EVERY)
 		extra += DUCKS_SMALL if small else DUCKS_EXTRA
 	# Hemmed In: another family's Warden touching two spore Wardens doubles its status hits (Charged and Exposed once a second)
-	if rule(HEMMED_IN) and status != EnemyStatuses.DROWSY and is_other_family(tower) \
+	if rule(HEMMED_IN) and _stackable(status) and is_other_family(tower) \
 			and (not small or now() >= float(tower.get_meta(HEMMED_META, -INF))) \
 			and own_towers().filter(func(t) -> bool: return touching(t, tower)).size() >= HEMMED_SPORES:
 		if small:
@@ -485,16 +572,13 @@ func _in_narrows(_tower, enemy) -> bool:
 			other = true
 	return spore and other
 
-# Mixed Company: Poisoned and 2 other statuses, from any Warden (never Rooted).
+# Mixed Company (trait rework; no longer needs Poisoned): 3 or more statuses, from any Warden (never Rooted), near a spore Warden.
 func _mixed(enemy) -> bool:
-	var statuses: EnemyStatuses = enemy.statuses
-	if not statuses.has(EnemyStatuses.SPORED):
-		return false
-	var others := 0
-	for id in statuses.active_ids():
-		if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD:
-			others += 1
-	return others >= MIXED_OTHERS
+	var count := 0
+	for id in enemy.statuses.active_ids():
+		if id != EnemyStatuses.HELD:
+			count += 1
+	return count >= MIXED_OTHERS + 1 and strongest_near(enemy.global_position, is_own) != null
 
 # Seeping In: steps walked inside a spore Warden's range, counted forward only (a pull-back or push never counts twice).
 func _seep(enemy) -> void:

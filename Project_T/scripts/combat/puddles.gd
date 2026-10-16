@@ -66,6 +66,33 @@ const WATERLOGGED_FACTOR := 1.5  # Waterlogged: other families' statuses on a So
 const SOAKED_BONE := &"soaked_to_the_bone"  # Class: walking back into a lone Dewdrop's water fills Soaked at once
 const RANGE_META := &"pd_range"  # On a nightmare: {Dewdrop key: [inside: bool, exit route index]}
 const SHALLOWS_META := &"pd_shallows_next"  # On a Warden
+
+# Statuses linger (owner 2026-10-15, trait_lent_proposal.js): the lent cards carry Dewdrop's trait to every family.
+# Everything that adds time after a landing goes through EnemyStatuses.linger (all together at most LINGER_MAX past the
+# last landing; Charged LINGER_MAX_STATIC). Never Rooted or Drowsy (EnemyStatuses.can_linger).
+const STEEPED := &"steeped"
+const STEEPED_SHARE := 0.3  # Steeped: statuses from Wardens touching a Dewdrop (a Dewdrop touches itself) last 30% longer
+const TOPPED_UP := &"topped_up"
+const TOPPED_UP_EVERY := 1.0  # Topped Up: a Dewdrop's hit resets every status's time, once a second per nightmare
+const TOPPED_META := &"pd_topped_next"  # On a nightmare
+const DRIPPING := &"dripping"
+const DRIPPING_SECONDS := 2.0  # Dripping: leaving a Dewdrop's range, every status keeps this much longer
+const EBB := &"ebb"
+const EBB_SECONDS := 3.0  # Ebb: a status running out in a Dewdrop's range comes back at half its most stacks for this long
+const EBB_META := &"pd_ebb"  # On a nightmare: true once its ran-out signal is hooked
+const POOLING := &"pooling"
+const POOLING_SHARE := 0.5  # Pooling: in two Dewdrops' ranges at once, statuses landing last 50% longer
+const HIGH_TIDE := &"high_tide"
+const HIGH_TIDE_SHARE := 0.75  # High Tide: each status with more than 75% of its time left…
+const HIGH_TIDE_PER := 0.10  # …adds 10% to hits from Wardens near a Dewdrop…
+const HIGH_TIDE_MAX := 0.40  # …up to +40%
+const OLD_RAIN := &"old_rain"
+const OLD_RAIN_AGE := 6.0  # Old Rain: a Reaction near a Dewdrop on a nightmare that has carried a status this long…
+const OLD_RAIN_BONUS := 1.4  # …deals 40% more (its burst; damage over time after it is unchanged)
+const NEVER_DRY := &"never_quite_dry"
+const NEVER_DRY_EVERY := 3.0  # Never Quite Dry: a Reaction near a Dewdrop leaves the statuses it spent at half, once per nightmare in 3 s
+const NEVER_DRY_META := &"pd_never_dry_next"  # On a nightmare
+var _old_rain := false  # True while a boosted Reaction check runs (damage_multiplier reads it)
 const WATER_META := &"pd_water"  # On a nightmare: the water it stands in (-1 none)
 const SEEN_META := &"pd_seen"  # On a nightmare: {Dewdrop cell key: true}: it has walked this Dewdrop's water
 const LEFT_META := &"pd_left"  # On a nightmare: {Dewdrop id: {status: [stacks, potency, line, WeakRef]}} (The Water Remembers)
@@ -93,8 +120,9 @@ func _line() -> String:
 # ripple are the first pick's only (place_on). The lent cards work from Dewdrops, where Wardens stand ("near a Dewdrop":
 # 2 cells; "a Dewdrop's range": its attack range) and Soaked.
 func _lent_rules() -> Array:
-	return [CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, REMEMBERS, RUN_OFF, WASH_AWAY, RIPTIDE, WATERLOGGED,
-		SOMETHING, SOAKED_THROUGH]  # (Something in the Water, Soaked Through: retired, need no water; old saves keep them)
+	return [STEEPED, TOPPED_UP, DRIPPING, EBB, REMEMBERS, POOLING, WATERLOGGED, HIGH_TIDE, OLD_RAIN, NEVER_DRY,
+		CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, RUN_OFF, WASH_AWAY, RIPTIDE,
+		SOMETHING, SOAKED_THROUGH]  # (From Caught Wading on: retired 2026-10-15 or before, need no water; old saves keep them)
 
 # Wake Ripple (retired) carried statuses along the water: an old save holding it keeps the water on Continue.
 func _legacy_rules() -> Array:
@@ -272,6 +300,11 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		_something(source, enemy)
 	if rule(SHALLOWS) and is_other(source) and living(enemy):
 		_shallows(source, enemy)
+	if rule(TOPPED_UP) and is_own(source) and living(enemy) and now() >= float(enemy.get_meta(TOPPED_META, -INF)):
+		# Topped Up: a Dewdrop's hit puts every status back to its time at landing (never longer). Once a second per nightmare
+		enemy.set_meta(TOPPED_META, now() + TOPPED_UP_EVERY)
+		for id in enemy.statuses.active_ids():
+			enemy.statuses.top_up(id)
 	if not place_on() or not is_own(source):
 		return
 	var w := water_of(enemy)
@@ -334,7 +367,15 @@ func on_poll() -> void:
 	if rule(SOAKED_THROUGH):
 		for enemy in enemies():
 			_soaked_through(enemy)
-	var ranges := rule(REMEMBERS) or rule(RIPTIDE)
+	if rule(EBB):
+		for enemy in enemies():
+			if not enemy.has_meta(EBB_META):
+				enemy.set_meta(EBB_META, true)
+				enemy.statuses.status_ran_out.connect(_ebb.bind(enemy))
+	if rule(WATERLOGGED):
+		for enemy in enemies():
+			_slow_to_dry(enemy)
+	var ranges := rule(REMEMBERS) or rule(RIPTIDE) or rule(DRIPPING)
 	var knee := rule(KNEE_DEEP)
 	if ranges or knee:
 		var dewdrops := own_towers()
@@ -383,6 +424,8 @@ func _track_ranges(enemy, dewdrops: Array) -> void:
 			var left: Dictionary = enemy.get_meta(LEFT_META, {})
 			left[key] = _other_statuses(enemy)
 			enemy.set_meta(LEFT_META, left)
+			if rule(DRIPPING) and bool(row[0]) and living(enemy):
+				_drip(enemy)
 			continue
 		seen[key] = [true, int(row[1])]
 		if int(row[1]) >= 0 and i - int(row[1]) >= RETURN_STEPS * 2 and living(enemy):
@@ -543,17 +586,116 @@ func _caught_wading(dewdrop, enemy) -> void:
 				and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage()):
 			fired += 1
 
-# Waterlogged (DreamState.class_duration, from Enemy.apply_status: every application counts): another family's status
-# from a Warden near a Dewdrop, on a nightmare Soaked at that moment, lasts half again as long. Never Soaked, Drowsy or
-# Rooted. `duration` 0 = the status's default.
+# Steeped and Pooling (DreamState.class_duration, from Enemy.apply_status: every application counts, carried ones too):
+# how much longer this landing lasts. Steeped: +30% from a Warden touching a Dewdrop (a Dewdrop touches itself).
+# Pooling: +50% on a nightmare inside two Dewdrops' ranges at once. They add; the extra is at most LINGER_MAX (Charged
+# LINGER_MAX_STATIC), never on Rooted or Drowsy. `duration` 0 = the status's default.
+# (Waterlogged's old x1.5 at landing is Slow to Dry's poll now: _slow_to_dry.)
 func status_duration(source, enemy, status: StringName, duration: float) -> float:
-	if status == EnemyStatuses.DAMP or status == EnemyStatuses.DROWSY or status == EnemyStatuses.HELD:
+	if not EnemyStatuses.can_linger(status) or not living(enemy):
 		return duration
-	if not (source is Tower) or not is_instance_valid(source) or not is_other(source) or not _soaked(enemy) or dewdrop_near(source) == null:
+	var share := 0.0
+	if rule(STEEPED) and source is Tower and is_instance_valid(source) and source.tower_data.can_attack \
+			and (is_own(source) or own_towers().any(func(d) -> bool: return touching(d, source))):
+		share += STEEPED_SHARE
+	if rule(POOLING) and _ranges_holding(enemy, 2) >= 2:
+		share += POOLING_SHARE
+	if share <= 0.0:
 		return duration
-	if duration <= 0.0:
-		duration = float(EnemyStatuses.DEFAULT_DURATION.get(status, 0.0))
-	return duration * WATERLOGGED_FACTOR
+	var base := duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION.get(status, 0.0))
+	var extra := minf(base * share, EnemyStatuses.LINGER_MAX_STATIC if status == EnemyStatuses.STATIC else EnemyStatuses.LINGER_MAX)
+	if extra <= 0.0:
+		return duration
+	enemy.statuses.pending_linger[status] = extra  # The badge's lingering look (EnemyStatuses.apply books it)
+	return base + extra
+
+# How many Dewdrops have `enemy` inside their range (stops counting at `enough`).
+func _ranges_holding(enemy, enough: int) -> int:
+	var found := 0
+	for tower in own_towers():
+		if tower.global_position.distance_to(enemy.global_position) <= tower.get_range_pixels():
+			found += 1
+			if found >= enough:
+				break
+	return found
+
+# Dripping: a nightmare leaving a Dewdrop's range keeps every status it carries 2 s longer (within the linger cap).
+func _drip(enemy) -> void:
+	var any := false
+	for id in enemy.statuses.active_ids():
+		if enemy.statuses.linger(id, DRIPPING_SECONDS) > 0.0:
+			any = true
+	if any:
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
+
+# Ebb (EnemyStatuses.status_ran_out, hooked in on_poll): a status that runs out of time on a nightmare in a Dewdrop's
+# range comes back at half its most stacks for 3 s. Once per status and nightmare; never Rooted, Drowsy or Soaked;
+# Charged stops one short of a bolt. Spent statuses (a Reaction, a bolt) never ran out, so they never ebb.
+func _ebb(id: StringName, peak: int, source: Node, potency: float, line: String, enemy) -> void:
+	if not rule(EBB) or not living(enemy) or not EnemyStatuses.can_linger(id) or _ranges_holding(enemy, 1) < 1:
+		return
+	if not _once(enemy, "ebb:" + String(id)):
+		return
+	var stacks := maxi(peak / 2, 1)
+	if id == EnemyStatuses.STATIC:
+		stacks = mini(stacks, enemy.statuses.get_max_stacks(id) - 1)
+	if stacks <= 0:
+		return
+	enemy.apply_status(id, stacks, EBB_SECONDS, potency, 0, line, source if is_instance_valid(source) else null)
+
+# Slow to Dry (rule id waterlogged): on a Soaked nightmare near a Dewdrop, another family's status can't run out before
+# its Soaked does (it lingers to match, within the linger cap). Polled.
+func _slow_to_dry(enemy) -> void:
+	if not _soaked(enemy) or strongest_near(enemy.global_position, is_own) == null:
+		return
+	var statuses: EnemyStatuses = enemy.statuses
+	var soaked_left := statuses.time_left(EnemyStatuses.DAMP)
+	for id in statuses.active_ids():
+		if not EnemyStatuses.can_linger(id) or not is_other_family(statuses.source(id)):
+			continue
+		var short := soaked_left - statuses.time_left(id)
+		if short > POLL:
+			statuses.linger(id, short)
+
+# Old Rain and Never Quite Dry (DreamState.class_reaction, from Enemy.apply_status): the Reaction check, wrapped.
+func around_reaction(enemy, id: StringName, source) -> void:
+	if not living(enemy) or strongest_near(enemy.global_position, is_own) == null:
+		Reactions.on_status(enemy, id, source)
+		return
+	var statuses: EnemyStatuses = enemy.statuses
+	# Old Rain: a nightmare that has carried a status for 6 s or longer: the Reactions this check fires deal 40% more
+	var was_raining := _old_rain  # (A Reaction's own statuses can run a check inside this one)
+	_old_rain = was_raining or (rule(OLD_RAIN) and statuses.oldest_age() >= OLD_RAIN_AGE)
+	var before := {}
+	if rule(NEVER_DRY) and now() >= float(enemy.get_meta(NEVER_DRY_META, -INF)):
+		for status in statuses.active_ids():
+			if status != EnemyStatuses.HELD:
+				before[status] = [statuses.stacks(status), statuses.potency(status), String(statuses._active[status].get("line", "")),
+					statuses.source(status), statuses.time_left(status)]
+	Reactions.on_status(enemy, id, source)
+	_old_rain = was_raining
+	if before.is_empty() or not living(enemy):
+		return
+	# Never Quite Dry: the statuses a Reaction spent come back at half the stacks they had (quietly: no new check)
+	var back := false
+	for status in before:
+		var row: Array = before[status]
+		var lost: int = int(row[0]) - statuses.stacks(status)
+		if lost <= 0:
+			continue
+		var stacks := maxi(int(row[0]) / 2 - statuses.stacks(status), 0)
+		if status == EnemyStatuses.STATIC:
+			stacks = mini(stacks, statuses.get_max_stacks(status) - 1 - statuses.stacks(status))
+		if stacks <= 0:
+			continue
+		if statuses.has(status):
+			statuses.add_quiet(status, stacks)
+		else:
+			statuses.apply(status, stacks, maxf(float(row[4]), 1.0), float(row[1]), 0, String(row[2]), row[3] if is_instance_valid(row[3]) else null)
+		back = true
+	if back:
+		enemy.set_meta(NEVER_DRY_META, now() + NEVER_DRY_EVERY)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
 
 # Something in the Water (lent): a Dewdrop's splash adds 1, quietly, to each status another family's Warden near it has
 # put on that nightmare (at most two statuses; once a second for each Dewdrop; it never starts a status).
@@ -621,9 +763,22 @@ func _run_off(enemy) -> void:
 # Wash Away: a Soaked nightmare in water loses half its family resistance to every Warden touching that water (x0.5
 # becomes x0.75). Not bosses. Status length, immunities, the blight coat and shape multipliers stay.
 func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
-	if not active() or not (source is Tower) or not is_instance_valid(source) or not _soaked(enemy):
-		return 1.0  # Every Dewdrop damage card reads a Soaked nightmare
+	if not active():
+		return 1.0
 	var multiplier := 1.0
+	if _old_rain and (tag in Reactions.CHAIN_FALLOFF_TAGS or tag == &"popped"):
+		multiplier *= OLD_RAIN_BONUS  # Old Rain: this Reaction's burst
+	if not (source is Tower) or not is_instance_valid(source):
+		return multiplier
+	if rule(HIGH_TIDE) and tag == &"" and dewdrop_near(source) != null:
+		# High Tide: hits from Wardens near a Dewdrop deal 10% more for each status with more than 75% of its time left
+		var fresh := 0
+		for id in enemy.statuses.active_ids():
+			if enemy.statuses.time_share(id) > HIGH_TIDE_SHARE:
+				fresh += 1
+		multiplier *= 1.0 + minf(HIGH_TIDE_PER * fresh, HIGH_TIDE_MAX)
+	if not _soaked(enemy):
+		return multiplier  # The older Dewdrop damage cards (retired) read a Soaked nightmare
 	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades
 		var rip: Dictionary = enemy.get_meta(RIP_META)
 		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()) and near(source.global_position, rip.at):

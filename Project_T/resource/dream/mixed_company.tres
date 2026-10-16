@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "A nightmare carrying {spored} and two other statuses gets double {stacks} whenever a Warden adds a status. Once a second per Warden. {drowsy} never doubles."
-tip = "A bet: it needs three statuses on one nightmare, so usually two families besides the spore Wardens. Doubles only the hit's own {stacks}."
+description = "Statuses added to a nightmare {near} a spore Warden that carries 3 or more statuses get double {stacks}."
+tip = "Any 3 statuses, from any Wardens; the hit's own stacks are doubled, not other cards' extras. Each Warden, once a second. {drowsy} too, never past its usual most. Works for: builds that put many statuses on the same nightmares. A bet."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "lent"])
 max_stacks = 1
-rule_id = &"any Warden that adds a status"
+rule_id = &"mixed_company"
 requires = Array[String](["sporeling"])

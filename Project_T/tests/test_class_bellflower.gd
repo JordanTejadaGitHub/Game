@@ -9,8 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.keeping_time)
 const CELL := 64.0
-const LENT := ["hum_along", "on_the_beat", "ringing_ears", "nod_off", "sleep_no_more", "refrain", "second_verse",
-	"rude_awakening", "knell", "clashing_notes"]
+const LENT := ["on_the_beat", "in_time", "nod_off", "refrain", "second_verse", "knell", "curtain_call", "reprise",
+	"rude_awakening", "da_capo"]  # Trait rework 2026-10-15: things happen again
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -64,7 +64,8 @@ func _check_pool(family: String, lent: Array, class_count: int = 12) -> void:
 		_check(dreams.in_run_pool(card) == (dreams.calling == family), "%s is in the pool only on a %s start" % [card.id, family])
 	for id in lent:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
-		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family), "%s is a lent %s card" % [id, family])
+		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has(family) and not card.retired, "%s is a lent %s card" % [id, family])
+		_check(klass._lent_rules().has(card.rule_id), "%s's rule (%s) is one the class script reads" % [id, card.rule_id])
 		_check(dreams.in_run_pool(card), "%s is in the pool whatever the first pick" % id)
 
 func _setup() -> void:
@@ -159,23 +160,82 @@ func _run() -> void:
 	_check(not f.has_meta(klass.PIPS_META), "...and rings fill no pips")
 	await _clean()
 
-	# Hum Along: another Warden's hit beside a bell adds 1 Drowsy (the bell's, not native), once every 2 s.
-	dreams.stacks.clear()
-	_take("hum_along")
+	# (Hum Along, Ringing Ears, Sleep No More and Clashing Notes are retired, 2026-10-15.)
 	var spot := Vector2(CELL * 30, CELL * 30)
+
+	# In Time: every IN_TIME_EVERY-th hit a Warden touching a bell lands on one nightmare lands again IN_TIME_DELAY s later.
+	dreams.stacks.clear()
+	_take("in_time")
 	_plant("bellflower", spot)
-	var hummer := _plant("sprout", spot + Vector2(CELL, 0))
+	var t_sprout := _plant("sprout", spot + Vector2(CELL, 0))
+	var t_far := _plant("sprout", spot + Vector2(CELL * 6, 0))  # Touching no bell
 	await _frames(2)
-	var g = _spawn(spot + Vector2(CELL * 2, 0))
-	hummer.hit(g, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(g.statuses.stacks(EnemyStatuses.DROWSY) == 1, "Hum Along: a hit beside a bell adds 1 Drowsy")
-	hummer.hit(g, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(g.statuses.stacks(EnemyStatuses.DROWSY) == 1, "...once every 2 s per Warden")
+	var t = _spawn(spot + Vector2(CELL * 2, 0))
+	klass._later.clear()
+	for i in klass.IN_TIME_EVERY - 1:
+		t_sprout.hit(t, 1.0, false, Tower.NO_CRIT)
+		await process_frame  # An attack counts once a frame
+	_check(klass._later.is_empty(), "In Time: nothing before hit %d" % klass.IN_TIME_EVERY)
+	t_sprout.hit(t, 1.0, false, Tower.NO_CRIT)
+	_check(klass._later.size() == 1, "...hit %d of a Warden touching a bell waits to land again" % klass.IN_TIME_EVERY)
+	var t_health: float = t.health
+	for i in 240:
+		if klass._later.is_empty():
+			break
+		await process_frame
+	_check(klass._later.is_empty() and t.health < t_health, "...and lands again %.2f s later" % klass.IN_TIME_DELAY)
+	for i in klass.IN_TIME_EVERY:
+		t_far.hit(t, 1.0, false, Tower.NO_CRIT)
+		await process_frame
+	_check(klass._later.is_empty(), "...a Warden touching no bell never counts")
 	await _clean()
 
-	# Knell: a bell's hit on a Drowsy nightmare cashes another family's status; once per nightmare every 8 s.
+	# Refrain (trait rework): after a bell hits a nightmare, the next hit on it from another Warden within REFRAIN_SECONDS
+	# lands twice; each Warden once every REFRAIN_EVERY s.
+	dreams.stacks.clear()
+	_take("refrain")
+	var r_bell := _plant("bellflower", spot)
+	var r_rock := _plant("pebbling", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var r = _spawn(spot + Vector2(CELL, 0))
+	var r0: float = r.health
+	r_rock.hit(r, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	var single: float = r0 - r.health
+	_check(single > 0.0, "(the partner's hit lands)")
+	r_bell.hit(r, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	var r1: float = r.health
+	r_rock.hit(r, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	_check(absf((r1 - r.health) - 2.0 * single) <= 2.0, "Refrain: after the bell's hit, the partner's next hit lands twice (%.0f, one hit %.0f)" % [r1 - r.health, single])
+	r_bell.hit(r, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	var r2: float = r.health
+	r_rock.hit(r, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	_check(absf((r2 - r.health) - single) <= 2.0, "...each Warden once every %.0f s" % klass.REFRAIN_EVERY)
+	await _clean()
+
+	# Rude Awakening (trait rework): waking (or let go), the last hits of up to RUDE_WARDENS Wardens land again.
+	dreams.stacks.clear()
+	_take("rude_awakening")
+	var ra_rock := _plant("pebbling", spot)
+	await _frames(2)
+	var ra = _spawn(spot + Vector2(CELL, 0))
+	var ra0: float = ra.health
+	ra_rock.hit(ra, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	var ra_hit: float = ra0 - ra.health
+	_check(ra.statuses.sleep(1.0), "(it falls asleep)")
+	klass.on_poll()  # Seen asleep
+	ra.statuses.sleep_time = 0.0
+	var ra1: float = ra.health
+	klass.on_poll()  # Seen awake: the last hit lands again
+	_check(ra_hit > 0.0 and absf((ra1 - ra.health) - ra_hit) <= 2.0, "Rude Awakening: waking, the last hit lands again (%.0f of %.0f)" % [ra1 - ra.health, ra_hit])
+	await _clean()
+
+	# Knell (trait rework: no Drowsy needed): a bell's hit cashes another family's status; once per nightmare every 8 s.
 	dreams.stacks.clear()
 	_take("knell")
 	var k_bell := _plant("bellflower", spot)
@@ -183,11 +243,10 @@ func _run() -> void:
 	await _frames(2)
 	var k = _spawn(spot + Vector2(CELL, 0))
 	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 10, k_spore.get_damage())
-	k.apply_status(EnemyStatuses.DROWSY, 2, 3.0, 1.0, 0, "song", k_bell)
 	var poisoned: int = k.statuses.stacks(EnemyStatuses.SPORED)
 	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
 	await _frames(1)
-	_check(k.statuses.stacks(EnemyStatuses.SPORED) < poisoned, "Knell: the bell's hit on a Drowsy nightmare cashes its Poisoned")
+	_check(k.statuses.stacks(EnemyStatuses.SPORED) < poisoned, "Knell: the bell's hit cashes another family's Poisoned")
 	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)
 	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 1, k_spore.get_damage())
 	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)

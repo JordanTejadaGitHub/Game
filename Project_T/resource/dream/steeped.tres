@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "steeped"
+display_name = "Steeped"
+description = "Statuses added by Wardens {touching} a {warden:dewdrop} last 30% longer. A {warden:dewdrop} counts as touching itself."
+tip = "Any family's status, set when it lands. Never Rooted or {drowsy}. Works for: any Warden touching a {warden:dewdrop}. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"steeped"
+requires = Array[String](["dewdrop"])

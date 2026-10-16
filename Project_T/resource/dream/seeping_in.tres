@@ -12,5 +12,5 @@ rarity = 1
 kind = 3
 tags = Array[String](["spore", "lent"])
 max_stacks = 1
-rule_id = &"every status, whoever added it"
+rule_id = &"seeping_in"
 requires = Array[String](["sporeling"])

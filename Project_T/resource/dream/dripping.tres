@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dripping"
+display_name = "Dripping"
+description = "A nightmare leaving a {warden:dewdrop}'s range keeps every status it carries 2 s longer."
+tip = "The next Wardens along the path still find them. Never Rooted or {drowsy}. Works for: every family's statuses. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"dripping"
+requires = Array[String](["dewdrop"])

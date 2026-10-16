@@ -306,6 +306,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		* duration_multiplier_all * _potency_stretch(id, strength)  # Rule 3: Potency past a cap lengthens it
 	if length >= status.time:
 		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
+		status["lingered"] = 0.0  # …and the linger cap counts from this landing (it bounds how long a status outlives it)
+		status["stretched"] = float(pending_linger.get(id, 0.0))  # Steeped / Pooling / High Tide made this landing longer
 	status.time = maxf(status.time, length)
 	if id == SPORED:
 		_add_spore_batch(mini(stacks, cap), length, source, cap)
@@ -324,6 +326,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		status["full"] = maxf(status.get("full", 0.0), held)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
+	status["peak"] = maxi(int(status.get("peak", 0)), int(status.stacks))  # Ebb brings half of this back
+	pending_linger.erase(id)
 	_active[id] = status
 	applications += 1
 	changes += 1
@@ -672,6 +676,7 @@ func tick(delta: float) -> float:
 		var expired: Array = _EMPTY  # Shared until something expires (perf: no new array every frame)
 		for id in _active:
 			var status: Dictionary = _active[id]
+			status["age"] = float(status.get("age", 0.0)) + delta  # Old Rain
 			if id == SPORED:
 				_tick_spore_batches(delta)
 				status.stacks = _spore_count()
@@ -695,11 +700,17 @@ func tick(delta: float) -> float:
 				if expired.is_empty():
 					expired = []
 				expired.append(id)
+		var ran_out: Array = []
 		for id in expired:
+			var gone: Dictionary = _active.get(id, {})
+			if not gone.is_empty():
+				ran_out.append([id, int(gone.get("peak", gone.get("stacks", 1))), gone.get("source"), float(gone.get("potency", 0.0)), String(gone.get("line", ""))])
 			remove(id)
 			if id == HELD:
 				hold_cooldown = HOLD_COOLDOWN_BOSS if is_boss else HOLD_COOLDOWN  # A Hold ran out: a breather first
 				_hold_just_ended = true
+		for row in ran_out:  # After the loop: a listener may put the status back (Ebb)
+			status_ran_out.emit(row[0], row[1], row[2] if is_instance_valid(row[2]) else null, row[3], row[4])
 	if marked_extra != 0.0 and not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
@@ -889,6 +900,75 @@ func preserve_other_statuses(new_id: StringName) -> void:
 		status["tour_extension"] = 1.0
 		status["full"] = maxf(float(status.get("full", status.time)), status.time)
 		changes += 1
+
+# --- Lingering (Dewdrop's lent cards, owner 2026-10-15: "statuses linger") ---------------------------------------------
+# Every Dewdrop card that makes a status last longer goes through linger(): all of them together add at most LINGER_MAX s
+# to one status's life (LINGER_MAX_STATIC for Charged), so nothing stays up for ever. Never Rooted or Drowsy.
+const LINGER_MAX := 4.0
+const LINGER_MAX_STATIC := 2.0
+signal status_ran_out(id: StringName, peak: int, source: Node, potency: float, line: String)  # Ran out of time (not spent)
+
+static func can_linger(id: StringName) -> bool:
+	return id != HELD and id != DROWSY  # Soaked lingers too: a Dewdrop build keeps its own Thunderclap and Drown setups (owner 2026-10-15: "with its own family")
+
+# Adds up to `seconds` to `id`'s time left, within the cap. Returns the seconds added.
+func linger(id: StringName, seconds: float) -> float:
+	if seconds <= 0.0 or not can_linger(id) or not _active.has(id) or (id == MARKED and marked_forever) or (id == STATIC and static_forever):
+		return 0.0
+	var status: Dictionary = _active[id]
+	var room: float = (LINGER_MAX_STATIC if id == STATIC else LINGER_MAX) - float(status.get("lingered", 0.0))
+	var added := minf(seconds, room)
+	if added <= 0.0:
+		return 0.0
+	status["lingered"] = float(status.get("lingered", 0.0)) + added
+	if id == SPORED:
+		for batch in _spore_batches:
+			batch[0] += added
+		status.time = _spore_remaining()
+	else:
+		status.time += added
+	status["full"] = maxf(float(status.get("full", status.time)), status.time)
+	changes += 1
+	return added
+
+# Topped Up: `id`'s time back to what it had when it last landed (never longer).
+func top_up(id: StringName) -> void:
+	if not can_linger(id) or not _active.has(id):
+		return
+	var status: Dictionary = _active[id]
+	var full: float = float(status.get("full", status.time))
+	if id == SPORED:
+		for batch in _spore_batches:
+			batch[0] = maxf(float(batch[0]), full)
+		status.time = _spore_remaining()
+	else:
+		status.time = maxf(status.time, full)
+	changes += 1
+
+# Seconds a Dewdrop card added to the landing about to happen (DreamState.class_duration, at most LINGER_MAX), by
+# status: apply() books them as "stretched" (the badge's lingering look; a landing's own length, so not the cap).
+var pending_linger := {}
+
+# Whether `id` lasts longer than it would have (the lingering look on its badge).
+func is_lingering(id: StringName) -> bool:
+	return _active.has(id) and (float(_active[id].get("lingered", 0.0)) > 0.0 or float(_active[id].get("stretched", 0.0)) > 0.0)
+
+# How long `id` has been on the nightmare without wearing off, and the most stacks it has had in that time.
+func age(id: StringName) -> float:
+	return float(_active[id].get("age", 0.0)) if _active.has(id) else 0.0
+
+func peak(id: StringName) -> int:
+	return int(_active[id].get("peak", _active[id].stacks)) if _active.has(id) else 0
+
+func oldest_age() -> float:
+	var best := 0.0
+	for id in _active:
+		best = maxf(best, float(_active[id].get("age", 0.0)))
+	return best
+
+# Old Rain: the oldest status's age just before a Reaction spent it (Enemy.apply_status stamps it; same frame only).
+var reaction_age := 0.0
+var reaction_age_frame := -1
 
 # Grand Tour was reworked (card_review_2026-10-12.md 10): it no longer extends other statuses. It is hit damage now
 # (DreamState.on_hit_multiplier). Kept as a no-op for its callers.

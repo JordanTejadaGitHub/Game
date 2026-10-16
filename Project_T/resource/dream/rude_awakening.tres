@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "rude_awakening"
 display_name = "Rude Awakening"
-description = "Needs a way to put nightmares to sleep or {held}. When one wakes or breaks free, the next hit on it within 2 s deals double damage."
-tip = "From any Warden. Sleep comes from Nod Off, Dreamshroom and The Great Bell; Holds from the Rootling line. One doubled hit per bell a second. A bet: it does nothing until something of yours stops nightmares."
+description = "Needs a way to put nightmares to sleep or {held}. When one wakes or breaks free, the last hit from each of up to 3 Wardens lands again."
+tip = "Once per sleep or Hold. Bells' sleeps count: Nod Off is one way. Works for: every family, with a sleep or Hold maker. A bet."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

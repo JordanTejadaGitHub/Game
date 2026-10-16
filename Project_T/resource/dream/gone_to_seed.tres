@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "gone_to_seed"
+display_name = "Gone to Seed"
+description = "Needs another {family}'s status. When a Warden's hit fills a status on a nightmare {near} a spore Warden, every other status on it gains 5 {stacks}."
+tip = "Filled: at its most {stacks}. Once for each nightmare every 2 s. Only a Warden's own hit counts, so it never sets itself off. Never Rooted; {static} stops one short of a bolt. Works for: every family, the spore Wardens' own {spored} too. A bet."
+rarity = 2
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"gone_to_seed"
+requires = Array[String](["sporeling"])

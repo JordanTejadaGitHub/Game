@@ -75,10 +75,13 @@ const FLASHOVER_SHARE := 0.5  # Flashover: an area attack on 2+ nightmares jumps
 const FLASHOVER_MIN := 2
 const SPARKLERS := ["sparkler", "starburst"]  # Firefly area forms: they count for Flashover beside another Firefly Warden
 const THUNDERSTRUCK := &"thunderstruck"
-const THUNDER_SHARE := 0.25  # Thunderstruck: a heavy hit on a Charged nightmare fans a quarter to every Charged one near it…
-const THUNDER_MAX := 6  # …up to this many
+const THUNDER_SHARE := 0.25  # Thunderstruck: a heavy hit on a nightmare with a status fans a quarter to the ones near it with a status…
+const THUNDER_MAX := 4  # …up to this many…
+const THUNDER_CAP_SECONDS := 1.5  # …the whole fan at most this many seconds of the Firefly Warden near the heavy one
+const CHAIN_EVERY := 1.0  # Chain of Lanterns: each Firefly Warden's Reactions jump once a second
+const CHAIN_META := &"ff_chain_next"  # On a Firefly Warden
 const BRUSHFIRE := &"brushfire"
-const BRUSH_SHARE := 0.5  # Brushfire: half a Charged nightmare's damage over time, each second
+const BRUSH_SHARE := 0.5  # Brushfire: half the damage over time of a nightmare a Firefly Warden hit in the last 2 s, each second
 const BRUSH_EVERY := 1.0
 const BRUSH_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog"]  # Damage over time (not bolts, Reactions or jumps)
 const GATHERING_STORM := &"gathering_storm"
@@ -477,8 +480,8 @@ func _on_damage(event) -> void:
 	if dream_state == null or event.tag == FORK_TAG or not is_instance_valid(event.enemy):
 		return  # A fork triggers nothing
 	if event.kind == &"reaction":
-		if _rule(CHAIN_OF_LANTERNS) and event.tag in CHAIN_REACTIONS:
-			_chain_more(event)  # A Reaction that spends Charged (by its tag: Thunderclap and Ignite remove Charged first)
+		if _rule(CHAIN_OF_LANTERNS):
+			_chain_more(event)  # Any family's Reaction on a nightmare a Firefly Warden hit in the last 2 s (trait rework 2026-10-15)
 		return  # A Reaction's own lightning gets nothing else added
 	var on := _lit_on()
 	var lent := _lent_on()
@@ -505,13 +508,25 @@ func _on_damage(event) -> void:
 	if lent:
 		_lent_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 
-# Chain of Lanterns on a Reaction that spends Charged: half of it jumps to the 2 nearest other nightmares near it.
+# Chain of Lanterns on any Reaction (trait rework 2026-10-15; was Charged Reactions only): on a nightmare a Firefly Warden
+# hit in the last 2 s, half of it jumps to the 2 nearest other nightmares near it. Each Firefly Warden, once a second;
+# capped at 3 s of that Firefly Warden's damage.
 func _chain_more(event) -> void:
 	var enemy = event.enemy
-	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
+	var lit: Array = enemy.get_meta(FF_HIT_META, [])
+	if lit.is_empty() or _now() - float(lit[0]) > SPARKS_WINDOW:
+		return
+	var jar = lit[1].get_ref()
+	if not is_instance_valid(jar) or _now() < float(jar.get_meta(CHAIN_META, -INF)):
+		return
+	var targets: Array = _near_enemies(enemy.global_position, [enemy]).slice(0, CHAIN_TARGETS)
+	if targets.is_empty():
+		return
+	jar.set_meta(CHAIN_META, _now() + CHAIN_EVERY)
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else jar
 	var id := _next_event()
-	for target in _near_enemies(enemy.global_position, [enemy]).slice(0, CHAIN_TARGETS):
-		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, _lent_cap(source, null), {"final": true})
+	for target in targets:
+		_fork(id, source, enemy.global_position, target, event.base * CHAIN_SHARE, _lent_cap(null, jar), {"final": true})
 
 # The most a lent card's jump may deal (never "no cap" for another family: brightness() is never asked with no light).
 # A Firefly Warden's own jumps stay uncapped, as the Calling's are; another family's are capped at 3 s of the Firefly
@@ -678,9 +693,9 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			for target in _near_enemies(at, [enemy]).slice(0, CHAIN_TARGETS):
 				_fork(id, source, at, target, event.base * CHAIN_SHARE, cap_bolt)
 		return
-	if is_firefly(source) and event.kind == &"hit" and _rule(SPARKS_FLY):
-		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Sparks Fly: hit by a Firefly Warden (any form) just now
-	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and enemy.statuses.has(EnemyStatuses.STATIC):
+	if is_firefly(source) and event.kind == &"hit" and (_rule(SPARKS_FLY) or _rule(CHAIN_OF_LANTERNS) or _rule(BRUSHFIRE)):
+		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Hit by a Firefly Warden (any form) just now: Sparks Fly, Chain of Lanterns, Brushfire
+	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
 		_brush_add(event, source, enemy)
 	if is_hit:
 		if _rule(LENT_CROSSFIRE):
@@ -689,7 +704,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			_nothing_wasted(id, event, source, enemy, at)
 		if _rule(FLASHOVER):
 			_flash_note(event, source, enemy)
-		if _rule(SPARKS_FLY) and is_other(source):
+		if _rule(SPARKS_FLY):  # Any Warden but the Firefly Warden that started the 2 s (own family too, owner 2026-10-15)
 			_sparks_fly(id, event, source, enemy, at, now)
 	if _heavy_now:
 		# Hammerfall: another family's heavy Warden, or a Sprout, near a Firefly Warden jumps half of each attack
@@ -698,10 +713,14 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var targets := _near_enemies(at, [enemy]) if jar != null else []
 			if not targets.is_empty():
 				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": is_heavy(source)})
-		# Thunderstruck: another family's heavy Warden's hit on a Charged nightmare fans a quarter to every Charged one near it
-		if _rule(THUNDERSTRUCK) and is_other_family(source) and is_heavy(source) and enemy.statuses.has(EnemyStatuses.STATIC):
-			var cap_fan := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
-			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.has(EnemyStatuses.STATIC)).slice(0, THUNDER_MAX)
+		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
+		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
+		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)
+		if _rule(THUNDERSTRUCK) and is_heavy(source) and enemy.statuses.count() > 0 and (is_firefly(source) or is_other_family(source)):
+			thunder_jar = source if is_firefly(source) else firefly_near(source)
+		if thunder_jar != null:
+			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
+			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.count() > 0).slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
 				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true})
 	# Live Wire and Like to Like: retired (2026-10-13 / earlier); an old save keeps them
@@ -748,7 +767,7 @@ func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
 # the last 2 s jumps on at half. Counted per Warden and nightmare; an area attack counts once.
 func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float) -> void:
 	var lit: Array = enemy.get_meta(FF_HIT_META, [])
-	if lit.is_empty() or now - float(lit[0]) > SPARKS_WINDOW:
+	if lit.is_empty() or now - float(lit[0]) > SPARKS_WINDOW or lit[1].get_ref() == source:
 		return
 	if int(source.get_meta(SPARKS_FRAME_META, -1)) == Engine.get_process_frames():
 		return
@@ -822,14 +841,20 @@ func _brush_fire() -> void:
 	for entry in entries:
 		var enemy = entry.enemy.get_ref()
 		var source = entry.source.get_ref()
-		if not _living(enemy) or not is_instance_valid(source) or not enemy.statuses.has(EnemyStatuses.STATIC):
+		if not _living(enemy) or not is_instance_valid(source):
 			continue
 		var targets := _near_enemies(enemy.global_position, [enemy])
 		if not targets.is_empty():
-			var cap := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
+			var lit: Array = enemy.get_meta(FF_HIT_META, [])
+			var cap := _lent_cap(source, lit[1].get_ref() if not lit.is_empty() else null)
 			if is_firefly(source):
 				cap = _lent_cap(null, source)  # Damage over time is never a Firefly hit: always capped
 			_fork(_next_event(), source, enemy.global_position, targets[0], float(entry.amount) * BRUSH_SHARE, cap, {"final": true})
+
+# Whether a Firefly Warden hit `enemy` in the last 2 s (Brushfire).
+func _firefly_hit_recently(enemy, now: float) -> bool:
+	var lit: Array = enemy.get_meta(FF_HIT_META, [])
+	return not lit.is_empty() and now - float(lit[0]) <= SPARKS_WINDOW
 
 func _new_like_hit(source, now: float) -> bool:
 	if int(source.get_meta(&"ff_like_frame", -1)) == Engine.get_process_frames():
