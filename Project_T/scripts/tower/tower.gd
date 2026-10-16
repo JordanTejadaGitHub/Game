@@ -81,7 +81,7 @@ const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
 const RANK_COSTS: Array[int] = [30, 48, 60, 90, 135]  # Base Dew for ranks I-V (Balancing 2026-10-04: +20% on I-II)
 const RANK_COSTS_V2: Array[int] = [25, 40, 60, 90, 135]  # Economy pass v2, for the sims' A/B
 static var rank_costs: Array[int] = RANK_COSTS.duplicate()  # Live; DreamState.rank_costs (export) sets it
-const RANK_DAMAGE := 0.10
+const RANK_DAMAGE := 0.06  # Per plain rank (Balancing power budget, owner review 2026-10-16: was 0.10)
 const COOLDOWN_JITTER := 0.08  # ± share of each attack's cooldown (desyncs Wardens; see _start_attack)
 const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line pulls this much further…
 const PATIENT_ROOTS_ROOT_HOLD := 0.25  # …and holds this much longer, on top of the +0.25 s for every Hold
@@ -218,7 +218,7 @@ const LEAF_MOTE_AT := Vector2(8, -20)  # Where a boosted Warden's leaf mote star
 const LEAF_MOTE_ALPHA := 0.35
 const LEAF_MOTE_RISE := 6.0  # Pixels a second…
 const LEAF_MOTE_SPAN := 14.0  # …over this far, then again
-const RANK_SPEED := 0.04
+const RANK_SPEED := 0.03  # Per plain rank (power budget 2026-10-16: was 0.04)
 const RANK_RANGE := 0.1  # Cells
 const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
 
@@ -401,7 +401,7 @@ var cell: Vector2
 var invested_dew := 0
 var rest_dew := 0  # Dew spent on it during the current rest (refunded in full until the next drift)
 static var resting := false  # A rest is on (TowerSeller keeps it in step with the DriftDirector)
-# Nurture rank 0-5 (7 with Deeper Rings): each rank +10% damage, +4% attack speed, +0.1 range, and
+# Nurture rank 0-5 (7 with Deeper Rings): each rank +6% damage, +3% attack speed (power budget 2026-10-16; was +10% / +4%), +0.1 range, and
 # from rank III the Focus bonus. Kept through evolution, like the Focus (chosen at rank III, fixed).
 # Setting it from outside (Dream cards, the save) refreshes the rank art and pips too.
 var rank := 0:
