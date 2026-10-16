@@ -30,7 +30,8 @@ func _run() -> void:
 		_check(follow.size() == 2, "%s has 2 follow-ups" % style)
 		for f in follow:
 			_check(PATHS.children(f).size() == 1, "%s has 1 capstone" % f)
-	_check(not PATHS.has_paths("bellflower"), "Keeping Time has no evolutions yet (it keeps its class cards)")
+	for family in ["sporeling", "firefly_jar", "dewdrop", "bellflower"]:
+		_check(PATHS.next_ids(family, []).size() == 3, "%s has 3 styles" % family)
 	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]) == [&"sp_sticky"], "Drift 75: the style's other follow-up")
 	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 50, 75")
 

@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"signal_fires"
 tip = "A light: one Firefly Warden's glow, or glows that touch; a glowing Sprout is its own. Once for each light a second. Works for: every Warden's dispel in a light. Safe."
 calling = "firefly_jar"
+retired = true

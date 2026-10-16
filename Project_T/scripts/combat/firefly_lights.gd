@@ -99,6 +99,70 @@ const GUIDING_LIGHT := &"guiding_light"  # A general card (needs Lanternmoth), r
 const GUIDING_SHARE := 0.5
 const GUIDING_CELLS: Array[float] = [1.0, 2.0]  # II
 
+# --- Calling evolutions (scripts/combat/calling_paths.gd ids lf_*; council calling_evolution_*.md, owner 2026-10-16) ----
+# Read with evo(id) (the Firefly start with that id on DreamState.calling_path). Every number is a paper starting value
+# (Balancing). Each one shows itself (a bolt in its own colour, a thread, a coal, a flash) and credits its id
+# (DreamState.note_card). Recursive jumps keep their event id and carry a hop counter ("hops", TD correction 3): no
+# chain is ever longer than EVENT_MAX, and one event never strikes more than EVENT_MAX nightmares (_event_seen).
+# Spread
+const EVO_STRUNG := &"lf_strung_lights"
+const STRING_STEPS := 4  # Strung Lights: gaps of at most this many path steps between lit steps are lit too
+const EVO_TORCH := &"lf_torchbearers"
+const RELAY_SHARE := 0.5  # Torchbearers: the next light ahead throws this share of the dispelling hit (once a second per light)
+const EVO_BALE := &"lf_bale_fires"
+const BALE_HOPS := 4  # Bale-fires: a throw that dispels throws again from the next light, up to this many more lights
+const EVO_GLOWWORMS := &"lf_glowworms"
+const GLOW_SPROUTS_PER_JAR := 2  # Glowworms: Sprouts touching each Firefly Warden that glow (nearest the Heartwood first)
+const GLOW_SPROUT_TOUCH := 1.25  # …"touching": within this many cells on both axes
+const EVO_SWARM := &"lf_swarm_night"
+const SWARM_AT := 10  # Swarm Night: while this many nightmares are Lit, every jump jumps once more…
+const SWARM_SHARE := 1.0  # …at this share of the jump
+# Focus
+const EVO_BONFIRE := &"lf_bonfire"
+const GOLD_JUMPS := 2  # Bonfire: a dispel on gold path jumps to this many (never past MEET_MAX)
+const EVO_MOTH := &"lf_moth_to_flame"
+const MOTH_EXPOSED := 2  # Moth to Flame: a jump landing on gold path adds this many Exposed (bosses half, at least 1)
+const EVO_PYRE := &"lf_pyre"
+const PYRE_HOPS := 3  # Pyre: a jump that dispels on gold path jumps again, same strength, up to this many times
+const EVO_EMBERS := &"lf_embers"
+const EMBER_SHARE := 0.5  # Embers: a dispel on gold path leaves this share of the dispelling hit…
+const EMBER_TIME := 4.0  # …for this long…
+const EMBER_REACH := 0.6  # …for the next nightmare within this many cells of its step
+const EMBER_MAX := 8  # Embers (piles) on the map at once
+const EVO_WITCHFIRE := &"lf_witchfire"
+const HEARTH_JOIN := 2  # Witchfire: an ember within this many steps of a pile joins it…
+const HEARTH_MAX := 3  # …up to this many embers in a pile…
+const HEARTH_CELLS := 1.0  # …and the pile bursts on the nightmares within this many cells…
+const HEARTH_TARGETS := 6  # …up to this many
+# Support
+const EVO_BORROWED := &"lf_borrowed_light"
+const LAMP_SHARE := 0.33  # Borrowed Light: another Warden's hit on a Lit nightmare jumps this share (Sprouts count)…
+const LAMP_EVERY := 1.0  # …once a second per Warden
+const LAMP_META := &"lf_lamp_next"  # On a Warden
+const EVO_SHOW := &"lf_show_the_way"
+const SHOW_STACKS := 1  # Show the Way: a Warden within a glow adds this many more of its status (quiet add: never starts one)…
+const SHOW_EVERY := 1.0  # …once a second per Warden; never Drowsy
+const SHOW_META := &"lf_show_next"  # On a Warden
+const EVO_WAKE := &"lf_lantern_wake"
+const WAKE_STACKS := 1  # Lantern Wake: a jump carries this many of each status its nightmare had (onto statuses already there)…
+const WAKE_STATUSES := 4  # …up to this many statuses
+const EVO_SIGHT := &"lf_sightline"
+const SIGHT_WARDENS := 3  # Sightline: this many different Wardens hitting one Lit nightmare…
+const SIGHT_WINDOW := 2.0  # …within this long…
+const SIGHT_SHARE := 0.25  # …each jump this share of its hit to the nearest other Lit nightmare…
+const SIGHT_MAX := 4  # …from at most this many Wardens…
+const SIGHT_LOCK := 4.0  # …then not on that nightmare for this long
+const SIGHT_META := &"lf_sight"  # On a nightmare: {Warden id: [time, WeakRef, base]}
+const SIGHT_NEXT_META := &"lf_sight_next"
+const EVO_CONSTELLATION := &"lf_constellation"
+const CONST_WARDENS := 3  # Constellation: jumps from this many different Wardens…
+const CONST_WINDOW := 3.0  # …within this long make a nightmare fully Exposed…
+const CONST_EVERY := 8.0  # …each nightmare once in this long…
+const CONST_BOSS_SHARE := 0.5  # …bosses fill only this share
+const CONST_META := &"lf_const"  # On a nightmare: {Warden id: [time, WeakRef]}
+const CONST_NEXT_META := &"lf_const_next"
+const EVENT_MEMORY := 512  # Events whose struck nightmares are remembered (recursive hops land a frame later)
+
 const LIT_SPROUT_META := &"lit_sprout"  # On a Sprout the player chose to glow
 const GROUPS_META := &"ff_lights"  # On a nightmare: the lights it stands in (Array of light ids)
 const AMBUSH_META := &"ff_ambushed"  # On a nightmare: {light id: true}
@@ -128,6 +192,14 @@ var _brush := {}  # Brushfire: nightmare id -> {enemy: WeakRef, source: WeakRef,
 var _brush_in := BRUSH_EVERY
 var _heavy_now := false  # This event is a new heavy attack (worked out once per event: _new_heavy_attack has a clock)
 var saved_sprouts: Array = []  # From the run save (DreamState.load_save); applied once the Wardens are back
+var _strung := {}  # Strung Lights: route cell -> the light ids lighting the gap it sits in
+var _light_rep := {}  # Light id -> one source of it (a gap borrows it for brightness)
+var _step_px := {}  # Route step -> map position (embers)
+var _end_px := Vector2.ZERO  # The route's last step (the Heartwood): Glowworms pick the Sprouts nearest it
+var _embers := {}  # Embers / Witchfire: route step -> {amount, cap, source: WeakRef, until, count}
+var _lit_count := 0  # Nightmares Lit at the last poll (Swarm Night)
+var _event_seen := {}  # Event id -> {nightmare id: true}: struck by it (EVENT_MAX across a recursive chain)
+var _show: Array = []  # Show the Way: [WeakRef nightmare, status, WeakRef Warden], added after the hit's own status
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -140,6 +212,8 @@ func _ready() -> void:
 
 func _on_rest() -> void:
 	_sparks.clear()  # Waiting sparks go out when a rest starts
+	_embers.clear()  # So do embers (nothing waits through a rest)
+	_show.clear()
 	queue_redraw()
 
 # --- Who this is on for -----------------------------------------------------------------------------------------
@@ -149,6 +223,28 @@ func class_on() -> bool:
 
 func _rule(id: StringName) -> bool:
 	return dream_state != null and dream_state.has_rule(id)
+
+# A Calling evolution on the path (DreamState.calling_path): the Firefly start only (as class_kit.evo).
+func evo(id: StringName) -> bool:
+	return class_on() and dream_state.has_evolution(id)
+
+func _evolved() -> bool:
+	return class_on() and not dream_state.calling_path.is_empty()
+
+# Credit an effect to its evolution (DreamState.note_card: callouts and the rest report), as class_kit.credit.
+func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
+	if dream_state != null:
+		dream_state.note_card(id, at)
+
+# A thin line between two points for a moment (as class_kit._line_fx).
+func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
+	var world := Reactions._world(self)
+	if world != null and not from.is_equal_approx(to):
+		world.add_child(ChainBolt.new(PackedVector2Array([from, to]), color, width))
+
+# Nightmares Lit at the last look (Swarm Night's count; the Calling badge can show "Lit 7/10").
+func lit_count() -> int:
+	return _lit_count
 
 # Lent cards never give the Calling's setup (owner 2026-10-14, dream_council_review.md 25-26): Lit, the glow, lights and
 # gold path are the first pick's only. The lent cards work from Firefly Wardens, where Wardens stand, their attacks and
@@ -234,6 +330,8 @@ func _process(delta: float) -> void:
 			_brush_in = BRUSH_EVERY
 			_brush_fire()
 	_flush()
+	if not _show.is_empty():
+		_show_flush()
 
 func _towers() -> Array:
 	return get_tree().get_nodes_in_group(Tower.GROUP).filter(_tower_ok)
@@ -251,13 +349,18 @@ func _rebuild() -> void:
 	_sources.clear()
 	_glow.clear()
 	_max_lit_step = -1
+	_strung.clear()
+	_light_rep.clear()
 	var jars: Array = []
 	var sprouts: Array = []
+	var plain_sprouts: Array = []  # Glowworms' candidates
 	for tower in _towers():
 		if is_firefly(tower):
 			jars.append(tower)
 		elif tower.tower_data.get_id() == "sprout" and tower.get_meta(LIT_SPROUT_META, false):
 			sprouts.append(tower)
+		elif tower.tower_data.get_id() == "sprout":
+			plain_sprouts.append(tower)
 	if not _lit_on():
 		for tower in jars:
 			_sources.append({"tower": tower, "sprout": false, "light": _sources.size()})  # Lent cards only ask "near a Firefly Warden"
@@ -297,16 +400,77 @@ func _rebuild() -> void:
 		_sources.append({"tower": jars[i], "sprout": false, "light": light})
 		for cell in cells_of[i]:
 			_note(cell, light, true)
-	for j in sprouts.size():
-		var light := -1 - _cell_code(sprouts[j])  # Always its own light (negative ids), and never gold path
-		_sources.append({"tower": sprouts[j], "sprout": true, "light": light})
+	_step_px.clear()
+	var last_step := -1
+	for cell in path:
+		var s := int(path[cell])
+		if not _step_px.has(s):
+			_step_px[s] = Tower.MAP_GRID.calculate_map_position(cell)
+		if s > last_step:
+			last_step = s
+			_end_px = Tower.MAP_GRID.calculate_map_position(cell)
+	var worms := _glowworms(jars, plain_sprouts) if evo(EVO_GLOWWORMS) else []
+	for j in sprouts.size() + worms.size():
+		var worm := j >= sprouts.size()
+		var sprout = worms[j - sprouts.size()] if worm else sprouts[j]
+		var light := -1 - _cell_code(sprout)  # Always its own light (negative ids), and never gold path
+		_sources.append({"tower": sprout, "sprout": true, "light": light, "worm": worm})
 		for cell in path:
 			var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
-			if absf(at.x - sprouts[j].global_position.x) <= touch and absf(at.y - sprouts[j].global_position.y) <= touch:
+			if absf(at.x - sprout.global_position.x) <= touch and absf(at.y - sprout.global_position.y) <= touch:
 				_note(cell, light, false)
+	for source in _sources:
+		if not _light_rep.has(source.light) or (_light_rep[source.light].sprout and not source.sprout):
+			_light_rep[source.light] = source
+	if evo(EVO_STRUNG):
+		_string_lights(path)
 	for cell in _glow:
 		_max_lit_step = maxi(_max_lit_step, int(path.get(cell, -1)))
-	queue_redraw()  # Twice a second at most: the glow follows planting, selling, growing and new cards
+	queue_redraw()
+
+# Glowworms: up to GLOW_SPROUTS_PER_JAR Sprouts touching each Firefly Warden glow by themselves, the ones nearest the
+# Heartwood first (chosen automatically; TD fix 4: never "any number", so the lights stay bounded).
+func _glowworms(jars: Array, candidates: Array) -> Array:
+	var out: Array = []
+	var reach := GLOW_SPROUT_TOUCH * _cell()
+	for jar in jars:
+		var near: Array = []
+		for s in candidates:
+			if not out.has(s) and absf(s.global_position.x - jar.global_position.x) <= reach \
+					and absf(s.global_position.y - jar.global_position.y) <= reach:
+				near.append(s)
+		near.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(_end_px) < b.global_position.distance_squared_to(_end_px))
+		out.append_array(near.slice(0, GLOW_SPROUTS_PER_JAR))
+	return out
+
+# Strung Lights: a gap of at most STRING_STEPS unlit steps between two lit steps is lit by both lights. The lights keep
+# their own ids (Torchbearers and Bale-fires throw from light to light along the strung road), and a gap is never gold.
+func _string_lights(path: Dictionary) -> void:
+	var cells_at := {}  # Step -> its route cells
+	for cell in path:
+		(cells_at.get_or_add(int(path[cell]), []) as Array).append(cell)
+	var lit_steps: Array = []
+	for cell in _glow:
+		var s := int(path.get(cell, -1))
+		if s >= 0 and not lit_steps.has(s):
+			lit_steps.append(s)
+	lit_steps.sort()
+	for k in range(1, lit_steps.size()):
+		var a: int = lit_steps[k - 1]
+		var b: int = lit_steps[k]
+		if b - a - 1 < 1 or b - a - 1 > STRING_STEPS:
+			continue
+		var lights: Array = []
+		for s in [a, b]:
+			for cell in cells_at.get(s, []):
+				for light in (_glow[cell].lights if _glow.has(cell) else []):
+					if not lights.has(light):
+						lights.append(light)
+		for s in range(a + 1, b):
+			for cell in cells_at.get(s, []):
+				_strung[cell] = lights
+				for light in lights:
+					_note(cell, light, false)  # Twice a second at most: the glow follows planting, selling, growing and new cards
 
 # A Warden's cell as one number (half cells count): stable while it stands there.
 func _cell_code(tower) -> int:
@@ -346,7 +510,44 @@ func sources_at(at: Vector2) -> Array:
 	return out
 
 func is_lit(enemy) -> bool:
-	return _lit_on() and is_instance_valid(enemy) and not sources_at(enemy.global_position).is_empty()
+	return _lit_on() and is_instance_valid(enemy) and not _lit_sources(enemy).is_empty()
+
+# The sources lighting a nightmare: by distance (sources_at), or, on a Strung Lights gap, one source of each light the
+# gap joins (marked "gap": never gold path, never shows hidden nightmares). Every Lit question about a nightmare asks this.
+func _lit_sources(enemy) -> Array:
+	var out := sources_at(enemy.global_position)
+	if out.is_empty() and not _strung.is_empty() and enemy.has_method("get_current_cell"):
+		for light in _strung.get(enemy.get_current_cell(), []):
+			var rep = _light_rep.get(light)
+			if rep != null and is_instance_valid(rep.tower):
+				var gap: Dictionary = rep.duplicate()
+				gap["gap"] = true
+				out.append(gap)
+	return out
+
+# Only a Firefly Warden's own light shows hidden nightmares (or an old save's chosen Sprout): never a Strung gap or a
+# Glowworm (TD fix 4).
+func _reveals(sources: Array) -> bool:
+	for source in sources:
+		if not source.get("gap", false) and not source.get("worm", false):
+			return true
+	return false
+
+# Credit for being Lit by an evolution's light only: Strung Lights (a gap) or Glowworms (a Sprout's).
+func _credit_light(sources: Array, at: Vector2) -> void:
+	var gap := false
+	var worm := false
+	for source in sources:
+		if source.get("gap", false):
+			gap = true
+		elif source.get("worm", false):
+			worm = true
+		else:
+			return  # A Firefly Warden lights it anyway
+	if gap and evo(EVO_STRUNG):
+		credit(EVO_STRUNG, at)
+	elif worm and evo(EVO_GLOWWORMS):
+		credit(EVO_GLOWWORMS, at)
 
 func lights_of(sources: Array) -> Array:
 	var out: Array = []
@@ -359,7 +560,7 @@ func lights_of(sources: Array) -> Array:
 func jars_at(sources: Array) -> int:
 	var count := 0
 	for source in sources:
-		if not source.sprout:
+		if not source.sprout and not source.get("gap", false):
 			count += 1
 	return count
 
@@ -382,11 +583,20 @@ func _enemies() -> Array:
 func nearest_lit(at: Vector2, skip: Array, count: int = 1) -> Array:
 	var found: Array = []
 	for enemy in _enemies():
-		if skip.has(enemy) or sources_at(enemy.global_position).is_empty():
+		if skip.has(enemy) or _lit_sources(enemy).is_empty():
 			continue
 		found.append(enemy)
 	found.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 	return found.slice(0, count)
+
+# The nearest Lit nightmares that event `id` has not struck yet (recursive hops).
+func _fresh_lit(at: Vector2, id: int, skip: Array, count: int = 1) -> Array:
+	var seen: Dictionary = _event_seen.get(id, {})
+	var out: Array = []
+	for enemy in nearest_lit(at, skip, count + seen.size()):
+		if not seen.has(enemy.get_instance_id()):
+			out.append(enemy)
+	return out.slice(0, count)
 
 func _step_of(enemy) -> int:
 	return int(dream_state._path_index.get(enemy.get_current_cell(), -1))
@@ -396,7 +606,7 @@ func front_in(light: int, skip: Array = []):
 	var best = null
 	var best_step := -INF
 	for enemy in _enemies():
-		if skip.has(enemy) or not lights_of(sources_at(enemy.global_position)).has(light):
+		if skip.has(enemy) or not lights_of(_lit_sources(enemy)).has(light):
 			continue
 		var step := float(_step_of(enemy))
 		if step > best_step:
@@ -430,16 +640,22 @@ func _poll() -> void:
 			queue_redraw()
 		else:
 			_sparks[light] = waiting
+	if not _embers.is_empty():
+		_ember_poll(now)
 	var container: Node = dream_state.spawner
 	if container == null:
 		return
+	var lit := 0
 	for enemy in container.get_children():
 		if not _living(enemy) or not enemy.has_method("get_current_cell"):
 			continue
-		var lights: Array = lights_of(sources_at(enemy.global_position))
+		var sources := _lit_sources(enemy)
+		var lights: Array = lights_of(sources)
 		var before: Array = enemy.get_meta(GROUPS_META, [])
-		if not lights.is_empty() and enemy.has_method("is_hidden") and enemy.is_hidden():
-			enemy.reveal_for(POLL * 3.0)  # Lit nightmares can't hide
+		if not lights.is_empty():
+			lit += 1
+		if not lights.is_empty() and enemy.has_method("is_hidden") and enemy.is_hidden() and _reveals(sources):
+			enemy.reveal_for(POLL * 3.0)  # Lit nightmares can't hide (a Firefly Warden's own light only)
 		if lights == before:
 			continue
 		enemy.set_meta(GROUPS_META, lights)
@@ -448,6 +664,7 @@ func _poll() -> void:
 				_entered(enemy, light)
 		if lights.is_empty() and not before.is_empty() and _step_of(enemy) >= _max_lit_step:
 			_left_last_light(enemy)
+	_lit_count = lit
 
 # Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it.
 func _entered(enemy, light: int) -> void:
@@ -561,7 +778,7 @@ func _hit_size(source, is_hit: bool, is_bolt: bool) -> float:
 
 func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_bolt: bool) -> void:
 	var at: Vector2 = enemy.global_position
-	var sources := sources_at(at)
+	var sources := _lit_sources(enemy)
 	if sources.is_empty():
 		return  # Class cards follow the light: the nightmare that was hit must be Lit
 	var lights := lights_of(sources)
@@ -569,16 +786,25 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 	if dispel:
 		var size := _hit_size(source, is_hit, is_bolt)
 		var jars := jars_at(sources)
+		var gold := jars >= 2
 		# Lantern Light; on gold path Where Lights Meet replaces it: one fork per Firefly Warden lighting it.
-		var count := mini(jars, MEET_MAX) if jars >= 2 and _rule(WHERE_LIGHTS_MEET) else 1
+		var count := mini(jars, MEET_MAX) if gold and _rule(WHERE_LIGHTS_MEET) else 1
+		if gold and evo(EVO_BONFIRE):
+			count = maxi(count, mini(GOLD_JUMPS, MEET_MAX))  # Bonfire: 2 jumps on gold path (TD fix 15: never past MEET_MAX)
 		var targets := nearest_lit(at, [enemy], count)
 		if class_on():  # The Calling's own payoff: the first pick only
 			for target in targets:
-				_fork(id, source, at, target, size * CALLING_SHARE, cap)
+				_fork(id, source, at, target, size * CALLING_SHARE, cap, {"origin": enemy})
 			if targets.is_empty():
 				_wait(lights, source, size * CALLING_SHARE, cap)
-		if _rule(SIGNAL_FIRES):
-			_signal(id, source, at, enemy, lights, size * SIGNAL_SHARE, cap)
+			else:
+				_credit_light(sources, at)
+				if gold and targets.size() >= 2 and evo(EVO_BONFIRE):
+					credit(EVO_BONFIRE, at)
+		if _rule(SIGNAL_FIRES) or evo(EVO_TORCH):
+			_signal(id, source, at, _step_of(enemy), lights, size * (RELAY_SHARE if evo(EVO_TORCH) else SIGNAL_SHARE), cap, {}, enemy)
+		if gold and evo(EVO_EMBERS):
+			_drop_ember(enemy, source, size * EMBER_SHARE, cap)
 		if _rule(LAST_SPARK) and enemy.statuses.has(EnemyStatuses.STATIC):
 			var charge: float = enemy.statuses.stored_bolt_damage()
 			var spark_to := nearest_lit(at, [enemy])
@@ -599,6 +825,13 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 				if front != null:
 					_fork(id, source, from, front, event.base * LANTERNWAY_SHARE, cap)
 					from = front.global_position
+	if is_hit and _evolved():
+		if evo(EVO_BORROWED) and is_other(source):
+			_borrowed_light(id, event, source, enemy, at, cap)
+		if evo(EVO_SHOW):
+			_show_the_way(source, enemy)
+		if evo(EVO_SIGHT):
+			_sightline(event, source, enemy, at, sources)
 	if is_hit:
 		if _heavy_now and is_heavy(source) and _rule(SPOTLIGHT):  # (Spotlight: retired 2026-10-14; an old save keeps it)
 			for light in lights:
@@ -632,12 +865,15 @@ func _new_heavy_attack(source) -> bool:
 	return true
 
 # Signal Fires: a dispel in one light also forks to the front nightmare in the next light ahead, once per light a second.
-func _signal(id: int, source, at: Vector2, enemy, lights: Array, amount: float, cap: float) -> void:
+# Torchbearers (the Spread follow-up, on Signal Fires' code): the throw comes from the next light (a thread to it, then
+# the bolt), credited. Bale-fires: `parent` is the throw that just dispelled, so the next one keeps its event and hops.
+func _signal(id: int, source, at: Vector2, step: int, lights: Array, amount: float, cap: float, parent: Dictionary = {},
+		origin = null) -> void:
 	var now := _now()
 	for light in lights:
 		if now < float(_signal_next.get(light, -INF)):
 			return
-	var next := next_light(_step_of(enemy), lights)
+	var next := next_light(step, lights)
 	if int(next[0]) < 0:
 		return
 	var front = front_in(int(next[0]))
@@ -645,7 +881,269 @@ func _signal(id: int, source, at: Vector2, enemy, lights: Array, amount: float, 
 		return
 	for light in lights:
 		_signal_next[light] = now + SIGNAL_EVERY
-	_fork(id, source, at, front, amount, cap)
+	var from := at
+	var opts := {}
+	if evo(EVO_TORCH) or not parent.is_empty():
+		var relay := int(parent.get("relay", -1)) + 1
+		opts = _hop(parent, {"relay": relay, "color": Palette.HEARTLIGHT}) if not parent.is_empty() \
+			else {"relay": 0, "color": Palette.HEARTLIGHT}
+		if origin != null:
+			opts["origin"] = origin
+		elif parent.has("carry"):
+			opts["carry"] = parent.carry
+		var spot := _light_spot(int(next[0]))
+		if spot != Vector2.ZERO:
+			_line_fx(at, spot, 2.0, Palette.GLOW)  # The spark flies light to light…
+			from = spot  # …and the next light throws it
+		credit(EVO_BALE if relay > 0 else EVO_TORCH, front.global_position)
+	_fork(id, source, from, front, amount, cap, opts)
+
+# --- Calling evolutions: the helpers --------------------------------------------------------------------------------
+
+# The options of a recursive hop from `request`: same chain, one more hop (TD correction 3: never a new event id).
+func _hop(request: Dictionary, extra: Dictionary) -> Dictionary:
+	var opts := {"hops": int(request.get("hops", 0)) + 1}
+	if request.has("pyre"):
+		opts["pyre"] = request.pyre
+	opts.merge(extra, true)
+	return opts
+
+# Whether `request` may hop again (a chain is never longer than EVENT_MAX).
+func _can_hop(request: Dictionary) -> bool:
+	return int(request.get("hops", 0)) + 1 < EVENT_MAX
+
+# Lantern Wake: the statuses a jump from `enemy` carries (never Rooted; up to WAKE_STATUSES).
+func _carry_of(enemy) -> Array:
+	var out: Array = []
+	if not is_instance_valid(enemy) or enemy.get("statuses") == null:
+		return out
+	for status in enemy.statuses.active_ids():
+		if status != EnemyStatuses.HELD:
+			out.append(status)
+			if out.size() >= WAKE_STATUSES:
+				break
+	return out
+
+# Lantern Wake: the carried stacks go onto the same statuses already on the nightmare (the quiet add: never starts one,
+# runs no Reaction check, Charged stops one short of a bolt; TD: the Reaction loop through Chain of Lanterns is closed).
+func _wake(target, carry: Array, from: Vector2) -> void:
+	var first := &""
+	for status in carry:
+		if not _living(target):
+			return
+		if target.statuses.add_quiet(status, WAKE_STACKS) > 0 and first == &"":
+			first = status
+	if first != &"":
+		target.flash_status(first)
+		_line_fx(from, target.global_position, 2.0, Palette.BLOSSOM)  # Coloured motes ride the jump
+		credit(EVO_WAKE, target.global_position)
+
+# Borrowed Light: another Warden's hit on a Lit nightmare (Sprouts count) jumps a third to the nearest other Lit
+# nightmare, once a second per Warden. Capped by the light's brightness, except a Sprout's (player review: felt from
+# drift 5, and a Sprout's third never comes near the cap anyway).
+func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> void:
+	if _now() < float(source.get_meta(LAMP_META, -INF)):
+		return
+	var targets := nearest_lit(at, [enemy])
+	if targets.is_empty():
+		return
+	source.set_meta(LAMP_META, _now() + LAMP_EVERY)
+	var limit := INF if source.tower_data.get_id() == "sprout" else cap
+	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0})
+	credit(EVO_BORROWED, targets[0].global_position)
+
+# Show the Way: a Warden within a Firefly Warden's glow adds 1 more of its status to a Lit nightmare it hit, once a
+# second. Added after the hit's own status (next _process), with the quiet add: never starts one; never Drowsy.
+func _show_the_way(source, enemy) -> void:
+	var status := CLASS_KIT.status_of(source)
+	if status == &"" or status == EnemyStatuses.DROWSY or _now() < float(source.get_meta(SHOW_META, -INF)):
+		return
+	if sources_at(source.global_position).is_empty():
+		return  # The Warden must stand within a Firefly Warden's glow
+	source.set_meta(SHOW_META, _now() + SHOW_EVERY)
+	_show.append([weakref(enemy), status, weakref(source)])
+
+func _show_flush() -> void:
+	var rows := _show
+	_show = []
+	for row in rows:
+		var enemy = row[0].get_ref()
+		if not _living(enemy) or enemy.statuses.add_quiet(row[1], SHOW_STACKS) <= 0:
+			continue
+		enemy.flash_status(row[1])  # The dot that grew flashes
+		var tower = row[2].get_ref()
+		if is_instance_valid(tower):
+			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.GLOW)
+		credit(EVO_SHOW, enemy.global_position)
+
+# Sightline: 3 different Wardens hit one Lit nightmare within 2 s: a quarter of each hit jumps to the nearest other Lit
+# nightmare. Each Warden's jump is its own event, so all of them land on that one nightmare (three beams meet; and
+# Constellation counts them). Then not on this nightmare for SIGHT_LOCK.
+func _sightline(event, source, enemy, at: Vector2, sources: Array) -> void:
+	var now := _now()
+	if now < float(enemy.get_meta(SIGHT_NEXT_META, -INF)):
+		return
+	var roster: Dictionary = enemy.get_meta(SIGHT_META, {})
+	roster[source.get_instance_id()] = [now, weakref(source), event.base]
+	for key in roster.keys():
+		if now - float(roster[key][0]) > SIGHT_WINDOW:
+			roster.erase(key)
+	enemy.set_meta(SIGHT_META, roster)
+	if roster.size() < SIGHT_WARDENS:
+		return
+	var targets := nearest_lit(at, [enemy])
+	if targets.is_empty():
+		return  # Kept: it fires once there is somewhere to jump
+	enemy.set_meta(SIGHT_NEXT_META, now + SIGHT_LOCK)
+	enemy.remove_meta(SIGHT_META)
+	var rows: Array = roster.values()
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+	for row in rows.slice(0, SIGHT_MAX):
+		var tower = row[1].get_ref()
+		if not is_instance_valid(tower):
+			continue
+		Reactions._segment(&"light_thread", tower.global_position, at, self, 0.4)  # Three beams meet
+		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy})
+	credit(EVO_SIGHT, at)
+
+# Constellation: jumps from 3 different Wardens within 3 s make a nightmare fully Exposed (bosses half), once in 8 s.
+func _constellation(target, source, at: Vector2) -> void:
+	var now := _now()
+	if now < float(target.get_meta(CONST_NEXT_META, -INF)):
+		return
+	var roster: Dictionary = target.get_meta(CONST_META, {})
+	roster[source.get_instance_id()] = [now, weakref(source)]
+	for key in roster.keys():
+		if now - float(roster[key][0]) > CONST_WINDOW:
+			roster.erase(key)
+	target.set_meta(CONST_META, roster)
+	if roster.size() < CONST_WARDENS:
+		return
+	target.set_meta(CONST_NEXT_META, now + CONST_EVERY)
+	target.remove_meta(CONST_META)
+	var statuses = target.statuses
+	var want := ceili(float(statuses.get_max_stacks(EnemyStatuses.MARKED)) * (CONST_BOSS_SHARE if statuses.is_boss else 1.0))
+	var add: int = want - statuses.stacks(EnemyStatuses.MARKED)
+	if add > 0:
+		target.apply_status(EnemyStatuses.MARKED, add, 0.0, source.get_damage(), 0, source.tower_data.line, source)
+	for row in roster.values():
+		var tower = row[1].get_ref()
+		if is_instance_valid(tower):
+			_line_fx(tower.global_position, at, 1.5, Palette.GLOW)  # The stars link over it
+	Reactions._effect(&"exposed_complete", at, self)
+	credit(EVO_CONSTELLATION, at)
+
+# Embers: a dispel on gold path leaves an ember on its step for EMBER_TIME. Witchfire: an ember within HEARTH_JOIN steps
+# of a pile joins it (up to HEARTH_MAX). At most EMBER_MAX piles.
+func _drop_ember(enemy, source, amount: float, cap: float) -> void:
+	var step := _step_of(enemy)
+	if step < 0 or amount <= 0.0:
+		return
+	var until := _now() + EMBER_TIME
+	if evo(EVO_WITCHFIRE):
+		for s in _embers:
+			if absi(int(s) - step) <= HEARTH_JOIN:
+				var pile: Dictionary = _embers[s]
+				if int(pile.count) < HEARTH_MAX:
+					pile.count = int(pile.count) + 1
+					pile.amount = float(pile.amount) + amount
+					pile.cap = float(pile.cap) + cap
+					pile.source = weakref(source)
+				pile.until = until
+				queue_redraw()
+				return
+	elif _embers.has(step):
+		var pile: Dictionary = _embers[step]
+		if amount > float(pile.amount):
+			pile.amount = amount
+			pile.cap = cap
+			pile.source = weakref(source)
+		pile.until = until
+		return
+	if _embers.size() >= EMBER_MAX:
+		return
+	_embers[step] = {"amount": amount, "cap": cap, "source": weakref(source), "until": until, "count": 1}
+	queue_redraw()
+
+# Embers (polled): the next nightmare to reach an ember takes it (half the dispelling hit); with Witchfire the pile
+# bursts on the nightmares within 1 cell. Bosses take half (_strike), so this is Lantern Light's answer to a boss.
+func _ember_poll(now: float) -> void:
+	var reach := EMBER_REACH * _cell()
+	for step in _embers.keys():
+		var pile: Dictionary = _embers[step]
+		if now > float(pile.until) or not _step_px.has(int(step)):
+			_embers.erase(step)
+			queue_redraw()
+			continue
+		var at: Vector2 = _step_px[int(step)]
+		var near: Array = Tower.nightmares_near(get_tree(), at, reach).filter(func(e) -> bool:
+			return _living(e) and e.global_position.distance_to(at) <= reach)
+		if near.is_empty():
+			continue
+		_embers.erase(step)
+		queue_redraw()
+		var source = pile.source.get_ref()
+		var id := _next_event()
+		var amount: float = minf(float(pile.amount), float(pile.cap))
+		var targets: Array = near.slice(0, 1)
+		if evo(EVO_WITCHFIRE):
+			var burst := HEARTH_CELLS * _cell()
+			targets = Tower.nightmares_near(get_tree(), at, burst).filter(func(e) -> bool:
+				return _living(e) and e.global_position.distance_to(at) <= burst)
+			targets.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+			targets = targets.slice(0, HEARTH_TARGETS)
+			Reactions._effect(&"spark_burst", at, self, 0.7 + 0.2 * float(pile.count))
+			credit(EVO_WITCHFIRE, at)
+		else:
+			Reactions._effect(&"hit_light", at, self)
+			credit(EVO_EMBERS, at)
+		for target in targets:
+			_strike({"event": id, "source": source, "from": at, "target": target, "amount": amount, "cap": float(pile.cap),
+				"final": true, "color": Palette.EMBER})
+
+# After a jump struck (the Firefly start with any evolution): Moth to Flame, Constellation, Pyre, Bale-fires, Swarm Night.
+# `before`: the sources lighting the target before the hit; `had`: its statuses before it (Lantern Wake on the next hop).
+func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: Array, step: int, had: Array) -> void:
+	var dead := not _living(target)
+	var gold := jars_at(before) >= 2
+	if not before.is_empty():
+		_credit_light(before, at)
+	var warden: bool = source is Tower and is_instance_valid(source)
+	if not dead and warden:
+		if gold and evo(EVO_MOTH):
+			var stacks := maxi(int(MOTH_EXPOSED * 0.5), 1) if target.statuses.is_boss else MOTH_EXPOSED
+			target.apply_status(EnemyStatuses.MARKED, stacks, 0.0, source.get_damage(), 0, source.tower_data.line, source)
+			if _living(target):
+				target.flash_status(EnemyStatuses.MARKED)
+			credit(EVO_MOTH, at)
+		if _living(target) and evo(EVO_CONSTELLATION):
+			_constellation(target, source, at)
+	if not _can_hop(request):
+		return
+	var event: int = request.event
+	if dead and gold and evo(EVO_PYRE) and int(request.get("pyre", 0)) < PYRE_HOPS:
+		var next := _fresh_lit(at, event, [target])
+		if not next.is_empty():
+			var opts := _hop(request, {"pyre": int(request.get("pyre", 0)) + 1, "color": Palette.EMBER})
+			if not had.is_empty():
+				opts["carry"] = had
+			_fork(event, source, at, next[0], float(request.amount), float(request.cap), opts)
+			Reactions._effect(&"spark_burst", at, self, 0.6)  # Flame arcs on
+			credit(EVO_PYRE, at)
+	if dead and request.has("relay") and evo(EVO_BALE) and int(request.relay) < BALE_HOPS:
+		var parent := request.duplicate()
+		parent.erase("target")
+		if not had.is_empty():
+			parent["carry"] = had
+		_signal(event, source, at, step, lights_of(before), float(request.amount), float(request.cap), parent)
+	if evo(EVO_SWARM) and _lit_count >= SWARM_AT and not request.get("swarm", false) and not request.get("final", false):
+		var next := _fresh_lit(at, event, [target])
+		if not next.is_empty():
+			var opts := _hop(request, {"swarm": true, "color": Palette.HEARTLIGHT})
+			if not had.is_empty():
+				opts["carry"] = had
+			_fork(event, source, at, next[0], float(request.amount) * SWARM_SHARE, float(request.cap), opts)
+			credit(EVO_SWARM, next[0].global_position)
 
 # Waiting Spark: a fork with nowhere to go waits in its light.
 func _wait(lights: Array, source, amount: float, cap: float) -> void:
@@ -901,10 +1399,17 @@ func _crossfire(id: int, event, source, enemy, at: Vector2, now: float) -> void:
 func _fork(id: int, source, from: Vector2, target, amount: float, cap: float, opts: Dictionary = {}) -> void:
 	if amount <= 0.0 or not _living(target):
 		return
-	_queue.append({"event": id, "source": source, "from": from, "target": target, "amount": minf(amount, cap), "cap": cap,
-		"heavy": opts.get("heavy", false), "final": opts.get("final", false)})
+	var request := {"event": id, "source": source, "from": from, "target": target, "amount": minf(amount, cap), "cap": cap,
+		"heavy": opts.get("heavy", false), "final": opts.get("final", false)}
+	for key in opts:  # Evolutions: hops, pyre, relay, swarm, carry, color, width
+		if key != "origin":
+			request[key] = opts[key]
+	if opts.has("origin") and not request.has("carry") and evo(EVO_WAKE):
+		request["carry"] = _carry_of(opts.origin)  # Read now: the nightmare it left may be gone by the strike
+	_queue.append(request)
 
-# One fork per nightmare per event (the largest wins), at most EVENT_MAX per event.
+# One fork per nightmare per event (the largest wins), at most EVENT_MAX per event. A recursive hop (a frame later, same
+# event) never strikes a nightmare its event already struck, and the event's total stays within EVENT_MAX.
 func _flush() -> void:
 	if _queue.is_empty():
 		return
@@ -919,8 +1424,19 @@ func _flush() -> void:
 	for id in by_event:
 		var requests: Array = by_event[id].values()
 		requests.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.amount > b.amount)
-		for request in requests.slice(0, EVENT_MAX):
+		var seen: Dictionary = _event_seen.get_or_add(id, {})
+		for request in requests:
+			if seen.size() >= EVENT_MAX:
+				break
+			var key: int = request.target.get_instance_id() if is_instance_valid(request.target) else 0
+			if seen.has(key):
+				continue
+			seen[key] = true
 			_strike(request)
+	if _event_seen.size() > EVENT_MEMORY:
+		for id in _event_seen.keys():
+			if int(id) < _event - (EVENT_MEMORY >> 1):
+				_event_seen.erase(id)
 
 func _strike(request: Dictionary) -> void:
 	var target = request.target
@@ -939,10 +1455,19 @@ func _strike(request: Dictionary) -> void:
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position
-	var bolt := ChainBolt.new(PackedVector2Array([request.from, at]), Palette.GOLD, 4.0)
+	var bolt := ChainBolt.new(PackedVector2Array([request.from, at]), request.get("color", Palette.GOLD), float(request.get("width", 4.0)))
 	Reactions._world(self).add_child(bolt)
 	forks_thrown += 1
+	var evolved := _evolved()
+	var before: Array = _lit_sources(target) if evolved else []  # Read before the hit: a dispelled nightmare leaves the light
+	var step := _step_of(target) if evolved else -1
+	var had: Array = _carry_of(target) if evolved and evo(EVO_WAKE) else []
 	target.take_damage(amount, source.tower_data.line if source is Tower else LINE, false, false, source, FORK_TAG)
+	var carry: Array = request.get("carry", [])
+	if not carry.is_empty() and _living(target):
+		_wake(target, carry, request.from)
+	if evolved:
+		_evolved_strike(request, source, target, at, before, step, had)
 	# A nightmare dispelled by a fork gives no fork. Knock-On is the one exception: a heavy Warden's fork, one more hop.
 	if request.get("heavy", false) and not request.get("final", false) and _rule(KNOCK_ON) and not _living(target):
 		var next := _near_enemies(at, [target]).slice(0, 1)
@@ -1037,6 +1562,20 @@ func _draw() -> void:
 		var spot := _light_spot(int(light))
 		for i in _sparks[light].size():
 			draw_circle(to_local(spot) + Vector2(-10 + 10 * i, -14), 3.0, Color(Palette.HEARTLIGHT, 0.9))
+	# Embers / Witchfire: glowing coals on the path, one per ember in the pile
+	for step in _embers:
+		if not _step_px.has(int(step)):
+			continue
+		var coal := to_local(_step_px[int(step)])
+		var count := int(_embers[step].count)
+		for i in count:
+			var offset := Vector2(-6.0 * (count - 1) + 12.0 * i, 0.0)
+			draw_circle(coal + offset, 6.0, Color(Palette.EMBER, 0.85))
+			draw_circle(coal + offset, 3.0, Color(Palette.GOLD, 0.95))
+	# Glowworms: a lantern spark at the foot of each glowing Sprout
+	for source in _sources:
+		if source.get("worm", false) and is_instance_valid(source.tower):
+			draw_circle(to_local(source.tower.global_position) + Vector2(14, 18), 4.0, Color(Palette.GLOW, 0.9))
 
 func _exit_tree() -> void:
 	if is_instance_valid(_glow_group):
@@ -1070,7 +1609,7 @@ func _lay_glow() -> void:
 	var ground: Node2D = _glow_group
 	var runs: Array = []  # [points, bright, joins_before, joins_after] per lit stretch
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var gold := _rule(WHERE_LIGHTS_MEET)
+	var gold := _rule(WHERE_LIGHTS_MEET) or evo(EVO_BONFIRE)
 	var states := PackedInt32Array()  # Per route point: 0 dark, 1 glow, 2 gold path
 	for point in route:
 		var state := 0

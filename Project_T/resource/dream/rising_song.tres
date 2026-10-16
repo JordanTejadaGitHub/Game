@@ -14,3 +14,4 @@ tags = Array[String](["song"])
 max_stacks = 1
 rule_id = &"class_rising_song"
 calling = "bellflower"
+retired = true

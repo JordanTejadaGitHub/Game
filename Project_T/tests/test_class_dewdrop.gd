@@ -83,9 +83,9 @@ func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("dewdrop") == "Puddles", "Dewdrop's Calling is Puddles")
 	dreams.calling = "sporeling"
-	_check_pool("dewdrop", LENT, 5)  # 5 class-only and 10 lent (owner 2026-10-14)
+	_check_pool("dewdrop", LENT, 0)  # No class cards: the Calling evolves instead (owner 2026-10-16; calling_paths.gd)
 	dreams.calling = "dewdrop"
-	_check_pool("dewdrop", LENT, 5)
+	_check_pool("dewdrop", LENT, 0)
 	await _frames(3)
 	var route: Array = klass._route_px
 	var at: Vector2 = route[10]

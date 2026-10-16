@@ -77,7 +77,7 @@ func _run() -> void:
 	# 5 class-only and 10 lent (owner 2026-10-14); no lent text or tip names the Calling's setup.
 	for id in CLASS:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
-		_check(card.calling == "firefly_jar" and not card.retired and not card.tags.has(DreamState.LENT_TAG), "%s is class-only" % id)
+		_check(card.calling == "firefly_jar" and card.retired and not card.tags.has(DreamState.LENT_TAG), "%s is a retired class card (the Calling evolves instead, 2026-10-16)" % id)
 	for id in LENT:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
 		_check(card.tags.has(DreamState.LENT_TAG) and card.calling == "" and card.requires.has("firefly_jar") and not card.retired, "%s is a lent Firefly card" % id)

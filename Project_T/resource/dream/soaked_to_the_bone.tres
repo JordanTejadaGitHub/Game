@@ -14,3 +14,4 @@ tags = Array[String](["water"])
 max_stacks = 1
 rule_id = &"soaked_to_the_bone"
 calling = "dewdrop"
+retired = true

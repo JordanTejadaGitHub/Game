@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"last_spark"
 calling = "firefly_jar"
 tip = "A light: one Firefly Warden's glow, or glows that touch. The bolt is the charge the nightmare carried. Works for: {static} makers on a Storm board. Safe."
+retired = true

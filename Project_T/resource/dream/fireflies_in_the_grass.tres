@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"lit_sprouts"
 calling = "firefly_jar"
 tip = "Choose on the Sprout's panel, at a {rest}. The Sprout can't stand in a Firefly Warden's glow, and its light never turns path gold. Works for: Sprouts, on a Lanternway board. Safe."
+retired = true

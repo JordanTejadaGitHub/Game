@@ -110,6 +110,67 @@ var _near_dew := {}  # Warden instance id -> the strongest Dewdrop near it, or n
 var _riptides: Array = []  # [{enemy: WeakRef, tower: WeakRef, amount, ticks, wait}]
 var ripples := 0  # This run (tests and the owner's eye)
 
+# --- Calling evolutions (scripts/combat/calling_paths.gd; council calling_evolution_*.md, owner 2026-10-16) -----------
+# Read with evo(id) (implies the Calling). Every number is a paper starting value (Balancing). Each one shows itself (a
+# flash along the water, a thread, a splash, the drawn current / pond / footprints) and credits its id (credit()).
+# Pulls never move bosses or flyers; Holds are halved on bosses; flyers are never in water (index_of is -1 for them).
+const EVO_STREAM := &"dw_stream"  # Spread
+const FLOW_STEPS := 4  # Stream: water flows this many steps past each water's downstream end (joining a water it reaches)
+const EVO_MILLRACE := &"dw_millrace"
+const MILL_STATUSES := 3  # Millrace: a ripple carries up to this many of the hit nightmare's other statuses…
+const MILL_STACKS := 1  # …this many stacks each, to every nightmare it soaks (never Soaked, Drowsy or Held)
+const EVO_FLOOD := &"dw_flood"
+const FLOOD_STEPS := 24  # Flood: a ripple runs its whole water, at most this many steps each way
+const EVO_LAPPING := &"dw_lapping_water"
+const LAP_STEPS := 2  # Lapping Water: a bank Warden's hit on a Soaked nightmare in its water ripples this many steps…
+const LAP_EVERY := 1.0  # …once a second per Warden
+const LAP_META := &"pd_lap_next"  # On a Warden
+const EVO_SPRING := &"dw_spring_flood"
+const SPRING_EVERY := 10.0  # Spring Flood: drift time between floods (paused at rests)…
+const SPRING_MAX := 8  # …up to this many nightmares in the longest water with one in it…
+const SPRING_SLOW := 0.25  # …fully Soaked and this much slower (bosses half)…
+const SPRING_SECONDS := 2.0  # …for this long
+const EVO_POND := &"dw_black_pond"  # Focus
+const POND_DEWDROPS := 2  # Black Pond: water touching this many Dewdrops is a pond…
+const POND_SLOW := 0.25  # …nightmares in it walk this much slower (bosses half)…
+const POND_STEPS := 8  # …and its ripple runs this many steps
+const POND_TIME := 0.25  # The pond's slow, re-applied each poll (it ends soon after it walks out)
+const EVO_WHIRLPOOL := &"dw_whirlpool"
+const PULL_STEPS := 2  # Whirlpool: a fully Soaked nightmare in a pond is pulled back this many steps, once per pond (never bosses or flyers)
+const EVO_DEEP := &"dw_drowning_deep"
+const DEEP_CELLS := 1.0  # Drowning Deep: a Whirlpool pull drags the nightmares within this many cells…
+const DEEP_MAX := 4  # …up to this many (never bosses or flyers); Wardens touching the pond each hit the pulled one once, free
+const EVO_STAGNANT := &"dw_stagnant_water"
+const STILL_STACKS := 1  # Stagnant Water: a status landing on a nightmare in a pond adds this many more…
+const STILL_EVERY := 1.0  # …once a second per Warden (never Drowsy or Held)
+const STILL_META := &"pd_still_next"  # On a Warden
+const EVO_HANDS := &"dw_drowned_hands"
+const HANDS_STATUSES := 4  # Drowned Hands: a nightmare carrying this many statuses in a pond…
+const HANDS_HOLD := 1.0  # …is Held this long by the pond's strongest Dewdrop (bosses half), once per pond
+const EVO_RIVERSIDE := &"dw_riverside"  # Support
+const SIDE_STACKS := 1  # Riverside: a Warden touching water adds this many more with its first status hit on each nightmare in that water
+const EVO_RAIN := &"dw_rain_on_the_bank"
+const RAIN_WARDENS := 3  # Rain on the Bank: a ripple gives every nightmare it soaks the status of up to this many bank Wardens…
+const RAIN_STACKS := 1  # …this many stacks each (never Drowsy or Held)
+const EVO_DOWNPOUR := &"dw_downpour"
+const BURST_SOAKED := 4  # Downpour: a ripple that soaks this many nightmares…
+const BURST_EVERY := 4.0  # …makes every bank Warden attack one of them at once, each Warden once in this long
+const BURST_META := &"pd_burst_next"  # On a Warden
+const EVO_WET := &"dw_wet_footprints"
+const WET_SECONDS := 3.0  # Wet Footprints: a Soaked nightmare leaving water leaves wet steps that count as water this long…
+const WET_STEPS := 6  # …at most this many steps per nightmare (only real water leaves footprints: wet steps never do)
+const FOOT_META := &"pd_foot"  # On a nightmare: [water, route points left, last index wetted]
+const REAL_META := &"pd_real"  # On a nightmare: the real water it stood in last poll (-1 none)
+const EVO_REFLECTION := &"dw_reflection"
+const MIRROR_SHARE := 0.5  # Reflection: a bank Warden's hit on a Soaked nightmare in water lands this share (before defences) on the last one in it…
+const MIRROR_EVERY := 1.0  # …once a second per Warden
+const MIRROR_META := &"pd_mirror_next"  # On a Warden
+const MIRROR_TAG := &"both_banks"  # A class tag (class_kit.CLASS_TAGS): the mirrored hit never sets a card off again
+var _flowed := {}  # Route index -> true: water a Stream carried on (drawn as a current)
+var _wet := {}  # Route index -> [until, water index]: Wet Footprints
+var _wet_touch := {}  # Route index -> Array of attacking Wardens touching that wet step (they are on its water's bank)
+var _spring_in := SPRING_EVERY
+
 func _family() -> String:
 	return FAMILY
 
@@ -141,6 +202,9 @@ func on_board() -> void:
 	_waters_of.clear()
 	_across.clear()
 	_near_dew.clear()
+	_flowed.clear()
+	_wet.clear()
+	_wet_touch.clear()
 	if not place_on():  # Water is the Calling's (the first pick, or an old save's Wake Ripple)
 		queue_redraw()
 		return
@@ -154,6 +218,8 @@ func on_board() -> void:
 	if rule(LEVEE):
 		for i in _levee_points(dewdrops):
 			wet[i] = true
+	if evo(EVO_STREAM):
+		_flow(wet)
 	var indices: Array = wet.keys()
 	indices.sort()
 	var run: Array = []
@@ -198,6 +264,20 @@ func _add_water(run: Array) -> void:
 		_water_at[i] = waters.size()
 	waters.append({"id": int(run[0]), "first": int(run[0]), "last": int(run[-1]), "points": points, "dewdrops": [], "bank": [],
 		"steps": run.size() / 2.0})
+
+# Stream: each water flows on FLOW_STEPS steps toward the Heartwood, stopping where it meets another water (they join).
+func _flow(wet: Dictionary) -> void:
+	var ends: Array = []
+	for i in wet:
+		if not wet.has(int(i) + 1):
+			ends.append(int(i))
+	for e in ends:
+		for k in range(1, FLOW_STEPS * 2 + 1):
+			var j: int = int(e) + k
+			if j >= _route_px.size() or wet.has(j):
+				break
+			wet[j] = true
+			_flowed[j] = true
 
 # Levee: a row of up to 2 walls, each touching the next, with a Dewdrop touching each end, carries their water along
 # the path beside it. Sprouts are not walls.
@@ -246,13 +326,54 @@ func _water_key(water: Dictionary) -> String:
 
 func water_of(enemy) -> int:
 	var i := index_of(enemy)
-	return int(_water_at.get(i, -1)) if i >= 0 else -1
+	return _water_at_i(i) if i >= 0 else -1
+
+# The water at route index `i` (-1 none): real water, or a wet step (Wet Footprints) that has not dried.
+func _water_at_i(i: int) -> int:
+	var w := int(_water_at.get(i, -1))
+	if w >= 0 or _wet.is_empty() or not _wet.has(i):
+		return w
+	var row: Array = _wet[i]
+	return int(row[1]) if float(row[0]) > now() and int(row[1]) < waters.size() else -1
 
 func is_lone(tower) -> bool:
 	return _lone.has(tower.get_instance_id())
 
 func touches_water(tower, w: int) -> bool:
-	return w >= 0 and _waters_of.get(tower.get_instance_id(), []).has(w)
+	if w < 0:
+		return false
+	if _waters_of.get(tower.get_instance_id(), []).has(w):
+		return true
+	for i in _wet:  # Wet Footprints: a Warden touching a wet step is on that water's bank while it lasts
+		var row: Array = _wet[i]
+		if int(row[1]) == w and float(row[0]) > now() and (_wet_touch.get(i, []) as Array).has(tower):
+			return true
+	return false
+
+# A water's bank: the attacking Wardens of other families (Sprouts too) touching it, wet steps included.
+func _bank_of(w: int) -> Array:
+	if w < 0 or w >= waters.size():
+		return []
+	var out: Array = (waters[w].bank as Array).filter(_tower_ok)
+	for i in _wet:
+		var row: Array = _wet[i]
+		if int(row[1]) != w or float(row[0]) <= now():
+			continue
+		for tower in _wet_touch.get(i, []):
+			if _tower_ok(tower) and not is_own(tower) and not out.has(tower):
+				out.append(tower)
+	return out
+
+# The strongest (damage a second) valid Warden in `list`, or null.
+func _strongest(list: Array):
+	var best = null
+	for tower in list:
+		if _tower_ok(tower) and (best == null or second_of(tower) > second_of(best)):
+			best = tower
+	return best
+
+func _is_pond(w: int) -> bool:
+	return w >= 0 and w < waters.size() and (waters[w].dewdrops as Array).filter(_tower_ok).size() >= POND_DEWDROPS
 
 # The living nightmares in water `w` within `steps` of route index `from` (not `skip`), nearest first.
 func _in_water(w: int, from: int, steps: int, skip = null) -> Array:
@@ -261,7 +382,7 @@ func _in_water(w: int, from: int, steps: int, skip = null) -> Array:
 		if enemy == skip:
 			continue
 		var i := index_of(enemy)
-		if i >= 0 and int(_water_at.get(i, -1)) == w and absi(i - from) <= steps * 2:
+		if i >= 0 and _water_at_i(i) == w and absi(i - from) <= steps * 2:
 			found.append(enemy)
 	found.sort_custom(func(a, b) -> bool: return absi(index_of(a) - from) < absi(index_of(b) - from))
 	return found
@@ -305,19 +426,31 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		enemy.set_meta(TOPPED_META, now() + TOPPED_UP_EVERY)
 		for id in enemy.statuses.active_ids():
 			enemy.statuses.top_up(id)
-	if not place_on() or not is_own(source):
+	if not place_on():
+		return
+	if not is_own(source):
+		if class_on() and not dream_state.calling_path.is_empty() and living(enemy):
+			var bank_w := water_of(enemy)
+			if bank_w >= 0:
+				_bank_hit(event, source, enemy, bank_w)  # Lapping Water, Reflection
 		return
 	var w := water_of(enemy)
 	if w < 0 or not touches_water(source, w):
 		return
 	var from := index_of(enemy)
-	# The Calling's ripple (the first pick only): nightmares within 4 steps in that water are Soaked
+	# The Calling's ripple (the first pick only): nightmares within 4 steps in that water are Soaked (Black Pond: 8;
+	# Flood: the whole water)
 	if class_on():
 		ripples += 1
-	for other in (_in_water(w, from, RIPPLE_STEPS, enemy) if class_on() else []):
+	var soaked: Array = []
+	for other in (_in_water(w, from, _ripple_steps(w), enemy) if class_on() else []):
 		if now() >= float(other.get_meta(RIPPLE_META, -INF)):
 			other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
 			source._apply_one_status(other, EnemyStatuses.DAMP, 1, source.get_damage(), false)
+			soaked.append(other)
+	if class_on() and not dream_state.calling_path.is_empty():
+		_ripple_shown(enemy, w, from, soaked)
+		_ripple_extras(enemy, w, soaked)
 	# Swell: the splash spreads through that water, up to 4 steps each way, at half outside its own circle
 	if rule(SWELL):
 		var circle: float = source.get_splash_cells() * cell()
@@ -356,10 +489,23 @@ func _front_in(w: int):
 	var best := -1
 	for enemy in enemies():
 		var i := index_of(enemy)
-		if i > best and int(_water_at.get(i, -1)) == w:
+		if i > best and _water_at_i(i) == w:
 			best = i
 			front = enemy
 	return front
+
+# The last nightmare in water `w` (furthest from the Heartwood), not `skip`, or null (Reflection).
+func _back_in(w: int, skip):
+	var back = null
+	var best := 1 << 30
+	for enemy in enemies():
+		if enemy == skip:
+			continue
+		var i := index_of(enemy)
+		if i >= 0 and i < best and _water_at_i(i) == w:
+			best = i
+			back = enemy
+	return back
 
 # --- The poll: who walks in, who walks out ------------------------------------------------------------------------------
 
@@ -405,6 +551,13 @@ func on_poll() -> void:
 				_left(enemy, was_water)
 			if w >= 0:
 				_entered(enemy, waters[w])
+	_evolutions_poll()
+
+func on_rest() -> void:
+	if not _wet.is_empty():  # Nothing waits through a rest: footprints dry at once
+		_wet.clear()
+		_wet_touch.clear()
+		queue_redraw()
 
 # Each Dewdrop's range, per walking nightmare: leaving it records where; coming back in at least 3 route steps further
 # along is "walking back in" (a pull back into the same range never counts). The Water Remembers and Riptide.
@@ -503,6 +656,360 @@ func _tick_riptides() -> void:
 			rip.ticks = int(rip.ticks) - 1
 			strike(tower, enemy, float(rip.amount), &"riptide")
 
+# --- Calling evolutions -------------------------------------------------------------------------------------------------
+
+# How many steps each way a Dewdrop's ripple runs in water `w` (Black Pond, Flood).
+func _ripple_steps(w: int) -> int:
+	var steps := RIPPLE_STEPS
+	if evo(EVO_POND) and _is_pond(w):
+		steps = maxi(steps, POND_STEPS)
+	if evo(EVO_FLOOD) and w >= 0 and w < waters.size():
+		steps = maxi(steps, mini(ceili(float(waters[w].steps)), FLOOD_STEPS))
+	return steps
+
+# A flash along water `w` from route index `a` to `b` (Flood, Black Pond, Spring Flood): the ripple running.
+func _water_fx(w: int, a: int, b: int, width: float = 1.0) -> void:
+	var points := PackedVector2Array()
+	for i in range(maxi(a, 0), mini(b, _route_px.size() - 1) + 1):
+		if _water_at_i(i) == w:
+			points.append(_route_px[i])
+	var world := Reactions._world(self)
+	if world != null and points.size() >= 2:
+		world.add_child(ChainBolt.new(points, Palette.DEWLIGHT, width))
+
+# What a ripple shows and credits once it soaked `soaked` (a long ripple flashes along the water).
+func _ripple_shown(enemy, w: int, from: int, soaked: Array) -> void:
+	if soaked.is_empty():
+		return
+	var far := 0
+	var flowed := false
+	for other in soaked:
+		var i := index_of(other)
+		if i < 0:
+			continue
+		far = maxi(far, absi(i - from))
+		if _flowed.has(i):
+			flowed = true
+	if flowed and evo(EVO_STREAM):
+		credit(EVO_STREAM, enemy.global_position)  # It reached a nightmare on water the Stream carried (drawn as a current)
+	if far > RIPPLE_STEPS * 2:
+		_water_fx(w, from - far, from + far)
+		var by_pond: bool = evo(EVO_POND) and _is_pond(w) and far <= POND_STEPS * 2
+		credit(EVO_POND if by_pond else EVO_FLOOD, enemy.global_position)
+
+# Everything an evolution adds to a ripple (a Dewdrop's, or Lapping Water's from a bank Warden).
+func _ripple_extras(enemy, w: int, soaked: Array) -> void:
+	if soaked.is_empty() or not living(enemy):
+		return
+	if evo(EVO_MILLRACE):
+		_millrace(enemy, soaked)
+	if evo(EVO_RAIN):
+		_rain(w, soaked)
+	if evo(EVO_DOWNPOUR) and soaked.size() >= BURST_SOAKED:
+		_downpour(enemy, w, soaked)
+
+# Puts `stacks` of `id` on `other`: quietly onto a status it has, or started as `source`'s own (not native) application.
+# Charged never fills to a bolt. True when it landed.
+func _carry(other, id: StringName, stacks: int, source) -> bool:
+	if not living(other) or id == EnemyStatuses.HELD or stacks <= 0:
+		return false
+	if other.statuses.has(id):
+		return other.statuses.add_quiet(id, stacks) > 0
+	if not (source is Tower) or not is_instance_valid(source):
+		return false
+	if id == EnemyStatuses.STATIC and stacks >= other.statuses.get_max_stacks(id) - 1:
+		return false
+	source._apply_one_status(other, id, stacks, source.get_damage(), false)
+	return living(other) and other.statuses.has(id)
+
+# Millrace: the ripple carries 1 stack of up to 3 of the hit nightmare's other statuses to every nightmare it soaks.
+func _millrace(enemy, soaked: Array) -> void:
+	var carried: Array = []
+	for id in enemy.statuses.active_ids():
+		if carried.size() >= MILL_STATUSES:
+			break
+		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD or id == EnemyStatuses.DROWSY:
+			continue
+		carried.append([id, enemy.statuses.source(id)])
+	if carried.is_empty():
+		return
+	var given := 0
+	for other in soaked:
+		var landed := false
+		for row in carried:
+			if _carry(other, row[0], MILL_STACKS, row[1]):
+				landed = true
+		if landed:
+			given += 1
+			_line_fx(enemy.global_position, other.global_position, 1.0, Palette.DEWLIGHT)
+	if given > 0:
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
+		credit(EVO_MILLRACE, enemy.global_position)
+
+# Rain on the Bank: every nightmare the ripple soaks takes 1 of each of up to 3 bank Wardens' statuses (their own application).
+func _rain(w: int, soaked: Array) -> void:
+	var bank: Array = _bank_of(w).filter(func(t) -> bool: return status_of(t) != &"" and status_of(t) != EnemyStatuses.DROWSY)
+	if bank.is_empty():
+		return
+	bank.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
+	bank = bank.slice(0, RAIN_WARDENS)
+	var rained := false
+	for other in soaked:
+		var wet_one := false
+		for tower in bank:
+			if _carry(other, status_of(tower), RAIN_STACKS, tower):
+				wet_one = true
+		if wet_one:
+			rained = true
+			Reactions._effect(&"landing_dust", other.global_position, self, 0.35)
+	if rained:
+		for tower in bank:
+			_line_fx(tower.global_position, soaked[0].global_position, 1.0, Palette.DEWLIGHT)
+		credit(EVO_RAIN, soaked[0].global_position)
+
+# Downpour: a ripple soaking 4 or more makes every bank Warden attack one of them at once (each Warden once in 4 s).
+func _downpour(enemy, w: int, soaked: Array) -> void:
+	var fired := 0
+	for tower in _bank_of(w):
+		if not tower.tower_data.can_attack or now() < float(tower.get_meta(BURST_META, -INF)):
+			continue
+		var target = soaked[fired % soaked.size()]
+		if not living(target):
+			continue
+		tower.set_meta(BURST_META, now() + BURST_EVERY)
+		tower.volley_now(target)
+		_line_fx(tower.global_position, target.global_position, 2.0, Palette.DEWLIGHT)
+		fired += 1
+	if fired > 0:
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.6)
+		credit(EVO_DOWNPOUR, enemy.global_position)
+
+# A bank Warden's own hit on a Soaked nightmare in water it touches (Lapping Water, Reflection).
+func _bank_hit(event, source, enemy, w: int) -> void:
+	if not _soaked(enemy) or not touches_water(source, w):
+		return
+	if evo(EVO_LAPPING) and now() >= float(source.get_meta(LAP_META, -INF)) and w < waters.size():
+		var dewdrop = _strongest(waters[w].dewdrops)
+		if dewdrop != null:
+			var soaked: Array = []
+			for other in _in_water(w, index_of(enemy), LAP_STEPS, enemy):
+				if now() >= float(other.get_meta(RIPPLE_META, -INF)):
+					other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
+					dewdrop._apply_one_status(other, EnemyStatuses.DAMP, 1, dewdrop.get_damage(), false)
+					soaked.append(other)
+			if not soaked.is_empty():
+				source.set_meta(LAP_META, now() + LAP_EVERY)
+				Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
+				for other in soaked:
+					_line_fx(enemy.global_position, other.global_position, 1.0, Palette.DEWLIGHT)
+				credit(EVO_LAPPING, enemy.global_position)
+				_ripple_extras(enemy, w, soaked)
+	if evo(EVO_REFLECTION) and living(enemy) and now() >= float(source.get_meta(MIRROR_META, -INF)):
+		var last = _back_in(w, enemy)
+		if last != null:
+			source.set_meta(MIRROR_META, now() + MIRROR_EVERY)
+			_line_fx(enemy.global_position, last.global_position, 2.0, Palette.DEWLIGHT)
+			Reactions._effect(&"landing_dust", last.global_position, self, 0.5)
+			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG)
+			credit(EVO_REFLECTION, last.global_position)
+
+# A Warden's own accepted status on a nightmare in water (Riverside, Stagnant Water): visible stacks, never hidden ones.
+func _evo_status(tower, enemy, status: StringName) -> void:
+	var w := water_of(enemy)
+	if w < 0:
+		return
+	if evo(EVO_RIVERSIDE) and (is_own(tower) or is_other_family(tower)) and touches_water(tower, w) \
+			and _once(enemy, "side:%d:%d" % [tower.get_instance_id(), int(waters[w].id)]):
+		if enemy.statuses.add_quiet(status, SIDE_STACKS) > 0:
+			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
+			credit(EVO_RIVERSIDE, enemy.global_position)
+	if evo(EVO_STAGNANT) and status != EnemyStatuses.DROWSY and living(enemy) and _is_pond(w) \
+			and now() >= float(tower.get_meta(STILL_META, -INF)):
+		if enemy.statuses.add_quiet(status, STILL_STACKS) > 0:
+			tower.set_meta(STILL_META, now() + STILL_EVERY)
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
+			credit(EVO_STAGNANT, enemy.global_position)
+
+# The evolutions' poll: wet steps, the pond (slow, Whirlpool, Drowned Hands), Spring Flood.
+func _evolutions_poll() -> void:
+	if not class_on() or dream_state.calling_path.is_empty():
+		return
+	_dry_wet()
+	var wet_on := evo(EVO_WET)
+	var pond_on := evo(EVO_POND)
+	if wet_on or pond_on:
+		for enemy in enemies():
+			if enemy.is_flying():
+				continue  # Flyers are never in water
+			if wet_on:
+				_footprints(enemy, index_of(enemy))
+			if pond_on and living(enemy):
+				_in_pond(enemy)
+	if evo(EVO_SPRING):
+		_spring_tick()
+
+# Black Pond's slow, and what happens in it (Whirlpool, Drowned Hands).
+func _in_pond(enemy) -> void:
+	var w := water_of(enemy)
+	if not _is_pond(w):
+		return
+	var boss: bool = enemy.statuses.is_boss
+	var key := _water_key(waters[w])
+	HelperCommons.slow(enemy, POND_SLOW * (0.5 if boss else 1.0), POND_TIME)
+	if _once(enemy, "pond:" + key):
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
+		credit(EVO_POND, enemy.global_position)
+	if evo(EVO_WHIRLPOOL) and not boss and _fully_soaked(enemy) and _once(enemy, "whirl:" + key):
+		_whirlpool(enemy, w)
+	if evo(EVO_HANDS) and living(enemy) and _status_count(enemy) >= HANDS_STATUSES \
+			and not enemy.get_meta(ONCE_META, {}).has("hands:" + key):
+		_drowned_hands(enemy, w, key)
+
+func _status_count(enemy) -> int:
+	var found := 0
+	for id in enemy.statuses.active_ids():
+		if id != EnemyStatuses.HELD:
+			found += 1
+	return found
+
+# Whirlpool: pulled back 2 steps (never bosses or flyers: the caller checks). Drowning Deep drags its neighbours too.
+func _whirlpool(enemy, w: int) -> void:
+	var pixels := PULL_STEPS * cell()
+	if enemy.push_back(pixels) <= 0.0:
+		return
+	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)
+	credit(EVO_WHIRLPOOL, enemy.global_position)
+	if evo(EVO_DEEP):
+		_drowning_deep(enemy, w, pixels)
+
+# Drowning Deep: up to 4 nightmares within 1 cell are dragged with it (never bosses or flyers), and every Warden touching
+# the pond hits the pulled one once, free (the one free-hit rule: once a second per Warden).
+func _drowning_deep(enemy, w: int, pixels: float) -> void:
+	var reach := DEEP_CELLS * cell()
+	var dragged := 0
+	for other in Tower.nightmares_near(get_tree(), enemy.global_position, reach):
+		if dragged >= DEEP_MAX:
+			break
+		if other == enemy or not living(other) or other.statuses.is_boss or other.is_flying() \
+				or other.global_position.distance_to(enemy.global_position) > reach:
+			continue
+		if other.push_back(pixels) > 0.0:
+			dragged += 1
+			_line_fx(enemy.global_position, other.global_position, 2.0, Palette.DEWLIGHT)
+	var hits := 0
+	for tower in (waters[w].dewdrops as Array) + _bank_of(w):
+		if _tower_ok(tower) and free_hit(tower, enemy):
+			hits += 1
+	if dragged > 0 or hits > 0:
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.6)
+		credit(EVO_DEEP, enemy.global_position)
+
+# Drowned Hands: Held by the pond's strongest Dewdrop (bosses half), once per pond (only spent when it holds).
+func _drowned_hands(enemy, w: int, key: String) -> void:
+	var dewdrop = _strongest(waters[w].dewdrops)
+	if dewdrop == null:
+		return
+	var boss: bool = enemy.statuses.is_boss
+	dewdrop.hold(enemy, HANDS_HOLD * (0.5 if boss else 1.0))
+	if living(enemy) and enemy.statuses.is_held():
+		_once(enemy, "hands:" + key)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)
+		credit(EVO_HANDS, enemy.global_position)
+
+# Wet Footprints: a Soaked nightmare walking out of real water wets the next steps it walks (6 at most) for 3 s.
+func _footprints(enemy, i: int) -> void:
+	var real := int(_water_at.get(i, -1)) if i >= 0 else -1
+	var prev := int(enemy.get_meta(REAL_META, -1))
+	enemy.set_meta(REAL_META, real)
+	if real >= 0:
+		if enemy.has_meta(FOOT_META):
+			enemy.remove_meta(FOOT_META)
+		return
+	if i < 0:
+		return
+	if prev >= 0 and prev < waters.size() and _soaked(enemy):
+		enemy.set_meta(FOOT_META, [prev, WET_STEPS * 2, i - 1])
+		credit(EVO_WET, enemy.global_position)
+	if not enemy.has_meta(FOOT_META):
+		return
+	var foot: Array = enemy.get_meta(FOOT_META)
+	var left := int(foot[1])
+	var last := int(foot[2])
+	var laid := false
+	for j in range(last + 1, i + 1):
+		if left <= 0:
+			break
+		if j >= _route_px.size() or _water_at.has(j):
+			continue
+		_wet[j] = [now() + WET_SECONDS, int(foot[0])]
+		_wet_touch[j] = _attackers_touching(_route_px[j])
+		left -= 1
+		laid = true
+	if left <= 0:
+		enemy.remove_meta(FOOT_META)
+	else:
+		enemy.set_meta(FOOT_META, [int(foot[0]), left, maxi(last, i)])
+	if laid:
+		queue_redraw()
+
+func _attackers_touching(at: Vector2) -> Array:
+	var found: Array = []
+	for tower in towers():
+		if tower.tower_data.can_attack and touches_point(tower, at):
+			found.append(tower)
+	return found
+
+# Wet steps dry after WET_SECONDS.
+func _dry_wet() -> void:
+	if _wet.is_empty():
+		return
+	var dried := false
+	for i in _wet.keys():
+		if float(_wet[i][0]) <= now():
+			_wet.erase(i)
+			_wet_touch.erase(i)
+			dried = true
+	if dried:
+		queue_redraw()
+
+# Spring Flood: every 10 s of drift time the longest water with a nightmare in it floods: up to 8 in it are fully Soaked
+# (by its strongest Dewdrop) and walk 25% slower for 2 s (bosses half). With nobody in water it waits for the first one.
+func _spring_tick() -> void:
+	if resting():
+		return
+	_spring_in -= POLL
+	if _spring_in > 0.0:
+		return
+	var inside := {}  # Water -> nightmares in it
+	for enemy in enemies():
+		var w := water_of(enemy)
+		if w >= 0 and int(_water_at.get(index_of(enemy), -1)) == w:  # Real water only (wet steps aren't a water's length)
+			if not inside.has(w):
+				inside[w] = []
+			inside[w].append(enemy)
+	var best := -1
+	for w in inside:
+		if best < 0 or float(waters[int(w)].steps) > float(waters[best].steps):
+			best = int(w)
+	if best < 0:
+		_spring_in = 0.0
+		return
+	_spring_in = SPRING_EVERY
+	var dewdrop = _strongest(waters[best].dewdrops)
+	var targets: Array = inside[best]
+	targets.sort_custom(func(a, b) -> bool: return index_of(a) > index_of(b))
+	for enemy in targets.slice(0, SPRING_MAX):
+		var room: int = enemy.statuses.get_max_stacks(EnemyStatuses.DAMP) - enemy.statuses.stacks(EnemyStatuses.DAMP)
+		if room > 0 and dewdrop != null:
+			dewdrop._apply_one_status(enemy, EnemyStatuses.DAMP, room, dewdrop.get_damage(), false)
+		if living(enemy):
+			var boss: bool = enemy.statuses.is_boss
+			HelperCommons.slow(enemy, SPRING_SLOW * (0.5 if boss else 1.0), SPRING_SECONDS)
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
+	_water_fx(best, int(waters[best].first), int(waters[best].last), 2.0)
+	credit(EVO_SPRING, _route_px[int(waters[best].first)])
+
 # --- Statuses from another family's Wardens -----------------------------------------------------------------------------
 
 # {status: [stacks, potency, line, WeakRef]} for every status on `enemy` whose Warden is another family's (never
@@ -556,6 +1063,8 @@ func _remember(enemy, dewdrop_id: String) -> void:
 func status_applied(tower, enemy, status: StringName, _stacks: int) -> void:
 	if rule(CAUGHT_WADING) and status == EnemyStatuses.DAMP and is_own(tower) and living(enemy):
 		_caught_wading(tower, enemy)
+	if class_on() and not dream_state.calling_path.is_empty() and status != EnemyStatuses.HELD and living(enemy):
+		_evo_status(tower, enemy, status)  # Riverside, Stagnant Water
 	if not place_on() or not rule(WAKE_RIPPLE) or not is_other_family(tower) or status == EnemyStatuses.HELD or not living(enemy):
 		return
 	var w := water_of(enemy)
@@ -835,3 +1344,25 @@ func _draw() -> void:
 				draw_circle(at + Vector2(-r * 0.3, -r * 0.25), 1.5, Color(Palette.DEWLIGHT, 0.6))
 		if float(water.steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
 			draw_circle(_route_px[int(water.last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end
+	if not class_on() or dream_state.calling_path.is_empty():
+		return
+	# Black Pond: darker, still water
+	if evo(EVO_POND):
+		for w in waters.size():
+			if _is_pond(w):
+				for i in waters[w].points:
+					draw_circle(_route_px[int(i)], r * 0.8, Color(Palette.POOL, 0.4))
+	# Stream: a current on the water it carried on, pointing to the Heartwood
+	for i in _flowed:
+		var at: Vector2 = _route_px[int(i)]
+		if int(i) % 2 != 0 or int(i) + 1 >= _route_px.size():
+			continue
+		var dir: Vector2 = (_route_px[int(i) + 1] - at).normalized()
+		var side := Vector2(-dir.y, dir.x) * r * 0.3
+		draw_line(at - dir * r * 0.3 + side, at, Color(Palette.DEWLIGHT, 0.55), 1.5)
+		draw_line(at - dir * r * 0.3 - side, at, Color(Palette.DEWLIGHT, 0.55), 1.5)
+	# Wet Footprints: small wet prints on the steps that count as water for now
+	for i in _wet:
+		var at: Vector2 = _route_px[int(i)]
+		draw_circle(at + Vector2(-r * 0.2, 0.0), r * 0.16, Color(Palette.DEW, 0.45))
+		draw_circle(at + Vector2(r * 0.2, -r * 0.15), r * 0.16, Color(Palette.DEW, 0.45))

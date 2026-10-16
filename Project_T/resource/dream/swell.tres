@@ -14,3 +14,4 @@ tags = Array[String](["water"])
 max_stacks = 1
 rule_id = &"swell"
 calling = "dewdrop"
+retired = true
