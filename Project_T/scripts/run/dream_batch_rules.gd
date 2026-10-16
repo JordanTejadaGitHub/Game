@@ -478,11 +478,16 @@ func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: St
 			if not _first.has(key):
 				_first[key] = true
 				multiplier *= FIRST_LIGHT_MULTIPLIER
+				DamageLog.note_card_bonus("first_light", FIRST_LIGHT_MULTIPLIER)  # Card credit (Main Merger df7010bb)
 				if _first.size() > 8192:
 					_first.clear()
-		multiplier *= 1.0 + heels_bonus(dreams)
+		var heels := 1.0 + heels_bonus(dreams)
+		multiplier *= heels
+		DamageLog.note_card_bonus("hot_on_their_heels", heels)
 	if dreams.has_rule(&"long_way_round") and (enemy.enemy_data.is_boss or enemy.elite):
-		multiplier *= 1.0 + minf(LONG_WAY_PER_BEND * bends_behind(enemy), LONG_WAY_MAX)
+		var long_way := 1.0 + minf(LONG_WAY_PER_BEND * bends_behind(enemy), LONG_WAY_MAX)
+		multiplier *= long_way
+		DamageLog.note_card_bonus("long_way_round", long_way)
 	return multiplier
 
 # Card pass 2026-10-16 (player review 4.4): the maze-shape cards on the synergy side. They multiply after the plain
@@ -492,8 +497,10 @@ func synergy_multiplier(dreams: DreamState, enemy: Node2D, source: Node) -> floa
 	var tower := source as Tower
 	if tower != null and tower.tower_data.can_attack and dreams.has_rule(&"passing_thread") and on_later_pass(dreams, tower, enemy):
 		multiplier *= PASSING_THREAD_MULT
+		DamageLog.note_card_bonus("passing_thread", PASSING_THREAD_MULT)
 	if dreams.has_rule(&"front_line") and gauntlet_at(dreams, enemy):  # Gauntlet (id front_line)
 		multiplier *= GAUNTLET_MULT
+		DamageLog.note_card_bonus("front_line", GAUNTLET_MULT)
 	return multiplier
 
 func uses_damage_hook(dreams: DreamState) -> bool:

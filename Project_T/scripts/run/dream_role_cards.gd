@@ -188,6 +188,7 @@ func hit_multiplier(tower, enemy, effect_tick: bool) -> Array:
 	var towering := _on.has(TOWERING) and _towering_set().has(tower.get_instance_id())
 	if towering:
 		m *= 1.0 + TOWERING_BONUS
+		DamageLog.note_card_bonus("towering", 1.0 + TOWERING_BONUS)  # Card credit (Main Merger df7010bb)
 	return [m, millstone, towering]
 
 func begin_hit(tower, enemy) -> Array:

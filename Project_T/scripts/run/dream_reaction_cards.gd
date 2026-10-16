@@ -258,28 +258,40 @@ func reaction_fired(enemy, id: StringName, chain: int, links: int, towers: Array
 func reaction_multiplier(enemy, id: StringName, tower) -> float:
 	var m := 1.0
 	if _on.has(EMBER_COUNT) and _block_count > 0:
-		m *= 1.0 + minf(EMBER_PER * _block_count, EMBER_MAX)
+		var ember := 1.0 + minf(EMBER_PER * _block_count, EMBER_MAX)
+		m *= ember
+		_note_bonus(EMBER_COUNT, ember)
 		_quiet_credit(EMBER_COUNT)
 	if _on.has(GRAND_DESIGN) and not _block_kinds.is_empty():
 		m *= 1.0 + _grand_design()
+		_note_bonus(GRAND_DESIGN, 1.0 + _grand_design())
 		_quiet_credit(GRAND_DESIGN)
 	var crowned: StringName = CROWNED_DAMAGE.get(id, &"")
 	if crowned != &"" and _on.has(crowned):
 		m *= 1.0 + Reactions.CROWNED_CARD_BONUS
+		_note_bonus(crowned, 1.0 + Reactions.CROWNED_CARD_BONUS)
 	if enemy == null or not is_instance_valid(enemy):
 		return m
 	if _on.has(LONG_WALK):
 		var walk := _long_walk_bonus(enemy)
 		if walk > 0.0:
 			m *= 1.0 + walk
+			_note_bonus(LONG_WALK, 1.0 + walk)
 			_quiet_credit(LONG_WALK)
 	if _on.has(CROWN_OF_LEAVES):
 		var tier := _crown_tier(enemy.statuses.chain_towers, tower)
 		if tier >= CROWN_ASCENDED_TIER:
 			m *= 1.0 + CROWN_ASCENDED
+			_note_bonus(CROWN_OF_LEAVES, 1.0 + CROWN_ASCENDED)
 		elif tier >= CROWN_FINAL_TIER:
 			m *= 1.0 + CROWN_FINAL
+			_note_bonus(CROWN_OF_LEAVES, 1.0 + CROWN_FINAL)
 	return m
+
+# Card credit (Main Merger df7010bb): what a card's multiplier really added, by its card id (rule id -> card id).
+func _note_bonus(rule: StringName, multiplier: float) -> void:
+	var by_rule: Dictionary = dreams._credit_rule_map() if dreams != null else {}
+	DamageLog.note_card_bonus(String(by_rule.get(rule, String(rule))), multiplier)
 
 func _grand_design() -> float:
 	return minf(GRAND_DESIGN_PER * _block_kinds.size(), GRAND_DESIGN_MAX)

@@ -1809,7 +1809,9 @@ func get_effect_bonus(enemy: Node2D) -> float:
 	if not has_rule(&"seeping") or enemy == null or not is_instance_valid(enemy):
 		return 0.0
 	var level := rule_level(&"seeping")
-	return minf(SEEPING_PER[level] * enemy.statuses.active_ids().size(), SEEPING_PER[level] * SEEPING_MAX_STATUSES)
+	var bonus: float = minf(SEEPING_PER[level] * enemy.statuses.active_ids().size(), SEEPING_PER[level] * SEEPING_MAX_STATUSES)
+	DamageLog.note_card_bonus("seeping", 1.0 + bonus)  # Card credit (Main Merger df7010bb)
+	return bonus
 
 # Venom Bloom (bittersweet): every hit (not effects) deals this much of its damage.
 func get_hit_damage_multiplier() -> float:
@@ -2022,6 +2024,7 @@ func slow_burn_multiplier(enemy: Node2D, tag: StringName) -> float:
 	var s: EnemyStatuses = enemy.statuses
 	if (tag == &"spored" and s.is_lingering(EnemyStatuses.SPORED)) or (tag == &"static" and s.static_lingered):
 		note_card(SLOW_BURN, enemy.global_position)
+		DamageLog.note_card_bonus(String(SLOW_BURN), 1.0 + SLOW_BURN_BONUS)
 		return 1.0 + SLOW_BURN_BONUS
 	return 1.0
 
@@ -5637,6 +5640,8 @@ func _credit(card_id: String, key: String, amount: float) -> void:
 func _credit_hit(event) -> void:
 	if event.amount <= 0.0:
 		return
+	for id in event.card_damage:  # What each card's multiplier added (DamageLog.note_card_bonus; Main Merger df7010bb)
+		_credit(id, "damage", event.card_damage[id])
 	var by_tag := _credit_rule_map()
 	if event.tag != &"" and by_tag.has(event.tag):  # A trigger card's own damage
 		_credit(by_tag[event.tag], "damage", event.amount)

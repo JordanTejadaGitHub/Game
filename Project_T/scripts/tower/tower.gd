@@ -5642,7 +5642,7 @@ func plain_hit_factor(per_hit: float) -> float:
 	if per_hit == 1.0:
 		return 1.0
 	_dream_bonus(&"soothe")  # The rows' sum, fresh
-	var total := (1.0 + _plain_sum) * per_hit
+	var total := (1.0 + _plain_sum) * per_hit  # (When the cap clamps, the per-hit cards noted their full multipliers to DamageLog: a clamp would need DamageLog to scale this frame's notes; the cap is a no-op today)
 	if total - 1.0 <= DREAM_PLAIN_CAP:
 		return per_hit
 	return (1.0 + DREAM_PLAIN_CAP) / maxf(1.0 + minf(_plain_sum, DREAM_PLAIN_CAP), 0.0001)

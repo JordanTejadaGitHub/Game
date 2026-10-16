@@ -1312,12 +1312,15 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		var rain_ids: Array = _rain_ids if _old_rain else _lingering_ids(enemy.statuses)
 		if _rain_spends(tag, rain_ids) and (_old_rain or strongest_near(enemy.global_position, is_own) != null):
 			multiplier *= OLD_RAIN_BONUS
+			DamageLog.note_card_bonus("old_rain", OLD_RAIN_BONUS)  # Card credit (Main Merger df7010bb)
 	if not (source is Tower) or not is_instance_valid(source):
 		return multiplier
 	if rule(HIGH_TIDE) and tag == &"" and dewdrop_near(source) != null:
 		# High Tide (keyword chips 2026-10-16: every status counts, cap +30%): hits from Wardens near a Dewdrop deal 10% more
 		# for each status on the nightmare
-		multiplier *= 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
+		var tide := 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
+		multiplier *= tide
+		DamageLog.note_card_bonus("high_tide", tide)
 	if not _soaked(enemy):
 		return multiplier  # The older Dewdrop damage cards (retired) read a Soaked nightmare
 	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades
@@ -1325,6 +1328,7 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()) and near(source.global_position, rip.at):
 			rip.done[source.get_instance_id()] = true
 			multiplier *= 2.0
+			DamageLog.note_card_bonus("riptide", 2.0)
 	if not rule(DEEP_POOL) or dewdrop_near(source) == null:
 		return multiplier
 	if rule(DEEP_POOL) and tag == &"":  # Deep Pool: hits deal +10% for each status it carries besides Soaked (never Rooted)
@@ -1333,6 +1337,7 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 			if id != EnemyStatuses.DAMP and id != EnemyStatuses.HELD:
 				others += 1
 		multiplier *= 1.0 + DEEP_POOL_PER_STATUS * others
+		DamageLog.note_card_bonus("deep_pool", 1.0 + DEEP_POOL_PER_STATUS * others)
 	return multiplier
 
 # Wash Away (Enemy.take_damage asks through DreamState.shell_multiplier): a Soaked nightmare's shell (the blight coat)
