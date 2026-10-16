@@ -15,6 +15,7 @@
 			"boosts_hud": 1,
 			"boosts_off": 4,
 			"boosts_on": 5,
+			"dreams_hud": 6,
 			"help_hud": 2,
 			"menu_hud": 3,
 			"remember_hud": 0
