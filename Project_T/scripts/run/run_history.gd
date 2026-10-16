@@ -657,7 +657,60 @@ func _on_run_ended(won: bool) -> void:
 	# Each taken Dream's credit (dream_design.md "Feeling the cards"): damage added, or its Dew / leaves / clears.
 	run["dream_credit"] = RestReport.card_credits(self, &"run").map(func(row: Dictionary) -> Dictionary:
 		return {"id": row.id, "kind": String(row.kind), "amount": roundi(row.amount), "damage": roundi(row.damage), "text": row.text})
+	run["card_measures"] = card_measures(dream_state)
 	save_run(run)
+
+# Each taken card's measures side by side (Balancing Discussion 2026-10-16, "Setup cards", balance_simulation.md): from
+# DreamState.card_credit.run, whatever keys its rows carry (Roguelite Code owns the rules): "damage" (its own), "setup"
+# (shared credit for damage it set up: payoffs and Reactions), "control" (seconds of slow / hold added), "maze" (route
+# cells covered), "dew", "leaves", "clears". Biggest damage (own + set up) first.
+const MEASURE_KEYS := ["damage", "setup", "control", "maze", "dew", "leaves", "clears"]
+
+static func card_measures(dreams: Node) -> Array:
+	var out: Array = []
+	if dreams == null or not ("card_credit" in dreams):
+		return out
+	var rows: Dictionary = dreams.card_credit.get("run", {})
+	for id in rows:
+		var row: Dictionary = rows[id]
+		var entry := {"id": String(id), "name": dreams.get_display_name(String(id)) if dreams.has_method("get_display_name") else String(id)}
+		var any := false
+		for key in row:
+			var value := float(row[key]) if (row[key] is float or row[key] is int) else 0.0
+			if value > 0.0:
+				entry[String(key)] = snappedf(value, 0.1)
+				any = true
+		if any:
+			out.append(entry)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("damage", 0.0)) + float(a.get("setup", 0.0)) > float(b.get("damage", 0.0)) + float(b.get("setup", 0.0)))
+	return out
+
+# "Kept Ground: 2k own, 41k set up, 12 s control, 30 cells, +60 Dew" (zero measures left out; unknown keys as "key N").
+static func measures_text(entry: Dictionary) -> String:
+	var parts: Array[String] = []
+	for key in MEASURE_KEYS + entry.keys().filter(func(k) -> bool: return not MEASURE_KEYS.has(k) and k != "id" and k != "name"):
+		var value := float(entry.get(key, 0.0))
+		if value <= 0.0:
+			continue
+		match key:
+			"damage": parts.append("%s own" % _short(value))
+			"setup": parts.append("%s set up" % _short(value))
+			"control": parts.append("%d s control" % roundi(value))
+			"maze": parts.append("%d cells" % roundi(value))
+			"dew": parts.append("+%d Dew" % roundi(value))
+			"leaves": parts.append("saved %d %s" % [roundi(value), "leaf" if roundi(value) == 1 else "leaves"])
+			"clears": parts.append("%d half-price clears" % roundi(value))
+			_: parts.append("%s %s" % [key, _short(value)])
+	return "%s: %s" % [entry.get("name", entry.get("id", "")), ", ".join(parts)]
+
+# 2,400 -> "2.4k", 41,000 -> "41k", 1,200,000 -> "1.2M", small numbers whole.
+static func _short(value: float) -> String:
+	if value >= 1000000.0:
+		return ("%.1fM" % (value / 1000000.0)).replace(".0M", "M")
+	if value >= 1000.0:
+		return ("%.1fk" % (value / 1000.0)).replace(".0k", "k") if value < 10000.0 else "%dk" % roundi(value / 1000.0)
+	return str(roundi(value))
 
 # The record so far, for the run save (RunSaver, at each rest): a Save & quit run is recorded whole.
 func to_save() -> Dictionary:
@@ -767,7 +820,11 @@ static func report_text(record: Dictionary) -> String:
 	if not record.get("gifts", []).is_empty() or not record.get("gifts_passed", []).is_empty():
 		lines.append("Gifts: %s%s" % [", ".join(record.get("gifts", []).map(func(g: Dictionary) -> String: return "%s (act %d)" % [g.id, int(g.act)])),
 			" · passed in act %s" % ", ".join(record.get("gifts_passed", []).map(func(a) -> String: return str(int(a)))) if not record.get("gifts_passed", []).is_empty() else ""])
-	if not record.get("dream_credit", []).is_empty():
+	if not record.get("card_measures", []).is_empty():  # Own and shared credit side by side, one card a line
+		lines.append("Dream credit (own · set up · control · maze · economy):")
+		for entry in record.card_measures:
+			lines.append("  " + measures_text(entry))
+	elif not record.get("dream_credit", []).is_empty():  # Older records
 		lines.append("Dream credit: %s" % ", ".join(record.dream_credit.map(func(c: Dictionary) -> String: return c.text)))
 	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))
 	for block in record.get("route_blocks", []):  # Route bins: start → Heartwood, tenths of the route
