@@ -1448,7 +1448,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if gifts:
 		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
-	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 14, 18, …); Seedling
+	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (10, 15, 20, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
 	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
@@ -1504,8 +1504,8 @@ func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
 
 const SEEDFALL_CARD := "seedfall"
-const SPROUTS_PER_STEP := 10  # Every 10 Sprouts on the map… ("Health x2, Dew x2 trial"; was 5)
-const SPROUT_STEP_DEW := 4  # …add +4 Dew to the next one
+const SPROUTS_PER_STEP := 5  # Every 5 Sprouts on the map… (Balancing 2026-10-16: was +4 per 10 (Dew x2 trial); Sprouts out-valued walls (35-65 per board))
+const SPROUT_STEP_DEW := 5  # …add +5 Dew to the next one
 const SEEDFALL_SPROUTS_PER_STEP := 10  # Seedfall: the price rises half as fast… (with the trial: every 10 too, or it would step sooner than the base)
 const SEEDFALL_STEP_DEW := 2  # …+2 per 10
 

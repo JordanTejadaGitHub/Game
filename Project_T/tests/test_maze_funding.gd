@@ -18,7 +18,7 @@ func _run() -> void:
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	_check(placer.get_cost(sprout) == 10, "Sprouts start at 10 Dew")
 	_check(run.starting_dew - 5 * placer.get_cost(sprout) >= 3 * placer.get_cost(wall), "opening funds five attackers plus three maze walls")
-	_check(TowerPlacer.SPROUT_STEP_DEW == 4 and TowerPlacer.SPROUTS_PER_STEP == 10, "Sprout escalation: +4 every 10 (the Health x2, Dew x2 trial; it was every 5)")
+	_check(TowerPlacer.SPROUT_STEP_DEW == 5 and TowerPlacer.SPROUTS_PER_STEP == 5, "Sprout escalation: +5 every 5 (Balancing 2026-10-16; was +4 every 10 in the Health x2, Dew x2 trial; it was every 5)")
 	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var boss: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_multiplier), "drift-one health remains unchanged")
