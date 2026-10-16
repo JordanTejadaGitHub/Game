@@ -2,6 +2,8 @@ extends Node2D
 class_name Tower
 
 const DREAM_BURST := preload("res://scripts/fx/dream_burst.gd")
+const SETUP_CREDIT := preload("res://scripts/run/setup_credit.gd")  # Setup credit 2026-10-16: the per-nightmare stack ledger
+const _NO_SETUP_ROWS: Array = []  # setup credit 2026-10-16
 
 # A Warden. Plays its idle loop, and when a nightmare is in range winds up its attack animation and
 # releases on the release frame: a projectile (optionally splashing or swooping back), a pulse, chain
@@ -3409,6 +3411,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus in Enemy.take_damage, not soothe
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
+	var setup_sap := 0  # setup credit 2026-10-16: Bitter Sap's stack, for the ledger
 	if _dream_state:
 		# Performance: the Dreams' status numbers ride the stat cache (they change with cards and the board).
 		var cached: Array = _stats.get(status, []) if _stats_fresh() else []
@@ -3420,7 +3423,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		duration = cached[1]
 		max_stacks = cached[2]
 		if stacks > 0:
-			stacks += _dream_state.get_status_stacks_bonus()  # Bitter Sap: statuses a Warden applies start +1 stack
+			setup_sap = _dream_state.get_status_stacks_bonus()  # setup credit 2026-10-16
+			stacks += setup_sap  # Bitter Sap: statuses a Warden applies start +1 stack
 	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
 	# the old rule (statuses last 18% longer per Deep rank) only with the switch off, for Balancing's A/B.
 	var deep := 1.0 if status_potency_on else get_status_focus_multiplier()
@@ -3443,6 +3447,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	var role_extra := 0  # Card pass 2026-10-16: Mother's Hand, One Bough, Deep Grain. In the application only: the Calling hears `stacks`
 	if _dream_state != null and native and stacks > 0 and _dream_state.role_cards.stack_live():
 		role_extra = _dream_state.role_cards.extra_stacks(self, status)
+	if _dream_state != null:  # setup credit 2026-10-16: the ledger before the application (it may complete a Reaction)
+		SETUP_CREDIT.before_apply(_dream_state, enemy, status, stacks + role_extra, max_stacks, setup_sap,
+			_dream_state.role_cards.last_extra_rows() if role_extra > 0 else _NO_SETUP_ROWS)
 	enemy.apply_status(status, stacks + role_extra, duration, potency, max_stacks, tower_data.line, self)
 	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
 		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
@@ -3707,6 +3714,8 @@ func hold(enemy: Node2D, seconds: float) -> void:
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		SupportLog.credit(self, &"held_seconds", seconds + bonus)
+		if bonus > 0.0 and _dream_state != null:
+			SETUP_CREDIT.control(_dream_state, &"patient_roots", bonus)  # setup credit 2026-10-16
 		_lantern_reveal(enemy)
 
 # True Graft B: the status of the strongest (damage per second) Warden touching this one, [id, stacks].

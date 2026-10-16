@@ -401,7 +401,7 @@ func _mycelium(sprout, enemy) -> void:
 	enemy.set_meta(MYCELIUM_META, count)
 	for id in enemy.statuses.active_ids():
 		if _stackable(id) and id != EnemyStatuses.SPORED:
-			_feed(enemy, id, 1)
+			setup_quiet(enemy, MYCELIUM, id, _feed(enemy, id, 1))  # (setup credit 2026-10-16: the ledger)
 
 # Overnight (trait rework; was +3 Poisoned): a spore Warden's hit adds 2 to each status other families put on the nightmare,
 # quietly. Once a second for each spore Warden and nightmare.
@@ -414,7 +414,9 @@ func _overnight(spore, enemy) -> void:
 	var fed := false
 	for id in enemy.statuses.active_ids():
 		if _stackable(id) and is_other_family(enemy.statuses.source(id)):
-			fed = _feed(enemy, id, OVERNIGHT_FEED) > 0 or fed
+			var added := _feed(enemy, id, OVERNIGHT_FEED)
+			setup_quiet(enemy, OVERNIGHT, id, added)  # (setup credit 2026-10-16)
+			fed = added > 0 or fed
 	if fed:
 		next[-1] = now() + OVERNIGHT_EVERY
 		enemy.set_meta(NIGHT_META, next)
@@ -445,7 +447,9 @@ func status_applied(_tower, enemy, status: StringName, stacks: int) -> void:
 	var fed := false
 	for id in statuses.active_ids():
 		if id != status and _stackable(id):
-			fed = _feed(enemy, id, SEED_STACKS) > 0 or fed
+			var added := _feed(enemy, id, SEED_STACKS)
+			setup_quiet(enemy, GONE_TO_SEED, id, added)  # (setup credit 2026-10-16)
+			fed = added > 0 or fed
 	if fed:
 		enemy.set_meta(SEED_META, now() + SEED_EVERY)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
@@ -477,18 +481,23 @@ func _haze_hit(event, source, enemy) -> void:
 	for other in nightmares_touching(enemy, HAZE_OTHERS):
 		strike(source, other, event.base, &"spore_haze", true)
 		if living(other):
-			source._apply_one_status(other, EnemyStatuses.SPORED, maxi(int(source.attack_data.status_stacks), 1), source.get_damage(), false)
+			setup_apply(SPORE_HAZE, source, other, EnemyStatuses.SPORED, maxi(int(source.attack_data.status_stacks), 1), source.get_damage())
 
 # --- Doses ----------------------------------------------------------------------------------------------------------
 
 # One dose: an ordinary Poisoned application from `tower` (one batch, the normal clock, the normal limit).
-func _apply_dose(tower, enemy, amount: int) -> void:
+# `credit_id` (setup credit 2026-10-16): the card or evolution the whole dose belongs to in the ledger (&"" = the Calling's).
+func _apply_dose(tower, enemy, amount: int, credit_id: StringName = &"") -> void:
 	if not is_instance_valid(tower) or not living(enemy):
 		return
 	doses_given += 1
 	var statuses: EnemyStatuses = enemy.statuses
 	var cap: int = statuses.get_max_stacks(EnemyStatuses.SPORED) if statuses.has(EnemyStatuses.SPORED) else 0
+	if credit_id != &"":
+		SETUP.begin(StringName(card_id(credit_id)))
 	tower._apply_one_status(enemy, EnemyStatuses.SPORED, amount, tower.get_damage(), false)
+	if credit_id != &"":
+		SETUP.end()
 	if cap > 0 and living(enemy):
 		statuses.keep_spore_cap(cap)  # A dose never raises the limit: a full nightmare stays full
 
@@ -506,10 +515,13 @@ func _stepped(point: Vector2, enemy) -> void:
 		var taken := int(enemy.get_meta(DOSES_META, 0))
 		amount = mini(DOSE + taken, GROWS_MAX)
 		enemy.set_meta(DOSES_META, taken + 1)
+		_setup_part(enemy, IT_GROWS, EnemyStatuses.SPORED, amount - DOSE)  # (setup credit 2026-10-16: each part's stacks)
 	var caps_here := int(m.caps)
 	if evo(EVO_CLUMP):
+		_setup_part(enemy, EVO_CLUMP, EnemyStatuses.SPORED, amount * caps_here - amount)
 		amount *= caps_here  # Clump: a dose for each mushroom in it
 	if season_on():
+		_setup_part(enemy, EVO_SEASON, EnemyStatuses.SPORED, roundi(amount * SEASON_DOSE) - amount)
 		amount = roundi(amount * SEASON_DOSE)
 		credit(EVO_SEASON, enemy.global_position)
 	_apply_dose(tower, enemy, amount)
@@ -517,7 +529,7 @@ func _stepped(point: Vector2, enemy) -> void:
 	_evolved_step(point, m, tower, enemy, amount, caps_here)
 	if rule(KICKED_UP):  # Up to 4 touching it take a fresh dose of 3; a received dose counts for nothing else
 		for other in nightmares_touching(enemy, KICKED_OTHERS):
-			_apply_dose(tower, other, DOSE)
+			_apply_dose(tower, other, DOSE, KICKED_UP)
 	if rule(OPEN_SEASON):
 		enemy.set_meta(OPEN_META, now() + OPEN_SEASON_WINDOW)
 	if rule(EVERYTHING_GROWS):  # The nearest other-family Warden touching the mushroom adds 3 of its own status
@@ -530,7 +542,7 @@ func _stepped(point: Vector2, enemy) -> void:
 				best = other.global_position.distance_squared_to(at)
 				partner = other
 		if partner != null and living(enemy):
-			partner._apply_one_status(enemy, status_of(partner), EVERYTHING_STACKS, partner.get_damage(), false)
+			setup_apply(EVERYTHING_GROWS, partner, enemy, status_of(partner), EVERYTHING_STACKS, partner.get_damage())
 	m.last = enemy.get_instance_id()
 	m.caps = int(m.caps) - 1
 	if int(m.caps) > 0:
@@ -555,7 +567,9 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 		var fed := 0
 		for id in enemy.statuses.active_ids():
 			if id != EnemyStatuses.SPORED and _stackable(id):
-				fed += _feed(enemy, id, DRIFT_STACKS)
+				var added := _feed(enemy, id, DRIFT_STACKS)
+				setup_quiet(enemy, EVO_DRIFTING, id, added)  # (setup credit 2026-10-16)
+				fed += added
 		if fed > 0:
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.4)
 			credit(EVO_DRIFTING, enemy.global_position)
@@ -563,7 +577,9 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 		var rotted := 0
 		for id in enemy.statuses.active_ids():
 			if id != EnemyStatuses.SPORED and _stackable(id):
-				rotted += _feed(enemy, id, ROT_STACKS * caps_here)
+				var added := _feed(enemy, id, ROT_STACKS * caps_here)
+				setup_quiet(enemy, EVO_ROT, id, added)  # (setup credit 2026-10-16)
+				rotted += added
 		if rotted > 0:
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
 			credit(EVO_ROT, enemy.global_position)
@@ -574,6 +590,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 			enemy.set_meta(STICKY_META, stuck)
 			var seconds := minf(STICKY_SECONDS * caps_here, STICKY_MAX) * (0.5 if enemy.statuses.is_boss else 1.0)
 			HelperCommons.slow(enemy, STICKY_SLOW, seconds)
+			control_slow(EVO_STICKY, STICKY_SLOW, seconds)  # (setup credit 2026-10-16)
 			credit(EVO_STICKY, enemy.global_position)
 			if evo(EVO_MIRE):
 				_mire(enemy, seconds * MIRE_SHARE)
@@ -589,9 +606,9 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 		for row in m.mother:
 			var id := StringName(row[0])
 			if enemy.statuses.has(id):
-				_feed(enemy, id, MOTHER_STACKS)
+				setup_quiet(enemy, EVO_MOTHER, id, _feed(enemy, id, MOTHER_STACKS))  # (setup credit 2026-10-16)
 			elif id != EnemyStatuses.STATIC or MOTHER_STACKS < enemy.statuses.get_max_stacks(id):
-				enemy.apply_status(id, MOTHER_STACKS, 0.0, float(row[1]), 0, String(row[2]), null)
+				SETUP.apply(enemy, card_id(EVO_MOTHER), id, MOTHER_STACKS, 0.0, float(row[1]), 0, String(row[2]), null)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.7)
 		credit(EVO_MOTHER, enemy.global_position)
 	if evo(EVO_WINDBLOWN) and not bool(m.get("seeded", false)):
@@ -615,6 +632,8 @@ func _witch_ring(tower, enemy) -> void:
 	enemy.set_meta(RING_NEXT_META, now() + RING_EVERY)
 	enemy.set_meta(RING_META, [])
 	tower.hold(enemy, RING_HOLD * (0.5 if enemy.statuses.is_boss else 1.0))
+	if living(enemy) and enemy.statuses.is_held():
+		control(EVO_WITCH_RING, RING_HOLD * (0.5 if enemy.statuses.is_boss else 1.0))  # (setup credit 2026-10-16)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)
 	credit(EVO_WITCH_RING, enemy.global_position)
 
@@ -628,6 +647,7 @@ func _mire(enemy, seconds: float) -> void:
 	behind.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(enemy.global_position) < b.global_position.distance_squared_to(enemy.global_position))
 	for other in behind.slice(0, MIRE_OTHERS):
 		HelperCommons.slow(other, STICKY_SLOW, seconds)
+		control_slow(EVO_MIRE, STICKY_SLOW, seconds)  # (setup credit 2026-10-16)
 		_line_fx(enemy.global_position, other.global_position, 2.0, Palette.MOSS)
 	if not behind.is_empty():
 		credit(EVO_MIRE, enemy.global_position)
@@ -646,14 +666,14 @@ func _rotburst(point: Vector2, tower, eater) -> void:
 		if other == eater or not living(other) or other.global_position.distance_to(at) > BURST_CELLS * cell():
 			continue
 		hit += 1
-		_apply_dose(tower, other, DOSE)
+		_apply_dose(tower, other, DOSE, EVO_ROTBURST)
 		for row in carried:
 			if not living(other):
 				break
 			if other.statuses.has(row[0]):
-				_feed(other, row[0], BURST_STACKS)
+				setup_quiet(other, EVO_ROTBURST, row[0], _feed(other, row[0], BURST_STACKS))  # (setup credit 2026-10-16)
 			elif row[1] is Tower and is_instance_valid(row[1]):
-				row[1]._apply_one_status(other, row[0], BURST_STACKS, row[1].get_damage(), false)
+				setup_apply(EVO_ROTBURST, row[1], other, row[0], BURST_STACKS, row[1].get_damage())
 	Reactions._effect(&"landing_dust", at, self, 1.6)
 	credit(EVO_ROTBURST, at)
 
@@ -669,9 +689,9 @@ func _borrow(at: Vector2, tower, enemy) -> void:
 		elif status_of(other) != &"" and (partner == null or second_of(other) > second_of(partner)):
 			partner = other
 	if partner != null:
-		partner._apply_one_status(enemy, status_of(partner), BORROW_STACKS, partner.get_damage(), false)
+		setup_apply(EVO_BORROWED, partner, enemy, status_of(partner), BORROW_STACKS, partner.get_damage())  # (setup credit 2026-10-16)
 	if sprout and living(enemy) and is_instance_valid(tower):
-		tower._apply_one_status(enemy, EnemyStatuses.SPORED, SPROUT_BORROW, tower.get_damage(), false)
+		setup_apply(EVO_BORROWED, tower, enemy, EnemyStatuses.SPORED, SPROUT_BORROW, tower.get_damage())
 	if partner != null or sprout:
 		_line_fx(at, enemy.global_position, 1.5, Palette.MOSS)
 		credit(EVO_BORROWED, enemy.global_position)
@@ -687,7 +707,7 @@ func _feeding(source, enemy) -> void:
 	if status == &"" or fed.has(source.get_instance_id()) or not touches_point(source, _route_px[int(feed[0])]):
 		return
 	fed[source.get_instance_id()] = true
-	source._apply_one_status(enemy, status, FEED_STACKS, source.get_damage(), false)
+	setup_apply(EVO_FEEDING, source, enemy, status, FEED_STACKS, source.get_damage())  # (setup credit 2026-10-16)
 	credit(EVO_FEEDING, enemy.global_position)
 
 # Catching / Outbreak (polled): a nightmare carrying a caught dose passes it to the first nightmare it touches.
@@ -705,7 +725,7 @@ func _catching() -> void:
 			continue
 		enemy.remove_meta(CATCH_META)
 		var other = touching_now[0]
-		_apply_dose(tower, other, int(c[1]))
+		_apply_dose(tower, other, int(c[1]), EVO_OUTBREAK if int(c[2]) > 0 else EVO_CATCHING)  # (setup credit 2026-10-16)
 		_line_fx(enemy.global_position, other.global_position, 2.0, Palette.MOSS)
 		credit(EVO_OUTBREAK if int(c[2]) > 0 else EVO_CATCHING, other.global_position)
 		var next := int(c[1]) / 2
@@ -769,7 +789,11 @@ func _hothouse(enemy) -> void:
 		return
 	var any := false
 	for id in statuses.active_ids():
-		if id != EnemyStatuses.SPORED and statuses.add_quiet(id, HOTHOUSE_ADD) > 0:
+		if id == EnemyStatuses.SPORED:
+			continue
+		var added := statuses.add_quiet(id, HOTHOUSE_ADD)
+		setup_quiet(enemy, HOTHOUSE, id, added)  # (setup credit 2026-10-16)
+		if added > 0:
 			any = true
 	if any:
 		enemy.set_meta(HOT_META, true)
@@ -791,6 +815,7 @@ func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 			if now() >= float(by.get(id, -INF)):
 				by[id] = now() + OPEN_SEASON_EVERY
 				enemy.set_meta(OPEN_BY_META, by)
+				_setup_part(enemy, OPEN_SEASON, status, DOSE - stacks)  # (setup credit 2026-10-16)
 				stacks = maxi(stacks, DOSE)
 		# Overnight (lent): 3 at once on a nightmare carrying another family's status, once a second each
 		if false and rule(OVERNIGHT) and stacks < OVERNIGHT_STACKS and _carries_other(enemy):  # (Its old +3 Poisoned: _overnight since 2026-10-15)
@@ -809,9 +834,16 @@ func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 			if hit.has(spore.get_instance_id()) and not helped.has(key) and touching(spore, tower):
 				helped[key] = true
 				enemy.set_meta(HELPED_META, helped)
+				_setup_part(enemy, SECOND_HELPING, status, HELPING_STACKS - stacks)  # (setup credit 2026-10-16)
 				stacks = maxi(stacks, HELPING_STACKS)
 				break
 	return _stack_cards(tower, enemy, status, stacks)
+
+# Setup credit 2026-10-16: card or evolution `rule`'s extra stacks inside a Warden's own application, as asked (the
+# Warden's application counts them into the ledger's total; Charged's one-short clamp below is not taken off).
+func _setup_part(enemy, rule_id: StringName, status: StringName, stacks: int) -> void:
+	if stacks > 0:
+		SETUP.note(enemy, card_id(rule_id), status, float(stacks))
 
 # Narrows and Mixed Company: a Warden's own status hit adds more (never Rooted; Charged stops one short of a bolt).
 func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
@@ -819,6 +851,7 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 	if rule(NARROWS) and now() >= float(tower.get_meta(NARROWS_META, -INF)) and _in_narrows(tower, enemy):
 		tower.set_meta(NARROWS_META, now() + STACK_EVERY)
 		extra += NARROWS_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else NARROWS_EXTRA
+		_setup_part(enemy, NARROWS, status, extra)  # (setup credit 2026-10-16: each card's extra stacks, as asked)
 	var mixed_count := 0
 	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)):
 		mixed_count = _mixed(enemy)  # After the clock: strongest_near at most once a second per Warden
@@ -831,13 +864,16 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 		elif status == EnemyStatuses.DROWSY:
 			mixed_cap = MIXED_DROWSY_MAX
 		extra += mini(mixed_count * MIXED_PER_STATUS, mixed_cap)
+		_setup_part(enemy, MIXED_COMPANY, status, mini(mixed_count * MIXED_PER_STATUS, mixed_cap))
 	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
 	# Breathe It In (trait rework; was spore-on-spore Poisoned): any Warden's status landing on a nightmare inside a spore
 	# Warden's range (its own included) adds 1 more. Once a second per Warden
 	if rule(BREATHE_IN) and _stackable(status) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
 			and own_towers().any(func(t) -> bool: return t.global_position.distance_to(enemy.global_position) <= t.get_range_pixels()):
 		tower.set_meta(BREATHE_META, now() + STACK_EVERY)
-		extra += BREATHE_SLEEPER if (enemy.statuses.is_held() or enemy.statuses.is_asleep()) and status != EnemyStatuses.DROWSY else BREATHE_ONE
+		var breathed: int = BREATHE_SLEEPER if (enemy.statuses.is_held() or enemy.statuses.is_asleep()) and status != EnemyStatuses.DROWSY else BREATHE_ONE
+		extra += breathed
+		_setup_part(enemy, BREATHE_IN, status, breathed)
 	# Pass It Round (trait rework; was a Poisoned dose): a Warden touching a spore Warden (a spore Warden touches itself) adds
 	# 3 more of its own status with its first application on each nightmare
 	if rule(PASS_IT_ROUND) and _stackable(status) and (is_own(tower) or own_towers().any(func(t) -> bool: return touching(t, tower))):
@@ -846,11 +882,13 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 			passed[tower.get_instance_id()] = true
 			enemy.set_meta(PASS_META, passed)
 			extra += PASS_STACKS
+			_setup_part(enemy, PASS_IT_ROUND, status, PASS_STACKS)
 	# Sitting Ducks: any status hit on a held or sleeping nightmare near a spore Warden (never Drowsy: it would lengthen sleep)
 	if rule(SITTING_DUCKS) and status != EnemyStatuses.DROWSY and now() >= float(tower.get_meta(DUCKS_META, -INF)) \
 			and (enemy.statuses.is_held() or enemy.statuses.is_asleep()) and strongest_near(enemy.global_position, is_own) != null:
 		tower.set_meta(DUCKS_META, now() + STACK_EVERY)
 		extra += DUCKS_SMALL if small else DUCKS_EXTRA
+		_setup_part(enemy, SITTING_DUCKS, status, DUCKS_SMALL if small else DUCKS_EXTRA)
 	# Hemmed In: another family's Warden touching two spore Wardens doubles its status hits (Charged and Exposed once a second)
 	if rule(HEMMED_IN) and status != EnemyStatuses.DROWSY and is_other_family(tower) \
 			and (not small or now() >= float(tower.get_meta(HEMMED_META, -INF))) \
@@ -858,9 +896,12 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 		if small:
 			tower.set_meta(HEMMED_META, now() + STACK_EVERY)
 		extra += base
+		_setup_part(enemy, HEMMED_IN, status, base)
 	# Spore Ring: a spore Warden's Poisoned hit adds 1 more for each other spore Warden touching it, up to 3
 	if rule(SPORE_RING) and is_own(tower) and status == EnemyStatuses.SPORED:
-		extra += mini(own_towers().filter(func(t) -> bool: return t != tower and touching(t, tower)).size(), SPORE_RING_MAX)
+		var ringed: int = mini(own_towers().filter(func(t) -> bool: return t != tower and touching(t, tower)).size(), SPORE_RING_MAX)
+		extra += ringed
+		_setup_part(enemy, SPORE_RING, status, ringed)
 	if extra <= 0:
 		return base
 
@@ -913,7 +954,7 @@ func _seep(enemy) -> void:
 		steps -= SEEP_STEPS
 		for id in enemy.statuses.active_ids():
 			if id != EnemyStatuses.HELD:
-				enemy.statuses.add_quiet(id, SEEP_STACKS)
+				setup_quiet(enemy, SEEPING_IN, id, enemy.statuses.add_quiet(id, SEEP_STACKS))  # (setup credit 2026-10-16)
 	enemy.set_meta(SEEP_META, [i, steps])
 
 func _carries_other(enemy) -> bool:

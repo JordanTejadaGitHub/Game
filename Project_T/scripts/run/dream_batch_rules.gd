@@ -538,6 +538,7 @@ func snag(dreams: DreamState, wall: Tower, drift: int) -> void:
 		enemy.set_meta(&"batch_snagged", true)
 		_snagged[wall.get_instance_id()] = drift
 		enemy.ground(SNAG_SECONDS)
+		dreams._credit(dreams.SETUP.rule_card(dreams, &"snag"), "control", SNAG_SECONDS)  # Setup credit 2026-10-16
 		return
 
 func _touches_attacker(dreams: DreamState, wall: Tower) -> bool:

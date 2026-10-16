@@ -446,7 +446,9 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		# Topped Up: a Dewdrop's hit puts every status back to its time at landing (never longer). Once a second per nightmare
 		enemy.set_meta(TOPPED_META, now() + TOPPED_UP_EVERY)
 		for id in enemy.statuses.active_ids():
+			var left_before := SETUP.time_left(enemy, id)  # (setup credit 2026-10-16: the seconds given back, as Linger)
 			enemy.statuses.top_up(id)
+			SETUP.note_linger(enemy, card_id(TOPPED_UP), id, SETUP.time_left(enemy, id) - left_before)
 	if not place_on():
 		return
 	if not is_own(source):
@@ -555,6 +557,7 @@ func on_poll() -> void:
 				for tower in dewdrops:
 					if tower.global_position.distance_to(enemy.global_position) <= tower.get_range_pixels():
 						HelperCommons.slow(enemy, KNEE_SLOW_FULL if _fully_soaked(enemy) else KNEE_SLOW, KNEE_TIME)
+						control_slow(KNEE_DEEP, KNEE_SLOW_FULL if _fully_soaked(enemy) else KNEE_SLOW, POLL)  # (setup credit 2026-10-16: the poll's time)
 						break
 	_tick_riptides()
 	if not place_on():
@@ -613,6 +616,7 @@ func _walked_back(enemy, tower, key: String) -> void:
 		# Riptide: it wades at half speed for 2 s (a slow, never Rooted), and each Warden near that Dewdrop lands its first
 		# hit on it double in those 2 s
 		HelperCommons.slow(enemy, RIPTIDE_SLOW, RIPTIDE_SECONDS)
+		control_slow(RIPTIDE, RIPTIDE_SLOW, RIPTIDE_SECONDS)  # (setup credit 2026-10-16)
 		enemy.set_meta(RIP_META, {"until": now() + RIPTIDE_SECONDS, "at": tower.global_position, "done": {}})
 
 func _left(enemy, water: Dictionary) -> void:
@@ -633,7 +637,7 @@ func _left(enemy, water: Dictionary) -> void:
 		for tower in water.dewdrops:
 			if fired >= BACKWASH_DEWDROPS:
 				break
-			if is_instance_valid(tower) and free_hit(tower, enemy):
+			if is_instance_valid(tower) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, BACKWASH):  # (own: setup credit 2026-10-16)
 				fired += 1
 	# Breakwater: a fully Soaked nightmare leaving water 14 or more steps long takes a wave
 	if rule(BREAKWATER) and float(water.steps) >= BREAKWATER_STEPS and _fully_soaked(enemy) and living(enemy) \
@@ -659,9 +663,9 @@ func _entered(enemy, water: Dictionary) -> void:
 			var room: int = enemy.statuses.get_max_stacks(EnemyStatuses.DAMP) - enemy.statuses.stacks(EnemyStatuses.DAMP)  # (The application's own cap clamps it)
 			if room > 0:
 				Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
-				tower._apply_one_status(enemy, EnemyStatuses.DAMP, room, tower.get_damage(), false)
+				setup_apply(SOAKED_BONE, tower, enemy, EnemyStatuses.DAMP, room, tower.get_damage())  # (setup credit 2026-10-16)
 		if rule(THERE_AND_BACK):
-			free_hit(tower, enemy)  # There and Back: hit once, free, by that lone Dewdrop
+			free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, THERE_AND_BACK)  # There and Back: hit once, free, by that lone Dewdrop
 
 func _tick_riptides() -> void:
 	for i in range(_riptides.size() - 1, -1, -1):
@@ -731,16 +735,19 @@ func _ripple_extras(enemy, w: int, soaked: Array) -> void:
 
 # Puts `stacks` of `id` on `other`: quietly onto a status it has, or started as `source`'s own (not native) application.
 # Charged never fills to a bolt. True when it landed.
-func _carry(other, id: StringName, stacks: int, source) -> bool:
+# `credit_id` (setup credit 2026-10-16): the evolution whose carry this is, for the ledger.
+func _carry(other, id: StringName, stacks: int, source, credit_id: StringName = &"") -> bool:
 	if not living(other) or id == EnemyStatuses.HELD or stacks <= 0:
 		return false
 	if other.statuses.has(id):
-		return other.statuses.add_quiet(id, stacks) > 0
+		var added: int = other.statuses.add_quiet(id, stacks)
+		setup_quiet(other, credit_id, id, added)
+		return added > 0
 	if not (source is Tower) or not is_instance_valid(source):
 		return false
 	if id == EnemyStatuses.STATIC and stacks >= other.statuses.get_max_stacks(id) - 1:
 		return false
-	source._apply_one_status(other, id, stacks, source.get_damage(), false)
+	setup_apply(credit_id, source, other, id, stacks, source.get_damage())
 	return living(other) and other.statuses.has(id)
 
 # Millrace: the ripple carries 1 stack of up to 3 of the hit nightmare's other statuses to every nightmare it soaks.
@@ -758,7 +765,7 @@ func _millrace(enemy, soaked: Array) -> void:
 	for other in soaked:
 		var landed := false
 		for row in carried:
-			if _carry(other, row[0], MILL_STACKS, row[1]):
+			if _carry(other, row[0], MILL_STACKS, row[1], EVO_MILLRACE):
 				landed = true
 		if landed:
 			given += 1
@@ -778,7 +785,7 @@ func _rain(w: int, soaked: Array) -> void:
 	for other in soaked:
 		var wet_one := false
 		for tower in bank:
-			if _carry(other, status_of(tower), RAIN_STACKS, tower):
+			if _carry(other, status_of(tower), RAIN_STACKS, tower, EVO_RAIN):
 				wet_one = true
 		if wet_one:
 			rained = true
@@ -816,7 +823,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			for other in _in_water(w, index_of(enemy), LAP_STEPS, enemy):
 				if now() >= float(other.get_meta(RIPPLE_META, -INF)):
 					other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
-					dewdrop._apply_one_status(other, EnemyStatuses.DAMP, 1, dewdrop.get_damage(), false)
+					setup_apply(EVO_LAPPING, dewdrop, other, EnemyStatuses.DAMP, 1, dewdrop.get_damage())  # (setup credit 2026-10-16)
 					soaked.append(other)
 			if not soaked.is_empty():
 				source.set_meta(LAP_META, now() + LAP_EVERY)
@@ -831,7 +838,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			source.set_meta(MIRROR_META, now() + MIRROR_EVERY)
 			_line_fx(enemy.global_position, last.global_position, 2.0, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", last.global_position, self, 0.5)
-			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG)
+			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
 			credit(EVO_REFLECTION, last.global_position)
 
 # A Warden's own accepted status on a nightmare in water (Riverside, Stagnant Water): visible stacks, never hidden ones.
@@ -841,13 +848,17 @@ func _evo_status(tower, enemy, status: StringName) -> void:
 		return
 	if evo(EVO_RIVERSIDE) and (is_own(tower) or is_other_family(tower)) and touches_water(tower, w) \
 			and _once(enemy, "side:%d:%d" % [tower.get_instance_id(), int(waters[w].id)]):
-		if enemy.statuses.add_quiet(status, SIDE_STACKS) > 0:
+		var side: int = enemy.statuses.add_quiet(status, SIDE_STACKS)
+		setup_quiet(enemy, EVO_RIVERSIDE, status, side)  # (setup credit 2026-10-16)
+		if side > 0:
 			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 			credit(EVO_RIVERSIDE, enemy.global_position)
 	if evo(EVO_STAGNANT) and status != EnemyStatuses.DROWSY and living(enemy) and _is_pond(w) \
 			and now() >= float(tower.get_meta(STILL_META, -INF)):
-		if enemy.statuses.add_quiet(status, STILL_STACKS) > 0:
+		var still: int = enemy.statuses.add_quiet(status, STILL_STACKS)
+		setup_quiet(enemy, EVO_STAGNANT, status, still)  # (setup credit 2026-10-16)
+		if still > 0:
 			tower.set_meta(STILL_META, now() + STILL_EVERY)
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 			credit(EVO_STAGNANT, enemy.global_position)
@@ -878,6 +889,7 @@ func _in_pond(enemy) -> void:
 	var boss: bool = enemy.statuses.is_boss
 	var key := _water_key(waters[w])
 	HelperCommons.slow(enemy, POND_SLOW * (0.5 if boss else 1.0), POND_TIME)
+	control_slow(EVO_POND, POND_SLOW * (0.5 if boss else 1.0), POLL)  # (setup credit 2026-10-16: the poll's time in the pond)
 	if _once(enemy, "pond:" + key):
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
 		credit(EVO_POND, enemy.global_position)
@@ -897,8 +909,10 @@ func _status_count(enemy) -> int:
 # Whirlpool: pulled back 2 steps (never bosses or flyers: the caller checks). Drowning Deep drags its neighbours too.
 func _whirlpool(enemy, w: int) -> void:
 	var pixels := PULL_STEPS * cell()
-	if enemy.push_back(pixels) <= 0.0:
+	var pulled: float = enemy.push_back(pixels)
+	if pulled <= 0.0:
 		return
+	SETUP.control_pull(dream_state, card_id(EVO_WHIRLPOOL), enemy, pulled)  # (setup credit 2026-10-16)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)
 	credit(EVO_WHIRLPOOL, enemy.global_position)
 	dream_state.role_cards.pulled_back(null, enemy)  # Homesick hears this pull too (it counts as the pull role, 0104c4d7)
@@ -916,13 +930,15 @@ func _drowning_deep(enemy, w: int, pixels: float) -> void:
 		if other == enemy or not living(other) or other.statuses.is_boss or other.is_flying() \
 				or other.global_position.distance_to(enemy.global_position) > reach:
 			continue
-		if other.push_back(pixels) > 0.0:
+		var dragged_px: float = other.push_back(pixels)
+		if dragged_px > 0.0:
+			SETUP.control_pull(dream_state, card_id(EVO_DEEP), other, dragged_px)  # (setup credit 2026-10-16)
 			dragged += 1
 			dream_state.role_cards.pulled_back(null, other)  # (Homesick)
 			_line_fx(enemy.global_position, other.global_position, 2.0, Palette.DEWLIGHT)
 	var hits := 0
 	for tower in (waters[w].dewdrops as Array) + _bank_of(w):
-		if _tower_ok(tower) and free_hit(tower, enemy):
+		if _tower_ok(tower) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, EVO_DEEP):  # (own: setup credit 2026-10-16)
 			hits += 1
 	if dragged > 0 or hits > 0:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.6)
@@ -936,6 +952,7 @@ func _drowned_hands(enemy, w: int, key: String) -> void:
 	var boss: bool = enemy.statuses.is_boss
 	dewdrop.hold(enemy, HANDS_HOLD * (0.5 if boss else 1.0))
 	if living(enemy) and enemy.statuses.is_held():
+		control(EVO_HANDS, HANDS_HOLD * (0.5 if boss else 1.0))  # (setup credit 2026-10-16)
 		_once(enemy, "hands:" + key)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)
 		credit(EVO_HANDS, enemy.global_position)
@@ -1025,10 +1042,11 @@ func _spring_tick() -> void:
 	for enemy in targets.slice(0, SPRING_MAX):
 		var room: int = enemy.statuses.get_max_stacks(EnemyStatuses.DAMP) - enemy.statuses.stacks(EnemyStatuses.DAMP)
 		if room > 0 and dewdrop != null:
-			dewdrop._apply_one_status(enemy, EnemyStatuses.DAMP, room, dewdrop.get_damage(), false)
+			setup_apply(EVO_SPRING, dewdrop, enemy, EnemyStatuses.DAMP, room, dewdrop.get_damage())  # (setup credit 2026-10-16)
 		if living(enemy):
 			var boss: bool = enemy.statuses.is_boss
 			HelperCommons.slow(enemy, SPRING_SLOW * (0.5 if boss else 1.0), SPRING_SECONDS)
+			control_slow(EVO_SPRING, SPRING_SLOW * (0.5 if boss else 1.0), SPRING_SECONDS)
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
 	_water_fx(best, int(waters[best].first), int(waters[best].last), 2.0)
 	credit(EVO_SPRING, _route_px[int(waters[best].first)])
@@ -1115,7 +1133,7 @@ func _caught_wading(dewdrop, enemy) -> void:
 		if fired >= CAUGHT_WARDENS:
 			break
 		if tower != dewdrop and is_other(tower) and near(tower.global_position, dewdrop.global_position) \
-				and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage()):
+				and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage(), CAUGHT_WADING):  # (own: setup credit 2026-10-16)
 			fired += 1
 
 # Steeped and Pooling (DreamState.class_duration, from Enemy.apply_status: every application counts, carried ones too):
@@ -1140,6 +1158,9 @@ func status_duration(source, enemy, status: StringName, duration: float) -> floa
 	if extra <= 0.0:
 		return duration
 	enemy.statuses.pending_linger[status] = extra  # The badge's lingering look (EnemyStatuses.apply books it)
+	# Setup credit 2026-10-16 (Linger, stack-equivalent): the stacks it has (at least 1) x the extra seconds / its default
+	SETUP.note(enemy, card_id(STEEPED if steeped else POOLING), status,
+		float(maxi(enemy.statuses.stacks(status), 1)) * extra / maxf(float(EnemyStatuses.DEFAULT_DURATION.get(status, 1.0)), 0.1))
 	return base + extra
 
 # How many Dewdrops have `enemy` inside their range (stops counting at `enough`).
@@ -1156,7 +1177,9 @@ func _ranges_holding(enemy, enough: int) -> int:
 func _drip(enemy) -> void:
 	var any := false
 	for id in enemy.statuses.active_ids():
-		if enemy.statuses.linger(id, DRIPPING_SECONDS) > 0.0:
+		var dripped: float = enemy.statuses.linger(id, DRIPPING_SECONDS)
+		SETUP.note_linger(enemy, card_id(DRIPPING), id, dripped)  # (setup credit 2026-10-16)
+		if dripped > 0.0:
 			any = true
 	if any:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
@@ -1174,7 +1197,7 @@ func _ebb(id: StringName, peak: int, source: Node, potency: float, line: String,
 		stacks = mini(stacks, enemy.statuses.get_max_stacks(id) - 1)
 	if stacks <= 0:
 		return
-	enemy.apply_status(id, stacks, EBB_SECONDS, potency, 0, line, source if is_instance_valid(source) else null)
+	SETUP.apply(enemy, card_id(EBB), id, stacks, EBB_SECONDS, potency, 0, line, source if is_instance_valid(source) else null)  # (setup credit 2026-10-16)
 	if living(enemy):
 		enemy.statuses.note_stretched(id, EBB_SECONDS)  # Keyword chips 2026-10-16: a status brought back is Linger (is_lingering)
 
@@ -1190,7 +1213,7 @@ func _slow_to_dry(enemy) -> void:
 			continue
 		var short := soaked_left - statuses.time_left(id)
 		if short > POLL:
-			statuses.linger(id, short)
+			SETUP.note_linger(enemy, card_id(WATERLOGGED), id, statuses.linger(id, short))  # (setup credit 2026-10-16)
 
 # Old Rain and Never Quite Dry (DreamState.class_reaction, from Enemy.apply_status): the Reaction check, wrapped.
 func around_reaction(enemy, id: StringName, source) -> void:
@@ -1249,8 +1272,11 @@ func _something(dewdrop, enemy) -> void:
 		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD:
 			continue
 		var source = statuses.source(id)
-		if is_other_family(source) and near(source.global_position, dewdrop.global_position) and statuses.add_quiet(id, 1) > 0:
-			added += 1
+		if is_other_family(source) and near(source.global_position, dewdrop.global_position):
+			var got: int = statuses.add_quiet(id, 1)
+			setup_quiet(enemy, SOMETHING, id, got)  # (setup credit 2026-10-16)
+			if got > 0:
+				added += 1
 	if added > 0:
 		dewdrop.set_meta(SOMETHING_META, now() + 1.0)
 
@@ -1267,7 +1293,7 @@ func _soaked_through(enemy) -> void:
 	for tower in towers():
 		if fired >= SOAKED_THROUGH_WARDENS:
 			break
-		if is_other_family(tower) and near(tower.global_position, dewdrop.global_position) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage()):
+		if is_other_family(tower) and near(tower.global_position, dewdrop.global_position) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, dewdrop.get_damage(), SOAKED_THROUGH):
 			fired += 1
 
 # Run-Off (lent): when a Soaked nightmare is dispelled near a Dewdrop, the statuses on it from another family's Wardens

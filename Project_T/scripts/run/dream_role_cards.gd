@@ -320,7 +320,9 @@ func pulled_back(tower, enemy) -> void:
 		return
 	var s: EnemyStatuses = enemy.statuses
 	for id in s.active_ids():
+		var left_before: float = s.time_left(id)  # setup credit 2026-10-16: the seconds it gave back
 		s.top_up(id)  # Back to full time (within the linger cap)
+		DreamState.SETUP.note_linger(enemy, DreamState.SETUP.rule_card(dreams, HOMESICK), id, s.time_left(id) - left_before)
 		enemy.flash_status(id)
 	_credit(HOMESICK, enemy.global_position)  # (Keyword chips 2026-10-16: no Reaction window after the pull)
 
@@ -334,19 +336,35 @@ func _prune_homesick() -> void:
 # Extra stacks on a Warden's own (native) application of `status`: Mother's Hand, One Bough, Deep Grain. Never Rooted
 # and never on walls (their Drowsy can't put a nightmare to sleep alone). Tower._apply_one_status adds them to the
 # application only; the Calling hooks hear the Warden's own count.
+var _last_mothers := 0  # setup credit 2026-10-16: the last extra_stacks call's parts (Tower's ledger write reads them)
+var _last_deep := 0
+
 func extra_stacks(tower, status: StringName) -> int:
+	_last_mothers = 0
+	_last_deep = 0
 	if status == EnemyStatuses.HELD or tower.tower_data.line == "wall":
 		return 0
 	var extra := 0
 	if _on.has(MOTHERS_HAND) and _touches_support(tower):
 		extra += MOTHERS_HAND_STACK
+		_last_mothers = MOTHERS_HAND_STACK
 		_credit(MOTHERS_HAND, tower.global_position)
 	if _on.has(DEEP_GRAIN):
 		var deep: int = mini(tower.choice_count(Tower.Focus.DEEP), DEEP_GRAIN_MAX)
 		if deep > 0:
 			extra += deep * DEEP_GRAIN_STACK
+			_last_deep = deep * DEEP_GRAIN_STACK
 			_credit(DEEP_GRAIN, tower.global_position)
 	return extra
+
+# [[rule, stacks], …] of the last extra_stacks call (setup credit 2026-10-16; only asked when it added any).
+func last_extra_rows() -> Array:
+	var rows: Array = []
+	if _last_mothers > 0:
+		rows.append([MOTHERS_HAND, _last_mothers])
+	if _last_deep > 0:
+		rows.append([DEEP_GRAIN, _last_deep])
+	return rows
 
 # Bound and Burning (Enemy.apply_status, any application): extra stacks while the nightmare is Rooted; also switches on
 # the timer pause (EnemyStatuses.bound_pause). Never Drowsy or Rooted itself.

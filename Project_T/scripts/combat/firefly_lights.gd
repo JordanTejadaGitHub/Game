@@ -83,6 +83,7 @@ const THUNDER_CAP_SECONDS := 1.5  # …the whole fan at most this many seconds o
 const CHAIN_EVERY := 1.0  # Chain of Lanterns: each Firefly Warden's Reactions jump once a second
 const CHAIN_META := &"ff_chain_next"  # On a Firefly Warden
 const CLASS_KIT := preload("res://scripts/combat/class_kit.gd")  # The shared Reaction list (REACTION_BURSTS)
+const SETUP := preload("res://scripts/run/setup_credit.gd")  # Setup credit 2026-10-16: the stack ledger; "credit" on a jump request = its own damage
 const BRUSHFIRE := &"brushfire"
 const BRUSH_SHARE := 0.5  # Brushfire: half the damage over time of a nightmare a Firefly Warden hit in the last 2 s, each second
 const BRUSH_EVERY := 1.0
@@ -726,6 +727,7 @@ func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, 
 		_line_fx(at, spot, 2.0, Palette.GLOW)  # The spark flies to the target's light…
 		from = spot  # …and the light throws it
 	credit(EVO_BALE if relay > 0 else EVO_TORCH, target.global_position)
+	opts["credit"] = EVO_BALE if relay > 0 else EVO_TORCH  # Setup credit 2026-10-16: its own damage
 	_fork(id, source, from, target, amount, cap, opts)
 
 # Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it.
@@ -851,12 +853,18 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 		var gold := jars >= 2
 		# Lantern Light; on gold path Where Lights Meet replaces it: one fork per Firefly Warden lighting it.
 		var count := mini(jars, MEET_MAX) if gold and _rule(WHERE_LIGHTS_MEET) else 1
+		var meet_count := count  # Setup credit 2026-10-16: jumps past the first are Where Lights Meet's, past these Bonfire's
 		if gold and evo(EVO_BONFIRE):
 			count = maxi(count, mini(GOLD_JUMPS, MEET_MAX))  # Bonfire: 2 jumps on gold path (TD fix 15: never past MEET_MAX)
 		var targets := nearest_lit(at, [enemy], count)
 		if class_on():  # The Calling's own payoff: the first pick only
-			for target in targets:
-				_fork(id, source, at, target, size * CALLING_SHARE, cap, {"origin": enemy})
+			for t in targets.size():
+				var opts := {"origin": enemy}
+				if t >= meet_count:
+					opts["credit"] = EVO_BONFIRE
+				elif t >= 1:
+					opts["credit"] = WHERE_LIGHTS_MEET
+				_fork(id, source, at, targets[t], size * CALLING_SHARE, cap, opts)
 			if targets.is_empty():
 				_wait(lights, source, size * CALLING_SHARE, cap)
 			else:
@@ -873,7 +881,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 			var charge: float = enemy.statuses.stored_bolt_damage()
 			var spark_to := nearest_lit(at, [enemy])
 			if charge > 0.0 and not spark_to.is_empty():
-				_fork(_next_event(), enemy.statuses.source(EnemyStatuses.STATIC), at, spark_to[0], charge, INF, {"final": true})
+				_fork(_next_event(), enemy.statuses.source(EnemyStatuses.STATIC), at, spark_to[0], charge, INF, {"final": true, "credit": LAST_SPARK})
 	if is_bolt:
 		if _rule(LANTERNWAY):
 			var step := _step_of(enemy)
@@ -887,7 +895,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 				step = int(next[1])
 				var front = front_in(int(next[0]))
 				if front != null:
-					_fork(id, source, from, front, event.base * LANTERNWAY_SHARE, cap)
+					_fork(id, source, from, front, event.base * LANTERNWAY_SHARE, cap, {"credit": LANTERNWAY})
 					from = front.global_position
 	if is_hit and _evolved():
 		if evo(EVO_BORROWED) and is_other(source):
@@ -995,7 +1003,9 @@ func _wake(target, carry: Array, from: Vector2) -> void:
 	for status in carry:
 		if not _living(target):
 			return
-		if target.statuses.add_quiet(status, WAKE_STACKS) > 0 and first == &"":
+		var woke: int = target.statuses.add_quiet(status, WAKE_STACKS)
+		SETUP.note(target, EVO_WAKE, status, float(woke), true)  # (setup credit 2026-10-16)
+		if woke > 0 and first == &"":
 			first = status
 	if first != &"":
 		target.flash_status(first)
@@ -1013,7 +1023,7 @@ func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> 
 		return
 	source.set_meta(LAMP_META, _now() + LAMP_EVERY)
 	var limit := INF if source.tower_data.get_id() == "sprout" else cap
-	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0})
+	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0, "credit": EVO_BORROWED})
 	credit(EVO_BORROWED, targets[0].global_position)
 
 # Show the Way: a Warden within a Firefly Warden's glow adds 1 more of its status to a Lit nightmare it hit, once a
@@ -1032,7 +1042,11 @@ func _show_flush() -> void:
 	_show = []
 	for row in rows:
 		var enemy = row[0].get_ref()
-		if not _living(enemy) or enemy.statuses.add_quiet(row[1], SHOW_STACKS) <= 0:
+		if not _living(enemy):
+			continue
+		var shown: int = enemy.statuses.add_quiet(row[1], SHOW_STACKS)
+		SETUP.note(enemy, EVO_SHOW, row[1], float(shown), true)  # (setup credit 2026-10-16)
+		if shown <= 0:
 			continue
 		enemy.flash_status(row[1])  # The dot that grew flashes
 		var tower = row[2].get_ref()
@@ -1067,7 +1081,7 @@ func _sightline(event, source, enemy, at: Vector2, sources: Array) -> void:
 		if not is_instance_valid(tower):
 			continue
 		Reactions._segment(&"light_thread", tower.global_position, at, self, 0.4)  # Three beams meet
-		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy})
+		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy, "credit": EVO_SIGHT})
 	credit(EVO_SIGHT, at)
 
 # Constellation: jumps from 3 different Wardens within 3 s make a nightmare fully Exposed (bosses half), once in 8 s.
@@ -1089,7 +1103,7 @@ func _constellation(target, source, at: Vector2) -> void:
 	var want := ceili(float(statuses.get_max_stacks(EnemyStatuses.MARKED)) * (CONST_BOSS_SHARE if statuses.is_boss else 1.0))
 	var add: int = want - statuses.stacks(EnemyStatuses.MARKED)
 	if add > 0:
-		target.apply_status(EnemyStatuses.MARKED, add, 0.0, source.get_damage(), 0, source.tower_data.line, source)
+		SETUP.apply(target, EVO_CONSTELLATION, EnemyStatuses.MARKED, add, 0.0, source.get_damage(), 0, source.tower_data.line, source)  # (setup credit 2026-10-16)
 	for row in roster.values():
 		var tower = row[1].get_ref()
 		if is_instance_valid(tower):
@@ -1163,7 +1177,7 @@ func _ember_poll(now: float) -> void:
 			credit(EVO_EMBERS, at)
 		for target in targets:
 			_strike({"event": id, "source": source, "from": at, "target": target, "amount": amount, "cap": float(pile.cap),
-				"final": true, "color": Palette.EMBER})
+				"final": true, "color": Palette.EMBER, "credit": EVO_WITCHFIRE if evo(EVO_WITCHFIRE) else EVO_EMBERS})
 
 # After a jump struck (the Firefly start with any evolution): Moth to Flame, Constellation, Pyre, Bale-fires, Swarm Night.
 # `before`: the sources lighting the target before the hit; `had`: its statuses before it (Lantern Wake on the next hop).
@@ -1176,7 +1190,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if not dead and warden:
 		if gold and evo(EVO_MOTH):
 			var stacks := maxi(int(MOTH_EXPOSED * 0.5), 1) if target.statuses.is_boss else MOTH_EXPOSED
-			target.apply_status(EnemyStatuses.MARKED, stacks, 0.0, source.get_damage(), 0, source.tower_data.line, source)
+			SETUP.apply(target, EVO_MOTH, EnemyStatuses.MARKED, stacks, 0.0, source.get_damage(), 0, source.tower_data.line, source)  # (setup credit 2026-10-16)
 			if _living(target):
 				target.flash_status(EnemyStatuses.MARKED)
 			credit(EVO_MOTH, at)
@@ -1188,7 +1202,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if dead and gold and evo(EVO_PYRE) and int(request.get("pyre", 0)) < PYRE_HOPS:
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
-			var opts := _hop(request, {"pyre": int(request.get("pyre", 0)) + 1, "color": Palette.EMBER})
+			var opts := _hop(request, {"pyre": int(request.get("pyre", 0)) + 1, "color": Palette.EMBER, "credit": EVO_PYRE})
 			if not had.is_empty():
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount), float(request.cap), opts)
@@ -1203,7 +1217,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if evo(EVO_SWARM) and _lit_count >= SWARM_AT and not request.get("swarm", false) and not request.get("final", false):
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
-			var opts := _hop(request, {"swarm": true, "color": Palette.HEARTLIGHT})
+			var opts := _hop(request, {"swarm": true, "color": Palette.HEARTLIGHT, "credit": EVO_SWARM})
 			if not had.is_empty():
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount) * SWARM_SHARE, float(request.cap), opts)
@@ -1271,7 +1285,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var jar = firefly_near(source)
 			var targets := _near_enemies(at, [enemy]) if jar != null else []
 			if not targets.is_empty():
-				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true})  # Sprouts too: Hammerfall's re-jump (Knock-On folded in, 2026-10-16)
+				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true, "credit": HAMMERFALL})  # Sprouts too: Hammerfall's re-jump (Knock-On folded in, 2026-10-16)
 		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
 		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
 		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)
@@ -1282,10 +1296,12 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
 			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.count() > 0).slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
-				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true})
+				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true, "credit": THUNDERSTRUCK})
 				if _living(other) and not other.statuses.is_boss:
 					# Each jump adds 1 Charged, from the Firefly Warden (its bolt, never the heavy Warden's: card pass 2026-10-16)
+					SETUP.begin(StringName(SETUP.rule_card(dream_state, THUNDERSTRUCK)))  # Setup credit 2026-10-16
 					thunder_jar._apply_one_status(other, EnemyStatuses.STATIC, THUNDER_STATIC, thunder_jar.get_damage(), false)
+					SETUP.end()
 	# Live Wire and Like to Like: retired (2026-10-13 / earlier); an old save keeps them
 	if not is_other_family(source):
 		return
@@ -1546,7 +1562,12 @@ func _strike(request: Dictionary) -> void:
 	var before: Array = _lit_sources(target) if evolved else []  # Read before the hit: a dispelled nightmare leaves the light
 	var step := _step_of(target) if evolved else -1
 	var had: Array = _carry_of(target) if evolved and evo(EVO_WAKE) else []
+	var own: StringName = request.get("credit", &"")  # Setup credit 2026-10-16: the evolution or card this jump is (its own damage)
+	if own != &"" and dream_state != null:
+		dream_state.begin_own_hit(own, target)
 	target.take_damage(amount, source.tower_data.line if source is Tower else LINE, false, false, source, FORK_TAG)
+	if own != &"" and dream_state != null:
+		dream_state.end_own_hit()
 	var carry: Array = request.get("carry", [])
 	if not carry.is_empty() and _living(target):
 		_wake(target, carry, request.from)
@@ -1559,6 +1580,7 @@ func _strike(request: Dictionary) -> void:
 			var hop := request.duplicate()
 			hop.from = at
 			hop["jump_from"] = target  # Keyword chips 2026-10-16: it leaves the nightmare just struck
+			hop["credit"] = KNOCK_ON  # Setup credit 2026-10-16
 			hop.target = next[0]
 			hop.final = true  # The second fork never forks again and takes no leftover
 			_strike(hop)

@@ -349,6 +349,7 @@ var calling := ""
 # for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
 const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
 const KEYWORDS := preload("res://scripts/run/dream_keywords.gd")  # Keyword chips 2026-10-16: Makes / Uses chips and the glossary (UI reads it)
+const SETUP := preload("res://scripts/run/setup_credit.gd")  # Setup credit 2026-10-16: the per-nightmare ledger and the 50/50 split
 
 # --- Power budget (Balancing Discussion with the owner's review, 2026-10-16; balance_simulation.md "Power budget") ------
 # Cards are sized by value, not text: what a card adds to a board running its build (the run report's card_damage). Two
@@ -610,6 +611,7 @@ func switchback_at(enemy: Node2D, bend: Vector2) -> void:
 		if tower.tower_data.can_attack and tower.global_position.distance_to(at) <= tower.get_range_pixels() \
 				and tower.global_position.distance_to(at) >= tower.attack_data.min_range * tower.MAP_GRID.cell_size.x:
 			HelperCommons.slow(enemy, SWITCHBACK_SLOW, SWITCHBACK_TIME)
+			SETUP.control_slow(self, &"switchback", SWITCHBACK_SLOW, SWITCHBACK_TIME)  # Setup credit 2026-10-16
 			enemy.set_meta(&"switchback_until", _game_clock + SWITCHBACK_COOLDOWN)
 			return
 
@@ -2162,7 +2164,8 @@ func _shared_spark(from: Node2D, to: Node2D) -> void:
 		return
 	var applier: Node = fs.source(best)
 	var line: String = fs.spore_line() if best == EnemyStatuses.SPORED else (applier.tower_data.line if applier is Tower else "")
-	to.apply_status(best, SHARED_SPARK_STACKS, 0.0, fs.potency(best), 0, line, applier if is_instance_valid(applier) else null)
+	SETUP.apply(to, SETUP.rule_card(self, SHARED_SPARK), best, SHARED_SPARK_STACKS, 0.0, fs.potency(best), 0, line,
+		applier if is_instance_valid(applier) else null)  # Setup credit 2026-10-16: the ledger, then the application
 	if is_instance_valid(to) and not to.is_cleansed:
 		to.flash_status(best)
 	note_card(SHARED_SPARK, to.global_position)
@@ -4994,7 +4997,7 @@ func _toast_new_dreams(before: Array[UpgradeData]) -> void:
 func _on_damage_dealt(event) -> void:
 	if event.combos.has(&"crit") and event.combos.has(&"marked") and not _events_this_run.has(String(EVENT_CRIT_MARKED)):
 		note_discovery(EVENT_CRIT_MARKED)
-	if not stacks.is_empty():
+	if not stacks.is_empty() or not calling_path.is_empty():  # (Evolutions too: setup credit 2026-10-16)
 		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
 	# Hard-Won Rings: the event that takes a nightmare's health to 0 counts for its Warden (exact kills too), once
 	if has_rule(&"clean_night") and is_instance_valid(event.enemy) and event.enemy.health <= 0 and event.source is Tower \
@@ -5730,23 +5733,48 @@ var _credit_parts := {}  # Tower instance id -> [board_version, {card id: total 
 var _credit_rules := {}  # Damage tag -> card id, rebuilt with the taken cards
 var _credit_rules_of := -1
 
+# Setup credit 2026-10-16 (balance_simulation.md "Setup cards"): the keys are "damage" (own share), "setup" (damage it
+# set up for payoffs and Reactions), "control" (full-stop seconds of slow / hold), "maze" (route cells covered, per
+# block), "dew", "leaves", "clears". Old saved rows lack the new keys: read them with .get.
+const CREDIT_KEYS: Array[String] = ["damage", "setup", "control", "maze", "dew", "leaves", "clears"]
+
 func _credit(card_id: String, key: String, amount: float) -> void:
-	if amount <= 0.0 or card_id == "":
+	if amount <= 0.0 or card_id == "" or card_id == SETUP.TOTAL:
 		return
 	for period in ["block", "run"]:
 		var rows: Dictionary = card_credit[period]
 		if not rows.has(card_id):
-			rows[card_id] = {"damage": 0.0, "dew": 0.0, "leaves": 0.0, "clears": 0.0}
-		rows[card_id][key] += amount
+			rows[card_id] = {"damage": 0.0, "setup": 0.0, "control": 0.0, "maze": 0.0, "dew": 0.0, "leaves": 0.0, "clears": 0.0}
+		rows[card_id][key] = float(rows[card_id].get(key, 0.0)) + amount
+
+# A class node's strike or free hit made by an evolution or card (class_kit.strike / free_hit `own`, firefly _strike's
+# "credit"): the next damage event on `enemy` is that id's own damage (setup credit 2026-10-16).
+var _own_hit_id: StringName = &""
+var _own_hit_enemy := 0
+
+func begin_own_hit(id: StringName, enemy: Node) -> void:
+	_own_hit_id = id
+	_own_hit_enemy = enemy.get_instance_id() if is_instance_valid(enemy) else 0
+
+func end_own_hit() -> void:
+	_own_hit_id = &""
+	_own_hit_enemy = 0
 
 func _credit_hit(event) -> void:
 	if event.amount <= 0.0:
 		return
 	for id in event.card_damage:  # What each card's multiplier added (DamageLog.note_card_bonus; Main Merger df7010bb)
-		_credit(id, "damage", event.card_damage[id])
+		SETUP.credit_own(self, id, event.card_damage[id], event)  # Payoffs: half to the cards that set it up
+	SETUP.credit_reaction(self, event)  # Reactions: half of their own damage to their feeders (setup credit 2026-10-16)
+	SETUP.credit_status_damage(self, event)  # Poisoned ticks / Charged bolts: the stacks' own damage, by who added them
+	if _own_hit_id != &"" and is_instance_valid(event.enemy) and event.enemy.get_instance_id() == _own_hit_enemy:
+		var own_id := SETUP.rule_card(self, _own_hit_id)
+		end_own_hit()  # One event per strike
+		SETUP.credit_own(self, own_id, event.amount, event)
+		return
 	var by_tag := _credit_rule_map()
 	if event.tag != &"" and by_tag.has(event.tag):  # A trigger card's own damage
-		_credit(by_tag[event.tag], "damage", event.amount)
+		SETUP.credit_own(self, by_tag[event.tag], event.amount, event)
 		return
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
@@ -5754,7 +5782,7 @@ func _credit_hit(event) -> void:
 	var credited_amount: float = event.amount
 	if tower._clear_minds_hit:
 		var clean_share := credited_amount * DreamState.CLEAR_MINDS_BONUS / (1.0 + DreamState.CLEAR_MINDS_BONUS)
-		_credit("deeper_calm", "damage", clean_share)
+		SETUP.credit_own(self, "deeper_calm", clean_share, event)
 		credited_amount -= clean_share
 	var entry: Array = _credit_parts.get(tower.get_instance_id(), [])
 	if entry.is_empty() or entry[0] != board_version or entry[4] != tower.turnover_active():
@@ -5779,7 +5807,7 @@ func _credit_hit(event) -> void:
 		return
 	var bonus: float = credited_amount * (1.0 - 1.0 / ((1.0 + entry[2]) * (1.0 + entry[3])))
 	for id in entry[1]:
-		_credit(id, "damage", bonus * float(entry[1][id]) / total)
+		SETUP.credit_own(self, id, bonus * float(entry[1][id]) / total, event)
 
 static func _row_card_id(row: Dictionary) -> String:
 	var card = row.get("card")
@@ -5799,23 +5827,58 @@ func _credit_rule_map() -> Dictionary:
 			_credit_rules[StringName(card.id)] = card.id
 	return _credit_rules
 
-# {"damage", "kind", "amount", "text"} for card `id` this &"block" or &"run".
+# Card `id`'s credit this &"block" or &"run": every CREDIT_KEYS value ("damage" = its own share, "setup", "control",
+# "maze", "dew", "leaves", "clears"; 0.0 when none), plus the headline "kind", "amount" and "text" (damage kind: amount =
+# own + setup). Setup credit 2026-10-16.
 func get_card_credit(id: String, period: StringName) -> Dictionary:
 	var row: Dictionary = card_credit.get(String(period), {}).get(id, {})
-	var name := get_display_name(id)
-	var damage: float = row.get("damage", 0.0)
+	var out := {}
+	for key in CREDIT_KEYS:
+		out[key] = float(row.get(key, 0.0))
+	var name: String = String(CALLING_PATHS.PATHS[StringName(id)].name) if CALLING_PATHS.PATHS.has(StringName(id)) else get_display_name(id)
+	var damage: float = out.damage + out.setup
 	if damage > 0.0:
-		return {"damage": damage, "kind": &"damage", "amount": damage, "text": "%s · +%s" % [name, _thousands(roundi(damage))]}
-	var dew: float = row.get("dew", 0.0)
-	if dew > 0.0:
-		return {"damage": 0.0, "kind": &"dew", "amount": dew, "text": "%s · +%d Dew" % [name, roundi(dew)]}
-	var leaves: float = row.get("leaves", 0.0)
-	if leaves > 0.0:
-		return {"damage": 0.0, "kind": &"leaves", "amount": leaves, "text": "%s · saved %d %s" % [name, roundi(leaves), "leaf" if roundi(leaves) == 1 else "leaves"]}
-	var clears: float = row.get("clears", 0.0)
-	if clears > 0.0:
-		return {"damage": 0.0, "kind": &"clears", "amount": clears, "text": "%s · %d half-price %s" % [name, roundi(clears), "clear" if roundi(clears) == 1 else "clears"]}
-	return {"damage": 0.0, "kind": &"damage", "amount": 0.0, "text": "%s · +0" % name}
+		out.kind = &"damage"
+		out.amount = damage
+		out.text = "%s · +%s" % [name, _thousands(roundi(out.damage))] if out.setup <= 0.0 \
+			else "%s · +%s (+%s set up)" % [name, _thousands(roundi(out.damage)), _thousands(roundi(out.setup))]
+	elif out.dew > 0.0:
+		out.kind = &"dew"
+		out.amount = out.dew
+		out.text = "%s · +%d Dew" % [name, roundi(out.dew)]
+	elif out.leaves > 0.0:
+		out.kind = &"leaves"
+		out.amount = out.leaves
+		out.text = "%s · saved %d %s" % [name, roundi(out.leaves), "leaf" if roundi(out.leaves) == 1 else "leaves"]
+	elif out.clears > 0.0:
+		out.kind = &"clears"
+		out.amount = out.clears
+		out.text = "%s · %d half-price %s" % [name, roundi(out.clears), "clear" if roundi(out.clears) == 1 else "clears"]
+	elif out.control > 0.0:
+		out.kind = &"control"
+		out.amount = out.control
+		out.text = "%s · %.1f s held back" % [name, out.control]
+	elif out.maze > 0.0:
+		out.kind = &"maze"
+		out.amount = out.maze
+		out.text = "%s · %d route cells" % [name, roundi(out.maze)]
+	else:
+		out.kind = &"damage"
+		out.amount = 0.0
+		out.text = "%s · +0" % name
+	return out
+
+# The whole table for the run report: {card or evolution id: {damage, setup, control, maze, dew, leaves, clears}} for
+# &"block" or &"run" (every key present, floats). Setup credit 2026-10-16.
+func get_card_credit_table(period: StringName) -> Dictionary:
+	var out := {}
+	var rows: Dictionary = card_credit.get(String(period), {})
+	for id in rows:
+		var row := {}
+		for key in CREDIT_KEYS:
+			row[key] = float(rows[id].get(key, 0.0))
+		out[id] = row
+	return out
 
 # The top `n` card ids this period: damage first (by amount), then the non-damage ones.
 func get_top_cards(period: StringName, n: int) -> Array[String]:
@@ -5844,6 +5907,7 @@ static func _thousands(n: int) -> String:
 # At each rest, the Dew the cards added this block: their rest bonus (Morning Dew's +10…), and their share of the
 # Dew pot (Morning Dew's +10% pot: the pot earned × its bonus ÷ the whole multiplier).
 func _credit_rest() -> void:
+	SETUP.credit_maze(self)  # Maze cards: the route cells their Wardens cover (setup credit 2026-10-16)
 	for card in _taken_cards():
 		if card.rest_bonus_add > 0:
 			_credit(card.id, "dew", card.rest_bonus_add * card_stacks(card.id))
@@ -5976,6 +6040,7 @@ func on_original_primary_hit(tower: Tower, enemy: Node2D) -> void:
 	tower.hold(enemy, STEADFAST_HOLD)
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		_role_pinned[id] = _game_clock + 4.0
+		SETUP.control(self, &"old_growth", STEADFAST_HOLD)  # Setup credit 2026-10-16 (Steadfast: rule old_growth)
 
 # Canopy (keyword chips 2026-10-16, TD 4): attacking Wardens (never Sprouts) in a group of CANOPY_GROUP or more, each
 # {touching} another in it, get +CANOPY_RANGE range. No "busy" gate: the group shimmers while it is linked.

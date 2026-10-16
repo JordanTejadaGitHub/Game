@@ -86,6 +86,32 @@ func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
 	if dream_state != null:
 		dream_state.note_card(id, at)
 
+# --- Setup credit 2026-10-16 (scripts/run/setup_credit.gd; balance_simulation.md "Setup cards") -------------------------
+const SETUP := preload("res://scripts/run/setup_credit.gd")
+
+# The card id for a rule (or the evolution id itself).
+func card_id(id: StringName) -> String:
+	return SETUP.rule_card(dream_state, id)
+
+# `id` added `stacks` of `status` to `enemy` quietly (add_quiet's return): the ledger.
+func setup_quiet(enemy, id: StringName, status: StringName, stacks: int) -> void:
+	if stacks > 0:
+		SETUP.note(enemy, card_id(id), status, float(stacks), true)
+
+# A Warden's non-native application made by card or evolution `id` (its stacks go in the ledger under `id`).
+func setup_apply(id: StringName, tower, enemy, status: StringName, stacks: int, soothe: float) -> void:
+	if not is_instance_valid(tower) or not living(enemy):
+		return
+	SETUP.begin(StringName(card_id(id)))
+	tower._apply_one_status(enemy, status, stacks, soothe, false)
+	SETUP.end()
+
+func control(id: StringName, seconds: float) -> void:
+	SETUP.control(dream_state, id, seconds)
+
+func control_slow(id: StringName, amount: float, seconds: float) -> void:
+	SETUP.control_slow(dream_state, id, amount, seconds)
+
 func lent_on() -> bool:
 	for id in _lent_rules():
 		if rule(id):
@@ -274,7 +300,7 @@ func second_of(tower) -> float:
 # its status once, as its own application; one per Warden a second across every card (extra ones are dropped). It is
 # not a hit for anything else: its tag keeps it out of every count.
 # `cap`: the most it may deal (Caught Wading: the Dewdrop's own hit).
-func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF) -> bool:
+func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
 	if not (tower is Tower) or not is_instance_valid(tower) or not living(enemy) or tower.attack_data == null:
 		return false
 	if now() < float(tower.get_meta(FREE_META, -INF)):
@@ -284,18 +310,31 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 	if amount <= 0.0:
 		return false
 	_line_fx(tower.global_position, enemy.global_position, 3.0)
+	_own_begin(own, enemy)
 	enemy.take_damage(amount, tower.tower_data.line, false, false, tower, tag)
+	_own_end(own)
 	var status := status_of(tower)
 	if status != &"" and living(enemy):
 		tower._apply_one_status(enemy, status, maxi(int(tower.attack_data.status_stacks), 1), tower.get_damage(), false)
 	return true
 
 # Damage a card deals in a Warden's name (never a hit for anything else: `tag` is one of CLASS_TAGS).
-func strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false) -> void:
+# `own` (setup credit 2026-10-16): the evolution or card id this damage is credited to as its own (DreamState.begin_own_hit).
+func strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false, own: StringName = &"") -> void:
 	if amount <= 0.0 or not living(enemy):
 		return
 	var line: String = tower.tower_data.line if tower is Tower and is_instance_valid(tower) else _line()
+	_own_begin(own, enemy)
 	enemy.take_damage(amount, line, is_area, false, tower if is_instance_valid(tower) else null, tag)
+	_own_end(own)
+
+func _own_begin(own: StringName, enemy) -> void:
+	if own != &"" and dream_state != null:
+		dream_state.begin_own_hit(own, enemy)
+
+func _own_end(own: StringName) -> void:
+	if own != &"" and dream_state != null:
+		dream_state.end_own_hit()
 
 # The one nap rule: 1 s, never on a sleeper, never a boss. True when it fell asleep.
 func nap(enemy) -> bool:
