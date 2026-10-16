@@ -19,7 +19,8 @@ const FAMILY := "firefly_jar"  # DreamState.calling on a Firefly start
 const LINE := "light"  # A Firefly Warden: any form of this line
 const FORK_TAG := &"fork"
 
-const GLOW_CELLS := 3.0  # Glow: path within this many cells of a Firefly Warden
+const GLOW_CELLS := 1.5  # Glow: path within this many cells of a Firefly Warden, plus the range it gained (owner 2026-10-16: lighting was too easy; was 3 / the whole range)
+const GLOW_BASE_RANGE := 3.0  # …a Firefly Warden's range beyond this (the Firefly Jar's) adds to its glow
 const SPROUT_TOUCH := 1.25  # A lit Sprout's light: the path touching it (the path rule, both axes)
 const NEAR_CELLS := 2.0  # "near": within 2 cells on both axes (lent cards)
 const CALLING_SHARE := 0.5  # Lantern Light: half the dispelling Warden's hit
@@ -120,7 +121,7 @@ const EVO_GLOWWORMS := &"lf_glowworms"
 const GLOW_SPROUTS_PER_JAR := 2  # Glowworms: Sprouts touching each Firefly Warden that glow (nearest the Heartwood first)
 const GLOW_SPROUT_TOUCH := 1.25  # …"touching": within this many cells on both axes
 const EVO_SWARM := &"lf_swarm_night"
-const SWARM_AT := 10  # Swarm Night: while this many nightmares are Lit, every jump jumps once more…
+const SWARM_AT := 6  # Swarm Night: while this many nightmares are Lit, every jump jumps once more… (10 before the smaller glow, 2026-10-16)
 const SWARM_SHARE := 1.0  # …at this share of the jump
 # Focus
 const EVO_BONFIRE := &"lf_bonfire"
@@ -495,10 +496,11 @@ func _note(cell: Vector2, light: int, jar: bool) -> void:
 		entry.lights.append(light)
 	_glow[cell] = entry
 
-# How far a Firefly Warden's glow reaches: its attack range as it is now (ranks, forms and cards that add range grow
-# it; owner 2026-10-14: "it doesn't grow when range grows"), never less than GLOW_CELLS.
+# How far a Firefly Warden's glow reaches: GLOW_CELLS, plus every cell of range it has beyond a Firefly Jar's (ranks,
+# forms and cards that add range grow it; owner 2026-10-14 "it doesn't grow when range grows"). Small on purpose
+# (owner 2026-10-16): where you plant Fireflies decides what is Lit, so Strung Lights, Glowworms and Bonfire matter.
 func glow_reach(tower) -> float:
-	return maxf(GLOW_CELLS * _cell(), tower.get_range_pixels())
+	return (GLOW_CELLS + maxf(tower.get_range_cells() - GLOW_BASE_RANGE, 0.0)) * _cell()
 
 # The sources lighting `at` (by distance, so flyers count).
 func sources_at(at: Vector2) -> Array:

@@ -27,7 +27,7 @@ const TEXTS := {
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "Glow: a Firefly Warden's attack range. Any dispel counts: by hit, poison or cloud. Only the 5 Lantern Light cards (offered because you started with Firefly Jar) use {lit} nightmares and lights; your other Firefly cards work from Firefly Wardens themselves, for anyone.",
+	"firefly_jar": "Glow: the path within 1.5 cells of a Firefly Warden, wider as its range grows. Any dispel counts: by hit, poison or cloud. Only the 5 Lantern Light cards (offered because you started with Firefly Jar) use {lit} nightmares and lights; your other Firefly cards work from Firefly Wardens themselves, for anyone.",
 	"sporeling": "Mushrooms stay through a {rest}; 40 at most. Only the 5 Spore Print cards (offered because you started with Sporeling) grow or use {mushrooms} and {doses}; your other Sporeling cards work without them, for anyone. Weak against flyers.",
 	"dewdrop": "{touching}: within 1.25 cells of the Warden. A {step} is one cell of path. Each nightmare is Soaked this way at most once a second. Only the 5 Puddles cards (offered because you started with Dewdrop) use {water}; your other Dewdrop cards work from where {warden:dewdrop}s stand and {damp}, for anyone.",
 	"bellflower": "A bell is any Bellflower form. Hits closer than half a second fill one pip, and each nightmare takes at most one {toll} a second. Only the 5 Keeping Time cards (offered because you started with Bellflower) use pips and {tolls}; your other Bellflower cards work from bells and {drowsy}, for anyone.",

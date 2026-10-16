@@ -77,7 +77,7 @@ const PATHS := {
 		"text": "Up to 2 Sprouts {touching} each Firefly Warden glow too, lighting the path they touch.",
 		"tip": "The Sprouts nearest the Heartwood glow first. Sprout light never reveals {kind_hidden} nightmares. Leads to: Swarm Night."},
 	&"lf_swarm_night": {"calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_glowworms", "name": "Swarm Night",
-		"text": "While 10 or more nightmares are {lit}, every {jump} {jumps} once more.",
+		"text": "While 6 or more nightmares are {lit}, every {jump} {jumps} once more.",
 		"tip": "The extra {jump} is as strong as the first and goes to the nearest {lit} nightmare it hasn't hit. Bosses take half."},
 	&"lf_bonfire": {"calling": "firefly_jar", "tier": STYLE, "parent": &"", "name": "Bonfire", "style": "Focus",
 		"text": "Path inside two Firefly Wardens' glows burns gold. A {dispel} there {jumps} to 2 {lit} nightmares instead of 1.",
