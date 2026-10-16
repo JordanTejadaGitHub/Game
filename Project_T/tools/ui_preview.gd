@@ -131,6 +131,20 @@ func _sheet() -> Control:
 		UiStyle.card_button(card, UiStyle.rarity_color(rarity))
 		card.text = UpgradeData.rarity_name(rarity)
 		cards.add_child(card)
+	# Keyword chips (owner 2026-10-16): every keyword and status word, Makes (filled) over Uses (outlined).
+	var ids: Array = KeywordIcons.WORDS.keys() + KeywordIcons.STATUSES.keys()
+	for kind in [&"makes", &"uses"]:
+		var chips := HFlowContainer.new()
+		chips.custom_minimum_size.x = 1200
+		chips.add_theme_constant_override("h_separation", 6)
+		chips.add_theme_constant_override("v_separation", 6)
+		var lead := Label.new()
+		lead.text = "Makes" if kind == &"makes" else "Uses"
+		UiStyle.caps(lead)
+		chips.add_child(lead)
+		for id in ids:
+			chips.add_child(UiStyle.chip(id, kind))
+		box.add_child(chips)
 	# The light pass (2026-10-05): primary + key chip, quiet, rows, the segmented speed row, slots.
 	var light := HBoxContainer.new()
 	light.add_theme_constant_override("separation", 14)
