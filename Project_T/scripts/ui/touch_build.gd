@@ -153,6 +153,8 @@ func _on_plant() -> void:
 	var planted: int = tower_placer.plant_stroke()
 	if tower_placer.has_method("after_player_placement"):
 		tower_placer.after_player_placement(planted > 0)  # TowerPlacer's hook (build mode now stays on: Done stops it)
+	if mobile_controls():
+		tower_placer.set_build_mode(false)  # Phones: Confirm ends building (user 2026-10-16); pick a Warden to build again
 	_refresh()
 
 # Done: out of sell mode, or out of build mode.

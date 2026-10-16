@@ -70,10 +70,9 @@ func _run() -> void:
 
 	# Confirm plants them all; build mode stays on (user 2026-10-06, the one-shot reversed)
 	touch._plant.pressed.emit()
-	_check(container.get_child_count() == before + 2 and not placer.stroking and placer.build_mode,
-		"Confirm builds the two, build mode stays on (%d planted)" % (container.get_child_count() - before))
-	_check(touch._done.visible, "Done shows while building with nothing pending")
-	_check(placer._session_built.size() == 2, "the two built stay outlined blue while build mode lasts")
+	_check(container.get_child_count() == before + 2 and not placer.stroking and not placer.build_mode,
+		"Confirm builds the two and ends build mode (user 2026-10-16; %d planted)" % (container.get_child_count() - before))
+	_check(not touch.visible and placer._session_built.is_empty(), "…the touch bar and the blue outlines go with it")
 
 	placer.select_tower(load("res://resource/tower/thornwall.tres"))
 	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
