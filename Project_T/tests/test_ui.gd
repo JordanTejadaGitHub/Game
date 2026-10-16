@@ -614,8 +614,8 @@ func _run() -> void:
 	_check(family_text.contains("[url=family:dewdrop]") and family_text.contains("Dewdrop[/color]")
 		and IconInfo.format("Needs {family:dewdrop}.") == "Needs Dewdrop.", "family tokens become links / plain names (%s)" % family_text)
 	link_label.meta_clicked.emit("family:dewdrop")
-	_check(popup.visible and popup._name.text == "Dewdrop family" and popup._text.text.begins_with("Water damage.") and popup._icon.visible,
-		"tapping a family shows its emblem, damage type and identity (%s)" % popup._text.text)
+	_check(popup.visible and popup._name.text == "Dewdrop family" and not popup._text.text.contains("damage.") and popup._text.text != "" and popup._icon.visible,
+		"tapping a family shows its emblem and identity, no damage type (Nightmare Kinds) (%s)" % popup._text.text)
 	link_label.meta_clicked.emit("term:perfect_block")
 	_check(popup.visible and popup._name.text == "Perfect block" and popup._text.text.contains("no leaf lost") and not popup._icon.visible,
 		"tapping a term shows its glossary line (%s)" % popup._text.text)

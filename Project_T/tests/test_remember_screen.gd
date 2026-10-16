@@ -45,7 +45,11 @@ func _run() -> void:
 			"…veiled: only its dark silhouette (user: \"show the silhouette still\"), \"%s\"" % nodes[final].tooltip_text)
 		screen._select(final)
 		var veiled_texts: Array = screen._side_box.get_children().filter(func(c: Node) -> bool: return c is Label).map(func(l: Label) -> String: return l.text)
-		_check(veiled_texts.has("?") and screen._side_box.find_child("UnlockButton", true, false) == null, "…its panel shows only \"?\" and the hint, no cost")
+		# Info shown, art hidden (user 2026-10-15, screens_ui.md 6f9e5401): its name and text, the Unlock button disabled
+		# and naming the branch to unlock first
+		var unlock := screen._side_box.find_child("UnlockButton", true, false) as Button
+		_check(not veiled_texts.has("?") and unlock != null and unlock.disabled and unlock.text == "Unlock %s first" % branch.display_name,
+			"…its panel shows its info, the Unlock button disabled: \"Unlock %s first\" (%s)" % [branch.display_name, unlock.text if unlock != null else "no button"])
 	_check(nodes[sporeling].portrait.material == null, "an owned form is full colour")
 	_check(nodes[sporeling].position.y > nodes[branch].position.y, "the root sits below its branches")
 

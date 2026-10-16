@@ -89,8 +89,9 @@ func _run() -> void:
 	var info = main.get_node("%NightmareInfo")
 	info._target = enemy
 	await process_frame
-	_check(info.visible and not _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty(),
-		"the nightmare info shows the resist icons")
+	_check(info.visible and _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty()
+		and (stag.kind == EnemyData.Kind.PLAIN or info._rows_box.find_child("KindBadge", true, false) != null),
+		"the nightmare info shows the Kind badge, no resist icons (Nightmare Kinds)")
 	# Slow / sleep limits (Enemy's get_status_notes) are listed under the statuses.
 	enemy.statuses.sleep_cooldown = 3.0
 	await process_frame

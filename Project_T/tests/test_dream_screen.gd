@@ -455,7 +455,10 @@ static func _text_length(card: UpgradeData) -> int:
 
 static func _name_of(button: Button) -> String:
 	var box := button.get_child(0)
-	return box.get_child(1).text if box.get_child_count() > 1 else "card"
+	for child in box.get_children():  # The name: the first plain Label (the keyword chip row and "KindLine" sit above it)
+		if child is Label and child.name != "KindLine":
+			return child.text
+	return "card"
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
