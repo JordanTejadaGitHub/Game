@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "never_quite_dry"
 display_name = "Never Quite Dry"
-description = "Needs another {family}'s status. A {reaction} on a nightmare {near} a {warden:dewdrop} leaves the statuses it spent at half their stacks."
-tip = "Once for each nightmare every 3 s. Never Rooted. Works for: every family's {reaction}s. A bet: needs {reaction}s."
+description = "A {reaction} on a nightmare {near} a {warden:dewdrop} leaves the statuses it spent at half their {stacks}."
+tip = "Once for each nightmare every 3 s. Counts {reaction}s set off by a status landing (not Shatter or Lightning Rod). Never Rooted. Works for: every family's {reaction}s, the {warden:dewdrop}'s own {damp} too. A bet: needs {reaction}s."
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])

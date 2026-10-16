@@ -80,6 +80,7 @@ const THUNDER_MAX := 4  # …up to this many…
 const THUNDER_CAP_SECONDS := 1.5  # …the whole fan at most this many seconds of the Firefly Warden near the heavy one
 const CHAIN_EVERY := 1.0  # Chain of Lanterns: each Firefly Warden's Reactions jump once a second
 const CHAIN_META := &"ff_chain_next"  # On a Firefly Warden
+const CLASS_KIT := preload("res://scripts/combat/class_kit.gd")  # The shared Reaction list (REACTION_BURSTS)
 const BRUSHFIRE := &"brushfire"
 const BRUSH_SHARE := 0.5  # Brushfire: half the damage over time of a nightmare a Firefly Warden hit in the last 2 s, each second
 const BRUSH_EVERY := 1.0
@@ -479,10 +480,10 @@ func _next_event() -> int:
 func _on_damage(event) -> void:
 	if dream_state == null or event.tag == FORK_TAG or not is_instance_valid(event.enemy):
 		return  # A fork triggers nothing
+	if _rule(CHAIN_OF_LANTERNS) and CLASS_KIT.is_reaction_burst(event):
+		_chain_more(event)  # Any family's Reaction on a nightmare a Firefly Warden hit in the last 2 s (the shared list, council 2026-10-15)
 	if event.kind == &"reaction":
-		if _rule(CHAIN_OF_LANTERNS):
-			_chain_more(event)  # Any family's Reaction on a nightmare a Firefly Warden hit in the last 2 s (trait rework 2026-10-15)
-		return  # A Reaction's own lightning gets nothing else added
+		return  # A Reaction's own lightning gets nothing else added (a burst logged as a hit, Shatter, still counts as a dispel)
 	var on := _lit_on()
 	var lent := _lent_on()
 	var guiding := _rule(GUIDING_LIGHT)
@@ -688,8 +689,11 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	var now := _now()
 	if is_bolt:
 		# Chain of Lanterns: a bolt also jumps half to the 2 nearest other nightmares near it
-		if _rule(CHAIN_OF_LANTERNS):
-			var cap_bolt := _lent_cap(source, enemy.statuses.source(EnemyStatuses.STATIC))
+		var charger = enemy.statuses.source(EnemyStatuses.STATIC)
+		var bolt_jar = charger if is_instance_valid(charger) else source
+		if _rule(CHAIN_OF_LANTERNS) and is_instance_valid(bolt_jar) and _now() >= float(bolt_jar.get_meta(CHAIN_META, -INF)):
+			bolt_jar.set_meta(CHAIN_META, _now() + CHAIN_EVERY)  # Bolts share Chain of Lanterns' once a second per Warden (council 2026-10-15)
+			var cap_bolt := _lent_cap(source, charger)
 			for target in _near_enemies(at, [enemy]).slice(0, CHAIN_TARGETS):
 				_fork(id, source, at, target, event.base * CHAIN_SHARE, cap_bolt)
 		return

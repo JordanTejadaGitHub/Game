@@ -52,8 +52,8 @@ const STRUCK_BELL := &"struck_bell"  # Lent
 const CHORUS := &"lent_chorus"  # Lent
 const KNELL := &"knell"  # Lent
 const ON_THE_BEAT := &"on_the_beat"  # Lent (took Sound Carries' slot, 2026-10-13)
-const BEAT_EVERY := 2.0  # On the Beat: each Warden once every 2 s…
-const BEAT_HALFWAY := 0.5  # …and only if it is at least this far to its next attack (so slow Wardens never double)
+const BEAT_EVERY := 3.0  # On the Beat: each Warden once every 3 s, and never more often than every 2 of its own attacks…
+const BEAT_HALFWAY := 0.25  # …and only with at most this share of its wait left (council 2026-10-15: slow Wardens never double)
 const BEAT_META := &"kt_beat_next"  # On a Warden
 const BEAT_FRAME_META := &"kt_beat_frame"  # On a bell: the frame it last set the beat
 const RUDE_NEXT_META := &"kt_rude_next"  # On a bell: Rude Awakening, one doubled waking hit per bell a second
@@ -110,7 +110,7 @@ const SLEEPER_META := &"kt_sleeper"  # On a bell: WeakRef to the nightmare it pu
 # Trait rework (owner 2026-10-15, trait_lent_proposal.js): the lent cards make things happen again, in rhythm, for every
 # family, bells included ("with its own family"). A repeat is damage only (CLASS_TAGS: it never sets a card off again).
 const IN_TIME := &"in_time"
-const IN_TIME_EVERY := 4  # In Time: every 4th hit a Warden touching a bell (or a bell) lands on one nightmare…
+const IN_TIME_EVERY := 5  # In Time: every 5th hit a Warden touching a bell (or a bell) lands on one nightmare… (4th until the council's 2026-10-15 review)
 const IN_TIME_DELAY := 0.25  # …lands again this long after
 const IN_TIME_META := &"kt_in_time"  # On a nightmare: {Warden id: hits counted}
 const IN_TIME_FRAME_META := &"kt_in_time_frame"  # On a Warden: the frame its last hit was counted (an area attack counts once)
@@ -127,7 +127,8 @@ const DA_CAPO_SHARE := 0.5  # Da Capo: a hit that happens again happens a third 
 const DA_CAPO_EVERY := 4.0  # …each Warden once in 4 s
 const DA_CAPO_DELAY := 0.25
 const DA_CAPO_META := &"kt_da_capo_next"  # On a Warden
-const RUDE_WARDENS := 3  # Rude Awakening: waking or let go, the last hit from up to this many Wardens lands again
+const RUDE_WARDENS := 3  # Rude Awakening: waking or let go, the last hit from up to this many Wardens lands again…
+const RUDE_RECENT := 3.0  # …hits from the last 3 s only; one replay per bell a second (the nearest bell answers)
 const LAST_HITS_META := &"kt_last_hits"  # On a nightmare: {Warden id: [WeakRef, base, time]}
 const BELL_HIT_META := &"kt_bell_hit"  # On a nightmare: {bell id: true}: that bell has hit it (Second Verse)
 var _later: Array = []  # Repeats waiting: [{at, tower: WeakRef, enemy: WeakRef, amount, tag, again: bool}]
@@ -454,13 +455,13 @@ func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
 
 # Reprise listens to Reactions, which every other class card ignores (class_kit filters them out).
 func _on_damage(event) -> void:
-	if dream_state != null and rule(REPRISE) and event.kind == &"reaction" and is_instance_valid(event.enemy):
+	if dream_state != null and rule(REPRISE) and is_instance_valid(event.enemy) and is_reaction_burst(event):
 		_reprise(event)
 	super._on_damage(event)
 
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -> void:
-	if dispel and not tagged and source != null and rule(ENCORE):
-		_encore(source)
+	if dispel and is_hit and rule(ENCORE):
+		_encore(source)  # A hit's dispel only (a status tick's never counts)
 	if tagged or source == null or not is_hit or not living(enemy):
 		return
 	if rule(SLEEP_NO_MORE):
@@ -534,7 +535,7 @@ func _beat(bell) -> void:
 		var period: float = 1.0 / maxf(tower.get_attacks_per_second(), 0.01)
 		if tower._cooldown > period * BEAT_HALFWAY:
 			continue  # Not halfway yet: a slow Warden is never doubled
-		tower.set_meta(BEAT_META, now() + BEAT_EVERY)
+		tower.set_meta(BEAT_META, now() + maxf(BEAT_EVERY, 2.0 * period))
 		tower._cooldown = 0.0
 		_line_fx(bell.global_position, tower.global_position, 1.5, Palette.BLOSSOM)
 
@@ -600,7 +601,7 @@ func _refrain(source, enemy, base: float) -> void:
 func _encore(source) -> void:
 	if not source.tower_data.can_attack or now() < float(source.get_meta(ENCORE_META, -INF)) or not _by_a_bell(source):
 		return
-	source.set_meta(ENCORE_META, now() + ENCORE_EVERY)
+	source.set_meta(ENCORE_META, now() + maxf(ENCORE_EVERY, 2.0 / maxf(source.get_attacks_per_second(), 0.01)))  # Never doubles a slow Warden
 	source._cooldown = 0.0
 	Reactions._effect(&"landing_dust", source.global_position, self, 0.5)
 
@@ -640,8 +641,19 @@ func _note_last_hit(source, enemy, base: float) -> void:
 func _rude_awakening(enemy) -> void:
 	var hits: Dictionary = enemy.get_meta(LAST_HITS_META, {})
 	enemy.remove_meta(LAST_HITS_META)
+	var bell = null
+	var best := INF
+	for other in bells():
+		var d: float = other.global_position.distance_squared_to(enemy.global_position)
+		if d < best:
+			best = d
+			bell = other
+	if bell == null or now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
+		return
+	bell.set_meta(RUDE_NEXT_META, now() + 1.0)
 	for id in hits:
-		_again(hits[id][0].get_ref(), enemy, float(hits[id][1]), &"rude_replay")
+		if now() - float(hits[id][2]) <= RUDE_RECENT:
+			_again(hits[id][0].get_ref(), enemy, float(hits[id][1]), &"rude_replay")
 
 # Sound Carries: a pulsing bell's ring carries 4 steps down the path past its reach, at half, stopping at the next
 # bell's reach. Carried rings count; each nightmare takes one per pulse.
@@ -793,34 +805,7 @@ func on_rest() -> void:
 # Rude Awakening: the next hit on a nightmare waking from any sleep, or let go from a Hold, from any Warden, deals
 # double (the hit that wakes it counts; within 2 s; once per sleep or Hold).
 func damage_multiplier(enemy, source, tag: StringName) -> float:
-	if true or not rule(RUDE_AWAKENING) or not (source is Tower) or tag != &"":
-		return 1.0  # (Trait rework 2026-10-15: Rude Awakening replays hits now, _rude_awakening; this was its doubled hit)
-	var asleep: bool = enemy.statuses.is_asleep()
-	var woke: bool = asleep or now() - float(enemy.get_meta(WOKE_META, -INF)) <= RUDE_WINDOW
-	var sleep := int(enemy.get_meta(SLEEP_META, 0)) + (1 if asleep and not enemy.get_meta(ASLEEP_META, false) else 0)
-	if woke and int(enemy.get_meta(RUDE_META, -1)) == sleep:
-		woke = false  # This sleep is paid
-	var freed: bool = not woke and not enemy.statuses.is_held() and now() - float(enemy.get_meta(FREED_META, -INF)) <= RUDE_WINDOW \
-		and int(enemy.get_meta(RUDE_HOLD_META, -1)) != int(enemy.get_meta(HOLD_COUNT_META, 0))
-	if not woke and not freed:
-		return 1.0
-	# One doubled waking hit per bell a second (the nearest bell answers for it), so it grows with the cards, not
-	# with how many cheap bells stand on the map
-	var bell = null
-	var best := INF
-	for other in bells():
-		var d: float = other.global_position.distance_squared_to(enemy.global_position)
-		if d < best:
-			best = d
-			bell = other
-	if bell == null or now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
-		return 1.0
-	bell.set_meta(RUDE_NEXT_META, now() + 1.0)
-	if woke:
-		enemy.set_meta(RUDE_META, sleep)
-	else:
-		enemy.set_meta(RUDE_HOLD_META, int(enemy.get_meta(HOLD_COUNT_META, 0)))
-	return RUDE_MULTIPLIER
+	return 1.0  # (Trait rework 2026-10-15: Rude Awakening replays hits now, _rude_awakening; this was its doubled hit)
 
 # --- Drawing: the hanging notes ---------------------------------------------------------------------------------------------
 

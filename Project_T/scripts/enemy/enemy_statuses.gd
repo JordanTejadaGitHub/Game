@@ -307,6 +307,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if length >= status.time:
 		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
 		status["lingered"] = 0.0  # …and the linger cap counts from this landing (it bounds how long a status outlives it)
+		status["landed"] = length  # Topped Up puts it back to this, never more
 		status["stretched"] = float(pending_linger.get(id, 0.0))  # Steeped / Pooling / High Tide made this landing longer
 	status.time = maxf(status.time, length)
 	if id == SPORED:
@@ -931,19 +932,15 @@ func linger(id: StringName, seconds: float) -> float:
 	changes += 1
 	return added
 
-# Topped Up: `id`'s time back to what it had when it last landed (never longer).
+# Topped Up: `id`'s time back to what it had when it last landed (never longer). The time given back counts toward the
+# linger cap, so a Dewdrop hitting every second can't keep a status up for ever (council 2026-10-15).
 func top_up(id: StringName) -> void:
 	if not can_linger(id) or not _active.has(id):
 		return
 	var status: Dictionary = _active[id]
-	var full: float = float(status.get("full", status.time))
-	if id == SPORED:
-		for batch in _spore_batches:
-			batch[0] = maxf(float(batch[0]), full)
-		status.time = _spore_remaining()
-	else:
-		status.time = maxf(status.time, full)
-	changes += 1
+	var landed: float = float(status.get("landed", status.get("full", status.time)))
+	if landed > status.time:
+		linger(id, landed - status.time)
 
 # Seconds a Dewdrop card added to the landing about to happen (DreamState.class_duration, at most LINGER_MAX), by
 # status: apply() books them as "stretched" (the badge's lingering look; a landing's own length, so not the cap).

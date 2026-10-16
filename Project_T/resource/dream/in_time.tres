@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "in_time"
 display_name = "In Time"
-description = "Every 4th hit a Warden {touching} a bell lands on one nightmare lands again a moment later. Bells count too."
+description = "Every 5th hit a Warden {touching} a bell lands on one nightmare lands again a moment later. Bells count too."
 tip = "Counted for each Warden on each nightmare; an area attack counts once. It repeats the damage, not the status. Sprouts count. Works for: any Warden beside a bell, and bells themselves. Safe."
 rarity = 0
 kind = 3

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "on_the_beat"
 display_name = "On the Beat"
-description = "When a bell attacks, the Wardens {touching} it attack with it, on the beat. Each Warden at most once every 2 s."
-tip = "A Warden that has only just attacked keeps its own timing instead, so slow Wardens never fire twice as fast. Other bells join too. Works for: any Warden beside a bell, bells included. Safe."
+description = "When a bell attacks, the Wardens {touching} it attack with it, on the beat. Each Warden at most once every 3 s."
+tip = "Only a Warden nearly ready to attack joins, and never more often than every 2 of its own attacks, so slow Wardens never fire twice as fast. Other bells join too. Works for: any Warden beside a bell, bells included. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "lent"])

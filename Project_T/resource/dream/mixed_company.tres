@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Statuses added to a nightmare {near} a spore Warden that carries 3 or more statuses get double {stacks}."
+description = "Statuses added to a nightmare that carries 3 or more statuses, {near} a spore Warden, get double {stacks}."
 tip = "Any 3 statuses, from any Wardens; the hit's own stacks are doubled, not other cards' extras. Each Warden, once a second. {drowsy} too, never past its usual most. Works for: builds that put many statuses on the same nightmares. A bet."
 rarity = 2
 kind = 3

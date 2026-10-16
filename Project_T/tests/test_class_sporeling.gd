@@ -9,7 +9,7 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.spore_print)
 const CELL := 64.0
-const LENT := ["mycelium", "overnight", "pass_it_round", "narrows", "seeping_in", "mixed_company", "breathe_it_in",
+const LENT := ["mycelium", "overnight", "pass_it_round", "spore_ring", "seeping_in", "mixed_company", "breathe_it_in",
 	"sitting_ducks", "hemmed_in", "gone_to_seed"]  # Trait rework 2026-10-15: Second Helping retired, Gone to Seed new
 
 func _initialize() -> void:

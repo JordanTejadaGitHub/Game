@@ -87,7 +87,7 @@ const HIGH_TIDE_SHARE := 0.75  # High Tide: each status with more than 75% of it
 const HIGH_TIDE_PER := 0.10  # …adds 10% to hits from Wardens near a Dewdrop…
 const HIGH_TIDE_MAX := 0.40  # …up to +40%
 const OLD_RAIN := &"old_rain"
-const OLD_RAIN_AGE := 6.0  # Old Rain: a Reaction near a Dewdrop on a nightmare that has carried a status this long…
+const OLD_RAIN_AGE := 4.0  # Old Rain: a Reaction near a Dewdrop on a nightmare that has carried a status this long… (6 s until the council's 2026-10-15 review)
 const OLD_RAIN_BONUS := 1.4  # …deals 40% more (its burst; damage over time after it is unchanged)
 const NEVER_DRY := &"never_quite_dry"
 const NEVER_DRY_EVERY := 3.0  # Never Quite Dry: a Reaction near a Dewdrop leaves the statuses it spent at half, once per nightmare in 3 s
@@ -659,7 +659,7 @@ func _slow_to_dry(enemy) -> void:
 
 # Old Rain and Never Quite Dry (DreamState.class_reaction, from Enemy.apply_status): the Reaction check, wrapped.
 func around_reaction(enemy, id: StringName, source) -> void:
-	if not living(enemy) or strongest_near(enemy.global_position, is_own) == null:
+	if not living(enemy) or enemy.statuses.count() < 2 or strongest_near(enemy.global_position, is_own) == null:
 		Reactions.on_status(enemy, id, source)
 		return
 	var statuses: EnemyStatuses = enemy.statuses
@@ -766,8 +766,9 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 	if not active():
 		return 1.0
 	var multiplier := 1.0
-	if _old_rain and (tag in Reactions.CHAIN_FALLOFF_TAGS or tag == &"popped"):
-		multiplier *= OLD_RAIN_BONUS  # Old Rain: this Reaction's burst
+	if tag in REACTION_BURSTS and (_old_rain or (rule(OLD_RAIN) and enemy.statuses.oldest_age() >= OLD_RAIN_AGE \
+			and strongest_near(enemy.global_position, is_own) != null)):
+		multiplier *= OLD_RAIN_BONUS  # Old Rain: this Reaction's burst (Shatter and Lightning Rod too: they never pass a landing)
 	if not (source is Tower) or not is_instance_valid(source):
 		return multiplier
 	if rule(HIGH_TIDE) and tag == &"" and dewdrop_near(source) != null:

@@ -14,6 +14,13 @@ const NAP_SECONDS := 1.0  # The one nap rule: fixed 1 s, never on a sleeper, nev
 const POLL := 0.1
 const FREE_HIT_TAG := &"free_hit"
 const FREE_META := &"ck_free_next"  # On a Warden: when it may give its next free hit
+# What every lent card means by "a Reaction" (council 2026-10-15: one list for Reprise, Chain of Lanterns, Old Rain):
+# the Reactions' burst damage tags, crowned ones included; never an Echo Hollow echo or a carried storm.
+const REACTION_BURSTS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
+	&"avalanche", &"starfall", &"fever_dream", &"drown", &"popped", &"tempest", &"mushrooming", &"smother"]
+
+static func is_reaction_burst(event) -> bool:
+	return event.tag in REACTION_BURSTS or (event.kind == &"reaction" and event.tag != &"echo" and event.tag != &"carried_storm")
 # Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
 	&"riptide", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
@@ -136,8 +143,16 @@ func towers() -> Array:
 func _tower_ok(tower) -> bool:
 	return is_instance_valid(tower) and not tower.is_queued_for_deletion() and tower.tower_data != null
 
+# This family's Wardens, cached for the frame (council 2026-10-15: every status landing asked for them several times).
+var _own_cache: Array = []
+var _own_frame := -1
+
 func own_towers() -> Array:
-	return towers().filter(is_own)
+	var frame := Engine.get_process_frames()
+	if frame != _own_frame:
+		_own_frame = frame
+		_own_cache = towers().filter(is_own)
+	return _own_cache.filter(_tower_ok)
 
 func enemies() -> Array:
 	return get_tree().get_nodes_in_group(Tower.ENEMY_GROUP).filter(living)
