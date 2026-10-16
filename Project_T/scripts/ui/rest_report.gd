@@ -137,6 +137,10 @@ func show_report(block: int) -> void:
 	if batch_dreams != null and batch_dreams.has_method("batch_report_lines"):
 		text += batch_dreams.batch_report_lines()  # "Growth Rings: lost (you planted this block)", "Held Breath: rest bonus tripled"
 	text += fired_text(batch_dreams)  # "Your Dreams this block: Mycelium ×14, …"
+	if batch_dreams != null and batch_dreams.has_method("reaction_build_lines"):  # Power budget (Roguelite Code 73c2f686)
+		var boosted: Array = batch_dreams.reaction_build_lines()
+		if not boosted.is_empty():
+			text += "\nReactions your build boosts: " + ", ".join(boosted)  # Strongest first
 	last_gauge = gauge(get_tree().get_first_node_in_group(RunHistory.GROUP) if is_inside_tree() else null, drift_director,
 		batch_dreams, close_calls.block_count if close_calls != null else 0)
 	text += strength_text(last_gauge)

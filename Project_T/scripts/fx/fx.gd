@@ -244,7 +244,15 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
 		# The name without its "!" and the reaction's icon (the callout redo; the crowned ones by their own id).
-		var shown := callout(String(row[1]).trim_suffix("!"), colour, at, parent, reaction, IconInfo.icon(reaction))
+		var words := String(row[1]).trim_suffix("!")
+		# Power budget (owner review 2026-10-16, "can be seen working"; Roguelite Code 73c2f686): a Reaction the build
+		# boosts says so, "Ignite x2.1 from your build", in place of its bare name.
+		var dreams := parent.get_tree().get_first_node_in_group(DreamState.GROUP) if parent != null and parent.is_inside_tree() else null
+		if dreams != null and dreams.has_method("reaction_build_text"):
+			var boosted: String = dreams.reaction_build_text(reaction)
+			if boosted != "":
+				words = boosted
+		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction))
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
