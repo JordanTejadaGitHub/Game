@@ -1583,7 +1583,7 @@ class FormNode extends Button:
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
 				var price: int = screen.dream_state.get_unlock_price(data)
 				var colour := Palette.BLOSSOM if state == State.CAN_UNLOCK else UiStyle.POOR
-				return ["%s Dreamlight" % UiStyle.dreamlight_amount(price) if price > 0 else "Free", colour]
+				return [UiStyle.dreamlight_amount(price) if price > 0 else "Free", colour]  # The glyph and number say Dreamlight (test_text_style)
 			State.GROVE:
 				return ["Memory Grove", UiStyle.OFF]
 			State.NOT_IN_DREAM:
