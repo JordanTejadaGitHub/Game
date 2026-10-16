@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "mountains_fall"
 display_name = "Mountain's Fall"
-description = "{named_combo:avalanche} also leaves rubble where each spread {named_combo:shatter} lands, and deals 50% more."
-cost_description = "{named_combo:avalanche} can fire half as often."
+description = "{named_combo:avalanche} deals 50% more and leaves rubble where each spread {named_combo:shatter} lands."
+cost_description = "{named_combo:avalanche} can go off half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
@@ -19,3 +19,4 @@ min_act = 2
 entwined = true
 woven = true
 rule_id = &"mountains_fall"
+tip = "Rubble slows nightmares on it 25% for 3 s."

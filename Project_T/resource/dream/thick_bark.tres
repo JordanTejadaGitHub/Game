@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thick_bark"
 display_name = "Hardened Bark"
-description = "The first nightmare to reach the Heartwood each {block} costs no {leaves}, and a {perfect_block} regrows 1 {leaf}."
+description = "The first nightmare to reach the Heartwood each {block} takes no {leaves}. A {perfect_block} regrows 1 {leaf}."
 rarity = 0
 kind = 3
 tags = Array[String](["leaves"])

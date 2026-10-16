@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "spillover"
 display_name = "Spillover"
-description = "When an area attack dispels a nightmare, the leftover damage splashes onto nightmares within 1 cell."
+description = "When an area attack {dispels} a nightmare, the leftover damage hits nightmares within 1 cell."
 rarity = 2
 kind = 3
 tags = Array[String](["reach", "defining"])

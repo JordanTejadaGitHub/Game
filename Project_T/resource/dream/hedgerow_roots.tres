@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hedgerow_roots"
 display_name = "Hedgerow Roots"
-description = "Auras flow through Thornwalls: a Warden touching a Thornwall that touches an aura Warden also gets that aura."
+description = "A Warden {touching} a Thornwall also gets the aura of every aura Warden whose range reaches that Thornwall."
 rarity = 2
 kind = 3
 tags = Array[String](["support", "acorn", "wall"])
@@ -16,3 +16,4 @@ rule_id = &"hedgerow_roots"
 in_start_pool = false
 diagram = ".......\n.......\n.aXW...\n.......\n......."
 diagram_caption = "An aura flows through a touching Thornwall to the Warden beyond it."
+tip = "Works for: aura Wardens like {warden:acorn} and its forms, with Thornwalls around them."

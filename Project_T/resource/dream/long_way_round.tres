@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "long_way_round"
 display_name = "Long Way Round"
-description = "Bosses and Deeply Blighted nightmares take 2% more damage for each bend they have already walked round, up to 40%."
+description = "Bosses and {deeply_blighted} nightmares take 2% more damage for each bend they have already walked round, up to +40%."
 rarity = 1
 kind = 3
 tags = Array[String](["maze"])
 max_stacks = 1
 min_act = 2
 rule_id = &"long_way_round"
-tip = "Answers bosses. A bend has a full cell of straight path on each side."
+tip = "Bend: a turn with a full cell of straight path on each side."

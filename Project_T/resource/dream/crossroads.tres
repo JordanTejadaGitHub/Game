@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crossroads"
 display_name = "Crossroads"
-description = "A Warden {touching} the path in two places at least 6 {steps} apart deals double damage."
+description = "An attacking Warden {touching} the path in two places at least 6 {steps} apart deals 100% more damage."
 rarity = 3
 kind = 3
 tags = Array[String](["maze"])

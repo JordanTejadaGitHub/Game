@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rootlight"
 display_name = "Rootlight"
-description = "{warden:rootling}s can now {grow} into {warden:rootlight}s ({dew:{grow_cost:rootlight}}): glowing roots light the path around it; {held} lasts {field:rootlight.lit_hold_multiplier} times as long on lit tiles, and {hidden} nightmares show in the light."
+description = "{warden:rootling}s can now {grow} into {warden:rootlight}s ({dew:{grow_cost:rootlight}}): glowing roots light the path around it; {held} lasts {field:rootlight.lit_hold_multiplier} times as long on lit cells, and {hidden} nightmares show in the light."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])

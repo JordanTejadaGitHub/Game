@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "old_growth"
 display_name = "Steadfast"
-description = "A Warden that has stood 5 {drifts} stops each new target for 0.4 s with its first hit (once per nightmare every 4 s; not bosses). Selling resets it."
+description = "A Warden that has stood for 5 {drifts} makes each new target {held} for 0.4 s with its first hit."
 rarity = 1
 kind = 3
 tags = Array[String](["tall"])
 max_stacks = 1
 rule_id = &"old_growth"
+tip = "Selling resets the count; growing keeps it. Each nightmare once every 4 s. Never bosses."

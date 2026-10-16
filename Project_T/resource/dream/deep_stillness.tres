@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "deep_stillness"
 display_name = "Deep Stillness"
-description = "Still Pools last 12 s and pull walkers under for 2.25 s."
-cost_description = "Still Pools can form half as often."
+description = "{named_combo:still_pool}s last 12 s, and nightmares that walk in are pulled under for 2.25 s."
+cost_description = "{named_combo:still_pool}s can form half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

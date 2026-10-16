@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "charged_feathers"
 display_name = "Charged Feathers"
-description = "Your {warden:hummingbird_bower}s (and their forms) carry your {warden:firefly_jar}s' sparks: each peck applies 1 {static} {stack}."
+description = "{warden:hummingbird_bower} and its forms carry sparks: each peck adds 1 {stack} of {static}."
 cost_description = "Taking it removes {card:pollen_beaks} from this run."
 rarity = 2
 kind = 3
@@ -17,3 +17,4 @@ entwined = true
 excludes = Array[String](["pollen_beaks"])
 rule_id = &"charged_feathers"
 in_start_pool = false
+tip = "Offered once you have {warden:hummingbird_bower} and {warden:firefly_jar}. Safe."

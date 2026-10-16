@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "longer_roots"
 display_name = "Back-row Roots"
-description = "Attacking Wardens not {touching} the path gain +1 range."
+description = "Attacking Wardens not {touching} the path get +1 range."
 rarity = 1
 kind = 3
 tags = Array[String](["reach"])

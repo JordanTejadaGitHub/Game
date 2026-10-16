@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "afterglow"
 display_name = "Afterglow"
-description = "Every 5th link of a {reaction} {chain} gives nightmares within 2 cells 2 {stacks} of each status in that {reaction}."
-tip = "Needs {reactions} set off 20 times this run. Never {held}. Those stacks never add links to the chain. At most twice a second."
+description = "Every 5th link of a {chain} gives nightmares within 2 cells 2 {stacks} of each status in that {reaction}."
+tip = "These {stacks} never add links to the {chain}. Never {held}. At most twice a second. Offered after 20 {reactions} this run."
 rarity = 1
 kind = 3
 tags = Array[String](["reaction", "scaler"])

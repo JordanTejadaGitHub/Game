@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "snag"
 display_name = "Snag"
-description = "A flying nightmare that crosses a Thornwall touching an attacking Warden lands and walks the maze for 4 s. Once each; each wall once a {drift}."
+description = "A flyer that passes over a Thornwall {touching} an attacking Warden lands and walks the path for 4 s."
 rarity = 1
 kind = 3
 tags = Array[String](["wall", "maze"])
 max_stacks = 1
 min_act = 2
 rule_id = &"snag"
-tip = "Answers flying nightmares. Not bosses."
+tip = "Once per nightmare. Each wall once a {drift}. Bosses never."

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "towering"
 display_name = "Towering"
-description = "Your 3 highest-ranked Wardens deal 50% more. When one of their hits dispels a nightmare, the leftover damage lands on the nearest nightmare."
-tip = "Needs a final form at {rank} IV or higher. Ties go to the higher form. The leftover lands within 3 cells. Multiplies with your other Dream damage."
+description = "Needs a {final_form} at {rank} IV or higher. Your 3 highest-ranked Wardens deal 50% more, and a dispel's leftover damage hits the nearest nightmare."
+tip = "Only attacking Wardens with a {rank}; ties go to the higher form. Nearest: within 3 cells. Multiplies with your other Dream damage."
 rarity = 2
 kind = 3
 tags = Array[String](["nurture", "tall"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shattering_blow"
 display_name = "Shattering Blow"
-description = "Crits splash 50% of their damage onto nightmares within 1 cell."
+description = "When a crit lands, 50% of its damage splashes onto nightmares within 1 cell."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "precision", "reach"])

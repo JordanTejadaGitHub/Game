@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "homesick"
 display_name = "Homesick"
-description = "A nightmare pulled back has every status on it topped up to full time, and the next {reaction} on it within 3 s deals double."
-tip = "Works for: Wardens whose job is pulling (Rootcurl, Long Way Home, The Pond Keeper). Topping up counts toward a status's linger limit."
+description = "When a nightmare is pulled back, its statuses are topped up to full time, and its next {reaction} within 3 s deals double."
+tip = "Full time: each status starts its time over, within its usual limit. Works for: the Puddles {calling}'s Whirlpool and Drowning Deep, and Wardens that pull ({warden:rootcurl}, {warden:long_way_home}). A bet: you need something that pulls."
 rarity = 2
 kind = 3
 tags = Array[String](["role", "pull", "reaction"])

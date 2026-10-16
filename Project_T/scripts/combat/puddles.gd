@@ -880,6 +880,7 @@ func _whirlpool(enemy, w: int) -> void:
 		return
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)
 	credit(EVO_WHIRLPOOL, enemy.global_position)
+	dream_state.role_cards.pulled_back(null, enemy)  # Homesick hears this pull too (it counts as the pull role, 0104c4d7)
 	if evo(EVO_DEEP):
 		_drowning_deep(enemy, w, pixels)
 
@@ -896,6 +897,7 @@ func _drowning_deep(enemy, w: int, pixels: float) -> void:
 			continue
 		if other.push_back(pixels) > 0.0:
 			dragged += 1
+			dream_state.role_cards.pulled_back(null, other)  # (Homesick)
 			_line_fx(enemy.global_position, other.global_position, 2.0, Palette.DEWLIGHT)
 	var hits := 0
 	for tower in (waters[w].dewdrops as Array) + _bank_of(w):

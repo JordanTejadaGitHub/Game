@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "kindled_gaze"
 display_name = "Kindled Gaze"
-description = "Beams ramp up twice as fast on a nightmare carrying 2 or more statuses."
-tip = "Works for: beam Wardens (Sunpetal, Midsummer). The beam turns white while it ramps fast."
+description = "Beam Wardens ramp up twice as fast on a nightmare with 2 or more statuses."
+tip = "The beam turns white while it ramps fast. Works for: {warden:sunpetal} and {warden:midsummer}."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "beam"])

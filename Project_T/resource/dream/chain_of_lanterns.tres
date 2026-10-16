@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "chain_of_lanterns"
 display_name = "Chain of Lanterns"
-description = "A bolt, or any {reaction} on a nightmare a Firefly Warden hit in the last 2 s, also {jumps} half of it to the 2 nearest other nightmares {near} it."
+description = "Bolts, and {reactions} on nightmares a Firefly Warden hit in the last 2 s, {jump} half their damage to the 2 nearest nightmares {near} them."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"chain_of_lanterns"
 requires = Array[String](["firefly_jar"])
-tip = "Every family's {reaction}s count. Each Firefly Warden, once a second; at most 3 s of that Firefly Warden's damage. Works for: any {reaction} build with a Firefly Warden hitting the same nightmares, and {static} builds. Safe."
+tip = "Any family's {reactions} count. Each Warden once a second. At most 3 s of that Firefly Warden's damage. Works for: {reaction} builds with a Firefly Warden hitting the same nightmares, and {static} builds. Safe."

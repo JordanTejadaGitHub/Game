@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "A group of 6 or more attacking Wardens, all linked by touching, gets +1 range while it has hit 6 or more different nightmares in the last 3 s."
+description = "A group of 6 or more attacking Wardens side by side gets +1 range while it is busy."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])
@@ -14,3 +14,4 @@ max_stacks = 1
 in_start_pool = false
 min_attackers = 6
 rule_id = &"canopy"
+tip = "Group: each Warden shares a side with another in it; corners don't link. Busy: it hit 6 or more different nightmares in the last 3 s. A bet: needs a big cluster on a crowded path."

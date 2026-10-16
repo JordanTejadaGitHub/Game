@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "crown_of_leaves"
 display_name = "Crown of Leaves"
-description = "{reactions} a {final_form} takes part in deal 30% more. An {ascended} form's deal 60% more."
-tip = "Takes part: it applied one of the statuses, or landed the hit that set it off. Needs a {final_form} grown this run. Multiplies with your other Dream damage."
+description = "{reactions} a {final_form} takes part in deal 30% more damage, or 60% more for an {ascended} form."
+tip = "Takes part: it added one of the statuses, or landed the hit that set it off. Offered once you grow a {final_form} this run. Multiplies with your other Dream damage."
 rarity = 2
 kind = 3
 tags = Array[String](["form", "reaction"])

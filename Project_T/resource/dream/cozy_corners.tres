@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "cozy_corners"
 display_name = "Cozy Corners"
-description = "The Warden on the inside of each bend deals 30% more damage. One Warden per bend."
+description = "The attacking Warden on the inside of each bend deals 30% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["maze", "defining"])
@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"cozy_corners"
 diagram = ".P.....\n.PW....\n.+PPPP.\n.....w.\n......."
 diagram_caption = "On the inside of a bend, the cell the path turns around: +30%. A bend has a full cell of straight path on each side."
+tip = "Bend: a turn with a full cell of straight path on each side. Inside: the cell the path turns around. A Warden inside two bends counts once."

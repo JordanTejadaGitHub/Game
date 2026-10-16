@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "mothers_hand"
 display_name = "Mother's Hand"
-description = "A Warden {touching} a support Warden adds 1 more {stack} with every status it applies, and the {reaction}s it sets off deal 25% more."
-tip = "Support Wardens: auras, catchers and other helpers. Never {held}. The {reaction} bonus multiplies with your other {reaction} bonuses."
+description = "A Warden {touching} a support Warden adds 1 more {stack} with each status, and its {reactions} deal 25% more."
+tip = "Support Wardens: auras, catchers and other helpers. Never {held}. The {reaction} bonus multiplies with your other {reaction} bonuses. Works for: status Wardens {touching} a {warden:dreamcatcher}."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "support", "reaction"])

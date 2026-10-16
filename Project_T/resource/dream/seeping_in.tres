@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "seeping_in"
 display_name = "Settling Spores"
-description = "While a nightmare walks inside a spore Warden's range, every 6 {steps} each status it already has gains 3 {stacks}."
-tip = "A {step} is one cell of path. Steps it is pulled or pushed back over don't count again. It never starts a new status. Safe."
+description = "While a nightmare walks inside a spore Warden's range, each status it has gains 3 {stacks} every 6 {steps}."
+tip = "Never starts a new status. {held} doesn't count. Steps it is pulled or pushed back over don't count again. Works for: every family's statuses. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "lent"])

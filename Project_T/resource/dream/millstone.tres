@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "millstone"
 display_name = "Millstone"
-description = "A heavy Warden's hit on a nightmare with a {full} status deals 60% more, and 40% of it lands on nightmares within 1 cell."
-tip = "Works for: heavy Wardens (forms that hit hard, like Mossback or Jetreed). Any {full} status counts. The splash is area damage. Multiplies with your other Dream damage."
+description = "A {heavy} Warden's hit on a nightmare with a {full} status deals 60% more, and 40% of it splashes onto nightmares within 1 cell."
+tip = "Any {full} status counts. The splash is area damage. Multiplies with your other Dream damage. Works for: {heavy} Wardens like {warden:jetreed}, {warden:frostfern} and {warden:silver_bell}."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "heavy"])

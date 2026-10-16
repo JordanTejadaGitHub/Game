@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "glimmering_hunt"
 display_name = "Glimmering Hunt"
-description = "{deeply_blighted} nightmares have a 30% chance to drop a {dreamlight} shard (10 shards = 1 {dreamlight}; up to 3 {dreamlight} per run)."
+description = "{deeply_blighted} nightmares have a 30% chance to drop a {dreamlight} shard."
 rarity = 1
 kind = 3
 tags = Array[String](["dreamlight"])
 max_stacks = 1
 min_act = 2
 rule_id = &"glimmering_hunt"
+tip = "10 shards make {dreamlight:1}. At most {dreamlight:3} a run from this card."

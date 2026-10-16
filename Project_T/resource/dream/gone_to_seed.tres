@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "gone_to_seed"
 display_name = "Gone to Seed"
-description = "When a Warden's hit fills a status on a nightmare {near} a spore Warden, every other status on it gains 5 {stacks}."
-tip = "Filled: the hit that brings it to its most {stacks}. Once for each nightmare every 2 s. Never Rooted; {static} stops one short of a bolt. Works for: every family, the spore Wardens' own {spored} too. A bet: it needs a second status on the nightmare."
+description = "When a hit fills a status on a nightmare {near} a spore Warden, every other status on it gains 5 {stacks}."
+tip = "Fills: brings it to {full}. Any family's statuses count, {spored} too. Each nightmare once every 2 s. Never {held}; {static} stops 1 short of a bolt. A bet: needs a second status on the nightmare."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "lent"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "snare_line"
 display_name = "Snare Line"
-description = "A trap that goes off gives nightmares within 1 cell 3 {stacks} of each status the one who set it off carries."
-tip = "Works for: trap Wardens (Fairy Ring, Elf Circle). Never {held}."
+description = "When a trap goes off, nightmares within 1 cell get 3 {stacks} of each status on the one that set it off."
+tip = "Never {held}. Works for: {warden:fairy_ring}, {warden:elf_circle} and other trap Wardens."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "trap", "affliction"])

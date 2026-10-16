@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "dew_trail"
 display_name = "Dew Trail"
-description = "{warden:dewcatcher}s reach 0.5 cells further, and nightmares that are {damp} when caught drop 30% more {dew}."
+description = "{warden:dewcatcher}s catch 0.5 cells further.\n{damp} nightmares they catch drop 30% more {dew}."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])

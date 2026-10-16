@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "held_breath"
 display_name = "Nipped in the Bud"
-description = "Nightmares dispelled before they are halfway along their route pay 20% more {dew}."
+description = "Nightmares dispelled before they are halfway along the path pay 20% more {dew}."
 rarity = 1
 kind = 3
 tags = Array[String](["economy", "maze"])
 max_stacks = 1
 rule_id = &"held_breath"
-tip = "Halfway: by the distance it has walked; a flyer by its own line. The mirror of Last Collection."
+tip = "Halfway: by the distance it has walked; a flyer by its own flight line."

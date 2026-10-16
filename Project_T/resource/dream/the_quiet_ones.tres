@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_quiet_ones"
 display_name = "The Quiet Ones"
-description = "Wardens that don't attack are 50% stronger: their auras, their damage, and the speed of their {drowsy} scent. Catcher income and {warden:dreamcatcher}s are unchanged."
+description = "Wardens that don't attack are 50% stronger: their auras, their damage and their {drowsy} scent."
 rarity = 3
 kind = 3
 tags = Array[String](["tending"])
@@ -15,3 +15,4 @@ min_act = 2
 min_non_attackers = 3
 rule_id = &"the_quiet_ones"
 in_start_pool = false
+tip = "Catcher income and {warden:dreamcatcher}s don't change. Offered once you have 3 Wardens that don't attack."

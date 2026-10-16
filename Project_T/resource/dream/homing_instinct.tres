@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "homing_instinct"
 display_name = "Homing Instinct"
-description = "{family:nestling}-line birds come back from a swoop 50% faster."
+description = "When a {family:nestling} Warden's swoop dispels its target, it swoops on to the nearest nightmare within 3 cells."
 rarity = 1
 kind = 3
 tags = Array[String](["wing"])
 requires = Array[String](["nestling"])
 max_stacks = 1
 rule_id = &"homing_instinct"
+tip = "Once per swoop. Works for: {warden:nestling} and its swooping forms."

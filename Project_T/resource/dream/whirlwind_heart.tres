@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "whirlwind_heart"
 display_name = "Whirlwind Heart"
-description = "All attack speed bonuses count double, and every hit deals 20% less damage."
+description = "Attack speed bonuses count double, and every hit deals 20% less damage."
 rarity = 3
 kind = 3
 tags = Array[String](["swift"])
@@ -14,3 +14,4 @@ max_stacks = 1
 in_start_pool = false
 rule_id = &"whirlwind_heart"
 min_act = 2
+tip = "Dream cards still make one Warden attack at most 150% faster."

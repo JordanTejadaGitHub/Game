@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_long_way_home"
 display_name = "Long Way Home"
-description = "{warden:rootcurl}s can now {grow} into {warden:long_way_home} ({dew:{grow_cost:long_way_home}}): every {field:long_way_home.ability_every:seconds} a nightmare is dragged back {field:long_way_home.pull_tiles:count} path tiles, once each."
+description = "{warden:rootcurl}s can now {grow} into {warden:long_way_home} ({dew:{grow_cost:long_way_home}}): every {field:long_way_home.ability_every:seconds} a nightmare is pulled back {field:long_way_home.pull_tiles:count} {steps}, once per nightmare."
 rarity = 2
 kind = 1
 tags = Array[String](["root"])

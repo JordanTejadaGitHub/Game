@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "deep_sleep"
 display_name = "Deep Sleep"
-description = "Wardens deal 80% more damage to nightmares carrying 2 or more statuses."
-cost_description = "No rest bonus, and no Omens can be faced, for the rest of the run. Taking it removes {card:double_or_nothing} from this run."
+description = "Wardens' hits deal 80% more damage to nightmares carrying 2 or more statuses."
+cost_description = "For the rest of the run: no rest bonus, no {omens}, and no {card:double_or_nothing}."
 rarity = 2
 kind = 2
 tags = Array[String](["bittersweet"])
@@ -16,3 +16,4 @@ min_act = 2
 in_start_pool = false
 rule_id = &"deep_sleep"
 excludes = Array[String](["double_or_nothing"])
+tip = "No rest bonus: the base, {perfect_block} and maze {dew} are gone; Dreams that add to it still pay."

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "eddy"
 display_name = "Eddy"
-description = "{warden:gust}'s copied statuses also reach nightmares 1 cell either side of its target along the path (2 cells when the target stands on a bend)."
+description = "{warden:gust} and its forms also copy statuses onto nightmares 1 {step} either side of each target, 2 {steps} on a bend."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
@@ -14,3 +14,4 @@ requires = Array[String]([])
 requires_any = Array[String](["gust", "zephyr"])
 max_stacks = 1
 rule_id = &"eddy"
+tip = "Works for: {warden:gust} beside a winding path. Safe."

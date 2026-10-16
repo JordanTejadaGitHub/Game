@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "thin_bark"
 display_name = "Thin Bark"
-description = "Final and Ascended Wardens deal 100% more damage."
+description = "Wardens in a {final_form} or {ascended} form deal 100% more damage."
 rarity = 2
 kind = 2
 tags = Array[String](["bittersweet", "daring"])
 requires = Array[String]([])
 max_stacks = 1
-cost_description = "Base Wardens, branches and Sprouts deal 30% less."
+cost_description = "Base Wardens, {branches} and Sprouts deal 30% less damage."
 min_act = 2
 rule_id = &"thin_bark"
 in_start_pool = false

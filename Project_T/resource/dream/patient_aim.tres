@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "patient_aim"
 display_name = "Patient Aim"
-description = "A Warden has 15% more crit chance for each second it hasn't fired (up to +45%)."
+description = "A Warden's crit chance rises 15% for each second it hasn't attacked, up to +45%."
 rarity = 1
 kind = 3
 tags = Array[String](["crit", "stone"])
@@ -14,3 +14,4 @@ requires = Array[String](["standing_stone"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"patient_aim"
+tip = "Works for: {warden:standing_stone} and its forms."

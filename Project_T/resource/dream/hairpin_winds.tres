@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hairpin_winds"
 display_name = "Hairpin Winds"
-description = "{warden:pinwheel} and {warden:windmill}'s bonus for path around them can count 1 more path cell ({warden:pinwheel} up to +120%, {warden:windmill} +135%)."
+description = "{warden:pinwheel} and {warden:windmill} count 1 more path cell around them for their bonus."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
@@ -14,3 +14,4 @@ requires = Array[String](["pinwheel"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"hairpin_winds"
+tip = "Their most becomes 120% more damage for {warden:pinwheel}, 135% for {warden:windmill}."

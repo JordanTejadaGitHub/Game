@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "guiding_light_ii"
 display_name = "Guiding Light II"
-description = "A hit on a fully {marked} nightmare also jumps to nightmares within 2 cells of it at half damage."
+description = "A hit on a nightmare at {full} {marked} also {jumps} for half to every nightmare within 2 cells of it."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])
@@ -15,3 +15,4 @@ max_stacks = 1
 deepens = "guiding_light"
 rule_id = &"guiding_light"
 in_start_pool = true
+tip = "Works for: {warden:lanternmoth} and its forms with any hitting Warden. Safe."

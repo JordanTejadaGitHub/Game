@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "da_capo"
 display_name = "Da Capo"
-description = "Needs In Time, Refrain or Rude Awakening. A hit that lands again lands a third time, at half. Each Warden, once every 4 s."
-tip = "Works with every hit those cards repeat, from any family, bells too. A bet: a capstone for a repeat build."
+description = "Needs {card:in_time}, {card:refrain} or {card:rude_awakening}. When a hit lands again, it lands a third time at half damage."
+tip = "Any family's repeated hits count, bells too. Each Warden once every 4 s. A bet: needs one of those cards' repeats."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

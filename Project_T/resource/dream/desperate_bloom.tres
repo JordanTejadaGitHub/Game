@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "desperate_bloom"
 display_name = "Desperate Bloom"
-description = "While the Heartwood has less than half its leaves, all Wardens attack 50% faster."
+description = "While the Heartwood has less than half its {leaves}, all Wardens attack 50% faster."
 rarity = 2
 kind = 3
 tags = Array[String](["leaves", "daring", "defining"])

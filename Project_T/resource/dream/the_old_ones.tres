@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_old_ones"
 display_name = "The Old Ones"
-description = "Wardens at {rank} V or higher make the Wardens touching them count two {ranks} higher."
+description = "Wardens {touching} a Warden at {rank} V or higher count 2 {ranks} higher."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture", "tall"])
@@ -14,3 +14,4 @@ max_stacks = 1
 min_act = 2
 in_start_pool = false
 rule_id = &"old_ones"
+tip = "Only Wardens that already have a {rank}. Never past {rank} VII."

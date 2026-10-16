@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "second_verse"
 display_name = "Second Verse"
-description = "Needs another {family}'s status. A nightmare a bell hit, leaving that bell's range, gets the last status another {family}'s Warden gave it again, same {stacks}."
-tip = "Once for each nightmare and bell. Never starts a status, never past its most; {static} stops one short of a bolt. Works for: status Wardens of any family placed before a bell. A bet."
+description = "Needs another {family}'s status. When a nightmare a bell has hit leaves that bell's range, the last status another {family} gave it lands again."
+tip = "Same {stacks} as before. {drowsy} and {held} don't count. Never starts a status or goes past {full}; {static} stops one short of a bolt. Once for each bell and nightmare. Works for: status Wardens placed before a bell. A bet: needs another family's statuses."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "thunderstruck"
 display_name = "Thunderstruck"
-description = "A {heavy} Warden {near} a Firefly Warden: its hit on a nightmare with a status also {jumps} a quarter to up to 4 nightmares near it that carry a status, and each jump adds 1 {static}."
-tip = "Any family's status. Once per attack. The whole fan never deals more than 1.5 s of the Firefly Warden's damage, and its {static} comes from the Firefly Warden. Not on bosses. Firefly heavy forms count too. Works for: heavy Wardens beside status Wardens. A bet: it needs both."
+description = "When a {heavy} Warden {near} a Firefly Warden hits a nightmare with a status, a quarter {jumps} to up to 4 others with a status."
+tip = "Each {jump} adds 1 {static} from the Firefly Warden; bosses get none. Any family's status counts. Once per attack. At most 1.5 s of the Firefly Warden's damage in all. Works for: {heavy} Wardens among status Wardens. A bet: needs both."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "lent"])

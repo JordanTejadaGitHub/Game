@@ -6,9 +6,10 @@
 script = ExtResource("1_card")
 id = "forest_floor"
 display_name = "Forest Floor"
-description = "Wardens touching an obstacle deal 20% more damage."
+description = "Wardens {touching} an obstacle deal 20% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["tending"])
 max_stacks = 1
 rule_id = &"forest_floor"
+tip = "Withered Trees and Mossy Boulders count."

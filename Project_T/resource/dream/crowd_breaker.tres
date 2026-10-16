@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crowd_breaker"
 display_name = "Crowd Breaker"
-description = "An area attack deals 5% more for each nightmare it hits (up to +45%), and 30% more to a nightmare touching 2 or more others."
+description = "Area attacks deal 5% more damage for each nightmare hit, up to +45%.\nThey deal 30% more to a nightmare with 2 or more others within 1 cell."
 rarity = 1
 kind = 3
 tags = Array[String](["reach", "defining"])
@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 rule_id = &"crowd_breaker"
 extra_rules = Array[StringName]([&"crush"])
+tip = "The first bonus starts at 2 nightmares hit. Works for: area Wardens on a crowded path."

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "switchback"
 display_name = "Switchback"
-description = "Nightmares rounding a bend in an attacking Warden's range are slowed by 25% for 1 s. Once every 3 s each."
+description = "Nightmares rounding a bend in an attacking Warden's range are slowed 25% for 1 s. Each nightmare once every 3 s."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])
@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"switchback"
 diagram = ".P.W...\n.P.....\n.+PPPP.\n.......\n......."
 diagram_caption = "A nightmare rounding a bend in attacking reach is slowed for 1 s, at most once every 3 s."
+tip = "Bend: a turn with a full cell of straight path on each side. Flyers never."

@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "straightaway"
 display_name = "Straightaway"
-description = "Wardens beside a straight stretch of 5 or more path cells deal 30% more damage and get +0.5 range."
+description = "Wardens {touching} a straight stretch of 5 or more path cells deal 30% more damage and get +0.5 range."
 rarity = 1
 kind = 3
 tags = Array[String](["maze", "defining"])
 max_stacks = 1
 rule_id = &"straightaway"
 diagram = ".......\n...W...\n.+++++.\n.......\n......."
-diagram_caption = "Beside a straight stretch of 5+ path tiles: +30% and +0.5 range."
+diagram_caption = "Beside a straight stretch of 5 or more path cells: +30% and +0.5 range."

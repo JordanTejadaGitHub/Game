@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "knell"
 display_name = "Knell"
-description = "Needs another {family}'s status. A bell's hit sets off one status another {family} put on the nightmare: its damage at once, then gone."
-tip = "{spored}, {static} or a full {damp}, the fullest first. Each nightmare, once every 8 s. Works for: status Wardens of any family before a bell. A bet."
+description = "Needs another {family}'s status. A bell's hit sets off one status another {family} put on the nightmare, at once. Each nightmare once every 8 s."
+tip = "Sets off: {spored} ticks once and loses its oldest {stacks}; {static} bursts as a bolt; a {full} {damp} takes a free hit from up to 2 {warden:dewdrop}s {near} it. The fullest goes first. A bet: needs other families' statuses before a bell."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

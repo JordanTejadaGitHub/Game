@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "flashover"
 display_name = "Flashover"
-description = "Needs an area Warden {near} a Firefly Warden. Its pulse or splash on 2 or more nightmares {jumps} half to the nearest one it missed."
-tip = "Half of the most it landed on one nightmare. Once per pulse or splash. Sparkler and Starburst count when near another Firefly Warden. Works for: Wardens that hit an area. A bet: it does little until one stands near a Firefly Warden."
+description = "Needs an area Warden {near} a Firefly Warden. When its attack hits 2 or more nightmares, half {jumps} to the nearest one it missed."
+tip = "Half of the most it dealt to one nightmare. Once per attack. {warden:sparkler} and {warden:starburst} count near another Firefly Warden. At most 3 s of the Firefly Warden's damage. A bet: needs a Firefly Warden near it."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])

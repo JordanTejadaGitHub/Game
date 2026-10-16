@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chain_bloom"
 display_name = "Chain Bloom"
-description = "{warden:puffball}'s puffs cover 2 cells inside {warden:mistveil}'s fog."
+description = "Puffs from {warden:puffball} that land in {warden:mistveil}'s fog splash twice as wide."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])
@@ -16,3 +16,4 @@ in_start_pool = true
 entwined = true
 rule_id = &"chain_bloom"
 discovered_by = Array[String](["event:puff_in_fog"])
+tip = "Safe."

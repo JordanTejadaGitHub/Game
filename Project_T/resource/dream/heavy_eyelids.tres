@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_eyelids"
 display_name = "Heavy Eyelids"
-description = "Nightmares can hold 8 more {drowsy} {stacks} (bosses 4 more)."
+description = "Nightmares can hold 8 more {stacks} of {drowsy} (bosses 4 more)."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "sleep", "affliction"])
@@ -14,3 +14,4 @@ max_stacks = 1
 requires_status = &"drowsy"
 rule_id = &"heavy_eyelids"
 in_start_pool = false
+tip = "More {drowsy} {stacks} slow a nightmare more. Works for: {warden:bellflower} and its forms."

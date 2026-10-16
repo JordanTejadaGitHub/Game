@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "starlit_aim"
 display_name = "Starlit Aim"
-description = "Every Warden has +25% crit chance against nightmares at {full} {marked} {stacks}."
-cost_description = "A crit consumes half the required {marked} {stacks} (5; 10 with Brimming)."
+description = "Wardens get 25% extra crit chance against nightmares at {full} {marked}."
+cost_description = "A crit uses up half of the {marked} {stacks} needed."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "mark"])
@@ -17,3 +17,4 @@ entwined = true
 rule_id = &"starlit_aim"
 in_start_pool = true
 discovered_by = Array[String](["event:crit_marked"])
+tip = "Uses up 5 {stacks}, or 10 with {card:brimming}; the rest stay."

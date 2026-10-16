@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "narrow_way"
 display_name = "Narrow Way"
-description = "Wardens beside a stretch of path only half a cell wide deal 25% more damage."
+description = "Wardens {touching} a stretch of path only half a cell wide deal 25% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

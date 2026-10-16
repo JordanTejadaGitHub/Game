@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "growth_rings"
 display_name = "Growth Rings"
-description = "At a {rest}, if you planted nothing since the last {rest}, your {block}'s top Warden gains a free Nurture {rank}, up to {rank} III."
+description = "At a {rest}, if you planted nothing since the last {rest}, the {block}'s top Warden gets a free Nurture {rank}, up to {rank} III."
 rarity = 0
 kind = 3
 tags = Array[String](["tall", "tending"])
 max_stacks = 1
 rule_id = &"growth_rings"
-tip = "The top Warden is the one that dealt the most damage this {block}. Any new Warden or Thornwall counts as planting, free ones too. Growing, Nurturing, clearing and selling do not."
+tip = "Top Warden: the one that dealt the most damage this {block}. Any new Warden or Thornwall counts as planting, free ones too. Growing, Nurturing, clearing and selling don't. The {rank} waits until you Nurture."

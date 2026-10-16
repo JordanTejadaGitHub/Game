@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wildfire_spores"
 display_name = "Wildfire Spores"
-description = "{named_combo:ignite} spreads 2 {spored} {stacks}, within 1.5 cells."
+description = "{named_combo:ignite} spreads 2 {stacks} of {spored} instead of 1, within 1.5 cells instead of 1."
 cost_description = "The burning nightmare loses its own {spored}."
 rarity = 1
 kind = 3

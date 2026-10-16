@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "front_line"
 display_name = "Gauntlet"
-description = "Nightmares walking between two attacking Wardens, one on each side of the path, take 20% more damage."
+description = "Nightmares between two attacking Wardens, one on each side of the path, take 20% more damage."
 rarity = 2
 kind = 3
 tags = Array[String](["maze", "defining"])
 max_stacks = 1
 min_drift = 10
 rule_id = &"front_line"
-tip = "Sprouts and walls don't count. Works for: corridors walled with attacking Wardens. Multiplies with your other Dream damage."
+tip = "Sprouts and walls don't count. Works for: paths lined with attacking Wardens on both sides. Multiplies with your other Dream damage."

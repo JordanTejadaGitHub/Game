@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "dew_bowl"
 display_name = "Dew Bowl"
-description = "{dew:+100} now."
+description = "Now: {dew:+100}."
 rarity = 0
 kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])

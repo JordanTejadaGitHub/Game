@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "tangled_lightning"
 display_name = "Tangled Lightning"
-description = "Chain attacks jump 2 more times, but only onto nightmares that carry a status. Each of those jumps adds 1 {stack} of a status the nightmare already has."
-tip = "Works for: chain Wardens (the Stormcap line). The extra jumps never start a new status. Never {held}."
+description = "Chain attacks hit 2 more nightmares, only ones carrying a status, and add 1 {stack} of a status each already has."
+tip = "Never starts a new status. Never {held}. Works for: {warden:stormcap} and its forms."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "chain", "reaction"])

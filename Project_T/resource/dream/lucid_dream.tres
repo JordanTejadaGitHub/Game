@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "lucid_dream"
 display_name = "Borrowed Branch"
-description = "Pick one of your {families}: unlock one of its {branch} Wardens you haven't found this run, free."
+description = "Choose one of your {families}: one of its {branches} it didn't offer this run is unlocked now, free."
 rarity = 2
 kind = 3
 tags = Array[String](["dreams"])
 max_stacks = 1
 rule_id = &"lucid_dream"
 in_start_pool = true
+tip = "You choose it on the Remember screen, which opens now. It costs no {dreamlight}."

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "shared_fever"
 display_name = "Shared Fever"
-description = "An area hit on 3+ nightmares gives all of them 1 {stack} of each status the worst-hit one carries (2 at most). Each Warden, every 2 s."
-tip = "Never {drowsy} or {held}. Works for: area Wardens (pulses and splashes)."
+description = "An area attack hitting 3 or more nightmares gives them all 1 {stack} of the most-stacked one's top 2 statuses. Each Warden once every 2 s."
+tip = "Most-stacked: the nightmare with the most {stacks} in all. Never {drowsy} or {held}. Works for: area Wardens, like {warden:bellflower}, {warden:dewdrop} and {warden:bloomcap}."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "area", "affliction"])

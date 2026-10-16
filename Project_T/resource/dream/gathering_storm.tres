@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "gathering_storm"
 display_name = "Gathering Storm"
-description = "Needs another {jump} card. Each {jump} a nightmare takes makes the next one on it 25% stronger, up to triple. Resets after 2 s without one."
-tip = "Works for: every jump, from any card or Warden. It multiplies on top of each jump's own cap. Bosses still take half. A bet: it pays only when several jump cards hit the same pack."
+description = "Needs another {jump} card, or a Firefly {calling}. Each {jump} a nightmare takes makes the next one on it 25% stronger, up to triple."
+tip = "Resets after 2 s without a {jump}. Every {jump} counts, from any card or Warden, even past its own cap. Bosses still take half. A bet: pays when several {jump} cards hit one pack."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "lent"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "kind_canopy"
 display_name = "Sheltering Boughs"
-description = "Wardens touching an aura Warden deal 35% more damage."
+description = "Wardens {touching} an aura Warden deal 35% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["seed", "acorn", "tending"])
@@ -15,3 +15,4 @@ rule_id = &"kind_canopy"
 in_start_pool = false
 grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
 grows_text = "{warden:acorn}, {warden:elder_stump} and {warden:grove_heart} auras reach 1 cell further."
+tip = "Aura Wardens: Wardens with an aura, and support Wardens like {warden:dreamcatcher}."

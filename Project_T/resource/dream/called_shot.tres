@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "called_shot"
 display_name = "Called Shot"
-description = "Each Warden's first hit on a nightmare at {full} {marked} {stacks} is a guaranteed crit."
+description = "Each Warden's first hit on a nightmare at {full} {marked} is a crit."
 rarity = 2
 kind = 3
 tags = Array[String](["light", "mark", "crit", "precision"])
 requires = Array[String](["lanternmoth"])
 max_stacks = 1
 rule_id = &"called_shot"
+tip = "Once for each Warden and nightmare. Works for: {warden:lanternmoth} and its forms with other hitting Wardens. Safe."

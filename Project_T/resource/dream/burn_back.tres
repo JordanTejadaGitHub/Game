@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "burn_back"
 display_name = "Burn Back the Dead Wood"
-description = "Every Withered Tree on the map is cleared now, free (no {seeds} for these)."
+description = "Now: every Withered Tree on the map is cleared for free."
 cost_description = "Nightmares move 20% faster for the rest of the run."
 rarity = 2
 kind = 3
@@ -17,3 +17,4 @@ in_start_pool = false
 creature_speed_bonus = 0.2
 min_obstacles = 8
 clears_obstacle = ExtResource("2_tree")
+tip = "These clears earn no {seeds}."

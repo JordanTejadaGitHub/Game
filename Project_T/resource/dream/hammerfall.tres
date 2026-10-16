@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "hammerfall"
 display_name = "Hammerfall"
-description = "Another {family}'s {heavy} Warden, or a Sprout, {near} a Firefly Warden: half of each attack {jumps} to the nearest other nightmare. A jump that dispels {jumps} once more, same damage."
+description = "When a {heavy} Warden or Sprout {near} a Firefly Warden hits, half {jumps} to the nearest other nightmare. A {jump} that dispels {jumps} again."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"hammerfall"
 requires = Array[String](["firefly_jar"])
-tip = "Nearest: within 2 cells of the one it hit. Once per attack. A heavy Warden attacks slowly and hits hard (the Acorn and Pebbling lines, Frostfern, Silver Bell). Firefly Wardens' own heavy forms don't count. Knock-On is part of it now. Works for: heavy Wardens and Sprouts beside a Firefly Warden. Safe."
+tip = "Nearest: within 2 cells of the nightmare it hit. Once per attack. Firefly Wardens' own {heavy} forms don't count. A {jump} deals at most 3 s of that Firefly Warden's damage. Works for: {warden:frostfern}, {warden:silver_bell} and Sprouts {near} a Firefly Warden. Safe."
 extra_rules = Array[StringName]([&"knock_on"])

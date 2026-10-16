@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "brushfire"
 display_name = "Brushfire"
-description = "Needs damage over time, like {spored}. Once a second, half the status damage taken by a nightmare a Firefly Warden hit in the last 2 s {jumps} to the nearest other nightmare."
-tip = "Status damage: {spored} ticks and clouds, not bolts or {reaction}s (Chain of Lanterns jumps those). At most 3 s of that Firefly Warden's damage. Works for: any Warden that deals damage over time beside a Firefly Warden. A bet."
+description = "Needs a Warden that deals damage over time. When a Firefly Warden has hit a nightmare in the last 2 s, half of its status damage {jumps} to the nearest other nightmare."
+tip = "Status damage: {spored} ticks, clouds and fog, not bolts or {reactions}. Nearest: within 2 cells. Once a second for each nightmare. At most 3 s of that Firefly Warden's damage. Works for: {spored} and cloud Wardens beside a Firefly Warden. A bet: needs both."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "lent"])

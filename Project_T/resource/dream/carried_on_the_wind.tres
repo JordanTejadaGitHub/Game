@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "carried_on_the_wind"
 display_name = "Carried on the Wind"
-description = "{warden:gust} and {warden:zephyr} copy every {stack} of a status, not just one."
-cost_description = "Only to one nightmare, not every one in range."
+description = "{warden:gust} and {warden:zephyr} copy all of a status's {stacks} instead of half."
+cost_description = "They copy to only one nightmare."
 rarity = 2
 kind = 3
 tags = Array[String](["wind"])
@@ -17,3 +17,4 @@ entwined = true
 min_owned_statuses = 1
 in_start_pool = false
 rule_id = &"carried_on_the_wind"
+tip = "Safe."

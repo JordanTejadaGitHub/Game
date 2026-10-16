@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deeper_rings"
 display_name = "Deeper Rings"
-description = "The Eldest can be nurtured to {rank} VII."
+description = "Your {eldest} can be nurtured up to {rank} VII."
 rarity = 2
 kind = 3
 tags = Array[String](["nurture", "tall", "defining"])
@@ -16,3 +16,4 @@ requires_tag = "nurture"
 min_rank_count = 1
 min_rank_owned = 5
 max_rank_set = 7
+tip = "Your {eldest} is the first Warden you take past {rank} V. Offered once a Warden reaches {rank} V."

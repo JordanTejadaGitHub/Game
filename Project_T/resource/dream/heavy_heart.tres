@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "heavy_heart"
 display_name = "Heavy Heart"
-description = "When a heavy Warden's hit sets off a {reaction}, the same {reaction} also goes off on the 2 nightmares nearest its target."
-tip = "Only on nightmares within 3 cells that carry one of that {reaction}'s statuses. Each copy waits its own cooldown and uses up its statuses as usual; a copy never copies again. Works for: heavy Wardens in a {reaction} build."
+description = "When a {heavy} Warden's hit sets off a {reaction}, the same {reaction} also goes off on the 2 nearest nightmares."
+tip = "Nearest: within 3 cells and carrying one of that {reaction}'s statuses. Each copy uses up statuses and waits as usual, and never copies again. Works for: {heavy} Wardens like {warden:jetreed}, {warden:frostfern} and {warden:silver_bell}."
 rarity = 2
 kind = 3
 tags = Array[String](["role", "heavy", "reaction"])

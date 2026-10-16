@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "old_hand"
 display_name = "Old Hand"
-description = "From {rank} III, every 6th hit a Warden lands on a nightmare with a {full} status is a crit; from {rank} V, every 4th."
-tip = "Counts attacks, not targets: a pulse counts once. Beams never count. Needs a {rank} III Warden."
+description = "From {rank} III, every 6th attack a Warden makes on a nightmare with a {full} status is a crit; from {rank} V, every 4th."
+tip = "Counted for each Warden, by attacks: a pulse counts once. Beams never count."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "crit"])

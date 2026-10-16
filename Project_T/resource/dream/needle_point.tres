@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "needle_point"
 display_name = "Needle Point"
-description = "{warden:hummingbird_bower} pecks ignore the {dread_shell}."
+description = "Pecks from {warden:hummingbird_bower} and its forms ignore the {dread_shell}."
 rarity = 1
 kind = 3
 tags = Array[String](["wing", "on-hit"])

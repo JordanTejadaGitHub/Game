@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "nod_off"
 display_name = "Nod Off"
-description = "The first time a bell makes a nightmare {drowsy}, it falls asleep for 1 s. One sleeper for each bell. Not bosses."
-tip = "Bell forms that make no {drowsy} (Chime Stone, Thrum, Hushbell, Echo Hollow, the Dreamcatchers) don't set it off. Works for: bells; every Warden gains from the stop. Safe."
+description = "The first time a bell makes a nightmare {drowsy}, it falls {asleep} for 1 s. Each bell keeps one sleeper at a time."
+tip = "Bells that add no {drowsy}, like {warden:chime_stone}, {warden:hushbell} and {warden:dreamcatcher}s, don't set it off. Never bosses. Works for: bells; every Warden gains from the stop. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "lent"])

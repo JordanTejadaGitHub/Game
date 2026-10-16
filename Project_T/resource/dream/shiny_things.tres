@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shiny_things"
 display_name = "Shiny Things"
-description = "Each buff a Magpie steals makes it deal 15% more damage for 10 s (up to 3 at once: +45%)."
+description = "Each bonus a {warden:magpie_perch} steals makes it deal 15% more damage for 10 s, up to +45%."
 rarity = 1
 kind = 3
 tags = Array[String](["wing"])
@@ -14,3 +14,4 @@ requires = Array[String](["magpie_perch"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"shiny_things"
+tip = "At most 3 stolen bonuses at once."
