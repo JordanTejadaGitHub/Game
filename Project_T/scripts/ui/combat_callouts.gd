@@ -33,13 +33,20 @@ func _connect() -> void:
 	var log := DamageLog.instance
 	if log != null:
 		log.damage_dealt.connect(_on_damage)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+	if dreams != null and dreams.has_signal("card_fired"):
+		dreams.card_fired.connect(_on_card_fired)
 
-# Trigger cards (screens_ui.md "Dream" ecbea61a): a taken card whose own damage just landed (its rule's tag, as
-# DreamState credits it) pops its name over the nightmare, no numbers, at most every CARD_COOLDOWN per card.
-const CARD_COOLDOWN := 6.0
+# Trigger cards (screens_ui.md "Dream" ecbea61a; owner 2026-10-16: "make these dream cards and evolutions more
+# noticeable"): a taken card or Calling evolution pops its name in gold the first time it fires in a drift, no numbers,
+# throttled like the combo words (a pop the budget refuses can still come later that drift). Two sources share it:
+# DreamState.card_fired (every card / evolution effect, Roguelite Code 3f058f07; Vector2.INF = nowhere: no pop) and a
+# card's own damage tag landing (DreamState._credit_rule_map).
 signal card_called(card_id: String, at: Vector2)  # A trigger card's name popped (for Sound: its trigger sound)
 var _card_tags := {}  # Damage tag -> card id (DreamState._credit_rule_map), refreshed once a second
 var _card_tags_age := INF
+var _card_drift := {}  # Card id -> the drift its name last popped in
+var _director: Node = null
 
 func _card_callout(event: DamageLog.Event) -> void:
 	if event.tag == &"" or not is_instance_valid(event.enemy):
@@ -49,17 +56,33 @@ func _card_callout(event: DamageLog.Event) -> void:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
 		_card_tags = dreams.call("_credit_rule_map") if dreams != null and dreams.has_method("_credit_rule_map") else {}
 	var id: String = _card_tags.get(event.tag, "")
-	if id == "":
+	if id != "":
+		_pop_card(id, event.enemy.global_position, event.enemy)
+
+func _on_card_fired(id: StringName, at: Vector2) -> void:
+	if at.is_finite():
+		_pop_card(String(id), at, null)
+
+func _pop_card(id: String, at: Vector2, enemy: Node2D) -> void:
+	var drift := _drift_now()
+	if int(_card_drift.get(id, -1)) == drift or _alive.size() >= (REDUCED_MAX_ALIVE if Fx.reduced() else MAX_ALIVE):
 		return
-	var key := StringName("card:" + id)
-	var reduced := Fx.reduced()
-	if _cooldowns.get(key, 0.0) > 0.0 or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
-		return
+	_card_drift[id] = drift
+	var name := card_name(id)
+	_alive.append([0.0, name, UiStyle.GOLD, enemy, _slot(at, name), &""])
+	card_called.emit(id, at)
+
+# A card's or a Calling evolution's name (DreamState.CALLING_PATHS for evolutions).
+func card_name(id: String) -> String:
+	if DreamState.CALLING_PATHS.PATHS.has(StringName(id)):
+		return DreamState.CALLING_PATHS.display_name(StringName(id))
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
-	var name: String = dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
-	_cooldowns[key] = CARD_COOLDOWN * (2.0 if reduced else 1.0)
-	_alive.append([0.0, name, UiStyle.GOLD, event.enemy, _slot(event.enemy.global_position, name), &""])
-	card_called.emit(id, event.enemy.global_position)
+	return dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
+
+func _drift_now() -> int:
+	if _director == null and owner != null:
+		_director = owner.get_node_or_null("%DriftDirector")
+	return int(_director.drifts_started) if _director != null else 0
 
 func _on_damage(event: DamageLog.Event) -> void:
 	_card_callout(event)

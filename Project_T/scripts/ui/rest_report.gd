@@ -133,6 +133,8 @@ func show_report(block: int) -> void:
 	var batch_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if batch_dreams != null and batch_dreams.has_method("batch_report_lines"):
 		text += batch_dreams.batch_report_lines()  # "Growth Rings: lost (you planted this block)", "Held Breath: rest bonus tripled"
+	text += fired_text(batch_dreams)  # "Your Dreams this block: Mycelium ×14, …"
+	text += strength_text(get_tree().get_first_node_in_group(RunHistory.GROUP) if is_inside_tree() else null)
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""
@@ -143,6 +145,59 @@ func show_report(block: int) -> void:
 	# No automatic rest report (screens_ui.md, user: "isn't needed"): the damage meter's "Last block"
 	# tab shows it on demand; the Gameplay setting "Rest summary" (off by default) brings the card back.
 	visible = auto_show()
+
+# "Your Dreams this block" (owner 2026-10-16: "make these dream cards and evolutions more noticeable"): how often each
+# card and Calling evolution fired in the block just ended (DreamState.card_counts_last_block, Roguelite Code 3f058f07),
+# most first, at most FIRED_SHOWN.
+const FIRED_SHOWN := 6
+static func fired_text(dreams: Node) -> String:
+	if dreams == null or not ("card_counts_last_block" in dreams):
+		return ""
+	var counts: Dictionary = dreams.card_counts_last_block
+	if counts.is_empty():
+		return ""
+	var ids: Array = counts.keys()
+	ids.sort_custom(func(a, b) -> bool: return int(counts[a]) > int(counts[b]))
+	var parts: Array[String] = []
+	for id in ids.slice(0, FIRED_SHOWN):
+		var name: String = DreamState.CALLING_PATHS.display_name(StringName(id)) if DreamState.CALLING_PATHS.PATHS.has(StringName(id)) \
+			else (dreams.get_display_name(String(id)) if dreams.has_method("get_display_name") else String(id).capitalize())
+		parts.append("%s ×%d" % [name, int(counts[id])])
+	return "\nYour Dreams this block: " + ", ".join(parts) + (" …" if ids.size() > FIRED_SHOWN else "")
+
+# The strength gauge (owner 2026-10-16): how far along the route nightmares got before being dispelled, on average,
+# this block against the last (RunHistory's route_blocks, flushed at rest_started: ten bins of route progress). Early
+# dispels and no leaks = Overkill (room to spend on something else); late dispels or any leak = Struggling.
+const OVERKILL_SHARE := 0.25  # Below: Overkill (no leaks)
+const STRUGGLING_SHARE := 0.6  # Above (or any leak): Struggling
+static func strength_text(history: Node) -> String:
+	if history == null or not ("run" in history):
+		return ""
+	var blocks: Array = history.run.get("route_blocks", [])
+	if blocks.is_empty():
+		return ""
+	var now := route_share(blocks[-1])
+	if now < 0.0:
+		return ""
+	var leaked := int(blocks[-1].get("leaked", 0))
+	var tag := "Struggling" if now > STRUGGLING_SHARE or leaked > 0 else ("Overkill" if now < OVERKILL_SHARE else "")
+	var before := route_share(blocks[-2]) if blocks.size() > 1 else -1.0
+	var against := ""
+	if before >= 0.0:
+		var change := roundi((now - before) * 100.0)
+		against = " (last block %d%%, %s)" % [roundi(before * 100.0), "same" if change == 0 else ("%+d" % change)]
+	return "\nStrength: nightmares dispelled %d%% along the route on average%s%s" % [roundi(now * 100.0), against,
+		(" · " + tag) if tag != "" else ""]
+
+# The average route share at dispel in one route block (each bin at its middle), -1 with no dispels.
+static func route_share(block: Dictionary) -> float:
+	var bins: Array = block.get("dispels", [])
+	var total := 0.0
+	var weighted := 0.0
+	for i in bins.size():
+		total += float(bins[i])
+		weighted += float(bins[i]) * (i + 0.5) / float(bins.size())
+	return weighted / total if total > 0.0 else -1.0
 
 const SETTING := "rest_summary"  # 0 = off (default), 1 = the card at every rest
 static func auto_show() -> bool:
