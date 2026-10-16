@@ -9,7 +9,7 @@ const GROWTH_RINGS_MAX_RANK := 3  # The free rank never lifts a Warden past rank
 const GROWTH_RINGS_CONFIRM_SECONDS := 6.0  # A second plant within this long confirms giving the rank up
 const REACH_RANK := 1  # Heartwood's Reach: the first Warden planted on each cleared cell arrives with this many free ranks
 const SEEDFALL_PRICE := 10  # Seedfall: every Sprout costs this; the price never climbs
-const WINDING_PATH_MULTIPLIER := 3.0  # Winding Path: the maze's rest Dew, tripled
+const WINDING_PATH_MULTIPLIER := 2.0  # Winding Path: the maze's rest Dew, doubled (power budget 2026-10-16: was 3.0)
 # The six run-shaping redesigns (stake_redesign.md with dream_council_review.md 26's numbers, owner 2026-10-14): no
 # card keeps a stake. Wager and Price lines are gone; Clipped Wings is not built (Dark Skies retires).
 const CALL_OF_THE_WILD_PER_SECOND := 0.01  # Call of the Wild: a drift called early holds +1% Dew per second of arrival skipped…
@@ -42,7 +42,7 @@ const DARK_SKIES_DEW := 50  # Dark Skies (retired 2026-10-14; an old save keeps 
 const HEELS_PER_CALL := 0.10  # Hot on Their Heels: per drift called early this block…
 const HEELS_MAX := 0.40  # …up to this, until the rest; a leaf lost clears it
 const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
-const LONG_WALK_MAX := 0.60  # The Long Walk's cap
+const LONG_WALK_MAX := 0.25  # The Long Walk's cap (unused since the card pass; kept in step: power budget 2026-10-16)
 # The 12 batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted.
 const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path", "call_of_the_wild",
 	"press_on", "fresh_growth", "held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]

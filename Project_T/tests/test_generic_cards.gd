@@ -303,7 +303,7 @@ func _test_economy() -> void:
 	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.1),
 		"Call of the Wild: nothing more with no arrival skipped (+1% a second skipped, up to +30%)")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == 20 and is_equal_approx(dreams.get_maze_multiplier(), DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path: the maze's rest Dew x3, nothing added to the rest bonus (Morning Dew's 20 only)")
+	_check(dreams.get_rest_bonus_add() == 20 and is_equal_approx(dreams.get_maze_multiplier(), DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path: the maze's rest Dew x2 (power budget 2026-10-16), nothing added to the rest bonus (Morning Dew's 20 only)")
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),

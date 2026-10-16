@@ -2449,6 +2449,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var batch_dreams := _batch_dreams if is_instance_valid(_batch_dreams) else null
 	if batch_dreams != null:
 		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
+		amount *= batch_dreams.card_cap_factor(source, tag)  # Power budget (2026-10-16): non-Reaction card power on one hit stops at x4 (Roguelite Code)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)

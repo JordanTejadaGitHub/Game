@@ -152,6 +152,16 @@ func _process(delta: float) -> void:
 static var _card_notes := {}
 static var _card_notes_frame := -1
 
+# The product of the card multipliers noted for the hit being dealt right now (1.0 with none): DreamState.card_cap_factor
+# reads it to hold all non-Reaction card power on one hit at x4 (power budget, owner 2026-10-16; Roguelite Code).
+static func pending_card_product() -> float:
+	if _card_notes.is_empty() or _card_notes_frame != Engine.get_physics_frames() + Engine.get_process_frames():
+		return 1.0
+	var product := 1.0
+	for id in _card_notes:
+		product *= float(_card_notes[id])
+	return product
+
 static func note_card_bonus(card_id: String, multiplier: float) -> void:
 	if card_id == "" or multiplier <= 1.0:
 		return

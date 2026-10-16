@@ -349,6 +349,66 @@ var calling := ""
 # for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
 const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
 const KEYWORDS := preload("res://scripts/run/dream_keywords.gd")  # Keyword chips 2026-10-16: Makes / Uses chips and the glossary (UI reads it)
+
+# --- Power budget (Balancing Discussion with the owner's review, 2026-10-16; balance_simulation.md "Power budget") ------
+# Cards are sized by value, not text: what a card adds to a board running its build (the run report's card_damage). Two
+# systems here; the numbers are Balancing's.
+const CARD_PRODUCT_CAP := 4.0  # All non-Reaction card power on one hit, multiplied together, stops at x4
+const CARD_BUDGET: Array[float] = [0.12, 0.20, 0.35, 0.60]  # Common / Uncommon / Rare / Legendary: what one card adds (a second stack adds again)
+const _CAP_KIT := preload("res://scripts/combat/class_kit.gd")  # (its REACTION_BURSTS: what counts as a Reaction)
+const _STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &"soaked", &"drowsy": &"drowsy",
+	&"marked": &"exposed", &"held": &"rooted"}  # Status id -> its keyword chip id
+
+# The factor Enemy.take_damage applies so this hit's non-Reaction card power (the Warden's Dream rows x every per-hit
+# card multiplier noted to DamageLog) never passes CARD_PRODUCT_CAP. 1.0 under the cap and for Reaction damage.
+func card_cap_factor(source: Node, tag: StringName) -> float:
+	if tag in _CAP_KIT.REACTION_BURSTS:
+		return 1.0
+	var rows: float = source._dream_bonus(&"soothe") if source is Tower and is_instance_valid(source) else 1.0
+	var total: float = rows * DamageLog.pending_card_product()
+	return 1.0 if total <= CARD_PRODUCT_CAP else CARD_PRODUCT_CAP / total
+
+# Reactions are the road to overpowered: a Reaction's damage x the product of what the held cards that feed it add (its
+# feeders: cards whose Makes chips name one of `statuses`, or Stacks / Linger), each at its rarity's CARD_BUDGET, held
+# twice = twice the add; at most CARD_PRODUCT_CAP. Tower Code multiplies Reaction damage by it (reactions.gd). The last
+# value per Reaction is kept for the callout and the rest report (reaction_build_text, reaction_build_lines).
+var _reaction_build_cache := {}  # [rules_stamp, statuses key] -> multiplier
+var reaction_build_last := {}  # Reaction id -> its last multiplier (the rest report)
+
+func reaction_build_multiplier(reaction_id: StringName, statuses: Array) -> float:
+	var words: Array[StringName] = [&"stacks", &"linger"]
+	for id in statuses:
+		if _STATUS_WORD.has(StringName(id)):
+			words.append(_STATUS_WORD[StringName(id)])
+	var key := "%d:%s" % [rules_stamp, ",".join(words)]
+	if not _reaction_build_cache.has(key):
+		if _reaction_build_cache.size() > 64:
+			_reaction_build_cache.clear()
+		var product := 1.0
+		for card in _taken_cards():
+			if card.makes.any(func(w: StringName) -> bool: return words.has(w)):
+				product *= 1.0 + CARD_BUDGET[clampi(card.rarity, 0, CARD_BUDGET.size() - 1)] * maxi(card_stacks(card.id), 1)
+		_reaction_build_cache[key] = minf(product, CARD_PRODUCT_CAP)
+	var m: float = _reaction_build_cache[key]
+	if m > 1.0:
+		reaction_build_last[reaction_id] = m
+	return m
+
+# The callout's line: "Ignite x2.1 from your build" ("" at x1.0).
+func reaction_build_text(reaction_id: StringName) -> String:
+	var m: float = float(reaction_build_last.get(reaction_id, 1.0))
+	if m <= 1.0:
+		return ""
+	return "%s x%.1f from your build" % [Reactions.get_data(reaction_id).display_name if Reactions.get_data(reaction_id) != null else String(reaction_id).capitalize(), m]
+
+# Rest-report lines: each Reaction your build boosts, strongest first ("Ignite x2.1 from your build").
+func reaction_build_lines() -> Array[String]:
+	var ids: Array = reaction_build_last.keys()
+	ids.sort_custom(func(a, b) -> bool: return float(reaction_build_last[a]) > float(reaction_build_last[b]))
+	var out: Array[String] = []
+	for id in ids:
+		out.append(reaction_build_text(id))
+	return out
 signal calling_grew(id: StringName)
 var calling_path: Array[StringName] = []
 var offering_calling := false

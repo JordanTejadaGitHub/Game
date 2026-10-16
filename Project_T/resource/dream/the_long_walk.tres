@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_long_walk"
 display_name = "The Long Walk"
-description = "{reactions} on a nightmare deal 2% more for every 4 cells it has walked inside attacking Wardens' range, up to +80%."
+description = "{reactions} on a nightmare deal 2% more for every 4 cells it has walked inside attacking Wardens' range, up to +25%."
 tip = "Counts the path behind it that attacking Wardens cover. Flyers get none. Multiplies with your other Dream damage."
 rarity = 3
 kind = 3
