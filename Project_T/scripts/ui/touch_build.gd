@@ -125,6 +125,11 @@ func _refresh() -> void:
 	var building: bool = tower_placer != null and bool(tower_placer.get("build_mode"))
 	var selling: bool = mobile_controls() and seller != null and bool(seller.get("sell_mode"))
 	visible = touch_mode and (pending or building or selling)  # Done all through build (and sell) mode, Confirm / Cancel with pending Wardens
+	# Not under a full-screen screen (a Dream, the pause menu …): it showed through the Dream screen's bottom row (user
+	# screenshot 2026-10-16). It comes back when the screen closes (_process).
+	_under_modal = visible and camera != null and camera.has_method("modal_open") and camera.modal_open()
+	if _under_modal:
+		visible = false
 	_plant.visible = pending
 	_cancel.visible = pending
 	_done.visible = (building or selling) and not pending
@@ -138,8 +143,10 @@ func _refresh() -> void:
 		_plant.tooltip_text = tower_placer.get_stroke_tag()
 		_plant.disabled = plan.values().count("") == 0
 
+var _under_modal := false  # Hidden only because a full-screen screen is up
+
 func _process(_delta: float) -> void:
-	if visible:
+	if visible or _under_modal:
 		_refresh()  # The plan changes as Dew and the board change
 
 func _on_plant() -> void:

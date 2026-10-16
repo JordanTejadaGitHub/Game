@@ -2001,7 +2001,7 @@ func _grid_cells_fit(grid: GridContainer, room: float) -> bool:
 func _add_phone_close() -> void:
 	var close := Button.new()
 	close.name = "PhoneClose"
-	close.flat = true
+	close.theme_type_variation = &"HudButton"  # Square like every other HUD button (user 2026-10-16: it was a circle)
 	close.focus_mode = Control.FOCUS_NONE
 	close.tooltip_text = "Close"
 	close.custom_minimum_size = Vector2(UiStyle.HUD_BUTTON_H, UiStyle.HUD_BUTTON_H)
@@ -2012,10 +2012,8 @@ func _add_phone_close() -> void:
 	_portrait.get_parent().add_child(close)
 
 func _draw_close(button: Button) -> void:
-	var centre := button.size / 2.0
-	var radius := minf(button.size.x, button.size.y) / 2.0 - 4.0
+	var centre := (button.size / 2.0).floor()
 	var colour := UiStyle.GOLD if button.is_hovered() else UiStyle.INK_DIM
-	button.draw_arc(centre, radius, 0.0, TAU, 32, Color(colour, 0.5), 1.0, true)
 	var s := 6.0
 	button.draw_line(centre + Vector2(-s, -s), centre + Vector2(s, s), colour, 2.0, true)
 	button.draw_line(centre + Vector2(s, -s), centre + Vector2(-s, s), colour, 2.0, true)

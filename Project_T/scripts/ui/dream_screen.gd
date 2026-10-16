@@ -365,12 +365,12 @@ func _make_card(card: UpgradeData) -> Button:
 		kind_label.text = kind
 		kind_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		kind_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(kind_label, 15, UpgradeData.rarity_color(card.rarity))
+		UiStyle.caps(kind_label, _fs(15), UpgradeData.rarity_color(card.rarity))
 		box.add_child(kind_label)
 	var name_label := Label.new()
 	name_label.text = card.display_name
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UiStyle.title(name_label, UiStyle.CARD_NAME_SIZE)
+	UiStyle.title(name_label, _fs(UiStyle.CARD_NAME_SIZE))
 	box.add_child(name_label)
 	if dream_state.opens_clearing(card):
 		_add_opens_clearing(box)
@@ -384,19 +384,19 @@ func _make_card(card: UpgradeData) -> Button:
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(mark)
 	# The effect comes right after the name; it never shrinks.
-	_add_linked_line(box, card.description, UiStyle.INK, 16)
+	_add_linked_line(box, card.description, UiStyle.INK, _fs(16))
 	# No impact or count preview on the card (user, screens_ui.md "Dream" ecbea61a: "don't want to be too direct in how
 	# much the damage boost is… also how many it affects"): the pick shows it instead (the flight, the Wardens' pulse).
 	if card.cost_description != "":
-		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
+		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, _fs(15))
 	# Matchup cards: what they answer and the player's number (Roguelite Code, dream_council_review.md 24). (No Wager or
 	# Price line since 2026-10-14: no card keeps a stake.)
 	if dream_state != null and dream_state.has_method("answer_line"):
 		var answer: String = dream_state.answer_line(card)
 		if answer != "":
-			_add_linked_line(box, answer, UiStyle.INK_DIM, 14)
+			_add_linked_line(box, answer, UiStyle.INK_DIM, _fs(14))
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
-		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
+		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, _fs(14))
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -443,7 +443,7 @@ func _add_opens_clearing(box: VBoxContainer) -> void:
 	UiStyle.caps(line, 16, UiStyle.GOLD)
 	row.add_child(line)
 	box.add_child(row)
-	_add_line(box, DreamState.OPENS_CLEARING_TEXT, UiStyle.INK, 14)
+	_add_line(box, DreamState.OPENS_CLEARING_TEXT, UiStyle.INK, _fs(14))
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
@@ -503,6 +503,11 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
+
+# Phones: card text a size class up (user 2026-10-16: "the text is too small compared" to the full-height cards).
+const PHONE_CARD_BUMP := 5
+func _fs(size: int) -> int:
+	return size + PHONE_CARD_BUMP if _phone else size
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
 	var label := Label.new()
