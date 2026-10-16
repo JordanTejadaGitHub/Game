@@ -340,6 +340,12 @@ func _refresh() -> void:
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
+			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
+			if note != "":
+				label += " · " + note
+			var wakes := _wakes(next)
+			if not wakes.is_empty():
+				button.tooltip_text += "\n\nWakes: " + ", ".join(wakes) + " (Dream cards you hold that wait for this job)"
 			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -991,6 +997,30 @@ static func _grow_tip(changes: String, form: TowerData) -> String:
 	if form.description != "":
 		tip += "\n\n" + IconInfo.format(form.description)  # {spored}-style tokens as words
 	return tip
+
+# A grow row's small line (owner 2026-10-16: see which Dream cards a form wakes): its role tags (WardenRoles), then the
+# held cards it would wake, "Heavy, Area · wakes Hammerfall".
+func _grow_note(form: TowerData) -> String:
+	var parts: Array[String] = []
+	var tags := WardenHeaderView.role_tags(form)
+	if not tags.is_empty():
+		parts.append(", ".join(tags))
+	var wakes := _wakes(form)
+	if not wakes.is_empty():
+		parts.append("wakes " + ", ".join(wakes))
+	return " · ".join(parts)
+
+# The Dream cards the player holds that wait for a job `form` has (UpgradeData.requires_role, not yet met by a Warden
+# built or grown this run: DreamState.has_grown_role), by name.
+func _wakes(form: TowerData) -> Array[String]:
+	var out: Array[String] = []
+	if dream_state == null or not dream_state.has_method("has_grown_role"):
+		return out
+	for card in dream_state.get_taken_cards():
+		var role = card.get("requires_role")
+		if role != null and role != &"" and WardenRoles.has_role(form, role) and not dream_state.has_grown_role(role):
+			out.append(dream_state.get_display_name(card.id))
+	return out
 
 # First Care's free ranks, or this Warden's banked ones (Ancient Stump, Tower Code 0d59136d): the next rank costs nothing.
 func _free_rank() -> bool:
