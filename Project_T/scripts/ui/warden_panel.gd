@@ -1929,8 +1929,9 @@ func _phone_arrange() -> void:
 		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		back.pressed.connect(_toggle_choices)
 		_phone_reveal_choices.call_deferred()
-	if sell != null:
-		_phone_sell(sell, _footer.get_child_count() > 1)
+	if sell != null:  # Phones: no Sell in the drawer (user 2026-10-16); the Warden dock's Sell slot sells
+		_footer.remove_child(sell)
+		sell.queue_free()
 
 # Sell: a quiet text button (Mist words, no box, no key chip) with a 48 px hit area (UI owner's review); a long line
 # (a block reason, "Press again") takes half the row and says itself whole in its tip.
