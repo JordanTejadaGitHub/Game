@@ -1070,7 +1070,7 @@ static func _towers(a = null, b = null) -> Array:
 # Reactions' cut, never the cards'; a Charged bolt (tag static) never comes here.
 static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return amount * _payoff(near, id) * _half_share * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
+	return amount * _payoff(near, id) * _half_share * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) * _build(dreams, id) if dreams != null else 1.0)
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
 # Shatter's main hit) and the Ignite / Tempest burn, so those sites stay as they were until a card says otherwise.
@@ -1141,9 +1141,32 @@ static func _carries_double(enemy: Node2D, id: StringName) -> bool:
 			return s.stacks(MARKED) >= EXPOSED_NEEDED * 2 and s.stacks(STATIC) >= thunderclap_threshold(s) * 2
 	return false
 
+# The statuses each Reaction (base and Crowned) is made of, for the build multiplier (what the held cards feeding them add).
+const REACTION_STATUSES := {&"thunderclap": [DAMP, STATIC], &"tempest": [DAMP, STATIC, SPORED], &"ignite": [SPORED, STATIC],
+	&"mushrooming": [SPORED, DAMP], &"fairy_circle": [SPORED, DAMP, HELD], &"nightbloom": [SPORED, DAMP, DROWSY],
+	&"drown": [DAMP, DROWSY], &"still_pool": [DAMP, DROWSY, HELD], &"pinned": [MARKED, HELD, DROWSY], &"starfall": [MARKED, HELD, STATIC],
+	&"smother": [HELD, SPORED], &"fever_dream": [HELD, SPORED, DROWSY], &"shatter": [HELD, DAMP], &"avalanche": [HELD, DAMP],
+	&"prismstorm": [HELD, DAMP, STATIC], &"lightning_rod": [MARKED, STATIC]}
+
+# Power budget (Balancing Discussion, owner review 2026-10-16): Reaction damage x DreamState.reaction_build_multiplier (the
+# product of what the held cards feeding this Reaction's statuses add, capped there). Only the Reactions above (base and
+# Crowned); Echo, Carried Storm and Dawnbreak stay x1. Per Reaction per frame.
+static var _build_frame := -1
+static var _build_cache := {}
+static func _build(dreams: DreamState, id: StringName) -> float:
+	if not REACTION_STATUSES.has(id) or not dreams.has_method("reaction_build_multiplier"):
+		return 1.0
+	var frame := Engine.get_process_frames()
+	if frame != _build_frame:
+		_build_frame = frame
+		_build_cache.clear()
+	if not _build_cache.has(id):
+		_build_cache[id] = dreams.reaction_build_multiplier(id, REACTION_STATUSES[id])
+	return _build_cache[id]
+
 static func _rx_cards(near: Node, id: StringName, tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower) if dreams != null else 1.0
+	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower) * _build(dreams, id) if dreams != null else 1.0
 
 static func _applier_damage(tower: Tower, fallback: float) -> float:
 	return tower.get_damage() if tower != null else fallback
