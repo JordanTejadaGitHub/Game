@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bound_and_burning"
 display_name = "Bound and Burning"
-description = "While a nightmare is {held} or frozen, its other statuses don't run down, and every status added to it lands 2 more {stacks}."
+description = "While a nightmare is {held}, its other statuses don't run down, and every status added to it lands 2 more {stacks}."
 tip = "Not {drowsy}. Works for: Wardens that hold (Tangleroot, Snugroot, freezes, the Witch Ring)."
 rarity = 1
 kind = 3

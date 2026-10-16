@@ -99,7 +99,7 @@ func _run() -> void:
 	_check(not needs.is_empty() and row == null and not bloom_texts.any(func(t: String) -> bool: return t.begins_with("Needs"))
 		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
 		"a half-dreamed card: no \"Needs …\" line, no label (%s)" % joined)
-	_check(dreams.not_active_reason(bloom) == "Not active yet: needs a %s Warden" % needs[0].type or dreams.not_active_reason(bloom).begins_with("Not active yet: needs a"),
+	_check(dreams.not_active_reason(bloom).begins_with("Not active yet: needs a"),
 		"…the reason lives on for the Dreams this run hover (%s)" % dreams.not_active_reason(bloom))
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].name and needs[0].name == IconInfo.family_data(needs[0].family).display_name,
 		"…named by family (damage types are gone, 2026-10-15) (%s)" % dreams.missing_families_text(bloom))

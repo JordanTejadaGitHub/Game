@@ -1180,9 +1180,10 @@ func _rude_awakening(enemy) -> void:
 		if d < best:
 			best = d
 			bell = other
-	if bell == null or now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
-		return
-	bell.set_meta(RUDE_NEXT_META, now() + 1.0)
+	if bell != null and now() < float(bell.get_meta(RUDE_NEXT_META, -INF)):
+		return  # Once a second for each bell (with no bell on the map, each sleep or Hold still replays once)
+	if bell != null:
+		bell.set_meta(RUDE_NEXT_META, now() + 1.0)
 	for id in hits:
 		if now() - float(hits[id][2]) <= RUDE_RECENT:
 			_again(hits[id][0].get_ref(), enemy, float(hits[id][1]), &"rude_replay")

@@ -21,7 +21,7 @@ func _initialize() -> void:
 		var card: UpgradeData = load(path)
 		_check(old.retired, "%s is retired" % old_id)
 		_check(card.id == SUCCESSORS[old_id] and card.rule_id == StringName(card.id), "%s has independent identity" % card.id)
-		_check((not card.retired or card.id in ["emergency_reserves", "quiet_vigil", "wake_ripple", "shared_mycelium", "crossed_sparks"]) and card.deepens.is_empty(), "%s is independently offered" % card.id)  # Emergency Reserves retired 2026-10-12 (card_review section 10)
+		_check((not card.retired or card.id in ["emergency_reserves", "quiet_vigil", "wake_ripple", "shared_mycelium", "crossed_sparks", "corner_sign"]) and card.deepens.is_empty(), "%s is independently offered" % card.id)  # Emergency Reserves retired 2026-10-12 (card_review section 10); Corner Sign retired 2026-10-15 (overlap pass)
 		_check(card.rarity == old.rarity and (card.tags == old.tags or card.id == "passing_thread"), "%s preserves rarity/family" % card.id)  # (Wake Ripple, Shared Mycelium, Crossed Sparks retired and Passing Thread reworked as a maze card, 2026-10-13)
 		_check(card.in_start_pool == old.in_start_pool and card.discovered_by == old.discovered_by, "%s preserves access/discovery" % card.id)
 		var requirements := old.requires.duplicate()

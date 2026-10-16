@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "breathe_it_in"
 display_name = "Breathe It In"
-description = "Statuses added to a nightmare inside a spore Warden's range get 1 more {stack}, 3 more if it is asleep or {held}. Each Warden, once a second."
+description = "Statuses added to a nightmare inside a spore Warden's range get 1 more {stack}, 3 more if it is Asleep or {held}. Each Warden, once a second."
 tip = "Any family's status, the spore Wardens' own {spored} too; {drowsy} too (never past its usual most, and never the 3). Never Rooted. Asleep or {held}: Rootling Holds, Nod Off, Witch Ring. Works for: every Warden whose targets walk through a spore Warden's range. Safe."
 rarity = 0
 kind = 3

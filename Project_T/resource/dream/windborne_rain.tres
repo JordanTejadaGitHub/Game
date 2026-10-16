@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "windborne_rain"
 display_name = "Windborne Rain"
-description = "{warden:samara}'s seeds apply {damp} to every nightmare they pass, out and back."
+description = "{warden:samara}'s seed pods apply {damp} to every nightmare they pass, out and back."
 cost_description = "Its seeds deal 25% less."
 rarity = 2
 kind = 3

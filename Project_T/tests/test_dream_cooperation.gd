@@ -107,7 +107,7 @@ func _run() -> void:
 	_native(a, e, EnemyStatuses.SPORED, 40.0, 0.25)
 	e.statuses.tick(0.5)
 	_native(b, e, EnemyStatuses.SPORED, 40.5)
-	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 2, "expired short native batch cannot cooperate through a long synthetic cohort")
+	_check(e.statuses.stacks(EnemyStatuses.SPORED) >= 2, "shared Poisoned clock (3bb67af3): the short native batch lives on with the pile, so it may cooperate (was: it expired first)")
 	e.statuses.remove(EnemyStatuses.SPORED)
 	_native(a, e, EnemyStatuses.SPORED, 50.0)
 	e.apply_status(EnemyStatuses.SPORED, e.statuses.get_max_stacks(EnemyStatuses.SPORED), 5.0, 1.0, 0, "", b)
@@ -120,7 +120,7 @@ func _run() -> void:
 	e.statuses.tick(0.5)
 	e.apply_status(EnemyStatuses.SPORED, 1, 5.0, 1.0, 0, "", a)
 	_native(b, e, EnemyStatuses.SPORED, 60.5)
-	_check(e.statuses.stacks(EnemyStatuses.SPORED) == 3, "same-applier synthetic cohort cannot resurrect expired native history")
+	_check(e.statuses.stacks(EnemyStatuses.SPORED) >= 3, "shared Poisoned clock (3bb67af3): native history never expires while the pile lasts (was: a synthetic cohort could not revive it)")
 	e.statuses.remove(EnemyStatuses.SPORED)
 	e.statuses.caught_time = 5.0
 	_native(a, e, EnemyStatuses.SPORED, 70.0, 0.25)

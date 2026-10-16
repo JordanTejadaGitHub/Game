@@ -44,7 +44,7 @@ func _run() -> void:
 	receiver.statuses.duration_multiplier_all = 2.0
 	rules.target_changed(tower, donor, receiver, 0.0)
 	_check(receiver.statuses.stacks(EnemyStatuses.SPORED) == 1, "switch copies one strongest stackable status")
-	_check(is_equal_approx(receiver.statuses.copy_duration(EnemyStatuses.SPORED), 3.0), "copied poison preserves oldest remaining duration without multiplier extension")
+	_check(is_equal_approx(receiver.statuses.copy_duration(EnemyStatuses.SPORED), 5.0), "copied poison keeps the pile's shared clock (3bb67af3) without multiplier extension")
 	_check(receiver.statuses.source(EnemyStatuses.SPORED) == tower and receiver.statuses.spore_line() == "mushroom" and receiver.statuses.potency(EnemyStatuses.SPORED) == 7.0, "copy preserves source family potency")
 	rules.target_changed(tower, donor, receiver, 1.0)
 	_check(receiver.statuses.stacks(EnemyStatuses.SPORED) == 1, "switch has two second tower cooldown")

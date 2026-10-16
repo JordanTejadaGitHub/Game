@@ -106,7 +106,7 @@ func _test_queries() -> void:
 		and dreams.get_root_web_share(false) == 0.0 and not dreams.has_chorus() and dreams.get_marked_bonus() == 0.0
 		and dreams.get_swoop_return_multiplier() == 1.0, "no cards: every query is off")
 	dreams.take(_card("tangled_release"))
-	_check(dreams.get_release_pull() == 0.5, "Tangled Release: 0.5 tiles")
+	_check(dreams.get_release_pull() == 1.0, "Tangled Release: 1 tile (card pass 2026-10-16)")
 	dreams.take(_card("tangled_release_ii"))
 	_check(dreams.get_release_pull() == 1.0, "…II: 1 tile")
 	dreams.take(_card("lullaby"))

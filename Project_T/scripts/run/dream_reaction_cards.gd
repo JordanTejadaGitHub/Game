@@ -534,7 +534,7 @@ func thin_bark_row(data: TowerData) -> Dictionary:
 	if data == null or not data.can_attack:
 		return {}
 	if data.tier >= THIN_BARK_MIN_TIER:
-		return {"active": true, "damage": THIN_BARK_BONUS, "effect": "+%d%% damage (a final or Ascended form)" % roundi(THIN_BARK_BONUS * 100)}
+		return {"active": true, "damage": THIN_BARK_BONUS, "effect": "deals %d%% more damage (a final or Ascended form)" % roundi(THIN_BARK_BONUS * 100)}
 	return {"active": true, "damage": -THIN_BARK_PENALTY, "effect": "-%d%% damage (not a final form)" % roundi(THIN_BARK_PENALTY * 100)}
 
 func deep_sleep_row(data: TowerData) -> Dictionary:

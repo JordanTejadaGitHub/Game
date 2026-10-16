@@ -4354,11 +4354,14 @@ const QUICK_REACTIONS_DAMAGE := 0.65  # Balancing Discussion: 35% less (×0.75 s
 # `enemy` = the nightmare (its statuses.chain_towers = the Wardens that took part), `id` = the Reaction ("" = unknown),
 # `tower` = the Warden whose hit set it off. Dawnbreak (% of max health) takes only the cut. Cached per frame.
 var _rx_frame := -1
+var _rx_stamp := -1  # (A card taken in the same frame refreshes it: rules_stamp)
 var _rx_base := 1.0
 func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", tower: Node = null) -> float:
 	var frame := Engine.get_process_frames()
-	if frame != _rx_frame:
+	var stamp := rules_stamp * 1000 + stacks.size()  # (A card taken in the same frame, even set straight into stacks, refreshes it)
+	if frame != _rx_frame or stamp != _rx_stamp:
 		_rx_frame = frame
+		_rx_stamp = stamp
 		_rx_base = QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
 	if id == &"dawnbreak":
 		return _rx_base

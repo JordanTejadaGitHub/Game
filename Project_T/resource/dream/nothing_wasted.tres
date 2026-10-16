@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nothing_wasted"
 display_name = "Nothing Wasted"
-description = "Damage a nightmare's {dread_shell} soaks up, from a Firefly Warden or one {near} it, {jumps} to the nearest nightmare without one."
+description = "Damage a nightmare's {dread_shell} stops, from a Firefly Warden or one {near} it, {jumps} to the nearest nightmare without one."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
