@@ -51,6 +51,7 @@ class Event:
 	var combos: Array[StringName] = []
 	var combo_amount := 0.0  # Part of `amount` that combos added
 	var reaction_amount := 0.0  # Part of `amount` that is a Reaction's own (Enemy._report_damage, by tag; RunHistory's Reaction column)
+	var card_damage := {}  # {card id: damage that card's multiplier added to this hit} (note_card_bonus; Enemy fills it)
 	var overkill := 0.0  # Part of `amount` past the health it had left (Enemy fills it; RunHistory's damage column leaves it out)
 	# Breakdown for Inspect: base × family/shape × taken (Marked, White Stag), crit already in base.
 	var base := 0.0
@@ -142,6 +143,40 @@ func _process(delta: float) -> void:
 	_clock += delta
 	while not _recent.is_empty() and _recent[0].time < _clock - DPS_WINDOW:
 		_recent.pop_front()
+
+# Card damage credit (Balancing Discussion 2026-10-16; the power-budget shift makes every damage card a multiplier on
+# its condition): a card's multiplier site calls note_card_bonus(card id, the multiplier it really applied to this hit,
+# after any clamp) while the hit is worked out; Enemy._report_damage hands the notes to the hit's event as card_damage
+# {id: damage added}: together dealt × (1 − 1/Πm), split between the cards in proportion to ln(m), so the parts add up
+# exactly. Notes from another frame are dropped (a hit that never landed). Plain data only in these statics.
+static var _card_notes := {}
+static var _card_notes_frame := -1
+
+static func note_card_bonus(card_id: String, multiplier: float) -> void:
+	if card_id == "" or multiplier <= 1.0:
+		return
+	var frame := Engine.get_physics_frames() + Engine.get_process_frames()
+	if frame != _card_notes_frame:
+		_card_notes.clear()
+		_card_notes_frame = frame
+	_card_notes[card_id] = float(_card_notes.get(card_id, 1.0)) * multiplier
+
+static func take_card_bonuses(dealt: float) -> Dictionary:
+	var out := {}
+	if _card_notes.is_empty():
+		return out
+	if _card_notes_frame != Engine.get_physics_frames() + Engine.get_process_frames() or dealt <= 0.0:
+		_card_notes.clear()
+		return out
+	var logs := 0.0
+	for id in _card_notes:
+		logs += log(float(_card_notes[id]))
+	if logs > 0.0:
+		var added := dealt * (1.0 - exp(-logs))
+		for id in _card_notes:
+			out[id] = added * log(float(_card_notes[id])) / logs
+	_card_notes.clear()
+	return out
 
 func report(event: Event) -> void:
 	event.time = _clock

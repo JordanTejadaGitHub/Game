@@ -2646,6 +2646,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 		event.combo_amount = event.reaction_amount if tag in REACTION_TAGS else dealt  # The whole hit only happened thanks to the combo (a hit Reaction: its bonus)
 	else:
 		event.combo_amount = dealt * (1.0 - 1.0 / factor)
+	event.card_damage = DamageLog.take_card_bonuses(dealt)  # What each card's multiplier added (DamageLog.note_card_bonus)
 	recent_hits.append(event)
 	if recent_hits.size() > RECENT_HITS:
 		recent_hits.pop_front()

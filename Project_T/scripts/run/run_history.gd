@@ -262,7 +262,7 @@ func _flush_rows() -> void:
 		var row: Dictionary = _open[number]
 		row["damage"] = roundi(float(row.get("damage", 0.0)))
 		row["overkill"] = roundi(float(row.get("overkill", 0.0)))
-		for key in ["combo_damage", "reaction_damage", "status_damage"]:
+		for key in ["combo_damage", "reaction_damage", "status_damage", "card_damage"]:
 			row[key] = roundi(float(row.get(key, 0.0)))
 		row["combo_share"] = snappedf(combo_share(row, "damage"), 0.001)
 		run.drifts.append(row)
@@ -501,6 +501,30 @@ func _on_damage(event: DamageLog.Event) -> void:
 		var kept := DamageLog.effective_share(event)
 		var effective: Array[float] = [parts[0] * kept, parts[1] * kept, parts[2] * kept]
 		_add_parts(row, 0.0, effective)
+		row["card_damage"] = float(row.get("card_damage", 0.0)) + card_damage_of(event) * kept
+	run["card_damage"] = float(run.get("card_damage", 0.0)) + card_damage_of(event)
+
+# The damage taken Dream cards added to one hit (Balancing Discussion 2026-10-16: "card_damage" per drift): what
+# DreamState already credits (a card's own damage tag whole; on a Warden's hit, the share its damage and attack-speed
+# rows added, from DreamState's per-Warden cache, which it fills on this same event first) plus every multiplier card's
+# part from DamageLog.note_card_bonus (event.card_damage).
+func card_damage_of(event: DamageLog.Event) -> float:
+	var total := 0.0
+	for id in event.card_damage:
+		total += float(event.card_damage[id])
+	if dream_state == null or event.amount <= 0.0:
+		return total
+	var by_tag: Dictionary = dream_state.call("_credit_rule_map") if dream_state.has_method("_credit_rule_map") else {}
+	if event.tag != &"" and by_tag.has(event.tag):
+		return total + event.amount
+	var tower := event.source as Tower
+	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
+		return total
+	var parts = dream_state.get("_credit_parts")
+	var entry: Array = parts.get(tower.get_instance_id(), []) if parts is Dictionary else []
+	if entry.size() >= 4:
+		total += event.amount * (1.0 - 1.0 / ((1.0 + float(entry[2])) * (1.0 + float(entry[3]))))
+	return total
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
@@ -623,7 +647,7 @@ func _on_run_ended(won: bool) -> void:
 				"combo_share": snappedf(float(stats.get("run_combo", 0.0)) / maxf(float(stats.get("run", 0.0)), 1.0), 0.001)})  # As the Warden panel's "from combos"
 		run.combos = log.combo_counts_run.duplicate()
 	run["combo_share"] = snappedf(combo_share(run), 0.001)
-	for key in ["damage_total", "combo_damage", "reaction_damage", "status_damage"]:
+	for key in ["damage_total", "combo_damage", "reaction_damage", "status_damage", "card_damage"]:
 		run[key] = roundi(float(run.get(key, 0.0)))
 	var tracker := get_tree().get_first_node_in_group(&"reaction_tracker")
 	if tracker != null:
@@ -754,12 +778,12 @@ static func report_text(record: Dictionary) -> String:
 	for row in record.get("drifts", []):  # What got through, by kind (before the table: the table stays the last block)
 		if not (row.get("leaked", {}) as Dictionary).is_empty():
 			lines.append("Drift %d leaked: %s" % [int(row.drift), leaked_text(row.leaked)])
-	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share")
+	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage")  # card_damage last: older readers keep their columns
 	for row in record.get("drifts", []):
-		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
+		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
 			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest),
 			1 if row.get("called_early", false) else 0, int(row.get("combo_damage", 0)), int(row.get("reaction_damage", 0)),
-			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0))])
+			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0)), int(row.get("card_damage", 0))])
 	return "\n".join(lines)
 
 static func _time_text(seconds: float) -> String:
