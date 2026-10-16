@@ -121,8 +121,8 @@ const FIRST_LIGHT_MULTIPLIER := 3.0
 const LAST_STAND_CELLS := 4  # From the Heartwood (Chebyshev)
 const LAST_STAND_BONUS := 0.60  # Balancing 738088c3 (the per-missing-leaf part was dropped, dream_design.md e1e39b56)
 const OLD_GROWTH_STEPS := [[15, 0.40], [5, 0.20]]  # [drifts stood, damage], highest first
-const HUNTERS_PATIENCE_ELITE := 0.60
-const HUNTERS_PATIENCE_BOSS := 0.35
+const HUNTERS_PATIENCE_ELITE := 0.50  # Hunter's Patience (card pass 2026-10-16, one read): +50% to Deeply Blighted nightmares…
+const HUNTERS_PATIENCE_BOSS := 0.50  # …and bosses
 const HERD_PER := 0.02
 const HERD_MAX := 0.50
 const BITTER_PER := 0.08
@@ -2854,7 +2854,40 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if card.min_owned_statuses > 0 and owned_statuses().size() < card.min_owned_statuses:
 		return false
+	if card.requires_role != &"" and not has_grown_role(card.requires_role):
+		return false
+	if card.min_tier_owned > 0 and not has_grown_tier(card.min_tier_owned):
+		return false
 	return true
+
+# Branch-role and form Needs (card pass 2026-10-16): read from the Wardens built or grown this run (grown_wardens), never
+# from what is merely unlocked. A Calling evolution that holds counts as the hold role (Witch Ring).
+func has_grown_role(role: StringName) -> bool:
+	if unlock_everything:
+		return true
+	if role == WardenRoles.HOLD and has_evolution(&"sp_witch_ring"):
+		return true
+	for id in grown_wardens:
+		if WardenRoles.has_role(_warden_data(String(id)), role):
+			return true
+	return false
+
+func has_grown_tier(tier: int) -> bool:
+	if unlock_everything:
+		return true
+	for id in grown_wardens:
+		var data := _warden_data(String(id))
+		if data != null and data.tier >= tier:
+			return true
+	return false
+
+var _warden_cache := {}  # Warden id -> TowerData (or null)
+
+func _warden_data(id: String) -> TowerData:
+	if not _warden_cache.has(id):
+		var path := "res://resource/tower/%s.tres" % id
+		_warden_cache[id] = load(path) as TowerData if ResourceLoader.exists(path) else null
+	return _warden_cache[id]
 
 # Soft Needs (×SOFT_NEED_WEIGHT when unmet, never a gate): min_attackers, count_warden, and the
 # Nurture openers' rank Needs (cards with no requires_tag).
@@ -2933,6 +2966,7 @@ const SWITCHBACK_COOLDOWN := 3.0
 const CLOSE_GUARD_RANGE := 0.5  # Range <= CLOSE_GUARD_MAX_RANGE: more range
 const CLOSE_GUARD_MAX_RANGE := 3.0
 const WIDE_PETALS_RADIUS := 0.75  # Splashes, pulses and clouds wider (pulses: HelperCommons.pulse_extra)
+const WIDE_PETALS_RANGE := 0.5  # …and area Wardens reach this many cells further (Far Reach folded in, card pass 2026-10-16)
 const CHEAP_SEEDS_SHARE := 0.5  # Scattered Seedlings: a Sprout planted away from other Sprouts costs half
 const LIGHT_STEPS_SPEED := 0.30  # At each drift's start…
 const LIGHT_STEPS_TIME := 8.0  # …for this long
@@ -4431,6 +4465,10 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 		needs.append(" + ".join(missing.map(get_display_name)))
 	if card.requires_tag != "" and count_taken_with_tag(card.requires_tag) < card.requires_tag_count:
 		needs.append("%d %s card%s" % [card.requires_tag_count, card.requires_tag, "" if card.requires_tag_count == 1 else "s"])
+	if card.requires_role != &"" and not has_grown_role(card.requires_role):
+		needs.append(WardenRoles.label(card.requires_role) + " grown this run")
+	if card.min_tier_owned > 0 and not has_grown_tier(card.min_tier_owned):
+		needs.append(["", "a base Warden", "a branch form", "a final form", "an Ascended form"][clampi(card.min_tier_owned, 0, 4)] + " grown this run")
 	if needs.is_empty() and not is_eligible(card, act):
 		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
 	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)
@@ -4816,7 +4854,7 @@ func _save_discoveries() -> void:
 const DEEP_GRIP_PER := 0.50  # Rootling line vs Held
 const MURMUR_BONUS := 0.30  # A bird's hit on a nightmare another bird hit within MURMUR_WINDOW
 const MURMUR_WINDOW := 1.0
-const TANGLED_RELEASE_TILES: Array[float] = [0.5, 1.0]  # II
+const TANGLED_RELEASE_TILES: Array[float] = [1.0, 1.0]  # II (card pass 2026-10-16: a real 1-cell pull; bosses half, once per nightmare: Enemy._on_hold_ended)
 const LONG_LIGHT_LINGER := 3.0  # Seconds Rootlight's lit tiles stay lit
 const ROOT_WEB_SHARE := 0.5  # Touching nightmares Held for half as long (halved again on bosses)
 const ROOT_WEB_BOSS_SHARE := 0.25
@@ -5063,7 +5101,9 @@ func hummingheart_bonus(bonus_speed: float) -> float:
 
 # Far Reach (absorbed Broad Splash, dream_design.md de439ea8): cells added to every area attack's radius.
 func get_area_radius_add() -> float:
-	return (FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0) + (WIDE_PETALS_RADIUS if has_rule(&"wide_petals") else 0.0)  # + Wide Petals
+	if has_rule(&"wide_petals"):
+		return WIDE_PETALS_RADIUS  # Wide Petals absorbed Far Reach (card pass 2026-10-16): one 0.75, never both
+	return FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0
 
 # Momentum's per-hit step and cap (Tower keeps the streak per Warden and target).
 func momentum_step() -> Vector2:

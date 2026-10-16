@@ -6,11 +6,12 @@
 script = ExtResource("1_card")
 id = "steeped"
 display_name = "Steeped"
-description = "Statuses added by Wardens {touching} a {warden:dewdrop} last 30% longer. A {warden:dewdrop} counts as touching itself."
-tip = "Any family's status, set when it lands: {spored} too, and the {warden:dewdrop}'s own {damp}. Never Rooted or {drowsy}. Works for: any Warden touching a {warden:dewdrop}. Safe."
+description = "Statuses added by Wardens {touching} a {warden:dewdrop}, or to a nightmare inside two {warden:dewdrop}s' ranges, last 40% longer. A {warden:dewdrop} counts as touching itself."
+tip = "Set when the status lands: {spored} and {damp} too. A nightmare leaving a {warden:dewdrop}'s range also keeps its statuses 2 s longer. At most 4 s past the last landing (Charged 2 s). Never Rooted or {drowsy}. Works for: every family's statuses. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"steeped"
 requires = Array[String](["dewdrop"])
+extra_rules = Array[StringName]([&"dripping"])

@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"knock_on"
 requires = Array[String](["firefly_jar"])
 tip = "Heavy: slow, hard-hitting Wardens (the Acorn and Pebbling lines, Frostfern, Silver Bell). A Sprout's Hammerfall jump doesn't count. The second jump never jumps again. A bet: it needs a heavy jump card first."
+retired = true

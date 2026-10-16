@@ -27,7 +27,7 @@ const REPORTERS := {
 	&"menagerie": "_menagerie", &"restless_night": "_restless_night", &"last_leaf": "_last_leaf",
 	&"wildwood_reclaimed": "_wildwood", &"sprout_chorus": "_sprout_chorus", &"last_light": "_last_light",
 	&"rootbound": "_rootbound", &"court_of_the_eldest": "_court", &"old_ones": "_old_ones",
-	&"reclaimed_earth": "_reclaimed_earth",
+	&"reclaimed_earth": "_reclaimed_earth", &"wide_petals": "_wide_petals",
 	&"root_network": "_root_network", &"first_light": "_first_light", &"last_stand": "_last_stand",
 	&"old_growth": "_old_growth", &"hunters_patience": "_hunters_patience", &"thinning_the_herd": "_thinning_the_herd",
 	&"bitter_hedges": "_bitter_hedges",
@@ -843,6 +843,13 @@ func _restless_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dic
 	var on: bool = spot.data.attacks_per_second < DreamState.RESTLESS_ROOTS_BELOW
 	return {"active": on, "speed": DreamState.RESTLESS_ROOTS_SPEED,
 		"reason": "" if on else "attacks %.2f times a second (needs under 1)" % spot.data.attacks_per_second}
+
+# Wide Petals (absorbed Far Reach, card pass 2026-10-16): area Wardens also reach a little further.
+func _wide_petals(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := DreamState.has_area_attack(spot.data)
+	return {"active": on, "range": DreamState.WIDE_PETALS_RANGE, "reason": "" if on else "no area attack"}
 
 func _far_reach(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:

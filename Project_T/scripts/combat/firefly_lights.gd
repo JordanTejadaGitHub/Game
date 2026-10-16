@@ -77,6 +77,7 @@ const SPARKLERS := ["sparkler", "starburst"]  # Firefly area forms: they count f
 const THUNDERSTRUCK := &"thunderstruck"
 const THUNDER_SHARE := 0.25  # Thunderstruck: a heavy hit on a nightmare with a status fans a quarter to the ones near it with a status…
 const THUNDER_MAX := 4  # …up to this many…
+const THUNDER_STATIC := 1  # Thunderstruck: each jump adds this many Charged, from the Firefly Warden
 const THUNDER_CAP_SECONDS := 1.5  # …the whole fan at most this many seconds of the Firefly Warden near the heavy one
 const CHAIN_EVERY := 1.0  # Chain of Lanterns: each Firefly Warden's Reactions jump once a second
 const CHAIN_META := &"ff_chain_next"  # On a Firefly Warden
@@ -716,7 +717,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var jar = firefly_near(source)
 			var targets := _near_enemies(at, [enemy]) if jar != null else []
 			if not targets.is_empty():
-				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": is_heavy(source)})
+				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true})  # Sprouts too: Hammerfall's re-jump (Knock-On folded in, 2026-10-16)
 		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
 		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
 		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)
@@ -727,6 +728,9 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.count() > 0).slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
 				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true})
+				if _living(other) and not other.statuses.is_boss:
+					# Each jump adds 1 Charged, from the Firefly Warden (its bolt, never the heavy Warden's: card pass 2026-10-16)
+					thunder_jar._apply_one_status(other, EnemyStatuses.STATIC, THUNDER_STATIC, thunder_jar.get_damage(), false)
 	# Live Wire and Like to Like: retired (2026-10-13 / earlier); an old save keeps them
 	if not is_other_family(source):
 		return

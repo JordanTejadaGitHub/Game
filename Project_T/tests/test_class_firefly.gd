@@ -12,7 +12,7 @@ var dreams: DreamState
 var lights  # DreamState.firefly_lights
 const CELL := 64.0
 const CLASS := ["where_lights_meet", "fireflies_in_the_grass", "signal_fires", "last_spark", "lanternway"]
-const LENT := ["hammerfall", "sparks_fly", "flashover", "chain_of_lanterns", "nothing_wasted", "knock_on", "crossfire",
+const LENT := ["hammerfall", "sparks_fly", "flashover", "chain_of_lanterns", "nothing_wasted", "crossfire",  # Knock-On folded into Hammerfall (2026-10-16)
 	"thunderstruck", "brushfire", "gathering_storm"]
 const SETUP_WORDS := ["{lit}", " lit ", "light ", "lights", "glow", "water", "lone", "{toll}", "toll", " ring", "pip", "mushroom", "dose"]
 

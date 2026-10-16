@@ -2564,8 +2564,11 @@ func _on_hold_ended() -> void:
 	if _release_spent:
 		_release_spent = false  # This was the Snare hold after a release pull: it ends there
 		return
-	if tiles <= 0.0 or is_flying():
-		return
+	if tiles <= 0.0 or is_flying() or has_meta(&"tangled_released"):
+		return  # Tangled Release: once per nightmare (card pass 2026-10-16: repeated holds were a hidden stall)
+	set_meta(&"tangled_released", true)
+	if enemy_data.is_boss:
+		tiles *= 0.5  # Bosses half as far
 	if holder == null or not is_instance_valid(holder):
 		push_back(tiles * grid.cell_size.x)
 		return

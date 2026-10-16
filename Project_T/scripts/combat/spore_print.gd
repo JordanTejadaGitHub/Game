@@ -79,7 +79,8 @@ const HEMMED_META := &"sp_hemmed_next"  # On a Warden: Charged and Exposed extra
 # spore Wardens' own Poisoned included. Drowsy counts too, within its normal cap (the owner asked about a bigger Drowsy
 # cap; answer: no, include it in the stacking instead; STACK_DROWSY switches it off).
 const STACK_DROWSY := true
-const BREATHE_ONE := 1  # Breathe It In: any Warden's status landing inside a spore Warden's range: 1 more, once a second per Warden
+const BREATHE_ONE := 1  # Breathe It In: any Warden's status landing inside a spore Warden's range: 1 more, once a second per Warden…
+const BREATHE_SLEEPER := 3  # …3 more on a nightmare asleep or Held (card pass 2026-10-16: absorbs Sitting Ducks)
 const PASS_STACKS := 3  # Pass It Round: a Warden touching a spore Warden (a spore Warden touches itself): 3 more with its first application on each nightmare
 const PASS_META := &"sp_pass"  # On a nightmare: {Warden id: true}
 const MYCELIUM := &"mycelium"
@@ -822,7 +823,7 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 	if rule(BREATHE_IN) and _stackable(status) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
 			and own_towers().any(func(t) -> bool: return t.global_position.distance_to(enemy.global_position) <= t.get_range_pixels()):
 		tower.set_meta(BREATHE_META, now() + STACK_EVERY)
-		extra += BREATHE_ONE
+		extra += BREATHE_SLEEPER if (enemy.statuses.is_held() or enemy.statuses.is_asleep()) and status != EnemyStatuses.DROWSY else BREATHE_ONE
 	# Pass It Round (trait rework; was a Poisoned dose): a Warden touching a spore Warden (a spore Warden touches itself) adds
 	# 3 more of its own status with its first application on each nightmare
 	if rule(PASS_IT_ROUND) and _stackable(status) and (is_own(tower) or own_towers().any(func(t) -> bool: return touching(t, tower))):

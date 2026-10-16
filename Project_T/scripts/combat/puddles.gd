@@ -71,7 +71,7 @@ const SHALLOWS_META := &"pd_shallows_next"  # On a Warden
 # Everything that adds time after a landing goes through EnemyStatuses.linger (all together at most LINGER_MAX past the
 # last landing; Charged LINGER_MAX_STATIC). Never Rooted or Drowsy (EnemyStatuses.can_linger).
 const STEEPED := &"steeped"
-const STEEPED_SHARE := 0.3  # Steeped: statuses from Wardens touching a Dewdrop (a Dewdrop touches itself) last 30% longer
+const STEEPED_SHARE := 0.4  # Steeped: statuses from Wardens touching a Dewdrop (a Dewdrop touches itself), or landing inside two Dewdrops' ranges, last 40% longer (card pass 2026-10-16: absorbs Pooling and Dripping)
 const TOPPED_UP := &"topped_up"
 const TOPPED_UP_EVERY := 1.0  # Topped Up: a Dewdrop's hit resets every status's time, once a second per nightmare
 const TOPPED_META := &"pd_topped_next"  # On a nightmare
@@ -595,11 +595,12 @@ func status_duration(source, enemy, status: StringName, duration: float) -> floa
 	if not EnemyStatuses.can_linger(status) or not living(enemy):
 		return duration
 	var share := 0.0
-	if rule(STEEPED) and source is Tower and is_instance_valid(source) and source.tower_data.can_attack \
-			and (is_own(source) or own_towers().any(func(d) -> bool: return touching(d, source))):
-		share += STEEPED_SHARE
-	if rule(POOLING) and _ranges_holding(enemy, 2) >= 2:
-		share += POOLING_SHARE
+	var steeped: bool = rule(STEEPED) and ((source is Tower and is_instance_valid(source) and source.tower_data.can_attack \
+			and (is_own(source) or own_towers().any(func(d) -> bool: return touching(d, source)))) or _ranges_holding(enemy, 2) >= 2)
+	if steeped:
+		share += STEEPED_SHARE  # One 40%, whichever way it qualifies (Pooling folded in)
+	elif rule(POOLING) and _ranges_holding(enemy, 2) >= 2:
+		share += POOLING_SHARE  # (Retired 2026-10-16; an old save keeps it)
 	if share <= 0.0:
 		return duration
 	var base := duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION.get(status, 0.0))

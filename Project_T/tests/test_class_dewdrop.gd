@@ -9,8 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
-const LENT := ["steeped", "topped_up", "dripping", "ebb", "the_water_remembers", "pooling", "waterlogged", "high_tide",
-	"old_rain", "never_quite_dry"]  # Trait rework 2026-10-15: statuses linger
+const LENT := ["steeped", "topped_up", "ebb", "the_water_remembers", "waterlogged", "high_tide",
+	"old_rain", "never_quite_dry"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -160,14 +160,14 @@ func _run() -> void:
 	st.statuses.pending_linger.clear()
 	s_spore._apply_one_status(st, EnemyStatuses.SPORED, 1, s_spore.get_damage())
 	_check(st.statuses.is_lingering(EnemyStatuses.SPORED), "...the landing shows it lingers")
-	_take("pooling")
+	# Steeped absorbed Pooling (card pass 2026-10-16): inside two Dewdrops' ranges counts too, one 40% either way
 	var s_drop2 := _plant("dewdrop", spot + Vector2(0, CELL * 2))
 	await _frames(2)
 	var pool = _spawn(spot + Vector2(0, CELL))  # Inside both Dewdrops' ranges
-	_check(is_equal_approx(klass.status_duration(s_far, pool, EnemyStatuses.SPORED, 5.0), 5.0 + minf(5.0 * klass.POOLING_SHARE, EnemyStatuses.LINGER_MAX)),
-		"Pooling: inside two Dewdrops' ranges a status lasts %d%% longer" % roundi(klass.POOLING_SHARE * 100.0))
-	_check(is_equal_approx(klass.status_duration(s_spore, pool, EnemyStatuses.SPORED, 10.0), 10.0 + minf(10.0 * (klass.STEEPED_SHARE + klass.POOLING_SHARE), EnemyStatuses.LINGER_MAX)),
-		"...Steeped and Pooling add, at most %.0f s more" % EnemyStatuses.LINGER_MAX)
+	_check(is_equal_approx(klass.status_duration(s_far, pool, EnemyStatuses.SPORED, 5.0), 5.0 + minf(5.0 * klass.STEEPED_SHARE, EnemyStatuses.LINGER_MAX)),
+		"Steeped: inside two Dewdrops' ranges a status lasts %d%% longer" % roundi(klass.STEEPED_SHARE * 100.0))
+	_check(is_equal_approx(klass.status_duration(s_spore, pool, EnemyStatuses.SPORED, 10.0), 10.0 + minf(10.0 * klass.STEEPED_SHARE, EnemyStatuses.LINGER_MAX)),
+		"...both ways at once still only 40%")
 	pool.statuses.pending_linger.clear()
 	_check(s_drop2 != null, "(the second Dewdrop stands)")
 	await _clean()

@@ -104,6 +104,8 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_kinships: int = 0  # Kinships on the map at offer time (Kinship cards; hard Need)
 @export var requires_any_status: Array[StringName] = []  # Own a Warden applying any of these (Heavy Air: a slow)
 @export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
+@export var requires_role: StringName = &""  # A Warden with this job built or grown this run (WardenRoles: heavy, area, chain…)
+@export var min_tier_owned: int = 0  # A Warden of at least this tier built or grown this run (2 branch, 3 final, 4 Ascended)
 # Seed cards (dream_design.md "Seed cards"): offered without their Wardens. `description` is the "Now"
 # effect; `grows_text` the bigger one once you have a Warden in `grows_with` (ids). (They no longer call a family
 # into a family pick: user, "make it predictable", 7d3c6672.)

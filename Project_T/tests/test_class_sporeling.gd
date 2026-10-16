@@ -10,7 +10,7 @@ var dreams: DreamState
 var klass  # The class node (DreamState.spore_print)
 const CELL := 64.0
 const LENT := ["mycelium", "overnight", "pass_it_round", "spore_ring", "seeping_in", "mixed_company", "breathe_it_in",
-	"sitting_ducks", "hemmed_in", "gone_to_seed"]  # Trait rework 2026-10-15: Second Helping retired, Gone to Seed new
+	"gone_to_seed"]  # Card pass 2026-10-16: Sitting Ducks into Breathe It In, Hemmed In retired
 
 func _initialize() -> void:
 	_run.call_deferred()
