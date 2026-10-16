@@ -227,8 +227,8 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # Dread shell (the Armoured Kind): each hit loses `coat_per_hit` soothe (min 1) until the coat has soaked up
 # `coat_total`, then it crumbles for good. The total scales with health_scale, the per-hit soak with the drift's
 # DriftDirector.get_growth only (Enemy.coat_growth; balance_simulation.md "Dread shells after Nightmare Kinds").
-# Balancing 2026-10-15: Husk 10 / 100, Shellbound 15 / 150, Barrow Wight 20 / 300. The Barrow King's 15 / 2400 is
-# still Enemy Code's placeholder (Balancing: placeholder).
+# Balancing 2026-10-15: Husk 10 / 100, Shellbound 15 / 150, Barrow Wight 20 / 300; 2026-10-16: the Barrow King
+# 10 / 1600 (his health 16000 → 14400, so health + shell stays 16000).
 @export var coat_per_hit: int = 0
 @export var coat_total: int = 0
 @export var cracked_frames: SpriteFrames  # Swapped in once the coat breaks (Shellbound's cracked shell)

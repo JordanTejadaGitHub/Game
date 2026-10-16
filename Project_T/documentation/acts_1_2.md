@@ -148,7 +148,7 @@ PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
 | 43 | **Haunting:** 4 PH, then 10 SH (was 20 PH; the cap 2026-10-07, freed health refilled with Shades) | |
 | 44 | 30 SH, 10 HU, 6 NH, 2 PR | |
 | 45 | **Deeply Blighted:** 20 SH, 2 NH★, 2 Lantern Bearers★ (with their Wraiths) | rest |
-| 46 | 30 SH, 10 HU, 8 MO | |
+| 46 | 30 SH, 6 HU, 8 MO (Balancing 2026-10-15: was 10 HU) | |
 | 47 | 28 SH, 8 NH, 4 PH, 2 PR | |
 | 48 | **Swarm:** 50 SH (0.25 s apart) | |
 | 49 | 32 SH, 12 HU, 8 NH, 3 PR, 4 PH | |
