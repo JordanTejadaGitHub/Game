@@ -983,6 +983,52 @@ static func key_chip(text: String) -> Label:
 static func key_suffix(key: String) -> String:
 	return "" if InputMode.touch() else " (%s)" % key
 
+# A keyword chip (Dream cards' "Makes / Uses", owner 2026-10-16): the icon (KeywordIcons) on the left, the word always
+# beside it. kind &"makes" = filled gold, dark word; &"uses" = gold outline over fog, gold word. `id` is a keyword
+# (&"jump") or a status (&"poisoned" / &"spored"); `label` overrides the word. The chip takes no input: the row it sits
+# in is the tap target (Mobile UI: one 48 px row, tapping opens the glossary line). Phones pass icon_size 20.
+const CHIP_ICON := 16
+const CHIP_TEXT_SIZE := 14
+static func chip(id: StringName, kind: StringName, label: String = "", icon_size: int = CHIP_ICON,
+		font_size: int = CHIP_TEXT_SIZE) -> PanelContainer:
+	var makes := kind == &"makes"
+	var box := PanelContainer.new()
+	box.name = "Chip_%s_%s" % [kind, id]
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.set_meta(&"keyword", id)
+	box.set_meta(&"kind", kind)
+	var frame := StyleBoxFlat.new()
+	frame.bg_color = GOLD if makes else Color(FOG, 0.6)
+	frame.border_color = GOLD
+	frame.set_border_width_all(1)
+	frame.set_corner_radius_all(2)
+	_margins(frame, 4.0, 1.0)
+	frame.content_margin_right = 6.0
+	box.add_theme_stylebox_override("panel", frame)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 4)
+	box.add_child(row)
+	var icon := Control.new()
+	icon.name = "Icon"
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.draw.connect(func() -> void: KeywordIcons.draw(icon, id, icon.size / 2.0, icon_size))
+	row.add_child(icon)
+	var word := Label.new()
+	word.name = "Word"
+	word.text = label if label != "" else KeywordIcons.word(id)
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	word.add_theme_font_override("font", body_medium_font())
+	word.add_theme_font_size_override("font_size", font_size)
+	word.add_theme_color_override("font_color", FOG if makes else GOLD)
+	row.add_child(word)
+	return box
+
 # Gives a Button the card look in `colour` (normal + hover + pressed).
 static func card_button(button: Button, colour: Color) -> void:
 	var normal := card(colour)

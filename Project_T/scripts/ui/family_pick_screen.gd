@@ -888,6 +888,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	var title := Label.new()
 	title.name = "CallingName"
 	title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.caps(title, _fs(14))
 	title.add_theme_color_override("font_color", UiStyle.GOLD)
