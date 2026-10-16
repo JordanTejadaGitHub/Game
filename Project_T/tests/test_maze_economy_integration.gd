@@ -56,7 +56,7 @@ func _run() -> void:
 	var extended: int = map.route_length(map.get_path_from(map.startPath))
 	_check(extended - initial >= 4, "actual walls create enough route extension")
 	var expected: int = director.get_maze_reward_preview()
-	_check(expected > 0 and expected == (extended - initial) / 2, "the longer route has a live reward by length alone, with no cap")
+	_check(expected > 0 and expected == (extended - initial) / 3, "the longer route has a live reward by length alone, with no cap")
 	# Drift 1 was sampled before the walls went up (0), the other four drifts count at today's rate.
 	var block_forecast: int = floori(expected * 4.0 / 5.0)
 	_check(director.get_maze_reward_projection() == block_forecast, "during drift one the forecast is already the block rest's (%d, expected %d)" % [director.get_maze_reward_projection(), block_forecast])

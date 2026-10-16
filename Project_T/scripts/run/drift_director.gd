@@ -109,7 +109,7 @@ func get_late_multiplier(number: int) -> float:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.40  # Balancing 2026-10-15: was 1.20; under health/Dew x2 act 1 had become trivial (2,000-4,100 Dew banked by drift 25). (Earlier: be7b5a94 with copy pricing 0.08; 1.30 after half cells, 1.15, 1.25, 1.35)
+@export var act1_health_multiplier: float = 1.30  # Balancing power budget (owner review 2026-10-16): 1.30, not 1.40 (base damage drops ~20% beside it); was 1.20. (Earlier: be7b5a94 with copy pricing 0.08; 1.30 after half cells, 1.15, 1.25, 1.35)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
