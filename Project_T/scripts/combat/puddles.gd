@@ -83,16 +83,37 @@ const EBB_META := &"pd_ebb"  # On a nightmare: true once its ran-out signal is h
 const POOLING := &"pooling"
 const POOLING_SHARE := 0.5  # Pooling: in two Dewdrops' ranges at once, statuses landing last 50% longer
 const HIGH_TIDE := &"high_tide"
-const HIGH_TIDE_SHARE := 0.75  # High Tide: each status with more than 75% of its time left…
-const HIGH_TIDE_PER := 0.10  # …adds 10% to hits from Wardens near a Dewdrop…
-const HIGH_TIDE_MAX := 0.40  # …up to +40%
+const HIGH_TIDE_SHARE := 0.75  # (Unused since keyword chips 2026-10-16: every status counts now)
+const HIGH_TIDE_PER := 0.10  # High Tide: each status on the nightmare adds 10% to hits from Wardens near a Dewdrop…
+const HIGH_TIDE_MAX := 0.30  # …up to +30% (keyword chips 2026-10-16, TD: was +40% with only fresh statuses)
 const OLD_RAIN := &"old_rain"
-const OLD_RAIN_AGE := 4.0  # Old Rain: a Reaction near a Dewdrop on a nightmare that has carried a status this long… (6 s until the council's 2026-10-15 review)
+const OLD_RAIN_AGE := 4.0  # (Unused since keyword chips 2026-10-16: Old Rain reads EnemyStatuses.is_lingering, not age)
 const OLD_RAIN_BONUS := 1.4  # …deals 40% more (its burst; damage over time after it is unchanged)
 const NEVER_DRY := &"never_quite_dry"
 const NEVER_DRY_EVERY := 3.0  # Never Quite Dry: a Reaction near a Dewdrop leaves the statuses it spent at half, once per nightmare in 3 s
 const NEVER_DRY_META := &"pd_never_dry_next"  # On a nightmare
 var _old_rain := false  # True while a boosted Reaction check runs (damage_multiplier reads it)
+var _rain_ids: Array = []  # Old Rain: the lingering statuses on the nightmare that check runs for (keyword chips 2026-10-16)
+
+# Old Rain (keyword chips 2026-10-16): the statuses on `statuses` that a card is making last longer.
+func _lingering_ids(statuses: EnemyStatuses) -> Array:
+	var out: Array = []
+	for id in statuses.active_ids():
+		if statuses.is_lingering(id):
+			out.append(id)
+	return out
+
+# Whether Reaction burst `tag` spends one of `ids` (its base Reaction's statuses; a tag without data: any of them).
+func _rain_spends(tag: StringName, ids: Array) -> bool:
+	if ids.is_empty():
+		return false
+	var data: ReactionData = Reactions.get_data(Reactions.CROWNED_BASE.get(tag, tag))
+	if data == null:
+		return true
+	for id in ids:
+		if data.statuses.has(id) or data.alternatives.has(id):
+			return true
+	return false
 const WATER_META := &"pd_water"  # On a nightmare: the water it stands in (-1 none)
 const SEEN_META := &"pd_seen"  # On a nightmare: {Dewdrop cell key: true}: it has walked this Dewdrop's water
 const LEFT_META := &"pd_left"  # On a nightmare: {Dewdrop id: {status: [stacks, potency, line, WeakRef]}} (The Water Remembers)
@@ -1154,6 +1175,8 @@ func _ebb(id: StringName, peak: int, source: Node, potency: float, line: String,
 	if stacks <= 0:
 		return
 	enemy.apply_status(id, stacks, EBB_SECONDS, potency, 0, line, source if is_instance_valid(source) else null)
+	if living(enemy):
+		enemy.statuses.note_stretched(id, EBB_SECONDS)  # Keyword chips 2026-10-16: a status brought back is Linger (is_lingering)
 
 # Slow to Dry (rule id waterlogged): on a Soaked nightmare near a Dewdrop, another family's status can't run out before
 # its Soaked does (it lingers to match, within the linger cap). Polled.
@@ -1175,9 +1198,12 @@ func around_reaction(enemy, id: StringName, source) -> void:
 		Reactions.on_status(enemy, id, source)
 		return
 	var statuses: EnemyStatuses = enemy.statuses
-	# Old Rain: a nightmare that has carried a status for 6 s or longer: the Reactions this check fires deal 40% more
+	# Old Rain: the statuses a card is making last longer, read before this check spends them (keyword chips 2026-10-16)
 	var was_raining := _old_rain  # (A Reaction's own statuses can run a check inside this one)
-	_old_rain = was_raining or (rule(OLD_RAIN) and statuses.oldest_age() >= OLD_RAIN_AGE)
+	var was_rain_ids := _rain_ids
+	if rule(OLD_RAIN):
+		_rain_ids = _lingering_ids(statuses)
+		_old_rain = was_raining or not _rain_ids.is_empty()
 	var before := {}
 	if rule(NEVER_DRY) and now() >= float(enemy.get_meta(NEVER_DRY_META, -INF)):
 		for status in statuses.active_ids():
@@ -1186,6 +1212,7 @@ func around_reaction(enemy, id: StringName, source) -> void:
 					statuses.source(status), statuses.time_left(status)]
 	Reactions.on_status(enemy, id, source)
 	_old_rain = was_raining
+	_rain_ids = was_rain_ids
 	if before.is_empty() or not living(enemy):
 		return
 	# Never Quite Dry: the statuses a Reaction spent come back at half the stacks they had (quietly: no new check)
@@ -1278,18 +1305,19 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 	if not active():
 		return 1.0
 	var multiplier := 1.0
-	if tag in REACTION_BURSTS and (_old_rain or (rule(OLD_RAIN) and enemy.statuses.oldest_age() >= OLD_RAIN_AGE \
-			and strongest_near(enemy.global_position, is_own) != null)):
-		multiplier *= OLD_RAIN_BONUS  # Old Rain: this Reaction's burst (Shatter and Lightning Rod too: they never pass a landing)
+	# Old Rain (keyword chips 2026-10-16, keyword_chips_td.md 4: reads EnemyStatuses.is_lingering, not age): a Reaction near
+	# a Dewdrop that spends a status a card made last longer deals 40% more (its burst). Shatter and Lightning Rod never pass
+	# a landing: they read the statuses still on it.
+	if tag in REACTION_BURSTS and rule(OLD_RAIN):
+		var rain_ids: Array = _rain_ids if _old_rain else _lingering_ids(enemy.statuses)
+		if _rain_spends(tag, rain_ids) and (_old_rain or strongest_near(enemy.global_position, is_own) != null):
+			multiplier *= OLD_RAIN_BONUS
 	if not (source is Tower) or not is_instance_valid(source):
 		return multiplier
 	if rule(HIGH_TIDE) and tag == &"" and dewdrop_near(source) != null:
-		# High Tide: hits from Wardens near a Dewdrop deal 10% more for each status with more than 75% of its time left
-		var fresh := 0
-		for id in enemy.statuses.active_ids():
-			if enemy.statuses.time_share(id) > HIGH_TIDE_SHARE:
-				fresh += 1
-		multiplier *= 1.0 + minf(HIGH_TIDE_PER * fresh, HIGH_TIDE_MAX)
+		# High Tide (keyword chips 2026-10-16: every status counts, cap +30%): hits from Wardens near a Dewdrop deal 10% more
+		# for each status on the nightmare
+		multiplier *= 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
 	if not _soaked(enemy):
 		return multiplier  # The older Dewdrop damage cards (retired) read a Soaked nightmare
 	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades

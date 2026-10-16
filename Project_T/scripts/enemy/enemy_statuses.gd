@@ -343,6 +343,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		_grand_tour_new_status(id, source)
 	# When both buildup gates are met, Thunderclap goes first (Reactions), so no bolt here then.
 	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
+		static_lingered = is_lingering(STATIC)  # Keyword chips 2026-10-16: the bolt below reads it (Slow Burn)
 		_active.erase(STATIC)
 		changes += 1
 		if static_forever and potency > 0.0:
@@ -466,6 +467,8 @@ func spend_exposed_crit() -> void:
 	changes += 1
 
 func remove(id: StringName) -> void:
+	if id == STATIC:
+		static_lingered = is_lingering(STATIC)  # Keyword chips 2026-10-16: read by the bolt this removal is for (Slow Burn)
 	if id == SPORED:
 		_spore_batches.clear()
 		_spore_by.clear()
@@ -687,6 +690,8 @@ func tick(delta: float) -> float:
 			var status: Dictionary = _active[id]
 			status["age"] = float(status.get("age", 0.0)) + delta  # Old Rain
 			if bound_now and id != HELD:
+				if can_linger(id):
+					status["stretched"] = float(status.get("stretched", 0.0)) + delta  # Keyword chips 2026-10-16: the pause is Linger (is_lingering)
 				continue  # Bound and Burning: while Rooted its other statuses don't run down (Rooted itself still does)
 			if id == SPORED:
 				_tick_spore_batches(delta)
@@ -978,6 +983,17 @@ func top_up(id: StringName) -> void:
 # Seconds a Dewdrop card added to the landing about to happen (DreamState.class_duration, at most LINGER_MAX), by
 # status: apply() books them as "stretched" (the badge's lingering look; a landing's own length, so not the cap).
 var pending_linger := {}
+
+# Keyword chips 2026-10-16 (keyword_chips_td.md 2, Linger): a card that brings a status back after it ended (Ebb, Second
+# Verse) books those seconds as lingering, so is_lingering stays the one source of truth. Not the linger cap: a landing's
+# own length, like "stretched".
+var static_lingered := false  # Whether the Charged the last bolt spent was lingering (remove / the bolt in apply set it)
+
+func note_stretched(id: StringName, seconds: float) -> void:
+	if seconds <= 0.0 or not can_linger(id) or not _active.has(id):
+		return
+	_active[id]["stretched"] = maxf(float(_active[id].get("stretched", 0.0)), seconds)
+	changes += 1
 
 # Whether `id` lasts longer than it would have (the lingering look on its badge).
 func is_lingering(id: StringName) -> bool:

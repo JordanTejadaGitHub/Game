@@ -13,3 +13,4 @@ tags = Array[String](["wall", "tending", "defining"])
 max_stacks = 1
 rule_id = &"thorny_walls"
 tip = "Thorns take at most a quarter of a nightmare's health, a tenth of a boss's or a {deeply_blighted} one's. A twig wall hits for a quarter."
+uses = Array[StringName]([&"maze"])

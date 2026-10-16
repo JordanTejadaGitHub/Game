@@ -176,8 +176,11 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 		return
 	if _half_need:  # Clashing Notes' half need is for its own nightmare only: a status landing elsewhere checks in full
 		_half_need = false
+		var share := _half_share  # (Keyword chips 2026-10-16: …and at full damage)
+		_half_share = 1.0
 		_on_status(enemy, _id, source)
 		_half_need = true
+		_half_share = share
 		return
 	_on_status(enemy, _id, source)
 
@@ -235,11 +238,18 @@ static func thunderclap_threshold(statuses: EnemyStatuses) -> int:
 static var _half_need := false
 const HALF_NEED_BASES: Array[int] = [SOAKED_NEEDED, IGNITE_MIN_STATIC, IGNITE_MIN_SPORES, MUSHROOM_MIN_SPORES]
 
-static func check_at_half(enemy: Node2D, source: Node) -> void:
+# Keyword chips 2026-10-16 (TD 4): Heavy Heart and Witching Bend set Reactions off at half need too, but such a half
+# set-off deals HALF_SET_OFF_DAMAGE of its burst (`damage_share`; Clashing Notes keeps 1.0), so Brimming's cost stays.
+const HALF_SET_OFF_DAMAGE := 0.5
+static var _half_share := 1.0
+
+static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.count() < 2:
 		return
 	var s: EnemyStatuses = enemy.statuses
 	_half_need = true
+	var share_before := _half_share
+	_half_share = damage_share
 	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.stacks(STATIC) >= thunderclap_threshold(s) and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source)
 	if not enemy.is_cleansed and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) \
@@ -252,6 +262,7 @@ static func check_at_half(enemy: Node2D, source: Node) -> void:
 			and grown(s, [DAMP, DROWSY]):
 		_drown(enemy, source)
 	_half_need = false
+	_half_share = share_before
 
 # --- Potency (tower_design.md "Potency: effect damage") ---------------------------------------------
 
@@ -1059,7 +1070,7 @@ static func _towers(a = null, b = null) -> Array:
 # Reactions' cut, never the cards'; a Charged bolt (tag static) never comes here.
 static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return amount * _payoff(near, id) * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
+	return amount * _payoff(near, id) * _half_share * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
 # Shatter's main hit) and the Ignite / Tempest burn, so those sites stay as they were until a card says otherwise.

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "one_bough"
 display_name = "One Bough"
-description = "3 or more grown Wardens of one {family}, all on one {branch}, attack 20% faster and add 1 more {stack} with each status."
-tip = "Grown: past the base Warden; Sprouts don't count. A grown Warden of that {family} on another {branch} turns it off. Never {held}."
+description = "3 or more Wardens of the same {branch} attack 20% faster."
+tip = "A {final_form} or {ascended} form counts as its {branch}. Sprouts don't count."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "growth"])

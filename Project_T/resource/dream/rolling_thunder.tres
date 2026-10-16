@@ -16,3 +16,5 @@ shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["stormcap", "dewdrop"])
 max_stacks = 1
 rule_id = &"rolling_thunder"
+makes = Array[StringName]([&"charged"])
+uses = Array[StringName]([&"reaction"])

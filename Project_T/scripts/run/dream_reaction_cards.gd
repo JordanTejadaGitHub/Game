@@ -47,11 +47,15 @@ const AFTERGLOW_EVERY := 5  # Afterglow: every this-many-th link of a Reaction c
 const AFTERGLOW_STACKS := 2  # …gives nightmares within…
 const AFTERGLOW_RADIUS := 2.0  # …this many cells this many stacks of each status in that Reaction (never Rooted)
 const AFTERGLOW_WAIT := 0.5  # At most once every this many seconds, field-wide (its stacks never continue the chain)
-const SPENT_SECONDS := 4.0  # Spent Light: a nightmare a Reaction dispels leaves its statuses on its cell this long…
-const SPENT_STACKS := 2  # …and each nightmare stepping there gets this many stacks of each (once per stain, never Rooted)
-const SPENT_WINDOW := 0.5  # A dispel this soon after a Reaction on it counts as the Reaction's
-const SPENT_MAX := 12  # Stains on the map at once (the oldest goes)
-const WITCHING_BEND_BONUS := 0.40  # Witching Bend: Reactions on a nightmare rounding a bend (a point either side of it)
+const SPENT_SECONDS := 4.0  # Spent Light (keyword chips 2026-10-16, TD 4): any Reaction leaves its statuses on its cell this long…
+const SPENT_STACKS := 1  # …and each nightmare stepping there gets this many stacks of each (once per stain; never Rooted or Drowsy; was 2)
+const SPENT_WINDOW := 0.5  # (Unused since keyword chips 2026-10-16: no longer only Reactions that dispel)
+const SPENT_MAX := 6  # Stains on the map at once (the oldest goes; was 12)
+const SPENT_CELL_WAIT := 4.0  # Each cell gets a new stain at most once every this many seconds
+const WITCHING_BEND_BONUS := 0.40  # (Unused since keyword chips 2026-10-16: the +40% on a bend is gone)
+const WITCHING_BEND_WAIT := 5.0  # Witching Bend (keyword chips 2026-10-16, TD 4): a nightmare rounding a bend sets off a Reaction at half
+const WITCHING_BEND_BOSS_WAIT := 10.0  # need (half its burst), once every this many seconds per nightmare (bosses the second)
+const WITCHING_BEND_POLL := 0.1  # Seconds between looks at who is rounding a bend
 const GRAND_DESIGN_PER := 0.10  # Grand Design: every different Reaction set off this block makes all Reactions this much stronger…
 const GRAND_DESIGN_MAX := 0.80  # …up to this
 const UNBROKEN_FROM := 12  # Unbroken Chain: Reaction chains lose strength only from this link (Reactions.CHAIN_FALLOFF_FROM: 6)
@@ -227,9 +231,6 @@ func reaction_fired(enemy, id: StringName, chain: int, links: int, towers: Array
 	if _on.has(GRAND_DESIGN) and new_kind and world != null:
 		Fx.callout("Grand Design +%d%%" % roundi(_grand_design() * 100.0), Palette.GLOW, at, world, GRAND_DESIGN)
 		_credit(GRAND_DESIGN, at)
-	if _on.has(WITCHING_BEND) and _at_bend(enemy):
-		_burst(WITCHING_BEND, at, 20.0, world)  # The bend flares where the Reaction lands
-		_credit(WITCHING_BEND, at)
 	if _on.has(LONG_WALK) and _clock() >= _long_walk_next:
 		var walk := _long_walk_bonus(enemy)
 		if walk >= LONG_WALK_CALLOUT_MIN and world != null:
@@ -245,9 +246,7 @@ func reaction_fired(enemy, id: StringName, chain: int, links: int, towers: Array
 		Fx.callout("Unbroken ×%d" % chain, Palette.GOLD, at, world, UNBROKEN_CHAIN)  # A link that would have weakened
 		_credit(UNBROKEN_CHAIN, at)
 	if _on.has(SPENT_LIGHT):
-		_reacted[enemy.get_instance_id()] = _clock()
-		if _reacted.size() > 512:
-			_prune_reacted()
+		_spent_light(enemy, id)
 	if _on.has(AFTERGLOW) and floori(float(chain - links) / AFTERGLOW_EVERY) < floori(float(chain) / AFTERGLOW_EVERY) \
 			and _clock() >= _afterglow_next:
 		_afterglow_next = _clock() + AFTERGLOW_WAIT
@@ -269,8 +268,6 @@ func reaction_multiplier(enemy, id: StringName, tower) -> float:
 		m *= 1.0 + Reactions.CROWNED_CARD_BONUS
 	if enemy == null or not is_instance_valid(enemy):
 		return m
-	if _on.has(WITCHING_BEND) and _at_bend(enemy):
-		m *= 1.0 + WITCHING_BEND_BONUS
 	if _on.has(LONG_WALK):
 		var walk := _long_walk_bonus(enemy)
 		if walk > 0.0:
@@ -382,28 +379,27 @@ func _prune_reacted() -> void:
 
 # EnemyContainer.enemy_cleansed: a nightmare a Reaction dispelled (its last damage a Reaction's, or a Reaction on it
 # within SPENT_WINDOW) leaves its statuses on its cell for SPENT_SECONDS.
-func _on_cleansed(enemy: Node2D) -> void:
-	if not on(SPENT_LIGHT) or not is_instance_valid(enemy) or enemy.is_flying():
+func _on_cleansed(_enemy: Node2D) -> void:
+	pass  # (Keyword chips 2026-10-16: Spent Light no longer waits for a dispel; see _spent_light)
+
+var _stain_cells := {}  # Cell -> the clock it may get a new stain
+
+# Spent Light (keyword chips 2026-10-16): Reaction `id` went off on `enemy`; the statuses it needs (never Rooted or
+# Drowsy) stay on its cell for SPENT_SECONDS. Each cell once every SPENT_CELL_WAIT s, SPENT_MAX stains at once.
+func _spent_light(enemy, id: StringName) -> void:
+	if not is_instance_valid(enemy) or enemy.is_flying():
 		return
-	var eid: int = enemy.get_instance_id()
-	var by_reaction: bool = _clock() - float(_reacted.get(eid, -1000.0)) <= SPENT_WINDOW
-	_reacted.erase(eid)
-	if not by_reaction and not enemy.recent_hits.is_empty():
-		var last = enemy.recent_hits[enemy.recent_hits.size() - 1]
-		by_reaction = last != null and last.kind == &"reaction"
-	if not by_reaction:
+	var cell: Vector2 = enemy.get_current_cell()
+	if _clock() < float(_stain_cells.get(cell, -1.0)):
 		return
-	var gifts: Array = []
-	var s: EnemyStatuses = enemy.statuses
-	for status in s.active_ids():
-		if status == EnemyStatuses.HELD or not status in EnemyStatuses.ALL:
-			continue
-		var source: Node = s.source(status)
-		var line: String = s.spore_line() if status == EnemyStatuses.SPORED else (source.tower_data.line if source is Tower else "")
-		gifts.append([status, s.potency(status), weakref(source) if source != null else null, line])
+	var gifts: Array = _snapshot(enemy, id).filter(func(gift) -> bool: return gift[0] != EnemyStatuses.DROWSY)
 	var world := Reactions._world(enemy)
 	if gifts.is_empty() or world == null:
 		return
+	_stain_cells[cell] = _clock() + SPENT_CELL_WAIT
+	if _stain_cells.size() > 256:
+		_stain_cells.clear()
+		_stain_cells[cell] = _clock() + SPENT_CELL_WAIT
 	_stains = _stains.filter(func(n) -> bool: return is_instance_valid(n) and not n.is_queued_for_deletion())
 	while _stains.size() >= SPENT_MAX:
 		var oldest = _stains.pop_front()
@@ -415,7 +411,7 @@ func _on_cleansed(enemy: Node2D) -> void:
 	_stains.append(stain)
 	_credit(SPENT_LIGHT, stain.global_position)
 
-# A glowing stain on one path cell: each nightmare that steps on it gets the dispelled one's statuses (once per stain).
+# A glowing stain on one path cell: each nightmare that steps on it gets the Reaction's statuses (once per stain).
 class SpentStain extends Node2D:
 	const TICK := 0.1
 	var cell: Vector2
@@ -596,6 +592,34 @@ func _index_route() -> void:
 func _route_index(enemy) -> int:
 	_index_route()
 	return int(_index.get(enemy.get_target_cell(), -1))
+
+# Witching Bend (keyword chips 2026-10-16): DreamState._process calls this. A nightmare rounding a bend (a point either
+# side of it) with two or more statuses gets Reactions.check_at_half at HALF_SET_OFF_DAMAGE; the wait starts only when
+# one went off. Flyers never round a bend.
+var _bend_next := 0.0
+
+func bend_poll() -> void:
+	if not on(WITCHING_BEND) or dreams.spawner == null or _clock() < _bend_next:
+		return
+	_bend_next = _clock() + WITCHING_BEND_POLL
+	for enemy in dreams.spawner.get_enemies():
+		if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.count() < 2:
+			continue
+		var s: EnemyStatuses = enemy.statuses
+		if s.is_on_cooldown(WITCHING_BEND) or not _at_bend(enemy):
+			continue
+		var setter: Node = null  # The Warden credited: an applier of one of its statuses
+		for id in s.active_ids():
+			if s.source(id) is Tower:
+				setter = s.source(id)
+				break
+		var before := _block_count
+		Reactions.check_at_half(enemy, setter, Reactions.HALF_SET_OFF_DAMAGE)
+		if _block_count == before or not is_instance_valid(enemy):
+			continue
+		s.start_cooldown(WITCHING_BEND, WITCHING_BEND_BOSS_WAIT if s.is_boss else WITCHING_BEND_WAIT)
+		_burst(WITCHING_BEND, enemy.global_position, 20.0, Reactions._world(enemy))  # The bend flares where it went off
+		_credit(WITCHING_BEND, enemy.global_position)
 
 func _at_bend(enemy) -> bool:
 	if enemy.is_flying():

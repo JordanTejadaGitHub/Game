@@ -16,3 +16,4 @@ max_rank_set = 99
 rule_id = &"endless_rings"
 in_start_pool = false
 tip = "Each {rank} past VII costs 20% more than the one before: VIII {dew:216}, IX {dew:259} and so on, before its form's multiplier. Taking it names your {eldest}."
+makes = Array[StringName]([&"rank"])

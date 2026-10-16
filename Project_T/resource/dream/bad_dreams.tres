@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"bad_dreams"
 in_start_pool = false
 tip = "This keeps them {caught} longer. Works for: {warden:dreamcatcher} and its forms. Safe."
+makes = Array[StringName]([&"drowsy"])

@@ -16,3 +16,4 @@ shows_statuses = Array[StringName]([&"spored", &"damp"])
 requires = Array[String](["sporeling", "dewdrop"])
 max_stacks = 1
 rule_id = &"damp_rot"
+uses = Array[StringName]([&"soaked", &"poisoned"])

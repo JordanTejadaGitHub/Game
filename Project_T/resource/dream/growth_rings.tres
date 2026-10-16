@@ -13,3 +13,4 @@ tags = Array[String](["tall", "tending"])
 max_stacks = 1
 rule_id = &"growth_rings"
 tip = "Top Warden: the one that dealt the most damage this {block}. Planting: any new Warden or Thornwall, free ones too. The {rank} waits until you Nurture."
+makes = Array[StringName]([&"rank"])

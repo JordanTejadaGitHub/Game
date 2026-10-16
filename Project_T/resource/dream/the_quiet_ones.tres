@@ -16,3 +16,4 @@ min_non_attackers = 3
 rule_id = &"the_quiet_ones"
 in_start_pool = false
 tip = "Catcher income and {warden:dreamcatcher}s don't change. Offered once you have 3 Wardens that don't attack."
+uses = Array[StringName]([&"cluster"])

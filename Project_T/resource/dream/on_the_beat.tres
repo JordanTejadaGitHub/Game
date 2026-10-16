@@ -14,3 +14,4 @@ tags = Array[String](["song", "lent"])
 max_stacks = 1
 rule_id = &"on_the_beat"
 requires = Array[String](["bellflower"])
+makes = Array[StringName]([&"repeat"])

@@ -16,3 +16,4 @@ shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["dewdrop", "firefly_jar"])
 max_stacks = 1
 rule_id = &"rain_on_glass"
+uses = Array[StringName]([&"soaked"])

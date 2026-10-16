@@ -13,3 +13,4 @@ tags = Array[String](["maze"])
 max_stacks = 1
 rule_id = &"passing_thread"
 tip = "Second pass: the path leaves the Warden's range for 3 cells or more and comes back into it. Multiplies with your other Dream damage."
+uses = Array[StringName]([&"maze"])

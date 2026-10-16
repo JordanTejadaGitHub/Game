@@ -14,3 +14,5 @@ tags = Array[String](["song", "lent"])
 max_stacks = 1
 rule_id = &"nod_off"
 requires = Array[String](["bellflower"])
+makes = Array[StringName]([&"asleep"])
+uses = Array[StringName]([&"drowsy"])

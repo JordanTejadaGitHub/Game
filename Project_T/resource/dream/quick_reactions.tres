@@ -15,3 +15,4 @@ discovered_by = Array[String](["reactions:2"])
 max_stacks = 1
 min_reaction_pairs = 2
 rule_id = &"quick_reactions"
+uses = Array[StringName]([&"reaction"])

@@ -17,3 +17,4 @@ rule_id = &"root_network"
 diagram = ".......\n.......\n.WWW...\n....w..\n......."
 diagram_caption = "Sprouts side by side form a network: +6% per Sprout, +18% here. ✗ a diagonal doesn't join."
 tip = "Network: Sprouts joined side by side, itself included. Diagonals don't join. A Sprout on its own gets nothing."
+uses = Array[StringName]([&"cluster"])

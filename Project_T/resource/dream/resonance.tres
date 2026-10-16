@@ -13,3 +13,4 @@ tags = Array[String](["song", "storm"])
 requires = Array[String](["bellflower", "firefly_jar"])
 max_stacks = 1
 rule_id = &"resonance"
+makes = Array[StringName]([&"charged"])

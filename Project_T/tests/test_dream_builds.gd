@@ -223,7 +223,7 @@ func _test_wide_and_narrow() -> void:
 	dreams.board_version += 1
 	_check(dreams.is_eligible(chorus), "Thicket can be offered with a feasible pair instead of six Sprouts")
 	dreams.take(chorus)
-	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(sprout_a), 0.30), "Thicket: touching a Sprout and two distinct route cells gives +30% speed")
+	_check(is_equal_approx(dreams.get_tower_attack_speed_bonus(sprout_a), DreamState.SPROUT_CHORUS_SPEED), "Sprout Chorus: two distinct path cells beside it give +20% speed (keyword chips 2026-10-16)")
 	dreams._path_index.erase(Vector2(80, 79))
 	dreams.board_version += 1
 	_check(is_zero_approx(dreams.get_tower_attack_speed_bonus(sprout_a)), "Thicket: one adjacent route cell does not qualify")

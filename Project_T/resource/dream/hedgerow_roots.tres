@@ -17,3 +17,4 @@ in_start_pool = false
 diagram = ".......\n.......\n.aXW...\n.......\n......."
 diagram_caption = "An aura flows through a touching Thornwall to the Warden beyond it."
 tip = "Works for: aura Wardens like {warden:acorn} and its forms, with Thornwalls around them."
+uses = Array[StringName]([&"cluster"])

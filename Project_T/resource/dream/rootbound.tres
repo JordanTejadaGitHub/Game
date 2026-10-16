@@ -17,3 +17,4 @@ in_start_pool = false
 diagram = ".......\n...a...\n..aWa..\n.......\n....wa."
 diagram_caption = "Touching 3 or more other Wardens: attacks 100% faster. ✗ touches only one."
 tip = "Only attacking Wardens get it."
+uses = Array[StringName]([&"cluster"])

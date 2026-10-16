@@ -18,3 +18,4 @@ excludes = Array[String](["pollen_beaks"])
 rule_id = &"charged_feathers"
 in_start_pool = false
 tip = "Offered once you have {warden:hummingbird_bower} and {warden:firefly_jar}. Safe."
+makes = Array[StringName]([&"charged"])

@@ -14,3 +14,4 @@ tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"topped_up"
 requires = Array[String](["dewdrop"])
+makes = Array[StringName]([&"linger"])

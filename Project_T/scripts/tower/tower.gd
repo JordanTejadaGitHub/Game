@@ -3208,6 +3208,12 @@ func _kin_night_chimes(enemy: Node2D) -> void:
 	s.remove(EnemyStatuses.STATIC)
 	Reactions.strike_bolt(enemy, bolt, source if source else self, &"static")
 
+# Keyword chips 2026-10-16 (keyword_chips_td.md 1, option A): a hit that lands again without a new hit() (a bell's
+# repeat through keeping_time._again, the Fifth Beat echo) still counts for the hit-counting Legendaries, so "Repeat"
+# means one thing. Only the Legendary hit rules run: no on-hit cards, statuses or Reactions.
+func note_repeat_hit(enemy: Node2D) -> void:
+	_legendary_hit_rules(enemy, get_damage())
+
 # Hit rules of the new Legendaries (dream_design.md "New Legendaries"), read by rule id:
 # Hunter's Moon (a Warden's first hit on a nightmare Exposes it, and that never runs out), Eternal
 # Static (every 4th hit adds a Charge, and Charge never decays), Rooted Nightmares (every 8th hit Roots
@@ -3938,9 +3944,15 @@ func _chain_strike(first: Node2D) -> void:
 		var enemy := hits[i]
 		points.append(aim_at(enemy))  # The bolt strikes the body
 		var falloff := maxf(1.0 - attack_data.chain_falloff * i, 0.1)  # Stormheart: −15% per jump
+		if i > 0 and _dream_state != null:
+			# Keyword chips 2026-10-16: every hop past the first target is a Jump (DreamState.note_jump: Gathering Storm, Shared Spark)
+			var jumped_from: Node2D = hits[i - 1] if is_instance_valid(hits[i - 1]) else null
+			falloff *= float(_dream_state.note_jump(self, jumped_from, enemy, get_damage() * falloff))
+			if not is_instance_valid(enemy) or enemy.is_cleansed:
+				continue
 		hit(enemy, falloff, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets and not attack_data.chain_all_in_range else &"")
 		if i >= tangled_from and i < tangled_to:
-			_dream_state.role_cards.tangled_hit(self, enemy)  # Tangled Lightning: +1 stack of a status it carries
+			_dream_state.role_cards.tangled_hit(self, enemy)  # Tangled Lightning: its moment (no stack since keyword chips 2026-10-16)
 		var beacon := kin_share(&"storm_beacon", "a")
 		if beacon > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
@@ -4813,7 +4825,7 @@ func _eddy_targets(targets: Array, source: Node2D) -> Array:
 		var at: int = route.find(target.get_current_cell())
 		if at < 0:
 			continue
-		var reach := 2 if _is_bend(route, at) else 1
+		var reach := 1  # Keyword chips 2026-10-16: 1 step either side, bends no wider (one keyword: Layered)
 		for step in range(-reach, reach + 1):
 			if step != 0 and at + step >= 0 and at + step < route.size():
 				extra_cells[route[at + step]] = true

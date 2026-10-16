@@ -15,3 +15,4 @@ rule_id = &"patient_roots"
 in_start_pool = false
 grows_with = Array[String](["rootling", "rootcurl", "tangleroot", "snugroot", "long_way_home", "world_root"])
 grows_text = "{warden:rootling} and its forms pull 0.5 cells further and keep nightmares {held} 0.25 s longer."
+uses = Array[StringName]([&"rooted"])

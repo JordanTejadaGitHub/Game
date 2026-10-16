@@ -14,3 +14,5 @@ tags = Array[String](["spore", "lent"])
 max_stacks = 1
 rule_id = &"spore_ring"
 requires = Array[String](["sporeling"])
+makes = Array[StringName]([&"poisoned"])
+uses = Array[StringName]([&"cluster"])

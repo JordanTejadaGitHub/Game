@@ -34,6 +34,11 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 # Bittersweet cards (tag "bittersweet"): the lasting cost, shown on its own line in plum.
 @export_multiline var cost_description: String = ""
 @export_multiline var tip: String = ""  # Hover / tap detail behind the face text (Sunlit Rest: which rank, who gets it)
+# Keyword chips (owner 2026-10-16; council keyword_chips_*.md): what the card makes and what it uses, as keyword ids
+# (&"jump", &"linger"…) or status words (&"poisoned", &"rooted"…); scripts/run/dream_keywords.gd reads them. Uses that
+# follow from requires_role / requires_status are added there, never written here. Display only: offers never read them.
+@export var makes: Array[StringName] = []
+@export var uses: Array[StringName] = []
 
 @export_group("Unlock")
 @export var unlocks: TowerData  # UNLOCK_WARDEN / UNLOCK_EVOLUTION

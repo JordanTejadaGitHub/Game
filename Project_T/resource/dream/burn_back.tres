@@ -18,3 +18,4 @@ creature_speed_bonus = 0.2
 min_obstacles = 8
 clears_obstacle = ExtResource("2_tree")
 tip = "These clears earn no {seeds}."
+makes = Array[StringName]([&"maze"])

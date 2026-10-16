@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"hush"
 in_start_pool = false
 tip = "Works for: {warden:bellflower}, {warden:lullaby_bell} and other bells that pulse."
+uses = Array[StringName]([&"area"])

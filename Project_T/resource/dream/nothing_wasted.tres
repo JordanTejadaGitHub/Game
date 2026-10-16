@@ -15,3 +15,4 @@ rule_id = &"nothing_wasted"
 requires = Array[String](["firefly_jar"])
 tip = "{dread_shell}: a crust that soaks up part of each hit until it breaks. Nearest: within 2 cells. Once per hit. Another family's {jump} deals at most 3 s of that Firefly Warden's damage. Works for: any Warden {near} a Firefly Warden. Safe."
 min_act = 2
+makes = Array[StringName]([&"jump"])

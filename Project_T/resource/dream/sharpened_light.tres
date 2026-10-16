@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"sharpened_light"
 in_start_pool = false
 tip = "Added to the crit's own bonus: a crit that deals double now deals two and a half times as much."
+uses = Array[StringName]([&"crit"])

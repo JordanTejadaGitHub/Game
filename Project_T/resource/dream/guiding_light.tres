@@ -16,3 +16,5 @@ entwined = true
 rule_id = &"guiding_light"
 in_start_pool = true
 tip = "Works for: {warden:lanternmoth} and its forms with any hitting Warden. Safe."
+makes = Array[StringName]([&"jump"])
+uses = Array[StringName]([&"exposed"])

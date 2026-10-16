@@ -12,3 +12,4 @@ kind = 3
 tags = Array[String](["maze", "economy"])
 max_stacks = 1
 rule_id = &"winding_path"
+uses = Array[StringName]([&"maze"])

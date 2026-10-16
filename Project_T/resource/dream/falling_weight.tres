@@ -14,3 +14,4 @@ requires = Array[String](["pebbling"])
 max_stacks = 1
 rule_id = &"falling_weight"
 tip = "Safe."
+uses = Array[StringName]([&"rooted", &"asleep"])

@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"warm_hearth"
 set_cost_warden = "acorn"
 set_cost = 12
+uses = Array[StringName]([&"cluster"])

@@ -16,3 +16,4 @@ shows_statuses = Array[StringName]([&"spored", &"static"])
 requires = Array[String](["sporeling", "firefly_jar"])
 max_stacks = 1
 rule_id = &"sparking_spores"
+uses = Array[StringName]([&"reaction"])

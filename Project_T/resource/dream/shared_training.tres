@@ -15,3 +15,5 @@ rule_id = &"shared_training"
 min_kinships = 1
 discovered_by = Array[String](["kinship:any", "event:signature"])
 tip = "{rank} V reward: the {signature} or {mastery} that choice gives. Both need {rank} IV or higher. Never gives {all_rounder}."
+makes = Array[StringName]([&"rank"])
+uses = Array[StringName]([&"cluster"])

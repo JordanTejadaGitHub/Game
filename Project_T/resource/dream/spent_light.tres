@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "spent_light"
 display_name = "Spent Light"
-description = "When a {reaction} {dispels} a nightmare, its statuses stay on its cell for 4 s. Each nightmare that steps there gets 2 {stacks} of each."
-tip = "Once for each nightmare on each cell. Never {held}. Flyers pass over. At most 12 cells at once. Offered once your Wardens add 2 different statuses."
+description = "When a {reaction} goes off, its statuses stay on that cell for 4 s. Each nightmare stepping there gets 1 {stack} of each."
+tip = "Each cell once every 4 s. At most 6 cells at once. Never {held} or {drowsy}. Flyers pass over. Offered once your Wardens add 2 different statuses."
 rarity = 1
 kind = 3
 tags = Array[String](["reaction", "scaler"])
@@ -15,3 +15,5 @@ max_stacks = 1
 min_act = 1
 rule_id = &"spent_light"
 min_owned_statuses = 2
+makes = Array[StringName]([&"layered"])
+uses = Array[StringName]([&"reaction"])

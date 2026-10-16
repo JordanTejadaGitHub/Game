@@ -13,3 +13,4 @@ tags = Array[String](["nurture", "tall"])
 max_stacks = 1
 rule_id = &"fresh_beginnings"
 tip = "The {rank} waits until you Nurture. Never past that Warden's highest {rank}. A Warden that gets {card:sunlit_rest}'s {rank} can't also get this one."
+makes = Array[StringName]([&"rank"])

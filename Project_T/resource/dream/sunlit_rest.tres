@@ -13,3 +13,4 @@ kind = 3
 tags = Array[String](["nurture", "tall", "defining"])
 max_stacks = 1
 rule_id = &"sunlit_rest"
+makes = Array[StringName]([&"rank"])

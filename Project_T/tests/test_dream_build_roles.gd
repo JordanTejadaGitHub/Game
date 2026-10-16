@@ -74,25 +74,15 @@ func _run() -> void:
 		towers.append(_plant(main, Vector2(79 + i, 81)))
 	dreams.stacks = {"canopy": 1}
 	dreams.bump_board()
-	var targets := []
-	for i in range(6):
-		var enemy := Target.new()
-		root.add_child(enemy)
-		targets.append(enemy)
-		dreams.on_original_attack_released(towers[i], enemy)
-	_check(dreams._role_recent.is_empty(), "release primary without an actual hit does not feed Canopy")
-	for i in range(6):
-		dreams.on_original_attack_hit(towers[i], targets[i])
-	_check(is_equal_approx(dreams.get_tower_range_bonus(center), 1.0), "six connected attackers with six distinct living targets gain one range")
+	# Keyword chips 2026-10-16: Canopy = 6 or more touching attacking Wardens (never Sprouts), +0.75 range, no "busy" gate.
+	dreams._update_canopy_roles()
+	_check(is_zero_approx(dreams.get_tower_range_bonus(center)), "six Sprouts are no Canopy group")
+	for tower in towers:
+		tower.tower_data = load("res://resource/tower/sporeling.tres")
+	dreams.bump_board()
+	dreams._update_canopy_roles()
+	_check(is_equal_approx(dreams.get_tower_range_bonus(center), DreamState.CANOPY_RANGE), "six touching attackers gain +0.75 range")
 	_check(is_equal_approx(dreams.get_soothe_multiplier(center), 1.0), "Canopy has no milestone damage")
-	targets[0].health = 0
-	dreams._update_canopy_roles()
-	_check(is_zero_approx(dreams.get_tower_range_bonus(center)), "dead recent target stops canopy")
-	targets[0].health = 100
-	dreams.on_original_attack_hit(center, targets[0])
-	dreams._game_clock += 3.1
-	dreams._update_canopy_roles()
-	_check(is_zero_approx(dreams.get_tower_range_bonus(center)), "canopy target window expires")
 	dreams.stacks = {"grand_tour": 1}
 	dreams.bump_board()
 	# Grand Tour, reworked (30d7a265, card_review_2026-10-12.md 10): a nightmare carrying 3 or more different statuses
@@ -117,8 +107,6 @@ func _run() -> void:
 	_check(donor.transfer_spores_to(receiver) == 0 and donor.stacks(EnemyStatuses.SPORED) == 2, "immune recipient loses no donor stacks")
 	dreams.clear_build_role_state()
 	_check(dreams._role_recent.is_empty() and dreams._role_relay.is_empty() and dreams._role_primary.is_empty(), "drift/load clear transient roles")
-	for enemy in targets:
-		enemy.free()
 	target.free()
 	other.free()
 	main.queue_free()

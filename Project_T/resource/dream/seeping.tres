@@ -15,3 +15,4 @@ min_owned_statuses = 2
 rule_id = &"seeping"
 in_start_pool = false
 tip = "Offered once your Wardens add 2 different statuses."
+uses = Array[StringName]([&"layered"])

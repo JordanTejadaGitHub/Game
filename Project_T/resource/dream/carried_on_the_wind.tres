@@ -18,3 +18,4 @@ min_owned_statuses = 1
 in_start_pool = false
 rule_id = &"carried_on_the_wind"
 tip = "Safe."
+makes = Array[StringName]([&"stacks"])

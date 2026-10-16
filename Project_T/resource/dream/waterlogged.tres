@@ -6,11 +6,13 @@
 script = ExtResource("1_card")
 id = "waterlogged"
 display_name = "Slow to Dry"
-description = "Needs another {family}'s status. On a {damp} nightmare {near} a {warden:dewdrop}, other families' statuses last as long as its {damp}."
-tip = "Up to 4 s past their last landing ({static} 2 s). Never {held} or {drowsy}. Works for: every family's statuses. A bet: needs a {warden:dewdrop} keeping those nightmares {damp}."
+description = "Needs another {family}'s status. On a {damp} nightmare {near} a {warden:dewdrop}, its other statuses can't run out before its {damp} does."
+tip = "Other families' statuses only. Up to 4 s past their last landing ({static} 2 s). Never {held} or {drowsy}. Works for: every family's statuses. A bet: needs a {warden:dewdrop} keeping those nightmares {damp}."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"waterlogged"
 requires = Array[String](["dewdrop"])
+makes = Array[StringName]([&"linger"])
+uses = Array[StringName]([&"soaked"])

@@ -15,3 +15,4 @@ min_act = 2
 rule_id = &"nightshade"
 in_start_pool = false
 tip = "Each status counts once, however many {stacks}. Hits don't count."
+uses = Array[StringName]([&"layered"])

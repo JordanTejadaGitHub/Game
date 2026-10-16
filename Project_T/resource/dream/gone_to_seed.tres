@@ -14,3 +14,4 @@ tags = Array[String](["spore", "lent"])
 max_stacks = 1
 rule_id = &"gone_to_seed"
 requires = Array[String](["sporeling"])
+uses = Array[StringName]([&"stacks"])

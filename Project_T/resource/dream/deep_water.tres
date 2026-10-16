@@ -18,3 +18,4 @@ max_stacks = 1
 rule_id = &"deep_water"
 requires_status = &"drowsy"
 tip = "Bosses are slowed 40% instead of 30%."
+makes = Array[StringName]([&"slow"])

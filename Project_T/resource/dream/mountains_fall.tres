@@ -20,3 +20,4 @@ entwined = true
 woven = true
 rule_id = &"mountains_fall"
 tip = "Rubble slows nightmares on it 25% for 3 s."
+uses = Array[StringName]([&"reaction"])

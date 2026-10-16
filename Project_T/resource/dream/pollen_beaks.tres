@@ -17,3 +17,4 @@ entwined = true
 excludes = Array[String](["charged_feathers"])
 rule_id = &"pollen_beaks"
 in_start_pool = false
+makes = Array[StringName]([&"poisoned"])

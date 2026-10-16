@@ -15,3 +15,4 @@ max_stacks = 1
 min_families = 2
 rule_id = &"mixed_grove"
 in_start_pool = false
+uses = Array[StringName]([&"cluster"])

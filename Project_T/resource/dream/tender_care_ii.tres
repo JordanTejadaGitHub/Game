@@ -13,3 +13,4 @@ tags = Array[String](["nurture", "tall"])
 max_stacks = 1
 deepens = "tender_care"
 rule_id = &"tender_care"
+makes = Array[StringName]([&"rank"])

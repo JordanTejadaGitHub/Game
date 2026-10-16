@@ -59,7 +59,7 @@ const CHOSEN_FEW_BONUS := 1.0  # Rank V+: double (de439ea8)
 const CHOSEN_FEW_PENALTY := 0.5  # Below rank III: half
 const MANY_HANDS_PER := 2  # +1% per this many attacking Wardens
 const MANY_HANDS_MAX := 0.40
-const SPROUT_CHORUS_SPEED := 0.30
+const SPROUT_CHORUS_SPEED := 0.20  # Keyword chips 2026-10-16 (TD): Sprouts touching 2 or more path cells (was 30% with a touching Sprout)
 const CLEAR_MINDS_BONUS := 0.35
 const TARGET_TURNOVER_SPEED := 0.35
 const TARGET_TURNOVER_TIME := [3.0, 5.0]
@@ -348,6 +348,7 @@ var calling := ""
 # The pick is an offer of its own in the Dream queue, before that rest's Dream (drift 5: instead of it), so it waits
 # for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
 const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
+const KEYWORDS := preload("res://scripts/run/dream_keywords.gd")  # Keyword chips 2026-10-16: Makes / Uses chips and the glossary (UI reads it)
 signal calling_grew(id: StringName)
 var calling_path: Array[StringName] = []
 var offering_calling := false
@@ -1611,6 +1612,7 @@ func _process(delta: float) -> void:
 	if not get_tree().paused:
 		_game_clock += delta  # Murmur's 1 s window
 		batch.tick(self)
+		reaction_cards.bend_poll()  # Keyword chips 2026-10-16: Witching Bend's half set-off at bends
 		if has_rule(&"canopy"):
 			_role_sample += delta
 			if _role_sample >= 0.2:
@@ -1783,7 +1785,7 @@ func get_live_bonus_text(card: UpgradeData) -> String:
 		&"many_hands":
 			return "+%d%%" % roundi(100 * minf(0.01 * (count_attackers() / MANY_HANDS_PER), MANY_HANDS_MAX))
 		&"canopy":
-			return "+1 range in active clusters"
+			return "+0.75 range in linked groups"
 		&"sunlit_rest":  # Short under the icon: the Warden the next rest raises (the card's live line says the sentence)
 			return " and ".join(sunlit_targets().map(func(t: Tower) -> String: return t.tower_data.display_name))
 	return ""
@@ -1976,6 +1978,7 @@ var _hook_frame := -1
 var _hook_batch := false
 var _hook_water := false
 var _hook_bells := false
+var _hook_linger := false  # Keyword chips 2026-10-16: Slow Burn
 
 # How much more of the blight coat (the shell) a hit takes off (Wash Away; 1.0 without it). Enemy.take_damage asks only
 # while the nightmare has a coat.
@@ -1991,7 +1994,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		_hook_batch = batch.uses_damage_hook(self)
 		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide") or has_rule(&"high_tide") or has_rule(&"old_rain"))  # (Wash Away is a shell card now: shell_multiplier)
 		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
-	if not _hook_batch and not _hook_water and not _hook_bells:
+		_hook_linger = has_rule(SLOW_BURN)
+	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger:
 		return 1.0
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
 	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
@@ -2002,7 +2006,66 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		multiplier *= puddles.damage_multiplier(enemy, source, tag)
 	if _hook_bells:
 		multiplier *= keeping_time.damage_multiplier(enemy, source, tag)
+	if _hook_linger:
+		multiplier *= slow_burn_multiplier(enemy, tag)
 	return multiplier
+
+# --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
+# Linger = EnemyStatuses.is_lingering only. Slow Burn (the Linger payoff): Poisoned ticks and Charged bolts of a status a
+# card is making last longer deal SLOW_BURN_BONUS more (a bolt reads the Charged it spent: EnemyStatuses.static_lingered).
+const SLOW_BURN := &"slow_burn"
+const SLOW_BURN_BONUS := 0.30
+
+func slow_burn_multiplier(enemy: Node2D, tag: StringName) -> float:
+	if not is_instance_valid(enemy) or not ("statuses" in enemy):
+		return 1.0
+	var s: EnemyStatuses = enemy.statuses
+	if (tag == &"spored" and s.is_lingering(EnemyStatuses.SPORED)) or (tag == &"static" and s.static_lingered):
+		note_card(SLOW_BURN, enemy.global_position)
+		return 1.0 + SLOW_BURN_BONUS
+	return 1.0
+
+# Jump = note_jump only: every jump calls it before its damage lands (Firefly forks in firefly_lights._strike; chain hops
+# past the first target in Tower._chain_strike, which covers Conductive Soil and Tangled Lightning's extra hops).
+# Gathering Storm and Shared Spark read only this. Returns the jump's damage multiplier (Gathering Storm). `from` is the
+# nightmare it left (null or freed when unknown).
+const SHARED_SPARK := &"shared_spark"
+const SHARED_SPARK_STACKS := 1  # Shared Spark: each jump adds this many stacks of the first nightmare's top status
+signal jump_noted(source: Node, from: Node2D, to: Node2D, amount: float)
+var jumps_noted := 0  # Every jump that reached the hook this run (tests)
+
+func note_jump(source: Node, from: Node2D, to: Node2D, amount: float) -> float:
+	jumps_noted += 1
+	jump_noted.emit(source, from, to, amount)
+	if not is_instance_valid(to) or to.is_cleansed:
+		return 1.0
+	var mult := 1.0
+	if has_rule(&"gathering_storm"):
+		mult = FIREFLY_LIGHTS.gather(to, _game_clock)
+		if mult > 1.0:
+			note_card(&"gathering_storm", to.global_position)  # The stronger jump is the moment
+	if has_rule(SHARED_SPARK) and is_instance_valid(from) and from != to:
+		_shared_spark(from, to)
+	return mult
+
+# Shared Spark: the jump carries 1 stack of the status the nightmare it left carries most of (never Rooted), a non-native
+# application in that status's applier's name (it can complete a Reaction; it wakes no Calling rule).
+func _shared_spark(from: Node2D, to: Node2D) -> void:
+	if not ("statuses" in from):
+		return
+	var fs: EnemyStatuses = from.statuses
+	var best: StringName = &""
+	for id in fs.active_ids():
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and (best == &"" or fs.stacks(id) > fs.stacks(best)):
+			best = id
+	if best == &"":
+		return
+	var applier: Node = fs.source(best)
+	var line: String = fs.spore_line() if best == EnemyStatuses.SPORED else (applier.tower_data.line if applier is Tower else "")
+	to.apply_status(best, SHARED_SPARK_STACKS, 0.0, fs.potency(best), 0, line, applier if is_instance_valid(applier) else null)
+	if is_instance_valid(to) and not to.is_cleansed:
+		to.flash_status(best)
+	note_card(SHARED_SPARK, to.global_position)
 
 # Tower's wall tick: one Thorny Walls lash on `enemy` (0 = it has taken its ceiling), and Snag.
 func thorny_lash(wall: Tower, enemy: Node2D) -> float:
@@ -2646,14 +2709,17 @@ const CARD_NEEDS := {
 	"knock_on": [&"hammerfall", &"thunderstruck"],  # Heavy jumps
 	"gathering_storm": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"lent_crossfire",
 		&"thunderstruck", &"brushfire", &"guiding_light"],  # Any jump
-	"da_capo": [&"in_time", &"refrain", &"rude_awakening"],  # A hit that lands again (trait rework 2026-10-15)
+	"da_capo": [&"in_time", &"refrain", &"rude_awakening", &"knell"],  # A hit that lands again (trait rework 2026-10-15; Knell: keyword chips 2026-10-16)
+	"shared_spark": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
+		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (keyword chips 2026-10-16)
+	"slow_burn": [&"steeped", &"topped_up", &"ebb", &"waterlogged", &"homesick", &"bound_and_burning"],  # A Linger card (keyword chips 2026-10-16)
 }
 
 func card_needs_met(card: UpgradeData) -> bool:
 	if not CARD_NEEDS.has(card.id):
 		return true
-	if card.id == "gathering_storm" and calling == "firefly_jar":
-		return true  # Lantern Light jumps on every dispel
+	if (card.id == "gathering_storm" or card.id == "shared_spark") and (calling == "firefly_jar" or has_grown_role(WardenRoles.CHAIN)):
+		return true  # Lantern Light jumps on every dispel; chain Wardens' hops are jumps too (keyword chips 2026-10-16)
 	for id in CARD_NEEDS[card.id]:
 		if has_rule(id):
 			return true
@@ -5710,6 +5776,7 @@ func clear_build_role_state() -> void:
 	_role_primary.clear()
 	_role_pinned.clear()
 	_role_canopy_on.clear()
+	_canopy_board = -1  # Keyword chips 2026-10-16: Canopy looks at the board again
 	rules_stamp += 1
 
 func _build_role_topology() -> void:
@@ -5751,12 +5818,9 @@ func _build_role_topology() -> void:
 		for member in component:
 			_role_clusters[member.get_instance_id()] = component
 
-func on_original_attack_hit(tower: Tower, enemy: Node2D) -> void:
-	if not has_rule(&"canopy") or not is_instance_valid(enemy) or enemy.health <= 0:
-		return
-	_role_recent[tower.get_instance_id()] = _role_recent.get(tower.get_instance_id(), {})
-	_role_recent[tower.get_instance_id()][enemy.get_instance_id()] = [weakref(enemy), _game_clock]
-	_update_canopy_roles()
+func on_original_attack_hit(_tower: Tower, _enemy: Node2D) -> void:
+	if has_rule(&"canopy"):
+		_update_canopy_roles()  # (Keyword chips 2026-10-16: Canopy no longer counts the group's recent targets)
 
 func on_original_attack_released(tower: Tower, _primary: Node2D = null) -> void:
 	if not has_rule(&"drumbeat"):
@@ -5806,35 +5870,47 @@ func on_original_primary_hit(tower: Tower, enemy: Node2D) -> void:
 	if is_instance_valid(enemy) and enemy.statuses.is_held():
 		_role_pinned[id] = _game_clock + 4.0
 
+# Canopy (keyword chips 2026-10-16, TD 4): attacking Wardens (never Sprouts) in a group of CANOPY_GROUP or more, each
+# {touching} another in it, get +CANOPY_RANGE range. No "busy" gate: the group shimmers while it is linked.
+const CANOPY_GROUP := 6
+const CANOPY_RANGE := 0.75
+var _canopy_board := -1
+
 func canopy_range_bonus(tower: Tower) -> float:
-	return 1.0 if tower != null and _role_canopy_on.has(tower.get_instance_id()) and has_rule(&"canopy") else 0.0
+	return CANOPY_RANGE if tower != null and _role_canopy_on.has(tower.get_instance_id()) and has_rule(&"canopy") else 0.0
 
 func _update_canopy_roles() -> void:
-	_build_role_topology()
-	for key in _role_recent.keys():
-		var recent: Dictionary = _role_recent[key]
-		for enemy_id in recent.keys():
-			var entry: Array = recent[enemy_id]
-			var enemy = entry[0].get_ref()
-			if enemy == null or enemy.health <= 0 or _game_clock - float(entry[1]) > 3.0:
-				recent.erase(enemy_id)
-		if recent.is_empty():
-			_role_recent.erase(key)
+	if _canopy_board == board_version:
+		return
+	_canopy_board = board_version
+	var cells := {}
+	for tower in _towers():
+		if tower.tower_data != null and tower.tower_data.can_attack and tower.tower_data.get_id() != "sprout" \
+				and tower.tower_data.line != "wall":
+			cells[tower.cell] = tower
 	var active := {}
-	var checked := {}
-	for key in _role_clusters:
-		var component: Array = _role_clusters[key]
-		if checked.has(key) or component.size() < 6:
+	var visited := {}
+	for start in cells.values():
+		if visited.has(start.get_instance_id()):
 			continue
-		var targets := {}
-		for member in component:
-			var member_id: int = member.get_instance_id()
-			checked[member_id] = true
-			for enemy_id in _role_recent.get(member_id, {}):
-				targets[enemy_id] = true
-		if targets.size() >= 6:
+		var component: Array = [start]
+		visited[start.get_instance_id()] = true
+		var cursor := 0
+		while cursor < component.size():
+			var current = component[cursor]
+			cursor += 1
+			for dx in range(-1, 2):
+				for dy in range(-1, 2):
+					var other = cells.get(current.cell + Vector2(dx, dy))
+					if other != null and not visited.has(other.get_instance_id()):
+						visited[other.get_instance_id()] = true
+						component.append(other)
+		if component.size() >= CANOPY_GROUP:
 			for member in component:
 				active[member.get_instance_id()] = true
 	if active != _role_canopy_on:
+		for tower in _towers():
+			if active.has(tower.get_instance_id()) and not _role_canopy_on.has(tower.get_instance_id()):
+				DREAM_BURST.play(&"canopy", tower.global_position, 22.0, Reactions._world(tower))  # The canopy shimmer
 		_role_canopy_on = active
 		rules_stamp += 1

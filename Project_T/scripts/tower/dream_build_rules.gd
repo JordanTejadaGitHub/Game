@@ -22,6 +22,8 @@ func _process(delta: float) -> void:
 		var source = echo.source.get_ref()
 		if living(target) and is_instance_valid(source) and not source.is_queued_for_deletion():
 			target.take_damage(echo.damage, source.tower_data.line, false, false, source, &"fifth_beat")
+			if living(target) and source is Tower:
+				source.note_repeat_hit(target)  # Keyword chips 2026-10-16: the echo is a Repeat
 			cue(target.global_position, Palette.MOONPATH)
 	prune_time -= delta
 	if prune_time <= 0.0:

@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 rule_id = &"crowd_breaker"
 tip = "Counts the nightmares one attack hits. Works for: area Wardens on a crowded path."
+uses = Array[StringName]([&"area"])

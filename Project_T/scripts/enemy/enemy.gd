@@ -506,7 +506,7 @@ func _process(delta: float) -> void:
 	var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
 	var unique_caught := statuses.is_caught()
 	var spore_soothe := statuses.tick(delta)
-	if unique_dreams != null and unique_held and not statuses.is_held() and statuses._hold_just_ended:
+	if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
 		DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
 	if thin:
 		if was_caught and not statuses.is_caught():

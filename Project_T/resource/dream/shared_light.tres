@@ -17,3 +17,4 @@ grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
 grows_text = "Aura bonuses are 50% stronger."
 diagram = ".......\n...a...\n..aWa..\n.......\n......."
 diagram_caption = "Each Warden touching it gives +4%: +12% here (up to +20%)."
+uses = Array[StringName]([&"cluster"])

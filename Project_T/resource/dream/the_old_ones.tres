@@ -15,3 +15,4 @@ min_act = 2
 in_start_pool = false
 rule_id = &"old_ones"
 tip = "Only Wardens that already have a {rank}. Never past {rank} VII."
+uses = Array[StringName]([&"rank"])

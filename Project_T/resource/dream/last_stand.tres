@@ -15,3 +15,4 @@ rule_id = &"last_stand"
 diagram = "w.*****\n..*W***\nPPPPPPH\n..*****\n..*****"
 diagram_caption = "Within 4 cells of the Heartwood: nightmares there take +60%."
 in_start_pool = false
+uses = Array[StringName]([&"maze"])

@@ -17,3 +17,4 @@ in_start_pool = false
 min_rank_count = 1
 min_rank_owned = 5
 rule_id = &"chosen_few"
+uses = Array[StringName]([&"rank"])

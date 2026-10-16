@@ -14,3 +14,4 @@ max_stacks = 1
 requires = Array[String](["dewcatcher"])
 rule_id = &"dew_trail"
 in_start_pool = false
+uses = Array[StringName]([&"soaked"])

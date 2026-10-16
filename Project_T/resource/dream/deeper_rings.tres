@@ -17,3 +17,4 @@ min_rank_count = 1
 min_rank_owned = 5
 max_rank_set = 7
 tip = "Your {eldest} is the first Warden you take past {rank} V. Offered once a Warden reaches {rank} V."
+makes = Array[StringName]([&"rank"])

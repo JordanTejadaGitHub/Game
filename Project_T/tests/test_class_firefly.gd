@@ -168,7 +168,8 @@ func _run() -> void:
 	thrown = lights.forks_thrown
 	t_rock.hit(struck, 1.0, false, Tower.NO_CRIT)
 	await _frames(2)
-	_check(lights.forks_thrown == thrown, "Thunderstruck: nothing when the struck nightmare carries no status")
+	# Keyword chips 2026-10-16: any heavy hit fans (the struck nightmare needs no status); only status carriers are targets
+	_check(lights.forks_thrown == thrown + 1, "Thunderstruck: a hit on a nightmare without a status still fans to the one with a status")
 	struck.apply_status(EnemyStatuses.DAMP, 1, 4.0, 1.0, 0, "water", null)  # Soaked, not Charged
 	t_rock.remove_meta(lights.HEAVY_META)  # A new heavy attack
 	thrown = lights.forks_thrown

@@ -17,3 +17,4 @@ requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp
 min_act = 2
 min_owned_statuses = 2
 tip = "{reactions} still fire at their usual count. Offered from {act} 2 once your Wardens add 2 different statuses."
+uses = Array[StringName]([&"stacks"])

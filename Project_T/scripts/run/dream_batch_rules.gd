@@ -520,7 +520,7 @@ func thorny_now(dreams: DreamState) -> float:
 # Snag: a flyer crossing a Thornwall that touches an attacking Warden lands and walks the maze for 4 s. Once per
 # flyer; each wall once a drift; never a boss (Enemy.ground refuses one). Tower's wall tick calls this.
 func snag(dreams: DreamState, wall: Tower, drift: int) -> void:
-	if int(_snagged.get(wall.get_instance_id(), -1)) == drift or not _touches_attacker(dreams, wall):
+	if int(_snagged.get(wall.get_instance_id(), -1)) == drift:  # Keyword chips 2026-10-16: any Thornwall (no attacker beside it)
 		return
 	var reach: float = wall.MAP_GRID.cell_size.x * SNAG_REACH
 	for enemy in Tower.nightmares_near(wall.get_tree(), wall.global_position, reach):
@@ -562,7 +562,7 @@ func snag_walls(dreams: DreamState) -> int:
 	var reach: float = grid.cell_size.x * SNAG_REACH
 	var count := 0
 	for tower in dreams._towers():
-		if tower.tower_data.line != "wall" or not _touches_attacker(dreams, tower):
+		if tower.tower_data.line != "wall":
 			continue
 		var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(tower.global_position, from, to)
 		if nearest.distance_to(tower.global_position) <= reach:

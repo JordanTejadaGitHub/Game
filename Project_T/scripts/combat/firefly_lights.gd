@@ -1275,7 +1275,8 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
 		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
 		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)
-		if _rule(THUNDERSTRUCK) and is_heavy(source) and enemy.statuses.count() > 0 and (is_firefly(source) or is_other_family(source)):
+		# Keyword chips 2026-10-16: any heavy hit (the target needs no status); the fan still goes only to nightmares with one
+		if _rule(THUNDERSTRUCK) and is_heavy(source) and (is_firefly(source) or is_other_family(source)):
 			thunder_jar = source if is_firefly(source) else firefly_near(source)
 		if thunder_jar != null:
 			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
@@ -1462,7 +1463,30 @@ func _fork(id: int, source, from: Vector2, target, amount: float, cap: float, op
 			request[key] = opts[key]
 	if opts.has("origin") and not request.has("carry") and evo(EVO_WAKE):
 		request["carry"] = _carry_of(opts.origin)  # Read now: the nightmare it left may be gone by the strike
+	if not request.has("jump_from"):  # Keyword chips 2026-10-16: the nightmare it leaves, for DreamState.note_jump
+		request["jump_from"] = opts.origin if opts.has("origin") else _nightmare_at(from, target)
 	_queue.append(request)
+
+# The nightmare standing at `at` (within half a cell), not `skip`: where a jump leaves from (null if none).
+func _nightmare_at(at: Vector2, skip) -> Node2D:
+	var best: Node2D = null
+	var best_sq := pow(_cell() * 0.5, 2.0)
+	for enemy in Tower.nightmares_near(get_tree(), at, _cell() * 0.5):
+		if enemy == skip or not is_instance_valid(enemy):
+			continue
+		var sq: float = enemy.global_position.distance_squared_to(at)
+		if sq <= best_sq:
+			best_sq = sq
+			best = enemy
+	return best
+
+# Gathering Storm's count on `target` (DreamState.note_jump): each jump a nightmare takes makes the next one on it 25%
+# stronger, up to GATHER_MAX; resets after GATHER_RESET s without one. Returns this jump's multiplier.
+static func gather(target: Node2D, now: float) -> float:
+	var gathered: Array = target.get_meta(GATHER_META, [0, -INF])
+	var taken := int(gathered[0]) if now - float(gathered[1]) <= GATHER_RESET else 0
+	target.set_meta(GATHER_META, [taken + 1, now])
+	return minf(1.0 + GATHER_STEP * taken, GATHER_MAX)
 
 # One fork per nightmare per event (the largest wins), at most EVENT_MAX per event. A recursive hop (a frame later, same
 # event) never strikes a nightmare its event already struck, and the event's total stays within EVENT_MAX.
@@ -1500,19 +1524,18 @@ func _strike(request: Dictionary) -> void:
 		return
 	var source = request.source if is_instance_valid(request.source) else null
 	var amount: float = request.amount
-	if _rule(GATHERING_STORM):
-		# Gathering Storm: each jump a nightmare takes makes the next one on it 25% stronger, up to triple. Card pass
-		# 2026-10-16 (player review 4.2): a non-Reaction broken road, so it multiplies after the jump's own cap
-		var now := _now()
-		var gather: Array = target.get_meta(GATHER_META, [0, -INF])
-		var taken := int(gather[0]) if now - float(gather[1]) <= GATHER_RESET else 0
-		# Hard cards 2026-10-16 (owner: +200%): the cap stretches with the bonus, never past GATHER_MAX times its value
-		var gather_mult := minf(1.0 + GATHER_STEP * taken, GATHER_MAX)
+	# Keyword chips 2026-10-16: every jump goes through DreamState.note_jump (Gathering Storm's count, Shared Spark). Card
+	# pass 2026-10-16 (player review 4.2): Gathering Storm multiplies after the jump's own cap; hard cards 2026-10-16
+	# (owner: +200%): the cap stretches with the bonus, never past GATHER_MAX times its value
+	var from_enemy = request.get("jump_from")
+	var gather_mult: float = dream_state.note_jump(source, from_enemy if is_instance_valid(from_enemy) else null, target, amount) \
+		if dream_state != null else 1.0
+	if gather_mult > 1.0:
 		amount = minf(amount * gather_mult, float(request.cap) * gather_mult)
-		target.set_meta(GATHER_META, [taken + 1, now])
-		if taken > 0:
-			credit(GATHERING_STORM, target.global_position)  # The stronger jump is the moment
-			request["width"] = maxf(float(request.get("width", 4.0)), 4.0 + GATHER_WIDTH_STEP * mini(taken, GATHER_WIDTH_MAX))
+		var taken := roundi((gather_mult - 1.0) / GATHER_STEP)
+		request["width"] = maxf(float(request.get("width", 4.0)), 4.0 + GATHER_WIDTH_STEP * mini(taken, GATHER_WIDTH_MAX))
+	if not _living(target):
+		return  # (Shared Spark's stack can complete a Reaction that dispels it)
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position
@@ -1535,6 +1558,7 @@ func _strike(request: Dictionary) -> void:
 		if not next.is_empty():
 			var hop := request.duplicate()
 			hop.from = at
+			hop["jump_from"] = target  # Keyword chips 2026-10-16: it leaves the nightmare just struck
 			hop.target = next[0]
 			hop.final = true  # The second fork never forks again and takes no leftover
 			_strike(hop)

@@ -16,3 +16,5 @@ excludes = Array[String](["hushed_hedge"])
 cost_description = "Taking it removes {card:hushed_hedge} from this run."
 in_start_pool = false
 tip = "Passes it: walks within about 1 cell of the wall. Flyers never."
+makes = Array[StringName]([&"rooted"])
+uses = Array[StringName]([&"maze"])

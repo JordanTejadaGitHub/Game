@@ -33,22 +33,24 @@ const RULES: Array[StringName] = [MILLSTONE, HEAVY_HEART, SHARED_FEVER, TANGLED_
 	BOUND_AND_BURNING, CALLED_FROM_AFAR, KINDLED_GAZE, SNARE_LINE, ONE_BOUGH, DEEP_GRAIN, OLD_HAND, TOWERING]
 
 # --- Numbers (starting values for Balancing) -------------------------------------------------------------------------
-const MILLSTONE_FULL_BONUS := 0.60  # A heavy Warden's hit on a nightmare with a full status: +60% (synergy)…
-const MILLSTONE_SPLASH := 0.40  # …and this share of it lands on nightmares within…
+const MILLSTONE_FULL_BONUS := 0.60  # (Unused since keyword chips 2026-10-16: the +60% on a full status is gone)
+const MILLSTONE_SPLASH := 0.35  # Millstone: this share of a heavy Warden's hit lands on nightmares within… (keyword chips 2026-10-16, TD: was 0.40)
 const MILLSTONE_RADIUS := 1.0  # …this many cells (area damage, tag "millstone": on-hit rules skip it)
-const HEAVY_HEART_COPIES := 2  # Heavy Heart: the Reaction also goes off on this many nightmares…
-const HEAVY_HEART_REACH := 3.0  # …the nearest within this many cells that carry one of its statuses
+const HEAVY_HEART_COPIES := 2  # (Unused since keyword chips 2026-10-16: Heavy Heart no longer copies a Reaction)
+const HEAVY_HEART_REACH := 3.0  # (Unused since keyword chips 2026-10-16)
+const HEAVY_HEART_WAIT := 3.0  # Heavy Heart (keyword chips 2026-10-16, TD): a heavy hit sets off a Reaction at half need (half its burst,
+const HEAVY_HEART_BOSS_WAIT := 6.0  # Reactions.HALF_SET_OFF_DAMAGE), once every this many seconds per nightmare (bosses the second)
 const SHARED_FEVER_MIN := 3  # Shared Fever: an area hit on at least this many nightmares…
 const SHARED_FEVER_STATUSES := 2  # …shares up to this many of the worst-hit one's statuses…
 const SHARED_FEVER_STACKS := 1  # …this many stacks each…
 const SHARED_FEVER_WAIT := 2.0  # …once every this many seconds per Warden (never Drowsy or Rooted)
 const TANGLED_EXTRA_JUMPS := 2  # Tangled Lightning: chain attacks jump this many more times (statused nightmares only)…
-const TANGLED_STACK := 1  # …and each of those jumps adds this many stacks of a status it already has
+const TANGLED_STACK := 1  # (Unused since keyword chips 2026-10-16: the jumps go to Charged nightmares and add no stack)
 const MOTHERS_HAND_STACK := 1  # Mother's Hand: a Warden touching a support Warden adds this many more stacks…
-const MOTHERS_HAND_REACTION := 0.25  # …and the Reactions it sets off deal this much more (synergy)
-const HOMESICK_WINDOW := 3.0  # Homesick: seconds after a pull in which the next Reaction on it…
-const HOMESICK_REACTION := 2.0  # …deals this many times as much
-const BOUND_EXTRA_STACKS := 2  # Bound and Burning: every status added to a Rooted nightmare lands this many more stacks
+const MOTHERS_HAND_REACTION := 0.25  # (Unused since keyword chips 2026-10-16: the Reaction bonus is gone)
+const HOMESICK_WINDOW := 3.0  # (Unused since keyword chips 2026-10-16: Homesick only tops statuses up)
+const HOMESICK_REACTION := 2.0  # (Unused since keyword chips 2026-10-16)
+const BOUND_EXTRA_STACKS := 2  # (Unused since keyword chips 2026-10-16: Bound and Burning only pauses the other statuses)
 const AFAR_MIN_CELLS := 4.0  # Called from Afar: a hit from at least this many cells away…
 const AFAR_WAIT := 3.0  # …gives its target a skip of its next Reaction wait, once every this many seconds per nightmare
 const KINDLED_RAMP := 2.0  # Kindled Gaze: beams ramp this many times as fast…
@@ -57,16 +59,16 @@ const SNARE_STACKS := 3  # Snare Line: a trap going off gives nightmares within�
 const SNARE_RADIUS := 1.0  # …this many cells this many stacks of each of the stepper's statuses (never Rooted)
 const ONE_BOUGH_COUNT := 3  # One Bough: at least this many grown Wardens of one family, all the same branch…
 const ONE_BOUGH_SPEED := 0.20  # …attack this much faster (inside the Dream speed cap)…
-const ONE_BOUGH_STACK := 1  # …and add this many more stacks with each status
+const ONE_BOUGH_STACK := 1  # (Unused since keyword chips 2026-10-16: One Bough is speed only)
 const DEEP_GRAIN_STACK := 1  # Deep Grain: each Deep rank choice adds this many more stacks…
 const DEEP_GRAIN_MAX := 3  # …counting at most this many Deep ranks
-const OLD_HAND_RANK := 3  # Old Hand: from this rank, every OLD_HAND_III-th hit on a nightmare with a full status crits…
-const OLD_HAND_III := 6
+const OLD_HAND_RANK := 3  # Old Hand: from this rank, every OLD_HAND_III-th attack crits… (keyword chips 2026-10-16: no full-status gate)
+const OLD_HAND_III := 8  # (TD renumber: was 6 behind the full-status gate)
 const OLD_HAND_FAST_RANK := 5  # …and from this rank every OLD_HAND_V-th (counted per attack, never per target)
-const OLD_HAND_V := 4
+const OLD_HAND_V := 5  # (TD renumber: was 4)
 const TOWERING_COUNT := 3  # Towering: the Wardens with the highest ranks (ties: the higher form, then the older)…
 const TOWERING_BONUS := 0.50  # …deal this much more (synergy)…
-const TOWERING_REACH := 3.0  # …and a dispel's leftover lands on the nearest nightmare within this many cells (at most that hit)
+const TOWERING_REACH := 3.0  # (Unused since keyword chips 2026-10-16: the leftover jump is gone)
 const TOWERING_MIN_TIER := 3  # Its Need: a final form (tier 3+)…
 const TOWERING_MIN_RANK := 4  # …at rank IV or higher, on the map
 const TOWERING_REFRESH := 0.5  # Seconds between looks at who the highest-ranked Wardens are
@@ -146,7 +148,7 @@ func needs_met(rule: StringName) -> bool:
 func need_text(rule: StringName) -> String:
 	match rule:
 		ONE_BOUGH:
-			return "%d grown Wardens of one family, all the same branch" % ONE_BOUGH_COUNT
+			return "%d Wardens of the same branch" % ONE_BOUGH_COUNT
 		DEEP_GRAIN:
 			return "a Warden with a Deep rank"
 		TOWERING:
@@ -158,13 +160,11 @@ var _hit_tower = null  # Heavy Heart: the Warden whose hit is landing (begin_hit
 var _hit_target = null
 
 # Old Hand: whether this hit is the beat's crit (before the crit roll is used). One count per attack (a pulse on 20
-# nightmares counts once), only for hits on a nightmare with a full status; beams (ticks, no attacks) never count.
+# nightmares counts once); beams (ticks, no attacks) never count. Keyword chips 2026-10-16: any nightmare (no full gate).
 var _old_hand := {}  # Warden instance id -> [the attack counted last, hits counted]
 
 func old_hand(tower, enemy) -> bool:
 	if not _on.has(OLD_HAND) or tower.rank < OLD_HAND_RANK or tower.attack_data.attack_kind == TowerData.AttackKind.BEAM:
-		return false
-	if full_status(enemy.statuses) == &"":
 		return false
 	var key: int = tower.get_instance_id()
 	var entry: Array = _old_hand.get(key, [-1, 0])
@@ -184,11 +184,7 @@ func hit_multiplier(tower, enemy, effect_tick: bool) -> Array:
 	var m := 1.0
 	var millstone := false
 	if _on.has(MILLSTONE) and not effect_tick and WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY):
-		var full := full_status(enemy.statuses)
-		if full != &"":
-			m *= 1.0 + MILLSTONE_FULL_BONUS
-			millstone = true
-			enemy.flash_status(full)  # The full status flashes as the weight lands
+		millstone = true  # Keyword chips 2026-10-16 (TD): every heavy hit splashes; no full-status gate, no +60%
 	var towering := _on.has(TOWERING) and _towering_set().has(tower.get_instance_id())
 	if towering:
 		m *= 1.0 + TOWERING_BONUS
@@ -205,7 +201,7 @@ func end_hit(previous: Array) -> void:
 	_hit_target = previous[1]
 
 # After the hit's damage: Millstone's splash, Towering's carry, Called from Afar's token.
-func after_hit(tower, enemy, dealt: float, health_before: int, line: String, effect_tick: bool, role_hit: Array) -> void:
+func after_hit(tower, enemy, dealt: float, _health_before: int, line: String, effect_tick: bool, role_hit: Array) -> void:
 	if not is_instance_valid(enemy) or not tower.is_inside_tree():
 		return
 	var at: Vector2 = enemy.global_position
@@ -216,15 +212,10 @@ func after_hit(tower, enemy, dealt: float, health_before: int, line: String, eff
 				other.take_damage(dealt * MILLSTONE_SPLASH, line, true, false, tower, MILLSTONE)
 		DREAM_BURST.play(MILLSTONE, at, reach, Reactions._world(tower))  # A dust ring
 		_credit(MILLSTONE, at)
-	if bool(role_hit[2]) and enemy.is_cleansed and dealt > 0.0:
-		var leftover := clampf(dealt - float(health_before), 0.0, dealt)  # Never more than the hit itself
-		var next := _nearest(tower, enemy, at, TOWERING_REACH)
-		if leftover > 0.0 and next != null:
-			var world := Reactions._world(tower)
-			if world != null:
-				Fx.segment(&"thunderclap_arc", at, next.global_position, world, 0.25)  # The leftover jumps
-			next.take_damage(leftover, line, false, false, tower, TOWERING)
-			_credit(TOWERING, at)
+	# (Towering's leftover jump is gone: keyword chips 2026-10-16. role_hit[2] still marks its bonus hits.)
+	if _on.has(HEAVY_HEART) and not effect_tick and not enemy.is_cleansed \
+			and WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY):
+		_heavy_heart_hit(tower, enemy)
 	if _on.has(CALLED_FROM_AFAR) and not effect_tick and not enemy.is_cleansed:
 		var s: EnemyStatuses = enemy.statuses
 		if not s.skip_reaction_wait and not s.is_on_cooldown(CALLED_FROM_AFAR) \
@@ -244,33 +235,30 @@ var _homesick := {}  # Nightmare instance id -> the clock its window ends
 var _homesick_now := {}  # Nightmare instance id -> the frame its doubled Reaction fired
 
 # Reactions._fire: Reaction `id` (cooldown key `key`) went off on `enemy`.
-func reaction_fired(enemy, id: StringName, key: StringName, towers: Array) -> void:
+func reaction_fired(_enemy, _id: StringName, _key: StringName, _towers: Array) -> void:
 	_refresh()
-	var eid: int = enemy.get_instance_id()
-	if _on.has(HOMESICK) and _homesick.has(eid):
-		if float(_homesick[eid]) >= _clock():
-			_homesick_now[eid] = Engine.get_process_frames()
-			if _homesick_now.size() > 256:
-				_homesick_now.clear()
-				_homesick_now[eid] = Engine.get_process_frames()
-			var world := Reactions._world(enemy)
-			if world != null:
-				Fx.callout("Homesick", Palette.GOLD, enemy.global_position, world, HOMESICK)
-			_credit(HOMESICK, enemy.global_position)
-		_homesick.erase(eid)
-	if _on.has(HEAVY_HEART) and not _copying and enemy == _hit_target and is_instance_valid(_hit_tower) \
-			and WardenRoles.has_role(_hit_tower.attack_data, WardenRoles.HEAVY):
-		_heavy_heart(enemy, id, key, towers)
+	_fired += 1  # Keyword chips 2026-10-16: Heavy Heart reads whether its half set-off fired (no copies, no Homesick window)
 
 # The Reaction cards' part of Reaction damage (DreamState.get_reaction_card_multiplier).
-func reaction_multiplier(enemy, _id: StringName, tower) -> float:
-	var m := 1.0
-	if _on.has(HOMESICK) and enemy != null and is_instance_valid(enemy) \
-			and int(_homesick_now.get(enemy.get_instance_id(), -1)) == Engine.get_process_frames():
-		m *= HOMESICK_REACTION
-	if _on.has(MOTHERS_HAND) and tower != null and is_instance_valid(tower) and tower is Tower and _touches_support(tower):
-		m *= 1.0 + MOTHERS_HAND_REACTION
-	return m
+func reaction_multiplier(_enemy, _id: StringName, _tower) -> float:
+	return 1.0  # Keyword chips 2026-10-16: Homesick's double and Mother's Hand's +25% are gone (one effect each)
+
+# Heavy Heart (keyword chips 2026-10-16, TD 4): a heavy Warden's hit sets off any Reaction the nightmare carries both
+# statuses of at half need (Reactions.check_at_half; Drowsy must still be full), dealing half its burst. Each nightmare
+# once every HEAVY_HEART_WAIT s (bosses HEAVY_HEART_BOSS_WAIT); the wait starts only when one went off.
+var _fired := 0  # Reactions fired (reaction_fired), so a half set-off knows it worked
+
+func _heavy_heart_hit(tower, enemy) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	if s.count() < 2 or s.is_on_cooldown(HEAVY_HEART):
+		return
+	var before := _fired
+	Reactions.check_at_half(enemy, tower, Reactions.HALF_SET_OFF_DAMAGE)
+	if _fired == before or not is_instance_valid(enemy):
+		return
+	s.start_cooldown(HEAVY_HEART, HEAVY_HEART_BOSS_WAIT if s.is_boss else HEAVY_HEART_WAIT)
+	DREAM_BURST.play(HEAVY_HEART, enemy.global_position, 18.0, Reactions._world(tower))  # The weight sets it off
+	_credit(HEAVY_HEART, enemy.global_position)
 
 # Heavy Heart: the same Reaction on the nearest nightmares that carry one of its statuses; each waits its own cooldown
 # (Reactions._fire) and uses up what the Reaction uses up; a copy never copies (TD 3a).
@@ -333,9 +321,7 @@ func pulled_back(tower, enemy) -> void:
 	for id in s.active_ids():
 		s.top_up(id)  # Back to full time (within the linger cap)
 		enemy.flash_status(id)
-	_homesick[enemy.get_instance_id()] = _clock() + HOMESICK_WINDOW
-	if _homesick.size() > 512:
-		_prune_homesick()
+	_credit(HOMESICK, enemy.global_position)  # (Keyword chips 2026-10-16: no Reaction window after the pull)
 
 func _prune_homesick() -> void:
 	var now := _clock()
@@ -354,9 +340,6 @@ func extra_stacks(tower, status: StringName) -> int:
 	if _on.has(MOTHERS_HAND) and _touches_support(tower):
 		extra += MOTHERS_HAND_STACK
 		_credit(MOTHERS_HAND, tower.global_position)
-	if _on.has(ONE_BOUGH) and _one_bough_set(false).has(tower.get_instance_id()):
-		extra += ONE_BOUGH_STACK
-		_credit(ONE_BOUGH, tower.global_position)
 	if _on.has(DEEP_GRAIN):
 		var deep: int = mini(tower.choice_count(Tower.Focus.DEEP), DEEP_GRAIN_MAX)
 		if deep > 0:
@@ -371,10 +354,9 @@ func bound_stacks(enemy, id: StringName) -> int:
 		return 0
 	var s: EnemyStatuses = enemy.statuses
 	s.bound_pause = true
-	if id == EnemyStatuses.DROWSY or id == EnemyStatuses.HELD or not s.is_held():
-		return 0
-	_credit(BOUND_AND_BURNING, enemy.global_position)
-	return BOUND_EXTRA_STACKS
+	if id != EnemyStatuses.HELD and s.is_held():
+		_credit(BOUND_AND_BURNING, enemy.global_position)
+	return 0  # Keyword chips 2026-10-16: no extra stacks; Bound and Burning is the pause (Linger) only
 
 # One Bough's speed (Tower.get_attacks_per_second, inside the Dream speed cap).
 func speed_bonus(tower) -> float:
@@ -434,7 +416,7 @@ func tangle(tower, hits: Array[Node2D]) -> int:
 		var best: Node2D = null
 		var best_distance := INF
 		for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-			if hits.has(enemy) or enemy.is_cleansed or enemy.statuses.count() == 0:
+			if hits.has(enemy) or enemy.is_cleansed or not enemy.statuses.has(EnemyStatuses.STATIC):  # Keyword chips 2026-10-16: Charged ones only
 				continue
 			for from in hits:
 				var reach: float = tower.attack_data.chain_jump_range + tower.area_bonus()
@@ -450,23 +432,13 @@ func tangle(tower, hits: Array[Node2D]) -> int:
 		added += 1
 	return added
 
-# One of Tangled Lightning's jumps landed: 1 stack of a status it already has (a quiet add: never starts one, never
-# Rooted; then the Reaction check, so it can complete one).
-func tangled_hit(tower, enemy) -> void:
+# One of Tangled Lightning's jumps landed (keyword chips 2026-10-16: one keyword, Jump; it no longer adds a stack): its
+# Charged flashes and the card is credited.
+func tangled_hit(_tower, enemy) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	var s: EnemyStatuses = enemy.statuses
-	var ids: Array = []
-	for id in s.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD:
-			ids.append(id)
-	if ids.is_empty():
-		return
-	var id: StringName = ids[randi() % ids.size()]
-	if s.add_quiet(id, TANGLED_STACK) > 0:
-		enemy.flash_status(id)  # The arc takes the status's colour
-		Reactions.on_status(enemy, id, tower)
-		_credit(TANGLED_LIGHTNING, enemy.global_position)
+	enemy.flash_status(EnemyStatuses.STATIC)  # The arc takes Charged's colour
+	_credit(TANGLED_LIGHTNING, enemy.global_position)
 
 # Kindled Gaze: the beam's ramp multiplier on `enemy`.
 func kindled(enemy) -> float:
@@ -539,27 +511,21 @@ func _one_bough_set(fresh: bool) -> Dictionary:
 	_bough_board = dreams.board_version
 	var before := _bough
 	_bough = {}
-	var by_line := {}
+	# Keyword chips 2026-10-16: grouped by branch (Kinships.branch_for: finals and Ascended count as theirs); 3 or more on
+	# one branch is enough, other branches of the family no longer turn it off
+	var by_branch := {}
 	for tower in _towers():
-		var line: String = tower.tower_data.line
-		if tower.tower_data.tier < 2 or line == "" or line == "wall":
+		if tower.tower_data.tier < 2 or tower.tower_data.line == "" or tower.tower_data.line == "wall":
 			continue
-		if not by_line.has(line):
-			by_line[line] = []
-		by_line[line].append(tower)
-	for line in by_line:
-		var list: Array = by_line[line]
-		if list.size() < ONE_BOUGH_COUNT:
-			continue
-		var branch := Kinships.branch_for(list[0])
+		var branch := Kinships.branch_for(tower)
 		if branch == "":
 			continue
-		var same := true
-		for tower in list:
-			if Kinships.branch_for(tower) != branch:
-				same = false
-				break
-		if same:
+		if not by_branch.has(branch):
+			by_branch[branch] = []
+		by_branch[branch].append(tower)
+	for branch in by_branch:
+		var list: Array = by_branch[branch]
+		if list.size() >= ONE_BOUGH_COUNT:
 			for tower in list:
 				_bough[tower.get_instance_id()] = true
 	if on(ONE_BOUGH):

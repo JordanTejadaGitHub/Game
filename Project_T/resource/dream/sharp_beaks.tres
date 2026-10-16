@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"sharp_beaks"
 in_start_pool = false
 tip = "Multi-hit: a Warden that hits several times per attack. Works for: {warden:hummingbird_bower}, {warden:wrens_nest} and their forms."
+makes = Array[StringName]([&"repeat"])

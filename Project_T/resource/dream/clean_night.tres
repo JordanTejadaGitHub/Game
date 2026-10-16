@@ -14,3 +14,4 @@ max_stacks = 1
 min_drift = 10
 rule_id = &"clean_night"
 tip = "Counted when its damage brings a nightmare to 0 health. Echoes don't count. Selling resets the count; growing keeps it. The {rank} waits until you Nurture."
+makes = Array[StringName]([&"rank"])

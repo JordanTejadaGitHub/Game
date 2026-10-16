@@ -13,3 +13,4 @@ tags = Array[String](["wind", "maze"])
 requires = Array[String](["whirligig"])
 max_stacks = 1
 rule_id = &"spinning_corners"
+uses = Array[StringName]([&"maze"])

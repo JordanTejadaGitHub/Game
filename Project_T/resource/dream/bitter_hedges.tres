@@ -18,3 +18,4 @@ diagram = ".......\n.XX.X..\nPPPPPPP\n..X....\n......."
 diagram_caption = "Each Thornwall a nightmare walks past: +8% damage taken for 2 s (up to +40%)."
 in_start_pool = false
 tip = "Passed: stepped on a path cell sharing a side with it. Works for: mazes with Thornwalls along the path."
+uses = Array[StringName]([&"maze"])

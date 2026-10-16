@@ -13,3 +13,4 @@ tags = Array[String](["tempo", "daring"])
 max_stacks = 1
 rule_id = &"fresh_growth"
 tip = "Only a Warden that stood at the last {rest} sets it off. Each Warden once a {drift}."
+uses = Array[StringName]([&"rank"])

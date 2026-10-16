@@ -17,3 +17,4 @@ diagram = ".......\n...W...\n...X...\nPP+++PP\n......."
 diagram_caption = "A nightmare stepping beside the Thornwall takes 25% of the strongest Warden touching it."
 in_start_pool = false
 tip = "Passes: steps on a path cell sharing a side with the Thornwall. It counts as an area attack. Once for each Thornwall and nightmare every 1 s. Works for: Thornwalls {touching} a strong attacking Warden."
+uses = Array[StringName]([&"maze"])

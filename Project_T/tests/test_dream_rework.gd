@@ -155,7 +155,7 @@ func _combat_and_positions(attacker: Tower) -> void:
 	dreams._path_index = {Vector2(84, 85): 0, Vector2(85, 84): 1}
 	dreams.board_version += 1
 	var rows := dreams.get_card_effects(a.tower_data, a.cell, a)
-	_check(rows.any(func(row: Dictionary) -> bool: return row.id == "sprout_chorus" and row.active and is_equal_approx(row.speed, 0.3)), "Thicket needs a touching Sprout and two distinct route cells")
+	_check(rows.any(func(row: Dictionary) -> bool: return row.id == "sprout_chorus" and row.active and is_equal_approx(row.speed, DreamState.SPROUT_CHORUS_SPEED)), "Sprout Chorus: two distinct path cells beside it (keyword chips 2026-10-16: no touching Sprout needed)")
 	dreams._path_index.erase(Vector2(85, 84))
 	dreams.board_version += 1
 	_check(not dreams.get_card_effects(a.tower_data, a.cell, a).any(func(row: Dictionary) -> bool: return row.id == "sprout_chorus" and row.active), "one route cell is not enough for Thicket")
@@ -234,18 +234,14 @@ func _canopy_milestones() -> void:
 	dreams._on_drift_started(1)
 	_check(dreams.canopy_steps_reached() == 0, "Canopy: drift start no longer awards numerical milestones")
 	_check(is_equal_approx(dreams.get_soothe_multiplier(attackers[0]), 1.0), "Canopy: a large connected board grants no passive damage")
-	_check(is_zero_approx(dreams.get_tower_range_bonus(attackers[0])), "Canopy: a connected board needs six recent distinct living targets for reach")
-	var targets: Array[Node2D] = []
-	for i in 6:
-		var enemy := _spawn(attackers[0].cell)
-		targets.append(enemy)
-		attackers[0].hit(enemy, 1.0, false, Tower.NO_CRIT)
-		_check(is_equal_approx(dreams.get_tower_range_bonus(attackers[0]), 1.0 if i == 5 else 0.0), "Canopy: only six actual distinct living hits activate connected reach")
-	dreams._game_clock += 3.1
+	# Keyword chips 2026-10-16: Sprouts never make a Canopy group; six touching attackers do, with no "busy" gate
 	dreams._update_canopy_roles()
-	_check(is_zero_approx(dreams.get_tower_range_bonus(attackers[0])), "Canopy: actual-hit reach expires after three seconds")
-	for enemy in targets:
-		enemy.free()
+	_check(is_zero_approx(dreams.get_tower_range_bonus(attackers[0])), "Canopy: a board of Sprouts is no group")
+	for tower in attackers.slice(0, 6):
+		tower.tower_data = load("res://resource/tower/sporeling.tres")
+	dreams.bump_board()
+	dreams._update_canopy_roles()
+	_check(is_equal_approx(dreams.get_tower_range_bonus(attackers[0]), DreamState.CANOPY_RANGE), "Canopy: six touching attackers get +0.75 range")
 	# Old saves keep their field readable, but it cannot turn into old or permanent bonuses.
 	dreams._canopy_peak = 40
 	var saved := dreams.to_save()

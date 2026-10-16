@@ -164,12 +164,17 @@ func _run() -> void:
 	var bell := _plant("bellflower", Vector2(14, 14))
 	for cell in [Vector2(13,14), Vector2(15,14), Vector2(13,15), Vector2(14,15), Vector2(15,15)]:
 		_plant("sprout", cell)
-	for i in 6:
-		_spawn(bell.global_position + Vector2(i * 4.0, 0))
+	# Keyword chips 2026-10-16: Canopy = 6 or more touching attacking Wardens, never Sprouts; no "busy" gate.
 	dreams.stacks = {"canopy": 1}
 	dreams.bump_board()
-	bell._release()
-	_check(is_equal_approx(dreams.canopy_range_bonus(bell), 1.0), "actual pulse with six living hits activates Canopy")
+	dreams._update_canopy_roles()
+	_check(is_zero_approx(dreams.canopy_range_bonus(bell)), "Sprouts never complete a Canopy group")
+	for tower in container.get_children():
+		if tower is Tower and tower.tower_data.get_id() == "sprout":
+			tower.tower_data = load("res://resource/tower/sporeling.tres")
+	dreams.bump_board()
+	dreams._update_canopy_roles()
+	_check(is_equal_approx(dreams.canopy_range_bonus(bell), DreamState.CANOPY_RANGE), "a bell and 5 touching attackers activate Canopy")
 	print("Dream build family rules: %d failures" % failures)
 	main.queue_free()
 	await process_frame

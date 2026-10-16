@@ -111,7 +111,8 @@ const EVO_SEASON := &"sp_season"
 const SEASON_AT := 15  # Spore Season: this many mushrooms (seeded ones don't count)…
 const SEASON_DOSE := 1.5  # …and every dose is this much bigger
 const EVO_FAIRY_PATH := &"sp_fairy_path"
-const FAIRY_EVERY := 8.0  # Fairy Path: a step touching a spore Warden and another attacking Warden regrows this long after use
+const FAIRY_EVERY := 8.0  # Fairy Path: a step touching FAIRY_TOUCHING or more attacking Wardens regrows this long after use
+const FAIRY_TOUCHING := 2  # Keyword chips 2026-10-16: any attacking Wardens (was a spore Warden and another)
 const EVO_WITCH_RING := &"sp_witch_ring"
 const RING_STEPS := 3  # Witch Ring: this many mushrooms…
 const RING_WINDOW := 4.0  # …within this long…
@@ -229,8 +230,8 @@ func on_board() -> void:
 			every = BED_EVERY
 		if count >= 1 and rule(SIDE_BY_SIDE) and others.any(func(t) -> bool: return touches_point(t, at)):
 			every = minf(every, SIDE_EVERY)  # A step that qualifies for both grows one mushroom on the faster clock
-		if count >= 1 and evo(EVO_FAIRY_PATH) and attackers.any(func(t) -> bool: return touches_point(t, at)):
-			every = minf(every, FAIRY_EVERY)  # Fairy Path: a spore Warden and another attacking Warden (a Sprout counts)
+		if evo(EVO_FAIRY_PATH) and count + attackers.filter(func(t) -> bool: return t.tower_data.can_attack and touches_point(t, at)).size() >= FAIRY_TOUCHING:
+			every = minf(every, FAIRY_EVERY)  # Fairy Path (keyword chips 2026-10-16): 2 or more attacking Wardens of any family (Sprouts count)
 		if every < INF:
 			_bed[_route[i]] = every
 	# A mushroom goes when its step leaves the route (a Warden planted on it re-routes the path)

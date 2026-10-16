@@ -16,3 +16,4 @@ in_start_pool = false
 grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
 grows_text = "{warden:acorn}, {warden:elder_stump} and {warden:grove_heart} auras reach 1 cell further."
 tip = "Aura Wardens: Wardens with an aura, and support Wardens like {warden:dreamcatcher}."
+uses = Array[StringName]([&"cluster"])

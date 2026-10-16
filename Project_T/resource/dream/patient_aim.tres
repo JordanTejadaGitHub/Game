@@ -15,3 +15,4 @@ max_stacks = 1
 in_start_pool = false
 rule_id = &"patient_aim"
 tip = "Works for: {warden:standing_stone} and its forms."
+makes = Array[StringName]([&"crit"])

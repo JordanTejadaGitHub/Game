@@ -18,3 +18,5 @@ requires_tag = "reaction"
 min_kinships = 1
 rule_id = &"kin_and_kindling"
 tip = "These {stacks} can complete {reactions}."
+makes = Array[StringName]([&"layered"])
+uses = Array[StringName]([&"cluster"])

@@ -528,12 +528,11 @@ func _wildwood(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionar
 func _sprout_chorus(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.get_id() != "sprout":
 		return {}
-	var companion := board.touching(spot).any(func(o: Dictionary) -> bool: return _data(o).get_id() == "sprout")
 	var route := route_neighbors(spot.cell)
-	var on := companion and route >= 2
+	var on := route >= 2  # Keyword chips 2026-10-16 (TD): the path condition only, no touching Sprout
 	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SPROUT_CHORUS_SPEED,
 		"note": "%d different path cells beside it" % route,
-		"reason": "" if on else "needs a touching Sprout and 2 distinct adjacent route cells"}
+		"reason": "" if on else "needs 2 different path cells {touching} it"}
 
 func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:

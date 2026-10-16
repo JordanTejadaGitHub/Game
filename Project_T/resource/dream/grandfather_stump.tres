@@ -15,3 +15,4 @@ requires = Array[String](["elder_stump"])
 rule_id = &"grandfather_stump"
 in_start_pool = false
 tip = "Its aura makes Wardens attack faster. Safe."
+uses = Array[StringName]([&"cluster"])

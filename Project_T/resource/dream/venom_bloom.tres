@@ -17,3 +17,4 @@ potency_bonus = 1.0
 rule_id = &"venom_bloom"
 in_start_pool = false
 tip = "Potency also makes slows stronger and {held} last longer."
+uses = Array[StringName]([&"poisoned"])

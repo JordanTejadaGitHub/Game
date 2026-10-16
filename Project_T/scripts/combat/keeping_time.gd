@@ -1070,6 +1070,8 @@ func _again(tower, enemy, amount: float, tag: StringName) -> void:
 		return
 	_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
 	strike(tower, enemy, amount, tag)
+	if tower is Tower and living(enemy):
+		tower.note_repeat_hit(enemy)  # Keyword chips 2026-10-16: a repeat counts for Eternal Static / Rooted Nightmares
 	if rule(DA_CAPO) and living(enemy) and now() >= float(tower.get_meta(DA_CAPO_META, -INF)):
 		tower.set_meta(DA_CAPO_META, now() + DA_CAPO_EVERY)
 		_later.append({"at": now() + DA_CAPO_DELAY, "tower": weakref(tower), "enemy": weakref(enemy),

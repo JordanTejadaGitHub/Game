@@ -14,3 +14,5 @@ max_stacks = 1
 rule_id = &"chain_of_lanterns"
 requires = Array[String](["firefly_jar"])
 tip = "Nearest: within 2 cells. Any family's {reactions} count. Each Firefly Warden once a second. At most 3 s of that Firefly Warden's damage. Works for: {reaction} builds with a Firefly Warden. Safe."
+makes = Array[StringName]([&"jump"])
+uses = Array[StringName]([&"reaction"])

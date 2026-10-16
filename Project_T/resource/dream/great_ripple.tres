@@ -15,3 +15,5 @@ in_start_pool = false
 rule_id = &"great_ripple"
 min_act = 2
 tip = "The second hit never crits and never ripples again."
+makes = Array[StringName]([&"repeat"])
+uses = Array[StringName]([&"area"])

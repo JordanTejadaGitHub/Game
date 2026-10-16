@@ -14,3 +14,4 @@ requires = Array[String](["driftspore"])
 max_stacks = 1
 entwined = true
 rule_id = &"spore_cascade"
+uses = Array[StringName]([&"poisoned"])

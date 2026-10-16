@@ -17,3 +17,5 @@ requires = Array[String](["stormcap", "dewdrop"])
 max_stacks = 1
 deepens = "rolling_thunder"
 rule_id = &"rolling_thunder"
+makes = Array[StringName]([&"charged"])
+uses = Array[StringName]([&"reaction"])

@@ -18,3 +18,5 @@ rule_id = &"starlit_aim"
 in_start_pool = true
 discovered_by = Array[String](["event:crit_marked"])
 tip = "Uses up 5 {stacks}, or 10 with {card:brimming}; the rest stay."
+makes = Array[StringName]([&"crit"])
+uses = Array[StringName]([&"exposed"])

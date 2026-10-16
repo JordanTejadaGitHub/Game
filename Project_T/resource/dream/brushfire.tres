@@ -14,3 +14,5 @@ tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"brushfire"
 requires = Array[String](["firefly_jar"])
+makes = Array[StringName]([&"jump"])
+uses = Array[StringName]([&"poisoned"])

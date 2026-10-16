@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "witching_bend"
 display_name = "Witching Bend"
-description = "{reactions} on a nightmare rounding a bend deal 40% more damage."
-tip = "Bend: a turn with a full cell of straight path on each side. Offered after 20 {reactions} this run. Multiplies with your other Dream damage."
+description = "A nightmare rounding a bend sets off a {reaction} if it carries both of the {reaction}'s statuses. Each nightmare once every 5 s."
+tip = "Bend: a turn with a full cell of straight path on each side. It needs half the usual {stacks} of each ({drowsy} still {full}) and deals half. {named_combo:thunderclap}, {named_combo:ignite}, {named_combo:mushrooming} and {named_combo:drown} only. Bosses once every 10 s. Offered after 20 {reactions} this run."
 rarity = 1
 kind = 3
 tags = Array[String](["reaction", "scaler", "maze"])
@@ -15,3 +15,5 @@ max_stacks = 1
 min_act = 1
 rule_id = &"witching_bend"
 requires_reactions_seen = 20
+makes = Array[StringName]([&"reaction"])
+uses = Array[StringName]([&"maze"])

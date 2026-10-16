@@ -18,3 +18,4 @@ SPnnPPH
 ..WW.a.
 ......."
 diagram_caption = "Beside the half-cell stretch: the bonus. ✗ beside the wide path."
+uses = Array[StringName]([&"maze"])
