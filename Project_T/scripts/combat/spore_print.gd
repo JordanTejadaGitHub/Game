@@ -58,7 +58,11 @@ const SEEPING_IN := &"seeping_in"
 const SEEP_STEPS := 6.0  # Seeping In: every this many steps walked in a spore Warden's range…
 const SEEP_STACKS := 3  # …each status it carries gains this many (quietly: never starts one)
 const MIXED_COMPANY := &"mixed_company"
-const MIXED_OTHERS := 2  # Mixed Company: Poisoned and this many other statuses, from any Warden
+const MIXED_OTHERS := 2  # (Retired by hard cards 2026-10-16: Mixed Company now scales; nothing reads it)
+const MIXED_PER_STATUS := 1  # Mixed Company (hard cards 2026-10-16): 1 more stack for each status the nightmare carries…
+const MIXED_MAX := 4  # …up to 4 more…
+const MIXED_SMALL_MAX := 2  # …at most 2 on Charged and Exposed (TD)…
+const MIXED_DROWSY_MAX := 1  # …and 1 on Drowsy (bounded control)
 const STACK_EVERY := 1.0  # Narrows and Mixed Company: once a second per Warden each
 const NARROWS_META := &"sp_narrows_next"  # On a Warden
 const MIXED_META := &"sp_mixed_next"  # On a Warden
@@ -814,9 +818,18 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 	if rule(NARROWS) and now() >= float(tower.get_meta(NARROWS_META, -INF)) and _in_narrows(tower, enemy):
 		tower.set_meta(NARROWS_META, now() + STACK_EVERY)
 		extra += NARROWS_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else NARROWS_EXTRA
-	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)) and _mixed(enemy):
+	var mixed_count := 0
+	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)):
+		mixed_count = _mixed(enemy)  # After the clock: strongest_near at most once a second per Warden
+	if mixed_count > 0:
 		tower.set_meta(MIXED_META, now() + STACK_EVERY)
-		extra += base  # Twice the hit's own stacks: never other cards' bonuses (Drowsy within its cap: STACK_DROWSY)
+		# Hard cards 2026-10-16: 1 more per status it carries, up to 4 (Charged / Exposed 2, Drowsy 1)
+		var mixed_cap := MIXED_MAX
+		if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED:
+			mixed_cap = MIXED_SMALL_MAX
+		elif status == EnemyStatuses.DROWSY:
+			mixed_cap = MIXED_DROWSY_MAX
+		extra += mini(mixed_count * MIXED_PER_STATUS, mixed_cap)
 	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
 	# Breathe It In (trait rework; was spore-on-spore Poisoned): any Warden's status landing on a nightmare inside a spore
 	# Warden's range (its own included) adds 1 more. Once a second per Warden
@@ -870,13 +883,16 @@ func _in_narrows(_tower, enemy) -> bool:
 			other = true
 	return spore and other
 
-# Mixed Company (trait rework; no longer needs Poisoned): 3 or more statuses, from any Warden (never Rooted), near a spore Warden.
-func _mixed(enemy) -> bool:
+# Mixed Company (hard cards 2026-10-16): how many statuses it carries before the hit, any family's, any stacks (never
+# Rooted); 0 when no spore Warden is near it.
+func _mixed(enemy) -> int:
 	var count := 0
 	for id in enemy.statuses.active_ids():
 		if id != EnemyStatuses.HELD:
 			count += 1
-	return count >= MIXED_OTHERS + 1 and strongest_near(enemy.global_position, is_own) != null
+	if count <= 0 or strongest_near(enemy.global_position, is_own) == null:
+		return 0
+	return count
 
 # Seeping In: steps walked inside a spore Warden's range, counted forward only (a pull-back or push never counts twice).
 func _seep(enemy) -> void:

@@ -12,4 +12,4 @@ kind = 3
 tags = Array[String](["tall", "tending"])
 max_stacks = 1
 rule_id = &"growth_rings"
-tip = "Top Warden: the one that dealt the most damage this {block}. Any new Warden or Thornwall counts as planting, free ones too. Growing, Nurturing, clearing and selling don't. The {rank} waits until you Nurture."
+tip = "Top Warden: the one that dealt the most damage this {block}. Planting: any new Warden or Thornwall, free ones too. The {rank} waits until you Nurture."

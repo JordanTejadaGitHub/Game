@@ -47,6 +47,7 @@ const BASE_MAX_RANK := 5
 const EXTRA_RANK_COSTS := {6: 130, 7: 180}  # Deeper Rings, before the Warden's tier multiplier
 const FREE_RANK_MAX := 7  # Free ranks (Sunlit Rest, seeds, The Old Ones) never go past VII
 const ENDLESS_RANK_GROWTH := 1.2  # Endless Rings: each rank past VII costs ×1.2 the one before
+const ENDLESS_RANK_DAMAGE := 0.15  # Endless Rings (hard cards 2026-10-16, player review): each rank past VII adds 15% damage
 const SEEPING_PER := [0.08, 0.12]
 const SEEPING_MAX_STATUSES := 5
 const VENOM_HIT_PENALTY := 0.40  # Venom Bloom: hits −40% (de439ea8)
@@ -1531,6 +1532,30 @@ func get_court_rank_share(tower: Tower) -> float:
 		return 0.0
 	return COURT_SHARE * eldest.rank
 
+# Endless Rings (hard cards 2026-10-16): the extra damage share from `tower`'s ranks past VII (15% each), on top of
+# what each rank's choice gives.
+func get_endless_rank_damage(tower: Tower) -> float:
+	if tower == null or tower.rank <= FREE_RANK_MAX or not has_rule(&"endless_rings"):
+		return 0.0
+	return ENDLESS_RANK_DAMAGE * (tower.rank - FREE_RANK_MAX)
+
+# Path cells among the 8 around `cell` (whole cells; the route index, rebuilt on every path change). Hard cards
+# 2026-10-16: Hairpin Winds reads it.
+func path_cells_touching(cell: Vector2) -> int:
+	var count := 0
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if (dx != 0 or dy != 0) and _path_index.has(cell + Vector2(dx, dy)):
+				count += 1
+	return count
+
+# Hairpin Winds (hard cards 2026-10-16): the attack speed share a Pinwheel or Windmill gets with HAIRPIN_PATH_CELLS or
+# more path cells touching it.
+func hairpin_speed(tower: Tower) -> float:
+	if tower == null or not has_rule(&"hairpin_winds") or not tower.tower_data.get_id() in ["pinwheel", "windmill"]:
+		return 0.0
+	return HAIRPIN_SPEED * rule_power(&"hairpin_winds") if path_cells_touching(tower.cell) >= HAIRPIN_PATH_CELLS else 0.0
+
 
 # --- New Legendaries: damage ------------------------------------------------------------------------
 
@@ -2290,8 +2315,9 @@ func take(card: UpgradeData) -> void:
 		free_first_clears += card.free_first_clears_add
 	if card.free_clears_add > 0:
 		run_state.add_free_clears(card.free_clears_add)
-	if card.rule_id == &"court_of_the_eldest" or card.extra_rules.has(&"court_of_the_eldest"):
-		_crown_court_eldest()  # Endless Rings absorbed Court of the Eldest (pool trim)
+	# Hard cards 2026-10-16: Endless Rings no longer carries Court, but taking it still names the Eldest
+	if card.rule_id == &"court_of_the_eldest" or card.rule_id == &"endless_rings" or card.extra_rules.has(&"court_of_the_eldest"):
+		_crown_court_eldest()
 	if card.clears_obstacle != null:  # Burn Back: 2 Dew per tree, paid now (only offered when affordable)
 		run_state.spend_dew(BURN_BACK_PER_TREE * count_obstacles(card.clears_obstacle))
 		_clear_all(card.clears_obstacle)
@@ -5074,7 +5100,9 @@ const SWEET_SCENT_TILES := 2.0  # Honeysuckle's Drowsy reach
 const SHINY_THINGS_BONUS := 0.15  # Per stolen buff, SHINY_THINGS_TIME s, max SHINY_THINGS_STACKS
 const SHINY_THINGS_TIME := 10.0
 const SHINY_THINGS_STACKS := 3
-const HAIRPIN_WINDS_EXTRA := 1  # Pinwheel / Windmill: +1 max adjacent path tile
+const HAIRPIN_WINDS_EXTRA := 1  # (Retired by hard cards 2026-10-16: was +1 max adjacent path tile; nothing reads it)
+const HAIRPIN_PATH_CELLS := 6  # Hairpin Winds (hard cards 2026-10-16): a Pinwheel or Windmill with this many path cells touching it…
+const HAIRPIN_SPEED := 0.30  # …attacks 30% faster
 
 # Frozen = Held by a water Warden (Frostfern's freeze; tower_design.md status jobs).
 func _is_frozen(enemy: Node2D) -> bool:
@@ -5098,8 +5126,9 @@ const GRAND_TOUR_STATUSES := 3  # Different statuses a nightmare must carry…
 const GRAND_TOUR_DAMAGE := 0.30  # …to take this much more hit damage from every Warden
 const CRUSH_BONUS: Array[float] = [0.30, 0.45]  # Area attacks vs a nightmare touching CRUSH_CROWD+ others (II)
 const CRUSH_CROWD := 2
-const CROWD_BREAKER_PER := 0.05  # An area attack, per nightmare it hits
-const CROWD_BREAKER_MAX := 0.45
+const CROWD_BREAKER_PER := 0.10  # An area attack, per nightmare it hits (hard cards 2026-10-16: was 5%; one hit counts)
+const CROWD_BREAKER_MAX := 0.50  # (was 45%)
+const CROWD_BREAKER_SHOW_AT := 5  # An attack hitting this many shows the crack flash (the cap)
 
 var _head_start_drift := -1
 

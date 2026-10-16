@@ -69,7 +69,7 @@ func _set_off(stepper: Node2D = null) -> void:
 	if stepper != null and _tower._dream_state != null:
 		_tower._dream_state.role_cards.snare_line(_tower, stepper)  # Card pass 2026-10-16, Snare Line: the stepper's statuses spread first
 	var crit := _tower.roll_crit(caught[0]) if not caught.is_empty() else false
-	_tower._area_count = caught.size()  # Crowd Breaker
+	_tower.set_area_count(caught.size(), global_position)  # Crowd Breaker (frame-stamped, hard cards 2026-10-16)
 	for enemy in caught:
 		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, 1.0, true, Tower.CRIT if crit else Tower.NO_CRIT))
 	# Ring Dance (Entwined Dream): the burst sets off every ring within RING_DANCE_TILES.

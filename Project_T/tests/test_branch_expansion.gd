@@ -362,15 +362,15 @@ func _test_cone_crowd_breaker() -> void:
 		dreams.take(load("res://resource/dream/crowd_breaker.tres"))
 		var before: float = front.health
 		BranchKit.release(tower)
-		_check(absf((before - front.health) - baseline * 1.10) <= 1.0,
-			"%s: two cone targets gain 10%% from Crowd Breaker; rear target excluded (damage %.1f, base %.1f)" % [id, before - front.health, baseline])
+		_check(absf((before - front.health) - baseline * (1.0 + DreamState.CROWD_BREAKER_PER * 2)) <= 1.0,
+			"%s: two cone targets gain 20%% from Crowd Breaker; rear target excluded (damage %.1f, base %.1f)" % [id, before - front.health, baseline])
 		_check(behind.health == behind.max_health, "%s: Crowd Breaker does not hit behind the cone" % id)
 		side.queue_free()
 		await process_frame
 		before = front.health
 		BranchKit.release(tower)
-		_check(is_equal_approx(before - front.health, baseline),
-			"%s: single-target cone does not retain the previous crowd bonus" % id)
+		_check(absf((before - front.health) - baseline * (1.0 + DreamState.CROWD_BREAKER_PER)) <= 1.0,
+			"%s: a single-target cone gains one nightmare's 10%%, not the previous crowd bonus (hard cards 2026-10-16)" % id)
 		dreams.stacks.erase("crowd_breaker")
 		dreams.bump_board()
 		await _clean()

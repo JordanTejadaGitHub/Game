@@ -82,13 +82,16 @@ func _test_court() -> void:
 	var low := _plant("sporeling", Vector2(100, 100), 2)
 	var high := _plant("sporeling", Vector2(110, 100), 4)
 	var friend := _plant("dewdrop", Vector2(111, 101), 0)
-	dreams.take(_card("endless_rings"))  # Absorbed Court of the Eldest
-	_check(dreams.get_eldest() == high, "Endless Rings (Court of the Eldest) names the highest-rank Warden")
-	_check(is_equal_approx(dreams.get_court_rank_share(friend), 1.0) and dreams.get_court_rank_share(low) == 0.0,
-		"Wardens touching the Eldest get 25% of its ranks")
+	dreams.take(_card("endless_rings"))  # Hard cards 2026-10-16: Court cut, but taking it still names the Eldest
+	_check(dreams.get_eldest() == high, "Endless Rings names the highest-rank Warden")
+	_check(dreams.get_court_rank_share(friend) == 0.0 and dreams.get_court_rank_share(low) == 0.0,
+		"Endless Rings no longer shares the Eldest's ranks (Court cut)")
+	high.rank = 9
+	_check(is_equal_approx(dreams.get_endless_rank_damage(high), DreamState.ENDLESS_RANK_DAMAGE * 2),
+		"Endless Rings: each rank past VII adds %d%% damage" % roundi(DreamState.ENDLESS_RANK_DAMAGE * 100))
 	_clear_towers()
 	_reset()
-	dreams.take(_card("endless_rings"))  # Absorbed Court of the Eldest
+	dreams.take(_card("endless_rings"))
 	var first := _plant("sporeling", Vector2(100, 100), 0)
 	dreams._watch_nurture(first)
 	first.nurture(0)

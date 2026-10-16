@@ -67,7 +67,11 @@ const EARS_EVERY := 2.0  # …once every 2 s per bell
 const SECOND_VERSE := &"second_verse"
 const CLASHING_NOTES := &"clashing_notes"
 const CLASH_EVERY := 8.0  # Clashing Notes and Knell: each nightmare once every 8 s (fix 9)
-const KNELL_EVERY := 8.0
+const KNELL_EVERY := 6.0  # Hard cards 2026-10-16 (was 8): each nightmare once every 6 s
+const KNELL_REPEATS_MAX := 3  # Knell: a bell's hit lands again once per other-family status on the nightmare, up to 3 times…
+const KNELL_REPEAT_GAP := 0.2  # …0.2 s apart…
+const KNELL_REPEAT_SHARE := 1.0  # …each the whole hit (a shooting bell)…
+const KNELL_PULSE_SHARE := 0.5  # …or half of it from a pulsing bell (it hits a crowd at once; TD)
 const WAKE_HIT_WINDOW := 1.0  # Sleep No More: the first hit within 1 s of waking
 const BELL_TO_BELL := &"bell_to_bell"  # Class: walking into another bell's range fills pips back up to 2
 const HUM_META := &"kt_hum_next"  # On a Warden
@@ -873,42 +877,25 @@ func _chorus(enemy, bell) -> void:
 	if status != &"" and living(enemy):
 		enemy.statuses.add_quiet(status, 1)
 
-# Knell (lent): a bell's hit on a Drowsy nightmare sets off one status from another family's Warden, the fullest first:
-# it pays out at once and is used up. Never Rooted, Exposed or Drowsy. True when one went off.
-func _knell(enemy, _bell) -> bool:
+# Knell (lent; hard cards 2026-10-16, one rule for every status): a bell's hit lands again once for each status other
+# families put on the nightmare ({held} never counts), up to KNELL_REPEATS_MAX, KNELL_REPEAT_GAP s apart, each adding 1
+# of the bell's own status (not native: no class / cooperation / role extras). Repeats are tagged `knell` (a class tag:
+# they never set In Time, Refrain or Knell off again); Da Capo may add its third. Nothing is used up. The repeats queued.
+func _knell(enemy, bell, base: float) -> int:
 	var statuses: EnemyStatuses = enemy.statuses
-	var chosen := &""
-	var fullest := -1.0
-	for id in [EnemyStatuses.SPORED, EnemyStatuses.STATIC, EnemyStatuses.DAMP]:
-		if not statuses.has(id) or not is_other_family(statuses.source(id)):
-			continue
-		var share: float = float(statuses.stacks(id)) / maxf(statuses.get_max_stacks(id), 1.0)
-		if id == EnemyStatuses.DAMP and share < 1.0:
-			continue  # Soaked must be full
-		if share > fullest:
-			fullest = share
-			chosen = id
-	var source = statuses.source(chosen) if chosen != &"" else null
-	match chosen:
-		EnemyStatuses.SPORED:  # It ticks once more, at once; its oldest batch is gone
-			strike(source, enemy, statuses.stacks(chosen) * statuses.potency(chosen) * EnemyStatuses.SPORE_TICK, &"knell", true)
-			if living(enemy):
-				statuses.drop_oldest_spore_batch()
-		EnemyStatuses.STATIC:  # It goes off as a bolt for the charge it has; all its Charged is used
-			var bolt: float = statuses.stored_bolt_damage()
-			statuses.remove(chosen)
-			strike(source, enemy, bolt, &"knell")
-		EnemyStatuses.DAMP:  # Up to 2 Dewdrops near it hit it once, free; it is wrung dry
-			var fired := 0
-			for tower in towers():
-				if fired >= KNELL_DEWDROPS:
-					break
-				if tower.tower_data.line == "water" and tower.tower_data.can_attack and near(tower.global_position, enemy.global_position) \
-						and free_hit(tower, enemy):
-					fired += 1
-			if living(enemy):
-				statuses.remove(chosen)
-	return chosen != &""
+	var count := 0
+	for id in statuses.active_ids():
+		if id != EnemyStatuses.HELD and is_other_family(statuses.source(id)):
+			count += 1
+	count = mini(count, KNELL_REPEATS_MAX)
+	if count <= 0:
+		return 0
+	var share := KNELL_PULSE_SHARE if is_pulsing(bell) else KNELL_REPEAT_SHARE
+	for k in range(1, count + 1):
+		_later.append({"at": now() + KNELL_REPEAT_GAP * k, "tower": weakref(bell), "enemy": weakref(enemy),
+			"amount": base * share, "tag": &"knell", "again": true, "status": status_of(bell)})
+	credit(KNELL, enemy.global_position)
+	return count
 
 # Another family's status is on it (Knell and Clashing Notes need one).
 func _carries_other(enemy) -> bool:
@@ -1010,9 +997,9 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 			_beat(source)
 		if rule(RINGING_EARS):
 			_ears_note(source, enemy)
-		# Knell (trait rework; no longer needs Drowsy): a bell's hit sets off one status another family put on it. Each
-		# nightmare once every 8 s
-		if rule(KNELL) and _carries_other(enemy) and now() >= float(enemy.get_meta(KNELL_NEXT_META, -INF)) and _knell(enemy, source):
+		# Knell (hard cards 2026-10-16): a bell's hit lands again once per other-family status on it, up to 3. Each
+		# nightmare once every 6 s
+		if rule(KNELL) and now() >= float(enemy.get_meta(KNELL_NEXT_META, -INF)) and _knell(enemy, source, event.base) > 0:
 			enemy.set_meta(KNELL_NEXT_META, now() + KNELL_EVERY)
 		if rule(CLASHING_NOTES) and living(enemy) and enemy.statuses.has(EnemyStatuses.DROWSY) and _carries_other(enemy) \
 				and now() >= float(enemy.get_meta(CLASH_NEXT_META, -INF)):
@@ -1100,6 +1087,9 @@ func _tick_later() -> void:
 			_again(tower, enemy, float(row.amount), row.tag)
 		elif is_instance_valid(tower) and living(enemy):
 			strike(tower, enemy, float(row.amount), row.tag)
+		var row_status: StringName = row.get("status", &"")  # Knell's repeats add 1 of the bell's status (hard cards 2026-10-16)
+		if row_status != &"" and is_instance_valid(tower) and living(enemy):
+			tower._apply_one_status(enemy, row_status, 1, tower.get_damage(), false)
 
 # In Time: every 4th hit a Warden touching a bell (or a bell) lands on one nightmare lands again a moment later. Counted
 # for each Warden and nightmare; an area attack counts once. Sprouts count.
@@ -1120,7 +1110,7 @@ func _in_time(source, enemy, base: float) -> void:
 # Refrain: after a bell hits a nightmare, the next hit on it from another Warden (another bell too; Sprouts count) within
 # 2 s lands twice. Each Warden once every 4 s.
 func _refrain(source, enemy, base: float) -> void:
-	var pending: Array = enemy.get_meta(REFRAIN_META, []) if enemy.get_meta(REFRAIN_META, null) is Array else []
+	var pending: Array = enemy.get_meta(REFRAIN_META) if enemy.has_meta(REFRAIN_META) and enemy.get_meta(REFRAIN_META) is Array else []
 	if not pending.is_empty() and now() < float(pending[0]) and int(pending[1]) != source.get_instance_id() \
 			and now() >= float(source.get_meta(REFRAIN_NEXT_META, -INF)):
 		enemy.remove_meta(REFRAIN_META)

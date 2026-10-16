@@ -68,11 +68,11 @@ const PATHS := {
 		"text": "Where two glows on the path are up to 4 {steps} apart, the path between them glows too.",
 		"tip": "Nightmares there are {lit}. This light never reveals {kind_hidden} nightmares. Leads to: Bale-fires, Swarm Night."},
 	&"lf_torchbearers": {"calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_strung_lights", "name": "Torchbearers",
-		"text": "When a {lit} nightmare is dispelled, half that hit {jumps} from the next light down the path to that light's front nightmare.",
-		"tip": "Next light: the next glow, at most 8 {steps} ahead. Front: the one furthest along the path. Each light once a second. Leads to: Bale-fires."},
+		"text": "When a {lit} nightmare is dispelled, half that hit {jumps} to the nearest {lit} nightmare further along the path.",  # Hard cards 2026-10-16
+		"tip": "Further along: at most 8 {steps} ahead. Bosses take half. Leads to: Bale-fires."},
 	&"lf_bale_fires": {"calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_torchbearers", "name": "Bale-fires",
-		"text": "A Torchbearers {jump} that dispels {jumps} on again from the next light, up to 4 more lights toward the Heartwood.",
-		"tip": "Each light still once a second. Bosses take half."},
+		"text": "When a Torchbearers {jump} dispels, it {jumps} on to the next {lit} nightmare further along, up to 4 more times.",  # Hard cards 2026-10-16
+		"tip": "Bosses take half."},
 	&"lf_glowworms": {"calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_strung_lights", "name": "Glowworms",
 		"text": "Up to 2 Sprouts {touching} each Firefly Warden glow too, lighting the path they touch.",
 		"tip": "The Sprouts nearest the Heartwood glow first. Sprout light never reveals {kind_hidden} nightmares. Leads to: Swarm Night."},

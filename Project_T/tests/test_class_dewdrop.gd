@@ -9,8 +9,8 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
-const LENT := ["steeped", "topped_up", "ebb", "the_water_remembers", "waterlogged", "high_tide",
-	"old_rain", "never_quite_dry"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped
+const LENT := ["steeped", "topped_up", "ebb", "waterlogged", "high_tide",
+	"old_rain", "never_quite_dry"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16)
 
 func _initialize() -> void:
 	_run.call_deferred()

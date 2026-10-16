@@ -843,7 +843,7 @@ static func _thrum(tower: Tower) -> void:
 	var bonus := p(tower, "vs_drowsy", 0.3)
 	var targets := in_reach.filter(func(e) -> bool:
 		return absf(dir.angle_to(e.global_position - tower.global_position)) <= half)
-	tower._area_count = targets.size()  # Crowd Breaker counts the final cone, including Resonance's widening.
+	tower.set_area_count(targets.size())  # Crowd Breaker counts the final cone, including Resonance's widening (frame-stamped, hard cards 2026-10-16).
 	for e in targets:
 		tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
 	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))  # The cone itself (what it hits)

@@ -83,7 +83,8 @@ func _run() -> void:
 	_clear_cards()
 	_check(is_equal_approx(ShapeCards.ground_time(2.0), 2.0), "without the card, ground effects keep their time")
 
-	# Sap Rising: an Elder Stump pulses the 8 cells around it for 2 s x the DPS its aura adds (or the floor).
+	# Sap Rising (hard cards 2026-10-16): an Elder Stump pulses the 8 cells around it every 2 s for SAP_LASH x an ordinary
+	# nightmare's health scale, at most a quarter of a nightmare's health from sap (its own counter).
 	var stump := _plant("elder_stump", Vector2(10, 10))
 	var friend := _plant("sporeling", Vector2(11, 10))
 	stump.set_process(false)
@@ -95,9 +96,10 @@ func _run() -> void:
 	stump._sap_left = 0.0
 	stump._update_sap(0.01)
 	_take(ShapeCards.SAP_RISING)
+	var director: DriftDirector = main.get_node("%DriftDirector")
 	var expected := ShapeCards.sap_damage(stump)
-	var floor_damage := ShapeCards.SAP_EVERY * ShapeCards.SAP_FLOOR_SHARE * ShapeCards.median_dps(self)
-	_check(expected >= floor_damage - 0.001 and expected > 0.0, "Sap Rising: at least the floor (%.1f >= %.1f)" % [expected, floor_damage])
+	_check(expected > 0.0 and is_equal_approx(expected, ShapeCards.SAP_LASH * director.ordinary_scale(maxi(director.drifts_started, 1))),
+		"Sap Rising: a pulse is SAP_LASH x the ordinary health scale (%.1f)" % expected)
 	hp = beside.health
 	stump._sap_left = 0.0
 	stump._update_sap(0.01)
@@ -108,6 +110,10 @@ func _run() -> void:
 	hp = beside.health
 	stump._update_sap(1.0)
 	_check(is_equal_approx(beside.health, hp), "Sap Rising: only every 2 s")
+	beside.set_meta(ShapeCards.SAP_META, float(beside.max_health) * ShapeCards.SAP_CEILING)
+	stump._sap_left = 0.0
+	stump._update_sap(0.01)
+	_check(is_equal_approx(beside.health, hp), "Sap Rising: never past a quarter of a nightmare's health")
 	_check(not ShapeCards.is_support(friend.tower_data), "(the Sporeling attacks: no sap)")
 	_clear_cards()
 

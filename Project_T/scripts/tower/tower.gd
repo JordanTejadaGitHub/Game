@@ -163,9 +163,12 @@ func _update_sap(delta: float) -> void:
 			continue
 		var apart: Vector2 = (enemy.global_position - global_position).abs()
 		if apart.x <= half.x and apart.y <= half.y:
-			enemy.take_damage(damage, tower_data.line, true, false, self, &"sap")
-			struck = true
+			var lash := ShapeCards.sap_lash(enemy, damage)  # Hard cards 2026-10-16: a quarter of its health at most (bosses a tenth)
+			if lash > 0.0:
+				enemy.take_damage(lash, tower_data.line, true, false, self, &"sap")
+				struck = true
 	if struck:
+		_dream_state.note_card(ShapeCards.SAP_RISING, global_position)
 		var swell := Reactions._effect(&"sap_pulse", global_position, self, half.x * 2.0 / (MAP_GRID.cell_size.x * 3.0))  # Tower Assets 70df154e: 3×3 cells at 1.0
 		if swell != null:
 			swell.z_index = -1  # A ground effect: under the Wardens and nightmares
@@ -1024,6 +1027,8 @@ func _compute_attacks_per_second() -> float:
 	if _dream_state:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
 		dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
+		if attack_data.attack_kind == TowerData.AttackKind.SPIN:
+			dreams += _dream_state.hairpin_speed(self)  # Hairpin Winds: 6+ path cells touching it (hard cards 2026-10-16)
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
 	# Everything that isn't a Dream card (ranks, auras, the Omen, Gifts): the cards' cap is measured from here.
 	var plain := speed * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))
@@ -1175,7 +1180,10 @@ func get_rank_damage_multiplier() -> float:
 	var warm := 0.0
 	if _dream_state:
 		warm = _dream_state.get_rank_damage_bonus()  # Warm Hands: every rank, whatever it chose
-	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + FOCUS_POWER * choice_count(Focus.POWER) * focus_power()  # Specialist (Many Talents is a DreamEffects row)
+	var endless := 0.0
+	if _dream_state:
+		endless = _dream_state.get_endless_rank_damage(self)  # Endless Rings: 15% per rank past VII (hard cards 2026-10-16)
+	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + endless + FOCUS_POWER * choice_count(Focus.POWER) * focus_power()  # Specialist (Many Talents is a DreamEffects row)
 
 # Rank-equivalents that aren't chosen ranks (The Old Ones' +1, the Eldest's Court): the plain old gains.
 func _plain_ranks() -> float:
@@ -2429,8 +2437,29 @@ func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
 var _aim_idle := 0.0
 var _last_release := 0.0
 var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
+var _area_frame := -1  # The process frame _area_count was set (hard cards 2026-10-16: a stale count never pays)
 var _status_pulse_hits: Array[Vector2] = []  # Where this pulse's status_every status landed (DrowsyRing motes)
 var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
+
+# Crowd Breaker (hard cards 2026-10-16): every area attack that counts its nightmares stamps the frame; an attack hitting
+# CROWD_BREAKER_SHOW_AT or more shows a crack flash (once per attack).
+func set_area_count(count: int, at: Vector2 = Vector2.INF) -> void:
+	_area_count = count
+	_area_frame = Engine.get_process_frames()
+	if count >= DreamState.CROWD_BREAKER_SHOW_AT and _dream_state != null and _rule_stacks(&"crowd_breaker") > 0:
+		var where := global_position if at == Vector2.INF else at
+		var world := Reactions._world(self)
+		if world != null:
+			Fx.play(&"path_crack", where, world)
+		_dream_state.note_card(&"crowd_breaker", where)
+
+# The nightmares this attack hits: the stamped count this frame (or last frame while the area queue lands its deferred
+# hits over the next few frames), else 1 (a lone area hit: cloud ticks, sweeps).
+func _crowd_count() -> int:
+	var frame := Engine.get_process_frames()
+	if _area_frame == frame or (frame - _area_frame <= 4 and is_instance_valid(_area_queue) and _area_queue.flushing):
+		return maxi(_area_count, 1)
+	return 1
 
 func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
 	if _dream_state == null or (_shiny.is_empty() and not _any_rule(&"__hit_cards", HIT_CARD_RULES)):
@@ -2443,8 +2472,8 @@ func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
 				crowd += 1
 		if crowd >= DreamState.CRUSH_CROWD:
 			multiplier *= 1.0 + DreamState.CRUSH_BONUS[_rule_level(&"crush")] * _rule_power(&"crush")
-	if is_area and _rule_stacks(&"crowd_breaker") > 0 and _area_count > 1:
-		multiplier *= 1.0 + minf(DreamState.CROWD_BREAKER_PER * _area_count, DreamState.CROWD_BREAKER_MAX) * _rule_power(&"crowd_breaker")
+	if is_area and _rule_stacks(&"crowd_breaker") > 0:  # Hard cards 2026-10-16: one nightmare hit counts too
+		multiplier *= 1.0 + minf(DreamState.CROWD_BREAKER_PER * _crowd_count(), DreamState.CROWD_BREAKER_MAX) * _rule_power(&"crowd_breaker")
 	if not _shiny.is_empty():
 		_shiny = _shiny.filter(func(until: float) -> bool: return until > _anim_time)
 		multiplier *= 1.0 + DreamState.SHINY_THINGS_BONUS * _shiny.size() * _rule_power(&"shiny_things")
@@ -2864,7 +2893,7 @@ func _release_attack() -> void:
 				in_range = _enemies_within_px(get_range_pixels() + swing * MAP_GRID.cell_size.x)  # Wide Swing: this pulse wider
 			if _dream_state:
 				HelperCommons.area_attack_hit(self, in_range)  # Scatter: 3+ hit are slowed
-			_area_count = in_range.size()
+			set_area_count(in_range.size())  # Hard cards 2026-10-16: frame-stamped (Crowd Breaker)
 			_status_pulse_hits.clear()
 			var statics := 0
 			if attack_data.rain:
@@ -3467,7 +3496,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
 		hit(target, hand, false, crit)
-		_area_count = get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size()
+		set_area_count(get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size(), where)
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
 				hit(enemy, attack_data.splash_share * hand, true, crit)
@@ -4806,9 +4835,8 @@ func _spin() -> void:
 		for dy in [-1, 0, 1]:
 			if (dx != 0 or dy != 0) and route.has(cell + Vector2(dx, dy)):
 				path_tiles += 1
-	var hairpin := DreamState.HAIRPIN_WINDS_EXTRA * _rule_power(&"hairpin_winds") if _rule_stacks(&"hairpin_winds") > 0 else 0.0
-	var bonus := clampf((path_tiles - attack_data.spin_free_path_tiles) * attack_data.spin_bonus,
-		0.0, attack_data.spin_bonus_max + hairpin * attack_data.spin_bonus)  # Hairpin Winds: one more path tile counts
+	# (Hairpin Winds no longer raises this cap: it is attack speed at 6+ path cells, hard cards 2026-10-16)
+	var bonus := clampf((path_tiles - attack_data.spin_free_path_tiles) * attack_data.spin_bonus, 0.0, attack_data.spin_bonus_max)
 	var struck := _enemies_on_adjacent_tiles()
 	for enemy in struck:
 		hit(enemy, 1.0 + bonus, true)

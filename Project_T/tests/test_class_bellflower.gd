@@ -235,24 +235,37 @@ func _run() -> void:
 	_check(ra_hit > 0.0 and absf((ra1 - ra.health) - ra_hit) <= 2.0, "Rude Awakening: waking, the last hit lands again (%.0f of %.0f)" % [ra1 - ra.health, ra_hit])
 	await _clean()
 
-	# Knell (trait rework: no Drowsy needed): a bell's hit cashes another family's status; once per nightmare every 8 s.
+	# Knell (hard cards 2026-10-16): a bell's hit lands again once per status other families put on the nightmare, up to
+	# 3, 0.2 s apart, each adding 1 of the bell's status; once per nightmare every 6 s. Repeats never advance In Time.
 	dreams.stacks.clear()
 	_take("knell")
+	_take("in_time")
 	var k_bell := _plant("bellflower", spot)
 	var k_spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
 	await _frames(2)
 	var k = _spawn(spot + Vector2(CELL, 0))
+	k.max_health = 900000
+	k.health = 900000
 	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 10, k_spore.get_damage())
+	klass._later.clear()
 	var poisoned: int = k.statuses.stacks(EnemyStatuses.SPORED)
 	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(k.statuses.stacks(EnemyStatuses.SPORED) < poisoned, "Knell: the bell's hit cashes another family's Poisoned")
-	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)
-	k_spore._apply_one_status(k, EnemyStatuses.SPORED, 1, k_spore.get_damage())
-	poisoned = k.statuses.stacks(EnemyStatuses.SPORED)
+	_check(klass._later.size() == 1, "Knell: one other-family status queues 1 repeat (%d)" % klass._later.size())
+	var in_time_count := int(k.get_meta(klass.IN_TIME_META, {}).get(k_bell.get_instance_id(), 0))
+	var k_health: float = k.health
+	var drowsy: int = k.statuses.stacks(EnemyStatuses.DROWSY)
+	for i in 120:
+		if klass._later.is_empty():
+			break
+		await process_frame
+	_check(klass._later.is_empty() and k.health < k_health, "...the hit lands again %.1f s later" % klass.KNELL_REPEAT_GAP)
+	_check(k.statuses.stacks(EnemyStatuses.DROWSY) > drowsy, "...and adds the bell's Drowsy (%d -> %d)" % [drowsy, k.statuses.stacks(EnemyStatuses.DROWSY)])
+	_check(k.statuses.stacks(EnemyStatuses.SPORED) >= poisoned, "...nothing is used up")
+	_check(int(k.get_meta(klass.IN_TIME_META, {}).get(k_bell.get_instance_id(), 0)) == in_time_count, "...a repeat never counts for In Time")
+	await process_frame
 	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
-	await _frames(1)
-	_check(k.statuses.stacks(EnemyStatuses.SPORED) >= poisoned, "...once per nightmare every %d s" % int(klass.KNELL_EVERY))
+	_check(klass._later.is_empty(), "...once per nightmare every %d s" % int(klass.KNELL_EVERY))
+	dreams.stacks.erase("in_time")
 	dreams.calling = "bellflower"
 	await _clean()
 	print("test_class_bellflower: %d failures" % failures)

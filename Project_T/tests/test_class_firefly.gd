@@ -12,7 +12,7 @@ var dreams: DreamState
 var lights  # DreamState.firefly_lights
 const CELL := 64.0
 const CLASS := ["where_lights_meet", "fireflies_in_the_grass", "signal_fires", "last_spark", "lanternway"]
-const LENT := ["hammerfall", "sparks_fly", "flashover", "chain_of_lanterns", "nothing_wasted", "crossfire",  # Knock-On folded into Hammerfall (2026-10-16)
+const LENT := ["hammerfall", "sparks_fly", "flashover", "chain_of_lanterns", "nothing_wasted",  # Knock-On folded into Hammerfall (2026-10-16); Crossfire retired (hard cards 2026-10-16)
 	"thunderstruck", "brushfire", "gathering_storm"]
 const SETUP_WORDS := ["{lit}", " lit ", "light ", "lights", "glow", "water", "lone", "{toll}", "toll", " ring", "pip", "mushroom", "dose"]
 
@@ -194,6 +194,20 @@ func _run() -> void:
 	director.resting = true
 	_check(lights.lit_sprout_blocker(glow_sprout) == "", "...at a rest it can glow")
 	director.resting = was_resting
+	await _clean()
+
+	# Torchbearers (hard cards 2026-10-16): the nearest Lit nightmare further along the path, at most TORCH_STEPS ahead,
+	# skipping one another throw just claimed. Reads the poll's sorted list (filled by hand here).
+	var behind_lit = _spawn(Vector2(CELL * 20, CELL * 20))
+	var ahead_lit = _spawn(Vector2(CELL * 21, CELL * 20))
+	var next_lit = _spawn(Vector2(CELL * 22, CELL * 20))
+	var too_far = _spawn(Vector2(CELL * 23, CELL * 20))
+	lights._lit_by_step = [[8, behind_lit], [13, ahead_lit], [15, next_lit], [15 + lights.TORCH_STEPS + 1, too_far]]
+	_check(lights.next_lit_ahead(10, Vector2.ZERO) == ahead_lit, "Torchbearers: the nearest Lit nightmare ahead, never one behind")
+	ahead_lit.set_meta(lights.TORCH_CLAIM_META, dreams._game_clock + 1.0)
+	_check(lights.next_lit_ahead(10, Vector2.ZERO) == next_lit, "...a nightmare just jumped to is skipped")
+	_check(lights.next_lit_ahead(15, Vector2.ZERO) == null, "...nothing past %d steps ahead" % lights.TORCH_STEPS)
+	lights._lit_by_step = []
 	await _clean()
 
 	print("test_class_firefly: %d failures" % failures)

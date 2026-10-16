@@ -88,8 +88,10 @@ const BRUSH_EVERY := 1.0
 const BRUSH_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog"]  # Damage over time (not bolts, Reactions or jumps)
 const GATHERING_STORM := &"gathering_storm"
 const GATHER_STEP := 0.25  # Gathering Storm: each jump a nightmare takes makes the next 25% stronger…
-const GATHER_MAX := 3.0  # …up to triple (card pass 2026-10-16, player review 4.2: was double; on the multiplying side, past the cap)…
+const GATHER_MAX := 3.0  # …up to +200% (owner, hard cards 2026-10-16); the jump's cap stretches with it, never past 3x…
 const GATHER_RESET := 2.0  # …reset after 2 s without one
+const GATHER_WIDTH_STEP := 1.0  # …each stack draws the jump 1 px thicker…
+const GATHER_WIDTH_MAX := 4  # …for at most this many stacks
 const CHAIN_REACTIONS: Array[StringName] = [&"thunderclap", &"ignite", &"lightning_rod", &"tempest"]  # Reactions that spend Charged
 const SPARKS_META := &"ff_sparks"  # On a nightmare: {Warden id: hits counted}
 const FF_HIT_META := &"ff_firefly_hit"  # On a nightmare: [time, WeakRef]: the last Firefly Warden hit (Sparks Fly)
@@ -108,9 +110,12 @@ const GUIDING_CELLS: Array[float] = [1.0, 2.0]  # II
 const EVO_STRUNG := &"lf_strung_lights"
 const STRING_STEPS := 4  # Strung Lights: gaps of at most this many path steps between lit steps are lit too
 const EVO_TORCH := &"lf_torchbearers"
-const RELAY_SHARE := 0.5  # Torchbearers: the next light ahead throws this share of the dispelling hit (once a second per light)
+const RELAY_SHARE := 0.5  # Torchbearers: half the dispelling hit jumps to the nearest Lit nightmare further along the path
 const EVO_BALE := &"lf_bale_fires"
-const BALE_HOPS := 4  # Bale-fires: a throw that dispels throws again from the next light, up to this many more lights
+const BALE_HOPS := 4  # Bale-fires: a Torchbearers jump that dispels jumps on to the next Lit nightmare ahead, up to this many more
+const TORCH_STEPS := 8  # Torchbearers / Bale-fires (hard cards 2026-10-16): "further along" = at most this many steps ahead
+const TORCH_CLAIM := 0.25  # …a nightmare just jumped to is skipped for this long, so the fire runs on ahead
+const TORCH_CLAIM_META := &"lf_torch_claim"  # On a nightmare: the clock until which Torchbearers skips it
 const EVO_GLOWWORMS := &"lf_glowworms"
 const GLOW_SPROUTS_PER_JAR := 2  # Glowworms: Sprouts touching each Firefly Warden that glow (nearest the Heartwood first)
 const GLOW_SPROUT_TOUCH := 1.25  # …"touching": within this many cells on both axes
@@ -198,6 +203,7 @@ var _step_px := {}  # Route step -> map position (embers)
 var _end_px := Vector2.ZERO  # The route's last step (the Heartwood): Glowworms pick the Sprouts nearest it
 var _embers := {}  # Embers / Witchfire: route step -> {amount, cap, source: WeakRef, until, count}
 var _lit_count := 0  # Nightmares Lit at the last poll (Swarm Night)
+var _lit_by_step: Array = []  # [[step, nightmare], …] Lit walkers at the last poll, sorted by step (Torchbearers, hard cards 2026-10-16)
 var _event_seen := {}  # Event id -> {nightmare id: true}: struck by it (EVENT_MAX across a recursive chain)
 var _show: Array = []  # Show the Way: [WeakRef nightmare, status, WeakRef Warden], added after the hit's own status
 
@@ -646,6 +652,7 @@ func _poll() -> void:
 	if container == null:
 		return
 	var lit := 0
+	_lit_by_step = []
 	for enemy in container.get_children():
 		if not _living(enemy) or not enemy.has_method("get_current_cell"):
 			continue
@@ -654,6 +661,9 @@ func _poll() -> void:
 		var before: Array = enemy.get_meta(GROUPS_META, [])
 		if not lights.is_empty():
 			lit += 1
+			var lit_step := _step_of(enemy)
+			if lit_step >= 0:  # Walkers only (a flyer has no step): Torchbearers' list (hard cards 2026-10-16)
+				_lit_by_step.append([lit_step, enemy])
 		if not lights.is_empty() and enemy.has_method("is_hidden") and enemy.is_hidden() and _reveals(sources):
 			enemy.reveal_for(POLL * 3.0)  # Lit nightmares can't hide (a Firefly Warden's own light only)
 		if lights == before:
@@ -665,6 +675,56 @@ func _poll() -> void:
 		if lights.is_empty() and not before.is_empty() and _step_of(enemy) >= _max_lit_step:
 			_left_last_light(enemy)
 	_lit_count = lit
+	_lit_by_step.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) < int(b[0]))
+
+# Torchbearers / Bale-fires (hard cards 2026-10-16): the nearest Lit nightmare further along the path than `step`, at most
+# TORCH_STEPS ahead, not in `skip` and not claimed by another throw in the last TORCH_CLAIM s (smallest step first, then
+# nearest to `at`). Reads the poll's sorted list: at most 0.1 s stale. Null = none.
+func next_lit_ahead(step: int, at: Vector2, skip: Array = []):
+	if step < 0 or _lit_by_step.is_empty():
+		return null
+	var i: int = _lit_by_step.bsearch_custom([step, null], func(a: Array, b: Array) -> bool: return int(a[0]) < int(b[0]), false)
+	var now := _now()
+	var best = null
+	var best_step := -1
+	while i < _lit_by_step.size():
+		var entry: Array = _lit_by_step[i]
+		i += 1
+		var s := int(entry[0])
+		if s > step + TORCH_STEPS or (best != null and s > best_step):
+			break
+		var enemy = entry[1]
+		if not _living(enemy) or skip.has(enemy) or now < float(enemy.get_meta(TORCH_CLAIM_META, -INF)):
+			continue
+		if best == null or enemy.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(at):
+			best = enemy
+			best_step = s
+	return best
+
+# Torchbearers: half the dispelling hit jumps to the nearest Lit nightmare ahead (no per-light clock: EVENT_MAX bounds a
+# chain, the claim spreads many throws forward). Bale-fires: `parent` is the jump that just dispelled, so this one keeps
+# its event and hops. The spark threads through the glow spot of the target's light.
+func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, parent: Dictionary = {}, origin = null,
+		skip: Array = []) -> void:
+	var target = next_lit_ahead(step, at, skip)
+	if target == null:
+		return
+	target.set_meta(TORCH_CLAIM_META, _now() + TORCH_CLAIM)
+	var relay := int(parent.get("relay", -1)) + 1
+	var opts := _hop(parent, {"relay": relay, "color": Palette.HEARTLIGHT}) if not parent.is_empty() \
+		else {"relay": 0, "color": Palette.HEARTLIGHT}
+	if origin != null:
+		opts["origin"] = origin
+	elif parent.has("carry"):
+		opts["carry"] = parent.carry
+	var from := at
+	var groups: Array = target.get_meta(GROUPS_META, [])
+	var spot := _light_spot(int(groups[0])) if not groups.is_empty() else Vector2.ZERO
+	if spot != Vector2.ZERO:
+		_line_fx(at, spot, 2.0, Palette.GLOW)  # The spark flies to the target's light…
+		from = spot  # …and the light throws it
+	credit(EVO_BALE if relay > 0 else EVO_TORCH, target.global_position)
+	_fork(id, source, from, target, amount, cap, opts)
 
 # Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it.
 func _entered(enemy, light: int) -> void:
@@ -801,8 +861,10 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 				_credit_light(sources, at)
 				if gold and targets.size() >= 2 and evo(EVO_BONFIRE):
 					credit(EVO_BONFIRE, at)
-		if _rule(SIGNAL_FIRES) or evo(EVO_TORCH):
-			_signal(id, source, at, _step_of(enemy), lights, size * (RELAY_SHARE if evo(EVO_TORCH) else SIGNAL_SHARE), cap, {}, enemy)
+		if evo(EVO_TORCH):  # Hard cards 2026-10-16: the nearest Lit nightmare ahead (Torchbearers wins over Signal Fires)
+			_torch(id, source, at, _step_of(enemy), size * RELAY_SHARE, cap, {}, enemy, [enemy])
+		elif _rule(SIGNAL_FIRES):  # (Retired class card: an old save keeps its light-to-light rule)
+			_signal(id, source, at, _step_of(enemy), lights, size * SIGNAL_SHARE, cap, {}, enemy)
 		if gold and evo(EVO_EMBERS):
 			_drop_ember(enemy, source, size * EMBER_SHARE, cap)
 		if _rule(LAST_SPARK) and enemy.statuses.has(EnemyStatuses.STATIC):
@@ -865,8 +927,8 @@ func _new_heavy_attack(source) -> bool:
 	return true
 
 # Signal Fires: a dispel in one light also forks to the front nightmare in the next light ahead, once per light a second.
-# Torchbearers (the Spread follow-up, on Signal Fires' code): the throw comes from the next light (a thread to it, then
-# the bolt), credited. Bale-fires: `parent` is the throw that just dispelled, so the next one keeps its event and hops.
+# (Torchbearers and Bale-fires used this until hard cards 2026-10-16; they now go through _torch. The relay branch below
+# stays for the parent/relay options a Signal Fires throw may carry.)
 func _signal(id: int, source, at: Vector2, step: int, lights: Array, amount: float, cap: float, parent: Dictionary = {},
 		origin = null) -> void:
 	var now := _now()
@@ -1135,7 +1197,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 		parent.erase("target")
 		if not had.is_empty():
 			parent["carry"] = had
-		_signal(event, source, at, step, lights_of(before), float(request.amount), float(request.cap), parent)
+		_torch(event, source, at, step, float(request.amount), float(request.cap), parent, null, [target])  # Hard cards 2026-10-16
 	if evo(EVO_SWARM) and _lit_count >= SWARM_AT and not request.get("swarm", false) and not request.get("final", false):
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
@@ -1187,15 +1249,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	var at: Vector2 = enemy.global_position
 	var now := _now()
 	if is_bolt:
-		# Chain of Lanterns: a bolt also jumps half to the 2 nearest other nightmares near it
-		var charger = enemy.statuses.source(EnemyStatuses.STATIC)
-		var bolt_jar = charger if is_instance_valid(charger) else source
-		if _rule(CHAIN_OF_LANTERNS) and is_instance_valid(bolt_jar) and _now() >= float(bolt_jar.get_meta(CHAIN_META, -INF)):
-			bolt_jar.set_meta(CHAIN_META, _now() + CHAIN_EVERY)  # Bolts share Chain of Lanterns' once a second per Warden (council 2026-10-15)
-			var cap_bolt := _lent_cap(source, charger)
-			for target in _near_enemies(at, [enemy]).slice(0, CHAIN_TARGETS):
-				_fork(id, source, at, target, event.base * CHAIN_SHARE, cap_bolt)
-		return
+		return  # Chain of Lanterns' bolt half is gone (hard cards 2026-10-16): only Reactions jump (_chain_more)
 	if is_firefly(source) and event.kind == &"hit" and (_rule(SPARKS_FLY) or _rule(CHAIN_OF_LANTERNS) or _rule(BRUSHFIRE)):
 		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Hit by a Firefly Warden (any form) just now: Sparks Fly, Chain of Lanterns, Brushfire
 	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
@@ -1450,10 +1504,13 @@ func _strike(request: Dictionary) -> void:
 		var now := _now()
 		var gather: Array = target.get_meta(GATHER_META, [0, -INF])
 		var taken := int(gather[0]) if now - float(gather[1]) <= GATHER_RESET else 0
-		amount = minf(amount, float(request.cap)) * minf(1.0 + GATHER_STEP * taken, GATHER_MAX)
+		# Hard cards 2026-10-16 (owner: +200%): the cap stretches with the bonus, never past GATHER_MAX times its value
+		var gather_mult := minf(1.0 + GATHER_STEP * taken, GATHER_MAX)
+		amount = minf(amount * gather_mult, float(request.cap) * gather_mult)
 		target.set_meta(GATHER_META, [taken + 1, now])
 		if taken > 0:
 			credit(GATHERING_STORM, target.global_position)  # The stronger jump is the moment
+			request["width"] = maxf(float(request.get("width", 4.0)), 4.0 + GATHER_WIDTH_STEP * mini(taken, GATHER_WIDTH_MAX))
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position

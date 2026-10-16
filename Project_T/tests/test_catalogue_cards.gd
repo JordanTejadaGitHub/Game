@@ -118,7 +118,7 @@ func _run() -> void:
 	var crowd := []
 	for i in 3:
 		crowd.append(_spawn(pulser.global_position + Vector2(CELL, 8.0 * i)))
-	pulser._area_count = 3
+	pulser.set_area_count(3)  # Frame-stamped (hard cards 2026-10-16)
 	var crowded := pulser._card_hit_multiplier(crowd[1], true)
 	_check(crowded > 1.0 + DreamState.CROWD_BREAKER_PER * 3.0, "Crush + Crowd Breaker: an area hit on a crowded nightmare hits harder (%.2f)" % crowded)
 	_check(is_equal_approx(pulser._card_hit_multiplier(crowd[1], false), 1.0), "a single-target hit doesn't")

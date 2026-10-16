@@ -309,7 +309,9 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		* duration_multiplier_all * _potency_stretch(id, strength)  # Rule 3: Potency past a cap lengthens it
 	if length >= status.time:
 		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
-		status["lingered"] = 0.0  # …and the linger cap counts from this landing (it bounds how long a status outlives it)
+		# …and the linger cap counts from this landing (it bounds how long a status outlives it). Hard cards 2026-10-16 (TD):
+		# Steeped's stretch spends the same room, so every Dewdrop card shares the 4 s cap
+		status["lingered"] = float(pending_linger.get(id, 0.0))
 		status["landed"] = length  # Topped Up puts it back to this, never more
 		status["stretched"] = float(pending_linger.get(id, 0.0))  # Steeped / Pooling / High Tide made this landing longer
 	status.time = maxf(status.time, length)

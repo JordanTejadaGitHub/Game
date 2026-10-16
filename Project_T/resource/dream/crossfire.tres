@@ -14,3 +14,4 @@ max_stacks = 1
 rule_id = &"lent_crossfire"
 requires = Array[String](["firefly_jar"])
 tip = "Behind: the nearest nightmares that are no further along the path. It jumps half of the smaller hit. Each nightmare once every 3 s. At most 3 s of the Firefly Warden's damage. A bet: both must hit one nightmare."
+retired = true

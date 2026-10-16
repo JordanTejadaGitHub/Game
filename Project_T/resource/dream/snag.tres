@@ -13,4 +13,4 @@ tags = Array[String](["wall", "maze"])
 max_stacks = 1
 min_act = 2
 rule_id = &"snag"
-tip = "Once per nightmare. Each wall once a {drift}. Bosses never."
+tip = "Once per nightmare. Each Thornwall once a {drift}. Bosses never."

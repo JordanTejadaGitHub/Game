@@ -554,6 +554,18 @@ func get_growth(number: int) -> float:
 	return pow(health_growth_per_drift, early) * pow(late_health_growth_per_drift, late) \
 		* pow(endgame_health_growth_per_drift, endgame)
 
+# Hard cards 2026-10-16 (Sap Rising, TD): an ordinary nightmare's health scale in drift `number`: get_growth × the
+# act multiplier (acts 1–2 ramp, acts 3–4 late multiplier), never boss, elite, finale, Dream or Omen extras.
+func ordinary_scale(number: int) -> float:
+	var scale := get_growth(number)
+	if get_act(number) >= late_acts_from_act:
+		scale *= get_late_multiplier(number)
+		if get_act(number) >= 4:
+			scale *= act4_health_multiplier
+	else:
+		scale *= get_early_multiplier(number)
+	return scale
+
 # Dreams / Omens: extra health multiplier for creatures of drift `number` (Wild Growth: all
 # creatures; Omens: not bosses).
 func get_health_multiplier(data: EnemyData, number: int) -> float:
