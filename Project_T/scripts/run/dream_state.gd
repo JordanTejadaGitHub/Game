@@ -2886,8 +2886,10 @@ func _meets_needs(card: UpgradeData) -> bool:
 func has_grown_role(role: StringName) -> bool:
 	if unlock_everything:
 		return true
-	if role == WardenRoles.HOLD and has_evolution(&"sp_witch_ring"):
-		return true
+	if role == WardenRoles.HOLD and (has_evolution(&"sp_witch_ring") or has_evolution(&"dw_drowned_hands")):
+		return true  # Calling evolutions that Hold count (a starting run reaches the hold cards without the Grove's Rootling)
+	if role == WardenRoles.PULL and (has_evolution(&"dw_whirlpool") or has_evolution(&"dw_drowning_deep")):
+		return true  # …and the ones that pull back (Whirlpool, Drowning Deep)
 	for id in grown_wardens:
 		if WardenRoles.has_role(_warden_data(String(id)), role):
 			return true
