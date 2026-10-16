@@ -39,6 +39,7 @@ var block_summary := false  # The "Last block" tab is showing (not the Wardens)
 var _wardens_tab := Button.new()
 var _block_tab := Button.new()
 var _summary := StatusLinks.make_label("", UiStyle.TIP_SIZE)  # The last block's summary (RestReport's text)
+var _ribbon := StrengthRibbon.new()  # The strength gauge's ribbon over it (RestReport.last_gauge)
 var _header := Button.new()
 var _sort := Button.new()
 var _rows := VBoxContainer.new()
@@ -198,7 +199,11 @@ func _ready() -> void:
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_summary.name = "BlockSummary"
 	UiStyle.tip_body(_summary, WIDTH - 36.0)
-	_scroll.add_child(_summary)
+	var summary_box := VBoxContainer.new()  # The strength ribbon, then the summary text (both scroll)
+	summary_box.name = "BlockSummaryBox"
+	summary_box.add_child(_ribbon)
+	summary_box.add_child(_summary)
+	_scroll.add_child(summary_box)
 	_scroll.visible = false
 	_body.add_child(_scroll)
 	_user_open = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
@@ -330,7 +335,7 @@ func _fit() -> void:
 	offset_top = top - screen_mid
 	var used := _header.size.y + _last.size.y + 32.0 + 28.0  # Header, last drift, tabs, margins (the summary scrolls)
 	var room := maxf(bottom - top - used, 0.0 if info != null and info.visible else 72.0)  # Two rows, or as few as fit under the info
-	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
+	var wanted: float = (_summary.get_parent() as Control).get_combined_minimum_size().y if block_summary else 0.0  # The ribbon and the text
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	# Never over the DriftPanel (user: "maze dps shouldn't go over the call drift"): the whole card
 	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
@@ -446,6 +451,8 @@ func _update_view() -> void:
 		if _summary.get_meta(&"source", "") != text:
 			_summary.set_meta(&"source", text)
 			_summary.text = StatusLinks.bbcode(text)
+			var report := drift_director.get_node_or_null("%RestReport") as RestReport if drift_director != null else null
+			_ribbon.set_gauge(report.last_gauge if report != null else {})
 
 # The last block's summary (RestReport builds it at every rest), or a line saying it comes at the first rest.
 func block_summary_text() -> String:

@@ -278,9 +278,10 @@ func _on_spawned(node: Node) -> void:
 
 func _on_dispelled(enemy: Node2D) -> void:
 	var id := enemy.get_instance_id()
-	var bin := _route_bin(enemy)
-	_route_block.dispels[bin] += 1
-	_route_block.dispel_health[bin] += float(enemy.get("max_health") if enemy.get("max_health") != null else 0)
+	if not _off_gauge(enemy):  # Bosses and echoes have their own bar: not in the route bins (the strength gauge's)
+		var bin := _route_bin(enemy)
+		_route_block.dispels[bin] += 1
+		_route_block.dispel_health[bin] += float(enemy.get("max_health") if enemy.get("max_health") != null else 0)
 	var map := drift_director.get_node_or_null("%MapGenerator") as Node2D
 	if map != null:
 		var cell := Vector2i(map.MAP_GRID.calculate_grid_coordinates(map.to_local(enemy.global_position)))
@@ -289,6 +290,14 @@ func _on_dispelled(enemy: Node2D) -> void:
 		var seen: Array = _boss_seen[id]
 		run.bosses.append({"kind": seen[0], "drift": seen[2], "dispelled": true, "seconds": snappedf(_clock - seen[1], 0.1)})
 		_boss_seen.erase(id)
+
+# A boss or a boss's echo: kept out of the route bins and the block's leaks (RestReport's strength gauge; council
+# card_pass_power.md section 4).
+static func _off_gauge(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	var data = enemy.get("enemy_data")
+	return enemy.get("is_echo") == true or (data != null and data.is_boss)
 
 static func _new_route_block() -> Dictionary:
 	var zeros: Array = []
@@ -356,6 +365,9 @@ static func leaked_text(kinds: Dictionary) -> String:
 	return ", ".join(names.map(func(n) -> String: return "%d %s" % [int(kinds[n]), n]))
 
 func _note_leak(enemy: Node) -> void:
+	if _off_gauge(enemy):
+		_route_block.boss_leaked = int(_route_block.get("boss_leaked", 0)) + 1
+		return
 	_route_block.leaked += 1
 	if enemy != null and is_instance_valid(enemy) and enemy.get("max_health") != null:
 		_route_block.leaked_health += int(enemy.max_health)
