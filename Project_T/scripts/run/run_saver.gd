@@ -208,6 +208,8 @@ func save_now() -> bool:
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
+		"app_version": String(ProjectSettings.get_setting("application/config/version", "")),  # Which build wrote it (route repair log)
+		"build": String(BuildInfo.current().get("id", "")),
 		"map_seed": map_generator.map_seed,
 		"blight_level": MetaRun.blight_level,
 		"extra_ridges": MetaRun.run_extra_ridges,  # Sidegrade Clear Sight's ridge, so a resume rebuilds the same map
@@ -353,6 +355,78 @@ func _read() -> Dictionary:
 		push_warning("Run save unreadable or from another version; keeping it for recovery")
 	return data
 
+# A restored map must have a route (Android, v0.1.15: a continued run after an update had none: no path tiles,
+# nightmares stuck at the start; not reproduced headless). If it hasn't: every restored Warden comes off the grid
+# (and if that isn't enough, obstacles and gift terrain on the way are cleared as generation does), then they go back
+# one at a time, most Dew first; any whose return would cut the route again is taken back with a full Dew refund.
+# Returns what happened for the run history ({} = the route was fine).
+func _repair_route(data: Dictionary) -> Dictionary:
+	if not map_generator.get_path_from(map_generator.startPath).is_empty():
+		return {}
+	var layer = map_generator.path_layer
+	var towers: Array = []
+	for node in tower_container.get_children():
+		if node is Tower and not node.is_queued_for_deletion() and not node.tower_data.rooted:
+			towers.append(node)
+	for tower in towers:
+		for h in tower.get_halves():
+			layer.set_half_blocked(h, false)
+	var cleared: Array = []
+	if layer.find_path_from(map_generator.startPath).is_empty():  # Not the Wardens: the ground itself
+		var before: Array = map_generator.obstacles.keys()
+		map_generator._carve_route_if_blocked()
+		cleared = before.filter(func(c: Vector2) -> bool: return not map_generator.obstacles.has(c))
+		var map_gifts = map_generator.get("gifts")
+		for cell in cleared:  # Kept cleared through the next save: tended (no Seed), out of the gift terrain
+			if not run_state.tended_cells.has(cell):
+				run_state.tended_cells.append(cell)
+			if map_gifts != null and map_gifts.gift_obstacles.has(cell):
+				map_gifts.gift_obstacles.erase(cell)
+		if map_gifts != null and not cleared.is_empty():
+			map_gifts._rebuild_props()
+	towers.sort_custom(func(a: Tower, b: Tower) -> bool: return a.invested_dew > b.invested_dew)
+	var removed: Array[Tower] = []
+	for tower in towers:
+		for h in tower.get_halves():
+			layer.set_half_blocked(h, true)
+		if layer.find_path_from(map_generator.startPath).is_empty():
+			for h in tower.get_halves():
+				layer.set_half_blocked(h, false)
+			removed.append(tower)
+	var refund := 0
+	for tower in removed:
+		refund += tower.invested_dew
+		tower_container.remove_child(tower)
+		tower.queue_free()
+	if refund > 0:
+		run_state.add_dew(refund)  # In full: the player never chose this
+	layer.draw()
+	map_generator.path_changed.emit()
+	var repaired: bool = not map_generator.get_path_from(map_generator.startPath).is_empty()
+	var words: Array[String] = []
+	if not removed.is_empty():
+		words.append("%d Warden%s returned, %s refunded" % [removed.size(), "" if removed.size() == 1 else "s", UiStyle.dew_amount(refund)])
+	if not cleared.is_empty():
+		words.append("%d obstacle%s cleared" % [cleared.size(), "" if cleared.size() == 1 else "s"])
+	var toast := ("The path was blocked after the update: " + ", ".join(words) + ".") if repaired and not words.is_empty() \
+		else "The path was blocked after the update and couldn't be repaired."
+	_toast.call_deferred(toast)
+	push_warning("RunSaver: restored map had no route (save %s, app %s): %s" % [data.get("version", "?"), data.get("app_version", "?"), toast])
+	return {"drift": int(data.get("drifts_started", 0)), "save_version": int(data.get("version", 0)),
+		"app_version": String(data.get("app_version", "")), "build": String(data.get("build", "")),
+		"wardens_returned": removed.map(_tower_note),
+		"obstacles_cleared": cleared.map(func(c: Vector2) -> Array: return [c.x, c.y]),
+		"refund": refund, "repaired": repaired}
+
+static func _tower_note(tower: Tower) -> Dictionary:
+	return {"id": tower.tower_data.get_id(), "cell": [tower.cell.x, tower.cell.y], "half": [tower.half_cell.x, tower.half_cell.y],
+		"dew": tower.invested_dew}
+
+func _toast(text: String) -> void:
+	var hud := get_parent().get_node_or_null("HUD") if get_parent() != null else null
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast(text)
+
 # Rebuilds the saved run on the freshly generated (same-seed) map. The run resumes resting.
 func _restore(data: Dictionary) -> void:
 	# The forest as it was: tended obstacles gone, Wardens back in place.
@@ -447,6 +521,7 @@ func _restore(data: Dictionary) -> void:
 		run_state.memory_seeds.assign(data.get("memory_seeds", []).map(func(r) -> int: return int(r)))
 	run_state.dew_changed.emit(run_state.dew)
 	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
+	var repair := _repair_route(data)  # A restored map with no route (Android v0.1.15): fixed here, logged below
 
 	drift_director.drifts_started = int(data.drifts_started)
 	drift_director.drifts_cleared = int(data.drifts_cleared)
@@ -467,6 +542,8 @@ func _restore(data: Dictionary) -> void:
 	var history := get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
 	if history != null and data.has("history"):
 		history.load_save(data.history)
+	if history != null and not repair.is_empty():  # In the run report, so we learn the cause
+		history.run["route_repairs"] = Array(history.run.get("route_repairs", [])) + [repair]
 	var kin := Kinships.find(tower_container)
 	if kin != null and data.has("kinships"):
 		kin.load_save(data.kinships)  # After the Wardens are back, so the saved bonds keep their age

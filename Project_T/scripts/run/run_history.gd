@@ -665,6 +665,8 @@ static func report_text(record: Dictionary) -> String:
 			" · later on %s" % ", ".join(record.get("later_builds", []).map(func(b: Dictionary) -> String: return b.id)) if record.has("later_builds") else ""])
 	if record.has("balance"):
 		lines.append("Balance: " + JSON.stringify(record.balance))
+	if not record.get("route_repairs", []).is_empty():  # A Continue found no route and fixed it (RunSaver._repair_route)
+		lines.append("Route repairs on Continue: " + JSON.stringify(record.route_repairs))
 	lines.append("Result: %s · drift %d · %s · seed %d · Blight %d%s" % [record.get("result", ""), int(record.get("survived", 0)),
 		_time_text(float(record.get("seconds", 0.0))), int(record.get("seed", 0)), int(record.get("blight", 0)), " · demo" if record.get("demo", false) else ""])
 	lines.append("Leaves lost by act: %s · first leak: drift %d · close calls: %d" % [JSON.stringify(record.get("leaves_lost_by_act", {})),

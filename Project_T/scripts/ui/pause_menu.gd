@@ -85,6 +85,7 @@ func _ready() -> void:
 	# saved, and keeps Abandon a step further in.
 	_save_button = _add_button("Quit…", ask_quit)
 	_save_button.name = "Quit"
+	_add_copy_save()
 
 	var side := VBoxContainer.new()
 	side.custom_minimum_size = Vector2(240, 0)
@@ -205,6 +206,7 @@ func _build_phone() -> void:
 		_pane_buttons[pane[0]] = toggle
 	_save_button = _add_button("Save & quit…", ask_quit)  # Secondary, Resume's size (the theme's plain frame)
 	_save_button.name = "Quit"
+	_add_copy_save()
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_menu.add_child(spacer)
@@ -450,6 +452,32 @@ func _quit_to(desktop: bool) -> void:
 		RunSaver.safe_quit(get_tree())
 	else:
 		get_tree().change_scene_to_file(TITLE_SCENE)
+
+# Dev builds (the test APKs are debug exports): "Copy save" puts the run save (RunSaver.file_path, written at each rest:
+# what Continue loads) on the clipboard, so the owner can paste it into a message from a phone. Not under headless.
+func _add_copy_save() -> void:
+	if not OS.is_debug_build() or DisplayServer.get_name() == "headless":
+		return
+	var button := _add_button(COPY_SAVE_TEXT, _copy_save)
+	button.name = "CopySave"
+	button.add_theme_font_size_override("font_size", 14)
+
+const COPY_SAVE_TEXT := "Copy save (dev)"
+
+func _copy_save() -> void:
+	var button := _menu.get_node_or_null("CopySave") as Button
+	if button == null:
+		return
+	var path := RunSaver.file_path
+	var text := FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+	if text == "":
+		button.text = "No save yet (one is written at each rest)"
+	else:
+		DisplayServer.clipboard_set(text)
+		button.text = "Save copied (%d KB): paste it in a message" % ceili(text.length() / 1024.0)
+	get_tree().create_timer(4.0, true).timeout.connect(func() -> void:
+		if is_instance_valid(button):
+			button.text = COPY_SAVE_TEXT)
 
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
