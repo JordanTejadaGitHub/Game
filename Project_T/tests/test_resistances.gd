@@ -1,6 +1,7 @@
 extends SceneTree
 
-# Headless test of creature resistances (documentation/enemy_design.md, "Resistances"). Run:
+# Headless test of what is left of resistances after Nightmare Kinds (enemy_design.md): no damage types, dread shells,
+# status resistance. Run:
 #   godot --headless --path . --script res://tests/test_resistances.gd --fixed-fps 60
 
 var failures := 0
@@ -18,45 +19,31 @@ func _run() -> void:
 		child.queue_free()
 	await process_frame
 
-	# --- Family resistance / weakness (Barrow Wight: weak to spore, resists only wind; the Husk resists stone since 2026-10-07;
-	# Night Hound: resists stone) ---
+	# --- No damage types since Nightmare Kinds (enemy_design.md ed6f573b; Enemy Code 2129834f): every family deals full
+	# damage to every nightmare, no Weak / Resisted marks or words, no attack-shape multiplier ---
 	var beetle = _spawn(spawner, _sturdy("res://resource/enemy/barrow_wight.tres"))
 	var hound = _spawn(spawner, _sturdy("res://resource/enemy/hedgehog.tres"))
-	_check(_loss(hound, 100.0, "stone") == roundi(100 * EnemyData.RESIST_MULTIPLIER), "resisted family soothes ×%s" % EnemyData.RESIST_MULTIPLIER)
-	_check(_loss(beetle, 100.0, "spore") == roundi(100 * EnemyData.WEAK_MULTIPLIER), "weak family soothes ×%s" % EnemyData.WEAK_MULTIPLIER)
-	_check(_loss(beetle, 100.0, "stone") == 100 and _loss(beetle, 100.0, "water") == 100, "other families soothe normally")
-	_check(_loss(beetle, 100.0, "sprout") == 100, "neutral lines (Sprout) are never resisted")
-	_check(_loss(beetle, 100.0) == 100, "unsourced soothe is unchanged")
-	_check(beetle._hit_mark == 1, "a weak hit shows the sparkle")
-	hound.take_damage(10.0, "stone")
-	_check(hound._hit_mark == -1, "a resisted hit shows the grey puff")
-
-	# --- Matchup words (user 2026-10-07): every weak hit pops "Weak!", every resisted one "Strong!",
-	# one word per nightmare (a new hit re-pops it in place, never a second one) ---
+	beetle.coat = 0.0  # The Barrow Wight wears a dread shell now (tested below with its own numbers)
+	_check(_loss(hound, 100.0, "stone") == 100 and _loss(hound, 100.0, "water") == 100, "every family soothes in full")
+	_check(_loss(beetle, 100.0, "spore") == 100 and _loss(beetle, 100.0, "wind") == 100, "no weakness, no resistance")
+	_check(_loss(beetle, 100.0, "sprout") == 100 and _loss(beetle, 100.0) == 100, "neutral and unsourced soothe unchanged")
+	_check(beetle._hit_mark == 0 and hound._hit_mark == 0, "no sparkle or grey puff on a hit")
 	var callouts = main.get_node("%CombatCallouts")
 	callouts._alive.clear()
 	beetle.take_damage(10.0, "spore")
-	beetle.take_damage(10.0, "spore")
-	var words: Array = callouts._alive.filter(func(c: Array) -> bool: return c[3] == beetle)
-	_check(words.size() == 1 and words[0][1] == "Weak", "weak hits pop one Weak per nightmare, never stacked (%s)" % [words])
-	words[0][0] = 0.5  # Partway through its life: the next hit pops it again
-	beetle.take_damage(10.0, "spore")
-	_check(words[0][0] == 0.0, "another weak hit re-pops the same Weak!")
 	hound.take_damage(10.0, "stone")
-	_check(callouts._alive.any(func(c: Array) -> bool: return c[3] == hound and c[1] == "Resisted"), "a resisted hit pops Resisted")
+	_check(not callouts._alive.any(func(c: Array) -> bool: return c[1] == "Weak" or c[1] == "Resisted"), "no Weak / Resisted words")
 	var husk: EnemyData = load("res://resource/enemy/bark_beetle.tres")
-	_check(husk.resists.has("stone") and husk.weak_to.is_empty(), "the Husk (armoured) resists stone and has no weakness")
+	_check(husk.kind == EnemyData.Kind.ARMOURED and husk.coat_total > 0 and husk.resists.is_empty() and husk.weak_to.is_empty(),
+		"the Husk is Armoured: a dread shell, no damage types")
 
-	# --- Marked stacks multiplicatively with the family multiplier ---
+	# --- Marked still multiplies (alone, now) ---
 	beetle.apply_status(EnemyStatuses.MARKED, 10)
-	_check(_loss(beetle, 100.0, "spore") == floori(100 * EnemyData.WEAK_MULTIPLIER * 1.25), "Marked × weakness")
+	_check(_loss(beetle, 100.0, "spore") == floori(100 * 1.25), "Marked ×1.25")
 
-	# --- Attack shape (Bee Swarm): single-target halved, area full ---
-	var swarm_data := _sturdy("res://resource/enemy/leaf_bug.tres")
-	swarm_data.single_target_multiplier = 0.5
-	var swarm = _spawn(spawner, swarm_data)
-	_check(_loss(swarm, 100.0, "light", false) == 50, "single-target hit on a swarm ×0.5")
-	_check(_loss(swarm, 100.0, "light", true) == 100, "area hit on a swarm is full")
+	# --- Attack shape: no multiplier (the Whisper Swarm's single-target ×0.5 is gone; it is a Swarm Kind) ---
+	var swarm = _spawn(spawner, _sturdy("res://resource/enemy/leaf_bug.tres"))
+	_check(_loss(swarm, 100.0, "light", false) == 100 and _loss(swarm, 100.0, "light", true) == 100, "single-target and area hits soothe the same")
 
 	# --- Blight coat (Badger): −6 per hit, soaks 100, keeps at least 1, then crumbles ---
 	var badger_data := _sturdy("res://resource/enemy/leaf_bug.tres")
@@ -92,12 +79,13 @@ func _run() -> void:
 	# --- Spored ticks count as the applier's family (and as area); Static bolts count as light ---
 	var weak_to_spores = _spawn(spawner, _sturdy("res://resource/enemy/barrow_wight.tres"))
 	weak_to_spores.speed = 0.0  # Tick statuses in place instead of walking off the one-cell path
+	weak_to_spores.coat = 0.0  # (Its dread shell would soak the ticks)
 	weak_to_spores.apply_status(EnemyStatuses.SPORED, 1, 10.0, 10.0, 0, "spore")
 	_check(weak_to_spores.statuses.spore_line() == "spore", "Spored remembers the applier's family")
 	var before: int = weak_to_spores.health
 	weak_to_spores._process(1.0)  # One second: two Spored ticks
 	var ticked: int = before - weak_to_spores.health
-	_check(ticked == floori(10.0 * EnemyData.WEAK_MULTIPLIER), "Spored ticks get the spore weakness (%d from 10/s × weak)" % ticked)
+	_check(ticked == 10, "Spored ticks soothe in full (%d from 10/s), no weakness" % ticked)
 	var moth = _spawn(spawner, _sturdy("res://resource/enemy/drowned_one.tres"))  # Weak to light
 	# The Drowned One is always Damp, where Static becomes a Thunderclap at 3 (test_reactions); dry it
 	# off for a plain 5-stack bolt.
@@ -105,7 +93,7 @@ func _run() -> void:
 	before = moth.health
 	for i in EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.STATIC]:
 		moth.apply_status(EnemyStatuses.STATIC, 1, 0.0, 10.0)
-	_check(before - moth.health == floori(10.0 * EnemyStatuses.STATIC_BOLT_MULTIPLIER * EnemyData.WEAK_MULTIPLIER), "Static bolts count as light")
+	_check(before - moth.health == floori(10.0 * EnemyStatuses.STATIC_BOLT_MULTIPLIER), "Static bolts soothe in full")
 
 	# --- A real Warden passes its family ---
 	var stone_data: TowerData = load("res://resource/tower/pebbling.tres").duplicate()
@@ -120,7 +108,7 @@ func _run() -> void:
 	var target = _spawn(spawner, _sturdy("res://resource/enemy/hedgehog.tres"))  # The Night Hound resists stone
 	before = target.health
 	warden.hit(target)
-	_check(before - target.health == floori(warden.get_damage() * EnemyData.RESIST_MULTIPLIER), "a Pebbling's hit is resisted by the Night Hound")
+	_check(before - target.health == floori(warden.get_damage()), "a Pebbling's hit on the Night Hound is full (no resistance)")
 
 	print("resistance test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

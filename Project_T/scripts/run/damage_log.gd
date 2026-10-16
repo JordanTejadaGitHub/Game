@@ -17,7 +17,6 @@ const HARMONY_MERGE_WINDOW := 0.3  # Seconds: a Harmony strike right after its h
 
 # Combo tags (combo_amount = the part of the hit the combo added):
 #   crit       a critical hit (× the Warden's crit multiplier)
-#   weak       the nightmare is weak to the Warden's family (× EnemyData.WEAK_MULTIPLIER)
 #   marked     Marked (+25% taken)
 #   fog        Spored tick inside Mistveil fog (+50%)
 #   conducted  lightning that only reached it through Damp (whole hit)
@@ -26,7 +25,7 @@ const HARMONY_MERGE_WINDOW := 0.3  # Seconds: a Harmony strike right after its h
 #   thunderclap, ignite, shatter, pinned, lightning_rod, dawnbreak: Reactions (whole hit; kind
 #              "reaction"; see Reactions and Enemy.REACTION_TAGS)
 # Status names as {tokens}: read them through combo_name() so they show today's names.
-const COMBO_NAMES := {&"crit": "crits", &"weak": "weakness", &"marked": "{marked}", &"fog": "fog",
+const COMBO_NAMES := {&"crit": "crits", &"marked": "{marked}", &"fog": "fog",
 	&"conducted": "through {damp}", &"static": "{static} bolts", &"popped": "pops",
 	&"thunderclap": "Thunderclaps", &"ignite": "Ignites", &"shatter": "Shatters", &"pinned": "Pinned hits",
 	&"lightning_rod": "Lightning Rods", &"dawnbreak": "Dawnbreak"}
@@ -282,7 +281,7 @@ func _combo_share(event: Event, tag: StringName) -> float:
 		return event.combo_amount
 	if tag in WHOLE_HIT_COMBOS:
 		return event.combo_amount
-	var factors := {&"crit": event.crit_multiplier, &"weak": EnemyData.WEAK_MULTIPLIER,
+	var factors := {&"crit": event.crit_multiplier,  # (No "weak" since Nightmare Kinds, Enemy Code 2129834f)
 		&"marked": 1.0 + EnemyStatuses.MARKED_EXTRA, &"fog": 1.0 + EnemyStatuses.FOG_SPORE_BONUS}
 	var total_log := 0.0
 	for other in event.combos:
@@ -298,7 +297,7 @@ func _show_number(event: Event) -> void:
 		return
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
-	var big: bool = event.combos.has(&"crit") or event.combos.has(&"weak") or event.combos.has(&"conducted") \
+	var big: bool = event.combos.has(&"crit") or event.combos.has(&"conducted") \
 		or event.combos.has(&"popped") or event.kind == &"reaction" or event.kind == &"bolt" \
 		or event.amount >= event.enemy.max_health * 0.1
 	if numbers_mode == NumbersMode.BIG and not big:
@@ -308,13 +307,10 @@ func _show_number(event: Event) -> void:
 	if event.combos.has(&"crit"):
 		color = Palette.GLOW
 		size = 20
-	elif event.combos.has(&"weak") or event.combos.has(&"conducted") or event.combos.has(&"popped"):
+	elif event.combos.has(&"conducted") or event.combos.has(&"popped"):
 		color = Palette.NEWLEAF
 		size = 17
-	elif event.family_multiplier < 1.0:
-		color = Palette.MIST
-		size = 12
-	elif event.combos.has(&"marked"):
+	elif event.combos.has(&"marked"):  # (No grey "resisted" number since Nightmare Kinds)
 		color = EnemyStatuses.COLORS.get(EnemyStatuses.MARKED, Palette.GOLD)  # The hit took the Exposed bonus (screens_ui.md "Exposed at full stacks is visible"; Tower Code)
 	if event.kind == &"status":
 		size = 11
