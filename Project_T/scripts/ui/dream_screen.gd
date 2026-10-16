@@ -357,13 +357,6 @@ func _make_card(card: UpgradeData) -> Button:
 	# No build-defining mark on the card (user 2026-10-07: "remove the build-around-it icon"); the tag stays in the data
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
-	# Keyword chips (2026-10-16; Roguelite Code b4ff3d08): one row under the rarity line, wrapping, one tap target (48 px
-	# on phones) that shows their glossary lines. A Calling evolution reads its path's chips.
-	var chips: Array = DreamState.KEYWORDS.chips_for_calling(StringName(card.id)) if card.tags.has("calling_evolution") \
-		else DreamState.KEYWORDS.chips_for_card(card)
-	var keyword_row := KeywordRow.make(chips)
-	if keyword_row != null:
-		box.add_child(keyword_row)
 	# "Calling: Spore Print" / "Sporeling family" on its own line under the rarity, wrapping at the card's width
 	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
 	if kind != "":
@@ -421,6 +414,14 @@ func _make_card(card: UpgradeData) -> Button:
 	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
+	# Keyword chips (2026-10-16; Roguelite Code b4ff3d08) at the card's foot, one line, small, outlined in the rarity
+	# colour (screens_ui.md 844fa70a: the name and text read first). One tap target (48 px on phones) showing their
+	# glossary lines. A Calling evolution reads its path's chips.
+	var chips: Array = DreamState.KEYWORDS.chips_for_calling(StringName(card.id)) if card.tags.has("calling_evolution") \
+		else DreamState.KEYWORDS.chips_for_card(card)
+	var keyword_row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UpgradeData.rarity_color(card.rarity), CARD_CHIP_TEXT)
+	if keyword_row != null:
+		box.add_child(keyword_row)
 	for label in [rarity, name_label]:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
@@ -513,6 +514,7 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 
 # Phones: card text a size class up (user 2026-10-16: "the text is too small compared" to the full-height cards).
 const PHONE_CARD_BUMP := 5
+const CARD_CHIP_TEXT := 12  # The foot chips' word, under the card text (phones too: the row stays 48 px to tap)
 func _fs(size: int) -> int:
 	return size + PHONE_CARD_BUMP if _phone else size
 
