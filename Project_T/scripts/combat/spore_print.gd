@@ -94,8 +94,8 @@ const SEED_META := &"sp_seed_next"  # On a nightmare
 const SEED_BEFORE_META := &"sp_seed_before"  # On a nightmare: [status, stacks] just before a Warden's own application (Gone to Seed: only the hit that fills it)
 const SPORE_RING := &"spore_ring"
 const SPORE_RING_MAX := 3  # Spore Ring (replaced Narrows, council 2026-10-15): a spore Warden's Poisoned +1 per spore Warden touching it, up to 3
-const HIT_EXTRA_SMALL := 2  # The stack cards together add at most 2 to one Charged or Exposed hit…
-const HIT_EXTRA_MIN := 3  # …and at most max(2 x the hit's stacks, 3) to any other (council 2026-10-15)
+# (No per-hit limit on extra stacks: owner 2026-10-16. Each status's maximum is the ceiling, and extra stacks never
+# complete a Charged bolt: only a Warden's own hit does.)
 # --- Calling evolutions (scripts/combat/calling_paths.gd; council calling_evolution_*.md, owner 2026-10-16) -----------
 # Read with evo(id). Every number is a paper starting value (Balancing). Each one shows itself: a puff, a thread, a
 # glow or a flash, and credits its id (DreamState.note_card).
@@ -849,7 +849,7 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 		extra += mini(own_towers().filter(func(t) -> bool: return t != tower and touching(t, tower)).size(), SPORE_RING_MAX)
 	if extra <= 0:
 		return base
-	extra = mini(extra, HIT_EXTRA_SMALL if small else maxi(2 * base, HIT_EXTRA_MIN))  # One hit never runs away (council 2026-10-15)
+
 	if status == EnemyStatuses.STATIC:
 		var room: int = enemy.statuses.get_max_stacks(status) - 1 - enemy.statuses.stacks(status) - base
 		extra = clampi(extra, 0, maxi(room, 0))
