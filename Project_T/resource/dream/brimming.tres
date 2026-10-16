@@ -16,4 +16,4 @@ rule_id = &"brimming"
 requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held"])
 min_act = 2
 min_owned_statuses = 2
-tip = "Every {stack} count a status waits for doubles too, like {full} {marked}. Offered from {act} 2 once your Wardens add 2 different statuses."
+tip = "Anything that waits for a number of {stacks} waits for twice as many, like {full} {marked}. Offered from {act} 2 once your Wardens add 2 different statuses."

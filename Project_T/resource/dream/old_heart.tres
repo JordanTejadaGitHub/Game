@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_heart"
 display_name = "Old Heart"
-description = "An {ascended} Warden's hit lets that nightmare's next {reaction} go off without waiting; when it does, the Warden attacks again. Each nightmare once every 4 s."
+description = "An {ascended} Warden's hit lets the nightmare's next {reaction} go off at once; then the Warden attacks again. Each nightmare once every 4 s."
 tip = "Each Warden attacks again at most once a second. Offered once you have grown an {ascended} form this run."
 rarity = 3
 kind = 3

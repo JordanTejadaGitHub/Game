@@ -14,4 +14,4 @@ requires = Array[String]([])
 requires_any = Array[String](["gust", "zephyr"])
 max_stacks = 1
 rule_id = &"eddy"
-tip = "Works for: {warden:gust} beside a winding path. Safe."
+tip = "Works for: {warden:gust} {near} a winding path. Safe."

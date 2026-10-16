@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thousand_cuts"
 display_name = "Thousand Cuts"
-description = "Each hit on a nightmare makes it take 2% more damage from all Wardens, up to +60%. It all fades 2 s after the last hit."
+description = "Each hit on a nightmare makes it take 2% more damage from every Warden, up to +60%. It fades 2 s after the last hit."
 rarity = 2
 kind = 3
 tags = Array[String](["on-hit"])

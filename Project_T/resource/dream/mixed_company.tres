@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "When a nightmare {near} a spore Warden carries 3 or more statuses, statuses added to it get double {stacks}. Each Warden once a second."
-tip = "Any 3 statuses, from any Wardens; {held} never counts or doubles. Only the hit's own {stacks} double. {drowsy} never goes past {full}. {static} stops 1 short of a bolt. A bet: needs 3 statuses on the same nightmares."
+description = "Hits on a nightmare {near} a spore Warden add double {stacks} while it carries 3 or more statuses. Each Warden once a second."
+tip = "Any 3 statuses from any Wardens count; {held} never counts or doubles. Only the hit's own {stacks} double. Never past {full}; {static} stops 1 short of a bolt. A bet: needs 3 statuses on the same nightmares."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "lent"])

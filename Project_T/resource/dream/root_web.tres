@@ -13,4 +13,4 @@ tags = Array[String](["root", "held"])
 requires = Array[String](["rootling"])
 max_stacks = 1
 rule_id = &"root_web"
-tip = "Bosses get a quarter. Those never spread it further. Flyers never. Each nightmare once a second."
+tip = "Bosses get a quarter. It never spreads again from them. Flyers never. Each nightmare once a second."

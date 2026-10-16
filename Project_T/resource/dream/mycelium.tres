@@ -13,4 +13,4 @@ tags = Array[String](["spore", "sprout", "lent"])
 requires = Array[String](["sporeling"])
 max_stacks = 1
 rule_id = &"mycelium"
-tip = "At most 3 Sprouts feed one nightmare a second. Never {held}. {static} stops 1 short of a bolt. Works for: Sprouts packed around a spore Warden. Safe."
+tip = "At most 3 Sprouts feed one nightmare a second. Never {held}, never past {full}; {static} stops 1 short of a bolt. Works for: Sprouts packed around a spore Warden. Safe."

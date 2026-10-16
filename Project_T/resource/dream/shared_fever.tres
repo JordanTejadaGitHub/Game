@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shared_fever"
 display_name = "Shared Fever"
-description = "An area attack hitting 3 or more nightmares gives them all 1 {stack} of the most-stacked one's top 2 statuses. Each Warden once every 2 s."
+description = "An area attack hitting 3 or more nightmares gives each 1 {stack} of the most-stacked one's top 2 statuses. Each Warden once every 2 s."
 tip = "Most-stacked: the nightmare with the most {stacks} in all. Never {drowsy} or {held}. Works for: area Wardens, like {warden:bellflower}, {warden:dewdrop} and {warden:bloomcap}."
 rarity = 1
 kind = 3

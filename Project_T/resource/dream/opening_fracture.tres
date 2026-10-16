@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "opening_fracture"
 display_name = "Opening Fracture"
-description = "After a direct crit, the next direct hit on that nightmare from another Warden within 2 s deals 40% more. Each nightmare once every 3 s."
+description = "After a direct crit, another Warden's next direct hit on that nightmare within 2 s deals 40% more. Each nightmare once every 3 s."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "precision", "reach"])
