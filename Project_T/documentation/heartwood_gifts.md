@@ -1,5 +1,10 @@
 # Heartwood's Gifts (experiment/spire-difficulty)
 
+> **RETIRED 2026-10-15.** The owner removed Heartwood's Gifts from runs ("they felt useless"): they are no longer
+> offered (`HeartwoodGifts.offers_on = false`, commit f1f2401f). The code and gifts in saved runs remain, so old saves
+> load. The act-break rests (drifts 25 / 50 / 75) now hold the **Calling evolutions** (`scripts/combat/calling_paths.gd`).
+> Everything below, including the landmarks proposal and its build order, is history: no chat should build it.
+
 Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Tend / Dream) of
 `spire_difficulty.md` Phase 3 (user, 2026-10-02: *"don't want it to be exactly like Slay the Spire"*;
 *"I do like the gift options that change the map after an act. We need more options though"*).
