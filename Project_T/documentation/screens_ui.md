@@ -1268,3 +1268,19 @@ Statuses already show as icons; this is about the moment of damage.
 **Limits.** At most one hit effect per nightmare per source per 0.15 s; area hits show one effect per nightmare; with
 many nightmares on screen the small puffs thin out before the flinch does. Reduce flashes: no flash, the recoil and
 the small effects stay. Sound already differs by family (`hit_<family>`); the visuals now match it.
+
+## Keyword chips: one grammar, quiet, once (user, 2026-10-16)
+User (phone screenshots of a Calling choice and the Sporeling panel): *"tags seem out of place and there's 2 Poisoned
+and it's an adjective."*
+
+- **One grammar: every chip is a noun for a theme**, never a status adjective, so a chip never reads like the status
+  itself: Poison, Charge, Soak, Sleep (Drowsy and Asleep share it), Exposure, Roots, Stacks, Duration (was Linger),
+  Jumps, Repeats, Reactions, Mixed statuses (was Layered), Slows, Crits, Area, Heavy hits, Clusters, Ranks, Maze. The
+  chip still links to the same glossary entry, and the status names in card text stay as they are (Poisoned etc.).
+- **Quiet, at the foot:** on Dream and Calling cards the chips sit on one line at the **bottom** of the card, small,
+  outlined in the rarity colour, no solid gold fill. The name and the text are read first; the chips are a "what goes
+  with what" aid, not a header.
+- **Once:** a Warden panel shows **one** chip row (under the description). The second "Poisoned" chip under the stats
+  goes; the status line in the stats (the status it applies, with its strength) stays.
+- **No double labels:** a Calling card says "Calling · Spore Print" once at the top; the separate "Calling: Spore
+  Print" line under the chips goes.
