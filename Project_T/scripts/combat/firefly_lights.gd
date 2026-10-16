@@ -88,7 +88,7 @@ const BRUSH_EVERY := 1.0
 const BRUSH_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog"]  # Damage over time (not bolts, Reactions or jumps)
 const GATHERING_STORM := &"gathering_storm"
 const GATHER_STEP := 0.25  # Gathering Storm: each jump a nightmare takes makes the next 25% stronger…
-const GATHER_MAX := 2.0  # …up to double…
+const GATHER_MAX := 3.0  # …up to triple (card pass 2026-10-16, player review 4.2: was double; on the multiplying side, past the cap)…
 const GATHER_RESET := 2.0  # …reset after 2 s without one
 const CHAIN_REACTIONS: Array[StringName] = [&"thunderclap", &"ignite", &"lightning_rod", &"tempest"]  # Reactions that spend Charged
 const SPARKS_META := &"ff_sparks"  # On a nightmare: {Warden id: hits counted}
@@ -1445,13 +1445,15 @@ func _strike(request: Dictionary) -> void:
 	var source = request.source if is_instance_valid(request.source) else null
 	var amount: float = request.amount
 	if _rule(GATHERING_STORM):
-		# Gathering Storm: each jump a nightmare takes makes the next one on it 25% stronger, up to double; re-capped, so
-		# another family's jump still never passes its brightness
+		# Gathering Storm: each jump a nightmare takes makes the next one on it 25% stronger, up to triple. Card pass
+		# 2026-10-16 (player review 4.2): a non-Reaction broken road, so it multiplies after the jump's own cap
 		var now := _now()
 		var gather: Array = target.get_meta(GATHER_META, [0, -INF])
 		var taken := int(gather[0]) if now - float(gather[1]) <= GATHER_RESET else 0
-		amount = minf(amount * minf(1.0 + GATHER_STEP * taken, GATHER_MAX), float(request.cap))
+		amount = minf(amount, float(request.cap)) * minf(1.0 + GATHER_STEP * taken, GATHER_MAX)
 		target.set_meta(GATHER_META, [taken + 1, now])
+		if taken > 0:
+			credit(GATHERING_STORM, target.global_position)  # The stronger jump is the moment
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position

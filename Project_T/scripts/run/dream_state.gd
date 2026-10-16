@@ -8,6 +8,9 @@ var batch = BATCH.new()  # The run-shaping generic cards (dream_council_review.m
 # Card pass 2026-10-16 (slice 4 A): the role-payoff, Nurture-choice and Towering cards (numbers, rules, transient state).
 const ROLE_CARDS := preload("res://scripts/run/dream_role_cards.gd")
 var role_cards = ROLE_CARDS.new(self)
+# Card pass 2026-10-16 (slice 4 B): the Reaction scalers, form payoffs and Reaction reworks; also counts Reactions (saved).
+const REACTION_CARDS := preload("res://scripts/run/dream_reaction_cards.gd")
+var reaction_cards = REACTION_CARDS.new(self)
 
 # Dreams (in-run upgrades, documentation/dream_design.md): which Wardens are unlocked this run,
 # which cards were taken (stat cards stack), and the Dream offer at every rest (boss rests: Rare+).
@@ -563,6 +566,7 @@ func _ready() -> void:
 	if damage_log != null and damage_log.has_signal("damage_dealt"):
 		damage_log.damage_dealt.connect(_on_damage_dealt)  # Discovery: a crit on a Marked nightmare
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
+	reaction_cards.ready()  # Card pass 2026-10-16 (4 B): resets Unbroken Chain's falloff; block counters, Spent Light
 	spawner.child_entered_tree.connect(_stamp_head_start)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
 	var placer := get_node_or_null("%TowerPlacer")
@@ -622,6 +626,7 @@ var grown_wardens := {}  # Warden id -> true
 func _note_grown(tower: Tower) -> void:
 	if tower.tower_data != null:
 		grown_wardens[tower.tower_data.get_id()] = true
+		reaction_cards.grown(tower)  # Card pass 2026-10-16: Thin Bark's moment on a new final form
 
 func grown_needs_met(card: UpgradeData) -> bool:
 	if unlock_everything:
@@ -1742,6 +1747,9 @@ func get_effective_rank(tower: Tower) -> int:
 # A short live value for a card's icon in the Dreams row ("" = none): Few and Mighty, The Last
 # Light, Many Hands, Canopy.
 func get_live_bonus_text(card: UpgradeData) -> String:
+	var reaction_live: String = reaction_cards.live_text(card)  # Card pass 2026-10-16: Ember Count, Grand Design, Unbroken Chain
+	if reaction_live != "":
+		return reaction_live
 	match card.rule_id:
 		&"few_and_mighty":
 			return "+%d%%" % roundi(100 * minf(0.8, FEW_AND_MIGHTY_PER * maxi(FEW_AND_MIGHTY_BELOW - count_attackers(), 0)))  # Capped like the effect (DreamEffects._few_and_mighty)
@@ -1963,6 +1971,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
 	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
 		multiplier = source.plain_hit_factor(multiplier)  # Plain per-hit cards: clamped with the Warden's plain rows (card pass 1c)
+	if _hook_batch:
+		multiplier *= batch.synergy_multiplier(self, enemy, source)  # Card pass 2026-10-16: Gauntlet, Passing Thread multiply (outside the clamp)
 	if _hook_water:
 		multiplier *= puddles.damage_multiplier(enemy, source, tag)
 	if _hook_bells:
@@ -2260,9 +2270,8 @@ func take(card: UpgradeData) -> void:
 	if card.dew_now > 0:
 		run_state.add_dew(card.dew_now)
 		_credit(card.id, "dew", card.dew_now)  # Card credit (Morning Dew…)
-	if card.rule_id == &"thin_bark":  # Thin Bark (Bittersweet, de439ea8): the Heartwood's max leaves halved, the rest lost now
-		run_state.max_leaves = maxi(ceili(run_state.max_leaves / 2.0), 1)
-		run_state.regrow_leaves(0)  # Clamps the leaves to the new maximum
+	# (Thin Bark's old price, max leaves halved, is gone: card pass 2026-10-16, player review 3. Its cost is now base Wardens,
+	# branches and Sprouts dealing 30% less: a plain Dream row, DreamState.reaction_cards.thin_bark_row.)
 	if card.rule_id == &"restless_dreams":  # Waking Dreams: the next Dream offers 3 Legendaries
 		waking_legendaries = true
 	if card.max_leaves_add != 0:
@@ -2868,6 +2877,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 		return false
 	if role_cards.has_need(card.rule_id) and not role_cards.needs_met(card.rule_id):
 		return false  # Card pass 2026-10-16: One Bough, Deep Grain, Towering (board Needs in dream_role_cards.gd)
+	if not reaction_cards.needs_met_for(card):
+		return false  # Card pass 2026-10-16 (4 B): Reactions set off this run, Unbroken Chain (dream_reaction_cards.gd)
 	return true
 
 # Branch-role and form Needs (card pass 2026-10-16): read from the Wardens built or grown this run (grown_wardens), never
@@ -3350,7 +3361,7 @@ func _line_of(tower_id: String) -> String:
 # Everything a resumed run needs (saved at a rest, so there's no open offer to keep).
 func to_save() -> Dictionary:
 	return {
-		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
+		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "reaction_cards": reaction_cards.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
@@ -3377,6 +3388,7 @@ func to_save() -> Dictionary:
 func load_save(data: Dictionary) -> void:
 	unique_growth.load_save(data.get("unique_growth", {}))
 	batch.load_save(data.get("batch", {}))
+	reaction_cards.load_save(data.get("reaction_cards", {}))  # Card pass 2026-10-16: Reactions this run (the Needs)
 	clear_build_role_state()
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
@@ -4356,9 +4368,12 @@ func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", 
 # Ignite / Tempest burn. Card pass 2026-10-16 (slice 4 A): Homesick (x2 on the Reaction after a pull) and Mother's Hand
 # (+25% for a setter touching a support Warden), in dream_role_cards.gd; both multiply (the synergy lane).
 func get_reaction_card_multiplier(enemy: Node2D = null, id: StringName = &"", tower: Node = null) -> float:
-	if not role_cards.reaction_live():
-		return 1.0
-	return role_cards.reaction_multiplier(enemy, id, tower)
+	var m := 1.0
+	if role_cards.reaction_live():
+		m = role_cards.reaction_multiplier(enemy, id, tower)
+	if reaction_cards.reaction_live():
+		m *= reaction_cards.reaction_multiplier(enemy, id, tower)  # Card pass 2026-10-16 (4 B): scalers, Crown of Leaves, Crowned +50%
+	return m
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
@@ -4500,6 +4515,9 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 		needs.append(["", "a base Warden", "a branch form", "a final form", "an Ascended form"][clampi(card.min_tier_owned, 0, 4)] + " grown this run")
 	if role_cards.has_need(card.rule_id) and not role_cards.needs_met(card.rule_id):
 		needs.append(role_cards.need_text(card.rule_id))  # Card pass 2026-10-16
+	var reaction_need: String = reaction_cards.need_text_for(card)
+	if reaction_need != "":
+		needs.append(reaction_need)  # Card pass 2026-10-16 (4 B): "a Reaction set off 20 times this run (you: 7)"
 	if needs.is_empty() and not is_eligible(card, act):
 		needs.append("a board or run state (e.g. Wardens, statuses, obstacles)")
 	return "" if needs.is_empty() else "not normally offered: needs " + ", ".join(needs)

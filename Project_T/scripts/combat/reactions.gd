@@ -67,6 +67,10 @@ const DAWNBURST_CHAIN := 10
 const DAWNBREAK_SHARE := 0.10  # Of max health, to every nightmare within DAWNBREAK_REACH
 const DAWNBREAK_BOSS_SHARE := 0.02
 const DAWNBREAK_REACH := 4.0
+const DAWNBREAK_WAIT := 3.0  # Card pass 2026-10-16: a Dawnburst every 10th link, each nightmare once every this many seconds
+const CROWNED_CARD_BONUS := 0.50  # Card pass 2026-10-16: a Woven Crowned card's Reaction deals this much more (Tempest,
+# Starfall, Avalanche, Prismstorm: DreamState.reaction_cards); Still Pool, Nightbloom, Fairy Circle and Fever Dream deal no
+# direct damage, so their card makes them this much longer / bigger instead (below)
 
 # Crowned Reactions (tower_design.md "Crowned Reactions", dream_design.md "Crowned Reaction numbers"):
 # a Reaction on a nightmare that already carries a third status is replaced by a bigger one. It
@@ -333,10 +337,10 @@ static func on_smother_ended(enemy: Node2D) -> void:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
 		_touch(other, chain, _towers(spore_source))
-		other.apply_status(SPORED, FEVER_SPORED, 0.0, potency, 0, line, spore_source)
+		other.apply_status(SPORED, ceili(FEVER_SPORED * (1.0 + CROWNED_CARD_BONUS * level)), 0.0, potency, 0, line, spore_source)  # Fever Pitch: +50% (card pass 2026-10-16)
 		if is_instance_valid(other) and not other.is_cleansed:
 			var cap := FEVER_BOSS_DROWSY_CAP if other.statuses.is_boss else 0
-			other.apply_status(DROWSY, FEVER_DROWSY, 0.0, 0.0, cap, "song", s.source(DROWSY))
+			other.apply_status(DROWSY, ceili(FEVER_DROWSY * (1.0 + CROWNED_CARD_BONUS * level)), 0.0, 0.0, cap, "song", s.source(DROWSY))
 
 # True if `enemy` can't be Held right now: immune, or a Night Hound sprinting (Enemy.apply_status refuses
 # HELD then). Drown, Still Pool and Carried Storm slow it instead.
@@ -432,7 +436,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 		o.remove(HELD)
 		_touch(other, o.chain_count if o.chain_time > 0.0 else 1, [tower])
 		_effect(&"shatter", other.global_position, enemy)
-		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER, &"shatter"), tower.tower_data.line, true, false, tower,
+		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER, &"avalanche"), tower.tower_data.line, true, false, tower,
 			&"avalanche")
 		if is_instance_valid(other):
 			rubble.append(Tower.MAP_GRID.calculate_grid_coordinates(other.global_position))
@@ -452,13 +456,13 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var reach := (PRISM_REACH[level] if prism else 1.0) + _storm_front(enemy)
 	for other in _others_within(enemy, reach):
 		_touch(other, chain, [tower])
-		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / EnemyStatuses.charged_payoff_multiplier(), &"shatter"), tower.tower_data.line, true, false, tower, &"shatter")
+		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / EnemyStatuses.charged_payoff_multiplier(), &"prismstorm" if prism else &"shatter"), tower.tower_data.line, true, false, tower, &"shatter")
 		if prism and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, PRISM_STATIC[level], 0.0, tower.get_damage(), 0, "light", tower)
 
 # A Static bolt worth `damage` goes off on `target` (a 5-stack bolt, or a Thunderclap arc). A Marked,
 # charged nightmare within 3 cells takes it instead at ×2 (Lightning Rod). Returns who was struck.
-static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringName = &"static") -> Node2D:
+static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringName = &"static", rx_id: StringName = &"") -> Node2D:  # rx_id: the Reaction for the damage hook (Tempest arcs; card pass 2026-10-16)
 	if tag == &"static":
 		var dreams := _dreams(target)
 		if dreams != null and dreams.has_method("get_bolt_multiplier"):
@@ -467,7 +471,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
-		target.take_damage(damage if tag == &"static" else _rx(target, damage, tag), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
+		target.take_damage(damage if tag == &"static" else _rx(target, damage, rx_id if rx_id != &"" else tag), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
@@ -591,7 +595,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 			continue
 		_segment(&"thunderclap_arc", enemy.global_position, other.global_position, enemy, 0.25)
 		_touch(other, chain, _towers(tower))
-		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap")
+		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap", &"tempest" if tempest else &"")
 		if is_instance_valid(other) and dreams and dreams.has_rule(&"conductive_soil"):
 			other.statuses.remove(DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 		if is_instance_valid(struck) and not struck.is_cleansed:
@@ -722,6 +726,8 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 					cells.append(c)
 		var rings := CrownedGround.new(CrownedGround.Kind.FAIRY_RING, cells, FAIRY_RING_TIME)
 		rings.until_stepped = ring_of_rings
+		if ring_of_rings:
+			rings.ring_stacks = ceili(CrownedGround.RING_STACKS * (1.0 + CROWNED_CARD_BONUS))  # Ring of Rings: +50% Poisoned (card pass 2026-10-16)
 		rings.potency = s.potency(SPORED)
 		rings.line = s.spore_line()
 		rings.source = spore_source
@@ -730,7 +736,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		return
 	if id == &"nightbloom":
 		var level := 1 if dreams and dreams.has_rule(&"endless_night") else 0
-		var bloom := CrownedGround.new(CrownedGround.Kind.NIGHTBLOOM, [], NIGHTBLOOM_TIME[level],
+		var bloom := CrownedGround.new(CrownedGround.Kind.NIGHTBLOOM, [], NIGHTBLOOM_TIME[level] * (1.0 + CROWNED_CARD_BONUS * level),  # Endless Night: +50% long (card pass 2026-10-16)
 			Tower.MAP_GRID.calculate_map_position(cell),
 			(MUSHROOM_CLOUD_RADIUS * NIGHTBLOOM_WIDTH[level] + _storm_front(enemy)) * CELL)
 		ground_parent.add_child(bloom)
@@ -738,7 +744,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	var time := MUSHROOM_CLOUD_TIME
 	if id == &"nightbloom" and dreams and dreams.has_rule(&"endless_night"):
 		wide = NIGHTBLOOM_WIDTH[1]
-		time = NIGHTBLOOM_TIME[1]
+		time = NIGHTBLOOM_TIME[1] * (1.0 + CROWNED_CARD_BONUS)  # Card pass 2026-10-16
 	var radius := (MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL
 	if dreams and dreams.has_rule(&"mushroom_rain"):
 		# Mushroom Rain (card 134; dream_design.md 83c40cd7): the cloud covers the 8 tiles around it but lasts half as long.
@@ -779,8 +785,8 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 	if still:
 		var deep_still := 1 if dreams and dreams.has_rule(&"deep_stillness") else 0
 		var cells: Array[Vector2] = [enemy.get_current_cell()]
-		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME[deep_still])
-		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still]  # Now: seconds a walker entering is pulled under
+		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME[deep_still] * (1.0 + CROWNED_CARD_BONUS * deep_still))  # Deep Stillness: +50% (card pass 2026-10-16)
+		pool.sleep_seconds = STILL_POOL_SLEEP[deep_still] * (1.0 + CROWNED_CARD_BONUS * deep_still)  # Now: seconds a walker entering is pulled under
 		pool.source = applier
 		_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
 	# Status jobs (2026-09-29): no sleep. Pulled under: slowed and drowning for a few seconds.
@@ -913,7 +919,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 			return 1 if ignore_cooldown else 0
 		s.skip_reaction_wait = false  # Card pass 2026-10-16, Called from Afar: a far hit lets this one skip its wait
 		var afar := _dreams(enemy)
-		if afar != null:
+		if afar != null and not afar.reaction_cards.wait_skipped(enemy):  # (Old Heart's own skip credits Old Heart)
 			afar.role_cards.afar_spent(enemy)
 	var data := get_data(key)
 	var dreams := _dreams(enemy)
@@ -950,10 +956,12 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	if tracker:
 		tracker.record(id, enemy, chain, all_towers)
 		tracker.note_spot(id, enemy.global_position, _tower_of(towers[0] if not towers.is_empty() else null, null))
+	if dreams:
+		dreams.reaction_cards.reaction_fired(enemy, id, chain, links, all_towers)  # Card pass 2026-10-16 (4 B): counts, scalers, Afterglow
 	if dreams and dreams.role_cards.fire_live():
 		dreams.role_cards.reaction_fired(enemy, id, key, towers)  # Card pass 2026-10-16: Heavy Heart's copies, Homesick's window
-	if chain - links < DAWNBURST_CHAIN and chain >= DAWNBURST_CHAIN:
-		_dawnburst(enemy)
+	if floori(float(chain - links) / DAWNBURST_CHAIN) < floori(float(chain) / DAWNBURST_CHAIN):
+		_dawnburst(enemy)  # Card pass 2026-10-16: every 10th link (10, 20, 30…), not only the first
 	return chain
 
 # A Reaction's output reached `other`: a Reaction there soon counts as the chain's next link.
@@ -966,7 +974,12 @@ static func _dawnburst(enemy: Node2D) -> void:
 	var dreams := _dreams(enemy)
 	if dreams == null or not dreams.has_rule(&"dawnbreak"):
 		return
+	var s: EnemyStatuses = enemy.statuses
+	if s.is_on_cooldown(&"dawnbreak"):
+		return  # Card pass 2026-10-16: each nightmare sets one off at most once every DAWNBREAK_WAIT s
+	s.start_cooldown(&"dawnbreak", DAWNBREAK_WAIT)
 	var at: Vector2 = enemy.global_position
+	dreams.note_card(&"dawnbreak", at)
 	var shown := false
 	for other in _field(enemy):
 		if other.global_position.distance_to(at) <= DAWNBREAK_REACH * CELL:

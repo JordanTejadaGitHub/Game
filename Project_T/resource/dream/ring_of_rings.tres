@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "ring_of_rings"
 display_name = "Ring of Rings"
-description = "{named_combo:fairy_circle} rings last until stepped on (up to 60 s)."
+description = "{named_combo:fairy_circle} rings last until stepped on (up to 60 s) and give 3 {spored} {stacks} instead of 2."
 cost_description = "{named_combo:fairy_circle} can fire half as often."
 rarity = 2
 kind = 3

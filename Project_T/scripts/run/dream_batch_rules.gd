@@ -20,7 +20,7 @@ const NIPPED_BONUS := 0.20  # Nipped in the Bud (id held_breath): dispels before
 const NIPPED_SHARE := 0.5
 const HARD_WON_DISPELS := 80  # Hard-Won Rings (id clean_night): every 80 nightmares a Warden dispels…
 const HARD_WON_MAX_RANK := 4  # …give it a free rank, up to rank IV
-const GAUNTLET_BONUS := 0.30  # Gauntlet (id front_line): between two attacking Wardens, one on each side of the path
+const GAUNTLET_MULT := 1.20  # Gauntlet (id front_line): between two attacking Wardens, one on each side of the path (card pass 2026-10-16: x1.20 on the synergy side; was +30% plain)
 const GAUNTLET_SIDE := Vector2(0.35, 1.4)  # Cells to the side of the path a Warden's centre may stand (the near and far edge)
 const GAUNTLET_ALONG := 0.75  # …and at most this far along it
 const FRESH_GROWTH_SPEED := 1.0  # Fresh Growth: +100% attack speed ("twice as fast")…
@@ -30,7 +30,7 @@ const THORNY_CEILING := 0.25  # …and thorns never take more than this share of
 const THORNY_BOSS_CEILING := 0.10  # (bosses and Deeply Blighted nightmares)
 const THORNY_TWIG_SHARE := 0.25  # A twig wall lashes for a quarter
 const COZY_CORNERS_BONUS := 0.30  # Cozy Corners: the Warden on the inside of a bend
-const PASSING_THREAD_BONUS := 0.5  # Passing Thread: from a Warden's second stretch of route on
+const PASSING_THREAD_MULT := 1.25  # Passing Thread: from a Warden's second stretch of route on (card pass 2026-10-16: x1.25, synergy side; was +50% plain)
 const PASSING_THREAD_GAP := 3  # Route cells out of reach between two stretches for the later one to count as a new pass
 const BEND_STRAIGHT_STEPS := 2  # A bend has one full cell (2 half-cell steps) of straight path on each side
 const SNAG_SECONDS := 4.0  # Snag: a snagged flyer walks the maze this long
@@ -480,13 +480,20 @@ func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: St
 				multiplier *= FIRST_LIGHT_MULTIPLIER
 				if _first.size() > 8192:
 					_first.clear()
-		if dreams.has_rule(&"passing_thread") and on_later_pass(dreams, tower, enemy):
-			multiplier *= 1.0 + PASSING_THREAD_BONUS
 		multiplier *= 1.0 + heels_bonus(dreams)
 	if dreams.has_rule(&"long_way_round") and (enemy.enemy_data.is_boss or enemy.elite):
 		multiplier *= 1.0 + minf(LONG_WAY_PER_BEND * bends_behind(enemy), LONG_WAY_MAX)
+	return multiplier
+
+# Card pass 2026-10-16 (player review 4.4): the maze-shape cards on the synergy side. They multiply after the plain
+# clamp (DreamState.batch_damage_multiplier), so a maze built for them still runs away; smaller numbers than before.
+func synergy_multiplier(dreams: DreamState, enemy: Node2D, source: Node) -> float:
+	var multiplier := 1.0
+	var tower := source as Tower
+	if tower != null and tower.tower_data.can_attack and dreams.has_rule(&"passing_thread") and on_later_pass(dreams, tower, enemy):
+		multiplier *= PASSING_THREAD_MULT
 	if dreams.has_rule(&"front_line") and gauntlet_at(dreams, enemy):  # Gauntlet (id front_line)
-		multiplier *= 1.0 + GAUNTLET_BONUS
+		multiplier *= GAUNTLET_MULT
 	return multiplier
 
 func uses_damage_hook(dreams: DreamState) -> bool:

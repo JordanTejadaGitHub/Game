@@ -987,6 +987,7 @@ func _commons_hit_multiplier(enemy: Node2D, is_area: bool, is_crit: bool) -> flo
 	if is_crit and float(enemy.health) > enemy.max_health * CARD_STEADY_ABOVE and _has_rule(&"steady_aim"):
 		m *= 1.0 + CARD_STEADY_AIM
 	m *= HelperCommons.hit_multiplier(self, enemy)  # Helper Commons 286–303 (Narrow Way, Weary Feet, Head of the Line…)
+	m *= _dream_state.reaction_cards.plain_hit_multiplier(self, enemy)  # Card pass 2026-10-16: Deep Sleep (2+ statuses; plain)
 	if is_crit:
 		HelperCommons.after_crit(self, enemy)  # Hobble
 	return plain_hit_factor(m)  # Plain per-hit cards: clamped with the plain rows (card pass 1c)
@@ -3099,6 +3100,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	_unique_native_direct = unique_direct
 	apply_status_to(enemy, soothe)
 	_unique_native_direct = previous_native_direct
+	if _dream_state != null and _dream_state.reaction_cards.hit_live():
+		_dream_state.reaction_cards.after_hit(self, enemy, effect_tick)  # Card pass 2026-10-16 (4 B): Graft of Dreams, Old Heart
 	if roles != null:
 		roles.end_hit(role_previous)  # Card pass 2026-10-16: Heavy Heart's window ends
 	if attack_data.special != &"":

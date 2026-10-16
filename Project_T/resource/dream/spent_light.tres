@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "spent_light"
+display_name = "Spent Light"
+description = "A nightmare a {reaction} dispels leaves its statuses on its cell for 4 s. Each nightmare that steps there gets 2 {stacks} of each."
+tip = "Needs Wardens that apply 2 different statuses. Never {held}. Flyers pass over. At most 12 at once."
+rarity = 1
+kind = 3
+tags = Array[String](["reaction", "scaler"])
+max_stacks = 1
+min_act = 1
+rule_id = &"spent_light"
+min_owned_statuses = 2

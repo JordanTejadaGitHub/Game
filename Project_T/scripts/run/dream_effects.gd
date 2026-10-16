@@ -47,6 +47,7 @@ const REPORTERS := {
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
 	&"sunlit_rest": "_sunlit_rest",
+	&"thin_bark": "_thin_bark", &"deep_sleep": "_deep_sleep",  # Card pass 2026-10-16 (4 B): reworks (DreamState.reaction_cards)
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -468,9 +469,16 @@ func _full_voice(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	var grown: float = ds.keeping_time.voice_cells(spot.node, spot.data.attack_range) if ds.keeping_time != null and spot.node != null else 0.0
 	return {"active": grown > 0.0, "range": grown, "reason": "" if grown > 0.0 else "no pulse has Tolled since its reach was last empty"}
 
+# The Long Walk (card pass 2026-10-16 rework): Reactions only, by covered route walked; no damage row any more.
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	var bonus := minf(DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES), DreamState.BATCH.LONG_WALK_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "your path: %d cells, +%d%%" % [ds.path_length, roundi(bonus * 100)]}
+	return ds.reaction_cards.long_walk_row()
+
+# Thin Bark and Deep Sleep (card pass 2026-10-16 reworks; numbers in dream_reaction_cards.gd). Thin Bark is a plain row.
+func _thin_bark(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	return ds.reaction_cards.thin_bark_row(_data(spot))
+
+func _deep_sleep(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	return ds.reaction_cards.deep_sleep_row(_data(spot))
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout":

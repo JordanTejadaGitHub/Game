@@ -106,6 +106,10 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
 @export var requires_role: StringName = &""  # A Warden with this job built or grown this run (WardenRoles: heavy, area, chain…)
 @export var min_tier_owned: int = 0  # A Warden of at least this tier built or grown this run (2 branch, 3 final, 4 Ascended)
+# Card pass 2026-10-16 (slice 4 B, player review 4.1): Reactions actually set off this run (DreamState.reaction_cards counts,
+# saved). With requires_reaction_kinds 0: this many in all; with it: that many DIFFERENT Reactions, each this many times.
+@export var requires_reactions_seen: int = 0
+@export var requires_reaction_kinds: int = 0
 # Seed cards (dream_design.md "Seed cards"): offered without their Wardens. `description` is the "Now"
 # effect; `grows_text` the bigger one once you have a Warden in `grows_with` (ids). (They no longer call a family
 # into a family pick: user, "make it predictable", 7d3c6672.)

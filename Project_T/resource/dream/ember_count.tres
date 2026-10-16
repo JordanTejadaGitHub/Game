@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "ember_count"
+display_name = "Ember Count"
+description = "Every {reaction} this {block} makes {reactions} 1% stronger, up to +60%."
+tip = "Needs {reactions} set off 20 times this run. Starts again at every {rest}; the Dreams row shows it. Multiplies with your other Dream damage."
+rarity = 2
+kind = 3
+tags = Array[String](["reaction", "scaler"])
+max_stacks = 1
+min_act = 2
+rule_id = &"ember_count"
+requires_reactions_seen = 20

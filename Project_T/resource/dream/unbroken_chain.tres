@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "unbroken_chain"
+display_name = "Unbroken Chain"
+description = "{reaction} chains keep full strength until link 12 (normally link 6)."
+tip = "Needs Dawnbreak, or a {reaction} {chain} of 10 this run."
+rarity = 3
+kind = 3
+tags = Array[String](["reaction", "scaler"])
+max_stacks = 1
+min_act = 3
+rule_id = &"unbroken_chain"

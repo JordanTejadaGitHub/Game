@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "the_long_walk"
 display_name = "The Long Walk"
-description = "Wardens deal 1% more damage for every 2 cells of path (up to +60%)."
+description = "{reactions} on a nightmare deal 2% more for every 4 cells it has walked inside an attacking Warden's range (up to +80%)."
+tip = "Counts the route behind it that your Wardens cover. Flyers get none. Multiplies with your other Dream damage."
 rarity = 3
 kind = 3
 tags = Array[String](["maze"])
