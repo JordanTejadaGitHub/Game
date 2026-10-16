@@ -22,7 +22,12 @@ var _on_land: Callable
 var _anim_time := 0.0
 # Swoop (Nestling line): after landing, fly back to `_home` (world position) and then vanish.
 var _returns := false
-var return_multiplier := 1.0  # Homing Instinct (Dream): swoops fly home faster
+var return_multiplier := 1.0  # (Homing Instinct's old return speed: retired 2026-10-16, always 1 now)
+# Homing Instinct (card pass 2026-10-16): "A bird whose swoop dispels its target swoops again at once at the nearest
+# nightmare." Re-swoops left on this bird (the Warden sets it), to the nearest nightmare within HOMING_REACH of it.
+const HOMING_RESWOOPS := 1
+const HOMING_REACH := 3.0  # Cells
+var reswoops := 0
 var _home := Vector2.ZERO
 var _returning := false
 # Lob (Cairn): flies over walls in a high arc to the tile the target was on when fired, and lands
@@ -75,12 +80,29 @@ func _process(delta: float) -> void:
 
 	if global_position.distance_to(_target_position) <= step:
 		_on_land.call(_target if target_alive else null, _target.global_position if target_alive and not _lob else _target_position)  # Lands at the logical spot (splash)
+		if _returns and reswoops > 0 and target_alive and (not is_instance_valid(_target) or _target.is_cleansed):
+			var next := _nearest_nightmare()
+			if next != null:
+				reswoops -= 1  # Homing Instinct: its swoop dispelled the target, so it swoops on at once
+				_target = next
+				_target_position = Tower.aim_at(next)
+				return
 		if _returns:
 			_returning = true
 			return
 		queue_free()
 		return
 	_fly_toward(_target_position, step, delta)
+
+# The nearest live nightmare within HOMING_REACH cells of the bird (flyers too: a swoop reaches them), or null.
+func _nearest_nightmare() -> Node2D:
+	var best: Node2D = null
+	var best_d := HOMING_REACH * Tower.MAP_GRID.cell_size.x
+	for other in Tower.nightmares_near(get_tree(), global_position, best_d):
+		if is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(global_position) <= best_d:
+			best_d = other.global_position.distance_to(global_position)
+			best = other
+	return best
 
 func _fly_toward(to: Vector2, step: float, delta: float) -> void:
 	_anim_time += delta

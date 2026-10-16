@@ -617,6 +617,11 @@ var target_chosen := false  # The player set target_mode (kept through growing, 
 var is_selected := false  # In TowerSeller's selection (the targeting pip shows)
 
 var _cooldown := 0.0  # Seconds until the tower can attack again
+# One-shot tokens that skip the wait before the next attack (card pass 1f: Called from Afar, Old Heart). Not
+# ignore_cooldown (that one is about effect cooldowns). Grant with skip_wait(); each is spent by one attack.
+var skip_wait_tokens := 0
+func skip_wait(count: int = 1) -> void:
+	skip_wait_tokens += maxi(count, 0)
 var _anim_time := 0.0
 var _attack_time := -1.0  # Seconds into the attack animation; negative while idling
 var _attack_fps := 0.0
@@ -875,6 +880,9 @@ func _process(delta: float) -> void:
 	if bloom_left > 0.0 or (not watch_charged and _frame_rule(&"watchful_rest")):
 		_update_watch(delta)  # (Sudden Bloom fading, Watchful Rest: most Wardens skip the call)
 	_cooldown = maxf(_cooldown - delta, 0.0)
+	if skip_wait_tokens > 0 and _cooldown > 0.0 and _attack_time < 0.0:
+		skip_wait_tokens -= 1  # A one-shot "skip the wait" (Called from Afar, Old Heart): the next attack now
+		_cooldown = 0.0
 	if _quick_draw_on and _cooldown > 0.0 and _attack_time < 0.0:
 		_quick_draw(delta)  # Quick Draw: a nightmare entering its range is attacked at once
 	if _cooldown > 0.0 or _attack_time >= 0.0:
@@ -981,7 +989,7 @@ func _commons_hit_multiplier(enemy: Node2D, is_area: bool, is_crit: bool) -> flo
 	m *= HelperCommons.hit_multiplier(self, enemy)  # Helper Commons 286–303 (Narrow Way, Weary Feet, Head of the Line…)
 	if is_crit:
 		HelperCommons.after_crit(self, enemy)  # Hobble
-	return m
+	return plain_hit_factor(m)  # Plain per-hit cards: clamped with the plain rows (card pass 1c)
 
 func get_attacks_per_second() -> float:
 	var turnover := turnover_active()
@@ -3533,8 +3541,8 @@ func fire_at(target: Node2D) -> void:
 		and CALLINGS.shot_in_tailwind(self, from, target.global_position)
 	var on_land := _build_projectile_landed.bind(attack_data, _hit_boost, was_primary, not _build_derived_attack, tailwind)
 	var projectile := Projectile.new(target, attack_data, on_land)
-	if attack_data.projectile_returns and _dream_state:
-		projectile.return_multiplier = _dream_state.get_swoop_return_multiplier()  # Homing Instinct (swoops only)
+	if attack_data.projectile_returns and _dream_state and _dream_state.has_rule(&"homing_instinct"):
+		projectile.reswoops = Projectile.HOMING_RESWOOPS  # Homing Instinct: a swoop that dispels its target swoops again (the return speed retired)
 	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
@@ -5500,7 +5508,8 @@ func _refresh_dream_rows() -> void:
 	if _dream_state == null:
 		_dream_cache = {&"soothe": 1.0, &"speed": 0.0, &"range": 0.0}
 		return
-	var damage := 0.0
+	var damage := 0.0  # The plain bucket's rows
+	var synergy := 1.0  # The synergy bucket: each row multiplies (card pass 1c)
 	var speed := 0.0
 	var reach := 0.0
 	var cards := []
@@ -5512,17 +5521,44 @@ func _refresh_dream_rows() -> void:
 		if not row.active:
 			continue
 		if not row.plain:
-			damage += row.get("damage", 0.0)
+			if row.get("bucket", &"plain") == &"synergy":
+				synergy *= 1.0 + row.get("damage", 0.0)
+			else:
+				damage += row.get("damage", 0.0)
 			speed += row.get("speed", 0.0)
 			reach += row.get("range", 0.0)
 		if row.get("positional", false):
 			cards.append(row)
-	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus")
-	_dream_cache = {&"soothe": 1.0 + stat + damage,
+	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus")  # Stat cards and Family Blessings: plain
+	_plain_sum = stat + damage
+	plain_capped = _plain_sum > DREAM_PLAIN_CAP
+	_dream_cache = {&"soothe": soothe_from_buckets(_plain_sum, synergy),
 		&"speed": speed, &"range": reach}
 	if cards.size() != _badge_cards.size():
 		queue_redraw()
 	_badge_cards = cards
+
+# Card pass 2026-10-16 (card_pass_td.md 1c), two damage buckets: plain Dream damage (stat cards, Family Blessings, rows
+# without a bucket, the per-hit plain cards) adds up and stops at DREAM_PLAIN_CAP; synergy rows (bucket "synergy")
+# multiply on top. The cap is huge until Balancing sets it, so nothing changes yet.
+const DREAM_PLAIN_CAP := 1000000.0
+var plain_capped := false  # Its plain Dream damage is at the cap (the Warden panel can say "capped")
+var _plain_sum := 0.0  # Stat cards + plain rows, uncapped (the per-hit clamp reads it)
+
+static func soothe_from_buckets(plain: float, synergy: float) -> float:
+	return (1.0 + minf(plain, DREAM_PLAIN_CAP)) * synergy
+
+# A per-hit plain multiplier (Tower._commons_hit_multiplier with HelperCommons.hit_multiplier, DreamBatchRules
+# .damage_multiplier) after the plain cap, clamped together with this Warden's plain rows: the hit's whole plain
+# bonus, (1 + rows) x per_hit - 1, stops at the cap. Under the cap it is per_hit exactly (as before the pass).
+func plain_hit_factor(per_hit: float) -> float:
+	if per_hit == 1.0:
+		return 1.0
+	_dream_bonus(&"soothe")  # The rows' sum, fresh
+	var total := (1.0 + _plain_sum) * per_hit
+	if total - 1.0 <= DREAM_PLAIN_CAP:
+		return per_hit
+	return (1.0 + DREAM_PLAIN_CAP) / maxf(1.0 + minf(_plain_sum, DREAM_PLAIN_CAP), 0.0001)
 
 func clear_dream_cache() -> void:
 	_dream_cache.clear()

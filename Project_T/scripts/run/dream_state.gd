@@ -1258,7 +1258,10 @@ func get_evolutions(data: TowerData) -> Array:
 # Dream stat bonuses are sums of DreamEffects rows (the same rows the Warden panel and ghost show):
 # plain stat cards from their fields, rule cards from their reporters.
 func get_soothe_multiplier(tower: Tower) -> float:
-	return 1.0 + _sum_stat(tower.tower_data, "soothe_bonus") + _tower_rule_total(tower, "damage")
+	# Under the plain cap (card pass 1c; Tower.soothe_from_buckets). Exact (tests and stat rebuilds read it at once), so it
+	# can't read a Warden's cache: every row counts as plain here, the same as Tower while no row has bucket "synergy"
+	# (none yet). Once one does, split rule_total by bucket here too.
+	return Tower.soothe_from_buckets(_sum_stat(tower.tower_data, "soothe_bonus") + _tower_rule_total(tower, "damage"), 1.0)
 
 # Per-Warden attack speed from Dreams (Tower adds it to its multiplier): Sprout Chorus, The Last
 # Light, Rootbound.
@@ -1955,6 +1958,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 	if not _hook_batch and not _hook_water and not _hook_bells:
 		return 1.0
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
+	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
+		multiplier = source.plain_hit_factor(multiplier)  # Plain per-hit cards: clamped with the Warden's plain rows (card pass 1c)
 	if _hook_water:
 		multiplier *= puddles.damage_multiplier(enemy, source, tag)
 	if _hook_bells:
@@ -4328,8 +4333,24 @@ func soaked_boosts_water() -> bool:
 # Quick Reactions' trade: Reactions twice as often, each dealing this share (Reactions asks for its damage).
 const QUICK_REACTIONS_DAMAGE := 0.65  # Balancing Discussion: 35% less (×0.75 still left +50% output)
 
-func get_reaction_damage_multiplier() -> float:
-	return QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
+# Reaction damage (card pass 2026-10-16, card_pass_td.md 1b; Reactions._rx): Quick Reactions' cut x the Reaction cards' part.
+# `enemy` = the nightmare (its statuses.chain_towers = the Wardens that took part), `id` = the Reaction ("" = unknown),
+# `tower` = the Warden whose hit set it off. Dawnbreak (% of max health) takes only the cut. Cached per frame.
+var _rx_frame := -1
+var _rx_base := 1.0
+func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", tower: Node = null) -> float:
+	var frame := Engine.get_process_frames()
+	if frame != _rx_frame:
+		_rx_frame = frame
+		_rx_base = QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
+	if id == &"dawnbreak":
+		return _rx_base
+	return _rx_base * get_reaction_card_multiplier(enemy, id, tower)
+
+# The Reaction cards' part alone (x1 until a Reaction card exists: card pass slice 2 is plumbing only). Reactions uses it
+# bare for the bonus parts of Pinned's crit, Shatter's main hit and the Ignite / Tempest burn.
+func get_reaction_card_multiplier(_enemy: Node2D = null, _id: StringName = &"", _tower: Node = null) -> float:
+	return 1.0
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------

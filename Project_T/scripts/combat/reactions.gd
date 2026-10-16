@@ -259,7 +259,8 @@ static func is_effect(tag: StringName) -> bool:
 # Reaction deals 15% less than the one before (6th ×0.85, 7th ×0.70 …), never below 25%. Read off the
 # nightmare's chain mark (_fire sets it before the Reaction deals its damage). Chain counts, discoveries
 # and Dawnbreak still count every link; Dawnbreak's own damage isn't reduced. Enemy.take_damage asks.
-const CHAIN_FALLOFF_FROM := 6
+const CHAIN_FALLOFF_FROM := 6  # The default start…
+static var chain_falloff_from: int = CHAIN_FALLOFF_FROM  # …the live one (card pass 1f: Unbroken Chain moves it; whoever sets it resets it at run start)
 const CHAIN_FALLOFF_STEP := 0.15
 const CHAIN_FALLOFF_FLOOR := 0.25
 const CHAIN_FALLOFF_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
@@ -275,9 +276,9 @@ static func chain_falloff(enemy: Node2D, tag: StringName) -> float:
 
 # The falloff for link `chain` of a chain (1.0 up to the 5th).
 static func chain_falloff_at(chain: int) -> float:
-	if chain < CHAIN_FALLOFF_FROM:
+	if chain < chain_falloff_from:
 		return 1.0
-	return maxf(1.0 - CHAIN_FALLOFF_STEP * (chain - CHAIN_FALLOFF_FROM + 1), CHAIN_FALLOFF_FLOOR)
+	return maxf(1.0 - CHAIN_FALLOFF_STEP * (chain - chain_falloff_from + 1), CHAIN_FALLOFF_FLOOR)
 
 # Effect damage × the source's Potency × Seeping (1 + 5% per status the nightmare carries).
 static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
@@ -368,11 +369,14 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 	if s.pinned:
 		s.pinned = false
 		result.crit = true
-		result.crit_multiplier = maxf(PINNED_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier(), tower.attack_data.crit_multiplier)
+		var pinned_crit := maxf(PINNED_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier(), tower.attack_data.crit_multiplier)
+		result.crit_multiplier = 1.0 + (pinned_crit - 1.0) * _rx_cards(enemy, &"pinned", tower)  # The bonus part only (the hit lands anyway)
 		result.tag = &"pinned"
 		if s.stacks(STATIC) >= buildup_threshold(CROWNED_MIN_STATIC):
 			_starfall(enemy, tower)
-	var heavy: bool = tower.tower_data.line == "stone" or tower.attack_data.has_target_priority
+	# One "heavy" (card pass 2026-10-16, card_pass_td.md 1d): the heavy cards' role (TowerData.heavy) or Shatter's old
+	# rule (the stone line, a target-priority sniper), so no Warden that Shattered before stops, and every heavy card's Warden can.
+	var heavy: bool = WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY) or tower.tower_data.line == "stone" or tower.attack_data.has_target_priority
 	if s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED) and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
 		# Crowned: a lob's Shatter becomes an Avalanche, a charged one a Prismstorm.
 		var id := &"shatter"
@@ -383,7 +387,7 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 		var crowned := id != &"shatter"
 		if _fire(enemy, id, [tower], false, CROWNED_LINKS if crowned else 1, &"shatter") > 0:
 			s.remove(HELD)
-			result.multiplier = SHATTER_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier()
+			result.multiplier = 1.0 + (SHATTER_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier() - 1.0) * _rx_cards(enemy, id, tower)  # Bonus part (Shatter / Prismstorm / Avalanche)
 			result.shatter = true
 			result.tag = &"shatter"
 			s.prism_pending = id == &"prismstorm"
@@ -411,7 +415,7 @@ static func _starfall(enemy: Node2D, tower: Tower) -> void:
 		if other != enemy:
 			_segment(&"thunderclap_arc", other.global_position, enemy.global_position, enemy, 0.3)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
-			enemy.take_damage(_rx(enemy, bolt / EnemyStatuses.charged_payoff_multiplier()), "light", false, true, applier, &"starfall")
+			enemy.take_damage(_rx(enemy, bolt / EnemyStatuses.charged_payoff_multiplier(), &"starfall"), "light", false, true, applier, &"starfall")
 
 # Avalanche (a lob's Shatter): every Damp + Held nightmare under the lob Shatters too (×2.5 of the
 # lobber's hit). Mountain's Fall: rubble where each spread Shatter lands.
@@ -428,7 +432,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 		o.remove(HELD)
 		_touch(other, o.chain_count if o.chain_time > 0.0 else 1, [tower])
 		_effect(&"shatter", other.global_position, enemy)
-		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER), tower.tower_data.line, true, false, tower,
+		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER, &"shatter"), tower.tower_data.line, true, false, tower,
 			&"avalanche")
 		if is_instance_valid(other):
 			rubble.append(Tower.MAP_GRID.calculate_grid_coordinates(other.global_position))
@@ -448,7 +452,7 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var reach := (PRISM_REACH[level] if prism else 1.0) + _storm_front(enemy)
 	for other in _others_within(enemy, reach):
 		_touch(other, chain, [tower])
-		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / EnemyStatuses.charged_payoff_multiplier()), tower.tower_data.line, true, false, tower, &"shatter")
+		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / EnemyStatuses.charged_payoff_multiplier(), &"shatter"), tower.tower_data.line, true, false, tower, &"shatter")
 		if prism and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, PRISM_STATIC[level], 0.0, tower.get_damage(), 0, "light", tower)
 
@@ -463,7 +467,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
-		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
+		target.take_damage(damage if tag == &"static" else _rx(target, damage, tag), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
@@ -472,7 +476,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 			_live_wire(target, at, damage, tower)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
-	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER / (EnemyStatuses.charged_payoff_multiplier() if tag == &"static" else 1.0)), "light", false, false, tower, &"lightning_rod")
+	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER / (EnemyStatuses.charged_payoff_multiplier() if tag == &"static" else 1.0), &"lightning_rod"), "light", false, false, tower, &"lightning_rod")
 	return rod
 
 # Live Wire ("Fewer, bigger cards" de439ea8; Balancing: full damage): a Charged bolt jumps once to the nearest other
@@ -581,7 +585,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 		arcs = arcs.slice(0, max_arcs)
-	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE), _line(tower, "light"), false, false, tower, &"thunderclap")
+	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE, &"tempest" if tempest else &"thunderclap"), _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -625,7 +629,8 @@ static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
 	var sparking: float = dreams.get_ignite_multiplier(enemy) if dreams and dreams.has_method("get_ignite_multiplier") else 1.0  # Sparking Spores: from 5 Poisoned (read before anything spends them)
-	s.burn_rate = BURN_SPORE_RATE * sparking * EnemyStatuses.charged_payoff_multiplier()
+	var rate := BURN_SPORE_RATE * sparking * EnemyStatuses.charged_payoff_multiplier()
+	s.burn_rate = 1.0 + (rate - 1.0) * _rx_cards(enemy, &"tempest" if carry_static > 0.0 else &"ignite", static_source)  # The bonus part (Ignite / Tempest)
 	var already := s.burn_time > 0.0
 	s.burn_time = maxf(s.burn_time, BURN_TIME)
 	var world := _world(enemy)
@@ -822,7 +827,7 @@ class PullUnder extends Node:
 		_next += 1.0
 		_second += 1
 		var step: float = Reactions.PULL_UNDER_STEP * (Reactions.DEEP_WATER_GROWTH if deep else 1.0)
-		enemy.take_damage(Reactions._rx(enemy, applier.get_damage() * step * _second), applier.tower_data.line, true, false, applier, &"drown")
+		enemy.take_damage(Reactions._rx(enemy, applier.get_damage() * step * _second, &"drown"), applier.tower_data.line, true, false, applier, &"drown")
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -876,7 +881,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 				s.pinned = true
 			_:
 				if strength > 0.0:
-					enemy.take_damage(_rx(enemy, strength * share), _line(applier, echo_tower.tower_data.line), true, false,
+					enemy.take_damage(_rx(enemy, strength * share, &"echo"), _line(applier, echo_tower.tower_data.line), true, false,
 						echo_tower, &"echo")
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			echo_tower.resonant_set_off(enemy)  # Resonant Hollow: the echo rings like a chime
@@ -962,7 +967,7 @@ static func _dawnburst(enemy: Node2D) -> void:
 				DREAM_BURST.play(&"dawnbreak", at, DAWNBREAK_REACH * CELL, _world(enemy))
 				shown = true
 			var share := DAWNBREAK_BOSS_SHARE if other.enemy_data.is_boss else DAWNBREAK_SHARE
-			other.take_damage(_rx(other, other.max_health * share), "", true, false, null, &"dawnbreak")
+			other.take_damage(_rx(other, other.max_health * share, &"dawnbreak"), "", true, false, null, &"dawnbreak")
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
@@ -995,7 +1000,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 		_:
 			var strength: float = ECHO_DAMAGE.get(base, 2.0)
 			var damage := (applier.get_damage() if is_instance_valid(applier) else seed_tower.get_damage())
-			enemy.take_damage(_rx(enemy, strength * damage * CARRIED_SHARE), _line(applier if is_instance_valid(applier) else seed_tower,
+			enemy.take_damage(_rx(enemy, strength * damage * CARRIED_SHARE, &"carried_storm"), _line(applier if is_instance_valid(applier) else seed_tower,
 				seed_tower.tower_data.line), true, false, seed_tower, &"carried_storm")
 
 static func _field(near: Node2D) -> Array:
@@ -1022,9 +1027,19 @@ static func _towers(a = null, b = null) -> Array:
 
 # Reaction damage after Quick Reactions' cut (DreamState.get_reaction_damage_multiplier: 0.65 with the card, Balancing;
 # dream_design.md 83c40cd7). Every Reaction's damage goes through it; Charged bolts and Static Field don't (not Reactions).
-static func _rx(near: Node, amount: float) -> float:
+# The one Reaction damage hook (card pass 2026-10-16, card_pass_td.md 1b): DreamState.get_reaction_damage_multiplier(enemy,
+# id, tower) = Quick Reactions' cut x the Reaction cards' part (none yet: x1); the Wardens that took part are the
+# nightmare's statuses.chain_towers (set by _fire before the damage). Dawnbreak (% of max health) takes only Quick
+# Reactions' cut, never the cards'; a Charged bolt (tag static) never comes here.
+static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return amount * EnemyStatuses.charged_payoff_multiplier() * (dreams.get_reaction_damage_multiplier() if dreams and dreams.has_method("get_reaction_damage_multiplier") else 1.0)
+	return amount * EnemyStatuses.charged_payoff_multiplier() * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
+
+# The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
+# Shatter's main hit) and the Ignite / Tempest burn, so those sites stay as they were until a card says otherwise.
+static func _rx_cards(near: Node, id: StringName, tower: Node = null) -> float:
+	var dreams := _dreams(near)
+	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower) if dreams != null else 1.0
 
 static func _applier_damage(tower: Tower, fallback: float) -> float:
 	return tower.get_damage() if tower != null else fallback
