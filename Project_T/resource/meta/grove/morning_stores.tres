@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "morning_stores"
 display_name = "Morning Stores"
-description = "While carried: +10 starting {dew} per level, up to +30."
+description = "While carried: +20 starting {dew} per level, up to +60."
 root = 2
 costs = Array[int]([20, 40, 60])
 order = 1
 icon = 0
-starting_dew = 10
+starting_dew = 20

@@ -91,7 +91,7 @@ func _run() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var family = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
-	_check(run_state.dew == run_state.starting_dew + 30, "starting Dew: base + Morning Stores 30, Blight takes none (%d)" % run_state.dew)
+	_check(run_state.dew == run_state.starting_dew + 60, "starting Dew: base + Morning Stores 60, Blight takes none (%d)" % run_state.dew)
 	_check(dreams_first_pick(main) == 0, "Blight 2+: the first family pick gives no Dreamlight")
 	var family_ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	_check(family_ids.has("pebbling") and family_ids.has("acorn") and family_ids.has("nestling"), "Grove families join the picks (%s)" % [family_ids])
@@ -355,7 +355,7 @@ func _run() -> void:
 	director = main.get_node("%DriftDirector")
 	dreams = main.get_node("%DreamState")
 	_check(is_equal_approx(director.get_dew_pot_multiplier(3, false, false), director.get_dew_pot_multiplier(6, false, false))
-		and run_state.dew == run_state.starting_dew + 30, "Hades-style Morning Stores III: plain +30 starting Dew, no pot cost (%d)" % run_state.dew)
+		and run_state.dew == run_state.starting_dew + 60, "Hades-style Morning Stores III: plain +60 starting Dew, no pot cost (%d)" % run_state.dew)
 	_check(is_equal_approx(dreams.nurture_perk_multiplier, 1.15) and run_state.free_nurtures == 3, "sidegrade First Care: 3 free ranks, then +15%%")
 	_check(director.act_break_leaves == 1 and run_state.max_leaves == run_state.starting_leaves + 2, "Hades-style Deep Taproot III: +2 leaves (capped), act-break regrow kept")
 	_check(main.get_node("%FamilyPickScreen").first_boss_pick_fewer == 1, "sidegrade Early Bloom: the drift 25 pick shows one fewer")
@@ -492,15 +492,15 @@ func _run() -> void:
 	var trade_run := await _new_run()
 	var trade_state: RunState = trade_run.get_node("%RunState")
 	_check(trade_state.max_leaves == trade_state.starting_leaves - 2 and trade_state.leaves == trade_state.max_leaves
-		and trade_state.dew == trade_state.starting_dew + 30 and MetaRun.leaf_dew_trade == 0,
-		"2 leaves into 30 Dew, max leaves too, applied once (%d / %d, %d Dew)" % [trade_state.leaves, trade_state.max_leaves, trade_state.dew])
+		and trade_state.dew == trade_state.starting_dew + 60 and MetaRun.leaf_dew_trade == 0,
+		"2 leaves into 60 Dew, max leaves too, applied once (%d / %d, %d Dew)" % [trade_state.leaves, trade_state.max_leaves, trade_state.dew])
 	trade_run.queue_free()
 	await process_frame
 	MetaRun.leaf_dew_trade = -3
 	trade_run = await _new_run()
 	trade_state = trade_run.get_node("%RunState")
 	_check(trade_state.max_leaves == trade_state.starting_leaves + 3 and trade_state.leaves == trade_state.max_leaves
-		and trade_state.dew == trade_state.starting_dew - 45, "45 Dew into 3 more leaves (and max)")
+		and trade_state.dew == trade_state.starting_dew - 90, "90 Dew into 3 more leaves (and max)")
 	trade_run.queue_free()
 	await process_frame
 	seed_profile.unlocks.erase(MetaRun.LEAF_DEW_NODE)
@@ -921,7 +921,7 @@ func _run() -> void:
 		and dreams.grove_cards.has("wandering_mind"), "demo: the planted card nodes' cards join the pool")
 	_check(main.get_node("%FamilyPickScreen").families.any(func(d: TowerData) -> bool: return d.get_id() == "rootling"), "demo: Rootling joins the picks")
 	_check(run_state.dew_gain_bonus == 0.0, "demo: Rich Dew sleeps")
-	_check(run_state.dew == run_state.starting_dew + 10, "demo: Morning Stores at level I (+10 Dew, %d)" % (run_state.dew - run_state.starting_dew))
+	_check(run_state.dew == run_state.starting_dew + 20, "demo: Morning Stores at level I (+20 Dew, %d)" % (run_state.dew - run_state.starting_dew))
 	_check(dreams.rerolls_left == 1, "demo: Second Thoughts I (1 reroll)")
 	main.queue_free()
 	await process_frame

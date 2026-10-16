@@ -338,6 +338,26 @@ func _refresh() -> void:
 	_update_card()
 	_backdrop.visible = loadout.visible or _viewer.visible or card_face.visible
 
+# The top-centre message line clears itself after a while, and the tree's limb labels keep out of it (and out of the
+# demo's "all planted" panel) while it shows: GroveTreeView hides a label that reaches into `top_reserved`.
+const MESSAGE_SECONDS := 6.0
+const MESSAGE_RESERVE := 50.0  # Screen px from the top the message line takes
+const DEMO_DONE_RESERVE := 170.0  # …and the demo panel under it
+var _message_shown := ""
+var _message_left := 0.0
+
+func _process(delta: float) -> void:
+	if _message.text != _message_shown:
+		_message_shown = _message.text
+		_message_left = MESSAGE_SECONDS
+	elif _message.text != "":
+		_message_left -= delta
+		if _message_left <= 0.0:
+			_message.text = ""
+			_message_shown = ""
+	var demo_panel := demo_done.is_inside_tree() and demo_done.visible  # Only built in the demo
+	tree_view.top_reserved = DEMO_DONE_RESERVE if demo_panel else (MESSAGE_RESERVE if _message.text != "" else 0.0)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		if card_face.visible:
