@@ -196,31 +196,36 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 		return
 	_checked[key] = true
 	var static_needed := thunderclap_threshold(s)
-	if s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.stacks(STATIC) >= static_needed and grown(s, [DAMP, STATIC]):
+	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.stacks(STATIC) >= static_needed and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source)
 	if enemy.is_cleansed:
 		return
-	if s.stacks(SPORED) >= buildup_threshold(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= buildup_threshold(IGNITE_MIN_STATIC) and grown(s, [SPORED, STATIC]):
+	if s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) and grown(s, [SPORED, STATIC]):
 		_ignite(enemy, source)
 	if enemy.is_cleansed:
 		return
-	if s.stacks(SPORED) >= buildup_threshold(MUSHROOM_MIN_SPORES) and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and grown(s, [SPORED, DAMP]):
+	if s.stacks(SPORED) >= need(MUSHROOM_MIN_SPORES) and s.stacks(DAMP) >= need(SOAKED_NEEDED) and grown(s, [SPORED, DAMP]):
 		_mushrooming(enemy, source)
-	if s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY) and grown(s, [DAMP, DROWSY]):
+	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY) and grown(s, [DAMP, DROWSY]):
 		_drown(enemy, source)
-	if s.stacks(MARKED) >= buildup_threshold(EXPOSED_NEEDED) and (s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED) or is_asleep(enemy) \
-			or (s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY))) and grown(s, [MARKED, HELD, DROWSY]):
+	if s.stacks(MARKED) >= need(EXPOSED_NEEDED) and (s.stacks(HELD) >= need(ROOTED_NEEDED) or is_asleep(enemy) \
+			or (s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY))) and grown(s, [MARKED, HELD, DROWSY]):
 		_pinned(enemy, source)
-	if s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED) and s.stacks(SPORED) >= buildup_threshold(SMOTHER_MIN_SPORES) and grown(s, [HELD, SPORED]):
+	if s.stacks(HELD) >= need(ROOTED_NEEDED) and s.stacks(SPORED) >= need(SMOTHER_MIN_SPORES) and grown(s, [HELD, SPORED]):
 		_smother(enemy, source)
 
+# A Reaction's need of a status (owner 2026-10-16, option A): the normal amount, Brimming or not (Clashing Notes: half).
+static func need(base: int) -> int:
+	return ceili(base / 2.0) if _half_need and base in HALF_NEED_BASES else base
+
+# Brimming's doubled count, for what still doubles: card and Warden payoffs that read it (not Reactions).
 static func buildup_threshold(base: int) -> int:
 	if _half_need and base in HALF_NEED_BASES:
 		return ceili(base * EnemyStatuses.cap_multiplier() / 2.0)
 	return base * EnemyStatuses.cap_multiplier()
 
 static func thunderclap_threshold(statuses: EnemyStatuses) -> int:
-	var need: int = (THUNDERCLAP_STATIC_BOSS if statuses.is_boss else THUNDERCLAP_STATIC) * EnemyStatuses.cap_multiplier()
+	var need: int = THUNDERCLAP_STATIC_BOSS if statuses.is_boss else THUNDERCLAP_STATIC  # The normal need, Brimming or not
 	return ceili(need / 2.0) if _half_need else need
 
 # Clashing Notes (Bellflower lent card, Roguelite Code 2026-10-14; dream_council_review.md 26): a bell's hit on a Drowsy
@@ -235,15 +240,15 @@ static func check_at_half(enemy: Node2D, source: Node) -> void:
 		return
 	var s: EnemyStatuses = enemy.statuses
 	_half_need = true
-	if s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.stacks(STATIC) >= thunderclap_threshold(s) and grown(s, [DAMP, STATIC]):
+	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.stacks(STATIC) >= thunderclap_threshold(s) and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source)
-	if not enemy.is_cleansed and s.stacks(SPORED) >= buildup_threshold(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= buildup_threshold(IGNITE_MIN_STATIC) \
+	if not enemy.is_cleansed and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) \
 			and grown(s, [SPORED, STATIC]):
 		_ignite(enemy, source)
-	if not enemy.is_cleansed and s.stacks(SPORED) >= buildup_threshold(MUSHROOM_MIN_SPORES) and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) \
+	if not enemy.is_cleansed and s.stacks(SPORED) >= need(MUSHROOM_MIN_SPORES) and s.stacks(DAMP) >= need(SOAKED_NEEDED) \
 			and grown(s, [SPORED, DAMP]):
 		_mushrooming(enemy, source)
-	if not enemy.is_cleansed and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY) \
+	if not enemy.is_cleansed and s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY) \
 			and grown(s, [DAMP, DROWSY]):
 		_drown(enemy, source)
 	_half_need = false
@@ -314,7 +319,7 @@ static func on_smother_ended(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	var s: EnemyStatuses = enemy.statuses
-	if s.stacks(SPORED) < buildup_threshold(SMOTHER_MIN_SPORES) or not s.has(DROWSY) or s.stacks(DROWSY) < s.get_max_stacks(DROWSY):
+	if s.stacks(SPORED) < need(SMOTHER_MIN_SPORES) or not s.has(DROWSY) or s.stacks(DROWSY) < s.normal_cap(DROWSY):
 		return
 	var spore_source := s.source(SPORED)
 	var chain := _fire(enemy, &"fever_dream", _towers(spore_source, s.source(DROWSY)), false, CROWNED_LINKS)
@@ -373,25 +378,25 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 	if s.pinned:
 		s.pinned = false
 		result.crit = true
-		var pinned_crit := maxf(PINNED_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier(), tower.attack_data.crit_multiplier)
+		var pinned_crit := maxf(PINNED_MULTIPLIER * s.reaction_payoff(&"pinned"), tower.attack_data.crit_multiplier)
 		result.crit_multiplier = 1.0 + (pinned_crit - 1.0) * _rx_cards(enemy, &"pinned", tower)  # The bonus part only (the hit lands anyway)
 		result.tag = &"pinned"
-		if s.stacks(STATIC) >= buildup_threshold(CROWNED_MIN_STATIC):
+		if s.stacks(STATIC) >= need(CROWNED_MIN_STATIC):
 			_starfall(enemy, tower)
 	# One "heavy" (card pass 2026-10-16, card_pass_td.md 1d): the heavy cards' role (TowerData.heavy) or Shatter's old
 	# rule (the stone line, a target-priority sniper), so no Warden that Shattered before stops, and every heavy card's Warden can.
 	var heavy: bool = WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY) or tower.tower_data.line == "stone" or tower.attack_data.has_target_priority
-	if s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED) and s.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
+	if s.stacks(HELD) >= need(ROOTED_NEEDED) and s.stacks(DAMP) >= need(SOAKED_NEEDED) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
 		# Crowned: a lob's Shatter becomes an Avalanche, a charged one a Prismstorm.
 		var id := &"shatter"
 		if tower.attack_data.lob:
 			id = &"avalanche"
-		elif s.stacks(STATIC) >= buildup_threshold(CROWNED_MIN_STATIC):
+		elif s.stacks(STATIC) >= need(CROWNED_MIN_STATIC):
 			id = &"prismstorm"
 		var crowned := id != &"shatter"
 		if _fire(enemy, id, [tower], false, CROWNED_LINKS if crowned else 1, &"shatter") > 0:
 			s.remove(HELD)
-			result.multiplier = 1.0 + (SHATTER_MULTIPLIER * EnemyStatuses.charged_payoff_multiplier() - 1.0) * _rx_cards(enemy, id, tower)  # Bonus part (Shatter / Prismstorm / Avalanche)
+			result.multiplier = 1.0 + (SHATTER_MULTIPLIER * s.reaction_payoff(id) - 1.0) * _rx_cards(enemy, id, tower)  # Bonus part (Shatter / Prismstorm / Avalanche)
 			result.shatter = true
 			result.tag = &"shatter"
 			s.prism_pending = id == &"prismstorm"
@@ -411,7 +416,7 @@ static func _starfall(enemy: Node2D, tower: Tower) -> void:
 	var reach := (STARFALL_REACH[level] + _storm_front(enemy)) * CELL
 	var multiplier := STARFALL_BOSS_BOLT if s.is_boss else STARFALL_BOLT
 	var charged := _field(enemy).filter(func(e: Node2D) -> bool:
-		return e.statuses.stacks(STATIC) >= buildup_threshold(CROWNED_MIN_STATIC) and e.global_position.distance_to(enemy.global_position) <= reach)
+		return e.statuses.stacks(STATIC) >= need(CROWNED_MIN_STATIC) and e.global_position.distance_to(enemy.global_position) <= reach)
 	for other in charged:
 		var bolt: float = other.statuses.stored_bolt_damage() * multiplier
 		var applier := _tower_of(other.statuses.source(STATIC), tower)
@@ -431,7 +436,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 		if other == enemy or other.global_position.distance_to(enemy.global_position) > reach:
 			continue
 		var o: EnemyStatuses = other.statuses
-		if not (o.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED) and o.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED)):
+		if not (o.stacks(HELD) >= need(ROOTED_NEEDED) and o.stacks(DAMP) >= need(SOAKED_NEEDED)):
 			continue
 		o.remove(HELD)
 		_touch(other, o.chain_count if o.chain_time > 0.0 else 1, [tower])
@@ -456,7 +461,7 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var reach := (PRISM_REACH[level] if prism else 1.0) + _storm_front(enemy)
 	for other in _others_within(enemy, reach):
 		_touch(other, chain, [tower])
-		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / EnemyStatuses.charged_payoff_multiplier(), &"prismstorm" if prism else &"shatter"), tower.tower_data.line, true, false, tower, &"shatter")
+		other.take_damage(_rx(other, dealt * SHATTER_SPLASH / enemy.statuses.reaction_payoff(&"prismstorm" if prism else &"shatter"), &"prismstorm" if prism else &"shatter"), tower.tower_data.line, true, false, tower, &"shatter")
 		if prism and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, PRISM_STATIC[level], 0.0, tower.get_damage(), 0, "light", tower)
 
@@ -542,7 +547,7 @@ static func _find_rod(near: Node2D) -> Node2D:
 	var best: Node2D = null
 	var best_distance := INF
 	for other in _field(near):
-		if other.statuses.stacks(MARKED) < buildup_threshold(EXPOSED_NEEDED) or other.statuses.stacks(STATIC) < thunderclap_threshold(other.statuses) or not grown(other.statuses, [MARKED, STATIC]):
+		if other.statuses.stacks(MARKED) < need(EXPOSED_NEEDED) or other.statuses.stacks(STATIC) < thunderclap_threshold(other.statuses) or not grown(other.statuses, [MARKED, STATIC]):
 			continue
 		var distance: float = other.global_position.distance_to(near.global_position)
 		if distance <= ROD_REACH * CELL and distance < best_distance:
@@ -559,7 +564,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var tower := _tower_of(source, s.source(STATIC))
 	# Crowned: a Spored nightmare's Thunderclap is a Tempest (not again within 2 s of the last one).
-	var tempest := s.stacks(SPORED) >= buildup_threshold(CROWNED_MIN_SPORES) and s.tempest_time <= 0.0
+	var tempest := s.stacks(SPORED) >= need(CROWNED_MIN_SPORES) and s.tempest_time <= 0.0
 	var chain := _fire(enemy, &"tempest" if tempest else &"thunderclap", _towers(tower, s.source(DAMP)), false,
 		CROWNED_LINKS if tempest else 1, &"thunderclap")
 	if chain <= 0:
@@ -579,7 +584,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 		reach = maxf(reach, tower.get_range_pixels())  # The Storm Grid capstone
 	var arcs: Array = []
 	for other in Tower.nightmares_near(enemy.get_tree(), enemy.global_position, reach):
-		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(DAMP) >= buildup_threshold(SOAKED_NEEDED) and other.global_position.distance_to(enemy.global_position) <= reach:
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(DAMP) >= need(SOAKED_NEEDED) and other.global_position.distance_to(enemy.global_position) <= reach:
 			arcs.append(other)
 	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
 	# chain's cost). Chains still continue from those.
@@ -602,7 +607,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 			struck.apply_status(STATIC, THUNDERCLAP_ARC_STATIC[level], 0.0, potency, 0, "light", tower)
 		# Tempest: every arc also sets off Ignite on a Spored target (not bosses), whose spread spores
 		# carry Static, so wet neighbours Thunderclap in turn.
-		if tempest and is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(SPORED) >= buildup_threshold(IGNITE_MIN_SPORES) \
+		if tempest and is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(SPORED) >= need(IGNITE_MIN_SPORES) \
 				and not other.statuses.is_boss:
 			other.statuses.tempest_time = TEMPEST_LOCK
 			_ignite(other, tower, potency, 2 if eye else 0)
@@ -611,7 +616,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 # spreads to neighbours, who may Ignite in turn. Uses up the Spored.
 static func _ignite(enemy: Node2D, source: Node, carry_static: float = 0.0, spread: int = 0) -> void:
 	var s: EnemyStatuses = enemy.statuses
-	if s.stacks(SPORED) < buildup_threshold(IGNITE_MIN_SPORES) or s.stacks(STATIC) < buildup_threshold(IGNITE_MIN_STATIC):
+	if s.stacks(SPORED) < need(IGNITE_MIN_SPORES) or s.stacks(STATIC) < need(IGNITE_MIN_STATIC):
 		return
 	var spore_source := s.source(SPORED)
 	var chain := _fire(enemy, &"ignite", _towers(spore_source, _tower_of(source, s.source(STATIC))))
@@ -633,7 +638,7 @@ static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
 	var sparking: float = dreams.get_ignite_multiplier(enemy) if dreams and dreams.has_method("get_ignite_multiplier") else 1.0  # Sparking Spores: from 5 Poisoned (read before anything spends them)
-	var rate := BURN_SPORE_RATE * sparking * EnemyStatuses.charged_payoff_multiplier()
+	var rate := BURN_SPORE_RATE * sparking * _payoff(enemy, &"tempest" if carry_static > 0.0 else &"ignite")
 	s.burn_rate = 1.0 + (rate - 1.0) * _rx_cards(enemy, &"tempest" if carry_static > 0.0 else &"ignite", static_source)  # The bonus part (Ignite / Tempest)
 	var already := s.burn_time > 0.0
 	s.burn_time = maxf(s.burn_time, BURN_TIME)
@@ -700,9 +705,9 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	var spore_source := s.source(SPORED)
 	# Crowned: on a Held nightmare it's a Fairy Circle, at full Drowsy a Nightbloom.
 	var id := &"mushrooming"
-	if s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED):
+	if s.stacks(HELD) >= need(ROOTED_NEEDED):
 		id = &"fairy_circle"
-	elif s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY):
+	elif s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY):
 		id = &"nightbloom"
 	var crowned := id != &"mushrooming"
 	var chain := _fire(enemy, id, _towers(spore_source, _tower_of(source, s.source(DAMP))), false,
@@ -776,7 +781,7 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		return
 	var applier := _tower_of(source, s.source(DROWSY))
 	# Crowned: a Held nightmare's Drown is a Still Pool (it sinks, and a pool stays on its tile).
-	var still := s.stacks(HELD) >= buildup_threshold(ROOTED_NEEDED)
+	var still := s.stacks(HELD) >= need(ROOTED_NEEDED)
 	if _fire(enemy, &"still_pool" if still else &"drown", _towers(applier, s.source(DAMP)), false,
 			CROWNED_LINKS if still else 1, &"drown") <= 0:
 		return
@@ -929,6 +934,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	if dreams and WOVEN_RULE.has(id) and dreams.has_rule(WOVEN_RULE[id]):
 		cooldown *= WOVEN_COOLDOWN  # A Woven card's cost (dream_design.md 83c40cd7): its Crowned Reaction fires half as often
 	s.start_cooldown(key, cooldown)
+	_decide_payoff(enemy, id)
 	# Storm Front: a Reaction a Gust-copied status completed counts one more link.
 	var storm_front := s.gust_time > 0.0
 	if storm_front:
@@ -1053,10 +1059,77 @@ static func _towers(a = null, b = null) -> Array:
 # Reactions' cut, never the cards'; a Charged bolt (tag static) never comes here.
 static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return amount * EnemyStatuses.charged_payoff_multiplier() * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
+	return amount * _payoff(near, id) * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) if dreams != null else 1.0)
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
 # Shatter's main hit) and the Ignite / Tempest burn, so those sites stay as they were until a card says otherwise.
+# Brimming's x2.2 for Reaction `id` on `near`: what _decide_payoff wrote when it fired there; for a nightmare it only
+# reached (Thunderclap's arcs, Shatter's shards), the payoff of the last such Reaction fired. x1 without Brimming.
+static var _last_payoff := {}
+static func _payoff(near: Node, id: StringName) -> float:
+	if EnemyStatuses.cap_multiplier() <= 1:
+		return 1.0
+	if near != null and is_instance_valid(near) and "statuses" in near and near.statuses.brim_payoff.has(id):
+		return near.statuses.brim_payoff[id]
+	return float(_last_payoff.get(id, 1.0))
+
+# A Reaction fires on `enemy` (owner 2026-10-16, option A): with Brimming, x2.2 if it carries twice the normal need of
+# every status this Reaction needs (full Drowsy: Brimming's doubled cap; asleep counts as met), else x1. Kept on the
+# nightmare by id and by its base Reaction (a Crowned one's damage reads either).
+static func _decide_payoff(enemy: Node2D, id: StringName) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	if EnemyStatuses.cap_multiplier() <= 1:
+		return
+	var doubled := _carries_double(enemy, id)
+	var payoff := EnemyStatuses.charged_payoff_multiplier() if doubled else 1.0
+	s.brim_payoff[id] = payoff
+	_last_payoff[id] = payoff
+	var base: StringName = CROWNED_BASE.get(id, id)
+	if base != id:
+		s.brim_payoff[base] = payoff
+		_last_payoff[base] = payoff
+	if id == &"avalanche" or id == &"prismstorm":
+		s.brim_payoff[&"shatter"] = payoff
+		_last_payoff[&"shatter"] = payoff
+
+static func _carries_double(enemy: Node2D, id: StringName) -> bool:
+	var s: EnemyStatuses = enemy.statuses
+	var full_drowsy := s.has(DROWSY) and s.stacks(DROWSY) >= s.get_max_stacks(DROWSY)  # Brimming's doubled cap
+	var held := s.stacks(HELD) >= ROOTED_NEEDED * 2
+	var soaked := s.stacks(DAMP) >= SOAKED_NEEDED * 2
+	match id:
+		&"thunderclap":
+			return soaked and s.stacks(STATIC) >= thunderclap_threshold(s) * 2
+		&"tempest":
+			return soaked and s.stacks(STATIC) >= thunderclap_threshold(s) * 2 and s.stacks(SPORED) >= CROWNED_MIN_SPORES * 2
+		&"ignite":
+			return s.stacks(SPORED) >= IGNITE_MIN_SPORES * 2 and s.stacks(STATIC) >= IGNITE_MIN_STATIC * 2
+		&"mushrooming":
+			return s.stacks(SPORED) >= MUSHROOM_MIN_SPORES * 2 and soaked
+		&"fairy_circle":
+			return s.stacks(SPORED) >= MUSHROOM_MIN_SPORES * 2 and soaked and held
+		&"nightbloom":
+			return s.stacks(SPORED) >= MUSHROOM_MIN_SPORES * 2 and soaked and full_drowsy
+		&"drown":
+			return soaked and full_drowsy
+		&"still_pool":
+			return soaked and full_drowsy and held
+		&"pinned":
+			return s.stacks(MARKED) >= EXPOSED_NEEDED * 2 and (held or is_asleep(enemy) or full_drowsy)
+		&"starfall":
+			return s.stacks(MARKED) >= EXPOSED_NEEDED * 2 and s.stacks(STATIC) >= CROWNED_MIN_STATIC * 2
+		&"smother":
+			return held and s.stacks(SPORED) >= SMOTHER_MIN_SPORES * 2
+		&"fever_dream":
+			return s.stacks(SPORED) >= SMOTHER_MIN_SPORES * 2 and full_drowsy
+		&"shatter", &"avalanche":
+			return held and soaked
+		&"prismstorm":
+			return held and soaked and s.stacks(STATIC) >= CROWNED_MIN_STATIC * 2
+		&"lightning_rod":
+			return s.stacks(MARKED) >= EXPOSED_NEEDED * 2 and s.stacks(STATIC) >= thunderclap_threshold(s) * 2
+	return false
+
 static func _rx_cards(near: Node, id: StringName, tower: Node = null) -> float:
 	var dreams := _dreams(near)
 	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower) if dreams != null else 1.0

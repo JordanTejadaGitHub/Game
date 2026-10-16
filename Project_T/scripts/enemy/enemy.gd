@@ -2637,7 +2637,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag in REACTION_TAGS:
 		var bonus: float = REACTION_BONUS_ONLY.get(tag, 0.0)
 		if bonus > 0.0 and tag != &"lightning_rod":
-			bonus *= EnemyStatuses.charged_payoff_multiplier()
+			bonus *= statuses.reaction_payoff(tag)  # Brimming's x2.2 only where this Reaction earned it (Reactions._decide_payoff)
 		event.reaction_amount = dealt * (1.0 - 1.0 / bonus) if bonus > 1.0 and not (tag == &"shatter" and is_area) else dealt
 	elif event.combos.has(&"ignite"):
 		event.reaction_amount = dealt * (1.0 - 1.0 / statuses.burn_rate)

@@ -342,7 +342,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if fresh and status.stacks > 0:
 		_grand_tour_new_status(id, source)
 	# When both buildup gates are met, Thunderclap goes first (Reactions), so no bolt here then.
-	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.buildup_threshold(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
+	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
 		_active.erase(STATIC)
 		changes += 1
 		if static_forever and potency > 0.0:
@@ -661,8 +661,8 @@ func tick(delta: float) -> float:
 	spore_tick_line = ""
 	spore_tick_credit = _EMPTY
 	if has(SPORED):
-		smothering = stacks(HELD) >= Reactions.buildup_threshold(Reactions.ROOTED_NEEDED) and stacks(SPORED) >= Reactions.buildup_threshold(Reactions.SMOTHER_MIN_SPORES) and Reactions.grown(self, [HELD, SPORED])
-		_spore_timer += delta * (SMOTHER_SPORE_RATE * charged_payoff_multiplier() if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
+		smothering = stacks(HELD) >= Reactions.need(Reactions.ROOTED_NEEDED) and stacks(SPORED) >= Reactions.need(Reactions.SMOTHER_MIN_SPORES) and Reactions.grown(self, [HELD, SPORED])
+		_spore_timer += delta * (SMOTHER_SPORE_RATE * reaction_payoff(&"smother") if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
 		if _spore_timer >= SPORE_TICK:
 			spore_tick_source = source(SPORED)
 			spore_tick_line = spore_line()
@@ -670,7 +670,7 @@ func tick(delta: float) -> float:
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
-			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + ((1.0 + MUSHROOM_SPORE_BONUS) * charged_payoff_multiplier() - 1.0 if mushroom_time > 0.0 else 0.0) \
+			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + ((1.0 + MUSHROOM_SPORE_BONUS) * reaction_payoff(&"mushrooming") - 1.0 if mushroom_time > 0.0 else 0.0) \
 				+ get_caught_tick_bonus()
 			spore_damage += per_tick * (1.0 + bonus)
 	else:
@@ -798,6 +798,24 @@ func _static_tick_multiplier() -> float:
 # Early discharge specialists get the energy accumulated, not a full bolt from one charge.
 func stored_bolt_damage() -> float:
 	return potency(STATIC) * STATIC_BOLT_MULTIPLIER * float(stacks(STATIC)) / maxf(get_max_stacks(STATIC), 1.0) * _static_tick_multiplier()
+
+# Brimming and Reactions (owner 2026-10-16, option A; balance_simulation.md "Human run 41"): a Reaction needs its normal
+# amounts, and hits x2.2 only if, when it fired, this nightmare carried twice the normal need of every status it needs
+# (Reactions._decide_payoff writes it here by Reaction id and by its base Reaction). x1 without Brimming.
+var brim_payoff := {}
+func reaction_payoff(id: StringName) -> float:
+	if cap_multiplier() <= 1:
+		return 1.0
+	return float(brim_payoff.get(id, 1.0))
+
+# Status `id`'s cap without Brimming's doubling (a Reaction's "full Drowsy"): bosses their own cap, Heavy Eyelids added.
+func normal_cap(id: StringName) -> int:
+	var full := get_max_stacks(id)
+	var mult := cap_multiplier()
+	if mult <= 1:
+		return full
+	var bonus := drowsy_cap_bonus if id == DROWSY else 0
+	return maxi(ceili(float(full - bonus) / mult) + bonus, 1)
 
 static func charged_payoff_multiplier() -> float:
 	return 2.2 if cap_multiplier() > 1 else 1.0
