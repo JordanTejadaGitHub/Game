@@ -673,7 +673,7 @@ static func card_measures(dreams: Node) -> Array:
 	var rows: Dictionary = dreams.card_credit.get("run", {})
 	for id in rows:
 		var row: Dictionary = rows[id]
-		var entry := {"id": String(id), "name": dreams.get_display_name(String(id)) if dreams.has_method("get_display_name") else String(id)}
+		var entry := {"id": String(id), "name": RestReport._card_name(dreams, String(id))}  # Calling evolutions by their path name
 		var any := false
 		for key in row:
 			var value := float(row[key]) if (row[key] is float or row[key] is int) else 0.0

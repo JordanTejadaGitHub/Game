@@ -381,7 +381,7 @@ static func card_credits(near: Node, period: StringName, limit: int = 0) -> Arra
 			continue
 		rows.append({"id": String(id), "kind": StringName(credit.get("kind", &"damage")), "amount": float(credit.get("amount", 0.0)),
 			"damage": float(credit.get("damage", 0.0)), "text": String(credit.text),
-			"name": dreams.get_display_name(id) if dreams.has_method("get_display_name") else String(credit.text).get_slice(" · ", 0)})
+			"name": _card_name(dreams, String(id))})  # Calling evolutions by their path name (CALLING_PATHS)
 	return rows
 
 # The value of a credit row, from its numbers: "+1,840", "+60 Dew", "saved 2 leaves", "3 half-price clears".
@@ -394,6 +394,10 @@ static func credit_value(row: Dictionary) -> String:
 			return "saved %d %s" % [n, "leaf" if n == 1 else "leaves"]
 		&"clears":
 			return "%d half-price %s" % [n, "clear" if n == 1 else "clears"]
+		&"control":  # Seconds of full stop (Roguelite Code 479278a3, "Setup cards")
+			return "%.1f s held back" % float(row.amount)
+		&"maze":
+			return "%d route cells" % n
 	return "+" + BossDossier.thousands(n)
 
 # [[name, value], …] for UiStyle.credit_bbcode: the top `top` damage cards, then the non-damage ones.
