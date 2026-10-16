@@ -353,7 +353,8 @@ const KEYWORDS := preload("res://scripts/run/dream_keywords.gd")  # Keyword chip
 # --- Power budget (Balancing Discussion with the owner's review, 2026-10-16; balance_simulation.md "Power budget") ------
 # Cards are sized by value, not text: what a card adds to a board running its build (the run report's card_damage). Two
 # systems here; the numbers are Balancing's.
-const CARD_PRODUCT_CAP := 4.0  # All non-Reaction card power on one hit, multiplied together, stops at x4
+const CARD_PRODUCT_CAP := 4.0  # The x4 line: all non-Reaction card power on one hit (and a Reaction's build multiplier)
+const CARD_CAP_ON := false  # The caps are OFF but measuring (owner + Balancing 2026-10-16): hits past the line are recorded (past_cap); true = cap again
 const CARD_BUDGET: Array[float] = [0.12, 0.20, 0.35, 0.60]  # Common / Uncommon / Rare / Legendary: what one card adds (a second stack adds again)
 const _CAP_KIT := preload("res://scripts/combat/class_kit.gd")  # (its REACTION_BURSTS: what counts as a Reaction)
 const _STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &"soaked", &"drowsy": &"drowsy",
@@ -366,7 +367,40 @@ func card_cap_factor(source: Node, tag: StringName) -> float:
 		return 1.0
 	var rows: float = source._dream_bonus(&"soothe") if source is Tower and is_instance_valid(source) else 1.0
 	var total: float = rows * DamageLog.pending_card_product()
-	return 1.0 if total <= CARD_PRODUCT_CAP else CARD_PRODUCT_CAP / total
+	if total <= CARD_PRODUCT_CAP:
+		return 1.0
+	_note_past_cap(source.tower_data.display_name if source is Tower and is_instance_valid(source) else "?", total)
+	return CARD_PRODUCT_CAP / total if CARD_CAP_ON else 1.0
+
+# Hits that went past the x4 line, by drift (the run report: a per-drift count and the top few). {drift: {label: [peak, hits]}}
+var past_cap := {}
+
+func _note_past_cap(label: String, product: float) -> void:
+	var drift: int = drift_director.drifts_started if drift_director != null else 0
+	var by_label: Dictionary = past_cap.get(drift, {})
+	var row: Array = by_label.get(label, [0.0, 0])
+	row[0] = maxf(float(row[0]), product)
+	row[1] = int(row[1]) + 1
+	by_label[label] = row
+	past_cap[drift] = by_label
+
+func past_cap_hits(drift: int) -> int:
+	var total := 0
+	for label in past_cap.get(drift, {}):
+		total += int(past_cap[drift][label][1])
+	return total
+
+# "Drift 38: Mossback x6.2, 14 hits", the highest products first, at most `count`.
+func past_cap_top(count: int = 5) -> Array[String]:
+	var rows: Array = []
+	for drift in past_cap:
+		for label in past_cap[drift]:
+			rows.append([int(drift), String(label), float(past_cap[drift][label][0]), int(past_cap[drift][label][1])])
+	rows.sort_custom(func(a, b) -> bool: return float(a[2]) > float(b[2]))
+	var out: Array[String] = []
+	for row in rows.slice(0, count):
+		out.append("Drift %d: %s x%.1f, %d hits" % [row[0], row[1], row[2], row[3]])
+	return out
 
 # Reactions are the road to overpowered: a Reaction's damage x the product of what the held cards that feed it add (its
 # feeders: cards whose Makes chips name one of `statuses`, or Stacks / Linger), each at its rarity's CARD_BUDGET, held
@@ -388,8 +422,11 @@ func reaction_build_multiplier(reaction_id: StringName, statuses: Array) -> floa
 		for card in _taken_cards():
 			if card.makes.any(func(w: StringName) -> bool: return words.has(w)):
 				product *= 1.0 + CARD_BUDGET[clampi(card.rarity, 0, CARD_BUDGET.size() - 1)] * maxi(card_stacks(card.id), 1)
-		_reaction_build_cache[key] = minf(product, CARD_PRODUCT_CAP)
+		_reaction_build_cache[key] = minf(product, CARD_PRODUCT_CAP) if CARD_CAP_ON else product
 	var m: float = _reaction_build_cache[key]
+	if m > CARD_PRODUCT_CAP:
+		var data := Reactions.get_data(reaction_id)
+		_note_past_cap(data.display_name if data != null else String(reaction_id).capitalize(), m)
 	if m > 1.0:
 		reaction_build_last[reaction_id] = m
 	return m
@@ -3535,6 +3572,7 @@ func to_save() -> Dictionary:
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"calling": calling,
 		"calling_path": Array(calling_path).map(func(i) -> String: return String(i)),
+		"past_cap": past_cap.duplicate(true),
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
 		"new_family": [_new_family, _new_family_drift],  # The boss rest's guaranteed card survives a save between the pick and its Dream
 		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
@@ -3551,6 +3589,10 @@ func load_save(data: Dictionary) -> void:
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
 	calling = String(data.get("calling", ""))
+	past_cap.clear()
+	var saved_cap: Dictionary = data.get("past_cap", {})
+	for drift in saved_cap:  # (JSON turned the drift numbers into strings)
+		past_cap[int(drift)] = saved_cap[drift]
 	calling_path.clear()
 	for id in data.get("calling_path", []):
 		if CALLING_PATHS.PATHS.has(StringName(id)):

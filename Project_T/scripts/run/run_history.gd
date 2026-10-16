@@ -265,6 +265,7 @@ func _flush_rows() -> void:
 		for key in ["combo_damage", "reaction_damage", "status_damage", "card_damage"]:
 			row[key] = roundi(float(row.get(key, 0.0)))
 		row["combo_share"] = snappedf(combo_share(row, "damage"), 0.001)
+		row["past_cap"] = dream_state.past_cap_hits(int(row.drift)) if dream_state != null else 0  # Hits past the x4 card line (Roguelite Code, power budget 2026-10-16)
 		run.drifts.append(row)
 	_open.clear()
 	_started.clear()
@@ -601,6 +602,7 @@ func _sort_spends() -> void:
 func _on_run_ended(won: bool) -> void:
 	_flush_rows()
 	run["calling"] = dream_state.calling_title() if dream_state != null else ""  # "" on dev runs and old saves
+	run["past_cap_top"] = dream_state.past_cap_top(5) if dream_state != null else []  # The hits furthest past the x4 card line (power budget 2026-10-16)
 	if _route_block.leaked > 0 or _route_block.dispels.any(func(n: int) -> bool: return n > 0):  # A block cut short
 		_flush_route_block(ceili(drift_director.drifts_started / float(drift_director.drifts_per_block)))
 	if _may_write() and not _saved:
@@ -778,12 +780,14 @@ static func report_text(record: Dictionary) -> String:
 	for row in record.get("drifts", []):  # What got through, by kind (before the table: the table stays the last block)
 		if not (row.get("leaked", {}) as Dictionary).is_empty():
 			lines.append("Drift %d leaked: %s" % [int(row.drift), leaked_text(row.leaked)])
-	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage")  # card_damage last: older readers keep their columns
+	for line in record.get("past_cap_top", []):  # Above the table, which stays the last block for the readers
+		lines.append("Past the x4 card line: " + String(line))
+	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage,past_cap")  # New columns last: older readers keep theirs
 	for row in record.get("drifts", []):
-		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
+		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
 			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest),
 			1 if row.get("called_early", false) else 0, int(row.get("combo_damage", 0)), int(row.get("reaction_damage", 0)),
-			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0)), int(row.get("card_damage", 0))])
+			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0)), int(row.get("card_damage", 0)), int(row.get("past_cap", 0))])
 	return "\n".join(lines)
 
 static func _time_text(seconds: float) -> String:
