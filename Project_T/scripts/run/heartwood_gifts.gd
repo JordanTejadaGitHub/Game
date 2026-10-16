@@ -18,6 +18,7 @@ signal gift_placed(id: StringName, placement: Dictionary, step: int)  # A gift w
 signal gift_grew(id: StringName, step: int, placement: Dictionary)  # A landmark gained a step at an act break
 
 const GROUP := &"heartwood_gifts"
+static var offers_on := false  # Owner 2026-10-15: "remove gifts, they felt useless": no new offers; code and saved gifts kept (tests set it true)
 const OFFER_SIZE := 3
 const MIN_MAP := 2
 const PASS_DEW := 60  # Dew x2 second pass (was 30)
@@ -188,6 +189,8 @@ func _on_rest_started(_block: int, boss_rest: bool, _bonus: int, _perfect: bool)
 		return
 	var act := drift_director.get_act(drift_director.drifts_started)
 	grow_landmarks(act)  # Before the new offer: the landmarks from earlier act breaks each gain a step
+	if not offers_on:
+		return  # Gifts are no longer offered (owner 2026-10-15); a saved run's gifts still load, act and grow
 	if taken.any(func(t: Dictionary) -> bool: return int(t.act) == act) or passed.has(act):
 		return  # Already given this act (a resumed run)
 	current_offer = draw(act)
