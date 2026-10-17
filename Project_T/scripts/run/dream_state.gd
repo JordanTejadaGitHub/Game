@@ -299,7 +299,11 @@ var rerolls_left := 0
 var banishes_left := 0
 
 var unlocked := {}  # Warden id -> true
-var stacks := {}  # Card id -> times taken
+var stacks := {}:  # Card id -> times taken
+	set(value):  # Replacing the whole set (load_save, tests) bumps the stamp the once-a-frame rule caches key on
+		stacks = value
+		rules_stamp += 1
+		_sync_class_hooks()
 var dreams_seen := 0
 # Dreamlight (run_design.md): spent to unlock branches, final forms and wall growths for the run.
 var dreamlight := 0
