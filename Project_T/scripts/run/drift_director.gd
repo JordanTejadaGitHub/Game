@@ -129,6 +129,16 @@ func get_late_multiplier(number: int) -> float:
 # that 20 stack, but also increase the economy to support more Wardens"). Both at 1.0 give the numbers from before
 # the trial exactly, so it can be switched off.
 @export var trial_health_multiplier := 2.0  # Every nightmare's health, every drift: ordinary, Deeply Blighted, bosses, echoes, summons
+# The x2 health eases in (user 2026-10-16; balance_simulation.md "Human run 42": the first drifts are played on starting
+# Sprouts): trial_health_start at drift 1, rising evenly to trial_health_multiplier at trial_health_full_at, full after.
+@export var trial_health_start := 1.0
+@export var trial_health_full_at := 10
+
+# The trial's health multiplier for drift `number` (every nightmare: ordinary, Deeply Blighted, bosses, echoes, summons).
+func trial_health_at(number: int) -> float:
+	if trial_health_full_at <= 1:
+		return trial_health_multiplier
+	return lerpf(trial_health_start, trial_health_multiplier, clampf(float(number - 1) / float(trial_health_full_at - 1), 0.0, 1.0))
 @export var trial_dew_multiplier := 2.0  # Every drift's Dew pot, the rest bonus and the perfect-block bonus (fixed-Dew cards, Omens, catchers: not yet)
 @export var act_break_leaves: int = 1
 @export var auto_drift: bool = true  # Drifts in a block start by themselves
@@ -543,7 +553,7 @@ func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> floa
 	if act == 1 and not data.is_boss and not elite:
 		var maze_ramp := clampf(float(number - 10) / 14.0, 0.0, 1.0)
 		scale *= 1.0 + maze_act1_health_bonus * maze_ramp
-	return scale * get_health_multiplier(data, number) * trial_health_multiplier  # The trial's health x2 (1.0 = as before)
+	return scale * get_health_multiplier(data, number) * trial_health_at(number)  # The trial's health x2, easing in to drift 10 (1.0 = as before)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
 # 26–50, ×1.045 from 51.

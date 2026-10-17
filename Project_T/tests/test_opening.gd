@@ -33,7 +33,7 @@ func _play_opening(map_seed: int) -> void:
 
 	# Drift 1 is plain: ×1 health, no extra nightmares.
 	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
-	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_multiplier) and director.get_extra_nightmares(1) == 1.0,
+	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_at(1)) and director.get_extra_nightmares(1) == 1.0,
 		"drift 1 has no health growth or extra nightmares")
 
 	# As many Sprouts as the starting Dew buys (the Health x2, Dew x2 trial doubled it: 120 buys more than the old 5), at

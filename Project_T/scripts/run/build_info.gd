@@ -181,6 +181,6 @@ static func balance_snapshot(director: DriftDirector, state: RunState) -> Dictio
 		for n in [1, 10, 20, 24, 26, 45, 49, 51, 74, 76, 99]:  # A plain nightmare's base scale (no Dreams, Omens, Blight)
 			var act_scale: float = director.late_acts_health_multiplier if director.get_act(n) >= director.late_acts_from_act \
 				else director.get_early_multiplier(n)
-			growth[str(n)] = snappedf(director.get_growth(n) * act_scale * director.trial_health_multiplier, 0.001)  # With the "Health x2, Dew x2 trial" (Tower Code; 1.0 = as before)
+			growth[str(n)] = snappedf(director.get_growth(n) * act_scale * (director.trial_health_at(n) if director.has_method("trial_health_at") else director.trial_health_multiplier), 0.001)  # With the "Health x2, Dew x2 trial" (Tower Code; 1.0 = as before)
 		snapshot["health_by_drift"] = growth
 	return snapshot

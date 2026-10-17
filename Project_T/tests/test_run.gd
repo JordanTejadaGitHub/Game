@@ -113,8 +113,8 @@ func _test_blocks_and_rests() -> void:
 	# Block finales (Spire): every non-boss nightmare on a block's last drift from drift 15 (block_finale_health_from) has ×1.4 health on top.
 	var base_15 := director.get_growth(15) * director.get_early_multiplier(15) * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 15)
 	_check(is_equal_approx(director.get_health_scale(shade_data, 15), base_15 * director.block_finale_health_multiplier * (1.0 + director.maze_act1_health_bonus * 5.0 / 14.0))
-		and is_equal_approx(director.get_health_scale(shade_data, 10), director.get_growth(10) * director.get_early_multiplier(10) * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 10))
-		and is_equal_approx(director.get_health_scale(shade_data, 5), director.get_growth(5) * director.get_early_multiplier(5) * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 5)),
+		and is_equal_approx(director.get_health_scale(shade_data, 10), director.get_growth(10) * director.get_early_multiplier(10) * director.trial_health_at(10) * director.get_health_multiplier(shade_data, 10))
+		and is_equal_approx(director.get_health_scale(shade_data, 5), director.get_growth(5) * director.get_early_multiplier(5) * director.trial_health_at(5) * director.get_health_multiplier(shade_data, 5)),
 		"a block finale from drift 15 has ×%.1f health; drift 10 (only its elite) and the first block's finale (5) don't" % director.block_finale_health_multiplier)
 	_check(is_equal_approx(director.get_health_scale(shade_data, 15, true), base_15),
 		"a finale's elites keep their own ×3, without the finale's ×%.1f on top (run 16)" % director.block_finale_health_multiplier)
@@ -221,8 +221,8 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
 		return _kind(e.enemy_data) == "leaf_bug" and director.drift_of(e) == 7)[0]  # (Drift 6 has Shades too now)
-	_check(bug.max_health == roundi(100 * director.get_health_scale(bug.enemy_data, 7)) and is_equal_approx(director.get_health_scale(bug.enemy_data, 7), pow(1.045, 6) * director.get_early_multiplier(7) * director.trial_health_multiplier * director.get_health_multiplier(bug.enemy_data, 7)),
-		"drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp × the trial's ×%.1f (%d)" % [director.trial_health_multiplier, bug.max_health])
+	_check(bug.max_health == roundi(100 * director.get_health_scale(bug.enemy_data, 7)) and is_equal_approx(director.get_health_scale(bug.enemy_data, 7), pow(1.045, 6) * director.get_early_multiplier(7) * director.trial_health_at(7) * director.get_health_multiplier(bug.enemy_data, 7)),
+		"drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp × the trial ramp ×%.2f (%d)" % [director.trial_health_at(7), bug.max_health])
 	var leaves_before := run_state.leaves
 	_send_to_goal(bug, map_generator)
 	await _frames(5)

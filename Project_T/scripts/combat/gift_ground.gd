@@ -487,7 +487,7 @@ static func _slow(enemy: Node2D, amount: float, seconds: float) -> void:
 func _health_scale() -> float:
 	if _director == null:
 		return 1.0
-	return _director.get_growth(maxi(_director.drifts_started, 1)) * _director.trial_health_multiplier
+	return _director.get_growth(maxi(_director.drifts_started, 1)) * _director.trial_health_at(maxi(_director.drifts_started, 1))
 
 # The Brambles' cells, kept until a Warden is planted, sold or grown.
 func _bramble_cells() -> Dictionary:

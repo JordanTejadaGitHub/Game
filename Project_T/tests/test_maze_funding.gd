@@ -21,7 +21,7 @@ func _run() -> void:
 	_check(TowerPlacer.SPROUT_STEP_DEW == 5 and TowerPlacer.SPROUTS_PER_STEP == 5, "Sprout escalation: +5 every 5 (Balancing 2026-10-16; was +4 every 10 in the Health x2, Dew x2 trial; it was every 5)")
 	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var boss: EnemyData = load("res://resource/enemy/old_stag.tres")
-	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_multiplier), "drift-one health remains unchanged")
+	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_at(1)), "drift-one health remains unchanged")
 	_check(is_equal_approx(director.get_health_scale(shade, 24), director.get_growth(24) * director.get_early_multiplier(24) * 1.05 * director.trial_health_multiplier), "ordinary health ramps to five percent extra by drift24")
 	_check(is_equal_approx(director.get_health_scale(shade, 26), director.get_growth(26) * director.get_early_multiplier(26) * director.trial_health_multiplier), "Act2 health has no additional increase")
 	_check(is_equal_approx(director.get_health_scale(boss, 25), director.act1_boss_health_multiplier * director.trial_health_multiplier), "boss health remains unchanged")
