@@ -34,6 +34,8 @@ const REACTIONS := {
 	&"pinned": [&"pinned", "Pinned!"],
 	&"smother": [&"smother", "Smother!"],
 	&"lightning_rod": [&"lightning_rod", "Lightning Rod!"],
+	&"sleepwalk": [&"puffball_bloom", "Sleepwalk!"],  # Sleepwalk / Night Terror (2026-10-17): existing sheets for now;
+	&"night_terror": [&"bolt_strike", "Night Terror!"],  # their callout colour comes from the ReactionData (below)
 	# Crowned Reactions: gold tier, a crown on the callout.
 	&"tempest": [&"crowned_tempest", "Tempest!"],
 	&"still_pool": [&"crowned_still_pool", "Still Pool!"],
@@ -43,7 +45,12 @@ const REACTIONS := {
 	&"prismstorm": [&"crowned_prismstorm", "Prismstorm!"],
 	&"nightbloom": [&"crowned_nightbloom", "Nightbloom!"],
 	&"fairy_circle": [&"crowned_fairy_circle", "Fairy Circle!"],
+	# Changeling / Wide Awake (owner 2026-10-17, council reactions_unique.md): other Crowned sheets stand in until their
+	# own are drawn; their callout colour comes from the ReactionData (COLOUR_FROM_DATA).
+	&"changeling": [&"crowned_nightbloom", "Changeling!"],
+	&"wide_awake": [&"crowned_starfall", "Wide Awake!"],
 }
+const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake"]
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
@@ -242,6 +249,10 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var effect: StringName = row[0]
 	var node := play(effect, at, parent, 1.0, true, seconds)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
+	if not info(effect).has("callout") or reaction in COLOUR_FROM_DATA:  # A sheet without its own callout colour (Sleepwalk, Night Terror) or a stand-in: the Reaction's
+		var data := Reactions.get_data(reaction)
+		if data != null:
+			colour = data.callout_color
 	if row[1] != "":
 		# The name without its "!" and the reaction's icon (the callout redo; the crowned ones by their own id).
 		var words := String(row[1]).trim_suffix("!")

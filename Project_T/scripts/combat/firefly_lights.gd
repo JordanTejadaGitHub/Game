@@ -94,7 +94,7 @@ const GATHER_MAX := 3.0  # …up to +200% (owner, hard cards 2026-10-16); the ju
 const GATHER_RESET := 2.0  # …reset after 2 s without one
 const GATHER_WIDTH_STEP := 1.0  # …each stack draws the jump 1 px thicker…
 const GATHER_WIDTH_MAX := 4  # …for at most this many stacks
-const CHAIN_REACTIONS: Array[StringName] = [&"thunderclap", &"ignite", &"lightning_rod", &"tempest"]  # Reactions that spend Charged
+const CHAIN_REACTIONS: Array[StringName] = [&"thunderclap", &"ignite", &"lightning_rod", &"tempest", &"night_terror"]  # Reactions that spend Charged (Night Terror: 2026-10-17)
 const SPARKS_META := &"ff_sparks"  # On a nightmare: {Warden id: hits counted}
 const FF_HIT_META := &"ff_firefly_hit"  # On a nightmare: [time, WeakRef]: the last Firefly Warden hit (Sparks Fly)
 const SPARKS_FRAME_META := &"ff_sparks_frame"  # On a Warden: the frame its last hit was counted (an area attack counts once)
@@ -147,9 +147,7 @@ const LAMP_SHARE := 0.33  # Borrowed Light: another Warden's hit on a Lit nightm
 const LAMP_EVERY := 1.0  # …once a second per Warden
 const LAMP_META := &"lf_lamp_next"  # On a Warden
 const EVO_SHOW := &"lf_show_the_way"
-const SHOW_STACKS := 1  # Show the Way: a Warden within a glow adds this many more of its status (quiet add: never starts one)…
-const SHOW_EVERY := 1.0  # …once a second per Warden; never Drowsy
-const SHOW_META := &"lf_show_next"  # On a Warden
+const SHOW_SHARE := 0.5  # Show the Way (owner 2026-10-17: Firefly's own trait, was +1 stack): a Borrowed Light jump jumps once more, this share of it, to another Lit nightmare
 const EVO_WAKE := &"lf_lantern_wake"
 const WAKE_STACKS := 1  # Lantern Wake: a jump carries this many of each status its nightmare had (onto statuses already there)…
 const WAKE_STATUSES := 4  # …up to this many statuses
@@ -207,7 +205,6 @@ var _embers := {}  # Embers / Witchfire: route step -> {amount, cap, source: Wea
 var _lit_count := 0  # Nightmares Lit at the last poll (Swarm Night)
 var _lit_by_step: Array = []  # [[step, nightmare], …] Lit walkers at the last poll, sorted by step (Torchbearers, hard cards 2026-10-16)
 var _event_seen := {}  # Event id -> {nightmare id: true}: struck by it (EVENT_MAX across a recursive chain)
-var _show: Array = []  # Show the Way: [WeakRef nightmare, status, WeakRef Warden], added after the hit's own status
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -221,7 +218,6 @@ func _ready() -> void:
 func _on_rest() -> void:
 	_sparks.clear()  # Waiting sparks go out when a rest starts
 	_embers.clear()  # So do embers (nothing waits through a rest)
-	_show.clear()
 	queue_redraw()
 
 # --- Who this is on for -----------------------------------------------------------------------------------------
@@ -355,8 +351,6 @@ func _process(delta: float) -> void:
 			_brush_in = BRUSH_EVERY
 			_brush_fire()
 	_flush()
-	if not _show.is_empty():
-		_show_flush()
 
 func _towers() -> Array:
 	return get_tree().get_nodes_in_group(Tower.GROUP).filter(_tower_ok)
@@ -941,8 +935,6 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 	if is_hit and _evolved():
 		if evo(EVO_BORROWED) and is_other(source):
 			_borrowed_light(id, event, source, enemy, at, cap)
-		if evo(EVO_SHOW):
-			_show_the_way(source, enemy)
 		if evo(EVO_SIGHT):
 			_sightline(event, source, enemy, at, sources)
 	if is_hit:
@@ -1067,33 +1059,22 @@ func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> 
 	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0, "credit": EVO_BORROWED})
 	credit(EVO_BORROWED, targets[0].global_position)
 
-# Show the Way: a Warden within a Firefly Warden's glow adds 1 more of its status to a Lit nightmare it hit, once a
-# second. Added after the hit's own status (next _process), with the quiet add: never starts one; never Drowsy.
-func _show_the_way(source, enemy) -> void:
-	var status := CLASS_KIT.status_of(source)
-	if status == &"" or status == EnemyStatuses.DROWSY or _now() < float(source.get_meta(SHOW_META, -INF)):
+# Show the Way (from _evolved_strike): a Borrowed Light jump that landed jumps once more, at half, to another Lit
+# nightmare. Same event (a hop: never a nightmare the event already struck, never the one the hit was on, inside
+# EVENT_MAX), same cap; the second jump is credited to Show the Way, so it never jumps a third time.
+func _show_the_way(request: Dictionary, source, target, at: Vector2, had: Array) -> void:
+	var skip: Array = [target]
+	var left = request.get("jump_from")
+	if is_instance_valid(left):
+		skip.append(left)
+	var next := _fresh_lit(at, int(request.event), skip)
+	if next.is_empty():
 		return
-	if sources_at(source.global_position).is_empty():
-		return  # The Warden must stand within a Firefly Warden's glow
-	source.set_meta(SHOW_META, _now() + SHOW_EVERY)
-	_show.append([weakref(enemy), status, weakref(source)])
-
-func _show_flush() -> void:
-	var rows := _show
-	_show = []
-	for row in rows:
-		var enemy = row[0].get_ref()
-		if not _living(enemy):
-			continue
-		var shown: int = enemy.statuses.add_quiet(row[1], SHOW_STACKS)
-		SETUP.note(enemy, EVO_SHOW, row[1], float(shown), true)  # (setup credit 2026-10-16)
-		if shown <= 0:
-			continue
-		enemy.flash_status(row[1])  # The dot that grew flashes
-		var tower = row[2].get_ref()
-		if is_instance_valid(tower):
-			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.GLOW)
-		credit(EVO_SHOW, enemy.global_position)
+	var opts := _hop(request, {"color": Palette.GLOW, "width": 2.0, "credit": EVO_SHOW})
+	if not had.is_empty():
+		opts["carry"] = had  # Lantern Wake: it carries what the nightmare it leaves had
+	_fork(int(request.event), source, at, next[0], float(request.amount) * SHOW_SHARE, float(request.cap), opts)
+	credit(EVO_SHOW, next[0].global_position)
 
 # Sightline: 3 different Wardens hit one Lit nightmare within 2 s: a quarter of each hit jumps to the nearest other Lit
 # nightmare. Each Warden's jump is its own event, so all of them land on that one nightmare (three beams meet; and
@@ -1240,6 +1221,8 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if not _can_hop(request):
 		return
 	var event: int = request.event
+	if evo(EVO_SHOW) and request.get("credit", &"") == EVO_BORROWED:
+		_show_the_way(request, source, target, at, had)
 	if dead and gold and evo(EVO_PYRE) and int(request.get("pyre", 0)) < PYRE_HOPS:
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
@@ -1326,7 +1309,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var jar = firefly_near(source)
 			var targets := _near_enemies(at, [enemy]) if jar != null else []
 			if not targets.is_empty():
-				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true, "credit": HAMMERFALL})  # Sprouts too: Hammerfall's re-jump (Knock-On folded in, 2026-10-16)
+				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true, "credit": HAMMERFALL})  # Sprouts too. No re-jump on a dispel (owner 2026-10-17: Bale-fires / Pyre's verb); an old save holding Knock-On keeps it
 		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
 		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
 		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)

@@ -59,7 +59,9 @@ func _run() -> void:
 	smother.apply_status(EnemyStatuses.HELD, 1, 3.0, 0.0, 0, "root", tower)
 	_check(is_equal_approx(smother.statuses.tick(0.5), 12.0), "one Rooted stack cannot accelerate poison below the Smother gate")
 	smother.apply_status(EnemyStatuses.HELD, 3, 3.0, 0.0, 0, "root", tower)
-	_check(is_equal_approx(smother.statuses.tick(0.5), 36.0), "four Rooted and twelve poison unlock accelerated ticks")
+	# Smother stores its Poisoned while Rooted (owner 2026-10-17, council reactions_unique.md; was x3 ticks)
+	_check(is_equal_approx(smother.statuses.tick(0.5), 0.0) and is_equal_approx(smother.statuses.smother_stored, 12.0),
+		"four Rooted and twelve poison: Smother stores the tick instead (%.1f stored)" % smother.statuses.smother_stored)
 	var shatter := _enemy(Vector2(32, 8))
 	shatter.apply_status(EnemyStatuses.DAMP, 8, 0.0, 0.0, 0, "water", tower)
 	shatter.apply_status(EnemyStatuses.HELD, 1, 3.0, 0.0, 0, "root", tower)
@@ -112,12 +114,17 @@ func _run() -> void:
 	big_mushroom.apply_status(EnemyStatuses.DAMP, 16, 0.0, 0.0, 0, "water", tower)
 	_check(big_mushroom.statuses.mushroom_time > 0.0 and is_equal_approx(big_mushroom.statuses.reaction_payoff(&"mushrooming"), 2.2),
 		"…at twice every need it hits x2.2")
+	# Mushrooming is a zone (owner 2026-10-17, council reactions_unique.md): no faster Poisoned, +30% effect damage inside
 	var mushroom_probe := EnemyStatuses.new()
 	mushroom_probe.apply(EnemyStatuses.SPORED, 24, 5.0, 2.0)
 	mushroom_probe.mushroom_time = 4.0
-	_check(is_equal_approx(mushroom_probe.tick(0.5), 36.0), "a Mushrooming fired below twice its needs: its 1.5x tick payoff without the 2.2")
-	mushroom_probe.brim_payoff[&"mushrooming"] = 2.2
-	_check(is_equal_approx(mushroom_probe.tick(0.5), 79.2), "one fired at twice its needs scales its full 1.5x tick payoff by 2.2")
+	_check(is_equal_approx(mushroom_probe.tick(0.5), 24.0), "the zone no longer speeds Poisoned ticks")
+	var no_zone := _enemy(Vector2(34, 22))
+	var plain_effect := Reactions.effect_multiplier(no_zone, tower)
+	_check(brim_mushroom.statuses.mushroom_time > 0.0 and is_equal_approx(Reactions.effect_multiplier(brim_mushroom, tower), plain_effect * (1.0 + Reactions.MUSHROOM_ZONE_BONUS)),
+		"a Mushrooming fired below twice its needs: +30% effect damage inside, without the 2.2")
+	_check(is_equal_approx(Reactions.effect_multiplier(big_mushroom, tower), plain_effect * (1.0 + Reactions.MUSHROOM_ZONE_BONUS * 2.2)),
+		"one fired at twice its needs scales the zone's bonus by 2.2")
 	_check(is_equal_approx(Reactions._rx(big_mushroom, 10.0, &"mushrooming"), 22.0) and is_equal_approx(Reactions._rx(brim_mushroom, 10.0, &"mushrooming"), 10.0),
 		"Reaction damage: x2.2 where it was earned, x1 where not")
 	var brim_clap := _enemy(Vector2(35, 20))
@@ -139,7 +146,7 @@ func _run() -> void:
 	var big_pin := _enemy(Vector2(12, 25))
 	big_pin.apply_status(EnemyStatuses.HELD, 8, 3.0, 0.0, 0, "root", tower)
 	big_pin.apply_status(EnemyStatuses.MARKED, 20, 0.0, 0.0, 0, "light", tower)
-	_check(big_pin.statuses.pinned and is_equal_approx(Reactions.before_hit(big_pin, tower, false).crit_multiplier, 8.8),
+	_check(big_pin.statuses.pinned and is_equal_approx(Reactions.before_hit(big_pin, tower, false).crit_multiplier, Reactions.PINNED_MULTIPLIER * 2.2),
 		"twenty Exposed and eight Rooted: Pinned's stronger payoff")
 	var brim_exposed := EnemyStatuses.new()
 	brim_exposed.apply(EnemyStatuses.MARKED, 19)

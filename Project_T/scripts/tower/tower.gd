@@ -1005,6 +1005,7 @@ func get_attacks_per_second() -> float:
 		_turnover_cached_active = turnover
 		clear_dream_cache()
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
+	momentum += reaction_haste  # Wide Awake (a Reaction, owner 2026-10-17): outside the Dream cap, as the spin-up
 	var spin := momentum  # The Windmill's own spin-up is no Dream card: outside the cap
 	if _dream_state:
 		momentum += HelperCommons.speed_bonus(self)  # Rush, Close Quarters
@@ -1020,6 +1021,7 @@ func get_attacks_per_second() -> float:
 	return total
 
 var speed_capped := false  # Its Dream attack-speed bonus is at the +150% cap (the Warden panel can say "capped")
+var reaction_haste := 0.0  # Wide Awake (Crowned Reaction; owner 2026-10-17, council reactions_unique.md): attack speed bonus, set by Reactions.WardenWake
 var _speed_top := 0.0  # Attacks a second at the Dream cap (set by _compute_attacks_per_second)
 
 func _compute_attacks_per_second() -> float:
@@ -3184,6 +3186,8 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		GroveRules.spillover(self, enemy, dealt - health_before)  # Spillover: the leftover splashes on
 	if reaction.shatter:
 		Reactions.shatter_splash(enemy, self, dealt)
+	if reaction.get("pierce", false) or reaction.get("starfall", false):
+		Reactions.after_pinned_hit(enemy, self, dealt, reaction)  # Pinned's pierce, Starfall's stars (owner 2026-10-17, council reactions_unique.md)
 	if is_crit:
 		_shattering_blow(enemy, dealt)
 	if _dream_state and _has_rule(&"thousand_cuts") and is_instance_valid(enemy):

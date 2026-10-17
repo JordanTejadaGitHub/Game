@@ -264,7 +264,8 @@ func _heavy_heart_hit(tower, enemy) -> void:
 # Heavy Heart: the same Reaction on the nearest nightmares that carry one of its statuses; each waits its own cooldown
 # (Reactions._fire) and uses up what the Reaction uses up; a copy never copies (TD 3a).
 const SPENDS := {&"thunderclap": EnemyStatuses.STATIC, &"ignite": EnemyStatuses.STATIC, &"lightning_rod": EnemyStatuses.STATIC,
-	&"mushrooming": EnemyStatuses.DAMP, &"drown": EnemyStatuses.DROWSY, &"pinned": EnemyStatuses.MARKED, &"shatter": EnemyStatuses.HELD}
+	&"mushrooming": EnemyStatuses.DAMP, &"drown": EnemyStatuses.DROWSY, &"pinned": EnemyStatuses.MARKED, &"shatter": EnemyStatuses.HELD,
+	&"sleepwalk": EnemyStatuses.DROWSY, &"night_terror": EnemyStatuses.STATIC}  # Sleepwalk / Night Terror: 2026-10-17
 
 func _heavy_heart(enemy, id: StringName, key: StringName, towers: Array) -> void:
 	var data: ReactionData = Reactions.get_data(id)
@@ -305,9 +306,22 @@ func _copy_effect(other, id: StringName, base: StringName, tower) -> void:
 		&"pinned":
 			s.pinned = true
 		&"mushrooming":
+			if s.mushroom_time <= 0.0:
+				s.mushroom_payoff = 1.0  # (council rx review 2026-10-17) the zone reads its payoff from the nightmare
 			s.mushroom_time = maxf(s.mushroom_time, Reactions.MUSHROOM_TIME)
 		&"smother":
 			pass  # Smother is its Held + Poisoned ticking faster: the copy is the event itself
+		&"sleepwalk":
+			Reactions.start_sleepwalk(other)  # Sleepwalk (2026-10-17): the copy walks back too (never a flyer)
+		&"night_terror":
+			# (council rx review 2026-10-17) The copy keeps the stored bolt: it strikes, then the Charged and the Drowsy are spent.
+			var bolt: float = s.stored_bolt_damage()
+			var charger: Node = s.source(EnemyStatuses.STATIC) if is_instance_valid(s.source(EnemyStatuses.STATIC)) else tower
+			s.remove(EnemyStatuses.STATIC)
+			s.remove(EnemyStatuses.DROWSY)
+			Reactions.night_terror_fear(other, tower)  # Night Terror (2026-10-17): the copy screams too
+			if is_instance_valid(other) and not other.is_cleansed and bolt > 0.0:
+				Reactions.strike_bolt(other, bolt, charger, &"static")
 		_:
 			var strength: float = float(Reactions.ECHO_DAMAGE.get(base, 2.0)) * (tower.get_damage() if is_instance_valid(tower) else 0.0)
 			if strength > 0.0:

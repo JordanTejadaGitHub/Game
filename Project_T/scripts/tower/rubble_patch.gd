@@ -13,6 +13,16 @@ var _duration: float
 var _age := 0.0
 var _tick := 0.0
 var _drawn_by_fx := false
+# Avalanche's scree (owner 2026-10-17, council reactions_unique.md; set by Reactions._avalanche, 0 = plain rubble):
+# walkers on it gain 1 Rooted every `rooted_every` s (each holding `rooted_time` s), up to `rooted_max` per walker, and with
+# Mountain's Fall `soak_stacks` Soaked every `soak_every` s. Through Enemy.apply_status (immunities and caps hold); never bosses' Rooted.
+var rooted_every := 0.0
+var rooted_max := 0
+var rooted_time := 0.6
+var soak_every := 0.0
+var soak_stacks := 1
+var source: Node = null
+var _given := {}  # Nightmare instance id -> [time to its next Rooted, time to its next Soaked] (the Rooted count is the nightmare's: council rx review 2026-10-17)
 
 func _init(cells: Array[Vector2], slow: float, duration: float) -> void:
 	_cells = cells
@@ -39,8 +49,34 @@ func _process(delta: float) -> void:
 				var s: EnemyStatuses = enemy.statuses
 				s.slow_time = maxf(s.slow_time, TICK * 1.6)
 				s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, _slow)
+				if rooted_every > 0.0 or soak_every > 0.0:
+					_scree(enemy)
 	if not _drawn_by_fx:
 		queue_redraw()
+
+# Scree (Avalanche): one walker on it this TICK. The first Rooted and Soaked come at once, then every rooted_every /
+# soak_every seconds while it stays on the scree.
+func _scree(enemy: Node2D) -> void:
+	var key: int = enemy.get_instance_id()
+	var row: Array = _given.get(key, [0.0, 0.0])
+	row[0] = float(row[0]) - TICK
+	row[1] = float(row[1]) - TICK
+	var by: Node = source if is_instance_valid(source) else null
+	# (council rx review 2026-10-17) The count is the nightmare's, not this patch's: overlapping patches add to one
+	# scree_given, and a walker that reached rooted_max rests from all scree Rooted for the scree's time + its Hold
+	# breather (&"scree" cooldown), so patches never stack into an endless hold.
+	var s: EnemyStatuses = enemy.statuses
+	if rooted_every > 0.0 and float(row[0]) <= 0.0 and not s.is_boss and not s.is_on_cooldown(&"scree"):
+		row[0] = rooted_every
+		s.scree_given += 1
+		if s.scree_given >= rooted_max:
+			s.scree_given = 0
+			s.start_cooldown(&"scree", _duration + EnemyStatuses.HOLD_COOLDOWN)
+		enemy.apply_status(EnemyStatuses.HELD, 1, rooted_time, 0.0, 0, "stone", by)
+	if soak_every > 0.0 and float(row[1]) <= 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
+		row[1] = soak_every
+		enemy.apply_status(EnemyStatuses.DAMP, soak_stacks, 0.0, 0.0, 0, "water", by)
+	_given[key] = row
 
 # Without the effects player's rubble tile: a scatter of stones.
 func _draw() -> void:

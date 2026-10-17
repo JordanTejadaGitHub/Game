@@ -33,8 +33,9 @@ const THIN_BARK := &"thin_bark"
 const DAWNBREAK := &"dawnbreak"
 # The Woven Crowned cards whose Crowned Reaction deals damage: +CROWNED_CARD_BONUS through the Reaction hook. (Deep
 # Stillness, Endless Night, Ring of Rings and Fever Pitch get a bigger / longer effect instead, in Reactions.)
-const CROWNED_DAMAGE := {&"tempest": &"eye_of_the_tempest", &"starfall": &"falling_stars", &"avalanche": &"mountains_fall",
-	&"prismstorm": &"prism_heart"}
+# (Owner 2026-10-17, council reactions_unique.md: none any more; Tempest's Reach, Falling Stars, Mountain's Fall and Prism
+# Heart each give their Crowned Reaction a new rule instead of +50% damage. Kept, empty, for anything that reads it.)
+const CROWNED_DAMAGE := {}
 const RULES: Array[StringName] = [EMBER_COUNT, AFTERGLOW, SPENT_LIGHT, WITCHING_BEND, GRAND_DESIGN, UNBROKEN_CHAIN,
 	GRAFT_OF_DREAMS, CROWN_OF_LEAVES, OLD_HEART, LONG_WALK, DEEP_SLEEP, THIN_BARK,
 	&"eye_of_the_tempest", &"falling_stars", &"mountains_fall", &"prism_heart"]

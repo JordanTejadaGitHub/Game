@@ -477,7 +477,7 @@ func _credit(source: Node, event: Event, share: float, weights: Dictionary) -> v
 # the rest split by each applier's share of the stacks. [[source, share, {combo tag: weight}], …];
 # [] = the whole event to its source.
 func _spore_split(event: Event) -> Array:
-	if event.tag != &"spored" or not is_instance_valid(event.enemy) or event.amount <= 0.0:
+	if (event.tag != &"spored" and event.tag != &"smother") or not is_instance_valid(event.enemy) or event.amount <= 0.0:  # Smother's burst is stored Poisoned (council rx review 2026-10-17)
 		return []
 	var statuses: EnemyStatuses = event.enemy.statuses
 	var appliers: Array = statuses.spore_tick_credit if statuses.delivering_spore_tick else statuses.spore_credit()

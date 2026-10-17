@@ -31,6 +31,13 @@ var source: Node = null  # …this Warden
 var chain := 1
 var _visited := {}  # STILL_POOL: nightmare instance id -> true
 var _effects := {}  # FAIRY_RING: cell -> its loop, freed when used
+# Owner 2026-10-17, council reactions_unique.md (set by Reactions):
+var grows := false  # STILL_POOL, Deep Stillness: each nightmare pulled under widens the pool onto the next path cell…
+var route: Array = []  # …along these path cells (whole cells), up to Reactions.STILL_POOL_MAX_CELLS
+var chains := false  # NIGHTBLOOM, Endless Night: a sleeper dispelled inside leaves a new Nightbloom on its cell, once per cloud
+var generation := 0  # (council rx review 2026-10-17) Endless Night: 0 = the Reaction's cloud; its one new cloud (1) never grows another
+var _sleepers := {}  # NIGHTBLOOM: instance id -> [WeakRef, last position] of the nightmares asleep inside
+var _chained := false
 
 func _init(ground_kind: Kind, cells: Array[Vector2], duration: float, at: Vector2 = Vector2.ZERO,
 		radius: float = 0.0) -> void:
@@ -66,6 +73,8 @@ func _process(delta: float) -> void:
 	if _tick > 0.0:
 		return
 	_tick = TICK
+	if kind == Kind.NIGHTBLOOM and chains and not _chained:
+		_check_sleepers()
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
@@ -92,6 +101,44 @@ func _pool(enemy: Node2D) -> void:
 		return
 	_visited[id] = true
 	Reactions.pull_under(enemy, source, sleep_seconds)  # Status jobs: pulled under (was: asleep)
+	if grows:
+		_grow(enemy)
+
+# Deep Stillness: the pool spreads onto the first path cell ahead of this walker that isn't pool yet (next along the
+# path), up to Reactions.STILL_POOL_MAX_CELLS cells.
+func _grow(enemy: Node2D) -> void:
+	if _cells.size() >= Reactions.STILL_POOL_MAX_CELLS:
+		return
+	var grid := Tower.MAP_GRID
+	for point in enemy.get_cells_ahead(8):
+		var cell: Vector2 = grid.calculate_grid_coordinates(grid.calculate_map_position(point))
+		if _cells.has(cell):
+			continue
+		if not route.is_empty() and not route.has(cell):
+			return
+		_cells.append(cell)
+		Fx.play(&"still_pool", _local(cell), self, 1.0, true, maxf(_duration - _age, 0.1))
+		return
+
+# Endless Night: remember who sleeps inside; one of them dispelled (or gone) while asleep here blooms a new Nightbloom
+# on its cell, once per cloud; the new cloud never grows another (Reactions.ENDLESS_NIGHT_GENERATIONS, council rx review 2026-10-17).
+func _check_sleepers() -> void:
+	for key in _sleepers.keys():
+		var row: Array = _sleepers[key]
+		var enemy = row[0].get_ref()
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_cleansed:
+			if enemy.global_position.distance_to(global_position) > _radius:
+				_sleepers.erase(key)  # Left the cloud (awake): no bloom from it
+			continue
+		_sleepers.erase(key)
+		_chained = true
+		var at: Vector2 = row[1]
+		var cell: Vector2 = Tower.MAP_GRID.calculate_grid_coordinates(at)
+		var bloom := CrownedGround.new(Kind.NIGHTBLOOM, [], Reactions.NIGHTBLOOM_TIME, Tower.MAP_GRID.calculate_map_position(cell), _radius)
+		bloom.generation = generation + 1
+		bloom.chains = bloom.generation < Reactions.ENDLESS_NIGHT_GENERATIONS  # (council rx review 2026-10-17) one extra generation, no more
+		get_parent().add_child(bloom)
+		return
 
 func _nightbloom(enemy: Node2D) -> void:
 	if enemy.global_position.distance_to(global_position) > _radius:
@@ -103,6 +150,10 @@ func _nightbloom(enemy: Node2D) -> void:
 	if not s.is_boss and s.is_asleep():
 		s.sleep(TICK * 2.0)
 		s.sleep_locked_time = maxf(s.sleep_locked_time, TICK * 2.0)  # Hits can't wake it in here (Enemy's wake rule)
+		if chains and not _chained:
+			_sleepers[enemy.get_instance_id()] = [weakref(enemy), enemy.global_position]
+	elif _sleepers.has(enemy.get_instance_id()):
+		_sleepers.erase(enemy.get_instance_id())  # Awake again: no bloom from it
 
 func _ring(enemy: Node2D) -> void:
 	var cell: Vector2 = enemy.get_current_cell()

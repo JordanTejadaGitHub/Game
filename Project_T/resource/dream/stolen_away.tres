@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "stolen_away"
+display_name = "Stolen Away"
+description = "When a {named_combo:changeling} trades places, the nightmare it trades with turns and walks back for 1 s too."
+cost_description = "{named_combo:changeling} can go off only half as often."
+rarity = 2
+kind = 3
+tags = Array[String](["reaction"])
+discovered_by = Array[String](["crowned:changeling"])
+shows_statuses = Array[StringName]([&"spored", &"drowsy", &"marked"])
+max_stacks = 1
+min_act = 2
+entwined = true
+woven = true
+rule_id = &"stolen_away"
+tip = "Never bosses or flyers. A bet: needs a crowded path."
+makes = Array[StringName]([&"slow"])
+uses = Array[StringName]([&"reaction"])
+requires_statuses = Array[StringName]([&"spored", &"drowsy", &"marked"])

@@ -572,7 +572,7 @@ func _test_ascended() -> void:
 func _test_woven() -> void:
 	_reset()
 	var ids := ["eye_of_the_tempest", "deep_stillness", "fever_pitch", "falling_stars", "mountains_fall",
-		"prism_heart", "endless_night", "ring_of_rings"]
+		"prism_heart", "endless_night", "ring_of_rings", "stolen_away", "alarm_bells"]  # (the last two: owner 2026-10-17)
 	for id in ids:
 		var card := _card(id)
 		_check(card.woven and card.entwined and card.rarity == UpgradeData.Rarity.RARE and card.in_start_pool

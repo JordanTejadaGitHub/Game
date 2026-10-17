@@ -116,8 +116,9 @@ var _stag_time := 0.0:  # Seconds left inside the White Stag's aura
 			_timers_live = true
 
 # Reactions (tower_design.md "Reactions"; rules in Reactions). Per nightmare:
-const MUSHROOM_SPORE_BONUS := 0.5  # Mushrooming: Spored ticks +50%
-const SMOTHER_SPORE_RATE := 3.0  # Smother: Spored ticks this much faster while Held
+# (owner 2026-10-17, council reactions_unique.md: Mushrooming's +50% Poisoned and Smother's x3 ticks are gone. Mushrooming is
+# a zone now (mushroom_time below, read by Reactions.effect_multiplier); Smother stores its Poisoned while Rooted and
+# Reactions.on_smother_ended bursts it.)
 var reaction_cooldowns := {}  # Reaction id -> seconds before it can fire here again
 # The latest Reaction whose output touched this nightmare, while it can still start a chain.
 var chain_count := 0
@@ -127,11 +128,20 @@ var chain_time := 0.0:
 		if value > 0.0:
 			_timers_live = true
 var chain_towers: Array = []  # Wardens that took part in that chain so far
-var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
+var pinned := false:  # Pinned: the next Warden hit is a guaranteed ×3 crit
+	set(value):
+		if value and not pinned:
+			start_cooldown(&"pin_wait", Reactions.PIN_WAIT)  # (council rx review 2026-10-17) Night Terror waits this long at most
+		pinned = value
+var star_pinned := false  # Falling Stars (owner 2026-10-17, council reactions_unique.md): this Pin came from a star: a x2 crit, no pierce
+var star_pin_hit := false  # (council rx review 2026-10-17) The Pin hit being dealt is a star's: Enemy credits it at x STAR_PIN_CRIT
+var sleepwalked := 0  # (council rx review 2026-10-17) Sleepwalks it has started (Reactions.SLEEPWALK_TIMES; bosses SLEEPWALK_BOSS_TIMES)
+var scree_given := 0  # (council rx review 2026-10-17) Avalanche scree Rooted given since its last &"scree" rest, from any patch
+var mushroom_payoff := 1.0  # (council rx review 2026-10-17) The Brimming payoff of the Mushrooming cloud it stands in
 var skip_reaction_wait := false  # Card pass 2026-10-16, Called from Afar: its next Reaction skips its wait (Reactions._fire spends it)
 var bound_pause := false  # Card pass 2026-10-16, Bound and Burning (owned): while Rooted, its other statuses don't run down
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
-var mushroom_time := 0.0:  # Mushrooming: Spored ticks harder while > 0
+var mushroom_time := 0.0:  # Inside a Mushrooming cloud while > 0: effect damage +30% (owner 2026-10-17, council reactions_unique.md)
 	set(value):
 		mushroom_time = value
 		if value > 0.0:
@@ -165,7 +175,27 @@ var ground_taken_time := 0.0:  # Refreshed by MapGifts while the nightmare stand
 		ground_taken_time = value
 		if value > 0.0:
 			_timers_live = true
-var smothering := false  # Held + Spored right now (Spored ticks faster)
+var smothering := false  # Held + Spored right now (its Poisoned is stored, not ticking)
+# Smother (owner 2026-10-17, council reactions_unique.md): while smothering, each Poisoned tick swells this store instead of
+# landing; Reactions.on_smother_ended bursts it (x Reactions.SMOTHER_BURST) when the Root breaks. Credit: the tick's own.
+var smother_stored := 0.0
+var smother_source: Node = null
+var smother_line := ""
+var smother_credit := {}  # (council rx review 2026-10-17) Applier -> what its Poisoned ticks stored (the burst's credit split)
+
+# (council rx review 2026-10-17) The stored burst's credit as spore_tick_credit takes it: [[applier, share], …].
+func smother_credit_list() -> Array:
+	var total := 0.0
+	for who in smother_credit:
+		if is_instance_valid(who):
+			total += float(smother_credit[who])
+	var out := []
+	if total <= 0.0:
+		return out
+	for who in smother_credit:
+		if is_instance_valid(who):
+			out.append([who, float(smother_credit[who]) / total])
+	return out
 
 # Sleep (Drown; Great Dreamcatcher lengthens it): can't move while > 0. Not a status (no icon, no
 # Reactions of its own), but it counts as asleep for Pinned and Caught.
@@ -665,7 +695,7 @@ func tick(delta: float) -> float:
 	spore_tick_credit = _EMPTY
 	if has(SPORED):
 		smothering = stacks(HELD) >= Reactions.need(Reactions.ROOTED_NEEDED) and stacks(SPORED) >= Reactions.need(Reactions.SMOTHER_MIN_SPORES) and Reactions.grown(self, [HELD, SPORED])
-		_spore_timer += delta * (SMOTHER_SPORE_RATE * reaction_payoff(&"smother") if smothering else 1.0) * (burn_rate if burn_time > 0.0 else 1.0)
+		_spore_timer += delta * (burn_rate if burn_time > 0.0 else 1.0)  # (Smother no longer speeds it up: owner 2026-10-17)
 		if _spore_timer >= SPORE_TICK:
 			spore_tick_source = source(SPORED)
 			spore_tick_line = spore_line()
@@ -673,9 +703,16 @@ func tick(delta: float) -> float:
 		while _spore_timer >= SPORE_TICK:
 			_spore_timer -= SPORE_TICK
 			var per_tick: float = _active[SPORED].stacks * _active[SPORED].potency * SPORE_TICK
-			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + ((1.0 + MUSHROOM_SPORE_BONUS) * reaction_payoff(&"mushrooming") - 1.0 if mushroom_time > 0.0 else 0.0) \
-				+ get_caught_tick_bonus()
-			spore_damage += per_tick * (1.0 + bonus)
+			var bonus := (FOG_SPORE_BONUS if is_in_fog() else 0.0) + get_caught_tick_bonus()
+			if smothering:  # Smother (owner 2026-10-17, council reactions_unique.md): the tick swells the store instead
+				smother_stored += per_tick * (1.0 + bonus)
+				smother_source = spore_tick_source
+				smother_line = spore_tick_line
+				for part in spore_tick_credit:  # (council rx review 2026-10-17) each applier's share, for the burst's credit
+					if is_instance_valid(part[0]):
+						smother_credit[part[0]] = float(smother_credit.get(part[0], 0.0)) + per_tick * (1.0 + bonus) * float(part[1])
+			else:
+				spore_damage += per_tick * (1.0 + bonus)
 	else:
 		_spore_timer = 0.0
 		smothering = false

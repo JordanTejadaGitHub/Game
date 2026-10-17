@@ -157,11 +157,13 @@ const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
 const REACTION_TAGS: Array[StringName] = [&"thunderclap", &"ignite", &"shatter", &"pinned", &"lightning_rod",
-	&"dawnbreak", &"echo", &"starfall", &"avalanche", &"drown", &"fever_dream", &"carried_storm"]
+	&"dawnbreak", &"echo", &"starfall", &"avalanche", &"drown", &"fever_dream", &"carried_storm",
+	&"smother"]  # Smother's burst (owner 2026-10-17, council reactions_unique.md)
 # Reactions that change a Warden's own hit (card pass slice 1, council card_pass_td.md 1a): only the bonus is the
 # Reaction's. Tag -> the multiplier it put on the hit (Shatter and Pinned also × EnemyStatuses.charged_payoff_multiplier).
 const REACTION_BONUS_ONLY := {&"shatter": Reactions.SHATTER_MULTIPLIER, &"pinned": Reactions.PINNED_MULTIPLIER,
-	&"lightning_rod": Reactions.ROD_MULTIPLIER}
+	&"lightning_rod": Reactions.ROD_MULTIPLIER,
+	&"smother": Reactions.SMOTHER_BURST}  # (council rx review 2026-10-17) only the burst's bonus half is the Reaction's
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
 const COAT_COLOR := Palette.STONE
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
@@ -657,6 +659,9 @@ func _process(delta: float) -> void:
 		return
 	if statuses.is_held() or statuses.is_asleep():
 		return  # Frozen / rooted in place, or asleep (Drown)
+	if sleepwalk_left > 0.0:
+		_walk_back(delta)  # Sleepwalk (Roguelite Code for the owner, 2026-10-17): back up the route, no traits meanwhile
+		return
 	_charge_left = maxf(_charge_left - delta, 0.0)
 	_update_trait(delta)
 	if _leaping:
@@ -2670,9 +2675,13 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	# the "ignite" combo above.
 	if tag in REACTION_TAGS:
 		var bonus: float = REACTION_BONUS_ONLY.get(tag, 0.0)
-		if bonus > 0.0 and tag != &"lightning_rod":
+		if tag == &"pinned" and not is_area and statuses.star_pin_hit:
+			bonus = Reactions.STAR_PIN_CRIT  # (council rx review 2026-10-17) a Falling Stars Pin's crit is x2, no payoff
+			statuses.star_pin_hit = false
+		elif bonus > 0.0 and tag != &"lightning_rod":
 			bonus *= statuses.reaction_payoff(tag)  # Brimming's x2.2 only where this Reaction earned it (Reactions._decide_payoff)
-		event.reaction_amount = dealt * (1.0 - 1.0 / bonus) if bonus > 1.0 and not (tag == &"shatter" and is_area) else dealt
+		# (An area-tagged Shatter or Pinned event is its shards / pierce: all of it is the Reaction's; owner 2026-10-17 pierce.)
+		event.reaction_amount = dealt * (1.0 - 1.0 / bonus) if bonus > 1.0 and not ((tag == &"shatter" or tag == &"pinned") and is_area) else dealt
 	elif event.combos.has(&"ignite"):
 		event.reaction_amount = dealt * (1.0 - 1.0 / statuses.burn_rate)
 	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
@@ -2899,6 +2908,83 @@ func _end_drag(release: bool = true) -> void:
 			_grab_fx.queue_free()
 	_grab_fx = null
 	drag_ended.emit(self)
+
+# Sleepwalk / Night Terror (Roguelite Code for the owner, 2026-10-17): the Sleepwalk Reaction (Reactions._sleepwalk) turns
+# the nightmare round: for `sleepwalk_left` s it walks back up its current route toward the start at `sleepwalk_share` of
+# its speed, then turns again and carries on. The timer runs only while it walks (held / asleep / dragged: it waits).
+# At the start of its current route (a re-route restarts it there) it stands until the time is up. Never flyers.
+var sleepwalk_left := 0.0
+var sleepwalk_share := 0.5
+var sleepwalk_rest := 0.0  # (council rx review 2026-10-17) Sleepwalk's cooldown, started when this walk ends (0 = a bump)
+
+# (council rx review 2026-10-17) Never at the Heartwood, past the route's end, on the entry bridge or while waiting
+# to set off: the walk's timer would never run there.
+func can_walk_back() -> bool:
+	return not at_heartwood and _path_index < _path.size() and _entry.is_empty() and hold_time <= 0.0
+
+func sleepwalk(seconds: float, share: float, rest: float = 0.0) -> void:
+	if is_cleansed or is_flying() or _leaping or seconds <= 0.0 or not can_walk_back():
+		return
+	sleepwalk_left = maxf(sleepwalk_left, seconds)
+	sleepwalk_share = share
+	sleepwalk_rest = maxf(sleepwalk_rest, rest)
+
+func is_sleepwalking() -> bool:
+	return sleepwalk_left > 0.0
+
+func _walk_back(delta: float) -> void:
+	sleepwalk_left = maxf(sleepwalk_left - delta, 0.0)
+	var previous_position := position
+	if statuses.changes != _speed_changes or _speed_stale or speed != _speed_base:  # (council rx review 2026-10-17: cached, as the forward walk)
+		_speed_cache = get_move_speed()
+		_speed_changes = statuses.changes
+		_speed_stale = false
+		_speed_base = speed
+	var remaining := _speed_cache * sleepwalk_share * delta
+	while remaining > 0.0 and _path_index > 0:
+		var back := grid.calculate_map_position(_path[_path_index - 1])
+		var distance := position.distance_to(back)
+		if distance > remaining:
+			position = position.move_toward(back, remaining)
+			break
+		position = back
+		remaining -= distance
+		_path_index -= 1  # Now walking back toward the point before it (as _step_back)
+	if not _culled:
+		update_animation(position - previous_position)
+	if sleepwalk_left <= 0.0:
+		_speed_stale = true
+		if sleepwalk_rest > 0.0:  # (council rx review 2026-10-17) Sleepwalk's cooldown starts when the walk ends
+			statuses.start_cooldown(&"sleepwalk", maxf(float(statuses.reaction_cooldowns.get(&"sleepwalk", 0.0)), sleepwalk_rest))
+			sleepwalk_rest = 0.0
+		if _path_index > 0 and _path_index <= _path.size():
+			_last_cell = _path[_path_index - 1]  # Restless: the cell it turned on, never a "turn back"
+
+# Changeling (Crowned Sleepwalk; owner 2026-10-17, council reactions_unique.md): this nightmare and `other` trade places,
+# each taking the other's spot and its route from there (both walk valid routes on). Never a flyer, a leaping or dragged
+# one. True if they traded.
+func trade_places(other: Node2D) -> bool:
+	if other == self or not is_instance_valid(other) or is_cleansed or other.is_cleansed or is_flying() or other.is_flying() \
+			or _leaping or other._leaping or _dragging or other._dragging:
+		return false
+	var my_position := position
+	var my_path := _path
+	var my_index := _path_index
+	var my_last := _last_cell
+	_take_route(other.position, other._path, other._path_index, other._last_cell)
+	other._take_route(my_position, my_path, my_index, my_last)
+	return true
+
+func _take_route(at: Vector2, points: PackedVector2Array, index: int, last: Vector2) -> void:
+	position = at
+	_path = points
+	_path_index = index
+	_last_cell = last
+	_path_serial += 1  # Per-route caches rebuild (each nightmare's own serial, never swapped)
+	_cells_left = PackedFloat32Array()
+	_gap_step = -1
+	_speed_stale = true
+	queue_redraw()
 
 # Index into the current route of the cell the nightmare last stood on (or is standing on).
 func get_route_index() -> int:

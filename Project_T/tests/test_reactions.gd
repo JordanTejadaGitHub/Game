@@ -26,7 +26,7 @@ func _run() -> void:
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame
-	_check(Reactions.all().size() == 8, "eight Reactions are defined (%d)" % Reactions.all().size())
+	_check(Reactions.all().size() == 10, "ten Reactions are defined (Sleepwalk and Night Terror 2026-10-17) (%d)" % Reactions.all().size())
 
 	# Reactions need a grown Warden (tower_design.md "Reactions"): the sources here are branch forms.
 	var jar := _plant("stormcap", Vector2(2, 2))
@@ -113,16 +113,21 @@ func _run() -> void:
 		"the 5th Charged from a spore Warden sets off the bolt, credited to the Stormcap that charged it (%s)" % [bolts.map(func(e) -> String: return e.source.name if e.source else "none")])
 	await _clean()
 
-	# --- Mushrooming: 3+ Spored + Damp. Spored ticks +50%, a spore cloud on the tile; uses up Damp ---
+	# --- Mushrooming: 12 Spored + 8 Damp. A spore cloud on the tile: a zone, +30% effect damage inside (owner
+	# 2026-10-17, council reactions_unique.md: no extra Poisoned, and the cloud adds none); uses up Damp ---
 	var m := _spawn(origin)
 	m.apply_status(EnemyStatuses.SPORED, 12, 5.0, potency, 0, "spore", sporeling)
 	m.apply_status(EnemyStatuses.DAMP, 8)
-	_check(not m.statuses.has(EnemyStatuses.DAMP) and m.statuses.mushroom_time > 0.0, "Mushrooming: Spored ticks harder, Damp used up")
+	_check(not m.statuses.has(EnemyStatuses.DAMP) and m.statuses.mushroom_time > 0.0, "Mushrooming: it stands in the zone, Damp used up")
 	var clouds := main.get_children().filter(func(n: Node) -> bool: return n is ReactionCloud)
 	_check(clouds.size() == 1, "a spore cloud grows on its tile")
 	var walker := _spawn(m.global_position + Vector2(10, 0))
+	var outside := _spawn(m.global_position + Vector2(4, 0) * CELL)
 	await _wait(1.1)
-	_check(walker.statuses.has(EnemyStatuses.SPORED), "the cloud gives Spored to nightmares inside")
+	_check(not walker.statuses.has(EnemyStatuses.SPORED), "the cloud no longer gives Spored")
+	_check(walker.statuses.mushroom_time > 0.0 and outside.statuses.mushroom_time <= 0.0, "a nightmare inside is in the zone, one outside isn't")
+	var zone_ratio := Reactions.effect_multiplier(walker, sporeling) / Reactions.effect_multiplier(outside, sporeling)
+	_check(is_equal_approx(zone_ratio, 1.0 + Reactions.MUSHROOM_ZONE_BONUS), "inside: +30%% effect damage (x%.2f)" % zone_ratio)
 	await _clean()
 
 	# --- Drown (status jobs, 2026-09-29): Damp + full Drowsy. Pulled under 3 s: slowed 60% and drowning
@@ -143,17 +148,27 @@ func _run() -> void:
 	_check(d.statuses.has(EnemyStatuses.DROWSY), "only once per nightmare (the Drowsy stays the second time)")
 	await _clean()
 
-	# --- Pinned: Marked + Held. The next hit is a guaranteed ×3 crit; uses up Marked ---
+	# --- Pinned: Marked + Held. The next hit is a guaranteed ×3 crit that pierces (owner 2026-10-17, council
+	# reactions_unique.md): every nightmare in a 3-cell line behind it, away from the Warden, takes half; uses up Marked ---
 	var p := _spawn(origin)
-	p.apply_status(EnemyStatuses.HELD, 4, 5.0)
-	p.apply_status(EnemyStatuses.MARKED, 10)
-	_check(p.statuses.pinned and not p.statuses.has(EnemyStatuses.MARKED), "Pinned: primed, Marked used up")
 	var no_crit: TowerData = sporeling.tower_data.duplicate()
 	no_crit.crit_chance = 0.0
 	no_crit.applies_status = &""
 	var plain := _plant_data(no_crit, Vector2(4, 2))
+	var line_dir: Vector2 = (origin - plain.global_position).normalized()
+	var behind := _spawn(origin + line_dir * 2.0 * CELL)
+	var past := _spawn(origin + line_dir * 4.0 * CELL)
+	var off_line := _spawn(origin + line_dir.orthogonal() * 2.0 * CELL)
+	var in_front := _spawn(origin - line_dir * 1.5 * CELL)
+	p.apply_status(EnemyStatuses.HELD, 4, 5.0)
+	p.apply_status(EnemyStatuses.MARKED, 10)
+	_check(p.statuses.pinned and not p.statuses.has(EnemyStatuses.MARKED), "Pinned: primed, Marked used up")
 	plain.hit(p, 1.0, false, Tower.NO_CRIT)
-	_check(_lost(p) == int(plain.get_damage() * 4.0), "the next hit is a ×3 crit (%d)" % _lost(p))
+	var pin_hit := plain.get_damage() * Reactions.PINNED_MULTIPLIER
+	_check(_lost(p) == int(pin_hit), "the next hit is a ×3 crit (%d)" % _lost(p))
+	_check(absi(_lost(behind) - int(pin_hit * Reactions.PIN_PIERCE_SHARE)) <= 1, "it pierces: a nightmare 2 cells behind takes half (%d)" % _lost(behind))
+	_check(_lost(past) == 0 and _lost(off_line) == 0 and _lost(in_front) == 0,
+		"not 4 cells behind, beside the line or in front of it (%d, %d, %d)" % [_lost(past), _lost(off_line), _lost(in_front)])
 	_check(not p.statuses.pinned, "only one hit")
 	await _clean()
 
@@ -172,7 +187,8 @@ func _run() -> void:
 	_check(_lost(shard) == int(hit * 0.5), "shards deal half to a neighbour (%d)" % _lost(shard))
 	await _clean()
 
-	# --- Smother: Held + Spored. Spored ticks 3× as fast while held ---
+	# --- Smother: Held + Spored. While held its Spored stops ticking and swells; when the Root breaks it all bursts at
+	# x2 (owner 2026-10-17, council reactions_unique.md; was x3 ticks) ---
 	var sm := _spawn(origin)
 	var control := _spawn(origin + Vector2(5, 0) * CELL)
 	for e in [sm, control]:
@@ -182,7 +198,15 @@ func _run() -> void:
 	for e in [sm, control]:
 		e.set_process(true)
 	await _wait(1.0)
-	_check(_lost(sm) >= _lost(control) * 2.5, "held, its spores tick about 3× as fast (%d vs %d)" % [_lost(sm), _lost(control)])
+	_check(_lost(sm) == 0 and sm.statuses.smother_stored > 0.0 and _lost(control) > 0,
+		"held, its spores don't tick: they swell (%d lost, %.1f stored; the other lost %d)" % [_lost(sm), sm.statuses.smother_stored, _lost(control)])
+	var swollen: float = sm.statuses.smother_stored
+	var control_lost := _lost(control)
+	sm.statuses.remove(EnemyStatuses.HELD)  # The Root breaks
+	await process_frame
+	await process_frame
+	_check(sm.statuses.smother_stored == 0.0 and _lost(sm) >= int(swollen * Reactions.SMOTHER_BURST * 0.9) and _lost(sm) >= int(control_lost * 1.6),
+		"the Root breaks: it all bursts at once, x2 (%d lost, %.1f stored, the other %d)" % [_lost(sm), swollen, control_lost])
 	await _clean()
 
 	# --- Lightning Rod: Marked + Static. A Static bolt nearby strikes it instead at ×2 ---

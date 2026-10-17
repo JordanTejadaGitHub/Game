@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"sleepwalk"
+display_name = "Sleepwalk"
+statuses = Array[StringName]([&"spored", &"drowsy"])
+description = "It turns and walks back up the path for 2 s at half speed (bosses 1 s), and every nightmare it bumps into turns round too for 0.5 s (never bosses). Needs {stacks:need_spored} {spored} + {full} {drowsy}. Uses up the {drowsy}. Twice per nightmare at most (bosses once). Waits while it is {asleep} or near a {warden:dreamcatcher}. Never flyers."
+callout_color = Color(0.83137256, 0.9254902, 0.6117647, 1)
+effect = &"puffball_bloom"
+effect_scale = 1.5

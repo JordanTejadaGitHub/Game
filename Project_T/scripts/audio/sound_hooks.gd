@@ -77,6 +77,9 @@ const GREAT_BELL_BLOOM_DB := -6.0
 const REACTION_DB := -1.0
 const REACTION_BOSS_DB := -2.0  # A boss's reduced version plays a little smaller
 const REACTION_THROTTLE_MS := 150
+# Sleepwalk / Night Terror (Roguelite Code, 2026-10-17): no sounds of their own yet; these stand in until Sound makes them.
+const REACTION_SOUND_STANDIN := {&"sleepwalk": &"reaction_smother", &"night_terror": &"reaction_thunderclap",
+	&"changeling": &"crowned_nightbloom", &"wide_awake": &"crowned_starfall"}  # Crowned ones: their signature (owner 2026-10-17)
 const REACTION_REACH_CELLS := 2.5
 const CHAIN_SWELL_DB := -9.0
 const CHAIN_SWELL_STEP_DB := 1.2  # Fuller each link, never higher
@@ -1081,13 +1084,13 @@ func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) ->
 	var caught := _nightmares_near(where, REACTION_REACH_CELLS)
 	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + caught) / log(2.0), ASCENDED_GROWTH_MAX)
 	var volume := REACTION_DB - ASCENDED_GROWTH_MAX + growth + (REACTION_BOSS_DB if enemy.enemy_data.is_boss else 0.0)
-	var reaction_id := StringName("reaction_" + base)
+	var reaction_id: StringName = REACTION_SOUND_STANDIN.get(base, StringName("reaction_" + base))
 	if sound.has_sound(reaction_id):
 		sound.play(reaction_id, where, volume, 1.0, 0.03)
 	if crowned:
 		sound.duck(3.0, 0.5)
 		sound.play(&"crown_swell", where, volume - 3.0, 1.0, 0.0)
-		var signature := StringName("crowned_" + id)
+		var signature: StringName = REACTION_SOUND_STANDIN.get(id, StringName("crowned_" + id))  # (stand-ins: Changeling, Wide Awake)
 		if sound.has_sound(signature):
 			sound.play(signature, where, volume, 1.0, 0.02)
 

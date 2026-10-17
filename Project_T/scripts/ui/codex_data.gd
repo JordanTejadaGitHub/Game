@@ -106,7 +106,8 @@ const GLOSSARY_SOURCE := [
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
-		["{drowsy}", "{tip:drowsy}", ["{asleep}", "Drown"]],
+		# (council rx review 2026-10-17) The one-full-Drowsy order, once, here.
+		["{drowsy}", "{tip:drowsy} A full {drowsy} sets off one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
@@ -173,17 +174,23 @@ const CROWNED := {
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
-		"Its spores all go off at once, and it passes {spored} + {drowsy} to its neighbors: a sleep plague."],
+		"When {combo:smother} bursts on a fully {drowsy} nightmare, it falls {asleep} and its neighbors catch {spored} + {drowsy}: a sleep plague."],
 	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
-		"The crit pulls every {static} bolt within 3 cells into it; each bolt crits too, and a column of light falls."],
+		"The crit splits into stars: nightmares within 3 cells with {stacks:need_marked} {marked} take a crit for half the hit."],
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
-		"A Cairn or Rockslide lob sets off the Shatter on every {damp} + {held} nightmare under it."],
+		"A Cairn or Rockslide lob leaves scree on the path under it: walkers are slowed and gain {held}."],
 	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
-		"The ice shards carry lightning: each adds {static} to what it hits, helping neighbors build toward Thunderclap."],
+		"The ice shards spark: each nightmare they hit with 8 {static} sets off its bolt at once."],
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
 		"A ring of mushrooms sprouts around the held nightmare: walkers crossing it get {spored} + {damp}."],
+	# Owner 2026-10-17, council reactions_unique.md: the Crowned forms of Sleepwalk and Night Terror (the text shown is the
+	# ReactionData's; these are fallbacks).
+	&"changeling": ["Changeling", &"sleepwalk", &"marked", ["sporeling", "bellflower", "firefly_jar"],
+		"It trades places with the nightmare furthest along its path within 3 cells, then turns and walks back. Never bosses."],
+	&"wide_awake": ["Wide Awake", &"night_terror", &"held", ["firefly_jar", "bellflower", "rootling"],
+		"The scream startles your attacking Wardens: those within 3 cells attack 40% faster for 3 s."],
 }
 # assets/meta/icons/family_icons.png: 32×32 icons in this order.
 const FAMILY_ICON_ORDER := ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower",
@@ -470,8 +477,9 @@ static func glossary() -> Array:
 				if not _glossary_expansion and EXPANSION_TERMS.has(entry[0]):
 					continue  # The demo keeps today's branches: no branch-expansion terms
 				var text: String = entry[1]
-				if text.begins_with("{tip:"):
-					text = IconInfo.STATUSES.get(StringName(text.trim_prefix("{tip:").trim_suffix("}")), ["", ""])[1]
+				if text.begins_with("{tip:"):  # (council rx review 2026-10-17: text may follow the tip, as on Drowsy)
+					var close := text.find("}")
+					text = IconInfo.STATUSES.get(StringName(text.substr(5, close - 5)), ["", ""])[1] + text.substr(close + 1)
 				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s)),
 					_example(entry)])  # [3]: one muted example line

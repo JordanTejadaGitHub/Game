@@ -88,6 +88,9 @@ func _initialize() -> void:
 				continue
 			var rid := StringName(file.get_basename())
 			var needed := StringName(("crowned_%s" if Reactions.is_crowned(rid) else "reaction_%s") % rid)
+			if SoundHooks.REACTION_SOUND_STANDIN.has(rid):  # Sleepwalk / Night Terror (2026-10-17): a stand-in until Sound makes theirs
+				needed = SoundHooks.REACTION_SOUND_STANDIN[rid]
+				print("NOTE: Reaction %s has no sound of its own yet, using %s" % [rid, needed])
 			_check(sound.has_sound(needed), "Reaction %s has %s" % [rid, needed])
 	for id in [&"crown_swell", &"chain_swell", &"chain_surge", &"chain_dawnburst", &"stinger_dawnburst",
 			&"discover_reaction", &"loop_smother"]:

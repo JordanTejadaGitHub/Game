@@ -1263,7 +1263,7 @@ func _test_combo_choices() -> void:
 	for id in ["damp_rot", "rain_on_glass", "sparking_spores", "rolling_thunder", "wildfire_spores", "mushroom_rain", "deep_water",
 			"quick_reactions", "conductive_soil", "static_bloom", "starlit_aim", "kin_and_kindling", "carried_on_the_wind",
 			"charged_feathers", "pollen_beaks", "windborne_rain", "deep_stillness", "endless_night", "eye_of_the_tempest",
-			"falling_stars", "fever_pitch", "mountains_fall", "prism_heart", "ring_of_rings"]:
+			"falling_stars", "fever_pitch", "mountains_fall", "prism_heart", "ring_of_rings", "stolen_away", "alarm_bells"]:
 		_check(_card(id).cost_description != "", "%s shows its trade on its own line" % id)
 	# Soaked Rot: Soaked stops boosting water hits
 	_check(dreams.soaked_boosts_water(), "Soaked boosts water hits")
