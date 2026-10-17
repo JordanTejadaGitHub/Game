@@ -337,7 +337,10 @@ func _council_corrections() -> void:
 	var old_unlocked := dreams.unlocked.duplicate()
 	var old_offer := dreams._offer_drift
 	dreams.unlocked = {"firefly_jar": true, "stormcap": true}
-	var woven: UpgradeData = load("res://resource/dream/eye_of_the_tempest.tres")
+	# A three-family card (the Crowned cards were one, but they gate on statuses since 2026-10-17): built here
+	var woven := UpgradeData.new()
+	woven.id = "test_three_families"
+	woven.requires.assign(["stormcap", "rain_lily", "driftspore"])
 	dreams._offer_drift = 60
 	_check(dreams.half_dreamed_missing(woven).is_empty(), "Half-Dreamed: two missing families with one pick left is impossible")
 	dreams._offer_drift = 35
