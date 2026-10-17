@@ -491,19 +491,22 @@ func _on_damage(event: DamageLog.Event) -> void:
 	# damage (its tag a Reaction id, Crowned too; less any combo part, so nothing counts twice), plain status ticks.
 	var parts := damage_parts(event, _reaction_ids())
 	_add_parts(run, event.amount, parts)
+	var cards := card_damage_of(event)  # Once per hit (perf, Enemy Code's profile 2026-10-17: it ran twice)
 	var row := _row_for(event.enemy)
 	if not row.is_empty():
 		# Effective damage only (Balancing, run 24: overkill made damage 2–4× health_spawned); the rest in "overkill".
-		var over := event.amount * (1.0 - DamageLog.effective_share(event))  # (the Target Dummy: none)
-		row["damage"] = float(row.get("damage", 0.0)) + event.amount - over
-		row["overkill"] = float(row.get("overkill", 0.0)) + over
 		# The combo / Reaction / status parts lose the same overkill share as the damage column (Balancing, the
 		# 2026-10-12 run: combo_share passed 1.0 on drifts 39, 42 and 47, combo damage counted whole).
 		var kept := DamageLog.effective_share(event)
+		var over := event.amount * (1.0 - kept)  # (the Target Dummy: none)
+		row["damage"] = float(row.get("damage", 0.0)) + event.amount - over
+		row["overkill"] = float(row.get("overkill", 0.0)) + over
 		var effective: Array[float] = [parts[0] * kept, parts[1] * kept, parts[2] * kept]
 		_add_parts(row, 0.0, effective)
-		row["card_damage"] = float(row.get("card_damage", 0.0)) + card_damage_of(event) * kept
-	run["card_damage"] = float(run.get("card_damage", 0.0)) + card_damage_of(event)
+		if cards > 0.0:
+			row["card_damage"] = float(row.get("card_damage", 0.0)) + cards * kept
+	if cards > 0.0:
+		run["card_damage"] = float(run.get("card_damage", 0.0)) + cards
 
 # The damage taken Dream cards added to one hit (Balancing Discussion 2026-10-16: "card_damage" per drift): what
 # DreamState already credits (a card's own damage tag whole; on a Warden's hit, the share its damage and attack-speed
@@ -513,10 +516,9 @@ func card_damage_of(event: DamageLog.Event) -> float:
 	var total := 0.0
 	for id in event.card_damage:
 		total += float(event.card_damage[id])
-	if dream_state == null or event.amount <= 0.0:
-		return total
-	var by_tag: Dictionary = dream_state.call("_credit_rule_map") if dream_state.has_method("_credit_rule_map") else {}
-	if event.tag != &"" and by_tag.has(event.tag):
+	if dream_state == null or event.amount <= 0.0 or dream_state.stacks.is_empty():
+		return total  # (No Dream taken: nothing more to credit)
+	if event.tag != &"" and _card_tags().has(event.tag):
 		return total + event.amount
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
@@ -526,6 +528,16 @@ func card_damage_of(event: DamageLog.Event) -> float:
 	if entry.size() >= 4:
 		total += event.amount * (1.0 - 1.0 / ((1.0 + float(entry[2])) * (1.0 + float(entry[3]))))
 	return total
+
+# DreamState's damage tag -> card map, asked for at most once a frame (its own call hashes the stacks each time).
+var _card_tag_map := {}
+var _card_tag_frame := -1
+func _card_tags() -> Dictionary:
+	var frame := Engine.get_process_frames()
+	if frame != _card_tag_frame:
+		_card_tag_frame = frame
+		_card_tag_map = dream_state.call("_credit_rule_map") if dream_state.has_method("_credit_rule_map") else {}
+	return _card_tag_map
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:

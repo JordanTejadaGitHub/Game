@@ -85,6 +85,8 @@ func _drift_now() -> int:
 	return int(_director.drifts_started) if _director != null else 0
 
 func _on_damage(event: DamageLog.Event) -> void:
+	if event.tag == &"" and event.combos.is_empty():
+		return  # Most hits: nothing to pop or flash (perf, Enemy Code's profile 2026-10-17)
 	_card_callout(event)
 	if not is_instance_valid(event.enemy):
 		return

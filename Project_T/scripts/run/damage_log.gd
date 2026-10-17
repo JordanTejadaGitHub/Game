@@ -187,6 +187,8 @@ static func take_card_bonuses(dealt: float) -> Dictionary:
 	_card_notes.clear()
 	return out
 
+const NO_WEIGHTS := {}  # (Read only: _credit only iterates it)
+
 func report(event: Event) -> void:
 	event.time = _clock
 	Fx.damage_feedback(event)  # The hit looks like what hit it (screens_ui.md "Hit feedback on nightmares")
@@ -195,9 +197,11 @@ func report(event: Event) -> void:
 		event.source_name = tower.tower_data.display_name if tower else str(event.source.name)
 		var split := _spore_split(event)
 		if split.is_empty():
-			var all := {}
-			for tag in event.combos:
-				all[tag] = 1.0
+			var all := NO_WEIGHTS  # Most hits have no combo: no new dictionary each (perf, 2026-10-17)
+			if not event.combos.is_empty():
+				all = {}
+				for tag in event.combos:
+					all[tag] = 1.0
 			_credit(event.source, event, 1.0, all)
 		else:
 			for part in split:
