@@ -248,7 +248,7 @@ static func card(id: StringName) -> UpgradeData:
 	out.id = String(id)
 	out.display_name = row.name
 	out.description = row.text
-	# The style and where it leads are shown on the card itself (kind_line), so phones see them; the tip keeps the details.
+	# No style or "Leads to" on the card or its tip (owner 2026-10-17: no direction, the player finds the path).
 	var tip := RegEx.create_from_string(" ?Leads to: [^.]*\\.").sub(String(row.tip), "", true)
 	out.tip = tip.strip_edges()
 	out.rarity = UpgradeData.Rarity.COMMON
@@ -257,23 +257,6 @@ static func card(id: StringName) -> UpgradeData:
 	out.max_stacks = 1
 	out.tags = ["calling_evolution"]
 	return out
-
-# The line under the card's header (owner 2026-10-17, "the wording is awful": the style and what comes next were in a
-# hover-only tip, so phones never saw them): "Spread style · next: Millrace or Lapping Water", "Leads to Flood", "Capstone".
-static func kind_line(id: StringName) -> String:
-	if not PATHS.has(id):
-		return ""
-	var row: Dictionary = PATHS[id]
-	var names: Array[String] = []
-	for child in children(id):
-		names.append(display_name(child))
-	var next := " or ".join(names)
-	match int(row.tier):
-		STYLE:
-			return "%s style · next: %s" % [row.style, next] if next != "" else "%s style" % row.style
-		FOLLOW_UP:
-			return "Leads to %s" % next if next != "" else ""
-	return "Capstone"
 
 # "Spore Print → Clump → Sticky Caps" for the badge and the Dreams panel.
 static func path_text(calling_title: String, path: Array) -> String:

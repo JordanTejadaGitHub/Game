@@ -2215,8 +2215,6 @@ func batch_report_lines() -> String:
 func card_kind_line(card: UpgradeData) -> String:
 	if card == null:
 		return ""
-	if card.tags.has("calling_evolution"):
-		return CALLING_PATHS.kind_line(StringName(card.id))  # "Spread style · next: …" (owner 2026-10-17: visible on phones)
 	if card.calling != "":
 		return ""  # The card's top line already says "Calling · <name>" (screens_ui.md 844fa70a: no second Calling line)
 	if card.tags.has(LENT_TAG) and not card.requires.is_empty():
