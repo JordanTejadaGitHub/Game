@@ -28,15 +28,15 @@ func _run() -> void:
 	run_state.dew = 10000
 	# Sprouts are exempt from copies (+5% each, checked at the end): only the Sprout step prices them
 
-	# The step is every 10 Sprouts in the "Health x2, Dew x2 trial" (balance_simulation.md; it was every 5).
+	# The step: +5 Dew every 5 Sprouts (Balancing 2026-10-16: "placing sprouts is still better than walls"; it was +4 every 10).
 	var per: int = placer.sprout_per_step()
-	_check(per == 10, "the Sprout price steps every 10 Sprouts (%d)" % per)
+	_check(per == TowerPlacer.SPROUTS_PER_STEP and per == 5, "the Sprout price steps every 5 Sprouts (%d)" % per)
 	var planted: Array = []
 	for i in per:
 		_check(placer.get_cost(sprout) == 10, "Sprout %d costs 10 (%d)" % [i + 1, placer.get_cost(sprout)])
 		planted.append(_build(placer, map, sprout))
 	_check(planted.all(func(t) -> bool: return t != null and t.invested_dew == 10), "the first %d paid 10 each" % per)
-	_check(placer.get_cost(sprout) == 14, "with %d on the map the next costs 14 (%d)" % [per, placer.get_cost(sprout)])
+	_check(placer.get_cost(sprout) == 15, "with %d on the map the next costs 15 (%d)" % [per, placer.get_cost(sprout)])
 	seller.sell(planted[per - 1].cell)
 	_check(placer.get_cost(sprout) == 10, "selling one lowers it")
 	planted[per - 2].evolve(sprout.evolves_to[0], 0)
@@ -49,17 +49,17 @@ func _run() -> void:
 	_check(placer.count_paid_sprouts() == per - 1, "and doesn't count toward the price")
 	_build(placer, map, sprout)  # One more paid Sprout: `per` counted again (with the grown one)
 
-	# A drag stroke: each Sprout priced after the ones before it (`per` counted: 14, 14, 14)
+	# A drag stroke: each Sprout priced after the ones before it (`per` counted: 15, 15, 15)
 	var cells := _row_of_three(map, placer)
 	if cells.size() == 3:
 		placer.set_build_mode(true)
 		placer.select_tower(sprout)
 		placer.begin_stroke(cells[0])
 		placer.extend_stroke(cells[2] * (2.0 if placer.half_placement() else 1.0))  # Strokes hold half origins (half cells)
-		_check(placer.get_stroke_tag().contains("3 Sprouts · 42 Dew"), "a stroke of 3 costs 14 + 14 + 14 (%s)" % placer.get_stroke_tag())
+		_check(placer.get_stroke_tag().contains("3 Sprouts · 45 Dew"), "a stroke of 3 costs 15 + 15 + 15 (%s)" % placer.get_stroke_tag())
 		var dew := run_state.dew
 		placer.plant_stroke()
-		_check(dew - run_state.dew == 42, "and plants for exactly that (%d)" % (dew - run_state.dew))
+		_check(dew - run_state.dew == 45, "and plants for exactly that (%d)" % (dew - run_state.dew))
 		placer.set_build_mode(false)
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")

@@ -281,7 +281,7 @@ func _test_birds() -> void:
 	var dew: int = run_state.dew
 	for i in 4:
 		hoarder.hit(mark2)
-	_check(run_state.dew == dew + 2, "Magpie's Hoard: +1 Dew per crit, capped per drift")
+	_check(run_state.dew == dew + 2, "Magpie's Hoard: Dew per crit, capped at its Dew a drift (%d)" % (run_state.dew - dew))
 
 	# Starling Murmuration: 3 starlings, each after one of the 3 fastest nightmares in range. The birds
 	# above are still attacking whatever comes into range, so clear them first.

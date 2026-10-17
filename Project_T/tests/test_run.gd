@@ -75,7 +75,7 @@ func _test_blocks_and_rests() -> void:
 	var map_generator = main.get_node("%MapGenerator")
 
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
-	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
+	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == run_state.starting_dew, "15 leaves, %d Dew" % run_state.starting_dew)
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(10) == 1.0 and director.get_extra_nightmares(11) == 1.25, "extra nightmares from drift 11 (the demo: 10)")
 	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
@@ -160,7 +160,7 @@ func _test_blocks_and_rests() -> void:
 	_check(placer._try_build(cell), "built a Sprout")
 	var refund := seller.get_refund(seller.get_tower_at(cell))
 	_check(refund == sprout.cost, "placed this rest: a full refund (%d)" % refund)
-	_check(seller.sell(cell) and run_state.dew == 60 - sprout.cost + refund, "the refund is paid while resting")
+	_check(seller.sell(cell) and run_state.dew == run_state.starting_dew - sprout.cost + refund, "the refund is paid while resting")
 
 	# Drift 1 → the family pick (no rest bonus, no Dream)
 	var rests := []
@@ -221,7 +221,8 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
 		return _kind(e.enemy_data) == "leaf_bug" and director.drift_of(e) == 7)[0]  # (Drift 6 has Shades too now)
-	_check(bug.max_health == roundi(100 * pow(1.045, 6) * director.get_early_multiplier(7)), "drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp (%d)" % bug.max_health)
+	_check(bug.max_health == roundi(100 * director.get_health_scale(bug.enemy_data, 7)) and is_equal_approx(director.get_health_scale(bug.enemy_data, 7), pow(1.045, 6) * director.get_early_multiplier(7) * director.trial_health_multiplier * director.get_health_multiplier(bug.enemy_data, 7)),
+		"drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp × the trial's ×%.1f (%d)" % [director.trial_health_multiplier, bug.max_health])
 	var leaves_before := run_state.leaves
 	_send_to_goal(bug, map_generator)
 	await _frames(5)

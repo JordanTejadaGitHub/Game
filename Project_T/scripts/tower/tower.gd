@@ -3334,10 +3334,13 @@ func _give_crit_dew(where: Vector2) -> void:
 	if drift != _crit_dew_drift:
 		_crit_dew_drift = drift
 		_crit_dew_given = 0
-	if _crit_dew_given >= attack_data.crit_dew_per_drift:
+	# The cap is Dew a drift, as the card says ("up to {dew:N} a {drift}"); it counted crits, so the Dew x2 pass's 2 a crit
+	# and 50 a drift paid up to 100.
+	var give := mini(attack_data.crit_dew, attack_data.crit_dew_per_drift - _crit_dew_given)
+	if give <= 0:
 		return
-	_crit_dew_given += 1
-	_dream_state.run_state.earn_dew_at(attack_data.crit_dew, where)
+	_crit_dew_given += give
+	_dream_state.run_state.earn_dew_at(give, where)
 
 func apply_status_to(enemy: Node2D, soothe: float) -> void:
 	# Bellflower: its Drowsy only comes with every Nth pulse on that nightmare (counted per nightmare, so one

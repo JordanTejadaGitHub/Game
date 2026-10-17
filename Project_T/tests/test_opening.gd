@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Headless test for run_design.md's "Opening rule": with the starting Dew, 5 Sprouts placed beside
+# Headless test for run_design.md's "Opening rule": the starting Dew's worth of Sprouts (at least 5) placed beside
 # the route (no family yet) dispel drift 1 without losing a leaf, and a reasonable all-Sprout layout,
 # topped up with the Dew earned, holds drifts 2 and 3 too. Plays for real at 1× on a few fixed maps.
 #   godot --headless --path . --script res://tests/test_opening.gd --fixed-fps 60
@@ -36,14 +36,19 @@ func _play_opening(map_seed: int) -> void:
 	_check(is_equal_approx(director.get_health_scale(shade, 1), director.trial_health_multiplier) and director.get_extra_nightmares(1) == 1.0,
 		"drift 1 has no health growth or extra nightmares")
 
-	for i in OPENING_SPROUTS:
-		_check(_plant_best(main, sprout), "map %d: Sprout %d planted beside the route" % [map_seed, i + 1])
-	# Sprouts get pricier as you plant (+3 Dew per 5 on the map: the first five are 10 each).
+	# As many Sprouts as the starting Dew buys (the Health x2, Dew x2 trial doubled it: 120 buys more than the old 5), at
+	# their rising price (TowerPlacer: +SPROUT_STEP_DEW per SPROUTS_PER_STEP on the map).
+	var opening := 0
 	var opening_price := 0
-	for i in OPENING_SPROUTS:
-		opening_price += sprout.cost + i / TowerPlacer.SPROUTS_PER_STEP * TowerPlacer.SPROUT_STEP_DEW
+	while run_state.dew >= placer.get_cost(sprout) and opening < 40:
+		var price := placer.get_cost(sprout)
+		if not _plant_best(main, sprout):
+			break
+		opening += 1
+		opening_price += price
+	_check(opening >= OPENING_SPROUTS, "map %d: at least %d Sprouts planted beside the route (%d)" % [map_seed, OPENING_SPROUTS, opening])
 	_check(run_state.dew == run_state.starting_dew - opening_price and opening_price <= run_state.starting_dew,
-		"5 Sprouts fit the starting Dew (%d of %d)" % [opening_price, run_state.starting_dew])
+		"%d Sprouts fit the starting Dew (%d of %d)" % [opening, opening_price, run_state.starting_dew])
 
 	# Drift 1
 	director.start_next_drift()
@@ -52,7 +57,7 @@ func _play_opening(map_seed: int) -> void:
 			break
 		await process_frame
 	_check(director.awaiting_family_pick, "map %d: drift 1 finishes" % map_seed)
-	_check(run_state.leaves_lost == 0, "map %d: drift 1 with 5 Sprouts leaks nothing (%d lost)" % [map_seed, run_state.leaves_lost])
+	_check(run_state.leaves_lost == 0, "map %d: drift 1 with the starting Sprouts leaks nothing (%d lost)" % [map_seed, run_state.leaves_lost])
 
 	# Drifts 2 and 3: pick a family (but keep planting Sprouts), spend the Dew as it comes.
 	if director.awaiting_family_pick and not family.offer.is_empty():
