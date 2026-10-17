@@ -221,6 +221,15 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
 		_status_label.visible = not _phone_panel_open()
+		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
+		var drawer := get_parent().get_node_or_null("WardenPanel") as CanvasItem if get_parent() != null else null
+		var drawer_open := drawer != null and drawer.visible
+		if drawer_open and visible:
+			visible = false
+			_hidden_for_drawer = true
+		elif not drawer_open and _hidden_for_drawer:
+			visible = true
+			_hidden_for_drawer = false
 	# A choice waits (open, or minimised to peek at the map): the button names it and reopens it.
 	var pending := drift_director.pending_choice()
 	if pending != &"" and not run_state.is_over:
@@ -241,6 +250,8 @@ func _process(_delta: float) -> void:
 	if not run_state.is_over:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
+
+var _hidden_for_drawer := false  # Phones: hidden only because the Warden drawer is open
 
 func _phone_panel_open() -> bool:
 	var hud := get_parent()

@@ -199,7 +199,8 @@ func _update_phone_bar() -> void:
 		return
 	var can_take := _looked != null and is_instance_valid(_looked) and _looked_card != null
 	_take.disabled = not can_take
-	_take.modulate.a = 1.0 if can_take else 0.55  # multiplier: dim until there's something to take
+	PhoneChoice.disabled_look(_take)
+	_take.modulate.a = 1.0 if can_take else 0.45  # multiplier: the secondary frame at 45% until there's something to take
 	_take.text = "Take %s" % _looked_card.display_name if can_take else "Take"
 	_phone_hint.text = "Take it, or tap another" if can_take else "Tap a card to look at it"
 	# Let it pass and Take the same width: the wider one's text (UI review: "Take Call of the Wild")
@@ -456,9 +457,21 @@ func _add_opens_clearing(box: VBoxContainer) -> void:
 	row.add_child(line)
 	box.add_child(row)
 	_add_line(box, DreamState.OPENS_CLEARING_TEXT, UiStyle.INK, _fs(14))
+	if _phone:  # Nested in a card: a plain fading Gold line, no sprout (UI Asset 2026-10-17)
+		var fade := Control.new()
+		fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fade.custom_minimum_size.y = 6.0
+		fade.draw.connect(_draw_fading_line.bind(fade))
+		box.add_child(fade)
+		return
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
+
+func _draw_fading_line(line: Control) -> void:
+	var y := floorf(line.size.y / 2.0)
+	line.draw_polyline_colors(PackedVector2Array([Vector2(0, y), Vector2(line.size.x / 2.0, y), Vector2(line.size.x, y)]),
+		PackedColorArray([Color(UiStyle.GOLD, 0.0), Color(UiStyle.GOLD, 0.5), Color(UiStyle.GOLD, 0.0)]), 1.0)
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.

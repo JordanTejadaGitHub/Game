@@ -247,11 +247,20 @@ func look(button: Button, take_text: String) -> void:
 		_lift(face, on)
 	set_take(take_text)
 
+# A disabled Take draws as the normal secondary button (frame and ink text); the caller dims it to 45% (UI Asset
+# 2026-10-17: the disabled primary was almost invisible, the player couldn't see where Take would be).
+static func disabled_look(button: Button) -> void:
+	if button.has_theme_stylebox_override("disabled"):
+		return
+	button.add_theme_stylebox_override("disabled", button.get_theme_stylebox("normal", &"Button"))
+	button.add_theme_color_override("font_disabled_color", UiStyle.INK)
+
 # Take reads `text` ("" = nothing looked at: dim, "Take"); the hint follows.
 func set_take(text: String) -> void:
 	var can := text != "" and looked != null and is_instance_valid(looked)
 	take.disabled = not can
-	take.modulate.a = 1.0 if can else 0.55  # multiplier: dim until there's something to take
+	disabled_look(take)
+	take.modulate.a = 1.0 if can else 0.45  # multiplier: the secondary frame at 45% until there's something to take
 	take.text = text if can else "Take"
 	hint.text = TAKE_HINT if can else LOOK_HINT
 	fit_choices()
