@@ -989,9 +989,12 @@ static func key_suffix(key: String) -> String:
 # in is the tap target (Mobile UI: one 48 px row, tapping opens the glossary line). Phones pass icon_size 20.
 const CHIP_ICON := 16
 const CHIP_TEXT_SIZE := 14
+# `outline` (a card's rarity colour; screens_ui.md 844fa70a) makes the quiet card chip instead: no gold fill, a 1 px
+# frame in that colour (Makes adds a faint wash of it), the word in INK_DIM, so the card's name and text read first.
 static func chip(id: StringName, kind: StringName, label: String = "", icon_size: int = CHIP_ICON,
-		font_size: int = CHIP_TEXT_SIZE) -> PanelContainer:
+		font_size: int = CHIP_TEXT_SIZE, outline := Color(0, 0, 0, 0)) -> PanelContainer:
 	var makes := kind == &"makes"
+	var quiet := outline.a > 0.0
 	var box := PanelContainer.new()
 	box.name = "Chip_%s_%s" % [kind, id]
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1001,6 +1004,9 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	var frame := StyleBoxFlat.new()
 	frame.bg_color = GOLD if makes else Color(FOG, 0.6)
 	frame.border_color = GOLD
+	if quiet:
+		frame.bg_color = Color(outline, 0.14) if makes else Color(FOG, 0.0)
+		frame.border_color = Color(outline, 0.8)
 	frame.set_border_width_all(1)
 	frame.set_corner_radius_all(2)
 	_margins(frame, 4.0, 1.0)
@@ -1025,7 +1031,7 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	word.add_theme_font_override("font", body_medium_font())
 	word.add_theme_font_size_override("font_size", font_size)
-	word.add_theme_color_override("font_color", FOG if makes else GOLD)
+	word.add_theme_color_override("font_color", INK_DIM if quiet else (FOG if makes else GOLD))
 	row.add_child(word)
 	return box
 

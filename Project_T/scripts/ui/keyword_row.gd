@@ -10,7 +10,9 @@ class_name KeywordRow
 const PHONE_ROW_H := 48.0
 const PHONE_ICON := 20
 
-static func make(chips: Array, icon_size: int = 0) -> KeywordRow:
+# `outline` (a card's rarity colour) gives the quiet card chips on one line, `font_size` their word (Dream and Calling
+# cards: the row sits at the card's foot, screens_ui.md 844fa70a).
+static func make(chips: Array, icon_size: int = 0, outline := Color(0, 0, 0, 0), font_size: int = UiStyle.CHIP_TEXT_SIZE) -> KeywordRow:
 	if chips.is_empty():
 		return null
 	var row := KeywordRow.new()
@@ -19,7 +21,11 @@ static func make(chips: Array, icon_size: int = 0) -> KeywordRow:
 	var phone := UiStyle.is_phone()
 	if phone:
 		row.custom_minimum_size.y = PHONE_ROW_H
-	var flow := HFlowContainer.new()
+	var one_line := outline.a > 0.0
+	var flow: Container = HBoxContainer.new() if one_line else HFlowContainer.new()
+	if one_line:
+		row.clip_contents = true  # Never wider than the card (at most two chips: it fits)
+		flow.add_theme_constant_override("separation", 4)
 	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	flow.add_theme_constant_override("h_separation", 4)
@@ -32,7 +38,7 @@ static func make(chips: Array, icon_size: int = 0) -> KeywordRow:
 		if id == &"":
 			continue
 		var label := String(chip.get("label", ""))
-		flow.add_child(UiStyle.chip(id, StringName(chip.get("kind", &"makes")), label, size))
+		flow.add_child(UiStyle.chip(id, StringName(chip.get("kind", &"makes")), label, size, font_size, outline))
 		var entry: Dictionary = DreamState.KEYWORDS.glossary(id)
 		var line := "%s: %s" % [entry.get("name", label), entry.get("text", "")] if String(entry.get("text", "")) != "" else ""
 		if line != "" and not lines.has(line):
