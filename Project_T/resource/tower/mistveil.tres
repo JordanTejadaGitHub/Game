@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Mistveil"
 role_line = "Area damage, Soaks, sets up statuses"
-description = "Lays fog on the path. Nightmares in it stay {damp}, and {spored} hurts them more."
+description = "Lays fog on the path. Nightmares in it keep {damp}, and {spored} hurts them more."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

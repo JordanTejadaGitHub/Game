@@ -793,7 +793,7 @@ func _sunlit_rest(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictio
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
 		return {}
-	return {"effect": "deal %d%% more damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
+	return {"effect": "deal %d%% more damage to nightmares with Soak" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
 
 # Seed cards (dream_design.md "Seed cards"): the "Now" effects that change a Warden's damage.
 # Sheltering Boughs (was Kind Canopy; dream_design.md e1e39b56): touching an aura Warden (an aura, or a support Warden).

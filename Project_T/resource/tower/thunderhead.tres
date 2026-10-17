@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Thunderhead"
 role_line = "Chains, Charges, area damage"
-description = "Chains to 4; every 3rd strike hits every {damp} nightmare in range."
+description = "Chains to 4; every 3rd strike hits every nightmare with {damp} in range."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -641,13 +641,13 @@ class _LegendaryGem extends Control:
 	func _draw() -> void:
 		UiStyle.draw_gem(self, size / 2.0, 18.0, UpgradeData.Rarity.LEGENDARY)
 
-# "Exposed + Rooted, on a nightmare that is also Charged": a Crowned Reaction's three statuses, as tokens (links
+# "Exposure + Roots, on a nightmare that also has Charge": a Crowned Reaction's three statuses, as tokens (links
 # where the text is drawn with StatusLinks).
 static func crowned_line(combo: Dictionary) -> String:
 	var statuses: Array = combo.get("statuses", [])
 	if statuses.size() < 3:
 		return "a Reaction on a nightmare with a third status"
-	return "{%s} + {%s}, on a nightmare that is also {%s}" % [statuses[0], statuses[1], statuses[-1]]
+	return "{%s} + {%s}, on a nightmare that also has {%s}" % [statuses[0], statuses[1], statuses[-1]]
 
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)

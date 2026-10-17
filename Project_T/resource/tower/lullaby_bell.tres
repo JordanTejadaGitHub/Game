@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Lullaby Bell"
 role_line = "Drowses, Charges, area damage"
-description = "A bigger ring that makes nightmares {static} and {drowsy}. Any nightmare with {field:lullaby_bell.sets_off_static_at:count} or more {static} is struck by its bolt at once."
+description = "A bigger ring that gives nightmares {static} and {drowsy}. Any nightmare with {field:lullaby_bell.sets_off_static_at:count} or more {static} is struck by its bolt at once."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

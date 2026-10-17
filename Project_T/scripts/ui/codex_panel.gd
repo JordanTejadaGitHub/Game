@@ -1235,11 +1235,11 @@ func _notification(what: int) -> void:
 		_family_card.free()  # Built only when the Families page opens: otherwise it leaked at exit
 const FAMILY_ROLES := {
 	"sporeling": "Damage over time: stack {spored} and keep it.",
-	"dewdrop": "Water: splash, fog and ice. {damp} nightmares conduct lightning.",
-	"firefly_jar": "Light: lightning, marking and beams. {static} builds to free bolts; {marked} nightmares take more.",
+	"dewdrop": "Water: splash, fog and ice. Nightmares with {damp} conduct lightning.",
+	"firefly_jar": "Light: lightning, marking and beams. {static} builds to free bolts; nightmares with {marked} take more.",
 	"pebbling": "Heavy hits: slow, powerful shots for the toughest nightmares.",
-	"rootling": "Control: {held} nightmares in place, and pull them back.",
-	"bellflower": "Song and sleep: sing nightmares {drowsy}, then {asleep}.",
+	"rootling": "Control: hold nightmares in place with {held}, and pull them back.",
+	"bellflower": "Song: sing {drowsy} onto nightmares until they fall {asleep}.",
 	"acorn": "Support and economy: auras for the Wardens around it, and Dew.",
 	"nestling": "Birds: fast hunters for the quickest nightmares.",
 	"whirligig": "Wind: spread one nightmare's statuses to the crowd.",

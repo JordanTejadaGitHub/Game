@@ -74,7 +74,7 @@ const GLOSSARY_SOURCE := [
 		["Dose", "3 {spored} at once: what a mushroom gives the nightmare that steps on it.", ["Mushroom"]],
 		["Lit", "A nightmare inside a Firefly Warden's glow (the path within 1.5 cells of it, more as its range grows). The Lantern Light Calling jumps damage between Lit nightmares.", ["Jump"]],
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump sets off another jump only when a card says so.", ["Lit"]],
-		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling makes nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
+		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],
 		["Free hit", "One extra hit from a Warden outside its normal attacks: on that nightmare only, at most once a second per Warden, never more than a second of its damage.", []],
 		["Heavy Warden", "A Warden that attacks slowly and hits hard, like Pebbling, Frostfern, Lanternmoth or Silver Bell.", ["Jump"]],
@@ -86,7 +86,7 @@ const GLOSSARY_SOURCE := [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
 		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
 		["Arc", "Two Jarlinks within 4 cells join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
-		["Ink", "An Inkcap shot on a {spored} nightmare inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
+		["Ink", "An Inkcap shot on a nightmare with {spored} inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
 	["Nightmare Kinds", [
@@ -111,10 +111,10 @@ const GLOSSARY_SOURCE := [
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
-		["{held}", "Builds up to {stacks:cap_held} stacks. A nightmare with {held} can't move while they last. {reactions} that use {held} need {stacks:need_held}.", ["Shatter", "Smother", "{frozen}"]],
+		["{held}", "{tip:held}", ["Shatter", "Smother", "{frozen}"]],
 		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
-		["{frozen}", "Frost's {held}: a {family:dewdrop}-{family} Warden's freeze adds 1 {held}, and the nightmare can't move while it lasts.", ["{held}", "{damp}"]],
+		["{frozen}", "Frost's {held}: a {family:dewdrop}-{family} Warden's freeze adds 1 {stack} of {held}, and the nightmare can't move while it lasts.", ["{held}", "{damp}"]],
 		["{silenced}", "{tip:silenced}", []],
 	]],
 	["Combat", [
@@ -156,12 +156,12 @@ const GLOSSARY_SOURCE := [
 # The id is also the DamageLog combo tag where one exists (conducted, fog); the rest are
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
-	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
+	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between nightmares with {damp}.", "Stormcap"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with 3 or more {static} (4 for Lullaby Bell) release its bolt at once.", "Chime Stone, Lullaby Bell"],
-	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
-	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
+	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on nightmares with {marked}.", "Mossback, Boulderback"],
+	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep}, or at {full} {drowsy}, near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
 
 # Crowned Reactions (tower_design.md "Crowned Reactions: three families at once"): a Reaction going
@@ -170,11 +170,11 @@ const SYNERGIES := {
 # gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
-		"Arcs can set off Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto {damp} ones: new Thunderclaps follow."],
+		"Arcs can set off Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto those with {damp}: new Thunderclaps follow."],
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
-		"When {combo:smother} bursts on a fully {drowsy} nightmare, it falls {asleep} and its neighbors catch {spored} + {drowsy}: a sleep plague."],
+		"When {combo:smother} bursts on a nightmare at {full} {drowsy}, it falls {asleep} and its neighbors catch {spored} + {drowsy}: a sleep plague."],
 	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
 		"The crit splits into stars: nightmares within 3 cells with {stacks:need_marked} {marked} take a crit for half the hit."],
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
@@ -268,15 +268,15 @@ static func get_any(id: StringName) -> Dictionary:
 const KINSHIP_TEXT := {
 	&"slumber_rot": "Driftspore's puffs add 1 {drowsy}; Bloomcap's clouds add 1 {spored} per tick.",
 	&"rainfog": "Rain Lily's splashes leave a fog patch; the fog deals Rain Lily's splash damage to nightmares entering it.",
-	&"storm_beacon": "Stormcap's jumps leave nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
-	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
+	&"storm_beacon": "Stormcap's jumps give nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
+	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to nightmares with {marked}.",
 	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
-	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and leaves nightmares {damp}.",
+	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and gives nightmares {damp}.",
 	&"fireworks_fence": "Every 2 s a nightmare on the Jarlinks' {arc} sets off a 2-spark burst at half spark damage; a Sparkler burst landing on an {arc} bursts once more, at half.",
 	&"vespers": "Silver Bell's toll also leaves its target {silenced} for 2 s; a nightmare a Hushbell leaves {silenced} gains 1 {drowsy}.",
 	&"fault_line": "Rampart's blows and Bastion's rocks crack the path (no sprints there for 3 s); Quaker's slam runs along the stone walls touching the Rampart, hitting the path beside each.",
@@ -285,7 +285,7 @@ const KINSHIP_TEXT := {
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
 	&"hoar_fog": "Frostfern's shots leave a fog puff; a nightmare that stays 2 s in Mistveil's fog is {frozen}: it gains 1 {held} (0.75 s), once per cloud.",
-	&"sunspot": "Sunpetal's beam makes its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
+	&"sunspot": "Sunpetal's beam gives its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
@@ -321,7 +321,7 @@ static func _warden_name(id: String) -> String:
 	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
 	return data.display_name if data != null else id.capitalize()
 
-# "Thunderclap + Poisoned" for a Crowned Reaction.
+# "Thunderclap + Poison" for a Crowned Reaction.
 static func crowned_recipe(c: Dictionary) -> String:
 	var base := Reactions.get_data(c.base)
 	return "%s + %s" % [base.display_name if base else String(c.base).capitalize(),
@@ -440,7 +440,7 @@ static func get_combo(id: StringName) -> Dictionary:
 	var found := get_any(id)  # The one index (combos come first in it)
 	return found if found.get("kind", "") in ["Synergy", "Reaction"] else {}
 
-# "Soaked + Charged" (a synergy on one status reads just "Poisoned").
+# "Soak + Charge" (a synergy on one status reads just "Poison").
 static func ingredients_text(combo: Dictionary) -> String:
 	var names: Array[String] = []
 	for status in combo.statuses:
@@ -566,7 +566,7 @@ const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
-	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
+	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between nightmares with {damp} (the Conducted combo).", ["Conducted"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 ]
 const ALWAYS_SHOWN: Array[StringName] = []  # (Weak and Resisted went with damage types: Nightmare Kinds)

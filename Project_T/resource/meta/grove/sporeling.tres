@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "sporeling"
 display_name = "Sporeling family"
-description = "{family:sporeling} is a choice at {family_picks} from your first run. Spores that leave nightmares {spored}."
+description = "{family:sporeling} is a choice at {family_picks} from your first run. Spores that give nightmares {spored}."
 root = 0
 costs = Array[int]([])
 order = 0

@@ -1033,7 +1033,7 @@ func _test_live_lines() -> void:
 
 func _test_needs_text() -> void:
 	_reset()
-	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soaked + Charged", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))
+	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soak + Charge", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))
 	_check(dreams.needs_text(_card("starlit_aim")) == "Needs: Pebbling + Firefly Jar families", "Starlit Aim: %s" % dreams.needs_text(_card("starlit_aim")))
 	_check(dreams.needs_text(_card("nursery")) == "Needs: Tender Care + Seedling Gift", "Nursery: %s" % dreams.needs_text(_card("nursery")))
 	var family_names := {}

@@ -1317,14 +1317,15 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 		lines.append("its Reactions deal ×%s damage" % _potency_number(p))  # A status it applies can complete a Reaction it gets the credit for
 	return lines
 
-# "Soaked: water hits +24%" / "Rooted 1.3 s" as a Potency line with its Potency 1.0 number: "{damp}: water hits +24%
+# "Soak: water hits +24%" / "Roots 1.3 s" as a Potency line with its Potency 1.0 number: "{damp}: water hits +24%
 # (+20% at Potency 1.0)", "{held} lasts 1.3 s (1.0 s at Potency 1.0)". "" when there's no strength text.
 static func _strength_line(id: StringName, live: String, base: String, p: float) -> String:
 	if live == "":
 		return ""
 	if id == EnemyStatuses.HELD:
-		var live_s := live.trim_prefix("Rooted ")
-		return "{held} lasts %s%s" % [live_s, _at_potency_one(p, base.trim_prefix("Rooted ")) if base != live else ""]
+		var prefix := IconInfo.status_name(EnemyStatuses.HELD) + " "  # "Roots 1.3 s" (WardenHeaderView.status_strength_text)
+		var live_s := live.trim_prefix(prefix)
+		return "{held} lasts %s%s" % [live_s, _at_potency_one(p, base.trim_prefix(prefix)) if base != live else ""]
 	var token := "{damp}" if id == EnemyStatuses.DAMP else "{marked}"
 	var what := live.split(": ", true, 1)
 	var then := base.split(": ", true, 1)
@@ -3771,7 +3772,7 @@ func _update_ability(delta: float) -> void:
 				_kin_fired(&"snare")
 
 # The seconds Dream cards add to this Warden's Roots (Patient Roots: +1 s, bosses 0.25 s; the Rootling line another
-# +0.25 s), before the Potency stretch and its cap. Also for the Warden header's "Rooted N s" (no enemy = not a boss).
+# +0.25 s), before the Potency stretch and its cap. Also for the Warden header's "Roots N s" (no enemy = not a boss).
 func held_card_seconds(enemy: Node2D = null) -> float:
 	var bonus: float = _dream_state.get_held_bonus(enemy) if _dream_state else 0.0  # Patient Roots (bosses: bounded)
 	if bonus > 0.0 and tower_data.line == "root":

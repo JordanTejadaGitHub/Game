@@ -3,7 +3,7 @@ class_name IconInfo
 
 # One place for the names and plain-words tooltips of every status, Warden stat and resource
 # (screens_ui.md "Stat and status icons": every icon explains itself on hover and on tap). Status
-# display names can change (they did: Static became Charged), so every screen reads them here:
+# display names can change (they did: Static became Charged, then Charge), so every screen reads them here:
 # status_name(id), status_tooltip(id), stat_tooltip(id), resource_tooltip(id). Icons from Tower
 # Assets' sheet: icon(id) / make_icon(id, scale) (the sheet's ids; "elite" maps to deeply_blighted).
 
@@ -14,14 +14,16 @@ class_name IconInfo
 # underline explaining reactions") and read their stack numbers live ({stacks:need_damp} …: stack_number, below), so
 # Brimming's doubling shows.
 const STATUSES := {
-	&"damp": ["Soaked", "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}."],
-	&"drowsy": ["Drowsy", "Walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}."],
-	&"spored": ["Poisoned", "Takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
-	&"marked": ["Exposed", "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}."],
-	&"static": ["Charged", "Lightning builds up on it. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored charge). At {stacks:need_static} stacks it can set off {reactions}."],
-	&"held": ["Rooted", "Cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}."],
+	# Nouns since 2026-10-17 (owner: "rename all"; they match the keyword chips and read as stack counts: "8 Soak"). Text
+	# says "nightmares with {damp}", never "{damp} nightmares".
+	&"damp": ["Soak", "Water hits deal 20% more damage to a nightmare with it. At {stacks:need_damp} stacks it can set off {reactions}."],
+	&"drowsy": ["Sleep", "A nightmare with it walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) the nightmare can fall {asleep} and set off {reactions}."],
+	&"spored": ["Poison", "A nightmare with it takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
+	&"marked": ["Exposure", "Does nothing until {stacks:need_marked} stacks; then a nightmare with it takes 25% more damage from every Warden and can set off {reactions}."],
+	&"static": ["Charge", "Lightning built up on a nightmare. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored Charge). At {stacks:need_static} stacks it can set off {reactions}."],
+	&"held": ["Roots", "Builds up to {stacks:cap_held} stacks; a nightmare with Roots can't move while they last. At {stacks:need_held} stacks it can set off {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
-	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
+	&"caught": ["Caught", "{asleep}, or at {full} {drowsy}, near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
 	&"elite": ["Deeply Blighted", "A stronger nightmare: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
@@ -217,7 +219,7 @@ static func stat_tooltip(id: StringName) -> String:
 static func resource_tooltip(id: StringName) -> String:
 	return _tip(RESOURCES, id)
 
-# "Soaked: 10% slower. …" (a sheet id like deeply_blighted finds its IconInfo entry, elite).
+# "Soak: water hits deal 20% more …" (a sheet id like deeply_blighted finds its IconInfo entry, elite).
 static func _tip(table: Dictionary, id: StringName) -> String:
 	if not table.has(id):
 		for key in ICON_ALIASES:
@@ -361,8 +363,8 @@ static func the_name(name: String, start := false) -> String:
 		text = "the " + text
 	return _upper_first(text) if start else text
 
-# Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soaked +
-# Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
+# Puts the current status names and term words into `text`: "{damp} + {static}" -> "Soak +
+# Charge", "each {block}" -> "each block". Unknown tokens stay as they are.
 # A status text's stack number, live (user 2026-10-12: never typed in): "need_<status>" = the stacks its Reactions
 # need (Reactions' thresholds: the lowest one for that status), "cap_<status>" = its full buildup, "bosscap_<status>"
 # = the same on a boss. All include Brimming's doubling (EnemyStatuses.cap_multiplier).
@@ -604,7 +606,7 @@ static func nightmare_name(kind: String) -> String:
 		return kind.capitalize()
 	return data.display_name if nightmare_met(kind) else "???"
 
-# The status id for a display name ("Soaked" -> &"damp"), or &"" (StatusLinks uses it).
+# The status id for a display name ("Soak" -> &"damp"), or &"" (StatusLinks uses it).
 static func status_id(name: String) -> StringName:
 	for id in STATUSES:
 		if STATUSES[id][0].to_lower() == name.to_lower():

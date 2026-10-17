@@ -985,7 +985,7 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(dreams.can_offer(thunder) and not dreams.is_eligible(thunder), "…can be offered, but isn't whole")
 	var text := dreams.half_dreamed_text(thunder)
 	print("half-dreamed text: " + text)
-	_check(text.begins_with("Needs Soaked: a family that brings it may come after") and "(drift 25)" in text and not text.contains("Dewdrop"),
+	_check(text.begins_with("Needs Soak: a family that brings it may come after") and "(drift 25)" in text and not text.contains("Dewdrop"),
 		"…says the missing status and when, never the Warden")
 	dreams._offer_drift = 80
 	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 75 family pick")

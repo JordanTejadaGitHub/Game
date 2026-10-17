@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Tidecaller"
 role_line = "Pulls back, Soaks, Roots, area damage"
-description = "Every 6 s a great wave leaves everything in range {damp} and drags it back 1 cell along the path. The ones with {field:tidecaller.freeze_needs_stacks:count} {damp} are {frozen}: each gains 1 {held} and can't move for {field:tidecaller.freeze_duration:seconds}."
+description = "Every 6 s a great wave gives everything in range {damp} and drags it back 1 cell along the path. The ones with {field:tidecaller.freeze_needs_stacks:count} {damp} are {frozen}: each gains 1 {held} and can't move for {field:tidecaller.freeze_duration:seconds}."
 cost = 0
 line = "water"
 tier = 4

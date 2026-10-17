@@ -14,14 +14,14 @@ func _run() -> void:
 	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
 	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
-	_check(Synergies.link(dewdrop, stormcap) == "Soaked → Stormcap", "Dewdrop and Stormcap combo through Soaked (%s)" % Synergies.link(dewdrop, stormcap))
+	_check(Synergies.link(dewdrop, stormcap) == "Soak → Stormcap", "Dewdrop and Stormcap combo through Soak (%s)" % Synergies.link(dewdrop, stormcap))
 	# Undiscovered combos are "???" everywhere (screens_ui.md): the link stands for Conducted.
 	_check(Synergies.link_combo(dewdrop, stormcap).get("id") == &"conducted", "Dewdrop + Stormcap is the Conducted combo")
-	_check(Synergies.link_text(dewdrop, stormcap, ["nothing"]) == "???" and Synergies.link_text(dewdrop, stormcap, ["conducted"]) == "Soaked → Stormcap",
+	_check(Synergies.link_text(dewdrop, stormcap, ["nothing"]) == "???" and Synergies.link_text(dewdrop, stormcap, ["conducted"]) == "Soak → Stormcap",
 		"the link reads ??? until Conducted is discovered")
 	_check(CodexData.combo_name(CodexData.get_any(&"thunderclap"), ["nothing"]) == "???" and CodexData.combo_name(CodexData.get_any(&"thunderclap"), ["thunderclap"]) == "Thunderclap",
 		"CodexData.combo_name: ??? before, the name after")
-	_check(Synergies.link(stormcap, dewdrop) == "Soaked → Stormcap", "the link works both ways")
+	_check(Synergies.link(stormcap, dewdrop) == "Soak → Stormcap", "the link works both ways")
 	_check(Synergies.link(sprout, stormcap) == "", "a Sprout doesn't combo with Stormcap")
 
 	root.size = Vector2i(1280, 800)  # A real screen, so the discovery card has room beside the nightmare
@@ -79,7 +79,7 @@ func _run() -> void:
 	# Rest report card
 	var report: RestReport = main.get_node("%RestReport")
 	report.show_report(1)
-	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().replace(IconInfo.NBSP, " ").contains("Lightning through Soaked: 2 times"),
+	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().replace(IconInfo.NBSP, " ").contains("Lightning through Soak: 2 times"),
 		"the rest report shows the top Warden and the combos (%s)" % report._label.get_parsed_text())
 	# The Omen paid at this rest, and why it was cut ("Omens with teeth"): the summary from omen_rewarded.
 	var omens: OmenDirector = main.get_node("%OmenDirector")
@@ -140,18 +140,18 @@ func _run() -> void:
 	_check(feedback._card.size.x >= ComboFeedback.CARD_WIDTH - 1.0 and feedback._card_caps.text == "combo discovered"
 		and feedback._card_title.text == "Set Off", "…~470 wide: 'combo discovered', then the name (%s)" % feedback._card_title.text)
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
-	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soaked + Charged") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
+	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soak + Charge") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")
 	_check(feedback.block_counts.get(&"thunderclap", 0) == 2 and feedback.block_longest_chain == 3, "Reactions are counted per block")
 	feedback.continue_on()
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
 		"Continue shows the next discovery, still paused")
-	# The recipe once, as one icon row (Soaked + Charged → Thunderclap); the two buttons the same size.
+	# The recipe once, as one icon row (Soak + Charge → Thunderclap); the two buttons the same size.
 	var recipe: Array = feedback._card_icons.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-	_check(recipe == ["Soaked", "+", "Charged", "→", "Thunderclap"] and feedback._card_title.text == "Thunderclap"
-		and not feedback._card_label.text.contains("Soaked + Charged") and feedback._hero.visible,
+	_check(recipe == ["Soak", "+", "Charge", "→", "Thunderclap"] and feedback._card_title.text == "Thunderclap"
+		and not feedback._card_label.text.contains("Soak + Charge") and feedback._hero.visible,
 		"the Thunderclap card: its icon on the disc, the recipe once as icons (%s)" % [recipe])
-	_check(ComboFeedback.recipe_free("Soaked + 3 Charged: ×4 damage, and more.") == "×4 damage, and more."
+	_check(ComboFeedback.recipe_free("Soak + 3 Charge: ×4 damage, and more.") == "×4 damage, and more."
 		and ComboFeedback.recipe_free("No recipe here.") == "No recipe here.", "the rule line drops its leading recipe")
 	await process_frame
 	var pair: Array = feedback._buttons.get_children()
@@ -380,13 +380,13 @@ func _run() -> void:
 			juggled.statuses.immune.append(&"drowsy")
 			juggled.modifiers["always_status"] = &"damp"
 			var omen_line: String = info_script.omen_text(juggled)
-			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Drowsy") and omen_line.contains("always Soaked"),
+			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Sleep") and omen_line.contains("always has Soak"),
 				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
 	_check(CodexData.crowned().size() == 10 and CodexData.combos().size() == 16, "10 Crowned Reactions (Changeling and Wide Awake 2026-10-17), apart from the 16 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
-		and ComboFeedback.discovery_text(&"tempest").contains("on a nightmare that is also Poisoned") and not ComboFeedback.discovery_text(&"tempest").contains("{"), "a Crowned discovery card says what happened: the two statuses and the third")
+		and ComboFeedback.discovery_text(&"tempest").contains("on a nightmare that also has Poison") and not ComboFeedback.discovery_text(&"tempest").contains("{"), "a Crowned discovery card says what happened: the two statuses and the third")
 	var was_demo = ProjectSettings.get_setting("game/demo", false)
 	ProjectSettings.set_setting("game/demo", false)
 	codex.open(&"combos")
@@ -418,8 +418,8 @@ func _run() -> void:
 	storm.hit(exposed, 1.0, false, Tower.NO_CRIT)
 	_check(struck.is_empty(), "…and a hit on it emits no spark event")
 	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
-	_check(exposed.statuses.is_exposed() and completed == [&"marked"], "Exposed completing: its callout fires (%s)" % [completed])
-	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Exposed" and c[3] == exposed), "…the word \"Exposed\" on that nightmare")
+	_check(exposed.statuses.is_exposed() and completed == [&"marked"], "Exposure completing: its callout fires (%s)" % [completed])
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Exposure" and c[3] == exposed), "…the word \"Exposure\" on that nightmare")
 	exposed.apply_status(EnemyStatuses.MARKED, 1, 0.0, 1.0, 0, "light", storm)
 	_check(completed.size() == 1, "another application while it is full: no second callout")
 	var mark := Fx.exposed_mark_of(exposed)

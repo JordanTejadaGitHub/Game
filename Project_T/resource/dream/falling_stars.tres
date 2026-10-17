@@ -18,6 +18,6 @@ min_act = 2
 entwined = true
 woven = true
 rule_id = &"falling_stars"
-tip = "A marked nightmare's crit can start another {named_combo:starfall}. A bet: needs {marked} nightmares close together."
+tip = "A crit on a nightmare with {marked} can start another {named_combo:starfall}. A bet: needs nightmares with {marked} close together."
 uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"marked", &"held", &"static"])

@@ -76,7 +76,7 @@ func _gui_input(event: InputEvent) -> void:
 # (Tower Code: take_block_counts, which clears them).
 const LANDMARK_LINES := {&"lightning_tree": "Lightning Tree: struck %d times", &"bell_stone": "Bell Stone: slowed %d nightmares",
 	# (Tower Code's counts, 79818423: strikes, nightmares slowed by a ring, Rooted. The Spring, Mushroom Ring and Moonwell count nothing.)
-	&"heartwood_roots": "Heartwood Roots: Rooted %d nightmares"}
+	&"heartwood_roots": "Heartwood Roots: gave Roots to %d nightmares"}
 
 static func landmark_lines(near: Node, counts = null) -> String:
 	if counts == null:
@@ -359,7 +359,7 @@ static func support_text(near: Node, period: String) -> String:
 	if held >= 1.0 or pulled > 0:
 		var parts: Array[String] = []
 		if held >= 1.0:
-			parts.append("Rooted for %d s" % roundi(held))
+			parts.append("Roots for %d s" % roundi(held))
 		if pulled > 0:
 			parts.append("pulled back %d cells" % pulled)
 		lines.append(" · ".join(parts))

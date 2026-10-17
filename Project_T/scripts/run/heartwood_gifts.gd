@@ -72,7 +72,7 @@ const POOL := {
 	&"moonwell": {"name": "Moonwell", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
 		"text": "Place a lit stone on one empty cell. Wardens within 2 cells get +1.5 range and see {hidden} nightmares."},
 	&"heartwood_roots": {"name": "Heartwood Roots", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"none", "size": 0,
-		"text": "Roots cover the last 6 cells of path before the Heartwood. Nightmares are {held} for 1 s on entering (bosses half) and take 30% more damage there."},
+		"text": "Roots cover the last 6 cells of path before the Heartwood. Nightmares gain {held} for 1 s on entering (bosses half) and take 30% more damage there."},
 	&"bramble_verge": {"name": "Bramble Verge", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
 		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). Nightmares beside a {warden:bramble} walk 20% slower."},
 	&"old_kin": {"name": "Old Kin", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"kinship", "size": 1,

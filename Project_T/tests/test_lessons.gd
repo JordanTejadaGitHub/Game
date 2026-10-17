@@ -299,7 +299,7 @@ func _run() -> void:
 	var wet_at: Vector2 = lessons._spot_at(wet)
 	_check(not card_rect.grow(20.0).has_point(wet_at) and Rect2(Vector2.ZERO, lessons.size).encloses(card_rect),
 		"the card sits beside the nightmare, not over it, inside the screen (%s, nightmare at %s)" % [card_rect, wet_at])
-	_check(lessons._body.text.contains("to this nightmare") and lessons._body.text.contains("Each hit adds one stack") and lessons._body.text.contains("Soaked") and lessons._body.text.contains("Reactions")
+	_check(lessons._body.text.contains("to this nightmare") and lessons._body.text.contains("Each hit adds one stack") and lessons._body.text.contains("Soak") and lessons._body.text.contains("Reactions")
 		and not lessons._body.text.contains("{"), "it names the cause and the status, with the Reactions link (%s)" % lessons._body.text)
 	for id in EnemyStatuses.ALL:
 		var line := IconInfo.format(LessonCard.status_text(id))

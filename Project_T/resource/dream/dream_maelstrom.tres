@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_maelstrom"
 display_name = "Maelstrom"
-description = "{warden:undercurrent}s can now {grow} into {warden:maelstrom}s ({dew:{grow_cost:maelstrom}}): a wider current that leaves its nightmares {damp} and carries {static} bolts through it."
+description = "{warden:undercurrent}s can now {grow} into {warden:maelstrom}s ({dew:{grow_cost:maelstrom}}): a wider current that leaves {damp} on its nightmares and carries {static} bolts through it."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])

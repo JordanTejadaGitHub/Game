@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_thrum"
 display_name = "Thrum"
-description = "{warden:bellflower}s can now {grow} into {warden:thrum}s ({dew:{grow_cost:thrum}}): a cone of sound, harder on {drowsy} nightmares."
+description = "{warden:bellflower}s can now {grow} into {warden:thrum}s ({dew:{grow_cost:thrum}}): a cone of sound, harder on nightmares with {drowsy}."
 rarity = 1
 kind = 1
 tags = Array[String](["song"])

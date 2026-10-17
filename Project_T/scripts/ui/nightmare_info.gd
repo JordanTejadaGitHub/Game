@@ -140,7 +140,7 @@ static func omen_text(enemy: Node) -> String:
 		parts.append("immune to " + ", ".join(extra_immune))
 	var always: StringName = enemy.get("modifiers").get("always_status", &"") if enemy.get("modifiers") is Dictionary else &""
 	if always != &"":
-		parts.append("always " + IconInfo.status_name(always))
+		parts.append("always has " + IconInfo.status_name(always))
 	if parts.is_empty():
 		return ""
 	var omens := enemy.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector

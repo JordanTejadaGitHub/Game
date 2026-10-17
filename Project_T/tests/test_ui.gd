@@ -510,7 +510,7 @@ func _run() -> void:
 	_check(not light_tip.visible and light.tooltip_text.begins_with("Dreamlight") and TapTip.pinned() == dew_tip, "another icon's tip replaces the pinned one (never two)")
 	dew_tip.toggle()
 	_check(not dew_tip.visible and dew_label.tooltip_text == dew_text and TapTip.pinned() == null, "tapping it again closes it and the hover tooltip returns")
-	_check(IconInfo.status_tooltip(&"damp").begins_with("Soaked: Water hits deal 20% more"), "status tooltips in plain words")
+	_check(IconInfo.status_tooltip(&"damp").begins_with("Soak: Water hits deal 20% more"), "status tooltips in plain words")
 	# Reactions are a glossary term (user 2026-10-12: "the wet tutorial card should have the underline explaining
 	# reactions"): a capital and a link wherever the status texts show, with their stack numbers read live.
 	var soaked_tip := IconInfo.status_tooltip(&"damp").replace("\u00a0", " ")  # (Numbers keep their unit on a non-breaking space)
@@ -566,19 +566,19 @@ func _run() -> void:
 	spore_card.tags.assign(["spore", "maze"])
 	_check(UiStyle.dream_glyph(spore_card) not in [&"", &"generic"], "a Spore card has its own glyph (%s)" % UiStyle.dream_glyph(spore_card))
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
-	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
-		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",
+	_check(IconInfo.status_name(&"damp") == "Soak" and IconInfo.status_name(&"static") == "Charge" and IconInfo.status_name(&"drowsy") == "Sleep"
+		and IconInfo.status_name(&"held") == "Roots" and IconInfo.format("{spored} + {marked}") == "Poison + Exposure",
 		"the new status names")
 	# Every status word is a link: underlined, with a popup (icon, definition, More in the Codex).
-	var linked := StatusLinks.bbcode("Soaked nightmares, {static} bolts, and a soaking rain.")
+	var linked := StatusLinks.bbcode("Nightmares with Soak, {static} bolts, and a soaking rain.")
 	_check(linked.contains("[url=status:damp]") and linked.contains("[url=status:static]") and not linked.contains("soaking[/url]"),
 		"status names (and tokens) become links, whole words only (%s)" % linked)
-	var link_label := StatusLinks.make_label("Applies Soaked.")
+	var link_label := StatusLinks.make_label("Applies Soak.")
 	main.get_node("HUD").add_child(link_label)
 	await process_frame
 	link_label.meta_clicked.emit("status:damp")
 	var popup: StatusLinks = link_label.get_meta(&"status_popup")
-	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
+	_check(popup.visible and popup._name.text == "Soak" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
 	# Combo links (user: "hovering over combos doesn't do anything"): {combo:id} is a link; hovering shows
@@ -596,7 +596,7 @@ func _run() -> void:
 	combo_popup.visible = false
 	combo_label.queue_free()
 	# Game terms (playtest fixes 2026-09-30): {block}-style tokens are links to their glossary line.
-	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soaked {deeply_blighted}.")
+	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soak on {deeply_blighted}.")
 	_check(term_text.contains("[url=term:perfect_block]") and term_text.contains("Perfect block[/color]")
 		and term_text.contains("[url=term:block]") and term_text.contains("drifts[/color]")
 		and term_text.contains("[url=status:damp]") and term_text.contains("[url=term:deeply_blighted]"),
@@ -736,7 +736,7 @@ func _run() -> void:
 	# --- Family pick: statuses, branch previews, and Peek (screens_ui.md "Choice screens") ---
 	var family = main.get_node("%FamilyPickScreen")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
+	_check(family.get_status_text(sporeling) == "Applies Poison", "the family card names its status (%s)" % family.get_status_text(sporeling))
 	_check(family.get_routes(sporeling).offered.size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
 	await _frames(3)

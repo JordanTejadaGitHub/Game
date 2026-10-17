@@ -14,7 +14,7 @@
 script = ExtResource("1_tdata")
 display_name = "Bellflower"
 role_line = "Drowses, area damage"
-description = "Rings out, damaging every nightmare in range. Every second ring on a nightmare makes it {drowsy}."
+description = "Rings out, damaging every nightmare in range. Every second ring on a nightmare gives it {drowsy}."
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

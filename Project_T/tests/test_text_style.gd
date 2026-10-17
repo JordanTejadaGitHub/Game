@@ -18,7 +18,7 @@ const EXCEPTIONS := [
 # Single-word names that are also ordinary words: only checked through tokens, not in running text.
 const COMMON_WORDS := ["spore", "stone", "water", "light", "root", "song", "talon", "wind", "plain", "sprout",
 	"acorn", "seed", "seeds", "dew", "sapling", "blooming", "caught", "hidden", "frozen", "rooted", "asleep",
-	"drowsy", "soaked", "charged", "exposed", "poisoned", "held", "marked", "cairn", "beacon", "monsoon",
+	"drowsy", "soaked", "charged", "exposed", "poisoned", "held", "marked", "soak", "poison", "charge", "sleep", "exposure", "roots", "cairn", "beacon", "monsoon",
 	"lantern", "shade", "husk", "crow", "crows", "moth", "wisp", "echo", "rest", "act", "drift", "block",
 	"family", "kinship", "leaves", "leaf", "grove", "memory", "omen", "dream", "dreams", "codex", "warden", "wardens",
 	"bramble", "honeysuckle", "puffball", "thornwall", "hummingbird", "samara", "dewdrop", "firefly", "morning fog",
@@ -269,7 +269,8 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 # rest are common words, so never capitalised mid-sentence ("Start drift 1", "at the next rest"). Findings go under
 # "<owner> caps": TODO until the owner's sweep, then the owner joins CAPS_ENFORCED.
 const CAPS_ENFORCED: Array[String] = ["Main", "Roguelite Code", "Enemy Code", "Tower Code"]  # Main's sweep, Roguelite's, Enemy Code's, Tower Code's (2026-10-07)
-# Status verbs as role lines and descriptions use them ("Anti-air, Roots"); the nouns come from IconInfo.STATUSES.
+# Status verbs as role lines and descriptions use them ("Anti-air, Roots"); the nouns come from IconInfo.STATUSES (Soak, Sleep,
+# Poison, Exposure, Charge, Roots since 2026-10-17: capitalised whenever they mean the status).
 const STATUS_VERBS := ["roots", "soaks", "charges", "poisons", "drowses", "exposes", "silences", "freezes"]
 # Substrings of a text (lowercase) that use one of those words in its ordinary sense on purpose.
 const CAPS_EXCEPTIONS := [
@@ -282,6 +283,8 @@ const CAPS_EXCEPTIONS := [
 	"fall asleep", "falls asleep", "not charged", "rooted for good", "hidden one", "hidden branch",  # ordinary words
 	"sunlit rest", "watchful rest",  # Dream card names
 	"crowned reaction discovered",  # Small caps (lower-cased on purpose)
+	# The status nouns (2026-10-17) in their ordinary sense: falling asleep, a stored charge, poison as a word.
+	"to sleep", "their sleep", "on sleep", "sleep plague", "a charge", "its charge", "poison or cloud",
 ]
 # Code lines whose strings are lookup keys, not text.
 const CAPS_SKIP_LINES := ["const ROLE_TERMS", "\"reveals hidden\": &"]
@@ -420,11 +423,12 @@ func _self_check() -> void:
 	_caps("Self", "h", "Earn dew each drift.")
 	_caps("Self", "i", "Wait for the next Rest.")
 	_caps("Self", "j", "Rain soaks everything.", true)  # Flavour
-	_caps("Self", "k", "Rest bonus. Soaked nightmares pay [color=gold]Dew[/color]; a Samara's seeds fly.")
+	_caps("Self", "k", "Rest bonus. Nightmares with Soak pay [color=gold]Dew[/color]; a Samara's seeds fly, and nightmares fall asleep.")
+	_caps("Self", "l", "It gains poison and sleep.")  # The status nouns in lower case
 	var caps_hits: Array = findings.get("Self caps", [])
 	var hits: Array = findings.get("Self", [])
 	var ok := hits.size() == 5 and not hits.any(func(h: String) -> bool: return h.begins_with("e:")) \
-			and caps_hits.size() == 3 and not caps_hits.any(func(h: String) -> bool: return h.begins_with("j:") or h.begins_with("k:"))
+			and caps_hits.size() == 4 and not caps_hits.any(func(h: String) -> bool: return h.begins_with("j:") or h.begins_with("k:"))
 	hits = hits + caps_hits
 	findings = saved
 	if not ok:

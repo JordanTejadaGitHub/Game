@@ -11,7 +11,7 @@ extends SceneTree
 const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
 	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
 	"area damage", "chains", "hits a line", "hits a cone", "beam", "seed flies out and back", "lobs over walls", "hits all around it",
-	"rains on the path", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts the Rooted", "slows",
+	"rains on the path", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts nightmares with Roots", "slows",
 	"Roots", "Roots the leader", "Roots the leaders", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
 	"Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour",
 	"reveals Hidden", "guards the goal", "removes boosts", "crits", "repeats Reactions", "traps", "summons helpers",

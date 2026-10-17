@@ -57,7 +57,7 @@ const WORDS := {
 	&"drowsy": {"name": "Sleep", "text": "{drowsy}: the nightmare slows, and falls {asleep} at {full}."},
 	&"exposed": {"name": "Exposure", "text": "{marked}: built up, the nightmare takes more damage."},
 	&"rooted": {"name": "Roots", "text": "{held}: the nightmare cannot move for a moment."},
-	&"asleep": {"name": "Sleep", "text": "{asleep}: the nightmare stops until a hit wakes it."},
+	&"asleep": {"name": "Asleep", "text": "{asleep}: the nightmare stops until a hit wakes it."},
 }
 
 # A Warden's job (WardenRoles) -> the keyword it makes (draft rule 4; TD: chain only now that note_jump exists).

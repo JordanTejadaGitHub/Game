@@ -49,8 +49,8 @@ func _initialize() -> void:
 	_check(is_equal_approx(h2.time_left(EnemyStatuses.HELD), EnemyStatuses.HELD_POTENCY_CAP), "capped at 2 s")
 
 	# The panel line next to crit.
-	_check(WardenHeaderView.status_strength_text(EnemyStatuses.DAMP, 1.2) == "Soaked: water hits +24%", "the panel's Soaked line")
-	_check(WardenHeaderView.status_strength_text(EnemyStatuses.HELD, 1.3, 1.0) == "Rooted 1.3 s", "the panel's Rooted line")
+	_check(WardenHeaderView.status_strength_text(EnemyStatuses.DAMP, 1.2) == "Soak: water hits +24%", "the panel's Soak line")
+	_check(WardenHeaderView.status_strength_text(EnemyStatuses.HELD, 1.3, 1.0) == "Roots 1.3 s", "the panel's Roots line")
 	_check(Tower.FOCUS_TEXT[Tower.Focus.DEEP].ends_with("+25% Potency"), "Deep is only +25% Potency")
 
 	# Off: the old rules (for Balancing's A/B).

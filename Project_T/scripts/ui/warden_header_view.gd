@@ -30,7 +30,7 @@ static func blocker_text(blocker: String) -> String:
 var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
 var brief := false  # Compact with many actions: the description's opening only (the panel sets it before show_warden)
 var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
-var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
+var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soak: water hits +24%")
 
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
@@ -258,13 +258,13 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		var potency := _tower.get_potency()
 		if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something (user), with what in its tip
 			second.append(["Potency %s" % str(snappedf(potency, 0.01)), &"potency"])  # Statuses and effect damage
-		# Patient Roots' seconds count in "Rooted N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
+		# Patient Roots' seconds count in "Roots N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
 		var held_extra: float = _tower.held_card_seconds() if attack.applies_status == EnemyStatuses.HELD and _tower.has_method("held_card_seconds") else 0.0
 		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration, held_extra)
 		if strength != "" and compact:
 			detail_lines.append(strength)  # The panel's Details
 		elif strength != "":
-			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
+			second.append([strength, attack.applies_status, true])  # "Soak: water hits +24%", "Roots 1.2 s"
 		# Wardens that Root by an ability, not by their attack's status (Tower Code): Tangleroot / Snugroot's timed
 		# hold (hold_time), Rootling's every-Nth-pulse hold (pulse_hold_time). Both go through Tower.hold, so the same
 		# Potency stretch, Patient Roots seconds and cap apply. attack_data, so a Graftling's copy is right.
@@ -286,7 +286,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		notes.append("A wall: no attack.")
 	if data.catch_share > 0.0:
 		var share := (data.catch_share + data.catch_per_rank * _tower.get_effective_rank() + DewCatch.DEW_BOWL_STEP * _tower._rule_stacks(&"dew_bowl") + Tower.FOCUS_STRONG_CATCH * _tower.choice_count(Tower.Focus.STRONG)) * Signatures.multiplier(_tower, &"catch")
-		_economy_line("Catch +%d%% · range %.1f" % [roundi(share * 100), _tower.get_catch_radius()], IconInfo.format("Catches part of the Dew from nightmares dispelled in range. Only the strongest catcher in range counts. {damp} nightmares give more."))
+		_economy_line("Catch +%d%% · range %.1f" % [roundi(share * 100), _tower.get_catch_radius()], IconInfo.format("Catches part of the Dew from nightmares dispelled in range. Only the strongest catcher in range counts. Nightmares with {damp} give more."))
 		if is_instance_valid(tower):
 			_bowl_label = _economy_line("Caught %.1f Dew" % tower.bowl, "Paid to you at the next rest.")
 	if data.rest_interest > 0.0:
@@ -446,25 +446,25 @@ func _stat_row(parts: Array, icons := false) -> void:
 	stats.add_child(row)
 
 # What this Warden's status does at its Potency (tower_design.md "Potency: effect damage and status strength"),
-# with the same caps as EnemyStatuses: "Soaked: water hits +24%", "Exposed: +30% damage taken",
-# "Drowsy −9% speed a stack", "Rooted 1.2 s". "" for Poisoned / Charged (their damage is in the hit) or with
+# with the same caps as EnemyStatuses: "Soak: water hits +24%", "Exposure: +30% damage taken",
+# "Sleep −9% speed a stack", "Roots 1.2 s" (IconInfo names). "" for Poison / Charge (their damage is in the hit) or with
 # status Potency off.
 static func status_strength_text(status: StringName, potency: float, duration: float = 0.0, held_extra: float = 0.0) -> String:
 	if not Tower.status_potency_on:
 		return ""
 	match status:
 		EnemyStatuses.DAMP:
-			return "Soaked: water hits +%d%%" % roundi(minf(EnemyStatuses.DAMP_WATER_BONUS * potency,
-				maxf(EnemyStatuses.SOAKED_CAP, EnemyStatuses.DAMP_WATER_BONUS)) * 100)
+			return "%s: water hits +%d%%" % [IconInfo.status_name(status), roundi(minf(EnemyStatuses.DAMP_WATER_BONUS * potency,
+				maxf(EnemyStatuses.SOAKED_CAP, EnemyStatuses.DAMP_WATER_BONUS)) * 100)]
 		EnemyStatuses.MARKED:
-			return "Exposed: +%d%% damage taken at full stacks" % roundi(minf(EnemyStatuses.MARKED_EXTRA * potency,
-				maxf(EnemyStatuses.EXPOSED_CAP, EnemyStatuses.MARKED_EXTRA)) * 100)
+			return "%s: +%d%% damage taken at full stacks" % [IconInfo.status_name(status), roundi(minf(EnemyStatuses.MARKED_EXTRA * potency,
+				maxf(EnemyStatuses.EXPOSED_CAP, EnemyStatuses.MARKED_EXTRA)) * 100)]
 		EnemyStatuses.DROWSY:
-			return "Drowsy −%d%% speed a stack" % roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * 100)
+			return "%s −%d%% speed a stack" % [IconInfo.status_name(status), roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * 100)]
 		EnemyStatuses.HELD:
 			var base := (duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.HELD])) + held_extra  # + Patient Roots, before the cap
 			var held := minf(base * maxf(potency, 1.0), maxf(EnemyStatuses.HELD_POTENCY_CAP, base))
-			return "Rooted %s s" % str(snappedf(held, 0.1))
+			return "%s %s s" % [IconInfo.status_name(status), str(snappedf(held, 0.1))]
 	return ""
 
 # How it attacks (user: "can't tell if something is an aura attack or not"; Tower Code 6fa3e5ce Tower.attack_shape):
