@@ -759,9 +759,25 @@ func _next_event() -> int:
 	_event += 1
 	return _event
 
+# Whether any rule _on_damage reads is on (Chain of Lanterns, the lights, a lent card, Guiding Light), cached against
+# the run's rule map and Calling as class_kit.active(): asked for every damage event (Enemy Code perf, 2026-10-17).
+var _any_on_map = null
+var _any_on_calling := ""
+var _any_on := false
+
+func _any_rule_on() -> bool:
+	var map: Dictionary = dream_state._rule_map()
+	if not is_same(map, _any_on_map) or dream_state.calling != _any_on_calling:
+		_any_on_map = map
+		_any_on_calling = dream_state.calling
+		_any_on = _rule(CHAIN_OF_LANTERNS) or _lit_on() or _lent_on() or _rule(GUIDING_LIGHT)
+	return _any_on
+
 func _on_damage(event) -> void:
 	if dream_state == null or event.tag == FORK_TAG or not is_instance_valid(event.enemy):
 		return  # A fork triggers nothing
+	if not _any_rule_on():
+		return  # Nothing of the Firefly set is held: the common case, and the cheap one
 	if _rule(CHAIN_OF_LANTERNS) and CLASS_KIT.is_reaction_burst(event):
 		_chain_more(event)  # Any family's Reaction on a nightmare a Firefly Warden hit in the last 2 s (the shared list, council 2026-10-15)
 	if event.kind == &"reaction":

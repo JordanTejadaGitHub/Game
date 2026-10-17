@@ -799,7 +799,7 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_leaf_mote):
 		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_tick_dream_cache(delta)
-	if _dream_state != null:
+	if _dream_state != null and _frame_rule(&"quiet_vigil"):  # Quiet Vigil only (perf: a rule lookup a Warden a frame was ~0.7 ms)
 		_dream_state.unique_growth.update_idle(self, delta)
 	if _tall_fade != null:
 		_update_tall_fade(delta)

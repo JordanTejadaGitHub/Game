@@ -118,8 +118,22 @@ func lent_on() -> bool:
 			return true
 	return false
 
+# Whether any of this family's rules is on, cached against the run's rule map (DreamState._rule_map() hands back the
+# same dictionary until the taken cards change) and the Calling: _on_damage asks it for every damage event, and
+# the dozen has_rule calls behind it were ~1 ms a frame per class node on a busy field (Enemy Code perf, 2026-10-17).
+var _active_map = null
+var _active_calling := ""
+var _active := false
+
 func active() -> bool:
-	return class_on() or lent_on() or _legacy_on()
+	if dream_state == null:
+		return false
+	var map: Dictionary = dream_state._rule_map()
+	if not is_same(map, _active_map) or dream_state.calling != _active_calling:
+		_active_map = map
+		_active_calling = dream_state.calling
+		_active = class_on() or lent_on() or _legacy_on()
+	return _active
 
 # The Calling's setup (mushrooms and doses, water and the ripple, the ring count, pips and Tolls) is the first pick's only
 # (owner 2026-10-14, dream_council_review.md 25 "lent cards never give the Calling's abilities"): lent cards never switch
