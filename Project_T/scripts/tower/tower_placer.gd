@@ -2049,6 +2049,8 @@ func toggle_pending_at(world: Vector2) -> void:
 		return
 	if not stroking:
 		_start_stroke(spot)
+		if _refuse_pending(spot):
+			cancel_stroke()
 		return
 	var under := _pending_under(world)
 	if under != NO_CELL:
@@ -2059,8 +2061,25 @@ func toggle_pending_at(world: Vector2) -> void:
 			return
 	else:
 		_stroke.append(spot)
+		_plan_stroke()
+		if _refuse_pending(spot):
+			_stroke.erase(spot)
+			_plan_cache = {}
 	_plan_stroke()
 	stroke_changed.emit(true)
+
+# Phones (user 2026-10-17: "shouldn't place highlighted wrong Wardens down, only ones you can place"): a tapped spot the
+# plan skips (can't plant here, closes the path, a nightmare on it, out of Dew …) never becomes a ghost; the refusal sound
+# and a toast with the reason instead. True when refused.
+func _refuse_pending(spot: Vector2) -> bool:
+	var why: String = _stroke_plan.get(spot, "")
+	if why == "":
+		return false
+	build_rejected.emit(spot)
+	var hud := owner.get_node_or_null("HUD") if owner != null else null
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast(why[0].to_upper() + why.substr(1))  # "Blocks the only path", "Out of Dew" …
+	return true
 
 # The pending Warden whose footprint holds `world`, or NO_CELL.
 func _pending_under(world: Vector2) -> Vector2:
@@ -2222,8 +2241,20 @@ func _draw_line_to(world: Vector2) -> void:
 	_stroke.assign(cells)
 	_plan_cache = {}
 	_plan_stroke()
+	# Only placeable cells join the line (user 2026-10-17): the skipped ones drop out, the earlier ghosts stay
+	var placeable := _stroke.filter(_keeps_line_cell)
+	if placeable.is_empty():
+		cancel_stroke()  # Nothing placeable: no ghosts, the line ends
+		return
+	if placeable.size() != _stroke.size():
+		_stroke.assign(placeable)
+		_plan_cache = {}
+		_plan_stroke()
 	stroke_changed.emit(true)
 	queue_redraw()
+
+func _keeps_line_cell(c: Vector2) -> bool:
+	return _line_base.has(c) or _stroke_plan.get(c, "") == ""
 
 # Starts a stroke on whole cell `cell` (clicks, touch, tests). With half cells, the hovered cell starts at the
 # ghost's half offset; any other whole cell at its own corner's half origin (cell × 2).

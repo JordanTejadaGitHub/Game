@@ -168,6 +168,7 @@ var _status_leaves := Label.new()
 var _run_page := VBoxContainer.new()
 var _pane_buttons := {}  # Page -> its rail toggle
 var _pane := &"run"
+var _pane_box: PanelContainer
 var _pending_pane := &""  # Settings asked "Apply your changes?" first: the page to show once it closes
 
 func _build_phone() -> void:
@@ -235,12 +236,14 @@ func _build_phone() -> void:
 	if pane_fill is MoonStyleBox:
 		(pane_fill as MoonStyleBox).diamond = false  # Nested beside the rail: only the outermost panel has the sprout
 	_phone_root.add_child(pane_box)
+	_pane_box = pane_box
 	var run_scroll := ScrollContainer.new()
 	run_scroll.name = "RunPage"
 	run_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	run_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED  # Sized to its content (the pane hugs it)
 	pane_box.add_child(run_scroll)
 	_run_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_run_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_run_page.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_run_page.add_theme_constant_override("separation", 12)
 	run_scroll.add_child(_run_page)
 	_fill_run_side(_run_page)
@@ -272,6 +275,8 @@ func _show_pane(pane: StringName) -> void:
 		return
 	_pane = pane
 	_run_page.get_parent().visible = pane == &"run"
+	# This run hugs its content (user 2026-10-17: a lot of unfilled space); the Codex and Settings fill the pane.
+	_pane_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_FILL
 	_settings.visible = pane == &"settings"
 	if pane == &"codex":
 		if not codex.visible:
