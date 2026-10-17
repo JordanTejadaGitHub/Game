@@ -2393,13 +2393,23 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 	# Perf (Enemy Code's test_perf_stress profile, 2026-10-17): hashing every field cost ~2 us per has_rule. A cheap key
 	# (frame, rules_stamp and the sizes) answers repeat lookups; the full hash runs at most once a frame, or when a size or
 	# the stamp changes. (Changing a stack's count in place without bump_board() shows from the next frame.)
-	var fast := [Engine.get_process_frames(), rules_stamp, stacks.size(), unlocked.size(), pool.size(), _family_roots_seen]
+	var frame := Engine.get_process_frames()
+	if not include_dormant and frame == _tk_frame and rules_stamp == _tk_stamp and stacks.size() == _tk_stacks \
+			and unlocked.size() == _tk_unlocked and pool.size() == _tk_pool and _family_roots_seen == _tk_roots:
+		return _tk_list  # The hot path (every has_rule): plain int compares, no allocation (perf, Main Merger 2026-10-17)
+	var fast := [frame, rules_stamp, stacks.size(), unlocked.size(), pool.size(), _family_roots_seen]
 	var cached: Array = _taken_cache.get(include_dormant, [])
+	if not include_dormant:
+		_tk_frame = -1  # Re-armed below once the list is known
 	if not cached.is_empty() and cached[2] == fast:
+		if not include_dormant:
+			_tk_remember(cached[1])
 		return cached[1]
 	var key := hash([stacks, unlocked, unlock_everything, pool.size(), _family_roots_seen])
 	if not cached.is_empty() and cached[0] == key:
 		cached[2] = fast
+		if not include_dormant:
+			_tk_remember(cached[1])
 		return cached[1]
 	var replaced := {}
 	for card in pool:
@@ -2410,7 +2420,27 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 		if stacks.get(card.id, 0) > 0 and not replaced.has(card.id) and (include_dormant or not _is_asleep(card)):
 			taken.append(card)
 	_taken_cache[include_dormant] = [key, taken, fast]
+	if not include_dormant:
+		_tk_remember(taken)
 	return taken
+
+# _taken_cards' hot-path key (the default list only).
+var _tk_frame := -1
+var _tk_stamp := -1
+var _tk_stacks := -1
+var _tk_unlocked := -1
+var _tk_pool := -1
+var _tk_roots := -1
+var _tk_list: Array[UpgradeData] = []
+
+func _tk_remember(list: Array[UpgradeData]) -> void:
+	_tk_frame = Engine.get_process_frames()
+	_tk_stamp = rules_stamp
+	_tk_stacks = stacks.size()
+	_tk_unlocked = unlocked.size()
+	_tk_pool = pool.size()
+	_tk_roots = _family_roots_seen
+	_tk_list = list
 
 func _update_bends() -> void:
 	_bend_cells.clear()

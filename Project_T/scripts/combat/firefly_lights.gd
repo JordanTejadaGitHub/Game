@@ -781,8 +781,13 @@ func _next_event() -> int:
 var _any_on_map = null
 var _any_on_calling := ""
 var _any_on := false
+var _any_on_key := Vector3i(-1, -1, -1)  # Frame x rules_stamp x stacks: repeat asks in a frame skip even _rule_map (perf, Main Merger 2026-10-17)
 
 func _any_rule_on() -> bool:
+	var key := Vector3i(Engine.get_process_frames(), dream_state.rules_stamp, dream_state.stacks.size())
+	if key == _any_on_key and dream_state.calling == _any_on_calling:
+		return _any_on
+	_any_on_key = key
 	var map: Dictionary = dream_state._rule_map()
 	if not is_same(map, _any_on_map) or dream_state.calling != _any_on_calling:
 		_any_on_map = map

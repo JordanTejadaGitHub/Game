@@ -124,10 +124,15 @@ func lent_on() -> bool:
 var _active_map = null
 var _active_calling := ""
 var _active := false
+var _active_key := Vector3i(-1, -1, -1)  # Frame x rules_stamp x stacks: repeat asks in a frame skip even _rule_map (perf, Main Merger 2026-10-17)
 
 func active() -> bool:
 	if dream_state == null:
 		return false
+	var key := Vector3i(Engine.get_process_frames(), dream_state.rules_stamp, dream_state.stacks.size())
+	if key == _active_key and dream_state.calling == _active_calling:
+		return _active
+	_active_key = key
 	var map: Dictionary = dream_state._rule_map()
 	if not is_same(map, _active_map) or dream_state.calling != _active_calling:
 		_active_map = map
