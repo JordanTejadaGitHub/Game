@@ -319,7 +319,7 @@ var _taken_this_offer: Array[String] = []
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
-var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
+var _taken_cache := {}  # include_dormant -> [state key, taken cards, cheap key] (_taken_cards)
 var board_version := 0  # Bumped on every change the Dream rows read (bump_board)
 var _bitter_walls := {}  # Nightmare id -> {wall id: clock it passed} (Bitter Hedges)
 var _first_hits := {}  # "Warden id:nightmare id" -> true (First Light)
@@ -2379,9 +2379,16 @@ func get_taken_cards() -> Array[UpgradeData]:
 # `include_dormant`. Cached per state (has_rule and friends run per hit and per pool card in offers);
 # the key covers stacks and unlocks, which tests also change directly.
 func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
-	var key := hash([stacks, unlocked, unlock_everything, pool.size(), _family_roots_seen])
+	# Perf (Enemy Code's test_perf_stress profile, 2026-10-17): hashing every field cost ~2 us per has_rule. A cheap key
+	# (frame, rules_stamp and the sizes) answers repeat lookups; the full hash runs at most once a frame, or when a size or
+	# the stamp changes. (Changing a stack's count in place without bump_board() shows from the next frame.)
+	var fast := [Engine.get_process_frames(), rules_stamp, stacks.size(), unlocked.size(), pool.size(), _family_roots_seen]
 	var cached: Array = _taken_cache.get(include_dormant, [])
+	if not cached.is_empty() and cached[2] == fast:
+		return cached[1]
+	var key := hash([stacks, unlocked, unlock_everything, pool.size(), _family_roots_seen])
 	if not cached.is_empty() and cached[0] == key:
+		cached[2] = fast
 		return cached[1]
 	var replaced := {}
 	for card in pool:
@@ -2391,7 +2398,7 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 	for card in pool:
 		if stacks.get(card.id, 0) > 0 and not replaced.has(card.id) and (include_dormant or not _is_asleep(card)):
 			taken.append(card)
-	_taken_cache[include_dormant] = [key, taken]
+	_taken_cache[include_dormant] = [key, taken, fast]
 	return taken
 
 func _update_bends() -> void:
