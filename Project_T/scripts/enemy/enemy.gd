@@ -486,6 +486,22 @@ func _ready() -> void:
 	if enemy_data.hidden:
 		_set_hidden(true)  # Revealed on the first presence tick if something sees it
 
+# Whether Afterroot or Dream Residue is held (their hooks watch a hold / a catch end), asked once a frame for every
+# nightmare and again whenever DreamState.rules_stamp moves (take(), bump_board()): as fresh as has_rule itself, which
+# caches by frame and stamp too (perf: a rule lookup per nightmare per frame cost more than the reads it saved).
+static var _end_hooks_frame := -1
+static var _end_hooks_stamp := -1
+static var _end_hooks_owner := 0
+static var _end_hooks_on := false
+static func _end_hooks(dreams: DreamState) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _end_hooks_frame or dreams.rules_stamp != _end_hooks_stamp or dreams.get_instance_id() != _end_hooks_owner:
+		_end_hooks_frame = frame
+		_end_hooks_stamp = dreams.rules_stamp
+		_end_hooks_owner = dreams.get_instance_id()
+		_end_hooks_on = dreams.has_rule(&"afterroot") or dreams.has_rule(&"dream_residue")
+	return _end_hooks_on
+
 func _process(delta: float) -> void:
 	if is_cleansed or (_path_index >= _path.size() and not at_heartwood):
 		return
@@ -505,10 +521,14 @@ func _process(delta: float) -> void:
 		_web_cooldown = maxf(_web_cooldown - delta, 0.0)
 	elif statuses.marked_bonus != 0.0:
 		statuses.marked_bonus = 0.0
-	var unique_dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	var unique_held := statuses.is_held()
+	# Afterroot / Dream Residue read a hold or a catch ending: only while one of them is held (perf: this was a group
+	# lookup and three status reads for every nightmare every frame)
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # (Once, as take_damage)
+	var unique_dreams := _batch_dreams if is_instance_valid(_batch_dreams) and _end_hooks(_batch_dreams) else null
+	var unique_held := unique_dreams != null and statuses.is_held()
 	var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
-	var unique_caught := statuses.is_caught()
+	var unique_caught := unique_dreams != null and statuses.is_caught()
 	var spore_soothe := statuses.tick(delta)
 	if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
 		DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
