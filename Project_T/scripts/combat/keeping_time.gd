@@ -215,7 +215,7 @@ const CHORD_META := &"kt_evo_chord_next"
 const FILLERS_META := &"kt_evo_fillers"  # On a nightmare (Accompaniment on): [[Warden id (0 = none), another Warden's: bool]] per pip
 var _last_hit_of := {}  # Warden id -> its last hit, before defences (Night Choir, Symphony)
 var _clocks: Array = []  # Midnight Bell's clock faces: [{enemy: WeakRef, at, until}]
-var _overlap := {}  # Steady Beat: route index -> true where 2 or more bells reach (drawn as a double ring)
+var _overlap := {}  # Steady Beat: route index -> true where 2 or more bells reach (drawn as a gold band)
 
 func _family() -> String:
 	return FAMILY
@@ -353,7 +353,7 @@ func on_board() -> void:
 				break  # It stops at the next bell's reach
 			carried.append(i)
 		_carry[id] = carried
-	# Steady Beat: the stretches 2 or more bells reach, drawn as a double ring on the path
+	# Steady Beat: the stretches 2 or more bells reach, drawn as a gold band on the path (_draw_overlap)
 	_overlap.clear()
 	if evo(EVO_STEADY):
 		var count := {}
@@ -1372,13 +1372,42 @@ func damage_multiplier(enemy, source, tag: StringName) -> float:
 
 # --- Drawing: the hanging notes ---------------------------------------------------------------------------------------------
 
-func _draw() -> void:
-	for i in _overlap:  # Steady Beat: a double ring on each step 2 or more bells reach
-		if int(i) % 2 != 0 or int(i) >= _route_px.size():
+# Steady Beat: one gold band along each stretch of path 2 or more bells reach (owner 2026-10-17: the old faint double
+# rings on every step were "barely visible" on the sand path). A dark ember edge under a warm glow reads on sand and grass.
+const OVERLAP_EDGE := 0.5  # Band widths, in cells
+const OVERLAP_BODY := 0.34
+
+func _draw_overlap() -> void:
+	if _overlap.is_empty():
+		return
+	var indices: Array = _overlap.keys()
+	indices.sort()
+	var run := PackedVector2Array()
+	var last := -2
+	for i in indices:
+		var n := int(i)
+		if n >= _route_px.size():
 			continue
-		var p: Vector2 = _route_px[int(i)]
-		draw_arc(p, cell() * 0.22, 0.0, TAU, 16, Color(Palette.GOLD, 0.35), 1.5)
-		draw_arc(p, cell() * 0.32, 0.0, TAU, 16, Color(Palette.GOLD, 0.2), 1.0)
+		if n != last + 1:
+			_draw_band(run)
+			run = PackedVector2Array()
+		run.append(_route_px[n])
+		last = n
+	_draw_band(run)
+
+func _draw_band(run: PackedVector2Array) -> void:
+	if run.is_empty():
+		return
+	if run.size() == 1:
+		draw_circle(run[0], cell() * OVERLAP_EDGE / 2.0, Color(Palette.EMBER, 0.55))
+		draw_circle(run[0], cell() * OVERLAP_BODY / 2.0, Color(Palette.GLOW, 0.5))
+		return
+	draw_polyline(run, Color(Palette.EMBER, 0.55), cell() * OVERLAP_EDGE, true)
+	draw_polyline(run, Color(Palette.GLOW, 0.5), cell() * OVERLAP_BODY, true)
+	draw_polyline(run, Color(Palette.HEARTLIGHT, 0.6), 2.0, true)
+
+func _draw() -> void:
+	_draw_overlap()
 	for note in _notes:
 		if bool(note.get("rings", false)):  # Lingering Note: a note glyph (Night Choir's glows pale when Wardens sing in it)
 			var tint: Color = Palette.HEARTLIGHT if not (note.choir as Array).is_empty() else Palette.GOLD

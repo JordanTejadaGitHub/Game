@@ -128,7 +128,7 @@ const PATHS := {
 		"tip": "At most 3 Wardens for each note, the strongest first. Never more than 1 s of that Warden's damage."},
 	&"kt_evo_steady_beat": {"makes": [], "uses": [&"cluster"], "calling": "bellflower", "tier": STYLE, "parent": &"", "name": "Steady Beat", "style": "Focus",
 		"text": "Overlap your bells: nightmares in range of 2 or more bells start with 3 pips filled instead of 2, and their {tolls} hit at full damage instead of half.",
-		"tip": "Where bells overlap, the path shows a double ring. Leads to: Midnight Bell, Sleeping Hall."},
+		"tip": "Where bells overlap, the path glows gold. Leads to: Midnight Bell, Sleeping Hall."},
 	&"kt_evo_crescendo": {"makes": [], "uses": [], "calling": "bellflower", "tier": FOLLOW_UP, "parent": &"kt_evo_steady_beat", "name": "Crescendo",
 		"text": "Each {toll} on a nightmare makes its next {toll} 25% stronger, up to +100%.",
 		"tip": "Its pips grow bigger and brighter. Leads to: Midnight Bell."},
