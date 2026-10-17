@@ -9,7 +9,7 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.keeping_time)
 const CELL := 64.0
-const LENT := ["on_the_beat", "in_time", "nod_off", "refrain", "second_verse", "knell", "curtain_call", "reprise",
+const LENT := ["on_the_beat", "in_time", "nod_off", "refrain", "second_verse", "knell", "reprise",
 	"rude_awakening", "da_capo"]  # Trait rework 2026-10-15: things happen again
 
 func _initialize() -> void:

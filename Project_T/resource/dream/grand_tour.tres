@@ -15,4 +15,4 @@ max_stacks = 1
 min_owned_statuses = 3
 rule_id = &"grand_tour"
 in_start_pool = false
-uses = Array[StringName]([&"layered"])
+retired = true

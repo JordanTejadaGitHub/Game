@@ -78,8 +78,12 @@ func calling_info() -> Dictionary:
 		return {}
 	var family := IconInfo.family_data(dream_state.calling)
 	var path: String = dream_state.calling_path_text() if dream_state.has_method("calling_path_text") else ""
+	var text: String = DreamState.CALLINGS.tooltip(dream_state.calling)
+	var evolutions: String = dream_state.calling_evolutions_text() if dream_state.has_method("calling_evolutions_text") else ""
+	if evolutions != "":
+		text += "\n\n" + evolutions  # Each evolution's effect under the Calling's (Roguelite Code 2026-10-17)
 	return {"name": dream_state.calling_title(), "family": family.display_name if family != null else dream_state.calling.capitalize(),
-		"text": DreamState.CALLINGS.tooltip(dream_state.calling), "data": family, "path": path if path != "" else dream_state.calling_title()}
+		"text": text, "data": family, "path": path if path != "" else dream_state.calling_title()}
 
 func _refresh_calling() -> void:
 	var info_now := calling_info()

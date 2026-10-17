@@ -465,6 +465,16 @@ func has_evolution(id: StringName) -> bool:
 func calling_path_text() -> String:
 	return CALLING_PATHS.path_text(calling_title(), calling_path) if calling != "" else ""
 
+# Each evolution taken, "Name: what it does" (tokens unformatted), one per paragraph; "" when none (owner 2026-10-17:
+# "I don't see the details of the evolution on the Dream tab"). Dreams this run shows it under the Calling's text.
+func calling_evolutions_text() -> String:
+	var parts: Array[String] = []
+	for id in calling_path:
+		if CALLING_PATHS.PATHS.has(StringName(id)):
+			var row: Dictionary = CALLING_PATHS.PATHS[StringName(id)]
+			parts.append("%s: %s" % [row.name, row.text])
+	return "\n\n".join(parts)
+
 # The Calling's offer for the rest after `drift`, or [] (not a Calling drift, nothing left, a Calling without evolutions,
 # or an old save that took class cards: it keeps them and never evolves; no migration, pre-release).
 func _calling_offer_for(drift: int) -> Array[UpgradeData]:
@@ -3101,6 +3111,8 @@ func _meets_needs(card: UpgradeData) -> bool:
 	if card.requires_status != &"" and not owned_statuses().has(card.requires_status):
 		return false
 	if not card.requires_any_status.is_empty() and not card.requires_any_status.any(func(s: StringName) -> bool: return owned_statuses().has(s)):
+		return false
+	if not card.requires_statuses.is_empty() and not card.requires_statuses.all(func(s: StringName) -> bool: return owned_statuses().has(s)):
 		return false
 	if card.max_range_owned > 0.0 and not owns_range_at_most(card.max_range_owned):
 		return false

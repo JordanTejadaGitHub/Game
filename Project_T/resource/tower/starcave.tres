@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Starcave"
 role_line = "Reveals Hidden, support, long range"
-description = "A bigger lit area. {held} lasts three times as long on lit cells, and {hidden} nightmares show in the light."
+description = "A bigger glowing area. {held} lasts three times as long on glowing cells, and {hidden} nightmares show in the light."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

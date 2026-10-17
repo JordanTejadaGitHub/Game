@@ -274,6 +274,9 @@ const RING_FIRST := 4.0  # the innermost ring's radius,
 const RING_STEP := 3.0  # the gap between rings,
 const RING_WIDTH := 1.5  # a lit ring's width,
 const RING_TRIM := 0.45  # and how much of each upper half-arc is cut at the ends (radians)
+const TOLL_FLASH := 0.4  # A Toll: the rings flash and burst outward for this long (owner 2026-10-17: "the toll should have a visual effect when filled")
+const TOLL_FLASH_GROW := 1.6  # How far the rings spread by the end of it (x their radius)
+var _toll_flashes: Array = []  # [{enemy: WeakRef, at: Vector2, start: float}]
 var _pip_layer: Node2D
 var _pips_shown := false
 
@@ -283,6 +286,8 @@ func _process(delta: float) -> void:
 		_ears_flush()
 	if dream_state != null and not _clocks.is_empty():
 		_clocks = _clocks.filter(func(c) -> bool: return now() < float(c.until))
+	if dream_state != null and not _toll_flashes.is_empty():
+		_toll_flashes = _toll_flashes.filter(func(f) -> bool: return now() - float(f.start) < TOLL_FLASH)
 	if _pip_layer != null and (tolls_on() or _pips_shown):
 		_pips_shown = tolls_on()
 		_pip_layer.queue_redraw()  # Only while Tolls are on (and once more to clear them)
@@ -321,6 +326,14 @@ func _draw_pips() -> void:
 			var share := clampf(float(enemy.get_meta(RINGS_META)) / MIDNIGHT_RINGS, 0.0, 1.0)
 			var dial: Vector2 = enemy.global_position + PIP_OFFSET + Vector2(0.0, -18.0)  # Above the outermost ring
 			_pip_layer.draw_arc(dial, 4.0, -PI / 2.0, -PI / 2.0 + TAU * share, 16, Color(Palette.MOONLIGHT, 0.7), 1.0)
+	for f in _toll_flashes:  # A Toll: the four rings light gold and burst outward, fading
+		var age := clampf((now() - float(f.start)) / TOLL_FLASH, 0.0, 1.0)
+		var who = f.enemy.get_ref()
+		var centre: Vector2 = (who.global_position if is_instance_valid(who) else f.at) + PIP_OFFSET
+		var grow := 1.0 + (TOLL_FLASH_GROW - 1.0) * age
+		var colour := Color(Palette.GLOW, 1.0 - age)
+		for k in TOLL_EVERY:
+			_pip_layer.draw_arc(centre, (RING_FIRST + RING_STEP * k) * grow, PI + RING_TRIM, TAU - RING_TRIM, 12, colour, RING_WIDTH + 1.0, true)
 	for c in _clocks:  # Midnight Bell: a clock face at midnight over the nightmare
 		var who = c.enemy.get_ref()
 		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -24.0)
@@ -462,6 +475,7 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 	var landing := amount * share * swell
 	enemy.set_meta(TOLLED_META, true)
 	Reactions._effect(&"landing_dust", at, self, 0.5)
+	_toll_flashes.append({"enemy": weakref(enemy), "at": at, "start": now()})  # The rings burst (drawn in _draw_pips)
 	# Setup credit 2026-10-16: what Rising Song, Steady Beat and Crescendo add to the Toll is their own damage (multipliers)
 	if share > TOLL_SHARE:
 		if full:

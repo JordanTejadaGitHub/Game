@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_vesper_bell"
 display_name = "Vesper Bell"
-description = "{warden:silver_bell}s can now {grow} into {warden:vesper_bell}s ({dew:{grow_cost:vesper_bell}}): a heavier toll that echoes to the next-strongest nightmare at half."
+description = "{warden:silver_bell}s can now {grow} into {warden:vesper_bell}s ({dew:{grow_cost:vesper_bell}}): a heavier peal that echoes to the next-strongest nightmare at half."
 rarity = 2
 kind = 1
 tags = Array[String](["song"])

@@ -108,6 +108,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_owned_statuses: int = 0  # Own Wardens applying this many different statuses (Seeping: 2)
 @export var min_kinships: int = 0  # Kinships on the map at offer time (Kinship cards; hard Need)
 @export var requires_any_status: Array[StringName] = []  # Own a Warden applying any of these (Heavy Air: a slow)
+@export var requires_statuses: Array[StringName] = []  # Own Wardens applying every one of these (Crowned cards, owner 2026-10-17: statuses only)
 @export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
 @export var requires_role: StringName = &""  # A Warden with this job built or grown this run (WardenRoles: heavy, area, chain…)
 @export var min_tier_owned: int = 0  # A Warden of at least this tier built or grown this run (2 branch, 3 final, 4 Ascended)
