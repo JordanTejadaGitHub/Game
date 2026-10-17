@@ -402,6 +402,7 @@ var _sapling_timer := 0.0
 var _sapling_speed := 1.0
 var _eclipsed := false
 var _griefs := 0  # grief_at thresholds already passed
+var _has_thresholds := true  # Any health threshold at all (set in _ready; perf: every hit asks, nearly no nightmare has one)
 var _has_risen := false
 # Boss pools (enemy_design.md)
 const ECHO_ALPHA := 0.6
@@ -456,6 +457,9 @@ func _ready() -> void:
 		_always_statuses.append(omen_status)
 	statuses.duration_multipliers = enemy_data.status_duration_multipliers
 	statuses.duration_multiplier_all = modifiers.get("status_duration", 1.0)
+	_has_thresholds = enemy_data.eclipse_time > 0.0 or not enemy_data.grief_at.is_empty() \
+		or not enemy_data.wither_burst_at.is_empty() or not enemy_data.echo_at.is_empty() or enemy_data.bellow_count > 0 \
+		or enemy_data.pack_regroup_at_half
 	coat_max = enemy_data.coat_total * health_scale * modifiers.get("coat", 1.0)
 	coat = coat_max
 	# The per-hit soak grows with the drift's growth only (health_scale rises ~×38 by drift 45, heavy hits ~×3–8);
@@ -1391,6 +1395,10 @@ func flinch(share: float, from: Vector2 = NO_SOURCE) -> void:
 		return
 	var strength := clampf(share / RECOIL_FULL_SHARE, 0.0, 1.0)
 	var scale_by := BOSS_FLINCH if enemy_data.is_boss else 1.0
+	# A weaker hit while a stronger flinch is still playing changes nothing you'd see (perf: a crowded field lands dozens of
+	# hits a frame; each restart set the shader parameter and the sprite offset)
+	if _flinch_left > 0.0 and _recoil.length_squared() >= pow(lerpf(RECOIL_MIN, RECOIL_MAX, strength) * scale_by, 2.0):
+		return
 	var away := Vector2.ZERO
 	if from != NO_SOURCE:
 		away = global_position - from
@@ -2377,6 +2385,8 @@ func heal(amount: float) -> void:
 
 # Boss moments that happen at a share of health: the Moth Queen's Eclipse, the Hollow Oak's Grief.
 func _check_health_thresholds() -> void:
+	if not _has_thresholds:
+		return
 	if enemy_data.eclipse_time > 0.0 and not _eclipsed and health <= max_health / 2:
 		_eclipsed = true
 		eclipse_started.emit(self, enemy_data.eclipse_time)
