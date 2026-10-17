@@ -269,8 +269,11 @@ func _ready() -> void:
 # pips above it, the filled ones gold. Shown only while Tolls are on and the nightmare has started counting.
 const PIP_Z := 8
 const PIP_OFFSET := Vector2(0.0, -44.0)  # Above the health bar
-const PIP_GAP := 6.0
-const PIP_RADIUS := 2.0
+const RING_CORE := 1.5  # Rings over the nightmare: the clapper dot,
+const RING_FIRST := 4.0  # the innermost ring's radius,
+const RING_STEP := 3.0  # the gap between rings,
+const RING_WIDTH := 1.5  # a lit ring's width,
+const RING_TRIM := 0.45  # and how much of each upper half-arc is cut at the ends (radians)
 var _pip_layer: Node2D
 var _pips_shown := false
 
@@ -297,28 +300,30 @@ func _draw_pips() -> void:
 		# Shown from the start (owner 2026-10-15: "feels like the pip starts at 3"): the 2 filled ones were only drawn
 		# after the first ring, which had already made them 3
 		var filled := int(enemy.get_meta(PIPS_META, start))
-		var at: Vector2 = enemy.global_position + PIP_OFFSET - Vector2(PIP_GAP * (TOLL_EVERY - 1) / 2.0, 0.0)
+		# Rings, not dots (owner 2026-10-17: "make it seem like rings filling"): TOLL_EVERY sound-wave arcs rising over
+		# the nightmare, lit from the inside out; the outermost is the Toll.
+		var at: Vector2 = enemy.global_position + PIP_OFFSET
 		var roster: Array = enemy.get_meta(FILLERS_META, []) if colours else []
 		var swell := mini(int(enemy.get_meta(CRESC_META, 0)), CRESC_GLOW_STEPS) if cresc else 0
-		var radius := PIP_RADIUS + 0.25 * swell
+		_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))  # The clapper the rings spread from
 		for k in TOLL_EVERY:
-			var spot := at + Vector2(PIP_GAP * k, 0.0)
+			var radius := RING_FIRST + RING_STEP * k
 			if k < filled:
 				var colour: Color = Palette.GOLD
 				if k < roster.size() and bool(roster[k][1]):
 					colour = Palette.BLOSSOM
 				elif swell >= CRESC_GLOW_STEPS:
 					colour = Palette.GLOW
-				_pip_layer.draw_circle(spot, radius, colour)
+				_pip_layer.draw_arc(at, radius, PI + RING_TRIM, TAU - RING_TRIM, 12, colour, RING_WIDTH + 0.25 * swell, true)
 			else:
-				_pip_layer.draw_circle(spot, PIP_RADIUS, Color(Palette.MOONLIGHT, 0.35))
+				_pip_layer.draw_arc(at, radius, PI + RING_TRIM, TAU - RING_TRIM, 12, Color(Palette.MOONLIGHT, 0.3), 1.0, true)
 		if midnight and enemy.has_meta(RINGS_META) and not enemy.has_meta(MIDNIGHT_META):
 			var share := clampf(float(enemy.get_meta(RINGS_META)) / MIDNIGHT_RINGS, 0.0, 1.0)
-			var dial: Vector2 = enemy.global_position + PIP_OFFSET + Vector2(0.0, -8.0)
+			var dial: Vector2 = enemy.global_position + PIP_OFFSET + Vector2(0.0, -18.0)  # Above the outermost ring
 			_pip_layer.draw_arc(dial, 4.0, -PI / 2.0, -PI / 2.0 + TAU * share, 16, Color(Palette.MOONLIGHT, 0.7), 1.0)
 	for c in _clocks:  # Midnight Bell: a clock face at midnight over the nightmare
 		var who = c.enemy.get_ref()
-		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -14.0)
+		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -24.0)
 		_pip_layer.draw_circle(centre, 8.0, Color(Palette.NIGHT, 0.7))
 		_pip_layer.draw_arc(centre, 8.0, 0.0, TAU, 24, Palette.GOLD, 1.5)
 		_pip_layer.draw_line(centre, centre + Vector2(0.0, -6.0), Palette.HEARTLIGHT, 1.5)
