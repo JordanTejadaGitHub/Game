@@ -2965,7 +2965,8 @@ func _walk_back(delta: float) -> void:
 # one. True if they traded.
 func trade_places(other: Node2D) -> bool:
 	if other == self or not is_instance_valid(other) or is_cleansed or other.is_cleansed or is_flying() or other.is_flying() \
-			or _leaping or other._leaping or _dragging or other._dragging:
+			or _leaping or other._leaping or _dragging or other._dragging \
+			or not can_walk_back() or not other.can_walk_back():  # (Enemy Code: never one on the bridge, at the Heartwood or waiting to set off; _entry isn't traded)
 		return false
 	var my_position := position
 	var my_path := _path
