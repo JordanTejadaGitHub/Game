@@ -877,15 +877,17 @@ func _run() -> void:
 	wheel_cam.target_zoom = Vector2.ONE * 0.8
 	wheel_cam._unhandled_input(wheel)
 	_check(wheel_cam.target_zoom.x > 0.8, "a wheel over the map zooms")
-	# Zoom (user: "allow zooming in more"): up to 2.5×, each notch ×1.1 (even at both ends), and world
-	# text keeps its screen size when zoomed in.
+	# Zoom (user: "allow zooming in more", then 2026-10-15 "zoom a little more in": the limit is camera_zoom_in_max, 3.5×),
+	# each notch ×1.1 (even at both ends), and world text keeps its screen size when zoomed in.
 	wheel_cam.target_zoom = Vector2.ONE
 	wheel_cam.zoom_by_step(1.0)
 	_check(is_equal_approx(wheel_cam.target_zoom.x, wheel_cam.zoom_step), "a notch multiplies the zoom by %.2f" % wheel_cam.zoom_step)
-	wheel_cam.target_zoom = Vector2.ONE * 2.4
+	var zoom_top: float = wheel_cam.camera_zoom_in_max
+	wheel_cam.target_zoom = Vector2.ONE * (zoom_top - 0.1)
 	wheel_cam.zoom_by_step(1.0)
 	wheel_cam.zoom_by_step(1.0)
-	_check(is_equal_approx(wheel_cam.target_zoom.x, 2.5), "zooming in stops at 2.5× (%.2f)" % wheel_cam.target_zoom.x)
+	_check(is_equal_approx(wheel_cam.target_zoom.x, zoom_top) and zoom_top > 2.5,
+		"zooming in stops at the limit, %.1f× (%.2f)" % [zoom_top, wheel_cam.target_zoom.x])
 	var camera_2d := main.get_viewport().get_camera_2d()
 	var zoom_was := camera_2d.zoom
 	camera_2d.zoom = Vector2.ONE * 2.5
