@@ -478,7 +478,11 @@ func _play_signature(enemy) -> void:
 # through bark. Loudness × rate stays even: fast Wardens are quieter per shot (`_rate_db`).
 
 static func warden_id(data: TowerData) -> String:
-	return data.resource_path.get_file().get_basename()
+	var key := data.get_instance_id()  # Cached by instance id (plain data in the static: perf, 2026-10-17)
+	if not _wid_cache.has(key):
+		_wid_cache[key] = data.resource_path.get_file().get_basename()
+	return _wid_cache[key]
+static var _wid_cache := {}
 
 # Every sound a Warden can make that exists (tests check each built Warden has at least one).
 static func warden_sounds(snd: Node, data: TowerData) -> Array[StringName]:
@@ -497,6 +501,8 @@ static func _lookup_ids(prefix: String, data: TowerData) -> Array:
 		ids.append(prefix + FAMILY_BASE[data.line])
 	ids.append(prefix + data.line)
 	return ids
+
+var _hit_ids := {}  # TowerData instance id -> its hit sound id (_on_hit)
 
 func _sound_for(prefix: String, data: TowerData) -> StringName:
 	for id in _lookup_ids(prefix, data):
@@ -831,8 +837,8 @@ func _on_attack(tower: Tower) -> void:
 # The impact, where the attack lands: the Warden's hit, pitched lower on big or tanky nightmares
 # (not the tonal song family), muffled when resisted, fuller and louder when the nightmare is weak.
 func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> void:
-	if not is_instance_valid(enemy):
-		return
+	if not is_instance_valid(enemy) or bool(sound.get("_silent")):
+		return  # (No audio device, headless: nothing would play; Main Merger's perf pass 2026-10-17)
 	var data: TowerData = tower.attack_data
 	var kind := data.attack_kind
 	var key := tower.get_instance_id()
@@ -869,7 +875,10 @@ func _on_hit(tower: Tower, enemy: Node2D, _is_area: bool, _is_crit: bool) -> voi
 	if hits_before > 0 and kind != TowerData.AttackKind.CHAIN:
 		return
 
-	var id := _sound_for("hit_", data)
+	var hit_key := data.get_instance_id()  # The hit sound per Warden form, found once (perf, 2026-10-17)
+	if not _hit_ids.has(hit_key):
+		_hit_ids[hit_key] = _sound_for("hit_", data)
+	var id: StringName = _hit_ids[hit_key]
 	if kind == TowerData.AttackKind.PULSE and sound.has_sound(StringName("drowsy_" + wid)) \
 			and int(_attack_counts.get(key, 0)) % 2 == 1:
 		id = StringName("drowsy_" + wid)  # Bellflower: every 2nd pulse a sleepier, lower bell
