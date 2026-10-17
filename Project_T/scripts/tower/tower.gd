@@ -926,7 +926,7 @@ func _has_work() -> bool:
 				return false
 	if _dream_state != null and _dream_state.calling == "nestling" and CALLINGS.uses_perches(self):
 		return has_enemy_in_range() or not CALLINGS.perch_targets(self).is_empty()  # Perches: from another Warden too
-	if _dream_state != null and _dream_state.has_rule(&"across_the_water") and not has_enemy_in_range():
+	if _dream_state != null and _frame_rule(&"across_the_water") and not has_enemy_in_range():  # (_frame_rule: performance)
 		var none: Array[Node2D] = []
 		return not _dream_state.class_targets(self, none).is_empty()  # Across the Water
 	return has_enemy_in_range()  # Performance: whether one is in range, not which (find_target scores them)
@@ -2218,10 +2218,14 @@ func _refresh_neighbours() -> void:
 	_touch_lines = {}
 	var my_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
 	var my_reach := get_aura_reach() if my_aura else 0.0
+	var reach_px := NEIGHBOUR_REACH * MAP_GRID.cell_size.x
+	var reach_px_squared := reach_px * reach_px
+	var kin_live := is_instance_valid(_kin)  # Old Growth needs a Kinship (performance: no kin_share per neighbour without one)
 	for other in _towers_near():
-		var distance: float = other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x
-		if distance > NEIGHBOUR_REACH:
-			continue  # Performance: the bucket window is ~15 cells wide; nothing reaches this far
+		var distance_squared: float = other.global_position.distance_squared_to(global_position)
+		if distance_squared > reach_px_squared:
+			continue  # Performance: the bucket window is ~15 cells wide; nothing reaches this far (no sqrt for those)
+		var distance: float = sqrt(distance_squared) / MAP_GRID.cell_size.x
 		var data: TowerData = other.tower_data
 		var touching := absf(other.cell.x - cell.x) <= 1 and absf(other.cell.y - cell.y) <= 1
 		if touching:
@@ -2239,7 +2243,7 @@ func _refresh_neighbours() -> void:
 			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true), distance > other.get_aura_reach()])
 		if my_aura and distance <= my_reach and data.can_attack:
 			aura_count += 1  # Grove Heart's "for each Warden around it": only ones its aura boosts
-		var growth: float = other.kin_share(&"old_growth", "b") if distance <= 1.5 and tower_data.can_attack else 0.0
+		var growth: float = other.kin_share(&"old_growth", "b") if kin_live and distance <= 1.5 and tower_data.can_attack else 0.0
 		if growth > 0.0:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
 			if not auras.has("old_growth"):
 				auras["old_growth"] = []
@@ -5765,12 +5769,15 @@ func _buckets_near(at: Vector2, reach: float) -> Array:
 
 # Whether any nightmare is in range: stops at the first (_has_work and Watchful Rest only need yes / no).
 func has_enemy_in_range() -> bool:
-	var range_squared := get_range_pixels() ** 2
+	var reach := get_range_pixels()
+	var range_squared := reach * reach
 	var sky_squared := range_squared
-	if _rule_stacks(&"skyward_gaze") > 0:
-		sky_squared = range_to_pixels(get_range_cells() + DreamState.SKYWARD_RANGE) ** 2
+	if _dream_state != null and _frame_rule(&"skyward_gaze"):  # (_frame_rule: one rule lookup a Warden a frame, performance)
+		var sky := range_to_pixels(get_range_cells() + DreamState.SKYWARD_RANGE)
+		sky_squared = sky * sky
+		reach = maxf(reach, sky)
 	var min_squared := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
-	for bucket in _buckets_near(global_position, sqrt(maxf(range_squared, sky_squared))):
+	for bucket in _buckets_near(global_position, reach):
 		for enemy in bucket:
 			if not is_instance_valid(enemy) or enemy.is_cleansed:
 				continue

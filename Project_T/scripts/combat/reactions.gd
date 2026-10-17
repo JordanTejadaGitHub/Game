@@ -194,7 +194,9 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if frame != _checked_frame:
 		_checked_frame = frame
 		_checked.clear()
-	var key := "%d:%s:%d:%d" % [enemy.get_instance_id(), _id, s.stacks(_id), s.count()]
+	# An int key (performance: the formatted string was built on every status landing); mixes the nightmare, the status,
+	# its stacks and the status count, as the string did.
+	var key: int = ((enemy.get_instance_id() * 31 + _id.hash()) * 131 + s.stacks(_id)) * 17 + s.count()
 	if _checked.has(key):
 		return
 	_checked[key] = true
