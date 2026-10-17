@@ -307,6 +307,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_tick_settling(delta)
 	_tick_long_press()
+	if tap_to_place or _old_route_alpha < 1.0:
+		_fade_old_route(tap_to_place and stroking and _path_preview.visible, delta)
 	_sync_link_fx()  # The previewed links' arcs follow what the last draw asked for (none once nothing is previewed)
 	if not _grow_preview.is_empty():
 		_grow_preview_time += delta
@@ -2086,6 +2088,20 @@ var _line_start := NO_CELL
 var _line_axis := -1  # -1 not locked yet, 0 = a row, 1 = a column
 var _line_base: Array[Vector2] = []  # The pending Wardens before the line started
 var _touch_moved := false  # The claimed finger moved a Warden or drew a line: its release is not a tap
+
+# Phones: while ghost Wardens wait for Confirm, the route they'd make is previewed; the path tiles of today's route fade
+# back so only one route reads (user report 2026-10-17: "there is two paths"). Back to full on Confirm / Cancel.
+const OLD_ROUTE_FADED := 0.25
+var _old_route_alpha := 1.0
+
+func _fade_old_route(faded: bool, delta: float) -> void:
+	var target := OLD_ROUTE_FADED if faded else 1.0
+	if is_equal_approx(_old_route_alpha, target):
+		return
+	_old_route_alpha = move_toward(_old_route_alpha, target, delta * 4.0)
+	var layer := map_generator.get_node_or_null("PathTileMapLayer") as CanvasItem
+	if layer != null:
+		layer.modulate.a = _old_route_alpha  # multiplier
 
 # TouchBuild asks: this finger moves a pending Warden or draws a line, so it doesn't pan the map.
 func touch_claims() -> bool:

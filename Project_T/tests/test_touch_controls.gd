@@ -47,6 +47,12 @@ func _run() -> void:
 		await _tap(_screen_of(MAP_GRID_CELL(cell)))
 	_check(placer.stroking and placer.get_stroke_cells().size() == 3 and container.get_child_count() == before,
 		"three taps: three pending Wardens, none planted yet (%d pending)" % placer.get_stroke_cells().size())
+	var path_layer := map_generator.get_node("PathTileMapLayer") as CanvasItem
+	for i in 30:
+		await process_frame
+	_check(path_layer.modulate.a < 0.5, "pending Wardens: today's route fades behind the preview (one route reads; %.2f)" % path_layer.modulate.a)
+	_close_screens()  # The boss dossier opens itself a few seconds into the first rest
+	await process_frame
 	touch._refresh()
 	_check(touch.visible and touch._plant.visible and touch._plant.text == "Confirm (3)", "Confirm shows the count (%s)" % touch._plant.text)
 	await _tap(_screen_of(MAP_GRID_CELL(cells[1])))
@@ -73,6 +79,9 @@ func _run() -> void:
 	_check(container.get_child_count() == before + 2 and not placer.stroking and not placer.build_mode,
 		"Confirm builds the two and ends build mode (user 2026-10-16; %d planted)" % (container.get_child_count() - before))
 	_check(not touch.visible and placer._session_built.is_empty(), "…the touch bar and the blue outlines go with it")
+	for i in 30:
+		await process_frame
+	_check(is_equal_approx(path_layer.modulate.a, 1.0), "…and the route is drawn in full again (%.2f)" % path_layer.modulate.a)
 
 	placer.select_tower(load("res://resource/tower/thornwall.tres"))
 	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
