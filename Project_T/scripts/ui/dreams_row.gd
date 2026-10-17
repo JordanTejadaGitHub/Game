@@ -305,9 +305,6 @@ func _card_row(source: DreamIcon) -> Control:
 	name.text = card.display_name + (("  ×%d" % source.stacks) if source.stacks > 1 else "")
 	UiStyle.title(name, 16, UpgradeData.rarity_color(card.rarity))
 	text.add_child(name)
-	var keyword_row := KeywordRow.make(DreamState.KEYWORDS.chips_for_card(card))  # Keyword chips (2026-10-16), under the name
-	if keyword_row != null:
-		text.add_child(keyword_row)
 	if dream_state.has_method("opened_clearing") and dream_state.opened_clearing(card):
 		var opened := Label.new()
 		opened.text = DreamState.OPENED_CLEARING_LINE  # dream_design.md "Make the unlock obvious"
@@ -332,6 +329,12 @@ func _card_row(source: DreamIcon) -> Control:
 		needs.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		text.add_child(needs)
 		frame.modulate = Color(1, 1, 1, 0.55)
+	# Keyword chips (2026-10-16) at the entry's foot, quiet in the rarity colour, as on the Dream card (screens_ui.md
+	# 844fa70a: the name and text read first)
+	var keyword_row := KeywordRow.make(DreamState.KEYWORDS.chips_for_card(card), UiStyle.CHIP_ICON,
+		UpgradeData.rarity_color(card.rarity), 12)
+	if keyword_row != null:
+		text.add_child(keyword_row)
 	row.add_child(text)
 	var live := Label.new()
 	_live_labels[card.id] = live

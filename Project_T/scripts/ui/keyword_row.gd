@@ -10,9 +10,9 @@ class_name KeywordRow
 const PHONE_ROW_H := 48.0
 const PHONE_ICON := 20
 
-# `outline` (a card's rarity colour) gives the quiet card chips on one line, `font_size` their word (Dream and Calling
-# cards: the row sits at the card's foot, screens_ui.md 844fa70a).
-static func make(chips: Array, icon_size: int = 0, outline := Color(0, 0, 0, 0), font_size: int = UiStyle.CHIP_TEXT_SIZE) -> KeywordRow:
+# Every row is the quiet chip (screens_ui.md 844fa70a: outlined, dim word, never a filled gold tag): `outline` is the
+# frame colour (a card's rarity; GOLD by default), on one line for up to two chips, `font_size` the word.
+static func make(chips: Array, icon_size: int = 0, outline: Color = UiStyle.GOLD, font_size: int = 12) -> KeywordRow:
 	if chips.is_empty():
 		return null
 	var row := KeywordRow.new()
