@@ -1783,9 +1783,26 @@ func _sprout_into_floor(into: TowerData, planned: int = 0) -> int:
 	var paid: int = plant_dew if plant_dew >= 0 else invested_dew
 	return placer.get_cost(into, cell, planned) - paid
 
+# A wall (Thornwall, Bramble, Honeysuckle) growing into a Sprout, in place (user 2026-10-17: "Bramblewalls should be able
+# to grow into Sprouts so we don't have to sell to upgrade a wall piece"): the Sprout's price right now (its base and
+# the Sprout tax, `planned` more for a group grow) less the Dew the wall cost, never below 1. The new Sprout counts
+# toward the tax as a planted one does (its id is "sprout").
+func _wall_into_sprout_price(planned: int = 0) -> int:
+	var placer = placer_ref.get_ref() if placer_ref != null else null
+	var sprout_data: TowerData = null
+	for form in tower_data.evolves_to:
+		if form is TowerData and form.get_id() == "sprout":
+			sprout_data = form
+	if sprout_data == null:
+		return 1
+	var price: int = placer.get_cost(sprout_data, cell, planned) if placer != null and placer.has_method("get_cost") else sprout_data.cost
+	return maxi(price - invested_dew, 1)
+
 func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
 	base = maxi(base, _sprout_into_floor(into, planned))
+	if tower_data.line == "wall" and into.get_id() == "sprout":
+		base = _wall_into_sprout_price(planned)  # A wall grows into a Sprout at the Sprout's price less what the wall cost
 	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
 	var gifts := GiftGround.active_for(self)
 	if gifts and gifts.free_growth(tower_data, into):

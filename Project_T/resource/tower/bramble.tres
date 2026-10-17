@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/bramble.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/bramble_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/sprout.tres" id="ev_sprout"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -16,6 +17,7 @@ line = "wall"
 tier = 1
 buildable_directly = false
 evolve_cost = 10
+evolves_to = Array[Resource]([ExtResource("ev_sprout")])
 attack_range = 1.25
 damage = 6.48
 attacks_per_second = 1.5
