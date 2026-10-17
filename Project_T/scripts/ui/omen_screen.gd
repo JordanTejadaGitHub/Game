@@ -33,6 +33,12 @@ var _subtitle := Label.new()  # "for drifts 11 to 15" under the title, quiet (li
 var _cards := HBoxContainer.new()
 var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
+# Phones (UiStyle.is_phone()): the Dream screen's layout (PhoneChoice: header, cards filling the view, bottom row with
+# the hint and Take); a tap looks at a card, Take or a second tap takes it. The PC is unchanged.
+const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")
+var _phone := false
+var _layout: PhoneChoice = null
+var _count := 2  # Cards in the row (phones: their width)
 
 func _ready() -> void:
 	WorldLabel.cover_while_visible(self, &"omen_screen")  # No world tags (DPS, hover names) over a full-screen screen
@@ -43,29 +49,35 @@ func _ready() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	center.add_child(box)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(_title, 34)
-	_title.add_theme_color_override("font_color", UiStyle.GOLD)
-	box.add_child(_title)
+	_phone = UiStyle.is_phone()
 	_subtitle.name = "Subtitle"
-	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	box.add_child(_subtitle)
-	_cards.add_theme_constant_override("separation", 26)
-	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(_cards)
-	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
-	var peek_button := peek.make_peek_button()
-	if peek_button is Button:
-		UiStyle.quiet(peek_button)  # Quiet: the cards hold the choice
-		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	box.add_child(peek_button)
+	if _phone:
+		_layout = PhoneChoice.new(self, _title, _subtitle, _cards)
+		peek = ChoicePeek.new(self, [dim, _layout.margin], "Back to the Omens")
+		_layout.add_peek(peek.make_peek_button())
+	else:
+		var center := CenterContainer.new()
+		center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(center)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 18)
+		center.add_child(box)
+		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.display(_title, 34)
+		_title.add_theme_color_override("font_color", UiStyle.GOLD)
+		box.add_child(_title)
+		_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		box.add_child(_subtitle)
+		_cards.add_theme_constant_override("separation", 26)
+		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_child(_cards)
+		peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
+		var peek_button := peek.make_peek_button()
+		if peek_button is Button:
+			UiStyle.quiet(peek_button)  # Quiet: the cards hold the choice
+			peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.add_child(peek_button)
 	arm = ChoiceArm.attach(self, _cards)
 	visible = false
 
@@ -126,8 +138,11 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	game_speed.set_paused(true)
 	_drifts = omens.get_block_range(block)
 	_title.text = "The wind has turned"
-	_subtitle.text = "for drifts %d to %d" % [_drifts.x, _drifts.y]
+	_set_subtitle("for drifts %d to %d" % [_drifts.x, _drifts.y], "take one")
 	_clear_cards()
+	_count = 2
+	if _layout != null:
+		_layout.reset()
 	visible = true
 	arm.arm()
 	if omens.forced or omens.faced:
@@ -147,25 +162,48 @@ func _clear_cards() -> void:
 		_cards.remove_child(child)
 		child.queue_free()
 
+# The PC size, or the phone size (PhoneChoice: the Dream card's text sizes).
+func _sz(pc: int, phone: int) -> int:
+	return phone if _phone else pc
+
+# CARD_SIZE on the PC; phones: an equal column of the view's width, at least the Dream card's height.
+func _card_size() -> Vector2:
+	if _layout == null:
+		return CARD_SIZE
+	return Vector2(_layout.card_width(_count), PhoneChoice.CARD_MIN_H)
+
+# The subtitle; phones: small caps beside the title, with what to take.
+func _set_subtitle(text: String, phone_take: String) -> void:
+	_subtitle.text = text
+	if _phone:
+		_subtitle.text = ("for drifts %d to %d · %s" % [_drifts.x, _drifts.y, phone_take]).to_lower()
+
+# A card's press: phones look first (Take, or a second tap, takes it); the PC acts at once.
+func _press(button: Button, action: Callable, take_text: String) -> void:
+	if _layout != null and _layout.tap(button, take_text):
+		return
+	action.call()
+
 # The face-down card: a wind swirl and "An unknown twist for the next block. Survive it for a reward."
 func _make_face_down_card() -> Button:
 	var button := Button.new()
 	button.name = "FaceAnOmen"
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	UiStyle.card_button(button, OMEN_COLOR)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	# Light pass: the emblem beside the name and its whisper, two points, the primary at the foot.
 	var top := _card_top(box, &"omen")
-	UiStyle.title(_add_line(top, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
+	UiStyle.title(_add_line(top, "Face an Omen", UiStyle.INK, 22), _sz(UiStyle.CARD_NAME_SIZE, PhoneChoice.NAME_SIZE))
 	_add_flavor(top, "Something's out there, waiting to be asked.")
-	var points: Array = [_add_bullet(box, "A secret twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, FRONT_BODY_SIZE),
-		_add_bullet(box, "A reward at the next rest, smaller for each leaf you lose", UiStyle.INK, FRONT_BODY_SIZE),
-		_add_bullet(box, "Once revealed, you must take one", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
+	var body := _sz(FRONT_BODY_SIZE, PhoneChoice.BODY_SIZE)
+	var points: Array = [_add_bullet(box, "A secret twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, body),
+		_add_bullet(box, "A reward at the next rest, smaller for each leaf you lose", UiStyle.INK, body),
+		_add_bullet(box, "Once revealed, you must take one", UiStyle.INK_DIM, body)]
 	_card_action(box, "Face it", false)  # Secondary: no card is the default (story chat)
 	_fit_card(button, box, points)
-	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
+	button.pressed.connect(func() -> void: _press(button, func() -> void: _reveal(omens.face(), button), "Face it"))
 	return button
 
 # The top of a front card: the 64 px emblem, then a column for the name and its whisper (returned).
@@ -202,6 +240,8 @@ func _card_action(box: VBoxContainer, text: String, primary: bool) -> void:
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spare)
+	if _phone:
+		return  # Phones: the bottom row's Take names the action (as on the Dream cards)
 	var action := Button.new()
 	action.name = "Action"
 	action.text = text
@@ -278,6 +318,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 		_choose(null)
 		return
 	var act := drift_director.get_act(_drifts.y)
+	_count = offer.size()
 	var fronts: Array[Button] = []
 	for omen in offer:
 		var front := _make_card(omen, act)
@@ -289,7 +330,9 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 			child.queue_free()  # Clear Skies goes: no backing out
 	if not omens.forced:
 		_title.text = "Choose the Omen"
-	_subtitle.text = "for drifts %d to %d. You must take one." % [_drifts.x, _drifts.y]
+	_set_subtitle("for drifts %d to %d. You must take one." % [_drifts.x, _drifts.y], "you must take one")
+	if _layout != null:
+		_layout.reset()
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
 		var tween := UiTime.tween(self)
@@ -299,7 +342,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 			from.queue_free()
 			for front in fronts:
 				_cards.add_child(front)
-				front.pivot_offset = CARD_SIZE / 2.0
+				front.pivot_offset = _card_size() / 2.0
 				front.scale.x = 0.0
 				UiTime.tween(front).tween_property(front, "scale:x", 1.0, 0.18))
 	else:
@@ -312,10 +355,10 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 func _card_box(button: Button) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = CARD_PAD.x
-	box.offset_top = CARD_PAD.y
-	box.offset_right = -CARD_PAD.x
-	box.offset_bottom = -CARD_PAD.y
+	box.offset_left = PhoneChoice.CARD_PAD.x if _phone else CARD_PAD.x
+	box.offset_top = PhoneChoice.CARD_PAD.y if _phone else CARD_PAD.y
+	box.offset_right = -(PhoneChoice.CARD_PAD.z if _phone else CARD_PAD.x)
+	box.offset_bottom = -(PhoneChoice.CARD_PAD.w if _phone else CARD_PAD.y)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	return box
@@ -323,34 +366,38 @@ func _card_box(button: Button) -> VBoxContainer:
 # Grows the card to fit its text (like DreamScreen._fit_card); if that would outgrow the screen, the
 # secondary lines shrink first. Nothing touches or crosses the border.
 func _fit_card(button: Button, box: Control, secondary: Array) -> void:
+	if _layout != null:
+		_layout.fill(button)  # Phones: the column's full height
+		_layout.watch_links(button)
 	var fit := func() -> void:
 		if not is_instance_valid(button):
 			return
-		var needed := box.get_combined_minimum_size().y + CARD_PAD.y * 2.0
+		var needed := box.get_combined_minimum_size().y + box.offset_top - box.offset_bottom
 		if needed > get_viewport_rect().size.y - SCREEN_MARGIN:
 			for label in secondary:
 				var key := "normal_font_size" if label is RichTextLabel else "font_size"
 				if label.get_theme_font_size(key) > SECONDARY_MIN_SIZE:
 					label.add_theme_font_size_override(key, SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+		var card := _card_size()
+		button.custom_minimum_size = Vector2(card.x, maxf(card.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 
 # A revealed Omen: the twist and its reward; a click picks it.
 func _make_card(omen: OmenData, act: int) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(_choose.bind(omen))
+	button.pressed.connect(func() -> void: _press(button, _choose.bind(omen), "Take %s" % omen.display_name))
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
-	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
+	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), _sz(UiStyle.CARD_NAME_SIZE, PhoneChoice.NAME_SIZE))
 	# Name, flavour (whisper), the twist, a thin divider, the reward right under it (run_design.md "Omen voice")
 	var flavor: Label = null
 	if omen.flavor != "":
 		flavor = _add_flavor(box, omen.flavor)
-	var twist := StatusLinks.make_label(omen.description, FRONT_BODY_SIZE - 2, UiStyle.INK)  # Status words as links
+	var twist := StatusLinks.make_label(omen.description, _sz(FRONT_BODY_SIZE - 2, PhoneChoice.BODY_SIZE), UiStyle.INK)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
 	box.add_child(twist)
 	# The reward in point form (user: "point form for each different reward"): a "Reward" caps header, then a bullet
@@ -362,7 +409,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
 	var bullet_labels: Array[Label] = []
 	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
-		bullet_labels.append(_add_bullet(box, text))
+		bullet_labels.append(_add_bullet(box, text, REWARD_COLOR, _sz(REWARD_SIZE, PhoneChoice.SMALL_SIZE)))
 	_card_action(box, "Take this Omen", false)  # Secondary, as every card cue. No emblem on a revealed Omen (user: "just the beginning")
 	var secondary: Array = [twist]
 	secondary.append_array(bullet_labels)
@@ -373,8 +420,8 @@ func _make_card(omen: OmenData, act: int) -> Button:
 
 # An Omen's flavour line: the whisper face, no quote marks (run_design.md "Omen voice").
 func _add_flavor(box: VBoxContainer, text: String) -> Label:
-	var label := _add_line(box, text, UiStyle.WHISPER, FLAVOR_SIZE)
-	UiStyle.whisper(label, FLAVOR_SIZE)
+	var label := _add_line(box, text, UiStyle.WHISPER, _sz(FLAVOR_SIZE, PhoneChoice.SMALL_SIZE))
+	UiStyle.whisper(label, _sz(FLAVOR_SIZE, PhoneChoice.SMALL_SIZE))
 	label.name = "Flavor"
 	return label
 
@@ -548,9 +595,9 @@ func _unhandled_input(event: InputEvent) -> void:
 # The third card: Clear Skies, the default (highlighted). "Nothing changes. No reward."
 func _make_clear_skies_card() -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(_choose.bind(null))
+	button.pressed.connect(func() -> void: _press(button, _choose.bind(null), "Skip the Omen"))
 	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -558,11 +605,13 @@ func _make_clear_skies_card() -> Button:
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
 	var box := _card_box(button)
 	var top := _card_top(box, &"clear_skies")  # The moon and stars beside the name
-	UiStyle.title(_add_line(top, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
+	UiStyle.title(_add_line(top, "Clear Skies", CLEAR_SKIES_COLOR, 22), _sz(UiStyle.CARD_NAME_SIZE, PhoneChoice.NAME_SIZE), CLEAR_SKIES_COLOR)
 	_add_flavor(top, "The night stays still.")
-	var points: Array = [_add_bullet(box, "Nothing changes", UiStyle.INK_DIM, FRONT_BODY_SIZE),  # The same rules spot as Face an Omen's
-		_add_bullet(box, "No reward", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
-	UiStyle.caps(_add_line(box, InputMode.text("Esc also skips", ""), UiStyle.INK_DIM, 13), 14)
+	var body := _sz(FRONT_BODY_SIZE, PhoneChoice.BODY_SIZE)
+	var points: Array = [_add_bullet(box, "Nothing changes", UiStyle.INK_DIM, body),  # The same rules spot as Face an Omen's
+		_add_bullet(box, "No reward", UiStyle.INK_DIM, body)]
+	if not _phone:  # Phones have no Esc (the bottom row says what to do)
+		UiStyle.caps(_add_line(box, InputMode.text("Esc also skips", ""), UiStyle.INK_DIM, 13), 14)
 	_card_action(box, "Skip the Omen", false)
 	_fit_card(button, box, points)
 	return button

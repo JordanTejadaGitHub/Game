@@ -86,6 +86,12 @@ var _place_label := Label.new()
 var _plant := Button.new()
 var _undo := Button.new()  # Touch only (PC: right-click)
 var _clear := Button.new()
+# Phones (UiStyle.is_phone()): the Dream screen's layout (PhoneChoice: header with Peek, the cards filling the view, the
+# bottom row with Skip the gifts, the hint and Take); a tap looks at a card and plays its scene beside it, Take or a
+# second tap picks it. The PC is unchanged.
+const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")
+var _layout: PhoneChoice = null
+var _count := 3  # Cards in the row (phones: their width)
 
 func _init(director: DriftDirector = null, gift_node: HeartwoodGifts = null) -> void:
 	drift_director = director
@@ -102,29 +108,10 @@ func _ready() -> void:
 	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_dim)
-	var centre := CenterContainer.new()
-	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(centre)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	centre.add_child(box)
 	var title := Label.new()
 	title.text = "The Heartwood offers a gift"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(title, 28)
-	box.add_child(title)
 	preview = CardScene.new()  # Always there (touch: no hover needed); hovering a card plays its scene
 	preview.name = "GiftScene"
-	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	box.add_child(preview)
-	_cards.add_theme_constant_override("separation", 16)
-	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(_cards)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	box.add_child(row)
 	_pass.focus_mode = Control.FOCUS_NONE
 	_pass.custom_minimum_size = Vector2(240, 48)
 	_pass.pressed.connect(func() -> void:
@@ -133,14 +120,48 @@ func _ready() -> void:
 	_pass.icon = IconInfo.icon(&"dew")  # "Let them pass, +30 [Dew]": the secondary frame
 	_pass.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_pass.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	row.add_child(_pass)
-	peek = ChoicePeek.new(self, [_dim, centre], "Back to the gifts")
-	var peek_button := peek.make_peek_button()
-	if peek_button is Button:
-		UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
-	row.add_child(peek_button)
+	if UiStyle.is_phone():
+		var subtitle := Label.new()
+		subtitle.name = "Subtitle"
+		subtitle.text = "take one, or skip them"
+		_layout = PhoneChoice.new(self, title, subtitle, _cards)
+		_layout.add_left(_pass)
+		_pass.clip_text = false  # "Skip the gifts, +60" and its Dew glyph: grows rather than trims
+		# The scene plays beside the looked card (as the Dream diagram), over the dimmed others; on the dim, so a peek
+		# or placing hides it too.
+		preview.z_index = 10
+		_dim.add_child(preview)
+		peek = ChoicePeek.new(self, [_dim, _layout.margin], "Back to the gifts")
+		_layout.add_peek(peek.make_peek_button())
+		_choose = _layout.margin
+	else:
+		var centre := CenterContainer.new()
+		centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(centre)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 18)
+		centre.add_child(box)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.display(title, 28)
+		box.add_child(title)
+		preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.add_child(preview)
+		_cards.add_theme_constant_override("separation", 16)
+		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_child(_cards)
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		box.add_child(row)
+		row.add_child(_pass)
+		peek = ChoicePeek.new(self, [_dim, centre], "Back to the gifts")
+		var peek_button := peek.make_peek_button()
+		if peek_button is Button:
+			UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
+		row.add_child(peek_button)
+		_choose = centre
 	arm = ChoiceArm.attach(self, _cards)
-	_choose = centre
 	# Placing: the cards go, a bar at the bottom says what to do; the world takes the clicks.
 	_place_bar.visible = false
 	_place_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -182,6 +203,9 @@ func _ready() -> void:
 	UiStyle.primary(_plant)
 	_plant.pressed.connect(confirm_placing)
 	bar.add_child(_plant)
+	if _layout != null:  # Phones: 48 px tap targets, as on the cards' screen
+		for button in [_undo, _clear, back, _plant]:
+			button.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_hook_landmarks.call_deferred()  # After the map has made its gifts node
 	gifts.offer_closed.connect(func() -> void:
 		if visible:
@@ -275,10 +299,14 @@ func open() -> void:
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
+	_count = maxi(gifts.current_offer.size(), 1)
+	if _layout != null:
+		_layout.reset()
+		preview.stop()  # Phones: no scene until a card is looked at
 	for id in gifts.current_offer:
 		_cards.add_child(_card(id))
 	_pass.text = "Skip the gifts, +%d" % gifts.pass_dew()  # The Dew glyph after it (no " · ")
-	if not gifts.current_offer.is_empty():
+	if not gifts.current_offer.is_empty() and _layout == null:
 		show_scene(gifts.current_offer[0])
 	visible = true
 	_show_cards(true)
@@ -326,7 +354,7 @@ func _card(id: StringName) -> Button:
 	var colour: Color = style[1]
 	var button := Button.new()
 	button.name = String(id)
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	UiStyle.card_button(button, colour)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -334,14 +362,20 @@ func _card(id: StringName) -> Button:
 		if box != null:
 			box.center_alpha = UiStyle.TIP_ALPHA  # Solid: no screen shows through a paused card (user)
 			box.edge_alpha = UiStyle.TIP_ALPHA
-	button.pressed.connect(pick.bind(id))
-	button.mouse_entered.connect(show_scene.bind(id))
+	button.pressed.connect(func() -> void: _press(button, id, "Take %s" % gift.name))
+	if _layout == null:
+		button.mouse_entered.connect(show_scene.bind(id))  # Phones: the look plays it
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = 18
 	box.offset_top = 18
 	box.offset_right = -18
 	box.offset_bottom = -14
+	if _layout != null:  # The Dream card's padding
+		box.offset_left = PhoneChoice.CARD_PAD.x
+		box.offset_top = PhoneChoice.CARD_PAD.y
+		box.offset_right = -PhoneChoice.CARD_PAD.z
+		box.offset_bottom = -PhoneChoice.CARD_PAD.w
 	box.add_theme_constant_override("separation", 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
@@ -374,18 +408,18 @@ func _card(id: StringName) -> Button:
 	title.name = "Name"
 	title.text = gift.name
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UiStyle.title(title, 24)
+	UiStyle.title(title, _sz(24, PhoneChoice.NAME_SIZE))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	names.add_child(title)
 	var group := Label.new()
 	group.name = "Category"
 	group.text = KIND_LABELS.get(kind, gift.group)
-	UiStyle.caps(group, 13, colour)
+	UiStyle.caps(group, _sz(13, PhoneChoice.LABEL_CAPS), colour)
 	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	names.add_child(group)
 	# What it is (the first sentence), then what it does, a bullet per sentence. Status words stay links.
 	var sentences := String(gift.text).split(". ", false)
-	var text := StatusLinks.make_label(sentences[0] + ("." if sentences.size() > 1 else ""), 15, UiStyle.INK)
+	var text := StatusLinks.make_label(sentences[0] + ("." if sentences.size() > 1 else ""), _sz(15, PhoneChoice.BODY_SIZE), UiStyle.INK)
 	text.name = "Text"
 	text.mouse_filter = Control.MOUSE_FILTER_PASS  # Status words hover; a click still picks the card
 	box.add_child(text)
@@ -393,7 +427,7 @@ func _card(id: StringName) -> Button:
 		var line := String(sentences[i]).trim_suffix(".")
 		box.add_child(_bullet(line))
 	if kind == HeartwoodGifts.KIND_LANDMARK:  # That it grows (no family line: every gift is generic, heartwood_gifts.md "Amendment")
-		var grows := StatusLinks.make_label(HeartwoodGifts.GROWS_LINE, 14, UiStyle.INK_DIM)
+		var grows := StatusLinks.make_label(HeartwoodGifts.GROWS_LINE, _sz(14, PhoneChoice.SMALL_SIZE), UiStyle.INK_DIM)
 		grows.name = "Grows"
 		grows.mouse_filter = Control.MOUSE_FILTER_PASS
 		box.add_child(grows)
@@ -401,18 +435,39 @@ func _card(id: StringName) -> Button:
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spare)
-	var plant := Button.new()
-	plant.name = "PlantIt"
-	plant.text = "Plant it"
-	plant.focus_mode = Control.FOCUS_NONE
-	plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plant.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
-	# Secondary, like the Dream cards: no card is the default (story chat)
-	ChoiceCard.link_cue(plant)  # Lights with the card (hover, press)
-	box.add_child(plant)
+	if _layout == null:  # Phones: the bottom row's Take names it (as on the Dream cards: no button on the card)
+		var plant := Button.new()
+		plant.name = "PlantIt"
+		plant.text = "Plant it"
+		plant.focus_mode = Control.FOCUS_NONE
+		plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plant.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		# Secondary, like the Dream cards: no card is the default (story chat)
+		ChoiceCard.link_cue(plant)  # Lights with the card (hover, press)
+		box.add_child(plant)
+	else:
+		_layout.fill(button)  # The column's full height
+		_layout.watch_links(button)
 	box.minimum_size_changed.connect(func() -> void:
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, box.get_combined_minimum_size().y + 32.0)))
+		button.custom_minimum_size = Vector2(_card_size().x, maxf(_card_size().y, box.get_combined_minimum_size().y + box.offset_top - box.offset_bottom)))
 	return button
+
+# The PC size, or the phone size (PhoneChoice: the Dream card's text sizes).
+func _sz(pc: int, phone: int) -> int:
+	return phone if _layout != null else pc
+
+# CARD_SIZE on the PC; phones: an equal column of the view's width, at least the Dream card's height.
+func _card_size() -> Vector2:
+	if _layout == null:
+		return CARD_SIZE
+	return Vector2(_layout.card_width(_count), PhoneChoice.CARD_MIN_H)
+
+# A card's press: phones look first (its scene plays beside it; Take, or a second tap, picks it); the PC picks at once.
+func _press(button: Button, id: StringName, take_text: String) -> void:
+	if _layout != null and _layout.tap(button, take_text):
+		show_scene(id)
+		return
+	pick(id)
 
 # One point of what a gift does: a small gold diamond, then the words (status words linked), wrapping under themselves.
 func _bullet(text: String) -> Control:
@@ -428,7 +483,7 @@ func _bullet(text: String) -> Control:
 		var c := Vector2(diamond.size.x / 2.0, 10.0)
 		diamond.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -3.5), c + Vector2(3.5, 0), c + Vector2(0, 3.5), c + Vector2(-3.5, 0)]), UiStyle.GOLD))
 	row.add_child(diamond)
-	var label := StatusLinks.make_label(text, 14, UiStyle.INK_DIM)
+	var label := StatusLinks.make_label(text, _sz(14, PhoneChoice.SMALL_SIZE), UiStyle.INK_DIM)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.add_child(label)
@@ -462,9 +517,34 @@ func scene_for(id: StringName) -> Array:
 func show_scene(id: StringName) -> void:
 	if not SCENES.has(id) or preview == null:
 		return
+	var looked: Button = null
+	if _layout != null:  # Phones: only the looked card's scene, beside it
+		looked = _layout.looked if _layout.looked != null and is_instance_valid(_layout.looked) else null
+		if looked == null:
+			preview.stop()
+			return
+		if looked.name != String(id):
+			return  # A tap on another card's underlined word: the looked card's scene stays
 	var scene: Array = scene_for(id)
 	preview.show_scene(scene[0], scene[1], scene[2], scene[3])
 	preview.set_meta(&"gift", id)
+	if looked != null:
+		_place_preview(looked)
+
+# Phones: the scene beside the looked card (right of it, or left when there's no room), kept on screen (as the Dream
+# screen's diagram).
+func _place_preview(card: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(card) or not preview.visible:
+		return
+	var view := get_viewport_rect().size
+	var rect := card.get_global_rect()
+	var size := preview.get_combined_minimum_size()
+	var x := rect.end.x + 8.0
+	if x + size.x > view.x - 8.0:
+		x = rect.position.x - size.x - 8.0
+	var y := clampf(rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
+	preview.global_position = Vector2(maxf(x, 8.0), y)
 
 # A card: placed first (map gifts), else taken now.
 func pick(id: StringName) -> void:

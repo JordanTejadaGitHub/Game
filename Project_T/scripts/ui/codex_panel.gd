@@ -76,6 +76,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	_phone = UiStyle.is_phone()
+	TouchBuild.grow_taps(self)  # Phones: every Codex button at least 44 tall (Mobile UI 2026-10-17)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	box.custom_minimum_size = Vector2.ZERO if embedded else Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)

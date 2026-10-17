@@ -65,6 +65,30 @@ func _run() -> void:
 		await _settle()
 		_check_buttons("family pick", main.get_node("HUD/FamilyPickScreen"), view)
 		main.get_node("HUD/FamilyPickScreen").visible = false
+		# The Omens and the Heartwood's gifts: the Dream screen's phone layout too (PhoneChoice)
+		var omen_director: OmenDirector = main.get_node("%OmenDirector")
+		var omen_screen := main.get_node("HUD/OmenScreen")
+		omen_director.current_offer = omen_director.make_offer(3)
+		omen_director.current_offer_block = 3
+		omen_director.offer_ready.emit(omen_director.current_offer, 3)
+		await _settle()
+		_check_buttons("Omen", omen_screen, view)
+		_check(omen_screen.get_node_or_null("PhoneLayout") != null, "Omen %s: the phone layout" % view)
+		omen_screen._reveal(omen_director.face(), null)
+		await _settle()
+		_check_buttons("Omens revealed", omen_screen, view)
+		omen_director.faced = false
+		omen_director.current_offer = []
+		omen_screen._on_closed()
+		var gift_screen := main.get_node_or_null("HUD/GiftScreen") as GiftScreen
+		if gift_screen != null:
+			gift_screen.gifts.current_offer = gift_screen.gifts.draw(1)
+			gift_screen.open()
+			await _settle()
+			_check_buttons("gifts", gift_screen, view)
+			_check(gift_screen.get_node_or_null("PhoneLayout") != null, "gifts %s: the phone layout" % view)
+			gift_screen._close()
+			gift_screen.gifts.current_offer = []
 		var dossier := main.get_node("HUD/BossDossier") as BossDossier
 		dossier.open_for(self, 25)
 		await _settle()

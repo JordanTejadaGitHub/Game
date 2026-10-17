@@ -17,10 +17,15 @@ const CALLING_FULL_HEIGHT := 620.0  # Below this viewport height a first-pick ca
 const CARD_PADDING := 32.0  # The box's top + bottom offsets inside a card
 # Phones (UiStyle.is_phone(); user 2026-10-15: "the family cards are the same and the text seems too small compared to
 # the card"): the cards share the view's width and every card font is PHONE_TEXT_BUMP bigger. The PC is unchanged.
-const PHONE_TEXT_BUMP := 3
-const PHONE_SIDE_MARGIN := 44.0  # Each side, as the Peek button's corner
+# 2026-10-17 ("The dream, omen, evolution, family pick don't match anymore"): phones share the Dream screen's layout
+# (PhoneChoice: header row with Peek, cards filling the view, bottom row with the hint and Take, tap looks first) and
+# its card text bump.
+const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")
+const PHONE_TEXT_BUMP := PhoneChoice.CARD_BUMP
+const PHONE_SIDE_MARGIN := PhoneChoice.MARGIN  # Each side, as the Peek button's corner
 const CARD_GAP := 16
-const PHONE_CARD_MIN_H := 300.0  # A phone card's floor (the tallest card sets the row)
+const PHONE_CARD_MIN_H := PhoneChoice.CARD_MIN_H  # A phone card's floor (the row stretches them to the view's height)
+var _layout: PhoneChoice = null
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
 	&"first": "Oh. I know you.",
@@ -75,48 +80,47 @@ func _ready() -> void:
 	dim.color = Color(UiStyle.FOG, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Phones: the cards and Peek fit 540 tall
-	center.add_child(box)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(_title, 28 + (2 if UiStyle.is_phone() else 0))
-	_title.add_theme_color_override("font_color", UiStyle.LIVE)
-	box.add_child(_title)
 	_subtitle.name = "Subtitle"
 	_subtitle.text = "Choose a family to wake"
-	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	if UiStyle.is_phone():
-		_subtitle.add_theme_font_size_override("font_size", UiStyle.BODY_SIZE + 2)
-	box.add_child(_subtitle)
-	_cards.add_theme_constant_override("separation", CARD_GAP)
-	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(_cards)
 	_foretold_line.name = "Foretold"
 	_foretold_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_foretold_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_foretold_line.custom_minimum_size.x = 520
 	_foretold_line.add_theme_font_size_override("font_size", _fs(15))
 	_foretold_line.add_theme_color_override("font_color", UiStyle.MOON_MIST)
 	_foretold_line.visible = false
-	box.add_child(_foretold_line)
-	peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
-	var peek_button := peek.make_peek_button()
-	if peek_button is Button:
-		UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
-		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	if UiStyle.is_phone() and peek_button is Control:
-		# Phones: Peek in the top-right corner (as the Dream screen's), not under the cards: the first pick's Calling
-		# lines made the column 14 px taller than a 540-tall view (test_phone_layout). On `dim`, so a peek hides it too.
-		dim.add_child(peek_button)
-		peek_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		peek_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		peek_button.offset_right = -44.0
-		peek_button.offset_top = 10.0
+	if UiStyle.is_phone():
+		# Phones: the Dream screen's layout. The title and "choose a family to wake" in the header, Peek top right,
+		# Kin Foretold's line under the cards, the hint and Take in the bottom row.
+		_layout = PhoneChoice.new(self, _title, _subtitle, _cards)
+		_subtitle.text = _subtitle.text.to_lower()
+		_layout.root.add_child(_foretold_line)
+		_layout.root.move_child(_foretold_line, _layout.bottom.get_index())
+		peek = ChoicePeek.new(self, [dim, _layout.margin], "Back to the family pick")
+		_layout.add_peek(peek.make_peek_button())
 	else:
+		var center := CenterContainer.new()
+		center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(center)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Tablets: the cards and Peek fit
+		center.add_child(box)
+		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.display(_title, 28)
+		_title.add_theme_color_override("font_color", UiStyle.LIVE)
+		box.add_child(_title)
+		_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		box.add_child(_subtitle)
+		_cards.add_theme_constant_override("separation", CARD_GAP)
+		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_child(_cards)
+		_foretold_line.custom_minimum_size.x = 520
+		box.add_child(_foretold_line)
+		peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
+		var peek_button := peek.make_peek_button()
+		if peek_button is Button:
+			UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
+			peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		box.add_child(peek_button)
 	# A press for 0.6 s after the cards show never picks (Roguelite's ChoiceArm; user: "sometimes I click on cards when
 	# waves end because I'm trying to place towers").
@@ -196,6 +200,9 @@ func show_pick(reason: StringName = &"first") -> void:
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
+	if _layout != null:
+		_layout.reset()
+		_layout.bottom.visible = true
 	for data in offer:
 		if data is UpgradeData:
 			_cards.add_child(_make_blessing_card(data))
@@ -334,6 +341,9 @@ func _show_sapling() -> void:
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
+	if _layout != null:
+		_layout.reset()
+		_layout.bottom.visible = false  # Phones: the Sapling's card holds its own two choices
 	var card := VBoxContainer.new()
 	card.custom_minimum_size = Vector2(420, 0)
 	card.add_theme_constant_override("separation", 10)
@@ -367,6 +377,8 @@ func _show_sapling() -> void:
 		button.text = pair[0]
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(180, 48)
+		if _layout != null:
+			PhoneChoice.choice_button(button)  # Phones: the bottom row choices' size
 		button.pressed.connect(pair[1])
 		if pair[0] == "Take the Sapling":
 			UiStyle.primary(button)  # The default (button rule)
@@ -377,6 +389,13 @@ func _show_sapling() -> void:
 # A card's content sits in `box` inside the button (a Button doesn't size to its children), so the
 # card grows to fit it, at least CARD_SIZE tall; the row then gives every card the tallest's height.
 func _fit_card(button: Button, box: Control) -> void:
+	if _layout != null:
+		_layout.fill(button)  # Phones: the column's full height
+		_layout.watch_links(button)
+		box.offset_left = PhoneChoice.CARD_PAD.x  # The Dream card's padding
+		box.offset_top = PhoneChoice.CARD_PAD.y
+		box.offset_right = -PhoneChoice.CARD_PAD.z
+		box.offset_bottom = -PhoneChoice.CARD_PAD.w
 	var fit := func() -> void:
 		var needed := box.get_combined_minimum_size().y + (box.offset_top - box.offset_bottom if UiStyle.is_phone() else CARD_PADDING)  # Phones: the real offsets
 		var card := _card_size()
@@ -392,15 +411,23 @@ func _fs(size: int) -> int:
 func _card_size() -> Vector2:
 	if not UiStyle.is_phone():
 		return CARD_SIZE
+	if _layout != null:
+		return Vector2(_layout.card_width(maxi(offer.size(), 1)), PHONE_CARD_MIN_H)
 	var count := maxi(offer.size(), 1)
 	var room := get_viewport_rect().size.x - 2.0 * PHONE_SIDE_MARGIN - CARD_GAP * (count - 1)
 	return Vector2(floorf(room / count), PHONE_CARD_MIN_H)
+
+# A card's press: phones look first (Take, or a second tap, takes it); the PC picks at once.
+func _press(button: Button, data: Resource, take_text: String) -> void:
+	if _layout != null and _layout.tap(button, take_text):
+		return
+	choose(data)
 
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(choose.bind(data))
+	button.pressed.connect(func() -> void: _press(button, data, "Wake %s" % data.display_name))
 	UiStyle.card_button(button, Palette.SPRIG)  # Moonlit Thread card (ui_style.md)
 	ChoiceCard.solid(button)  # Hides the map behind it, as the Dream and Omen cards
 
@@ -449,7 +476,7 @@ func _make_card(data: TowerData) -> Button:
 	title.text = data.display_name
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.title(title, _fs(26))
+	UiStyle.title(title, PhoneChoice.NAME_SIZE if _layout != null else 26)  # Phones: the Dream card name's size
 	names.add_child(title)
 	var chips := HFlowContainer.new()
 	chips.add_theme_constant_override("h_separation", 6)
@@ -462,7 +489,7 @@ func _make_card(data: TowerData) -> Button:
 	job.text = IconInfo.format(data.description)
 	job.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	job.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	job.add_theme_font_size_override("font_size", _fs(15))
+	job.add_theme_font_size_override("font_size", PhoneChoice.BODY_SIZE if _layout != null else 15)  # Phones: the Dream card text's size
 	job.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(job)
 	var costs := HBoxContainer.new()  # "Sprout into it [Dew] 15   Plant [Dew] 25"
@@ -478,6 +505,8 @@ func _make_card(data: TowerData) -> Button:
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spare)
+	if _layout != null:
+		return button  # Phones: the bottom row's Take says "Wake …" (as on the Dream cards: no button on the card)
 	var wake := Button.new()  # Drawn as the framed primary; the press is the card's
 	wake.name = "Wake"
 	wake.text = "Wake %s" % data.display_name
@@ -486,9 +515,6 @@ func _make_card(data: TowerData) -> Button:
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
-	if UiStyle.is_phone():
-		wake.add_theme_font_size_override("font_size", _fs(UiStyle.BUTTON_SIZE))
-		wake.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # "Wake … · its Calling" wraps in a narrow card
 	# Secondary, like the Dream cards: no card is the default (the hovered card is the emphasis; story chat)
 	ChoiceCard.link_cue(wake)  # Lights with the card (hover, press)
 	box.add_child(wake)
@@ -748,7 +774,7 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(choose.bind(card))
+	button.pressed.connect(func() -> void: _press(button, card, "Take %s" % card.display_name))
 	UiStyle.card_button(button, UiStyle.GOLD)  # Moonlit Thread card (ui_style.md)
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -779,7 +805,7 @@ func _make_memory_card(data: TowerData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(choose.bind(data))
+	button.pressed.connect(func() -> void: _press(button, data, "Take %s" % data.display_name))
 	UiStyle.card_button(button, MEMORY_GOLD)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
@@ -883,7 +909,8 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		none.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		box.add_child(none)
 		return ""
-	if get_viewport_rect().size.y < CALLING_FULL_HEIGHT:
+	var short := get_viewport_rect().size.y < CALLING_FULL_HEIGHT
+	if short and _layout == null:
 		return DreamState.CALLINGS.title(data.get_id())
 	var title := Label.new()
 	title.name = "CallingName"
@@ -893,6 +920,8 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	UiStyle.caps(title, _fs(14))
 	title.add_theme_color_override("font_color", UiStyle.GOLD)
 	box.add_child(title)
+	if short:
+		return ""  # Phones (no Wake button on the card): the Calling's name on the card, its rule in the Dreams row after
 	var rule := Label.new()
 	rule.name = "CallingRule"
 	rule.text = IconInfo.format(DreamState.CALLINGS.text(data.get_id()))

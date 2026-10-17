@@ -185,6 +185,9 @@ func _input(event: InputEvent) -> void:
 	if mobile_controls() and event.is_action_pressed("open_menu") and _back():
 		get_viewport().set_input_as_handled()
 		return
+	if mobile_controls() and _scroll_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventScreenTouch:
 		set_touch_mode(true)
 		if event.pressed:
@@ -220,6 +223,107 @@ func _input(event: InputEvent) -> void:
 			_touches[event.index] = event.position
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
 		set_touch_mode(false)  # A real mouse
+
+# --- Phones: one finger scrolls any list it lands on (user 2026-10-17: "how to scroll on phone for codex and dreams") ---
+# Godot's ScrollContainer only drag-scrolls when the drag starts on itself; on a phone a finger lands on a row, a button or
+# a text label, which keep the drag. So: a single finger that goes down over a ScrollContainer able to scroll, and moves
+# PAN_SLOP, scrolls the smallest such container under it; the row it started on gets a release far away, so the drag never
+# presses it.
+var _scroll: ScrollContainer = null
+var _scroll_finger := -1
+var _scroll_from := Vector2.ZERO
+var _scrolling := false
+
+func _scroll_input(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		if event.pressed and _touches.is_empty():
+			_scroll = _scroll_under(event.position)
+			_scroll_finger = event.index if _scroll != null else -1
+			_scroll_from = event.position
+			_scrolling = false
+		elif not event.pressed and event.index == _scroll_finger:
+			_scroll = null  # (The release still reaches TouchBuild's own bookkeeping below)
+			_scroll_finger = -1
+			_scrolling = false
+		elif event.pressed:
+			_scroll_finger = -1  # A second finger: a pinch, not a scroll
+			_scroll = null
+		return false
+	if not (event is InputEventScreenDrag) or event.index != _scroll_finger or not is_instance_valid(_scroll):
+		return false
+	if not _scrolling:
+		if event.position.distance_to(_scroll_from) < PAN_SLOP:
+			return false
+		_scrolling = true
+		_cancel_press()
+	var scale := _scroll.get_global_transform_with_canvas().get_scale()
+	var by: Vector2 = event.relative / Vector2(maxf(scale.x, 0.01), maxf(scale.y, 0.01))
+	if _scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_scroll.scroll_vertical -= roundi(by.y)
+	if _scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_scroll.scroll_horizontal -= roundi(by.x)
+	_moved = true  # Not a tap, never a map pan
+	return true
+
+# Phones: every button inside `root` (now and added later) at least `min_h` tall (user 2026-10-17: "some buttons are too
+# small" in the Codex and the Dreams list). Cheap: one type check per node added.
+static func grow_taps(root: Control, min_h: float = 44.0) -> void:
+	if root == null or not UiStyle.is_phone() or not root.is_inside_tree():
+		return
+	for node in root.find_children("*", "BaseButton", true, false):
+		_grow_tap(node as Control, min_h)
+	_tap_roots.append([weakref(root), min_h])
+	if not root.get_tree().node_added.is_connected(_on_node_added):  # One connection for every root (a bind per root
+		root.get_tree().node_added.connect(_on_node_added)  # read as the same callable: "already connected")
+
+static var _tap_roots: Array = []  # [WeakRef to the root, min_h]
+
+static func _on_node_added(node: Node) -> void:
+	if not (node is BaseButton):
+		return
+	_tap_roots = _tap_roots.filter(func(entry: Array) -> bool: return entry[0].get_ref() != null)
+	for entry in _tap_roots:
+		var root: Control = entry[0].get_ref()
+		if root.is_ancestor_of(node):
+			_grow_tap(node as Control, entry[1])
+			return
+
+static func _grow_tap(button: Control, min_h: float) -> void:
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, min_h)
+
+# The smallest visible ScrollContainer under `at` (screen px) whose content is bigger than it, or null.
+func _scroll_under(at: Vector2) -> ScrollContainer:
+	var best: ScrollContainer = null
+	var best_area := INF
+	for node in get_tree().root.find_children("*", "ScrollContainer", true, false):
+		var sc := node as ScrollContainer
+		if sc == null or not sc.is_visible_in_tree():
+			continue
+		var rect: Rect2 = sc.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, sc.size)
+		if not rect.has_point(at) or not _can_scroll(sc):
+			continue
+		var area := rect.size.x * rect.size.y
+		if area < best_area:
+			best_area = area
+			best = sc
+	return best
+
+func _can_scroll(sc: ScrollContainer) -> bool:
+	var v := sc.get_v_scroll_bar()
+	var h := sc.get_h_scroll_bar()
+	var vertical := sc.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED and v != null and v.max_value > v.page + 0.5
+	var horizontal := sc.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED and h != null and h.max_value > h.page + 0.5
+	return vertical or horizontal
+
+# The control the finger went down on was pressed by the emulated mouse: release it far away, so it never fires.
+func _cancel_press() -> void:
+	var release := InputEventMouseButton.new()
+	release.device = InputEvent.DEVICE_ID_EMULATION
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = Vector2(-10000, -10000)
+	release.global_position = release.position
+	get_viewport().push_input.call_deferred(release)
 
 # One finger on the map (the touch reached here, so no HUD control took it) drags the view once it moved PAN_SLOP.
 func _unhandled_input(event: InputEvent) -> void:

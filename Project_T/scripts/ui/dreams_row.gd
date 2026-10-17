@@ -31,6 +31,7 @@ var _calling_shown := ""  # The family the frame was built for
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	TouchBuild.grow_taps(self)  # Phones: the list's buttons at least 44 tall (Mobile UI 2026-10-17)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_theme_constant_override("h_separation", 4)
@@ -49,7 +50,7 @@ func _ready() -> void:
 	var close := Button.new()
 	close.text = "Close"
 	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(0, 40)
+	close.custom_minimum_size = Vector2(0, 48 if UiStyle.is_phone() else 40)
 	close.pressed.connect(func() -> void: _list.visible = false)
 	list_column.add_child(close)
 	add_child(_list)
