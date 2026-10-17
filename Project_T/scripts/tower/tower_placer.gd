@@ -92,6 +92,9 @@ func _ready() -> void:
 	BranchKit.spark_cap = spark_cap_per_target
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
 	tower_built.connect(_on_tower_built)  # Phones: this build mode's Wardens stay blue
+	var undo_director := get_node_or_null("%DriftDirector")
+	if undo_director != null and undo_director.has_signal(&"build_phase_changed"):
+		undo_director.build_phase_changed.connect(_on_undo_phase)  # A drift starting clears every undo stack
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
 	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
@@ -1603,9 +1606,12 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	var cost: int = tower.get_grow_cost(into).total  # Evolve cost + the rank difference; all invested
 	if not run_state.spend_dew(cost):
 		return false
+	var previous: TowerData = tower.tower_data
+	var had_line: bool = tower.get_meta(&"sprout_line", false)
 	if grows:
 		_take_square(tower, into, origin)
 	tower.evolve(into, cost)
+	_note_undo(tower, [&"grow", cost, previous, had_line, grows])
 	if into.tier == DreamState.ASCENDED_TIER - 1 and not _finals_grown.has(into.get_id()):
 		_finals_grown[into.get_id()] = true  # The first of each final form this run gets its bloom
 		Fx.final_bloom(tower, into.display_name)
@@ -1975,15 +1981,98 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):
 		return false
 	var cost := tower.get_nurture_cost()
+	var paid_with := &"dew"
 	if cost == 0 and tower.banked_ranks > 0:
 		tower.banked_ranks -= 1  # A banked rank (Sunlit Rest, Ancient Stump): free, and free through growth
+		paid_with = &"banked"
 	elif cost == 0 and tower.free_nurtures_left() > 0:
 		run_state.free_nurtures -= 1  # First Care: a free rank (nothing invested, nothing refunded)
+		paid_with = &"free"
 	elif not run_state.spend_dew(cost):
 		return false
 	if "rank_dew_spent" in run_state:
 		run_state.rank_dew_spent += cost  # Nurture Dream openers look at this
+	var rank_before := tower.rank
 	tower.nurture(cost, focus)
+	if tower.rank > rank_before:
+		_note_undo(tower, [&"rank", cost, paid_with])
+	return true
+
+# --- Undo this rest (user 2026-10-17, story chat): a Warden grown or ranked by mistake steps back -------------
+# Each grow or Nurture rank bought during the current rest goes on the Warden's stack (meta "undo_stack", not saved);
+# undo() pops the last one: a grow evolves back in place to the form it had, a rank comes off with its choice, and
+# the Dew it cost comes back in full (invested_dew / rest_dew down by it; a banked or First Care rank goes back to
+# where it came from). The cell, the other ranks and choices and the Kinship age stay. A drift starting clears
+# every stack. A grow that took a 2×2 square (Ascended) has no undo: sell it instead.
+const UNDO_META := &"undo_stack"
+
+func _note_undo(tower: Tower, entry: Array) -> void:
+	if not Tower.resting or not is_instance_valid(tower):
+		return
+	var stack: Array = tower.get_meta(UNDO_META, [])
+	stack.append(entry)
+	tower.set_meta(UNDO_META, stack)
+
+func _on_undo_phase(resting: bool) -> void:
+	if resting:
+		return
+	for tower in tower_container.get_children():
+		if tower is Tower and tower.has_meta(UNDO_META):
+			tower.remove_meta(UNDO_META)
+
+# Whether `tower` has a grow or a rank from this rest to step back.
+func can_undo(tower: Tower) -> bool:
+	if not is_instance_valid(tower) or not Tower.resting or not tower.has_meta(UNDO_META):
+		return false
+	var stack: Array = tower.get_meta(UNDO_META)
+	if stack.is_empty():
+		return false
+	var last: Array = stack.back()
+	return not (last[0] == &"grow" and bool(last[4]))  # A 2×2 grow: no undo
+
+# The button's words: "Undo grow (+120)" / "Undo rank (+40)" ("" when there's nothing to undo).
+func undo_text(tower: Tower) -> String:
+	if not can_undo(tower):
+		return ""
+	var last: Array = tower.get_meta(UNDO_META).back()
+	return "Undo %s (+%d)" % ["grow" if last[0] == &"grow" else "rank", int(last[1])]
+
+# Steps `tower` back one grow or rank from this rest, refunding its Dew. Returns whether it did.
+func undo(tower: Tower) -> bool:
+	if not can_undo(tower):
+		return false
+	var stack: Array = tower.get_meta(UNDO_META)
+	var last: Array = stack.pop_back()
+	if stack.is_empty():
+		tower.remove_meta(UNDO_META)
+	var cost := int(last[1])
+	if last[0] == &"grow":
+		var previous: TowerData = last[2]
+		tower.evolve(previous, 0)  # In place: same cell, the route never changes
+		if not bool(last[3]) and tower.has_meta(&"sprout_line"):
+			tower.remove_meta(&"sprout_line")  # It wasn't on the Sprout line before this grow
+	else:
+		var rank := tower.rank
+		if rank <= 0:
+			return false
+		tower.paid_ranks.erase(rank)
+		tower.rank = rank - 1
+		if not tower.rank_choices.is_empty():
+			tower.rank_choices.pop_back()
+		tower.focus = tower.rank_choices.back() if not tower.rank_choices.is_empty() else Tower.Focus.NONE
+		match last[2]:
+			&"banked":
+				tower.banked_ranks += 1
+			&"free":
+				run_state.free_nurtures += 1
+		if "rank_dew_spent" in run_state:
+			run_state.rank_dew_spent = maxi(run_state.rank_dew_spent - cost, 0)
+		tower.clear_dream_cache()
+		tower.queue_redraw()
+	tower.invested_dew = maxi(tower.invested_dew - cost, 0)
+	tower.rest_dew = maxi(tower.rest_dew - cost, 0)
+	if cost > 0:
+		run_state.add_dew(cost)
 	return true
 
 # The cells the selected Warden would cover with its top-left on `cell` (just `cell` for 1×1).
