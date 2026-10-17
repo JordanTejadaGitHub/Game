@@ -341,7 +341,10 @@ const CALLINGS := preload("res://scripts/combat/callings.gd")
 const FIREFLY_LIGHTS := preload("res://scripts/combat/firefly_lights.gd")
 var firefly_lights: Node2D = null  # Made in _ready; null in a bare DreamState (tools, some tests)
 signal calling_changed(family: String)
-var calling := ""
+var calling := "":
+	set(value):
+		calling = value
+		_sync_class_hooks()  # The class nodes listen only while on (perf); tests set it directly too
 
 # --- Calling evolutions (scripts/combat/calling_paths.gd; owner 2026-10-16) ---------------------------------------------
 # The Calling grows at the drift 5, 25, 50 and 75 rests: a style, a follow-up, a capstone, the style's other follow-up.
@@ -703,6 +706,14 @@ func _on_early_overlap_changed() -> void:
 func bump_board() -> void:
 	board_version += 1
 	rules_stamp += 1
+	_sync_class_hooks()
+
+# The class nodes listen to DamageLog only while their rules are on (perf, probe6 2026-10-17): re-check them now that
+# cards or the Calling changed, so a hit in this same frame is heard.
+func _sync_class_hooks() -> void:
+	for node in [firefly_lights, spore_print, puddles, keeping_time]:
+		if node != null and is_instance_valid(node) and node.has_method(&"sync_hook"):
+			node.sync_hook()
 
 # Nurture: only the Warden and those touching it look again (DreamEffects.rank_changed).
 func _on_rank_changed(tower: Tower) -> void:
@@ -5007,7 +5018,7 @@ func _on_damage_dealt(event) -> void:
 	if not stacks.is_empty() or not calling_path.is_empty():  # (Evolutions too: setup credit 2026-10-16)
 		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
 	# Hard-Won Rings: the event that takes a nightmare's health to 0 counts for its Warden (exact kills too), once
-	if has_rule(&"clean_night") and is_instance_valid(event.enemy) and event.enemy.health <= 0 and event.source is Tower \
+	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and has_rule(&"clean_night") and event.source is Tower \
 			and not event.enemy.get_meta(&"batch_won", false) and not event.enemy.get("is_echo"):
 		event.enemy.set_meta(&"batch_won", true)
 		batch.hard_won_dispel(self, event.source)
@@ -5824,7 +5835,7 @@ static func _row_card_id(row: Dictionary) -> String:
 
 # Damage tags that belong to a taken card (its rule id or its id), e.g. "last_breath".
 func _credit_rule_map() -> Dictionary:
-	var key := hash(stacks)
+	var key := rules_stamp * 1000 + stacks.size()  # Perf (probe6, 2026-10-17): no hash per event; take() and bump_board() bump the stamp
 	if key != _credit_rules_of:
 		_credit_rules_of = key
 		_credit_rules.clear()

@@ -364,12 +364,29 @@ func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.H
 
 # --- The loop -------------------------------------------------------------------------------------------------------
 
+# Perf (Enemy Code's probe6, 2026-10-17): the DamageLog dispatch per damage event cost ~0.15 ms a frame for each idle
+# node, so it is connected only while a rule of this family is on (checked each frame from the cached rule map).
+var _hooked_log: Object = null
+
+# DreamState calls it when cards or the Calling change, so a hit in the same frame is heard.
+func sync_hook() -> void:
+	_sync_hook(active())
+
+func _sync_hook(on: bool) -> void:
+	var want: Object = DamageLog.instance if on else null
+	if want == _hooked_log:
+		return
+	if _hooked_log != null and is_instance_valid(_hooked_log) and _hooked_log.damage_dealt.is_connected(_on_damage):
+		_hooked_log.damage_dealt.disconnect(_on_damage)
+	_hooked_log = want
+	_hooked = want != null
+	if want != null and not want.damage_dealt.is_connected(_on_damage):
+		want.damage_dealt.connect(_on_damage)
+
 func _process(delta: float) -> void:
 	if dream_state == null:
 		return
-	if not _hooked and DamageLog.instance != null:
-		DamageLog.instance.damage_dealt.connect(_on_damage)
-		_hooked = true
+	_sync_hook(active())  # Listens to DamageLog only while this family's rules are on (perf)
 	if not active():
 		return
 	if _refresh_route() or _board != int(dream_state.board_version):
