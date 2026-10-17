@@ -206,8 +206,11 @@ const SYMPHONY_SHARE := 0.5  # …lands each one's last hit again at half (never
 const SYMPHONY_EVERY := 6.0  # …each nightmare once in this long
 const SYMPHONY_META := &"kt_evo_symphony_next"
 const EVO_CHIME := &"kt_evo_chime_of_many"
-const CHIME_STACKS := 1  # Chime of Many: a Toll adds this to each status (quiet: never starts one; never Drowsy or Rooted)…
-const CHIME_OTHERS := 4  # …on the nightmare and up to this many touching it
+# Chime of Many (owner 2026-10-17: Bellflower's own trait, Repeats; was +1 stack): a Toll repeats the nightmare's last
+# status hit (its Warden's status and stacks, a real application from that Warden: caps and immunity apply) on up to
+# CHIME_OTHERS nightmares touching it, each once per Toll. Never Drowsy or Rooted (control stays bounded).
+const CHIME_OTHERS := 4
+const CHIME_META := &"kt_evo_chime_last"  # On a nightmare: [WeakRef Warden, status, stacks] its last accepted status hit
 const EVO_CHORD := &"kt_evo_last_chord"
 const CHORD_STATUSES := 3  # Last Chord: a Toll on a nightmare carrying this many statuses sets off what's halfway there…
 const CHORD_EVERY := 8.0  # …each nightmare once in this long (spent only when one goes off)
@@ -849,23 +852,26 @@ func _symphony(enemy, roster: Array, at: Vector2) -> void:
 		Reactions._effect(&"chorus_note", at, self, 1.2)
 		credit(EVO_SYMPHONY, at)
 
-# Chime of Many: a Toll adds 1 to each status on the nightmare and up to 4 touching it (quiet; never Drowsy or Rooted).
+# Chime of Many: a Toll repeats the nightmare's last status hit on up to 4 nightmares touching it (each once).
 func _chime(enemy, at: Vector2) -> void:
-	var targets: Array = [enemy]
-	targets.append_array(_touching_at(at, enemy, CHIME_OTHERS))
-	var fed := 0
-	for target in targets:
+	var last: Array = enemy.get_meta(CHIME_META, [])
+	if last.size() < 3:
+		return
+	var tower = (last[0] as WeakRef).get_ref()
+	var status: StringName = last[1]
+	if not (tower is Tower) or not is_instance_valid(tower) or status == EnemyStatuses.HELD or status == EnemyStatuses.DROWSY:
+		return
+	var rung := 0
+	for target in _touching_at(at, enemy, CHIME_OTHERS):
 		if not living(target):
 			continue
-		for id in target.statuses.active_ids():
-			if id == EnemyStatuses.HELD or id == EnemyStatuses.DROWSY:
-				continue
-			var added := _quiet(target, id, CHIME_STACKS)
-			setup_quiet(target, EVO_CHIME, id, added)  # (setup credit 2026-10-16)
-			if added > 0:
-				fed += added
-				target.flash_status(id)  # Quiet adds made visible (player review: "+1 stack" must show)
-	if fed > 0:
+		var before: int = target.statuses.applications
+		setup_apply(EVO_CHIME, tower, target, status, int(last[2]), tower.get_damage())  # (setup credit 2026-10-16)
+		if living(target) and target.statuses.applications > before:
+			rung += 1
+			target.flash_status(status)
+			_line_fx(at, target.global_position, 1.5, Palette.BLOSSOM)
+	if rung > 0:
 		Reactions._effect(&"toll_ring", at, self, 1.0)
 		credit(EVO_CHIME, at)
 
@@ -983,6 +989,8 @@ func _ears_flush() -> void:
 func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
 	if not living(enemy):
 		return
+	if evo(EVO_CHIME) and status != EnemyStatuses.DROWSY and status != EnemyStatuses.HELD and stacks > 0:
+		enemy.set_meta(CHIME_META, [weakref(tower), status, stacks])  # Chime of Many: the last status hit, for its next Toll
 	if is_own(tower) and status == EnemyStatuses.DROWSY:
 		if rule(NOD_OFF) and not enemy.has_meta(DROWSED_META):
 			# Nod Off: the first time a bell makes it Drowsy, it naps 1 s (one sleeper for each bell; never bosses)

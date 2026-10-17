@@ -116,6 +116,25 @@ func _run() -> void:
 	_check(before - next.health <= cap + 1.0, "...never more than 3 s of the Firefly Warden near it")
 	await _clean()
 
+	# ...a Hammerfall jump that dispels does not jump again (owner 2026-10-17: that is Bale-fires / Pyre's verb).
+	dreams.stacks.clear()
+	_take("hammerfall")
+	_check(not dreams.has_rule(&"knock_on"), "Hammerfall no longer carries Knock-On's re-jump")
+	jar = _plant("firefly_jar", far)
+	rock = _plant("pebbling", far + Vector2(CELL, 0))
+	await _frames(2)
+	hit = _spawn(far + Vector2(CELL * 2, 0))
+	var frail = _spawn(far + Vector2(CELL * 2, CELL))
+	frail.health = 1
+	var beyond = _spawn(far + Vector2(CELL * 2, CELL * 2))
+	var beyond_before: float = beyond.health
+	thrown = lights.forks_thrown
+	rock.hit(hit, 1.0, false, Tower.NO_CRIT)
+	await _frames(3)
+	_check(lights.forks_thrown == thrown + 1 and (frail.is_cleansed or frail.health <= 0), "...the jump dispels the nightmare it reached")
+	_check(is_equal_approx(beyond.health, beyond_before), "...and jumps no further")
+	await _clean()
+
 	# ...a Firefly Warden's own heavy form does not count.
 	dreams.stacks.clear()
 	_take("hammerfall")
@@ -209,6 +228,33 @@ func _run() -> void:
 	_check(lights.next_lit_ahead(10, Vector2.ZERO) == next_lit, "...a nightmare just jumped to is skipped")
 	_check(lights.next_lit_ahead(15, Vector2.ZERO) == null, "...nothing past %d steps ahead" % lights.TORCH_STEPS)
 	lights._lit_by_step = []
+	await _clean()
+
+	# Show the Way (owner 2026-10-17: Firefly's own trait, was +1 stack): a Borrowed Light jump jumps once more, at half,
+	# to another Lit nightmare, and never a third time.
+	dreams.stacks.clear()
+	dreams.calling = "firefly_jar"
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"lf_borrowed_light")
+	dreams.calling_path.append(&"lf_show_the_way")
+	_plant("firefly_jar", far)
+	var lender := _plant("sporeling", far + Vector2(CELL * 4, 0))
+	await _frames(3)
+	var lit_hit = _spawn(far + Vector2(CELL, 0))
+	var others: Array = [_spawn(far + Vector2(0, CELL)), _spawn(far + Vector2(-CELL, 0)), _spawn(far + Vector2(0, -CELL))]
+	_check(lights.is_lit(lit_hit) and others.all(func(e) -> bool: return lights.is_lit(e)), "(all four nightmares are Lit)")
+	var was: Array = others.map(func(e) -> float: return float(e.health))
+	thrown = lights.forks_thrown
+	lender.hit(lit_hit, 20.0, false, Tower.NO_CRIT)
+	await _frames(4)
+	var lost: Array = []
+	for i in others.size():
+		lost.append(float(was[i]) - float(others[i].health))
+	lost.sort()
+	_check(lights.forks_thrown == thrown + 2, "Show the Way: the Borrowed Light jump jumps once more, and only once (%d)" % (lights.forks_thrown - thrown))
+	_check(is_zero_approx(lost[0]) and lost[2] > 0.0, "...two Lit nightmares hit, the third untouched")
+	_check(lost[2] > 0.0 and absf(lost[1] / lost[2] - lights.SHOW_SHARE) < 0.1, "...the second jump at half (%.2f)" % (lost[1] / maxf(lost[2], 0.001)))
+	dreams.calling_path.clear()
 	await _clean()
 
 	print("test_class_firefly: %d failures" % failures)

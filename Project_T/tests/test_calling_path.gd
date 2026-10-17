@@ -34,6 +34,14 @@ func _run() -> void:
 		_check(PATHS.next_ids(family, []).size() == 3, "%s has 3 styles" % family)
 	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]) == [&"sp_sticky"], "Drift 75: the style's other follow-up")
 	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 50, 75")
+	# Owner 2026-10-17: Riverside, Stagnant Water, Show the Way and Chime of Many use their own family's trait; faces stay short
+	# and their capstones keep their parents.
+	for id in [&"dw_riverside", &"dw_stagnant_water", &"lf_show_the_way", &"kt_evo_chime_of_many"]:
+		var row: Dictionary = PATHS.PATHS[id]
+		_check(String(row.text).split(" ", false).size() <= 25 and String(row.tip).split(" ", false).size() <= 30, "%s: face at most 25 words, tip at most 30" % id)
+		_check(not row.makes.has(&"stacks"), "%s no longer makes stacks" % id)
+	_check(PATHS.children(&"dw_stagnant_water") == [&"dw_drowned_hands"] and PATHS.children(&"lf_show_the_way") == [&"lf_lantern_wake"]
+		and PATHS.children(&"kt_evo_chime_of_many") == [&"kt_evo_last_chord"], "the reworked follow-ups keep their capstones")
 
 	# The offer at the drift 5 rest replaces the Dream; at 25 it comes first and the Dream follows
 	dreams.calling = "sporeling"

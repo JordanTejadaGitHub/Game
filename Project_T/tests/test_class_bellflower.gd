@@ -268,5 +268,31 @@ func _run() -> void:
 	dreams.stacks.erase("in_time")
 	dreams.calling = "bellflower"
 	await _clean()
+
+	# Chime of Many (owner 2026-10-17: Bellflower's own trait, Repeats; was +1 stack): a Toll repeats the nightmare's last
+	# status hit (that Warden's status and stacks) on up to CHIME_OTHERS nightmares touching it; never Drowsy.
+	dreams.stacks.clear()
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"kt_evo_accompaniment")
+	dreams.calling_path.append(&"kt_evo_chime_of_many")
+	_plant("bellflower", at + Vector2(CELL, 0))
+	var c_spore := _plant("sporeling", at + Vector2(-CELL, 0))
+	var c_bell := _plant("bellflower", at + Vector2(CELL * 6, 0))
+	await _frames(2)
+	klass.on_board()
+	var x = _spawn(at)
+	var near_a = _spawn(at + Vector2(CELL * 0.5, 0))
+	var near_b = _spawn(at + Vector2(0, CELL * 0.5))
+	var away = _spawn(at + Vector2(CELL * 3, 0))
+	c_spore._apply_one_status(x, EnemyStatuses.SPORED, 2, c_spore.get_damage())
+	c_bell._apply_one_status(x, EnemyStatuses.DROWSY, 1, c_bell.get_damage())  # A later Drowsy hit is never the one repeated
+	_check(x.has_meta(klass.CHIME_META) and StringName(x.get_meta(klass.CHIME_META)[1]) == EnemyStatuses.SPORED, "Chime of Many remembers the last status hit (never Drowsy)")
+	klass._chime(x, x.global_position)
+	_check(near_a.statuses.stacks(EnemyStatuses.SPORED) == 2 and near_b.statuses.stacks(EnemyStatuses.SPORED) == 2,
+		"Chime of Many: the Toll repeats Poisoned x2 on the nightmares touching it")
+	_check(not away.statuses.has(EnemyStatuses.SPORED), "...not on one further away")
+	_check(not near_a.statuses.has(EnemyStatuses.DROWSY), "...and never repeats Drowsy")
+	dreams.calling_path.clear()
+	await _clean()
 	print("test_class_bellflower: %d failures" % failures)
 	quit(failures)

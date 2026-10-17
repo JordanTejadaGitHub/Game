@@ -162,14 +162,21 @@ const EVO_DEEP := &"dw_drowning_deep"
 const DEEP_CELLS := 1.0  # Drowning Deep: a Whirlpool pull drags the nightmares within this many cells…
 const DEEP_MAX := 4  # …up to this many (never bosses or flyers); Wardens touching the pond each hit the pulled one once, free
 const EVO_STAGNANT := &"dw_stagnant_water"
-const STILL_STACKS := 1  # Stagnant Water: a status landing on a nightmare in a pond adds this many more…
-const STILL_EVERY := 1.0  # …once a second per Warden (never Drowsy or Held)
-const STILL_META := &"pd_still_next"  # On a Warden
+# Stagnant Water (owner 2026-10-17: Dewdrop's own trait, Duration): statuses on a nightmare in a pond don't run down
+# while it stays there. Each poll gives back the time a status lost since the last one, through EnemyStatuses.linger
+# (so the shared LINGER_MAX cap past the last landing, Charged LINGER_MAX_STATIC; never above the time it had: never
+# longer than its own duration; never Rooted or Drowsy). Bosses get back only this share: they run down at half speed.
+const STILL_BOSS_SHARE := 0.5
+const STILL_META := &"pd_still"  # On a nightmare in a pond: {status: time left at the last poll}
+const STILL_FX_EVERY := 1.0  # The held cue (a ripple on the nightmare): once a second per nightmare
+const STILL_FX_META := &"pd_still_fx"  # On a nightmare
 const EVO_HANDS := &"dw_drowned_hands"
 const HANDS_STATUSES := 4  # Drowned Hands: a nightmare carrying this many statuses in a pond…
 const HANDS_HOLD := 1.0  # …is Held this long by the pond's strongest Dewdrop (bosses half), once per pond
 const EVO_RIVERSIDE := &"dw_riverside"  # Support
-const SIDE_STACKS := 1  # Riverside: a Warden touching water adds this many more with its first status hit on each nightmare in that water
+const SIDE_SECONDS := 2.0  # Riverside (owner 2026-10-17: Duration, was +1 stack): a status a Warden touching water adds to a nightmare in that water lasts this much longer (EnemyStatuses.linger: the shared cap; never Rooted or Drowsy)
+const SIDE_FX_EVERY := 0.5  # Its cue (a thread and a puff): once in this long per nightmare
+const SIDE_FX_META := &"pd_side_fx"  # On a nightmare
 const EVO_RAIN := &"dw_rain_on_the_bank"
 const RAIN_WARDENS := 3  # Rain on the Bank: a ripple gives every nightmare it soaks the status of up to this many bank Wardens…
 const RAIN_STACKS := 1  # …this many stacks each (never Drowsy or Held)
@@ -841,27 +848,47 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
 			credit(EVO_REFLECTION, last.global_position)
 
-# A Warden's own accepted status on a nightmare in water (Riverside, Stagnant Water): visible stacks, never hidden ones.
+# A Warden's own accepted status on a nightmare in water (Riverside): the status it just added lasts 2 s longer.
+# Owner 2026-10-17: Dewdrop's own trait (Duration), was +1 stack. Every landing; the linger cap bounds it.
 func _evo_status(tower, enemy, status: StringName) -> void:
 	var w := water_of(enemy)
-	if w < 0:
+	if w < 0 or not EnemyStatuses.can_linger(status):
 		return
-	if evo(EVO_RIVERSIDE) and (is_own(tower) or is_other_family(tower)) and touches_water(tower, w) \
-			and _once(enemy, "side:%d:%d" % [tower.get_instance_id(), int(waters[w].id)]):
-		var side: int = enemy.statuses.add_quiet(status, SIDE_STACKS)
-		setup_quiet(enemy, EVO_RIVERSIDE, status, side)  # (setup credit 2026-10-16)
-		if side > 0:
+	if evo(EVO_RIVERSIDE) and (is_own(tower) or is_other_family(tower)) and touches_water(tower, w):
+		var side: float = enemy.statuses.linger(status, SIDE_SECONDS)
+		SETUP.note_linger(enemy, card_id(EVO_RIVERSIDE), status, side)  # (setup credit 2026-10-16)
+		if side > 0.0 and now() >= float(enemy.get_meta(SIDE_FX_META, -INF)):
+			enemy.set_meta(SIDE_FX_META, now() + SIDE_FX_EVERY)
 			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 			credit(EVO_RIVERSIDE, enemy.global_position)
-	if evo(EVO_STAGNANT) and status != EnemyStatuses.DROWSY and living(enemy) and _is_pond(w) \
-			and now() >= float(tower.get_meta(STILL_META, -INF)):
-		var still: int = enemy.statuses.add_quiet(status, STILL_STACKS)
-		setup_quiet(enemy, EVO_STAGNANT, status, still)  # (setup credit 2026-10-16)
-		if still > 0:
-			tower.set_meta(STILL_META, now() + STILL_EVERY)
-			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
-			credit(EVO_STAGNANT, enemy.global_position)
+
+# Stagnant Water (from _in_pond, each poll): every status gets back the time it lost since the last poll while the
+# nightmare stays in a pond (bosses half). Leaving the pond forgets the record, so time lost outside never comes back.
+func _stagnant(enemy) -> void:
+	var statuses: EnemyStatuses = enemy.statuses
+	var was: Dictionary = enemy.get_meta(STILL_META, {})
+	var now_left := {}
+	var share := STILL_BOSS_SHARE if statuses.is_boss else 1.0
+	var held := false
+	for id in statuses.active_ids():
+		if not EnemyStatuses.can_linger(id):
+			continue
+		var left: float = statuses.time_left(id)
+		if was.has(id):
+			var lost: float = float(was[id]) - left  # Negative after a fresh landing: nothing to give back
+			if lost > 0.0:
+				var back: float = statuses.linger(id, lost * share)
+				if back > 0.0:
+					SETUP.note_linger(enemy, card_id(EVO_STAGNANT), id, back)  # (setup credit 2026-10-16)
+					held = true
+					left = statuses.time_left(id)
+		now_left[id] = left
+	enemy.set_meta(STILL_META, now_left)
+	if held and now() >= float(enemy.get_meta(STILL_FX_META, -INF)):
+		enemy.set_meta(STILL_FX_META, now() + STILL_FX_EVERY)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.4)  # The still water's ripple
+		credit(EVO_STAGNANT, enemy.global_position)
 
 # The evolutions' poll: wet steps, the pond (slow, Whirlpool, Drowned Hands), Spring Flood.
 func _evolutions_poll() -> void:
@@ -885,9 +912,13 @@ func _evolutions_poll() -> void:
 func _in_pond(enemy) -> void:
 	var w := water_of(enemy)
 	if not _is_pond(w):
+		if enemy.has_meta(STILL_META):
+			enemy.remove_meta(STILL_META)  # Stagnant Water: out of the pond, its statuses run down again
 		return
 	var boss: bool = enemy.statuses.is_boss
 	var key := _water_key(waters[w])
+	if evo(EVO_STAGNANT):
+		_stagnant(enemy)
 	HelperCommons.slow(enemy, POND_SLOW * (0.5 if boss else 1.0), POND_TIME)
 	control_slow(EVO_POND, POND_SLOW * (0.5 if boss else 1.0), POLL)  # (setup credit 2026-10-16: the poll's time in the pond)
 	if _once(enemy, "pond:" + key):

@@ -116,6 +116,14 @@ func _data_checks() -> void:
 		== ["uses:layered", "makes:repeat"], "Knell: Uses Layered, Makes Repeat (its live rule)")
 	_check(String(load("res://resource/dream/da_capo.tres").description).contains("{card:knell}"), "Da Capo's face names Knell")
 	_check(DreamState.CARD_NEEDS["da_capo"].has(&"knell"), "Da Capo's Need counts Knell's repeats")
+	# Owner 2026-10-17: four evolutions use their own family's trait (was Sporeling's +1 stack); Shared Spark retired.
+	var trait_rows := {&"dw_riverside": &"linger", &"dw_stagnant_water": &"linger", &"lf_show_the_way": &"jump", &"kt_evo_chime_of_many": &"repeat"}
+	for id in trait_rows:
+		var row: Dictionary = PATHS.PATHS[id]
+		_check(row.makes == [trait_rows[id]] and not String(row.text).contains("{stack"), "%s makes %s, never stacks" % [id, trait_rows[id]])
+	var spark: UpgradeData = load("res://resource/dream/shared_spark.tres")
+	_check(spark.retired and spark.makes.is_empty() and spark.uses.is_empty(), "Shared Spark is retired and carries no chips")
+	_check(not String(load("res://resource/dream/hammerfall.tres").description).contains("again"), "Hammerfall's face has no re-jump")
 
 # --- Hooks ---------------------------------------------------------------------------------------------------------
 
@@ -177,7 +185,8 @@ func _hook_checks() -> void:
 		_check(bell._hits_landed == before_echo + 1, "the Fifth Beat echo counts as a hit too")
 	await _clean()
 
-	# Jump: chain hops and Firefly forks both reach DreamState.note_jump; Shared Spark and Gathering Storm read it.
+	# Jump: chain hops and Firefly forks both reach DreamState.note_jump; Shared Spark (retired from offers 2026-10-17, its rule
+	# still runs for an old save) and Gathering Storm read it.
 	_take("shared_spark")
 	_take("gathering_storm")
 	var storm := _plant("stormcap", Vector2(5.5, 5.5) * CELL)

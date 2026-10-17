@@ -79,6 +79,59 @@ func _setup() -> void:
 	dreams = main.get_node("%DreamState")
 	klass = dreams.puddles
 
+# Riverside and Stagnant Water use Dewdrop's own trait, Duration (owner 2026-10-17; was +1 stack).
+func _evolution_checks(at: Vector2, route: Array) -> void:
+	dreams.stacks.clear()
+	dreams.calling = "dewdrop"
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"dw_riverside")
+	var drop := _plant("dewdrop", at + Vector2(CELL, 0))
+	var spore := _plant("sporeling", at + Vector2(-CELL, 0))
+	await _frames(2)
+	klass.on_board()
+	var r = _spawn(at)
+	var dry = _spawn(route[mini(60, route.size() - 1)])
+	_check(klass.water_of(r) >= 0 and klass.water_of(dry) < 0, "(one nightmare in the water, one out of it)")
+	_check(klass.touches_water(spore, klass.water_of(r)), "(the Sporeling touches the water)")
+	spore._apply_one_status(r, EnemyStatuses.SPORED, 1, spore.get_damage())
+	spore._apply_one_status(dry, EnemyStatuses.SPORED, 1, spore.get_damage())
+	var gained: float = r.statuses.time_left(EnemyStatuses.SPORED) - dry.statuses.time_left(EnemyStatuses.SPORED)
+	_check(absf(gained - klass.SIDE_SECONDS) < 0.01, "Riverside: a status added in the water lasts %.0f s longer (%.2f)" % [klass.SIDE_SECONDS, gained])
+	_check(r.statuses.is_lingering(EnemyStatuses.SPORED) and not dry.statuses.is_lingering(EnemyStatuses.SPORED), "...it is Duration (lingering); out of the water nothing")
+	_check(r.statuses.stacks(EnemyStatuses.SPORED) == dry.statuses.stacks(EnemyStatuses.SPORED), "...and adds no stack")
+	r.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
+	var drowsy_left: float = r.statuses.time_left(EnemyStatuses.DROWSY)
+	klass._evo_status(spore, r, EnemyStatuses.DROWSY)
+	_check(is_equal_approx(r.statuses.time_left(EnemyStatuses.DROWSY), drowsy_left), "...never Drowsy")
+	await _clean()
+
+	# Stagnant Water: in a pond (water touching 2 Dewdrops) statuses don't run down; bosses at half speed; out of it, they do.
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"dw_black_pond")
+	dreams.calling_path.append(&"dw_stagnant_water")
+	_plant("dewdrop", at + Vector2(CELL, 0))
+	_plant("dewdrop", at + Vector2(-CELL, 0))
+	await _frames(2)
+	klass.on_board()
+	var p = _spawn(at)
+	_check(klass._is_pond(klass.water_of(p)), "(the nightmare stands in a pond)")
+	p.apply_status(EnemyStatuses.MARKED, 2, 0.0, 1.0, 0, "light", null)
+	p.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
+	klass._in_pond(p)
+	var landed: float = p.statuses.time_left(EnemyStatuses.MARKED)
+	var drowsy_was: float = p.statuses.time_left(EnemyStatuses.DROWSY)
+	p.statuses.tick(1.0)
+	klass._in_pond(p)
+	_check(absf(p.statuses.time_left(EnemyStatuses.MARKED) - landed) < 0.01, "Stagnant Water: a status in a pond does not run down")
+	_check(p.statuses.time_left(EnemyStatuses.DROWSY) < drowsy_was - 0.5, "...Drowsy still does")
+	_check(p.statuses.time_left(EnemyStatuses.MARKED) <= landed + 0.001, "...never longer than it landed for")
+	p.statuses.is_boss = true
+	p.statuses.tick(1.0)
+	klass._in_pond(p)
+	_check(absf(p.statuses.time_left(EnemyStatuses.MARKED) - (landed - 1.0 + klass.STILL_BOSS_SHARE)) < 0.01, "...a boss's runs down at half speed")
+	p.statuses.is_boss = false
+	await _clean()
+
 func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("dewdrop") == "Puddles", "Dewdrop's Calling is Puddles")
@@ -275,5 +328,6 @@ func _run() -> void:
 	_check(not ebb_far.statuses.has(EnemyStatuses.SPORED), "...outside a Dewdrop's range: gone for good")
 	_check(e_drop != null, "(the Dewdrop stands)")
 	await _clean()
+	await _evolution_checks(at, route)
 	print("test_class_dewdrop: %d failures" % failures)
 	quit(failures)
