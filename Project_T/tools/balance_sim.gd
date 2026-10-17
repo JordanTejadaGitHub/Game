@@ -2311,13 +2311,12 @@ func _jarlink_text() -> String:
 		var partner = BranchKit._fence_partner(t)
 		var on_route := 0
 		if partner != null:
-			for c in BranchKit._arc_cells(t.cell, partner.cell):
-				if route.has(c):
-					on_route += 1
+			on_route = BranchKit.link_points(BranchKit.link_end(t), BranchKit.link_end(partner), route).size()
 		out.append("%d/%d>%s:%d" % [t.cell.x, t.cell.y, "-" if partner == null else "%d/%d" % [partner.cell.x, partner.cell.y], on_route])
 	return " ".join(out)
 # A Jarlink bonds with the nearest unbonded Jarlink within 4 cells, and the bond sticks (BranchKit.fence_partner_at).
-# Growing `tower` into one: the partner the game would give it and the route tiles under that arc (FENCE_WEIGHT each);
+# Growing `tower` into one: the partner the game would give it and the route points its link strikes (BranchKit.link_points,
+# the game's own segment; FENCE_WEIGHT each);
 # an arc over no route tile (side by side or off the path) costs FENCE_DEAD, so the bot grows elsewhere. With no
 # partner yet: half the route tiles toward the best Firefly Jar 2-4 cells away (a Jarlink to be).
 const FENCE_DEAD := -1000.0
@@ -2326,10 +2325,7 @@ func _fence_bonus(tower: Tower) -> float:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var partner: Tower = BranchKit.fence_partner_at(tower, tower.cell, 4.0, tower)
 	if partner != null:
-		var tiles := 0
-		for c in BranchKit._arc_cells(tower.cell, partner.cell):
-			if route.has(c):
-				tiles += 1
+		var tiles := BranchKit.link_points(BranchKit.link_end(tower), BranchKit.link_end(partner), route).size()
 		return FENCE_WEIGHT * tiles if tiles > 0 else FENCE_DEAD
 	var best := 0.0
 	for other in _attackers():
@@ -2337,10 +2333,7 @@ func _fence_bonus(tower: Tower) -> float:
 			continue
 		if Kinships._cheb(tower.cell, other.cell) > 4.0:
 			continue
-		var tiles := 0
-		for c in BranchKit._arc_cells(tower.cell, other.cell):
-			if route.has(c):
-				tiles += 1
+		var tiles := BranchKit.link_points(BranchKit.link_end(tower), BranchKit.link_end(other), route).size()
 		best = maxf(best, 0.5 * tiles)
 	return FENCE_WEIGHT * best
 
