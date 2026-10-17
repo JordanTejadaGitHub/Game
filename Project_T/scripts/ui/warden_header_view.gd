@@ -120,7 +120,9 @@ func _show_keywords(data: TowerData, tower: Tower) -> void:
 		keywords.remove_child(child)
 		child.queue_free()
 	var chips: Array = DreamState.KEYWORDS.chips_for_tower(tower) if is_instance_valid(tower) else DreamState.KEYWORDS.chips_for_warden(data)
-	var row := KeywordRow.make(chips)
+	# The quiet card chip (owner, phone screenshot 2026-10-17: "doesn't look like the ones on the card"): a thin gold
+	# frame, the word in INK_DIM at the card's 12 px (DreamScreen CARD_CHIP_TEXT); Wardens have no rarity, so gold.
+	var row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UiStyle.GOLD, 12)
 	if row != null:
 		keywords.add_child(row)
 	keywords.visible = row != null
