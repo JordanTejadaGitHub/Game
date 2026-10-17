@@ -14,6 +14,6 @@ max_stacks = 1
 requires = Array[String](["honeysuckle"])
 rule_id = &"scented_hedge"
 in_start_pool = false
-tip = "The wall's scent reaches as far as the {warden:honeysuckle}'s range, measured from the wall. Walls add {drowsy} only up to 12 {stacks} (24 with {card:brimming})."
+tip = "The Thornwall's scent reaches as far as the {warden:honeysuckle}'s range, measured from the Thornwall. Thornwalls add {drowsy} only up to 12 {stacks} (24 with {card:brimming})."
 makes = Array[StringName]([&"drowsy"])
 uses = Array[StringName]([&"maze"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "endless_rings"
 display_name = "Endless Rings"
-description = "Your {eldest} has no highest {rank}. Each {rank} past VII adds 15% damage."
+description = "Your {eldest} has no highest {rank}. It deals 15% more damage for each {rank} past VII."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture", "tall"])

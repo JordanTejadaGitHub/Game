@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_wellspring"
 display_name = "Wellspring"
-description = "{warden:dewcatcher}s can now {grow} into {warden:wellspring}s ({dew:{grow_cost:wellspring}}): a bigger catch (+{field:wellspring.catch_share:pct}), and {field:wellspring.rest_interest:pct} of your banked {dew} at every {rest} (up to {dew:{field:wellspring.rest_interest_max:count}})."
+description = "{warden:dewcatcher}s can now {grow} into {warden:wellspring}s ({dew:{grow_cost:wellspring}}): a catch {field:wellspring.catch_share:pct} bigger, and {field:wellspring.rest_interest:pct} of your banked {dew} at every {rest}, up to {dew:{field:wellspring.rest_interest_max:count}}."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])

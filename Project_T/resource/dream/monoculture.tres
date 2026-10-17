@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "monoculture"
 display_name = "Monoculture"
-description = "If every attacking Warden except Sprouts is from one {family}, those Wardens deal 100% more damage."
+description = "If every attacking Warden is from one {family}, those Wardens deal 100% more damage."
 rarity = 3
 kind = 3
 tags = Array[String](["narrow", "tall"])

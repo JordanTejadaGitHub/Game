@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "static_bloom"
 display_name = "Charged Bloom"
-description = "Chain attacks from {warden:stormcap} and its forms also add 1 {stack} of {drowsy}."
-cost_description = "Chain attacks hit 1 fewer nightmare."
+description = "Attacks from {warden:stormcap} and its forms also add 1 {stack} of {drowsy}."
+cost_description = "Their attacks hit 1 fewer nightmare."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "sleep"])

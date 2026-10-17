@@ -13,4 +13,4 @@ tags = Array[String](["wing"])
 requires = Array[String](["nestling"])
 max_stacks = 1
 rule_id = &"homing_instinct"
-tip = "Once per swoop. Works for: {warden:nestling} and its swooping forms."
+tip = "Once per swoop. Works for: {warden:nestling} and its swooping forms. Safe."

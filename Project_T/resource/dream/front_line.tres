@@ -13,5 +13,5 @@ tags = Array[String](["maze", "defining"])
 max_stacks = 1
 min_drift = 10
 rule_id = &"front_line"
-tip = "Sprouts and walls don't count. Works for: paths lined with attacking Wardens on both sides. Multiplies with your other Dream damage."
+tip = "Sprouts and walls don't count. Multiplies with your other Dream damage. Works for: paths lined with attacking Wardens on both sides."
 uses = Array[StringName]([&"maze"])

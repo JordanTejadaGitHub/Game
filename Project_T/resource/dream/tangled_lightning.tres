@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tangled_lightning"
 display_name = "Tangled Lightning"
-description = "Chain attacks {jump} to 2 more nightmares, only {static} ones."
+description = "Attacks from {warden:stormcap} and its forms {jump} to 2 more nightmares, only {static} ones."
 tip = "Works for: {warden:stormcap} and its forms."
 rarity = 1
 kind = 3

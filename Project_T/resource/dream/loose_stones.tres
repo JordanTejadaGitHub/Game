@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"loose_stones"
 in_start_pool = false
 makes = Array[StringName]([&"area"])
+tip = "Safe."

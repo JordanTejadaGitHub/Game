@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_growth"
 display_name = "Steadfast"
-description = "A Warden that has stood for 5 {drifts} makes each new target {held} for 0.4 s with its first hit."
+description = "When a Warden that has stood for 5 {drifts} turns to a new nightmare, its first hit makes it {held} for 0.4 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tall"])

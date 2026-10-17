@@ -16,4 +16,4 @@ min_act = 2
 in_start_pool = false
 rule_id = &"deep_sleep"
 excludes = Array[String](["double_or_nothing"])
-tip = "No rest bonus: the base, {perfect_block} and maze {dew} are gone; Dreams that add to it still pay."
+tip = "No rest bonus: the base, the {perfect_block} bonus and the {maze_bonus} are gone; Dreams that add to it still pay."

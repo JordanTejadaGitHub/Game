@@ -12,5 +12,5 @@ kind = 3
 tags = Array[String](["tending", "defining"])
 max_stacks = 1
 rule_id = &"sap_rising"
-tip = "Support Warden: an aura Warden, catcher or {warden:dreamcatcher}. Walls don't count. It counts as an area attack. At most a quarter of a nightmare's health; bosses and Deeply Blighted a tenth. Works for: support Wardens beside the path. Safe."
+tip = "Support Warden: an aura Warden, catcher or {warden:dreamcatcher}. Walls don't count. It counts as an area attack. At most a quarter of a nightmare's health; bosses and Deeply Blighted a tenth. Works for: support Wardens {touching} the path. Safe."
 uses = Array[StringName]([&"cluster"])

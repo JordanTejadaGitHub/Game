@@ -13,3 +13,4 @@ tags = Array[String](["root", "held"])
 requires = Array[String](["rootlight"])
 max_stacks = 1
 rule_id = &"long_light"
+tip = "Safe."

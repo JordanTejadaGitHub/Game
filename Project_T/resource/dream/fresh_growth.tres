@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fresh_growth"
 display_name = "Fresh Growth"
-description = "When you Grow or Nurture a Warden during a {drift}, it and every Warden {touching} it attack 100% faster for 8 s."
+description = "When you {grow} or Nurture a Warden during a {drift}, it and every Warden {touching} it attack 100% faster for 8 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tempo", "daring"])

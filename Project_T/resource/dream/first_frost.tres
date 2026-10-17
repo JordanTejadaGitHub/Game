@@ -12,5 +12,5 @@ kind = 3
 tags = Array[String](["held", "tempo", "affliction"])
 max_stacks = 1
 rule_id = &"first_frost"
-tip = "Bosses don't count. Each nightmare once."
+tip = "Bosses don't count. Once per nightmare."
 makes = Array[StringName]([&"rooted"])

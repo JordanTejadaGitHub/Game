@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rain_on_glass"
 display_name = "Rain on Glass"
-description = "{family:firefly_jar} Wardens deal 70% more damage to {damp} nightmares."
+description = "Firefly Wardens deal 70% more damage to {damp} nightmares."
 cost_description = "Their hits end the nightmare's {damp}."
 rarity = 0
 kind = 3
