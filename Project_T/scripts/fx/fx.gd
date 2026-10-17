@@ -569,18 +569,19 @@ static func damage_feedback(event) -> void:
 		var top: float = maxf(tower.attack_data.beam_ramp_max - 1.0, 0.01)
 		sustain(enemy, SUSTAIN_BEAM, tower, clampf((tower._beam_ramp - 1.0) / top, 0.0, 1.0))
 		return
-	var zone := sustain_of(enemy, SUSTAIN_ZONE)
-	if zone != null and zone.source == tower and zone.fresh():
-		return  # A whirlpool's or puddle's tick, not a hit
+	# Performance (2026-10-17): the budget first (a busy field is when this is called most), then the per-nightmare reads.
 	var now := Time.get_ticks_msec()
-	var times: Dictionary = enemy.get_meta(HIT_TIMES_META) if enemy.has_meta(HIT_TIMES_META) else {}
-	var id := tower.get_instance_id()
-	if now - int(times.get(id, -HIT_GAP_MS)) < HIT_GAP_MS:
-		return
 	while not _hit_times.is_empty() and now - _hit_times[0] > 1000:
 		_hit_times.pop_front()
 	if _hit_times.size() >= (HIT_PER_SECOND_REDUCED if reduced() else HIT_PER_SECOND):
 		return  # Busy: the small puffs thin first
+	var zone := sustain_of(enemy, SUSTAIN_ZONE)
+	if zone != null and zone.source == tower and zone.fresh():
+		return  # A whirlpool's or puddle's tick, not a hit
+	var times: Dictionary = enemy.get_meta(HIT_TIMES_META) if enemy.has_meta(HIT_TIMES_META) else {}
+	var id := tower.get_instance_id()
+	if now - int(times.get(id, -HIT_GAP_MS)) < HIT_GAP_MS:
+		return
 	var at: Vector2 = Tower.aim_at(enemy)
 	if not on_screen(at):
 		return

@@ -798,7 +798,9 @@ func _process(delta: float) -> void:
 	_anim_time += delta
 	if is_instance_valid(_leaf_mote):
 		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
-	_tick_dream_cache(delta)
+	_dream_cache_left -= delta  # (_tick_dream_cache inline: performance)
+	if _dream_cache_left <= 0.0:
+		_tick_dream_cache(0.0)
 	if _dream_state != null and _frame_rule(&"quiet_vigil"):  # Quiet Vigil only (perf: a rule lookup a Warden a frame was ~0.7 ms)
 		_dream_state.unique_growth.update_idle(self, delta)
 	if _tall_fade != null:
@@ -1094,6 +1096,8 @@ var _k_gift := -1
 var _k_omen: OmenData = null
 
 func _stats_fresh() -> bool:
+	if _fresh_memo:
+		return true  # Already checked during this hit
 	var board: int = _dream_state.board_version if _dream_state else 0
 	var stacks: int = _dream_state.stacks.size() if _dream_state else 0
 	var kin: int = _kin.version if is_instance_valid(_kin) else 0  # Pairs / families changed
@@ -1104,6 +1108,7 @@ func _stats_fresh() -> bool:
 			and aura == _k_aura and _damage_share == _k_share and dim_multiplier == _k_dim and _big_family == _k_big \
 			and board == _k_board and stacks == _k_stacks and kin == _k_kin and _chorus == _k_chorus and gift == _k_gift \
 			and omen == _k_omen:
+		_fresh_memo = _in_hit > 0
 		return true
 	_k_valid = true
 	_k_data = attack_data
@@ -2420,6 +2425,7 @@ func _release() -> void:
 # (the Magpie's stolen buffs).
 const HIT_CARD_RULES: Array[StringName] = [&"crush", &"crowd_breaker", &"shiny_things"]  # (Patient Aim is crit chance now: DreamState.get_crit_chance_bonus)
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
+const UNIQUE_NATIVE_RULES: Array[StringName] = [&"shared_mycelium", &"crossed_sparks", &"corner_sign"]  # DreamCooperation / DreamPathRules.native_status (performance: skipped without them)
 const UNIQUE_COOP_RULES: Array[StringName] = [&"crosswind", &"opening_fracture", &"afterroot"]  # DreamCooperation.before_hit / after_hit
 
 # True if any of `rules` is owned; cached with the shared rule cache under `key`.
@@ -2971,8 +2977,23 @@ func _release_attack() -> void:
 # NO_CRIT or CRIT. The creature's family resistance or weakness to this Warden's line is applied in
 # Enemy.take_damage. `combo`: a DamageLog combo tag this hit owes itself to (&"conducted").
 # Returns whether it was a crit.
+# Performance (test_perf_stress, 2026-10-17): inside one hit the stat cache can't change, so _stats_fresh() answers its
+# ~15 comparisons once per hit (it was asked by get_damage, the crit roll, the signature and each status). Nested hits
+# (a Reaction's splash) keep the memo: still mid-hit.
+var _in_hit := 0
+var _fresh_memo := false
+
 func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, crit: int = ROLL_CRIT,
 		combo: StringName = &"", direct_hit: bool = true, primary_override: int = -1) -> bool:
+	_in_hit += 1
+	var landed := _hit(enemy, soothe_multiplier, is_area, crit, combo, direct_hit, primary_override)
+	_in_hit -= 1
+	if _in_hit == 0:
+		_fresh_memo = false
+	return landed
+
+func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, combo: StringName, direct_hit: bool,
+		primary_override: int) -> bool:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	# Preserve the original/copy and primary identity across deferred area hits.
@@ -3024,7 +3045,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		_ramp_hits = _ramp_hits + 1 if enemy == _ramp_target else 0
 		_ramp_target = enemy
 	if _dream_state:  # (Direct calls: has_method() was four string lookups per hit, the hot path)
-		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
+		soothe *= _frame_hit_scalars(_dream_state)[0]  # Venom Bloom: hits weaker, effects stronger
 	if is_area and _dream_state and _has_rule(&"overlap"):
 		var overlap := _dream_state.overlap_multiplier(self, enemy)  # Another Warden's area hit within 1 s
 		soothe *= overlap
@@ -3065,13 +3086,13 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 			enemy.strip_buff(self)
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
 		_kin_fired(&"flock_together")
-	if is_crit and _dream_state:
-		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
+	if is_crit and _dream_state and _frame_hit_scalars(_dream_state)[2]:
+		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon, Sharpened Light
 	if is_crit and sig == Signatures.EXECUTIONER and (enemy.enemy_data.is_boss or enemy.elite):
 		crit_multiplier *= Signatures.EXECUTE_BIG  # Executioner: bosses and elites take the crit x1.5 instead
 	var non_crit := 1.0
 	if not is_crit and _dream_state:
-		non_crit = _dream_state.get_non_crit_multiplier()  # Reckless Bloom
+		non_crit = _frame_hit_scalars(_dream_state)[1]  # Reckless Bloom
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if _dream_state:
 		dealt *= _commons_hit_multiplier(enemy, is_area, is_crit)  # Ripples, Edge of Sight, Steady Aim
@@ -3274,12 +3295,13 @@ func _shattering_blow(enemy: Node2D, dealt: float) -> void:
 func roll_crit(enemy: Node2D) -> bool:
 	if not is_instance_valid(enemy):
 		return false
-	var id := enemy.get_instance_id()
-	var first := not _hit_before.has(id)
-	_hit_before[id] = true
-	if attack_data.first_hit_crits and first:
-		Reactions._effect(&"moonstone_beam", aim_at(enemy), self)  # Signature: a moonbeam from above
-		return true
+	if attack_data.first_hit_crits:
+		var id := enemy.get_instance_id()
+		var first := not _hit_before.has(id)
+		_hit_before[id] = true  # (Only Moonstone reads it: no dictionary write per hit for the rest)
+		if first:
+			Reactions._effect(&"moonstone_beam", aim_at(enemy), self)  # Signature: a moonbeam from above
+			return true
 	if attack_data.crits_vs_drowsy and enemy.statuses.has(EnemyStatuses.DROWSY):
 		return true  # Boulderback: a guaranteed crit on Drowsy, no roll
 	if attack_data.crits_vs_held and enemy.statuses.is_held():
@@ -3457,7 +3479,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
 		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
 	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
-	if _dream_state != null and stacks > 0 and native:
+	if _dream_state != null and stacks > 0 and native and _any_rule(&"__unique_native", UNIQUE_NATIVE_RULES):
 		var accepted: bool = enemy.statuses.applications > unique_before
 		var previous_native_context = get_meta(&"unique_native_status_context") if has_meta(&"unique_native_status_context") else null
 		set_meta(&"unique_native_status_context", [potency, duration, max_stacks, stacks])  # stacks: Corner Sign doubles them
@@ -5002,6 +5024,18 @@ func _beam_layer_ready() -> Node2D:
 # The beam, from the attack point (the flower's face) to its target, above the Warden's own art.
 # Where a visual aims at a nightmare (Enemy Code 4ea858af: bodies are drawn raised, their feet on the route point):
 # its drawn body. Game logic (ranges, splash, landing spots) keeps global_position.
+# DreamState's per-hit numbers that only change with the cards, read once a frame for all Wardens (performance):
+# [Venom Bloom / Whirlwind Heart's hit multiplier, Reckless Bloom's non-crit multiplier, whether a crit-overflow card is held].
+static var _scalars_frame := -1
+static var _scalars: Array = [1.0, 1.0, false]
+static func _frame_hit_scalars(dreams: DreamState) -> Array:
+	var frame := Engine.get_process_frames()
+	if frame != _scalars_frame:
+		_scalars_frame = frame
+		_scalars = [dreams.get_hit_damage_multiplier(), dreams.get_non_crit_multiplier(),
+			dreams.has_rule(&"full_moon") or dreams.has_rule(&"sharpened_light")]
+	return _scalars
+
 static func aim_at(enemy: Node2D) -> Vector2:
 	return enemy.get_body_position() if is_instance_valid(enemy) and enemy.has_method("get_body_position") \
 		else (enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO)
