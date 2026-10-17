@@ -483,8 +483,8 @@ func _string_lights(path: Dictionary) -> void:
 	for k in range(1, lit_steps.size()):
 		var a: int = lit_steps[k - 1]
 		var b: int = lit_steps[k]
-		if b - a - 1 < 1 or b - a - 1 > STRING_STEPS:
-			continue
+		if b - a - 1 < 1 or b - a > STRING_STEPS:
+			continue  # Glows at most STRING_STEPS apart, as the text says (council full_review 2026-10-17)
 		var lights: Array = []
 		for s in [a, b]:
 			for cell in cells_at.get(s, []):
@@ -699,8 +699,9 @@ func _poll() -> void:
 
 # Torchbearers / Bale-fires (hard cards 2026-10-16): the nearest Lit nightmare further along the path than `step`, at most
 # TORCH_STEPS ahead, not in `skip` and not claimed by another throw in the last TORCH_CLAIM s (smallest step first, then
-# nearest to `at`). Reads the poll's sorted list: at most 0.1 s stale. Null = none.
-func next_lit_ahead(step: int, at: Vector2, skip: Array = []):
+# nearest to `at`). Reads the poll's sorted list: at most 0.1 s stale. Null = none. `seen` = instance ids the event
+# already struck (an _event_seen entry), skipped as _fresh_lit does (council full_review 2026-10-17: Bale-fires).
+func next_lit_ahead(step: int, at: Vector2, skip: Array = [], seen: Dictionary = {}):
 	if step < 0 or _lit_by_step.is_empty():
 		return null
 	var i: int = _lit_by_step.bsearch_custom([step, null], func(a: Array, b: Array) -> bool: return int(a[0]) < int(b[0]), false)
@@ -714,7 +715,8 @@ func next_lit_ahead(step: int, at: Vector2, skip: Array = []):
 		if s > step + TORCH_STEPS or (best != null and s > best_step):
 			break
 		var enemy = entry[1]
-		if not _living(enemy) or skip.has(enemy) or now < float(enemy.get_meta(TORCH_CLAIM_META, -INF)):
+		if not _living(enemy) or skip.has(enemy) or seen.has(enemy.get_instance_id()) \
+				or now < float(enemy.get_meta(TORCH_CLAIM_META, -INF)):
 			continue
 		if best == null or enemy.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(at):
 			best = enemy
@@ -726,7 +728,7 @@ func next_lit_ahead(step: int, at: Vector2, skip: Array = []):
 # its event and hops. The spark threads through the glow spot of the target's light.
 func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, parent: Dictionary = {}, origin = null,
 		skip: Array = []) -> void:
-	var target = next_lit_ahead(step, at, skip)
+	var target = next_lit_ahead(step, at, skip, _event_seen.get(id, {}))
 	if target == null:
 		return
 	target.set_meta(TORCH_CLAIM_META, _now() + TORCH_CLAIM)
@@ -743,7 +745,7 @@ func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, 
 	if spot != Vector2.ZERO:
 		_line_fx(at, spot, 2.0, Palette.GLOW)  # The spark flies to the target's light…
 		from = spot  # …and the light throws it
-	credit(EVO_BALE if relay > 0 else EVO_TORCH, target.global_position)
+	# Credited in _strike once the throw lands, never here: _flush may still drop it (council full_review 2026-10-17)
 	opts["credit"] = EVO_BALE if relay > 0 else EVO_TORCH  # Setup credit 2026-10-16: its own damage
 	_fork(id, source, from, target, amount, cap, opts)
 
@@ -910,7 +912,8 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 				if gold and targets.size() >= 2 and evo(EVO_BONFIRE):
 					credit(EVO_BONFIRE, at)
 		if evo(EVO_TORCH):  # Hard cards 2026-10-16: the nearest Lit nightmare ahead (Torchbearers wins over Signal Fires)
-			_torch(id, source, at, _step_of(enemy), size * RELAY_SHARE, cap, {}, enemy, [enemy])
+			# Its own event, skipping the Calling's targets, so _flush never drops the throw (council full_review 2026-10-17)
+			_torch(_next_event(), source, at, _step_of(enemy), size * RELAY_SHARE, cap, {}, enemy, [enemy] + targets)
 		elif _rule(SIGNAL_FIRES):  # (Retired class card: an old save keeps its light-to-light rule)
 			_signal(id, source, at, _step_of(enemy), lights, size * SIGNAL_SHARE, cap, {}, enemy)
 		if gold and evo(EVO_EMBERS):
@@ -1334,7 +1337,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
 			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.count() > 0).slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
-				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true, "credit": THUNDERSTRUCK})
+				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true, "final": true, "credit": THUNDERSTRUCK})  # final: Hammerfall never re-jumps it (council full_review 2026-10-17)
 				if _living(other) and not other.statuses.is_boss:
 					# Each jump adds 1 Charged, from the Firefly Warden (its bolt, never the heavy Warden's: card pass 2026-10-16)
 					SETUP.begin(StringName(SETUP.rule_card(dream_state, THUNDERSTRUCK)))  # Setup credit 2026-10-16
@@ -1397,7 +1400,7 @@ func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float) -> void
 		return
 	var targets := _near_enemies(at, [enemy])
 	if not targets.is_empty():
-		_fork(id, source, at, targets[0], event.base * SPARKS_SHARE, _lent_cap(source, lit[1].get_ref()))
+		_fork(id, source, at, targets[0], event.base * SPARKS_SHARE, _lent_cap(null, lit[1].get_ref()))  # Capped even from a Firefly Warden, as Chain of Lanterns (council full_review 2026-10-17)
 
 # Flashover: one attack's hits are gathered by Warden and frame; the next frame, an area attack that hit 2 or more
 # jumps half (of the largest hit) to the nearest nightmare it missed. Another family's Warden near a Firefly Warden;
@@ -1443,7 +1446,7 @@ func _flash_over() -> void:
 		centre /= hit.size()
 		var targets := _near_enemies(centre, hit)
 		if not targets.is_empty():
-			_fork(_next_event(), source, centre, targets[0], float(entry.base) * FLASHOVER_SHARE, _lent_cap(source, jar), {"final": true})
+			_fork(_next_event(), source, centre, targets[0], float(entry.base) * FLASHOVER_SHARE, _lent_cap(null, jar), {"final": true})  # Always capped (council full_review 2026-10-17)
 
 # Brushfire: a Charged nightmare's damage over time this second, by its source.
 func _brush_add(event, source, enemy) -> void:
@@ -1606,6 +1609,8 @@ func _strike(request: Dictionary) -> void:
 	target.take_damage(amount, source.tower_data.line if source is Tower else LINE, false, false, source, FORK_TAG)
 	if own != &"" and dream_state != null:
 		dream_state.end_own_hit()
+	if own == EVO_TORCH or own == EVO_BALE:
+		credit(own, at)  # The callout once the throw has landed (council full_review 2026-10-17)
 	var carry: Array = request.get("carry", [])
 	if not carry.is_empty() and _living(target):
 		_wake(target, carry, request.from)

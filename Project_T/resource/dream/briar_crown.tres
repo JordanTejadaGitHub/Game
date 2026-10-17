@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "briar_crown"
 display_name = "Briar Crown"
-description = "When a nightmare passes a Thornwall, it takes 60% of a hit from the strongest attacking Warden {touching} that Thornwall."
+description = "When a nightmare passes a Thornwall, Bramble or Honeysuckle, it takes 60% of a hit from the strongest attacking Warden {touching} it."
 rarity = 3
 kind = 3
 tags = Array[String](["wall", "maze"])
@@ -16,5 +16,5 @@ rule_id = &"briar_crown"
 diagram = ".......\n...W...\n...X...\nPP+++PP\n......."
 diagram_caption = "A nightmare stepping beside the Thornwall takes 25% of the strongest Warden touching it."
 in_start_pool = false
-tip = "Passes: steps on a path cell sharing a side with the Thornwall. It counts as an area attack. Once for each Thornwall and nightmare every 1 s. Works for: Thornwalls {touching} a strong attacking Warden."
+tip = "Passes: steps on a path cell sharing a side with it. It counts as an area attack. Once for each wall and nightmare every 1 s. Works for: Thornwalls {touching} a strong attacking Warden."
 uses = Array[StringName]([&"maze"])

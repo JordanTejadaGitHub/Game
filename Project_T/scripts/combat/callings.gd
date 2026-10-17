@@ -27,9 +27,9 @@ const TEXTS := {
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "Glow: the path within 1.5 cells of a Firefly Warden, wider as its range grows. Any dispel counts: by a hit, a {spored} tick or a cloud. Only this Calling and its evolutions use {lit} nightmares; Firefly Dream cards work from Firefly Wardens themselves, for any family.",
+	"firefly_jar": "Glow: the path within 1.5 cells of a Firefly Warden, wider as its range grows. Any dispel counts: by a hit, a {spored} tick or a cloud, but not by a {reaction}. Only this Calling and its evolutions use {lit} nightmares; Firefly Dream cards work from Firefly Wardens themselves, for any family.",
 	"sporeling": "Any Warden's dispel counts. {Mushrooms} stay through a {rest}; 40 at most. Flyers pass over them, so it is weak against flyers. Only this Calling and its evolutions grow or use {mushrooms} and {doses}; Sporeling Dream cards work without them, for any family.",
-	"dewdrop": "{warden:dewdrop}s hit {damp} nightmares harder. {Touching}: within 1.25 cells of the Warden. A {step} is one cell of path. A splash makes each nightmare {damp} once a second at most. Only this Calling and its evolutions use {water}; Dewdrop Dream cards work from where {warden:dewdrop}s stand and {damp}, for any family.",
+	"dewdrop": "{warden:dewdrop}s hit {damp} nightmares harder. {Touching}: within 1.25 cells of the Warden. A {step} is one cell of path. A splash makes each nightmare {damp} at most once a second. Only this Calling and its evolutions use {water}; Dewdrop Dream cards work from where {warden:dewdrop}s stand and {damp}, for any family.",
 	"bellflower": "A bell is any Bellflower form. Hits less than 0.5 s apart count as one ring. After a {toll} the rings start over; each nightmare takes one {toll} a second at most. Only this Calling and its evolutions use rings and {tolls}; Bellflower Dream cards work from bells and {drowsy}, for any family.",
 }
 

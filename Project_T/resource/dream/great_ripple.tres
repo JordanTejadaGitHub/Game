@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "great_ripple"
 display_name = "Great Ripple"
-description = "Every area attack hits again 1 s later in a ring 1 cell wider, at half damage."
+description = "Every pulse and splash hits again 1 s later in a ring 1 cell wider, at half damage."
 rarity = 3
 kind = 3
 tags = Array[String](["reach"])

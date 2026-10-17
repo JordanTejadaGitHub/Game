@@ -15,5 +15,5 @@ min_act = 2
 min_non_attackers = 3
 rule_id = &"the_quiet_ones"
 in_start_pool = false
-tip = "Catcher income and {warden:dreamcatcher}s don't change. Offered once you have 3 Wardens that don't attack."
+tip = "Catcher income and {warden:dreamcatcher}s don't change. Offered once you have 3 Wardens that don't attack and have an aura, damage or a {drowsy} scent. Plain Thornwalls don't count."
 uses = Array[StringName]([&"cluster"])

@@ -14,4 +14,4 @@ max_stacks = 1
 min_act = 2
 rule_id = &"monoculture"
 in_start_pool = false
-tip = "Sprouts don't count and get no bonus."
+tip = "Sprouts and walls don't count and get no bonus."

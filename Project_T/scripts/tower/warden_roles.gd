@@ -40,8 +40,8 @@ static func has_role(data: TowerData, role: StringName) -> bool:
 			return data.attack_kind == TowerData.AttackKind.TRAP
 		PULL:
 			return data.pull_tiles > 0.0 or data.attack_kind == TowerData.AttackKind.PULL
-		HOLD:
-			return data.hold_targets > 0
+		HOLD:  # A freeze applies Held too: Frostfern, Hoarfrost, Tidecaller (council full_review 2026-10-17)
+			return data.hold_targets > 0 or data.freeze_duration > 0.0
 		SNIPER:
 			return data.min_range > 0.0 or data.has_target_priority
 		SUPPORT:

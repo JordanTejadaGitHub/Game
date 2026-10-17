@@ -1475,8 +1475,8 @@ func is_solitary_at(data: TowerData, cell: Vector2, ghost: Dictionary = {}) -> b
 func is_monoculture() -> bool:
 	var lines := {}
 	for tower in _towers():
-		if tower.tower_data.can_attack and tower.tower_data.line != "sprout":
-			lines[tower.tower_data.line] = true
+		if tower.tower_data.can_attack and tower.tower_data.line != "sprout" and tower.tower_data.line != "wall":
+			lines[tower.tower_data.line] = true  # Walls skipped like Canopy's (council full_review 2026-10-17)
 	return lines.size() == 1
 
 # --- Crits from Dreams (Tower adds these in its crit roll) --------------------------------------------
@@ -3377,6 +3377,10 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return can_clear()
 		&"twin_strike", &"close_quarters":
 			return kinship_possible()
+		&"elder_kin", &"old_friends", &"kins_keepsake":
+			return kinship_possible()  # Nothing to do without a Kinship (council full_review 2026-10-17)
+		&"chosen_few":
+			return count_ranked(5) >= 1  # Its rank V need is otherwise only soft: all cost (council full_review 2026-10-17)
 		&"hobble", &"opening_fracture", &"steady_aim", &"shattering_blow", &"sharpened_light":
 			return crit_possible()  # A crit card with no Warden that can crit does nothing (card_review_2026-10-12.md 3)
 	return true

@@ -15,6 +15,6 @@ rule_id = &"hushed_hedge"
 excludes = Array[String](["thorn_snare"])
 cost_description = "Taking it removes {card:thorn_snare} from this run."
 in_start_pool = false
-tip = "Flyers don't count."
+tip = "Flyers don't count. Walls add {drowsy} only up to 12 {stacks} (24 with {card:brimming})."
 makes = Array[StringName]([&"drowsy"])
 uses = Array[StringName]([&"maze"])

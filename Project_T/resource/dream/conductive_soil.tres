@@ -17,6 +17,6 @@ requires = Array[String](["stormcap", "rain_lily"])
 max_stacks = 1
 entwined = true
 rule_id = &"conductive_soil"
-tip = "Works for: {warden:stormcap} and its forms with Wardens that add {damp}."
+tip = "Its {named_combo:thunderclap} also reaches every {damp} nightmare in its range. Works for: {warden:stormcap} and its forms with Wardens that add {damp}."
 makes = Array[StringName]([&"jump"])
 uses = Array[StringName]([&"soaked"])

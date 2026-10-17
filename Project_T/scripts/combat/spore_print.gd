@@ -746,6 +746,7 @@ func _process(delta: float) -> void:
 				_regrow.erase(point)
 				if not mushrooms.has(point):
 					_grow(point, true)
+					_fairy_grew(point)
 	# Steps: a walker's centre reaching a mushroom's route point (every frame: a fast nightmare must not skip one)
 	if mushrooms.is_empty():
 		return
@@ -756,6 +757,14 @@ func _process(delta: float) -> void:
 		var point: Vector2 = enemy.get_target_cell()
 		if mushrooms.has(point) and enemy.global_position.distance_squared_to(_route_px[int(_index[point])]) <= reach:
 			_stepped(point, enemy)
+
+# Fairy Path shows itself: a puff and its credit when its clock grows a mushroom (council full_review 2026-10-17).
+func _fairy_grew(point: Vector2) -> void:
+	if not evo(EVO_FAIRY_PATH) or not mushrooms.has(point) or not is_equal_approx(float(_bed.get(point, INF)), FAIRY_EVERY):
+		return
+	var at: Vector2 = _route_px[int(_index[point])]
+	Reactions._effect(&"landing_dust", at, self, 0.5)
+	credit(EVO_FAIRY_PATH, at)
 
 func on_poll() -> void:
 	if evo(EVO_CATCHING):

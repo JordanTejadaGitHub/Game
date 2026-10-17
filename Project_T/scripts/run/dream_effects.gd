@@ -375,7 +375,10 @@ func _few_and_mighty(spot: Dictionary, board: Board, _card: UpgradeData) -> Dict
 
 func _canopy(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := ds.canopy_range_bonus(spot.node)
-	return {"active": bonus > 0.0, "range": bonus, "note": "6 touching attacking Wardens fighting 6 nightmares"}
+	# The busy gate is gone: the note names only the group (council full_review 2026-10-17)
+	var group := "group of %d+ touching attacking Wardens" % DreamState.CANOPY_GROUP
+	return {"active": bonus > 0.0, "range": bonus, "note": group,
+		"reason": "" if bonus > 0.0 else "needs a " + group}
 
 
 func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -481,10 +484,11 @@ func _deep_sleep(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 	return ds.reaction_cards.deep_sleep_row(_data(spot))
 
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
-	if not spot.data.can_attack or spot.data.line == "sprout":
+	if not spot.data.can_attack or spot.data.line == "sprout" or spot.data.line == "wall":
 		return {}
 	var lines := board.lines.duplicate()
 	lines.erase("sprout")
+	lines.erase("wall")  # Brambles / Honeysuckles never switch it off, as with Canopy (council full_review 2026-10-17)
 	lines[spot.data.line] = true
 	var on := lines.size() == 1
 	return {"run_wide": true, "active": on, "damage": DreamState.MONOCULTURE_BONUS,

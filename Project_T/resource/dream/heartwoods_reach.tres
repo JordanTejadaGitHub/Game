@@ -15,5 +15,5 @@ min_obstacles = 8
 clear_discount = 0.0
 free_clears_add = 0
 free_first_clears_add = 5
-tip = "A Warden covering several cleared cells gets {rank} I once. Walls don't count."
+tip = "A Warden covering several cleared cells gets {rank} I once. Walls and Wardens that don't attack don't count."
 makes = Array[StringName]([&"maze", &"rank"])

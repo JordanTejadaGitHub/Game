@@ -15,4 +15,4 @@ requires = Array[String](["bramble"])
 rule_id = &"living_walls"
 in_start_pool = false
 uses = Array[StringName]([&"maze"])
-tip = "Safe."
+tip = "Twig walls don't grow. Safe."

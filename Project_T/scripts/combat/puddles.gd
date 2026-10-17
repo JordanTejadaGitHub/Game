@@ -893,8 +893,8 @@ func _in_pond(enemy) -> void:
 	if _once(enemy, "pond:" + key):
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
 		credit(EVO_POND, enemy.global_position)
-	if evo(EVO_WHIRLPOOL) and not boss and _fully_soaked(enemy) and _once(enemy, "whirl:" + key):
-		_whirlpool(enemy, w)
+	if evo(EVO_WHIRLPOOL) and not boss and _fully_soaked(enemy) and not enemy.get_meta(ONCE_META, {}).has("whirl:" + key):
+		_whirlpool(enemy, w, key)
 	if evo(EVO_HANDS) and living(enemy) and _status_count(enemy) >= HANDS_STATUSES \
 			and not enemy.get_meta(ONCE_META, {}).has("hands:" + key):
 		_drowned_hands(enemy, w, key)
@@ -907,11 +907,12 @@ func _status_count(enemy) -> int:
 	return found
 
 # Whirlpool: pulled back 2 steps (never bosses or flyers: the caller checks). Drowning Deep drags its neighbours too.
-func _whirlpool(enemy, w: int) -> void:
+func _whirlpool(enemy, w: int, key: String) -> void:
 	var pixels := PULL_STEPS * cell()
 	var pulled: float = enemy.push_back(pixels)
 	if pulled <= 0.0:
-		return
+		return  # Nothing moved: the pond's once is kept for a later try (council full_review 2026-10-17)
+	_once(enemy, "whirl:" + key)
 	SETUP.control_pull(dream_state, card_id(EVO_WHIRLPOOL), enemy, pulled)  # (setup credit 2026-10-16)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)
 	credit(EVO_WHIRLPOOL, enemy.global_position)

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bitter_hedges"
 display_name = "Bitter Hedges"
-description = "Nightmares take 8% more damage from hits for each Thornwall they passed in the last 2 s, up to +40%."
+description = "Nightmares take 8% more damage from hits for each Thornwall, Bramble or Honeysuckle they passed in the last 2 s, up to +40%."
 rarity = 2
 kind = 3
 tags = Array[String](["wall", "maze"])

@@ -7,7 +7,7 @@ extends SceneTree
 #   godot --headless --path . --script res://tests/test_thin_family.gd --fixed-fps 60
 
 const CARDS := {
-	"deep_grip": "rootling", "tangled_release": "rootling", "tangled_release_ii": "rootling",
+	"deep_grip": "rootling", "tangled_release_ii": "rootling",  # (Tangled Release needs a Holding form now: _test_data)
 	"long_light": "rootlight", "root_web": "rootling", "lullaby": "dreamcatcher",
 	"lullaby_ii": "dreamcatcher", "chorus": "bellflower", "bright_marks": "lanternmoth",
 	"called_shot": "lanternmoth",
@@ -46,6 +46,9 @@ func _test_data() -> void:
 		dreams.discovery_profile["wardens_built"] = [CARDS[id]]
 		_check(dreams.discovery_met(card), "%s: …then it can come" % id)
 		dreams.discovery_profile = null
+	var release := _card("tangled_release")  # Council full_review 2026-10-17: base Rootling never Holds
+	_check(release.in_start_pool and release.requires.is_empty() and Array(release.requires_any) == ["tangleroot", "snugroot"],
+		"tangled_release: needs a Holding form (Tangleroot or Snugroot)")
 	_check(_card("deep_grip").max_stacks == 1 and _card("bright_marks").max_stacks == 1,
 		"Deep Grip and Bright Marks once (power pass)")
 	for pair in [["tangled_release_ii", "tangled_release"], ["lullaby_ii", "lullaby"],

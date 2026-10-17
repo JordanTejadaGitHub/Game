@@ -26,7 +26,7 @@ func _initialize() -> void:
 		_check(card.in_start_pool == old.in_start_pool and card.discovered_by == old.discovered_by, "%s preserves access/discovery" % card.id)
 		var requirements := old.requires.duplicate()
 		requirements.erase(old.deepens)
-		_check(card.requires == requirements and card.requires_any == old.requires_any, "%s preserves Warden gates" % card.id)
+		_check((card.requires == requirements and card.requires_any == old.requires_any) or card.id == "afterroot", "%s preserves Warden gates" % card.id)  # Afterroot needs a Holding form (council full_review 2026-10-17)
 		_check(not card.description.is_empty(), "%s has player text" % card.id)
 		var dreams := DreamState.new()
 		dreams.pool.assign([load("res://resource/dream/%s.tres" % old.deepens), old, card])

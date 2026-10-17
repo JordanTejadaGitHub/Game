@@ -197,6 +197,7 @@ func rest(dreams: DreamState, _early_calls: int, excluded: Array) -> void:
 	heels = 0
 	leaves_mark = dreams.run_state.leaves_lost
 	_snagged.clear()
+	_first.clear()  # First Light: the field is clear at a rest (council full_review 2026-10-17)
 	for tower in dreams._towers():
 		tower.set_meta(&"batch_stood_at_rest", true)  # Fresh Growth: only Wardens standing at the last rest
 
@@ -266,7 +267,8 @@ func planted(dreams: DreamState, tower: Tower) -> void:
 
 # A drift started. `early`: called with at least DriftDirector.call_early_min_seconds of arrival skipped.
 func drift_started(dreams: DreamState, number: int, early: bool) -> void:
-	_first.clear()
+	# First Light is forgotten at rest() only: drifts flow into each other, so a nightmare still walking from the last
+	# drift must not take a second "first" hit (council full_review 2026-10-17)
 	if not early:
 		return
 	if dreams.has_rule(&"hot_on_their_heels") and clean_block(dreams):
@@ -466,6 +468,14 @@ func on_later_pass(dreams: DreamState, tower: Tower, enemy: Node2D) -> bool:
 
 # --- Damage -------------------------------------------------------------------------------------------------------
 
+# First Light's memory grew large in one block: forget only nightmares that are gone, so a living one is never "first"
+# twice (council full_review 2026-10-17; was a full clear).
+func _prune_first() -> void:
+	for key in _first.keys():
+		var id := String(key).get_slice(":", String(key).get_slice_count(":") - 1).to_int()
+		if not is_instance_id_valid(id):
+			_first.erase(key)
+
 # Enemy.take_damage asks once per damage event: what the batch cards and the Rares multiply it by. `source` is the
 # Warden credited (ticks and clouds keep their applier), so status damage counts like hits.
 func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: StringName) -> float:
@@ -480,7 +490,7 @@ func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: St
 				multiplier *= FIRST_LIGHT_MULTIPLIER
 				DamageLog.note_card_bonus("first_light", FIRST_LIGHT_MULTIPLIER)  # Card credit (Main Merger df7010bb)
 				if _first.size() > 8192:
-					_first.clear()
+					_prune_first()
 		var heels := 1.0 + heels_bonus(dreams)
 		multiplier *= heels
 		DamageLog.note_card_bonus("hot_on_their_heels", heels)
@@ -561,7 +571,7 @@ func flyers_due(dreams: DreamState, within: int) -> bool:
 					return true
 	return false
 
-# Thornwalls a flyer's straight line from the start to the Heartwood crosses that touch an attacking Warden (Snag's
+# Thornwalls a flyer's straight line from the start to the Heartwood crosses (any: no attacker needed, Snag's
 # card: "Thornwalls under the flight line: 4").
 func snag_walls(dreams: DreamState) -> int:
 	var grid = dreams.map_generator.MAP_GRID
@@ -584,7 +594,7 @@ func snag_walls(dreams: DreamState) -> int:
 func answer_line(dreams: DreamState, card: UpgradeData) -> String:
 	match card.rule_id:
 		&"snag":
-			return "Thornwalls under the flight line that touch an attacking Warden: %d." % snag_walls(dreams)
+			return "Thornwalls under the flight line: %d." % snag_walls(dreams)
 		&"long_way_round":
 			var bends := bend_count()
 			return "Your route: %d bends. Up to +%d%% by the Heartwood." % [bends, roundi(minf(LONG_WAY_PER_BEND * bends, LONG_WAY_MAX) * 100)]

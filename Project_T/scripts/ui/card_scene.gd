@@ -60,17 +60,17 @@ const EFFECTS := {
 	"longer_roots": {"text": "+1 range", "range": 1.0},
 	"switchback": {"bend_slow": true},
 	"bitter_hedges": {"proc": "+8% taken"},
-	"briar_crown": {"text": "", "proc": "+25%"},
+	"briar_crown": {"text": "", "proc": "60%"},  # Council full_review 2026-10-17: previews match the code (BRIAR_SHARE, CROSSROADS_BONUS, LAST_STAND_BONUS, WILDWOOD_BASE)
 	"cozy_corners": {"text": "+30%", "damage": 1.3},
 	"cozy_corners_ii": {"text": "+30%", "damage": 1.3},
-	"crossroads": {"text": "+40%", "damage": 1.4},
+	"crossroads": {"text": "×2", "damage": 2.0},
 	"forests_edge": {"text": "+35%", "damage": 1.35},
 	"heart_of_the_maze": {"text": "×2", "damage": 2.0},
 	"hedgerow_roots": {"text": "aura through the wall", "damage": 1.2},
 	"hollow_ground": {"text": "+1 range", "range": 1.0},
 	"hollow_ground_ii": {"text": "+1.5 range", "range": 1.5},
 	"kind_canopy": {"text": "+35%", "damage": 1.35},
-	"last_stand": {"text": "+35%", "damage": 1.35},
+	"last_stand": {"text": "+60%", "damage": 1.6},
 	"overlap": {"text": "+40%", "damage": 1.4},
 	"root_network": {"text": "+18%", "damage": 1.18},
 	"root_network_ii": {"text": "+24%", "damage": 1.24},
@@ -82,7 +82,7 @@ const EFFECTS := {
 	"straightaway_ii": {"text": "+50%", "damage": 1.5, "range": 0.5},
 	"tended_stumps": {"text": "+25%", "damage": 1.25},
 	"tended_stumps_ii": {"text": "+40%", "damage": 1.4},
-	"wildwood_reclaimed": {"text": "+30%", "damage": 1.3},
+	"wildwood_reclaimed": {"text": "+50%", "damage": 1.5},
 }
 
 var card: UpgradeData
