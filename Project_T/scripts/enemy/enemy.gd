@@ -910,7 +910,10 @@ func _update_hud(delta: float) -> void:
 	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
 		return  # No badges: nothing more to check
 	var changed := _hud_changes != statuses.changes
-	if not changed:
+	# A cap that moved without a stack change (Brimming taken, Heavy Eyelids): looked at on this row's time-bar frames
+	# only, at most HUD_TIME_FRAMES late (perf: get_max_stacks per badge on every HUD call was ~0.35 ms a frame on a busy
+	# field, where hits call it for the health bar; Main Merger's ~0.1 s allowance for badge numbers, 2026-10-17).
+	if not changed and (Engine.get_process_frames() + _hud_stagger) % HUD_TIME_FRAMES == 0:
 		for i in _hud_ids.size():
 			if _hud_caps[i] != statuses.get_max_stacks(_hud_ids[i]):
 				changed = true
