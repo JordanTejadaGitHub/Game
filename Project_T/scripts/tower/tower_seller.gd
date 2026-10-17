@@ -90,7 +90,8 @@ func _ready() -> void:
 	tower_placer.build_mode_changed.connect(func(building: bool) -> void:
 		set_active(not building)
 		if building:
-			set_sell_mode(false))  # A Warden picked (hotkey / bar): back to building
+			set_sell_mode(false)  # A Warden picked (hotkey / bar): back to building
+			set_select_mode(false))
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
 	drift_director.build_phase_changed.connect(_on_build_phase_changed)
@@ -110,26 +111,123 @@ func set_sell_mode(on: bool) -> void:
 	if on and tower_placer.build_mode:
 		tower_placer.set_build_mode(false)  # Its build_mode_changed makes the seller active
 	if on:
+		set_select_mode(false)  # The modes are exclusive
 		select(null)
+	clear_sell_marks()  # Leaving (or entering) sell mode drops the marks
 	if sell_mode == on:
 		return
 	sell_mode = on
 	sell_mode_changed.emit(on)
 	queue_redraw()
 
+# --- Phones: sell confirm (user 2026-10-17: "add a confirm on sell") -------------------------------------------------
+# In sell mode on a phone a tap marks a Warden (Ember outline + its refund) instead of selling it; a second tap unmarks.
+# The touch bar's "Sell N" sells every marked Warden through sell_clicked (its refusals and refund rules), Cancel drops the
+# marks. Leaving sell mode drops them too. Desktop sells on the click as before.
+signal sell_marks_changed
+var sell_marked: Array[Tower] = []
+
+# Whether sell mode marks instead of selling (phones).
+static func confirms_sells() -> bool:
+	return UiStyle.is_phone()
+
+# Marks `tower` for selling, or unmarks it. A Warden that can't be sold now is refused with the toast, as a sale is.
+func toggle_sell_mark(tower: Tower) -> void:
+	if tower == null or not is_instance_valid(tower) or tower.is_queued_for_deletion():
+		return
+	if sell_marked.has(tower):
+		sell_marked.erase(tower)
+	else:
+		var refused := sell_refusal(tower)
+		if refused != "":
+			_toast(refused)
+			return
+		sell_marked.append(tower)
+	sell_marks_changed.emit()
+	queue_redraw()
+
+func clear_sell_marks() -> void:
+	if sell_marked.is_empty():
+		return
+	sell_marked.clear()
+	sell_marks_changed.emit()
+	queue_redraw()
+
+# The marked Wardens still on the map.
+func get_sell_marks() -> Array[Tower]:
+	var marks: Array[Tower] = []
+	for tower in sell_marked:
+		if is_instance_valid(tower) and not tower.is_queued_for_deletion():
+			marks.append(tower)
+	return marks
+
+# What selling every marked Warden gives back right now.
+func get_marked_refund() -> int:
+	var total := 0
+	for tower in get_sell_marks():
+		total += get_refund(tower)
+	return total
+
+# The touch bar's Sell: sells every marked Warden (sell_clicked's rules). Returns how many sold; the marks go.
+func sell_marked_now() -> int:
+	var marks := get_sell_marks()
+	if marks.is_empty():
+		return 0
+	if not can_sell():
+		_toast(sell_block_reason())  # Kept marked: the rest comes, then Sell
+		return 0
+	var sold := 0
+	for tower in marks:
+		if sell_clicked(tower):
+			sold += 1
+	clear_sell_marks()
+	return sold
+
+# Why `tower` can't be sold right now ("" = it can).
+func sell_refusal(tower: Tower) -> String:
+	if not can_sell():
+		return sell_block_reason()
+	if tower.tower_data.rooted:
+		return "Rooted: it can't be sold"
+	return ""
+
+func _toast(text: String) -> void:
+	var hud := owner.get_node_or_null("HUD") if owner else null
+	if hud and hud.has_method("show_toast"):
+		hud.show_toast(text)
+
+# --- Phones: Select mode (the dock's Select slot) ----------------------------------------------------------------------
+# While on, a tap on a Warden adds it to the selection or takes it out (any kinds), a one-finger drag draws a selection
+# box instead of panning (TouchBuild asks select_claims), two fingers still pinch and pan, and a tap on empty ground clears.
+# Off: the slot again, Android Back, or build / sell mode (the modes are exclusive).
+signal select_mode_changed(on: bool)
+var select_mode := false
+
+func set_select_mode(on: bool) -> void:
+	if on:
+		if tower_placer.build_mode:
+			tower_placer.set_build_mode(false)
+		if sell_mode:
+			set_sell_mode(false)
+	if select_mode == on:
+		return
+	select_mode = on
+	_pressing = false
+	_dragging = false
+	select_mode_changed.emit(on)
+	queue_redraw()
+
+# A one-finger drag on the map is Select mode's box, not a pan (TouchBuild).
+func select_claims() -> bool:
+	return select_mode and active
+
 # Sell mode: a click on `tower` sells it now (one Warden: no drift confirm; that's for 3+ group sells). True if sold.
 func sell_clicked(tower: Tower) -> bool:
 	if tower == null or not is_instance_valid(tower):
 		return false
-	var hud := owner.get_node_or_null("HUD") if owner else null
-	var refused := ""
-	if not can_sell():
-		refused = sell_block_reason()
-	elif tower.tower_data.rooted:
-		refused = "Rooted: it can't be sold"
+	var refused := sell_refusal(tower)
 	if refused != "":
-		if hud and hud.has_method("show_toast"):
-			hud.show_toast(refused)
+		_toast(refused)
 		return false
 	return sell_tower(tower)
 
@@ -241,6 +339,9 @@ func _on_tower_leaving(node: Node) -> void:
 		_selection_updated.call_deferred()  # The panel refreshes once the Warden has gone
 	if _hover_tower == node:
 		_hover_tower = null
+	if node is Tower and sell_marked.has(node):
+		sell_marked.erase(node)
+		sell_marks_changed.emit()
 
 # Selects just `tower` (null clears the selection).
 func select(tower: Tower) -> void:
@@ -718,9 +819,12 @@ func _on_press(event: InputEvent) -> void:
 	if mouse != null and TouchBuild.is_touch():
 		_press_screen = mouse.position  # Touch: where the finger landed (the hover may still be last frame's)
 	_press_world = get_canvas_transform().affine_inverse() * _press_screen
+	_touch_pointer = _press_screen
 
 # Releases arrive here even over the HUD, so a drag always ends.
 func _input(event: InputEvent) -> void:
+	if _pressing and event is InputEventScreenDrag:
+		_touch_pointer = event.position  # Select mode's box follows the finger
 	if not _pressing or not event.is_action_released("clear_obstacle"):
 		return
 	_pressing = false
@@ -730,7 +834,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if sell_mode:
 		_dragging = false
-		sell_clicked(get_tower_at_point(_press_world))  # Sell mode: the click sells (no box, no selection)
+		var tapped := get_tower_at_point(_press_world)
+		if confirms_sells():
+			toggle_sell_mark(tapped)  # Phones: a tap marks (or unmarks); the touch bar's Sell sells
+		else:
+			sell_clicked(tapped)  # Sell mode: the click sells (no box, no selection)
 		queue_redraw()
 		return
 	if _dragging:
@@ -738,6 +846,8 @@ func _input(event: InputEvent) -> void:
 		var inside := get_towers_in_rect(_box_rect())
 		if _press_shift:
 			_add_or_remove(inside)
+		elif select_mode:
+			set_selection(selection + inside)  # Select mode: the box adds
 		else:
 			set_selection(inside)
 		queue_redraw()
@@ -746,9 +856,9 @@ func _input(event: InputEvent) -> void:
 		return  # A press the view panned under and that then moved: neither a box nor a click
 	# A plain click: one Warden, or empty ground clears.
 	var tower := get_tower_at_point(_press_world)
-	if _press_shift:
+	if _press_shift or (select_mode and tower != null):
 		if tower != null:
-			_add_or_remove([tower])
+			_add_or_remove([tower])  # Select mode: a tap adds or takes out one Warden
 	else:
 		select(tower)
 
@@ -757,7 +867,13 @@ func _input(event: InputEvent) -> void:
 # stretched it across the map; now it is the rectangle on screen).
 func _box_rect() -> Rect2:
 	var view := get_canvas_transform().affine_inverse()
-	return Rect2(view * _press_screen, Vector2.ZERO).expand(view * get_viewport().get_mouse_position())
+	return Rect2(view * _press_screen, Vector2.ZERO).expand(view * _pointer_screen())
+
+var _touch_pointer := Vector2.ZERO  # Touch: where the pressing finger is now (screen px)
+
+# The pointer for the box: the finger on touch, the mouse otherwise.
+func _pointer_screen() -> Vector2:
+	return _touch_pointer if TouchBuild.is_touch() else get_viewport().get_mouse_position()
 
 # What the range ring was last drawn for: a grow, a rank or a 2×2 move changes the ring at once (user: "a bit of
 # pause when a warden upgrades in terms of its UI range indicator": it waited for the mouse to change cells).
@@ -779,11 +895,15 @@ func _process(delta: float) -> void:
 		_pressing = false  # Its release never reached us (focus lost): a later release must not finish this press as a box
 		_dragging = false
 		queue_redraw()
-	if _pressing and not _dragging and not sell_mode and not _box_blocked and get_canvas_transform() != _press_view:
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and get_canvas_transform() != _press_view \
+			and not (select_mode and TouchBuild.is_touch()):  # Select mode on touch: one finger never pans (a camera still easing is no pan)
 		_box_blocked = true  # The view moved before the drag began (edge scroll, middle drag, WASD): a pan, never a box
-	if _pressing and not _dragging and not sell_mode and not _box_blocked and not TouchBuild.is_touch() \
-			and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and (not TouchBuild.is_touch() or select_mode) \
+			and not TouchBuild.gesture_moved() and _pointer_screen().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box (Select mode: the box)
 		_dragging = true
+	if _dragging and TouchBuild.gesture_moved():
+		_dragging = false  # A second finger: a pinch, never a box
+		queue_redraw()
 	if _dragging:
 		queue_redraw()
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
@@ -852,6 +972,11 @@ func _draw() -> void:
 		for i in 6:
 			var dir := Vector2.from_angle(TAU * i / 6.0 + t)
 			draw_circle(at + dir * (10.0 + 26.0 * t), 3.0 * (1.0 - t) + 1.0, Color(Palette.HEARTLIGHT, 1.0 - t))
+	for tower in get_sell_marks():
+		# Phones: marked to sell: the Ember outline and what it gives back now.
+		var mark := Rect2(tower.position - tower.body_size() / 2, tower.body_size()).grow(-2)
+		draw_rect(mark, UiStyle.POOR, false, 3.0)
+		WorldLabel.draw_tag(self, tower.position.x, mark.position.y - 8, UiStyle.dew_amount(get_refund(tower), true), UiStyle.POOR)
 	var armed := get_armed_sell()
 	if not armed.is_empty():
 		# First press during a drift: show the (half) refund; a second press sells.
@@ -873,6 +998,8 @@ func _draw() -> void:
 		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - _hover_tower.body_size() / 2, _hover_tower.body_size()).grow(-2)
+	if sell_mode and confirms_sells():
+		return  # Phones: no hover; the marks show what will sell
 	if sell_mode:
 		# Sell mode: the POOR outline and what it gives back now (the live rest / drift rate), or why it can't be sold.
 		draw_rect(rect, UiStyle.POOR, false, 3.0)

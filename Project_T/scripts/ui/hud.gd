@@ -99,6 +99,7 @@ func _ready() -> void:
 	add_child(_bar_toggle)
 	if phone():
 		_make_sell_slot()  # Before the bar is laid out (it sits at the dock's left end)
+		_make_select_slot()  # …and Select right after it
 		var clearer := get_node_or_null("%ObstacleClearer")
 		if clearer != null and clearer.has_signal("lock_changed"):
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
@@ -373,7 +374,7 @@ func _make_sell_slot() -> void:
 	sell_slot = Button.new()
 	sell_slot.name = "SellSlot"
 	sell_slot.text = "Sell"
-	sell_slot.tooltip_text = "Sell mode: tap a Warden to sell it. Tap Sell again to stop."
+	sell_slot.tooltip_text = "Sell mode: tap Wardens to mark them, then Sell. Tap Sell again to stop."
 	sell_slot.toggle_mode = true
 	sell_slot.focus_mode = Control.FOCUS_NONE
 	sell_slot.theme_type_variation = &"WardenSlot"
@@ -416,6 +417,59 @@ func _on_sell_slot(on: bool) -> void:
 	if _sell_from_building and tower_placer.tower_data != null:
 		tower_placer.set_build_mode(true)  # Back to building the same Warden (as TouchBuild's Back does)
 	_sell_from_building = false
+
+# Phones: the Select tool slot right after Sell (TowerSeller.set_select_mode): taps add / remove Wardens, one finger draws
+# a selection box instead of panning. Same look as Sell / Clear.
+var select_slot: Button = null
+
+func _make_select_slot() -> void:
+	select_slot = Button.new()
+	select_slot.name = "SelectSlot"
+	select_slot.text = "Select"
+	select_slot.tooltip_text = "Select mode: tap Wardens to add or remove them, drag a box. Tap Select again to stop."
+	select_slot.toggle_mode = true
+	select_slot.focus_mode = Control.FOCUS_NONE
+	select_slot.theme_type_variation = &"WardenSlot"
+	select_slot.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
+	select_slot.add_theme_color_override("font_color", UiStyle.MOON_MIST)
+	select_slot.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	select_slot.add_theme_color_override("font_hover_color", UiStyle.INK)
+	select_slot.icon = _select_glyph()  # Laid out like Sell's Dew icon: the glyph above the caption
+	select_slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	select_slot.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	select_slot.expand_icon = true
+	select_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	select_slot.anchor_left = 0.5
+	select_slot.anchor_right = 0.5
+	select_slot.anchor_top = 1.0
+	select_slot.anchor_bottom = 1.0
+	select_slot.process_mode = Node.PROCESS_MODE_ALWAYS  # Selecting works while paused
+	select_slot.toggled.connect(_on_select_slot)
+	_shadowed(select_slot)
+	add_child(select_slot)
+	var seller := get_node_or_null("%TowerSeller") as TowerSeller
+	if seller != null and seller.has_signal("select_mode_changed"):
+		seller.select_mode_changed.connect(func(on: bool) -> void: select_slot.set_pressed_no_signal(on))
+
+func _on_select_slot(on: bool) -> void:
+	var seller := get_node_or_null("%TowerSeller") as TowerSeller
+	if seller == null or not seller.has_method("set_select_mode"):
+		select_slot.set_pressed_no_signal(false)
+		return
+	seller.set_select_mode(on)
+
+# Select's icon: a 16 px pixel glyph, the four corners of a selection box (Mist), like the icon sheet's art.
+static func _select_glyph() -> Texture2D:
+	var size := 16
+	var arm := 5
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for i in arm:
+		for edge in [1, size - 2]:
+			for other in [1, size - 2]:
+				var along: int = other + (i if other == 1 else -i)
+				image.set_pixel(along, edge, UiStyle.MOON_MIST)  # The corners' horizontal arms
+				image.set_pixel(edge, along, UiStyle.MOON_MIST)  # …and their vertical arms
+	return ImageTexture.create_from_image(image)
 
 func _add_phone_buttons() -> void:
 	for pair in [[dreams_button, "DreamsButton", "Dreams this run"], [damage_button, "DamageButton", "Damage meter"]]:
@@ -505,6 +559,8 @@ func _hud_under_choice() -> Array:
 	nodes.append_array(_counter_icons.values())
 	if sell_slot != null:
 		nodes.append(sell_slot)
+	if select_slot != null:
+		nodes.append(select_slot)
 	for node_name in ["DriftBanner", "DriftPanel", "DriftMeter", "DreamsRow", "DreamlightLabel", "PathLabel", "ResourcesFog"]:
 		nodes.append(get_node_or_null(node_name))
 	for node_name in _top_row_names():
@@ -550,6 +606,8 @@ func _fit_tower_bar_phone() -> void:
 	clear_tool.visible = not bar_hidden
 	if sell_slot != null:
 		sell_slot.visible = not bar_hidden
+	if select_slot != null:
+		select_slot.visible = not bar_hidden
 	_bar_toggle.set_meta(&"arrow", Vector2.UP if bar_hidden else Vector2.DOWN)
 	_bar_toggle.tooltip_text = "Show Warden bar" if bar_hidden else "Hide Warden bar"
 	_bar_toggle.queue_redraw()
@@ -569,7 +627,7 @@ func _fit_tower_bar_phone() -> void:
 	clear_tool.visible = clear_on
 	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (BAR_HANDLE + BAR_GAP)
 	var n := _tower_buttons.size()
-	var fixed := 2 if clear_on else 1  # Sell, and the Clear tool once unlocked
+	var fixed := (2 if clear_on else 1) + (1 if select_slot != null else 0)  # Sell, Select, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
 	var shown := n
 	if width < SLOT_MIN_WIDTH:
@@ -599,6 +657,11 @@ func _fit_tower_bar_phone() -> void:
 		sell_slot.add_theme_constant_override("icon_max_width", mini(icon, 28))
 		sell_slot.custom_minimum_size = Vector2(width, _phone_slot().y)
 		_place_slot(sell_slot, x, width)
+		x += width + CLEAR_TOOL_GAP
+	if select_slot != null:
+		select_slot.add_theme_constant_override("icon_max_width", mini(icon, 28))
+		select_slot.custom_minimum_size = Vector2(width, _phone_slot().y)
+		_place_slot(select_slot, x, width)
 		x += width + CLEAR_TOOL_GAP
 	x += ARROW_W + BAR_GAP if scrolling else 0.0
 	_place_slot(tower_bar, x, bar_width)
@@ -818,7 +881,7 @@ func _on_sell_mode(on: bool) -> void:
 		_sell_hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 		_sell_hint.offset_bottom = -130.0  # Above the Warden bar, where the touch build bar sits
 	(_sell_hint.get_node("Text") as Label).text = InputMode.text("Sell mode: click a Warden. Right-click or Esc to stop.",
-		"Sell mode: tap a Warden to sell it. Tap Sell again to stop.")
+		"Sell mode: tap Wardens to mark them, then Sell." if TowerSeller.confirms_sells() else "Sell mode: tap a Warden to sell it. Tap Sell again to stop.")
 	_sell_hint.visible = on
 	if sell_slot != null:
 		sell_slot.set_pressed_no_signal(on)

@@ -121,19 +121,83 @@ func _run() -> void:
 		"building: Sell is the Warden dock's last slot, Done on the touch bar")
 	hud.sell_slot.button_pressed = true
 	_check(seller.sell_mode and not placer.build_mode and touch.visible and hud.sell_slot.button_pressed, "Sell turns sell mode on (the bar stays)")
-	var victim: Tower = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).back()
-	var count_before: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
+	var victim: Tower = _towers(container).back()
+	var count_before: int = _towers(container).size()
 	await _drag(_screen_of(victim.global_position), Vector2(-90, 0))
-	_check(is_instance_valid(victim) and not victim.is_queued_for_deletion(), "sell mode: a pan that starts on a Warden never sells it")
-	victim = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).back()
+	_check(is_instance_valid(victim) and not victim.is_queued_for_deletion() and seller.get_sell_marks().is_empty(),
+		"sell mode: a pan that starts on a Warden never sells or marks it")
+	for i in 30:
+		await process_frame  # The camera eases to a stop
+	victim = _towers(container).back()
 	await _tap(_screen_of(victim.global_position))
-	var count_after: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
-	_check(count_after == count_before - 1, "sell mode: a tap sells the Warden (%d → %d)" % [count_before, count_after])
+	_check(_towers(container).size() == count_before and seller.get_sell_marks().size() == 1 and seller.get_sell_marks().has(victim),
+		"sell mode (phones): a tap marks the Warden, nothing sold (%d marked)" % seller.get_sell_marks().size())
+	touch._refresh()
+	var refund := seller.get_refund(victim)
+	_check(touch._sell_marks.visible and touch._cancel.visible and not touch._done.visible
+		and touch._sell_marks.text == "Sell 1  %s" % UiStyle.dew_amount(refund, true) and not touch._sell_marks.text.contains(" · "),
+		"…the touch bar shows Sell 1 with the refund, and Cancel (%s)" % touch._sell_marks.text)
+	_check(is_equal_approx(touch._sell_marks.custom_minimum_size.x, TouchBuild.PHONE_BUTTON_W)
+		and is_equal_approx(touch._cancel.custom_minimum_size.x, TouchBuild.PHONE_BUTTON_W), "…Sell and Cancel as wide as Confirm / Cancel")
+	await _tap(_screen_of(victim.global_position))
+	_check(seller.get_sell_marks().is_empty() and _towers(container).size() == count_before, "a second tap unmarks it")
+	await _tap(_screen_of(victim.global_position))
+	var dew_before: int = main.get_node("%RunState").dew
+	touch._sell_marks.pressed.emit()
+	var count_after: int = _towers(container).size()
+	_check(count_after == count_before - 1 and seller.get_sell_marks().is_empty() and seller.sell_mode
+		and main.get_node("%RunState").dew == dew_before + refund,
+		"Sell 1 sells the marked Warden for its refund (%d → %d Wardens)" % [count_before, count_after])
+	var keeper: Tower = _towers(container).back()
+	await _tap(_screen_of(keeper.global_position))
+	_check(seller.get_sell_marks().size() == 1, "…another tap marks again")
+	touch._cancel.pressed.emit()
+	_check(seller.get_sell_marks().is_empty() and seller.sell_mode and is_instance_valid(keeper) and not keeper.is_queued_for_deletion(),
+		"Cancel clears the marks (sell mode stays, nothing sold)")
+	await _tap(_screen_of(keeper.global_position))
 	hud.sell_slot.button_pressed = false
-	_check(not seller.sell_mode and placer.build_mode, "Sell off: back to building")
+	_check(not seller.sell_mode and placer.build_mode and seller.get_sell_marks().is_empty(), "Sell off: back to building, the marks go")
 	hud.sell_slot.button_pressed = true
 	touch._done.pressed.emit()
 	_check(not seller.sell_mode and not placer.build_mode, "Done in sell mode leaves it")
+
+	# Select (phones): the dock's Select slot; taps add / remove any kinds, one finger draws a box instead of panning
+	_close_screens()
+	await process_frame
+	var sprout := _build_on(placer, container, load("res://resource/tower/sprout.tres"), _free_cells(map_generator, 1)[0])
+	placer.set_build_mode(false)
+	_check(sprout != null and keeper.tower_data != sprout.tower_data, "a Sprout beside the Thornwall (two kinds)")
+	_check(hud.select_slot != null and hud.select_slot.is_visible_in_tree(), "Select is a dock slot")
+	hud.select_slot.button_pressed = true
+	_check(seller.select_mode and not seller.sell_mode and not placer.build_mode, "Select turns Select mode on")
+	for i in 30:
+		await process_frame
+	await _tap(_screen_of(keeper.global_position))
+	await _tap(_screen_of(sprout.global_position))
+	_check(seller.selection.size() == 2 and seller.selection.has(keeper) and seller.selection.has(sprout),
+		"Select mode: two taps select two different kinds (%d selected)" % seller.selection.size())
+	await _tap(_screen_of(sprout.global_position))
+	_check(seller.selection.size() == 1 and seller.selection.has(keeper), "…a tap on a selected one takes it out")
+	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
+	_check(seller.selection.is_empty(), "…a tap on empty ground clears")
+	cam_before = camera.target_position
+	var box_at := _screen_of(sprout.global_position)
+	await _drag(box_at - Vector2(40, 40), Vector2(80, 80))
+	_check(seller.selection.has(sprout) and not seller._dragging, "…a one-finger drag draws a box that selects (%d selected)" % seller.selection.size())
+	_check(camera.target_position.distance_to(cam_before) < 1.0, "…and never pans the map")
+	placer.select_tower(load("res://resource/tower/thornwall.tres"))
+	_check(not seller.select_mode and not hud.select_slot.button_pressed, "picking a Warden to build leaves Select mode")
+	placer.set_build_mode(false)
+	hud.select_slot.button_pressed = true
+	hud.sell_slot.button_pressed = true
+	_check(seller.sell_mode and not seller.select_mode and not hud.select_slot.button_pressed, "Sell and Select exclude each other")
+	hud.sell_slot.button_pressed = false
+	hud.select_slot.button_pressed = true
+	var menu := main.get_node("HUD/PauseMenu") as CanvasItem
+	_back()
+	_check(not seller.select_mode and not menu.visible, "Back leaves Select mode (not the pause menu)")
+	seller.select(null)
+	await process_frame
 
 	# Mobile UI (user 2026-10-07): drag a pending Warden to move it; long-press then drag draws a line
 	_close_screens()
@@ -314,6 +378,17 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 		if found.size() == count:
 			break
 	return found
+
+func _towers(container: Node) -> Array:
+	return container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion())
+
+# Plants `data` on `cell` straight away (no ghost). Returns the new Warden or null.
+func _build_on(placer: TowerPlacer, container: Node, data: TowerData, cell: Vector2) -> Tower:
+	placer.tower_data = data
+	var count := container.get_child_count()
+	if placer._try_build(cell):
+		return container.get_child(count)
+	return null
 
 func _back() -> void:
 	var event := InputEventAction.new()
