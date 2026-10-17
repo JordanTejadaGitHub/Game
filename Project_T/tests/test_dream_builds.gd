@@ -443,8 +443,10 @@ func _test_grove_cards() -> void:
 	sleepy.apply_status(EnemyStatuses.DROWSY, 1, 3.0)
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.25), "Still Target: +25% vs Drowsy")
 	dreams.take(_card("full_moon"))
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.25), "Full Moon: nothing against one status (owner 2026-10-17)")
+	sleepy.apply_status(EnemyStatuses.SPORED, 1, 3.0)
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(tower, sleepy), 0.50)
-		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +25%, overflow → crit damage")
+		and is_equal_approx(dreams.get_crit_overflow_multiplier(1.3), 0.3), "Full Moon: +25% against 2 statuses, overflow → crit damage")
 	sleepy.free()
 	_clear_towers()
 
@@ -580,10 +582,10 @@ func _test_woven() -> void:
 	var stars := _card("falling_stars")
 	_own("firefly_jar")
 	_own("tangleroot")
-	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third vine")
-	_own("chime_stone")
-	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…Chime Stone (or Bellflower) completes it, act 2+")
-	_check(dreams.is_eligible(stars, 3), "a Woven card is offered at normal odds once all three are owned")
+	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third status (Charged + Rooted, no Exposed yet)")
+	_own("lanternmoth")  # Crowned cards are gated on statuses only (owner 2026-10-17): any Exposed Warden completes it
+	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…an Exposed Warden completes it, act 2+")
+	_check(dreams.is_eligible(stars, 3), "a Woven card is offered at normal odds once all three statuses are owned")
 
 # Potency cards 109–112 and Endless Rings (108).
 func _test_potency_and_endless() -> void:

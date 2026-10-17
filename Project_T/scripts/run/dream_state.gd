@@ -80,6 +80,7 @@ const ROOTBOUND_TOUCHING := 3
 const STILL_TARGET_CRIT := [0.25, 0.40]
 const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.25
+const FULL_MOON_STATUSES := 2  # Full Moon: only against nightmares carrying this many different statuses (owner 2026-10-17)
 const OLD_ONES_RANKS := 2  # The Old Ones: Wardens touching a rank V+ Warden count this many ranks higher
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
@@ -1502,8 +1503,6 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
 	if _tower != null and has_rule(&"patient_aim"):  # Patient Aim: crit chance per second it waited (no damage)
 		bonus += minf(PATIENT_AIM_PER * _tower._aim_idle, PATIENT_AIM_MAX) * rule_power(&"patient_aim")
-	if has_rule(&"full_moon"):
-		bonus += FULL_MOON_CRIT
 	if has_rule(&"reckless_bloom"):
 		bonus += RECKLESS_CRIT
 	if enemy != null and is_instance_valid(enemy):
@@ -1511,6 +1510,10 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 			bonus += STILL_TARGET_CRIT[rule_level(&"still_target")]
 		if has_rule(&"starlit_aim") and enemy.statuses.is_exposed():
 			bonus += STARLIT_AIM_CRIT
+		# Full Moon (owner 2026-10-17, "rework it": an unconditional crit chance was flat damage): only against a nightmare
+		# carrying FULL_MOON_STATUSES or more different statuses
+		if has_rule(&"full_moon") and enemy.statuses.count() >= FULL_MOON_STATUSES:
+			bonus += FULL_MOON_CRIT
 	return bonus
 
 # Extra crit multiplier on a crit (Tower adds it): Full Moon turns crit chance above 100% (`raw_chance`
