@@ -60,8 +60,10 @@ func _run() -> void:
 	var scaled = spawner.enemy_scene.instantiate()
 	scaled.enemy_data = scaled_data
 	scaled.health_scale = 2.0
+	scaled.coat_growth = 1.5  # The per-hit soak grows with the drift's growth, not health_scale (Balancing 1c659ed3)
 	spawner.add_child(scaled)
-	_check(is_equal_approx(scaled.coat, 200.0) and _loss(scaled, 40.0) == 28, "the coat grows with health_scale")
+	_check(is_equal_approx(scaled.coat, 200.0) and _loss(scaled, 40.0) == 31,
+		"the coat's total grows with health_scale, its per-hit soak with the drift's growth")
 
 	# --- Status resistance ---
 	var sleepless_data := _sturdy("res://resource/enemy/leaf_bug.tres")

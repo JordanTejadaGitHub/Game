@@ -100,24 +100,24 @@ func _run() -> void:
 	_check(crawler._ash_cells.is_empty(), "the ash burns out after 3 s")
 	_clear_enemies()
 
-	# --- Shellbound's dread shell, the Whisper Swarm's shape ---
+	# --- Shellbound's dread shell; the Whisper Swarm takes full damage (Nightmare Kinds: no shape multiplier) ---
 	var shell := _still("shellbound", route[5])
-	_check(is_equal_approx(shell.coat_max, 100.0), "the Shellbound's shell soaks 100")
+	_check(is_equal_approx(shell.coat_max, 150.0), "the Shellbound's shell soaks 150")
 	var before: int = shell.health
 	shell.take_damage(5.0)
 	_check(before - shell.health == 1, "a small hit mostly bounces off the shell (%d)" % (before - shell.health))
 	shell.max_health = 100000
 	shell.health = 100000
-	for i in 20:  # −6 per hit until it has soaked 100
+	for i in 20:  # −15 per hit until it has soaked 150
 		shell.take_damage(50.0)
 	_check(shell.coat == 0.0 and shell.sprite.sprite_frames == shell.enemy_data.cracked_frames, "a broken shell shows the cracked art")
 	var swarm := _still("whisper_swarm", route[6])
 	before = swarm.health
-	swarm.take_damage(100.0)
-	_check(before - swarm.health == 50, "single-target hits do half to the Whisper Swarm")
+	swarm.take_damage(50.0)
+	_check(before - swarm.health == 50, "single-target hits do full damage to the Whisper Swarm (no shape multiplier since Nightmare Kinds)")
 	before = swarm.health
-	swarm.take_damage(100.0, "", true)
-	_check(before - swarm.health == 100, "area hits do full damage")
+	swarm.take_damage(50.0, "", true)
+	_check(before - swarm.health == 50, "area hits do full damage")
 
 	# --- Dream Thief: steals 5 Dew on reaching the Heartwood; double Dew when dispelled ---
 	var thief := _still("dream_thief", route[7])
@@ -483,7 +483,7 @@ func _run() -> void:
 	robbed.set_process(false)
 	var shell_before: float = robbed.coat
 	_check(robbed.strip_buff(null), "strip_buff reports it stripped something")
-	_check(is_equal_approx(robbed.coat, (shell_before - 9.0) / 1.5), "shell: an extra chunk, and Hard Bark's thicker shell gone (%.1f)" % robbed.coat)
+	_check(is_equal_approx(robbed.coat, (shell_before - 15.0 * 1.5) / 1.5), "shell: an extra chunk, and Hard Bark's thicker shell gone (%.1f)" % robbed.coat)
 	_check(robbed.statuses.immune.is_empty() and is_equal_approx(robbed.statuses.duration_multiplier_all, 1.0),
 		"Omen immunities and shorter statuses gone")
 	_check(is_equal_approx(robbed.speed, shell_data.speed), "the Omen's speed gone")

@@ -108,6 +108,7 @@ func _run() -> void:
 	# --- Hit feedback (screens_ui.md "Hit feedback on nightmares", layer 1): a hit makes it flinch, a tick doesn't ---
 	var husk: Node2D = spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
 	husk.set_process(false)
+	husk.coat = 0.0  # Its dread shell (Nightmare Kinds) would soak part of the hit; the flinch is measured on what lands
 	var stood: Vector2 = husk.position
 	var rest_offset: Vector2 = husk.sprite.offset
 	var hitter := Node2D.new()
