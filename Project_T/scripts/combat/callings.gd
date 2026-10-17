@@ -16,7 +16,7 @@ const NAMES := {"sporeling": "Spore Print", "firefly_jar": "Lantern Light", "dew
 const TEXTS := {
 	"sporeling": "When any Warden dispels a {spored} nightmare, it leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {spored} at once. Flyers pass over.",
 	"firefly_jar": "Nightmares in a Firefly Warden's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit {jumps} to the nearest other {lit} nightmare.",
-	"dewdrop": "The path {touching} your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there makes nightmares within 4 {steps} in that {water} {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
+	"dewdrop": "The path {touching} your {warden:dewdrop}s is {water}. A {warden:dewdrop}'s hit there splashes: nightmares within 4 {steps} in that {water} become {damp}. {warden:dewdrop}s hit {damp} nightmares harder.",
 	"bellflower": "Each hit from a bell fills a pip on the nightmare. At 4 pips it is a {toll}: the hit lands again at half damage. Nightmares start with 2 pips filled.",
 	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
@@ -27,10 +27,10 @@ const TEXTS := {
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "Glow: the path within 1.5 cells of a Firefly Warden, wider as its range grows. Any dispel counts: by hit, poison or cloud. Only the 5 Lantern Light cards (offered because you started with Firefly Jar) use {lit} nightmares and lights; your other Firefly cards work from Firefly Wardens themselves, for anyone.",
-	"sporeling": "Mushrooms stay through a {rest}; 40 at most. Only the 5 Spore Print cards (offered because you started with Sporeling) grow or use {mushrooms} and {doses}; your other Sporeling cards work without them, for anyone. Weak against flyers.",
-	"dewdrop": "{touching}: within 1.25 cells of the Warden. A {step} is one cell of path. Each nightmare is Soaked this way at most once a second. Only the 5 Puddles cards (offered because you started with Dewdrop) use {water}; your other Dewdrop cards work from where {warden:dewdrop}s stand and {damp}, for anyone.",
-	"bellflower": "A bell is any Bellflower form. Hits closer than half a second fill one pip, and each nightmare takes at most one {toll} a second. Only the 5 Keeping Time cards (offered because you started with Bellflower) use pips and {tolls}; your other Bellflower cards work from bells and {drowsy}, for anyone.",
+	"firefly_jar": "Glow: the path within 1.5 cells of a Firefly Warden, wider as its range grows. Any dispel counts: by hit, poison or cloud. Only this Calling and its evolutions use {lit} nightmares; Firefly Dream cards work from Firefly Wardens themselves, for any family.",
+	"sporeling": "Mushrooms stay through a {rest}; 40 at most. Only this Calling and its evolutions grow or use {mushrooms} and {doses}; Sporeling Dream cards work without them, for any family. Weak against flyers.",
+	"dewdrop": "{touching}: within 1.25 cells of the Warden. A {step} is one cell of path. Each nightmare is Soaked this way at most once a second. Only this Calling and its evolutions use {water}; Dewdrop Dream cards work from where {warden:dewdrop}s stand and {damp}, for any family.",
+	"bellflower": "A bell is any Bellflower form. Hits closer than half a second fill one pip, and each nightmare takes at most one {toll} a second. Only this Calling and its evolutions use pips and {tolls}; Bellflower Dream cards work from bells and {drowsy}, for any family.",
 }
 
 # Starting numbers (Balancing sets the final ones).
