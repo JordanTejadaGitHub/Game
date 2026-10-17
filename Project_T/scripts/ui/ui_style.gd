@@ -96,7 +96,14 @@ const UI_SHARE_MAX := 1.0
 # The settings dropdown's choices (user, 2026-10-01: a dropdown, not a slider): [name, share].
 const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (fits the screen)", 1.0]]
 # Phones: only two (user 2026-10-15, Mobile UI); smaller ones made text and buttons too small to read and hit.
-const PHONE_UI_SIZES := [["Standard", 0.9], ["Large (fits the screen)", 1.0]]
+# UI Asset's review 2026-10-17: on a phone neither size shrinks type. Both draw the UI at the full fitting scale; Standard
+# only tightens the HUD's padding, gaps and panel widths for more map (phone_compact()), Large keeps the roomy spacing.
+const PHONE_UI_SIZES := [["Standard (more map)", 0.9], ["Large (roomier)", 1.0]]
+static var _phone_compact := false
+
+# Phones at Standard: HUD layouts read this for their tighter spacing (text sizes never change).
+static func phone_compact() -> bool:
+	return _phone_compact and is_phone()
 
 # The size choices this device offers (the settings dropdown).
 static func ui_sizes() -> Array:
@@ -162,7 +169,8 @@ static func ui_scale_factor(window_size: Vector2, share: float) -> float:
 # changes size. Only the UI grows: GameCameraNode divides its zoom by the factor, so the map keeps
 # its size. Headless runs (tests) stay at 1 so layouts are checked at the sizes they set.
 static func apply_ui_scale(root: Window, share: float) -> void:
-	_scale_share = phone_share(share) if is_phone() else share
+	_phone_compact = is_phone() and phone_share(share) < 0.95
+	_scale_share = 1.0 if is_phone() else share  # Phones: type never shrinks (Standard is compact spacing, not a smaller scale)
 	if root == null:
 		return
 	install_text_filter(root.get_tree() if root.is_inside_tree() else Engine.get_main_loop() as SceneTree)

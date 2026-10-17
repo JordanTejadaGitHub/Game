@@ -176,7 +176,7 @@ func _card_size() -> Vector2:
 func _set_subtitle(text: String, phone_take: String) -> void:
 	_subtitle.text = text
 	if _phone:
-		_subtitle.text = ("for drifts %d to %d · %s" % [_drifts.x, _drifts.y, phone_take]).to_lower()
+		_subtitle.text = ("for drifts %d to %d, %s" % [_drifts.x, _drifts.y, phone_take]).to_lower()  # No " · " (UI review)
 
 # A card's press: phones look first (Take, or a second tap, takes it); the PC acts at once.
 func _press(button: Button, action: Callable, take_text: String) -> void:
@@ -367,8 +367,9 @@ func _card_box(button: Button) -> VBoxContainer:
 # secondary lines shrink first. Nothing touches or crosses the border.
 func _fit_card(button: Button, box: Control, secondary: Array) -> void:
 	if _layout != null:
-		_layout.fill(button)  # Phones: the column's full height
+		_layout.fill(button)  # Phones: the column's width; the row shares the tallest's height
 		_layout.watch_links(button)
+		PhoneChoice.card_thread(button)  # One sprout per screen (Take's): the card's thread runs full width
 	var fit := func() -> void:
 		if not is_instance_valid(button):
 			return

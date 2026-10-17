@@ -95,6 +95,10 @@ func _ready() -> void:
 	_status_label.add_theme_font_size_override("font_size", 15)
 	_status_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_status_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Its tooltip: the next drift's Dew pot
+	if UiStyle.is_phone():  # The rest notes on a fog patch at body size, not tiny Mist bare on the map (UI Asset review)
+		_status_label.add_theme_font_size_override("font_size", 16)
+		_status_label.add_theme_color_override("font_color", UiStyle.INK)
+		_status_label.add_theme_stylebox_override("normal", UiStyle.fog_patch(10.0, 4.0))
 	status_row.add_child(_status_label)
 	var edge := Control.new()  # A little room between the status text and the panel's right edge
 	edge.custom_minimum_size = Vector2(6, 0)
@@ -230,8 +234,11 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Resume" + UiStyle.key_suffix("Enter")
 		_start_button.disabled = false
 
-	if not run_state.is_over:
+	# Phones: no "+0" line (UI Asset review 2026-10-17); the tooltip below still explains the bonus.
+	var maze_line: bool = not (UiStyle.is_phone() and drift_director.get_maze_reward_projection() <= 0)
+	if not run_state.is_over and maze_line:
 		_status_label.text += "\nMaze bonus: %s at rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
+	if not run_state.is_over:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 

@@ -2235,7 +2235,9 @@ func _build_chains(live: ComboFeedback) -> void:
 func _gild() -> void:
 	var gilded := MetaRun.keepsake_on("gilded_pages")
 	var base := get_theme_stylebox("panel")
-	if gilded and base is MoonStyleBox:
+	if embedded:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # Nested in the phone pause pane: its frame, no sprout
+	elif gilded and base is MoonStyleBox:
 		var style := (base as MoonStyleBox).duplicate() as MoonStyleBox
 		style.thread = MoonStyleBox.TopLine.FULL
 		style.side_edges = true

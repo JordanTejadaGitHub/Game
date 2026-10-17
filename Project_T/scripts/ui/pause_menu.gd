@@ -142,6 +142,9 @@ func _fill_run_side(side: VBoxContainer) -> void:
 	guides.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	guides.focus_mode = Control.FOCUS_NONE
 	guides.pressed.connect(_replay_guides)
+	if _phone:  # A normal-width secondary, not a full-width bar
+		guides.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		guides.custom_minimum_size.x = 200.0
 	side.add_child(guides)
 
 func _replay_guides() -> void:
@@ -159,7 +162,9 @@ const PHONE_RAIL_W := 200.0  # (250 left the Codex's Families tree, 790 wide, pa
 const PHONE_MARGIN := 16
 var _phone := false
 var _phone_root: HBoxContainer
-var _status_line := Label.new()
+var _status_line := HBoxContainer.new()  # Two icon + number pairs: the drift ("0/100") and the leaves ("15")
+var _status_drift := Label.new()
+var _status_leaves := Label.new()
 var _run_page := VBoxContainer.new()
 var _pane_buttons := {}  # Page -> its rail toggle
 var _pane := &"run"
@@ -194,8 +199,12 @@ func _build_phone() -> void:
 	UiStyle.display(title, 30)
 	_menu.add_child(title)
 	_status_line.name = "Status"
-	_status_line.add_theme_font_size_override("font_size", 15)
-	_status_line.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_status_line.add_theme_constant_override("separation", 6)
+	_status_pair(&"path_length", _status_drift, "Drift")
+	var pair_gap := Control.new()
+	pair_gap.custom_minimum_size.x = 10.0
+	_status_line.add_child(pair_gap)
+	_status_pair(&"leaves", _status_leaves, "Leaves")
 	_menu.add_child(_status_line)
 	UiStyle.primary(_add_button("Resume", close))
 	for pane in [[&"run", "This run"], [&"codex", "Codex"], [&"settings", "Settings"]]:
@@ -214,10 +223,9 @@ func _build_phone() -> void:
 	var abandon := _add_button("Abandon run…", _ask_abandon)
 	abandon.name = "AbandonRun"
 	abandon.custom_minimum_size.y = 40  # Smaller than the choices above (still a tap target)
+	abandon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # Not a full-width rail button
 	abandon.add_theme_font_size_override("font_size", 14)
-	_danger(abandon)
-	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		abandon.add_theme_color_override(state, UiStyle.INK)  # Ember outline, ink text (ui_style.md)
+	_ember_outline(abandon)
 
 	var pane_box := PanelContainer.new()
 	pane_box.name = "Pane"
@@ -300,7 +308,42 @@ func _on_phone_settings_closed() -> void:
 	_show_pane(target)
 
 func _phone_status() -> String:
-	return "Drift %d of %d · %d leaves" % [drift_director.drifts_started, drift_director.get_total_drifts(), run_state.leaves]
+	return "Drift %d of %d, %d leaves" % [drift_director.drifts_started, drift_director.get_total_drifts(), run_state.leaves]
+
+# Phones: the rail's status as icon + number pairs (no " · " joins): "0/100" by the path icon, "15" by the leaf.
+func _status_pair(icon_id: StringName, value: Label, tip: String) -> void:
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.icon(icon_id)
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.tooltip_text = tip
+	_status_line.add_child(icon)
+	value.name = tip
+	UiStyle.number(value, 16)
+	_status_line.add_child(value)
+
+func _fill_phone_status() -> void:
+	_status_drift.text = "%d/%d" % [drift_director.drifts_started, drift_director.get_total_drifts()]
+	_status_leaves.text = str(run_state.leaves)
+	_status_line.tooltip_text = _phone_status()
+
+# Phones: "Abandon run…" in the rail: the plain button frame with an Ember outline and Ink text (ui_style.md).
+static func _ember_outline(button: Button) -> void:
+	for state in ["normal", "hover", "pressed"]:
+		var box := button.get_theme_stylebox(state)
+		if box is StyleBoxFlat:
+			box = (box as StyleBoxFlat).duplicate()
+			(box as StyleBoxFlat).border_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			button.add_theme_stylebox_override(state, box)
+		elif box is MoonStyleBox:
+			box = (box as MoonStyleBox).duplicate()
+			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			button.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.INK)
 
 # Phones: "Abandon run…" in the rail goes straight to the dialog's second page (still a confirm).
 func _ask_abandon() -> void:
@@ -508,7 +551,7 @@ func open() -> void:
 	_summary.text = get_run_summary()
 	_fill_facts()
 	if _phone:
-		_status_line.text = _phone_status()
+		_fill_phone_status()
 		_phone_root.visible = true
 		_show_pane(&"run")
 	visible = true

@@ -93,7 +93,7 @@ func _ready() -> void:
 		moon.glow_color = UiStyle.CARD_BG
 		moon.center_alpha = PHONE_CENTER_ALPHA
 		moon.edge_alpha = PHONE_EDGE_ALPHA
-		moon.thread = MoonStyleBox.TopLine.GOLD
+		moon.thread = MoonStyleBox.TopLine.FULL  # A standalone panel: the full gold thread with the sprout (UI owner's review)
 		moon.diamond = true
 		moon.side_edges = false
 		moon.frame_color = Color(UiStyle.FOG, 0.0)
@@ -308,7 +308,7 @@ func _refresh() -> void:
 		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
-	_header.set_corner(_target_chip([_tower]) if _tower.can_choose_target() else null)  # Walls and untargeted: none
+	_header.set_corner(_target_chip([_tower]) if _tower.can_choose_target() and not _phone else null)  # Walls and untargeted: none; phones: the row says it
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -511,7 +511,7 @@ func _refresh_group() -> void:
 		child.queue_free()
 	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
-	_header.set_corner(_target_chip(aimed) if not aimed.is_empty() else null)  # Sets every selected attacker
+	_header.set_corner(_target_chip(aimed) if not aimed.is_empty() and not _phone else null)  # Sets every selected attacker (phones: the row only)
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
 	var growing := _growable_groups(groups)  # Twig walls never grow
@@ -1815,7 +1815,7 @@ func _dock_right() -> void:
 # Phones (user 2026-10-17: "a lot of empty space"): the drawer is as tall as its content, up to the full screen height;
 # only past that does the middle scroll. The footer (Nurture) sits right under the content.
 func _fit_phone_height() -> void:
-	var screen := get_parent_area_size().y
+	var screen := get_parent_area_size().y - _phone_top()
 	var frame := get_theme_stylebox("panel")
 	var box := _scroll.get_parent() as VBoxContainer
 	var chrome := frame.get_margin(SIDE_TOP) + frame.get_margin(SIDE_BOTTOM)
@@ -1830,8 +1830,22 @@ func _fit_phone_height() -> void:
 	_place_phone.call_deferred()
 
 func _place_phone() -> void:
-	offset_top = 0.0
-	offset_bottom = minf(get_combined_minimum_size().y, get_parent_area_size().y)
+	var top := _phone_top()
+	offset_top = top
+	offset_bottom = top + minf(get_combined_minimum_size().y, get_parent_area_size().y - top)
+
+# Phones (UI owner's review): the drawer starts under the HUD's resources row (Dew, leaves and the buttons beside them,
+# one or two lines), so the counters stay visible. Both sit on the HUD layer: its rect is in the drawer's own space.
+const PHONE_TOP_GAP := 4.0
+
+func _phone_top() -> float:
+	var hud := get_parent()
+	if hud == null or not hud.has_method("resource_row_rect"):
+		return 0.0
+	var row: Rect2 = hud.resource_row_rect()
+	if row.size.y <= 0.0:
+		return 0.0
+	return clampf(row.end.y + PHONE_TOP_GAP, 0.0, get_parent_area_size().y * 0.5)
 
 # Phones: the stat rows drop what the tiles (damage, speed, reach, Potency) and the keyword chips (its status) already say.
 func _prune_phone_stat_rows() -> void:
@@ -1846,6 +1860,8 @@ func _prune_phone_stat_rows() -> void:
 				if _shows_stat(target, shown):
 					row.remove_child(target)
 					target.queue_free()
+				else:
+					_name_phone_stat(target)
 			if row.get_child_count() == 0:
 				_stats.remove_child(row)
 				row.queue_free()
@@ -1854,6 +1870,36 @@ func _prune_phone_stat_rows() -> void:
 		if not row.is_queued_for_deletion():
 			left += 1
 	_stats.visible = left > 0
+
+# Phones (UI owner's review: "a seed 5 and a pencil don't say what they are"): an icon-only stat left in the rows gets a
+# small Mist word after it (coverage "path", crit "crit", the attack shape's name); every one stays a 48 px tap target
+# for its tip (the header's TapTip).
+const PHONE_STAT_WORDS := {&"path_length": "path covered", &"crit_chance": "crit", &"grab_reach": ""}
+
+func _name_phone_stat(target: Node) -> void:
+	if not target is Control or target.get_node_or_null("PhoneWord") != null:
+		return
+	(target as Control).custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	var id := ""
+	for child in target.get_children():
+		if child is Label and String(child.name).begins_with("Value_"):
+			id = String(child.name).substr(6)
+			(child as Label).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var word := ""
+	if id.begins_with("shape_") and _tower.attack_data != null:
+		word = WardenHeaderView.shape_name(_tower.attack_data)
+	elif PHONE_STAT_WORDS.has(StringName(id)):
+		word = PHONE_STAT_WORDS[StringName(id)]
+	if word == "":
+		return
+	var label := Label.new()
+	label.name = "PhoneWord"
+	label.text = word
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	target.add_child(label)
 
 func _shows_stat(target: Node, shown: Array[StringName]) -> bool:
 	for child in target.get_children():

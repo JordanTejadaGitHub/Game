@@ -306,6 +306,8 @@ func open() -> void:
 	for id in gifts.current_offer:
 		_cards.add_child(_card(id))
 	_pass.text = "Skip the gifts, +%d" % gifts.pass_dew()  # The Dew glyph after it (no " · ")
+	if _layout != null:
+		_layout.fit_choices()  # Skip and Take the same width (the wider one's)
 	if not gifts.current_offer.is_empty() and _layout == null:
 		show_scene(gifts.current_offer[0])
 	visible = true
@@ -446,8 +448,9 @@ func _card(id: StringName) -> Button:
 		ChoiceCard.link_cue(plant)  # Lights with the card (hover, press)
 		box.add_child(plant)
 	else:
-		_layout.fill(button)  # The column's full height
+		_layout.fill(button)  # The column's width; the row shares the tallest's height
 		_layout.watch_links(button)
+		PhoneChoice.card_thread(button, colour)  # One sprout per screen: Take's
 	box.minimum_size_changed.connect(func() -> void:
 		button.custom_minimum_size = Vector2(_card_size().x, maxf(_card_size().y, box.get_combined_minimum_size().y + box.offset_top - box.offset_bottom)))
 	return button

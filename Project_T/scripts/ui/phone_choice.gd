@@ -2,10 +2,12 @@ extends RefCounted
 
 # Phones only (UiStyle.is_phone(); the PC never builds one): the one layout every choice screen shares, the Dream
 # screen's (DreamScreen._build_phone_layout; user 2026-10-17: "The dream, omen, evolution, family pick don't match
-# anymore"). A header row (the title and its small caps subtitle on the left, Peek at the map on the right); the cards
-# in equal columns filling the width between MARGIN sides and the height between the header and the bottom row
-# (scrolling if one runs tall); the bottom row: the screen's own skip on the left, the whisper hint centred, Take on
-# the right. A tap looks at a card (it lifts, the others dim to DIM_ALPHA); Take, or a second tap, takes it.
+# anymore"). A header row (the title and its small caps subtitle on the left, Peek at the map on the right: a small
+# framed secondary button); the cards in equal columns across the width between MARGIN sides, each as tall as its
+# content (a row shares its tallest's height), the row centred between the header and the bottom row (scrolling if one
+# runs tall); the bottom row: the screen's own skip on the left, the whisper hint centred, Take on the right, the skip
+# and Take the same width (the wider one's). One sprout per screen (UI owner's review 2026-10-17): the cards' threads
+# run full width with no mark (card_thread); only Take carries it. A tap looks at a card (it lifts, the others dim to DIM_ALPHA); Take, or a second tap, takes it.
 # Preloaded by OmenScreen, FamilyPickScreen and GiftScreen (no class_name). DreamScreen keeps the same numbers.
 
 const MARGIN := 44.0  # DreamScreen.PHONE_MARGIN
@@ -17,7 +19,10 @@ const CARD_BUMP := 5  # DreamScreen.PHONE_CARD_BUMP
 const TITLE_SIZE := 28
 const SUBTITLE_SIZE := 15
 const HINT_SIZE := 17
-const CARD_MIN_H := 220.0  # DreamScreen.CARD_SIZE.y: the row stretches them to fill the height anyway
+const CARD_MIN_H := 120.0  # A phone card's floor: cards size to their content (UI review: no empty fog under the text)
+const CHOICE_MAX_SHARE := 0.34  # Take / the skip grow to their text up to this share of the view's width, then trim
+const PEEK_TEXT := 15  # Peek at the map's text (a small utility)
+const THREAD_ALPHA := 0.9  # The card's full-width thread
 const CARD_PAD := Vector4(14, 12, 14, 12)  # Left, top, right, bottom inside a card (the Dream card's)
 # Card text: the Dream card's sizes with the bump
 const NAME_SIZE := UiStyle.CARD_NAME_SIZE + CARD_BUMP  # The card's name
@@ -82,7 +87,7 @@ func _init(for_screen: Control, title: Label, subtitle: Label, card_row: HBoxCon
 	cards.add_theme_constant_override("separation", int(GAP))
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cards.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Content height, centred between header and bottom row
 	var pad := MarginContainer.new()  # Room above the cards for the looked one's lift (the scroll clips)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -128,28 +133,92 @@ static func choice_button(button: Button) -> void:
 	button.clip_text = true  # A long name trims instead of widening one button past the other
 	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
-# Peek at the map, quiet, in the header's right corner.
+# Peek at the map in the header's right corner: a small framed secondary button.
 func add_peek(button: Control) -> void:
-	if button is Button:
-		UiStyle.quiet(button)  # A utility (button rule), as on every choice screen
+	peek_style(button)
+	header.add_child(button)
+
+# Peek's phone look (the Dream screen too): the plain framed button (not quiet), sized to its text, 48 tall.
+static func peek_style(button: Control) -> void:
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(button)
+	button.add_theme_font_size_override("font_size", PEEK_TEXT)
 
 # A bottom-left button (the screen's skip): the same size as Take.
 func add_left(button: Button) -> void:
 	choice_button(button)
 	left.add_child(button)
+	fit_choices()
+
+# Take and the skip the same width: the wider one's text, at least CHOICE_SIZE, at most CHOICE_MAX_SHARE of the view.
+func fit_choices() -> void:
+	var choices: Array = [take]
+	for child in left.get_children():
+		if child is Button and (child as Button).visible:
+			choices.append(child)
+	var width := match_widths(choices)
+	if width > 0.0:
+		left.custom_minimum_size.x = width  # The hint stays centred
+
+# Sizes every Button in `buttons` to the widest one's text (the Dream screen's Let it pass and Take too). Returns the
+# width, or 0 when one isn't in the tree yet (no theme to measure with).
+static func match_widths(buttons: Array) -> float:
+	var width := CHOICE_SIZE.x
+	var cap := CHOICE_SIZE.x
+	for button: Button in buttons:
+		if not button.is_inside_tree():
+			return 0.0
+		cap = maxf(cap, floorf(button.get_viewport_rect().size.x * CHOICE_MAX_SHARE))
+		width = maxf(width, text_width(button))
+	width = minf(width, cap)
+	for button: Button in buttons:
+		button.custom_minimum_size.x = width
+	return width
+
+# The width `button` needs to show its text (and icon) untrimmed.
+static func text_width(button: Button) -> float:
+	var font := button.get_theme_font("font")
+	var font_size := button.get_theme_font_size("font_size")
+	var width := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x if font != null else 0.0
+	var box := button.get_theme_stylebox("normal")
+	if box != null:
+		width += box.get_minimum_size().x
+	if button.icon != null:
+		width += button.icon.get_width() + button.get_theme_constant("h_separation")
+	return ceilf(width + 6.0)
+
+# One sprout per screen (UI review 2026-10-17): a phone choice card's thread runs its full width in `colour` with no
+# mark (the Heartwood sprout is Take's alone); a clear `colour` keeps the card's own thread colour. Call it last, after
+# ChoiceCard.solid and any other style tweak.
+static func card_thread(button: Button, colour: Color = Color(0, 0, 0, 0)) -> void:
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var style := button.get_theme_stylebox(state) as MoonStyleBox
+		if style == null:
+			continue
+		if colour.a <= 0.0:
+			colour = style.thread_color
+		style = style.duplicate()
+		style.thread = MoonStyleBox.TopLine.NONE
+		style.diamond = false
+		button.add_theme_stylebox_override(state, style)
+	var line := ColorRect.new()
+	line.name = "Thread"
+	line.color = Color(colour, THREAD_ALPHA)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	line.offset_bottom = 1.0
+	button.add_child(line)
 
 # The width of each of `count` equal columns between the side margins (a little spare for a scroll bar).
 func card_width(count: int) -> float:
 	var room := screen.get_viewport_rect().size.x - 2.0 * MARGIN - GAP * (count - 1) - 16.0
 	return floorf(room / maxf(count, 1.0))
 
-# A card fills its column's height (the row gives every card the tallest's height).
+# A card fills its column's width; its height is its content's (the row gives every card the tallest's height).
 func fill(card: Control) -> void:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_FILL
 
 # New cards: nothing looked at.
 func reset() -> void:
@@ -185,6 +254,7 @@ func set_take(text: String) -> void:
 	take.modulate.a = 1.0 if can else 0.55  # multiplier: dim until there's something to take
 	take.text = text if can else "Take"
 	hint.text = TAKE_HINT if can else LOOK_HINT
+	fit_choices()
 
 # The card's underlined words: a tap shows the word's tip without looking at / taking the card.
 func watch_links(card: Control) -> void:

@@ -44,6 +44,7 @@ const PHONE_LIFT := 1.04  # The looked card's scale (from its foot: it rises)
 const PHONE_DIM_ALPHA := 0.45  # The cards not looked at (the looked one keeps full alpha and its rarity thread; no blur)
 const PHONE_CHOICE_SIZE := Vector2(188, 56)  # Take and Let it pass: both real choices, the same size
 const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word, not the card
+const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")  # The shared phone choice helpers (threads, widths, Peek)
 var _phone := false
 var _subtitle: Label = null  # Phones: "after drift 10 · take one"
 var _phone_hint: Label = null  # Phones: "Tap a card to look at it" / "Take it, or tap another"
@@ -145,7 +146,7 @@ func _build_phone_layout(dim: Control) -> void:
 	root.add_child(scroll)
 	_cards.add_theme_constant_override("separation", int(PHONE_GAP))
 	_cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_cards.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Content height (the tallest's), centred in the space
 	var pad := MarginContainer.new()  # Room above the cards for the looked one's lift (the scroll clips)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -188,8 +189,7 @@ func _build_phone_layout(dim: Control) -> void:
 	bottom.add_child(_take)
 	peek = ChoicePeek.new(self, [dim, margin], "Back to the Dream")
 	var peek_button := peek.make_peek_button()
-	UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
-	peek_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	PhoneChoice.peek_style(peek_button)  # A small framed secondary button, top right (UI review)
 	header.add_child(peek_button)
 	_update_phone_bar()
 
@@ -202,6 +202,8 @@ func _update_phone_bar() -> void:
 	_take.modulate.a = 1.0 if can_take else 0.55  # multiplier: dim until there's something to take
 	_take.text = "Take %s" % _looked_card.display_name if can_take else "Take"
 	_phone_hint.text = "Take it, or tap another" if can_take else "Tap a card to look at it"
+	# Let it pass and Take the same width: the wider one's text (UI review: "Take Call of the Wild")
+	PhoneChoice.match_widths([_take, _skip] if _skip.visible else [_take])
 
 func _take_looked() -> void:
 	if _looked == null or not is_instance_valid(_looked) or _looked_card == null:
@@ -227,7 +229,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 		var take := "take one"
 		if dream_state.has_rule(&"lucid_dreaming"):
 			take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
-		_subtitle.text = ("after drift %d · %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps)
+		_subtitle.text = ("after drift %d, %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps); no " · "
 	_skip.text = "Let it pass, %s" % UiStyle.dew_amount(dream_state.skip_dew, true) if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams (and never on a Calling pick: can_skip)
 	var growing: bool = dream_state.is_calling_offer()  # Calling evolutions (Roguelite Code 2026-10-16): no reroll or let-go
@@ -287,7 +289,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(_card_width, CARD_SIZE.y)
+	button.custom_minimum_size = Vector2(_card_width, PhoneChoice.CARD_MIN_H if _phone else CARD_SIZE.y)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		if _held_for_diagram:
@@ -322,6 +324,8 @@ func _make_card(card: UpgradeData) -> Button:
 			(button.get_theme_stylebox(state) as MoonStyleBox).underline = true  # A glowing line along the foot too
 	if MetaRun.starlit_backs():
 		_add_starlit_back(button, card)
+	if _phone:  # One sprout per screen (UI review; Take's): the thread runs full width in the rarity colour, no mark
+		PhoneChoice.card_thread(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -335,7 +339,7 @@ func _make_card(card: UpgradeData) -> Button:
 	rarity.text = UpgradeData.rarity_name(card.rarity) if not card.tags.has("calling_evolution") else "Calling"
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
-		rarity.text += " · " + _roman(stack_count + 1)
+		rarity.text += (" " if _phone else " · ") + _roman(stack_count + 1)  # Phones: no " · " (UI review)
 	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
 	# Wraps instead of widening the card (owner screenshot 2026-10-14: a long header pushed the body text past the edge)
@@ -508,7 +512,8 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 			for label in secondary:
 				if label.get_theme_font_size("font_size") > SECONDARY_MIN_SIZE:
 					label.add_theme_font_size_override("font_size", SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
-		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
+		# Phones: the content's height (UI review: no empty fog under the text); the row shares the tallest's height
+		button.custom_minimum_size = Vector2(_card_width, maxf(PhoneChoice.CARD_MIN_H if _phone else CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 

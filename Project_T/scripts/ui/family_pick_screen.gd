@@ -390,8 +390,9 @@ func _show_sapling() -> void:
 # card grows to fit it, at least CARD_SIZE tall; the row then gives every card the tallest's height.
 func _fit_card(button: Button, box: Control) -> void:
 	if _layout != null:
-		_layout.fill(button)  # Phones: the column's full height
+		_layout.fill(button)  # Phones: the column's width; the row shares the tallest's height
 		_layout.watch_links(button)
+		PhoneChoice.card_thread(button, UiStyle.GOLD)  # One sprout per screen (Take's): a plain Gold thread, full width
 		box.offset_left = PhoneChoice.CARD_PAD.x  # The Dream card's padding
 		box.offset_top = PhoneChoice.CARD_PAD.y
 		box.offset_right = -PhoneChoice.CARD_PAD.z
@@ -708,8 +709,10 @@ func _route_lane(branch: TowerData) -> Control:
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove's hidden branch" + (", " + role if role != "" else "")
-	if role != "":
-		var role_label := StatusLinks.make_role_label(role, _fs(11), UiStyle.GOLD, UiStyle.is_phone())  # Its glossary words are links (user: "Silences"); phones: one " · " run, not points
+	if role != "" and _layout != null:
+		words.add_child(_role_chips(role))  # Phones: a small chip per tag (UI review: no " · " runs)
+	elif role != "":
+		var role_label := StatusLinks.make_role_label(role, _fs(11), UiStyle.GOLD, UiStyle.is_phone())  # Its glossary words are links (user: "Silences")
 		role_label.name = "Role"
 		words.add_child(role_label)
 	lane.add_child(words)
@@ -722,6 +725,34 @@ func _route_lane(branch: TowerData) -> Control:
 		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead (a role line is on the lane already)
 	lane.tooltip_text = tip
 	return lane
+
+# Phones: a lane's role tags as small outlined chips that wrap ("Heavy", "Long range", "Single target"), glossary words
+# still links.
+const ROLE_CHIP_TEXT := 11
+func _role_chips(role: String) -> HFlowContainer:
+	var flow := HFlowContainer.new()
+	flow.name = "Role"
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 3)
+	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for term: String in IconInfo.role_terms(role):
+		var chip := PanelContainer.new()
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var frame := StyleBoxFlat.new()  # The status chip's thin outline (_status_chip), in Gold
+		frame.draw_center = false
+		frame.border_color = Color(UiStyle.GOLD, 0.35)
+		frame.set_border_width_all(1)
+		frame.set_corner_radius_all(8)
+		frame.content_margin_left = 6
+		frame.content_margin_right = 6
+		chip.add_theme_stylebox_override("panel", frame)
+		var label := StatusLinks.make_label("", _fs(ROLE_CHIP_TEXT), UiStyle.GOLD)
+		label.autowrap_mode = TextServer.AUTOWRAP_OFF  # One chip, one line: it sizes to its word
+		label.custom_minimum_size = Vector2.ZERO
+		label.text = StatusLinks.role_bbcode(term)
+		chip.add_child(label)
+		flow.add_child(chip)
+	return flow
 
 # "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
 const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
@@ -912,14 +943,30 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	var short := get_viewport_rect().size.y < CALLING_FULL_HEIGHT
 	if short and _layout == null:
 		return DreamState.CALLINGS.title(data.get_id())
-	var title := Label.new()
-	title.name = "CallingName"
-	title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(title, _fs(14))
-	title.add_theme_color_override("font_color", UiStyle.GOLD)
-	box.add_child(title)
+	if _layout != null:  # Phones: the small caps label "Calling", the name under it (UI review: no " · ")
+		var head := Label.new()
+		head.name = "CallingLabel"
+		head.text = "Calling"
+		head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.caps(head, _fs(12), UiStyle.INK_DIM)
+		head.text = "Calling"  # Small caps with a capital (caps lower-cases it)
+		box.add_child(head)
+		var calling_name := Label.new()
+		calling_name.name = "CallingName"
+		calling_name.text = DreamState.CALLINGS.title(data.get_id())
+		calling_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		calling_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.title(calling_name, _fs(16), UiStyle.GOLD)
+		box.add_child(calling_name)
+	else:
+		var title := Label.new()
+		title.name = "CallingName"
+		title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.caps(title, _fs(14))
+		title.add_theme_color_override("font_color", UiStyle.GOLD)
+		box.add_child(title)
 	if short:
 		return ""  # Phones (no Wake button on the card): the Calling's name on the card, its rule in the Dreams row after
 	var rule := Label.new()

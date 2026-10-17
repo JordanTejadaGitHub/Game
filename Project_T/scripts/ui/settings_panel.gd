@@ -290,8 +290,17 @@ func _phone_pass() -> void:
 		var row := (_dots[key] as Control).get_parent() as Control
 		if row is HBoxContainer:
 			row.custom_minimum_size.y = maxf(row.custom_minimum_size.y, PHONE_ROW_H)
+			# Capped: the slider / switch sits near its name, not at the pane's far edge
+			row.custom_minimum_size.x = maxf(row.custom_minimum_size.x, PHONE_ROW_MAX_W)
+			row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# Footer: Cancel and "Apply and close" one size; "Reset this tab" quiet Mist text (48 px hit area)
+	cancel_button.custom_minimum_size.x = apply_button.custom_minimum_size.x
+	UiStyle.quiet(defaults_button)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		defaults_button.add_theme_color_override(state, UiStyle.MOON_MIST)
 
 const PHONE_ROW_H := 56.0
+const PHONE_ROW_MAX_W := 700.0
 
 # The phone pause menu's pane (mobile only): no own width or height, the tabs take what the pane leaves.
 func fill_pane() -> void:

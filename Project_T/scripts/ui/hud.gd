@@ -481,7 +481,53 @@ func _on_damage_button(on: bool) -> void:
 		dreams_button.button_pressed = false
 
 # The buttons follow their panels (the list's own Close, a Warden picked, the meter's header).
+# Phones (UI Asset review 2026-10-17): while a choice screen is open, the banner, the resources, the top-right buttons,
+# the dock and the drift panel are hidden, not dimmed (none can be used then; they bled through behind Peek and Take).
+# Their visibility is put back as it was when the screen closes.
+const PHONE_CHOICE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen"]
+var _choice_hidden := {}  # Node -> its visibility before
+
+func _phone_choice_open() -> bool:
+	for screen_name in PHONE_CHOICE_SCREENS:
+		var screen := get_node_or_null(screen_name) as CanvasItem
+		if screen != null and screen.visible:
+			return true
+	return false
+
+func _hud_under_choice() -> Array:
+	var nodes: Array = [tower_bar, clear_tool, _bar_toggle, dew_label, leaves_label, _leaves_max, _clears_label, _maze_reward_label]
+	nodes.append_array(_bar_arrows)
+	nodes.append_array(_counter_icons.values())
+	if sell_slot != null:
+		nodes.append(sell_slot)
+	for node_name in ["DriftBanner", "DriftPanel", "DriftMeter", "DreamsRow", "DreamlightLabel", "PathLabel", "ResourcesFog"]:
+		nodes.append(get_node_or_null(node_name))
+	for node_name in _top_row_names():
+		nodes.append(get_node_or_null(node_name))
+	for child in get_children():
+		if child is ComingStrip:
+			nodes.append(child)
+	return nodes.filter(func(n) -> bool: return n is CanvasItem and is_instance_valid(n))
+
+func _hide_under_choice() -> void:
+	var open := _phone_choice_open()
+	if open:
+		for node: CanvasItem in _hud_under_choice():
+			if not _choice_hidden.has(node):
+				_choice_hidden[node] = node.visible
+			node.visible = false  # Every frame: panels that refresh themselves (the damage meter) stay hidden
+	elif not _choice_hidden.is_empty():
+		for node in _choice_hidden:
+			if is_instance_valid(node):
+				node.visible = _choice_hidden[node]
+		_choice_hidden.clear()
+
+var _was_compact := false
+
 func _sync_phone_buttons() -> void:
+	if UiStyle.phone_compact() != _was_compact:  # The UI size setting changed: the dock refits
+		_was_compact = UiStyle.phone_compact()
+		_fit_tower_bar()
 	var row := get_node_or_null("DreamsRow")
 	var list := row.get("_list") as Control if row != null else null
 	if list != null and dreams_button.button_pressed != list.visible:
@@ -503,7 +549,7 @@ func _fit_tower_bar_phone() -> void:
 	_bar_toggle.tooltip_text = "Show Warden bar" if bar_hidden else "Hide Warden bar"
 	_bar_toggle.queue_redraw()
 	var half := get_viewport().get_visible_rect().size.x / 2.0
-	var left := -half + PHONE_MARGIN
+	var left := -half + _phone_margin()
 	_bar_toggle.offset_bottom = -16.0 + (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
 	_bar_toggle.offset_top = _bar_toggle.offset_bottom - BAR_TOGGLE_W
 	if bar_hidden:
@@ -516,7 +562,7 @@ func _fit_tower_bar_phone() -> void:
 		return
 	var clear_on := not _clearing_locked()  # Phones: no Clear slot until a clearing Dream unlocks clearing (user 2026-10-15)
 	clear_tool.visible = clear_on
-	var room := half - PHONE_MARGIN - PHONE_CENTRE_RESERVE - (BAR_HANDLE + BAR_GAP)
+	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (BAR_HANDLE + BAR_GAP)
 	var n := _tower_buttons.size()
 	var fixed := 2 if clear_on else 1  # Sell, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
@@ -525,12 +571,12 @@ func _fit_tower_bar_phone() -> void:
 		width = SLOT_MIN_WIDTH
 		var inner := room - 2.0 * (ARROW_W + BAR_GAP) - fixed * width - fixed * CLEAR_TOOL_GAP
 		shown = clampi(floori((inner + BAR_GAP) / (width + BAR_GAP)), 1, n)
-	width = minf(width, BUTTON_SIZE.x)
+	width = minf(width, _phone_slot().x)
 	_bar_offset = clampi(_bar_offset, 0, n - shown)
 	var icon := mini(SLOT_SPRITE, int(width) - 12)
 	for i in n:
 		var button: Button = _tower_buttons[i]
-		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+		button.custom_minimum_size = Vector2(width, _phone_slot().y)
 		button.add_theme_constant_override("icon_max_width", icon)
 		button.visible = i >= _bar_offset and i < _bar_offset + shown
 		if button == _seed_badge_button():
@@ -539,14 +585,14 @@ func _fit_tower_bar_phone() -> void:
 	clear_tool.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
 	clear_tool.add_theme_color_override("font_color", UiStyle.MOON_MIST)
 	_shadowed(clear_tool)
-	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+	clear_tool.custom_minimum_size = Vector2(width, _phone_slot().y)
 	var scrolling := shown < n
 	var bar_width := width * shown + BAR_GAP * (shown - 1)
 	# Left to right (user 2026-10-15): Sell at the left end, the Wardens, then Clear (once unlocked).
 	var x := left
 	if sell_slot != null:
 		sell_slot.add_theme_constant_override("icon_max_width", mini(icon, 28))
-		sell_slot.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
+		sell_slot.custom_minimum_size = Vector2(width, _phone_slot().y)
 		_place_slot(sell_slot, x, width)
 		x += width + CLEAR_TOOL_GAP
 	x += ARROW_W + BAR_GAP if scrolling else 0.0
@@ -561,6 +607,14 @@ func _fit_tower_bar_phone() -> void:
 	_bar_toggle.offset_left = x - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
 	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
 
+# Phones at Standard (UiStyle.phone_compact): the dock's slots and edge tighter, for more map; type never changes.
+const PHONE_COMPACT_SLOT := Vector2(56, 72)
+func _phone_slot() -> Vector2:
+	return PHONE_COMPACT_SLOT if UiStyle.phone_compact() else BUTTON_SIZE
+
+func _phone_margin() -> float:
+	return 8.0 if UiStyle.phone_compact() else PHONE_MARGIN
+
 func _clearing_locked() -> bool:
 	var clearer = clear_tool.get("clearer") if clear_tool != null else null
 	return clearer != null and clearer.has_method("is_locked") and clearer.is_locked()
@@ -570,7 +624,7 @@ func _place_slot(control: Control, x: float, width: float) -> void:
 	control.offset_left = x
 	control.offset_right = x + width
 	control.offset_bottom = -16.0
-	control.offset_top = -16.0 - BUTTON_SIZE.y
+	control.offset_top = -16.0 - _phone_slot().y
 
 func set_bar_hidden(hidden: bool) -> void:
 	bar_hidden = hidden
@@ -1343,6 +1397,8 @@ func _update_maze_income() -> void:
 	_path_tip._label.text = road_tip
 
 func _process(delta: float) -> void:
+	if phone():
+		_hide_under_choice()
 	var real := delta / maxf(Engine.time_scale, 0.001)
 	_remember_check -= real
 	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
