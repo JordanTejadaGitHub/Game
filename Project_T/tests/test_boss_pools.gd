@@ -195,7 +195,7 @@ func _run() -> void:
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(_count(shade_data) == 4, "each lap drops 4 Shades in behind it (%d)" % _count(shade_data))
 	_check(spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data)[0]._bar_offset.y == -38.0, "an everyday nightmare keeps its bar at the usual -38")
-	var mare_start: Vector2 = mare.grid.calculate_map_position(map_generator.startPath)
+	var mare_start: Vector2 = mare.grid.calculate_map_position(route[0])  # Where the lap line forms (half cells: a quarter cell off the start cell's centre)
 	var lined_up := true
 	for shade in spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data):
 		lined_up = lined_up and shade.position.distance_to(mare_start) <= 4.5 * spawner.SPLIT_SPACING + 1.0 \
