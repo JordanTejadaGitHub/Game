@@ -10,6 +10,8 @@ extends SceneTree
 const CELL := 64.0
 const NEW := ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow",
 	"whispering_hollow", "cairn", "rockslide", "hummingbird_bower", "jewelwing_court", "samara", "autumn_gale"]
+# Finals sit out of the start pool like their sibling finals (Roguelite feb3aa51; finals are never Grove-gated).
+const POOL_FINALS := ["lullaby_bell", "great_dreamcatcher", "moonstone"]
 const HIDDEN := ["echo_hollow", "whispering_hollow", "cairn", "rockslide", "hummingbird_bower", "jewelwing_court",
 	"samara", "autumn_gale"]
 
@@ -62,14 +64,14 @@ func _test_data() -> void:
 		var card := load("res://resource/dream/dream_%s.tres" % id) as UpgradeData
 		_check(card != null and card.unlocks == data, "%s has an unlock card" % id)
 		if card:
-			_check(card.in_start_pool == not (id in HIDDEN or id == "bellflower"), "%s's card pool is right" % id)
+			_check(card.in_start_pool == not (id in HIDDEN or id in POOL_FINALS or id == "bellflower"), "%s's card pool is right" % id)
 	var bell: TowerData = load("res://resource/tower/bellflower.tres")
 	_check(bell.line == "song" and bell.applies_status == EnemyStatuses.DROWSY, "Bellflower is the song family and applies Drowsy")
 	for id in ["chime_stone", "lullaby_bell"]:
 		_check(load("res://resource/tower/%s.tres" % id).line == "song", "%s moved to the song family" % id)
 	for id in ["standing_stone", "moonstone"]:
 		var card := load("res://resource/dream/dream_%s.tres" % id) as UpgradeData
-		_check(card.in_start_pool and dreams.get_unlock_blocker(card.unlocks) != "Memory Grove", "%s is no longer hidden" % id)
+		_check((card.in_start_pool or id in POOL_FINALS) and dreams.get_unlock_blocker(card.unlocks) != "Memory Grove", "%s is no longer hidden" % id)
 
 
 # --- Bellflower, Chime Stone, Lullaby Bell -----------------------------------------------------------

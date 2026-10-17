@@ -336,7 +336,7 @@ func _test_new_cards(main: Node) -> void:
 	run_state.max_leaves = 15
 	run_state.leaves = 14
 	dreams.take(_card(dreams, "thin_bark"))  # Thin Bark (de439ea8): max leaves halved, those above lost now
-	_check(run_state.max_leaves == 15 and run_state.leaves == 14, "Thin Bark: no leaves cost any more (card pass 2026-10-16: its cost is -30% on base Wardens, branches and Sprouts) (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	_check(run_state.max_leaves == 15 and run_state.leaves == 14, "Thin Bark: no leaves cost any more (card pass 2026-10-16: its cost is -30%% on base Wardens, branches and Sprouts) (%d/%d)" % [run_state.leaves, run_state.max_leaves])
 	dreams.stacks.erase("thin_bark")
 	run_state.max_leaves = 20
 	run_state.leaves = 20

@@ -14,6 +14,7 @@ func _check(ok: bool, what: String) -> void:
 		push_error("FAIL: " + what)
 
 func _initialize() -> void:
+	HeartwoodGifts.offers_on = true  # Gifts are off in the game (owner 2026-10-15); this test still checks their code
 	_run.call_deferred()
 
 func _open_screens(hud: Node) -> Array:

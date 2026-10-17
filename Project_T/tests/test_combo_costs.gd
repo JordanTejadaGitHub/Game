@@ -201,7 +201,7 @@ func _run() -> void:
 	five.apply_status(EnemyStatuses.SPORED, 20, 0.0, 10.0, 0, "spore", lighter)
 	Reactions.burn(four, lighter)
 	Reactions.burn(five, lighter)
-	_check(is_equal_approx(four.statuses.burn_rate, Reactions.BURN_SPORE_RATE) and five.statuses.burn_rate > Reactions.BURN_SPORE_RATE,
+	_check(five.statuses.burn_rate > four.statuses.burn_rate + 1.0,  # Reaction cards scale both burns (Reactions._rx_cards)
 		"Sparking Spores: hotter from 20 Poisoned, not at 16 (%.2f / %.2f)" % [four.statuses.burn_rate, five.statuses.burn_rate])
 	await _clean()
 
