@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thorn_snare"
 display_name = "Briar Trap"
-description = "Each {drift}, each Thornwall makes the first nightmare that passes it {held} for 1.5 s."
+description = "Each {drift}, each Thornwall adds 1 {held} to the first nightmare that passes it: it can't move for 1.5 s."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "wall"])

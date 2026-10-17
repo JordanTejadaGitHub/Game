@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_thorncoil"
 display_name = "Thorncoil"
-description = "{warden:rootling}s can now {grow} into {warden:thorncoil}s ({dew:{grow_cost:thorncoil}}): thorns for {held} nightmares: every second they are {held} in its range, they take thorn damage."
+description = "{warden:rootling}s can now {grow} into {warden:thorncoil}s ({dew:{grow_cost:thorncoil}}): thorns for nightmares with {held}: every second one has {held} in its range, it takes thorn damage."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])

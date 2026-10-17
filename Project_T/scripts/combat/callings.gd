@@ -21,7 +21,7 @@ const TEXTS := {
 	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
-	"rootling": "Every Warden in range turns to a {held} nightmare, and their hits on it add twice as much status.",
+	"rootling": "Every Warden in range turns to a nightmare with {held}, and their hits on it add twice as much status.",
 	"whirligig": "Attacks that pass through a {warden:whirligig}'s range go further: shots fly on to a second nightmare, and pulses and splashes spread 1 cell wider.",
 }
 

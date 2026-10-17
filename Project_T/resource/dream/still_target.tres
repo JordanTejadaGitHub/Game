@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "still_target"
 display_name = "Still Target"
-description = "Wardens get 25% extra crit chance against {drowsy} or {held} nightmares."
+description = "Wardens get 25% extra crit chance against nightmares with {drowsy} or {held}."
 rarity = 1
 kind = 3
 tags = Array[String](["crit", "sleep", "precision"])
@@ -14,6 +14,6 @@ requires_any = Array[String](["bellflower", "bloomcap", "honeysuckle", "frostfer
 max_stacks = 1
 rule_id = &"still_target"
 in_start_pool = false
-tip = "{frozen} nightmares count: frost makes them {held}."
+tip = "{frozen} nightmares count: frost adds 1 {held}."
 makes = Array[StringName]([&"crit"])
 uses = Array[StringName]([&"drowsy"])

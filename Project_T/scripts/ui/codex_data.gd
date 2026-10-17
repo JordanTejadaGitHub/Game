@@ -111,10 +111,10 @@ const GLOSSARY_SOURCE := [
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
-		["{held}", "{tip:held}", ["Shatter", "Smother"]],
+		["{held}", "Builds up to {stacks:cap_held} stacks. A nightmare with {held} can't move while they last. {reactions} that use {held} need {stacks:need_held}.", ["Shatter", "Smother", "{frozen}"]],
 		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
-		["{frozen}", "{tip:frozen}", ["{damp}"]],
+		["{frozen}", "Frost's {held}: a {family:dewdrop}-{family} Warden's freeze adds 1 {held}, and the nightmare can't move while it lasts.", ["{held}", "{damp}"]],
 		["{silenced}", "{tip:silenced}", []],
 	]],
 	["Combat", [
@@ -184,7 +184,7 @@ const CROWNED := {
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
-		"A ring of mushrooms sprouts around the held nightmare: walkers crossing it get {spored} + {damp}."],
+		"A ring of mushrooms sprouts around the nightmare with {held}: walkers crossing it get {spored} + {damp}."],
 	# Owner 2026-10-17, council reactions_unique.md: the Crowned forms of Sleepwalk and Night Terror (the text shown is the
 	# ReactionData's; these are fallbacks).
 	&"changeling": ["Changeling", &"sleepwalk", &"marked", ["sporeling", "bellflower", "firefly_jar"],
@@ -270,7 +270,7 @@ const KINSHIP_TEXT := {
 	&"rainfog": "Rain Lily's splashes leave a fog patch; the fog deals Rain Lily's splash damage to nightmares entering it.",
 	&"storm_beacon": "Stormcap's jumps leave nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
-	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
+	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
@@ -284,10 +284,10 @@ const KINSHIP_TEXT := {
 	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at rank I; Wardens beside the Nurse Log also grow 10% cheaper.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
-	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog Freezes nightmares that stay in it 2 s.",
+	&"hoar_fog": "Frostfern's shots leave a fog puff; a nightmare that stays 2 s in Mistveil's fog is {frozen}: it gains 1 {held} (0.75 s), once per cloud.",
 	&"sunspot": "Sunpetal's beam makes its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
-	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
+	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
 	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
 	&"jewel_thieves": "Every 6th peck steals a nightmare's boost ({dew:+1} if there's none); the Magpie pecks twice per swoop.",

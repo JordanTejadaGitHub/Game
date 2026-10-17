@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "pebbling_ascension"
 display_name = "Ascension: Old Mountain"
-description = "Unlocks {warden:old_mountain}, the {family:pebbling} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. Boulders crush and stun, and always {crit} {held} or {drowsy} nightmares."
+description = "Unlocks {warden:old_mountain}, the {family:pebbling} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. Boulders crush and add 1 {held}, and always {crit} nightmares with {held} or {drowsy}."
 root = 0
 costs = Array[int]([120])
 order = 33

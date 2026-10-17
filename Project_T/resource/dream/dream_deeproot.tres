@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_deeproot"
 display_name = "Deeproot"
-description = "{warden:rootling}s can now {grow} into {warden:deeproot}s ({dew:{grow_cost:deeproot}}): nightmares near the Heartwood are {held} for a moment."
+description = "{warden:rootling}s can now {grow} into {warden:deeproot}s ({dew:{grow_cost:deeproot}}): nightmares near the Heartwood gain 1 {held} and can't move for {field:deeproot.special_params.goal_hold:seconds}."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])

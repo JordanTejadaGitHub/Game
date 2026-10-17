@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Tangleroot"
 role_line = "Short range, area damage, Roots the leader"
-description = "Its roots damage every nightmare in range. Every {field:tangleroot.ability_every:seconds} the nightmare furthest along the path is {held} for {field:tangleroot.hold_time:seconds}."
+description = "Its roots damage every nightmare in range. Every {field:tangleroot.ability_every:seconds} the nightmare furthest along the path gains 1 {held} and can't move for {field:tangleroot.hold_time:seconds}."
 cost = 0
 role_tag = &"control"
 line = "root"

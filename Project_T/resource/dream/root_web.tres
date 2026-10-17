@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "root_web"
 display_name = "Root Web"
-description = "When a nightmare becomes {held}, the nightmares {touching} it are {held} for half as long."
+description = "When a nightmare first gains {held}, the nightmares {touching} it gain 1 {held} for half as long."
 rarity = 2
 kind = 3
 tags = Array[String](["root", "held"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "bound_and_burning"
 display_name = "Bound and Burning"
-description = "While a nightmare is {held}, its other statuses don't wear off."
-tip = "Offered once you have a Warden that makes nightmares {held}. Works for: {warden:frostfern}, {warden:tangleroot}, and the Witch Ring and Drowned Hands {calling} paths. Safe."
+description = "While a nightmare has {held}, its other statuses don't wear off."
+tip = "Offered once you have a Warden that adds {held}. Works for: {warden:frostfern}, {warden:tangleroot}, and the Witch Ring and Drowned Hands {calling} paths. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["role", "hold", "affliction"])

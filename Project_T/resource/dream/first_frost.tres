@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "first_frost"
 display_name = "First Frost"
-description = "The first 5 nightmares of each {drift} to enter an attacking Warden's range are {held} for 1.5 s."
+description = "The first 5 nightmares of each {drift} to enter an attacking Warden's range gain 1 {held}: they can't move for 1.5 s."
 rarity = 0
 kind = 3
 tags = Array[String](["held", "tempo", "affliction"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "breathe_it_in"
 display_name = "Breathe It In"
-description = "Statuses added to nightmares in a spore Warden's range get 1 more {stack}, or 3 more if {asleep} or {held}. Each Warden once a second."
+description = "Statuses added to nightmares in a spore Warden's range get 1 more {stack}, or 3 more if it is {asleep} or has {held}. Each Warden once a second."
 tip = "Any family's statuses count, {spored} too. {drowsy} gets only 1 more. Never {held}, never past {full}. Works for: every Warden whose targets walk through a spore Warden's range. Safe."
 rarity = 0
 kind = 3

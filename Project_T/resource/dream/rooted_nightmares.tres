@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rooted_nightmares"
 display_name = "Rooted Nightmares"
-description = "Every 8th hit from a Warden makes the nightmare {held} for 1 s (bosses 0.5 s). Each nightmare once every 4 s."
+description = "Every 8th hit from a Warden adds 1 {held}: the nightmare can't move for 1 s (bosses 0.5 s). Each nightmare once every 4 s."
 rarity = 3
 kind = 3
 tags = Array[String](["held", "maze"])
@@ -14,6 +14,6 @@ max_stacks = 1
 min_act = 2
 rule_id = &"rooted_nightmares"
 in_start_pool = false
-tip = "Counted for each Warden. Nightmares behind a {held} one can't walk past it."
+tip = "Counted for each Warden. Nightmares behind one with {held} can't walk past it."
 makes = Array[StringName]([&"rooted"])
 uses = Array[StringName]([&"repeat"])
