@@ -21,7 +21,8 @@ static func make(chips: Array, icon_size: int = 0, outline := Color(0, 0, 0, 0),
 	var phone := UiStyle.is_phone()
 	if phone:
 		row.custom_minimum_size.y = PHONE_ROW_H
-	var one_line := outline.a > 0.0
+	# One line for a card's two chips; a Warden's (roles + statuses, no cap) can be more: those wrap, never clip
+	var one_line := outline.a > 0.0 and chips.size() <= 2
 	var flow: Container = HBoxContainer.new() if one_line else HFlowContainer.new()
 	if one_line:
 		row.clip_contents = true  # Never wider than the card (at most two chips: it fits)
