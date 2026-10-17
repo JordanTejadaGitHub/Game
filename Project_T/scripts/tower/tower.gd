@@ -2430,6 +2430,14 @@ func _release() -> void:
 const HIT_CARD_RULES: Array[StringName] = [&"crush", &"crowd_breaker", &"shiny_things"]  # (Patient Aim is crit chance now: DreamState.get_crit_chance_bonus)
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
 const UNIQUE_NATIVE_RULES: Array[StringName] = [&"shared_mycelium", &"crossed_sparks", &"corner_sign"]  # DreamCooperation / DreamPathRules.native_status (performance: skipped without them)
+# Whether one of UNIQUE_NATIVE_RULES is held, asked of DreamState itself (live: a test that sets dreams.stacks directly
+# isn't seen by this Warden's rule cache when the card count stays the same; the cached _any_rule answered stale).
+func _unique_native_live() -> bool:
+	for rule in UNIQUE_NATIVE_RULES:
+		if _dream_state.has_rule(rule):
+			return true
+	return false
+
 const UNIQUE_COOP_RULES: Array[StringName] = [&"crosswind", &"opening_fracture", &"afterroot"]  # DreamCooperation.before_hit / after_hit
 
 # True if any of `rules` is owned; cached with the shared rule cache under `key`.
@@ -3483,7 +3491,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
 		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
 	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
-	if _dream_state != null and stacks > 0 and native and _any_rule(&"__unique_native", UNIQUE_NATIVE_RULES):
+	if _dream_state != null and stacks > 0 and native and _unique_native_live():
 		var accepted: bool = enemy.statuses.applications > unique_before
 		var previous_native_context = get_meta(&"unique_native_status_context") if has_meta(&"unique_native_status_context") else null
 		set_meta(&"unique_native_status_context", [potency, duration, max_stacks, stacks])  # stacks: Corner Sign doubles them
