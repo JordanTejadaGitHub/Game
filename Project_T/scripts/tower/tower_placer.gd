@@ -1535,6 +1535,37 @@ func count_sprout_line() -> int:
 	return count
 
 # The count the Sprout price steps on (kept for the HUD and the Lesson): the same as count_sprout_line().
+# The grow tax (Balancing Discussion, owner 2026-10-17: "I fill the whole map with Warden upgrades when it should feel more
+# tactical"; balance_simulation.md "Grow tax"): growing into a branch (tier 2) or a final (tier 3) costs more the more
+# Wardens of that tier stand on the map, across all families. The first grow_tax_*_free at base; each past them adds
+# grow_tax_*_step to the next grow's base price, up to grow_tax_cap. A step of 0 = off. Ascended: no tax.
+@export var grow_tax_branch_free := 3
+@export var grow_tax_branch_step := 0.10
+@export var grow_tax_final_free := 2
+@export var grow_tax_final_step := 0.15
+@export var grow_tax_cap := 3.0
+
+# Wardens of `tier` on the map now (a Warden sold or grown on leaves the count).
+func count_tier(tier: int) -> int:
+	var count := 0
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data != null and tower.tower_data.tier == tier:
+			count += 1
+	return count
+
+# [multiplier, Wardens of that tier counted, tier] for a grow into `into` (`planned` more of the same grows earlier in a
+# group grow raise it as they land). [1.0, 0, tier] when untaxed.
+func grow_tax(into: TowerData, planned: int = 0) -> Array:
+	var tier: int = into.tier if into != null else 0
+	if tier != 2 and tier != 3:
+		return [1.0, 0, tier]
+	var free: int = grow_tax_branch_free if tier == 2 else grow_tax_final_free
+	var step: float = grow_tax_branch_step if tier == 2 else grow_tax_final_step
+	if step <= 0.0:
+		return [1.0, 0, tier]
+	var count := count_tier(tier) + maxi(planned, 0)
+	return [minf(1.0 + step * maxi(count - free, 0), maxf(grow_tax_cap, 1.0)), count, tier]
+
 func count_paid_sprouts() -> int:
 	return count_sprout_line()
 

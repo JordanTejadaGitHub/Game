@@ -1804,6 +1804,11 @@ func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	if tower_data.line == "wall" and into.get_id() == "sprout":
 		base = _wall_into_sprout_price(planned)  # A wall grows into a Sprout at the Sprout's price less what the wall cost
 	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
+	var tax: Array = [1.0, 0, into.tier]
+	var placer = placer_ref.get_ref() if placer_ref != null else null
+	if placer != null and placer.has_method("grow_tax"):
+		tax = placer.grow_tax(into, planned)  # The grow tax (owner 2026-10-17): the form's own price only, never the ranks
+		base = roundi(base * float(tax[0]))
 	var gifts := GiftGround.active_for(self)
 	if gifts and gifts.free_growth(tower_data, into):
 		base = 0  # Heartwood's Gift Bramble Verge: Thornwall -> Bramble is free this run
@@ -1812,7 +1817,16 @@ func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 		if not paid_ranks.has(which):
 			continue  # A free rank stays free through growth
 		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
-	return {"total": base + ranks, "base": base, "ranks": ranks, "free_ranks": free_rank_count()}
+	return {"total": base + ranks, "base": base, "ranks": ranks, "free_ranks": free_rank_count(), "tax": float(tax[0]),
+		"tax_count": int(tax[1]), "tax_tier": int(tax[2])}
+
+# The grow tax's line for a tooltip ("" when untaxed): "+40%: 7 branch Wardens on the map".
+static func grow_tax_text(grow: Dictionary) -> String:
+	var tax: float = float(grow.get("tax", 1.0))
+	if tax <= 1.0001:
+		return ""
+	return "+%d%%: %d %s Wardens on the map" % [roundi((tax - 1.0) * 100.0), int(grow.get("tax_count", 0)),
+		"branch" if int(grow.get("tax_tier", 2)) == 2 else "final"]
 
 # What the next rank adds to growing into `into` (warden_stats.md: growing pays the ranks held; the
 # Nurture button says so, so players don't rank a Warden out of its growth).

@@ -339,6 +339,9 @@ func _refresh() -> void:
 			button.tooltip_text = _grow_tip(tower_placer.grow_changes(_tower, next), next)
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%s + %d for its rank %s." % [UiStyle.dew_amount(grow.base), grow.ranks, Tower.rank_name(_tower.rank)]
+			var taxed := Tower.grow_tax_text(grow)
+			if taxed != "":
+				button.tooltip_text += "\nGrow tax " + taxed  # Owner 2026-10-17: the more of that tier on the map, the more the next costs
 			var free_ranks := int(grow.get("free_ranks", 0))
 			if free_ranks > 0:  # Free ranks stay free through growth (Tower Code 221af5d7)
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
