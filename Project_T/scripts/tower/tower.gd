@@ -342,6 +342,15 @@ static func get_applied_statuses(data: TowerData) -> Array[StringName]:
 # forms (DreamState.HELD_SOURCES), and what its special's own code applies (BranchKit.SPECIAL_STATUSES: the Sparkler's
 # Charge, the Jarlink's link, the Silver Bell's toll…). Read by the keyword chips, Potency, the Warden header and the
 # combo vines.
+# The status a Warden applies, for code that adds "its status" (True Graft, Graft of Dreams, Perches, Kin and Kindling,
+# the class cards): the first of statuses_applied, so a special's counts (the Sparkler's Charge); never Roots unless
+# `allow_held`. &"" = none.
+static func first_status(data: TowerData, allow_held: bool = false) -> StringName:
+	for status in statuses_applied(data):
+		if allow_held or status != EnemyStatuses.HELD:
+			return status
+	return &""
+
 static func statuses_applied(data: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
 	if data == null:
@@ -3822,12 +3831,13 @@ func _strongest_neighbour_status() -> Array:
 	var best: Array = []
 	var best_dps := 0.0
 	for other in _other_towers():
-		if absf(other.cell.x - cell.x) > 1 or absf(other.cell.y - cell.y) > 1 or other.attack_data.applies_status == &"":
+		var status := first_status(other.attack_data, true)  # (A special's status too: the keyword audit)
+		if absf(other.cell.x - cell.x) > 1 or absf(other.cell.y - cell.y) > 1 or status == &"":
 			continue
 		var dps: float = other.get_damage() * other.get_attacks_per_second()
 		if best.is_empty() or dps > best_dps:
 			best_dps = dps
-			best = [other.attack_data.applies_status, maxi(other.attack_data.status_stacks, 1)]
+			best = [status, maxi(other.attack_data.status_stacks, 1)]
 	return best
 
 # --- Support looks (screens_ui.md "Support and economy feedback") --------------------------------

@@ -167,9 +167,9 @@ static func _perch_status(tower, enemy) -> void:
 		return
 	var perch = tower.get_meta(PERCH_META).get(enemy.get_instance_id())
 	perch = perch.get_ref() if perch is WeakRef else null
-	if is_instance_valid(perch) and perch.attack_data != null and perch.attack_data.applies_status != &"" \
-			and perch.attack_data.applies_status != EnemyStatuses.HELD:
-		perch._apply_one_status(enemy, perch.attack_data.applies_status, 1, perch.get_damage(), false)
+	var perch_status: StringName = Tower.first_status(perch.attack_data) if is_instance_valid(perch) and perch.attack_data != null else &""  # (A special's status too; never Roots)
+	if perch_status != &"":
+		perch._apply_one_status(enemy, perch_status, 1, perch.get_damage(), false)
 
 
 # --- Take Root (Sporeling) ----------------------------------------------------------------------------

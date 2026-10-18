@@ -501,7 +501,7 @@ func _graft_hit(tower, enemy) -> void:
 	for form in finals:
 		if not is_instance_valid(form) or not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
-		var status: StringName = form.attack_data.applies_status
+		var status: StringName = Tower.first_status(form.attack_data)  # (A special's status too: Tower Code, keyword audit)
 		form._apply_one_status(enemy, status, GRAFT_STACKS, form.get_damage(), false)  # Non-native: no Calling hears it
 		var key: int = tower.get_instance_id()
 		if not showed and _clock() >= float(_graft_thread.get(key, -1.0)) and is_instance_valid(enemy):
@@ -522,7 +522,7 @@ func _graft_sources(tower) -> Array:
 		var list: Array = []
 		if is_instance_valid(dreams.tower_container):
 			for other in dreams._touching(tower):
-				var status: StringName = other.attack_data.applies_status
+				var status: StringName = Tower.first_status(other.attack_data)  # (A special's status too)
 				if other.tower_data.tier >= GRAFT_MIN_TIER and status != &"" and status != EnemyStatuses.HELD \
 						and status in EnemyStatuses.ALL and list.size() < GRAFT_MAX_SOURCES:
 					list.append(other)

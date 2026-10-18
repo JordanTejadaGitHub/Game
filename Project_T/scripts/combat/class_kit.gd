@@ -216,8 +216,7 @@ func enemies() -> Array:
 static func status_of(tower) -> StringName:
 	if not (tower is Tower) or tower.attack_data == null:
 		return &""
-	var status: StringName = tower.attack_data.applies_status
-	return &"" if status == EnemyStatuses.HELD else status
+	return Tower.first_status(tower.attack_data)  # (A special's status too: the Sparkler's Charge; never Roots)
 
 # --- Distances ------------------------------------------------------------------------------------------------------
 

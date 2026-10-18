@@ -14,16 +14,16 @@ class_name BranchKit
 # The statuses each special's own code applies (beside the form's applies_status / extra_status), for every reader of
 # "what this Warden applies" (Tower.statuses_applied: keyword chips, Potency, the Warden header, combo vines). The user:
 # "the Sparkler doesn't have the Charge keyword". Sparkler / Starburst: their sparks Charge; Jarlink / Lightning Fence:
-# the link Charges; Silver Bell / Vesper Bell: the toll adds Sleep; Jetreed / Torrent: the puddles Soak; Groundroot /
-# Earthbind: a grabbed flyer lands Rooted; Brood Cap, Inkcap, Cloudlet already name theirs in the data (listed anyway).
-# (keyword audit 2026-10-17, for Tower Code to decide: in code only Torrent's Flood trail Soaks (Jetreed's jet never
-# does) and only Earthbind's landing Roots (Groundroot only grounds flyers); left as is.)
-const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"], &"jet": [&"damp"],
-	&"groundroot": [&"held"], &"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}
+# the link Charges; Silver Bell / Vesper Bell: the toll adds Sleep; Brood Cap, Inkcap, Cloudlet already name theirs in
+# the data (listed anyway). Not the jet or groundroot specials (keyword audit 2026-10-17, Roguelite Code): Jetreed's jet
+# never Soaks (only Torrent's Flood trail does: FORM_STATUSES) and Groundroot only grounds flyers (Earthbind's landing
+# Roots: DreamState.HELD_SOURCES).
+const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"],
+	&"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}
 # Statuses one form's own code applies that its special or data doesn't name (keyword audit 2026-10-17), read by
 # Tower.statuses_applied: Maelstrom's whirlpool Soaks (_whirl, final only; Undercurrent doesn't), Dreamshroom's Dream
 # Spores twist puffs Poisoned off sleepers (FinalTwists._dream_spores).
-const FORM_STATUSES := {&"maelstrom": [&"damp"], &"dreamshroom": [&"spored"]}
+const FORM_STATUSES := {&"maelstrom": [&"damp"], &"dreamshroom": [&"spored"], &"torrent": [&"damp"]}  # Torrent: its Flood trail Soaks (Puddles)
 
 const LICHEN := &"lichen"
 const BROOD := &"brood"

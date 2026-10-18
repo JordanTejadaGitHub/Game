@@ -783,9 +783,9 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 		# complete Reactions, but the strike itself is never a chain link.
 		if kindling:
 			for kin_warden in [pair.a, pair.b]:
-				if is_instance_valid(kin_warden) and is_instance_valid(enemy) and not enemy.is_cleansed \
-						and kin_warden.attack_data.applies_status != &"":
-					kin_warden._apply_one_status(enemy, kin_warden.attack_data.applies_status, 1, kin_warden.get_damage())
+				var kin_status: StringName = Tower.first_status(kin_warden.attack_data, true) if is_instance_valid(kin_warden) else &""  # (A special's status too)
+				if is_instance_valid(enemy) and not enemy.is_cleansed and kin_status != &"":
+					kin_warden._apply_one_status(enemy, kin_status, 1, kin_warden.get_damage())
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			return
 

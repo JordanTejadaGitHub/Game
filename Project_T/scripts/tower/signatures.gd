@@ -143,7 +143,7 @@ static func job(tower: Tower) -> StringName:
 	if data.aura_crit_bonus > 0.0:
 		return &"aura_crit"  # White Stag: its only job is the crit aura
 	# No damage of its own, but a status it lays down on a rhythm (Honeysuckle's scent): +20% damage would be +0.
-	if data.can_attack and data.damage <= 0.0 and data.applies_status != &"" and data.attack_kind != TowerData.AttackKind.COPY:
+	if data.can_attack and data.damage <= 0.0 and not Tower.statuses_applied(data).is_empty() and data.attack_kind != TowerData.AttackKind.COPY:
 		return &"scent"
 	return &"damage"
 
