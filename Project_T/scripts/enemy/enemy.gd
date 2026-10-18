@@ -870,9 +870,9 @@ func _refuse_status(id: StringName) -> void:
 # A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
 # Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
 # A Dream card just changed status `id` on this nightmare (visual_feedback_spec.md C3 "Status pop"; the card code calls
-# it from its cue table): its badge bumps x1.2 with a Heartlight rim for DREAM_POP_TIME. Nothing if it isn't shown.
+# it from its cue table): its badge bumps x1.2 with a Heartlight rim for DREAM_POP_TIME. Nothing if it doesn't carry it; a status just added pops once the row lays it out.
 func dream_status_pop(id: StringName) -> void:
-	if is_cleansed or not id in _hud_ids:
+	if is_cleansed or not statuses.has(id):  # (Newly added: not in the row yet; the pop waits there for its layout)
 		return
 	_hud_pops[id] = DREAM_POP_TIME
 	_dream_pops[id] = true
@@ -1109,7 +1109,7 @@ func _update_hud_layout() -> void:
 	_hud_total = order.size()
 	_hud_ids = _pick_badges(order)
 	for id in _hud_ids:
-		if statuses.stacks(id) > int(before.get(id, 0)):
+		if statuses.stacks(id) > int(before.get(id, 0)) and not _dream_pops.has(id):  # (A Dream pop keeps its own)
 			_hud_pops[id] = STACK_POP_TIME
 	_hud_stacks.clear()
 	_hud_badge_widths.clear()
