@@ -342,15 +342,17 @@ func _refresh() -> void:
 			button.tooltip_text = _grow_tip(tower_placer.grow_changes(_tower, next), next)
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%s + %d for its rank %s." % [UiStyle.dew_amount(grow.base), grow.ranks, Tower.rank_name(_tower.rank)]
-			var taxed := Tower.grow_tax_text(grow)
-			if taxed != "":
-				button.tooltip_text += "\nGrow tax " + taxed  # Owner 2026-10-17: the more of that tier on the map, the more the next costs
+			var tax_line := _tax_line(grow)  # "300 + 285 grow tax · 8 finals on the map" ("" untaxed)
+			if tax_line != "":  # Owner 2026-10-17: the more of that tier on the map, the more the next costs
+				button.tooltip_text += "\n\n%s (%s).\n%s" % [tax_line, Tower.grow_tax_text(grow), GROW_TAX_TIP]
 			var free_ranks := int(grow.get("free_ranks", 0))
 			if free_ranks > 0:  # Free ranks stay free through growth (Tower Code 221af5d7)
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
 			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
+			if tax_line != "" and _phone:
+				note = tax_line  # Phones (user screenshot: "585" in orange, no reason): the tax in the role words' place
 			if note != "":
 				label += " · " + note
 			var wakes := _wakes(next)
@@ -373,6 +375,9 @@ func _refresh() -> void:
 				_priced(button, label, UiStyle.DEW_GLYPH + BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
 			var tower := _tower
 			button.pressed.connect(func() -> void:
+				if tax_line != "" and not _grow_tax_explained:  # The first taxed grow pressed: why it costs more, once
+					_grow_tax_explained = true
+					_toast(GROW_TAX_TIP)
 				if tower_seller.refuse_if_short([tower], next, true, index):
 					return  # Short of Dew: the refusal (shake, toast, Dew counter); nothing previewed or spent
 				if _touch and _confirm_grow != next:
@@ -1007,6 +1012,21 @@ static func _grow_tip(changes: String, form: TowerData) -> String:
 	if form.description != "":
 		tip += "\n\n" + IconInfo.format(form.description)  # {spored}-style tokens as words
 	return tip
+
+# The grow tax (Tower Code 8a92cc8d; owner 2026-10-17) made plain: "300 + 285 grow tax · 8 finals on the map" ("" when the
+# grow isn't taxed). From Tower.get_grow_cost's base (the taxed form price) and tax share; ranks aren't taxed.
+const GROW_TAX_TIP := "Growing gets dearer the more branches or finals you already have on the map. Selling one lowers it."
+static var _grow_tax_explained := false  # Its one-time toast this session (plain data)
+
+static func _tax_line(grow: Dictionary) -> String:
+	var tax := float(grow.get("tax", 1.0))
+	if tax <= 1.0001:
+		return ""
+	var taxed := int(grow.get("base", 0))
+	var before := roundi(taxed / tax)
+	var count := int(grow.get("tax_count", 0))
+	var kind := ("branch" if count == 1 else "branches") if int(grow.get("tax_tier", 2)) == 2 else ("final" if count == 1 else "finals")
+	return "%s + %s grow tax · %d %s on the map" % [BossDossier.thousands(before), BossDossier.thousands(taxed - before), count, kind]
 
 # A grow row's small line (owner 2026-10-16: see which Dream cards a form wakes): its role tags (WardenRoles), then the
 # held cards it would wake, "Heavy, Area · wakes Hammerfall".
