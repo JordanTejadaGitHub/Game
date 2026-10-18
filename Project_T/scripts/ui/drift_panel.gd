@@ -300,6 +300,13 @@ func _unconfirmed_wardens() -> bool:
 # step, at the speed they had (1× / 2× / 3×). The pause menu open: Start does nothing. A choice screen or a Lesson keeps
 # its own pause (a waiting choice reopens instead).
 func _on_start_pressed() -> void:
+	# The button reads "Resume" (paused mid-drift, nothing pending): it only resumes, first, before any other check
+	# (user 2026-10-17, phone: "pressing Resume on a pause doesn't resume it": a stale Lesson or ghost Wardens stopped it).
+	# No drift start, no ghost check (ghosts stay ghosts); only an open choice screen blocks it.
+	if game_speed.paused and drift_director.pending_choice() == &"" and not drift_director.is_resting() and not run_state.is_over:
+		if not _choice_screen_open():
+			game_speed.set_paused(false)
+		return
 	if _overlay_open(&"pause_menu") or _overlay_open(LessonCard.GROUP):  # (PauseMenu has no class_name: its GROUP)
 		return
 	if _unconfirmed_wardens():
@@ -317,8 +324,17 @@ func _on_start_pressed() -> void:
 	reopen_choice(pending)
 
 func _overlay_open(group: StringName) -> bool:
-	for node in get_tree().get_nodes_in_group(group):
-		if node is CanvasItem and node.is_visible_in_tree():
+	for node in get_tree().get_nodes_in_group(group):  # Only one really on screen (a hidden or dying Lesson doesn't count)
+		if node is CanvasItem and is_instance_valid(node) and not node.is_queued_for_deletion() and node.is_visible_in_tree():
+			return true
+	return false
+
+# A choice screen (Dream / Calling, Omen, family pick, gift) is open on screen.
+func _choice_screen_open() -> bool:
+	var hud := get_parent()
+	for screen_name in PENDING_SCREENS.values():
+		var screen := hud.get_node_or_null(String(screen_name)) as CanvasItem if hud != null else null
+		if screen != null and screen.is_visible_in_tree():
 			return true
 	return false
 

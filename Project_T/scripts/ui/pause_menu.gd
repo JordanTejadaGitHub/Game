@@ -70,7 +70,7 @@ func _ready() -> void:
 	title.text = "Paused"
 	UiStyle.display(title, 32)
 	_menu.add_child(title)
-	var resume := _add_button("Resume", close)
+	var resume := _add_button("Resume", resume_game)
 	UiStyle.primary(resume)
 	var esc := UiStyle.key_chip("Esc")
 	esc.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
@@ -207,7 +207,7 @@ func _build_phone() -> void:
 	_status_line.add_child(pair_gap)
 	_status_pair(&"leaves", _status_leaves, "Leaves")
 	_menu.add_child(_status_line)
-	UiStyle.primary(_add_button("Resume", close))
+	UiStyle.primary(_add_button("Resume", resume_game))
 	for pane in [[&"run", "This run"], [&"codex", "Codex"], [&"settings", "Settings"]]:
 		var toggle := _add_button(pane[1], _show_pane.bind(pane[0]))
 		toggle.name = "Page" + String(pane[1]).replace(" ", "")
@@ -634,6 +634,12 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 		return
 	(_settings.get_meta("row") as Control).visible = false
 	codex.open(tab, entry)
+
+# The Resume button (PC and phones): closes the menu and the game runs, even when it was paused (II) before the menu
+# opened (user 2026-10-17, phone: "pressing Resume on a pause doesn't resume it"). Esc keeps close(): the pause as it was.
+func resume_game() -> void:
+	close()
+	game_speed.set_paused(false)
 
 func close() -> void:
 	visible = false
