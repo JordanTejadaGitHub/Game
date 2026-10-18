@@ -15,6 +15,11 @@ const FACE_SMALL := 36.0
 const FACE_BIG := 64.0  # A new rule-breaker at a rest (RuleBreakers)
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
+# Phones (user 2026-10-17: "Coming this block is taking up a space"): no caption, one row of small discs on a tight fog,
+# right under the banner. A tap on a disc still opens its card.
+const PHONE_FACE := 40.0
+const PHONE_PER_ROW := 8
+var _phone := false
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const DIM := Color(1, 1, 1, 0.4)
 
@@ -42,11 +47,18 @@ func _ready() -> void:
 	_row.add_theme_constant_override("separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
+	_phone = UiStyle.is_phone()
+	if _phone:
+		_caption.visible = false
+		add_theme_constant_override("separation", 0)
 	visible = false
 	resized.connect(queue_redraw)
 
 # The strip sits on a fog panel (Moonlit Thread), a little larger than its content.
 func _draw() -> void:
+	if _phone:
+		draw_style_box(_fog, Rect2(Vector2(-6, -4), size + Vector2(12, 8)))  # Tight on phones
+		return
 	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
 
 const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
@@ -168,12 +180,14 @@ func _build(span: Vector2i) -> void:
 			kinds = first_ones + kinds.filter(func(k: Array) -> bool: return not breaking.has(k[0].resource_path))
 	var shown := kinds
 	var rest: Array = []
-	if kinds.size() > PER_ROW * 2:  # The last slot becomes "+N"
-		shown = kinds.slice(0, PER_ROW * 2 - 1)
-		rest = kinds.slice(PER_ROW * 2 - 1)
+	var per_row := PHONE_PER_ROW if _phone else PER_ROW
+	var cap := per_row if _phone else PER_ROW * 2  # Phones: one row
+	if kinds.size() > cap:  # The last slot becomes "+N"
+		shown = kinds.slice(0, cap - 1)
+		rest = kinds.slice(cap - 1)
 	var line: HBoxContainer = null
 	for i in shown.size():
-		if i % PER_ROW == 0:
+		if i % per_row == 0:
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
 			line.add_theme_constant_override("separation", 6)
@@ -216,6 +230,8 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	item.add_theme_constant_override("separation", 1)
 	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var side := FACE_SMALL if compact else (FACE_BIG if breaks_rules else FACE)
+	if _phone:
+		side = PHONE_FACE  # Phones: one small row (user 2026-10-17: "Coming this block is taking up a space")
 	# The disc and its badges as siblings in a holder: the disc clips its art, the badges must not be clipped
 	# (user screenshot: "New" showed as "EW", the counts as "×1?").
 	var holder := Control.new()
@@ -297,7 +313,8 @@ func _more_chip(rest: Array) -> Control:
 	chip.name = "More"
 	chip.text = "+%d" % rest.size()
 	chip.focus_mode = Control.FOCUS_NONE
-	chip.custom_minimum_size = Vector2(FACE_SMALL if compact else FACE, FACE_SMALL if compact else FACE)
+	var chip_side := PHONE_FACE if _phone else (FACE_SMALL if compact else FACE)
+	chip.custom_minimum_size = Vector2(chip_side, chip_side)
 	chip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	chip.tooltip_text = ", ".join(rest.map(func(k: Array) -> String: return k[0].display_name))
 	var kinds: Array = rest.filter(func(k: Array) -> bool: return not k[0].is_boss).map(func(k: Array) -> EnemyData: return k[0])
