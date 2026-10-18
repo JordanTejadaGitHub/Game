@@ -358,6 +358,26 @@ static func near_dreamcatcher(enemy: Node2D) -> bool:
 static func need(base: int) -> int:
 	return ceili(base / 2.0) if _half_need and base in HALF_NEED_BASES else base
 
+# The stacks of status `id` from which some Reaction can count it: the lowest of its Reactions' needs, through need()
+# (Brimming never raises a Reaction's need, owner 2026-10-16), 0 when no Reaction uses `id`; Sleep counts only full.
+# For the status row's Reaction-ready frame (screens_ui.md "Status row: Reaction-ready marks and falling asleep";
+# Enemy Code 2026-10-18). Keep it in step when a Reaction's threshold changes.
+static func ready_need(id: StringName, s: EnemyStatuses) -> int:
+	match id:
+		EnemyStatuses.DAMP:
+			return need(SOAKED_NEEDED)
+		EnemyStatuses.HELD:
+			return need(ROOTED_NEEDED)
+		EnemyStatuses.MARKED:
+			return need(EXPOSED_NEEDED)
+		EnemyStatuses.STATIC:
+			return need(IGNITE_MIN_STATIC)  # Ignite, Night Terror (Thunderclap's own is higher)
+		EnemyStatuses.SPORED:
+			return need(mini(IGNITE_MIN_SPORES, mini(SMOTHER_MIN_SPORES, MUSHROOM_MIN_SPORES)))  # (Sleepwalk too)
+		EnemyStatuses.DROWSY:
+			return s.normal_cap(EnemyStatuses.DROWSY)  # Full Sleep (its normal cap, as the checks read it): Drown, Pinned, Sleepwalk, Night Terror
+	return 0
+
 # Brimming's doubled count, for what still doubles: card and Warden payoffs that read it (not Reactions).
 static func buildup_threshold(base: int) -> int:
 	if _half_need and base in HALF_NEED_BASES:

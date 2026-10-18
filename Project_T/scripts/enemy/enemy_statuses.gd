@@ -27,7 +27,7 @@ const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STA
 const DEFAULT_MAX_STACKS := {DAMP: 8, DROWSY: 20, SPORED: 32, MARKED: 10, STATIC: 20, HELD: 4}
 const BOSS_MAX_STACKS := {DROWSY: 12, STATIC: 30}
 const COLORS := {  # Marks the Wardens put on nightmares, so they keep the Wardens' colours (one each)
-	DAMP: Palette.DEWLIGHT, DROWSY: Palette.BLOSSOM, SPORED: Palette.SPRIG,
+	DAMP: Palette.DEWLIGHT, DROWSY: Palette.BLOSSOM, &"asleep": Palette.BLOSSOM, SPORED: Palette.SPRIG,
 	MARKED: Palette.GOLD, STATIC: Palette.GLOW, HELD: Palette.MOONLIGHT,
 }
 # The White Stag's aura (a Memory Warden): nightmares inside are slower and take more damage.
@@ -238,6 +238,10 @@ var silence_time := 0.0:  # Hushbell (BranchKit.silence): while > 0 it uses no a
 # Silence as a status badge (Main 2421cbd6): SILENCED is its id (not in _active); silence_full is the
 # longest it was set to this silence (for the time bar), and starting or ending it bumps `changes`.
 const SILENCED := &"silenced"
+# Asleep as a status badge (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): ASLEEP is its id (not in
+# _active, no stacks); sleep_full is the longest this sleep was set to (its draining ring). Enemy swaps it in for Drowsy.
+const ASLEEP := &"asleep"
+var sleep_full := 0.0
 var silence_full := 0.0
 var _silence_last := 0.0
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
@@ -469,12 +473,16 @@ func potency(id: StringName) -> float:
 	return _active[id].potency if _active.has(id) else 0.0
 
 func time_left(id: StringName) -> float:
+	if id == ASLEEP:
+		return sleep_time
 	if id == SILENCED:
 		return silence_time
 	return _active[id].time if _active.has(id) else 0.0
 
 # Share of its timer left, 1 → 0 (the status badge's draining rim arc).
 func time_share(id: StringName) -> float:
+	if id == ASLEEP:
+		return clampf(sleep_time / maxf(sleep_full, 0.001), 0.0, 1.0)
 	if id == SILENCED:
 		return clampf(silence_time / maxf(silence_full, 0.001), 0.0, 1.0)
 	if not _active.has(id):
@@ -952,6 +960,7 @@ func drop_oldest_spore_batch() -> void:
 func sleep(seconds: float) -> bool:
 	if is_boss or (sleep_cooldown > 0.0 and sleep_time <= 0.0):
 		return sleep_time > 0.0
+	sleep_full = seconds if sleep_time <= 0.0 else maxf(sleep_full, seconds)  # (The Asleep badge's ring)
 	sleep_time = maxf(sleep_time, seconds)
 	return true
 

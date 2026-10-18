@@ -137,7 +137,7 @@ const STATUS_BADGE := 28.0
 const STATUS_BADGE_BIG := 32.0
 const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
-const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
+const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"asleep", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
 const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
 const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
@@ -165,6 +165,16 @@ const REACTION_BONUS_ONLY := {&"shatter": Reactions.SHATTER_MULTIPLIER, &"pinned
 	&"lightning_rod": Reactions.ROD_MULTIPLIER,
 	&"smother": Reactions.SMOTHER_BURST}  # (council rx review 2026-10-17) only the burst's bonus half is the Reaction's
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
+# The status row and the nightmare itself (screens_ui.md "Status row: Reaction-ready marks and falling asleep", 2026-10-18).
+const READY_FRAME_COLOR := Palette.DEWLIGHT  # A 1 px square round a status with enough stacks for a Reaction
+const SLEEP_SETTLE_TIME := 0.35  # Seconds to settle into sleep (and back out)
+const SLEEP_SINK := 1.5  # Px it sinks asleep
+const SLEEP_LEAN := 0.1  # Radians it leans asleep (none under reduced motion)
+const SLEEP_EYES := 0.33  # Its eye / core glow asleep (× the shader's; instance uniform eye_glow)
+const WAKE_JOLT_TIME := 0.25  # Waking: a short hop, the eyes flaring back
+const WAKE_HOP := 2.0  # Px up at the jolt's peak
+const WAKE_EYE_FLARE := 1.6
+const SLEEP_MOTE_EVERY := 1.0  # Seconds between "z" motes
 const COAT_COLOR := Palette.STONE
 const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the glint itself is Fx.crit)
 
@@ -281,6 +291,19 @@ const ARC_TAG := &"fence"  # Jarlink / Lightning Fence arcs: it twitches while t
 const ARC_TWITCH := 0.7  # px
 signal sustained_changed(enemy: Node2D, tag: StringName, on: bool)
 var _flinch_left := 0.0
+# Falling asleep (_update_sleep): asleep last frame, the Asleep badge in for Sleep (after its flash), how far it has
+# settled (0..1), the sink / lean / eye glow shown, the waking jolt, the next "z" mote and the latest one.
+var _was_asleep := false
+var _asleep_badge := false
+var _asleep_swap := 0.0
+var _settle := 0.0
+var _sleep_sink := 0.0
+var _sleep_lean := 0.0
+var _eye_shown := 1.0
+var _wake_jolt := 0.0
+var _mote_left := 0.0
+var _mote: WeakRef = null
+var _hud_primed: Array[bool] = []  # Per shown badge: enough stacks for a Reaction (the blue frame)
 var _flinch_recoil := Vector2.ZERO  # The recoil at its start (px); eases back to zero
 var _flinch_flash := 0.0  # The flash at its start
 var _recoil := Vector2.ZERO  # Added to the sprite's offset only (recoil + arc twitch)
@@ -577,6 +600,8 @@ func _process(delta: float) -> void:
 				_status_flash.erase(id)
 	if _crit_flash > 0.0:
 		_crit_flash = maxf(_crit_flash - delta, 0.0)
+	if _was_asleep or _settle > 0.0 or _wake_jolt > 0.0 or statuses.sleep_time > 0.0:
+		_update_sleep(delta)  # Falling asleep / waking (screens_ui.md); nothing for an awake, settled nightmare
 	if _pose_left > 0.0:
 		_pose_left = maxf(_pose_left - delta, 0.0)
 	if not _sustained.is_empty():
@@ -996,7 +1021,7 @@ func _update_hud_layout() -> void:
 		before[_hud_ids[i]] = _hud_stacks[i]
 	var order := get_status_order()
 	_hud_total = order.size()
-	_hud_ids = order.slice(0, STATUS_BADGES_MAX)
+	_hud_ids = _pick_badges(order)
 	for id in _hud_ids:
 		if statuses.stacks(id) > int(before.get(id, 0)):
 			_hud_pops[id] = STACK_POP_TIME
@@ -1006,6 +1031,7 @@ func _update_hud_layout() -> void:
 	_hud_full.clear()
 	_hud_colors.clear()
 	_hud_icons.clear()
+	_hud_primed.clear()
 	for id in _hud_ids:
 		var stacks := statuses.stacks(id)
 		var cap := statuses.get_max_stacks(id)
@@ -1015,7 +1041,11 @@ func _update_hud_layout() -> void:
 		_hud_badge_widths.append(maxf(get_badge_size() + 2.0, label_width))
 		_hud_full.append(cap > 1 and stacks >= cap)
 		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
-		_hud_icons.append(_status_icon(id))
+		var icon := _status_icon(id)
+		if icon == null and id == EnemyStatuses.ASLEEP:
+			icon = _status_icon(EnemyStatuses.DROWSY)  # No Asleep icon in the sheet yet: Sleep's, with a "z" (_build_hud_marks)
+		_hud_icons.append(icon)
+		_hud_primed.append(_is_primed(id))
 
 # Status icon i's centre in the badge items' space (screen px round the anchor): a row of icons with
 # room under each for its time bar.
@@ -1107,18 +1137,43 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 				var at := Rect2(x + (k - row * per_row) * (pip + 1.0), y, pip, pip)
 				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
 				atlas.draw_rect_region(item, at, dot, lit if k < shown_stacks else Color(color, 0.25))
-		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
-		atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
-		var steps := _time_steps(i)
-		if steps > 0:
-			bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
-			atlas.draw_rect_region(item, bar, solid, color)
+		if id == EnemyStatuses.ASLEEP:
+			_draw_asleep_mark(item, centre, r, color, i)  # A draining ring instead of the time bar
+		else:
+			var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
+			atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
+			var steps := _time_steps(i)
+			if steps > 0:
+				bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
+				atlas.draw_rect_region(item, bar, solid, color)
+		if i < _hud_primed.size() and _hud_primed[i]:  # Reaction-ready: a 1 px square just outside the icon (a shape, not only a colour)
+			var box := Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0).grow(1.0)
+			RenderingServer.canvas_item_add_polyline(item, PackedVector2Array([box.position, Vector2(box.end.x, box.position.y),
+				box.end, Vector2(box.position.x, box.end.y), box.position]), PackedColorArray([READY_FRAME_COLOR]), 1.0)
 		if _hud_icons[i] == null:
 			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
 		if _status_flash.has(id):
 			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
 			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
 			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
+
+# The Asleep badge's marks: a ring round the icon that drains with the sleep left (in the time bars' steps), and while
+# the sheet has no Asleep icon (Sleep's stands in) a small "z" at its top right.
+func _draw_asleep_mark(item: RID, centre: Vector2, r: float, color: Color, i: int) -> void:
+	var share := float(_time_steps(i)) / NightmareOverlay.TIME_STEPS
+	var radius := r + 2.5
+	var full := PackedVector2Array()
+	for k in 25:
+		full.append(centre + Vector2.from_angle(-PI / 2.0 + TAU * k / 24.0) * radius)
+	RenderingServer.canvas_item_add_polyline(item, full, PackedColorArray([Color(Palette.VOID, 0.75)]), 3.0)
+	var points := int(ceil(24.0 * share))
+	if points > 0:
+		RenderingServer.canvas_item_add_polyline(item, full.slice(0, points + 1), PackedColorArray([color]), 1.5)
+	if _status_icon(EnemyStatuses.ASLEEP) == null:
+		var at := centre + Vector2(r - 1.0, -r + 1.0)
+		var z := PackedVector2Array([at + Vector2(-2, -2), at + Vector2(2, -2), at + Vector2(-2, 2), at + Vector2(2, 2)])
+		RenderingServer.canvas_item_add_polyline(item, z, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
+		RenderingServer.canvas_item_add_polyline(item, z, PackedColorArray([Palette.MOONLIGHT]), 1.0)
 
 # The bare pixel-art status icons, at the badge size (drawn nearest-neighbour: the icons' own look);
 # an icon that just gained a stack pops (bigger, easing back over STACK_POP_TIME).
@@ -1217,7 +1272,7 @@ static var test_view_rect := Rect2()  # Tests: stands in for the camera's view (
 # The statuses its badges show, most important first (BADGE_ORDER), at most STATUS_BADGES_MAX; the
 # rest only count towards the "+N".
 func get_badge_ids() -> Array:
-	return get_status_order().slice(0, STATUS_BADGES_MAX)
+	return _pick_badges(get_status_order())
 
 # Lines for the nightmare info panel about the limits on slow and sleep (tower_design.md "Slow and
 # sleep have limits"), under its statuses.
@@ -1234,6 +1289,9 @@ func get_status_order() -> Array:
 	var ids := statuses.active_ids()
 	if statuses.silence_time > 0.0:
 		ids.append(EnemyStatuses.SILENCED)  # Hushbell's silence (not one of _active's): a badge all the same
+	if _asleep_badge:  # Asleep takes Sleep's place once its flash has played (_update_sleep)
+		ids.erase(EnemyStatuses.DROWSY)
+		ids.append(EnemyStatuses.ASLEEP)
 	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return _badge_rank(a) < _badge_rank(b))
 	return ids
 
@@ -1844,9 +1902,96 @@ func _measure_foot_lift() -> void:
 func get_body_position() -> Vector2:
 	return global_position + _body_offset()
 
-# The drawn body's offset from the logical position: the rounded corner plus the foot lift.
+# The drawn body's offset from the logical position: the rounded corner plus the foot lift (and asleep, its sink).
 func _body_offset() -> Vector2:
-	return _corner_offset + Vector2(0, -_foot_lift)
+	return _corner_offset + Vector2(0, -_foot_lift + _sleep_sink)
+
+# Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): when Sleep fills into Asleep
+# (statuses.sleep_time from 0), the Sleep icon flashes once and turns into the Asleep badge; the nightmare settles
+# (sinks, leans, its eyes dim to SLEEP_EYES) and a "z" (sleep_z) rises every SLEEP_MOTE_EVERY s. Waking: a short hop, the
+# eyes flare back, the last "z" pops (sleep_pop). Reduced motion: no lean, hop or motes (the dim eyes and the badge stay). The
+# motes keep to the Fx budget (none at reduced effects or off screen). Called only while any of it is in play.
+func _update_sleep(delta: float) -> void:
+	var asleep := statuses.sleep_time > 0.0
+	if asleep and not _was_asleep:
+		_was_asleep = true
+		_wake_jolt = 0.0
+		_mote_left = SLEEP_MOTE_EVERY * 0.5
+		_asleep_swap = STATUS_FLASH_TIME if statuses.has(EnemyStatuses.DROWSY) else 0.0
+		if _asleep_swap > 0.0:
+			flash_status(EnemyStatuses.DROWSY)  # The Sleep icon flashes once, then turns into Asleep
+	elif not asleep and _was_asleep:
+		_was_asleep = false
+		_wake_jolt = WAKE_JOLT_TIME
+		if _mote != null:  # It had a "z": it pops (Tower Assets' sleep_pop) where the last one was, or above its head
+			var last: Node2D = _mote.get_ref()
+			var world := Reactions._world(self)
+			if world != null:
+				Fx.play(&"sleep_pop", last.global_position if is_instance_valid(last) else _head_top(), world)
+			if is_instance_valid(last):
+				last.queue_free()
+		_mote = null
+		if _asleep_badge:
+			_asleep_badge = false
+			_hud_changes = -1  # The row lays out again: Asleep goes
+			_hud_dirty = true
+	if asleep and not _asleep_badge:
+		_asleep_swap -= delta
+		if _asleep_swap <= 0.0:
+			_asleep_badge = true
+			_hud_changes = -1  # The row lays out again: Asleep in Sleep's place
+			_hud_dirty = true
+	var still := bool(Fx.setting("reduced_motion", false))
+	_settle = move_toward(_settle, 1.0 if asleep else 0.0, delta / SLEEP_SETTLE_TIME)
+	_wake_jolt = maxf(_wake_jolt - delta, 0.0)
+	var jolt := sin(PI * (1.0 - _wake_jolt / WAKE_JOLT_TIME)) if _wake_jolt > 0.0 else 0.0
+	var sink := SLEEP_SINK * _settle - (0.0 if still else WAKE_HOP * jolt)
+	if sink != _sleep_sink:
+		_sleep_sink = sink
+		sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	var lean := 0.0 if still else SLEEP_LEAN * _settle * (-1.0 if sprite.flip_h else 1.0)
+	if lean != _sleep_lean and not _dragging:  # (A drag wobbles the sprite itself)
+		_sleep_lean = lean
+		sprite.rotation = lean
+	var eyes := lerpf(1.0, SLEEP_EYES, _settle) + (WAKE_EYE_FLARE - 1.0) * jolt
+	if eyes != _eye_shown:
+		_eye_shown = eyes
+		sprite.set_instance_shader_parameter(&"eye_glow", eyes)
+	if not asleep or still or _culled or Fx.reduced() or not Fx.on_screen(global_position):
+		return
+	_mote_left -= delta
+	if _mote_left > 0.0:
+		return
+	_mote_left = SLEEP_MOTE_EVERY
+	var world := Reactions._world(self)  # (Never under EnemyContainer: its children are all nightmares)
+	if world == null:
+		return
+	var mote := Fx.play(&"sleep_z", _head_top(), world)  # Tower Assets' sleep_z (2ad0c219): its anchor sits on the head
+	if mote != null:
+		_mote = weakref(mote)
+
+# Just above the drawn head (bounds.json "top", as the health bar is placed): where the sleep "z" rise from.
+func _head_top() -> Vector2:
+	return global_position + _body_offset() + Vector2(0.0, _bar_offset.y + BAR_ABOVE_HEAD)
+
+# Enough stacks of `id` for a Reaction to count it (Reactions.ready_need: its lowest need, Brimming's rule included).
+func _is_primed(id: StringName) -> bool:
+	var need := Reactions.ready_need(id, statuses)
+	return need > 0 and statuses.stacks(id) >= need
+
+# The badges shown, from `order` (get_status_order): at most STATUS_BADGES_MAX, most important first, but a
+# Reaction-ready status always keeps its place over one that isn't (screens_ui.md: a primed status is one of those shown).
+func _pick_badges(order: Array) -> Array:
+	if order.size() <= STATUS_BADGES_MAX:
+		return order
+	var picked: Array = order.filter(_is_primed).slice(0, STATUS_BADGES_MAX)
+	for id in order:
+		if picked.size() >= STATUS_BADGES_MAX:
+			break
+		if not id in picked:
+			picked.append(id)
+	picked.sort_custom(func(a: StringName, b: StringName) -> bool: return order.find(a) < order.find(b))
+	return picked
 
 # bounds.json, read once (plain numbers: safe to keep in a static).
 static func _art_bounds() -> Dictionary:
