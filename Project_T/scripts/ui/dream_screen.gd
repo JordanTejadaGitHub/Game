@@ -407,6 +407,8 @@ func _make_card(card: UpgradeData) -> Button:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spacer)
+	if _phone:
+		_add_keyword_chips(box)  # The underlined words as tap-sized chips at the card's foot
 	var secondary: Array[Label] = []
 	if card.entwined:  # The vine border says it; no "Entwined" label (user: "still don't know what Entwined is")
 		if card.woven:
@@ -555,6 +557,46 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 		label.meta_clicked.connect(_on_link_tapped)
 	box.add_child(label)
 	return label
+
+# Phones (user 2026-10-17: "hard to tap key words while in dream screen on cards"): the card's underlined words again as
+# a row of chips at its foot, each a real tap target; a tap opens the same tip as the word. Nothing when it has none.
+const CHIP_H := 40.0
+var _link_pattern := RegEx.create_from_string("\\[url=([^\\]]+)\\](.*?)\\[/url\\]")
+var _tag_pattern := RegEx.create_from_string("\\[[^\\]]*\\]")
+
+func _add_keyword_chips(box: VBoxContainer) -> void:
+	var row := HFlowContainer.new()
+	row.name = "KeywordChips"
+	row.add_theme_constant_override("h_separation", 6)
+	row.add_theme_constant_override("v_separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	var seen := {}
+	for child in box.get_children():
+		var label := child as RichTextLabel
+		if label == null or not label.has_meta(&"status_popup"):
+			continue
+		for found in _link_pattern.search_all(label.text):
+			var meta := found.get_string(1)
+			if seen.has(meta):
+				continue
+			seen[meta] = true
+			var chip := Button.new()
+			chip.text = _tag_pattern.sub(found.get_string(2), "", true)
+			chip.focus_mode = Control.FOCUS_NONE
+			chip.custom_minimum_size = Vector2(0, CHIP_H)
+			chip.add_theme_font_size_override("font_size", _fs(13))
+			chip.pressed.connect(_tap_keyword.bind(meta, label, chip))
+			row.add_child(chip)
+	if row.get_child_count() > 0:
+		box.add_child(row)
+	else:
+		row.free()
+
+func _tap_keyword(meta: String, label: RichTextLabel, chip: Control) -> void:
+	_on_link_tapped(meta)  # The card underneath doesn't look at / take itself
+	var popup := label.get_meta(&"status_popup") as StatusLinks
+	if popup != null and is_instance_valid(popup):
+		popup._show_for(meta, chip, true)
 
 # The diagram panel beside `button` (right of it, or left when there's no room), kept on screen.
 # Cards with a living mini-scene (CardScene.LIVE_CARDS) play it in the one pooled view; reduced motion and the
