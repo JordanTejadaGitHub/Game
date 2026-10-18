@@ -539,6 +539,14 @@ func note_card(id: StringName, at: Vector2, times: int = 1, from = null) -> void
 
 var _cue_cache := {}  # id -> [card id, cues] (the tables are constant)
 
+# C3 "status pop" for card code outside the Calling nodes (Enemy Code 334fa984 draws it): card `card` changed `status` on
+# `enemy`, so its badge bumps when the card's cue is status_pop.
+func card_status_pop(card: StringName, enemy, status: StringName) -> void:
+	if enemy == null or not is_instance_valid(enemy) or not enemy.has_method(&"dream_status_pop"):
+		return
+	if (_cue_entry(card)[1] as Array).has(&"status_pop"):
+		enemy.dream_status_pop(status)
+
 func _cue_entry(id: StringName) -> Array:
 	var entry: Array = _cue_cache.get(id, [])
 	if entry.is_empty():

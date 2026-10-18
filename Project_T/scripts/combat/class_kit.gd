@@ -97,6 +97,16 @@ func card_id(id: StringName) -> String:
 func setup_quiet(enemy, id: StringName, status: StringName, stacks: int) -> void:
 	if stacks > 0:
 		SETUP.note(enemy, card_id(id), status, float(stacks), true)
+		_status_pop(id, enemy, status)
+
+# C3 "status pop" (visual feedback spec; Enemy Code 334fa984 draws it): a card with that cue changed `status` on
+# `enemy`, so its badge bumps. The cue lookup is DreamState's per-id cache (no allocation).
+func _status_pop(id: StringName, enemy, status: StringName) -> void:
+	if dream_state == null or not living(enemy) or not enemy.has_method(&"dream_status_pop"):
+		return
+	var entry: Array = dream_state._cue_entry(StringName(card_id(id)))
+	if (entry[1] as Array).has(&"status_pop"):
+		enemy.dream_status_pop(status)
 
 # A Warden's non-native application made by card or evolution `id` (its stacks go in the ledger under `id`).
 func setup_apply(id: StringName, tower, enemy, status: StringName, stacks: int, soothe: float) -> void:
@@ -105,6 +115,7 @@ func setup_apply(id: StringName, tower, enemy, status: StringName, stacks: int, 
 	SETUP.begin(StringName(card_id(id)))
 	tower._apply_one_status(enemy, status, stacks, soothe, false)
 	SETUP.end()
+	_status_pop(id, enemy, status)
 
 func control(id: StringName, seconds: float) -> void:
 	SETUP.control(dream_state, id, seconds)

@@ -435,7 +435,7 @@ func area_attack(tower, hit: Array) -> void:
 		if other == worst or not is_instance_valid(other) or other.is_cleansed:
 			continue
 		for id in ids:
-			_give(other, ws, id, SHARED_FEVER_STACKS)
+			_give(other, ws, id, SHARED_FEVER_STACKS, &"shared_fever")
 		DREAM_TRANSFER.play(world, from, other.global_position, ids[0])  # A thread from the worst-hit one
 	_credit(SHARED_FEVER, from, tower)
 
@@ -501,7 +501,7 @@ func snare_line(tower, stepper) -> void:
 		if other == stepper or not is_instance_valid(other) or other.is_cleansed or other.global_position.distance_to(at) > reach:
 			continue
 		for id in ids:
-			_give(other, s, id, SNARE_STACKS)
+			_give(other, s, id, SNARE_STACKS, &"snare_line")
 		DREAM_TRANSFER.play(world, at, other.global_position, ids[0])
 		any = true
 	if any:
@@ -509,12 +509,14 @@ func snare_line(tower, stepper) -> void:
 		_credit(SNARE_LINE, at, tower)
 
 # A non-native application of `from`'s status `id` (its strength, family and source) on `other`.
-func _give(other, from: EnemyStatuses, id: StringName, stacks: int) -> void:
+func _give(other, from: EnemyStatuses, id: StringName, stacks: int, card: StringName = &"") -> void:
 	if not is_instance_valid(other) or other.is_cleansed:
 		return
 	var source: Node = from.source(id)
 	var line: String = from.spore_line() if id == EnemyStatuses.SPORED else (source.tower_data.line if source is Tower else "")
 	other.apply_status(id, stacks, 0.0, from.potency(id), 0, line, source)
+	if card != &"":
+		dreams.card_status_pop(card, other, id)  # C3 (visual feedback spec)
 
 # --- Caches --------------------------------------------------------------------------------------------------------------
 var _support_board := -1

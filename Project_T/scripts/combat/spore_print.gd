@@ -859,6 +859,7 @@ func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 func _setup_part(enemy, rule_id: StringName, status: StringName, stacks: int) -> void:
 	if stacks > 0:
 		SETUP.note(enemy, card_id(rule_id), status, float(stacks))
+		_status_pop(rule_id, enemy, status)  # C3: the stack card's extra shows on the badge (visual feedback spec)
 
 # Narrows and Mixed Company: a Warden's own status hit adds more (never Rooted; Charged stops one short of a bolt).
 func _stack_cards(tower, enemy, status: StringName, base: int) -> int:

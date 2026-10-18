@@ -503,6 +503,7 @@ func _graft_hit(tower, enemy) -> void:
 			continue
 		var status: StringName = Tower.first_status(form.attack_data)  # (A special's status too: Tower Code, keyword audit)
 		form._apply_one_status(enemy, status, GRAFT_STACKS, form.get_damage(), false)  # Non-native: no Calling hears it
+		dreams.card_status_pop(&"graft_of_dreams", enemy, status)  # C3 (visual feedback spec)
 		var key: int = tower.get_instance_id()
 		if not showed and _clock() >= float(_graft_thread.get(key, -1.0)) and is_instance_valid(enemy):
 			showed = true
