@@ -25,9 +25,16 @@ func _run() -> void:
 	var low = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	low.set_process(false)
 	low.statuses.apply(EnemyStatuses.DAMP, 4)
-	low.statuses.apply(EnemyStatuses.HELD, 4)
+	low.statuses.apply(EnemyStatuses.HELD, 3)  # (3: below Root's Reaction need of 4, so no Reaction-ready room)
 	low._update_hud_layout()
-	_check(low._badge_centre(1).x - low._badge_centre(0).x <= 36.0, "small counts retain a compact badge row")
+	var compact: float = low._badge_centre(1).x - low._badge_centre(0).x
+	_check(compact <= 36.0, "small counts retain a compact badge row")
+	low.statuses.apply(EnemyStatuses.HELD, 1)  # 4 Root: Reaction-ready
+	low._update_hud_layout()
+	# (Root shows before Soak, so its room on the right is what moves Soak along)
+	_check(low._hud_ids == [&"held", &"damp"] and low._hud_primed == [true, false] \
+		and is_equal_approx(low._badge_centre(1).x - low._badge_centre(0).x, compact + low.READY_PAD_RIGHT),
+		"a Reaction-ready badge gets room for its corner brackets, and only that")
 	if "--capture" in OS.get_cmdline_user_args():
 		main.hide()
 		for layer in main.find_children("*", "CanvasLayer", true, false):
