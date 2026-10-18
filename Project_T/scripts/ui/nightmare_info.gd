@@ -64,6 +64,8 @@ func _process(delta: float) -> void:
 		_target = null
 		_await_move = true
 	var hovered := _hovered_nightmare()
+	if TouchBuild.mobile_controls() and _dispelled_left <= 0.0:
+		_target = hovered  # Phones: the tapped nightmare (or none: a tap elsewhere closed it)
 	if moved:
 		_await_move = false
 	if hovered != null and not _await_move and (hovered == _target or _target == null or moved):
@@ -163,7 +165,46 @@ static func restless_text(enemy: Node) -> String:
 		text += " (Unbound at %d)" % int(info.get("unbound_at", 3))
 	return text
 
+# Phones (user 2026-10-18): no hover. A tap on a nightmare opens its card and the card follows it; a tap anywhere else
+# closes it; while building, selling or selecting a tap never opens it (the tool takes the tap).
+const PHONE_TAP_RADIUS := 44.0  # A fingertip, in world px
+var _phone_pick: Node2D = null
+
+func _input(event: InputEvent) -> void:
+	if not TouchBuild.mobile_controls() or not (event is InputEventScreenTouch) or event.pressed:
+		return
+	if TouchBuild.gesture_moved() or (visible and get_global_rect().has_point(event.position)):
+		return  # A pan or pinch; or a tap on the card's own words
+	if _tool_active():
+		_phone_pick = null
+		return
+	var world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (event as InputEventScreenTouch).position
+	_phone_pick = _nightmare_near(world, PHONE_TAP_RADIUS)
+
+func _tool_active() -> bool:
+	var main := owner
+	if main == null:
+		return false
+	var placer := main.get_node_or_null("%TowerPlacer")
+	var seller := main.get_node_or_null("%TowerSeller")
+	return (placer != null and bool(placer.get("build_mode"))) or (seller != null and (bool(seller.get("sell_mode")) \
+		or bool(seller.get("select_mode"))))
+
+func _nightmare_near(world: Vector2, radius: float) -> Node2D:
+	var best: Node2D = null
+	var best_distance := radius
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		var distance: float = enemy.global_position.distance_to(world)
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
+
 func _hovered_nightmare() -> Node2D:
+	if TouchBuild.mobile_controls():
+		if _tool_active() or not is_instance_valid(_phone_pick) or _phone_pick.is_cleansed:
+			return null
+		return _phone_pick
 	var mouse: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
 	var best: Node2D = null
 	var best_distance := HOVER_RADIUS
