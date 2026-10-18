@@ -391,7 +391,7 @@ func _test_new_omens(main: Node) -> void:
 	_check(omens.get_spawn_modifiers(51).get("always_status") == &"damp" and is_equal_approx(omens.get_multiplier(51, "health_multiplier"), 1.5),
 		"Heavy Rain: always Soak, +50% health")
 	omens.active = by_id["sleepless"]
-	_check(Array(omens.get_spawn_modifiers(51).get("status_immune", [])) == [&"drowsy", &"held"], "Sleepless: immune to Sleep and Roots")
+	_check(Array(omens.get_spawn_modifiers(51).get("status_immune", [])) == [&"drowsy", &"held"], "Sleepless: immune to Sleep and Root")
 	_check(omens.describe_reward(by_id["blood_moon"], 3) == "" and omens.describe_reward(by_id["bountiful_night"], 3) == "",
 		"Blood Moon / Bountiful Night: no separate reward")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")

@@ -181,7 +181,7 @@ func get_panel_line(tower: Tower) -> String:
 				return "Sleep applied: %d" % roundi(s.drowsy)
 			return ""
 		&"control":
-			return "Roots %d s · pulled back %d cells this run" % [roundi(s.held_seconds), roundi(s.tiles_pulled)]
+			return "%s %d s · pulled back %d cells this run" % [IconInfo.status_name(EnemyStatuses.HELD), roundi(s.held_seconds), roundi(s.tiles_pulled)]
 	return ""
 
 # Every Warden with support credit in `period`: [{tower, name, kind, value, text}], best first.
@@ -209,7 +209,7 @@ func get_support_rows(period: String = "block") -> Array:
 				text = "%s applied %d Sleep" % [row.name, roundi(s.drowsy)]
 			&"control":
 				value = s.held_seconds + s.tiles_pulled
-				text = "%s: Roots %d s, pulled back %d cells" % [row.name, roundi(s.held_seconds), roundi(s.tiles_pulled)]
+				text = "%s: %s %d s, pulled back %d cells" % [row.name, IconInfo.status_name(EnemyStatuses.HELD), roundi(s.held_seconds), roundi(s.tiles_pulled)]
 		if value > 0.0:
 			rows.append({"tower": tower, "name": row.name, "kind": kind, "value": value, "text": text})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.value > b.value)

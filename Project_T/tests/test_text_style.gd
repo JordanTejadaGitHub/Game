@@ -270,7 +270,7 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 # "<owner> caps": TODO until the owner's sweep, then the owner joins CAPS_ENFORCED.
 const CAPS_ENFORCED: Array[String] = ["Main", "Roguelite Code", "Enemy Code", "Tower Code"]  # Main's sweep, Roguelite's, Enemy Code's, Tower Code's (2026-10-07)
 # Status verbs as role lines and descriptions use them ("Anti-air, Roots"); the nouns come from IconInfo.STATUSES (Soak, Sleep,
-# Poison, Exposure, Charge, Roots since 2026-10-17: capitalised whenever they mean the status).
+# Poison, Exposure, Charge, Root since 2026-10-17: capitalised whenever they mean the status).
 const STATUS_VERBS := ["roots", "soaks", "charges", "poisons", "drowses", "exposes", "silences", "freezes"]
 # Substrings of a text (lowercase) that use one of those words in its ordinary sense on purpose.
 const CAPS_EXCEPTIONS := [
@@ -278,7 +278,7 @@ const CAPS_EXCEPTIONS := [
 	"the seed a samara throws", "seeds it throws", "its seeds", "samara's seeds", "seeds in a fan", "5 seeds", "three seeds",
 	"seeds come", "birds, seeds", "rings and seeds", "seeds down",
 	"sprout charges", "five charges", "5 charges", "charges down",  # charges as a count, or a stag's charge
-	"heartwood's roots", "their roots", "its roots", "roots went", "roots that", "glowing roots", "roots erupt",  # roots of a tree
+	"heartwood's roots", "their roots", "its roots", "roots went", "roots that", "glowing roots", "roots erupt", "warden root",  # roots of a tree; the Grove's Warden root (a limb)
 	"caught seed", "when caught", "caught %d", "caught this run",  # caught as in catching, not the Caught status
 	"fall asleep", "falls asleep", "not charged", "rooted for good", "hidden one", "hidden branch",  # ordinary words
 	"sunlit rest", "watchful rest",  # Dream card names

@@ -21,7 +21,7 @@ extends RefCounted
 #   DreamKeywords.chips_for_warden(data)    -> the same for a TowerData (build ghost, Codex)
 #   DreamKeywords.chips_for_calling(id)     -> the same for a Calling evolution id (calling_paths.gd PATHS)
 #   DreamKeywords.glossary(id)              -> {name, text} (text uses card tokens; IconInfo.format renders them)
-#   DreamKeywords.label(id)                 -> the chip's word ("Jump", "Rooted")
+#   DreamKeywords.label(id)                 -> the chip's word ("Jump", "Root")
 
 const MAKES := &"makes"
 const USES := &"uses"
@@ -56,7 +56,7 @@ const WORDS := {
 	&"soaked": {"name": "Soak", "text": "{damp}: the nightmare conducts water and lightning."},
 	&"drowsy": {"name": "Sleep", "text": "{drowsy}: the nightmare slows, and falls {asleep} at {full}."},
 	&"exposed": {"name": "Exposure", "text": "{marked}: built up, the nightmare takes more damage."},
-	&"rooted": {"name": "Roots", "text": "{held}: the nightmare cannot move for a moment."},
+	&"rooted": {"name": "Root", "text": "{held}: the nightmare cannot move for a moment."},
 	&"asleep": {"name": "Asleep", "text": "{asleep}: the nightmare stops until a hit wakes it."},
 }
 

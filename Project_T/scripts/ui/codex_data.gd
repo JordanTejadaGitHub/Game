@@ -107,7 +107,7 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		# (council rx review 2026-10-17) The one-full-Drowsy order, once, here.
-		["{drowsy}", "{tip:drowsy} A full {drowsy} sets off one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
+		["{drowsy}", "{tip:drowsy} At {full} {drowsy}, a nightmare sets off one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
@@ -271,7 +271,7 @@ const KINSHIP_TEXT := {
 	&"storm_beacon": "Stormcap's jumps give nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to nightmares with {marked}.",
 	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
-	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
+	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
@@ -567,7 +567,7 @@ const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between nightmares with {damp} (the Conducted combo).", ["Conducted"]],
-	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
+	[&"asleep", "Asleep", "At {full} {drowsy}, the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 ]
 const ALWAYS_SHOWN: Array[StringName] = []  # (Weak and Resisted went with damage types: Nightmare Kinds)
 

@@ -204,7 +204,7 @@ static func _statuses(text: String, once: bool = false) -> String:
 # Role lines (TowerData.role_line, test_role_lines' vocabulary) link their glossary words (user, 2026-10-07: "make sure
 # for Silences, it has the underline of what it means"): word -> IconInfo STATUSES / STATS id. A vocabulary word not
 # here, or an id with no entry, stays plain.
-const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "soaks": &"damp",
+const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "root": &"held", "soaks": &"damp",
 	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen",
 	"crits": &"crit_chance", "puts to sleep": &"asleep"}  # Tower Discussion cae6d300: "Stuns" became "Puts to sleep"
 # Tags that answer a Nightmare Kind (enemy_design.md ed6f573b) link to that Kind's glossary entry (IconInfo.TERMS), the
