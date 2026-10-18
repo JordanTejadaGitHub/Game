@@ -11,6 +11,25 @@ extends RefCounted
 const SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "BossDossier",
 	"NightmareIntro", "LessonCard", "PauseMenu", "ResultsScreen"]
 
+# Whether a screen covers the map now, for HUD pieces that sit over it (the Coming strip, the boss reminder): a choice
+# (Dream, Calling, Omen, family pick, gift), Remember, the boss dossier, an intro, a Lesson, the pause menu or the
+# results. "Peek at the map" uncovers the choice screens (planning what's coming is part of choosing); the pause menu and
+# the results always cover. `hud` = the HUD node; `except` = a screen not to count (the caller itself). One place, so
+# nothing else sets those pieces' visibility (user phone screenshot 2026-10-17: the strip flickered behind a choice).
+const ALWAYS_COVER := ["PauseMenu", "ResultsScreen"]
+static func covering(hud: Node, except: Node = null) -> bool:
+	if hud == null:
+		return false
+	var peeking := ChoicePeek.any_peeking()
+	for screen_name in SCREENS:
+		var screen := hud.get_node_or_null(screen_name) as CanvasItem
+		if screen == null or screen == except or not screen.visible:
+			continue
+		if peeking and not ALWAYS_COVER.has(screen_name):
+			continue
+		return true
+	return false
+
 # Whether a covering screen other than `caller` is open (a choice screen waits for it before opening).
 static func any_open(caller: Node, director: DriftDirector) -> bool:
 	var hud := director.owner.get_node_or_null("HUD") if director != null and director.owner != null else null

@@ -227,6 +227,14 @@ func _process(delta: float) -> void:
 			_boss_time[id] += delta
 	if _reminder_drift > 0 and not drift_director.is_resting():
 		_hide_reminder()  # The boss block started
+	if _reminder != null and _reminder_drift > 0:
+		# Hidden, steadily, while a screen covers the map (the dossier itself, a choice, a Lesson…; "Peek at the map"
+		# shows it), the same rule as the Coming strip (RestScreens.covering)
+		var shown := not RestScreens.covering(get_parent())
+		if _reminder.visible != shown:
+			_reminder.visible = shown
+			if shown:
+				_place_reminder()  # Under the strip, which may have come back too
 	elif _reminder_drift > 0:
 		_place_reminder()
 	if _pending_first:

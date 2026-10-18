@@ -59,10 +59,10 @@ func _process(delta: float) -> void:
 	_clock = REFRESH
 	_stack()
 	var span := shown_span()
-	var pause := get_parent().get_node_or_null("PauseMenu") as Control if get_parent() != null else null  # A sibling (made in code: no % owner)
-	# Hidden under the pause menu: its panels (Settings, Codex) are tall enough to reach the strip at 1280×720
-	# virtual (user screenshot at the largest UI size).
-	visible = span.y >= span.x and not (pause != null and pause.visible)
+	# Hidden, steadily, while a screen covers the map (RestScreens.covering: a choice, Remember, a Lesson, the pause menu…;
+	# "Peek at the map" shows it again). Only this line sets the strip's visibility (it flickered behind the Dream screen
+	# when the phone HUD hid it too, user screenshot 2026-10-17).
+	visible = span.y >= span.x and not RestScreens.covering(get_parent())
 	if not visible:
 		_built_for = ""
 		return

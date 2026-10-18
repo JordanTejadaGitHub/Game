@@ -565,9 +565,7 @@ func _hud_under_choice() -> Array:
 		nodes.append(get_node_or_null(node_name))
 	for node_name in _top_row_names():
 		nodes.append(get_node_or_null(node_name))
-	for child in get_children():
-		if child is ComingStrip:
-			nodes.append(child)
+	# (Not the Coming strip: it hides itself under any covering screen, RestScreens.covering; two setters made it flicker)
 	return nodes.filter(func(n) -> bool: return n is CanvasItem and is_instance_valid(n))
 
 func _hide_under_choice() -> void:
