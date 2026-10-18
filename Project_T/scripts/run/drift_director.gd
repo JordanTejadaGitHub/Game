@@ -112,7 +112,7 @@ func get_late_multiplier(number: int) -> float:
 @export var act1_health_multiplier: float = 1.30  # Balancing power budget (owner review 2026-10-16): 1.30, not 1.40 (base damage drops ~20% beside it); was 1.20. (Earlier: be7b5a94 with copy pricing 0.08; 1.30 after half cells, 1.15, 1.25, 1.35)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
-@export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
+@export var early_acts_health_multiplier: float = 3.6  # Act 2 ends at this. Balancing 2026-10-18: was 4.5; runs kept ending at drifts 38-45 and drift 50 was rarely reached ("Human run 7" set 4.5; earlier 3.6, 3.0, 2.5, 1.55)
 @export var act2_start_health_multiplier: float = 2.0  # …starting from this at act 2's first drift (Spire: one straight line to 4.5 @45; was 1.7, 2.0, 1.6, 1.3)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
