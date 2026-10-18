@@ -213,7 +213,7 @@ func _watch_field(delta: float) -> void:
 # --- Status Lessons point at the nightmare (onboarding.md, user 2026-10-12) ----------------------------------------
 # One plain sentence per status: live numbers, the Reactions link, no internals (the exact figures stay in the status
 # tooltip and the Codex).
-const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a stack; the icon above a nightmare shows how many. Two full statuses on one nightmare set off a {reaction}. A blue frame: enough stacks for a Reaction."
+const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a stack; the icon above a nightmare shows how many. Two full statuses on one nightmare set off a {reaction}. Blue corner brackets round a status: enough stacks for a Reaction."
 const RANK_RULES_AT := 4  # Rank IV: the next rank is the one the rules are about
 var _after: Array = []  # The status Lesson that follows "Statuses stack"
 const STATUS_LINES := {
