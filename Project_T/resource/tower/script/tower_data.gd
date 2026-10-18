@@ -30,6 +30,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # Heavy (Firefly class prototype, dream_council_review.md 20): one slow, big hit at a main target. Set by hand on
 # each form (the spec's Heavy list); Hammerfall, Knock-On and Spotlight fork a heavy Warden's hit.
 @export var heavy: bool = false
+# Support (Balancing Discussion, owner 2026-10-18: "bit unfair, maybe add a support tag"): hand-set on forms whose main
+# job isn't their own damage (economy, statuses set up or spread, Exposes, Drowses, Silences, reveals, links, copies).
+# Shown like Heavy (the Warden bar, the panel, the grow list: "Support: less damage, <its job>"); no stat changes.
+@export var support: bool = false
 @export_multiline var description: String = ""  # One line for the Warden panel
 @export var cost: int = 10  # Dew cost to build
 @export var texture: Texture2D  # Tower sprite; leave empty to draw a placeholder block

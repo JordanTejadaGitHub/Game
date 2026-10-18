@@ -13,6 +13,7 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 display_name = "Hushbell"
 role_line = "Area damage, Silences"
+support = true
 description = "Rings out, damaging every nightmare in range and leaving them {silenced}: they can't use their abilities (no waking, no healing; bosses' timed abilities come at half speed)."
 cost = 0
 placeholder_color = Color(0.705882, 0.690196, 0.784314, 1)

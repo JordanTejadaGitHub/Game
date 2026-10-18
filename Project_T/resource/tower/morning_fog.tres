@@ -9,6 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Morning Fog"
 role_line = "Area damage, Soaks, reveals Hidden"
+support = true
 description = "A wide fog that lasts {field:morning_fog.cloud_duration:seconds}. Nightmares in it have {damp}, for {field:morning_fog.status_duration:seconds} after leaving too, and {spored} hurts more. Nothing can hide or heal in it."
 cost = 0
 counter_tags = Array[StringName]([&"detection", &"anti_support"])

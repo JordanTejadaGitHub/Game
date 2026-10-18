@@ -10,6 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Bloomcap"
 role_line = "Drowses, area damage, slow attacks"
+support = true
 description = "Leaves a sleepy cloud on the path that gives nightmares {drowsy}."
 cost = 0
 texture = ExtResource("2_tex")

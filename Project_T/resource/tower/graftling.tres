@@ -9,6 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Graftling"
 role_line = "Copies a neighbour"
+support = true
 description = "Copies the attack of its strongest neighbouring Warden at {field:graftling.copy_share:pct}, statuses and all."
 cost = 0
 texture = ExtResource("2_tex")

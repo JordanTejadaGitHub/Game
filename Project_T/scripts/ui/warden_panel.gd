@@ -1102,6 +1102,16 @@ static func _tax_line(grow: Dictionary) -> String:
 func _grow_note(form: TowerData) -> String:
 	var parts: Array[String] = []
 	var tags := WardenHeaderView.role_tags(form)
+	if form.support:
+		# Support (owner 2026-10-18): "Support: less damage, <its job>" so growing into one isn't a surprise.
+		var terms := IconInfo.role_terms(form.role_line)
+		var job: String = ""
+		for term: String in terms:
+			if term.to_lower() != "support":
+				job = term.to_lower()
+				break
+		parts.append("Support: less damage" + (", " + job if job != "" else ""))
+		tags.erase("Support")
 	if not tags.is_empty():
 		parts.append(", ".join(tags))
 	var wakes := _wakes(form)

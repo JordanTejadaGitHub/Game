@@ -52,7 +52,7 @@ static func has_role(data: TowerData, role: StringName) -> bool:
 		SNIPER:
 			return data.min_range > 0.0 or data.has_target_priority
 		SUPPORT:
-			return data.aura_radius > 0.0 or data.attack_kind == TowerData.AttackKind.AURA or data.role_tag == &"support" \
+			return data.support or data.aura_radius > 0.0 or data.attack_kind == TowerData.AttackKind.AURA or data.role_tag == &"support" \
 				or data.caught_bonus > 0.0
 	return false
 

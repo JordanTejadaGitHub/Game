@@ -9,6 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Grafted Elder"
 role_line = "Copies a neighbour, high damage"
+support = true
 description = "Copies its strongest neighbour's attack at full strength."
 cost = 0
 texture = ExtResource("2_tex")

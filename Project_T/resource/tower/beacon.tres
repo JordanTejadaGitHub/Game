@@ -10,6 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Beacon"
 role_line = "Exposes, multi-target, long range"
+support = true
 heavy = true
 description = "Every 2 s, adds 1 {stack} of {marked} to every nightmare in range. At {full} stacks, its {marked} is stronger: +50% damage taken."
 cost = 0
