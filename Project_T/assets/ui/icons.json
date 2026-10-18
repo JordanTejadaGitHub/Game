@@ -27,6 +27,7 @@
 	"icons": {
 		"always_damp": 0,
 		"ash": 43,
+		"asleep": 97,
 		"attack_speed": 11,
 		"avalanche": 74,
 		"bog_water": 31,
@@ -226,6 +227,7 @@
 		"frozen",
 		"deeply_blighted",
 		"hidden",
-		"silenced"
+		"silenced",
+		"asleep"
 	]
 }
