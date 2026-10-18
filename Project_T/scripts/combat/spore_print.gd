@@ -544,6 +544,7 @@ func _stepped(point: Vector2, enemy) -> void:
 		if partner != null and living(enemy):
 			setup_apply(EVERYTHING_GROWS, partner, enemy, status_of(partner), EVERYTHING_STACKS, partner.get_damage())
 	m.last = enemy.get_instance_id()
+	Reactions._effect(MUSHROOM_POP, _spot(point)[0] + Vector2(0.0, -8.0), self, 1.0)  # The eaten cap pops (Tower Assets eaed6c74)
 	m.caps = int(m.caps) - 1
 	if int(m.caps) > 0:
 		queue_redraw()
@@ -738,6 +739,11 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	if dream_state == null or not place_on() or get_tree().paused:
 		return
+	var breathe := int(Time.get_ticks_msec() / 1000.0 * MUSHROOM_FPS) % MUSHROOM_FRAMES  # The mushrooms breathe (4 fps)
+	if breathe != _breathe_frame:
+		_breathe_frame = breathe
+		if not mushrooms.is_empty() or not _regrow.is_empty():
+			queue_redraw()
 	# The regrow clocks run only during a drift
 	if not resting() and not _regrow.is_empty():
 		for point in _regrow.keys():
@@ -1013,10 +1019,10 @@ func _draw() -> void:
 			draw_circle(spot[0] + Vector2(0.0, -6.0), 7.0, Color(Palette.BLOSSOM, 0.3))  # Mother Spore: a speckled cap
 		for k in caps:
 			var offset: Vector2 = spot[1] * (k - (caps - 1) / 2.0) * MUSHROOM_PAIR_GAP  # Twin Caps: side by side along the corridor
-			_draw_mushroom(spot[0] + offset, 1.0 if caps == 1 else MUSHROOM_PAIR_SCALE, 1.0, (int(point.x * 2.0) + k) % 2 == 1)
+			_draw_mushroom(spot[0] + offset, caps >= 3 and k % 2 == 1, 1.0, (int(point.x * 2.0) + k) % 2 == 1, int(point.x * 2.0 + point.y * 2.0) + k)
 	for point in _regrow:  # A small, faint one where a mushroom is growing back
 		if _index.has(point) and not mushrooms.has(point):
-			_draw_mushroom(_spot(point)[0], MUSHROOM_SPROUT_SCALE, 0.5, false)
+			_draw_mushroom(_spot(point)[0], true, 0.5, false)
 
 # Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner,
 # saves). Route points are half-cell lane centres, while the drawn path fills the whole corridor between the Wardens, so
@@ -1056,23 +1062,29 @@ func _work_out_spot(i: int) -> Array:
 			return [at, along]  # Open ground on this side: no corridor to centre in
 	return [at + across * (open[0] - open[1]) * 0.5 * cell() * 0.5, along]
 
-# The mushroom art: the first frame of the spore sprite sheet (the Brood Cap's walking mushrooms, Tower Assets), standing
-# with its stem on the route point. The plain shape is only the fallback when the sheet is missing.
-const MUSHROOM_SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 4 frames side by side
+# The mushroom art (Tower Assets eaed6c74, owner 2026-10-18: "change the mushroom to a new asset"): its own breathing
+# toadstool, drawn at 1x (crisp pixels) with the stem's foot on the drawn spot; size by clump (one or two caps: normal;
+# three or four: normal and small mixed; a regrowing sprout: small at half alpha). Eaten caps pop (MUSHROOM_POP).
+# The plain shape is only the fallback when a sheet is missing.
+const MUSHROOM_SHEET := "res://assets/effects/spore_mushroom.png"  # 20x20 frames, 4 side by side
+const MUSHROOM_SMALL_SHEET := "res://assets/effects/spore_mushroom_small.png"  # 14x14
+const MUSHROOM_POP := &"spore_mushroom_pop"  # effects.json one-shot: the cap bursts, a stub stays
 const MUSHROOM_FRAMES := 4
+const MUSHROOM_FPS := 4.0  # The slow breathe
 const MUSHROOM_PAIR_GAP := 11.0  # Twin Caps: px between the two
-const MUSHROOM_PAIR_SCALE := 0.8
-const MUSHROOM_SPROUT_SCALE := 0.45
 var _mushroom_tex: Texture2D = load(MUSHROOM_SHEET) if ResourceLoader.exists(MUSHROOM_SHEET) else null  # Per node, never static
+var _mushroom_small: Texture2D = load(MUSHROOM_SMALL_SHEET) if ResourceLoader.exists(MUSHROOM_SMALL_SHEET) else null
+var _breathe_frame := -1  # The breathe frame last drawn (redraw only when it changes)
 
-func _draw_mushroom(at: Vector2, scale: float, alpha: float, flip: bool) -> void:
-	if _mushroom_tex == null:
-		draw_circle(at + Vector2(0.0, -4.0) * scale, 5.0 * scale, Color(Palette.BLOSSOM, alpha))
+func _draw_mushroom(at: Vector2, small: bool, alpha: float, flip: bool, phase: int = 0) -> void:
+	var tex: Texture2D = _mushroom_small if small and _mushroom_small != null else _mushroom_tex
+	if tex == null:
+		draw_circle(at + Vector2(0.0, -4.0), 4.0 if small else 5.0, Color(Palette.BLOSSOM, alpha))
 		return
-	var w: float = _mushroom_tex.get_width() / float(MUSHROOM_FRAMES)
-	var h: float = _mushroom_tex.get_height()
-	var size := Vector2(w, h) * scale
-	var rect := Rect2(at - Vector2(size.x / 2.0, size.y * 0.85), size)  # Stem on the point
+	var w: float = tex.get_width() / float(MUSHROOM_FRAMES)
+	var h: float = tex.get_height()
+	var frame := (maxi(_breathe_frame, 0) + phase) % MUSHROOM_FRAMES
+	var rect := Rect2((at - Vector2(w / 2.0, h - 2.0)).round(), Vector2(w, h))  # The stem's foot at (w/2, h-2) on the spot, 1x
 	if flip:
-		rect = Rect2(rect.position + Vector2(size.x, 0.0), Vector2(-size.x, size.y))
-	draw_texture_rect_region(_mushroom_tex, rect, Rect2(0.0, 0.0, w, h), Color(1.0, 1.0, 1.0, alpha))  # multiplier
+		rect = Rect2(rect.position + Vector2(w, 0.0), Vector2(-w, h))
+	draw_texture_rect_region(tex, rect, Rect2(w * frame, 0.0, w, h), Color(1.0, 1.0, 1.0, alpha))  # multiplier
