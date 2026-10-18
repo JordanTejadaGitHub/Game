@@ -42,7 +42,35 @@ func _head_top() -> float:
 	if sprite == null or sprite.texture == null:
 		return -40.0
 	var rect := sprite.get_rect()
-	return sprite.position.y + rect.position.y * sprite.scale.y + 4.0  # The art keeps a few clear rows at the top
+	# The frame is as tall as the Warden's tallest frame, attack effects included, so its top edge can sit far
+	# above the head (user 2026-10-15: "the ring above is too far above"): measure the idle art's own top row.
+	var empty := _empty_rows(tower.tower_data.texture, maxi(tower.tower_data.frame_count, 1))
+	return sprite.position.y + (rect.position.y + empty) * sprite.scale.y + 2.0
+
+static var _empty_cache := {}  # texture path -> clear rows above the art in its first frame
+
+static func _empty_rows(texture: Texture2D, frames: int) -> int:
+	if texture == null:
+		return 0
+	var key := texture.resource_path
+	if _empty_cache.has(key):
+		return _empty_cache[key]
+	var rows := 0
+	var image := texture.get_image()
+	if image != null:
+		if image.is_compressed():
+			image.decompress()
+		var w := image.get_width() / frames
+		rows = image.get_height()
+		for y in image.get_height():
+			for x in w:
+				if image.get_pixel(x, y).a > 0.0:
+					rows = y
+					break
+			if rows == y:
+				break
+	_empty_cache[key] = rows
+	return rows
 
 func _process(delta: float) -> void:
 	if _flash > 0.0:
