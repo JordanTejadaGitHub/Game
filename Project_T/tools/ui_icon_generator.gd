@@ -291,6 +291,9 @@ const CARD_MARK_ICONS := ["defining"]
 const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain", "shape_cloud", "shape_trap",
 	"shape_beam", "shape_birds", "shape_seed", "shape_patrol", "shape_copy", "shape_light", "shape_pull",
 	"shape_spread", "shape_aura", "shape_none"]
+# Nightmare states (screens_ui.md "Status row", cbf9506e): "asleep" when Sleep (Drowsy) fills. Appended, so no
+# column moves; listed under "statuses" in icons.json.
+const STATE_ICONS := ["asleep"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -301,7 +304,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -312,7 +315,7 @@ func _make_icons() -> void:
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
-	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS + LATE_STATUS_ICONS, stats = STAT_ICONS,
+	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS + LATE_STATUS_ICONS + STATE_ICONS, stats = STAT_ICONS,
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
@@ -2126,6 +2129,32 @@ func _ic_silenced() -> void:
 	_c_disc(Vector2(8, 14), 1.4, _rpn("mist", "stone", "slate"))
 	_c_rect(Rect2i(4, 6, 8, 2), _rpn("sprig", "leaf", "moss"))
 	_c_line([Vector2(1.4, 15), Vector2(14.6, 1.4)], 1.3, _rpn("heartlight", "glow", "gold"))
+func _ic_asleep() -> void:
+	# Asleep (Sleep filled): a closed eye with lashes and a small z, in the Drowsy colours. Hand-placed pixels.
+	var ink := {"a": "dread", "b": "moonlight", "c": "wraithlight"}
+	var rows := [
+		"........aaaaaaa.",
+		"........abbbbba.",
+		"........aaaacba.",
+		"........aacbaa..",
+		"........abcaaaa.",
+		"........abbbbba.",
+		"........aaaaaaa.",
+		"................",
+		".aa.........aa..",
+		"abba.......abba.",
+		"acbbaa...aabbca.",
+		".accbbaaabbcca..",
+		"..aaccbbbccaa...",
+		"...acaacaaca....",
+		"....a..a..a.....",
+		"................",
+	]
+	for y in rows.size():
+		for x in rows[y].length():
+			var ch: String = rows[y][x]
+			if ink.has(ch):
+				_dt(x, y, Palette.color(ink[ch]))
 func _ic_defining() -> void:
 	# A build-defining card: a stone arch with a gold keystone set in its crown; the whole arch rests on it.
 	var stone := _rpn("mist", "stone", "slate")
