@@ -1298,3 +1298,17 @@ User: *"remove DPS under Wardens when the DPS meter isn't showing, in both mobil
 closing or collapsing the meter hides them all. This replaces the old rule (all tags at rests, paused and in build
 mode; the selected / hovered Warden's during a drift). The selected Warden's own numbers stay in its panel. The
 "dps_tags" setting becomes: with the meter (default) / off.
+
+## Grow and build previews: one look for every form (user, 2026-10-17)
+User (Sparkler, then Jetreed screenshots: an off-Warden ring; a diagonal line across the grass and Coming strip with
+blue cell squares, some off the path): *"make sure it's fixed on all Wardens."* Every form's preview (grow hover,
+build ghost, selection) follows the same rules:
+- **Range** is one solid ring centred on the Warden (two for a sniper's minimum range). Nothing else is a solid ring.
+- **The shape of the attack is drawn where it would really go now**, clipped to its range: a line attack (Jetreed,
+  Torrent's jet, beams) along its aim at the furthest-along route point in range (with no route in range, no line);
+  a burst / splash / cloud / lob as a small dashed ring on that point; a link (Jarlink) on its partner segment; a
+  pulse or aura as the range itself. Family colour, drawn under the HUD, never over the Coming strip or panels.
+- **The path it hits is marked in path shape** (the lit-path look: the walked ribbon), only route cells it really
+  reaches, **never square cell tiles** and never grass, Wardens or obstacles.
+- **One source of truth:** the preview asks the same code the attack uses for its aim and its hit test, so what is
+  drawn is what is hit (as the Jarlink segment rule).
