@@ -137,6 +137,8 @@ func _ready() -> void:
 	_tip_last(gameplay, "Numbers over nightmares when hit. Big hits shows only crits and Reactions.")
 	_choice(gameplay, "Big hit feedback", "big_hits", ["Full", "Subtle", "Off"], 0)  # visual_feedback_spec.md A (Enemy Code fd90f402)
 	_tip_last(gameplay, "How nightmares react to a heavy blow: the crack, the stagger, bigger numbers and the boss bar flash. Subtle keeps only the lightest look.")
+	_choice(gameplay, "Dream effects on attacks", "dream_effects", ["Full", "Subtle", "Off"], 0)  # visual_feedback_spec.md B (Tower Code 197183a1)
+	_tip_last(gameplay, "The glow on Wardens and their attacks when your Dream cards boost them, and the card badge pops. Subtle keeps a light glow; Off shows none.")
 	# With the damage meter (0, default) / Off (2): the stored values stay, so an old 1 ("Always") reads as the default
 	# (user 2026-10-17, screens_ui.md fbb4b776)
 	var dps_pick := _choice(gameplay, "Damage per second labels", DpsTags.SETTING, ["With the damage meter", "Off"], 0)
