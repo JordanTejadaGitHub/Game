@@ -2509,6 +2509,38 @@
 			"loop": true,
 			"note": "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."
 		},
+		"sleep_pop": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "sleep_pop.png",
+			"fps": 14.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 3,
+			"kind": "status",
+			"loop": false,
+			"note": "Waking: the \"z\" popping into a few motes, ~0.2 s (anchor = where its last z was, or just above its head)."
+		},
+		"sleep_z": {
+			"anchor": [
+				8,
+				22
+			],
+			"file": "sleep_z.png",
+			"fps": 5.0,
+			"frame_size": [
+				16,
+				24
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "A sleeping nightmare: a \"z\" drifting up 14 px and fading, ~1.2 s (anchor = just above its head). Play one about every second while it sleeps; none under reduced motion."
+		},
 		"smother": {
 			"anchor": [
 				32,

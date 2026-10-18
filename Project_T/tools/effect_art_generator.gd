@@ -50,6 +50,7 @@ func _init() -> void:
 	_puddle_effects()
 	_exposed_effects()
 	_hit_feedback_effects()
+	_sleep_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4121,3 +4122,58 @@ func _bolt_strike(img: Image, f: int) -> void:
 		_sparks(img, hit, 8, 13.0, 3.0, Color(HF_STATIC, 0.75), 0.3)
 	elif f >= 4:
 		_sparks(img, hit + Vector2(0, f - 3), 6, 15.0 + (f - 4) * 2.0, 2.0, Color(GOLD, a), 0.6)
+
+# --- Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep", user 2026-10-18) ---
+# sleep_z: a small "z" drifting up off a sleeping nightmare and fading (one about every second while it
+# sleeps); sleep_pop: the "z" popping when it wakes. Warm cream with a dark rim, so it reads over a dark
+# nightmare and over a pale path alike.
+const Z_FILL := Color("#fff4dc")
+const Z_LIT := Color("#fcd47c")
+const Z_RIM := Color("#2c2444")
+const Z_GLYPH := ["######", "....#.", "...#..", "..#...", ".#....", "######"]
+const Z_SMALL := ["####", "..#.", ".#..", "####"]
+
+func _sleep_effects() -> void:
+	_sheet("sleep_z", Vector2i(16, 24), 6, 5, Vector2i(8, 22), false, "status", _sleep_z,
+		{note = "A sleeping nightmare: a \"z\" drifting up 14 px and fading, ~1.2 s (anchor = just above its head). Play one about every second while it sleeps; none under reduced motion."})
+	_sheet("sleep_pop", Vector2i(16, 16), 3, 14, Vector2i(8, 8), false, "status", _sleep_pop,
+		{note = "Waking: the \"z\" popping into a few motes, ~0.2 s (anchor = where its last z was, or just above its head)."})
+
+# A glyph with a 1 px dark rim round it; `lit` is its top row (catching the light).
+func _z_glyph(img: Image, glyph: Array, at: Vector2i, a: float) -> void:
+	var on := {}
+	for y in glyph.size():
+		for x in (glyph[y] as String).length():
+			if (glyph[y] as String)[x] == "#":
+				on[at + Vector2i(x, y)] = true
+	for p: Vector2i in on:
+		for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+			if not on.has(p + n):
+				_px(img, p.x + n.x, p.y + n.y, Color(Z_RIM, a))
+	for p: Vector2i in on:
+		_px(img, p.x, p.y, Color(Z_LIT if p.y == at.y else Z_FILL, a))
+
+func _sleep_z(img: Image, f: int) -> void:
+	var rise: int = [0, 3, 6, 9, 12, 14][f]
+	var sway: int = [0, 1, 1, 0, -1, -1][f]
+	var a: float = [0.75, 1.0, 1.0, 1.0, 0.75, 0.4][f]
+	if f == 0:  # it forms small, then grows to full size
+		_z_glyph(img, Z_SMALL, Vector2i(6 + sway, 17 - rise), a)
+	else:
+		_z_glyph(img, Z_GLYPH, Vector2i(5 + sway, 16 - rise), a)
+
+func _sleep_pop(img: Image, f: int) -> void:
+	var c := Vector2(8, 8)
+	if f == 0:  # the z flares as it breaks
+		_z_glyph(img, Z_GLYPH, Vector2i(5, 5), 1.0)
+		for k in 4:
+			var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0) * 6.0
+			_px(img, int(c.x + d.x), int(c.y + d.y), Z_LIT)
+		return
+	var r: float = [0.0, 4.5, 6.5][f]
+	var a: float = [1.0, 1.0, 0.4][f]
+	for k in 6:  # a ring of motes, flying apart and fading
+		var p := c + Vector2.from_angle(k * TAU / 6.0 + 0.3) * r
+		_px(img, roundi(p.x), roundi(p.y), Color(Z_FILL, a))
+		if f == 1:
+			_px(img, roundi(p.x) + 1, roundi(p.y), Color(Z_LIT, a))
