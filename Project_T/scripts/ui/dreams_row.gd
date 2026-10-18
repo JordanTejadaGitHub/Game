@@ -474,6 +474,18 @@ func _make_phone_page() -> void:
 	frame.diamond = true
 	frame.side_edges = false
 	_list.add_theme_stylebox_override("panel", frame)
+	# The fog panel is soft in its middle: a solid Void layer behind the page, so the map, the HUD and toasts never read
+	# through (user screenshot 2026-10-17).
+	var back := ColorRect.new()
+	back.name = "DreamsPageBack"
+	back.color = Color(UiStyle.FOG, 0.97)
+	back.top_level = true
+	back.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(back)
+	move_child(back, _list.get_index())
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.visible = _list.visible
+	_list.visibility_changed.connect(func() -> void: back.visible = _list.visible)
 	_list_column.add_theme_constant_override("separation", 8)
 	_list_column.remove_child(_list_close)
 	_list_close.queue_free()
