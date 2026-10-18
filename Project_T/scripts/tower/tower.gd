@@ -237,9 +237,21 @@ static func grow_options(dreams: DreamState, data: TowerData) -> Array:
 		# mark option if you don't have it unlocked"); the Remember tree keeps their silhouettes.
 		options = options.filter(func(option: Array) -> bool:
 			return option[1] or dreams.get_unlock_blocker(option[0]) != "Memory Grove")
+	if wall_regrows(data):
+		options.append([sprout_data(), dreams.is_unlocked("sprout")])  # A wall regrows as a Sprout (not in evolves_to: see wall_regrows)
 	if data.line != "sprout" or dreams.unlock_everything:
 		return options
 	return options.filter(func(option: Array) -> bool: return option[1])
+
+# Walls (Thornwall, Bramble, Honeysuckle) can grow into a Sprout in place (user 2026-10-17). Not through evolves_to: that
+# is the forms' family line, walked by DreamState.family_of, the Remember tree and the Reaction card targets (Main
+# Merger's suite on 4666aff0: a Sprout there made every family a wall's). Tower.grow_options and TowerPlacer.evolve add it.
+const SPROUT_PATH := "res://resource/tower/sprout.tres"
+static func wall_regrows(data: TowerData) -> bool:
+	return data != null and data.line == "wall"
+
+static func sprout_data() -> TowerData:
+	return load(SPROUT_PATH) as TowerData  # (ResourceLoader caches it; never kept in a static)
 
 # A branch this run didn't draw (only branches: a final's branch is already on the map).
 static func _left_out(dreams: DreamState, form: TowerData) -> bool:
@@ -303,6 +315,8 @@ func is_reached_by_rule(card: UpgradeData) -> bool:
 			and (base.stat_line == "" or base.stat_line == tower_data.line) \
 			and (base.count_line == "" or base.count_line == tower_data.line)
 	var statuses: Array[StringName] = base.requires_any_status.duplicate()
+	if "requires_statuses" in base:
+		statuses.append_array(base.requires_statuses)  # A Reaction card that names its statuses (Endless Night, 2026-10-17): Wardens applying any of them
 	for status in [base.requires_status, base.status_id]:
 		if status != &"":
 			statuses.append(status)
@@ -1792,13 +1806,10 @@ func _sprout_into_floor(into: TowerData, planned: int = 0) -> int:
 # toward the tax as a planted one does (its id is "sprout").
 func _wall_into_sprout_price(planned: int = 0) -> int:
 	var placer = placer_ref.get_ref() if placer_ref != null else null
-	var sprout_data: TowerData = null
-	for form in tower_data.evolves_to:
-		if form is TowerData and form.get_id() == "sprout":
-			sprout_data = form
-	if sprout_data == null:
+	var sprout := sprout_data()
+	if sprout == null:
 		return 1
-	var price: int = placer.get_cost(sprout_data, cell, planned) if placer != null and placer.has_method("get_cost") else sprout_data.cost
+	var price: int = placer.get_cost(sprout, cell, planned) if placer != null and placer.has_method("get_cost") else sprout.cost
 	return maxi(price - invested_dew, 1)
 
 func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:

@@ -1585,7 +1585,8 @@ func get_buildable_towers() -> Array[TowerData]:
 # bigger form (Ascended: 2×2) takes one of the squares from get_grow_squares(): `origin` picks it
 # (its top-left cell); with none given, the best one (the longest route) is used.
 func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
-	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
+	var regrow: bool = Tower.wall_regrows(tower.tower_data) and into.get_id() == "sprout"  # A wall regrows as a Sprout (Tower.wall_regrows)
+	if not (tower.tower_data.evolves_to.has(into) or regrow) or not dream_state.is_unlocked(into.get_id()):
 		return false
 	if tower.twig:
 		return false  # Twig Walls: a twig wall stays a wall (a Bramble needs a full footprint; sell and replant)
