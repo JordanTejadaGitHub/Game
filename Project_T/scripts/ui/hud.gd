@@ -162,6 +162,9 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
+	var badge_pops := CardBadgePops.new()  # A card that fired on a Warden pops its gem above it (visual_feedback_spec.md B5; world)
+	badge_pops.name = "CardBadgePops"
+	owner.add_child.call_deferred(badge_pops)
 	var start_arrows := StartArrows.new()  # Route arrows, start to Heartwood, until the first drift (world)
 	start_arrows.name = "StartArrows"
 	owner.add_child.call_deferred(start_arrows)
