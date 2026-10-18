@@ -3,9 +3,11 @@ class_name DpsTags
 
 # Warden DPS tags (screens_ui.md "Damage that means something"): a small "124 dps ▲12%" under each
 # attacking Warden, the number coloured by its rank on the board (top ~20% gold, middle white, bottom ~20% dim) with
-# the Heartwood sprout on the most improved. No box: outlined text over a faint halo. Setting "dps_tags": 0 = rests only (default: at rests, while paused and in build
-# mode; during a drift only on the selected or hovered Warden), 1 = always, 2 = off. Clicking a tag
-# selects that Warden and glides the camera to it. Numbers from Tower Code's WardenMeter. Made by the HUD.
+# the Heartwood sprout on the most improved. No box: outlined text over a faint halo. Shown only while the damage meter is
+# open (user 2026-10-17, screens_ui.md fbb4b776: "remove DPS under Wardens when the DPS meter isn't showing, in both mobile
+# and PC"): every tagged Warden then, at rests and in drifts; none otherwise. Setting "dps_tags": 0 = with the damage meter
+# (default), 2 = off; an old 1 (always) reads as 0. Clicking a tag selects that Warden and glides the camera to it. Numbers
+# from Tower Code's WardenMeter. Made by the HUD.
 
 const SETTING := "dps_tags"
 const REFRESH := 0.5
@@ -15,53 +17,38 @@ const FONT_SIZE := 16  # The number; "dps" and the change are smaller (below)
 var drift_director: DriftDirector
 var _rows := {}  # Tower instance id -> its meter row
 var _clock := 0.0
-var _placer: Node
 var _seller: Node
-var _speed: Node
 
 func _ready() -> void:
 	z_index = 8
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var main := get_parent()
 	drift_director = main.get_node_or_null("%DriftDirector")
-	_placer = main.get_node_or_null("%TowerPlacer")
 	_seller = main.get_node_or_null("%TowerSeller")
-	_speed = main.get_node_or_null("%GameSpeed")
 
+const MODE_WITH_METER := 0
+const MODE_OFF := 2
+
+# 0 = with the damage meter, 2 = off (an old 1, "always", reads as the default).
 static func mode() -> int:
-	return int(Fx.setting(SETTING, 0))
+	return MODE_OFF if int(Fx.setting(SETTING, MODE_WITH_METER)) == MODE_OFF else MODE_WITH_METER
 
-# All tags show now (a rest, paused, build mode), or only the selected / hovered Warden's.
-func all_shown() -> bool:
-	if mode() == 1:
-		return true
-	return (drift_director != null and drift_director.is_resting()) or (_speed != null and _speed.paused) \
-		or (_placer != null and _placer.build_mode)
-
+# Every tagged Warden while the damage meter is open (PC and phones: the same DriftMeter node), none otherwise.
 func _shown_towers() -> Array:
-	if mode() == 2 or drift_director == null or drift_director.drifts_started == 0:
+	if mode() == MODE_OFF or drift_director == null or drift_director.drifts_started == 0 or not _meter_open():
 		return []
-	if all_shown():
-		var all: Array = []
-		for r in _rows.values():  # A sold Warden stays in _rows until the next refresh
-			if is_instance_valid(r.tower):
-				all.append(r.tower)
-		return all
-	var only: Array = []
-	if _seller != null:
-		for tower in _seller.selection:
-			only.append(tower)
-		var hovered = _seller.get("_hover_tower")
-		if hovered != null and not only.has(hovered):
-			only.append(hovered)
-	return only
+	var all: Array = []
+	for r in _rows.values():  # A sold Warden stays in _rows until the next refresh
+		if is_instance_valid(r.tower):
+			all.append(r.tower)
+	return all
 
 func _process(delta: float) -> void:
 	_clock -= delta / maxf(Engine.time_scale, 0.001)
 	if _clock <= 0.0:
 		_clock = REFRESH
 		_rows.clear()
-		var meter := WardenMeter.find(self) if mode() != 2 else null
+		var meter := WardenMeter.find(self) if mode() != MODE_OFF else null
 		if meter != null:
 			var period := "drift" if not drift_director.is_resting() else "block"
 			for r in meter.get_meter_rows(period):

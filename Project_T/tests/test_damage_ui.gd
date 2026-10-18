@@ -131,8 +131,15 @@ func _run() -> void:
 		_check(WorldLabel.covers.is_empty(), "no full-screen screen covers the map now (%s)" % [WorldLabel.covers.keys()])
 		tags._clock = 0.0
 		tags._process(0.1)
-		if director.is_resting():
-			_check(tags.all_shown() and tags._shown_towers().size() >= 1, "at a rest every Warden's tag shows")
+		# Only with the damage meter open (user 2026-10-17, screens_ui.md fbb4b776), at rests and in drifts
+		var dps_meter = main.get_node_or_null("HUD/DriftMeter")
+		if dps_meter != null:
+			dps_meter.set_open(false)
+			_check(tags._shown_towers().is_empty(), "with the damage meter closed no DPS tag shows")
+			dps_meter.set_hidden(false)
+			dps_meter.set_open(true)
+			dps_meter.visible = true
+			_check(tags._shown_towers().size() >= 1, "with the damage meter open every Warden's tag shows")
 		_check(not tags._rows.is_empty() and tags.tag_text(tags._rows.values()[0]).contains(" DPS"), "a tag reads N DPS")
 		# Dense clusters (user screenshot): short tags unless focused / the meter is open, never two overlapping.
 		var sample := {"dps": 182.0, "change": 0.16, "last_dps": 150.0}

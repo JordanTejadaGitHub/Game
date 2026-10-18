@@ -135,7 +135,15 @@ func _ready() -> void:
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_tip_last(gameplay, "Numbers over nightmares when hit. Big hits shows only crits and Reactions.")
-	_choice(gameplay, "Damage per second labels", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
+	# With the damage meter (0, default) / Off (2): the stored values stay, so an old 1 ("Always") reads as the default
+	# (user 2026-10-17, screens_ui.md fbb4b776)
+	var dps_pick := _choice(gameplay, "Damage per second labels", DpsTags.SETTING, ["With the damage meter", "Off"], 0)
+	dps_pick.set_item_id(1, DpsTags.MODE_OFF)
+	for connection in dps_pick.item_selected.get_connections():
+		dps_pick.item_selected.disconnect(connection.callable)
+	dps_pick.item_selected.connect(func(index: int) -> void: _set_value(DpsTags.SETTING, dps_pick.get_item_id(index)))
+	_register(DpsTags.SETTING, DpsTags.MODE_WITH_METER, func() -> void:
+		dps_pick.selected = 1 if int(_value(DpsTags.SETTING)) == DpsTags.MODE_OFF else 0)
 	_tip_last(gameplay, "Shows each Warden's damage per second under it.")
 	_choice(gameplay, "Summary card at rests", RestReport.SETTING, ["Off", "On"], 0)  # The block card at rests (else: the meter's Last block tab)
 	_toggle(gameplay, "Confirm selling several Wardens during a drift", "confirm_sell", true)
