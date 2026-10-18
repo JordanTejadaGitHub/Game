@@ -51,6 +51,7 @@ func _init() -> void:
 	_exposed_effects()
 	_hit_feedback_effects()
 	_sleep_effects()
+	_shroom_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4177,3 +4178,95 @@ func _sleep_pop(img: Image, f: int) -> void:
 		_px(img, roundi(p.x), roundi(p.y), Color(Z_FILL, a))
 		if f == 1:
 			_px(img, roundi(p.x) + 1, roundi(p.y), Color(Z_LIT, a))
+
+# --- Spore Print's mushrooms (Roguelite Code, owner 2026-10-18) -----------------------------------------
+# A small glowing toadstool standing on a path tile (stem on the route point): cream stem, spore-pink cap with
+# cream spots, a pale gill rim that glows on the breath. Three sizes for clumps of up to four on one step, a
+# slow 4-frame breathe loop, and a 3-frame pop when one is eaten. Ink outline so it reads at phone zoom.
+const SHROOM_O := Color("#17174d")
+const SHROOM_CAP := [Color("#ba41d9"), Color("#de73e5"), Color("#ec9cf4"), Color("#f7c8fa")]  # shadow, mid, lit, highlight
+const SHROOM_STEM := [Color("#dccdb2"), Color("#fff4dc")]
+const SHROOM_SIZES := [["", 20], ["_small", 14], ["_big", 26]]
+
+func _shroom_effects() -> void:
+	for s: Array in SHROOM_SIZES:
+		var suffix: String = s[0]
+		var n: int = s[1]
+		_sheet("spore_mushroom" + suffix, Vector2i(n, n), 4, 4, Vector2i(n / 2, n - 2), true, "ground", _toadstool.bind(n),
+			{note = "Spore Print: a glowing toadstool on the path, a slow breathe loop (%d px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26." % n})
+	_sheet("spore_mushroom_pop", Vector2i(24, 24), 3, 12, Vector2i(12, 20), false, "ground", _toadstool_pop,
+		{note = "Spore Print: a mushroom eaten, its cap bursting into spores, ~0.25 s (anchor = the stem's foot, like spore_mushroom)."})
+
+func _toadstool(img: Image, f: int, n: int) -> void:
+	var k := n / 20.0
+	var breath: int = [0, 0, 1, 0][f]  # the cap lifts a pixel on the in-breath (big sizes only)
+	var foot := Vector2(n / 2.0, n - 2.0)
+	var cap_c := Vector2(n / 2.0, n * 0.42 - (breath if n >= 20 else 0))
+	var cap_r := Vector2(8.6 * k, 5.4 * k)
+	var body := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
+	# Stem: cream, its right side in shade, a touch wider at the foot.
+	for y in range(int(cap_c.y), int(foot.y) + 1):
+		var t := (y - cap_c.y) / maxf(foot.y - cap_c.y, 1.0)
+		var half := (1.6 + 0.9 * t) * k + 0.3
+		for x in range(int(foot.x - half), int(ceil(foot.x + half))):
+			body.set_pixel(x, y, SHROOM_STEM[0] if x >= int(foot.x) + int(half * 0.4) else SHROOM_STEM[1])
+	# Cap: a dome, lit from the upper left, its underside a darker band.
+	for y in range(int(cap_c.y - cap_r.y) - 1, int(cap_c.y + cap_r.y * 0.45) + 1):
+		for x in n:
+			var d := (Vector2(x + 0.5, y + 0.5) - cap_c) / cap_r
+			if d.y > 0.45 or d.length() > 1.0:
+				continue
+			var col: Color = SHROOM_CAP[1]
+			if d.y > 0.15:
+				col = SHROOM_CAP[0]
+			elif d.x + d.y < -0.75:
+				col = SHROOM_CAP[2]
+			body.set_pixel(x, y, col)
+	# Cream spots on the cap.
+	for p: Vector2 in [Vector2(-0.45, -0.45), Vector2(0.25, -0.65), Vector2(0.55, -0.1)]:
+		var q := cap_c + p * cap_r
+		body.set_pixel(int(q.x), int(q.y), SHROOM_STEM[1])
+		if n >= 20:
+			body.set_pixel(int(q.x) + 1, int(q.y), SHROOM_STEM[1])
+	# The gill rim under the cap: pale, brightest on the breath.
+	var rim_y := int(cap_c.y + cap_r.y * 0.45)
+	for x in range(int(cap_c.x - cap_r.x * 0.75), int(cap_c.x + cap_r.x * 0.75) + 1):
+		body.set_pixel(x, rim_y, SHROOM_CAP[3] if f == 1 or f == 2 else SHROOM_CAP[2])
+	# Ink outline round it all.
+	for y in n:
+		for x in n:
+			if body.get_pixel(x, y).a > 0.0:
+				img.set_pixel(x, y, body.get_pixel(x, y))
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < n and q.y < n and body.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, SHROOM_O)
+					break
+	# The glow: a few soft pink motes over the cap on the breath (light, never a ring of fog).
+	if f == 1 or f == 2:
+		for p: Vector2 in [Vector2(-1.15, -0.6), Vector2(1.2, -0.35), Vector2(0.1, -1.45)]:
+			var q := cap_c + p * cap_r + Vector2(0, -f + 1)
+			_px(img, int(q.x), int(q.y), Color(SHROOM_CAP[3], 0.75))
+
+func _toadstool_pop(img: Image, f: int) -> void:
+	var c := Vector2(12, 11)
+	if f == 0:  # the cap at full glow, its first spores leaving
+		_toadstool(img, 1, 24)
+		for p: Vector2i in [Vector2i(3, 6), Vector2i(20, 5), Vector2i(6, 1), Vector2i(17, 0)]:  # the first spores leaving it
+			_px(img, p.x, p.y, SHROOM_CAP[3])
+		return
+	var r: float = [0.0, 6.0, 9.5][f]
+	var a: float = [1.0, 1.0, 0.4][f]
+	for i in 8:  # spores flying out
+		var d := Vector2.from_angle(i * TAU / 8.0 + 0.2)
+		var p := c + Vector2(d.x * r, d.y * r * 0.7) + Vector2(0, -f)
+		_px(img, roundi(p.x), roundi(p.y), Color(SHROOM_CAP[2] if i % 2 == 0 else SHROOM_STEM[1], a))
+		if f == 1:
+			_px(img, roundi(p.x) + 1, roundi(p.y), Color(SHROOM_CAP[1], a))
+	if f == 1:  # the stem's stub left on the path
+		for y in range(17, 21):
+			_px(img, 11, y, SHROOM_STEM[1])
+			_px(img, 12, y, SHROOM_STEM[0])
+		_px(img, 10, 20, SHROOM_O)
+		_px(img, 13, 20, SHROOM_O)

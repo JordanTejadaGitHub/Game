@@ -2623,6 +2623,70 @@
 			"loop": false,
 			"note": "Brood Cap / Hatchery: spores streaming from the attack origin to the drop spot. Stretch along x (y = 6 on the line), Warden -> spot, ~0.35 s."
 		},
+		"spore_mushroom": {
+			"anchor": [
+				10,
+				18
+			],
+			"file": "spore_mushroom.png",
+			"fps": 4.0,
+			"frame_size": [
+				20,
+				20
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (20 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+		},
+		"spore_mushroom_big": {
+			"anchor": [
+				13,
+				24
+			],
+			"file": "spore_mushroom_big.png",
+			"fps": 4.0,
+			"frame_size": [
+				26,
+				26
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (26 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+		},
+		"spore_mushroom_pop": {
+			"anchor": [
+				12,
+				20
+			],
+			"file": "spore_mushroom_pop.png",
+			"fps": 12.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 3,
+			"kind": "ground",
+			"loop": false,
+			"note": "Spore Print: a mushroom eaten, its cap bursting into spores, ~0.25 s (anchor = the stem's foot, like spore_mushroom)."
+		},
+		"spore_mushroom_small": {
+			"anchor": [
+				7,
+				12
+			],
+			"file": "spore_mushroom_small.png",
+			"fps": 4.0,
+			"frame_size": [
+				14,
+				14
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (14 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+		},
 		"spore_sprite_burst": {
 			"anchor": [
 				24,
