@@ -250,21 +250,27 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		else:
 			second.append([shape_name(attack), &"attack_shape"])
 		_stat_row(main_row, true)
-		if attack.applies_status != &"":
-			second.append(["%s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true])
+		# The status it applies: its data's, else the one its special applies (Tower.statuses_applied: the Sparkler's Charge).
+		var main_status: StringName = attack.applies_status
+		if main_status == &"":
+			for special_status in BranchKit.SPECIAL_STATUSES.get(attack.special, []):
+				main_status = special_status
+				break
+		if main_status != &"":
+			second.append(["%s%s" % [IconInfo.status_name(main_status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 and main_status == attack.applies_status else ""], main_status, true])
 		if _tower.get_crit_chance() > 0.0:
 			second.append(["Crit ×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something (user), with what in its tip
 			second.append(["Potency %s" % str(snappedf(potency, 0.01)), &"potency"])  # Statuses and effect damage
 		# Patient Roots' seconds count in "Roots N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
-		var held_extra: float = _tower.held_card_seconds() if attack.applies_status == EnemyStatuses.HELD and _tower.has_method("held_card_seconds") else 0.0
-		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration, held_extra)
+		var held_extra: float = _tower.held_card_seconds() if main_status == EnemyStatuses.HELD and _tower.has_method("held_card_seconds") else 0.0
+		var strength := status_strength_text(main_status, potency, attack.status_duration, held_extra)
 		if strength != "" and compact:
 			detail_lines.append(strength)  # The panel's Details
 		elif strength != "":
-			second.append([strength, attack.applies_status, true])  # "Soak: water hits +24%", "Roots 1.2 s"
+			second.append([strength, main_status, true])  # "Soak: water hits +24%", "Roots 1.2 s"
 		# Wardens that Root by an ability, not by their attack's status (Tower Code): Tangleroot / Snugroot's timed
 		# hold (hold_time), Rootling's every-Nth-pulse hold (pulse_hold_time). Both go through Tower.hold, so the same
 		# Potency stretch, Patient Roots seconds and cap apply. attack_data, so a Graftling's copy is right.

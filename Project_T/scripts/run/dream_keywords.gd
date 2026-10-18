@@ -131,7 +131,7 @@ static func chips_for_warden(data: TowerData) -> Array[Dictionary]:
 		var id: StringName = ROLE_MAKES.get(role, &"")
 		if id != &"" and not makes.has(id):
 			makes.append(id)
-	for status in [data.applies_status, data.extra_status]:
+	for status in Tower.statuses_applied(data):  # (Tower Code: the special's statuses too, e.g. the Sparkler's Charge)
 		var word := word_for_status(status)
 		if word != &"" and not makes.has(word):
 			makes.append(word)

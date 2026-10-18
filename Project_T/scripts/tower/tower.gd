@@ -336,13 +336,25 @@ func is_reached_by_rule(card: UpgradeData) -> bool:
 
 # The statuses a Warden form applies (as DreamState.owned_statuses counts them).
 static func get_applied_statuses(data: TowerData) -> Array[StringName]:
+	return statuses_applied(data)
+
+# Every status `data` applies (one source of truth): its applies_status and extra_status, Rooted for freeze and Hold
+# forms (DreamState.HELD_SOURCES), and what its special's own code applies (BranchKit.SPECIAL_STATUSES: the Sparkler's
+# Charge, the Jarlink's link, the Silver Bell's toll…). Read by the keyword chips, Potency, the Warden header and the
+# combo vines.
+static func statuses_applied(data: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
+	if data == null:
+		return out
 	if data.applies_status != &"":
 		out.append(data.applies_status)
 	if data.extra_status != &"":
 		out.append(data.extra_status)
-	if data.freeze_duration > 0.0 or DreamState.HELD_SOURCES.has(data.get_id()):
+	if (data.freeze_duration > 0.0 or DreamState.HELD_SOURCES.has(data.get_id())) and not out.has(EnemyStatuses.HELD):
 		out.append(EnemyStatuses.HELD)
+	for status in BranchKit.SPECIAL_STATUSES.get(data.special, []):
+		if not out.has(status):
+			out.append(status)
 	return out
 
 func _refresh_badge() -> void:
@@ -1240,7 +1252,7 @@ static func potency_uses(data: TowerData) -> Array[String]:
 	if data == null or not data.can_attack:
 		return lines
 	var statuses := false
-	for id in [data.applies_status, data.extra_status]:
+	for id in statuses_applied(data):
 		if POTENCY_STATUS_LINES.has(id) and not lines.has(POTENCY_STATUS_LINES[id]):
 			lines.append(POTENCY_STATUS_LINES[id])
 			statuses = true
@@ -1278,7 +1290,7 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 	var p := potency
 	var statuses := false
 	var held_extra: float = tower.held_card_seconds() if tower != null else 0.0
-	for id in [data.applies_status, data.extra_status]:
+	for id in statuses_applied(data):  # (The special's statuses too: the Sparkler's Charge)
 		if not POTENCY_STATUS_LINES.has(id):
 			continue
 		var line := ""

@@ -11,6 +11,14 @@ class_name BranchKit
 # placeholders until Tower Assets' art lands; they go in the world (Reactions._world), never in the
 # Warden or nightmare containers.
 
+# The statuses each special's own code applies (beside the form's applies_status / extra_status), for every reader of
+# "what this Warden applies" (Tower.statuses_applied: keyword chips, Potency, the Warden header, combo vines). The user:
+# "the Sparkler doesn't have the Charge keyword". Sparkler / Starburst: their sparks Charge; Jarlink / Lightning Fence:
+# the link Charges; Silver Bell / Vesper Bell: the toll adds Sleep; Jetreed / Torrent: the puddles Soak; Groundroot /
+# Earthbind: a grabbed flyer lands Rooted; Brood Cap, Inkcap, Cloudlet already name theirs in the data (listed anyway).
+const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"], &"jet": [&"damp"],
+	&"groundroot": [&"held"], &"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}
+
 const LICHEN := &"lichen"
 const BROOD := &"brood"
 const INKCAP := &"inkcap"

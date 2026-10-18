@@ -21,9 +21,9 @@ static func link(a: TowerData, b: TowerData) -> String:
 	for pair in [[a, b], [b, a]]:
 		var applier: TowerData = pair[0]
 		var payoff: TowerData = pair[1]
-		var status := applier.applies_status
-		if status != &"" and PAYOFFS.get(status, []).has(payoff.get_id()):
-			return "%s → %s" % [IconInfo.status_name(status), payoff.display_name]
+		for status in Tower.statuses_applied(applier):  # (The special's statuses too: the Sparkler's Charge)
+			if PAYOFFS.get(status, []).has(payoff.get_id()):
+				return "%s → %s" % [IconInfo.status_name(status), payoff.display_name]
 	return ""
 
 # The combo `a` and `b` make together (CodexData entry), or {} if none / not in the Codex.
@@ -31,9 +31,9 @@ static func link_combo(a: TowerData, b: TowerData) -> Dictionary:
 	for pair in [[a, b], [b, a]]:
 		var applier: TowerData = pair[0]
 		var payoff: TowerData = pair[1]
-		var status := applier.applies_status
-		if status != &"" and PAYOFFS.get(status, []).has(payoff.get_id()):
-			return CodexData.combo_for_link(status, payoff)
+		for status in Tower.statuses_applied(applier):
+			if PAYOFFS.get(status, []).has(payoff.get_id()):
+				return CodexData.combo_for_link(status, payoff)
 	return {}
 
 # link() for lists the player reads (screens_ui.md "Undiscovered combos are ??? everywhere"): the
