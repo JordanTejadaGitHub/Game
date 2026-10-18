@@ -356,7 +356,7 @@ func _refresh() -> void:
 			var dps_change := _grow_dps_change(next)  # "+86 a second" / "-12 a second, +Drowsy": first, on the button
 			if dps_change != "":
 				note = dps_change + (" · " + note if note != "" else "")
-				button.tooltip_text += "\n\n%s (hit damage a second at its rank now; statuses and area hits not counted)." % dps_change
+				button.tooltip_text += "\n\n%s (damage a second on one nightmare at its rank now: hits plus its own Poison or Charge; extra area or chain targets not counted)." % dps_change
 			if note != "":
 				label += " · " + note
 			var wakes := _wakes(next)
@@ -1023,25 +1023,32 @@ static func _grow_tip(changes: String, form: TowerData) -> String:
 # Kinships on either, so the two compare like for like): hit damage × attacks a second. "" for walls and no change.
 var _dps_probe: Tower = null
 
+# (Balancing on b38148ff, balance_simulation.md "Human run 46": hit-only misled both ways, Sporeling -> Bloomcap read -5
+# when its own Poison goes too.) Its own status damage on one nightmare, steady state, is added: Poison = applications a
+# second × stacks × 5 s (at most the form's cap) × 20% of its hit × Potency; Charge = stacks a second × 0.8 of its hit ×
+# Potency. Other statuses add no damage: a status the grown form adds is named ("+Drowsy"). Area / chain targets aren't
+# guessed: "hits an area" / "chains" when the grown form has it and the current one doesn't.
+const POISON_SHARE := 0.2  # Of the hit, per stack, per second (Multi-tower status balance)
+const POISON_LASTS := 5.0  # Seconds an application keeps its stacks
+const CHARGE_SHARE := 0.8  # Of the hit per Charge stack (a bolt: 16 × potency per 20 stacks)
+
 func _grow_dps_change(next: TowerData) -> String:
 	if not is_instance_valid(_tower) or (not _tower.tower_data.can_attack and not next.can_attack):
 		return ""
-	var before := _probe_dps(_tower.tower_data)
-	var after := _probe_dps(next)
-	var change := roundi(after - before)
-	if change == 0:
-		return ""
-	var text := "%s%s a second" % ["+" if change > 0 else "-", BossDossier.thousands(absi(change))]
-	if change < 0:
-		var job := ""
-		if next.applies_status != &"":
-			job = "+" + IconInfo.status_name(next.applies_status)
-		else:
-			var terms := IconInfo.role_terms(IconInfo.role_text(next))
-			job = terms[0] if not terms.is_empty() else ""
-		if job != "":
-			text += ", " + job
-	return text
+	var now_data := _tower.tower_data
+	var change := roundi(_probe_dps(next) - _probe_dps(now_data))
+	var parts: Array[String] = []
+	if change != 0:
+		parts.append("%s%s a second" % ["+" if change > 0 else "-", BossDossier.thousands(absi(change))])
+	var had := Tower.statuses_applied(now_data)
+	for status in Tower.statuses_applied(next):
+		if not had.has(status) and status != EnemyStatuses.SPORED and status != EnemyStatuses.STATIC:
+			parts.append("+" + IconInfo.status_name(status))  # A status that adds no damage of its own: named
+	if WardenRoles.has_role(next, WardenRoles.AREA) and not WardenRoles.has_role(now_data, WardenRoles.AREA):
+		parts.append("hits an area")
+	if WardenRoles.has_role(next, WardenRoles.CHAIN) and not WardenRoles.has_role(now_data, WardenRoles.CHAIN):
+		parts.append("chains")
+	return ", ".join(parts)
 
 func _probe_dps(data: TowerData) -> float:
 	if not data.can_attack:
@@ -1056,7 +1063,20 @@ func _probe_dps(data: TowerData) -> float:
 	_dps_probe.paid_ranks = _tower.paid_ranks.duplicate()
 	_dps_probe.rank = _tower.rank
 	_dps_probe.clear_dream_cache()
-	return _dps_probe.get_damage() * _dps_probe.get_attacks_per_second()
+	var hit := _dps_probe.get_damage()
+	var rate := _dps_probe.get_attacks_per_second()
+	var total := hit * rate
+	var potency := _dps_probe.get_potency()
+	var applications := rate / maxf(float(data.status_every), 1.0)  # Hits that carry its status
+	for pair in [[data.applies_status, data.status_stacks], [data.extra_status, data.extra_status_stacks]]:
+		var stacks_a_second := applications * float(pair[1])
+		match StringName(pair[0]):
+			EnemyStatuses.SPORED:
+				var cap := float(data.status_max_stacks if data.status_max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[EnemyStatuses.SPORED])
+				total += minf(stacks_a_second * POISON_LASTS, cap) * POISON_SHARE * hit * potency
+			EnemyStatuses.STATIC:
+				total += stacks_a_second * CHARGE_SHARE * hit * potency
+	return total
 
 func _exit_tree() -> void:
 	if is_instance_valid(_dps_probe):
