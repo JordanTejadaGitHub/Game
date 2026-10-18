@@ -85,7 +85,7 @@ func get_block_finale_elites(number: int) -> int:
 # shared-curve retune can move act 2's boss alone (Balancing Discussion, 2026-10-06).
 @export var act2_boss_health_multiplier: float = 1.75
 @export var act3_boss_health_multiplier: float = 1.75
-@export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
+@export var act1_boss_health_multiplier: float = 1.45  # Act 1's boss (drift 25) instead. Balancing 2026-10-18: was 1.75; the power-budget base cut made the act 1 boss ~x1.2-1.3 harder (Night Mare 161 s, Hollow Stag not dispelled)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 6.0  # Acts 3–4, bosses included ("Human run 7"; was 4.8, 4.0, 3.5, 1.6)
