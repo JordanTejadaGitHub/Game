@@ -135,6 +135,8 @@ func _ready() -> void:
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_tip_last(gameplay, "Numbers over nightmares when hit. Big hits shows only crits and Reactions.")
+	_choice(gameplay, "Big hit feedback", "big_hits", ["Full", "Subtle", "Off"], 0)  # visual_feedback_spec.md A (Enemy Code fd90f402)
+	_tip_last(gameplay, "How nightmares react to a heavy blow: the crack, the stagger, bigger numbers and the boss bar flash. Subtle keeps only the lightest look.")
 	# With the damage meter (0, default) / Off (2): the stored values stay, so an old 1 ("Always") reads as the default
 	# (user 2026-10-17, screens_ui.md fbb4b776)
 	var dps_pick := _choice(gameplay, "Damage per second labels", DpsTags.SETTING, ["With the damage meter", "Off"], 0)

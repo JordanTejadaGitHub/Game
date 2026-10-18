@@ -295,6 +295,17 @@ func _combo_share(event: Event, tag: StringName) -> float:
 
 # --- Damage numbers ---------------------------------------------------------------------------------
 
+# The event's big-hit tier for its number (Enemy.big_tier_now, set while it reports this event; Subtle already caps it
+# at 1): 0 for anything but a hit or a bolt, and with "Big hit feedback" Off (setting big_hits 2).
+const BIG_NUMBER_PUNCH := 0.12  # Seconds a T3 number's scale punch lasts
+static func big_tier(event: Event) -> int:
+	if (event.kind != &"hit" and event.kind != &"bolt") or not is_instance_valid(event.enemy):
+		return 0
+	if int(Fx.setting("big_hits", 0)) == 2:
+		return 0
+	var tier = event.enemy.get("big_tier_now")
+	return clampi(int(tier), 0, 3) if tier != null else 0
+
 func _show_number(event: Event) -> void:
 	if event.tag == HARMONY_TAG:
 		_merge_harmony(event)
@@ -304,6 +315,8 @@ func _show_number(event: Event) -> void:
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"conducted") \
 		or event.combos.has(&"popped") or event.kind == &"reaction" or event.kind == &"bolt" \
 		or event.amount >= event.enemy.max_health * 0.1
+	var tier := big_tier(event)
+	big = big or tier > 0
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
 	var color := Palette.HEARTLIGHT
@@ -322,6 +335,23 @@ func _show_number(event: Event) -> void:
 	elif event.kind == &"bolt" and not event.combos.has(&"crit"):
 		size = 16  # A Charged bolt: slightly larger, warm, with its bolt glyph (screens_ui.md "Charged bolt")
 		color = Palette.GLOW
+	# Big-hit number tiers (visual_feedback_spec.md A, Main Merger's part): T1 +3 px; T2 20 px HEARTLIGHT on a VOID outline;
+	# T3 24 px GLOW with a 0.12 s scale punch. With a crit the larger size wins and it stays GLOW.
+	var outline := Palette.DREAD
+	var punch := 0.0
+	match tier:
+		1:
+			size += 3
+		2:
+			size = maxi(size, 20)
+			outline = Palette.VOID
+			if not event.combos.has(&"crit"):
+				color = Palette.HEARTLIGHT
+		3:
+			size = maxi(size, 24)
+			outline = Palette.VOID
+			color = Palette.GLOW
+			punch = BIG_NUMBER_PUNCH
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
@@ -338,6 +368,8 @@ func _show_number(event: Event) -> void:
 		event.amount, color, size)
 	number.source = event.source
 	number.bolt = event.kind == &"bolt"
+	number.outline = outline
+	number.punch = punch
 	add_child(number)
 	if _last_number.size() > 256:
 		_last_number.clear()
@@ -397,6 +429,8 @@ class FloatingNumber:
 	var _age := 0.0
 	var source: Node  # The Warden that dealt it: a click on the number focuses it
 	var bolt := false  # A Charged bolt's number: a small bolt glyph before it
+	var outline := Palette.DREAD  # Big-hit T2 / T3: VOID
+	var punch := 0.0  # Big-hit T3: seconds of a scale punch (1.3× easing to 1×)
 
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
@@ -428,11 +462,14 @@ class FloatingNumber:
 	func _draw() -> void:
 		var alpha := 1.0 - _age / LIFE
 		var font := ThemeDB.fallback_font
-		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
+		var size := _size
+		if punch > 0.0 and _age < punch:  # The T3 punch: a little bigger, easing back
+			size = roundi(_size * lerpf(1.3, 1.0, _age / punch))
+		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size past 1× zoom
-		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, 4,
-			Color(Palette.DREAD, alpha))
-		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
+		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4,
+			Color(outline, alpha))
+		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 			Color(_color, alpha))
 		if bolt:  # A small zigzag bolt left of the number
 			var x := -width / 2 - 4.0

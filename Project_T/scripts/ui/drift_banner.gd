@@ -30,7 +30,24 @@ func _ready() -> void:
 	var spawner = %EnemyContainer
 	spawner.child_entered_tree.connect(func(node: Node) -> void:
 		if node.get("enemy_data") != null and node.enemy_data.is_boss:
-			_boss = node)
+			_boss = node
+			if node.has_signal("big_hit") and not node.big_hit.is_connected(_on_boss_big_hit):
+				node.big_hit.connect(_on_boss_big_hit))
+
+# Big-hit feedback (visual_feedback_spec.md A, Main Merger's part): at T2 and T3 the boss bar flashes the segment it just
+# lost, GLOW at 0.6 alpha fading over 0.25 s (real time). Enemy.big_hit fires after the health drops, so the segment runs
+# from the health now up by the hit's share. Subtle (big_hits 1) shows T1 everywhere: no flash; Off (2): none.
+const CHUNK_FLASH := 0.25
+var _chunk := Vector2(-1.0, -1.0)  # Health shares [from, to] of the segment lost
+var _chunk_left := 0.0
+
+func _on_boss_big_hit(enemy: Node2D, tier: int, share: float) -> void:
+	if enemy != _boss or tier < 2 or int(Fx.setting("big_hits", 0)) != 0:
+		return
+	var now := float(enemy.health) / maxf(enemy.max_health, 1.0)
+	_chunk = Vector2(now, minf(now + share, 1.0))
+	_chunk_left = CHUNK_FLASH
+	queue_redraw()
 
 # Redrawn when what it shows changes (3× perf pass: it was every frame), and at least every
 # SAFETY_REDRAW s for anything the key misses (pip states).
@@ -40,6 +57,9 @@ var _since_redraw := 0.0
 
 func _process(delta: float) -> void:
 	_since_redraw += delta / maxf(Engine.time_scale, 0.001)
+	if _chunk_left > 0.0:  # The chunk flash fades every frame while it lasts
+		_chunk_left = maxf(_chunk_left - delta / maxf(Engine.time_scale, 0.001), 0.0)
+		queue_redraw()
 	var boss_health := int(_boss.health) if is_instance_valid(_boss) and not _boss.is_cleansed else -1
 	var pulse_step := int(Time.get_ticks_msec() / 50) if _boss_at_heartwood() else 0  # The drain pulse redraws ~20×/s
 	var key := "%s|%d|%s|%d|%s|%d" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size, pulse_step]
@@ -141,6 +161,9 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var fraction := float(_boss.health) / maxf(_boss.max_health, 1.0)
 	draw_rect(bar.grow(2), Color(Palette.DREAD, 0.85))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
+	if _chunk_left > 0.0 and _chunk.y > _chunk.x:  # The segment a big hit just took
+		draw_rect(Rect2(bar.position.x + bar.size.x * _chunk.x, bar.position.y, bar.size.x * (_chunk.y - _chunk.x), bar.size.y),
+			Color(Palette.GLOW, 0.6 * _chunk_left / CHUNK_FLASH))
 	# A marker (with a knob: it's tappable) at every health share an ability starts at.
 	_markers = []
 	var lines := marker_lines()
