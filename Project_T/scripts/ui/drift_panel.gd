@@ -220,7 +220,7 @@ func _process(_delta: float) -> void:
 	if _unconfirmed_wardens():
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
-		_status_label.visible = not _phone_panel_open()
+		_status_label.visible = false  # Phones: the big button already says it (user 2026-10-18: "a lot of clutter on the right side")
 		_hide_speed_while_building(bool(tower_placer.get("build_mode")))
 		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
 		var drawer := get_parent().get_node_or_null("WardenPanel") as CanvasItem if get_parent() != null else null
@@ -371,6 +371,8 @@ func _update_finale() -> void:
 	finale_label.visible = finale > 0
 	if finale > 0:
 		finale_label.text = FINALE_TEXT % finale
+		if UiStyle.is_phone():
+			finale_label.text = "Clear drift %d clean: Rare Dream" % finale  # Phones: one short line (user 2026-10-18)
 
 # Moonflip (dream_design.md, Strange Dreams): the block's roll, "" without the card; seeded per block, changes at a rest.
 func _update_moonflip() -> void:
@@ -397,3 +399,5 @@ func _update_warning() -> void:
 func _refresh_impatient() -> void:
 	impatient_label.visible = not run_state.is_over and dream_state.has_rule(&"restless_night") and drift_director.early_drifts_on_field() >= 2
 	impatient_label.text = "Impatient Night +%d%% · early calls overlap" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)
+	if UiStyle.is_phone():
+		impatient_label.text = "Impatient Night +%d%%" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)  # Phones: short, no " · "
