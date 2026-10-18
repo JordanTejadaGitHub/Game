@@ -1284,3 +1284,10 @@ and it's an adjective."*
   goes; the status line in the stats (the status it applies, with its strength) stays.
 - **No double labels:** a Calling card says "Calling · Spore Print" once at the top; the separate "Calling: Spore
   Print" line under the chips goes.
+
+## No selecting nightmares on the map (user, 2026-10-17: "remove selecting enemies")
+Clicking or tapping a nightmare on the field no longer opens its card or the boss dossier (and no longer pauses):
+the click goes through to whatever is under it (a Warden, empty ground, the build ghost). A nightmare's info stays
+one step away: the "Coming this block" portraits (tap: its card; the boss: the dossier), the drift banner's
+"Boss in N", the first-appearance introduction and the Codex. On PC, hovering a nightmare still shows the passive
+Nightmare info panel (no click, no pause); on phones there is no field equivalent.
