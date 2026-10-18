@@ -164,6 +164,9 @@ func _ready() -> void:
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
 	visible = false
+	if _phone:  # The camera keeps the selected Warden clear of the drawer (_focus_selection)
+		visibility_changed.connect(_queue_focus)
+		tower_seller.selection_changed.connect(_queue_focus.unbind(1))
 
 	tower_seller.tower_selected.connect(_show)
 	# World labels (DPS tags, name tags) don't draw under the open panel: it's see-through, and they read through it.
@@ -1800,6 +1803,106 @@ func pulse(kind: StringName) -> int:
 	return count
 
 # --- Phones: the Warden drawer (mobile redesign; PC never reaches these) --------------------------------------------
+
+# Phones (Mobile chat, user screenshot 2026-10-17: the Firefly Jar and its grow preview sat behind the drawer): when the
+# drawer opens for a Warden (or a group) it would cover, the camera glides so the selection sits in the map left of the
+# drawer, FOCUS_MARGIN clear of it; when the drawer closes it glides back, unless the player panned or zoomed meanwhile.
+const FOCUS_MARGIN := 96.0  # View px kept between the selection (its range ring's middle) and the drawer / screen edges
+const FOCUS_GLIDE := 0.35  # Seconds
+var _focus_home := Vector2.INF  # The camera's target before the first focus glide (INF: nothing to return to)
+var _focus_to := Vector2.INF  # Where the last focus glide ends
+var _focus_zoom := Vector2.ZERO  # The zoom when it glided: a pinch since means the player took over
+
+func _camera() -> Node:
+	return owner.get_node_or_null("GameCameraNode") if owner != null else null
+
+# After the drawer's height settles (_place_phone runs deferred): a short real-time wait, also while paused.
+func _queue_focus() -> void:
+	if not _phone or not is_inside_tree() or _focus_pending:
+		return
+	_focus_pending = true  # Opening fires visibility and selection together: one focus
+	get_tree().create_timer(0.05, true, false, true).timeout.connect(_focus_selection)
+
+var _focus_pending := false
+
+func _focus_selection() -> void:
+	_focus_pending = false
+	var camera := _camera()
+	if camera == null or not is_inside_tree():
+		return
+	if not visible:
+		_focus_return(camera)
+		return
+	var box := Rect2()
+	var first := true
+	for tower in tower_seller.selection:
+		if not is_instance_valid(tower) or tower.is_queued_for_deletion():
+			continue
+		var at: Vector2 = get_viewport().get_canvas_transform() * (tower as Node2D).global_position
+		box = Rect2(at, Vector2.ZERO) if first else box.expand(at)
+		first = false
+	if first:
+		return
+	var view := get_viewport().get_visible_rect().size
+	var drawer_left: float = (get_global_transform_with_canvas() * get_rect().position).x  # Through the HUD layer's notch fit
+	var room := Rect2(Vector2(FOCUS_MARGIN, FOCUS_MARGIN), Vector2(drawer_left - FOCUS_MARGIN * 2.0, view.y - FOCUS_MARGIN * 2.0))
+	if room.size.x <= 0.0 or room.size.y <= 0.0:
+		return
+	var shift := Vector2.ZERO  # View px the selection must move
+	if box.size.x > room.size.x:
+		shift.x = room.get_center().x - box.get_center().x
+	elif box.end.x > room.end.x:
+		shift.x = room.end.x - box.end.x
+	elif box.position.x < room.position.x:
+		shift.x = room.position.x - box.position.x
+	if box.size.y > room.size.y:
+		shift.y = room.get_center().y - box.get_center().y
+	elif box.end.y > room.end.y:
+		shift.y = room.end.y - box.end.y
+	elif box.position.y < room.position.y:
+		shift.y = room.position.y - box.position.y
+	if shift.length() < 1.0:
+		return
+	var zoom: Vector2 = camera.camera_2d.zoom
+	var from: Vector2 = camera.target_position
+	if _focus_home == Vector2.INF or _player_moved(camera):
+		_focus_home = from  # (A pan or pinch since the last focus: home is where the player left the view)
+	var seen: Vector2 = camera.camera_2d.position  # The shift is measured on the view as drawn (the target may be ahead)
+	_focus_to = _clamped(camera, seen - shift / zoom)  # The map moves the other way under the view
+	_focus_zoom = camera.target_zoom
+	if _focus_to.distance_to(from) < 1.0:
+		return  # At the map's edge already: the camera can't go further
+	camera.glide(PackedVector2Array([from, _focus_to]), FOCUS_GLIDE)
+
+# The drawer closed: back to where the view was, if the player left the camera where the focus put it.
+func _focus_return(camera: Node) -> void:
+	if _focus_home == Vector2.INF:
+		return
+	var home := _focus_home
+	_focus_home = Vector2.INF
+	if not _player_moved(camera):
+		camera.glide(PackedVector2Array([camera.target_position, home]), FOCUS_GLIDE)
+
+# Where the camera would really stop for `target` (its map clamp, with the HUD overscroll), so a clamped glide isn't
+# mistaken for the player panning.
+func _clamped(camera: Node, target: Vector2) -> Vector2:
+	if not camera.has_method("_clamp_camera_to_map"):
+		return target
+	var was: Vector2 = camera.target_position
+	camera.target_position = target
+	camera._clamp_camera_to_map()
+	var result: Vector2 = camera.target_position
+	camera.target_position = was
+	return result
+
+# Whether the player panned or zoomed since the last focus glide (a glide still running is ours).
+func _player_moved(camera: Node) -> bool:
+	if _focus_to == Vector2.INF:
+		return false
+	if not camera.target_zoom.is_equal_approx(_focus_zoom):
+		return true
+	var gliding: bool = not (camera._glide_points as PackedVector2Array).is_empty()
+	return not gliding and (camera.target_position as Vector2).distance_to(_focus_to) > 2.0
 
 # Docked to the right edge, top-anchored: the map stays visible to its left. The HUD layer is already fitted into the
 # notch-safe area (UiStyle.safe_transform, hud.gd), so the edges here are safe.
