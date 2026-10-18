@@ -5236,8 +5236,8 @@ func _root_light(canvas: Image, st: Dictionary, big: bool) -> void:
 		for y in range(16, 44, 3):
 			_px(canvas, 31, y + dy, core)  # light sinking down its middle
 	# Light running out along the roots, further each frame.
-	var roots: Array = [[Vector2(24, 40), Vector2(16, 44), Vector2(10, 46), Vector2(4, 44)], [Vector2(29, 43), Vector2(27, 47), Vector2(25, 54)],
-		[Vector2(36, 43), Vector2(40, 48), Vector2(46, 52), Vector2(54, 50)], [Vector2(44, 40), Vector2(52, 42), Vector2(57, 41), Vector2(62, 42)]]
+	var roots: Array = [[Vector2(24, 40), Vector2(16, 44), Vector2(10, 46), Vector2(5, 44)], [Vector2(29, 43), Vector2(27, 47), Vector2(25, 54)],
+		[Vector2(36, 43), Vector2(40, 48), Vector2(46, 52), Vector2(54, 50)], [Vector2(44, 40), Vector2(52, 42), Vector2(56, 41), Vector2(59, 42)]]
 	var reach: float = [0.45, 0.85, 1.0][k]
 	for r: Array in roots:
 		var total := 0.0
@@ -5436,15 +5436,15 @@ func _lichen_plate(canvas: Image, c: Vector2, r: float, o: Color, mask: Image = 
 	_stamp(canvas, layer, o)
 
 # A broad, flat shelf cap (one tier, or two for Old Lichen) with lichen frills along its rim.
-func _shelf_cap(canvas: Image, c: Vector2, w: float, o: Color, tiers: int) -> void:
+func _shelf_cap(canvas: Image, c: Vector2, w: float, o: Color, tiers: int, ramp: Array = ["#7a8a5a", "#a8b880", "#d4e0b0"], frills: bool = true) -> void:
 	for t in tiers:
 		var cc := c + Vector2(0, -t * 4.0)
 		var ww := w - t * 5.0
 		var cap := _layer()
-		_ellipse(cap, cc, Vector2(ww, 3.2), _ramp(["#7a8a5a", "#a8b880", "#d4e0b0"]))
+		_ellipse(cap, cc, Vector2(ww, 3.2), _ramp(ramp))
 		_stamp(canvas, cap, o)
 		var x := cc.x - ww + 2.0
-		while x < cc.x + ww - 1.0:
+		while frills and x < cc.x + ww - 1.0:
 			_px(canvas, int(x), int(cc.y) + 2, Color(LICHEN[1]))
 			x += 3.0
 
@@ -5462,20 +5462,21 @@ func _lichen_body(canvas: Image, st: Dictionary, old: bool) -> void:
 	var fig := _spore_fig()
 	_draw_waystone(canvas, st, "fairy_ring", old)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
-	for p: Vector3 in [Vector3(25, 27, 2.6), Vector3(35, 33, 2.4), Vector3(29, 38, 2.2)]:
+	# Old Lichen has no plates: its body is already lichen green, and plates of the same
+	# green read as noise in game (user 2026-10-15: "make sure they're clear").
+	var plates: Array = [] if old else [Vector3(25, 27, 2.6), Vector3(35, 33, 2.4), Vector3(29, 38, 2.2)]
+	for p: Vector3 in plates:
 		_lichen_plate(canvas, Vector2(p.x, p.y + (dy if p.y < 30 else 0)), p.z, fig.o, mask)
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true)
 	# The shelves: flat half-discs sticking out past the body's edge, in steps down each side.
 	var shelves: Array = [Vector4(13, 20, 7, -1), Vector4(48, 21, 7, 1), Vector4(11, 30, 6, -1), Vector4(51, 31, 6, 1)]
-	if old:
-		shelves.append_array([Vector4(9, 25, 8, -1), Vector4(54, 26, 8, 1), Vector4(14, 37, 5, -1), Vector4(49, 38, 5, 1)])
 	for s: Vector4 in shelves:
 		_bracket(canvas, Vector2(s.x, s.y + (dy if s.y < 30 else 0)), s.z, fig.o)
-	_shelf_cap(canvas, Vector2(30.5, 5 + dy), 22.0 if old else 18.0, fig.o, 2 if old else 1)
+	if old:  # a pale shelf-fungus cap, so the head doesn't melt into a green lid
+		_shelf_cap(canvas, Vector2(30.5, 5 + dy), 22.0, fig.o, 2, ["#bca48c", "#dccdb2", "#fff4dc"], false)
+	else:
+		_shelf_cap(canvas, Vector2(30.5, 5 + dy), 18.0, fig.o, 1)
 	if old:
-		for x in [12, 17, 44, 49]:
-			for i in 7 + x % 4:
-				_px(canvas, x, 8 + dy + i, Color(LICHEN[1]) if i % 2 == 0 else Color(LICHEN[0]))
 		for p: Vector3 in [Vector3(10, 45, 3.0), Vector3(54, 44, 2.6)]:
 			_lichen_plate(canvas, Vector2(p.x, p.y), p.z, fig.o)
 	_motes(canvas, st, [16, 46], 18, 12, [Color(LICHEN[2]), Color("#de73e5")])
@@ -8017,9 +8018,9 @@ func _epic_old_lichen(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Colo
 	for s: int in [-1, 1]:
 		var x := 31.5 + s * 23.0
 		_stroke(back, [Vector2(x, 42), Vector2(x - s, 4)], 2.6, Color("#5c3c24"))
-		for k in 4:
-			var y := 34.0 - k * 9.0
-			_bracket(back, Vector2(x - s * 4.0, y), 6.5 - k * 0.6, EPIC_O)
+		for k in 3:  # three shelves a stump, spaced so each reads on its own
+			var y := 33.0 - k * 11.0
+			_bracket(back, Vector2(x - s * 4.0, y), 6.5 - k * 0.7, EPIC_O)
 	_outline_layer(back)
 	_under(canvas, back)
 	for p: Vector2i in [Vector2i(9, 6), Vector2i(54, 10), Vector2i(10, 24), Vector2i(53, 28)]:
