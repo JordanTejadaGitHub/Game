@@ -268,6 +268,10 @@ func _hide_speed_while_building(building: bool) -> void:
 	_pause_button.visible = not building
 	for button in _speed_buttons:
 		button.visible = not building
+	# Auto and the drift button too (user 2026-10-17: "still see the auto button and drift button"): building is its own
+	# moment; Done (or Confirm) brings them back.
+	_auto_toggle.visible = not building
+	_start_button.visible = not building and not run_state.is_over
 
 func _phone_panel_open() -> bool:
 	var hud := get_parent()
