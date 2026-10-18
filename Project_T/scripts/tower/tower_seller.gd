@@ -944,6 +944,14 @@ func _draw_jar_link(jar: Tower) -> void:
 			Color(BranchKit.LINK_COLOR, 0.6), 4.0)
 		BranchKit.draw_link_mark(self, partner.position, true)
 
+# A splash or lob Warden's splash (user: "dewdrop ... see its splash damage radius when hovering"): the grow preview's
+# dashed ring (TowerPlacer.draw_splash_area) where its next hit would land now. A Graftling copying one shows it too.
+func _draw_splash(tower: Tower) -> void:
+	var data: TowerData = tower.attack_data
+	if data == null or not data.can_attack or data.splash_radius <= 0.0 or data.special != &"" 			or data.attack_kind == TowerData.AttackKind.CLOUD:
+		return
+	tower_placer.draw_splash_area(self, data, tower.global_position, tower.get_range_pixels())
+
 func _draw() -> void:
 	if selection.size() == 1 and is_instance_valid(selected):
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
@@ -956,6 +964,7 @@ func _draw() -> void:
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
+		_draw_splash(selected)
 		var ability := BranchKit.ability_reach(selected)
 		if ability > 0.0:
 			BranchKit.draw_link_area(self, selected.position, ability, 0.55)  # Its ability's reach, dashed (Groundroot's grab)
