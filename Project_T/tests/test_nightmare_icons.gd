@@ -238,8 +238,8 @@ func _run() -> void:
 	banner._boss.queue_free()
 	boss.queue_free()
 
-	# Click / tap a nightmare: its centred card with live state; a boss: the dossier; a never-seen
-	# kind spawning mid-block opens its card too.
+	# No selecting nightmares on the map (2026-10-17, screens_ui.md 52f91100): a click there opens nothing; a
+	# never-seen kind spawning mid-block still opens its card.
 	if intro != null:
 		intro._pending = []  # The first rest's introductions (they now follow the dossier) are past
 		if intro.visible:
@@ -255,8 +255,7 @@ func _run() -> void:
 			click.pressed = pressed
 			click.position = at
 			intro._unhandled_input(click)
-		_check(intro.visible and intro.shown == clicked.enemy_data and intro._live_label != null
-			and intro._live_label.text.begins_with("Health"), "clicking a nightmare opens its card with live health")
+		_check(not intro.visible, "clicking a nightmare on the map opens no card (the click is the Warden tools')")
 		intro.close()
 		clicked.queue_free()
 		var kind := NightmareIntro.kind_of(load("res://resource/enemy/puffcaplet.tres"))

@@ -8,8 +8,8 @@ class_name NightmareIntro
 # resist / weak / immune icons, and one hint (EnemyData.hint). Several new kinds: one card each, with
 # "Next" (a kind's split / follower kinds right after it). After the Dream / Omen, before the boss
 # dossier. Dismissed by the button, a tap outside or Esc; reopened from its portrait in the Coming
-# strip (open_for), or by clicking / tapping the nightmare on the map (paused; bosses open the dossier;
-# the card adds its live health, statuses and Restless). A kind that first appears mid-block without
+# strip (open_for); never by clicking the nightmare on the map (removed 2026-10-17, screens_ui.md 52f91100). A
+# kind that first appears mid-block without
 # a card (a Mourner's Sobs) pauses on its card too (it was a 2-second name plate). Block 1's kinds are
 # introduced at the run's opening rest. Once ever per kind, per account (profile "intros_seen", dev
 # runs included; tests: this session only). Always on (user, 2026-09-29), not tied to the whispers.
@@ -144,59 +144,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("cancel_build"):
 		close()
 		get_viewport().set_input_as_handled()
-		return
-	# Click / tap a nightmare on the map (screens_ui.md "New nightmare introduction"): its centred
-	# card, paused (a boss: the dossier). A click, not a drag; build mode, a Warden selection and the
-	# Clear tool keep their own click.
-	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) or visible:
-		return
-	if event.pressed:
-		_press_at = event.position
-		_press_free = _map_click_free()
-		return
-	if not _press_free or event.position.distance_to(_press_at) > CLICK_SLOP:
-		return
-	var enemy := nightmare_at(event.position)
-	if enemy == null:
-		return
-	if enemy.enemy_data.is_boss:
-		BossDossier.open_for(get_tree())
-	else:
-		open([enemy.enemy_data], 0, enemy)
-	get_viewport().set_input_as_handled()
+	# (No selecting nightmares on the map since 2026-10-17, screens_ui.md 52f91100: a click there belongs to the
+	# Warden tools. Cards open from the Coming strip, first appearances, the banner / strip for bosses, and the Codex.)
 
-const CLICK_RADIUS := 30.0  # World px around a nightmare that count as clicking it
-const CLICK_SLOP := 8.0  # Screen px a click may move (more = a drag box)
-var _press_at := Vector2.ZERO
-var _press_free := false
-var live: Node2D = null  # The clicked nightmare (its health, statuses and Restless on the card)
+var live: Node2D = null  # A nightmare met mid-block (_on_spawned): its health, statuses and Restless on the card
 var _live_label: Label = null
-
-# Nothing else owns a map click right now.
-func _map_click_free() -> bool:
-	var placer = drift_director.get_node_or_null("%TowerPlacer")
-	var seller = drift_director.get_node_or_null("%TowerSeller")
-	var clearer = drift_director.get_node_or_null("%ObstacleClearer")
-	if placer != null and placer.build_mode:
-		return false
-	if seller != null and not seller.selection.is_empty():
-		return false
-	return not (clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active())
-
-# The nightmare under screen point `screen_at` (nearest within CLICK_RADIUS), or null. Hidden ones
-# can't be picked.
-func nightmare_at(screen_at: Vector2) -> Node2D:
-	var world := get_viewport().get_canvas_transform().affine_inverse() * screen_at
-	var best: Node2D = null
-	var best_distance := CLICK_RADIUS
-	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-		if enemy.get("enemy_data") == null or enemy.is_cleansed or (enemy.has_method("is_hidden") and enemy.is_hidden()):
-			continue
-		var distance: float = enemy.global_position.distance_to(world)
-		if distance < best_distance:
-			best_distance = distance
-			best = enemy
-	return best
 
 # --- Which kinds, when ---------------------------------------------------------------------------
 
@@ -265,7 +217,7 @@ func _process(delta: float) -> void:
 
 # --- Open / next / close -------------------------------------------------------------------------
 
-# `enemy`: a nightmare clicked on the map; its card adds its live health, statuses and Restless.
+# `enemy`: a nightmare met mid-block (_on_spawned); its card adds its live health, statuses and Restless.
 # One card at a time: a click (`replace`) swaps the card showing for this one, while new kinds found
 # mid-drift queue behind it (Next). Either way the pause state carries over. The card always stops
 # the game while it's up (at a rest too, so Enter can't start a drift under it).
@@ -378,7 +330,7 @@ func _build(data: EnemyData) -> void:
 		UiStyle.caps(when, 13)
 		_content.add_child(when)
 	_live_label = null
-	if is_instance_valid(live) and live.enemy_data == data:  # Clicked on the map: this one, right now
+	if is_instance_valid(live) and live.enemy_data == data:  # Met mid-block: this one, right now
 		_live_label = Label.new()
 		_live_label.name = "Live"
 		_live_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
