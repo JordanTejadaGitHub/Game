@@ -114,35 +114,43 @@ static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, tex
 	draw_outlined(canvas, font, origin, text, size, color)
 	end_screen_size(canvas)
 
-# Keyword chips under a world tag (the build ghost; keyword chips 2026-10-16, icon and word, never an icon alone): each
-# KeywordIcons icon then its word, the row centred on `center_x`, its middle at `mid_y`, screen-sized like draw_tag.
-# Makes in gold, uses in Mist. `chips` = DreamState.KEYWORDS' [{id, kind, label}].
-const KEYWORD_ICON := 14.0
-const KEYWORD_GAP := 10.0
+# Keyword chips under a world tag (the build ghost; keyword chips 2026-10-16, icon and word, never an icon alone): the
+# same quiet chip as every panel (UiStyle.chip with a GOLD outline, screens_ui.md 844fa70a): a 1 px gold frame over
+# fog (Makes adds a faint gold wash), the 16 px icon, the word in Mist at 12 px. The row is centred on `center_x`, its
+# middle at `mid_y`, screen-sized like draw_tag. `chips` = DreamState.KEYWORDS' [{id, kind, label}].
+const KEYWORD_ICON := 16.0
+const KEYWORD_GAP := 4.0
+const KEYWORD_TEXT := 12
+const KEYWORD_H := 20.0
 static func draw_keywords(canvas: CanvasItem, center_x: float, mid_y: float, chips: Array) -> void:
 	if chips.is_empty():
 		return
-	var font := UiStyle.with_glyphs(UiStyle.body_font())
-	var size := FONT_SIZE - 1
+	var font := UiStyle.body_medium_font()
 	var widths: Array[float] = []
 	var total := 0.0
 	for chip in chips:
-		var width := KEYWORD_ICON + 3.0 + font.get_string_size(String(chip.get("label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var width := 4.0 + KEYWORD_ICON + 4.0 + font.get_string_size(String(chip.get("label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, KEYWORD_TEXT).x + 6.0
 		widths.append(width)
 		total += width
 	total += KEYWORD_GAP * (chips.size() - 1)
 	var s := text_scale(canvas)
-	if covered(canvas, Rect2(Vector2(center_x - total / 2.0 * s, mid_y - 10.0 * s), Vector2(total, 20.0) * s)):
+	if covered(canvas, Rect2(Vector2(center_x - total / 2.0 * s, mid_y - KEYWORD_H / 2.0 * s), Vector2(total, KEYWORD_H) * s)):
 		return
 	begin_screen_size(canvas, Vector2(center_x, mid_y))
-	draw_halo(canvas, Rect2(Vector2(center_x - total / 2.0, mid_y - 9.0), Vector2(total, 18.0)))
-	var x := center_x - total / 2.0
+	var x := roundf(center_x - total / 2.0)
+	var top := roundf(mid_y - KEYWORD_H / 2.0)
 	for i in chips.size():
 		var chip: Dictionary = chips[i]
-		KeywordIcons.draw(canvas, StringName(chip.get("id", &"")), Vector2(x + KEYWORD_ICON / 2.0, mid_y), KEYWORD_ICON)
-		var colour := UiStyle.GOLD if StringName(chip.get("kind", &"makes")) == &"makes" else UiStyle.INK_DIM
-		draw_outlined(canvas, font, Vector2(x + KEYWORD_ICON + 3.0, mid_y + 5.0), String(chip.get("label", "")), size, colour)
-		x += widths[i] + KEYWORD_GAP
+		var box := Rect2(x, top, roundf(widths[i]), KEYWORD_H)
+		var makes := StringName(chip.get("kind", &"makes")) == &"makes"
+		canvas.draw_rect(box, Color(UiStyle.FOG, 0.6))
+		if makes:
+			canvas.draw_rect(box, Color(UiStyle.GOLD, 0.14))
+		canvas.draw_rect(box.grow(-0.5), Color(UiStyle.GOLD, 0.8), false, 1.0)
+		KeywordIcons.draw(canvas, StringName(chip.get("id", &"")), Vector2(x + 4.0 + KEYWORD_ICON / 2.0, mid_y), KEYWORD_ICON)
+		canvas.draw_string(font, Vector2(x + 4.0 + KEYWORD_ICON + 4.0, mid_y + 4.0), String(chip.get("label", "")),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, KEYWORD_TEXT, UiStyle.INK_DIM)
+		x += box.size.x + KEYWORD_GAP
 	end_screen_size(canvas)
 
 # One placement for every word that pops over a spot in the world (user's screenshot 2026-10-13: "Chain ×3",
