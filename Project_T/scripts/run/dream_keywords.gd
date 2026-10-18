@@ -135,8 +135,34 @@ static func chips_for_warden(data: TowerData) -> Array[Dictionary]:
 		var word := word_for_status(status)
 		if word != &"" and not makes.has(word):
 			makes.append(word)
+	for word in _form_keywords(data):  # Crit / Repeat / Asleep / Slow (keyword audit 2026-10-17)
+		if not makes.has(word):
+			makes.append(word)
 	var out: Array[Dictionary] = []
 	_add(out, makes, MAKES)
+	return out
+
+# What a form does beyond roles and statuses (keyword audit 2026-10-17, owner: "make sure all the keywords and tags have
+# what they have"): its data fields, plus the forms whose effect lives in their special or twist code.
+const FORM_KEYWORDS := {
+	&"vesper_bell": [&"repeat"], &"starburst": [&"repeat"],  # The toll's echo, the double burst
+	&"rockslide": [&"slow"], &"white_stag": [&"slow"], &"heartroot": [&"slow"],  # Rubble, the aura's slow, the pull back
+	&"prism_jar": [&"crit"], &"rainbow_prism": [&"crit"], &"jewelwing_court": [&"crit"],  # Crit aura, the flurry
+}
+
+static func _form_keywords(data: TowerData) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if data.crit_chance > 0.0:
+		out.append(&"crit")
+	if data.echo_share > 0.0:
+		out.append(&"repeat")
+	if data.sleep_at_max_drowsy > 0.0:
+		out.append(&"asleep")
+	if data.cloud_slow > 0.0:
+		out.append(&"slow")
+	for word in FORM_KEYWORDS.get(StringName(data.get_id()), []):
+		if not out.has(word):
+			out.append(word)
 	return out
 
 # --- Calling evolutions ------------------------------------------------------------------------------------------------
