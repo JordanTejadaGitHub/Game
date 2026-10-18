@@ -644,8 +644,10 @@ static func describe_growth(tower: Tower, into: TowerData, dreams: DreamState) -
 		parts.append("range %.1f → %.1f" % [tower.get_range_cells(), reach])
 	if into.min_range > 0.0 and into.min_range != from.min_range:
 		parts.append("can't hit within %.1f" % into.min_range)
-	if into.applies_status != &"" and into.applies_status != from.applies_status:
-		parts.append("adds %s" % IconInfo.status_name(into.applies_status))
+	var had := Tower.statuses_applied(from)
+	for status in Tower.statuses_applied(into):  # A special's or form's new status too (keyword audit 2026-10-17)
+		if not had.has(status):
+			parts.append("adds %s" % IconInfo.status_name(status))
 	return into.display_name + (": " + ", ".join(parts) if not parts.is_empty() else "")
 
 func _draw_grow_preview() -> void:

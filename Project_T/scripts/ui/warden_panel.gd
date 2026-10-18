@@ -1957,8 +1957,8 @@ func _phone_top() -> float:
 func _prune_phone_stat_rows() -> void:
 	if _phone_stats.visible:
 		var shown: Array[StringName] = [&"damage", &"attack_speed", &"range", &"potency"]
-		if _tower.attack_data != null and _tower.attack_data.applies_status != &"":
-			shown.append(_tower.attack_data.applies_status)
+		if _tower.attack_data != null:
+			shown.append_array(Tower.statuses_applied(_tower.attack_data))  # Every status its chips show (keyword audit 2026-10-17)
 		for row in _stats.get_children():
 			if row.is_queued_for_deletion() or not row is HFlowContainer:
 				continue

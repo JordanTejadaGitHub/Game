@@ -689,14 +689,21 @@ static func combo_name(entry: Dictionary, seen: Array = []) -> String:
 	return String(entry.get("name", "")) if is_discovered(entry.get("id", &""), seen) else "???"
 
 # The combo (synergy or Reaction) a status → payoff Warden link stands for, or {}.
+# Whether the payoff Warden applies another status of this Reaction (its specials and form statuses too: keyword audit
+# 2026-10-17, Tower.statuses_applied).
+static func _payoff_status_in(payoff: TowerData, entry: Dictionary, status: StringName) -> bool:
+	for own in Tower.statuses_applied(payoff):
+		if own != status and entry.statuses.has(own):
+			return true
+	return false
+
 static func combo_for_link(status: StringName, payoff: TowerData) -> Dictionary:
 	for entry in combos():
 		if String(entry.get("by", "")) != "":
 			if Array(String(entry.by).split(", ")).has(payoff.display_name) and entry.statuses.has(status):
 				return entry
 	for entry in combos():
-		if entry.kind == "Reaction" and entry.statuses.has(status) and payoff.applies_status != &"" \
-				and entry.statuses.has(payoff.applies_status):
+		if entry.kind == "Reaction" and entry.statuses.has(status) and _payoff_status_in(payoff, entry, status):
 			return entry
 	return {}
 
