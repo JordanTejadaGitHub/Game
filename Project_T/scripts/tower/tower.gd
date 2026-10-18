@@ -2718,6 +2718,7 @@ class GroundRipple extends Node2D:
 	static var _alive := 0
 	var _radius := 0.0
 	var _colour: Color
+	var _edge := Color(0, 0, 0, 0)  # A darker line under it (splash rings: reads on the pale sand path)
 	var _age := 0.0
 
 	static func may_start(at: Vector2) -> bool:
@@ -2731,9 +2732,10 @@ class GroundRipple extends Node2D:
 		_recent.append([now, at])
 		return true
 
-	func _init(reach: float, colour: Color) -> void:
+	func _init(reach: float, colour: Color, edge := Color(0, 0, 0, 0)) -> void:
 		_radius = reach
 		_colour = colour
+		_edge = edge
 		z_index = -1  # On the ground
 		_alive += 1
 
@@ -2751,6 +2753,8 @@ class GroundRipple extends Node2D:
 		var t := _age / TIME
 		var r := _radius * (1.0 - pow(1.0 - t, 2.0))  # Eases out to the range
 		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
+		if _edge.a > 0.0:
+			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * ALPHA * (1.0 - t)), WIDTH + 2.0, false)
 		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
 
 # Lit path (the user, 2026-10-13: "can you make lit paths more visible"; before: faint grey squares, mostly on the
@@ -3670,11 +3674,25 @@ func _skip_landed(target, _where: Vector2, share: float) -> void:
 		hit(target, share)
 
 func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
+	_splash_ring(where, radius)
 	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
 		GroveRules.area_attack(self, where, radius, share)  # Lingering Splash, Great Ripple
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy.global_position.distance_to(where) <= radius:
 			hit(enemy, share, true, crit)
+
+# The splash's reach where it lands (user 2026-10-18: "a visible radius with splash damage when it lands"): a ground
+# ring out to the real splash radius in the family's colour, with a dark edge so it reads on the sand path. Shares the
+# pulse ripples' throttle (GroundRipple.may_start), so a volley of splashes never stacks into a tangle.
+func _splash_ring(where: Vector2, radius: float) -> void:
+	if radius < MAP_GRID.cell_size.x * 0.25:
+		return  # Too small to read as a radius
+	var world := Reactions._world(self)
+	if world == null or (Fx.reduced() and not Fx.on_screen(where, radius)) or not GroundRipple.may_start(where):
+		return
+	var ring := GroundRipple.new(radius, Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW), Color(Palette.DUSK, 0.8))
+	world.add_child(ring)
+	ring.global_position = where
 
 # Cairn / Rockslide: a lobbed stone came down. Loose Stones breaks it into 3 smaller splashes nearby;
 # Rockslide leaves rubble on the path tiles it hit.
