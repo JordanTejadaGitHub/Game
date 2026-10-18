@@ -95,10 +95,10 @@ func _ready() -> void:
 	_status_label.add_theme_font_size_override("font_size", 15)
 	_status_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_status_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Its tooltip: the next drift's Dew pot
-	if UiStyle.is_phone():  # The rest notes on a fog patch at body size, not tiny Mist bare on the map (UI Asset review)
+	if UiStyle.is_phone():  # Body size in Heartlight, not tiny Mist bare on the map (UI Asset review). No fog patch: the
+		# label fills the row with its text at the right, so the patch drew a long dark streak left of it (user 2026-10-18)
 		_status_label.add_theme_font_size_override("font_size", 16)
 		_status_label.add_theme_color_override("font_color", UiStyle.INK)
-		_status_label.add_theme_stylebox_override("normal", UiStyle.fog_patch(10.0, 4.0))
 	status_row.add_child(_status_label)
 	var edge := Control.new()  # A little room between the status text and the panel's right edge
 	edge.custom_minimum_size = Vector2(6, 0)
