@@ -1291,3 +1291,10 @@ the click goes through to whatever is under it (a Warden, empty ground, the buil
 one step away: the "Coming this block" portraits (tap: its card; the boss: the dossier), the drift banner's
 "Boss in N", the first-appearance introduction and the Codex. On PC, hovering a nightmare still shows the passive
 Nightmare info panel (no click, no pause); on phones there is no field equivalent.
+
+## Warden DPS tags only with the damage meter open (user, 2026-10-17)
+User: *"remove DPS under Wardens when the DPS meter isn't showing, in both mobile and PC."* The tags under Wardens
+(DpsTags) show **only while the damage meter (DriftMeter) is open and expanded**, at rests and in drifts alike;
+closing or collapsing the meter hides them all. This replaces the old rule (all tags at rests, paused and in build
+mode; the selected / hovered Warden's during a drift). The selected Warden's own numbers stay in its panel. The
+"dps_tags" setting becomes: with the meter (default) / off.
