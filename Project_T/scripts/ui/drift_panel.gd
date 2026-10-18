@@ -143,7 +143,7 @@ func _ready() -> void:
 	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
 	_start_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	speed_row.size_flags_horizontal = Control.SIZE_SHRINK_END
-	var fit_start := func() -> void: _start_button.custom_minimum_size.x = speed_row.get_combined_minimum_size().x
+	var fit_start := func() -> void: _start_button.custom_minimum_size.x = maxf(speed_row.get_combined_minimum_size().x, _start_min_x if _speed_hidden else 0.0)
 	speed_row.minimum_size_changed.connect(fit_start)
 	fit_start.call()
 	run_state.run_ended.connect(func(_won: bool) -> void: _start_button.visible = false)
@@ -221,6 +221,7 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
 		_status_label.visible = not _phone_panel_open()
+		_hide_speed_while_building(bool(tower_placer.get("build_mode")))
 		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
 		var drawer := get_parent().get_node_or_null("WardenPanel") as CanvasItem if get_parent() != null else null
 		var drawer_open := drawer != null and drawer.visible
@@ -252,6 +253,21 @@ func _process(_delta: float) -> void:
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 
 var _hidden_for_drawer := false  # Phones: hidden only because the Warden drawer is open
+
+# Phones (user 2026-10-17: "remove the pause and play while in build mode"): the II and speed buttons hide while
+# building (Auto and Start stay); Start keeps the full row's width so it doesn't shrink to Auto's.
+var _speed_hidden := false
+var _start_min_x := 0.0
+
+func _hide_speed_while_building(building: bool) -> void:
+	if building == _speed_hidden:
+		return
+	if building:
+		_start_min_x = _start_button.custom_minimum_size.x
+	_speed_hidden = building
+	_pause_button.visible = not building
+	for button in _speed_buttons:
+		button.visible = not building
 
 func _phone_panel_open() -> bool:
 	var hud := get_parent()
