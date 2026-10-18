@@ -199,9 +199,12 @@ static func dev_tag() -> String:
 func _process(delta: float) -> void:
 	_clock += delta
 	_sample -= delta
-	if _sample > 0.0 or _open.is_empty():
+	if _sample > 0.0:
 		return
 	_sample = SAMPLE_EVERY
+	_sample_card_credit()  # Every sample, drifting or resting (credit can land just after a drift's last arrival)
+	if _open.is_empty():
+		return
 	var spawner := drift_director.get_node_or_null("%EnemyContainer")
 	if spawner == null:
 		return
@@ -502,7 +505,6 @@ func _on_damage(event: DamageLog.Event) -> void:
 	# damage (its tag a Reaction id, Crowned too; less any combo part, so nothing counts twice), plain status ticks.
 	var parts := damage_parts(event, _reaction_ids())
 	_add_parts(run, event.amount, parts)
-	var cards := card_damage_of(event)  # Once per hit (perf, Enemy Code's profile 2026-10-17: it ran twice)
 	var row := _row_for(event.enemy)
 	if not row.is_empty():
 		# Effective damage only (Balancing, run 24: overkill made damage 2–4× health_spawned); the rest in "overkill".
@@ -514,41 +516,35 @@ func _on_damage(event: DamageLog.Event) -> void:
 		row["overkill"] = float(row.get("overkill", 0.0)) + over
 		var effective: Array[float] = [parts[0] * kept, parts[1] * kept, parts[2] * kept]
 		_add_parts(row, 0.0, effective)
-		if cards > 0.0:
-			row["card_damage"] = float(row.get("card_damage", 0.0)) + cards * kept
-	if cards > 0.0:
-		run["card_damage"] = float(run.get("card_damage", 0.0)) + cards
+	# (card_damage comes from DreamState's credit totals, _sample_card_credit, not per hit)
 
-# The damage taken Dream cards added to one hit (Balancing Discussion 2026-10-16: "card_damage" per drift): what
-# DreamState already credits (a card's own damage tag whole; on a Warden's hit, the share its damage and attack-speed
-# rows added, from DreamState's per-Warden cache, which it fills on this same event first) plus every multiplier card's
-# part from DamageLog.note_card_bonus (event.card_damage).
-func card_damage_of(event: DamageLog.Event) -> float:
+# "card_damage" (Balancing Discussion 2026-10-16; 2026-10-18: the column stayed 0 in a run whose Calling evolution, Chime
+# of Many, had 56k): everything DreamState credits as damage to the taken cards AND the Calling evolutions (its
+# card_credit "run" rows: own damage and the shared setup credit, which together are the cards' whole share; jumps,
+# doses, Tolls and ripples are credited to evolution ids there, Roguelite Code 479278a3). Read from its totals every
+# SAMPLE_EVERY: the growth goes to the latest drift's row. One sum over the credited cards a sample, nothing per hit.
+var _credit_seen := 0.0
+
+func _card_credit_total() -> float:
+	if dream_state == null or not ("card_credit" in dream_state):
+		return 0.0
 	var total := 0.0
-	for id in event.card_damage:
-		total += float(event.card_damage[id])
-	if dream_state == null or event.amount <= 0.0 or dream_state.stacks.is_empty():
-		return total  # (No Dream taken: nothing more to credit)
-	if event.tag != &"" and _card_tags().has(event.tag):
-		return total + event.amount
-	var tower := event.source as Tower
-	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
-		return total
-	var parts = dream_state.get("_credit_parts")
-	var entry: Array = parts.get(tower.get_instance_id(), []) if parts is Dictionary else []
-	if entry.size() >= 4:
-		total += event.amount * (1.0 - 1.0 / ((1.0 + float(entry[2])) * (1.0 + float(entry[3]))))
+	var rows: Dictionary = dream_state.card_credit.get("run", {})
+	for id in rows:
+		var row: Dictionary = rows[id]
+		total += float(row.get("damage", 0.0)) + float(row.get("setup", 0.0))
 	return total
 
-# DreamState's damage tag -> card map, asked for at most once a frame (its own call hashes the stacks each time).
-var _card_tag_map := {}
-var _card_tag_frame := -1
-func _card_tags() -> Dictionary:
-	var frame := Engine.get_process_frames()
-	if frame != _card_tag_frame:
-		_card_tag_frame = frame
-		_card_tag_map = dream_state.call("_credit_rule_map") if dream_state.has_method("_credit_rule_map") else {}
-	return _card_tag_map
+func _sample_card_credit() -> void:
+	var total := _card_credit_total()
+	var grew := total - _credit_seen
+	if grew <= 0.0:
+		_credit_seen = minf(_credit_seen, total)  # (A fresh run's credit starts again at 0)
+		return
+	_credit_seen = total
+	run["card_damage"] = float(run.get("card_damage", 0.0)) + grew
+	if not _drift.is_empty():
+		_drift["card_damage"] = float(_drift.get("card_damage", 0.0)) + grew
 
 # [combo, reaction, status] parts of one event's damage.
 static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
@@ -747,6 +743,7 @@ func load_save(data: Dictionary) -> void:
 		return
 	run = saved.duplicate(true)
 	run["resumed"] = int(run.get("resumed", 0)) + 1
+	_credit_seen = _card_credit_total()  # DreamState restored its credit first (RunSaver): only new credit counts from here
 	if not run.has("route_blocks"):  # Saved before the route profiles
 		run["route_blocks"] = []
 		run["heart_share"] = 0.0
