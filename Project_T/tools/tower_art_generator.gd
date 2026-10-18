@@ -341,7 +341,8 @@ func _init() -> void:
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
 			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
-			"lichen_flake", "lichen_clump", "ink_drop", "spore_sprite", "whetstone_slash", "firework_shell", "firework_shell_big", "firework_spark"]:
+			"lichen_flake", "lichen_clump", "ink_drop", "spore_sprite", "whetstone_slash", "firework_shell", "firework_shell_big", "firework_spark",
+			"acorn_nut", "prism_bolt"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -1661,6 +1662,49 @@ func _proj_spore(canvas: Image, f: int) -> void:
 		_px_under(canvas, roundi(p.x), roundi(p.y), Color("#e8f4a8") if k < 2 else Color("#b8d470", 0.7))
 		if k == 0:
 			_px_under(canvas, roundi(p.x) + 1, roundi(p.y), Color("#c8dc78"))
+
+# Acorn's shot (user 2026-10-18: Wardens whose attack you can't see; it fired a plain brown dot): an acorn
+# tumbling end over end, its cap catching the light.
+func _proj_acorn_nut(canvas: Image, f: int) -> void:
+	var c := Vector2(32.5, 32.5)
+	var upright := f % 2 == 0
+	var body := _layer()
+	var r := Vector2(3.0, 3.8) if upright else Vector2(3.8, 3.0)
+	_ellipse(body, c, r, _ramp(["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"]))
+	# The cap on the end that leads this frame (top, right, bottom, left as it tumbles).
+	var dir: Vector2 = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT][f]
+	var cap_c := c + dir * 2.6
+	var cap_r := Vector2(3.4, 2.0) if upright else Vector2(2.0, 3.4)
+	_flat_ellipse(body, cap_c, cap_r, Color("#5c3c24"))
+	for k in 3:  # the cap's scales
+		var q := cap_c + dir.orthogonal() * (k - 1) * 1.6
+		_px(body, roundi(q.x), roundi(q.y), Color("#8c5c34"))
+	var stem := cap_c + dir * 2.4
+	_px(body, roundi(stem.x), roundi(stem.y), Color("#5c3c24"))
+	_stamp(canvas, body, Color("#241c14"))
+	_speed_lines(canvas, Vector2(26, 32), f, Color("#dccdb2"))
+
+# Prism Jar's shot (it fired a plain dot): a bright shard of light trailing a little rainbow.
+func _proj_prism_bolt(canvas: Image, f: int) -> void:
+	var c := Vector2(34, 32)
+	var bands := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
+	for i in bands.size():  # the rainbow tail, shimmering
+		var y := 31 + i
+		var length := 6 - absi(i - 1) + (f + i) % 2
+		for k in length:
+			if (k + f) % 3 != 2 or k < 2:
+				_px(canvas, int(c.x) - 3 - k, y, Color(bands[i], 1.0 if k < 3 else 0.75))
+	# The shard: a little diamond, white at its heart.
+	for p: Vector2i in [Vector2i(0, -2), Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1), Vector2i(-2, 0), Vector2i(-1, 0),
+			Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1), Vector2i(0, 2)]:
+		_px(canvas, int(c.x) + p.x, int(c.y) + p.y, Color("#dce8f4"))
+	_px(canvas, int(c.x), int(c.y), Color("#ffffff"))
+	_px(canvas, int(c.x) + 1, int(c.y), Color("#ffffff"))
+	for p: Vector2i in [Vector2i(0, -3), Vector2i(-2, -1), Vector2i(2, -1), Vector2i(-3, 0), Vector2i(4, 0), Vector2i(-2, 1), Vector2i(2, 1), Vector2i(0, 3)]:
+		_px(canvas, int(c.x) + p.x, int(c.y) + p.y, Color("#4c3c74"))  # its dark rim
+	if f % 2 == 1:  # a glint
+		_px(canvas, int(c.x), int(c.y) - 4, Color("#fff4dc"))
+		_px(canvas, int(c.x), int(c.y) + 4, Color("#fff4dc"))
 
 func _proj_pebble(canvas: Image, f: int) -> void:
 	_spinning_rock(canvas, f, 5.5, _ramp(["#686d9a", "#979dc2", "#c4c9e2", "#e4e7f4"]), Color("#1c1c36"))

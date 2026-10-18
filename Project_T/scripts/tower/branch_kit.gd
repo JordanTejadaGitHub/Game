@@ -799,6 +799,11 @@ static func _toll_one(tower: Tower, enemy: Node2D, share: float) -> void:
 	if vespers > 0.0 and is_instance_valid(enemy):
 		silence(enemy, 2.0 * vespers, tower)
 	Fx.play(&"toll_ring", enemy.global_position, world(tower))
+	# Who it tolled (user 2026-10-18: "can't see who it attacks"): the sound rolling from the bell to the target, and the
+	# toll landing on it (Tower Assets art).
+	if is_instance_valid(enemy):
+		Fx.segment(&"toll_wave", tower.global_position + tower.tower_data.get_attack_origin(), tower.aim_at(enemy), world(tower), 0.3)
+		Fx.play(&"toll_strike", tower.aim_at(enemy), world(tower))
 
 # --- Hushbell / Silence ---------------------------------------------------------------------------------------------------
 

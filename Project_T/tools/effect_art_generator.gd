@@ -53,6 +53,7 @@ func _init() -> void:
 	_sleep_effects()
 	_shroom_effects()
 	_shroom_variant_effects()
+	_toll_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4406,3 +4407,67 @@ func _shroom_sticky(img: Image, f: int) -> void:
 			_px(img, x, top + k, Color(SHROOM_STICKY[2] if k < length - 1 else SHROOM_CAP[3], 1.0))
 		if length == 1 and f > 0:  # the drop that fell
 			_px(img, x, top + 4, Color(SHROOM_CAP[3], 0.75))
+
+# --- Silver Bell / Vesper Bell: who the toll hits (user 2026-10-18: "can't see who it attacks and there's no
+# visual effect for his effect") ----------------------------------------------------------------------------
+# toll_wave: the sound travelling from the bell to its target, a run of silver crescents rolling along the line
+# (a segment, tiled from the bell to the nightmare). toll_strike: the toll landing ON the nightmare: a silver bell
+# flashing over it, rings of sound bursting out, Drowsy lilac motes drifting down.
+const TOLL_SILVER := Color("#dce8f4")
+const TOLL_DEEP := Color("#8c8cac")
+const TOLL_LILAC := Color("#c8a8f0")
+
+func _toll_effects() -> void:
+	_sheet("toll_wave", Vector2i(16, 16), 4, 14, Vector2i(0, 8), true, "segment", _toll_wave,
+		{note = "Silver Bell / Vesper Bell: the toll travelling from the bell's mouth to its target (Fx.segment, tiled along the line, loops). Play it for the toll's ~0.3 s."})
+	_sheet("toll_strike", Vector2i(40, 40), 6, 14, Vector2i(20, 22), false, "status", _toll_strike,
+		{note = "Silver Bell / Vesper Bell: the toll landing on the nightmare (anchor = its body centre): a silver bell flashes over it, sound rings burst out, Drowsy motes drift down. ~0.43 s. Vesper Bell's echo: play it again on the second target."})
+
+func _toll_wave(img: Image, f: int) -> void:
+	# One crescent per tile, moving 4 px a frame: tiled, they roll along the whole line.
+	var x := 2 + f * 4
+	for y in range(2, 15):
+		var t := (y - 8) / 6.0
+		var bow := int(round(3.0 * (1.0 - t * t)))  # a ")" shape, bulging forward
+		var px := x + bow
+		var edge := absi(y - 8) >= 5
+		_px(img, px, y, Color(TOLL_SILVER, 0.75 if edge else 1.0))
+		if not edge:
+			_px(img, px - 1, y, Color(TOLL_DEEP, 0.75))
+	_px(img, (x + 9) % 16, 8, Color(TOLL_LILAC, 0.75))  # a fleck of Drowsy riding along
+
+func _toll_strike(img: Image, f: int) -> void:
+	var c := Vector2(20, 22)
+	if f <= 2:  # the bell over it: a small silver bell, ringing (tilting)
+		var tilt: int = [0, -1, 1][f]
+		var bell: Array = ["..###..", ".#####.", ".#####.", "#######", "#######", "..#.#.."]
+		var at := Vector2i(17 + tilt, 4 + f)
+		for y in bell.size():
+			for x in (bell[y] as String).length():
+				if (bell[y] as String)[x] != "#":
+					continue
+				var p := at + Vector2i(x, y)
+				for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+					var q := p + n
+					var qx := q.x - at.x
+					var qy := q.y - at.y
+					var inside := qy >= 0 and qy < bell.size() and qx >= 0 and qx < (bell[qy] as String).length() and (bell[qy] as String)[qx] == "#"
+					if not inside:
+						_px(img, q.x, q.y, Color("#24243c"))
+		for y in bell.size():
+			for x in (bell[y] as String).length():
+				if (bell[y] as String)[x] == "#":
+					_px(img, at.x + x, at.y + y, TOLL_SILVER if x < 4 else TOLL_DEEP)
+	# Rings of sound bursting out round its body.
+	var r: float = [5.0, 9.0, 13.0, 16.0, 18.0, 19.0][f]
+	var a: float = [1.0, 1.0, 1.0, 0.75, 0.4, 0.4][f]
+	_ring(img, c, Vector2(r, r * 0.75), 1.5, Color(TOLL_SILVER, a))
+	if f >= 1:
+		_ring(img, c, Vector2(r - 5.0, (r - 5.0) * 0.75), 1.2, Color(TOLL_LILAC, a))
+	if f == 0:
+		_disc(img, c, 3.0, Color.WHITE)
+	if f >= 2:  # Drowsy motes drifting down
+		for k in 4:
+			var p := c + Vector2([-11.0, -4.0, 6.0, 12.0][k], -8.0 + (f - 2) * 3.0 + k % 2 * 2.0)
+			_px(img, int(p.x), int(p.y), Color(TOLL_LILAC, a))
+			_px(img, int(p.x) + 1, int(p.y), Color(TOLL_SILVER, a))

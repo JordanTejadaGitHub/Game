@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://iyrup2iec22n" path="res://assets/towers/projectiles/acorn_nut.png" id="3_proj"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn_attack.png" id="4_atk"]
 [ext_resource type="Resource" path="res://resource/tower/graftling.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/elder_stump.tres" id="ev_es"]
@@ -23,6 +24,7 @@ attacks_per_second = 1.4
 splash_radius = 0.6
 splash_share = 0.5
 attack_kind = 0
+projectile_texture = ExtResource("3_proj")
 projectile_speed = 400
 projectile_color = Color(0.54901963, 0.36078432, 0.20392157, 1)
 attack_texture = ExtResource("4_atk")

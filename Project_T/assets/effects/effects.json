@@ -3072,6 +3072,38 @@
 			"loop": false,
 			"note": "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."
 		},
+		"toll_strike": {
+			"anchor": [
+				20,
+				22
+			],
+			"file": "toll_strike.png",
+			"fps": 14.0,
+			"frame_size": [
+				40,
+				40
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Silver Bell / Vesper Bell: the toll landing on the nightmare (anchor = its body centre): a silver bell flashes over it, sound rings burst out, Drowsy motes drift down. ~0.43 s. Vesper Bell's echo: play it again on the second target."
+		},
+		"toll_wave": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "toll_wave.png",
+			"fps": 14.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Silver Bell / Vesper Bell: the toll travelling from the bell's mouth to its target (Fx.segment, tiled along the line, loops). Play it for the toll's ~0.3 s."
+		},
 		"torrent_puddle_a": {
 			"anchor": [
 				16,
