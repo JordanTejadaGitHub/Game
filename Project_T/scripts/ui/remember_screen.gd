@@ -794,7 +794,7 @@ func _fill_side_content(data: TowerData) -> void:
 	_header_names(head, data)
 	_description_and_stats(data)
 	var statuses: Array[String] = []
-	for status in [data.applies_status, data.extra_status]:
+	for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 		if status != &"":
 			statuses.append(IconInfo.status_name(status))
 	if not statuses.is_empty():
@@ -925,7 +925,7 @@ func _kinship_line(data: TowerData) -> String:
 # The combos this form is part of, as links to the Codex.
 func _add_combos(data: TowerData) -> void:
 	var statuses := {}
-	for status in [data.applies_status, data.extra_status]:
+	for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 		if status != &"":
 			statuses[status] = true
 	var found: Array = []

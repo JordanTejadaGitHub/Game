@@ -3223,12 +3223,8 @@ func owned_statuses() -> Dictionary:
 	for data in forms:
 		if not is_unlocked(data.get_id()):
 			continue
-		if data.applies_status != &"":
-			statuses[data.applies_status] = true
-		if data.extra_status != &"":  # A second status (Lullaby Bell's Drowsy)
-			statuses[data.extra_status] = true
-		if data.freeze_duration > 0.0 or HELD_SOURCES.has(data.get_id()):
-			statuses[EnemyStatuses.HELD] = true
+		for status in Tower.statuses_applied(data):  # Its own, a second (Lullaby Bell), a freeze's Root and a special's (Sparkler's Charge; owner 2026-10-17)
+			statuses[status] = true
 	for id in HELD_SOURCES:  # Also when only unlocked by id (not in the roster or a card yet)
 		if is_unlocked(id) and not unlock_everything:
 			statuses[EnemyStatuses.HELD] = true

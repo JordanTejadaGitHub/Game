@@ -400,7 +400,7 @@ static func scope(profile: Dictionary = {}) -> Dictionary:
 			continue  # A form its Grove node still keeps (hidden branch, final, Ascended)
 		wardens[data.get_id()] = true
 		names[data.display_name] = true
-		for status in [data.applies_status, data.extra_status]:
+		for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 			if status != &"":
 				statuses[status] = true
 		if int(data.get("hold_targets")) > 0:

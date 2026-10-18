@@ -714,7 +714,7 @@ func _family_applies(root: TowerData, status: StringName) -> bool:
 		if data == null or seen.has(data.get_id()):
 			continue
 		seen[data.get_id()] = true
-		if data.applies_status == status or data.get("extra_status") == status:
+		if Tower.statuses_applied(data).has(status):  # Specials too (owner 2026-10-17)
 			return true
 		for next in data.evolves_to:
 			stack.append(next)
@@ -1183,7 +1183,7 @@ static func get_sources_text(combo: Dictionary) -> String:
 		done.append(status)
 		var names: Array[String] = []
 		for data in get_player_wardens():
-			if (data.applies_status == status or data.extra_status == status) and names.size() < 4:
+			if Tower.statuses_applied(data).has(status) and names.size() < 4:  # Specials too (owner 2026-10-17)
 				names.append(data.display_name)
 		parts.append("%s: %s" % [IconInfo.status_name(status), ", ".join(names) if not names.is_empty() else "none of your Wardens yet"])
 	return " · ".join(parts)
@@ -1444,7 +1444,7 @@ func _family_header(root: TowerData) -> Control:
 func _family_statuses(root: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
 	for data in _family_forms(root):
-		for status in [data.applies_status, data.get("extra_status")]:
+		for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 			if status != null and status != &"" and not out.has(status):
 				out.append(status)
 	return out
@@ -1717,7 +1717,7 @@ func family_combos(root: TowerData) -> Array:
 		if data == null or names.has(data.display_name):
 			continue
 		names[data.display_name] = true
-		for status in [data.applies_status, data.extra_status]:
+		for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 			if status != &"":
 				statuses[status] = true
 		todo.append_array(data.evolves_to)

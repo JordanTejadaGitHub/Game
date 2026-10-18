@@ -535,7 +535,7 @@ const SPROUT := preload("res://resource/tower/sprout.tres")
 
 static func _statuses_of(data: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
-	for status in [data.applies_status, data.extra_status]:
+	for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 		if status != &"" and not out.has(status):
 			out.append(status)
 	return out
@@ -792,7 +792,7 @@ func _icon(form: TowerData, side: float, silhouette: bool) -> TextureRect:
 # nightmares ("" = none).
 static func get_status_text(data: TowerData) -> String:
 	var names: Array[String] = []
-	for status in [data.applies_status, data.extra_status]:
+	for status in Tower.statuses_applied(data):  # Specials too (Sparkler's Charge, owner 2026-10-17)
 		if status != &"" and not names.has(IconInfo.status_name(status)):
 			names.append(IconInfo.status_name(status))
 	return "Applies " + " and ".join(names) if not names.is_empty() else ""
