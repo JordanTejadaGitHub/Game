@@ -952,6 +952,31 @@ func _sample_point(from: Vector2, reach_px: float) -> Variant:
 			return at
 	return null
 
+# A special area (a burst, a whirlpool, a rain patch) in the grow preview (user phone screenshot 2026-10-17: a second solid
+# ring above the path read as a range ring centred on nothing): a small DASHED ring in the family colour where it would
+# land now (the furthest-along route point in range, _sample_point), with a tiny label. A range ring is solid and only
+# ever on the Warden.
+func _draw_area_at(at: Vector2, radius: float, data: TowerData, label: String) -> void:
+	var colour := _family_colour(data)
+	var centre := to_local(at)
+	var steps := 32
+	for i in steps:
+		if i % 2 == 0:
+			draw_arc(centre, radius, TAU * i / steps, TAU * (i + 1) / steps, 3, Color(colour, 0.85), 1.5)
+	_area_label(at + Vector2(0, -radius), label, data)
+
+func _draw_dashed_rect(rect: Rect2, colour: Color) -> void:
+	var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
+	for i in 4:
+		draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(colour, 0.85), 1.5, 6.0)
+
+func _area_label(at: Vector2, label: String, data: TowerData) -> void:
+	var local := to_local(at)
+	WorldLabel.draw_tag(self, local.x, local.y - 6.0, label, _family_colour(data))
+
+func _family_colour(data: TowerData) -> Color:
+	return Kinships.FAMILY_COLORS.get(data.line, Palette.GLOW) if data != null else Palette.GLOW
+
 func _draw_path_cells(cells: Array, colour: Color) -> void:
 	for cell in cells:
 		var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size).grow(-4)
@@ -1025,15 +1050,16 @@ func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_
 				draw_line(to_local(from), to_local(jet.to), Color(Palette.DEWLIGHT, 0.8), 3.0)
 		BranchKit.WHIRLPOOL:
 			if sample != null:
-				draw_arc(to_local(sample), float(params.get("radius", 1.5)) * MAP_GRID.cell_size.x, 0.0, TAU, 40, Color(Palette.DEWLIGHT, 0.8), 2.0)
+				_draw_area_at(sample, float(params.get("radius", 1.5)) * MAP_GRID.cell_size.x, data, "whirlpool")
 		BranchKit.CLOUD:
 			if sample != null:
 				var half := MAP_GRID.cell_size * 1.5  # Its rain covers the 3×3 cells around the spot
 				var spot: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(sample))
-				draw_rect(Rect2(to_local(spot) - half, half * 2.0), Color(Palette.DEWLIGHT, 0.8), false, 2.0)
+				_draw_dashed_rect(Rect2(to_local(spot) - half, half * 2.0), _family_colour(data))
+				_area_label(spot + Vector2(0, -half.y), "rain", data)
 		BranchKit.SPARKLER:
 			if sample != null:
-				draw_arc(to_local(sample), float(params.get("burst_radius", 1.5)) * MAP_GRID.cell_size.x, 0.0, TAU, 40, Color(Palette.GLOW, 0.8), 2.0)
+				_draw_area_at(sample, float(params.get("burst_radius", 1.5)) * MAP_GRID.cell_size.x, data, "burst")
 		BranchKit.BROOD:
 			var walk := BranchKit.brood_walk(preview_route(), from, float(params.get("sprite_speed", 3.0)))
 			for i in walk.size():
