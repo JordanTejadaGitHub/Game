@@ -295,15 +295,52 @@ func _combo_share(event: Event, tag: StringName) -> float:
 
 # --- Damage numbers ---------------------------------------------------------------------------------
 
+# Big-hit tiers (visual_feedback_spec.md A1, owner 2026-10-18): one hit or bolt's share of the nightmare's health,
+# overkill counted, never past 3. 0 below 12% (bosses 4%), 1 Heavy, 2 Crushing from 25% (8%), 3 Shattering from 50%
+# (15%). Status ticks, sustained sources, Harmony and Reactions never count: they have their own looks. Setting
+# "Big hit feedback" (big_hits): Subtle shows T1 at every tier, Off none. Fx and Enemy read the same tier.
+const BIG_HIT_SETTING := "big_hits"  # 0 Full, 1 Subtle, 2 Off
+const BIG_HIT_SHARES: Array[float] = [0.12, 0.25, 0.5]
+const BOSS_HIT_SHARES: Array[float] = [0.04, 0.08, 0.15]
+
+# The enemy script's SUSTAINED_TAGS (it has no class_name), read once. Plain data, so a static is safe.
+static var _sustained: Array = []
+static func _sustained_tags(enemy: Node) -> Array:
+	if _sustained.is_empty() and enemy.get_script() != null:
+		_sustained = (enemy.get_script() as Script).get_script_constant_map().get("SUSTAINED_TAGS", [])
+	return _sustained
+
+static func big_hit_tier(event: Event) -> int:
+	if event == null or not (event.kind == &"hit" or event.kind == &"bolt") or not is_instance_valid(event.enemy):
+		return 0
+	if event.tag == HARMONY_TAG or event.tag in _sustained_tags(event.enemy):
+		return 0
+	var health: float = event.enemy.max_health
+	if health <= 0.0:
+		return 0
+	var share := event.amount / health
+	var boss: bool = event.enemy.enemy_data != null and event.enemy.enemy_data.is_boss
+	var tier := 0
+	for step in (BOSS_HIT_SHARES if boss else BIG_HIT_SHARES):
+		if share >= step:
+			tier += 1
+	match int(Fx.setting(BIG_HIT_SETTING, 0)):
+		1:
+			tier = mini(tier, 1)
+		2:
+			tier = 0
+	return tier
+
 func _show_number(event: Event) -> void:
 	if event.tag == HARMONY_TAG:
 		_merge_harmony(event)
 		return
 	if numbers_mode == NumbersMode.OFF or not is_instance_valid(event.enemy) or event.amount < 0.5:
 		return
+	var tier := big_hit_tier(event)
 	var big: bool = event.combos.has(&"crit") or event.combos.has(&"conducted") \
 		or event.combos.has(&"popped") or event.kind == &"reaction" or event.kind == &"bolt" \
-		or event.amount >= event.enemy.max_health * 0.1
+		or event.amount >= event.enemy.max_health * 0.1 or tier > 0
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
 	var color := Palette.HEARTLIGHT
@@ -334,8 +371,20 @@ func _show_number(event: Event) -> void:
 			return
 		if get_child_count() >= (REDUCED_MAX_NUMBERS if reduced else MAX_NUMBERS):
 			return
+	# Big-hit tiers (visual_feedback_spec.md A1): T1 3 px larger, T2 20 px Heartlight on a Void outline, T3 24 px Glow
+	# with a scale punch. A crit keeps Glow and takes the larger size.
+	var outline := Palette.DREAD
+	if tier >= 1:
+		size = maxi(size, 17)
+	if tier >= 2:
+		size = maxi(size, 24 if tier >= 3 else 20)
+		outline = Palette.VOID
+		if not event.combos.has(&"crit"):
+			color = Palette.GLOW if tier >= 3 else Palette.HEARTLIGHT
 	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)
+	number.outline = outline
+	number.punch = tier >= 3 and not bool(Fx.setting("reduced_motion", false))
 	number.source = event.source
 	number.bolt = event.kind == &"bolt"
 	add_child(number)
@@ -397,6 +446,9 @@ class FloatingNumber:
 	var _age := 0.0
 	var source: Node  # The Warden that dealt it: a click on the number focuses it
 	var bolt := false  # A Charged bolt's number: a small bolt glyph before it
+	var outline := Palette.DREAD  # Void on big hits (T2+)
+	var punch := false  # T3: starts 30% larger and settles over PUNCH s
+	const PUNCH := 0.12
 
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
@@ -428,11 +480,14 @@ class FloatingNumber:
 	func _draw() -> void:
 		var alpha := 1.0 - _age / LIFE
 		var font := ThemeDB.fallback_font
-		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
+		var size := _size
+		if punch and _age < PUNCH:
+			size = roundi(_size * lerpf(1.3, 1.0, _age / PUNCH))
+		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size past 1× zoom
-		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, 4,
-			Color(Palette.DREAD, alpha))
-		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
+		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4,
+			Color(outline, alpha))
+		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 			Color(_color, alpha))
 		if bolt:  # A small zigzag bolt left of the number
 			var x := -width / 2 - 4.0

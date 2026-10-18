@@ -78,6 +78,7 @@ static func defaults() -> Dictionary:
 			"pause_on_combo": true,  # A first-ever combo discovery pauses the game (off: a 5 s slide-in card)
 			"omens": "ask",  # Omens at rests: "ask" or "never" (always Clear Skies; OmenDirector.MODE_SETTING)
 			"kinship_effects": 0,  # Kinship visuals: 0 full, 1 subtle, 2 off (rules always apply; read by Tower Code)
+			"big_hits": 0,  # Big hit feedback: 0 full, 1 subtle (T1 at every tier), 2 off (DamageLog.big_hit_tier; visual_feedback_spec.md A4)
 			"health_bars": 0,  # Nightmare health bars: 0 once hit, 1 always (read by Enemy via Fx.setting)
 			"blight_outline": false,  # Accessibility: outline Deeply Blighted nightmares
 			"softer_nightmares": false,  # Accessibility (audio_direction.md): quieter nightmare shrieks and whispers

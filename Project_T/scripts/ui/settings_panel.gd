@@ -150,6 +150,8 @@ func _ready() -> void:
 	_toggle(gameplay, "Pause on new combos", ComboFeedback.PAUSE_SETTING, true)
 	_choice(gameplay, "Kinship visuals", "kinship_effects", ["Full", "Subtle", "Off"], 0)
 	_tip_last(gameplay, "The vines between bonded Wardens. Subtle draws fewer.")
+	_choice(gameplay, "Big hit feedback", DamageLog.BIG_HIT_SETTING, ["Full", "Subtle", "Off"], 0)
+	_tip_last(gameplay, "How a nightmare shows a heavy blow: bigger numbers, cracks and staggers. Subtle keeps it small.")
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
 	_choice_values(gameplay, "Omen offers", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_tip_last(gameplay, "Never always skips them.")

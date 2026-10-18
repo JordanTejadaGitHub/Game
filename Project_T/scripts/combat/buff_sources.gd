@@ -24,7 +24,7 @@ const COLORS := {
 	"acorn": Palette.GLOW, "elder_stump": Palette.GOLD, "grove_heart": Palette.HEARTLIGHT,
 	"grandmother_oak": Palette.DEADWOOD, "old_growth": Palette.NEWLEAF, "kinship": Palette.NEWLEAF,
 	"kindred": Palette.MOONPATH, "whole_tree": Palette.SPRIG, "kin_cards": Palette.NEWLEAF,
-	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.MIST,
+	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.HEARTLIGHT,  # Dream = warm pale light (visual_feedback_spec.md B3)
 	"omen": Palette.STONE, "gift": Palette.LEAF, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
 const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
