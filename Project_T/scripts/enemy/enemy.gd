@@ -169,10 +169,12 @@ const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (se
 const READY_COLOR := Palette.DEWLIGHT  # Reaction-ready: four corner brackets round the icon (a shape, not only a colour)
 const READY_PULSE_TIME := 1.6  # Seconds per breath of the brackets' gentle pulse (still under reduced motion)
 const THRESHOLD_COLOR := Palette.HEARTLIGHT  # A slash on a stack bar / pip row where a Reaction starts to count
-# Room a Reaction-ready badge adds round its cell (px): its brackets reach r + 4.25 from the icon's centre, while a cell
-# holds the icon right-aligned with 2 px after it (so r on the left, r + 2 on the right): they stay inside their own cell.
-const READY_PAD_LEFT := 4.5
-const READY_PAD_RIGHT := 2.5
+const READY_GROW := 0.06  # The brackets breathe out to this much bigger and back (owner 2026-10-18; none under reduced motion)
+# Room a Reaction-ready badge adds round its cell (px): at full breath its brackets reach (r + 4.25) × (1 + READY_GROW)
+# from the icon's centre (≤ r + 5.6 at the 32 px badge), while a cell holds the icon right-aligned with 2 px after it (r on
+# the left, r + 2 on the right): they stay inside their own cell, clear of the next badge.
+const READY_PAD_LEFT := 6.0
+const READY_PAD_RIGHT := 4.0
 const SLEEP_SETTLE_TIME := 0.35  # Seconds to settle into sleep (and back out)
 const SLEEP_SINK := 1.5  # Px it sinks asleep
 const SLEEP_LEAN := 0.1  # Radians it leans asleep (none under reduced motion)
@@ -372,6 +374,11 @@ var _bar_offset := HEALTH_BAR_OFFSET  # The health bar's centre: raised over tal
 var _hud_root := RID()
 var _hud_ready := RID()  # The Reaction-ready brackets: a child of the marks item, so pulsing is only its modulate
 var _hud_ready_on := false  # Any shown badge is Reaction-ready (the pulse runs only then)
+# One small item per ready badge under _hud_ready, its brackets drawn round its own origin at the icon's centre: the breath
+# is its transform's scale (no rebuild). Kept and reused; the first _hud_ready_used are in use.
+var _hud_ready_items: Array[RID] = []
+var _hud_ready_at := PackedVector2Array()
+var _hud_ready_used := 0
 var _hud_items: Array[RID] = []
 var _hud_shown := false
 var _hud_scale := -1.0
@@ -661,8 +668,8 @@ func _process(delta: float) -> void:
 		_hud_dirty = false
 		statuses.hud_dirty = false
 		_update_hud(delta)
-	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate, no rebuild
-		RenderingServer.canvas_item_set_modulate(_hud_ready, _ready_pulse())
+	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
+		_breathe_ready()
 	_update_presence(delta)
 
 	if _dragging:
@@ -1013,6 +1020,11 @@ func _make_hud() -> void:
 func _free_hud() -> void:
 	if not _hud_root.is_valid():
 		return
+	for ready_item in _hud_ready_items:  # (Great-grandchildren, then their parent: children before parents)
+		RenderingServer.free_rid(ready_item)
+	_hud_ready_items.clear()
+	_hud_ready_at.clear()
+	_hud_ready_used = 0
 	if _hud_ready.is_valid():  # (A grandchild: freed before its parent)
 		RenderingServer.free_rid(_hud_ready)
 	_hud_ready = RID()
@@ -1118,8 +1130,7 @@ func _build_hud_bars(item: RID) -> void:
 # icon sheet has none, and the flash when a combo just used the status.
 func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 	RenderingServer.canvas_item_clear(item)
-	if _hud_ready.is_valid():
-		RenderingServer.canvas_item_clear(_hud_ready)
+	_hud_ready_used = 0
 	var ready_any := false
 	var atlas: Texture2D = overlay.badge_atlas
 	var solid := overlay.badge_region(NightmareOverlay.MARK_SOLID)
@@ -1181,7 +1192,7 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 				bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
 				atlas.draw_rect_region(item, bar, solid, color)
 		if i < _hud_primed.size() and _hud_primed[i]:  # Reaction-ready: corner brackets on their own pulsing item
-			_draw_ready_brackets(_hud_ready, centre, r)
+			_draw_ready_brackets(centre, r)
 			ready_any = true
 		if _hud_icons[i] == null:
 			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
@@ -1190,32 +1201,54 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
 			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
 	_hud_ready_on = ready_any
+	for k in range(_hud_ready_used, _hud_ready_items.size()):
+		RenderingServer.canvas_item_clear(_hud_ready_items[k])  # Badges no longer ready
 
 # Reaction-ready (screens_ui.md "Status row: Reaction-ready marks", owner 2026-10-18): four small corner brackets just
-# outside the icon, Dew-light on a dark outline: a shape, so it never relies on colour alone. Drawn on _hud_ready,
-# whose modulate breathes (_ready_pulse) without rebuilding anything.
-func _draw_ready_brackets(item: RID, centre: Vector2, r: float) -> void:
-	if not item.is_valid():
+# outside the icon, Dew-light on a dark outline: a shape, so it never relies on colour alone. Each ready badge has its own
+# item under _hud_ready (its origin on the icon's centre), so the breath (_breathe_ready) is a modulate and a scale only.
+func _draw_ready_brackets(centre: Vector2, r: float) -> void:
+	if not _hud_ready.is_valid():
 		return
+	if _hud_ready_used >= _hud_ready_items.size():
+		var made := RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(made, _hud_ready)
+		_hud_ready_items.append(made)
+		_hud_ready_at.append(Vector2.ZERO)
+	var item := _hud_ready_items[_hud_ready_used]
+	_hud_ready_at[_hud_ready_used] = centre
+	_hud_ready_used += 1
+	RenderingServer.canvas_item_clear(item)
+	RenderingServer.canvas_item_set_transform(item, Transform2D(0.0, Vector2.ONE * _pulse_scale, 0.0, centre))
 	var e := r + 2.5  # Just outside the icon
 	var leg := maxf(2.5, r * 0.35)
 	for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		var at: Vector2 = centre + corner * e
+		var at: Vector2 = corner * e
 		var bracket := PackedVector2Array([at - Vector2(0, corner.y * leg), at, at - Vector2(corner.x * leg, 0)])
 		RenderingServer.canvas_item_add_polyline(item, bracket, PackedColorArray([Color(Palette.VOID, 0.85)]), 3.5)
 		RenderingServer.canvas_item_add_polyline(item, bracket, PackedColorArray([READY_COLOR]), 1.5)
 
-# The brackets' breath, worked out once a frame for every nightmare: alpha 0.65 .. 1 over READY_PULSE_TIME; steady
-# under reduced motion.
+# One frame of the brackets' breath (from _process, only while a badge is ready and on screen): the shared alpha on
+# _hud_ready and the shared scale on each ready badge's item.
+func _breathe_ready() -> void:
+	RenderingServer.canvas_item_set_modulate(_hud_ready, _ready_pulse())
+	for k in _hud_ready_used:
+		RenderingServer.canvas_item_set_transform(_hud_ready_items[k], Transform2D(0.0, Vector2.ONE * _pulse_scale, 0.0, _hud_ready_at[k]))
+
+# The brackets' breath, worked out once a frame for every nightmare: alpha 0.65 .. 1 and scale 1 .. 1 + READY_GROW over
+# READY_PULSE_TIME; steady (and full size) under reduced motion.
 static func _ready_pulse() -> Color:
 	var frame := Engine.get_process_frames()
 	if frame != _pulse_frame:
 		_pulse_frame = frame
+		var still := bool(Fx.setting("reduced_motion", false))
 		var breath := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.001 * TAU / READY_PULSE_TIME)
-		_pulse = Color(1, 1, 1, 1.0 if bool(Fx.setting("reduced_motion", false)) else 0.65 + 0.35 * breath)  # multiplier
+		_pulse = Color(1, 1, 1, 1.0 if still else 0.65 + 0.35 * breath)  # multiplier
+		_pulse_scale = 1.0 if still else 1.0 + READY_GROW * breath
 	return _pulse
 static var _pulse_frame := -1
 static var _pulse := Color.WHITE  # multiplier
+static var _pulse_scale := 1.0
 
 # Where a Reaction starts to count, on a stack bar or pip row (owner 2026-10-18): a short Heartlight slash from `a` to
 # `b` with a dark outline, readable at phone size.
