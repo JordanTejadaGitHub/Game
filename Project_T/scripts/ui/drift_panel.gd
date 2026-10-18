@@ -244,8 +244,8 @@ func _process(_delta: float) -> void:
 		_start_button.text = "Resume" + UiStyle.key_suffix("Enter")
 		_start_button.disabled = false
 
-	# Phones: no "+0" line (UI Asset review 2026-10-17); the tooltip below still explains the bonus.
-	var maze_line: bool = not (UiStyle.is_phone() and drift_director.get_maze_reward_projection() <= 0)
+	# Phones: no Maze bonus line here; the HUD shows the forecast by Dew. The tooltip below still explains the bonus.
+	var maze_line: bool = not UiStyle.is_phone()  # Phones: the "+N at rest" sits by the Dew counter, top right, as on PC (user 2026-10-17)
 	if not run_state.is_over and maze_line:
 		_status_label.text += "\nMaze bonus: %s at rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
 	if not run_state.is_over:

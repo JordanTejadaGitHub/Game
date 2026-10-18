@@ -1318,6 +1318,14 @@ func _layout_top_row() -> void:
 			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
 			counters_w += widths[label]
 		counters_w += gap * (counters.size() - 1)
+		if phone():  # Phones: the counters have line 1 to themselves, so the "+N at rest" forecast stays by Dew as on PC (user
+			for form in [MAZE_FULL, MAZE_SHORT]:  # 2026-10-17), the short "+N" when line 1 is tight
+				var fw := _maze_forecast_width(form)
+				if screen_w + ROW_RIGHT - (counters_w + fw) - ROW_PAD >= banner_right + BANNER_CLEARANCE:
+					_maze_form = form
+					forecast_w = fw
+					counters_w += fw
+					break
 	if _maze_reward_label != null:  # The form that fits
 		_maze_reward_label.visible = _maze_form != MAZE_HIDDEN and _maze_full != ""
 		_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
