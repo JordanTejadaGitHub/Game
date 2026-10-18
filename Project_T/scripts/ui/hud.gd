@@ -571,15 +571,62 @@ func _hud_under_choice() -> Array:
 func _hide_under_choice() -> void:
 	var open := _phone_choice_open()
 	if open:
+		var lifted: Node = get_node_or_null("DreamsRow") if _dreams_over_choice() != null else null  # Its page is open over the screen
 		for node: CanvasItem in _hud_under_choice():
 			if not _choice_hidden.has(node):
 				_choice_hidden[node] = node.visible
-			node.visible = false  # Every frame: panels that refresh themselves (the damage meter) stay hidden
+			node.visible = node == lifted  # Every frame: panels that refresh themselves (the damage meter) stay hidden
 	elif not _choice_hidden.is_empty():
 		for node in _choice_hidden:
 			if is_instance_valid(node):
 				node.visible = _choice_hidden[node]
 		_choice_hidden.clear()
+
+# Phones: a choice screen's "Your Dreams" (PhoneChoice.add_extras, user 2026-10-18) opens "Dreams this run" above that
+# screen: the row stays shown while its page is open, goes right after the screen in the HUD (and above the screen's
+# card diagram, z 10), and Close / Android Back return to the screen, which never closed.
+const DREAMS_OVER_Z := 30  # PhoneChoice.OVER_Z
+var _dreams_over: Control = null  # The choice screen the open Dreams page draws above
+
+func open_dreams_over(screen: Control) -> void:
+	var row := get_node_or_null("DreamsRow")
+	var list := row.get("_list") as Control if row != null else null
+	if list == null:
+		return
+	_dreams_over = screen
+	row.visible = true
+	row.z_index = DREAMS_OVER_Z
+	if not list.visibility_changed.is_connected(_on_dreams_page_visibility):
+		list.visibility_changed.connect(_on_dreams_page_visibility)
+	if not list.visible:
+		row.call("_toggle_list")  # Raises the page (_raise_overlays keeps it above `screen`)
+	else:
+		_raise_overlays()
+
+func close_dreams_over(screen: Control) -> void:
+	if _dreams_over != screen or _dreams_over_choice() == null:
+		return
+	var row := get_node_or_null("DreamsRow")
+	if row != null and row.has_method("close_list"):
+		row.call("close_list")
+
+# The choice screen the Dreams page is open over, or null.
+func _dreams_over_choice() -> Control:
+	if _dreams_over == null or not is_instance_valid(_dreams_over) or not _dreams_over.visible:
+		return null
+	var row := get_node_or_null("DreamsRow")
+	var list := row.get("_list") as Control if row != null else null
+	return _dreams_over if list != null and list.visible else null
+
+func _on_dreams_page_visibility() -> void:
+	if _dreams_over_choice() != null:
+		return
+	_dreams_over = null
+	var row := get_node_or_null("DreamsRow") as CanvasItem
+	if row != null:
+		row.z_index = 0
+		if _phone_choice_open():
+			row.visible = false  # Back to the choice screen (it hides the HUD under it)
 
 var _was_compact := false
 
@@ -1516,6 +1563,9 @@ func _raise_overlays() -> void:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:
 			move_child(overlay, get_child_count() - 1)
+	var over := _dreams_over_choice()  # Opened from a choice screen's Your Dreams: right above that screen
+	if dreams != null and over != null and dreams.get_index() < over.get_index():
+		move_child(dreams, over.get_index())
 
 # --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
 # Every TowerPlacer.sprout_per_step() Sprouts planted (still on the map, in any form) add sprout_step_dew() to the price (Seedfall:

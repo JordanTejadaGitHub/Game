@@ -49,6 +49,9 @@ var _phone := false
 var _subtitle: Label = null  # Phones: "after drift 10 · take one"
 var _phone_hint: Label = null  # Phones: "Tap a card to look at it" / "Take it, or tap another"
 var _take: Button = null  # Phones: "Take <card>"
+var _phone_bottom: HBoxContainer = null  # Phones: the bottom row (Peek, Let it pass … · hint · Take)
+var _phone_left: HBoxContainer = null
+var _phone_right: HBoxContainer = null
 var _looked_card: UpgradeData = null
 var _link_tap_ms := -100000
 
@@ -135,8 +138,10 @@ func _build_phone_layout(dim: Control) -> void:
 	_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_subtitle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # Wraps rather than push Glossary / Your Dreams off
 	UiStyle.caps(_subtitle, 15, UiStyle.INK_DIM)
 	header.add_child(_subtitle)
+	PhoneChoice.add_extras(self, header)  # Glossary and Your Dreams, top right (user 2026-10-18)
 	# The cards: three (or more) equal columns filling the width and the height between header and bottom row
 	var scroll := ScrollContainer.new()
 	scroll.name = "CardScroll"
@@ -154,14 +159,24 @@ func _build_phone_layout(dim: Control) -> void:
 	pad.add_theme_constant_override("margin_top", 12)
 	pad.add_child(_cards)
 	scroll.add_child(pad)
-	# Bottom: Let it pass (left thumb) · the hint · Take (right thumb); reroll and dev beside Let it pass
+	# Bottom: Peek and Let it pass (left thumb) · the hint · Take (right thumb); reroll and dev beside Let it pass
 	var bottom := HBoxContainer.new()
+	bottom.name = "BottomRow"
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.add_theme_constant_override("separation", 12)
 	root.add_child(bottom)
-	bottom.add_child(_skip)
-	bottom.add_child(_reroll)
-	bottom.add_child(_dev_any)
+	_phone_bottom = bottom
+	_phone_left = HBoxContainer.new()
+	_phone_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_phone_left.add_theme_constant_override("separation", 12)
+	bottom.add_child(_phone_left)
+	peek = ChoicePeek.new(self, [dim, margin], "Back to the Dream")
+	var peek_button := peek.make_peek_button()
+	PhoneChoice.peek_style(peek_button)  # A small framed secondary button, bottom left (user 2026-10-18)
+	_phone_left.add_child(peek_button)
+	_phone_left.add_child(_skip)
+	_phone_left.add_child(_reroll)
+	_phone_left.add_child(_dev_any)
 	_dev_any.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_phone_hint = Label.new()
 	_phone_hint.name = "PhoneHint"
@@ -186,11 +201,11 @@ func _build_phone_layout(dim: Control) -> void:
 		choice.clip_text = true  # A long card name trims instead of widening one button past the other
 		choice.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_take.pressed.connect(_take_looked)
-	bottom.add_child(_take)
-	peek = ChoicePeek.new(self, [dim, margin], "Back to the Dream")
-	var peek_button := peek.make_peek_button()
-	PhoneChoice.peek_style(peek_button)  # A small framed secondary button, top right (UI review)
-	header.add_child(peek_button)
+	_phone_right = HBoxContainer.new()
+	_phone_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_phone_right.alignment = BoxContainer.ALIGNMENT_END
+	bottom.add_child(_phone_right)
+	_phone_right.add_child(_take)
 	_update_phone_bar()
 
 # Phones: the bottom row follows the looked card ("Take Lantern Glow", dim until a card is looked at).
@@ -205,6 +220,7 @@ func _update_phone_bar() -> void:
 	_phone_hint.text = "Take it, or tap another" if can_take else "Tap a card to look at it"
 	# Let it pass and Take the same width: the wider one's text (UI review: "Take Call of the Wild")
 	PhoneChoice.match_widths([_take, _skip] if _skip.visible else [_take])
+	PhoneChoice.balance(_phone_left, _phone_right, _phone_bottom)  # The hint stays centred between the two sides
 
 func _take_looked() -> void:
 	if _looked == null or not is_instance_valid(_looked) or _looked_card == null:

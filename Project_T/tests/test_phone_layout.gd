@@ -56,10 +56,12 @@ func _run() -> void:
 		await _settle()
 		await _check_tabs("Codex", pause.find_children("*", "CodexPanel", true, false).front(), view)
 		pause.close()
+		dreams.stacks[DREAM_CARDS[0]] = 1  # A Dream taken: Your Dreams shows
 		var cards := dreams.make_offer(5)
 		dreams.offer_ready.emit(cards, 5)
 		await _settle()
 		_check_buttons("Dream", main.get_node("HUD/DreamScreen"), view)
+		await _check_choice_extras(view, main.get_node("HUD/DreamScreen"))
 		main.get_node("HUD/DreamScreen").visible = false
 		director.family_pick_requested.emit(&"first")
 		await _settle()
@@ -161,6 +163,68 @@ func _check_dreams_page(view: Vector2i, dreams: DreamState) -> void:
 	if pause.visible:
 		pause.close()
 	main.get_node("%GameSpeed").set_paused(false)
+
+# Phone choice screens (user 2026-10-18): Glossary and Your Dreams top right (on screen, 44+ tall), Peek bottom left
+# before Let it pass; each opens above the screen, which stays open; Close / Android Back return to it.
+func _check_choice_extras(view: Vector2i, screen: Control) -> void:
+	var hud := main.get_node("HUD")
+	var pause: Node = hud.get_node("PauseMenu")
+	var rect := Rect2(Vector2.ZERO, Vector2(view))
+	var glossary := screen.find_child("GlossaryButton", true, false) as Button
+	var mine := screen.find_child("YourDreamsButton", true, false) as Button
+	for pair in [[glossary, "Glossary"], [mine, "Your Dreams"]]:
+		var b: Button = pair[0]
+		var r: Rect2 = b.get_global_rect() if b != null else Rect2()
+		_check(b != null and b.is_visible_in_tree() and rect.encloses(r.grow(-0.5)) and b.size.y >= 44.0
+			and r.position.x > view.x * 0.5 and r.end.y < view.y * 0.3, "Dream %s: %s top right, on screen, 44+ tall (%s)" % [view, pair[1], r])
+	var peek_button: Button = null
+	for b in screen.find_children("*", "Button", true, false):
+		if (b as Button).text == "Peek at the map":
+			peek_button = b
+	var skip := screen.get("_skip") as Button
+	var take := screen.find_child("TakeButton", true, false) as Button
+	var pr: Rect2 = peek_button.get_global_rect() if peek_button != null else Rect2()
+	_check(peek_button != null and peek_button.is_visible_in_tree() and pr.end.x < view.x * 0.5 and pr.position.y > view.y * 0.6
+		and (not skip.visible or pr.end.x <= skip.get_global_rect().position.x), "Dream %s: Peek bottom left, before Let it pass (%s)" % [view, pr])
+	_check(take != null and take.get_global_rect().position.x > view.x * 0.5 and (not skip.visible or absf(take.size.x - skip.size.x) < 1.0),
+		"Dream %s: Take bottom right, as wide as Let it pass" % view)
+	if glossary == null or mine == null:
+		return
+	# Glossary: the Codex on its Glossary tab over the screen
+	glossary.pressed.emit()
+	await _settle()
+	var over := screen.get_node_or_null("ChoiceCodex") as Control
+	var codex: CodexPanel = over.find_children("*", "CodexPanel", true, false).front() as CodexPanel if over != null else null
+	_check(over != null and over.is_visible_in_tree() and over.get_index() == screen.get_child_count() - 1 and over.z_index >= 20
+		and over.mouse_filter == Control.MOUSE_FILTER_STOP and over.get_global_rect().size.distance_to(Vector2(view)) < 1.0
+		and codex != null and codex.visible and codex.tabs.get_current_tab_control().name == "Glossary" and screen.visible,
+		"Dream %s: Glossary opens the Codex's Glossary above the screen, which stays open" % view)
+	_check_buttons("Dream Glossary", over, view)
+	var back := InputEventAction.new()
+	back.action = &"open_menu"
+	back.pressed = true
+	root.push_input(back)
+	await _settle()
+	_check(over != null and not over.visible and screen.visible and not pause.visible, "Dream %s: Back closes the Codex, back to the Dream" % view)
+	# Your Dreams: "Dreams this run" above the screen
+	mine.pressed.emit()
+	await _settle()
+	var row := main.get_node("%DreamsRow") as DreamsRow
+	var page: Control = row._list
+	_check(page.is_visible_in_tree() and row.get_index() > screen.get_index() and row.z_index >= 20 and screen.visible
+		and page.get_global_rect().size.distance_to(Vector2(view)) < 1.0, "Dream %s: Your Dreams opens Dreams this run above the screen (row %d, screen %d)" % [view, row.get_index(), screen.get_index()])
+	var close := page.find_child("PhoneClose", true, false) as Button
+	if close != null:
+		close.pressed.emit()
+	await _settle()
+	_check(not page.is_visible_in_tree() and screen.visible and row.z_index == 0, "Dream %s: Close returns to the Dream" % view)
+	mine.pressed.emit()
+	await _settle()
+	root.push_input(back.duplicate())
+	await _settle()
+	_check(not page.visible and screen.visible and not pause.visible, "Dream %s: Back closes Dreams this run, back to the Dream" % view)
+	if pause.visible:
+		pause.close()
 
 # A tabbed panel: its buttons on every tab.
 func _check_tabs(what: String, panel: Node, view: Vector2i) -> void:

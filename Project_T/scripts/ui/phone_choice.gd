@@ -9,6 +9,10 @@ extends RefCounted
 # and Take the same width (the wider one's). One sprout per screen (UI owner's review 2026-10-17): the cards' threads
 # run full width with no mark (card_thread); only Take carries it. A tap looks at a card (it lifts, the others dim to DIM_ALPHA); Take, or a second tap, takes it.
 # Preloaded by OmenScreen, FamilyPickScreen and GiftScreen (no class_name). DreamScreen keeps the same numbers.
+# User 2026-10-18 ("add a glossary and your dream in button in the top right and peek in the bottom left"): the header's
+# right holds Glossary (the Codex on its Glossary tab, over the screen: CodexOverlay) and Your Dreams ("Dreams this run",
+# drawn above the screen: HUD.open_dreams_over); Peek at the map opens the bottom row, before the skip. The bottom row's
+# two sides are balanced (balance) so the whisper hint stays centred.
 
 const MARGIN := 44.0  # DreamScreen.PHONE_MARGIN
 const GAP := 12.0  # Between the cards
@@ -33,6 +37,10 @@ const LABEL_CAPS := 16  # The small caps line beside the gem (rarity, category)
 const LOOK_HINT := "Tap a card to look at it"
 const TAKE_HINT := "Take it, or tap another"
 const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word
+const GLOSSARY_TEXT := "Glossary"
+const DREAMS_TEXT := "Your Dreams"
+const OVER_Z := 30  # The Codex / Dreams page over a choice screen: above its card diagram / scene (z 10)
+const HINT_MIN := 120.0  # The hint's least width (balance keeps the sides mirrored only while it fits)
 
 var screen: Control
 var margin: MarginContainer
@@ -40,8 +48,9 @@ var root: VBoxContainer
 var header: HBoxContainer
 var scroll: ScrollContainer
 var bottom: HBoxContainer
-var left: HBoxContainer  # The screen's skip / reroll (at least CHOICE_SIZE wide, so the hint stays centred)
+var left: HBoxContainer  # Peek at the map, then the screen's skip / reroll (balanced with `right`)
 var hint: Label
+var right: HBoxContainer  # Take (balanced with `left`, so the hint stays centred)
 var take: Button
 var cards: HBoxContainer
 var looked: Button = null
@@ -78,6 +87,7 @@ func _init(for_screen: Control, title: Label, subtitle: Label, card_row: HBoxCon
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long title leaves it less room: it wraps, never pushes Peek off
 	UiStyle.caps(subtitle, SUBTITLE_SIZE, UiStyle.INK_DIM)
 	header.add_child(subtitle)
+	add_extras(screen, header)
 	scroll = ScrollContainer.new()
 	scroll.name = "CardScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -103,7 +113,6 @@ func _init(for_screen: Control, title: Label, subtitle: Label, card_row: HBoxCon
 	left = HBoxContainer.new()
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.add_theme_constant_override("separation", 12)
-	left.custom_minimum_size.x = CHOICE_SIZE.x
 	bottom.add_child(left)
 	hint = Label.new()
 	hint.name = "PhoneHint"
@@ -113,17 +122,21 @@ func _init(for_screen: Control, title: Label, subtitle: Label, card_row: HBoxCon
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hint.custom_minimum_size.x = 120
+	hint.custom_minimum_size.x = HINT_MIN
 	hint.theme_type_variation = &"WhisperLabel"  # The whisper's dark shadow (FOG), no panel
 	UiStyle.whisper(hint, HINT_SIZE)
 	bottom.add_child(hint)
+	right = HBoxContainer.new()
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right.alignment = BoxContainer.ALIGNMENT_END
+	bottom.add_child(right)
 	take = Button.new()
 	take.name = "TakeButton"
 	take.focus_mode = Control.FOCUS_NONE
 	UiStyle.primary(take)
 	choice_button(take)
 	take.pressed.connect(_take_looked)
-	bottom.add_child(take)
+	right.add_child(take)
 	set_take("")
 
 # Take's size and trim for a bottom row choice (the skip too: the same size, Take primary, the skip the framed button).
@@ -133,10 +146,22 @@ static func choice_button(button: Button) -> void:
 	button.clip_text = true  # A long name trims instead of widening one button past the other
 	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
-# Peek at the map in the header's right corner: a small framed secondary button.
+# Peek at the map at the bottom row's left, before the skip: a small framed secondary button (user 2026-10-18).
 func add_peek(button: Control) -> void:
 	peek_style(button)
-	header.add_child(button)
+	button.set_meta(&"peek", true)
+	left.add_child(button)
+	left.move_child(button, 0)
+	fit_choices()
+
+# The Sapling's card holds its own choices: the bottom row keeps only Peek (`on` false), or shows them all again.
+func set_choices_visible(on: bool) -> void:
+	hint.visible = on
+	right.visible = on
+	for child in left.get_children():
+		if child is Control and not child.has_meta(&"peek"):
+			(child as Control).visible = on
+	fit_choices()
 
 # Peek's phone look (the Dream screen too): the plain framed button (not quiet), sized to its text, 48 tall.
 static func peek_style(button: Control) -> void:
@@ -152,14 +177,161 @@ func add_left(button: Button) -> void:
 	fit_choices()
 
 # Take and the skip the same width: the wider one's text, at least CHOICE_SIZE, at most CHOICE_MAX_SHARE of the view.
+# Peek keeps its own size; the two sides are then balanced so the hint stays centred.
 func fit_choices() -> void:
 	var choices: Array = [take]
 	for child in left.get_children():
-		if child is Button and (child as Button).visible:
+		if child is Button and (child as Button).visible and not child.has_meta(&"peek"):
 			choices.append(child)
-	var width := match_widths(choices)
-	if width > 0.0:
-		left.custom_minimum_size.x = width  # The hint stays centred
+	match_widths(choices)
+	balance(left, right, bottom)
+
+# The bottom row's two sides as wide as the wider one, so the hint between them stays centred; when mirroring would
+# squeeze the hint under HINT_MIN, each side keeps its own width.
+static func balance(left_box: Control, right_box: Control, row: HBoxContainer) -> void:
+	if not row.is_inside_tree():
+		return
+	left_box.custom_minimum_size.x = 0.0
+	right_box.custom_minimum_size.x = 0.0
+	var side := maxf(_row_width(left_box), _row_width(right_box))
+	var gap := float(row.get_theme_constant("separation"))
+	var room := row.get_viewport_rect().size.x - 2.0 * MARGIN
+	if 2.0 * side + HINT_MIN + 2.0 * gap <= room:
+		left_box.custom_minimum_size.x = side
+		right_box.custom_minimum_size.x = side
+
+# The width a side's visible children need side by side.
+static func _row_width(box: Control) -> float:
+	if not box.visible:
+		return 0.0
+	var width := 0.0
+	var shown := 0
+	for child in box.get_children():
+		if child is Control and (child as Control).visible:
+			width += (child as Control).get_combined_minimum_size().x
+			shown += 1
+	return width + float(box.get_theme_constant("separation")) * maxi(shown - 1, 0)
+
+# --- Glossary and Your Dreams (the header's right; user 2026-10-18) ----------------------------------------------------
+# Two framed secondary buttons, Peek's look. Glossary opens the Codex on its Glossary tab over the screen; Your Dreams
+# opens the HUD's full-screen "Dreams this run" above it (hidden while the run has no Dreams and no Calling). Closing
+# either returns to the screen, which stays open underneath; Android Back closes the top-most first.
+static func add_extras(for_screen: Control, row: HBoxContainer) -> void:
+	var glossary := Button.new()
+	glossary.name = "GlossaryButton"
+	glossary.text = GLOSSARY_TEXT
+	glossary.focus_mode = Control.FOCUS_NONE
+	peek_style(glossary)
+	glossary.pressed.connect(func() -> void: open_glossary(for_screen))
+	row.add_child(glossary)
+	var dreams := Button.new()
+	dreams.name = "YourDreamsButton"
+	dreams.text = DREAMS_TEXT
+	dreams.focus_mode = Control.FOCUS_NONE
+	peek_style(dreams)
+	dreams.pressed.connect(func() -> void: open_dreams(for_screen))
+	row.add_child(dreams)
+	for_screen.visibility_changed.connect(func() -> void: _on_screen_visibility(for_screen, dreams))
+	dreams.visible = has_dreams(for_screen)
+
+static func _on_screen_visibility(for_screen: Control, dreams: Button) -> void:
+	if for_screen.visible:
+		dreams.visible = has_dreams(for_screen)
+	else:
+		close_glossary(for_screen)
+		close_dreams(for_screen)
+
+# True once the run has a Calling or a Dream taken (Your Dreams has something to show).
+static func has_dreams(node: Node) -> bool:
+	if not node.is_inside_tree():
+		return false
+	var state := node.get_tree().get_first_node_in_group(&"dream_state") as DreamState
+	if state == null:
+		return false
+	return state.calling != "" or not state.get_taken_cards().is_empty()
+
+static func open_glossary(for_screen: Control) -> void:
+	close_dreams(for_screen)
+	var over := for_screen.get_node_or_null("ChoiceCodex") as CodexOverlay
+	if over == null:
+		over = CodexOverlay.new()
+		over.name = "ChoiceCodex"
+		for_screen.add_child(over)
+	for_screen.move_child(over, for_screen.get_child_count() - 1)  # Above the screen's cards, diagram and Peek pill
+	over.open_glossary()
+
+static func close_glossary(for_screen: Control) -> void:
+	var over := for_screen.get_node_or_null("ChoiceCodex") as CodexOverlay
+	if over != null and over.visible:
+		over.close()
+
+static func glossary_open(for_screen: Control) -> bool:
+	var over := for_screen.get_node_or_null("ChoiceCodex") as CodexOverlay
+	return over != null and over.visible
+
+static func open_dreams(for_screen: Control) -> void:
+	close_glossary(for_screen)
+	var hud := for_screen.get_parent()
+	if hud != null and hud.has_method("open_dreams_over"):
+		hud.call("open_dreams_over", for_screen)
+
+static func close_dreams(for_screen: Control) -> void:
+	var hud := for_screen.get_parent()
+	if hud != null and hud.has_method("close_dreams_over"):
+		hud.call("close_dreams_over", for_screen)
+
+# The Codex over a phone choice screen: a solid pane (the phone pause menu's Codex page) on a dim that takes every tap;
+# its ✕ or Android Back closes it, and the screen underneath is as it was.
+class CodexOverlay extends Control:
+	const PAD := 16
+	var codex: CodexPanel
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS  # The choice screen keeps the game paused
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		z_index = 30  # PhoneChoice.OVER_Z: above the Dream diagram / gift scene (z 10)
+		visible = false
+		var dim := ColorRect.new()
+		dim.color = Color(UiStyle.FOG, 0.85)
+		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(dim)
+		var margin := MarginContainer.new()
+		margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+			margin.add_theme_constant_override(side, PAD)
+		add_child(margin)
+		var pane := PanelContainer.new()
+		pane.name = "Pane"
+		var fill := UiStyle.panel()
+		fill.center_alpha = UiStyle.TIP_ALPHA  # Solid, as the pause menu's pane
+		fill.edge_alpha = UiStyle.TIP_ALPHA
+		pane.add_theme_stylebox_override("panel", fill)
+		margin.add_child(pane)
+		codex = CodexPanel.new()
+		codex.embedded = true
+		pane.add_child(codex)
+		codex.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # The pane draws the frame
+		codex.visibility_changed.connect(_on_codex_visibility)
+
+	func open_glossary() -> void:
+		visible = true
+		codex.open(&"glossary")
+
+	func close() -> void:
+		codex.visible = false
+		visible = false
+
+	func _on_codex_visibility() -> void:
+		if not codex.visible:
+			visible = false  # Its ✕: back to the choice screen
+
+	# Android Back (open_menu) closes the Codex first, before the pause menu would open over the screen.
+	func _input(event: InputEvent) -> void:
+		if is_visible_in_tree() and InputMap.has_action("open_menu") and event.is_action_pressed("open_menu"):
+			close()
+			get_viewport().set_input_as_handled()
 
 # Sizes every Button in `buttons` to the widest one's text (the Dream screen's Let it pass and Take too). Returns the
 # width, or 0 when one isn't in the tree yet (no theme to measure with).

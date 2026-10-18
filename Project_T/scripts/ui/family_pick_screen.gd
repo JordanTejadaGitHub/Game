@@ -202,7 +202,7 @@ func show_pick(reason: StringName = &"first") -> void:
 		child.queue_free()
 	if _layout != null:
 		_layout.reset()
-		_layout.bottom.visible = true
+		_layout.set_choices_visible(true)
 	for data in offer:
 		if data is UpgradeData:
 			_cards.add_child(_make_blessing_card(data))
@@ -343,7 +343,7 @@ func _show_sapling() -> void:
 		child.queue_free()
 	if _layout != null:
 		_layout.reset()
-		_layout.bottom.visible = false  # Phones: the Sapling's card holds its own two choices
+		_layout.set_choices_visible(false)  # Phones: the Sapling's card holds its own two choices (Peek stays)
 	var card := VBoxContainer.new()
 	card.custom_minimum_size = Vector2(420, 0)
 	card.add_theme_constant_override("separation", 10)
