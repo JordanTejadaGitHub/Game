@@ -941,8 +941,13 @@ func jet_preview(from: Vector2, length: float, reach_px: float) -> Dictionary:
 	if aim == null:
 		return {}
 	var dir: Vector2 = ((aim as Vector2) - from).normalized()
-	var to := from + dir * length * MAP_GRID.cell_size.x
-	return {"to": to, "cells": crossed_path_cells(BranchKit.jet_cells(from, dir, length * MAP_GRID.cell_size.x, preview_route()))}
+	var shown := minf(length * MAP_GRID.cell_size.x, reach_px)  # Clipped to the range (the preview rule)
+	var to := from + dir * shown
+	var points: Array = []
+	for point in preview_route():
+		if BranchKit.in_jet(MAP_GRID.calculate_map_position(point) - from, dir, shown):
+			points.append(point)
+	return {"to": to, "points": points, "cells": crossed_path_cells(BranchKit.jet_cells(from, dir, shown, preview_route()))}
 
 # The route point (px) within `reach_px` of `from` that is furthest along the path, or null: where a Warden's
 # first target would stand.
@@ -1039,51 +1044,88 @@ func _sync_link_fx() -> void:
 # A form's special area as it will really be, from a Warden standing at `from` (px) on `cell` (draw transform:
 # identity). `reach_cells`: its range there. Samples (a whirlpool, a cloud, a burst) sit where its first target would.
 func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_cells: float, skip: Tower) -> void:
+	# One rule for every form's preview (screens_ui.md e88a2156; the user's Jetreed screenshot: "make sure it's fixed on all
+	# Wardens"): the range is the one solid ring on the Warden (drawn by the caller); the attack's shape goes where it would
+	# really go now (aimed at the furthest-along route point in range, _sample_point) and stays inside the range; hit marks
+	# are the path's own shape (the lit-path ribbon) on the route points really hit, never square tiles, grass or Wardens.
+	# Pulses and auras show the range only; no route point in range = no shape.
 	var reach_px := Tower.range_to_pixels(reach_cells)
 	var params: Dictionary = data.special_params
 	var sample = _sample_point(from, reach_px)
+	var colour := _family_colour(data)
 	match data.special:
 		BranchKit.JARLINK:
-			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip, from)
+			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip, from)  # On the partner segment (BranchKit.link_points)
+			return
 		BranchKit.JET:
+			# Jetreed / Torrent: the jet along its aim (BranchKit._jet aims at its target), clipped to the range; the route points
+			# it really hits (BranchKit.in_jet) marked in the path's shape.
 			var jet := jet_preview(from, float(params.get("length", 6.0)), reach_px)
 			if not jet.is_empty():
-				_draw_path_cells(jet.cells, Palette.DEWLIGHT)
-				draw_line(to_local(from), to_local(jet.to), Color(Palette.DEWLIGHT, 0.8), 3.0)
+				_draw_hit_points(jet.points, colour)
+				draw_dashed_line(to_local(from), to_local(jet.to), Color(colour, 0.85), 2.0, 6.0)
+			return
 		BranchKit.WHIRLPOOL:
 			if sample != null:
 				_draw_area_at(sample, float(params.get("radius", 1.5)) * MAP_GRID.cell_size.x, data, "whirlpool")
+			return
 		BranchKit.CLOUD:
 			if sample != null:
 				var half := MAP_GRID.cell_size * 1.5  # Its rain covers the 3×3 cells around the spot
 				var spot: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(sample))
-				_draw_dashed_rect(Rect2(to_local(spot) - half, half * 2.0), _family_colour(data))
+				_draw_dashed_rect(Rect2(to_local(spot) - half, half * 2.0), colour)
 				_area_label(spot + Vector2(0, -half.y), "rain", data)
+			return
 		BranchKit.SPARKLER:
 			if sample != null:
 				_draw_area_at(sample, float(params.get("burst_radius", 1.5)) * MAP_GRID.cell_size.x, data, "burst")
+			return
 		BranchKit.BROOD:
-			var walk := BranchKit.brood_walk(preview_route(), from, float(params.get("sprite_speed", 3.0)))
+			var walk := BranchKit.brood_walk(preview_route(), from, float(params.get("sprite_speed", 3.0)))  # Along the route
 			for i in walk.size():
 				walk[i] = to_local(walk[i])
 			BranchKit.draw_brood_walk(self, walk, true)
-	if data.attack_kind == TowerData.AttackKind.TRAP:
-		# Rings: the path cells in range they can use.
-		var cells: Array[Vector2] = []
-		for c in Tower.route_cells(preview_route()):
-			if MAP_GRID.calculate_map_position(c).distance_to(from) <= reach_px:
-				cells.append(c)
-		_draw_path_cells(cells, Palette.NEWLEAF)
-	elif data.attack_kind == TowerData.AttackKind.LIGHT:
-		var lit := {}
-		var all := {}
-		for point in preview_route():
-			var half_cell := FindPath.point_to_node(point)
-			all[half_cell] = true
-			var at: Vector2 = MAP_GRID.calculate_map_position(point)
-			if MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at)).distance_to(from) <= reach_px:
-				lit[half_cell] = at
-		Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL)
+			return
+	match data.attack_kind:
+		TowerData.AttackKind.TRAP:
+			# Rings: the route points in range they can sit on, in the path's shape.
+			var points: Array = []
+			for point in preview_route():
+				if MAP_GRID.calculate_map_position(point).distance_to(from) <= reach_px:
+					points.append(point)
+			_draw_hit_points(points, colour)
+		TowerData.AttackKind.LIGHT:
+			var lit := {}
+			var all := {}
+			for point in preview_route():
+				var half_cell := FindPath.point_to_node(point)
+				all[half_cell] = true
+				var at: Vector2 = MAP_GRID.calculate_map_position(point)
+				if MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at)).distance_to(from) <= reach_px:
+					lit[half_cell] = at
+			Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL)
+		TowerData.AttackKind.BEAM:
+			if sample != null:  # Sunpetal / Midsummer: the beam on its target now
+				draw_dashed_line(to_local(from), to_local(sample), Color(colour, 0.85), 2.0, 6.0)
+				_area_label(sample, "beam", data)
+		TowerData.AttackKind.CLOUD:
+			if sample != null:  # Bloomcap, Mistveil, Puffball…: the cloud where it would land
+				_draw_area_at(sample, data.cloud_radius * MAP_GRID.cell_size.x, data, "cloud")
+		_:
+			if data.splash_radius > 0.0 and sample != null:  # Splash and lobs (Dewdrop's line, Cairn, Rockslide…)
+				_draw_area_at(sample, data.splash_radius * MAP_GRID.cell_size.x, data, "stone" if data.lob else "splash")
+
+# Hit marks in the path's own shape (the lit-path ribbon) on route points (route coordinates) really hit.
+func _draw_hit_points(points: Array, colour: Color) -> void:
+	if points.is_empty():
+		return
+	var lit := {}
+	var all := {}
+	for point in preview_route():
+		all[FindPath.point_to_node(point)] = true
+	for point in points:
+		lit[FindPath.point_to_node(point)] = MAP_GRID.calculate_map_position(point)
+	Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL, colour, Palette.HEARTLIGHT)
 
 # What growing `tower` into `into` would gain, as the build ghost's chips ([[text, on], …]): the Kinship it would
 # form there, and the new form's position cards on or off at its cell. (Growing never breaks a Kinship: a Warden
