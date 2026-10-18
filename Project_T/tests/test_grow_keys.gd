@@ -249,7 +249,9 @@ func _run() -> void:
 	var grow_button: Button = panel._all_buttons().filter(func(b) -> bool: return b is Button and b.get_meta(&"grow_index", -1) == 0).front()
 	var first_form: TowerData = Tower.grow_options(dreams, poor.tower_data)[0][0]
 	var want: int = poor.get_grow_cost(first_form).total
-	_check(grow_button.text == "%s · %s%s (Q)" % [first_form.display_name, UiStyle.DEW_GLYPH, BossDossier.thousands(want)]
+	# (The row's small line may sit between: "Driftspore · +53 a second · 120 (Q)", the damage change and tags, b38148ff)
+	_check(grow_button.text.begins_with(first_form.display_name + " · ")
+		and grow_button.text.ends_with("%s%s (Q)" % [UiStyle.DEW_GLYPH, BossDossier.thousands(want)])
 		and grow_button.get_meta(&"short") and grow_button.has_node("Row"), "a short Grow shows its cost (%s)" % grow_button.text)
 	var nurture_button: Button = panel._all_buttons().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
 	_check(nurture_button.text.ends_with("· %s (R)" % UiStyle.dew_amount(poor.get_nurture_price())) and nurture_button.get_meta(&"short"),
