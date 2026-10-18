@@ -150,6 +150,13 @@ const STACK_FONT_SIZE := 16
 const STACK_FONT_SIZE_BIG_COUNT := 14  # Three-digit counts cover less of their icon
 const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
 const STACK_POP_SCALE := 0.35  # …up to this much bigger
+# Status cues (visual_feedback_spec.md C3): a Dream card changed this status: its icon bumps x1.2 with a 1 px Heartlight rim
+# (dream_status_pop, called by the card code); a status a card keeps from running down (statuses.is_lingering) draws its
+# time bar's rim in Dew-light, "lasts longer".
+const DREAM_POP_TIME := 0.15
+const DREAM_POP_SCALE := 0.2
+const DREAM_RIM_COLOR := Palette.HEARTLIGHT
+const LINGER_RIM_COLOR := Palette.DEWLIGHT
 const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
 const STACK_PIP_MIN := 2.0  # Small caps retain readable individual pips
 const STACK_PIP_CAP := 8  # Larger capacities use one bounded progress bar
@@ -298,6 +305,43 @@ const SUSTAIN_HOLD := 0.3  # A tick keeps its sustained state on this long (game
 const ARC_TAG := &"fence"  # Jarlink / Lightning Fence arcs: it twitches while they hold it
 const ARC_TWITCH := 0.7  # px
 signal sustained_changed(enemy: Node2D, tag: StringName, on: bool)
+
+# Big-hit feedback (visual_feedback_spec.md "A", owner 2026-10-18): one damage event's share of its max health (hits and
+# bolts only; ticks, sustained tags, harmony and Reactions show themselves) sets a tier. T1 Heavy: 3 px recoil, a
+# brighter flash, a hairline crack. T2 Crushing: + a stagger (squash) with a 4 px knock and light chips. T3 Shattering:
+# + the sprite holds 60 ms (never a time stop), a Glow ring and a 1.5 px camera nudge. Bosses by BIG_HIT_BOSS_SHARES.
+# big_hit fires for the number tiers and the boss bar's chunk flash (Main Merger); big_tier_now is the tier of the event
+# DamageLog is reporting (0 otherwise). Setting "big_hits": 0 Full, 1 Subtle (T1 visuals at every tier), 2 Off.
+signal big_hit(enemy: Node2D, tier: int, share: float)
+const BIG_HIT_SHARES: Array[float] = [0.12, 0.25, 0.5]  # T1, T2, T3
+const BIG_HIT_BOSS_SHARES: Array[float] = [0.04, 0.08, 0.15]  # (owner-approved)
+const BIG_HIT_MERGE_MS := 100  # Hits from one source within this add up to one blow (Refrain, multi-peck, echoes)
+const BIG_HIT_AGAIN_MS := 250  # A tier plays again on a nightmare only after this; a higher one may cut in
+const BIG_HIT_RECOIL: Array[float] = [3.0, 4.0, 4.0]  # px: T1's recoil, T2/T3's knock (reduced motion: the flinch's own)
+const BIG_HIT_FLASH := 0.7
+const BIG_HIT_CRACK: Array[float] = [0.15, 0.3, 0.5]
+const BIG_HIT_CRACK_TIME: Array[float] = [0.18, 0.3, 0.4]
+const BIG_HIT_SQUASH := Vector2(1.12, 0.88)
+const BIG_HIT_SQUASH_TIME := 0.14
+const BIG_HIT_FREEZE := 0.06  # Its own walk frames only; game time and everything else run on
+const BIG_HIT_NUDGE := 1.5  # px camera nudge on T3 (Fx._shake; counts against Fx.bright_flash_ok)
+const BIG_HIT_CAPS: Array[int] = [10, 4]  # T2, T3 a second for the whole field…
+const BIG_HIT_CAPS_REDUCED: Array[int] = [4, 2]  # …at Reduced effects
+const BIG_HIT_CHIPS := &"big_hit_chips"  # Tower Assets' sheet; skipped until it exists
+const BIG_HIT_RING_TIME := 0.3
+var big_tier_now := 0
+var _bh_source := 0  # The blow being merged: its source's instance id, its damage so far, when it last grew
+var _bh_sum := 0.0
+var _bh_at := -100000
+var _bh_tier := 0  # The tier playing and until when (msec)
+var _bh_until := 0
+var _crack_hit := 0.0  # The hairline crack: its peak, seconds left of it and its length (shader hit_crack)
+var _crack_hit_left := 0.0
+var _crack_hit_time := 1.0
+var _stagger_left := 0.0
+var _stagger_scale := Vector2.ONE  # The squash factor sprite.scale carries now (as _squeeze)
+var _freeze_left := 0.0
+static var _bh_times: Array = [[], []]  # msec of the field's recent T2 and T3 blows (BIG_HIT_CAPS)
 var _flinch_left := 0.0
 # Falling asleep (_update_sleep): asleep last frame, the Asleep badge in for Sleep (after its flash), how far it has
 # settled (0..1), the sink / lean / eye glow shown, the waking jolt, the next "z" mote and the latest one.
@@ -394,6 +438,7 @@ var _hud_awake := false  # Can't fall asleep again yet (statuses.sleep_cooldown)
 var _hud_marks_key := -1
 var _hud_stagger := randi() % 4  # So a crowd doesn't check its time bars on the same frame
 var _hud_pops := {}  # {status id: seconds left of its icon's pop} (a stack was just added)
+var _dream_pops := {}  # {status id: true}: those pops are a Dream card's (dream_status_pop): their own size, time and rim
 var _hud_popping := false
 var _hud_flashing := false
 var hud_builds := 0  # Items rebuilt (tests: only when something changed)
@@ -623,6 +668,8 @@ func _process(delta: float) -> void:
 		_update_sustained(delta)
 	if _flinch_left > 0.0 or _recoil != Vector2.ZERO or _sustained.has(ARC_TAG):  # (One timer; nothing when at rest)
 		_update_flinch(delta / maxf(Engine.time_scale, 0.001))
+	if _crack_hit_left > 0.0 or _freeze_left > 0.0 or _stagger_left > 0.0 or _stagger_scale != Vector2.ONE:
+		_update_big_hit(delta / maxf(Engine.time_scale, 0.001))  # A big hit playing out (nothing for the rest)
 	if freeze_cooldown > 0.0:
 		freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	if push_cooldown > 0.0:
@@ -822,6 +869,15 @@ func _refuse_status(id: StringName) -> void:
 
 # A combo just used this status (e.g. lightning jumped through Damp): its icon flashes briefly.
 # Called by the HUD's combat callouts. Does nothing if the status isn't on this nightmare.
+# A Dream card just changed status `id` on this nightmare (visual_feedback_spec.md C3 "Status pop"; the card code calls
+# it from its cue table): its badge bumps x1.2 with a Heartlight rim for DREAM_POP_TIME. Nothing if it isn't shown.
+func dream_status_pop(id: StringName) -> void:
+	if is_cleansed or not id in _hud_ids:
+		return
+	_hud_pops[id] = DREAM_POP_TIME
+	_dream_pops[id] = true
+	_hud_dirty = true
+
 func flash_status(id: StringName) -> void:
 	# Once per flash: combos fire on every tick and hit (a Marked, Spored nightmare reports "marked"
 	# twice a second), and each flash spawns a world effect.
@@ -975,6 +1031,7 @@ func _update_hud(delta: float) -> void:
 			_hud_pops[id] -= delta
 			if _hud_pops[id] <= 0.0:
 				_hud_pops.erase(id)
+				_dream_pops.erase(id)
 		_build_hud_icons(_hud_items[HUD_ICONS])
 		_hud_popping = true
 	elif changed or _hud_popping:
@@ -989,6 +1046,8 @@ func _update_hud(delta: float) -> void:
 	var marks_key := _hud_changes << 16  # Below that: 4 bits of time-bar steps per icon (up to 4 icons)
 	for i in _hud_ids.size():
 		marks_key += _time_steps(i) << (i * 4)
+		if statuses.is_lingering(_hud_ids[i]):
+			marks_key += 1 << (12 + i)  # (The linger rim; bits 12-14 are free: at most 3 icons use 0-11)
 	if changed or marks_key != _hud_marks_key or flashing or _hud_flashing:
 		_hud_marks_key = marks_key
 		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
@@ -1186,7 +1245,8 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			_draw_asleep_mark(item, centre, r, color, i)  # A draining ring instead of the time bar
 		else:
 			var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
-			atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
+			# A card keeps it from running down: the bar's rim in Dew-light ("lasts longer", spec C3), else dark
+			atlas.draw_rect_region(item, bar.grow(1.0), solid, LINGER_RIM_COLOR if statuses.is_lingering(id) else Color(Palette.VOID, 0.75))
 			var steps := _time_steps(i)
 			if steps > 0:
 				bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
@@ -1284,9 +1344,14 @@ func _build_hud_icons(item: RID) -> void:
 		if icon == null:
 			continue
 		var s := get_badge_size()
+		var dream: bool = _dream_pops.has(_hud_ids[i])
 		if _hud_pops.has(_hud_ids[i]):
-			var t: float = 1.0 - _hud_pops[_hud_ids[i]] / STACK_POP_TIME  # 0 -> 1
-			s *= 1.0 + STACK_POP_SCALE * sin(PI * t)
+			var t: float = clampf(1.0 - _hud_pops[_hud_ids[i]] / (DREAM_POP_TIME if dream else STACK_POP_TIME), 0.0, 1.0)  # 0 -> 1
+			s *= 1.0 + (DREAM_POP_SCALE if dream else STACK_POP_SCALE) * sin(PI * t)
+		if dream:  # A Dream card changed it: a 1 px Heartlight rim for the bump
+			var rim := Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)).grow(1.0)
+			RenderingServer.canvas_item_add_polyline(item, PackedVector2Array([rim.position, Vector2(rim.end.x, rim.position.y),
+				rim.end, Vector2(rim.position.x, rim.end.y), rim.position]), PackedColorArray([DREAM_RIM_COLOR]), 1.0)
 		# Exposed does nothing until it is full: its badge is dim while partial, bright once it completes
 		# (screens_ui.md "Exposed at full stacks is visible"; Tower Code).
 		var dim: bool = _hud_ids[i] == EnemyStatuses.MARKED and not statuses.is_exposed()
@@ -1576,14 +1641,15 @@ func _point_px(index: int) -> Vector2:
 
 # A hit landed: flash and recoil. `share` = the hit's damage / its max health; `from` = where it came from in
 # global pixels (NO_SOURCE: it recoils back along its path). No allocations; _update_flinch plays it out.
-func flinch(share: float, from: Vector2 = NO_SOURCE) -> void:
+func flinch(share: float, from: Vector2 = NO_SOURCE, recoil_px: float = 0.0, flash: float = -1.0) -> void:
 	if _culled or is_cleansed:
 		return
 	var strength := clampf(share / RECOIL_FULL_SHARE, 0.0, 1.0)
 	var scale_by := BOSS_FLINCH if enemy_data.is_boss else 1.0
+	var recoil := (recoil_px if recoil_px > 0.0 else lerpf(RECOIL_MIN, RECOIL_MAX, strength)) * scale_by  # (A big hit's own)
 	# A weaker hit while a stronger flinch is still playing changes nothing you'd see (perf: a crowded field lands dozens of
 	# hits a frame; each restart set the shader parameter and the sprite offset)
-	if _flinch_left > 0.0 and _recoil.length_squared() >= pow(lerpf(RECOIL_MIN, RECOIL_MAX, strength) * scale_by, 2.0):
+	if _flinch_left > 0.0 and _recoil.length_squared() >= recoil * recoil:
 		return
 	var away := Vector2.ZERO
 	if from != NO_SOURCE:
@@ -1592,10 +1658,113 @@ func flinch(share: float, from: Vector2 = NO_SOURCE) -> void:
 		away = position - _point_px(_path_index)  # Back along its path
 	if away.length_squared() < 1.0:
 		away = Vector2.UP
-	_flinch_recoil = away.normalized() * lerpf(RECOIL_MIN, RECOIL_MAX, strength) * scale_by
-	_flinch_flash = 0.0 if Fx.reduce_flashes() else lerpf(FLASH_MIN, FLASH_MAX, strength) * scale_by
+	_flinch_recoil = away.normalized() * recoil
+	_flinch_flash = 0.0 if Fx.reduce_flashes() else (flash if flash >= 0.0 else lerpf(FLASH_MIN, FLASH_MAX, strength)) * scale_by
 	_flinch_left = FLINCH_TIME
 	_update_flinch(0.0)
+
+# The tier of one damage event of `share` of its max health (0 = below Heavy): BIG_HIT_SHARES, or the boss ones.
+static func big_hit_tier_of(share: float, is_boss: bool) -> int:
+	var shares: Array[float] = BIG_HIT_BOSS_SHARES if is_boss else BIG_HIT_SHARES
+	var tier := 0
+	while tier < shares.size() and share >= shares[tier]:
+		tier += 1
+	return tier
+
+# The big-hit tier this damage event sets off (0 = none, or the setting is Off): hits from one source within
+# BIG_HIT_MERGE_MS add up to one blow; while a tier plays (BIG_HIT_AGAIN_MS) only a higher one cuts in; T2 / T3 over the
+# field's caps step down. Hits and bolts only (Reactions, ticks and sustained sources show themselves).
+func _big_hit_tier(soothe: float, source: Node, tag: StringName) -> int:
+	if not is_instance_valid(source) or tag in SUSTAINED_TAGS or tag in REACTION_TAGS or tag == &"harmony" \
+			or tag == &"popped" or int(Fx.setting("big_hits", 0)) == 2:
+		return 0
+	var now := Time.get_ticks_msec()
+	var id := source.get_instance_id()
+	if id == _bh_source and now - _bh_at <= BIG_HIT_MERGE_MS:
+		_bh_sum += soothe
+	else:
+		_bh_source = id
+		_bh_sum = soothe
+	_bh_at = now
+	var tier := big_hit_tier_of(_bh_sum / maxf(max_health, 1.0), enemy_data.is_boss)
+	if tier == 0 or (now < _bh_until and tier <= _bh_tier):
+		return 0
+	while tier >= 2 and not _big_hit_room(tier, now):
+		tier -= 1  # The field is busy with big blows: a smaller one
+	if now < _bh_until and tier <= _bh_tier:
+		return 0
+	if tier >= 2:
+		_bh_times[tier - 2].append(now)
+	_bh_tier = tier
+	_bh_until = now + BIG_HIT_AGAIN_MS
+	return tier
+
+static func _big_hit_room(tier: int, now: int) -> bool:
+	var times: Array = _bh_times[tier - 2]
+	while not times.is_empty() and now - int(times[0]) > 1000:
+		times.pop_front()
+	return times.size() < (BIG_HIT_CAPS_REDUCED if Fx.reduced() else BIG_HIT_CAPS)[tier - 2]
+
+# Plays big-hit tier `tier` (visual_feedback_spec.md A). `dying`: the blow dispels it (no stagger or hold, the dispel
+# crack plays; the chips still fly). Reduce flashes: no flash, a soft Moonlight crack, no ring. Reduced motion: the
+# flinch's own recoil, no stagger, hold or nudge. Reduced effects: T1 nothing here, T2 the crack, T3 + the ring.
+# Subtle (big_hits 1): T1 at every tier. Off screen: only the crack (no nodes).
+func _play_big_hit(tier: int, share: float, from: Vector2, is_crit: bool, dying: bool) -> void:
+	var shown := 1 if int(Fx.setting("big_hits", 0)) == 1 else tier
+	var still := bool(Fx.setting("reduced_motion", false))
+	var soft := Fx.reduce_flashes()
+	var lite := Fx.reduced()
+	big_hit.emit(self, tier, share)
+	if lite and shown == 1:
+		if not dying:
+			flinch(share, from)  # The everyday flinch; the number is the rest (Main Merger's)
+		return
+	if not dying:
+		flinch(share, from, 0.0 if still else BIG_HIT_RECOIL[shown - 1], BIG_HIT_FLASH)
+	_crack_hit = BIG_HIT_CRACK[shown - 1]
+	_crack_hit_time = BIG_HIT_CRACK_TIME[shown - 1]
+	_crack_hit_left = _crack_hit_time
+	sprite.set_instance_shader_parameter(&"hit_crack_soft", 1.0 if soft else 0.0)
+	sprite.set_instance_shader_parameter(&"hit_crack", _crack_hit)
+	if not dying and not still and not lite and not _leaping and shown >= 2:
+		_stagger_left = BIG_HIT_SQUASH_TIME
+		if shown >= 3:
+			_freeze_left = BIG_HIT_FREEZE
+			sprite.speed_scale = 0.0  # Its own walk frames hold; restored by _update_big_hit
+	if _culled or not Fx.on_screen(global_position):
+		return  # Off screen: the crack only
+	var world := Reactions._world(self)
+	if world == null or shown < 2:
+		return
+	# Chips: not on a crit (its star flare plays) or an Exposed blow (its spark plays), nor at Reduced effects
+	if not lite and not is_crit and not statuses.is_exposed() and Fx.has_effect(BIG_HIT_CHIPS):
+		var size := (1.4 if shown >= 3 else 1.0) * (1.25 if TouchBuild.mobile_controls() else 1.0)
+		Fx.play(BIG_HIT_CHIPS, Tower.aim_at(self), world, size)
+	if shown >= 3:
+		if not soft:
+			var ring := Fx.FxRing.new(Palette.GLOW, 14.0, 20.0, BIG_HIT_RING_TIME)
+			world.add_child(ring)
+			ring.global_position = global_position
+		if not still and Fx.bright_flash_ok():
+			Fx._shake(world, BIG_HIT_NUDGE)
+
+# The big hit playing out, in real seconds (game speed doesn't shorten it): the hairline crack fading, the squash
+# easing back, the held frames walking on. Called only while one of them runs.
+func _update_big_hit(real_delta: float) -> void:
+	if _crack_hit_left > 0.0:
+		_crack_hit_left = maxf(_crack_hit_left - real_delta, 0.0)
+		sprite.set_instance_shader_parameter(&"hit_crack", _crack_hit * _crack_hit_left / _crack_hit_time)
+	if _freeze_left > 0.0:
+		_freeze_left = maxf(_freeze_left - real_delta, 0.0)
+		if _freeze_left <= 0.0:
+			sprite.speed_scale = 1.0
+	if _stagger_left > 0.0 or _stagger_scale != Vector2.ONE:
+		_stagger_left = maxf(_stagger_left - real_delta, 0.0)
+		var t := _stagger_left / BIG_HIT_SQUASH_TIME  # 1 -> 0
+		var squash := Vector2.ONE.lerp(BIG_HIT_SQUASH, t * t) if not _leaping else Vector2.ONE  # (A leap's tween owns the scale)
+		sprite.scale = sprite.scale / _stagger_scale * squash
+		_stagger_scale = squash
+		sprite.offset = (_body_offset() + _recoil) / sprite.scale
 
 # Plays the flinch out (real seconds: game speed doesn't shorten it), plus the arc twitch; back at rest it
 # leaves the sprite's offset and the shader's flash exactly where they were.
@@ -2769,16 +2938,29 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
 		statuses.sleep_time = 0.0
+	# Big-hit feedback: the tier first, so DamageLog's number can read it (big_tier_now) while it reports this event
+	# (Perf: a hit under a quarter of the Heavy share never counts, not even toward a merged blow: most hits stop here)
+	var big := 0
+	if soothe >= max_health * (BIG_HIT_BOSS_SHARES[0] if enemy_data.is_boss else BIG_HIT_SHARES[0]) * 0.25:
+		big = _big_hit_tier(soothe, source, tag)
+	big_tier_now = mini(big, 1) if int(Fx.setting("big_hits", 0)) == 1 else big
 	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag,
 		maxf(soothe - health_before, 0.0), is_area)
+	big_tier_now = 0
+	var share := soothe / maxf(max_health, 1.0)
+	var hit_from: Vector2 = source.global_position if source is Node2D else NO_SOURCE
 	if health == 0 and not _try_rise():
+		if big > 0:
+			_play_big_hit(big, share, hit_from, is_crit, true)  # A dispelling blow: the chips fly with the dispel crack
 		_cleanse()
 		return
-	if soothe > 0.0:  # It felt that: a flinch, or (continuous sources) the sustained state their overlays hook
+	if soothe > 0.0:  # It felt that: a flinch (or a big hit), or (continuous sources) the sustained state their overlays hook
 		if tag in SUSTAINED_TAGS:
 			_note_sustained_tick(tag)
+		elif big > 0:
+			_play_big_hit(big, share, hit_from, is_crit, false)
 		else:
-			flinch(soothe / maxf(max_health, 1.0), source.global_position if source is Node2D else NO_SOURCE)
+			flinch(share, hit_from)
 	_check_health_thresholds()
 	if (enemy_data.charges_at_half or (enemy_data.trait_kind == EnemyData.Trait.TRAMPLE
 			and enemy_data.straight_charge_tiles <= 0)) and not _startled and health <= max_health / 2:
