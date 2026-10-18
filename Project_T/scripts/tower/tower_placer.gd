@@ -963,32 +963,14 @@ func _sample_point(from: Vector2, reach_px: float) -> Variant:
 # ring above the path read as a range ring centred on nothing): a small DASHED ring in the family colour where it would
 # land now (the furthest-along route point in range, _sample_point), with a tiny label. A range ring is solid and only
 # ever on the Warden.
-const AREA_FILL := 0.12
-
 func _draw_area_at(at: Vector2, radius: float, data: TowerData, label: String) -> void:
 	var colour := _family_colour(data)
 	var centre := to_local(at)
-	draw_circle(centre, radius, Color(colour, AREA_FILL))  # A faint fill so a small splash reads (user: Dewdrop's)
 	var steps := 32
 	for i in steps:
 		if i % 2 == 0:
 			draw_arc(centre, radius, TAU * i / steps, TAU * (i + 1) / steps, 3, Color(colour, 0.85), 1.5)
 	_area_label(at + Vector2(0, -radius), label, data)
-
-# The splash ring on another canvas (TowerSeller's selection): the same dashed ring and label at the aim point, or
-# nothing when no route point is in range.
-func draw_splash_area(canvas: CanvasItem, data: TowerData, from: Vector2, reach_px: float) -> void:
-	var sample = _sample_point(from, reach_px)
-	if sample == null:
-		return
-	var colour := _family_colour(data)
-	var centre: Vector2 = canvas.get_global_transform().affine_inverse() * (sample as Vector2)
-	var radius := data.splash_radius * MAP_GRID.cell_size.x
-	canvas.draw_circle(centre, radius, Color(colour, AREA_FILL))
-	for i in 32:
-		if i % 2 == 0:
-			canvas.draw_arc(centre, radius, TAU * i / 32, TAU * (i + 1) / 32, 3, Color(colour, 0.85), 1.5)
-	WorldLabel.draw_tag(canvas, centre.x, centre.y - radius - 6.0, "stone" if data.lob else "splash", colour)
 
 func _draw_dashed_rect(rect: Rect2, colour: Color) -> void:
 	var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
@@ -1066,7 +1048,7 @@ func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_
 	# Wardens"): the range is the one solid ring on the Warden (drawn by the caller); the attack's shape goes where it would
 	# really go now (aimed at the furthest-along route point in range, _sample_point) and stays inside the range; hit marks
 	# are the path's own shape (the lit-path ribbon) on the route points really hit, never square tiles, grass or Wardens.
-	# Pulses and auras show the range only; no route point in range = no shape.
+	# Pulses, auras and splash / lob hits (user: "not supposed to show splash range, just attack range") show the range only; no route point in range = no shape.
 	var reach_px := Tower.range_to_pixels(reach_cells)
 	var params: Dictionary = data.special_params
 	var sample = _sample_point(from, reach_px)
@@ -1129,9 +1111,6 @@ func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_
 		TowerData.AttackKind.CLOUD:
 			if sample != null:  # Bloomcap, Mistveil, Puffball…: the cloud where it would land
 				_draw_area_at(sample, data.cloud_radius * MAP_GRID.cell_size.x, data, "cloud")
-		_:
-			if data.splash_radius > 0.0 and sample != null:  # Splash and lobs (Dewdrop's line, Cairn, Rockslide…)
-				_draw_area_at(sample, data.splash_radius * MAP_GRID.cell_size.x, data, "stone" if data.lob else "splash")
 
 # Hit marks in the path's own shape (the lit-path ribbon) on route points (route coordinates) really hit.
 func _draw_hit_points(points: Array, colour: Color) -> void:
