@@ -61,7 +61,7 @@ static func _empty_rows(texture: Texture2D, frames: int) -> int:
 		if image.is_compressed():
 			image.decompress()
 		var w := image.get_width() / frames
-		rows = image.get_height()
+		rows = image.get_height()  # (Set back to 0 below when the frame has no opaque pixel at all)
 		for y in image.get_height():
 			for x in w:
 				if image.get_pixel(x, y).a > 0.0:
@@ -69,6 +69,8 @@ static func _empty_rows(texture: Texture2D, frames: int) -> int:
 					break
 			if rows == y:
 				break
+	if image != null and rows >= image.get_height():
+		rows = 0  # An empty first frame: measure from the frame top, not its bottom
 	_empty_cache[key] = rows
 	return rows
 
