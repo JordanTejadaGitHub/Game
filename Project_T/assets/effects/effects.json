@@ -208,6 +208,38 @@
 			"loop": true,
 			"note": "Beams at full ramp: the larger landing spot, looped (anchor = the landing point)."
 		},
+		"big_hit_chips": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "big_hit_chips.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": false,
+			"note": "Big hit (T2; T3 at 1.4x): 5 HEARTLIGHT chips flying out of the hit point and falling, ember-edged. ~0.38 s. Anchor = the hit point."
+		},
+		"big_hit_chips_lite": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "big_hit_chips_lite.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 3,
+			"kind": "status",
+			"loop": false,
+			"note": "big_hit_chips for the Fx budget / lite: 3 frames."
+		},
 		"bolt_strike": {
 			"anchor": [
 				24,
@@ -876,6 +908,54 @@
 			"kind": "support",
 			"loop": false,
 			"note": "Soil kicked up behind a dragged nightmare; spawn one every ~0.1 s along the drag. Anchor = ground."
+		},
+		"dream_flare": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "dream_flare.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 5,
+			"kind": "status",
+			"loop": false,
+			"note": "Tier-3 origin flare: a soft four-petal bloom, HEARTLIGHT heart to GLOW petals, ember-edged (round petals, never a star: crit_flare stays the star). ~0.3 s. Anchor = the attack point."
+		},
+		"dream_flare_lite": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "dream_flare_lite.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 3,
+			"kind": "status",
+			"loop": false,
+			"note": "dream_flare for the Fx budget / lite: 3 frames, smaller."
+		},
+		"dream_mote": {
+			"anchor": [
+				4,
+				4
+			],
+			"file": "dream_mote.png",
+			"fps": 8.0,
+			"frame_size": [
+				8,
+				8
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": true,
+			"note": "The shared Dream mote (B tier 2, C1 surge; pooled): a tiny HEARTLIGHT diamond with an ember edge, twinkling. Loops."
 		},
 		"dream_spore_puff": {
 			"anchor": [
@@ -2339,6 +2419,22 @@
 			"kind": "ground",
 			"loop": true,
 			"note": "Cloudlet / Nimbus: rain over a 3x3 zone. Tile it 3x3 (it tiles seamlessly), above the nightmares at ~80% alpha."
+		},
+		"rank_shimmer": {
+			"anchor": [
+				32,
+				56
+			],
+			"file": "rank_shimmer.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "status",
+			"loop": false,
+			"note": "A card grants or cheapens a rank (C9): a HEARTLIGHT ring at the Warden's base and motes rising past it. ~0.67 s. Anchor = the Warden's foot (cell centre, slab top)."
 		},
 		"rockfall": {
 			"anchor": [
