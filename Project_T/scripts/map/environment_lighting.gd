@@ -71,7 +71,7 @@ func _look_gold() -> void:
 	if int(stamp[2]) == 0 and not bool(stamp[3]):  # Full Dream effects at full quality only
 		for tower: Tower in _wardens:
 			if _wardens[tower] and is_instance_valid(tower) and tower.tower_data.get_id() != "sprout" \
-					and dreams.dream_power(tower) >= DreamState.VISUALS.TIER_POWER[2] - 0.000001  # The gold tier (Roguelite Code):
+					and dreams.dream_power(tower) >= DreamState.VISUALS.TIER_POWER[2] - 0.000001:  # The gold tier (Roguelite Code)
 				gold[tower] = true
 	if gold != _gold:
 		_gold = gold
