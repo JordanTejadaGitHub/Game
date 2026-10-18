@@ -371,10 +371,8 @@ static func the_name(name: String, start := false) -> String:
 static func stack_number(key: String) -> int:
 	var kind := key.get_slice("_", 0)
 	var status := StringName(key.substr(kind.length() + 1))
-	if kind == "need":
-		var needs := {&"damp": Reactions.SOAKED_NEEDED, &"held": Reactions.ROOTED_NEEDED, &"marked": Reactions.EXPOSED_NEEDED,
-			&"spored": Reactions.IGNITE_MIN_SPORES, &"static": Reactions.IGNITE_MIN_STATIC}
-		return Reactions.need(int(needs.get(status, 0)))  # A Reaction's need: the normal amount, Brimming or not (owner 2026-10-16)
+	if kind == "need":  # The lowest Reaction need for that status, the number the status row's blue frame uses (Enemy Code 725f18fc)
+		return Reactions.ready_need(status, EnemyStatuses.new())
 	if kind == "cap" or kind == "bosscap":
 		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
 		probe.is_boss = kind == "bosscap"

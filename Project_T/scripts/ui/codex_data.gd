@@ -122,7 +122,7 @@ const GLOSSARY_SOURCE := [
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
-		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count.", ["Reaction"]],
+		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. A blue frame: enough stacks for a Reaction (add the partner status and it goes off).", ["Reaction"]],
 		["Full", "A status at its most stacks. Some statuses do nothing until they are full.", ["Stack"]],
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they set each other off for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
 		["Crowned Reaction", "A stronger Reaction, set off on a nightmare that also carries a third status.", ["Reaction", "Woven"]],
