@@ -353,6 +353,10 @@ func _refresh() -> void:
 			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
 			if tax_line != "" and _phone:
 				note = tax_line  # Phones (user screenshot: "585" in orange, no reason): the tax in the role words' place
+			var dps_change := _grow_dps_change(next)  # "+86 a second" / "-12 a second, +Drowsy": first, on the button
+			if dps_change != "":
+				note = dps_change + (" · " + note if note != "" else "")
+				button.tooltip_text += "\n\n%s (hit damage a second at its rank now; statuses and area hits not counted)." % dps_change
 			if note != "":
 				label += " · " + note
 			var wakes := _wakes(next)
@@ -1012,6 +1016,51 @@ static func _grow_tip(changes: String, form: TowerData) -> String:
 	if form.description != "":
 		tip += "\n\n" + IconInfo.format(form.description)  # {spored}-style tokens as words
 	return tip
+
+# What a grow does to the Warden's damage a second (Balancing Discussion 2026-10-18: Sporelings grown into Bloomcaps lost the
+# board's damage and the run ended at drift 10): "+86 a second", or when it drops, the new form's job beside it, "-12 a
+# second, +Drowsy". Both sides from probes off the board at the Warden's rank and rank choices now (no position cards or
+# Kinships on either, so the two compare like for like): hit damage × attacks a second. "" for walls and no change.
+var _dps_probe: Tower = null
+
+func _grow_dps_change(next: TowerData) -> String:
+	if not is_instance_valid(_tower) or (not _tower.tower_data.can_attack and not next.can_attack):
+		return ""
+	var before := _probe_dps(_tower.tower_data)
+	var after := _probe_dps(next)
+	var change := roundi(after - before)
+	if change == 0:
+		return ""
+	var text := "%s%s a second" % ["+" if change > 0 else "-", BossDossier.thousands(absi(change))]
+	if change < 0:
+		var job := ""
+		if next.applies_status != &"":
+			job = "+" + IconInfo.status_name(next.applies_status)
+		else:
+			var terms := IconInfo.role_terms(IconInfo.role_text(next))
+			job = terms[0] if not terms.is_empty() else ""
+		if job != "":
+			text += ", " + job
+	return text
+
+func _probe_dps(data: TowerData) -> float:
+	if not data.can_attack:
+		return 0.0
+	if not is_instance_valid(_dps_probe):
+		_dps_probe = Tower.new()
+	_dps_probe.tower_data = data
+	_dps_probe.attack_data = data
+	_dps_probe.cell = Vector2(-100, -100)  # Off the board: no position cards (as WardenHeaderView's probe)
+	_dps_probe._dream_state = dream_state
+	_dps_probe.rank_choices = _tower.rank_choices.duplicate()
+	_dps_probe.paid_ranks = _tower.paid_ranks.duplicate()
+	_dps_probe.rank = _tower.rank
+	_dps_probe.clear_dream_cache()
+	return _dps_probe.get_damage() * _dps_probe.get_attacks_per_second()
+
+func _exit_tree() -> void:
+	if is_instance_valid(_dps_probe):
+		_dps_probe.free()
 
 # The grow tax (Tower Code 8a92cc8d; owner 2026-10-17) made plain: "300 + 285 grow tax · 8 finals on the map" ("" when the
 # grow isn't taxed). From Tower.get_grow_cost's base (the taxed form price) and tax share; ranks aren't taxed.
