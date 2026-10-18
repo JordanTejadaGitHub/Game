@@ -16,8 +16,14 @@ class_name BranchKit
 # "the Sparkler doesn't have the Charge keyword". Sparkler / Starburst: their sparks Charge; Jarlink / Lightning Fence:
 # the link Charges; Silver Bell / Vesper Bell: the toll adds Sleep; Jetreed / Torrent: the puddles Soak; Groundroot /
 # Earthbind: a grabbed flyer lands Rooted; Brood Cap, Inkcap, Cloudlet already name theirs in the data (listed anyway).
+# (keyword audit 2026-10-17, for Tower Code to decide: in code only Torrent's Flood trail Soaks (Jetreed's jet never
+# does) and only Earthbind's landing Roots (Groundroot only grounds flyers); left as is.)
 const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"], &"jet": [&"damp"],
 	&"groundroot": [&"held"], &"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}
+# Statuses one form's own code applies that its special or data doesn't name (keyword audit 2026-10-17), read by
+# Tower.statuses_applied: Maelstrom's whirlpool Soaks (_whirl, final only; Undercurrent doesn't), Dreamshroom's Dream
+# Spores twist puffs Poisoned off sleepers (FinalTwists._dream_spores).
+const FORM_STATUSES := {&"maelstrom": [&"damp"], &"dreamshroom": [&"spored"]}
 
 const LICHEN := &"lichen"
 const BROOD := &"brood"

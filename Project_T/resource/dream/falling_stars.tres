@@ -20,4 +20,5 @@ woven = true
 rule_id = &"falling_stars"
 tip = "A crit on a nightmare with {marked} can start another {named_combo:starfall}. A bet: needs nightmares with {marked} close together."
 uses = Array[StringName]([&"reaction"])
+makes = Array[StringName]([&"crit"])
 requires_statuses = Array[StringName]([&"marked", &"held", &"static"])

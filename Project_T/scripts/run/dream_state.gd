@@ -227,7 +227,11 @@ const SHARDS_PER_DREAMLIGHT := 10  # Great Dreamcatcher: shards from Caught nigh
 const SHARD_DREAMLIGHT_MAX := 2  # Per run
 const NURSERY_RANK := 2  # Seedling Gift Sprouts with Nursery
 # Wardens that hold nightmares in place (Held) without a freeze: the Rootling line's roots.
-const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot"]
+# (keyword audit 2026-10-17) + the other forms whose own code Holds: Rootling (every 4th pulse), Deeproot / Heartroot
+# (the guard ring at the Heartwood), Earthbind (a grounded flyer lands Rooted), Starcave (Starlit snare twist) and
+# Elf Circle (Fairy dance twist).
+const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot", "rootling", "deeproot", "heartroot", "earthbind", "starcave",
+	"elf_circle"]
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)

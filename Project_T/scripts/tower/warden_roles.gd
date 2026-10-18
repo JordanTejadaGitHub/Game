@@ -14,6 +14,13 @@ const HOLD := &"hold"
 const SNIPER := &"sniper"
 const SUPPORT := &"support"
 const ALL: Array[StringName] = [HEAVY, AREA, CHAIN, BEAM, TRAP, PULL, HOLD, SNIPER, SUPPORT]
+# Area besides HelperCommons.is_area_attack (keyword audit 2026-10-17): kinds that hit every nightmare in reach with
+# is_area (Gust / Zephyr's spread, Rootlight / Starcave's lit tiles, Dawnwing / Whirlwind's patrol) and specials whose
+# attack does (Sparkler / Starburst bursts, Thrum / Resonance cones, Cloudlet / Nimbus rain, Undercurrent / Maelstrom
+# whirlpools, Jarlink / Lightning Fence arcs).
+const AREA_KINDS: Array[TowerData.AttackKind] = [TowerData.AttackKind.SPREAD, TowerData.AttackKind.LIGHT,
+	TowerData.AttackKind.PATROL]
+const AREA_SPECIALS: Array[StringName] = [&"sparkler", &"thrum", &"cloud", &"whirlpool", &"jarlink"]
 
 static func roles(data: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
@@ -30,8 +37,8 @@ static func has_role(data: TowerData, role: StringName) -> bool:
 	match role:
 		HEAVY:
 			return data.heavy  # (Shatter's own "heavy" still reads stone line / target priority: Tower Code to unify)
-		AREA:
-			return HelperCommons.is_area_attack(data)
+		AREA:  # (keyword audit 2026-10-17) + attacks whose own code hits many through Tower.hit(is_area = true)
+			return HelperCommons.is_area_attack(data) or (data.can_attack and (data.attack_kind in AREA_KINDS or data.special in AREA_SPECIALS))
 		CHAIN:
 			return data.attack_kind == TowerData.AttackKind.CHAIN  # (chain_targets defaults to 3 on every form)
 		BEAM:

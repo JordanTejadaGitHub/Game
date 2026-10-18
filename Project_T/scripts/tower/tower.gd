@@ -355,6 +355,9 @@ static func statuses_applied(data: TowerData) -> Array[StringName]:
 	for status in BranchKit.SPECIAL_STATUSES.get(data.special, []):
 		if not out.has(status):
 			out.append(status)
+	for status in BranchKit.FORM_STATUSES.get(StringName(data.get_id()), []):  # A final's own status (keyword audit 2026-10-17: Maelstrom, Dreamshroom)
+		if not out.has(status):
+			out.append(status)
 	return out
 
 func _refresh_badge() -> void:
