@@ -100,6 +100,17 @@ func _ready() -> void:
 			if not _offer_ids.is_empty() and _offer_ids.has(card.id):
 				run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), card.id])
 			_taken_in_offer = true)
+		# A Calling evolution chosen (DreamState._choose_calling emits calling_grew, never card_taken): the offer's pick, not a
+		# pass (Balancing Discussion 2026-10-18: 0.1.29 / 0.1.42 reports showed "25: lf_torchbearers/lf_glowworms -> passed"
+		# while Torchbearers was credited), and the run's Calling path ("calling_path").
+		if dream_state.has_signal("calling_grew"):
+			dream_state.calling_grew.connect(func(id: StringName) -> void:
+				if not run.has("calling_path"):
+					run["calling_path"] = []
+				run.calling_path.append([String(id), drift_director.drifts_started])
+				if not _offer_ids.is_empty() and not _taken_in_offer:
+					run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), String(id)])
+				_taken_in_offer = true)
 		dream_state.offer_closed.connect(func() -> void:
 			if not _taken_in_offer and not _offer_ids.is_empty():
 				run.dreams_skipped.append([_offer_ids.duplicate(), _offer_drift])
@@ -779,6 +790,13 @@ static func load_runs() -> Array:
 	return parsed if parsed is Array else []
 
 # A plain-text report of one run, for sharing ("Copy run report").
+# "firefly_jar → lf_torchbearers@25 → lf_lanternway@50": the Calling and the evolutions taken, by drift.
+static func _calling_text(record: Dictionary) -> String:
+	var parts: Array[String] = [String(record.get("calling", ""))]
+	for step in record.get("calling_path", []):
+		parts.append("%s@%d" % [step[0], int(step[1])])
+	return " → ".join(parts)
+
 # " (drifts 41-45)" for a [first, last] pair ("" without one).
 static func _drifts_text(drifts: Array) -> String:
 	return " (drifts %d-%d)" % [int(drifts[0]), int(drifts[1])] if drifts.size() >= 2 else ""
@@ -804,7 +822,7 @@ static func report_text(record: Dictionary) -> String:
 		int(record.get("first_leak", 0)), int(record.get("close_calls", 0))])
 	lines.append("Families: %s" % ", ".join(record.get("family_picks", []).map(func(p: Dictionary) -> String:
 		return "%s (of %s, drift %d)" % [p.chosen, "/".join(p.offered), int(p.drift)]))
-		+ (" · Calling: %s" % record.calling if String(record.get("calling", "")) != "" else ""))
+		+ (" · Calling: %s" % _calling_text(record) if String(record.get("calling", "")) != "" else ""))
 	lines.append("Dreams: %s" % ", ".join(record.get("dreams_taken", []).map(func(d: Array) -> String: return "%s@%d" % [d[0], int(d[1])])))
 	lines.append("Dream offers: %s" % ", ".join(record.get("dream_offers", []).map(func(o: Array) -> String:
 		return "%d: %s → %s" % [int(o[0]), "/".join(o[1]), o[2] if o[2] != "" else "passed"])))
