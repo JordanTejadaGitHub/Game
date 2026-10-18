@@ -14,7 +14,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Pebbling"
-role_line = "Area damage, high damage, slow attacks"
+role_line = "Splash damage, high damage, slow attacks"
 heavy = true
 cost = 30
 texture = ExtResource("2_tex")

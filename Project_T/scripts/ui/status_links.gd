@@ -206,7 +206,7 @@ static func _statuses(text: String, once: bool = false) -> String:
 # here, or an id with no entry, stays plain.
 const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "root": &"held", "soaks": &"damp",
 	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen",
-	"crits": &"crit_chance", "puts to sleep": &"asleep"}  # Tower Discussion cae6d300: "Stuns" became "Puts to sleep"
+	"crits": &"crit_chance", "puts to sleep": &"asleep", "splash damage": &"splash"}  # Tower Discussion cae6d300: "Stuns" became "Puts to sleep"
 # Tags that answer a Nightmare Kind (enemy_design.md ed6f573b) link to that Kind's glossary entry (IconInfo.TERMS), the
 # same entry as the nightmare's Kind badge, so the two link up.
 const ROLE_KIND_TERMS := {"breaks armour": &"kind_armoured", "cracks armour": &"kind_armoured", "heavy": &"kind_armoured",

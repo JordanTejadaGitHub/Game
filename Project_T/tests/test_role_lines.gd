@@ -10,7 +10,7 @@ extends SceneTree
 # case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
 const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
 	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
-	"area damage", "chains", "hits a line", "hits a cone", "beam", "seed flies out and back", "lobs over walls", "hits all around it",
+	"area damage", "splash damage", "chains", "hits a line", "hits a cone", "beam", "seed flies out and back", "lobs over walls", "hits all around it",
 	"rains on the path", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts nightmares with Root", "slows",
 	"Roots", "Roots the leader", "Roots the leaders", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
 	"Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour",
@@ -41,7 +41,7 @@ static func shape_terms(data: TowerData) -> Array:
 	match data.attack_kind:
 		TowerData.AttackKind.PROJECTILE:
 			if data.splash_radius > 0.0 or data.lob:
-				return ["area damage"]
+				return ["splash damage"]  # (User 2026-10-18: a splash is not the same as an area attack)
 			return ["single target", "multi-target"]
 		TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.PATROL:
 			return ["area damage"]

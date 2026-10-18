@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Boulderback"
-role_line = "Short range, very high damage, area damage"
+role_line = "Short range, very high damage, splash damage"
 heavy = true
 description = "A crushing hit that splashes three quarters of its damage around; double damage on nightmares with {marked}, and it always crits on those with {drowsy}."
 cost = 0

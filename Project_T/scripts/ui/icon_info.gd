@@ -298,6 +298,7 @@ const TERMS := {
 	&"interest": ["interest", "interest", "Interest"],
 	&"aura": ["aura", "auras", "Aura"],
 	&"crit": ["crit", "crits", "Crit"],
+	&"splash": ["splash", "splashes", "Splash"],  # Splash damage (user 2026-10-18: "not the same" as area); glossary "Splash"
 	&"critical_hit": ["critical hit", "critical hits", "Crit"],
 	&"flyer": ["flyer", "flyers", "Flying"],
 	# Nightmare Kinds (enemy_design.md ed6f573b): each links to its Kind's glossary entry (CodexData.kind_entries); the
