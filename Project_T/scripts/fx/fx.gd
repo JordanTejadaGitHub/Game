@@ -242,12 +242,48 @@ static func status_flash(status: StringName, at: Vector2, parent: Node) -> Node2
 		node.row = maxi(rows.find(String(status)), 0)
 	return node
 
+# Reaction accent (visual feedback spec C5, owner 2026-10-18): a Reaction a Dream card changed plays its effect x1.15
+# and its callout carries a small warm card pip. The card's cue (DreamState.card_cue reaction_accent, heard by
+# TowerPlacer) may come just before or just after the Reaction: either order within ACCENT_MS and ACCENT_NEAR px pairs.
+const ACCENT_MS := 150
+const ACCENT_NEAR := 64.0
+const ACCENT_SCALE := 1.15
+static var _accents: Array = []  # [msec, at] of cues not yet paired (plain data)
+static var _recent_reactions: Array = []  # [msec, at, weakref(effect), weakref(callout)] not yet accented
+
+static func note_reaction_accent(at: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	for r in _recent_reactions:
+		if now - int(r[0]) <= ACCENT_MS and (r[1] as Vector2).distance_to(at) <= ACCENT_NEAR:
+			_accent((r[2] as WeakRef).get_ref(), (r[3] as WeakRef).get_ref())
+			_recent_reactions.erase(r)
+			return
+	_accents = _accents.filter(func(a: Array) -> bool: return now - int(a[0]) <= ACCENT_MS)
+	if _accents.size() < 16:
+		_accents.append([now, at])
+
+static func _take_accent(at: Vector2) -> bool:
+	var now := Time.get_ticks_msec()
+	for a in _accents:
+		if now - int(a[0]) <= ACCENT_MS and (a[1] as Vector2).distance_to(at) <= ACCENT_NEAR:
+			_accents.erase(a)
+			return true
+	return false
+
+static func _accent(node, shown) -> void:
+	if node is Node2D and is_instance_valid(node):
+		node.scale *= ACCENT_SCALE
+	if shown is FxCallout and is_instance_valid(shown):
+		shown.card_pip = true
+		shown.queue_redraw()
+
 # A named Reaction went off at `at`: its effect (budgeted), its callout in its colour, and a light
 # thread from each Warden that set it up. Smother loops: pass `seconds` or free the returned node.
 static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Array = [], seconds: float = 0.0) -> Node2D:
 	var row: Array = REACTIONS.get(reaction, [reaction, ""])
 	var effect: StringName = row[0]
 	var node := play(effect, at, parent, 1.0, true, seconds)
+	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if not info(effect).has("callout") or reaction in COLOUR_FROM_DATA:  # A sheet without its own callout colour (Sleepwalk, Night Terror) or a stand-in: the Reaction's
 		var data := Reactions.get_data(reaction)
@@ -264,6 +300,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			if boosted != "":
 				words = boosted
 		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction))
+		accent_shown = shown
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
@@ -275,6 +312,13 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			parent.add_child(ring)
 			ring.global_position = tower.global_position
 	_shake(parent, 2.0)
+	if _take_accent(at):  # A card's cue came first: accent now
+		_accent(node, accent_shown)
+	else:  # Else a cue just after it may still accent it
+		var now := Time.get_ticks_msec()
+		_recent_reactions = _recent_reactions.filter(func(r: Array) -> bool: return now - int(r[0]) <= ACCENT_MS)
+		if _recent_reactions.size() < 16:
+			_recent_reactions.append([now, at, weakref(node), weakref(accent_shown)])
 	return node
 
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
@@ -1064,6 +1108,7 @@ class FxCallout extends Node2D:
 	var _icon: Texture2D
 	var _count := 0
 	var _age := 0.0
+	var card_pip := false  # Reaction accent (C5): a small warm card pip before the word
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
@@ -1104,6 +1149,12 @@ class FxCallout extends Node2D:
 		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 2.0  # The word centred on the line
 		var origin := Vector2(0.0, -(LIFT + RISE * t) * WorldLabel.text_scale(self))
 		Fx.draw_halo(self, origin, s, Vector2.ZERO, Vector2(total / 2.0 + HALO_PAD.x, ICON_PX / 2.0 + HALO_PAD.y), alpha)
+		if card_pip:  # A diamond, ember-edged so it reads on the pale path
+			var c := Vector2(x - 8.0, 0.0)
+			var outer := PackedVector2Array([c + Vector2(0, -6), c + Vector2(5, 0), c + Vector2(0, 6), c + Vector2(-5, 0)])
+			var inner := PackedVector2Array([c + Vector2(0, -4), c + Vector2(3, 0), c + Vector2(0, 4), c + Vector2(-3, 0)])
+			draw_colored_polygon(outer, Color(Palette.EMBER, alpha))
+			draw_colored_polygon(inner, Color(Palette.HEARTLIGHT, alpha))
 		if _icon != null:
 			draw_texture_rect(_icon, Rect2(x, -ICON_PX / 2.0, ICON_PX, ICON_PX), false, Color(1, 1, 1, alpha))  # multiplier
 			x += icon_w

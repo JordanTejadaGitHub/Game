@@ -2435,6 +2435,10 @@ func turnover_active() -> bool:
 	return _turnover_until > _anim_time and _has_rule(&"target_turnover")
 
 const DREAM_BUILD_RULES := preload("res://scripts/tower/dream_build_rules.gd")
+const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")  # Boosted-attack glow (visual feedback spec B)
+# The boosted-attack tier its latest attack showed (0..3; DREAM_GLOW.tier_for, read once per attack in _release and when
+# a beam starts): projectiles, ripples, bolts, clouds and rings read it as they are made.
+var dream_glow_tier := 0
 const CALLINGS := preload("res://scripts/combat/callings.gd")  # The first family's built-in rule (dream_council_review.md 11)
 var _volley_target: WeakRef = null  # Volley (Acorn's Calling): the nightmare this Warden's forced attack aims at
 
@@ -2474,6 +2478,9 @@ func _release() -> void:
 	_aim_idle = _anim_time - _last_release  # Patient Aim: how long it waited
 	_last_release = _anim_time
 	attack_released.emit(self)
+	dream_glow_tier = DREAM_GLOW.tier_for(self)  # (Visual feedback spec B: one read per attack)
+	if dream_glow_tier >= 3:
+		DREAM_GLOW.flare(self, global_position + tower_data.get_attack_origin(), dream_glow_tier)
 	var boost := _take_empowered()
 	if _chorus_sync:
 		boost *= 1.0 + DreamState.CHORUS_BONUS  # Chorus: pulled into a Bellflower's pulse
@@ -2692,6 +2699,7 @@ func _area_pulse_fx(in_range: Array) -> void:
 	# one clean circle out to the live range, thinned when nearby Wardens pulse together.
 	if GroundRipple.may_start(global_position):
 		var ripple := GroundRipple.new(reach, RIPPLE_COLOURS.get(style, Palette.OAK))
+		ripple.dream_tier = dream_glow_tier  # Boosted: an inner warm rim (+ motes flung out from tier 2)
 		world.add_child(ripple)
 		ripple.global_position = global_position
 	var spark := &"root_lash" if style == "root" else &"area_hit"  # Root lines: roots curling over its feet (Tower Assets e5b8617b)
@@ -2719,6 +2727,7 @@ class GroundRipple extends Node2D:
 	var _radius := 0.0
 	var _colour: Color
 	var _edge := Color(0, 0, 0, 0)  # A darker line under it (splash rings: reads on the pale sand path)
+	var dream_tier := 0  # Visual feedback spec B: a Dream-boosted pulse's warm inner rim (Tower.dream_glow_tier)
 	var _age := 0.0
 
 	static func may_start(at: Vector2) -> bool:
@@ -2756,6 +2765,11 @@ class GroundRipple extends Node2D:
 		if _edge.a > 0.0:
 			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * ALPHA * (1.0 - t)), WIDTH + 2.0, false)
 		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
+		if dream_tier > 0:
+			DREAM_GLOW.rim(self, Vector2.ZERO, r - 4.0, dream_tier, 1.0 - t)
+			if dream_tier >= 2:
+				for i in 4:  # Motes flung outward with the ring
+					DREAM_GLOW.dot(self, Vector2.from_angle(TAU * i / 4.0 + 0.4) * (r + 6.0 * t), 1.5, dream_tier, 1.0 - t)
 
 # Lit path (the user, 2026-10-13: "can you make lit paths more visible"; before: faint grey squares, mostly on the
 # grass): one node per world on the ground (z −1: over the path tiles, under Wardens and nightmares) that washes the
@@ -3666,6 +3680,7 @@ func _skip(from_target: Node2D, where: Vector2) -> void:
 	if best == null:
 		return
 	var bounce := Projectile.new(best, attack_data, _skip_landed.bind(attack_data.skip_share))
+	bounce.dream_tier = dream_glow_tier
 	bounce.position = where
 	add_child(bounce)
 
@@ -3741,6 +3756,7 @@ func fire_at(target: Node2D) -> void:
 	if attack_data.projectile_returns and _dream_state and _dream_state.has_rule(&"homing_instinct"):
 		projectile.reswoops = Projectile.HOMING_RESWOOPS  # Homing Instinct: a swoop that dispels its target swoops again (the return speed retired)
 	projectile.trail = kin_look()
+	projectile.dream_tier = dream_glow_tier  # Boosted: a warm trail (visual feedback spec B2)
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
 	# length from where it starts. It's top_level, so position is world space.
 	projectile.position = from
@@ -3763,6 +3779,7 @@ func _build_projectile_landed(target, where: Vector2, data: TowerData, boost: fl
 		var next := CALLINGS.tailwind_next(self, target, where)  # Tailwind: the shot flies on (a smaller hit, never again)
 		if next != null:
 			var onward := Projectile.new(next, data, _tailwind_landed.bind(data, boost * CALLINGS.TAILWIND_SHARE))
+			onward.dream_tier = dream_glow_tier
 			onward.position = where
 			add_child(onward)
 
@@ -4099,6 +4116,7 @@ func _chain_strike(first: Node2D) -> void:
 	if attack_data.tier >= 4:
 		ascended_event.emit(self, first.global_position, hits.size())
 	var bolt := ChainBolt.new(points)
+	bolt.dream_tier = dream_glow_tier  # Boosted: a warm core in the bolt, a sparkle per hop from tier 2
 	bolt.edge = kin_look()
 	add_child(bolt)
 
@@ -4159,6 +4177,7 @@ func _drop_cloud(target: Node2D) -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(target.get_current_cell())
 	_swing_cells = HelperCommons.area_attack_extra(self) if _dream_state else 0.0  # Wide Swing: this cloud wider
 	var cloud := PathCloud.new(self, center)
+	cloud.dream_tier = dream_glow_tier  # Boosted: warm motes drift in it
 	_swing_cells = 0.0
 	cloud.flecks = kin_look()
 	add_child(cloud)
@@ -4209,6 +4228,7 @@ func _plant_ring() -> void:
 	if free.is_empty():
 		return
 	var ring := FairyRing.new(self, free[randi() % free.size()])
+	ring.dream_tier = dream_glow_tier  # Boosted: a warm edge and glints while armed
 	add_child(ring)
 	_rings.append(ring)
 	trap_set.emit(self, ring.global_position)
@@ -5078,6 +5098,9 @@ func _update_beam(delta: float) -> void:
 		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
+		dream_glow_tier = DREAM_GLOW.tier_for(self)  # A beam reads its tier when it starts (visual feedback spec B2)
+		if dream_glow_tier >= 3:
+			DREAM_GLOW.flare(self, global_position + tower_data.get_attack_origin(), dream_glow_tier)
 		note_primary_target(target)
 	if _beam_target == null:
 		return
@@ -5153,6 +5176,10 @@ func _draw_beam() -> void:
 		var to := to_local(aim_at(target))  # The body (drawn raised)
 		_beam_layer.draw_line(from, to, Color(Palette.MOONLIGHT if _kindled else _beam_data().beam_color, 0.35), width * 2.0)  # Kindled Gaze: whiter
 		_beam_layer.draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
+		if dream_glow_tier > 0:  # Boosted: the core 1 px wider, warm over its ember edge; a bright spot where it lands from tier 2
+			DREAM_GLOW.line(_beam_layer, from, to, dream_glow_tier, 1.0, maxf(width * 0.5, 1.5) + 1.0)
+			if dream_glow_tier >= 2:
+				DREAM_GLOW.dot(_beam_layer, to, 2.5, dream_glow_tier)
 		from = to  # Midsummer's beam carries on from the target to the one behind it
 	_beam_layer.draw_circle(tower_data.get_attack_origin(), 2.0 + _beam_ramp, Color(Palette.HEARTLIGHT, 0.8))  # The glow at its source
 

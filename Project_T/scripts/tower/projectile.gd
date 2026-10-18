@@ -10,6 +10,7 @@ class_name Projectile
 const RADIUS := 6.0
 const ANIMATION_FPS := 12.0
 const TRAIL_POINTS := 7
+const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")
 
 var speed: float
 var color: Color
@@ -38,6 +39,10 @@ var _lob_distance := 1.0
 var trail := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's shots trail its kin's colour
 var _trail: Array[Vector2] = []  # Recent world positions for the trail
 var _drawn_frame := -1
+# Boosted-attack glow (visual feedback spec B2; set by the Warden, Tower.dream_glow_tier): a warm ember-edged trail, 3
+# samples at tier 1, 5 from tier 2 (+ a soft halo on the head), GLOW at tier 3. A lob's shadow gets a warm rim.
+var dream_tier := 0
+var _dream_dir := Vector2.RIGHT  # Its flight direction (world), for the trail drawn behind the head
 
 func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
@@ -106,6 +111,8 @@ func _nearest_nightmare() -> Node2D:
 
 func _fly_toward(to: Vector2, step: float, delta: float) -> void:
 	_anim_time += delta
+	if dream_tier > 0 and global_position != to:
+		_dream_dir = global_position.direction_to(to)
 	if texture != null and not _lob:
 		rotation = global_position.direction_to(to).angle()
 	# Performance: redraw only when the drawing changes (a new sheet frame, a lob's arc, a trail); moving and
@@ -128,9 +135,16 @@ func _draw() -> void:
 	for i in _trail.size():  # Borrowed looks: a fading trail in the kin's colour, oldest faintest
 		var t := float(i + 1) / (_trail.size() + 1)
 		draw_circle(to_local(_trail[i]), 1.5 + 2.0 * t, Color(trail, trail.a * 0.55 * t))
+	if dream_tier > 0:  # Drawn behind the head along its flight: no redraw beyond the sheet's own (test_perf_stress)
+		DREAM_GLOW.trail_behind(self, Vector2(0, -lift), _dream_dir.rotated(-global_rotation), dream_tier)
 	if _lob:
-		draw_circle(Vector2.ZERO, RADIUS * (1.0 - lift / (_lob_height * 2.0)), Color(Palette.VOID, 0.25))  # Its shadow
+		var shadow := RADIUS * (1.0 - lift / (_lob_height * 2.0))
+		draw_circle(Vector2.ZERO, shadow, Color(Palette.VOID, 0.25))  # Its shadow
+		if dream_tier > 0:
+			draw_arc(Vector2.ZERO, shadow + 0.5, 0.0, TAU, 16, Color(DREAM_GLOW.core(dream_tier), DREAM_GLOW.alpha(dream_tier)), 1.0)
 	var at := Vector2(0, -lift)
+	if dream_tier >= 2:
+		DREAM_GLOW.dot(self, at, RADIUS * 0.6, dream_tier, 0.6)  # The soft halo on the head
 	if texture == null:
 		draw_circle(at, RADIUS, color.darkened(0.3))
 		draw_circle(at, RADIUS - 2.0, color)

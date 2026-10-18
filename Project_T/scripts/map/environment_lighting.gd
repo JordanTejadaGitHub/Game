@@ -44,6 +44,39 @@ func _ready() -> void:
 		tower_container.child_entered_tree.connect(_on_tower_added)
 		for tower in tower_container.get_children():
 			_on_tower_added(tower)
+	var look := Timer.new()  # Tier 3 base glow: a look at the board twice a second, a redraw only when it changed
+	look.wait_time = GOLD_LOOK
+	look.timeout.connect(_look_gold)
+	add_child(look)
+	look.start()
+
+# Visual feedback spec B1 (owner 2026-10-18; Tower Code): a Warden whose Dream power is at the gold tier (+150%:
+# DreamState.dream_power, Roguelite Code) gets a steady GLOW disc under it, drawn with the other glows. Re-checked only
+# when the board or the cards change (DreamState.board_version / rules_stamp), at most every GOLD_LOOK s.
+const GOLD_LOOK := 0.5
+const GOLD_GLOW_RADIUS := 40.0  # px
+const GOLD_GLOW_ALPHA := 0.3
+const GOLD_POWER := 1.5  # +150%: dream_visuals.gd TIER_POWER[2] (Roguelite Code), the gold tier
+var _gold: Dictionary = {}  # {Tower: true} at the gold tier
+var _gold_stamp := []
+
+func _look_gold() -> void:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams == null or not dreams.has_method(&"dream_power"):
+		return
+	var stamp := [dreams.board_version, dreams.rules_stamp, int(Fx.setting("dream_effects", 0)), Fx.reduced(), _wardens.size()]
+	if stamp == _gold_stamp:
+		return
+	_gold_stamp = stamp
+	var gold := {}
+	if int(stamp[2]) == 0 and not bool(stamp[3]):  # Full Dream effects at full quality only
+		for tower: Tower in _wardens:
+			if _wardens[tower] and is_instance_valid(tower) and tower.tower_data.get_id() != "sprout" \
+					and dreams.dream_power(tower) >= GOLD_POWER - 0.000001:
+				gold[tower] = true
+	if gold != _gold:
+		_gold = gold
+		_glow.queue_redraw()
 
 # A soft white disc that fades out at its rim: the shape of every warm light.
 static func light_texture() -> Texture2D:
@@ -104,6 +137,7 @@ func _on_tower_added(node: Node) -> void:
 	node.evolved.connect(_update_glow)
 	node.tree_exiting.connect(func() -> void:
 		_wardens.erase(node)
+		_gold.erase(node)
 		_glow.queue_redraw())
 	_update_glow(node)
 
@@ -123,6 +157,11 @@ func _draw_glows() -> void:
 		if _wardens[tower] and is_instance_valid(tower):
 			var at := _glow.to_local(tower.global_position) + Vector2(0, -2)
 			_glow.draw_texture_rect(texture, Rect2(at - size / 2.0, size), false, color)
+	var gold_size := Vector2.ONE * GOLD_GLOW_RADIUS * 2.0
+	for tower: Tower in _gold:  # Tier 3: a steady warm glow at its feet
+		if is_instance_valid(tower):
+			var at := _glow.to_local(tower.global_position) + Vector2(0, 14)
+			_glow.draw_texture_rect(texture, Rect2(at - gold_size / 2.0, gold_size), false, Color(Palette.GLOW, GOLD_GLOW_ALPHA))
 
 func get_glowing_warden_count() -> int:
 	return _wardens.values().count(true)

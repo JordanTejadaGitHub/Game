@@ -12,6 +12,10 @@ var _age := 0.0
 var _color := COLOR
 var _jag := JAG
 var edge := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Stormcap's bolt gets its kin's colour at the edge
+const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")
+# Boosted-attack glow (visual feedback spec B2; Tower.dream_glow_tier): a 1 px warm core inside the bolt, a sparkle at
+# each hop from tier 2, the first hop 1 px thicker at tier 3.
+var dream_tier := 0
 
 # `color` / `jag`: other streaks reuse this (Gust's wind, Pond Keeper's tongue with jag 0).
 func _init(points: PackedVector2Array, color: Color = COLOR, jag: float = JAG) -> void:
@@ -40,3 +44,7 @@ func _draw() -> void:
 			draw_polyline(line, Color(edge, alpha * 0.8), 9.0)
 		draw_polyline(line, Color(_color, alpha * 0.4), 6.0)
 		draw_polyline(line, Color(_color, alpha), 2.0)
+		if dream_tier > 0:
+			DREAM_GLOW.polyline(self, line, dream_tier, alpha, 2.0 if dream_tier >= 3 and i == 0 else 1.0)
+			if dream_tier >= 2:
+				DREAM_GLOW.dot(self, b, 2.0, dream_tier, alpha)
