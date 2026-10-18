@@ -1312,3 +1312,23 @@ build ghost, selection) follows the same rules:
   reaches, **never square cell tiles** and never grass, Wardens or obstacles.
 - **One source of truth:** the preview asks the same code the attack uses for its aim and its hit test, so what is
   drawn is what is hit (as the Jarlink segment rule).
+
+## Status row: Reaction-ready marks and falling asleep (user, 2026-10-18)
+User: *"add a blue square on statuses stack to show where Reactions happen. Also the sleep goes to asleep have a
+visual."*
+
+**Reaction-ready mark.** In a nightmare's status row, a status icon whose stacks have reached what a Reaction needs
+(ReactionData's stack requirement, with Brimming's rule) gets a **thin blue square frame** (Palette dew-light,
+1 px, the icon's own size). It means "this one is primed": add the partner status and the Reaction fires. Two
+primed statuses that already make a Reaction together are never both framed for long (the Reaction fires). Under
+the status-row compression rule the frame survives (a primed status is one of the 2 shown). Colour-blind: the frame
+is also a shape (square corners), so it never relies on colour alone. In the Codex / Lessons the frame is explained
+once: "A blue frame: enough stacks for a Reaction."
+
+**Falling asleep (Drowsy fills → Asleep).** The moment it happens is visible on the nightmare, not only in the
+callout:
+- the Drowsy icon fills, flashes once and turns into the **Asleep** icon with a small draining ring (time left);
+- the nightmare **settles**: it stops, sinks 1–2 px and leans, its glowing eyes dim (the blight shader's eye glow
+  down to about a third), and a slow **"z"** mote drifts up about once a second while it sleeps;
+- waking is a short jolt: eyes flare back, the "z" pops, and it moves on.
+Reduced motion: no lean or motes; the dim eyes and the icon stay. Inside the Fx budget like other hit feedback.
