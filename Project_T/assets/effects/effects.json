@@ -2655,6 +2655,86 @@
 			"loop": true,
 			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (26 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
 		},
+		"spore_mushroom_clump_2": {
+			"anchor": [
+				11,
+				20
+			],
+			"file": "spore_mushroom_clump_2.png",
+			"fps": 4.0,
+			"frame_size": [
+				22,
+				22
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Clump: 2 caps grown together in one stack (one dose each; swap down a sheet per bite: _4 > _3 > _2 > spore_mushroom). Breathe loop, anchor = the stack's foot."
+		},
+		"spore_mushroom_clump_3": {
+			"anchor": [
+				13,
+				24
+			],
+			"file": "spore_mushroom_clump_3.png",
+			"fps": 4.0,
+			"frame_size": [
+				26,
+				26
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Clump: 3 caps grown together in one stack (one dose each; swap down a sheet per bite: _4 > _3 > _2 > spore_mushroom). Breathe loop, anchor = the stack's foot."
+		},
+		"spore_mushroom_clump_4": {
+			"anchor": [
+				14,
+				26
+			],
+			"file": "spore_mushroom_clump_4.png",
+			"fps": 4.0,
+			"frame_size": [
+				28,
+				28
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Clump: 4 caps grown together in one stack (one dose each; swap down a sheet per bite: _4 > _3 > _2 > spore_mushroom). Breathe loop, anchor = the stack's foot."
+		},
+		"spore_mushroom_mother": {
+			"anchor": [
+				10,
+				18
+			],
+			"file": "spore_mushroom_mother.png",
+			"fps": 4.0,
+			"frame_size": [
+				20,
+				20
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Mother Spore: the cap without its speckles; draw spore_mushroom_mother_specks over it, same frame, tinted by the stored statuses."
+		},
+		"spore_mushroom_mother_specks": {
+			"anchor": [
+				10,
+				18
+			],
+			"file": "spore_mushroom_mother_specks.png",
+			"fps": 4.0,
+			"frame_size": [
+				20,
+				20
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Mother Spore: the speckles alone, white (#ffffff) so modulate tints them; same frames and anchor as spore_mushroom_mother."
+		},
 		"spore_mushroom_pop": {
 			"anchor": [
 				12,
@@ -2671,6 +2751,22 @@
 			"loop": false,
 			"note": "Spore Print: a mushroom eaten, its cap bursting into spores, ~0.25 s (anchor = the stem's foot, like spore_mushroom)."
 		},
+		"spore_mushroom_seedling": {
+			"anchor": [
+				7,
+				12
+			],
+			"file": "spore_mushroom_seedling.png",
+			"fps": 4.0,
+			"frame_size": [
+				14,
+				14
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Windblown: a planted seedling (doesn't plant again), thin and pale. Breathe loop, anchor = its foot."
+		},
 		"spore_mushroom_small": {
 			"anchor": [
 				7,
@@ -2686,6 +2782,22 @@
 			"kind": "ground",
 			"loop": true,
 			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (14 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+		},
+		"spore_mushroom_sticky": {
+			"anchor": [
+				10,
+				18
+			],
+			"file": "spore_mushroom_sticky.png",
+			"fps": 4.0,
+			"frame_size": [
+				20,
+				20
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Spore Print, Sticky Caps: a drooping, glistening cap dripping onto the path (slows walkers). Breathe loop, anchor = its foot."
 		},
 		"spore_sprite_burst": {
 			"anchor": [

@@ -52,6 +52,7 @@ func _init() -> void:
 	_hit_feedback_effects()
 	_sleep_effects()
 	_shroom_effects()
+	_shroom_variant_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4270,3 +4271,138 @@ func _toadstool_pop(img: Image, f: int) -> void:
 			_px(img, 12, y, SHROOM_STEM[0])
 		_px(img, 10, 20, SHROOM_O)
 		_px(img, 13, 20, SHROOM_O)
+
+# --- Spore Print's evolved mushrooms (owner 2026-10-18, via Roguelite Code) ------------------------------
+# Same toadstool, changed where an evolution changes what the mushroom is: Clump (2-4 caps grown together in
+# one stack), Windblown's seedlings (thin and pale: they don't plant again), Mother Spore (a speckled cap; the
+# speckles are their own white sheet so code can tint them by the stored statuses), Sticky Caps (a drooping,
+# glistening cap that drips). Frames, loop and foot anchor as spore_mushroom.
+const SHROOM_PALE := [Color("#de73e5"), Color("#ec9cf4"), Color("#fff4dc"), Color("#fff4dc")]  # #f7c8fa snaps to a cold white: cream lights it instead
+const SHROOM_STICKY := [Color("#bc44dc"), Color("#de73e5"), Color("#ec9cf4"), Color("#fff4dc")]
+# Clumps: [frame size, caps as [foot x offset, cap height share, cap size]] drawn back to front.
+const CLUMPS := {
+	2: [22, [[-3.0, 0.40, 0.85], [4.0, 0.58, 0.62]]],
+	3: [26, [[-1.0, 0.30, 0.82], [-6.0, 0.58, 0.58], [6.0, 0.55, 0.62]]],
+	4: [28, [[1.0, 0.24, 0.78], [-7.0, 0.50, 0.58], [7.0, 0.46, 0.60], [-1.0, 0.66, 0.50]]],
+}
+
+func _shroom_variant_effects() -> void:
+	for count: int in CLUMPS:
+		var n: int = CLUMPS[count][0]
+		_sheet("spore_mushroom_clump_%d" % count, Vector2i(n, n), 4, 4, Vector2i(n / 2, n - 2), true, "ground", _shroom_clump.bind(count),
+			{note = "Spore Print, Clump: %d caps grown together in one stack (one dose each; swap down a sheet per bite: _4 > _3 > _2 > spore_mushroom). Breathe loop, anchor = the stack's foot." % count})
+	_sheet("spore_mushroom_seedling", Vector2i(14, 14), 4, 4, Vector2i(7, 12), true, "ground", _shroom_seedling,
+		{note = "Spore Print, Windblown: a planted seedling (doesn't plant again), thin and pale. Breathe loop, anchor = its foot."})
+	_sheet("spore_mushroom_mother", Vector2i(20, 20), 4, 4, Vector2i(10, 18), true, "ground", _shroom_mother.bind(false),
+		{note = "Spore Print, Mother Spore: the cap without its speckles; draw spore_mushroom_mother_specks over it, same frame, tinted by the stored statuses."})
+	_sheet("spore_mushroom_mother_specks", Vector2i(20, 20), 4, 4, Vector2i(10, 18), true, "ground", _shroom_mother.bind(true),
+		{note = "Spore Print, Mother Spore: the speckles alone, white (#ffffff) so modulate tints them; same frames and anchor as spore_mushroom_mother."})
+	_sheet("spore_mushroom_sticky", Vector2i(20, 20), 4, 4, Vector2i(10, 18), true, "ground", _shroom_sticky,
+		{note = "Spore Print, Sticky Caps: a drooping, glistening cap dripping onto the path (slows walkers). Breathe loop, anchor = its foot."})
+
+# One toadstool on its own layer with its own outline, laid over `img` (so stacked caps keep a line between them).
+# droop: how far the cap's edges hang below its middle (0 = a plain dome). Returns the cap centre.
+func _shroom_part(img: Image, foot: Vector2, cap_c: Vector2, cap_r: Vector2, stem_w: float, ramp: Array, spots: bool, droop: float = 0.0) -> Vector2:
+	var w := img.get_width()
+	var h := img.get_height()
+	var body := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	for y in range(int(cap_c.y), int(foot.y) + 1):
+		var t := (y - cap_c.y) / maxf(foot.y - cap_c.y, 1.0)
+		var half := stem_w * (1.0 + 0.5 * t)
+		var mid := cap_c.x + (foot.x - cap_c.x) * t
+		for x in range(int(mid - half), int(ceil(mid + half))):
+			if x >= 0 and x < w and y >= 0 and y < h:
+				body.set_pixel(x, y, SHROOM_STEM[0] if x >= int(mid + half * 0.4) else SHROOM_STEM[1])
+	for y in range(int(cap_c.y - cap_r.y) - 1, int(cap_c.y + cap_r.y * (0.45 + droop)) + 2):
+		for x in w:
+			var d := (Vector2(x + 0.5, y + 0.5) - cap_c) / cap_r
+			var hem := 0.45 + droop * d.x * d.x  # the underside, lower towards the edges when it droops
+			if y < 0 or y >= h or d.y > hem or Vector2(d.x, minf(d.y, 0.45)).length() > 1.0:
+				continue
+			var col: Color = ramp[1]
+			if d.y > hem - 0.3:
+				col = ramp[0]
+			elif d.x + d.y < -0.75:
+				col = ramp[2]
+			body.set_pixel(x, y, col)
+	if spots:
+		for p: Vector2 in [Vector2(-0.45, -0.45), Vector2(0.25, -0.65), Vector2(0.55, -0.1)]:
+			var q := cap_c + p * cap_r
+			if q.x >= 0 and q.y >= 0 and q.x < w and q.y < h:
+				body.set_pixel(int(q.x), int(q.y), SHROOM_STEM[1])
+	for y in h:
+		for x in w:
+			if body.get_pixel(x, y).a > 0.0:
+				img.set_pixel(x, y, body.get_pixel(x, y))
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.y >= 0 and q.x < w and q.y < h and body.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, SHROOM_O)
+					break
+	return cap_c
+
+# The pink motes rising off a cap on the breath, as spore_mushroom.
+func _shroom_motes(img: Image, f: int, cap_c: Vector2, cap_r: Vector2) -> void:
+	if f == 1 or f == 2:
+		for p: Vector2 in [Vector2(-1.15, -0.6), Vector2(1.2, -0.35), Vector2(0.1, -1.45)]:
+			var q := cap_c + p * cap_r + Vector2(0, -f + 1)
+			_px(img, int(q.x), int(q.y), Color(SHROOM_CAP[3], 0.75))
+
+func _shroom_clump(img: Image, f: int, count: int) -> void:
+	var n: int = CLUMPS[count][0]
+	var foot := Vector2(n / 2.0, n - 2.0)
+	var breath: int = [0, 0, 1, 0][f]
+	var top_c := Vector2.ZERO
+	var top_r := Vector2.ZERO
+	for cap: Array in CLUMPS[count][1]:
+		var s: float = cap[2]
+		var cx: float = foot.x + float(cap[0])
+		var cap_c := Vector2(cx, n * float(cap[1]) - breath)
+		var cap_r := Vector2(9.0 * s, 5.6 * s)
+		_shroom_part(img, Vector2(foot.x + float(cap[0]) * 0.4, foot.y), cap_c, cap_r, 1.6 * s + 0.3, SHROOM_CAP, true)
+		if top_c == Vector2.ZERO:
+			top_c = cap_c
+			top_r = cap_r
+	_shroom_motes(img, f, top_c, top_r)
+
+func _shroom_seedling(img: Image, f: int) -> void:
+	var cap_c := Vector2(7, 6.5)
+	var cap_r := Vector2(5.0, 2.8)  # narrower, flatter
+	_shroom_part(img, Vector2(7, 12), cap_c, cap_r, 0.9, SHROOM_PALE, false)
+	if f == 1 or f == 2:
+		_px(img, 4, 2 - f + 1, Color(SHROOM_PALE[3], 0.75))
+
+func _shroom_mother(img: Image, f: int, specks_only: bool) -> void:
+	var breath: int = [0, 0, 1, 0][f]
+	var cap_c := Vector2(10, 8.4 - breath)
+	var cap_r := Vector2(8.6, 5.4)
+	var specks: Array = [Vector2(-0.55, -0.35), Vector2(-0.15, -0.75), Vector2(0.3, -0.5), Vector2(0.62, -0.05), Vector2(-0.2, -0.15), Vector2(0.15, 0.1)]
+	if specks_only:  # white, two pixels each, exactly where they sit on the cap in this frame
+		for p: Vector2 in specks:
+			var q := cap_c + p * cap_r
+			img.set_pixel(int(q.x), int(q.y), Color.WHITE)
+			img.set_pixel(int(q.x) + 1, int(q.y), Color.WHITE)
+		return
+	_shroom_part(img, Vector2(10, 18), cap_c, cap_r, 1.9, SHROOM_CAP, false)
+	_shroom_motes(img, f, cap_c, cap_r)
+
+func _shroom_sticky(img: Image, f: int) -> void:
+	var breath: int = [0, 0, 1, 0][f]
+	var cap_c := Vector2(10, 7.6 - breath)
+	var cap_r := Vector2(8.8, 5.6)
+	_shroom_part(img, Vector2(10, 18), cap_c, cap_r, 1.8, SHROOM_STICKY, false, 0.55)
+	# Glistening: two bright glints on the wet cap, moving a little round it.
+	for p: Vector2 in [Vector2(-0.5, -0.55), Vector2(0.15, -0.8)]:
+		var q := cap_c + p * cap_r + Vector2(f % 2, 0)
+		_px(img, int(q.x), int(q.y), SHROOM_CAP[3])
+	# Drips hanging off the hem, lengthening and falling.
+	for i in 2:
+		var side := -1.0 if i == 0 else 1.0
+		var x := int(cap_c.x + side * cap_r.x * 0.72)
+		var top := int(cap_c.y + cap_r.y * (0.45 + 0.55 * 0.52)) + 1
+		var length: int = [1, 2, 3, 1][(f + i * 2) % 4]
+		for k in length:
+			_px(img, x, top + k, Color(SHROOM_STICKY[2] if k < length - 1 else SHROOM_CAP[3], 1.0))
+		if length == 1 and f > 0:  # the drop that fell
+			_px(img, x, top + 4, Color(SHROOM_CAP[3], 0.75))
