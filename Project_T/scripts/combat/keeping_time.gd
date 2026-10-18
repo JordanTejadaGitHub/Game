@@ -273,10 +273,14 @@ func _ready() -> void:
 const PIP_Z := 8
 const PIP_OFFSET := Vector2(0.0, -44.0)  # Above the health bar
 const RING_CORE := 1.5  # Rings over the nightmare: the clapper dot,
-const RING_FIRST := 4.0  # the innermost ring's radius,
-const RING_STEP := 3.0  # the gap between rings,
+const RING_FIRST := 3.0  # the innermost ring's radius,
+const RING_STEP := 2.5  # the gap between rings,
 const RING_WIDTH := 1.5  # a lit ring's width,
-const RING_TRIM := 0.45  # and how much of each upper half-arc is cut at the ends (radians)
+const RING_TRIM := 0.45  # and how much of each lower half-arc is cut at the ends (radians)
+const RING_ARC_FROM := RING_TRIM  # The rings hang UNDER the health bar, opening downward (owner 2026-10-18: "can't see the
+const RING_ARC_TO := PI - RING_TRIM  # bells' rings, should be under the health bar"; above it the status badges hid them)
+const RING_GAP := 3.0  # From the health bar's bottom edge to the clapper dot
+const BAR_HALF_HEIGHT := 2.5  # Half of enemy.gd HEALTH_BAR_SIZE.y (5)
 const TOLL_FLASH := 0.4  # A Toll: the rings flash and burst outward for this long (owner 2026-10-17: "the toll should have a visual effect when filled")
 const TOLL_FLASH_GROW := 1.6  # How far the rings spread by the end of it (x their radius)
 var _toll_flashes: Array = []  # [{enemy: WeakRef, at: Vector2, start: float}]
@@ -295,6 +299,12 @@ func _process(delta: float) -> void:
 		_pips_shown = tolls_on()
 		_pip_layer.queue_redraw()  # Only while Tolls are on (and once more to clear them)
 
+# Where a nightmare's rings hang: just under its own health bar (raised over tall art: Enemy._bar_offset).
+func _ring_anchor(enemy) -> Vector2:
+	var bar = enemy.get("_bar_offset")
+	var y: float = (bar.y if bar is Vector2 else PIP_OFFSET.y) + BAR_HALF_HEIGHT + RING_GAP
+	return enemy.global_position + Vector2(0.0, y)
+
 func _draw_pips() -> void:
 	if dream_state == null or not tolls_on():
 		return
@@ -310,7 +320,7 @@ func _draw_pips() -> void:
 		var filled := int(enemy.get_meta(PIPS_META, start))
 		# Rings, not dots (owner 2026-10-17: "make it seem like rings filling"): TOLL_EVERY sound-wave arcs rising over
 		# the nightmare, lit from the inside out; the outermost is the Toll.
-		var at: Vector2 = enemy.global_position + PIP_OFFSET
+		var at: Vector2 = _ring_anchor(enemy)
 		var roster: Array = enemy.get_meta(FILLERS_META, []) if colours else []
 		var swell := mini(int(enemy.get_meta(CRESC_META, 0)), CRESC_GLOW_STEPS) if cresc else 0
 		_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))  # The clapper the rings spread from
@@ -322,21 +332,21 @@ func _draw_pips() -> void:
 					colour = Palette.BLOSSOM
 				elif swell >= CRESC_GLOW_STEPS:
 					colour = Palette.GLOW
-				_pip_layer.draw_arc(at, radius, PI + RING_TRIM, TAU - RING_TRIM, 12, colour, RING_WIDTH + 0.25 * swell, true)
+				_pip_layer.draw_arc(at, radius, RING_ARC_FROM, RING_ARC_TO, 12, colour, RING_WIDTH + 0.25 * swell, true)
 			else:
-				_pip_layer.draw_arc(at, radius, PI + RING_TRIM, TAU - RING_TRIM, 12, Color(Palette.MOONLIGHT, 0.3), 1.0, true)
+				_pip_layer.draw_arc(at, radius, RING_ARC_FROM, RING_ARC_TO, 12, Color(Palette.MOONLIGHT, 0.3), 1.0, true)
 		if midnight and enemy.has_meta(RINGS_META) and not enemy.has_meta(MIDNIGHT_META):
 			var share := clampf(float(enemy.get_meta(RINGS_META)) / MIDNIGHT_RINGS, 0.0, 1.0)
-			var dial: Vector2 = enemy.global_position + PIP_OFFSET + Vector2(0.0, -18.0)  # Above the outermost ring
+			var dial: Vector2 = at + Vector2(0.0, RING_FIRST + RING_STEP * TOLL_EVERY + 5.0)  # Under the outermost ring
 			_pip_layer.draw_arc(dial, 4.0, -PI / 2.0, -PI / 2.0 + TAU * share, 16, Color(Palette.MOONLIGHT, 0.7), 1.0)
 	for f in _toll_flashes:  # A Toll: the four rings light gold and burst outward, fading
 		var age := clampf((now() - float(f.start)) / TOLL_FLASH, 0.0, 1.0)
 		var who = f.enemy.get_ref()
-		var centre: Vector2 = (who.global_position if is_instance_valid(who) else f.at) + PIP_OFFSET
+		var centre: Vector2 = _ring_anchor(who) if is_instance_valid(who) else f.at + Vector2(0.0, PIP_OFFSET.y + 6.0 + BAR_HALF_HEIGHT + RING_GAP)
 		var grow := 1.0 + (TOLL_FLASH_GROW - 1.0) * age
 		var colour := Color(Palette.GLOW, 1.0 - age)
 		for k in TOLL_EVERY:
-			_pip_layer.draw_arc(centre, (RING_FIRST + RING_STEP * k) * grow, PI + RING_TRIM, TAU - RING_TRIM, 12, colour, RING_WIDTH + 1.0, true)
+			_pip_layer.draw_arc(centre, (RING_FIRST + RING_STEP * k) * grow, RING_ARC_FROM, RING_ARC_TO, 12, colour, RING_WIDTH + 1.0, true)
 	for c in _clocks:  # Midnight Bell: a clock face at midnight over the nightmare
 		var who = c.enemy.get_ref()
 		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -24.0)
