@@ -114,8 +114,12 @@ func _data_checks() -> void:
 		_check(words > 0 and words <= 12, "glossary %s is 1-12 words (%d)" % [id, words])
 	_check(KW.chips_for_card(load("res://resource/dream/knell.tres")).map(func(c) -> String: return "%s:%s" % [c.kind, c.id]) \
 		== ["uses:layered", "makes:repeat"], "Knell: Uses Layered, Makes Repeat (its live rule)")
-	_check(String(load("res://resource/dream/da_capo.tres").description).contains("{card:knell}"), "Da Capo's face names Knell")
-	_check(DreamState.CARD_NEEDS["da_capo"].has(&"knell"), "Da Capo's Need counts Knell's repeats")
+	# Owner 2026-10-18, bell_lent_review.md: Da Capo is a bell's attack twice on a clock: no Need, no card named, no chips.
+	var da_capo: UpgradeData = load("res://resource/dream/da_capo.tres")
+	_check(not String(da_capo.description).contains("{card:") and not DreamState.CARD_NEEDS.has("da_capo"), "Da Capo needs no other card")
+	_check(KW.chips_for_card(da_capo).is_empty(), "Da Capo carries no chips (a real attack, not a repeated hit)")
+	_check(KW.chips_for_card(load("res://resource/dream/rude_awakening.tres")).map(func(c) -> String: return "%s:%s" % [c.kind, c.id]) \
+		== ["uses:slow", "makes:repeat"], "Rude Awakening: Uses Slow (Asleep and Root), Makes Repeat")
 	# Owner 2026-10-17: four evolutions use their own family's trait (was Sporeling's +1 stack); Shared Spark retired.
 	var trait_rows := {&"dw_riverside": &"linger", &"dw_stagnant_water": &"linger", &"lf_show_the_way": &"jump", &"kt_evo_chime_of_many": &"repeat"}
 	for id in trait_rows:

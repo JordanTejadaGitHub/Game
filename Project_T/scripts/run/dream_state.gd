@@ -2881,7 +2881,7 @@ const CARD_NEEDS := {
 	"knock_on": [&"hammerfall", &"thunderstruck"],  # Heavy jumps
 	"gathering_storm": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"lent_crossfire",
 		&"thunderstruck", &"brushfire", &"guiding_light"],  # Any jump
-	"da_capo": [&"in_time", &"refrain", &"rude_awakening", &"knell"],  # A hit that lands again (trait rework 2026-10-15; Knell: keyword chips 2026-10-16)
+	# (Da Capo needs nothing now: a bell's attack happens twice on a clock; owner 2026-10-18, bell_lent_review.md)
 	"shared_spark": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
 		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (keyword chips 2026-10-16)
 	"slow_burn": [&"steeped", &"topped_up", &"ebb", &"waterlogged", &"homesick", &"bound_and_burning"],  # A Linger card (keyword chips 2026-10-16)

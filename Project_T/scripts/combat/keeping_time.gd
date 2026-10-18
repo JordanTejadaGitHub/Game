@@ -77,7 +77,8 @@ const BELL_TO_BELL := &"bell_to_bell"  # Class: walking into another bell's rang
 const HUM_META := &"kt_hum_next"  # On a Warden
 const EARS_META := &"kt_ears_next"  # On a bell
 const DROWSED_META := &"kt_drowsed"  # On a nightmare: a bell has made it Drowsy before (Nod Off: the first time)
-const LAST_OTHER_META := &"kt_last_other"  # On a nightmare: [status, stacks] the last application from another family's Warden
+const LAST_OTHER_META := &"kt_last_other"  # On a nightmare: [[status, stacks, Warden id, time], ...] its last VERSE_KEEP applications from any Warden (Second Verse)
+const VERSE_KEEP := 4  # (owner 2026-10-18, bell_lent_review.md: any Warden but the leaving bell's own, other bells too)
 const VERSE_META := &"kt_verse"  # On a nightmare: {bell id: true} Second Verse paid
 const B2B_META := &"kt_b2b"  # On a nightmare: {bell id: true} Bell to Bell paid
 const INSIDE_META := &"kt_inside"  # On a nightmare: {bell id: true} the bells whose range it is in (Second Verse, Bell to Bell)
@@ -127,10 +128,14 @@ const REPRISE_SHARE := 0.5  # …at half…
 const REPRISE_EVERY := 8.0  # …each nightmare once in 8 s
 const REPRISE_META := &"kt_reprise_next"  # On a nightmare
 const DA_CAPO := &"da_capo"
-const DA_CAPO_SHARE := 0.5  # Da Capo: a hit that happens again happens a third time, at half…
-const DA_CAPO_EVERY := 4.0  # …each Warden once in 4 s
-const DA_CAPO_DELAY := 0.25
-const DA_CAPO_META := &"kt_da_capo_next"  # On a Warden
+# Da Capo (owner 2026-10-18, bell_lent_review.md; was a repeated hit landing a third time at half): every 6 s, a bell's
+# next attack happens twice in a row (a whole real attack, statuses too: its wait is reset as Curtain Call does), never
+# more often than every 3 of that bell's own attacks. The clock runs only during a drift and starts over at each rest.
+const DA_CAPO_EVERY := 6.0
+const DA_CAPO_MIN_ATTACKS := 3
+const DA_CAPO_BEAT := 0.2  # The two-beat pulse on the bell: the second beat this long after the first
+var _drift_clock := 0.0  # Seconds of drift time (Da Capo's clock: it stands still at rests)
+var _da_capo_due := {}  # Bell instance id -> the _drift_clock its next attack happens twice at (cleared at each rest)
 const RUDE_WARDENS := 3  # Rude Awakening: waking or let go, the last hit from up to this many Wardens lands again…
 const RUDE_RECENT := 3.0  # …hits from the last 3 s only; one replay per bell a second (the nearest bell answers)
 const LAST_HITS_META := &"kt_last_hits"  # On a nightmare: {Warden id: [WeakRef, base, time]}
@@ -289,6 +294,8 @@ var _pips_shown := false
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if dream_state != null and not get_tree().paused and not resting() and rule(DA_CAPO):
+		_drift_clock += delta  # Da Capo's clock runs only during a drift (owner 2026-10-18, bell_lent_review.md)
 	if not _ears.is_empty():
 		_ears_flush()
 	if dream_state != null and not _clocks.is_empty():
@@ -922,23 +929,28 @@ func _chorus(enemy, bell) -> void:
 	if status != &"" and living(enemy):
 		setup_quiet(enemy, CHORUS, status, enemy.statuses.add_quiet(status, 1))  # (setup credit 2026-10-16)
 
-# Knell (lent; hard cards 2026-10-16, one rule for every status): a bell's hit lands again once for each status other
-# families put on the nightmare ({held} never counts), up to KNELL_REPEATS_MAX, KNELL_REPEAT_GAP s apart, each adding 1
-# of the bell's own status (not native: no class / cooperation / role extras). Repeats are tagged `knell` (a class tag:
-# they never set In Time, Refrain or Knell off again); Da Capo may add its third. Nothing is used up. The repeats queued.
+# Knell (lent; hard cards 2026-10-16, one rule for every status): a bell's hit lands again once for each status on the
+# nightmare ({held} never counts), up to KNELL_REPEATS_MAX, KNELL_REPEAT_GAP s apart, each adding 1 of the bell's own
+# status (not native: no class / cooperation / role extras). Owner 2026-10-18, bell_lent_review.md: every status counts,
+# the bell's own too (counted even before this hit's application lands), so a bell alone has its 1. Repeats are tagged
+# `knell` (a class tag: they never set In Time, Refrain or Knell off again). Nothing is used up. The repeats queued, each
+# showing a chime mark in the colour of one counted status.
 func _knell(enemy, bell, base: float) -> int:
 	var statuses: EnemyStatuses = enemy.statuses
-	var count := 0
+	var counted: Array = []
 	for id in statuses.active_ids():
-		if id != EnemyStatuses.HELD and is_other_family(statuses.source(id)):
-			count += 1
-	count = mini(count, KNELL_REPEATS_MAX)
+		if id != EnemyStatuses.HELD:
+			counted.append(id)
+	var own := status_of(bell)
+	if own != &"" and own != EnemyStatuses.HELD and not counted.has(own):
+		counted.append(own)
+	var count := mini(counted.size(), KNELL_REPEATS_MAX)
 	if count <= 0:
 		return 0
 	var share := KNELL_PULSE_SHARE if is_pulsing(bell) else KNELL_REPEAT_SHARE
 	for k in range(1, count + 1):
 		_later.append({"at": now() + KNELL_REPEAT_GAP * k, "tower": weakref(bell), "enemy": weakref(enemy),
-			"amount": base * share, "tag": &"knell", "again": true, "status": status_of(bell)})
+			"amount": base * share, "tag": &"knell", "again": true, "status": own, "chime": counted[k - 1], "chime_k": k})
 	credit(KNELL, enemy.global_position)
 	return count
 
@@ -995,7 +1007,7 @@ func _ears_flush() -> void:
 				SETUP.end()
 
 # A Warden's own accepted status application (DreamState.class_status): a bell making a nightmare Drowsy (Nod Off,
-# Refrain), another family's status (Second Verse remembers the last one).
+# Refrain), any Warden's status (Second Verse remembers the last few).
 func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
 	if not living(enemy):
 		return
@@ -1009,8 +1021,19 @@ func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
 				tower.set_meta(SLEEPER_META, weakref(enemy))
 				control(NOD_OFF, NAP_SECONDS)  # (setup credit 2026-10-16)
 		enemy.set_meta(DROWSED_META, true)
-	elif rule(SECOND_VERSE) and is_other_family(tower) and status != EnemyStatuses.DROWSY and status != EnemyStatuses.HELD:
-		enemy.set_meta(LAST_OTHER_META, [status, stacks])
+	if rule(SECOND_VERSE) and status != EnemyStatuses.HELD and stacks > 0 and tower is Tower:
+		# Second Verse (owner 2026-10-18, bell_lent_review.md): any Warden's status, bells and Drowsy too (was another
+		# family's, never Drowsy); each Warden's last application, the newest VERSE_KEEP Wardens, so the leaving bell's own
+		# hits never push another Warden's out
+		var kept: Array = enemy.get_meta(LAST_OTHER_META) if enemy.has_meta(LAST_OTHER_META) and enemy.get_meta(LAST_OTHER_META) is Array else []
+		if not kept.is_empty() and not (kept[0] is Array):
+			kept = []  # (An older [status, stacks] entry)
+		var id: int = tower.get_instance_id()
+		kept = kept.filter(func(row) -> bool: return int(row[2]) != id)
+		kept.append([status, stacks, id, now()])
+		while kept.size() > VERSE_KEEP:
+			kept.remove_at(0)
+		enemy.set_meta(LAST_OTHER_META, kept)
 
 # --- Damage events ------------------------------------------------------------------------------------------------------
 
@@ -1025,7 +1048,11 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		_encore(source)  # A hit's dispel only (a status tick's never counts)
 	if is_hit and not tagged and source != null and (evo(EVO_CHOIR) or evo(EVO_SYMPHONY)):
 		_last_hit_of[source.get_instance_id()] = float(event.base)  # Night Choir, Symphony: each Warden's last hit, before defences
-	if tagged or source == null or not is_hit or not living(enemy):
+	if tagged or source == null or not is_hit:
+		return
+	if rule(DA_CAPO) and is_own(source):
+		_da_capo(source)  # Its own hit, a dispel too (an area attack's hits in one frame: one attack)
+	if not living(enemy):
 		return
 	if rule(SLEEP_NO_MORE):
 		_sleep_no_more(event, source, enemy)  # (Retired 2026-10-15; an old save keeps it)
@@ -1047,8 +1074,8 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 			_beat(source)
 		if rule(RINGING_EARS):
 			_ears_note(source, enemy)
-		# Knell (hard cards 2026-10-16): a bell's hit lands again once per other-family status on it, up to 3. Each
-		# nightmare once every 6 s
+		# Knell (hard cards 2026-10-16; owner 2026-10-18, bell_lent_review.md): a bell's hit lands again once per status
+		# on it, its own too, up to 3. Each nightmare once every 6 s
 		if rule(KNELL) and now() >= float(enemy.get_meta(KNELL_NEXT_META, -INF)) and _knell(enemy, source, event.base) > 0:
 			enemy.set_meta(KNELL_NEXT_META, now() + KNELL_EVERY)
 		if rule(CLASHING_NOTES) and living(enemy) and enemy.statuses.has(EnemyStatuses.DROWSY) and _carries_other(enemy) \
@@ -1114,18 +1141,65 @@ func _beat(bell) -> void:
 func _by_a_bell(tower) -> bool:
 	return is_own(tower) or bells().any(func(b) -> bool: return touching(b, tower))
 
-# A hit lands again now (In Time's delayed repeat, Refrain, Rude Awakening): damage only. Da Capo: a third time, at half.
-func _again(tower, enemy, amount: float, tag: StringName) -> void:
+# A hit lands again now (In Time's delayed repeat, Refrain, Knell, Rude Awakening): damage only. Nothing repeats a repeat
+# (owner 2026-10-18, bell_lent_review.md: Da Capo's third hit is gone; every repeat's tag is in CLASS_TAGS). Each card
+# looks its own: In Time and Rude Awakening a blossom thread, Refrain a double flash (`look` &"double"), Knell a chime
+# mark per counted status (`look` &"none" here; _tick_later shows the chime).
+func _again(tower, enemy, amount: float, tag: StringName, look: StringName = &"thread") -> void:
 	if not is_instance_valid(tower) or not living(enemy):
 		return
-	_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	if look == &"thread":
+		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	elif look == &"double":
+		_double_flash(enemy.global_position)
 	strike(tower, enemy, amount, tag)
 	if tower is Tower and living(enemy):
 		tower.note_repeat_hit(enemy)  # Keyword chips 2026-10-16: a repeat counts for Eternal Static / Rooted Nightmares
-	if rule(DA_CAPO) and living(enemy) and now() >= float(tower.get_meta(DA_CAPO_META, -INF)):
-		tower.set_meta(DA_CAPO_META, now() + DA_CAPO_EVERY)
-		_later.append({"at": now() + DA_CAPO_DELAY, "tower": weakref(tower), "enemy": weakref(enemy),
-			"amount": amount * DA_CAPO_SHARE, "tag": &"da_capo", "again": false})
+
+# Refrain's look: two quick flashes on the partner's hit (owner 2026-10-18, bell_lent_review.md (c)).
+const FLASH_GAP := 0.12
+func _double_flash(at: Vector2) -> void:
+	Reactions._effect(&"echo", at, self, 0.5)
+	_fx_after(FLASH_GAP, &"echo", at, 0.5)
+
+# An Fx sheet played `delay` s from now (the second beat of a two-beat look).
+func _fx_after(delay: float, effect: StringName, at: Vector2, scale: float) -> void:
+	if is_inside_tree():
+		get_tree().create_timer(delay, false).timeout.connect(_play_fx.bind(effect, at, scale))
+
+func _play_fx(effect: StringName, at: Vector2, scale: float) -> void:
+	if is_inside_tree():
+		Reactions._effect(effect, at, self, scale)
+
+# Knell's look: a quick chime mark over the nightmare in the colour of the k-th status it counted (status_flash's rows are
+# EnemyStatuses.COLORS), each a little higher than the last.
+const CHIME_RISE := Vector2(0.0, -10.0)
+const CHIME_BASE := Vector2(0.0, -30.0)
+func _knell_chime(enemy, status: StringName, k: int) -> void:
+	var world := Reactions._world(self)
+	if world != null and living(enemy) and status != &"":
+		Fx.status_flash(status, enemy.global_position + CHIME_BASE + CHIME_RISE * float(k - 1), world)
+
+# Da Capo (owner 2026-10-18, bell_lent_review.md): a bell's attack landed; when its clock is due, its next attack comes at
+# once (a whole real attack, statuses too; its wait reset as Curtain Call does). Next due: DA_CAPO_EVERY s of drift time,
+# or DA_CAPO_MIN_ATTACKS of its own attacks if those take longer. A bell's first attack in a drift starts its clock.
+func _da_capo(bell) -> void:
+	if resting() or not bell.tower_data.can_attack:
+		return
+	var id: int = bell.get_instance_id()
+	var period: float = 1.0 / maxf(bell.get_attacks_per_second(), 0.01)
+	var wait := maxf(DA_CAPO_EVERY, DA_CAPO_MIN_ATTACKS * period)
+	if not _da_capo_due.has(id):
+		_da_capo_due[id] = _drift_clock + wait
+		return
+	if _drift_clock < float(_da_capo_due[id]):
+		return
+	_da_capo_due[id] = _drift_clock + wait
+	bell._cooldown = 0.0
+	Reactions._effect(&"landing_dust", bell.global_position, self, 0.5)  # The two-beat pulse: dust and a bell glow…
+	Reactions._effect(&"area_pulse_song", bell.global_position, self, 0.4)
+	_fx_after(DA_CAPO_BEAT, &"area_pulse_song", bell.global_position, 0.4)  # …and the second beat
+	credit(DA_CAPO, bell.global_position)
 
 func _tick_later() -> void:
 	for i in range(_later.size() - 1, -1, -1):
@@ -1136,7 +1210,10 @@ func _tick_later() -> void:
 		var tower = row.tower.get_ref()
 		var enemy = row.enemy.get_ref()
 		if bool(row.again):
-			_again(tower, enemy, float(row.amount), row.tag)
+			var knell: bool = row.tag == &"knell"
+			if knell:
+				_knell_chime(enemy, row.get("chime", &""), int(row.get("chime_k", 1)))
+			_again(tower, enemy, float(row.amount), row.tag, &"none" if knell else &"thread")
 		elif is_instance_valid(tower) and living(enemy):
 			strike(tower, enemy, float(row.amount), row.tag)
 		var row_status: StringName = row.get("status", &"")  # Knell's repeats add 1 of the bell's status (hard cards 2026-10-16)
@@ -1167,7 +1244,7 @@ func _refrain(source, enemy, base: float) -> void:
 			and now() >= float(source.get_meta(REFRAIN_NEXT_META, -INF)):
 		enemy.remove_meta(REFRAIN_META)
 		source.set_meta(REFRAIN_NEXT_META, now() + REFRAIN_EVERY)
-		_again(source, enemy, base, &"refrain")
+		_again(source, enemy, base, &"refrain", &"double")
 	if is_own(source) and living(enemy):
 		enemy.set_meta(REFRAIN_META, [now() + REFRAIN_SECONDS, source.get_instance_id()])
 
@@ -1280,22 +1357,34 @@ func _bell_to_bell(enemy, bell) -> void:
 	if int(enemy.get_meta(PIPS_META, 0)) < PIPS_FILLED:
 		enemy.set_meta(PIPS_META, PIPS_FILLED)
 
-# Second Verse (lent): a Drowsy nightmare leaving a bell's range gets the last status another family's Warden gave it
-# again, the same stacks, as a quiet add (never starts one, never above the limit, Charged one short of a bolt). Once for
-# each nightmare and bell.
+# Second Verse (lent): a nightmare that bell hit, leaving its range, gets the last status another Warden gave it again,
+# the same stacks, as a quiet add (never starts one, never above the limit, Charged one short of a bolt; never Rooted).
+# Once for each nightmare and bell. Owner 2026-10-18, bell_lent_review.md: another Warden = any but that bell, other
+# bells too, so Bellflower alone works with two bells (was another family's status, never Drowsy).
 func _second_verse(enemy, bell) -> void:
 	if not enemy.get_meta(BELL_HIT_META, {}).has(bell.get_instance_id()) or not enemy.has_meta(LAST_OTHER_META):
 		return  # (Trait rework 2026-10-15: that bell has hit it; it no longer needs Drowsy)
 	var paid: Dictionary = enemy.get_meta(VERSE_META, {})
 	if paid.has(bell.get_instance_id()):
 		return
-	var last: Array = enemy.get_meta(LAST_OTHER_META)
-	var verse: int = enemy.statuses.add_quiet(StringName(last[0]), int(last[1]))
-	setup_quiet(enemy, SECOND_VERSE, StringName(last[0]), verse)  # (setup credit 2026-10-16)
+	var kept = enemy.get_meta(LAST_OTHER_META)
+	var last: Array = []
+	if kept is Array:
+		for i in range(kept.size() - 1, -1, -1):
+			if kept[i] is Array and kept[i].size() >= 3 and int(kept[i][2]) != bell.get_instance_id():
+				last = kept[i]
+				break
+	if last.is_empty() or StringName(last[0]) == EnemyStatuses.HELD:
+		return
+	var status := StringName(last[0])
+	var verse: int = enemy.statuses.add_quiet(status, int(last[1]))
+	setup_quiet(enemy, SECOND_VERSE, status, verse)  # (setup credit 2026-10-16)
 	if verse > 0:
 		paid[bell.get_instance_id()] = true
 		enemy.set_meta(VERSE_META, paid)
 		_line_fx(bell.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+		enemy.flash_status(status)  # A pulse on that status's badge (bell_lent_review.md (c))
+		credit(SECOND_VERSE, enemy.global_position)
 
 # --- The poll: sleepers, busy bells, Rounds, hanging notes -------------------------------------------------------------------
 
@@ -1396,6 +1485,7 @@ func _tick_notes() -> void:
 func on_rest() -> void:
 	_notes.clear()
 	_later.clear()
+	_da_capo_due.clear()  # Da Capo: every bell's clock starts over (owner 2026-10-18, bell_lent_review.md)
 	_clocks.clear()
 	_last_hit_of.clear()
 	queue_redraw()

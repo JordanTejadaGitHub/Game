@@ -235,8 +235,9 @@ func _run() -> void:
 	_check(ra_hit > 0.0 and absf((ra1 - ra.health) - ra_hit) <= 2.0, "Rude Awakening: waking, the last hit lands again (%.0f of %.0f)" % [ra1 - ra.health, ra_hit])
 	await _clean()
 
-	# Knell (hard cards 2026-10-16): a bell's hit lands again once per status other families put on the nightmare, up to
-	# 3, 0.2 s apart, each adding 1 of the bell's status; once per nightmare every 6 s. Repeats never advance In Time.
+	# Knell (hard cards 2026-10-16; owner 2026-10-18, bell_lent_review.md): a bell's hit lands again once per status on the
+	# nightmare (its own too, never Rooted), up to 3, 0.2 s apart, each adding 1 of the bell's status; once per nightmare
+	# every 6 s. Repeats never advance In Time.
 	dreams.stacks.clear()
 	_take("knell")
 	_take("in_time")
@@ -250,7 +251,7 @@ func _run() -> void:
 	klass._later.clear()
 	var poisoned: int = k.statuses.stacks(EnemyStatuses.SPORED)
 	k_bell.hit(k, 1.0, false, Tower.NO_CRIT)
-	_check(klass._later.size() == 1, "Knell: one other-family status queues 1 repeat (%d)" % klass._later.size())
+	_check(klass._later.size() == 2, "Knell: Poisoned and the bell's own Drowsy queue 2 repeats (%d)" % klass._later.size())
 	var in_time_count := int(k.get_meta(klass.IN_TIME_META, {}).get(k_bell.get_instance_id(), 0))
 	var k_health: float = k.health
 	var drowsy: int = k.statuses.stacks(EnemyStatuses.DROWSY)
@@ -258,7 +259,7 @@ func _run() -> void:
 		if klass._later.is_empty():
 			break
 		await process_frame
-	_check(klass._later.is_empty() and k.health < k_health, "...the hit lands again %.1f s later" % klass.KNELL_REPEAT_GAP)
+	_check(klass._later.is_empty() and k.health < k_health, "...the hit lands again, %.1f s apart" % klass.KNELL_REPEAT_GAP)
 	_check(k.statuses.stacks(EnemyStatuses.DROWSY) > drowsy, "...and adds the bell's Drowsy (%d -> %d)" % [drowsy, k.statuses.stacks(EnemyStatuses.DROWSY)])
 	_check(k.statuses.stacks(EnemyStatuses.SPORED) >= poisoned, "...nothing is used up")
 	_check(int(k.get_meta(klass.IN_TIME_META, {}).get(k_bell.get_instance_id(), 0)) == in_time_count, "...a repeat never counts for In Time")
@@ -267,6 +268,100 @@ func _run() -> void:
 	_check(klass._later.is_empty(), "...once per nightmare every %d s" % int(klass.KNELL_EVERY))
 	dreams.stacks.erase("in_time")
 	dreams.calling = "bellflower"
+	await _clean()
+
+	# Knell alone (owner 2026-10-18, bell_lent_review.md): a lone bell's own status counts, even before its hit's lands.
+	dreams.stacks.clear()
+	_take("knell")
+	var kl_bell := _plant("bellflower", spot)
+	await _frames(2)
+	var kl = _spawn(spot + Vector2(CELL, 0))
+	klass._later.clear()
+	kl_bell.hit(kl, 1.0, false, Tower.NO_CRIT)
+	_check(klass._later.size() == 1, "Knell alone: the bell's own Drowsy counts, 1 repeat (%d)" % klass._later.size())
+	var kl_root = _spawn(spot + Vector2(CELL, CELL * 0.5))
+	kl_root.apply_status(EnemyStatuses.HELD, 1, 1.0, 1.0, 0, "root", null)
+	klass._later.clear()
+	kl_bell.hit(kl_root, 1.0, false, Tower.NO_CRIT)
+	_check(klass._later.size() == 1, "...Rooted never counts (%d)" % klass._later.size())
+	klass._later.clear()
+	await _clean()
+
+	# Second Verse (owner 2026-10-18, bell_lent_review.md): leaving a bell's range, the last status another Warden gave the
+	# nightmare lands again; other bells count, so Bellflower alone works with two bells. The leaving bell's own never.
+	dreams.stacks.clear()
+	_take("second_verse")
+	var sv_bell := _plant("bellflower", spot)
+	var sv_other := _plant("bellflower", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	var sv = _spawn(spot + Vector2(CELL, 0))
+	sv_bell.hit(sv, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	var sv_alone = _spawn(spot + Vector2(CELL, CELL * 0.5))
+	sv_bell.hit(sv_alone, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	sv_other._apply_one_status(sv, EnemyStatuses.DROWSY, 2, sv_other.get_damage())
+	for i in 3:
+		sv_bell._apply_one_status(sv, EnemyStatuses.DROWSY, 1, sv_bell.get_damage())  # The leaving bell's own hits never hide it
+	var sv_drowsy: int = sv.statuses.stacks(EnemyStatuses.DROWSY)
+	klass._second_verse(sv, sv_bell)
+	_check(sv.statuses.stacks(EnemyStatuses.DROWSY) == sv_drowsy + 2, "Second Verse: another bell's Drowsy x2 lands again (%d -> %d)" % [sv_drowsy, sv.statuses.stacks(EnemyStatuses.DROWSY)])
+	var sv_again: int = sv.statuses.stacks(EnemyStatuses.DROWSY)
+	klass._second_verse(sv, sv_bell)
+	_check(sv.statuses.stacks(EnemyStatuses.DROWSY) == sv_again, "...once for each bell and nightmare")
+	var alone_drowsy: int = sv_alone.statuses.stacks(EnemyStatuses.DROWSY)
+	klass._second_verse(sv_alone, sv_bell)
+	_check(sv_alone.statuses.stacks(EnemyStatuses.DROWSY) == alone_drowsy, "...only that bell's own status: nothing lands again")
+	await _clean()
+
+	# Da Capo (owner 2026-10-18, bell_lent_review.md): every DA_CAPO_EVERY s of drift time, a bell's next attack happens
+	# twice (its wait is reset), never more often than every DA_CAPO_MIN_ATTACKS of its own attacks; the clock runs only
+	# during a drift and starts over at a rest. Nothing repeats a repeat (In Time, Refrain, Knell held too).
+	dreams.stacks.clear()
+	_take("da_capo")
+	var dc_bell := _plant("bellflower", spot)
+	await _frames(2)
+	var dc = _spawn(spot + Vector2(CELL, 0))
+	var director = dreams.drift_director
+	var was_resting: bool = director.resting
+	director.resting = true
+	var clock0: float = klass._drift_clock
+	await _frames(10)
+	_check(is_equal_approx(klass._drift_clock, clock0), "Da Capo: the clock stands still at a rest")
+	dc_bell._cooldown = 5.0
+	dc_bell.hit(dc, 1.0, false, Tower.NO_CRIT)
+	_check(klass._da_capo_due.is_empty() and is_equal_approx(dc_bell._cooldown, 5.0), "...and a bell's hit at a rest starts nothing")
+	director.resting = false
+	await _frames(10)
+	_check(klass._drift_clock > clock0, "...it runs during a drift")
+	dc_bell.hit(dc, 1.0, false, Tower.NO_CRIT)
+	_check(klass._da_capo_due.has(dc_bell.get_instance_id()) and is_equal_approx(dc_bell._cooldown, 5.0), "...the bell's first attack starts its clock")
+	var wait: float = maxf(klass.DA_CAPO_EVERY, klass.DA_CAPO_MIN_ATTACKS / maxf(dc_bell.get_attacks_per_second(), 0.01))
+	klass._drift_clock = float(klass._da_capo_due[dc_bell.get_instance_id()])
+	dc_bell.hit(dc, 1.0, false, Tower.NO_CRIT)
+	_check(is_equal_approx(dc_bell._cooldown, 0.0), "...when it is due, the bell's next attack comes at once")
+	_check(is_equal_approx(float(klass._da_capo_due[dc_bell.get_instance_id()]) - klass._drift_clock, wait), "...next due in %.1f s" % wait)
+	dc_bell._cooldown = 5.0
+	dc_bell.hit(dc, 1.0, false, Tower.NO_CRIT)
+	_check(is_equal_approx(dc_bell._cooldown, 5.0), "...and not again before then")
+	var slow := 0.1  # A slow bell's 3 attacks take longer than 6 s
+	_check(maxf(klass.DA_CAPO_EVERY, klass.DA_CAPO_MIN_ATTACKS / slow) > klass.DA_CAPO_EVERY, "(a slow bell waits for its 3 attacks)")
+	# No repeat of a repeat: Da Capo's third hit is gone; a repeated hit never sets Da Capo or another repeat off.
+	_take("in_time")
+	_take("refrain")
+	_take("knell")
+	klass._later.clear()
+	klass._drift_clock = float(klass._da_capo_due[dc_bell.get_instance_id()]) + 1.0
+	var due_before: float = float(klass._da_capo_due[dc_bell.get_instance_id()])
+	klass._again(dc_bell, dc, 5.0, &"refrain")
+	klass._again(dc_bell, dc, 5.0, &"knell", &"none")
+	_check(klass._later.is_empty(), "no repeat of a repeat: a repeated hit queues nothing (%d)" % klass._later.size())
+	_check(is_equal_approx(dc_bell._cooldown, 5.0) and is_equal_approx(float(klass._da_capo_due[dc_bell.get_instance_id()]), due_before),
+		"...and never sets Da Capo off")
+	klass.on_rest()
+	_check(klass._da_capo_due.is_empty(), "Da Capo: every bell's clock starts over at a rest")
+	director.resting = was_resting
+	dreams.stacks.clear()
 	await _clean()
 
 	# Chime of Many (owner 2026-10-17: Bellflower's own trait, Repeats; was +1 stack): a Toll repeats the nightmare's last

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "rude_awakening"
 display_name = "Rude Awakening"
-description = "Needs nightmares {asleep} or with {held}. When one wakes or its {held} ends, the last hit from each of up to 3 Wardens lands again."
-tip = "Only hits from the last 3 s. Once per nightmare each time it wakes or its {held} ends. Each bell once a second. Works for: any family, with {card:nod_off} or a Warden that adds {held}. A bet: needs nightmares {asleep} or with {held}."
+description = "When a nightmare wakes from {asleep} or its {held} ends, the last hit from each of up to 3 Wardens lands again."
+tip = "Only hits from the last 3 s. Once per nightmare each time. Each bell once a second. Works for: {card:nod_off}, Wardens that add {held}. A bet: needs nightmares {asleep} or {held}."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])
@@ -15,4 +15,4 @@ max_stacks = 1
 rule_id = &"rude_awakening"
 requires = Array[String](["bellflower"])
 makes = Array[StringName]([&"repeat"])
-uses = Array[StringName]([&"asleep"])
+uses = Array[StringName]([&"slow"])
