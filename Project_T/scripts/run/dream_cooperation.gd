@@ -18,6 +18,7 @@ static func before_hit(tower, enemy, direct: bool, now: float) -> float:
 				var entry: Dictionary = hits[key]
 				if key != tower.get_instance_id() and _live(entry.source.get_ref()) and now - entry.time <= 1.0:
 					multiplier *= 1.25
+					DamageLog.note_card_bonus("crosswind", 1.25)  # Card credit (visual feedback spec C2, owner 2026-10-18)
 					throws[throw_key] = true
 					enemy.set_meta("unique_crosswind_throws", throws)
 					break
@@ -28,6 +29,7 @@ static func before_hit(tower, enemy, direct: bool, now: float) -> float:
 			enemy.remove_meta("unique_fracture_primer")
 		elif source != tower:
 			multiplier *= 1.4
+			DamageLog.note_card_bonus("opening_fracture", 1.4)  # Card credit (visual feedback spec C2, owner 2026-10-18)
 			enemy.remove_meta("unique_fracture_primer")
 			enemy.set_meta("unique_fracture_cooldown", now + 3.0)
 			enemy.set_meta("unique_fracture_payoff", {"source": tower.get_instance_id(), "time": now})

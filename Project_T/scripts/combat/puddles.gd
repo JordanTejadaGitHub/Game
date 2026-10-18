@@ -837,7 +837,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 				Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
 				for other in soaked:
 					_line_fx(enemy.global_position, other.global_position, 1.0, Palette.DEWLIGHT)
-				credit(EVO_LAPPING, enemy.global_position)
+				credit(EVO_LAPPING, enemy.global_position, source)
 				_ripple_extras(enemy, w, soaked)
 	if evo(EVO_REFLECTION) and living(enemy) and now() >= float(source.get_meta(MIRROR_META, -INF)):
 		var last = _back_in(w, enemy)
@@ -846,7 +846,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			_line_fx(enemy.global_position, last.global_position, 2.0, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", last.global_position, self, 0.5)
 			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
-			credit(EVO_REFLECTION, last.global_position)
+			credit(EVO_REFLECTION, last.global_position, source)
 
 # A Warden's own accepted status on a nightmare in water (Riverside): the status it just added lasts 2 s longer.
 # Owner 2026-10-17: Dewdrop's own trait (Duration), was +1 stack. Every landing; the linger cap bounds it.
@@ -861,7 +861,7 @@ func _evo_status(tower, enemy, status: StringName) -> void:
 			enemy.set_meta(SIDE_FX_META, now() + SIDE_FX_EVERY)
 			_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
-			credit(EVO_RIVERSIDE, enemy.global_position)
+			credit(EVO_RIVERSIDE, enemy.global_position, tower)
 
 # Stagnant Water (from _in_pond, each poll): every status gets back the time it lost since the last poll while the
 # nightmare stays in a pond (bosses half). Leaving the pond forgets the record, so time lost outside never comes back.

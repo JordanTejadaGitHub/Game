@@ -59,7 +59,7 @@ func _card_callout(event: DamageLog.Event) -> void:
 	if id != "":
 		_pop_card(id, event.enemy.global_position, event.enemy)
 
-func _on_card_fired(id: StringName, at: Vector2) -> void:
+func _on_card_fired(id: StringName, at: Vector2, _source: Node = null) -> void:  # source: visual feedback spec (Roguelite, 2026-10-18)
 	if at.is_finite():
 		_pop_card(String(id), at, null)
 

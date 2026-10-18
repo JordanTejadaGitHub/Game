@@ -82,9 +82,9 @@ func evo(id: StringName) -> bool:
 	return dream_state != null and class_on() and dream_state.has_evolution(id)
 
 # Credit an effect to its card or evolution (DreamState.note_card: callouts and the rest report).
-func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
+func credit(id: StringName, at: Vector2 = Vector2.INF, source = null) -> void:  # source: the Warden (badge pop; visual feedback spec B5, owner 2026-10-18)
 	if dream_state != null:
-		dream_state.note_card(id, at)
+		dream_state.note_card(id, at, 1, source if is_instance_valid(source) and source is Node else null)
 
 # --- Setup credit 2026-10-16 (scripts/run/setup_credit.gd; balance_simulation.md "Setup cards") -------------------------
 const SETUP := preload("res://scripts/run/setup_credit.gd")

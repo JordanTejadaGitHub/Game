@@ -573,7 +573,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 				fed += added
 		if fed > 0:
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.4)
-			credit(EVO_DRIFTING, enemy.global_position)
+			credit(EVO_DRIFTING, enemy.global_position, tower)
 	if evo(EVO_ROT) and caps_here >= 2:
 		var rotted := 0
 		for id in enemy.statuses.active_ids():
@@ -583,7 +583,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 				rotted += added
 		if rotted > 0:
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
-			credit(EVO_ROT, enemy.global_position)
+			credit(EVO_ROT, enemy.global_position, tower)
 	if evo(EVO_STICKY) and caps_here >= 1:
 		var stuck: Dictionary = enemy.get_meta(STICKY_META, {})
 		if not stuck.has(point):
@@ -592,7 +592,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 			var seconds := minf(STICKY_SECONDS * caps_here, STICKY_MAX) * (0.5 if enemy.statuses.is_boss else 1.0)
 			HelperCommons.slow(enemy, STICKY_SLOW, seconds)
 			control_slow(EVO_STICKY, STICKY_SLOW, seconds)  # (setup credit 2026-10-16)
-			credit(EVO_STICKY, enemy.global_position)
+			credit(EVO_STICKY, enemy.global_position, tower)
 			if evo(EVO_MIRE):
 				_mire(enemy, seconds * MIRE_SHARE)
 	if evo(EVO_WITCH_RING):
@@ -611,7 +611,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 			elif id != EnemyStatuses.STATIC or MOTHER_STACKS < enemy.statuses.get_max_stacks(id):
 				SETUP.apply(enemy, card_id(EVO_MOTHER), id, MOTHER_STACKS, 0.0, float(row[1]), 0, String(row[2]), null)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.7)
-		credit(EVO_MOTHER, enemy.global_position)
+		credit(EVO_MOTHER, enemy.global_position, tower)
 	if evo(EVO_WINDBLOWN) and not bool(m.get("seeded", false)):
 		var i := int(_index[point]) + SEED_STEPS * 2
 		if i < _route.size() and not mushrooms.has(_route[i]):
@@ -620,7 +620,7 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 				mushrooms[_route[i]].seeded = true
 				mushrooms[_route[i]].last = enemy.get_instance_id()  # For the next nightmare, never the one that seeded it
 				_line_fx(at, _route_px[i], 1.5, Palette.MOSS)
-				credit(EVO_WINDBLOWN, _route_px[i])
+				credit(EVO_WINDBLOWN, _route_px[i], tower)
 
 # Witch Ring: 3 mushrooms within 4 s Hold the nightmare 1 s (bosses half), each nightmare once in 10 s.
 func _witch_ring(tower, enemy) -> void:
@@ -636,7 +636,7 @@ func _witch_ring(tower, enemy) -> void:
 	if living(enemy) and enemy.statuses.is_held():
 		control(EVO_WITCH_RING, RING_HOLD * (0.5 if enemy.statuses.is_boss else 1.0))  # (setup credit 2026-10-16)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)
-	credit(EVO_WITCH_RING, enemy.global_position)
+	credit(EVO_WITCH_RING, enemy.global_position, tower)
 
 # Mire-Mouth: the 2 nightmares behind a stuck one (further back on the route, within 2 cells) are stuck too. Never bosses.
 func _mire(enemy, seconds: float) -> void:
@@ -676,7 +676,7 @@ func _rotburst(point: Vector2, tower, eater) -> void:
 			elif row[1] is Tower and is_instance_valid(row[1]):
 				setup_apply(EVO_ROTBURST, row[1], other, row[0], BURST_STACKS, row[1].get_damage())
 	Reactions._effect(&"landing_dust", at, self, 1.6)
-	credit(EVO_ROTBURST, at)
+	credit(EVO_ROTBURST, at, tower)
 
 # Borrowed Spores: the strongest status Warden touching the step adds 2 of its status; a touching Sprout adds 2 Poisoned.
 func _borrow(at: Vector2, tower, enemy) -> void:
@@ -695,7 +695,7 @@ func _borrow(at: Vector2, tower, enemy) -> void:
 		setup_apply(EVO_BORROWED, tower, enemy, EnemyStatuses.SPORED, SPROUT_BORROW, tower.get_damage())
 	if partner != null or sprout:
 		_line_fx(at, enemy.global_position, 1.5, Palette.MOSS)
-		credit(EVO_BORROWED, enemy.global_position)
+		credit(EVO_BORROWED, enemy.global_position, tower)
 
 # Feeding Ground: a Warden touching the step where the nightmare took its dose adds 1 more of its status (once each).
 func _feeding(source, enemy) -> void:

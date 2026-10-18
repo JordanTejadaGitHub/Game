@@ -11,6 +11,10 @@ var role_cards = ROLE_CARDS.new(self)
 # Card pass 2026-10-16 (slice 4 B): the Reaction scalers, form payoffs and Reaction reworks; also counts Reactions (saved).
 const REACTION_CARDS := preload("res://scripts/run/dream_reaction_cards.gd")
 var reaction_cards = REACTION_CARDS.new(self)
+# Visual feedback spec (owner 2026-10-18): the card -> cue table, and the boost tier / badge pop data (cue_for, boost_tier).
+const CARD_CUES := preload("res://scripts/run/card_cues.gd")
+const VISUALS := preload("res://scripts/run/dream_visuals.gd")
+var visuals = VISUALS.new()
 
 # Dreams (in-run upgrades, documentation/dream_design.md): which Wardens are unlocked this run,
 # which cards were taken (stat cards stack), and the Dream offer at every rest (boss rests: Rare+).
@@ -383,6 +387,7 @@ func card_cap_factor(source: Node, tag: StringName) -> float:
 	if total <= CARD_PRODUCT_CAP:
 		return 1.0
 	_note_past_cap(source.tower_data.display_name if source is Tower and is_instance_valid(source) else "?", total)
+	visuals.note_past_cap(self, source)  # Boost tier 3 for a moment (visual feedback spec B1, owner 2026-10-18)
 	return CARD_PRODUCT_CAP / total if CARD_CAP_ON else 1.0
 
 # Hits that went past the x4 line, by drift (the run report: a per-drift count and the top few). {drift: {label: [peak, hits]}}
@@ -510,15 +515,53 @@ func _choose_calling(card: UpgradeData) -> void:
 # --- Credit for card effects (owner 2026-10-16: "make these dream cards and evolutions more noticeable") ----------------
 # Every card and evolution effect reports here with its id: the HUD can call out a card the first time it fires in a
 # drift, and the rest report can list "Your Dreams this block" (UI: Main Merger). `at` = where (Vector2.INF: nowhere).
-signal card_fired(id: StringName, at: Vector2)
+# Visual feedback spec (owner 2026-10-18): `source` = the Warden it fired from (null: none / not a Warden).
+signal card_fired(id: StringName, at: Vector2, source: Node)
+# The card has a field cue (CARD_CUES; one emit per cue it shows): the effect owners draw `cue` at `at` / on `source`.
+signal card_cue(card_id: StringName, cue: StringName, at: Vector2, source: Node)
+# B5: pop this card's badge on `source` (a Tower). Already throttled: once per card per Warden every
+# VISUALS.BADGE_POP_EVERY s of game time; UI keeps the alive cap (4, 1 on Reduced), build mode and the setting.
+signal card_badge_pop(card_id: StringName, source: Node)
 var card_counts_block := {}  # id -> times this block (the block being played)
 var card_counts_last_block := {}  # The block just finished: what the rest report reads
 var card_counts_run := {}
 
-func note_card(id: StringName, at: Vector2, times: int = 1) -> void:
+func note_card(id: StringName, at: Vector2, times: int = 1, from = null) -> void:
+	var source: Node = from if is_instance_valid(from) and from is Node else null
 	card_counts_block[id] = int(card_counts_block.get(id, 0)) + times
 	card_counts_run[id] = int(card_counts_run.get(id, 0)) + times
-	card_fired.emit(id, at)
+	card_fired.emit(id, at, source)
+	var entry: Array = _cue_entry(id)  # [card id, cues] cached per id (perf, 2026-10-18)
+	for cue in entry[1]:  # (visual feedback spec, owner 2026-10-18)
+		card_cue.emit(entry[0], cue, at, source)
+	if source is Tower and visuals.badge_pop_ok(self, entry[0], source):
+		card_badge_pop.emit(entry[0], source)
+
+var _cue_cache := {}  # id -> [card id, cues] (the tables are constant)
+
+func _cue_entry(id: StringName) -> Array:
+	var entry: Array = _cue_cache.get(id, [])
+	if entry.is_empty():
+		entry = [CARD_CUES.card_of(id), CARD_CUES.cues_for(id)]
+		_cue_cache[id] = entry
+	return entry
+
+# The card's main field cue (&"" = none; visual feedback spec, owner 2026-10-18). All of them: CARD_CUES.cues_for(id).
+func cue_for(card_id: StringName) -> StringName:
+	return CARD_CUES.cue_for(card_id)
+
+# B1: the Warden's boosted-attack tier, 0..3 (visual feedback spec, owner 2026-10-18). Dream card power only, cached
+# per board / card change; +1 while a timed card surges; 3 just after a hit past the card line. Read it once per attack.
+func boost_tier(tower: Node) -> int:
+	return visuals.boost_tier(self, tower)
+
+# B1: its Dream power (damage x (1 + speed) - 1, without the surge cards): 0.6 = +60%.
+func dream_power(tower: Node) -> float:
+	return visuals.dream_power(self, tower)
+
+# A timed card outside the Dream rows switched on for `tower` (Tower Code: Shiny Things): tier +1 for `seconds`.
+func note_surge(tower: Node, seconds: float) -> void:
+	visuals.note_surge(self, tower, seconds)
 
 # The first family pick was made (FamilyPickScreen). Later picks never change the Calling.
 func set_calling(family: String) -> void:
@@ -1522,10 +1565,14 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 
 # Extra crit multiplier on a crit (Tower adds it): Full Moon turns crit chance above 100% (`raw_chance`
 # before capping) into multiplier; Sharpened Light / II add a flat +0.5 / +1.0.
-func get_crit_overflow_multiplier(raw_chance: float) -> float:
+# `base_multiplier`: the crit multiplier it adds to (Tower passes it; 2.0 = the usual) for the card credit.
+func get_crit_overflow_multiplier(raw_chance: float, base_multiplier: float = 2.0) -> float:
 	var extra := maxf(raw_chance - 1.0, 0.0) if has_rule(&"full_moon") else 0.0
 	if has_rule(&"sharpened_light"):
-		extra += SHARPENED_LIGHT[rule_level(&"sharpened_light")] * rule_power(&"sharpened_light")
+		var sharp: float = SHARPENED_LIGHT[rule_level(&"sharpened_light")] * rule_power(&"sharpened_light")
+		extra += sharp
+		var before := maxf(base_multiplier + extra - sharp, 0.0001)
+		DamageLog.note_card_bonus("sharpened_light", (before + sharp) / before)  # Card credit (visual feedback spec C2, owner 2026-10-18)
 	return extra
 
 # Reckless Bloom (bittersweet): hits that don't crit deal this much of their damage.
@@ -2177,7 +2224,7 @@ func note_jump(source: Node, from: Node2D, to: Node2D, amount: float) -> float:
 	if has_rule(&"gathering_storm"):
 		mult = FIREFLY_LIGHTS.gather(to, _game_clock)
 		if mult > 1.0:
-			note_card(&"gathering_storm", to.global_position)  # The stronger jump is the moment
+			note_card(&"gathering_storm", to.global_position, 1, source)  # The stronger jump is the moment
 	if has_rule(SHARED_SPARK) and is_instance_valid(from) and from != to:
 		_shared_spark(from, to)
 	return mult
@@ -4127,27 +4174,53 @@ func on_hit_multiplier(tower: Tower, enemy: Node2D) -> float:
 	if not _any_hit_rule or enemy == null or not is_instance_valid(enemy):
 		return 1.0  # The common case: no per-hit card owned (Warden hits are the hot path)
 	var bonus := 0.0
+	var parts := _hit_parts  # Card id -> its additive share (DamageLog card credit; visual feedback spec C2, owner 2026-10-18)
+	parts.clear()  # Reused every hit: no allocation on the hot path (perf, 2026-10-18)
 	if has_rule(&"last_stand") and is_near_heartwood(enemy):
-		bonus += LAST_STAND_BONUS * rule_power(&"last_stand")
+		parts["last_stand"] = LAST_STAND_BONUS * rule_power(&"last_stand")
 	if has_rule(&"hunters_patience"):
 		if enemy.elite:
-			bonus += HUNTERS_PATIENCE_ELITE * rule_power(&"hunters_patience")
+			parts["hunters_patience"] = HUNTERS_PATIENCE_ELITE * rule_power(&"hunters_patience")
 		elif enemy.enemy_data != null and enemy.enemy_data.is_boss:
-			bonus += HUNTERS_PATIENCE_BOSS * rule_power(&"hunters_patience")
-	bonus += get_bitter_bonus(enemy)
+			parts["hunters_patience"] = HUNTERS_PATIENCE_BOSS * rule_power(&"hunters_patience")
+	var bitter := get_bitter_bonus(enemy)
+	if bitter > 0.0:
+		parts["bitter_hedges"] = bitter
 	if has_rule(&"lone_hunter") and _is_alone(enemy):
-		bonus += LONE_HUNTER_BONUS[rule_level(&"lone_hunter")] * rule_power(&"lone_hunter")
+		parts["lone_hunter"] = LONE_HUNTER_BONUS[rule_level(&"lone_hunter")] * rule_power(&"lone_hunter")
 	if tower != null and tower.tower_data.line == "light" and has_rule(&"rain_on_glass") \
 			and enemy.statuses.has(EnemyStatuses.DAMP):
-		bonus += RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass") * rule_power(&"rain_on_glass")  # Rain on Glass
+		parts["rain_on_glass"] = RAIN_ON_GLASS_PER * rule_stacks(&"rain_on_glass") * rule_power(&"rain_on_glass")  # Rain on Glass
 	if has_rule(&"skyward_gaze") and enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING:
-		bonus += SKYWARD_BONUS * rule_power(&"skyward_gaze")
+		parts["skyward_gaze"] = SKYWARD_BONUS * rule_power(&"skyward_gaze")
 	if has_rule(&"grand_tour") and enemy.statuses.count() >= GRAND_TOUR_STATUSES:
-		bonus += GRAND_TOUR_DAMAGE  # Grand Tour (reworked, card_review_2026-10-12.md 10): 3+ different statuses, every Warden's hits
-	bonus += _thin_family_hit_bonus(tower, enemy)  # Deep Grip, Murmur
+		parts["grand_tour"] = GRAND_TOUR_DAMAGE  # Grand Tour (reworked, card_review_2026-10-12.md 10): 3+ different statuses, every Warden's hits
+	_thin_family_hit_bonus(tower, enemy, parts)  # Deep Grip, Head Start, Deep Frost, Falling Weight, Murmur
+	for id in parts:
+		bonus += float(parts[id])
+	_note_additive(parts, bonus)
 	var multiplier := 1.0 + bonus
 	# (First Light moved to batch.damage_multiplier: counted by source in Enemy.take_damage, so status ticks count.)
 	return multiplier
+
+# Card credit for a group of per-hit cards that add together (visual feedback spec C2, owner 2026-10-18): each card is
+# noted to DamageLog at (1 + total)^(its share / total), so the notes multiply to the group's real multiplier and split
+# the added damage by share. `parts`: rule id -> its additive bonus.
+var _hit_parts := {}  # on_hit_multiplier's scratch (reused)
+
+func _note_additive(parts: Dictionary, total: float) -> void:
+	if total <= 0.0 or parts.is_empty():
+		return
+	var by_rule := _credit_rule_map()
+	if parts.size() == 1:  # One card: its own multiplier, no log / exp
+		var only = parts.keys()[0]
+		DamageLog.note_card_bonus(String(by_rule.get(StringName(only), String(only))), 1.0 + total)
+		return
+	var whole := log(1.0 + total)
+	for rule in parts:
+		var share := float(parts[rule])
+		if share > 0.0:
+			DamageLog.note_card_bonus(String(by_rule.get(StringName(rule), String(rule))), exp(whole * share / total))
 
 # Last Stand: within LAST_STAND_CELLS of the Heartwood.
 func is_near_heartwood(enemy: Node2D) -> bool:
@@ -4604,6 +4677,7 @@ func get_spored_tick_multiplier(enemy: Node2D) -> float:
 	var n := rule_stacks(&"damp_rot")
 	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
 		return 1.0
+	DamageLog.note_card_bonus("damp_rot", 1.0 + DAMP_ROT_PER * n)  # Card credit: the tick that follows (visual feedback spec C2, owner 2026-10-18)
 	return 1.0 + DAMP_ROT_PER * n
 
 # Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it), only on a nightmare carrying
@@ -5195,28 +5269,34 @@ var _game_clock := 0.0
 var _bird_hits := {}  # Nightmare id -> [tower id, _game_clock] of the last bird hit (Murmur)
 var _called_shots := {}  # "tower:nightmare" -> true once Called Shot fired
 
-func _thin_family_hit_bonus(tower: Tower, enemy: Node2D) -> float:
+# `parts` (optional): each card's share goes in it by rule id (on_hit_multiplier's card credit, owner 2026-10-18).
+func _thin_family_hit_bonus(tower: Tower, enemy: Node2D, parts = null) -> float:
 	if tower == null:
 		return 0.0
 	var bonus := 0.0
 	var line := tower.tower_data.line
 	if line == "root" and has_rule(&"deep_grip") and enemy.statuses.has(EnemyStatuses.HELD):
-		bonus += DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip")
+		bonus += _part(parts, &"deep_grip", DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip"))
 	if has_rule(&"head_start") and float(enemy.get_meta(&"head_start_until", -1.0)) > _game_clock:
-		bonus += HEAD_START_BONUS[rule_level(&"head_start")] * rule_power(&"head_start")  # Head Start
+		bonus += _part(parts, &"head_start", HEAD_START_BONUS[rule_level(&"head_start")] * rule_power(&"head_start"))  # Head Start
 	if has_rule(&"deep_frost") and _is_frozen(enemy):  # Deep Frost: Frostfern's freeze (Held by a water Warden)
-		bonus += DEEP_FROST_BONUS * rule_power(&"deep_frost")
+		bonus += _part(parts, &"deep_frost", DEEP_FROST_BONUS * rule_power(&"deep_frost"))
 	if line == "stone" and has_rule(&"falling_weight") and (enemy.statuses.is_held() or enemy.statuses.is_asleep()):
-		bonus += FALLING_WEIGHT_BONUS * rule_power(&"falling_weight")
+		bonus += _part(parts, &"falling_weight", FALLING_WEIGHT_BONUS * rule_power(&"falling_weight"))
 	if line == "wing" and has_rule(&"murmur"):
 		var id := enemy.get_instance_id()
 		var last: Array = _bird_hits.get(id, [])
 		if not last.is_empty() and last[0] != tower.get_instance_id() and _game_clock - last[1] <= MURMUR_WINDOW:
-			bonus += MURMUR_BONUS * rule_power(&"murmur")
+			bonus += _part(parts, &"murmur", MURMUR_BONUS * rule_power(&"murmur"))
 		if _bird_hits.size() > 2048:
 			_bird_hits.clear()
 		_bird_hits[id] = [tower.get_instance_id(), _game_clock]
 	return bonus
+
+func _part(parts, rule: StringName, value: float) -> float:
+	if parts is Dictionary:
+		parts[rule] = value
+	return value
 
 # Called Shot: true once per Warden per nightmare, on its first hit on a Marked nightmare (a
 # guaranteed crit; Tower.hit asks before rolling). Adds with First Light.

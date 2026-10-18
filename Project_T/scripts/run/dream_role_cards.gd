@@ -176,7 +176,7 @@ func old_hand(tower, enemy) -> bool:
 	var every := OLD_HAND_V if tower.rank >= OLD_HAND_FAST_RANK else OLD_HAND_III
 	if int(entry[1]) % every != 0:
 		return false
-	_credit(OLD_HAND, enemy.global_position)
+	_credit(OLD_HAND, enemy.global_position, tower)
 	return true
 
 # The synergy part of a hit: [multiplier, Millstone's splash due, Towering's carry due].
@@ -212,7 +212,7 @@ func after_hit(tower, enemy, dealt: float, _health_before: int, line: String, ef
 			if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
 				other.take_damage(dealt * MILLSTONE_SPLASH, line, true, false, tower, MILLSTONE)
 		DREAM_BURST.play(MILLSTONE, at, reach, Reactions._world(tower))  # A dust ring
-		_credit(MILLSTONE, at)
+		_credit(MILLSTONE, at, tower)
 	# (Towering's leftover jump is gone: keyword chips 2026-10-16. role_hit[2] still marks its bonus hits.)
 	if _on.has(HEAVY_HEART) and not effect_tick and not enemy.is_cleansed \
 			and WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY):
@@ -259,7 +259,7 @@ func _heavy_heart_hit(tower, enemy) -> void:
 		return
 	s.start_cooldown(HEAVY_HEART, HEAVY_HEART_BOSS_WAIT if s.is_boss else HEAVY_HEART_WAIT)
 	DREAM_BURST.play(HEAVY_HEART, enemy.global_position, 18.0, Reactions._world(tower))  # The weight sets it off
-	_credit(HEAVY_HEART, enemy.global_position)
+	_credit(HEAVY_HEART, enemy.global_position, tower)
 
 # Heavy Heart: the same Reaction on the nearest nightmares that carry one of its statuses; each waits its own cooldown
 # (Reactions._fire) and uses up what the Reaction uses up; a copy never copies (TD 3a).
@@ -338,7 +338,7 @@ func pulled_back(tower, enemy) -> void:
 		s.top_up(id)  # Back to full time (within the linger cap)
 		DreamState.SETUP.note_linger(enemy, DreamState.SETUP.rule_card(dreams, HOMESICK), id, s.time_left(id) - left_before)
 		enemy.flash_status(id)
-	_credit(HOMESICK, enemy.global_position)  # (Keyword chips 2026-10-16: no Reaction window after the pull)
+	_credit(HOMESICK, enemy.global_position, tower)  # (Keyword chips 2026-10-16: no Reaction window after the pull)
 
 func _prune_homesick() -> void:
 	var now := _clock()
@@ -362,13 +362,13 @@ func extra_stacks(tower, status: StringName) -> int:
 	if _on.has(MOTHERS_HAND) and _touches_support(tower):
 		extra += MOTHERS_HAND_STACK
 		_last_mothers = MOTHERS_HAND_STACK
-		_credit(MOTHERS_HAND, tower.global_position)
+		_credit(MOTHERS_HAND, tower.global_position, tower)
 	if _on.has(DEEP_GRAIN):
 		var deep: int = mini(tower.choice_count(Tower.Focus.DEEP), DEEP_GRAIN_MAX)
 		if deep > 0:
 			extra += deep * DEEP_GRAIN_STACK
 			_last_deep = deep * DEEP_GRAIN_STACK
-			_credit(DEEP_GRAIN, tower.global_position)
+			_credit(DEEP_GRAIN, tower.global_position, tower)
 	return extra
 
 # [[rule, stacks], …] of the last extra_stacks call (setup credit 2026-10-16; only asked when it added any).
@@ -437,7 +437,7 @@ func area_attack(tower, hit: Array) -> void:
 		for id in ids:
 			_give(other, ws, id, SHARED_FEVER_STACKS)
 		DREAM_TRANSFER.play(world, from, other.global_position, ids[0])  # A thread from the worst-hit one
-	_credit(SHARED_FEVER, from)
+	_credit(SHARED_FEVER, from, tower)
 
 # Tangled Lightning: up to TANGLED_EXTRA_JUMPS more jumps, onto nightmares carrying a status. Appends them to `hits`;
 # returns how many it added (Tower._chain_strike calls tangled_hit on each).
@@ -506,7 +506,7 @@ func snare_line(tower, stepper) -> void:
 		any = true
 	if any:
 		DREAM_BURST.play(SNARE_LINE, at, reach, world)  # A ring of motes
-		_credit(SNARE_LINE, at)
+		_credit(SNARE_LINE, at, tower)
 
 # A non-native application of `from`'s status `id` (its strength, family and source) on `other`.
 func _give(other, from: EnemyStatuses, id: StringName, stacks: int) -> void:
@@ -627,13 +627,14 @@ func _clock() -> float:
 
 var _credits := {}  # Card id -> [clock of the last note_card, times since]
 
-func _credit(id: StringName, at: Vector2) -> void:
+# `source`: the Warden it fired from (the badge pop; visual feedback spec B5, owner 2026-10-18).
+func _credit(id: StringName, at: Vector2, source = null) -> void:
 	if dreams == null:
 		return
 	var now := _clock()
 	var entry: Array = _credits.get(id, [-1000.0, 0])
 	entry[1] = int(entry[1]) + 1
 	if now - float(entry[0]) >= CREDIT_EVERY:
-		dreams.note_card(id, at, int(entry[1]))
+		dreams.note_card(id, at, int(entry[1]), source if is_instance_valid(source) and source is Node else null)
 		entry = [now, 0]
 	_credits[id] = entry

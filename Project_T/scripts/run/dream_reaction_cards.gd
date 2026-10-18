@@ -511,7 +511,7 @@ func _graft_hit(tower, enemy) -> void:
 				_graft_thread.clear()
 			DREAM_TRANSFER.play(Reactions._world(tower), form.global_position, enemy.global_position, status)  # The vine
 	if showed:
-		_credit(GRAFT_OF_DREAMS, tower.global_position)
+		_credit(GRAFT_OF_DREAMS, tower.global_position, tower)
 
 func _graft_sources(tower) -> Array:
 	if dreams.board_version != _graft_board:
@@ -535,7 +535,8 @@ func plain_hit_multiplier(tower, enemy) -> float:
 	if not _plain_live or not is_instance_valid(enemy) or enemy.statuses.count() < DEEP_SLEEP_MIN_STATUSES:
 		return 1.0
 	_burst(DEEP_SLEEP, enemy.global_position, 14.0, tower)  # A soft flash on the hit
-	_credit(DEEP_SLEEP, enemy.global_position)
+	_credit(DEEP_SLEEP, enemy.global_position, tower)
+	_note_bonus(DEEP_SLEEP, 1.0 + DEEP_SLEEP_BONUS)  # Card credit (visual feedback spec C2, owner 2026-10-18)
 	return 1.0 + DEEP_SLEEP_BONUS
 
 # --- Dream rows (DreamEffects reporters: Thin Bark, Deep Sleep, The Long Walk) ------------------------------------------
@@ -564,7 +565,7 @@ func grown(tower) -> void:
 	if not on(THIN_BARK) or not is_instance_valid(tower) or tower.tower_data.tier < THIN_BARK_MIN_TIER or not tower.is_inside_tree():
 		return
 	_burst(THIN_BARK, tower.global_position, 30.0, tower)
-	_credit(THIN_BARK, tower.global_position)
+	_credit(THIN_BARK, tower.global_position, tower)
 
 # The Dreams row's live value ("" = none).
 func live_text(card: UpgradeData) -> String:
@@ -683,14 +684,15 @@ func _clock() -> float:
 
 var _credits := {}  # Card id -> [clock of the last note_card, times since]
 
-func _credit(id: StringName, at: Vector2) -> void:
+# `source`: the Warden it fired from (the badge pop; visual feedback spec B5, owner 2026-10-18).
+func _credit(id: StringName, at: Vector2, source = null) -> void:
 	if dreams == null:
 		return
 	var now := _clock()
 	var entry: Array = _credits.get(id, [-1000.0, 0])
 	entry[1] = int(entry[1]) + 1
 	if now - float(entry[0]) >= CREDIT_EVERY:
-		dreams.note_card(id, at, int(entry[1]))
+		dreams.note_card(id, at, int(entry[1]), source if is_instance_valid(source) and source is Node else null)
 		entry = [now, 0]
 	_credits[id] = entry
 

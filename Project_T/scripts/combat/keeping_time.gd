@@ -507,9 +507,9 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 	strike(striker, enemy, landing, &"toll", true)
 	if full:
 		Reactions._effect(&"toll_ring", at, self, 0.8)
-		credit(EVO_STEADY, at)
+		credit(EVO_STEADY, at, bell)
 	if swell > 1.0:
-		credit(EVO_CRESCENDO, at)
+		credit(EVO_CRESCENDO, at, bell)
 	if striker != bell:
 		_accompanied(striker, enemy, at)
 	if evolved:
@@ -658,7 +658,7 @@ func _carry_from(bell, target, base: float) -> void:
 		ring(enemy, bell, base * TUNE_SHARE)
 		carried += 1
 	if carried > 0:
-		credit(EVO_CARRYING, from)
+		credit(EVO_CARRYING, from, bell)
 
 # Hand to Hand: the bell that rang this nightmare before `bell`, if `bell` hasn't taken it hand to hand yet (-1: none).
 func _handed_from(enemy, bell) -> int:
@@ -677,7 +677,7 @@ func _hand_to_hand(enemy, bell, from_id: int) -> void:
 	if before is Node2D:
 		_line_fx(before.global_position, enemy.global_position, 1.5, Palette.GOLD)  # Handed from the last bell
 	Reactions._effect(&"toll_ring", enemy.global_position, self, 0.4)
-	credit(EVO_HAND, enemy.global_position)
+	credit(EVO_HAND, enemy.global_position, bell)
 
 # Peal: a Toll fills 1 pip on every nightmare within 4 steps (up to 8), never its last pip.
 func _peal(enemy, at: Vector2) -> void:
@@ -766,7 +766,7 @@ func _hushabye(enemy, bell) -> void:
 		return
 	if enemy.statuses.has(EnemyStatuses.DROWSY):
 		enemy.flash_status(EnemyStatuses.DROWSY)
-		credit(EVO_HUSH, at)
+		credit(EVO_HUSH, at, bell)
 	var times: Array = (enemy.get_meta(HUSH_META, []) as Array).filter(func(t) -> bool: return now() - float(t) <= HUSH_WINDOW)
 	times.append(now())
 	if times.size() >= HUSH_TOLLS and now() >= float(enemy.get_meta(HUSH_NEXT_META, -INF)) and nap(enemy):
@@ -775,7 +775,7 @@ func _hushabye(enemy, bell) -> void:
 		control(EVO_HUSH, NAP_SECONDS)  # (setup credit 2026-10-16)
 		times.clear()
 		Reactions._effect(&"chorus_note", at, self, 1.0)
-		credit(EVO_HUSH, at)
+		credit(EVO_HUSH, at, bell)
 	enemy.set_meta(HUSH_META, times)
 
 # Sleeping Hall: the first Toll within 3 s of a Hush-a-bye nap ending also lands on up to 4 nightmares touching it, at half.
@@ -788,7 +788,7 @@ func _hall(enemy, bell, at: Vector2, landing: float) -> void:
 		hit += 1
 	if hit > 0:
 		Reactions._effect(&"toll_ring", at, self, 1.3)
-		credit(EVO_HALL, at)
+		credit(EVO_HALL, at, bell)
 
 # Accompaniment: another Warden's Toll brings its status again (its own application, never native, so no lent card or
 # Calling rule reads it again).
@@ -911,7 +911,7 @@ func _last_chord(enemy, bell) -> void:
 		return  # Nothing went off
 	enemy.set_meta(CHORD_META, now() + CHORD_EVERY)
 	Reactions._effect(&"chorus_note", at, self, 1.4)
-	credit(EVO_CHORD, at)
+	credit(EVO_CHORD, at, bell)
 
 # Chorus (lent): on a Toll the bell also repeats the last hit another family's Warden near it landed there, at half
 # (never more than half a second of that Warden's damage); its status comes with it as a quiet add.
@@ -951,7 +951,7 @@ func _knell(enemy, bell, base: float) -> int:
 	for k in range(1, count + 1):
 		_later.append({"at": now() + KNELL_REPEAT_GAP * k, "tower": weakref(bell), "enemy": weakref(enemy),
 			"amount": base * share, "tag": &"knell", "again": true, "status": own, "chime": counted[k - 1], "chime_k": k})
-	credit(KNELL, enemy.global_position)
+	credit(KNELL, enemy.global_position, bell)
 	return count
 
 # Another family's status is on it (Knell and Clashing Notes need one).
@@ -1199,7 +1199,7 @@ func _da_capo(bell) -> void:
 	Reactions._effect(&"landing_dust", bell.global_position, self, 0.5)  # The two-beat pulse: dust and a bell glow…
 	Reactions._effect(&"area_pulse_song", bell.global_position, self, 0.4)
 	_fx_after(DA_CAPO_BEAT, &"area_pulse_song", bell.global_position, 0.4)  # …and the second beat
-	credit(DA_CAPO, bell.global_position)
+	credit(DA_CAPO, bell.global_position, bell)
 
 func _tick_later() -> void:
 	for i in range(_later.size() - 1, -1, -1):
@@ -1326,7 +1326,7 @@ func _carry_ring(bell, base: float) -> void:
 			ring(enemy, bell, base * share)
 			heard += 1
 	if tune and heard > 0:
-		credit(EVO_CARRYING, from)
+		credit(EVO_CARRYING, from, bell)
 
 # Sleep No More: the first hit within 1 s of a nightmare waking (any Warden's; the hit that wakes it counts) lands in
 # full on every nightmare touching it too (up to 6; never more than one second of that Warden's damage). Once per sleep.
@@ -1384,7 +1384,7 @@ func _second_verse(enemy, bell) -> void:
 		enemy.set_meta(VERSE_META, paid)
 		_line_fx(bell.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
 		enemy.flash_status(status)  # A pulse on that status's badge (bell_lent_review.md (c))
-		credit(SECOND_VERSE, enemy.global_position)
+		credit(SECOND_VERSE, enemy.global_position, bell)
 
 # --- The poll: sleepers, busy bells, Rounds, hanging notes -------------------------------------------------------------------
 
