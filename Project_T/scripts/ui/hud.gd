@@ -1503,6 +1503,9 @@ func _raise_overlays() -> void:
 	var panel := get_node_or_null("WardenPanel")
 	if phone() and panel != null:
 		move_child(panel, get_child_count() - 1)
+	var dreams := get_node_or_null("DreamsRow")  # Phones: open, "Dreams this run" is a whole screen over the HUD (dreams_row.gd)
+	if phone() and dreams != null and dreams.get("_list") is Control and (dreams.get("_list") as Control).visible:
+		move_child(dreams, get_child_count() - 1)
 	for overlay_name in OVERLAY_ORDER:
 		var overlay := get_node_or_null(overlay_name)
 		if overlay != null:

@@ -95,6 +95,7 @@ func _run() -> void:
 		_check_buttons("boss dossier", dossier, view)
 		dossier.close_dossier()
 		main.get_node("%GameSpeed").set_paused(false)
+		await _check_dreams_page(view, dreams)
 	# The results screen (last: a run end can't be undone)
 	for view in VIEWS:
 		root.size = view
@@ -110,6 +111,56 @@ func _run() -> void:
 	await process_frame
 	print("FAILURES: %d" % failures if failures > 0 else "PASS")
 	quit(failures)
+
+# "Dreams this run" on phones (user 2026-10-17: "make it a whole screen UI"): opened from the HUD's Dreams button it fills
+# the screen above the HUD's top-right row and dock (under the pause menu), every button on screen and 44+ tall; Close
+# and Android Back close it.
+const DREAM_CARDS := ["morning_dew", "longer_roots", "deep_roots", "thick_bark", "quick_step", "tender_care"]
+
+func _check_dreams_page(view: Vector2i, dreams: DreamState) -> void:
+	var hud := main.get_node("HUD")
+	var row := main.get_node("%DreamsRow") as DreamsRow
+	for id in DREAM_CARDS:
+		dreams.stacks[id] = 1
+	row.refresh()
+	hud.dreams_button.button_pressed = true
+	await _settle()
+	var page: Control = row._list
+	_check(page.visible and row.strip_hidden, "Dreams this run %s: opens from the Dreams button" % view)
+	var r := page.get_global_rect()
+	_check(r.position.distance_to(Vector2.ZERO) < 1.0 and r.size.distance_to(Vector2(view)) < 1.0,
+		"Dreams this run %s: fills the screen (%s)" % [view, r])
+	_check(row.get_index() > hud.get_node("MenuButton").get_index() and row.get_index() > hud.get_node("%TowerBar").get_index()
+		and row.get_index() < hud.get_node("PauseMenu").get_index(), "Dreams this run %s: above the HUD, under the pause menu" % view)
+	_check(page.find_children("Row_*", "", true, false).size() >= DREAM_CARDS.size(), "Dreams this run %s: a row per Dream" % view)
+	var screen := Rect2(Vector2.ZERO, Vector2(view))
+	var bad: Array[String] = []
+	for button in page.find_children("*", "BaseButton", true, false):
+		if not button.is_visible_in_tree():
+			continue
+		var scroll := _scroll_of(button)
+		var at: Rect2 = scroll.get_global_rect() if scroll != null else button.get_global_rect()
+		if not screen.encloses(at.grow(-0.5)) or button.size.y < 44.0:
+			bad.append("%s %s" % [button.name, button.get_global_rect()])
+	_check(bad.is_empty(), "Dreams this run %s: every button on screen and 44+ tall %s" % [view, bad])
+	var close := page.find_child("PhoneClose", true, false) as Button
+	_check(close != null and close.size.x >= 44.0, "Dreams this run %s: a square Close" % view)
+	if close != null:
+		close.pressed.emit()
+	await _settle()
+	_check(not page.visible and not hud.dreams_button.button_pressed, "Dreams this run %s: Close closes it (%s %s)" % [view, page.visible, hud.dreams_button.button_pressed])
+	hud.dreams_button.button_pressed = true
+	await _settle()
+	var back := InputEventAction.new()
+	back.action = &"open_menu"
+	back.pressed = true
+	root.push_input(back)
+	await _settle()
+	_check(not page.visible and not main.get_node("HUD/PauseMenu").visible, "Dreams this run %s: Back closes it, no pause menu (%s %s)" % [view, page.visible, main.get_node("HUD/PauseMenu").visible])
+	var pause: Node = main.get_node("HUD/PauseMenu")
+	if pause.visible:
+		pause.close()
+	main.get_node("%GameSpeed").set_paused(false)
 
 # A tabbed panel: its buttons on every tab.
 func _check_tabs(what: String, panel: Node, view: Vector2i) -> void:

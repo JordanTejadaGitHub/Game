@@ -40,18 +40,18 @@ func _ready() -> void:
 	_list.visible = false
 	_list.mouse_filter = Control.MOUSE_FILTER_STOP
 	_list.add_theme_stylebox_override("panel", UiStyle.panel())
-	var list_column := VBoxContainer.new()
+	var list_column := _list_column
 	_list.add_child(list_column)
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_list_box.custom_minimum_size = Vector2(LIST_WIDTH - 16.0, 0)
 	_list_box.add_theme_constant_override("separation", 4)
 	_list_scroll.add_child(_list_box)
 	list_column.add_child(_list_scroll)
-	var close := Button.new()
+	var close := _list_close
 	close.text = "Close"
 	close.focus_mode = Control.FOCUS_NONE
 	close.custom_minimum_size = Vector2(0, 48 if UiStyle.is_phone() else 40)
-	close.pressed.connect(func() -> void: _list.visible = false)
+	close.pressed.connect(close_list)
 	list_column.add_child(close)
 	add_child(_list)
 	_card_tip = DreamMarks.MarkTip.new()
@@ -127,6 +127,7 @@ var strip_hidden := false:
 		_row.visible = not value
 		if value:
 			_list.set_meta(&"tips_beside", true)  # Word tips (StatusLinks) open beside the list, never over its text
+			_make_phone_page()  # The list becomes a whole screen
 		queue_redraw()
 
 func refresh() -> void:
@@ -226,15 +227,18 @@ func _build_list() -> void:
 	for child in _list_box.get_children():
 		_list_box.remove_child(child)
 		child.queue_free()
-	var title := Label.new()
-	title.text = "Dreams this run"
-	UiStyle.title(title, 20)
-	_list_box.add_child(title)
+	if _phone_page:  # The page's header holds the title and the count
+		_count_label.text = "%d Dream%s" % [_icons.size(), "" if _icons.size() == 1 else "s"]
+	else:
+		var title := Label.new()
+		title.text = "Dreams this run"
+		UiStyle.title(title, 20)
+		_list_box.add_child(title)
 	var calling := calling_info()
 	if not calling.is_empty():  # The run's standing rule, above the cards
 		var calling_head := Label.new()
 		calling_head.text = "Calling"
-		UiStyle.caps(calling_head)
+		UiStyle.caps(calling_head, PHONE_CAPS_SIZE if _phone_page else UiStyle.LABEL_SIZE)
 		_list_box.add_child(calling_head)
 		var calling_line := HSeparator.new()
 		calling_line.modulate = Color(UiStyle.GOLD, 0.35)
@@ -242,21 +246,21 @@ func _build_list() -> void:
 		var calling_name := Label.new()
 		calling_name.name = "CallingName"
 		calling_name.text = "%s · %s family" % [calling.path, calling.family]
-		UiStyle.title(calling_name, 16, UiStyle.GOLD)
+		UiStyle.title(calling_name, PHONE_NAME_SIZE if _phone_page else 16, UiStyle.GOLD)
 		_list_box.add_child(calling_name)
-		var calling_rule := StatusLinks.make_label(calling.text, 14, UiStyle.INK)
+		var calling_rule := StatusLinks.make_label(calling.text, PHONE_BODY_SIZE if _phone_page else 14, UiStyle.INK)
 		calling_rule.name = "CallingRule"
 		_list_box.add_child(calling_rule)
 	if dream_state.supply_line() != "":  # Rerolls and let-gos are a run-long supply (DreamState)
 		var supply := Label.new()
 		supply.name = "Supply"
 		supply.text = dream_state.supply_line()
-		UiStyle.caps(supply)
+		UiStyle.caps(supply, PHONE_CAPS_SIZE if _phone_page else UiStyle.LABEL_SIZE)
 		_list_box.add_child(supply)
 	if _icons.is_empty():
 		var none := Label.new()
 		none.text = "None yet. Dreams come at every rest."
-		UiStyle.caps(none)
+		UiStyle.caps(none, PHONE_SMALL_SIZE if _phone_page else UiStyle.LABEL_SIZE)
 		_list_box.add_child(none)
 	for group in GROUPS:
 		var icons := _icons.filter(func(i: DreamIcon) -> bool: return group_of(i.card) == group)
@@ -264,13 +268,18 @@ func _build_list() -> void:
 			continue
 		var header := Label.new()
 		header.text = group
-		UiStyle.caps(header)
+		UiStyle.caps(header, PHONE_CAPS_SIZE if _phone_page else UiStyle.LABEL_SIZE)
 		_list_box.add_child(header)
 		var line := HSeparator.new()
 		line.modulate = Color(UiStyle.GOLD, 0.35)
 		_list_box.add_child(line)
+		if _phone_page:
+			_add_phone_rows(icons)
+			continue
 		for icon in icons:
 			_list_box.add_child(_card_row(icon))
+	if _phone_page:
+		return  # The scroll fills the page
 	var cap := LIST_MAX_HEIGHT
 	if strip_hidden:  # Phones: the list (and its Close) end above the Warden dock (user screenshot 2026-10-15)
 		cap = maxf(minf(cap, get_viewport_rect().size.y - 300.0), 140.0)
@@ -285,13 +294,17 @@ func _card_row(source: DreamIcon) -> Control:
 	# Legendaries get a card of their own (Moonlit Thread: solid fog, the thread in Legendary gold); the
 	# others sit flat on the panel.
 	var style: StyleBox = UiStyle.card(UiStyle.rarity_color(card.rarity)) if legendary else StyleBoxEmpty.new()
-	style.content_margin_left = 6
-	style.content_margin_right = 6
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
+	var pad := 8 if _phone_page else 6
+	style.content_margin_left = pad
+	style.content_margin_right = pad
+	style.content_margin_top = pad
+	style.content_margin_bottom = pad
 	if legendary:
 		(style as MoonStyleBox).shadow_size = 0
 	frame.add_theme_stylebox_override("panel", style)
+	if _phone_page:
+		frame.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # A tap target's height at least
+		frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -299,7 +312,10 @@ func _card_row(source: DreamIcon) -> Control:
 	var gem := DreamIcon.new()
 	gem.card = card
 	gem.stacks = 1  # The badge is in the name line
-	gem.custom_minimum_size = ICON_SIZE
+	gem.custom_minimum_size = PHONE_GEM if _phone_page else ICON_SIZE
+	if _phone_page:
+		gem.radius = PHONE_GEM_RADIUS
+		gem.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(gem)
 	var text := VBoxContainer.new()
@@ -308,14 +324,14 @@ func _card_row(source: DreamIcon) -> Control:
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var name := Label.new()
 	name.text = card.display_name + (("  ×%d" % source.stacks) if source.stacks > 1 else "")
-	UiStyle.title(name, 16, UpgradeData.rarity_color(card.rarity))
+	UiStyle.title(name, PHONE_NAME_SIZE if _phone_page else 16, UpgradeData.rarity_color(card.rarity))
 	text.add_child(name)
 	if dream_state.has_method("opened_clearing") and dream_state.opened_clearing(card):
 		var opened := Label.new()
 		opened.text = DreamState.OPENED_CLEARING_LINE  # dream_design.md "Make the unlock obvious"
-		UiStyle.caps(opened, 13, UiStyle.GOLD)
+		UiStyle.caps(opened, PHONE_CAPS_SIZE if _phone_page else 13, UiStyle.GOLD)
 		text.add_child(opened)
-	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
+	var body := StatusLinks.make_label(card.description, PHONE_BODY_SIZE if _phone_page else 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
 	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
@@ -324,30 +340,30 @@ func _card_row(source: DreamIcon) -> Control:
 		var credit := Label.new()
 		credit.name = "Credit"
 		credit.text = source.credit
-		UiStyle.number(credit, 14, UiStyle.GOLD)
+		UiStyle.number(credit, PHONE_SMALL_SIZE if _phone_page else 14, UiStyle.GOLD)
 		text.add_child(credit)
 	if source.dormant:  # Not active yet: dimmed, and why ("Not active yet: needs a Water Warden"; no NeedsRow)
 		var needs := Label.new()
 		needs.text = _sleeping_text(card)
 		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		needs.add_theme_font_size_override("font_size", 13)
+		needs.add_theme_font_size_override("font_size", PHONE_SMALL_SIZE if _phone_page else 13)
 		needs.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		text.add_child(needs)
 		frame.modulate = Color(1, 1, 1, 0.55)
 	# Keyword chips (2026-10-16) at the entry's foot, quiet in the rarity colour, as on the Dream card (screens_ui.md
 	# 844fa70a: the name and text read first)
 	var keyword_row := KeywordRow.make(DreamState.KEYWORDS.chips_for_card(card), UiStyle.CHIP_ICON,
-		UpgradeData.rarity_color(card.rarity), 12)
+		UpgradeData.rarity_color(card.rarity), PHONE_CAPS_SIZE if _phone_page else 12)
 	if keyword_row != null:
 		text.add_child(keyword_row)
 	row.add_child(text)
 	var live := Label.new()
 	_live_labels[card.id] = live
 	live.text = source.live
-	live.custom_minimum_size = Vector2(70, 0)
+	live.custom_minimum_size = Vector2(96 if _phone_page else 70, 0)
 	live.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	live.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	UiStyle.number(live, 15, UiStyle.INK_DIM if source.live.begins_with("off") else UiStyle.GOLD)
+	UiStyle.number(live, PHONE_SMALL_SIZE + 1 if _phone_page else 15,UiStyle.INK_DIM if source.live.begins_with("off") else UiStyle.GOLD)
 	row.add_child(live)
 	frame.gui_input.connect(func(event: InputEvent) -> void:
 		if strip_hidden:
@@ -405,6 +421,8 @@ func credit_text(card: UpgradeData) -> String:
 # a Warden closes the list.
 func _toggle_list() -> void:
 	_list.visible = not _list.visible
+	if _list.visible and _phone_page:
+		_raise_page()
 	var seller := get_node_or_null("%TowerSeller") as TowerSeller
 	if seller != null and not seller.selection_changed.is_connected(_on_selection):
 		seller.selection_changed.connect(_on_selection)
@@ -417,11 +435,139 @@ func _on_selection(towers: Array[Tower]) -> void:
 	if not towers.is_empty() and _list.visible:
 		_list.visible = false
 
+func close_list() -> void:
+	_list.visible = false
+
+# --- Phones: "Dreams this run" is a whole screen (user 2026-10-17: "make it a whole screen UI … buttons appropriate sizes
+# … text readable"), in the phone Remember screen's / pause menu's look: the card background over the whole screen with one
+# sprout on its thread, a header (title, the count, a square Close), the Calling, then the Dreams in a scroll that fills the
+# rest, two columns on wide screens. Nothing under 15 px; rows at least 48 tall. The PC keeps its panel.
+const PHONE_TITLE_SIZE := 28
+const PHONE_NAME_SIZE := 21
+const PHONE_BODY_SIZE := 17
+const PHONE_SMALL_SIZE := 16  # Live values, credits and "needs" lines
+const PHONE_CAPS_SIZE := 15  # Headers, keyword chips: the smallest text on the page
+const PHONE_GEM := Vector2(44, 44)
+const PHONE_GEM_RADIUS := 18.0
+const PHONE_TWO_COLUMNS := 900.0  # Pages at least this wide list the Dreams in two columns
+const PHONE_CENTER_ALPHA := 0.97  # A solid page: the map doesn't read through
+const PHONE_EDGE_ALPHA := 0.95
+
+var _list_column := VBoxContainer.new()
+var _list_close := Button.new()
+var _phone_page := false
+var _count_label: Label = null
+
+func _make_phone_page() -> void:
+	if _phone_page:
+		return
+	_phone_page = true
+	_list.name = "DreamsPage"
+	_list.top_level = true  # Out of the row's layout: the page fills the HUD layer's rect
+	_list.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var frame := UiStyle.panel(16, 12)
+	frame.fog_color = UiStyle.FOG
+	frame.glow_color = UiStyle.CARD_BG
+	frame.center_alpha = PHONE_CENTER_ALPHA
+	frame.edge_alpha = PHONE_EDGE_ALPHA
+	frame.thread = MoonStyleBox.TopLine.FULL  # The one sprout, on the outer thread
+	frame.diamond = true
+	frame.side_edges = false
+	_list.add_theme_stylebox_override("panel", frame)
+	_list_column.add_theme_constant_override("separation", 8)
+	_list_column.remove_child(_list_close)
+	_list_close.queue_free()
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	header.add_theme_constant_override("separation", 14)
+	var title := Label.new()
+	title.text = "Dreams this run"
+	UiStyle.title(title, PHONE_TITLE_SIZE)
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(title)
+	_count_label = Label.new()
+	_count_label.name = "Count"
+	UiStyle.caps(_count_label, PHONE_SMALL_SIZE)
+	_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(_count_label)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+	var close := Button.new()
+	close.name = "PhoneClose"
+	close.theme_type_variation = &"HudButton"  # Square, like the Warden drawer's
+	close.focus_mode = Control.FOCUS_NONE
+	close.tooltip_text = "Close"
+	close.custom_minimum_size = Vector2(UiStyle.HUD_BUTTON_H, UiStyle.HUD_BUTTON_H)
+	close.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	close.draw.connect(_draw_close.bind(close))
+	close.pressed.connect(close_list)
+	header.add_child(close)
+	_list_column.add_child(header)
+	_list_column.move_child(header, 0)
+	_list_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_list_scroll.custom_minimum_size = Vector2.ZERO
+	_list_box.custom_minimum_size = Vector2.ZERO
+	_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list_box.add_theme_constant_override("separation", 6)
+	_list.visibility_changed.connect(_sync_hud_button)
+	if _list.visible:
+		_build_list()
+
+# The HUD's Dreams button follows the page at once (Close, Back, a Warden picked), not at its next throttled sync.
+func _sync_hud_button() -> void:
+	var hud := get_parent()
+	if hud != null and hud.has_method("_sync_phone_buttons"):
+		hud.call("_sync_phone_buttons")
+
+func _draw_close(button: Button) -> void:
+	var centre := (button.size / 2.0).floor()
+	var colour := UiStyle.GOLD if button.is_hovered() else UiStyle.INK_DIM
+	var s := 7.0
+	button.draw_line(centre + Vector2(-s, -s), centre + Vector2(s, s), colour, 2.0, true)
+	button.draw_line(centre + Vector2(s, -s), centre + Vector2(-s, s), colour, 2.0, true)
+
+# One group's rows: two columns side by side on a wide page (reading order: left, then right), else one.
+func _add_phone_rows(icons: Array) -> void:
+	if get_viewport_rect().size.x < PHONE_TWO_COLUMNS or icons.size() < 2:
+		for icon in icons:
+			_list_box.add_child(_card_row(icon))
+		return
+	var pair := HBoxContainer.new()
+	pair.add_theme_constant_override("separation", 20)
+	var columns: Array[VBoxContainer] = []
+	for i in 2:
+		var column := VBoxContainer.new()
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.add_theme_constant_override("separation", 6)
+		pair.add_child(column)
+		columns.append(column)
+	for i in icons.size():
+		columns[i % 2].add_child(_card_row(icons[i]))
+	_list_box.add_child(pair)
+
+# The page draws over the HUD's top-right row and the Warden dock: the row goes to the HUD's end, then the HUD puts its
+# full-screen overlays (the pause menu …) back above it (hud.gd _raise_overlays keeps the open page under them).
+func _raise_page() -> void:
+	var hud := get_parent()
+	if hud == null:
+		return
+	hud.move_child(self, hud.get_child_count() - 1)
+	if hud.has_method("_raise_overlays"):
+		hud.call("_raise_overlays")
+
+# Android Back (open_menu) closes the page first (before the pause menu would open).
+func _input(event: InputEvent) -> void:
+	if _phone_page and _list.visible and InputMap.has_action("open_menu") and event.is_action_pressed("open_menu"):
+		close_list()
+		get_viewport().set_input_as_handled()
+
 class DreamIcon extends Control:
 	signal pressed
 
 	var card: UpgradeData
 	var stacks := 1
+	var radius := 12.0  # The gem's (phones' list rows draw it bigger)
 	var live := ""  # The live bonus under the icon ("" = none)
 	var dormant := false  # Asleep until its families are yours: greyed, "Needs Dewdrop" in the tooltip
 	var sleeping_text := ""
@@ -451,8 +597,8 @@ class DreamIcon extends Control:
 			accept_event()
 
 	func _draw() -> void:
-		var centre := Vector2(size.x / 2.0, 15.0)
-		UiStyle.draw_gem(self, centre, 12.0, card.rarity, UiStyle.dream_glyph(card))  # The card's glyph in its gem
+		var centre := Vector2(size.x / 2.0, radius + 3.0)
+		UiStyle.draw_gem(self, centre, radius, card.rarity, UiStyle.dream_glyph(card))  # The card's glyph in its gem
 		var font := UiStyle.number_font()
 		if stacks > 1:
 			var count := str(stacks)

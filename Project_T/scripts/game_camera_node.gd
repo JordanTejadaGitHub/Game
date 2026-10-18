@@ -270,6 +270,11 @@ func modal_open() -> bool:
 		var screen := main.get_node_or_null(path) as CanvasItem
 		if screen != null and screen.visible:
 			return true
+	var dreams := main.get_node_or_null("HUD/DreamsRow")  # Phones: "Dreams this run" is a full-screen page (Mobile UI)
+	if dreams != null and bool(dreams.get("strip_hidden")):
+		var list := dreams.get("_list") as CanvasItem
+		if list != null and list.is_visible_in_tree():
+			return true
 	return false
 
 # Typing in a text field (the Codex search, the dev card search): the keys are letters, not panning.
