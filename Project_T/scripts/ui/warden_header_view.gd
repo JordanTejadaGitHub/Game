@@ -250,38 +250,31 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		else:
 			second.append([shape_name(attack), &"attack_shape"])
 		_stat_row(main_row, true)
-		# The status it applies: its data's, else the one its special applies (Tower.statuses_applied: the Sparkler's Charge).
-		var main_status: StringName = attack.applies_status
-		if main_status == &"":
-			for special_status in BranchKit.SPECIAL_STATUSES.get(attack.special, []):
-				main_status = special_status
-				break
-		if main_status != &"":
-			second.append(["%s%s" % [IconInfo.status_name(main_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 and main_status == attack.applies_status else ""], main_status, true])
+		# Every status it applies (Tower.statuses_applied: its data's, a second one (Lullaby / Great Bell), its special's
+		# (the Sparkler's Charge), a final's own (Maelstrom's Soak, Dreamshroom's Poison), and Root from freezes and
+		# hold abilities). "×N" only on its attack's own status.
+		var applied := Tower.statuses_applied(attack)
+		for status in applied:
+			second.append(["%s%s" % [IconInfo.status_name(status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 and status == attack.applies_status else ""], status, true])
 		if _tower.get_crit_chance() > 0.0:
 			second.append(["Crit ×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something (user), with what in its tip
 			second.append(["Potency %s" % str(snappedf(potency, 0.01)), &"potency"])  # Statuses and effect damage
-		# Patient Roots' seconds count in "Roots N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
-		var held_extra: float = _tower.held_card_seconds() if main_status == EnemyStatuses.HELD and _tower.has_method("held_card_seconds") else 0.0
-		var strength := status_strength_text(main_status, potency, attack.status_duration, held_extra)
-		if strength != "" and compact:
-			detail_lines.append(strength)  # The panel's Details
-		elif strength != "":
-			second.append([strength, main_status, true])  # "Soak: water hits +24%", "Roots 1.2 s"
-		# Wardens that Root by an ability, not by their attack's status (Tower Code): Tangleroot / Snugroot's timed
-		# hold (hold_time), Rootling's every-Nth-pulse hold (pulse_hold_time). Both go through Tower.hold, so the same
-		# Potency stretch, Patient Roots seconds and cap apply. attack_data, so a Graftling's copy is right.
-		var hold_seconds: float = attack.hold_time if attack.hold_targets > 0 else (attack.pulse_hold_time if attack.pulse_hold_every > 0 else 0.0)
-		if hold_seconds > 0.0 and attack.applies_status != EnemyStatuses.HELD:
-			var rooted := status_strength_text(EnemyStatuses.HELD, potency, hold_seconds,
-				_tower.held_card_seconds() if _tower.has_method("held_card_seconds") else 0.0)
-			if rooted != "" and compact:
-				detail_lines.append(rooted)
-			elif rooted != "":
-				second.append([rooted, EnemyStatuses.HELD, true])
+		for status in applied:  # "Soak: water hits +24%", "Roots 1.2 s"
+			var duration := attack.status_duration if status == attack.applies_status else 0.0
+			var held_extra := 0.0
+			if status == EnemyStatuses.HELD:
+				if status != attack.applies_status:
+					duration = root_seconds(attack)  # Held by an ability, not the attack's status
+				# Patient Roots' seconds count in "Roots N s" (Tower Code fc6cb644), so its cap shows before a Deep pick is wasted
+				held_extra = _tower.held_card_seconds() if _tower.has_method("held_card_seconds") else 0.0
+			var strength := status_strength_text(status, potency, duration, held_extra)
+			if strength != "" and compact:
+				detail_lines.append(strength)  # The panel's Details
+			elif strength != "":
+				second.append([strength, status, true])
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
 		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength (coverage is in the row)
@@ -455,6 +448,27 @@ func _stat_row(parts: Array, icons := false) -> void:
 # with the same caps as EnemyStatuses: "Soak: water hits +24%", "Exposure: +30% damage taken",
 # "Sleep −9% speed a stack", "Roots 1.2 s" (IconInfo names). "" for Poison / Charge (their damage is in the hit) or with
 # status Potency off.
+# How long a Warden Roots by an ability rather than by its attack's status (all go through Tower.hold, so the same
+# Potency stretch, Patient Roots seconds and cap apply): Tangleroot / Snugroot's timed hold, Rootling's every-Nth-pulse
+# hold, Deeproot / Heartroot at the Heartwood (goal_hold), Earthbind's landing (land_hold), Starcave's lit tiles and Elf
+# Circle's dance (FinalTwists), a freeze. 0 = the status's default. Its attack data, so a Graftling's copy is right.
+static func root_seconds(attack: TowerData) -> float:
+	if attack.hold_targets > 0:
+		return attack.hold_time
+	if attack.pulse_hold_every > 0:
+		return attack.pulse_hold_time
+	if attack.special == BranchKit.DEEPROOT:
+		return float(attack.special_params.get("goal_hold", 1.0))
+	var id := String(attack.get_id())
+	if id == "earthbind":
+		return float(attack.special_params.get("land_hold", 0.5))
+	match FinalTwists.TWISTS.get(id, &""):
+		&"starlit_snare":
+			return FinalTwists.SNARE_HOLD
+		&"fairy_dance":
+			return FinalTwists.DANCE_HOLD
+	return attack.freeze_duration
+
 static func status_strength_text(status: StringName, potency: float, duration: float = 0.0, held_extra: float = 0.0) -> String:
 	if not Tower.status_potency_on:
 		return ""
