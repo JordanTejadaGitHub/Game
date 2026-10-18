@@ -115,6 +115,35 @@ func _ready() -> void:
 		director.build_phase_changed.connect(func(resting: bool) -> void:
 			if resting:
 				clear_settling())  # A rest settles the ground at once
+		director.drift_started.connect(_on_drift_reach_rings)
+	if dream_state != null and dream_state.has_signal(&"card_cue"):
+		dream_state.card_cue.connect(_on_card_cue)
+		dream_state.card_taken.connect(_on_card_taken_rings)
+
+# --- Card cues drawn by Tower Code (visual feedback spec C5 / C6, owner 2026-10-18) ---
+
+const REACTION_ACCENT_CUE := &"reaction_accent"  # (card_cues.gd REACTION_ACCENT)
+const REACH_RING_CUE := &"reach_ring"  # (card_cues.gd REACH_RING)
+
+func _on_card_cue(_card: StringName, cue: StringName, at: Vector2, source: Node) -> void:
+	if cue == REACTION_ACCENT_CUE and at != Vector2.INF:
+		Fx.note_reaction_accent(at)
+	elif cue == REACH_RING_CUE and source is Tower:
+		Tower.DREAM_GLOW.reach_rings(get_tree(), source)
+
+# A range or aura card taken: every Warden it widens shows its real range once.
+func _on_card_taken_rings(card: UpgradeData) -> void:
+	if card != null and dream_state.cue_for(StringName(card.id)) == REACH_RING_CUE:
+		Tower.DREAM_GLOW.reach_rings(get_tree())
+
+# Each drift start, while a range or aura card is held: the widened ranges show once.
+func _on_drift_reach_rings(_number: int) -> void:
+	if dream_state == null or not dream_state.has_method(&"cue_for"):
+		return
+	for id in dream_state.stacks:
+		if dream_state.cue_for(StringName(id)) == REACH_RING_CUE:
+			Tower.DREAM_GLOW.reach_rings(get_tree())
+			return
 
 # --- Settling ground ---
 

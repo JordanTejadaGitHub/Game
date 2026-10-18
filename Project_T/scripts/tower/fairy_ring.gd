@@ -19,6 +19,10 @@ var _boost := 1.0
 var _lifetime: float
 var _age := 0.0
 var _burst := -1.0  # Seconds into the burst effect; negative until triggered
+const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")
+# Boosted-attack glow (visual feedback spec B2; Tower.dream_glow_tier): a warm 1 px ring round the armed ring, a slow
+# glint pass from tier 2, a warm flash when it is set off at tier 3.
+var dream_tier := 0
 
 # `data` / `strength`: a ring planted with another Warden's ring (Spore Nursery: a Driftspore's puff plants
 # its Fairy Ring kin's ring, at the bond's share).
@@ -88,6 +92,8 @@ func _draw() -> void:
 		for i in 8:
 			var dir := Vector2.from_angle(TAU * i / 8.0)
 			draw_circle(dir * (8.0 + 22.0 * t), 3.0, color)
+		if dream_tier >= 3:  # Boosted, tier 3: a warm flash as it goes off
+			DREAM_GLOW.rim(self, Vector2.ZERO, 10.0 + 24.0 * t, dream_tier, 1.0 - t)
 		return
 	var texture: Texture2D = _data.trap_texture if is_instance_valid(_tower) else null
 	# Fade in when planted and out in the last second of a limited lifetime.
@@ -102,3 +108,7 @@ func _draw() -> void:
 	var frame := int(_age * ANIMATION_FPS) % frames
 	draw_texture_rect_region(texture, Rect2(-size * SCALE / 2.0, size * SCALE),
 		Rect2(Vector2(size.x * frame, 0), size), Color(1, 1, 1, alpha))
+	if dream_tier > 0:  # Boosted: a warm 1 px ring round it while armed, a slow glint pass from tier 2
+		DREAM_GLOW.rim(self, Vector2.ZERO, size.x * SCALE * 0.5 + 1.0, dream_tier, alpha * 0.8)
+		if dream_tier >= 2:
+			DREAM_GLOW.glints(self, Vector2.ZERO, size.x * SCALE * 0.5 + 1.0, 1, dream_tier, _age * 0.6, alpha)

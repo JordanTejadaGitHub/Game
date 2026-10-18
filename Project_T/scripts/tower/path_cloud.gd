@@ -33,6 +33,10 @@ var _seen := {}  # Nightmares that have been inside (instance ids): "entering" f
 var _stay := {}  # Hoar Fog: nightmare instance id -> seconds inside
 var _frozen := {}  # Hoar Fog: nightmares this cloud froze
 var flecks := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's cloud carries flecks of its kin's colour
+const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")
+# Boosted-attack glow (visual feedback spec B2; Tower.dream_glow_tier): 2 warm motes drifting in it, edge glints from
+# tier 2, a centre glow at tier 3.
+var dream_tier := 0
 
 func _init(tower: Tower, center: Vector2) -> void:
 	_tower = tower
@@ -109,6 +113,8 @@ func _draw() -> void:
 			draw_circle(Vector2.from_angle(spin) * Vector2(_radius * 0.45, _radius * 0.3) + Vector2(0, sin(_age * 2.0 + i) * 3.0),
 				2.0, Color(flecks, 0.6 * fade))
 	var tint := _color.lerp(Palette.HEARTLIGHT, 0.25)
+	if dream_tier >= 3:
+		DREAM_GLOW.dot(self, Vector2(0, -3), 4.0, dream_tier, 0.5 * fade)  # The centre glow, under the puffs
 	# A ring of puffs turning slowly round the middle, bobbing, back ones drawn first.
 	var n := 4 + roundi(_radius / 24.0)
 	var puffs: Array = [[Vector2(0, -3), n % 4]]
@@ -128,6 +134,10 @@ func _draw() -> void:
 			var edge := 1.0 - absf(x) / (span / 2.0)
 			var at := (Vector2(x, (i - 1) * _radius * 0.35) - WISP_SIZE / 2.0).round()
 			draw_texture_rect_region(WISPS, Rect2(at, WISP_SIZE), Rect2(Vector2(i * WISP_SIZE.x, 0), WISP_SIZE), Color(tint, 0.7 * fade * edge))
+	if dream_tier > 0:  # Boosted: warm motes over the puffs, glints round its edge from tier 2
+		DREAM_GLOW.motes(self, Vector2.ZERO, _radius * 0.7, 2 if dream_tier == 1 else 3, dream_tier, _age, fade)
+		if dream_tier >= 2:
+			DREAM_GLOW.glints(self, Vector2.ZERO, _radius * 0.8, 2, dream_tier, _age, fade)
 
 # Is `where` inside a fog cloud (of Warden `from_id` if given)? Chain Bloom widens Puffball puffs in Mistveil's.
 static func fog_at(tree: SceneTree, where: Vector2, from_id: String = "") -> bool:

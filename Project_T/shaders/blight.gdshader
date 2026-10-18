@@ -38,6 +38,10 @@ instance uniform float hit_flash : hint_range(0.0, 1.0) = 0.0;
 // Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): x the eye / core glow, per nightmare.
 // 1 awake, ~0.33 asleep, a moment above 1 as it wakes (Enemy._update_sleep).
 instance uniform float eye_glow : hint_range(0.0, 2.0) = 1.0;
+// Big-hit feedback (visual_feedback_spec.md A): a brief hairline crack, per nightmare (Enemy._update_big_hit). The dispel
+// crack above copies the material; this one never does. hit_crack_soft = 1 under reduce flashes: Moonlight lines, low.
+instance uniform float hit_crack : hint_range(0.0, 1.0) = 0.0;
+instance uniform float hit_crack_soft : hint_range(0.0, 1.0) = 0.0;
 // Heartwood 32 "Moonlight" #dce8f4: cold, like everything on a nightmare.
 uniform vec3 flash_color : source_color = vec3(0.863, 0.910, 0.957);
 
@@ -92,6 +96,13 @@ void fragment() {
 		}
 	}
 
+	if (hit_crack > 0.0) {
+		// Hairlines only: no fill, no new alpha (the body keeps its shape), on the solid pixels
+		vec2 hpx = floor(UV / TEXTURE_PIXEL_SIZE) + 0.5;
+		float hairline = step(shard_edge(hpx / crack_cell_px), hit_crack * 0.35) * step(0.5, color.a);
+		vec3 hit_light = mix(crack_color * 1.6, flash_color, hit_crack_soft);
+		COLOR.rgb = mix(COLOR.rgb, hit_light, hairline * mix(1.0, 0.35, hit_crack_soft));
+	}
 	if (crack > 0.0) {
 		// Pixel-snapped so the cracks stay crisp on pixel art; they widen as crack goes 0 -> 1.
 		vec2 px = floor(UV / TEXTURE_PIXEL_SIZE) + 0.5;

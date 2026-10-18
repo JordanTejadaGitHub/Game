@@ -119,7 +119,8 @@ const GLOSSARY_SOURCE := [
 	]],
 	["Combat", [
 		["Crit", "A critical hit: a hit that deals extra damage. Only some Wardens can crit.", ["Pinned", "Potency"]],
-		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm"]],
+		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm", "Splash"]],
+		["Splash", "A shot that bursts where it lands, hitting its target and every nightmare close by. A pulse hits everything in the Warden's range instead. Splash hits count as area attacks.", ["Area attack", "Swarm"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],

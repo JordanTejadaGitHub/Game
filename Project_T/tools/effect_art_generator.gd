@@ -54,6 +54,7 @@ func _init() -> void:
 	_shroom_effects()
 	_shroom_variant_effects()
 	_toll_effects()
+	_dream_feedback_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4472,3 +4473,116 @@ func _toll_strike(img: Image, f: int) -> void:
 			var p := c + Vector2([-11.0, -4.0, 6.0, 12.0][k], -8.0 + (f - 2) * 3.0 + k % 2 * 2.0)
 			_px(img, int(p.x), int(p.y), Color(TOLL_LILAC, a))
 			_px(img, int(p.x) + 1, int(p.y), Color(TOLL_SILVER, a))
+
+# --- Dream feedback (visual_feedback_spec.md section D, owner-approved 2026-10-18) -------------------------
+# Dream power is pale warm HEARTLIGHT (GLOW only at the top tier), and every light shape carries a darker EMBER
+# edge so it reads on the pale sand path as well as on dark ground (like the Steady Beat band).
+const DREAM_LIGHT := Color("#fff4dc")  # Palette.HEARTLIGHT
+const DREAM_GLOW := Color("#fcd47c")   # Palette.GLOW: the top tier only
+const DREAM_EDGE := Color("#b8662c")   # Palette.EMBER
+
+func _dream_feedback_effects() -> void:
+	_sheet("big_hit_chips", Vector2i(48, 48), 6, 16, Vector2i(24, 24), false, "status", _big_hit_chips.bind(false),
+		{note = "Big hit (T2; T3 at 1.4x): 5 HEARTLIGHT chips flying out of the hit point and falling, ember-edged. ~0.38 s. Anchor = the hit point."})
+	_sheet("big_hit_chips_lite", Vector2i(48, 48), 3, 12, Vector2i(24, 24), false, "status", _big_hit_chips.bind(true),
+		{note = "big_hit_chips for the Fx budget / lite: 3 frames."})
+	_sheet("dream_flare", Vector2i(32, 32), 5, 16, Vector2i(16, 16), false, "status", _dream_flare.bind(false),
+		{note = "Tier-3 origin flare: a soft four-petal bloom, HEARTLIGHT heart to GLOW petals, ember-edged (round petals, never a star: crit_flare stays the star). ~0.3 s. Anchor = the attack point."})
+	_sheet("dream_flare_lite", Vector2i(32, 32), 3, 14, Vector2i(16, 16), false, "status", _dream_flare.bind(true),
+		{note = "dream_flare for the Fx budget / lite: 3 frames, smaller."})
+	_sheet("rank_shimmer", Vector2i(64, 64), 8, 12, Vector2i(32, 56), false, "status", _rank_shimmer,
+		{note = "A card grants or cheapens a rank (C9): a HEARTLIGHT ring at the Warden's base and motes rising past it. ~0.67 s. Anchor = the Warden's foot (cell centre, slab top)."})
+	_sheet("dream_mote", Vector2i(8, 8), 4, 8, Vector2i(4, 4), true, "status", _dream_mote,
+		{note = "The shared Dream mote (B tier 2, C1 surge; pooled): a tiny HEARTLIGHT diamond with an ember edge, twinkling. Loops."})
+
+# Pixels of `shape` (a Dictionary of Vector2i -> Color) drawn with a 1 px ember edge round them.
+func _edged(img: Image, shape: Dictionary, a: float) -> void:
+	for p: Vector2i in shape:
+		for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if not shape.has(p + n):
+				_px(img, p.x + n.x, p.y + n.y, Color(DREAM_EDGE, a))
+	for p: Vector2i in shape:
+		_px(img, p.x, p.y, Color(shape[p], a))
+
+func _diamond(at: Vector2i, r: int, col: Color) -> Dictionary:
+	var out := {}
+	for y in range(-r, r + 1):
+		for x in range(-r, r + 1):
+			if absi(x) + absi(y) <= r:
+				out[at + Vector2i(x, y)] = col
+	return out
+
+func _big_hit_chips(img: Image, f: int, lite: bool) -> void:
+	var c := Vector2(24, 24)
+	var t: float = float([0, 2, 4][f]) if lite else float(f)
+	var a := 1.0 if t < 3.0 else (0.75 if t < 5.0 else 0.4)
+	if t == 0.0:  # the crack of the blow
+		_edged(img, _diamond(Vector2i(c), 2, DREAM_LIGHT), 1.0)
+	for k in 5:
+		var d := Vector2.from_angle(k * TAU / 5.0 - PI / 2.0 + 0.35)
+		var speed := 5.2 + (k % 2) * 1.2
+		var p := c + d * speed * t + Vector2(0, 0.45 * t * t)  # flung out, then falling
+		if t == 0.0:
+			continue
+		var r := 2 if t < 3.0 else 1  # shards shrink as they fly
+		var chip := _diamond(Vector2i(roundi(p.x), roundi(p.y)), r, DREAM_LIGHT)
+		if r == 2:  # a long shard, not a dot: one more pixel along its flight
+			chip[Vector2i(roundi(p.x + d.x * 2.6), roundi(p.y + d.y * 2.6))] = DREAM_LIGHT
+		_edged(img, chip, a)
+
+func _dream_flare(img: Image, f: int, lite: bool) -> void:
+	var c := Vector2i(16, 16)
+	var step: int = [0, 2, 4][f] if lite else f
+	var a: float = [1.0, 1.0, 1.0, 0.75, 0.4][step]
+	var reach: float = [2.0, 5.0, 7.0, 8.0, 8.5][step] * (0.75 if lite else 1.0)
+	var petal: float = [0.0, 2.6, 3.4, 3.0, 2.4][step] * (0.8 if lite else 1.0)
+	var shape := {}
+	if step == 0:
+		shape = _diamond(c, 2, DREAM_LIGHT)
+	else:
+		for k in 4:  # four round petals, set on the diagonals so it never reads as the crit's cross
+			var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0)
+			var pc := Vector2(c) + Vector2(0.5, 0.5) + d * reach * 0.62
+			for y in range(int(pc.y - petal) - 1, int(pc.y + petal) + 2):
+				for x in range(int(pc.x - petal) - 1, int(pc.x + petal) + 2):
+					if Vector2(x + 0.5, y + 0.5).distance_to(pc) <= petal:
+						shape[Vector2i(x, y)] = DREAM_GLOW
+		var heart := 3.0 if step <= 2 else 2.0  # the pale heart over the gold petals
+		for y in range(c.y - 4, c.y + 5):
+			for x in range(c.x - 4, c.x + 5):
+				if Vector2(x + 0.5, y + 0.5).distance_to(Vector2(c) + Vector2(0.5, 0.5)) <= heart:
+					shape[Vector2i(x, y)] = DREAM_LIGHT
+	_edged(img, shape, a)
+
+func _rank_shimmer(img: Image, f: int) -> void:
+	var foot := Vector2(32, 56)
+	var a: float = [1.0, 1.0, 1.0, 1.0, 0.75, 0.75, 0.4, 0.4][f]
+	# The ring at the base: spreading a little, an ember edge outside and in.
+	var r := Vector2(14.0 + f * 1.6, 4.5 + f * 0.5)
+	if f < 7:
+		_ring(img, foot, r + Vector2(1, 1), 1.0, Color(DREAM_EDGE, a))
+		_ring(img, foot, r, 1.2, Color(DREAM_LIGHT, a))
+		_ring(img, foot, r - Vector2(1.2, 1.0), 0.8, Color(DREAM_EDGE, a * 0.75))
+	# Motes rising past the Warden from the ring, each its own height and pace.
+	for k in 7:
+		var x: float = foot.x + [-13.0, -8.0, -3.0, 2.0, 7.0, 12.0, -5.0][k]
+		var start: int = [0, 1, 0, 2, 1, 0, 3][k]
+		var t: int = f - start
+		if t < 0:
+			continue
+		var y: float = foot.y - 2.0 - t * [5.0, 6.0, 4.5, 5.5, 6.5, 5.0, 4.0][k]
+		if y < 2.0:
+			continue
+		var big := t <= 2 and k % 2 == 0
+		var shape := _diamond(Vector2i(int(x), int(y)), 1 if big else 0, DREAM_LIGHT)
+		_edged(img, shape, a if t < 4 else 0.75 * a)
+	if f == 1:  # the moment it lands: a brief bright heart on the ring
+		_edged(img, _diamond(Vector2i(foot) + Vector2i(0, -1), 2, DREAM_GLOW), 1.0)
+
+func _dream_mote(img: Image, f: int) -> void:
+	var c := Vector2i(4, 4)
+	var r: int = [1, 1, 0, 1][f]
+	var shape := _diamond(c, r, DREAM_LIGHT)
+	if f == 1:  # the twinkle: its heart flares gold for a beat
+		shape[c] = DREAM_GLOW
+	_edged(img, shape, 1.0)

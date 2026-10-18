@@ -236,9 +236,9 @@ func _evolved() -> bool:
 	return class_on() and not dream_state.calling_path.is_empty()
 
 # Credit an effect to its evolution (DreamState.note_card: callouts and the rest report), as class_kit.credit.
-func credit(id: StringName, at: Vector2 = Vector2.INF) -> void:
+func credit(id: StringName, at: Vector2 = Vector2.INF, source = null) -> void:  # source: the Warden (badge pop; visual feedback spec B5, owner 2026-10-18)
 	if dream_state != null:
-		dream_state.note_card(id, at)
+		dream_state.note_card(id, at, 1, source if is_instance_valid(source) and source is Node else null)
 
 # A thin line between two points for a moment (as class_kit._line_fx).
 func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
@@ -904,7 +904,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 			else:
 				_credit_light(sources, at)
 				if gold and targets.size() >= 2 and evo(EVO_BONFIRE):
-					credit(EVO_BONFIRE, at)
+					credit(EVO_BONFIRE, at, source)
 		if evo(EVO_TORCH):  # Hard cards 2026-10-16: the nearest Lit nightmare ahead (Torchbearers wins over Signal Fires)
 			# Its own event, skipping the Calling's targets, so _flush never drops the throw (council full_review 2026-10-17)
 			_torch(_next_event(), source, at, _step_of(enemy), size * RELAY_SHARE, cap, {}, enemy, [enemy] + targets)
@@ -1057,7 +1057,7 @@ func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> 
 	source.set_meta(LAMP_META, _now() + LAMP_EVERY)
 	var limit := INF if source.tower_data.get_id() == "sprout" else cap
 	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0, "credit": EVO_BORROWED})
-	credit(EVO_BORROWED, targets[0].global_position)
+	credit(EVO_BORROWED, targets[0].global_position, source)
 
 # Show the Way (from _evolved_strike): a Borrowed Light jump that landed jumps once more, at half, to another Lit
 # nightmare. Same event (a hop: never a nightmare the event already struck, never the one the hit was on, inside
@@ -1074,7 +1074,7 @@ func _show_the_way(request: Dictionary, source, target, at: Vector2, had: Array)
 	if not had.is_empty():
 		opts["carry"] = had  # Lantern Wake: it carries what the nightmare it leaves had
 	_fork(int(request.event), source, at, next[0], float(request.amount) * SHOW_SHARE, float(request.cap), opts)
-	credit(EVO_SHOW, next[0].global_position)
+	credit(EVO_SHOW, next[0].global_position, source)
 
 # Sightline: 3 different Wardens hit one Lit nightmare within 2 s: a quarter of each hit jumps to the nearest other Lit
 # nightmare. Each Warden's jump is its own event, so all of them land on that one nightmare (three beams meet; and
@@ -1104,7 +1104,7 @@ func _sightline(event, source, enemy, at: Vector2, sources: Array) -> void:
 			continue
 		Reactions._segment(&"light_thread", tower.global_position, at, self, 0.4)  # Three beams meet
 		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy, "credit": EVO_SIGHT})
-	credit(EVO_SIGHT, at)
+	credit(EVO_SIGHT, at, source)
 
 # Constellation: jumps from 3 different Wardens within 3 s make a nightmare fully Exposed (bosses half), once in 8 s.
 func _constellation(target, source, at: Vector2) -> void:
@@ -1131,7 +1131,7 @@ func _constellation(target, source, at: Vector2) -> void:
 		if is_instance_valid(tower):
 			_line_fx(tower.global_position, at, 1.5, Palette.GLOW)  # The stars link over it
 	Reactions._effect(&"exposed_complete", at, self)
-	credit(EVO_CONSTELLATION, at)
+	credit(EVO_CONSTELLATION, at, source)
 
 # Embers: a dispel on gold path leaves an ember on its step for EMBER_TIME. Witchfire: an ember within HEARTH_JOIN steps
 # of a pile joins it (up to HEARTH_MAX). At most EMBER_MAX piles.
@@ -1215,7 +1215,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 			SETUP.apply(target, EVO_MOTH, EnemyStatuses.MARKED, stacks, 0.0, source.get_damage(), 0, source.tower_data.line, source)  # (setup credit 2026-10-16)
 			if _living(target):
 				target.flash_status(EnemyStatuses.MARKED)
-			credit(EVO_MOTH, at)
+			credit(EVO_MOTH, at, source)
 		if _living(target) and evo(EVO_CONSTELLATION):
 			_constellation(target, source, at)
 	if not _can_hop(request):
@@ -1231,7 +1231,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount), float(request.cap), opts)
 			Reactions._effect(&"spark_burst", at, self, 0.6)  # Flame arcs on
-			credit(EVO_PYRE, at)
+			credit(EVO_PYRE, at, source)
 	if dead and request.has("relay") and evo(EVO_BALE) and int(request.relay) < BALE_HOPS:
 		var parent := request.duplicate()
 		parent.erase("target")
@@ -1245,7 +1245,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 			if not had.is_empty():
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount) * SWARM_SHARE, float(request.cap), opts)
-			credit(EVO_SWARM, next[0].global_position)
+			credit(EVO_SWARM, next[0].global_position, source)
 
 # Waiting Spark: a fork with nowhere to go waits in its light.
 func _wait(lights: Array, source, amount: float, cap: float) -> void:
@@ -1593,7 +1593,7 @@ func _strike(request: Dictionary) -> void:
 	if own != &"" and dream_state != null:
 		dream_state.end_own_hit()
 	if own == EVO_TORCH or own == EVO_BALE:
-		credit(own, at)  # The callout once the throw has landed (council full_review 2026-10-17)
+		credit(own, at, source)  # The callout once the throw has landed (council full_review 2026-10-17)
 	var carry: Array = request.get("carry", [])
 	if not carry.is_empty() and _living(target):
 		_wake(target, carry, request.from)

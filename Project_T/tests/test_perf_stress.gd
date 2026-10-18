@@ -52,6 +52,7 @@ func _run() -> void:
 	var base: Dictionary = result.duplicate()
 	var budget := PASS_MS
 	_check(base.p95 <= budget, "p95 frame %.2f ms at 1x within %.1f ms (target %.1f, revisited before release)" % [base.p95, budget, BUDGET_MS * SCRIPT_SHARE])
+	await _measure_dream_glow(budget)
 	if OS.get_cmdline_user_args().has("--breakdown"):
 		var towers: Array = container.get_children().filter(func(t) -> bool: return t is Tower)
 		_set_process(towers, false)
@@ -210,6 +211,22 @@ func _spawn_spread() -> void:
 		enemy._path_index = at + 1
 		enemy.unkillable = true  # The Target Dummy flags: the field stays busy for every measurement
 		enemy.loops_route = true
+
+# Visual feedback spec B6: 40 attacking Wardens forced to the gold tier (trails, rims, cores, motes, flares) must stay
+# inside the 1x limit too.
+const GLOW_WARDENS := 40
+func _measure_dream_glow(budget: float) -> void:
+	var glowing: Array = []
+	for t in container.get_children():
+		if t is Tower and t.tower_data.can_attack and t.tower_data.get_id() != "sprout" and glowing.size() < GLOW_WARDENS:
+			t.set_meta(Tower.DREAM_GLOW.FORCE_META, 3)
+			glowing.append(t)
+	await _measure("%d Wardens at the gold tier" % glowing.size())
+	_check(glowing.size() == GLOW_WARDENS, "%d tier-3 Wardens (of %d)" % [glowing.size(), GLOW_WARDENS])
+	_check(result.p95 <= budget, "p95 frame %.2f ms with %d tier-3 Wardens within %.1f ms" % [result.p95, glowing.size(), budget])
+	for t in glowing:
+		if is_instance_valid(t):
+			t.remove_meta(Tower.DREAM_GLOW.FORCE_META)
 
 # Frame times (ms) over FRAMES frames after WARMUP, into `result`.
 func _measure(label: String) -> void:

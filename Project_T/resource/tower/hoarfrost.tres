@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Hoarfrost"
-role_line = "Roots, area damage, Soaks"
+role_line = "Roots, splash damage, Soaks"
 heavy = true
 description = "Splashing frost that gives nightmares {damp} (up to {field:hoarfrost.status_max_stacks:count}). At {field:hoarfrost.freeze_needs_stacks:count} {damp} a nightmare is {frozen}: it gains 1 {held} and can't move for {field:hoarfrost.freeze_duration:seconds}. It crits more on nightmares with {held}."
 cost = 0

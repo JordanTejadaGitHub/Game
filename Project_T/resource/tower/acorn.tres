@@ -14,7 +14,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Acorn"
-role_line = "Area damage, support, boosts damage"
+role_line = "Splash damage, support, boosts damage"
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8
