@@ -194,14 +194,14 @@
 		},
 		"beam_spot_big": {
 			"anchor": [
-				20,
-				20
+				22,
+				22
 			],
 			"file": "beam_spot_big.png",
 			"fps": 12.0,
 			"frame_size": [
-				40,
-				40
+				44,
+				44
 			],
 			"frames": 4,
 			"kind": "status",
@@ -475,7 +475,7 @@
 			"fps": 16.0,
 			"frame_size": [
 				128,
-				96
+				112
 			],
 			"frames": 8,
 			"kind": "crowned",
@@ -1971,14 +1971,14 @@
 		},
 		"link_arcs": {
 			"anchor": [
-				24,
+				25,
 				20
 			],
 			"file": "link_arcs.png",
 			"fps": 14.0,
 			"frame_size": [
-				48,
-				40
+				51,
+				41
 			],
 			"frames": 4,
 			"kind": "status",
@@ -1987,14 +1987,14 @@
 		},
 		"link_arcs_big": {
 			"anchor": [
-				60,
-				52
+				68,
+				59
 			],
 			"file": "link_arcs_big.png",
 			"fps": 14.0,
 			"frame_size": [
-				120,
-				104
+				137,
+				118
 			],
 			"frames": 4,
 			"kind": "status",
@@ -2003,14 +2003,14 @@
 		},
 		"link_arcs_mid": {
 			"anchor": [
-				36,
-				30
+				40,
+				32
 			],
 			"file": "link_arcs_mid.png",
 			"fps": 14.0,
 			"frame_size": [
-				72,
-				60
+				80,
+				65
 			],
 			"frames": 4,
 			"kind": "status",
@@ -2470,7 +2470,7 @@
 			"fps": 18.0,
 			"frame_size": [
 				64,
-				64
+				80
 			],
 			"frames": 7,
 			"kind": "reaction",
@@ -3065,7 +3065,7 @@
 			"fps": 12.0,
 			"frame_size": [
 				64,
-				32
+				40
 			],
 			"frames": 6,
 			"kind": "signature",

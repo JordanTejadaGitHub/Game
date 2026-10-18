@@ -204,7 +204,7 @@ func _reactions() -> void:
 		{callout = "#c080ff", reaction = "Spored + Damp", then = "overgrowth_cloud"})
 	_sheet("overgrowth_cloud", Vector2i(64, 64), 8, 10, c, true, "ground_loop", _overgrowth_cloud,
 		{note = "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."})
-	_sheet("shatter", Vector2i(64, 64), 7, 18, c, false, "reaction", _shatter,
+	_sheet("shatter", Vector2i(64, 80), 7, 18, c, false, "reaction", _shatter,  # 80 tall: the shards fall below it
 		{callout = "#bff4ff", reaction = "frozen + heavy hit or crit"})
 	_sheet("drown", Vector2i(64, 64), 8, 16, c, false, "reaction", _drown,
 		{callout = "#6ab0ff", reaction = "Damp + max Drowsy"})
@@ -354,7 +354,7 @@ func _shatter(img: Image, f: int) -> void:
 		_glow(img, c, Vector2(16, 16), k)
 	for i in 8:
 		var d := Vector2.from_angle(i * TAU / 8.0 + 0.2)
-		var p := c + d * (6 + k * 6) + Vector2(0, k * k * 0.8)
+		var p := c + d * (6 + k * 5) + Vector2(0, k * k * 0.8)  # 5 a frame: the shards stay inside the frame
 		var tip := p + d * (4 - k * 0.5)
 		var side := d.orthogonal() * 2.0
 		var lit_side := -side if side.x + side.y > 0.0 else side  # the face towards the upper left
@@ -945,7 +945,7 @@ func _crowned() -> void:
 	_sheet("crowned_starfall", Vector2i(64, 160), 7, 16, Vector2i(32, 150), false, "crowned", _crowned_starfall.bind(false),
 		_crown_info("#fff27a", "Pinned + Static", {lite = "crowned_starfall_lite", note = "Anchor = the impact point; the column falls from the top."}))
 	_sheet("crowned_starfall_lite", Vector2i(64, 160), 7, 16, Vector2i(32, 150), false, "crowned", _crowned_starfall.bind(true))
-	_sheet("crowned_avalanche", Vector2i(128, 96), 8, 16, Vector2i(64, 64), false, "crowned", _crowned_avalanche,
+	_sheet("crowned_avalanche", Vector2i(128, 112), 8, 16, Vector2i(64, 64), false, "crowned", _crowned_avalanche,  # 112 tall: room under the burst
 		_crown_info("#bff4ff", "Shatter from a lob", {note = "Anchor = where the stone lands; the ice spreads over the lob's area (about 3 cells wide)."}))
 	_sheet("crowned_prismstorm", s, 8, 18, c, false, "crowned", _crowned_prismstorm.bind(false),
 		_crown_info("#bff4ff", "Shatter + Static", {lite = "crowned_prismstorm_lite"}))
@@ -1014,6 +1014,7 @@ func _gold_edge(img: Image, col: Color = CROWN_GOLD) -> void:
 # The gold tier's own burst around any Crowned Reaction: a wide gold ring, long sparks and shadow
 # shards flung far, fading to gold motes.
 func _crown_burst(img: Image, c: Vector2, f: int, reach: float, lite: bool = false) -> void:
+	reach = minf(reach, minf(c.x, img.get_width() - c.x) - 8.0)  # its ring and sparks end inside the frame (they were cut at the sides)
 	match f:
 		1, 2:
 			var r := reach * (0.55 + f * 0.2)
@@ -1193,7 +1194,7 @@ func _crowned_avalanche(img: Image, f: int) -> void:
 	for i in 14:
 		var d := Vector2.from_angle(i * TAU / 14.0 + 0.1)
 		var reach := 10.0 + k * 11.0
-		var p := c + Vector2(d.x * reach * 1.9, d.y * reach * 0.75)
+		var p := c + Vector2(d.x * minf(reach * 1.9, 50.0), d.y * reach * 0.75)  # held inside the frame (they ran off its sides)
 		var tip := p + Vector2(d.x, d.y * 0.5) * (6 - k * 0.6)
 		var side := d.orthogonal() * 2.5
 		if k <= 4:
@@ -1224,7 +1225,7 @@ func _crowned_prismstorm(img: Image, f: int, lite: bool) -> void:
 		for i in n:
 			var d := Vector2.from_angle(i * TAU / n + 0.2)
 			var from := c + d * (8 + k * 6)
-			var to := from + d * (10 + k * 4)
+			var to := from + d * (8 + k * 3)  # ends inside the frame
 			_bolt(img, from, to, 700 + f * 11 + i, CORE, Color(RAINBOW[(i + k) % RAINBOW.size()]), 3, 2.5)
 			if not lite and k <= 1:
 				_star(img, to, 2, CORE, Color(RAINBOW[(i + k + 2) % RAINBOW.size()]))
@@ -2044,10 +2045,10 @@ func _root_grab(img: Image, f: int) -> void:
 	var grow: float = [0.35, 0.7, 1.0, 1.0, 1.0, 1.0, 0.6, 0.25][f]
 	var wrap: float = [0.0, 0.0, 0.2, 0.7, 1.0, 1.0, 0.4, 0.0][f]
 	var roots := [
-		[Vector2(6, 29), Vector2(17, 10), Vector2(0, 2)],
-		[Vector2(14, 30), Vector2(21, 6), Vector2(8, 0)],
-		[Vector2(34, 30), Vector2(27, 6), Vector2(40, 0)],
-		[Vector2(42, 29), Vector2(31, 10), Vector2(48, 2)],
+		[Vector2(6, 29), Vector2(17, 10), Vector2(3, 4)],  # tips kept inside the frame (were cut at its sides)
+		[Vector2(14, 30), Vector2(21, 6), Vector2(10, 2)],
+		[Vector2(34, 30), Vector2(27, 6), Vector2(38, 2)],
+		[Vector2(42, 29), Vector2(31, 10), Vector2(45, 4)],
 	]
 	# Torn earth where they break out.
 	if f < 7:
@@ -2474,7 +2475,7 @@ func _branch_effects() -> void:
 		{note = "Rainbow Prism: a split beam, white so it tints (pink #ec9cf4, gold #fcd47c, blue #9cd4fc for the three). Stretch along x, y = 3."})
 	_sheet("firework_burst", Vector2i(48, 48), 7, 16, Vector2i(24, 24), false, "signature", _firework_burst_fx,
 		{note = "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."})
-	_sheet("toll_ring", Vector2i(64, 32), 6, 12, Vector2i(32, 20), false, "signature", _toll_ring,
+	_sheet("toll_ring", Vector2i(64, 40), 6, 12, Vector2i(32, 20), false, "signature", _toll_ring,  # 40 tall: the ring spreads below its anchor
 		{note = "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."})
 	_sheet("silence_mark", Vector2i(24, 24), 8, 6, Vector2i(12, 20), true, "status", _silence_mark,
 		{note = "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."})
@@ -3891,7 +3892,7 @@ func _hit_feedback_effects() -> void:
 	for s: Array in LINK_SIZES:
 		var suffix: String = s[0]
 		var radii: Vector2 = s[1]
-		var size := Vector2i(int(radii.x) * 2 + 12, int(radii.y) * 2 + 12)
+		var size := Vector2i(int(radii.x * 2.4) + 8, int(radii.y * 2.4) + 8)  # room for the arcs' jag
 		_sheet("link_arcs" + suffix, size, 4, 14, size / 2, true, "status", _link_arcs.bind(radii),
 			{note = "Jarlink / Lightning Fence: jittering arcs wrapped round a nightmare while it stands in the link, looped (anchor = its body centre), a body up to ~%d px across." % int(radii.x * 2.0 - 6.0)})
 	for n in 3:
@@ -3899,7 +3900,7 @@ func _hit_feedback_effects() -> void:
 			{note = "Poisoned ticks: green bubbles rising off the nightmare, looped; density %d of 3 (more stacks, more bubbles). Anchor = its body centre; the bubbles rise 24 px above it." % (n + 1)})
 	_sheet("beam_spot", Vector2i(24, 24), 4, 12, Vector2i(12, 12), true, "status", _beam_spot.bind(3.0),
 		{note = "Beams (Sunpetal, Midsummer): the bright spot where the beam lands, looped (anchor = the landing point). Swap to beam_spot_big as the beam ramps."})
-	_sheet("beam_spot_big", Vector2i(40, 40), 4, 12, Vector2i(20, 20), true, "status", _beam_spot.bind(6.0),
+	_sheet("beam_spot_big", Vector2i(44, 44), 4, 12, Vector2i(22, 22), true, "status", _beam_spot.bind(6.0),
 		{note = "Beams at full ramp: the larger landing spot, looped (anchor = the landing point)."})
 	_sheet("bolt_strike", Vector2i(48, 96), 6, 18, Vector2i(24, 80), false, "status", _bolt_strike,
 		{note = "Charged bolt: a strike from above onto the nightmare (anchor = the strike point, its body centre; the bolt comes down 80 px). ~0.33 s; the biggest single hit reaction."})
@@ -3945,7 +3946,7 @@ func _hit_family(img: Image, f: int, family: String) -> void:
 				_star(img, c, arm, CORE, WARM)
 			if f == 0:
 				_disc(img, c, 2.0, CORE)
-			var r: float = [0.0, 6.5, 8.5, 9.5, 10.0][f]
+			var r: float = [0.0, 6.0, 7.5, 8.5, 9.0][f]  # the crackle stays inside the 24 px frame
 			if f >= 1:  # the crackle outline: three jagged arcs
 				for k in 3:
 					var from := k * TAU / 3.0 + f * 0.5
