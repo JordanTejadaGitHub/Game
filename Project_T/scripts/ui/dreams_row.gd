@@ -246,6 +246,9 @@ func _build_list() -> void:
 		var calling_name := Label.new()
 		calling_name.name = "CallingName"
 		calling_name.text = "%s · %s family" % [calling.path, calling.family]
+		if _phone_page:  # No " · " on phones (UI Asset): the family goes in the caps head
+			calling_name.text = calling.path
+			calling_head.text = "Calling, %s family" % calling.family
 		UiStyle.title(calling_name, PHONE_NAME_SIZE if _phone_page else 16, UiStyle.GOLD)
 		_list_box.add_child(calling_name)
 		var calling_rule := StatusLinks.make_label(calling.text, PHONE_BODY_SIZE if _phone_page else 14, UiStyle.INK)
