@@ -239,12 +239,38 @@ var hud_frame := 0  # Engine.get_process_frames(), once a frame (the badges' sta
 # pause their cosmetics (animation, HUD, rounded corners); gameplay never. Desktop Full: always false.
 var low_detail_now := false
 
+# C4 "slow ripple" (visual_feedback_spec.md C1 / C4; Roguelite's DreamState.card_cue, 451495cb): when a card slows, holds,
+# sleeps or pulls, a low ground ripple where it happened: the landing_dust sheet, small and tinted Heartlight (Dream's
+# colour). SLOW_RIPPLE_PER_SECOND for the whole field; none at Reduced effects or off screen.
+const SLOW_RIPPLE_EFFECT := &"landing_dust"
+const SLOW_RIPPLE_SCALE := 0.8
+const SLOW_RIPPLE_PER_SECOND := 6
+var _ripple_times: Array[int] = []
+
+func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: Node) -> void:
+	if cue != &"slow_ripple" or Fx.reduced() or not Fx.on_screen(at):
+		return
+	var now := Time.get_ticks_msec()
+	while not _ripple_times.is_empty() and now - _ripple_times[0] > 1000:
+		_ripple_times.pop_front()
+	if _ripple_times.size() >= SLOW_RIPPLE_PER_SECOND:
+		return
+	var world := Reactions._world(self)  # (Never under this node: its children are all nightmares)
+	if world == null:
+		return
+	var ripple := Fx.play(SLOW_RIPPLE_EFFECT, at, world, SLOW_RIPPLE_SCALE)
+	if ripple != null:
+		_ripple_times.append(now)
+		ripple.modulate = Color(Palette.HEARTLIGHT, 0.8)  # multiplier: Dream's warm tint on the dust
+
 func _process(delta: float) -> void:
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
 	hud_frame = Engine.get_process_frames()
 	low_detail_now = EnvironmentTiles.low_detail()
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and not dreams.card_cue.is_connected(_on_card_cue):
+		dreams.card_cue.connect(_on_card_cue)  # The C4 slow ripple (visual_feedback_spec.md C4)
 	# Thin-family cards (dream_design.md 2026-09-30), read once a frame for every nightmare.
 	root_web_share = dreams.get_root_web_share(false) if dreams != null else 0.0
 	root_web_boss_share = dreams.get_root_web_share(true) if dreams != null else 0.0

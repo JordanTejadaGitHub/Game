@@ -2912,6 +2912,8 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier()
+	if statuses.marked_bonus > 0.0:  # Bright Marks' share of this hit, for the Dream damage panel and the boost tiers
+		DamageLog.note_card_bonus("bright_marks", statuses.bright_marks_multiplier())
 	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment

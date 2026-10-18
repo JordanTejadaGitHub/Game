@@ -607,6 +607,19 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 func is_exposed() -> bool:
 	return has(MARKED) and stacks(MARKED) >= get_max_stacks(MARKED)
 
+# Bright Marks' part of the damage taken (DamageLog.note_card_bonus: the Dream damage panel and DreamState.boost_tier read
+# it; Roguelite 451495cb): the taken multiplier with its bonus over the one without, the rest cancelling. 1.0 when it
+# adds nothing (not Exposed, or no Bright Marks).
+func bright_marks_multiplier() -> float:
+	if marked_bonus <= 0.0 or not is_exposed():
+		return 1.0
+	var s := strength(MARKED)
+	var plain := maxf(MARKED_EXTRA, marked_extra)
+	var stag := STAG_EXTRA if is_in_stag_aura() else 0.0
+	var with_bonus := 1.0 + minf((plain + marked_bonus) * s, maxf(EXPOSED_CAP, plain + marked_bonus)) + stag
+	var without := 1.0 + minf(plain * s, maxf(EXPOSED_CAP, plain)) + stag
+	return with_bonus / without
+
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if is_exposed():
