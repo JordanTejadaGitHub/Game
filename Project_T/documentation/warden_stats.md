@@ -488,7 +488,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 
 | Warden | Tier | Cost | Range | Soothe × /s | DPS | Kind | Effect |
 |---|---|---|---|---|---|---|---|
-| ✓ Dewdrop | base | 25 (+15) | 2.5 | 15 × 1.2 | 18 | projectile | splash 0.6; Damp |
+| ✓ Dewdrop | base | 25 (+15) | 2.5 | **20** × 1.2 | 24 | projectile | splash 0.6; Damp. Balancing 2026-10-18: was 16.2; 4 of 5 Dewdrop branches failed drift 25 in the bot check and the owner's Dewdrop runs died in act 1; Dewdrop was the starters' weakest hitter (~19 a second vs a Jar's ~25) |
 | ✓ Rain Lily | branch | +45 | 2.75 | 18 × 1.2 | 22 | projectile | splash **1.0**; Damp **6 s** |
 | Monsoon | final | +90 | 3 | 40 every 3 s | 13 to **each** creature in range | rain | soothes **every** creature in range + Damp 6 s |
 | ✓ Mistveil | branch | +45 | 2.5 | 8 × 0.5 | cloud | cloud (fog) | fog on the path (radius 0.9, 4 s): Damp, and **Spored ticks +50%** inside (proposed value) |
