@@ -197,11 +197,12 @@ func _toast(text: String) -> void:
 		hud.show_toast(text)
 
 # --- Phones: Select mode (the dock's Select slot) ----------------------------------------------------------------------
-# While on, a tap on a Warden adds it to the selection or takes it out (any kinds), a one-finger drag draws a selection
-# box instead of panning (TouchBuild asks select_claims), two fingers still pinch and pan, and a tap on empty ground clears.
-# Off: the slot again, Android Back, or build / sell mode (the modes are exclusive).
+# While on, a tap on a Warden adds it to the selection or takes it out (any kinds), one finger pans the map as usual (no
+# drag box, user 2026-10-18) and a tap on empty ground clears. Off: the touch bar's Done, the slot again, Android Back,
+# or build / sell mode (the modes are exclusive).
 signal select_mode_changed(on: bool)
 var select_mode := false
+var _last_touch_tower: Tower = null  # Touch: the Warden under the previous press (a double tap needs the same one twice)
 
 func set_select_mode(on: bool) -> void:
 	if on:
@@ -217,9 +218,10 @@ func set_select_mode(on: bool) -> void:
 	select_mode_changed.emit(on)
 	queue_redraw()
 
-# A one-finger drag on the map is Select mode's box, not a pan (TouchBuild).
+# Whether a one-finger drag on the map is Select mode's rather than a pan (TouchBuild). Never since the user's
+# 2026-10-18 ask: "Select mode you shouldn't be able to drag and select and should be able to move the camera normally".
 func select_claims() -> bool:
-	return select_mode and active
+	return false
 
 # Sell mode: a click on `tower` sells it now (one Warden: no drift confirm; that's for 3+ group sells). True if sold.
 func sell_clicked(tower: Tower) -> bool:
@@ -797,13 +799,19 @@ func _on_press(event: InputEvent) -> void:
 	# selection kept growing; a Shift whose release went to another window, e.g. Win+Shift+S, made every click add).
 	var shift := mouse != null and mouse.shift_pressed and Input.is_key_pressed(KEY_SHIFT)
 	var whole_map := mouse != null and ((mouse.ctrl_pressed and Input.is_key_pressed(KEY_CTRL)) or (mouse.meta_pressed and Input.is_key_pressed(KEY_META)))
+	var touch_tapped: Tower = null
+	if mouse != null and TouchBuild.is_touch():
+		touch_tapped = get_tower_at_point(get_canvas_transform().affine_inverse() * mouse.position)
+	var last_tapped: Tower = _last_touch_tower
+	_last_touch_tower = touch_tapped
 	if mouse != null and mouse.double_click and TouchBuild.is_touch():
 		# Phones (user 2026-10-15: double tap is how you select several): the same kind and rank ON SCREEN, under the
 		# finger, never the modifier keys (a phone's emulated taps may carry them: "244 Wardens selected" from the
-		# whole map), never adding to the selection.
-		var tapped := get_tower_at_point(get_canvas_transform().affine_inverse() * mouse.position)
-		if tapped != null:
-			select_same_as(tapped, false, false)
+		# whole map). Only two taps on the SAME Warden (user 2026-10-18: fast taps on different Wardens selected the
+		# whole kind). Select mode adds the kind to the selection; otherwise it replaces it.
+		if touch_tapped != null and touch_tapped == last_tapped:
+			select_same_as(touch_tapped, false, false, select_mode)
+			_last_touch_tower = null  # A third tap starts over
 			_pressing = false
 			return
 	elif mouse != null and mouse.double_click and _hover_tower != null:
@@ -895,11 +903,10 @@ func _process(delta: float) -> void:
 		_pressing = false  # Its release never reached us (focus lost): a later release must not finish this press as a box
 		_dragging = false
 		queue_redraw()
-	if _pressing and not _dragging and not sell_mode and not _box_blocked and get_canvas_transform() != _press_view \
-			and not (select_mode and TouchBuild.is_touch()):  # Select mode on touch: one finger never pans (a camera still easing is no pan)
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and get_canvas_transform() != _press_view:
 		_box_blocked = true  # The view moved before the drag began (edge scroll, middle drag, WASD): a pan, never a box
-	if _pressing and not _dragging and not sell_mode and not _box_blocked and (not TouchBuild.is_touch() or select_mode) \
-			and not TouchBuild.gesture_moved() and _pointer_screen().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box (Select mode: the box)
+	if _pressing and not _dragging and not sell_mode and not _box_blocked and not TouchBuild.is_touch() \
+			and not TouchBuild.gesture_moved() and _pointer_screen().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, never a box (Select mode too)
 		_dragging = true
 	if _dragging and TouchBuild.gesture_moved():
 		_dragging = false  # A second finger: a pinch, never a box

@@ -115,6 +115,8 @@ func _ready() -> void:
 		seller.sell_mode_changed.connect(func(on: bool) -> void:
 			_sell.set_pressed_no_signal(on)
 			_refresh())
+	if seller != null and seller.has_signal("select_mode_changed"):
+		seller.select_mode_changed.connect(func(_on: bool) -> void: _refresh())
 	if seller != null and seller.has_signal("sell_marks_changed"):
 		seller.sell_marks_changed.connect(_refresh)
 	visible = false
@@ -138,9 +140,10 @@ func _refresh() -> void:
 	var pending: bool = tower_placer != null and bool(tower_placer.get("stroking"))
 	var building: bool = tower_placer != null and bool(tower_placer.get("build_mode"))
 	var selling: bool = mobile_controls() and seller != null and bool(seller.get("sell_mode"))
+	var selecting: bool = mobile_controls() and seller != null and bool(seller.get("select_mode"))  # Done ends it (user 2026-10-18)
 	var marks: Array = _marks()
 	var marked := selling and not marks.is_empty()
-	visible = touch_mode and (pending or building or selling)  # Done all through build (and sell) mode, Confirm / Cancel with pending Wardens
+	visible = touch_mode and (pending or building or selling or selecting)  # Done all through build (and sell) mode, Confirm / Cancel with pending Wardens
 	# Not under a full-screen screen (a Dream, the pause menu …): it showed through the Dream screen's bottom row (user
 	# screenshot 2026-10-16). It comes back when the screen closes (_process).
 	_under_modal = visible and camera != null and camera.has_method("modal_open") and camera.modal_open()
@@ -149,7 +152,7 @@ func _refresh() -> void:
 	_plant.visible = pending
 	_sell_marks.visible = marked and not pending
 	_cancel.visible = pending or marked
-	_done.visible = (building or selling) and not pending and not marked
+	_done.visible = (building or selling or selecting) and not pending and not marked
 	if marked:
 		_sell_marks.text = "Sell %d  %s" % [marks.size(), UiStyle.dew_amount(seller.get_marked_refund(), true)]
 	# (Phone layouts: Sell is the Warden dock's last slot, hud.gd sell_slot.)
@@ -176,10 +179,12 @@ func _on_plant() -> void:
 		tower_placer.set_build_mode(false)  # Phones: Confirm ends building (user 2026-10-16); pick a Warden to build again
 	_refresh()
 
-# Done: out of sell mode, or out of build mode.
+# Done: out of sell mode, Select mode, or build mode.
 func _on_done() -> void:
 	if seller != null and bool(seller.get("sell_mode")):
 		seller.set_sell_mode(false)
+	elif seller != null and bool(seller.get("select_mode")):
+		seller.set_select_mode(false)
 	elif tower_placer != null:
 		tower_placer.set_build_mode(false)
 	_refresh()

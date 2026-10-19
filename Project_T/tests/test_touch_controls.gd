@@ -180,11 +180,30 @@ func _run() -> void:
 	_check(seller.selection.size() == 1 and seller.selection.has(keeper), "…a tap on a selected one takes it out")
 	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
 	_check(seller.selection.is_empty(), "…a tap on empty ground clears")
+	# Fast taps on different Wardens (the second one marked a double tap) add one each, never the whole kind (user 2026-10-18)
+	var sprout_2 := _build_on(placer, container, load("res://resource/tower/sprout.tres"), _free_cells(map_generator, 1)[0])
+	placer.set_build_mode(false)
+	hud.select_slot.button_pressed = true
+	await _tap(_screen_of(keeper.global_position))
+	await _tap(_screen_of(sprout.global_position), true)
+	_check(seller.selection.size() == 2 and not seller.selection.has(sprout_2),
+		"…a quick tap on a different Warden adds just it (%d selected)" % seller.selection.size())
+	await _tap(_screen_of(sprout.global_position))
+	await _tap(_screen_of(sprout.global_position), true)
+	_check(seller.selection.has(keeper) and seller.selection.has(sprout),
+		"…a double tap on one Warden adds its kind on screen (%d selected)" % seller.selection.size())
+	seller.select(null)
+	for i in 30:
+		await process_frame
 	cam_before = camera.target_position
 	var box_at := _screen_of(sprout.global_position)
 	await _drag(box_at - Vector2(40, 40), Vector2(80, 80))
-	_check(seller.selection.has(sprout) and not seller._dragging, "…a one-finger drag draws a box that selects (%d selected)" % seller.selection.size())
-	_check(camera.target_position.distance_to(cam_before) < 1.0, "…and never pans the map")
+	_check(seller.selection.is_empty() and not seller._dragging, "…a one-finger drag selects nothing (%d selected)" % seller.selection.size())
+	_check(camera.target_position.distance_to(cam_before) > 10.0, "…it pans the map as usual")
+	_check(touch.visible and touch._done.visible, "…the touch bar shows Done in Select mode")
+	touch._done.pressed.emit()
+	_check(not seller.select_mode and not hud.select_slot.button_pressed, "…Done leaves Select mode")
+	hud.select_slot.button_pressed = true
 	placer.select_tower(load("res://resource/tower/thornwall.tres"))
 	_check(not seller.select_mode and not hud.select_slot.button_pressed, "picking a Warden to build leaves Select mode")
 	placer.set_build_mode(false)
@@ -298,9 +317,10 @@ func _close_screens() -> void:
 func _send(event: InputEvent) -> void:
 	root.push_input(event)
 
-func _touch(index: int, at: Vector2, pressed: bool) -> void:
+func _touch(index: int, at: Vector2, pressed: bool, double := false) -> void:
 	if index == 0:
 		var mouse := InputEventMouseButton.new()
+		mouse.double_click = double and pressed  # A phone's second quick tap (the emulated mouse marks it)
 		mouse.device = InputEvent.DEVICE_ID_EMULATION
 		mouse.button_index = MOUSE_BUTTON_LEFT
 		mouse.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
@@ -329,8 +349,8 @@ func _move(index: int, at: Vector2, relative: Vector2) -> void:
 	event.relative = relative
 	_send(event)
 
-func _tap(at: Vector2) -> void:
-	_touch(0, at, true)
+func _tap(at: Vector2, double := false) -> void:
+	_touch(0, at, true, double)
 	await process_frame
 	_touch(0, at, false)
 	await process_frame

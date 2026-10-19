@@ -429,7 +429,7 @@ func _make_select_slot() -> void:
 	select_slot = Button.new()
 	select_slot.name = "SelectSlot"
 	select_slot.text = "Select"
-	select_slot.tooltip_text = "Select mode: tap Wardens to add or remove them, drag a box. Tap Select again to stop."
+	select_slot.tooltip_text = "Select mode: tap Wardens to add or remove them; one finger still moves the map. Done stops it."
 	select_slot.toggle_mode = true
 	select_slot.focus_mode = Control.FOCUS_NONE
 	select_slot.theme_type_variation = &"WardenSlot"
