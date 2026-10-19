@@ -628,6 +628,7 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 	if _phone:  # The Codex page beside the rail
 		_pane = &"codex"
 		_run_page.get_parent().visible = false
+		_pane_box.size_flags_vertical = Control.SIZE_FILL  # The Codex fills the pane (only This run hugs its content)
 		_settings.visible = false
 		codex.open(tab, entry)
 		_sync_pane_buttons()

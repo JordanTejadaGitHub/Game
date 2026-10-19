@@ -67,6 +67,9 @@ func _run() -> void:
 		await _check_tabs("settings", pause._settings, view)
 		pause.open_codex()  # The Codex: every tab
 		await _settle()
+		# Opened straight from This run (the HUD's "?" does this): the Codex fills the pane, never This run's hug (user 2026-10-19)
+		var pane_h: float = (pause.get("_pane_box") as Control).size.y
+		_check(pane_h > view.y * 0.7, "Codex %s: opened directly it fills the pane (%d of %d)" % [view, int(pane_h), int(view.y)])
 		await _check_tabs("Codex", pause.find_children("*", "CodexPanel", true, false).front(), view)
 		pause.close()
 		dreams.stacks[DREAM_CARDS[0]] = 1  # A Dream taken: Your Dreams shows
