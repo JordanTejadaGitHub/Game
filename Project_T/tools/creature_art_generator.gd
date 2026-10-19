@@ -46,7 +46,6 @@ const CREATURES := {
 	"mother_duck_silenced": {fps = 6.0, draw = "mother_duck", variant = "silenced"},  # its lantern snuffed by a Hushbell
 	"duckling": {fps = 7.0},  # Wraith
 	"old_stag": {fps = 7.0, size = 112},  # The Hollow Stag
-	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag's old art (kept until great_toad.tres points at mire_hag)
 	# The Mire Hag (enemy_design.md): "burrow" = sinking into the mire (played backwards to rise).
 	"mire_hag": {fps = 6.0, size = 144, extra = ["burrow"], extra_fps = 8.0, once = ["burrow"]},
 	# Acts 3-4 (acts_3_4.md): new names from the start.
@@ -1378,90 +1377,6 @@ func _heart_fire(canvas: Image, c: Vector2, f: int) -> void:
 	_flat_ellipse(canvas, c, Vector2(r, r), _c("Dewlight"))
 	_px(canvas, int(c.x), int(c.y), _c("Moonlight"))
 
-# --- The Mire Hag (great_toad) ------------------------------------------------------------------
-# Act 2 boss, sinks into the mire and rises 3 tiles ahead: a bent bog witch wading waist-deep in a
-# pool of black water, wrapped in reeds, long wet hair down her back, a crooked staff and a long
-# clawed hand reaching ahead; her eyes glow a sickly cold green. Drawn on a 144px frame.
-
-func _draw_great_toad(canvas: Image, st: Dictionary) -> void:
-	var o := _c("Void")
-	var robe := _ramp(["Void", "Dread", "Night", "Dusk"])
-	var skin := _ramp(["Dusk", "Slate", "Stone"])
-	var hair := _ramp(["Void", "Dread", "Night"])
-	var reed := _c("Pool")
-	var wood := _c("Night")
-	var eye := _c("Moonlight")
-	var eye_halo := _c("Dewlight", 0.5)
-	var f: int = st.f
-	var ph: float = st.ph
-	var b: int = [0, 1, 2, 1, 0, -1][f]
-	var ground := 97.0
-	_mire(canvas, Vector2(70, ground), f, false)
-	var fig := _layer()
-	match st.dir:
-		SIDE:
-			var staff := _layer()
-			_stroke(staff, [Vector2(55, 30 + b), Vector2(53, 60 + b), Vector2(56, ground)], 1.6, wood)
-			_stroke(staff, [Vector2(55, 30 + b), Vector2(51, 25 + b), Vector2(54, 21 + b)], 1.4, wood)
-			_stamp(canvas, staff, o)
-			_ellipse(fig, Vector2(66, 67 + b), Vector2(18, 26), robe, ground)
-			_ellipse(fig, Vector2(62, 52 + b), Vector2(15, 13), robe)
-			_reed_bands(fig, [[Vector2(48, 62), Vector2(82, 54)], [Vector2(47, 76), Vector2(84, 68)], [Vector2(50, 88), Vector2(84, 82)]], b, reed)
-			_stamp(canvas, fig, o)
-			_hag_hair(canvas, [Vector2(80, 30), Vector2(84, 29), Vector2(88, 30), Vector2(91, 32)], Vector2(-26, 48), ph, b, hair, o)
-			var sleeve := _layer()
-			_ellipse(sleeve, Vector2(78, 55 + b), Vector2(5, 4.5), robe)
-			_stamp(canvas, sleeve, o)
-			var arm := _layer()
-			_stroke(arm, [Vector2(79, 57 + b), Vector2(90, 66 + b), Vector2(101, 62 + b + roundi(sin(ph)))], 1.8, skin[1])
-			_stamp(canvas, arm, o)
-			_claws(canvas, Vector2(101, 62 + b + roundi(sin(ph))), 1.0, skin[2])
-			var head := _layer()
-			_ellipse(head, Vector2(88, 39 + b), Vector2(8, 9.5), skin)
-			_ellipse(head, Vector2(92, 49 + b), Vector2(3.5, 3), skin)
-			_lens(head, Vector2(93, 38 + b), Vector2(104, 47 + b), 2.6, skin[2], skin[1])
-			_stamp(canvas, head, o)
-			_flat_ellipse(canvas, Vector2(86, 32 + b), Vector2(8.5, 4.5), hair[1])
-			_line(canvas, [Vector2(94, 33 + b), Vector2(96, 40 + b), Vector2(95, 47 + b)], hair[0])
-			_line(canvas, [Vector2(92, 46 + b), Vector2(97, 47 + b)], HOLLOW)
-			for x in range(91, 94):
-				_glow(canvas, Vector2i(x, 37 + b), eye, eye_halo)
-		DOWN, UP:
-			var down: bool = st.dir == DOWN
-			var staff := _layer()
-			var sx := 42 if down else 102
-			_stroke(staff, [Vector2(sx, 27 + b), Vector2(sx - 2, 62 + b), Vector2(sx + 1, ground)], 1.6, wood)
-			_stroke(staff, [Vector2(sx, 27 + b), Vector2(sx - 4, 22 + b), Vector2(sx - 1, 18 + b)], 1.4, wood)
-			_stamp(canvas, staff, o)
-			_ellipse(fig, Vector2(72, 70 + b), Vector2(21, 24), robe, ground)
-			_ellipse(fig, Vector2(72, 53 + b), Vector2(18, 10), robe)
-			_reed_bands(fig, [[Vector2(52, 64), Vector2(92, 58)], [Vector2(51, 78), Vector2(93, 74)], [Vector2(53, 90), Vector2(91, 88)]], b, reed)
-			_stamp(canvas, fig, o)
-			for side: int in [-1, 1]:
-				var arm := _layer()
-				var hand := Vector2(72 + side * 19, 84 + b + roundi(sin(ph + side)))
-				_stroke(arm, [Vector2(72 + side * 16, 54 + b), Vector2(72 + side * 22, 70 + b), hand], 1.8, skin[1])
-				_stamp(canvas, arm, o)
-				_claws(canvas, hand, 0.0, skin[2])
-			if down:
-				_hag_hair(canvas, [Vector2(62, 32), Vector2(64, 30), Vector2(80, 30), Vector2(82, 32)], Vector2(0, 42), ph, b, hair, o)
-				var head := _layer()
-				_ellipse(head, Vector2(72, 38 + b), Vector2(9.5, 11), skin)
-				_lens(head, Vector2(72, 36 + b), Vector2(72, 49 + b), 2.2, skin[2], skin[1])
-				_stamp(canvas, head, o)
-				_flat_ellipse(canvas, Vector2(72, 29 + b), Vector2(10.5, 5), hair[1])
-				for side: int in [-1, 1]:
-					_line(canvas, [Vector2(72 + side * 8, 31 + b), Vector2(72 + side * 10, 46 + b), Vector2(72 + side * 11, 58 + b)], hair[0])
-				_line(canvas, [Vector2(69, 51 + b), Vector2(75, 51 + b)], HOLLOW)
-				for x: int in [66, 67, 68, 75, 76, 77]:
-					_glow(canvas, Vector2i(x, 38 + b), eye, eye_halo)
-			else:
-				var head := _layer()
-				_ellipse(head, Vector2(72, 36 + b), Vector2(9.5, 10), hair)
-				_stamp(canvas, head, o)
-				_hag_hair(canvas, [Vector2(64, 36), Vector2(68, 38), Vector2(72, 39), Vector2(76, 38), Vector2(80, 36)], Vector2(0, 36), ph, b, hair, o)
-	_mire(canvas, Vector2(70, ground), f, true)
-
 # --- The Mire Hag (mire_hag) --------------------------------------------------------------------
 # Act 2 boss, "the drowned witch of the deep fen": bent double under a hump of wet reeds, a hood over a
 # face that is only a dark hollow, a hooked nose and two cold eyes; long grey arms hang forward to
@@ -1629,28 +1544,6 @@ func _mire(canvas: Image, c: Vector2, f: int, front: bool, r: Vector2 = Vector2(
 		for x in range(floori(c.x - r.x * 0.75), ceili(c.x + r.x * 0.75)):
 			if (x + f) % 3 != 0:
 				_px(canvas, x, roundi(c.y - r.y * 0.1) - 1, sheen)
-
-# Reed stalks bound round her body in bands, only over her own pixels.
-func _reed_bands(layer: Image, bands: Array, b: int, color: Color) -> void:
-	for band: Array in bands:
-		var a: Vector2 = band[0] + Vector2(0, b)
-		var e: Vector2 = band[1] + Vector2(0, b)
-		for off: int in [0, 2]:
-			var steps := int(absf(e.x - a.x))
-			for s in steps + 1:
-				var p := a.lerp(e, float(s) / steps).round() + Vector2(0, off)
-				if layer.get_pixel(int(p.x), int(p.y)).a > 0.0 and posmod(int(p.x) + off, 7) != 0:
-					layer.set_pixel(int(p.x), int(p.y), color if off == 0 else color.darkened(0.35))
-
-# Long wet hair: strands from the crown points trailing by `fall`, swaying at the ends.
-func _hag_hair(canvas: Image, crown: Array, fall: Vector2, ph: float, b: int, ramp: Array[Color], o: Color) -> void:
-	var layer := _layer()
-	for i in crown.size():
-		for j in 3:
-			var start: Vector2 = crown[i] + Vector2(j * 1.5 - 1.5, b)
-			var end := start + fall + Vector2(sin(ph + i + j) * 2.0 + j * 2.0 - 2.0, j * 2.0)
-			_stroke(layer, [start, start.lerp(end, 0.5) + Vector2(1.5 * sin(i + j), 0), end], 1.0, ramp[(i + j) % ramp.size()])
-	_stamp(canvas, layer, o)
 
 # Long claw fingers curling down from a hand; `forward` 1 = reaching right, 0 = hanging down.
 func _claws(canvas: Image, hand: Vector2, forward: float, color: Color) -> void:
