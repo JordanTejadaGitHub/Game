@@ -1312,6 +1312,11 @@ build ghost, selection) follows the same rules:
   reaches, **never square cell tiles** and never grass, Wardens or obstacles.
 - **One source of truth:** the preview asks the same code the attack uses for its aim and its hit test, so what is
   drawn is what is hit (as the Jarlink segment rule).
+- **Revised 2026-10-18** (user, Dewdrop selected, a dashed aim line to a blue box on the path: *"shouldn't show this
+  while hovering"*): **selecting or hovering a Warden shows only its range ring** (and a link Warden's link mark). No
+  aim lines, no dashed bursts, no boxes. The attack-shape layer (above) is for **grow previews and the build ghost**
+  only, and even there it never draws a dashed aim line from the Warden or a rectangle: just the burst / jet / link
+  shape on the path ribbon.
 
 ## Status row: Reaction-ready marks and falling asleep (user, 2026-10-18)
 User: *"add a blue square on statuses stack to show where Reactions happen. Also the sleep goes to asleep have a
