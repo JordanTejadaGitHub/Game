@@ -101,7 +101,7 @@ func _run() -> void:
 	neighbour.set_process(false)
 	neighbour.position = toad.grid.calculate_map_position(landing)
 	toad._leap()
-	await create_timer(0.8, true, false, true).timeout
+	await create_timer(2.0, true, false, true).timeout  # The Mire Hag sinks with her "burrow" row: ~1.7 s down and up
 	_check(toad._path_index == index_before + leap_steps,"Toad leaps 3 tiles ahead (%d → %d)" % [index_before, toad._path_index])
 	_check(neighbour.statuses.has(EnemyStatuses.DAMP), "creatures by the landing get Damp")
 

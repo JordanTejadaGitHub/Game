@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
 [ext_resource type="SpriteFrames" path="res://animation/enemy/barrow_wight.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/barrow_wight_cracked.tres" id="9_cracked"]
 
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
+cracked_frames = ExtResource("9_cracked")
 kind = 0
 display_name = "Barrow Wight"
 health = 600
