@@ -61,6 +61,14 @@ var last_drift := 100
 var out_dir := "user://balance_out"  # Outside res://: Godot would import the CSVs as translations
 var start_cards: Array[String] = []
 var forced_families: Array[String] = []
+# The branch check (Balancing Discussion, owner 2026-10-18: "every branch can pass to drift 25 if they're using all the Dew";
+# tools/branch_check.sh): --branch=<id> puts that branch in its family's offer at the first pick (with --families=<family>),
+# unlocks it with the first-pick Dreamlight and grows into nothing else past the base; --spend-all spends to under
+# SPEND_ALL_KEEP at every rest and mid-drift check (grow, plant, walls; ranks only when nothing else is affordable).
+var forced_branch := ""
+var branch_status := ""  # RUN JSON branch_status: "unlocked", "unlocked+forced" (the draw left it out), or why not
+var spend_all := false
+const SPEND_ALL_KEEP := 50
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
 var even_archetypes := false  # --even-archetypes: DreamSimPolicy.extra_tag_scores = +1 for every archetype tag (as build_packages emergence), so no style steers toward one archetype (Balancing 2026-10-06)
@@ -195,7 +203,7 @@ var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
 var d := {}  # The current drift window's counters
-var run := {"sprout_cards_25": -1, "first_leak": 0, "boss_drained": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [],
+var run := {"sprout_cards_25": -1, "first_leak": 0, "boss_drained": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [], "rest_left": [],
 	"rest_bonus": [], "top_wardens": {}, "max_top_share": 0.0, "max_top_warden": "", "max_asleep": 0.0}
 var _last_dew := 0
 var _spent_now := 0
@@ -216,6 +224,8 @@ func _run() -> void:
 			"--out": out_dir = value if value != "" else out_dir  # An empty --out keeps the default (it wrote into the project root)
 			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
+			"--branch": forced_branch = value
+			"--spend-all": spend_all = true
 			"--hand-drifts": hand_drifts = true
 			"--save": save_mode = value
 			"--omens": omen_mode = value
@@ -554,6 +564,7 @@ func _on_rest(perfect: bool) -> void:
 		_warm_finals_spend(n)
 	else:
 		_spend()
+	run.rest_left.append(run_state.dew)  # After this rest's spending (the branch check's proof that it spent)
 	if warmup_to > 1 and not warm.done and n >= warmup_to - 1:
 		_end_warmup()
 	if save_at.has(n):
@@ -1005,6 +1016,21 @@ func _next_buy() -> String:
 	if _grow():
 		_save_since = -1  # The saver got its growth
 		return "grow"
+	if spend_all:  # --spend-all: more Wardens, then walls, ranks last
+		if run_state.dew < SPEND_ALL_KEEP:
+			return ""
+		# A growth open but not affordable yet, and under half the attackers are the forced branch: plant only up to the
+		# plan's room and save the rest for it. Trials (seed 1207, Hushbell): never saving left 46 Bellflowers and 4
+		# Hushbells; always saving held the board at 9 attackers to drift 11 (all 120-Dew grows) and it died at 19.
+		var grow_price := _cheapest_growth()
+		var grown := _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == forced_branch).size()
+		if grow_price > run_state.dew and 2 * grown < attackers:
+			return "plant" if attackers < target and _plant_attacker() else ""
+		if _plant_attacker():
+			return "plant"
+		if _plant_wall():
+			return "walls"
+		return "nurture" if _nurture() else ""
 	# A sensible player saves up for an unlocked growth (a branch is 80 Dew, a final 200 plus the ranks it
 	# carries) instead of spending every Dew on ranks; Narrow nurtures anyway.
 	var saving := _cheapest_growth()
@@ -1074,7 +1100,7 @@ func _cheapest_growth() -> int:
 		if style == "sprout" and tower.tower_data.get_id() == "sprout":
 			continue
 		for form in tower.tower_data.evolves_to:
-			if form is TowerData and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" \
+			if form is TowerData and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" and _allowed_form(form) \
 					and (form.footprint <= tower.get_footprint() or not placer.get_grow_squares(tower, form).is_empty()):
 				var cost: int = tower.get_grow_cost(form).total
 				if cheapest == 0 or cost < cheapest:
@@ -1503,6 +1529,8 @@ func _grow() -> bool:
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
+			if not _allowed_form(form):
+				continue
 			if _grow_only_tier > 0 and form.tier != _grow_only_tier:
 				continue  # --extra-spend grow / final: only that step
 			if form.footprint > tower.get_footprint() and placer.get_grow_squares(tower, form).is_empty():
@@ -1804,6 +1832,20 @@ func _finish() -> void:
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
 	summary.merge(_omen_act_columns())
+	# The branch check (tools/branch_check.sh): the forced branch, the leaves left, Dew left after each rest's spending,
+	# the furthest approach per block of 5 and the board at the end.
+	summary.branch = forced_branch
+	summary.branch_status = branch_status
+	summary.spend_all = spend_all
+	summary.calling = dreams.calling
+	summary.leaves_end = run_state.leaves
+	summary.rest_left = "/".join(run.rest_left.map(func(v) -> String: return str(v)))
+	var block_closest := {}
+	for r in rows:
+		var b: int = (int(r.drift) - 1) / 5 + 1
+		block_closest[b] = maxf(float(block_closest.get(b, 0.0)), float(r.approach))
+	summary.closest_blocks = "/".join(block_closest.keys().map(func(b) -> String: return "%.2f" % block_closest[b]))
+	summary.wardens_end = _warden_counts()
 	summary.omen_blocks = ";".join(omen_blocks)
 	summary.bosses = ";".join(bosses.values().map(_boss_text))
 	for key in ["offers", "pool_5", "cards", "matched", "generic", "off"]:
@@ -1928,7 +1970,7 @@ func _open_growth(tower: Tower) -> TowerData:
 	if style == "sprout" and tower.tower_data.get_id() == "sprout":
 		return null
 	for form in tower.tower_data.evolves_to:
-		if form is TowerData and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" \
+		if form is TowerData and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" and _allowed_form(form) \
 				and (form.footprint <= tower.get_footprint() or not placer.get_grow_squares(tower, form).is_empty()):
 			return form
 	return null
@@ -1955,9 +1997,38 @@ func _forced_family_pick(kind: StringName) -> void:
 			break
 	if chosen != "":
 		dreams.unlocked[chosen] = true
+		if kind == &"first":
+			dreams.set_calling(chosen)  # As FamilyPickScreen.choose: the first family is the run's class
 		dreams.unlocks_changed.emit()
+		if kind == &"first" and forced_branch != "":
+			_force_branch(chosen)
 	policy.choices.append("family pick (%s): %s" % [kind, chosen if chosen != "" else "none (fixed families)"])
 	policy.spend_dreamlight()
+
+# --branch: into the family's offer (replacing the drawn pair's last if the draw left it out) and unlocked with
+# Dreamlight before the policy spends any.
+func _force_branch(base_id: String) -> void:
+	var base: TowerData = load("res://resource/tower/%s.tres" % base_id)
+	var form: TowerData = null
+	for f in base.evolves_to:
+		if f is TowerData and f.get_id() == forced_branch:
+			form = f
+	if form == null:
+		branch_status = "not a branch of " + base_id
+		return
+	var offer: Array = dreams.get_branch_offer(base)
+	var forced := not offer.has(forced_branch)
+	if forced:
+		offer[offer.size() - 1] = forced_branch
+		dreams.branch_offers[base_id] = offer
+	if dreams.unlock_with_dreamlight(form):
+		branch_status = "unlocked+forced" if forced else "unlocked"
+	else:
+		branch_status = "no unlock (Dreamlight %d, price %d, blocker %s)" % [dreams.dreamlight, dreams.get_unlock_price(form), dreams.get_unlock_blocker(form)]
+
+# --branch: past the base Warden, only the forced branch is grown into.
+func _allowed_form(form: TowerData) -> bool:
+	return forced_branch == "" or form.tier < 2 or form.get_id() == forced_branch
 
 # A Sprout on the map grows into an unlocked family base Warden, if one is affordable (the one with the
 # most path in range).
