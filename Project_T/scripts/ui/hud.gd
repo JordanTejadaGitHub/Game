@@ -1311,11 +1311,10 @@ func _layout_top_row() -> void:
 	for name in _top_row_names():
 		var button := get_node_or_null(name) as Button
 		if button != null and button.visible:
-			if phone() and PHONE_TOP_LEFT.has(name):
-				continue  # Phones: in the top-left corner (_layout_top_left)
 			buttons.append(button)
 	if phone():
-		_layout_top_left()
+		_layout_top_row_phone(counters, buttons)
+		return
 	var buttons_w := buttons.size() * ROW_BUTTON + maxf(buttons.size() - 1, 0) * TOP_ROW_GAP
 	var screen_w := get_viewport().get_visible_rect().size.x
 	var banner := get_node_or_null("DriftBanner") as Control
@@ -1451,25 +1450,136 @@ func _layout_top_row() -> void:
 		_place_counter_icon.call_deferred(_clears_label)
 
 
-# Phones (user 2026-10-18: "the right side UI looks congested compared to the left side"): the menu and the glossary sit
-# in the top-left corner (where a phone game's menu usually is), left to right; Dreams, the damage meter, Boosts and
-# Remember stay top right under the counters.
-const PHONE_TOP_LEFT := ["MenuButton", "CodexButton"]  # Left to right
+# Phones (user 2026-10-18: "the right side UI looks congested", then "do that" to the mobile TD survey: Bloons TD 6,
+# Kingdom Rush, Arknights keep the numbers top left and the buttons top right): the counters run left to right from the
+# top-left corner on their fog patch (leaves, Dew with its "+N at rest", Dreamlight, path), every button sits top right
+# in PHONE_TOP_ROW order (Menu at the corner). Before the counters would reach the banner's text they step down
+# (ROW_STEPS), then the forecast shortens, then it hides; the buttons wrap under themselves only if they'd reach it.
 const PHONE_LEFT_X := 16.0
 
-func _layout_top_left() -> void:
+func _layout_top_row_phone(counters_rtl: Array, buttons: Array) -> void:
+	var screen_w := get_viewport().get_visible_rect().size.x
+	var banner := get_node_or_null("DriftBanner") as Control
+	var banner_left := screen_w / 2.0
+	var banner_right := screen_w / 2.0
+	if banner != null and banner.has_method("drawn_rect") and banner.visible:
+		banner_left = banner.drawn_rect().position.x
+		banner_right = banner.drawn_rect().end.x
+	var counters: Array = counters_rtl.duplicate()
+	counters.reverse()  # Left to right
+	# Buttons: right to left from the corner, one line, or two lines when they'd reach the banner.
+	var per_line := buttons.size()
+	while per_line > 1 and screen_w + ROW_RIGHT - per_line * ROW_BUTTON - ROW_PAD < banner_right + BANNER_CLEARANCE:
+		per_line -= 1
+	row_wrapped = per_line < buttons.size()
+	for i in buttons.size():
+		var button: Button = buttons[i]
+		var x := ROW_RIGHT - (i % per_line) * (ROW_BUTTON + TOP_ROW_GAP)
+		var top := ROW_TOP + (i / per_line) * (ROW_BUTTON + 4.0)
+		button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		button.offset_right = x
+		button.offset_left = x - ROW_BUTTON
+		button.offset_top = top
+		button.offset_bottom = top + ROW_BUTTON
+	# Counters: the largest step (and forecast form) that keeps them clear of the banner.
+	var room := banner_left - BANNER_CLEARANCE - PHONE_LEFT_X - ROW_PAD
+	var size := int(ROW_STEPS[0][0])
+	var gap := float(ROW_STEPS[0][1])
+	_maze_form = MAZE_HIDDEN
+	var fitted := false
+	for form in [MAZE_FULL, MAZE_SHORT, MAZE_HIDDEN]:
+		for step in ROW_STEPS:
+			if _phone_counters_width(counters, int(step[0]), float(step[1]), form) <= room:
+				size = int(step[0])
+				gap = float(step[1])
+				_maze_form = form
+				fitted = true
+				break
+		if fitted:
+			break
+	if not fitted:  # Even the smallest: the smallest, no forecast
+		size = int(ROW_STEPS[ROW_STEPS.size() - 1][0])
+		gap = float(ROW_STEPS[ROW_STEPS.size() - 1][1])
+	row_compact = size < int(ROW_STEPS[0][0])
+	leaves_down = false
+	_set_counter_size(counters, size)
+	if _maze_reward_label != null:
+		_maze_reward_label.visible = _maze_form != MAZE_HIDDEN and _maze_full != ""
+		_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
+	var forecast_w := _maze_forecast_width(_maze_form)
 	var x := PHONE_LEFT_X
-	for name in PHONE_TOP_LEFT:
-		var button := get_node_or_null(name) as Button
-		if button == null or not button.visible:
-			continue
-		button.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		button.grow_horizontal = Control.GROW_DIRECTION_END
-		button.offset_left = x
-		button.offset_right = x + ROW_BUTTON
-		button.offset_top = ROW_TOP
-		button.offset_bottom = ROW_TOP + ROW_BUTTON
-		x += ROW_BUTTON + TOP_ROW_GAP
+	for label: Label in counters:
+		var w := _phone_counter_width(label, size)
+		label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		label.grow_horizontal = Control.GROW_DIRECTION_END
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT  # The icon sits in the label's left part (_place_counter_icon)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.offset_left = x
+		label.offset_right = x + w
+		label.offset_top = ROW_TOP
+		label.offset_bottom = ROW_TOP + ROW_H
+		x += w
+		if label == leaves_label and _leaves_max.text != "":  # "/15" right after the value, dim
+			var max_w := _phone_text_width(_leaves_max, _leaves_max.get_theme_font_size("font_size"))
+			_leaves_max.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_leaves_max.offset_left = x
+			_leaves_max.offset_right = x + max_w
+			_leaves_max.offset_top = ROW_TOP + 4.0
+			_leaves_max.offset_bottom = ROW_TOP + ROW_H
+			x += max_w
+		if label == dew_label and forecast_w > 0.0:  # "+6 at rest" right after the Dew total
+			_maze_reward_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_maze_reward_label.offset_left = x + MAZE_FORECAST_GAP
+			_maze_reward_label.offset_right = x + forecast_w
+			_maze_reward_label.offset_top = ROW_TOP + 4.0
+			_maze_reward_label.offset_bottom = ROW_TOP + ROW_H
+			x += forecast_w
+		x += gap
+		_place_counter_icon.call_deferred(label)
+	var right := x - gap
+	var fog := get_node_or_null("ResourcesFog") as Control
+	if fog != null:
+		fog.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		fog.offset_left = PHONE_LEFT_X - ROW_PAD + 4.0
+		fog.offset_right = right + ROW_PAD
+		fog.offset_top = ROW_TOP - ROW_PAD + 4.0
+		fog.offset_bottom = ROW_TOP + ROW_H + ROW_PAD - 2.0
+	if _clears_label != null:  # The half-price clears counter: just under the counters
+		var clears_w := _clears_label.get_theme_font("font").get_string_size(_clears_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16.0 + COUNTER_ICON_GAP + 2.0
+		_clears_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_clears_label.offset_left = PHONE_LEFT_X
+		_clears_label.offset_right = PHONE_LEFT_X + clears_w
+		_clears_label.offset_top = ROW_TOP + ROW_H + ROW_PAD + 2.0
+		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
+		_place_counter_icon.call_deferred(_clears_label)
+
+func _phone_text_width(label: Label, size: int) -> float:
+	return ceilf(label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 2.0)
+
+func _phone_counter_width(label: Label, size: int) -> float:
+	var icon: TextureRect = _counter_icons.get(label)
+	return _phone_text_width(label, size) + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0)
+
+func _phone_counters_width(counters: Array, size: int, gap: float, form: int) -> float:
+	var total := gap * (counters.size() - 1) + _maze_forecast_width(form)
+	for label: Label in counters:
+		total += _phone_counter_width(label, size)
+	if _leaves_max.text != "":
+		total += _phone_text_width(_leaves_max, roundi(size * 20.0 / 28.0))
+	return total
+
+# The top row's rect on phones: the counters' patch and the buttons together (the Warden drawer starts under it).
+func _phone_row_rect() -> Rect2:
+	var rect := Rect2()
+	var fog := get_node_or_null("ResourcesFog") as Control
+	if fog != null:
+		rect = fog.get_global_rect()
+	for name in _top_row_names():
+		var button := get_node_or_null(name) as Control
+		if button != null and button.visible:
+			rect = button.get_global_rect() if rect.size == Vector2.ZERO else rect.merge(button.get_global_rect())
+	return rect
 
 const MAZE_FORECAST_SIZE := 14  # "+6 at rest" beside the Dew total: small
 const MAZE_FORECAST_GAP := 8.0  # Between the Dew total and its forecast
@@ -1490,6 +1600,8 @@ func _maze_forecast_width(form: int = MAZE_FULL) -> float:
 
 # The row's global rect (the fog patch), for tests and the banner check.
 func resource_row_rect() -> Rect2:
+	if phone():
+		return _phone_row_rect()  # The counters (top left) and the buttons (top right) together
 	var fog := get_node_or_null("ResourcesFog") as Control
 	return fog.get_global_rect() if fog != null else Rect2()
 

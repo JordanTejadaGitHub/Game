@@ -45,10 +45,16 @@ func _run() -> void:
 		var short: Array = row.filter(func(b) -> bool: return b is Control and b.is_visible_in_tree() and b.size.y < UiStyle.HUD_BUTTON_H - 0.5) \
 			.map(func(b: Control) -> String: return "%s (%d)" % [b.name, int(b.size.y)])
 		_check(short.is_empty(), "HUD %s: the top row and DriftPanel buttons stay %d tall %s" % [view, int(UiStyle.HUD_BUTTON_H), short])
-		# Menu and the glossary sit top left, the speeds are one cycling button (user 2026-10-18: the right side congested)
-		var menu_x: float = (main.get_node("HUD/MenuButton") as Control).get_global_rect().position.x
-		var codex_x: float = (main.get_node("HUD/CodexButton") as Control).get_global_rect().position.x
-		_check(menu_x < 100.0 and codex_x < 160.0 and menu_x < codex_x, "HUD %s: Menu then the glossary top left (%d, %d)" % [view, int(menu_x), int(codex_x)])
+		# The counters top left, the buttons top right (Menu at the corner), the speeds one cycling button (user 2026-10-18,
+		# after the mobile TD survey)
+		var hud_node: Node = main.get_node("HUD")
+		var leaves_x: float = (hud_node.leaves_label as Control).get_global_rect().position.x
+		var menu_rect: Rect2 = (main.get_node("HUD/MenuButton") as Control).get_global_rect()
+		var banner_rect: Rect2 = main.get_node("%DriftBanner").drawn_rect()
+		_check(leaves_x < 60.0, "HUD %s: the counters start top left (%d)" % [view, int(leaves_x)])
+		_check(menu_rect.end.x > view.x - 40.0, "HUD %s: Menu in the top-right corner (%d)" % [view, int(menu_rect.end.x)])
+		_check(not hud_node.get_node("ResourcesFog").get_global_rect().intersects(banner_rect),
+			"HUD %s: the counters stay clear of the banner" % [view])
 		var speeds: Array = main.get_node("HUD/DriftPanel").find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 			return b.text.ends_with("×"))
 		_check(speeds.size() == 1, "HUD %s: one speed button (%d)" % [view, speeds.size()])
