@@ -144,10 +144,22 @@ static func safe_insets(view: Vector2) -> Rect2:
 		return Rect2()
 	var screen := Vector2(DisplayServer.screen_get_size())
 	var safe := DisplayServer.get_display_safe_area()
-	if screen.x <= 0.0 or safe.size.x <= 0:
+	var window := Vector2(DisplayServer.window_get_size())
+	if screen.x <= 0.0 or safe.size.x <= 0 or window.x <= 0.0:
 		return Rect2()
-	var k := view.x / screen.x
-	return Rect2(Vector2(safe.position) * k, (screen - Vector2(safe.end)) * k)
+	# Only the unsafe edges inside the game's window (user 2026-10-18: "a lot of empty space on the left"): when Android
+	# already keeps the window clear of the cutout (a black bar beside it, the window narrower than the screen), that
+	# side needs no inset; counting it again pushed the whole HUD in and shrank it.
+	var near := Vector2(safe.position)
+	var far := screen - Vector2(safe.end)
+	if window.x < screen.x - 1.0:
+		near.x = 0.0
+		far.x = 0.0
+	if window.y < screen.y - 1.0:
+		near.y = 0.0
+		far.y = 0.0
+	var k := view.x / window.x
+	return Rect2(near * k, far * k)
 
 # Fits a full-screen layer (the HUD) into the safe part of `view`: one uniform scale, centred in the safe rect, so
 # nothing sits under a notch. Identity when nothing is unsafe.
