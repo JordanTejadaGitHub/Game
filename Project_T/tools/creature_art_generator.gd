@@ -33,6 +33,7 @@ enum { SIDE, DOWN, UP }
 const CREATURES := {
 	"leaf_bug": {fps = 10.0, calm = true},  # Shade. Calm: hard eye glow, no pale grain (reads on the pale path)
 	"bark_beetle": {fps = 6.0, calm = true},  # Husk
+	"bark_beetle_cracked": {fps = 6.0, calm = true, draw = "bark_beetle", variant = "cracked"},  # once its dread shell breaks
 	"dusk_moth": {fps = 10.0},  # Lurker
 	"dandelion_seed": {fps = 6.0},  # Phantom
 	"puffcap": {fps = 6.0, calm = true},  # Mourner
@@ -45,12 +46,15 @@ const CREATURES := {
 	"mother_duck_silenced": {fps = 6.0, draw = "mother_duck", variant = "silenced"},  # its lantern snuffed by a Hushbell
 	"duckling": {fps = 7.0},  # Wraith
 	"old_stag": {fps = 7.0, size = 112},  # The Hollow Stag
-	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag
+	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag's old art (kept until great_toad.tres points at mire_hag)
+	# The Mire Hag (enemy_design.md): "burrow" = sinking into the mire (played backwards to rise).
+	"mire_hag": {fps = 6.0, size = 144, extra = ["burrow"], extra_fps = 8.0, once = ["burrow"]},
 	# Acts 3-4 (acts_3_4.md): new names from the start.
 	"will_o_wisp": {fps = 8.0},
 	"gravecrawler": {fps = 8.0, extra = ["burrow"], extra_fps = 10.0, once = ["burrow"]},
 	"drowned_one": {fps = 6.0},
 	"barrow_wight": {fps = 4.0},
+	"barrow_wight_cracked": {fps = 4.0, draw = "barrow_wight", variant = "cracked"},  # once its dread shell breaks
 	"watcher": {fps = 6.0},
 	"ash_crawler": {fps = 6.0},
 	"moth_queen": {fps = 6.0, size = 144, extra = ["eclipse"], extra_fps = 8.0, once = ["eclipse"]},
@@ -67,6 +71,8 @@ const CREATURES := {
 	"huntsman": {fps = 7.0, size = 144, extra = ["horn"], extra_fps = 8.0, once = ["horn"]},
 	"lamplighter": {fps = 5.0, size = 112, extra = ["light"], extra_fps = 8.0, once = ["light"]},
 	"barrow_king": {fps = 4.0, size = 144, extra = ["shrug"], extra_fps = 8.0, once = ["shrug"]},
+	"barrow_king_cracked": {fps = 4.0, size = 144, draw = "barrow_king", variant = "cracked", extra = ["shrug"], extra_fps = 8.0,
+		once = ["shrug"]},  # once his dread shell breaks
 	"mourning_mother": {fps = 4.0, size = 144, extra = ["sorrow"], extra_fps = 6.0},
 	"hollow_oak_withering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "withering", extra = ["wither"], extra_fps = 8.0, once = ["wither"]},
 	"hollow_oak_remembering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "remembering", extra = ["echo"], extra_fps = 6.0, once = ["echo"]},
@@ -549,6 +555,8 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 	var ph: float = st.ph
 	var bob: int = [0, 0, 0, -1, 0, 0][f]  # a heavy lurch, then still
 	var sway: int = [0, 0, 1, 1, 0, 0][f]
+	var cracked: bool = st.variant == "cracked"  # the dread crust and half the bark gone: the cold thing inside shows
+	var off := Vector2(0, bob)
 	var shell := _layer()
 	var snag := _layer()
 	var cracks: Array[Vector2i] = []
@@ -560,17 +568,26 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 				_beetle_leg(canvas, Vector2(24 + i * 8, 37 + bob), Vector2(25 + i * 8 + roundi(s * 1.5), 41 - (1 if s > 0.5 else 0)), o)
 			var c := Vector2(29, 34 + bob)
 			var r := Vector2(15, 11)
+			if cracked:
+				_inner_dread(canvas, c + Vector2(1, -1), Vector2(12, 9), f, o)
 			_ellipse(shell, c, r, bark, 38.5 + bob)
 			_grooves(shell, c, r, bark, true)
 			for x in S:
 				for y: int in [37 + bob, 38 + bob]:
 					if shell.get_pixel(x, y).a > 0.0:
 						shell.set_pixel(x, y, bark[0])
-			cracks = _crack(shell, c, r, [[Vector2(-0.8, -0.1), Vector2(-0.45, -0.45), Vector2(-0.1, -0.2), Vector2(0.25, -0.6), Vector2(0.5, -0.35)],
-				[Vector2(-0.55, 0.3), Vector2(-0.1, 0.05), Vector2(0.3, 0.3), Vector2(0.75, 0.05)]], HOLLOW)
+			if cracked:
+				_break_top(shell, c.y - 1.0, bark[3])
+			else:
+				cracks = _crack(shell, c, r, [[Vector2(-0.8, -0.1), Vector2(-0.45, -0.45), Vector2(-0.1, -0.2), Vector2(0.25, -0.6), Vector2(0.5, -0.35)],
+					[Vector2(-0.55, 0.3), Vector2(-0.1, 0.05), Vector2(0.3, 0.3), Vector2(0.75, 0.05)]], HOLLOW)
 			_stamp(canvas, shell, o)
 			_crawl(canvas, cracks, f)
-			_twig(canvas, Vector2i(25, 24 + bob), bark[2])
+			if not cracked:
+				_armour(canvas, [[Vector2(16, 32), Vector2(17, 27), Vector2(23, 24), Vector2(27, 29), Vector2(22, 33)],
+					[Vector2(25, 25), Vector2(30, 22), Vector2(36, 24), Vector2(35, 30), Vector2(28, 30)],
+					[Vector2(35, 26), Vector2(40, 28), Vector2(42, 33), Vector2(37, 34), Vector2(34, 30)]], off, o)
+				_twig(canvas, Vector2i(25, 24 + bob), bark[2])
 			for i in 3:
 				var s := sin(ph + i * PI)
 				_beetle_leg(canvas, Vector2(21 + i * 8, 38 + bob), Vector2(21 + i * 8 + roundi(s * 1.5), 43 - (1 if s > 0.5 else 0)), bark[0])
@@ -591,16 +608,26 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 			_beetle_side_legs(canvas, (26 if down else 27) + bob, cx, st, bark[0])
 			var c := Vector2(cx, (29 if down else 32) + bob)
 			var r := Vector2(14, 11 if down else 11.5)
+			if cracked:
+				_inner_dread(canvas, c + Vector2(0, -1), Vector2(11, 9), f, o)
 			_ellipse(shell, c, r, bark)
 			_grooves(shell, c, r, bark, false)
 			for y in S:
 				if shell.get_pixel(cx, y).a > 0.0:
 					shell.set_pixel(cx, y, bark[0])
-			cracks = _crack(shell, c, r, [[Vector2(-0.7, -0.3), Vector2(-0.3, -0.1), Vector2(-0.35, 0.4), Vector2(0.0, 0.7)],
-				[Vector2(0.2, -0.8), Vector2(0.35, -0.3), Vector2(0.7, -0.1)]], HOLLOW)
+			if cracked:
+				_break_top(shell, c.y + 1.0, bark[3])
+			else:
+				cracks = _crack(shell, c, r, [[Vector2(-0.7, -0.3), Vector2(-0.3, -0.1), Vector2(-0.35, 0.4), Vector2(0.0, 0.7)],
+					[Vector2(0.2, -0.8), Vector2(0.35, -0.3), Vector2(0.7, -0.1)]], HOLLOW)
 			_stamp(canvas, shell, o)
 			_crawl(canvas, cracks, f)
-			_twig(canvas, Vector2i(cx + 3, (21 if down else 24) + bob), bark[2])
+			if not cracked:
+				var y0 := c.y - bob
+				_armour(canvas, [[Vector2(cx - 13, y0 + 3), Vector2(cx - 12, y0 - 5), Vector2(cx - 5, y0 - 9), Vector2(cx - 3, y0), Vector2(cx - 8, y0 + 5)],
+					[Vector2(cx + 13, y0 + 3), Vector2(cx + 12, y0 - 5), Vector2(cx + 5, y0 - 9), Vector2(cx + 3, y0), Vector2(cx + 8, y0 + 5)],
+					[Vector2(cx - 3, y0 - 8), Vector2(cx, y0 - 11), Vector2(cx + 3, y0 - 8), Vector2(cx + 2, y0 + 2), Vector2(cx - 2, y0 + 2)]], off, o)
+				_twig(canvas, Vector2i(cx + 3, (21 if down else 24) + bob), bark[2])
 			if down:
 				snag = _layer()
 				_stroke(snag, [Vector2(cx, 36 + bob), Vector2(cx + 1, 32 + bob), Vector2(cx - 1, 30 + bob)], 1.1, bark[1])
@@ -627,6 +654,50 @@ func _twig(canvas: Image, p: Vector2i, color: Color) -> void:
 	for q: Vector2i in [Vector2i(0, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(-1, -3), Vector2i(-2, -4), Vector2i(1, -3),
 			Vector2i(2, -4), Vector2i(2, -5)]:
 		_px(canvas, p.x + q.x, p.y + q.y, color)
+
+# Armoured nightmares (enemy_design.md "Nightmare Kinds"): the dread shell is always the Shellbound's
+# faceted plates of hardened dread, so every Armoured kind reads the same way. `off` moves them with the bob.
+const DREAD_SHELL := ["Dread", "Shade", "Bruise", "Wraithlight"]
+
+func _armour(canvas: Image, plates: Array, off: Vector2, o: Color) -> void:
+	for p: Array in plates:
+		var moved: Array = []
+		for q: Vector2 in p:
+			moved.append(q + off)
+		_plate(canvas, moved, _ramp(DREAD_SHELL), o)
+
+# Cracked variants: thin seams of cold light where the plates broke off.
+func _shell_scars(canvas: Image, scars: Array, off: Vector2) -> void:
+	for sc: Array in scars:
+		var pts: Array = []
+		for p: Vector2 in sc:
+			pts.append(p + off)
+		_line(canvas, pts, _c("Wraithlight"))
+
+# The cold thing living inside the Husk, bared once its shell breaks: a shadow with light crawling
+# through its veins.
+func _inner_dread(canvas: Image, c: Vector2, r: Vector2, f: int, o: Color) -> void:
+	var inner := _layer()
+	_ellipse(inner, c, r, _ramp(NIGHT))
+	var veins := _crack(inner, c, r, [[Vector2(-0.8, 0.1), Vector2(-0.35, -0.35), Vector2(0.05, -0.05), Vector2(0.45, -0.5), Vector2(0.8, -0.1)],
+		[Vector2(-0.3, 0.4), Vector2(0.1, 0.15), Vector2(0.5, 0.35)]], _c("Bruise"))
+	_stamp(canvas, inner, o)
+	_crawl(canvas, veins, f, 3)
+
+# Breaks the top off a shell layer along a jagged line near `y_cut`; the broken rim is lit in `edge`.
+func _break_top(layer: Image, y_cut: float, edge: Color) -> void:
+	var jag := [0, -2, 1, -3, -1, 2, 0, -2, 1]
+	for x in S:
+		var rim: float = y_cut + jag[x % jag.size()]
+		var first := true
+		for y in S:
+			if layer.get_pixel(x, y).a == 0.0:
+				continue
+			if y < rim:
+				layer.set_pixel(x, y, Color(0, 0, 0, 0))
+			elif first:
+				layer.set_pixel(x, y, edge)
+				first = false
 
 # --- Lurker (dusk_moth) -------------------------------------------------------------------------
 # Fast, hidden in fog: a thin, long-limbed shape that's only half there. It flickers (the dither
@@ -1353,12 +1424,158 @@ func _draw_great_toad(canvas: Image, st: Dictionary) -> void:
 				_hag_hair(canvas, [Vector2(64, 36), Vector2(68, 38), Vector2(72, 39), Vector2(76, 38), Vector2(80, 36)], Vector2(0, 36), ph, b, hair, o)
 	_mire(canvas, Vector2(70, ground), f, true)
 
+# --- The Mire Hag (mire_hag) --------------------------------------------------------------------
+# Act 2 boss, "the drowned witch of the deep fen": bent double under a hump of wet reeds, a hood over a
+# face that is only a dark hollow, a hooked nose and two cold eyes; long grey arms hang forward to
+# claws that drip. She leaves a black puddle wherever she stands. "burrow": she sinks into it (the
+# game plays it backwards for her rising). 144px frame, feet on y 97 like the other bosses.
+
+func _draw_mire_hag(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	var ground := 97.0
+	if st.anim == "burrow":
+		var depth: int = [0, 10, 26, 46, 68, 92][f]
+		var r := Vector2(30 + f * 3, 6 + f * 0.6)
+		var pose := _layer()
+		_hag_pose(pose, DOWN, 0, 0.0, 0)
+		var sunk := _layer()
+		for y in range(0, int(ground) - 1):
+			for x in S:
+				if y - depth >= 0:
+					var c := pose.get_pixel(x, y - depth)
+					if c.a > 0.0:
+						sunk.set_pixel(x, y, c)
+		_mire(canvas, Vector2(72, ground), f, false, r)
+		_merge(canvas, sunk)
+		_mire(canvas, Vector2(72, ground), f, true, r)
+		if f >= 1 and f <= 4:  # bog water thrown up as she goes under
+			var lift: int = [0, 4, 7, 6, 3][f]
+			for side: int in [-1, 1]:
+				for k in 3:
+					_px(canvas, 72 + side * (12 + f * 4 + k * 3), int(ground) - 4 - lift + k * 2, _c("Dewlight" if k == 0 else "Pool"))
+		return
+	_mire(canvas, Vector2(70, ground), f, false, Vector2(30, 6))
+	_hag_pose(canvas, st.dir, f, st.ph, [0, 1, 2, 1, 0, -1][f])
+
+const HAG_K := 1.3  # her pose is laid out small and scaled about her feet, so she stands a boss's height
+
+# A point of her pose in the 144 frame: (x, y) in the layout, scaled about her feet (72, 97).
+func _hv(x: float, y: float) -> Vector2:
+	return Vector2(72.0 + (x - 72.0) * HAG_K, 97.0 + (y - 97.0) * HAG_K)
+
+func _hag_pose(canvas: Image, dir: int, f: int, ph: float, b: int) -> void:
+	var o := NIGHT_O
+	var robe := _ramp(NIGHT)
+	var skin := _ramp(["Dusk", "Slate", "Stone"])
+	var eye_halo := _c("Dewlight", 0.5)
+	var k := HAG_K
+	var fig := _layer()
+	var step := sin(ph)
+	var hands: Array[Vector2] = []
+	match dir:
+		SIDE:
+			var far := _layer()  # the far arm, behind her
+			var far_hand := _hv(89, 79 + b + roundi(sin(ph + 1.0)))
+			_stroke(far, [_hv(75, 57 + b), _hv(81, 71 + b), far_hand], 1.8, skin[0])
+			_stamp(canvas, far, o)
+			_claws(canvas, far_hand, 0.0, skin[1])
+			for x: float in [72.0 + 4.0 * step, 60.0 - 4.0 * step]:  # bony feet under the hem
+				_line(canvas, [_hv(x, 90), _hv(x + 1, 95.5), _hv(x + 3, 96.5)], skin[0])
+			var hem := _hv(66, 95)
+			var waist := _hv(66, 60 + b)
+			_robe(fig, waist.x, waist.y, 12.0 * k, hem.y, 18.0 * k, -3.0, ph * 0.5, robe)
+			_ellipse(fig, _hv(68, 58 + b), Vector2(15, 12) * k, robe)  # the bent back
+			_ellipse(fig, _hv(60, 50 + b), Vector2(12, 11) * k, robe)  # the hump
+			_ellipse(fig, _hv(70, 49 + b), Vector2(11, 8) * k, robe)  # one curve of back from hump to hood
+			_ellipse(fig, _hv(79, 52 + b), Vector2(8, 7) * k, robe)  # neck, thrust forward
+			_ellipse(fig, _hv(86, 53 + b), Vector2(8.5, 8) * k, robe)  # the hood, hanging below the hump
+			_reed_strands(fig, int(_hv(48, 0).x), int(_hv(95, 0).x), 80)
+			_reed_stalks(canvas, [_hv(55, 41 + b), _hv(59, 39 + b), _hv(64, 40 + b)], Vector2(-0.45, -1.0), ph, o)
+			_stamp(canvas, fig, o)
+			_flat_ellipse(canvas, _hv(90, 55 + b), Vector2(4, 4.5) * k, HOLLOW)
+			var nose := _layer()
+			_lens(nose, _hv(91, 54 + b), _hv(98, 60 + b), 2.0, skin[2], skin[1])
+			_stamp(canvas, nose, o)
+			_glow(canvas, Vector2i(_hv(88.5, 53 + b).round()), EYE, eye_halo)
+			_glow(canvas, Vector2i(_hv(91.5, 53 + b).round()), EYE, eye_halo)
+			var sleeve := _layer()
+			_ellipse(sleeve, _hv(80, 59 + b), Vector2(5, 4.5) * k, robe)
+			_stamp(canvas, sleeve, o)
+			var arm := _layer()
+			var hand := _hv(100, 72 + b + roundi(step))
+			_stroke(arm, [_hv(81, 60 + b), _hv(89, 69 + b), hand], 2.0, skin[1])
+			_stamp(canvas, arm, o)
+			_claws(canvas, hand, 0.0, skin[2])
+			hands.append(hand)
+			hands.append(far_hand)
+		DOWN, UP:
+			var down := dir == DOWN
+			for side: int in [-1, 1]:
+				_line(canvas, [_hv(72 + side * 6 + side * step * 2.0, 91), _hv(72 + side * 7 + side * step * 2.0, 96.5)], skin[0])
+			var arms := _layer()
+			for side: int in [-1, 1]:  # long arms hanging outside her skirts, claws by her knees
+				var hand := _hv(72 + side * 24, 82 + b + roundi(sin(ph + side)))
+				_stroke(arms, [_hv(72 + side * 17, 55 + b), _hv(72 + side * 25, 69 + b), hand], 2.0, skin[1])
+				hands.append(hand)
+			if not down:  # seen from behind, her arms hang on the far side of the hump
+				_stamp(canvas, arms, o)
+			var waist := _hv(72, 60 + b)
+			_robe(fig, waist.x, waist.y, 14.0 * k, _hv(72, 95).y, 20.0 * k, 0.0, ph * 0.5, robe)
+			_ellipse(fig, _hv(72, (55 if down else 51) + b), Vector2(19, 12 if down else 14) * k, robe)
+			_ellipse(fig, _hv(72, (46 if down else 43) + b), Vector2(9.5, 9.5) * k, robe)
+			_reed_strands(fig, int(_hv(52, 0).x), int(_hv(93, 0).x), 80)
+			_reed_stalks(canvas, [_hv(60, 44 + b), _hv(64, 42 + b), _hv(82, 43 + b)] if down else [_hv(60, 40 + b), _hv(66, 38 + b), _hv(80, 39 + b)],
+				Vector2(0.0, -1.0), ph, o)
+			_stamp(canvas, fig, o)
+			if down:
+				_flat_ellipse(canvas, _hv(72, 48 + b), Vector2(5.5, 5.5) * k, HOLLOW)
+				var nose := _layer()
+				_lens(nose, _hv(72, 47 + b), _hv(72, 57 + b), 1.8, skin[2], skin[1])
+				_stamp(canvas, nose, o)
+				_glow(canvas, Vector2i(_hv(69, 47 + b).round()), EYE, eye_halo)
+				_glow(canvas, Vector2i(_hv(75, 47 + b).round()), EYE, eye_halo)
+				_stamp(canvas, arms, o)
+			for hand: Vector2 in hands:
+				_claws(canvas, hand, 0.0, skin[2])
+	for i in hands.size():  # bog water dripping off her claws
+		var t := (f + i * 3) % FRAMES
+		if t < 4:
+			_px(canvas, int(hands[i].x) + 1, int(hands[i].y) + 9 + t * 3, _c("Dewlight" if t == 0 else "Pool"))
+
+# Wet reeds hanging off her shoulders and hump in strands of uneven length, only over her own pixels
+# and no lower than `max_y` (layout y, so the skirt stays dark); now and then one catches the light.
+func _reed_strands(layer: Image, x0: int, x1: int, max_y: float) -> void:
+	var bottom := _hv(0, max_y).y
+	for x in range(x0, x1, 3):
+		var top := -1
+		for y in S:
+			if layer.get_pixel(x, y).a > 0.0:
+				top = y
+				break
+		if top < 0:
+			continue
+		var length := 10 + (x * 37) % 19
+		var reed := _c("Dew") if (x * 7) % 5 == 0 else _c("Pool")
+		for y in range(top + 2, mini(top + 2 + length, int(bottom) + (x * 13) % 9)):
+			if layer.get_pixel(x, y).a > 0.0 and posmod(y + x * 3, 13) < 11:
+				layer.set_pixel(x, y, reed)
+
+# Tufts of broken reed sticking up out of her shawl at each root, fanned round `dir` and nodding with
+# her step.
+func _reed_stalks(canvas: Image, roots: Array, dir: Vector2, ph: float, o: Color) -> void:
+	for i in roots.size():
+		var root: Vector2 = roots[i]
+		for j in 4:
+			var d := dir.rotated((j - 1.5) * 0.35 + (i - 1) * 0.2).normalized()
+			var tip := root + d * (5.0 + (i * 3 + j * 5) % 6) + Vector2(sin(ph + i + j) * 0.8, 0)
+			_line(canvas, [(root - d * 2.0).round(), tip.round()], o)
+			_line(canvas, [(root - d * 2.0).round() + Vector2(1, 0), tip.round() + Vector2(1, 0)], _c("Dew" if j == 1 else "Pool"))
+
 # The black pool she wades in. The back half and ripples go under her; `front` draws the near
 # edge of the water over her waist.
-func _mire(canvas: Image, c: Vector2, f: int, front: bool) -> void:
+func _mire(canvas: Image, c: Vector2, f: int, front: bool, r: Vector2 = Vector2(36, 8)) -> void:
 	var water := _c("Void")
 	var sheen := _c("Pool")
-	var r := Vector2(36, 8)
 	for y in range(floori(c.y - r.y), ceili(c.y + r.y) + 1):
 		for x in range(floori(c.x - r.x), ceili(c.x + r.x) + 1):
 			var d := (Vector2(x + 0.5, y + 0.5) - c) / r
@@ -1620,6 +1837,21 @@ func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
 			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph * 0.3, cloak)
 			_ellipse(fig, Vector2(32, 13 + h), Vector2(4.5, 5), bone)
 	_stamp(canvas, fig, o)
+	# The dread shell: a pauldron and breastplate of faceted dread over the cloak (gone once cracked: seams
+	# of cold light where they were, one shard left on a shoulder).
+	var off := Vector2(0, h)
+	var front: bool = st.dir == SIDE
+	if st.variant == "cracked":
+		_shell_scars(canvas, [[Vector2(32, 19), Vector2(35, 22), Vector2(34, 26)], [Vector2(35, 24), Vector2(37, 27), Vector2(35, 30)]] if front
+			else [[Vector2(26, 20), Vector2(28, 23)], [Vector2(38, 20), Vector2(36, 23)], [Vector2(30, 25), Vector2(32, 28), Vector2(34, 26), Vector2(33, 31)]], off)
+		_armour(canvas, [[Vector2(29, 20), Vector2(31, 16), Vector2(34, 17)]] if front else [[Vector2(24, 21), Vector2(26, 17), Vector2(29, 19)]], off, o)
+	elif front:
+		_armour(canvas, [[Vector2(29, 20), Vector2(31, 16), Vector2(36, 16), Vector2(38, 19), Vector2(34, 22)],
+			[Vector2(32, 22), Vector2(37, 21), Vector2(38, 27), Vector2(36, 31), Vector2(32, 29)]], off, o)
+	else:
+		_armour(canvas, [[Vector2(23, 21), Vector2(25, 17), Vector2(30, 17), Vector2(30, 22), Vector2(26, 24)],
+			[Vector2(41, 21), Vector2(39, 17), Vector2(34, 17), Vector2(34, 22), Vector2(38, 24)],
+			[Vector2(28, 24), Vector2(32, 22), Vector2(36, 24), Vector2(35, 31), Vector2(29, 31)]], off, o)
 	match st.dir:
 		SIDE:
 			for p: Array in [[Vector2(35, 17), Vector2(34, 24)], [Vector2(36, 17), Vector2(36, 23)], [Vector2(37, 16), Vector2(38, 22)]]:
@@ -2788,6 +3020,25 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 	var ghost := _layer()
 	_stamp(ghost, fig, o)
 	_merge(canvas, ghost)
+	# The dread shell: pauldrons, a breastplate and a belt of faceted dread over the mail. Cracked: seams
+	# of cold light where they were, a broken shard on one shoulder.
+	var off := Vector2(0, h)
+	if st.variant == "cracked":
+		_shell_scars(canvas, [[Vector2(70, 35), Vector2(74, 37), Vector2(77, 35)], [Vector2(76, 44), Vector2(79, 49), Vector2(77, 54)],
+			[Vector2(68, 61), Vector2(73, 63), Vector2(78, 61)]] if side_view
+			else [[Vector2(60, 37), Vector2(64, 35), Vector2(67, 39)], [Vector2(84, 37), Vector2(80, 35), Vector2(77, 39)],
+			[Vector2(68, 44), Vector2(72, 48), Vector2(70, 52), Vector2(74, 56)], [Vector2(65, 63), Vector2(72, 65), Vector2(79, 63)]], off)
+		_armour(canvas, [[Vector2(66, 38), Vector2(69, 32), Vector2(73, 35)]] if side_view
+			else [[Vector2(58, 40), Vector2(60, 33), Vector2(65, 35)]], off, o)
+	elif side_view:
+		_armour(canvas, [[Vector2(66, 38), Vector2(69, 32), Vector2(77, 32), Vector2(80, 37), Vector2(74, 42)],
+			[Vector2(73, 40), Vector2(80, 40), Vector2(82, 48), Vector2(79, 58), Vector2(73, 56)],
+			[Vector2(64, 60), Vector2(80, 60), Vector2(81, 67), Vector2(64, 68)]], off, o)
+	else:
+		_armour(canvas, [[Vector2(58, 40), Vector2(60, 33), Vector2(67, 32), Vector2(69, 38), Vector2(64, 43)],
+			[Vector2(86, 40), Vector2(84, 33), Vector2(77, 32), Vector2(75, 38), Vector2(80, 43)],
+			[Vector2(64, 42), Vector2(72, 38), Vector2(80, 42), Vector2(79, 56), Vector2(72, 60), Vector2(65, 56)],
+			[Vector2(62, 60), Vector2(72, 62), Vector2(82, 60), Vector2(83, 67), Vector2(72, 69), Vector2(61, 67)]], off, o)
 	if dir != UP:
 		for s: int in ([1] if side_view else [-1, 1]):  # sunken sockets, cold eyes
 			var e := head + Vector2(3 if side_view else s * 2.5, -1)
