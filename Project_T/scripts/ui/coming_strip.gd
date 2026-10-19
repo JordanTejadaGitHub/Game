@@ -203,9 +203,10 @@ func _build(span: Vector2i) -> void:
 	_build_kind_words(span)
 
 # A Kind's first drift this run, in words on the strip itself (Balancing Discussion, owner 2026-10-19: "warning 1 drift
-# earlier is better"; human run lost to drift 31's Phantoms). At a rest: every Kind the next block brings for the first
-# time ("Drift 31 · Flying: flies over your maze"); during a drift: only the next drift's, so a Kind first coming mid-block
-# is still named one drift ahead. Plain text, no hover or tap needed (phones too). Kinds from EnemyData.Kind.
+# earlier is better"; human run lost to drift 31's Phantoms). Only the very next drift, at a rest and mid-block alike
+# (owner 2026-10-19: "should just be the 1 drift earlier"): the drift 30 rest names drift 31's Phantoms ("Drift 31 · Flying:
+# flies over your maze"); a Kind first coming at drift 33 shows once drift 32 is under way. Plain text, no hover or tap
+# needed (phones too). Kinds from EnemyData.Kind.
 const KIND_WORDS := {EnemyData.Kind.ARMOURED: "heavy hits crack its shell", EnemyData.Kind.FLYING: "flies over your maze",
 	EnemyData.Kind.HIDDEN: "can't be targeted until a Warden reveals it", EnemyData.Kind.SWARM: "comes as a crowd; area attacks catch them all",
 	EnemyData.Kind.FAST: "outruns a thin maze; slows and holds keep it in reach"}
@@ -236,13 +237,12 @@ static func kind_words(data: EnemyData) -> String:
 		what = "flies along your path"
 	return "%s: %s" % [data.get_kind_name(), what]
 
-func _build_kind_words(span: Vector2i) -> void:
+func _build_kind_words(_span: Vector2i) -> void:
 	for child in _kind_words.get_children():
 		_kind_words.remove_child(child)
 		child.queue_free()
-	var first := drift_director.drifts_started + 1 if compact else span.x
-	var last := first if compact else span.y
-	for entry in new_kinds(drift_director, first, last):
+	var next := drift_director.drifts_started + 1  # Only the very next drift, at a rest and mid-block alike
+	for entry in new_kinds(drift_director, next, next):
 		var words := Label.new()
 		words.name = "Kind%d" % entry[0]
 		words.text = "Drift %d · %s" % [entry[2], kind_words(entry[1])]
