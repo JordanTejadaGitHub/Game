@@ -1505,8 +1505,7 @@ func shell_multiplier(enemy, source) -> float:
 		return 1.0
 	if now() >= float(enemy.get_meta(WASH_FX_META, -INF)):
 		enemy.set_meta(WASH_FX_META, now() + WASH_FX_EVERY)
-		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
-		credit(WASH_AWAY, enemy.global_position, source)
+		credit(WASH_AWAY, enemy.global_position, source)  # (The puff is Enemy Code's Dew-light shell chip, c603cf56)
 	return WASH_AWAY_SHELL
 
 # Across the Water: any Warden touching water also reaches Soaked nightmares up to 3 steps further along that water
