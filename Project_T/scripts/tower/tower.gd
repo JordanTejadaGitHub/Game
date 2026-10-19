@@ -2717,6 +2717,8 @@ const RIPPLE_COLOURS := {"root": Palette.DEADWOOD, "grove": Palette.OAK, "song":
 class GroundRipple extends Node2D:
 	const TIME := 0.3
 	const WIDTH := 2.0
+	const SPLASH_TIME := 0.5
+	const SPLASH_WIDTH := 3.0
 	const ALPHA := 0.6
 	const GAP_MS := 200  # Another ripple this soon…
 	const NEAR := 96.0  # …this close (1.5 cells) is skipped: pulses side by side never stack into a tangle
@@ -2753,18 +2755,23 @@ class GroundRipple extends Node2D:
 
 	func _process(delta: float) -> void:
 		_age += delta
-		if _age >= TIME:
+		if _age >= (SPLASH_TIME if _edge.a > 0.0 else TIME):
 			queue_free()
 		else:
 			queue_redraw()
 
 	func _draw() -> void:
-		var t := _age / TIME
-		var r := _radius * (1.0 - pow(1.0 - t, 2.0))  # Eases out to the range
+		var splash := _edge.a > 0.0
+		var t := _age / (SPLASH_TIME if splash else TIME)
+		var r := _radius * (1.0 - pow(1.0 - minf(t * (2.0 if splash else 1.0), 1.0), 2.0))  # Eases out to the range (a splash in half its time)
 		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
-		if _edge.a > 0.0:
-			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * ALPHA * (1.0 - t)), WIDTH + 2.0, false)
-		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
+		# A splash ring holds at its radius before fading (user: "hard to see the dew drop splash radius with water on
+		# the ground"): wider, a thicker dark edge, full strength for its first half.
+		var fade := (1.0 if t < 0.5 else (1.0 - t) * 2.0) if splash else 1.0 - t
+		var width := SPLASH_WIDTH if splash else WIDTH
+		if splash:
+			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * fade), width + 3.0, false)
+		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, (0.9 if splash else ALPHA) * fade), width, false)
 		if dream_tier > 0:
 			DREAM_GLOW.rim(self, Vector2.ZERO, r - 4.0, dream_tier, 1.0 - t)
 			if dream_tier >= 2:
@@ -3716,7 +3723,8 @@ func _splash_ring(where: Vector2, radius: float) -> void:
 	var world := Reactions._world(self)
 	if world == null or (Fx.reduced() and not Fx.on_screen(where, radius)) or not GroundRipple.may_start(where):
 		return
-	var ring := GroundRipple.new(radius, Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW), Color(Palette.DUSK, 0.8))
+	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
+	var ring := GroundRipple.new(radius, Palette.MOONLIGHT if tower_data.line == "water" else Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW), Color(Palette.NIGHT, 0.85))
 	world.add_child(ring)
 	ring.global_position = where
 
