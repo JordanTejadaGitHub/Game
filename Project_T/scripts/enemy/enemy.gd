@@ -220,6 +220,7 @@ var _soothe_carry := 0.0  # Fractional soothe (Spored ticks, multipliers) waitin
 var _bolt_flash := 0.0
 var _hit_mark := 0  # -1 resisted, +1 weak, 0 none
 var _hit_mark_time := 0.0
+var _hit_mark_wash := false  # The shell-chip puff is Wash Away's (its cue: Dew-light, not Mist)
 # Blight coat left to soak up, and soothe it takes off each hit (both already health-scaled).
 var coat := 0.0:
 	set(value):
@@ -1500,7 +1501,7 @@ func _draw_hit_mark(t: float) -> void:
 	if _hit_mark < 0:
 		for i in 3:
 			var puff := at + Vector2.from_angle(TAU * i / 3.0) * 4.0 * (1.6 - t)
-			draw_circle(puff, 3.5 * t + 1.0, Color(Palette.MIST, 0.7 * t))
+			draw_circle(puff, 3.5 * t + 1.0, Color(Palette.DEWLIGHT if _hit_mark_wash else Palette.MIST, 0.7 * t))
 	else:
 		var r := 7.0 * (1.4 - t)
 		var col := Color(Palette.GLOW, t)  # A Warden's hit: warm light
@@ -2926,9 +2927,12 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		var shell := batch_dreams.shell_multiplier(self, source) if batch_dreams != null else 1.0  # Wash Away: the shell takes double (Roguelite Code)
 		coat -= minf(soaked * shell, coat)
 		soothe -= soaked
+		_hit_mark_wash = shell > 1.0
+		if _hit_mark_wash:
+			_mark_hit(-1)  # Wash Away wears it down twice as fast: a shell-chip puff in Dew-light on each such hit (its cue)
 		if coat <= 0.0:
 			coat = 0.0
-			_mark_hit(-1)  # The crust crumbles off in a puff
+			_mark_hit(-1)  # The crust crumbles off in a puff (Dew-light when Wash Away broke it)
 			if enemy_data.cracked_frames != null:
 				_swap_frames(enemy_data.cracked_frames)
 	_soothe_carry += soothe
