@@ -1317,6 +1317,13 @@ build ghost, selection) follows the same rules:
   aim lines, no dashed bursts, no boxes. The attack-shape layer (above) is for **grow previews and the build ghost**
   only, and even there it never draws a dashed aim line from the Warden or a rectangle: just the burst / jet / link
   shape on the path ribbon.
+- **Revised again 2026-10-18** (user: *"attack shape should just show range, except like a summoning Warden because
+  it needs to see where it places"*), **this replaces both bullets above:** every preview (selection, hover, grow,
+  build ghost) shows **the range ring only**, for every Warden. **The exception is a Warden that puts something on
+  the map**, because where it lands is the decision: the preview shows **where it will place it**, on the path
+  ribbon, never as boxes. That covers summoners and placers: Brood Cap's hatch spot, traps (fairy rings), lit cells
+  (Rootlight, Lantern Light), clouds and rain clouds, rubble (Cairn / Rockslide), puddles and ink, mushrooms (Spore
+  Print), and the Jarlink / Lightning Fence link. Jets, bursts, splashes, chains and pulses show range only.
 
 ## Status row: Reaction-ready marks and falling asleep (user, 2026-10-18)
 User: *"add a blue square on statuses stack to show where Reactions happen. Also the sleep goes to asleep have a
