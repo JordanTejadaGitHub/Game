@@ -47,6 +47,10 @@ func _ready() -> void:
 	_row.add_theme_constant_override("separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
+	_kind_words.name = "KindWords"
+	_kind_words.add_theme_constant_override("separation", 0)
+	_kind_words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_kind_words)
 	_phone = UiStyle.is_phone()
 	if _phone:
 		_caption.visible = false
@@ -196,6 +200,60 @@ func _build(span: Vector2i) -> void:
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
 	if not rest.is_empty():
 		line.add_child(_more_chip(rest))
+	_build_kind_words(span)
+
+# A Kind's first drift this run, in words on the strip itself (Balancing Discussion, owner 2026-10-19: "warning 1 drift
+# earlier is better"; human run lost to drift 31's Phantoms). At a rest: every Kind the next block brings for the first
+# time ("Drift 31 · Flying: flies over your maze"); during a drift: only the next drift's, so a Kind first coming mid-block
+# is still named one drift ahead. Plain text, no hover or tap needed (phones too). Kinds from EnemyData.Kind.
+const KIND_WORDS := {EnemyData.Kind.ARMOURED: "heavy hits crack its shell", EnemyData.Kind.FLYING: "flies over your maze",
+	EnemyData.Kind.HIDDEN: "can't be targeted until a Warden reveals it", EnemyData.Kind.SWARM: "comes as a crowd; area attacks catch them all",
+	EnemyData.Kind.FAST: "outruns a thin maze; slows and holds keep it in reach"}
+const KIND_WORDS_WIDTH := 420.0
+var _kind_words := VBoxContainer.new()
+
+# [[Kind, EnemyData, drift], …]: the Kinds (not Plain, never bosses) first arriving in drifts `first`..`last` this run.
+static func new_kinds(director: DriftDirector, first: int, last: int) -> Array:
+	if director == null or first > last:
+		return []
+	var faced := {}
+	if first > 1:
+		for item in kinds_in_range(director, 1, first - 1):
+			if not item[0].is_boss:  # A boss has its dossier; it doesn't teach the Kind
+				faced[item[0].kind] = true
+	var result: Array = []
+	for item in kinds_in_range(director, first, last):
+		var data: EnemyData = item[0]
+		if data.is_boss or data.kind == EnemyData.Kind.PLAIN or faced.has(data.kind):
+			continue
+		faced[data.kind] = true
+		result.append([data.kind, data, item[1]])
+	return result
+
+static func kind_words(data: EnemyData) -> String:
+	var what: String = KIND_WORDS.get(data.kind, "")
+	if data.kind == EnemyData.Kind.FLYING and not data.is_through_walls():
+		what = "flies along your path"
+	return "%s: %s" % [data.get_kind_name(), what]
+
+func _build_kind_words(span: Vector2i) -> void:
+	for child in _kind_words.get_children():
+		_kind_words.remove_child(child)
+		child.queue_free()
+	var first := drift_director.drifts_started + 1 if compact else span.x
+	var last := first if compact else span.y
+	for entry in new_kinds(drift_director, first, last):
+		var words := Label.new()
+		words.name = "Kind%d" % entry[0]
+		words.text = "Drift %d · %s" % [entry[2], kind_words(entry[1])]
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.custom_minimum_size.x = minf(KIND_WORDS_WIDTH, get_viewport_rect().size.x - 32.0) if _phone else KIND_WORDS_WIDTH
+		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		words.add_theme_font_size_override("font_size", 14 if _phone else 15)
+		words.add_theme_color_override("font_color", UiStyle.GOLD)
+		_kind_words.add_child(words)
+	_kind_words.visible = _kind_words.get_child_count() > 0
 
 # The kind items, whichever row they're on.
 func items() -> Array:
