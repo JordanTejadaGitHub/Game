@@ -671,6 +671,38 @@ For the coding chat, in rough order of need:
    (Rootlight), **attack copying** (Graftling), **swoop** projectiles that return, **status
    copying** (Gust), **adjacent-tile blades** (Pinwheel), **unique** Memory Wardens.
 
+## A grow never lowers damage (Balancing 2026-10-19)
+
+Balancing 2026-10-19: a grow never lowers damage (branch check rerun, `D:\Projects\logs\balancing\branch_check_2026-10-18_rerun.md`;
+owner run 46). Measured as the grow rows do (Main Merger e67b13d9, `WardenPanel._probe_dps`), at rank 0, no Dreams, one
+nightmare: hits × attacks a second + own Poison + own Charge. Every branch (tier 2) is at least its base Warden's figure;
+the ones under it had their own damage raised (rain / whirlpool forms' flat `dps` param by the same ratio). Attack rates,
+statuses, control and ranges unchanged. Branches already above their base untouched.
+
+| Branch (base, its figure) | Was a second | Damage old → new |
+|---|---|---|
+| Bloomcap (Sporeling 30.2) | 10.3 | 20.7 → 60.5 |
+| Inkcap (Sporeling 30.2) | 25.2 | 12.6 → 15.2 |
+| Mistveil (Dewdrop 24.0) | 8.1 | 16.2 → 48 |
+| Cloudlet (Dewdrop 24.0) | 5.4 | 10.8 → 48; rain dps 9 → 40 |
+| Undercurrent (Dewdrop 24.0) | 9.0 | 54 → 144; whirlpool dps 45 → 120 |
+| Jarlink (Firefly Jar 44.2) | 9.8 | 9.75 → 44.3 (the arc, 157.5 a second, unchanged and not in the measure) |
+| Sparkler (Firefly Jar 44.2) | 19.5 | 39 → 88.5 |
+| Dreamcatcher (Bellflower 18.4) | 11.7 | 11.7 → 18.4 |
+| Elder Stump, Seedbearer (Acorn 31.8) | 13.5 | 13.5 → 31.8 |
+| Nurse Log, Dream Oak (Acorn 31.8) | 10.8 | 10.8 → 31.8 |
+| Dewcatcher (Acorn 31.8) | 7.2 | 7.2 → 31.8 |
+| Magpie Perch (Nestling 31.1) | 24.3 | 24.3 → 31.2 |
+| Hummingbird Bower (Nestling 31.1) | 24.0 | 36 → 46.7 |
+| Gust (Whirligig 21.6) | 5.8 | 11.7 → 43.2 |
+
+Not changed: Graftling (copies a neighbour's attack; no damage of its own). **Finals under their branch** (reported, not
+changed yet): Grove Heart 21.6 (Elder Stump 31.8), Wellspring 9.0 (Dewcatcher 31.8), Grove Keeper 27.0, Mother Log 22.5,
+Dreamroot 22.5 (each vs 31.8), Morning Fog 17.1 (Mistveil 24.0), Hoarfrost 54.0 (Frostfern 64.8), Nimbus 13.5 (Cloudlet
+24.0), Maelstrom 7.5 (Undercurrent 24.0), Torrent 32.4 (Jetreed 43.2), Lightning Fence 9.8 (Jarlink 44.3), Starburst
+38.0 (Sparkler 44.3), Jewelwing Court 16.8 (Hummingbird Bower 31.1), Dreamshroom 25.9 (Bloomcap 30.3), Zephyr 10.8
+(Gust 21.6); Grafted Elder 0 (copies).
+
 ## Tuning from the 2026-10-02 probe series (Balancing Discussion)
 
 The current numbers after Balancing Discussion's overnight sweeps (every final and every branch ×4
