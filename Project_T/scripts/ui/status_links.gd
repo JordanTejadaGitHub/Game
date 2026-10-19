@@ -506,6 +506,8 @@ func _place_beside_panel(host: Control, mouse: Vector2) -> void:
 	var screen := get_viewport_rect().size
 	if panel.end.x + 8.0 + size.x <= screen.x - 4.0:
 		global_position = Vector2(panel.end.x + 8.0, clampf(mouse.y - size.y / 2.0, 4.0, screen.y - size.y - 4.0))
+	elif panel.position.x - 8.0 - size.x >= 4.0:  # A drawer docked right (phones): to its left
+		global_position = Vector2(panel.position.x - 8.0 - size.x, clampf(mouse.y - size.y / 2.0, 4.0, screen.y - size.y - 4.0))
 	else:
 		global_position = Vector2(clampf(panel.position.x, 4.0, screen.x - size.x - 4.0), maxf(4.0, panel.position.y - size.y - 8.0))
 

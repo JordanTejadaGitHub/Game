@@ -165,6 +165,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_height)
 	visible = false
 	if _phone:  # The camera keeps the selected Warden clear of the drawer (_focus_selection)
+		tower_seller.selection_changed.connect(_choose_side.unbind(1))  # Right, or left for a Warden it would cover
 		visibility_changed.connect(_queue_focus)
 		tower_seller.selection_changed.connect(_queue_focus.unbind(1))
 
@@ -1945,6 +1946,10 @@ func _focus_selection() -> void:
 	var view := get_viewport().get_visible_rect().size
 	var drawer_left: float = (get_global_transform_with_canvas() * get_rect().position).x  # Through the HUD layer's notch fit
 	var room := Rect2(Vector2(FOCUS_MARGIN, FOCUS_MARGIN), Vector2(drawer_left - FOCUS_MARGIN * 2.0, view.y - FOCUS_MARGIN * 2.0))
+	if _docked_left:  # The map to the drawer's right
+		var drawer_right: float = (get_global_transform_with_canvas() * get_rect().end).x
+		room = Rect2(Vector2(drawer_right + FOCUS_MARGIN, FOCUS_MARGIN), Vector2(view.x - drawer_right - FOCUS_MARGIN * 2.0,
+			view.y - FOCUS_MARGIN * 2.0))
 	if room.size.x <= 0.0 or room.size.y <= 0.0:
 		return
 	var shift := Vector2.ZERO  # View px the selection must move
@@ -2003,6 +2008,59 @@ func _player_moved(camera: Node) -> bool:
 	var gliding: bool = not (camera._glide_points as PackedVector2Array).is_empty()
 	return not gliding and (camera.target_position as Vector2).distance_to(_focus_to) > 2.0
 
+# Phones (user 2026-10-18: "if I click a Warden that's on the very right of the screen, the Warden drawer should go
+# left"): the drawer docks right, unless the selection sits where the right drawer would cover it (with FOCUS_MARGIN
+# to spare); then it docks left, above the Warden dock (_place_phone).
+var _docked_left := false
+
+func _choose_side() -> void:
+	var box := Rect2()
+	var first := true
+	for tower in tower_seller.selection:
+		if not is_instance_valid(tower) or tower.is_queued_for_deletion():
+			continue
+		var at: Vector2 = get_viewport().get_canvas_transform() * (tower as Node2D).global_position
+		box = Rect2(at, Vector2.ZERO) if first else box.expand(at)
+		first = false
+	if first:
+		return
+	var view := get_viewport().get_visible_rect().size
+	var width := PHONE_WIDTH * get_global_transform_with_canvas().get_scale().x  # On screen, through the HUD's fit
+	var left := box.get_center().x > view.x - width - FOCUS_MARGIN
+	if left == _docked_left:
+		return
+	_docked_left = left
+	if left:
+		_dock_left()
+	else:
+		_dock_right()
+	if visible:
+		_fit_phone_height()
+
+func _dock_left() -> void:
+	_dock_right()
+	anchor_right = 0.0
+	anchor_left = 0.0
+	offset_left = 0.0
+	offset_right = PHONE_WIDTH
+	grow_horizontal = Control.GROW_DIRECTION_END
+
+# The top of the Warden dock (Sell, Select, the Warden slots) in the drawer's space: a left drawer ends above it.
+const DOCK_GAP := 8.0
+
+# How far down the drawer may reach: the screen's bottom on the right, the dock's top on the left.
+func _phone_bottom() -> float:
+	return _dock_top() if _docked_left else get_parent_area_size().y
+
+func _dock_top() -> float:
+	var hud := get_parent()
+	var top := get_parent_area_size().y
+	for name in ["sell_slot", "select_slot", "tower_bar"]:
+		var node := hud.get(name) as Control if hud != null and name in hud else null
+		if node != null and node.is_visible_in_tree():
+			top = minf(top, node.get_global_rect().position.y - DOCK_GAP)
+	return top
+
 # Docked to the right edge, top-anchored: the map stays visible to its left. The HUD layer is already fitted into the
 # notch-safe area (UiStyle.safe_transform, hud.gd), so the edges here are safe.
 func _dock_right() -> void:
@@ -2020,7 +2078,7 @@ func _dock_right() -> void:
 # Phones (user 2026-10-17: "a lot of empty space"): the drawer is as tall as its content, up to the full screen height;
 # only past that does the middle scroll. The footer (Nurture) sits right under the content.
 func _fit_phone_height() -> void:
-	var screen := get_parent_area_size().y - _phone_top()
+	var screen := _phone_bottom() - _phone_top()
 	var frame := get_theme_stylebox("panel")
 	var box := _scroll.get_parent() as VBoxContainer
 	var chrome := frame.get_margin(SIDE_TOP) + frame.get_margin(SIDE_BOTTOM)
@@ -2037,7 +2095,7 @@ func _fit_phone_height() -> void:
 func _place_phone() -> void:
 	var top := _phone_top()
 	offset_top = top
-	offset_bottom = top + minf(get_combined_minimum_size().y, get_parent_area_size().y - top)
+	offset_bottom = top + minf(get_combined_minimum_size().y, _phone_bottom() - top)
 
 # Phones (UI owner's review): the drawer starts under the HUD's resources row (Dew, leaves and the buttons beside them,
 # one or two lines), so the counters stay visible. Both sit on the HUD layer: its rect is in the drawer's own space.
