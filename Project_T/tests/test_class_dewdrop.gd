@@ -10,7 +10,7 @@ var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
 const LENT := ["steeped", "topped_up", "ebb", "waterlogged", "high_tide",
-	"old_rain", "never_quite_dry"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16)
+	"old_rain", "never_quite_dry", "sodden", "wash_away", "last_drop"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16). Dewdrop helping itself (owner 2026-10-18): Sodden, Wash Away (revived), Last Drop
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -79,6 +79,99 @@ func _setup() -> void:
 	dreams = main.get_node("%DreamState")
 	klass = dreams.puddles
 
+# Last Drop on a fresh nightmare: the health a run-out of `status` (its peak `peak`, added by `source`) takes off it.
+func _drop_lost(spot: Vector2, source, peak: int, status: StringName = EnemyStatuses.DAMP) -> int:
+	var e = _spawn(spot + Vector2(CELL, CELL))
+	var before: int = e.health
+	klass._last_drop(status, peak, source, e)
+	return before - e.health
+
+# Dewdrop helping itself (owner 2026-10-18; dream_council\dewdrop_self.md): Sodden, Wash Away and Last Drop work for Dewdrop
+# Wardens (a Dewdrop alone) and Wardens near them (2 cells), never for a Warden far from every Dewdrop.
+func _self_help_checks(spot: Vector2) -> void:
+	dreams.calling = "sporeling"  # A later owner: lent cards need no water
+	dreams.calling_path.clear()
+	dreams.stacks.clear()
+	_take("sodden")
+	var drop := _plant("dewdrop", spot)
+	var near_spore := _plant("sporeling", spot + Vector2(CELL, 0))
+	var far_spore := _plant("sporeling", spot + Vector2(CELL * 8, 0))
+	await _frames(2)
+	klass.on_board()
+	var n = _spawn(spot + Vector2(0, CELL))
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0), "Sodden: no Soaked, no bonus")
+	n.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", drop)
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0), "...Soaked just landed: +0%")
+	n.statuses.tick(2.5)
+	var two: float = 1.0 + klass.SODDEN_PER * 2.0
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), two), "Sodden: a Dewdrop alone deals +%d%% after 2 s of Soaked (%.3f)" % [roundi((two - 1.0) * 100.0), klass.damage_multiplier(n, drop)])
+	_check(is_equal_approx(klass.damage_multiplier(n, near_spore), two), "...a Warden near a Dewdrop too")
+	_check(is_equal_approx(klass.damage_multiplier(n, far_spore), 1.0), "...a Warden far from every Dewdrop: nothing")
+	_check(is_equal_approx(klass.damage_multiplier(n, drop, &"spored"), 1.0), "...hits only, never status damage")
+	n.statuses.tick(5.0)
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0 + klass.SODDEN_MAX), "...up to +%d%%" % roundi(klass.SODDEN_MAX * 100.0))
+	dreams.batch_damage_multiplier(n, drop, &"")  # (The frame's hook check sees Sodden)
+	_check(dreams._hook_water, "...DreamState hooks the Dewdrop hit bonuses for Sodden")
+	n.statuses.remove(EnemyStatuses.DAMP)
+	n.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", drop)
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0), "...the count starts again once Soaked ran out")
+
+	# Wash Away (revived): hits from a Dewdrop or a Warden near one on a Soaked nightmare wear its shell twice as fast.
+	dreams.stacks.clear()
+	_take("wash_away")
+	var w = _spawn(spot + Vector2(0, -CELL))
+	_check(is_equal_approx(klass.shell_multiplier(w, drop), 1.0), "Wash Away: before any Soaked, nothing")
+	w.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", drop)
+	_check(is_equal_approx(klass.shell_multiplier(w, drop), klass.WASH_AWAY_SHELL), "Wash Away: a Dewdrop alone wears the shell x%.0f" % klass.WASH_AWAY_SHELL)
+	_check(is_equal_approx(klass.shell_multiplier(w, near_spore), klass.WASH_AWAY_SHELL), "...a Warden near a Dewdrop too")
+	_check(is_equal_approx(klass.shell_multiplier(w, far_spore), 1.0), "...a Warden far from every Dewdrop: nothing")
+	w.statuses.is_boss = true
+	_check(is_equal_approx(klass.shell_multiplier(w, drop), 1.0), "...never bosses")
+	w.statuses.is_boss = false
+	_check(is_equal_approx(dreams.shell_multiplier(w, drop), klass.WASH_AWAY_SHELL), "...DreamState asks it")
+	w.max_health = 1000
+	w.health = 1000
+	w.coat = 40.0
+	w._coat_per_hit = 10.0
+	w.take_damage(30.0, "spore", false, false, near_spore, &"")
+	_check(is_equal_approx(w.coat, 20.0), "...a 10-shell hit takes 20 off the shell (%.1f left)" % w.coat)
+
+	# Last Drop: Soaked running out, the Warden that added it (a Dewdrop or a Warden near one) hits for 40% of its hit for
+	# each stack it had, up to 3 hits; each nightmare once every 6 s; never for another status.
+	dreams.stacks.clear()
+	_take("last_drop")
+	var one: int = _drop_lost(spot, drop, 1)
+	var full: int = _drop_lost(spot, drop, 8)
+	_check(one > 0, "Last Drop: a Dewdrop alone: Soaked running out deals a drop (%d)" % one)
+	_check(absf(float(full) - float(one) * klass.LAST_DROP_HITS / klass.LAST_DROP_SHARE) <= klass.LAST_DROP_HITS / klass.LAST_DROP_SHARE + 1.0,
+		"...40%% for each stack, up to 3 hits (1 stack %d, 8 stacks %d)" % [one, full])
+	_check(_drop_lost(spot, near_spore, 4) > 0, "...a Warden near a Dewdrop that added Soaked too")
+	_check(_drop_lost(spot, far_spore, 4) == 0, "...a Warden far from every Dewdrop: nothing")
+	_check(_drop_lost(spot, drop, 4, EnemyStatuses.SPORED) == 0, "...only Soaked")
+	var twice = _spawn(spot + Vector2(-CELL, CELL))
+	var t0: int = twice.health
+	klass._last_drop(EnemyStatuses.DAMP, 4, drop, twice)
+	var t1: int = twice.health
+	klass._last_drop(EnemyStatuses.DAMP, 4, drop, twice)
+	_check(t1 < t0 and twice.health == t1, "...each nightmare once every %.0f s" % klass.LAST_DROP_EVERY)
+	# The real run-out (status_ran_out, hooked on the poll): time running out drops; a Reaction spending it never does
+	var real = _spawn(spot + Vector2(-CELL, -CELL))
+	real.apply_status(EnemyStatuses.DAMP, 1, 0.5, 1.0, 0, "water", drop)
+	klass.on_poll()
+	var r0: int = real.health
+	for i in 20:
+		real.statuses.tick(0.5)
+	_check(not real.statuses.has(EnemyStatuses.DAMP) and real.health < r0, "...Soaked running out of time drops on it")
+	var spent = _spawn(spot + Vector2(0, CELL * 2))
+	spent.apply_status(EnemyStatuses.DAMP, 1, 0.5, 1.0, 0, "water", drop)
+	klass.on_poll()
+	var s0: int = spent.health
+	spent.statuses.remove(EnemyStatuses.DAMP)
+	_check(spent.health == s0, "...spent Soaked never drops")
+	_check(klass.CLASS_TAGS.has(klass.LAST_DROP_TAG), "...never setting a card off again")
+	await _clean()
+	dreams.stacks.clear()
+
 # Riverside and Stagnant Water use Dewdrop's own trait, Duration (owner 2026-10-17; was +1 stack).
 func _evolution_checks(at: Vector2, route: Array) -> void:
 	dreams.stacks.clear()
@@ -87,6 +180,7 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	dreams.calling_path.append(&"dw_riverside")
 	var drop := _plant("dewdrop", at + Vector2(CELL, 0))
 	var spore := _plant("sporeling", at + Vector2(-CELL, 0))
+	var sprout := _plant("sprout", at + Vector2(0, CELL))
 	await _frames(2)
 	klass.on_board()
 	var r = _spawn(at)
@@ -103,18 +197,59 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	var drowsy_left: float = r.statuses.time_left(EnemyStatuses.DROWSY)
 	klass._evo_status(spore, r, EnemyStatuses.DROWSY)
 	_check(is_equal_approx(r.statuses.time_left(EnemyStatuses.DROWSY), drowsy_left), "...never Drowsy")
+	# Riverside's damage (owner 2026-10-18): Sprouts touching water deal 25% more to Soaked nightmares in it
+	_check(klass.touches_water(sprout, klass.water_of(r)), "(the Sprout touches the water)")
+	_check(is_equal_approx(klass.damage_multiplier(r, sprout), 1.0), "Riverside: no Soaked, no Sprout bonus")
+	r.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", drop)
+	dry.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", drop)
+	_check(is_equal_approx(klass.damage_multiplier(r, sprout), klass.SIDE_SPROUT_BONUS),
+		"Riverside: a Sprout touching water deals +%d%% to a Soaked nightmare in it" % roundi((klass.SIDE_SPROUT_BONUS - 1.0) * 100.0))
+	_check(is_equal_approx(klass.damage_multiplier(r, spore), 1.0) and is_equal_approx(klass.damage_multiplier(r, drop), 1.0),
+		"...only Sprouts (not other families, not Dewdrops)")
+	_check(is_equal_approx(klass.damage_multiplier(dry, sprout), 1.0), "...out of the water nothing")
+	_check(is_equal_approx(klass.damage_multiplier(r, sprout, &"spored"), 1.0), "...hits only")
+	await _clean()
+
+	# Stream (owner 2026-10-18): a splash reaching 3 or more nightmares makes that Dewdrop's next hit deal 30% more.
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"dw_stream")
+	var s_drop := _plant("dewdrop", at + Vector2(CELL, 0))
+	await _frames(2)
+	klass.on_board()
+	var sa = _spawn(at)
+	var sb = _spawn(at)
+	s_drop.hit(sa, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(not s_drop.get_meta(klass.STREAM_META, false), "Stream: a splash reaching 2 nightmares readies nothing")
+	var sc = _spawn(at)
+	var sd = _spawn(at)
+	s_drop.hit(sa, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(sc.statuses.has(EnemyStatuses.DAMP) and sd.statuses.has(EnemyStatuses.DAMP), "(the splash reached the two new nightmares)")
+	_check(s_drop.get_meta(klass.STREAM_META, false), "Stream: a splash reaching 3 nightmares readies the Dewdrop's next hit")
+	_check(is_equal_approx(klass.damage_multiplier(sb, s_drop), klass.STREAM_BONUS), "...which deals +%d%%" % roundi((klass.STREAM_BONUS - 1.0) * 100.0))
+	_check(is_equal_approx(klass.damage_multiplier(sb, s_drop), 1.0), "...only the next hit")
+	dreams.batch_damage_multiplier(sb, s_drop, &"")
+	_check(dreams._hook_water, "...DreamState hooks the evolution hit bonuses")
 	await _clean()
 
 	# Stagnant Water: in a pond (water touching 2 Dewdrops) statuses don't run down; bosses at half speed; out of it, they do.
 	dreams.calling_path.clear()
 	dreams.calling_path.append(&"dw_black_pond")
 	dreams.calling_path.append(&"dw_stagnant_water")
-	_plant("dewdrop", at + Vector2(CELL, 0))
+	var pond_drop := _plant("dewdrop", at + Vector2(CELL, 0))
 	_plant("dewdrop", at + Vector2(-CELL, 0))
 	await _frames(2)
 	klass.on_board()
 	var p = _spawn(at)
 	_check(klass._is_pond(klass.water_of(p)), "(the nightmare stands in a pond)")
+	# Black Pond (owner 2026-10-18): Dewdrop hits on a nightmare in a pond deal 25% more; its splash stays 4 steps
+	var out_of_pond = _spawn(route[mini(60, route.size() - 1)])
+	_check(is_equal_approx(klass.damage_multiplier(p, pond_drop), klass.POND_BONUS), "Black Pond: Dewdrop hits in a pond deal +%d%%" % roundi((klass.POND_BONUS - 1.0) * 100.0))
+	_check(is_equal_approx(klass.damage_multiplier(out_of_pond, pond_drop), 1.0), "...out of the pond nothing")
+	_check(is_equal_approx(klass.damage_multiplier(p, pond_drop, &"spored"), 1.0), "...hits only")
+	_check(klass._ripple_steps(klass.water_of(p)) == klass.RIPPLE_STEPS, "...the splash stays %d steps" % klass.RIPPLE_STEPS)
+	out_of_pond.queue_free()
 	p.apply_status(EnemyStatuses.MARKED, 2, 0.0, 1.0, 0, "light", null)
 	p.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
 	klass._in_pond(p)
@@ -328,6 +463,7 @@ func _run() -> void:
 	_check(not ebb_far.statuses.has(EnemyStatuses.SPORED), "...outside a Dewdrop's range: gone for good")
 	_check(e_drop != null, "(the Dewdrop stands)")
 	await _clean()
+	await _self_help_checks(spot)
 	await _evolution_checks(at, route)
 	print("test_class_dewdrop: %d failures" % failures)
 	quit(failures)

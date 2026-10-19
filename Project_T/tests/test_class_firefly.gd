@@ -13,7 +13,7 @@ var lights  # DreamState.firefly_lights
 const CELL := 64.0
 const CLASS := ["where_lights_meet", "fireflies_in_the_grass", "signal_fires", "last_spark", "lanternway"]
 const LENT := ["hammerfall", "sparks_fly", "flashover", "chain_of_lanterns", "nothing_wasted",  # Knock-On folded into Hammerfall (2026-10-16); Crossfire retired (hard cards 2026-10-16)
-	"thunderstruck", "brushfire", "gathering_storm"]
+	"thunderstruck", "brushfire", "gathering_storm", "struck_twice"]  # Struck Twice: self-sufficiency audit 2026-10-18
 const SETUP_WORDS := ["{lit}", " lit ", "light ", "lights", "glow", "water", "lone", "{toll}", "toll", " ring", "pip", "mushroom", "dose"]
 
 func _initialize() -> void:
@@ -257,5 +257,145 @@ func _run() -> void:
 	dreams.calling_path.clear()
 	await _clean()
 
+	await _self_sufficiency(far)
+
 	print("test_class_firefly: %d failures" % failures)
 	quit(failures)
+
+# One plain hit's damage on `enemy` from `tower` (no crit). Health is whole numbers (fractions carry), so checks allow 1.
+func _hit_loss(tower: Tower, enemy) -> float:
+	var was: float = enemy.health
+	tower.hit(enemy, 1.0, false, Tower.NO_CRIT)
+	return was - float(enemy.health)
+
+# The Firefly self-sufficiency changes (D:\Projects\logs\dream_council\self_sufficiency_audit.md, owner 2026-10-18).
+func _self_sufficiency(far: Vector2) -> void:
+	# Texts and gates
+	var nw: UpgradeData = load("res://resource/dream/nothing_wasted.tres")
+	_check(nw.min_act == 1, "Nothing Wasted is offered from act 1")
+	_check(nw.description.contains("from Firefly Wardens and Wardens {near} them"), "Nothing Wasted: the approved face")
+	var st: UpgradeData = load("res://resource/dream/struck_twice.tres")
+	_check(st != null and st.rarity == UpgradeData.Rarity.COMMON and st.min_act == 1 and st.in_start_pool, "Struck Twice: a Common from act 1, in the start pool")
+	_check(st.description.contains("Firefly Wardens or Wardens {near} them deals 30% more"), "Struck Twice: the approved face")
+	_check(st.uses.has(&"jump") and st.makes.size() + st.uses.size() <= 2, "Struck Twice: uses jump, at most 2 chips")
+	var paths: Dictionary = DreamState.CALLING_PATHS.PATHS
+	_check(String(paths[&"lf_bonfire"].text).contains("Firefly Wardens deal 25% more there"), "Bonfire: the tough-target line")
+	_check(String(paths[&"lf_strung_lights"].text).contains("5% more to a nightmare for each glow it has entered, up to +25%"), "Strung Lights: the route-length line")
+	for id in [&"lf_bonfire", &"lf_strung_lights"]:
+		_check(String(paths[id].text).split(" ", false).size() <= 25, "%s: face at most 25 words" % id)
+	_check(not load("res://resource/dream/spore_ring.tres").tip.contains("clump"), "Spore Huddle: no 'clump'")
+
+	# Nothing Wasted: a Firefly Jar alone (no other family) jumps what the shell stopped.
+	dreams.stacks.clear()
+	dreams.calling = "sporeling"  # A later owner: the lent card alone
+	_take("nothing_wasted")
+	var jar := _plant("firefly_jar", far)
+	await _frames(2)
+	var shelled = _spawn(far + Vector2(CELL * 2, 0))
+	shelled.coat = 1000.0
+	shelled.coat_max = 1000.0
+	shelled._coat_per_hit = 15.0
+	var bare = _spawn(far + Vector2(CELL * 2, CELL))
+	var bare_before: float = bare.health
+	var thrown: int = lights.forks_thrown
+	jar.hit(shelled, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(lights.forks_thrown == thrown + 1 and bare.health < bare_before, "Nothing Wasted: a lone Firefly Jar's shell-stopped damage jumps to the nightmare without a shell")
+	await _clean()
+
+	# Struck Twice: a jump readies the next hit from a Firefly Warden or a Warden near one (30% more, once, 2 s).
+	dreams.stacks.clear()
+	_take("struck_twice")
+	jar = _plant("firefly_jar", far)
+	var near_sprout := _plant("sprout", far + Vector2(CELL, CELL))  # A non-Firefly Warden near the Jar
+	var far_sprout := _plant("sprout", far + Vector2(CELL * 6, 0))  # Not near any Firefly Warden
+	await _frames(3)
+	var e = _spawn(far + Vector2(CELL * 2, 0))
+	var plain := _hit_loss(jar, e)
+	await process_frame
+	dreams.note_jump(null, null, e, 10.0)
+	_check(e.has_meta(lights.STRUCK_META), "Struck Twice: a jump landing marks the nightmare")
+	var mark: Array = e.get_meta(lights.STRUCK_META)
+	_check(mark.size() > 3 and mark[3] != null and is_instance_valid(mark[3].get_ref()), "...and a spark shows the mark")
+	var boosted := _hit_loss(jar, e)
+	_check(absf(boosted - plain * lights.STRUCK_BONUS) <= 1.01, "...a Firefly Jar alone: its next hit deals 30%% more (%.2f)" % (boosted / maxf(plain, 0.001)))
+	_check(not e.has_meta(lights.STRUCK_META), "...the mark is spent")
+	await process_frame
+	var after := _hit_loss(jar, e)
+	_check(absf(after - plain) <= 1.01, "...the hit after it is plain again (%.3f / %.3f / %.3f)" % [plain, boosted, after])
+	await process_frame
+	var sprout_plain := _hit_loss(near_sprout, e)
+	await process_frame
+	dreams.note_jump(null, null, e, 10.0)
+	var far_loss := _hit_loss(far_sprout, e)
+	_check(e.has_meta(lights.STRUCK_META) and absf(far_loss - sprout_plain) <= 1.01, "...a Warden not near a Firefly Warden neither gains nor spends the mark")
+	var sprout_boosted := _hit_loss(near_sprout, e)
+	_check(absf(sprout_boosted - sprout_plain * lights.STRUCK_BONUS) <= 1.01, "...a Sprout near the Firefly Jar gains it (%.2f: %.3f / %.3f / far %.3f)" % [sprout_boosted / maxf(sprout_plain, 0.001), sprout_plain, sprout_boosted, far_loss])
+	await process_frame
+	dreams.note_jump(null, null, e, 10.0)
+	_check(is_equal_approx(lights.damage_multiplier(e, jar, &"fork"), 1.0) and e.has_meta(lights.STRUCK_META), "...jumps never spend it (hits only)")
+	await process_frame
+	dreams.note_jump(jar, null, e, 10.0)
+	_check(is_equal_approx(lights.damage_multiplier(e, jar, &""), 1.0) and e.has_meta(lights.STRUCK_META), "...a chain hop's own hit in the same frame never spends the mark it made")
+	mark = e.get_meta(lights.STRUCK_META)
+	mark[0] = float(mark[0]) - lights.STRUCK_TIME - 0.1
+	e.set_meta(lights.STRUCK_META, mark)
+	await process_frame
+	_check(is_equal_approx(lights.damage_multiplier(e, jar, &""), 1.0), "...the mark fades after 2 s")
+	await _clean()
+
+	# Sparks Fly: another Firefly Warden's hit counts (the bug: a Jar's hit overwrote the last Firefly hit before the check).
+	dreams.stacks.clear()
+	_take("sparks_fly")
+	var jar_a := _plant("firefly_jar", far)
+	var jar_b := _plant("firefly_jar", far + Vector2(0, CELL * 2))
+	await _frames(2)
+	var s1 = _spawn(far + Vector2(CELL * 2, 0))
+	_spawn(far + Vector2(CELL * 2, CELL))
+	thrown = lights.forks_thrown
+	for i in 3:  # A, B, A, B, A, B: Jar B's hits after Jar A's count, and its 3rd jumps
+		jar_a.hit(s1, 1.0, false, Tower.NO_CRIT)
+		await process_frame
+		jar_b.hit(s1, 1.0, false, Tower.NO_CRIT)
+		await process_frame
+	await _frames(1)
+	_check(lights.forks_thrown == thrown + 1, "Sparks Fly: a Firefly Jar's hits after another Jar's count (%d)" % (lights.forks_thrown - thrown))
+	await _clean()
+
+	# Bonfire: Firefly Wardens' hits on gold path deal 25% more (hits only; a Sprout doesn't).
+	dreams.stacks.clear()
+	dreams.calling = "firefly_jar"
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"lf_bonfire")
+	jar = _plant("firefly_jar", far)
+	_plant("firefly_jar", far + Vector2(CELL, 0))
+	var lone := _plant("firefly_jar", far + Vector2(CELL * 10, 0))
+	var sprout := _plant("sprout", far + Vector2(CELL, CELL))
+	await _frames(3)
+	var gold = _spawn(far + Vector2(CELL * 0.5, CELL * 0.5))
+	var dim = _spawn(far + Vector2(CELL * 10, CELL))
+	_check(lights.jars_at(lights._lit_sources(gold)) >= 2, "(the nightmare stands on gold path)")
+	_check(is_equal_approx(lights.damage_multiplier(gold, jar, &""), lights.BONFIRE_BONUS), "Bonfire: a Firefly Warden's hit on gold path deals 25% more")
+	_check(is_equal_approx(lights.damage_multiplier(dim, lone, &""), 1.0), "...off gold path, nothing")
+	_check(is_equal_approx(lights.damage_multiplier(gold, sprout, &""), 1.0), "...a Sprout's hit gets nothing")
+	_check(is_equal_approx(lights.damage_multiplier(gold, jar, &"fork"), 1.0), "...jumps get nothing")
+	dreams.calling_path.clear()
+	await _clean()
+
+	# Strung Lights: +5% per glow entered, up to +25%; the same glow twice counts once.
+	dreams.calling_path.append(&"lf_strung_lights")
+	jar = _plant("firefly_jar", far)
+	sprout = _plant("sprout", far + Vector2(CELL, CELL))
+	await _frames(2)
+	var walker = _spawn(far + Vector2(CELL * 3, 0))
+	_check(is_equal_approx(lights.damage_multiplier(walker, jar, &""), 1.0), "Strung Lights: no glow entered, nothing")
+	lights._entered(walker, 1)
+	lights._entered(walker, 2)
+	lights._entered(walker, 2)
+	_check(is_equal_approx(lights.damage_multiplier(walker, jar, &""), 1.0 + 2.0 * lights.STRUNG_PER_GLOW), "...2 glows entered: 10% more")
+	_check(is_equal_approx(lights.damage_multiplier(walker, sprout, &""), 1.0), "...Firefly Wardens only")
+	for light in range(3, 12):
+		lights._entered(walker, light)
+	_check(is_equal_approx(lights.damage_multiplier(walker, jar, &""), 1.0 + lights.STRUNG_MAX), "...up to +25%")
+	dreams.calling_path.clear()
+	await _clean()

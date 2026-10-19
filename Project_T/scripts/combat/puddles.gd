@@ -92,6 +92,21 @@ const OLD_RAIN_BONUS := 1.4  # …deals 40% more (its burst; damage over time af
 const NEVER_DRY := &"never_quite_dry"
 const NEVER_DRY_EVERY := 3.0  # Never Quite Dry: a Reaction near a Dewdrop leaves the statuses it spent at half, once per nightmare in 3 s
 const NEVER_DRY_META := &"pd_never_dry_next"  # On a nightmare
+# Dewdrop helping itself (owner 2026-10-18; D:\Projects\logs\dream_council\dewdrop_self.md): three lent cards that pay
+# Dewdrop Wardens and Wardens near them (2 cells; a Dewdrop is near itself: dewdrop_near), so they still give every family
+# the trait. Wash Away is the revived id (WASH_AWAY above; shell_multiplier).
+const SODDEN := &"sodden"
+const SODDEN_PER := 0.10  # Sodden: hits deal this much more for each whole second the nightmare's Soaked has lasted…
+const SODDEN_MAX := 0.40  # …up to this much (EnemyStatuses.age(DAMP): it resets only when Soaked runs out)
+const SODDEN_META := &"pd_sodden_full"  # On a nightmare: true once its count reached the cap (the one status pop)
+const LAST_DROP := &"last_drop"
+const LAST_DROP_TAG := &"last_drop"  # A class tag (never sets a card off). Potency is applied here (_last_drop): Reactions.EFFECT_TAGS is not ours to edit
+const LAST_DROP_SHARE := 0.4  # Last Drop: Soaked running out deals this share of the adder's hit for each stack it had…
+const LAST_DROP_HITS := 3.0  # …up to this many hits
+const LAST_DROP_EVERY := 6.0  # Each nightmare once in this long (covers Ebb bringing Soaked back to run out again)
+const LAST_DROP_META := &"pd_last_drop_next"  # On a nightmare
+const WASH_FX_EVERY := 1.0  # Wash Away's credit and puff: once a second per nightmare
+const WASH_FX_META := &"pd_wash_fx"  # On a nightmare
 var _old_rain := false  # True while a boosted Reaction check runs (damage_multiplier reads it)
 var _rain_ids: Array = []  # Old Rain: the lingering statuses on the nightmare that check runs for (keyword chips 2026-10-16)
 
@@ -154,7 +169,12 @@ const SPRING_SECONDS := 2.0  # …for this long
 const EVO_POND := &"dw_black_pond"  # Focus
 const POND_DEWDROPS := 2  # Black Pond: water touching this many Dewdrops is a pond…
 const POND_SLOW := 0.25  # …nightmares in it walk this much slower (bosses half)…
-const POND_STEPS := 8  # …and its ripple runs this many steps
+const POND_STEPS := 8  # (Unused since 2026-10-18: Black Pond's longer splash became POND_BONUS)
+const POND_BONUS := 1.25  # Black Pond (owner 2026-10-18): Dewdrop hits on a nightmare in a pond deal 25% more
+const STREAM_CROWD := 3  # Stream (owner 2026-10-18): a splash reaching this many nightmares (the hit one included)…
+const STREAM_BONUS := 1.3  # …makes that Dewdrop's next hit deal 30% more
+const STREAM_META := &"pd_stream_next"  # On a Dewdrop: its next hit is boosted
+const SIDE_SPROUT_BONUS := 1.25  # Riverside (owner 2026-10-18): Sprouts touching water deal 25% more to Soaked nightmares in it
 const POND_TIME := 0.25  # The pond's slow, re-applied each poll (it ends soon after it walks out)
 const EVO_WHIRLPOOL := &"dw_whirlpool"
 const PULL_STEPS := 2  # Whirlpool: a fully Soaked nightmare in a pond is pulled back this many steps, once per pond (never bosses or flyers)
@@ -210,7 +230,7 @@ func _line() -> String:
 # 2 cells; "a Dewdrop's range": its attack range) and Soaked.
 func _lent_rules() -> Array:
 	return [STEEPED, TOPPED_UP, DRIPPING, EBB, REMEMBERS, POOLING, WATERLOGGED, HIGH_TIDE, OLD_RAIN, NEVER_DRY,
-		CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, RUN_OFF, WASH_AWAY, RIPTIDE,
+		SODDEN, LAST_DROP, WASH_AWAY, CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, RUN_OFF, RIPTIDE,
 		SOMETHING, SOAKED_THROUGH]  # (From Caught Wading on: retired 2026-10-15 or before, need no water; old saves keep them)
 
 # Wake Ripple (retired) carried statuses along the water: an old save holding it keeps the water on Continue.
@@ -481,6 +501,8 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 	if class_on() and not dream_state.calling_path.is_empty():
 		_ripple_shown(enemy, w, from, soaked)
 		_ripple_extras(enemy, w, soaked)
+		if evo(EVO_STREAM) and soaked.size() + 1 >= STREAM_CROWD:
+			_stream_ready(source, w, from)
 	# Swell: the splash spreads through that water, up to 4 steps each way, at half outside its own circle
 	if rule(SWELL):
 		var circle: float = source.get_splash_cells() * cell()
@@ -543,11 +565,11 @@ func on_poll() -> void:
 	if rule(SOAKED_THROUGH):
 		for enemy in enemies():
 			_soaked_through(enemy)
-	if rule(EBB):
+	if rule(EBB) or rule(LAST_DROP):
 		for enemy in enemies():
 			if not enemy.has_meta(EBB_META):
 				enemy.set_meta(EBB_META, true)
-				enemy.statuses.status_ran_out.connect(_ebb.bind(enemy))
+				enemy.statuses.status_ran_out.connect(_ran_out.bind(enemy))
 	if rule(WATERLOGGED):
 		for enemy in enemies():
 			_slow_to_dry(enemy)
@@ -690,11 +712,40 @@ func _tick_riptides() -> void:
 
 # --- Calling evolutions -------------------------------------------------------------------------------------------------
 
-# How many steps each way a Dewdrop's ripple runs in water `w` (Black Pond, Flood).
+# Stream (owner 2026-10-18): a splash that reached STREAM_CROWD nightmares readies the Dewdrop's next hit (+30%,
+# damage_multiplier spends it). The counting splash flashes brighter along the water.
+func _stream_ready(source, w: int, from: int) -> void:
+	if not source.get_meta(STREAM_META, false):
+		_water_fx(w, from - RIPPLE_STEPS * 2, from + RIPPLE_STEPS * 2, 2.0)
+	source.set_meta(STREAM_META, true)
+
+# The evolutions' hit bonuses (owner 2026-10-18, dewdrop_self.md), for hits only: Stream (a readied Dewdrop's next hit),
+# Black Pond (Dewdrop hits in a pond), Riverside (Sprouts touching water on a Soaked nightmare in it).
+func _evo_hit_multiplier(enemy, source) -> float:
+	var multiplier := 1.0
+	if is_own(source):
+		if evo(EVO_STREAM) and source.get_meta(STREAM_META, false):
+			source.set_meta(STREAM_META, false)
+			multiplier *= STREAM_BONUS
+			DamageLog.note_card_bonus(String(EVO_STREAM), STREAM_BONUS)
+			credit(EVO_STREAM, enemy.global_position, source)
+		if evo(EVO_POND) and _is_pond(water_of(enemy)):
+			multiplier *= POND_BONUS
+			DamageLog.note_card_bonus(String(EVO_POND), POND_BONUS)
+			credit(EVO_POND, enemy.global_position, source)
+	elif evo(EVO_RIVERSIDE) and source.tower_data.get_id() == "sprout" and _soaked(enemy) and touches_water(source, water_of(enemy)):
+		multiplier *= SIDE_SPROUT_BONUS
+		DamageLog.note_card_bonus(String(EVO_RIVERSIDE), SIDE_SPROUT_BONUS)
+		credit(EVO_RIVERSIDE, enemy.global_position, source)
+	return multiplier
+
+# Whether any hit bonus here is on (DreamState.batch_damage_multiplier asks once a frame before calling damage_multiplier).
+func wants_damage_hook() -> bool:
+	return rule(SODDEN) or evo(EVO_STREAM) or evo(EVO_POND) or evo(EVO_RIVERSIDE)
+
+# How many steps each way a Dewdrop's ripple runs in water `w` (Flood; Black Pond's 8 steps became POND_BONUS 2026-10-18).
 func _ripple_steps(w: int) -> int:
 	var steps := RIPPLE_STEPS
-	if evo(EVO_POND) and _is_pond(w):
-		steps = maxi(steps, POND_STEPS)
 	if evo(EVO_FLOOD) and w >= 0 and w < waters.size():
 		steps = maxi(steps, mini(ceili(float(waters[w].steps)), FLOOD_STEPS))
 	return steps
@@ -726,8 +777,7 @@ func _ripple_shown(enemy, w: int, from: int, soaked: Array) -> void:
 		credit(EVO_STREAM, enemy.global_position)  # It reached a nightmare on water the Stream carried (drawn as a current)
 	if far > RIPPLE_STEPS * 2:
 		_water_fx(w, from - far, from + far)
-		var by_pond: bool = evo(EVO_POND) and _is_pond(w) and far <= POND_STEPS * 2
-		credit(EVO_POND if by_pond else EVO_FLOOD, enemy.global_position)
+		credit(EVO_FLOOD, enemy.global_position)  # Only Flood runs a splash past 4 steps (2026-10-18)
 
 # Everything an evolution adds to a ripple (a Dewdrop's, or Lapping Water's from a bank Warden).
 func _ripple_extras(enemy, w: int, soaked: Array) -> void:
@@ -1216,9 +1266,34 @@ func _drip(enemy) -> void:
 	if any:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
 
+# EnemyStatuses.status_ran_out (hooked in on_poll for Ebb or Last Drop): Last Drop reads the peak first, then Ebb may
+# bring the status back.
+func _ran_out(id: StringName, peak: int, source: Node, potency: float, line: String, enemy) -> void:
+	_last_drop(id, peak, source, enemy)
+	_ebb(id, peak, source, potency, line, enemy)
+
+# Last Drop (owner 2026-10-18, dewdrop_self.md): when Soaked runs out of time, the Warden that added it (a Dewdrop or a
+# Warden near one) hits that nightmare for 40% of its hit for each stack it had, up to 3 hits. One new hit (tag
+# last_drop, x the adder's Potency; never a Reaction and never a replay). Spent Soaked never ran out, so a
+# Reaction that spends it means no drop. Each nightmare once every 6 s (Ebb can bring Soaked back to run out again).
+func _last_drop(id: StringName, peak: int, source: Node, enemy) -> void:
+	if id != EnemyStatuses.DAMP or peak <= 0 or not rule(LAST_DROP) or not living(enemy):
+		return
+	if not (source is Tower) or not is_instance_valid(source) or not source.tower_data.can_attack or dewdrop_near(source) == null:
+		return
+	if now() < float(enemy.get_meta(LAST_DROP_META, -INF)):
+		return
+	enemy.set_meta(LAST_DROP_META, now() + LAST_DROP_EVERY)
+	var amount: float = source.get_damage() * minf(LAST_DROP_SHARE * float(peak), LAST_DROP_HITS) * source.get_potency()
+	Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)  # A single falling drop
+	_line_fx(source.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
+	credit(LAST_DROP, enemy.global_position, source)
+	strike(source, enemy, amount, LAST_DROP_TAG, false, LAST_DROP)
+
 # Ebb (EnemyStatuses.status_ran_out, hooked in on_poll): a status that runs out of time on a nightmare in a Dewdrop's
-# range comes back at half its most stacks for 3 s. Once per status and nightmare; never Rooted, Drowsy or Soaked;
-# Charged stops one short of a bolt. Spent statuses (a Reaction, a bolt) never ran out, so they never ebb.
+# range comes back at half its most stacks for 3 s. Once per status and nightmare; never Rooted or Drowsy. Soaked can
+# come back (EnemyStatuses.can_linger(DAMP) is true; Last Drop's 6 s limit covers its second run-out). Charged stops one
+# short of a bolt. Spent statuses (a Reaction, a bolt) never ran out, so they never ebb.
 func _ebb(id: StringName, peak: int, source: Node, potency: float, line: String, enemy) -> void:
 	if not rule(EBB) or not living(enemy) or not EnemyStatuses.can_linger(id) or _ranges_holding(enemy, 1) < 1:
 		return
@@ -1357,8 +1432,8 @@ func _run_off(enemy) -> void:
 
 # --- What the other systems ask (through DreamState) --------------------------------------------------------------------
 
-# Wash Away: a Soaked nightmare in water loses half its family resistance to every Warden touching that water (x0.5
-# becomes x0.75). Not bosses. Status length, immunities, the blight coat and shape multipliers stay.
+# Hit bonuses (DreamState.batch_damage_multiplier, from Enemy.take_damage): Old Rain, High Tide, the evolutions' (Stream,
+# Black Pond, Riverside), Sodden, and the retired Riptide / Deep Pool for old saves. (Wash Away is shell_multiplier.)
 func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 	if not active():
 		return 1.0
@@ -1379,8 +1454,12 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		var tide := 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
 		multiplier *= tide
 		DamageLog.note_card_bonus("high_tide", tide)
+	if tag == &"" and class_on() and not dream_state.calling_path.is_empty():
+		multiplier *= _evo_hit_multiplier(enemy, source)  # Stream, Black Pond, Riverside
 	if not _soaked(enemy):
-		return multiplier  # The older Dewdrop damage cards (retired) read a Soaked nightmare
+		return multiplier  # Sodden and the older Dewdrop damage cards (retired) read a Soaked nightmare
+	if rule(SODDEN) and tag == &"" and dewdrop_near(source) != null:
+		multiplier *= _sodden(enemy, source)
 	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades
 		var rip: Dictionary = enemy.get_meta(RIP_META)
 		if now() <= float(rip.until) and not rip.done.has(source.get_instance_id()) and near(source.global_position, rip.at):
@@ -1398,13 +1477,36 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		DamageLog.note_card_bonus("deep_pool", 1.0 + DEEP_POOL_PER_STATUS * others)
 	return multiplier
 
-# Wash Away (Enemy.take_damage asks through DreamState.shell_multiplier): a Soaked nightmare's shell (the blight coat)
-# takes double damage from Wardens near a Dewdrop. Not bosses. (Resistances are gone, enemy_design.md ed6f573b.)
+# Sodden (owner 2026-10-18, dewdrop_self.md): a hit from a Dewdrop or a Warden near one deals 10% more for each whole
+# second the nightmare's Soaked has lasted (EnemyStatuses.age: kept on by anything that keeps Soaked on; reset when it
+# runs out), up to +40%. Hits only. The badge pops once when the count reaches the cap.
+func _sodden(enemy, source) -> float:
+	var bonus := minf(SODDEN_PER * floorf(enemy.statuses.age(EnemyStatuses.DAMP)), SODDEN_MAX)
+	if bonus < SODDEN_MAX - 0.0001:
+		if enemy.has_meta(SODDEN_META):
+			enemy.remove_meta(SODDEN_META)
+	elif not enemy.has_meta(SODDEN_META):
+		enemy.set_meta(SODDEN_META, true)
+		_status_pop(SODDEN, enemy, EnemyStatuses.DAMP)
+	if bonus <= 0.0:
+		return 1.0
+	DamageLog.note_card_bonus(String(SODDEN), 1.0 + bonus)
+	credit(SODDEN, enemy.global_position, source)
+	return 1.0 + bonus
+
+# Wash Away (revived 2026-10-18, owner: Dewdrops and Wardens near them; Enemy.take_damage asks through
+# DreamState.shell_multiplier only while the nightmare has a shell): a hit from a Dewdrop Warden or a Warden near one on a
+# Soaked nightmare wears its shell (the blight coat) down twice as fast. The damage through is unchanged until the shell
+# breaks. Not bosses. The first hit, before any Soaked, doesn't count. Credited (and a puff) once a second per nightmare.
 func shell_multiplier(enemy, source) -> float:
 	if not active() or not rule(WASH_AWAY) or not (source is Tower) or not is_instance_valid(source):
 		return 1.0
 	if enemy.statuses.is_boss or not _soaked(enemy) or dewdrop_near(source) == null:
 		return 1.0
+	if now() >= float(enemy.get_meta(WASH_FX_META, -INF)):
+		enemy.set_meta(WASH_FX_META, now() + WASH_FX_EVERY)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
+		credit(WASH_AWAY, enemy.global_position, source)
 	return WASH_AWAY_SHELL
 
 # Across the Water: any Warden touching water also reaches Soaked nightmares up to 3 steps further along that water

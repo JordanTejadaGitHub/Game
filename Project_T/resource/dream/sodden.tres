@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "sodden"
+display_name = "Sodden"
+description = "Dewdrop Wardens and Wardens {near} them deal 10% more to a nightmare for each second its {damp} has lasted, up to +40%."
+tip = "Lasted: since its {damp} last ran out; a status that lingers keeps counting. Hits only, not status damage. {warden:dewdrop}s count. Works for: {warden:dewdrop}s and any Warden {near} one, along a long stretch of path. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["water", "lent"])
+max_stacks = 1
+rule_id = &"sodden"
+requires = Array[String](["dewdrop"])
+uses = Array[StringName]([&"soaked", &"linger"])

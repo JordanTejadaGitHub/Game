@@ -71,6 +71,10 @@ const SPARKS_FLY := &"sparks_fly"
 const SPARKS_EVERY_HIT := 3  # Sparks Fly: every 3rd hit a Warden lands on a nightmare…
 const SPARKS_WINDOW := 2.0  # …a Firefly Warden hit in the last 2 s…
 const SPARKS_SHARE := 0.5  # …jumps on at half
+const STRUCK_TWICE := &"struck_twice"  # Struck Twice (self-sufficiency audit 2026-10-18): a jump landing readies the next hit…
+const STRUCK_BONUS := 1.3  # …from a Firefly Warden or a Warden near one: 30% more…
+const STRUCK_TIME := 2.0  # …for 2 s; one waiting hit per nightmare
+const STRUCK_META := &"ff_struck"  # On a nightmare: [time, frame, the jump's source id, WeakRef spark]
 const FLASHOVER := &"flashover"
 const FLASHOVER_SHARE := 0.5  # Flashover: an area attack on 2+ nightmares jumps half to the nearest one it missed
 const FLASHOVER_MIN := 2
@@ -127,6 +131,10 @@ const SWARM_SHARE := 1.0  # …at this share of the jump
 # Focus
 const EVO_BONFIRE := &"lf_bonfire"
 const GOLD_JUMPS := 2  # Bonfire: a dispel on gold path jumps to this many (never past MEET_MAX)
+const BONFIRE_BONUS := 1.25  # Bonfire (self-sufficiency audit 2026-10-18): Firefly Wardens' hits on gold path deal 25% more
+const STRUNG_PER_GLOW := 0.05  # Strung Lights (same audit): Firefly Wardens' hits deal 5% more per glow the nightmare entered…
+const STRUNG_MAX := 0.25  # …up to +25%
+const GLOWS_META := &"lf_glows_entered"  # On a nightmare: {light id: true}, the glows it has entered (Strung Lights)
 const EVO_MOTH := &"lf_moth_to_flame"
 const MOTH_EXPOSED := 2  # Moth to Flame: a jump landing on gold path adds this many Exposed (bosses half, at least 1)
 const EVO_PYRE := &"lf_pyre"
@@ -254,7 +262,7 @@ func lit_count() -> int:
 # gold path are the first pick's only. The lent cards work from Firefly Wardens, where Wardens stand, their attacks and
 # Charged; they never read Lit (no sources_at, nearest_lit or is_lit in a lent path).
 const LENT_RULES: Array[StringName] = [HAMMERFALL, KNOCK_ON, THUNDERSTRUCK, CHAIN_OF_LANTERNS, NOTHING_WASTED, LENT_CROSSFIRE,
-	SPARKS_FLY, FLASHOVER, BRUSHFIRE, GATHERING_STORM, LENT_LIVE_WIRE, LIKE_TO_LIKE]  # (Live Wire, Like to Like: retired; old saves)
+	SPARKS_FLY, FLASHOVER, BRUSHFIRE, GATHERING_STORM, STRUCK_TWICE, LENT_LIVE_WIRE, LIKE_TO_LIKE]  # (Live Wire, Like to Like: retired; old saves)
 
 func _lent_on() -> bool:
 	for id in LENT_RULES:
@@ -743,8 +751,13 @@ func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, 
 	opts["credit"] = EVO_BALE if relay > 0 else EVO_TORCH  # Setup credit 2026-10-16: its own damage
 	_fork(id, source, from, target, amount, cap, opts)
 
-# Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it.
+# Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it. Strung Lights counts the glow
+# (a set of light ids: a joined stretch borrows a joined light's id, so it is never a new glow).
 func _entered(enemy, light: int) -> void:
+	if evo(EVO_STRUNG):
+		var glows: Dictionary = enemy.get_meta(GLOWS_META, {})
+		glows[light] = true
+		enemy.set_meta(GLOWS_META, glows)
 	if not _sparks.has(light):
 		return
 	var id := _next_event()
@@ -1002,6 +1015,91 @@ func _signal(id: int, source, at: Vector2, step: int, lights: Array, amount: flo
 			from = spot  # …and the next light throws it
 		credit(EVO_BALE if relay > 0 else EVO_TORCH, front.global_position)
 	_fork(id, source, from, front, amount, cap, opts)
+
+# --- Hit bonuses: Struck Twice, Bonfire, Strung Lights (self-sufficiency audit 2026-10-18) ---------------------------
+
+# Whether any hit bonus here is on (DreamState.batch_damage_multiplier asks once a frame before calling damage_multiplier).
+func wants_damage_hook() -> bool:
+	return _rule(STRUCK_TWICE) or evo(EVO_BONFIRE) or evo(EVO_STRUNG)
+
+# Struck Twice (DreamState.note_jump, every jump from any card or Warden): the nightmare a jump lands on waits for one
+# boosted hit for STRUCK_TIME s. A new jump refreshes the one mark (never stacks). A small spark shows it.
+func mark_struck(source, to) -> void:
+	if not _living(to):
+		return
+	var old: Array = to.get_meta(STRUCK_META, [])
+	var spark = old[3].get_ref() if old.size() > 3 and old[3] != null else null
+	if not is_instance_valid(spark) or spark.is_queued_for_deletion():
+		spark = null
+		var world := Reactions._world(self)
+		if world != null:
+			spark = StruckSpark.new(to, self)
+			world.add_child(spark)  # Never under %EnemyContainer (its children are all nightmares)
+	to.set_meta(STRUCK_META, [_now(), Engine.get_process_frames(), source.get_instance_id() if is_instance_valid(source) else 0,
+		weakref(spark) if spark != null else null])
+
+# Whether `enemy` still waits for its Struck Twice hit (the spark asks each frame).
+func is_struck(enemy) -> bool:
+	if not _living(enemy) or not enemy.has_meta(STRUCK_META):
+		return false
+	return _now() - float(enemy.get_meta(STRUCK_META)[0]) <= STRUCK_TIME
+
+# The hit bonuses, for hits only (tag ""; never jumps or bolts): Struck Twice (a Firefly Warden or a Warden near one; a
+# Warden counts as near itself), Bonfire (a Firefly Warden's hit on gold path), Strung Lights (a Firefly Warden's hit, per
+# glow the nightmare entered). Each one notes its card bonus (DamageLog) and credits itself with the Warden.
+func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
+	if tag != &"" or not (source is Tower) or not is_instance_valid(source) or not is_instance_valid(enemy):
+		return 1.0
+	var multiplier := 1.0
+	var own := is_firefly(source)
+	if _rule(STRUCK_TWICE) and enemy.has_meta(STRUCK_META):
+		var mark: Array = enemy.get_meta(STRUCK_META)
+		if _now() - float(mark[0]) > STRUCK_TIME:
+			enemy.remove_meta(STRUCK_META)  # Faded
+		elif (own or firefly_near(source) != null) \
+				and not (int(mark[1]) == Engine.get_process_frames() and int(mark[2]) == source.get_instance_id()):
+			# (A chain Warden's hop is a jump and its hit in the same frame: it never spends the mark it just made)
+			enemy.remove_meta(STRUCK_META)
+			multiplier *= STRUCK_BONUS
+			DamageLog.note_card_bonus(String(STRUCK_TWICE), STRUCK_BONUS)
+			credit(STRUCK_TWICE, enemy.global_position, source)
+	if not own or not _evolved():
+		return multiplier
+	if evo(EVO_BONFIRE) and jars_at(_lit_sources(enemy)) >= 2:
+		multiplier *= BONFIRE_BONUS
+		DamageLog.note_card_bonus(String(EVO_BONFIRE), BONFIRE_BONUS)
+		credit(EVO_BONFIRE, enemy.global_position, source)
+	if evo(EVO_STRUNG):
+		var glows := (enemy.get_meta(GLOWS_META, {}) as Dictionary).size()
+		if glows > 0:
+			var strung := 1.0 + minf(STRUNG_PER_GLOW * glows, STRUNG_MAX)
+			multiplier *= strung
+			DamageLog.note_card_bonus(String(EVO_STRUNG), strung)
+			credit(EVO_STRUNG, enemy.global_position, source)
+	return multiplier
+
+# Struck Twice's mark: a small warm spark over the nightmare until its boosted hit lands or the mark fades.
+class StruckSpark extends Node2D:
+	var _enemy: WeakRef
+	var _lights: WeakRef
+
+	func _init(enemy: Node2D, lights: Node) -> void:
+		_enemy = weakref(enemy)
+		_lights = weakref(lights)
+		z_index = 20  # Over the nightmares
+		global_position = enemy.global_position
+
+	func _process(_delta: float) -> void:
+		var enemy = _enemy.get_ref()
+		var lights = _lights.get_ref()
+		if lights == null or not lights.is_struck(enemy):
+			queue_free()
+			return
+		global_position = enemy.global_position
+
+	func _draw() -> void:
+		draw_circle(Vector2(12, -30), 3.0, Color(Palette.HEARTLIGHT, 0.6))
+		draw_circle(Vector2(12, -30), 1.5, Palette.HEARTLIGHT)
 
 # --- Calling evolutions: the helpers --------------------------------------------------------------------------------
 
@@ -1290,6 +1388,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	var now := _now()
 	if is_bolt:
 		return  # Chain of Lanterns' bolt half is gone (hard cards 2026-10-16): only Reactions jump (_chain_more)
+	var prev: Array = enemy.get_meta(FF_HIT_META, [])  # The Firefly hit before this one: Sparks Fly reads it, so a Jar's hit counts after another Jar's
 	if is_firefly(source) and event.kind == &"hit" and (_rule(SPARKS_FLY) or _rule(CHAIN_OF_LANTERNS) or _rule(BRUSHFIRE)):
 		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Hit by a Firefly Warden (any form) just now: Sparks Fly, Chain of Lanterns, Brushfire
 	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
@@ -1302,7 +1401,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 		if _rule(FLASHOVER):
 			_flash_note(event, source, enemy)
 		if _rule(SPARKS_FLY):  # Any Warden but the Firefly Warden that started the 2 s (own family too, owner 2026-10-15)
-			_sparks_fly(id, event, source, enemy, at, now)
+			_sparks_fly(id, event, source, enemy, at, now, prev)
 	if _heavy_now:
 		# Hammerfall: another family's heavy Warden, or a Sprout, near a Firefly Warden jumps half of each attack
 		if _rule(HAMMERFALL) and (is_other_family(source) and is_heavy(source) or source.tower_data.get_id() == "sprout"):
@@ -1366,10 +1465,10 @@ func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
 			_fork(id, source, at, other, event.coat_soaked, _lent_cap(source, jar))
 			return
 
-# Sparks Fly: every 3rd hit a Warden (not a Firefly Warden; Sprouts count) lands on a nightmare a Firefly Warden hit in
-# the last 2 s jumps on at half. Counted per Warden and nightmare; an area attack counts once.
-func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float) -> void:
-	var lit: Array = enemy.get_meta(FF_HIT_META, [])
+# Sparks Fly: every 3rd hit a Warden (any but the Firefly Warden that started the 2 s; Sprouts and other Firefly Wardens
+# count) lands on a nightmare a Firefly Warden hit in the last 2 s jumps on at half. Counted per Warden and nightmare; an
+# area attack counts once. `lit` = the Firefly hit before this one (read before _lent_rules records this hit).
+func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float, lit: Array) -> void:
 	if lit.is_empty() or now - float(lit[0]) > SPARKS_WINDOW or lit[1].get_ref() == source:
 		return
 	if int(source.get_meta(SPARKS_FRAME_META, -1)) == Engine.get_process_frames():

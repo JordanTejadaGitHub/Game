@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "struck_twice"
+display_name = "Struck Twice"
+description = "When a {jump} lands on a nightmare, the next hit on it from Firefly Wardens or Wardens {near} them deals 30% more."
+tip = "Every {jump} counts, from any card or Warden. Hits only, not {jumps} or bolts. One waiting hit per nightmare; it fades after 2 s. Multiplies with your other Dream damage. Works for: {warden:firefly_jar}s against tough nightmares in a pack. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["storm", "lent"])
+max_stacks = 1
+rule_id = &"struck_twice"
+requires = Array[String](["firefly_jar"])
+uses = Array[StringName]([&"jump"])

@@ -2167,6 +2167,7 @@ var _hook_batch := false
 var _hook_water := false
 var _hook_bells := false
 var _hook_linger := false  # Keyword chips 2026-10-16: Slow Burn
+var _hook_light := false  # Struck Twice, Bonfire, Strung Lights (self-sufficiency audit 2026-10-18): firefly_lights.damage_multiplier
 
 # How much more of the blight coat (the shell) a hit takes off (Wash Away; 1.0 without it). Enemy.take_damage asks only
 # while the nightmare has a coat.
@@ -2180,10 +2181,11 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 	if frame != _hook_frame:
 		_hook_frame = frame
 		_hook_batch = batch.uses_damage_hook(self)
-		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide") or has_rule(&"high_tide") or has_rule(&"old_rain"))  # (Wash Away is a shell card now: shell_multiplier)
+		_hook_water = puddles != null and puddles.active() and (has_rule(&"deep_pool") or has_rule(&"riptide") or has_rule(&"high_tide") or has_rule(&"old_rain") or puddles.wants_damage_hook())  # (Wash Away is a shell card now: shell_multiplier; Sodden and the Stream / Black Pond / Riverside hit bonuses: wants_damage_hook)
 		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
 		_hook_linger = has_rule(SLOW_BURN)
-	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger:
+		_hook_light = firefly_lights != null and firefly_lights.is_inside_tree() and firefly_lights.wants_damage_hook()
+	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light:
 		return 1.0
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
 	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
@@ -2196,6 +2198,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		multiplier *= keeping_time.damage_multiplier(enemy, source, tag)
 	if _hook_linger:
 		multiplier *= slow_burn_multiplier(enemy, tag)
+	if _hook_light:
+		multiplier *= firefly_lights.damage_multiplier(enemy, source, tag)
 	return multiplier
 
 # --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
@@ -2233,6 +2237,8 @@ func note_jump(source: Node, from: Node2D, to: Node2D, amount: float) -> float:
 		mult = FIREFLY_LIGHTS.gather(to, _game_clock)
 		if mult > 1.0:
 			note_card(&"gathering_storm", to.global_position, 1, source)  # The stronger jump is the moment
+	if has_rule(&"struck_twice") and firefly_lights != null and firefly_lights.is_inside_tree():
+		firefly_lights.mark_struck(source, to)  # Struck Twice: the next hit on it from a Firefly Warden or a Warden near one
 	if has_rule(SHARED_SPARK) and is_instance_valid(from) and from != to:
 		_shared_spark(from, to)
 	return mult
@@ -2939,13 +2945,15 @@ const CARD_NEEDS := {
 	# (Da Capo needs nothing now: a bell's attack happens twice on a clock; owner 2026-10-18, bell_lent_review.md)
 	"shared_spark": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
 		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (keyword chips 2026-10-16)
+	"struck_twice": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
+		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (as Shared Spark; self-sufficiency audit 2026-10-18)
 	"slow_burn": [&"steeped", &"topped_up", &"ebb", &"waterlogged", &"homesick", &"bound_and_burning"],  # A Linger card (keyword chips 2026-10-16)
 }
 
 func card_needs_met(card: UpgradeData) -> bool:
 	if not CARD_NEEDS.has(card.id):
 		return true
-	if (card.id == "gathering_storm" or card.id == "shared_spark") and (calling == "firefly_jar" or has_grown_role(WardenRoles.CHAIN)):
+	if (card.id == "gathering_storm" or card.id == "shared_spark" or card.id == "struck_twice") and (calling == "firefly_jar" or has_grown_role(WardenRoles.CHAIN)):
 		return true  # Lantern Light jumps on every dispel; chain Wardens' hops are jumps too (keyword chips 2026-10-16)
 	for id in CARD_NEEDS[card.id]:
 		if has_rule(id):

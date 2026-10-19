@@ -48,7 +48,7 @@ const CUES := {
 	&"long_way_round": DREAM_FLECK, &"high_tide": DREAM_FLECK, &"seeping": DREAM_FLECK, &"slow_burn": DREAM_FLECK,
 	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK, &"head_start": DREAM_FLECK,
 	&"kindled_gaze": DREAM_FLECK, &"millstone": DREAM_FLECK, &"needle_point": DREAM_FLECK,
-	&"opening_fracture": DREAM_FLECK, &"sap_rising": DREAM_FLECK,
+	&"opening_fracture": DREAM_FLECK, &"sap_rising": DREAM_FLECK, &"wash_away": DREAM_FLECK, &"last_drop": DREAM_FLECK,
 	# Reaction modifiers -> C5
 	&"brimming": REACTION_ACCENT, &"sparking_spores": REACTION_ACCENT, &"wildfire_spores": REACTION_ACCENT,
 	&"rolling_thunder": REACTION_ACCENT, &"rolling_thunder_ii": REACTION_ACCENT, &"deep_water": REACTION_ACCENT,
@@ -69,7 +69,7 @@ const CUES := {
 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
 	&"lingering_ground": STATUS_POP, &"long_light": STATUS_POP, &"lullaby": STATUS_POP,
 	&"bound_and_burning": STATUS_POP, &"waterlogged": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
-	&"homesick": STATUS_POP, &"topped_up": STATUS_POP, &"patient_roots": STATUS_POP,
+	&"homesick": STATUS_POP, &"topped_up": STATUS_POP, &"patient_roots": STATUS_POP, &"sodden": STATUS_POP,
 	# Slow, hold, sleep, pull -> C4
 	&"switchback": SLOW_RIPPLE, &"hobble": SLOW_RIPPLE, &"root_web": SLOW_RIPPLE, &"snag": SLOW_RIPPLE,
 	&"thorn_snare": SLOW_RIPPLE, &"hushed_hedge": SLOW_RIPPLE, &"scented_hedge": SLOW_RIPPLE,
@@ -86,7 +86,7 @@ const CUES := {
 	&"guiding_light": DREAM_THREAD, &"guiding_light_ii": DREAM_THREAD, &"sparks_fly": DREAM_THREAD,
 	&"hammerfall": DREAM_THREAD, &"thunderstruck": DREAM_THREAD, &"chain_of_lanterns": DREAM_THREAD,
 	&"brushfire": DREAM_THREAD, &"flashover": DREAM_THREAD, &"gathering_storm": DREAM_THREAD,
-	&"nothing_wasted": DREAM_THREAD, &"conductive_soil": DREAM_THREAD, &"stolen_away": DREAM_THREAD,
+	&"nothing_wasted": DREAM_THREAD, &"struck_twice": DREAM_FLECK, &"conductive_soil": DREAM_THREAD, &"stolen_away": DREAM_THREAD,
 	&"briar_crown": DREAM_THREAD,  # (Not in the spec's tables: a wall relay, as Hedgerow Roots)
 	# Dew and Dreamlight -> C7
 	&"winding_path": DEW_SPARKLE, &"scarred_bark": DEW_SPARKLE, &"held_breath": DEW_SPARKLE,
@@ -110,12 +110,12 @@ const EXTRA_CUES := {
 	&"thousand_cuts": [STATUS_POP], &"brimming": [STATUS_POP], &"kin_and_kindling": [STATUS_POP],
 	&"never_quite_dry": [STATUS_POP], &"shared_fever": [DREAM_THREAD], &"spent_light": [STATUS_POP],
 	&"living_walls": [RANK_SHIMMER], &"hunters_moon": [STATUS_POP], &"spore_cascade": [STATUS_POP],
-	&"one_bough": [RANK_SHIMMER],
+	&"one_bough": [RANK_SHIMMER], &"sodden": [DREAM_FLECK],
 }
 
 # STATUS_POP cards that hold a status: the linger rim variant (DEWLIGHT rim on the time bar; never_quite_dry's extra too).
 const LINGER: Array[StringName] = [&"lingering_ground", &"long_light", &"lullaby", &"bound_and_burning",
-	&"waterlogged", &"steeped", &"ebb", &"homesick", &"topped_up", &"patient_roots", &"never_quite_dry"]
+	&"waterlogged", &"steeped", &"ebb", &"homesick", &"topped_up", &"patient_roots", &"never_quite_dry", &"sodden"]
 
 # Timed speed / damage cards: while one is on for a Warden its boost tier is +1 (spec B1 dream_surge; DreamState.boost_tier).
 # Rule ids (the Dream rows carry card.rule_id).
