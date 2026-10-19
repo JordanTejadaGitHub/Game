@@ -288,6 +288,38 @@
 			"loop": false,
 			"note": "Brood Cap / Hatchery: where a spore-sprite drops onto the path (anchor = the drop spot), at the attack's release frame. Spores fall in, a pink puff blooms, a ring marks the spot. ~0.43 s."
 		},
+		"calling_spark": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "calling_spark.png",
+			"fps": 16.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 4,
+			"kind": "status",
+			"loop": false,
+			"note": "Calling evolutions: the small warm spark where a carried hit or stacks arrive (anchor = the arrival point). ~0.25 s."
+		},
+		"calling_thread": {
+			"anchor": [
+				0,
+				4
+			],
+			"file": "calling_thread.png",
+			"fps": 12.0,
+			"frame_size": [
+				16,
+				8
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Calling evolutions: a carried hit or carried stacks moving from one point to another (Fx.segment, tiled). Play for ~0.3 s, then calling_spark at the far end."
+		},
 		"carried_storm": {
 			"anchor": [
 				0,
@@ -1743,6 +1775,22 @@
 			"loop": false,
 			"note": "Inkcap / Deliquescent: the ink a Poisoned nightmare leaves on the path. Tile along x behind it (y = 6 on the line), under the nightmares; fade over its life. Deliquescent's 2-tile pool: two segments side by side, or scale it."
 		},
+		"keeping_toll": {
+			"anchor": [
+				32,
+				30
+			],
+			"file": "keeping_toll.png",
+			"fps": 14.0,
+			"frame_size": [
+				64,
+				48
+			],
+			"frames": 8,
+			"kind": "status",
+			"loop": false,
+			"note": "Keeping Time: the Toll, a bell-ring wave bursting from the nightmare (anchor = its body centre). ~0.57 s. Reduced motion: frame 1 alone."
+		},
 		"kin_bond_burst": {
 			"anchor": [
 				32,
@@ -1966,6 +2014,86 @@
 			"kind": "segment",
 			"loop": true,
 			"note": "The boulder's dust trail: tile/stretch along x behind it (y = 8 on the ground line), fade the far end."
+		},
+		"lantern_glow_a": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "lantern_glow_a.png",
+			"fps": 4.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Lantern Light (Firefly Calling): a lit stretch of path, one per route point (variants a-c); neighbours 32 px apart join into one warm band. A soft flicker; frame 0 is the still. Under the nightmares."
+		},
+		"lantern_glow_b": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "lantern_glow_b.png",
+			"fps": 4.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Lantern Light (Firefly Calling): a lit stretch of path, one per route point (variants a-c); neighbours 32 px apart join into one warm band. A soft flicker; frame 0 is the still. Under the nightmares."
+		},
+		"lantern_glow_c": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "lantern_glow_c.png",
+			"fps": 4.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Lantern Light (Firefly Calling): a lit stretch of path, one per route point (variants a-c); neighbours 32 px apart join into one warm band. A soft flicker; frame 0 is the still. Under the nightmares."
+		},
+		"lantern_glow_gold": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "lantern_glow_gold.png",
+			"fps": 6.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Lantern Light, Bonfire's gold path: brighter, embers lifting off it. One per route point, joins like lantern_glow. Under the nightmares."
+		},
+		"lantern_thread": {
+			"anchor": [
+				0,
+				4
+			],
+			"file": "lantern_thread.png",
+			"fps": 8.0,
+			"frame_size": [
+				16,
+				8
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Lantern Light, Strung Lights: the thread joining two glows (Fx.segment, tiled along the line), small lanterns of light running along it."
 		},
 		"leaf_mote": {
 			"anchor": [
@@ -2371,6 +2499,150 @@
 			"kind": "segment",
 			"loop": true,
 			"note": "Rainbow Prism: a split beam, white so it tints (pink #ec9cf4, gold #fcd47c, blue #9cd4fc for the three). Stretch along x, y = 3."
+		},
+		"puddle_a": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_a.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles (Dewdrop Calling): the water's body on one route point (variant a of a-d, pick per point). Draw EVERY wet point's body first, then every point's puddle_a_shine over them: neighbours 32 px apart merge into one pool. Under the nightmares."
+		},
+		"puddle_a_shine": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_a_shine.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles: the pale clear centre and glint of puddle_a, drawn after all the bodies. A slow shimmer loop; frame 0 is the still."
+		},
+		"puddle_b": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_b.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles (Dewdrop Calling): the water's body on one route point (variant b of a-d, pick per point). Draw EVERY wet point's body first, then every point's puddle_b_shine over them: neighbours 32 px apart merge into one pool. Under the nightmares."
+		},
+		"puddle_b_shine": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_b_shine.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles: the pale clear centre and glint of puddle_b, drawn after all the bodies. A slow shimmer loop; frame 0 is the still."
+		},
+		"puddle_c": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_c.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles (Dewdrop Calling): the water's body on one route point (variant c of a-d, pick per point). Draw EVERY wet point's body first, then every point's puddle_c_shine over them: neighbours 32 px apart merge into one pool. Under the nightmares."
+		},
+		"puddle_c_shine": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_c_shine.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles: the pale clear centre and glint of puddle_c, drawn after all the bodies. A slow shimmer loop; frame 0 is the still."
+		},
+		"puddle_d": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_d.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles (Dewdrop Calling): the water's body on one route point (variant d of a-d, pick per point). Draw EVERY wet point's body first, then every point's puddle_d_shine over them: neighbours 32 px apart merge into one pool. Under the nightmares."
+		},
+		"puddle_d_shine": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "puddle_d_shine.png",
+			"fps": 3.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Puddles: the pale clear centre and glint of puddle_d, drawn after all the bodies. A slow shimmer loop; frame 0 is the still."
+		},
+		"puddle_ripple": {
+			"anchor": [
+				32,
+				24
+			],
+			"file": "puddle_ripple.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				48
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "Puddles: the ripple, a ring spreading over the water from the point it starts (anchor). ~0.5 s. Reduced motion: frame 2 alone."
 		},
 		"puffball_bloom": {
 			"anchor": [
@@ -3151,6 +3423,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Thunderhead's every 5th strike. Anchor = ground impact; the bolt comes from the sky above."
+		},
+		"toll_pip": {
+			"anchor": [
+				5,
+				5
+			],
+			"file": "toll_pip.png",
+			"fps": 1.0,
+			"frame_size": [
+				10,
+				10
+			],
+			"frames": 3,
+			"kind": "ui",
+			"loop": false,
+			"note": "Keeping Time: one pip over a nightmare. Frames are states, not animation: 0 empty, 1 filled, 2 lit (the 4th, the Toll is ready). Code lays four side by side (10 px apart)."
 		},
 		"toll_ring": {
 			"anchor": [

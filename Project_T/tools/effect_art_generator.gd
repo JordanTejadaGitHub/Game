@@ -55,6 +55,7 @@ func _init() -> void:
 	_shroom_variant_effects()
 	_toll_effects()
 	_dream_feedback_effects()
+	_calling_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4586,3 +4587,191 @@ func _dream_mote(img: Image, f: int) -> void:
 	if f == 1:  # the twinkle: its heart flares gold for a beat
 		shape[c] = DREAM_GLOW
 	_edged(img, shape, 1.0)
+
+# --- The four Callings' visuals (Roguelite Code, owner 2026-10-19) ---------------------------------------
+# Puddles (Dewdrop), Lantern Light (Firefly), Keeping Time (Bellflower) and the evolutions' carried thread, as
+# sheets instead of code-drawn circles. Warm Warden colours with a darker edge so they read on the sand path at phone
+# zoom; ground pieces lie under the nightmares. Frame 0 of every loop is its reduced-motion still.
+const POOL_DEEP := Color("#2c4c5c")
+const POOL_MID := Color("#4c8ca4")
+const POOL_LIGHT := Color("#9cd4fc")
+const POOL_GLINT := Color("#dce8f4")
+# Each calm pool: blobs (centre x, y, radius x, y) on a 48 px frame, one per route point; neighbours 32 px apart
+# overlap into one sheet of water.
+const CALM_POOLS := {
+	"a": [Vector4(24, 24, 19, 16), Vector4(30, 27, 11, 10)],
+	"b": [Vector4(24, 24, 18, 17), Vector4(16, 27, 10, 9)],
+	"c": [Vector4(24, 23, 20, 15), Vector4(24, 29, 12, 9)],
+	"d": [Vector4(23, 25, 18, 16), Vector4(31, 20, 10, 9), Vector4(15, 21, 9, 8)],
+}
+
+func _calling_effects() -> void:
+	for v: String in CALM_POOLS:
+		_sheet("puddle_" + v, Vector2i(48, 48), 4, 3, Vector2i(24, 24), true, "ground", _calm_pool.bind(v, false),
+			{note = "Puddles (Dewdrop Calling): the water's body on one route point (variant %s of a-d, pick per point). Draw EVERY wet point's body first, then every point's puddle_%s_shine over them: neighbours 32 px apart merge into one pool. Under the nightmares." % [v, v]})
+		_sheet("puddle_%s_shine" % v, Vector2i(48, 48), 4, 3, Vector2i(24, 24), true, "ground", _calm_pool.bind(v, true),
+			{note = "Puddles: the pale clear centre and glint of puddle_%s, drawn after all the bodies. A slow shimmer loop; frame 0 is the still." % v})
+	_sheet("puddle_ripple", Vector2i(64, 48), 6, 12, Vector2i(32, 24), false, "ground", _puddle_ripple,
+		{note = "Puddles: the ripple, a ring spreading over the water from the point it starts (anchor). ~0.5 s. Reduced motion: frame 2 alone."})
+	for v in 3:
+		_sheet("lantern_glow_%s" % ["a", "b", "c"][v], Vector2i(48, 48), 4, 4, Vector2i(24, 24), true, "ground", _lantern_glow.bind(v, false),
+			{note = "Lantern Light (Firefly Calling): a lit stretch of path, one per route point (variants a-c); neighbours 32 px apart join into one warm band. A soft flicker; frame 0 is the still. Under the nightmares."})
+	_sheet("lantern_glow_gold", Vector2i(48, 48), 4, 6, Vector2i(24, 24), true, "ground", _lantern_glow.bind(0, true),
+		{note = "Lantern Light, Bonfire's gold path: brighter, embers lifting off it. One per route point, joins like lantern_glow. Under the nightmares."})
+	_sheet("lantern_thread", Vector2i(16, 8), 4, 8, Vector2i(0, 4), true, "segment", _lantern_thread,
+		{note = "Lantern Light, Strung Lights: the thread joining two glows (Fx.segment, tiled along the line), small lanterns of light running along it."})
+	_sheet("toll_pip", Vector2i(10, 10), 3, 1, Vector2i(5, 5), false, "ui", _toll_pip,
+		{note = "Keeping Time: one pip over a nightmare. Frames are states, not animation: 0 empty, 1 filled, 2 lit (the 4th, the Toll is ready). Code lays four side by side (10 px apart)."})
+	_sheet("keeping_toll", Vector2i(64, 48), 8, 14, Vector2i(32, 30), false, "status", _keeping_toll,
+		{note = "Keeping Time: the Toll, a bell-ring wave bursting from the nightmare (anchor = its body centre). ~0.57 s. Reduced motion: frame 1 alone."})
+	_sheet("calling_thread", Vector2i(16, 8), 4, 12, Vector2i(0, 4), true, "segment", _calling_thread,
+		{note = "Calling evolutions: a carried hit or carried stacks moving from one point to another (Fx.segment, tiled). Play for ~0.3 s, then calling_spark at the far end."})
+	_sheet("calling_spark", Vector2i(16, 16), 4, 16, Vector2i(8, 8), false, "status", _calling_spark,
+		{note = "Calling evolutions: the small warm spark where a carried hit or stacks arrive (anchor = the arrival point). ~0.25 s."})
+
+func _calm_pool(img: Image, f: int, v: String, shine: bool) -> void:
+	# Two layers so a run of them reads as ONE pool: draw every point's body first (mid water, no rim: neighbours 32 px
+	# apart merge), then every point's shine (the pale clear centre and the sky's glint) over them. A single sheet
+	# with both drew a chain of bubbles, each body covering its neighbour's centre.
+	var blobs: Array = CALM_POOLS[v]
+	var b0: Vector4 = blobs[0]
+	for y in 48:
+		for x in 48:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if shine:
+				if ((p - Vector2(b0.x, b0.y)) / Vector2(b0.z * 0.85, b0.w * 0.55)).length() <= 1.0:
+					img.set_pixel(x, y, POOL_LIGHT)
+				continue
+			for b: Vector4 in blobs:
+				if ((p - Vector2(b.x, b.y)) / Vector2(b.z, b.w)).length() <= 1.0:
+					img.set_pixel(x, y, POOL_MID)
+					break
+	if not shine:
+		return
+	# The shimmer: a soft reflection drifting a pixel, and a glint that comes and goes.
+	var y0: int = int(b0.y - b0.w * 0.2) + [0, 0, 1, 1][f]
+	for i in 5:
+		var q := Vector2(b0.x - 4 + i + float([0, 1, 1, 0][f]), y0)
+		_px(img, int(q.x), int(q.y), Color(POOL_GLINT, 1.0 if i % 3 != 2 else 0.75))
+	if f == 1 or f == 2:
+		_px(img, int(b0.x + b0.z * 0.25), int(b0.y + b0.w * 0.2), POOL_GLINT)
+
+func _puddle_ripple(img: Image, f: int) -> void:
+	var c := Vector2(32, 24)
+	var r: float = [3.0, 7.0, 12.0, 17.0, 22.0, 26.0][f]
+	var a: float = [1.0, 1.0, 1.0, 0.75, 0.4, 0.4][f]
+	_ring(img, c, Vector2(r, r * 0.6), 1.2, Color(POOL_GLINT, a))
+	_ring(img, c + Vector2(0, 1), Vector2(r, r * 0.6), 1.0, Color(POOL_DEEP, a * 0.75))  # its shadow side, for the sand
+	if f >= 2:
+		_ring(img, c, Vector2(r - 5.0, (r - 5.0) * 0.6), 1.0, Color(POOL_LIGHT, a * 0.75))
+	if f == 0:
+		_disc(img, c, 1.5, POOL_GLINT)
+
+const LANTERN_SPOTS := [[Vector2(24, 24), Vector2(28, 21)], [Vector2(24, 24), Vector2(19, 27)], [Vector2(24, 24), Vector2(26, 28)]]
+
+func _lantern_glow(img: Image, f: int, v: int, gold: bool) -> void:
+	# A pool of light painted on the ground: a solid warm body (no rim, so neighbours merge into one band) and a pale
+	# heart that breathes; the gold path is a deeper gold with embers lifting off it.
+	var c: Vector2 = LANTERN_SPOTS[v][0]
+	var flick: float = [0.0, 0.6, 0.2, -0.4][f]
+	var r := Vector2(19.0, 15.0)
+	var heart: Vector2 = LANTERN_SPOTS[v][1]
+	for y in 48:
+		for x in 48:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if ((p - c) / r).length() > 1.0:
+				continue
+			var inner := ((p - heart) / (Vector2(7.0, 5.5) + Vector2(flick, flick))).length() <= 1.0
+			if gold:
+				img.set_pixel(x, y, Color("#fcd47c") if inner else Color("#e9a83c"))
+			else:
+				img.set_pixel(x, y, Color("#fff4dc") if inner else Color("#fcd47c"))
+	if gold:  # embers lifting off the gold path
+		for k in 3:
+			var p := c + Vector2([-9.0, 3.0, 10.0][k], 6.0 - ((f + k * 2) % 4) * 5.0)
+			_px(img, int(p.x), int(p.y), Color("#fff4dc"))
+			_px(img, int(p.x), int(p.y) + 1, Color("#b8662c"))
+
+func _lantern_thread(img: Image, f: int) -> void:
+	for x in 16:  # a thin cord: an ember line with a light line on it
+		_px(img, x, 5, Color(Color("#b8662c"), 0.75))
+		_px(img, x, 4, Color("#fcd47c"))
+	var bead := (f * 4 + 2) % 16  # a little light running along it (tiled: one per 16 px)
+	_px(img, bead, 3, Color("#fff4dc"))
+	_px(img, bead, 4, Color("#fff4dc"))
+	_px(img, bead + 1, 4, Color("#fff4dc"))
+	_px(img, bead, 2, Color(Color("#fcd47c"), 0.75))
+
+func _toll_pip(img: Image, f: int) -> void:
+	var c := Vector2(5, 5)
+	match f:
+		0:  # empty: a dark ring, a faint inside
+			_disc(img, c, 3.6, Color("#24243c"))
+			_disc(img, c, 2.2, Color(Color("#5c5a78"), 0.75))
+		1:  # filled: the bells' gold
+			_disc(img, c, 3.6, Color("#5c3c24"))
+			_disc(img, c, 2.6, Color("#e9a83c"))
+			_px(img, 4, 4, Color("#fcd47c"))
+		2:  # lit: the 4th, the Toll ready, bright with a halo
+			_disc(img, c, 4.6, Color(Color("#fcd47c"), 0.4))
+			_disc(img, c, 3.6, Color("#b8662c"))
+			_disc(img, c, 2.6, Color("#fcd47c"))
+			_disc(img, c, 1.4, Color("#fff4dc"))
+
+func _keeping_toll(img: Image, f: int) -> void:
+	var c := Vector2(32, 30)
+	var a: float = [1.0, 1.0, 1.0, 1.0, 0.75, 0.75, 0.4, 0.4][f]
+	if f <= 2:  # the bell, ringing out over it
+		var bell: Array = ["..###..", ".#####.", ".#####.", "#######", "#######", "..#.#.."]
+		var at := Vector2i(29 + [0, -1, 1][f], 10 + f)
+		var px := {}
+		for y in bell.size():
+			for x in (bell[y] as String).length():
+				if (bell[y] as String)[x] == "#":
+					px[at + Vector2i(x, y)] = Color("#fcd47c") if x < 4 else Color("#e9a83c")
+		_edged_px(img, px, Color("#5c3c24"))
+	# Rings of sound bursting out of the nightmare, gold over an ember edge, the outer one leading.
+	for k in 3:
+		var r := 4.0 + f * 3.4 - k * 5.0
+		if r < 3.0:
+			continue
+		var fade := a * (1.0 if k == 0 else 0.75)
+		_ring(img, c, Vector2(r + 1.0, (r + 1.0) * 0.72), 1.0, Color(Color("#b8662c"), fade))
+		_ring(img, c, Vector2(r, r * 0.72), 1.2, Color(Color("#fcd47c") if k == 0 else Color("#fff4dc"), fade))
+	if f == 1:
+		_disc(img, c, 3.0, Color("#fff4dc"))
+
+# Pixels with a 1 px `rim` round them (calling art: reads on the sand path).
+func _edged_px(img: Image, px: Dictionary, rim: Color) -> void:
+	for p: Vector2i in px:
+		for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if not px.has(p + n):
+				_px(img, p.x + n.x, p.y + n.y, rim)
+	for p: Vector2i in px:
+		_px(img, p.x, p.y, px[p])
+
+func _calling_thread(img: Image, f: int) -> void:
+	for x in 16:  # a warm thread: ember under, heartlight on top
+		_px(img, x, 5, Color(Color("#b8662c"), 0.75))
+		_px(img, x, 4, Color(Color("#fcd47c"), 0.75))
+	var head := (f * 4) % 16  # what it carries, running toward the far end
+	for k in 3:
+		_px(img, (head + k) % 16, 4, Color("#fff4dc"))
+	_px(img, (head + 2) % 16, 3, Color("#fff4dc"))
+	_px(img, (head + 2) % 16, 5, Color("#fcd47c"))
+
+func _calling_spark(img: Image, f: int) -> void:
+	var c := Vector2i(8, 8)
+	var r: int = [1, 3, 5, 6][f]
+	var a: float = [1.0, 1.0, 0.75, 0.4][f]
+	if f == 0:
+		_edged_px(img, {c: Color("#fff4dc"), c + Vector2i.LEFT: Color("#fff4dc"), c + Vector2i.RIGHT: Color("#fff4dc"), c + Vector2i.UP: Color("#fff4dc"), c + Vector2i.DOWN: Color("#fff4dc")}, Color("#b8662c"))
+		return
+	for k in 6:  # motes flying out
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.4)
+		var p := Vector2(c) + d * r
+		_px(img, roundi(p.x), roundi(p.y), Color(Color("#fff4dc") if k % 2 == 0 else Color("#fcd47c"), a))
+		if f == 1:
+			_px(img, roundi(p.x + d.x), roundi(p.y + d.y), Color(Color("#b8662c"), a))
+	if f == 1:
+		_px(img, c.x, c.y, Color("#fff4dc"))
