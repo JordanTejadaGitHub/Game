@@ -207,6 +207,15 @@ static func play(effect: StringName, at: Vector2, parent: Node, scale: float = 1
 	# Ground rings (area_pulse_*, sap_pulse, surge_pulse) mark an area's real size and are drawn thin and quiet: not capped.
 	if widest > MAX_EFFECT_PX and entry.get("kind", "") != "ground":
 		final_scale *= MAX_EFFECT_PX / widest
+		widest = MAX_EFFECT_PX
+	# Phones (user 2026-10-18: "a flash on my screen … when a reaction goes off"): zoomed in on a small screen a 160 px
+	# burst covered half of it. On screen it is at most PHONE_MAX_SCREEN_SHARE of the shorter side.
+	if TouchBuild.mobile_controls() and entry.get("kind", "") != "ground" and parent.is_inside_tree():
+		var screen := parent.get_viewport().get_visible_rect().size
+		var on_screen_px := widest * parent.get_viewport().get_canvas_transform().get_scale().x
+		var cap := minf(screen.x, screen.y) * PHONE_MAX_SCREEN_SHARE
+		if on_screen_px > cap and on_screen_px > 0.0:
+			final_scale *= cap / on_screen_px
 	var node := FxSprite.new(entry, tex, final_scale, seconds)
 	node.effect = shown
 	node.name = "Fx_" + String(shown)
@@ -450,6 +459,9 @@ static func _surge(parent: Node) -> void:
 	tween.tween_property(rect, "modulate:a", 0.0, SURGE_SECONDS * 0.7)
 	tween.tween_callback(layer.queue_free)
 
+const PHONE_MAX_SCREEN_SHARE := 0.2  # Phones: an effect's widest on screen, as a share of the screen's shorter side
+static var _phone_shake: WeakRef = null  # Phones: the running shake (a new one replaces it; weak: no RefCounted in a static at exit)
+
 # A tiny camera shake for Reactions (off with reduced motion).
 static func _shake(parent: Node, pixels: float) -> void:
 	if bool(setting("reduced_motion", false)) or not parent.is_inside_tree():
@@ -458,7 +470,17 @@ static func _shake(parent: Node, pixels: float) -> void:
 	if camera == null:
 		return
 	var rest := camera.offset
+	if TouchBuild.mobile_controls():
+		# Phones (the reaction flash, user 2026-10-18): `pixels` on screen, not in the world (zoomed in, 2 world px was
+		# a 7 px jolt of the whole map), and shakes that overlap never leave the camera off centre.
+		pixels /= maxf(camera.zoom.x, 0.01)
+		var running := _phone_shake.get_ref() as Tween if _phone_shake != null else null
+		if running != null and running.is_valid():
+			running.kill()
+		rest = Vector2.ZERO
 	var tween := camera.create_tween()
+	if TouchBuild.mobile_controls():
+		_phone_shake = weakref(tween)
 	for i in 3:
 		tween.tween_property(camera, "offset", rest + Vector2(randf_range(-pixels, pixels), randf_range(-pixels, pixels)), 0.03)
 	tween.tween_property(camera, "offset", rest, 0.03)
