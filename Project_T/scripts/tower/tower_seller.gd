@@ -919,14 +919,6 @@ var _hover_half := Vector2(-1, -1)
 # --- Drawing --------------------------------------------------------------------------------------------
 
 # A selected / hovered Brood Cap or Hatchery: the stretch its sprites walk, from the drop spot to where they give up.
-func _draw_brood(brood: Tower) -> void:
-	if not is_instance_valid(brood) or brood.attack_data == null or brood.attack_data.special != BranchKit.BROOD:
-		return
-	var walk := BranchKit.brood_walk(brood._route(), brood.global_position, BranchKit.p(brood, "sprite_speed", 3.0))
-	for i in walk.size():
-		walk[i] = to_local(walk[i])
-	BranchKit.draw_brood_walk(self, walk, true)
-
 # A selected / hovered Jarlink (user 2026-10-05: "have Jarlink have its range connection"): its link range, its arc
 # brighter, and its partner ringed. An unpaired one shows only the range.
 func _draw_jar_link(jar: Tower) -> void:
@@ -951,7 +943,7 @@ func _draw() -> void:
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
 		elif BranchKit.special_aura(selected.attack_data) > 0.0:
 			AuraView.draw_shape(self, AuraView.cells(selected.global_position, selected._wide_radius()))  # Prism Jar's crit aura (user: "prism jar doesn't show the aura range")
-		_draw_brood(selected)
+		tower_placer.draw_placement(self, selected.attack_data, selected.global_position, selected.cell, selected.get_range_pixels(), selected, true)  # Where it places (screens_ui.md 3991322b)
 		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
@@ -994,7 +986,8 @@ func _draw() -> void:
 	if _hover_tower == null or _dragging:
 		return
 	if _hover_tower != selected:
-		_draw_brood(_hover_tower)  # User 2026-10-05: hovering a Brood Cap shows where its sprites drop and walk
+		tower_placer.draw_placement(self, _hover_tower.attack_data, _hover_tower.global_position, _hover_tower.cell,
+			_hover_tower.get_range_pixels(), _hover_tower, true)  # Where it places (screens_ui.md 3991322b: a Brood Cap's hatch spot)
 		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - _hover_tower.body_size() / 2, _hover_tower.body_size()).grow(-2)

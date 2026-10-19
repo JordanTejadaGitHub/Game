@@ -3723,12 +3723,7 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 			hit_spots.append(spot)
 	if attack_data.rubble_slow <= 0.0:
 		return
-	var route := route_cells(_route())  # Whole cells: rubble lies on path tiles
-	var cells: Array[Vector2] = []
-	for spot in hit_spots:
-		for at in route:
-			if not cells.has(at) and MAP_GRID.calculate_map_position(at).distance_to(spot) <= splash:
-				cells.append(at)
+	var cells := rubble_cells(_route(), hit_spots, splash)  # Whole cells: rubble lies on path tiles
 	if not cells.is_empty():
 		var rubble := RubblePatch.new(cells, attack_data.rubble_slow * get_slow_multiplier(), attack_data.rubble_time)
 		var world := Reactions._world(self)
@@ -4211,6 +4206,28 @@ func _is_cell_in_range(at: Vector2) -> bool:
 	var distance := global_position.distance_to(MAP_GRID.calculate_map_position(at))
 	return distance <= get_range_pixels() and distance >= attack_data.min_range * MAP_GRID.cell_size.x
 
+# The whole route cells whose centre is within `reach_px` of `from` and at least `min_px` away: where Fairy Ring /
+# Elf Circle rings go and what Rootlight / Starcave light. One rule for the live Warden and its preview
+# (TowerPlacer.placement_points, screens_ui.md 3991322b).
+static func cells_in_reach(route: PackedVector2Array, from: Vector2, reach_px: float, min_px: float) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for at in route_cells(route):  # Whole cells (nightmares' get_current_cell)
+		var distance := from.distance_to(MAP_GRID.calculate_map_position(at))
+		if distance <= reach_px and distance >= min_px:
+			out.append(at)
+	return out
+
+# The path tiles a lobbed stone's rubble covers: whole route cells within `splash` px of any of `spots` (Rockslide;
+# the live landing and the preview share it).
+static func rubble_cells(route: PackedVector2Array, spots: Array, splash: float) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	var whole := route_cells(route)
+	for spot in spots:
+		for at in whole:
+			if not cells.has(at) and MAP_GRID.calculate_map_position(at).distance_to(spot) <= splash:
+				cells.append(at)
+	return cells
+
 # Fairy Ring: route tiles in range without a ring on them.
 func _free_trap_cells() -> Array[Vector2]:
 	var taken := {}
@@ -4218,8 +4235,8 @@ func _free_trap_cells() -> Array[Vector2]:
 		if is_instance_valid(ring):
 			taken[ring.cell] = true
 	var free: Array[Vector2] = []
-	for at in route_cells(_route()):  # Whole cells: rings trigger on a nightmare's whole cell
-		if not taken.has(at) and _is_cell_in_range(at):
+	for at in cells_in_reach(_route(), global_position, get_range_pixels(), attack_data.min_range * MAP_GRID.cell_size.x):  # Whole cells: rings trigger on a nightmare's whole cell
+		if not taken.has(at):
 			free.append(at)
 	return free
 
@@ -5061,9 +5078,7 @@ func _grab(target: Node2D) -> void:
 func _light() -> void:
 	var before := _lit_cells.duplicate()
 	_lit_cells.clear()
-	for at in route_cells(_route()):  # Whole cells (nightmares' get_current_cell)
-		if _is_cell_in_range(at):
-			_lit_cells.append(at)
+	_lit_cells.append_array(cells_in_reach(_route(), global_position, get_range_pixels(), attack_data.min_range * MAP_GRID.cell_size.x))
 	# Long Light (Dream): tiles the light moved on from stay lit a while (still holding once per nightmare).
 	var linger: float = _dream_state.get_lit_linger() if _dream_state else 0.0
 	if _has_rule(ShapeCards.LINGERING_GROUND):

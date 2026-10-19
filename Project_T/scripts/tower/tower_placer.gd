@@ -434,39 +434,10 @@ func _draw() -> void:
 		else:
 			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
 	_draw_card_areas()
-	if tower_data.special == BranchKit.JARLINK:
-		_draw_fence_preview()  # The arc this jar would make (Balancing: players couldn't tell which jar links to which)
-	if tower_data.special == BranchKit.JET:
-		# A jet planted directly: its line and the path cells it would cross, as the grow preview shows them.
-		draw_set_transform(Vector2.ZERO)
-		_draw_special_preview(tower_data, _ghost_centre(), _hover_cell, Tower.get_range_for(tower_data, dream_state) + _range_gain, null)
-		draw_set_transform(_ghost_centre())
-	if tower_data.special == BranchKit.BROOD:
-		# Brood Cap: the stretch its sprites would walk from here, and where they'd give up.
-		var walk := BranchKit.brood_walk(_hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath),
-			_ghost_centre(), float(tower_data.special_params.get("sprite_speed", 3.0)))
-		for i in walk.size():
-			walk[i] = to_local(walk[i])
-		draw_set_transform(Vector2.ZERO)
-		BranchKit.draw_brood_walk(self, walk, true)
-		draw_set_transform(_ghost_centre())
-	if tower_data.attack_kind == TowerData.AttackKind.LIGHT:
-		# A light Warden (Rootlight, Starcave): the path it would light from here, at full strength, on the path's
-		# own shape (Tower.LitPaths: the same wash the planted ones draw).
-		var lit_route: PackedVector2Array = _hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath)
-		var lit_reach := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
-		var lit := {}
-		var lit_all := {}
-		for point in lit_route:
-			var half := FindPath.point_to_node(point)
-			lit_all[half] = true
-			var at: Vector2 = MAP_GRID.calculate_map_position(point)
-			var cell_centre: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at))
-			if cell_centre.distance_to(_ghost_centre()) <= lit_reach:  # As Tower._light: whole cells whose centre is in range
-				lit[half] = at
-		draw_set_transform(Vector2.ZERO)
-		Tower.LitPaths.draw_halves(self, lit, lit_all, Tower.LitPaths.FULL)
-		draw_set_transform(_ghost_centre())
+	# Range only, plus where it would place something (screens_ui.md 3991322b): placement_points / the link.
+	draw_set_transform(Vector2.ZERO)
+	draw_placement(self, tower_data, _ghost_centre(), _hover_cell, Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain), null)
+	draw_set_transform(_ghost_centre())
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
@@ -692,11 +663,9 @@ func _draw_grow_preview() -> void:
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
 			continue
-		# The new form's special area as it will really be, from this Warden's spot (screens_ui.md "Grow preview shows
-		# the new form's reach"): a Jarlink's link and the path it crosses, a jet's line, the whirlpool, the cloud, the
-		# burst, the rings' cells, the lit path, Brood Cap's first sprite and its walk.
+		# Range only, plus where the new form would place something from this Warden's spot (screens_ui.md 3991322b).
 		draw_set_transform(Vector2.ZERO)
-		_draw_special_preview(into, tower.global_position, tower.cell, preview_range(tower, into), tower)
+		draw_placement(self, into, tower.global_position, tower.cell, Tower.range_to_pixels(preview_range(tower, into)), tower)
 		# What it would gain there: the Kinship it forms, its position cards on or off (the build ghost's chips).
 		var chip_at := to_local(tower.global_position)
 		var chip_y := chip_at.y - MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(into.get_sprite_offset().y, 0.0)
@@ -915,11 +884,6 @@ func _draw_kin_spots() -> void:
 # A dashed outline of each owned position card's area around the ghost (Solitude's 2 cells), so
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
 # Jarlink's build ghost: the arc to the jar it would link with (BranchKit.fence_partner_at) and the cells it covers.
-func _draw_fence_preview() -> void:
-	draw_set_transform(Vector2.ZERO)
-	_draw_link_preview(_hover_cell, float(tower_data.special_params.get("link_range", 4.5)), null, _ghost_centre())
-	draw_set_transform(_ghost_centre())
-
 # --- Reach previews: the build ghost and the grow preview share them (screens_ui.md "Grow preview shows the new
 # form's reach", 7f06b5a0 / b0761f65; the user: "should have the Jarlink range when hovering over the upgrade", "and
 # also what the visible connected path would look like") ---------------------------------------------------------
@@ -988,28 +952,6 @@ func _sample_point(from: Vector2, reach_px: float) -> Variant:
 			return at
 	return null
 
-# A special area (a burst, a whirlpool, a rain patch) in the grow preview (user phone screenshot 2026-10-17: a second solid
-# ring above the path read as a range ring centred on nothing): a small DASHED ring in the family colour where it would
-# land now (the furthest-along route point in range, _sample_point), with a tiny label. A range ring is solid and only
-# ever on the Warden.
-func _draw_area_at(at: Vector2, radius: float, data: TowerData, label: String) -> void:
-	var colour := _family_colour(data)
-	var centre := to_local(at)
-	var steps := 32
-	for i in steps:
-		if i % 2 == 0:
-			draw_arc(centre, radius, TAU * i / steps, TAU * (i + 1) / steps, 3, Color(colour, 0.85), 1.5)
-	_area_label(at + Vector2(0, -radius), label, data)
-
-func _draw_dashed_rect(rect: Rect2, colour: Color) -> void:
-	var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
-	for i in 4:
-		draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(colour, 0.85), 1.5, 6.0)
-
-func _area_label(at: Vector2, label: String, data: TowerData) -> void:
-	var local := to_local(at)
-	WorldLabel.draw_tag(self, local.x, local.y - 6.0, label, _family_colour(data))
-
 func _family_colour(data: TowerData) -> Color:
 	return Kinships.FAMILY_COLORS.get(data.line, Palette.GLOW) if data != null else Palette.GLOW
 
@@ -1072,77 +1014,95 @@ func _sync_link_fx() -> void:
 
 # A form's special area as it will really be, from a Warden standing at `from` (px) on `cell` (draw transform:
 # identity). `reach_cells`: its range there. Samples (a whirlpool, a cloud, a burst) sit where its first target would.
-func _draw_special_preview(data: TowerData, from: Vector2, cell: Vector2, reach_cells: float, skip: Tower) -> void:
-	# One rule for every form's preview (screens_ui.md e88a2156; the user's Jetreed screenshot: "make sure it's fixed on all
-	# Wardens"): the range is the one solid ring on the Warden (drawn by the caller); the attack's shape goes where it would
-	# really go now (aimed at the furthest-along route point in range, _sample_point) and stays inside the range; hit marks
-	# are the path's own shape (the lit-path ribbon) on the route points really hit, never square tiles, grass or Wardens.
-	# Pulses, auras and splash / lob hits (user: "not supposed to show splash range, just attack range") show the range only; no route point in range = no shape.
-	var reach_px := Tower.range_to_pixels(reach_cells)
-	var params: Dictionary = data.special_params
-	var sample = _sample_point(from, reach_px)
-	var colour := _family_colour(data)
-	match data.special:
-		BranchKit.JARLINK:
-			_draw_link_preview(cell, float(params.get("link_range", 4.5)), skip, from)  # On the partner segment (BranchKit.link_points)
-			return
-		BranchKit.JET:
-			# Jetreed / Torrent: the jet along its aim (BranchKit._jet aims at its target), clipped to the range; the route points
-			# it really hits (BranchKit.in_jet) marked in the path's shape.
-			var jet := jet_preview(from, float(params.get("length", 6.0)), reach_px)
-			if not jet.is_empty():
-				_draw_hit_points(jet.points, colour)
-				draw_dashed_line(to_local(from), to_local(jet.to), Color(colour, 0.85), 2.0, 6.0)
-			return
-		BranchKit.WHIRLPOOL:
-			if sample != null:
-				_draw_area_at(sample, float(params.get("radius", 1.5)) * MAP_GRID.cell_size.x, data, "whirlpool")
-			return
-		BranchKit.CLOUD:
-			if sample != null:
-				var half := MAP_GRID.cell_size * 1.5  # Its rain covers the 3×3 cells around the spot
-				var spot: Vector2 = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(sample))
-				_draw_dashed_rect(Rect2(to_local(spot) - half, half * 2.0), colour)
-				_area_label(spot + Vector2(0, -half.y), "rain", data)
-			return
-		BranchKit.SPARKLER:
-			if sample != null:
-				_draw_area_at(sample, float(params.get("burst_radius", 1.5)) * MAP_GRID.cell_size.x, data, "burst")
-			return
-		BranchKit.BROOD:
-			var walk := BranchKit.brood_walk(preview_route(), from, float(params.get("sprite_speed", 3.0)))  # Along the route
-			for i in walk.size():
-				walk[i] = to_local(walk[i])
-			BranchKit.draw_brood_walk(self, walk, true)
-			return
+# --- The preview rule (screens_ui.md 3991322b, the user: "attack shape should just show range, except like a summoning
+# Warden because it needs to see where it places"; supersedes b84ce7ac and e88a2156's attack shapes) ---------------
+# Every preview (selection, hover, grow rows, build ghost) shows the range ring only (and a sniper's min range: drawn by
+# the callers). No jet lines, burst / splash rings, aim lines or boxes. A Warden that places something on the map shows
+# where it will be placed, on the path's own shape (the lit-path ribbon), from the same code that places it:
+#   Brood Cap / Hatchery: the hatch spot (BranchKit.brood_spawn_index, as BroodSprite.spawn)
+#   Fairy Ring / Elf Circle: the ring tiles; Rootlight / Starcave: the lit tiles (Tower.cells_in_reach)
+#   every CLOUD-kind form (Bloomcap, Mistveil, Dreamshroom, Puffball, Morning Fog, Sporemother…): its cloud on the
+#     furthest-along nightmare's tile, cloud_radius (Tower._drop_cloud / PathCloud)
+#   Cloudlet / Nimbus: the 3×3 rain cloud on that tile (BranchKit._rain)
+#   Rockslide (and any lob with rubble): the rubble tiles (Tower.rubble_cells)
+#   Inkcap / Deliquescent: the path in range, where the ink trails start (BranchKit InkField.mark on hit)
+#   Jarlink / Lightning Fence: the link (link_preview: partner segment)
+#   the Calling's places when the run has them: Dewdrop puddles and Spore Print mushroom steps (the path a Warden of
+#     the family touches, ClassKit.touches_point), Lantern Light (the path within the glow, FireflyLights.glow_reach)
+# Live (a selected planted Warden): its lit tiles and the Calling's places are already drawn on the map, so only the
+# rest shows.
+
+# The route points (route coordinates) a `data` Warden at `from` with `reach_px` range would place on.
+func placement_points(data: TowerData, from: Vector2, reach_px: float, live: bool = false) -> Array:
+	var route := preview_route()
+	var cell_px := MAP_GRID.cell_size.x
+	var min_px := data.min_range * cell_px
+	var cells := {}  # Whole cells placed on
+	var points := {}  # Route points placed on
+	var sample = _sample_point(from, reach_px)  # Where its first target stands (the furthest-along route point in range)
+	var target_cell := MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(sample)) if sample != null else Vector2.INF
 	match data.attack_kind:
 		TowerData.AttackKind.TRAP:
-			# Rings: the route points in range they can sit on, in the path's shape.
-			var points: Array = []
-			for point in preview_route():
-				if MAP_GRID.calculate_map_position(point).distance_to(from) <= reach_px:
-					points.append(point)
-			_draw_hit_points(points, colour)
+			for at in Tower.cells_in_reach(route, from, reach_px, min_px):
+				cells[at] = true
 		TowerData.AttackKind.LIGHT:
-			var lit := {}
-			var all := {}
-			for point in preview_route():
-				var half_cell := FindPath.point_to_node(point)
-				all[half_cell] = true
-				var at: Vector2 = MAP_GRID.calculate_map_position(point)
-				if MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(at)).distance_to(from) <= reach_px:
-					lit[half_cell] = at
-			Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL)
-		TowerData.AttackKind.BEAM:
-			if sample != null:  # Sunpetal / Midsummer: the beam on its target now
-				draw_dashed_line(to_local(from), to_local(sample), Color(colour, 0.85), 2.0, 6.0)
-				_area_label(sample, "beam", data)
+			if not live:  # A planted one's light is on the path already (LitPaths)
+				for at in Tower.cells_in_reach(route, from, reach_px, min_px):
+					cells[at] = true
 		TowerData.AttackKind.CLOUD:
-			if sample != null:  # Bloomcap, Mistveil, Puffball…: the cloud where it would land
-				_draw_area_at(sample, data.cloud_radius * MAP_GRID.cell_size.x, data, "cloud")
+			if target_cell != Vector2.INF:
+				for point in route:
+					if MAP_GRID.calculate_map_position(point).distance_to(target_cell) <= data.cloud_radius * cell_px:
+						points[point] = true
+	match data.special:
+		BranchKit.CLOUD:
+			if target_cell != Vector2.INF:  # Its rain: the 3×3 round the tile (GroundZone square, 1.5 cells)
+				for point in route:
+					var d: Vector2 = (MAP_GRID.calculate_map_position(point) - target_cell).abs()
+					if d.x <= cell_px * 1.5 and d.y <= cell_px * 1.5:
+						points[point] = true
+		BranchKit.INKCAP:
+			for point in route:
+				var distance := MAP_GRID.calculate_map_position(point).distance_to(from)
+				if distance <= reach_px and distance >= min_px:
+					points[point] = true
+		BranchKit.BROOD:
+			if not route.is_empty():
+				points[route[BranchKit.brood_spawn_index(route, from)]] = true
+	if data.lob and data.rubble_slow > 0.0 and target_cell != Vector2.INF:
+		for at in Tower.rubble_cells(route, [target_cell], data.splash_radius * cell_px):
+			cells[at] = true
+	if not live and data.can_attack and dream_state != null:
+		for pair in [[dream_state.puddles, DreamState.PUDDLES.LINE], [dream_state.spore_print, DreamState.SPORE_PRINT.LINE]]:
+			var node = pair[0]
+			if node != null and node.place_on() and data.line == pair[1]:
+				for point in route:
+					if node.within(from, MAP_GRID.calculate_map_position(point), DreamState.PUDDLES.PATH_TOUCH_CELLS):
+						points[point] = true
+		var lights = dream_state.firefly_lights
+		if lights != null and data.line == DreamState.FIREFLY_LIGHTS.LINE and lights._lit_on():
+			var glow: float = (DreamState.FIREFLY_LIGHTS.GLOW_CELLS + maxf(reach_px / cell_px - DreamState.FIREFLY_LIGHTS.GLOW_BASE_RANGE, 0.0)) * cell_px  # As glow_reach
+			for point in route:
+				if MAP_GRID.calculate_map_position(point).distance_to(from) <= glow:
+					points[point] = true
+	var out: Array = []
+	for point in route:
+		if points.has(point) or cells.has(MAP_GRID.calculate_grid_coordinates(MAP_GRID.calculate_map_position(point))):
+			out.append(point)
+	return out
 
-# Hit marks in the path's own shape (the lit-path ribbon) on route points (route coordinates) really hit.
-func _draw_hit_points(points: Array, colour: Color) -> void:
+# Draws the placement layer on `canvas` (draw transform: identity): the ribbon, and a Jarlink's link (placer only: its
+# arc preview lives here). `skip`: the Warden being grown.
+func draw_placement(canvas: Node2D, data: TowerData, from: Vector2, cell: Vector2, reach_px: float, skip: Tower, live: bool = false) -> void:
+	if data == null:
+		return
+	if data.special == BranchKit.JARLINK and canvas == self and not live:
+		_draw_link_preview(cell, float(data.special_params.get("link_range", 4.5)), skip, from)  # On the partner segment
+		return
+	_draw_hit_points(placement_points(data, from, reach_px, live), _family_colour(data), canvas)
+
+# Placement marks in the path's own shape (the lit-path ribbon) on route points (route coordinates).
+func _draw_hit_points(points: Array, colour: Color, canvas: Node2D = null) -> void:
 	if points.is_empty():
 		return
 	var lit := {}
@@ -1151,7 +1111,7 @@ func _draw_hit_points(points: Array, colour: Color) -> void:
 		all[FindPath.point_to_node(point)] = true
 	for point in points:
 		lit[FindPath.point_to_node(point)] = MAP_GRID.calculate_map_position(point)
-	Tower.LitPaths.draw_halves(self, lit, all, Tower.LitPaths.FULL, colour, Palette.HEARTLIGHT)
+	Tower.LitPaths.draw_halves(canvas if canvas != null else self, lit, all, Tower.LitPaths.FULL, colour, Palette.HEARTLIGHT)
 
 # What growing `tower` into `into` would gain, as the build ghost's chips ([[text, on], …]): the Kinship it would
 # form there, and the new form's position cards on or off at its cell. (Growing never breaks a Kinship: a Warden
