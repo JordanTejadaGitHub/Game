@@ -429,7 +429,7 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"smother", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]  # thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
+	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop"]  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
