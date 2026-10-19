@@ -17,6 +17,11 @@
 			"boosts_on": 5,
 			"dreams_hud": 6,
 			"help_hud": 2,
+			"kind_armoured": 7,
+			"kind_fast": 11,
+			"kind_flying": 8,
+			"kind_hidden": 9,
+			"kind_swarm": 10,
 			"menu_hud": 3,
 			"remember_hud": 0
 		},
