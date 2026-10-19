@@ -1213,8 +1213,8 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			if progress.size.x > 0.0:
 				atlas.draw_rect_region(item, progress, solid, Palette.GOLD if _hud_full[i] else color)
 			var need := Reactions.ready_need(id, statuses)  # Brimming doubles the cap, never the need: the slash moves left
-			if need > 0 and need < cap:
-				var x := centre.x - r + r * 2.0 * need / cap
+			if need > 0:  # A Reaction that needs it full: the slash at the bar's end (owner 2026-10-19)
+				var x := centre.x - r + r * 2.0 * minf(float(need) / cap, 1.0)
 				_draw_threshold_slash(item, Vector2(x - 1.5, centre.y - r - 1.5), Vector2(x + 1.5, centre.y - r - 7.5))
 		elif cap > 1:  # Small caps use individual pips.
 			var width := r * 2.0
@@ -1235,9 +1235,10 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 				atlas.draw_rect_region(item, at, dot, lit if k < shown_stacks else Color(color, 0.25))
 			# The slash before the first pip at the Reaction's need (pip k lights at (k + 1) / shown_cap of the cap)
 			var need := Reactions.ready_need(id, statuses)
-			var first := ceili(float(need) * shown_cap / cap) - 1
-			if need > 0 and need < cap and first > 0:
-				var row := floori(float(first) / per_row)
+			# A Reaction that needs it full: the slash after the last pip (owner 2026-10-19), as `first` = one past the end
+			var first := shown_cap if need >= cap else ceili(float(need) * shown_cap / cap) - 1
+			if need > 0 and first > 0:
+				var row := floori(float(mini(first, shown_cap - 1)) / per_row)  # (Past the end: the last pip's row)
 				var in_row := mini(per_row, shown_cap - row * per_row)
 				var x := centre.x - (in_row * pip + (in_row - 1)) / 2.0 + (first - row * per_row) * (pip + 1.0) - 0.5
 				var y := centre.y - r - pip - 2.0 - row * (pip + 1.0)
