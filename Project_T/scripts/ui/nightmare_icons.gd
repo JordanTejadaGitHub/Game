@@ -12,9 +12,12 @@ class_name NightmareIcons
 
 enum Kind { FAMILY, STATUS, TRAIT }  # (FAMILY: unused since damage types went; kept so the values stay put)
 
-# The Kind badge's glyph: a trait glyph that shows what the Kind does (draw_glyph).
-const KIND_GLYPHS := {EnemyData.Kind.ARMOURED: &"dread_shell", EnemyData.Kind.FLYING: &"flying",
-	EnemyData.Kind.HIDDEN: &"hidden", EnemyData.Kind.SWARM: &"swarm", EnemyData.Kind.FAST: &"sprints"}
+# The Kind badge's glyph: UI Asset's 10 px HUD glyphs (57f70c2a; hud_glyphs.png, hud_icons.json "glyphs"), drawn at
+# whole-number scale, nearest (draw_glyph); the old trait icons only if the sheet lacks one.
+const KIND_GLYPHS := {EnemyData.Kind.ARMOURED: &"kind_armoured", EnemyData.Kind.FLYING: &"kind_flying",
+	EnemyData.Kind.HIDDEN: &"kind_hidden", EnemyData.Kind.SWARM: &"kind_swarm", EnemyData.Kind.FAST: &"kind_fast"}
+const KIND_FALLBACK := {&"kind_armoured": &"dread_shell", &"kind_flying": &"flying", &"kind_hidden": &"hidden",
+	&"kind_swarm": &"swarm", &"kind_fast": &"sprints"}
 # The IconInfo.TERMS id of each Kind's glossary entry (the badge's link; Warden tags link the same).
 const KIND_TERMS := {EnemyData.Kind.ARMOURED: &"kind_armoured", EnemyData.Kind.FLYING: &"kind_flying",
 	EnemyData.Kind.HIDDEN: &"kind_hidden", EnemyData.Kind.SWARM: &"kind_swarm", EnemyData.Kind.FAST: &"kind_fast",
@@ -71,6 +74,7 @@ static func kind_icon(data: EnemyData, side: float = 28.0) -> NightmareIcons:
 	var icon := NightmareIcons.new()
 	icon.kind = Kind.TRAIT
 	icon.id = String(KIND_GLYPHS[data.kind])
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # Pixel glyph at whole-number scale
 	icon.tip = data.get_kind_line()
 	return icon._sized(side)
 
@@ -295,6 +299,14 @@ func _draw_trait() -> void:
 # One small drawn glyph per trait, `s` = half its size. Also used by the boss dossier's abilities.
 static func draw_glyph(canvas: CanvasItem, glyph: StringName, c: Vector2, s: float, colour: Color) -> void:
 	var w := maxf(s * 0.22, 1.5)
+	if KIND_FALLBACK.has(glyph):  # A Kind: its HUD glyph (whole-number scale), else the old trait icon
+		var hud := IconInfo.hud_icon(glyph)
+		if hud != null:
+			var hud_scale := maxf(floorf(s * 2.0 / float(hud.get_width())), 1.0)
+			var hud_side := Vector2(hud.get_width(), hud.get_height()) * hud_scale
+			canvas.draw_texture_rect(hud, Rect2((c - hud_side / 2.0).round(), hud_side), false)
+			return
+		glyph = KIND_FALLBACK[glyph]
 	var sheet := IconInfo.icon(glyph)  # The pixel-art icon when the sheet has one; drawn otherwise
 	if sheet != null:
 		var scale := maxf(floorf(s * 2.0 / 16.0), 1.0)
