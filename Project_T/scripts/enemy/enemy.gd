@@ -2092,7 +2092,8 @@ func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
 	_end_drag(false)
 	_leaping = true
 	if sprite.sprite_frames.has_animation(&"burrow"):
-		_burrow_to(landing, on_risen)
+		# A leap (the Mire Hag) keeps its LEAP_TIME; a burrow (Gravecrawler) plays the row at its own length
+		_burrow_to(landing, on_risen, LEAP_TIME if enemy_data.trait_kind == EnemyData.Trait.LEAP else 0.0)
 		return
 	var base_scale := sprite.scale
 	var sunk_scale := Vector2(base_scale.x * 1.3, base_scale.y * 0.1)
@@ -2109,20 +2110,26 @@ func _sink_and_rise(landing: Vector2, on_risen: Callable) -> void:
 		_leaping = false
 		on_risen.call())
 
-# With burrow art (Gravecrawler): plays "burrow" to sink, moves while under, plays it backwards to
-# surface, then calls on_risen.
-func _burrow_to(landing: Vector2, on_risen: Callable) -> void:
+# With burrow art (Gravecrawler, the Mire Hag): plays "burrow" to sink, moves while under, plays it backwards to
+# surface, then calls on_risen. `fit` > 0: the whole sink-and-rise takes that long, the row sped up to fit (the Mire
+# Hag's leap keeps LEAP_TIME with her new burrow art: owner 2026-10-19, so she plays as balanced).
+func _burrow_to(landing: Vector2, on_risen: Callable, fit: float = 0.0) -> void:
 	var length := _animation_length(&"burrow")
+	var each := length
+	if fit > 0.0 and length > 0.0:
+		each = maxf((fit - LEAP_TIME * 0.2 - 0.1) / 2.0, 0.05)  # (The rest of `fit` is the move under and the two fades)
+		sprite.speed_scale = length / each
 	sprite.play(&"burrow")
 	var tween := create_tween()
 	_leap_tween = tween
-	tween.tween_interval(length)
+	tween.tween_interval(each)
 	tween.tween_property(sprite, "modulate:a", 0.0, 0.05)
 	tween.tween_property(self, "position", landing, LEAP_TIME * 0.2)
 	tween.tween_callback(func() -> void: sprite.play_backwards(&"burrow"))
 	tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
-	tween.tween_interval(length)
+	tween.tween_interval(each)
 	tween.tween_callback(func() -> void:
+		sprite.speed_scale = 1.0
 		_leaping = false
 		on_risen.call())
 
@@ -3182,6 +3189,7 @@ func _cleanse() -> void:
 		_leap_tween.kill()  # Dispelled mid-sink: surface right here to crack apart
 		sprite.modulate.a = 1.0
 		sprite.position.y = 0.0
+		sprite.speed_scale = 1.0  # (A fitted burrow row may have sped it up)
 	var base_scale := Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	sprite.scale = base_scale
 	_squeeze = 1.0  # Dispelled in a gap: cracks apart at full width
