@@ -53,11 +53,14 @@ func _run() -> void:
 	_check(grab != null and grab.text == "Grab range %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
 		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
 	# The attack shape chip (user: "can't tell if something is an aura attack or not"; Tower.attack_shape).
-	# UI Asset's shape icons (54cc7cfb): an icon-only chip in the first row, the name in its tip.
+	# A tag chip at the front of the keyword row (user 2026-10-19: "the single target icon should be a tag"): its icon
+	# and its name, the meaning in the row's tip.
 	var shape_id := "shape_" + String(Tower.attack_shape(groundroot))
-	var shape := grab_view.stats.find_child("Value_" + shape_id, true, false) as Label
-	_check(IconInfo.icon(StringName(shape_id)) != null and shape != null and shape.text == "",
-		"the attack shape chip is its icon (%s)" % shape_id)
+	var shape := grab_view.keywords.find_child("Chip_makes_" + shape_id, true, false)
+	_check(IconInfo.icon(StringName(shape_id)) != null and shape != null
+		and (shape.find_child("Word", true, false) as Label).text == WardenHeaderView.shape_name(groundroot),
+		"the attack shape is a tag chip (%s)" % shape_id)
+	_check(Tower.attack_shape(load("res://resource/tower/jetreed.tres")) == &"splash", "Jetreed is tagged Splash")
 	_check(WardenHeaderView.shape_tip(load("res://resource/tower/acorn.tres")).length() > 10
 		and WardenHeaderView.shape_tip(load("res://resource/tower/thornwall.tres")).begins_with("No attack"),
 		"shape tips: %s / %s" % [WardenHeaderView.shape_tip(load("res://resource/tower/acorn.tres")),

@@ -2960,6 +2960,15 @@ const ATTACK_SHAPE_NAMES := {&"single": "Single target", &"splash": "Splash", &"
 static func attack_shape(data: TowerData) -> StringName:
 	if data == null or not data.can_attack:
 		return &"none"
+	# Branch specials that fire as a projectile in data but hit something else (user: "the jetreed should have the
+	# splash tag"): the jet hits every nightmare along it, rain and the whirlpool make a zone, Thrum a cone.
+	match data.special:
+		&"jet":
+			return &"splash"
+		&"cloud":
+			return &"cloud"
+		&"whirlpool", &"thrum":
+			return &"area"
 	match data.attack_kind:
 		TowerData.AttackKind.PROJECTILE:
 			return &"splash" if data.splash_radius > 0.0 or data.lob else &"single"

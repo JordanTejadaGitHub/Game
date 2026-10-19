@@ -42,6 +42,8 @@ static func make(chips: Array, icon_size: int = 0, outline: Color = UiStyle.GOLD
 		flow.add_child(UiStyle.chip(id, StringName(chip.get("kind", &"makes")), label, size, font_size, outline))
 		var entry: Dictionary = DreamState.KEYWORDS.glossary(id)
 		var line := "%s: %s" % [entry.get("name", label), entry.get("text", "")] if String(entry.get("text", "")) != "" else ""
+		if line == "" and String(chip.get("tip", "")) != "":
+			line = String(chip.tip)  # A chip that isn't a glossary word (a Warden's attack shape) brings its own tip
 		if line != "" and not lines.has(line):
 			lines.append(line)
 	if not lines.is_empty():

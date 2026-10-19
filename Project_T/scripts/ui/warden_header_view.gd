@@ -120,6 +120,11 @@ func _show_keywords(data: TowerData, tower: Tower) -> void:
 		keywords.remove_child(child)
 		child.queue_free()
 	var chips: Array = DreamState.KEYWORDS.chips_for_tower(tower) if is_instance_valid(tower) else DreamState.KEYWORDS.chips_for_warden(data)
+	# How it attacks leads the tags (user: "the single target icon should be a tag"), its meaning in the row's tip.
+	var shaped: TowerData = tower.attack_data if is_instance_valid(tower) and tower.attack_data != null else data
+	if shaped != null and shaped.can_attack and shaped.attack_kind != TowerData.AttackKind.AURA:
+		chips.push_front({"id": StringName("shape_" + String(Tower.attack_shape(shaped))), "kind": &"makes",
+			"label": shape_name(shaped), "tip": shape_tip(shaped)})
 	# The quiet card chip (owner, phone screenshot 2026-10-17: "doesn't look like the ones on the card"): a thin gold
 	# frame, the word in INK_DIM at the card's 12 px (DreamScreen CARD_CHIP_TEXT); Wardens have no rarity, so gold.
 	var row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UiStyle.GOLD, 12)
@@ -242,13 +247,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		if covers:  # Coverage in the icon row (story chat: always visible, no extra line; the path icon + N)
 			main_row.append([str(_tower.get_coverage()), &"path_length"])
 		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
-		# How it attacks: an icon in the first row once UI Asset draws shape_<kind> (the name in its tip; user: the row
-		# stays one line); until then its name leads the second row.
-		var shape_icon := StringName("shape_" + String(Tower.attack_shape(attack)))
-		if IconInfo.icon(shape_icon) != null:
-			main_row.append(["", shape_icon])
-		else:
-			second.append([shape_name(attack), &"attack_shape"])
+		# How it attacks is a tag chip now (_show_keywords; user: "the single target icon should be a tag").
 		_stat_row(main_row, true)
 		# Every status it applies (Tower.statuses_applied: its data's, a second one (Lullaby / Great Bell), its special's
 		# (the Sparkler's Charge), a final's own (Maelstrom's Soak, Dreamshroom's Poison), and Root from freezes and
