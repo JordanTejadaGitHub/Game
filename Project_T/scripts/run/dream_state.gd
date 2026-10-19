@@ -1105,10 +1105,8 @@ func _draw_branch_offer(base: TowerData) -> Array:
 	var id := base.get_id()
 	var shown := _previewed_pair(id)
 	var offer: Array = shown.duplicate() if not shown.is_empty() else _compute_branch_offer(base)
-	if _first_pick_open and first_family == "":  # The first family picked: it offers every regular branch (below)
-		first_family = id
-		if wider_roots and wider_roots_family == "":  # Wider Roots: the same family (nothing left to widen now)
-			wider_roots_family = id
+	if wider_roots and wider_roots_family == "" and _first_pick_open:  # Wider Roots: the first family picked
+		wider_roots_family = id
 		_first_pick_open = false
 	_previewed.clear()  # The real offers change now: every other preview is stale
 	if branch_expansion_on() and regular_branches(base).size() > BRANCH_OFFER_SIZE:
@@ -1134,17 +1132,7 @@ var wider_roots := false
 var wider_roots_family := ""
 var _first_pick_open := false  # The run's first family pick is showing (its cards preview the wider offer)
 
-# The first family pick offers every one of its regular branches (Balancing Discussion with the owner, 2026-10-18:
-# "pick any branch in act 1 and not be punished too much"; balance_simulation.md "Human run 49"). Families taken at the
-# 25 / 50 / 75 picks keep the BRANCH_OFFER_SIZE draw and the call back. Saved; old saves use the Calling.
-var first_family := ""
-
-func _first_family_id() -> String:
-	return first_family if first_family != "" else calling
-
 func branch_offer_size(base: TowerData) -> int:
-	if base != null and (base.get_id() == _first_family_id() or (first_family == "" and _first_pick_open)):
-		return maxi(regular_branches(base).size(), BRANCH_OFFER_SIZE)  # Every branch (Wider Roots has nothing to widen)
 	if wider_roots and base != null and (base.get_id() == wider_roots_family or (wider_roots_family == "" and _first_pick_open)):
 		return BRANCH_OFFER_SIZE + 1
 	return BRANCH_OFFER_SIZE
@@ -3698,7 +3686,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "reaction_cards": reaction_cards.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "first_family": first_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"canopy_peak": _canopy_peak, "dreamlight": dreamlight,
@@ -3728,7 +3716,6 @@ func load_save(data: Dictionary) -> void:
 	clear_build_role_state()
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
-	first_family = String(data.get("first_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
 	calling = String(data.get("calling", ""))
 	past_cap.clear()
