@@ -3,7 +3,8 @@
 # first pick with --spend-all, on the opening test's maps, to the end of drift 25; then the report (tools/branch_check.gd).
 # On demand only (not a suite test). Runs in a detached worktree of a fixed commit so other chats' edits on main can't
 # change it mid-batch; user:// stays on D: (APPDATA). PARALLEL runs at once (2: the owner may be playing).
-# Usage: bash tools/branch_check.sh [commit, default HEAD]
+# Usage: [ONLY="bloomcap jarlink"] [SIM_ARGS="--player-board"] [TAG=rerun] bash tools/branch_check.sh [commit, default HEAD]
+#   ONLY: just these branches; SIM_ARGS: extra balance_sim flags for every run; TAG: added to the output names
 # Output: D:/Projects/logs/balancing/branch_check/<date>/ (a log per run) and D:/Projects/logs/balancing/branch_check_<date>.md
 set -u
 COMMIT=${1:-HEAD}
@@ -11,7 +12,9 @@ PARALLEL=${PARALLEL:-2}
 G="D:/Program Files/Git/cmd/git.exe"
 GD="D:/Program Files/Godot/Godot_v4.7.2-stable_win64_console.exe"
 export APPDATA='D:/Projects/logs/balancing/userdata'
-DATE=$(date +%Y-%m-%d)
+DATE=$(date +%Y-%m-%d)${TAG:+_$TAG}
+ONLY=${ONLY:-}
+SIM_ARGS=${SIM_ARGS:-}
 OUT="D:/Projects/logs/balancing/branch_check/$DATE"
 W="D:/Projects/worktrees/bal_branch_check"
 mkdir -p "$OUT"
@@ -25,6 +28,7 @@ timeout 600 "$GD" --headless --path "$W/Project_T" --script res://tools/branch_c
 > "$OUT/jobs.txt"
 while read -r _ family branch; do
 	for seed in 1207 4242 90210; do
+		[ -z "$ONLY" ] || [[ " $ONLY " == *" $branch "* ]] || continue
 		echo "$family $branch $seed" >> "$OUT/jobs.txt"
 	done
 done < "$OUT/branches.txt"
@@ -33,11 +37,11 @@ run_one() {
 	local log="$OUT/${family}_${branch}_${seed}.log"
 	[ -f "$log" ] && grep -q '^RUN ' "$log" && return 0  # Done already (a rerun only fills gaps)
 	timeout 2400 "$GD" --headless --path "$W/Project_T" --script res://tools/balance_sim.gd --fixed-fps 60 -- \
-		--seed=$seed --profile=fresh --style=balanced --last=25 --families=$family --branch=$branch --spend-all \
+		--seed=$seed --profile=fresh --style=balanced --last=25 --families=$family --branch=$branch --spend-all $SIM_ARGS \
 		--out="$OUT/csv_${family}_${branch}" > "$log" 2>&1
 }
 export -f run_one
-export OUT W GD
+export OUT W GD SIM_ARGS
 xargs -P "$PARALLEL" -L 1 bash -c 'run_one $0 $1 $2' < "$OUT/jobs.txt"
 "$GD" --headless --path "$W/Project_T" --script res://tools/branch_check.gd -- --report="$OUT" \
 	--md="D:/Projects/logs/balancing/branch_check_$DATE.md" > "$OUT/report.log" 2>&1

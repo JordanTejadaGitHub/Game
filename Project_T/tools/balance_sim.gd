@@ -68,6 +68,7 @@ var forced_families: Array[String] = []
 var forced_branch := ""
 var branch_status := ""  # RUN JSON branch_status: "unlocked", "unlocked+forced" (the draw left it out), or why not
 var spend_all := false
+var player_board := false  # --player-board (with --spend-all): no room cap on planting; the branch share capped (_allowed_form)
 const SPEND_ALL_KEEP := 50
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
@@ -226,6 +227,7 @@ func _run() -> void:
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 			"--branch": forced_branch = value
 			"--spend-all": spend_all = true
+			"--player-board": player_board = true
 			"--hand-drifts": hand_drifts = true
 			"--save": save_mode = value
 			"--omens": omen_mode = value
@@ -1023,8 +1025,10 @@ func _next_buy() -> String:
 		# plan's room and save the rest for it. Trials (seed 1207, Hushbell): never saving left 46 Bellflowers and 4
 		# Hushbells; always saving held the board at 9 attackers to drift 11 (all 120-Dew grows) and it died at 19.
 		var grow_price := _cheapest_growth()
-		var grown := _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == forced_branch).size()
-		if grow_price > run_state.dew and 2 * grown < attackers:
+		if player_board:  # No room cap: save only for a grow the share still allows (_allowed_form), else plant every spare Dew
+			if grow_price > run_state.dew:
+				return ""
+		elif grow_price > run_state.dew and 2 * _branch_grown() < attackers:
 			return "plant" if attackers < target and _plant_attacker() else ""
 		if _plant_attacker():
 			return "plant"
@@ -1837,6 +1841,7 @@ func _finish() -> void:
 	summary.branch = forced_branch
 	summary.branch_status = branch_status
 	summary.spend_all = spend_all
+	summary.player_board = player_board
 	summary.calling = dreams.calling
 	summary.leaves_end = run_state.leaves
 	summary.rest_left = "/".join(run.rest_left.map(func(v) -> String: return str(v)))
@@ -2028,7 +2033,19 @@ func _force_branch(base_id: String) -> void:
 
 # --branch: past the base Warden, only the forced branch is grown into.
 func _allowed_form(form: TowerData) -> bool:
-	return forced_branch == "" or form.tier < 2 or form.get_id() == forced_branch
+	if forced_branch == "" or form.tier < 2:
+		return true
+	if form.get_id() != forced_branch:
+		return false
+	return not player_board or _branch_grown() + 1 <= _branch_share(form) * _attackers().size()
+
+# --player-board (Balancing Discussion, the branch check rerun): at most a third of the attackers grow into a Support
+# branch (TowerData.support), at most half into a damage branch.
+func _branch_share(form: TowerData) -> float:
+	return 1.0 / 3.0 if form.get("support") == true else 0.5
+
+func _branch_grown() -> int:
+	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == forced_branch).size()
 
 # A Sprout on the map grows into an unlocked family base Warden, if one is affordable (the one with the
 # most path in range).
