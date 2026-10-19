@@ -583,10 +583,13 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 					[Vector2(-0.55, 0.3), Vector2(-0.1, 0.05), Vector2(0.3, 0.3), Vector2(0.75, 0.05)]], HOLLOW)
 			_stamp(canvas, shell, o)
 			_crawl(canvas, cracks, f)
-			if not cracked:
-				_armour(canvas, [[Vector2(16, 32), Vector2(17, 27), Vector2(23, 24), Vector2(27, 29), Vector2(22, 33)],
-					[Vector2(25, 25), Vector2(30, 22), Vector2(36, 24), Vector2(35, 30), Vector2(28, 30)],
-					[Vector2(35, 26), Vector2(40, 28), Vector2(42, 33), Vector2(37, 34), Vector2(34, 30)]], off, o)
+			var plates: Array = [[Vector2(16, 32), Vector2(17, 27), Vector2(23, 24), Vector2(27, 29), Vector2(22, 33)],
+				[Vector2(25, 25), Vector2(30, 22), Vector2(36, 24), Vector2(35, 30), Vector2(28, 30)],
+				[Vector2(35, 26), Vector2(40, 28), Vector2(42, 33), Vector2(37, 34), Vector2(34, 30)]]
+			if cracked:
+				_armour_broken(canvas, plates, off, f, o)
+			else:
+				_armour(canvas, plates, off, o)
 				_twig(canvas, Vector2i(25, 24 + bob), bark[2])
 			for i in 3:
 				var s := sin(ph + i * PI)
@@ -622,11 +625,14 @@ func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 					[Vector2(0.2, -0.8), Vector2(0.35, -0.3), Vector2(0.7, -0.1)]], HOLLOW)
 			_stamp(canvas, shell, o)
 			_crawl(canvas, cracks, f)
-			if not cracked:
-				var y0 := c.y - bob
-				_armour(canvas, [[Vector2(cx - 13, y0 + 3), Vector2(cx - 12, y0 - 5), Vector2(cx - 5, y0 - 9), Vector2(cx - 3, y0), Vector2(cx - 8, y0 + 5)],
-					[Vector2(cx + 13, y0 + 3), Vector2(cx + 12, y0 - 5), Vector2(cx + 5, y0 - 9), Vector2(cx + 3, y0), Vector2(cx + 8, y0 + 5)],
-					[Vector2(cx - 3, y0 - 8), Vector2(cx, y0 - 11), Vector2(cx + 3, y0 - 8), Vector2(cx + 2, y0 + 2), Vector2(cx - 2, y0 + 2)]], off, o)
+			var y0 := c.y - bob
+			var plates: Array = [[Vector2(cx - 13, y0 + 3), Vector2(cx - 12, y0 - 5), Vector2(cx - 5, y0 - 9), Vector2(cx - 3, y0), Vector2(cx - 8, y0 + 5)],
+				[Vector2(cx + 13, y0 + 3), Vector2(cx + 12, y0 - 5), Vector2(cx + 5, y0 - 9), Vector2(cx + 3, y0), Vector2(cx + 8, y0 + 5)],
+				[Vector2(cx - 3, y0 - 8), Vector2(cx, y0 - 11), Vector2(cx + 3, y0 - 8), Vector2(cx + 2, y0 + 2), Vector2(cx - 2, y0 + 2)]]
+			if cracked:
+				_armour_broken(canvas, plates, off, f, o)
+			else:
+				_armour(canvas, plates, off, o)
 				_twig(canvas, Vector2i(cx + 3, (21 if down else 24) + bob), bark[2])
 			if down:
 				snag = _layer()
@@ -665,6 +671,38 @@ func _armour(canvas: Image, plates: Array, off: Vector2, o: Color) -> void:
 		for q: Vector2 in p:
 			moved.append(q + off)
 		_plate(canvas, moved, _ramp(DREAD_SHELL), o)
+
+# Cracked variants: the same plates, shattered. Each loses a jagged half along a different line, its
+# broken edge bright Moonlight, and a chip of it falls away as the nightmare walks (`f`).
+func _armour_broken(canvas: Image, plates: Array, off: Vector2, f: int, o: Color) -> void:
+	var ramp := _ramp(DREAD_SHELL)
+	for i in plates.size():
+		var pts: Array = []
+		var c := Vector2.ZERO
+		for q: Vector2 in plates[i]:
+			pts.append(q + off)
+			c += q + off
+		c /= pts.size()
+		var layer := _layer()
+		_plate(layer, pts, ramp, o)
+		var a := 0.9 + i * 1.7
+		var n := Vector2(cos(a), sin(a))
+		for y in S:
+			for x in S:
+				if layer.get_pixel(x, y).a == 0.0:
+					continue
+				var d := (Vector2(x + 0.5, y + 0.5) - c).dot(n) + ((x * 7 + y * 3) % 3 - 1) * 0.8
+				if d > 0.0:
+					layer.set_pixel(x, y, Color(0, 0, 0, 0))  # snapped off
+				elif d > -1.4:
+					layer.set_pixel(x, y, _c("Moonlight"))  # the fresh break
+		_merge(canvas, layer)
+		var t := (f + i * 2) % FRAMES
+		if t < 4:  # a chip falling away from the break
+			var p := Vector2i((c + n * 4.0 + Vector2(n.x * t, t * 2.5)).round())
+			_px(canvas, p.x, p.y, _c("Wraithlight"))
+			_px(canvas, p.x + 1, p.y, _c("Bruise"))
+			_px(canvas, p.x, p.y + 1, _c("Shade"))
 
 # Cracked variants: thin seams of cold light where the plates broke off.
 func _shell_scars(canvas: Image, scars: Array, off: Vector2) -> void:
@@ -1841,17 +1879,17 @@ func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
 	# of cold light where they were, one shard left on a shoulder).
 	var off := Vector2(0, h)
 	var front: bool = st.dir == SIDE
+	var plates: Array = [[Vector2(29, 20), Vector2(31, 16), Vector2(36, 16), Vector2(38, 19), Vector2(34, 22)],
+		[Vector2(32, 22), Vector2(37, 21), Vector2(38, 27), Vector2(36, 31), Vector2(32, 29)]] if front \
+		else [[Vector2(23, 21), Vector2(25, 17), Vector2(30, 17), Vector2(30, 22), Vector2(26, 24)],
+		[Vector2(41, 21), Vector2(39, 17), Vector2(34, 17), Vector2(34, 22), Vector2(38, 24)],
+		[Vector2(28, 24), Vector2(32, 22), Vector2(36, 24), Vector2(35, 31), Vector2(29, 31)]]
 	if st.variant == "cracked":
 		_shell_scars(canvas, [[Vector2(32, 19), Vector2(35, 22), Vector2(34, 26)], [Vector2(35, 24), Vector2(37, 27), Vector2(35, 30)]] if front
 			else [[Vector2(26, 20), Vector2(28, 23)], [Vector2(38, 20), Vector2(36, 23)], [Vector2(30, 25), Vector2(32, 28), Vector2(34, 26), Vector2(33, 31)]], off)
-		_armour(canvas, [[Vector2(29, 20), Vector2(31, 16), Vector2(34, 17)]] if front else [[Vector2(24, 21), Vector2(26, 17), Vector2(29, 19)]], off, o)
-	elif front:
-		_armour(canvas, [[Vector2(29, 20), Vector2(31, 16), Vector2(36, 16), Vector2(38, 19), Vector2(34, 22)],
-			[Vector2(32, 22), Vector2(37, 21), Vector2(38, 27), Vector2(36, 31), Vector2(32, 29)]], off, o)
+		_armour_broken(canvas, plates, off, st.f, o)
 	else:
-		_armour(canvas, [[Vector2(23, 21), Vector2(25, 17), Vector2(30, 17), Vector2(30, 22), Vector2(26, 24)],
-			[Vector2(41, 21), Vector2(39, 17), Vector2(34, 17), Vector2(34, 22), Vector2(38, 24)],
-			[Vector2(28, 24), Vector2(32, 22), Vector2(36, 24), Vector2(35, 31), Vector2(29, 31)]], off, o)
+		_armour(canvas, plates, off, o)
 	match st.dir:
 		SIDE:
 			for p: Array in [[Vector2(35, 17), Vector2(34, 24)], [Vector2(36, 17), Vector2(36, 23)], [Vector2(37, 16), Vector2(38, 22)]]:
@@ -3023,22 +3061,21 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 	# The dread shell: pauldrons, a breastplate and a belt of faceted dread over the mail. Cracked: seams
 	# of cold light where they were, a broken shard on one shoulder.
 	var off := Vector2(0, h)
+	var plates: Array = [[Vector2(66, 38), Vector2(69, 32), Vector2(77, 32), Vector2(80, 37), Vector2(74, 42)],
+		[Vector2(73, 40), Vector2(80, 40), Vector2(82, 48), Vector2(79, 58), Vector2(73, 56)],
+		[Vector2(64, 60), Vector2(80, 60), Vector2(81, 67), Vector2(64, 68)]] if side_view \
+		else [[Vector2(58, 40), Vector2(60, 33), Vector2(67, 32), Vector2(69, 38), Vector2(64, 43)],
+		[Vector2(86, 40), Vector2(84, 33), Vector2(77, 32), Vector2(75, 38), Vector2(80, 43)],
+		[Vector2(64, 42), Vector2(72, 38), Vector2(80, 42), Vector2(79, 56), Vector2(72, 60), Vector2(65, 56)],
+		[Vector2(62, 60), Vector2(72, 62), Vector2(82, 60), Vector2(83, 67), Vector2(72, 69), Vector2(61, 67)]]
 	if st.variant == "cracked":
 		_shell_scars(canvas, [[Vector2(70, 35), Vector2(74, 37), Vector2(77, 35)], [Vector2(76, 44), Vector2(79, 49), Vector2(77, 54)],
 			[Vector2(68, 61), Vector2(73, 63), Vector2(78, 61)]] if side_view
 			else [[Vector2(60, 37), Vector2(64, 35), Vector2(67, 39)], [Vector2(84, 37), Vector2(80, 35), Vector2(77, 39)],
 			[Vector2(68, 44), Vector2(72, 48), Vector2(70, 52), Vector2(74, 56)], [Vector2(65, 63), Vector2(72, 65), Vector2(79, 63)]], off)
-		_armour(canvas, [[Vector2(66, 38), Vector2(69, 32), Vector2(73, 35)]] if side_view
-			else [[Vector2(58, 40), Vector2(60, 33), Vector2(65, 35)]], off, o)
-	elif side_view:
-		_armour(canvas, [[Vector2(66, 38), Vector2(69, 32), Vector2(77, 32), Vector2(80, 37), Vector2(74, 42)],
-			[Vector2(73, 40), Vector2(80, 40), Vector2(82, 48), Vector2(79, 58), Vector2(73, 56)],
-			[Vector2(64, 60), Vector2(80, 60), Vector2(81, 67), Vector2(64, 68)]], off, o)
+		_armour_broken(canvas, plates, off, f, o)
 	else:
-		_armour(canvas, [[Vector2(58, 40), Vector2(60, 33), Vector2(67, 32), Vector2(69, 38), Vector2(64, 43)],
-			[Vector2(86, 40), Vector2(84, 33), Vector2(77, 32), Vector2(75, 38), Vector2(80, 43)],
-			[Vector2(64, 42), Vector2(72, 38), Vector2(80, 42), Vector2(79, 56), Vector2(72, 60), Vector2(65, 56)],
-			[Vector2(62, 60), Vector2(72, 62), Vector2(82, 60), Vector2(83, 67), Vector2(72, 69), Vector2(61, 67)]], off, o)
+		_armour(canvas, plates, off, o)
 	if dir != UP:
 		for s: int in ([1] if side_view else [-1, 1]):  # sunken sockets, cold eyes
 			var e := head + Vector2(3 if side_view else s * 2.5, -1)
