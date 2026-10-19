@@ -79,6 +79,62 @@ func _setup() -> void:
 	dreams = main.get_node("%DreamState")
 	klass = dreams.keeping_time
 
+# What one Toll on `enemy` deals (its pips one short; the ring's hit `amount`).
+func _toll_loss(enemy, bell, amount: float) -> float:
+	enemy.set_meta(klass.PIPS_META, klass.TOLL_EVERY - 1)
+	enemy.set_meta(klass.RING_META, -INF)
+	enemy.set_meta(klass.TOLL_META, -INF)
+	var was: float = enemy.health
+	klass.ring(enemy, bell, amount)
+	return was - float(enemy.health)
+
+# F1 lent × Calling (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md): a Toll counts as its bell's hit for
+# another family's lent card (Sodden), never for Bellflower's own (In Time), and Hush-a-bye's Drowsy never naps (Nod Off).
+func _f1_checks(_at: Vector2, spot: Vector2) -> void:
+	dreams.stacks.clear()
+	dreams.calling = "bellflower"
+	dreams.calling_path.clear()
+	_take("sodden")
+	_take("in_time")
+	var bell := _plant("bellflower", spot)
+	var drop := _plant("dewdrop", spot + Vector2(CELL, 0))  # Near the bell: Sodden's Wardens
+	await _frames(3)
+	var dry = _spawn(spot + Vector2(0, CELL))
+	var wet = _spawn(spot + Vector2(0, CELL))
+	wet.apply_status(EnemyStatuses.DAMP, 1, 30.0, 1.0, 0, "water", drop)
+	wet.statuses.tick(5.0)  # Soaked for 5 s: Sodden at its most
+	await process_frame
+	klass._later.clear()
+	var plain := _toll_loss(dry, bell, 1000.0)
+	var sodden := _toll_loss(wet, bell, 1000.0)
+	var most: float = 1.0 + dreams.puddles.SODDEN_MAX
+	_check(plain > 0.0 and absf(sodden - plain * most) <= 2.0, "F1: a Toll is its bell's hit for Sodden (%.0f vs %.0f, x%.2f)" % [sodden, plain, most])
+	_check(int(wet.get_meta(klass.IN_TIME_META, {}).get(bell.get_instance_id(), 0)) == 0 and klass._later.is_empty(),
+		"F1: never for its own family (a Toll is no hit for In Time)")
+	_check(DamageLog.calling_next == &"" and DamageLog.calling_now == &"", "F1: nothing stays armed after a Toll")
+	await _clean()
+
+	# Another family's Calling application of a bell's Drowsy (Rain on the Bank on a Dewdrop start) never sets Nod Off
+	dreams.stacks.clear()
+	dreams.calling = "dewdrop"
+	_take("nod_off")
+	bell = _plant("bellflower", spot)
+	await _frames(2)
+	var h = _spawn(spot + Vector2(CELL, 0))
+	dreams.arm_apply("dewdrop", true)
+	bell._apply_one_status(h, EnemyStatuses.DROWSY, 1, bell.get_damage(), false)
+	_check(h.statuses.has(EnemyStatuses.DROWSY) and not h.statuses.is_asleep() and not h.has_meta(klass.DROWSED_META),
+		"F1: a Calling application's Drowsy never sets Nod Off (control stays bounded)")
+	var native = _spawn(spot + Vector2(CELL, CELL * 0.5))
+	bell._apply_one_status(native, EnemyStatuses.DROWSY, 1, bell.get_damage())
+	_check(native.statuses.is_asleep(), "(the bell's own Drowsy still naps)")
+	dreams.calling = "bellflower"
+	dreams.stacks.clear()
+	await _clean()
+	_check(load("res://resource/dream/rude_awakening.tres").tip.contains("Wardens and cards that make nightmares {asleep} or {held}")
+		and not load("res://resource/dream/rude_awakening.tres").tip.contains("{card:"), "F8: Rude Awakening's tip names no card")
+	_check(not load("res://resource/dream/old_rain.tres").tip.contains("{card:"), "F8: Old Rain's tip names no card")
+
 func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("bellflower") == "Keeping Time", "Bellflower's Calling is Keeping Time")
@@ -389,5 +445,6 @@ func _run() -> void:
 	_check(not near_a.statuses.has(EnemyStatuses.DROWSY), "...and never repeats Drowsy")
 	dreams.calling_path.clear()
 	await _clean()
+	await _f1_checks(at, spot)
 	print("test_class_bellflower: %d failures" % failures)
 	quit(failures)

@@ -2890,6 +2890,16 @@ var _batch_dreams: DreamState = null  # The run's DreamState, found on the first
 
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
+	# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) A Calling output's mark is taken here and cleared, so nothing this
+	# hit sets off is marked; it is held in DamageLog.calling_now for this hit only (restored on every exit).
+	var calling_here := DamageLog.calling_next
+	DamageLog.calling_next = &""
+	var calling_was := DamageLog.calling_now
+	DamageLog.calling_now = calling_here
+	_take_damage(amount, line, is_area, is_crit, source, tag)
+	DamageLog.calling_now = calling_was
+
+func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, source: Node, tag: StringName) -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
 	if source is Tower and Reactions.is_effect(tag) and tag not in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
@@ -3076,7 +3086,8 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	var event := DamageLog.Event.new()
 	event.source = source
 	event.enemy = self
-	event.kind = &"status" if tag == &"spored" else (&"bolt" if tag == &"static" else (&"pop" if tag == &"popped" else &"hit"))
+	event.calling = DamageLog.calling_now  # (F1 lent × Calling, owner 2026-10-18; f1_spec.md)
+	event.kind =&"status" if tag == &"spored" else (&"bolt" if tag == &"static" else (&"pop" if tag == &"popped" else &"hit"))
 	event.tag = tag
 	if tag in REACTION_TAGS:
 		event.kind = &"reaction"

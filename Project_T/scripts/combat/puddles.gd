@@ -183,8 +183,8 @@ const DEEP_CELLS := 1.0  # Drowning Deep: a Whirlpool pull drags the nightmares 
 const DEEP_MAX := 4  # …up to this many (never bosses or flyers); Wardens touching the pond each hit the pulled one once, free
 const EVO_STAGNANT := &"dw_stagnant_water"
 # Stagnant Water (owner 2026-10-17: Dewdrop's own trait, Duration): statuses on a nightmare in a pond don't run down
-# while it stays there. Each poll gives back the time a status lost since the last one, through EnemyStatuses.linger
-# (so the shared LINGER_MAX cap past the last landing, Charged LINGER_MAX_STATIC; never above the time it had: never
+# while it stays there. Each poll gives back the time a status lost since the last one, through EnemyStatuses.linger_calling
+# (F2: the Calling's own CALLING_LINGER_MAX past the last landing, Charged 2 s, on top of the lent cards'; never above the time it had: never
 # longer than its own duration; never Rooted or Drowsy). Bosses get back only this share: they run down at half speed.
 const STILL_BOSS_SHARE := 0.5
 const STILL_META := &"pd_still"  # On a nightmare in a pond: {status: time left at the last poll}
@@ -194,7 +194,7 @@ const EVO_HANDS := &"dw_drowned_hands"
 const HANDS_STATUSES := 4  # Drowned Hands: a nightmare carrying this many statuses in a pond…
 const HANDS_HOLD := 1.0  # …is Held this long by the pond's strongest Dewdrop (bosses half), once per pond
 const EVO_RIVERSIDE := &"dw_riverside"  # Support
-const SIDE_SECONDS := 2.0  # Riverside (owner 2026-10-17: Duration, was +1 stack): a status a Warden touching water adds to a nightmare in that water lasts this much longer (EnemyStatuses.linger: the shared cap; never Rooted or Drowsy)
+const SIDE_SECONDS := 2.0  # Riverside (owner 2026-10-17: Duration, was +1 stack): a status a Warden touching water adds to a nightmare in that water lasts this much longer (F2: EnemyStatuses.linger_calling, its own cap; never Rooted or Drowsy)
 const SIDE_FX_EVERY := 0.5  # Its cue (a thread and a puff): once in this long per nightmare
 const SIDE_FX_META := &"pd_side_fx"  # On a nightmare
 const EVO_RAIN := &"dw_rain_on_the_bank"
@@ -496,7 +496,9 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 	for other in (_in_water(w, from, _ripple_steps(w), enemy) if class_on() else []):
 		if now() >= float(other.get_meta(RIPPLE_META, -INF)):
 			other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
+			_arm_apply()  # F1 (f1_spec.md): the ripple's Soaked is that Dewdrop's application for other families' lent cards
 			source._apply_one_status(other, EnemyStatuses.DAMP, 1, source.get_damage(), false)
+			_disarm_apply()
 			soaked.append(other)
 	if class_on() and not dream_state.calling_path.is_empty():
 		_ripple_shown(enemy, w, from, soaked)
@@ -562,6 +564,9 @@ func _back_in(w: int, skip):
 # --- The poll: who walks in, who walks out ------------------------------------------------------------------------------
 
 func on_poll() -> void:
+	if rule(SODDEN):
+		for enemy in enemies():
+			_sodden_walk(enemy)  # F6
 	if rule(SOAKED_THROUGH):
 		for enemy in enemies():
 			_soaked_through(enemy)
@@ -793,9 +798,19 @@ func _ripple_extras(enemy, w: int, soaked: Array) -> void:
 # Puts `stacks` of `id` on `other`: quietly onto a status it has, or started as `source`'s own (not native) application.
 # Charged never fills to a bolt. True when it landed.
 # `credit_id` (setup credit 2026-10-16): the evolution whose carry this is, for the ledger.
+# F1 (f1_spec.md): a carry that starts the status is a Calling application by `source` (a top-up is nothing).
+# F5 (owner 2026-10-18): Drowsy (Rain on the Bank only) stops 1 short of full, so a carry never completes Drown, Night
+# Terror, Sleepwalk or Pinned, and gets no F1 extras.
 func _carry(other, id: StringName, stacks: int, source, credit_id: StringName = &"") -> bool:
 	if not living(other) or id == EnemyStatuses.HELD or stacks <= 0:
 		return false
+	var drowsy := id == EnemyStatuses.DROWSY
+	if drowsy:
+		var s: EnemyStatuses = other.statuses
+		var room: int = mini(s.normal_cap(id), s.get_max_stacks(id)) - 1 - s.stacks(id)
+		if room <= 0:
+			return false
+		stacks = mini(stacks, room)
 	if other.statuses.has(id):
 		var added: int = other.statuses.add_quiet(id, stacks)
 		setup_quiet(other, credit_id, id, added)
@@ -804,7 +819,10 @@ func _carry(other, id: StringName, stacks: int, source, credit_id: StringName = 
 		return false
 	if id == EnemyStatuses.STATIC and stacks >= other.statuses.get_max_stacks(id) - 1:
 		return false
+	if class_on() and dream_state != null:
+		dream_state.arm_apply(FAMILY, drowsy)
 	setup_apply(credit_id, source, other, id, stacks, source.get_damage())
+	_disarm_apply()
 	return living(other) and other.statuses.has(id)
 
 # Millrace: the ripple carries 1 stack of up to 3 of the hit nightmare's other statuses to every nightmare it soaks.
@@ -833,7 +851,7 @@ func _millrace(enemy, soaked: Array) -> void:
 
 # Rain on the Bank: every nightmare the ripple soaks takes 1 of each of up to 3 bank Wardens' statuses (their own application).
 func _rain(w: int, soaked: Array) -> void:
-	var bank: Array = _bank_of(w).filter(func(t) -> bool: return status_of(t) != &"" and status_of(t) != EnemyStatuses.DROWSY)
+	var bank: Array = _bank_of(w).filter(func(t) -> bool: return status_of(t) != &"")  # F5: Drowsy too, 1 short of full (_carry)
 	if bank.is_empty():
 		return
 	bank.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
@@ -880,7 +898,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			for other in _in_water(w, index_of(enemy), LAP_STEPS, enemy):
 				if now() >= float(other.get_meta(RIPPLE_META, -INF)):
 					other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
-					setup_apply(EVO_LAPPING, dewdrop, other, EnemyStatuses.DAMP, 1, dewdrop.get_damage())  # (setup credit 2026-10-16)
+					calling_apply(EVO_LAPPING, dewdrop, other, EnemyStatuses.DAMP, 1, dewdrop.get_damage())  # (setup credit 2026-10-16)
 					soaked.append(other)
 			if not soaked.is_empty():
 				source.set_meta(LAP_META, now() + LAP_EVERY)
@@ -895,7 +913,7 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 			source.set_meta(MIRROR_META, now() + MIRROR_EVERY)
 			_line_fx(enemy.global_position, last.global_position, 2.0, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", last.global_position, self, 0.5)
-			strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
+			calling_strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
 			credit(EVO_REFLECTION, last.global_position, source)
 
 # A Warden's own accepted status on a nightmare in water (Riverside): the status it just added lasts 2 s longer.
@@ -905,7 +923,7 @@ func _evo_status(tower, enemy, status: StringName) -> void:
 	if w < 0 or not EnemyStatuses.can_linger(status):
 		return
 	if evo(EVO_RIVERSIDE) and (is_own(tower) or is_other_family(tower)) and touches_water(tower, w):
-		var side: float = enemy.statuses.linger(status, SIDE_SECONDS)
+		var side: float = enemy.statuses.linger_calling(status, SIDE_SECONDS)  # F2: the Calling's own cap, on top of the lent cards'
 		SETUP.note_linger(enemy, card_id(EVO_RIVERSIDE), status, side)  # (setup credit 2026-10-16)
 		if side > 0.0 and now() >= float(enemy.get_meta(SIDE_FX_META, -INF)):
 			enemy.set_meta(SIDE_FX_META, now() + SIDE_FX_EVERY)
@@ -928,7 +946,7 @@ func _stagnant(enemy) -> void:
 		if was.has(id):
 			var lost: float = float(was[id]) - left  # Negative after a fresh landing: nothing to give back
 			if lost > 0.0:
-				var back: float = statuses.linger(id, lost * share)
+				var back: float = statuses.linger_calling(id, lost * share)  # F2: the Calling's own cap, on top of the lent cards'
 				if back > 0.0:
 					SETUP.note_linger(enemy, card_id(EVO_STAGNANT), id, back)  # (setup credit 2026-10-16)
 					held = true
@@ -1020,7 +1038,7 @@ func _drowning_deep(enemy, w: int, pixels: float) -> void:
 			_line_fx(enemy.global_position, other.global_position, 2.0, Palette.DEWLIGHT)
 	var hits := 0
 	for tower in (waters[w].dewdrops as Array) + _bank_of(w):
-		if _tower_ok(tower) and free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, EVO_DEEP):  # (own: setup credit 2026-10-16)
+		if _tower_ok(tower) and calling_free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, EVO_DEEP):  # (own: setup credit 2026-10-16)
 			hits += 1
 	if dragged > 0 or hits > 0:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.6)
@@ -1124,7 +1142,7 @@ func _spring_tick() -> void:
 	for enemy in targets.slice(0, SPRING_MAX):
 		var room: int = enemy.statuses.get_max_stacks(EnemyStatuses.DAMP) - enemy.statuses.stacks(EnemyStatuses.DAMP)
 		if room > 0 and dewdrop != null:
-			setup_apply(EVO_SPRING, dewdrop, enemy, EnemyStatuses.DAMP, room, dewdrop.get_damage())  # (setup credit 2026-10-16)
+			calling_apply(EVO_SPRING, dewdrop, enemy, EnemyStatuses.DAMP, room, dewdrop.get_damage())  # (setup credit 2026-10-16)
 		if living(enemy):
 			var boss: bool = enemy.statuses.is_boss
 			HelperCommons.slow(enemy, SPRING_SLOW * (0.5 if boss else 1.0), SPRING_SECONDS)
@@ -1184,6 +1202,8 @@ func _remember(enemy, dewdrop_id: String) -> void:
 # nightmare in it: the ripple carries 1 stack to the others within 4 steps in that water (that Warden's own
 # application of 1, once a second for each receiver; Charged stops one short of a bolt).
 func status_applied(tower, enemy, status: StringName, _stacks: int) -> void:
+	if _in_calling_event:
+		return  # F1 (f1_spec.md): another family's Calling application changes nothing here
 	if rule(CAUGHT_WADING) and status == EnemyStatuses.DAMP and is_own(tower) and living(enemy):
 		_caught_wading(tower, enemy)
 	if class_on() and not dream_state.calling_path.is_empty() and status != EnemyStatuses.HELD and living(enemy):
@@ -1448,7 +1468,8 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 			DamageLog.note_card_bonus("old_rain", OLD_RAIN_BONUS)  # Card credit (Main Merger df7010bb)
 	if not (source is Tower) or not is_instance_valid(source):
 		return multiplier
-	if rule(HIGH_TIDE) and tag == &"" and dewdrop_near(source) != null:
+	var hit_like: bool = tag == &"" or _calling_hit()  # F1 (f1_spec.md): another family's Calling output counts as a hit
+	if rule(HIGH_TIDE) and hit_like and dewdrop_near(source) != null:
 		# High Tide (keyword chips 2026-10-16: every status counts, cap +30%): hits from Wardens near a Dewdrop deal 10% more
 		# for each status on the nightmare
 		var tide := 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
@@ -1458,7 +1479,7 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		multiplier *= _evo_hit_multiplier(enemy, source)  # Stream, Black Pond, Riverside
 	if not _soaked(enemy):
 		return multiplier  # Sodden and the older Dewdrop damage cards (retired) read a Soaked nightmare
-	if rule(SODDEN) and tag == &"" and dewdrop_near(source) != null:
+	if rule(SODDEN) and hit_like and dewdrop_near(source) != null:
 		multiplier *= _sodden(enemy, source)
 	if tag == &"" and enemy.has_meta(RIP_META):  # Riptide: each Warden near that Dewdrop, its first hit while it wades
 		var rip: Dictionary = enemy.get_meta(RIP_META)
@@ -1480,8 +1501,30 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 # Sodden (owner 2026-10-18, dewdrop_self.md): a hit from a Dewdrop or a Warden near one deals 10% more for each whole
 # second the nightmare's Soaked has lasted (EnemyStatuses.age: kept on by anything that keeps Soaked on; reset when it
 # runs out), up to +40%. Hits only. The badge pops once when the count reaches the cap.
+# F6 (owner 2026-10-18; f1_spec.md): Sodden counts from the nightmare's first Soaked this walk: a gap of SODDEN_GAP s or
+# less without Soaked doesn't reset it (so Last Drop and Ebb no longer do). on_poll keeps [start, last time wet].
+const SODDEN_GAP := 3.0
+const SODDEN_WALK_META := &"pd_sodden_walk"  # On a nightmare: [first Soaked this walk, last time it was Soaked]
+
+func _sodden_walk(enemy) -> void:
+	if not _soaked(enemy):
+		return
+	var walk: Array = enemy.get_meta(SODDEN_WALK_META, [])
+	if walk.size() < 2 or now() - float(walk[1]) > SODDEN_GAP:
+		walk = [now() - enemy.statuses.age(EnemyStatuses.DAMP), now()]
+	else:
+		walk[1] = now()
+	enemy.set_meta(SODDEN_WALK_META, walk)
+
+# Seconds Sodden counts for `enemy` (it is Soaked now).
+func _sodden_seconds(enemy) -> float:
+	var walk: Array = enemy.get_meta(SODDEN_WALK_META, [])
+	if walk.size() >= 2 and now() - float(walk[1]) <= SODDEN_GAP:
+		return maxf(now() - float(walk[0]), enemy.statuses.age(EnemyStatuses.DAMP))
+	return enemy.statuses.age(EnemyStatuses.DAMP)
+
 func _sodden(enemy, source) -> float:
-	var bonus := minf(SODDEN_PER * floorf(enemy.statuses.age(EnemyStatuses.DAMP)), SODDEN_MAX)
+	var bonus := minf(SODDEN_PER * floorf(_sodden_seconds(enemy)), SODDEN_MAX)
 	if bonus < SODDEN_MAX - 0.0001:
 		if enemy.has_meta(SODDEN_META):
 			enemy.remove_meta(SODDEN_META)

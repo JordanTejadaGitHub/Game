@@ -749,6 +749,7 @@ func _torch(id: int, source, at: Vector2, step: int, amount: float, cap: float, 
 		from = spot  # …and the light throws it
 	# Credited in _strike once the throw lands, never here: _flush may still drop it (council full_review 2026-10-17)
 	opts["credit"] = EVO_BALE if relay > 0 else EVO_TORCH  # Setup credit 2026-10-16: its own damage
+	opts["calling"] = true  # F1 (f1_spec.md): a Calling output (a hit by `source` for other families' lent cards)
 	_fork(id, source, from, target, amount, cap, opts)
 
 # Waiting Spark: every spark waiting in a light strikes the next nightmare to enter it. Strung Lights counts the glow
@@ -809,6 +810,9 @@ func _on_damage(event) -> void:
 		return  # A fork triggers nothing
 	if not _any_rule_on():
 		return  # Nothing of the Firefly set is held: the common case, and the cheap one
+	if event.calling != &"" and String(event.calling) != FAMILY and event.kind != &"reaction":
+		_calling_event(event)  # F1 (f1_spec.md): another family's Calling output: the lent cards only, as a hit
+		return
 	if _rule(CHAIN_OF_LANTERNS) and CLASS_KIT.is_reaction_burst(event):
 		_chain_more(event)  # Any family's Reaction on a nightmare a Firefly Warden hit in the last 2 s (the shared list, council 2026-10-15)
 	if event.kind == &"reaction":
@@ -837,6 +841,39 @@ func _on_damage(event) -> void:
 		_class_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
 	if lent:
 		_lent_rules(id, event, source, enemy, dispel, is_hit, is_bolt)
+
+# F1 lent × Calling (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md): another family's Calling output (a
+# Toll, a dose's Warden, a Reflection…) is a hit by its Warden for the lent cards here: Hammerfall, Thunderstruck, Sparks
+# Fly, Nothing Wasted, the Firefly-hit mark (Struck Twice spends on it in damage_multiplier). Never Flashover, Crossfire
+# (attack-shaped) or Brushfire (ticks); never the Calling's class rules. Each card's own clock is shared with real hits.
+func _calling_event(event) -> void:
+	if not _lent_on():
+		return
+	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
+	if source == null:
+		return
+	var enemy = event.enemy
+	var is_hit: bool = event.kind == &"hit"
+	var id := _next_event()
+	_heavy_now = is_hit and (is_heavy(source) or source.tower_data.get_id() == "sprout") \
+		and (_rule(SPOTLIGHT) or _rule(HAMMERFALL) or _rule(THUNDERSTRUCK)) and _new_heavy_attack(source)
+	_lent_rules(id, event, source, enemy, enemy.health <= 0, is_hit, false, true)
+
+# The nightmares other jumps of event `id` are already queued to (F4: two jumps from one hit go to different nightmares).
+func _taken_by(id: int) -> Array:
+	var out: Array = []
+	for request in _queue:
+		if int(request.event) == id and is_instance_valid(request.target):
+			out.append(request.target)
+	return out
+
+# `skip` plus `taken`, unless that leaves nothing near `at` to jump to (then today's list: _flush keeps the largest).
+func _fan_out(at: Vector2, skip: Array, taken: Array) -> Array:
+	if not taken.is_empty():
+		var found := _near_enemies(at, skip + taken)
+		if not found.is_empty():
+			return found
+	return _near_enemies(at, skip)
 
 # Chain of Lanterns on any Reaction (trait rework 2026-10-15; was Charged Reactions only): on a nightmare a Firefly Warden
 # hit in the last 2 s, half of it jumps to the 2 nearest other nightmares near it. Each Firefly Warden, once a second;
@@ -906,7 +943,7 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 		var targets := nearest_lit(at, [enemy], count)
 		if class_on():  # The Calling's own payoff: the first pick only
 			for t in targets.size():
-				var opts := {"origin": enemy}
+				var opts := {"origin": enemy, "calling": true}  # (F1: the Calling's jump)
 				if t >= meet_count:
 					opts["credit"] = EVO_BONFIRE
 				elif t >= 1:
@@ -1048,7 +1085,8 @@ func is_struck(enemy) -> bool:
 # Warden counts as near itself), Bonfire (a Firefly Warden's hit on gold path), Strung Lights (a Firefly Warden's hit, per
 # glow the nightmare entered). Each one notes its card bonus (DamageLog) and credits itself with the Warden.
 func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
-	if tag != &"" or not (source is Tower) or not is_instance_valid(source) or not is_instance_valid(enemy):
+	var calling: bool = DamageLog.calling_now != &"" and String(DamageLog.calling_now) != FAMILY  # F1: another family's Calling output is a hit
+	if (tag != &"" and not calling) or not (source is Tower) or not is_instance_valid(source) or not is_instance_valid(enemy):
 		return 1.0
 	var multiplier := 1.0
 	var own := is_firefly(source)
@@ -1063,7 +1101,7 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 			multiplier *= STRUCK_BONUS
 			DamageLog.note_card_bonus(String(STRUCK_TWICE), STRUCK_BONUS)
 			credit(STRUCK_TWICE, enemy.global_position, source)
-	if not own or not _evolved():
+	if not own or not _evolved() or tag != &"":
 		return multiplier
 	if evo(EVO_BONFIRE) and jars_at(_lit_sources(enemy)) >= 2:
 		multiplier *= BONFIRE_BONUS
@@ -1108,6 +1146,8 @@ func _hop(request: Dictionary, extra: Dictionary) -> Dictionary:
 	var opts := {"hops": int(request.get("hops", 0)) + 1}
 	if request.has("pyre"):
 		opts["pyre"] = request.pyre
+	if request.has("calling"):
+		opts["calling"] = request.calling  # F1: a Calling jump's hop is one too
 	opts.merge(extra, true)
 	return opts
 
@@ -1154,7 +1194,7 @@ func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> 
 		return
 	source.set_meta(LAMP_META, _now() + LAMP_EVERY)
 	var limit := INF if source.tower_data.get_id() == "sprout" else cap
-	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0, "credit": EVO_BORROWED})
+	_fork(id, source, at, targets[0], event.base * LAMP_SHARE, limit, {"origin": enemy, "color": Palette.GLOW, "width": 2.0, "credit": EVO_BORROWED, "calling": true})
 	credit(EVO_BORROWED, targets[0].global_position, source)
 
 # Show the Way (from _evolved_strike): a Borrowed Light jump that landed jumps once more, at half, to another Lit
@@ -1168,7 +1208,7 @@ func _show_the_way(request: Dictionary, source, target, at: Vector2, had: Array)
 	var next := _fresh_lit(at, int(request.event), skip)
 	if next.is_empty():
 		return
-	var opts := _hop(request, {"color": Palette.GLOW, "width": 2.0, "credit": EVO_SHOW})
+	var opts := _hop(request, {"color": Palette.GLOW, "width": 2.0, "credit": EVO_SHOW, "calling": true})
 	if not had.is_empty():
 		opts["carry"] = had  # Lantern Wake: it carries what the nightmare it leaves had
 	_fork(int(request.event), source, at, next[0], float(request.amount) * SHOW_SHARE, float(request.cap), opts)
@@ -1201,8 +1241,19 @@ func _sightline(event, source, enemy, at: Vector2, sources: Array) -> void:
 		if not is_instance_valid(tower):
 			continue
 		Reactions._segment(&"light_thread", tower.global_position, at, self, 0.4)  # Three beams meet
-		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy, "credit": EVO_SIGHT})
+		_fork(_next_event(), tower, at, targets[0], float(row[2]) * SIGHT_SHARE, brightness(tower, sources), {"origin": enemy, "credit": EVO_SIGHT, "calling": true})
 	credit(EVO_SIGHT, at, source)
+
+# F1 (f1_spec.md): Moth to Flame's and Constellation's Exposed is an application by its Warden for the other families'
+# lent cards (Sporeling's stack cards first, then who hears it). Only while Lantern Light is the Calling.
+func _calling_stacks(tower, enemy, status: StringName, stacks: int) -> int:
+	if not class_on() or not (tower is Tower) or not _living(enemy):
+		return stacks
+	return dream_state.calling_stacks(FAMILY, tower, enemy, status, stacks)
+
+func _calling_status(tower, enemy, status: StringName, stacks: int, applied_before: int) -> void:
+	if class_on() and tower is Tower and _living(enemy) and enemy.statuses.applications > applied_before:
+		dream_state.calling_status(FAMILY, tower, enemy, status, stacks)
 
 # Constellation: jumps from 3 different Wardens within 3 s make a nightmare fully Exposed (bosses half), once in 8 s.
 func _constellation(target, source, at: Vector2) -> void:
@@ -1223,7 +1274,10 @@ func _constellation(target, source, at: Vector2) -> void:
 	var want := ceili(float(statuses.get_max_stacks(EnemyStatuses.MARKED)) * (CONST_BOSS_SHARE if statuses.is_boss else 1.0))
 	var add: int = want - statuses.stacks(EnemyStatuses.MARKED)
 	if add > 0:
+		add = _calling_stacks(source, target, EnemyStatuses.MARKED, add)  # F1: an Exposed application by its Warden
+		var applied_before: int = statuses.applications
 		SETUP.apply(target, EVO_CONSTELLATION, EnemyStatuses.MARKED, add, 0.0, source.get_damage(), 0, source.tower_data.line, source)  # (setup credit 2026-10-16)
+		_calling_status(source, target, EnemyStatuses.MARKED, add, applied_before)
 	for row in roster.values():
 		var tower = row[1].get_ref()
 		if is_instance_valid(tower):
@@ -1297,7 +1351,7 @@ func _ember_poll(now: float) -> void:
 			credit(EVO_EMBERS, at)
 		for target in targets:
 			_strike({"event": id, "source": source, "from": at, "target": target, "amount": amount, "cap": float(pile.cap),
-				"final": true, "color": Palette.EMBER, "credit": EVO_WITCHFIRE if evo(EVO_WITCHFIRE) else EVO_EMBERS})
+				"final": true, "color": Palette.EMBER, "credit": EVO_WITCHFIRE if evo(EVO_WITCHFIRE) else EVO_EMBERS, "calling": true})
 
 # After a jump struck (the Firefly start with any evolution): Moth to Flame, Constellation, Pyre, Bale-fires, Swarm Night.
 # `before`: the sources lighting the target before the hit; `had`: its statuses before it (Lantern Wake on the next hop).
@@ -1310,7 +1364,10 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if not dead and warden:
 		if gold and evo(EVO_MOTH):
 			var stacks := maxi(int(MOTH_EXPOSED * 0.5), 1) if target.statuses.is_boss else MOTH_EXPOSED
+			stacks = _calling_stacks(source, target, EnemyStatuses.MARKED, stacks)  # F1: an Exposed application by its Warden
+			var applied_before: int = target.statuses.applications
 			SETUP.apply(target, EVO_MOTH, EnemyStatuses.MARKED, stacks, 0.0, source.get_damage(), 0, source.tower_data.line, source)  # (setup credit 2026-10-16)
+			_calling_status(source, target, EnemyStatuses.MARKED, stacks, applied_before)
 			if _living(target):
 				target.flash_status(EnemyStatuses.MARKED)
 			credit(EVO_MOTH, at, source)
@@ -1324,7 +1381,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if dead and gold and evo(EVO_PYRE) and int(request.get("pyre", 0)) < PYRE_HOPS:
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
-			var opts := _hop(request, {"pyre": int(request.get("pyre", 0)) + 1, "color": Palette.EMBER, "credit": EVO_PYRE})
+			var opts := _hop(request, {"pyre": int(request.get("pyre", 0)) + 1, "color": Palette.EMBER, "credit": EVO_PYRE, "calling": true})
 			if not had.is_empty():
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount), float(request.cap), opts)
@@ -1339,7 +1396,7 @@ func _evolved_strike(request: Dictionary, source, target, at: Vector2, before: A
 	if evo(EVO_SWARM) and _lit_count >= SWARM_AT and not request.get("swarm", false) and not request.get("final", false):
 		var next := _fresh_lit(at, event, [target])
 		if not next.is_empty():
-			var opts := _hop(request, {"swarm": true, "color": Palette.HEARTLIGHT, "credit": EVO_SWARM})
+			var opts := _hop(request, {"swarm": true, "color": Palette.HEARTLIGHT, "credit": EVO_SWARM, "calling": true})
 			if not had.is_empty():
 				opts["carry"] = had
 			_fork(event, source, at, next[0], float(request.amount) * SWARM_SHARE, float(request.cap), opts)
@@ -1383,7 +1440,7 @@ func _near_enemies(at: Vector2, skip: Array) -> Array:
 	found.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 	return found
 
-func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_bolt: bool) -> void:
+func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_bolt: bool, calling: bool = false) -> void:
 	var at: Vector2 = enemy.global_position
 	var now := _now()
 	if is_bolt:
@@ -1391,22 +1448,23 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 	var prev: Array = enemy.get_meta(FF_HIT_META, [])  # The Firefly hit before this one: Sparks Fly reads it, so a Jar's hit counts after another Jar's
 	if is_firefly(source) and event.kind == &"hit" and (_rule(SPARKS_FLY) or _rule(CHAIN_OF_LANTERNS) or _rule(BRUSHFIRE)):
 		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Hit by a Firefly Warden (any form) just now: Sparks Fly, Chain of Lanterns, Brushfire
-	if _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
+	if not calling and _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
 		_brush_add(event, source, enemy)
+	var taken := _taken_by(id) if not _queue.is_empty() else []  # F4 (f1_spec.md): built once, before any lent card queues
 	if is_hit:
-		if _rule(LENT_CROSSFIRE):
+		if _rule(LENT_CROSSFIRE) and not calling:
 			_crossfire(id, event, source, enemy, at, now)
 		if _rule(NOTHING_WASTED):
-			_nothing_wasted(id, event, source, enemy, at)
-		if _rule(FLASHOVER):
+			_nothing_wasted(id, event, source, enemy, at, taken)
+		if _rule(FLASHOVER) and not calling:
 			_flash_note(event, source, enemy)
 		if _rule(SPARKS_FLY):  # Any Warden but the Firefly Warden that started the 2 s (own family too, owner 2026-10-15)
-			_sparks_fly(id, event, source, enemy, at, now, prev)
+			_sparks_fly(id, event, source, enemy, at, now, prev, taken)
 	if _heavy_now:
 		# Hammerfall: another family's heavy Warden, or a Sprout, near a Firefly Warden jumps half of each attack
 		if _rule(HAMMERFALL) and (is_other_family(source) and is_heavy(source) or source.tower_data.get_id() == "sprout"):
 			var jar = firefly_near(source)
-			var targets := _near_enemies(at, [enemy]) if jar != null else []
+			var targets := _fan_out(at, [enemy], taken) if jar != null else []
 			if not targets.is_empty():
 				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true, "credit": HAMMERFALL})  # Sprouts too. No re-jump on a dispel (owner 2026-10-17: Bale-fires / Pyre's verb); an old save holding Knock-On keeps it
 		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
@@ -1417,7 +1475,10 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			thunder_jar = source if is_firefly(source) else firefly_near(source)
 		if thunder_jar != null:
 			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
-			var fan: Array = _near_enemies(at, [enemy]).filter(func(e) -> bool: return e.statuses.count() > 0).slice(0, THUNDER_MAX)
+			var fan: Array = _with_status(_near_enemies(at, [enemy] + taken)) if not taken.is_empty() else []  # F4: others first
+			if fan.is_empty():
+				fan = _with_status(_near_enemies(at, [enemy]))
+			fan = fan.slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
 				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true, "final": true, "credit": THUNDERSTRUCK})  # final: Hammerfall never re-jumps it (council full_review 2026-10-17)
 				if _living(other) and not other.statuses.is_boss:
@@ -1426,7 +1487,7 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 					thunder_jar._apply_one_status(other, EnemyStatuses.STATIC, THUNDER_STATIC, thunder_jar.get_damage(), false)
 					SETUP.end()
 	# Live Wire and Like to Like: retired (2026-10-13 / earlier); an old save keeps them
-	if not is_other_family(source):
+	if calling or not is_other_family(source):
 		return
 	var jar = firefly_near(source)
 	if jar == null:
@@ -1454,13 +1515,17 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 # Nothing Wasted: the damage a nightmare's shell (the blight coat) soaks up from a hit, by a Firefly Warden or a Warden
 # near one, jumps to the nearest nightmare near it without a shell. (Resistances are gone, enemy_design.md ed6f573b:
 # it read the resisted part before.)
-func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
+func _with_status(list: Array) -> Array:
+	return list.filter(func(e) -> bool: return e.statuses.count() > 0)
+
+func _nothing_wasted(id: int, event, source, enemy, at: Vector2, taken: Array = []) -> void:
 	if event.coat_soaked <= 0.0:
 		return
 	var jar = source if is_firefly(source) else firefly_near(source)
 	if jar == null:
 		return
-	for other in _near_enemies(at, [enemy]):
+	var others: Array = _near_enemies(at, [enemy] + taken).filter(func(e) -> bool: return float(e.coat) <= 0.0) if not taken.is_empty() else []
+	for other in (others if not others.is_empty() else _near_enemies(at, [enemy])):  # F4: other jumps' targets last
 		if float(other.coat) <= 0.0:
 			_fork(id, source, at, other, event.coat_soaked, _lent_cap(source, jar))
 			return
@@ -1468,7 +1533,7 @@ func _nothing_wasted(id: int, event, source, enemy, at: Vector2) -> void:
 # Sparks Fly: every 3rd hit a Warden (any but the Firefly Warden that started the 2 s; Sprouts and other Firefly Wardens
 # count) lands on a nightmare a Firefly Warden hit in the last 2 s jumps on at half. Counted per Warden and nightmare; an
 # area attack counts once. `lit` = the Firefly hit before this one (read before _lent_rules records this hit).
-func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float, lit: Array) -> void:
+func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float, lit: Array, taken: Array = []) -> void:
 	if lit.is_empty() or now - float(lit[0]) > SPARKS_WINDOW or lit[1].get_ref() == source:
 		return
 	if int(source.get_meta(SPARKS_FRAME_META, -1)) == Engine.get_process_frames():
@@ -1480,7 +1545,7 @@ func _sparks_fly(id: int, event, source, enemy, at: Vector2, now: float, lit: Ar
 	enemy.set_meta(SPARKS_META, counts)
 	if n < SPARKS_EVERY_HIT:
 		return
-	var targets := _near_enemies(at, [enemy])
+	var targets := _fan_out(at, [enemy], taken)  # F4
 	if not targets.is_empty():
 		_fork(id, source, at, targets[0], event.base * SPARKS_SHARE, _lent_cap(null, lit[1].get_ref()))  # Capped even from a Firefly Warden, as Chain of Lanterns (council full_review 2026-10-17)
 
@@ -1688,7 +1753,10 @@ func _strike(request: Dictionary) -> void:
 	var own: StringName = request.get("credit", &"")  # Setup credit 2026-10-16: the evolution or card this jump is (its own damage)
 	if own != &"" and dream_state != null:
 		dream_state.begin_own_hit(own, target)
+	if request.get("calling", false) and class_on():
+		DamageLog.calling_next = StringName(FAMILY)  # F1 (f1_spec.md): armed just before; take_damage takes it on entry
 	target.take_damage(amount, source.tower_data.line if source is Tower else LINE, false, false, source, FORK_TAG)
+	DamageLog.calling_next = &""
 	if own != &"" and dream_state != null:
 		dream_state.end_own_hit()
 	if own == EVO_TORCH or own == EVO_BALE:
@@ -1706,6 +1774,7 @@ func _strike(request: Dictionary) -> void:
 			hop.from = at
 			hop["jump_from"] = target  # Keyword chips 2026-10-16: it leaves the nightmare just struck
 			hop["credit"] = KNOCK_ON  # Setup credit 2026-10-16
+			hop["calling"] = false  # (F1: a lent card's hop is never a Calling output)
 			hop.target = next[0]
 			hop.final = true  # The second fork never forks again and takes no leftover
 			_strike(hop)

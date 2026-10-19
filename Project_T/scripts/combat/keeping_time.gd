@@ -504,7 +504,7 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 			DamageLog.note_card_bonus(card_id(RISING_SONG), share / TOLL_SHARE)
 	if swell > 1.0:
 		DamageLog.note_card_bonus(String(EVO_CRESCENDO), swell)
-	strike(striker, enemy, landing, &"toll", true)
+	calling_strike(striker, enemy, landing, &"toll", true)  # F1 (f1_spec.md): a Toll is a hit by its striker for other families' lent cards
 	if full:
 		Reactions._effect(&"toll_ring", at, self, 0.8)
 		credit(EVO_STEADY, at, bell)
@@ -654,7 +654,7 @@ func _carry_from(bell, target, base: float) -> void:
 		if not living(enemy):
 			continue
 		_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
-		strike(bell, enemy, base * TUNE_SHARE, &"carried_ring", true, EVO_CARRYING)  # (own: setup credit 2026-10-16)
+		calling_strike(bell, enemy, base * TUNE_SHARE, &"carried_ring", true, EVO_CARRYING)  # (own: setup credit 2026-10-16)
 		ring(enemy, bell, base * TUNE_SHARE)
 		carried += 1
 	if carried > 0:
@@ -713,7 +713,7 @@ func _note_heard(note: Dictionary, enemy) -> void:
 			continue
 		var hit := minf(float(_last_hit_of[tower.get_instance_id()]) * CHOIR_SHARE, second_of(tower) * CHOIR_CAP_SECONDS)
 		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.HEARTLIGHT)
-		strike(tower, enemy, hit, &"chorus_repeat", false, EVO_CHOIR)  # (own: setup credit 2026-10-16)
+		calling_strike(tower, enemy, hit, &"chorus_repeat", false, EVO_CHOIR)  # (own: setup credit 2026-10-16)
 		sang += 1
 	if sang > 0:
 		credit(EVO_CHOIR, note.at)
@@ -755,13 +755,13 @@ func _midnight(enemy) -> void:
 			if fired >= KNELL_DEWDROPS:
 				break
 			if tower.tower_data.line == "water" and tower.tower_data.can_attack and near(tower.global_position, at) \
-					and free_hit(tower, enemy, scale, FREE_HIT_TAG, INF, EVO_MIDNIGHT):
+					and calling_free_hit(tower, enemy, scale, FREE_HIT_TAG, INF, EVO_MIDNIGHT):
 				fired += 1
 
 # Hush-a-bye: a Toll adds 2 Drowsy (the bell's, never native: no lent card reads it); 3 Tolls within 6 s and it naps.
 func _hushabye(enemy, bell) -> void:
 	var at: Vector2 = enemy.global_position
-	setup_apply(EVO_HUSH, bell, enemy, EnemyStatuses.DROWSY, HUSH_DROWSY, bell.get_damage())  # (setup credit 2026-10-16)
+	calling_apply(EVO_HUSH, bell, enemy, EnemyStatuses.DROWSY, HUSH_DROWSY, bell.get_damage())  # (setup credit 2026-10-16)
 	if not living(enemy):
 		return
 	if enemy.statuses.has(EnemyStatuses.DROWSY):
@@ -784,7 +784,7 @@ func _hall(enemy, bell, at: Vector2, landing: float) -> void:
 	var hit := 0
 	for other in _touching_at(at, enemy, HALL_OTHERS):
 		_line_fx(at, other.global_position, 2.0, Palette.BLOSSOM)
-		strike(bell, other, landing * HALL_SHARE, &"toll", true, EVO_HALL)  # (own: setup credit 2026-10-16)
+		calling_strike(bell, other, landing * HALL_SHARE, &"toll", true, EVO_HALL)  # (own: setup credit 2026-10-16)
 		hit += 1
 	if hit > 0:
 		Reactions._effect(&"toll_ring", at, self, 1.3)
@@ -798,7 +798,7 @@ func _accompanied(partner, enemy, at: Vector2) -> void:
 	var status := status_of(partner)
 	if status == &"" or not living(enemy):
 		return
-	setup_apply(EVO_ACCOMP, partner, enemy, status, maxi(int(partner.attack_data.status_stacks), 1), partner.get_damage())  # (setup credit 2026-10-16)
+	calling_apply(EVO_ACCOMP, partner, enemy, status, maxi(int(partner.attack_data.status_stacks), 1), partner.get_damage())  # (setup credit 2026-10-16)
 	if living(enemy) and enemy.statuses.has(status):
 		enemy.flash_status(status)
 
@@ -835,7 +835,7 @@ func _counterpoint(enemy, at: Vector2) -> void:
 	if bell == null:
 		return
 	bell.set_meta(COUNTER_META, now() + COUNTER_EVERY)
-	if not free_hit(bell, enemy, 1.0, FREE_HIT_TAG, INF, EVO_COUNTER):  # (own: setup credit 2026-10-16)
+	if not calling_free_hit(bell, enemy, 1.0, FREE_HIT_TAG, INF, EVO_COUNTER):  # (own: setup credit 2026-10-16)
 		return
 	if living(enemy):
 		_add_pip(enemy, bell)
@@ -863,7 +863,7 @@ func _symphony(enemy, roster: Array, at: Vector2) -> void:
 		if not (tower is Tower):
 			continue
 		_line_fx(tower.global_position, at, 1.5, Palette.HEARTLIGHT)
-		strike(tower, enemy, minf(float(_last_hit_of[id]) * SYMPHONY_SHARE, second_of(tower)), &"chorus_repeat", false, EVO_SYMPHONY)  # (own: setup credit 2026-10-16)
+		calling_strike(tower, enemy, minf(float(_last_hit_of[id]) * SYMPHONY_SHARE, second_of(tower)), &"chorus_repeat", false, EVO_SYMPHONY)  # (own: setup credit 2026-10-16)
 		sang += 1
 	if sang > 0:
 		Reactions._effect(&"chorus_note", at, self, 1.2)
@@ -883,7 +883,7 @@ func _chime(enemy, at: Vector2) -> void:
 		if not living(target):
 			continue
 		var before: int = target.statuses.applications
-		setup_apply(EVO_CHIME, tower, target, status, int(last[2]), tower.get_damage())  # (setup credit 2026-10-16)
+		calling_apply(EVO_CHIME, tower, target, status, int(last[2]), tower.get_damage())  # (setup credit 2026-10-16)
 		if living(target) and target.statuses.applications > before:
 			rung += 1
 			target.flash_status(status)
@@ -1013,7 +1013,7 @@ func status_applied(tower, enemy, status: StringName, stacks: int) -> void:
 		return
 	if evo(EVO_CHIME) and status != EnemyStatuses.DROWSY and status != EnemyStatuses.HELD and stacks > 0:
 		enemy.set_meta(CHIME_META, [weakref(tower), status, stacks])  # Chime of Many: the last status hit, for its next Toll
-	if is_own(tower) and status == EnemyStatuses.DROWSY:
+	if is_own(tower) and status == EnemyStatuses.DROWSY and not _in_calling_event:  # F1: never Nod Off (control stays bounded)
 		if rule(NOD_OFF) and not enemy.has_meta(DROWSED_META):
 			# Nod Off: the first time a bell makes it Drowsy, it naps 1 s (one sleeper for each bell; never bosses)
 			var sleeper = tower.get_meta(SLEEPER_META).get_ref() if tower.has_meta(SLEEPER_META) else null
@@ -1044,13 +1044,13 @@ func _on_damage(event) -> void:
 	super._on_damage(event)
 
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -> void:
-	if dispel and is_hit and rule(ENCORE):
+	if dispel and is_hit and rule(ENCORE) and not _in_calling_event:  # (F1: attack-shaped cards never hear a Calling output)
 		_encore(source)  # A hit's dispel only (a status tick's never counts)
 	if is_hit and not tagged and source != null and (evo(EVO_CHOIR) or evo(EVO_SYMPHONY)):
 		_last_hit_of[source.get_instance_id()] = float(event.base)  # Night Choir, Symphony: each Warden's last hit, before defences
 	if tagged or source == null or not is_hit:
 		return
-	if rule(DA_CAPO) and is_own(source):
+	if rule(DA_CAPO) and is_own(source) and not _in_calling_event:  # (F1: attack-shaped, never a Calling output)
 		_da_capo(source)  # Its own hit, a dispel too (an area attack's hits in one frame: one attack)
 	if not living(enemy):
 		return
@@ -1069,7 +1069,7 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 			var hit: Dictionary = enemy.get_meta(BELL_HIT_META, {})
 			hit[source.get_instance_id()] = true
 			enemy.set_meta(BELL_HIT_META, hit)
-		if rule(ON_THE_BEAT) and int(source.get_meta(BEAT_FRAME_META, -1)) != Engine.get_process_frames():
+		if rule(ON_THE_BEAT) and not _in_calling_event and int(source.get_meta(BEAT_FRAME_META, -1)) != Engine.get_process_frames():
 			source.set_meta(BEAT_FRAME_META, Engine.get_process_frames())
 			_beat(source)
 		if rule(RINGING_EARS):
@@ -1322,7 +1322,10 @@ func _carry_ring(bell, base: float) -> void:
 		if carried.has(index_of(enemy)) and not _in_reach(bell, enemy):
 			if tune:
 				_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
-			strike(bell, enemy, base * share, &"carried_ring", true, EVO_CARRYING if tune else &"")  # (own: setup credit 2026-10-16)
+			if tune:
+				calling_strike(bell, enemy, base * share, &"carried_ring", true, EVO_CARRYING)  # (F1: Carrying Tune is a Calling output)
+			else:
+				strike(bell, enemy, base * share, &"carried_ring", true)  # (Sound Carries: a retired class card)
 			ring(enemy, bell, base * share)
 			heard += 1
 	if tune and heard > 0:

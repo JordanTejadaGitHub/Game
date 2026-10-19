@@ -112,9 +112,16 @@ func _self_help_checks(spot: Vector2) -> void:
 	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0 + klass.SODDEN_MAX), "...up to +%d%%" % roundi(klass.SODDEN_MAX * 100.0))
 	dreams.batch_damage_multiplier(n, drop, &"")  # (The frame's hook check sees Sodden)
 	_check(dreams._hook_water, "...DreamState hooks the Dewdrop hit bonuses for Sodden")
+	# F6 (owner 2026-10-18): it counts from the first Soaked this walk; a gap of SODDEN_GAP s or less doesn't reset it
+	klass._sodden_walk(n)  # (The poll sees it Soaked)
 	n.statuses.remove(EnemyStatuses.DAMP)
 	n.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", drop)
-	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0), "...the count starts again once Soaked ran out")
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0 + klass.SODDEN_MAX), "F6 Sodden: Soaked running out and coming back within %.0f s keeps the count" % klass.SODDEN_GAP)
+	var walk: Array = n.get_meta(klass.SODDEN_WALK_META)
+	walk[1] = float(walk[1]) - klass.SODDEN_GAP - 0.5
+	n.set_meta(klass.SODDEN_WALK_META, walk)
+	_check(is_equal_approx(klass.damage_multiplier(n, drop), 1.0), "...after a longer gap the count starts again")
+	_check(load("res://resource/dream/sodden.tres").description.contains("since it was first given {damp}"), "...the new face")
 
 	# Wash Away (revived): hits from a Dewdrop or a Warden near one on a Soaked nightmare wear its shell twice as fast.
 	dreams.stacks.clear()
@@ -265,6 +272,93 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	klass._in_pond(p)
 	_check(absf(p.statuses.time_left(EnemyStatuses.MARKED) - (landed - 1.0 + klass.STILL_BOSS_SHARE)) < 0.01, "...a boss's runs down at half speed")
 	p.statuses.is_boss = false
+	await _clean()
+
+# F1 lent × Calling, F2 and F5 (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md).
+func _f1_checks(at: Vector2, route: Array, spot: Vector2) -> void:
+	# F1: the Calling's ripple Soaks as that Dewdrop's application for another family's stack card (Pass It Round: +3,
+	# held to at most 2 extra on a 1-stack application)
+	dreams.stacks.clear()
+	dreams.calling = "dewdrop"
+	dreams.calling_path.clear()
+	_take("pass_it_round")
+	var drop := _plant("dewdrop", at + Vector2(CELL, 0))
+	_plant("sporeling", at + Vector2(CELL, CELL))  # Touching the Dewdrop
+	await _frames(2)
+	klass.on_board()
+	var a = _spawn(at)
+	var b_at: Vector2 = route[12]
+	var w: int = klass.water_of(a)
+	if w >= 0:
+		for i in klass.waters[w].points:
+			if int(i) != klass.index_of(a) and absi(int(i) - klass.index_of(a)) <= klass.RIPPLE_STEPS * 2:
+				b_at = route[int(i)]
+				break
+	var b = _spawn(b_at)
+	drop.hit(a, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(b.statuses.stacks(EnemyStatuses.DAMP) == 1 + mini(DreamState.SPORE_PRINT.PASS_STACKS, 2),
+		"F1: the ripple's Soaked is the Dewdrop's application: Pass It Round adds, at most 2 extra on 1 stack (%d)" % b.statuses.stacks(EnemyStatuses.DAMP))
+	_check(dreams._calling_apply == "" and DamageLog.calling_next == &"", "F1: nothing is left armed")
+	var plain = _spawn(at + Vector2(CELL * 8, CELL * 8))
+	drop._apply_one_status(plain, EnemyStatuses.DAMP, 1, drop.get_damage(), false)
+	_check(plain.statuses.stacks(EnemyStatuses.DAMP) == 1, "F1: an unmarked carried application gets no extras")
+	await _clean()
+
+	# F1: another family's Calling hit counts for High Tide; its own family's never does (a Reflection on a Dewdrop start)
+	dreams.stacks.clear()
+	_take("high_tide")
+	var ht_drop := _plant("dewdrop", spot)
+	await _frames(2)
+	var ht = _spawn(spot + Vector2(CELL, 0))
+	ht.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", ht_drop)
+	ht.apply_status(EnemyStatuses.SPORED, 1, 10.0, 1.0, 0, "spore", null)
+	var tide: float = 1.0 + minf(klass.HIGH_TIDE_PER * ht.statuses.count(), klass.HIGH_TIDE_MAX)
+	DamageLog.calling_now = &"bellflower"
+	var other_family: float = klass.damage_multiplier(ht, ht_drop, &"toll")
+	DamageLog.calling_now = &"dewdrop"
+	var own_family: float = klass.damage_multiplier(ht, ht_drop, &"both_banks")
+	DamageLog.calling_now = &""
+	var tagged: float = klass.damage_multiplier(ht, ht_drop, &"toll")
+	_check(is_equal_approx(other_family, tide), "F1: a Toll (Bellflower's Calling) gets High Tide like a hit (%.2f)" % other_family)
+	_check(is_equal_approx(own_family, 1.0), "F1: never for its own family (the Dewdrop Calling's output)")
+	_check(is_equal_approx(tagged, 1.0), "...an unmarked tagged strike gets nothing")
+	await _clean()
+
+	# F2: the Calling's linger (Riverside, Stagnant Water) has its own cap, on top of the lent cards'
+	var lg = _spawn(spot + Vector2(CELL * 3, 0))
+	lg.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0, 0, "water", null)
+	var left0: float = lg.statuses.time_left(EnemyStatuses.DAMP)
+	_check(is_equal_approx(lg.statuses.linger(EnemyStatuses.DAMP, 100.0), EnemyStatuses.LINGER_MAX), "(the lent cards' %.0f s)" % EnemyStatuses.LINGER_MAX)
+	_check(is_equal_approx(lg.statuses.linger_calling(EnemyStatuses.DAMP, 100.0), EnemyStatuses.CALLING_LINGER_MAX),
+		"F2: the Calling's linger adds its own %.0f s on top" % EnemyStatuses.CALLING_LINGER_MAX)
+	_check(is_zero_approx(lg.statuses.linger(EnemyStatuses.DAMP, 1.0)) and is_zero_approx(lg.statuses.linger_calling(EnemyStatuses.DAMP, 1.0)), "...each cap holds")
+	_check(is_equal_approx(lg.statuses.time_left(EnemyStatuses.DAMP), left0 + EnemyStatuses.LINGER_MAX + EnemyStatuses.CALLING_LINGER_MAX), "...at most 8 s past landing")
+	lg.apply_status(EnemyStatuses.STATIC, 1, 2.0, 1.0, 0, "light", null)
+	_check(is_equal_approx(lg.statuses.linger_calling(EnemyStatuses.STATIC, 100.0), EnemyStatuses.CALLING_LINGER_MAX_STATIC), "...Charged %.0f s" % EnemyStatuses.CALLING_LINGER_MAX_STATIC)
+	_check(is_zero_approx(lg.statuses.linger_calling(EnemyStatuses.DROWSY, 5.0)), "...never Drowsy")
+	await _clean()
+
+	# F5: Rain on the Bank carries Drowsy, 1 short of full (never Drown, Night Terror, Sleepwalk or Pinned), with no extras
+	dreams.stacks.clear()
+	dreams.calling_path.clear()
+	dreams.calling_path.append(&"dw_riverside")
+	dreams.calling_path.append(&"dw_rain_on_the_bank")
+	_take("breathe_it_in")
+	var bell := _plant("bellflower", spot)
+	_plant("sporeling", spot + Vector2(CELL, 0))
+	await _frames(2)
+	var dz = _spawn(spot + Vector2(0, CELL))
+	var full: int = mini(dz.statuses.normal_cap(EnemyStatuses.DROWSY), dz.statuses.get_max_stacks(EnemyStatuses.DROWSY))
+	_check(klass._carry(dz, EnemyStatuses.DROWSY, 1, bell, klass.EVO_RAIN) and dz.statuses.stacks(EnemyStatuses.DROWSY) == 1,
+		"F5: a carry starting Drowsy adds its 1 stack, no stack-card extras (%d)" % dz.statuses.stacks(EnemyStatuses.DROWSY))
+	klass._carry(dz, EnemyStatuses.DROWSY, full + 5, bell, klass.EVO_RAIN)
+	_check(dz.statuses.stacks(EnemyStatuses.DROWSY) == full - 1, "F5: Drowsy stops 1 short of full (%d of %d)" % [dz.statuses.stacks(EnemyStatuses.DROWSY), full])
+	_check(not klass._carry(dz, EnemyStatuses.DROWSY, 1, bell, klass.EVO_RAIN) and dz.statuses.stacks(EnemyStatuses.DROWSY) == full - 1, "...and never fills it")
+	_check(not dz.statuses.is_asleep(), "...never asleep from it")
+	_check(klass._bank_of(-1).is_empty(), "(no water here)")
+	dreams.calling_path.clear()
+	dreams.stacks.clear()
 	await _clean()
 
 func _run() -> void:
@@ -465,5 +559,6 @@ func _run() -> void:
 	await _clean()
 	await _self_help_checks(spot)
 	await _evolution_checks(at, route)
+	await _f1_checks(at, route, spot)
 	print("test_class_dewdrop: %d failures" % failures)
 	quit(failures)

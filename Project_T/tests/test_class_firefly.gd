@@ -258,9 +258,111 @@ func _run() -> void:
 	await _clean()
 
 	await _self_sufficiency(far)
+	await _f1_checks(far)
 
 	print("test_class_firefly: %d failures" % failures)
 	quit(failures)
+
+# Every damage event's [tag, calling] while `on` (F1 checks).
+var _seen_events: Array = []
+
+func _note_event(event) -> void:
+	_seen_events.append([event.tag, event.calling, event.enemy])
+
+# One Lantern jump struck at once (firefly_lights._strike), marked as a Calling output or not.
+func _jump(source, target, amount: float, calling: bool) -> float:
+	var was: float = target.health
+	lights._strike({"event": lights._next_event(), "source": source, "from": source.global_position, "target": target,
+		"amount": amount, "cap": INF, "calling": calling})
+	return was - float(target.health)
+
+# F1 lent × Calling and F4 (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md).
+func _f1_checks(far: Vector2) -> void:
+	dreams.stacks.clear()
+	dreams.calling = "firefly_jar"
+	dreams.calling_path.clear()
+	# F1: a Lantern jump counts as a hit by its Warden for Dewdrop's High Tide…
+	_take("high_tide")
+	var jar := _plant("firefly_jar", far)
+	_plant("dewdrop", far + Vector2(CELL, 0))  # Near the Jar
+	await _frames(3)
+	var e = _spawn(far + Vector2(CELL * 2, 0))
+	e.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", null)
+	e.apply_status(EnemyStatuses.MARKED, 1, 20.0, 1.0, 0, "light", null)
+	var tide: float = 1.0 + minf(dreams.puddles.HIGH_TIDE_PER * e.statuses.count(), dreams.puddles.HIGH_TIDE_MAX)
+	var plain := _jump(jar, e, 100.0, false)
+	await process_frame
+	var marked := _jump(jar, e, 100.0, true)
+	_check(plain > 0.0 and absf(marked - plain * tide) <= 1.01, "F1: a Lantern jump gets High Tide like the Jar's hit (%.0f vs %.0f, x%.2f)" % [marked, plain, tide])
+	_check(DamageLog.calling_next == &"" and DamageLog.calling_now == &"", "F1: nothing stays armed after the jump")
+	await _clean()
+
+	# …and for Bellflower's In Time (a Jar touching a bell); its own family's Struck Twice never reads it as a hit
+	dreams.stacks.clear()
+	_take("in_time")
+	_take("struck_twice")
+	jar = _plant("firefly_jar", far)
+	_plant("bellflower", far + Vector2(CELL, 0))  # Touching the Jar
+	await _frames(3)
+	var t = _spawn(far + Vector2(CELL * 2, 0))
+	var kt = dreams.keeping_time
+	_jump(jar, t, 10.0, false)
+	await process_frame
+	_check(int(t.get_meta(kt.IN_TIME_META, {}).get(jar.get_instance_id(), 0)) == 0, "(an unmarked jump never counts for In Time)")
+	_jump(jar, t, 10.0, true)
+	await process_frame
+	_check(int(t.get_meta(kt.IN_TIME_META, {}).get(jar.get_instance_id(), 0)) == 1, "F1: a Lantern jump counts as the Jar's hit for In Time")
+	t.set_meta(lights.STRUCK_META, [dreams._game_clock, -1, 0, null])
+	DamageLog.calling_now = &"firefly_jar"
+	var own_family: float = lights.damage_multiplier(t, jar, &"fork")
+	DamageLog.calling_now = &"bellflower"
+	var other_family: float = lights.damage_multiplier(t, jar, &"toll")
+	DamageLog.calling_now = &""
+	_check(is_equal_approx(own_family, 1.0), "F1: never for its own family (Struck Twice ignores the Lantern jump)")
+	_check(is_equal_approx(other_family, lights.STRUCK_BONUS), "F1: another family's Calling output (a Toll) spends Struck Twice like a hit")
+	await _clean()
+
+	# Never chains: Refrain's repeat inside a Calling jump's dispatch is not marked
+	dreams.stacks.clear()
+	_take("refrain")
+	jar = _plant("firefly_jar", far)
+	var bell := _plant("bellflower", far + Vector2(CELL * 3, 0))
+	await _frames(3)
+	var r = _spawn(far + Vector2(CELL * 2, 0))
+	bell.hit(r, 1.0, false, Tower.NO_CRIT)  # The bell's hit readies Refrain
+	await process_frame
+	_seen_events.clear()
+	DamageLog.instance.damage_dealt.connect(_note_event)
+	_jump(jar, r, 10.0, true)
+	DamageLog.instance.damage_dealt.disconnect(_note_event)
+	var jump_calling := _seen_events.filter(func(row) -> bool: return row[0] == &"fork" and row[1] == &"firefly_jar")
+	var repeats := _seen_events.filter(func(row) -> bool: return row[0] == &"refrain")
+	_check(jump_calling.size() == 1, "F1: the jump is marked as Lantern Light's output")
+	_check(repeats.size() == 1 and repeats.all(func(row) -> bool: return row[1] == &""), "F1: Refrain answers it, and its repeat is never marked (%s)" % [repeats])
+	await _clean()
+
+	# F4: Borrowed Light's jump and Hammerfall's from one hit go to different nightmares
+	dreams.stacks.clear()
+	dreams.calling_path.append(&"lf_borrowed_light")
+	_take("hammerfall")
+	jar = _plant("firefly_jar", far)
+	var rock := _plant("pebbling", far + Vector2(CELL * 2, 0))  # Another family's heavy Warden near the Jar
+	await _frames(3)
+	var hit = _spawn(far + Vector2(CELL, 0))
+	var nearest = _spawn(far + Vector2(CELL, CELL))  # The nearest Lit nightmare to the hit one
+	var second = _spawn(far + Vector2(0, CELL))
+	_check(lights.is_lit(hit) and lights.is_lit(nearest) and lights.is_lit(second), "(the three nightmares are Lit)")
+	var n0: float = nearest.health
+	var s0: float = second.health
+	var thrown: int = lights.forks_thrown
+	rock.hit(hit, 1.0, false, Tower.NO_CRIT)
+	await _frames(3)
+	_check(lights.forks_thrown == thrown + 2 and nearest.health < n0 and second.health < s0,
+		"F4: Borrowed Light and Hammerfall fan out to two nightmares (%d jumps)" % (lights.forks_thrown - thrown))
+	_check(String(DreamState.CALLING_PATHS.PATHS[&"lf_borrowed_light"].tip).contains("go to different nightmares"), "F4: Borrowed Light's tip says so")
+	dreams.calling_path.clear()
+	dreams.stacks.clear()
+	await _clean()
 
 # One plain hit's damage on `enemy` from `tower` (no crit). Health is whole numbers (fractions carry), so checks allow 1.
 func _hit_loss(tower: Tower, enemy) -> float:

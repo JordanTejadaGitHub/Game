@@ -156,7 +156,59 @@ func active() -> bool:
 # it on and never read it. The one exception is an old save: a later owner already holding a card that was retired or
 # moved to class-only keeps that card's old effect on Continue (_legacy_rules).
 func place_on() -> bool:
+	if _in_calling_event:
+		return class_on()  # (F1: another family's Calling output never wakes an old save's legacy setup here)
 	return class_on() or _legacy_on()
+
+# --- F1 lent × Calling (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md) ---------------------------------
+# A Calling output (only class_on() / evo() code makes one) counts once for the OTHER families' lent cards: a strike as a
+# hit by its Warden, a status it lands as that Warden's application. Never for this family's own cards or Calling.
+# Guards: one output is one event or application; the mark is taken on entry (DamageLog.calling_next / DreamState
+# arm_apply), so nothing a lent card deals or applies in answer is ever marked (never a chain); Reactions never are.
+var _in_calling_event := false  # True while another family's Calling output is dispatched to this node
+
+# Arms the next take_damage as this family's Calling output (only while this family is the Calling).
+func arm() -> void:
+	if class_on():
+		DamageLog.calling_next = StringName(_family())
+
+func _disarm() -> void:
+	DamageLog.calling_next = &""
+
+func _arm_apply() -> void:
+	if class_on() and dream_state != null:
+		dream_state.arm_apply(_family())
+
+func _disarm_apply() -> void:
+	if dream_state != null:
+		dream_state.take_calling_apply()  # Never left armed for another application (one that returned early)
+
+# Whether the hit being worked out right now (Enemy.take_damage) is another family's Calling output.
+func _calling_hit() -> bool:
+	return DamageLog.calling_now != &"" and String(DamageLog.calling_now) != _family()
+
+# A strike that is a Calling output (a Toll, a Reflection, a Night Choir repeat…).
+func calling_strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false, own: StringName = &"") -> void:
+	if amount <= 0.0 or not living(enemy):
+		return
+	arm()
+	strike(tower, enemy, amount, tag, is_area, own)
+	_disarm()
+
+# A non-native application that is a Calling output (setup_apply, armed).
+func calling_apply(id: StringName, tower, enemy, status: StringName, stacks: int, soothe: float) -> void:
+	if not is_instance_valid(tower) or not living(enemy):
+		return
+	_arm_apply()
+	setup_apply(id, tower, enemy, status, stacks, soothe)
+	_disarm_apply()
+
+# Another family's accepted Calling application (DreamState.calling_status): status_applied, as a calling event.
+func calling_applied(tower, enemy, status: StringName, stacks: int) -> void:
+	var was := _in_calling_event
+	_in_calling_event = true
+	status_applied(tower, enemy, status, stacks)
+	_in_calling_event = was
 
 # Retired or moved card ids that needed the setup when a later owner could hold them (old saves only).
 func _legacy_rules() -> Array:
@@ -329,7 +381,8 @@ func second_of(tower) -> float:
 # its status once, as its own application; one per Warden a second across every card (extra ones are dropped). It is
 # not a hit for anything else: its tag keeps it out of every count.
 # `cap`: the most it may deal (Caught Wading: the Dewdrop's own hit).
-func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
+func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"",
+		calling: bool = false) -> bool:  # calling (F1): a Calling output: one hit and one application for other families' lent cards
 	if not (tower is Tower) or not is_instance_valid(tower) or not living(enemy) or tower.attack_data == null:
 		return false
 	if now() < float(tower.get_meta(FREE_META, -INF)):
@@ -340,12 +393,24 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 		return false
 	_line_fx(tower.global_position, enemy.global_position, 3.0)
 	_own_begin(own, enemy)
+	if calling:
+		arm()
 	enemy.take_damage(amount, tower.tower_data.line, false, false, tower, tag)
+	if calling:
+		_disarm()
 	_own_end(own)
 	var status := status_of(tower)
 	if status != &"" and living(enemy):
+		if calling:
+			_arm_apply()
 		tower._apply_one_status(enemy, status, maxi(int(tower.attack_data.status_stacks), 1), tower.get_damage(), false)
+		if calling:
+			_disarm_apply()
 	return true
+
+# The free hit as a Calling output (F1: Counterpoint, Midnight's Dewdrops, Drowning Deep).
+func calling_free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
+	return free_hit(tower, enemy, scale, tag, cap, own, true)
 
 # Damage a card deals in a Warden's name (never a hit for anything else: `tag` is one of CLASS_TAGS).
 # `own` (setup credit 2026-10-16): the evolution or card id this damage is credited to as its own (DreamState.begin_own_hit).
@@ -415,10 +480,16 @@ func _process(delta: float) -> void:
 func _on_damage(event) -> void:
 	if dream_state == null or not active() or not is_instance_valid(event.enemy):
 		return
-	var tagged: bool = event.tag in CLASS_TAGS or event.kind == &"reaction"
+	# F1 (owner 2026-10-18; f1_spec.md): another family's Calling output is a hit by its Warden here (never Reactions:
+	# a Reaction is never marked; never this family's own Calling)
+	var calling: bool = event.calling != &"" and String(event.calling) != _family() and event.kind != &"reaction"
+	var tagged: bool = (event.tag in CLASS_TAGS or event.kind == &"reaction") and not calling
 	var source = event.source if is_instance_valid(event.source) and event.source is Tower else null
 	var dispel: bool = event.enemy.health <= 0
 	if (tagged or source == null) and not dispel:
 		return
-	var is_hit: bool = source != null and not tagged and event.kind == &"hit" and event.tag == &""
+	var is_hit: bool = source != null and not tagged and event.kind == &"hit" and (event.tag == &"" or calling)
+	var was := _in_calling_event
+	_in_calling_event = calling
 	on_damage(event, source, event.enemy, is_hit, dispel, tagged or source == null)
+	_in_calling_event = was

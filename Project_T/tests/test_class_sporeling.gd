@@ -79,6 +79,82 @@ func _setup() -> void:
 	dreams = main.get_node("%DreamState")
 	klass = dreams.spore_print
 
+# F1 lent × Calling, F7 and F9 (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md, lent_evolution_builds.md).
+func _f1_checks(far: Vector2, route: Array) -> void:
+	# F1: a dose is the spore Warden's application for ANOTHER family's lent card (Second Verse remembers it), never for
+	# Sporeling's own stack cards
+	dreams.stacks.clear()
+	dreams.calling = "sporeling"
+	dreams.calling_path.clear()
+	_take("breathe_it_in")
+	_take("second_verse")
+	var spore := _plant("sporeling", far)
+	await _frames(2)
+	var own = _spawn(far + Vector2(CELL, 0))  # Inside the spore Warden's range
+	klass._apply_dose(spore, own, klass.DOSE)
+	_check(own.statuses.stacks(EnemyStatuses.SPORED) == klass.DOSE, "F1: a dose never counts for Sporeling's own stack cards (%d)" % own.statuses.stacks(EnemyStatuses.SPORED))
+	_check(dreams._calling_apply == "", "F1: the dose's mark is taken on entry")
+	var verse: Array = own.get_meta(dreams.keeping_time.LAST_OTHER_META, [])
+	_check(verse.any(func(row) -> bool: return row is Array and StringName(row[0]) == EnemyStatuses.SPORED and int(row[2]) == spore.get_instance_id()),
+		"F1: the dose counts as the spore Warden's application for Second Verse (Bellflower)")
+	dreams.calling = "dewdrop"  # A later owner: no Calling of its own
+	var later = _spawn(far + Vector2(CELL, CELL))
+	klass._apply_dose(spore, later, klass.DOSE)
+	_check(not later.has_meta(dreams.keeping_time.LAST_OTHER_META), "...only while Spore Print is the Calling")
+	await _clean()
+
+	# F7: Settling Spores follows the walker: for 12 steps after a spore Warden's hit, every 6 steps each status gains 3
+	dreams.stacks.clear()
+	dreams.calling = "firefly_jar"
+	_take("seeping_in")
+	_check(load("res://resource/dream/seeping_in.tres").description.begins_with("For 12 {steps} after a spore Warden hits"), "F7: the new face")
+	var start := 8
+	if route.size() > start + 40:
+		var ss := _plant("sporeling", route[start] + Vector2(CELL, 0))
+		await _frames(2)
+		var w = _spawn(route[start])
+		w.apply_status(EnemyStatuses.DAMP, 1, 60.0, 1.0, 0, "water", null)
+		_check(not w.has_meta(klass.SEEP_META), "(nothing before a spore Warden hits it)")
+		ss.hit(w, 1.0, false, Tower.NO_CRIT)
+		_check(w.has_meta(klass.SEEP_META), "F7: a spore Warden's hit starts the window")
+		var d0: int = w.statuses.stacks(EnemyStatuses.DAMP)
+		w.global_position = route[start + int(klass.SEEP_STEPS) * 2]
+		klass._seep(w)
+		_check(w.statuses.stacks(EnemyStatuses.DAMP) == d0 + klass.SEEP_STACKS, "F7: 6 steps on, anywhere on the path, Soaked gains %d" % klass.SEEP_STACKS)
+		w.global_position = route[start + int(klass.SEEP_WINDOW) * 2]
+		klass._seep(w)
+		_check(w.statuses.stacks(EnemyStatuses.DAMP) == d0 + 2 * klass.SEEP_STACKS and not w.has_meta(klass.SEEP_META), "...12 steps on, once more, and the window ends")
+		w.global_position = route[start + int(klass.SEEP_WINDOW) * 2 + 12]
+		klass._seep(w)
+		_check(w.statuses.stacks(EnemyStatuses.DAMP) == d0 + 2 * klass.SEEP_STACKS, "...nothing past 12 steps")
+		await _clean()
+
+	# F9: Gone to Seed also pays when a Warden's stamped application sets off a Reaction near a spore Warden
+	dreams.stacks.clear()
+	_take("gone_to_seed")
+	_check(load("res://resource/dream/gone_to_seed.tres").description.contains("or sets off a {reaction}"), "F9: the new face")
+	var g_spore := _plant("sporeling", far)
+	await _frames(2)
+	var gs = _spawn(far + Vector2(CELL, 0))
+	gs.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", null)
+	gs.set_meta(klass.SEED_BEFORE_META, [EnemyStatuses.SPORED, 0, Engine.get_process_frames()])
+	klass._seed_reaction(&"mushrooming", gs, 1, [])
+	await process_frame
+	_check(gs.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.SEED_STACKS, "F9: a Reaction set off by a stamped application: each status left gains %d" % klass.SEED_STACKS)
+	gs.set_meta(klass.SEED_BEFORE_META, [EnemyStatuses.SPORED, 0, Engine.get_process_frames()])
+	klass._seed_reaction(&"mushrooming", gs, 1, [])
+	await process_frame
+	_check(gs.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.SEED_STACKS, "...once per nightmare in %d s" % int(klass.SEED_EVERY))
+	var stale = _spawn(far + Vector2(CELL, CELL))
+	stale.apply_status(EnemyStatuses.DAMP, 1, 20.0, 1.0, 0, "water", null)
+	stale.set_meta(klass.SEED_BEFORE_META, [EnemyStatuses.SPORED, 0, Engine.get_process_frames() - 1])
+	klass._seed_reaction(&"mushrooming", stale, 1, [])
+	await process_frame
+	_check(stale.statuses.stacks(EnemyStatuses.DAMP) == 1, "...a Reaction no application set off this frame: nothing")
+	_check(g_spore != null, "(the spore Warden stands near)")
+	await _clean()
+	dreams.stacks.clear()
+
 func _run() -> void:
 	await _setup()
 	_check(klass != null and DreamState.CALLINGS.title("sporeling") == "Spore Print", "Sporeling's Calling is Spore Print")
@@ -305,5 +381,6 @@ func _run() -> void:
 	_check(bare.statuses.stacks(EnemyStatuses.SPORED) == 1, "...far from any spore Warden: nothing")
 	_check(g_spore != null, "(the spore Warden stands near the first)")
 	await _clean()
+	await _f1_checks(far, route)
 	print("test_class_sporeling: %d failures" % failures)
 	quit(failures)

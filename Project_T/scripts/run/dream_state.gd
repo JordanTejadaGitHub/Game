@@ -602,6 +602,39 @@ func class_status(tower: Tower, enemy: Node2D, status: StringName, stacks: int =
 		if node != null and node.active():
 			node.status_applied(tower, enemy, status, stacks)
 
+# --- F1 lent × Calling (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md) ---------------------------------
+# A Calling output that lands a status (a dose, a ripple's Soaked, Hush-a-bye's Drowsy, a carry that starts a status…)
+# counts once as an application by its Warden for the OTHER families' lent cards (Sporeling's stack cards, Gone to Seed,
+# Second Verse's record). The class node arms it just before its Tower._apply_one_status (non-native) call, which takes it
+# on entry, so anything that application sets off is never marked. `no_extras`: count it, but add no stack-card extras
+# (Rain on the Bank's Drowsy).
+var _calling_apply := ""
+var calling_apply_bare := false  # The last take's no_extras (Tower reads it right after take_calling_apply)
+
+func arm_apply(family: String, no_extras: bool = false) -> void:
+	_calling_apply = family
+	calling_apply_bare = no_extras
+
+func take_calling_apply() -> String:
+	var family := _calling_apply
+	_calling_apply = ""
+	if family == "":
+		calling_apply_bare = false
+	return family
+
+# The stacks a Calling application of `family` adds to `enemy` once the Sporeling stack cards have seen it (never fewer;
+# never for Spore Print's own doses). `bare`: only Gone to Seed's before-stamp, no extras.
+func calling_stacks(family: String, tower: Tower, enemy: Node2D, status: StringName, stacks: int, bare: bool = false) -> int:
+	if family == SPORE_PRINT.FAMILY or spore_print == null or not spore_print.active():
+		return stacks
+	return spore_print.calling_stacks(tower, enemy, status, stacks, bare)
+
+# An accepted Calling application of `family`: each OTHER family's class node hears it as `tower`'s application.
+func calling_status(family: String, tower: Tower, enemy: Node2D, status: StringName, stacks: int) -> void:
+	for node in [spore_print, puddles, keeping_time]:
+		if node != null and node.active() and node._family() != family:
+			node.calling_applied(tower, enemy, status, stacks)
+
 # Waterlogged (Enemy.apply_status asks, so every application counts, carried ones too): how long `status` lasts on
 # `enemy` from `source` (`duration` 0 = the status's default).
 func class_duration(source: Node, enemy: Node2D, status: StringName, duration: float) -> float:
@@ -5934,19 +5967,26 @@ func _credit_hit(event) -> void:
 		SETUP.credit_own(self, id, event.card_damage[id], event)  # Payoffs: half to the cards that set it up
 	SETUP.credit_reaction(self, event)  # Reactions: half of their own damage to their feeders (setup credit 2026-10-16)
 	SETUP.credit_status_damage(self, event)  # Poisoned ticks / Charged bolts: the stacks' own damage, by who added them
+	# F1 (owner 2026-10-18; f1_spec.md): on a Calling output another family's lent multipliers (High Tide, Sodden, Struck
+	# Twice) added, those cards were just credited their share above: the output's own credit leaves it out (no double count)
+	var own_amount: float = event.amount
+	if event.calling != &"":
+		for id in event.card_damage:
+			own_amount -= float(event.card_damage[id])
+		own_amount = maxf(own_amount, 0.0)
 	if _own_hit_id != &"" and is_instance_valid(event.enemy) and event.enemy.get_instance_id() == _own_hit_enemy:
 		var own_id := SETUP.rule_card(self, _own_hit_id)
 		end_own_hit()  # One event per strike
-		SETUP.credit_own(self, own_id, event.amount, event)
+		SETUP.credit_own(self, own_id, own_amount, event)
 		return
 	var by_tag := _credit_rule_map()
 	if event.tag != &"" and by_tag.has(event.tag):  # A trigger card's own damage
-		SETUP.credit_own(self, by_tag[event.tag], event.amount, event)
+		SETUP.credit_own(self, by_tag[event.tag], own_amount, event)
 		return
 	var tower := event.source as Tower
 	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
 		return
-	var credited_amount: float = event.amount
+	var credited_amount: float = own_amount
 	if tower._clear_minds_hit:
 		var clean_share := credited_amount * DreamState.CLEAR_MINDS_BONUS / (1.0 + DreamState.CLEAR_MINDS_BONUS)
 		SETUP.credit_own(self, "deeper_calm", clean_share, event)

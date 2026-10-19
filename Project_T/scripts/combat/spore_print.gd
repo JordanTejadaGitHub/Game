@@ -362,6 +362,8 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, _tagged: bool) 
 				_overnight(source, enemy)
 			if rule(SECOND_HELPING) and is_own(source):
 				_first_spore_hit(source, enemy)
+			if rule(SEEPING_IN) and is_own(source) and not _in_calling_event:
+				_seep_start(enemy)  # F7: a spore Warden's plain hit starts (or refreshes) the 12-step window
 			if rule(SPORE_HAZE) and _haze.has(source.get_instance_id()):
 				_haze_hit(event, source, enemy)
 
@@ -454,6 +456,43 @@ func status_applied(_tower, enemy, status: StringName, stacks: int) -> void:
 		enemy.set_meta(SEED_META, now() + SEED_EVERY)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
 
+# Gone to Seed and Reactions (F9, owner 2026-10-18; lent_evolution_builds.md P9: Ignite, Mushrooming and Thunderclap spend
+# statuses before they fill): a Reaction set off this frame by a Warden's stamped application, on a nightmare near a spore
+# Warden, gives each status left on it SEED_STACKS, quietly. The same once-in-2-s clock as the fill. ready_need unchanged.
+var _seed_tracker: Object = null
+
+func _hook_seed_tracker() -> void:
+	if is_instance_valid(_seed_tracker) or not is_inside_tree():
+		return
+	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP)
+	if tracker != null:
+		_seed_tracker = tracker
+		tracker.reaction_fired.connect(_seed_reaction)
+
+func _seed_reaction(_id: StringName, enemy: Node2D, _chain: int, _towers: Array) -> void:
+	if dream_state == null or not rule(GONE_TO_SEED) or not living(enemy):
+		return
+	var before: Array = enemy.get_meta(SEED_BEFORE_META, [])
+	if before.size() < 3 or int(before[2]) != Engine.get_process_frames() or now() < float(enemy.get_meta(SEED_META, -INF)):
+		return
+	if strongest_near(enemy.global_position, is_own) == null:
+		return
+	enemy.set_meta(SEED_META, now() + SEED_EVERY)  # Claimed now: a chain in this frame pays once
+	_seed_after_reaction.call_deferred(weakref(enemy))  # The statuses LEFT once the Reaction has spent its own
+
+func _seed_after_reaction(ref: WeakRef) -> void:
+	var enemy = ref.get_ref()
+	if not living(enemy):
+		return
+	var fed := false
+	for id in enemy.statuses.active_ids():
+		if _stackable(id):
+			var added := _feed(enemy, id, SEED_STACKS)
+			setup_quiet(enemy, GONE_TO_SEED, id, added)
+			fed = added > 0 or fed
+	if fed:
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.8)
+
 # (Unused since 2026-10-15: Pass It Round adds stacks in _stack_cards.) Pass It Round: each different kind of attacking Warden touching a spore Warden gives a dose with its first hit on
 # each nightmare (one per kind per nightmare; spore forms and walls don't count; needs no mushroom, so flyers too).
 func _pass_it_round(source, enemy) -> void:
@@ -495,7 +534,12 @@ func _apply_dose(tower, enemy, amount: int, credit_id: StringName = &"") -> void
 	var cap: int = statuses.get_max_stacks(EnemyStatuses.SPORED) if statuses.has(EnemyStatuses.SPORED) else 0
 	if credit_id != &"":
 		SETUP.begin(StringName(card_id(credit_id)))
+	var calling := credit_id != KICKED_UP  # F1 (f1_spec.md): a dose is one Poisoned application by its Warden for other families' lent cards
+	if calling:
+		_arm_apply()
 	tower._apply_one_status(enemy, EnemyStatuses.SPORED, amount, tower.get_damage(), false)
+	if calling:
+		_disarm_apply()
 	if credit_id != &"":
 		SETUP.end()
 	if cap > 0 and living(enemy):
@@ -674,7 +718,7 @@ func _rotburst(point: Vector2, tower, eater) -> void:
 			if other.statuses.has(row[0]):
 				setup_quiet(other, EVO_ROTBURST, row[0], _feed(other, row[0], BURST_STACKS))  # (setup credit 2026-10-16)
 			elif row[1] is Tower and is_instance_valid(row[1]):
-				setup_apply(EVO_ROTBURST, row[1], other, row[0], BURST_STACKS, row[1].get_damage())
+				calling_apply(EVO_ROTBURST, row[1], other, row[0], BURST_STACKS, row[1].get_damage())
 	Reactions._effect(&"landing_dust", at, self, 1.6)
 	credit(EVO_ROTBURST, at, tower)
 
@@ -690,9 +734,9 @@ func _borrow(at: Vector2, tower, enemy) -> void:
 		elif status_of(other) != &"" and (partner == null or second_of(other) > second_of(partner)):
 			partner = other
 	if partner != null:
-		setup_apply(EVO_BORROWED, partner, enemy, status_of(partner), BORROW_STACKS, partner.get_damage())  # (setup credit 2026-10-16)
+		calling_apply(EVO_BORROWED, partner, enemy, status_of(partner), BORROW_STACKS, partner.get_damage())  # (setup credit 2026-10-16)
 	if sprout and living(enemy) and is_instance_valid(tower):
-		setup_apply(EVO_BORROWED, tower, enemy, EnemyStatuses.SPORED, SPROUT_BORROW, tower.get_damage())
+		calling_apply(EVO_BORROWED, tower, enemy, EnemyStatuses.SPORED, SPROUT_BORROW, tower.get_damage())
 	if partner != null or sprout:
 		_line_fx(at, enemy.global_position, 1.5, Palette.MOSS)
 		credit(EVO_BORROWED, enemy.global_position, tower)
@@ -708,7 +752,7 @@ func _feeding(source, enemy) -> void:
 	if status == &"" or fed.has(source.get_instance_id()) or not touches_point(source, _route_px[int(feed[0])]):
 		return
 	fed[source.get_instance_id()] = true
-	setup_apply(EVO_FEEDING, source, enemy, status, FEED_STACKS, source.get_damage())  # (setup credit 2026-10-16)
+	calling_apply(EVO_FEEDING, source, enemy, status, FEED_STACKS, source.get_damage())  # (setup credit 2026-10-16)
 	credit(EVO_FEEDING, enemy.global_position)
 
 # Catching / Outbreak (polled): a nightmare carrying a caught dose passes it to the first nightmare it touches.
@@ -773,6 +817,8 @@ func _fairy_grew(point: Vector2) -> void:
 	credit(EVO_FAIRY_PATH, at)
 
 func on_poll() -> void:
+	if rule(GONE_TO_SEED):
+		_hook_seed_tracker()
 	if evo(EVO_CATCHING):
 		_catching()
 	if rule(SPORE_HAZE):
@@ -819,7 +865,7 @@ func _hothouse(enemy) -> void:
 # The stacks `tower`'s own application of `status` adds to `enemy` (never fewer than `stacks`).
 func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 	if rule(GONE_TO_SEED) and living(enemy):
-		enemy.set_meta(SEED_BEFORE_META, [status, enemy.statuses.stacks(status)])
+		enemy.set_meta(SEED_BEFORE_META, [status, enemy.statuses.stacks(status), Engine.get_process_frames()])  # (F9: the frame)
 	if stacks <= 0 or not living(enemy) or status == EnemyStatuses.HELD:
 		return stacks
 	var id: int = tower.get_instance_id()
@@ -853,6 +899,21 @@ func own_stacks(tower, enemy, status: StringName, stacks: int) -> int:
 				stacks = maxi(stacks, HELPING_STACKS)
 				break
 	return _stack_cards(tower, enemy, status, stacks)
+
+# F1 lent × Calling (owner 2026-10-18; f1_spec.md): another family's Calling application (a ripple's Soaked, Hush-a-bye's
+# Drowsy, a carry that starts a status…) as the stack cards see it: Gone to Seed's before-stamp, then the stack cards'
+# extras, at most max(2 x its stacks, 2) (Charged / Exposed at most 2; Charged still stops one short). `bare`: the stamp
+# only (Rain on the Bank's Drowsy).
+const CALLING_EXTRA_SMALL := 2
+
+func calling_stacks(tower, enemy, status: StringName, stacks: int, bare: bool = false) -> int:
+	if rule(GONE_TO_SEED) and living(enemy):
+		enemy.set_meta(SEED_BEFORE_META, [status, enemy.statuses.stacks(status), Engine.get_process_frames()])
+	if bare or stacks <= 0 or not living(enemy) or status == EnemyStatuses.HELD or not (tower is Tower):
+		return stacks
+	var extra: int = _stack_cards(tower, enemy, status, stacks) - stacks
+	var most: int = CALLING_EXTRA_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else maxi(2 * stacks, 2)
+	return stacks + clampi(extra, 0, most)
 
 # Setup credit 2026-10-16: card or evolution `rule`'s extra stacks inside a Warden's own application, as asked (the
 # Warden's application counts them into the ledger's total; Charged's one-short clamp below is not taken off).
@@ -952,26 +1013,46 @@ func _mixed(enemy) -> int:
 		return 0
 	return count
 
-# Seeping In: steps walked inside a spore Warden's range, counted forward only (a pull-back or push never counts twice).
-func _seep(enemy) -> void:
+# Settling Spores (rule id seeping_in; F7, owner 2026-10-18, lent_evolution_builds.md: it follows the walker, not the
+# range): for SEEP_WINDOW steps after a spore Warden's plain hit, each status gains SEEP_STACKS every SEEP_STEPS steps,
+# anywhere on the path. A new hit gives back the whole window (its progress toward the next 6 steps is kept). Counted
+# forward only: a pull-back or push never counts twice. SEEP_META on a nightmare: [furthest route index counted, steps
+# toward the next gain, steps left in the window].
+const SEEP_WINDOW := 12.0
+
+func _seep_start(enemy) -> void:
 	var i := index_of(enemy)
 	if i < 0:
+		return  # Flyers walk no steps
+	var seep: Array = enemy.get_meta(SEEP_META, [])
+	if seep.size() < 3:
+		seep = [i, 0.0, SEEP_WINDOW]
+	else:
+		seep = [maxi(int(seep[0]), i), float(seep[1]), SEEP_WINDOW]
+	enemy.set_meta(SEEP_META, seep)
+
+func _seep(enemy) -> void:
+	if not enemy.has_meta(SEEP_META):
 		return
-	var seep: Array = enemy.get_meta(SEEP_META, [i, 0.0])
+	var seep: Array = enemy.get_meta(SEEP_META)
+	if seep.size() < 3:
+		enemy.remove_meta(SEEP_META)  # (An older [index, steps] record: in range only)
+		return
+	var i := index_of(enemy)
 	if i <= int(seep[0]):
 		return
-	var inside := false
-	for tower in own_towers():
-		if tower.global_position.distance_to(enemy.global_position) <= tower.get_range_pixels():
-			inside = true
-			break
-	var steps: float = float(seep[1]) + ((i - int(seep[0])) * 0.5 if inside else 0.0)
+	var walked := minf((i - int(seep[0])) * 0.5, float(seep[2]))
+	var left: float = float(seep[2]) - walked
+	var steps: float = float(seep[1]) + walked
 	while steps >= SEEP_STEPS:
 		steps -= SEEP_STEPS
 		for id in enemy.statuses.active_ids():
 			if id != EnemyStatuses.HELD:
 				setup_quiet(enemy, SEEPING_IN, id, enemy.statuses.add_quiet(id, SEEP_STACKS))  # (setup credit 2026-10-16)
-	enemy.set_meta(SEEP_META, [i, steps])
+	if left <= 0.0:
+		enemy.remove_meta(SEEP_META)
+	else:
+		enemy.set_meta(SEEP_META, [i, steps, left])
 
 func _carries_other(enemy) -> bool:
 	var statuses: EnemyStatuses = enemy.statuses

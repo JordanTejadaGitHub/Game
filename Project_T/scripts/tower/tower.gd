@@ -3528,6 +3528,13 @@ func _put_to_sleep(enemy: Node2D) -> void:
 
 var _unique_native_direct := false
 func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: float, native: bool = true) -> void:
+	# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) A Calling output's application (armed by its class node) is taken on
+	# entry, so nothing this application sets off is marked; other families' lent cards hear it below
+	var calling := ""
+	var calling_bare := false
+	if not native and _dream_state != null:
+		calling = _dream_state.take_calling_apply()
+		calling_bare = _dream_state.calling_apply_bare
 	if status == &"" or not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
 	var potency := soothe
@@ -3570,6 +3577,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		stacks = CALLINGS.anvil_stacks(self, enemy, status, stacks)  # Anvil: double stacks on a Rooted nightmare
 	if _dream_state != null and native:
 		stacks = _dream_state.class_stacks(self, enemy, status, stacks)  # The starter classes: a Warden's own next application (Open Season, Second Helping, Overnight)
+	elif calling != "":
+		stacks = _dream_state.calling_stacks(calling, self, enemy, status, stacks, calling_bare)  # (F1: the Sporeling stack cards)
 	var role_extra := 0  # Card pass 2026-10-16: Mother's Hand, One Bough, Deep Grain. In the application only: the Calling hears `stacks`
 	if _dream_state != null and native and stacks > 0 and _dream_state.role_cards.stack_live():
 		role_extra = _dream_state.role_cards.extra_stacks(self, status)
@@ -3579,6 +3588,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 	enemy.apply_status(status, stacks + role_extra, duration, potency, max_stacks, tower_data.line, self)
 	if _dream_state != null and native and stacks > 0 and enemy.statuses.applications > unique_before:
 		_dream_state.class_status(self, enemy, status, stacks)  # …and who hears of it: only an accepted status (Caught Wading, Nod Off, Refrain, Second Verse)
+	elif calling != "" and stacks > 0 and enemy.statuses.applications > unique_before:
+		_dream_state.calling_status(calling, self, enemy, status, stacks)  # (F1: other families' lent cards, never its own)
 	# (Take Root, the first Sporeling Calling, is retired: Spore Print lives in scripts/combat/spore_print.gd.)
 	if _dream_state != null and stacks > 0 and native and _unique_native_live():
 		var accepted: bool = enemy.statuses.applications > unique_before

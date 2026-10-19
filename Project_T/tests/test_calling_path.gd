@@ -40,8 +40,23 @@ func _run() -> void:
 		var row: Dictionary = PATHS.PATHS[id]
 		_check(String(row.text).split(" ", false).size() <= 25 and String(row.tip).split(" ", false).size() <= 30, "%s: face at most 25 words, tip at most 30" % id)
 		_check(not row.makes.has(&"stacks"), "%s no longer makes stacks" % id)
-	_check(PATHS.children(&"dw_stagnant_water") == [&"dw_drowned_hands"] and PATHS.children(&"lf_show_the_way") == [&"lf_lantern_wake"]
+	_check(PATHS.children(&"dw_stagnant_water") == [&"dw_drowned_hands"] and PATHS.children(&"lf_lantern_wake") == [&"lf_show_the_way"]
 		and PATHS.children(&"kt_evo_chime_of_many") == [&"kt_evo_last_chord"], "the reworked follow-ups keep their capstones")
+	# F3 (owner 2026-10-18; lent_evolution_builds.md): Lantern Wake is Borrowed Light's follow-up (drift 25), Show the Way
+	# its capstone (drift 50), so Firefly's status link arrives inside the demo.
+	_check(int(PATHS.PATHS[&"lf_lantern_wake"].tier) == PATHS.FOLLOW_UP and PATHS.PATHS[&"lf_lantern_wake"].parent == &"lf_borrowed_light",
+		"F3: Lantern Wake is a follow-up under Borrowed Light")
+	_check(int(PATHS.PATHS[&"lf_show_the_way"].tier) == PATHS.CAPSTONE and PATHS.PATHS[&"lf_show_the_way"].parent == &"lf_lantern_wake",
+		"F3: Show the Way is the capstone under Lantern Wake")
+	var borrowed_next := PATHS.next_ids("firefly_jar", [&"lf_borrowed_light"])
+	_check(borrowed_next.size() == 2 and borrowed_next.has(&"lf_lantern_wake") and borrowed_next.has(&"lf_sightline"),
+		"F3: drift 25 after Borrowed Light offers Lantern Wake and Sightline")
+	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake"]) == [&"lf_show_the_way"], "F3: drift 50 then offers Show the Way")
+	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake", &"lf_show_the_way"]) == [&"lf_sightline"],
+		"F3: drift 75 the style's other follow-up (Sightline)")
+	for id in [&"dw_riverside", &"dw_stagnant_water"]:
+		_check(String(PATHS.PATHS[id].tip).contains("on top of cards that do the same"), "F2: %s's tip says its linger adds on top" % id)
+	_check(String(PATHS.PATHS[&"dw_rain_on_the_bank"].tip).contains("{drowsy} stops 1 short of {full}"), "F5: Rain on the Bank's tip")
 
 	# The offer at the drift 5 rest replaces the Dream; at 25 it comes first and the Dream follows
 	dreams.calling = "sporeling"

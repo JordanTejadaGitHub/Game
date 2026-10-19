@@ -346,6 +346,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		# …and the linger cap counts from this landing (it bounds how long a status outlives it). Hard cards 2026-10-16 (TD):
 		# Steeped's stretch spends the same room, so every Dewdrop card shares the 4 s cap
 		status["lingered"] = float(pending_linger.get(id, 0.0))
+		status["calling_lingered"] = 0.0  # (F2 lent × Calling, owner 2026-10-18; f1_spec.md) the Calling's own cap starts over too
 		status["landed"] = length  # Topped Up puts it back to this, never more
 		status["stretched"] = float(pending_linger.get(id, 0.0))  # Steeped / Pooling / High Tide made this landing longer
 	status.time = maxf(status.time, length)
@@ -1029,6 +1030,31 @@ func linger(id: StringName, seconds: float) -> float:
 	changes += 1
 	return added
 
+# (F2 lent × Calling, owner 2026-10-18; f1_spec.md) The Calling's own linger (Riverside, Stagnant Water): as linger(), but
+# with its own cap past the last landing (CALLING_LINGER_MAX; Charged CALLING_LINGER_MAX_STATIC), so the lent linger cards
+# add their LINGER_MAX on top instead of sharing one room (at most 8 s past landing, Charged 4 s).
+const CALLING_LINGER_MAX := 4.0
+const CALLING_LINGER_MAX_STATIC := 2.0
+
+func linger_calling(id: StringName, seconds: float) -> float:
+	if seconds <= 0.0 or not can_linger(id) or not _active.has(id) or (id == MARKED and marked_forever) or (id == STATIC and static_forever):
+		return 0.0
+	var status: Dictionary = _active[id]
+	var room: float = (CALLING_LINGER_MAX_STATIC if id == STATIC else CALLING_LINGER_MAX) - float(status.get("calling_lingered", 0.0))
+	var added := minf(seconds, room)
+	if added <= 0.0:
+		return 0.0
+	status["calling_lingered"] = float(status.get("calling_lingered", 0.0)) + added
+	if id == SPORED:
+		for batch in _spore_batches:
+			batch[0] += added
+		status.time = _spore_remaining()
+	else:
+		status.time += added
+	status["full"] = maxf(float(status.get("full", status.time)), status.time)
+	changes += 1
+	return added
+
 # Topped Up: `id`'s time back to what it had when it last landed (never longer). The time given back counts toward the
 # linger cap, so a Dewdrop hitting every second can't keep a status up for ever (council 2026-10-15).
 func top_up(id: StringName) -> void:
@@ -1056,7 +1082,8 @@ func note_stretched(id: StringName, seconds: float) -> void:
 
 # Whether `id` lasts longer than it would have (the lingering look on its badge).
 func is_lingering(id: StringName) -> bool:
-	return _active.has(id) and (float(_active[id].get("lingered", 0.0)) > 0.0 or float(_active[id].get("stretched", 0.0)) > 0.0)
+	return _active.has(id) and (float(_active[id].get("lingered", 0.0)) > 0.0 or float(_active[id].get("stretched", 0.0)) > 0.0 \
+		or float(_active[id].get("calling_lingered", 0.0)) > 0.0)  # (F2: the Calling's own linger counts too)
 
 # How long `id` has been on the nightmare without wearing off, and the most stacks it has had in that time.
 func age(id: StringName) -> float:

@@ -59,6 +59,9 @@ class Event:
 	var crit_multiplier := 1.0
 	var coat_soaked := 0.0
 	var time := 0.0
+	# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) The Calling family whose output this damage is (&"" = none):
+	# other families' lent cards read it as a hit by `source`; the Calling's own family never does.
+	var calling: StringName = &""
 
 	func describe() -> String:
 		var text := "%s: %.1f" % [source_name, base / crit_multiplier]
@@ -77,6 +80,12 @@ class Event:
 
 # The log in the running scene (enemies report without a tree lookup per hit).
 static var instance: DamageLog = null
+
+# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) A class node arms `calling_next` (its family) just before it strikes
+# a Calling output; Enemy.take_damage takes it on its first line (and clears it, so nothing that hit deals or applies is
+# marked: never a chain) and holds it in `calling_now` while that one hit is worked out and reported.
+static var calling_next: StringName = &""
+static var calling_now: StringName = &""
 
 var numbers_mode := NumbersMode.OFF
 const NUMBER_MERGE_WINDOW := 0.25  # Seconds (game): a nightmare's hits within it share one number
