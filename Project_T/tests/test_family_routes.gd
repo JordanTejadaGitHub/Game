@@ -141,7 +141,7 @@ func _run() -> void:
 		"role lines read as points (%s)" % points.replace("\n", " / "))
 	for word in StatusLinks.ROLE_TERMS:
 		var id: StringName = StatusLinks.ROLE_TERMS[word]
-		_check(IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id), "role word \"%s\" has a glossary entry (%s)" % [word, id])
+		_check(IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id) or IconInfo.TERMS.has(id), "role word \"%s\" has a glossary entry (%s)" % [word, id])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	print("PASS" if failures == 0 else "FAILURES: %d" % failures)
 	quit(failures)

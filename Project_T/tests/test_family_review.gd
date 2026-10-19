@@ -256,7 +256,8 @@ func _test_pecks() -> void:
 	_check(not bower._has_work(), "no new attack while the bird is out")
 	await _wait(2.5)
 	_check(hits[0] == 6, "a hummingbird pecks 6 times, each a full hit (%d)" % hits[0])
-	_check(_lost(prey) == 6 * int(bower.get_damage()), "6 × its damage")
+	# Damage is a float (8045f80d: 46.7); health drops in whole points with the fraction carried
+	_check(absi(_lost(prey) - int(6.0 * bower.get_damage())) <= 1, "6 × its damage (%d)" % _lost(prey))
 	_check(bower._has_work(), "the bird came home")
 	await _clean()
 
