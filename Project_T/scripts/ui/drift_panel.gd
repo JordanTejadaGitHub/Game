@@ -130,7 +130,12 @@ func _ready() -> void:
 	_pause_button.tooltip_text = "Pause%s. You can still build while paused." % UiStyle.key_suffix(InputMode.key(&"pause_game", "Space"))
 	_pause_button.pressed.connect(game_speed.toggle_pause)
 	_add_speed_button(speed_row, _pause_button)
-	for speed in game_speed.speeds:
+	if UiStyle.is_phone():  # Phones (user 2026-10-18, the right side congested): one speed button that cycles 1× → 2× → 3×
+		_phone_speed = Button.new()
+		_phone_speed.tooltip_text = "Speed: tap to cycle 1×, 2×, 3×."
+		_phone_speed.pressed.connect(_on_phone_speed)
+		_add_speed_button(speed_row, _phone_speed)
+	for speed in ([] if UiStyle.is_phone() else game_speed.speeds):
 		var button := Button.new()
 		button.text = "%d×" % speed
 		button.tooltip_text = "Speed %d× (Tab cycles)" % speed
@@ -268,6 +273,8 @@ func _hide_speed_while_building(building: bool) -> void:
 	_pause_button.visible = not building
 	for button in _speed_buttons:
 		button.visible = not building
+	if _phone_speed != null:
+		_phone_speed.visible = not building
 	# Auto and the drift button too (user 2026-10-17: "still see the auto button and drift button"): building is its own
 	# moment; Done (or Confirm) brings them back.
 	_auto_toggle.visible = not building
@@ -350,7 +357,19 @@ func reopen_choice(pending: StringName) -> void:
 	if peek != null and peek.peeking:
 		peek.set_peeking(false)
 
+var _phone_speed: Button = null  # Phones: the one speed button (null on PC)
+
+# Paused: the first tap resumes at the speed shown; running: the next speed.
+func _on_phone_speed() -> void:
+	if game_speed.paused:
+		game_speed.set_speed(game_speed.speed)
+	else:
+		game_speed.cycle_speed()
+
 func _on_speed_changed(paused: bool, speed: float) -> void:
+	if _phone_speed != null:
+		_phone_speed.text = "%d×" % roundi(speed)
+		_phone_speed.set_pressed_no_signal(not paused)
 	_pause_button.set_pressed_no_signal(paused)
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)

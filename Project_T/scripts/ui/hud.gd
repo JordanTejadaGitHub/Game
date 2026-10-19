@@ -1311,7 +1311,11 @@ func _layout_top_row() -> void:
 	for name in _top_row_names():
 		var button := get_node_or_null(name) as Button
 		if button != null and button.visible:
+			if phone() and PHONE_TOP_LEFT.has(name):
+				continue  # Phones: in the top-left corner (_layout_top_left)
 			buttons.append(button)
+	if phone():
+		_layout_top_left()
 	var buttons_w := buttons.size() * ROW_BUTTON + maxf(buttons.size() - 1, 0) * TOP_ROW_GAP
 	var screen_w := get_viewport().get_visible_rect().size.x
 	var banner := get_node_or_null("DriftBanner") as Control
@@ -1329,7 +1333,8 @@ func _layout_top_row() -> void:
 	# with the counters at full size, else the short "+N" (the counters stepping down as before), else hidden (its
 	# rule stays on the Path counter's tip).
 	var forecast_w := 0.0
-	for form in [MAZE_FULL, MAZE_SHORT, MAZE_HIDDEN]:
+	# (Phones: the forecast never gives way on one line; the buttons wrap under the counters instead, user 2026-10-17/18.)
+	for form in ([MAZE_FULL, MAZE_SHORT] if phone() else [MAZE_FULL, MAZE_SHORT, MAZE_HIDDEN]):
 		for step in ROW_STEPS:
 			if form == MAZE_FULL and step != ROW_STEPS[0]:
 				break
@@ -1445,6 +1450,26 @@ func _layout_top_row() -> void:
 		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
 		_place_counter_icon.call_deferred(_clears_label)
 
+
+# Phones (user 2026-10-18: "the right side UI looks congested compared to the left side"): the menu and the glossary sit
+# in the top-left corner (where a phone game's menu usually is), left to right; Dreams, the damage meter, Boosts and
+# Remember stay top right under the counters.
+const PHONE_TOP_LEFT := ["MenuButton", "CodexButton"]  # Left to right
+const PHONE_LEFT_X := 16.0
+
+func _layout_top_left() -> void:
+	var x := PHONE_LEFT_X
+	for name in PHONE_TOP_LEFT:
+		var button := get_node_or_null(name) as Button
+		if button == null or not button.visible:
+			continue
+		button.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		button.grow_horizontal = Control.GROW_DIRECTION_END
+		button.offset_left = x
+		button.offset_right = x + ROW_BUTTON
+		button.offset_top = ROW_TOP
+		button.offset_bottom = ROW_TOP + ROW_BUTTON
+		x += ROW_BUTTON + TOP_ROW_GAP
 
 const MAZE_FORECAST_SIZE := 14  # "+6 at rest" beside the Dew total: small
 const MAZE_FORECAST_GAP := 8.0  # Between the Dew total and its forecast

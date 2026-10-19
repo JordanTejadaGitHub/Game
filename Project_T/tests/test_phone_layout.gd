@@ -45,6 +45,13 @@ func _run() -> void:
 		var short: Array = row.filter(func(b) -> bool: return b is Control and b.is_visible_in_tree() and b.size.y < UiStyle.HUD_BUTTON_H - 0.5) \
 			.map(func(b: Control) -> String: return "%s (%d)" % [b.name, int(b.size.y)])
 		_check(short.is_empty(), "HUD %s: the top row and DriftPanel buttons stay %d tall %s" % [view, int(UiStyle.HUD_BUTTON_H), short])
+		# Menu and the glossary sit top left, the speeds are one cycling button (user 2026-10-18: the right side congested)
+		var menu_x: float = (main.get_node("HUD/MenuButton") as Control).get_global_rect().position.x
+		var codex_x: float = (main.get_node("HUD/CodexButton") as Control).get_global_rect().position.x
+		_check(menu_x < 100.0 and codex_x < 160.0 and menu_x < codex_x, "HUD %s: Menu then the glossary top left (%d, %d)" % [view, int(menu_x), int(codex_x)])
+		var speeds: Array = main.get_node("HUD/DriftPanel").find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
+			return b.text.ends_with("×"))
+		_check(speeds.size() == 1, "HUD %s: one speed button (%d)" % [view, speeds.size()])
 		var pause: Node = main.get_node("HUD/PauseMenu")
 		pause.open()
 		await _settle()
