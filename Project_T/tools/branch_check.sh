@@ -16,10 +16,9 @@ OUT="D:/Projects/logs/balancing/branch_check/$DATE"
 W="D:/Projects/worktrees/bal_branch_check"
 mkdir -p "$OUT"
 HASH=$("$G" -C D:/Projects/Game rev-parse --short "$COMMIT")
-if [ ! -d "$W" ]; then
-	"$G" -C D:/Projects/Game worktree add -q --detach "$W" "$HASH" || { echo "worktree failed"; exit 1; }
-	timeout 1800 "$GD" --headless --path "$W/Project_T" --import > "$OUT/import.log" 2>&1
-fi
+[ -d "$W" ] && "$G" -C D:/Projects/Game worktree remove --force "$W"  # A fresh checkout of this commit every time
+"$G" -C D:/Projects/Game worktree add -q --detach "$W" "$HASH" || { echo "worktree failed"; exit 1; }
+timeout 1800 "$GD" --headless --path "$W/Project_T" --import > "$OUT/import.log" 2>&1
 echo "commit $HASH" > "$OUT/build.txt"
 timeout 600 "$GD" --headless --path "$W/Project_T" --script res://tools/branch_check.gd -- --list 2>/dev/null | grep '^BRANCH ' > "$OUT/branches.txt"
 [ -s "$OUT/branches.txt" ] || { echo "no branches listed (import incomplete?)"; exit 1; }
@@ -42,4 +41,5 @@ export OUT W GD
 xargs -P "$PARALLEL" -L 1 bash -c 'run_one $0 $1 $2' < "$OUT/jobs.txt"
 "$GD" --headless --path "$W/Project_T" --script res://tools/branch_check.gd -- --report="$OUT" \
 	--md="D:/Projects/logs/balancing/branch_check_$DATE.md" > "$OUT/report.log" 2>&1
+"$G" -C D:/Projects/Game worktree remove --force "$W"
 echo DONE > "$OUT/done.txt"
