@@ -1304,7 +1304,7 @@ func _last_drop(id: StringName, peak: int, source: Node, enemy) -> void:
 	if now() < float(enemy.get_meta(LAST_DROP_META, -INF)):
 		return
 	enemy.set_meta(LAST_DROP_META, now() + LAST_DROP_EVERY)
-	var amount: float = source.get_damage() * minf(LAST_DROP_SHARE * float(peak), LAST_DROP_HITS) * source.get_potency()
+	var amount: float = source.get_damage() * minf(LAST_DROP_SHARE * float(peak), LAST_DROP_HITS)  # Potency comes from EFFECT_TAGS in take_damage (Tower Code 25c686df)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)  # A single falling drop
 	_line_fx(source.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
 	credit(LAST_DROP, enemy.global_position, source)
