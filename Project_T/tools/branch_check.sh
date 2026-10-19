@@ -21,8 +21,13 @@ mkdir -p "$OUT"
 HASH=$("$G" -C D:/Projects/Game rev-parse --short "$COMMIT")
 [ -d "$W" ] && "$G" -C D:/Projects/Game worktree remove --force "$W"  # A fresh checkout of this commit every time
 "$G" -C D:/Projects/Game worktree add -q --detach "$W" "$HASH" || { echo "worktree failed"; exit 1; }
-timeout 1800 "$GD" --headless --path "$W/Project_T" --import > "$OUT/import.log" 2>&1
-echo "commit $HASH" > "$OUT/build.txt"
+for try in 1 2 3; do  # The import can crash part way (2026-10-18: a segfault left 577 of ~3200 files): retry until it finishes
+	timeout 1800 "$GD" --headless --path "$W/Project_T" --import > "$OUT/import.log" 2>&1
+	grep -q 'DONE.*loading_editor_layout' "$OUT/import.log" && break
+	echo "import try $try did not finish" >> "$OUT/build.txt"
+done
+grep -q 'DONE.*loading_editor_layout' "$OUT/import.log" || { echo "import never finished"; "$G" -C D:/Projects/Game worktree remove --force "$W"; exit 1; }
+echo "commit $HASH" >> "$OUT/build.txt"
 timeout 600 "$GD" --headless --path "$W/Project_T" --script res://tools/branch_check.gd -- --list 2>/dev/null | grep '^BRANCH ' > "$OUT/branches.txt"
 [ -s "$OUT/branches.txt" ] || { echo "no branches listed (import incomplete?)"; exit 1; }
 > "$OUT/jobs.txt"
