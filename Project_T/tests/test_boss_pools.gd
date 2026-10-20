@@ -144,8 +144,8 @@ func _run() -> void:
 	var through := _still("old_stag", route[-1])
 	through.set_path(PackedVector2Array([route[-1]]))
 	var before_leaves := run_state.leaves
-	_check(through.get_leaf_cost() == spawner.get_boss_bite(1) and spawner.get_boss_bite(1) == 10
-		and spawner.get_boss_bite(2) == 10 and spawner.get_boss_bite(3) == 12, "an act boss bites 10 / 10 / 12 by act")
+	_check(through.get_leaf_cost() == spawner.get_boss_bite(1) and spawner.get_boss_bite(1) == 6
+		and spawner.get_boss_bite(2) == 8 and spawner.get_boss_bite(3) == 10, "an act boss bites 6 / 8 / 10 by act")
 	through._process(0.016)
 	_check(not is_instance_valid(through) or through.is_queued_for_deletion(), "an act boss that gets through is gone")
 	_check(run_state.leaves == before_leaves - 10 and leaks[0] == 1 and drains.is_empty(),

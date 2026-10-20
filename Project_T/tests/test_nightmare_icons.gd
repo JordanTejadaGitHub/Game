@@ -186,9 +186,9 @@ func _run() -> void:
 	_check(text.contains(stag.title) and text.contains("drift 25") and text.contains("the boss of act 1") and arrival != null
 		and arrival.tooltip_text.contains("the last drift of the act") and arrival.tooltip_text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
 	var toll: Control = dossier._content.find_child("Toll", true, false)
-	_check(toll != null and toll.tooltip_text == "Takes 10 leaves if it reaches the Heartwood" and text.contains("−10") and not text.contains("tiles/s") and not text.contains("It brings"),
-		"only the leaf toll, from the data (−10); no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
-	_check(BossDossier.toll_text(stag, 1) == "Takes 10 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
+	_check(toll != null and toll.tooltip_text == "Takes 6 leaves if it reaches the Heartwood" and text.contains("−6") and not text.contains("tiles/s") and not text.contains("It brings"),
+		"only the leaf toll, from the data (−6); no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
+	_check(BossDossier.toll_text(stag, 1) == "Takes 6 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
 	var revealed := []
 	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
 	dossier.open(25)
