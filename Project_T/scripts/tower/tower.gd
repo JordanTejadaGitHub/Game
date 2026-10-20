@@ -6190,9 +6190,10 @@ func pop(planted: bool = false) -> void:
 	if planted and Fx.has_effect(PLANT_DUST):
 		var world := Reactions._world(self)
 		if world != null:
-			# Tower Assets 1ae620ce: anchored on the planted cell's centre (the puffs roll along the slab's foot); a ground
-			# effect, so z -1 in the world: over the path tiles, under the Wardens (the y-sorted map) and nightmares.
-			var dust := Fx.play(PLANT_DUST, global_position, world)
+			# Tower Assets e4b44fc0: anchored on the dust's centre on the ground, played at the Warden's foot (its footprint's
+			# bottom edge, 4 px up); a ground effect, so z -1 in the world: over the path, under the Wardens and nightmares.
+			var foot := global_position + Vector2(0, MAP_GRID.cell_size.y * get_footprint() / 2.0 - 4.0)
+			var dust := Fx.play(PLANT_DUST, foot, world)
 			if dust != null:
 				dust.z_index = -1
 	if bool(Fx.setting("reduced_motion", false)):
