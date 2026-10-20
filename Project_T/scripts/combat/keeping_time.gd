@@ -221,6 +221,9 @@ const CHORD_STATUSES := 3  # Last Chord: a Toll on a nightmare carrying this man
 const CHORD_EVERY := 8.0  # …each nightmare once in this long (spent only when one goes off)
 const CHORD_META := &"kt_evo_chord_next"
 const FILLERS_META := &"kt_evo_fillers"  # On a nightmare (Accompaniment on): [[Warden id (0 = none), another Warden's: bool]] per pip
+# Damage credit (owner 2026-10-19: "view the damage for the evolutions"): the pips an evolution filled toward the next
+# Toll ({evolution id: pips}); the Toll credits each its share of what it dealt (DamageLog.note_card_share).
+const PIP_BY_META := &"kt_evo_pip_by"
 var _last_hit_of := {}  # Warden id -> its last hit, before defences (Night Choir, Symphony)
 var _clocks: Array = []  # Midnight Bell's clock faces: [{enemy: WeakRef, at, until}]
 var _overlap := {}  # Steady Beat: route index -> true where 2 or more bells reach (drawn as a gold band)
@@ -419,13 +422,15 @@ func _in_reach(bell, enemy) -> bool:
 # damage, before the nightmare's defences: what a Toll lands again.
 # `counted`: another Warden's hit counted as a ring (Join In, Struck Bell): its Toll never grows Full Voice or Rising Song.
 # `filler`: Accompaniment's Warden whose hit this ring is (its Toll repeats that Warden's hit and status), or null.
-func ring(enemy, bell, amount: float, counted: bool = false, filler = null) -> void:
+# `by`: the evolution whose ring this is (Lingering Note, Carrying Tune): its pip is credited to it.
+func ring(enemy, bell, amount: float, counted: bool = false, filler = null, by: StringName = &"") -> void:
 	if not living(enemy) or not is_instance_valid(bell) or not tolls_on():
 		return
 	var fresh: bool = not enemy.has_meta(PIPS_META)
 	var pips := _start_for(enemy) if fresh else int(enemy.get_meta(PIPS_META))
 	if fresh and pips > _start_pips():
 		Reactions._effect(&"toll_ring", enemy.global_position, self, 0.5)  # Steady Beat: it starts a pip ahead
+		_pip_by(enemy, EVO_STEADY, pips - _start_pips())
 	var handed_from := -1  # Hand to Hand: the bell that rang it before this one (-1: none)
 	if not counted:
 		if evo(EVO_HAND):
@@ -447,6 +452,11 @@ func ring(enemy, bell, amount: float, counted: bool = false, filler = null) -> v
 		if handed_from != -1:
 			add = HAND_PIPS
 			_hand_to_hand(enemy, bell, handed_from)
+			_pip_by(enemy, EVO_HAND, HAND_PIPS - 1)
+		if by != &"":
+			_pip_by(enemy, by, 1)
+		elif evo(EVO_ACCOMP) and is_instance_valid(filler):
+			_pip_by(enemy, EVO_ACCOMP, 1)  # Another Warden's hit rang it: Accompaniment's pip
 		pips += add
 		if evo(EVO_ACCOMP):
 			_fill(enemy, pips - add, add, filler if is_instance_valid(filler) else bell, is_instance_valid(filler))
@@ -494,7 +504,7 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 	var striker = filler if evolved and is_instance_valid(filler) else bell
 	var landing := amount * share * swell
 	enemy.set_meta(TOLLED_META, true)
-	Reactions._effect(&"landing_dust", at, self, 0.5)
+	_toll_wave(enemy, at)
 	_toll_flashes.append({"enemy": weakref(enemy), "at": at, "start": now()})  # The rings burst (drawn in _draw_pips)
 	# Setup credit 2026-10-16: what Rising Song, Steady Beat and Crescendo add to the Toll is their own damage (multipliers)
 	if share > TOLL_SHARE:
@@ -504,7 +514,9 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 			DamageLog.note_card_bonus(card_id(RISING_SONG), share / TOLL_SHARE)
 	if swell > 1.0:
 		DamageLog.note_card_bonus(String(EVO_CRESCENDO), swell)
+	_note_pip_shares(enemy)  # The pips evolutions filled: their share of this Toll (owner 2026-10-19)
 	calling_strike(striker, enemy, landing, &"toll", true)  # F1 (f1_spec.md): a Toll is a hit by its striker for other families' lent cards
+	DamageLog.drop_card_shares()
 	if full:
 		Reactions._effect(&"toll_ring", at, self, 0.8)
 		credit(EVO_STEADY, at, bell)
@@ -565,6 +577,22 @@ func _hang_note(bell, at: Vector2, amount: float, rings: bool = false, skip = nu
 		"struck": struck, "rings": rings, "choir": choir})
 	queue_redraw()
 
+# A Toll's bell-ring wave (Tower Assets cb907eb6): keeping_toll (64x48, 8 frames, 14 fps one-shot) bursting from the
+# nightmare's body centre (anchor (32, 30)), over it. The ring arcs under the health bar and their gold burst stay
+# (_toll_flashes). Reduced motion: frame 1 alone. Without the sheet: the old dust puff at its feet.
+# (toll_pip.png stays unused: the owner replaced the pips with rings, 2026-10-17/18.)
+const TOLL_WAVE := &"keeping_toll"
+const TOLL_WAVE_STILL := 1
+
+func _toll_wave(enemy, at: Vector2) -> void:
+	if Fx.texture(TOLL_WAVE) == null:
+		Reactions._effect(&"landing_dust", at, self, 0.5)
+		return
+	var body: Vector2 = enemy.get_body_position() if is_instance_valid(enemy) and enemy.has_method("get_body_position") else at
+	var node := Reactions._effect(TOLL_WAVE, body, self)
+	if node != null and motion_still():
+		node.set("still", TOLL_WAVE_STILL)
+
 # --- Calling evolutions: what a ring and a Toll add (see the EVO_ constants) ----------------------------------------------
 
 # Everything an evolution adds to a Toll, after it landed. `at`: where it was; `landing`: what it dealt; `amount`: the
@@ -600,15 +628,34 @@ func _fill(enemy, before: int, add: int, who, other: bool) -> void:
 		roster.append([id, other])
 	enemy.set_meta(FILLERS_META, roster)
 
-# Fills one pip without a ring (Peal, Counterpoint): never the last one, so only a real ring Tolls.
-func _add_pip(enemy, who = null) -> bool:
+# Fills one pip without a ring (Peal, Counterpoint): never the last one, so only a real ring Tolls. `by`: the evolution
+# credited with the pip (its share of the Toll it leads to).
+func _add_pip(enemy, who = null, by: StringName = &"") -> bool:
 	var pips := int(enemy.get_meta(PIPS_META)) if enemy.has_meta(PIPS_META) else _start_for(enemy)
 	if pips >= TOLL_EVERY - 1:
 		return false
 	if evo(EVO_ACCOMP):
 		_fill(enemy, pips, 1, who, false)
 	enemy.set_meta(PIPS_META, pips + 1)
+	_pip_by(enemy, by, 1)
 	return true
+
+# Damage credit (owner 2026-10-19): `count` pips toward the next Toll were evolution `id`'s.
+func _pip_by(enemy, id: StringName, count: int) -> void:
+	if id == &"" or count <= 0 or not is_instance_valid(enemy):
+		return
+	var by: Dictionary = enemy.get_meta(PIP_BY_META, {})
+	by[id] = int(by.get(id, 0)) + count
+	enemy.set_meta(PIP_BY_META, by)
+
+# A Toll: each evolution's pips are that share of it (TOLL_EVERY pips make a Toll); spent with the Toll.
+func _note_pip_shares(enemy) -> void:
+	if not enemy.has_meta(PIP_BY_META):
+		return
+	var by: Dictionary = enemy.get_meta(PIP_BY_META)
+	enemy.remove_meta(PIP_BY_META)
+	for id in by:
+		DamageLog.note_card_share(card_id(id), float(by[id]) / float(TOLL_EVERY))
 
 # Up to `limit` living nightmares within a cell of `at` (not `skip`), nearest first.
 func _touching_at(at: Vector2, skip, limit: int) -> Array:
@@ -655,7 +702,7 @@ func _carry_from(bell, target, base: float) -> void:
 			continue
 		_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
 		calling_strike(bell, enemy, base * TUNE_SHARE, &"carried_ring", true, EVO_CARRYING)  # (own: setup credit 2026-10-16)
-		ring(enemy, bell, base * TUNE_SHARE)
+		ring(enemy, bell, base * TUNE_SHARE, false, null, EVO_CARRYING)
 		carried += 1
 	if carried > 0:
 		credit(EVO_CARRYING, from, bell)
@@ -694,7 +741,7 @@ func _peal(enemy, at: Vector2) -> void:
 				continue
 		elif other.global_position.distance_to(at) > PEAL_STEPS * cell():
 			continue
-		if _add_pip(other):
+		if _add_pip(other, null, EVO_PEAL):
 			filled += 1
 			_line_fx(at, other.global_position, 1.0, Palette.GOLD)
 	if filled > 0:
@@ -719,7 +766,7 @@ func _note_heard(note: Dictionary, enemy) -> void:
 		credit(EVO_CHOIR, note.at)
 	Reactions._effect(&"chorus_note", note.at, self, 0.5)
 	credit(EVO_NOTE, note.at)
-	ring(enemy, bell, float(note.amount))
+	ring(enemy, bell, float(note.amount), false, null, EVO_NOTE)
 
 # Midnight Bell: the 12th ring on a nightmare (once each). True when this ring reached it.
 func _count_rings(enemy, add: int) -> bool:
@@ -838,7 +885,7 @@ func _counterpoint(enemy, at: Vector2) -> void:
 	if not calling_free_hit(bell, enemy, 1.0, FREE_HIT_TAG, INF, EVO_COUNTER):  # (own: setup credit 2026-10-16)
 		return
 	if living(enemy):
-		_add_pip(enemy, bell)
+		_add_pip(enemy, bell, EVO_COUNTER)
 	Reactions._effect(&"toll_ring", at, self, 0.6)
 	credit(EVO_COUNTER, at)
 
@@ -909,6 +956,11 @@ func _last_chord(enemy, bell) -> void:
 	Reactions.check_at_half(enemy, bell)
 	if living(enemy) and enemy.health >= health and enemy.statuses.changes == changes:
 		return  # Nothing went off
+	# Damage credit (owner 2026-10-19): what it set off is Last Chord's, the half no feeder takes (setup credit gives the
+	# Reaction's feeders the other half: never counted twice)
+	var dealt: float = health - maxf(float(enemy.health), 0.0) if is_instance_valid(enemy) else 0.0
+	if dealt > 0.0 and dream_state != null:
+		dream_state._credit(card_id(EVO_CHORD), "damage", dealt * (1.0 - SETUP.SETUP_SHARE))
 	enemy.set_meta(CHORD_META, now() + CHORD_EVERY)
 	Reactions._effect(&"chorus_note", at, self, 1.4)
 	credit(EVO_CHORD, at, bell)
@@ -1326,7 +1378,7 @@ func _carry_ring(bell, base: float) -> void:
 				calling_strike(bell, enemy, base * share, &"carried_ring", true, EVO_CARRYING)  # (F1: Carrying Tune is a Calling output)
 			else:
 				strike(bell, enemy, base * share, &"carried_ring", true)  # (Sound Carries: a retired class card)
-			ring(enemy, bell, base * share)
+			ring(enemy, bell, base * share, false, null, EVO_CARRYING if tune else &"")
 			heard += 1
 	if tune and heard > 0:
 		credit(EVO_CARRYING, from, bell)

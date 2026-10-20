@@ -5977,6 +5977,10 @@ func _credit_hit(event) -> void:
 	if _own_hit_id != &"" and is_instance_valid(event.enemy) and event.enemy.get_instance_id() == _own_hit_enemy:
 		var own_id := SETUP.rule_card(self, _own_hit_id)
 		end_own_hit()  # One event per strike
+		if event.calling == &"":  # What other cards' multipliers added was credited to them above (never counted twice, 2026-10-19)
+			for id in event.card_damage:
+				own_amount -= float(event.card_damage[id])
+			own_amount = maxf(own_amount, 0.0)
 		SETUP.credit_own(self, own_id, own_amount, event)
 		return
 	var by_tag := _credit_rule_map()

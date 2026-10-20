@@ -204,6 +204,8 @@ const EVO_DOWNPOUR := &"dw_downpour"
 const BURST_SOAKED := 4  # Downpour: a ripple that soaks this many nightmares…
 const BURST_EVERY := 4.0  # …makes every bank Warden attack one of them at once, each Warden once in this long
 const BURST_META := &"pd_burst_next"  # On a Warden
+const DOWNPOUR_HIT_META := &"pd_burst_hit"  # On a Warden: [target id, until]: its forced attack's hit is Downpour's (damage credit)
+const DOWNPOUR_HIT_WAIT := 2.0  # The forced attack lands within this long (a slow throw), or it is not counted
 const EVO_WET := &"dw_wet_footprints"
 const WET_SECONDS := 3.0  # Wet Footprints: a Soaked nightmare leaving water leaves wet steps that count as water this long…
 const WET_STEPS := 6  # …at most this many steps per nightmare (only real water leaves footprints: wet steps never do)
@@ -492,13 +494,19 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 	# Flood: the whole water)
 	if class_on():
 		ripples += 1
+		_splash(enemy)  # puddle_ripple where the ripple starts
 	var soaked: Array = []
 	for other in (_in_water(w, from, _ripple_steps(w), enemy) if class_on() else []):
 		if now() >= float(other.get_meta(RIPPLE_META, -INF)):
 			other.set_meta(RIPPLE_META, now() + RIPPLE_EVERY)
+			var by := _ripple_evo(other, from)  # Reached only thanks to Flood, Wet Footprints or the Stream: its Soaked (owner 2026-10-19)
+			if by != &"":
+				SETUP.begin(StringName(card_id(by)))
 			_arm_apply()  # F1 (f1_spec.md): the ripple's Soaked is that Dewdrop's application for other families' lent cards
 			source._apply_one_status(other, EnemyStatuses.DAMP, 1, source.get_damage(), false)
 			_disarm_apply()
+			if by != &"":
+				SETUP.end()
 			soaked.append(other)
 	if class_on() and not dream_state.calling_path.is_empty():
 		_ripple_shown(enemy, w, from, soaked)
@@ -728,6 +736,8 @@ func _stream_ready(source, w: int, from: int) -> void:
 # Black Pond (Dewdrop hits in a pond), Riverside (Sprouts touching water on a Soaked nightmare in it).
 func _evo_hit_multiplier(enemy, source) -> float:
 	var multiplier := 1.0
+	if evo(EVO_DOWNPOUR) and source.has_meta(DOWNPOUR_HIT_META):
+		_downpour_hit(enemy, source)
 	if is_own(source):
 		if evo(EVO_STREAM) and source.get_meta(STREAM_META, false):
 			source.set_meta(STREAM_META, false)
@@ -745,8 +755,37 @@ func _evo_hit_multiplier(enemy, source) -> float:
 	return multiplier
 
 # Whether any hit bonus here is on (DreamState.batch_damage_multiplier asks once a frame before calling damage_multiplier).
+# (Downpour: its forced attack's hit is credited from there.)
 func wants_damage_hook() -> bool:
-	return rule(SODDEN) or evo(EVO_STREAM) or evo(EVO_POND) or evo(EVO_RIVERSIDE)
+	return rule(SODDEN) or evo(EVO_STREAM) or evo(EVO_POND) or evo(EVO_RIVERSIDE) or evo(EVO_DOWNPOUR)
+
+# The evolution a ripple reached `other` thanks to (&"": the Calling's own 4 steps of real water): Flood (past 4 steps),
+# Wet Footprints (a wet step), the Stream (water it carried). For the ledger (damage credit, owner 2026-10-19).
+func _ripple_evo(other, from: int) -> StringName:
+	var i := index_of(other)
+	if i < 0:
+		return &""
+	if evo(EVO_FLOOD) and absi(i - from) > RIPPLE_STEPS * 2:
+		return EVO_FLOOD
+	if evo(EVO_WET) and not _water_at.has(i) and _wet.has(i):
+		return EVO_WET
+	if evo(EVO_STREAM) and _flowed.has(i):
+		return EVO_STREAM
+	return &""
+
+# Downpour's forced attack (from damage_multiplier, inside Enemy.take_damage): its hit on the nightmare it was sent at is
+# Downpour's own damage, whole (DreamState.begin_own_hit; damage credit, owner 2026-10-19).
+func _downpour_hit(enemy, source) -> void:
+	var sent: Array = source.get_meta(DOWNPOUR_HIT_META, [])
+	if sent.size() < 2:
+		return
+	if now() > float(sent[1]):
+		source.remove_meta(DOWNPOUR_HIT_META)
+		return
+	if int(sent[0]) != enemy.get_instance_id():
+		return
+	source.remove_meta(DOWNPOUR_HIT_META)
+	dream_state.begin_own_hit(EVO_DOWNPOUR, enemy)
 
 # How many steps each way a Dewdrop's ripple runs in water `w` (Flood; Black Pond's 8 steps became POND_BONUS 2026-10-18).
 func _ripple_steps(w: int) -> int:
@@ -881,6 +920,7 @@ func _downpour(enemy, w: int, soaked: Array) -> void:
 			continue
 		tower.set_meta(BURST_META, now() + BURST_EVERY)
 		tower.volley_now(target)
+		tower.set_meta(DOWNPOUR_HIT_META, [target.get_instance_id(), now() + DOWNPOUR_HIT_WAIT])  # (damage credit, owner 2026-10-19)
 		_line_fx(tower.global_position, target.global_position, 2.0, Palette.DEWLIGHT)
 		fired += 1
 	if fired > 0:
@@ -1565,26 +1605,39 @@ func extra_targets(tower, candidates: Array[Node2D]) -> Array[Node2D]:
 
 # --- Drawing: the water ---------------------------------------------------------------------------------------------------
 
+func _process(delta: float) -> void:
+	super._process(delta)
+	if waters.is_empty() or get_tree().paused or not place_on() or not _puddle_sheets_ready():
+		return
+	var frame := loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)  # The water shimmers (3 fps); redraw only when the frame changes
+	if frame != _puddle_frame:
+		queue_redraw()
+
 func _draw() -> void:
 	if not place_on():
 		return
-	# Soft overlapping pools along the wet path (not squares): a deep body, a lighter centre, a glint
 	var r := cell() * 0.42
+	var sheets := _puddle_sheets_ready()
+	if sheets:
+		_draw_puddle_sheets()
+	else:
+		# Fallback (a sheet missing): soft overlapping pools along the wet path, a deep body, a lighter centre, a glint
+		for water in waters:
+			for i in water.points:
+				var at: Vector2 = _route_px[int(i)]
+				draw_circle(at, r, Color(Palette.POOL, 0.28))
+			for i in water.points:
+				var at: Vector2 = _route_px[int(i)]
+				draw_circle(at, r * 0.55, Color(Palette.DEW, 0.18))
+				if int(i) % 3 == 0:
+					draw_circle(at + Vector2(-r * 0.3, -r * 0.25), 1.5, Color(Palette.DEWLIGHT, 0.6))
 	for water in waters:
-		for i in water.points:
-			var at: Vector2 = _route_px[int(i)]
-			draw_circle(at, r, Color(Palette.POOL, 0.28))
-		for i in water.points:
-			var at: Vector2 = _route_px[int(i)]
-			draw_circle(at, r * 0.55, Color(Palette.DEW, 0.18))
-			if int(i) % 3 == 0:
-				draw_circle(at + Vector2(-r * 0.3, -r * 0.25), 1.5, Color(Palette.DEWLIGHT, 0.6))
 		if float(water.steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
 			draw_circle(_route_px[int(water.last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end
 	if not class_on() or dream_state.calling_path.is_empty():
 		return
-	# Black Pond: darker, still water
-	if evo(EVO_POND):
+	# Black Pond: darker, still water (the sheets are tinted darker in _draw_puddle_sheets)
+	if evo(EVO_POND) and not sheets:
 		for w in waters.size():
 			if _is_pond(w):
 				for i in waters[w].points:
@@ -1603,3 +1656,52 @@ func _draw() -> void:
 		var at: Vector2 = _route_px[int(i)]
 		draw_circle(at + Vector2(-r * 0.2, 0.0), r * 0.16, Color(Palette.DEW, 0.45))
 		draw_circle(at + Vector2(r * 0.2, -r * 0.15), r * 0.16, Color(Palette.DEW, 0.45))
+
+# The water's art (Tower Assets cb907eb6): puddle_a-d (48x48, 4 frames, 3 fps, anchor (24, 24) = the route point; the
+# variant by route index), every wet point's body first, then every point's puddle_?_shine over them (same variant, same
+# frame), so neighbours 32 px apart merge into one pool. Black Pond's water is the same art, darker (POND_TINT).
+# 1x draws, frame from the clock, redrawn only when the frame changes (_process). Reduced motion: frame 0 (the still).
+const PUDDLE_VARIANTS: Array[StringName] = [&"puddle_a", &"puddle_b", &"puddle_c", &"puddle_d"]
+const PUDDLE_SHINES: Array[StringName] = [&"puddle_a_shine", &"puddle_b_shine", &"puddle_c_shine", &"puddle_d_shine"]
+const PUDDLE_SIZE := Vector2(48, 48)
+const PUDDLE_ANCHOR := Vector2(24, 24)
+const PUDDLE_FRAMES := 4
+const PUDDLE_FPS := 3.0
+const POND_TINT := Color(0.62, 0.62, 0.78)  # multiplier: Black Pond's still, darker water
+const SPLASH := &"puddle_ripple"  # The ripple's splash (64x48, 6 frames, 12 fps one-shot, anchor (32, 24))
+const SPLASH_STILL := 2  # Reduced motion: this frame alone
+const SPLASH_EVERY := 0.5  # At most one splash per nightmare this often (the sheet's length)
+const SPLASH_META := &"pd_splash_next"
+var _puddle_frame := -1
+
+func _puddle_sheets_ready() -> bool:
+	for k in PUDDLE_VARIANTS.size():
+		if _fx_sheet(PUDDLE_VARIANTS[k]) == null or _fx_sheet(PUDDLE_SHINES[k]) == null:
+			return false
+	return true
+
+func _draw_puddle_sheets() -> void:
+	_puddle_frame = loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)
+	var source := Rect2(Vector2(PUDDLE_SIZE.x * _puddle_frame, 0.0), PUDDLE_SIZE)
+	var ponds: bool = evo(EVO_POND) and not dream_state.calling_path.is_empty()
+	for pass_shine in 2:
+		var sheets: Array[StringName] = PUDDLE_SHINES if pass_shine == 1 else PUDDLE_VARIANTS
+		for w in waters.size():
+			var tint := POND_TINT if ponds and _is_pond(w) else Color(1, 1, 1)
+			for i in waters[w].points:
+				var at: Vector2 = _route_px[int(i)]
+				draw_texture_rect_region(_fx_sheet(sheets[int(i) % 4]), Rect2((at - PUDDLE_ANCHOR).round(), PUDDLE_SIZE),
+					source, tint)  # multiplier (Black Pond)
+
+# The Calling's ripple shows where it starts: puddle_ripple on the hit nightmare, under the nightmares.
+func _splash(enemy) -> void:
+	if not living(enemy) or now() < float(enemy.get_meta(SPLASH_META, -INF)) or not Fx.on_screen(enemy.global_position):
+		return
+	enemy.set_meta(SPLASH_META, now() + SPLASH_EVERY)
+	if Fx.texture(SPLASH) == null:
+		return
+	var node := Reactions._effect(SPLASH, enemy.global_position, self)
+	if node != null:
+		node.z_index = -1  # With the ground: the splash lies on the water, under the nightmares
+		if motion_still():
+			node.set("still", SPLASH_STILL)

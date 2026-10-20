@@ -561,6 +561,9 @@ func _stepped(point: Vector2, enemy) -> void:
 		enemy.set_meta(DOSES_META, taken + 1)
 		_setup_part(enemy, IT_GROWS, EnemyStatuses.SPORED, amount - DOSE)  # (setup credit 2026-10-16: each part's stacks)
 	var caps_here := int(m.caps)
+	var placed := _placed_by(point, m)  # Windblown's seedling or Fairy Path's regrowth: the dose's base is its (owner 2026-10-19)
+	if placed != &"":
+		_setup_part(enemy, placed, EnemyStatuses.SPORED, DOSE)
 	if evo(EVO_CLUMP):
 		_setup_part(enemy, EVO_CLUMP, EnemyStatuses.SPORED, amount * caps_here - amount)
 		amount *= caps_here  # Clump: a dose for each mushroom in it
@@ -602,6 +605,15 @@ func _stepped(point: Vector2, enemy) -> void:
 	elif rule(KEPT_GROUND) and _touch_one.has(point):
 		_regrow[point] = KEPT_EVERY + _slower()
 	queue_redraw()
+
+# The evolution that put this mushroom here (&"": the Calling's own): Windblown's seedling, or one Fairy Path's clock grew
+# (a bed step on FAIRY_EVERY). Damage credit (owner 2026-10-19): the dose's base stacks are that evolution's.
+func _placed_by(point: Vector2, m: Dictionary) -> StringName:
+	if bool(m.get("seeded", false)) and evo(EVO_WINDBLOWN):
+		return EVO_WINDBLOWN
+	if bool(m.get("grown", false)) and evo(EVO_FAIRY_PATH) and is_equal_approx(float(_bed.get(point, INF)), FAIRY_EVERY):
+		return EVO_FAIRY_PATH
+	return &""
 
 # Everything an evolution adds to a step on a mushroom (after its dose). `caps_here`: the mushrooms in it before one is eaten.
 func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, caps_here: int) -> void:

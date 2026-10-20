@@ -436,11 +436,53 @@ func nap(enemy) -> bool:
 		return false
 	return enemy.statuses.sleep(NAP_SECONDS) and enemy.statuses.is_asleep()
 
-# A thin line between two points for a moment (free hits, carried stacks): the card's "what you see", in placeholder form.
+# A thread between two points for a moment (free hits, carried hits and stacks): calling_thread tiled from `from` to
+# `to` for LINE_SECONDS, then calling_spark where it arrives (Tower Assets cb907eb6). `color` tints both (a multiplier
+# on the warm sheets); `width` is only the fallback's: the sheet keeps its own 8 px. Without the sheets: the old line.
+const LINE_THREAD := &"calling_thread"
+const LINE_SPARK := &"calling_spark"
+const LINE_SECONDS := 0.3
+
 func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
 	var world := Reactions._world(self)
-	if world != null:
+	if world == null or from.is_equal_approx(to):
+		return
+	if Fx.texture(LINE_THREAD) == null:
 		world.add_child(ChainBolt.new(PackedVector2Array([from, to]), color, width))
+		return
+	var still := motion_still()
+	var thread := Fx.segment(LINE_THREAD, from, to, world, LINE_SECONDS)
+	if thread != null:
+		thread.modulate = color  # multiplier: the card's colour on the warm thread
+		if still:
+			thread.set("still", 0)
+	if Fx.texture(LINE_SPARK) != null:
+		var spark := Fx.play(LINE_SPARK, to, world)
+		if spark != null:
+			spark.modulate = color  # multiplier
+			if still:
+				spark.set("still", 0)
+
+# Reduced motion (Settings → Accessibility): sheets show their still frame (frame 0 of a loop) instead of playing.
+static func motion_still() -> bool:
+	return bool(Fx.setting("reduced_motion", false))
+
+# Sheets drawn in a class node's own _draw (per-point loops), cached per node (never static: exit crash), null when
+# missing so the caller draws its palette fallback.
+const SHEET_DIR := "res://assets/effects/%s.png"
+var _fx_sheets := {}
+
+func _fx_sheet(sheet: StringName) -> Texture2D:
+	if not _fx_sheets.has(sheet):
+		var path := SHEET_DIR % sheet
+		_fx_sheets[sheet] = load(path) if ResourceLoader.exists(path) else null
+	return _fx_sheets[sheet]
+
+# The frame of a looping sheet right now (0, the still, under reduced motion).
+static func loop_frame(fps: float, frames: int) -> int:
+	if motion_still():
+		return 0
+	return int(Time.get_ticks_msec() / 1000.0 * fps) % maxi(frames, 1)
 
 # --- The loop -------------------------------------------------------------------------------------------------------
 

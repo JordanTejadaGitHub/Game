@@ -971,6 +971,7 @@ class FxRing extends Node2D:
 class FxSprite extends Node2D:
 	var effect: StringName  # The sheet shown (the _lite one if it was swapped)
 	var row := 0
+	var still := -1  # >= 0: only this frame is drawn, for the sheet's usual life (reduced motion stills)
 	var _tex: Texture2D
 	var _size: Vector2
 	var _frames: int
@@ -1004,6 +1005,8 @@ class FxSprite extends Node2D:
 	func _draw() -> void:
 		var frame := int(_age * _fps)
 		frame = frame % _frames if _loop else mini(frame, _frames - 1)
+		if still >= 0:
+			frame = mini(still, _frames - 1)
 		var fade := 1.0
 		if _loop and _seconds > 0.0:
 			fade = clampf((_seconds - _age) / 0.3, 0.0, 1.0)  # Loops fade out over their last 0.3 s
@@ -1013,6 +1016,7 @@ class FxSprite extends Node2D:
 
 # A segment sheet tiled along +x for `length` pixels, fading out over the second half of its life.
 class FxSegment extends Node2D:
+	var still := -1  # >= 0: only this frame is drawn (reduced motion stills)
 	var _tex: Texture2D
 	var _size: Vector2
 	var _frames: int
@@ -1041,7 +1045,7 @@ class FxSegment extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		var frame := int(_age * _fps) % _frames
+		var frame := int(_age * _fps) % _frames if still < 0 else mini(still, _frames - 1)
 		var alpha := clampf(2.0 * (1.0 - _age / _seconds), 0.0, 1.0)
 		var x := 0.0
 		while x < _length:

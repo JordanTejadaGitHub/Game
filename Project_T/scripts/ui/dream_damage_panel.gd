@@ -145,8 +145,8 @@ func _row_text(entry: Dictionary, total_damage: float) -> String:
 	return "%s · nothing yet" % name
 
 func _name(id: String) -> String:
-	if DreamState.CALLING_PATHS.PATHS.has(StringName(id)):
-		return String(DreamState.CALLING_PATHS.PATHS[StringName(id)].name)
+	if DreamState.CALLING_PATHS.PATHS.has(StringName(id)):  # A Calling evolution, marked so it reads apart from cards (owner 2026-10-19)
+		return "%s (Calling)" % String(DreamState.CALLING_PATHS.PATHS[StringName(id)].name)
 	return dream_state.get_display_name(id)
 
 func _line(text: String, dim: bool) -> Label:

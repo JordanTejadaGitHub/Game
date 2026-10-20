@@ -249,10 +249,31 @@ func credit(id: StringName, at: Vector2 = Vector2.INF, source = null) -> void:  
 		dream_state.note_card(id, at, 1, source if is_instance_valid(source) and source is Node else null)
 
 # A thin line between two points for a moment (as class_kit._line_fx).
+# The jump line: Tower Assets' calling_thread with a calling_spark at the far end, like the Callings' links (owner
+# 2026-10-19: "Firefly try using new thread"); the old ChainBolt only when the sheet is missing.
+const LINE_THREAD := &"calling_thread"
+const LINE_SPARK := &"calling_spark"
+const LINE_SECONDS := 0.3
+
 func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
 	var world := Reactions._world(self)
-	if world != null and not from.is_equal_approx(to):
+	if world == null or from.is_equal_approx(to):
+		return
+	if Fx.texture(LINE_THREAD) == null:
 		world.add_child(ChainBolt.new(PackedVector2Array([from, to]), color, width))
+		return
+	var still := _still()
+	var thread := Fx.segment(LINE_THREAD, from, to, world, LINE_SECONDS)
+	if thread != null:
+		thread.modulate = color  # multiplier: the jump's colour on the warm thread
+		if still:
+			thread.set("still", 0)
+	if Fx.texture(LINE_SPARK) != null:
+		var spark := Fx.play(LINE_SPARK, to, world)
+		if spark != null:
+			spark.modulate = color  # multiplier
+			if still:
+				spark.set("still", 0)
 
 # Nightmares Lit at the last look (Swarm Night's count; the Calling badge can show "Lit 7/10").
 func lit_count() -> int:
@@ -340,9 +361,11 @@ func _process(delta: float) -> void:
 		if not _sources.is_empty() or not _glow.is_empty():
 			_sources.clear()
 			_glow.clear()
+			_glow_serial += 1
 			queue_redraw()
 		_flush()  # Guiding Light forks on any start
 		return
+	_tick_glow_sheets()
 	_rebuild_in -= delta
 	if _rebuild_in <= 0.0 or _board != int(dream_state.board_version):
 		_rebuild()
@@ -375,6 +398,7 @@ func _rebuild() -> void:
 	_board = int(dream_state.board_version)
 	_sources.clear()
 	_glow.clear()
+	_glow_serial += 1  # The glow art re-lays its points on the next draw
 	_max_lit_step = -1
 	_strung.clear()
 	_light_rep.clear()
@@ -563,6 +587,13 @@ func _reveals(sources: Array) -> bool:
 
 # Credit for being Lit by an evolution's light only: Strung Lights (a gap) or Glowworms (a Sprout's).
 func _credit_light(sources: Array, at: Vector2) -> void:
+	var id := _light_evo(sources)
+	if id != &"":
+		credit(id, at)
+
+# The evolution whose light alone lights it (&"": a Firefly Warden lights it anyway, or no evolution light): the Calling's
+# jump from it is that evolution's own damage (owner 2026-10-19: "view the damage for the evolutions").
+func _light_evo(sources: Array) -> StringName:
 	var gap := false
 	var worm := false
 	for source in sources:
@@ -571,11 +602,12 @@ func _credit_light(sources: Array, at: Vector2) -> void:
 		elif source.get("worm", false):
 			worm = true
 		else:
-			return  # A Firefly Warden lights it anyway
+			return &""  # A Firefly Warden lights it anyway
 	if gap and evo(EVO_STRUNG):
-		credit(EVO_STRUNG, at)
-	elif worm and evo(EVO_GLOWWORMS):
-		credit(EVO_GLOWWORMS, at)
+		return EVO_STRUNG
+	if worm and evo(EVO_GLOWWORMS):
+		return EVO_GLOWWORMS
+	return &""
 
 func lights_of(sources: Array) -> Array:
 	var out: Array = []
@@ -942,12 +974,15 @@ func _class_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_
 			count = maxi(count, mini(GOLD_JUMPS, MEET_MAX))  # Bonfire: 2 jumps on gold path (TD fix 15: never past MEET_MAX)
 		var targets := nearest_lit(at, [enemy], count)
 		if class_on():  # The Calling's own payoff: the first pick only
+			var light_evo := _light_evo(sources)  # Lit only by Strung Lights' gap or a Glowworm: its jump is that evolution's
 			for t in targets.size():
 				var opts := {"origin": enemy, "calling": true}  # (F1: the Calling's jump)
 				if t >= meet_count:
 					opts["credit"] = EVO_BONFIRE
 				elif t >= 1:
 					opts["credit"] = WHERE_LIGHTS_MEET
+				elif light_evo != &"":
+					opts["credit"] = light_evo
 				_fork(id, source, at, targets[t], size * CALLING_SHARE, cap, opts)
 			if targets.is_empty():
 				_wait(lights, source, size * CALLING_SHARE, cap)
@@ -1856,9 +1891,14 @@ var _glow_lines: Array[Line2D] = []
 var _glow_group: CanvasGroup  # Every glow line, flattened, then added to the map once (kept on this node, never static)
 
 func _draw() -> void:
-	_lay_glow.call_deferred()  # Lines are nodes: laid after the draw, whenever anything here asked for a redraw
+	# Lines are nodes: laid after the draw, whenever anything here asked for a redraw. With the glow sheets only when the
+	# light map changed (the shimmer's redraws reuse the laid points).
+	if not _glow_sheets_ready() or _laid_serial != _glow_serial:
+		_laid_serial = _glow_serial
+		_lay_glow.call_deferred()
 	if not _lit_on():
 		return
+	_draw_glow_sheets()
 	for light in _sparks:
 		var spot := _light_spot(int(light))
 		for i in _sparks[light].size():
@@ -1892,6 +1932,10 @@ func _lay_glow() -> void:
 	if not _lit_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
 		if is_instance_valid(_glow_group):
 			_glow_group.visible = false
+		if not _glow_pts.is_empty():
+			_glow_pts = PackedVector2Array()
+			_glow_states = PackedInt32Array()
+			queue_redraw()
 		return
 	var map: Node2D = dream_state.map_generator
 	if not is_instance_valid(_glow_group):
@@ -1918,6 +1962,9 @@ func _lay_glow() -> void:
 			if _glow.has(cell):
 				state = maxi(state, 2 if gold and int(_glow[cell].jars) >= 2 else 1)
 		states.append(state)
+	if _glow_sheets_ready():
+		_lay_glow_sheets(map, route, states)
+		return
 	var from := 0
 	while from < route.size():
 		if states[from] == 0:
@@ -1958,3 +2005,136 @@ func _light_spot(light: int) -> Vector2:
 		if int(source.light) == light and is_instance_valid(source.tower):
 			return source.tower.global_position
 	return Vector2.ZERO
+
+# --- Drawing: the glow's art (Tower Assets cb907eb6) ---------------------------------------------------------------------
+# lantern_glow_a-c (48x48, 4 frames, 4 fps, anchor (24, 24)): a warm pool of light on each lit route point, the variant by
+# route index; neighbours 32 px apart merge into a band. Gold path: lantern_glow_gold (6 fps). Strung Lights' gaps: the
+# lantern_thread segment (16x8, 4 frames, 8 fps, anchor (0, 4)) tiled from the last glow through the gap to the next.
+# Drawn here at 1x (z -1, under Wardens and nightmares); points laid in _lay_glow (only when the light map changed),
+# redrawn only when a frame changes. Reduced motion: frame 0. Without the glow sheets: the CanvasGroup band above;
+# without the thread sheet, a gap glows like the rest.
+const GLOW_VARIANTS: Array[StringName] = [&"lantern_glow_a", &"lantern_glow_b", &"lantern_glow_c"]
+const GLOW_GOLD := &"lantern_glow_gold"
+const GLOW_THREAD := &"lantern_thread"
+const GLOW_SIZE := Vector2(48, 48)
+const GLOW_ANCHOR := Vector2(24, 24)
+const GLOW_FRAMES := 4
+const GLOW_FPS := 4.0
+const GOLD_FPS := 6.0
+const THREAD_SIZE := Vector2(16, 8)
+const THREAD_ANCHOR_Y := 4.0
+const THREAD_FPS := 8.0
+const STATE_GAP := 3  # A Strung Lights gap (drawn as a thread)
+var _fx_sheets := {}  # Sheet -> Texture2D (null when missing), per node, never static
+var _glow_pts := PackedVector2Array()  # Lit route points (this node's space)…
+var _glow_states := PackedInt32Array()  # …and theirs: 1 glow, 2 gold path, STATE_GAP strung gap (0: dark, kept for joins)
+var _glow_has_gold := false
+var _glow_has_gap := false
+var _glow_serial := 0  # Bumped when the light map is rebuilt
+var _laid_serial := -1
+var _glow_key := -1  # The frames last drawn
+
+func _fx_sheet(sheet: StringName) -> Texture2D:
+	if not _fx_sheets.has(sheet):
+		var path := "res://assets/effects/%s.png" % sheet
+		_fx_sheets[sheet] = load(path) if ResourceLoader.exists(path) else null
+	return _fx_sheets[sheet]
+
+# The lit path is the soft ribbon above (screens_ui.md lit-path rule), not the per-point sheets: drawn per route point,
+# they read as rows of gold discs with pale dots over the path (user screenshot 2026-10-19: "the path looks ugly now").
+# Kept off until a ribbon-shaped Lantern Light sheet exists; the sheet code stays for that.
+const USE_GLOW_SHEETS := false
+
+func _glow_sheets_ready() -> bool:
+	if not USE_GLOW_SHEETS:
+		return false
+	for sheet in GLOW_VARIANTS:
+		if _fx_sheet(sheet) == null:
+			return false
+	return true
+
+static func _still() -> bool:
+	return bool(Fx.setting("reduced_motion", false))
+
+func _glow_frames_key() -> int:
+	if _still():
+		return 0
+	var t := Time.get_ticks_msec() / 1000.0
+	var key := int(t * GLOW_FPS) % GLOW_FRAMES
+	if _glow_has_gold:
+		key += 4 * (int(t * GOLD_FPS) % GLOW_FRAMES)
+	if _glow_has_gap:
+		key += 16 * (int(t * THREAD_FPS) % GLOW_FRAMES)
+	return key
+
+func _tick_glow_sheets() -> void:
+	if _glow_pts.is_empty() or get_tree().paused:
+		return
+	if _glow_frames_key() != _glow_key and _glow_sheets_ready():
+		queue_redraw()
+
+func _lay_glow_sheets(map: Node2D, route: PackedVector2Array, states: PackedInt32Array) -> void:
+	if is_instance_valid(_glow_group):
+		_glow_group.visible = false
+	var thread := _fx_sheet(GLOW_THREAD) != null and not _strung.is_empty()
+	var pts := PackedVector2Array()
+	var kinds := PackedInt32Array()
+	for i in route.size():
+		var state := states[i]
+		if state == 1 and thread:
+			for cell in dream_state.route_cells(route[i]):
+				if _strung.has(cell):
+					state = STATE_GAP
+					break
+		pts.append(to_local(map.to_global(Tower.MAP_GRID.calculate_map_position(route[i]))))
+		kinds.append(state)
+	if pts == _glow_pts and kinds == _glow_states:
+		return
+	_glow_pts = pts
+	_glow_states = kinds
+	_glow_has_gold = kinds.has(2) and _fx_sheet(GLOW_GOLD) != null
+	_glow_has_gap = kinds.has(STATE_GAP)
+	queue_redraw()
+
+func _draw_glow_sheets() -> void:
+	if _glow_pts.is_empty() or not _glow_sheets_ready():
+		return
+	_glow_key = _glow_frames_key()
+	var still := _still()
+	var t := Time.get_ticks_msec() / 1000.0
+	var plain := Rect2(Vector2(GLOW_SIZE.x * (0 if still else int(t * GLOW_FPS) % GLOW_FRAMES), 0.0), GLOW_SIZE)
+	var gold_tex := _fx_sheet(GLOW_GOLD)
+	var gold := Rect2(Vector2(GLOW_SIZE.x * (0 if still else int(t * GOLD_FPS) % GLOW_FRAMES), 0.0), GLOW_SIZE)
+	for i in _glow_pts.size():
+		var state := _glow_states[i]
+		if state == 0 or state == STATE_GAP:
+			continue
+		var rect := Rect2((_glow_pts[i] - GLOW_ANCHOR).round(), GLOW_SIZE)
+		if state == 2 and gold_tex != null:
+			draw_texture_rect_region(gold_tex, rect, gold)
+		elif state == 2:
+			draw_texture_rect_region(_fx_sheet(GLOW_VARIANTS[i % 3]), rect, plain, Palette.GOLD)  # multiplier: gold path without its sheet
+		else:
+			draw_texture_rect_region(_fx_sheet(GLOW_VARIANTS[i % 3]), rect, plain)
+	if not _glow_has_gap:
+		return
+	# Strung Lights: the thread from the last glow through the gap to the next (each step between two lit points)
+	var thread_tex := _fx_sheet(GLOW_THREAD)
+	var frame := 0 if still else int(t * THREAD_FPS) % GLOW_FRAMES
+	for i in range(1, _glow_pts.size()):
+		var a := _glow_states[i - 1]
+		var b := _glow_states[i]
+		if a == 0 or b == 0 or (a != STATE_GAP and b != STATE_GAP):
+			continue
+		var from := _glow_pts[i - 1]
+		var length := from.distance_to(_glow_pts[i])
+		if length <= 0.0:
+			continue
+		draw_set_transform(from.round(), from.angle_to_point(_glow_pts[i]))
+		var x := 0.0
+		while x < length:
+			var width := minf(THREAD_SIZE.x, length - x)
+			draw_texture_rect_region(thread_tex, Rect2(x, -THREAD_ANCHOR_Y, width, THREAD_SIZE.y),
+				Rect2(THREAD_SIZE.x * frame + 0.0, 0.0, width, THREAD_SIZE.y))
+			x += THREAD_SIZE.x
+		draw_set_transform(Vector2.ZERO)

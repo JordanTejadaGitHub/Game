@@ -179,21 +179,55 @@ static func note_card_bonus(card_id: String, multiplier: float) -> void:
 		_card_notes_frame = frame
 	_card_notes[card_id] = float(_card_notes.get(card_id, 1.0)) * multiplier
 
+# Shares of a hit a card or evolution made happen WITHOUT multiplying it (Keeping Time's pips: Hand to Hand, Peal,
+# Lingering Note… fill part of the Toll that lands; owner 2026-10-19 "view the damage for the evolutions"): `share` of
+# what the hit dealt beyond the multipliers above is credited to `card_id`. Never in pending_card_product (the x4 cap
+# reads real multipliers only). Same frame rule as the notes; the caller drops leftovers (drop_card_shares).
+const CARD_SHARE_MAX := 0.75  # All shares on one hit together never take more than this of it
+static var _card_shares := {}
+static var _card_shares_frame := -1
+
+static func note_card_share(card_id: String, share: float) -> void:
+	if card_id == "" or share <= 0.0:
+		return
+	var frame := Engine.get_physics_frames() + Engine.get_process_frames()
+	if frame != _card_shares_frame:
+		_card_shares.clear()
+		_card_shares_frame = frame
+	_card_shares[card_id] = float(_card_shares.get(card_id, 0.0)) + share
+
+static func drop_card_shares() -> void:
+	_card_shares.clear()
+
 static func take_card_bonuses(dealt: float) -> Dictionary:
 	var out := {}
-	if _card_notes.is_empty():
+	var shares := {}
+	if not _card_shares.is_empty():
+		if _card_shares_frame == Engine.get_physics_frames() + Engine.get_process_frames():
+			shares = _card_shares.duplicate()
+		_card_shares.clear()
+	if _card_notes.is_empty() and shares.is_empty():
 		return out
-	if _card_notes_frame != Engine.get_physics_frames() + Engine.get_process_frames() or dealt <= 0.0:
+	if dealt <= 0.0 or (not _card_notes.is_empty() and _card_notes_frame != Engine.get_physics_frames() + Engine.get_process_frames()):
 		_card_notes.clear()
-		return out
+		if dealt <= 0.0:
+			return out
+	var added := 0.0
 	var logs := 0.0
 	for id in _card_notes:
 		logs += log(float(_card_notes[id]))
 	if logs > 0.0:
-		var added := dealt * (1.0 - exp(-logs))
+		added = dealt * (1.0 - exp(-logs))
 		for id in _card_notes:
 			out[id] = added * log(float(_card_notes[id])) / logs
 	_card_notes.clear()
+	if not shares.is_empty():
+		var total := 0.0
+		for id in shares:
+			total += float(shares[id])
+		var scale := minf(1.0, CARD_SHARE_MAX / total) if total > 0.0 else 0.0
+		for id in shares:
+			out[id] = float(out.get(id, 0.0)) + (dealt - added) * float(shares[id]) * scale
 	return out
 
 const NO_WEIGHTS := {}  # (Read only: _credit only iterates it)
