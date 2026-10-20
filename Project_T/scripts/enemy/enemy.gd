@@ -139,7 +139,7 @@ const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
 const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"asleep", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
-const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
+const HUD_TIME_FRAMES := 6  # The time bars under the icons are looked at every this many frames (_update_hud; was 4: perf 2026-10-19)
 const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
 const TIME_BAR_HEIGHT := 3.0
 # The HUD's canvas items (update_hud), each kind on its own z layer so the whole field batches.
@@ -172,6 +172,9 @@ const REACTION_BONUS_ONLY := {&"shatter": Reactions.SHATTER_MULTIPLIER, &"pinned
 	&"lightning_rod": Reactions.ROD_MULTIPLIER,
 	&"smother": Reactions.SMOTHER_BURST}  # (council rx review 2026-10-17) only the burst's bonus half is the Reaction's
 const STATUS_FLASH_TIME := 0.3  # A status icon flashes when a combo uses it (see flash_status)
+# Effect tags whose damage already carries its Warden's Potency (take_damage skips effect_multiplier; a const so a hit
+# doesn't build the array)
+const POTENCY_EXEMPT: Array[StringName] = [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]
 # The status row and the nightmare itself (screens_ui.md "Status row: Reaction-ready marks and falling asleep", 2026-10-18).
 const READY_COLOR := Palette.DEWLIGHT  # Reaction-ready: four corner brackets round the icon (a shape, not only a colour)
 const READY_PULSE_TIME := 1.6  # Seconds per breath of the brackets' gentle pulse (still under reduced motion)
@@ -588,63 +591,103 @@ static func _end_hooks(dreams: DreamState) -> bool:
 		_end_hooks_on = dreams.has_rule(&"afterroot") or dreams.has_rule(&"dream_residue")
 	return _end_hooks_on
 
+# Far LOD (perf, owner 2026-10-19): a nightmare off screen that nothing has hit or given a status for LOD_QUIET s (so no
+# Warden is on it) runs its whole update every LOD_EVERY frames, staggered, with the time it skipped: bigger walk steps,
+# statuses ticked in one batch, its badges and looks only then. Bosses, and anything on the bridge, at the Heartwood,
+# dragged or leaping, always run every frame; a hit or a status, or coming into view, puts it back at once.
+const LOD_EVERY := 4
+const LOD_QUIET := 1.5
+var _lod_acc := 0.0  # Seconds skipped, still to run
+var _quiet_for := 0.0  # Seconds since a hit or a status landed on it
+var _logic_acc := 0.0  # Half-rate logic: seconds since its statuses, badges and presence last ran
+var _lod_slot := -1  # Its frame in the LOD_EVERY cycle (from its instance id: neighbours spread out)
+
+func _far_lod() -> bool:
+	return _quiet_for >= LOD_QUIET and not enemy_data.is_boss and not at_heartwood and _entry.is_empty() \
+		and not _dragging and not _leaping and not _on_screen(self)
+
 func _process(delta: float) -> void:
 	if is_cleansed or (_path_index >= _path.size() and not at_heartwood):
 		return
+	if _far_lod():
+		_lod_acc += delta
+		if _lod_slot < 0:
+			_lod_slot = get_instance_id() % LOD_EVERY
+		if (Engine.get_process_frames() + _lod_slot) % LOD_EVERY != 0:
+			return
+		delta = _lod_acc
+		_lod_acc = 0.0
+	elif _lod_acc > 0.0:
+		delta += _lod_acc  # Back to every frame: the skipped time runs now
+		_lod_acc = 0.0
+	_quiet_for += delta
 
-	# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
-	var thin: bool = _spawner != null and _spawner.thin_cards
-	var was_caught := false
-	var was_held := false
-	if thin:
-		statuses.marked_bonus = _spawner.marked_bonus  # Bright Marks
-		was_caught = statuses.is_caught()
-		if statuses.caught_time > _caught_left + 0.0001:
-			_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
-		was_held = statuses.is_held()
-		if was_held:
-			_held_by = statuses.source(EnemyStatuses.HELD)
-		_web_cooldown = maxf(_web_cooldown - delta, 0.0)
-	elif statuses.marked_bonus != 0.0:
-		statuses.marked_bonus = 0.0
-	# Afterroot / Dream Residue read a hold or a catch ending: only while one of them is held (perf: this was a group
-	# lookup and three status reads for every nightmare every frame)
-	if _batch_dreams == null and is_inside_tree():
-		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # (Once, as take_damage)
-	var unique_dreams := _batch_dreams if is_instance_valid(_batch_dreams) and _end_hooks(_batch_dreams) else null
-	var unique_held := unique_dreams != null and statuses.is_held()
-	var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
-	var unique_caught := unique_dreams != null and statuses.is_caught()
-	var spore_soothe := statuses.tick(delta)
-	if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
-		DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
-	if thin:
-		if was_caught and not statuses.is_caught():
-			_on_caught_lapsed()
-		_caught_left = statuses.caught_time
-		if was_held and not statuses.is_held():
-			_on_hold_ended()
+	# Half-rate logic (perf, owner 2026-10-19; EnemySpawner.half_rate_logic, the real game): statuses and their hooks and
+	# presence run every other frame (staggered) with the time between; walking, the badges and the looks every frame.
+	var logic_now := true
+	var ld := delta
+	if _spawner != null and _spawner.half_rate_logic:
+		_logic_acc += delta
+		if _lod_slot < 0:
+			_lod_slot = get_instance_id() % LOD_EVERY
+		logic_now = (Engine.get_process_frames() + _lod_slot) % 2 == 0
+		if logic_now:
+			ld = _logic_acc
+			_logic_acc = 0.0
+	if logic_now:
+		# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
+		var thin: bool = _spawner != null and _spawner.thin_cards
+		var was_caught := false
+		var was_held := false
+		if thin:
+			statuses.marked_bonus = _spawner.marked_bonus  # Bright Marks
+			was_caught = statuses.is_caught()
+			if statuses.caught_time > _caught_left + 0.0001:
+				_lingered = false  # Caught again (a Dreamcatcher's tick): its next lapse lingers again
+			was_held = statuses.is_held()
+			if was_held:
+				_held_by = statuses.source(EnemyStatuses.HELD)
+			_web_cooldown = maxf(_web_cooldown - ld, 0.0)
+		elif statuses.marked_bonus != 0.0:
+			statuses.marked_bonus = 0.0
+		# Afterroot / Dream Residue read a hold or a catch ending: only while one of them is held (perf: this was a group
+		# lookup and three status reads for every nightmare every frame)
+		if _batch_dreams == null and is_inside_tree():
+			_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # (Once, as take_damage)
+		var unique_dreams := _batch_dreams if is_instance_valid(_batch_dreams) and _end_hooks(_batch_dreams) else null
+		var unique_held := unique_dreams != null and statuses.is_held()
+		var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
+		var unique_caught := unique_dreams != null and statuses.is_caught()
+		var spore_soothe := statuses.tick(ld)
+		if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
+			DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
+		if thin:
+			if was_caught and not statuses.is_caught():
+				_on_caught_lapsed()
+			_caught_left = statuses.caught_time
+			if was_held and not statuses.is_held():
+				_on_hold_ended()
+				if is_cleansed:
+					return
+		if unique_dreams != null and unique_caught and not statuses.is_caught():
+			var catcher_ref = get_meta(&"unique_catcher") if has_meta(&"unique_catcher") else null
+			var catcher = catcher_ref.get_ref() if catcher_ref is WeakRef else null
+			DreamState.UNIQUE_PATH.caught_exited(unique_dreams, self, catcher, unique_dreams._game_clock)
+		if spore_soothe > 0.0:
+			var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+			if dreams != null:
+				spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Soaked Rot: harder on Soaked nightmares
+			BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
+			statuses.delivering_spore_tick = true
+			take_damage(spore_soothe, statuses.spore_tick_line, true, false, statuses.spore_tick_source,
+				&"spored")
+			statuses.delivering_spore_tick = false
 			if is_cleansed:
 				return
-	if unique_dreams != null and unique_caught and not statuses.is_caught():
-		var catcher_ref = get_meta(&"unique_catcher") if has_meta(&"unique_catcher") else null
-		var catcher = catcher_ref.get_ref() if catcher_ref is WeakRef else null
-		DreamState.UNIQUE_PATH.caught_exited(unique_dreams, self, catcher, unique_dreams._game_clock)
-	if spore_soothe > 0.0:
-		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-		if dreams != null:
-			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Soaked Rot: harder on Soaked nightmares
-		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
-		statuses.delivering_spore_tick = true
-		take_damage(spore_soothe, statuses.spore_tick_line, true, false, statuses.spore_tick_source,
-			&"spored")
-		statuses.delivering_spore_tick = false
-		if is_cleansed:
-			return
-	if statuses.smother_ended:
-		Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
-		if is_cleansed:
-			return
+		if statuses.smother_ended:
+			Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
+			if is_cleansed:
+				return
 	# Timers: only the running ones count down (most sit at 0; this runs for every nightmare every frame).
 	if _bolt_flash > 0.0:
 		_bolt_flash = maxf(_bolt_flash - delta, 0.0)
@@ -718,7 +761,8 @@ func _process(delta: float) -> void:
 		_update_hud(delta)
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
-	_update_presence(delta)
+	if logic_now:
+		_update_presence(ld)  # (Half-rate logic: reveals, fog and the per-kind presence with the time between)
 
 	if _dragging:
 		_update_drag(delta)  # Pulled back: no walking, traits or trampling meanwhile
@@ -2910,7 +2954,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, source: Node, tag: StringName) -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
-	if source is Tower and Reactions.is_effect(tag) and tag not in [&"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire"]:
+	if source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
@@ -2936,6 +2980,7 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
+	_quiet_for = 0.0  # (Far LOD: a hit puts it back on every frame)
 	sorrowing = false  # (Her walk comes back at once: update_animation)
 	var pierce := pierce_coat_once
 	pierce_coat_once = false
@@ -2998,6 +3043,7 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
 	if is_cleansed or _untouchable:
 		return
+	_quiet_for = 0.0  # (Far LOD: a Warden is on it)
 	if id in statuses.immune or (rolling and id in enemy_data.immune_while_sprinting):
 		_refuse_status(id)  # Night Hound: can't be Held mid-sprint
 		return

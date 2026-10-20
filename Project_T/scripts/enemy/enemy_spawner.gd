@@ -263,7 +263,14 @@ func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: N
 		_ripple_times.append(now)
 		ripple.modulate = Color(Palette.HEARTLIGHT, 0.8)  # multiplier: Dream's warm tint on the dust
 
+# Half-rate logic (perf, owner 2026-10-19): in the real game every nightmare ticks its statuses (and their hooks) and presence on
+# every other frame (staggered, with the time between); walking, badges and looks every frame (Enemy._process). Tests get
+# every frame unless they set force_lane (test_perf_stress does, to measure the game as it runs).
+var half_rate_logic := false
+var force_lane := false
+
 func _process(delta: float) -> void:
+	half_rate_logic = force_lane or (owner != null and get_tree().current_scene == owner)
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
 	hud_frame = Engine.get_process_frames()
 	low_detail_now = EnvironmentTiles.low_detail()

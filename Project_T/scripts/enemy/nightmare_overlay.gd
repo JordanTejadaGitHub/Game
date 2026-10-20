@@ -16,7 +16,7 @@ const Z := 7  # Above the field, its effects and the edge fog (EnvironmentAmbien
 # bars, tinted), a soft round glow (behind an icon at max stacks), a round dot (the stack pips) and a
 # rounded pill (behind a stack count). Cells of CELL px.
 const CELL := 32
-const TIME_STEPS := 12  # The time bars shorten in this many steps (rebuilt once a step)
+const TIME_STEPS := 8  # The time bars shorten in this many steps (rebuilt once a step; was 12: perf 2026-10-19, 2 px a step)
 enum { MARK_SOLID, MARK_GLOW, MARK_DOT, MARK_PILL }
 
 var spawner: Node2D

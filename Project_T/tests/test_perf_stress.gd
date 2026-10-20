@@ -43,6 +43,7 @@ func _run() -> void:
 	await process_frame
 	map = main.get_node("%MapGenerator")
 	spawner = main.get_node("%EnemyContainer")
+	spawner.force_lane = true  # The game's half-rate nightmare logic (it runs in the real game; tests get every frame by default)
 	container = main.get_node("%TowerContainer")
 	_fill_map()
 	_spawn_spread()
