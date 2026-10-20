@@ -200,6 +200,16 @@ each tier is clearly louder than the one below. Effects are in `assets/effects/`
 | **Signature** | final-form moments | its own big effect (`thunderhead_strike`, `monsoon_sweep`, `moonstone_beam`, `puffball_bloom`, `long_way_home_drag`) |
 | **Chain** | ×5 / ×10 | `chain_badge` + digits; ×5: hitstop + `surge`; ×10: **Dawnburst** (`dawnburst`), Wardens flare, music stinger |
 
+**Revised 2026-10-19 (game-feel review; user asked the new game-feel skill to look over the game):** an ordinary
+**Reaction no longer shakes the screen** (they fire constantly and the shake drifted the camera). **Screen shake** is
+one decaying "trauma" value that always returns to centre (smooth waves, never a fresh random step each frame), off
+under reduced motion, and only for: a **Crowned Reaction**, a ×5 / ×10 chain, a top-tier heavy hit (T3), a **leaf
+lost** (small; bigger when a boss bites), a **boss arriving** (a short low rumble) and a **boss dispelled** (the
+largest: plus a hitstop through Fx and a big burst). Every other moment keeps the feedback of its row above. Also:
+planting, growing and Nurture get a small squash-and-overshoot pop (and a dust puff on planting); a lost leaf makes
+the Heartwood tremble; the run's end gets a short real-time dim before the results ease in. All of it eased (never
+linear), back to rest within a moment, and honouring reduced motion / reduce flashes.
+
 **Reaction callouts** (colours from the art chat, matching each effect):
 
 | Reaction | Callout | Colour | Effect |
