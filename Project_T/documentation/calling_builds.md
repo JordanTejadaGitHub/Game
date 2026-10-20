@@ -68,9 +68,10 @@ and `lent_evolution_builds.md`. Read-only research; nothing was run.
 
 - Any Warden's dispel counts. Mushrooms stay through a rest; 40 at most.
 - **Flyers pass over mushrooms.** Every Spore Print build is weak to flyers.
-- Sporeling lent cards (8): Breathe It In (C), Pass It Round (C), Spore Huddle (C), Mycelium (U), Overnight (U),
-  Settling Spores (U), Gone to Seed (R), Mixed Company (R). None of them names mushrooms or doses: they make every
-  status stack faster.
+- Sporeling lent cards (10): Breathe It In (C), Pass It Round (C), Spore Huddle (C), Fruiting (C), Mycelium (U),
+  Overnight (U), Settling Spores (U), Parting Puff (U), Gone to Seed (R), Mixed Company (R). None of them names mushrooms
+  or doses: most make every status stack faster; Fruiting and Parting Puff pay plain hits (non-status builds).
+- **Overnight** is offered only once the run has a second family.
 
 ### S1 Windblown carpet (Spread)
 
@@ -103,7 +104,7 @@ plant again, and are the first to go when there are too many.
 | Family | Rating | Key cards | Why |
 |---|---|---|---|
 | Firefly | strong | Brushfire (R), Chain of Lanterns (U), Thunderstruck (R) | Jars bring Charge; Drifting Spores adds 2 to it on everyone walking the carpet. Ignite. Brushfire jumps the Poison ticks. |
-| Dewdrop | strong | Ebb (U), Steeped (C), Slow to Dry (U) | Linger keeps Poison ticking; Ebb brings it back at half. Soaked Rot (C, two-family) doubles ticks on Soaked nightmares. |
+| Dewdrop | strong | Ebb (U), Steeped (C), Heavy Going (U) | Linger keeps Poison ticking; Ebb brings it back at half. Soaked Rot (C, two-family) doubles ticks on Soaked nightmares. |
 | Bellflower | works | Second Verse (U), Knell (U) | Second Verse lands the last status again as nightmares leave a bell. Bell repeats are damage only, and Sporelings deal most damage through ticks. |
 
 **Signs it's working:**
@@ -157,13 +158,15 @@ Spore Cascade (R, needs Driftspore); Deep Sleep (R, act 2, bittersweet).
 Poison if a Sprout touches it.
 
 **Follow-ups (drift 25):**
-- **Catching:** a nightmare that takes a dose passes half of it to the first nightmare it bumps into within 2 s.
-  → Capstone **Outbreak:** a passed-on dose can pass on again, up to 3 times, halving each time.
+- **Stomping Ground:** a nightmare stepping on a mushroom takes a free hit from each attacking Warden touching that
+  step (up to 3, the strongest first; each Warden once a second; bosses half).
+  → Capstone **Second Crop:** any dispel within 2 steps of a mushroom leaves a pale mushroom, Poison or not.
 - **Feeding Ground:** for 4 s after a dose, Wardens touching that step add 1 more stack with each status hit on it.
   → Capstone **Mother Spore:** a mushroom left by a dispel keeps that nightmare's statuses; the next stepper gets
   2 stacks of each (at most 4 statuses).
-- **Most players take Feeding Ground first:** it pays the new family's Wardens standing beside the mushrooms. Take
-  Catching against dense packs.
+- **Pick by your board.** Feeding Ground pays status Wardens beside the mushrooms. Stomping Ground is the hit line:
+  any attacking Wardens on the mushroom steps strike every stepper, and Second Crop keeps the carpet alive without
+  Poison dispels. It is Spore Print's non-status build.
 
 **Cards that fit (Sporeling lent):**
 - Pass It Round (C): the touching Wardens are the ones Borrowed Spores reads.
@@ -177,12 +180,12 @@ Poison if a Sprout touches it.
 | Family | Rating | Key cards | Why |
 |---|---|---|---|
 | Bellflower | works | Second Verse (U), Knell (U), Nod Off (C) | Mushrooms hand out the bell's Sleep; Sleepwalkers walk back over mushrooms and take more doses. |
-| Dewdrop | strong | Steeped (C), Slow to Dry (U), High Tide (U) | Borrowed Soak plus Poison, held on by linger. Mushrooming. |
+| Dewdrop | strong | Steeped (C), High Tide (U), Heavy Going (U) | Borrowed Soak plus Poison, held on by linger. Mushrooming. |
 | Firefly | works | Thunderstruck (R), Hammerfall (C) | Every dosed nightmare carries a status, so Thunderstruck always has targets. Jars give Charge to borrow. |
 
 **Signs it's working:**
 - Drift 25: before 25 it only borrows Poison. **Damage first:** run 46 (this style plus 3 Bloomcaps) died at 10.
-- Drift 45: Feeding Ground or Catching visible; panel about 50%.
+- Drift 45: Feeding Ground or Stomping Ground visible; panel about 50%.
 - Not working: fewer than about 20 attackers at 25.
 
 **Expected stop:** 45–50 (target). The weakest act 1 of the three Sporeling styles.
@@ -295,7 +298,7 @@ different nightmares.
 **Cards that fit (Firefly lent):**
 - Hammerfall (C): heavy non-Firefly Wardens and Sprouts near a Firefly jump half. Same verb as Borrowed Light; the two
   jumps go to different nightmares.
-- Thunderstruck (R): a heavy Warden near a Firefly jumps a quarter to up to 4 status-carrying nightmares, adding Charge.
+- Thunderstruck (R): a heavy Warden near a Firefly jumps a quarter to up to 4 nightmares hit in the last 2 s, adding Charge.
 - Sparks Fly (C), Chain of Lanterns (U), Struck Twice (C), Gathering Storm (R).
 
 **Generic cards that fit:** Millstone (U, act 1); Heavy Heart (R, act 2); Seedfall, Root Network (R); Mother's Hand
@@ -323,8 +326,9 @@ different nightmares.
 > gain Soak.
 
 - Touching = within 1.25 cells. A step is one cell of path. A splash Soaks each nightmare at most once a second.
-- Dewdrop lent cards (10): Sodden (C), Steeped (C), Topped Up (C), Wash Away (C), Ebb (U), High Tide (U), Last Drop
-  (U), Slow to Dry (U), Never Quite Dry (R), Old Rain (R).
+- Dewdrop lent cards (10): Sodden (C), Steeped (C), Topped Up (C), Wash Away (C), Ebb (U), Heavy Going (U), High Tide
+  (U), Last Drop (U), Never Quite Dry (R), Old Rain (R). Heavy Going (Dewdrops and Wardens near them +25% on slowed
+  nightmares, not Sleep's slow) replaced Slow to Dry on 2026-10-19: the payoff for every slow.
 - **No human run has started on Dewdrop.** Every Dewdrop-first number is a target.
 - The Calling's own linger (Riverside, Stagnant Water) has its own cap: up to 4 s past the last landing, on top of the
   linger cards.
@@ -375,8 +379,8 @@ Shared Fever (U); Wide Petals (C) and Crowd Breaker (U) for Rain Lily splashes.
 Dewdrops (bosses slowed half as much; hits only).
 
 **Follow-ups (drift 25):**
-- **Whirlpool:** a nightmare in a pond that reaches full Soak is pulled back 2 steps (once per pond and nightmare;
-  never bosses or flyers).
+- **Whirlpool:** a Dewdrop's 3rd hit on a nightmare in a pond pulls it back 2 steps (once per pond and nightmare;
+  never bosses or flyers). It needs no Soak, so Black Pond is Puddles' non-status build (with Heavy Going).
   → Capstone **Drowning Deep:** the pull drags nightmares within 1 cell back too (at most 4), and every Warden touching
   the pond gets a free hit on the pulled one.
 - **Stagnant Water:** statuses on nightmares in a pond don't run down while they stay in it (not Sleep or Root).
@@ -412,8 +416,8 @@ pull); Deep Water (U, needs Dewdrop: Drown lasts 4 s and grows faster); Deep Sle
 to Soaked nightmares in it. Dewdrops count for the time; only Sprouts for the damage.
 
 **Follow-ups (drift 25):**
-- **Rain on the Bank:** a splash gives each nightmare it reaches 1 stack of the status of each other Warden touching
-  that water (at most 3; Sleep stops 1 short of full).
+- **Rain on the Bank:** a splash gives each nightmare it reaches 1 stack of the status of each Warden touching
+  that water, Dewdrops too (at most 3; Sleep stops 1 short of full).
   → Capstone **Downpour:** a splash reaching 4 or more nightmares makes every other Warden touching that water attack
   one of them at once (each Warden once every 4 s).
 - **Wet Footprints:** a Soaked nightmare leaving water leaves wet steps for 3 s; wet steps count as water.
@@ -423,7 +427,7 @@ to Soaked nightmares in it. Dewdrops count for the time; only Sprouts for the da
   Wet Footprints on spread-out boards with short water.
 
 **Cards that fit (Dewdrop lent):**
-- Steeped (C), Topped Up (C), Slow to Dry (U), Ebb (U): linger. Riverside adds on top of them.
+- Steeped (C), Topped Up (C), Ebb (U): linger. Riverside adds on top of them.
 - Old Rain (R): a Reaction near a Dewdrop deals 40% more if it spends a status a card made last longer.
 - Never Quite Dry (R): a Reaction near a Dewdrop leaves the spent statuses at half.
 
@@ -500,8 +504,8 @@ damage instead of half. Where bells overlap, the path glows gold.
 
 **Follow-ups (drift 25):**
 - **Crescendo:** each Toll makes the next Toll on that nightmare 25% stronger, up to +100%.
-  → Capstone **Midnight Bell:** the 12th ring is a Midnight Toll: every damaging status deals its damage at once and
-  stays (Poison ticks once, Charge bolts, Soak calls up to 2 Dewdrops near it for a free hit).
+  → Capstone **Midnight Bell:** the 12th ring is a Midnight Toll: the bell hits for triple damage (with Crescendo), and
+  every damaging status deals its damage at once and stays. A hit build gets the triple blow alone.
 - **Hush-a-bye:** each Toll adds 2 Sleep; 3 Tolls within 6 s puts a nightmare asleep for 1 s (never bosses).
   → Capstone **Sleeping Hall:** when it wakes, its next Toll within 3 s also hits up to 4 touching nightmares at half.
 - **Most players take Crescendo first** for damage against elites. Take Hush-a-bye when fast streams leak: it is the
@@ -585,7 +589,7 @@ dispelled, dead at 32 (before the boss was eased). Run 43 died at 44 to elites.
 | F3 | Lantern Light | Support | Other families' hits jump in light | Borrowed Light → Lantern Wake | Hammerfall, Thunderstruck, Chain of Lanterns | Sporeling | S3, D3, B3 |
 | D1 | Puddles | Spread | Long water carries Soak and statuses | Stream → Millrace | Sodden, Ebb, High Tide | Firefly | D2, S1, B1 |
 | D2 | Puddles | Focus | Slow pond pulls nightmares back | Black Pond → Whirlpool | High Tide, Never Quite Dry, Wash Away | Sporeling | S2, F2, B2 |
-| D3 | Puddles | Support | Bank Wardens' statuses ride the splash | Riverside → Rain on the Bank | Steeped, Slow to Dry, Old Rain | Sporeling or Firefly | S3, F3, B3 |
+| D3 | Puddles | Support | Bank Wardens' statuses ride the splash | Riverside → Rain on the Bank | Steeped, Old Rain, Ebb | Sporeling or Firefly | S3, F3, B3 |
 | B1 | Keeping Time | Spread | Rings carry down a long maze | Carrying Tune → Hand to Hand | Second Verse, In Time, Knell | Dewdrop | B2, F1, D1 |
 | B2 | Keeping Time | Focus | Overlapping bells, full-damage Tolls | Steady Beat → Crescendo / Hush-a-bye | Da Capo, Refrain, Rude Awakening | Firefly | B1, F2, D2 |
 | B3 | Keeping Time | Support | Neighbours ring and Toll too | Accompaniment → Chime of Many | In Time, On the Beat, Refrain | Sporeling | S3, F3, D3 |
@@ -616,11 +620,26 @@ bend kill zone; every Support build wants Sprouts and mixed Wardens touching the
 8. **Riverside** now gives the Charge 2 s limit like the other linger texts.
 9. **Stagnant Water** now says "bosses' statuses run down at half speed".
 
+### Non-status builds (2026-10-19, commit 9cf6d480)
+
+A build that wins with hits, jumps, Tolls, heavy hits and placement, not statuses or Reactions. Every family's
+Wardens still put their own status on; nothing in these builds reads it.
+
+- **Spore Print:** Borrowed Spores → Stomping Ground → Second Crop. Cards: Fruiting, Parting Puff; Cozy Corners,
+  Gauntlet, First Light. Partner: Bellflower (In Time, On the Beat, Refrain) or Firefly (Hammerfall, Sparks Fly).
+- **Lantern Light:** Strung Lights → Torchbearers → Bale-fires, or Bonfire → Embers → Witchfire. Cards: Sparks Fly,
+  Struck Twice, Gathering Storm, Flashover. Partner: Bellflower (Refrain) or Sporeling (Fruiting, Parting Puff).
+- **Puddles:** Black Pond → Whirlpool → Drowning Deep. Cards: Heavy Going, Sodden, Wash Away; Switchback. Partner:
+  Bellflower (Da Capo, On the Beat) or Firefly (Hammerfall, Thunderstruck).
+- **Keeping Time:** Carrying Tune → Hand to Hand → Peal, or Steady Beat → Crescendo → Midnight Bell (the triple blow).
+  Cards: In Time, Refrain, Da Capo, On the Beat. Partner: Firefly (Sparks Fly, Struck Twice) or Sporeling (Fruiting).
+- Every family's lent set now holds cards a hit board wants: Sporeling 2, Firefly 7 (Thunderstruck now targets
+  nightmares hit in the last 2 s), Dewdrop 3, Bellflower 4.
+- **How to tell it works:** status cards under 20% of card damage in the Dream damage panel, and the run within 3
+  drifts of a status run on the same Calling. Unmeasured.
+
 ### Still open (design calls)
 
-- **Slow has makers but no payoff.** Sticky Caps, Mire-Mouth, Black Pond, Spring Flood and Switchback all slow. The
-  payoff is time in range: more hits, more statuses. No card rewards a slowed nightmare directly. A slow-payoff card
-  would need a council pass.
 - **Dewdrop Stream / Black Pond with Bellflower second is thin.** Neither evolution carries Sleep, so Drown relies on
   bells alone. Riverside with Bellflower works (Rain on the Bank carries Sleep).
 - **Embers, Witchfire and Peal** have no card that names them; they feed the jump and Toll cards.
@@ -632,6 +651,5 @@ bend kill zone; every Support build wants Sprouts and mixed Wardens touching the
 - **Nothing Wasted, Wash Away, Last Drop:** shell and edge-case cards. They fit any build of their family but pay no
   style. Take them for the elites, not the build.
 - **Brushfire** does nothing on a Firefly-first run until Poison or cloud Wardens arrive. It is a partner card.
-- **Overnight and Slow to Dry** need another family's status. On their own family's Calling they do nothing before
-  drift 25.
+- **Overnight** needs another family's status, so it waits for a second family.
 - **Spore Huddle** pays only Sporelings packed together: Clump and Windblown, not Support boards.
