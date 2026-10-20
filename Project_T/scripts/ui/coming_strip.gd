@@ -51,6 +51,7 @@ func _ready() -> void:
 	_kind_words.add_theme_constant_override("separation", 0)
 	_kind_words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_kind_words)
+	move_child(_kind_words, 1)  # In the caption's place, over the discs
 	_phone = UiStyle.is_phone()
 	if _phone:
 		_caption.visible = false
@@ -210,7 +211,7 @@ func _build(span: Vector2i) -> void:
 const KIND_WORDS := {EnemyData.Kind.ARMOURED: "heavy hits crack its shell", EnemyData.Kind.FLYING: "flies over your maze",
 	EnemyData.Kind.HIDDEN: "can't be targeted until a Warden reveals it", EnemyData.Kind.SWARM: "comes as a crowd; area attacks catch them all",
 	EnemyData.Kind.FAST: "outruns a thin maze; slows and holds keep it in reach"}
-const KIND_WORDS_WIDTH := 420.0
+const KIND_WORDS_WIDTH := 560.0  # One line for the longest (Fast) at 15 px
 var _kind_words := VBoxContainer.new()
 
 # [[Kind, EnemyData, drift], …]: the Kinds (not Plain, never bosses) first arriving in drifts `first`..`last` this run.
@@ -254,6 +255,8 @@ func _build_kind_words(_span: Vector2i) -> void:
 		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		_kind_words.add_child(words)
 	_kind_words.visible = _kind_words.get_child_count() > 0
+	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
+		_caption.visible = not _kind_words.visible
 
 # The kind items, whichever row they're on.
 func items() -> Array:

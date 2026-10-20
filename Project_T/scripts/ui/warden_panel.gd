@@ -1609,6 +1609,8 @@ func _fit_height() -> void:
 	var wanted := _content.get_combined_minimum_size().y
 	# The header and notes never scroll (story chat 2026-10-05); only an open Details gives way.
 	var floor_info := wanted - (_details.get_combined_minimum_size().y if _details.visible else 0.0)
+	# …unless they'd push the panel off the top: then they scroll too (test_panel_fits at 1280×720, a Sprout's notes)
+	floor_info = minf(floor_info, screen - TOP_CLEAR - BOTTOM_MARGIN - actions)
 	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, maxf(floor_info, MIN_INFO)))
 	# No reset_size(): the panel is anchored to the bottom and grows upward; resetting kept its top and pushed
 	# the buttons off the bottom of the screen (the "can't upgrade" bug). It's placed from its bottom edge instead.
