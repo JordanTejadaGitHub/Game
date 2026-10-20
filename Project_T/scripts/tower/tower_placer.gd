@@ -980,7 +980,7 @@ func _draw_link_preview(cell: Vector2, reach: float, skip: Tower, spot: Vector2 
 		var struck := {}
 		for point in link.points:
 			struck[FindPath.point_to_node(point)] = MAP_GRID.calculate_map_position(point)
-		BranchKit.draw_link_strike(self, from, BranchKit.link_end(partner), struck, BranchKit.LINK_COLOR, 0.62)
+		BranchKit.draw_link_strike(self, from, BranchKit.link_end(partner), struck, BranchKit.LINK_COLOR, 0.62, {}, preview_route())
 		# The arc where it will really run: the link's ground segment, in from each base (as BranchKit.FenceLayer draws it).
 		var end := BranchKit.link_end(partner)
 		var along := (end - from).normalized()

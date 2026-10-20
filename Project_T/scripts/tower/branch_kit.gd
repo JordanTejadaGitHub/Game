@@ -588,23 +588,39 @@ static func link_band(from: Vector2, to: Vector2) -> PackedVector2Array:
 	var side := (to - from).normalized().orthogonal() * (LINK_HALF_WIDTH + LINK_BODY)
 	return PackedVector2Array([from + side, to + side, to - side, from - side])
 
-# Draws the path a link strikes (`halves`: {half: its centre px}, from link_points, merged across links by the caller) in
-# the path's own shape, as lit paths are drawn (Tower.LitPaths.draw_halves: one wash over the path halves, kept off the
-# grass, an end rim where the path goes on unstruck). The user, 2026-10-14 (screens_ui.md 810f2dbe): no cell squares.
-# `route_halves`: {half: true} of the whole route (read from the map when not given). `canvas` draws in its local space.
+# Draws the path a link strikes (`halves`: {half: its centre px}, from link_points, merged across links by the caller) as a
+# soft strip along the route points it really hits, in route order, in `colour` (a wide faint band with a thin bright
+# core): the path's own line, never a tile. The user, 2026-10-14 / 2026-10-19 (screens_ui.md 810f2dbe): a link crossing
+# the path strikes 1-3 halves, and the lit path's per-half wash (Tower.LitPaths.draw_halves) drew those as blue squares.
+# `order`: the route the halves were taken from (read from the map when empty); `_route_halves` is kept for callers.
+# `canvas` draws in its local space.
+const STRIKE_BAND := 24.0  # px: about a nightmare body across, the path's width
+const STRIKE_CORE := 4.0
 static func draw_link_strike(canvas: Node2D, _from: Vector2, _to: Vector2, halves: Dictionary, colour: Color, strength: float,
-		route_halves: Dictionary = {}) -> void:
+		_route_halves: Dictionary = {}, order: PackedVector2Array = PackedVector2Array()) -> void:
 	if halves.is_empty():
 		return
-	var route := route_halves
+	var route := order
 	if route.is_empty():
-		route = {}
 		var dreams: DreamState = canvas.get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if canvas.is_inside_tree() else null
 		var map = dreams.map_generator if dreams != null else null
 		if map != null:
-			for point in map.get_path_from(map.startPath):
-				route[FindPath.point_to_node(point)] = true
-	Tower.LitPaths.draw_halves(canvas, halves, route, strength, colour, Palette.HEARTLIGHT)
+			route = map.get_path_from(map.startPath)
+	var run := PackedVector2Array()
+	for i in route.size() + 1:
+		var struck := i < route.size() and halves.has(FindPath.point_to_node(route[i]))
+		if struck:
+			if run.is_empty() and i > 0:  # In from halfway to the point before: a lone point still reads as a stretch of path
+				run.append(canvas.to_local(Tower.MAP_GRID.calculate_map_position((route[i - 1] + route[i]) / 2.0)))
+			run.append(canvas.to_local(Tower.MAP_GRID.calculate_map_position(route[i])))
+		elif not run.is_empty():
+			if i < route.size():  # Out to halfway to the next point
+				run.append(canvas.to_local(Tower.MAP_GRID.calculate_map_position((route[i - 1] + route[i]) / 2.0)))
+			if run.size() == 1:
+				run.append(run[0] + Vector2(0.5, 0))
+			canvas.draw_polyline(run, Color(colour, strength * 0.45), STRIKE_BAND, true)
+			canvas.draw_polyline(run, Color(colour, minf(strength + 0.3, 0.95)), STRIKE_CORE, true)  # (Palette colours only: the link colour, brighter)
+			run = PackedVector2Array()
 
 # The points of `route` (route coordinates: one per path half) the link strikes: what the ground mark and the
 # previews show. A nightmare walks from point to point, so it is hit exactly on these.
