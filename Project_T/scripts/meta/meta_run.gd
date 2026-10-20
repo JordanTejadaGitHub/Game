@@ -253,6 +253,7 @@ func _ready() -> void:
 	_milestones_at_start = memory.milestones.duplicate()
 	_counters_at_start = memory.counters.duplicate()
 	_apply_grove(memory)
+	_mark_fresh_cards(memory)
 	_apply_leaf_dew_trade()
 	if all_families:
 		_apply_all_families()
@@ -296,6 +297,29 @@ func _apply_all_families() -> void:
 			for id in unlock.dream_cards:
 				if not dream_state.grove_cards.has(id):
 					dream_state.grove_cards.append(id)
+
+# Newly planted cards (Roguelite Code's Grove card council, e29d302a): the Dream cards of nodes planted since the last
+# run go to DreamState.fresh_grove_cards (its first offer that can show one shows it, once). The profile keeps the node
+# set each run started with (LAST_RUN_NODES; real game only, written once per run). No record yet (an older profile):
+# nothing is fresh this run, the set is only recorded.
+const LAST_RUN_NODES := "last_run_nodes"
+func _mark_fresh_cards(memory: Dictionary) -> void:
+	var owned: Array[String] = []
+	for unlock in HeartwoodMemory.load_grove():
+		if DemoGrove.level(memory, unlock) > 0:
+			owned.append(unlock.id)
+	if memory.has(LAST_RUN_NODES) and "fresh_grove_cards" in dream_state:
+		var before: Array = memory[LAST_RUN_NODES]
+		var fresh: Array[String] = []
+		for unlock in HeartwoodMemory.load_grove():
+			if owned.has(unlock.id) and not before.has(unlock.id):
+				for id in unlock.dream_cards:
+					if dream_state.grove_cards.has(id) and not fresh.has(id):
+						fresh.append(id)
+		dream_state.fresh_grove_cards.assign(fresh)
+	if records and not RunSaver.resume_next:  # A Continue keeps the run's own start (its fresh card is in the save)
+		memory[LAST_RUN_NODES] = owned
+		HeartwoodMemory.save_data(memory)
 
 # Owned Grove nodes: families join the picks and Dream cards join the pool (every owned node);
 # perks work only while carried in the loadout, at their highest owned level.

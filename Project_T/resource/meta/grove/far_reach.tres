@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "far_reach"
 display_name = "Far Reach"
-description = "Adds two {dream} cards for area attacks: {card:far_reach}, {card:spillover}."
+description = "Adds a {dream} card for area attacks: {card:spillover}."
 root = 1
 costs = Array[int]([70])
 order = 22
 icon = 14
 requires_all = Array[String](["broad_strokes"])
-dream_cards = Array[String](["far_reach", "spillover"])
+dream_cards = Array[String](["spillover"])
