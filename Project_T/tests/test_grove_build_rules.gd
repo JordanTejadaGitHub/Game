@@ -65,6 +65,23 @@ func _run() -> void:
 	_check(absf(jar.get_attacks_per_second() - base_q * (1.0 + DreamState.QUICKENING_SPEED)) < 0.01, "Quickening: +30%% after a dispel in range")
 	jar._anim_time += DreamState.QUICKENING_TIME + 0.1
 	_check(absf(jar.get_attacks_per_second() - base_q) < 0.01, "for 4 s")
+	# Hunt's Rush II (Grove card council 2026-10-20): 5 s, and each further dispel in the rush adds 10%, up to +60%
+	dreams.take(load("res://resource/dream/quickening_ii.tres"))
+	_check(dreams.rule_level(&"quickening") == 1, "Hunt's Rush II deepens Hunt's Rush")
+	jar._grove.clear()
+	jar.clear_dream_cache()
+	GroveRules.quicken_near(jar.get_tree(), jar.global_position)
+	_check(absf(jar.get_attacks_per_second() - base_q * (1.0 + DreamState.QUICKENING_SPEED)) < 0.01, "Hunt's Rush II: +30% after one dispel")
+	for i in 5:
+		GroveRules.quicken_near(jar.get_tree(), jar.global_position)
+	_check(absf(jar.get_attacks_per_second() - base_q * (1.0 + DreamState.QUICKENING_MAX_II)) < 0.01, "...building to +60% with more dispels")
+	jar._anim_time += DreamState.QUICKENING_TIME + 0.1
+	_check(jar.get_attacks_per_second() > base_q * 1.5, "...still running after 4 s (5 s with II)")
+	jar._anim_time += DreamState.QUICKENING_TIME_II
+	_check(absf(jar.get_attacks_per_second() - base_q) < 0.01, "...gone 5 s after the last dispel")
+	GroveRules.quicken_near(jar.get_tree(), jar.global_position)
+	_check(absf(jar.get_attacks_per_second() - base_q * (1.0 + DreamState.QUICKENING_SPEED)) < 0.01, "...a new rush starts at +30% again")
+	_drop("quickening_ii")
 	_drop("quickening")
 	await _clean()
 

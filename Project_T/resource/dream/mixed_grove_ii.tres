@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mixed_grove_ii"
+display_name = "Mixed Grove II"
+description = "A Warden deals 20% more damage for each other {family} among the Wardens within 2 cells of it, up to +60%."
+tip = "Replaces Mixed Grove. The families don't need to touch any more: a lane can split a mixed cluster."
+rarity = 1
+kind = 3
+tags = Array[String](["variety", "maze", "overgrowth"])
+requires = Array[String]([])
+max_stacks = 1
+min_families = 2
+rule_id = &"mixed_grove"
+deepens = "mixed_grove"
+in_start_pool = false
+uses = Array[StringName]([&"cluster"])

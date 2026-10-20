@@ -24,7 +24,11 @@ static func speed_bonus(tower: Tower) -> float:
 		var left := 1.0 - (tower._anim_time - float(tower._grove.get(&"fade_at", -INF))) / MOMENTUM_FADE
 		bonus += maxf(streak, float(tower._grove.get(&"fade_from", 0.0)) * clampf(left, 0.0, 1.0))
 	if tower._has_rule(&"quickening") and tower._grove.get(&"quick_until", -1.0) > tower._anim_time:
-		bonus += DreamState.QUICKENING_SPEED
+		if dreams.rule_level(&"quickening") > 0:  # Hunt's Rush II: the rush builds with each dispel while it runs
+			var n := int(tower._grove.get(&"quick_n", 1))
+			bonus += minf(DreamState.QUICKENING_SPEED + DreamState.QUICKENING_STEP_II * (n - 1), DreamState.QUICKENING_MAX_II)
+		else:
+			bonus += DreamState.QUICKENING_SPEED
 	return bonus
 
 # Momentum's fade: seconds the old bonus takes to drain after a switch (a kill too), so a stream never drops it to nothing at once.
@@ -50,7 +54,12 @@ static func quicken_near(tree: SceneTree, at: Vector2) -> void:
 	for tower in tree.get_nodes_in_group(Tower.GROUP):
 		if tower is Tower and tower.tower_data.can_attack and tower._has_rule(&"quickening") \
 				and tower.global_position.distance_to(at) <= tower.get_range_pixels():
-			tower._grove[&"quick_until"] = tower._anim_time + DreamState.QUICKENING_TIME
+			var deep: bool = tower._dream_state != null and tower._dream_state.rule_level(&"quickening") > 0
+			if deep and float(tower._grove.get(&"quick_until", -1.0)) > tower._anim_time:
+				tower._grove[&"quick_n"] = int(tower._grove.get(&"quick_n", 1)) + 1  # Hunt's Rush II: one more dispel in the rush
+			else:
+				tower._grove[&"quick_n"] = 1
+			tower._grove[&"quick_until"] = tower._anim_time + (DreamState.QUICKENING_TIME_II if deep else DreamState.QUICKENING_TIME)
 
 # Hummingheart: damage from the Warden's bonus attack speed (its speed over its data's).
 static func hummingheart(tower: Tower, speed: float) -> float:

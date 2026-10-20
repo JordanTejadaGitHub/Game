@@ -24,7 +24,7 @@ const CUE_IDS: Array[StringName] = [DREAM_GLOW, DREAM_FLECK, STATUS_POP, SLOW_RI
 const CUES := {
 	# Flat or positional damage multipliers -> C1 (static tier)
 	&"blood_is_thicker": DREAM_GLOW, &"chosen_few": DREAM_GLOW, &"few_and_mighty": DREAM_GLOW,
-	&"forest_floor": DREAM_GLOW, &"hedge_maze": DREAM_GLOW, &"odd_one_out": DREAM_GLOW, &"mixed_grove": DREAM_GLOW,
+	&"forest_floor": DREAM_GLOW, &"hedge_maze": DREAM_GLOW, &"odd_one_out": DREAM_GLOW, &"mixed_grove": DREAM_GLOW, &"mixed_grove_ii": DREAM_GLOW,
 	&"monoculture": DREAM_GLOW, &"thin_bark": DREAM_GLOW, &"kind_canopy": DREAM_GLOW,
 	&"solitude": DREAM_GLOW, &"straightaway": DREAM_GLOW, &"narrow_way": DREAM_GLOW, &"tended_stumps": DREAM_GLOW,
 	&"wildwood_reclaimed": DREAM_GLOW, &"crossroads": DREAM_GLOW, &"cozy_corners": DREAM_GLOW,
@@ -33,7 +33,7 @@ const CUES := {
 	&"root_network_ii": DREAM_GLOW, &"one_bough": DREAM_GLOW,
 	# Timed damage or speed boosts -> C1 surge (SURGE below: tier +1 while on)
 	&"thinning_the_herd": DREAM_GLOW, &"hot_on_their_heels": DREAM_GLOW, &"restless_night": DREAM_GLOW,
-	&"shiny_things": DREAM_GLOW, &"quickening": DREAM_GLOW, &"close_shave": DREAM_GLOW, &"fresh_growth": DREAM_GLOW,
+	&"shiny_things": DREAM_GLOW, &"quickening": DREAM_GLOW, &"quickening_ii": DREAM_GLOW, &"close_shave": DREAM_GLOW, &"fresh_growth": DREAM_GLOW,
 	&"quick_step": DREAM_GLOW, &"desperate_bloom": DREAM_GLOW, &"momentum": DREAM_GLOW,
 	# Attack speed -> C1
 	&"the_last_light": DREAM_GLOW, &"rootbound": DREAM_GLOW, &"sprout_chorus": DREAM_GLOW,

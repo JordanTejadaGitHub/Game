@@ -5482,6 +5482,9 @@ const PATCHWORK_PER := 0.05  # Per family owned
 const PATCHWORK_MAX := 0.15
 const MIXED_GROVE_PER := 0.15  # Per neighbouring family that isn't the Warden's own
 const MIXED_GROVE_MAX := 0.45
+const MIXED_GROVE_PER_II := 0.20  # Mixed Grove II (Grove card council 2026-10-20): per other family within 2 cells…
+const MIXED_GROVE_MAX_II := 0.60  # …up to this
+const MIXED_GROVE_REACH: Array[int] = [1, 2]  # Cells counted, by rule level (1 = touching)
 
 var _quick_step_drift := -1  # The drift Quick Step was called for
 var _hurried_drift := -1
@@ -5576,6 +5579,9 @@ const MOMENTUM_PER: Array[float] = [0.06, 0.08]  # Attack speed per hit on the s
 const MOMENTUM_MAX: Array[float] = [0.45, 0.60]
 const QUICKENING_SPEED := 0.30  # For QUICKENING_TIME after a dispel in the Warden's range
 const QUICKENING_TIME := 4.0
+const QUICKENING_TIME_II := 5.0  # Hunt's Rush II (Grove card council 2026-10-20): the rush lasts this long after the last dispel…
+const QUICKENING_STEP_II := 0.10  # …each further dispel in that time adds this…
+const QUICKENING_MAX_II := 0.60  # …up to this
 const FLURRY_EVERY := 5  # Every 5th attack fires twice (the extra never counts)
 const RESTLESS_ROOTS_BELOW := 1.0  # Base attacks per second under this
 const RESTLESS_ROOTS_SPEED := 0.45

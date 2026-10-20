@@ -1035,13 +1035,16 @@ func _mixed_grove(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 		return {}
 	var own := ds.family_of(spot.data.get_id())
 	var others := {}
-	for o in board.touching(spot):
+	var level := ds.rule_level(&"mixed_grove")  # Mixed Grove II (Grove card council 2026-10-20): within 2 cells, 20% each, up to +60%
+	var reach: int = DreamState.MIXED_GROVE_REACH[level]
+	for o in (board.touching(spot) if reach <= 1 else board.near(spot, reach)):
 		var family := ds.family_of(DreamEffects._data(o).get_id())
 		if family != "" and family != own:
 			others[family] = true
-	var bonus := minf(DreamState.MIXED_GROVE_PER * others.size(), DreamState.MIXED_GROVE_MAX)
-	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
-		"reason": "" if bonus > 0.0 else "no Warden of another family touching it"}
+	var per: float = DreamState.MIXED_GROVE_PER_II if level > 0 else DreamState.MIXED_GROVE_PER
+	var bonus := minf(per * others.size(), DreamState.MIXED_GROVE_MAX_II if level > 0 else DreamState.MIXED_GROVE_MAX)
+	return {"positional": true, "radius": float(reach), "active": bonus > 0.0, "damage": bonus,
+		"reason": "" if bonus > 0.0 else ("no Warden of another family within 2 cells" if level > 0 else "no Warden of another family touching it")}
 
 func _quick_step(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
