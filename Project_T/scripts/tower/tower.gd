@@ -74,7 +74,7 @@ const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
 const AURA_PULSE_EVERY := 2.5  # Seconds between the White Stag's pulse animations
-const NEIGHBOUR_REFRESH := 5.0  # Seconds between looks at neighbouring Wardens (copy, auras); map changes, growing and ranks refresh sooner
+const NEIGHBOUR_REFRESH := 10.0  # Seconds between looks at neighbouring Wardens (copy, auras); map changes, growing and ranks refresh sooner (perf, Main Merger 2026-10-19: was 5; one look is ~0.35 ms with 300 Wardens)
 const TONGUE_COLOR := Palette.BLOSSOM
 const WIND_COLOR := Palette.MOONLIGHT
 const LIGHT_COLOR := Palette.GLOW
@@ -135,6 +135,29 @@ func _card_rules_held() -> bool:
 		_card_rules_on = _has_rule(&"lantern_glow") or _has_rule(&"first_frost") or _has_rule(ShapeCards.SAP_RISING)
 		_quick_draw_on = _has_rule(&"quick_draw")
 	return _card_rules_on
+
+# Rules every Warden asks about every frame, looked up once a frame for all of them (perf, Main Merger 2026-10-19:
+# _frame_rule's dictionary per Warden per frame was ~0.3 ms with 300 Wardens).
+const FLAG_QUIET_VIGIL := 1
+const FLAG_WATCHFUL_REST := 2
+const FLAG_CARD_WATCH := 4  # Lantern Glow, First Frost, Sap Rising (_card_rules_held)
+const FLAG_QUICK_DRAW := 8
+const FLAG_EVERY_FRAME := FLAG_WATCHFUL_REST | FLAG_CARD_WATCH | FLAG_QUICK_DRAW  # What keeps a Warden off the light path
+static var _flags_frame := -1
+static var _flags_owner := 0  # Which DreamState (tests run several)
+static var _flags := 0
+
+static func _frame_flags(dreams: DreamState) -> int:
+	var frame := Engine.get_process_frames()
+	if frame != _flags_frame or dreams.get_instance_id() != _flags_owner:
+		_flags_frame = frame
+		_flags_owner = dreams.get_instance_id()
+		_flags = (FLAG_QUIET_VIGIL if dreams.rule_stacks(&"quiet_vigil") > 0 else 0) | (FLAG_WATCHFUL_REST if dreams.rule_stacks(&"watchful_rest") > 0 else 0)
+		if dreams.rule_stacks(&"lantern_glow") > 0 or dreams.rule_stacks(&"first_frost") > 0 or dreams.rule_stacks(ShapeCards.SAP_RISING) > 0:
+			_flags |= FLAG_CARD_WATCH
+		if dreams.rule_stacks(&"quick_draw") > 0:
+			_flags |= FLAG_QUICK_DRAW
+	return _flags
 
 static var _frame_rules_frame := -1
 static var _frame_rules := {}
@@ -646,6 +669,11 @@ var attack_data: TowerData:
 		_a_lit = value != null and value.lit_hold_multiplier > 0.0
 		_a_copy = value != null and value.copy_status_every > 0.0
 		_a_special = value != null and value.special != &""
+		if value != null and value.special == BranchKit.PRISM:
+			prism_ids[get_instance_id()] = true  # BranchKit.crit_aura looks only at these
+		else:
+			prism_ids.erase(get_instance_id())
+		_a_light = value != null and not (_a_ability or _a_lit or _a_copy or _a_special) and not (value.attack_kind in LIGHT_PATH_SKIP_KINDS)
 		if is_inside_tree() and not _tracker_sync_queued:
 			_tracker_sync_queued = true
 			_sync_count_tracker.call_deferred()  # Growing / a Graftling's copy may bring or drop a counted trigger
@@ -654,6 +682,16 @@ var _a_ability := false
 var _a_lit := false
 var _a_copy := false
 var _a_special := false
+# The idle light path (perf, Main Merger 2026-10-19: 200+ idle Wardens ran the whole of _process every frame): a form with
+# no per-frame work of its own between attacks (no timed ability, lit holds, status copying, special, aura, patrol, beam
+# or copy), so a wait frame only counts its cooldown or its next look down.
+var _a_light := false
+# Live Prism Jars / Rainbow Prisms by instance id (plain data; freed ones are skipped and pruned by BranchKit.crit_aura):
+# their crit auras are looked up on every stat-cache miss of every Warden (perf, Main Merger 2026-10-19: scanning the
+# nearby Wardens for one was ~100 us).
+static var prism_ids := {}
+const LIGHT_PATH_SKIP_KINDS: Array[TowerData.AttackKind] = [TowerData.AttackKind.AURA, TowerData.AttackKind.PATROL,
+	TowerData.AttackKind.BEAM, TowerData.AttackKind.COPY]
 # Who snipers shoot at (the player can change it in the Warden panel).
 var target_mode: TowerData.TargetMode = TowerData.TargetMode.FIRST
 var target_chosen := false  # The player set target_mode (kept through growing, saved with the run)
@@ -834,12 +872,10 @@ func evolve(data: TowerData, cost: int) -> void:
 
 func _process(delta: float) -> void:
 	_anim_time += delta
-	if is_instance_valid(_leaf_mote):
-		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_dream_cache_left -= delta  # (_tick_dream_cache inline: performance)
 	if _dream_cache_left <= 0.0:
 		_tick_dream_cache(0.0)
-	if _dream_state != null and _frame_rule(&"quiet_vigil"):  # Quiet Vigil only (perf: a rule lookup a Warden a frame was ~0.7 ms)
+	if _dream_state != null and _frame_flags(_dream_state) & FLAG_QUIET_VIGIL:  # Quiet Vigil only (perf: one flag check a Warden a frame)
 		_dream_state.unique_growth.update_idle(self, delta)
 	if _tall_fade != null:
 		_update_tall_fade(delta)
@@ -855,6 +891,8 @@ func _process(delta: float) -> void:
 		# Effects quality Reduced / long frames: an off-screen Warden doesn't animate (nobody sees it).
 		if idle_frame != _last_idle_frame and (not Fx.reduced() or Fx.on_screen(global_position, 96.0)):
 			_last_idle_frame = idle_frame
+			if is_instance_valid(_leaf_mote):  # Rises in whole steps at the idle beat (perf: it was moved every frame)
+				_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -roundf(fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN)))
 			if _beam_target == null:
 				sprite.frame = idle_frame % tower_data.frame_count
 			if is_catcher():
@@ -871,6 +909,20 @@ func _process(delta: float) -> void:
 		_update_wall(delta)
 	if not _t_attacks:
 		return
+	# The light path: a plain attacker (_a_light) on a wait frame (its cooldown still running, or its next look not due)
+	# with nothing timed of its own (catches, signatures, a twist, a legacy attack, Sap Rising) and no card that watches
+	# every frame (Lantern Glow, First Frost, Sap Rising, Quick Draw, Watchful Rest; Sudden Bloom, skip tokens) only counts
+	# that down. Anything else, or the frame it would look or attack, takes the full path below unchanged.
+	if _a_light and _attack_time < 0.0 and withered_left <= 0.0 and bloom_left <= 0.0 and skip_wait_tokens <= 0 \
+			and not watch_charged and not _t_catches and legacy_data == null and _twist == &"" and not _sap_support \
+			and rank < Signatures.SHARED_RANK \
+			and (_dream_state == null or _frame_flags(_dream_state) & FLAG_EVERY_FRAME == 0):
+		if _cooldown > delta:
+			_cooldown -= delta
+			return
+		if _cooldown <= 0.0 and _idle_search > delta:
+			_idle_search -= delta
+			return
 	var watch_cards := _dream_state != null and _card_rules_held()  # (Once a frame for all Wardens: perf)
 	if watch_cards:
 		_update_card_watch(delta)  # Lantern Glow, First Frost
@@ -922,7 +974,7 @@ func _process(delta: float) -> void:
 			return
 		TowerData.AttackKind.COPY:
 			return  # A Graftling with nothing to copy
-	if bloom_left > 0.0 or (not watch_charged and _frame_rule(&"watchful_rest")):
+	if bloom_left > 0.0 or (not watch_charged and _dream_state != null and _frame_flags(_dream_state) & FLAG_WATCHFUL_REST):
 		_update_watch(delta)  # (Sudden Bloom fading, Watchful Rest: most Wardens skip the call)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if skip_wait_tokens > 0 and _cooldown > 0.0 and _attack_time < 0.0:

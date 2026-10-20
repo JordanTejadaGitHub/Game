@@ -202,11 +202,23 @@ static func on_spore_tick(enemy: Node2D) -> void:
 			enemy.coat = 0.0  # The shell cracks off at once
 
 # Prism Jar's aura: the crit chance `tower` gets from the strongest Prism within reach (no stacking; not itself).
+# The live Prism Jars on `tower`'s board (Tower.prism_ids; perf, Main Merger 2026-10-19: was a scan of every Warden
+# near it, ~100 us, on every stat-cache miss of every Warden's crit chance). Freed ones are pruned.
+static func _prisms_for(tower: Tower) -> Array:
+	var out := []
+	for id in Tower.prism_ids.keys():
+		var other = instance_from_id(id)
+		if not is_instance_valid(other) or not (other is Tower) or other.is_queued_for_deletion():
+			Tower.prism_ids.erase(id)
+		elif other != tower and other.is_inside_tree() and other.get_parent() == tower.get_parent():
+			out.append(other)
+	return out
+
 static func crit_aura(tower: Tower) -> float:
 	if not tower.is_inside_tree():
 		return 0.0  # A probe (the Warden header for an unplanted form) has no neighbours
 	var best := 0.0
-	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
+	for other in _prisms_for(tower):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
 		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
@@ -225,7 +237,7 @@ static func crit_damage_aura(tower: Tower) -> float:
 	if not tower.is_inside_tree():
 		return 0.0
 	var best := 0.0
-	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
+	for other in _prisms_for(tower):  # (The live Prisms, as crit_aura)
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
 		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
