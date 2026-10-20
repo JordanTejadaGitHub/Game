@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "quickening"
 display_name = "Quickening"
-description = "Adds the {dream} card {card:quickening}: a Warden attacks faster for a while after a nightmare is dispelled in its range."
+description = "Adds the {dream} card {card:quickening_ii}: it upgrades the start pool's {card:quickening}, offered once you hold it."
 root = 1
 costs = Array[int]([30])
 order = 1
 icon = 13
-dream_cards = Array[String](["quickening"])
+dream_cards = Array[String](["quickening_ii"])

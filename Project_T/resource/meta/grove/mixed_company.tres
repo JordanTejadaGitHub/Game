@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Adds a {dream} card for mixing {families} and statuses: {card:mixed_grove}."
+description = "Adds the {dream} card {card:mixed_grove_ii}: it upgrades the start pool's {card:mixed_grove}, offered once you hold it."
 root = 1
 costs = Array[int]([40])
 order = 13
 icon = 4
 requires_all = Array[String](["seedbed"])
-dream_cards = Array[String](["mixed_grove"])
+dream_cards = Array[String](["mixed_grove_ii"])
