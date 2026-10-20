@@ -173,7 +173,7 @@ Poison if a Sprout touches it.
 - Breathe It In (C), Mixed Company (R), Overnight (U, needs the second family).
 
 **Generic cards that fit:** Seedfall; Root Network (R); Undergrowth (C); Mother's Hand (U, act 1); Graft of Dreams
-(R, act 2); Shared Fever (U); Sap Rising (U); Mixed Grove (U, Grove); Shared Light (R, Grove).
+(R, act 2); Shared Fever (U); Sap Rising (U); Mixed Grove (U); Shared Light (U, Grove: a dispel gives the Wardens touching the killer +25% for 3 s).
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -223,7 +223,7 @@ entered, up to +25%. A joined stretch is not a new glow; hits only.
 - Hammerfall (C): heavy Wardens and Sprouts near a Firefly jump half. With Glowworms, Sprouts are already in the glow.
 
 **Generic cards that fit:** Winding Path, Passing Thread, Switchback; Straightaway (U); Thinning the Herd (R);
-Seedfall, Root Network (R) and Undergrowth (C) with Glowworms; Hunt's Rush (C, Grove).
+Seedfall, Root Network (R) and Undergrowth (C) with Glowworms; Hunt's Rush (C).
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -301,7 +301,7 @@ different nightmares.
 - Sparks Fly (C), Chain of Lanterns (U), Struck Twice (C), Gathering Storm (R).
 
 **Generic cards that fit:** Millstone (U, act 1); Heavy Heart (R, act 2); Seedfall, Root Network (R); Mother's Hand
-(U); Graft of Dreams (R, act 2); Mixed Grove (U, Grove).
+(U); Graft of Dreams (R, act 2); Mixed Grove (U).
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -480,7 +480,7 @@ them too. It stops at the next bell's range; a shot carries to up to 4 nightmare
 - Refrain (U), Da Capo (U): more bell hits, more rings.
 
 **Generic cards that fit:** Winding Path, Passing Thread, Switchback; Straightaway (U); Long Way Round (U, act 2);
-Hush (C, Grove: pulsing bells get 50% more range).
+Hush (C: pulsing bells get 50% more range).
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -519,7 +519,7 @@ damage instead of half. Where bells overlap, the path glows gold.
 - Reprise (R): a Reaction in a bell's range goes off again at half.
 
 **Generic cards that fit:** Cozy Corners, Growth Rings; Gauntlet (R); First Light (R); Momentum (U); Steady Aim (C);
-Hunter's Patience (R, Grove); Still Target (U, Grove) with Hush-a-bye.
+Hunter's Patience (R: +50% vs Deeply Blighted and bosses); Still Target (U, Grove) with Hush-a-bye.
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -557,7 +557,7 @@ Warden's hit and status. Other Wardens add a ring once a second; a Sprout adds o
 - Reprise (R): with Last Chord (capstone), Reactions go off twice.
 
 **Generic cards that fit:** Seedfall, Root Network (R), Undergrowth (C); Mother's Hand (U); Sap Rising (U);
-Close Kin (C), Kin and Kindling (R); Mixed Grove (U, Grove); Rootbound (R, Grove).
+Close Kin (C), Kin and Kindling (R); Mixed Grove (U); Rootbound (R, Grove).
 
 **Second family partners:**
 | Family | Rating | Key cards | Why |
@@ -636,6 +636,15 @@ Wardens still put their own status on; nothing in these builds reads it.
   nightmares hit in the last 2 s), Dewdrop 3, Bellflower 4.
 - **How to tell it works:** status cards under 20% of card damage in the Dream damage panel, and the run within 3
   drifts of a status run on the same Calling. Unmeasured.
+
+### Grove cards (2026-10-20, commit e29d302a)
+
+- Start pool now: Hunter's Patience, Mixed Grove, Reclaimed Earth, Hunt's Rush, Hush, Heavy Eyelids, Bad Dreams, Sweet
+  Scent. Hunter's Moon moved to the Grove (Sharpened node). Unbroken Chain and Brimming wait for a discovery.
+- Carried Grove cards are always in their run (never pushing start cards out); a card from a node planted since the
+  last run is in the first offer it can show in, once.
+- Momentum: a new target drains the old bonus over 1 s instead of wiping it.
+- Shared Light reworked (dispel share, above); Deep Well retired.
 
 ### Still open (design calls)
 
