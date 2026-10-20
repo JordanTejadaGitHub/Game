@@ -313,7 +313,7 @@ signal sustained_changed(enemy: Node2D, tag: StringName, on: bool)
 # Big-hit feedback (visual_feedback_spec.md "A", owner 2026-10-18): one damage event's share of its max health (hits and
 # bolts only; ticks, sustained tags, harmony and Reactions show themselves) sets a tier. T1 Heavy: 3 px recoil, a
 # brighter flash, a hairline crack. T2 Crushing: + a stagger (squash) with a 4 px knock and light chips. T3 Shattering:
-# + the sprite holds 60 ms (never a time stop), a Glow ring and a 1.5 px camera nudge. Bosses by BIG_HIT_BOSS_SHARES.
+# + the sprite holds 60 ms (never a time stop), a Glow ring and a camera nudge (trauma 0.5). Bosses by BIG_HIT_BOSS_SHARES.
 # big_hit fires for the number tiers and the boss bar's chunk flash (Main Merger); big_tier_now is the tier of the event
 # DamageLog is reporting (0 otherwise). Setting "big_hits": 0 Full, 1 Subtle (T1 visuals at every tier), 2 Off.
 signal big_hit(enemy: Node2D, tier: int, share: float)
@@ -328,7 +328,7 @@ const BIG_HIT_CRACK_TIME: Array[float] = [0.18, 0.3, 0.4]
 const BIG_HIT_SQUASH := Vector2(1.12, 0.88)
 const BIG_HIT_SQUASH_TIME := 0.14
 const BIG_HIT_FREEZE := 0.06  # Its own walk frames only; game time and everything else run on
-const BIG_HIT_NUDGE := 1.5  # px camera nudge on T3 (Fx._shake; counts against Fx.bright_flash_ok)
+const BIG_HIT_NUDGE := 0.5  # Camera trauma on T3 (Fx.add_trauma, 0..1; counts against Fx.bright_flash_ok)
 const BIG_HIT_CAPS: Array[int] = [10, 4]  # T2, T3 a second for the whole field…
 const BIG_HIT_CAPS_REDUCED: Array[int] = [4, 2]  # …at Reduced effects
 const BIG_HIT_CHIPS := &"big_hit_chips"  # Tower Assets' sheet; skipped until it exists
@@ -1792,7 +1792,7 @@ func _play_big_hit(tier: int, share: float, from: Vector2, is_crit: bool, dying:
 			world.add_child(ring)
 			ring.global_position = global_position
 		if not still and Fx.bright_flash_ok():
-			Fx._shake(world, BIG_HIT_NUDGE)
+			Fx.add_trauma(BIG_HIT_NUDGE, world)
 
 # The big hit playing out, in real seconds (game speed doesn't shorten it): the hairline crack fading, the squash
 # easing back, the held frames walking on. Called only while one of them runs.
