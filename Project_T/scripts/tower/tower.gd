@@ -862,6 +862,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	_apply_data()
 	if data.texture and data.get_frame_rect(0).size != old_frame:
 		_grow_bloom()  # The art changes size (a 64 base into a big branch): a puff covers the swap
+	pop()  # Every grow pops, same size or not (game-feel pass)
 	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
 		bloom_left = maxf(bloom_left, SUDDEN_BLOOM_SECONDS * _rule_power(&"sudden_bloom"))  # ×2 damage for 10 s
@@ -2050,6 +2051,7 @@ func _update_rank_art() -> void:
 func _play_rank_up() -> void:
 	if not is_inside_tree():
 		return
+	pop()  # Nurture: the Warden pops as it ranks (game-feel pass)
 	var burst := Sprite2D.new()
 	burst.texture = RANK_UP_ART
 	burst.hframes = 8
@@ -6170,6 +6172,42 @@ func _refresh_path_mask() -> void:
 	_tall_fade.set_shader_parameter(&"path_rects", rects)
 	_tall_fade.set_shader_parameter(&"path_count", path_mask.size())
 	_tall_fade.set_shader_parameter(&"path_alpha", TALL_FADE_ALPHA)
+
+# --- Pop: plant, grow and Nurture (screens_ui.md a8471922, game-feel pass) ---------------------------------------------
+# A short squash and overshoot on the Warden's sprite (wide and low, then tall past its size, settling with TRANS_BACK),
+# its feet kept on the ground. Off under reduced motion. TowerPlacer calls it on planting (with the dust puff once Tower
+# Assets' plant_dust sheet exists); evolve() on every grow; _play_rank_up() on every rank.
+const POP_TIME := 0.32
+const POP_SQUASH := Vector2(1.18, 0.82)
+const PLANT_DUST := &"plant_dust"
+var _pop_tween: Tween = null
+var _pop_base := Vector2.ONE
+var _pop_rest_y := 0.0
+
+func pop(planted: bool = false) -> void:
+	if not is_inside_tree() or sprite == null:
+		return
+	if planted and Fx.has_effect(PLANT_DUST):
+		var world := Reactions._world(self)
+		if world != null:
+			Fx.play(PLANT_DUST, global_position + Vector2(0, MAP_GRID.cell_size.y / 2.0 - 4.0), world)
+	if bool(Fx.setting("reduced_motion", false)):
+		return
+	if _pop_tween != null and _pop_tween.is_valid():
+		_pop_tween.kill()
+		_set_pop(1.0)  # A pop over a pop starts from rest, never from the squashed size
+	_pop_base = sprite.scale
+	_pop_rest_y = sprite.position.y
+	_pop_tween = create_tween()
+	_pop_tween.tween_method(_set_pop, 0.0, 1.0, POP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# t 0 = squashed, 1 = rest; TRANS_BACK overshoots past 1 (taller than rest) before settling. The feet stay put.
+func _set_pop(t: float) -> void:
+	var squash := POP_SQUASH.lerp(Vector2.ONE, t)
+	var scale_now := _pop_base * squash
+	var foot := (sprite.offset.y + sprite.get_rect().size.y / 2.0)  # The art's bottom, in the sprite's own pixels
+	sprite.scale = scale_now
+	sprite.position.y = _pop_rest_y + foot * (_pop_base.y - scale_now.y)
 
 # --- Grow bloom: growing into art of another size (story chat 2026-10-04: bases are 64 again, branches big) ----
 const GROW_BLOOM_TIME := 0.4

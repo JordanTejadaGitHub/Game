@@ -320,7 +320,8 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			var ring := FxRing.new(colour, 14.0, 22.0, RING_SECONDS)
 			parent.add_child(ring)
 			ring.global_position = tower.global_position
-	_shake(parent, 2.0)
+	if String(effect).begins_with("crowned_"):
+		add_trauma(TRAUMA_CROWNED, parent)  # Only Crowned Reactions shake (game-feel pass: ordinary ones don't)
 	if _take_accent(at):  # A card's cue came first: accent now
 		_accent(node, accent_shown)
 	else:  # Else a cue just after it may still accent it
@@ -388,6 +389,7 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
 	if count == 5 or count == 10:
 		_hitstop(parent)
+		add_trauma(TRAUMA_CHAIN_10 if count == 10 else TRAUMA_CHAIN_5, parent)
 		if not reduce_flashes() and bright_flash_ok():
 			_local_surge(where, parent)  # A local burst (playtest: the old full-screen gold wash)
 	if count == 10 and bright_flash_ok():
@@ -460,30 +462,73 @@ static func _surge(parent: Node) -> void:
 	tween.tween_callback(layer.queue_free)
 
 const PHONE_MAX_SCREEN_SHARE := 0.2  # Phones: an effect's widest on screen, as a share of the screen's shorter side
-static var _phone_shake: WeakRef = null  # Phones: the running shake (a new one replaces it; weak: no RefCounted in a static at exit)
 
-# A tiny camera shake for Reactions (off with reduced motion).
+# --- Screen shake: one decaying trauma value (screens_ui.md a8471922, game-feel pass) ---------------------------------
+# The old shake tweened the camera to a fresh random spot each step and back to the offset it found at the start, so on
+# PC two overlapping shakes kept the first one's off-centre offset as "rest" and the map drifted. Now one FxShaker per
+# camera owns Camera2D.offset: every caller adds trauma (0..1), it decays over time, and the offset is smooth waves
+# scaled by trauma², always measured from the true centre (offset 0 when it settles). Nothing else writes the offset.
+# Off under reduced motion. Who shakes: Crowned Reactions, x5 / x10 chains, T3 heavy hits (Enemy's BIG_HIT_NUDGE through
+# _shake), and add_trauma() for leaf / boss moments; ordinary Reactions don't.
+const SHAKE_MAX_PX := 6.0  # The offset at trauma 1 (on screen on phones: divided by the zoom)
+const SHAKE_DECAY := 1.6  # Trauma lost a second (a full shake settles in ~0.6 s)
+const TRAUMA_CROWNED := 0.4
+const TRAUMA_CHAIN_5 := 0.45
+const TRAUMA_CHAIN_10 := 0.7
+
+# Adds `amount` (0..1) of trauma to the camera of `near`'s viewport (or the last one shaken). Public: leaf and boss moments.
+static func add_trauma(amount: float, near: Node = null) -> void:
+	if amount <= 0.0 or bool(setting("reduced_motion", false)):
+		return
+	var shaker := FxShaker.for_node(near)
+	if shaker != null:
+		shaker.trauma = minf(shaker.trauma + amount, 1.0)
+
+# Old callers' nudge in pixels (Enemy's T3 big hit): the trauma whose peak offset is about `pixels`.
 static func _shake(parent: Node, pixels: float) -> void:
-	if bool(setting("reduced_motion", false)) or not parent.is_inside_tree():
-		return
-	var camera := parent.get_viewport().get_camera_2d()
-	if camera == null:
-		return
-	var rest := camera.offset
-	if TouchBuild.mobile_controls():
-		# Phones (the reaction flash, user 2026-10-18): `pixels` on screen, not in the world (zoomed in, 2 world px was
-		# a 7 px jolt of the whole map), and shakes that overlap never leave the camera off centre.
-		pixels /= maxf(camera.zoom.x, 0.01)
-		var running := _phone_shake.get_ref() as Tween if _phone_shake != null else null
-		if running != null and running.is_valid():
-			running.kill()
-		rest = Vector2.ZERO
-	var tween := camera.create_tween()
-	if TouchBuild.mobile_controls():
-		_phone_shake = weakref(tween)
-	for i in 3:
-		tween.tween_property(camera, "offset", rest + Vector2(randf_range(-pixels, pixels), randf_range(-pixels, pixels)), 0.03)
-	tween.tween_property(camera, "offset", rest, 0.03)
+	add_trauma(sqrt(clampf(pixels / SHAKE_MAX_PX, 0.0, 1.0)), parent)
+
+class FxShaker extends Node:
+	var trauma := 0.0
+	var _camera: WeakRef = null
+	var _time := randf() * 10.0
+	static var _last: WeakRef = null  # The shaker last used (weak: no Node in a static at exit)
+
+	static func for_node(near: Node) -> FxShaker:
+		if near == null or not is_instance_valid(near) or not near.is_inside_tree():
+			var last = _last.get_ref() if _last != null else null
+			return last as FxShaker
+		var camera := near.get_viewport().get_camera_2d()
+		if camera == null:
+			return null
+		var found := camera.get_node_or_null("FxShaker") as FxShaker
+		if found == null:
+			found = FxShaker.new()
+			found.name = "FxShaker"
+			found._camera = weakref(camera)
+			found.process_mode = Node.PROCESS_MODE_ALWAYS  # Settles through pauses and hitstops
+			camera.add_child(found)
+		_last = weakref(found)
+		return found
+
+	func _process(delta: float) -> void:
+		var camera := _camera.get_ref() as Camera2D if _camera != null else null
+		if camera == null:
+			return
+		var real := delta / maxf(Engine.time_scale, 0.01)  # Real time: hitstops and fast-forward don't change the feel
+		if trauma <= 0.0:
+			if camera.offset != Vector2.ZERO:
+				camera.offset = Vector2.ZERO  # Settled: exactly the true centre
+			return
+		trauma = maxf(trauma - SHAKE_DECAY * real, 0.0)
+		_time += real
+		var pixels := SHAKE_MAX_PX * trauma * trauma
+		if TouchBuild.mobile_controls():
+			pixels /= maxf(camera.zoom.x, 0.01)  # Phones: on-screen pixels, not world ones
+		# Two smooth waves per axis at unrelated rates: a rumble, never a fresh random jump each frame.
+		var x := sin(_time * 37.0) * 0.6 + sin(_time * 59.0 + 1.3) * 0.4
+		var y := sin(_time * 43.0 + 2.1) * 0.6 + sin(_time * 67.0 + 0.4) * 0.4
+		camera.offset = Vector2(x, y) * pixels if trauma > 0.0 else Vector2.ZERO
 
 
 # --- Exposed at full stacks is visible (screens_ui.md, last section; the user 2026-10-13: "when Exposed has full

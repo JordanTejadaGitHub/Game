@@ -2200,6 +2200,8 @@ const PENDING_OUTLINE := Color(Palette.DEWLIGHT, 0.9)
 var _session_built: Array[Tower] = []  # Phones: Wardens built in this build mode stay outlined blue until it ends
 
 func _on_tower_built(tower: Tower) -> void:
+	if is_instance_valid(tower):
+		tower.pop(true)  # Planting pops it, with the dust puff (game-feel pass, screens_ui.md a8471922)
 	if tap_to_place and build_mode:
 		_session_built.append(tower)
 		queue_redraw()
