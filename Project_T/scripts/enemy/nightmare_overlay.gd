@@ -19,6 +19,24 @@ const CELL := 32
 const TIME_STEPS := 8  # The time bars shorten in this many steps (rebuilt once a step; was 12: perf 2026-10-19, 2 px a step)
 enum { MARK_SOLID, MARK_GLOW, MARK_DOT, MARK_PILL }
 
+# A camera "trauma" kick for boss moments (screens_ui.md a8471922: one decaying shake, back to centre, off under
+# reduced motion): Tower Code's Fx.add_trauma(amount) once it exists, else Fx's small camera shake (`fallback_px`, which
+# also skips reduced motion). Callers keep it to the real game (EnemySpawner.in_game).
+static var _trauma_known := false
+static var _has_trauma := false
+static func rumble(world: Node, trauma: float, fallback_px: float) -> void:
+	if bool(Fx.setting("reduced_motion", false)):
+		return
+	if not _trauma_known:
+		_trauma_known = true
+		for method in (Fx as Script).get_script_method_list():
+			if method.name == "add_trauma":
+				_has_trauma = true
+	if _has_trauma:
+		(Fx as Script).call("add_trauma", trauma)  # (Through the script: it parses before add_trauma exists)
+	elif world != null:
+		Fx._shake(world, fallback_px)
+
 var spawner: Node2D
 var badge_atlas: ImageTexture
 # Kept here, not in statics, so they're freed with the run (a font or texture held by a static is

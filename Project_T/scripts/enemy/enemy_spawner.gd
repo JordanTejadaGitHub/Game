@@ -143,7 +143,22 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 	if not way_in.is_empty():
 		enemy.enter_along(way_in)  # Out of the fog and across the bridge first (flyers too: straight from the fog)
 	_spawn_followers(enemy, path_points, way_in)
+	if enemy_data.is_boss:
+		_boss_arrives(enemy)
 	return enemy
+
+# A boss arriving (screens_ui.md a8471922): a cold pulse where it comes in and, in the real game, a short low rumble.
+const BOSS_ARRIVE_TRAUMA := 0.3
+const BOSS_ARRIVE_SHAKE := 1.5  # px, until Fx.add_trauma exists
+func _boss_arrives(boss: Node2D) -> void:
+	var world := Reactions._world(self)  # (Never under this node: its children are all nightmares)
+	if world == null:
+		return
+	var pulse := Fx.FxRing.new(Palette.WRAITHLIGHT, 24.0, 56.0, 0.6)
+	world.add_child(pulse)
+	pulse.global_position = boss.global_position
+	if in_game:
+		NightmareOverlay.rumble(world, BOSS_ARRIVE_TRAUMA, BOSS_ARRIVE_SHAKE)
 
 # The way in from the start's fog (StartGate.walk_in: fog, bridge landing, `first`), one straight line that ends
 # on `first`, this nightmare's first route point in pixels (user 2026-10-12: no detour by the start cell's centre and
@@ -268,9 +283,11 @@ func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: N
 # every frame unless they set force_lane (test_perf_stress does, to measure the game as it runs).
 var half_rate_logic := false
 var force_lane := false
+var in_game := false  # main.tscn is the running scene (not a test): the boss beats' hitstop and camera rumble
 
 func _process(delta: float) -> void:
-	half_rate_logic = force_lane or (owner != null and get_tree().current_scene == owner)
+	in_game = owner != null and get_tree().current_scene == owner
+	half_rate_logic = force_lane or in_game
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
 	hud_frame = Engine.get_process_frames()
 	low_detail_now = EnvironmentTiles.low_detail()

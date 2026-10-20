@@ -3242,35 +3242,52 @@ func _cleanse() -> void:
 	_shriek()
 	var tween := create_tween()
 	tween.tween_interval(SHRIEK_TIME)
-	tween.tween_method(_set_crack, 0.0, 1.0, CRACK_TIME).set_ease(Tween.EASE_IN)
-	tween.parallel().tween_property(sprite, "scale", base_scale * 1.12, CRACK_TIME)
+	# Eased throughout (screens_ui.md a8471922: never linear): the crack and swell build in, the burst bursts out
+	tween.tween_method(_set_crack, 0.0, 1.0, CRACK_TIME).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(sprite, "scale", base_scale * 1.12, CRACK_TIME).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	tween.tween_callback(_burst_into_motes)
-	tween.tween_property(sprite, "scale", base_scale * 1.35, BURST_TIME).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(sprite, "modulate:a", 0.0, BURST_TIME)
+	tween.tween_property(sprite, "scale", base_scale * 1.35, BURST_TIME).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, BURST_TIME).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_interval(MOTE_LIFETIME)
 	tween.tween_callback(queue_free)
 
 # Hook for the dispel shriek / hiss sound (none yet). Visually: a quick, violent shudder.
 func _shriek() -> void:
+	if bool(Fx.setting("reduced_motion", false)):
+		return  # Reduced motion: no shudder (the dispel keeps its timing: _cleanse waits SHRIEK_TIME either way)
 	var tween := create_tween()
 	for i in 4:
 		tween.tween_property(sprite, "position:x", 2.5 if i % 2 == 0 else -2.5, SHRIEK_TIME / 5)
 	tween.tween_property(sprite, "position:x", 0.0, SHRIEK_TIME / 5)
 
-# The motes of light a dispelled nightmare breaks into. Bigger nightmares make more.
+# The motes of light a dispelled nightmare breaks into. Bigger nightmares make more. Reduced motion: they fade where they
+# appear (no burst outward, no drift). A boss (never an echo) gets its own beat (screens_ui.md a8471922): Tower Assets'
+# boss_burst if it exists (else twice the motes, wider), and in the real game a hitstop and the largest camera rumble.
+const BOSS_DISPEL_TRAUMA := 1.0
+const BOSS_DISPEL_SHAKE := 4.0  # px, until Fx.add_trauma exists
+const BOSS_BURST := &"boss_burst"
 func _burst_into_motes() -> void:
+	var boss := enemy_data.is_boss and not is_echo
+	var still := bool(Fx.setting("reduced_motion", false))
+	var world := Reactions._world(self)
+	var big_art := boss and world != null and Fx.has_effect(BOSS_BURST)
+	if big_art:
+		Fx.play(BOSS_BURST, global_position, world)
+	if boss and world != null and _spawner != null and _spawner.in_game:
+		Fx._hitstop(world)
+		NightmareOverlay.rumble(world, BOSS_DISPEL_TRAUMA, BOSS_DISPEL_SHAKE)
 	var motes := CPUParticles2D.new()
 	motes.one_shot = true
 	motes.explosiveness = 0.9
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0))
+	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0))
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	motes.emission_sphere_radius = 12.0 * sprite.scale.x
+	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)
 	motes.direction = Vector2.UP
 	motes.spread = 180.0
-	motes.initial_velocity_min = 30.0
-	motes.initial_velocity_max = 75.0
-	motes.gravity = Vector2(0, -70)  # Motes drift up
+	motes.initial_velocity_min = 0.0 if still else 30.0
+	motes.initial_velocity_max = 0.0 if still else (110.0 if boss and not big_art else 75.0)
+	motes.gravity = Vector2.ZERO if still else Vector2(0, -70)  # Motes drift up (not under reduced motion)
 	motes.damping_min = 40.0
 	motes.damping_max = 60.0
 	motes.scale_amount_min = 2.0
