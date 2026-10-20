@@ -149,7 +149,6 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 
 # A boss arriving (screens_ui.md a8471922): a cold pulse where it comes in and, in the real game, a short low rumble.
 const BOSS_ARRIVE_TRAUMA := 0.3
-const BOSS_ARRIVE_SHAKE := 1.5  # px, until Fx.add_trauma exists
 func _boss_arrives(boss: Node2D) -> void:
 	var world := Reactions._world(self)  # (Never under this node: its children are all nightmares)
 	if world == null:
@@ -158,7 +157,7 @@ func _boss_arrives(boss: Node2D) -> void:
 	world.add_child(pulse)
 	pulse.global_position = boss.global_position
 	if in_game:
-		NightmareOverlay.rumble(world, BOSS_ARRIVE_TRAUMA, BOSS_ARRIVE_SHAKE)
+		NightmareOverlay.rumble(world, BOSS_ARRIVE_TRAUMA)
 
 # The way in from the start's fog (StartGate.walk_in: fog, bridge landing, `first`), one straight line that ends
 # on `first`, this nightmare's first route point in pixels (user 2026-10-12: no detour by the start cell's centre and

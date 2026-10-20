@@ -3264,18 +3264,23 @@ func _shriek() -> void:
 # appear (no burst outward, no drift). A boss (never an echo) gets its own beat (screens_ui.md a8471922): Tower Assets'
 # boss_burst if it exists (else twice the motes, wider), and in the real game a hitstop and the largest camera rumble.
 const BOSS_DISPEL_TRAUMA := 1.0
-const BOSS_DISPEL_SHAKE := 4.0  # px, until Fx.add_trauma exists
 const BOSS_BURST := &"boss_burst"
 func _burst_into_motes() -> void:
 	var boss := enemy_data.is_boss and not is_echo
 	var still := bool(Fx.setting("reduced_motion", false))
 	var world := Reactions._world(self)
 	var big_art := boss and world != null and Fx.has_effect(BOSS_BURST)
-	if big_art:
-		Fx.play(BOSS_BURST, global_position, world)
+	if big_art:  # Tower Assets 1ae620ce: anchored on the body's centre
+		var burst := Fx.play(BOSS_BURST, Tower.aim_at(self), world)
+		if burst != null and Fx.reduce_flashes():
+			# Reduce flashes: frames 2-3 are its flash (the sheet's note); jump from 2 to 4 just as 2 would show
+			var fps := float(Fx.info(BOSS_BURST).get("fps", 14.0))
+			get_tree().create_timer(1.95 / fps, false).timeout.connect(func() -> void:
+				if is_instance_valid(burst):
+					burst._age += 2.0 / fps)
 	if boss and world != null and _spawner != null and _spawner.in_game:
 		Fx._hitstop(world)
-		NightmareOverlay.rumble(world, BOSS_DISPEL_TRAUMA, BOSS_DISPEL_SHAKE)
+		NightmareOverlay.rumble(world, BOSS_DISPEL_TRAUMA)
 	var motes := CPUParticles2D.new()
 	motes.one_shot = true
 	motes.explosiveness = 0.9
