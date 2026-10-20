@@ -1458,6 +1458,10 @@ func _try_build(cell: Vector2) -> bool:
 
 # Half-cell placement: plants the selected 1-cell Warden with its 2×2 half footprint's top-left half at `origin`.
 func _try_build_half(origin: Vector2) -> bool:
+	# A whole-number origin, rounded as FindPath.halves_of rounds it: a fractional one (tests pass route points, x.25 /
+	# x.75, to _try_build) left Tower.half_cell at x.5 while the map blocked the rounded halves, so Tower.get_halves named
+	# other halves than the ones it held (Main Merger: test_nurture's save row matched a second Warden on the same spot).
+	origin = Vector2(roundf(origin.x), roundf(origin.y))
 	var home := origin_home(origin)
 	if tower_data == null or tower_data.parked or is_unique_placed(tower_data):
 		build_rejected.emit(home)
