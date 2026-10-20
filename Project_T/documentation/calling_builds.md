@@ -14,7 +14,7 @@ and `lent_evolution_builds.md`. Read-only research; nothing was run.
   4 Callings × 3 styles (Spread, Focus, Support).
 - **Lent cards** belong to a family. Any player who owns that family can be offered them, so the first family's lent
   cards are your build's core, and the second family's lent cards are your "partner" cards.
-- **Generic cards** have no family. "Always in pool" = the 12 batch cards and the 6 basics (section 1.2). Cards marked
+- **Generic cards** have no family. "Always in pool" = the 11 batch cards and the 6 basics (section 1.2). Cards marked
   **(Grove)** are not in the start pool: they only show up once planted or discovered.
 - Rarity: C / U / R / L = Common / Uncommon / Rare / Legendary. "Act 2" = offered from drift 26.
 - **Partner ratings:** strong = the two families feed each other with Commons or Uncommons; works = one or two links;
@@ -50,7 +50,6 @@ and `lent_evolution_builds.md`. Read-only research; nothing was run.
 | Thorny Walls | C | Each Thornwall hits a touching nightmare every second. | Maze-heavy Spread builds. |
 | Seedfall | C | Sprouts always cost 10 Dew. | Glowworms, Borrowed Spores, Riverside, Accompaniment. |
 | Growth Rings | C | Plant nothing for a block: its top Warden gets a free rank, up to III. | Focus builds (few, strong Wardens). |
-| Call of the Wild | C | An early-called drift holds +1% Dew per second skipped, up to +30%. | Any. |
 | Heartwood's Reach | C | Clearing opener: 5 free clears; first Warden on each cleared cell is rank I. | Any. |
 | Cozy Corners | U | The attacking Warden inside each bend deals 30% more. | Focus builds with a kill zone at a bend. |
 | Passing Thread | U | Wardens deal 25% more to a nightmare from the second time it passes them. | Spread builds. |

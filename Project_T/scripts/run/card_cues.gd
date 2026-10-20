@@ -91,7 +91,7 @@ const CUES := {
 	&"briar_crown": DREAM_THREAD,  # (Not in the spec's tables: a wall relay, as Hedgerow Roots)
 	# Dew and Dreamlight -> C7
 	&"winding_path": DEW_SPARKLE, &"scarred_bark": DEW_SPARKLE, &"held_breath": DEW_SPARKLE,
-	&"call_of_the_wild": DEW_SPARKLE, &"wild_dew": DEW_SPARKLE, &"cheap_seeds": DEW_SPARKLE,
+	&"wild_dew": DEW_SPARKLE, &"cheap_seeds": DEW_SPARKLE,
 	&"evergreen": DEW_SPARKLE, &"morning_dew": DEW_SPARKLE, &"seedfall": DEW_SPARKLE, &"dew_bowl": DEW_SPARKLE,
 	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE, &"reclaimed_earth": DEW_SPARKLE,
 	&"deep_well": DEW_SPARKLE, &"kins_keepsake": DEW_SPARKLE, &"overflowing_well": DEW_SPARKLE,

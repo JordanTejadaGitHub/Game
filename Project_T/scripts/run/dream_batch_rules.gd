@@ -43,8 +43,9 @@ const HEELS_PER_CALL := 0.10  # Hot on Their Heels: per drift called early this 
 const HEELS_MAX := 0.40  # …up to this, until the rest; a leaf lost clears it
 const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
 const LONG_WALK_MAX := 0.25  # The Long Walk's cap (unused since the card pass; kept in step: power budget 2026-10-16)
-# The 12 batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted.
-const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path", "call_of_the_wild",
+# The batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted. Call of the Wild is
+# retired (owner 2026-10-20: no card pays Dew for calling drifts early); its rule code stays for an old save.
+const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path",
 	"press_on", "fresh_growth", "held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]
 
 # --- State (saved with the run: to_save / load_save) ----------------------------------------------------------------
