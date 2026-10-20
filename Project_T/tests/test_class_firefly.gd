@@ -172,9 +172,9 @@ func _run() -> void:
 	_check(lights.forks_thrown == thrown + 1, "...after a Firefly Warden's hit, the 3rd hit jumps (%d)" % (lights.forks_thrown - thrown))
 	await _clean()
 
-	# Thunderstruck (trait rework 2026-10-15): another family's heavy Warden near a Firefly Warden: its hit on a nightmare
-	# carrying ANY status (not only Charged) fans THUNDER_SHARE to up to THUNDER_MAX near it that carry a status, the whole
-	# fan at most THUNDER_CAP_SECONDS of the Firefly Warden's damage.
+	# Thunderstruck (non-status builds 2026-10-19): another family's heavy Warden near a Firefly Warden: its hit fans
+	# THUNDER_SHARE to up to THUNDER_MAX near it that a Warden hit in the last THUNDER_RECENT s (was: carrying a status), the
+	# whole fan at most THUNDER_CAP_SECONDS of the Firefly Warden's damage.
 	dreams.stacks.clear()
 	_take("thunderstruck")
 	jar = _plant("firefly_jar", far)
@@ -182,21 +182,20 @@ func _run() -> void:
 	await _frames(2)
 	var struck = _spawn(far + Vector2(CELL * 2, 0))
 	var soaked = _spawn(far + Vector2(CELL * 2, CELL))
-	_spawn(far + Vector2(CELL * 2, -CELL))  # No status: the fan skips it (one fork, not two)
-	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0, 1.0, 0, "water", null)
+	_spawn(far + Vector2(CELL * 2, -CELL))  # Not hit lately: the fan skips it (one fork, not two)
+	soaked.set_meta(lights.THUNDER_HIT_META, lights._now())  # Hit just now (any Warden)
 	thrown = lights.forks_thrown
 	t_rock.hit(struck, 1.0, false, Tower.NO_CRIT)
 	await _frames(2)
-	# Keyword chips 2026-10-16: any heavy hit fans (the struck nightmare needs no status); only status carriers are targets
-	_check(lights.forks_thrown == thrown + 1, "Thunderstruck: a hit on a nightmare without a status still fans to the one with a status")
-	struck.apply_status(EnemyStatuses.DAMP, 1, 4.0, 1.0, 0, "water", null)  # Soaked, not Charged
+	_check(lights.forks_thrown == thrown + 1, "Thunderstruck: a heavy hit fans only to the nightmare hit lately (no status needed)")
+	soaked.set_meta(lights.THUNDER_HIT_META, lights._now())
 	t_rock.remove_meta(lights.HEAVY_META)  # A new heavy attack
 	thrown = lights.forks_thrown
 	var soaked_before: float = soaked.health
 	t_rock.hit(struck, 1.0, false, Tower.NO_CRIT)
 	await _frames(2)
 	var fan_cap: float = jar.get_damage() * jar.get_attacks_per_second() * lights.THUNDER_CAP_SECONDS
-	_check(lights.forks_thrown == thrown + 1 and soaked.health < soaked_before, "...a Soaked nightmare fans to the one near it with a status (%d)" % (lights.forks_thrown - thrown))
+	_check(lights.forks_thrown == thrown + 1 and soaked.health < soaked_before, "...a second heavy attack fans to it again (%d)" % (lights.forks_thrown - thrown))
 	_check(soaked_before - soaked.health <= fan_cap + 1.0, "...never more than %.1f s of the Firefly Warden" % lights.THUNDER_CAP_SECONDS)
 	await _clean()
 

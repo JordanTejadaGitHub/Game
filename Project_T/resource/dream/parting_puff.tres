@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "parting_puff"
+display_name = "Parting Puff"
+description = "When Sporelings or Wardens {near} them dispel a nightmare with a hit, nightmares within 1 cell take a quarter of that hit."
+tip = "At most 4 nightmares; bosses take half. A puff that dispels doesn't puff again. Works for: crowded stretches of path. Safe."
+rarity = 1
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"parting_puff"
+requires = Array[String](["sporeling"])
+makes = Array[StringName]([&"area"])

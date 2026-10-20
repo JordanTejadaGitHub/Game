@@ -9,7 +9,7 @@ var container: Node
 var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
-const LENT := ["steeped", "topped_up", "ebb", "waterlogged", "high_tide",
+const LENT := ["steeped", "topped_up", "ebb", "heavy_going", "high_tide",
 	"old_rain", "never_quite_dry", "sodden", "wash_away", "last_drop"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16). Dewdrop helping itself (owner 2026-10-18): Sodden, Wash Away (revived), Last Drop
 
 func _initialize() -> void:

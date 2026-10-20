@@ -141,12 +141,19 @@ const BURST_STACKS := 2  # …each status the eater had, this many
 const EVO_BORROWED := &"sp_borrowed"
 const BORROW_STACKS := 2  # Borrowed Spores: of the touching Warden's status…
 const SPROUT_BORROW := 2  # …and a touching Sprout adds this much more Poisoned
+# Catching / Outbreak: replaced by Stomping Ground / Second Crop (non-status builds, owner 2026-10-19); code kept for an old save
 const EVO_CATCHING := &"sp_catching"
 const CATCH_SHARE := 0.5  # Catching: half the dose…
 const CATCH_WINDOW := 2.0  # …to the first nightmare it touches within this long
 const CATCH_META := &"sp_catch"  # On a nightmare: [until, stacks, hops, WeakRef tower]
 const EVO_OUTBREAK := &"sp_outbreak"
 const OUTBREAK_HOPS := 3  # Outbreak: passed on again up to this many times, halving
+const EVO_STOMPING := &"sp_stomping"  # Stomping Ground (non-status builds, council nonstatus_*.md 2026-10-19)
+const STOMP_WARDENS := 3  # A step on a mushroom: a free hit from each attacking Warden touching that step, the strongest first, at most this many
+const STOMP_BOSS := 0.5  # Bosses take half
+const EVO_SECOND_CROP := &"sp_second_crop"  # Second Crop: a dispel within 2 steps of a mushroom leaves one, Poison or not
+const CROP_STEPS := 2
+const CROP_ALPHA := 0.65  # Its cap is drawn pale
 const EVO_FEEDING := &"sp_feeding"
 const FEED_WINDOW := 4.0  # Feeding Ground: for this long after a dose…
 const FEED_STACKS := 1  # …each Warden touching that step adds this many more of its status (once per nightmare)
@@ -155,6 +162,16 @@ const EVO_MOTHER := &"sp_mother"
 const MOTHER_STATUSES := 4  # Mother Spore: a dispel's mushroom remembers up to this many statuses…
 const MOTHER_STACKS := 2  # …and its dose gives this many of each
 const FIRST_HIT_META := &"sp_first_hit"  # On a nightmare: {spore Warden id: true}: it has hit it (Second Helping)
+const FRUITING := &"fruiting"  # Lent (non-status builds, owner 2026-10-19): hits stack, the way statuses do
+const FRUIT_PER_WARDEN := 0.06  # +6% for each other Warden that hit the nightmare in the last…
+const FRUIT_WINDOW := 2.0  # …this long…
+const FRUIT_MAX := 0.30  # …up to this
+const FRUIT_META := &"sp_fruit"  # On a nightmare: {Warden id: last hit time}
+const PARTING_PUFF := &"parting_puff"  # Lent ("Parting Puff": Puffball is a Warden): a dispel puffs a quarter of that hit onto nightmares within 1 cell
+const PUFF_SHARE := 0.25
+const PUFF_MAX := 4
+const PUFF_BOSS := 0.5
+const PUFF_TAG := &"parting_puff"  # In class_kit.CLASS_TAGS: a puff is never a hit, and a puff that dispels does not puff again
 
 const DOSES_META := &"sp_doses"  # On a nightmare: doses it stepped on (It Grows on You)
 const OPEN_META := &"sp_open"  # On a nightmare: until when each spore Warden's next attack is a dose
@@ -188,6 +205,7 @@ func _line() -> String:
 # the first pick's only (place_on). The lent cards work from spore Wardens, where they stand and Poisoned.
 func _lent_rules() -> Array:
 	return [OVERNIGHT, PASS_IT_ROUND, MYCELIUM, SPORE_RING, SEEPING_IN, MIXED_COMPANY, BREATHE_IN, SITTING_DUCKS, HEMMED_IN, GONE_TO_SEED,
+		FRUITING, PARTING_PUFF,
 		NARROWS, SECOND_HELPING, HOTHOUSE]  # Narrows, Second Helping (2026-10-15), Hothouse: retired; an old save keeps them
 
 # Retired lent cards that grew or read mushrooms: an old save holding one keeps the mushrooms on Continue.
@@ -350,7 +368,11 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, _tagged: bool) 
 		if dispel:
 			if place_on():
 				_fell(enemy)
+			if is_hit and rule(PARTING_PUFF):
+				_puff(event, source, enemy)
 		elif is_hit:
+			if rule(FRUITING):
+				_note_hitter(source, enemy)
 			if evo(EVO_FEEDING) and enemy.has_meta(FEED_META):
 				_feeding(source, enemy)
 			if rule(MYCELIUM) and source.tower_data.get_id() == "sprout":
@@ -383,6 +405,12 @@ func _fell(enemy) -> void:
 				if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY:
 					kept.append([String(id), enemy.statuses.potency(id), String(enemy.statuses._active[id].get("line", ""))])
 		leave_mushroom(at, enemy.statuses.source(EnemyStatuses.SPORED), kept)  # Mycelium Sprouts' Poisoned counts too
+	elif class_on() and evo(EVO_SECOND_CROP) and _crop_near(at):
+		if leave_mushroom(at):  # Second Crop: a dispel beside a mushroom leaves one, Poisoned or not
+			var i := nearest_point(at, FALL_CELLS)
+			if i >= 0 and mushrooms.has(_route[i]):
+				mushrooms[_route[i]]["crop"] = true
+			credit(EVO_SECOND_CROP, at)
 	elif rule(LEAF_LITTER) and strongest_near(at, is_own) != null:
 		leave_mushroom(at)  # Leaf Litter: dispelled near a spore Warden, Poisoned or not
 
@@ -654,6 +682,8 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 		_borrow(at, tower, enemy)
 	if evo(EVO_CATCHING):
 		enemy.set_meta(CATCH_META, [now() + CATCH_WINDOW, maxi(int(amount * CATCH_SHARE), 1), 0, weakref(tower)])
+	if evo(EVO_STOMPING):
+		_stomp(at, enemy)
 	if evo(EVO_FEEDING):
 		enemy.set_meta(FEED_META, [int(_index[point]), now() + FEED_WINDOW, {}])
 	if evo(EVO_MOTHER) and not (m.get("mother", []) as Array).is_empty():
@@ -749,6 +779,89 @@ func _borrow(at: Vector2, tower, enemy) -> void:
 	if partner != null or sprout:
 		_line_fx(at, enemy.global_position, 1.5, Palette.MOSS)
 		credit(EVO_BORROWED, enemy.global_position, tower)
+
+# Stomping Ground (non-status builds, owner 2026-10-19): a step on a mushroom takes a free hit from each attacking Warden
+# touching that step, any family, the strongest first, at most STOMP_WARDENS; each Warden once a second (the free-hit
+# rule). A Calling output, so other families' lent cards read it as that Warden's hit. Bosses take half.
+func _stomp(at: Vector2, enemy) -> void:
+	var stompers: Array = towers().filter(func(t) -> bool: return t is Tower and t.tower_data.can_attack and touches_point(t, at))
+	if stompers.is_empty():
+		return
+	stompers.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
+	var scale := STOMP_BOSS if enemy.statuses.is_boss else 1.0
+	var struck := false
+	for tower in stompers.slice(0, STOMP_WARDENS):
+		if not living(enemy):
+			break
+		if calling_free_hit(tower, enemy, scale, FREE_HIT_TAG, INF, EVO_STOMPING):
+			struck = true
+	if struck:
+		credit(EVO_STOMPING, enemy.global_position)
+
+# Second Crop: a nightmare dispelled within CROP_STEPS steps of a mushroom leaves one too, Poisoned or not (a pale cap).
+func _crop_near(at: Vector2) -> bool:
+	var i := nearest_point(at, FALL_CELLS)
+	if i < 0:
+		return false
+	for k in range(maxi(i - CROP_STEPS * 2, 0), mini(i + CROP_STEPS * 2, _route.size() - 1) + 1):
+		if mushrooms.has(_route[k]):
+			return true
+	return false
+
+# Fruiting (lent; non-status builds): Sporeling Wardens and Wardens near them deal FRUIT_PER_WARDEN more to a nightmare
+# for each other Warden that hit it in the last FRUIT_WINDOW s, up to FRUIT_MAX. Hits only.
+func _note_hitter(source, enemy) -> void:
+	var hitters: Dictionary = enemy.get_meta(FRUIT_META, {})
+	hitters[source.get_instance_id()] = now()
+	enemy.set_meta(FRUIT_META, hitters)
+
+func _fruit_count(source, enemy) -> int:
+	var hitters: Dictionary = enemy.get_meta(FRUIT_META, {})
+	var n := 0  # Other Wardens only: one Warden alone gets nothing (not a flat boost)
+	var stale: Array = []
+	var me: int = source.get_instance_id()
+	for id in hitters:
+		if now() - float(hitters[id]) <= FRUIT_WINDOW:
+			if id != me:
+				n += 1
+		else:
+			stale.append(id)
+	for id in stale:
+		hitters.erase(id)
+	return n
+
+func wants_damage_hook() -> bool:
+	return rule(FRUITING)
+
+# DreamState.batch_damage_multiplier: Fruiting (1.0 without it, or for a tagged effect).
+func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
+	var calling: bool = DamageLog.calling_now != &"" and String(DamageLog.calling_now) != FAMILY  # F1: another family's Calling output is a hit
+	if not rule(FRUITING) or (tag != &"" and not calling) or not (source is Tower) or not is_instance_valid(source) \
+			or not is_instance_valid(enemy) or not source.tower_data.can_attack:
+		return 1.0
+	if not is_own(source) and not own_towers().any(func(t) -> bool: return near(t.global_position, source.global_position)):
+		return 1.0
+	var n := _fruit_count(source, enemy)
+	if n < 1:
+		return 1.0
+	var bonus := 1.0 + minf(FRUIT_PER_WARDEN * n, FRUIT_MAX)
+	DamageLog.note_card_bonus(String(FRUITING), bonus)
+	credit(FRUITING, enemy.global_position, source)
+	return bonus
+
+# Parting Puff (lent; non-status builds): a hit by a Sporeling Warden or a Warden near one that dispels a nightmare puffs:
+# up to PUFF_MAX nightmares within 1 cell take PUFF_SHARE of that hit (bosses half). Puffs never puff again.
+func _puff(event, source, enemy) -> void:
+	if event.tag == PUFF_TAG or not (is_own(source) or own_towers().any(func(t) -> bool: return near(t.global_position, source.global_position))):
+		return
+	var amount := float(event.amount) * PUFF_SHARE
+	if amount <= 0.0:
+		return
+	var at: Vector2 = enemy.global_position
+	for other in nightmares_touching(enemy, PUFF_MAX):
+		strike(source, other, amount * (PUFF_BOSS if other.statuses.is_boss else 1.0), PUFF_TAG, true, PARTING_PUFF)
+	Reactions._effect(&"landing_dust", at, self, 0.8)  # The grey-green puff
+	credit(PARTING_PUFF, at, source)
 
 # Feeding Ground: a Warden touching the step where the nightmare took its dose adds 1 more of its status (once each).
 func _feeding(source, enemy) -> void:
@@ -1121,6 +1234,8 @@ func _draw() -> void:
 			_draw_mushroom(spot[0], _sheet("spore_mushroom_clump_%d" % mini(caps, 4)), 1.0, flip, phase)
 		elif evo(EVO_STICKY):  # Sticky Caps: a drooping, dripping cap (it slows walkers)
 			_draw_mushroom(spot[0], _sheet("spore_mushroom_sticky"), 1.0, flip, phase)
+		elif bool(m.get("crop", false)):  # Second Crop's: a pale cap
+			_draw_mushroom(spot[0], _sheet("spore_mushroom"), CROP_ALPHA, flip, phase)
 		else:
 			_draw_mushroom(spot[0], _sheet("spore_mushroom"), 1.0, flip, phase)
 	for point in _regrow:  # A small, faint one where a mushroom is growing back

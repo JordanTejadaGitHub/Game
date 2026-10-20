@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "fruiting"
+display_name = "Fruiting"
+description = "Sporelings and Wardens {near} them deal 6% more to a nightmare for each other Warden that hit it in the last 2 s, up to +30%."
+tip = "Any Warden counts, Sprouts too. Hits only, not status damage. Works for: packed stretches where several Wardens hit the same nightmares. Safe."
+rarity = 0
+kind = 3
+tags = Array[String](["spore", "lent"])
+max_stacks = 1
+rule_id = &"fruiting"
+requires = Array[String](["sporeling"])
+uses = Array[StringName]([&"cluster"])

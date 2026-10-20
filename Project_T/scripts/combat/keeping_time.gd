@@ -183,6 +183,7 @@ const CRESC_META := &"kt_evo_cresc"  # On a nightmare: its Tolls so far
 const EVO_MIDNIGHT := &"kt_evo_midnight_bell"
 const MIDNIGHT_RINGS := 12  # Midnight Bell: the 12th ring on a nightmare (once each)…
 const MIDNIGHT_BOSS := 0.5  # …bosses take this share
+const MIDNIGHT_TRIPLE := 3.0  # …and the bell hits it for this many times its hit, with Crescendo (non-status builds, owner 2026-10-19)
 const MIDNIGHT_SECONDS := 1.5  # The clock face shows this long
 const RINGS_META := &"kt_evo_rings"  # On a nightmare: its rings so far (a dial over the pips counts them)
 const MIDNIGHT_META := &"kt_evo_midnight"  # On a nightmare: its Midnight Toll has rung
@@ -461,7 +462,7 @@ func ring(enemy, bell, amount: float, counted: bool = false, filler = null, by: 
 		if evo(EVO_ACCOMP):
 			_fill(enemy, pips - add, add, filler if is_instance_valid(filler) else bell, is_instance_valid(filler))
 		if evo(EVO_MIDNIGHT) and _count_rings(enemy, add):
-			_midnight(enemy)
+			_midnight(enemy, bell)
 			if not living(enemy):
 				return
 	enemy.set_meta(RING_META, now())
@@ -778,16 +779,20 @@ func _count_rings(enemy, add: int) -> bool:
 		return false
 	enemy.set_meta(MIDNIGHT_META, true)
 	return true
-
-# The Midnight Toll: every status on it that deals damage pays out at once and stays (Knell's maths, nothing used up):
-# Poisoned ticks once, Charged bolts for the charge it has, Soaked calls up to 2 Dewdrops near it for a free hit. Bosses half.
-func _midnight(enemy) -> void:
+# The Midnight Toll: the bell hits for triple (with Crescendo), and every status on it that deals damage pays out at once and
+# stays (Knell's maths, nothing used up): Poisoned ticks once, Charged bolts, Soaked calls up to 2 Dewdrops near it for a free hit. Bosses half.
+func _midnight(enemy, bell) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var scale := MIDNIGHT_BOSS if s.is_boss else 1.0
 	var at: Vector2 = enemy.global_position
 	_clocks.append({"enemy": weakref(enemy), "at": at, "until": now() + MIDNIGHT_SECONDS})
 	Reactions._effect(&"toll_ring", at, self, 1.4)
 	credit(EVO_MIDNIGHT, at)
+	if bell is Tower and is_instance_valid(bell):  # The bell's blow: triple its hit, with Crescendo (a hit build's payoff)
+		var swell := minf(1.0 + CRESC_STEP * int(enemy.get_meta(CRESC_META, 0)), CRESC_MAX) if evo(EVO_CRESCENDO) else 1.0
+		strike(bell, enemy, bell.get_damage() * MIDNIGHT_TRIPLE * swell * scale, &"toll", false, EVO_MIDNIGHT)
+		if not living(enemy):
+			return
 	if s.has(EnemyStatuses.SPORED):
 		enemy.flash_status(EnemyStatuses.SPORED)
 		strike(s.source(EnemyStatuses.SPORED), enemy, s.stacks(EnemyStatuses.SPORED) * s.potency(EnemyStatuses.SPORED) * EnemyStatuses.SPORE_TICK * scale,

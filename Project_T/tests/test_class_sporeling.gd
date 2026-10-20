@@ -10,7 +10,7 @@ var dreams: DreamState
 var klass  # The class node (DreamState.spore_print)
 const CELL := 64.0
 const LENT := ["mycelium", "overnight", "pass_it_round", "spore_ring", "seeping_in", "mixed_company", "breathe_it_in",
-	"gone_to_seed"]  # Card pass 2026-10-16: Sitting Ducks into Breathe It In, Hemmed In retired
+	"gone_to_seed", "fruiting", "parting_puff"]  # Card pass 2026-10-16: Sitting Ducks into Breathe It In, Hemmed In retired; Fruiting, Parting Puff 2026-10-19
 
 func _initialize() -> void:
 	_run.call_deferred()

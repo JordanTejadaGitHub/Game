@@ -84,6 +84,8 @@ const THUNDER_SHARE := 0.25  # Thunderstruck: a heavy hit on a nightmare with a 
 const THUNDER_MAX := 4  # …up to this many…
 const THUNDER_STATIC := 1  # Thunderstruck: each jump adds this many Charged, from the Firefly Warden
 const THUNDER_CAP_SECONDS := 1.5  # …the whole fan at most this many seconds of the Firefly Warden near the heavy one
+const THUNDER_RECENT := 2.0  # Thunderstruck fans to nightmares hit in the last this many seconds (non-status builds, owner 2026-10-19; was: carrying a status)
+const THUNDER_HIT_META := &"ff_any_hit"  # On a nightmare: when any Warden last hit it (only kept while Thunderstruck is held)
 const CHAIN_EVERY := 1.0  # Chain of Lanterns: each Firefly Warden's Reactions jump once a second
 const CHAIN_META := &"ff_chain_next"  # On a Firefly Warden
 const CLASS_KIT := preload("res://scripts/combat/class_kit.gd")  # The shared Reaction list (REACTION_BURSTS)
@@ -1485,6 +1487,8 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 		enemy.set_meta(FF_HIT_META, [now, weakref(source)])  # Hit by a Firefly Warden (any form) just now: Sparks Fly, Chain of Lanterns, Brushfire
 	if not calling and _rule(BRUSHFIRE) and event.tag in BRUSH_TAGS and _firefly_hit_recently(enemy, now):
 		_brush_add(event, source, enemy)
+	if is_hit and _rule(THUNDERSTRUCK):
+		enemy.set_meta(THUNDER_HIT_META, now)  # Thunderstruck's "hit in the last 2 s"
 	var taken := _taken_by(id) if not _queue.is_empty() else []  # F4 (f1_spec.md): built once, before any lent card queues
 	if is_hit:
 		if _rule(LENT_CROSSFIRE) and not calling:
@@ -1502,17 +1506,17 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 			var targets := _fan_out(at, [enemy], taken) if jar != null else []
 			if not targets.is_empty():
 				_fork(id, source, at, targets[0], event.base * HAMMER_SHARE, _lent_cap(source, jar), {"heavy": true, "credit": HAMMERFALL})  # Sprouts too. No re-jump on a dispel (owner 2026-10-17: Bale-fires / Pyre's verb); an old save holding Knock-On keeps it
-		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit on a nightmare with a status fans a quarter
-		# to up to 4 near it with a status (any family's; trait rework 2026-10-15, was Charged only), 1.5 s of that Firefly's damage at most
+		# Thunderstruck: another family's heavy Warden near a Firefly Warden: its hit fans a quarter to up to 4 near it that any
+		# Warden hit in the last THUNDER_RECENT s (non-status builds 2026-10-19; was: carrying a status), 1.5 s of that Firefly's damage at most
 		var thunder_jar = null  # A Firefly heavy form is its own Firefly Warden (own family too, owner 2026-10-15)
-		# Keyword chips 2026-10-16: any heavy hit (the target needs no status); the fan still goes only to nightmares with one
+		# Keyword chips 2026-10-16: any heavy hit (the target needs no status)
 		if _rule(THUNDERSTRUCK) and is_heavy(source) and (is_firefly(source) or is_other_family(source)):
 			thunder_jar = source if is_firefly(source) else firefly_near(source)
 		if thunder_jar != null:
 			var cap_fan: float = thunder_jar.get_damage() * thunder_jar.get_attacks_per_second() * THUNDER_CAP_SECONDS
-			var fan: Array = _with_status(_near_enemies(at, [enemy] + taken)) if not taken.is_empty() else []  # F4: others first
+			var fan: Array = _hit_recently(_near_enemies(at, [enemy] + taken), now) if not taken.is_empty() else []  # F4: others first
 			if fan.is_empty():
-				fan = _with_status(_near_enemies(at, [enemy]))
+				fan = _hit_recently(_near_enemies(at, [enemy]), now)
 			fan = fan.slice(0, THUNDER_MAX)
 			for other in fan:  # The cap covers the whole fan
 				_fork(id, source, at, other, minf(event.base * THUNDER_SHARE, cap_fan / maxf(fan.size(), 1.0)), cap_fan, {"heavy": true, "final": true, "credit": THUNDERSTRUCK})  # final: Hammerfall never re-jumps it (council full_review 2026-10-17)
@@ -1552,6 +1556,9 @@ func _lent_rules(id: int, event, source, enemy, dispel: bool, is_hit: bool, is_b
 # it read the resisted part before.)
 func _with_status(list: Array) -> Array:
 	return list.filter(func(e) -> bool: return e.statuses.count() > 0)
+
+func _hit_recently(list: Array, now: float) -> Array:
+	return list.filter(func(e) -> bool: return now - float(e.get_meta(THUNDER_HIT_META, -INF)) <= THUNDER_RECENT)
 
 func _nothing_wasted(id: int, event, source, enemy, at: Vector2, taken: Array = []) -> void:
 	if event.coat_soaked <= 0.0:

@@ -24,7 +24,7 @@ static func is_reaction_burst(event) -> bool:
 # Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
 	&"riptide", &"last_drop", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
-	&"in_time", &"reprise", &"rude_replay", &"da_capo"]  # (Bellflower repeats, 2026-10-15)
+	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff"]  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
 
 var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
 var _hooked := false

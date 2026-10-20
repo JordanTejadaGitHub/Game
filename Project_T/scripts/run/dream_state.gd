@@ -2201,6 +2201,7 @@ var _hook_water := false
 var _hook_bells := false
 var _hook_linger := false  # Keyword chips 2026-10-16: Slow Burn
 var _hook_light := false  # Struck Twice, Bonfire, Strung Lights (self-sufficiency audit 2026-10-18): firefly_lights.damage_multiplier
+var _hook_spore := false  # Fruiting (non-status builds, 2026-10-19): spore_print.damage_multiplier
 
 # How much more of the blight coat (the shell) a hit takes off (Wash Away; 1.0 without it). Enemy.take_damage asks only
 # while the nightmare has a coat.
@@ -2218,7 +2219,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		_hook_bells = keeping_time != null and has_rule(&"rude_awakening")
 		_hook_linger = has_rule(SLOW_BURN)
 		_hook_light = firefly_lights != null and firefly_lights.is_inside_tree() and firefly_lights.wants_damage_hook()
-	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light:
+		_hook_spore = spore_print != null and spore_print.is_inside_tree() and spore_print.wants_damage_hook()
+	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light and not _hook_spore:
 		return 1.0
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
 	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
@@ -2233,6 +2235,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		multiplier *= slow_burn_multiplier(enemy, tag)
 	if _hook_light:
 		multiplier *= firefly_lights.damage_multiplier(enemy, source, tag)
+	if _hook_spore:
+		multiplier *= spore_print.damage_multiplier(enemy, source, tag)
 	return multiplier
 
 # --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
@@ -2981,6 +2985,7 @@ const CARD_NEEDS := {
 	"struck_twice": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
 		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (as Shared Spark; self-sufficiency audit 2026-10-18)
 	"slow_burn": [&"steeped", &"topped_up", &"ebb", &"waterlogged", &"homesick", &"bound_and_burning"],  # A Linger card (keyword chips 2026-10-16)
+	"overnight": [],  # Needs a second family (card_needs_met), 2026-10-19
 }
 
 func card_needs_met(card: UpgradeData) -> bool:
@@ -2988,6 +2993,8 @@ func card_needs_met(card: UpgradeData) -> bool:
 		return true
 	if (card.id == "gathering_storm" or card.id == "shared_spark" or card.id == "struck_twice") and (calling == "firefly_jar" or has_grown_role(WardenRoles.CHAIN)):
 		return true  # Lantern Light jumps on every dispel; chain Wardens' hops are jumps too (keyword chips 2026-10-16)
+	if card.id == "overnight":
+		return _families_owned() >= 2  # It pays other families' statuses: never a dead pick before a second family (2026-10-19)
 	if card.id == "slow_burn" and (has_evolution(&"dw_riverside") or has_evolution(&"dw_stagnant_water")):
 		return true  # Riverside / Stagnant Water make statuses last longer too (EnemyStatuses.is_lingering counts them; builds doc 2026-10-19)
 	for id in CARD_NEEDS[card.id]:
@@ -4104,6 +4111,14 @@ func _map_family(data: TowerData, family: String) -> void:
 func _family_roots() -> Array:
 	var screen := get_node_or_null("%FamilyPickScreen")
 	return screen.families if screen != null and "families" in screen else []
+
+# Families the run holds (family-pick roots unlocked; Unlock everything counts them all).
+func _families_owned() -> int:
+	var n := 0
+	for data in _family_roots():
+		if data is TowerData and is_unlocked(data.get_id()):
+			n += 1
+	return n
 
 func _requires_met(card: UpgradeData) -> bool:
 	for requirement in card.requires:

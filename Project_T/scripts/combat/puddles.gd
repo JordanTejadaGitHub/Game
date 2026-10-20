@@ -63,6 +63,10 @@ const ACROSS_EXTRA_CELLS := 1.0  # Across the Water: Wardens near a Dewdrop reac
 const RETURN_STEPS := 3  # Walking back into a Dewdrop's range: at least this many route steps past where it left (pulls don't count)
 const WATERLOGGED := &"waterlogged"
 const WATERLOGGED_FACTOR := 1.5  # Waterlogged: other families' statuses on a Soaked nightmare last this much longer (never Drowsy)
+const HEAVY_GOING := &"heavy_going"  # Lent (non-status builds, owner 2026-10-19; replaces Slow to Dry in offers): hits on slowed nightmares
+const HEAVY_GOING_BONUS := 1.25  # Dewdrops and Wardens near them deal this much more to a nightmare walking slowed (not by Sleep)
+const HEAVY_TRAIL_EVERY := 0.6  # A slowed nightmare it counts on drips: a small splash this often at most
+const HEAVY_META := &"pd_heavy_fx"
 const SOAKED_BONE := &"soaked_to_the_bone"  # Class: walking back into a lone Dewdrop's water fills Soaked at once
 const RANGE_META := &"pd_range"  # On a nightmare: {Dewdrop key: [inside: bool, exit route index]}
 const SHALLOWS_META := &"pd_shallows_next"  # On a Warden
@@ -178,6 +182,8 @@ const SIDE_SPROUT_BONUS := 1.25  # Riverside (owner 2026-10-18): Sprouts touchin
 const POND_TIME := 0.25  # The pond's slow, re-applied each poll (it ends soon after it walks out)
 const EVO_WHIRLPOOL := &"dw_whirlpool"
 const PULL_STEPS := 2  # Whirlpool: a fully Soaked nightmare in a pond is pulled back this many steps, once per pond (never bosses or flyers)
+const WHIRL_HITS := 3  # Whirlpool (non-status builds, owner 2026-10-19): a Dewdrop's 3rd hit on a nightmare in a pond pulls it (was: full Soak)
+const WHIRL_META := &"pd_whirl_hits"  # On a nightmare: {pond key: Dewdrop hits there}
 const EVO_DEEP := &"dw_drowning_deep"
 const DEEP_CELLS := 1.0  # Drowning Deep: a Whirlpool pull drags the nightmares within this many cells…
 const DEEP_MAX := 4  # …up to this many (never bosses or flyers); Wardens touching the pond each hit the pulled one once, free
@@ -231,7 +237,7 @@ func _line() -> String:
 # ripple are the first pick's only (place_on). The lent cards work from Dewdrops, where Wardens stand ("near a Dewdrop":
 # 2 cells; "a Dewdrop's range": its attack range) and Soaked.
 func _lent_rules() -> Array:
-	return [STEEPED, TOPPED_UP, DRIPPING, EBB, REMEMBERS, POOLING, WATERLOGGED, HIGH_TIDE, OLD_RAIN, NEVER_DRY,
+	return [STEEPED, TOPPED_UP, DRIPPING, EBB, REMEMBERS, POOLING, WATERLOGGED, HEAVY_GOING, HIGH_TIDE, OLD_RAIN, NEVER_DRY,
 		SODDEN, LAST_DROP, WASH_AWAY, CAUGHT_WADING, SHALLOWS, KNEE_DEEP, ACROSS, DEEP_POOL, RUN_OFF, RIPTIDE,
 		SOMETHING, SOAKED_THROUGH]  # (From Caught Wading on: retired 2026-10-15 or before, need no water; old saves keep them)
 
@@ -487,6 +493,8 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 				_bank_hit(event, source, enemy, bank_w)  # Lapping Water, Reflection
 		return
 	var w := water_of(enemy)
+	if evo(EVO_WHIRLPOOL) and w >= 0 and _is_pond(w) and living(enemy) and not enemy.statuses.is_boss and not enemy.is_flying():
+		_whirl_hit(enemy, w)
 	if w < 0 or not touches_water(source, w):
 		return
 	var from := index_of(enemy)
@@ -756,8 +764,16 @@ func _evo_hit_multiplier(enemy, source) -> float:
 
 # Whether any hit bonus here is on (DreamState.batch_damage_multiplier asks once a frame before calling damage_multiplier).
 # (Downpour: its forced attack's hit is credited from there.)
+# Heavy Going: the nightmare walks slowed by anything but Sleep (a timed slow, the pond, Sticky Caps, Switchback, the
+# Stag's aura). Held and asleep nightmares stand still: only a slow counts.
+func walking_slowed(enemy) -> bool:
+	var s: EnemyStatuses = enemy.statuses
+	if s.ignores_slows:
+		return false
+	return (s.slow_time > 0.0 and s.slow_amount > 0.0) or s.timed_slow() > 0.0 or s.is_in_stag_aura()
+
 func wants_damage_hook() -> bool:
-	return rule(SODDEN) or evo(EVO_STREAM) or evo(EVO_POND) or evo(EVO_RIVERSIDE) or evo(EVO_DOWNPOUR)
+	return rule(HEAVY_GOING) or rule(SODDEN) or evo(EVO_STREAM) or evo(EVO_POND) or evo(EVO_RIVERSIDE) or evo(EVO_DOWNPOUR)
 
 # The evolution a ripple reached `other` thanks to (&"": the Calling's own 4 steps of real water): Flood (past 4 steps),
 # Wet Footprints (a wet step), the Stream (water it carried). For the ledger (damage credit, owner 2026-10-19).
@@ -890,7 +906,11 @@ func _millrace(enemy, soaked: Array) -> void:
 
 # Rain on the Bank: every nightmare the ripple soaks takes 1 of each of up to 3 bank Wardens' statuses (their own application).
 func _rain(w: int, soaked: Array) -> void:
-	var bank: Array = _bank_of(w).filter(func(t) -> bool: return status_of(t) != &"")  # F5: Drowsy too, 1 short of full (_carry)
+	var bank: Array = _bank_of(w)  # F5: Drowsy too, 1 short of full (_carry)
+	for dewdrop in waters[w].dewdrops:  # The Dewdrops touching that water count too (non-status builds, owner 2026-10-19)
+		if _tower_ok(dewdrop) and not bank.has(dewdrop):
+			bank.append(dewdrop)
+	bank = bank.filter(func(t) -> bool: return status_of(t) != &"")
 	if bank.is_empty():
 		return
 	bank.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
@@ -1032,8 +1052,6 @@ func _in_pond(enemy) -> void:
 	if _once(enemy, "pond:" + key):
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
 		credit(EVO_POND, enemy.global_position)
-	if evo(EVO_WHIRLPOOL) and not boss and _fully_soaked(enemy) and not enemy.get_meta(ONCE_META, {}).has("whirl:" + key):
-		_whirlpool(enemy, w, key)
 	if evo(EVO_HANDS) and living(enemy) and _status_count(enemy) >= HANDS_STATUSES \
 			and not enemy.get_meta(ONCE_META, {}).has("hands:" + key):
 		_drowned_hands(enemy, w, key)
@@ -1044,6 +1062,18 @@ func _status_count(enemy) -> int:
 		if id != EnemyStatuses.HELD:
 			found += 1
 	return found
+
+# Whirlpool's trigger (non-status builds, owner 2026-10-19): a Dewdrop's WHIRL_HITS-th hit on a nightmare in a pond pulls
+# it, once per pond and nightmare (was: reaching full Soak there).
+func _whirl_hit(enemy, w: int) -> void:
+	var key := _water_key(waters[w])
+	if enemy.get_meta(ONCE_META, {}).has("whirl:" + key):
+		return
+	var hits: Dictionary = enemy.get_meta(WHIRL_META, {})
+	hits[key] = int(hits.get(key, 0)) + 1
+	enemy.set_meta(WHIRL_META, hits)
+	if int(hits[key]) >= WHIRL_HITS:
+		_whirlpool(enemy, w, key)
 
 # Whirlpool: pulled back 2 steps (never bosses or flyers: the caller checks). Drowning Deep drags its neighbours too.
 func _whirlpool(enemy, w: int, key: String) -> void:
@@ -1515,6 +1545,13 @@ func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 		var tide := 1.0 + minf(HIGH_TIDE_PER * enemy.statuses.count(), HIGH_TIDE_MAX)
 		multiplier *= tide
 		DamageLog.note_card_bonus("high_tide", tide)
+	if rule(HEAVY_GOING) and hit_like and walking_slowed(enemy) and (is_own(source) or dewdrop_near(source) != null):
+		multiplier *= HEAVY_GOING_BONUS
+		DamageLog.note_card_bonus(String(HEAVY_GOING), HEAVY_GOING_BONUS)
+		if now() >= float(enemy.get_meta(HEAVY_META, -INF)):  # The dripping trail it counts on
+			enemy.set_meta(HEAVY_META, now() + HEAVY_TRAIL_EVERY)
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.3)
+		credit(HEAVY_GOING, enemy.global_position, source)
 	if tag == &"" and class_on() and not dream_state.calling_path.is_empty():
 		multiplier *= _evo_hit_multiplier(enemy, source)  # Stream, Black Pond, Riverside
 	if not _soaked(enemy):

@@ -45,6 +45,7 @@ const CUES := {
 	&"last_stand": DREAM_FLECK, &"murmur": DREAM_FLECK, &"steady_aim": DREAM_FLECK, &"sharpened_light": DREAM_FLECK,
 	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"ill_wind": DREAM_FLECK, &"damp_rot": DREAM_FLECK,
 	&"first_light": DREAM_FLECK, &"front_line": DREAM_FLECK, &"passing_thread": DREAM_FLECK,
+	&"fruiting": DREAM_FLECK, &"heavy_going": DREAM_FLECK, &"parting_puff": DREAM_THREAD,  # Non-status builds 2026-10-19
 	&"long_way_round": DREAM_FLECK, &"high_tide": DREAM_FLECK, &"seeping": DREAM_FLECK, &"slow_burn": DREAM_FLECK,
 	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK, &"head_start": DREAM_FLECK,
 	&"kindled_gaze": DREAM_FLECK, &"millstone": DREAM_FLECK, &"needle_point": DREAM_FLECK,
@@ -68,7 +69,7 @@ const CUES := {
 	&"shared_fever": STATUS_POP, &"snare_line": STATUS_POP, &"bad_dreams": STATUS_POP, &"many_threads": STATUS_POP,
 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
 	&"lingering_ground": STATUS_POP, &"long_light": STATUS_POP, &"lullaby": STATUS_POP,
-	&"bound_and_burning": STATUS_POP, &"waterlogged": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
+	&"bound_and_burning": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
 	&"homesick": STATUS_POP, &"topped_up": STATUS_POP, &"patient_roots": STATUS_POP, &"sodden": STATUS_POP,
 	# Slow, hold, sleep, pull -> C4
 	&"switchback": SLOW_RIPPLE, &"hobble": SLOW_RIPPLE, &"root_web": SLOW_RIPPLE, &"snag": SLOW_RIPPLE,
@@ -115,7 +116,7 @@ const EXTRA_CUES := {
 
 # STATUS_POP cards that hold a status: the linger rim variant (DEWLIGHT rim on the time bar; never_quite_dry's extra too).
 const LINGER: Array[StringName] = [&"lingering_ground", &"long_light", &"lullaby", &"bound_and_burning",
-	&"waterlogged", &"steeped", &"ebb", &"homesick", &"topped_up", &"patient_roots", &"never_quite_dry", &"sodden"]
+	&"steeped", &"ebb", &"homesick", &"topped_up", &"patient_roots", &"never_quite_dry", &"sodden"]
 
 # Timed speed / damage cards: while one is on for a Warden its boost tier is +1 (spec B1 dream_surge; DreamState.boost_tier).
 # Rule ids (the Dream rows carry card.rule_id).
