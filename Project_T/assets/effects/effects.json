@@ -2455,7 +2455,7 @@
 		"plant_dust": {
 			"anchor": [
 				40,
-				10
+				22
 			],
 			"file": "plant_dust.png",
 			"fps": 14.0,
@@ -2466,7 +2466,7 @@
 			"frames": 6,
 			"kind": "ground",
 			"loop": false,
-			"note": "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the cell centre; the puffs roll along the slab's foot, 12 px below it; under the Warden). ~0.43 s."
+			"note": "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the dust's centre on the ground: Tower Code plays it at the Warden's foot, its cell's bottom edge 4 px up; under the Warden). ~0.43 s."
 		},
 		"poison_bubbles_1": {
 			"anchor": [

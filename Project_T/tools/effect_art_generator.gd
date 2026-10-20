@@ -4785,8 +4785,8 @@ const DUST := [Color("#5c3c24"), Color("#8c5c34"), Color("#bca48c"), Color("#dcc
 const BURST_COLD := [Color("#4c3c74"), Color("#9a84e8"), Color("#9cd4fc"), Color("#dce8f4"), Color("#ffffff")]
 
 func _feel_effects() -> void:
-	_sheet("plant_dust", Vector2i(80, 32), 6, 14, Vector2i(40, 10), false, "ground", _plant_dust,
-		{note = "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the cell centre; the puffs roll along the slab's foot, 12 px below it; under the Warden). ~0.43 s."})
+	_sheet("plant_dust", Vector2i(80, 32), 6, 14, Vector2i(40, 22), false, "ground", _plant_dust,
+		{note = "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the dust's centre on the ground: Tower Code plays it at the Warden's foot, its cell's bottom edge 4 px up; under the Warden). ~0.43 s."})
 	_sheet("boss_burst", Vector2i(160, 160), 12, 14, Vector2i(80, 84), false, "signature", _boss_burst,
 		{note = "A boss dispelled: cold light cracks through it, a flash, a ring, then motes breaking off and drifting away (anchor = the boss's body centre). ~0.86 s. Reduced flashes: skip frames 2-3."})
 
