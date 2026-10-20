@@ -497,7 +497,12 @@ class FxShaker extends Node:
 	static func for_node(near: Node) -> FxShaker:
 		if near == null or not is_instance_valid(near) or not near.is_inside_tree():
 			var last = _last.get_ref() if _last != null else null
-			return last as FxShaker
+			if last != null:
+				return last as FxShaker
+			var tree := Engine.get_main_loop() as SceneTree  # add_trauma(amount) with no node, before any shake: the game's camera
+			near = tree.root if tree != null else null
+			if near == null:
+				return null
 		var camera := near.get_viewport().get_camera_2d()
 		if camera == null:
 			return null
