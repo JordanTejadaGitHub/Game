@@ -56,6 +56,7 @@ func _init() -> void:
 	_toll_effects()
 	_dream_feedback_effects()
 	_calling_effects()
+	_feel_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4775,3 +4776,91 @@ func _calling_spark(img: Image, f: int) -> void:
 			_px(img, roundi(p.x + d.x), roundi(p.y + d.y), Color(Color("#b8662c"), a))
 	if f == 1:
 		_px(img, c.x, c.y, Color("#fff4dc"))
+
+# --- Game-feel pass (screens_ui.md a8471922) ----------------------------------------------------------
+# plant_dust: a small warm-earth puff kicked up round the slab as a Warden is planted (under the Warden).
+# boss_burst: a boss dispelled: cold light cracks through it, flashes, and breaks into motes drifting away
+# (bigger and longer than the normal dispel).
+const DUST := [Color("#5c3c24"), Color("#8c5c34"), Color("#bca48c"), Color("#dccdb2")]  # deep, mid, light, pale
+const BURST_COLD := [Color("#4c3c74"), Color("#9a84e8"), Color("#9cd4fc"), Color("#dce8f4"), Color("#ffffff")]
+
+func _feel_effects() -> void:
+	_sheet("plant_dust", Vector2i(80, 32), 6, 14, Vector2i(40, 10), false, "ground", _plant_dust,
+		{note = "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the cell centre; the puffs roll along the slab's foot, 12 px below it; under the Warden). ~0.43 s."})
+	_sheet("boss_burst", Vector2i(160, 160), 12, 14, Vector2i(80, 84), false, "signature", _boss_burst,
+		{note = "A boss dispelled: cold light cracks through it, a flash, a ring, then motes breaking off and drifting away (anchor = the boss's body centre). ~0.86 s. Reduced flashes: skip frames 2-3."})
+
+func _plant_dust(img: Image, f: int) -> void:
+	var a: float = [1.0, 1.0, 0.75, 0.75, 0.4, 0.4][f]
+	# Puffs rolling out to both sides along the ground, rising a little and thinning.
+	for side: int in [-1, 1]:
+		for k in 3:
+			var out := 27.0 + f * 3.0 + k * 4.5  # from the slab's sides outward
+			var c := Vector2(40 + side * out, 22 - f * 0.6 - k * 1.5)
+			var r := 4.4 + f * 0.5 - k * 0.8
+			if r < 1.2:
+				continue
+			_disc(img, c + Vector2(0, 1), r, Color(DUST[0], a * 0.75))  # the shaded underside
+			_disc(img, c, r, Color(DUST[1], a))
+			_disc(img, c + Vector2(-0.6 * side, -0.8), r * 0.55, Color(DUST[2], a))  # lit top
+			if f < 2:
+				_px(img, int(c.x - 0.6 * side), int(c.y - r * 0.6), Color(DUST[3], a))
+	if f <= 1:  # a few grains kicked up
+		for k in 4:
+			var p := Vector2(40 + [-26.0, -20.0, 21.0, 27.0][k], 16 - f * 4 - k % 2 * 2)
+			_px(img, int(p.x), int(p.y), DUST[2])
+
+func _boss_burst(img: Image, f: int) -> void:
+	var c := Vector2(80, 84)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	# 0-1: cracks of cold light running out through its body.
+	if f <= 3:
+		var reach: float = [14.0, 30.0, 34.0, 26.0][f]
+		var a: float = [1.0, 1.0, 0.75, 0.4][f]
+		for k in 9:
+			var d := Vector2.from_angle(k * TAU / 9.0 + rng.randf_range(-0.15, 0.15))
+			var pts: Array = [c]
+			var steps := 4
+			for s in range(1, steps + 1):
+				var jag := d.orthogonal() * rng.randf_range(-3.0, 3.0)
+				pts.append(c + d * reach * s / steps + jag)
+			_poly_line(img, pts, Color(BURST_COLD[3], a), 1)
+			if f <= 1:
+				var shadow: Array = []
+				for p: Vector2 in pts:
+					shadow.append(p + Vector2(1, 1))
+				_poly_line(img, shadow, Color(BURST_COLD[1], a * 0.75), 1)
+	# 2: the flash.
+	if f == 2:
+		_disc(img, c, 22.0, Color(BURST_COLD[2], 0.4))
+		_disc(img, c, 15.0, Color(BURST_COLD[3], 0.75))
+		_disc(img, c, 9.0, BURST_COLD[4])
+		_star(img, c, 26, BURST_COLD[4], BURST_COLD[2])
+	elif f == 1:
+		_disc(img, c, 6.0, BURST_COLD[4])
+	# 3-6: a ring rolling out, pale with a violet edge so it reads on the sand.
+	if f >= 3 and f <= 7:
+		var t := f - 3
+		var r := 26.0 + t * 12.0
+		var a: float = [1.0, 1.0, 0.75, 0.4, 0.4][t]
+		_ring(img, c, Vector2(r + 1.5, (r + 1.5) * 0.8), 1.2, Color(BURST_COLD[1], a))
+		_ring(img, c, Vector2(r, r * 0.8), 1.6, Color(BURST_COLD[3], a))
+	# 3-11: motes breaking off and drifting up and away, twinkling out.
+	if f >= 3:
+		var t := float(f - 3)
+		for k in 30:
+			var d := Vector2.from_angle(rng.randf() * TAU)
+			var speed := rng.randf_range(5.0, 8.5)
+			var rise := rng.randf_range(0.6, 1.6)
+			var p := c + d * speed * (t + 1.0) * Vector2(1.0, 0.8) + Vector2(0, -rise * t * t * 0.55)
+			var a: float = 1.0 if t < 4.0 else (0.75 if t < 6.5 else 0.4)
+			if f >= 9 and (k + f) % 3 == 0:
+				continue  # they go out one by one
+			var big := k % 2 == 0 or t < 3.0  # most are 2 px with a dark corner: they read on the sand
+			var col: Color = BURST_COLD[3] if k % 2 == 0 else BURST_COLD[2]
+			_px(img, roundi(p.x), roundi(p.y), Color(col, a))
+			if big:
+				_px(img, roundi(p.x) + 1, roundi(p.y), Color(col, a))
+				_px(img, roundi(p.x), roundi(p.y) + 1, Color(BURST_COLD[0], a))
+				_px(img, roundi(p.x) + 1, roundi(p.y) + 1, Color(BURST_COLD[0], a))

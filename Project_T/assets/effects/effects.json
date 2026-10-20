@@ -256,6 +256,22 @@
 			"loop": false,
 			"note": "Charged bolt: a strike from above onto the nightmare (anchor = the strike point, its body centre; the bolt comes down 80 px). ~0.33 s; the biggest single hit reaction."
 		},
+		"boss_burst": {
+			"anchor": [
+				80,
+				84
+			],
+			"file": "boss_burst.png",
+			"fps": 14.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 12,
+			"kind": "signature",
+			"loop": false,
+			"note": "A boss dispelled: cold light cracks through it, a flash, a ring, then motes breaking off and drifting away (anchor = the boss's body centre). ~0.86 s. Reduced flashes: skip frames 2-3."
+		},
 		"brood_end": {
 			"anchor": [
 				12,
@@ -2435,6 +2451,22 @@
 			"kind": "reaction",
 			"loop": false,
 			"reaction": "Marked + Held or asleep"
+		},
+		"plant_dust": {
+			"anchor": [
+				40,
+				10
+			],
+			"file": "plant_dust.png",
+			"fps": 14.0,
+			"frame_size": [
+				80,
+				32
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the cell centre; the puffs roll along the slab's foot, 12 px below it; under the Warden). ~0.43 s."
 		},
 		"poison_bubbles_1": {
 			"anchor": [
