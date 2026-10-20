@@ -7,7 +7,7 @@ extends VBoxContainer
 # path numbered in steps. The word the tip is about is outlined brightest. Code-drawn, palette colours only.
 # The rules it pictures live in class_kit.gd (TOUCH_CELLS 1, NEAR_CELLS 2: both axes, so squares).
 
-const SENTENCE := "A cell is the square one Warden stands on."
+const SENTENCE := "A cell is the space one Warden takes up: 2×2 of the small squares you place on."
 const CELL := 32.0  # Px per cell in the picture (tip text is 16 px: phone-readable at UI scale 50%)
 const SIDE := 7  # Cells across and down
 const NEAR := 2  # Near: within 2 cells on both axes (class_kit NEAR_CELLS)
@@ -19,6 +19,7 @@ const NUMBER_SIZE := 15
 
 const GROUND := Color(Palette.NIGHT, 0.9)
 const GRID_LINE := Color(Palette.SLATE, 0.9)
+const HALF_LINE := Color(Palette.SLATE, 0.35)  # The placement squares inside a cell (half cells: 2×2 per cell)
 const NEAR_FILL := Color(Palette.MOSS, 0.55)  # Fainter than touching
 const NEAR_LINE := Palette.NEWLEAF  # The build ghost's card-area colour (TowerPlacer.BONUS_ON)
 const TOUCH_FILL := Color(Palette.SPRIG, 0.8)
@@ -72,6 +73,9 @@ func _draw_grid() -> void:
 			elif away <= NEAR and away > 0:
 				fill = NEAR_FILL
 			_grid.draw_rect(rect, fill)
+			var mid := rect.get_center()  # Owner 2026-10-19: Wardens are placed on these small squares; show the 2×2 in each cell
+			_grid.draw_line(Vector2(mid.x, rect.position.y), Vector2(mid.x, rect.end.y), HALF_LINE, 1.0)
+			_grid.draw_line(Vector2(rect.position.x, mid.y), Vector2(rect.end.x, mid.y), HALF_LINE, 1.0)
 			_grid.draw_rect(rect, GRID_LINE, false, 1.0)
 	# The near block: the dashed square the build ghost draws for a card's radius
 	var near := _block(NEAR)
