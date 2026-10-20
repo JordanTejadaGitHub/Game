@@ -1,15 +1,15 @@
 extends RefCounted
 # Calling evolutions (owner 2026-10-15/16; council D:\Projects\logs\dream_council\calling_evolution_*.md): the Calling (the
 # first family's built-in rule) grows through the run by play style, not by family. At the drift 5 rest the player picks
-# a style (Spread / Focus / Support), at the drift 25 boss rest one of its two follow-ups, at 50 that follow-up's
-# capstone, and at 75 (the slot Heartwood's Gifts left) the Calling also learns the style's other follow-up. Deepen only.
+# a style (Spread / Focus / Support), at the drift 25 boss rest one of its two follow-ups, at 45 that follow-up's
+# capstone (was 50; moved 2026-10-19 so the demo, which ends at 50, plays it), and at 75 (the slot Heartwood's Gifts left) the Calling also learns the style's other follow-up. Deepen only.
 # The picks are shown on the Dream screen as cards built here (no rarity, no reroll, let-go or let-it-pass); the path is
 # saved as ids in DreamState.calling_path. Each Calling's node reads it (class_kit.evo). Visible-event rule (owner
 # 2026-10-16): every evolution shows what it does on screen, often.
 # Preloaded as DreamState.CALLING_PATHS (no class_name). Only Callings listed in PATHS evolve; the others keep the drift 5
 # class-card Dream until theirs are built.
 
-const DRIFTS: Array[int] = [5, 25, 50, 75]  # Stage 0 style, 1 follow-up, 2 capstone, 3 the other follow-up
+const DRIFTS: Array[int] = [5, 25, 45, 75]  # Stage 0 style, 1 follow-up, 2 capstone, 3 the other follow-up
 
 const STYLE := 0
 const FOLLOW_UP := 1
@@ -28,7 +28,7 @@ const PATHS := {
 		"tip": "A status it makes {full} flashes. Never starts a status. Never {held}."},
 	&"sp_season": {"makes": [&"stacks"], "uses": [], "calling": "sporeling", "tier": CAPSTONE, "parent": &"sp_drifting", "name": "Spore Season",
 		"text": "While 15 or more {mushrooms} are growing, every {dose} is 50% bigger.",
-		"tip": "{Mushrooms} planted by Windblown don't count. The {mushrooms} glow while it is on."},
+		"tip": "Windblown's {mushrooms} count too. The {mushrooms} glow while it is on."},
 	&"sp_fairy_path": {"makes": [], "uses": [&"cluster"], "calling": "sporeling", "tier": FOLLOW_UP, "parent": &"sp_windblown", "name": "Fairy Path",
 		"text": "A {step} {touching} 2 or more attacking Wardens grows a {mushroom}, and grows it back 8 s after it is used.",
 		"tip": "The clock only runs during a {drift}. These {mushrooms} are all back when a {rest} starts."},
@@ -121,7 +121,7 @@ const PATHS := {
 		"tip": "Rings stay between bells. Once for each Warden and nightmare."},
 	&"kt_evo_peal": {"makes": [], "uses": [], "calling": "bellflower", "tier": CAPSTONE, "parent": &"kt_evo_hand_to_hand", "name": "Peal",
 		"text": "A {toll} adds 1 ring to every nightmare within 4 {steps}, but never makes their {toll}.",
-		"tip": "Only a bell's ring can make the {toll}. At most 8 nightmares."},
+		"tip": "Its rings never make a {toll}: a hit has to. At most 8 nightmares."},
 	&"kt_evo_lingering_note": {"makes": [&"repeat"], "uses": [], "calling": "bellflower", "tier": FOLLOW_UP, "parent": &"kt_evo_carrying_tune", "name": "Lingering Note",
 		"text": "A {toll} leaves a note on the path for 2 s. Every nightmare that walks through it is rung once.",
 		"tip": "One note for each bell; its next {toll} moves it."},
@@ -185,13 +185,13 @@ const PATHS := {
 		"tip": "Drags at most 4 nightmares, never bosses or flyers. Free hits: each Warden once a second."},
 	&"dw_stagnant_water": {"makes": [&"linger"], "uses": [], "calling": "dewdrop", "tier": FOLLOW_UP, "parent": &"dw_black_pond", "name": "Stagnant Water",
 		"text": "Statuses on nightmares in a pond don't run down while they stay in it.",
-		"tip": "A ripple shows it. Never {drowsy} or {held}. Bosses: half speed. At most 4 s past the last landing ({static} 2 s), on top of cards that do the same."},  # F2 (tip kept within 30 words)
+		"tip": "Skips {drowsy} and {held}. Bosses' statuses run down at half speed. Up to 4 s past landing ({static} 2 s), on top of cards that do the same."},  # F2 (tip kept within 30 words)
 	&"dw_drowned_hands": {"makes": [&"rooted"], "uses": [&"layered"], "calling": "dewdrop", "tier": CAPSTONE, "parent": &"dw_stagnant_water", "name": "Drowned Hands",
 		"text": "A nightmare in a pond with 4 or more statuses gains 1 {held}: it can't move for 1 s (bosses 0.5 s).",
 		"tip": "The pond's strongest {warden:dewdrop} adds the {held}. Once for each pond and nightmare."},
 	&"dw_riverside": {"makes": [&"linger"], "uses": [&"soaked"], "calling": "dewdrop", "tier": STYLE, "parent": &"", "name": "Riverside", "style": "Support",
 		"text": "Statuses that Wardens {touching} {water} add there last 2 s longer. Sprouts {touching} {water} deal 25% more to nightmares with {damp} in it.",
-		"tip": "{warden:dewdrop}s count for the time; only Sprouts for the damage. Never {drowsy} or {held}. At most 4 s past the last landing, on top of cards that do the same."},  # F2
+		"tip": "{warden:dewdrop}s count for time, only Sprouts for damage. Skips {drowsy} and {held}. Up to 4 s past landing ({static} 2 s), on top of cards that do the same."},  # F2
 	&"dw_rain_on_the_bank": {"makes": [&"layered"], "uses": [], "calling": "dewdrop", "tier": FOLLOW_UP, "parent": &"dw_riverside", "name": "Rain on the Bank",
 		"text": "A splash also gives each nightmare it reaches 1 {stack} of the status of each other Warden {touching} that {water}.",
 		"tip": "At most 3 Wardens, the strongest first. {drowsy} stops 1 short of {full}. Never {held}."},  # F5

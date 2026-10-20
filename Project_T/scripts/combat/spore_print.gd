@@ -108,7 +108,7 @@ const SEED_STEPS := 3  # Windblown: the seed lands this many steps further down 
 const EVO_DRIFTING := &"sp_drifting"
 const DRIFT_STACKS := 2  # Drifting Spores: a dose adds this many to every other status
 const EVO_SEASON := &"sp_season"
-const SEASON_AT := 15  # Spore Season: this many mushrooms (seeded ones don't count)…
+const SEASON_AT := 15  # Spore Season: this many mushrooms, seeded ones too (2026-10-19)…
 const SEASON_DOSE := 1.5  # …and every dose is this much bigger
 const EVO_FAIRY_PATH := &"sp_fairy_path"
 const FAIRY_EVERY := 8.0  # Fairy Path: a step touching FAIRY_TOUCHING or more attacking Wardens regrows this long after use
@@ -285,13 +285,10 @@ func _grow(point: Vector2, grown: bool, tower = null) -> void:
 	_evict()
 	queue_redraw()
 
-# How many mushrooms grow that weren't seeded (Spore Season).
+# How many mushrooms grow (Spore Season). Windblown's seeded ones count since the builds doc (owner 2026-10-19): Spore
+# Season is the capstone of Windblown's own line, so its seedlings fill the count.
 func _rooted_count() -> int:
-	var n := 0
-	for point in mushrooms:
-		if not bool(mushrooms[point].get("seeded", false)):
-			n += 1
-	return n
+	return mushrooms.size()
 
 func season_on() -> bool:
 	return evo(EVO_SEASON) and _rooted_count() >= SEASON_AT
@@ -1107,7 +1104,7 @@ func _draw() -> void:
 			continue
 		var spot: Array = _spot(point)
 		var caps := int(mushrooms[point].caps)
-		if season_on() and not bool(mushrooms[point].get("seeded", false)):
+		if season_on():
 			draw_circle(spot[0] + Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
 		var m: Dictionary = mushrooms[point]
 		var phase := int(point.x * 2.0 + point.y * 2.0)

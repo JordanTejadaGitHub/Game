@@ -33,7 +33,7 @@ func _run() -> void:
 	for family in ["sporeling", "firefly_jar", "dewdrop", "bellflower"]:
 		_check(PATHS.next_ids(family, []).size() == 3, "%s has 3 styles" % family)
 	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]) == [&"sp_sticky"], "Drift 75: the style's other follow-up")
-	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 50, 75")
+	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(45) == 2 and PATHS.stage_of(50) < 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 45, 75")
 	# Owner 2026-10-17: Riverside, Stagnant Water, Show the Way and Chime of Many use their own family's trait; faces stay short
 	# and their capstones keep their parents.
 	for id in [&"dw_riverside", &"dw_stagnant_water", &"lf_show_the_way", &"kt_evo_chime_of_many"]:
@@ -43,7 +43,7 @@ func _run() -> void:
 	_check(PATHS.children(&"dw_stagnant_water") == [&"dw_drowned_hands"] and PATHS.children(&"lf_lantern_wake") == [&"lf_show_the_way"]
 		and PATHS.children(&"kt_evo_chime_of_many") == [&"kt_evo_last_chord"], "the reworked follow-ups keep their capstones")
 	# F3 (owner 2026-10-18; lent_evolution_builds.md): Lantern Wake is Borrowed Light's follow-up (drift 25), Show the Way
-	# its capstone (drift 50), so Firefly's status link arrives inside the demo.
+	# its capstone (drift 45), so Firefly's status link arrives inside the demo.
 	_check(int(PATHS.PATHS[&"lf_lantern_wake"].tier) == PATHS.FOLLOW_UP and PATHS.PATHS[&"lf_lantern_wake"].parent == &"lf_borrowed_light",
 		"F3: Lantern Wake is a follow-up under Borrowed Light")
 	_check(int(PATHS.PATHS[&"lf_show_the_way"].tier) == PATHS.CAPSTONE and PATHS.PATHS[&"lf_show_the_way"].parent == &"lf_lantern_wake",

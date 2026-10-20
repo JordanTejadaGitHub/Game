@@ -360,7 +360,7 @@ var calling := "":
 		_sync_class_hooks()  # The class nodes listen only while on (perf); tests set it directly too
 
 # --- Calling evolutions (scripts/combat/calling_paths.gd; owner 2026-10-16) ---------------------------------------------
-# The Calling grows at the drift 5, 25, 50 and 75 rests: a style, a follow-up, a capstone, the style's other follow-up.
+# The Calling grows at the drift 5, 25, 45 and 75 rests: a style, a follow-up, a capstone, the style's other follow-up.
 # The pick is an offer of its own in the Dream queue, before that rest's Dream (drift 5: instead of it), so it waits
 # for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
 const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
@@ -2988,6 +2988,8 @@ func card_needs_met(card: UpgradeData) -> bool:
 		return true
 	if (card.id == "gathering_storm" or card.id == "shared_spark" or card.id == "struck_twice") and (calling == "firefly_jar" or has_grown_role(WardenRoles.CHAIN)):
 		return true  # Lantern Light jumps on every dispel; chain Wardens' hops are jumps too (keyword chips 2026-10-16)
+	if card.id == "slow_burn" and (has_evolution(&"dw_riverside") or has_evolution(&"dw_stagnant_water")):
+		return true  # Riverside / Stagnant Water make statuses last longer too (EnemyStatuses.is_lingering counts them; builds doc 2026-10-19)
 	for id in CARD_NEEDS[card.id]:
 		if has_rule(id):
 			return true
@@ -4105,6 +4107,8 @@ func _family_roots() -> Array:
 
 func _requires_met(card: UpgradeData) -> bool:
 	for requirement in card.requires:
+		if requirement == "lanternmoth" and card.id == "bright_marks" and has_evolution(&"lf_moth_to_flame"):
+			continue  # Moth to Flame builds Exposure without a Lanternmoth; Bright Marks raises any full Exposure (builds doc 2026-10-19)
 		if not owns(requirement):
 			return false
 	return true
