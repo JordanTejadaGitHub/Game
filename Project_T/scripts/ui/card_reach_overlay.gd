@@ -4,16 +4,18 @@ extends Node2D
 # measurement"). While a Dream or Calling evolution offer is open, the card the player hovers (mouse) or holds / looks
 # at (touch) outlines on the map the cells its word covers around their own Wardens of the family it names: near
 # (5×5) for Hammerfall around Firefly Wardens, touching (3×3) for Pass It Round around Sporelings, "within N cells",
-# or the Warden's range. The squares are the build ghost's card-area squares (TowerPlacer._draw_card_areas: dashed,
+# or the Warden's range: all joined into one faint region with one soft outline (sizes as the build ghost's card areas,
 # BONUS_ON, half = (radius + 0.5) cells). A card with no distance word, or no family, shows nothing.
 # Made by the Dream screen when it shows a card and freed when the offer closes. World space: under the HUD, so it
 # reads best with "Peek at the map" (the last card shown stays outlined while peeking).
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const LINE := Palette.NEWLEAF  # TowerPlacer.BONUS_ON: a card's area around the build ghost
-const FILL_ALPHA := 0.12
-const LINE_ALPHA := 0.85
-const HOME_ALPHA := 0.6
+const FILL_ALPHA := 0.08  # Quieter than the board: the path stays readable under it
+const LINE_ALPHA := 0.55
+const EDGE_SOFT_ALPHA := 0.15
+const HOME_ALPHA := 0.18  # Per glow ring (they stack toward the middle)
+const GLOW_RINGS := 3
 const TOUCH_CELLS := 1  # class_kit TOUCH_CELLS: the 8 around
 const NEAR_CELLS := 2  # class_kit NEAR_CELLS: within 2 on both axes
 const NOT_AROUND_WARDENS := ["heartwood", "start", "bend", "nightmare", "each other"]  # "within 3 cells of the start": another anchor
@@ -24,7 +26,7 @@ var _squares: Array[float] = []  # Radii in cells (Chebyshev squares)
 var _range := false  # Also each Warden's own range
 
 func _init() -> void:
-	z_index = 20  # Above the map, its Wardens and effects; the HUD is its own layer
+	z_index = 1  # Just over the ground and path (z -1), level with the board; the HUD is its own layer above
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 # Outlines `card` (null clears). `calling_family`: the run's Calling family id, for evolutions without one of their own.
@@ -76,20 +78,45 @@ func _wardens() -> Array:
 			out.append(tower)
 	return out
 
+# One region, not a square per Warden (Main Merger 2026-10-19: a dozen dashed squares overlapped into a grid over the
+# map): every Warden's squares and range join into one set of half cells (Wardens stand on half-cell steps), drawn as
+# a faint fill and one soft outline along its outer edge only; each Warden it is measured from glows at its base.
 func _draw() -> void:
 	if _line == "" or (_squares.is_empty() and not _range):
 		return
-	var cell := MAP_GRID.cell_size.x
-	for tower in _wardens():
+	var half := MAP_GRID.cell_size.x * 0.5
+	var towers := _wardens()
+	var covered := {}  # Vector2i half cell -> true
+	for tower in towers:
 		var centre := to_local(tower.global_position)
-		var home := cell * 0.5
-		draw_rect(Rect2(centre - Vector2(home, home), Vector2(cell, cell)), Color(LINE, HOME_ALPHA), false, 2.0)
 		for radius in _squares:
-			var half := (radius + 0.5) * cell
-			var rect := Rect2(centre - Vector2(half, half), Vector2(half, half) * 2.0)
-			draw_rect(rect, Color(LINE, FILL_ALPHA))
-			var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
-			for i in 4:
-				draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(LINE, LINE_ALPHA), 2.0, 8.0)
+			var reach := (radius + 0.5) * half * 2.0
+			for x in range(roundi((centre.x - reach) / half), roundi((centre.x + reach) / half)):
+				for y in range(roundi((centre.y - reach) / half), roundi((centre.y + reach) / half)):
+					covered[Vector2i(x, y)] = true
 		if _range:
-			draw_arc(centre, Tower.range_to_pixels(tower.get_range_cells()), 0.0, TAU, 64, Color(LINE, LINE_ALPHA), 2.0)
+			var r: float = Tower.range_to_pixels(tower.get_range_cells())
+			for x in range(floori((centre.x - r) / half), ceili((centre.x + r) / half)):
+				for y in range(floori((centre.y - r) / half), ceili((centre.y + r) / half)):
+					if (Vector2(x + 0.5, y + 0.5) * half).distance_to(centre) <= r:
+						covered[Vector2i(x, y)] = true
+	var edges := PackedVector2Array()
+	var size := Vector2(half, half)
+	for c: Vector2i in covered:
+		var at := Vector2(c) * half
+		draw_rect(Rect2(at, size), Color(LINE, FILL_ALPHA))
+		if not covered.has(c + Vector2i.UP):
+			edges.append_array([at, at + Vector2(half, 0)])
+		if not covered.has(c + Vector2i.DOWN):
+			edges.append_array([at + Vector2(0, half), at + size])
+		if not covered.has(c + Vector2i.LEFT):
+			edges.append_array([at, at + Vector2(0, half)])
+		if not covered.has(c + Vector2i.RIGHT):
+			edges.append_array([at + Vector2(half, 0), at + size])
+	if not edges.is_empty():
+		draw_multiline(edges, Color(LINE, EDGE_SOFT_ALPHA), 6.0)  # The soft halo of the outline
+		draw_multiline(edges, Color(LINE, LINE_ALPHA), 2.0)
+	for tower in towers:  # The Wardens it is measured from: a small glow at the base
+		var base := to_local(tower.global_position) + Vector2(0, half * 0.5)
+		for i in GLOW_RINGS:
+			draw_circle(base, half * (0.75 - 0.2 * i), Color(LINE, HOME_ALPHA * (i + 1) / float(GLOW_RINGS)))
