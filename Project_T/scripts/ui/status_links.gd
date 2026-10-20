@@ -47,6 +47,10 @@ var _shown_meta := ""  # The link the popup shows (a tap on the same card link c
 const TOUCH_REOPEN_MS := 700
 var _touch_closed_meta := ""
 var _touch_closed_ms := 0
+# The distance picture under {touching} / {near} / {step} / "cells" in a tip (distance words, owner 2026-10-19)
+const DistanceDiagram := preload("res://scripts/ui/distance_diagram.gd")
+const DISTANCE_TERMS: Array[StringName] = [&"touching", &"near", &"step", &"cell"]
+var _distance: Control = null  # Made on first use, under the tip's text
 
 # `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
 # as a [url] link, other "[" escaped.
@@ -102,7 +106,7 @@ const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction",
 	&"nurture_choice", &"nurture", &"signature", &"mastery", &"all_rounder", &"attuned", &"ascended", &"final_form",
 	&"grove_branch", &"sprout", &"thornwall", &"eldest", &"dream", &"legendary", &"bittersweet", &"woven", &"banish",
 	&"omen", &"maze_bonus", &"catcher", &"aura", &"crit", &"critical_hit", &"flyer", &"restless", &"remember",
-	&"memory_grove", &"perk", &"blight_level"]
+	&"memory_grove", &"perk", &"blight_level", &"cell"]  # cell: "within 2 cells" (distance words, owner 2026-10-19)
 const NOT_BEFORE := {&"calling": " early"}  # "Calling early" is the verb, not the Calling
 static var _seen := {}  # Link metas already linked in the block being built
 static var _auto_order: Array[StringName] = []
@@ -412,6 +416,7 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 		var entry: Array = IconInfo.STATUSES.get(id, IconInfo.STATS.get(id, []))  # A role line's "Crits" links a stat
 		_name.text = entry[0] if not entry.is_empty() else IconInfo.status_name(id)
 		_text.text = IconInfo.format(entry[1]) if not entry.is_empty() else ""
+	_show_distance(id if is_term else &"")  # (distance words, owner 2026-10-19)
 	var mouse := host.get_global_mouse_position()
 	UiStyle.lift_tip(self, host)  # Above every panel and screen (screens_ui.md "tips are opaque")
 	visible = true
@@ -420,6 +425,20 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	global_position = UiStyle.tip_position(mouse, size, get_viewport_rect().size)
 	_place_beside_panel(host, mouse)
 	_hide_in = -1.0
+
+# The distance picture for a distance term (DISTANCE_TERMS), hidden for anything else (distance words, owner 2026-10-19).
+func _show_distance(term: StringName) -> void:
+	if not DISTANCE_TERMS.has(term):
+		if _distance != null:
+			_distance.visible = false
+		return
+	if _distance == null:
+		_distance = DistanceDiagram.new()
+		var box := _text.get_parent()
+		box.add_child(_distance)
+		box.move_child(_distance, _text.get_index() + 1)
+	_distance.visible = true
+	_distance.call(&"show_for", term)
 
 # The card (or Omen) a card link names: {name, rarity (-1 for an Omen), text}, or {} when there is none. A retired
 # card is still a file, so it still shows.
@@ -471,6 +490,7 @@ func _show_card(meta: String, host: Control, tapped: bool) -> void:
 	_name.text = tip.name
 	_name.add_theme_color_override("font_color", UiStyle.rarity_color(int(tip.rarity)) if int(tip.rarity) >= 0 else LINK_COLOR)
 	_text.text = tip.text
+	_show_distance(&"")  # (distance words, owner 2026-10-19)
 	var mouse := host.get_global_mouse_position()
 	UiStyle.lift_tip(self, host)
 	visible = true

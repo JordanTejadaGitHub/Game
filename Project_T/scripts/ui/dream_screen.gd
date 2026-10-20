@@ -54,6 +54,8 @@ var _phone_left: HBoxContainer = null
 var _phone_right: HBoxContainer = null
 var _looked_card: UpgradeData = null
 var _link_tap_ms := -100000
+const CardReach := preload("res://scripts/ui/card_reach_overlay.gd")  # (distance words, owner 2026-10-19)
+var _reach: Node2D = null  # The hovered / held card's distance outline on the map; freed when the offer closes
 
 func _ready() -> void:
 	WorldLabel.cover_while_visible(self, &"dream_screen")  # No world tags (DPS, hover names) over a full-screen screen
@@ -296,6 +298,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			UiStyle.caps(hint, 15, UiStyle.GOLD)
 			column.add_child(hint)
 		_cards.add_child(column)
+	_show_reach(null)  # New cards (a reroll too): no outline until one is hovered (distance words, owner 2026-10-19)
 	visible = true
 	_picking = false
 	_looked = null
@@ -318,6 +321,8 @@ func _make_card(card: UpgradeData) -> Button:
 			_look_at(card, button)  # Phones: the first tap looks
 			return
 		_pick(card, button.get_parent() as Control))  # The flight first, then it's taken
+	button.mouse_entered.connect(_show_reach.bind(card))  # Its distance outline on the map: hover, or (touch) the hold
+	button.button_down.connect(_show_reach.bind(card))  # (distance words, owner 2026-10-19)
 	if CardDiagram.has_diagram(card):
 		button.mouse_entered.connect(show_diagram.bind(card, button))
 		button.mouse_exited.connect(hide_diagram)
@@ -667,6 +672,7 @@ func _look_at(card: UpgradeData, button: Button) -> void:
 		if hint != null:
 			hint.text = "Tap again to take" if looked else " "
 	_update_phone_bar()
+	_show_reach(card)  # (distance words, owner 2026-10-19)
 	if CardDiagram.has_diagram(card):
 		show_diagram(card, button)
 	else:
@@ -818,9 +824,27 @@ func _pick(card: UpgradeData, column: Control) -> void:
 
 func _on_closed() -> void:
 	hide_diagram()
+	if _reach != null and is_instance_valid(_reach):  # (distance words, owner 2026-10-19)
+		_reach.queue_free()
+	_reach = null
 	# If another Dream is queued, offer_ready follows right away and shows (and pauses) again.
 	visible = false
 	game_speed.set_paused(_was_paused)
+
+# The card's distance word outlined on the map around the player's Wardens of its family (null clears; it stays for the
+# last card shown, so "Peek at the map" still shows it). Made on first use, in the run's world (distance words, owner
+# 2026-10-19).
+func _show_reach(card: UpgradeData) -> void:
+	if _reach == null or not is_instance_valid(_reach):
+		if card == null:
+			return
+		var world: Node = owner if owner != null else get_tree().current_scene
+		if world == null:
+			return
+		_reach = CardReach.new()
+		_reach.name = "CardReachOverlay"
+		world.add_child(_reach)
+	_reach.call(&"show_card", card, dream_state.calling)
 
 static func _roman(n: int) -> String:
 	var numerals := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]

@@ -81,6 +81,7 @@ const GLOSSARY_SOURCE := [
 		["Step", "One cell of path, counted along the path.", []],
 		["Touching", "Within 1 cell on both sides: the 8 cells around a Warden. A Warden touches the path within 1.25 cells of its centre. Two nightmares touch when they are within 1 cell of each other.", ["Near"]],
 		["Near", "Within 2 cells on both sides: the dashed square around a Warden while you plant it.", ["Touching"]],
+		["Cell", "The square one Warden stands on. Range, touching, near and steps are all counted in cells.", ["Touching", "Near", "Step"]],  # (distance words, owner 2026-10-19)
 	]],
 	["Branch effects", [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],

@@ -334,6 +334,7 @@ const TERMS := {
 	&"step": ["step", "steps", "Step"],
 	&"touching": ["touching", "touching", "Touching", "touchings"],
 	&"near": ["near", "near", "Near", "nears"],
+	&"cell": ["cell", "cells", "Cell"],  # Its tip shows the distance picture (distance words, owner 2026-10-19)
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
