@@ -31,6 +31,10 @@ game build.
 ## What was polished
 
 - **The art:** the title Warden as cleaned up by the Title Screen chat (AI-look audit #5, 96cc361b).
+  Re-cut 2026-10-19 from the current title layers: the base mushrooms rooted in the waterline
+  (59639609), plus the Title Screen chat's uncommitted mist and crown edits of 2026-10-19. The logo
+  is unchanged, and `assets/ui/title/title_logo.png` is the same image as `logo_1x.png`. If the
+  title art changes again, re-cut all seven art files; the two logo files only change with the logo.
   The Warden and the nightmares are left exactly as drawn. On the background, a de-checker pass:
   - 50% checker fields in the fog and the warm halo fold into **hard shading bands**;
   - lone specks and stray motes are removed;
