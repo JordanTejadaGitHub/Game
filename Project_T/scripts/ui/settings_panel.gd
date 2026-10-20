@@ -429,7 +429,7 @@ static func apply_display(settings: Dictionary, resize: bool = true) -> void:
 		else DisplayServer.VSYNC_DISABLED)
 	resize = resize or not _display_applied
 	_display_applied = true
-	if resize and not settings.get("fullscreen", false):
+	if resize and not settings.get("fullscreen", false) and not OS.has_feature("mobile"):  # Phones are always fullscreen
 		var index := clampi(int(settings.get(WINDOW_SIZE_SETTING, 0)), 0, WINDOW_SIZES.size() - 1)
 		var size: Vector2i = WINDOW_SIZES[index]
 		var screen := DisplayServer.screen_get_size()

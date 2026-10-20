@@ -615,6 +615,8 @@ static func apply_settings(settings: Dictionary = {}) -> void:
 			lesson.set_enabled(bool(settings.get("whispers", true)))
 	if DisplayServer.get_name() != "headless":
 		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if settings.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+		if OS.has_feature("mobile"):
+			mode = DisplayServer.WINDOW_MODE_FULLSCREEN  # Phones: windowed = Android's status and nav bars back over the game (user 2026-10-19)
 		var changed := DisplayServer.window_get_mode() != mode
 		if changed:
 			DisplayServer.window_set_mode(mode)
