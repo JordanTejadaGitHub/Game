@@ -15,4 +15,3 @@ min_act = 2
 rule_id = &"hunters_patience"
 tip = "Hits only, not statuses. Wardens' hits also deal 40% more to flyers."
 extra_rules = Array[StringName]([&"skyward_gaze"])
-in_start_pool = false

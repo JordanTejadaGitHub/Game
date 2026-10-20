@@ -46,7 +46,13 @@ func _run() -> void:
 		jar.hit(a, 1.0, false, Tower.NO_CRIT)
 	_check(absf(jar.get_attacks_per_second() - base * (1.0 + step.y)) < 0.01, "capped at +%d%%" % roundi(step.y * 100))
 	jar.hit(b, 1.0, false, Tower.NO_CRIT)
-	_check(absf(jar.get_attacks_per_second() - base * (1.0 + step.x)) < 0.01, "a new target starts the streak over")
+	# The fade (Grove card council 2026-10-20): a new target starts a new streak, and the old bonus drains over 1 s
+	_check(absf(jar.get_attacks_per_second() - base * (1.0 + step.y)) < 0.01, "a new target: the old bonus is still there at first")
+	jar._anim_time += GroveRules.MOMENTUM_FADE * 0.5
+	var half: float = jar.get_attacks_per_second()
+	_check(half < base * (1.0 + step.y) - 0.01 and half > base * (1.0 + step.x) + 0.01, "...half drained half a second later")
+	jar._anim_time += GroveRules.MOMENTUM_FADE
+	_check(absf(jar.get_attacks_per_second() - base * (1.0 + step.x)) < 0.01, "...gone after 1 s: the new streak alone")
 	_drop("momentum")
 
 	# Quickening: a nightmare dispelled in range: +30% attack speed for 4 s.

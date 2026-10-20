@@ -38,8 +38,8 @@ func _test_card_changes() -> void:
 	for id in ids:
 		var card := _card(id)
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
-			and card.in_start_pool == (id == "hunters_moon") and card.requires.is_empty() and card.requires_tag == "",
-			"%s: a Grove Legendary with no Needs (Hunter's Moon: start pool since 495076d2)" % id)
+			and not card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
+			"%s: a Grove Legendary with no Needs (Hunter's Moon back on the Sharpened node, Grove card council 2026-10-20)" % id)
 		if id == "menagerie":
 			_check(card.retired and not dreams.is_eligible(card, 2), "Menagerie keeps its legacy identity but cannot enter new offers")
 		else:

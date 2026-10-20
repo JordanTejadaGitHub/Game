@@ -316,7 +316,7 @@ func _test_reaction_cards() -> void:
 # Cards 84–99 (family review): Grove-only, their Needs, stacking rules and Entwined combos.
 func _test_family_review_cards() -> void:
 	_reset()
-	var ids := ["hush", "heavy_eyelids", "bad_dreams", "encore", "loose_stones", "sharp_beaks", "needle_point",
+	var ids := ["encore", "loose_stones", "sharp_beaks", "needle_point",
 		"charged_feathers", "pollen_beaks", "thousand_cuts", "longer_flight", "backspin", "ricochet",
 		"heavy_seed", "windborne_rain", "seed_storm", "heavy_eyelids_ii", "bad_dreams_ii", "ricochet_ii"]
 	for id in ids:

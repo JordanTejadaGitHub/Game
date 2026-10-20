@@ -12,6 +12,7 @@ kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])
 max_stacks = 1
 rule_id = &"deep_well"
+retired = true
 in_start_pool = false
 grows_with = Array[String](["wellspring"])
 grows_text = "{warden:wellspring}'s {interest} cap is {dew:30} higher."

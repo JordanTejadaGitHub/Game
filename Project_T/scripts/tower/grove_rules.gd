@@ -19,17 +19,29 @@ static func speed_bonus(tower: Tower) -> float:
 		return 0.0
 	if tower._has_rule(&"momentum"):
 		var step: Vector2 = dreams.momentum_step()
-		bonus += minf(step.x * tower._grove.get(&"streak", 0), step.y)
+		var streak := minf(step.x * tower._grove.get(&"streak", 0), step.y)
+		# The fade (Grove card council 2026-10-20): a switch drains the old bonus over MOMENTUM_FADE s while the new streak builds
+		var left := 1.0 - (tower._anim_time - float(tower._grove.get(&"fade_at", -INF))) / MOMENTUM_FADE
+		bonus += maxf(streak, float(tower._grove.get(&"fade_from", 0.0)) * clampf(left, 0.0, 1.0))
 	if tower._has_rule(&"quickening") and tower._grove.get(&"quick_until", -1.0) > tower._anim_time:
 		bonus += DreamState.QUICKENING_SPEED
 	return bonus
 
-# A single-target hit on `enemy`: the Momentum streak goes on, or starts over on a new nightmare.
+# Momentum's fade: seconds the old bonus takes to drain after a switch (a kill too), so a stream never drops it to nothing at once.
+const MOMENTUM_FADE := 1.0
+
+# A single-target hit on `enemy`: the Momentum streak goes on, or starts over on a new nightmare (the old bonus fades).
 static func note_hit(tower: Tower, enemy: Node2D) -> void:
 	var id := enemy.get_instance_id()
 	if tower._grove.get(&"streak_on", 0) == id:
 		tower._grove[&"streak"] = int(tower._grove.get(&"streak", 0)) + 1
 	else:
+		if tower._dream_state != null and tower._has_rule(&"momentum") and int(tower._grove.get(&"streak", 0)) > 0:
+			var step: Vector2 = tower._dream_state.momentum_step()
+			var left := 1.0 - (tower._anim_time - float(tower._grove.get(&"fade_at", -INF))) / MOMENTUM_FADE
+			var now_bonus := maxf(minf(step.x * tower._grove.get(&"streak", 0), step.y), float(tower._grove.get(&"fade_from", 0.0)) * clampf(left, 0.0, 1.0))
+			tower._grove[&"fade_from"] = now_bonus
+			tower._grove[&"fade_at"] = tower._anim_time
 		tower._grove[&"streak_on"] = id
 		tower._grove[&"streak"] = 1
 
@@ -139,6 +151,7 @@ class LingeringPatch extends Node2D:
 
 # Quickening listens to dispels once per run scene (Tower._ready asks; cheap after the first).
 static var _listening := 0  # The EnemyContainer it's connected to (instance id)
+static var _listening_log := 0  # The DamageLog Shared Light listens to (instance id)
 
 static func listen(tower: Tower) -> void:
 	var spawner: Node = tower._dream_state.get_node_or_null("%EnemyContainer") if tower._dream_state else null
@@ -149,3 +162,33 @@ static func listen(tower: Tower) -> void:
 	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
 		if is_instance_valid(dreams) and dreams.has_rule(&"quickening") and is_instance_valid(enemy):
 			quicken_near(enemy.get_tree(), enemy.global_position))
+	var log: Node = dreams.get_node_or_null("%DamageLog")
+	if log != null and log.has_signal("damage_dealt") and _listening_log != log.get_instance_id():
+		_listening_log = log.get_instance_id()
+		log.damage_dealt.connect(_on_damage.bind(dreams))
+
+# Shared Light's trigger: a plain hit by a Warden that left the nightmare at 0 health.
+static func _on_damage(event, dreams) -> void:
+	if not is_instance_valid(dreams) or not dreams.has_rule(&"shared_light") or event.kind != &"hit" or event.tag != &"":
+		return
+	if is_instance_valid(event.source) and event.source is Tower and is_instance_valid(event.enemy) and event.enemy.health <= 0:
+		share_light(event.source)
+
+# Shared Light (reworked, Grove card council 2026-10-20; was +4% per touching Warden, near-flat): a Warden's hit that
+# dispels a nightmare gives every attacking Warden touching it +SHARED_LIGHT_BONUS damage for SHARED_LIGHT_TIME s (no stacking).
+static func share_light(killer: Tower) -> void:
+	var reach := Tower.MAP_GRID.cell_size.x + 1.0  # Touching: the 8 around, on both axes
+	for tower in killer.get_tree().get_nodes_in_group(Tower.GROUP):
+		if not (tower is Tower) or tower == killer or not tower.tower_data.can_attack or tower.is_queued_for_deletion():
+			continue
+		var d: Vector2 = (tower.global_position - killer.global_position).abs()
+		if d.x <= reach and d.y <= reach:
+			tower._grove[&"shared_until"] = tower._anim_time + DreamState.SHARED_LIGHT_TIME
+			if tower._dream_state != null:
+				tower._dream_state.note_card(&"shared_light", tower.global_position, 1, tower)
+
+# Shared Light's damage multiplier for `tower`'s hits (1.0 when off).
+static func shared_light_multiplier(tower) -> float:
+	if not (tower is Tower) or not is_instance_valid(tower) or float(tower._grove.get(&"shared_until", -1.0)) <= tower._anim_time:
+		return 1.0
+	return 1.0 + DreamState.SHARED_LIGHT_BONUS

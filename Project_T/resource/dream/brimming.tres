@@ -12,6 +12,7 @@ kind = 3
 tags = Array[String](["status", "affliction", "defining"])
 max_stacks = 1
 rule_id = &"brimming"
+discovered_by = Array[String](["reactions:2"])
 
 requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held"])
 min_act = 2

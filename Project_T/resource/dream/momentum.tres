@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "momentum"
 display_name = "Momentum"
-description = "A Warden attacks 6% faster for each hit in a row on the same nightmare, up to +45%. Hitting another nightmare starts it over."
+description = "A Warden attacks 6% faster for each hit in a row on the same nightmare, up to +45%. On a new nightmare, the bonus drains over 1 s."
 rarity = 1
 kind = 3
 tags = Array[String](["swift", "defining"])
 max_stacks = 1
 rule_id = &"momentum"
-tip = "Area attacks don't count."
+tip = "Area attacks don't count. A new streak builds while the old bonus drains, so a kill never drops it at once."

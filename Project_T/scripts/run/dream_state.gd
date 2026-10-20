@@ -187,8 +187,8 @@ const RAIN_ON_GLASS_PER := 0.70  # Light Wardens vs Soaked (one copy)
 const DEEP_WELL_RATE := 0.05
 const DEEP_WELL_MAX := 80  # (Dew x2 second pass: was 40; the 5% stays)
 const KIND_CANOPY_BONUS := 0.35  # Sheltering Boughs (Balancing 738088c3)
-const SHARED_LIGHT_PER := 0.04
-const SHARED_LIGHT_MAX := 0.20
+const SHARED_LIGHT_BONUS := 0.25  # Shared Light (reworked 2026-10-20): a dispelling hit gives the Wardens touching the killer this much more damage…
+const SHARED_LIGHT_TIME := 3.0  # …for this long (GroveRules.share_light)
 const BRAMBLE_OATH_PER := 0.03  # Per BRAMBLE_OATH_TILES path tiles the walls add
 const BRAMBLE_OATH_TILES := 5
 const BRAMBLE_OATH_MAX := 0.30
@@ -2202,6 +2202,7 @@ var _hook_bells := false
 var _hook_linger := false  # Keyword chips 2026-10-16: Slow Burn
 var _hook_light := false  # Struck Twice, Bonfire, Strung Lights (self-sufficiency audit 2026-10-18): firefly_lights.damage_multiplier
 var _hook_spore := false  # Fruiting (non-status builds, 2026-10-19): spore_print.damage_multiplier
+var _hook_shared := false  # Shared Light (reworked 2026-10-20): GroveRules.shared_light_multiplier
 
 # How much more of the blight coat (the shell) a hit takes off (Wash Away; 1.0 without it). Enemy.take_damage asks only
 # while the nightmare has a coat.
@@ -2220,7 +2221,8 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		_hook_linger = has_rule(SLOW_BURN)
 		_hook_light = firefly_lights != null and firefly_lights.is_inside_tree() and firefly_lights.wants_damage_hook()
 		_hook_spore = spore_print != null and spore_print.is_inside_tree() and spore_print.wants_damage_hook()
-	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light and not _hook_spore:
+		_hook_shared = has_rule(&"shared_light")
+	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light and not _hook_spore and not _hook_shared:
 		return 1.0
 	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
 	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
@@ -2237,6 +2239,11 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		multiplier *= firefly_lights.damage_multiplier(enemy, source, tag)
 	if _hook_spore:
 		multiplier *= spore_print.damage_multiplier(enemy, source, tag)
+	if _hook_shared and tag == &"":
+		var shared: float = GroveRules.shared_light_multiplier(source)
+		if shared > 1.0:
+			multiplier *= shared
+			DamageLog.note_card_bonus("shared_light", shared)
 	return multiplier
 
 # --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
@@ -3010,6 +3017,18 @@ var _new_family_drift := -1
 # only when no family was taken at this boss's pick, it is the Calling's family, or every one of its cards is taken.
 # The guarantee skips the board, discovery and "grown" gates of can_offer: just after the pick no Warden of the new
 # family stands on the map yet, so those gates would turn every one of its cards away.
+# Freshly planted Grove cards (MetaRun fills `fresh_grove_cards` with the cards of nodes planted since the last run; empty
+# = none). One of them, drawn evenly among those offerable now.
+var fresh_grove_cards: Array[String] = []
+var _fresh_shown := false
+
+func _fresh_grove_card(act: int, offer: Array[UpgradeData]) -> UpgradeData:
+	var found: Array[UpgradeData] = []
+	for card in pool:
+		if fresh_grove_cards.has(card.id) and not offer.has(card) and can_offer(card, act):
+			found.append(card)
+	return found[_rng.randi_range(0, found.size() - 1)] if not found.is_empty() else null
+
 func _new_family_lent_card(drift_number: int, act: int, offer: Array[UpgradeData]) -> UpgradeData:
 	if _new_family == "" or _new_family == calling or _new_family_drift != drift_number:
 		return null
@@ -3086,6 +3105,13 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		var lent_card := _new_family_lent_card(drift_number, act, offer)
 		if lent_card != null:
 			offer.append(lent_card)
+	# A card from a Grove node planted since the last run: one slot of the first offer it can show in, once (Grove card
+	# council 2026-10-20: planting has to feel like a reward)
+	if not _fresh_shown and not fresh_grove_cards.is_empty() and offer.size() < size:
+		var fresh := _fresh_grove_card(act, offer)
+		if fresh != null:
+			offer.append(fresh)
+			_fresh_shown = true
 	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
 		waking_legendaries = false
 		size = maxi(size, WAKING_LEGENDARIES)
@@ -3754,6 +3780,7 @@ func to_save() -> Dictionary:
 		"past_cap": past_cap.duplicate(true),
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
 		"new_family": [_new_family, _new_family_drift],  # The boss rest's guaranteed card survives a save between the pick and its Dream
+		"fresh_shown": _fresh_shown,  # A freshly planted Grove card was offered (once a run)
 		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
@@ -3778,6 +3805,7 @@ func load_save(data: Dictionary) -> void:
 			calling_path.append(StringName(id))
 	if firefly_lights != null:
 		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
+	_fresh_shown = bool(data.get("fresh_shown", false))
 	var new_family: Array = data.get("new_family", ["", -1])
 	if new_family.size() == 2:
 		_new_family = String(new_family[0])
@@ -5705,6 +5733,13 @@ func build_run_pool(seed_value: int = -1) -> void:
 		var family := _card_family(card)
 		if _always_in_pool(card):
 			run_pool[card.id] = true
+		elif not card.in_start_pool and family == "":
+			# A carried Grove card is always in its run, on top of the draw (Grove card council 2026-10-20: planting must never
+			# push start cards out or leave the planted card unseen for runs)
+			if discovery_met(card):
+				run_pool[card.id] = true
+			else:
+				_run_pool_waiting[card.id] = true
 		elif card.id == "heartwoods_reach":
 			pass  # Too few obstacles on this map
 		elif family != "":
@@ -5754,6 +5789,12 @@ func _sample_family(family: String) -> void:
 			continue
 		if card.deepens != "":
 			continue  # Follows its base (in_run_pool)
+		if not card.in_start_pool:
+			if discovery_met(card):
+				run_pool[card.id] = true  # A carried Grove card: always in, never part of the family sample (2026-10-20)
+			else:
+				_run_pool_waiting[card.id] = true
+			continue
 		by_rarity.get_or_add(card.rarity, []).append(card)
 		total += 1
 	var drawn: Array = []

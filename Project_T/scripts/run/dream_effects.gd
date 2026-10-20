@@ -44,7 +44,7 @@ const REPORTERS := {
 	&"switchback": "_switchback", &"close_guard": "_close_guard", &"nimble_twigs": "_nimble_twigs", &"seasoned": "_seasoned",
 	&"mulch": "_mulch", &"light_steps": "_light_steps", &"close_shave": "_close_shave", &"undergrowth": "_undergrowth",
 	&"rain_on_glass": "_rain_on_glass",
-	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
+	&"kind_canopy": "_kind_canopy", &"bramble_oath": "_bramble_oath",  # (Shared Light: a dispel share since 2026-10-20, GroveRules)
 	&"golden_harvest": "_golden_harvest",
 	&"sunlit_rest": "_sunlit_rest",
 	&"thin_bark": "_thin_bark", &"deep_sleep": "_deep_sleep",  # Card pass 2026-10-16 (4 B): reworks (DreamState.reaction_cards)
@@ -806,12 +806,6 @@ func _kind_canopy(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 # An aura Warden (Sheltering Boughs): one with an aura (aura_radius > 0), or a support Warden.
 static func is_aura_warden(data: TowerData) -> bool:
 	return data != null and (data.aura_radius > 0.0 or data.role_tag == &"support")
-
-func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
-	var touching := board.touching(spot).size()
-	var bonus := minf(DreamState.SHARED_LIGHT_PER * touching, DreamState.SHARED_LIGHT_MAX)
-	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
-		"note": count_text(touching, "Warden") + " touching", "reason": "" if bonus > 0.0 else "no Warden touching it"}
 
 func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var tiles := ds.walls_added_tiles()

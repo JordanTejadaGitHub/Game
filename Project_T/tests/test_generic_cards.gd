@@ -14,7 +14,7 @@ const IDS := ["call_of_the_wild", "lasting_dreams",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
 # The lean starting pool (dream_design.md "The starting Dream pool", 2026-09-30): these moved to Grove nodes.
-const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "desperate_bloom", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
+const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "desperate_bloom", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
 
 var failures := 0
 var main: Node
@@ -607,7 +607,7 @@ func _test_catalogue() -> void:
 # Shiny Things, Hairpin Winds).
 func _test_eleven_cards() -> void:
 	_reset()
-	var grove := ["long_shadows", "patient_aim", "ring_dance", "deep_frost", "carried_on_the_wind", "sweet_scent",
+	var grove := ["long_shadows", "patient_aim", "ring_dance", "deep_frost", "carried_on_the_wind",
 		"shiny_things", "hairpin_winds"]
 	for id in ["glinting_dew", "sharpened_light", "sharpened_light_ii"] + grove:
 		var card := _card(id)
@@ -820,9 +820,19 @@ func _test_seed_cards() -> void:
 	_plant("acorn", Vector2(100, 100))  # An aura Warden
 	dreams.bump_board()
 	var canopy := _row(centre.tower_data, centre.cell, "kind_canopy", centre)
-	var light := _row(centre.tower_data, centre.cell, "shared_light", centre)
-	_check(canopy.active and is_equal_approx(canopy.damage, DreamState.KIND_CANOPY_BONUS) and is_equal_approx(light.damage, 0.12),
-		"Sheltering Boughs on beside an aura Warden (+%d%%); Shared Light +4%% each (%.2f)" % [roundi(canopy.damage * 100), light.damage])
+	_check(canopy.active and is_equal_approx(canopy.damage, DreamState.KIND_CANOPY_BONUS),
+		"Sheltering Boughs on beside an aura Warden (+%d%%)" % roundi(canopy.damage * 100))
+	# Shared Light (reworked 2026-10-20): a dispelling hit gives the Wardens touching the killer +25% for 3 s; no stat row
+	_check(not _row(centre.tower_data, centre.cell, "shared_light", centre).active,
+		"Shared Light: no standing bonus from touching Wardens")
+	var beside: Tower = null
+	for t in main.get_tree().get_nodes_in_group(Tower.GROUP):
+		if t != centre and t.tower_data.can_attack and t.cell == Vector2(102, 100):
+			beside = t
+	_check(beside != null and is_equal_approx(GroveRules.shared_light_multiplier(beside), 1.0), "...nothing before a dispel")
+	GroveRules.share_light(centre)
+	_check(beside != null and is_equal_approx(GroveRules.shared_light_multiplier(beside), 1.0 + DreamState.SHARED_LIGHT_BONUS)
+		and is_equal_approx(GroveRules.shared_light_multiplier(centre), 1.0), "...after its neighbour's dispel, a touching Warden deals +25% (not the killer)")
 	# Patient Roots and Bramble Oath's measure
 	dreams.take(_card("patient_roots"))
 	_check(dreams.get_held_bonus() == DreamState.PATIENT_ROOTS_HELD and DreamState.PATIENT_ROOTS_HELD == 1.0 and dreams.walls_added_tiles() >= 0, "Patient Roots: Rooted +1 s (bosses 0.25 s); walls' path tiles measured")
@@ -911,7 +921,7 @@ func _test_grove_branches() -> void:
 	_reset()
 	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart", "drumbeat"]
 	var reach := ["lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
-	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap", "flurry"]  # Back in the start pool (dream_design.md 21ac910b, de439ea8)
+	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap", "flurry", "quickening"]  # Back in the start pool (dream_design.md 21ac910b, de439ea8; Hunt's Rush: Grove card council 2026-10-20)
 	for id in swift + reach:
 		var card := _card(id)
 		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags.filter(func(t: String) -> bool: return t != "defining") == [("swift" if swift.has(id) else "reach")],

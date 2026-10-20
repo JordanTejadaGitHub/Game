@@ -75,7 +75,7 @@ const EFFECTS := {
 	"root_network": {"text": "+18%", "damage": 1.18},
 	"root_network_ii": {"text": "+24%", "damage": 1.24},
 	"rootbound": {"text": "×2 speed", "speed": 2.0},
-	"shared_light": {"text": "+12%", "damage": 1.12},
+	"shared_light": {"text": "+25%", "damage": 1.25},
 	"solitude": {"text": "+45%", "damage": 1.45, "range": 0.5},
 	"sprout_chorus": {"text": "+30% speed", "speed": 1.3},
 	"straightaway": {"text": "+30%", "damage": 1.3, "range": 0.5},

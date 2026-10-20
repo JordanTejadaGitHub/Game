@@ -13,5 +13,4 @@ tags = Array[String](["song", "sleep", "affliction"])
 max_stacks = 1
 requires_status = &"drowsy"
 rule_id = &"heavy_eyelids"
-in_start_pool = false
 tip = "More {drowsy} {stacks} slow a nightmare more. Works for: {warden:bellflower} and its forms."

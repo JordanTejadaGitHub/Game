@@ -12,6 +12,5 @@ kind = 3
 tags = Array[String](["wall", "sleep"])
 requires = Array[String](["honeysuckle"])
 max_stacks = 1
-in_start_pool = false
 rule_id = &"sweet_scent"
 makes = Array[StringName]([&"drowsy"])

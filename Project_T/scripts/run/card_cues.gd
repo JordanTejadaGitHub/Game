@@ -25,7 +25,7 @@ const CUES := {
 	# Flat or positional damage multipliers -> C1 (static tier)
 	&"blood_is_thicker": DREAM_GLOW, &"chosen_few": DREAM_GLOW, &"few_and_mighty": DREAM_GLOW,
 	&"forest_floor": DREAM_GLOW, &"hedge_maze": DREAM_GLOW, &"odd_one_out": DREAM_GLOW, &"mixed_grove": DREAM_GLOW,
-	&"monoculture": DREAM_GLOW, &"thin_bark": DREAM_GLOW, &"kind_canopy": DREAM_GLOW, &"shared_light": DREAM_GLOW,
+	&"monoculture": DREAM_GLOW, &"thin_bark": DREAM_GLOW, &"kind_canopy": DREAM_GLOW,
 	&"solitude": DREAM_GLOW, &"straightaway": DREAM_GLOW, &"narrow_way": DREAM_GLOW, &"tended_stumps": DREAM_GLOW,
 	&"wildwood_reclaimed": DREAM_GLOW, &"crossroads": DREAM_GLOW, &"cozy_corners": DREAM_GLOW,
 	&"forests_edge": DREAM_GLOW, &"endless_rings": DREAM_GLOW, &"last_leaf": DREAM_GLOW, &"venom_bloom": DREAM_GLOW,
@@ -45,7 +45,7 @@ const CUES := {
 	&"last_stand": DREAM_FLECK, &"murmur": DREAM_FLECK, &"steady_aim": DREAM_FLECK, &"sharpened_light": DREAM_FLECK,
 	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"ill_wind": DREAM_FLECK, &"damp_rot": DREAM_FLECK,
 	&"first_light": DREAM_FLECK, &"front_line": DREAM_FLECK, &"passing_thread": DREAM_FLECK,
-	&"fruiting": DREAM_FLECK, &"heavy_going": DREAM_FLECK, &"parting_puff": DREAM_THREAD,  # Non-status builds 2026-10-19
+	&"shared_light": DREAM_FLECK, &"fruiting": DREAM_FLECK, &"heavy_going": DREAM_FLECK, &"parting_puff": DREAM_THREAD,  # Non-status builds 2026-10-19
 	&"long_way_round": DREAM_FLECK, &"high_tide": DREAM_FLECK, &"seeping": DREAM_FLECK, &"slow_burn": DREAM_FLECK,
 	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK, &"head_start": DREAM_FLECK,
 	&"kindled_gaze": DREAM_FLECK, &"millstone": DREAM_FLECK, &"needle_point": DREAM_FLECK,
@@ -94,7 +94,7 @@ const CUES := {
 	&"wild_dew": DEW_SPARKLE, &"cheap_seeds": DEW_SPARKLE,
 	&"evergreen": DEW_SPARKLE, &"morning_dew": DEW_SPARKLE, &"seedfall": DEW_SPARKLE, &"dew_bowl": DEW_SPARKLE,
 	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE, &"reclaimed_earth": DEW_SPARKLE,
-	&"deep_well": DEW_SPARKLE, &"kins_keepsake": DEW_SPARKLE, &"overflowing_well": DEW_SPARKLE,
+	&"kins_keepsake": DEW_SPARKLE, &"overflowing_well": DEW_SPARKLE,
 	&"glimmering_hunt": DEW_SPARKLE, &"sudden_insight": DEW_SPARKLE,
 	# Leaves -> C8
 	&"deep_roots": LEAF_REGROW, &"thick_bark": LEAF_REGROW, &"press_on": LEAF_REGROW,
