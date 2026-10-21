@@ -3114,9 +3114,11 @@ static func attack_shape(data: TowerData) -> StringName:
 	if data == null or not data.can_attack:
 		return &"none"
 	# Branch specials that fire as a projectile in data but hit something else (user: "the jetreed should have the
-	# splash tag"): the jet hits every nightmare along it, rain and the whirlpool make a zone, Thrum a cone.
+	# splash tag"): the jet hits every nightmare along it, rain and the whirlpool make a zone, Thrum a cone. Sparkler /
+	# Starburst (user: "can see Sparkler's splash damage and it says single target"): the firework bursts over its target
+	# and throws sparks at the nightmares round it.
 	match data.special:
-		&"jet":
+		&"jet", &"sparkler":
 			return &"splash"
 		&"cloud":
 			return &"cloud"
