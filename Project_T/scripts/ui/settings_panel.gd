@@ -38,7 +38,29 @@ static func effects_reduced() -> bool:
 const VSYNC_SETTING := "vsync"
 const WINDOW_SIZE_SETTING := "window_size"  # Index into WINDOW_SIZES (windowed mode)
 const WINDOW_SIZES: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1600, 900),
-	Vector2i(1920, 1080), Vector2i(2560, 1440)]
+	Vector2i(1920, 1080), Vector2i(2240, 1260), Vector2i(2560, 1440)]  # 2240: the largest window on a 1440p screen
+const SIZE_FULLSCREEN_HINT := "Fullscreen uses your screen's own size"
+var _size_hint := Label.new()  # Under Window size while Fullscreen is on
+
+# A window that fills the screen reads as fullscreen (user: "at 2560 it's still fullscreen; I have a 1440p monitor"):
+# windowed, only sizes that fit the current screen's usable area with the title bar and borders are offered.
+static func window_decorations() -> Vector2i:
+	var deco := DisplayServer.window_get_size_with_decorations() - DisplayServer.window_get_size()
+	return deco if deco.x > 0 or deco.y > 0 else Vector2i(16, 40)  # Fullscreen has none: a typical title bar and border
+
+static func usable_rect() -> Rect2i:
+	return DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
+
+static func size_fits(size: Vector2i) -> bool:
+	var room := usable_rect().size - window_decorations()
+	return room.x <= 0 or (size.x <= room.x and size.y <= room.y)
+
+# `index`, or the largest listed size below it that fits (the smallest when none does).
+static func fitting_index(index: int) -> int:
+	for i in range(clampi(index, 0, WINDOW_SIZES.size() - 1), -1, -1):
+		if size_fits(WINDOW_SIZES[i]):
+			return i
+	return 0
 
 static var _display_applied := false  # The window size is set once at startup, then on request
 
@@ -108,6 +130,11 @@ func _ready() -> void:
 	_toggle(display, "Fullscreen", "fullscreen")
 	window_size_pick = _choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
+	_size_hint.name = "WindowSizeHint"
+	_size_hint.text = SIZE_FULLSCREEN_HINT
+	_size_hint.visible = false
+	UiStyle.whisper(_size_hint, 14)
+	display.add_child(_size_hint)
 	_toggle(display, "Smooth frames (V-sync)", VSYNC_SETTING, true, "Stops screen tearing. Turn off if the game feels delayed.")
 	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
 	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
@@ -433,14 +460,11 @@ static func apply_display(settings: Dictionary, resize: bool = true) -> void:
 	resize = resize or not _display_applied
 	_display_applied = true
 	if resize and not settings.get("fullscreen", false) and not OS.has_feature("mobile"):  # Phones are always fullscreen
-		var index := clampi(int(settings.get(WINDOW_SIZE_SETTING, 0)), 0, WINDOW_SIZES.size() - 1)
-		var size: Vector2i = WINDOW_SIZES[index]
-		var screen := DisplayServer.screen_get_size()
-		if screen.x > 0:
-			size = size.min(screen)
+		var size: Vector2i = WINDOW_SIZES[fitting_index(int(settings.get(WINDOW_SIZE_SETTING, 0)))]  # Too big: the largest that fits
 		DisplayServer.window_set_size(size)
-		DisplayServer.window_set_position(DisplayServer.screen_get_position()
-			+ (DisplayServer.screen_get_size() - size) / 2)
+		var area := usable_rect()  # Centred on the current screen's usable area, title bar included
+		var deco := window_decorations()
+		DisplayServer.window_set_position(area.position + (area.size - size - deco) / 2 + Vector2i(deco.x / 2, deco.y - deco.x / 2))
 
 # --- Controls: each registers its key (tab, default, refresher) and gets a gold "changed" dot ---
 
@@ -988,8 +1012,14 @@ func _mark() -> void:
 		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
 
 	var fullscreen := bool(_value("fullscreen"))
-	window_size_pick.disabled = fullscreen
+	window_size_pick.disabled = fullscreen  # Disabled, not dim: it shows the size leaving fullscreen will use
 	window_size_pick.tooltip_text = SIZE_FULLSCREEN_TIP if fullscreen else ""
+	_size_hint.visible = fullscreen and window_size_pick.is_visible_in_tree()
+	for i in WINDOW_SIZES.size():  # Windowed: only sizes that fit this screen with the title bar
+		window_size_pick.set_item_disabled(i, not size_fits(WINDOW_SIZES[i]))
+	var fits := fitting_index(int(_value(WINDOW_SIZE_SETTING)))
+	if window_size_pick.selected != fits:
+		window_size_pick.selected = fits  # The size that will really be used
 	var changes := has_changes()
 	apply_button.disabled = not changes
 	cancel_button.disabled = false  # Cancel always closes
