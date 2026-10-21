@@ -42,7 +42,8 @@ func _ready() -> void:
 	expand_icon = true  # As the Warden slots: the icon fills the slot, it never sets its size
 	vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	add_theme_constant_override("icon_max_width", 34)
-	add_theme_font_size_override("font_size", 16)  # As the Warden slots (their cost line)
+	add_theme_font_size_override("font_size", 15)  # As the Warden slots (their cost line); 15: "Clear" in Pixelify fits 48 px
+	clip_text = true  # The word never widens the slot past a Warden slot (Moon-glass plate margins, test_ui)
 	var hotkey := Label.new()  # The key badge in the Warden slots' corner and font
 	hotkey.name = "Hotkey"
 	hotkey.text = "C"

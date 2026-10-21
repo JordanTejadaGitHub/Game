@@ -27,6 +27,8 @@ const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters stand apart)
+const COUNTER_ICON_GAP_TIGHT := 3.0  # …at the smallest counter steps (PC top row; Moon-glass's Pixelify numbers are wider)
+var _icon_gap := COUNTER_ICON_GAP  # The gap the counters use now (_layout_top_row)
 const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
 const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
 const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud", &"leaves": &"leaf_hud", &"path_length": &"path_hud"}
@@ -1116,7 +1118,7 @@ func _place_counter_icon(label: Label) -> void:
 		return
 	var width := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
 		label.get_theme_font_size("font_size")).x
-	icon.position = Vector2(label.size.x - width - icon.size.x - COUNTER_ICON_GAP, (label.size.y - icon.size.y) / 2.0)
+	icon.position = Vector2(label.size.x - width - icon.size.x - _icon_gap, (label.size.y - icon.size.y) / 2.0)
 
 # Moonlit Thread (ui_style.md): the resources sit on a fog patch (no thread: they hug the screen
 # edge), numbers in Cormorant with lining figures.
@@ -1289,7 +1291,7 @@ const ROW_GAP := 22.0  # Between counters
 const ROW_PAD := 10.0  # The fog patch around the row
 const BANNER_CLEARANCE := 16.0
 const ROW_BUTTON := 48.0  # Touch-sized (platforms.md); the icon inside is drawn smaller
-const ROW_STEPS := [[28, 22.0], [24, 12.0], [21, 10.0], [19, 8.0]]  # [counter number size, gap]: full, then tighter steps
+const ROW_STEPS := [[28, 22.0], [24, 12.0], [21, 10.0], [19, 8.0], [17, 6.0], [15, 5.0]]  # [counter number size, gap]: full, then tighter steps (17, 15 and a tight icon gap: Moon-glass's wider numbers, 4-digit Dew at 1280)
 var row_compact := false  # The counters stepped down to keep one row (tests)
 var row_wrapped := false  # The buttons sit on a second line (tests)
 
@@ -1317,6 +1319,7 @@ func _layout_top_row() -> void:
 		if button != null and button.visible:
 			buttons.append(button)
 	if phone():
+		_icon_gap = COUNTER_ICON_GAP
 		_layout_top_row_phone(counters, buttons)
 		return
 	var buttons_w := buttons.size() * ROW_BUTTON + maxf(buttons.size() - 1, 0) * TOP_ROW_GAP
@@ -1343,13 +1346,14 @@ func _layout_top_row() -> void:
 				break
 			row_compact = step[0] < ROW_STEPS[0][0]
 			_set_counter_size(counters, int(step[0]))
+			_icon_gap = COUNTER_ICON_GAP if int(step[0]) >= 21 else COUNTER_ICON_GAP_TIGHT
 			gap = float(step[1])
 			widths.clear()
 			counters_w = 0.0
 			for label: Label in counters:
 				var icon: TextureRect = _counter_icons.get(label)
 				var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(step[0])).x
-				widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+				widths[label] = ceilf(text_w + (icon.size.x + _icon_gap if icon != null else 0.0) + 2.0)
 				counters_w += widths[label]
 			forecast_w = _maze_forecast_width(form)
 			counters_w += gap * (counters.size() - 1) + forecast_w
@@ -1367,13 +1371,14 @@ func _layout_top_row() -> void:
 		forecast_w = 0.0
 		row_compact = false
 		_set_counter_size(counters, int(ROW_STEPS[0][0]))
+		_icon_gap = COUNTER_ICON_GAP
 		gap = ROW_GAP
 		widths.clear()
 		counters_w = 0.0
 		for label: Label in counters:
 			var icon: TextureRect = _counter_icons.get(label)
 			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(ROW_STEPS[0][0])).x
-			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+			widths[label] = ceilf(text_w + (icon.size.x + _icon_gap if icon != null else 0.0) + 2.0)
 			counters_w += widths[label]
 		counters_w += gap * (counters.size() - 1)
 		if phone():  # Phones: the counters have line 1 to themselves, so the "+N at rest" forecast stays by Dew as on PC (user
