@@ -2211,7 +2211,7 @@ func _prune_phone_stat_rows() -> void:
 # Phones (UI owner's review: "a seed 5 and a pencil don't say what they are"): an icon-only stat left in the rows gets a
 # small Mist word after it (coverage "path", crit "crit", the attack shape's name); every one stays a 48 px tap target
 # for its tip (the header's TapTip).
-const PHONE_STAT_WORDS := {&"path_length": "path covered", &"crit_chance": "crit", &"grab_reach": ""}
+const PHONE_STAT_WORDS := {&"crit_chance": "crit", &"grab_reach": ""}  # (No path coverage on the sheet: user 2026-10-21)
 
 func _name_phone_stat(target: Node) -> void:
 	if not target is Control or target.get_node_or_null("PhoneWord") != null:
