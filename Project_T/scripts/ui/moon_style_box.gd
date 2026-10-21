@@ -18,7 +18,7 @@ const SCALE := 2  # Art px → screen px
 const FRAME_MARGINS := {&"panel_main": 14, &"panel_main_yours": 14, &"plate": 8, &"plate_hover": 8,
 	&"plate_pressed": 8, &"plate_yours": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
 const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours"]
-const SPROUT_SINK := 4.0  # The sprout's foot stands this far into the top rim
+const SPROUT_SINK := 10.0  # The sprout's stem stands through the top rim to the glass (it floated above the rim at 4)
 # A framed box asked to be near-solid (center_alpha this high, as the old solid fog panels set it) gets a Void backing
 # under its ~86% glass, about 95% together: readable over the map (the phone drawer, the pause rail and pane).
 const OPAQUE_FROM := 0.9
@@ -32,6 +32,8 @@ const OPAQUE_BACKING := 0.65
 	set(v): drop_shadow = v; _changed()
 @export var accent := Color(0, 0, 0, 0):  # A 2 px line along the top of the glass (a card's rarity, a boss panel); clear = none
 	set(v): accent = v; emit_changed()
+@export var inset := Vector2.ZERO:  # Draws the plate this much inside the rect (a 32 px mini plate in a 48 px touch target)
+	set(v): inset = v; emit_changed()
 @export var fog_color := Color("05050d"):  # Void (Heartwood 32)
 	set(v): fog_color = v; _changed()
 @export_range(0.0, 1.0) var center_alpha := 0.78:  # The middle of the fog
@@ -46,7 +48,8 @@ const OPAQUE_BACKING := 0.65
 	set(v): thread = v; emit_changed()
 @export var thread_color := Color("fcd47c", 0.8):  # Glow
 	set(v): thread_color = v; emit_changed()
-@export var diamond := true:  # The rim sprout (on main panels; the name is from the old diamond)
+@export var diamond := false:  # The rim sprout: only the one main panel per screen asks for it (user 2026-10-20: it sat
+	# "out of place" on every popup and drawer when it was on by default)
 	set(v): diamond = v; emit_changed()
 @export var side_edges := false:  # (Fog cards only; the rim does it now)
 	set(v): side_edges = v; emit_changed()
@@ -75,6 +78,7 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		_draw_fog(to_canvas_item, rect)
 		return
 	var rs := RenderingServer
+	rect = rect.grow_individual(-inset.x, -inset.y, -inset.x, -inset.y)
 	if _halo == null:
 		_halo = StyleBoxFlat.new()
 		_halo.draw_center = false
@@ -96,9 +100,9 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		Vector2(m, m), Vector2(m, m))
 	var line := accent  # Only an explicit accent: a full top thread no longer draws a gold line (no threads in Moon-glass)
 	if line.a > 0.0:  # Inside the rim, across the top of the glass, short of the chamfers
-		var inset := m * 0.6
-		rs.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + inset, rect.position.y + rim + SCALE,
-			maxf(rect.size.x - inset * 2.0, 0.0), 2.0), line)
+		var side := m * 0.6
+		rs.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + side, rect.position.y + rim + SCALE,
+			maxf(rect.size.x - side * 2.0, 0.0), 2.0), line)
 	if underline:
 		_draw_underline(to_canvas_item, rect, rim + SCALE)
 	if diamond and thread != TopLine.NONE and frame.begins_with("panel"):
@@ -133,9 +137,9 @@ static func frame_margin(id: StringName) -> float:
 func _draw_underline(ci: RID, rect: Rect2, up: float) -> void:
 	var rs := RenderingServer
 	var y := rect.end.y - up
-	var inset := minf(UNDERLINE_INSET, rect.size.x * 0.18)  # Narrow slots keep most of the line
-	var a := Vector2(rect.position.x + inset, y)
-	var b := Vector2(rect.end.x - inset, y)
+	var side := minf(UNDERLINE_INSET, rect.size.x * 0.18)  # Narrow slots keep most of the line
+	var a := Vector2(rect.position.x + side, y)
+	var b := Vector2(rect.end.x - side, y)
 	var gold := UiStyle.GOLD
 	rs.canvas_item_add_line(ci, a, b, Color(gold, 0.12), 10.0)  # The glow
 	rs.canvas_item_add_line(ci, a, b, Color(gold, 0.25), 5.0)

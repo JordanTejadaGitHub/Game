@@ -882,7 +882,9 @@ static func primary(button: Button) -> void:
 static func danger(button: Button) -> void:
 	button.theme_type_variation = &"DangerButton"
 
-# Text-only, for actions that shouldn't compete with the primary (Sell, Close, Details ▸).
+# A mini plate, for actions that shouldn't compete with the primary (Sell, Close, Details ▸): the plate is 32 px, the touch
+# target 48 (QUIET_INSET above and below).
+const QUIET_INSET := 8.0
 static func quiet(button: Button) -> void:
 	button.theme_type_variation = &"QuietButton"
 	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, HUD_BUTTON_H)
@@ -995,10 +997,16 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	frame.bg_color = GOLD if makes else Color(FOG, 0.6)
 	frame.border_color = GOLD
 	if quiet:
-		frame.bg_color = Color(outline, 0.14) if makes else Color(FOG, 0.0)
-		frame.border_color = Color(outline, 0.8)
+		# Moon-glass (user 2026-10-20: the "Single target" tag "uses the old UI"): a mini pewter plate, too small for the
+		# 9-slice (its corners need 32 px): dark glass, a 1 px pewter rim (Mist for Makes, Slate for Uses). The card's
+		# rarity shows on its top line, not on its chips.
+		frame.bg_color = Color(Palette.DREAD, 0.86)
+		frame.border_color = Color(Palette.MIST, 0.6) if makes else Color(Palette.SLATE, 0.95)
+		frame.shadow_color = Color(FOG, 0.35)
+		frame.shadow_size = 3
+		frame.shadow_offset = Vector2(0, 1)
 	frame.set_border_width_all(1)
-	frame.set_corner_radius_all(2)
+	frame.set_corner_radius_all(1 if quiet else 2)
 	_margins(frame, 4.0, 1.0)
 	frame.content_margin_right = 6.0
 	box.add_theme_stylebox_override("panel", frame)
@@ -1126,10 +1134,14 @@ static func make_theme() -> Theme:
 	# Quiet buttons (the light pass): text only, Mist, Heartlight on hover; the padding keeps the hit
 	# area HUD_BUTTON_H tall (platforms.md touch). Sell, Close, Details ▸, Peek at the map.
 	theme.set_type_variation("QuietButton", "Button")
-	var quiet_box := StyleBoxEmpty.new()
-	_margins(quiet_box, 8.0, 14.0)
+	# Moon-glass (user 2026-10-20: "sell and close should have their own mini boxes"): a 32 px mini plate drawn inside
+	# the 48 px touch target (inset), pewter at rest, brass under the pointer, pushed in when pressed.
 	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		theme.set_stylebox(state, "QuietButton", quiet_box)
+		var frame: StringName = {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_pressed",
+			"hover_pressed": &"plate_pressed", "disabled": &"plate_dim"}[state]
+		var mini := plate_box(10.0, 14.0, frame)
+		mini.inset = Vector2(0.0, QUIET_INSET)
+		theme.set_stylebox(state, "QuietButton", mini)
 	theme.set_stylebox("focus", "QuietButton", focus_box())
 	theme.set_font("font", "QuietButton", body_font())
 	theme.set_font_size("font_size", "QuietButton", 15)
