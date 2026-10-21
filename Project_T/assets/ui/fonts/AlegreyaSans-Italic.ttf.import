@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://cjqvjtxxrikj6"
-path="res://.godot/imported/CormorantGaramond-Italic-Variable.ttf-85852881c2b2898ee2378f51965f009d.fontdata"
+uid="uid://cm2s6oppgev1e"
+path="res://.godot/imported/AlegreyaSans-Italic.ttf-3b3ac28530000f13914ab1161c6840ff.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/CormorantGaramond-Italic-Variable.ttf"
-dest_files=["res://.godot/imported/CormorantGaramond-Italic-Variable.ttf-85852881c2b2898ee2378f51965f009d.fontdata"]
+source_file="res://assets/ui/fonts/AlegreyaSans-Italic.ttf"
+dest_files=["res://.godot/imported/AlegreyaSans-Italic.ttf-3b3ac28530000f13914ab1161c6840ff.fontdata"]
 
 [params]
 

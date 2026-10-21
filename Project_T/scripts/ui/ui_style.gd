@@ -12,7 +12,7 @@ const THEME_PATH := "res://assets/ui/ui_theme.tres"
 # Colours (ui_style.md "Colours"): Heartwood 32 (HeartwoodPalette, art_direction.md). Constants so
 # other scripts can use them in their own consts; tests/test_ui_style.gd checks each one still equals
 # its palette colour (PALETTE_NAMES).
-const INK := Color("fff4dc")  # Heartlight: text
+const INK := Color("dce8f4")  # Moonlight: text (Moon-glass; was Heartlight)
 const INK_DIM := Color("b4b0c8")  # Mist: labels, secondary text
 const GOLD := Color("fcd47c")  # Glow: numbers, threads, links
 const BUTTON_GOLD := Color("e9a83c")  # Gold: button outlines, primary fill and glow
@@ -366,20 +366,19 @@ static func glyph_font() -> Font:
 		_fonts["glyphs"] = load(GLYPH_FONT_PATH) if ResourceLoader.exists(GLYPH_FONT_PATH) else null
 	return _fonts["glyphs"]
 
-# Cormorant Garamond SemiBold: titles, card names, buttons. Every Cormorant face uses lining figures
-# (its default old-style ones read small in "Drift 8" or "1×").
+# Pixelify Sans (OFL; Moon-glass, ui_style.md): titles, names, toasts, the primary's text. Lining figures.
 static func display_font() -> Font:
-	return _variation("display", "CormorantGaramond-Variable.ttf", 600, false)
+	return _variation("display", "PixelifySans-Variable.ttf", 500, false)
 
-# Cormorant Garamond SemiBold with lining, tabular figures: big numbers.
+# Pixelify Sans with tabular figures: big numbers.
 static func number_font() -> Font:
-	return _variation("number", "CormorantGaramond-Variable.ttf", 600, true)
+	return _variation("number", "PixelifySans-Variable.ttf", 500, true)
 
-# Cormorant SC Medium: labels (lowercase small caps, a little tracking).
+# Alegreya Sans SC Medium: labels (small caps, a little tracking).
 static func caps_font() -> Font:
 	if not _fonts.has("caps"):
 		var font := FontVariation.new()
-		font.base_font = _file("CormorantSC-Medium.ttf")
+		font.base_font = _file("AlegreyaSansSC-Medium.ttf")
 		font.spacing_glyph = 1
 		font.spacing_space = SPACE_EXTRA
 		font.opentype_features = {TextServerManager.get_primary_interface().name_to_tag("lnum"): 1}
@@ -387,9 +386,9 @@ static func caps_font() -> Font:
 		_fonts["caps"] = font
 	return _fonts["caps"]
 
-# Cormorant Garamond Italic: Heartwood whispers.
+# Alegreya Sans Italic: Heartwood whispers (Cormorant is gone with Moon-glass).
 static func whisper_font() -> Font:
-	return _variation("whisper", "CormorantGaramond-Italic-Variable.ttf", 500, false)
+	return _spaced("whisper", "AlegreyaSans-Italic.ttf")
 
 # A static cache that holds engine objects (fonts, textures, resources with textures) must let go of them
 # before the servers shut down at quit, or Godot can crash on exit (headless tests: PASS, then exit 139).
@@ -417,28 +416,39 @@ static func _variation(key: String, file: String, weight: int, tabular: bool) ->
 			features[ts.name_to_tag("tnum")] = 1
 		font.opentype_features = features
 		font.spacing_space = SPACE_EXTRA
-		font.fallbacks = [body_font()]  # Symbols Cormorant lacks (✧, ⏎…)
+		font.fallbacks = [body_font()]  # Symbols Pixelify lacks (✧, ⏎, accents…)
 		_fonts[key] = font
 	return _fonts[key]
 
 # --- Style boxes -------------------------------------------------------------------------------
 
-# Every panel, card and tooltip: fog + gold thread + diamond.
+# Moon-glass (ui_style.md "Moon-glass", 2026-10-20): every main panel is the panel_main plate (Warden drawer, drift panel,
+# Dream cards, pause rail, results), its rim sprout kept only on the one main panel per screen (the mark rules below).
 static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBox:
 	var box := MoonStyleBox.new()
+	box.frame = &"panel_main"
 	_margins(box, margin_x, margin_y)
 	return box
 
-# Tips (native tooltips, TapTip, status / term popups): solid fog, the gold thread, a soft shadow, so
-# the text never fights what's under it (user: "I can barely read them once they're hovering over text").
+# A small plate (buttons, rows, slots, tags, toasts, tooltips): `frame` is its metal. Brass (hover, pressed, yours) keeps
+# the soft gold glow; every plate casts a soft drop shadow except a pressed one. Never a sprout.
+static func plate_box(margin_x: float = 14.0, margin_y: float = 6.0, frame: StringName = &"plate") -> MoonStyleBox:
+	var box := MoonStyleBox.new()
+	box.frame = frame
+	box.thread = MoonStyleBox.TopLine.NONE
+	box.glow = frame in MoonStyleBox.BRASS and frame != &"plate_pressed"
+	box.drop_shadow = frame != &"plate_pressed"
+	_margins(box, margin_x, margin_y)
+	if frame == &"plate_pressed":  # Pushed in: the content moves down 2 px
+		box.content_margin_top += 2.0
+		box.content_margin_bottom = maxf(box.content_margin_bottom - 2.0, 0.0)
+	return box
+
+# Tips (native tooltips, TapTip, status / term popups): a plate (its glass is ~86% Dread, so the text never fights what's
+# under it; user: "I can barely read them once they're hovering over text").
 const TIP_ALPHA := 0.95
 static func tip_panel() -> MoonStyleBox:
-	var box := panel(12.0, 8.0)
-	box.diamond = false  # One sprout per screen: tips never carry the mark (ui_style.md)
-	box.center_alpha = TIP_ALPHA
-	box.edge_alpha = TIP_ALPHA
-	box.shadow_size = 10
-	return box
+	return plate_box(12.0, 8.0)
 
 # One CanvasLayer above every panel, screen and HUD layer for tips (created once per tree).
 const TIP_LAYER := 120
@@ -492,6 +502,7 @@ static func tip_position(pointer: Vector2, tip_size: Vector2, screen: Vector2) -
 static func panel_in(colour: Color, margin_x: float = 10.0, margin_y: float = 10.0) -> MoonStyleBox:
 	var box := panel(margin_x, margin_y)
 	box.thread_color = colour
+	box.accent = colour  # Moon-glass: a line in the colour across the top of the glass
 	return box
 
 # Fog only, no thread: the resources and Dreams rows at the screen edge, Warden bar slots.
@@ -502,47 +513,33 @@ static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyl
 	box.edge_alpha = 0.0
 	return box
 
-# A Dream / family / Omen card: more solid fog, 2 px radius, faint sides, the full-width thread in
-# `colour` (the rarity).
+# A Dream / family / Omen card: the main plate with its rarity (`colour`) across the top of the glass; hovered, the brass
+# rim and its glow. Cards never carry the sprout (several to a screen).
 static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	var box := panel(18.0, 16.0)
-	box.fog_color = FOG  # Night in the middle fading to Void at the rim, ~90% (ui_style.md)
-	box.glow_color = CARD_BG.lightened(0.08) if hover else CARD_BG
-	box.center_alpha = 0.96
-	box.edge_alpha = 0.9
-	box.corner_radius = 2
-	box.side_edges = true
-	box.shadow_size = 16
+	box.frame = &"panel_main_yours" if hover else &"panel_main"
+	box.glow = hover
 	box.thread = MoonStyleBox.TopLine.FULL
 	box.thread_color = colour
+	box.accent = colour
+	box.diamond = false
 	return box
 
-# A Warden bar slot: a fog patch, and the glowing gold underline when selected.
-# Tower bar with borders (the user, 2026-10-05: "add borders to towers to make them more visible";
-# UI Asset's spec, including the fix for slots vanishing over the bright path): a fog tile of Void .78 at
-# the centre → .60 at the rim, 3 px radius, a 1 px Gold border at .45. Hovered: the border at .70.
-# Selected: a solid Gold border, an Ember glow inside (~.30), a faint outer Gold glow (~.18) and the
-# Glow underline. Short on Dew (slot_short): the border in Slate at .80, the tile unchanged.
+# An unpicked card (the others after a pick): the dim plate.
+static func card_dim(colour: Color) -> MoonStyleBox:
+	var box := card(colour)
+	box.frame = &"plate_dim"
+	box.accent = Color(colour, 0.5)
+	return box
+
+# A Warden bar slot (Moon-glass): a pewter plate; hovered or selected, brass (selected keeps the glow); short on Dew
+# (slot_short), the dim plate.
 static func slot(selected: bool, hover: bool = false, short: bool = false) -> MoonStyleBox:
-	var box := fog_patch(4.0, 4.0)
-	box.corner_radius = 3
-	box.edge_alpha = 0.6
-	box.center_alpha = 0.78
-	if selected:
-		box.glow_color = PRIMARY_GLOW  # Ember, ~.30 over the rim's fog
-		box.center_alpha = 1.0 - (1.0 - 0.3) * (1.0 - box.edge_alpha)
-		box.frame_color = BUTTON_GOLD
-		box.shadow_color = Color(BUTTON_GOLD, 0.18)
-		box.shadow_size = 6
-	elif short:
-		box.frame_color = Color(SLATE, 0.8)
-	else:
-		box.frame_color = Color(BUTTON_GOLD, 0.7 if hover else 0.45)
-	box.underline = selected
-	return box
+	var frame := &"plate_yours" if selected else (&"plate_hover" if hover else (&"plate_dim" if short else &"plate"))
+	return plate_box(4.0, 4.0, frame)
 
-# Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the Slate
-# border in its resting and hovered states; false puts the theme's boxes back.
+# Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the dim plate in its
+# resting and hovered states; false puts the theme's boxes back.
 static func slot_short(button: Button, short: bool) -> void:
 	for state in ["normal", "hover", "disabled"]:
 		if short:
@@ -553,12 +550,7 @@ static func slot_short(button: Button, short: bool) -> void:
 # The band under the Warden bar (calmer than other panels): Void .70 in the middle → .20 at the rim,
 # the thread at .6 and no mark. For the PanelContainer behind %TowerBar.
 static func bar_panel() -> MoonStyleBox:
-	var box := panel(10.0, 6.0)
-	box.center_alpha = 0.7
-	box.edge_alpha = 0.2
-	box.thread_color = Color(GOLD, 0.6)
-	box.diamond = false
-	return box
+	return plate_box(10.0, 6.0)  # Moon-glass: a plain plate, no sprout
 
 # Nightmare portraits on dark UI sit on a pale moonlit disc with a thin cold rim (screens_ui.md
 # "Readable on the night sky"): a dark nightmare never vanishes into the night sky. Boss faces rim it
@@ -597,71 +589,45 @@ static func moon_disc_button(button: Button, rim: Color = OFF) -> void:
 		button.add_theme_stylebox_override(state, moon_disc(rim, true, 1.0))
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
-# Buttons: 1 px gold outline at 45%, dark fog fill, 2 px radius.
-static func button_box(hover: bool = false) -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(FOG, 0.62 if hover else 0.55)
-	box.border_color = Color(BUTTON_GOLD, 0.8 if hover else 0.45)
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(2)
-	_margins(box, 14.0, 6.0)
-	return box
+# Buttons (Moon-glass): a pewter plate at rest, brass under the pointer or finger.
+static func button_box(hover: bool = false) -> MoonStyleBox:
+	return plate_box(14.0, 6.0, &"plate_hover" if hover else &"plate")
 
-# Primary buttons (the panel's main action, Continue, Start): at rest only a solid gold outline on the
-# fog, never a fill (user, 2026-09-30: "still seems highlighted when I'm not hovering"); hovering fills
-# the whole box with the soft highlight, like every button.
-# The one primary per panel (the user, 2026-10-05: "Don't make the button solid gold"): the dark fog
-# fill like every button, but a warm 1 px Gold frame topped by the full thread with the Heartwood mark,
-# Glow text in the display face, and a soft Ember glow inside that brightens on hover. It stands out by
-# frame, text and glow, never by a fill. A press darkens it and drops the glow.
-const PRIMARY_GLOW := Color("b8662c")  # Ember
+# The one primary per panel or choice (Take, Start drift, Resume, Apply): brass at rest with the soft gold glow, the
+# brighter brass under the pointer, and pressed lit from below, pushed down 2 px, no shadow.
+const PRIMARY_GLOW := Color("b8662c")  # Ember (kept for old callers)
 static func primary_box(hover: bool = false, pressed: bool = false) -> MoonStyleBox:
-	var box := MoonStyleBox.new()
-	box.fog_color = FOG
-	box.edge_alpha = 0.7 if pressed else 0.55
-	box.glow_color = PRIMARY_GLOW
-	# The Ember glow over the fog: about 18% at rest, 34% on hover (centre = 1 - (1 - glow)(1 - edge)).
-	var glow := 0.0 if pressed else (0.34 if hover else 0.18)
-	box.center_alpha = 1.0 - (1.0 - glow) * (1.0 - box.edge_alpha)
-	box.corner_radius = 2
-	box.frame_color = GOLD if hover else Color(BUTTON_GOLD, 0.85)
-	box.thread = MoonStyleBox.TopLine.GOLD
-	box.thread_color = Color(GOLD, 0.9)
-	_margins(box, 14.0, 6.0)
+	return plate_box(14.0, 6.0, &"plate_pressed" if pressed else (&"plate_hover" if hover else &"plate_yours"))
+
+# Selected / switched on (a toggled button, the current speed, a switch's segment): brass with its glow. Godot's
+# "pressed" style is both "toggled on" and "held"; held reads as the pushed-in brass (pressed_box).
+const HOVER_FILL := Color(MOONLIGHT, 0.16)  # The soft highlight (rows, old callers)
+static func selected_box() -> MoonStyleBox:
+	return plate_box(14.0, 6.0, &"plate_yours")
+
+static func pressed_box() -> MoonStyleBox:
+	return plate_box(14.0, 6.0, &"plate_pressed")
+
+static func hover_box(selected: bool = false) -> MoonStyleBox:
+	return plate_box(14.0, 6.0, &"plate_pressed" if selected else &"plate_hover")
+
+static func disabled_box() -> MoonStyleBox:
+	return plate_box(14.0, 6.0, &"plate_dim")
+
+# Destructive actions (Abandon, Delete): the small Ember-rimmed plate, set apart (UiStyle.danger).
+static func danger_box(hover: bool = false) -> MoonStyleBox:
+	var box := plate_box(12.0, 4.0, &"plate_danger")
+	box.glow = hover
 	return box
 
-# Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
-# alike). A selected / active control (toggled button, open tab, current speed, a switch's segment)
-# shows only a GOLD border and gold text, no fill; hover fills the whole box with a soft highlight;
-# a press darkens it. Godot's "pressed" style is both "toggled on" and "held", so it's the gold border
-# on a darker fog: selected reads as the border, a held press as the darkening.
-const HOVER_FILL := Color(MOONLIGHT, 0.16)  # The soft highlight (moonlight over the fog)
-static func selected_box() -> StyleBoxFlat:
-	var box := button_box()
-	box.bg_color = Color(FOG, 0.7)
-	box.border_color = GOLD
-	box.set_border_width_all(2)
-	return box
-
-static func hover_box(selected: bool = false) -> StyleBoxFlat:
-	var box := selected_box() if selected else button_box(true)
-	box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
-	return box
-
-static func disabled_box() -> StyleBoxFlat:
-	var box := button_box()
-	box.bg_color.a *= DISABLED_ALPHA
-	box.border_color.a *= DISABLED_ALPHA
-	return box
-
-# Keyboard / controller focus: a thin gold ring just outside the control.
+# Keyboard / controller focus: a thin Moonlight ring just outside the control.
 static func focus_box() -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.draw_center = false
-	box.border_color = Color(GOLD, 0.75)
+	box.border_color = Color(MOONLIGHT, 0.6)
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(3)
-	box.set_expand_margin_all(2)
+	box.set_expand_margin_all(3)
 	return box
 
 # A HUD button's box: the same look, tighter padding.
@@ -912,6 +878,10 @@ static func _font(control: Control, font: Font, font_size: int, colour: Color) -
 static func primary(button: Button) -> void:
 	button.theme_type_variation = &"PrimaryButton"
 
+# A destructive action (Abandon, Delete): the small Ember-rimmed plate (Moon-glass); keep it set apart from the primary.
+static func danger(button: Button) -> void:
+	button.theme_type_variation = &"DangerButton"
+
 # Text-only, for actions that shouldn't compete with the primary (Sell, Close, Details ▸).
 static func quiet(button: Button) -> void:
 	button.theme_type_variation = &"QuietButton"
@@ -1079,22 +1049,34 @@ static func make_theme() -> Theme:
 	theme.set_font("italics_font", "RichTextLabel", whisper_font())
 	theme.set_font("bold_italics_font", "RichTextLabel", whisper_font())
 
-	# Panels and tooltips carry the thread.
+	# Panels are the main moon-glass plate; tooltips a small plate.
 	for type in ["PanelContainer", "Panel", "PopupPanel", "TooltipPanel", "PopupMenu", "AcceptDialog"]:
 		theme.set_stylebox("panel", type, tip_panel() if type == "TooltipPanel" else panel(16.0, 12.0))  # Tips: solid
 	theme.set_font_size("font_size", "TooltipLabel", TIP_SIZE)
 	theme.set_constant("line_spacing", "TooltipLabel", TIP_LINE_SPACING)
 	theme.set_stylebox("separator", "HSeparator", MoonDivider.new())
 	theme.set_constant("separation", "HSeparator", 9)
+	# Text: a soft dark shadow under every label (Moon-glass; smooth, never a pixel shadow).
+	for type in ["Label", "RichTextLabel", "TooltipLabel"]:
+		theme.set_color("font_shadow_color", type, Color(FOG, 0.55))
+		theme.set_constant("shadow_offset_x", type, 0)
+		theme.set_constant("shadow_offset_y", type, 1)
+		theme.set_constant("shadow_outline_size", type, 3)
 
 	# Buttons (and the button-like controls).
 	for type in ["Button", "OptionButton", "MenuButton"]:
-		_button_styles(theme, type, button_box(), hover_box(), selected_box(), hover_box(true))
+		_button_styles(theme, type, button_box(), hover_box(), pressed_box(), hover_box(true))
+	theme.set_type_variation("DangerButton", "Button")
+	_button_styles(theme, "DangerButton", danger_box(), danger_box(true), pressed_box(), pressed_box())
+	theme.set_font_size("font_size", "DangerButton", BUTTON_SIZE - 2)
+	for state in ["font_color", "font_hover_color", "font_focus_color"]:
+		theme.set_color(state, "DangerButton", WHISPER)  # Moonpath on the Ember rim
 	theme.set_type_variation("PrimaryButton", "Button")
 	# The call to action keeps its gold look; hovering fills it, pressing darkens it.
 	var primary_press := primary_box(false, true)
 	var primary_hover := primary_box(true)
-	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
+	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_press)
+	theme.set_font("font", "PrimaryButton", display_font())  # The primary speaks in Pixelify
 	for state in ["font_color", "font_focus_color", "font_pressed_color"]:
 		theme.set_color(state, "PrimaryButton", GOLD)  # Glow text in the display face
 	for state in ["font_hover_color", "font_hover_pressed_color"]:
@@ -1126,11 +1108,11 @@ static func make_theme() -> Theme:
 	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
 	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).
 	theme.set_type_variation("HudButton", "Button")
-	_button_styles(theme, "HudButton", _compact(button_box()), _compact(hover_box()), _compact(selected_box()),
+	_button_styles(theme, "HudButton", _compact(button_box()), _compact(hover_box()), _compact(pressed_box()),
 		_compact(hover_box(true)))
 	theme.set_type_variation("HudPrimary", "Button")
 	_button_styles(theme, "HudPrimary", _compact(primary_box()), _compact(primary_hover), _compact(primary_press),
-		_compact(primary_hover))
+		_compact(primary_press))
 	for state in ["font_color", "font_focus_color", "font_pressed_color"]:
 		theme.set_color(state, "HudPrimary", GOLD)
 	for state in ["font_hover_color", "font_hover_pressed_color"]:
@@ -1160,16 +1142,16 @@ static func make_theme() -> Theme:
 	# Row buttons (the light pass: the Warden panel's grow options): no box, Heartlight text left-aligned,
 	# a faint Night / Gold tint on hover; 48 px tall, a full touch target (platforms.md).
 	theme.set_type_variation("RowButton", "Button")
-	var row_idle := StyleBoxEmpty.new()
-	_margins(row_idle, 8.0, 14.0)
-	var row_hover := StyleBoxFlat.new()
-	row_hover.bg_color = Color(CARD_BG, 0.55).blend(Color(BUTTON_GOLD, 0.08))
-	row_hover.set_corner_radius_all(2)
-	_margins(row_hover, 8.0, 14.0)
-	for state in ["normal", "disabled"]:
-		theme.set_stylebox(state, "RowButton", row_idle)
-	for state in ["hover", "pressed", "hover_pressed"]:
-		theme.set_stylebox(state, "RowButton", row_hover)
+	# Moon-glass: each row is a plate (pewter; brass under the finger, pushed in when pressed).
+	var row_idle := plate_box(10.0, 14.0)
+	var row_dim := plate_box(10.0, 14.0, &"plate_dim")
+	var row_hover := plate_box(10.0, 14.0, &"plate_hover")
+	var row_press := plate_box(10.0, 14.0, &"plate_pressed")
+	theme.set_stylebox("normal", "RowButton", row_idle)
+	theme.set_stylebox("disabled", "RowButton", row_dim)
+	theme.set_stylebox("hover", "RowButton", row_hover)
+	for state in ["pressed", "hover_pressed"]:
+		theme.set_stylebox(state, "RowButton", row_press)
 	theme.set_stylebox("focus", "RowButton", focus_box())
 	theme.set_font("font", "RowButton", body_font())
 	theme.set_font_size("font_size", "RowButton", 16)
@@ -1177,20 +1159,10 @@ static func make_theme() -> Theme:
 		theme.set_color(state, "RowButton", INK)
 	theme.set_color("font_disabled_color", "RowButton", Color(INK, DISABLED_ALPHA))
 
-	# Tabs (the settings panel).
-	var tab_selected := StyleBoxFlat.new()
-	tab_selected.bg_color = Color(GOLD, 0.08)
-	tab_selected.border_color = GOLD
-	tab_selected.border_width_bottom = 2
-	_margins(tab_selected, 14.0, 8.0)
-	var tab_idle := tab_selected.duplicate() as StyleBoxFlat
-	tab_idle.bg_color = Color(0, 0, 0, 0)
-	tab_idle.border_color = Color(GOLD, 0.0)
-	# The open tab: the gold line only, no fill; a hovered tab fills with the soft highlight.
-	tab_selected.bg_color = Color(0, 0, 0, 0)
-	var tab_hover := tab_idle.duplicate() as StyleBoxFlat
-	tab_hover.bg_color = HOVER_FILL
-	tab_hover.border_color = Color(GOLD, 0.4)
+	# Tabs (the settings panel; Moon-glass): plates, the open tab in brass.
+	var tab_selected := plate_box(14.0, 8.0, &"plate_yours")
+	var tab_idle := plate_box(14.0, 8.0)
+	var tab_hover := plate_box(14.0, 8.0, &"plate_hover")
 	for type in ["TabContainer", "TabBar"]:
 		theme.set_stylebox("tab_selected", type, tab_selected)
 		theme.set_stylebox("tab_unselected", type, tab_idle)
@@ -1241,9 +1213,7 @@ static func make_theme() -> Theme:
 				"decrement_pressed"]:
 			theme.set_icon(icon, type, PlaceholderTexture2D.new())  # No arrow buttons
 	# Text fields.
-	var field := button_box()
-	field.bg_color = Color(FOG, 0.7)
-	theme.set_stylebox("normal", "LineEdit", field)
+	theme.set_stylebox("normal", "LineEdit", button_box())
 	theme.set_stylebox("focus", "LineEdit", button_box(true))
 
 	# Type variations for labels.
@@ -1275,7 +1245,7 @@ static func _button_styles(theme: Theme, type: String, normal: StyleBox, hover: 
 	theme.set_stylebox("hover_pressed", type, hover_pressed)
 	theme.set_stylebox("disabled", type, disabled_box())
 	theme.set_stylebox("focus", type, focus_box())
-	theme.set_font("font", type, display_font())
+	theme.set_font("font", type, body_medium_font())  # Moon-glass: buttons in Alegreya Sans; the primary in Pixelify
 	theme.set_font_size("font_size", type, BUTTON_SIZE)
 	_font_colours(theme, type)
 	theme.set_color("font_pressed_color", type, GOLD_TEXT)

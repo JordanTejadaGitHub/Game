@@ -23,8 +23,8 @@ const OMEN_PREFIX := "omen:"  # Omens ({omen:static_sky}): name and what it does
 const WARDEN_PREFIX := "warden:"  # Wardens ({warden:graftling}): portrait, name, role line and description
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
-const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px gold underline (ui_style.md "Links")
-const LINK_LINE := Color(UiStyle.GOLD, 0.7)
+const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px Wraithlight underline (Moon-glass, ui_style.md)
+const LINK_LINE := Color(Palette.WRAITHLIGHT, 0.85)
 
 static var _pattern: RegEx = null
 
@@ -271,7 +271,7 @@ static func make_label(text: String, font_size: int = 15, colour: Color = UiStyl
 
 # Makes the status links in `label` show their popup on hover and on tap.
 static func hook(label: RichTextLabel) -> void:
-	label.meta_underlined = false  # bbcode() draws the gold underline itself
+	label.meta_underlined = false  # bbcode() draws the Wraithlight underline itself
 	if label.mouse_filter == Control.MOUSE_FILTER_IGNORE:
 		label.mouse_filter = Control.MOUSE_FILTER_PASS
 	var popup := StatusLinks.new()

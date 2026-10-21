@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://drm1arktsnd8v"
-path="res://.godot/imported/CormorantGaramond-Variable.ttf-004e48a7b0928636fd45e5e759a40eee.fontdata"
+uid="uid://cri2x6lvenmj4"
+path="res://.godot/imported/PixelifySans-Variable.ttf-5c7a634dde0611cde689ed5523c1ce42.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/CormorantGaramond-Variable.ttf"
-dest_files=["res://.godot/imported/CormorantGaramond-Variable.ttf-004e48a7b0928636fd45e5e759a40eee.fontdata"]
+source_file="res://assets/ui/fonts/PixelifySans-Variable.ttf"
+dest_files=["res://.godot/imported/PixelifySans-Variable.ttf-5c7a634dde0611cde689ed5523c1ce42.fontdata"]
 
 [params]
 

@@ -2,14 +2,28 @@
 extends StyleBox
 class_name MoonDivider
 
-# Divider inside a panel: the same inked gold thread as a panel's top, across the middle of the rect,
-# parted around the Heartwood mark (the light pass, 2026-10-05). The theme's HSeparator uses it.
+# Divider inside a panel (Moon-glass, ui_style.md): the engraved line cut into the glass (divider.png: Dread over Dusk,
+# 2 art px tall, drawn at ×2), across the middle of the rect, stopping short of the rim. Never a gold thread. The theme's
+# HSeparator uses it.
 
-@export var colour := Color("fcd47c", 0.75):  # Glow (Heartwood 32)
+const INSET := 10.0  # Short of the panel's rim at both ends
+
+@export var colour := Color(1, 1, 1, 1):  # A multiplier on the engraving
 	set(v): colour = v; emit_changed()
-@export var mark := true:  # False = a plain thread (a primary right below has its own mark: one per group)
+@export var mark := true:  # (Kept for old callers: no mark on dividers now)
 	set(v): mark = v; emit_changed()
 
 func _draw(to_canvas_item: RID, rect: Rect2) -> void:
-	var line := Rect2(rect.position.x, floorf(rect.get_center().y), rect.size.x, 1.0)
-	MoonStyleBox.draw_thread(to_canvas_item, line, colour, MoonStyleBox.INK_GOLD, mark)
+	var texture := MoonStyleBox.texture_for(&"divider")
+	var width := rect.size.x - INSET * 2.0
+	if width <= 0.0:
+		return
+	if texture == null:
+		RenderingServer.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + INSET, floorf(rect.get_center().y), width, 2.0),
+			Color(UiStyle.FOG, 0.8))
+		return
+	var h := texture.get_height()
+	var line := Rect2(rect.position.x + INSET, floorf(rect.get_center().y - h / 2.0), width, h)
+	var m := MoonStyleBox.frame_margin(&"divider")
+	RenderingServer.canvas_item_add_nine_patch(to_canvas_item, line, Rect2(Vector2.ZERO, texture.get_size()), texture.get_rid(),
+		Vector2(m, 0.0), Vector2(m, 0.0), RenderingServer.NINE_PATCH_STRETCH, RenderingServer.NINE_PATCH_STRETCH, true, colour)
