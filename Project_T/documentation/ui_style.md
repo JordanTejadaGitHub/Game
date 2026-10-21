@@ -32,8 +32,10 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
 - **Dividers are engraved** into the glass (Dread over Dusk, 2 art px, stopping short of the rim), never gold threads.
 - **The sprout stays**: today's 7x4 gold sprout (`rim_sprout.png`) stands on the top rim of the one main panel per
   screen. Main panels also get one facet line in the top-left corner of the glass. No diamond anywhere.
-- **Type:** titles, names, toasts and big numbers in **Pixelify Sans** (OFL, Google Fonts); body in Alegreya Sans;
-  labels in its small caps. Cormorant Garamond goes. Text colour is Moonlight / Mist; links underline in Wraithlight.
+- **Type:** titles, names, toasts and big numbers in **Pixelify Sans**; body text in **Vollkorn** Regular (user
+  2026-10-20, from a body-font comparison: https://claude.ai/artifact/FfVfbAHZRAsaGgAwhaYKDB), at least 14 px at 1280x720
+  (it is a dark, heavy serif: never bold for body, 1.4 line height); labels in **Vollkorn SC**. All OFL, Google Fonts.
+  Cormorant Garamond and Alegreya Sans go. Text colour is Moonlight / Mist; links underline in Wraithlight.
 - **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
   rest and gold on hover / press.
 
