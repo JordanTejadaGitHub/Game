@@ -2468,6 +2468,22 @@
 			"loop": false,
 			"note": "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the dust's centre on the ground: Tower Code plays it at the Warden's foot, its cell's bottom edge 4 px up; under the Warden). ~0.43 s."
 		},
+		"plant_sprout": {
+			"anchor": [
+				24,
+				56
+			],
+			"file": "plant_sprout.png",
+			"fps": 15.0,
+			"frame_size": [
+				48,
+				64
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "Planting: a sprout growing on the Warden's bare slab and bursting (frames 6-7), ~0.53 s. Anchor = its foot: the slab's top centre, 8 px below the cell centre. Show plant/<warden>.png frame 0 (the bare slab) under it; from frame 7 grow plant/<warden>.png frame 1 (the body) from this spot x0.35 > x0.7 > x1.08 > x0.97 > x1, then swap to the Warden's sprite."
+		},
 		"poison_bubbles_1": {
 			"anchor": [
 				12,

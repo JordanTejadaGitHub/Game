@@ -688,7 +688,31 @@ func _finish(tower_name: String, raw: Dictionary, size_of: String = "") -> Dicti
 			clipped[tower_name] = clipped.get(tower_name, []) + [kind]
 		sheet.save_png(OUT + tower_name + ("" if kind == "idle" else "_" + kind) + ".png")
 		out[kind] = sheet
+	if raw.has("idle") and size_of == "":
+		_save_plant_sheet(tower_name, raw["idle"][0], big, w, full, h)
 	return out
+
+# Planting (user 2026-10-21: a Warden grows from a sprout on its own base): plant/<warden>.png, two frames the size of its
+# idle frames: 0 = its bare waystone slab (rocks and moss, no body), 1 = its body alone (idle frame 0 without the slab),
+# shaded like the idle sheet. The game shows the slab, plays plant_sprout on it, then grows frame 1 up from the slab.
+func _save_plant_sheet(tower_name: String, r0: Array, big: bool, w: int, full: int, h: int) -> void:
+	var frame: Image = r0[0]
+	var slab: Image = r0[1]
+	var body: Image = frame.duplicate()
+	for y in body.get_height():
+		for x in body.get_width():
+			var c := body.get_pixel(x, y)
+			if c.a > 0.0 and c == slab.get_pixel(x, y):
+				body.set_pixel(x, y, Color(0, 0, 0, 0))
+	var empty := Image.create_empty(slab.get_width(), slab.get_height(), false, Image.FORMAT_RGBA8)
+	var sheet := Image.create_empty(w * 2, full, false, Image.FORMAT_RGBA8)
+	sheet.blit_rect(_compose_frame(slab, slab, null, big), Rect2i(0, 0, w, full), Vector2i(0, 0))
+	sheet.blit_rect(_compose_frame(body, empty, null, big), Rect2i(0, 0, w, full), Vector2i(w, 0))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(w, full), true))
+	if NIGHT_RIM.has(tower_name):
+		_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "plant/"))
+	sheet.get_region(Rect2i(0, full - h, w * 2, h)).save_png(OUT + "plant/" + tower_name + ".png")
 
 # How far the body reaches sideways from the feet in any of a Warden's raw frames (slab excluded).
 func _body_extent(raw: Dictionary) -> float:

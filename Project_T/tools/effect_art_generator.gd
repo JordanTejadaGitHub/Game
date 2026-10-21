@@ -57,6 +57,7 @@ func _init() -> void:
 	_dream_feedback_effects()
 	_calling_effects()
 	_feel_effects()
+	_plant_sprout_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -4864,3 +4865,88 @@ func _boss_burst(img: Image, f: int) -> void:
 				_px(img, roundi(p.x) + 1, roundi(p.y), Color(col, a))
 				_px(img, roundi(p.x), roundi(p.y) + 1, Color(BURST_COLD[0], a))
 				_px(img, roundi(p.x) + 1, roundi(p.y) + 1, Color(BURST_COLD[0], a))
+
+# --- Planting: the sprout (user 2026-10-21, approved mock-up: "a Warden grows from a little sprout") ---------------
+# On the Warden's bare slab (towers/plant/<warden>.png frame 0) a seed in a pinch of soil sprouts, sways up and unfurls two
+# pale leaves, its bud turns gold and glows, then bursts (frames 6-7); the game grows the Warden's body
+# (plant/<warden>.png frame 1) up out of the spot from frame 7. 8 frames at 15 fps; anchor = the sprout's foot.
+const PS_LEAF := [Color("#34643c"), Color("#9cc46c"), Color("#d4ec9c"), Color("#fff4dc")]  # dark, body, light, vein
+const PS_STEM := [Color("#5c944c"), Color("#9cc46c")]
+const PS_INK := Color("#1c3c2c")
+const PS_SOIL := [Color("#5c3c24"), Color("#8c5c34")]
+
+func _plant_sprout_effects() -> void:
+	_sheet("plant_sprout", Vector2i(48, 64), 8, 15, Vector2i(24, 56), false, "ground", _plant_sprout,
+		{note = "Planting: a sprout growing on the Warden's bare slab and bursting (frames 6-7), ~0.53 s. Anchor = its foot: the slab's top centre, 8 px below the cell centre. Show plant/<warden>.png frame 0 (the bare slab) under it; from frame 7 grow plant/<warden>.png frame 1 (the body) from this spot x0.35 > x0.7 > x1.08 > x0.97 > x1, then swap to the Warden's sprite."})
+
+func _plant_sprout(img: Image, f: int) -> void:
+	var foot := Vector2(24, 56)
+	var h: float = [0.0, 4.0, 9.0, 14.0, 18.0, 19.0, 19.0, 16.0][f]
+	var leaf: float = [0.0, 3.0, 6.0, 8.5, 10.0, 10.0, 10.0, 9.0][f]
+	var sway: float = [0.0, 0.0, 1.0, -1.0, 0.0, 0.5, 0.0, 0.0][f]
+	_disc(img, foot + Vector2(0.5, 0.5), 3.0, PS_SOIL[0])  # the pinch of soil it comes out of
+	_disc(img, foot, 1.8, PS_SOIL[1])
+	if f == 0:
+		_px(img, int(foot.x), int(foot.y) - 2, PS_LEAF[2])
+		_px(img, int(foot.x) + 1, int(foot.y) - 2, PS_LEAF[1])
+		return
+	var top := foot + Vector2(sway, -h)
+	for i in int(h) + 1:  # a 2 px stem, curving a little, lit on its left
+		var t := i / maxf(h, 1.0)
+		var p := foot.lerp(top, t) + Vector2(sin(t * PI) * 1.2, 0)
+		_px(img, int(p.x) - 1, int(p.y), PS_INK)
+		_px(img, int(p.x), int(p.y), PS_STEM[1])
+		_px(img, int(p.x) + 1, int(p.y), PS_STEM[0])
+		_px(img, int(p.x) + 2, int(p.y), PS_INK)
+	_ps_leaf(img, top + Vector2(0, 3), Vector2(-1.0, -0.45).normalized(), leaf, -2.0)
+	_ps_leaf(img, top + Vector2(1, 1), Vector2(1.0, -0.6).normalized(), leaf * 0.85, 2.0)
+	if f >= 3:  # the bud: green, then gold and glowing (5-6)
+		var bud := top + Vector2(0.5, -2.5)
+		var r := 2.4 if f == 3 else 3.2
+		_disc(img, bud, r + 1.0, PS_INK)
+		_disc(img, bud, r, Color("#e9a83c") if f >= 5 else PS_LEAF[1])
+		_disc(img, bud + Vector2(-0.6, -0.7), r * 0.55, Color("#fcd47c") if f >= 5 else PS_LEAF[2])
+		if f >= 5:
+			_px(img, int(bud.x) - 1, int(bud.y) - 1, Color("#fff4dc"))
+			for d: Vector2 in [Vector2(-7, -3), Vector2(7, -4), Vector2(0, -9), Vector2(-4, -8), Vector2(5, -8)]:
+				if (int(d.x) + f) % 2 == 0:
+					_px(img, int(bud.x + d.x), int(bud.y + d.y), Color(Color("#fcd47c"), 0.75))
+	if f >= 6:  # the burst as the bud opens into the Warden
+		var c := foot + Vector2(0, -26 if f == 6 else -28)
+		var s := 1.0 if f == 6 else 0.55
+		_disc(img, c, 10.0 * s, Color(Color("#fcd47c"), 0.4))
+		_disc(img, c, 6.0 * s, Color(Color("#fff4dc"), 0.75))
+		for k in 8:
+			var d := Vector2.from_angle(k * TAU / 8.0)
+			var p := c + d * (12.0 * s + 2.0)
+			_px(img, int(p.x), int(p.y), Color(Color("#fff4dc"), 0.9))
+			_px(img, int(p.x + d.x), int(p.y + d.y), Color(Color("#fcd47c"), 0.75))
+
+# A plump leaf from `base`, curving: an ink rim, a bright body, a lighter upper half and a pale vein.
+func _ps_leaf(img: Image, base: Vector2, dir: Vector2, length: float, bend: float) -> void:
+	if length < 1.0:
+		return
+	var layer := {}
+	var side := dir.orthogonal()
+	var steps := int(length * 4.0) + 2
+	for i in steps:
+		var t := i / float(steps - 1)
+		var p := base + dir * length * t + side * bend * sin(t * PI) * 0.6
+		var r := sin(pow(t, 0.8) * PI) * length * 0.38
+		for y in range(int(p.y - r) - 1, int(p.y + r) + 2):
+			for x in range(int(p.x - r) - 1, int(p.x + r) + 2):
+				var q := Vector2(x + 0.5, y + 0.5)
+				if q.distance_to(p) <= r:
+					var upper := (q - p).dot(side) * signf(bend if bend != 0.0 else 1.0) < 0.0
+					layer[Vector2i(x, y)] = PS_LEAF[2] if upper else PS_LEAF[1]
+	for i in steps:
+		var t := i / float(steps - 1)
+		if t > 0.15 and t < 0.8:
+			var p := base + dir * length * t + side * bend * sin(t * PI) * 0.6
+			layer[Vector2i(int(p.x), int(p.y))] = PS_LEAF[3] if t < 0.5 else PS_LEAF[2]
+	for p: Vector2i in layer:
+		for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if not layer.has(p + n):
+				_px(img, p.x + n.x, p.y + n.y, PS_INK)
+	for p: Vector2i in layer:
+		_px(img, p.x, p.y, layer[p])
