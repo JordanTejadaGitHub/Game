@@ -1535,8 +1535,15 @@ func _layout_top_row() -> void:
 	if not buttons.is_empty():
 		left = minf(left, buttons[buttons.size() - 1].offset_left)
 	var bottom := button_top + ROW_BUTTON if not buttons.is_empty() else ROW_TOP + ROW_H
+	# PC follows the phone's minimal row (user 2026-10-21: "should the topright follow the mobile UI and not be
+	# enclosed?"): no plate behind the counters, just the icons and numbers with a Void outline, readable over the map.
+	for label in counters + [_leaves_max, _maze_reward_label, _clears_label]:
+		if label is Label:
+			(label as Label).add_theme_color_override("font_outline_color", Palette.VOID)
+			(label as Label).add_theme_constant_override("outline_size", PHONE_COUNTER_OUTLINE)
 	var fog := get_node_or_null("ResourcesFog") as Control
 	if fog != null:
+		fog.self_modulate.a = 0.0  # Kept (its rect is the row's: the meter and boosts legend sit under it), never drawn
 		fog.offset_left = left - ROW_PAD
 		fog.offset_right = ROW_RIGHT + ROW_PAD - 4.0
 		fog.offset_top = ROW_TOP - ROW_PAD + 4.0
