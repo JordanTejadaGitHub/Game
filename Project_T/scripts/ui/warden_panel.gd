@@ -482,7 +482,7 @@ func _refresh() -> void:
 	var sell := _add_footer_button("Sell %s+%s" % [UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
 	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
-	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
+	sell.tooltip_text = (note + "\n\n" if note != "" else "") + _refund_rule() + "\n\nKey: %s" % tower_seller.sell_key_name()  # The key and the refund in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -644,7 +644,7 @@ func _refresh_group() -> void:
 	var sell := _add_footer_button("Sell %d %s+%s" % [selection.size(), UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
 	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())
-	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
+	sell.tooltip_text = _refund_rule() + "\n\nKey: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
 		sell.text = "Sell %d Wardens? Press again" % selection.size()  # The tip says why it asks
 	_danger_footer(sell)
@@ -1633,6 +1633,12 @@ func _danger_footer(button: Button) -> void:
 			button.add_theme_stylebox_override(state, box)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, UiStyle.POOR)
+
+# Sell's refund in its tip (UI Asset fc82d5e8: the "Resting: selling refunds 75%" note left the drift panel).
+func _refund_rule() -> String:
+	var now := roundi((tower_seller.build_phase_refund if drift_director.is_build_phase() else tower_seller.drift_refund) * 100.0)
+	return "Refunds %d%% now: %d%% during a rest, %d%% while nightmares walk." % [now,
+		roundi(tower_seller.build_phase_refund * 100.0), roundi(tower_seller.drift_refund * 100.0)]
 
 const SELL_CONFIRM_FROM := 3  # A group this big asks twice at rests too (story chat)
 const SELL_CONFIRM_TIME := 2.0  # Seconds the "Press again" stays

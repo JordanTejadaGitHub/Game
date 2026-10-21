@@ -47,6 +47,11 @@ var _scroll := ScrollContainer.new()  # The rows scroll when they'd reach the Dr
 var _body := VBoxContainer.new()
 var _clock := 0.0
 var _last := Label.new()  # "Last drift 62 DPS" (moved here from beside Start: playtest fixes 2026-09-30)
+var _head_change := Label.new()  # "↑18%" at the header's right
+var _vs := Label.new()  # Open: "↑18% vs last drift (45)"
+const HEAD_SIZE := 20
+const ROW_PORTRAIT := 20
+var _was_resting := true  # The meter opens itself at a rest and folds to its one-line plate when a drift starts
 
 # --- Shared helpers ------------------------------------------------------------------------------
 
@@ -141,10 +146,24 @@ func _ready() -> void:
 	_header.focus_mode = Control.FOCUS_NONE
 	_header.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_header.custom_minimum_size = Vector2(0, 36)
-	UiStyle.caps(_header, 16, UiStyle.INK)
+	# Moon-glass meter (UI Asset fc82d5e8): "Maze 53 DPS" in Vollkorn Medium with the change arrow at its right (Sprig up,
+	# Ember down); open, the change on a Mist line under it ("↑18% vs last drift (45)").
+	UiStyle.number(_header, HEAD_SIZE, UiStyle.INK)
 	_header.tooltip_text = "Drift meter"
 	_header.pressed.connect(func() -> void: set_open(not _user_open))
+	_head_change.name = "HeadChange"
+	_head_change.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	_head_change.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_head_change.offset_right = -4.0
+	_head_change.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(_head_change, 14, GOOD)
+	_header.add_child(_head_change)
 	box.add_child(_header)
+	_vs.name = "VsLastDrift"
+	_vs.add_theme_font_size_override("font_size", 14)
+	_vs.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_vs.visible = false
+	box.add_child(_vs)
 	_last.name = "LastDrift"
 	UiStyle.number(_last, 15, UiStyle.INK_DIM)
 	_last.visible = false
@@ -152,9 +171,16 @@ func _ready() -> void:
 	_body.add_theme_constant_override("separation", 2)
 	box.add_child(_body)
 	_sort.text = "Sort: DPS"
-	_sort.flat = true
 	_sort.focus_mode = Control.FOCUS_NONE
 	_sort.custom_minimum_size = Vector2(0, 32)
+	_sort.size_flags_horizontal = Control.SIZE_SHRINK_END
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:  # A control: a small plate chip with a ▾ (Moon-glass)
+		var chip := UiStyle.plate_box(8.0, 2.0, &"plate_hover" if state == "hover" else &"plate")
+		chip.content_margin_right = 20.0
+		_sort.add_theme_stylebox_override(state, chip)
+	_sort.draw.connect(func() -> void:
+		var c := Vector2(_sort.size.x - 11.0, _sort.size.y / 2.0 + 1.0)
+		_sort.draw_colored_polygon(PackedVector2Array([c + Vector2(-4, -2), c + Vector2(4, -2), c + Vector2(0, 3)]), UiStyle.INK_DIM))
 	_sort.add_theme_font_override("font", UiStyle.caps_font())
 	_sort.add_theme_font_size_override("font_size", 14)
 	_sort.add_theme_color_override("font_color", UiStyle.INK_DIM)
@@ -185,8 +211,11 @@ func _ready() -> void:
 			tab.toggled.connect(func(_on: bool) -> void: tab.queue_redraw())
 		tabs.add_child(tab)
 	_wardens_tab.set_pressed_no_signal(true)
+	var spread := Control.new()  # Sort sits at the tab row's right end
+	spread.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_child(spread)
+	tabs.add_child(_sort)
 	_body.add_child(tabs)
-	_body.add_child(_sort)
 	# The Wardens tab: the top TOP_ROWS by the current sort, no scrolling (user: the scroll bar didn't
 	# work), then "and N more". Only the Last block summary scrolls.
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -371,21 +400,35 @@ func refresh() -> void:
 	visible = available and not hidden_by_player
 	if not visible:
 		return
+	# Folded to its one-line plate while a drift walks, open by itself at a rest; a tap opens / folds it in between
+	# (UI Asset fc82d5e8).
+	var resting := drift_director.is_resting()
+	if resting != _was_resting:
+		_was_resting = resting
+		_user_open = resting
+		_body.visible = resting and not collapsed
 	var b := m.get_benchmark()
 	var head := "Maze %s DPS" % fmt(m.get_maze_dps(period()))
-	var change := change_text(b.get("change"))
-	if change != "":
-		head += "   %s vs last drift" % change  # Spacing, no " · " (light pass, UI Asset)
 	var estimate := show_estimate() and float(b.get("needed_dps", 0.0)) > 0.0
 	if estimate:
-		head += "   needs ~%s" % fmt(b.needed_dps)
-	_header.text = ("▾ " if _body.visible else "▸ ") + head
+		head += "   needs ~%s" % fmt(b.needed_dps)  # Dev runs only
+	_header.text = head
 	_header.add_theme_color_override("font_color", ratio_color(float(b.get("ratio", 1.0))) if estimate else FINE_COLOR)
+	var change = b.get("change")
+	var change_line := change_text(change)
+	_head_change.text = change_line
+	_head_change.add_theme_color_override("font_color", GOOD if change != null and float(change) > 0.0 else SHORT)
 	# The drift just played: at a rest WardenMeter still holds it as "drift" ("last_drift" rolls when
 	# the next one starts); during a drift it's "last_drift".
 	var last := m.get_maze_dps("drift" if drift_director.is_resting() else "last_drift")
-	_last.visible = last > 0.0 and not collapsed
+	_last.visible = last > 0.0 and not collapsed and _body.visible
 	_last.text = "Last drift %s DPS" % fmt(last)
+	_vs.visible = change_line != "" and _body.visible and not resting
+	_vs.text = "%s vs last drift (%s)" % [change_line, fmt(last)]
+	var plate := _body.visible
+	if get_meta(&"open_look", null) != plate:  # Open: the main panel; folded: a one-line plate
+		set_meta(&"open_look", plate)
+		add_theme_stylebox_override("panel", UiStyle.panel(10.0, 8.0) if plate else UiStyle.plate_box(10.0, 4.0))
 	if not _body.visible:
 		return
 	_update_view()
@@ -395,7 +438,8 @@ func refresh() -> void:
 	var by_dps := rows.duplicate()
 	by_dps.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.dps > c.dps)
 	for i in by_dps.size():
-		by_dps[i]["rank_color"] = rank_color(i, by_dps.size())
+		by_dps[i]["rank_color"] = CARRYING_COLOR if i == 0 else FINE_COLOR  # Only the top Warden is gold (UI Asset fc82d5e8)
+		by_dps[i]["top"] = i == 0
 	if sort_by_share:
 		rows.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.share > c.share)
 	else:
@@ -468,23 +512,67 @@ func _setup_row(button: Button, r: Dictionary) -> void:
 	button.name = "Row"
 	var tower = r.tower
 	button.set_meta(&"tower", tower)
-	if is_instance_valid(tower):
-		button.icon = WardenIcon.make(tower.tower_data)
-	button.expand_icon = false
-	button.add_theme_constant_override("icon_max_width", 26)
-	button.add_theme_font_override("font", UiStyle.body_font())  # Data rows: the body face reads best small
-	button.add_theme_font_size_override("font_size", 15)
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.pressed.connect(func() -> void: focus_tower(tower))
-	# Its change against its own last drift, at the row's right end.
+	# Columns (UI Asset fc82d5e8): portrait 20 px, the name (Vollkorn, Moonlight), the DPS right-aligned (tabular), the
+	# change arrow small (Sprig up, Ember down); a thin share bar under them (Stone; the top Warden's Glow).
+	var cols := HBoxContainer.new()
+	cols.name = "Cols"
+	cols.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cols.offset_left = 4.0
+	cols.offset_right = -4.0
+	cols.offset_bottom = -4.0
+	cols.add_theme_constant_override("separation", 6)
+	cols.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(cols)
+	var portrait := TextureRect.new()
+	portrait.name = "Portrait"
+	portrait.custom_minimum_size = Vector2(ROW_PORTRAIT, ROW_PORTRAIT)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if is_instance_valid(tower):
+		portrait.texture = WardenIcon.make(tower.tower_data)
+	cols.add_child(portrait)
+	var name_label := Label.new()
+	name_label.name = "Name"
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cols.add_child(name_label)
+	var dps := Label.new()
+	dps.name = "Dps"
+	dps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	dps.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dps.custom_minimum_size.x = 52.0
+	dps.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(dps, 15, UiStyle.INK)
+	cols.add_child(dps)
 	var change := Label.new()
 	change.name = "Change"
-	change.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	change.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	change.offset_right = -6.0
+	change.custom_minimum_size.x = 40.0
+	change.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	change.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	change.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.number(change, 15, UP_COLOR)
-	button.add_child(change)
+	UiStyle.number(change, 12, GOOD)
+	cols.add_child(change)
+	var bar := Control.new()
+	bar.name = "Share"
+	bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bar.offset_top = -3.0
+	bar.offset_bottom = -1.0
+	bar.offset_left = 4.0 + ROW_PORTRAIT + 6.0
+	bar.offset_right = -4.0
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.draw.connect(func() -> void:
+		var share := clampf(float(button.get_meta(&"share", 0.0)), 0.0, 1.0)
+		bar.draw_rect(Rect2(Vector2.ZERO, bar.size), Color(Palette.DUSK, 0.6))
+		bar.draw_rect(Rect2(Vector2.ZERO, Vector2(bar.size.x * share, bar.size.y)),
+			Palette.GLOW if button.get_meta(&"top", false) else Palette.STONE))
+	button.add_child(bar)
 
 # "↑12%" (gold) / "↓8%" (dim) against that Warden's own last drift, or "new" if it didn't fight then.
 static func row_change(r: Dictionary) -> Array:
@@ -494,7 +582,7 @@ static func row_change(r: Dictionary) -> Array:
 	var text := change_text(change)
 	if text == "":
 		return ["", FINE_COLOR]
-	return [text, UP_COLOR if float(change) > 0.0 else UNDERUSED_COLOR]
+	return [text, GOOD if float(change) > 0.0 else SHORT]  # Sprig up, Ember down (UI Asset fc82d5e8)
 
 func _fill_row(button: Button, r: Dictionary) -> void:
 	var star := " ★" if r.get("most_improved", false) else ""
@@ -502,18 +590,32 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	# read "Sprout" beside its Frostfern icon).
 	var tower = r.tower
 	var name: String = tower.tower_data.display_name if is_instance_valid(tower) else String(r.name)
+	var portrait := button.find_child("Portrait", true, false) as TextureRect
 	if is_instance_valid(tower) and (not button.has_meta(&"form") or button.get_meta(&"form") != tower.tower_data):  # A null default still warns
 		button.set_meta(&"form", tower.tower_data)
-		button.icon = WardenIcon.make(tower.tower_data)
-	button.text = "%s  %s DPS  %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]  # No " · " (light pass): spacing
+		if portrait != null:
+			portrait.texture = WardenIcon.make(tower.tower_data)
+	var colour: Color = r.get("rank_color", FINE_COLOR)  # Only the top Warden is gold
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, colour)
+	var name_label := button.find_child("Name", true, false) as Label
+	if name_label != null:
+		name_label.text = name + star
+		name_label.add_theme_color_override("font_color", colour)
+	var dps_label := button.find_child("Dps", true, false) as Label
+	if dps_label != null:
+		dps_label.text = fmt(r.dps)
+		dps_label.add_theme_color_override("font_color", colour)
 	var change: Array = row_change(r)
-	var change_label := button.get_node_or_null("Change") as Label
+	var change_label := button.find_child("Change", true, false) as Label
 	if change_label != null:
 		change_label.text = change[0]
 		change_label.add_theme_color_override("font_color", change[1])
-	var colour: Color = r.get("rank_color", FINE_COLOR)  # By rank on the board, like the DPS tags
-	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		button.add_theme_color_override(state, colour)
+	button.set_meta(&"share", float(r.share))
+	button.set_meta(&"top", bool(r.get("top", false)))
+	var bar := button.find_child("Share", true, false) as Control
+	if bar != null:
+		bar.queue_redraw()
 	var tip := "%s: %s DPS, %d%% of the maze, %s invested" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), UiStyle.DEW_GLYPH + fmt(r.dew_invested)]
 	if r.get("rating_label", &"") == &"carrying":
 		tip += "\nCarrying: far more than its cost."
