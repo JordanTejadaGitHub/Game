@@ -2771,8 +2771,8 @@ const RIPPLE_COLOURS := {"root": Palette.DEADWOOD, "grove": Palette.OAK, "song":
 class GroundRipple extends Node2D:
 	const TIME := 0.3
 	const WIDTH := 2.0
-	const SPLASH_TIME := 0.5
-	const SPLASH_WIDTH := 3.0
+	const SPLASH_TIME := 0.45
+	const SPLASH_WIDTH := 2.0
 	const ALPHA := 0.6
 	const GAP_MS := 200  # Another ripple this soon…
 	const NEAR := 96.0  # …this close (1.5 cells) is skipped: pulses side by side never stack into a tangle
@@ -2822,24 +2822,24 @@ class GroundRipple extends Node2D:
 		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
 		# A splash ring holds at its radius before fading (user: "hard to see the dew drop splash radius with water on
 		# the ground"): wider, a thicker dark edge, full strength for its first half.
-		var fade := (1.0 if t < 0.5 else (1.0 - t) * 2.0) if splash else 1.0 - t
+		var fade := (1.0 if t < 0.35 else (1.0 - t) / 0.65) if splash else 1.0 - t  # holds a third of its time, then fades (user: "clear but not too standoutish")
 		var width := SPLASH_WIDTH if splash else WIDTH
 		if splash:
-			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * fade), width + 3.0, false)
-		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, (0.9 if splash else ALPHA) * fade), width, false)
+			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * fade), width + 2.0, false)
+		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, (0.75 if splash else ALPHA) * fade), width, false)
 		if raindrop:
 			# The drop lands (a bright dot), then two thinner rings ripple out behind the splash ring and fade first; the
 			# outer ring above stays the clear edge of the splash radius (user: "more like a raindrop ripple but the
 			# splash radius should be clear").
 			if t < 0.15:
-				draw_circle(Vector2.ZERO, 3.0, Color(Palette.MOONLIGHT, 0.9))
+				draw_circle(Vector2.ZERO, 2.5, Color(Palette.MOONLIGHT, 0.75))
 			for k in 2:
 				var lag := 0.18 * (k + 1)
 				var tk := clampf((t - lag) / (1.0 - lag), 0.0, 1.0)
 				if tk <= 0.0 or tk >= 1.0:
 					continue
 				var rk := _radius * (0.62 - 0.27 * k) * (1.0 - pow(1.0 - minf(tk * 1.6, 1.0), 2.0))
-				draw_arc(Vector2.ZERO, maxf(rk, 1.0), 0.0, TAU, clampi(int(rk / 3.0), 16, 96), Color(Palette.DEWLIGHT, 0.7 * (1.0 - tk)), 1.5, false)
+				draw_arc(Vector2.ZERO, maxf(rk, 1.0), 0.0, TAU, clampi(int(rk / 3.0), 16, 96), Color(Palette.DEWLIGHT, 0.55 * (1.0 - tk)), 1.5, false)
 		if dream_tier > 0:
 			DREAM_GLOW.rim(self, Vector2.ZERO, r - 4.0, dream_tier, 1.0 - t)
 			if dream_tier >= 2:
@@ -3794,6 +3794,8 @@ func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
 # The splash's reach where it lands (user 2026-10-18: "a visible radius with splash damage when it lands"): a ground
 # ring out to the real splash radius in the family's colour, with a dark edge so it reads on the sand path. Shares the
 # pulse ripples' throttle (GroundRipple.may_start), so a volley of splashes never stacks into a tangle.
+const SPLASH_RING_COLOURS := {"water": Palette.MOONLIGHT, "stone": Palette.MIST}  # Lines whose family colour hides on the ground
+
 func _splash_ring(where: Vector2, radius: float) -> void:
 	if radius < MAP_GRID.cell_size.x * 0.25:
 		return  # Too small to read as a radius
@@ -3801,7 +3803,9 @@ func _splash_ring(where: Vector2, radius: float) -> void:
 	if world == null or (Fx.reduced() and not Fx.on_screen(where, radius)) or not GroundRipple.may_start(where):
 		return
 	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
-	var ring := GroundRipple.new(radius, Palette.MOONLIGHT if tower_data.line == "water" else Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW), Color(Palette.NIGHT, 0.85))
+	# Stone's family colour (Deadwood) is the sand path's own colour: stone splashes ring in pale Mist instead.
+	var colour: Color = SPLASH_RING_COLOURS.get(tower_data.line, Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW))
+	var ring := GroundRipple.new(radius, colour, Color(Palette.NIGHT, 0.5))
 	ring.raindrop = tower_data.line == "water"  # Dewdrop line: ripples inside the ring, like a raindrop
 	world.add_child(ring)
 	ring.global_position = where
