@@ -9,6 +9,34 @@ Built 2026-09-28 by the UI Code Implementation chat: `UiStyle` + `assets/ui/ui_t
 "UI style"). The panels, thread and fog are drawn in code (`MoonStyleBox`); the textures listed at the
 end are optional.
 
+## Moon-glass (chosen 2026-10-20)
+
+The user found the fog-and-thread look "a bit AI" (smooth lines, gradient fog, the diamond, gold on everything,
+Cormorant) and chose **moon-glass** after a reference study (Loop Hero, Darkest Dungeon, Inscryption, Shattered Pixel
+Dungeon, Hollow Knight) and three mock-ups. Approved style tile: https://claude.ai/artifact/SF7UGagbAXk5kAAqaQLaYS
+(version 14; saved copies in `D:\Projects\logs\ui_asset\style_tiles\`); every screen:
+https://claude.ai/artifact/X36mt1ttrVQpQH5BRgTRhM. **Where this section and the rest of this doc disagree, this
+section wins**; layouts, sizes, the 48 px rule, one primary per choice, the button rule and readability stay.
+
+- **Panels are cut moon-glass plates in a pewter rim**, not fog. Frames are pixel art (`assets/ui/moonglass/*.png`,
+  9-slices with `moonglass.json` margins, drawn at x2, nearest): chamfered corners, a 4-tone bevelled rim lit from the
+  top-left (3 art px on main panels, 2 on buttons and small plates), a dark line where glass meets metal, the glass set
+  just below the rim with a smooth shade under the top and left edge. Generator: `tools/ui_moonglass_frames.html`.
+- **Glass** is Dread at ~86% alpha (about as see-through as the old fog), flat: no texture, no gradient fog.
+- **Metal is state.** Pewter at rest. **Brass for what is yours or under your finger**: the selected slot or card,
+  the primary (Take, Start drift, Resume, Apply), hover, pressed (lit from below, pushed down 1 art px), a switched-on
+  toggle, the open tab. Destructive actions (Abandon, Delete) get the small Ember-rimmed plate, set apart.
+- **Glows and shadows stay smooth** (the user rejected dithered pixel versions twice): brass keeps the old soft gold
+  glow; plates cast a soft drop shadow (none when pressed); text gets a soft dark shadow. Edges and rims stay
+  pixel-crisp.
+- **Dividers are engraved** into the glass (Dread over Dusk, 2 art px, stopping short of the rim), never gold threads.
+- **The sprout stays**: today's 7x4 gold sprout (`rim_sprout.png`) stands on the top rim of the one main panel per
+  screen. Main panels also get one facet line in the top-left corner of the glass. No diamond anywhere.
+- **Type:** titles, names, toasts and big numbers in **Pixelify Sans** (OFL, Google Fonts); body in Alegreya Sans;
+  labels in its small caps. Cormorant Garamond goes. Text colour is Moonlight / Mist; links underline in Wraithlight.
+- **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
+  rest and gold on hover / press.
+
 ## The idea
 
 **Almost no frames.** Text and icons float on a soft patch of dark fog, with a thin gold thread
