@@ -15,7 +15,7 @@ enum TopLine { NONE, GOLD, FULL }
 const UNDERLINE_INSET := 14.0
 const FRAMES_DIR := "res://assets/ui/moonglass/"
 const SCALE := 2  # Art px → screen px
-const FRAME_MARGINS := {&"panel_main": 14, &"panel_main_yours": 14, &"plate": 8, &"plate_hover": 8,
+const FRAME_MARGINS := {&"panel_main": 22, &"panel_main_yours": 22, &"panel_legendary": 22, &"plate": 8, &"plate_hover": 8,
 	&"plate_pressed": 8, &"plate_yours": 8, &"plate_yours_hover": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
 const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours", &"plate_yours_hover"]
 # Hovering what is already brass (a primary, the selected item; user 2026-10-21 "the background of the button should
@@ -97,7 +97,8 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 			_halo.shadow_offset = Vector2(0, 4)
 	if _halo.shadow_size > 0:
 		_halo.draw(to_canvas_item, rect.grow(-2.0))
-	var m := float(FRAME_MARGINS.get(frame, 8) * SCALE)
+	# (Main frames are 48 px with a 22 px margin since UI Asset's cbdfc90a: a small panel's corners meet instead of overlapping)
+	var m := minf(float(FRAME_MARGINS.get(frame, 8) * SCALE), floorf(minf(rect.size.x, rect.size.y) / 2.0))
 	var rim := float(SCALE * (3 if frame.begins_with("panel") else 2))  # The bevel's width
 	if center_alpha >= OPAQUE_FROM:  # A solid panel (the phone drawer, the pause rail and pane): more glass behind
 		rs.canvas_item_add_rect(to_canvas_item, rect.grow(-rim), Color(UiStyle.FOG, OPAQUE_BACKING))
