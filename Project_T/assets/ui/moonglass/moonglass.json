@@ -1,0 +1,15 @@
+{
+	"note": "Moon-glass UI frames (ui_style.md 'Moon-glass'). 9-slice: margin = art px on every side; draw at x2 (whole numbers), nearest filtering. Glass is Dread at 86% alpha; shadows and glows are not baked in (soft, in code).",
+	"frames": {
+		"panel_main": {"size": [36, 36], "margin": 14},
+		"panel_main_yours": {"size": [36, 36], "margin": 14},
+		"plate": {"size": [20, 20], "margin": 8},
+		"plate_hover": {"size": [20, 20], "margin": 8},
+		"plate_pressed": {"size": [20, 20], "margin": 8},
+		"plate_yours": {"size": [20, 20], "margin": 8},
+		"plate_danger": {"size": [20, 20], "margin": 8},
+		"plate_dim": {"size": [20, 20], "margin": 8},
+		"divider": {"size": [8, 2], "margin": 1},
+		"rim_sprout": {"size": [9, 6], "margin": 0}
+	}
+}

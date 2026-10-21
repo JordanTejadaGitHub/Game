@@ -1,0 +1,173 @@
+<!doctype html><meta charset="utf-8"><title>Moon-glass frame generator</title>
+<!-- UI Asset art tool (ui_style.md "Moon-glass"). Open in a browser (or headless Edge with --dump-dom); each line "FRAME name w h margin data-url"
+     is one PNG for assets/ui/moonglass/ (write the data URL to <name>.png). Same drawing code as the approved style tile
+     (https://claude.ai/artifact/SF7UGagbAXk5kAAqaQLaYS v14) and the screens mock-up (https://claude.ai/artifact/X36mt1ttrVQpQH5BRgTRhM). -->
+<body><script>
+const P = 2;
+const C = {dread:'#140f26',shade:'#2c2444',bruise:'#4c3c74',wraith:'#9a84e8',mist:'#b4b0c8',moon:'#dce8f4',stone:'#8c8cac',
+  sprig:'#9cc46c',newleaf:'#d4ec9c',leaf:'#5c944c',deepmoss:'#1c3c2c',night:'#24243c',void:'#05050d',dusk:'#3c3c5c',gold:'#e9a83c',glow:'#fcd47c',heart:'#fff4dc'};
+const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The owned motif: a crescent moon cradling a Heartwood sprout (13 x 9 art px).
+const MOTIF = ["...NN...NN...","..NSSl.lSSN..","......l......",".C....l....C.","CM....l....MC","CM....l....MC",".CM...l...MC.","..CMMssMMMC..","....CCCCC...."];
+const MOTIF_INK = {N:C.newleaf,S:C.sprig,l:C.leaf,C:C.moon,M:C.mist,s:C.stone};
+const LEAF = ["...NN","..NSS",".NSSl",".Sll.","l...."];
+function pixelCanvas(rows, ink, scale, outline){
+  const o = outline ? 1 : 0, w = rows[0].length + 2*o, h = rows.length + 2*o;
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  if (outline){ g.fillStyle = C.dread;
+    rows.forEach((r,y)=>[...r].forEach((ch,x)=>{ if (ink[ch]) for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) g.fillRect(x+o+dx,y+o+dy,1,1); })); }
+  rows.forEach((r,y)=>[...r].forEach((ch,x)=>{ if (ink[ch]){ g.fillStyle = ink[ch]; g.fillRect(x+o,y+o,1,1); } }));
+  c.className = 'px'; c.style.width = w*scale+'px'; c.style.height = h*scale+'px';
+  return c;
+}
+function hex2(d,i){ return '#'+[0,1,2].map(j=>d[i+j].toString(16).padStart(2,'0')).join(''); }
+function sprite(img, frame, fw, fh, scale, recolor){
+  const c = document.createElement('canvas'); c.width = fw; c.height = fh; const g = c.getContext('2d');
+  const im = new Image();
+  im.onload = () => { g.drawImage(im, frame*fw, 0, fw, fh, 0, 0, fw, fh);
+    if (recolor){ const d = g.getImageData(0,0,fw,fh);
+      for (let i=0;i<d.data.length;i+=4){ const to = recolor[hex2(d.data,i)];
+        if (to){ d.data[i]=parseInt(to.slice(1,3),16); d.data[i+1]=parseInt(to.slice(3,5),16); d.data[i+2]=parseInt(to.slice(5,7),16); } }
+      g.putImageData(d,0,0); } };
+  im.src = img; c.className = 'px'; c.style.width = fw*scale+'px'; c.style.height = fh*scale+'px'; return c;
+}
+const MOONIFY = {'#fff4dc':C.moon,'#fcd47c':C.mist,'#e9a83c':C.stone};
+const ICON = (col, scale, rc) => sprite(IMG_ICONS, col, 16, 16, scale, rc);
+const GLYPH = (col, scale, rc) => sprite(IMG_HUD_GLYPHS, col, 10, 10, scale, rc);
+// Ordered-dither fill: flat c1, breaking into c2 over the last part of the axis.
+// With thr set, draws a mask instead: the share of Bayer cells below thr.
+function ditherURL(w, h, c1, c2, mode, from, thr){
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const t = (BAYER[y%4][x%4]+0.5)/16;
+    if (thr !== undefined){ if (t <= thr){ g.fillStyle = '#000'; g.fillRect(x,y,1,1); } continue; }
+    let v;
+    if (mode==='ends') v = 1 - Math.min(x, w-1-x) / Math.max(1, w*0.22);
+    else v = y/Math.max(1,h-1);
+    const s = Math.max(0, Math.min(1, (v-from)/(1-from)));
+    const col = t < s ? c2 : c1;
+    if (col === 'transparent') continue;
+    g.fillStyle = col; g.fillRect(x,y,1,1);
+  }
+  return c.toDataURL();
+}
+function applyDither(){
+  document.querySelectorAll('[data-dither]').forEach(el => {
+    const [c1, c2, mode, from] = el.dataset.dither.split(',');
+    const w = Math.ceil(el.clientWidth/P), h = Math.ceil(el.clientHeight/P);
+    if (!w || !h) return;
+    el.style.backgroundImage = `url(${ditherURL(w, h, C[c1]||c1, C[c2]||c2, mode, parseFloat(from))})`;
+    el.style.backgroundSize = `${w*P}px ${h*P}px`;
+  });
+}
+// The game backdrop behind each cell: Night broken with deep moss and dread, so panels are judged over the world.
+function backdrop(el){
+  const w = Math.ceil(el.clientWidth/P), h = Math.ceil(el.clientHeight/P);
+  if (!w || !h) return;
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.fillStyle = C.night; g.fillRect(0,0,w,h);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const n = Math.sin(x*0.09)+Math.cos(y*0.13)+Math.sin((x+y)*0.05), t = (BAYER[y%4][x%4]+0.5)/16;
+    if (n > 0.6 + t){ g.fillStyle = C.deepmoss; g.fillRect(x,y,1,1); }
+    else if (n < -1.2 + t*0.6){ g.fillStyle = C.dread; g.fillRect(x,y,1,1); } }
+  el.style.backgroundImage = `url(${c.toDataURL()})`; el.style.backgroundSize = `${w*P}px ${h*P}px`; el.style.backgroundRepeat = 'no-repeat';
+}
+const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+function cell(rowId, label, note, cls){
+  const el = h(`<div class="cell ${cls||''}"><div class="tag"><b>${label}</b><i>${note}</i></div><div class="stage"></div></div>`);
+  document.getElementById(rowId).appendChild(el); return el.querySelector('.stage');
+}
+function frame(cls, inner, opts={}){
+  return h(`<div class="frame ${opts.step||'s1'} ${cls}"><div class="fill ${opts.step2||''}"${opts.dither?` data-dither="${opts.dither}"`:''}>${inner}</div></div>`);
+}
+function withMotif(f){
+  const w = h('<div style="position:relative;display:inline-block;max-width:100%"></div>'); w.appendChild(f);
+  const m = pixelCanvas(MOTIF, MOTIF_INK, P, true); m.classList.add('motif'); w.appendChild(m); return w;
+}
+const choiceRow = () => h('<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%"></div>');
+// ---------- moon-glass generators ----------
+const hash = (x, y, s=1) => { let n = (x*374761393 + y*668265263 + s*982451653) | 0; n = (n ^ (n >>> 13)) * 1274126177 | 0; return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+C.slate = '#5c5a78';
+// Four metal tones: lit edge, face, turned edge, shadowed edge.
+const METAL = {pewter:[C.mist,C.stone,C.slate,C.dusk], bright:[C.moon,C.mist,C.stone,C.slate], brass:[C.heart,C.glow,C.gold,'#b8662c'], brassPressed:['#b8662c',C.gold,C.glow,C.heart], pressed:[C.dusk,C.slate,C.stone,C.mist]};
+function backdrop(el){
+  const w = Math.ceil(el.clientWidth/P), h = Math.ceil(el.clientHeight/P); if (!w || !h) return;
+  el.style.backgroundImage = `url(${ditherURL(w, h, C.night, C.deepmoss, 'y', 0.72)})`;
+  el.style.backgroundSize = `${w*P}px ${h*P}px`; el.style.backgroundRepeat = 'no-repeat';
+}
+const bayer = (x,y) => (BAYER[y%4][x%4]+0.5)/16;
+// A plate of cut moon-glass in a pewter rim: chamfered corners, a bevel, the glass set below it,
+// engraved dividers, and a hard dithered shadow `sh` px down-right.
+function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86}){ if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  const put = (x,y,col) => { if (x>=0 && y>=0 && x<W && y<H){ g.fillStyle = col; g.fillRect(x,y,1,1); } };
+  const w = W - sh, h = H - sh, k = main ? 4 : 2;          // k = corner cut
+  const [hi, face, turn, lo] = METAL[metal], t = main ? 3 : 2;
+  // distance to the plate's edge (chamfered), and which way that edge faces: -1 lit, 1 shadowed, 0 side-on
+  const edge = (x,y) => { const s = [[y,-1],[x,-1],[x+y-k,-1],[w-1-x,1],[h-1-y,1],[(w-1-x)+(h-1-y)-k,1],[(w-1-x)+y-k,0],[x+(h-1-y)-k,0]];
+    let best = s[0]; for (const e of s) if (e[0] < best[0]) best = e; return best; };
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    if (x < w && y < h){ const [d, f] = edge(x,y); if (d >= 0){
+      let col;
+      if (d === 0) col = C.dread;
+      else if (d === 1) col = f < 0 ? hi : f > 0 ? lo : face;
+      else if (d < t-1) col = face;
+      else if (d === t-1) col = f < 0 ? face : turn;
+      else if (d === t) col = C.dread;
+      else if (d === t+1) col = f > 0 ? C.dusk : glass;
+      else col = glass;
+      g.globalAlpha = col === glass ? alpha : 1; put(x,y,col);
+      if (col === glass && f < 0 && d - t >= 1 && d - t <= 5){ g.globalAlpha = [0,.5,.32,.18,.08,.03][d-t]; put(x,y,C.void); }   // a smooth shade under the rim, no dither
+      g.globalAlpha = 1; continue; } }
+    if (x >= sh && y >= sh && x-sh < w && y-sh < h && edge(x-sh,y-sh)[0] >= 0 && bayer(x,y) < 0.5) put(x,y,C.void);
+  }
+  if (main){ // light catching the cut top-left corner of the glass
+    for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
+  for (const y of leads){ for (let x=t+5; x<=w-t-6; x++){ put(x,y,C.dread); if (x > t+5 && x < w-t-6) put(x,y+1,C.dusk); } }
+  if (glint !== null) for (let y=t+2; y<h-t-2; y++){ const x = glint - y; if (x > t+1 && x < w-t-2 && edge(x,y)[0] > t+1){ put(x,y,C.moon); put(x+1,y,C.mist); } }
+  return cv.toDataURL();
+}
+function frameStyle(el, opts){
+  const sh = 0; if (opts.sh === 0) el.classList.add("flat");   // soft CSS shadows now, no drawn shadow
+  if (el._sh === undefined){ el._sh = sh; const cs = getComputedStyle(el);
+    el.style.borderRightWidth = (parseFloat(cs.borderRightWidth) + sh*P) + 'px'; el.style.borderBottomWidth = (parseFloat(cs.borderBottomWidth) + sh*P) + 'px'; }
+  const W = Math.ceil(el.offsetWidth/P), H = Math.ceil(el.offsetHeight/P); if (!W || !H) return;
+  const bw = parseFloat(getComputedStyle(el).borderTopWidth) || 0, leads = [];
+  el.querySelectorAll('.lead').forEach(l => leads.push(Math.round((l.offsetTop + l.offsetHeight + bw) / P) - 2));
+  el.querySelectorAll('.lead-top').forEach(l => leads.push(Math.round((l.offsetTop + bw) / P)));
+  el.style.backgroundImage = `url(${glassFrame({...opts, W, H, leads, sh: 0})})`;
+  el.style.backgroundSize = `${W*P}px ${H*P}px`;
+}
+// A small domed stained-glass pane holding pixel art (the motif, the leaves sprout).
+function roundel(rows, ink, metal='pewter', r=12, scale=P){
+  const n = 2*r + 1, c = document.createElement('canvas'); c.width = n; c.height = n; const g = c.getContext('2d');
+  const [hi, face, turn, lo] = METAL[metal];
+  for (let y=0;y<n;y++) for (let x=0;x<n;x++){ const dx = x-r, dy = y-r, d = Math.sqrt(dx*dx+dy*dy), lit = dx+dy < 0;
+    let col = null;
+    if (d <= r - 4) col = (d > r - 6 && lit) ? C.dread : (d > r - 5.2 && !lit) ? C.dusk : C.night;
+    else if (d <= r - 3.2) col = C.dread; else if (d <= r - 2.2) col = lit ? face : turn; else if (d <= r - 1.2) col = face; else if (d <= r - 0.4) col = lit ? hi : lo; else if (d <= r + 0.5) col = C.dread;
+    if (col){ g.fillStyle = col; g.fillRect(x,y,1,1); } }
+  g.fillStyle = C.dusk; for (let i=0;i<4;i++) g.fillRect(r-4+i, r-6+Math.abs(i-1), 1, 1);
+  const ox = Math.floor((n - rows[0].length)/2), oy = Math.floor((n - rows.length)/2) + 1;
+  rows.forEach((row,y)=>[...row].forEach((ch,x)=>{ if (ink[ch]){ g.fillStyle = ink[ch]; g.fillRect(x+ox,y+oy,1,1); } }));
+  c.className = 'px'; c.style.width = n*scale+'px'; c.style.height = n*scale+'px'; return c;
+}
+// The real game map behind the mock-ups (a capture of act 1), so the glass is judged over the world.
+function backdrop(el){ el.style.backgroundImage = `url(${IMG_MAP})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; el.style.imageRendering = 'pixelated'; }
+METAL.ember = [C.gold,'#b8662c','#5c3c24','#241c14'];
+// Export the moon-glass frames as 9-slice PNGs (art px; the game draws them x2, nearest).
+const OUT = [];
+const add = (name, url, w, h, margin) => OUT.push({name, url, w, h, margin});
+const MAIN = 36, MM = 14, SMALL = 20, SM = 8;
+for (const [name, metal] of [['panel_main','pewter'],['panel_main_yours','brass']])
+  add(name, glassFrame({W:MAIN, H:MAIN, metal, main:true, glass:C.night, sh:0}), MAIN, MAIN, MM);
+for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_pressed','brassPressed'],['plate_yours','brass'],['plate_danger','ember']])
+  add(name, glassFrame({W:SMALL, H:SMALL, metal, main:false, glass:C.night, sh:0}), SMALL, SMALL, SM);
+add('plate_dim', glassFrame({W:SMALL, H:SMALL, metal:'pewter', glass:C.dread, sh:0}), SMALL, SMALL, SM);
+{ const c = document.createElement('canvas'); c.width = 8; c.height = 2; const g = c.getContext('2d'); g.fillStyle = C.dread; g.fillRect(0,0,8,1); g.fillStyle = C.dusk; g.fillRect(1,1,6,1); add('divider', c.toDataURL(), 8, 2, 1); }
+{ const sp = pixelCanvas(["HG...GH",".GG.GG.","...g...","...g..."], {H:C.heart, G:C.glow, g:C.gold}, 1, true); add('rim_sprout', sp.toDataURL(), sp.width, sp.height, 0); }
+const pre = document.createElement('pre'); pre.id = 'out';
+pre.textContent = OUT.map(o => `FRAME ${o.name} ${o.w} ${o.h} ${o.margin} ${o.url}`).join('\n');
+document.body.appendChild(pre);
+</script></body>
