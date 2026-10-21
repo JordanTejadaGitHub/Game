@@ -918,9 +918,9 @@ static func deep_words(tower: Tower) -> String:
 	if tower == null or not tower.has_method("deep_preview"):
 		return ""
 	var lines = tower.call("deep_preview", tower) if tower.get_method_argument_count("deep_preview") > 0 else tower.call("deep_preview")
-	if lines is Array:
-		return " · ".join(PackedStringArray((lines as Array).map(func(l) -> String: return str(l))))
-	return str(lines) if lines != null else ""
+	if lines is Array:  # Its lines carry {tokens} ("{damp}: water hits +20% → +24%"): plain words here
+		return " · ".join(PackedStringArray((lines as Array).map(func(l) -> String: return IconInfo.format(str(l)))))
+	return IconInfo.format(str(lines)) if lines != null else ""
 
 # One Nurture choice row (the grow rows' look): `choice_name` left, `change` right ("+5 damage"), the key (1–4) as a
 # chip; `cost` decides the short look (dim; the heading's price turns POOR). 1–4 press it (_pick_choice).
