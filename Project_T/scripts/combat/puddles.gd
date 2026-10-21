@@ -1644,7 +1644,7 @@ func extra_targets(tower, candidates: Array[Node2D]) -> Array[Node2D]:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if waters.is_empty() or get_tree().paused or not place_on() or not _puddle_sheets_ready():
+	if waters.is_empty() or get_tree().paused or not place_on():
 		return
 	var frame := loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)  # The water shimmers (3 fps); redraw only when the frame changes
 	if frame != _puddle_frame:
@@ -1654,31 +1654,18 @@ func _draw() -> void:
 	if not place_on():
 		return
 	var r := cell() * 0.42
-	var sheets := _puddle_sheets_ready()
+	var sheets := USE_PUDDLE_SHEETS and _puddle_sheets_ready()
 	if sheets:
 		_draw_puddle_sheets()
 	else:
-		# Fallback (a sheet missing): soft overlapping pools along the wet path, a deep body, a lighter centre, a glint
-		for water in waters:
-			for i in water.points:
-				var at: Vector2 = _route_px[int(i)]
-				draw_circle(at, r, Color(Palette.POOL, 0.28))
-			for i in water.points:
-				var at: Vector2 = _route_px[int(i)]
-				draw_circle(at, r * 0.55, Color(Palette.DEW, 0.18))
-				if int(i) % 3 == 0:
-					draw_circle(at + Vector2(-r * 0.3, -r * 0.25), 1.5, Color(Palette.DEWLIGHT, 0.6))
+		_draw_water_ribbons()
 	for water in waters:
 		if float(water.steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
 			draw_circle(_route_px[int(water.last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end
 	if not class_on() or dream_state.calling_path.is_empty():
 		return
 	# Black Pond: darker, still water (the sheets are tinted darker in _draw_puddle_sheets)
-	if evo(EVO_POND) and not sheets:
-		for w in waters.size():
-			if _is_pond(w):
-				for i in waters[w].points:
-					draw_circle(_route_px[int(i)], r * 0.8, Color(Palette.POOL, 0.4))
+	# (Black Pond's darker water is drawn by _draw_water_ribbons)
 	# Stream: a current on the water it carried on, pointing to the Heartwood
 	for i in _flowed:
 		var at: Vector2 = _route_px[int(i)]
@@ -1693,6 +1680,56 @@ func _draw() -> void:
 		var at: Vector2 = _route_px[int(i)]
 		draw_circle(at + Vector2(-r * 0.2, 0.0), r * 0.16, Color(Palette.DEW, 0.45))
 		draw_circle(at + Vector2(r * 0.2, -r * 0.15), r * 0.16, Color(Palette.DEW, 0.45))
+
+# The water is one ribbon along the path (owner 2026-10-20, screenshot: per-point puddle sheets read as stacked blue coins,
+# "should be better looking and connect"): each run of neighbouring wet route points is drawn as a continuous strip with
+# round ends and bends: a dark rim, the body, a thin light current down its middle and a few drifting glints. Opaque, so
+# overlaps never darken. Black Pond's water is deeper (darker rim and body). The per-point sheets stay off until a
+# ribbon-shaped sheet exists (USE_PUDDLE_SHEETS), as with the Lantern Light path.
+const USE_PUDDLE_SHEETS := false
+const WATER_RIM := 44.0  # Px wide
+const WATER_BODY := 34.0
+const WATER_CURRENT := 8.0
+const WATER_GLINT_EVERY := 3  # A glint on every 3rd point, drifting one point a frame
+
+func _draw_water_ribbons() -> void:
+	var frame := loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)
+	var ponds: bool = evo(EVO_POND) and not dream_state.calling_path.is_empty()
+	for w in waters.size():
+		var deep: bool = ponds and _is_pond(w)
+		var runs := _water_runs(waters[w].points)
+		_ribbon_layer(runs, WATER_RIM, Palette.NIGHT if deep else Palette.POOL)
+		_ribbon_layer(runs, WATER_BODY, Palette.POOL if deep else Palette.DEW)
+		_ribbon_layer(runs, WATER_CURRENT, Color(Palette.DEWLIGHT, 0.12 if deep else 0.22))
+		for run in runs:
+			for k in run.size():
+				if (int(run[k]) + frame) % WATER_GLINT_EVERY == 0:
+					var at: Vector2 = _route_px[int(run[k])]
+					draw_circle(at + Vector2(-5.0, -4.0), 1.5, Color(Palette.DEWLIGHT, 0.45 if deep else 0.7))
+
+# A water's wet route points split into runs of neighbours (route indices one apart), in route order.
+func _water_runs(points: Array) -> Array:
+	var sorted: Array = points.duplicate()
+	sorted.sort()
+	var runs: Array = []
+	var run: Array = []
+	for i in sorted:
+		if not run.is_empty() and int(i) != int(run[-1]) + 1:
+			runs.append(run)
+			run = []
+		run.append(i)
+	if not run.is_empty():
+		runs.append(run)
+	return runs
+
+# One band of the ribbon: a line between each pair of neighbouring points and a disc on each point (round bends and ends).
+func _ribbon_layer(runs: Array, width: float, colour: Color) -> void:
+	for run in runs:
+		for k in run.size():
+			var at: Vector2 = _route_px[int(run[k])]
+			draw_circle(at, width * 0.5, colour)
+			if k > 0:
+				draw_line(_route_px[int(run[k - 1])], at, colour, width)
 
 # The water's art (Tower Assets cb907eb6): puddle_a-d (48x48, 4 frames, 3 fps, anchor (24, 24) = the route point; the
 # variant by route index), every wet point's body first, then every point's puddle_?_shine over them (same variant, same

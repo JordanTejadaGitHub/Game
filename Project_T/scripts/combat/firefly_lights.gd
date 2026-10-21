@@ -1926,6 +1926,10 @@ func _draw() -> void:
 			draw_circle(to_local(source.tower.global_position) + Vector2(14, 18), 4.0, Color(Palette.GLOW, 0.9))
 
 func _exit_tree() -> void:
+	_clear_gold_marks()
+	for node in [_gold_marks, _gold_tint]:
+		if is_instance_valid(node):
+			node.queue_free()
 	if is_instance_valid(_glow_group):
 		_glow_group.queue_free()
 	_glow_group = null
@@ -1939,6 +1943,7 @@ func _lay_glow() -> void:
 	if not _lit_on() or _glow.is_empty() or dream_state.get("map_generator") == null:
 		if is_instance_valid(_glow_group):
 			_glow_group.visible = false
+		_clear_gold_marks()
 		if not _glow_pts.is_empty():
 			_glow_pts = PackedVector2Array()
 			_glow_states = PackedInt32Array()
@@ -1969,6 +1974,7 @@ func _lay_glow() -> void:
 			if _glow.has(cell):
 				state = maxi(state, 2 if gold and int(_glow[cell].jars) >= 2 else 1)
 		states.append(state)
+	_lay_gold_marks(map, route, states)  # Above the capped glow: the gold edge, the warm tint under it, the embers
 	if _glow_sheets_ready():
 		_lay_glow_sheets(map, route, states)
 		return
@@ -2006,6 +2012,192 @@ func _lay_glow() -> void:
 			line.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			ground.add_child(line)
 			_glow_lines.append(line)
+
+# Bonfire's gold path at a glance (owner 2026-10-20, drift 10 Finale: "hard to see the difference between bonfire and
+# regular lit paths"): inside the capped glow group the gold washed out to the same cream, so gold path gets marks of its
+# own OUTSIDE the cap: a warm multiply tint under it (the ribbon reads amber), a thin gold edge along both sides of each
+# gold stretch (over the glow, stopping where gold ends), and slow embers drifting up (none under reduced motion, fewer at
+# Reduced effects). Plain lit path is unchanged. Visual only.
+const GOLD_EDGE_HALF := 21.0  # px from the route line to the edge: the path ribbon is ~40 px wide
+const GOLD_EDGE_WIDTH := 2.0
+const GOLD_TINT := Color(1.0, 0.84, 0.6)  # multiplier: warms the ribbon under gold steps
+const GOLD_TINT_WIDTH := 40.0
+var _gold_marks: Node2D  # Edge lines and the embers, on the path layer above the glow group
+var _gold_tint: Node2D  # The multiply tint, on the path layer under the glow group
+
+var _gold_key: Array = []  # The gold stretches last laid: the marks are rebuilt only when they change
+
+func _clear_gold_marks() -> void:
+	_gold_key = []
+	for node in [_gold_marks, _gold_tint]:
+		if is_instance_valid(node):
+			for child in node.get_children():
+				node.remove_child(child)  # Gone this frame: a queued old tint beside the new one doubled it (owner 2026-10-21: "bonfire shouldn't pulse")
+				child.queue_free()
+	if is_instance_valid(_gold_marks):
+		_gold_marks.spots = PackedVector2Array()
+		_gold_marks.visible = false
+	if is_instance_valid(_gold_tint):
+		_gold_tint.visible = false
+
+func _lay_gold_marks(map: Node2D, route: PackedVector2Array, states: PackedInt32Array) -> void:
+	# Per gold stretch: [points, joins_before, joins_after, gold-only point count]. The points are the glow band's own (the
+	# next lit point too when it goes on as plain light), so the marks end flat exactly where the glow changes colour and
+	# round only where the gold path truly ends (owner 2026-10-21: "looks like a piece cut off" where gold met lit path).
+	var runs: Array = []
+	var from := 0
+	while from < route.size():
+		if states[from] != 2:
+			from += 1
+			continue
+		var to := from
+		while to + 1 < route.size() and states[to + 1] == 2:
+			to += 1
+		var joins_before := from > 0 and states[from - 1] != 0
+		var joins_after := to + 1 < route.size() and states[to + 1] != 0
+		var run := PackedVector2Array()
+		for i in range(from, (to + 1 if joins_after else to) + 1):
+			run.append(map.to_global(Tower.MAP_GRID.calculate_map_position(route[i])))
+		runs.append([run, joins_before, joins_after, to - from + 1])
+		from = to + 1
+	if runs == _gold_key and (runs.is_empty() or (is_instance_valid(_gold_marks) and _gold_marks.visible)):
+		return  # The glow is relaid on every redraw; the gold marks only when the gold path itself changed
+	_clear_gold_marks()
+	_gold_key = runs.duplicate()
+	if runs.is_empty() or not is_instance_valid(_glow_group):
+		return
+	var layer: Node = map.path_layer
+	if not is_instance_valid(_gold_tint):
+		_gold_tint = Node2D.new()
+		_gold_tint.name = "FireflyGoldTint"
+		var mul := CanvasItemMaterial.new()
+		mul.blend_mode = CanvasItemMaterial.BLEND_MODE_MUL
+		_gold_tint.material = mul
+		layer.add_child(_gold_tint)
+	layer.move_child(_gold_tint, _glow_group.get_index())  # Just under the glow: tint the ground, then the light adds
+	if not is_instance_valid(_gold_marks):
+		_gold_marks = GoldMarks.new()
+		_gold_marks.name = "FireflyGoldMarks"
+		layer.add_child(_gold_marks)
+	layer.move_child(_gold_marks, _glow_group.get_index() + 1)  # Just over the glow: the cap never reaches it
+	_gold_tint.visible = true
+	_gold_marks.visible = true
+	_gold_marks.moving = not _still()
+	var spots := PackedVector2Array()
+	for entry: Array in runs:
+		var run: PackedVector2Array = entry[0]
+		var tint_pts := PackedVector2Array()
+		var edge_pts := PackedVector2Array()
+		for k in run.size():
+			tint_pts.append(_gold_tint.to_local(run[k]))
+			edge_pts.append(_gold_marks.to_local(run[k]))
+			if k < int(entry[3]):
+				spots.append(_gold_marks.to_local(run[k]))  # Embers from gold steps only
+		if edge_pts.size() == 1:
+			tint_pts.append(tint_pts[0] + Vector2(0.5, 0.0))
+			edge_pts.append(edge_pts[0] + Vector2(0.5, 0.0))
+		var tint := Line2D.new()
+		tint.points = tint_pts
+		tint.width = GOLD_TINT_WIDTH
+		tint.default_color = GOLD_TINT  # multiplier (the node multiplies the ground)
+		tint.use_parent_material = true  # The multiply blend lives on _gold_tint
+		tint.joint_mode = Line2D.LINE_JOINT_ROUND
+		tint.begin_cap_mode = Line2D.LINE_CAP_NONE if entry[1] else Line2D.LINE_CAP_ROUND
+		tint.end_cap_mode = Line2D.LINE_CAP_NONE if entry[2] else Line2D.LINE_CAP_ROUND
+		_gold_tint.add_child(tint)
+		for piece in _gold_edge_lines(edge_pts, entry[1], entry[2]):
+			var edge := Line2D.new()
+			edge.points = piece
+			edge.width = GOLD_EDGE_WIDTH
+			edge.default_color = Palette.GOLD
+			edge.joint_mode = Line2D.LINE_JOINT_ROUND
+			_gold_marks.add_child(edge)
+	_gold_marks.spots = spots
+	_gold_marks.queue_redraw()
+
+# The gold edge for one stretch: its outline at GOLD_EDGE_HALF from the route line, cut flat and left open at each end
+# that goes on as plain lit path (only the two sides run there), round where the gold path truly ends.
+func _gold_edge_lines(pts: PackedVector2Array, flat_start: bool, flat_end: bool) -> Array:
+	var outlines: Array = Geometry2D.offset_polyline(pts, GOLD_EDGE_HALF, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND)
+	var cuts: Array = []  # [end point, outward direction] per flat end
+	if flat_start and pts.size() >= 2:
+		cuts.append([pts[0], (pts[0] - pts[1]).normalized()])
+	if flat_end and pts.size() >= 2:
+		cuts.append([pts[pts.size() - 1], (pts[pts.size() - 1] - pts[pts.size() - 2]).normalized()])
+	for cut in cuts:
+		var at: Vector2 = cut[0]
+		var out: Vector2 = cut[1]
+		var side := Vector2(-out.y, out.x) * 200.0
+		var beyond := PackedVector2Array([at + side, at + side + out * 200.0, at - side + out * 200.0, at - side])
+		var kept: Array = []
+		for outline in outlines:
+			kept.append_array(Geometry2D.clip_polygons(outline, beyond))
+		outlines = kept
+	var lines: Array = []
+	for outline: PackedVector2Array in outlines:
+		var n := outline.size()
+		var open_at := -1  # An edge lying on a cut: the outline opens there
+		for i in n:
+			if _on_cut(outline[i], cuts) and _on_cut(outline[(i + 1) % n], cuts):
+				open_at = i
+				break
+		if open_at < 0:
+			var loop := outline.duplicate()
+			loop.append(outline[0])
+			lines.append(loop)
+			continue
+		var piece := PackedVector2Array()
+		for step in n:
+			var i := (open_at + 1 + step) % n
+			var j := (i + 1) % n
+			if piece.is_empty():
+				piece.append(outline[i])
+			if _on_cut(outline[i], cuts) and _on_cut(outline[j], cuts):
+				if piece.size() >= 2:
+					lines.append(piece)
+				piece = PackedVector2Array()
+				continue
+			piece.append(outline[j])
+		if piece.size() >= 2:
+			lines.append(piece)
+	return lines
+
+# Whether `p` lies on one of the flat-end cut lines ([end point, outward direction]).
+static func _on_cut(p: Vector2, cuts: Array) -> bool:
+	for c in cuts:
+		if absf((p - c[0]).dot(c[1])) < 0.75:
+			return true
+	return false
+
+# The embers over gold path: a few small motes rising slowly from its steps and fading (every 2nd step; every 4th at
+# Reduced effects). Drawn on a calm clock (MOTE_FPS), never under reduced motion.
+class GoldMarks extends Node2D:
+	const MOTE_FPS := 15.0
+	const MOTE_LIFE := 2.4  # Seconds from a step to gone
+	const MOTE_RISE := 18.0  # px it climbs
+	var spots := PackedVector2Array()
+	var moving := true
+	var _t := 0.0
+	var _next := 0.0
+
+	func _process(delta: float) -> void:
+		if not moving or spots.is_empty() or not visible:
+			return
+		_t += delta
+		if _t >= _next:
+			_next = _t + 1.0 / MOTE_FPS
+			queue_redraw()
+
+	func _draw() -> void:
+		if not moving or spots.is_empty():
+			return
+		var every := 4 if Fx.reduced() else 2
+		for k in range(0, spots.size(), every):
+			var phase := fmod(_t / MOTE_LIFE + float(k) * 0.37, 1.0)
+			var at: Vector2 = spots[k] + Vector2(sin(float(k) * 1.7 + _t) * 4.0, -4.0 - phase * MOTE_RISE)
+			var alpha := sin(phase * PI)
+			draw_circle(at, 2.5, Color(Palette.EMBER, 0.5 * alpha))
+			draw_circle(at, 1.2, Color(Palette.GOLD, 0.9 * alpha))
 
 func _light_spot(light: int) -> Vector2:
 	for source in _sources:
