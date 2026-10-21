@@ -1354,3 +1354,15 @@ callout:
   down to about a third), and a slow **"z"** mote drifts up about once a second while it sleeps;
 - waking is a short jolt: eyes flare back, the "z" pops, and it moves on.
 Reduced motion: no lean or motes; the dim eyes and the icon stay. Inside the Fx budget like other hit feedback.
+
+## A breath before the rest's choices (user, 2026-10-20)
+User: *"epic music comes after the boss but card picks happen right away; have a little pause after every block
+before picks come up."* When a block ends (its last nightmare dispelled), the rest's screens (rest report, Dream,
+family pick, Calling, Omen, dossier) **wait a moment** so the win lands first:
+- **Every block: about 1.5 s** of quiet: the field is clear, the Heartwood glows a little brighter, motes rise from
+  where the last nightmares fell, the rest sound plays. Then the first rest screen opens.
+- **A boss block: about 3.5 s**, timed to the boss music's swell: the boss's dispel beat (screens_ui.md impact tiers),
+  the "hope" music rising, the act's name or a short whisper line, then the screens.
+- **Real time**, unaffected by game speed (3x doesn't shorten it), and **tap / click / Enter skips** straight to
+  the screens. Auto-drift and saving wait for the screens as before; the autosave still happens at the rest.
+- Reduced motion: the same pause, no motes.
