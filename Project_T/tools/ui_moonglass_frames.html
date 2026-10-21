@@ -99,7 +99,7 @@ function backdrop(el){
 const bayer = (x,y) => (BAYER[y%4][x%4]+0.5)/16;
 // A plate of cut moon-glass in a pewter rim: chamfered corners, a bevel, the glass set below it,
 // engraved dividers, and a hard dithered shadow `sh` px down-right.
-function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86}){ if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
+function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86}){ const warm = metal === 'brassHover'; if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
   const put = (x,y,col) => { if (x>=0 && y>=0 && x<W && y<H){ g.fillStyle = col; g.fillRect(x,y,1,1); } };
   const w = W - sh, h = H - sh, k = main ? 4 : 2;          // k = corner cut
@@ -118,7 +118,8 @@ function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], 
       else if (d === t+1) col = f > 0 ? C.dusk : glass;
       else col = glass;
       g.globalAlpha = col === glass ? alpha : 1; put(x,y,col);
-      if (col === glass && f < 0 && d - t >= 1 && d - t <= 5){ g.globalAlpha = [0,.5,.32,.18,.08,.03][d-t]; put(x,y,C.void); }   // a smooth shade under the rim, no dither
+      if (col === glass && !warm && f < 0 && d - t >= 1 && d - t <= 5){ g.globalAlpha = [0,.5,.32,.18,.08,.03][d-t]; put(x,y,C.void); }   // a smooth shade under the rim, no dither
+      if (col === glass && warm){ g.globalAlpha = 0.10 + Math.max(0, 6 - (d - t)) / 6 * 0.28; put(x,y,"#b8662c"); }   // hovering a gold plate: the glass glows warm, strongest at the rim
       g.globalAlpha = 1; continue; } }
     if (x >= sh && y >= sh && x-sh < w && y-sh < h && edge(x-sh,y-sh)[0] >= 0 && bayer(x,y) < 0.5) put(x,y,C.void);
   }
