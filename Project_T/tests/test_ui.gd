@@ -1161,7 +1161,9 @@ func _check_mist_full(main: Node) -> void:
 	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
 	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
 	panel._process(0.0)
-	_check(not button.disabled and button.tooltip_text == "", "…and the button with it")
+	# (Its tip still carries the notes and the next drift's Dew pot since the rest notes left the map, UI Asset fc82d5e8:
+	# only the mist reason must be gone.)
+	_check(not button.disabled and not button.tooltip_text.contains("Nightmares still arriving"), "…and the button with it")
 	director.resting = saved[0]
 	director.drifts_started = saved[1]
 	director._arriving = saved[2]

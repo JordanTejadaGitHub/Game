@@ -103,11 +103,14 @@ func _run() -> void:
 	# The Wardens tab: the top 5, no scroll; each row's change vs its own last drift (playtest 2026-09-30).
 	_check(meter._rows.get_child_count() <= DriftMeter.TOP_ROWS and meter._rows.get_parent() == meter._body,
 		"the Wardens tab lists at most 5 rows, outside any scroll")
-	_check(first.get_node_or_null("Change") != null, "each row has its change label")
+	# Moon-glass rows (UI Asset fc82d5e8): columns (portrait, name, DPS, change) with a share bar; the change arrow is
+	# Sprig up, Ember down.
+	_check(first.find_child("Change", true, false) != null and first.find_child("Dps", true, false) != null
+		and first.find_child("Share", true, false) != null, "each row has its change, DPS and share columns")
 	_check(DriftMeter.row_change({"last_dps": 0.0})[0] == "new"
-		and DriftMeter.row_change({"last_dps": 10.0, "change": 0.12}) == ["↑12%", DriftMeter.UP_COLOR]
-		and DriftMeter.row_change({"last_dps": 10.0, "change": -0.08}) == ["↓8%", DriftMeter.UNDERUSED_COLOR],
-		"new / ↑12% gold / ↓8% dim")
+		and DriftMeter.row_change({"last_dps": 10.0, "change": 0.12}) == ["↑12%", DriftMeter.GOOD]
+		and DriftMeter.row_change({"last_dps": 10.0, "change": -0.08}) == ["↓8%", DriftMeter.SHORT],
+		"new / ↑12% Sprig / ↓8% Ember")
 	# Crowding: the meter never reaches the DriftPanel (its rows scroll) and sits below the nightmare info.
 	meter._fit()
 	var drift_panel_top: float = main.get_node("HUD/DriftPanel").get_global_rect().position.y

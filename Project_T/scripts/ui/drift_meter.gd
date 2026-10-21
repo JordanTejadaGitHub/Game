@@ -175,11 +175,11 @@ func _ready() -> void:
 	_sort.custom_minimum_size = Vector2(0, 32)
 	_sort.size_flags_horizontal = Control.SIZE_SHRINK_END
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:  # A control: a small plate chip with a ▾ (Moon-glass)
-		var chip := UiStyle.plate_box(8.0, 2.0, &"plate_hover" if state == "hover" else &"plate")
-		chip.content_margin_right = 20.0
+		var chip := UiStyle.plate_box(4.0, 2.0, &"plate_hover" if state == "hover" else &"plate")
+		chip.content_margin_right = 14.0  # Room for the ▾
 		_sort.add_theme_stylebox_override(state, chip)
 	_sort.draw.connect(func() -> void:
-		var c := Vector2(_sort.size.x - 11.0, _sort.size.y / 2.0 + 1.0)
+		var c := Vector2(_sort.size.x - 8.0, _sort.size.y / 2.0 + 1.0)
 		_sort.draw_colored_polygon(PackedVector2Array([c + Vector2(-4, -2), c + Vector2(4, -2), c + Vector2(0, 3)]), UiStyle.INK_DIM))
 	_sort.add_theme_font_override("font", UiStyle.caps_font())
 	_sort.add_theme_font_size_override("font_size", 14)
@@ -192,7 +192,7 @@ func _ready() -> void:
 	# summary that used to pop up at every rest (top Wardens, most improved, combos and Reactions,
 	# close calls, Kinships formed …), opened on demand.
 	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 4)
+	tabs.add_theme_constant_override("separation", 2)
 	for pair in [[_wardens_tab, "Wardens", false], [_block_tab, "Last block", true]]:
 		var tab: Button = pair[0]
 		tab.text = pair[1]
@@ -209,6 +209,13 @@ func _ready() -> void:
 			tab.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 			tab.draw.connect(_draw_tab_underline.bind(tab))
 			tab.toggled.connect(func(_on: bool) -> void: tab.queue_redraw())
+		if not UiStyle.is_phone():  # Tight side padding: both tabs and the Sort chip fit the meter's WIDTH (opening never widens it)
+			tab.ready.connect(func() -> void:
+				for state in ["normal", "hover", "pressed", "hover_pressed"]:
+					var tight := tab.get_theme_stylebox(state).duplicate() as StyleBox
+					tight.content_margin_left = 4.0
+					tight.content_margin_right = 4.0
+					tab.add_theme_stylebox_override(state, tight))
 		tabs.add_child(tab)
 	_wardens_tab.set_pressed_no_signal(true)
 	var spread := Control.new()  # Sort sits at the tab row's right end
@@ -288,6 +295,8 @@ func _gui_input(event: InputEvent) -> void:
 
 func set_open(open: bool) -> void:
 	_user_open = open
+	if drift_director != null:
+		_was_resting = drift_director.is_resting()  # A tap is the choice until the next drift starts or rest begins
 	_body.visible = open and not collapsed
 	var settings := HeartwoodMemory.get_settings()
 	settings[OPEN_SETTING] = open
@@ -425,10 +434,8 @@ func refresh() -> void:
 	_last.text = "Last drift %s DPS" % fmt(last)
 	_vs.visible = change_line != "" and _body.visible and not resting
 	_vs.text = "%s vs last drift (%s)" % [change_line, fmt(last)]
-	var plate := _body.visible
-	if get_meta(&"open_look", null) != plate:  # Open: the main panel; folded: a one-line plate
-		set_meta(&"open_look", plate)
-		add_theme_stylebox_override("panel", UiStyle.panel(10.0, 8.0) if plate else UiStyle.plate_box(10.0, 4.0))
+	# One box in both looks (folded it is one line of it): swapping boxes moved the header under the pointer, the bug the
+	# user hit before ("first clicking the maze DPS bugs out").
 	if not _body.visible:
 		return
 	_update_view()
