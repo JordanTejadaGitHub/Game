@@ -594,11 +594,42 @@ static func link_end(tower: Tower) -> Vector2:
 static func link_spans(from: Vector2, to: Vector2) -> bool:
 	return from.distance_to(to) >= LINK_MIN_SPAN * CELL - 0.01
 
-# Whether a body standing on `point` (its ground position) is struck by the link from `from` to `to`.
+# Whether a body standing on `point` (its ground position) is struck by the link from `from` to `to` (the Wardens'
+# footprint centres, half-cell aware: link_end). Struck when it stands within the band (LINK_HALF_WIDTH + LINK_BODY of
+# the segment), or anywhere in a whole cell the segment really crosses (user screenshot 2026-10-20: two Jars either side
+# of a path cell, the nightmare walking that cell half a cell off the jars' line took nothing; a body is the cell it
+# walks, so what walks between two Jars is always hit, in every direction and with half-cell placements). The one test:
+# the strike, the ground mark and every preview (link_points) ask here.
+const LINK_CELL_INSET := 6.0  # Px a crossing must reach inside a cell (a segment grazing a corner doesn't take the cell)
 static func on_link(point: Vector2, from: Vector2, to: Vector2) -> bool:
 	var seg := to - from
 	var t := clampf((point - from).dot(seg) / maxf(seg.length_squared(), 1.0), 0.0, 1.0)
-	return point.distance_to(from + seg * t) <= LINK_HALF_WIDTH + LINK_BODY
+	if point.distance_to(from + seg * t) <= LINK_HALF_WIDTH + LINK_BODY:
+		return true
+	var cell := Tower.MAP_GRID.calculate_grid_coordinates(point)
+	var rect := Rect2(Tower.MAP_GRID.calculate_map_position(cell) - Tower.MAP_GRID.cell_size / 2.0, Tower.MAP_GRID.cell_size)
+	return _segment_crosses(from, to, rect.grow(-LINK_CELL_INSET))
+
+# Whether the segment from `a` to `b` passes through `rect` (Liang-Barsky clip).
+static func _segment_crosses(a: Vector2, b: Vector2, rect: Rect2) -> bool:
+	var d := b - a
+	var t0 := 0.0
+	var t1 := 1.0
+	for side in [[-d.x, a.x - rect.position.x], [d.x, rect.end.x - a.x], [-d.y, a.y - rect.position.y], [d.y, rect.end.y - a.y]]:
+		var p_: float = side[0]
+		var q: float = side[1]
+		if absf(p_) < 0.000001:
+			if q < 0.0:
+				return false  # Parallel and outside
+			continue
+		var r := q / p_
+		if p_ < 0.0:
+			t0 = maxf(t0, r)
+		else:
+			t1 = minf(t1, r)
+		if t0 > t1:
+			return false
+	return true
 
 # The strip of ground a body must stand in to be struck: the segment widened by the link's width and a body's radius.
 static func link_band(from: Vector2, to: Vector2) -> PackedVector2Array:
