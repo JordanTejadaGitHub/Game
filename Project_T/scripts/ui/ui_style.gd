@@ -370,9 +370,20 @@ static func glyph_font() -> Font:
 static func display_font() -> Font:
 	return _variation("display", "PixelifySans-Variable.ttf", 500, false)
 
-# Pixelify Sans with tabular figures: big numbers.
+# Numbers: Alegreya Sans Medium with lining, tabular figures. Not Pixelify (user 2026-10-20, the HUD counters: "the 2
+# looks too much like an 8"): its digits sit on a pixel grid that blurs shut at the HUD's 15–24 px.
 static func number_font() -> Font:
-	return _variation("number", "PixelifySans-Variable.ttf", 500, true)
+	if not _fonts.has("number"):
+		var ts := TextServerManager.get_primary_interface()
+		var font := FontVariation.new()
+		font.base_font = _file("AlegreyaSans-Medium.ttf")
+		font.opentype_features = {ts.name_to_tag("lnum"): 1, ts.name_to_tag("tnum"): 1}
+		font.spacing_space = SPACE_EXTRA
+		var glyphs := glyph_font()
+		if glyphs != null:
+			font.fallbacks = [glyphs]  # The resource icons in "15 [Dew]" amounts
+		_fonts["number"] = font
+	return _fonts["number"]
 
 # Alegreya Sans SC Medium: labels (small caps, a little tracking).
 static func caps_font() -> Font:

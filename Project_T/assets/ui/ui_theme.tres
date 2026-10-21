@@ -520,11 +520,8 @@ drop_shadow = false
 thread = 0
 
 [sub_resource type="FontVariation" id="FontVariation_vykdg"]
-fallbacks = Array[Font]([SubResource("FontVariation_t8lcn")])
-base_font = ExtResource("7_e1g2j")
-variation_opentype = {
-2003265652: 500
-}
+fallbacks = Array[Font]([ExtResource("4_g2k3a")])
+base_font = ExtResource("6_q4rak")
 opentype_features = {
 1819178349: 1,
 1953396077: 1
