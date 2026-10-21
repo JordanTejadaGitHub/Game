@@ -13,6 +13,6 @@ tags = Array[String](["wind", "crit"])
 requires = Array[String](["samara"])
 max_stacks = 1
 rule_id = &"backspin"
+retired = true
 in_start_pool = false
 tip = "Safe."
-makes = Array[StringName]([&"crit"])

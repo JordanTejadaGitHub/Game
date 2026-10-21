@@ -80,7 +80,7 @@ const CUES := {
 	&"long_shadows": REACH_RING, &"longer_roots": REACH_RING, &"undergrowth": REACH_RING, &"hush": REACH_RING,
 	&"wide_petals": REACH_RING, &"hollow_ground": REACH_RING, &"close_kin": REACH_RING,
 	&"grandfather_stump": REACH_RING, &"warm_hearth": REACH_RING, &"canopy": REACH_RING,
-	&"longer_flight": REACH_RING, &"dew_trail": REACH_RING,
+	&"dew_trail": REACH_RING,
 	# Links between things -> C10
 	&"tangled_lightning": DREAM_THREAD, &"carried_on_the_wind": DREAM_THREAD, &"eddy": DREAM_THREAD,
 	&"hedgerow_roots": DREAM_THREAD, &"extended_family": DREAM_THREAD, &"spent_light": DREAM_THREAD,
@@ -94,7 +94,7 @@ const CUES := {
 	&"wild_dew": DEW_SPARKLE, &"cheap_seeds": DEW_SPARKLE,
 	&"evergreen": DEW_SPARKLE, &"morning_dew": DEW_SPARKLE, &"seedfall": DEW_SPARKLE, &"dew_bowl": DEW_SPARKLE,
 	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE, &"reclaimed_earth": DEW_SPARKLE,
-	&"kins_keepsake": DEW_SPARKLE, &"overflowing_well": DEW_SPARKLE,
+	&"kins_keepsake": DEW_SPARKLE,
 	&"glimmering_hunt": DEW_SPARKLE, &"sudden_insight": DEW_SPARKLE,
 	# Leaves -> C8
 	&"deep_roots": LEAF_REGROW, &"thick_bark": LEAF_REGROW, &"press_on": LEAF_REGROW,
@@ -124,11 +124,11 @@ const SURGE: Array[StringName] = [&"thinning_the_herd", &"hot_on_their_heels", &
 	&"quickening", &"close_shave", &"fresh_growth", &"quick_step", &"desperate_bloom", &"momentum"]
 
 # Already visible by nature (spec C2): no cue, only the badge pop (credit with the source Warden).
-const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", &"ricochet", &"seed_storm", &"sharp_beaks",
+const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", &"seed_storm", &"sharp_beaks",
 	&"homing_instinct", &"ring_dance", &"encore", &"witching_bend", &"heavy_heart", &"reprise", &"chain_bloom",
 	&"thorny_walls", &"twig_walls", &"living_walls", &"tangled_release", &"nod_off", &"fever_pitch", &"hunters_moon",
 	&"spore_cascade", &"prism_heart", &"mushroom_rain", &"deep_stillness", &"old_hand", &"full_moon",
-	&"still_target", &"patient_aim", &"backspin", &"falling_stars", &"called_shot", &"starlit_aim",
+	&"still_target", &"patient_aim", &"falling_stars", &"called_shot", &"starlit_aim",
 	&"lingering_splash",
 	# Bell repeats keep their own chime / double flash / pulse (d168b7e6) and add the badge pop
 	&"in_time", &"refrain", &"knell", &"on_the_beat", &"da_capo", &"second_verse", &"rude_awakening",

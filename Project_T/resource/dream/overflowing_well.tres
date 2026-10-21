@@ -13,5 +13,6 @@ tags = Array[String](["support", "acorn", "dreamlight"])
 max_stacks = 1
 requires = Array[String](["wellspring"])
 rule_id = &"overflowing_well"
+retired = true
 in_start_pool = false
 tip = "10 shards make {dreamlight:1}. Shards give at most {dreamlight:2} a run."
