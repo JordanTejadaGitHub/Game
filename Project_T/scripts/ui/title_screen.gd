@@ -155,8 +155,22 @@ func _add_button(text: String, action: Callable) -> Button:
 	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
+	if UiStyle.is_phone() and PHONE_PAIRED.has(text):
+		if _pairs == null:  # Phones (user 2026-10-20: the menu ran off a 540 px screen): the small entries two to a row
+			_pairs = GridContainer.new()
+			_pairs.name = "Pairs"
+			_pairs.columns = 2
+			_pairs.add_theme_constant_override("h_separation", 10)
+			_pairs.add_theme_constant_override("v_separation", 10)
+			_buttons.add_child(_pairs)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_pairs.add_child(button)
+		return button
 	_buttons.add_child(button)
 	return button
+
+const PHONE_PAIRED := ["Settings", "Codex", "Credits", "Quit"]  # Phones: a 2 × 2 grid under the main choices
+var _pairs: GridContainer = null
 
 # "Seeds banked" as an icon row: the Seeds glyph at 2× and the number in the number font, Sprig.
 func _seeds_row(seeds: int) -> HBoxContainer:
