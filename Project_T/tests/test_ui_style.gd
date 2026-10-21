@@ -23,14 +23,15 @@ func _initialize() -> void:
 	if saved != null:
 		_check(saved.get_color("font_color", "Label").is_equal_approx(UiStyle.INK), "the saved theme's text colour is INK (re-run the generator?)")
 		_check(saved.get_color("font_color", "PrimaryButton").is_equal_approx(UiStyle.GOLD), "primary buttons speak in Glow text")
+		# Moon-glass (ui_style.md, 2026-10-20): panels are the main plate, buttons pewter plates, the primary glowing brass.
 		var primary := saved.get_stylebox("normal", "PrimaryButton") as MoonStyleBox
-		_check(primary != null and primary.frame_color.a > 0.5 and primary.thread == MoonStyleBox.TopLine.GOLD and primary.diamond
-			and primary.glow_color.is_equal_approx(UiStyle.PRIMARY_GLOW), "the primary is a gold frame + thread + mark with an Ember glow, not a fill")
+		_check(primary != null and primary.frame == &"plate_yours" and primary.glow, "the primary is brass with the soft gold glow")
 		var panel := saved.get_stylebox("panel", "PanelContainer") as MoonStyleBox
-		_check(panel != null and panel.fog_color.is_equal_approx(UiStyle.FOG), "panels are MoonStyleBoxes in FOG")
-		var button := saved.get_stylebox("normal", "Button") as StyleBoxFlat
-		_check(button != null and Color(button.border_color, 1.0).is_equal_approx(UiStyle.BUTTON_GOLD),
-			"button outlines are BUTTON_GOLD")
+		_check(panel != null and panel.frame == &"panel_main", "panels are the panel_main moon-glass plate")
+		var button := saved.get_stylebox("normal", "Button") as MoonStyleBox
+		_check(button != null and button.frame == &"plate", "buttons rest on the pewter plate")
+		for id in [&"panel_main", &"plate", &"plate_yours", &"divider", &"rim_sprout"]:
+			_check(MoonStyleBox.texture_for(id) != null, "the moon-glass art has %s" % id)
 	# Dream glyphs (UI Asset's dream_glyphs.json): first priority id a tag maps to, else the fallback.
 	var tagged := UpgradeData.new()
 	tagged.tags = ["swift", "bittersweet"]
@@ -167,8 +168,10 @@ func _scale_and_layout() -> void:
 	var inner_box := inner.get_theme_stylebox("panel") as MoonStyleBox
 	var divider_box := divider.get_theme_stylebox("separator") as MoonDivider
 	var act_box := act.get_theme_stylebox("normal") as MoonStyleBox
-	_check(outer_box.diamond and not inner_box.diamond and not divider_box.mark and act_box.diamond,
-		"one sprout per screen: outer keeps it, nested panel + divider go plain, the primary keeps its own")
+	# Moon-glass (user 2026-10-20: the sprout was "out of place" everywhere): no panel, divider or button carries it unless
+	# the screen asks (diamond = true on its one main panel); nested ones never do.
+	_check(not outer_box.diamond and not inner_box.diamond and not divider_box.mark and not act_box.diamond,
+		"no sprout unless a screen asks for it: panels, dividers and the primary stay plain")
 	outer.queue_free()
 	var slot := main.get_node("%TowerBar").get_child(0) as CanvasItem
 	_check(slot.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "a Warden slot (pixel sprite) keeps Nearest")

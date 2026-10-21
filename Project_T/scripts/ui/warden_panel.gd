@@ -1566,8 +1566,7 @@ func _danger_footer(button: Button) -> void:
 	for state in ["normal", "hover", "pressed"]:
 		var base: StyleBox = theme.get_stylebox(state, "Button") if theme != null else null
 		if base is MoonStyleBox:
-			var box := (base as MoonStyleBox).duplicate() as MoonStyleBox
-			box.frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			var box := UiStyle.danger_box(state == "hover") if state != "pressed" else UiStyle.pressed_box()  # Moon-glass
 			box.content_margin_left = 6.0
 			box.content_margin_right = button.get_theme_stylebox(state).content_margin_right  # The key chip's room
 			button.add_theme_stylebox_override(state, box)

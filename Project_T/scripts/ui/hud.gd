@@ -1250,6 +1250,10 @@ func _place_top_button(button: Button, slot: Array) -> void:
 			box.expand_margin_top = -BUTTON_BOX_INSET
 			box.expand_margin_bottom = -BUTTON_BOX_INSET
 			button.add_theme_stylebox_override(state, box)
+		elif box is MoonStyleBox:  # Moon-glass: the plate draws itself BUTTON_BOX_INSET inside the hit area (UI Code)
+			box = box.duplicate()
+			(box as MoonStyleBox).inset = Vector2(BUTTON_BOX_INSET, BUTTON_BOX_INSET)
+			button.add_theme_stylebox_override(state, box)
 	if button.name == &"CodexButton":
 		button.add_theme_font_override("font", UiStyle.display_font())
 	# The 10 px glyphs at exactly ×2 (20 px, nearest) in place of the font glyphs (UI Asset 93963da1).
