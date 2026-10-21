@@ -4785,7 +4785,7 @@ const DUST := [Color("#5c3c24"), Color("#8c5c34"), Color("#bca48c"), Color("#dcc
 const BURST_COLD := [Color("#4c3c74"), Color("#9a84e8"), Color("#9cd4fc"), Color("#dce8f4"), Color("#ffffff")]
 
 func _feel_effects() -> void:
-	_sheet("plant_dust", Vector2i(80, 32), 6, 14, Vector2i(40, 22), false, "ground", _plant_dust,
+	_sheet("plant_dust", Vector2i(128, 32), 6, 14, Vector2i(64, 22), false, "ground", _plant_dust,  # 128 wide: the puffs roll out ~60 px each side (80 cut them off)
 		{note = "A Warden planted: earth puffing out from under its slab to both sides and settling (anchor = the dust's centre on the ground: Tower Code plays it at the Warden's foot, its cell's bottom edge 4 px up; under the Warden). ~0.43 s."})
 	_sheet("boss_burst", Vector2i(160, 160), 12, 14, Vector2i(80, 84), false, "signature", _boss_burst,
 		{note = "A boss dispelled: cold light cracks through it, a flash, a ring, then motes breaking off and drifting away (anchor = the boss's body centre). ~0.86 s. Reduced flashes: skip frames 2-3."})
@@ -4796,7 +4796,7 @@ func _plant_dust(img: Image, f: int) -> void:
 	for side: int in [-1, 1]:
 		for k in 3:
 			var out := 27.0 + f * 3.0 + k * 4.5  # from the slab's sides outward
-			var c := Vector2(40 + side * out, 22 - f * 0.6 - k * 1.5)
+			var c := Vector2(64 + side * out, 22 - f * 0.6 - k * 1.5)
 			var r := 4.4 + f * 0.5 - k * 0.8
 			if r < 1.2:
 				continue
@@ -4807,7 +4807,7 @@ func _plant_dust(img: Image, f: int) -> void:
 				_px(img, int(c.x - 0.6 * side), int(c.y - r * 0.6), Color(DUST[3], a))
 	if f <= 1:  # a few grains kicked up
 		for k in 4:
-			var p := Vector2(40 + [-26.0, -20.0, 21.0, 27.0][k], 16 - f * 4 - k % 2 * 2)
+			var p := Vector2(64 + [-26.0, -20.0, 21.0, 27.0][k], 16 - f * 4 - k % 2 * 2)
 			_px(img, int(p.x), int(p.y), DUST[2])
 
 func _boss_burst(img: Image, f: int) -> void:

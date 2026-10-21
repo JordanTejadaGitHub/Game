@@ -2454,13 +2454,13 @@
 		},
 		"plant_dust": {
 			"anchor": [
-				40,
+				64,
 				22
 			],
 			"file": "plant_dust.png",
 			"fps": 14.0,
 			"frame_size": [
-				80,
+				128,
 				32
 			],
 			"frames": 6,
