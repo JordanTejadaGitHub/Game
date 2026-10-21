@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://dg2hkgbdeoefw"
-path="res://.godot/imported/AlegreyaSansSC-Medium.ttf-790ea0d79a8c5dbffff23a57134616d2.fontdata"
+uid="uid://644ouujmrjbx"
+path="res://.godot/imported/VollkornSC-SemiBold.ttf-62bafeeb6c98ee103212a0466b0c4c2f.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/AlegreyaSansSC-Medium.ttf"
-dest_files=["res://.godot/imported/AlegreyaSansSC-Medium.ttf-790ea0d79a8c5dbffff23a57134616d2.fontdata"]
+source_file="res://assets/ui/fonts/VollkornSC-SemiBold.ttf"
+dest_files=["res://.godot/imported/VollkornSC-SemiBold.ttf-62bafeeb6c98ee103212a0466b0c4c2f.fontdata"]
 
 [params]
 

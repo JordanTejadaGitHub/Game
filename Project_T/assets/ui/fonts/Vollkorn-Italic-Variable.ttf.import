@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://cm2s6oppgev1e"
-path="res://.godot/imported/AlegreyaSans-Italic.ttf-3b3ac28530000f13914ab1161c6840ff.fontdata"
+uid="uid://girmay4kr4ri"
+path="res://.godot/imported/Vollkorn-Italic-Variable.ttf-634db2e9f222ecedadf1baa484691638.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/AlegreyaSans-Italic.ttf"
-dest_files=["res://.godot/imported/AlegreyaSans-Italic.ttf-3b3ac28530000f13914ab1161c6840ff.fontdata"]
+source_file="res://assets/ui/fonts/Vollkorn-Italic-Variable.ttf"
+dest_files=["res://.godot/imported/Vollkorn-Italic-Variable.ttf-634db2e9f222ecedadf1baa484691638.fontdata"]
 
 [params]
 

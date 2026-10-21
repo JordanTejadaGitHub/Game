@@ -375,10 +375,10 @@ func refresh() -> void:
 	var head := "Maze %s DPS" % fmt(m.get_maze_dps(period()))
 	var change := change_text(b.get("change"))
 	if change != "":
-		head += " · %s vs last drift" % change
+		head += "   %s vs last drift" % change  # Spacing, no " · " (light pass, UI Asset)
 	var estimate := show_estimate() and float(b.get("needed_dps", 0.0)) > 0.0
 	if estimate:
-		head += " · needs ~%s" % fmt(b.needed_dps)
+		head += "   needs ~%s" % fmt(b.needed_dps)
 	_header.text = ("▾ " if _body.visible else "▸ ") + head
 	_header.add_theme_color_override("font_color", ratio_color(float(b.get("ratio", 1.0))) if estimate else FINE_COLOR)
 	# The drift just played: at a rest WardenMeter still holds it as "drift" ("last_drift" rolls when

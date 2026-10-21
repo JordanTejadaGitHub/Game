@@ -46,7 +46,7 @@ func _initialize() -> void:
 		"tips sit centred above their control, flip below, stay on screen (%s, %s, %s)" % [above, below, edge])
 	# Even letter spacing at fractional UI scales (2026-10-01: "B l oom i ng"): every UI font imports with
 	# subpixel positioning off, so oversampled glyphs land on whole pixels.
-	for file in ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Medium.ttf", "AlegreyaSans-Italic.ttf", "AlegreyaSansSC-Medium.ttf",
+	for file in ["Vollkorn-Variable.ttf", "Vollkorn-Italic-Variable.ttf", "VollkornSC-SemiBold.ttf",
 			"PixelifySans-Variable.ttf"]:
 		var font: FontFile = load(UiStyle.FONT_DIR + file)
 		_check(font != null and font.subpixel_positioning == TextServer.SUBPIXEL_POSITIONING_DISABLED,

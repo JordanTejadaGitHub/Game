@@ -50,7 +50,7 @@ func _initialize() -> void:
 	font.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
 	font.allow_system_fallback = false
 	var key := Vector2i(size, 0)
-	font.set_cache_ascent(0, size, size * 0.8)  # Never taller than Alegreya Sans, so lines keep their height
+	font.set_cache_ascent(0, size, size * 0.8)  # Never taller than the body face, so lines keep their height
 	font.set_cache_descent(0, size, size * 0.2)
 	var x := PAD
 	for i in arts.size():
