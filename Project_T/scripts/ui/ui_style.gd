@@ -597,7 +597,7 @@ static func card_dim(colour: Color) -> MoonStyleBox:
 # A Warden bar slot (Moon-glass): a pewter plate; hovered or selected, brass (selected keeps the glow); short on Dew
 # (slot_short), the dim plate.
 static func slot(selected: bool, hover: bool = false, short: bool = false) -> MoonStyleBox:
-	var frame := &"plate_yours" if selected else (&"plate_hover" if hover else (&"plate_dim" if short else &"plate"))
+	var frame := (&"plate_yours_hover" if hover else &"plate_yours") if selected else (&"plate_hover" if hover else (&"plate_dim" if short else &"plate"))
 	return plate_box(4.0, 4.0, frame)
 
 # Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the dim plate in its
@@ -656,10 +656,10 @@ static func button_box(hover: bool = false) -> MoonStyleBox:
 	return plate_box(14.0, 6.0, &"plate_hover" if hover else &"plate")
 
 # The one primary per panel or choice (Take, Start drift, Resume, Apply): brass at rest with the soft gold glow, the
-# brighter brass under the pointer, and pressed lit from below, pushed down 2 px, no shadow.
+# glowing brass under the pointer (plate_yours_hover: Ember inside, a stronger outer glow, Heartlight text), and pressed lit from below, pushed down 2 px, no shadow.
 const PRIMARY_GLOW := Color("b8662c")  # Ember (kept for old callers)
 static func primary_box(hover: bool = false, pressed: bool = false) -> MoonStyleBox:
-	return plate_box(14.0, 6.0, &"plate_pressed" if pressed else (&"plate_hover" if hover else &"plate_yours"))
+	return plate_box(14.0, 6.0, &"plate_pressed" if pressed else (&"plate_yours_hover" if hover else &"plate_yours"))
 
 # Selected / switched on (a toggled button, the current speed, a switch's segment): brass with its glow. Godot's
 # "pressed" style is both "toggled on" and "held"; held reads as the pushed-in brass (pressed_box).
@@ -990,7 +990,7 @@ static func segmented(row: HBoxContainer) -> void:
 	# Moon-glass: a row of small plates 2 px apart, pewter at rest, brass under the pointer, the chosen one brass with its
 	# glow (plate_yours), dim when disabled.
 	row.add_theme_constant_override("separation", 2)
-	var frames := {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_yours", "hover_pressed": &"plate_yours",
+	var frames := {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_yours", "hover_pressed": &"plate_yours_hover",
 		"disabled": &"plate_dim"}
 	for button in row.get_children().filter(func(n: Node) -> bool: return n is Button):
 		for state in frames:

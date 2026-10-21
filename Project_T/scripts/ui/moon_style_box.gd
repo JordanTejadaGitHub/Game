@@ -16,8 +16,12 @@ const UNDERLINE_INSET := 14.0
 const FRAMES_DIR := "res://assets/ui/moonglass/"
 const SCALE := 2  # Art px → screen px
 const FRAME_MARGINS := {&"panel_main": 14, &"panel_main_yours": 14, &"plate": 8, &"plate_hover": 8,
-	&"plate_pressed": 8, &"plate_yours": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
-const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours"]
+	&"plate_pressed": 8, &"plate_yours": 8, &"plate_yours_hover": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
+const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours", &"plate_yours_hover"]
+# Hovering what is already brass (a primary, the selected item; user 2026-10-21 "the background of the button should
+# glow"): plate_yours_hover has the warm Ember glow baked into its glass, so code adds only the stronger outer glow.
+const GLOW_ALPHA := 0.26
+const GLOW_STRONG_ALPHA := 0.45  # The old ~18% → ~34% primary hover step
 const SPROUT_SINK := 10.0  # The sprout's stem stands through the top rim to the glass (it floated above the rim at 4)
 # A framed box asked to be near-solid (center_alpha this high, as the old solid fog panels set it) gets a Void backing
 # under its ~86% glass, about 95% together: readable over the map (the phone drawer, the pause rail and pane).
@@ -84,8 +88,9 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		_halo.draw_center = false
 		_halo.set_corner_radius_all(6)
 		if glow:  # The old soft gold glow, all round
-			_halo.shadow_color = Color(UiStyle.GOLD, 0.26)
-			_halo.shadow_size = 12
+			var strong := frame == &"plate_yours_hover"
+			_halo.shadow_color = Color(UiStyle.GOLD, GLOW_STRONG_ALPHA if strong else GLOW_ALPHA)
+			_halo.shadow_size = 14 if strong else 12
 		elif drop_shadow:  # A soft dark drop shadow, a little down
 			_halo.shadow_color = Color(UiStyle.FOG, 0.5)
 			_halo.shadow_size = 10
