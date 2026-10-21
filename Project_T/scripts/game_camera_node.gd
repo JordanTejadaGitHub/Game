@@ -335,6 +335,11 @@ func _smooth_zoom(delta: float) -> void:
 func ui_factor() -> float:
 	return UiStyle.ui_factor(get_tree().root if is_inside_tree() else null)
 
+# Phones (user 2026-10-21: the drawer on the left "seems a bit out of place"): while the Warden drawer is open on the
+# right, the view may go this many screen px further past the map's right edge, so a Warden at the edge glides clear
+# of it (WardenPanel._focus_selection sets it, 0 when closed).
+var drawer_overscroll := 0.0
+
 # Clamp the camera's target to the map boundaries
 func _clamp_camera_to_map() -> void:
 	var EPSILON = 0.001  # Small buffer to prevent jittering
@@ -354,6 +359,7 @@ func _clamp_camera_to_map() -> void:
 	if max_x < min_x:
 		min_x = map_size_pixels.x / 2
 		max_x = min_x
+	max_x += drawer_overscroll / camera_2d.zoom.x  # Past the right edge by the open Warden drawer (phones)
 	var min_y = half_visible_area.y - overscroll.y + EPSILON
 	var max_y = map_size_pixels.y - half_visible_area.y + overscroll.y - EPSILON
 	if max_y < min_y:

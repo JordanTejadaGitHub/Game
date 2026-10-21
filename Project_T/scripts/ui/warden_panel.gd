@@ -1974,8 +1974,12 @@ func _focus_selection() -> void:
 	if camera == null or not is_inside_tree():
 		return
 	if not visible:
+		if "drawer_overscroll" in camera:
+			camera.drawer_overscroll = 0.0
 		_focus_return(camera)
 		return
+	if "drawer_overscroll" in camera and not _docked_left:  # Room past the map's right edge for the drawer
+		camera.drawer_overscroll = PHONE_WIDTH * get_global_transform_with_canvas().get_scale().x + FOCUS_MARGIN
 	var box := Rect2()
 	var first := true
 	for tower in tower_seller.selection:
@@ -2056,6 +2060,10 @@ func _player_moved(camera: Node) -> bool:
 # to spare); then it docks left, above the Warden dock (_place_phone).
 var _docked_left := false
 
+# Off (user 2026-10-21: the left drawer "seems a bit out of place"): it always docks right, and the camera may go past
+# the map's right edge by the drawer's width (GameCameraNode.drawer_overscroll) so a Warden at the edge glides clear.
+const DOCK_LEFT_ENABLED := false
+
 func _choose_side() -> void:
 	var box := Rect2()
 	var first := true
@@ -2069,7 +2077,7 @@ func _choose_side() -> void:
 		return
 	var view := get_viewport().get_visible_rect().size
 	var width := PHONE_WIDTH * get_global_transform_with_canvas().get_scale().x  # On screen, through the HUD's fit
-	var left := box.get_center().x > view.x - width - FOCUS_MARGIN
+	var left := DOCK_LEFT_ENABLED and box.get_center().x > view.x - width - FOCUS_MARGIN
 	if left == _docked_left:
 		return
 	_docked_left = left
