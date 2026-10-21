@@ -2241,25 +2241,25 @@ func _ic_asleep() -> void:
 			if ink.has(ch):
 				_dt(x, y, Palette.color(ink[ch]))
 func _ic_chain() -> void:
-	# The Reaction chain: two gold links joined by a third seen edge-on, in front. Hand-placed pixels.
+	# The Reaction chain: two gold rings linked on a diagonal, each passing in front once. Hand-placed pixels.
 	var ink := {"o": "dread", "H": "heartlight", "G": "glow", "g": "gold"}
 	var rows := [
-		"................",
-		"................",
-		"................",
-		"................",
-		"..ooooo..ooooo..",
-		".oHHHGGooHHHGGo.",
-		"oHHHooHHHHooGGGo",
-		"oHHo.oGGGGo.oGgo",
-		"oHGo.oGGGGo.oggo",
-		"oGGGooggggoogggo",
-		".oGGgggooGGgggo.",
-		"..ooooo..ooooo..",
-		"................",
-		"................",
-		"................",
-		"................",
+		"........ooooo...",
+		".......oHHHHGo..",
+		"......oHHHHGGGo.",
+		"......oHHoooGGgo",
+		".....oHHHo..oggo",
+		"....ooHHGo..oggo",
+		"..ooHoHGGooooggo",
+		".oHHHHoGoGgggggo",
+		"oHHHHGGoGoggggo.",
+		"oHHooooGggogoo..",
+		"oHHo..ogggoo....",
+		"oHGo..ogggo.....",
+		"oGGGoooggo......",
+		".oGGgggggo......",
+		"..ogggggo.......",
+		"...ooooo........",
 	]
 	for y in rows.size():
 		for x in rows[y].length():
