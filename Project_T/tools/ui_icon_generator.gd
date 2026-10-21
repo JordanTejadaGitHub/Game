@@ -1619,7 +1619,33 @@ const HUD_GLYPHS := {
 		"...ooooooo",
 		"..........",
 		".........."],
+	# Hide / show handle on HUD panels (DPS meter, Warden bar): a chevron pointing right; code flips it.
+	"chevron_hud": [
+		"..........",
+		"..oo......",
+		"..oHGo....",
+		"...oHGo...",
+		"....oHGo..",
+		".....oHgo.",
+		"....oGgo..",
+		"...oGgo...",
+		"..oGgo....",
+		"..ooo....."],
 }
+
+# Moon-glass (ui_style.md): HUD button glyphs are pale at rest and gold on hover / press. Each id here also gets
+# "<id>_moon", the same pixels on the moon ramp (Heartlight -> Moonlight, Glow -> Mist, Gold -> Stone), appended after
+# the gold glyphs so no frame moves.
+const HUD_MOON := ["remember_hud", "boosts_hud", "help_hud", "menu_hud", "dreams_hud", "chevron_hud"]
+
+func _moon_variants(maps: Dictionary) -> Dictionary:
+	var out := maps.duplicate()
+	for id: String in HUD_MOON:
+		var rows: Array = []
+		for row: String in maps[id]:
+			rows.append(row.replace("H", "C").replace("G", "M").replace("g", "s"))
+		out[id + "_moon"] = rows
+	return out
 
 func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
 	var ids := maps.keys()
@@ -1642,7 +1668,7 @@ func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
 func _make_hud_icons() -> void:
 	var data := {
 		counters = _hud_sheet(HUD_COUNTERS, 12, "hud_counters.png"),
-		glyphs = _hud_sheet(HUD_GLYPHS, 10, "hud_glyphs.png"),
+		glyphs = _hud_sheet(_moon_variants(HUD_GLYPHS), 10, "hud_glyphs.png"),
 		note = "HUD-size icons, drawn for exactly x2: counters 12 px -> 24 px, button glyphs 10 px -> 20 px. Nearest filtering.",
 	}
 	var file := FileAccess.open(OUT + "hud_icons.json", FileAccess.WRITE)

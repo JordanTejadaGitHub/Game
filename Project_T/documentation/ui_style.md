@@ -26,16 +26,25 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
 - **Metal is state.** Pewter at rest. **Brass for what is yours or under your finger**: the selected slot or card,
   the primary (Take, Start drift, Resume, Apply), hover, pressed (lit from below, pushed down 1 art px), a switched-on
   toggle, the open tab. Destructive actions (Abandon, Delete) get the small Ember-rimmed plate, set apart.
+  **Hover must always change something** (user 2026-10-20: hovering New run did nothing): a pewter plate turns brass
+  (`plate_hover`); a plate that is already brass (a primary, the selected item) brightens to `plate_yours_hover`
+  (Heartlight rim) with a stronger glow (the old ~18% → ~34% step) and Heartlight text.
 - **Glows and shadows stay smooth** (the user rejected dithered pixel versions twice): brass keeps the old soft gold
   glow; plates cast a soft drop shadow (none when pressed); text gets a soft dark shadow. Edges and rims stay
   pixel-crisp.
 - **Dividers are engraved** into the glass (Dread over Dusk, 2 art px, stopping short of the rim), never gold threads.
 - **The sprout stays**: today's 7x4 gold sprout (`rim_sprout.png`) stands on the top rim of the one main panel per
   screen. Main panels also get one facet line in the top-left corner of the glass. No diamond anywhere.
-- **Type:** titles, names, toasts and big numbers in **Pixelify Sans** (OFL, Google Fonts); body in Alegreya Sans;
-  labels in its small caps. Cormorant Garamond goes. Text colour is Moonlight / Mist; links underline in Wraithlight.
+- **Type:** titles, names, toasts and big numbers in **Pixelify Sans**; body text in **Vollkorn** Regular (user
+  2026-10-20, from a body-font comparison: https://claude.ai/artifact/FfVfbAHZRAsaGgAwhaYKDB), at least 14 px at 1280x720
+  (it is a dark, heavy serif: never bold for body, 1.4 line height); labels in **Vollkorn SC**. All OFL, Google Fonts.
+  Cormorant Garamond and Alegreya Sans go. Text colour is Moonlight / Mist; links underline in Wraithlight.
 - **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
-  rest and gold on hover / press.
+  rest and gold on hover / press: each has a pale twin `<id>_moon` in `hud_glyphs.png` (hud_icons.json).
+- **Hide / show handles** (the DPS meter, the Warden bar; user 2026-10-20: "the arrow is over the UI"): a small pewter
+  plate (`plate.png`, at least 48 px tall for touch) holding `chevron_hud_moon` at rest and `chevron_hud` on a brass
+  plate on hover; the code flips the chevron to point the way the panel will move. It sits **outside** the panel's
+  edge with a 4 art px gap and never overlaps the panel or its sprout.
 
 ## The idea
 
