@@ -337,7 +337,7 @@ func _make_card(card: UpgradeData) -> Button:
 			hide_diagram())
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
-	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity), is_legendary(card))
 	if card.tip != "":  # The card's detail on hover (Sunlit Rest: which rank, who gets it)
 		button.tooltip_text = IconInfo.format(card.tip)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
@@ -773,6 +773,15 @@ func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
 # row with a warm swell while the others fade; then it's taken (CardBloom pulses what it touches). Reduced motion:
 # fades only. Flare, lift ring and spark trail are UI Asset's art (DreamFx). Real time: the rest is paused.
 signal card_flipped(card: UpgradeData)  # Each card as it turns in (Sound: a flip by rarity, d4aab969)
+# A Legendary's own moment (owner 2026-10-21, dream_council_review.md 28), for SoundHooks (gameplay never calls Sound):
+# offered = as it turns in, last, after the others; taken = as the pick starts its flight.
+signal legendary_offered(card: UpgradeData)
+signal legendary_taken(card: UpgradeData)
+const LEGENDARY_PAUSE := 0.35  # The beat after the other cards before a Legendary turns in
+const LEGENDARY_FLIP := 0.4  # …and its slower turn
+
+static func is_legendary(card: UpgradeData) -> bool:
+	return card != null and card.rarity == UpgradeData.Rarity.LEGENDARY
 const FLIP_TIME := 0.22
 const FLIP_STAGGER := 0.12
 const FLY_TIME := 0.5
@@ -781,28 +790,51 @@ var _picking := false
 func _flip_in(columns: Array, cards: Array) -> void:
 	var still := bool(Fx.setting("reduced_motion", false))
 	await get_tree().process_frame  # Laid out: the turn pivots on each card's centre
+	# A Legendary turns in last, after the others have landed (the others keep their order; owner 2026-10-21).
+	var others := 0
+	for i in columns.size():
+		if not is_legendary(cards[i] if i < cards.size() else null):
+			others += 1
+	var turn := 0  # Among the other cards
+	var late := 0  # Among the Legendaries
 	for i in columns.size():
 		if not is_instance_valid(columns[i]):
 			continue  # A reroll rebuilt the row meanwhile
 		var column := columns[i] as Control
 		var card: UpgradeData = cards[i] if i < cards.size() else null
+		var legendary := is_legendary(card)
+		var slot := others + late if legendary else turn
+		if legendary:
+			late += 1
+		else:
+			turn += 1
 		column.pivot_offset = column.size / 2.0
 		var tween := UiTime.tween(column)
-		if still:
+		if still:  # Reduced motion: no reveal, the frame says it (it still comes in last, fading like the rest)
 			column.modulate.a = 0.0
-			tween.tween_interval(i * FLIP_STAGGER * 0.5)
+			tween.tween_interval(slot * FLIP_STAGGER * 0.5)
 			if card != null:
 				tween.tween_callback(card_flipped.emit.bind(card))
+			if legendary:
+				tween.tween_callback(legendary_offered.emit.bind(card))
 			tween.tween_property(column, "modulate:a", 1.0, 0.2)
 			continue
 		column.scale = Vector2(0.0, 1.0)
-		tween.tween_interval(i * FLIP_STAGGER)
+		tween.tween_interval(slot * FLIP_STAGGER + (LEGENDARY_PAUSE if legendary else 0.0))
 		if card != null:
 			tween.tween_callback(card_flipped.emit.bind(card))
-		tween.tween_property(column, "scale", Vector2.ONE, FLIP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		if legendary:
+			tween.tween_callback(legendary_offered.emit.bind(card))
+		tween.tween_property(column, "scale", Vector2.ONE, LEGENDARY_FLIP if legendary else FLIP_TIME) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		if card != null:  # The flare as it lands: UI Asset's rarity 9-slice (DreamFx), around the card itself
 			var box := _card_box(column)
 			tween.tween_callback(func() -> void: DreamFx.flare(box, card))
+		if legendary:  # Its short glow: a warm swell and a ring in Legendary gold
+			tween.tween_callback(func() -> void: DreamFx.pulse(self, _card_box(column).get_global_rect().get_center(),
+				UpgradeData.rarity_color(card.rarity)))
+			tween.tween_property(column, "modulate", Color(1.3, 1.22, 1.05, 1.0), 0.18)  # multiplier: the swell
+			tween.tween_property(column, "modulate", Color.WHITE, 0.4)
 
 const DreamFx := preload("res://scripts/ui/dream_fx.gd")  # UI Asset's flare / pulse ring / spark art
 const SPARK_EVERY := 0.05  # Seconds between trail sparks on the flight
@@ -832,6 +864,8 @@ func _dreams_row_point() -> Vector2:
 func _pick(card: UpgradeData, column: Control) -> void:
 	if _picking or LessonCard.covering(self):  # No pick while the "A Dream" Lesson explains the screen
 		return
+	if is_legendary(card):
+		legendary_taken.emit(card)
 	if column == null or not is_instance_valid(column) or not is_inside_tree():
 		dream_state.choose(card)
 		return

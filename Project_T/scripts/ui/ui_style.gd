@@ -371,27 +371,50 @@ static func ui_factor(root: Window) -> float:
 
 # --- Fonts -------------------------------------------------------------------------------------
 
-# Alegreya Sans: card text, tooltips, panels. Every UI face is a FontVariation with SPACE_EXTRA: with
-# subpixel positioning off (even letters at fractional UI scales), a space's advance rounds down to
-# 0–1 px at some scales and words ran together ("Asmall splash", 2026-10-02); one extra pixel keeps
-# every word gap visible.
+# The type (ui_style.md "Moon-glass" type table, UI Asset 25655e77; user 2026-10-21: "different text fonts everywhere"):
+# TWO families, one job each, nothing else in the game.
+# - Pixelify Sans SemiBold (display_font): screen and panel titles, Warden / card / nightmare names, toasts. Never numbers,
+#   never button labels.
+# - Vollkorn Regular (body_font): body, descriptions, tooltips, sub-lines (14 px at least, never bold); its italic for
+#   whispers (whisper_font).
+# - Vollkorn SC SemiBold (caps_font): every button label (primaries too), tab, label, chip and key hint.
+# - Vollkorn Medium with lining + tabular figures (number_font): every number (counters, costs, stats, DPS, timers).
+# Every UI face is a FontVariation with SPACE_EXTRA: with subpixel positioning off (even letters at fractional UI scales),
+# a space's advance rounds down to 0–1 px at some scales and words ran together ("Asmall splash", 2026-10-02); one extra
+# pixel keeps every word gap visible. Each falls back to the resource glyphs (DEW_GLYPH…), then the body face.
 const SPACE_EXTRA := 1
+const BODY_LINE_EXTRA := 3  # Px between lines of body text (16 px Vollkorn: ~1.4 line height)
 static func body_font() -> Font:
-	return _spaced("body", "AlegreyaSans-Regular.ttf")
+	return _face("body", "Vollkorn-Variable.ttf", 400)
 
+# Vollkorn Medium: what used to be the body's medium (RichTextLabel [b], world tags). The body itself is never bold.
 static func body_medium_font() -> Font:
-	return _spaced("body_medium", "AlegreyaSans-Medium.ttf")
+	return _face("body_medium", "Vollkorn-Variable.ttf", 500)
 
-static func _spaced(key: String, file: String) -> Font:
+# A Vollkorn / Pixelify face: `weight` on the variable font (0 = a static file), optional lining + tabular figures, a
+# little tracking for small caps.
+static func _face(key: String, file: String, weight: int, figures := false, tracking := 0) -> Font:
 	if not _fonts.has(key):
 		if _fonts.is_empty():
 			release_at_exit(func() -> void: _fonts.clear())
+		var ts := TextServerManager.get_primary_interface()
 		var font := FontVariation.new()
 		font.base_font = _file(file)
+		if weight > 0:
+			font.variation_opentype = {ts.name_to_tag("wght"): weight}
+		var features := {ts.name_to_tag("lnum"): 1}  # Lining figures everywhere (Vollkorn's default is old-style)
+		if figures:
+			features[ts.name_to_tag("tnum")] = 1
+		font.opentype_features = features
 		font.spacing_space = SPACE_EXTRA
+		font.spacing_glyph = tracking
+		var fallbacks: Array[Font] = []
 		var glyphs := glyph_font()
 		if glyphs != null:
-			font.fallbacks = [glyphs]  # The resource icons; every other face falls back to the body face
+			fallbacks.append(glyphs)  # The resource icons in "15 [Dew]" amounts
+		if key != "body":
+			fallbacks.append(body_font())  # Symbols a face lacks (✧, ⏎, accents…)
+		font.fallbacks = fallbacks
 		_fonts[key] = font
 	return _fonts[key]
 
@@ -417,41 +440,22 @@ static func glyph_font() -> Font:
 		_fonts["glyphs"] = load(GLYPH_FONT_PATH) if ResourceLoader.exists(GLYPH_FONT_PATH) else null
 	return _fonts["glyphs"]
 
-# Pixelify Sans (OFL; Moon-glass, ui_style.md): titles, names, toasts, the primary's text. Lining figures.
+# Pixelify Sans SemiBold: titles, names, toasts. Never numbers or button labels.
 static func display_font() -> Font:
-	return _variation("display", "PixelifySans-Variable.ttf", 500, false)
+	return _face("display", "PixelifySans-Variable.ttf", 600)
 
-# Numbers: Alegreya Sans Medium with lining, tabular figures. Not Pixelify (user 2026-10-20, the HUD counters: "the 2
-# looks too much like an 8"): its digits sit on a pixel grid that blurs shut at the HUD's 15–24 px.
+# Vollkorn Medium, lining + tabular figures: every number (Pixelify's digits blurred shut at HUD sizes: "the 2 looks too
+# much like an 8", user 2026-10-20).
 static func number_font() -> Font:
-	if not _fonts.has("number"):
-		var ts := TextServerManager.get_primary_interface()
-		var font := FontVariation.new()
-		font.base_font = _file("AlegreyaSans-Medium.ttf")
-		font.opentype_features = {ts.name_to_tag("lnum"): 1, ts.name_to_tag("tnum"): 1}
-		font.spacing_space = SPACE_EXTRA
-		var glyphs := glyph_font()
-		if glyphs != null:
-			font.fallbacks = [glyphs]  # The resource icons in "15 [Dew]" amounts
-		_fonts["number"] = font
-	return _fonts["number"]
+	return _face("number", "Vollkorn-Variable.ttf", 500, true)
 
-# Alegreya Sans SC Medium: labels (small caps, a little tracking).
+# Vollkorn SC SemiBold: every button label, tab, label, chip and key hint (small caps, a little tracking).
 static func caps_font() -> Font:
-	if not _fonts.has("caps"):
-		var font := FontVariation.new()
-		font.base_font = _file("AlegreyaSansSC-Medium.ttf")
-		font.spacing_glyph = 1
-		font.spacing_space = SPACE_EXTRA
-		font.opentype_features = {TextServerManager.get_primary_interface().name_to_tag("lnum"): 1}
-		font.fallbacks = [body_font()]
-		_fonts["caps"] = font
-	return _fonts["caps"]
+	return _face("caps", "VollkornSC-SemiBold.ttf", 0, true, 1)
 
-# Alegreya Sans Italic: Heartwood whispers (Cormorant is gone with Moon-glass).
+# Vollkorn Italic: Heartwood whispers.
 static func whisper_font() -> Font:
-	return _spaced("whisper", "AlegreyaSans-Italic.ttf")
-
+	return _face("whisper", "Vollkorn-Italic-Variable.ttf", 400)
 # A static cache that holds engine objects (fonts, textures, resources with textures) must let go of them
 # before the servers shut down at quit, or Godot can crash on exit (headless tests: PASS, then exit 139).
 # Call this when the cache is first filled: `clear` runs once, when the root leaves the tree.
@@ -466,21 +470,6 @@ static func _file(file: String) -> Font:
 	if not _fonts.has(file):
 		_fonts[file] = load(FONT_DIR + file)
 	return _fonts[file]
-
-static func _variation(key: String, file: String, weight: int, tabular: bool) -> Font:
-	if not _fonts.has(key):
-		var ts := TextServerManager.get_primary_interface()
-		var font := FontVariation.new()
-		font.base_font = _file(file)
-		font.variation_opentype = {ts.name_to_tag("wght"): weight}
-		var features := {ts.name_to_tag("lnum"): 1}
-		if tabular:
-			features[ts.name_to_tag("tnum")] = 1
-		font.opentype_features = features
-		font.spacing_space = SPACE_EXTRA
-		font.fallbacks = [body_font()]  # Symbols Pixelify lacks (✧, ⏎, accents…)
-		_fonts[key] = font
-	return _fonts[key]
 
 # --- Style boxes -------------------------------------------------------------------------------
 
@@ -577,7 +566,8 @@ static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyl
 
 # A Dream / family / Omen card: the main plate with its rarity (`colour`) across the top of the glass; hovered, the brass
 # rim and its glow. Cards never carry the sprout (several to a screen).
-static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
+# `legendary` (rarity 3): the Legendary frame (MoonStyleBox.legendary), clearly above a Rare, hovered or not.
+static func card(colour: Color, hover: bool = false, legendary: bool = false) -> MoonStyleBox:
 	var box := panel(18.0, 16.0)
 	box.frame = &"panel_main_yours" if hover else &"panel_main"
 	box.glow = hover
@@ -585,6 +575,7 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	box.thread_color = colour
 	box.accent = colour
 	box.diamond = false
+	box.legendary = legendary
 	return box
 
 # An unpicked card (the others after a pick): the dim plate.
@@ -1039,7 +1030,7 @@ static func key_chip(text: String) -> Label:
 	chip.custom_minimum_size = Vector2(18, 18)
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_font_override("font", body_medium_font())
+	chip.add_theme_font_override("font", caps_font())  # Key hints: Vollkorn SC
 	chip.add_theme_font_size_override("font_size", 12)
 	var frame := StyleBoxFlat.new()
 	frame.draw_center = false
@@ -1126,16 +1117,16 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	word.text = label if label != "" else KeywordIcons.word(id)
 	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	word.add_theme_font_override("font", body_medium_font())
+	word.add_theme_font_override("font", caps_font())  # Chips: Vollkorn SC
 	word.add_theme_font_size_override("font_size", font_size)
 	word.add_theme_color_override("font_color", INK_DIM if quiet else (FOG if makes else GOLD))
 	row.add_child(word)
 	return box
 
 # Gives a Button the card look in `colour` (normal + hover + pressed).
-static func card_button(button: Button, colour: Color) -> void:
-	var normal := card(colour)
-	var hover := card(colour, true)
+static func card_button(button: Button, colour: Color, legendary: bool = false) -> void:
+	var normal := card(colour, false, legendary)
+	var hover := card(colour, true, legendary)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", hover)
@@ -1163,6 +1154,9 @@ static func make_theme() -> Theme:
 	theme.set_constant("line_spacing", "TooltipLabel", TIP_LINE_SPACING)
 	theme.set_stylebox("separator", "HSeparator", MoonDivider.new())
 	theme.set_constant("separation", "HSeparator", 9)
+	# Body text at about 1.4 line height (ui_style.md type table): Vollkorn's own line is ~1.2 em, so a few px more.
+	theme.set_constant("line_spacing", "Label", BODY_LINE_EXTRA)
+	theme.set_constant("line_separation", "RichTextLabel", BODY_LINE_EXTRA)
 	# Text: a soft dark shadow under every label (Moon-glass; smooth, never a pixel shadow).
 	for type in ["Label", "RichTextLabel", "TooltipLabel"]:
 		theme.set_color("font_shadow_color", type, Color(FOG, 0.55))
@@ -1183,7 +1177,7 @@ static func make_theme() -> Theme:
 	var primary_press := primary_box(false, true)
 	var primary_hover := primary_box(true)
 	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_press)
-	theme.set_font("font", "PrimaryButton", display_font())  # The primary speaks in Pixelify
+	theme.set_font("font", "PrimaryButton", caps_font())  # Every button label in Vollkorn SC, primaries too (type table)
 	for state in ["font_color", "font_focus_color", "font_pressed_color"]:
 		theme.set_color(state, "PrimaryButton", GOLD)  # Glow text in the display face
 	for state in ["font_hover_color", "font_hover_pressed_color"]:
@@ -1227,7 +1221,7 @@ static func make_theme() -> Theme:
 	for type in ["HudButton", "HudPrimary"]:
 		theme.set_font("font", type, caps_font())
 		theme.set_font_size("font_size", type, HUD_TEXT_SIZE)
-	theme.set_font("font", "HudPrimary", display_font())  # The primary speaks in the display face
+	theme.set_font("font", "HudPrimary", caps_font())  # Vollkorn SC, like every button
 	theme.set_font_size("font_size", "HudPrimary", HUD_TEXT_SIZE + 2)
 
 	# Quiet buttons (the light pass): text only, Mist, Heartlight on hover; the padding keeps the hit
@@ -1242,7 +1236,7 @@ static func make_theme() -> Theme:
 		mini.inset = Vector2(0.0, QUIET_INSET)
 		theme.set_stylebox(state, "QuietButton", mini)
 	theme.set_stylebox("focus", "QuietButton", focus_box())
-	theme.set_font("font", "QuietButton", body_font())
+	theme.set_font("font", "QuietButton", caps_font())
 	theme.set_font_size("font_size", "QuietButton", 15)
 	theme.set_color("font_color", "QuietButton", INK_DIM)
 	for state in ["font_hover_color", "font_focus_color", "font_hover_pressed_color"]:
@@ -1264,7 +1258,7 @@ static func make_theme() -> Theme:
 	for state in ["pressed", "hover_pressed"]:
 		theme.set_stylebox(state, "RowButton", row_press)
 	theme.set_stylebox("focus", "RowButton", focus_box())
-	theme.set_font("font", "RowButton", body_font())
+	theme.set_font("font", "RowButton", caps_font())  # A row is a button: its label in Vollkorn SC
 	theme.set_font_size("font_size", "RowButton", 16)
 	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 		theme.set_color(state, "RowButton", INK)
@@ -1356,7 +1350,7 @@ static func _button_styles(theme: Theme, type: String, normal: StyleBox, hover: 
 	theme.set_stylebox("hover_pressed", type, hover_pressed)
 	theme.set_stylebox("disabled", type, disabled_box())
 	theme.set_stylebox("focus", type, focus_box())
-	theme.set_font("font", type, body_medium_font())  # Moon-glass: buttons in Alegreya Sans; the primary in Pixelify
+	theme.set_font("font", type, caps_font())  # Every button label: Vollkorn SC SemiBold (ui_style.md type table)
 	theme.set_font_size("font_size", type, BUTTON_SIZE)
 	_font_colours(theme, type)
 	theme.set_color("font_pressed_color", type, GOLD_TEXT)

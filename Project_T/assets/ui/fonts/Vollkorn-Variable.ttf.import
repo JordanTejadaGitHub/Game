@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://dyi2lbq5c3nb1"
-path="res://.godot/imported/AlegreyaSans-Regular.ttf-794f9a32429dee7945e1f22f3912311b.fontdata"
+uid="uid://c0j0wnv0v8d7t"
+path="res://.godot/imported/Vollkorn-Variable.ttf-0423094d68540b1b3f6ca839150884f9.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/AlegreyaSans-Regular.ttf"
-dest_files=["res://.godot/imported/AlegreyaSans-Regular.ttf-794f9a32429dee7945e1f22f3912311b.fontdata"]
+source_file="res://assets/ui/fonts/Vollkorn-Variable.ttf"
+dest_files=["res://.godot/imported/Vollkorn-Variable.ttf-0423094d68540b1b3f6ca839150884f9.fontdata"]
 
 [params]
 

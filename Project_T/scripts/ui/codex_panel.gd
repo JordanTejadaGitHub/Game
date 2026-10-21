@@ -1851,7 +1851,7 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	var panel := PanelContainer.new()
 	# Moonlit Thread (ui_style.md): a seen card is a card threaded in its rarity colour; an unseen one a
 	# plain fog card with no thread (nothing about it is known yet).
-	var style := UiStyle.card(UpgradeData.rarity_color(card.rarity))
+	var style := UiStyle.card(UpgradeData.rarity_color(card.rarity), false, card.rarity == UpgradeData.Rarity.LEGENDARY)  # The Legendary frame
 	style.shadow_size = 0
 	style.set_content_margin_all(10)
 	if not seen.has(card.id):
