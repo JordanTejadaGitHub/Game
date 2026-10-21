@@ -168,6 +168,7 @@ func _ready() -> void:
 	visible = false
 	if _phone:  # The camera keeps the selected Warden clear of the drawer (_focus_selection)
 		tower_seller.selection_changed.connect(_choose_side.unbind(1))  # Right, or left for a Warden it would cover
+		visibility_changed.connect(_sync_dock)  # The dock steps away under a left drawer (and comes back when it closes)
 		visibility_changed.connect(_queue_focus)
 		tower_seller.selection_changed.connect(_queue_focus.unbind(1))
 
@@ -2057,12 +2058,12 @@ func _player_moved(camera: Node) -> bool:
 
 # Phones (user 2026-10-18: "if I click a Warden that's on the very right of the screen, the Warden drawer should go
 # left"): the drawer docks right, unless the selection sits where the right drawer would cover it (with FOCUS_MARGIN
-# to spare); then it docks left, above the Warden dock (_place_phone).
+# to spare); then it docks left: flush to the edge, full height, the dock stepping away (_sync_dock).
 var _docked_left := false
 
-# Off (user 2026-10-21: the left drawer "seems a bit out of place"): it always docks right, and the camera may go past
-# the map's right edge by the drawer's width (GameCameraNode.drawer_overscroll) so a Warden at the edge glides clear.
-const DOCK_LEFT_ENABLED := false
+# On (user 2026-10-21, after trying right only: "I want the drawer on the left when a Warden is on the right"). A
+# right drawer also lets the camera past the map's right edge (GameCameraNode.drawer_overscroll).
+const DOCK_LEFT_ENABLED := true
 
 func _choose_side() -> void:
 	var box := Rect2()
@@ -2087,22 +2088,42 @@ func _choose_side() -> void:
 		_dock_right()
 	if visible:
 		_fit_phone_height()
+	_sync_dock()
 
 func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
 	var hole: float = (get_parent().get("side_holes") as Vector2).x if get_parent() != null and get_parent().get("side_holes") is Vector2 else 0.0
-	offset_left = hole  # Clear of a punch hole in the middle of the left side (hud.gd side_holes)
-	offset_right = hole + PHONE_WIDTH
+	# Flush to the left edge as the right drawer is to the right (user 2026-10-21: inset it "looks weird"); a punch hole
+	# in the middle of that side widens it and pads its content instead (hud.gd side_holes).
+	offset_left = 0.0
+	offset_right = PHONE_WIDTH + hole
+	_pad_left(hole)
 	grow_horizontal = Control.GROW_DIRECTION_END
+
+var _frame_left := -1.0  # The panel's own left content margin (before any hole padding)
+
+func _pad_left(hole: float) -> void:
+	var frame := get_theme_stylebox("panel")
+	if frame == null or not has_theme_stylebox_override("panel"):
+		return
+	if _frame_left < 0.0:
+		_frame_left = frame.get_margin(SIDE_LEFT)
+	frame.set_content_margin(SIDE_LEFT, _frame_left + hole)
+
+# Phones: the dock (Sell, Select, the Warden slots) steps away while the drawer is open on the left, over its side.
+func _sync_dock() -> void:
+	var hud := get_parent()
+	if _phone and hud != null and hud.has_method("set_dock_under_drawer"):
+		hud.set_dock_under_drawer(visible and _docked_left)
 
 # The top of the Warden dock (Sell, Select, the Warden slots) in the drawer's space: a left drawer ends above it.
 const DOCK_GAP := 8.0
 
 # How far down the drawer may reach: the screen's bottom on the right, the dock's top on the left.
 func _phone_bottom() -> float:
-	return _dock_top() if _docked_left else get_parent_area_size().y
+	return get_parent_area_size().y  # Both sides full height (the dock steps away on the left: _sync_dock)
 
 func _dock_top() -> float:
 	var hud := get_parent()
@@ -2126,6 +2147,7 @@ func _dock_right() -> void:
 	offset_bottom = 0.0
 	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	grow_vertical = Control.GROW_DIRECTION_END
+	_pad_left(0.0)  # (A left drawer's hole padding off)
 
 # Phones (user 2026-10-17: "a lot of empty space"): the drawer is as tall as its content, up to the full screen height;
 # only past that does the middle scroll. The footer (Nurture) sits right under the content.

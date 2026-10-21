@@ -716,6 +716,15 @@ func _sync_phone_buttons() -> void:
 # The dock: Clear, the Wardens (‹ › when they don't fit), Sell, then the hide handle, from the left edge to the reserved
 # centre. Slots size as on desktop (SLOT_MIN_WIDTH … BUTTON_SIZE.x).
 func _fit_tower_bar_phone() -> void:
+	if dock_under_drawer:  # The Warden drawer is open on the left, over the dock's side: the dock steps away
+		for node in [tower_bar, clear_tool, sell_slot, select_slot, _bar_toggle] + _bar_arrows:
+			if node is CanvasItem:
+				(node as CanvasItem).visible = false
+		_dock_stepped_away = true
+		return
+	if _dock_stepped_away:  # Back after the drawer (the rest below sets its own visibility)
+		_dock_stepped_away = false
+		_bar_toggle.visible = true
 	tower_bar.visible = not bar_hidden
 	clear_tool.visible = not bar_hidden
 	if sell_slot != null:
@@ -807,6 +816,17 @@ func _place_slot(control: Control, x: float, width: float) -> void:
 	control.offset_right = x + width
 	control.offset_bottom = -16.0
 	control.offset_top = -16.0 - _phone_slot().y
+
+# Phones (user 2026-10-21): the Warden drawer docked left mirrors the right one, full height; the dock steps away while
+# it's open, as the drift panel does for the right drawer (WardenPanel._sync_dock).
+var dock_under_drawer := false
+var _dock_stepped_away := false
+
+func set_dock_under_drawer(on: bool) -> void:
+	if dock_under_drawer == on:
+		return
+	dock_under_drawer = on
+	_fit_tower_bar()
 
 func set_bar_hidden(hidden: bool) -> void:
 	bar_hidden = hidden
