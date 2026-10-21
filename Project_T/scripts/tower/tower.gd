@@ -2783,6 +2783,7 @@ class GroundRipple extends Node2D:
 	var _radius := 0.0
 	var _colour: Color
 	var _edge := Color(0, 0, 0, 0)  # A darker line under it (splash rings: reads on the pale sand path)
+	var raindrop := false  # Water splashes: rings rippling out inside the splash ring, like a drop landing in a puddle
 	var dream_tier := 0  # Visual feedback spec B: a Dream-boosted pulse's warm inner rim (Tower.dream_glow_tier)
 	var _age := 0.0
 
@@ -2826,6 +2827,19 @@ class GroundRipple extends Node2D:
 		if splash:
 			draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_edge, _edge.a * fade), width + 3.0, false)
 		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, (0.9 if splash else ALPHA) * fade), width, false)
+		if raindrop:
+			# The drop lands (a bright dot), then two thinner rings ripple out behind the splash ring and fade first; the
+			# outer ring above stays the clear edge of the splash radius (user: "more like a raindrop ripple but the
+			# splash radius should be clear").
+			if t < 0.15:
+				draw_circle(Vector2.ZERO, 3.0, Color(Palette.MOONLIGHT, 0.9))
+			for k in 2:
+				var lag := 0.18 * (k + 1)
+				var tk := clampf((t - lag) / (1.0 - lag), 0.0, 1.0)
+				if tk <= 0.0 or tk >= 1.0:
+					continue
+				var rk := _radius * (0.62 - 0.27 * k) * (1.0 - pow(1.0 - minf(tk * 1.6, 1.0), 2.0))
+				draw_arc(Vector2.ZERO, maxf(rk, 1.0), 0.0, TAU, clampi(int(rk / 3.0), 16, 96), Color(Palette.DEWLIGHT, 0.7 * (1.0 - tk)), 1.5, false)
 		if dream_tier > 0:
 			DREAM_GLOW.rim(self, Vector2.ZERO, r - 4.0, dream_tier, 1.0 - t)
 			if dream_tier >= 2:
@@ -3788,6 +3802,7 @@ func _splash_ring(where: Vector2, radius: float) -> void:
 		return
 	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
 	var ring := GroundRipple.new(radius, Palette.MOONLIGHT if tower_data.line == "water" else Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW), Color(Palette.NIGHT, 0.85))
+	ring.raindrop = tower_data.line == "water"  # Dewdrop line: ripples inside the ring, like a raindrop
 	world.add_child(ring)
 	ring.global_position = where
 
