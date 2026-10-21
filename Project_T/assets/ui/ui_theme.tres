@@ -382,7 +382,7 @@ content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-frame = &"plate_hover"
+frame = &"plate_yours_hover"
 glow = true
 thread = 0
 
@@ -677,7 +677,7 @@ content_margin_top = 6.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
 script = ExtResource("1_k4cr1")
-frame = &"plate_hover"
+frame = &"plate_yours_hover"
 glow = true
 thread = 0
 
@@ -1005,7 +1005,7 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-frame = &"plate_yours"
+frame = &"plate_yours_hover"
 glow = true
 thread = 0
 

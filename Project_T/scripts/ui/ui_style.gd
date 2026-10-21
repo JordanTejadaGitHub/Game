@@ -28,7 +28,7 @@ const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare p
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
 const SLATE := Color("5c5a78")  # Slate: a Warden slot you can't afford (its border)
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
-const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
+const PALETTE_NAMES := {"INK": "Moonlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
 	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "SLATE": "Slate"}
@@ -597,7 +597,7 @@ static func card_dim(colour: Color) -> MoonStyleBox:
 # A Warden bar slot (Moon-glass): a pewter plate; hovered or selected, brass (selected keeps the glow); short on Dew
 # (slot_short), the dim plate.
 static func slot(selected: bool, hover: bool = false, short: bool = false) -> MoonStyleBox:
-	var frame := &"plate_yours" if selected else (&"plate_hover" if hover else (&"plate_dim" if short else &"plate"))
+	var frame := (&"plate_yours_hover" if hover else &"plate_yours") if selected else (&"plate_hover" if hover else (&"plate_dim" if short else &"plate"))
 	return plate_box(4.0, 4.0, frame)
 
 # Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the dim plate in its
@@ -656,10 +656,10 @@ static func button_box(hover: bool = false) -> MoonStyleBox:
 	return plate_box(14.0, 6.0, &"plate_hover" if hover else &"plate")
 
 # The one primary per panel or choice (Take, Start drift, Resume, Apply): brass at rest with the soft gold glow, the
-# brighter brass under the pointer, and pressed lit from below, pushed down 2 px, no shadow.
+# glowing brass under the pointer (plate_yours_hover: Ember inside, a stronger outer glow, Heartlight text), and pressed lit from below, pushed down 2 px, no shadow.
 const PRIMARY_GLOW := Color("b8662c")  # Ember (kept for old callers)
 static func primary_box(hover: bool = false, pressed: bool = false) -> MoonStyleBox:
-	return plate_box(14.0, 6.0, &"plate_pressed" if pressed else (&"plate_hover" if hover else &"plate_yours"))
+	return plate_box(14.0, 6.0, &"plate_pressed" if pressed else (&"plate_yours_hover" if hover else &"plate_yours"))
 
 # Selected / switched on (a toggled button, the current speed, a switch's segment): brass with its glow. Godot's
 # "pressed" style is both "toggled on" and "held"; held reads as the pushed-in brass (pressed_box).
@@ -990,7 +990,7 @@ static func segmented(row: HBoxContainer) -> void:
 	# Moon-glass: a row of small plates 2 px apart, pewter at rest, brass under the pointer, the chosen one brass with its
 	# glow (plate_yours), dim when disabled.
 	row.add_theme_constant_override("separation", 2)
-	var frames := {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_yours", "hover_pressed": &"plate_yours",
+	var frames := {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_yours", "hover_pressed": &"plate_yours_hover",
 		"disabled": &"plate_dim"}
 	for button in row.get_children().filter(func(n: Node) -> bool: return n is Button):
 		for state in frames:
@@ -999,6 +999,35 @@ static func segmented(row: HBoxContainer) -> void:
 		button.add_theme_color_override("font_hover_color", INK)
 		for state in ["font_pressed_color", "font_hover_pressed_color"]:
 			button.add_theme_color_override(state, GOLD)
+
+# A hide / show handle and the Warden bar's scroll arrows (ui_style.md "Moon-glass" > Hide / show handles, UI Asset
+# 83ed5944): the moon-glass plate filling `rect` (pewter, brass on hover, pushed in when pressed) and the HUD chevron at
+# ×2 (chevron_hud_moon at rest, the gold chevron_hud on hover / press), turned to point along `along`. The art points
+# right. Call from the button's draw; `rect` is the drawn handle inside its touch target.
+const HANDLE_GAP := 8.0  # A handle stands this far outside its panel's edge (4 art px), never over it or its sprout
+static func draw_handle(canvas: CanvasItem, rect: Rect2, along: Vector2, hovered: bool, pressed: bool) -> void:
+	var frame := &"plate_pressed" if pressed else (&"plate_hover" if hovered else &"plate")
+	var plate := MoonStyleBox.texture_for(frame)
+	if plate != null:
+		var m := minf(MoonStyleBox.frame_margin(frame), floorf(minf(rect.size.x, rect.size.y) / 2.0))  # A 28 px handle: corners meet
+		RenderingServer.canvas_item_add_nine_patch(canvas.get_canvas_item(), rect, Rect2(Vector2.ZERO, plate.get_size()),
+			plate.get_rid(), Vector2(m, m), Vector2(m, m))
+	var glyph := IconInfo.hud_icon(&"chevron_hud" if hovered or pressed else &"chevron_hud_moon")
+	if glyph == null:
+		return
+	var centre := rect.get_center().round() + (Vector2(0, 2) if pressed else Vector2.ZERO)
+	canvas.draw_set_transform(centre, along.angle(), Vector2(2, 2))
+	canvas.draw_texture(glyph, -(glyph.get_size() / 2.0).floor())
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# Whether a button is drawing hovered / pressed (for custom-drawn buttons like the handles).
+static func button_lit(button: BaseButton) -> bool:
+	var mode := button.get_draw_mode()
+	return mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_HOVER_PRESSED
+
+static func button_down(button: BaseButton) -> bool:
+	var mode := button.get_draw_mode()
+	return mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED
 
 # A small key chip ("Q", "R", "⏎") for rows and buttons: Mist on a dim outline; inside a primary
 # button it turns gold by itself, like the primary's text.

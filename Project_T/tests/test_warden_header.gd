@@ -54,12 +54,16 @@ func _run() -> void:
 		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
 	# The attack shape chip (user: "can't tell if something is an aura attack or not"; Tower.attack_shape).
 	# A tag chip at the front of the keyword row (user 2026-10-19: "the single target icon should be a tag"): its icon
-	# and its name, the meaning in the row's tip.
+	# and its name, the meaning in the row's tip. When a keyword chip already says the same word (Groundroot: Area), that
+	# one stands for it: never the word twice (UI Code 3bb3dc6b).
 	var shape_id := "shape_" + String(Tower.attack_shape(groundroot))
-	var shape := grab_view.keywords.find_child("Chip_makes_" + shape_id, true, false)
-	_check(IconInfo.icon(StringName(shape_id)) != null and shape != null
-		and (shape.find_child("Word", true, false) as Label).text == WardenHeaderView.shape_name(groundroot),
-		"the attack shape is a tag chip (%s)" % shape_id)
+	var shape_word := WardenHeaderView.shape_name(groundroot)
+	var same_word := 0
+	for word in grab_view.keywords.find_children("Word", "Label", true, false):
+		if (word as Label).text == shape_word:
+			same_word += 1
+	_check(IconInfo.icon(StringName(shape_id)) != null and same_word == 1,
+		"the attack shape shows as one chip (%s, %d chips say \"%s\")" % [shape_id, same_word, shape_word])
 	_check(Tower.attack_shape(load("res://resource/tower/jetreed.tres")) == &"splash", "Jetreed is tagged Splash")
 	_check(WardenHeaderView.shape_tip(load("res://resource/tower/acorn.tres")).length() > 10
 		and WardenHeaderView.shape_tip(load("res://resource/tower/thornwall.tres")).begins_with("No attack"),

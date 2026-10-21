@@ -232,14 +232,9 @@ const HANDLE_SIZE := 28.0
 const HANDLE_TOUCH := 44.0
 func _draw_hide_arrow() -> void:
 	var along: Vector2 = _hide_arrow.get_meta(&"arrow", Vector2.RIGHT)
-	var across := Vector2(-along.y, along.x)
-	var centre := _hide_arrow.size / 2.0
-	var lit := _hide_arrow.is_hovered()
+	var centre := (_hide_arrow.size / 2.0).round()
 	var frame := Rect2(centre - Vector2(HANDLE_SIZE, HANDLE_SIZE) / 2.0, Vector2(HANDLE_SIZE, HANDLE_SIZE))
-	_hide_arrow.draw_rect(frame, Color(Palette.DREAD, 0.55))
-	_hide_arrow.draw_rect(frame, Color(UiStyle.GOLD, 0.6 if lit else 0.3), false, 1.0)
-	_hide_arrow.draw_polyline(PackedVector2Array([centre - along * 2.5 + across * 5.0, centre + along * 2.5,
-		centre - along * 2.5 - across * 5.0]), UiStyle.INK if lit else UiStyle.INK_DIM, 1.5, true)
+	UiStyle.draw_handle(_hide_arrow, frame, along, UiStyle.button_lit(_hide_arrow), UiStyle.button_down(_hide_arrow))  # Moon-glass
 
 func _fit_hide_arrow() -> void:
 	if not is_instance_valid(_hide_arrow):
@@ -249,10 +244,10 @@ func _fit_hide_arrow() -> void:
 		_hide_arrow.set_meta(&"arrow", arrow)
 		_hide_arrow.tooltip_text = "Show damage meter" if hidden_by_player else "Hide damage meter"
 		_hide_arrow.queue_redraw()
-	# Beside the meter's left edge, level with its header, never on top: the drawn handle ends 4 px from the card
+	# Beside the meter's left edge, level with its header, never on top: the drawn handle ends HANDLE_GAP (8 px) from the card
 	# (its invisible padding may overlap). Hidden meter: at the screen's right edge.
 	var pad := (HANDLE_TOUCH - HANDLE_SIZE) / 2.0
-	_hide_arrow.offset_right = (-16.0 if hidden_by_player else offset_left - 4.0) + pad
+	_hide_arrow.offset_right = (-16.0 if hidden_by_player else offset_left - UiStyle.HANDLE_GAP) + pad  # 8 px outside the card
 	_hide_arrow.offset_left = _hide_arrow.offset_right - HANDLE_TOUCH
 	_hide_arrow.offset_top = offset_top + (36.0 - HANDLE_TOUCH) / 2.0  # Centred on the 36 px header line
 	_hide_arrow.offset_bottom = _hide_arrow.offset_top + HANDLE_TOUCH
