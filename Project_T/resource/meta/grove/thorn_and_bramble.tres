@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "thorn_and_bramble"
 display_name = "Thorn and Bramble"
-description = "Adds two {dream} cards for {thornwalls}: {card:thorn_snare}, {card:hushed_hedge}."
+description = "Adds three {dream} cards for {thornwalls}: {card:thorn_snare}, {card:hushed_hedge}, {card:scented_hedge}."
 root = 1
 costs = Array[int]([70])
 order = 44
 icon = 17
 requires_all = Array[String](["reclaimed_earth"])
-dream_cards = Array[String](["thorn_snare", "hushed_hedge"])
+dream_cards = Array[String](["thorn_snare", "hushed_hedge", "scented_hedge"])

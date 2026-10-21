@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "sharpened"
 display_name = "Sharpened"
-description = "Adds five {dream} cards for {critical_hits}: {card:still_target}, {card:shattering_blow}, {card:opening_fracture}, {card:hunters_patience}, {card:sharpened_light}."
+description = "Adds three {dream} cards for {critical_hits}: {card:sharpened_light}, {card:shattering_blow}, {card:hunters_moon}."
 root = 1
 costs = Array[int]([50])
 order = 6
 icon = 2
-dream_cards = Array[String](["still_target", "shattering_blow", "opening_fracture", "hunters_moon", "sharpened_light"])
+dream_cards = Array[String](["sharpened_light", "shattering_blow", "hunters_moon"])
