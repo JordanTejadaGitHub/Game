@@ -1440,6 +1440,75 @@ static func _at_potency_one(p: float, base: String) -> String:
 static func _potency_number(value: float) -> String:
 	return str(snappedf(value, 0.1)) if value < 10.0 else str(roundi(value))
 
+# --- Deep, made plain (user 2026-10-21: "I don't know what Potency does during Nurture for some Wardens, like the Torrent")
+# Whether a Deep pick does anything on `data`: its Potency uses (potency_uses: statuses, effect damage, the specials'
+# timers), or a form's own Deep rule (NurtureChoices: the whirlpool's extra link, Rootcurl / Long Way Home's longer
+# pull, Hushbell's silence linger, the catchers' Caught linger, Gust's copied stacks, a Graftling's copied status).
+static func deep_useful(data: TowerData) -> bool:
+	if data == null:
+		return false
+	if not potency_uses(data).is_empty():
+		return true
+	return data.special == BranchKit.WHIRLPOOL or data.special == BranchKit.HUSH or NurtureChoices.PULL_DEEP.has(data.get_id()) \
+		or data.catch_share > 0.0 or data.attack_kind == TowerData.AttackKind.SPREAD or data.attack_kind == TowerData.AttackKind.COPY
+
+# What one more Deep pick does on `tower`, use by use: "Soak: water hits +20% → +24%" (its potency_uses_at lines at its
+# Potency now and after the pick, the parts that change shown as before → after), then a form's own Deep rule. Empty when
+# Deep does nothing there (deep_useful), so the panel can say so; focus_options then offers no Deep at all.
+const POTENCY_ONE_NOTE := " at Potency 1.0)"
+static func deep_preview(tower: Tower) -> Array[String]:
+	var out: Array[String] = []
+	if tower == null or tower.tower_data == null:
+		return out
+	var data: TowerData = tower.attack_data if tower.attack_data != null else tower.tower_data
+	var now := tower.get_potency()
+	var after := now + deep_share() * tower.focus_power()  # As get_potency counts a Deep rank
+	var lines_now := potency_uses_at(data, now, tower)
+	var lines_after := potency_uses_at(data, after, tower)
+	for i in mini(lines_now.size(), lines_after.size()):
+		out.append(_before_after(_drop_potency_note(lines_now[i]), _drop_potency_note(lines_after[i])))
+	var deep := tower.choice_count(Focus.DEEP)
+	if data.special == BranchKit.WHIRLPOOL:
+		var links := int(data.special_params.get("link_max", 6)) + NurtureChoices.LINK_DEEP * deep
+		out.append("links %d → %d nightmares" % [links, links + NurtureChoices.LINK_DEEP])
+	if NurtureChoices.PULL_DEEP.has(data.get_id()):
+		var pull: float = data.pull_tiles + float(NurtureChoices.PULL_DEEP[data.get_id()]) * deep
+		out.append("pulls back %s → %s cells" % [_potency_number(pull), _potency_number(pull + float(NurtureChoices.PULL_DEEP[data.get_id()]))])
+	if data.special == BranchKit.HUSH:
+		var linger := NurtureChoices.HUSH_LINGER * deep
+		out.append("its silence lingers %s → %s s after a nightmare leaves" % [_potency_number(linger), _potency_number(linger + NurtureChoices.HUSH_LINGER)])
+	if data.catch_share > 0.0:
+		var caught := NurtureChoices.CAUGHT_LINGER * deep
+		out.append("{caught} lingers %s → %s s after a nightmare leaves" % [_potency_number(caught), _potency_number(caught + NurtureChoices.CAUGHT_LINGER)])
+	if data.attack_kind == TowerData.AttackKind.SPREAD:
+		var share := 0.5 + NurtureChoices.GUST_STACKS * deep
+		out.append("copies %d%% → %d%% of the stacks" % [roundi(share * 100.0), roundi((share + NurtureChoices.GUST_STACKS) * 100.0)])
+	return out
+
+static func _drop_potency_note(line: String) -> String:
+	var at := line.find(" (")
+	return line.substr(0, at) if at >= 0 and line.ends_with(POTENCY_ONE_NOTE) else line
+
+# "Soak: water hits +20%" and "Soak: water hits +24%" -> "Soak: water hits +20% → +24%": the shared start and end kept,
+# the part that differs shown before → after (cut at word edges so numbers stay whole). Unchanged: the line as it is.
+static func _before_after(before: String, after: String) -> String:
+	if before == after:
+		return before
+	var start := 0
+	while start < mini(before.length(), after.length()) and before[start] == after[start]:
+		start += 1
+	while start > 0 and before[start - 1] != " ":
+		start -= 1  # Back to the word's start
+	var end_b := before.length()
+	var end_a := after.length()
+	while end_b > start and end_a > start and before[end_b - 1] == after[end_a - 1]:
+		end_b -= 1
+		end_a -= 1
+	while end_b < before.length() and before[end_b] != " ":
+		end_b += 1  # On to the word's end
+		end_a += 1
+	return before.substr(0, start) + before.substr(start, end_b - start) + " → " + after.substr(start, end_a - start) + before.substr(end_b)
+
 # The same for this Warden's live attack (a Graftling reports what it copies), with its live numbers.
 func get_potency_uses() -> Array[String]:
 	return potency_uses_at(attack_data if attack_data != null else tower_data, get_potency(), self)
@@ -1502,7 +1571,12 @@ func is_aura_support() -> bool:
 # The choices this Warden offers (NurtureChoices: each means "more of its job"; warden_stats.md 02417f32).
 func focus_options() -> Array[Focus]:
 	var out: Array[Focus] = []
+	var deep_ok := deep_useful(tower_data)  # (user 2026-10-21) no Deep where it would do nothing: Keen takes its place
 	for which in NurtureChoices.options(tower_data):
+		if which == Focus.DEEP and not deep_ok:
+			if not out.has(Focus.KEEN) and not NurtureChoices.options(tower_data).has(Focus.KEEN):
+				out.append(Focus.KEEN)  # As NurtureChoices.STRIKER: a Warden with no status or effect gets crits instead
+			continue
 		out.append(which as Focus)
 	return out
 
