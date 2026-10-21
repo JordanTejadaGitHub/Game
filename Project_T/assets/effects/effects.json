@@ -1039,20 +1039,38 @@
 		},
 		"drown": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#6ab0ff",
 			"file": "drown.png",
 			"fps": 16.0,
 			"frame_size": [
-				64,
-				64
+				96,
+				112
 			],
-			"frames": 8,
+			"frames": 12,
+			"ground": "drown_ground",
 			"kind": "reaction",
 			"loop": false,
+			"note": "Plays over the nightmare; drown_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Damp + max Drowsy"
+		},
+		"drown_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "drown_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with drown at the same spot and time."
 		},
 		"echo": {
 			"anchor": [
@@ -1680,21 +1698,39 @@
 		},
 		"ignite": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#ffc040",
 			"file": "ignite.png",
-			"fps": 20.0,
+			"fps": 16.0,
 			"frame_size": [
-				64,
-				64
+				96,
+				112
 			],
-			"frames": 6,
+			"frames": 12,
+			"ground": "ignite_ground",
 			"kind": "reaction",
 			"lite": "ignite_lite",
 			"loop": false,
+			"note": "Plays over the nightmare; ignite_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Spored + Static"
+		},
+		"ignite_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "ignite_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with ignite at the same spot and time."
 		},
 		"ignite_lite": {
 			"anchor": [
@@ -2177,21 +2213,38 @@
 		},
 		"lightning_rod": {
 			"anchor": [
-				32,
-				112
+				48,
+				80
 			],
 			"callout": "#fff27a",
 			"file": "lightning_rod.png",
-			"fps": 18.0,
+			"fps": 16.0,
 			"frame_size": [
-				64,
-				128
+				96,
+				112
 			],
-			"frames": 6,
+			"frames": 12,
+			"ground": "lightning_rod_ground",
 			"kind": "reaction",
 			"loop": false,
-			"note": "Anchor is the impact point; the bolt falls from the top.",
+			"note": "Plays over the nightmare; lightning_rod_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Marked + Static"
+		},
+		"lightning_rod_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "lightning_rod_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with lightning_rod at the same spot and time."
 		},
 		"link_arcs": {
 			"anchor": [
@@ -2355,19 +2408,21 @@
 		},
 		"overgrowth": {
 			"anchor": [
-				32,
-				44
+				48,
+				80
 			],
 			"callout": "#c080ff",
 			"file": "overgrowth.png",
 			"fps": 16.0,
 			"frame_size": [
-				64,
-				64
+				96,
+				112
 			],
-			"frames": 7,
+			"frames": 12,
+			"ground": "overgrowth_ground",
 			"kind": "reaction",
 			"loop": false,
+			"note": "Plays over the nightmare; overgrowth_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Spored + Damp",
 			"then": "overgrowth_cloud"
 		},
@@ -2386,6 +2441,22 @@
 			"kind": "ground_loop",
 			"loop": true,
 			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
+		},
+		"overgrowth_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "overgrowth_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with overgrowth at the same spot and time."
 		},
 		"path_crack": {
 			"anchor": [
@@ -2437,11 +2508,29 @@
 		},
 		"pinned": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#e8ecff",
 			"file": "pinned.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"ground": "pinned_ground",
+			"kind": "reaction",
+			"loop": false,
+			"note": "Plays over the nightmare; pinned_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
+			"reaction": "Marked + Held or asleep"
+		},
+		"pinned_flare": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "pinned_flare.png",
 			"fps": 18.0,
 			"frame_size": [
 				64,
@@ -2450,7 +2539,23 @@
 			"frames": 6,
 			"kind": "reaction",
 			"loop": false,
-			"reaction": "Marked + Held or asleep"
+			"note": "The old Pinned burst, kept for the Beacon's flare (tower.gd)."
+		},
+		"pinned_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "pinned_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with pinned at the same spot and time."
 		},
 		"plant_dust": {
 			"anchor": [
@@ -2878,19 +2983,21 @@
 		},
 		"shatter": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#bff4ff",
 			"file": "shatter.png",
-			"fps": 18.0,
+			"fps": 16.0,
 			"frame_size": [
-				64,
-				80
+				96,
+				112
 			],
-			"frames": 7,
+			"frames": 12,
+			"ground": "shatter_ground",
 			"kind": "reaction",
 			"loop": false,
+			"note": "Plays over the nightmare; shatter_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "frozen + heavy hit or crit"
 		},
 		"shatter_chain_burst": {
@@ -2908,6 +3015,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."
+		},
+		"shatter_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "shatter_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with shatter at the same spot and time."
 		},
 		"silence_mark": {
 			"anchor": [
@@ -2959,21 +3082,38 @@
 		},
 		"smother": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#a8d060",
 			"file": "smother.png",
 			"fps": 12.0,
 			"frame_size": [
-				64,
-				64
+				96,
+				112
 			],
 			"frames": 8,
+			"ground": "smother_ground",
 			"kind": "reaction_loop",
 			"loop": true,
-			"note": "Loops while the hold lasts.",
+			"note": "Loops while the hold lasts. Plays over the nightmare; smother_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Held + Spored"
+		},
+		"smother_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "smother_ground.png",
+			"fps": 12.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 8,
+			"kind": "ground_loop",
+			"loop": true,
+			"note": "Under the nightmare (z -1), played with smother at the same spot and time."
 		},
 		"solstice_fork": {
 			"anchor": [
@@ -3409,20 +3549,22 @@
 		},
 		"thunderclap": {
 			"anchor": [
-				32,
-				32
+				48,
+				80
 			],
 			"callout": "#bfe0ff",
 			"file": "thunderclap.png",
-			"fps": 20.0,
+			"fps": 16.0,
 			"frame_size": [
-				64,
-				64
+				96,
+				112
 			],
-			"frames": 6,
+			"frames": 12,
+			"ground": "thunderclap_ground",
 			"kind": "reaction",
 			"lite": "thunderclap_lite",
 			"loop": false,
+			"note": "Plays over the nightmare; thunderclap_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up.",
 			"reaction": "Damp + Static"
 		},
 		"thunderclap_arc": {
@@ -3440,6 +3582,22 @@
 			"kind": "segment",
 			"loop": true,
 			"note": "Stretch or tile along x between two points; starts and ends at y = 8."
+		},
+		"thunderclap_ground": {
+			"anchor": [
+				48,
+				80
+			],
+			"file": "thunderclap_ground.png",
+			"fps": 16.0,
+			"frame_size": [
+				96,
+				112
+			],
+			"frames": 12,
+			"kind": "ground",
+			"loop": false,
+			"note": "Under the nightmare (z -1), played with thunderclap at the same spot and time."
 		},
 		"thunderclap_lite": {
 			"anchor": [

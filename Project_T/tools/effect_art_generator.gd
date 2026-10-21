@@ -24,6 +24,7 @@ const OUTLINE := Color("#1a1420")
 
 var index := {}
 var previews: Array = []  # [name, sheet, frame size, frames]
+var rx = preload("res://tools/reaction_art.gd").new()  # The eight base Reactions (user-approved redraw 2026-10-21)
 
 func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
@@ -73,7 +74,7 @@ func _sheet(name: String, size: Vector2i, frames: int, fps: float, anchor: Vecto
 		var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 		draw.call(img, f)
 		_hard_alpha(img)
-		if name.begins_with("crowned_") or name == "shatter":
+		if name.begins_with("crowned_"):  # (the redrawn Shatter is lit by hand, reaction_art.gd)
 			_relight(img)
 		sheet.blit_rect(img, Rect2i(Vector2i.ZERO, size), Vector2i(f * size.x, 0))
 	_snap32(sheet)
@@ -194,30 +195,48 @@ func _shadow_break(img: Image, c: Vector2, n: int, r: float, size: float, turn: 
 
 # --- Reactions ----------------------------------------------------------------------------------
 
+# The eight base Reactions are the redraw in tools/reaction_art.gd (user-approved 2026-10-21): each a sheet over the
+# nightmare and a <name>_ground sheet under it, both RX_SIZE with the anchor on its route point. The _lite sheets, the
+# Thunderclap arc and the Mushrooming cloud stay as they were; the old Pinned burst is kept as pinned_flare (the Beacon).
+const RX_SIZE := Vector2i(96, 112)
+const RX_ANCHOR := Vector2i(48, 80)
+
 func _reactions() -> void:
 	var c := Vector2i(32, 32)
-	_sheet("thunderclap", Vector2i(64, 64), 6, 20, c, false, "reaction", _thunderclap.bind(false),
+	_rx_sheet("thunderclap", "thunderclap", 12, 16.0, false, "reaction",
 		{callout = "#bfe0ff", lite = "thunderclap_lite", reaction = "Damp + Static"})
 	_sheet("thunderclap_lite", Vector2i(64, 64), 6, 20, c, false, "reaction", _thunderclap.bind(true))
 	_sheet("thunderclap_arc", Vector2i(64, 16), 4, 20, Vector2i(0, 8), true, "segment", _thunderclap_arc,
 		{note = "Stretch or tile along x between two points; starts and ends at y = 8."})
-	_sheet("ignite", Vector2i(64, 64), 6, 20, c, false, "reaction", _ignite.bind(false),
+	_rx_sheet("ignite", "ignite", 12, 16.0, false, "reaction",
 		{callout = "#ffc040", lite = "ignite_lite", reaction = "Spored + Static"})
 	_sheet("ignite_lite", Vector2i(64, 64), 6, 20, c, false, "reaction", _ignite.bind(true))
-	_sheet("overgrowth", Vector2i(64, 64), 7, 16, Vector2i(32, 44), false, "reaction", _overgrowth,
+	_rx_sheet("overgrowth", "mushrooming", 12, 16.0, false, "reaction",
 		{callout = "#c080ff", reaction = "Spored + Damp", then = "overgrowth_cloud"})
 	_sheet("overgrowth_cloud", Vector2i(64, 64), 8, 10, c, true, "ground_loop", _overgrowth_cloud,
 		{note = "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."})
-	_sheet("shatter", Vector2i(64, 80), 7, 18, c, false, "reaction", _shatter,  # 80 tall: the shards fall below it
+	_rx_sheet("shatter", "shatter", 12, 16.0, false, "reaction",
 		{callout = "#bff4ff", reaction = "frozen + heavy hit or crit"})
-	_sheet("drown", Vector2i(64, 64), 8, 16, c, false, "reaction", _drown,
+	_rx_sheet("drown", "drown", 12, 16.0, false, "reaction",
 		{callout = "#6ab0ff", reaction = "Damp + max Drowsy"})
-	_sheet("pinned", Vector2i(64, 64), 6, 18, c, false, "reaction", _pinned,
+	_rx_sheet("pinned", "pinned", 12, 16.0, false, "reaction",
 		{callout = "#e8ecff", reaction = "Marked + Held or asleep"})
-	_sheet("smother", Vector2i(64, 64), 8, 12, c, true, "reaction_loop", _smother,
+	_sheet("pinned_flare", Vector2i(64, 64), 6, 18, c, false, "reaction", _pinned,
+		{note = "The old Pinned burst, kept for the Beacon's flare (tower.gd)."})
+	_rx_sheet("smother", "smother_loop", 8, 12.0, true, "reaction_loop",
 		{callout = "#a8d060", reaction = "Held + Spored", note = "Loops while the hold lasts."})
-	_sheet("lightning_rod", Vector2i(64, 128), 6, 18, Vector2i(32, 112), false, "reaction", _lightning_rod,
-		{callout = "#fff27a", reaction = "Marked + Static", note = "Anchor is the impact point; the bolt falls from the top."})
+	_rx_sheet("lightning_rod", "lightning_rod", 12, 16.0, false, "reaction",
+		{callout = "#fff27a", reaction = "Marked + Static"})
+
+# One redrawn Reaction: `name` over the nightmare and `name`_ground under it, drawn by reaction_art.gd's `art`.
+func _rx_sheet(name: String, art: String, frames: int, fps: float, loop: bool, kind: String, extra: Dictionary) -> void:
+	var over := extra.duplicate()
+	over["ground"] = name + "_ground"
+	over["note"] = (String(extra.note) + " " if extra.has("note") else "") + "Plays over the nightmare; " + name + "_ground plays under it (z -1) at the same spot. Anchor = its route point (the feet); the hit is drawn on its body, 11 px up."
+	_sheet(name, RX_SIZE, frames, fps, RX_ANCHOR, loop, kind, func(img: Image, f: int) -> void: rx.draw(img, f, art, false), over)
+	_sheet(name + "_ground", RX_SIZE, frames, fps, RX_ANCHOR, loop, "ground_loop" if loop else "ground",
+		func(img: Image, f: int) -> void: rx.draw(img, f, art, true),
+		{note = "Under the nightmare (z -1), played with " + name + " at the same spot and time."})
 
 func _thunderclap(img: Image, f: int, lite: bool) -> void:
 	var c := Vector2(32, 32)
