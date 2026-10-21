@@ -77,9 +77,18 @@ func _run() -> void:
 	warden.global_position = Vector2(400, 400)
 	Fx._callout_cooldown.clear()
 	Fx._callouts_alive.clear()
-	var before := world.get_child_count()
+	var before := world.get_children()
 	Fx.reaction(&"ignite", Vector2(500, 400), world, [warden])
-	_check(world.get_child_count() == before + 3, "a Reaction adds its effect, a callout and a light thread")
+	# Counted by kind: its effect (and, with the full sheet, its ground part under it: Tower Assets 74b11108), one
+	# callout, one thread ring; a small flash may come too.
+	var added := world.get_children().filter(func(n: Node) -> bool: return not before.has(n))
+	var effects := added.filter(func(n: Node) -> bool: return n is Fx.FxSprite and (n.effect == &"ignite" or n.effect == &"ignite_lite"))
+	var grounds := added.filter(func(n: Node) -> bool: return n is Fx.FxSprite and n.effect == &"ignite_ground")
+	var callouts := added.filter(func(n: Node) -> bool: return n is Fx.FxCallout)
+	var rings := added.filter(func(n: Node) -> bool: return n is Fx.FxRing)
+	_check(effects.size() == 1 and callouts.size() == 1 and rings.size() == 1
+		and grounds.size() == (1 if effects[0].effect == &"ignite" else 0) and grounds.all(func(g: Node) -> bool: return g.z_index == -1),
+		"a Reaction adds its effect (+ its ground part under it), a callout and a light thread (%d added)" % added.size())
 
 	# --- Chains ---
 	Fx.reset_run()
