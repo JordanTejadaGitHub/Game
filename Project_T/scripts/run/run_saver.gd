@@ -163,6 +163,8 @@ func _ready() -> void:
 	next_map_seed = 0
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
+	if map_generator.has_signal("waymark_moved"):
+		map_generator.waymark_moved.connect(func(_cell: Vector2) -> void: _dirty = true)  # Waymark placed or moved at a rest
 	run_state.run_ended.connect(func(_won: bool) -> void:
 		_dirty = false
 		if autosave:
@@ -183,6 +185,8 @@ func can_save_now() -> bool:
 		return false
 	if family_screen.visible or dream_state.is_offering() or dream_state.has_pending_offer():
 		return false
+	if dream_state.waymark_needed():
+		return false  # Waymark: saved once the stone is placed (a Continue never starts with it missing)
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	var gifts := HeartwoodGifts.find(self)
 	if gifts != null and gifts.is_offering():
@@ -245,6 +249,8 @@ func save_now() -> bool:
 		"bosses": BossPool.ids(drift_director.bosses),  # Boss pools: the bosses this run drew
 		"dreams": dream_state.to_save(),
 	}
+	if map_generator.get("waymark_cell") != null and map_generator.has_waymark():
+		data["waymark"] = [map_generator.waymark_cell.x, map_generator.waymark_cell.y]  # Waymark (Legendary Dream): the stone's cell
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.has_method("to_save"):
 		data["omens"] = omens.to_save()
@@ -493,6 +499,12 @@ func _restore(data: Dictionary) -> void:
 			tower_placer.sapling_taken = true
 	map_generator.path_layer.draw()
 	map_generator.path_changed.emit()
+	# Waymark (Legendary Dream): the stone back on its cell (if its legs still exist; else the player places it again).
+	var stone: Variant = data.get("waymark", null)
+	if _is_coordinate(stone) and map_generator.has_method("set_waymark"):
+		var stone_cell := Vector2(float(stone[0]), float(stone[1]))
+		if map_generator.is_waymark_ground(stone_cell) and not map_generator.get_path_if_waymark_at(stone_cell).is_empty():
+			map_generator.set_waymark(stone_cell)
 
 	run_state.dew = int(data.dew)
 	run_state.max_leaves = int(data.max_leaves)

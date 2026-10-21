@@ -68,7 +68,9 @@ var bend_points := {}  # Route point (grid, half-cell) -> true: the route's bend
 var bend_inside := []  # Vector2 (px): the inside corner of each bend (Cozy Corners)
 var bend_left := []  # float (px): each bend's distance from the Heartwood along the route (Long Way Round)
 var route_px := 0.0  # The route's length in px
-var _route_index := {}  # Route point -> its index on the route (Passing Thread)
+var _route_index := {}  # Route point -> its index on the route (Passing Thread; a Waymark: leg 1's index first)
+var _route_index2 := {}  # Waymark: leg 2's points -> index (a corridor walked out to the stone and back is on both legs)
+var _route_points := PackedVector2Array()  # The route in order (Passing Thread walks it: a point can come twice)
 
 func to_save() -> Dictionary:
 	return {"rings_planted": rings_planted, "leaves_mark": leaves_mark, "press_on_calls": press_on_calls,
@@ -130,6 +132,9 @@ func route_changed(dreams: DreamState, path: PackedVector2Array) -> void:
 	bend_inside.clear()
 	bend_left.clear()
 	_route_index.clear()
+	_route_index2.clear()
+	_route_points = path.duplicate()
+	var split: int = dreams.map_generator.waymark_split(path) if dreams.map_generator.has_method("waymark_split") else -1
 	var grid = dreams.map_generator.MAP_GRID
 	var cell_px: float = grid.cell_size.x
 	var left := PackedFloat32Array()
@@ -139,7 +144,9 @@ func route_changed(dreams: DreamState, path: PackedVector2Array) -> void:
 		if i < path.size() - 1:
 			total += path[i].distance_to(path[i + 1]) * cell_px
 		left[i] = total
-		_route_index[path[i]] = i
+		_route_index[path[i]] = i  # (Walking back: a point on both legs keeps its leg-1 index)
+		if split >= 0 and i >= split:
+			_route_index2[path[i]] = i
 	route_px = total
 	for i in bend_indices(path):
 		bend_points[path[i]] = true
@@ -438,8 +445,7 @@ func thread_stretches(dreams: DreamState, tower: Tower) -> Array:
 	if tower.get_meta(&"batch_thread_key", []) == key:
 		return tower.get_meta(&"batch_thread", [])
 	var grid = dreams.map_generator.MAP_GRID
-	var points: Array = _route_index.keys()
-	points.sort_custom(_by_route_index)
+	var points := _route_points  # In route order (Waymark: a corridor walked both ways is two stretches)
 	var stretches := []
 	var start := -1
 	var last := -1
@@ -473,7 +479,8 @@ func on_later_pass(dreams: DreamState, tower: Tower, enemy: Node2D) -> bool:
 	var stretches := thread_stretches(dreams, tower)
 	if stretches.size() < 2:
 		return false
-	var index: int = int(_route_index.get(enemy.get_target_cell(), -1))
+	var second: bool = not _route_index2.is_empty() and bool(enemy.get("passed_waymark"))
+	var index: int = int((_route_index2 if second else _route_index).get(enemy.get_target_cell(), -1))
 	return index >= int(stretches[1][0])
 
 # --- Damage -------------------------------------------------------------------------------------------------------

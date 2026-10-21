@@ -416,6 +416,8 @@ func pending_choice() -> StringName:
 	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
 	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
 		return &"omen"
+	if dreams != null and dreams.has_method("waymark_needed") and dreams.waymark_needed():
+		return &"waymark"  # Waymark (Legendary Dream): its stone is placed before the next drift (WaymarkStone)
 	return &""
 
 # Seconds of the current drift's arrival that starting the next one right now would skip (0: nothing is arriving).

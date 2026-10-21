@@ -598,15 +598,23 @@ func _index_route() -> void:
 	_index.clear()
 	_bend_zone.clear()
 	var path := _route()
+	_index2.clear()
+	var split: int = dreams.map_generator.waymark_split(path) if dreams.map_generator.has_method("waymark_split") else -1
 	for i in path.size():
-		_index[path[i]] = i
+		if split < 0 or i <= split or not _index.has(path[i]):  # Waymark: a point on both legs keeps its leg-1 index
+			_index[path[i]] = i
+		if split >= 0 and i >= split:
+			_index2[path[i]] = i
 	for b in DreamState.BATCH.bend_indices(path):
 		for i in [b - 1, b, b + 1]:
 			_bend_zone[i] = true
 
+var _index2 := {}  # Waymark: leg 2's points -> index
+
 func _route_index(enemy) -> int:
 	_index_route()
-	return int(_index.get(enemy.get_target_cell(), -1))
+	var second: bool = not _index2.is_empty() and bool(enemy.get("passed_waymark"))
+	return int((_index2 if second else _index).get(enemy.get_target_cell(), -1))
 
 # Witching Bend (keyword chips 2026-10-16): DreamState._process calls this. A nightmare rounding a bend (a point either
 # side of it) with two or more statuses gets Reactions.check_at_half at HALF_SET_OFF_DAMAGE; the wait starts only when

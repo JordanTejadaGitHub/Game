@@ -53,6 +53,7 @@ func set_start_half(half: Vector2i, cell := Vector2.INF) -> void:
 		_pathGenerator.start_cell = cell_start_path
 		_pathGenerator.start_half = half
 		_pathGenerator._straight_key = []  # The cached route may have begun on the other half
+		_pathGenerator._straight_cache.clear()
 
 func draw():
 	# We first clear any tiles on the tilemap, then let the Astar2D (PathFinder) find the
@@ -60,16 +61,21 @@ func draw():
 	clear()
 	current_path.clear()
 	current_path_curve.clear_points()
-	current_path = _pathGenerator.straightest_point_path(cell_start_path, cell_end_path)  # No lane-to-lane jogs
+	current_path = find_drawn_route()  # No lane-to-lane jogs (a Waymark: start -> stone -> Heartwood)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
 	_route_version = _pathGenerator.version
 	_route_mask_version = -2  # join_route's mask follows the new route
 	if current_path.is_empty() and board != null:  # Never expected (every block keeps a way through): leave a trace
 		push_error("PathGenerator.draw: no route from %s to %s" % [cell_start_path, cell_end_path])
+	leg_split = waymark_index(current_path)
 	_route_index.clear()
+	_route_index2.clear()
 	for i in current_path.size():
-		_route_index[current_path[i]] = i
+		if leg_split < 0 or i <= leg_split:  # Leg 1 (or the whole route); the stone's point is in both legs
+			_route_index[current_path[i]] = i
+		if leg_split >= 0 and i >= leg_split:
+			_route_index2[current_path[i]] = i
 	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is drawn on the
 	# dual grid (path_dual.png, _draw_dual), not one tile per cell. At the start it runs on out to the island's edge,
 	# under the rope bridge (path_halves).
@@ -123,15 +129,69 @@ func is_cell_blocked(cell: Vector2) -> bool:
 func set_cell_blocked(cell: Vector2, blocked: bool) -> void:
 	_pathGenerator.set_blocked(cell, blocked)
 
-# Path from `cell` to the end of the map, in cell coordinates. Empty if the end can't be reached.
-func find_path_from(cell: Vector2) -> PackedVector2Array:
-	return _pathGenerator.calculate_point_path(cell, cell_end_path)
+# Path from `cell` to the end of the map, in cell coordinates. Empty if the end can't be reached. With a Waymark, a
+# walker that hasn't `passed` it goes to the stone first: the two legs joined (empty if either is missing).
+func find_path_from(cell: Vector2, passed := false) -> PackedVector2Array:
+	if not has_waymark() or passed:
+		return _pathGenerator.calculate_point_path(cell, cell_end_path)
+	var first := _pathGenerator.calculate_point_path(cell, waymark)
+	if first.is_empty():
+		return first
+	var second := _pathGenerator.calculate_point_path(first[first.size() - 1], cell_end_path)
+	if second.is_empty():
+		return second
+	first.append_array(second.slice(1))
+	return first
 
 # The route draw() would draw from the start now (as long as A*'s, fewer turns; ~2 ms): for route previews,
 # so a preview matches the route that gets drawn. Checks that only need "a way through" or a length use
-# find_path_from().
+# find_path_from(). With a Waymark: start -> stone, then on from the stone's half it ended on.
 func find_drawn_route() -> PackedVector2Array:
-	return _pathGenerator.straightest_point_path(cell_start_path, cell_end_path)
+	if not has_waymark():
+		return _pathGenerator.straightest_point_path(cell_start_path, cell_end_path)
+	var first := _pathGenerator.straightest_point_path(cell_start_path, waymark)
+	if first.is_empty():
+		return first
+	var second := _pathGenerator.straightest_point_path(first[first.size() - 1], cell_end_path)
+	if second.is_empty():
+		return second
+	first.append_array(second.slice(1))
+	return first
+
+# --- Waymark (Legendary Dream; owner 2026-10-21, legendaries_final.md 1.1) -------------------------------------------
+# Every walker goes start -> the stone's cell -> the Heartwood. The drawn route is the two legs joined; `leg_split` is the
+# index of its first point on the stone (its 4 halves are never built on). A corridor walked both ways keeps an index
+# per leg (_route_index / _route_index2), so a walker on leg 1 is never put on leg 2's tail and skips the stone.
+const NO_WAYMARK := Vector2(-1, -1)
+var waymark := NO_WAYMARK  # The stone's whole cell (MapGenerator.set_waymark)
+var leg_split := -1  # Index in current_path of the first point on the stone (-1: one leg)
+var _route_index2 := {}  # Leg 2's points -> index in current_path (the stone's point is in both)
+
+func has_waymark() -> bool:
+	return waymark.x >= 0.0
+
+# A route point on the stone's cell (whole cells: the start, a flyer's line, never count).
+func is_waymark_point(point: Vector2) -> bool:
+	if not has_waymark() or FindPath.is_whole_cell(point):
+		return false
+	return (Vector2(FindPath.point_to_node(point)) / 2.0).floor() == waymark
+
+# The index of `route`'s first point on the stone (-1: none, or no Waymark).
+func waymark_index(route: PackedVector2Array) -> int:
+	if not has_waymark():
+		return -1
+	for i in route.size():
+		if is_waymark_point(route[i]):
+			return i
+	return -1
+
+# The way on from `point` to the Heartwood for a walker that has (`passed`) or hasn't passed the stone: the drawn
+# route's tail, else down the distance field to the route, else a search.
+func tail_from(point: Vector2, passed := false) -> PackedVector2Array:
+	var tail := route_tail(point, passed)
+	if tail.is_empty():
+		tail = join_route(point, passed)
+	return tail if not tail.is_empty() else find_path_from(point, passed)
 
 func get_curr_path() -> PackedVector2Array:
 	return current_path
@@ -273,24 +333,26 @@ func set_half_blocked(h: Vector2, blocked: bool) -> void:
 var _route_version := -1
 var _route_index := {}  # Route point -> its index in current_path (built by draw())
 var _route_mask := PackedByteArray()  # 1 per half on current_path (join_route), for _route_mask_version
+var _route_mask2 := PackedByteArray()  # A Waymark's leg 2 (then _route_mask is leg 1's)
 var _route_mask_version := -2
 
 # The route from `point` to the Heartwood when `point` is on the current route and nothing has been
 # blocked or opened since it was drawn: the route's own tail (a shortest route's tail is a shortest
 # route, and the one sticky re-routes keep). Empty otherwise (search instead).
-func route_tail(point: Vector2) -> PackedVector2Array:
+func route_tail(point: Vector2, passed := false) -> PackedVector2Array:
 	if _pathGenerator == null or _route_version != _pathGenerator.version:
 		return PackedVector2Array()
-	if point == cell_start_path:  # The start as a whole cell: the whole route
+	if point == cell_start_path and not passed:  # The start as a whole cell: the whole route
 		return current_path.duplicate()
-	if not _route_index.has(point):
+	var index: Dictionary = _route_index2 if passed and leg_split >= 0 else _route_index
+	if not index.has(point):
 		return PackedVector2Array()
-	return current_path.slice(_route_index[point])
+	return current_path.slice(index[point])
 
 # From `point` off the current route: shortest steps down FindPath's distance field until it meets the route,
 # then the route's tail (a shortest route's tail is shortest). Same length as a search, far cheaper for many
 # stranded nightmares at once. Empty when the route isn't current (search instead) or there's no way.
-func join_route(point: Vector2) -> PackedVector2Array:
+func join_route(point: Vector2, passed := false) -> PackedVector2Array:
 	if _pathGenerator == null or _route_version != _pathGenerator.version or current_path.is_empty():
 		return PackedVector2Array()
 	if _route_mask_version != _route_version:  # 1 per half on the current route (where a descent may stop)
@@ -298,10 +360,24 @@ func join_route(point: Vector2) -> PackedVector2Array:
 		var size := _pathGenerator.size()
 		_route_mask.resize(size.x * size.y)
 		_route_mask.fill(0)
-		for p in current_path:
-			var n := FindPath.point_to_node(p)
-			_route_mask[n.y * size.x + n.x] = 1
-	var walk := _pathGenerator.descend(point, cell_end_path, _route_mask)
-	if walk.size() > 1 and _route_index.has(walk[-1]):
-		walk.append_array(current_path.slice(_route_index[walk[-1]] + 1))
+		_route_mask2.resize(size.x * size.y)
+		_route_mask2.fill(0)
+		for i in current_path.size():  # A Waymark: one mask per leg (leg 1's in _route_mask)
+			var n := FindPath.point_to_node(current_path[i])
+			if leg_split < 0 or i <= leg_split:
+				_route_mask[n.y * size.x + n.x] = 1
+			if leg_split >= 0 and i >= leg_split:
+				_route_mask2[n.y * size.x + n.x] = 1
+	var two_legs := leg_split >= 0
+	var second := two_legs and passed
+	var goal := waymark if two_legs and not passed else cell_end_path
+	var walk := _pathGenerator.descend(point, goal, _route_mask2 if second else _route_mask)
+	var index: Dictionary = _route_index2 if second else _route_index
+	if walk.size() > 1 and index.has(walk[-1]):
+		walk.append_array(current_path.slice(index[walk[-1]] + 1))
+	elif two_legs and not passed and not walk.is_empty():  # Down to the stone off leg 1: on from where it stands there
+		var on := tail_from(walk[walk.size() - 1], true)
+		if on.is_empty():
+			return PackedVector2Array()
+		walk.append_array(on.slice(1))
 	return walk
