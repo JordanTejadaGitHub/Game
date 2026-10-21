@@ -246,9 +246,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			main_row.append(["Grab range %.1f" % reach, &"grab_reach"])
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
-		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
-		if covers:  # Coverage in the icon row (story chat: always visible, no extra line; the path icon + N)
-			main_row.append([str(_tower.get_coverage()), &"path_length"])
+		# No path coverage on the Warden sheet (user 2026-10-21: "remove the paths added on the warden sheet", PC and phones)
 		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
 		# How it attacks is a tag chip now (_show_keywords; user: "the single target icon should be a tag").
 		_stat_row(main_row, true)
@@ -279,10 +277,11 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 				second.append([strength, status, true])
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
-		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength (coverage is in the row)
-			detail_lines.append_array(BranchKit.stat_lines(_tower).filter(func(line: String) -> bool: return not line.begins_with("Covers ")))
+		var lines := BranchKit.stat_lines(_tower).filter(func(line: String) -> bool: return not line.begins_with("Covers "))  # No coverage (user)
+		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength
+			detail_lines.append_array(lines)
 		else:
-			notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
+			notes.append_array(lines)  # Jarlink's arc, live (Tower Code)
 	else:
 		notes.append("A wall: no attack.")
 	if data.catch_share > 0.0:
