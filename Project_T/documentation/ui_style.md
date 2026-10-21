@@ -40,7 +40,11 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
   (it is a dark, heavy serif: never bold for body, 1.4 line height); labels in **Vollkorn SC**. All OFL, Google Fonts.
   Cormorant Garamond and Alegreya Sans go. Text colour is Moonlight / Mist; links underline in Wraithlight.
 - **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
-  rest and gold on hover / press.
+  rest and gold on hover / press: each has a pale twin `<id>_moon` in `hud_glyphs.png` (hud_icons.json).
+- **Hide / show handles** (the DPS meter, the Warden bar; user 2026-10-20: "the arrow is over the UI"): a small pewter
+  plate (`plate.png`, at least 48 px tall for touch) holding `chevron_hud_moon` at rest and `chevron_hud` on a brass
+  plate on hover; the code flips the chevron to point the way the panel will move. It sits **outside** the panel's
+  edge with a 4 art px gap and never overlaps the panel or its sprout.
 
 ## The idea
 

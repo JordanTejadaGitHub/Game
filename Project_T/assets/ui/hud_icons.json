@@ -13,17 +13,24 @@
 		"frame_size": 10,
 		"icons": {
 			"boosts_hud": 1,
+			"boosts_hud_moon": 14,
 			"boosts_off": 4,
 			"boosts_on": 5,
+			"chevron_hud": 12,
+			"chevron_hud_moon": 18,
 			"dreams_hud": 6,
+			"dreams_hud_moon": 17,
 			"help_hud": 2,
+			"help_hud_moon": 15,
 			"kind_armoured": 7,
 			"kind_fast": 11,
 			"kind_flying": 8,
 			"kind_hidden": 9,
 			"kind_swarm": 10,
 			"menu_hud": 3,
-			"remember_hud": 0
+			"menu_hud_moon": 16,
+			"remember_hud": 0,
+			"remember_hud_moon": 13
 		},
 		"image": "hud_glyphs.png"
 	},
