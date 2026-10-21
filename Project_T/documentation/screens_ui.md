@@ -1366,3 +1366,16 @@ family pick, Calling, Omen, dossier) **wait a moment** so the win lands first:
 - **Real time**, unaffected by game speed (3x doesn't shorten it), and **tap / click / Enter skips** straight to
   the screens. Auto-drift and saving wait for the screens as before; the autosave still happens at the rest.
 - Reduced motion: the same pause, no motes.
+
+## Reactions you can read (user, 2026-10-20: "can barely see or read when a Reaction happens")
+- **The callout:** the Reaction's icon + its name, display font **20 px (phones 24)**, the Reaction's colour with a
+  **2 px dark outline** and a faint dark backplate behind it (readable over gold paths, lit cells and effects). It
+  pops in with a small overshoot (0.12 s), **holds 0.9 s**, then rises 6 px and fades (0.3 s): about 1.3 s in all
+  (was 0.9 s and small). Anchored to its nightmare (as specced 2026-10-16), above the health bar and status row.
+- **Never stacked unreadably:** at most 3 on screen; a fourth replaces the oldest. The same Reaction again on the
+  same nightmare within the hold just bumps a "×2" on the existing callout instead of a new one.
+- **The effect itself reads at a glance:** each Reaction's burst is at least 1.5 cells across, in its own colour,
+  with a bright 1-frame flash at the start (off under reduce flashes), drawn above the lit path and puddles so the
+  ground layers never swallow it.
+- **Crowned Reactions** are one size up (callout 24 / 28 px, a crown mark, a longer 1.2 s hold).
+- Damage numbers and smaller callouts (Weak, Crit) stay below Reaction callouts in priority and size.
