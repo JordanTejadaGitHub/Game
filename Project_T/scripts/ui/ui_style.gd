@@ -28,7 +28,7 @@ const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare p
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
 const SLATE := Color("5c5a78")  # Slate: a Warden slot you can't afford (its border)
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
-const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
+const PALETTE_NAMES := {"INK": "Moonlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
 	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "SLATE": "Slate"}
