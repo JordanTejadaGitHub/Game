@@ -212,13 +212,17 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	# a drift (Test Grove spawns) pays its plain dew_reward.
 	var share: float = enemy.get_dew_share() if enemy.has_method("get_dew_share") else float(enemy.get_dew_reward())
 	var pot_share = enemy.get("dew_share")
-	if pot_share != null and float(pot_share) >= 0.0:
+	# Headlong (DriftDirector.PREPAID_META): its share was paid when its drift started; only the per-dispel extras pay now
+	var prepaid: bool = enemy.has_meta(DriftDirector.PREPAID_META)
+	if pot_share != null and float(pot_share) >= 0.0 and not prepaid:
 		pot_earned_block += share
 	# A catcher nearby (Dewcatcher, Wellspring) catches a share more into its bowl, for the Harvest.
 	var caught := DewCatch.catch(enemy, share)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null:
 		share *= 1.0 + dreams.dew_line_extra(enemy)  # Last Collection: a share more near the Heartwood
+	if prepaid:
+		share = enemy.get_dew_share() * (dreams.dew_line_extra(enemy) if dreams != null else 0.0) if enemy.has_method("get_dew_share") else 0.0
 	earn_dew_at(_carried_dew(share), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
 
 # Pays whole Dew and carries the fraction to the next dispel (small shares aren't rounded away).

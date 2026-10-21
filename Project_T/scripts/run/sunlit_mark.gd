@@ -17,6 +17,8 @@ var _rings: Array = []  # [world position, seconds left]
 var _waiting: Array = []  # [Tower, ranks banked]: a small "+N" over each Warden with free ranks waiting to be Nurtured
 const WAITING_SIZE := 13
 const WAITING_LIFT := 16.0  # px above the sun's spot
+var _wild: Array = []  # [Tower, share filled 0..1]: Wild Growth's ring at each Warden's base (a bud when ripe)
+const WILD_RING_R := 9.0
 
 func _ready() -> void:
 	z_index = 2  # Over the Wardens' sprites (y-sorted at 0), under the lighting (3)
@@ -33,6 +35,10 @@ func _process(delta: float) -> void:
 			now = dream_state.sunlit_targets()
 		if now != _targets:
 			_targets = now
+			queue_redraw()
+		var wild := _wild_now()
+		if wild != _wild:
+			_wild = wild
 			queue_redraw()
 		var waiting := _banked_now()
 		if waiting != _waiting:
@@ -56,6 +62,17 @@ static func spot_on(tower: Tower) -> Vector2:
 
 # Every Warden with ranks banked and not yet Nurtured (Hard-Won Rings, Sunlit Rest, Growth Rings…; owner 2026-10-20: banked
 # ranks stack, "make that visible").
+# Wild Growth (Legendary): every Warden it applies to, with how full its count is.
+func _wild_now() -> Array:
+	var out: Array = []
+	if dream_state == null or not dream_state.has_rule(&"wild_growth"):
+		return out
+	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
+		if dream_state.batch.wild_applies(tower):
+			var need: int = dream_state.batch.wild_need(tower)
+			out.append([tower, snappedf(minf(float(dream_state.batch.wild_of(tower)) / maxf(need, 1), 1.0), 0.01)])
+	return out
+
 func _banked_now() -> Array:
 	var out: Array = []
 	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
@@ -84,6 +101,17 @@ func _draw() -> void:
 			draw_line(at + dir * 4.5, at + dir * 6.5, Color(Palette.GLOW, 0.6 * breath), 1.0)
 		draw_circle(at, 3.5, Color(Palette.GOLD, 0.85 * breath))
 		draw_circle(at, 2.0, Color(Palette.HEARTLIGHT, 0.7 * breath))
+	for row in _wild:  # Wild Growth: a thin ring at the base fills with its count; ripe, a bud
+		if not is_instance_valid(row[0]):
+			continue
+		var base := to_local(row[0].global_position) + Vector2(0.0, Tower.MAP_GRID.cell_size.y * 0.32)
+		var fill: float = row[1]
+		draw_arc(base, WILD_RING_R, 0.0, TAU, 24, Color(Palette.DEEPMOSS, 0.6), 2.0)
+		if fill > 0.0:
+			draw_arc(base, WILD_RING_R, -PI / 2.0, -PI / 2.0 + TAU * fill, 24, Color(Palette.NEWLEAF, 0.9), 2.0)
+		if fill >= 1.0:
+			draw_circle(base, 4.0, Palette.NEWLEAF)
+			draw_circle(base + Vector2(-1.0, -1.0), 1.5, Palette.HEARTLIGHT)
 	var font := UiStyle.number_font()
 	for row in _waiting:
 		if not is_instance_valid(row[0]):

@@ -681,3 +681,23 @@ Lent cards now give every family, the lent family's own Wardens included ("new b
 ## Calling evolutions (owner 2026-10-16; council `D:\Projects\logs\dream_council\calling_evolution_*.md`)
 The Calling grows by play style, not by family: a style at the drift 5 rest (Spread / Focus / Support; replaces that rest's Dream), a follow-up at the drift 25 boss rest, its capstone at 50, and at 75 (Heartwood's Gifts' old slot) the style's other follow-up. Deepen only. Table: `scripts/combat/calling_paths.gd` (preloaded as `DreamState.CALLING_PATHS`); state `DreamState.calling_path` (saved), offers through the Dream queue (`_calling_offer_for`, `offering_calling`, `is_calling_offer`, `_choose_calling`, signal `calling_grew`; no reroll / let-go / let-it-pass; never taken as a card). Class nodes read `class_kit.evo(id)`. Only **Spore Print** is built (15 evolutions in `spore_print.gd`, `EVO_*`); its class cards are retired; the other Callings keep the drift 5 class Dream until theirs ship. A run that took class cards never evolves (no migration). **Noticeability (owner 2026-10-16):** every evolution shows a puff / thread / glow and credits itself (`class_kit.credit` → `DreamState.note_card`, signal `card_fired`, `card_counts_block` / `card_counts_last_block` / `card_counts_run`: for first-fire callouts and a "Your Dreams this block" rest report, UI still to build); a status reaching its most flashes (`EnemyStatuses.status_filled` → `Enemy.flash_status`). Parse-checked only; `tests/test_calling_path.gd` written, not run. No Developer "Calling" setting yet (Test Grove never sets a Calling).
 - **All four starting Callings evolve (2026-10-16):** Lantern Light (`lf_*` in `firefly_lights.gd`: Strung Lights / Bonfire / Borrowed Light lines; one Lit check `_lit_sources`, jump hops inside `EVENT_MAX`), Keeping Time (`kt_evo_*` in `keeping_time.gd`: Carrying Tune / Steady Beat / Accompaniment lines; `_evolved_toll`), Puddles (`dw_*` in `puddles.gd`: Stream / Black Pond / Riverside lines). Rows in `calling_paths.gd` (60 total); their class cards are retired. Built by three helpers from the council draft + both reviews; parse-checked only.
+
+## Legendaries that feel legendary (owner 2026-10-21; dream_council_review.md 28, D:\Projects\logs\dream_council\legendaries_final.md)
+A Legendary is a build by itself: it breaks one rule, is visible, is never a percentage on something else. Rule for every
+card: the route is the player's plan (no card moves, blocks or re-routes it on its own; Gravestones was rejected).
+- **Start-pool Legendaries:** Headlong, Wild Growth, Dawnbreak (Waymark next, in a worktree). Grand Design, The Long Walk and
+  Unbroken Chain are retired; Old Heart is out of the start pool (on no Grove node yet). Ids kept.
+- **Timing A** (`dream_state.gd`): at a boss rest only the defining slot can be Legendary, `BOSS_LEGENDARY_WEIGHTS`
+  [0,0,20,20] (Rare 1 : Legendary 1, lean-proof); `_no_legendary_draws` keeps Legendaries out of the other boss slots and
+  their Rare+ fallbacks; the defining slot skips Legendary only when the offer holds one. Ordinary act 2 offers from the
+  drift 35 rest: `LATE_ACT2_WEIGHTS` [100,64,30,3]. Boss rests (25, 75) show the Dream before the Calling follow-up
+  (`_dream_first_shown`).
+- **Headlong** (`drift_director.gd`): pressing Start/Call while the last drift's nightmares are on the field (never Auto-drift,
+  a block's first or a boss drift; `_headlong_ok`) compresses the drift to `HEADLONG_SECONDS` after `shape_schedule`
+  (`_compress`) and pays its pot up front (`_pay_up_front`); its nightmares carry `PREPAID_META` and pay only per-dispel
+  extras (`RunState`). The normal clock (`_active[n].normal_end` / `started`, `_clock`) outlives `_arriving`:
+  `arrival_left`, `get_arrival_skipped`, `would_call_early`, `get_call_early_bonus` and the Auto-drift delay read it.
+- **Wild Growth** (`dream_batch_rules.gd` `wild_*`, saved as "wild"): `WILD_NEEDS` [20,60,150] dispels by tier; the killing
+  blow plus `WILD_HELPERS` 2 nearest Wardens with the spot in range count; ripe = free growth (`DreamState.wild_growth_free`
+  in `Tower.get_grow_cost`; the rank difference is still paid); otherwise `TowerPlacer.evolve` refuses with a toast
+  (`wild_growth_blocks`). Walls, the Sapling, Ascended excluded; excludes Hard-Won Rings. Ring and bud: `SunlitMark`.

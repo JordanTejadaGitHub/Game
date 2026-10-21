@@ -30,6 +30,12 @@ const GROUP := &"dream_state"
 const DREAM_DIR := "res://resource/dream/"
 # Rarity weights (Common, Uncommon, Rare, Legendary) by act.
 const RARITY_WEIGHTS := [[65, 28, 7, 0], [50, 32, 15, 3], [38, 34, 22, 6]]
+# Legendary timing A (owner 2026-10-21, dream_council_review.md 28): at a boss rest only the defining slot can be a
+# Legendary, at Rare 1 : Legendary 1 (scaled so Blight's lean_common halving keeps 1 : 1); every other boss-rest slot
+# never rolls one. Ordinary act 2 offers from the drift 35 rest use LATE_ACT2_WEIGHTS (about 1.5% a slot).
+const BOSS_LEGENDARY_WEIGHTS := [0, 0, 20, 20]
+const LATE_ACT2_WEIGHTS := [100, 64, 30, 3]
+const LATE_ACT2_FROM_DRIFT := 35
 # Rule numbers: [base, Deepened (II)].
 const COZY_CORNERS_BONUS := [0.30, 0.30]
 const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 = the 8 around, 2 = 5×5)
@@ -2798,14 +2804,23 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if not is_offering():
 		_show_next_offer.call_deferred()
 
+var _dream_first_shown := {}  # Boss-rest drifts whose Dream was shown before their Calling follow-up (not saved: a rest's screens run in one go)
+
 func _show_next_offer() -> void:
 	if _pending_drifts.is_empty() or is_offering() or _remember_open:
 		return
 	current_offer_drift = _pending_drifts.pop_front()
 	var grow := _calling_offer_for(current_offer_drift)
+	# A boss rest (drift 25, 75) shows its Dream before the Calling follow-up, so a Legendary in it isn't buried behind
+	# other choices (owner 2026-10-21, dream_council_review.md 28)
+	var dream_first: bool = not grow.is_empty() and current_offer_drift > CLASS_OFFER_UNTIL_DRIFT and drift_director.is_boss_drift(current_offer_drift) and not _dream_first_shown.has(current_offer_drift)
+	if dream_first:
+		_dream_first_shown[current_offer_drift] = true
+		_pending_drifts.push_front(current_offer_drift)  # The Calling follow-up comes after this Dream
+		grow.clear()
 	if not grow.is_empty():
 		_calling_offered[current_offer_drift] = true
-		if current_offer_drift > CLASS_OFFER_UNTIL_DRIFT:
+		if current_offer_drift > CLASS_OFFER_UNTIL_DRIFT and not _dream_first_shown.has(current_offer_drift):
 			_pending_drifts.push_front(current_offer_drift)  # That rest's Dream comes next (drift 5: the style pick is its Dream)
 		offering_calling = true
 		current_offer = grow
@@ -3082,6 +3097,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	# A boss rest belongs to the next act (dream_design.md 495076d2): its rarity weights and min_act are the next act's
 	var boss_rest := drift_director.is_boss_drift(drift_number)
 	var act := drift_director.get_act(drift_number + 1 if boss_rest else drift_number)
+	_offer_boss = boss_rest
 	_taken_this_offer.clear()
 	# The drift 5 Dream draws from class cards only (owner decision 2026-10-12, balance_simulation.md "Human run 29": a
 	# Firefly run saw no class card before drift 25). Every slot is a class card of the Calling's family, at the normal
@@ -3134,10 +3150,13 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 			_legendary_next -= 1
 	# A boss rest guarantees one unowned defining card, rolled Rare+ (dream_design.md ee3d2851; it replaced the Legendary
 	# slot: Legendaries come only at their normal odds). The other slots are Rare+ below.
-	if boss_rest and offer.size() < size and not offer.any(func(c: UpgradeData) -> bool: return is_defining(c) and not has_card(c.id)):
+	# Timing A: the defining slot is always drawn (a defining lent or fresh Grove card no longer cancels it); it can be a
+	# Legendary only when the offer holds none yet.
+	if boss_rest and offer.size() < size:
 		var defining := _boss_defining_card(act, offer)
 		if defining != null:
 			offer.append(defining)
+	_no_legendary_draws = boss_rest  # Timing A: no other boss-rest slot draws a Legendary (fallbacks included)
 	current_stray = null
 	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
 		current_stray = _draw_card(act, offer, false, true)
@@ -3160,6 +3179,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if card == null:
 			break
 		offer.append(card)
+	_no_legendary_draws = false
 	if offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 		_dreams_without_rare = 0
 	else:
@@ -3564,8 +3584,14 @@ func is_defining(card: UpgradeData) -> bool:
 # act's weights (so it can be a Legendary: they're defining); the other Rare+ rarity if that one has none. null = none left.
 func _boss_defining_card(act: int, offer: Array[UpgradeData]) -> UpgradeData:
 	var family_taken := offer.filter(is_family_card).size() >= 2
-	var rolled := _roll_rarity(act, true)
-	for rarity in [rolled, UpgradeData.Rarity.RARE if rolled == UpgradeData.Rarity.LEGENDARY else UpgradeData.Rarity.LEGENDARY]:
+	var legendary_ok := not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
+	_rolling_defining = true
+	var rolled := _roll_rarity(act, true) if legendary_ok else UpgradeData.Rarity.RARE
+	_rolling_defining = false
+	var order: Array = [rolled, UpgradeData.Rarity.RARE if rolled == UpgradeData.Rarity.LEGENDARY else UpgradeData.Rarity.LEGENDARY]
+	if not legendary_ok:
+		order = [UpgradeData.Rarity.RARE]
+	for rarity in order:
 		var choices: Array = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, rarity, offer, act, family_taken))
 		if not choices.is_empty():
 			return _weighted_pick(choices)
@@ -3604,8 +3630,8 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
-		if has_legendary and card.rarity == UpgradeData.Rarity.LEGENDARY:
-			continue
+		if (has_legendary or _no_legendary_draws) and card.rarity == UpgradeData.Rarity.LEGENDARY:
+			continue  # (Timing A: never in a boss rest's other slots, the Rare+ fallbacks below included)
 		if has_class and card.calling != "":
 			continue
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
@@ -3653,8 +3679,16 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 	return _weighted_pick(fresh if not fresh.is_empty() else left, stray)
 
 # A rarity for the next card (-1 = every rarity is in `skip`).
+var _offer_boss := false  # The offer being built is a boss rest's (make_offer)
+var _rolling_defining := false  # _boss_defining_card is rolling: BOSS_LEGENDARY_WEIGHTS
+var _no_legendary_draws := false  # Timing A: the boss rest's other slots never draw a Legendary
+
 func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 	var weights: Array = RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1].duplicate()
+	if _rolling_defining:
+		weights = BOSS_LEGENDARY_WEIGHTS.duplicate()
+	elif act == 2 and not _offer_boss and _offer_drift >= LATE_ACT2_FROM_DRIFT:
+		weights = LATE_ACT2_WEIGHTS.duplicate()
 	if lean_common:
 		for i in [UpgradeData.Rarity.RARE, UpgradeData.Rarity.LEGENDARY]:
 			var moved: int = weights[i] / 2
@@ -3976,6 +4010,7 @@ func sunlit_line() -> String:
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
 	batch.hard_won_sold(tower)  # Hard-Won Rings: selling resets its count
+	batch.wild_sold(tower)  # Wild Growth: so does its count
 	if is_eldest(tower):
 		set_eldest(null)  # The title is free again; its ranks above V are lost
 	if not has_rule(&"remembered_care") or tower.rank <= 0:
@@ -5247,6 +5282,10 @@ func _on_damage_dealt(event) -> void:
 			and not event.enemy.get_meta(&"batch_won", false) and not event.enemy.get("is_echo"):
 		event.enemy.set_meta(&"batch_won", true)
 		batch.hard_won_dispel(self, event.source)
+	# Wild Growth (Legendary): the killing blow and up to 2 Wardens with the spot in range count toward growing, once
+	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and has_rule(&"wild_growth") and not event.enemy.get_meta(&"wild_counted", false) and not event.enemy.get("is_echo"):
+		event.enemy.set_meta(&"wild_counted", true)
+		batch.wild_dispel(self, event.source if is_instance_valid(event.source) and event.source is Tower else null, event.enemy.global_position)
 
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).
@@ -6365,3 +6404,17 @@ func _update_canopy_roles() -> void:
 				DREAM_BURST.play(&"canopy", tower.global_position, 22.0, Reactions._world(tower))  # The canopy shimmer
 		_role_canopy_on = active
 		rules_stamp += 1
+
+# --- Wild Growth (Legendary; owner 2026-10-21) ------------------------------------------------------------------------
+# Whether `tower` growing into `into` is free (ripe under Wild Growth). Tower.get_grow_cost reads it; the rank difference
+# is still charged. Ascended forms (tier 4) and walls grow as before.
+func wild_growth_free(tower, into: TowerData) -> bool:
+	return has_rule(&"wild_growth") and into != null and into.tier < 4 and batch.wild_ripe(tower)
+
+# Whether Wild Growth refuses this growth: no Grow for Dew while it is held (walls, the Sapling and Ascended forms aside).
+func wild_growth_blocks(tower, into: TowerData) -> bool:
+	return has_rule(&"wild_growth") and into != null and into.tier < 4 and batch.wild_applies(tower) and not batch.wild_ripe(tower)
+
+# The refusal's line ("Wild Growth: 12 of 20 dispels to grow").
+func wild_growth_text(tower) -> String:
+	return "Wild Growth: %d of %d dispels to grow" % [batch.wild_of(tower), batch.wild_need(tower)]

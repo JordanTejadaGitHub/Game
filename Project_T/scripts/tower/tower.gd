@@ -1984,6 +1984,8 @@ func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	var gifts := GiftGround.active_for(self)
 	if gifts and gifts.free_growth(tower_data, into):
 		base = 0  # Heartwood's Gift Bramble Verge: Thornwall -> Bramble is free this run
+	if _dream_state and _dream_state.wild_growth_free(self, into):
+		base = 0  # Wild Growth (Legendary, Roguelite Code 2026-10-21): a ripe Warden grows free; its rank difference is still paid
 	var ranks := 0
 	for which in range(1, rank + 1):
 		if not paid_ranks.has(which):

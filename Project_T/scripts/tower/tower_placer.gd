@@ -1655,6 +1655,11 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 		return false
 	if ascended_blocker(into) != "":
 		return false  # One Ascended form per family on the map
+	if not regrow and dream_state.wild_growth_blocks(tower, into):
+		var hud := owner.get_node_or_null("HUD") if owner else null
+		if hud and hud.has_method("show_toast"):
+			hud.show_toast(dream_state.wild_growth_text(tower))  # Wild Growth (Roguelite Code 2026-10-21): no Grow for Dew
+		return false
 	var grows := into.footprint > tower.get_footprint()
 	if grows:
 		var squares := get_grow_squares(tower, into)
