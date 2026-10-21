@@ -1379,3 +1379,13 @@ family pick, Calling, Omen, dossier) **wait a moment** so the win lands first:
   ground layers never swallow it.
 - **Crowned Reactions** are one size up (callout 24 / 28 px, a crown mark, a longer 1.2 s hold).
 - Damage numbers and smaller callouts (Weak, Crit) stay below Reaction callouts in priority and size.
+
+## Chain counter on the HUD (user, 2026-10-20: "should add a chain count somewhere on the UI")
+A live **Chain** counter for Reaction chains (ReactionTracker `chain_reached`, `longest_chain`):
+- **Where:** top centre, just under the drift banner (the Coming strip's place, which only shows at rests); phones
+  the same spot, compact. Never over the field's middle.
+- **When:** appears when a chain reaches ×2, shows "Chain ×N" in the display font with the chain icon; each new
+  link bumps the number with a small pop. At ×5 and ×10 it flares in step with the existing chain badge / surge /
+  Dawnburst (the same moment, not a second effect). It fades 2 s after the chain ends.
+- **Best:** a small "Best ×N" under it (this run's longest chain), and the rest report keeps its "longest chain ×N".
+- Quiet while nothing chains: no empty counter on screen. Reduced motion: no pop, the number still changes.

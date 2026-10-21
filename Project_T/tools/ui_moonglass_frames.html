@@ -90,7 +90,7 @@ const choiceRow = () => h('<div style="display:flex;gap:10px;flex-wrap:wrap;just
 const hash = (x, y, s=1) => { let n = (x*374761393 + y*668265263 + s*982451653) | 0; n = (n ^ (n >>> 13)) * 1274126177 | 0; return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
 C.slate = '#5c5a78';
 // Four metal tones: lit edge, face, turned edge, shadowed edge.
-const METAL = {pewter:[C.mist,C.stone,C.slate,C.dusk], bright:[C.moon,C.mist,C.stone,C.slate], brass:[C.heart,C.glow,C.gold,'#b8662c'], brassPressed:['#b8662c',C.gold,C.glow,C.heart], pressed:[C.dusk,C.slate,C.stone,C.mist]};
+const METAL = {pewter:[C.mist,C.stone,C.slate,C.dusk], bright:[C.moon,C.mist,C.stone,C.slate], brass:[C.heart,C.glow,C.gold,'#b8662c'], brassPressed:['#b8662c',C.gold,C.glow,C.heart], brassHover:[C.heart,C.heart,C.glow,C.gold], pressed:[C.dusk,C.slate,C.stone,C.mist]};
 function backdrop(el){
   const w = Math.ceil(el.clientWidth/P), h = Math.ceil(el.clientHeight/P); if (!w || !h) return;
   el.style.backgroundImage = `url(${ditherURL(w, h, C.night, C.deepmoss, 'y', 0.72)})`;
@@ -162,7 +162,7 @@ const add = (name, url, w, h, margin) => OUT.push({name, url, w, h, margin});
 const MAIN = 36, MM = 14, SMALL = 20, SM = 8;
 for (const [name, metal] of [['panel_main','pewter'],['panel_main_yours','brass']])
   add(name, glassFrame({W:MAIN, H:MAIN, metal, main:true, glass:C.night, sh:0}), MAIN, MAIN, MM);
-for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_pressed','brassPressed'],['plate_yours','brass'],['plate_danger','ember']])
+for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_pressed','brassPressed'],['plate_yours','brass'],['plate_yours_hover','brassHover'],['plate_danger','ember']])
   add(name, glassFrame({W:SMALL, H:SMALL, metal, main:false, glass:C.night, sh:0}), SMALL, SMALL, SM);
 add('plate_dim', glassFrame({W:SMALL, H:SMALL, metal:'pewter', glass:C.dread, sh:0}), SMALL, SMALL, SM);
 { const c = document.createElement('canvas'); c.width = 8; c.height = 2; const g = c.getContext('2d'); g.fillStyle = C.dread; g.fillRect(0,0,8,1); g.fillStyle = C.dusk; g.fillRect(1,1,6,1); add('divider', c.toDataURL(), 8, 2, 1); }

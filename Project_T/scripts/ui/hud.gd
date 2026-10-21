@@ -76,6 +76,7 @@ var _leaf_flash: Tween
 var _toast_tween: Tween
 var _counter_icons := {}  # Label -> its icon (TextureRect)
 const DREAM_DAMAGE_PANEL := preload("res://scripts/ui/dream_damage_panel.gd")  # Developer: what each Dream did (Roguelite Code)
+const CHAIN_COUNTER := preload("res://scripts/ui/chain_counter.gd")  # "Chain ×N" under the banner (screens_ui.md 801d7ae8)
 
 func _ready() -> void:
 	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width (also when main runs alone)
@@ -141,6 +142,7 @@ func _ready() -> void:
 	# card (before the dossier in the rest order), both from screens_ui.md.
 	var strip := ComingStrip.new(drift_director)
 	add_child(strip)
+	add_child(CHAIN_COUNTER.new())  # The live Reaction chain count, under the strip (screens_ui.md 801d7ae8)
 	if TestGrove.is_available():  # Developer "Dream damage panel" (Roguelite Code 2026-10-17); shows while its setting is on
 		var dream_damage = DREAM_DAMAGE_PANEL.new()
 		dream_damage.setup(dream_state)

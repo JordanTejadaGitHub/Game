@@ -55,8 +55,25 @@ static func size_fits(size: Vector2i) -> bool:
 	var room := usable_rect().size - window_decorations()
 	return room.x <= 0 or (size.x <= room.x and size.y <= room.y)
 
-# `index`, or the largest listed size below it that fits (the smallest when none does).
+# The last entry, after the sizes that fit (user: "also do that behaviour", like other games): a framed window at the
+# current screen's native size, at its top-left, the title bar at the top and the bottom over the taskbar. The only
+# entry that may exceed the usable area. Borderless Fullscreen stays the default and the better full-size choice.
+const NATIVE_INDEX := 6  # WINDOW_SIZES.size()
+const NATIVE_LABEL := "%d × %d (covers the taskbar)"
+
+static func native_size() -> Vector2i:
+	return DisplayServer.screen_get_size(DisplayServer.window_get_current_screen())
+
+static func size_labels() -> Array:
+	var labels: Array = WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y])
+	var native := native_size()
+	labels.append(NATIVE_LABEL % [native.x, native.y] if native.x > 0 else "Screen size (covers the taskbar)")
+	return labels
+
+# `index`, or the largest listed size below it that fits (the smallest when none does); the native entry stays.
 static func fitting_index(index: int) -> int:
+	if index >= NATIVE_INDEX:
+		return NATIVE_INDEX
 	for i in range(clampi(index, 0, WINDOW_SIZES.size() - 1), -1, -1):
 		if size_fits(WINDOW_SIZES[i]):
 			return i
@@ -128,8 +145,7 @@ func _ready() -> void:
 
 	var display := _tab("Display")
 	_toggle(display, "Fullscreen", "fullscreen")
-	window_size_pick = _choice(display, "Window size", WINDOW_SIZE_SETTING,
-		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
+	window_size_pick = _choice(display, "Window size", WINDOW_SIZE_SETTING, size_labels(), 0)  # Last: the screen's native size
 	_size_hint.name = "WindowSizeHint"
 	_size_hint.text = SIZE_FULLSCREEN_HINT
 	_size_hint.visible = false
@@ -460,10 +476,16 @@ static func apply_display(settings: Dictionary, resize: bool = true) -> void:
 	resize = resize or not _display_applied
 	_display_applied = true
 	if resize and not settings.get("fullscreen", false) and not OS.has_feature("mobile"):  # Phones are always fullscreen
-		var size: Vector2i = WINDOW_SIZES[fitting_index(int(settings.get(WINDOW_SIZE_SETTING, 0)))]  # Too big: the largest that fits
+		var index := fitting_index(int(settings.get(WINDOW_SIZE_SETTING, 0)))
+		var deco := window_decorations()
+		if index == NATIVE_INDEX and native_size().x > 0:  # Native client size at the screen's top-left, framed: over the taskbar
+			var screen := DisplayServer.window_get_current_screen()
+			DisplayServer.window_set_size(native_size())
+			DisplayServer.window_set_position(DisplayServer.screen_get_position(screen) + Vector2i(deco.x / 2, deco.y - deco.x / 2))
+			return
+		var size: Vector2i = WINDOW_SIZES[mini(index, WINDOW_SIZES.size() - 1)]  # Too big: the largest that fits
 		DisplayServer.window_set_size(size)
 		var area := usable_rect()  # Centred on the current screen's usable area, title bar included
-		var deco := window_decorations()
 		DisplayServer.window_set_position(area.position + (area.size - size - deco) / 2 + Vector2i(deco.x / 2, deco.y - deco.x / 2))
 
 # --- Controls: each registers its key (tab, default, refresher) and gets a gold "changed" dot ---
@@ -1017,6 +1039,8 @@ func _mark() -> void:
 	_size_hint.visible = fullscreen and window_size_pick.is_visible_in_tree()
 	for i in WINDOW_SIZES.size():  # Windowed: only sizes that fit this screen with the title bar
 		window_size_pick.set_item_disabled(i, not size_fits(WINDOW_SIZES[i]))
+	if window_size_pick.item_count > NATIVE_INDEX:  # The native entry follows the screen the window is on
+		window_size_pick.set_item_text(NATIVE_INDEX, size_labels()[NATIVE_INDEX])
 	var fits := fitting_index(int(_value(WINDOW_SIZE_SETTING)))
 	if window_size_pick.selected != fits:
 		window_size_pick.selected = fits  # The size that will really be used
