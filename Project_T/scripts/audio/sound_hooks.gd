@@ -1147,7 +1147,8 @@ func _play_win() -> void:
 # trigger when a card's name pops over a nightmare (CombatCallouts `card_called`, once per card per gap).
 func _hook_dream_cards(node: Node) -> void:
 	for pair in [["card_flipped", _on_dream_card_flipped], ["card_chosen", _on_dream_card_chosen],
-			["card_called", _on_dream_card_called], ["signature_discovered", _on_signature_discovered], ["piece_placed", _on_gift_piece_placed]]:
+			["card_called", _on_dream_card_called], ["signature_discovered", _on_signature_discovered], ["piece_placed", _on_gift_piece_placed],
+			["legendary_offered", _on_legendary_offered], ["legendary_taken", _on_legendary_taken]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -1155,6 +1156,16 @@ func _rarity_of(card: Resource) -> int:
 	if card == null or card.get("rarity") == null:
 		return 0
 	return clampi(int(card.get("rarity")), 0, 3)
+
+# Legendary Dreams (UI Code 131a1bf8, dream_council_review.md 28; placeholders until Sound has its own): the reveal is
+# the Legendary flip pitched low under a quiet bell, the take the Rare take with the bell swelling after it.
+func _on_legendary_offered(_card: Resource = null) -> void:
+	sound.play(&"dream_flip_3", null, DREAM_CARD_DB + 2.0, 0.85, 0.0, &"UI")
+	sound.play(&"ascend_great_bell", null, -12.0, 1.0, 0.0, &"UI")
+
+func _on_legendary_taken(_card: Resource = null) -> void:
+	sound.play(&"dream_take_2", null, 1.0, 0.9, 0.0, &"UI")
+	get_tree().create_timer(0.2).timeout.connect(func() -> void: sound.play(&"ascend_great_bell", null, -8.0, 1.0, 0.0, &"UI"))
 
 func _on_dream_card_flipped(card: Resource = null, _index := 0) -> void:
 	sound.play(StringName("dream_flip_%d" % _rarity_of(card)), null, DREAM_CARD_DB, 1.0, 0.0, &"UI")
