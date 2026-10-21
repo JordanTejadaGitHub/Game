@@ -152,6 +152,8 @@ func _process(_delta: float) -> void:
 	if not active:
 		return
 	var cell: Vector2 = _cell_at(get_global_mouse_position())
+	if get_viewport().gui_get_hovered_control() != null:
+		cell = NO_CELL  # Under a HUD panel: no world tag drawn through it (user screenshot: "Mossy Boulder" by the Coming strip)
 	if cell != _hover_cell:
 		_hover_cell = cell
 		_refresh_hover()

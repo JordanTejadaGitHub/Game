@@ -233,10 +233,8 @@ func _process(delta: float) -> void:
 		var shown := not RestScreens.covering(get_parent())
 		if _reminder.visible != shown:
 			_reminder.visible = shown
-			if shown:
-				_place_reminder()  # Under the strip, which may have come back too
-	elif _reminder_drift > 0:
-		_place_reminder()
+		if shown:
+			_place_reminder()  # Every frame: the strip above it changes height with its portraits, UI scale, phones
 	if _pending_first:
 		# The run's first rest, once RunSaver has restored a save (a resumed run isn't at drift 0)
 		_pending_first = false
@@ -292,10 +290,14 @@ func _show_reminder(drift: int) -> void:
 		child.queue_free()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
-	box.add_child(eyebrow(drift_director.get_act(drift), 13))
+	var brow := eyebrow(drift_director.get_act(drift), 13)
+	brow.name = "Eyebrow"
+	box.add_child(brow)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	row.add_child(BossPortrait.new(data, 44.0))
+	var portrait := BossPortrait.new(data, 44.0)
+	portrait.name = "Portrait"
+	row.add_child(portrait)
 	var text := Label.new()
 	var left := drift - drift_director.drifts_started
 	text.text = "%s arrives in %d drift%s" % [data.display_name, left, "" if left == 1 else "s"]
@@ -304,7 +306,9 @@ func _show_reminder(drift: int) -> void:
 	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text)
 	var button := Button.new()
+	button.name = "About"
 	button.text = "About %s" % IconInfo.name_in_sentence(data.display_name)
+	button.set_meta(&"full_text", button.text)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void:
 		open(drift)
@@ -317,13 +321,63 @@ func _show_reminder(drift: int) -> void:
 	_reminder_drift = drift
 	_place_reminder()
 
-# Centred under the drift banner, and under the "Coming this block" strip (same spot at rests).
+# The top-centre column (user screenshot: the reminder sat left of centre over the strip's portraits): DriftBanner,
+# Coming strip, then this, each under the one above's real bottom (Whispers._lowest: the strip's tags hang below its
+# rect), all on the banner's axis. Whispers and toasts go under it. Out of room (too wide, or reaching past
+# ROOM_SHARE of the screen): one line, the eyebrow and portrait folded away and a compact "About".
+const REMINDER_GAP := 12.0
+const ROOM_SHARE := 0.45
 func _place_reminder() -> void:
+	var hud := get_parent()
+	if hud == null or _reminder == null:
+		return
 	var top := 96.0
-	for node in get_parent().get_children():
-		if node is ComingStrip and node.visible:
-			top = maxf(top, node.position.y + node.size.y + 16.0)  # Clear of its fog panel
-	_reminder.position = Vector2((get_viewport_rect().size.x - _reminder.size.x) / 2.0, top)
+	for node in hud.get_children():
+		if node is Control and (node as Control).visible and (node is ComingStrip or node.name == "DriftBanner"):
+			top = maxf(top, lowest(node) - _origin_y(hud) + REMINDER_GAP)
+	var view := get_viewport_rect().size
+	_compact_reminder(false)
+	var need := _reminder.get_combined_minimum_size()
+	if need.x > view.x - 32.0 or top + need.y > view.y * ROOM_SHARE:
+		_compact_reminder(true)
+		need = _reminder.get_combined_minimum_size()
+	var axis := view.x / 2.0
+	var banner := hud.get_node_or_null("DriftBanner") as Control
+	if banner != null and banner.visible:
+		axis = banner.get_global_rect().get_center().x - (hud.global_position.x if hud is Control else 0.0)  # The banner's centre
+	_reminder.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_reminder.size = need
+	_reminder.position = Vector2(roundf(axis - need.x / 2.0), roundf(top))
+
+# The real bottom of `node`'s visible contents (the Coming strip's tags hang below its rect; as Whispers._lowest).
+static func lowest(node: Control) -> float:
+	var bottom := node.get_global_rect().end.y
+	for child in node.find_children("*", "Control", true, false):
+		if child.is_visible_in_tree() and child.size.y > 0.0:
+			bottom = maxf(bottom, child.get_global_rect().end.y)
+	return bottom
+
+# The bottom of the top-centre column (banner, Coming strip, boss reminder) in `hud`'s space, for toasts and whispers.
+static func column_bottom(hud: Node) -> float:
+	var bottom := 0.0
+	for node in hud.get_children():
+		if node is Control and (node as Control).is_visible_in_tree() \
+				and (node is ComingStrip or node.name == "DriftBanner" or node.name == "BossReminder"):
+			bottom = maxf(bottom, lowest(node) - _origin_y(hud))
+	return bottom
+
+# The HUD's own top in canvas space (it may be a CanvasLayer: 0).
+static func _origin_y(hud: Node) -> float:
+	return (hud as Control).global_position.y if hud is Control else 0.0
+
+func _compact_reminder(on: bool) -> void:
+	for child_name in ["Eyebrow", "Portrait"]:
+		var node := _reminder.find_child(child_name, true, false) as CanvasItem
+		if node != null and node.visible == on:
+			node.visible = not on
+	var about := _reminder.find_child("About", true, false) as Button
+	if about != null:
+		about.text = "About" if on else String(about.get_meta(&"full_text", about.text))
 
 func _hide_reminder() -> void:
 	if _reminder != null:

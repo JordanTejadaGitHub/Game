@@ -109,6 +109,9 @@ func _ready() -> void:
 	# One HUD scale (ui_style.md): the same height and text as every HUD button, in the primary look.
 	_start_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)  # As wide as the speed row (user): _fit_start
 	_start_button.theme_type_variation = &"HudPrimary"
+	if UiStyle.is_phone():  # Phones (user 2026-10-21: "too big compared to the pause and Auto"): their face and size, still the primary plate
+		_start_button.add_theme_font_override("font", UiStyle.caps_font())
+		_start_button.add_theme_font_size_override("font_size", UiStyle.HUD_TEXT_SIZE)
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
 

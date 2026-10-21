@@ -22,7 +22,7 @@ bool inside(vec2 p, vec4 r) {
 }
 
 void fragment() {
-	vec4 c = texture(TEXTURE, UV) * COLOR;
+	vec4 c = COLOR;  // Godot 4: COLOR already holds the texture x modulate (texture() * COLOR squared it: tall Wardens drew dark)
 	if (!inside(local_pos, foot_rect)) {
 		float a = top_alpha;
 		for (int i = 0; i < path_count; i++) {

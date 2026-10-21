@@ -294,6 +294,8 @@ const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain
 # Nightmare states (screens_ui.md "Status row", cbf9506e): "asleep" when Sleep (Drowsy) fills. Appended, so no
 # column moves; listed under "statuses" in icons.json.
 const STATE_ICONS := ["asleep"]
+# Combat HUD marks (appended, no column moves): "chain" = the Reaction chain counter (scripts/ui/chain_counter.gd).
+const HUD_MARK_ICONS := ["chain"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -304,7 +306,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS + HUD_MARK_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -2232,6 +2234,32 @@ func _ic_asleep() -> void:
 		"...acaacaaca....",
 		"....a..a..a.....",
 		"................",
+	]
+	for y in rows.size():
+		for x in rows[y].length():
+			var ch: String = rows[y][x]
+			if ink.has(ch):
+				_dt(x, y, Palette.color(ink[ch]))
+func _ic_chain() -> void:
+	# The Reaction chain: two gold rings linked on a diagonal, each passing in front once. Hand-placed pixels.
+	var ink := {"o": "dread", "H": "heartlight", "G": "glow", "g": "gold"}
+	var rows := [
+		"........ooooo...",
+		".......oHHHHGo..",
+		"......oHHHHGGGo.",
+		"......oHHoooGGgo",
+		".....oHHHo..oggo",
+		"....ooHHGo..oggo",
+		"..ooHoHGGooooggo",
+		".oHHHHoGoGgggggo",
+		"oHHHHGGoGoggggo.",
+		"oHHooooGggogoo..",
+		"oHHo..ogggoo....",
+		"oHGo..ogggo.....",
+		"oGGGoooggo......",
+		".oGGgggggo......",
+		"..ogggggo.......",
+		"...ooooo........",
 	]
 	for y in rows.size():
 		for x in rows[y].length():

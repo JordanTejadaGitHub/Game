@@ -906,8 +906,21 @@ func _choice_delta(tower: Tower, which: Tower.Focus) -> String:
 		Tower.Focus.REACH:
 			return "+%s range" % String.num(Tower.FOCUS_REACH, 1)
 		Tower.Focus.DEEP:
-			return "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)
+			var says := deep_words(tower)  # What Deep does on this Warden first, the Potency number small after it
+			var potency := "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)
+			return potency if says == "" else "%s  (%s)" % [says, potency]
 	return tower.focus_text(which)  # Cut with "…" in the row; whole in the tip
+
+# Deep on this Warden in its own terms (user 2026-10-21, Torrent: "Erosion 1.0% → 1.2% of max health · Soak +20% → +24%"),
+# from Tower Code's deep_preview; "" until it exists or when it has nothing (then Tower Code drops Deep from the choices).
+# PC rows, tips and the phone drawer all read this.
+static func deep_words(tower: Tower) -> String:
+	if tower == null or not tower.has_method("deep_preview"):
+		return ""
+	var lines = tower.call("deep_preview", tower) if tower.get_method_argument_count("deep_preview") > 0 else tower.call("deep_preview")
+	if lines is Array:  # Its lines carry {tokens} ("{damp}: water hits +20% → +24%"): plain words here
+		return " · ".join(PackedStringArray((lines as Array).map(func(l) -> String: return IconInfo.format(str(l)))))
+	return IconInfo.format(str(lines)) if lines != null else ""
 
 # One Nurture choice row (the grow rows' look): `choice_name` left, `change` right ("+5 damage"), the key (1–4) as a
 # chip; `cost` decides the short look (dim; the heading's price turns POOR). 1–4 press it (_pick_choice).
@@ -965,6 +978,9 @@ func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
 				return tower.focus_text(which)  # Its main area grows (Jarlink's link, Hushbell's silence…), and the range
 			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
 		Tower.Focus.DEEP:
+			var says := deep_words(tower)
+			if says != "":  # Its own terms first, then the Potency change small
+				return "%s\nPotency %d%% → %d%%" % [says, roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
 			if tower.get_potency_uses().is_empty():  # Potency does nothing on this form (Tower Code 4f105797)
 				return "Does nothing on this Warden"
 			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
@@ -2051,8 +2067,9 @@ func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
-	offset_left = 0.0
-	offset_right = PHONE_WIDTH
+	var hole: float = (get_parent().get("side_holes") as Vector2).x if get_parent() != null and get_parent().get("side_holes") is Vector2 else 0.0
+	offset_left = hole  # Clear of a punch hole in the middle of the left side (hud.gd side_holes)
+	offset_right = hole + PHONE_WIDTH
 	grow_horizontal = Control.GROW_DIRECTION_END
 
 # The top of the Warden dock (Sell, Select, the Warden slots) in the drawer's space: a left drawer ends above it.
