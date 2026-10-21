@@ -1408,7 +1408,7 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 				lines.append("its cracks last %s s%s" % [_potency_number(crack * p), _at_potency_one(p, "%s s" % _potency_number(crack))])
 		BranchKit.HUSH:
 			var boss := maxf(0.5 / maxf(p, 1.0), NurtureChoices.BOSS_SILENCE_FLOOR)
-			lines.append("a silenced boss's timers run at %d%% speed%s" % [roundi(boss * 100.0), _at_potency_one(p, "50%")])
+			lines.append("a {silenced} boss's timers run at %d%% speed%s" % [roundi(boss * 100.0), _at_potency_one(p, "50%")])
 	if data.echo_share > 0.0:
 		lines.append("its echoes deal ×%s damage" % _potency_number(p))  # Echo Hollow: tag "echo" (an effect)
 	if statuses:

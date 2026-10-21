@@ -62,6 +62,7 @@ const CALLOUT_HOLD := 0.9
 const CALLOUT_HOLD_CROWNED := 1.2
 const CALLOUT_FADE := 0.3
 const CALLOUT_LIFE := 0.12 + CALLOUT_HOLD + CALLOUT_FADE
+const CALLOUT_LIFE_CROWNED := 0.12 + CALLOUT_HOLD_CROWNED + CALLOUT_FADE  # A Crowned callout's whole life (it holds longer)
 const CALLOUT_SAME_PX := 28.0  # The same Reaction this close to a live callout is the same nightmare: it bumps "×2"
 const REACTION_MIN_PX := 96.0  # Reaction bursts drawn at least 1.5 cells across (whole scale steps, so pixels stay square)
 const REACTION_FLASH_SECONDS := 0.05  # The burst's 1-frame bright flash (off under reduce flashes)
@@ -116,6 +117,20 @@ static func bright_flash_ok() -> bool:
 	if _bright_times.size() >= MAX_BRIGHT_PER_SECOND:
 		return false
 	_bright_times.append(now)
+	return true
+
+# The small 1-frame flash a Reaction's burst gives (FxFlash: about a cell across, 0.05 s) has its own budget, so a busy
+# field of Reactions never uses up the big moments' (the x5 surge, the x10 Dawnburst: bright_flash_ok). Still capped.
+const MAX_SMALL_FLASH_PER_SECOND := 4
+static var _small_flash_times: Array[int] = []
+
+static func small_flash_ok() -> bool:
+	var now := Time.get_ticks_msec()
+	while not _small_flash_times.is_empty() and now - _small_flash_times[0] > 1000:
+		_small_flash_times.pop_front()
+	if _small_flash_times.size() >= MAX_SMALL_FLASH_PER_SECOND:
+		return false
+	_small_flash_times.append(now)
 	return true
 
 # The run's FxCache (weakly: a Node in a static is fine, a Resource isn't). Set up by play / segment.
@@ -306,7 +321,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var node := play(effect, at, parent, burst_scale, true, seconds)
 	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
-	if node != null and not reduce_flashes() and bright_flash_ok():
+	if node != null and not reduce_flashes() and small_flash_ok():  # Its own budget (the big moments keep bright_flash_ok)
 		var flash := FxFlash.new(colour, maxf(widest * burst_scale * 0.35, REACTION_MIN_PX * 0.35))
 		parent.add_child(flash)
 		flash.global_position = at
