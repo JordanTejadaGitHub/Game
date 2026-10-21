@@ -147,7 +147,8 @@ func _run() -> void:
 		_check(strip._row.get_child_count() == ceili(first_kinds.size() / float(ComingStrip.PER_ROW))
 			and face.size.x == face.size.y, "one row of up to 6 round discs (no wide pills)")
 		await process_frame
-		_check(strip.get_combined_minimum_size().y <= 100.0, "the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+		# 100 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (bbccb649)
+		_check(strip.get_combined_minimum_size().y <= 100.0 + 2.0 * ComingStrip.CAPTION_GAP, "the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
 	var d10 := ComingStrip.kinds_in_range(director, 10, 10)
 	var listed := 0
 	for group in director.drifts[9].groups:
