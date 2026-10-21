@@ -51,6 +51,14 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
   All OFL, Google Fonts. Text colour is Moonlight / Mist; links underline in Wraithlight.
 - **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
   rest and gold on hover / press: each has a pale twin `<id>_moon` in `hud_glyphs.png` (hud_icons.json).
+- **No floating text over the map** (user 2026-10-21): HUD text always sits on a plate or panel. The rest notes
+  ("Rest after drift N", "Maze bonus", "Selling refunds 75%") are removed; that information lives in tooltips (the
+  Dew counter's, Sell's) and the rest report. Mock-up: https://claude.ai/artifact/RwiJ3SiuzqFnFWQmqFHBx1
+- **DPS meter** (user 2026-10-21, review fix 2): during a drift it is collapsed to its handle plus a one-line plate
+  ("Maze 53 DPS ↑18%"); it opens on tap and at rests. Opened: a header ("Maze" small caps + the DPS number, the change
+  on a Mist line under it, no " · "), Wardens / Last block tabs, a "Sort: DPS ▾" chip, then rows in columns: portrait,
+  name (Vollkorn, Moonlight), DPS (right-aligned number), a thin share bar, the change arrow (Sprig up, Ember down,
+  small). Only the top Warden's row is gold.
 - **Hide / show handles** (the DPS meter, the Warden bar; user 2026-10-20: "the arrow is over the UI"): a small pewter
   plate (`plate.png`, at least 48 px tall for touch) holding `chevron_hud_moon` at rest and `chevron_hud` on a brass
   plate on hover; the code flips the chevron to point the way the panel will move. It sits **outside** the panel's
