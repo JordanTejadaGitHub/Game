@@ -328,6 +328,7 @@ const TERMS := {
 	&"lit": ["Lit", "Lit", "Lit", "lits"],
 	&"jump": ["jump", "jumps", "Jump"],
 	&"water": ["water", "water", "Water", "waters"],
+	&"dew_splash": ["splash", "splashes", "Dewdrop splash", "dew_splashes"],  # The Puddles Calling's splash, not a splash attack (owner 2026-10-20: "don't know what splash is on the card")
 	&"toll": ["Toll", "Tolls", "Toll"],
 	&"free_hit": ["free hit", "free hits", "Free hit"],
 	&"heavy": ["heavy", "heavy", "Heavy Warden", "heavys"],
