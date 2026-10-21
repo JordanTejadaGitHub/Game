@@ -148,7 +148,7 @@ func _run() -> void:
 		and spawner.get_boss_bite(2) == 8 and spawner.get_boss_bite(3) == 10, "an act boss bites 6 / 8 / 10 by act")
 	through._process(0.016)
 	_check(not is_instance_valid(through) or through.is_queued_for_deletion(), "an act boss that gets through is gone")
-	_check(run_state.leaves == before_leaves - 10 and leaks[0] == 1 and drains.is_empty(),
+	_check(run_state.leaves == before_leaves - spawner.get_boss_bite(1) and leaks[0] == 1 and drains.is_empty(),
 		"it takes its bite as a leak (%d → %d, %d leak)" % [before_leaves, run_state.leaves, leaks[0]])
 	_clear_enemies()
 	var staying_oak := _still("hollow_oak", route[-1])
