@@ -1034,6 +1034,10 @@ Crit synergies: **Held and sleeping nightmares** (Hoarfrost bonus, *Still Target
 
 ## Potency: effect damage and status strength
 
+*Nurture (2026-10-20):* the Deep rank choice is only offered on Wardens where Potency does something
+(`Tower.get_potency_uses()` non-empty); elsewhere Keen takes its slot. Details: warden_stats.md, "Deep
+only where Potency does something".
+
 Added 2026-09-27 (user request). Crit scales **hits**; **Potency** scales **effects**, the damage
 that isn't a hit. Spored is the game's poison, and Potency is what makes poison builds grow. So
 every Warden has two damage axes, and builds lean one way:
