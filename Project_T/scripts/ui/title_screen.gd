@@ -11,6 +11,7 @@ const TITLE := "Heartwood TD"  # The game's title (project.godot config/name too
 
 var _menu := VBoxContainer.new()  # The left column: the title over the menu panel
 var _buttons := VBoxContainer.new()
+var _column := MarginContainer.new()  # The left column: as wide as the logo, the buttons centred in it
 var _settings: SettingsPanel
 var _codex: CodexPanel
 var _confirm := PanelContainer.new()  # "Start a new run?" (_build_confirm)
@@ -35,6 +36,7 @@ static func migrate_old_saves() -> void:
 
 const GROUP := &"title_screen"
 const DIALOG := preload("res://scripts/ui/pause_menu.gd")  # The game's dialog style: _solid, _danger
+const LOGO := "res://assets/ui/title/title_logo.png"  # The hand-lettered logo (a copy of assets/store/steam/logo_1x.png)
 const MENU_LEFT := 72.0  # The menu sits in the art's calm left side
 const MENU_WIDTH := 340.0
 
@@ -48,7 +50,8 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	add_to_group(StatusLinks.CODEX_HOST_GROUP)  # Status links' "More in the Codex"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(TitleBackdrop.new())  # The art (tools/title_art_generator.gd)
+	var backdrop := TitleBackdrop.new()
+	add_child(backdrop)  # The art (tools/title_art_generator.gd)
 	var center := CenterContainer.new()  # Settings and the Codex open in the middle
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
@@ -57,22 +60,25 @@ func _ready() -> void:
 	_add_build_label()
 
 	# The left column, in the art's calm side: the title over a Moon panel with the menu.
-	var column := MarginContainer.new()
+	var column := _column
 	column.anchor_bottom = 1.0
 	column.offset_left = MENU_LEFT
-	column.offset_right = MENU_LEFT + MENU_WIDTH
+	column.offset_right = MENU_LEFT + MENU_WIDTH  # Widened to the logo by _fit_logo
 	add_child(column)
 	_menu.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu.add_theme_constant_override("separation", 14)
 	column.add_child(_menu)
-	var title := Label.new()
-	title.text = TITLE
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(title, 56)
-	title.add_theme_color_override("font_color", UiStyle.INK)
-	title.add_theme_color_override("font_outline_color", Palette.VOID)
-	title.add_theme_constant_override("outline_size", 12)
-	_menu.add_child(title)
+	if ResourceLoader.exists(LOGO):
+		_menu.add_child(_make_logo(load(LOGO) as Texture2D, backdrop))  # The hand-lettered logo
+	else:
+		var title := Label.new()
+		title.text = TITLE
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.display(title, 56)
+		title.add_theme_color_override("font_color", UiStyle.INK)
+		title.add_theme_color_override("font_outline_color", Palette.VOID)
+		title.add_theme_constant_override("outline_size", 12)
+		_menu.add_child(title)
 	if ResultsScreen.is_demo():
 		var demo := Label.new()
 		demo.text = "Demo"
@@ -84,6 +90,8 @@ func _ready() -> void:
 	# A fog patch behind the column, no thread of its own: the primary carries the one mark (UI light pass).
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UiStyle.fog_patch(20.0, 18.0))
+	panel.custom_minimum_size.x = MENU_WIDTH  # The buttons keep their width, centred under the logo
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_menu.add_child(panel)
 	_buttons.add_theme_constant_override("separation", 10)
 	panel.add_child(_buttons)
@@ -171,6 +179,39 @@ func _add_button(text: String, action: Callable) -> Button:
 
 const PHONE_PAIRED := ["Settings", "Codex", "Credits", "Quit"]  # Phones: a 2 × 2 grid under the main choices
 var _pairs: GridContainer = null
+
+# The logo at the title art's own pixel size (one logo pixel = one art pixel), crisp. Its holder only
+# takes the logo's height; the column widens to the logo (from its left edge) and the buttons centre
+# under it, keeping their width.
+func _make_logo(texture: Texture2D, backdrop: TitleBackdrop) -> Control:
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var logo := TextureRect.new()
+	logo.texture = texture
+	logo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.stretch_mode = TextureRect.STRETCH_SCALE
+	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	logo.tooltip_text = TITLE
+	holder.add_child(logo)
+	var fit := _fit_logo.bind(holder, logo, backdrop)
+	holder.resized.connect(fit)
+	backdrop.resized.connect(fit)
+	fit.call_deferred()
+	return holder
+
+func _fit_logo(holder: Control, logo: TextureRect, backdrop: TitleBackdrop) -> void:
+	var unit := backdrop.art_unit()
+	var room := size.x * 0.45 - MENU_LEFT  # the logo stays in the art's calm left side
+	if room > 0.0 and logo.texture.get_width() * unit > room:  # too big here: the largest whole screen-pixel size that fits
+		var factor := UiStyle.ui_factor(get_tree().root)
+		unit = maxf(1.0, floorf(room * factor / logo.texture.get_width())) / factor
+	var logo_size := logo.texture.get_size() * unit
+	holder.custom_minimum_size = Vector2(0.0, logo_size.y)
+	logo.size = logo_size
+	# The logo starts at the column's left edge; the column widens to it and the buttons centre under it.
+	_column.offset_right = MENU_LEFT + maxf(MENU_WIDTH, logo_size.x)
+	logo.position = Vector2(maxf(0.0, (holder.size.x - logo_size.x) * 0.5), 0.0)
 
 # "Seeds banked" as an icon row: the Seeds glyph at 2× and the number in the number font, Sprig.
 func _seeds_row(seeds: int) -> HBoxContainer:

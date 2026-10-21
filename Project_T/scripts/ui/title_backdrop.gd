@@ -80,6 +80,12 @@ func art_scale() -> float:
 	var cover := maxf(1.0, maxf(pixels.x / ART_SIZE.x, pixels.y / ART_SIZE.y))
 	return ceilf(cover) if ceilf(cover) <= cover * WHOLE_SCALE_SLACK else cover
 
+# One art pixel in this control's (UI) units: the title's logo uses it to share the art's pixel grid.
+func art_unit() -> float:
+	if not is_inside_tree():
+		return 1.0
+	return art_scale() / UiStyle.ui_factor(get_tree().root)
+
 # How far a layer has stretched now, in whole art pixels: 0 → amp → 0 over its period.
 func breath(amp: float, period: float, phase: float = 0.0) -> int:
 	if _still:
