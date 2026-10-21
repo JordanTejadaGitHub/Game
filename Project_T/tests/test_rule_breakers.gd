@@ -89,7 +89,8 @@ func _run() -> void:
 					clean = false
 					where = "%s on %s" % [badge.name, strip.items()[i].get_meta(&"kind").display_name]
 		_check(clean, "at %s (UI share %s) every New tab and count is inside the strip and clear of the next disc (%s)" % [case[0], case[1], where])
-		_check(strip.get_combined_minimum_size().y <= 140.0, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+		# 140 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (2 × CAPTION_GAP)
+		_check(strip.get_combined_minimum_size().y <= 140.0 + 2.0 * ComingStrip.CAPTION_GAP, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
 	root.content_scale_mode = scale_was[0]
 	root.content_scale_size = scale_was[1]
 	root.content_scale_aspect = scale_was[2]

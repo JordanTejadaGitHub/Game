@@ -38,7 +38,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	offset_top = TOP
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # A panel: the map's hover tags never show through it (user screenshot)
 	add_theme_constant_override("separation", CAPTION_GAP)  # Caption → discs: the "New" badge sits 6 px above a disc
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
@@ -56,15 +56,29 @@ func _ready() -> void:
 	if _phone:
 		_caption.visible = false
 		add_theme_constant_override("separation", 0)
+	# The panel's padding is part of the strip's own rect (user screenshot, Moon-glass: a portrait and its "×30" hung
+	# over the frame's bottom border), so everything placed under it clears the frame too: an empty spacer at the top and
+	# the foot; on PC the separation adds CAPTION_GAP on each side, on phones the spacers carry PHONE_PAD.
+	for pad: Control in [_pad_top, _pad_foot]:
+		pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pad.custom_minimum_size.y = PHONE_PAD if _phone else 0.0
+	add_child(_pad_top)
+	move_child(_pad_top, 0)
+	add_child(_pad_foot)
 	visible = false
 	resized.connect(queue_redraw)
 
-# The strip sits on a fog panel (Moonlit Thread), a little larger than its content.
+const PHONE_PAD := 8.0
+const SIDE_PAD := 16.0  # The frame's sides beyond the widest row (6 on phones)
+var _pad_top := Control.new()
+var _pad_foot := Control.new()
+
+# The strip sits on its panel, the padding inside its own rect (the spacers above): portraits and badges stay inside.
 func _draw() -> void:
 	if _phone:
-		draw_style_box(_fog, Rect2(Vector2(-6, -4), size + Vector2(12, 8)))  # Tight on phones
+		draw_style_box(_fog, Rect2(Vector2(-6, 0), size + Vector2(12, 0)))  # Tight on phones
 		return
-	draw_style_box(_fog, Rect2(Vector2(-14, -8), size + Vector2(28, 12)))
+	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
 
 const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
 var _clock := 0.0
