@@ -54,8 +54,10 @@ func _run() -> void:
 
 	await _wait(0.5)
 	var thornwall: Tower = tower_container.get_child(1)
-	_check(thornwall.tower_data.display_name == "Thornwall" and thornwall.get_child_count() == 1,
-		"Thornwall never fires (only its sprite as a child)")
+	# Only attack nodes count: a freshly planted Warden also has its planting slab / sprout for ~0.8 s (e9a78265).
+	var fired := thornwall.get_children().filter(func(n: Node) -> bool: return n is Projectile or n is ChainBolt or n is PathCloud or n is FairyRing)
+	_check(thornwall.tower_data.display_name == "Thornwall" and fired.is_empty(),
+		"Thornwall never fires (no projectile, bolt, cloud or ring)")
 
 	# --- Attack animations ---
 	for data in placer.towers:
