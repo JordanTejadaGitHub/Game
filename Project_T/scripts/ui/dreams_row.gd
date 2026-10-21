@@ -461,6 +461,9 @@ var _list_close := Button.new()
 var _phone_page := false
 var _count_label: Label = null
 
+const PAGE_GLASS_TOP := 12.0  # Moon-glass: room above the page for its rim sprout
+const PAGE_GLASS_MARGIN := 22.0  # Moon-glass: the page's content this far inside its edge (6 px rim + air)
+
 func _make_phone_page() -> void:
 	if _phone_page:
 		return
@@ -469,13 +472,22 @@ func _make_phone_page() -> void:
 	_list.top_level = true  # Out of the row's layout: the page fills the HUD layer's rect
 	_list.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var frame := UiStyle.panel(16, 12)
-	frame.fog_color = UiStyle.FOG
-	frame.glow_color = UiStyle.CARD_BG
-	frame.center_alpha = PHONE_CENTER_ALPHA
-	frame.edge_alpha = PHONE_EDGE_ALPHA
-	frame.thread = MoonStyleBox.TopLine.FULL  # The one sprout, on the outer thread
+	if "frame" in frame and StringName(frame.get("frame")) != &"":
+		# Moon-glass (UI Code 8ecd7fb4): the rim sprout stands ~8 px above the panel, so the page starts PAGE_GLASS_TOP down
+		# (it was cut off at the screen's top), and the content clears the 6 px rim.
+		_list.offset_top = PAGE_GLASS_TOP
+		for side in [SIDE_LEFT, SIDE_RIGHT]:
+			frame.set_content_margin(side, maxf(frame.get_margin(side), PAGE_GLASS_MARGIN))
+		for side in [SIDE_TOP, SIDE_BOTTOM]:
+			frame.set_content_margin(side, maxf(frame.get_margin(side), PAGE_GLASS_MARGIN - 4.0))
+	else:
+		frame.fog_color = UiStyle.FOG
+		frame.glow_color = UiStyle.CARD_BG
+		frame.center_alpha = PHONE_CENTER_ALPHA
+		frame.edge_alpha = PHONE_EDGE_ALPHA
+		frame.thread = MoonStyleBox.TopLine.FULL  # The one sprout, on the outer thread
+		frame.side_edges = false
 	frame.diamond = true
-	frame.side_edges = false
 	_list.add_theme_stylebox_override("panel", frame)
 	# The fog panel is soft in its middle: a solid Void layer behind the page, so the map, the HUD and toasts never read
 	# through (user screenshot 2026-10-17).
