@@ -26,6 +26,9 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
 - **Metal is state.** Pewter at rest. **Brass for what is yours or under your finger**: the selected slot or card,
   the primary (Take, Start drift, Resume, Apply), hover, pressed (lit from below, pushed down 1 art px), a switched-on
   toggle, the open tab. Destructive actions (Abandon, Delete) get the small Ember-rimmed plate, set apart.
+  **Hover must always change something** (user 2026-10-20: hovering New run did nothing): a pewter plate turns brass
+  (`plate_hover`); a plate that is already brass (a primary, the selected item) brightens to `plate_yours_hover`
+  (Heartlight rim) with a stronger glow (the old ~18% → ~34% step) and Heartlight text.
 - **Glows and shadows stay smooth** (the user rejected dithered pixel versions twice): brass keeps the old soft gold
   glow; plates cast a soft drop shadow (none when pressed); text gets a soft dark shadow. Edges and rims stay
   pixel-crisp.
