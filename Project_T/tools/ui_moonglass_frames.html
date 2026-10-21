@@ -99,7 +99,7 @@ function backdrop(el){
 const bayer = (x,y) => (BAYER[y%4][x%4]+0.5)/16;
 // A plate of cut moon-glass in a pewter rim: chamfered corners, a bevel, the glass set below it,
 // engraved dividers, and a hard dithered shadow `sh` px down-right.
-function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86}){ const warm = metal === 'brassHover'; if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
+function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86, facet='corner', legendary=false}){ const warm = metal === 'brassHover'; if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
   const put = (x,y,col) => { if (x>=0 && y>=0 && x<W && y<H){ g.fillStyle = col; g.fillRect(x,y,1,1); } };
   const w = W - sh, h = H - sh, k = main ? 4 : 2;          // k = corner cut
@@ -117,14 +117,19 @@ function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], 
       else if (d === t) col = C.dread;
       else if (d === t+1) col = f > 0 ? C.dusk : glass;
       else col = glass;
+      if (legendary){   // Legendary: a second, inner gold line, and the rim gilded at the cut corners
+        const cx = Math.min(x, w-1-x), cy = Math.min(y, h-1-y), corner = cx < k+4 && cy < k+4;
+        if (d === t+1) col = C.glow; else if (d === t+2) col = C.dread;
+        else if (d >= 1 && d < t && corner) col = d === 1 && x + y < w ? C.heart : C.glow;
+      }
       g.globalAlpha = col === glass ? alpha : 1; put(x,y,col);
       if (col === glass && !warm && f < 0 && d - t >= 1 && d - t <= 5){ g.globalAlpha = [0,.5,.32,.18,.08,.03][d-t]; put(x,y,C.void); }   // a smooth shade under the rim, no dither
       if (col === glass && warm){ g.globalAlpha = 0.10 + Math.max(0, 6 - (d - t)) / 6 * 0.28; put(x,y,"#b8662c"); }   // hovering a gold plate: the glass glows warm, strongest at the rim
       g.globalAlpha = 1; continue; } }
     if (x >= sh && y >= sh && x-sh < w && y-sh < h && edge(x-sh,y-sh)[0] >= 0 && bayer(x,y) < 0.5) put(x,y,C.void);
   }
-  if (main){ // light catching the cut top-left corner of the glass
-    for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
+  if (main) drawFacet(facet, {g, put, t, k, w, h, edge, alpha, glass});
+  if (legendary) for (const [sx, sy] of [[t+3, t+3], [w-t-5, t+3], [t+3, h-t-5], [w-t-5, h-t-5]]){ put(sx, sy, C.heart); put(sx+1, sy, C.glow); put(sx, sy+1, C.glow); put(sx+1, sy+1, C.gold); }
   for (const y of leads){ for (let x=t+5; x<=w-t-6; x++){ put(x,y,C.dread); if (x > t+5 && x < w-t-6) put(x,y+1,C.dusk); } }
   if (glint !== null) for (let y=t+2; y<h-t-2; y++){ const x = glint - y; if (x > t+1 && x < w-t-2 && edge(x,y)[0] > t+1){ put(x,y,C.moon); put(x+1,y,C.mist); } }
   return cv.toDataURL();
@@ -156,11 +161,22 @@ function roundel(rows, ink, metal='pewter', r=12, scale=P){
 }
 // The real game map behind the mock-ups (a capture of act 1), so the glass is judged over the world.
 function backdrop(el){ el.style.backgroundImage = `url(${IMG_MAP})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; el.style.imageRendering = 'pixelated'; }
+// Main panels' glass highlight. 'line' = the original single facet line.
+function drawFacet(kind, {g, put, t, k, w, h, edge}){
+  const a = (x, y, col, al) => { g.globalAlpha = al; put(x, y, col); g.globalAlpha = 1; };
+  const q = t + 2;
+  if (kind === 'line'){ for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
+  if (kind === 'double'){ for (let i=0;i<6;i++) a(q+2+i, q+8-i, C.moon, .32); for (let i=0;i<3;i++) a(q+5+i, q+8-i, C.moon, .22); }
+  if (kind === 'corner'){ for (let y=q; y<q+12; y++) for (let x=q; x<q+16; x++){ if (edge(x,y)[0] <= t) continue; const d = Math.hypot((x-q)/16, (y-q)/12); if (d < 1) a(x, y, C.moon, .30 * (1-d) * (1-d)); } }
+  if (kind === 'cut'){ for (let i=0;i<=k+2;i++){ const x = t+1+i, y = t+1+k+2-i; if (edge(x,y)[0] > t) a(x, y, C.moon, .5); }
+    for (let i=0;i<10;i++) a(t+k+3+i, t+1, C.moon, .3*(1-i/10)); for (let i=0;i<8;i++) a(t+1, t+k+3+i, C.moon, .3*(1-i/8)); }
+  if (kind === 'pair'){ for (let i=0;i<5;i++) a(t+4+i, t+k+5-i, C.moon, .28); for (let i=0;i<5;i++) a(w-1-(t+4+i), h-1-(t+k+5-i), C.moon, .14); }
+}
 METAL.ember = [C.gold,'#b8662c','#5c3c24','#241c14'];
 // Export the moon-glass frames as 9-slice PNGs (art px; the game draws them x2, nearest).
 const OUT = [];
 const add = (name, url, w, h, margin) => OUT.push({name, url, w, h, margin});
-const MAIN = 36, MM = 14, SMALL = 20, SM = 8;
+const MAIN = 48, MM = 22, SMALL = 20, SM = 8;
 for (const [name, metal] of [['panel_main','pewter'],['panel_main_yours','brass']])
   add(name, glassFrame({W:MAIN, H:MAIN, metal, main:true, glass:C.night, sh:0}), MAIN, MAIN, MM);
 for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_pressed','brassPressed'],['plate_yours','brass'],['plate_yours_hover','brassHover'],['plate_danger','ember']])
@@ -168,6 +184,7 @@ for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_
 add('plate_dim', glassFrame({W:SMALL, H:SMALL, metal:'pewter', glass:C.dread, sh:0}), SMALL, SMALL, SM);
 { const c = document.createElement('canvas'); c.width = 8; c.height = 2; const g = c.getContext('2d'); g.fillStyle = C.dread; g.fillRect(0,0,8,1); g.fillStyle = C.dusk; g.fillRect(1,1,6,1); add('divider', c.toDataURL(), 8, 2, 1); }
 { const sp = pixelCanvas(["HG...GH",".GG.GG.","...g...","...g..."], {H:C.heart, G:C.glow, g:C.gold}, 1, true); add('rim_sprout', sp.toDataURL(), sp.width, sp.height, 0); }
+add('panel_legendary', glassFrame({W:MAIN, H:MAIN, metal:'brass', main:true, glass:C.night, sh:0, legendary:true}), MAIN, MAIN, MM);
 const pre = document.createElement('pre'); pre.id = 'out';
 pre.textContent = OUT.map(o => `FRAME ${o.name} ${o.w} ${o.h} ${o.margin} ${o.url}`).join('\n');
 document.body.appendChild(pre);
