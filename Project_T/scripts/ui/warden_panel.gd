@@ -965,6 +965,8 @@ func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
 				return tower.focus_text(which)  # Its main area grows (Jarlink's link, Hushbell's silence…), and the range
 			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
 		Tower.Focus.DEEP:
+			if tower.get_potency_uses().is_empty():  # Potency does nothing on this form (Tower Code 4f105797)
+				return "Does nothing on this Warden"
 			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
 	return tower.focus_text(which)
 

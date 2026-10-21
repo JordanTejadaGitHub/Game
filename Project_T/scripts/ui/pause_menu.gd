@@ -532,7 +532,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func open() -> void:
-	_was_paused = game_speed.paused
+	if not visible:  # Open already (Esc twice, the Menu button): keep the pause it found the first time
+		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
@@ -622,7 +623,21 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 # opened (user 2026-10-17, phone: "pressing Resume on a pause doesn't resume it"). Esc keeps close(): the pause as it was.
 func resume_game() -> void:
 	close()
-	game_speed.set_paused(false)
+	if not _choice_waiting():  # A Dream, Omen, family pick, Lesson or Remember underneath keeps its own pause
+		game_speed.set_paused(false)
+
+const CHOICE_SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "LessonCard"]
+
+# Whether a choice screen is open under the menu (peeking at the map counts: the choice still waits).
+func _choice_waiting() -> bool:
+	var hud := get_parent()
+	if hud == null:
+		return false
+	for screen_name in CHOICE_SCREENS:
+		var screen := hud.get_node_or_null(screen_name) as CanvasItem
+		if screen != null and screen.visible:
+			return true
+	return false
 
 func close() -> void:
 	visible = false

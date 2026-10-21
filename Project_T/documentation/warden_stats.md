@@ -292,6 +292,20 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   around this.
 - **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
 
+### Deep only where Potency does something (2026-10-20)
+
+Tower Code's `Tower.get_potency_uses()` (4f105797) lists what Potency changes on a Warden (statuses,
+effect damage, and the specials in `BranchKit.SPECIAL_POTENCY`). On forms where it's empty (plain
+Undercurrent, Jetreed, Thrum, Prism Jar, Whetstone…) Deep was still offered and did nothing; the
+panel only labelled it "Does nothing on this Warden". **Decision: never offer a dead choice.**
+- **Deep is offered only when `get_potency_uses()` is non-empty.** The check is the gate, so a
+  Warden that gains a Potency use later (a Dream card, a new special) offers Deep again by itself.
+- **Where Deep drops out, Keen takes its place** (the 2026-10-03 rule: Keen replaces Deep on forms
+  with no status or effect damage), unless the form's list already has Keen or is a support set
+  (Prism Jar keeps Power · Swift · Wide · Strong). A Warden never has fewer choices because of the gate.
+- **Deep picks already made** keep counting toward rank V (signature, Mastery or All-Rounder) and
+  stay dimmed with "Does nothing on this Warden" when a form can't use them. No refunds (pre-release).
+
 ### Signature audit: every choice and its signature must help (2026-10-06)
 
 User (via Meta Game Discussion): *"make sure every Nurture choice a Warden has is helpful to them"*,

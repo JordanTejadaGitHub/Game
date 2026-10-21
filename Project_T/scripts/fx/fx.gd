@@ -56,7 +56,15 @@ const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite"
 	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
 const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring
 const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
-const CALLOUT_LIFE := 0.9
+# Reaction callouts (user 2026-10-20, screens_ui.md 5f7852e2: "Reactions are hard to see and read"): pop in 0.12 s with a
+# small overshoot, hold, then rise 6 px and fade over 0.3 s. Crowned ones hold longer. CALLOUT_LIFE = the ordinary whole.
+const CALLOUT_HOLD := 0.9
+const CALLOUT_HOLD_CROWNED := 1.2
+const CALLOUT_FADE := 0.3
+const CALLOUT_LIFE := 0.12 + CALLOUT_HOLD + CALLOUT_FADE
+const CALLOUT_SAME_PX := 28.0  # The same Reaction this close to a live callout is the same nightmare: it bumps "×2"
+const REACTION_MIN_PX := 96.0  # Reaction bursts drawn at least 1.5 cells across (whole scale steps, so pixels stay square)
+const REACTION_FLASH_SECONDS := 0.05  # The burst's 1-frame bright flash (off under reduce flashes)
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
 const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
@@ -291,9 +299,17 @@ static func _accent(node, shown) -> void:
 static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Array = [], seconds: float = 0.0) -> Node2D:
 	var row: Array = REACTIONS.get(reaction, [reaction, ""])
 	var effect: StringName = row[0]
-	var node := play(effect, at, parent, 1.0, true, seconds)
+	# At least 1.5 cells across (screens_ui.md 5f7852e2): a 64 px burst is drawn x2, bigger ones as they are.
+	var frame_size: Array = info(effect).get("frame_size", [0, 0])
+	var widest := maxf(float(frame_size[0]), float(frame_size[1])) * float(DEFAULT_SCALE.get(effect, 1.0))  # As play() draws it
+	var burst_scale := ceilf(REACTION_MIN_PX / widest) if widest > 0.0 and widest < REACTION_MIN_PX else 1.0
+	var node := play(effect, at, parent, burst_scale, true, seconds)
 	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
+	if node != null and not reduce_flashes() and bright_flash_ok():
+		var flash := FxFlash.new(colour, maxf(widest * burst_scale * 0.35, REACTION_MIN_PX * 0.35))
+		parent.add_child(flash)
+		flash.global_position = at
 	if not info(effect).has("callout") or reaction in COLOUR_FROM_DATA:  # A sheet without its own callout colour (Sleepwalk, Night Terror) or a stand-in: the Reaction's
 		var data := Reactions.get_data(reaction)
 		if data != null:
@@ -308,7 +324,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			var boosted: String = dreams.reaction_build_text(reaction)
 			if boosted != "":
 				words = boosted
-		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction))
+		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction), String(effect).begins_with("crowned_"))
 		accent_shown = shown
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
@@ -333,18 +349,32 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
 # Returns the callout, or null when it was throttled.
-static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"", icon: Texture2D = null) -> Node2D:
+static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"", icon: Texture2D = null,
+		crowned: bool = false) -> Node2D:
 	var now := Time.get_ticks_msec()
 	_callouts_alive = _callouts_alive.filter(func(c): return is_instance_valid(c))
-	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
+	# The same Reaction on the same nightmare while its word still holds: "×2" on that word, no second word.
+	if key != &"":
+		for c in _callouts_alive:
+			if c is FxCallout and c.key == key and c.spot.distance_to(at) < CALLOUT_SAME_PX and c.holding():
+				c.bump()
+				return c
+	if now < _callout_cooldown.get(key, 0):
 		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
+	if _callouts_alive.size() >= MAX_CALLOUTS:  # A fourth replaces the oldest
+		var oldest = _callouts_alive.pop_front()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
+	var spot := at
 	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
 	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
 	# One column for every word at a spot (WorldLabel.callout_slot, shared with CombatCallouts and the chain badge):
 	# a word that would land on a live one moves up a line; a line is a whole callout tall.
 	at = WorldLabel.callout_slot(at + Vector2(0.0, -FxCallout.LIFT), key if key != &"" else StringName(text), CALLOUT_LIFE) + Vector2(0.0, FxCallout.LIFT)
-	var node := FxCallout.new(text, colour, icon)
+	var node := FxCallout.new(text, colour, icon, crowned)
+	node.key = key
+	node.spot = spot
 	parent.add_child(node)
 	node.global_position = at
 	_callouts_alive.append(node)
@@ -1169,32 +1199,78 @@ static func draw_halo(canvas: CanvasItem, origin: Vector2, scale: float, centre:
 # (number font 15, Glow). It pops 125% → 100% over 0.12 s, rises 18 px and fades over CALLOUT_LIFE. Specified at 1280:
 # WorldLabel's text scale carries the UI factor (×1.5 at 1920) and the camera zoom. No pill (the user's pick): a 1 px
 # Dread outline and the soft halo behind (Fx.draw_halo), padded 12 px up and down, 24 px each side.
+# A Reaction burst's 1-frame bright flash (screens_ui.md 5f7852e2): a disc in the Reaction's colour, lightened, gone after
+# REACTION_FLASH_SECONDS. Never made under reduce flashes (Fx.reaction checks).
+class FxFlash extends Node2D:
+	var _colour: Color
+	var _radius: float
+	var _age := 0.0
+
+	func _init(colour: Color, radius: float) -> void:
+		_colour = colour.lightened(0.55)
+		_radius = radius
+		z_index = Fx.Z + 1
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= Fx.REACTION_FLASH_SECONDS:
+			queue_free()
+
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, _radius, Color(_colour, 0.55))
+		draw_circle(Vector2.ZERO, _radius * 0.55, Color(_colour, 0.85))
+
 class FxCallout extends Node2D:
-	const TEXT_SIZE := 22
+	const TEXT_SIZE := 20  # Phones 24; Crowned 24 / 28 (screens_ui.md 5f7852e2)
+	const TEXT_SIZE_PHONE := 24
+	const TEXT_SIZE_CROWNED := 24
+	const TEXT_SIZE_CROWNED_PHONE := 28
 	const COUNT_SIZE := 15
 	const ICON_PX := 32.0  # A 16 px icon at ×2
 	const GAP := 6.0
-	const POP := 1.25
-	const POP_TIME := 0.12
-	const RISE := 18.0
+	const POP_FROM := 0.7  # Pops in from 70%…
+	const POP_OVER := 1.12  # …past full size…
+	const POP_TIME := 0.12  # …and settles, over this long
+	const RISE := 6.0  # As it fades
 	const LIFT := 52.0  # Above the nightmare
 	const HALO_PAD := Vector2(24.0, 12.0)  # The halo past the content: 24 px each side, 12 up and down
 	var _text: String
 	var _colour: Color
 	var _icon: Texture2D
 	var _count := 0
+	var _repeat := 1  # The same Reaction on the same nightmare again while it holds: "×2"
 	var _age := 0.0
+	var _hold := Fx.CALLOUT_HOLD
+	var _size := TEXT_SIZE
 	var card_pip := false  # Reaction accent (C5): a small warm card pip before the word
+	var key: StringName = &""
+	var spot := Vector2.ZERO  # Where it was called (before stacking): the nightmare it belongs to
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
 		Fx._callouts_alive.erase(self)
 
-	func _init(text: String, colour: Color, icon: Texture2D = null) -> void:
+	func _init(text: String, colour: Color, icon: Texture2D = null, crowned: bool = false) -> void:
 		_text = text
 		_colour = colour
 		_icon = icon
+		_hold = Fx.CALLOUT_HOLD_CROWNED if crowned else Fx.CALLOUT_HOLD
+		var phone := UiStyle.is_phone()
+		_size = (TEXT_SIZE_CROWNED_PHONE if phone else TEXT_SIZE_CROWNED) if crowned else (TEXT_SIZE_PHONE if phone else TEXT_SIZE)
 		z_index = Fx.Z + 2
+
+	func _life() -> float:
+		return POP_TIME + _hold + Fx.CALLOUT_FADE
+
+	# Still showing in full (not fading yet).
+	func holding() -> bool:
+		return _age < POP_TIME + _hold
+
+	# The same Reaction again on its nightmare: count it and hold again.
+	func bump() -> void:
+		_repeat += 1
+		_age = POP_TIME
+		queue_redraw()
 
 	# A running chain's length rides on it ("×3").
 	func set_count(count: int) -> void:
@@ -1203,27 +1279,29 @@ class FxCallout extends Node2D:
 
 	func _process(delta: float) -> void:
 		_age += delta
-		if _age >= Fx.CALLOUT_LIFE:
+		if _age >= _life():
 			queue_free()
 			return
 		queue_redraw()
 
 	func _draw() -> void:
-		var t := _age / Fx.CALLOUT_LIFE
-		var alpha := 1.0 - t * t
-		var pop := lerpf(POP, 1.0, clampf(_age / POP_TIME, 0.0, 1.0))
+		var fading := clampf((_age - POP_TIME - _hold) / Fx.CALLOUT_FADE, 0.0, 1.0)
+		var alpha := 1.0 - fading
+		var p := clampf(_age / POP_TIME, 0.0, 1.0)
+		var pop := lerpf(POP_FROM, POP_OVER, p / 0.7) if p < 0.7 else lerpf(POP_OVER, 1.0, (p - 0.7) / 0.3)
 		var s := WorldLabel.text_scale(self) * pop  # Screen size when zoomed in, the UI factor, and the pop
-		draw_set_transform(Vector2(0.0, -(LIFT + RISE * t) * WorldLabel.text_scale(self)), 0.0, Vector2(s, s))
+		draw_set_transform(Vector2(0.0, -(LIFT + RISE * fading) * WorldLabel.text_scale(self)), 0.0, Vector2(s, s))
 		var font := UiStyle.display_font()
 		var count_font := UiStyle.number_font()
-		var count_text := ("×%d" % _count) if _count > 1 else ""
-		var text_w := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE).x
+		var shown_count := _count if _count > 1 else _repeat
+		var count_text := ("×%d" % shown_count) if shown_count > 1 else ""
+		var text_w := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
 		var count_w := count_font.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE).x if count_text != "" else 0.0
 		var icon_w := ICON_PX + GAP if _icon != null else 0.0
 		var total := icon_w + text_w + (GAP + count_w if count_text != "" else 0.0)
 		var x := -total / 2.0
-		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 2.0  # The word centred on the line
-		var origin := Vector2(0.0, -(LIFT + RISE * t) * WorldLabel.text_scale(self))
+		var baseline := font.get_ascent(_size) / 2.0 - 2.0  # The word centred on the line
+		var origin := Vector2(0.0, -(LIFT + RISE * fading) * WorldLabel.text_scale(self))
 		Fx.draw_halo(self, origin, s, Vector2.ZERO, Vector2(total / 2.0 + HALO_PAD.x, ICON_PX / 2.0 + HALO_PAD.y), alpha)
 		if card_pip:  # A diamond, ember-edged so it reads on the pale path
 			var c := Vector2(x - 8.0, 0.0)
@@ -1234,8 +1312,8 @@ class FxCallout extends Node2D:
 		if _icon != null:
 			draw_texture_rect(_icon, Rect2(x, -ICON_PX / 2.0, ICON_PX, ICON_PX), false, Color(1, 1, 1, alpha))  # multiplier
 			x += icon_w
-		draw_string_outline(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, 2, Color(Palette.DREAD, alpha))
-		draw_string(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, Color(_colour, alpha))
+		draw_string_outline(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, 2, Color(Palette.DREAD, alpha))
+		draw_string(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size, Color(_colour, alpha))
 		if count_text != "":
 			var cx := x + text_w + GAP
 			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 2, Color(Palette.DREAD, alpha))
