@@ -397,6 +397,7 @@ func _make_card(card: UpgradeData) -> Button:
 	name_label.text = card.display_name
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UiStyle.title(name_label, _fs(UiStyle.CARD_NAME_SIZE))
+	UiStyle.fit_words(name_label, _fs(UiStyle.CARD_NAME_SIZE), maxi(_fs(UiStyle.CARD_NAME_SIZE) - 8, 12))  # A long word never splits ("Undercurren / t"; UI Code 3bb3dc6b)
 	box.add_child(name_label)
 	if dream_state.opens_clearing(card):
 		_add_opens_clearing(box)
@@ -454,7 +455,20 @@ func _make_card(card: UpgradeData) -> Button:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
 	_fit_card(button, box, secondary)
+	_one_tip(button)
 	return button
+
+# One tip at a time (user via UI Code: a Calling card's own tip showed on top of an underlined word's glossary
+# popup): while the pointer is on a link, the card's tooltip steps aside; it comes back when the pointer leaves it.
+func _one_tip(button: Button) -> void:
+	if button.tooltip_text == "":
+		return
+	var tip := button.tooltip_text
+	for label in button.find_children("*", "RichTextLabel", true, false):
+		if not label.has_meta(&"status_popup"):
+			continue
+		label.meta_hover_started.connect(func(_meta: Variant) -> void: button.tooltip_text = "")
+		label.meta_hover_ended.connect(func(_meta: Variant) -> void: button.tooltip_text = tip)
 
 # While clearing is locked, a clearing card leads with what it unlocks (dream_design.md "Clearing
 # cards" / "Make the unlock obvious"): the Clear tool icon + "Unlocks clearing", what clearing is, a

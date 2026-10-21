@@ -315,7 +315,7 @@ func _refresh() -> void:
 		child.queue_free()
 	_clear_not_in_dream()
 	_header.set_corner(_target_chip([_tower]) if _tower.can_choose_target() and not _phone else null)  # Walls and untargeted: none; phones: the row says it
-	if _tower.can_choose_target():
+	if _tower.can_choose_target() and _phone:  # PC: the header chip is the switch (user: Details held only a copy of it)
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
 		var birds := _add_button("Birds: %s" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
@@ -530,7 +530,7 @@ func _refresh_group() -> void:
 	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	_header.set_corner(_target_chip(aimed) if not aimed.is_empty() and not _phone else null)  # Sets every selected attacker (phones: the row only)
-	if not aimed.is_empty():
+	if not aimed.is_empty() and _phone:  # PC: the header chip (as for one Warden)
 		_add_target_switch(aimed)
 	var growing := _growable_groups(groups)  # Twig walls never grow
 	var row_count := 0
@@ -748,7 +748,12 @@ func _add_target_switch(towers: Array) -> void:
 			tower_seller.set_target_group(towers, mode)
 			_refresh())
 		row.add_child(button)
-	UiStyle.segmented(row)
+		# Moon-glass plates (user: the switch "used the old UI"): pewter, hover lit, the chosen mode brass
+		button.add_theme_stylebox_override("normal", UiStyle.plate_box(6.0, 4.0))
+		button.add_theme_stylebox_override("hover", UiStyle.plate_box(6.0, 4.0, &"plate_hover"))
+		button.add_theme_stylebox_override("pressed", UiStyle.plate_box(6.0, 4.0, &"plate_yours"))
+		button.add_theme_stylebox_override("hover_pressed", UiStyle.plate_box(6.0, 4.0, &"plate_yours"))
+	row.add_theme_constant_override("separation", 4)
 	_extra.add_child(row)  # In Details (light pass): a setting, not the next step; T cycles it from anywhere
 
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
