@@ -9,7 +9,8 @@ uniform float rows = 9.0;  // withered_tree.png: one dead tree per row
 uniform float top_share = 0.5;  // 64 of 128 rows
 
 void fragment() {
-	vec4 c = texture(TEXTURE, UV) * COLOR;
+	// COLOR already holds the texture x modulate in Godot 4; sampling TEXTURE again squared it (dark trees).
+	vec4 c = COLOR;
 	if (fract(UV.y * rows) < top_share) {
 		c.a *= top_alpha;
 	}
