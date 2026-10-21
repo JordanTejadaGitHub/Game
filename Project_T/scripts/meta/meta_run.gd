@@ -304,6 +304,8 @@ func _apply_all_families() -> void:
 # nothing is fresh this run, the set is only recorded.
 const LAST_RUN_NODES := "last_run_nodes"
 func _mark_fresh_cards(memory: Dictionary) -> void:
+	if RunSaver.resuming:  # A Continue: the run's own fresh cards come back with its save (DreamState.load_save)
+		return
 	var owned: Array[String] = []
 	for unlock in HeartwoodMemory.load_grove():
 		if DemoGrove.level(memory, unlock) > 0:
@@ -317,7 +319,7 @@ func _mark_fresh_cards(memory: Dictionary) -> void:
 					if dream_state.grove_cards.has(id) and not fresh.has(id):
 						fresh.append(id)
 		dream_state.fresh_grove_cards.assign(fresh)
-	if records and not RunSaver.resume_next:  # A Continue keeps the run's own start (its fresh card is in the save)
+	if records:
 		memory[LAST_RUN_NODES] = owned
 		HeartwoodMemory.save_data(memory)
 

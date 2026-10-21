@@ -17,6 +17,7 @@ static var file_path := PATH
 
 # Set by the title screen before loading the main scene: restore the saved run.
 static var resume_next := false
+static var resuming := false  # This run is a Continue (set where resume_next is consumed; MetaRun reads it after)
 static var next_map_seed := 0  # The next new run's map seed (SeedPicker, Remembered Seed); 0 = a random map. Used once
 
 @onready var run_state: RunState = %RunState
@@ -147,6 +148,7 @@ func _ready() -> void:
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
 	MetaRun.resumed_extra_ridges = -1  # A new run reads Clear Sight from the loadout; a resumed one from its save
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
+	resuming = resume_next
 	if resume_next:
 		resume_next = false
 		_saved_data = _read()

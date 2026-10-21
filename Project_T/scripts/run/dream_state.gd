@@ -3781,6 +3781,7 @@ func to_save() -> Dictionary:
 		"lit_sprouts": firefly_lights.to_save() if firefly_lights != null and firefly_lights.is_inside_tree() else [],
 		"new_family": [_new_family, _new_family_drift],  # The boss rest's guaranteed card survives a save between the pick and its Dream
 		"fresh_shown": _fresh_shown,  # A freshly planted Grove card was offered (once a run)
+		"fresh_grove_cards": Array(fresh_grove_cards),  # MetaRun skips them on a Continue (Main Merger, meta review of df2b8021)
 		"mushrooms": spore_print.to_save() if spore_print != null and spore_print.is_inside_tree() else [],  # They survive rests
 		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
@@ -3806,6 +3807,7 @@ func load_save(data: Dictionary) -> void:
 	if firefly_lights != null:
 		firefly_lights.set("saved_sprouts", data.get("lit_sprouts", []))  # Applied once the Wardens are back on the map
 	_fresh_shown = bool(data.get("fresh_shown", false))
+	fresh_grove_cards.assign(data.get("fresh_grove_cards", []).map(func(id) -> String: return String(id)))
 	var new_family: Array = data.get("new_family", ["", -1])
 	if new_family.size() == 2:
 		_new_family = String(new_family[0])
