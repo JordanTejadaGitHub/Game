@@ -43,6 +43,11 @@ func _init() -> void:
 	var stretch: Array = POSE_UP.slice(0, 13) + POSE_UP.slice(12)
 	poses = [_parse(POSE_UP), _parse(POSE_DOWN), _parse(stretch, TOP - 1)]
 	_place_figure()
+	if OS.get_cmdline_user_args().has("--plant"):
+		_save_plant_sheets()
+		print("ascended plant sheets written")
+		quit()
+		return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(AOUT))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEWS))
 	var rows: Array = []
@@ -74,7 +79,33 @@ func _init() -> void:
 	print("ascended art written")
 	quit()
 
+# `--plant` (user arg): only the slab / body split of each Ascended form, like tower_art_generator's plant sheets
+# (assets/towers/plant/<id>.png: two frames the idle frame's size, 0 = everything but the figure (dais, rays,
+# crystals, waystone, halo), 1 = the figure alone). The grow sheets (tools/grow_art_generator.gd) read them.
+func _save_plant_sheets() -> void:
+	for warden: String in ASCENDED:
+		var full := _grender(1, W, H, func(cv: Image, _f: int) -> void: _draw_ascended(warden, cv, _idle_state(0)), true, true)
+		var bare := _grender(1, W, H, func(cv: Image, _f: int) -> void:
+			var st := _idle_state(0)
+			st["no_figure"] = true
+			_draw_ascended(warden, cv, st), true, true)
+		var body := full.duplicate() as Image
+		for y in H:
+			for x in W:
+				var s := bare.get_pixel(x, y)
+				if s.a > 0.0 and s.is_equal_approx(full.get_pixel(x, y)):
+					body.set_pixel(x, y, Color(0, 0, 0, 0))
+		var sheet := Image.create_empty(W * 2, H, false, Image.FORMAT_RGBA8)
+		sheet.blit_rect(bare, Rect2i(0, 0, W, H), Vector2i.ZERO)
+		sheet.blit_rect(body, Rect2i(0, 0, W, H), Vector2i(W, 0))
+		sheet.save_png("res://assets/towers/plant/%s.png" % warden.trim_prefix("the_"))
+
 func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: bool = false, night: bool = false) -> Image:
+	var sheet := _grender(n, w, h, draw, warden_art, night)
+	sheet.save_png(AOUT + file)
+	return sheet
+
+func _grender(n: int, w: int, h: int, draw: Callable, warden_art: bool = false, night: bool = false) -> Image:
 	var sheet := Image.create_empty(w * n, h, false, Image.FORMAT_RGBA8)
 	for i in n:
 		var cv := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
@@ -86,7 +117,6 @@ func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: b
 		sheet = _warden_night(sheet)  # idle sheets only (Warden Night)
 	if not warden_art:
 		_snap32(sheet)  # effects and extras: the plain 32
-	sheet.save_png(AOUT + file)
 	return sheet
 
 func _save_info() -> void:
@@ -291,7 +321,8 @@ func _draw_ascended(warden: String, frame: Image, st: Dictionary) -> void:
 	st2["tdy"] = st.dy
 	st2["dy"] = roundi(st.dy * K)
 	st2["halo"] = halo
-	call("_asc_" + warden, canvas, st2, fig)
+	if not st.get("no_figure", false):  # (--plant: the bare frame, everything but the figure)
+		call("_asc_" + warden, canvas, st2, fig)
 	# The frame: light rays behind, the great dais, crystals orbiting, then the Warden on top.
 	_rays(frame, st, halo)
 	_dais(frame, st, info[0], halo)

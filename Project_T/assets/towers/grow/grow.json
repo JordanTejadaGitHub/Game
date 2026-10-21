@@ -1,0 +1,634 @@
+{
+	"anchor": [
+		84,
+		144
+	],
+	"fps": 15,
+	"frame_size": [
+		168,
+		210
+	],
+	"grows": {
+		"acorn__dewcatcher": {
+			"file": "acorn__dewcatcher.png",
+			"frames": 12
+		},
+		"acorn__dream_oak": {
+			"file": "acorn__dream_oak.png",
+			"frames": 12
+		},
+		"acorn__elder_stump": {
+			"file": "acorn__elder_stump.png",
+			"frames": 12
+		},
+		"acorn__graftling": {
+			"file": "acorn__graftling.png",
+			"frames": 12
+		},
+		"acorn__nurse_log": {
+			"file": "acorn__nurse_log.png",
+			"frames": 12
+		},
+		"acorn__seedbearer": {
+			"file": "acorn__seedbearer.png",
+			"frames": 12
+		},
+		"autumn_gale__tempest": {
+			"file": "autumn_gale__tempest.png",
+			"frames": 12
+		},
+		"bastion__old_mountain": {
+			"file": "bastion__old_mountain.png",
+			"frames": 12
+		},
+		"beacon__stormheart": {
+			"file": "beacon__stormheart.png",
+			"frames": 12
+		},
+		"bellflower__chime_stone": {
+			"file": "bellflower__chime_stone.png",
+			"frames": 12
+		},
+		"bellflower__dreamcatcher": {
+			"file": "bellflower__dreamcatcher.png",
+			"frames": 12
+		},
+		"bellflower__echo_hollow": {
+			"file": "bellflower__echo_hollow.png",
+			"frames": 12
+		},
+		"bellflower__hushbell": {
+			"file": "bellflower__hushbell.png",
+			"frames": 12
+		},
+		"bellflower__silver_bell": {
+			"file": "bellflower__silver_bell.png",
+			"frames": 12
+		},
+		"bellflower__thrum": {
+			"file": "bellflower__thrum.png",
+			"frames": 12
+		},
+		"bloomcap__dreamshroom": {
+			"file": "bloomcap__dreamshroom.png",
+			"frames": 12
+		},
+		"boulderback__old_mountain": {
+			"file": "boulderback__old_mountain.png",
+			"frames": 12
+		},
+		"brood_cap__hatchery": {
+			"file": "brood_cap__hatchery.png",
+			"frames": 12
+		},
+		"cairn__rockslide": {
+			"file": "cairn__rockslide.png",
+			"frames": 12
+		},
+		"chime_stone__lullaby_bell": {
+			"file": "chime_stone__lullaby_bell.png",
+			"frames": 12
+		},
+		"cloudlet__nimbus": {
+			"file": "cloudlet__nimbus.png",
+			"frames": 12
+		},
+		"crown_of_thorns__world_root": {
+			"file": "crown_of_thorns__world_root.png",
+			"frames": 12
+		},
+		"deeproot__heartroot": {
+			"file": "deeproot__heartroot.png",
+			"frames": 12
+		},
+		"deliquescent__sporemother": {
+			"file": "deliquescent__sporemother.png",
+			"frames": 12
+		},
+		"dewcatcher__wellspring": {
+			"file": "dewcatcher__wellspring.png",
+			"frames": 12
+		},
+		"dewdrop__cloudlet": {
+			"file": "dewdrop__cloudlet.png",
+			"frames": 12
+		},
+		"dewdrop__frostfern": {
+			"file": "dewdrop__frostfern.png",
+			"frames": 12
+		},
+		"dewdrop__jetreed": {
+			"file": "dewdrop__jetreed.png",
+			"frames": 12
+		},
+		"dewdrop__mistveil": {
+			"file": "dewdrop__mistveil.png",
+			"frames": 12
+		},
+		"dewdrop__rain_lily": {
+			"file": "dewdrop__rain_lily.png",
+			"frames": 12
+		},
+		"dewdrop__undercurrent": {
+			"file": "dewdrop__undercurrent.png",
+			"frames": 12
+		},
+		"dream_oak__dreamroot": {
+			"file": "dream_oak__dreamroot.png",
+			"frames": 12
+		},
+		"dreamcatcher__great_dreamcatcher": {
+			"file": "dreamcatcher__great_dreamcatcher.png",
+			"frames": 12
+		},
+		"dreamroot__grandmother_oak": {
+			"file": "dreamroot__grandmother_oak.png",
+			"frames": 12
+		},
+		"dreamshroom__sporemother": {
+			"file": "dreamshroom__sporemother.png",
+			"frames": 12
+		},
+		"driftspore__puffball": {
+			"file": "driftspore__puffball.png",
+			"frames": 12
+		},
+		"earthbind__world_root": {
+			"file": "earthbind__world_root.png",
+			"frames": 12
+		},
+		"earthshaker__old_mountain": {
+			"file": "earthshaker__old_mountain.png",
+			"frames": 12
+		},
+		"echo_hollow__whispering_hollow": {
+			"file": "echo_hollow__whispering_hollow.png",
+			"frames": 12
+		},
+		"edgestone__old_mountain": {
+			"file": "edgestone__old_mountain.png",
+			"frames": 12
+		},
+		"elder_stump__grove_heart": {
+			"file": "elder_stump__grove_heart.png",
+			"frames": 12
+		},
+		"elf_circle__sporemother": {
+			"file": "elf_circle__sporemother.png",
+			"frames": 12
+		},
+		"fairy_ring__elf_circle": {
+			"file": "fairy_ring__elf_circle.png",
+			"frames": 12
+		},
+		"firefly_jar__jarlink": {
+			"file": "firefly_jar__jarlink.png",
+			"frames": 12
+		},
+		"firefly_jar__lanternmoth": {
+			"file": "firefly_jar__lanternmoth.png",
+			"frames": 12
+		},
+		"firefly_jar__prism_jar": {
+			"file": "firefly_jar__prism_jar.png",
+			"frames": 12
+		},
+		"firefly_jar__sparkler": {
+			"file": "firefly_jar__sparkler.png",
+			"frames": 12
+		},
+		"firefly_jar__stormcap": {
+			"file": "firefly_jar__stormcap.png",
+			"frames": 12
+		},
+		"firefly_jar__sunpetal": {
+			"file": "firefly_jar__sunpetal.png",
+			"frames": 12
+		},
+		"frostfern__hoarfrost": {
+			"file": "frostfern__hoarfrost.png",
+			"frames": 12
+		},
+		"grafted_elder__grandmother_oak": {
+			"file": "grafted_elder__grandmother_oak.png",
+			"frames": 12
+		},
+		"graftling__grafted_elder": {
+			"file": "graftling__grafted_elder.png",
+			"frames": 12
+		},
+		"great_dreamcatcher__great_bell": {
+			"file": "great_dreamcatcher__great_bell.png",
+			"frames": 12
+		},
+		"groundroot__earthbind": {
+			"file": "groundroot__earthbind.png",
+			"frames": 12
+		},
+		"grove_heart__grandmother_oak": {
+			"file": "grove_heart__grandmother_oak.png",
+			"frames": 12
+		},
+		"grove_keeper__grandmother_oak": {
+			"file": "grove_keeper__grandmother_oak.png",
+			"frames": 12
+		},
+		"gust__zephyr": {
+			"file": "gust__zephyr.png",
+			"frames": 12
+		},
+		"hatchery__sporemother": {
+			"file": "hatchery__sporemother.png",
+			"frames": 12
+		},
+		"heartroot__world_root": {
+			"file": "heartroot__world_root.png",
+			"frames": 12
+		},
+		"hoarfrost__tidecaller": {
+			"file": "hoarfrost__tidecaller.png",
+			"frames": 12
+		},
+		"hummingbird_bower__jewelwing_court": {
+			"file": "hummingbird_bower__jewelwing_court.png",
+			"frames": 12
+		},
+		"hushbell__silence": {
+			"file": "hushbell__silence.png",
+			"frames": 12
+		},
+		"inkcap__deliquescent": {
+			"file": "inkcap__deliquescent.png",
+			"frames": 12
+		},
+		"jarlink__lightning_fence": {
+			"file": "jarlink__lightning_fence.png",
+			"frames": 12
+		},
+		"jetreed__torrent": {
+			"file": "jetreed__torrent.png",
+			"frames": 12
+		},
+		"jewelwing_court__dawnwing": {
+			"file": "jewelwing_court__dawnwing.png",
+			"frames": 12
+		},
+		"lanternmoth__beacon": {
+			"file": "lanternmoth__beacon.png",
+			"frames": 12
+		},
+		"lichenling__old_lichen": {
+			"file": "lichenling__old_lichen.png",
+			"frames": 12
+		},
+		"lightning_fence__stormheart": {
+			"file": "lightning_fence__stormheart.png",
+			"frames": 12
+		},
+		"long_way_home__world_root": {
+			"file": "long_way_home__world_root.png",
+			"frames": 12
+		},
+		"lullaby_bell__great_bell": {
+			"file": "lullaby_bell__great_bell.png",
+			"frames": 12
+		},
+		"maelstrom__tidecaller": {
+			"file": "maelstrom__tidecaller.png",
+			"frames": 12
+		},
+		"magpie_perch__magpies_hoard": {
+			"file": "magpie_perch__magpies_hoard.png",
+			"frames": 12
+		},
+		"magpies_hoard__dawnwing": {
+			"file": "magpies_hoard__dawnwing.png",
+			"frames": 12
+		},
+		"midsummer__stormheart": {
+			"file": "midsummer__stormheart.png",
+			"frames": 12
+		},
+		"mistveil__morning_fog": {
+			"file": "mistveil__morning_fog.png",
+			"frames": 12
+		},
+		"monsoon__tidecaller": {
+			"file": "monsoon__tidecaller.png",
+			"frames": 12
+		},
+		"moonstone__old_mountain": {
+			"file": "moonstone__old_mountain.png",
+			"frames": 12
+		},
+		"morning_fog__tidecaller": {
+			"file": "morning_fog__tidecaller.png",
+			"frames": 12
+		},
+		"mossback__boulderback": {
+			"file": "mossback__boulderback.png",
+			"frames": 12
+		},
+		"mother_log__grandmother_oak": {
+			"file": "mother_log__grandmother_oak.png",
+			"frames": 12
+		},
+		"nestling__hummingbird_bower": {
+			"file": "nestling__hummingbird_bower.png",
+			"frames": 12
+		},
+		"nestling__magpie_perch": {
+			"file": "nestling__magpie_perch.png",
+			"frames": 12
+		},
+		"nestling__wrens_nest": {
+			"file": "nestling__wrens_nest.png",
+			"frames": 12
+		},
+		"nimbus__tidecaller": {
+			"file": "nimbus__tidecaller.png",
+			"frames": 12
+		},
+		"nurse_log__mother_log": {
+			"file": "nurse_log__mother_log.png",
+			"frames": 12
+		},
+		"old_lichen__sporemother": {
+			"file": "old_lichen__sporemother.png",
+			"frames": 12
+		},
+		"pebbling__cairn": {
+			"file": "pebbling__cairn.png",
+			"frames": 12
+		},
+		"pebbling__mossback": {
+			"file": "pebbling__mossback.png",
+			"frames": 12
+		},
+		"pebbling__quaker": {
+			"file": "pebbling__quaker.png",
+			"frames": 12
+		},
+		"pebbling__rampart": {
+			"file": "pebbling__rampart.png",
+			"frames": 12
+		},
+		"pebbling__standing_stone": {
+			"file": "pebbling__standing_stone.png",
+			"frames": 12
+		},
+		"pebbling__whetstone": {
+			"file": "pebbling__whetstone.png",
+			"frames": 12
+		},
+		"pinwheel__windmill": {
+			"file": "pinwheel__windmill.png",
+			"frames": 12
+		},
+		"prism_jar__rainbow_prism": {
+			"file": "prism_jar__rainbow_prism.png",
+			"frames": 12
+		},
+		"puffball__sporemother": {
+			"file": "puffball__sporemother.png",
+			"frames": 12
+		},
+		"quaker__earthshaker": {
+			"file": "quaker__earthshaker.png",
+			"frames": 12
+		},
+		"rain_lily__monsoon": {
+			"file": "rain_lily__monsoon.png",
+			"frames": 12
+		},
+		"rainbow_prism__stormheart": {
+			"file": "rainbow_prism__stormheart.png",
+			"frames": 12
+		},
+		"rampart__bastion": {
+			"file": "rampart__bastion.png",
+			"frames": 12
+		},
+		"resonance__great_bell": {
+			"file": "resonance__great_bell.png",
+			"frames": 12
+		},
+		"rockslide__old_mountain": {
+			"file": "rockslide__old_mountain.png",
+			"frames": 12
+		},
+		"rootcurl__long_way_home": {
+			"file": "rootcurl__long_way_home.png",
+			"frames": 12
+		},
+		"rootlight__starcave": {
+			"file": "rootlight__starcave.png",
+			"frames": 12
+		},
+		"rootling__deeproot": {
+			"file": "rootling__deeproot.png",
+			"frames": 12
+		},
+		"rootling__groundroot": {
+			"file": "rootling__groundroot.png",
+			"frames": 12
+		},
+		"rootling__rootcurl": {
+			"file": "rootling__rootcurl.png",
+			"frames": 12
+		},
+		"rootling__rootlight": {
+			"file": "rootling__rootlight.png",
+			"frames": 12
+		},
+		"rootling__tangleroot": {
+			"file": "rootling__tangleroot.png",
+			"frames": 12
+		},
+		"rootling__thorncoil": {
+			"file": "rootling__thorncoil.png",
+			"frames": 12
+		},
+		"samara__autumn_gale": {
+			"file": "samara__autumn_gale.png",
+			"frames": 12
+		},
+		"seedbearer__grove_keeper": {
+			"file": "seedbearer__grove_keeper.png",
+			"frames": 12
+		},
+		"silence__great_bell": {
+			"file": "silence__great_bell.png",
+			"frames": 12
+		},
+		"silver_bell__vesper_bell": {
+			"file": "silver_bell__vesper_bell.png",
+			"frames": 12
+		},
+		"snugroot__world_root": {
+			"file": "snugroot__world_root.png",
+			"frames": 12
+		},
+		"sparkler__starburst": {
+			"file": "sparkler__starburst.png",
+			"frames": 12
+		},
+		"sporeling__bloomcap": {
+			"file": "sporeling__bloomcap.png",
+			"frames": 12
+		},
+		"sporeling__brood_cap": {
+			"file": "sporeling__brood_cap.png",
+			"frames": 12
+		},
+		"sporeling__driftspore": {
+			"file": "sporeling__driftspore.png",
+			"frames": 12
+		},
+		"sporeling__fairy_ring": {
+			"file": "sporeling__fairy_ring.png",
+			"frames": 12
+		},
+		"sporeling__inkcap": {
+			"file": "sporeling__inkcap.png",
+			"frames": 12
+		},
+		"sporeling__lichenling": {
+			"file": "sporeling__lichenling.png",
+			"frames": 12
+		},
+		"sprout__acorn": {
+			"file": "sprout__acorn.png",
+			"frames": 12
+		},
+		"sprout__bellflower": {
+			"file": "sprout__bellflower.png",
+			"frames": 12
+		},
+		"sprout__dewdrop": {
+			"file": "sprout__dewdrop.png",
+			"frames": 12
+		},
+		"sprout__firefly_jar": {
+			"file": "sprout__firefly_jar.png",
+			"frames": 12
+		},
+		"sprout__nestling": {
+			"file": "sprout__nestling.png",
+			"frames": 12
+		},
+		"sprout__pebbling": {
+			"file": "sprout__pebbling.png",
+			"frames": 12
+		},
+		"sprout__rootling": {
+			"file": "sprout__rootling.png",
+			"frames": 12
+		},
+		"sprout__sporeling": {
+			"file": "sprout__sporeling.png",
+			"frames": 12
+		},
+		"sprout__whirligig": {
+			"file": "sprout__whirligig.png",
+			"frames": 12
+		},
+		"standing_stone__moonstone": {
+			"file": "standing_stone__moonstone.png",
+			"frames": 12
+		},
+		"starburst__stormheart": {
+			"file": "starburst__stormheart.png",
+			"frames": 12
+		},
+		"starcave__world_root": {
+			"file": "starcave__world_root.png",
+			"frames": 12
+		},
+		"starling_murmuration__dawnwing": {
+			"file": "starling_murmuration__dawnwing.png",
+			"frames": 12
+		},
+		"stormcap__thunderhead": {
+			"file": "stormcap__thunderhead.png",
+			"frames": 12
+		},
+		"sunpetal__midsummer": {
+			"file": "sunpetal__midsummer.png",
+			"frames": 12
+		},
+		"tangleroot__snugroot": {
+			"file": "tangleroot__snugroot.png",
+			"frames": 12
+		},
+		"thorncoil__crown_of_thorns": {
+			"file": "thorncoil__crown_of_thorns.png",
+			"frames": 12
+		},
+		"thornwall__bramble": {
+			"file": "thornwall__bramble.png",
+			"frames": 12
+		},
+		"thornwall__honeysuckle": {
+			"file": "thornwall__honeysuckle.png",
+			"frames": 12
+		},
+		"thrum__resonance": {
+			"file": "thrum__resonance.png",
+			"frames": 12
+		},
+		"thunderhead__stormheart": {
+			"file": "thunderhead__stormheart.png",
+			"frames": 12
+		},
+		"torrent__tidecaller": {
+			"file": "torrent__tidecaller.png",
+			"frames": 12
+		},
+		"undercurrent__maelstrom": {
+			"file": "undercurrent__maelstrom.png",
+			"frames": 12
+		},
+		"vesper_bell__great_bell": {
+			"file": "vesper_bell__great_bell.png",
+			"frames": 12
+		},
+		"wellspring__grandmother_oak": {
+			"file": "wellspring__grandmother_oak.png",
+			"frames": 12
+		},
+		"whetstone__edgestone": {
+			"file": "whetstone__edgestone.png",
+			"frames": 12
+		},
+		"whirligig__gust": {
+			"file": "whirligig__gust.png",
+			"frames": 12
+		},
+		"whirligig__pinwheel": {
+			"file": "whirligig__pinwheel.png",
+			"frames": 12
+		},
+		"whirligig__samara": {
+			"file": "whirligig__samara.png",
+			"frames": 12
+		},
+		"whispering_hollow__great_bell": {
+			"file": "whispering_hollow__great_bell.png",
+			"frames": 12
+		},
+		"windmill__tempest": {
+			"file": "windmill__tempest.png",
+			"frames": 12
+		},
+		"wrens_nest__starling_murmuration": {
+			"file": "wrens_nest__starling_murmuration.png",
+			"frames": 12
+		},
+		"zephyr__tempest": {
+			"file": "zephyr__tempest.png",
+			"frames": 12
+		}
+	},
+	"note": "Growing into the next form (fireflies, 0.8 s). Hide the Warden's sprite (and its rank art) and play <from>__<into>.png in its place: hframes = frames, frame pixel `anchor` on the Warden's node origin (Sprite2D centred: offset = frame_size / 2 - anchor), z / y-sort as the sprite. The new form is whole from frame 8 (light fills it on 7); show the real sprite after the last frame. Both slabs and bodies are in the sheet."
+}
