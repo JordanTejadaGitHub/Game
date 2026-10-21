@@ -1757,6 +1757,7 @@ class Puddles extends Node2D:
 # A patch of ground with an effect for a while: rain clouds, whirlpools, ink, wet trails. Ticks every `tick` s on the
 # nightmares inside (a square or a circle of `radius`).
 class GroundZone extends Node2D:
+	const WHIRL_ART_SCALE := 1.5  # The whirlpool sheet is drawn at most this big (64 px x 1.5 = 1.5 cells across)
 	var tower: Tower
 	var kind: StringName
 	var radius := 32.0
@@ -1802,7 +1803,9 @@ class GroundZone extends Node2D:
 					for dy in range(-1, 2):
 						_art = Fx.play(&"rain_zone", global_position + Vector2(dx, dy) * CELL, self, 1.0, true, left) != null or _art
 			&"whirlpool":
-				_art = Fx.play(&"whirlpool", global_position, self, radius * 2.0 / CELL, true, left) != null
+				# The vortex at its own size (user: "undercurrent animation is too big": scaled to the whole zone it was 3x,
+				# chunky); a thin ring in _draw marks the zone's real reach.
+				_art = Fx.play(&"whirlpool", global_position, self, minf(radius * 2.0 / CELL, WHIRL_ART_SCALE), true, left) != null
 
 	func _process(delta: float) -> void:
 		left -= delta
@@ -1894,6 +1897,10 @@ class GroundZone extends Node2D:
 				if is_instance_valid(linked[i - 1]) and is_instance_valid(linked[i]):
 					draw_line(linked[i - 1].global_position - global_position, linked[i].global_position - global_position, thread, 1.5)
 		if _art:
+			if kind == &"whirlpool":  # The vortex sheet is smaller than the zone: its reach as a faint ring on a dark edge
+				var edge := clampf(left / 0.5, 0.0, 1.0)
+				draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(Palette.NIGHT, 0.35 * edge), 3.0)
+				draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(Palette.DEWLIGHT, 0.5 * edge), 1.5)
 			return  # The sheet shows it
 		var fade := clampf(left / 0.5, 0.0, 1.0)
 		var colour: Color
