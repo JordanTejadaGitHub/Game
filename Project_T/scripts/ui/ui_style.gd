@@ -566,7 +566,8 @@ static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyl
 
 # A Dream / family / Omen card: the main plate with its rarity (`colour`) across the top of the glass; hovered, the brass
 # rim and its glow. Cards never carry the sprout (several to a screen).
-static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
+# `legendary` (rarity 3): the Legendary frame (MoonStyleBox.legendary), clearly above a Rare, hovered or not.
+static func card(colour: Color, hover: bool = false, legendary: bool = false) -> MoonStyleBox:
 	var box := panel(18.0, 16.0)
 	box.frame = &"panel_main_yours" if hover else &"panel_main"
 	box.glow = hover
@@ -574,6 +575,7 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	box.thread_color = colour
 	box.accent = colour
 	box.diamond = false
+	box.legendary = legendary
 	return box
 
 # An unpicked card (the others after a pick): the dim plate.
@@ -1122,9 +1124,9 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	return box
 
 # Gives a Button the card look in `colour` (normal + hover + pressed).
-static func card_button(button: Button, colour: Color) -> void:
-	var normal := card(colour)
-	var hover := card(colour, true)
+static func card_button(button: Button, colour: Color, legendary: bool = false) -> void:
+	var normal := card(colour, false, legendary)
+	var hover := card(colour, true, legendary)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", hover)

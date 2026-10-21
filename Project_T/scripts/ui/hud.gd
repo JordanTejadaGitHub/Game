@@ -167,6 +167,9 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
+	var crests := LegendaryCrests.new()  # One crest over the Heartwood per Legendary held, all run (dream_council_review.md 28; world)
+	crests.name = "LegendaryCrests"
+	owner.add_child.call_deferred(crests)
 	var badge_pops := CardBadgePops.new()  # A card that fired on a Warden pops its gem above it (visual_feedback_spec.md B5; world)
 	badge_pops.name = "CardBadgePops"
 	owner.add_child.call_deferred(badge_pops)

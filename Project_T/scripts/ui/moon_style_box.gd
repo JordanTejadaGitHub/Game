@@ -15,8 +15,8 @@ enum TopLine { NONE, GOLD, FULL }
 const UNDERLINE_INSET := 14.0
 const FRAMES_DIR := "res://assets/ui/moonglass/"
 const SCALE := 2  # Art px → screen px
-const FRAME_MARGINS := {&"panel_main": 14, &"panel_main_yours": 14, &"plate": 8, &"plate_hover": 8,
-	&"plate_pressed": 8, &"plate_yours": 8, &"plate_yours_hover": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
+const FRAMES_JSON := "res://assets/ui/moonglass/moonglass.json"  # Each frame's 9-slice margin (art px): the one source
+static var _margins := {}  # Frame id -> margin in art px, read once (plain data: a static is safe)
 const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours", &"plate_yours_hover"]
 # Hovering what is already brass (a primary, the selected item; user 2026-10-21 "the background of the button should
 # glow"): plate_yours_hover has the warm Ember glow baked into its glass, so code adds only the stronger outer glow.
@@ -28,7 +28,7 @@ const SPROUT_SINK := 10.0  # The sprout's stem stands through the top rim to the
 const OPAQUE_FROM := 0.9
 const OPAQUE_BACKING := 0.65
 
-@export var frame := &"":  # A moon-glass frame (FRAME_MARGINS); empty = the old fog patch
+@export var frame := &"":  # A moon-glass frame (moonglass.json); empty = the old fog patch
 	set(v): frame = v; _changed()
 @export var glow := false:  # Brass: the soft gold glow round the plate (instead of the drop shadow)
 	set(v): glow = v; _changed()
@@ -36,6 +36,12 @@ const OPAQUE_BACKING := 0.65
 	set(v): drop_shadow = v; _changed()
 @export var accent := Color(0, 0, 0, 0):  # A 2 px line along the top of the glass (a card's rarity, a boss panel); clear = none
 	set(v): accent = v; emit_changed()
+# A Legendary card (owner 2026-10-21, dream_council_review.md 28: "the legendary cards arent legendary in feeling"):
+# clearly above a Rare. The panel_legendary frame when UI Asset's art is in (assets/ui/moonglass/panel_legendary.png),
+# until then the brass panel_main_yours; always the strong gold glow, a gold line along the top and the foot of the
+# glass, and a gold stud in each corner.
+@export var legendary := false:
+	set(v): legendary = v; _changed()
 @export var inset := Vector2.ZERO:  # Draws the plate this much inside the rect (a 32 px mini plate in a 48 px touch target)
 	set(v): inset = v; emit_changed()
 @export var fog_color := Color("05050d"):  # Void (Heartwood 32)
@@ -77,7 +83,10 @@ func _changed() -> void:
 	emit_changed()
 
 func _draw(to_canvas_item: RID, rect: Rect2) -> void:
-	var texture := texture_for(frame) if frame != &"" else null
+	var drawn := frame
+	if legendary:
+		drawn = &"panel_legendary" if texture_for(&"panel_legendary") != null else &"panel_main_yours"
+	var texture := texture_for(drawn) if drawn != &"" else null
 	if texture == null:
 		_draw_fog(to_canvas_item, rect)
 		return
@@ -87,8 +96,8 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		_halo = StyleBoxFlat.new()
 		_halo.draw_center = false
 		_halo.set_corner_radius_all(6)
-		if glow:  # The old soft gold glow, all round
-			var strong := frame == &"plate_yours_hover"
+		if glow or legendary:  # The old soft gold glow, all round
+			var strong := frame == &"plate_yours_hover" or legendary
 			_halo.shadow_color = Color(UiStyle.GOLD, GLOW_STRONG_ALPHA if strong else GLOW_ALPHA)
 			_halo.shadow_size = 14 if strong else 12
 		elif drop_shadow:  # A soft dark drop shadow, a little down
@@ -97,17 +106,28 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 			_halo.shadow_offset = Vector2(0, 4)
 	if _halo.shadow_size > 0:
 		_halo.draw(to_canvas_item, rect.grow(-2.0))
-	var m := float(FRAME_MARGINS.get(frame, 8) * SCALE)
-	var rim := float(SCALE * (3 if frame.begins_with("panel") else 2))  # The bevel's width
+	# (Main frames are 48 px with a 22 px margin since UI Asset's cbdfc90a: a small panel's corners meet instead of overlapping;
+	# Main Merger 0c8d9b22)
+	var m := minf(frame_margin(drawn), floorf(minf(rect.size.x, rect.size.y) / 2.0))
+	var rim := float(SCALE * (3 if drawn.begins_with("panel") else 2))  # The bevel's width
 	if center_alpha >= OPAQUE_FROM:  # A solid panel (the phone drawer, the pause rail and pane): more glass behind
 		rs.canvas_item_add_rect(to_canvas_item, rect.grow(-rim), Color(UiStyle.FOG, OPAQUE_BACKING))
 	rs.canvas_item_add_nine_patch(to_canvas_item, rect, Rect2(Vector2.ZERO, texture.get_size()), texture.get_rid(),
 		Vector2(m, m), Vector2(m, m))
-	var line := accent  # Only an explicit accent: a full top thread no longer draws a gold line (no threads in Moon-glass)
+	var line := UiStyle.GOLD if legendary else accent  # Only an explicit accent: a full top thread draws no gold line (no threads in Moon-glass)
 	if line.a > 0.0:  # Inside the rim, across the top of the glass, short of the chamfers
 		var side := m * 0.6
 		rs.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + side, rect.position.y + rim + SCALE,
 			maxf(rect.size.x - side * 2.0, 0.0), 2.0), line)
+	if legendary:  # The foot's gold line; the studs only until the panel_legendary art (which has its own) is in
+		var side := m * 0.6
+		rs.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + side, rect.end.y - rim - SCALE - 2.0,
+			maxf(rect.size.x - side * 2.0, 0.0), 2.0), UiStyle.GOLD)
+		var stud := rim + SCALE * 3.0
+		if drawn != &"panel_legendary":  # UI Asset's Legendary frame has its own gilded corners and studs
+			for corner in [rect.position + Vector2(stud, stud), Vector2(rect.end.x - stud, rect.position.y + stud),
+					Vector2(rect.position.x + stud, rect.end.y - stud), rect.end - Vector2(stud, stud)]:
+				_draw_stud(to_canvas_item, corner)
 	if underline:
 		_draw_underline(to_canvas_item, rect, rim + SCALE)
 	if diamond and thread != TopLine.NONE and frame.begins_with("panel"):
@@ -115,6 +135,14 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		if sprout != null:
 			var at := Vector2(roundf(rect.get_center().x - sprout.get_width() / 2.0), rect.position.y - sprout.get_height() + SPROUT_SINK)
 			rs.canvas_item_add_texture_rect(to_canvas_item, Rect2(at, sprout.get_size()), sprout.get_rid())
+
+# A Legendary corner stud: a 3×3-art-px gold diamond (Glow core, Heartlight tip), whole pixels.
+func _draw_stud(ci: RID, centre: Vector2) -> void:
+	var c := centre.round()
+	var px := float(SCALE)
+	for cell in [[Vector2(0, -1), UiStyle.INK], [Vector2(-1, 0), Palette.GOLD], [Vector2(0, 0), Palette.GLOW],
+			[Vector2(1, 0), Palette.GOLD], [Vector2(0, 1), Palette.EMBER]]:
+		RenderingServer.canvas_item_add_rect(ci, Rect2(c + cell[0] * px - Vector2(px, px) / 2.0, Vector2(px, px)), cell[1])
 
 # The frame's texture at ×2 (whole art pixels, nearest), cached; null when the art is missing.
 static func texture_for(id: StringName) -> Texture2D:
@@ -137,7 +165,14 @@ static func texture_for(id: StringName) -> Texture2D:
 
 # The plate's margins in screen px (the rim the content stays inside).
 static func frame_margin(id: StringName) -> float:
-	return float(FRAME_MARGINS.get(id, 8) * SCALE)
+	if _margins.is_empty():
+		var data = JSON.parse_string(FileAccess.get_file_as_string(FRAMES_JSON)) if FileAccess.file_exists(FRAMES_JSON) else null
+		var frames: Dictionary = data.get("frames", {}) if data is Dictionary else {}
+		for key in frames:
+			_margins[StringName(key)] = int((frames[key] as Dictionary).get("margin", 8))
+		if _margins.is_empty():
+			_margins[&""] = 8  # No manifest: every frame falls back below
+	return float(int(_margins.get(id, 22 if String(id).begins_with("panel") else 8)) * SCALE)
 
 func _draw_underline(ci: RID, rect: Rect2, up: float) -> void:
 	var rs := RenderingServer

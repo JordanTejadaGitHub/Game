@@ -296,7 +296,7 @@ func _card_row(source: DreamIcon) -> Control:
 	var legendary := card.rarity == UpgradeData.Rarity.LEGENDARY
 	# Legendaries get a card of their own (Moonlit Thread: solid fog, the thread in Legendary gold); the
 	# others sit flat on the panel.
-	var style: StyleBox = UiStyle.card(UiStyle.rarity_color(card.rarity)) if legendary else StyleBoxEmpty.new()
+	var style: StyleBox = UiStyle.card(UiStyle.rarity_color(card.rarity), false, true) if legendary else StyleBoxEmpty.new()  # The Legendary frame
 	var pad := 8 if _phone_page else 6
 	style.content_margin_left = pad
 	style.content_margin_right = pad
