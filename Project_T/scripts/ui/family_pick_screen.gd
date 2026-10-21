@@ -544,14 +544,7 @@ static func _statuses_of(data: TowerData) -> Array[StringName]:
 func _status_chip(status: StringName) -> Control:
 	var chip := PanelContainer.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var frame := StyleBoxFlat.new()
-	frame.draw_center = false
-	frame.border_color = Color(UiStyle.MOON_MIST, 0.3)
-	frame.set_border_width_all(1)
-	frame.set_corner_radius_all(11)
-	frame.content_margin_left = 8
-	frame.content_margin_right = 8
-	chip.add_theme_stylebox_override("panel", frame)
+	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(8.0, 2.0, &"plate_dim"))  # Moon-glass (UI Code 8ecd7fb4)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -738,14 +731,7 @@ func _role_chips(role: String) -> HFlowContainer:
 	for term: String in IconInfo.role_terms(role):
 		var chip := PanelContainer.new()
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var frame := StyleBoxFlat.new()  # The status chip's thin outline (_status_chip), in Gold
-		frame.draw_center = false
-		frame.border_color = Color(UiStyle.GOLD, 0.35)
-		frame.set_border_width_all(1)
-		frame.set_corner_radius_all(8)
-		frame.content_margin_left = 6
-		frame.content_margin_right = 6
-		chip.add_theme_stylebox_override("panel", frame)
+		chip.add_theme_stylebox_override("panel", UiStyle.plate_box(6.0, 2.0))  # Moon-glass plate (UI Code 8ecd7fb4)
 		var label := StatusLinks.make_label("", _fs(ROLE_CHIP_TEXT), UiStyle.GOLD)
 		label.autowrap_mode = TextServer.AUTOWRAP_OFF  # One chip, one line: it sizes to its word
 		label.custom_minimum_size = Vector2.ZERO

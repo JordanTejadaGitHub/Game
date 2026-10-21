@@ -452,13 +452,9 @@ func _scroll_to_term() -> void:
 func _list_row_look(button: Button, indent: float = 10.0) -> void:
 	var empty := StyleBoxEmpty.new()
 	empty.content_margin_left = indent
-	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color(UiStyle.MOON_MIST, 0.06)
+	var hover := UiStyle.plate_box(6.0, 4.0, &"plate_hover")  # Moon-glass (UI Code 8ecd7fb4)
 	hover.content_margin_left = indent
-	var chosen := StyleBoxFlat.new()
-	chosen.bg_color = Color(UiStyle.GOLD, 0.08)
-	chosen.border_width_left = 2
-	chosen.border_color = UiStyle.GOLD
+	var chosen := UiStyle.plate_box(6.0, 4.0, &"plate_yours")
 	chosen.content_margin_left = indent
 	button.add_theme_stylebox_override("normal", empty)
 	button.add_theme_stylebox_override("hover", hover)
@@ -913,14 +909,7 @@ func _full_game_tag() -> Label:
 	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_color_override("font_color", UiStyle.GOLD)
-	var frame := StyleBoxFlat.new()
-	frame.draw_center = false
-	frame.border_color = Color(UiStyle.GOLD, 0.7)
-	frame.set_border_width_all(1)
-	frame.set_corner_radius_all(9)
-	frame.content_margin_left = 7
-	frame.content_margin_right = 7
-	tag.add_theme_stylebox_override("normal", frame)
+	tag.add_theme_stylebox_override("normal", UiStyle.plate_box(7.0, 1.0, &"plate_yours"))  # Moon-glass
 	return tag
 
 # Demo only: a Dream card the demo can't offer (the story chat's rule, from the data): it enters the pool only through

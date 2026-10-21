@@ -290,13 +290,7 @@ func _build_footer() -> void:
 
 func _build_viewer() -> void:
 	_viewer.visible = false
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(Palette.DREAD, 0.97)
-	style.border_color = Palette.DEWLIGHT
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(16)
-	_viewer.add_theme_stylebox_override("panel", style)
+	_viewer.add_theme_stylebox_override("panel", UiStyle.plate_box(16.0, 16.0, &"panel_main"))  # Moon-glass (UI Code 8ecd7fb4)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	_viewer.add_child(box)
@@ -606,16 +600,7 @@ func _requirement_chips(unlock: UnlockData) -> Array:
 
 func _chip(text: String, met: bool) -> PanelContainer:
 	var chip := PanelContainer.new()
-	var box := StyleBoxFlat.new()  # A small outline chip (no panel fill), Sprig when met
-	box.bg_color = Color(Palette.VOID, 0.0)
-	box.border_color = Palette.SPRIG if met else Color(Palette.MIST, 0.5)
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(10)
-	box.content_margin_left = 8
-	box.content_margin_right = 8
-	box.content_margin_top = 2
-	box.content_margin_bottom = 2
-	chip.add_theme_stylebox_override("panel", box)
+	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(8.0, 2.0, &"plate_yours" if met else &"plate_dim"))  # Moon-glass: brass when met
 	var label := Label.new()
 	label.text = ("✓ " + text) if met else text
 	label.add_theme_font_size_override("font_size", 13)
