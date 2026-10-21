@@ -406,6 +406,11 @@ func tap(button: Button, take_text: String) -> bool:
 		return false
 	look(button, take_text)
 	return true
+	if cards != null:
+		for child in cards.get_children():
+			var face := _face(child)
+			if face != null:
+				_dim_plate(face, false)  # Nothing looked at: every card wears its own boxes again
 
 # Looks at `button`: it lifts, the others dim; Take names it.
 func look(button: Button, take_text: String) -> void:
@@ -415,7 +420,8 @@ func look(button: Button, take_text: String) -> void:
 		if face == null:
 			continue
 		var on := face == button
-		face.modulate = Color(1, 1, 1, 1.0 if on else DIM_ALPHA)  # multiplier
+		face.modulate = Color(1, 1, 1, 1.0 if on else LOOKED_AWAY_ALPHA)  # multiplier
+		_dim_plate(face, not on)
 		_lift(face, on)
 	set_take(take_text)
 
@@ -430,6 +436,31 @@ static func disabled_look(button: Button) -> void:
 # Take reads `text` ("" = nothing looked at: dim, "Take"); the hint follows.
 func set_take(text: String) -> void:
 	var can := text != "" and looked != null and is_instance_valid(looked)
+# Moon-glass (UI Code, re c4f58285): a card not looked at wears the dim plate (UiStyle.card_dim in its own accent) and
+# fades less, since the plate already dims; its own boxes come back when it's looked at or nothing is.
+const LOOKED_AWAY_ALPHA := 0.7
+const DIM_STATES := ["normal", "hover"]
+func _dim_plate(face: Button, dim: bool) -> void:
+	if dim and not face.has_meta(&"undimmed"):
+		var kept := {}
+		var colour := UiStyle.GOLD
+		for state in DIM_STATES:
+			kept[state] = face.get_theme_stylebox(state) if face.has_theme_stylebox_override(state) else null
+			var box := face.get_theme_stylebox(state) as MoonStyleBox
+			if box != null and box.accent.a > 0.0:
+				colour = box.accent
+		face.set_meta(&"undimmed", kept)
+		for state in DIM_STATES:
+			face.add_theme_stylebox_override(state, UiStyle.card_dim(colour))
+	elif not dim and face.has_meta(&"undimmed"):
+		var kept: Dictionary = face.get_meta(&"undimmed")
+		face.remove_meta(&"undimmed")
+		for state in DIM_STATES:
+			if kept.get(state) != null:
+				face.add_theme_stylebox_override(state, kept[state])
+			else:
+				face.remove_theme_stylebox_override(state)
+
 	take.disabled = not can
 	disabled_look(take)
 	take.modulate.a = 1.0 if can else 0.45  # multiplier: the secondary frame at 45% until there's something to take
