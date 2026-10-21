@@ -26,6 +26,8 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
 - **Metal is state.** Pewter at rest. **Brass for what is yours or under your finger**: the selected slot or card,
   the primary (Take, Start drift, Resume, Apply), hover, pressed (lit from below, pushed down 1 art px), a switched-on
   toggle, the open tab. Destructive actions (Abandon, Delete) get the small Ember-rimmed plate, set apart.
+  **Legendary Dreams** (dream_council_review.md 28) use `panel_legendary`: a double brass rim (an inner gold line), gilded
+  cut corners and a gold stud inside each corner, above `panel_main_yours`; code adds the strong gold glow.
   **Hover must always change something** (user 2026-10-20: hovering New run did nothing): a pewter plate turns brass
   (`plate_hover`); a plate that is already brass (a primary, the selected item) brightens to `plate_yours_hover`
   (Heartlight rim, and the glass inside glows warm: Ember, strongest just inside the rim, a faint tint in the middle;
@@ -36,7 +38,7 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
   pixel-crisp.
 - **Dividers are engraved** into the glass (Dread over Dusk, 2 art px, stopping short of the rim), never gold threads.
 - **The sprout stays**: today's 7x4 gold sprout (`rim_sprout.png`) stands on the top rim of the one main panel per
-  screen. Main panels also get one facet line in the top-left corner of the glass. No diamond anywhere.
+  screen. Main panels also get a soft moonlight glow fading out of the top-left corner of the glass (user 2026-10-21 picked D from https://claude.ai/artifact/JgyRnNFWR4oNek7PNyDLUN; the single facet line looked like a stray mark). No diamond anywhere.
 - **Type: two families, one job each** (user 2026-10-21: "different text fonts everywhere"). Every text in the game
   uses exactly one of these; nothing else (no Alegreya Sans, no Cormorant, no engine default font):
   | What | Font |

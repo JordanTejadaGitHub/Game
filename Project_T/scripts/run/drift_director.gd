@@ -182,6 +182,15 @@ var _drift_of := {}
 # Arrivals still to come, per drift: {number: {"schedule": [[time, EnemyData, elite], ...], "clock": float}}.
 var _arriving := {}
 var _auto_timer := -1.0  # Counts down to the next auto drift; < 0 = not waiting
+# Headlong (Legendary, owner 2026-10-21; dream_council_review.md 28): a drift started while the last one's nightmares are
+# still on the field arrives within HEADLONG_SECONDS and pays its whole pot up front. Its "normal clock" (normal_end and
+# started in _active) outlives _arriving, so the early-call rule, its Dew, Call of the Wild, Press On and Auto-drift keep
+# reading the arrival it would have had.
+const HEADLONG_SECONDS := 3.0
+const PREPAID_META := &"dew_prepaid"  # On a nightmare whose share was paid up front: a dispel pays only its extras
+var _clock := 0.0  # Seconds of drifts played (the normal clock's time base)
+var _headlong_next := false
+var headlong_drifts := 0  # This run (tests, run history)
 var _block_leaked := false
 # The boss drawn for each act (index 0 = act 1; BossPool), set once the run's seed is known.
 var bosses: Array[BossData] = []
@@ -293,6 +302,7 @@ static func load_demo_drifts() -> Array[DriftData]:
 	return result
 
 func _process(delta: float) -> void:
+	_clock += delta
 	_maze_refresh_left -= delta
 	if _maze_refresh_left <= 0.0:
 		get_maze_reward_preview()
@@ -314,7 +324,7 @@ func _process(delta: float) -> void:
 			_active[number].arriving = false
 			drift_arrived.emit(number)
 			if number == drifts_started and auto_drift and _next_is_in_block():
-				_auto_timer = auto_drift_delay
+				_auto_timer = auto_drift_delay + _normal_left(number)  # Headlong: the delay counts from the normal arrival's end
 			_check_cleared(number)
 	if _auto_timer >= 0.0:
 		_auto_timer -= delta
@@ -410,7 +420,11 @@ func pending_choice() -> StringName:
 
 # Seconds of the current drift's arrival that starting the next one right now would skip (0: nothing is arriving).
 func get_arrival_skipped() -> float:
-	if resting or not _arriving.has(drifts_started):
+	if resting:
+		return 0.0
+	if _has_normal_clock(drifts_started):
+		return _normal_left(drifts_started)
+	if not _arriving.has(drifts_started):
 		return 0.0
 	var schedule: Array = _arriving[drifts_started].schedule
 	return maxf(float(schedule[-1][0]) - float(_arriving[drifts_started].clock), 0.0) if not schedule.is_empty() else 0.0
@@ -418,6 +432,8 @@ func get_arrival_skipped() -> float:
 # Seconds of drift `number`'s arrival still to come (0 when it has finished arriving or is not known). Call of the Wild
 # (Roguelite Code, 2026-10-14) reads the drift before the one being started.
 func arrival_left(number: int) -> float:
+	if _has_normal_clock(number):
+		return _normal_left(number)
 	if not _arriving.has(number):
 		return 0.0
 	var schedule: Array = _arriving[number].schedule
@@ -426,18 +442,27 @@ func arrival_left(number: int) -> float:
 # Whether starting the next drift right now counts as calling it early for Dream cards: the last one is still
 # arriving with at least call_early_min_seconds of its arrival left to skip.
 func would_call_early() -> bool:
-	return is_arriving() and get_arrival_skipped() >= call_early_min_seconds
+	return (is_arriving() or _has_normal_clock(drifts_started)) and get_arrival_skipped() >= call_early_min_seconds
+
+# Headlong's normal clock: drift `number` arrived compressed and keeps its normal arrival's end.
+func _has_normal_clock(number: int) -> bool:
+	return (_active.get(number, {}) as Dictionary).has("normal_end")
+
+# Seconds of drift `number`'s normal arrival still to come (0 without a normal clock).
+func _normal_left(number: int) -> float:
+	if not _has_normal_clock(number):
+		return 0.0
+	var drift: Dictionary = _active[number]
+	return maxf(float(drift.normal_end) - (_clock - float(drift.started)), 0.0)
 
 # Dew for starting the next drift right now: +1 per `call_early_seconds_per_dew` seconds of the
 # current drift's arrival that are skipped, capped. 0 when resting or when it has finished arriving.
 func get_call_early_bonus() -> int:
-	if resting or not can_start_next_drift() or not _arriving.has(drifts_started):
+	if resting or not can_start_next_drift() or not (_arriving.has(drifts_started) or _has_normal_clock(drifts_started)):
 		return 0
-	var arrival: Dictionary = _arriving[drifts_started]
-	var schedule: Array = arrival.schedule
-	if schedule.is_empty():
+	var skipped: float = get_arrival_skipped()  # (Headlong: on the normal clock)
+	if skipped <= 0.0:
 		return 0
-	var skipped: float = schedule[-1][0] - arrival.clock
 	var bonus := mini(int(skipped / call_early_seconds_per_dew), call_early_cap)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	return dreams.get_call_early_bonus(int(skipped / call_early_seconds_per_dew), call_early_cap) if dreams else bonus  # Call of the Wild
@@ -454,14 +479,24 @@ func start_next_drift() -> bool:
 	var bonus := get_call_early_bonus()
 	if bonus > 0:
 		run_state.add_dew(bonus)
-	var arriving := is_arriving()
-	_called_early = would_call_early()  # For Dream cards (and the run history's called_early column): 10 s or more skipped
+	var arriving := is_arriving() or get_arrival_skipped() > 0.0
+	_called_early = would_call_early()
+	_headlong_next = _headlong_ok()  # For Dream cards (and the run history's called_early column): 10 s or more skipped
 	if arriving:  # Run history (balancing: "the user calls most drifts early")
 		early_calls += 1
 		call_early_dew += bonus
 	_start_drift()
 	_called_early = false
+	_headlong_next = false
 	return true
+
+# Headlong's trigger: the player starts a drift (never Auto-drift, never a block's first, never a boss drift) while
+# nightmares of the last one are still on the field (spawned, not only waiting in the mist).
+func _headlong_ok() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if dreams == null or not dreams.has_rule(&"headlong") or resting or is_boss_drift(drifts_started + 1):
+		return false
+	return int((_active.get(drifts_started, {}) as Dictionary).get("remaining", 0)) > 0
 
 # Leaves the rest and starts the next drift.
 func start_next_block() -> bool:
@@ -509,7 +544,13 @@ func _start_drift() -> void:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens:
 		omens.shape_schedule(_arriving[number].schedule, number)  # Elder Night, Hollow Wind
+	var headlong := _headlong_next
+	_headlong_next = false
+	if headlong:
+		_compress(number)
 	_arriving[number].shares = pot_shares(_arriving[number].schedule, number, _called_early)
+	if headlong:
+		_pay_up_front(number)
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
 	_process(0.0)
@@ -662,6 +703,11 @@ func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1
 	_refresh_early_overlap()
 	if share >= 0.0 and enemy.has_method("set_dew_share"):
 		enemy.set_dew_share(share)  # Its followers take their part of it (Enemy.FOLLOWER_DEW_SHARE)
+	if _active[number].get("prepaid", false):
+		enemy.set_meta(PREPAID_META, true)  # Headlong: paid when its drift started
+		for follower in enemy.get("dew_followers") if enemy.get("dew_followers") != null else []:
+			if is_instance_valid(follower):
+				follower.set_meta(PREPAID_META, true)
 
 
 # --- The Dew pot --------------------------------------------------------------------------------------
@@ -719,6 +765,35 @@ func get_effective_pot(number: int, called_early: bool = false) -> float:
 
 # Each schedule entry's share of the pot, in schedule order: weight = dew_reward (Deeply Blighted ×3); a
 # boss drift's bosses take POT_BOSS_SHARE between them, the escorts the rest. Adds the pot to the block's.
+# Headlong: the whole schedule (elites and Omens included) arrives within HEADLONG_SECONDS, its normal end kept.
+func _compress(number: int) -> void:
+	var schedule: Array = _arriving[number].schedule
+	var last: float = float(schedule[-1][0]) if not schedule.is_empty() else 0.0
+	_active[number].normal_end = last
+	_active[number].started = _clock
+	if last > HEADLONG_SECONDS:
+		var scale := HEADLONG_SECONDS / last
+		for entry in schedule:
+			entry[0] = float(entry[0]) * scale
+	headlong_drifts += 1
+
+# Headlong: the drift's pot (its shares, every multiplier applied once) is paid now; its nightmares pay only their
+# per-dispel extras (Nipped in the Bud, catchers). A leak costs leaves only.
+func _pay_up_front(number: int) -> void:
+	var total := 0.0
+	for share in _arriving[number].shares:
+		total += maxf(float(share), 0.0)
+	_active[number].prepaid = true
+	run_state.pot_earned_block += total
+	var map: Node = _maze_map()
+	var at := Vector2.ZERO
+	if map != null and "startPath" in map:
+		at = map.to_global(Tower.MAP_GRID.calculate_map_position(map.startPath))
+	run_state.earn_dew_at(run_state._carried_dew(total), at)
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null:
+		dreams.note_card(&"headlong", at)
+
 func pot_shares(schedule: Array, number: int, called_early: bool = false) -> Array:
 	var pot := get_effective_pot(number, called_early)
 	block_pot += pot

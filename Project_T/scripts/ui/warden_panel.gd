@@ -444,6 +444,8 @@ func _refresh() -> void:
 					var tip := "Rank %s: %s.\n%s. Kept when it grows; can't be changed." % [Tower.rank_name(_tower.rank + 1),
 						_choice_preview(_tower, which), _tower.focus_text(which).trim_suffix(".")] + _growth_note()
 					var button := _nurture_choice(index, Tower.FOCUS_NAMES[which], _choice_delta(_tower, which), tip, price)
+					if which == Tower.Focus.DEEP:
+						_deep_line(button, _tower)
 					if _tower.has_method("choice_available") and not _tower.choice_available(which):
 						button.disabled = true  # A one-time choice already taken ("Already taken: Kindred works once")
 						button.tooltip_text = _tower.choice_blocker(which)
@@ -906,10 +908,25 @@ func _choice_delta(tower: Tower, which: Tower.Focus) -> String:
 		Tower.Focus.REACH:
 			return "+%s range" % String.num(Tower.FOCUS_REACH, 1)
 		Tower.Focus.DEEP:
-			var says := deep_words(tower)  # What Deep does on this Warden first, the Potency number small after it
-			var potency := "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)
-			return potency if says == "" else "%s  (%s)" % [says, potency]
+			return "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)  # Short; what it does here goes under the row (_deep_line)
 	return tower.focus_text(which)  # Cut with "…" in the row; whole in the tip
+
+# Under the Deep row (user 2026-10-21, Torrent: "Deep must say what it does on this Warden"): its own terms in small
+# wrapping text, the row keeping its short "+25% Potency" (one line, never broken). Same on PC and in the phone drawer.
+func _deep_line(button: Button, tower: Tower) -> void:
+	var says := deep_words(tower)
+	if says == "" or button.get_parent() == null:
+		return
+	var line := Label.new()
+	line.name = "DeepSays"
+	line.text = says
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size.x = 1.0  # Wraps to the panel's width
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_theme_font_size_override("font_size", 13)
+	line.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	button.add_sibling(line)
 
 # Deep on this Warden in its own terms (user 2026-10-21, Torrent: "Erosion 1.0% → 1.2% of max health · Soak +20% → +24%"),
 # from Tower Code's deep_preview; "" until it exists or when it has nothing (then Tower Code drops Deep from the choices).

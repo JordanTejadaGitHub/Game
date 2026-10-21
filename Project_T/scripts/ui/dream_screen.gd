@@ -325,7 +325,7 @@ func _make_card(card: UpgradeData) -> Button:
 	button.button_down.connect(_show_reach.bind(card))  # (distance words, owner 2026-10-19)
 	if CardDiagram.has_diagram(card):
 		button.mouse_entered.connect(show_diagram.bind(card, button))
-		button.mouse_exited.connect(hide_diagram)
+		button.mouse_exited.connect(_on_card_exit.bind(button))
 		button.button_down.connect(func() -> void:  # Touch: a long-press shows it
 			await UiTime.timer(self, LONG_PRESS).timeout
 			if is_instance_valid(button) and button.button_pressed:
@@ -451,6 +451,7 @@ func _make_card(card: UpgradeData) -> Button:
 	var keyword_row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UpgradeData.rarity_color(card.rarity), CARD_CHIP_TEXT)
 	if keyword_row != null:
 		box.add_child(keyword_row)
+		_keep_card_hover(button, keyword_row, card)
 	for label in [rarity, name_label]:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
@@ -700,6 +701,31 @@ func _lift(face: Control, up: bool) -> void:
 	face.pivot_offset = Vector2(face.size.x / 2.0, face.size.y)
 	var target := Vector2.ONE * (PHONE_LIFT if up else 1.0)
 	UiTime.tween(face).tween_property(face, "scale", target, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# The pointer left the card: the diagram goes only when it is outside the card (on its chips it is still on the card).
+func _on_card_exit(button: Control) -> void:
+	if not is_instance_valid(button) or not button.get_global_rect().has_point(button.get_global_mouse_position()):
+		hide_diagram()
+
+# The card keeps its hover look, map outline and diagram while the pointer is on its keyword chips (owner 2026-10-20: "card
+# doesnt glow or bugs out when i hover near the chips"): the chip row stops the mouse for its glossary tip, which took
+# the hover from the card button. On the row the button wears its hover box as its normal one; leaving puts it back.
+func _keep_card_hover(button: Button, row: Control, card: UpgradeData) -> void:
+	var normal: StyleBox = button.get_theme_stylebox("normal")
+	row.mouse_entered.connect(func() -> void:
+		if not is_instance_valid(button) or button.disabled:
+			return
+		button.add_theme_stylebox_override("normal", button.get_theme_stylebox("hover"))
+		_show_reach(card)
+		if CardDiagram.has_diagram(card) and (_diagram == null or not is_instance_valid(_diagram)):
+			show_diagram(card, button))
+	row.mouse_exited.connect(_leave_chips.bind(button, normal))
+
+func _leave_chips(button: Button, normal: StyleBox) -> void:
+	if not is_instance_valid(button):
+		return
+	button.add_theme_stylebox_override("normal", normal)
+	_on_card_exit(button)
 
 func hide_diagram() -> void:
 	if _diagram != null and is_instance_valid(_diagram):

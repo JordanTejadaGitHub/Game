@@ -14,5 +14,6 @@ tags = Array[String](["form", "reaction"])
 max_stacks = 1
 min_act = 3
 rule_id = &"old_heart"
+in_start_pool = false
 min_tier_owned = 4
 makes = Array[StringName]([&"reaction"])

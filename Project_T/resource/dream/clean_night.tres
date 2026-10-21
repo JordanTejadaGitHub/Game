@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "clean_night"
 display_name = "Hard-Won Rings"
-description = "Every 80 nightmares a Warden dispels give it a free Nurture {rank}, up to {rank} IV."
+description = "Every 40 nightmares a Warden dispels give it a free Nurture {rank}, up to {rank} V."
 rarity = 2
 kind = 3
 tags = Array[String](["tending", "defining"])

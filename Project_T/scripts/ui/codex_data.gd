@@ -75,6 +75,7 @@ const GLOSSARY_SOURCE := [
 		["Lit", "A nightmare inside a Firefly Warden's glow (the path within 1.5 cells of it, more as its range grows). The Lantern Light Calling jumps damage between Lit nightmares.", ["Jump"]],
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump sets off another jump only when a card says so.", ["Lit"]],
 		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
+		["Dewdrop splash", "A Dewdrop's hit on nightmares in its {water}: nightmares within 4 {steps} in that {water} gain {damp}. Each nightmare at most once a second. The Puddles Calling's splash, not a splash attack.", ["Water", "Splash"]],  # (owner 2026-10-20)
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],
 		["Free hit", "One extra hit from a Warden outside its normal attacks: on that nightmare only, at most once a second per Warden, never more than a second of its damage.", []],
 		["Heavy Warden", "A Warden that attacks slowly and hits hard, like Pebbling, Frostfern, Lanternmoth or Silver Bell.", ["Jump"]],

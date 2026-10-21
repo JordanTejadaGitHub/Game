@@ -842,7 +842,7 @@ func _test_seed_cards() -> void:
 # Support Warden cards (dream_design.md "Support Warden cards: the quiet Wardens").
 func _test_support_cards() -> void:
 	_reset()
-	var start := []  # Lean starting pool: Thorn Snare (Thorn and Bramble) and Scented Hedge (Old Wood) are Grove cards now
+	var start := ["many_threads"]  # Lean starting pool: Thorn Snare (Thorn and Bramble) and Scented Hedge (Old Wood) are Grove cards now; Many Threads in the start pool since the Grove bundle trim (5a7228ce)
 	for id in ["dew_trail", "dew_trail_ii", "overflowing_well", "hedgerow_roots",
 			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
 		var card := _card(id)

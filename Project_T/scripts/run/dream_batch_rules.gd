@@ -18,8 +18,8 @@ const PRESS_ON_EVERY := 5  # Press On: every 5th drift you call early…
 const PRESS_ON_LEAVES := 1  # …regrows this many leaves, at once
 const NIPPED_BONUS := 0.20  # Nipped in the Bud (id held_breath): dispels before halfway along the route pay +20% Dew
 const NIPPED_SHARE := 0.5
-const HARD_WON_DISPELS := 80  # Hard-Won Rings (id clean_night): every 80 nightmares a Warden dispels…
-const HARD_WON_MAX_RANK := 4  # …give it a free rank, up to rank IV
+const HARD_WON_DISPELS := 40  # Hard-Won Rings (id clean_night): every 40 nightmares a Warden dispels… (owner playtest 2026-10-20: was 80, banked ~150 Dew of ranks by drift 45; a starting point for Balancing)
+const HARD_WON_MAX_RANK := 5  # …give it a free rank, up to rank V (was IV)
 const GAUNTLET_MULT := 1.20  # Gauntlet (id front_line): between two attacking Wardens, one on each side of the path (card pass 2026-10-16: x1.20 on the synergy side; was +30% plain)
 const GAUNTLET_SIDE := Vector2(0.35, 1.4)  # Cells to the side of the path a Warden's centre may stand (the near and far edge)
 const GAUNTLET_ALONG := 0.75  # …and at most this far along it
@@ -72,7 +72,7 @@ var _route_index := {}  # Route point -> its index on the route (Passing Thread)
 
 func to_save() -> Dictionary:
 	return {"rings_planted": rings_planted, "leaves_mark": leaves_mark, "press_on_calls": press_on_calls,
-		"reach_cells": reach_cells.keys(), "hard_won": hard_won.duplicate(), "heels": heels}
+		"reach_cells": reach_cells.keys(), "hard_won": hard_won.duplicate(), "heels": heels, "wild": wild.duplicate(true)}
 
 func load_save(data: Dictionary) -> void:
 	rings_planted = bool(data.get("rings_planted", false))
@@ -87,6 +87,13 @@ func load_save(data: Dictionary) -> void:
 		for key in saved_won:
 			hard_won[String(key)] = int(saved_won[key])
 	heels = int(data.get("heels", 0))
+	wild.clear()
+	var saved_wild = data.get("wild", {})
+	if saved_wild is Dictionary:
+		for key in saved_wild:
+			var entry = saved_wild[key]
+			if entry is Array and entry.size() == 2:
+				wild[String(key)] = [int(entry[0]), int(entry[1])]
 
 # --- Shared rules -------------------------------------------------------------------------------------------------
 
@@ -310,6 +317,8 @@ func hard_won_dispel(dreams: DreamState, tower: Tower) -> void:
 		tower.bank_rank()
 		dreams._credit("clean_night", "dew", float(Tower.RANK_COSTS[mini(tower.rank + tower.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
 		dreams.sunlit_granted.emit([tower])
+		dreams.note_card(&"clean_night", tower.global_position, 1, tower)  # The card's badge and cue on that Warden
+		dreams.visuals.rank_earned(tower)  # "Rank earned!" and the rank art flash (owner 2026-10-20)
 
 func hard_won_sold(tower: Tower) -> void:
 	hard_won.erase("%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)])
@@ -613,3 +622,57 @@ func answer_line(dreams: DreamState, card: UpgradeData) -> String:
 		&"press_on":
 			return "Drifts called early so far: %d. The next leaf at %d." % [press_on_calls, (press_on_calls / PRESS_ON_EVERY + 1) * PRESS_ON_EVERY]
 	return ""
+
+# --- Wild Growth (Legendary; owner 2026-10-21, dream_council_review.md 28; legendaries_final.md 1.3) ----------------------
+# Wardens grow for free from dispels: a Warden's count (by its cell, kept with the tier it was counted at, so it restarts
+# after each growth) fills to WILD_NEEDS[tier]; then it is ripe and waits for the player to pick the form (the grow
+# buttons, free; Dreamlight unlocks still apply; the rank difference is still charged). No Grow for Dew while it is held.
+# A dispel counts for the Warden that landed it and at most WILD_HELPERS other Wardens with the dispel point in range,
+# nearest first: any Warden but walls. Not Thornwalls, the Heartwood Sapling or Ascended forms (tier 3 and up never count).
+const WILD_NEEDS: Array[int] = [20, 60, 150]  # Dispels from tier 0 (Sprout), 1 (family form), 2 (branch); starting points for Balancing
+const WILD_HELPERS := 2
+var wild := {}  # Cell key -> [count, tier it was counted at] (selling resets it; saved)
+
+func _cell_key(tower: Tower) -> String:
+	return "%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)]
+
+func wild_applies(tower) -> bool:
+	return tower is Tower and is_instance_valid(tower) and tower.tower_data != null and tower.tower_data.line != "wall" \
+		and not tower.tower_data.rooted and tower.tower_data.tier < WILD_NEEDS.size()
+
+func wild_need(tower) -> int:
+	return WILD_NEEDS[tower.tower_data.tier] if wild_applies(tower) else 0
+
+func wild_of(tower) -> int:
+	if not wild_applies(tower):
+		return 0
+	var entry: Array = wild.get(_cell_key(tower), [0, -1])
+	return int(entry[0]) if int(entry[1]) == tower.tower_data.tier else 0
+
+func wild_ripe(tower) -> bool:
+	return wild_applies(tower) and wild_of(tower) >= wild_need(tower)
+
+# A nightmare was dispelled at `at`; `killer` landed the blow (null: no Warden).
+func wild_dispel(dreams: DreamState, killer, at: Vector2) -> void:
+	var counted: Array = []
+	if wild_applies(killer):
+		counted.append(killer)
+	var others: Array = []
+	for tower in dreams.get_tree().get_nodes_in_group(Tower.GROUP):
+		if tower != killer and wild_applies(tower) and tower.global_position.distance_to(at) <= tower.get_range_pixels():
+			others.append(tower)
+	others.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	counted.append_array(others.slice(0, WILD_HELPERS))
+	for tower in counted:
+		if wild_ripe(tower):
+			continue  # Ripe: it waits for the player (no banking ahead)
+		var count := wild_of(tower) + 1
+		wild[_cell_key(tower)] = [count, tower.tower_data.tier]
+		if count >= wild_need(tower):
+			dreams.note_card(&"wild_growth", tower.global_position, 1, tower)
+			var world: Node = Reactions._world(tower)
+			if world != null:
+				Fx.callout("Ready to grow!", Palette.NEWLEAF, tower.global_position + Vector2(0.0, -40.0), world, &"wild_ripe")
+
+func wild_sold(tower: Tower) -> void:
+	wild.erase(_cell_key(tower))

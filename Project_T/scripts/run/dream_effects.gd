@@ -44,6 +44,7 @@ const REPORTERS := {
 	&"switchback": "_switchback", &"close_guard": "_close_guard", &"nimble_twigs": "_nimble_twigs", &"seasoned": "_seasoned",
 	&"mulch": "_mulch", &"light_steps": "_light_steps", &"close_shave": "_close_shave", &"undergrowth": "_undergrowth",
 	&"rain_on_glass": "_rain_on_glass",
+	&"clean_night": "_hard_won",  # Hard-Won Rings: each Warden's own count (owner 2026-10-20)
 	&"kind_canopy": "_kind_canopy", &"bramble_oath": "_bramble_oath",  # (Shared Light: a dispel share since 2026-10-20, GroveRules)
 	&"golden_harvest": "_golden_harvest",
 	&"sunlit_rest": "_sunlit_rest",
@@ -54,7 +55,7 @@ const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "ra
 # The rows that move with the field between board changes (nightmares in range, dispels this drift):
 # rows_cached recomputes these on every call.
 const LIVE_RULES: Array[StringName] = [&"rhythm", &"target_turnover", &"crowded_path", &"thinning_the_herd", &"quick_step", &"scarred_bark", &"desperate_bloom",
-	&"fresh_growth", &"old_growth", &"canopy", &"light_steps", &"close_shave", &"seasoned"]  # Rows that read per-Warden or run state the row cache key doesn't cover
+	&"fresh_growth", &"old_growth", &"canopy", &"light_steps", &"close_shave", &"seasoned", &"clean_night"]  # Rows that read per-Warden or run state the row cache key doesn't cover
 
 var ds: DreamState
 var _board: Board = null
@@ -782,6 +783,21 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 	var on: bool = spot.node != null and heart == spot.node
 	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,  # positional: its Warden shows the badge (the text can't say which)
 		"reason": "" if on else "another Warden is the loneliest"}
+
+# Hard-Won Rings (id clean_night; owner 2026-10-20: "don't know who gets the free rank from hard-won rings"): the
+# Warden's own count toward its next free rank, a banked rank waiting to be Nurtured, or done at its cap.
+func _hard_won(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	var tower = spot.node
+	if tower == null or not is_instance_valid(tower) or not spot.data.can_attack:
+		return {}
+	var top := mini(DreamState.BATCH.HARD_WON_MAX_RANK, ds.get_max_rank_for(tower))
+	var text := "%d of %d dispelled" % [ds.batch.hard_won_of(tower), DreamState.BATCH.HARD_WON_DISPELS]
+	if DreamState.ranks_with_banked(tower) >= top:
+		text = "done (rank %s)" % Tower.rank_name(top)
+	var waiting := int(tower.banked_ranks)
+	if waiting > 0:  # Banked ranks stack until you Nurture (owner 2026-10-20: "23 of 40 dispelled · 2 ranks waiting")
+		text += " · %d %s waiting" % [waiting, "rank" if waiting == 1 else "ranks"]
+	return {"positional": true, "radius": 0.0, "active": true, "effect": text}
 
 # Sunlit Rest (story chat, user: "should have an icon of which Warden would get the free Nurture upgrade"): the Warden
 # the next rest gives a free rank shows the card badge, and its panel says so. Only that Warden reports (ghosts: none).
