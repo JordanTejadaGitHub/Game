@@ -52,8 +52,7 @@ const REACTIONS := {
 }
 const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake"]
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
-const DEFAULT_SCALE := {&"thunderclap": 1.5, &"thunderclap_lite": 1.5, &"ignite": 1.5, &"ignite_lite": 1.5,
-	&"pinned": 1.5, &"shatter": 1.5, &"crit_flare": 1.25}
+const DEFAULT_SCALE := {&"thunderclap_lite": 1.5, &"ignite_lite": 1.5, &"crit_flare": 1.25}  # (Tower Assets 74b11108: the base Reactions are drawn at full size now)
 const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring
 const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 # Reaction callouts (user 2026-10-20, screens_ui.md 5f7852e2: "Reactions are hard to see and read"): pop in 0.12 s with a
@@ -319,6 +318,13 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var widest := maxf(float(frame_size[0]), float(frame_size[1])) * float(DEFAULT_SCALE.get(effect, 1.0))  # As play() draws it
 	var burst_scale := ceilf(REACTION_MIN_PX / widest) if widest > 0.0 and widest < REACTION_MIN_PX else 1.0
 	var node := play(effect, at, parent, burst_scale, true, seconds)
+	# The base Reactions' ground part (Tower Assets 74b11108, effects.json "ground"): with the full sheet only (not a _lite
+	# swap), at the same spot, scale and length, started this same frame, under the nightmares (z -1 in the world).
+	if node is FxSprite and node.effect == effect and info(effect).has("ground"):
+		var ground_world := Reactions._world(parent) if parent != null else null
+		var ground := play(StringName(info(effect)["ground"]), at, ground_world if ground_world != null else parent, burst_scale, false, seconds)
+		if ground != null:
+			ground.z_index = -1
 	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if node != null and not reduce_flashes() and small_flash_ok():  # Its own budget (the big moments keep bright_flash_ok)

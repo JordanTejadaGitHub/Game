@@ -3994,7 +3994,7 @@ func _update_ability(delta: float) -> void:
 			_apply_one_status(enemy, EnemyStatuses.MARKED, 1, get_damage())
 			if is_instance_valid(enemy) and enemy.statuses.is_exposed():
 				enemy.statuses.marked_extra = maxf(enemy.statuses.marked_extra, attack_data.marked_bonus)
-		Reactions._effect(&"pinned", global_position, self, 0.6)  # A flare of light from the Beacon
+		Reactions._effect(&"pinned_flare", global_position, self, 0.6)  # A flare of light from the Beacon (the old Pinned burst, kept for it: Tower Assets 74b11108)
 	if attack_data.pull_tiles > 0.0:
 		for enemy in in_range:
 			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
