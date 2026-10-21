@@ -949,6 +949,35 @@ static func segmented(row: HBoxContainer) -> void:
 		for state in ["font_pressed_color", "font_hover_pressed_color"]:
 			button.add_theme_color_override(state, GOLD)
 
+# A hide / show handle and the Warden bar's scroll arrows (ui_style.md "Moon-glass" > Hide / show handles, UI Asset
+# 83ed5944): the moon-glass plate filling `rect` (pewter, brass on hover, pushed in when pressed) and the HUD chevron at
+# ×2 (chevron_hud_moon at rest, the gold chevron_hud on hover / press), turned to point along `along`. The art points
+# right. Call from the button's draw; `rect` is the drawn handle inside its touch target.
+const HANDLE_GAP := 8.0  # A handle stands this far outside its panel's edge (4 art px), never over it or its sprout
+static func draw_handle(canvas: CanvasItem, rect: Rect2, along: Vector2, hovered: bool, pressed: bool) -> void:
+	var frame := &"plate_pressed" if pressed else (&"plate_hover" if hovered else &"plate")
+	var plate := MoonStyleBox.texture_for(frame)
+	if plate != null:
+		var m := minf(MoonStyleBox.frame_margin(frame), floorf(minf(rect.size.x, rect.size.y) / 2.0))  # A 28 px handle: corners meet
+		RenderingServer.canvas_item_add_nine_patch(canvas.get_canvas_item(), rect, Rect2(Vector2.ZERO, plate.get_size()),
+			plate.get_rid(), Vector2(m, m), Vector2(m, m))
+	var glyph := IconInfo.hud_icon(&"chevron_hud" if hovered or pressed else &"chevron_hud_moon")
+	if glyph == null:
+		return
+	var centre := rect.get_center().round() + (Vector2(0, 2) if pressed else Vector2.ZERO)
+	canvas.draw_set_transform(centre, along.angle(), Vector2(2, 2))
+	canvas.draw_texture(glyph, -(glyph.get_size() / 2.0).floor())
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# Whether a button is drawing hovered / pressed (for custom-drawn buttons like the handles).
+static func button_lit(button: BaseButton) -> bool:
+	var mode := button.get_draw_mode()
+	return mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_HOVER_PRESSED
+
+static func button_down(button: BaseButton) -> bool:
+	var mode := button.get_draw_mode()
+	return mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED
+
 # A small key chip ("Q", "R", "⏎") for rows and buttons: Mist on a dim outline; inside a primary
 # button it turns gold by itself, like the primary's text.
 static func key_chip(text: String) -> Label:

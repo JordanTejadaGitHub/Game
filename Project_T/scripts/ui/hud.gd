@@ -344,14 +344,9 @@ const BAR_HANDLE := 28.0  # …and the handle drawn in its middle (about 60% of 
 # The damage meter draws the same one (drift_meter.gd _draw_hide_arrow).
 func _draw_hide_arrow(button: Button) -> void:
 	var along: Vector2 = button.get_meta(&"arrow", Vector2.DOWN)
-	var across := Vector2(-along.y, along.x)
-	var centre := button.size / 2.0
-	var lit := button.is_hovered()
-	var frame := Rect2(centre - Vector2(BAR_HANDLE, BAR_HANDLE) / 2.0, Vector2(BAR_HANDLE, BAR_HANDLE))  # A small handle with a thin frame
-	button.draw_rect(frame, Color(Palette.DREAD, 0.55))
-	button.draw_rect(frame, Color(UiStyle.GOLD, 0.6 if lit else 0.3), false, 1.0)
-	button.draw_polyline(PackedVector2Array([centre - along * 2.5 + across * 5.0, centre + along * 2.5,
-		centre - along * 2.5 - across * 5.0]), UiStyle.INK if lit else UiStyle.INK_DIM, 1.5, true)
+	var centre := (button.size / 2.0).round()
+	var frame := Rect2(centre - Vector2(BAR_HANDLE, BAR_HANDLE) / 2.0, Vector2(BAR_HANDLE, BAR_HANDLE))
+	UiStyle.draw_handle(button, frame, along, UiStyle.button_lit(button), UiStyle.button_down(button))  # Moon-glass plate + chevron
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
 
@@ -677,7 +672,7 @@ func _fit_tower_bar_phone() -> void:
 		return
 	var clear_on := not _clearing_locked()  # Phones: no Clear slot until a clearing Dream unlocks clearing (user 2026-10-15)
 	clear_tool.visible = clear_on
-	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (BAR_HANDLE + BAR_GAP)
+	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (BAR_HANDLE + UiStyle.HANDLE_GAP)
 	var n := _tower_buttons.size()
 	var fixed := (2 if clear_on else 1) + (1 if select_slot != null else 0)  # Sell, Select, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
@@ -723,7 +718,7 @@ func _fit_tower_bar_phone() -> void:
 		x += CLEAR_TOOL_GAP
 		_place_slot(clear_tool, x, width)
 		x += width
-	x += BAR_GAP
+	x += UiStyle.HANDLE_GAP  # The handle 8 px outside the dock (Moon-glass)
 	_bar_toggle.offset_left = x - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
 	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
 
@@ -774,7 +769,7 @@ func _fit_tower_bar() -> void:
 		return
 	if _tower_buttons.is_empty():
 		return
-	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0 - 2.0 * (BAR_HANDLE + BAR_GAP)  # Room for the hide arrow at the end (kept symmetric: the bar stays centred)
+	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0 - 2.0 * (BAR_HANDLE + UiStyle.HANDLE_GAP)  # Room for the hide arrow at the end (kept symmetric: the bar stays centred)
 	var n := _tower_buttons.size()
 	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
 	var shown := n
@@ -818,7 +813,7 @@ func _fit_tower_bar() -> void:
 	tower_bar.offset_bottom = -16.0
 	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
 	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
-	_bar_toggle.offset_left = left + total + BAR_GAP - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0  # Beside the bar's end (after its › arrow when it scrolls): the drawn handle one gap away
+	_bar_toggle.offset_left = left + total + UiStyle.HANDLE_GAP - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0  # Beside the bar's end (after its › arrow when it scrolls): the drawn handle HANDLE_GAP (8 px) away
 	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
 	if is_inside_tree() and not get_tree().process_frame.is_connected(_recentre_bar):
 		get_tree().process_frame.connect(_recentre_bar, CONNECT_ONE_SHOT)
@@ -854,10 +849,12 @@ func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidde
 		for pair in [["‹", -1], ["›", 1]]:
 			var arrow := Button.new()
 			arrow.name = "BarArrowLeft" if pair[1] < 0 else "BarArrowRight"
-			arrow.text = pair[0]
 			arrow.focus_mode = Control.FOCUS_NONE
-			arrow.theme_type_variation = &"WardenSlot"  # The bar's ends in the slots' own frame, never stronger than the Wardens (UI Asset)
-			arrow.add_theme_font_size_override("font_size", 22)
+			arrow.flat = true  # Moon-glass (UI Asset 83ed5944): the same plate + chevron as the hide handles, drawn
+			arrow.set_meta(&"arrow", Vector2.LEFT if pair[1] < 0 else Vector2.RIGHT)
+			arrow.draw.connect(func() -> void:
+				UiStyle.draw_handle(arrow, Rect2(Vector2.ZERO, arrow.size), arrow.get_meta(&"arrow"), UiStyle.button_lit(arrow),
+					UiStyle.button_down(arrow)))
 			arrow.anchor_left = 0.5
 			arrow.anchor_right = 0.5
 			arrow.anchor_top = 1.0
@@ -878,6 +875,7 @@ func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidde
 		arrow.offset_bottom = -16.0
 		arrow.offset_top = -16.0 - BUTTON_SIZE.y
 		arrow.disabled = (i == 0 and _bar_offset <= 0) or (i == 1 and _bar_offset >= hidden)
+		arrow.modulate.a = 0.45 if arrow.disabled else 1.0  # multiplier: an end with nothing past it
 
 func _seed_badge_button() -> Button:
 	return _seed_badge.get_parent() as Button if is_instance_valid(_seed_badge) else null
