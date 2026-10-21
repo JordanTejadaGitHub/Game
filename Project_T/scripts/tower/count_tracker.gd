@@ -4,8 +4,8 @@ extends Node2D
 # The attack tracker over a Warden's head (story chat, the user: "every 4th pulse Roots on the Warden, they need a
 # tracker then"). An every-Nth trigger (Tower.get_count_tracker) shows N small pips in an arc: one fills per attack, the
 # row glows at N-1 (the next one is the special one), and on the special one they flash in the family's colour and
-# empty. A timed trigger (Tower.get_timer_tracker) shows a thin ring that fills toward the next one. Clear of the rank
-# pips (base) and the card badges (base, left). Muted while the Warden is idle. Only Wardens with a trigger get one
+# empty. A timed trigger (Tower.get_timer_tracker) shows a thin ring that fills toward the next one (hidden at rests and
+# while idle). Clear of the rank pips (base) and the card badges (base, left). The pips are muted while the Warden is idle. Only Wardens with a trigger get one
 # (Tower._sync_count_tracker), and it redraws only when something changes.
 
 const PIP_RADIUS := 2.0
@@ -16,6 +16,9 @@ const FLASH_TIME := 0.45
 const IDLE_AFTER := 2.0  # Seconds without an attack before it mutes
 const IDLE_ALPHA := 0.45
 const TIMER_REDRAW := 0.1  # The ring redraws at most this often
+const RING_FILL := 2.0  # The timer ring (user screenshot 2026-10-21: the old 3 px Night arc on 5 px read as a grey dot)
+const RING_TRACK_ALPHA := 0.15
+var _hidden := false  # The timer ring: hidden at rests and while idle (it shows again on the next attack)
 
 var tower: Tower
 var _count := -1
@@ -100,10 +103,12 @@ func _read(force: bool, delta := 0.0) -> void:
 		_flash = FLASH_TIME  # It fired and started over
 	_left = left
 	_period = timed[1]
+	var hidden := muted or Tower.resting  # (user 2026-10-21) gone at rests and when idle, not a muted grey dot
 	_redraw_wait -= delta
-	if force or _redraw_wait <= 0.0 or muted != _muted:
+	if force or (_redraw_wait <= 0.0 and not (hidden and _hidden)) or muted != _muted or hidden != _hidden:
 		_redraw_wait = TIMER_REDRAW
 		_muted = muted
+		_hidden = hidden
 		queue_redraw()
 
 func _family_colour() -> Color:
@@ -129,10 +134,16 @@ func _draw() -> void:
 			draw_circle(at, PIP_RADIUS, Color(family if filled or ready else Palette.MIST, (1.0 if filled else 0.35) * alpha))
 	elif _period > 0.0:
 		var at := Vector2(0.0, _top - RING_RADIUS)
-		var share := 1.0 - _left / _period
-		draw_arc(at, RING_RADIUS, 0.0, TAU, 24, Color(Palette.NIGHT, 0.8 * alpha), 3.0)
-		draw_arc(at, RING_RADIUS, 0.0, TAU, 24, Color(Palette.MIST, 0.3 * alpha), 1.0)
-		if share > 0.0:
-			draw_arc(at, RING_RADIUS, -PI / 2.0, -PI / 2.0 + TAU * share, 24, Color(family, alpha), 1.5)
+		var share := clampf(1.0 - _left / _period, 0.0, 1.0)
+		if not _hidden:
+			# A ring, not a dot: a 1 px Night rim just outside, a faint track, the fill a 2 px arc in the family colour from
+			# the top clockwise, and a 1 px Heartlight dot at its leading edge.
+			draw_arc(at, RING_RADIUS + RING_FILL * 0.5 + 0.5, 0.0, TAU, 24, Color(Palette.NIGHT, 0.9), 1.0)
+			draw_arc(at, RING_RADIUS, 0.0, TAU, 24, Color(Palette.MIST, RING_TRACK_ALPHA), 1.0)
+			if share > 0.0:
+				var end := -PI / 2.0 + TAU * share
+				draw_arc(at, RING_RADIUS, -PI / 2.0, end, 24, family, RING_FILL)
+				var tip := (at + Vector2.from_angle(end) * RING_RADIUS).floor()
+				draw_rect(Rect2(tip, Vector2.ONE), Palette.HEARTLIGHT)
 		if flash > 0.0:
 			draw_circle(at, RING_RADIUS * (1.0 + 0.6 * flash), Color(family, 0.6 * flash))
