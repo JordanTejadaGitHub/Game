@@ -6298,8 +6298,11 @@ func pop(planted: bool = false) -> void:
 			var dust := Fx.play(PLANT_DUST, foot, world)
 			if dust != null:
 				dust.z_index = -1
+	_end_plant_grow()  # A grow or rank during the planting sequence: the real sprite, at once
 	if bool(Fx.setting("reduced_motion", false)):
 		return
+	if planted and _plant_grow():
+		return  # Planting grows it from a sprout instead of the squash (Tower Assets 60be5507)
 	if _pop_tween != null and _pop_tween.is_valid():
 		_pop_tween.kill()
 		_set_pop(1.0)  # A pop over a pop starts from rest, never from the squashed size
@@ -6307,6 +6310,74 @@ func pop(planted: bool = false) -> void:
 	_pop_rest_y = sprite.position.y
 	_pop_tween = create_tween()
 	_pop_tween.tween_method(_set_pop, 0.0, 1.0, POP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# --- Planting grows from a sprout (Tower Assets 60be5507, the user-approved mock-up 2026-10-21) ------------------------
+# The Warden's sprite hides; its bare slab (assets/towers/plant/<id>.png frame 0, the idle frame's size and placement)
+# shows in its place and the plant_sprout sheet plays on it (its foot = the slab's top centre, PLANT_FOOT below the
+# Warden's centre). From the sprout's frame 7 the body alone (plant frame 1) grows over the slab about that same point,
+# PLANT_STEPS at 15 fps, then both go and the real sprite (idle) shows. No plant sheet (Ascended, a twig wall): the
+# squash pop instead. Reduced motion: the sprite at once.
+const PLANT_DIR := "res://assets/towers/plant/%s.png"
+const PLANT_SPROUT := &"plant_sprout"
+const PLANT_FOOT := Vector2(0, 8)
+const PLANT_FPS := 15.0
+const PLANT_BODY_FROM := 7  # The sprout's frame the body starts growing on
+const PLANT_STEPS: Array[float] = [0.35, 0.7, 1.08, 0.97, 1.0]
+var _plant_tween: Tween = null
+var _plant_nodes: Array = []  # The slab, the body's pivot (freed when the sequence ends)
+
+func _plant_grow() -> bool:
+	var path := PLANT_DIR % tower_data.get_id()
+	if twig or not ResourceLoader.exists(path):
+		return false
+	var sheet := load(path) as Texture2D
+	if sheet == null:
+		return false
+	var slab := Sprite2D.new()
+	slab.name = "PlantSlab"
+	var pivot := Node2D.new()  # The body grows about the sprout's foot
+	pivot.name = "PlantPivot"
+	pivot.position = PLANT_FOOT
+	pivot.scale = Vector2.ZERO
+	var body := Sprite2D.new()
+	for part in [slab, body]:
+		part.texture = sheet
+		part.hframes = 2
+		part.offset = sprite.offset
+		part.scale = sprite.scale
+		part.texture_filter = sprite.texture_filter
+	slab.frame = 0
+	slab.position = sprite.position
+	body.frame = 1
+	body.position = sprite.position - PLANT_FOOT
+	add_child(slab)
+	move_child(slab, sprite.get_index() + 1)  # Where the sprite draws
+	pivot.add_child(body)
+	add_child(pivot)
+	move_child(pivot, slab.get_index() + 1)
+	_plant_nodes = [slab, pivot]
+	sprite.visible = false
+	if Fx.has_effect(PLANT_SPROUT):
+		Fx.play(PLANT_SPROUT, global_position + PLANT_FOOT, self)  # On the slab (a child: over it, gone with it)
+	_plant_tween = create_tween()
+	_plant_tween.tween_interval(PLANT_BODY_FROM / PLANT_FPS)
+	for step in PLANT_STEPS:
+		_plant_tween.tween_callback(func() -> void: pivot.scale = Vector2(step, step))
+		_plant_tween.tween_interval(1.0 / PLANT_FPS)
+	_plant_tween.tween_callback(_end_plant_grow)
+	return true
+
+# The sequence ends (or a grow / rank / evolve cuts it short): the slab and body go, the real sprite shows.
+func _end_plant_grow() -> void:
+	if _plant_tween != null and _plant_tween.is_valid():
+		_plant_tween.kill()
+	_plant_tween = null
+	for node in _plant_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	if not _plant_nodes.is_empty() and sprite != null:
+		sprite.visible = true
+	_plant_nodes = []
 
 # t 0 = squashed, 1 = rest; TRANS_BACK overshoots past 1 (taller than rest) before settling. The feet stay put.
 func _set_pop(t: float) -> void:
