@@ -140,3 +140,24 @@ func badge_pop_ok(ds, id: StringName, source) -> bool:
 		row.clear()
 	row[who] = ds._game_clock
 	return true
+
+# A card banked a free rank on `tower` (Hard-Won Rings; owner 2026-10-20: "don't know who gets the free rank from
+# hard-won rings"): "Rank earned!" pops over it and its rank art flashes, so the player sees which Warden got it.
+const RANK_FLASH := Color(1.8, 1.6, 1.1)  # multiplier: the rank art's brief flash
+const RANK_FLASH_TIME := 0.5
+
+static func rank_earned(tower) -> void:
+	if not _valid(tower):
+		return
+	var world: Node = Reactions._world(tower)
+	if world != null:
+		Fx.callout("Rank earned!", Palette.GOLD, tower.global_position + Vector2(0.0, -40.0), world, &"rank_earned")
+	if Fx.reduce_flashes():
+		return
+	for name in [&"RankUnder", &"RankOver", &"RankOverlay"]:
+		var art := tower.get_node_or_null(NodePath(name)) as CanvasItem
+		if art == null or not art.visible:
+			continue
+		var tween := art.create_tween()
+		tween.tween_property(art, "self_modulate", RANK_FLASH, RANK_FLASH_TIME * 0.3)
+		tween.tween_property(art, "self_modulate", Color(1, 1, 1), RANK_FLASH_TIME * 0.7)  # multiplier: back to plain

@@ -18,8 +18,8 @@ const PRESS_ON_EVERY := 5  # Press On: every 5th drift you call early…
 const PRESS_ON_LEAVES := 1  # …regrows this many leaves, at once
 const NIPPED_BONUS := 0.20  # Nipped in the Bud (id held_breath): dispels before halfway along the route pay +20% Dew
 const NIPPED_SHARE := 0.5
-const HARD_WON_DISPELS := 80  # Hard-Won Rings (id clean_night): every 80 nightmares a Warden dispels…
-const HARD_WON_MAX_RANK := 4  # …give it a free rank, up to rank IV
+const HARD_WON_DISPELS := 40  # Hard-Won Rings (id clean_night): every 40 nightmares a Warden dispels… (owner playtest 2026-10-20: was 80, banked ~150 Dew of ranks by drift 45; a starting point for Balancing)
+const HARD_WON_MAX_RANK := 5  # …give it a free rank, up to rank V (was IV)
 const GAUNTLET_MULT := 1.20  # Gauntlet (id front_line): between two attacking Wardens, one on each side of the path (card pass 2026-10-16: x1.20 on the synergy side; was +30% plain)
 const GAUNTLET_SIDE := Vector2(0.35, 1.4)  # Cells to the side of the path a Warden's centre may stand (the near and far edge)
 const GAUNTLET_ALONG := 0.75  # …and at most this far along it
@@ -310,6 +310,8 @@ func hard_won_dispel(dreams: DreamState, tower: Tower) -> void:
 		tower.bank_rank()
 		dreams._credit("clean_night", "dew", float(Tower.RANK_COSTS[mini(tower.rank + tower.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
 		dreams.sunlit_granted.emit([tower])
+		dreams.note_card(&"clean_night", tower.global_position, 1, tower)  # The card's badge and cue on that Warden
+		dreams.visuals.rank_earned(tower)  # "Rank earned!" and the rank art flash (owner 2026-10-20)
 
 func hard_won_sold(tower: Tower) -> void:
 	hard_won.erase("%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)])

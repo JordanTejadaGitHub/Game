@@ -14,6 +14,9 @@ var _targets: Array[Tower] = []
 var _wait := 0.0
 var _time := 0.0
 var _rings: Array = []  # [world position, seconds left]
+var _waiting: Array = []  # [Tower, ranks banked]: a small "+N" over each Warden with free ranks waiting to be Nurtured
+const WAITING_SIZE := 13
+const WAITING_LIFT := 16.0  # px above the sun's spot
 
 func _ready() -> void:
 	z_index = 2  # Over the Wardens' sprites (y-sorted at 0), under the lighting (3)
@@ -31,6 +34,10 @@ func _process(delta: float) -> void:
 		if now != _targets:
 			_targets = now
 			queue_redraw()
+		var waiting := _banked_now()
+		if waiting != _waiting:
+			_waiting = waiting
+			queue_redraw()
 	for ring in _rings:
 		ring[1] -= delta
 	_rings = _rings.filter(func(ring: Array) -> bool: return ring[1] > 0.0)
@@ -46,6 +53,15 @@ func _reduced() -> bool:
 static func spot_on(tower: Tower) -> Vector2:
 	var half := Vector2(Tower.MAP_GRID.cell_size) / 2.0
 	return tower.global_position + Vector2(half.x - 9.0, -4.0)
+
+# Every Warden with ranks banked and not yet Nurtured (Hard-Won Rings, Sunlit Rest, Growth Rings…; owner 2026-10-20: banked
+# ranks stack, "make that visible").
+func _banked_now() -> Array:
+	var out: Array = []
+	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
+		if tower is Tower and is_instance_valid(tower) and tower.banked_ranks > 0:
+			out.append([tower, tower.banked_ranks])
+	return out
 
 func get_targets() -> Array[Tower]:
 	return _targets
@@ -68,6 +84,14 @@ func _draw() -> void:
 			draw_line(at + dir * 4.5, at + dir * 6.5, Color(Palette.GLOW, 0.6 * breath), 1.0)
 		draw_circle(at, 3.5, Color(Palette.GOLD, 0.85 * breath))
 		draw_circle(at, 2.0, Color(Palette.HEARTLIGHT, 0.7 * breath))
+	var font := UiStyle.number_font()
+	for row in _waiting:
+		if not is_instance_valid(row[0]):
+			continue
+		var text := "+%d" % int(row[1])
+		var at := to_local(spot_on(row[0])) + Vector2(-4.0, -WAITING_LIFT)
+		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WAITING_SIZE, 3, Palette.NIGHT)
+		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WAITING_SIZE, Palette.GOLD)
 	for ring in _rings:
 		var t: float = 1.0 - ring[1] / RING_TIME
 		draw_arc(to_local(ring[0]), 6.0 + 22.0 * t, 0.0, TAU, 24, Color(Palette.GLOW, 0.8 * (1.0 - t)), 2.0)
