@@ -335,18 +335,9 @@ func _fill_phone_status() -> void:
 	_status_leaves.text = str(run_state.leaves)
 	_status_line.tooltip_text = _phone_status()
 
-# Phones: "Abandon run…" in the rail: the plain button frame with an Ember outline and Ink text (ui_style.md).
+# Phones: "Abandon run…" in the rail: the small Ember-rimmed danger plate (Moon-glass, UiStyle.danger), Ink text.
 static func _ember_outline(button: Button) -> void:
-	for state in ["normal", "hover", "pressed"]:
-		var box := button.get_theme_stylebox(state)
-		if box is StyleBoxFlat:
-			box = (box as StyleBoxFlat).duplicate()
-			(box as StyleBoxFlat).border_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
-			button.add_theme_stylebox_override(state, box)
-		elif box is MoonStyleBox:
-			box = (box as MoonStyleBox).duplicate()
-			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
-			button.add_theme_stylebox_override(state, box)
+	UiStyle.danger(button)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, UiStyle.INK)
 

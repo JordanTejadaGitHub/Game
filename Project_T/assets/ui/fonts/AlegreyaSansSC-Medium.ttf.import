@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://vo3sriykj3l2"
-path="res://.godot/imported/CormorantSC-Medium.ttf-eca2e51c7aa469f7c50ee7b25554a40c.fontdata"
+uid="uid://dg2hkgbdeoefw"
+path="res://.godot/imported/AlegreyaSansSC-Medium.ttf-790ea0d79a8c5dbffff23a57134616d2.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/CormorantSC-Medium.ttf"
-dest_files=["res://.godot/imported/CormorantSC-Medium.ttf-eca2e51c7aa469f7c50ee7b25554a40c.fontdata"]
+source_file="res://assets/ui/fonts/AlegreyaSansSC-Medium.ttf"
+dest_files=["res://.godot/imported/AlegreyaSansSC-Medium.ttf-790ea0d79a8c5dbffff23a57134616d2.fontdata"]
 
 [params]
 
