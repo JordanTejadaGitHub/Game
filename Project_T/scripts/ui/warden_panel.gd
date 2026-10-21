@@ -138,6 +138,14 @@ func _ready() -> void:
 	content.add_child(_notes)
 	content.add_child(_groups)
 	if _phone:
+		# One drawer size (user 2026-10-21, "yes do those drawers"): the drawer is always full height and its actions sit
+		# at its foot (this spacer takes the room between the info and the grow rows; past a screenful they scroll).
+		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var foot := Control.new()
+		foot.name = "FootSpacer"
+		foot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(foot)
 		content.add_child(_buttons)  # Phones: the grow rows and choices scroll with the info; Sell / Nurture stay in the footer
 	# Details (light pass): "This run", Kinship, combos, Buffs, Dreams on it, the rest of the description.
 	_details.name = "Details"
@@ -2162,14 +2170,13 @@ func _fit_phone_height() -> void:
 			footer_shown = true
 	if footer_shown:
 		chrome += _footer.get_combined_minimum_size().y + float(box.get_theme_constant("separation"))
-	var wanted := _content.get_combined_minimum_size().y
-	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(screen - chrome, MIN_INFO))
+	_scroll.custom_minimum_size.y = maxf(screen - chrome, MIN_INFO)  # Always the full height (one drawer size)
 	_place_phone.call_deferred()
 
 func _place_phone() -> void:
 	var top := _phone_top()
 	offset_top = top
-	offset_bottom = top + minf(get_combined_minimum_size().y, _phone_bottom() - top)
+	offset_bottom = _phone_bottom()  # Down to the screen's foot, whatever it shows
 
 # Phones (UI owner's review): the drawer starts under the HUD's resources row (Dew, leaves and the buttons beside them,
 # one or two lines), so the counters stay visible. Both sit on the HUD layer: its rect is in the drawer's own space.
