@@ -1708,8 +1708,8 @@ func _draw_water_ribbons() -> void:
 					draw_circle(at + Vector2(-5.0, -4.0), 1.5, Color(Palette.DEWLIGHT, 0.45 if deep else 0.7))
 
 # A water's wet route points split into runs of neighbours (route indices one apart), in route order.
-func _water_runs(points: Array) -> Array:
-	var sorted: Array = points.duplicate()
+func _water_runs(points) -> Array:  # (water.points is a Dictionary of route indices; an Array works too)
+	var sorted: Array = points.keys() if points is Dictionary else (points as Array).duplicate()
 	sorted.sort()
 	var runs: Array = []
 	var run: Array = []
