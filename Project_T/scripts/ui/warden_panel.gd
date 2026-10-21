@@ -490,9 +490,6 @@ func _refresh() -> void:
 	elif not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
-	var gap := Control.new()  # Sell and Close apart (their keys sit inside each: X sells, Esc closes)
-	gap.custom_minimum_size.x = 16.0
-	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
 	_key_on(close, "Esc")
@@ -652,9 +649,6 @@ func _refresh_group() -> void:
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
-	var gap := Control.new()  # Sell and Close apart (their keys sit inside each: X sells, Esc closes)
-	gap.custom_minimum_size.x = 16.0
-	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
 	_key_on(close, "Esc")
@@ -1445,7 +1439,7 @@ func _details_toggle() -> void:
 		return
 	var toggle := _add_footer_button("Hide" if _buffs_open else "Details")
 	toggle.name = "DetailsToggle"
-	toggle.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # One of three even plates
 	toggle.pressed.connect(func() -> void:
 		_buffs_open = not _buffs_open
 		details_choice = _buffs_open
@@ -1640,6 +1634,13 @@ func _refund_rule() -> String:
 	return "Refunds %d%% now: %d%% during a rest, %d%% while nightmares walk." % [now,
 		roundi(tower_seller.build_phase_refund * 100.0), roundi(tower_seller.drift_refund * 100.0)]
 
+# The wheel over the panel scrolls it, never the map (user 2026-10-21: "when i scroll, i zoom in"): wheel and pan gestures
+# that reach the panel (its rows pass them up, the scroll at its end too) stop here instead of becoming the camera's zoom.
+func _gui_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN,
+			MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]) or event is InputEventPanGesture or event is InputEventMagnifyGesture:
+		accept_event()
+
 const SELL_CONFIRM_FROM := 3  # A group this big asks twice at rests too (story chat)
 const SELL_CONFIRM_TIME := 2.0  # Seconds the "Press again" stays
 
@@ -1658,11 +1659,11 @@ func _add_footer_button(text: String) -> Button:
 		tight.content_margin_left = FOOTER_PAD
 		tight.content_margin_right = FOOTER_PAD
 		button.add_theme_stylebox_override(state, tight)
-	if text == "Close":
-		button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	elif text.begins_with("Sell"):  # Sell takes the room left and never widens the row past 280 (Vollkorn is wider)
-		button.clip_text = true
-		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# Three even plates (user 2026-10-21: "should have three even rows in the bottom for the details, sell, and close"):
+	# every footer button takes an equal share of the row and clips its text, never widening it past 280.
+	button.size_flags_stretch_ratio = 1.0
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	return button
 
 # The middle scrolls once the panel would pass MAX_SHARE of the screen (the Dreams row stays clear).
