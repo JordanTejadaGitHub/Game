@@ -99,7 +99,7 @@ const CUES := {
 	# Leaves -> C8
 	&"deep_roots": LEAF_REGROW, &"thick_bark": LEAF_REGROW, &"press_on": LEAF_REGROW,
 	# Ranks and Nurture -> C9
-	&"clean_night": RANK_SHIMMER, &"wild_growth": RANK_SHIMMER, &"tender_care": RANK_SHIMMER, &"tender_care_ii": RANK_SHIMMER,
+	&"clean_night": RANK_SHIMMER, &"wild_growth": RANK_SHIMMER, &"walking_wood": REACH_RING, &"tender_care": RANK_SHIMMER, &"tender_care_ii": RANK_SHIMMER,
 	&"nursery": RANK_SHIMMER, &"specialist": RANK_SHIMMER, &"shared_training": RANK_SHIMMER,
 	&"elder_kin": RANK_SHIMMER, &"the_old_ones": RANK_SHIMMER, &"old_friends": RANK_SHIMMER,
 	&"deeper_rings": RANK_SHIMMER, &"sunlit_rest": RANK_SHIMMER, &"growth_rings": RANK_SHIMMER,

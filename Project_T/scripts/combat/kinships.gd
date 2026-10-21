@@ -300,6 +300,13 @@ func note_moved(tower: Tower, old_cell: Vector2) -> void:
 			ages.erase(pair.key)
 			pair.key = key
 
+# A Warden walked (The Walking Wood, Roguelite Code 2026-10-21): its bonds start again (their ages are forgotten; refresh()
+# re-pairs by the new positions).
+func forget(tower: Tower) -> void:
+	for pair in pairs:
+		if pair.a == tower or pair.b == tower:
+			ages.erase(pair.key)
+
 # Re-pairs every Warden (nearest kin first) and recounts the family bonuses.
 func refresh() -> void:
 	_refresh_timer = REFRESH

@@ -470,6 +470,7 @@ func _refresh() -> void:
 		else:
 			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
 	_add_glow_button()  # Fireflies in the Grass (Firefly class prototype): a Sprout the player chooses to glow
+	_add_swap_button()  # The Walking Wood (Legendary): swap places with another Warden
 	var refund := tower_seller.get_refund(_tower)
 	# Buttons show the action and its price (screens_ui.md "Less hand-holding"); the refund rule is the tooltip.
 	var note := "Half the Dew back while nightmares walk." if not drift_director.is_build_phase() else ""
@@ -1343,6 +1344,17 @@ func _add_glow_button() -> void:
 	else:
 		button.tooltip_text = "Fireflies in the Grass: " + (why if why != "" else "make this Sprout a small light of its own.")
 	button.pressed.connect(_toggle_glow.bind(not lit))
+
+# The Walking Wood (Legendary, Roguelite Code 2026-10-21): "Swap places", then a click or tap on the other Warden.
+func _add_swap_button() -> void:
+	var wood = dream_state.get("walking_wood")
+	if wood == null or _tower == null or not dream_state.has_rule(&"walking_wood") or not wood.eligible(_tower):
+		return
+	var wait: float = wood.cooldown_left()
+	var button := _add_button("Swap places" if wait <= 0.0 else "Swap places: again in %d s" % ceili(wait))
+	button.disabled = wait > 0.0
+	button.tooltip_text = "The Walking Wood: then pick the Warden to trade places with. Esc or right-click cancels."
+	button.pressed.connect(func() -> void: wood.begin(_tower))
 
 func _toggle_glow(on: bool) -> void:
 	var lights = dream_state.get("firefly_lights")

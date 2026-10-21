@@ -761,6 +761,10 @@ func _ready() -> void:
 	var world := owner if owner != null else get_parent()
 	if world != null:
 		world.add_child.call_deferred(mark)
+		walking_wood = WALKING_WOOD.new()  # The Walking Wood (Legendary): the swap mode and its marks
+		walking_wood.name = "WalkingWood"
+		walking_wood.set("dream_state", self)
+		world.add_child.call_deferred(walking_wood)
 	firefly_lights = FIREFLY_LIGHTS.new()  # The Firefly Jar class prototype: Lit, lights and forks (dream_council_review.md 20)
 	firefly_lights.name = "FireflyLights"
 	firefly_lights.set("dream_state", self)
@@ -3975,6 +3979,8 @@ static func ranks_with_banked(tower: Tower) -> int:
 # the frame (every Warden's Dream rows and the SunlitMark ask).
 var _sunlit_cache: Array = []  # [key, targets]
 const SUNLIT_MARK := preload("res://scripts/run/sunlit_mark.gd")
+const WALKING_WOOD := preload("res://scripts/run/walking_wood.gd")
+var walking_wood: Node2D = null  # The Walking Wood's swap node (made in _ready, beside SunlitMark)
 
 func sunlit_targets(count: int = -1) -> Array[Tower]:
 	var ranks := 0

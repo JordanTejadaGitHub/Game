@@ -685,7 +685,7 @@ The Calling grows by play style, not by family: a style at the drift 5 rest (Spr
 ## Legendaries that feel legendary (owner 2026-10-21; dream_council_review.md 28, D:\Projects\logs\dream_council\legendaries_final.md)
 A Legendary is a build by itself: it breaks one rule, is visible, is never a percentage on something else. Rule for every
 card: the route is the player's plan (no card moves, blocks or re-routes it on its own; Gravestones was rejected).
-- **Start-pool Legendaries:** Headlong, Wild Growth, Dawnbreak (Waymark next, in a worktree). Grand Design, The Long Walk and
+- **Start-pool Legendaries:** Headlong, Wild Growth, Dawnbreak, The Walking Wood (Waymark in a worktree, f36629d0). Grand Design, The Long Walk and
   Unbroken Chain are retired; Old Heart is out of the start pool (on no Grove node yet). Ids kept.
 - **Timing A** (`dream_state.gd`): at a boss rest only the defining slot can be Legendary, `BOSS_LEGENDARY_WEIGHTS`
   [0,0,20,20] (Rare 1 : Legendary 1, lean-proof); `_no_legendary_draws` keeps Legendaries out of the other boss slots and
@@ -701,3 +701,10 @@ card: the route is the player's plan (no card moves, blocks or re-routes it on i
   blow plus `WILD_HELPERS` 2 nearest Wardens with the spot in range count; ripe = free growth (`DreamState.wild_growth_free`
   in `Tower.get_grow_cost`; the rank difference is still paid); otherwise `TowerPlacer.evolve` refuses with a toast
   (`wild_growth_blocks`). Walls, the Sapling, Ascended excluded; excludes Hard-Won Rings. Ring and bud: `SunlitMark`.
+- **The Walking Wood** (`scripts/run/walking_wood.gd`, made by DreamState; group `walking_wood`): Warden panel "Swap places", then
+  a click on the other one-cell Warden (not the Sapling or twig walls; Esc / right-click cancels). `swap(a, b)` exchanges
+  `cell`, `half_cell` and `position` only: both cells were walls, so no `path_changed`, no probe, no maze or Restless
+  change. Cell-keyed state follows: `batch.swap_counts` (Hard-Won Rings, Wild Growth), `Kinships.forget` + `refresh`
+  (bonds start again), the spawner's `_towers_dirty`, every Warden's `_on_map_changed`, the lighting glow, `bump_board`
+  (class nodes rebuild lights, water and bells from positions). In a drift: `SWAP_WAIT` 2 s without attacking (`_cooldown`)
+  and `SWAP_COOLDOWN` 10 s of game time between swaps; at a rest, free and unlimited.

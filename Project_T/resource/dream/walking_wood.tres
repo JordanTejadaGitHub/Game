@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "walking_wood"
+display_name = "The Walking Wood"
+description = "Swap any two Wardens' places, free, even during a {drift}. Both wait 2 s before attacking; you can swap again after 10 s."
+tip = "Any Warden, Sprout or Thornwall the size of one cell; not the Heartwood Sapling or Twig Walls. The route never changes. At a {rest}, swap as often as you like. {kinships} start again. Works for: every family. A bet: a few strong Wardens and many walls."
+rarity = 3
+kind = 3
+tags = Array[String](["maze"])
+max_stacks = 1
+min_act = 2
+in_start_pool = true
+rule_id = &"walking_wood"

@@ -676,3 +676,18 @@ func wild_dispel(dreams: DreamState, killer, at: Vector2) -> void:
 
 func wild_sold(tower: Tower) -> void:
 	wild.erase(_cell_key(tower))
+
+# The Walking Wood (Legendary): two Wardens swapped places (their old cells `a_cell`, `b_cell`); the counts kept by cell
+# (Hard-Won Rings, Wild Growth) go with their Warden.
+func swap_counts(a_cell: Vector2, b_cell: Vector2) -> void:
+	var ka := "%d,%d" % [roundi(a_cell.x * 2.0), roundi(a_cell.y * 2.0)]
+	var kb := "%d,%d" % [roundi(b_cell.x * 2.0), roundi(b_cell.y * 2.0)]
+	for counts: Dictionary in [hard_won, wild]:
+		var at_a = counts.get(ka)
+		var at_b = counts.get(kb)
+		counts.erase(ka)
+		counts.erase(kb)
+		if at_a != null:
+			counts[kb] = at_a
+		if at_b != null:
+			counts[ka] = at_b
