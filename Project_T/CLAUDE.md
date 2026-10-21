@@ -685,7 +685,7 @@ The Calling grows by play style, not by family: a style at the drift 5 rest (Spr
 ## Legendaries that feel legendary (owner 2026-10-21; dream_council_review.md 28, D:\Projects\logs\dream_council\legendaries_final.md)
 A Legendary is a build by itself: it breaks one rule, is visible, is never a percentage on something else. Rule for every
 card: the route is the player's plan (no card moves, blocks or re-routes it on its own; Gravestones was rejected).
-- **Start-pool Legendaries:** Headlong, Wild Growth, Dawnbreak, The Walking Wood (Waymark in a worktree, f36629d0). Grand Design, The Long Walk and
+- **Start-pool Legendaries:** Headlong, Wild Growth, Dawnbreak, The Walking Wood, Waymark. Grand Design, The Long Walk and
   Unbroken Chain are retired; Old Heart is out of the start pool (on no Grove node yet). Ids kept.
 - **Timing A** (`dream_state.gd`): at a boss rest only the defining slot can be Legendary, `BOSS_LEGENDARY_WEIGHTS`
   [0,0,20,20] (Rare 1 : Legendary 1, lean-proof); `_no_legendary_draws` keeps Legendaries out of the other boss slots and
@@ -708,3 +708,27 @@ card: the route is the player's plan (no card moves, blocks or re-routes it on i
   (bonds start again), the spawner's `_towers_dirty`, every Warden's `_on_map_changed`, the lighting glow, `bump_board`
   (class nodes rebuild lights, water and bells from positions). In a drift: `SWAP_WAIT` 2 s without attacking (`_cooldown`)
   and `SWAP_COOLDOWN` 10 s of game time between swaps; at a rest, free and unlimited.
+- **Waymark** (`resource/dream/waymark.tres`, rule `waymark`; legendaries_final.md 1.1, legfinal_td.md 2): the player plants
+  one stone; every walker (bosses too) goes start -> stone -> Heartwood and loses every status there. State on MapGenerator:
+  `waymark_cell`, `set_waymark` (redraws, path_changed, `waymark_moved`), `can_place_waymark` / `is_waymark_ground` /
+  `waymark_refusal` (open ground: no obstacle, pond, Warden or gift; not the start, its mist `WAYMARK_START_CLEAR`, the glade
+  or a gift landmark; both legs exist; `is_buildable` / `is_buildable_half` refuse its cell for good), `get_path_if_waymark_at`.
+  **Routes:** `PathGenerator.waymark` makes `find_drawn_route` / `find_path_from(cell, passed)` two legs joined (leg 2 starts on
+  the stone half leg 1 ended on); `leg_split` = first point on the stone; `_route_index` / `_route_index2` and two join masks
+  keep a per-leg index, so a corridor walked both ways never maps a leg-1 walker onto the leg-2 tail. **Always pass
+  `enemy.passed_waymark`** to `get_path_from(cell, passed)` when re-routing a nightmare (start / whole-route callers need
+  nothing). `FindPath` keeps two distance fields (`_use_field`) and a 4-entry straightest cache. Legality needs no walker
+  list change: with both legs the start, stone and Heartwood are one connected area. Route consumers by index
+  (`class_kit._refresh_route`/`index_of`, Passing Thread in `dream_batch_rules.gd`, `dream_reaction_cards._route_index`) split
+  by `waymark_split(route)` and the walker's flag. **Enemy:** `_path` is the joined route (targeting, furthest-along, CloseCalls
+  work); `_waymark_index` per `set_path`; passing it (also by a leap / burrow) = `_touch_waymark`: `EnemyStatuses.shed_all()`
+  (every status, buildup, sleep/Hold/Caught/slows, `marked_forever` / `static_forever`), a HEARTLIGHT flare, `waymark_reached`.
+  Laps (`_restart_route`) reset it; pulls never; a Snag-grounded flyer counts as passed; children / followers / echoes inherit
+  it (`enemy_spawner.gd`). Restless: a re-route turning at the stone is never a turn back. **Placement:** `WaymarkStone`
+  (`scripts/map/waymark_stone.gd`, no class_name, made by MapGenerator, `map.waymark_stone`): code-drawn stone (palette), the
+  ghost + two-leg RouteLine preview, auto-opens when `DriftDirector.pending_choice()` is `&"waymark"` (`DreamState.waymark_needed`;
+  RunSaver won't save until placed; DriftPanel "Place the Waymark" reopens it); Esc puts it off; click the stone at a rest to
+  move it (free); `place_at(cell)`. **Maze economy:** while it stands `added_cells` = unique(now) - unique(`waymark_baseline_route`:
+  the two-leg route with every Warden's halves open, cached by grid hash); `MapGenerator.unique_route_length`. Moving it calls
+  `observe`. **Save:** RunSaver `"waymark": [x, y]`, restored after the Wardens. `tests/test_waymark.gd`. Not done: Shifting
+  Mist's gift preview (`MapGifts.route_from_start`) ignores the stone; no sound / boss-arrival flourish for it yet.

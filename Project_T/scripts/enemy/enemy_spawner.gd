@@ -220,6 +220,7 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array, way_in: PackedVe
 	for i in data.follower_count:
 		var follower := _create(data.followers, scale, leader.modifiers, false, leader.coat_growth)
 		follower.position = leader.position
+		follower.passed_waymark = leader.passed_waymark  # Waymark: on its leader's leg
 		follower.set_path(path)
 		follower.hold_time = data.follower_spacing * (i + 1)
 		if not way_in.is_empty():
@@ -407,7 +408,7 @@ func try_omen_trample(enemy: Node2D) -> void:
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
-func route_around(from: Vector2) -> PackedVector2Array:
+func route_around(from: Vector2, passed := false) -> PackedVector2Array:
 	var closed: Array[Vector2] = []  # Half cells blocked here (and only those: restored after)
 	for point: Vector2 in rooted_cells:
 		if _bodies_overlap(point, from):
@@ -416,7 +417,7 @@ func route_around(from: Vector2) -> PackedVector2Array:
 			if not map_generator.path_layer.is_half_blocked(h):
 				map_generator.path_layer.set_half_blocked(h, true)
 				closed.append(h)
-	var route: PackedVector2Array = map_generator.get_path_from(from)
+	var route: PackedVector2Array = map_generator.get_path_from(from, passed)  # (Waymark: the walker's own leg)
 	for h in closed:
 		map_generator.path_layer.set_half_blocked(h, false)
 	return route
@@ -468,7 +469,7 @@ func _split(parent: Node2D) -> void:
 	var data: EnemyData = parent.enemy_data
 	if data.split_into == null or data.split_count <= 0:
 		return
-	var path: PackedVector2Array = map_generator.get_path_from(parent.get_target_cell())
+	var path: PackedVector2Array = map_generator.get_path_from(parent.get_target_cell(), parent.passed_waymark)
 	if path.is_empty():
 		return
 	var ahead: Vector2 = parent.grid.calculate_map_position(path[0]) - parent.position
@@ -482,6 +483,7 @@ func _split(parent: Node2D) -> void:
 	for i in data.split_count:
 		var child := _create(data.split_into, parent.health_scale, parent.modifiers, false, parent.coat_growth)
 		child.position = parent.position + back * SPLIT_SPACING * i
+		child.passed_waymark = parent.passed_waymark  # Waymark: it carries on the leg its parent was on
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
 		if child_share >= 0.0:
 			child.dew_share = child_share
@@ -529,7 +531,7 @@ func _on_trample_cell_requested(enemy: Node2D, cell: Vector2) -> void:
 	if tower == null:
 		return
 	if _shelters(tower):  # A wall it can't pass: it finds a way round from where it stands
-		var around: PackedVector2Array = map_generator.get_path_from(enemy.get_route_point())
+		var around: PackedVector2Array = map_generator.get_path_from(enemy.get_route_point(), enemy.passed_waymark)
 		if not around.is_empty():
 			enemy.set_path(around)
 		return
@@ -604,16 +606,21 @@ func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
 
 # The maze changed: every enemy re-routes from the cell it's currently walking toward. One whose next
 # step would take it back to the cell it just left turns around: +1 Restless (No maze juggling).
-# Unbound nightmares keep their route.
+# Unbound nightmares keep their route. Waymark: each walker keeps its leg (passed_waymark), and turning at the stone is
+# never a turn back (a stone at the end of a corridor sends it back the way it came: that's the route, not a juggle).
 func _on_path_changed() -> void:
+	var stone: bool = map_generator.has_method("has_waymark") and map_generator.has_waymark()
 	for enemy in get_maze_walkers():
 		if enemy.is_unbound():
 			continue
-		var new_path: PackedVector2Array = map_generator.get_path_from(enemy.get_target_cell())
+		var new_path: PackedVector2Array = map_generator.get_path_from(enemy.get_target_cell(), enemy.passed_waymark)
 		if new_path.is_empty():
 			continue
 		var turned_back: bool = new_path.size() > 1 and new_path[1] == enemy.get_last_cell() \
 			and enemy.get_target_cell() != enemy.get_last_cell()
+		if turned_back and stone and (map_generator.is_waymark_point(enemy.get_target_cell()) \
+				or map_generator.is_waymark_point(enemy.get_last_cell())):
+			turned_back = false
 		enemy.set_path(new_path)
 		if turned_back:
 			var became_unbound: bool = enemy.add_restless()
@@ -658,13 +665,16 @@ func _on_brood_requested(queen: Node2D) -> void:
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	if route.is_empty():
 		return
-	var nearest := 0
-	for i in route.size():
+	# Waymark: a queen past the stone lands her brood on leg 2 (a corridor walked both ways has a point on each leg)
+	var first := maxi(map_generator.waymark_split(route), 0) if queen.passed_waymark and map_generator.has_method("waymark_split") else 0
+	var nearest := first
+	for i in range(first, route.size()):
 		if queen.grid.calculate_map_position(route[i]).distance_squared_to(queen.position) \
 				< queen.grid.calculate_map_position(route[nearest]).distance_squared_to(queen.position):
 			nearest = i
 	var path := route.slice(nearest)
 	var child := _create(queen.enemy_data.brood, drift_health_scale)
+	child.passed_waymark = queen.passed_waymark and first > 0
 	child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	child.position = child.grid.calculate_map_position(path[0])
 	child.set_path(path)
@@ -673,11 +683,12 @@ func _on_brood_requested(queen: Node2D) -> void:
 # Hollow Oak Grief: grief_count nightmares rise in a ring around it and walk on from its cell.
 func _on_grief_requested(oak: Node2D) -> void:
 	var data: EnemyData = oak.enemy_data
-	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell())
+	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell(), oak.passed_waymark)
 	if data.grief_spawn == null or path.is_empty():
 		return
 	for i in data.grief_count:
 		var child := _create(data.grief_spawn, drift_health_scale)
+		child.passed_waymark = oak.passed_waymark
 		child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
 		child.set_path(_flight_from(child) if _flies_straight(data.grief_spawn) else path)
@@ -764,12 +775,13 @@ func _call_pack(huntsman: Node2D) -> void:
 	var missing: int = data.follower_count - huntsman.pack_alive()
 	if missing <= 0 or data.brood == null:
 		return
-	var path: PackedVector2Array = map_generator.get_path_from(huntsman.get_target_cell())
+	var path: PackedVector2Array = map_generator.get_path_from(huntsman.get_target_cell(), huntsman.passed_waymark)
 	if path.is_empty():
 		return
 	var count := missing if huntsman.is_regrouped() else 1
 	for i in count:
 		var hound := _create(data.brood, drift_health_scale, huntsman.modifiers)
+		hound.passed_waymark = huntsman.passed_waymark
 		hound.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		hound.position = huntsman.position + Vector2.from_angle(TAU * i / maxi(count, 1)) * SPLIT_SPACING
 		hound.set_path(path)
@@ -893,12 +905,13 @@ func _on_echo_requested(oak: Node2D, act: int) -> void:
 	var boss: EnemyData = drawn.boss if drawn != null else null
 	if boss == null or boss.echo_at.size() > 0:
 		return  # No boss drawn for that act (or it's an Oak itself)
-	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell())
+	var path: PackedVector2Array = map_generator.get_path_from(oak.get_target_cell(), oak.passed_waymark)
 	if path.is_empty():
 		return
 	var scale: float = director.get_health_scale(boss, maxi(director.drifts_started, 1)) * oak.enemy_data.echo_share
 	var echo = enemy_scene.instantiate()
 	echo.is_echo = true
+	echo.passed_waymark = oak.passed_waymark  # Waymark: on the Oak's leg
 	var created := _create_prepared(echo, boss, scale)
 	created.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	if boss.trait_kind == EnemyData.Trait.FLYING and not boss.flies_along_route:

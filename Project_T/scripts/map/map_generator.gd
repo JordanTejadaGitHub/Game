@@ -4,6 +4,8 @@ extends Node2D
 signal path_changed
 # Emitted when the player clears an obstacle (before path_changed).
 signal obstacle_cleared(cell: Vector2, data: ObstacleData)
+# The Waymark (Legendary Dream) was placed or moved to `cell` (after path_changed).
+signal waymark_moved(cell: Vector2)
 
 @onready var ground_layer: GroundGenerator = %GroundTileMapLayer
 @onready var path_layer: PathGenerator = %PathTileMapLayer
@@ -172,6 +174,10 @@ func _ready() -> void:
 	gifts.map = self
 	add_child(gifts)
 	move_child(gifts, path_layer.get_index() + 1)  # Ground overlays just over the path
+	waymark_stone = WAYMARK_STONE.new()  # Waymark (Legendary Dream): hidden until placed; it opens its own placement
+	waymark_stone.name = "WaymarkStone"
+	waymark_stone.map = self
+	add_child(waymark_stone)  # Under the y-sort root: it stands on its cell like a Warden
 
 # A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
 # per corner, sorted with the pond cell and drawn just after it (a cell can need two).
@@ -422,7 +428,7 @@ func get_array_board() -> PackedVector2Array:
 # Does not check whether blocking it would cut off the path — see get_path_if_blocked().
 func is_buildable(cell: Vector2) -> bool:
 	return MAP_GRID.is_within_bounds(cell) \
-		and cell != startPath and cell != endPath \
+		and cell != startPath and cell != endPath and cell != waymark_cell \
 		and not path_layer.is_cell_blocked(cell)
 
 # Returns the start-to-end path that would exist if `cell` were blocked, without changing anything.
@@ -542,7 +548,7 @@ func pixels_to_half(p: Vector2) -> Vector2:
 # Heartwood's halves (the glade stays buildable).
 func is_buildable_half(h: Vector2) -> bool:
 	var cell := (h / 2.0).floor()
-	return (MAP_GRID.is_within_bounds(cell) and cell != startPath and cell != endPath
+	return (MAP_GRID.is_within_bounds(cell) and cell != startPath and cell != endPath and cell != waymark_cell
 		and not path_layer.is_half_blocked(h))
 
 # True if every half is buildable and blocking them all keeps the Heartwood reachable from the start and from
@@ -710,14 +716,129 @@ func remove_obstacle(cell: Vector2) -> void:
 	path_layer.draw()
 	path_changed.emit()
 
-# Path from `cell` to the end, in cell coordinates. Used by enemies to re-route.
 # True if a nightmare at route point `point` still has a way to the Heartwood (get_path_from would find one),
-# without building the path: one flood fill per grid change, then a lookup. For checks over every walker.
-func has_route_from(point: Vector2) -> bool:
+# without building the path: one flood fill per grid change, then a lookup. For checks over every walker. (A Waymark
+# changes nothing here: while both legs exist the start, the stone and the Heartwood are one connected area, so a walker
+# that reaches one reaches all three; `passed` only picks which flood answers.)
+func has_route_from(point: Vector2, passed := false) -> bool:
+	if has_waymark() and not passed:
+		return path_layer.get_finder().reaches(point, waymark_cell)
 	return path_layer.get_finder().reaches(point, endPath)
 
-func get_path_from(cell: Vector2) -> PackedVector2Array:
-	var tail := path_layer.route_tail(cell)  # On the current route: its tail, no search (every walker re-routes)
-	if tail.is_empty():
-		tail = path_layer.join_route(cell)  # Off it: down the distance field to the route, then its tail
-	return tail if not tail.is_empty() else path_layer.find_path_from(cell)
+# Path from `cell` to the end, in cell coordinates. Used by enemies to re-route. A Waymark: a walker that hasn't
+# `passed` the stone goes there first (pass Enemy.passed_waymark when re-routing a nightmare; the start never has).
+func get_path_from(cell: Vector2, passed := false) -> PackedVector2Array:
+	return path_layer.tail_from(cell, passed)  # The route's tail, else down the distance field to it, else a search
+
+
+# --- Waymark (Legendary Dream; owner 2026-10-21, legendaries_final.md 1.1, legfinal_td.md 2) -------------------------
+# The player plants one stone on open ground; every walker (bosses too) goes start -> stone -> Heartwood, and loses every
+# status there (Enemy._touch_waymark). The stone's cell is never built on; it moves at a rest only (WaymarkStone).
+
+const NO_WAYMARK := Vector2(-1, -1)
+const WAYMARK_STONE := preload("res://scripts/map/waymark_stone.gd")
+const WAYMARK_START_CLEAR := 1  # Cells round the start (its mist) where the stone can't go (Chebyshev)
+var waymark_cell := NO_WAYMARK
+var waymark_stone: Node2D  # The stone's look and placement (scripts/map/waymark_stone.gd), made on first use
+var _waymark_refusal := &""
+
+func has_waymark() -> bool:
+	return waymark_cell != NO_WAYMARK
+
+# A route point on the stone (any of its cell's 4 halves).
+func is_waymark_point(point: Vector2) -> bool:
+	return path_layer.is_waymark_point(point)
+
+# The index of `route`'s first point on the stone (-1: none, or no Waymark): where leg 2 begins.
+func waymark_split(route: PackedVector2Array) -> int:
+	return path_layer.waymark_index(route)
+
+# Open ground for the stone: inside the map, every half free (no obstacle, pond, Warden or gift), not the start or its
+# mist, not the Heartwood's glade, not a gift landmark's spot. `ignore_current`: the stone being moved (its own cell is ok).
+func is_waymark_ground(cell: Vector2) -> bool:
+	_waymark_refusal = &"occupied"
+	if not MAP_GRID.is_within_bounds(cell) or cell == endPath:
+		return false
+	if absf(cell.x - startPath.x) <= WAYMARK_START_CLEAR and absf(cell.y - startPath.y) <= WAYMARK_START_CLEAR:
+		return false
+	if get_glade_cells().has(cell):
+		return false
+	for h in FindPath.halves_of_cell(cell):
+		if path_layer.is_half_blocked(h):
+			return false
+	if gifts != null:
+		var centre := MAP_GRID.calculate_map_position(cell)
+		for mark: Dictionary in gifts.landmarks():
+			var reach: float = float(mark.extent) + MAP_GRID.cell_size.x / 2.0
+			var at: Vector2 = mark.at
+			if absf(at.x - centre.x) < reach and absf(at.y - centre.y) < reach:
+				return false
+	_waymark_refusal = &""
+	return true
+
+# True if the stone can stand on `cell`: open ground, both legs exist (start -> stone, stone -> Heartwood), and every
+# walker in `also_from` (route points) can still reach it. Otherwise waymark_refusal() says why.
+func can_place_waymark(cell: Vector2, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
+	if not is_waymark_ground(cell):
+		return false
+	var route := get_path_if_waymark_at(cell)
+	if route.is_empty():
+		_waymark_refusal = &"closes"
+		return false
+	for point in also_from:
+		if not path_layer.get_finder().reaches(point, cell):
+			_waymark_refusal = &"closes"
+			return false
+	return true
+
+func waymark_refusal() -> StringName:
+	return _waymark_refusal
+
+# The route if the stone stood on `cell` (NO_WAYMARK: none), without changing anything. `drawn`: the route draw() would
+# draw (the placement preview).
+func get_path_if_waymark_at(cell: Vector2, drawn := false) -> PackedVector2Array:
+	var real := path_layer.waymark
+	path_layer.waymark = cell
+	var route := path_layer.find_drawn_route() if drawn else path_layer.find_path_from(startPath)
+	path_layer.waymark = real
+	return route
+
+# Puts the stone on `cell` (NO_WAYMARK: takes it away); call can_place_waymark() first. Redraws the route and re-routes
+# the nightmares (path_changed), as a placement does.
+func set_waymark(cell: Vector2) -> void:
+	if cell == waymark_cell:
+		return
+	waymark_cell = cell
+	path_layer.waymark = cell
+	if waymark_stone != null:
+		waymark_stone.stone_moved()
+	_route_changed()
+	waymark_moved.emit(cell)
+
+# Whole cells on `route`, each counted once (route points step by half a cell: a corridor walked out and back to the
+# stone counts once). Measured as route_length() measures a route.
+static func unique_route_length(route: PackedVector2Array) -> int:
+	var seen := {}
+	for point in route:
+		seen[point] = true
+	return 0 if seen.is_empty() else ceili((seen.size() - 1) / 2.0) + 1
+
+# The Waymark route with every Warden's halves open (the maze economy's baseline while a stone stands: the stone and the
+# ground earn nothing, only the Wardens' maze does). Changes nothing; cached until the grid or the stone changes.
+func waymark_baseline_route() -> PackedVector2Array:
+	var finder := path_layer.get_finder()
+	var key := [hash(finder._blocked), waymark_cell]
+	if key == _baseline_key:
+		return _baseline_route
+	var halves: Array = []
+	var container := get_node_or_null("%TowerContainer")
+	if container != null:
+		for tower in container.get_children():
+			if tower is Tower and not tower.is_queued_for_deletion():
+				halves.append_array(tower.get_halves())
+	_baseline_route = get_path_if_opened_halves(halves, true)
+	_baseline_key = key
+	return _baseline_route
+
+var _baseline_key: Array = []
+var _baseline_route := PackedVector2Array()

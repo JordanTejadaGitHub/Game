@@ -318,7 +318,7 @@ const MIST_FULL := "Nightmares still arriving: the mist holds them back until th
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
 const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",
-	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
+	&"gift": "Choose a gift", &"waymark": "Place the Waymark"}  # Heartwood's Gifts (Spire); Waymark (Legendary Dream)
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
 # Phones (tap to place, Mobile UI; user 2026-10-15): ghost Wardens waiting for Confirm hold the drift back. Starting one
@@ -371,6 +371,11 @@ func _choice_screen_open() -> bool:
 
 # Brings the waiting choice screen back (out of its peek); Enter does the same.
 func reopen_choice(pending: StringName) -> void:
+	if pending == &"waymark":  # No screen: the stone's placement on the map opens again
+		var stone = drift_director.owner.get_node_or_null("MapGenerator/WaymarkStone") if drift_director.owner != null else null
+		if stone != null:
+			stone.reopen()
+		return
 	var screen_name := String(PENDING_SCREENS[pending])
 	if pending == &"dream" and not dream_state.is_offering():
 		screen_name = "RememberScreen"  # A boss rest: the Dream waits behind the Remember screen

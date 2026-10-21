@@ -6424,3 +6424,10 @@ func wild_growth_blocks(tower, into: TowerData) -> bool:
 # The refusal's line ("Wild Growth: 12 of 20 dispels to grow").
 func wild_growth_text(tower) -> String:
 	return "Wild Growth: %d of %d dispels to grow" % [batch.wild_of(tower), batch.wild_need(tower)]
+
+# --- Waymark (Legendary; owner 2026-10-21, legendaries_final.md 1.1) ---------------------------------------------------
+# Taken but its stone not placed yet: the next drift's Start waits (DriftDirector.pending_choice &"waymark"), RunSaver
+# waits, and WaymarkStone opens the placement. The stone itself lives on MapGenerator (waymark_cell, saved by RunSaver).
+func waymark_needed() -> bool:
+	return has_rule(&"waymark") and map_generator != null and map_generator.has_method("has_waymark") \
+		and not map_generator.has_waymark()

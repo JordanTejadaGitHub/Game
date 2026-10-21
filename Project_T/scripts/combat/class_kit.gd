@@ -330,25 +330,36 @@ func _refresh_route() -> bool:
 	_route = map.get_path_from(map.startPath)
 	_route_px.clear()
 	_index.clear()
+	_index2.clear()
+	_split = map.waymark_split(_route) if map.has_method("waymark_split") else -1
 	for i in _route.size():
 		_route_px.append(Tower.MAP_GRID.calculate_map_position(_route[i]))
-		_index[_route[i]] = i
+		if _split < 0 or i <= _split or not _index.has(_route[i]):  # Waymark: a point on both legs keeps its leg-1 index here
+			_index[_route[i]] = i
+		if _split >= 0 and i >= _split:
+			_index2[_route[i]] = i
 	return true
 
-# A walking nightmare's place on the route (-1: a flyer, or off the route).
+var _index2 := {}  # Waymark: leg 2's points (stone -> Heartwood) -> index (_index: every point, leg 1's index first)
+var _split := -1  # Waymark: the index where leg 2 begins (-1: one leg)
+
+# A walking nightmare's place on the route (-1: a flyer, or off the route). Waymark: on its own leg.
 func index_of(enemy) -> int:
 	if enemy.is_flying():
 		return -1
-	var i := int(_index.get(enemy.get_target_cell(), -1))
+	var second: bool = _split >= 0 and bool(enemy.get("passed_waymark"))
+	var i := int((_index2 if second else _index).get(enemy.get_target_cell(), -1))
 	if i >= 0 and enemy.global_position.distance_squared_to(_route_px[i]) <= cell() * cell():
 		return i  # Its next step is on the route and close by: the usual case
-	return nearest_point(enemy.global_position, 0.75)  # Placed, pushed or pulled off its usual step: where it stands
+	if _split < 0:
+		return nearest_point(enemy.global_position, 0.75)  # Placed, pushed or pulled off its usual step: where it stands
+	return nearest_point(enemy.global_position, 0.75, _split if second else 0, _route_px.size() if second else _split + 1)
 
-# The route point nearest `at`, if within `cells` of it (-1: none).
-func nearest_point(at: Vector2, cells: float) -> int:
+# The route point nearest `at`, if within `cells` of it (-1: none); `from` / `to`: only indices in [from, to).
+func nearest_point(at: Vector2, cells: float, from: int = 0, to: int = -1) -> int:
 	var best := -1
 	var best_d := (cells * cell()) ** 2
-	for i in _route_px.size():
+	for i in range(from, _route_px.size() if to < 0 else mini(to, _route_px.size())):
 		var d: float = at.distance_squared_to(_route_px[i])
 		if d <= best_d:
 			best_d = d

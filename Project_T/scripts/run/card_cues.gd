@@ -133,7 +133,9 @@ const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", &"seed_sto
 	# Bell repeats keep their own chime / double flash / pulse (d168b7e6) and add the badge pop
 	&"in_time", &"refrain", &"knell", &"on_the_beat", &"da_capo", &"second_verse", &"rude_awakening",
 	# Signature looks (DreamBurst colours: the card's look is the card)
-	&"afterglow", &"dawnbreak", &"spillover", &"shattering_blow"]
+	&"afterglow", &"dawnbreak", &"spillover", &"shattering_blow",
+	# Waymark (Legendary): the standing stone, the route out to it and back, and the white flare are its look
+	&"waymark"]
 
 # Dream-screen only: they change offers / rerolls / the Dew roll (the Dream screen or HUD already shows it).
 const OFFER_ONLY: Array[StringName] = [&"wandering_mind", &"lucid_dreaming", &"lucid_dream", &"mystery_dream",

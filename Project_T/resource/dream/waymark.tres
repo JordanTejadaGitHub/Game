@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "waymark"
+display_name = "Waymark"
+description = "Place a Waymark on open ground. Every nightmare, bosses too, walks to it before the Heartwood and loses every status there."
+tip = "Free. You place it when you take it, and can move it at any {rest}. Its cell stays open. Flyers fly straight past. Works for: every Warden; Sprouts and Thornwalls build the second leg. A bet: a kill zone on each leg."
+rarity = 3
+kind = 3
+tags = Array[String](["maze"])
+max_stacks = 1
+min_act = 2
+in_start_pool = true
+rule_id = &"waymark"

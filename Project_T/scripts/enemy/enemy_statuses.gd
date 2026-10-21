@@ -514,6 +514,45 @@ func remove(id: StringName) -> void:
 	if _active.erase(id):
 		changes += 1
 
+# Waymark (Legendary Dream, owner 2026-10-21): the nightmare reached the stone and loses every status and buildup, the
+# "never fades" ones too (Eternal Charge, Rooted Nightmares): the stone wins. Sleep, Hold, Caught, slows, stored poison
+# and Pinned go with them. Returns how many statuses it shed.
+func shed_all() -> int:
+	var shed := _active.size()
+	for id in _active.keys():
+		remove(id)
+	pending_linger.clear()
+	marked_forever = false
+	static_forever = false
+	marked_extra = 0.0
+	pinned = false
+	star_pinned = false
+	smothering = false
+	smother_stored = 0.0
+	smother_source = null
+	smother_credit.clear()
+	if sleep_time > 0.0:
+		sleep_time = 0.0
+	if caught_time > 0.0:
+		caught_time = 0.0
+	caught_bonus = 0.0
+	caught_shard = false
+	bad_dreams_timer = 0.0
+	if slow_time > 0.0:
+		slow_time = 0.0
+	slow_amount = 0.0
+	timed_slows.clear()
+	if cut_time > 0.0:
+		cut_time = 0.0
+	cut_stacks = 0
+	if burn_time > 0.0:
+		burn_time = 0.0
+	chain_count = 0
+	held_bonus = 0.0
+	changes += 1
+	hud_dirty = true
+	return shed
+
 # How many statuses it carries (no array built: Tangled and the redraw check ask every frame).
 func count() -> int:
 	return _active.size()

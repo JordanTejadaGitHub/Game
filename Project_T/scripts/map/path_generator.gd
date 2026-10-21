@@ -138,16 +138,24 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 func straightest_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	# Cached by what it depends on (the blocked halves, the ends, the preferred route): the build ghost's
 	# preview already searched the grid the placement makes, so draw() right after reuses it.
-	var key := [hash(_blocked), start, end, _preferred_version]
+	# A few entries: a Waymark route is two searches (start -> stone, stone -> Heartwood), each cached.
+	var key := [hash(_blocked), start, end, _preferred_version, start_half]
 	if key == _straight_key:
 		return _straight_route.duplicate()
+	if _straight_cache.has(key):
+		return (_straight_cache[key] as PackedVector2Array).duplicate()
 	var route := _straightest_search(start, end)
 	_straight_key = key
 	_straight_route = route.duplicate()
+	if _straight_cache.size() >= STRAIGHT_CACHE_SIZE:
+		_straight_cache.clear()
+	_straight_cache[key] = route.duplicate()
 	return route
 
-var _straight_key: Array = []
+const STRAIGHT_CACHE_SIZE := 4  # Straightest searches kept (one route = up to two legs, plus a preview's two)
+var _straight_key: Array = []  # (Kept: set_start_half clears it to drop the cache)
 var _straight_route := PackedVector2Array()
+var _straight_cache := {}  # key -> route
 var _preferred_version := 0  # Bumped by set_preferred_cells (part of the straightest cache key)
 
 func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
@@ -247,10 +255,7 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 # True if calculate_point_path(point, end) would find a route: one flood fill from the end per grid version,
 # then a lookup per point (the path rule asks this for every walking nightmare, ~150, after every change).
 func reaches(point: Vector2, end: Vector2) -> bool:
-	var key := [version, end]
-	if key != _reach_key:
-		_reach_key = key
-		_flood_from(end)
+	_use_field(end)
 	if is_whole_cell(point):  # A whole cell (the start): any free half of it (they're side by side)
 		for h in halves_of_cell(point):
 			var n := Vector2i(h)
@@ -262,6 +267,26 @@ func reaches(point: Vector2, end: Vector2) -> bool:
 
 var _reach_key: Array = []
 var _dist := PackedInt32Array()  # Steps from each half cell to the end (-1: no way there)
+
+# One distance field per goal, kept per grid version (Waymark, Legendary Dream: walkers head for the stone or the
+# Heartwood, so a re-route of both kinds would otherwise flood again on every switch). `_dist` is the one in use.
+const FIELD_CACHE_SIZE := 2
+var _fields := {}  # end -> [version, distances]
+
+func _use_field(end: Vector2) -> void:
+	var key := [version, end]
+	if key == _reach_key:
+		return
+	_reach_key = key
+	var kept: Array = _fields.get(end, [])
+	if not kept.is_empty() and int(kept[0]) == version:
+		_dist = kept[1]
+		return
+	_dist = PackedInt32Array()  # A new array: the field kept for another end stays as it was
+	_flood_from(end)
+	if not _fields.has(end) and _fields.size() >= FIELD_CACHE_SIZE:
+		_fields.clear()
+	_fields[end] = [version, _dist]
 
 # From route point `point` towards `end`, one shortest step at a time (down the distance field), until it
 # stands on a half marked in `stop` (1 per half: a route the caller knows) or at the end: the points walked,

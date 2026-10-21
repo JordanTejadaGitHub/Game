@@ -516,6 +516,14 @@ var _path: PackedVector2Array
 var _cells_left: PackedFloat32Array  # Per route point: the route's length in cells from it to the end (made on demand)
 var _path_index: int = 0
 
+# Waymark (Legendary Dream, owner 2026-10-21): a walker's _path runs start -> stone -> Heartwood (one array, so targeting by
+# get_remaining_distance and "furthest along" still work). It has `passed_waymark` once it stood on the stone (or stepped
+# past its point: a leap, a burrow); pulls back never clear it; a lap (Night Mare, Target Dummy) starts over. Not saved:
+# rests have a clear field. `_waymark_index`: the first point of _path on the stone (-1: none).
+var passed_waymark := false
+var _waymark_index := -1
+signal waymark_reached(enemy: Node2D, shed: int)  # It touched the stone (shed: how many statuses it lost)
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		_free_hud()  # Its HUD canvas items live in the RenderingServer, not in the tree
@@ -609,6 +617,8 @@ func _far_lod() -> bool:
 func _process(delta: float) -> void:
 	if is_cleansed or (_path_index >= _path.size() and not at_heartwood):
 		return
+	if _waymark_index >= 0 and not passed_waymark and _path_index > _waymark_index:
+		_touch_waymark()  # (Also after a leap or a burrow carried it past the stone)
 	if _far_lod():
 		_lod_acc += delta
 		if _lod_slot < 0:
@@ -977,6 +987,7 @@ func _restart_route() -> void:
 	var start: Vector2 = _path[0] if map_generator == null else map_generator.startPath
 	var route: PackedVector2Array = _path if map_generator == null else map_generator.get_path_from(start)
 	position = grid.calculate_map_position(start)
+	passed_waymark = false  # A new lap walks both legs again (Night Mare)
 	set_path(route)
 
 func _draw() -> void:
@@ -1957,7 +1968,8 @@ func ground(seconds: float) -> void:
 	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
 	tween.tween_callback(func() -> void:
 		_leaping = false
-		set_path(map_generator.get_path_from(nearest))
+		passed_waymark = true  # Waymark: a grounded flyer counts as having passed the stone (legendaries_final.md 1.1)
+		set_path(map_generator.get_path_from(nearest, true))
 		_speed_stale = true)
 
 func is_grounded() -> bool:
@@ -2469,7 +2481,7 @@ func _is_blocked_ahead(delta: float) -> bool:
 		_reroute_wait -= delta
 		if _reroute_wait <= 0.0:
 			_reroute_wait = REROUTE_RETRY
-			var around: PackedVector2Array = spawner.route_around(get_route_point())
+			var around: PackedVector2Array = spawner.route_around(get_route_point(), passed_waymark)
 			if not around.is_empty():
 				set_path(around)  # Heads for this cell first (already here), then round the blocker
 				_path_index = 1
@@ -2509,7 +2521,7 @@ func _try_burrow() -> void:
 		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator) \
 				or BranchKit.is_stone_cell(self, here + direction):  # Rampart's stone walls can't be dug under
 			continue
-		var route: PackedVector2Array = map_generator.get_path_from(beyond)
+		var route: PackedVector2Array = map_generator.get_path_from(beyond, passed_waymark)
 		var length := _route_cells(route) + 1.0  # + the tunnel under the wall (a cell)
 		if not route.is_empty() and length <= best_length + 0.01:
 			best_route = route
@@ -2553,7 +2565,7 @@ func _try_omen_burrow(tiles: int, seconds: float) -> void:
 		else:  # The maze changed while it was under: on from where it surfaced
 			var map_generator = _map_generator()
 			if map_generator != null:
-				set_path(map_generator.get_path_from(grid.calculate_grid_coordinates(position)))
+				set_path(map_generator.get_path_from(grid.calculate_grid_coordinates(position), passed_waymark))
 		if not is_cleansed and not _hidden and not _untouchable:
 			add_to_group(GROUP))
 
@@ -3317,6 +3329,7 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
+	_waymark_index = _find_waymark_index()
 	_path_serial += 1  # Per-route caches (turns, the walk target) rebuild
 	_cells_left = PackedFloat32Array()
 	_gap_step = -1  # A new route: the gap check looks again
@@ -3327,6 +3340,32 @@ func set_path(points: PackedVector2Array) -> void:
 	if straight_charging:
 		straight_charging = false  # Until it next reaches a cell on the new route
 		_speed_stale = true
+
+# Waymark: the first point of the route on the stone (-1: no stone, or a flyer's straight line of whole cells).
+func _find_waymark_index() -> int:
+	var map_generator = _map_generator()
+	if map_generator == null or not map_generator.has_method("waymark_split") or not map_generator.has_waymark():
+		return -1
+	return map_generator.waymark_split(_path)
+
+const WAYMARK_FLARE_COLOR := Palette.HEARTLIGHT  # The white flare at the stone
+const WAYMARK_FLARE_FROM := 10.0  # px: the flare's ring grows from here
+const WAYMARK_FLARE_GROW := 40.0
+const WAYMARK_FLARE_TIME := 0.5
+
+# It reached the stone: every status and buildup goes (the stone wins over "never fades"), with a white flare.
+func _touch_waymark() -> void:
+	passed_waymark = true
+	var shed := statuses.shed_all()
+	_hud_dirty = true
+	_speed_stale = true
+	if not _culled:  # (Every effects level: the flare is how the stone's rule reads)
+		var world := Reactions._world(self)
+		if world != null:
+			var flare := Fx.FxRing.new(WAYMARK_FLARE_COLOR, WAYMARK_FLARE_FROM, WAYMARK_FLARE_GROW, WAYMARK_FLARE_TIME)
+			world.add_child(flare)
+			flare.global_position = global_position
+	waymark_reached.emit(self, shed)
 
 # Drags the nightmare back along the way it came by `pixels` (pulls, Whirligig gusts, the Tidecaller's
 # wave): roots grab its feet, it slides back over a moment (ease-out, still facing forward), then walks
@@ -3493,13 +3532,16 @@ func trade_places(other: Node2D) -> bool:
 	var my_path := _path
 	var my_index := _path_index
 	var my_last := _last_cell
-	_take_route(other.position, other._path, other._path_index, other._last_cell)
-	other._take_route(my_position, my_path, my_index, my_last)
+	var my_passed := passed_waymark
+	_take_route(other.position, other._path, other._path_index, other._last_cell, other.passed_waymark)
+	other._take_route(my_position, my_path, my_index, my_last, my_passed)
 	return true
 
-func _take_route(at: Vector2, points: PackedVector2Array, index: int, last: Vector2) -> void:
+func _take_route(at: Vector2, points: PackedVector2Array, index: int, last: Vector2, passed := false) -> void:
 	position = at
 	_path = points
+	_waymark_index = _find_waymark_index()
+	passed_waymark = passed  # Waymark: the place it takes has (or hasn't) passed the stone
 	_path_index = index
 	_last_cell = last
 	_path_serial += 1  # Per-route caches rebuild (each nightmare's own serial, never swapped)

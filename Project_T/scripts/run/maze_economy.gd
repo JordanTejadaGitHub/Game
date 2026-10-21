@@ -18,6 +18,14 @@ func added_cells(map) -> int:
 	if map == null or _baseline.is_empty():
 		return 0
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	if map.has_method("has_waymark") and map.has_waymark():
+		# Waymark (Legendary Dream; legfinal_td.md 2): the baseline is the stone's two-leg route on today's map with every
+		# Warden's halves open, so the stone and the ground earn nothing, only the Wardens' maze; both counted in unique
+		# cells, so a corridor walked out to the stone and back (or any cell walked twice) pays once.
+		var base: PackedVector2Array = map.waymark_baseline_route()
+		if base.is_empty():
+			return 0
+		return maxi(0, int(map.unique_route_length(route)) - int(map.unique_route_length(base)))
 	return maxi(0, int(map.route_length(route)) - int(map.route_length(_baseline)))
 
 # The Dew that route length earns now: +1 per CELLS_PER_DEW added cells, no upper limit. (`_unused`: callers used to pass
