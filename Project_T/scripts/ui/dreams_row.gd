@@ -22,7 +22,6 @@ var _list := PanelContainer.new()
 var _icons: Array[DreamIcon] = []
 var _shown_key := ""  # Which cards / stacks the icons were built for
 var _clock := 0.0
-var _fog := UiStyle.fog_patch()
 # The run's Calling (screens_ui.md "Where to recheck your Calling", user 2026-10-13: "nowhere to recheck your Calling
 # after you choose"): the first icon, the family's base Warden in a gold frame (not a rarity gem); its tip is the
 # name and the rule. Nothing when the run has none (dev runs, old saves).
@@ -159,16 +158,8 @@ func refresh() -> void:
 			_live_labels[icon.card.id].text = icon.live
 	queue_redraw()
 
-# A fog patch behind the icons (ui_style.md: the Dreams row has fog, no thread).
-func _draw() -> void:
-	if strip_hidden or (_icons.is_empty() and _calling_frame == null):
-		return
-	var width := 0.0
-	if _calling_frame != null:
-		width = _calling_frame.position.x + _calling_frame.size.x
-	for icon in _icons:
-		width = maxf(width, icon.position.x + icon.size.x)
-	draw_style_box(_fog, Rect2(_row.position - Vector2(10, 6), Vector2(width, _row.size.y) + Vector2(20, 12)))
+# No box behind the icons (user 2026-10-21: "should remove the box that contains the dreams"): each Dream's own framed
+# gem reads over the map, like the counters on the other side.
 
 # --- "Dreams this run" (screens_ui.md "Dreams this run panel", redesigned 2026-09-28) --------------
 # One row per card: rarity gem, the name in its rarity colour, a stack badge, the effect with status

@@ -75,6 +75,8 @@ var _pad_foot := Control.new()
 
 # The strip sits on its panel, the padding inside its own rect (the spacers above): portraits and badges stay inside.
 func _draw() -> void:
+	if compact and not _phone:  # During a drift (user 2026-10-21: "find a better way… without taking up space in the
+		return  # middle"): no box, no caption, just the row of small discs under the drift banner's pips
 	if _phone:
 		draw_style_box(_fog, Rect2(Vector2(-6, 0), size + Vector2(12, 0)))  # Tight on phones
 		return
@@ -270,7 +272,9 @@ func _build_kind_words(_span: Vector2i) -> void:
 		_kind_words.add_child(words)
 	_kind_words.visible = _kind_words.get_child_count() > 0
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
-		_caption.visible = not _kind_words.visible
+		_caption.visible = not _kind_words.visible and not compact  # In a drift: no caption (its words are the tip)
+	tooltip_text = _caption.text if compact else ""
+	queue_redraw()  # The box comes and goes with a rest
 
 # The kind items, whichever row they're on.
 func items() -> Array:
