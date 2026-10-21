@@ -91,6 +91,7 @@ func set_compact(width: float) -> void:
 	names.add_child(damage_type)
 	(damage_type.get_child(0) as Label).add_theme_font_size_override("font_size", 14)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
+	UiStyle.fit_words(title, title.get_theme_font_size("font_size"), 16)  # …between words only: a long word shrinks instead
 	desc.custom_minimum_size = Vector2(width, 0)
 
 # A control at the right end of the name's line (the Warden panel's targeting chip); null clears it.
@@ -122,7 +123,8 @@ func _show_keywords(data: TowerData, tower: Tower) -> void:
 	var chips: Array = DreamState.KEYWORDS.chips_for_tower(tower) if is_instance_valid(tower) else DreamState.KEYWORDS.chips_for_warden(data)
 	# How it attacks leads the tags (user: "the single target icon should be a tag"), its meaning in the row's tip.
 	var shaped: TowerData = tower.attack_data if is_instance_valid(tower) and tower.attack_data != null else data
-	if shaped != null and shaped.can_attack and shaped.attack_kind != TowerData.AttackKind.AURA:
+	if shaped != null and shaped.can_attack and shaped.attack_kind != TowerData.AttackKind.AURA \
+			and not chips.any(func(c: Dictionary) -> bool: return String(c.get("label", "")) == shape_name(shaped)):  # No "Area" twice (user screenshot)
 		chips.push_front({"id": StringName("shape_" + String(Tower.attack_shape(shaped))), "kind": &"makes",
 			"label": shape_name(shaped), "tip": shape_tip(shaped)})
 	# The quiet card chip (owner, phone screenshot 2026-10-17: "doesn't look like the ones on the card"): a thin gold
@@ -196,6 +198,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	var notes: Array[String] = []
 	_bowl_label = null
 	title.text = data.display_name
+	UiStyle.fit_words_now(title)
 	portrait_atlas.atlas = data.texture
 	portrait_atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels (user, via UI Asset)
 	portrait.visible = data.texture != null
