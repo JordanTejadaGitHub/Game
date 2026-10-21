@@ -146,7 +146,7 @@ func _check_dreams_page(view: Vector2i, dreams: DreamState) -> void:
 	var page: Control = row._list
 	_check(page.visible and row.strip_hidden, "Dreams this run %s: opens from the Dreams button" % view)
 	var r := page.get_global_rect()
-	_check(r.position.distance_to(Vector2.ZERO) < 1.0 and r.size.distance_to(Vector2(view)) < 1.0,
+	_check(_fills(r, view),
 		"Dreams this run %s: fills the screen (%s)" % [view, r])
 	_check(row.get_index() > hud.get_node("MenuButton").get_index() and row.get_index() > hud.get_node("%TowerBar").get_index()
 		and row.get_index() < hud.get_node("PauseMenu").get_index(), "Dreams this run %s: above the HUD, under the pause menu" % view)
@@ -228,7 +228,7 @@ func _check_choice_extras(view: Vector2i, screen: Control) -> void:
 	var row := main.get_node("%DreamsRow") as DreamsRow
 	var page: Control = row._list
 	_check(page.is_visible_in_tree() and row.get_index() > screen.get_index() and row.z_index >= 20 and screen.visible
-		and page.get_global_rect().size.distance_to(Vector2(view)) < 1.0, "Dream %s: Your Dreams opens Dreams this run above the screen (row %d, screen %d)" % [view, row.get_index(), screen.get_index()])
+		and _fills(page.get_global_rect(), view), "Dream %s: Your Dreams opens Dreams this run above the screen (row %d, screen %d)" % [view, row.get_index(), screen.get_index()])
 	var close := page.find_child("PhoneClose", true, false) as Button
 	if close != null:
 		close.pressed.emit()
@@ -258,6 +258,12 @@ func _check_tabs(what: String, panel: Node, view: Vector2i) -> void:
 		container.current_tab = i
 		await _settle()
 		_check_buttons("%s/%s" % [what, container.get_tab_title(i)], panel, view)
+
+# A full-screen page: the whole width down to the bottom, its top at most 16 px down (moon-glass leaves room for the
+# rim sprout above it, DreamsRow.PAGE_GLASS_TOP).
+func _fills(r: Rect2, view: Vector2i) -> bool:
+	return absf(r.position.x) < 1.0 and r.position.y >= -1.0 and r.position.y <= 16.0 \
+		and absf(r.size.x - view.x) < 1.0 and absf(r.end.y - view.y) < 1.0
 
 func _settle() -> void:
 	for i in 3:

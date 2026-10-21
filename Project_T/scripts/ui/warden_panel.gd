@@ -85,9 +85,11 @@ func _ready() -> void:
 		offset_right = offset_left + PANEL_WIDTH  # The scene had it 300 wide
 	# The fog panel's inner margin one step down (story chat 2026-10-05: "Warden panel is too large").
 	var frame := get_theme_stylebox("panel").duplicate() as StyleBox
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
-	if _phone and frame is MoonStyleBox:  # Phones: the card background (card_bg: Night → Void, ~90%), one sprout on its top thread
+	var glass := "frame" in frame and StringName(frame.get("frame")) != &""  # Moon-glass (UI Code 8ecd7fb4): its own margins clear the 6 px rim
+	if not glass:
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
+	if _phone and frame is MoonStyleBox and not glass:  # Phones: the card background (card_bg: Night → Void, ~90%), one sprout on its top thread
 		var moon := frame as MoonStyleBox
 		moon.fog_color = UiStyle.FOG
 		moon.glow_color = UiStyle.CARD_BG

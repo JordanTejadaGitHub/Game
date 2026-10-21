@@ -1243,7 +1243,7 @@ func _place_top_button(button: Button, slot: Array) -> void:
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		var box := button.get_theme_stylebox(state, &"HudButton")
-		if box != null:
+		if box != null and "expand_margin_left" in box:  # (A moon-glass plate has no expand margins: its frame insets itself)
 			box = box.duplicate()
 			box.expand_margin_left = -BUTTON_BOX_INSET
 			box.expand_margin_right = -BUTTON_BOX_INSET
