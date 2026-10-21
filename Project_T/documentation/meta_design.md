@@ -267,7 +267,7 @@ branches), **its final forms**, **its hidden branch**.
 | Bellflower | *(start, since 2026-10-01)* | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
 | Acorn | 70 (needs Pebbling or Rootling) | 50 | 60 (Graftling + Grafted Elder) |
 | Nestling | 120 (needs 2 of Pebbling / Rootling / Acorn; Bellflower dropped from the list when it became a starter, so these stay late) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
-| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
+| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | 80 (Samara + Autumn Gale + Heavy Seed, Crosswind, Seed Storm; trimmed 2026-10-20) |
 
 **Unlock order, by design:** the starting families are the easiest to read (spores, water,
 light, and Bellflower's sleep since 2026-10-01). Pebbling and Rootling come next (plain roles: hit hard, control). Acorn needs
@@ -365,7 +365,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 |---|---|---|---|
 | **Swift** (attack speed) | *Quickening*: Hunt's Rush (the card Quickening, renamed in the card pass) (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
 | **Wide Reach** (area, splash) | *Broad Strokes*: Lingering Splash (30) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
-| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) (Hunter's Moon moved to the start pool 2026-10-06) |
+| **Keen Edges** (precision, crit) | *Sharpened*: Sharpened Light, Shattering Blow, **Hunter's Moon** (50; split 2026-10-20) | — | **Full Moon** (140): Full Moon, Still Target, Opening Fracture (crit with statuses and teamwork; split 2026-10-20) |
 | **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
 | **Tending** (nurture, tall) | *Tending Hands*: Deeper Rings (50; Sunlit Rest moved to the start pool 2026-10-06 as Tall's third door) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Few and Mighty (30; Elder Kin moved to the start pool 2026-10-06 as a Kinship door) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
@@ -376,11 +376,39 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | *(2026-10-06: The Long Walk and Hunter's Moon moved to the start pool so a fresh profile can see a Legendary; each forked branch keeps its other tip. Boss-rest offers now hold one Legendary slot, `dream_design.md`.)* | | | |
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **Crossroads** (80; needs Winding Roads) (The Long Walk moved to the start pool 2026-10-06) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
-| **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
-| **The Quiet Ones** (support Wardens) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | — (*Catchers* removed 2026-10-01: Dew Trail and Acorn Cache moved to the Acorn family node) | **The Quiet Ones** (120; needs Old Wood) |
+| **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Thorn Snare, Hushed Hedge, **Scented Hedge** (70; Scented Hedge from Old Wood 2026-10-20) | **Wildwood Reclaimed** (80) |
+| **The Quiet Ones** (support Wardens) | *Old Wood*: Living Walls, Hedgerow Roots (50; trimmed 2026-10-20) | — (*Catchers* removed 2026-10-01: Dew Trail and Acorn Cache moved to the Acorn family node) | **The Quiet Ones** (120; needs Old Wood) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
+- **Node bundles trimmed (2026-10-20, after Roguelite's Grove card council, `D:\Projects\logs\dream_council\grove_cards_*.md`).**
+  Since e29d302a every carried Grove card is always in its run, so a big node floods the offers. Rule
+  from now on: **a card node holds 2–3 cards, each one a player would pick for itself.** A card that
+  needs one Warden goes to the node that brings that Warden (or the start pool for a starting family's
+  Warden), not a theme bundle. No new nodes, no tree spots needed.
+  - **Old Wood** (70 → **50**): keeps **Living Walls** and **Hedgerow Roots**, the two that work with any
+    Thornwall and any aura Warden. Still gates The Quiet Ones.
+    - **Scented Hedge** → *Thorn and Bramble* (the walls node, now 3 cards).
+    - **Grandfather Stump** → the *Acorn* family node (Elder Stump is an Acorn branch; with Dew Trail).
+    - **Many Threads** → the start pool (Dreamcatcher is a Bellflower branch; its Needs keep it off
+      every offer until you own one).
+    - **Overflowing Well** → retired (id and code kept). It pays for Dew you didn't spend, close to
+      the "no card rewards waiting at a rest" rule, and Wellspring already owns interest.
+  - **Sharpened** (demo, stays **50**): keeps **Sharpened Light**, **Shattering Blow** and **Hunter's
+    Moon** (raw crits + the demo's showpiece Legendary). **Still Target** and **Opening Fracture** →
+    the *Full Moon* tip (120 → **140**), which becomes "crits with statuses and teamwork": Full Moon
+    (2+ statuses), Still Target (Drowsy / Held), Opening Fracture (another Warden follows up). Opening
+    Fracture stays Grove-exclusive; it just leaves the demo. Sharpened's card text still lists
+    Hunter's Patience (moved to the start pool) and must list Hunter's Moon.
+  - **Samara** hidden branch (stays 80): **Samara**, **Autumn Gale** (the forms) + **Heavy Seed**,
+    **Crosswind** (Grove-exclusive) and **Seed Storm**: 5 cards, 3 of them support.
+    - **Longer Flight** (plain range), **Backspin** (overlaps Heavy Seed) and **Ricochet** (fiddly)
+      → retired (ids and code kept).
+    - **Windborne Rain** needs Rain Lily too, so it is a two-family combo, and combos never come from
+      the Grove: → a discovery gate like the other combos (Roguelite Mechanic Discussion picks the
+      trigger) or retired if they prefer.
+  - Seeds: Old Wood −20, Full Moon +20; the tree total is unchanged. The demo Grove keeps 375 Seeds
+    and 8 nodes; its pool loses Still Target and Opening Fracture.
 - **Costs:** the new tips and nodes are cheaper (tips 80, nodes 40–50) than the original ones, so a
   direction is reachable in 2–3 runs. **+1,200 Seeds**: the tree is **≈ 7,340 Seeds ≈ 26 runs ≈
   33–36 hours**, a little over the ~30-hour target (as it was at 6,722); fine, since every early
