@@ -25,6 +25,7 @@ config/icon="res://assets/app_icon/app_icon.png"
 
 UserDirMigration="*res://scripts/run/user_dir_migration.gd"
 Sound="*res://scripts/audio/sound.gd"
+UiHider="*res://scripts/ui/ui_hider.gd"
 
 [file_customization]
 
