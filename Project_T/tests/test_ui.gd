@@ -97,16 +97,22 @@ func _run() -> void:
 	main.get_node("HUD")._unhandled_input(v)
 	_check(not BuffLens.on and listener.get("calls") == [true, false], "and off again")
 	listener.queue_free()
-	# Selected vs hovered: no button rests filled. The primary stands out by its gold frame, thread and an
-	# Ember glow inside (the user, 2026-10-05: "Don't make the button solid gold"), which hover brightens.
+	# Moon-glass (ui_style.md, 2026-10-20): metal is state. A button rests on the pewter plate, brass under the pointer;
+	# the primary is brass at rest with the soft gold glow; a press is the pushed-in plate (no shadow, content down);
+	# focus is an outline.
 	var theme := ThemeDB.get_project_theme()
-	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
+	var plain_rest := theme.get_stylebox("normal", "Button") as MoonStyleBox
+	var plain_hover := theme.get_stylebox("hover", "Button") as MoonStyleBox
 	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as MoonStyleBox
-	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as MoonStyleBox
+	var primary_press := theme.get_stylebox("pressed", "PrimaryButton") as MoonStyleBox
 	var focus := theme.get_stylebox("focus", "Button") as StyleBoxFlat
-	_check(plain_rest.bg_color.a < 0.7 and primary_rest != null and primary_rest.edge_alpha < 0.7 and primary_rest.frame_color.a > 0.5
-		and primary_hover.center_alpha > primary_rest.center_alpha and not focus.draw_center,
-		"buttons rest unfilled; the primary is a gold frame whose glow brightens on hover; focus is an outline")
+	_check(plain_rest != null and plain_rest.frame == &"plate" and not plain_rest.glow
+		and plain_hover != null and plain_hover.frame == &"plate_hover"
+		and primary_rest != null and primary_rest.frame == &"plate_yours" and primary_rest.glow
+		and primary_press != null and primary_press.frame == &"plate_pressed" and not primary_press.drop_shadow
+		and primary_press.content_margin_top > primary_rest.content_margin_top
+		and focus != null and not focus.draw_center,
+		"buttons rest on pewter, brass on hover; the primary is glowing brass; a press sits in; focus is an outline")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
@@ -378,19 +384,18 @@ func _run() -> void:
 	root.content_scale_factor = scale_was[3]
 	root.size = scale_was[4]
 	await _frames(2)
-	# The slots are the light pass's calm fog patch (2026-10-05, the user: "calmer, more transparent", over
-	# the older "solid" request): a MoonStyleBox, dark in the middle so the sprite and cost read, lighter at
-	# the rim; selected = the gold underline.
+	# Moon-glass slots (2026-10-20): a pewter plate at rest, brass when selected (with the glow), the dim plate when
+	# short on Dew.
 	var slot_button := bar.get_child(0) as Button
 	var slot_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
 	var slot_selected := slot_button.get_theme_stylebox("pressed") as MoonStyleBox
-	_check(slot_box != null and slot_box.frame_color.a >= 0.4 and slot_box.center_alpha >= 0.7 and slot_selected != null
-		and slot_selected.underline and slot_selected.frame_color.a > 0.95,
-		"Warden slots are bordered fog tiles (visible over the path); selected = solid gold border + underline")
+	_check(slot_box != null and slot_box.frame == &"plate" and slot_selected != null
+		and slot_selected.frame == &"plate_yours" and slot_selected.glow,
+		"Warden slots are pewter plates; selected = glowing brass")
 	UiStyle.slot_short(slot_button, true)
 	var short_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
-	_check(short_box != null and short_box.frame_color.is_equal_approx(Color(UiStyle.SLATE, 0.8)) and not slot_button.disabled,
-		"slot_short gives a Slate border without disabling the slot")
+	_check(short_box != null and short_box.frame == &"plate_dim" and not slot_button.disabled,
+		"slot_short gives the dim plate without disabling the slot")
 	UiStyle.slot_short(slot_button, false)
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
