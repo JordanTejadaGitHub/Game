@@ -925,32 +925,14 @@ static func row(button: Button) -> void:
 # A row of toggle buttons as one outlined group (DriftPanel's Auto / II / 1× / 2× / 3×): thin
 # dividers, the active (pressed) one tinted with Glow text. Call after adding the buttons.
 static func segmented(row: HBoxContainer) -> void:
-	row.add_theme_constant_override("separation", 0)
-	var buttons := row.get_children().filter(func(n: Node) -> bool: return n is Button)
-	for i in buttons.size():
-		var button: Button = buttons[i]
-		var first := i == 0
-		var last := i == buttons.size() - 1
-		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-			var box := StyleBoxFlat.new()
-			box.bg_color = Color(FOG, 0.55)
-			if state.begins_with("hover"):
-				box.bg_color = box.bg_color.blend(HOVER_FILL)
-			if state.ends_with("pressed"):
-				box.bg_color = box.bg_color.blend(Color(BUTTON_GOLD, 0.12))
-			box.border_color = Color(BUTTON_GOLD, 0.35)
-			box.border_width_top = 1
-			box.border_width_bottom = 1
-			box.border_width_left = 1  # The first one's outer edge, then the dividers
-			box.border_width_right = 1 if last else 0
-			box.corner_radius_top_left = 2 if first else 0
-			box.corner_radius_bottom_left = 2 if first else 0
-			box.corner_radius_top_right = 2 if last else 0
-			box.corner_radius_bottom_right = 2 if last else 0
-			_margins(box, 8.0, 4.0)
-			if state == "disabled":
-				box.border_color.a *= DISABLED_ALPHA
-			button.add_theme_stylebox_override(state, box)
+	# Moon-glass: a row of small plates 2 px apart, pewter at rest, brass under the pointer, the chosen one brass with its
+	# glow (plate_yours), dim when disabled.
+	row.add_theme_constant_override("separation", 2)
+	var frames := {"normal": &"plate", "hover": &"plate_hover", "pressed": &"plate_yours", "hover_pressed": &"plate_yours",
+		"disabled": &"plate_dim"}
+	for button in row.get_children().filter(func(n: Node) -> bool: return n is Button):
+		for state in frames:
+			(button as Button).add_theme_stylebox_override(state, plate_box(8.0, 4.0, frames[state]))
 		button.add_theme_color_override("font_color", INK_DIM)
 		button.add_theme_color_override("font_hover_color", INK)
 		for state in ["font_pressed_color", "font_hover_pressed_color"]:
