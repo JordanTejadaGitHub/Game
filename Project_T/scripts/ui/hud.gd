@@ -60,6 +60,7 @@ const BUFFS_SLOT := [-236.0, 76.0]
 const CODEX_SLOT := [-318.0, 48.0]
 const LEAF_LOST_COLOR := UiStyle.POOR
 const TOAST_TIME := 2.5
+const TOAST_TOP := 254.0  # The toast's place in main.tscn; lower when the top-centre column reaches past it
 
 @onready var dream_state: DreamState = %DreamState
 var bark_shield: DreamMarks.BarkShield = null  # Thick Bark (DreamMarks)
@@ -1184,6 +1185,10 @@ func show_toast(text: String) -> void:
 		impact_label.modulate.a = 0.0
 	toast_label.text = text
 	toast_label.modulate.a = 1.0
+	# The top-centre column: under the banner, Coming strip and boss reminder, never over them (TOAST_TOP at the least)
+	var toast_top := maxf(TOAST_TOP, BossDossier.column_bottom(self) + 12.0)
+	toast_label.offset_bottom = toast_top + (toast_label.offset_bottom - toast_label.offset_top)
+	toast_label.offset_top = toast_top
 	_toast_tween = UiTime.tween(self, false)
 	_toast_tween.tween_interval(TOAST_TIME)
 	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.6)
