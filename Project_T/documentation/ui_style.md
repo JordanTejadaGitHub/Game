@@ -36,7 +36,7 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
   pixel-crisp.
 - **Dividers are engraved** into the glass (Dread over Dusk, 2 art px, stopping short of the rim), never gold threads.
 - **The sprout stays**: today's 7x4 gold sprout (`rim_sprout.png`) stands on the top rim of the one main panel per
-  screen. Main panels also get one facet line in the top-left corner of the glass. No diamond anywhere.
+  screen. Main panels also get a soft moonlight glow fading out of the top-left corner of the glass (user 2026-10-21 picked D from https://claude.ai/artifact/JgyRnNFWR4oNek7PNyDLUN; the single facet line looked like a stray mark). No diamond anywhere.
 - **Type: two families, one job each** (user 2026-10-21: "different text fonts everywhere"). Every text in the game
   uses exactly one of these; nothing else (no Alegreya Sans, no Cormorant, no engine default font):
   | What | Font |

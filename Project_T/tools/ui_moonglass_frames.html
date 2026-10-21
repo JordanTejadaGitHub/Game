@@ -99,7 +99,7 @@ function backdrop(el){
 const bayer = (x,y) => (BAYER[y%4][x%4]+0.5)/16;
 // A plate of cut moon-glass in a pewter rim: chamfered corners, a bevel, the glass set below it,
 // engraved dividers, and a hard dithered shadow `sh` px down-right.
-function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86}){ const warm = metal === 'brassHover'; if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
+function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], glint=null, sh=0, alpha=0.86, facet='corner'}){ const warm = metal === 'brassHover'; if (glass === C.night) glass = C.dread; else if (glass === C.dread) glass = C.void;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
   const put = (x,y,col) => { if (x>=0 && y>=0 && x<W && y<H){ g.fillStyle = col; g.fillRect(x,y,1,1); } };
   const w = W - sh, h = H - sh, k = main ? 4 : 2;          // k = corner cut
@@ -123,8 +123,7 @@ function glassFrame({W, H, metal='pewter', glass=C.night, main=false, leads=[], 
       g.globalAlpha = 1; continue; } }
     if (x >= sh && y >= sh && x-sh < w && y-sh < h && edge(x-sh,y-sh)[0] >= 0 && bayer(x,y) < 0.5) put(x,y,C.void);
   }
-  if (main){ // light catching the cut top-left corner of the glass
-    for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
+  if (main) drawFacet(facet, {g, put, t, k, w, h, edge, alpha, glass});
   for (const y of leads){ for (let x=t+5; x<=w-t-6; x++){ put(x,y,C.dread); if (x > t+5 && x < w-t-6) put(x,y+1,C.dusk); } }
   if (glint !== null) for (let y=t+2; y<h-t-2; y++){ const x = glint - y; if (x > t+1 && x < w-t-2 && edge(x,y)[0] > t+1){ put(x,y,C.moon); put(x+1,y,C.mist); } }
   return cv.toDataURL();
@@ -156,11 +155,22 @@ function roundel(rows, ink, metal='pewter', r=12, scale=P){
 }
 // The real game map behind the mock-ups (a capture of act 1), so the glass is judged over the world.
 function backdrop(el){ el.style.backgroundImage = `url(${IMG_MAP})`; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; el.style.imageRendering = 'pixelated'; }
+// Main panels' glass highlight. 'line' = the original single facet line.
+function drawFacet(kind, {g, put, t, k, w, h, edge}){
+  const a = (x, y, col, al) => { g.globalAlpha = al; put(x, y, col); g.globalAlpha = 1; };
+  const q = t + 2;
+  if (kind === 'line'){ for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
+  if (kind === 'double'){ for (let i=0;i<6;i++) a(q+2+i, q+8-i, C.moon, .32); for (let i=0;i<3;i++) a(q+5+i, q+8-i, C.moon, .22); }
+  if (kind === 'corner'){ for (let y=q; y<q+12; y++) for (let x=q; x<q+16; x++){ if (edge(x,y)[0] <= t) continue; const d = Math.hypot((x-q)/16, (y-q)/12); if (d < 1) a(x, y, C.moon, .30 * (1-d) * (1-d)); } }
+  if (kind === 'cut'){ for (let i=0;i<=k+2;i++){ const x = t+1+i, y = t+1+k+2-i; if (edge(x,y)[0] > t) a(x, y, C.moon, .5); }
+    for (let i=0;i<10;i++) a(t+k+3+i, t+1, C.moon, .3*(1-i/10)); for (let i=0;i<8;i++) a(t+1, t+k+3+i, C.moon, .3*(1-i/8)); }
+  if (kind === 'pair'){ for (let i=0;i<5;i++) a(t+4+i, t+k+5-i, C.moon, .28); for (let i=0;i<5;i++) a(w-1-(t+4+i), h-1-(t+k+5-i), C.moon, .14); }
+}
 METAL.ember = [C.gold,'#b8662c','#5c3c24','#241c14'];
 // Export the moon-glass frames as 9-slice PNGs (art px; the game draws them x2, nearest).
 const OUT = [];
 const add = (name, url, w, h, margin) => OUT.push({name, url, w, h, margin});
-const MAIN = 36, MM = 14, SMALL = 20, SM = 8;
+const MAIN = 48, MM = 22, SMALL = 20, SM = 8;
 for (const [name, metal] of [['panel_main','pewter'],['panel_main_yours','brass']])
   add(name, glassFrame({W:MAIN, H:MAIN, metal, main:true, glass:C.night, sh:0}), MAIN, MAIN, MM);
 for (const [name, metal] of [['plate','pewter'],['plate_hover','brass'],['plate_pressed','brassPressed'],['plate_yours','brass'],['plate_yours_hover','brassHover'],['plate_danger','ember']])
