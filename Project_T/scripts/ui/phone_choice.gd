@@ -363,7 +363,12 @@ static func text_width(button: Button) -> float:
 # One sprout per screen (UI review 2026-10-17): a phone choice card's thread runs its full width in `colour` with no
 # mark (the Heartwood sprout is Take's alone); a clear `colour` keeps the card's own thread colour. Call it last, after
 # ChoiceCard.solid and any other style tweak.
+# Whether `box` is a moon-glass plate (UI Code 8ecd7fb4: MoonStyleBox.frame set) rather than the old fog patch.
+static func is_glass(box: StyleBox) -> bool:
+	return box != null and "frame" in box and StringName(box.get("frame")) != &""
+
 static func card_thread(button: Button, colour: Color = Color(0, 0, 0, 0)) -> void:
+	var glass := false
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		if style == null:
@@ -371,9 +376,15 @@ static func card_thread(button: Button, colour: Color = Color(0, 0, 0, 0)) -> vo
 		if colour.a <= 0.0:
 			colour = style.thread_color
 		style = style.duplicate()
-		style.thread = MoonStyleBox.TopLine.NONE
+		glass = is_glass(style)
+		if glass:  # Moon-glass (UI Code 8ecd7fb4): the plate's own 2 px accent line along the top of the glass, no sprout
+			style.set("accent", Color(colour, THREAD_ALPHA))  # (As UI Code cfb9febc)
+		else:
+			style.thread = MoonStyleBox.TopLine.NONE
 		style.diamond = false
 		button.add_theme_stylebox_override(state, style)
+	if glass:
+		return  # (A drawn line at the button's edge sat outside the plate's rim)
 	var line := ColorRect.new()
 	line.name = "Thread"
 	line.color = Color(colour, THREAD_ALPHA)
@@ -395,6 +406,11 @@ func fill(card: Control) -> void:
 # New cards: nothing looked at.
 func reset() -> void:
 	looked = null
+	if cards != null:
+		for child in cards.get_children():
+			var face := _face(child)
+			if face != null:
+				_dim_plate(face, false)  # Nothing looked at: every card wears its own boxes again
 	set_take("")
 
 # A card's tap: true when the layout used it (it looked at the card, or the tap was on an underlined word), false
@@ -406,11 +422,6 @@ func tap(button: Button, take_text: String) -> bool:
 		return false
 	look(button, take_text)
 	return true
-	if cards != null:
-		for child in cards.get_children():
-			var face := _face(child)
-			if face != null:
-				_dim_plate(face, false)  # Nothing looked at: every card wears its own boxes again
 
 # Looks at `button`: it lifts, the others dim; Take names it.
 func look(button: Button, take_text: String) -> void:
@@ -425,17 +436,6 @@ func look(button: Button, take_text: String) -> void:
 		_lift(face, on)
 	set_take(take_text)
 
-# A disabled Take draws as the normal secondary button (frame and ink text); the caller dims it to 45% (UI Asset
-# 2026-10-17: the disabled primary was almost invisible, the player couldn't see where Take would be).
-static func disabled_look(button: Button) -> void:
-	if button.has_theme_stylebox_override("disabled"):
-		return
-	button.add_theme_stylebox_override("disabled", button.get_theme_stylebox("normal", &"Button"))
-	button.add_theme_color_override("font_disabled_color", UiStyle.INK)
-
-# Take reads `text` ("" = nothing looked at: dim, "Take"); the hint follows.
-func set_take(text: String) -> void:
-	var can := text != "" and looked != null and is_instance_valid(looked)
 # Moon-glass (UI Code, re c4f58285): a card not looked at wears the dim plate (UiStyle.card_dim in its own accent) and
 # fades less, since the plate already dims; its own boxes come back when it's looked at or nothing is.
 const LOOKED_AWAY_ALPHA := 0.7
@@ -461,6 +461,17 @@ func _dim_plate(face: Button, dim: bool) -> void:
 			else:
 				face.remove_theme_stylebox_override(state)
 
+# A disabled Take draws as the normal secondary button (frame and ink text); the caller dims it to 45% (UI Asset
+# 2026-10-17: the disabled primary was almost invisible, the player couldn't see where Take would be).
+static func disabled_look(button: Button) -> void:
+	if button.has_theme_stylebox_override("disabled"):
+		return
+	button.add_theme_stylebox_override("disabled", button.get_theme_stylebox("normal", &"Button"))
+	button.add_theme_color_override("font_disabled_color", UiStyle.INK)
+
+# Take reads `text` ("" = nothing looked at: dim, "Take"); the hint follows.
+func set_take(text: String) -> void:
+	var can := text != "" and looked != null and is_instance_valid(looked)
 	take.disabled = not can
 	disabled_look(take)
 	take.modulate.a = 1.0 if can else 0.45  # multiplier: the secondary frame at 45% until there's something to take
