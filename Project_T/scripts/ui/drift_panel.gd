@@ -70,6 +70,13 @@ func _ready() -> void:
 	dream_state.card_chosen.connect(func(_card: UpgradeData, _towers: Array, _impact: String) -> void: _refresh_impatient())
 	run_state.run_ended.connect(func(_won: bool) -> void: _refresh_impatient())
 	_refresh_impatient()
+	# No notes over the map (UI Asset fc82d5e8, user 2026-10-21): the finale, Moonflip, warning and Restless Night lines
+	# keep working, held in a hidden node (tests still read them); their text is the Start button's tip (_fold_notes).
+	_notes_holder.name = "NotesHolder"
+	_notes_holder.visible = false
+	add_child(_notes_holder)
+	for note: Control in [finale_label, moonflip_label, warning_label, impatient_label]:
+		note.reparent(_notes_holder, false)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
@@ -260,6 +267,27 @@ func _process(_delta: float) -> void:
 	if not run_state.is_over:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
+	_fold_notes()
+
+# The drift panel holds only Start / Call early and the speed row (UI Asset fc82d5e8): the status line ("Rest after drift
+# N", "Resting: selling refunds 75%", "Maze bonus: +N at rest") never shows; the next drift's Dew pot, the maze bonus
+# and the held notes (finale, Moonflip, warnings, Restless Night) go into the Start button's tip. The Dew counter's
+# "+N at rest" and Sell's tip say the rest.
+var _notes_holder := Control.new()
+func _fold_notes() -> void:
+	_status_label.visible = false
+	var lines: Array[String] = []
+	if _start_button.tooltip_text != "":
+		lines.append(_start_button.tooltip_text)
+	for note: Label in [finale_label, moonflip_label, warning_label, impatient_label]:
+		if note.visible and note.text.strip_edges() != "":
+			lines.append(note.text.strip_edges())
+	var about := _status_label.tooltip_text.strip_edges()  # The pot and the maze bonus
+	if about != "":
+		lines.append(about)
+	var tip := "\n\n".join(lines)
+	if _start_button.tooltip_text != tip:
+		_start_button.tooltip_text = tip
 
 var _hidden_for_drawer := false  # Phones: hidden only because the Warden drawer is open
 
