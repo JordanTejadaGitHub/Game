@@ -340,7 +340,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	badge.text = "×%d" % count
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.number(badge, 13, UiStyle.GOLD)
-	badge.add_theme_stylebox_override("normal", _pill())
+	_badge_look(badge)
 	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -351,7 +351,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		tag.text = "New"
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
-		tag.add_theme_stylebox_override("normal", _pill())
+		_badge_look(tag)
 		tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 		tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		tag.offset_top = -6.0
@@ -373,14 +373,16 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		item.add_child(words)
 	return item
 
-# The dark pill behind a badge (like the status stack pills): readable over any portrait.
-func _pill() -> StyleBoxFlat:
-	var pill := StyleBoxFlat.new()
-	pill.bg_color = Color(Palette.VOID, 0.85)
-	pill.set_corner_radius_all(6)
-	pill.content_margin_left = 3.0
-	pill.content_margin_right = 3.0
-	return pill
+# A badge over a portrait ("×22", "New"): a crisp Void outline round the letters keeps it readable on the pale disc, no
+# dark pill under it (user 2026-10-21: "why is it dark underneath the 22 and 4").
+func _badge_look(label: Label) -> void:
+	var room := StyleBoxEmpty.new()
+	room.content_margin_left = 3.0
+	room.content_margin_right = 3.0
+	label.add_theme_stylebox_override("normal", room)
+	label.add_theme_color_override("font_outline_color", Palette.VOID)
+	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_color_override("font_shadow_color", Color(Palette.VOID, 0.0))  # The theme's soft shadow would smear it
 
 # "+N": the kinds that didn't fit; a tap opens their cards in turn.
 func _more_chip(rest: Array) -> Control:
