@@ -109,7 +109,7 @@ func _ready() -> void:
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
-	if OS.has_feature("mobile"):  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
+	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty():  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
 		get_viewport().size_changed.connect(_fit_safe_area)
 		_fit_safe_area()
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
@@ -360,6 +360,30 @@ var _bar_arrows: Array[Button] = []
 func _fit_safe_area() -> void:
 	var view := get_viewport().get_visible_rect().size
 	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
+	side_holes = UiStyle.side_holes(view)
+	_fit_side_holes()
+
+# Phones: a punch hole in the middle of a side (UiStyle.side_holes) keeps the HUD's corners on the screen's edge; only
+# the full-screen pages keep clear of it (their full-width anchors get the hole as side offsets), and the Warden drawer
+# docked left (WardenPanel._dock_left) and the Dreams page (DreamsRow) read `side_holes`.
+const HOLE_SCREENS := ["PauseMenu", "DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "RememberScreen",
+	"ResultsScreen", "BossDossier", "LessonCard"]
+var side_holes := Vector2.ZERO  # (left, right) in view units
+
+var _holes_applied := false
+
+func _fit_side_holes() -> void:
+	if side_holes == Vector2.ZERO and not _holes_applied:
+		return  # No hole (PC, most phones): the pages keep their own offsets untouched
+	_holes_applied = true
+	for screen_name in HOLE_SCREENS:
+		var screen := get_node_or_null(screen_name) as Control
+		if screen == null or screen.anchor_left != 0.0 or screen.anchor_right != 1.0:
+			continue  # Only pages anchored across the whole width
+		screen.offset_left = side_holes.x
+		screen.offset_right = -side_holes.y
+		if not screen.visibility_changed.is_connected(_fit_side_holes):
+			screen.visibility_changed.connect(_fit_side_holes)  # Re-applied when it opens (a page may reset its anchors)
 
 # --- Phones (Mobile UI, the "Heartwood Phone HUD" prototype; user 2026-10-15) ---------------------------------------------
 # The Warden bar is a dock at the bottom LEFT (the left thumb) with a Sell slot at its end; the bottom centre stays free
@@ -394,11 +418,7 @@ func _make_sell_slot() -> void:
 	sell_slot.add_theme_color_override("font_hover_color", UiStyle.INK)
 	var dew := IconInfo.icon(&"dew")
 	if dew != null:
-		sell_slot.icon = dew
-		sell_slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		sell_slot.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		sell_slot.expand_icon = true
-		sell_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_tool_slot_icon(sell_slot, dew)
 	sell_slot.anchor_left = 0.5
 	sell_slot.anchor_right = 0.5
 	sell_slot.anchor_top = 1.0
@@ -442,11 +462,7 @@ func _make_select_slot() -> void:
 	select_slot.add_theme_color_override("font_color", UiStyle.MOON_MIST)
 	select_slot.add_theme_color_override("font_pressed_color", UiStyle.INK)
 	select_slot.add_theme_color_override("font_hover_color", UiStyle.INK)
-	select_slot.icon = _select_glyph()  # Laid out like Sell's Dew icon: the glyph above the caption
-	select_slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	select_slot.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	select_slot.expand_icon = true
-	select_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_tool_slot_icon(select_slot, _select_glyph())  # Laid out like a Warden slot: the glyph above the caption
 	select_slot.anchor_left = 0.5
 	select_slot.anchor_right = 0.5
 	select_slot.anchor_top = 1.0
@@ -465,6 +481,53 @@ func _on_select_slot(on: bool) -> void:
 		select_slot.set_pressed_no_signal(false)
 		return
 	seller.set_select_mode(on)
+
+# A tool slot (Sell, Select) laid out like a Warden slot (user 2026-10-21: "Select and Sell are placed higher in their
+# button while the Warden is lower"): its caption is a Label on the content box's bottom edge, where a Warden slot's
+# cost sits, and its glyph is drawn TOOL_GLYPH px, centred in the space above it. The button's own text and icon stay
+# empty (the button's layout put an icon-less caption mid-slot).
+const TOOL_GLYPH := 32.0
+
+func _tool_slot_icon(slot: Button, glyph: Texture2D) -> void:
+	var caption := Label.new()
+	caption.name = "Caption"
+	caption.text = slot.text
+	slot.text = ""
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	caption.add_theme_font_override("font", slot.get_theme_font("font"))  # The slot's own face, as a Warden's cost
+	caption.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
+	caption.add_theme_color_override("font_color", UiStyle.MOON_MIST)
+	caption.add_theme_color_override("font_shadow_color", slot.get_theme_color("font_shadow_color"))
+	caption.add_theme_constant_override("shadow_offset_x", 1)
+	caption.add_theme_constant_override("shadow_offset_y", 1)
+	slot.add_child(caption)
+	var mark := TextureRect.new()
+	mark.name = "Glyph"
+	mark.texture = glyph
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	slot.add_child(mark)
+	slot.toggled.connect(func(on: bool) -> void:
+		caption.add_theme_color_override("font_color", UiStyle.INK if on else UiStyle.MOON_MIST))
+	var fit := func() -> void:
+		var box := slot.get_theme_stylebox("normal")
+		var left := box.get_margin(SIDE_LEFT) if box != null else 4.0
+		var top := box.get_margin(SIDE_TOP) if box != null else 4.0
+		var right := box.get_margin(SIDE_RIGHT) if box != null else 4.0
+		var bottom := box.get_margin(SIDE_BOTTOM) if box != null else 4.0
+		caption.position = Vector2(left, top)
+		caption.size = Vector2(slot.size.x - left - right, slot.size.y - top - bottom)
+		var line := caption.get_line_height()
+		var room := Vector2(slot.size.x - left - right, slot.size.y - top - bottom - line)
+		var side := minf(TOOL_GLYPH, minf(room.x, room.y))
+		mark.size = Vector2(side, side)
+		mark.position = Vector2(left + (room.x - side) / 2.0, top + (room.y - side) / 2.0)
+	slot.resized.connect(fit)
+	fit.call_deferred()
 
 # Select's icon: a 16 px pixel glyph, the four corners of a selection box (Mist), like the icon sheet's art.
 static func _select_glyph() -> Texture2D:

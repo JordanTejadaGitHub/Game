@@ -2067,8 +2067,9 @@ func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
-	offset_left = 0.0
-	offset_right = PHONE_WIDTH
+	var hole: float = (get_parent().get("side_holes") as Vector2).x if get_parent() != null and get_parent().get("side_holes") is Vector2 else 0.0
+	offset_left = hole  # Clear of a punch hole in the middle of the left side (hud.gd side_holes)
+	offset_right = hole + PHONE_WIDTH
 	grow_horizontal = Control.GROW_DIRECTION_END
 
 # The top of the Warden dock (Sell, Select, the Warden slots) in the drawer's space: a left drawer ends above it.

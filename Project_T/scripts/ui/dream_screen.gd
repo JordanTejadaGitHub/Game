@@ -267,7 +267,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
 	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
 	if _phone:  # Equal columns across the width between the side margins (a little spare for a scroll bar)
-		room = get_viewport_rect().size.x - 2.0 * PHONE_MARGIN - PHONE_GAP * (cards.size() - 1) - 16.0
+		room = PhoneChoice.room_width(self) - 2.0 * PHONE_MARGIN - PHONE_GAP * (cards.size() - 1) - 16.0
 		_card_width = floorf(room / maxf(cards.size(), 1.0))
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame

@@ -415,7 +415,7 @@ func _card_size() -> Vector2:
 	if _layout != null:
 		return Vector2(_layout.card_width(maxi(offer.size(), 1)), PHONE_CARD_MIN_H)
 	var count := maxi(offer.size(), 1)
-	var room := get_viewport_rect().size.x - 2.0 * PHONE_SIDE_MARGIN - CARD_GAP * (count - 1)
+	var room := PhoneChoice.room_width(self) - 2.0 * PHONE_SIDE_MARGIN - CARD_GAP * (count - 1)
 	return Vector2(floorf(room / count), PHONE_CARD_MIN_H)
 
 # A card's press: phones look first (Take, or a second tap, takes it); the PC picks at once.

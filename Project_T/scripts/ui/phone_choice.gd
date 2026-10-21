@@ -195,7 +195,7 @@ static func balance(left_box: Control, right_box: Control, row: HBoxContainer) -
 	right_box.custom_minimum_size.x = 0.0
 	var side := maxf(_row_width(left_box), _row_width(right_box))
 	var gap := float(row.get_theme_constant("separation"))
-	var room := row.get_viewport_rect().size.x - 2.0 * MARGIN
+	var room := room_width(row) - 2.0 * MARGIN
 	if 2.0 * side + HINT_MIN + 2.0 * gap <= room:
 		left_box.custom_minimum_size.x = side
 		right_box.custom_minimum_size.x = side
@@ -341,7 +341,7 @@ static func match_widths(buttons: Array) -> float:
 	for button: Button in buttons:
 		if not button.is_inside_tree():
 			return 0.0
-		cap = maxf(cap, floorf(button.get_viewport_rect().size.x * CHOICE_MAX_SHARE))
+		cap = maxf(cap, floorf(room_width(button) * CHOICE_MAX_SHARE))
 		width = maxf(width, text_width(button))
 	width = minf(width, cap)
 	for button: Button in buttons:
@@ -363,6 +363,16 @@ static func text_width(button: Button) -> float:
 # One sprout per screen (UI review 2026-10-17): a phone choice card's thread runs its full width in `colour` with no
 # mark (the Heartwood sprout is Take's alone); a clear `colour` keeps the card's own thread colour. Call it last, after
 # ChoiceCard.solid and any other style tweak.
+# The width a phone layout has: the full-screen page `node` sits in (the HUD layer's child; narrower than the window by
+# a punch hole's side offsets, hud.gd _fit_side_holes), else the window.
+static func room_width(node: Control) -> float:
+	var page: Node = node
+	while page != null and page.get_parent() != null and not (page.get_parent() is CanvasLayer):
+		page = page.get_parent()
+	if page is Control and (page as Control).size.x > 0.0:
+		return (page as Control).size.x
+	return node.get_viewport_rect().size.x
+
 # Whether `box` is a moon-glass plate (UI Code 8ecd7fb4: MoonStyleBox.frame set) rather than the old fog patch.
 static func is_glass(box: StyleBox) -> bool:
 	return box != null and "frame" in box and StringName(box.get("frame")) != &""
@@ -395,7 +405,7 @@ static func card_thread(button: Button, colour: Color = Color(0, 0, 0, 0)) -> vo
 
 # The width of each of `count` equal columns between the side margins (a little spare for a scroll bar).
 func card_width(count: int) -> float:
-	var room := screen.get_viewport_rect().size.x - 2.0 * MARGIN - GAP * (count - 1) - 16.0
+	var room := room_width(screen) - 2.0 * MARGIN - GAP * (count - 1) - 16.0
 	return floorf(room / maxf(count, 1.0))
 
 # A card fills its column's width; its height is its content's (the row gives every card the tallest's height).

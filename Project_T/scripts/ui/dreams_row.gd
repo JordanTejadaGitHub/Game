@@ -464,6 +464,13 @@ var _count_label: Label = null
 const PAGE_GLASS_TOP := 12.0  # Moon-glass: room above the page for its rim sprout
 const PAGE_GLASS_MARGIN := 22.0  # Moon-glass: the page's content this far inside its edge (6 px rim + air)
 
+# A punch hole in the middle of a side (hud.gd side_holes): the page keeps clear of it when it opens.
+func _fit_page_holes() -> void:
+	var holes: Variant = get_parent().get("side_holes") if get_parent() != null else null
+	if holes is Vector2 and _list.visible:
+		_list.offset_left = (holes as Vector2).x
+		_list.offset_right = -(holes as Vector2).y
+
 func _make_phone_page() -> void:
 	if _phone_page:
 		return
@@ -501,6 +508,7 @@ func _make_phone_page() -> void:
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	back.visible = _list.visible
 	_list.visibility_changed.connect(func() -> void: back.visible = _list.visible)
+	_list.visibility_changed.connect(_fit_page_holes)
 	_list_column.add_theme_constant_override("separation", 8)
 	_list_column.remove_child(_list_close)
 	_list_close.queue_free()

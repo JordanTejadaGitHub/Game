@@ -98,7 +98,10 @@ const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (
 # Phones: only two (user 2026-10-15, Mobile UI); smaller ones made text and buttons too small to read and hit.
 # UI Asset's review 2026-10-17: on a phone neither size shrinks type. Both draw the UI at the full fitting scale; Standard
 # only tightens the HUD's padding, gaps and panel widths for more map (phone_compact()), Large keeps the roomy spacing.
-const PHONE_UI_SIZES := [["Standard (more map)", 0.9], ["Large (roomier)", 1.0]]
+# User 2026-10-21 ("I used 2 different UI sizes but they seem the same"): Standard now also draws everything at
+# PHONE_STANDARD_SCALE of the fitting scale, so the two read as two sizes; Large stays the full scale.
+const PHONE_UI_SIZES := [["Standard (more map)", 0.85], ["Large (roomier)", 1.0]]
+const PHONE_STANDARD_SCALE := 0.85
 static var _phone_compact := false
 
 # Phones at Standard: HUD layouts read this for their tighter spacing (text sizes never change).
@@ -111,7 +114,7 @@ static func ui_sizes() -> Array:
 
 # A saved share on a phone snaps to the nearest of its two sizes (a PC-sized 0.6 becomes 0.9).
 static func phone_share(share: float) -> float:
-	return 1.0 if share >= 0.95 else 0.9
+	return 1.0 if share >= 0.95 else PHONE_STANDARD_SCALE
 
 static var _scale_share := 1.0
 
@@ -140,6 +143,9 @@ static func layout_min() -> Vector2:
 # A real phone's unsafe edges (notch, rounded corners) in view units: left / top in `position`, right / bottom in
 # `size`. Empty anywhere else (PC, `--mobile` previews, headless).
 static func safe_insets(view: Vector2) -> Rect2:
+	var cut := _cutout_insets(view)
+	if not cut.is_empty():
+		return cut.corners
 	if not OS.has_feature("mobile"):
 		return Rect2()
 	var screen := Vector2(DisplayServer.screen_get_size())
@@ -160,6 +166,51 @@ static func safe_insets(view: Vector2) -> Rect2:
 		far.y = 0.0
 	var k := view.x / window.x
 	return Rect2(near * k, far * k)
+
+# Phones with a punch-hole camera (user 2026-10-21: "the Wardens and Sell and Select are positioned differently": the
+# whole HUD sat ~50 px in from the left because Android calls the whole camera strip unsafe). From the real cutout
+# rects: a cutout reaching a side's top or bottom CORNER_BAND moves the HUD's corners (`corners`, as safe_insets); a
+# hole in the middle of a side leaves the corners on the screen's edge and only `side` (left, right, view units, with
+# HOLE_GAP) for what reaches the middle of that side: full-screen pages and a left-docked Warden drawer (hud.gd
+# _fit_side_holes). {} when the device reports no cutouts (then the safe area as before).
+const CORNER_BAND := 0.25  # Of the screen's height: a cutout inside the middle half is a mid-side hole
+const HOLE_GAP := 8.0
+static var test_cutouts: Array = []  # Captures and tests: cutout rects in window px (a phone reports them itself)
+
+static func _cutout_insets(view: Vector2) -> Dictionary:
+	var rects: Array = test_cutouts
+	if rects.is_empty() and OS.has_feature("mobile"):
+		rects = DisplayServer.get_display_cutouts()
+	var window := Vector2(DisplayServer.window_get_size())
+	if rects.is_empty() or window.x <= 0.0:
+		return {}
+	var screen := Vector2(DisplayServer.screen_get_size()) if test_cutouts.is_empty() else window
+	var k := view.x / window.x
+	var near := Vector2.ZERO
+	var far := Vector2.ZERO
+	var side := Vector2.ZERO
+	for r: Rect2 in rects:
+		var mid := r.position.y > screen.y * CORNER_BAND and r.end.y < screen.y * (1.0 - CORNER_BAND)
+		if r.position.x < screen.x * 0.25 and window.x >= screen.x - 1.0:  # The left side (and the window reaches it)
+			if mid:
+				side.x = maxf(side.x, r.end.x * k + HOLE_GAP)
+			else:
+				near.x = maxf(near.x, r.end.x * k)
+		elif r.end.x > screen.x * 0.75 and window.x >= screen.x - 1.0:
+			if mid:
+				side.y = maxf(side.y, (screen.x - r.position.x) * k + HOLE_GAP)
+			else:
+				far.x = maxf(far.x, (screen.x - r.position.x) * k)
+		elif r.position.y < screen.y * 0.25 and window.y >= screen.y - 1.0:
+			near.y = maxf(near.y, r.end.y * k)
+		elif r.end.y > screen.y * 0.75 and window.y >= screen.y - 1.0:
+			far.y = maxf(far.y, (screen.y - r.position.y) * k)
+	return {"corners": Rect2(near, far), "side": side}
+
+# The mid-side holes (left, right) in view units: Vector2.ZERO without any.
+static func side_holes(view: Vector2) -> Vector2:
+	var cut := _cutout_insets(view)
+	return cut.side if not cut.is_empty() else Vector2.ZERO
 
 # Fits a full-screen layer (the HUD) into the safe part of `view`: one uniform scale, centred in the safe rect, so
 # nothing sits under a notch. Identity when nothing is unsafe.
@@ -182,7 +233,7 @@ static func ui_scale_factor(window_size: Vector2, share: float) -> float:
 # its size. Headless runs (tests) stay at 1 so layouts are checked at the sizes they set.
 static func apply_ui_scale(root: Window, share: float) -> void:
 	_phone_compact = is_phone() and phone_share(share) < 0.95
-	_scale_share = 1.0 if is_phone() else share  # Phones: type never shrinks (Standard is compact spacing, not a smaller scale)
+	_scale_share = phone_share(share) if is_phone() else share  # Phones: Standard draws smaller too (user 2026-10-21)
 	if root == null:
 		return
 	install_text_filter(root.get_tree() if root.is_inside_tree() else Engine.get_main_loop() as SceneTree)
