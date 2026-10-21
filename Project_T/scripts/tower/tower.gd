@@ -849,6 +849,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	# footprint_size); growing any other way stays on the cells it has.
 	var size := get_footprint()
 	var old_frame := tower_data.get_frame_rect(0).size if tower_data.texture else Vector2.ZERO
+	var old_id := tower_data.get_id()
 	if data.tier >= DreamState.ASCENDED_TIER and tower_data.tier == DreamState.ASCENDED_TIER - 1:
 		legacy_data = tower_data  # It keeps its final form's attack
 	if tower_data.get_id() == "sprout" and not get_meta(&"gift_sprout", false):
@@ -860,9 +861,10 @@ func evolve(data: TowerData, cost: int) -> void:
 	if resting:
 		rest_dew += cost
 	_apply_data()
-	if data.texture and data.get_frame_rect(0).size != old_frame:
-		_grow_bloom()  # The art changes size (a 64 base into a big branch): a puff covers the swap
-	pop()  # Every grow pops, same size or not (game-feel pass)
+	if not _play_grow_sheet(old_id, data.get_id()):  # The fireflies grow it (Tower Assets 287e19f1); gameplay changed already
+		if data.texture and data.get_frame_rect(0).size != old_frame:
+			_grow_bloom()  # The art changes size (a 64 base into a big branch): a puff covers the swap
+		pop()  # Every grow pops, same size or not (game-feel pass)
 	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
 		bloom_left = maxf(bloom_left, SUDDEN_BLOOM_SECONDS * _rule_power(&"sudden_bloom"))  # ×2 damage for 10 s
@@ -6299,6 +6301,7 @@ func pop(planted: bool = false) -> void:
 			if dust != null:
 				dust.z_index = -1
 	_end_plant_grow()  # A grow or rank during the planting sequence: the real sprite, at once
+	_end_grow_sheet()  # …and during a grow's fireflies
 	if bool(Fx.setting("reduced_motion", false)):
 		return
 	if planted and _plant_grow():
@@ -6366,6 +6369,67 @@ func _plant_grow() -> bool:
 		_plant_tween.tween_interval(1.0 / PLANT_FPS)
 	_plant_tween.tween_callback(_end_plant_grow)
 	return true
+
+# --- Growing into the next form: the fireflies (Tower Assets 287e19f1, user-picked; "That works add it") --------------
+# assets/towers/grow/<from>__<into>.png (grow.json: 12 frames at 15 fps, 168x210, anchor (84, 144) = the Warden's
+# origin) holds both forms where Tower draws them, so it plays in place of the Warden: a Sprite2D child where the sprite
+# draws, the sprite and the body art (rank rings, the Withered overlay) hidden meanwhile, then freed and shown again.
+# Cut short (the real sprite at once) by another grow, a rank, a planting pop or leaving the tree. No sheet, a twig wall
+# or reduced motion: today's bloom + pop. Reduce flashes still plays it (its glow is one 2 px band in the art).
+const GROW_DIR := "res://assets/towers/grow/%s__%s.png"
+const GROW_FRAMES := 12
+const GROW_FPS := 15.0
+const GROW_FRAME_SIZE := Vector2(168, 210)
+const GROW_ANCHOR := Vector2(84, 144)
+const GROW_BODY_ART := ["RankUnder", "RankOver", "Withered"]
+var _grow_sheet: Sprite2D = null
+var _grow_tween: Tween = null
+var _grow_hidden: Array = []  # The body art it hid, shown again when it ends
+
+func _play_grow_sheet(from_id: String, into_id: String) -> bool:
+	_end_plant_grow()
+	_end_grow_sheet()
+	var path := GROW_DIR % [from_id, into_id]
+	if twig or sprite == null or not is_inside_tree() or bool(Fx.setting("reduced_motion", false)) or not ResourceLoader.exists(path):
+		return false
+	var sheet := load(path) as Texture2D
+	if sheet == null:
+		return false
+	_grow_sheet = Sprite2D.new()
+	_grow_sheet.name = "GrowSheet"
+	_grow_sheet.texture = sheet
+	_grow_sheet.hframes = GROW_FRAMES
+	_grow_sheet.position = Vector2.ZERO
+	_grow_sheet.offset = GROW_FRAME_SIZE / 2.0 - GROW_ANCHOR  # (0, -39): frame pixel GROW_ANCHOR on the Warden's origin
+	_grow_sheet.texture_filter = sprite.texture_filter
+	add_child(_grow_sheet)
+	move_child(_grow_sheet, sprite.get_index() + 1)  # Where the sprite draws
+	_grow_hidden = []
+	for node in [sprite] + GROW_BODY_ART.map(func(n: String) -> Node: return get_node_or_null(n)):
+		if node is CanvasItem and node.visible:
+			node.visible = false
+			_grow_hidden.append(node)
+	_grow_tween = create_tween()
+	for frame in range(1, GROW_FRAMES):
+		_grow_tween.tween_interval(1.0 / GROW_FPS)
+		_grow_tween.tween_callback(func() -> void:
+			if is_instance_valid(_grow_sheet):
+				_grow_sheet.frame = frame)
+	_grow_tween.tween_interval(1.0 / GROW_FPS)
+	_grow_tween.tween_callback(_end_grow_sheet)
+	return true
+
+func _end_grow_sheet() -> void:
+	if _grow_tween != null and _grow_tween.is_valid():
+		_grow_tween.kill()
+	_grow_tween = null
+	if is_instance_valid(_grow_sheet):
+		_grow_sheet.queue_free()
+	_grow_sheet = null
+	for node in _grow_hidden:
+		if is_instance_valid(node):
+			node.visible = true
+	_grow_hidden = []
 
 # The sequence ends (or a grow / rank / evolve cuts it short): the slab and body go, the real sprite shows.
 func _end_plant_grow() -> void:
