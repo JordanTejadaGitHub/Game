@@ -1329,15 +1329,10 @@ static func potency_uses(data: TowerData) -> Array[String]:
 		statuses = true
 	if data.attack_kind == TowerData.AttackKind.CLOUD:
 		lines.append("its cloud hits harder")
-	match data.special:
-		BranchKit.THORNCOIL:
-			lines.append("its thorns hit harder")
-		BranchKit.CLOUD:
-			lines.append("its rain hits harder")
-		BranchKit.GROUNDROOT:
-			lines.append("grounded flyers stay down longer")
-		BranchKit.QUAKER:
-			lines.append("{hidden} nightmares stay revealed longer")
+	if BranchKit.SPECIAL_POTENCY.has(data.special):  # What the special's own effects take from Potency (checked per special)
+		lines.append(BranchKit.SPECIAL_POTENCY[data.special])
+	if data.echo_share > 0.0:
+		lines.append("its echoes hit harder")  # Echo Hollow: Reactions echoed under tag "echo" (an effect)
 	if statuses:
 		lines.append("its Reactions hit harder")  # A status it applies can complete a Reaction it gets the credit for
 	return lines
@@ -1395,15 +1390,27 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 				_at_potency_one(p, _potency_number(per_second / maxf(p, 0.01)))])
 		else:
 			lines.append("its cloud deals ×%s damage" % _potency_number(p))
-	match data.special:
+	var params: Dictionary = data.special_params
+	match data.special:  # (BranchKit.SPECIAL_POTENCY: the same specials, here with their numbers)
 		BranchKit.THORNCOIL:
 			lines.append("its thorns deal ×%s damage" % _potency_number(p))
 		BranchKit.CLOUD:
 			lines.append("its rain deals ×%s damage" % _potency_number(p))
 		BranchKit.GROUNDROOT:
-			lines.append("grounded flyers stay down longer")
+			var ground := float(params.get("ground_time", 3.0))
+			lines.append("grounded flyers stay down %s s%s" % [_potency_number(minf(ground * p, NurtureChoices.GROUND_CAP)),
+				_at_potency_one(p, "%s s" % _potency_number(minf(ground, NurtureChoices.GROUND_CAP)))])
 		BranchKit.QUAKER:
-			lines.append("{hidden} nightmares stay revealed longer")
+			var reveal := float(params.get("reveal_time", 3.0))
+			lines.append("{hidden} nightmares stay revealed %s s%s" % [_potency_number(reveal * p), _at_potency_one(p, "%s s" % _potency_number(reveal))])
+			if data.tier >= 3:  # Earthshaker's cracks
+				var crack := float(params.get("crack_time", BranchKit.CRACK_TIME))
+				lines.append("its cracks last %s s%s" % [_potency_number(crack * p), _at_potency_one(p, "%s s" % _potency_number(crack))])
+		BranchKit.HUSH:
+			var boss := maxf(0.5 / maxf(p, 1.0), NurtureChoices.BOSS_SILENCE_FLOOR)
+			lines.append("a silenced boss's timers run at %d%% speed%s" % [roundi(boss * 100.0), _at_potency_one(p, "50%")])
+	if data.echo_share > 0.0:
+		lines.append("its echoes deal ×%s damage" % _potency_number(p))  # Echo Hollow: tag "echo" (an effect)
 	if statuses:
 		lines.append("its Reactions deal ×%s damage" % _potency_number(p))  # A status it applies can complete a Reaction it gets the credit for
 	return lines

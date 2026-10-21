@@ -18,6 +18,23 @@ class_name BranchKit
 # the data (listed anyway). Not the jet or groundroot specials (keyword audit 2026-10-17, Roguelite Code): Jetreed's jet
 # never Soaks (only Torrent's Flood trail does: FORM_STATUSES) and Groundroot only grounds flyers (Earthbind's landing
 # Roots: DreamState.HELD_SOURCES).
+# What Potency does on each special's own effects, beside its statuses' lines (Tower.potency_uses / potency_uses_at;
+# the user: "still don't know what Potency does on half the Wardens, like Undercurrent"). Only what really reads it:
+# damage that reaches Enemy.take_damage under a Reactions.EFFECT_TAGS tag, or a timer multiplied by get_potency().
+# Checked in code 2026-10-20:
+#   thorncoil: thorns, tag "thorns" (effect)              cloud: rain, tag "rain" (effect)
+#   groundroot: ground_time x Potency (cap GROUND_CAP)    quaker: reveal_time x Potency; Earthshaker's cracks too
+#   hush: a silenced boss's timers run at 0.5 / Potency (floor BOSS_SILENCE_FLOOR)
+# Potency does nothing on the special itself (its statuses keep their own lines, e.g. the Sparkler's Charge):
+#   whirlpool (its tick and the shared "linked" damage are plain hits), jet (the erosion is part of the hit),
+#   jarlink (the arc is tag "fence", a hit), sparkler (sparks are hits), silver_bell (the toll is a hit), thrum,
+#   prism, whetstone ("clean_cut" spill), rampart (rockfall hits), brood (the sprites' hits), lichen (the shell
+#   strip is a fixed share), inkcap (its ink applies Poisoned: the status line), deeproot, seedbearer, nurse_log,
+#   dream_oak and the Kinship specials. Echo Hollow (data.echo_share) echoes Reactions under tag "echo": its own line.
+const SPECIAL_POTENCY := {&"thorncoil": "its thorns hit harder", &"cloud": "its rain hits harder",
+	&"groundroot": "grounded flyers stay down longer", &"quaker": "{hidden} nightmares stay revealed longer",
+	&"hush": "a silenced boss's timers run slower"}
+
 const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"],
 	&"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}
 # Statuses one form's own code applies that its special or data doesn't name (keyword audit 2026-10-17), read by
