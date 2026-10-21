@@ -17,14 +17,15 @@ const WARDEN_FALLBACKS := {"sprout": "hit_sprout", "firefly_jar": "hit_light", "
 const HIT_FAMILIES :=["stone", "root", "water", "light", "spore", "sprout"]
 const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat"]  # The act 1 drift
 # The score's act 1 sets (audio_direction.md "The score"): set -> its stems; every set loops at one length.
-const SCORE_SETS := {"rest_act1": ["base"], "act1": ["base", "dread1", "dread2", "heartbeat"],
+const SCORE_SETS := {"rest_act1": ["base"], "act1": ["base", "dread1", "dread2", "heartbeat", "drive"],
 	"boss_act1": ["drums", "bass", "theme", "warm", "sig_old_stag", "sig_night_mare", "sig_night_mare_2",
 		"sig_night_mare_3", "sig_scarecrow"]}
-const SCORE_ONCE := ["act1_tail", "act1_hope", "act2_tail", "act2_hope", "act3_tail", "act3_hope", "act4_tail", "act4_hope"]
+const SCORE_ONCE := ["act1_tail", "act1_hope", "act2_tail", "act2_hope", "act3_tail", "act3_hope", "act4_tail", "act4_hope",
+	"act1_gather", "act2_gather", "act3_gather", "act4_gather"]
 # Acts 2–4 (same pattern): rest, drift and boss sets; the Hollow Oak's finale is act 4's boss set.
 const SCORE_SETS_LATER := {"rest_act2": ["base"], "rest_act3": ["base"], "rest_act4": ["base"],
-	"act2": ["base", "dread1", "dread2", "heartbeat"], "act3": ["base", "dread1", "dread2", "heartbeat"],
-	"act4": ["base", "dread1", "dread2", "heartbeat"],
+	"act2": ["base", "dread1", "dread2", "heartbeat", "drive"], "act3": ["base", "dread1", "dread2", "heartbeat", "drive"],
+	"act4": ["base", "dread1", "dread2", "heartbeat", "drive"],
 	"boss_act2": ["drums", "bass", "theme", "warm", "sig_great_toad", "sig_huntsman", "sig_lamplighter", "sig_lamplighter_2",
 		"sig_lamplighter_3", "sig_lamplighter_4"],
 	"boss_act3": ["drums", "bass", "theme", "warm", "sig_moth_queen", "sig_barrow_king", "sig_mourning_mother",
@@ -88,12 +89,12 @@ func _initialize() -> void:
 				continue
 			var rid := StringName(file.get_basename())
 			var needed := StringName(("crowned_%s" if Reactions.is_crowned(rid) else "reaction_%s") % rid)
-			if SoundHooks.REACTION_SOUND_STANDIN.has(rid):  # Sleepwalk / Night Terror (2026-10-17): a stand-in until Sound makes theirs
-				needed = SoundHooks.REACTION_SOUND_STANDIN[rid]
-				print("NOTE: Reaction %s has no sound of its own yet, using %s" % [rid, needed])
 			_check(sound.has_sound(needed), "Reaction %s has %s" % [rid, needed])
+	# Seventh pass (audio_direction.md 2026-10-21): payoffs, ground loops, status cues, family Evolve blooms.
 	for id in [&"crown_swell", &"chain_swell", &"chain_surge", &"chain_dawnburst", &"stinger_dawnburst",
-			&"discover_reaction", &"loop_smother"]:
+			&"discover_reaction", &"loop_smother", &"reaction_smother_burst", &"reaction_pinned_pierce",
+			&"loop_mushroom_zone", &"loop_still_pool", &"loop_nightbloom", &"loop_fairy_ring", &"loop_scree",
+			&"status_exposed", &"status_drowsy", &"status_rooted", &"evolve_spore", &"evolve_light"]:
 		_check(sound.has_sound(id), "%s exists" % id)
 	# Kinships: a bond chord per family (own colour), stage-up, Harmony strike, Whole.
 	for family in ["spore", "stone", "water", "light", "root", "song", "acorn", "wing", "wind"]:

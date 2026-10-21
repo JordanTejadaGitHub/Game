@@ -118,8 +118,25 @@ loop with an A and a B half (the 20 s loop repeated too often over a block). Sam
 | 3. Misty Hollow | wooden flute, harp | bowed saw, wind through reeds | the motif blurred by fog: longer notes, more reverb |
 | 4. Heartwood Glade | soft bells, hummed choir | deep drones, slow ice groans (no crackle) | the fullest base; the dread layers are heaviest here |
 
-Acts get **slightly denser** as the run goes on (more of the motif, more counter-lines), never louder
-overall: adding layers must never make the music louder (the stems are trimmed together, as now).
+**Bigger every act (2026-10-21, user: "get more epic per act").** The run is a climb, and the score
+climbs with it. Epic comes from **size**: more voices, a lower floor, more drums and a bigger hall.
+It never comes from brightness or harshness: no cymbals, no snares, no brass stabs, and the top end
+stays dark. Within an act, adding layers still never makes the music louder (the stems are trimmed
+together, as now). **Between acts the master may rise: +1 dB per act** (act 4 at +3 dB over act 1),
+so the step up is felt.
+
+| Act | Drift (what's added) | Boss theme (what's added) | The motif |
+|---|---|---|---|
+| 1. Forest's Edge | the lullaby: music box + harp, one felt-drum pulse, a single bowed D drone | 2 drums (felt tom, frame drum), bowed bass ostinato | one voice |
+| 2. Deep Wood | + a low **string section** pad (cello-like, bowed), a 2-drum pattern, a moving bass line | + a second, deeper tom pair; the theme doubled an octave below; low bone-horn-like swells on phrase ends | harmonised in thirds |
+| 3. Misty Hollow | + a low **hummed choir** pad (one vowel), a deep felt **downbeat drum** every 2 bars, a longer hall reverb | + choir on the theme; rolling toms into every 4th bar | call and answer (flute calls, choir answers) |
+| 4. Heartwood Glade | the full ensemble: bells, choir low **and** high, strings, the deepest drums, a sub-bass pedal on D | everything, drums in every bar, full choir (the Hollow Oak finale) | in canon, two voices a bar apart |
+
+**A fifth drift stem, `drive`** (`mus_act<N>_drive`): the act's drum pattern at full with the bass
+doubled. It plays in **the last block before each boss** (drifts 21–24, 46–49, 71–74, 96–99), the
+storm gathering before the boss, and in acts 3–4 also whenever dread2 is on. It enters and leaves on
+bar lines like the other layers.
+
 **Act 1 first** (full pass), then acts 2–4.
 
 ### 3. Boss: an act theme + a signature layer per boss
@@ -164,7 +181,25 @@ own full finale.
   bar of the outgoing piece).
 - **Drift → rest:** on the **last dispel of the block**, the dread layers fall away within a bar, the
   base plays a **1–2 bar resolving tail** (to a held D chord), then the rest piece fades in.
-- **Rest → drift:** on Start, the rest finishes its bar, then the drift base enters on the next bar.
+- **Rest → drift: the gathering** (2026-10-21, user: "it just abruptly starts"). Before, the drift
+  base came in on the next bar at full level with its pulse running, the rest faded over one bar,
+  and the `drift_start` SFX fired at the press, off the grid. Now:
+  1. **The press is answered at once:** the button click + a soft low **breath in** (an air swell,
+     0.5 s, −8 dB). It replaces the `drift_start` SFX.
+  2. **The rest doesn't stop.** On its next bar line its lead **holds its last note**, which rings
+     and fades over **5 s** (two drift bars), hiding the tempo change (60 → 72 bpm) under it.
+  3. **A one-shot `mus_once_act<N>_gather`** (2 drift bars, 5 s, 72 bpm) starts on that bar line.
+     Bar 1: a low bowed D swelling up from nothing, and the drift pulse entering as a soft
+     felt-drum roll that grows. Bar 2: the motif's first two notes (D – A) in the warm lead as a
+     pickup, the roll cresting. From act 2 on, a far Hollow-form call (A♭) is also in bar 2: they're
+     coming. The size follows the act table above.
+  4. **The drift base lands on the gather's downbeat**, prepared. **dread1 waits at least 2 bars**
+     and then for the first nightmare on the field (then the next bar line), so the threat builds in
+     steps, not all at once.
+  5. **Ambience** crossfades from the warm rest bed to the drift bed over the same 5 s.
+  - A **boss drift** uses the same gather with the boss drums in the roll, then the boss drums enter
+    as now. **Auto-drift and calling early** inside a block get no gather (the music is already
+    drifting).
 - **Drift → boss:** when the boss drift starts, the boss drums enter on the next bar line under the
   last drift layers, then the full theme.
 - **Boss dispelled: the turn, never a stop** (2026-10-04, user: "the music cuts off and changes at weird parts"). On the dispel the drums fall away, but the **boss bass keeps sounding**: its Hollow-form A♭ **rises a half step to A**, the cold motif healing into the warm one, under the boss dispel bloom's ringing tail; the **Hope form** of the motif (2–4
@@ -607,7 +642,7 @@ organic: big means low and wide, never bright or harsh.
 | **The Great Bell** (song) | silent between tolls | every 6 s the **toll**: one deep, soft bell (D2–D3, felt mallet, long hum tail). If Static goes off with it, a soft warm bloom under the tail, not one sound per charge |
 | **Grandmother Oak** (acorn) | a slow, warm **wooden heartbeat** and leaves stirring very low (no rustle hiss) | the Dew per drift: a soft **welling** of sap (never a coin, never a bell) |
 | **Dawnwing** (wing) | great, slow **wingbeats** circling, panned as it moves | each strike: a soft, heavy feathered **thump**; when it speeds up (many nightmares), the wingbeats quicken, not the strikes' volume. How: two synced wingbeat loops (calm and busy) crossfaded by the number of nightmares in its path, not a sped-up recording (that would raise the pitch) |
-| **The Tempest** (wind) | the cyclone: a low, rotating **wind roar** that follows it along the path | carrying statuses: soft **swirls** as it passes each nightmare (throttled). *Name clash:* the Crowned Reaction **Tempest** (dream_design.md) needs its own sound, a Thunderclap + Ignite, and the two should never be confused; consider renaming one |
+| **The Whirlwind** (wind; id `tempest`) | the cyclone: a low, rotating **wind roar** that follows it along the path | carrying statuses: soft **swirls** as it passes each nightmare (throttled). Renamed from "The Tempest", so the clash with the Crowned Reaction Tempest is gone; the two sounds still stay apart (wind roar vs thunder) |
 
 **The Heartwood Sapling** (economy, from drift 51; no attack)
 
@@ -639,9 +674,39 @@ zaps, no sparkle).
 | **Mushrooming** | Spored + Damp | wet earth **bursting**: soft, fleshy mushroom pops (low, rounded) + a damp spore exhale for the cloud |
 | **Shatter** | frozen/Held + Damp + a heavy hit | the ice **giving way**: a deep, muffled ice *thunk* and a low slide of shards settling (no glassy tinkle) |
 | **Drown** | Damp + max Drowsy | a slow, soft **sink**: a low water gulp and a sleepy exhale bubbling away |
-| **Pinned** | Marked + Held/Drowsy | a low, tight **held breath**: a soft wooden clench + a faint glow hum, so the player hears "the next hit counts" (the ×3 crit itself is the normal crit, heavier) |
-| **Smother** | Held + Spored | a muffled, low **smothering** hum while it lasts (a quiet loop, one voice per type), the spore breath pressed tight |
-| **Lightning Rod** | Marked + Static | a warm **pull**: the glow material drawn in (a soft reversed swell) landing as a low bloom on the Marked nightmare |
+| **Pinned** (reworked 2026-10-17: ×3 crit that pierces 3 cells) | Exposed + Rooted/Drowsy/Asleep | set: a low, tight **held breath** (a soft wooden clench + a faint glow hum: "the next hit counts"). The hit: the crit, heavier, then a deep wooden **thrust** passing through: a low air push panned along the 3-cell line, softer on each nightmare behind |
+| **Smother** (reworked: stores Poisoned, bursts ×2) | Rooted + Poisoned | while Rooted, a pressed, muffled hum that **swells in body, not pitch**, as the Poisoned is stored (one voice per type). When the Root ends: a deep, soft fungal **burst** (*fwump* + a spore exhale), the biggest of the spore sounds, about twice Mushrooming's pop |
+| **Lightning Rod** | Exposed + Charged | a warm **pull**: the glow material drawn in (a soft reversed swell) landing as a low bloom on the Exposed nightmare |
+| **Sleepwalk** (new) | Poisoned + full Drowsy | a slow, drowsy **turning around**: a lazy low breath that bends (a soft reversed swell), then two muffled, slowed footfalls going the wrong way. Each nightmare it bumps: a soft felt **bonk** (throttled, quiet; not built yet: the game has no bump event). No voice, no snore |
+| **Night Terror** (new) | Charged + full Drowsy | "it wakes screaming", felt, not heard: a quick, dark **cold shudder** (a breathy swell with a fast, soft tremolo, low-mid), cut off by its Charged bolt's warm bloom, then a wide low **thud of air**, like a skipped heartbeat, for the 2-cell freeze. Never an actual scream |
+
+Mushrooming (reworked: its cloud is now a zone, +30% effect damage) keeps its pops; the zone gets a
+**ground loop** (below).
+
+**Ground loops** (Reaction zones on the path; until now silent). Each is faint (−20 dB or lower),
+one voice per kind, fades in 0.3 s and out with the zone, and stays out of the midrange:
+
+| Zone | Loop |
+|---|---|
+| Mushrooming cloud | a slow, damp **breathing** of spores |
+| Still Pool | still water, near silence: a very low, glassy hum |
+| Nightbloom cloud | the slow, sleepy breath, tinted by the violet lullaby's two notes |
+| Fairy Circle rings | a faint low hum; each ring a nightmare triggers: one soft mushroom pop (not built yet: no ring event) |
+| Avalanche scree | a low **gravel shift** each time a walker steps on (throttled per nightmare), a low stone settle when it's held. No tinkle |
+
+**Status completions** (2026-10-21; new). Statuses landing are silent: the hit carries them. But
+some statuses now need a build-up before they do anything (Exposed at 10 stacks, 20 with Brimming;
+full Drowsy), and the player should hear it **click into place**. One quiet cue (−14 dB) when a
+status completes, throttled to 0.3 s per status kind (falling Asleep keeps the Dreamshroom's yawn drone):
+
+| Completes | Cue |
+|---|---|
+| Exposed (full stacks) | a soft **glow locking in**: a low warm hum settling into tune (no click) |
+| Drowsy (full) | a short, low yawn-like breath (Dreamshroom's drone, shortened) |
+| Rooted (full) | a soft low **root clench** (wood creak) |
+
+Poisoned and Charged build constantly and get no cue: their payoffs (bursts, bolts, Reactions) speak
+for them.
 
 **Chains** (a Reaction set off by another within 1 s)
 - Each link is **fuller and warmer, never higher**. Chain 2–4: the Reaction's own sound with a
@@ -663,12 +728,14 @@ as 2 chain links for the chain swell too.
 
 | Crowned | Signature layer |
 |---|---|
-| **Tempest** | the storm feeding itself: Thunderclap's far thunder **and** Ignite's fwoomp rolling into each other as one long, rumbling swell (its 2 s cap keeps it from droning). Must never sound like the Whirligig's Ascended "The Tempest" (a wind roar) |
+| **Tempest** | the storm feeding itself: Thunderclap's far thunder **and** Ignite's fwoomp rolling into each other as one long, rumbling swell (its 2 s cap keeps it from droning). Must never sound like the Whirligig's Ascended The Whirlwind (a wind roar) |
 | **Still Pool** | a deep, glassy-calm **water hush** as the pool forms; the pool loop is near-silent still water; a walker sleeping in it: a soft sinking sigh |
 | **Fever Dream** | Smother's hum releasing at once into a warm, dizzy **exhale** that spreads (a slow, wavering sigh passing to the neighbours) |
-| **Starfall** | the Static bolts **drawn in**: several soft reversed swells converging, then a column of light landing as the deepest warm **boom** of the Reactions. The boss killer should feel like it |
-| **Avalanche** | the lob's landing **spreading**: a rolling ice-and-stone **rumble** moving outward (low, no tinkle) |
-| **Prismstorm** | Shatter's ice thunk + warm blooms **scattering** outward with the shards (soft, overlapping, low) |
+| **Starfall** (reworked: the crit splits into stars) | the Pinned thrust, then the crit **breaking outward**: the deepest warm **boom** of the Reactions at the centre, and a soft warm bloom landing on each Exposed nightmare it reaches (staggered ~40 ms, panned to each; past 4 they merge into one swell). It should feel like the boss killer |
+| **Avalanche** (reworked: scree slows and holds) | the lob's landing **spreading**: a rolling stone-and-ice **rumble** moving outward (low, no tinkle); then the scree's ground loop |
+| **Prismstorm** (reworked: shards set off bolts) | Shatter's ice thunk + warm blooms **scattering** outward with the shards; each shard that sets off a bolt adds that bolt's bloom (past 3, one merged swell) |
+| **Changeling** (new) | the Sleepwalk turn, then the **swap**: two soft air rushes crossing in opposite directions (panned between the two nightmares) and meeting in a low, hollow wooden knock, on two soft tuned-air notes a tritone apart (D and A♭), so the swap sounds a little *wrong*, like a fairy-tale trick |
+| **Wide Awake** (new) | Night Terror's shudder, then your Wardens **startled awake**: a quick warm rising **rush** (body, not brightness: about 200 Hz–1.2 kHz) and a quickened felt double pulse. While the haste lasts (3 s), a faint warm thrum under the area (one voice) |
 | **Nightbloom** | a violet **lullaby hum** as the cloud glows (two low sung notes in key, very soft); the cloud loop is a slow, sleepy breath |
 | **Fairy Circle** | a ring of soft mushroom **pops around** the nightmare (8 quick, soft, panned in a circle); the ring loop is a faint low hum |
 
@@ -688,14 +755,14 @@ soft shimmer under the card. Crowned discovery adds the crown's choir swell.
 | Action | Sound |
 |---|---|
 | Plant a Warden | earth rumble + wood creak as the roots rise |
-| Evolve | a rising bloom chime |
+| Evolve | (was "a rising bloom chime": a chime breaks the third-listen rule) a **bloom of the family's own material** opening over ~1 s, a warm swell under it, ending in a low, full settle. Nurture's bigger sibling: the same materials, twice the body and length |
 | **Nurture** (rank up) | a soft, rising **swell of the Warden's own family material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust), ~0.6 s, ending in a gentle settle. **Each rank is a little deeper and fuller** (about −1 semitone and a touch more body per rank, rank V/VII the fullest). Quieter and shorter than Evolve: it's frequent. |
 | Nurture: choosing a Focus (rank III) | the nurture swell + a short **leaning** of the material toward the Focus: Power = heavier body, Swift = a quick double pulse, Reach = a longer airy tail, Deep = a lower, slower settle |
 | Nurture a group (G / R on a selection) | the swells **stagger** with the visual bloom (nearest the Heartwood first), voice-limited so ten Wardens read as one rolling swell, not ten |
 | Sell | roots withdrawing into the ground |
 | Invalid placement | a muted wooden knock |
 | Tend a Withered Tree / move a Mossy Boulder | a soft creak and a low wooden settle / low stone rumble |
-| Route changes | a faint shimmer as the path line redraws |
+| Route changes | (was "a faint shimmer": too bright for something this frequent) a faint low **earth shift**, soft and dark, as the path line redraws; throttled to one per 0.5 s |
 
 ### The Heartwood
 
@@ -703,7 +770,7 @@ soft shimmer under the card. Crowned discovery adds the crown's choir swell.
 |---|---|
 | **Leaf lost** | the nightmare's lunge (dark, low whoosh), the tree groaning, a deep hollow knock as the leaf falls. Cuts through by level and ducking, not brightness |
 | Low leaves (≤5) | the heartbeat layer in the music |
-| Act break, leaves regrown | a warm swell, leaves rustling |
+| Act break, leaves regrown | a warm swell and the tree **stretching**: a slow, low wooden creak (no leaf rustle: second listen) |
 
 ### UI
 
@@ -846,3 +913,16 @@ sung-vowel version "sounds like they're talking; maybe a burst of light, but mor
 
 Open question: whether every attack keeps a launch sound, or only the slower, heavier Wardens
 (Pebbling, Rootling) do and the fast ones are hit-only. Default: all keep it, very quiet (mostly air).
+
+**Seventh pass (2026-10-21):** "update the sounds you think need a better sound effect", "more epic
+per act", "starting a drift abruptly starts".
+
+| Problem | Change |
+|---|---|
+| Four new Reactions play stand-ins (cea09907) | own specs: Sleepwalk, Night Terror, Changeling, Wide Awake (Reactions tables) |
+| Six reworked Reactions no longer match their sounds | Smother (swell, then a burst), Pinned (pierce thrust), Starfall (breaks outward), Avalanche and Prismstorm updated; Mushrooming gets a zone loop |
+| Reaction zones are silent | ground loops for Mushrooming, Still Pool, Nightbloom, Fairy Circle and Avalanche scree |
+| Exposed / Drowsy build-ups give no sign when complete | status completion cues |
+| Evolve "chime", route "shimmer", act break "rustle" break the second and third listens | a family-material bloom, a low earth shift, a wooden stretch |
+| Acts sound the same size | the act size table and a `drive` stem before each boss; master +1 dB per act |
+| A drift starts abruptly | the gathering: a held rest note, a 2-bar `gather` one-shot, staged dread, a 5 s ambience crossfade; the `drift_start` SFX becomes the breath-in on the press |

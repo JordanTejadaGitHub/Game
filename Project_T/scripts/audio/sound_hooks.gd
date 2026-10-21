@@ -77,9 +77,6 @@ const GREAT_BELL_BLOOM_DB := -6.0
 const REACTION_DB := -1.0
 const REACTION_BOSS_DB := -2.0  # A boss's reduced version plays a little smaller
 const REACTION_THROTTLE_MS := 150
-# Sleepwalk / Night Terror (Roguelite Code, 2026-10-17): no sounds of their own yet; these stand in until Sound makes them.
-const REACTION_SOUND_STANDIN := {&"sleepwalk": &"reaction_smother", &"night_terror": &"reaction_thunderclap",
-	&"changeling": &"crowned_nightbloom", &"wide_awake": &"crowned_starfall"}  # Crowned ones: their signature (owner 2026-10-17)
 const REACTION_REACH_CELLS := 2.5
 const CHAIN_SWELL_DB := -9.0
 const CHAIN_SWELL_STEP_DB := 1.2  # Fuller each link, never higher
@@ -128,6 +125,19 @@ const DEW_DB := -6.0  # Lump sums of Dew (rest bonus, Omen rewards): a soft, low
 const AMBIENCE_THIN_DB := -8.0  # At AMBIENCE_THIN_COUNT nightmares or more
 const AMBIENCE_THIN_COUNT := 15
 const AMBIENCE_REST_DB := 3.0
+# Seventh pass (audio_direction.md, 2026-10-21). The gathering: from a rest, a drift (or a boss drift) starts after a
+# 2-bar one-shot on the rest's next bar line, the rest fading under it; dread1 then waits a while and for a nightmare.
+const DRIFT_START_DB := -8.0  # The breath in on Start
+const GATHER_FADE := 5.0  # Seconds the rest fades under the gathering
+const GATHER_LENGTH := 5.0  # The gathering's two drift bars: the drift set starts on its last bar line
+const DREAD_WAIT := 13.0  # Seconds from Start before dread1 may enter (≤ a rest bar + the gathering + 2 bars)
+const DRIVE_FROM_ACT_WITH_DREAD2 := 3  # The drive stem also plays with dread2 from act 3
+# Ground loops (Reaction zones on the path), faint, and status completions (quiet cues when a build-up fills).
+const GROUND_LOOP_LEVEL := 0.5
+const STATUS_DB := -14.0
+const STATUS_THROTTLE_MS := 300
+const STATUS_CUES := {&"marked": &"status_exposed", &"drowsy": &"status_drowsy", &"held": &"status_rooted"}
+const PATH_SHIFT_THROTTLE_MS := 500
 
 @onready var sound: Node = get_node_or_null("/root/Sound")
 @onready var run_state = %RunState
@@ -165,6 +175,11 @@ var _dew_catch_at := -100000
 var _close_call_at := -100000
 var _bolt_at := -100000  # msec of the last bolt sound
 var _act := 1  # The act the music belongs to
+var _dread_from := 0  # msec: dread1 may not enter before this (the gathering)
+var _drive_block := false  # This block ends in a boss: the drive stem plays
+var _grounds: Array = []  # WeakRefs to Reaction zones on the path (CrownedGround, ReactionCloud, scree)
+var _status_at := {}  # Status id -> msec of its last completion cue
+var _path_shift_at := -100000
 var _music_mode := MUSIC_REST
 var _boss_cold := false  # The boss has bitten the Heartwood: its warm layer stays off
 var _drums_back_at := 0  # msec: the boss drums return after a bite
@@ -233,7 +248,8 @@ func _ready() -> void:
 	run_state.run_ended.connect(_on_run_ended)
 
 	drift_director.drift_started.connect(func(number: int) -> void:
-		sound.play(&"drift_start", null, -4.0, 1.0, 0.0)
+		if _music_mode == MUSIC_REST or _music_mode == MUSIC_AFTER:  # From a rest: the breath in (the gathering follows)
+			sound.play(&"drift_start", null, DRIFT_START_DB, 1.0, 0.0)
 		_on_drift_music(number))
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, bonus: int, _perfect: bool) -> void:
 		sound.play(&"rest", null, -2.0, 1.0, 0.0)
@@ -249,6 +265,7 @@ func _ready() -> void:
 	drift_director.act_started.connect(func(act: int, _regrown: int) -> void:
 		sound.play(&"act_swell", null, 0.0, 1.0, 0.0)
 		_act = act  # The swell, then the next act's rest piece (after a boss's Hope form, if it's playing)
+		sound.set_act(act)
 		_music_mode = MUSIC_REST if _music_mode != MUSIC_AFTER else MUSIC_AFTER
 		sound.play_music(_set_for(MUSIC_REST), [&"base"]))
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void:
@@ -294,6 +311,7 @@ func _ready() -> void:
 		_hook_dream_cards(node)
 
 	_act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
+	sound.set_act(_act)
 	sound.play_music(_set_for(MUSIC_REST), [&"base"])  # A run (or a resumed one) starts resting
 	sound.play_ambience(&"act1")
 	_on_path_changed()
@@ -331,17 +349,39 @@ func _once_for(kind: String) -> StringName:
 
 # A drift starts: from the rest, the drift base enters on the next bar line; a boss drift brings the
 # boss drums in on the next bar line, then the full theme a bar later.
+# From a rest it is the gathering (audio_direction.md, 2026-10-21): a 2-bar one-shot on the rest's next bar line, the
+# rest fading under it for GATHER_FADE s, the drift set starting on its last bar line; dread1 waits (_dread_from).
 func _on_drift_music(number: int) -> void:
 	_act = drift_director.get_act(number)
+	sound.set_act(_act)
+	var from_rest := _music_mode == MUSIC_REST or _music_mode == MUSIC_AFTER
+	if from_rest:
+		_dread_from = Time.get_ticks_msec() + int(DREAD_WAIT * 1000.0)
+		_drive_block = _block_has_boss(number)
 	if drift_director.is_boss_drift(number):
 		_music_mode = MUSIC_BOSS
 		_boss_cold = false
 		_drums_back_at = 0
 		_sig_layers = []
-		sound.play_music(_set_for(MUSIC_BOSS), [&"drums"], [&"bass", &"theme"])
+		if from_rest:
+			sound.music_then(_once_for("gather"), _set_for(MUSIC_BOSS), [&"drums"], false, GATHER_FADE, GATHER_LENGTH, [&"bass", &"theme"])
+		else:
+			sound.play_music(_set_for(MUSIC_BOSS), [&"drums"], [&"bass", &"theme"])
 	elif _music_mode != MUSIC_DRIFT:
 		_music_mode = MUSIC_DRIFT
-		sound.play_music(_set_for(MUSIC_DRIFT), [&"base"])
+		if from_rest:
+			sound.music_then(_once_for("gather"), _set_for(MUSIC_DRIFT), [&"base"], false, GATHER_FADE, GATHER_LENGTH)
+		else:
+			sound.play_music(_set_for(MUSIC_DRIFT), [&"base"])
+
+# Whether the block holding drift `number` ends in a boss (its drive stem plays: the storm gathering).
+func _block_has_boss(number: int) -> bool:
+	var size: int = drift_director.drifts_per_block
+	var first := (maxi(number, 1) - 1) / size * size + 1
+	for n in range(first, first + size):
+		if drift_director.is_boss_drift(n):
+			return true
+	return false
 
 # The block's last dispel (rest_started): the dread falls away, the base resolves in a short tail,
 # then the rest piece. After a boss's Hope form, the rest is already on its way.
@@ -401,8 +441,10 @@ func _scan_field() -> void:
 		if not smothered and enemy.has_meta(&"smother_fx"):
 			smothered = true
 	if _music_mode == MUSIC_DRIFT:
-		sound.set_layer(&"dread1", not enemies.is_empty())
-		sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
+		var dread2 := enemies.size() >= DREAD2_COUNT or near
+		sound.set_layer(&"dread1", not enemies.is_empty() and Time.get_ticks_msec() >= _dread_from)
+		sound.set_layer(&"dread2", dread2)
+		sound.set_layer(&"drive", _drive_block or (dread2 and _act >= DRIVE_FROM_ACT_WITH_DREAD2))
 		sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
 	elif _music_mode == MUSIC_BOSS:
 		if Time.get_ticks_msec() >= _drums_back_at:
@@ -442,11 +484,15 @@ func _scan_field() -> void:
 		sound.set_ambience_trim(AMBIENCE_THIN_DB * minf(float(enemies.size()) / AMBIENCE_THIN_COUNT, 1.0))
 	if smothered:  # Smother's hum lasts while any nightmare is smothered
 		_touch_loop("loop_smother", 1.0, PRESENCE_HOLD)
+	_scan_grounds()
 	_update_presence(enemies.size())
 
 func _on_enemy_added(enemy: Node) -> void:
 	# Its position is set right after it enters the tree, so wait a frame.
 	_play_signature.call_deferred(enemy)
+	var statuses = enemy.get("statuses")  # A build-up filling: its quiet cue (seventh pass)
+	if statuses is EnemyStatuses and not statuses.status_filled.is_connected(_on_status_filled):
+		statuses.status_filled.connect(_on_status_filled.bind(enemy))
 	if enemy.has_signal("drag_started") and not enemy.is_connected("drag_started", _on_drag_started):
 		enemy.connect("drag_started", _on_drag_started)  # Rootcurl's drag
 		enemy.connect("drag_ended", _on_drag_ended)
@@ -584,7 +630,8 @@ func _on_tower_added(node: Node) -> void:
 	tower.hit_landed.connect(_on_hit)
 	# Evolving: the bloom, then the new form's hit once as a "first breath".
 	tower.evolved.connect(func(t: Tower) -> void:
-		sound.play(&"evolve", t.global_position)
+		var bloom := StringName("evolve_" + t.tower_data.line)  # The family's own material blooming (seventh pass)
+		sound.play(bloom if sound.has_sound(bloom) else &"evolve", t.global_position)
 		_refresh_presence(t)  # Growing into an Ascended form starts its presence
 		if t.tower_data.tier >= ASCENDED_TIER:
 			return  # Ascending has its own moment (below)
@@ -936,6 +983,10 @@ func _on_node_added(node: Node) -> void:
 		node.chain_reached.connect(_on_chain)
 		if node.has_signal("bolt_struck"):  # Tower Code 3d6f86e9
 			node.bolt_struck.connect(_on_bolt_struck)
+		if node.has_signal("reaction_payoff"):  # Smother's burst, Pinned's pierce (seventh pass)
+			node.reaction_payoff.connect(_on_reaction_payoff)
+	if node is CrownedGround or node is ReactionCloud or node is RubblePatch:  # Ground loops (_scan_grounds)
+		_grounds.append(weakref(node))
 	_hook_kinships(node)
 	_hook_economy(node)
 	_hook_remember(node)
@@ -1084,15 +1135,59 @@ func _on_reaction(id: StringName, enemy: Node2D, _chain: int, _towers: Array) ->
 	var caught := _nightmares_near(where, REACTION_REACH_CELLS)
 	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + caught) / log(2.0), ASCENDED_GROWTH_MAX)
 	var volume := REACTION_DB - ASCENDED_GROWTH_MAX + growth + (REACTION_BOSS_DB if enemy.enemy_data.is_boss else 0.0)
-	var reaction_id: StringName = REACTION_SOUND_STANDIN.get(base, StringName("reaction_" + base))
+	var reaction_id := StringName("reaction_" + base)
 	if sound.has_sound(reaction_id):
 		sound.play(reaction_id, where, volume, 1.0, 0.03)
 	if crowned:
 		sound.duck(3.0, 0.5)
 		sound.play(&"crown_swell", where, volume - 3.0, 1.0, 0.0)
-		var signature: StringName = REACTION_SOUND_STANDIN.get(id, StringName("crowned_" + id))  # (stand-ins: Changeling, Wide Awake)
+		var signature := StringName("crowned_" + id)
 		if sound.has_sound(signature):
 			sound.play(signature, where, volume, 1.0, 0.02)
+
+# A Reaction's payoff after it fired: Smother's stored Poisoned bursting (the Root ended), Pinned's hit piercing the
+# line behind (`size` nightmares pierced). ReactionTracker.reaction_payoff.
+func _on_reaction_payoff(id: StringName, at: Vector2, size: int) -> void:
+	var sound_id := StringName("reaction_%s_%s" % [id, "burst" if id == &"smother" else "pierce"])
+	if not sound.has_sound(sound_id):
+		return
+	var growth := minf(ASCENDED_GROWTH_DB * log(1.0 + size) / log(2.0), ASCENDED_GROWTH_MAX)
+	sound.play(sound_id, at, REACTION_DB - ASCENDED_GROWTH_MAX + growth, 1.0, 0.03)
+
+# Reaction zones on the path, each a faint loop while any is down (scree = a RubblePatch Avalanche made).
+func _scan_grounds() -> void:
+	if _grounds.is_empty():
+		return
+	var on := {}
+	for ref in _grounds.duplicate():
+		var node: Node = ref.get_ref()
+		if node == null or not node.is_inside_tree() or node.is_queued_for_deletion():
+			_grounds.erase(ref)
+			continue
+		if node is ReactionCloud:
+			on[&"loop_mushroom_zone"] = true
+		elif node is RubblePatch:
+			if node.rooted_every > 0.0:
+				on[&"loop_scree"] = true
+		else:
+			match node.kind:
+				CrownedGround.Kind.STILL_POOL: on[&"loop_still_pool"] = true
+				CrownedGround.Kind.NIGHTBLOOM: on[&"loop_nightbloom"] = true
+				CrownedGround.Kind.FAIRY_RING: on[&"loop_fairy_ring"] = true
+	for id in on:
+		_touch_loop(id, GROUND_LOOP_LEVEL, PRESENCE_HOLD)
+
+# A status reached its most stacks on a nightmare (EnemyStatuses.status_filled): a quiet cue when a build-up clicks into
+# place (Exposed, Drowsy, Rooted), throttled per status.
+func _on_status_filled(id: StringName, enemy: Node2D) -> void:
+	var cue: StringName = STATUS_CUES.get(id, &"")
+	if cue == &"" or not is_instance_valid(enemy):
+		return
+	var now := Time.get_ticks_msec()
+	if now - int(_status_at.get(id, -100000)) < STATUS_THROTTLE_MS:
+		return
+	_status_at[id] = now
+	sound.play(cue, enemy.global_position, STATUS_DB, 1.0, 0.03)
 
 # A chain reached `count` links: the warm swell under it builds each link (a Crowned counts 2).
 func _on_chain(count: int, where: Vector2, _towers: Array) -> void:
@@ -1121,8 +1216,10 @@ func _nightmares_near(where: Vector2, cells: float) -> int:
 
 func _on_path_changed() -> void:
 	_path_pixels = maxf(map_generator.get_path_from(map_generator.startPath).size() * MAP_GRID.cell_size.x, 1.0)
-	if is_node_ready() and tower_container.get_child_count() > 0:
-		sound.play(&"path_shimmer", null, -10.0, 1.0, 0.0)
+	var now := Time.get_ticks_msec()
+	if is_node_ready() and tower_container.get_child_count() > 0 and now - _path_shift_at >= PATH_SHIFT_THROTTLE_MS:
+		_path_shift_at = now
+		sound.play(&"path_shimmer", null, -10.0, 1.0, 0.0)  # A faint low earth shift (seventh pass; old id)
 
 func _on_oak_withers(_enemy: Node2D, _count: int) -> void:
 	_wither_until = Time.get_ticks_msec() + int(WITHER_MUSIC * 1000.0)

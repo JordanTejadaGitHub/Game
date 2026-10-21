@@ -541,6 +541,9 @@ static func _smother_burst(enemy: Node2D) -> void:
 	if stored <= 0.0:
 		return
 	var world := _world(enemy)
+	var tracker := ReactionTracker.find(enemy)
+	if tracker != null:
+		tracker.reaction_payoff.emit(&"smother", enemy.global_position, 1)  # Sound's burst
 	if world != null:
 		_effect(&"hit_spore", enemy.global_position, enemy, 1.75)  # Stand-in for a burst sheet (open item for Fx)
 		var data := get_data(&"smother")
@@ -664,6 +667,9 @@ static func after_pinned_hit(enemy: Node2D, tower: Tower, dealt: float, reaction
 			pierced += 1
 		if pierced > 0:
 			_segment(&"thunderclap_arc", at, at + direction * length, tower, 0.25)  # Stand-in for a spear line (open item for Fx)
+			var tracker := ReactionTracker.find(tower)
+			if tracker != null:
+				tracker.reaction_payoff.emit(&"pinned", at, pierced)  # Sound's pierce
 	if not reaction.get("starfall", false):
 		return
 	var dreams := _dreams(tower)

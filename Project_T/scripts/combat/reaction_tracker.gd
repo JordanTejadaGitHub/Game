@@ -14,6 +14,9 @@ signal reaction_fired(id: StringName, enemy: Node2D, chain: int, towers: Array)
 signal chain_reached(count: int, where: Vector2, towers: Array)
 # A Charged (Static) bolt struck at `at` for `damage` (Reactions.strike_bolt; ChargedBolt shows it), for Sound.
 signal bolt_struck(at: Vector2, damage: float)
+# A Reaction's payoff landing after it fired, for Sound (audio_direction.md seventh pass): Smother's stored Poisoned bursting
+# when the Root ends (size 1), Pinned's hit piercing the line behind (size = nightmares pierced).
+signal reaction_payoff(id: StringName, at: Vector2, size: int)
 
 var counts := {}  # Reaction id -> times it fired this run
 var longest_chain := 0

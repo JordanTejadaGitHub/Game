@@ -62,6 +62,7 @@ func _init() -> void:
 		return
 	_make_sfx()
 	_make_music()
+	_make_seventh_pass()
 	print("Sounds generated in %.1f s" % ((Time.get_ticks_msec() - started) / 1000.0))
 	quit()
 
@@ -1719,8 +1720,27 @@ func _make_score_act(act: int) -> void:
 				_mix(s, _score_lead(act, chord[0] + 24, 0.8), r, t0 + 1.5 * beat, 0.5)
 			if pal.density >= 3:  # Act 4: the hummed choir under it, the fullest base
 				_mix(s, _env(_filter(_choir(r, hz(chord[0] + 12), SCORE_BAR * 1.05), r, 800.0, 0.7), r, swell(0.6, 0.6, SCORE_BAR * 1.05)), r, t0, 0.25)
+			# Bigger every act (audio_direction.md, 2026-10-21): act 2 a low string section and a moving bass, act 3 a
+			# hummed choir pad and a deep downbeat drum every 2 bars, act 4 high choir, a drum each bar and a sub pedal on D.
+			_mix(s, _score_strings(chord, SCORE_BAR * 1.05), r, t0, 0.22 + 0.06 * (act - 2))
+			_mix(s, _bowed(r, chord[0] - 12, beat * 1.6, 320.0), r, t0, 0.3)
+			_mix(s, _bowed(r, chord[0] - 5, beat * 0.9, 320.0), r, t0 + 2.0 * beat, 0.18)
+			if act >= 3:
+				_mix(s, _env(_filter(_choir(r, hz(chord[0]), SCORE_BAR * 1.05), r, 700.0, 0.7), r, swell(0.6, 0.6, SCORE_BAR * 1.05)), r, t0, 0.22)
+				if bar % (1 if act == 4 else 2) == 0:
+					_mix(s, _tom(r, 40.0), r, t0, 0.45)
+			if act == 4:
+				_mix(s, _env(_filter(_choir(r, hz(chord[0] + 24 + chord[1]), SCORE_BAR * 1.05), r, 1100.0, 0.7), r, swell(0.6, 0.6, SCORE_BAR * 1.05)), r, t0, 0.14)
+		if act == 4:  # A sub-bass pedal on D under the whole loop
+			_mix(s, _env(_tone(r, loop + TAIL, hz(26), 0.5), r, func(t: float) -> float: return 0.8 + 0.2 * sin(t * TAU / loop * 4.0)), r, 0.0, 0.35)
 		for note in DRIFT_MELODY:
 			_mix(s, _score_lead(act, note[1], 0.8), r, float(note[0]) * beat)
+			if act == 2:  # The motif harmonised in thirds
+				_mix(s, _score_lead(act, _third_below(note[1]), 0.8), r, float(note[0]) * beat, 0.45)
+			elif act == 3:  # Call and answer: the hummed choir answers the flute a bar later, an octave down
+				_mix(s, _env(_filter(_choir(r, hz(note[1] - 12), beat * 1.2), r, 900.0, 0.7), r, swell(0.15, 0.4, beat * 1.2)), r, float(note[0]) * beat + SCORE_BAR, 0.3)
+			elif act == 4:  # In canon: a second voice a bar behind, an octave down
+				_mix(s, _score_lead(act, note[1] - 12, 0.8), r, float(note[0]) * beat + SCORE_BAR, 0.4)
 		if pal.density >= 1:  # Act 2+: the kalimba's eighth-note sparkle every other bar (low, soft)
 			for bar in range(1, SCORE_BARS, 2):
 				for k in 3:
@@ -1799,6 +1819,12 @@ func _make_score_act(act: int) -> void:
 			if bar % 4 == 3:
 				_mix(s, _tom(r, 80.0), r, t0 + 4 * e, 0.35)
 				_mix(s, _tom(r, 76.0), r, t0 + 4.5 * e, 0.3)
+			# Bigger every act: act 2 a deeper tom pair, act 3 rolling toms into every 4th bar, act 4 a roll every 2 bars.
+			_mix(s, _tom(r, 44.0), r, t0 + e, 0.55)
+			_mix(s, _tom(r, 48.0), r, t0 + 4 * e, 0.45)
+			if act >= 3 and bar % (2 if act == 4 else 4) == 3:
+				for k in 6:
+					_mix(s, _tom(r, 60.0 + 4.0 * k), r, t0 + k * e, 0.25 + 0.07 * k)
 		return s), 0.6, false, loop)
 	_music("mus_boss_%s_bass" % key, _own("boss_%s_bass" % key, func() -> PackedFloat32Array:
 		var s := _seg(loop + TAIL, r)
@@ -1812,7 +1838,17 @@ func _make_score_act(act: int) -> void:
 	_music("mus_boss_%s_theme" % key, _own("boss_%s_theme" % key, func() -> PackedFloat32Array:
 		var s := _seg(loop + TAIL, r)
 		for note in BOSS1_THEME:
-			_mix(s, _score_boss_voice(act, note[1] - (5 if act == 3 else 0), slot * note[2] * 1.05), r, note[0] * slot, 0.7)
+			var m: int = note[1] - (5 if act == 3 else 0)
+			var length: float = slot * note[2] * 1.05
+			_mix(s, _score_boss_voice(act, m, length), r, note[0] * slot, 0.7)
+			# Bigger every act: the theme doubled an octave below, act 3+ the choir on it, act 4 high choir too.
+			_mix(s, _bowed(r, m - 24, length, 400.0), r, note[0] * slot, 0.3)
+			if act >= 3:
+				_mix(s, _env(_filter(_choir(r, hz(m - 12), length), r, 900.0, 0.7), r, swell(0.15, 0.3, length)), r, note[0] * slot, 0.35)
+			if act == 4:
+				_mix(s, _env(_filter(_choir(r, hz(m), length), r, 1200.0, 0.7), r, swell(0.15, 0.3, length)), r, note[0] * slot, 0.2)
+		for bar in range(3, SCORE_BARS, 4):  # Low bone-horn-like swells on the phrase ends
+			_mix(s, _horn_call(r, 38, SCORE_BAR * 0.9), r, bar * SCORE_BAR + slot * 0.2, 0.3 + 0.08 * act)
 		return s), 0.55, false, loop)
 	_music("mus_boss_%s_warm" % key, _own("boss_%s_warm" % key, func() -> PackedFloat32Array:
 		var s := _seg(loop + TAIL, r)
@@ -2032,6 +2068,26 @@ func _score_pad(chord: Array, length: float) -> PackedFloat32Array:
 	for m in [chord[0] + 12, chord[0] + 12 + chord[1], chord[0] + 19]:
 		_mix(pad, _tone(MUSIC_RATE, length, hz(m), swell(0.6, 0.6, length), "tri"), MUSIC_RATE, 0.0, 1.0)
 	return pad
+
+# A low string section on a chord (cello-like: bowed root, fifth and third, slow swell), for acts 2+.
+func _score_strings(chord: Array, length: float) -> PackedFloat32Array:
+	var out := _seg(length, MUSIC_RATE)
+	for m in [chord[0] - 12, chord[0] - 5, chord[0] + chord[1]]:
+		_mix(out, _env(_bowed(MUSIC_RATE, m, length, 650.0, true), MUSIC_RATE, swell(length * 0.4, length * 0.4, length)), MUSIC_RATE, 0.0, 0.5)
+	return out
+
+# The note two scale steps below `midi` in D minor (with C#): harmony in thirds.
+func _third_below(midi: int) -> int:
+	var scale := [2, 4, 5, 7, 9, 10, 1]  # D E F G A Bb C#
+	var m := midi - 1
+	var steps := 0
+	while steps < 2:
+		if scale.has(posmod(m, 12)):
+			steps += 1
+			if steps == 2:
+				return m
+		m -= 1
+	return midi - 3
 
 # A bowed note (never plucked): a soft saw pair with slow vibrato, lowpassed, swelling in and out.
 func _bowed(rate: int, midi: float, length: float, cutoff: float, vibrato := false) -> PackedFloat32Array:
@@ -3211,3 +3267,158 @@ func _mk_accent(mood: String) -> PackedFloat32Array:  # A short, soft accent sti
 	if mood == "storm" or mood == "boss":
 		return _normalize(_tom(r, 62.0), 1.0)
 	return _normalize(_bell(r, hz(74), 0.3, 0.5, MUSIC_BOX, 1.4), 1.0)
+
+
+# --- Seventh pass (audio_direction.md "Seventh pass", 2026-10-21) ---------------------------------
+# Runs after everything else and only through _own, so no earlier sound changes. Overwrites evolve,
+# path_shimmer, drift_start and act_swell (their old recipes still run first to keep the random stream).
+const MATERIAL_LINES := ["spore", "stone", "water", "light", "root", "song", "acorn", "wall", "wing", "wind", "sprout",
+	"memory", "heartwood"]
+
+func _make_seventh_pass() -> void:
+	# The four new Reactions.
+	_ws("reaction_sleepwalk", 2, 0.55, func(_v: int) -> PackedFloat32Array:  # A lazy turn, two slowed footfalls the wrong way
+		return _layers([[_wobble(_reverse(_air(0.7, 380.0, 0.05, 0.5)), 2.0), 0.7], [_exhale(1.3, 300.0), 0.5, 0.45],
+			[_thump(0.25, 130.0, 0.05), 0.8, 0.6], [_thump(0.25, 115.0, 0.05), 0.7, 1.05]]))
+	_ws("reaction_night_terror", 2, 0.7, func(v: int) -> PackedFloat32Array:  # A cold shudder, cut by a warm bolt, then a skipped heartbeat
+		var shudder := _env(_air(0.4, 520.0, 0.12, 0.2), SFX_RATE, func(t: float) -> float: return 0.55 + 0.45 * sin(TAU * 14.0 * t))
+		return _layers([[shudder, 0.8], [_lowpass(_hit("light", v, false), 1400.0), 0.9, 0.3],
+			[_thump(0.6, 60.0, 0.16), 1.0, 0.36], [_rumble(0.9, 110.0, 0.02, 0.6), 0.4, 0.36]]))
+	_ws("crowned_changeling", 1, 0.6, func(_v: int) -> PackedFloat32Array:  # Two rushes crossing, a hollow knock, D and A-flat
+		return _layers([[_air(0.55, 650.0, 0.35, 0.15), 0.7, 0.1], [_air(0.55, 420.0, 0.35, 0.15), 0.7, 0.14],
+			[_lowpass(_ring(0.6, [140.0, 215.0], [0.8, 0.4], 0.12), 800.0), 1.0, 0.62], [_tuned_note(62, 1.4), 0.5, 0.62],
+			[_tuned_note(68, 1.4), 0.45, 0.66]]))
+	_ws("crowned_wide_awake", 1, 0.65, func(_v: int) -> PackedFloat32Array:  # Startled awake: a warm rush, a double pulse, a 3 s thrum
+		var rush := _normalize(_lowpass(_filter(_noise(SFX_RATE, 0.5, swell(0.35, 0.1, 0.5)), SFX_RATE, glide(250.0, 1100.0, 0.5), 0.6, "bp"), 1300.0), 1.0)
+		var thrum := _wobble(_soft_hum([50, 57], 3.0), 6.0)
+		return _layers([[rush, 0.8], [_thump(0.3, 110.0, 0.05), 0.9, 0.45], [_thump(0.3, 110.0, 0.05), 0.8, 0.62], [thrum, 0.35, 0.5]]))
+	# Reworked Reactions: Smother's burst, Pinned's pierce, Starfall breaking outward.
+	_ws("reaction_smother_burst", 2, 0.75, func(_v: int) -> PackedFloat32Array:  # A deep, soft fungal burst
+		return _layers([[_thump(0.8, 70.0, 0.2), 1.0], [_earth_pops(8), 0.6, 0.02], [_exhale(1.4, 380.0), 0.7, 0.05],
+			[_rumble(1.0, 130.0, 0.02, 0.7), 0.4]]))
+	_ws("reaction_pinned_pierce", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # A wooden thrust passing through, softer behind
+		var out := _seg(0.9, SFX_RATE)
+		for k in 3:
+			_mix(out, _layers([[_air(0.4, 320.0 - k * 40.0, 0.02, 0.3), 0.7], [_thump(0.3, 95.0, 0.07), 1.0]]), SFX_RATE, k * 0.11, 1.0 - k * 0.3)
+		return out)
+	_ws("crowned_starfall", 1, 0.85, func(v: int) -> PackedFloat32Array:  # The thrust, the deepest warm boom, blooms landing outward
+		var out := _layers([[_air(0.4, 320.0, 0.02, 0.3), 0.6], [_thump(1.0, 50.0, 0.3), 1.0, 0.1], [_rumble(1.8, 70.0, 0.02, 1.3), 0.8, 0.1],
+			[_glow_swell(1.2), 0.4, 0.15]])
+		for k in 5:
+			_mix(out, _normalize(_lowpass(_hit("light", (v + k) % 3, false), 1400.0), 1.0), SFX_RATE, 0.3 + k * 0.07 + rng.randf() * 0.03, 0.4 - k * 0.04)
+		return out)
+	# Ground loops (faint; SoundHooks plays them while the zones are on the path).
+	_wloop("loop_mushroom_zone", func() -> PackedFloat32Array:  # A slow, damp breathing of spores
+		return _layers([[_breath_bed(340.0, 0.6), 1.0], [_hum_bed([38]), 0.15]]))
+	_wloop("loop_still_pool", func() -> PackedFloat32Array:  # Still water, near silence: a very low glassy hum
+		return _lowpass(_layers([[_hum_bed([45]), 0.7], [_breath_bed(200.0, 0.2), 0.25]]), 400.0))
+	_wloop("loop_nightbloom", func() -> PackedFloat32Array:  # A slow, sleepy breath under the lullaby's two notes
+		return _layers([[_breath_bed(280.0, 0.5), 1.0], [_hum_bed([57, 62]), 0.3]]))
+	_wloop("loop_fairy_ring", func() -> PackedFloat32Array:  # A faint low hum
+		return _layers([[_hum_bed([50]), 0.6], [_breath_bed(450.0, 0.3), 0.2]]))
+	_wloop("loop_scree", func() -> PackedFloat32Array:  # A low gravel shift, no tinkle
+		var bed := _lowpass(_pebbles(14, LOOP_LEN + 0.4, 0.5), 650.0)
+		return _layers([[bed, 1.0], [_rumble(LOOP_LEN + 0.5, 120.0, 0.5, 0.5), 0.4]]))
+	# Status completions: quiet cues when a build-up clicks into place.
+	_ws("status_exposed", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A glow locking in: a low warm hum settling into tune
+		return _layers([[_soft_hum([57], 0.7), 1.0], [_tuned_note(69, 0.7), 0.5, 0.05]]))
+	_ws("status_drowsy", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A short, low yawn-like breath
+		return _wobble(_exhale(0.9, 300.0), 2.5))
+	_ws("status_rooted", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A soft low root clench
+		return _layers([[_lowpass(_creak(SFX_RATE, 0.4, 25.0, 45.0, 480.0), 800.0), 1.0], [_thump(0.25, 110.0, 0.05), 0.6, 0.25]]))
+	# Evolve: a bloom of the family's own material, a warm swell, a low full settle (no chime).
+	for line in MATERIAL_LINES:
+		_ws("evolve_" + line, 1, 0.55, func(_v: int) -> PackedFloat32Array:
+			return _layers([[_material(line, 1.0), 1.0], [_soft_hum([50, 57], 1.4), 0.35, 0.1], [_thump(0.4, 90.0, 0.1), 0.6, 0.95],
+				[_rumble(0.8, 110.0, 0.05, 0.6), 0.3, 0.9]]))
+	_ws("evolve", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # The fallback: a warm bloom
+		return _layers([[_air(1.0, 450.0, 0.6, 0.3), 0.8], [_soft_hum([50, 57], 1.4), 0.4, 0.1], [_thump(0.4, 90.0, 0.1), 0.6, 0.95]]))
+	_ws("path_shimmer", 1, 0.25, func(_v: int) -> PackedFloat32Array:  # A faint low earth shift (the id keeps its old name)
+		return _layers([[_rumble(0.6, 200.0, 0.12, 0.4), 1.0], [_lowpass(_scrape(0.5, 300.0), 600.0), 0.3, 0.05]]))
+	_ws("drift_start", 1, 0.45, func(_v: int) -> PackedFloat32Array:  # The breath in on Start
+		return _layers([[_air(0.6, 360.0, 0.45, 0.15), 1.0], [_rumble(0.6, 90.0, 0.4, 0.2), 0.3]]))
+	_ws("act_swell", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # A warm swell and the tree stretching (no rustle)
+		var chord := _seg(4.0, SFX_RATE)
+		for m in [50, 57, 62, 66, 69]:
+			_mix(chord, _tone(SFX_RATE, 3.5, hz(m), swell(1.5, 1.5, 3.5), "tri"), SFX_RATE, 0.0, 0.2)
+		return _layers([[chord, 1.0], [_lowpass(_creak(SFX_RATE, 1.6, 8.0, 16.0, 220.0), 600.0), 0.45, 0.6], [_rumble(2.0, 120.0, 0.8, 1.0), 0.3, 0.4]]))
+	# The score: each act's gathering (rest -> drift) and drive stem.
+	for act in [1, 2, 3, 4]:
+		_make_score_gather(act)
+
+# Breathy noise ringing in tune on one note (a "tuned air"; the dispel's material).
+func _tuned_note(midi: int, length: float) -> PackedFloat32Array:
+	var n := _noise(SFX_RATE, length, swell(length * 0.3, length * 0.6, length))
+	return _normalize(_lowpass(_filter(n, SFX_RATE, hz(midi), 0.03, "bp"), 1500.0), 1.0)
+
+# A family's material swelling over `length` s (Nurture's swells, longer, for Evolve).
+func _material(line: String, length: float) -> PackedFloat32Array:
+	var a := length * 0.6
+	var rel := length * 0.35
+	match line:
+		"spore": return _air(length, 600.0, a, rel)
+		"stone": return _rumble(length, 160.0, a, rel)
+		"water": return _wobble(_rumble(length, 250.0, a, rel), 4.0)
+		"light": return _glow_swell(length)
+		"root": return _layers([[_rumble(length, 120.0, a, rel), 1.0], [_lowpass(_creak(SFX_RATE, length, 10.0, 20.0, 260.0), 700.0), 0.5]])
+		"song": return _soft_hum([50, 57], length)
+		"acorn", "wall": return _air(length, 300.0, a, rel, 0.6)
+		"wing": return _flutter(length, 6.0, 800.0)
+		"wind": return _air(length, 400.0, a, rel)
+		"memory": return _layers([[_soft_hum([50], length), 0.6], [_air(length, 450.0, a, rel), 1.0]])
+		"heartwood": return _wobble(_rumble(length, 230.0, a, rel), 3.0)
+	return _air(length, 800.0, a, rel, 0.9)  # sprout: a leafy breath
+
+# The gathering (rest -> drift, audio_direction.md Transitions): 2 drift bars, then a ringing tail. Bar 1: a low bowed
+# D swelling up and a felt-drum roll growing; bar 2: the motif's D - A as a pickup (from act 2 a far hollow A-flat call),
+# the roll cresting into the drift's first downbeat at 5.0 s, where SoundHooks starts the drift set.
+# The drive stem: the act's drum pattern at full with the bass doubled (the last block before a boss).
+func _make_score_gather(act: int) -> void:
+	var r := MUSIC_RATE
+	var beat := SCORE_BAR / 3.0
+	var loop := SCORE_BAR * SCORE_BARS
+	var key := "act%d" % act
+	_music_once("mus_once_%s_gather" % key, _own("gather_" + key, func() -> PackedFloat32Array:
+		var body := SCORE_BAR * 2.0
+		var s := _seg(body + 3.0, r)
+		_mix(s, _env(_bowed(r, 38, body + 0.6, 380.0), r, swell(body * 0.8, 0.6, body + 0.6)), r, 0.0, 0.7)
+		if act >= 2:  # Low strings swelling with it
+			_mix(s, _env(_bowed(r, 45, body + 0.6, 500.0), r, swell(body * 0.85, 0.6, body + 0.6)), r, 0.0, 0.35 + 0.08 * act)
+		var hits := 10 + 4 * act  # The roll: denser and fuller each act
+		for k in hits:
+			var at := body * pow(float(k) / hits, 0.7) - 0.05
+			var grow := float(k + 1) / hits
+			_mix(s, _filter(_tom(r, 62.0 + 10.0 * (k % 2)), r, 500.0, 0.7), r, maxf(at, 0.0), 0.1 + 0.45 * grow * grow)
+		_mix(s, _score_lead(act, 62, 0.9), r, SCORE_BAR + beat, 0.9)  # The pickup: D …
+		_mix(s, _score_lead(act, 69, 0.9), r, SCORE_BAR + 2.0 * beat, 0.9)  # … A
+		if act >= 2:  # Nightmares coming: a far hollow A-flat
+			_mix(s, _filter(_horn_call(r, 44, SCORE_BAR * 0.9), r, 500.0, 0.7), r, SCORE_BAR + 0.2, 0.25 + 0.05 * act)
+		_mix(s, _tom(r, 50.0), r, body, 0.9)  # The downbeat the drift lands on
+		if act >= 3:
+			_mix(s, _tom(r, 40.0), r, body, 0.7)
+		if act == 4:
+			for m in [50, 57, 62]:
+				_mix(s, _env(_filter(_choir(r, hz(m), 3.0), r, 900.0, 0.7), r, swell(1.2, 1.5, 3.0)), r, body - 1.3, 0.25)
+		return _score_space(act, s)), 0.6)
+	_music("mus_%s_drive" % key, _own("drift_%s_drive" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for bar in SCORE_BARS:
+			var t0 := bar * SCORE_BAR
+			var root: int = DRIFT_CHORDS[bar][0]
+			_mix(s, _tom(r, 52.0), r, t0, 1.0)
+			_mix(s, _frame_drum(r), r, t0, 0.45)
+			_mix(s, _tom(r, 64.0), r, t0 + beat, 0.5)
+			_mix(s, _tom(r, 58.0), r, t0 + 2.0 * beat, 0.65)
+			for k in 3:  # The bass doubled under it, bowed on every beat
+				_mix(s, _bowed(r, root - 12, beat * 1.05, 330.0), r, t0 + k * beat, 0.65 if k == 0 else 0.45)
+			if act >= 2:  # Eighths between the beats
+				for k in 3:
+					_mix(s, _filter(_tom(r, 80.0), r, 500.0, 0.7), r, t0 + (k + 0.5) * beat, 0.2 + 0.03 * act)
+			if act >= 3 and bar % 2 == 0:  # A deep felt downbeat
+				_mix(s, _tom(r, 40.0), r, t0, 0.8)
+			if act == 4:  # Deep wooden drums
+				_mix(s, _knock(r, 46.0, 0.25), r, t0, 0.6)
+			if bar % 4 == 3:  # A roll into the next phrase
+				for k in 4:
+					_mix(s, _tom(r, 70.0 + 3.0 * k), r, t0 + 2.0 * beat + k * beat / 4.0, 0.25 + 0.08 * k)
+		return s), 0.6, false, loop)

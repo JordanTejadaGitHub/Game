@@ -27,13 +27,14 @@ const AMBIENCE_DB := -16.0
 # Layer gains: dread layers under the warm base; the boss theme's stems; a boss's signature layers
 # (sig_<boss id>, sig_<boss id>_2 …) under the theme.
 const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6,
-	&"drums": 0.8, &"bass": 0.7, &"theme": 0.8, &"warm": 0.6}
+	&"drums": 0.8, &"bass": 0.7, &"theme": 0.8, &"warm": 0.6, &"drive": 0.7}
 const SIG_GAIN := 0.5
 const REST_BAR := 3.0  # Rest pieces: 60 bpm, 3/4
 const DRIFT_BAR := 2.5  # Drift (72 bpm, 3/4) and boss (96 bpm, 6/8 feel)
 const ONCE_DB := -2.0  # One-shot music (the resolving tail, the Hope form)
 const ONCE_OVERLAP := 1.0  # The next set starts this long before a one-shot ends (it rings on)
 const TURN_FADE := 0.9  # A boss dispelled: the boss set fades this long under the Hope form (drums at once)
+const ACT_DB_STEP := 1.0  # The music master rises this much per act (act 4 +3 dB over act 1)
 # Softer nightmares (accessibility setting): nightmare shrieks and whispers play this much quieter,
 # muffled, and the whispering dread layer is halved.
 const SOFTER_DB := -8.0
@@ -73,6 +74,7 @@ var _once_wait := 0.0
 var _outgoing: Array = []  # [{player, level, rate}] a previous set fading out
 var _set_cache := {}  # set -> {layer: path}
 var _phase_db := 0.0  # Music offset for the phase (0 at rests, DRIFT_MUSIC_DB in drifts), eased
+var _act_db := 0.0  # Bigger every act (audio_direction.md 2026-10-21): +ACT_DB_STEP per act after the first (set_act)
 var _phase_target := 0.0
 var _ambience: AudioStreamPlayer
 var _ambience_db := AMBIENCE_DB
@@ -111,6 +113,7 @@ func _process(delta: float) -> void:
 	if scene != _scene:
 		_scene = scene
 		if scene != null and scene.scene_file_path == TITLE_SCENE:
+			_act_db = 0.0
 			play_music(&"rest_act1", [&"base"])  # The title: the Heartwood theme
 			stop_ambience()
 	delta /= maxf(Engine.time_scale, 0.01)  # Mixing runs in real time, whatever the game speed
@@ -128,7 +131,7 @@ func _process(delta: float) -> void:
 		energy += pow(level * _layer_gain(layer), 2.0)
 	# More layers playing: all of them come down together, so the total stays about as loud as the base.
 	var trim := -10.0 * log(maxf(energy, 1.0)) / log(10.0)
-	var music_db := MUSIC_DB + _phase_db + trim - _duck_db
+	var music_db := MUSIC_DB + _act_db + _phase_db + trim - _duck_db
 	for layer in _music:
 		var gain: float = _music_level[layer] * _layer_gain(layer)
 		_music[layer].volume_db = linear_to_db(maxf(gain, 0.0001)) + music_db
@@ -231,6 +234,7 @@ func play_music(set_name: StringName, layers: Array = [&"base"], then_layers: Ar
 	if not _then_once.is_empty():  # A one-shot is waiting for its bar line: it hands over to this set
 		_then_once.set = set_name
 		_then_once.layers = layers
+		_then_once.then = then_layers
 		return
 	if not _queued_set.is_empty():  # A change is already on its way (e.g. after a one-shot): retarget it
 		_queued_set = {"set": set_name, "layers": layers, "then": then_layers}
@@ -264,13 +268,17 @@ func once_remaining() -> float:
 # Plays one-shot music `once_id` (mus_once_<id>.wav: the drift's resolving tail, the Hope form), then
 # starts `next_set`. `hard`: the current music stops now (a boss dispelled); otherwise it waits for the
 # next bar line and fades over a bar (the drift resolving into the rest).
-func music_then(once_id: StringName, next_set: StringName, next_layers: Array = [&"base"], hard := false) -> void:
+# `fade`: seconds the outgoing set fades (default one of its bars). `next_at`: seconds into the one-shot at which
+# `next_set` starts (default its length − ONCE_OVERLAP); the gathering hands over on its last bar line, exactly.
+# `next_then`: layers joining on the new set's first bar line (a boss drift's full theme).
+func music_then(once_id: StringName, next_set: StringName, next_layers: Array = [&"base"], hard := false,
+		fade := -1.0, next_at := -1.0, next_then: Array = []) -> void:
 	var path := "%smus_once_%s.wav" % [MUSIC_DIR, once_id]
 	if not ResourceLoader.exists(path):
-		play_music(next_set, next_layers)
+		play_music(next_set, next_layers, next_then)
 		return
 	_queued_set = {}
-	_then_once = {"path": path, "set": next_set, "layers": next_layers}
+	_then_once = {"path": path, "set": next_set, "layers": next_layers, "fade": fade, "next_at": next_at, "then": next_then}
 	if hard or _music.is_empty():
 		# `hard` (a boss dispelled) is "the turn", not a dead stop: the drums fall away at once, the rest
 		# of the set fades under the one-shot (audio_direction.md 8c083a71).
@@ -341,15 +349,16 @@ func _start_once() -> void:
 	player.stream = stream
 	player.bus = &"Music"
 	player.process_mode = Node.PROCESS_MODE_ALWAYS
-	player.volume_db = MUSIC_DB + ONCE_DB
+	player.volume_db = MUSIC_DB + _act_db + ONCE_DB
 	player.finished.connect(player.queue_free)
 	add_child(player)
 	if _silent:
 		player.queue_free()
 	else:
 		player.play()
-	_queued_set = {"set": once.set, "layers": once.layers, "then": []}
-	_queue_wait = maxf(stream.get_length() - ONCE_OVERLAP, 0.0)
+	_queued_set = {"set": once.set, "layers": once.layers, "then": once.get("then", [])}
+	var next_at: float = once.get("next_at", -1.0)
+	_queue_wait = next_at if next_at >= 0.0 else maxf(stream.get_length() - ONCE_OVERLAP, 0.0)
 	_then_once = {}
 
 # Bar lines, queued sets and one-shots, and the outgoing set's fade. Real time (delta already unscaled).
@@ -365,7 +374,8 @@ func _update_music_clock(delta: float) -> void:
 	if not _then_once.is_empty():
 		_once_wait -= delta
 		if _once_wait <= 0.0:
-			_fade_out_current(_music_bar)
+			var fade: float = _then_once.get("fade", -1.0)
+			_fade_out_current(fade if fade > 0.0 else _music_bar)
 			_start_once()
 	if not _queued_set.is_empty():
 		_queue_wait -= delta
@@ -381,7 +391,7 @@ func _update_music_clock(delta: float) -> void:
 			if is_instance_valid(player):
 				player.queue_free()
 		else:
-			player.volume_db = linear_to_db(maxf(fading.level, 0.0001)) + MUSIC_DB + _phase_db - _duck_db
+			player.volume_db = linear_to_db(maxf(fading.level, 0.0001)) + MUSIC_DB + _act_db + _phase_db - _duck_db
 
 # Lowpasses the music (choice screens, pause).
 func set_muffled(on: bool) -> void:
@@ -393,6 +403,10 @@ func duck(depth_db: float, seconds: float) -> void:
 	var now := Time.get_ticks_msec()
 	_duck_depth = depth_db if now >= _duck_until else maxf(_duck_depth, depth_db)
 	_duck_until = maxi(_duck_until, now + int(seconds * 1000.0))
+
+# The act's music level: bigger every act (+ACT_DB_STEP per act after the first).
+func set_act(act: int) -> void:
+	_act_db = ACT_DB_STEP * clampi(act - 1, 0, 3)
 
 # Music a little lower during drifts than at rests (`drifting`), eased.
 func set_drifting(drifting: bool) -> void:
