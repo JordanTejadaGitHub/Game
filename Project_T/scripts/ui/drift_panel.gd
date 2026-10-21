@@ -228,6 +228,7 @@ func _process(_delta: float) -> void:
 	if _unconfirmed_wardens():
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
+		_fit_phone_start_text()
 		_status_label.visible = false  # Phones: the big button already says it (user 2026-10-18: "a lot of clutter on the right side")
 		_hide_speed_while_building(bool(tower_placer.get("build_mode")))
 		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
@@ -266,6 +267,26 @@ var _hidden_for_drawer := false  # Phones: hidden only because the Warden drawer
 # building (Auto and Start stay); Start keeps the full row's width so it doesn't shrink to Auto's.
 var _speed_hidden := false
 var _start_min_x := 0.0
+
+# Phones (user 2026-10-21: "the button for calling the drift early should keep the same length… never longer than the
+# Auto button to the speed"): the text never widens the button past the Auto / pause / speed row; a long line ("Call
+# drift 14 early, +4") steps its size down to START_MIN_SIZE, then clips.
+const START_MIN_SIZE := 12
+var _start_fitted := ""
+
+func _fit_phone_start_text() -> void:
+	var key := "%s|%d" % [_start_button.text, int(_start_button.custom_minimum_size.x)]
+	if key == _start_fitted:
+		return
+	_start_fitted = key
+	_start_button.clip_text = true  # Its minimum width is the row's, never the text's
+	var font := _start_button.get_theme_font("font")
+	var box := _start_button.get_theme_stylebox("normal")
+	var room := _start_button.custom_minimum_size.x - (box.get_margin(SIDE_LEFT) + box.get_margin(SIDE_RIGHT) if box != null else 16.0)
+	var size := UiStyle.HUD_TEXT_SIZE
+	while size > START_MIN_SIZE and font.get_string_size(_start_button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
+		size -= 1
+	_start_button.add_theme_font_size_override("font_size", size)
 
 func _hide_speed_while_building(building: bool) -> void:
 	if building == _speed_hidden:

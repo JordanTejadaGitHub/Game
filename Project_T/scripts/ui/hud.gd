@@ -1536,6 +1536,7 @@ func _layout_top_row() -> void:
 # in PHONE_TOP_ROW order (Menu at the corner). Before the counters would reach the banner's text they step down
 # (ROW_STEPS), then the forecast shortens, then it hides; the buttons wrap under themselves only if they'd reach it.
 const PHONE_LEFT_X := 16.0
+const PHONE_COUNTER_OUTLINE := 6  # The counters' Void outline (no plate behind them on phones)
 
 func _layout_top_row_phone(counters_rtl: Array, buttons: Array) -> void:
 	var screen_w := get_viewport().get_visible_rect().size.x
@@ -1618,8 +1619,15 @@ func _layout_top_row_phone(counters_rtl: Array, buttons: Array) -> void:
 		x += gap
 		_place_counter_icon.call_deferred(label)
 	var right := x - gap
+	# Minimal (user 2026-10-21: "the top left looks out of place… make it more minimal"): no plate behind the counters,
+	# just the icons and numbers with a Void outline (as the drift banner's line), readable over the map.
+	for label in counters + [_leaves_max, _maze_reward_label, _clears_label]:
+		if label is Label:
+			(label as Label).add_theme_color_override("font_outline_color", Palette.VOID)
+			(label as Label).add_theme_constant_override("outline_size", PHONE_COUNTER_OUTLINE)
 	var fog := get_node_or_null("ResourcesFog") as Control
 	if fog != null:
+		fog.self_modulate.a = 0.0  # Kept (its rect is the row's, for the Warden drawer), never drawn
 		fog.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		fog.offset_left = PHONE_LEFT_X - ROW_PAD + 4.0
 		fog.offset_right = right + ROW_PAD
