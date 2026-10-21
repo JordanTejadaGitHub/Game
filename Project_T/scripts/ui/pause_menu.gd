@@ -288,12 +288,8 @@ func _show_pane(pane: StringName) -> void:
 # Phones: a rail page toggle reads as a tab, never a primary or a pressed frame: the plain secondary frame, and the
 # open page adds the Glow underline (the active-tab look) with Glow text.
 func _page_toggle_look(toggle: Button) -> void:
-	for state in ["pressed", "hover_pressed"]:
-		var box := UiStyle.fog_patch(14.0, 6.0)
-		box.corner_radius = 2
-		box.frame_color = Color(UiStyle.BUTTON_GOLD, 0.7 if state == "hover_pressed" else 0.45)
-		box.underline = true
-		toggle.add_theme_stylebox_override(state, box)
+	for state in ["pressed", "hover_pressed"]:  # Moon-glass: the open page is a tab, in brass (not the pushed-in plate)
+		toggle.add_theme_stylebox_override(state, UiStyle.plate_box(14.0, 6.0, &"plate_yours"))
 	for state in ["font_pressed_color", "font_hover_pressed_color"]:
 		toggle.add_theme_color_override(state, UiStyle.GOLD)
 
@@ -414,12 +410,7 @@ func _gap(page: Control, height: float = 12.0) -> void:
 	page.add_child(gap)
 
 static func _danger(button: Button) -> void:
-	for state in ["normal", "hover", "pressed"]:
-		var box := button.get_theme_stylebox(state)
-		if box is MoonStyleBox:
-			box = (box as MoonStyleBox).duplicate()
-			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
-			button.add_theme_stylebox_override(state, box)
+	UiStyle.danger(button)  # Moon-glass: the small Ember-rimmed plate
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, UiStyle.POOR)
 

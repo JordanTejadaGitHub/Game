@@ -373,7 +373,12 @@ static func card_thread(button: Button, colour: Color = Color(0, 0, 0, 0)) -> vo
 		style = style.duplicate()
 		style.thread = MoonStyleBox.TopLine.NONE
 		style.diamond = false
+		if style.frame != &"":
+			style.accent = Color(colour, THREAD_ALPHA)  # Moon-glass: the line sits inside the rim (no extra ColorRect)
 		button.add_theme_stylebox_override(state, style)
+	var framed := button.get_theme_stylebox("normal") is MoonStyleBox and (button.get_theme_stylebox("normal") as MoonStyleBox).frame != &""
+	if framed:
+		return
 	var line := ColorRect.new()
 	line.name = "Thread"
 	line.color = Color(colour, THREAD_ALPHA)

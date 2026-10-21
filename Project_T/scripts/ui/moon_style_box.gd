@@ -19,6 +19,10 @@ const FRAME_MARGINS := {&"panel_main": 14, &"panel_main_yours": 14, &"plate": 8,
 	&"plate_pressed": 8, &"plate_yours": 8, &"plate_danger": 8, &"plate_dim": 8, &"divider": 1}  # moonglass.json
 const BRASS := [&"panel_main_yours", &"plate_hover", &"plate_pressed", &"plate_yours"]
 const SPROUT_SINK := 4.0  # The sprout's foot stands this far into the top rim
+# A framed box asked to be near-solid (center_alpha this high, as the old solid fog panels set it) gets a Void backing
+# under its ~86% glass, about 95% together: readable over the map (the phone drawer, the pause rail and pane).
+const OPAQUE_FROM := 0.9
+const OPAQUE_BACKING := 0.65
 
 @export var frame := &"":  # A moon-glass frame (FRAME_MARGINS); empty = the old fog patch
 	set(v): frame = v; _changed()
@@ -85,10 +89,12 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 	if _halo.shadow_size > 0:
 		_halo.draw(to_canvas_item, rect.grow(-2.0))
 	var m := float(FRAME_MARGINS.get(frame, 8) * SCALE)
+	var rim := float(SCALE * (3 if frame.begins_with("panel") else 2))  # The bevel's width
+	if center_alpha >= OPAQUE_FROM:  # A solid panel (the phone drawer, the pause rail and pane): more glass behind
+		rs.canvas_item_add_rect(to_canvas_item, rect.grow(-rim), Color(UiStyle.FOG, OPAQUE_BACKING))
 	rs.canvas_item_add_nine_patch(to_canvas_item, rect, Rect2(Vector2.ZERO, texture.get_size()), texture.get_rid(),
 		Vector2(m, m), Vector2(m, m))
-	var rim := float(SCALE * (3 if frame.begins_with("panel") else 2))  # The bevel's width
-	var line := accent if accent.a > 0.0 else (thread_color if thread == TopLine.FULL else Color(0, 0, 0, 0))
+	var line := accent  # Only an explicit accent: a full top thread no longer draws a gold line (no threads in Moon-glass)
 	if line.a > 0.0:  # Inside the rim, across the top of the glass, short of the chamfers
 		var inset := m * 0.6
 		rs.canvas_item_add_rect(to_canvas_item, Rect2(rect.position.x + inset, rect.position.y + rim + SCALE,
