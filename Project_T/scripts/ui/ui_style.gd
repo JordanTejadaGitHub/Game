@@ -865,6 +865,32 @@ static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = IN
 	if label is Label:
 		label.text = label.text.to_lower()
 
+# A wrapping label whose longest word always fits its width (Moon-glass's Pixelify names are wider than Cormorant was: the
+# user saw "Undercurren / t", 2026-10-20): the font steps down from `max_size` to `min_size` until it does, again whenever
+# the label resizes. Call fit_words_now after changing its text.
+static func fit_words(label: Label, max_size: int, min_size: int = 16) -> void:
+	label.set_meta(&"fit_words", [max_size, min_size])
+	if not label.resized.is_connected(fit_words_now.bind(label)):
+		label.resized.connect(fit_words_now.bind(label))
+	fit_words_now(label)
+
+static func fit_words_now(label: Label) -> void:
+	if not is_instance_valid(label) or not label.has_meta(&"fit_words") or label.size.x <= 0.0:
+		return
+	var sizes: Array = label.get_meta(&"fit_words")
+	var font := label.get_theme_font("font")
+	var words := label.text.split(" ", false)
+	var size := int(sizes[0])
+	while size > int(sizes[1]):
+		var widest := 0.0
+		for word in words:
+			widest = maxf(widest, font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+		if widest <= label.size.x:
+			break
+		size -= 1
+	if label.get_theme_font_size("font_size") != size:
+		label.add_theme_font_size_override("font_size", size)
+
 static func whisper(label: Control, font_size: int = 20) -> void:
 	_font(label, whisper_font(), font_size, WHISPER)
 
