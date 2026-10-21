@@ -349,6 +349,7 @@ func _profile_reset_box() -> VBoxContainer:
 	start.name = "StartOver"
 	start.text = "Start over as a new profile"
 	start.focus_mode = Control.FOCUS_ALL
+	UiStyle.danger(start)  # Moon-glass DangerButton (UI Code, re c4f58285): it deletes the profile
 	box.add_child(start)
 	var confirm := VBoxContainer.new()  # Step two, in the panel (no pop-up)
 	confirm.name = "Confirm"
@@ -363,13 +364,15 @@ func _profile_reset_box() -> VBoxContainer:
 	reset.text = "Reset"
 	reset.focus_mode = Control.FOCUS_ALL
 	row.add_child(reset)
-	ChoiceCard.danger(reset)  # Destructive: POOR, never the primary (ui_style.md button rule)
+	UiStyle.danger(reset)  # Destructive: the danger plate, never the primary (ui_style.md button rule)
+	var apart := Control.new()  # Cancel set apart from Reset
+	apart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(apart)
 	var cancel := Button.new()
 	cancel.name = "Cancel"
 	cancel.text = "Cancel"
 	cancel.focus_mode = Control.FOCUS_ALL
-	row.add_child(cancel)
-	UiStyle.primary(cancel)  # The safe default
+	row.add_child(cancel)  # A normal plate (UI Code: the safe choice, set apart)
 	confirm.add_child(row)
 	box.add_child(confirm)
 	var restore := Button.new()

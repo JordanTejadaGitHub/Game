@@ -28,13 +28,7 @@ func _init(tree_view: GroveTreeView) -> void:
 	_tree = tree_view
 	visible = false
 	custom_minimum_size = Vector2(560, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(Palette.ROOT, 0.96)
-	style.border_color = Palette.GLOW
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(16)
-	add_theme_stylebox_override("panel", style)
+	add_theme_stylebox_override("panel", UiStyle.plate_box(16.0, 16.0, &"panel_main"))  # Moon-glass (UI Code 8ecd7fb4)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	add_child(box)

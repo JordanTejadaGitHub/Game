@@ -763,14 +763,7 @@ func _header(data: EnemyData, _drift: int) -> Control:
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
 		chip.add_theme_color_override("font_color", UiStyle.GOLD)
-		var frame := StyleBoxFlat.new()
-		frame.draw_center = false
-		frame.border_color = UiStyle.GOLD
-		frame.set_border_width_all(1)
-		frame.set_corner_radius_all(11)
-		frame.content_margin_left = 8
-		frame.content_margin_right = 8
-		chip.add_theme_stylebox_override("normal", frame)
+		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0, &"plate_yours"))  # Moon-glass (UI Code 8ecd7fb4)
 		name_row.add_child(chip)
 	var title: String = data.title
 	if title != "":
@@ -821,14 +814,7 @@ func _ability_row(ability: Dictionary) -> Control:
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
 		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		var frame := StyleBoxFlat.new()
-		frame.draw_center = false
-		frame.border_color = Color(UiStyle.INK_DIM, 0.4)
-		frame.set_border_width_all(1)
-		frame.set_corner_radius_all(11)
-		frame.content_margin_left = 8
-		frame.content_margin_right = 8
-		chip.add_theme_stylebox_override("normal", frame)
+		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0, &"plate_dim"))  # Moon-glass
 		head.add_child(chip)
 	var label := StatusLinks.make_label("", 14, UiStyle.INK_DIM)
 	label.text = _links_keep_tags(String(ability.get("text", "")))

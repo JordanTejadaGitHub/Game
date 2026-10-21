@@ -513,13 +513,16 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - `shaders/blight.gdshader` — the nightmare look (the art is already dark; the shader only adds
   translucency, shimmer, glowing eyes/cores, the colour-blind outline, and the `crack` dispel effect).
 - `tests/` — headless `extends SceneTree` tests (e.g. `test_combat.gd`).
-- **UI style "Moonlit Thread"** (`documentation/ui_style.md`): `UiStyle` (`scripts/ui/ui_style.gd`, static)
-  holds the colour tokens (`INK`, `INK_DIM`, `GOLD`, `POOR`, `FOG`, `RARITY`…), the fonts
-  (`assets/ui/fonts/`, OFL: `body_font` Alegreya Sans, `display_font` / `number_font` Cormorant
-  Garamond SemiBold, `caps_font` Cormorant SC, `whisper_font`) and `make_theme()`.
+- **UI style "Moon-glass"** (user 2026-10-20; `documentation/ui_style.md` "Moon-glass", replaced Moonlit Thread): `UiStyle` (`scripts/ui/ui_style.gd`, static)
+  holds the colour tokens (`INK`, `INK_DIM`, `GOLD`, `POOR`, `FOG`, `RARITY`…; text is Moonlight, links underline in
+  Wraithlight), the fonts (`assets/ui/fonts/`, OFL: Pixelify Sans display / numbers, Alegreya Sans body, SC and
+  Italic) and `make_theme()`.
   `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
-  **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
-  GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
+  **re-run it after changing UiStyle**. `MoonStyleBox` draws UI Asset's 9-slice frames (`frame`:
+  `assets/ui/moonglass/*.png` + `moonglass.json`: panel_main, plate, plate_hover / _pressed / _yours / _dim / _danger…)
+  and is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator. Hand-made boxes use
+  `UiStyle.plate_box(mx, my, frame)`; `card_dim(colour)` = an unpicked card; `danger(button)` (`DangerButton`) for
+  Abandon / Delete.
   Type variations: `PrimaryButton`, `HudButton` / `HudPrimary` (every HUD control: `UiStyle.HUD_BUTTON_H` 48 tall, small caps at `HUD_TEXT_SIZE`; one HUD scale), `WardenSlot` (the same frame, `HUD_SLOT`; the bar wraps into rows below 48 px wide), `TitleLabel`,
   `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
   `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
