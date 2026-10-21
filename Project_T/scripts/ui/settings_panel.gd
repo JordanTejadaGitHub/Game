@@ -316,6 +316,12 @@ func _ready() -> void:
 	_keep_label = keep_prompt.find_child("Text", true, false)
 	if TouchBuild.mobile_controls():
 		_phone_pass()
+	if not UiStyle.is_phone():
+		# PC: the six tabs on one row of the 760 px panel (test_ui; the Vollkorn SC tab names run wider than the old face):
+		# a little less side padding and one size smaller than the theme's tabs.
+		tabs.add_theme_font_size_override("font_size", 15)
+		for pair in [["tab_selected", &"plate_yours"], ["tab_unselected", &"plate"], ["tab_hovered", &"plate_hover"]]:
+			tabs.add_theme_stylebox_override(pair[0], UiStyle.plate_box(9.0, 8.0, pair[1]))
 	visibility_changed.connect(func() -> void:
 		if visible:
 			_open()

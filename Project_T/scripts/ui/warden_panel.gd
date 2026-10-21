@@ -1637,21 +1637,26 @@ func _danger_footer(button: Button) -> void:
 const SELL_CONFIRM_FROM := 3  # A group this big asks twice at rests too (story chat)
 const SELL_CONFIRM_TIME := 2.0  # Seconds the "Press again" stays
 
+const FOOTER_TEXT := 13  # Vollkorn (Moon-glass) runs wider than the old face: 13 keeps Sell, Details and Close on one 280 px line
+const FOOTER_PAD := 5.0
 func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Sell takes the room left; Details and Close shrink to their words
 	UiStyle.quiet(button)  # Light pass: quiet text, one line
-	button.add_theme_font_size_override("font_size", 14)  # The three fit one line with their key chips
+	button.add_theme_font_size_override("font_size", FOOTER_TEXT)  # The three fit one line with their key chips
 	_footer.add_child(button)  # In the tree first: the quiet variation's boxes resolve from the theme
 	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		var tight := button.get_theme_stylebox(state).duplicate() as StyleBox  # Narrow side padding: the row fits 280 px
-		tight.content_margin_left = 6.0
-		tight.content_margin_right = 6.0
+		tight.content_margin_left = FOOTER_PAD
+		tight.content_margin_right = FOOTER_PAD
 		button.add_theme_stylebox_override(state, tight)
 	if text == "Close":
 		button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	elif text.begins_with("Sell"):  # Sell takes the room left and never widens the row past 280 (Vollkorn is wider)
+		button.clip_text = true
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	return button
 
 # The middle scrolls once the panel would pass MAX_SHARE of the screen (the Dreams row stays clear).

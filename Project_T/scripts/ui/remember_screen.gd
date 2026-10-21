@@ -665,6 +665,8 @@ var _frame: PanelContainer = null
 var _middle := ScrollContainer.new()
 var _middle_box := VBoxContainer.new()
 const VIEW_MARGIN := 24.0  # Kept free above and below the panel
+const MIDDLE_MIN := 120.0  # The scrolling middle never gets shorter than this
+var _tabs_home: Array = []  # [parent, index] of the tabs while they scroll with the middle (_fit_middle)
 
 func _fit_middle() -> void:
 	if _frame == null or not is_inside_tree() or phone_layout():
@@ -672,7 +674,22 @@ func _fit_middle() -> void:
 	var content := _middle_box.get_combined_minimum_size().y
 	var rest := _frame.get_combined_minimum_size().y - _middle.custom_minimum_size.y  # Header, tabs, footer, padding
 	var room := get_viewport_rect().size.y - VIEW_MARGIN * 2.0 - rest
-	var height := clampf(room, 120.0, content)
+	# A short window with many families (the tabs wrap to several rows, more since Vollkorn): the tabs scroll with the
+	# middle instead of crowding it out (test_remember_screen at 1280 × 600); back on top once there's room again.
+	var tabs_h := _tabs.get_combined_minimum_size().y
+	if _tabs.get_parent() != _middle_box and room < MIDDLE_MIN and _tabs.get_parent() != null:
+		_tabs_home = [_tabs.get_parent(), _tabs.get_index()]
+		_tabs.reparent(_middle_box, false)
+		_middle_box.move_child(_tabs, 0)
+		room += tabs_h
+		content += tabs_h
+	elif _tabs.get_parent() == _middle_box and not _tabs_home.is_empty() and room - tabs_h >= MIDDLE_MIN * 2.0:
+		_tabs.reparent(_tabs_home[0], false)
+		(_tabs_home[0] as Node).move_child(_tabs, _tabs_home[1])
+		_tabs_home = []
+		room -= tabs_h
+		content -= tabs_h
+	var height := clampf(room, MIDDLE_MIN, content)
 	if not is_equal_approx(_middle.custom_minimum_size.y, height):
 		_middle.custom_minimum_size.y = height
 
