@@ -33,7 +33,7 @@ class_name BranchKit
 #   dream_oak and the Kinship specials. Echo Hollow (data.echo_share) echoes Reactions under tag "echo": its own line.
 const SPECIAL_POTENCY := {&"thorncoil": "its thorns hit harder", &"cloud": "its rain hits harder",
 	&"groundroot": "grounded flyers stay down longer", &"quaker": "{hidden} nightmares stay revealed longer",
-	&"hush": "a silenced boss's timers run slower"}
+	&"hush": "a {silenced} boss's timers run slower"}
 
 const SPECIAL_STATUSES := {&"sparkler": [&"static"], &"jarlink": [&"static"], &"silver_bell": [&"drowsy"],
 	&"brood": [&"spored"], &"inkcap": [&"spored"], &"cloud": [&"damp"]}

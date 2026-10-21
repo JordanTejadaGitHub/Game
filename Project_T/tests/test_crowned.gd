@@ -233,7 +233,7 @@ func _run() -> void:
 	await _clean()
 
 	# --- The crown mark rides its callout and never stays behind (it's a looping sheet) ---
-	await _wait(Fx.CALLOUT_LIFE + 0.3)  # Earlier steps' callouts (and their crowns) are gone
+	await _wait(Fx.CALLOUT_LIFE_CROWNED + 0.3)  # Earlier steps' callouts (and their crowns) are gone
 	Fx._callout_cooldown.clear()
 	var world_node: Node = main
 	Fx.reaction(&"tempest", origin, world_node)
@@ -241,7 +241,7 @@ func _run() -> void:
 	var crowns := _find_named(main, "Fx_crowned_crown")
 	_check(crowns.size() <= 1, "one crown for one callout, none for a throttled one (%d)" % crowns.size())
 	_check(crowns.all(func(c) -> bool: return c.get_parent() is Fx.FxCallout), "the crown belongs to its callout")
-	await _wait(Fx.CALLOUT_LIFE + 0.3)
+	await _wait(Fx.CALLOUT_LIFE_CROWNED + 0.3)  # (A Crowned callout holds longer than an ordinary one)
 	_check(_find_named(main, "Fx_crowned_crown").is_empty(), "and goes when the callout does")
 
 	# --- Mushroom Rain (card 134): the Mushrooming cloud lasts twice as long and covers the 3×3 ---

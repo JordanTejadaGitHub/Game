@@ -13,7 +13,7 @@ const CORE := Palette.HEARTLIGHT
 const GOLD_CORE := Palette.GLOW  # Tier 3 only (gold already means crits and the Acorn aura)
 const EDGE := Palette.EMBER  # The darker ember edge under every trace: pale-on-pale vanished on the act 1 path (owner)
 const DUSK_EDGE := Palette.DUSK  # The outer dusk line under the ember on the brightest traces
-const FLARE_EVERY_MS := 500  # Tier 3's launch flare: once per Warden per 0.5 s (spec B6), and Fx.bright_flash_ok
+const FLARE_EVERY_MS := 500  # Tier 3's launch flare: once per Warden per 0.5 s (spec B6), and Fx.small_flash_ok
 const FLARE_EFFECT := &"dream_flare"  # Tower Assets' sheet (spec D); a drawn bloom stands in until it exists
 const TRAIL_SAMPLES: Array[int] = [0, 3, 5, 5]
 const ALPHA: Array[float] = [0.0, 0.35, 0.6, 0.8]
@@ -67,14 +67,16 @@ static func dot(canvas: CanvasItem, at: Vector2, radius: float, tier: int, fade:
 	if tier <= 0:
 		return
 	var al := alpha(tier) * fade
-	canvas.draw_circle(at, radius + 1.0, Color(EDGE, 0.75 * al))
-	canvas.draw_circle(at, radius, Color(core(tier), minf(al * 1.3, 1.0)))
+	# Pixel squares, not circles (perf, test_perf_stress's 40 gold-tier Wardens: a draw_circle is a many-sided polygon)
+	var edge := radius + 1.0
+	canvas.draw_rect(Rect2(at - Vector2(edge, edge), Vector2(edge, edge) * 2.0), Color(EDGE, 0.75 * al))
+	canvas.draw_rect(Rect2(at - Vector2(radius, radius), Vector2(radius, radius) * 2.0), Color(core(tier), minf(al * 1.3, 1.0)))
 
 # A ring rim (pulses: one inner line on the ring).
 static func rim(canvas: CanvasItem, centre: Vector2, radius: float, tier: int, fade: float = 1.0) -> void:
 	if tier <= 0 or radius <= 2.0:
 		return
-	var points := clampi(int(radius / 3.0), 24, 160)
+	var points := clampi(int(radius / 6.0), 16, 64)  # (Perf: half the points; a 1-3 px line reads the same)
 	var al := alpha(tier) * fade
 	canvas.draw_arc(centre, radius, 0.0, TAU, points, Color(EDGE, 0.8 * al), 3.0, false)
 	canvas.draw_arc(centre, radius, 0.0, TAU, points, Color(core(tier), minf(al * 1.3, 1.0)), 1.0, false)
@@ -113,7 +115,7 @@ static func flare(tower: Node2D, at: Vector2, tier: int) -> void:
 	var now := Time.get_ticks_msec()
 	if now - int(tower.get_meta(&"dream_flare_at", -FLARE_EVERY_MS)) < FLARE_EVERY_MS:
 		return
-	if not Fx.bright_flash_ok():
+	if not Fx.small_flash_ok():  # A small flare: the small-flash budget, never the big moments' (bright_flash_ok)
 		return
 	tower.set_meta(&"dream_flare_at", now)
 	var world := Reactions._world(tower)
