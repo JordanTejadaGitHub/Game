@@ -58,7 +58,7 @@ func _edge(img: Image, r: float, col: Color, alpha_in: float, dots: int = 0) -> 
 			if d > r and d <= r + 1.0:
 				_px(img, x, y, Color(NIGHT, 0.55 * alpha))
 			elif d <= r and d > r - 2.0:
-				_px(img, x, y, Color(col, alpha))
+				_px(img, x, y, Color(col, alpha_in * (1.0 if (x + y) % 2 == 0 else 0.55)))  # 0.75 and 0.4 pixels alternating: between the two steps (user: "a bit less translucent")
 
 # A small blob with a 1 px outline (a pebble, a dust puff, a spore puff), lit upper left.
 func _blob(img: Image, c: Vector2, rad: float, lit: Color, shade: Color, outline: Color, alpha: float, dither: bool = false) -> void:
