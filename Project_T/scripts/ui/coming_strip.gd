@@ -45,7 +45,7 @@ func _ready() -> void:
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
 	_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_row.add_theme_constant_override("separation", 4)
+	_row.add_theme_constant_override("separation", 18)  # Room for each count plate hung past its disc (UI council round 5)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
 	_kind_words.name = "KindWords"
@@ -358,15 +358,15 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.number(badge, 13, UiStyle.GOLD)
 	_badge_look(badge)
-	badge.add_theme_stylebox_override("normal", UiStyle.plate_box(4.0, 0.0))  # On a small glass plate (UI council round 4: hard to read bare)
+	badge.add_theme_stylebox_override("normal", UiStyle.plate_box(3.0, 0.0))  # On a small glass plate (UI council round 4: hard to read bare)
 	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	# Hung off the disc's corner, not over the nightmare's face (UI council 2026-10-22: "×57" covered the art)
-	badge.offset_left += 10.0
-	badge.offset_right += 10.0
-	badge.offset_top += 7.0
-	badge.offset_bottom += 7.0
+	badge.offset_left += 20.0  # Round 5: the plate hung over the face; now it sits past the disc's edge
+	badge.offset_right += 20.0
+	badge.offset_top += 9.0
+	badge.offset_bottom += 9.0
 	holder.add_child(badge)
 	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold tab over the disc's top edge (a new rule-breaker: always)
 		var tag := Label.new()

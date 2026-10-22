@@ -614,7 +614,7 @@ static func _statuses_of(data: TowerData) -> Array[StringName]:
 func _status_chip(status: StringName) -> Control:
 	var chip := PanelContainer.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(8.0, 2.0, &"plate_dim"))  # Moon-glass (UI Code 8ecd7fb4)
+	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(11.0, 2.0, &"plate_dim"))  # Moon-glass (UI Code 8ecd7fb4); 11: the word kept off the rim (UI council round 5)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -777,6 +777,7 @@ func _route_lane(branch: TowerData) -> Control:
 	words.add_theme_constant_override("separation", -2)
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Centred on the icon (UI council round 5: names sat at its top)
 	words.add_child(_lane_line(branch.display_name, _fs(13), UiStyle.INK, "Name"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):

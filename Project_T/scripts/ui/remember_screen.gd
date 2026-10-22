@@ -153,6 +153,7 @@ func _ready() -> void:
 	var peek_button := peek.make_peek_button()
 	if peek_button is Button:
 		UiStyle.quiet(peek_button)
+		peek_button.custom_minimum_size.y = 48  # As tall as Done beside it (UI council round 5: the pair looked ragged)
 	footer.add_child(peek_button)
 	visible = false
 	_connect_dream_state()
@@ -671,6 +672,7 @@ var _middle := ScrollContainer.new()
 var _middle_box := VBoxContainer.new()
 const VIEW_MARGIN := 24.0  # Kept free above and below the panel
 const MIDDLE_MIN := 120.0  # The scrolling middle never gets shorter than this
+const SCROLL_BAR_FROM := 60.0  # Px of overflow before the middle shows its scrollbar
 var _tabs_home: Array = []  # [parent, index] of the tabs while they scroll with the middle (_fit_middle)
 
 func _fit_middle() -> void:
@@ -695,6 +697,9 @@ func _fit_middle() -> void:
 		room -= tabs_h
 		content -= tabs_h
 	var height := clampf(room, MIDDLE_MIN, content)
+	# A sliver over (the tree's empty top) scrolls by wheel or drag without a bar (UI council round 5: a full-length
+	# thumb with nothing to scroll); a real overflow keeps its bar.
+	_middle.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER if content - height < SCROLL_BAR_FROM else ScrollContainer.SCROLL_MODE_AUTO
 	if not is_equal_approx(_middle.custom_minimum_size.y, height):
 		_middle.custom_minimum_size.y = height
 
@@ -1061,6 +1066,8 @@ func _cost_on(button: Button, cost: int, short: bool) -> void:
 	UiStyle.number(number, 18, UiStyle.POOR if short else UiStyle.GOLD)
 	price.add_child(number)
 	button.add_child(price)
+	# The label centres in the room left of the cost, as beside a key chip (UI council round 5)
+	UiStyle.shift_label(button, price.get_combined_minimum_size().x + 14.0)
 
 func _refuse_call_back(button: Button, cost: int) -> void:
 	CantAfford.shake(button)

@@ -72,11 +72,7 @@ func _ready() -> void:
 	_menu.add_child(title)
 	var resume := _add_button("Resume", resume_game)
 	UiStyle.primary(resume)
-	var esc := UiStyle.key_chip("Esc")
-	esc.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	esc.offset_left = -44
-	esc.offset_right = -14
-	resume.add_child(esc)
+	UiStyle.key_chip_on(resume, "Esc")  # The label centred left of the chip (UI council round 5)
 	_add_button("Settings", _show_settings)
 	_add_button("Codex", func() -> void:
 		row.visible = false

@@ -1115,7 +1115,7 @@ static func _fit_key_chip(button: Button, chip: Label, grow: bool) -> void:
 		var text_w := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, button.get_theme_font_size("font_size")).x
 		shift = chip_size.x + KEY_CHIP_GAP
 		room = ceilf(text_w + shift + KEY_CHIP_GAP * 3.0)
-	_shift_label(button, shift)
+	shift_label(button, shift)
 	button.set_meta(&"key_room", room)
 	if grow and button.custom_minimum_size.x < room:
 		button.custom_minimum_size.x = room
@@ -1124,7 +1124,7 @@ static func _fit_key_chip(button: Button, chip: Label, grow: bool) -> void:
 # beside the chip): every state's box gets `shift` more right content margin. Boxes the button had overridden before
 # are kept as the base; the rest follow its theme variation (Start swaps HudPrimary / HudButton).
 const KEY_STATES := [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]
-static func _shift_label(button: Button, shift: float) -> void:
+static func shift_label(button: Button, shift: float) -> void:
 	if not button.has_meta(&"key_base"):
 		var base := {}
 		for state in KEY_STATES:
