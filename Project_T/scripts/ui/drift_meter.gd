@@ -173,7 +173,9 @@ func _ready() -> void:
 	_sort.text = "Sort: DPS"
 	_sort.focus_mode = Control.FOCUS_NONE
 	_sort.custom_minimum_size = Vector2(0, 32)
-	_sort.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_sort.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # A third of the tab row, clipped: it can never widen the meter
+	_sort.clip_text = true
+	_sort.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:  # A control: a small plate chip with a ▾ (Moon-glass)
 		var chip := UiStyle.plate_box(4.0, 2.0, &"plate_hover" if state == "hover" else &"plate")
 		chip.content_margin_right = 14.0  # Room for the ▾
@@ -201,6 +203,9 @@ func _ready() -> void:
 		tab.focus_mode = Control.FOCUS_NONE
 		tab.mouse_force_pass_scroll_events = false
 		tab.custom_minimum_size = Vector2(0, 32)
+		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Thirds with Sort, clipped: opening never widens the meter
+		tab.clip_text = true
+		tab.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		UiStyle.caps(tab, 14, UiStyle.INK)
 		var summary: bool = pair[2]
 		tab.pressed.connect(func() -> void: show_block_summary(summary))
@@ -219,7 +224,7 @@ func _ready() -> void:
 		tabs.add_child(tab)
 	_wardens_tab.set_pressed_no_signal(true)
 	var spread := Control.new()  # Sort sits at the tab row's right end
-	spread.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spread.size_flags_horizontal = Control.SIZE_FILL  # (No share: the tabs and Sort split the row)
 	tabs.add_child(spread)
 	tabs.add_child(_sort)
 	_body.add_child(tabs)
