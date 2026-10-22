@@ -416,6 +416,23 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 		if is_instance_valid(oldest):
 			oldest.queue_free()
 	var spot := at
+	if target != null:
+		# On its nightmare (user 2026-10-21: words sat beside their nightmare or floated on the path): centred on it, above
+		# its health bar and status row, one line up for each word already on it; never slotted sideways.
+		var line := 0
+		for c in _callouts_alive:
+			if c is FxCallout and Fx._followed(c.follow) == target:
+				line = maxi(line, c.line + 1)
+		var on := FxCallout.new(text, colour, icon, crowned)
+		on.key = key
+		on.spot = target.global_position
+		on.line = line
+		on.follow = weakref(target)
+		parent.add_child(on)
+		on.global_position = target.global_position
+		on.track()
+		_callouts_alive.append(on)
+		return on
 	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
 	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
 	# One column for every word at a spot (WorldLabel.callout_slot, shared with CombatCallouts and the chain badge):
@@ -426,7 +443,6 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	node.spot = spot
 	parent.add_child(node)
 	node.global_position = at
-	_attach(node, target)
 	_callouts_alive.append(node)
 	return node
 
@@ -1303,8 +1319,11 @@ class FxCallout extends Node2D:
 	var card_pip := false  # Reaction accent (C5): a small warm card pip before the word
 	var key: StringName = &""
 	var spot := Vector2.ZERO  # Where it was called (before stacking): the nightmare it belongs to (kept current while it follows)
-	var follow: WeakRef = null  # The nightmare it rides on (Fx._attach), with its offset
-	var follow_offset := Vector2.ZERO
+	var follow: WeakRef = null  # The nightmare it rides on (Fx.callout): centred on it, above its bar and status row
+	var follow_offset := Vector2.ZERO  # (Unused for a following word: kept for Fx._attach's other users)
+	var line := 0  # Words stacked on the same nightmare: 0 = just above it, 1 = one line higher…
+	var _head := -1.0  # World px from the nightmare's feet up to the top of its status row (-1: not following, LIFT)
+	const STATUS_ROW_PX := 20.0  # The status badges over the health bar, and a little air
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
@@ -1337,11 +1356,30 @@ class FxCallout extends Node2D:
 		_count = count
 		queue_redraw()
 
-	func _process(delta: float) -> void:
+	# Its place over the nightmare this frame (centred, above the bar and status row), or, once the nightmare is dispelled
+	# or freed, a fade from where it was last (about CALLOUT_FADE, never a hold).
+	func track() -> void:
+		if follow == null:
+			return
 		var target := Fx._followed(follow)
-		if target != null:  # On its nightmare; once it's gone, where it was last
-			global_position = target.global_position + follow_offset
-			spot = target.global_position
+		if target == null:
+			follow = null
+			_age = maxf(_age, POP_TIME + _hold)  # Straight into the fade
+			return
+		global_position = target.global_position
+		spot = target.global_position
+		var anchor: Vector2 = target.call(&"_hud_anchor") if target.has_method(&"_hud_anchor") else Vector2(0, -40)
+		_head = -anchor.y + STATUS_ROW_PX
+
+	# How far up the word's centre sits (screen-scaled parts times the text scale).
+	func _lift(fading: float) -> float:
+		var ts := WorldLabel.text_scale(self)
+		if _head < 0.0:
+			return (LIFT + RISE * fading) * ts
+		return _head + (ICON_PX / 2.0 + 4.0 + line * WorldLabel.CALLOUT_CLEAR.y + RISE * fading) * ts
+
+	func _process(delta: float) -> void:
+		track()
 		_age += delta
 		if _age >= _life():
 			queue_free()
@@ -1354,7 +1392,7 @@ class FxCallout extends Node2D:
 		var p := clampf(_age / POP_TIME, 0.0, 1.0)
 		var pop := lerpf(POP_FROM, POP_OVER, p / 0.7) if p < 0.7 else lerpf(POP_OVER, 1.0, (p - 0.7) / 0.3)
 		var s := WorldLabel.text_scale(self) * pop  # Screen size when zoomed in, the UI factor, and the pop
-		draw_set_transform(Vector2(0.0, -(LIFT + RISE * fading) * WorldLabel.text_scale(self)), 0.0, Vector2(s, s))
+		draw_set_transform(Vector2(0.0, -_lift(fading)), 0.0, Vector2(s, s))
 		var font := UiStyle.display_font()
 		var count_font := UiStyle.number_font()
 		var shown_count := _count if _count > 1 else _repeat
@@ -1365,7 +1403,7 @@ class FxCallout extends Node2D:
 		var total := icon_w + text_w + (GAP + count_w if count_text != "" else 0.0)
 		var x := -total / 2.0
 		var baseline := font.get_ascent(_size) / 2.0 - 2.0  # The word centred on the line
-		var origin := Vector2(0.0, -(LIFT + RISE * fading) * WorldLabel.text_scale(self))
+		var origin := Vector2(0.0, -_lift(fading))
 		Fx.draw_halo(self, origin, s, Vector2.ZERO, Vector2(total / 2.0 + HALO_PAD.x, ICON_PX / 2.0 + HALO_PAD.y), alpha)
 		if card_pip:  # A diamond, ember-edged so it reads on the pale path
 			var c := Vector2(x - 8.0, 0.0)
