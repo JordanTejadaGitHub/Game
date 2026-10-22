@@ -526,7 +526,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 # A discovery freezes the world on the moment (the nightmare ringed), with the card in the screen centre and
 # the map visible. Continue resumes at the previous speed (already paused stays paused); several
 # queue behind one pause. While a choice screen or the pause menu is open, it waits. The Gameplay
-# setting "Pause on new combos" (pause_on_combo, default on) off = the old 5 s slide-in card.
+# setting "Pause on new combos" (pause_on_combo, default off since 44fe84d9) off = the DiscoveryCard at the right edge.
 
 # Headless test scripts never pause on a discovery (a drift would stall mid-test) unless a test
 # turns it on with `pause_in_tests`.
@@ -535,7 +535,7 @@ static var pause_in_tests := false
 static func pause_setting() -> bool:
 	if OS.get_cmdline_args().has("--script"):
 		return pause_in_tests
-	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, true))
+	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, false))  # Off by default: the DiscoveryCard (screens_ui.md 44fe84d9)
 
 func _try_show() -> void:
 	if CaptureDirector.capturing():  # Marketing captures run on a fresh profile: every combo is "new", no cards
@@ -681,6 +681,14 @@ func _show_next() -> void:
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
 		card_text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
 	_fill_card(_card_id, is_chain, order)
+	if not pause_setting():  # Doesn't pause (the default since screens_ui.md 44fe84d9): the readable discovery card
+		_post_discovery(_card_id)
+		if is_chain:
+			combo_discovered.emit(_card_id)
+		_enemies.erase(_card_id)
+		_card.visible = false
+		_show_next.call_deferred()  # The DiscoveryCard queues them one after another
+		return
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing
@@ -716,6 +724,14 @@ func _show_next() -> void:
 	_card_tween.tween_interval(CARD_TIME)  # Setting off: the old slide-in card, for 5 s
 	_card_tween.tween_property(_card, "modulate:a", 0.0, 0.5)
 	_card_tween.tween_callback(_show_next)
+
+# A Reaction, Crowned Reaction, Kinship, combo or chain found, as one DiscoveryCard (screens_ui.md 44fe84d9): its
+# name, one plain sentence, its icon; a tap opens it in the Codex's Combos.
+func _post_discovery(id: StringName) -> void:
+	var lines := card_text.split("\n", false)
+	var title := _card_title.text if _card_title.text != "" else (lines[0].get_slice(":", 1).strip_edges() if not lines.is_empty() else String(id))
+	var rest := "" if lines.size() < 2 else lines[1]
+	DiscoveryCard.post(get_tree(), title, DiscoveryCard.first_sentence(rest), _hero.texture, null, &"combos", String(id))
 
 func _open_in_codex(id: StringName) -> void:
 	var pause := get_node_or_null("%PauseMenu")

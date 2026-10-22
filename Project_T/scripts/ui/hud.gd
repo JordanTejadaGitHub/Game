@@ -151,6 +151,7 @@ func _ready() -> void:
 	var strip := ComingStrip.new(drift_director)
 	add_child(strip)
 	add_child(CHAIN_COUNTER.new())  # The live Reaction chain count, under the strip (screens_ui.md 801d7ae8)
+	add_child(DiscoveryCard.new())  # First-time discoveries you can read, at the right edge (screens_ui.md 44fe84d9)
 	if TestGrove.is_available():  # Developer "Dream damage panel" (Roguelite Code 2026-10-17); shows while its setting is on
 		var dream_damage = DREAM_DAMAGE_PANEL.new()
 		dream_damage.setup(dream_state)
