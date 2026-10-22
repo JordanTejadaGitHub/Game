@@ -21,12 +21,9 @@ static func make(chips: Array, icon_size: int = 0, outline: Color = UiStyle.GOLD
 	var phone := UiStyle.is_phone()
 	if phone:
 		row.custom_minimum_size.y = PHONE_ROW_H
-	# One line for a card's two chips; a Warden's (roles + statuses, no cap) can be more: those wrap, never clip
-	var one_line := outline.a > 0.0 and chips.size() <= 2
-	var flow: Container = HBoxContainer.new() if one_line else HFlowContainer.new()
-	if one_line:
-		row.clip_contents = true  # Never wider than the card (at most two chips: it fits)
-		flow.add_theme_constant_override("separation", 4)
+	# Always a wrapping row: two short chips still share a line, two long ones wrap (user 2026-10-22: "Clusters" +
+	# "Mixed statuses" ran off the right of a Calling card; it was a one-line row for any two chips)
+	var flow := HFlowContainer.new()
 	flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	flow.add_theme_constant_override("h_separation", 4)
