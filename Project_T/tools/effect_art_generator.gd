@@ -25,6 +25,7 @@ const OUTLINE := Color("#1a1420")
 var index := {}
 var previews: Array = []  # [name, sheet, frame size, frames]
 var rx = preload("res://tools/reaction_art.gd").new()  # The eight base Reactions (user-approved redraw 2026-10-21)
+var sr = preload("res://tools/splash_ring_art.gd").new()  # The splash rings by family (2026-10-21)
 
 func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
@@ -227,6 +228,11 @@ func _reactions() -> void:
 		{callout = "#a8d060", reaction = "Held + Spored", note = "Loops while the hold lasts."})
 	_rx_sheet("lightning_rod", "lightning_rod", 12, 16.0, false, "reaction",
 		{callout = "#fff27a", reaction = "Marked + Static"})
+	# The splash rings by family (tools/splash_ring_art.gd, user-approved 2026-10-21), drawn at a 1-cell radius.
+	for style: String in sr.STYLES:
+		_sheet("splash_ring_" + style, Vector2i(160, 160), 8, 18, Vector2i(80, 80), false, "ground",
+			func(img: Image, f: int) -> void: sr.draw(img, f, style),
+			{note = "A splash's reach where it lands, in the %s family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once." % style})
 
 # One redrawn Reaction: `name` over the nightmare and `name`_ground under it, drawn by reaction_art.gd's `art`.
 func _rx_sheet(name: String, art: String, frames: int, fps: float, loop: bool, kind: String, extra: Dictionary) -> void:
