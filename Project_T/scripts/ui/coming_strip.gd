@@ -109,6 +109,9 @@ func _process(delta: float) -> void:
 # then the active Omen's line (Roguelite's OmenScreen tag "ActiveOmen"), then this strip.
 const OMEN_TOP := 68.0  # Just under the banner's boss row
 func _stack() -> void:
+	if _phone:
+		_stack_phone()
+		return
 	var top := TOP
 	var omen := get_parent().get_node_or_null("ActiveOmen") as Control if get_parent() != null else null
 	if omen != null and omen.visible:
@@ -268,7 +271,7 @@ func _build_kind_words(_span: Vector2i) -> void:
 		words.add_theme_font_size_override("font_size", 14 if _phone else 15)
 		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		_kind_words.add_child(words)
-	_kind_words.visible = _kind_words.get_child_count() > 0
+	_kind_words.visible = _kind_words.get_child_count() > 0 and not _phone  # Phones: discs only (_stack_phone)
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
 		_caption.visible = not _kind_words.visible
 
@@ -408,3 +411,38 @@ func _under_drawer() -> bool:
 		hud = hud.get_parent()
 	var drawer := hud.get_node_or_null("WardenPanel") as CanvasItem if hud != null else null
 	return drawer != null and drawer.visible
+
+# Phones (user 2026-10-21: "move the drifts coming somewhere else, takes too much space", then "put the incoming drift to
+# the top right between the buttons and middle title"): in the top row, right-aligned just left of the top-right
+# buttons and clear of the drift banner, discs only; the "Drift N · Swarm: …" line stays off (a disc's tap card says
+# it, and the disc keeps its "New" tag). With no room between them it drops just under the buttons.
+const PHONE_GAP := 8.0
+
+func _stack_phone() -> void:
+	_kind_words.visible = false
+	var hud := get_parent()
+	if hud == null:
+		return
+	var buttons_left := get_parent_area_size().x - 16.0
+	var buttons_bottom := 12.0
+	var names: Array = hud.call("_top_row_names") if hud.has_method("_top_row_names") else []
+	for name in names:
+		var button := hud.get_node_or_null(name) as Control
+		if button != null and button.visible:
+			buttons_left = minf(buttons_left, button.get_rect().position.x)
+			buttons_bottom = maxf(buttons_bottom, button.get_rect().end.y)
+	var banner_right := 0.0
+	var banner := hud.get_node_or_null("DriftBanner") as Control
+	if banner != null and banner.visible and banner.has_method("drawn_rect"):
+		banner_right = banner.drawn_rect().end.x - (hud.global_position.x if hud is Control else 0.0)
+	var need := get_combined_minimum_size()
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	grow_horizontal = Control.GROW_DIRECTION_END
+	grow_vertical = Control.GROW_DIRECTION_END
+	var right := buttons_left - PHONE_GAP
+	var top := 4.0
+	if right - need.x < banner_right + PHONE_GAP:  # No room beside the buttons: under them, right-aligned
+		right = get_parent_area_size().x - 16.0
+		top = buttons_bottom + PHONE_GAP
+	position = Vector2(right - need.x, top)
+	size = need

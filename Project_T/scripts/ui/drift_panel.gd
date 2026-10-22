@@ -235,7 +235,6 @@ func _process(_delta: float) -> void:
 	if _unconfirmed_wardens():
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
-		_fit_phone_start_text()
 		_status_label.visible = false  # Phones: the big button already says it (user 2026-10-18: "a lot of clutter on the right side")
 		_hide_speed_while_building(bool(tower_placer.get("build_mode")))
 		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
@@ -268,6 +267,8 @@ func _process(_delta: float) -> void:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 	_fold_notes()
+	if UiStyle.is_phone():
+		_fit_phone_start_text()  # After every text above ("Choose a Dream", "Resume"…)
 
 # The drift panel holds only Start / Call early and the speed row (UI Asset fc82d5e8): the status line ("Rest after drift
 # N", "Resting: selling refunds 75%", "Maze bonus: +N at rest") never shows; the next drift's Dew pot, the maze bonus

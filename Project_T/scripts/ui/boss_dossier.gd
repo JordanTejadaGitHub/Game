@@ -333,7 +333,7 @@ func _place_reminder() -> void:
 		return
 	var top := 96.0
 	for node in hud.get_children():
-		if node is Control and (node as Control).visible and (node is ComingStrip or node.name == "DriftBanner"):
+		if node is Control and (node as Control).visible and ((node is ComingStrip and not UiStyle.is_phone()) or node.name == "DriftBanner"):  # (Phones: the strip is bottom right)
 			top = maxf(top, lowest(node) - _origin_y(hud) + REMINDER_GAP)
 	var view := get_viewport_rect().size
 	_compact_reminder(false)
@@ -362,7 +362,7 @@ static func column_bottom(hud: Node) -> float:
 	var bottom := 0.0
 	for node in hud.get_children():
 		if node is Control and (node as Control).is_visible_in_tree() \
-				and (node is ComingStrip or node.name == "DriftBanner" or node.name == "BossReminder"):
+				and ((node is ComingStrip and not UiStyle.is_phone()) or node.name == "DriftBanner" or node.name == "BossReminder"):
 			bottom = maxf(bottom, lowest(node) - _origin_y(hud))
 	return bottom
 

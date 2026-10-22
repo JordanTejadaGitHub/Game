@@ -160,6 +160,7 @@ func _replay_guides() -> void:
 # fills the rest: This run (facts, families, Lessons, Replay lessons), the Codex or Settings, each in one solid pane.
 const PHONE_RAIL_W := 200.0  # (250 left the Codex's Families tree, 790 wide, past a 1100-wide phone view)
 const PHONE_MARGIN := 16
+const PANE_RUN_W := 460.0  # Phones: This run's page width (it hugs its content)
 var _phone := false
 var _phone_root: HBoxContainer
 var _status_line := HBoxContainer.new()  # Two icon + number pairs: the drift ("0/100") and the leaves ("15")
@@ -216,7 +217,8 @@ func _build_phone() -> void:
 		_pane_buttons[pane[0]] = toggle
 	_save_button = _add_button("Save & quit…", ask_quit)  # Secondary, Resume's size (the theme's plain frame)
 	_save_button.name = "Quit"
-	_add_copy_save()
+	if not _phone:
+		_add_copy_save()  # (Phones: on This run's page, added after it is filled)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_menu.add_child(spacer)
@@ -247,6 +249,7 @@ func _build_phone() -> void:
 	_run_page.add_theme_constant_override("separation", 12)
 	run_scroll.add_child(_run_page)
 	_fill_run_side(_run_page)
+	_add_copy_save()
 	codex = CodexPanel.new()
 	codex.embedded = true
 	pane_box.add_child(codex)
@@ -277,6 +280,9 @@ func _show_pane(pane: StringName) -> void:
 	_run_page.get_parent().visible = pane == &"run"
 	# This run hugs its content (user 2026-10-17: a lot of unfilled space); the Codex and Settings fill the pane.
 	_pane_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_FILL
+	# …and only as wide as it needs (user 2026-10-21: the Lessons toggle sat across a screen of nothing); PANE_RUN_W at least.
+	_pane_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_EXPAND_FILL
+	_pane_box.custom_minimum_size.x = PANE_RUN_W if pane == &"run" else 0.0
 	_settings.visible = pane == &"settings"
 	if pane == &"codex":
 		if not codex.visible:
@@ -289,7 +295,7 @@ func _show_pane(pane: StringName) -> void:
 # open page adds the Glow underline (the active-tab look) with Glow text.
 func _page_toggle_look(toggle: Button) -> void:
 	for state in ["pressed", "hover_pressed"]:  # Moon-glass: the open page is a tab, in brass (not the pushed-in plate)
-		toggle.add_theme_stylebox_override(state, UiStyle.plate_box(14.0, 6.0, &"plate_yours"))
+		toggle.add_theme_stylebox_override(state, UiStyle.plate_box(14.0, 6.0, &"plate" if _phone else &"plate_yours"))  # Phones: a plain plate with Gold text, never Resume's brass (user 2026-10-21)
 	for state in ["font_pressed_color", "font_hover_pressed_color"]:
 		toggle.add_theme_color_override(state, UiStyle.GOLD)
 
@@ -491,11 +497,16 @@ func _add_copy_save() -> void:
 	var button := _add_button(COPY_SAVE_TEXT, _copy_save)
 	button.name = "CopySave"
 	button.add_theme_font_size_override("font_size", 14)
+	if _phone:  # Phones (user 2026-10-21: the rail scrolled): on This run's page, after Replay lessons
+		_menu.remove_child(button)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		button.custom_minimum_size.x = 200.0
+		_run_page.add_child(button)
 
 const COPY_SAVE_TEXT := "Copy save (dev)"
 
 func _copy_save() -> void:
-	var button := _menu.get_node_or_null("CopySave") as Button
+	var button := find_child("CopySave", true, false) as Button
 	if button == null:
 		return
 	var path := RunSaver.file_path
@@ -531,10 +542,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		open()
 	get_viewport().set_input_as_handled()
 
+# Phones: a punch hole mid-side (hud.gd side_holes) moves the menu's content in by its margin; the menu itself stays
+# full screen (user 2026-10-21: shifted whole, it left a strip of map and the Warden drawer showing at the left).
+func _fit_phone_hole() -> void:
+	var margin := get_node_or_null("PhoneLayout") as MarginContainer
+	var holes: Variant = get_parent().get("side_holes") if get_parent() != null else null
+	if margin == null or not holes is Vector2:
+		return
+	margin.add_theme_constant_override("margin_left", PHONE_MARGIN + int((holes as Vector2).x))
+	margin.add_theme_constant_override("margin_right", PHONE_MARGIN + int((holes as Vector2).y))
+
 func open() -> void:
 	if not visible:  # Open already (Esc twice, the Menu button): keep the pause it found the first time
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
+	_fit_phone_hole()
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
 	_fill_facts()
@@ -561,6 +583,14 @@ func _fill_facts() -> void:
 		_fact(&"omen", "omen", omens.active.display_name)
 	var seconds := int(run_state.play_time)
 	_fact(&"", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	if _phone:  # Phones (user 2026-10-21: a lone bell icon under the facts): the families as a fact row like the rest
+		var names: Array[String] = []
+		for data in tower_placer.towers:
+			if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
+				names.append(data.display_name)
+		if not names.is_empty():
+			_fact(&"", "families", ", ".join(names))
+		return
 	for data in tower_placer.towers:
 		if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
 			var art := BranchEmblem.family(data)
@@ -612,6 +642,8 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 		_pane = &"codex"
 		_run_page.get_parent().visible = false
 		_pane_box.size_flags_vertical = Control.SIZE_FILL  # The Codex fills the pane (only This run hugs its content)
+		_pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_pane_box.custom_minimum_size.x = 0.0
 		_settings.visible = false
 		codex.open(tab, entry)
 		_sync_pane_buttons()

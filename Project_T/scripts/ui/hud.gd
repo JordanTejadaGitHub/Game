@@ -364,7 +364,7 @@ func _fit_safe_area() -> void:
 # Phones: a punch hole in the middle of a side (UiStyle.side_holes) keeps the HUD's corners on the screen's edge; only
 # the full-screen pages keep clear of it (their full-width anchors get the hole as side offsets), and the Warden drawer
 # docked left (WardenPanel._dock_left) and the Dreams page (DreamsRow) read `side_holes`.
-const HOLE_SCREENS := ["PauseMenu", "DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "RememberScreen",
+const HOLE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "RememberScreen",
 	"ResultsScreen", "BossDossier", "LessonCard"]
 var side_holes := Vector2.ZERO  # (left, right) in view units
 
