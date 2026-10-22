@@ -226,7 +226,9 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": "",
 	# Fewer, bigger cards (dream_design.md de439ea8): cut or folded
 	"family_ties": "", "broad_splash": "far_reach", "acorn_cache": "warm_hearth"}
-const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: three Dreamlight every 25 drifts; was four, plus one a rest from drift 51)
+const SECOND_PICK_DREAMLIGHT := 1  # The second family pick, after drift 10 (user 2026-10-22: "only give 1 dreamlight on drift 10")
+const ACT1_BOSS_DREAMLIGHT := 2  # Act 1's boss rest (drift 25) since the second pick moved to drift 10 (user 2026-10-22: "then 2 on drift 25")
+const BOSS_DREAMLIGHT := 3  # Each later boss rest (user 2026-10-01: three Dreamlight every 25 drifts; was four, plus one a rest from drift 51)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -777,7 +779,9 @@ func _ready() -> void:
 		if reason == &"first":
 			_first_pick_open = true  # Wider Roots: this pick's family offers one more branch
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # One branch early (run_design.md "Dreamlight")
+			add_dreamlight(first_pick_dreamlight, &"first_pick")  # One branch early (run_design.md "Dreamlight")
+		elif reason == &"second":
+			add_dreamlight(SECOND_PICK_DREAMLIGHT, &"first_pick"))  # The second family's pick after drift 10 (user 2026-10-22)
 	map_generator.path_changed.connect(_update_bends)
 	var damage_log := get_node_or_null("%DamageLog")
 	if damage_log != null and damage_log.has_signal("damage_dealt"):
@@ -2794,7 +2798,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_rest_rules(_perfect)
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
-		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
+		var act1 := drift_director != null and drift_director.drifts_started <= drift_director.drifts_per_act
+		add_dreamlight(ACT1_BOSS_DREAMLIGHT if act1 else BOSS_DREAMLIGHT, &"boss")  # Drift 25: 2; later bosses 3
 		_remember_open = true
 		remember_requested.emit(null)
 	var unique_raised: Array = []
@@ -4871,7 +4876,9 @@ func get_reaction_card_multiplier(enemy: Node2D = null, id: StringName = &"", to
 
 # Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
 func sim_dreamlight_for(kind: StringName) -> int:
-	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+	if kind == &"second":
+		return SECOND_PICK_DREAMLIGHT
+	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)  # (The sims' act 1 boss: see _on_rest_started, ACT1_BOSS_DREAMLIGHT)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
 # the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
