@@ -83,8 +83,10 @@ func _run() -> void:
 	await _frames(1)
 	_check(callouts.discovered == [Signatures.CRUSHING], "the first Crushing is a discovery (%s)" % [callouts.discovered])
 	_check(callouts._alive.any(func(c: Array) -> bool: return c[1] == "Crushing"), "its name pops over the Warden")  # (Callouts have no exclamation marks, wording review 2026-10-13)
-	var toast := main.get_node("%ToastLabel") as Label
-	_check(toast != null and toast.text.begins_with("Signature discovered: Crushing"), "the HUD says what it does (%s)" % (toast.text if toast else ""))
+	# A discovery card at the right edge says what it does (screens_ui.md 44fe84d9: no more long toasts)
+	var card := main.get_tree().get_first_node_in_group(DiscoveryCard.GROUP) as DiscoveryCard
+	_check(card != null and card._title.text == "Crushing" and card._line.text != "" and card._by.text.contains(crusher.tower_data.display_name),
+		"a discovery card says what it does and which Warden did it (%s: %s)" % [card._title.text if card else "", card._line.text if card else ""])
 	var later := _plant("sporeling", Vector2(6, 2), [P, P, P, P, R])
 	await _frames(1)
 	later.signature_fired.emit(later, Signatures.CRUSHING)

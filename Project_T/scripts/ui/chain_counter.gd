@@ -37,6 +37,11 @@ func _ready() -> void:
 	_row.add_theme_constant_override("separation", 6)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
+	_break_bar.name = "BreakBar"
+	_break_bar.custom_minimum_size = Vector2(BAR_W, BAR_H + 4.0)
+	_break_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_break_bar.draw.connect(_draw_break_bar)
+	add_child(_break_bar)
 	_icon.texture = IconInfo.icon(&"chain")
 	_icon.visible = _icon.texture != null
 	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -69,6 +74,9 @@ func _process(delta: float) -> void:
 	_place()
 	if not visible:
 		return
+	if _break_left > 0.0 and not get_tree().paused:  # Game time, as Reactions measure the window
+		_break_left = maxf(_break_left - delta, 0.0)
+		_break_bar.queue_redraw()
 	_left -= delta / maxf(Engine.time_scale, 0.001)  # Real seconds: the fade reads the same at 3×
 	if _left <= 0.0:
 		modulate.a = clampf(1.0 + _left / FADE, 0.0, 1.0)  # multiplier
@@ -103,8 +111,25 @@ func _on_chain(count: int, _where: Vector2, _towers: Array) -> void:
 	visible = true
 	modulate.a = 1.0  # multiplier
 	_left = HOLD
+	_break_left = Reactions.CHAIN_WINDOW  # The next link must come before this runs out
+	_break_bar.queue_redraw()
 	if grew and not bool(Fx.setting("reduced_motion", false)):
 		_pop(count in FLARES)
+
+# The time-to-break bar (Tower Code bcd11e33 moved the chain off the field: the world badge and its pip bar are gone):
+# a thin Gold bar under "Chain ×N" that empties over Reactions.CHAIN_WINDOW after each link; gone once it breaks.
+const BAR_W := 96.0
+const BAR_H := 3.0
+var _break_bar := Control.new()
+var _break_left := 0.0
+
+func _draw_break_bar() -> void:
+	if _break_left <= 0.0:
+		return
+	var share := _break_left / Reactions.CHAIN_WINDOW
+	var left := (_break_bar.size.x - BAR_W) / 2.0
+	_break_bar.draw_rect(Rect2(left, 2.0, BAR_W, BAR_H), Color(Palette.VOID, 0.6))
+	_break_bar.draw_rect(Rect2(left, 2.0, BAR_W * share, BAR_H), UiStyle.GOLD)
 
 # A pop on a new link; at ×5 / ×10 a bigger one with a warm flash, timed with Fx's surge / Dawnburst.
 func _pop(flare: bool) -> void:

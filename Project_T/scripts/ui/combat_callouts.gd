@@ -59,9 +59,26 @@ func _card_callout(event: DamageLog.Event) -> void:
 	if id != "":
 		_pop_card(id, event.enemy.global_position, event.enemy)
 
-func _on_card_fired(id: StringName, at: Vector2, _source: Node = null) -> void:  # source: visual feedback spec (Roguelite, 2026-10-18)
+func _on_card_fired(id: StringName, at: Vector2, source: Node = null) -> void:  # source: visual feedback spec (Roguelite, 2026-10-18)
 	if at.is_finite():
 		_pop_card(String(id), at, null)
+	if not _first_fired.has(id):  # Its first fire this run: a discovery card (screens_ui.md 44fe84d9)
+		_first_fired[id] = true
+		_post_first_fire(id, source)
+
+var _first_fired := {}  # Card / Calling evolution id -> true once its first fire this run was shown
+
+func _post_first_fire(id: StringName, source: Node) -> void:
+	var card: UpgradeData = DreamState.CALLING_PATHS.card(id) if DreamState.CALLING_PATHS.PATHS.has(id) else null
+	if card == null:
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+		if dreams != null:
+			for each in dreams.pool:
+				if each.id == String(id):
+					card = each
+					break
+	var line := DiscoveryCard.first_sentence(card.description) if card != null else ""
+	DiscoveryCard.post(get_tree(), card_name(String(id)), line, null, source, &"", card_name(String(id)))
 
 func _pop_card(id: String, at: Vector2, enemy: Node2D) -> void:
 	var drift := _drift_now()
@@ -176,10 +193,10 @@ func _on_signature(tower: Tower, id: StringName) -> void:
 	if not first:
 		return
 	discovered.append(id)
-	var hud := owner.get_node_or_null("HUD") if owner != null else null
-	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast("Signature discovered: %s (%s): %s." % [Signatures.NAMES.get(id, id), tower.tower_data.display_name,
-			Signatures.TEXT.get(id, "")])
+	# A discovery card at the right edge, not a toast (screens_ui.md 44fe84d9): the name, one plain sentence, the Warden
+	var sig_name := String(Signatures.NAMES.get(id, String(id).capitalize()))
+	DiscoveryCard.post(get_tree(), sig_name, DiscoveryCard.first_sentence(String(Signatures.TEXT.get(id, ""))), null, tower,
+		&"glossary", sig_name)
 	signature_discovered.emit(id, tower)
 	if owner == null or get_tree().current_scene != owner:
 		return  # Tests and previews never write the profile

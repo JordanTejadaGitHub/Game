@@ -198,6 +198,16 @@ func _keywords() -> void:
 		problems.append("Reaction links inside Crowned Reaction")
 	if StatusLinks.bbcode("Calling early pays Dew.").contains("term:calling") or StatusLinks.bbcode("Dream Oak grows.").contains("term:dream"):
 		problems.append("a keyword links inside a name or a verb (Calling early, Dream Oak)")
+	# Cards (owner 2026-10-22, text_pass.md revision: "too many underlined words on cards"): the basic words are plain,
+	# token or not; a status is its icon and coloured name (a link, no underline); other keywords underline once.
+	for id in StatusLinks.CARD_PLAIN:
+		if StatusLinks.card_bbcode("a {%s} b" % id).contains("[url=term:%s]" % id):
+			problems.append("card: the basic word %s is underlined on a card" % id)
+	var card_status := StatusLinks.card_bbcode("Adds Soak. More Soak.")
+	if card_status.count("[url=status:damp]") != 1 or not card_status.contains("[img") or card_status.contains("[u "):
+		problems.append("card: a status is not its icon and coloured name once, without an underline (%s)" % card_status)
+	if StatusLinks.card_bbcode("A Reaction and a Reaction.").count("[url=term:reaction]") != 1:
+		problems.append("card: a special keyword (Reaction) isn't underlined exactly once")
 	var named := StatusLinks.bbcode("Beside a {warden:sporeling}.")
 	if not named.contains("[url=warden:sporeling]") or StatusLinks.card_tip("warden:sporeling").get("text", "") == "":
 		problems.append("{warden:id} is not a name link with a tip (%s)" % named)

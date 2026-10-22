@@ -75,7 +75,7 @@ static func defaults() -> Dictionary:
 			"window_size": 0,  # Index into SettingsPanel.WINDOW_SIZES (windowed mode)
 			"high_contrast_route": false,  # RouteLine: bright, thick route previews
 			"confirm_sell": true,  # Warden panel: confirm "Sell N" while nightmares walk
-			"pause_on_combo": true,  # A first-ever combo discovery pauses the game (off: a 5 s slide-in card)
+			"pause_on_combo": false,  # On: a first-ever combo discovery pauses on its big card. Off (default since screens_ui.md 44fe84d9): the DiscoveryCard, no pause
 			"omens": "ask",  # Omens at rests: "ask" or "never" (always Clear Skies; OmenDirector.MODE_SETTING)
 			"big_hits": 0,  # Big hit feedback on nightmares: 0 full, 1 subtle (T1 look at every tier), 2 off (visual_feedback_spec.md A)
 			"dream_effects": 0,  # Dream glow on Wardens and their attacks, and card badge pops: 0 full, 1 subtle, 2 off (visual_feedback_spec.md B)

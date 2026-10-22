@@ -2020,7 +2020,7 @@ func _lay_glow() -> void:
 # Reduced effects). Plain lit path is unchanged. Visual only.
 const GOLD_EDGE_HALF := 21.0  # px from the route line to the edge: the path ribbon is ~40 px wide
 const GOLD_EDGE_WIDTH := 2.0
-const GOLD_TINT := Color(1.0, 0.84, 0.6)  # multiplier: warms the ribbon under gold steps
+const GOLD_TINT := Color(1.0, 0.93, 0.8)  # multiplier: warms the ribbon under gold steps (owner 2026-10-21: "too orange"; was 1.0, 0.84, 0.6)
 const GOLD_TINT_WIDTH := 40.0
 var _gold_marks: Node2D  # Edge lines and the embers, on the path layer above the glow group
 var _gold_tint: Node2D  # The multiply tint, on the path layer under the glow group
@@ -2068,7 +2068,10 @@ func _lay_gold_marks(map: Node2D, route: PackedVector2Array, states: PackedInt32
 		return
 	var layer: Node = map.path_layer
 	if not is_instance_valid(_gold_tint):
-		_gold_tint = Node2D.new()
+		var group := CanvasGroup.new()  # Every stretch's tint flattened, then multiplied once: overlaps at corners never darken
+		group.fit_margin = 32.0
+		group.clear_margin = 32.0
+		_gold_tint = group
 		_gold_tint.name = "FireflyGoldTint"
 		var mul := CanvasItemMaterial.new()
 		mul.blend_mode = CanvasItemMaterial.BLEND_MODE_MUL
@@ -2084,6 +2087,8 @@ func _lay_gold_marks(map: Node2D, route: PackedVector2Array, states: PackedInt32
 	_gold_marks.visible = true
 	_gold_marks.moving = not _still()
 	var spots := PackedVector2Array()
+	var shapes: Array = []  # Every stretch's gold shape, joined below so corners and side-by-side lanes merge
+	var cuts: Array = []  # [end point, outward direction, half width] per flat end
 	for entry: Array in runs:
 		var run: PackedVector2Array = entry[0]
 		var tint_pts := PackedVector2Array()
@@ -2100,41 +2105,71 @@ func _lay_gold_marks(map: Node2D, route: PackedVector2Array, states: PackedInt32
 		tint.points = tint_pts
 		tint.width = GOLD_TINT_WIDTH
 		tint.default_color = GOLD_TINT  # multiplier (the node multiplies the ground)
-		tint.use_parent_material = true  # The multiply blend lives on _gold_tint
+		tint.use_parent_material = false  # Opaque inside the group; the group multiplies once
 		tint.joint_mode = Line2D.LINE_JOINT_ROUND
 		tint.begin_cap_mode = Line2D.LINE_CAP_NONE if entry[1] else Line2D.LINE_CAP_ROUND
 		tint.end_cap_mode = Line2D.LINE_CAP_NONE if entry[2] else Line2D.LINE_CAP_ROUND
 		_gold_tint.add_child(tint)
-		for piece in _gold_edge_lines(edge_pts, entry[1], entry[2]):
-			var edge := Line2D.new()
-			edge.points = piece
-			edge.width = GOLD_EDGE_WIDTH
-			edge.default_color = Palette.GOLD
-			edge.joint_mode = Line2D.LINE_JOINT_ROUND
-			_gold_marks.add_child(edge)
+		shapes.append_array(_gold_shape(edge_pts, entry[1], entry[2], cuts))
+	for piece in _open_lines(_union_shapes(shapes), cuts):
+		var edge := Line2D.new()
+		edge.points = piece
+		edge.width = GOLD_EDGE_WIDTH
+		edge.default_color = Palette.GOLD
+		edge.joint_mode = Line2D.LINE_JOINT_ROUND
+		_gold_marks.add_child(edge)
 	_gold_marks.spots = spots
 	_gold_marks.queue_redraw()
 
-# The gold edge for one stretch: its outline at GOLD_EDGE_HALF from the route line, cut flat and left open at each end
-# that goes on as plain lit path (only the two sides run there), round where the gold path truly ends.
-func _gold_edge_lines(pts: PackedVector2Array, flat_start: bool, flat_end: bool) -> Array:
-	var outlines: Array = Geometry2D.offset_polyline(pts, GOLD_EDGE_HALF, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND)
-	var cuts: Array = []  # [end point, outward direction] per flat end
+# One gold stretch's shape: its outline at GOLD_EDGE_HALF from the route line (round bends and ends), cut flat at each
+# end that goes on as plain lit path. Each flat end is added to `cuts` ([end point, outward direction, half width]).
+func _gold_shape(pts: PackedVector2Array, flat_start: bool, flat_end: bool, cuts: Array) -> Array:
+	var shapes: Array = Geometry2D.offset_polyline(pts, GOLD_EDGE_HALF, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND)
+	var mine: Array = []
 	if flat_start and pts.size() >= 2:
-		cuts.append([pts[0], (pts[0] - pts[1]).normalized()])
+		mine.append([pts[0], (pts[0] - pts[1]).normalized(), GOLD_EDGE_HALF])
 	if flat_end and pts.size() >= 2:
-		cuts.append([pts[pts.size() - 1], (pts[pts.size() - 1] - pts[pts.size() - 2]).normalized()])
-	for cut in cuts:
+		mine.append([pts[pts.size() - 1], (pts[pts.size() - 1] - pts[pts.size() - 2]).normalized(), GOLD_EDGE_HALF])
+	for cut in mine:
 		var at: Vector2 = cut[0]
 		var out: Vector2 = cut[1]
-		var side := Vector2(-out.y, out.x) * 200.0
+		var side := Vector2(-out.y, out.x) * (GOLD_EDGE_HALF * 2.0)
 		var beyond := PackedVector2Array([at + side, at + side + out * 200.0, at - side + out * 200.0, at - side])
 		var kept: Array = []
-		for outline in outlines:
-			kept.append_array(Geometry2D.clip_polygons(outline, beyond))
-		outlines = kept
+		for shape in shapes:
+			kept.append_array(Geometry2D.clip_polygons(shape, beyond))
+		shapes = kept
+	cuts.append_array(mine)
+	return shapes.filter(func(s: PackedVector2Array) -> bool: return not Geometry2D.is_polygon_clockwise(s))
+
+# Every stretch's shape joined into one (owner 2026-10-21: "doesn't merge properly the lights in corners for bonfire"):
+# where gold stretches meet or run side by side only the outer border is drawn. Holes (gold all around a Warden) are kept
+# as their own loops.
+func _union_shapes(shapes: Array) -> Array:
+	var outers: Array = shapes.duplicate()
+	var holes: Array = []
+	var merged := true
+	while merged:
+		merged = false
+		for i in outers.size():
+			for j in range(i + 1, outers.size()):
+				var joined: Array = Geometry2D.merge_polygons(outers[i], outers[j])
+				var rings: Array = joined.filter(func(s: PackedVector2Array) -> bool: return not Geometry2D.is_polygon_clockwise(s))
+				if rings.size() != 1:
+					continue  # They don't touch
+				holes.append_array(joined.filter(func(s: PackedVector2Array) -> bool: return Geometry2D.is_polygon_clockwise(s)))
+				outers.remove_at(j)
+				outers[i] = rings[0]
+				merged = true
+				break
+			if merged:
+				break
+	return outers + holes
+
+# The border loops, left open along each flat cut (where gold goes on as lit path, only the two sides run).
+func _open_lines(shapes: Array, cuts: Array) -> Array:
 	var lines: Array = []
-	for outline: PackedVector2Array in outlines:
+	for outline: PackedVector2Array in shapes:
 		var n := outline.size()
 		var open_at := -1  # An edge lying on a cut: the outline opens there
 		for i in n:
@@ -2162,10 +2197,13 @@ func _gold_edge_lines(pts: PackedVector2Array, flat_start: bool, flat_end: bool)
 			lines.append(piece)
 	return lines
 
-# Whether `p` lies on one of the flat-end cut lines ([end point, outward direction]).
+# Whether `p` lies on one of the flat-end cuts: on its line and within its half width of the end point (so a cut never
+# takes another lane's edge that happens to line up with it).
 static func _on_cut(p: Vector2, cuts: Array) -> bool:
 	for c in cuts:
-		if absf((p - c[0]).dot(c[1])) < 0.75:
+		var off: Vector2 = p - c[0]
+		var out: Vector2 = c[1]
+		if absf(off.dot(out)) < 0.75 and absf(off.dot(Vector2(-out.y, out.x))) <= float(c[2]) + 1.0:
 			return true
 	return false
 

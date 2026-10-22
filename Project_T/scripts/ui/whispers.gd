@@ -71,7 +71,7 @@ func _ready() -> void:
 	whisper(&"start")
 	# A boss dispelled (the family pick it brings), a boss coming, a boss's toll.
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
-		if reason != &"first":
+		if reason == &"boss":  # (Not the second pick after drift 10: no boss is gone yet)
 			whisper(&"after_boss"))
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
 		if drift_director.is_boss_drift(drift_director.drifts_started + drift_director.drifts_per_block):

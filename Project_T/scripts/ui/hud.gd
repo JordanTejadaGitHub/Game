@@ -78,6 +78,7 @@ var _leaf_flash: Tween
 var _toast_tween: Tween
 var _counter_icons := {}  # Label -> its icon (TextureRect)
 const DREAM_DAMAGE_PANEL := preload("res://scripts/ui/dream_damage_panel.gd")  # Developer: what each Dream did (Roguelite Code)
+const FLYER_WARNING := preload("res://scripts/ui/flyer_warning.gd")  # Balancing Discussion, owner 2026-10-22
 const CHAIN_COUNTER := preload("res://scripts/ui/chain_counter.gd")  # "Chain ×N" under the banner (screens_ui.md 801d7ae8)
 
 func _ready() -> void:
@@ -151,6 +152,7 @@ func _ready() -> void:
 	var strip := ComingStrip.new(drift_director)
 	add_child(strip)
 	add_child(CHAIN_COUNTER.new())  # The live Reaction chain count, under the strip (screens_ui.md 801d7ae8)
+	add_child(DiscoveryCard.new())  # First-time discoveries you can read, at the right edge (screens_ui.md 44fe84d9)
 	if TestGrove.is_available():  # Developer "Dream damage panel" (Roguelite Code 2026-10-17); shows while its setting is on
 		var dream_damage = DREAM_DAMAGE_PANEL.new()
 		dream_damage.setup(dream_state)
@@ -162,6 +164,7 @@ func _ready() -> void:
 	var dossier := BossDossier.new(drift_director)
 	add_child(dossier)
 	dossier.name = "BossDossier"
+	add_child(FLYER_WARNING.new(drift_director))  # "Flyers next block": the rest's last screen before a block with flyers
 	# Damage that means something (screens_ui.md): the drift meter (right edge) and DPS tags (world).
 	var drift_meter := DriftMeter.new(drift_director)
 	drift_meter.name = "DriftMeter"

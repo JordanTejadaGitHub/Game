@@ -420,6 +420,20 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | **Brood Cap → Hatchery** | a **spawner** | little spore-sprites walk **up** the path and burst on the first nightmare they touch (Poisoned + a small hit) | every 5th sprite is a big one that splits into 3 | **Lurkers** (sprites bump into hidden nightmares) | a cap with tiny sprites clinging to it |
 | **Inkcap → Deliquescent** | **trail** spreader for long mazes | projectile; a Poisoned nightmare leaves an ink trail that poisons walkers on it | a dispelled Poisoned nightmare melts into a 2-tile ink pool | long single-file drifts (Procession) | a tall, dripping, inky bell cap |
 
+**Brood Cap's reach is its walk, so show the walk** (user 2026-10-22: *"I should be able to see Brood
+Cap's range in terms of how far the mushrooms travel"*). Its sprites drop on the nearest path tile and
+walk back up the route for their whole life (`BranchKit.brood_walk`: sprite speed × `SPRITE_LIFE`); its
+range ring says nothing about that. So, wherever another Warden shows its range ring, Brood Cap /
+Hatchery shows **the walk** instead (`BranchKit.draw_brood_walk` with the stretch on: the drop ring,
+the stretch along the path, the end mark):
+- **Placing it** (the build ghost): the walk from the spot it would drop on, and its path tiles
+  highlighted like other Wardens' reach, not just the drop tile.
+- **Selected or hovered:** the full walk at full strength (today only a faint end mark shows, and only
+  while sprites are out).
+- **Warden panel:** the reach line reads *"Sprites walk N tiles up the path"* (N from the walk, rounded)
+  instead of its range number; no range ring is drawn for it.
+- The walk follows re-routes (a maze change redraws it), and the end mark stays where it is today.
+
 **Dewdrop** (Soaked)
 
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |

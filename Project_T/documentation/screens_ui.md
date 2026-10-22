@@ -1389,3 +1389,25 @@ A live **Chain** counter for Reaction chains (ReactionTracker `chain_reached`, `
   Dawnburst (the same moment, not a second effect). It fades 2 s after the chain ends.
 - **Best:** a small "Best ×N" under it (this run's longest chain), and the rest report keeps its "longest chain ×N".
 - Quiet while nothing chains: no empty counter on screen. Reduced motion: no pop, the number still changes.
+
+## Discoveries you can read (user, 2026-10-22: "some of the hints that come from the screen are not intuitive and
+## can barely read, like discovering the Executioner")
+Today a discovery is a toast ("Signature discovered: Executioner (Firefly Jar): a crit on a nightmare under 20%
+health dispels it (bosses and Deeply Blighted: …)"): one long run-on sentence, small, gone in a few seconds, mid-fight.
+**Every first-time discovery** (a signature, a Kinship, a Reaction, a Crowned Reaction, a Calling evolution's first
+fire, a card's first fire) uses one **discovery card** instead:
+- A small card at the right edge (phones: above the Warden bar), never over the field's middle: the thing's icon
+  (or the Warden's portrait), its **name** large, **one plain sentence** of what just happened, and which Warden did
+  it. Body text at the normal UI body size, never toast-small.
+- Stays **8 s** (real time) or until tapped; tapping opens its Codex entry. Doesn't pause. At most one at a time;
+  more queue behind it. Never stacks with a Lesson (Lessons first).
+- **Plain words:** no parentheses, no exceptions in the sentence (they go in the Codex), no jargon ("Deeply Blighted"
+  is "elites"), the effect first, the cost second.
+- Signature sentences (Tower Code's Signatures.TEXT): Crushing "Every 5th hit on an armoured nightmare hits twice as
+  hard and cracks its shell." Relentless "When it dispels a nightmare, it attacks again at once." Watchtower
+  "Hidden nightmares in its range can be seen and hit." Spreading "When a nightmare carrying its statuses is
+  dispelled, half of them jump to the nearest nightmare." Executioner "Its crits finish off nightmares below 20%
+  health, but its hits are 15% weaker." (Codex adds: bosses and elites take a ×1.5 crit instead.) Firstborn "What it
+  creates starts one step stronger." Shelter "Wardens it boosts can't be withered, dimmed or trampled." Surge "Every
+  10 s its aura doubles for 2 s." All-Rounder "Mixed ranks: its main job is 20% stronger." Mastery "Four ranks of the
+  same choice: its main job is 20% stronger."

@@ -62,7 +62,8 @@ static func bbcode(text: String) -> String:
 		for token in IconInfo.term_tokens():
 			while text.contains(token[0]):
 				text = text.replace(token[0], "\u0001%d\u0001" % terms.size())
-				terms.append(token[2] if _own(token[1]) else _once(TERM_PREFIX + String(token[1]), token[2]))
+				var plain: bool = _own(token[1]) or (card_mode and CARD_PLAIN.has(token[1]))  # Cards: basic words plain
+				terms.append(token[2] if plain else _once(TERM_PREFIX + String(token[1]), token[2]))
 		for found in IconInfo.family_pattern().search_all(text):  # {family:dewdrop}
 			var id := found.get_string(1)
 			var data := IconInfo.family_data(id)
@@ -102,11 +103,36 @@ static func bbcode(text: String) -> String:
 # Keywords linked wherever their word appears, token or not (text_pass.md "Keywords are always links"): IconInfo.TERMS
 # ids. Only words that mean one thing in this game: a keyword that is also an ordinary word (full, grow, act, stack,
 # family, branch, node, gift, interest, Warden, nightmare…) links through its token only.
+# (Owner 2026-10-22, text_pass.md revision: "too many underlined words on cards": the basic words Sprout, Thornwall, Dream,
+# Nurture and cell left this list; they link through their token only, and never on cards: CARD_PLAIN.)
 const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell", &"reaction", &"crowned_reaction", &"chain", &"calling",
-	&"nurture_choice", &"nurture", &"signature", &"mastery", &"all_rounder", &"attuned", &"ascended", &"final_form",
-	&"grove_branch", &"sprout", &"thornwall", &"eldest", &"dream", &"legendary", &"bittersweet", &"woven", &"banish",
+	&"nurture_choice", &"signature", &"mastery", &"all_rounder", &"attuned", &"ascended", &"final_form",
+	&"grove_branch", &"eldest", &"legendary", &"bittersweet", &"woven", &"banish",
 	&"omen", &"maze_bonus", &"catcher", &"aura", &"crit", &"critical_hit", &"flyer", &"restless", &"remember",
-	&"memory_grove", &"perk", &"blight_level", &"cell"]  # cell: "within 2 cells" (distance words, owner 2026-10-19)
+	&"memory_grove", &"perk", &"blight_level"]
+
+# Dream, Calling and Calling evolution cards (owner 2026-10-22: "too many underlined words on cards"): while card_mode is
+# on (card_bbcode), these basic words read as plain words, token or not; statuses read as a small icon and their
+# coloured name (still a link, no underline); everything else special stays underlined the first time only.
+const CARD_PLAIN: Array[StringName] = [&"dew", &"leaf", &"leaves", &"drift", &"block", &"rest", &"warden", &"nightmare",
+	&"sprout", &"thornwall", &"dream", &"rank", &"nurture", &"grow", &"cell"]
+static var card_mode := false
+
+static func card_bbcode(text: String) -> String:
+	card_mode = true
+	var out := bbcode(text)
+	card_mode = false
+	return out
+
+# A status on a card: its icon (14 px, from the icon sheet) and its name in its own colour; hover / tap opens the tip.
+static func _status_chip(id: StringName, word: String) -> String:
+	var colour: Color = EnemyStatuses.COLORS.get(id, UiStyle.INK)
+	var art := IconInfo.icon(id) as AtlasTexture
+	var icon := ""
+	if art != null:
+		var r := art.region
+		icon = "[img=14x14 region=%d,%d,%d,%d]%s[/img] " % [r.position.x, r.position.y, r.size.x, r.size.y, IconInfo.ICON_SHEET]
+	return "[url=%s%s]%s[color=#%s]%s[/color][/url]" % [META_PREFIX, id, icon, colour.to_html(false), word]
 const NOT_BEFORE := {&"calling": " early"}  # "Calling early" is the verb, not the Calling
 static var _seen := {}  # Link metas already linked in the block being built
 static var _auto_order: Array[StringName] = []
@@ -201,7 +227,13 @@ static func _statuses(text: String, once: bool = false) -> String:
 	for found in _pattern.search_all(text):
 		var id := IconInfo.status_id(found.get_string())
 		out += text.substr(at, found.get_start() - at)
-		out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
+		if card_mode:  # Cards: icon + coloured name the first time, the coloured name after (no underline either way)
+			var first := not _seen.has(META_PREFIX + String(id))
+			_seen[META_PREFIX + String(id)] = true
+			out += _status_chip(id, found.get_string()) if first else "[color=#%s]%s[/color]" % [
+				(EnemyStatuses.COLORS.get(id, UiStyle.INK) as Color).to_html(false), found.get_string()]
+		else:
+			out += _once(META_PREFIX + String(id), found.get_string()) if once else _link(META_PREFIX + String(id), found.get_string())
 		at = found.get_end()
 	return out + text.substr(at)
 

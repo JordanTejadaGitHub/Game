@@ -421,7 +421,7 @@ func _draw() -> void:
 		AuraView.draw_shape(self, AuraView.cells(_ghost_centre(), BranchKit.special_aura(tower_data)))
 	draw_set_transform(_ghost_centre())
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
-	if tower_data.can_attack:
+	if BranchKit.shows_range(tower_data):  # (Brood forms: their walk is their reach, no ring)
 		# The range this Warden would really have on this cell (position cards included). A gain shows
 		# as the base range faint and the boosted range bright.
 		var base_pixels := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state))
@@ -676,7 +676,7 @@ func _draw_grow_preview() -> void:
 			WorldLabel.draw_tag(self, chip_at.x, chip_y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
 			chip_y -= CHIP_STEP
 		draw_set_transform(to_local(tower.global_position))
-		if into.can_attack:
+		if BranchKit.shows_range(into):  # (Brood forms: their walk is their reach, no ring)
 			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
 			var new_px := Tower.range_to_pixels(preview_range(tower, into))
 			if now_px > 0.0:
@@ -1066,9 +1066,9 @@ func placement_points(data: TowerData, from: Vector2, reach_px: float, live: boo
 				var distance := MAP_GRID.calculate_map_position(point).distance_to(from)
 				if distance <= reach_px and distance >= min_px:
 					points[point] = true
-		BranchKit.BROOD:
-			if not route.is_empty():
-				points[route[BranchKit.brood_spawn_index(route, from)]] = true
+		BranchKit.BROOD:  # Its reach is its walk (tower_design.md ef9ceffd): every path tile its sprites walk over
+			for point in BranchKit.brood_walk_points(route, from, float(data.special_params.get("sprite_speed", 3.0))):
+				points[point] = true
 	if data.lob and data.rubble_slow > 0.0 and target_cell != Vector2.INF:
 		for at in Tower.rubble_cells(route, [target_cell], data.splash_radius * cell_px):
 			cells[at] = true
@@ -1100,6 +1100,11 @@ func draw_placement(canvas: Node2D, data: TowerData, from: Vector2, cell: Vector
 		_draw_link_preview(cell, float(data.special_params.get("link_range", 4.5)), skip, from)  # On the partner segment
 		return
 	_draw_hit_points(placement_points(data, from, reach_px, live), _family_colour(data), canvas)
+	if data.special == BranchKit.BROOD:  # The walk itself over the tiles: the drop ring, the line, where they give up
+		var walk := BranchKit.brood_walk(preview_route(), from, float(data.special_params.get("sprite_speed", 3.0)))
+		for i in walk.size():
+			walk[i] = canvas.to_local(walk[i])
+		BranchKit.draw_brood_walk(canvas, walk, true)
 
 # Placement marks in the path's own shape (the lit-path ribbon) on route points (route coordinates).
 func _draw_hit_points(points: Array, colour: Color, canvas: Node2D = null) -> void:

@@ -443,6 +443,12 @@ var phone_open := false
 var _phone_toggle := Button.new()
 
 func _make_phone_toggle() -> void:
+	# Placed again whenever the window changes or it shows (Main Merger 2026-10-21: placed while the window was still 64 px
+	# wide, it stayed at x -66 until the next 0.2 s refresh)
+	get_viewport().size_changed.connect(_stack_phone.call_deferred)
+	visibility_changed.connect(func() -> void:
+		if visible:
+			_stack_phone())
 	_phone_toggle.name = "Incoming"
 	_phone_toggle.text = "Incoming"
 	_phone_toggle.theme_type_variation = &"HudButton"
@@ -497,7 +503,7 @@ func _stack_phone() -> void:
 	var hud := get_parent()
 	if hud == null:
 		return
-	var buttons_left := get_parent_area_size().x - 16.0
+	var buttons_left := get_viewport_rect().size.x - 16.0
 	var buttons_top := 12.0
 	var buttons_bottom := 12.0
 	var names: Array = hud.call("_top_row_names") if hud.has_method("_top_row_names") else []
@@ -519,7 +525,7 @@ func _stack_phone() -> void:
 	var right := buttons_left - PHONE_GAP
 	var top := buttons_top
 	if right - toggle_w < banner_right + 8.0:  # No room beside the buttons: just under them, right-aligned
-		right = get_parent_area_size().x - 16.0
+		right = get_viewport_rect().size.x - 16.0
 		top = buttons_bottom + 4.0
 	position = Vector2(right - need.x, top)
 	size = need

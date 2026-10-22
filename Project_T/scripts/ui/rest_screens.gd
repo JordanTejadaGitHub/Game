@@ -9,7 +9,7 @@ extends RefCounted
 
 # HUD screens that cover the map while open.
 const SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "BossDossier",
-	"NightmareIntro", "LessonCard", "PauseMenu", "ResultsScreen"]
+	"NightmareIntro", "FlyerWarning", "LessonCard", "PauseMenu", "ResultsScreen"]
 
 # Whether a screen covers the map now, for HUD pieces that sit over it (the Coming strip, the boss reminder): a choice
 # (Dream, Calling, Omen, family pick, gift), Remember, the boss dossier, an intro, a Lesson, the pause menu or the
