@@ -975,11 +975,8 @@ func _cheapest_growth_price(tier: int) -> int:
 	return best
 
 func _pick_family_now(kind: StringName) -> void:
-	if kind != &"first" and kind != &"boss":
-		# A later pick inside an act (&"second": drifts 10 / 35 / 60, owner 2026-10-22). Its Dreamlight comes from DreamState's
-		# own family_pick_requested listener, which _take_over_choices disconnects, so the bot adds it here. The first pick's
-		# comes with sim_family_pick / _forced_family_pick, a boss rest's with sim_rest (+3 at each act break).
-		dreams.add_dreamlight(dreams.sim_dreamlight_for(kind), &"first_pick")
+	# Dreamlight: the first pick's comes with sim_family_pick / _forced_family_pick, the act breaks' (+3) with sim_rest. The
+	# later picks (&"second": drifts 10 / 35 / 60) give none (owner 2026-10-22, option A; Balancing Discussion).
 	if forced_families.is_empty():
 		policy.family_pick(kind)
 	else:
