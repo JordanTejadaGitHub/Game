@@ -942,13 +942,28 @@ static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = IN
 # the label resizes. Call fit_words_now after changing its text.
 static func fit_words(label: Label, max_size: int, min_size: int = 16) -> void:
 	label.set_meta(&"fit_words", [max_size, min_size])
-	if not label.resized.is_connected(fit_words_now.bind(label)):
-		label.resized.connect(fit_words_now.bind(label))
 	fit_words_now(label)
 
+# Fits once the layout has settled (deferred), never from the label's own `resized` (user 2026-10-22: the game froze, then
+# crashed, selecting a rank-V Driftspore: refitting inside a resize fed the containers' layout back into itself until the
+# engine's stack ran out). Call it after changing the text; a label not laid out yet tries again next frame (a few times).
 static func fit_words_now(label: Label) -> void:
-	if not is_instance_valid(label) or not label.has_meta(&"fit_words") or label.size.x <= 0.0:
+	if is_instance_valid(label) and label.has_meta(&"fit_words"):
+		label.set_meta(&"fit_words_tries", 0)
+		_fit_words_later.call_deferred(label)
+
+static func _fit_words_later(label: Label) -> void:
+	if not is_instance_valid(label) or not label.has_meta(&"fit_words") or not label.is_inside_tree():
 		return
+	if label.size.x <= 0.0:
+		var tries := int(label.get_meta(&"fit_words_tries", 0))
+		if tries < 5:
+			label.set_meta(&"fit_words_tries", tries + 1)
+			label.get_tree().process_frame.connect(_fit_words_later.bind(label), CONNECT_ONE_SHOT)
+		return
+	_fit_words_to_width(label)
+
+static func _fit_words_to_width(label: Label) -> void:
 	var sizes: Array = label.get_meta(&"fit_words")
 	var font := label.get_theme_font("font")
 	var words := label.text.split(" ", false)
