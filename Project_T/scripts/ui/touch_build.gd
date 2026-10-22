@@ -251,7 +251,9 @@ func _input(event: InputEvent) -> void:
 			var before: Vector2 = _touches[event.index]
 			var other := _other_touch(event.index)
 			_touches[event.index] = event.position
-			if camera != null:
+			var on_ui: bool = camera != null and camera.has_method("ui_at") \
+				and (camera.ui_at(event.position) or camera.ui_at(other))  # A pinch over a panel is the panel's (user 2026-10-21)
+			if camera != null and not on_ui:
 				camera.pan_screen(event.relative / _touches.size())  # Each finger moves the map its share
 				var span_before := before.distance_to(other)
 				var span_after: float = event.position.distance_to(other)
