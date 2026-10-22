@@ -78,6 +78,7 @@ var _leaf_flash: Tween
 var _toast_tween: Tween
 var _counter_icons := {}  # Label -> its icon (TextureRect)
 const DREAM_DAMAGE_PANEL := preload("res://scripts/ui/dream_damage_panel.gd")  # Developer: what each Dream did (Roguelite Code)
+const FLYER_WARNING := preload("res://scripts/ui/flyer_warning.gd")  # Balancing Discussion, owner 2026-10-22
 const CHAIN_COUNTER := preload("res://scripts/ui/chain_counter.gd")  # "Chain ×N" under the banner (screens_ui.md 801d7ae8)
 
 func _ready() -> void:
@@ -163,6 +164,7 @@ func _ready() -> void:
 	var dossier := BossDossier.new(drift_director)
 	add_child(dossier)
 	dossier.name = "BossDossier"
+	add_child(FLYER_WARNING.new(drift_director))  # "Flyers next block": the rest's last screen before a block with flyers
 	# Damage that means something (screens_ui.md): the drift meter (right edge) and DPS tags (world).
 	var drift_meter := DriftMeter.new(drift_director)
 	drift_meter.name = "DriftMeter"
