@@ -261,11 +261,11 @@ func _test_boss_rest_and_win() -> void:
 	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
 	family.choose(family.offer[0])
 	director.start_next_drift()
-	await _play_until(main, func() -> bool: return picks.size() >= 2, 0, 12000)
-	_check(picks == [&"first", &"boss"] and director.bosses_cleansed == 1, "boss drift ends with a family pick")
-	_check(rests.is_empty(), "the boss rest waits for the family pick")
-	family.choose(family.offer[0])
-	_check(rests == [[1, true]], "then the boss rest")
+	# No boss rest brings a family since 2026-10-22 (owner option A: picks after drifts 1, 10, 35, 60): the boss drift
+	# ends straight in its rest.
+	await _play_until(main, func() -> bool: return not rests.is_empty(), 0, 12000)
+	_check(picks == [&"first"] and director.bosses_cleansed == 1 and not director.awaiting_family_pick, "the boss drift brings no family pick (%s)" % [picks])
+	_check(rests == [[1, true]], "the boss rest comes at once")
 	# A waiting choice holds the drift (user bug: "I can hide the Dream choice and start the wave").
 	var rest_dreams: DreamState = main.get_node("%DreamState")
 	_check(director.pending_choice() == &"dream" and not director.can_start_next_drift(), "the Dream waiting behind the boss rest's Remember screen holds the drift too")

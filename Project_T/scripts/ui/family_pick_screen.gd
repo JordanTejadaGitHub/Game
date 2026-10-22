@@ -9,7 +9,7 @@ extends Control
 # every family. Pauses the game while open; "Peek at the map" minimises it. Cards show the statuses
 # the family applies and its two branches (screens_ui.md "Family pick"). Built in code.
 
-signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
+signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 60 pick)
 signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer and the pick
 
 const CARD_SIZE := Vector2(300, 400)  # Light pass (UI Asset's last page): 300 wide, the "Wake …" action at the foot
@@ -26,7 +26,7 @@ const PHONE_SIDE_MARGIN := PhoneChoice.MARGIN  # Each side, as the Peek button's
 const CARD_GAP := 16
 const PHONE_CARD_MIN_H := PhoneChoice.CARD_MIN_H  # A phone card's floor (the row stretches them to the view's height)
 var _layout: PhoneChoice = null
-const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
+const SAPLING_DRIFT := 60  # The Heartwood Sapling comes with the first family pick after act 2's boss (drift 60; it was the drift 50 boss pick until 2026-10-22)
 const TITLES := {
 	&"first": "Oh. I know you.",
 	&"boss": "It's gone, and something I'd forgotten came back.",
@@ -319,7 +319,7 @@ func choose(data: Resource) -> void:
 			# explains Callings, and the Calling stays on screen as the Dreams row's first icon (DreamsRow).
 		dream_state.unlocks_changed.emit()
 	if should_offer_sapling():
-		_show_sapling()  # Right after the drift 50 family pick (run_design.md "The Heartwood Sapling")
+		_show_sapling()  # Right after the drift 60 family pick (run_design.md "The Heartwood Sapling"; was 50)
 		return
 	_finish()
 
@@ -328,7 +328,7 @@ func _finish() -> void:
 	game_speed.set_paused(_was_paused)
 	drift_director.family_picked()
 
-# The Heartwood Sapling's own card follows the act 2 boss's family pick (drift 50), once.
+# The Heartwood Sapling's own card follows the first family pick after act 2's boss (drift 60), once.
 func should_offer_sapling() -> bool:
 	var placer := get_node_or_null("%TowerPlacer")
 	return placer != null and placer.has_method("can_take_sapling") and placer.can_take_sapling() \

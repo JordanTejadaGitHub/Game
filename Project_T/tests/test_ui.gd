@@ -956,15 +956,15 @@ func _run() -> void:
 	var sapling_placer = main.get_node("%TowerPlacer")
 	if sapling_placer.has_method("can_take_sapling"):
 		var started_before := director.drifts_started
-		director.drifts_started = 50
+		director.drifts_started = family.SAPLING_DRIFT  # 60 since the picks moved (2026-10-22)
 		director.awaiting_family_pick = true
 		var offered := []
 		family.sapling_offered.connect(func() -> void: offered.append(true))
-		family.show_pick(&"boss")
+		family.show_pick(&"second")
 		if not family.offer.is_empty():
 			family.choose(family.offer[0])
 		_check(family.visible and family._title.text == "The Heartwood offers a seedling of itself",
-			"the Sapling's card follows the drift 50 family pick")
+			"the Sapling's card follows the drift 60 family pick")
 		_check(offered.size() == 1, "sapling_offered fires once (for its sound)")
 		var not_now: Button = family._cards.get_child(0).get_child(-1).get_child(1)
 		not_now.pressed.emit()

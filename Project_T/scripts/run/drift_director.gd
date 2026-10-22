@@ -34,10 +34,17 @@ signal rest_started(block_number: int, is_boss_rest: bool, bonus: int, perfect: 
 # The player pressed Start after a rest.
 signal rest_ended(block_number: int)
 # A family pick is due: the family-pick screen should show and then call family_picked().
-signal family_pick_requested(reason: StringName)  # &"first" (after drift 1), &"second" (after drift 10) or &"boss" (acts 2-3)
-# The second family pick: the rest after this drift (user 2026-10-22: "move the 2nd family choice from 25 to after drift
-# 10"). Act 1's boss rest then brings no pick; the later bosses still do. Must end a block (a multiple of 5).
+signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or &"second" (after drifts 10, 35, 60)
+# The later family picks (Balancing Discussion, owner 2026-10-22 option A: "a new family about ten drifts into each act";
+# balance_simulation.md "Second family at drift 10"): at the rests after these drifts, reason &"second" (the old boss
+# pick's rules: Kin Foretold, the new family's lent card in that rest's Dream). The boss rests (25 / 50 / 75) bring no
+# pick now; they keep their Rare+ Dream, the Calling follow-up and their Dreamlight. Each must end a block (a multiple of 5).
 @export var second_family_pick_drift := 10
+@export var third_family_pick_drift := 35
+@export var fourth_family_pick_drift := 60
+
+func family_pick_drifts() -> Array[int]:
+	return [second_family_pick_drift, third_family_pick_drift, fourth_family_pick_drift]
 
 const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
@@ -896,10 +903,8 @@ func _check_cleared(number: int) -> void:
 	elif drifts_started == 1 and drifts_started == number:
 		_request_family_pick(&"first")
 	elif drifts_started % drifts_per_block == 0:
-		if drifts_started == second_family_pick_drift:
-			_request_family_pick(&"second")  # The second family, at the rest after drift 10 (user 2026-10-22; was act 1's boss)
-		elif is_boss_drift(drifts_started) and drifts_started != drifts_per_act:
-			_request_family_pick(&"boss")  # Acts 2 and 3's bosses still bring a family; act 1's moved to drift 10
+		if family_pick_drifts().has(drifts_started):
+			_request_family_pick(&"second")  # A new family about ten drifts into each act (no boss rest brings one any more)
 		else:
 			_begin_rest()
 
