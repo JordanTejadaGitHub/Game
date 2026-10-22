@@ -503,6 +503,7 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 	if class_on():
 		ripples += 1
 		_splash(enemy)  # puddle_ripple where the ripple starts
+		_pulses.append([from, _ripple_steps(w) * 2, now()])  # It runs visibly along the water (owner 2026-10-22)
 	var soaked: Array = []
 	for other in (_in_water(w, from, _ripple_steps(w), enemy) if class_on() else []):
 		if now() >= float(other.get_meta(RIPPLE_META, -INF)):
@@ -1644,68 +1645,312 @@ func extra_targets(tower, candidates: Array[Node2D]) -> Array[Node2D]:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if waters.is_empty() or get_tree().paused or not place_on():
-		return
-	var frame := loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)  # The water shimmers (3 fps); redraw only when the frame changes
-	if frame != _puddle_frame:
-		queue_redraw()
+	_tick_water(delta)
 
 func _draw() -> void:
-	if not place_on():
-		return
-	var r := cell() * 0.42
-	var sheets := USE_PUDDLE_SHEETS and _puddle_sheets_ready()
-	if sheets:
-		_draw_puddle_sheets()
-	else:
-		_draw_water_ribbons()
-	for water in waters:
-		if float(water.steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
-			draw_circle(_route_px[int(water.last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end
-	if not class_on() or dream_state.calling_path.is_empty():
-		return
-	# Black Pond: darker, still water (the sheets are tinted darker in _draw_puddle_sheets)
-	# (Black Pond's darker water is drawn by _draw_water_ribbons)
-	# Stream: a current on the water it carried on, pointing to the Heartwood
-	for i in _flowed:
-		var at: Vector2 = _route_px[int(i)]
-		if int(i) % 2 != 0 or int(i) + 1 >= _route_px.size():
-			continue
-		var dir: Vector2 = (_route_px[int(i) + 1] - at).normalized()
-		var side := Vector2(-dir.y, dir.x) * r * 0.3
-		draw_line(at - dir * r * 0.3 + side, at, Color(Palette.DEWLIGHT, 0.55), 1.5)
-		draw_line(at - dir * r * 0.3 - side, at, Color(Palette.DEWLIGHT, 0.55), 1.5)
-	# Wet Footprints: small wet prints on the steps that count as water for now
-	for i in _wet:
-		var at: Vector2 = _route_px[int(i)]
-		draw_circle(at + Vector2(-r * 0.2, 0.0), r * 0.16, Color(Palette.DEW, 0.45))
-		draw_circle(at + Vector2(r * 0.2, -r * 0.15), r * 0.16, Color(Palette.DEW, 0.45))
+	pass  # The water is drawn by its layers (_ensure_water_nodes): damp band, see-through body, animated surface, wading
 
-# The water is one ribbon along the path (owner 2026-10-20, screenshot: per-point puddle sheets read as stacked blue coins,
-# "should be better looking and connect"): each run of neighbouring wet route points is drawn as a continuous strip with
-# round ends and bends: a dark rim, the body, a thin light current down its middle and a few drifting glints. Opaque, so
-# overlaps never darken. Black Pond's water is deeper (darker rim and body). The per-point sheets stay off until a
-# ribbon-shaped sheet exists (USE_PUDDLE_SHEETS), as with the Lantern Light path.
+# --- Drawing: the water (owner 2026-10-22: "can you make the water looks better") ----------------------------------------
+# Water fills the path ribbon's own shape, never wider than the path, with an uneven wet edge (each bank on its own
+# noise, narrowing at the ends) and a darker damp band on the path just outside it. Depth: light shallows, broken deeper
+# patches down the middle; the body is one drawing in a CanvasGroup shown at WATER_ALPHA, so the path shows through it
+# and overlaps never darken. Both static layers redraw only when the water map changes (_water_key). On top, an animated
+# surface at WATER_FPS: ripple streaks along the water, moonlight glints, warm reflections of Firefly glows, splash rings and the Calling's ripple running
+# along the water. A wading layer above the nightmares puts their feet under the surface, with rings and a V wake.
+# Black Pond's water is darker and still. Reduced motion: still water, glints only. Palette colours only.
 const USE_PUDDLE_SHEETS := false
-const WATER_RIM := 44.0  # Px wide
-const WATER_BODY := 34.0
-const WATER_CURRENT := 8.0
-const WATER_GLINT_EVERY := 3  # A glint on every 3rd point, drifting one point a frame
+const WATER_HALF := 14.0  # Shallows' half width (px): the path ribbon is ~40 px wide
+const WATER_DEEP_HALF := 6.0  # The deeper patches' largest half width: broken pools down the middle, never a stripe
+const WATER_DEEP_FROM := 0.5  # Deeper where the deep noise is above this (0..1): roughly half the length
+const WATER_DEEP_MIX := 0.6  # Deep patches: this far from the shallows' colour toward the deep one, opaque (see-through
+# stamps overlapped into beads), so a step darker, not a hole
+const WATER_DEEP_SCALE := 1.6  # The deep noise runs this much faster than the edge's: short pools, not long streaks
+const WATER_RIM := 1.0  # A thin lighter shallow rim at the wet edge (px)
+const WATER_JITTER := 3.0  # The wet edge's wobble (px), each side on its own (owner 2026-10-22 review: no regular scallops)
+const WATER_SWAY := 2.0  # The water's middle sways off the route line this far (px), so the two banks differ
+const WATER_TAPER := 12.0  # A run's ends narrow over this many px: soft puddle ends, not round caps
+const WATER_STEP := 3.0  # Px between stamps along the water (fine enough that no stamp shows)
+const DAMP_HALF := 19.0  # The damp band on the path, just outside the water
+const WATER_ALPHA := 0.78  # The body: see-through enough for the path's texture (was 0.9: too bright at night)
+const DAMP_ALPHA := 0.35
+const WATER_FPS := 5.0  # The surface's pixel-art frame rate
+const RIPPLE_MARK_EVERY := 3  # About one ripple streak per 3 route points, at a different spot each cycle...
+const RIPPLE_FRAMES := 6  # ...each one grows and fades over this many frames
+const GLINT_CHANCE := 0.08  # A point glints in a frame with this chance
+const REFLECT_CELLS := 1.5  # Firefly glows within this many cells of the water reflect in it
+const SPLASH_TIME := 0.5  # A splash ring's life (s)
+const PULSE_SPEED := 160.0  # px/s: the Calling's ripple running along the water
+const WADE_FPS := 15.0  # The wading layer's redraw rate
+var _damp: CanvasGroup
+var _body: CanvasGroup
+var _damp_art: Node2D
+var _body_art: Node2D
+var _surface: Node2D
+var _wading: Node2D
+var _water_map_key := ""  # (_water_key is the Whirlpool's per-water key)
+var _surface_frame := -1
+var _splashes: Array = []  # [local position, age]
+var _pulses: Array = []  # [route index, reach in route points, start time]
+var _wade_wait := 0.0
 
-func _draw_water_ribbons() -> void:
-	var frame := loop_frame(PUDDLE_FPS, PUDDLE_FRAMES)
-	var ponds: bool = evo(EVO_POND) and not dream_state.calling_path.is_empty()
+func _exit_tree() -> void:
+	for node in [_damp, _body, _surface]:
+		if is_instance_valid(node) and node.get_parent() != self:
+			node.queue_free()  # They live on the path layer, not under this node
+
+func _ensure_water_nodes() -> void:
+	if is_instance_valid(_surface):
+		return
+	_damp = CanvasGroup.new()
+	_damp.self_modulate = Color(1, 1, 1, DAMP_ALPHA)  # multiplier: how dark the damp band is
+	_damp_art = WaterArt.new(self, 0)
+	_damp.add_child(_damp_art)
+	_body = CanvasGroup.new()
+	_body.self_modulate = Color(1, 1, 1, WATER_ALPHA)  # multiplier: the body is a little see-through
+	_body_art = WaterArt.new(self, 1)
+	_body.add_child(_body_art)
+	_surface = WaterArt.new(self, 2)
+	_wading = WaterArt.new(self, 3)
+	_wading.z_as_relative = false
+	_wading.z_index = 1  # Over the nightmares (y-sorted at 0): their feet go under the surface
+	# Damp, body and surface go on the map's path layer, over its tiles (the trodden lane was drawn over the water, like the
+	# Lantern Light glow before it); the wading layer stays here, over the nightmares.
+	var map = dream_state.get("map_generator") if dream_state != null else null
+	var layer: Node2D = map.path_layer if map != null and "path_layer" in map and is_instance_valid(map.path_layer) else self
+	for node in [_damp, _body, _surface]:
+		layer.add_child(node)
+		node.position = layer.to_local(global_position) if layer != self else Vector2.ZERO
+	add_child(_wading)
+
+func _tick_water(delta: float) -> void:
+	if not place_on():
+		if is_instance_valid(_surface):
+			for node in [_damp, _body, _surface, _wading]:
+				node.visible = false
+		return
+	_ensure_water_nodes()
+	for node in [_damp, _body, _surface, _wading]:
+		node.visible = true
+	var key := _make_water_key()
+	if key != _water_map_key:
+		_water_map_key = key
+		_damp_art.queue_redraw()
+		_body_art.queue_redraw()
+		_surface.queue_redraw()
+	for splash in _splashes:
+		splash[1] = float(splash[1]) + delta
+	_splashes = _splashes.filter(_splash_alive)
+	_pulses = _pulses.filter(_pulse_alive)
+	if waters.is_empty() or get_tree().paused:
+		return
+	var frame := loop_frame(WATER_FPS, 1000)
+	if frame != _surface_frame or not _splashes.is_empty() or not _pulses.is_empty():
+		_surface_frame = frame
+		_surface.queue_redraw()
+	_wade_wait -= delta
+	if _wade_wait <= 0.0:
+		_wade_wait = 1.0 / WADE_FPS
+		_wading.queue_redraw()
+
+func _splash_alive(s: Array) -> bool:
+	return float(s[1]) < SPLASH_TIME
+
+func _pulse_alive(p: Array) -> bool:
+	return (now() - float(p[2])) * PULSE_SPEED < float(p[1]) * cell() * 0.5 + cell()
+
+func _make_water_key() -> String:
+	var parts := PackedStringArray([str(_route_px.size())])
 	for w in waters.size():
-		var deep: bool = ponds and _is_pond(w)
-		var runs := _water_runs(waters[w].points)
-		_ribbon_layer(runs, WATER_RIM, Palette.NIGHT if deep else Palette.POOL)
-		_ribbon_layer(runs, WATER_BODY, Palette.POOL if deep else Palette.DEW)
-		_ribbon_layer(runs, WATER_CURRENT, Color(Palette.DEWLIGHT, 0.12 if deep else 0.22))
-		for run in runs:
+		parts.append("%d:%d:%d:%s" % [int(waters[w].first), int(waters[w].last), (waters[w].points as Dictionary).size(), _water_is_deep(w)])
+	return ",".join(parts)
+
+# A stable 0..1 number for route index `i` (the wet edge's wobble, glint spots).
+static func _hash01(i: int, salt: int = 0) -> float:
+	return fposmod(sin(float(i) * 12.9898 + float(salt) * 78.233) * 43758.5453, 1.0)
+
+func _water_is_deep(w: int) -> bool:
+	return evo(EVO_POND) and not dream_state.calling_path.is_empty() and _is_pond(w)
+
+# Smooth 0..1 noise along the route: `u` is route index + fraction; two octaves on knots that never line up with the
+# route points, so nothing repeats at the points' even spacing.
+static func _noise01(u: float, salt: int) -> float:
+	var total := 0.0
+	for octave in [[1.7, 0.65], [0.63, 0.35]]:
+		var x: float = u / float(octave[0]) + float(salt) * 3.1
+		var k := floori(x)
+		var f := x - float(k)
+		f = f * f * (3.0 - 2.0 * f)
+		total += lerpf(_hash01(k, salt), _hash01(k + 1, salt), f) * float(octave[1])
+	return total
+
+# Stamps along each run every WATER_STEP px: [position, side normal, route u, 0..1 end taper].
+func _water_samples(runs: Array) -> Array:
+	var out: Array = []
+	for run in runs:
+		if run.size() == 1:
+			out.append([_route_px[int(run[0])], Vector2.UP, float(run[0]), 1.0])
+			continue
+		var length := 0.0
+		for k in range(1, run.size()):
+			length += _route_px[int(run[k - 1])].distance_to(_route_px[int(run[k])])
+		var walked := 0.0
+		for k in range(1, run.size()):
+			var a: Vector2 = _route_px[int(run[k - 1])]
+			var b: Vector2 = _route_px[int(run[k])]
+			var seg := a.distance_to(b)
+			if seg <= 0.0:
+				continue
+			var dir := (b - a) / seg
+			var steps := maxi(int(ceil(seg / WATER_STEP)), 1)
+			for n in range(0 if k == 1 else 1, steps + 1):
+				var t := float(n) / float(steps)
+				var s := walked + seg * t
+				var taper := clampf(minf(s, length - s) / WATER_TAPER, 0.0, 1.0)
+				out.append([a.lerp(b, t), Vector2(-dir.y, dir.x), float(run[k - 1]) + t, sqrt(taper)])
+			walked += seg
+	return out
+
+# One band along the stamps: each stamp's middle sways off the route line and its radius wobbles, on separate noises, so
+# the two banks are uneven and different. `grow` widens the band past the water's own edge (rim, damp band).
+func _band(c: CanvasItem, samples: Array, half: float, grow: float, colour: Color, salt: int) -> void:
+	for sample in samples:
+		var u: float = sample[2]
+		var sway: float = (_noise01(u, salt + 40) - 0.5) * 2.0 * WATER_SWAY
+		var r: float = (half + (_noise01(u, salt) - 0.5) * 2.0 * WATER_JITTER) * float(sample[3]) + grow
+		if r > 0.5:
+			c.draw_circle(sample[0] + sample[1] * sway, r, colour)
+
+# The deeper patches: only where the deep noise rises, swelling from nothing, off-centre, so the middle reads as pools
+# under the surface rather than a lane.
+func _deep_patches(c: CanvasItem, samples: Array, colour: Color) -> void:
+	for sample in samples:
+		var u: float = float(sample[2]) * WATER_DEEP_SCALE
+		var d := _noise01(u, 9)
+		if d <= WATER_DEEP_FROM:
+			continue
+		var r: float = WATER_DEEP_HALF * (d - WATER_DEEP_FROM) / (1.0 - WATER_DEEP_FROM) * float(sample[3])
+		var off: float = (_noise01(u, 13) - 0.5) * 2.0 * (WATER_HALF - WATER_DEEP_HALF)
+		if r > 1.0:
+			c.draw_circle(sample[0] + sample[1] * off, r, colour)
+
+# The layers' drawing (WaterArt calls back here with its own canvas).
+func _draw_water_layer(c: CanvasItem, kind: int) -> void:
+	match kind:
+		0:  # Damp band: the path darkened just outside the water
+			for w in waters.size():
+				_band(c, _water_samples(_water_runs(waters[w].points)), WATER_HALF, DAMP_HALF - WATER_HALF, Palette.POOL, 1)
+		1:  # Body: light shallows, deeper patches down the middle (Black Pond: darker throughout)
+			for w in waters.size():
+				var samples := _water_samples(_water_runs(waters[w].points))
+				var deep := _water_is_deep(w)
+				_band(c, samples, WATER_HALF, WATER_RIM, Palette.DEW if deep else Palette.DEWLIGHT, 1)  # The shallow rim
+				_band(c, samples, WATER_HALF, 0.0, Palette.POOL if deep else Palette.DEW, 1)
+				var shallows: Color = Palette.POOL if deep else Palette.DEW
+				_deep_patches(c, samples, shallows.lerp(Palette.NIGHT if deep else Palette.POOL, WATER_DEEP_MIX))
+		2:
+			_draw_water_surface(c)
+		3:
+			_draw_wading(c)
+
+func _draw_water_surface(c: CanvasItem) -> void:
+	var still: bool = motion_still()
+	var frame: int = maxi(_surface_frame, 0)
+	var reflect: Array = _glow_spots()
+	for w in waters.size():
+		var deep := _water_is_deep(w)
+		for run in _water_runs(waters[w].points):
 			for k in run.size():
-				if (int(run[k]) + frame) % WATER_GLINT_EVERY == 0:
-					var at: Vector2 = _route_px[int(run[k])]
-					draw_circle(at + Vector2(-5.0, -4.0), 1.5, Color(Palette.DEWLIGHT, 0.45 if deep else 0.7))
+				var i := int(run[k])
+				var at: Vector2 = _route_px[i]
+				# Ripple streaks: short lines along the water that grow, slide a little downstream and fade, each cycle at a
+				# new spot (owner 2026-10-22 review: no chevrons, they read as the route arrows). Still water: none.
+				if not deep and not still and k + 1 < run.size():
+					var cycle := floori(float(frame + i * 5) / RIPPLE_FRAMES)  # Points start their cycles at different frames
+					if _hash01(i, cycle * 3 + 21) < 1.0 / RIPPLE_MARK_EVERY:
+						var ahead: Vector2 = _route_px[int(run[k + 1])]
+						var dir := (ahead - at).normalized()
+						var side := Vector2(-dir.y, dir.x)
+						var phase := float((frame + i * 5) % RIPPLE_FRAMES) / RIPPLE_FRAMES
+						var spot := at.lerp(ahead, _hash01(i, cycle + 22)) + side * (_hash01(i, cycle + 23) - 0.5) * 16.0 + dir * phase * 3.0
+						var half_len := 1.0 + 3.0 * sin(phase * PI)
+						c.draw_line((spot - dir * half_len).round(), (spot + dir * half_len).round(),
+							Color(Palette.DEWLIGHT, 0.4 * sin(phase * PI)), 1.0)
+				# Moonlight glints: a pixel or two, a new spot each frame
+				var g := _hash01(i, frame * 7 + 11)
+				if g < GLINT_CHANCE * (0.5 if deep else 1.0):
+					var off := Vector2((_hash01(i, frame + 2) - 0.5) * 18.0, (_hash01(i, frame + 3) - 0.5) * 12.0)
+					c.draw_rect(Rect2((at + off).round(), Vector2(2, 1)), Color(Palette.HEARTLIGHT, 0.7 if not deep else 0.45))
+				# Firefly glows nearby reflect as soft warm dots
+				for glow: Vector2 in reflect:
+					if glow.distance_to(at) <= REFLECT_CELLS * cell() and (i % 2) == 0:
+						c.draw_circle(at + (glow - at).normalized() * 6.0, 3.0, Color(Palette.GLOW, 0.22))
+		if float(waters[w].steps) >= BREAKWATER_STEPS and rule(BREAKWATER):
+			c.draw_circle(_route_px[int(waters[w].last)], 6.0, Color(Palette.DEWLIGHT, 0.8))  # Deep water: a wave waits at its end
+	for splash in _splashes:  # A Dewdrop's hit in the water
+		var s: float = float(splash[1]) / SPLASH_TIME
+		c.draw_arc(splash[0], 4.0 + 14.0 * s, 0.0, TAU, 16, Color(Palette.DEWLIGHT, 0.8 * (1.0 - s)), 1.5)
+	for pulse in _pulses:  # The Calling's ripple running both ways along the water
+		var reach_px: float = (now() - float(pulse[2])) * PULSE_SPEED
+		var from := int(pulse[0])
+		for dirn in [-1, 1]:
+			var steps := mini(int(reach_px / (cell() * 0.5)), int(pulse[1]))
+			var i: int = clampi(from + dirn * steps, 0, _route_px.size() - 1)
+			if _water_at.has(i):
+				c.draw_arc(_route_px[i], 5.0, 0.0, TAU, 12, Color(Palette.DEWLIGHT, 0.4), 1.0)
+	for i in _wet:  # Wet Footprints: small wet prints on the steps that count as water for now
+		var at: Vector2 = _route_px[int(i)]
+		c.draw_circle(at + Vector2(-5.0, 0.0), 4.0, Color(Palette.DEW, 0.45))
+		c.draw_circle(at + Vector2(5.0, -4.0), 4.0, Color(Palette.DEW, 0.45))
+
+# Where the Firefly glows are (local), for the water's warm reflections.
+func _glow_spots() -> Array:
+	var out: Array = []
+	var lights = dream_state.get("firefly_lights") if dream_state != null else null
+	if lights == null or not ("_sources" in lights):
+		return out
+	for source in lights._sources:
+		if source.has("tower") and is_instance_valid(source.tower):
+			out.append(to_local(source.tower.global_position))
+	return out
+
+# Nightmares wading: the bottom of the body under the surface, rings at the feet, a small V wake while moving.
+const WADE_FOOT := -5.0  # px below a nightmare's position where the water meets it (its sprite stands above the position)
+const WADE_COVER := Vector2(10.0, 3.5)  # The surface over its feet (ellipse half sizes)
+const WADE_META := &"pd_wade_last"  # On a nightmare: where it was at the last wading draw
+func _draw_wading(c: CanvasItem) -> void:
+	if waters.is_empty():
+		return
+	var still: bool = motion_still()
+	for enemy in get_tree().get_nodes_in_group(&"enemies"):
+		if not living(enemy) or enemy.is_flying() or water_of(enemy) < 0:
+			continue
+		var feet: Vector2 = c.to_local(enemy.global_position) + Vector2(0.0, WADE_FOOT)
+		var deep := _water_is_deep(water_of(enemy))
+		c.draw_set_transform(feet, 0.0, Vector2(1.0, WADE_COVER.y / WADE_COVER.x))
+		c.draw_circle(Vector2.ZERO, WADE_COVER.x, Color(Palette.NIGHT if deep else Palette.POOL, 0.8))
+		if not still:
+			var ring := fposmod(now() * 1.5 + float(enemy.get_instance_id() % 7) * 0.13, 1.0)
+			c.draw_arc(Vector2.ZERO, WADE_COVER.x + 6.0 * ring, 0.0, TAU, 16, Color(Palette.DEWLIGHT, 0.5 * (1.0 - ring)), 1.5)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var last: Vector2 = enemy.get_meta(WADE_META, enemy.global_position)
+		enemy.set_meta(WADE_META, enemy.global_position)
+		var move: Vector2 = enemy.global_position - last
+		if not still and move.length() > 0.2:
+			var back := -move.normalized()
+			var side := Vector2(-back.y, back.x)
+			c.draw_line(feet, feet + back * 7.0 + side * 4.0, Color(Palette.DEWLIGHT, 0.35), 1.0)
+			c.draw_line(feet, feet + back * 7.0 - side * 4.0, Color(Palette.DEWLIGHT, 0.35), 1.0)
+
+# A water layer: draws through the Puddles node (`kind`: 0 damp, 1 body, 2 surface, 3 wading).
+class WaterArt extends Node2D:
+	var _puddles
+	var _kind := 0
+	func _init(puddles, kind: int) -> void:
+		_puddles = puddles
+		_kind = kind
+	func _draw() -> void:
+		if is_instance_valid(_puddles):
+			_puddles._draw_water_layer(self, _kind)
 
 # A water's wet route points split into runs of neighbours (route indices one apart), in route order.
 func _water_runs(points) -> Array:  # (water.points is a Dictionary of route indices; an Array works too)
@@ -1721,15 +1966,6 @@ func _water_runs(points) -> Array:  # (water.points is a Dictionary of route ind
 	if not run.is_empty():
 		runs.append(run)
 	return runs
-
-# One band of the ribbon: a line between each pair of neighbouring points and a disc on each point (round bends and ends).
-func _ribbon_layer(runs: Array, width: float, colour: Color) -> void:
-	for run in runs:
-		for k in run.size():
-			var at: Vector2 = _route_px[int(run[k])]
-			draw_circle(at, width * 0.5, colour)
-			if k > 0:
-				draw_line(_route_px[int(run[k - 1])], at, colour, width)
 
 # The water's art (Tower Assets cb907eb6): puddle_a-d (48x48, 4 frames, 3 fps, anchor (24, 24) = the route point; the
 # variant by route index), every wet point's body first, then every point's puddle_?_shine over them (same variant, same
@@ -1772,6 +2008,7 @@ func _splash(enemy) -> void:
 	if not living(enemy) or now() < float(enemy.get_meta(SPLASH_META, -INF)) or not Fx.on_screen(enemy.global_position):
 		return
 	enemy.set_meta(SPLASH_META, now() + SPLASH_EVERY)
+	_splashes.append([to_local(enemy.global_position), 0.0])  # The drawn splash ring (the sheet below, when it exists, too)
 	if Fx.texture(SPLASH) == null:
 		return
 	var node := Reactions._effect(SPLASH, enemy.global_position, self)

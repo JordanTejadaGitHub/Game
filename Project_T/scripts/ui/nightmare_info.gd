@@ -1,9 +1,10 @@
 extends PanelContainer
 
 # Right-hand panel for the hovered nightmare (screens_ui.md "Nightmare info"): name, one-line trait,
-# health, speed, leaf cost and its statuses with time left, then its Resists / Weak to / Immune /
-# Traits icon rows (NightmareIcons; each icon explains itself on hover and tap). Follows the most recently hovered one
-# and hides when it's gone. A nightmare type never met before gets a "New" tag (remembered in
+# health, speed, leaf cost and its statuses with time left, then its Kind badge and line (NightmareIcons.kind_row).
+# A small tooltip, never a screen: only while the pointer is on a nightmare (checked every frame against its live
+# position), never over a HUD panel, gone after IDLE_TIME without a move (user 2026-10-22). The full card opens only on a
+# click / tap (Coming strip, banner, Codex). A nightmare type never met before gets a "New" tag (remembered in
 # HeartwoodMemory, by the real game only). Built in code.
 
 const HOVER_RADIUS := 30.0  # Pixels (world) around a nightmare that count as hovering it
@@ -47,6 +48,8 @@ var _dispelled_left := 0.0
 var _last_mouse := Vector2(-1000, -1000)
 var _numbers := Label.new()
 var _await_move := false  # Cleared after a dispel: the next nightmare needs a pointer move
+const IDLE_TIME := 3.0  # Real seconds without a pointer move (phones: since the tap) before it hides
+var _idle := 0.0
 
 func _process(delta: float) -> void:
 	var mouse := get_viewport().get_mouse_position()
@@ -64,12 +67,26 @@ func _process(delta: float) -> void:
 		_target = null
 		_await_move = true
 	var hovered := _hovered_nightmare()
+	# A small tooltip that always goes away (user 2026-10-22: "I hover and the screen pops up and never goes away"): the
+	# target is checked against the live position every frame, so it hides the moment the pointer is off it (the pointer
+	# left, or the nightmare walked out from under it), over a HUD panel, after IDLE_TIME without the pointer moving
+	# (phones: since the tap), and when its nightmare is gone.
+	_idle = 0.0 if moved else _idle + delta / maxf(Engine.time_scale, 0.001)
 	if TouchBuild.mobile_controls() and _dispelled_left <= 0.0:
 		_target = hovered  # Phones: the tapped nightmare (or none: a tap elsewhere closed it)
-	if moved:
-		_await_move = false
-	if hovered != null and not _await_move and (hovered == _target or _target == null or moved):
-		_target = hovered
+		if _target != null and _idle > IDLE_TIME:
+			_phone_pick = null
+			_target = null
+	else:
+		if moved:
+			_await_move = false
+		var on_ui := get_viewport().gui_get_hovered_control() != null
+		if hovered == null or on_ui or _idle > IDLE_TIME:
+			_target = null
+			if _idle > IDLE_TIME:
+				_await_move = true  # Back on the next pointer move
+		elif not _await_move:
+			_target = hovered
 	if not is_instance_valid(_target) or _target.is_cleansed:
 		_target = null
 		visible = false
@@ -113,11 +130,13 @@ func _process(delta: float) -> void:
 	var body := StatusLinks.bbcode("\n".join(lines))
 	if body != _body.text and not _body_in_use():
 		_body.text = body
-	if data != _rows_for:  # The icon rows (resists, weak to, immune, traits): rebuilt per kind
+	if data != _rows_for:  # Its Kind badge and line (Nightmare Kinds: no Resists / Weak to rows), rebuilt per kind
 		_rows_for = data
 		for child in _rows_box.get_children():
 			child.queue_free()
-		_rows_box.add_child(NightmareIcons.make_rows(data, 26.0))
+		var kind_row := NightmareIcons.kind_row(data, 22.0, UiStyle.TIP_SIZE)
+		if kind_row != null:
+			_rows_box.add_child(kind_row)
 
 # The pointer is on the status-link text, or one of its popups is open: don't rewrite it now.
 func _body_in_use() -> bool:
