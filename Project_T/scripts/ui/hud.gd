@@ -17,7 +17,8 @@ static func _shadowed(control: Control) -> void:
 const BUTTON_SIZE := Vector2(64, 84)  # Two steps up from 48 × 62 (user, twice: "the tower bar can be a bit bigger")
 const SLOT_SPRITE := 48  # The Warden sprite in a slot (UiStyle.HUD_SPRITE size again)
 const SLOT_COST_SIZE := 16  # The cost under the sprite
-const SLOT_KEY_SIZE := 12  # The hotkey in the corner
+const SLOT_KEY_SIZE := 13  # The hotkey in the corner
+const HOTKEY_AT := Vector2(8, 5)  # Its corner, clear of the plate's 4 px rim
 const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
 const BAR_GAP := 6  # Between slots and between rows
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
@@ -319,9 +320,9 @@ func _build_tower_bar() -> void:
 			var hotkey := Label.new()
 			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
-			hotkey.position = Vector2(3, 0)
+			hotkey.position = HOTKEY_AT  # Inside the moon-glass plate's rim (user 2026-10-21: "can't see the hotkeys")
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			UiStyle.number(hotkey, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+			UiStyle.number(hotkey, SLOT_KEY_SIZE, UiStyle.MOON_MIST)
 			_shadowed(hotkey)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
 			hotkey.add_theme_constant_override("outline_size", 3)
@@ -887,7 +888,8 @@ func _fit_tower_bar() -> void:
 	_shadowed(clear_tool)
 	var clear_key := clear_tool.get_node_or_null("Hotkey") as Label
 	if clear_key != null:
-		UiStyle.number(clear_key, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+		UiStyle.number(clear_key, SLOT_KEY_SIZE, UiStyle.MOON_MIST)
+		clear_key.position = HOTKEY_AT
 		_shadowed(clear_key)
 	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
 	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children
