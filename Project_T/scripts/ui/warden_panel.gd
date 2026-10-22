@@ -2130,12 +2130,11 @@ func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
-	var hole: float = (get_parent().get("side_holes") as Vector2).x if get_parent() != null and get_parent().get("side_holes") is Vector2 else 0.0
 	# Flush to the left edge as the right drawer is to the right (user 2026-10-21: inset it "looks weird"); a punch hole
-	# in the middle of that side widens it and pads its content instead (hud.gd side_holes).
+	# on that side is ignored here (a full-height band to clear one dot looked broken, user 2026-10-21).
 	offset_left = 0.0
-	offset_right = PHONE_WIDTH + hole
-	_pad_left(hole)
+	offset_right = PHONE_WIDTH  # The same as the right drawer (a hole band down its whole side looked wrong, user 2026-10-21)
+	_pad_left(0.0)  # (No hole band: the camera dot is a spot mid-side; a full-height gap read as a broken layout)
 	grow_horizontal = Control.GROW_DIRECTION_END
 
 var _frame_left := -1.0  # The panel's own left content margin (before any hole padding)

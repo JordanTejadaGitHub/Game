@@ -93,7 +93,7 @@ func _process(delta: float) -> void:
 	# Hidden, steadily, while a screen covers the map (RestScreens.covering: a choice, Remember, a Lesson, the pause menu…;
 	# "Peek at the map" shows it again). Only this line sets the strip's visibility (it flickered behind the Dream screen
 	# when the phone HUD hid it too, user screenshot 2026-10-17).
-	visible = span.y >= span.x and not RestScreens.covering(get_parent())
+	visible = span.y >= span.x and not RestScreens.covering(get_parent()) and not _under_drawer()
 	if not visible:
 		_built_for = ""
 		return
@@ -397,3 +397,14 @@ func _more_chip(rest: Array) -> Control:
 	var kinds: Array = rest.filter(func(k: Array) -> bool: return not k[0].is_boss).map(func(k: Array) -> EnemyData: return k[0])
 	chip.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), kinds, drift_director.drifts_started + 1))
 	return chip
+
+# Phones (user 2026-10-21 screenshot: the strip's "Drift 16 · Swarm" line drew over the Warden drawer): hidden while the
+# drawer is open, as the drift panel is.
+func _under_drawer() -> bool:
+	if not _phone:
+		return false
+	var hud := get_parent()
+	while hud != null and hud.get_node_or_null("WardenPanel") == null:
+		hud = hud.get_parent()
+	var drawer := hud.get_node_or_null("WardenPanel") as CanvasItem if hud != null else null
+	return drawer != null and drawer.visible
