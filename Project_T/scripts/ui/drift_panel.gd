@@ -301,9 +301,20 @@ var _start_min_x := 0.0
 # Auto button to the speed"): the text never widens the button past the Auto / pause / speed row; a long line ("Call
 # drift 14 early, +4") steps its size down to START_MIN_SIZE, then clips.
 const START_MIN_SIZE := 12
+
+# Phones (user 2026-10-21 screenshot: "Call drift 20 early," lost its Dew; "Rest after drift" its number): the button's
+# short wording; the drift number is on the banner above.
+static func phone_short(text: String) -> String:
+	if text.begins_with("Call drift ") and text.contains(" early, "):
+		text = "Call early, " + text.get_slice(" early, ", 1)
+	for pair in [["Rest after drift ", "Rest after "], ["Start boss drift ", "Boss drift "],
+			["Confirm your Wardens first", "Confirm Wardens"], ["Face an Omen or Clear Skies", "Omen or Clear Skies"]]:
+		text = text.replace(pair[0], pair[1])
+	return text
 var _start_fitted := ""
 
 func _fit_phone_start_text() -> void:
+	_start_button.text = phone_short(_start_button.text)
 	var key := "%s|%d" % [_start_button.text, int(_start_button.custom_minimum_size.x)]
 	if key == _start_fitted:
 		return

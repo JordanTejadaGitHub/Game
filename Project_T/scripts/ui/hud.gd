@@ -485,6 +485,7 @@ func _on_select_slot(on: bool) -> void:
 # cost sits, and its glyph is drawn TOOL_GLYPH px, centred in the space above it. The button's own text and icon stay
 # empty (the button's layout put an icon-less caption mid-slot).
 const TOOL_GLYPH := 32.0
+const TOOL_CAPTION_MIN := 11
 
 func _tool_slot_icon(slot: Button, glyph: Texture2D) -> void:
 	var caption := Label.new()
@@ -519,6 +520,12 @@ func _tool_slot_icon(slot: Button, glyph: Texture2D) -> void:
 		var bottom := box.get_margin(SIDE_BOTTOM) if box != null else 4.0
 		caption.position = Vector2(left, top)
 		caption.size = Vector2(slot.size.x - left - right, slot.size.y - top - bottom)
+		# The caption steps down until it fits the slot (user 2026-10-21: "Select is overflowing")
+		var font := caption.get_theme_font("font")
+		var font_size := SLOT_COST_SIZE
+		while font_size > TOOL_CAPTION_MIN and font.get_string_size(caption.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > caption.size.x - 2.0:
+			font_size -= 1
+		caption.add_theme_font_size_override("font_size", font_size)
 		var line := caption.get_line_height()
 		var room := Vector2(slot.size.x - left - right, slot.size.y - top - bottom - line)
 		var side := minf(TOOL_GLYPH, minf(room.x, room.y))
