@@ -588,6 +588,7 @@ func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -
 # through, so a click still takes the card; hovering a status word (PC) shows its definition.
 func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> RichTextLabel:
 	var label := StatusLinks.make_label(text, font_size, color)
+	label.text = StatusLinks.card_bbcode(text)  # Cards: basic words plain, statuses as icon + colour (owner 2026-10-22)
 	label.mouse_filter = Control.MOUSE_FILTER_PASS
 	if TouchBuild.mobile_controls():  # Touch: a tap on a word shows its tip without looking at / taking the card
 		label.meta_clicked.connect(_on_link_tapped)
