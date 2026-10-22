@@ -319,6 +319,117 @@ func _draw_dual() -> void:
 					_dual_tiles[at] = mask
 	_dual_halves = halves
 
+# --- The drawn ribbon (look only; Roguelite Code 2026-10-22, "Spore Print mushrooms sit off the path") ------------------
+# The dual layer draws the route as one ribbon about 40 px wide around the line through its points (a disc of ~20 px at
+# each, joined), not the whole corridor between the Wardens. Ground effects that sit ON the path (Spore Print's
+# mushrooms, Mushrooming's cloud) place their art with these; gameplay positions never move. All in global px.
+const RIBBON_GROUP := &"path_layer"
+const RIBBON_FIT_REACH := 14  # px the art may move to fit inside the ribbon
+const RIBBON_FIT_STEP := 2
+var _ribbon_image: Image = null  # The act's path_dual.png as pixels: the inside test reads the art itself
+var _ribbon_act := -1
+var _fit_offsets: Array[Vector2] = []  # Nudges nearest first, a slight lean downward (the foot moves down, then in)
+
+func _enter_tree() -> void:
+	add_to_group(RIBBON_GROUP)
+
+# The path layer of `node`'s run (null outside one).
+static func find(node: Node) -> PathGenerator:
+	if node == null or not node.is_inside_tree():
+		return null
+	return node.get_tree().get_first_node_in_group(RIBBON_GROUP) as PathGenerator
+
+# True when the drawn path covers `global_px`.
+func on_ribbon(global_px: Vector2) -> bool:
+	if dual_layer == null or _dual_tiles.is_empty():
+		return false
+	var local := dual_layer.to_local(global_px)
+	var at := Vector2i((local / Vector2(DUAL_SIZE)).floor())
+	var column: int = _dual_tiles.get(at, -1)
+	if column < 0:
+		return false
+	var art := _ribbon_art()
+	if art == null:
+		return true
+	var inside := Vector2i(local - Vector2(at * DUAL_SIZE))
+	var x := column * DUAL_SIZE.x + clampi(inside.x, 0, DUAL_SIZE.x - 1)
+	return x < art.get_width() and art.get_pixel(x, clampi(inside.y, 0, DUAL_SIZE.y - 1)).a > 0.4
+
+# The middle of the drawn ribbon at `global_px`: the centroid of the drawn route halves joined to the nearest one (a
+# straight: its point; a bend: pulled into the inside of the turn, where the ribbon is). Off the ribbon: unchanged.
+func ribbon_centre(global_px: Vector2) -> Vector2:
+	if _dual_halves.is_empty():
+		return global_px
+	var half := Vector2(DUAL_SIZE)
+	var n := Vector2i(((to_local(global_px) - half / 2.0) / half).round())
+	if not _dual_halves.has(n):
+		var found := false
+		for step: Vector2i in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+			if _dual_halves.has(n + step):
+				n += step
+				found = true
+				break
+		if not found:
+			return global_px
+	var sum := Vector2(n)
+	var count := 1
+	var joined := {n: true}
+	for step: Vector2i in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+		if _dual_halves.has(n + step):
+			joined[n + step] = true
+			sum += Vector2(n + step)
+			count += 1
+	for dy in [-1, 1]:  # A diagonal counts only through a drawn neighbour (a parallel stretch nearby never does)
+		for dx in [-1, 1]:
+			var d := n + Vector2i(dx, dy)
+			if _dual_halves.has(d) and (joined.has(n + Vector2i(dx, 0)) or joined.has(n + Vector2i(0, dy))):
+				sum += Vector2(d)
+				count += 1
+	return to_global(sum / count * half + half / 2.0)
+
+# Where art standing on its foot fits inside the ribbon: `foot` global, `size` the art's visible width and height above
+# the foot. Tries nudges up to RIBBON_FIT_REACH px (down and in first); none fits: the nudge that leaves the least
+# outside.
+func fit_on_ribbon(foot: Vector2, size: Vector2) -> Vector2:
+	if _dual_tiles.is_empty():
+		return foot
+	if _fit_offsets.is_empty():
+		for y in range(-RIBBON_FIT_REACH, RIBBON_FIT_REACH + 1, RIBBON_FIT_STEP):
+			for x in range(-RIBBON_FIT_REACH, RIBBON_FIT_REACH + 1, RIBBON_FIT_STEP):
+				if Vector2(x, y).length() <= RIBBON_FIT_REACH:
+					_fit_offsets.append(Vector2(x, y))
+		_fit_offsets.sort_custom(_nearer_nudge)
+	var w := size.x / 2.0
+	var probes: Array[Vector2] = [Vector2(-w, 0), Vector2(w, 0), Vector2(0, 0), Vector2(-w * 0.7, -size.y),
+		Vector2(0, -size.y), Vector2(w * 0.7, -size.y), Vector2(-w, -size.y / 2.0), Vector2(w, -size.y / 2.0)]
+	var best := foot
+	var best_out := probes.size() + 1
+	for nudge in _fit_offsets:
+		var out := 0
+		for probe in probes:
+			if not on_ribbon(foot + nudge + probe):
+				out += 1
+				if out >= best_out:
+					break
+		if out == 0:
+			return foot + nudge
+		if out < best_out:
+			best_out = out
+			best = foot + nudge
+	return best
+
+func _nearer_nudge(a: Vector2, b: Vector2) -> bool:
+	return a.length() - 0.25 * a.y < b.length() - 0.25 * b.y  # Down a little before up
+
+func _ribbon_art() -> Image:
+	if _ribbon_act != _act or _ribbon_image == null:
+		_ribbon_act = _act
+		var tex: Texture2D = (_dual().tile_set.get_source(0) as TileSetAtlasSource).texture
+		_ribbon_image = tex.get_image() if tex != null else null
+		if _ribbon_image != null and _ribbon_image.is_compressed():
+			_ribbon_image.decompress()
+	return _ribbon_image
+
 func get_finder() -> FindPath:
 	return _pathGenerator
 

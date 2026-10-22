@@ -1243,15 +1243,13 @@ func _draw() -> void:
 			_draw_mushroom(_spot(point)[0], _sheet("spore_mushroom_small"), 0.5, false)
 
 # Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner,
-# saves). Route points are half-cell lane centres, while the drawn path fills the whole corridor between the Wardens, so
-# where the walking line runs along one side of a corridor the mushrooms did too, pressed against the Wardens' bases
-# (user screenshots 2026-10-14 and 15, v0.1.5). The drawn spot is the middle of the open corridor across the route's
-# direction: the open half cells between the nearest blocked half (Warden, obstacle, border) on each side, looking up
-# to SPOT_SEARCH_HALVES each way. If one side finds no block that close (open ground), the route point stays. A bend
-# keeps its point. [px, along], `along` the route's direction (Twin Caps line up on it). Worked out for every route
-# point in on_board (when the board or the route changes), never per frame.
-# (The first version looked one half each way only, so corridors wider than one cell came out a quarter cell short.)
-const SPOT_SEARCH_HALVES := 4
+# saves). The drawn path is a ribbon about 40 px wide along the route's points, not the whole corridor between the
+# Wardens (the corridor centring of 2026-10-15 pushed mushrooms off it), so the spot is the ribbon's middle there
+# (PathGenerator.ribbon_centre: a bend's is pulled into the turn), then the foot moves down and in until the whole cap
+# fits inside the ribbon (fit_on_ribbon; a cap on the top edge of a stretch would stick out otherwise). [px, along],
+# `along` the route's direction (Twin Caps line up on it). Worked out for every route point in on_board (when the board
+# or the route changes), never per frame.
+const SPOT_ART_SIZE := Vector2(22.0, 25.0)  # The largest cap's visible width and height above its foot (clump_4)
 var _spots := {}
 
 func _spot(point: Vector2) -> Array:
@@ -1262,23 +1260,13 @@ func _spot(point: Vector2) -> Array:
 func _work_out_spot(i: int) -> Array:
 	var at: Vector2 = _route_px[i]
 	var along: Vector2 = (_route_px[mini(i + 1, _route_px.size() - 1)] - _route_px[maxi(i - 1, 0)]).normalized()
-	var map = dream_state.map_generator if dream_state != null else null
-	if map == null or along == Vector2.ZERO or not (is_zero_approx(along.x) or is_zero_approx(along.y)):
-		return [at, Vector2.RIGHT if along == Vector2.ZERO else along]  # A bend (or no map): its point
-	var across := Vector2(-along.y, along.x).round()
-	var h: Vector2 = map.pixels_to_half(at)
-	var open := [0, 0]  # Open half cells beside the route's own half, each side
-	for side in 2:
-		var dir: Vector2 = across if side == 0 else -across
-		var walled := false
-		for k in range(1, SPOT_SEARCH_HALVES + 1):
-			if map.path_layer.is_half_blocked(h + dir * k):
-				walled = true
-				break
-			open[side] = k
-		if not walled:
-			return [at, along]  # Open ground on this side: no corridor to centre in
-	return [at + across * (open[0] - open[1]) * 0.5 * cell() * 0.5, along]
+	if along == Vector2.ZERO:
+		along = Vector2.RIGHT
+	var path := PathGenerator.find(self)
+	if path == null:
+		return [at, along]
+	var centre := path.ribbon_centre(to_global(at))
+	return [to_local(path.fit_on_ribbon(centre, SPOT_ART_SIZE)), along]
 
 # The mushroom art (Tower Assets eaed6c74, owner 2026-10-18: "change the mushroom to a new asset"): its own breathing
 # toadstool, drawn at 1x (crisp pixels) with the stem's foot on the drawn spot; size by clump (one or two caps: normal;

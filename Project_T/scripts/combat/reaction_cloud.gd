@@ -43,13 +43,19 @@ func add_spot(world_at: Vector2) -> void:
 	if not _spots.has(local):
 		_spots.append(local)
 	if is_inside_tree():
-		Reactions._effect(&"overgrowth_cloud", world_at, self, 1.0, maxf(_duration - _age, 0.1))
+		Reactions._effect(&"overgrowth_cloud", _on_path(world_at), self, 1.0, maxf(_duration - _age, 0.1))
 
 func _ready() -> void:
-	_effect = Reactions._effect(&"overgrowth_cloud", global_position, self, 1.0, _duration)
+	_effect = Reactions._effect(&"overgrowth_cloud", _on_path(global_position), self, 1.0, _duration)
 	for i in range(1, _spots.size()):
-		Reactions._effect(&"overgrowth_cloud", global_position + _spots[i], self, 1.0, _duration)
+		Reactions._effect(&"overgrowth_cloud", _on_path(global_position + _spots[i]), self, 1.0, _duration)
 	_mark()
+
+# Where the cloud's art sits: the middle of the drawn path near `at` (Roguelite Code 2026-10-22: the zone is centred on a
+# whole cell, the drawn path runs through half cells, so the puff could hang off it). Look only: the zone stays at `at`.
+func _on_path(at: Vector2) -> Vector2:
+	var path := PathGenerator.find(self)
+	return path.ribbon_centre(at) if path != null else at
 
 func _process(delta: float) -> void:
 	_age += delta
