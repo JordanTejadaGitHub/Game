@@ -227,8 +227,8 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	# Fewer, bigger cards (dream_design.md de439ea8): cut or folded
 	"family_ties": "", "broad_splash": "far_reach", "acorn_cache": "warm_hearth"}
 const SECOND_PICK_DREAMLIGHT := 1  # The second family pick, after drift 10 (user 2026-10-22: "only give 1 dreamlight on drift 10")
-const ACT1_BOSS_DREAMLIGHT := 2  # Act 1's boss rest (drift 25) since the second pick moved to drift 10 (user 2026-10-22: "then 2 on drift 25")
-const BOSS_DREAMLIGHT := 3  # Each later boss rest (user 2026-10-01: three Dreamlight every 25 drifts; was four, plus one a rest from drift 51)
+const ACT1_BOSS_DREAMLIGHT := 2  # Act 1's boss rest (drift 25): the same as every boss now (kept for callers)
+const BOSS_DREAMLIGHT := 2  # Every boss rest (user 2026-10-22: "+2 dreamlight every boss and +1 for every pick"; was 3)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -2799,7 +2799,7 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
 		var act1 := drift_director != null and drift_director.drifts_started <= drift_director.drifts_per_act
-		add_dreamlight(ACT1_BOSS_DREAMLIGHT if act1 else BOSS_DREAMLIGHT, &"boss")  # Drift 25: 2; later bosses 3
+		add_dreamlight(ACT1_BOSS_DREAMLIGHT if act1 else BOSS_DREAMLIGHT, &"boss")  # +2 at every boss rest
 		_remember_open = true
 		remember_requested.emit(null)
 	var unique_raised: Array = []
