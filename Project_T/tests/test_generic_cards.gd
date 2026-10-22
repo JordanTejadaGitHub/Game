@@ -433,7 +433,7 @@ func _test_sim_entry() -> void:
 	_check(dreams.dreamlight == light + DreamState.ACT1_BOSS_DREAMLIGHT, "…act 1's boss rest gives +2 Dreamlight (a787dc53)")
 	light = dreams.dreamlight
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 3, "…the drift 50 boss rest: +3 too")
+	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 2, "…the drift 50 boss rest: +2 too (3d7ed528)")
 	light = dreams.dreamlight
 	dreams.sim_rest(55, func(offer: Array) -> UpgradeData:
 		var plain := offer.filter(func(c: UpgradeData) -> bool: return c.dreamlight_now == 0)  # Not a card that gives Dreamlight
