@@ -26,6 +26,7 @@ const PHONE_SIDE_MARGIN := PhoneChoice.MARGIN  # Each side, as the Peek button's
 const CARD_GAP := 16
 const PHONE_CARD_MIN_H := PhoneChoice.CARD_MIN_H  # A phone card's floor (the row stretches them to the view's height)
 var _layout: PhoneChoice = null
+var _pc_box: VBoxContainer = null  # The PC screen's column (title, cards, Peek): _fit_to_view measures it
 const SAPLING_DRIFT := 60  # The Heartwood Sapling comes with the first family pick after act 2's boss (drift 60; it was the drift 50 boss pick until 2026-10-22)
 const TITLES := {
 	&"first": "Oh. I know you.",
@@ -103,11 +104,12 @@ func _ready() -> void:
 		center.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(center)
 		var box := VBoxContainer.new()
-		box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Tablets: the cards and Peek fit
+		box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 12)  # Tablets: the cards and Peek fit
 		center.add_child(box)
+		_pc_box = box
 		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.display(_title, 28)
-		_title.add_theme_color_override("font_color", UiStyle.LIVE)
+		_title.add_theme_color_override("font_color", UiStyle.INK)  # As every screen title (UI council round 3: the lime read off-palette beside gold and pewter)
 		box.add_child(_title)
 		_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
@@ -214,6 +216,73 @@ func show_pick(reason: StringName = &"first") -> void:
 	_foretell()
 	visible = true
 	arm.arm()
+	_fit_to_view()
+
+# The PC screen fits the window with FIT_MARGIN to spare (UI council round 3: the cards ran off a 720 px screen, the
+# Wake buttons on its edge). Step by step, until it fits: the branch roles go into their lanes' tips and the faded "not in this
+# run" row goes (the "2 of 5" line's tip says it); then the job into the name's tip; last the Calling's rule. Each step waits a frame
+# so the cards' heights (_fit_card) have caught up.
+const FIT_MARGIN := 24.0
+func _fit_to_view() -> void:
+	if _layout != null or _pc_box == null:
+		return
+	# Measured from the laid-out column, never its minimum size: a wrapping label's minimum is huge before its width is
+	# set (UI council round 4: every step ran and cut text that fitted).
+	for step in 4:
+		for i in 2:
+			await get_tree().process_frame
+		if not visible or _pc_box == null:
+			return
+		if step == 0:
+			_line_up_jobs()
+			continue
+		var rect := _pc_box.get_global_rect()
+		var view := get_viewport_rect().size.y
+		if rect.position.y >= FIT_MARGIN and rect.end.y <= view - FIT_MARGIN:
+			return
+		for card in _cards.get_children():
+			_compact_card(card, step - 1)
+
+# The cards' rows line up: every job line block as tall as the tallest (UI council round 4: a 4-line blurb pushed one
+# card's Calling and branches 25 px below the other's).
+func _line_up_jobs() -> void:
+	var tallest := 0.0
+	for card in _cards.get_children():
+		var job := card.find_child("Job", true, false) as Control
+		if job != null and job.visible:
+			tallest = maxf(tallest, job.size.y)
+	for card in _cards.get_children():
+		var job := card.find_child("Job", true, false) as Control
+		if job != null and job.visible:
+			job.custom_minimum_size.y = tallest
+
+func _compact_card(card: Node, step: int) -> void:
+	match step:
+		0:
+			for lane in card.find_children("Route_*", "", true, false):
+				var role := lane.find_child("Role", true, false) as Control
+				if role != null and role.visible:
+					role.visible = false
+					var branch := lane.get_meta(&"branch") as TowerData
+					if branch != null and role_text(branch) != "" and not (lane as Control).tooltip_text.contains(role_text(branch).substr(1)):
+						(lane as Control).tooltip_text += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)
+			var missing := card.find_child("NotInDream", true, false)
+			if missing != null:
+				(missing as Control).visible = false  # Faded icons without their words read as broken (UI council round 4)
+		1:
+			_tip_onto(card, "Job", "FamilyName")  # The blurb before the Calling: the run-long rule is the bigger stake (UI council round 4)
+		2:
+			_tip_onto(card, "CallingRule", "CallingName")
+
+# Hides `hidden_name` and puts its words in `onto_name`'s tip (hover / tap; the card still picks on a click).
+func _tip_onto(card: Node, hidden_name: String, onto_name: String) -> void:
+	var hidden := card.find_child(hidden_name, true, false) as Label
+	var onto := card.find_child(onto_name, true, false) as Control
+	if hidden == null or onto == null or not hidden.visible:
+		return
+	hidden.visible = false
+	onto.mouse_filter = Control.MOUSE_FILTER_PASS
+	TapTip.attach(onto, hidden.text if onto.tooltip_text == "" else onto.tooltip_text + "\n" + hidden.text)  # Hover and tap (touch rule)
 
 static func wider_choice_owned() -> bool:
 	return force_wider_choice or HeartwoodMemory.carries(WIDER_CHOICE_ID)  # A carried perk (meta_design.md 0931c55f), the demo too
@@ -501,8 +570,9 @@ func _make_card(data: TowerData) -> Button:
 	box.add_child(costs)
 	for pair in [["Sprout into it", _sprout_into_cost(data)], ["Plant", data.cost]]:
 		costs.add_child(_cost_part(pair[0], int(pair[1])))
-	_add_routes(box, data)
+	# The Calling first: the run-long rule is the pick's biggest stake (UI council 2026-10-22: it was buried under the branches)
 	var calling_on_foot := _add_calling(box, data)  # A short screen: the Calling's name goes on the Wake button
+	_add_routes(box, data)
 	var spare := Control.new()
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -513,7 +583,7 @@ func _make_card(data: TowerData) -> Button:
 	wake.name = "Wake"
 	wake.text = "Wake %s" % data.display_name
 	if calling_on_foot != "":
-		wake.text = "Wake %s · %s" % [data.display_name, calling_on_foot]
+		wake.text = "Wake %s, %s" % [data.display_name, calling_on_foot]  # No " · " (ui_style.md)
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
@@ -545,7 +615,7 @@ static func _statuses_of(data: TowerData) -> Array[StringName]:
 func _status_chip(status: StringName) -> Control:
 	var chip := PanelContainer.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(8.0, 2.0, &"plate_dim"))  # Moon-glass (UI Code 8ecd7fb4)
+	chip.add_theme_stylebox_override("panel", UiStyle.plate_box(11.0, 2.0, &"plate_dim"))  # Moon-glass (UI Code 8ecd7fb4); 11: the word kept off the rim (UI council round 5)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -708,6 +778,7 @@ func _route_lane(branch: TowerData) -> Control:
 	words.add_theme_constant_override("separation", -2)
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Centred on the icon (UI council round 5: names sat at its top)
 	words.add_child(_lane_line(branch.display_name, _fs(13), UiStyle.INK, "Name"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
@@ -962,7 +1033,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	else:
 		var title := Label.new()
 		title.name = "CallingName"
-		title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
+		title.text = "Calling: %s" % DreamState.CALLINGS.title(data.get_id())  # No " · " (ui_style.md)
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(title, _fs(14))

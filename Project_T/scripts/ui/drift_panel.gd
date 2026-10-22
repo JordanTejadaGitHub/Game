@@ -23,6 +23,9 @@ var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
+var _start_chip: Label = null  # Its "Enter" chip (UiStyle.key_chip_on, UI council round 3: one hotkey style), at a rest and on Resume
+var _speed_row: Control = null
+var _key_room := 0.0  # The chip's room last fitted (UiStyle "key_room")
 var _auto_toggle := Button.new()  # A toggle: on = the toggled-on look, as the active speed (never the primary; Start is)
 var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
@@ -121,6 +124,7 @@ func _ready() -> void:
 		_start_button.add_theme_font_size_override("font_size", UiStyle.HUD_TEXT_SIZE)
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
+	_start_chip = UiStyle.key_chip_on(_start_button, "Enter", false)  # _fit_start widens for it
 
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
 	var speed_row := HBoxContainer.new()
@@ -135,6 +139,10 @@ func _ready() -> void:
 	_auto_toggle.focus_mode = Control.FOCUS_NONE
 	_auto_toggle.button_pressed = drift_director.auto_drift
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
+	# Says whether it is on, not by colour alone (UI council 2026-10-22: "is Auto on?")
+	_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto on" if on else "Auto")
+	_auto_toggle.text = "Auto on" if drift_director.auto_drift else "Auto"
+	_on_look(_auto_toggle)
 	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
 	_pause_button.tooltip_text = "Pause%s. You can still build while paused." % UiStyle.key_suffix(InputMode.key(&"pause_game", "Space"))
@@ -158,9 +166,9 @@ func _ready() -> void:
 	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
 	_start_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	speed_row.size_flags_horizontal = Control.SIZE_SHRINK_END
-	var fit_start := func() -> void: _start_button.custom_minimum_size.x = maxf(speed_row.get_combined_minimum_size().x, _start_min_x if _speed_hidden else 0.0)
-	speed_row.minimum_size_changed.connect(fit_start)
-	fit_start.call()
+	_speed_row = speed_row
+	speed_row.minimum_size_changed.connect(_fit_start)
+	_fit_start()
 	run_state.run_ended.connect(func(_won: bool) -> void: _start_button.visible = false)
 
 # The Sapling was declined (still takeable) or taken but not planted yet.
@@ -181,7 +189,26 @@ func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(44, UiStyle.HUD_BUTTON_H)
 	button.theme_type_variation = &"HudButton"
+	_on_look(button)
 	row.add_child(button)
+
+# A toggle that is on (Auto, the chosen speed, pause): a brass rim with pale text and no glow, so only the next action
+# (Start / Call early) is gold and glowing (UI council 2026-10-22: Auto, 1x and Start were three golds side by side).
+func _on_look(button: Button) -> void:
+	for state in [&"pressed", &"hover_pressed"]:
+		button.add_theme_stylebox_override(state, UiStyle.plate_box(10.0, 6.0, &"plate_yours"))
+	for state in [&"font_pressed_color", &"font_hover_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.INK)
+	# A shape, not only the rim's colour (UI council round 3, accessibility): a short bar under the label while on.
+	button.draw.connect(func() -> void: _draw_on_mark(button))
+	button.toggled.connect(func(_on: bool) -> void: button.queue_redraw())
+
+func _draw_on_mark(button: Button) -> void:
+	if not button.button_pressed:
+		return
+	var width := minf(18.0, button.size.x - 16.0)
+	var y := button.size.y - 9.0
+	button.draw_line(Vector2((button.size.x - width) / 2.0, y), Vector2((button.size.x + width) / 2.0, y), UiStyle.GOLD, 2.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("start_drift"):
@@ -200,6 +227,7 @@ func _process(_delta: float) -> void:
 	_status_label.tooltip_text = ""
 	var latest := drift_director.drifts_started
 	var next := latest + 1
+	var key_shown := false  # Enter starts the drift (at a rest) or resumes: its chip shows
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
 	_start_button.tooltip_text = MIST_FULL if drift_director.is_mist_full() else ""
@@ -218,7 +246,8 @@ func _process(_delta: float) -> void:
 		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
 		_status_label.text = "Resting: selling refunds %d%%" % roundi(tower_seller.build_phase_refund * 100)
 		_status_label.tooltip_text = "Drift %d pays %s, shared among its nightmares." % [next, UiStyle.dew_amount(roundi(drift_director.get_effective_pot(next)))]
-		_start_button.text = ("Start boss drift %d" if drift_director.is_boss_drift(next) else "Start drift %d") % next + UiStyle.key_suffix("Enter")
+		_start_button.text = ("Start boss drift %d" if drift_director.is_boss_drift(next) else "Start drift %d") % next
+		key_shown = true
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
@@ -256,8 +285,15 @@ func _process(_delta: float) -> void:
 		_start_button.disabled = false
 	# Paused mid-drift (user: "it should resume instead of bringing the next drift wave in"): the button only resumes.
 	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
-		_start_button.text = "Resume" + UiStyle.key_suffix("Enter")
+		_start_button.text = "Resume"
 		_start_button.disabled = false
+		key_shown = true
+	if _start_chip != null:
+		_start_chip.visible = key_shown and not InputMode.touch()
+		if not key_shown:
+			_start_button.set_meta(&"key_room", 0.0)
+		if not is_equal_approx(float(_start_button.get_meta(&"key_room", 0.0)), _key_room):
+			_fit_start()
 
 	# Phones: no Maze bonus line here; the HUD shows the forecast by Dew. The tooltip below still explains the bonus.
 	var maze_line: bool = not UiStyle.is_phone()  # Phones: the "+N at rest" sits by the Dew counter, top right, as on PC (user 2026-10-17)
@@ -328,6 +364,12 @@ func _fit_phone_start_text() -> void:
 	while size > START_MIN_SIZE and font.get_string_size(_start_button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
 		size -= 1
 	_start_button.add_theme_font_size_override("font_size", size)
+
+# Start as wide as the speed row, or what its label and Enter chip need when that is wider.
+func _fit_start() -> void:
+	_key_room = float(_start_button.get_meta(&"key_room", 0.0))
+	var row := _speed_row.get_combined_minimum_size().x if _speed_row != null else 0.0
+	_start_button.custom_minimum_size.x = maxf(maxf(row, _start_min_x if _speed_hidden else 0.0), _key_room)
 
 func _hide_speed_while_building(building: bool) -> void:
 	if building == _speed_hidden:
@@ -442,8 +484,10 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 		_phone_speed.text = "%d×" % roundi(speed)
 		_phone_speed.set_pressed_no_signal(not paused)
 	_pause_button.set_pressed_no_signal(paused)
+	_pause_button.queue_redraw()
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
+		_speed_buttons[i].queue_redraw()  # Its on-mark (_draw_on_mark)
 
 
 const FINALE_TEXT := "Finale (drift %d): clear it clean for a Rare dream"

@@ -72,11 +72,7 @@ func _ready() -> void:
 	_menu.add_child(title)
 	var resume := _add_button("Resume", resume_game)
 	UiStyle.primary(resume)
-	var esc := UiStyle.key_chip("Esc")
-	esc.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	esc.offset_left = -44
-	esc.offset_right = -14
-	resume.add_child(esc)
+	UiStyle.key_chip_on(resume, "Esc")  # The label centred left of the chip (UI council round 5)
 	_add_button("Settings", _show_settings)
 	_add_button("Codex", func() -> void:
 		row.visible = false
@@ -141,6 +137,7 @@ func _fill_run_side(side: VBoxContainer) -> void:
 	_whispers_toggle.focus_mode = Control.FOCUS_NONE
 	_whispers_toggle.tooltip_text = "Short lessons the first time a rule matters."
 	_whispers_toggle.toggled.connect(_set_whispers)
+	_whispers_toggle.toggled.connect(_say_lessons_state)
 	hints.add_child(_whispers_toggle)
 	side.add_child(hints)
 	var guides := Button.new()
@@ -573,6 +570,7 @@ func open() -> void:
 	game_speed.set_paused(true)
 	_fit_phone_hole()
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
+	_say_lessons_state(_whispers_toggle.button_pressed)
 	_summary.text = get_run_summary()
 	_fill_facts()
 	if _phone:
@@ -598,7 +596,7 @@ func _fill_facts() -> void:
 	if omens != null and omens.get("active") != null:
 		_fact(&"omen", "omen", omens.active.display_name)
 	var seconds := int(run_state.play_time)
-	_fact(&"", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	_fact(&"clock", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
 	if _phone:  # Phones (user 2026-10-21: a lone bell icon under the facts): the families as a fact row like the rest
 		var names: Array[String] = []
 		for data in tower_placer.towers:
@@ -745,6 +743,10 @@ func _show_settings() -> void:
 		return
 	(_settings.get_meta("row") as Control).visible = false
 	_settings.visible = true
+
+# The switch says its state in words, not by colour alone (UI council round 3, accessibility).
+func _say_lessons_state(on: bool) -> void:
+	_whispers_toggle.text = "On" if on else "Off"
 
 func _set_whispers(on: bool) -> void:
 	var settings := HeartwoodMemory.get_settings()

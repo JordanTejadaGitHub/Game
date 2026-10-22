@@ -97,10 +97,10 @@ func _ready() -> void:
 	UiStyle.quiet(cross)
 	cross.custom_minimum_size = Vector2(44, 44)  # Tap-sized
 	cross.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	cross.offset_left = -48.0
-	cross.offset_right = -4.0
-	cross.offset_top = 4.0
-	cross.offset_bottom = 48.0
+	cross.offset_left = -60.0  # Inside the frame's rim, not on it (user 2026-10-22: "the X is coming off")
+	cross.offset_right = -16.0
+	cross.offset_top = 14.0
+	cross.offset_bottom = 58.0
 	frame.add_child(cross)
 	_content.custom_minimum_size = Vector2(WIDTH, 0)
 	_content.add_theme_constant_override("separation", 8)

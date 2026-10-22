@@ -144,7 +144,7 @@ func _show_calling(data: TowerData) -> void:
 		return
 	_calling_line = Label.new()
 	_calling_line.name = "Calling"
-	_calling_line.text = "Calling · %s" % dreams.calling_title()
+	_calling_line.text = "Calling: %s" % dreams.calling_title()
 	UiStyle.caps(_calling_line, 13, UiStyle.GOLD)
 	_calling_line.mouse_filter = Control.MOUSE_FILTER_STOP
 	TapTip.attach(_calling_line, IconInfo.format(DreamState.CALLINGS.tooltip(dreams.calling)))

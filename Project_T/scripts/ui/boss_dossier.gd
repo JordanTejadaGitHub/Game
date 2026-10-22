@@ -144,11 +144,7 @@ func _ready() -> void:
 	_close_button.focus_mode = Control.FOCUS_NONE
 	_close_button.pressed.connect(close_dossier)
 	UiStyle.primary(_close_button)  # Light pass: the one primary, with its key
-	var enter := UiStyle.key_chip("⏎")
-	enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	enter.offset_left = -38
-	enter.offset_right = -14
-	_close_button.add_child(enter)
+	UiStyle.key_chip_on(_close_button, "Enter")  # Spelled out (no UI font has ⏎), clear of the label (UI council round 3)
 	# "What's coming" at an act's start (user, 2026-10-03): forced, with Peek at the map and Continue.
 	_peek = ChoicePeek.new(self, [shade, _vignette, centre], "Return to what's coming")
 	_peek.place_back_centre()
@@ -811,13 +807,13 @@ func _header(data: EnemyData, _drift: int) -> Control:
 	name_row.add_child(name)
 	_name_label = name
 	if NightmareCard.is_new(data):
-		var chip := Label.new()  # "New: never faced", a gold chip
-		chip.name = "NewChip"
+		var chip := Label.new()  # "New: never faced": a pewter plate, Mist words (UI council round 3: brass is for
+		chip.name = "NewChip"  # yours / hover / press, and this chip can't be pressed)
 		chip.text = "New: never faced"
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
-		chip.add_theme_color_override("font_color", UiStyle.GOLD)
-		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0, &"plate_yours"))  # Moon-glass (UI Code 8ecd7fb4)
+		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)  # Not Wraithlight: too dim on the plate (UI council round 4)
+		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0))  # Moon-glass (UI Code 8ecd7fb4)
 		name_row.add_child(chip)
 	var title: String = data.title
 	if title != "":

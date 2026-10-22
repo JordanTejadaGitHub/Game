@@ -42,7 +42,7 @@ func _run() -> void:
 	var price_line := String(button.get_meta(&"price_line", ""))
 	_check(price_line.contains("Every %d Sprouts on the map add %s" % [TowerPlacer.SPROUTS_PER_STEP, UiStyle.dew_amount(TowerPlacer.SPROUT_STEP_DEW, true)]) and price_line.contains("next rise at %d Sprouts" % (TowerPlacer.SPROUTS_PER_STEP * 2)),
 		"the hover card's price line states the rule (%s)" % price_line)
-	_check(toasts.size() >= 1 and hud._sprout_rise_told, "the first rise toasts (%s)" % [toasts])
+	_check(toasts.is_empty(), "no toast on the rise: the Sprouts cost more Lesson card teaches it (%s)" % [toasts])
 	_check(button.text == str(placer.get_cost(sprout)), "the button shows the current price")
 	# Hovering a slot shows the Warden card (the panel's top half, WardenHeaderView) with its price line.
 	hud._show_hover_card(button, sprout)

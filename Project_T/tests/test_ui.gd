@@ -21,7 +21,7 @@ func _run() -> void:
 	# --- Drift banner: next boss countdown ---
 	var banner = main.get_node("%DriftBanner")
 	var text: String = banner._next_boss_text(0)
-	_check(text == "25", "banner shows the next boss as its portrait and the countdown (%s)" % text)
+	_check(text == "Boss in 25", "banner shows the next boss as its portrait and the countdown (%s)" % text)
 
 	# The top-centre stack: the active Omen's line sits under the banner, the Coming strip under it.
 	var omen_tag := main.get_node_or_null("HUD/ActiveOmen") as Label
@@ -426,7 +426,7 @@ func _run() -> void:
 	var calling_title: String = dreams.calling_title()
 	var jar_name: String = load("res://resource/tower/firefly_jar.tres").display_name
 	_check(calling_title != "" and row._calling_frame != null and row._calling_frame.get_index() == 0
-		and row._calling_frame.tooltip_text.begins_with("Calling · " + calling_title) and not row._calling_frame.tooltip_text.contains("{"),
+		and row._calling_frame.tooltip_text.begins_with("Calling: " + calling_title) and not row._calling_frame.tooltip_text.contains("{"),
 		"the Calling is the Dreams row's first icon, its tip the name and the rule (%s)" % (row._calling_frame.tooltip_text if row._calling_frame != null else "none"))
 	_check(row.get_list_text().contains("Calling: %s (%s)" % [calling_title, jar_name]), "Dreams this run lists the Calling with its family and rule")
 	row._toggle_list()
@@ -442,7 +442,7 @@ func _run() -> void:
 	jar_probe._dream_state = dreams
 	calling_header._tower = jar_probe
 	calling_header._show_calling(jar_probe.tower_data)
-	_check(calling_header._calling_line != null and calling_header._calling_line.text == ("Calling · " + calling_title).to_lower()  # (A caps label: UiStyle.caps lowers its text)
+	_check(calling_header._calling_line != null and calling_header._calling_line.text == ("Calling: " + calling_title).to_lower()  # (A caps label: UiStyle.caps lowers its text)
 		and calling_header._calling_line.tooltip_text != "", "a Warden of the Calling's family names it under its description")
 	calling_header._show_calling(load("res://resource/tower/sporeling.tres"))
 	_check(calling_header._calling_line == null, "…and a Warden of another family doesn't")

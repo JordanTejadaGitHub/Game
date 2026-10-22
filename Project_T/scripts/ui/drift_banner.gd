@@ -21,6 +21,7 @@ var _boss: Node2D = null
 # Tappable spots (screens_ui.md "Boss dossier"): "Boss in N" opens the dossier; during the boss drift
 # the bar's markers (50%, or the Oak's 67% / 33%) show the ability that starts there. Everything else lets clicks through.
 var _countdown_rect := Rect2()
+var _pips_rect := Rect2()  # The block pips, for their tooltip
 var _markers: Array = []  # [[Rect2, line], …] on the boss bar
 var _marker_tip := TapTip.new()
 
@@ -72,17 +73,15 @@ func _process(delta: float) -> void:
 # The width its drawing takes (centred in its rect): the widest of the top line and the pips + next
 # boss line, or its boss bar. The HUD keeps the top-right row clear of it.
 func drawn_width() -> float:
-	var font := UiStyle.display_font()
 	var latest := drift_director.drifts_started
 	var total := drift_director.get_total_drifts()
 	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
 	var act := drift_director.get_act(shown)
-	var top := "%s%s%s" % [drift_director.get_act_name(act), TOP_GAP, get_drift_text()]
-	var width := font.get_string_size(top, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var width := UiStyle.display_width(drift_director.get_act_name(act) + TOP_GAP, FONT_SIZE) + _phrase_width(get_drift_text(), FONT_SIZE)
 	var pips := (drift_director.drifts_per_block - 1) * PIP_RADIUS * 3.0 + PIP_RADIUS * 2.0
 	var boss_text := _next_boss_text(latest)
 	if boss_text != "":
-		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x
+		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + _phrase_width(boss_text, BOSS_FONT_SIZE)
 	return maxf(maxf(width, pips) + 12.0, _drawn_half * 2.0)  # What it last drew, if wider (+ outlines)
 
 # Its drawn area in global coordinates (centred in the rect).
@@ -104,15 +103,18 @@ func _draw() -> void:
 	# Light pass (user-approved): "Forest's Edge   Drift 1 of 100", the act's name in ink, the count quieter.
 	var place: String = drift_director.get_act_name(act) + TOP_GAP
 	var count := get_drift_text()
-	var place_w := font.get_string_size(place, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
-	var full_w := place_w + font.get_string_size(count, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var place_w := UiStyle.display_width(place, FONT_SIZE)
+	var full_w := place_w + _phrase_width(count, FONT_SIZE)
 	var top_left := center_x - full_w / 2.0
 	for part in [[place, top_left, TEXT_COLOR], [count, top_left + place_w, UiStyle.MOON_MIST]]:
-		draw_string_outline(font, Vector2(part[1], 20), part[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, 6, Palette.DREAD)
-		draw_string(font, Vector2(part[1], 20), part[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, part[2])
+		if part[0] == place:
+			UiStyle.draw_display(self, Vector2(part[1], 20), part[0], FONT_SIZE, part[2], 6, Palette.DREAD)
+		else:
+			_draw_phrase(part[0], Vector2(part[1], 20), FONT_SIZE, part[2])
 	_drawn_half = maxf(_drawn_half, full_w / 2.0 + 6.0)
 
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
+		_pips_rect = Rect2()
 		_draw_boss_bar(font, center_x)
 		return
 	# The second row, centred as a whole: the block's pips, then the next boss (portrait on its disc +
@@ -123,10 +125,11 @@ func _draw() -> void:
 	var pips_width := (drift_director.drifts_per_block - 1) * step + PIP_RADIUS * 2.0
 	var boss_text := _next_boss_text(latest)
 	var boss_data := _next_boss_data(latest)
-	var text_width := font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x if boss_text != "" else 0.0
+	var text_width := _phrase_width(boss_text, BOSS_FONT_SIZE) if boss_text != "" else 0.0
 	var boss_width := (BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + text_width) if boss_text != "" else 0.0
 	var row_y := 48.0
 	var x := center_x - (pips_width + boss_width) / 2.0 + PIP_RADIUS
+	_pips_rect = Rect2(x - PIP_RADIUS - 4.0, row_y - PIP_RADIUS - 4.0, pips_width + 8.0, PIP_RADIUS * 2.0 + 8.0)
 	for i in drift_director.drifts_per_block:
 		var number := first + i
 		var at := Vector2(x + i * step, row_y)
@@ -148,8 +151,7 @@ func _draw() -> void:
 			false, boss_data.tint)
 	var text_x := disc.x + DISC_RADIUS + 8.0
 	var base := row_y + BOSS_FONT_SIZE * 0.35
-	draw_string_outline(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, 6, Palette.DREAD)
-	draw_string(font, Vector2(text_x, base), boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE, UiStyle.GOLD)
+	_draw_phrase(boss_text, Vector2(text_x, base), BOSS_FONT_SIZE, UiStyle.GOLD)
 	# Underlined: it (and the portrait) opens the dossier.
 	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
 	_countdown_rect = Rect2(left - 4.0, row_y - DISC_RADIUS - 4.0, text_x + text_width - left + 8.0, DISC_RADIUS * 2.0 + 8.0)
@@ -192,7 +194,7 @@ func _boss_at_heartwood() -> bool:
 	return is_instance_valid(_boss) and bool(_boss.get("at_heartwood"))
 
 func _has_point(point: Vector2) -> bool:
-	return _marker_at(point) != "" or _countdown_rect.has_point(point)
+	return _marker_at(point) != "" or _countdown_rect.has_point(point) or _pips_rect.has_point(point)
 
 func _marker_at(point: Vector2) -> String:
 	for marker in _markers:
@@ -204,6 +206,8 @@ func _get_tooltip(at: Vector2) -> String:
 	var line := _marker_at(at)
 	if line != "":
 		return line
+	if _pips_rect.has_point(at):
+		return "This block's %d drifts: a filled dot has started. A rest follows the last one." % drift_director.drifts_per_block
 	var data := _next_boss_data(drift_director.drifts_started)
 	if data == null or not _countdown_rect.has_point(at):
 		return ""
@@ -264,8 +268,7 @@ func _next_boss_text(latest: int) -> String:
 	var number := _next_boss_drift(latest)
 	if number == 0:
 		return ""
-	var data := _boss_of(number)
-	return str(number - latest)
+	return "Boss in %d" % (number - latest)  # Says what the number counts (UI council 2026-10-22: a bare "22" read as anything)
 
 func _next_boss_data(latest: int) -> EnemyData:
 	var number := _next_boss_drift(latest)
@@ -290,9 +293,22 @@ func _boss_of(number: int) -> EnemyData:
 		_bosses[number] = [boss_drift, found]
 	return _bosses[number][1]
 
+# A phrase that holds a number ("Drift 1 of 100", "Boss in 25"), whole in the number face (UI council round 4: a
+# Pixelify word beside Vollkorn digits read patchy; round 3: Pixelify's 5 read as S). The act's name stays Pixelify.
+func _phrase_width(text: String, font_size: int) -> float:
+	return UiStyle.number_font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+
+func _draw_phrase(text: String, at: Vector2, font_size: int, colour: Color) -> void:
+	var font := UiStyle.number_font()
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+
 func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
-	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var width := UiStyle.display_width(text, font_size) if font == UiStyle.display_font() else font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var origin := Vector2(at.x - width / 2.0, at.y)
-	draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
-	draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+	if font == UiStyle.display_font():
+		UiStyle.draw_display(self, origin, text, font_size, colour, 6, Palette.DREAD)
+	else:
+		draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
+		draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 	_drawn_half = maxf(_drawn_half, width / 2.0 + 6.0)  # + the outline

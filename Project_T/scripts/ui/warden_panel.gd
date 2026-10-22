@@ -453,7 +453,7 @@ func _refresh() -> void:
 					var tip := "Rank %s: %s.\n%s. Kept when it grows; can't be changed." % [Tower.rank_name(_tower.rank + 1),
 						_choice_preview(_tower, which), _tower.focus_text(which).trim_suffix(".")] + _growth_note()
 					var button := _nurture_choice(index, Tower.FOCUS_NAMES[which], _choice_delta(_tower, which), tip, price)
-					if which == Tower.Focus.DEEP:
+					if which == Tower.Focus.DEEP and UiStyle.is_phone():  # PC: the row's hover tip says it (user 2026-10-22: "remove the detail under Potency"); phones have no hover, a tap buys
 						_deep_line(button, _tower)
 					if _tower.has_method("choice_available") and not _tower.choice_available(which):
 						button.disabled = true  # A one-time choice already taken ("Already taken: Kindred works once")
@@ -492,7 +492,7 @@ func _refresh() -> void:
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
-	_key_on(close, "Esc")
+	close.tooltip_text = "Close (Esc)"  # No chip: it squeezed "Close" to "Clos" in its third of the row (UI council 2026-10-22)
 	close.pressed.connect(tower_seller.select.bind(null))
 	_phone_arrange()
 
@@ -651,7 +651,7 @@ func _refresh_group() -> void:
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
-	_key_on(close, "Esc")
+	close.tooltip_text = "Close (Esc)"  # No chip: it squeezed "Close" to "Clos" in its third of the row (UI council 2026-10-22)
 	close.pressed.connect(tower_seller.select.bind(null))
 	_phone_stats.visible = false  # One Warden's numbers only
 	_phone_arrange()
@@ -912,7 +912,7 @@ func _choice_delta(tower: Tower, which: Tower.Focus) -> String:
 		Tower.Focus.REACH:
 			return "+%s range" % String.num(Tower.FOCUS_REACH, 1)
 		Tower.Focus.DEEP:
-			return "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)  # Short; what it does here goes under the row (_deep_line)
+			return "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)  # Short; what it does here is in the row's tip (phones: under the row, _deep_line)
 	return tower.focus_text(which)  # Cut with "…" in the row; whole in the tip
 
 # Under the Deep row (user 2026-10-21, Torrent: "Deep must say what it does on this Warden"): its own terms in small

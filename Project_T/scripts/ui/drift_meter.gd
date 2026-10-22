@@ -415,6 +415,11 @@ func refresh() -> void:
 	# Never in capture mode (marketing captures): the director hides it each frame, but a refresh after its turn
 	# showed it for one frame (Short Form Video).
 	var available := m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
+	# Not while a screen covers the HUD (the family pick, a Dream, Pause…): the HUD hides it each frame, and showing it on
+	# the clock here made it blink there (user 2026-10-22: "the maze dps keeps blinking in choosing a family").
+	var hud := get_parent()
+	if hud != null and hud.has_method("_phone_choice_open") and hud.call("_phone_choice_open"):
+		available = false
 	_hide_arrow.visible = available and not arrow_hidden
 	visible = available and not hidden_by_player
 	if not visible:

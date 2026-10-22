@@ -295,7 +295,7 @@ const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain
 # column moves; listed under "statuses" in icons.json.
 const STATE_ICONS := ["asleep"]
 # Combat HUD marks (appended, no column moves): "chain" = the Reaction chain counter (scripts/ui/chain_counter.gd).
-const HUD_MARK_ICONS := ["chain"]
+const HUD_MARK_ICONS := ["chain", "clock"]  # "clock" = the Pause run summary's time row (UI council round 4)
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -2260,6 +2260,32 @@ func _ic_chain() -> void:
 		".oGGgggggo......",
 		"..ogggggo.......",
 		"...ooooo........",
+	]
+	for y in rows.size():
+		for x in rows[y].length():
+			var ch: String = rows[y][x]
+			if ink.has(ch):
+				_dt(x, y, Palette.color(ink[ch]))
+func _ic_clock() -> void:
+	# The run's time (Pause): a moon-and-gold rim lit from the top left, two pale hands at ten past. Hand-placed pixels.
+	var ink := {"o": "dread", "H": "heartlight", "G": "glow", "g": "gold"}
+	var rows := [
+		"......oooo......",
+		"....ooHHHHoo....",
+		"..ooHHHHHHHHoo..",
+		"..oHHooooooGGo..",
+		".oHHo..H...oGgo.",
+		".oHo...H....ogo.",
+		"oHHo...H....oggo",
+		"oHHo...H....oggo",
+		"oHHo...GHHHHoggo",
+		"oHHo........oggo",
+		".oHo........ogo.",
+		".oHGo......oggo.",
+		"..oGGooooooggo..",
+		"..ooggggggggoo..",
+		"....ooggggoo....",
+		"......oooo......",
 	]
 	for y in rows.size():
 		for x in rows[y].length():
