@@ -35,7 +35,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(UiStyle.FOG, 0.6)
+	dim.color = Color(UiStyle.FOG, 0.85 if UiStyle.is_phone() else 0.6)  # Phones: the menu takes the screen (user 2026-10-21)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	if UiStyle.is_phone():
@@ -121,13 +121,20 @@ func _fill_run_side(side: VBoxContainer) -> void:
 	side.add_child(_families)
 	_summary.visible = false
 	side.add_child(_summary)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side.add_child(spacer)
+	if _phone:  # Phones (user 2026-10-21: a band of nothing between the facts and Lessons): a small heading, right under
+		side.add_child(HSeparator.new())
+		var lessons_head := Label.new()
+		lessons_head.text = "Lessons"
+		UiStyle.caps(lessons_head, 14)
+		side.add_child(lessons_head)
+	else:
+		var spacer := Control.new()
+		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		side.add_child(spacer)
 	var hints := HBoxContainer.new()
 	hints.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	var hints_label := Label.new()
-	hints_label.text = "Lessons"  # The paused cards (were "Hints", before that "Heartwood whispers")
+	hints_label.text = "Show lessons" if _phone else "Lessons"  # The paused cards (were "Hints", before that "Heartwood whispers"); phones: under a "Lessons" heading
 	hints_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hints_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	hints.add_child(hints_label)
@@ -170,6 +177,7 @@ var _run_page := VBoxContainer.new()
 var _pane_buttons := {}  # Page -> its rail toggle
 var _pane := &"run"
 var _pane_box: PanelContainer
+var _sheet: PanelContainer = null  # Phones: the one panel the rail and the page share
 var _pending_pane := &""  # Settings asked "Apply your changes?" first: the page to show once it closes
 
 func _build_phone() -> void:
@@ -180,14 +188,20 @@ func _build_phone() -> void:
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		margin.add_theme_constant_override(side, PHONE_MARGIN)
 	add_child(margin)
+	# One sheet (user 2026-10-21, "how about the menu": two boxes floating over the map read as two windows): the rail
+	# and the page share one solid panel, a thin divider between them; the rail and the page draw no panel of their own.
+	_sheet = PanelContainer.new()
+	_sheet.name = "Sheet"
+	_solid(_sheet)
+	margin.add_child(_sheet)
 	_phone_root = HBoxContainer.new()
-	_phone_root.add_theme_constant_override("separation", 12)
-	margin.add_child(_phone_root)
+	_phone_root.add_theme_constant_override("separation", 14)
+	_sheet.add_child(_phone_root)
 
 	var rail := PanelContainer.new()
 	rail.name = "Rail"
 	rail.custom_minimum_size.x = PHONE_RAIL_W
-	_solid(rail)
+	rail.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # On the sheet (no box of its own)
 	_phone_root.add_child(rail)
 	var rail_scroll := ScrollContainer.new()  # Short phones: the rail scrolls rather than leave the screen
 	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -233,10 +247,10 @@ func _build_phone() -> void:
 	var pane_box := PanelContainer.new()
 	pane_box.name = "Pane"
 	pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_solid(pane_box)
-	var pane_fill := pane_box.get_theme_stylebox("panel")
-	if pane_fill is MoonStyleBox:
-		(pane_fill as MoonStyleBox).diamond = false  # Nested beside the rail: only the outermost panel has the sprout
+	pane_box.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # On the sheet (no box of its own)
+	var divider := VSeparator.new()  # The thin line between the rail and the page
+	divider.name = "RailDivider"
+	_phone_root.add_child(divider)
 	_phone_root.add_child(pane_box)
 	_pane_box = pane_box
 	var run_scroll := ScrollContainer.new()
@@ -283,6 +297,7 @@ func _show_pane(pane: StringName) -> void:
 	# …and only as wide as it needs (user 2026-10-21: the Lessons toggle sat across a screen of nothing); PANE_RUN_W at least.
 	_pane_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_EXPAND_FILL
 	_pane_box.custom_minimum_size.x = PANE_RUN_W if pane == &"run" else 0.0
+	_sheet.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_FILL  # The sheet hugs This run, fills for the rest
 	_settings.visible = pane == &"settings"
 	if pane == &"codex":
 		if not codex.visible:
@@ -644,6 +659,7 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 		_pane_box.size_flags_vertical = Control.SIZE_FILL  # The Codex fills the pane (only This run hugs its content)
 		_pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_pane_box.custom_minimum_size.x = 0.0
+		_sheet.size_flags_horizontal = Control.SIZE_FILL
 		_settings.visible = false
 		codex.open(tab, entry)
 		_sync_pane_buttons()
