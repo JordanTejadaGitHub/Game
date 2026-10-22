@@ -17,7 +17,8 @@ static func _shadowed(control: Control) -> void:
 const BUTTON_SIZE := Vector2(64, 84)  # Two steps up from 48 × 62 (user, twice: "the tower bar can be a bit bigger")
 const SLOT_SPRITE := 48  # The Warden sprite in a slot (UiStyle.HUD_SPRITE size again)
 const SLOT_COST_SIZE := 16  # The cost under the sprite
-const SLOT_KEY_SIZE := 12  # The hotkey in the corner
+const SLOT_KEY_SIZE := 13  # The hotkey in the corner
+const HOTKEY_AT := Vector2(8, 5)  # Its corner, clear of the plate's 4 px rim
 const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
 const BAR_GAP := 6  # Between slots and between rows
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
@@ -109,9 +110,15 @@ func _ready() -> void:
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
-	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty():  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
+	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty() or UiStyle.test_safe_sides != Vector2.ZERO:  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
 		get_viewport().size_changed.connect(_fit_safe_area)
 		_fit_safe_area()
+		var flip_check := Timer.new()  # Turned upside down (sensor landscape, user 2026-10-21): same size, the camera side moved
+		flip_check.wait_time = 1.0
+		flip_check.process_mode = Node.PROCESS_MODE_ALWAYS
+		flip_check.timeout.connect(_refit_if_flipped)
+		add_child(flip_check)
+		flip_check.start()
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
@@ -319,9 +326,9 @@ func _build_tower_bar() -> void:
 			var hotkey := Label.new()
 			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
-			hotkey.position = Vector2(3, 0)
+			hotkey.position = HOTKEY_AT  # Inside the moon-glass plate's rim (user 2026-10-21: "can't see the hotkeys")
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			UiStyle.number(hotkey, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+			UiStyle.number(hotkey, SLOT_KEY_SIZE, UiStyle.MOON_MIST)
 			_shadowed(hotkey)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
 			hotkey.add_theme_constant_override("outline_size", 3)
@@ -358,17 +365,29 @@ var _bar_arrows: Array[Button] = []
 func _fit_safe_area() -> void:
 	var view := get_viewport().get_visible_rect().size
 	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
-	side_holes = UiStyle.side_holes(view)
+	side_holes = UiStyle.side_holes(view).max(UiStyle.safe_sides(view))  # A hole, or the device's unsafe sides (user 2026-10-21: pages cut off on the left)
 	_fit_side_holes()
 
 # Phones: a punch hole in the middle of a side (UiStyle.side_holes) keeps the HUD's corners on the screen's edge; only
 # the full-screen pages keep clear of it (their full-width anchors get the hole as side offsets), and the Warden drawer
 # docked left (WardenPanel._dock_left) and the Dreams page (DreamsRow) read `side_holes`.
-const HOLE_SCREENS := ["PauseMenu", "DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "RememberScreen",
+const HOLE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "RememberScreen",
 	"ResultsScreen", "BossDossier", "LessonCard"]
 var side_holes := Vector2.ZERO  # (left, right) in view units
 
 var _holes_applied := false
+var _fit_key := ""
+
+# The screen turned over: the unsafe side moved, so the pages' padding swaps sides.
+func _refit_if_flipped() -> void:
+	var view := get_viewport().get_visible_rect().size
+	var key := "%s|%s|%s" % [UiStyle.safe_insets(view), UiStyle.side_holes(view), UiStyle.safe_sides(view)]
+	if key != _fit_key:
+		_fit_key = key
+		_fit_safe_area()
+		var drawer := get_node_or_null("WardenPanel")
+		if drawer != null and drawer.visible and drawer.get("_docked_left") == true and drawer.has_method("_dock_left"):
+			drawer._dock_left()
 
 func _fit_side_holes() -> void:
 	if side_holes == Vector2.ZERO and not _holes_applied:
@@ -382,6 +401,36 @@ func _fit_side_holes() -> void:
 		screen.offset_right = -side_holes.y
 		if not screen.visibility_changed.is_connected(_fit_side_holes):
 			screen.visibility_changed.connect(_fit_side_holes)  # Re-applied when it opens (a page may reset its anchors)
+	_shade_hole_strips()
+
+# The strips a moved-in page leaves at the screen's sides get the dim the page would have drawn there, so the map never
+# shows bright beside a full-screen page.
+var _hole_shades: Array[ColorRect] = []
+
+func _shade_hole_strips() -> void:
+	if _hole_shades.is_empty():
+		for i in 2:
+			var shade := ColorRect.new()
+			shade.name = "HoleShade%d" % i
+			shade.color = Color(UiStyle.FOG, 0.85)
+			shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(shade)
+			_hole_shades.append(shade)
+	var open: Control = null
+	for screen_name in HOLE_SCREENS:
+		var screen := get_node_or_null(screen_name) as Control
+		if screen != null and screen.visible and screen.anchor_left == 0.0 and screen.anchor_right == 1.0:
+			open = screen
+	var view := get_viewport().get_visible_rect().size
+	for i in 2:
+		var shade := _hole_shades[i]
+		var width := side_holes.x if i == 0 else side_holes.y
+		shade.visible = open != null and width > 0.0
+		if not shade.visible:
+			continue
+		shade.position = Vector2(0.0 if i == 0 else view.x - width, 0.0)
+		shade.size = Vector2(width, view.y)
+		move_child(shade, open.get_index())  # Right under the page
 
 # --- Phones (Mobile UI, the "Heartwood Phone HUD" prototype; user 2026-10-15) ---------------------------------------------
 # The Warden bar is a dock at the bottom LEFT (the left thumb) with a Sell slot at its end; the bottom centre stays free
@@ -485,6 +534,7 @@ func _on_select_slot(on: bool) -> void:
 # cost sits, and its glyph is drawn TOOL_GLYPH px, centred in the space above it. The button's own text and icon stay
 # empty (the button's layout put an icon-less caption mid-slot).
 const TOOL_GLYPH := 32.0
+const TOOL_CAPTION_MIN := 11
 
 func _tool_slot_icon(slot: Button, glyph: Texture2D) -> void:
 	var caption := Label.new()
@@ -519,6 +569,12 @@ func _tool_slot_icon(slot: Button, glyph: Texture2D) -> void:
 		var bottom := box.get_margin(SIDE_BOTTOM) if box != null else 4.0
 		caption.position = Vector2(left, top)
 		caption.size = Vector2(slot.size.x - left - right, slot.size.y - top - bottom)
+		# The caption steps down until it fits the slot (user 2026-10-21: "Select is overflowing")
+		var font := caption.get_theme_font("font")
+		var font_size := SLOT_COST_SIZE
+		while font_size > TOOL_CAPTION_MIN and font.get_string_size(caption.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > caption.size.x - 2.0:
+			font_size -= 1
+		caption.add_theme_font_size_override("font_size", font_size)
 		var line := caption.get_line_height()
 		var room := Vector2(slot.size.x - left - right, slot.size.y - top - bottom - line)
 		var side := minf(TOOL_GLYPH, minf(room.x, room.y))
@@ -880,7 +936,8 @@ func _fit_tower_bar() -> void:
 	_shadowed(clear_tool)
 	var clear_key := clear_tool.get_node_or_null("Hotkey") as Label
 	if clear_key != null:
-		UiStyle.number(clear_key, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+		UiStyle.number(clear_key, SLOT_KEY_SIZE, UiStyle.MOON_MIST)
+		clear_key.position = HOTKEY_AT
 		_shadowed(clear_key)
 	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
 	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children

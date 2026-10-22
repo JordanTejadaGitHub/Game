@@ -207,6 +207,23 @@ static func _cutout_insets(view: Vector2) -> Dictionary:
 			far.y = maxf(far.y, (screen.y - r.position.y) * k)
 	return {"corners": Rect2(near, far), "side": side}
 
+# The safe area's left and right insets in view units, from the device alone (a phone's camera side, rounded corners),
+# whatever the cutout rects say: full-screen pages keep clear of them (hud.gd page_pad). Vector2.ZERO off phones.
+static var test_safe_sides := Vector2.ZERO  # Captures and tests
+
+static func safe_sides(view: Vector2) -> Vector2:
+	if test_safe_sides != Vector2.ZERO:
+		return test_safe_sides
+	if not OS.has_feature("mobile"):
+		return Vector2.ZERO
+	var window := Vector2(DisplayServer.window_get_size())
+	var safe := DisplayServer.get_display_safe_area()
+	var screen := Vector2(DisplayServer.screen_get_size())
+	if window.x <= 0.0 or safe.size.x <= 0 or window.x < screen.x - 1.0:
+		return Vector2.ZERO  # Android already keeps the window clear (letterboxed)
+	var k := view.x / window.x
+	return Vector2(maxf(0.0, safe.position.x) * k, maxf(0.0, screen.x - safe.end.x) * k)
+
 # The mid-side holes (left, right) in view units: Vector2.ZERO without any.
 static func side_holes(view: Vector2) -> Vector2:
 	var cut := _cutout_insets(view)
@@ -483,13 +500,15 @@ static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBo
 
 # A small plate (buttons, rows, slots, tags, toasts, tooltips): `frame` is its metal. Brass (hover, pressed, yours) keeps
 # the soft gold glow; every plate casts a soft drop shadow except a pressed one. Never a sprout.
+const PLATE_MIN_MARGIN := Vector2(7.0, 5.0)  # A plate's 4 px rim plus air
 static func plate_box(margin_x: float = 14.0, margin_y: float = 6.0, frame: StringName = &"plate") -> MoonStyleBox:
 	var box := MoonStyleBox.new()
 	box.frame = frame
 	box.thread = MoonStyleBox.TopLine.NONE
 	box.glow = frame in MoonStyleBox.BRASS and frame != &"plate_pressed"
 	box.drop_shadow = frame != &"plate_pressed"
-	_margins(box, margin_x, margin_y)
+	# Never inside the 4 px rim (Mobile UI 2026-10-21: chips at margin_y 1-2 drew their text on the rim, "every 10 s" clipped)
+	_margins(box, maxf(margin_x, PLATE_MIN_MARGIN.x), maxf(margin_y, PLATE_MIN_MARGIN.y))
 	if frame == &"plate_pressed":  # Pushed in: the content moves down 2 px
 		box.content_margin_top += 2.0
 		box.content_margin_bottom = maxf(box.content_margin_bottom - 2.0, 0.0)

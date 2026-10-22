@@ -35,7 +35,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(UiStyle.FOG, 0.6)
+	dim.color = Color(UiStyle.FOG, 0.85 if UiStyle.is_phone() else 0.6)  # Phones: the menu takes the screen (user 2026-10-21)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	if UiStyle.is_phone():
@@ -121,13 +121,20 @@ func _fill_run_side(side: VBoxContainer) -> void:
 	side.add_child(_families)
 	_summary.visible = false
 	side.add_child(_summary)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side.add_child(spacer)
+	if _phone:  # Phones (user 2026-10-21: a band of nothing between the facts and Lessons): a small heading, right under
+		side.add_child(HSeparator.new())
+		var lessons_head := Label.new()
+		lessons_head.text = "Lessons"
+		UiStyle.caps(lessons_head, 14)
+		side.add_child(lessons_head)
+	else:
+		var spacer := Control.new()
+		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		side.add_child(spacer)
 	var hints := HBoxContainer.new()
 	hints.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	var hints_label := Label.new()
-	hints_label.text = "Lessons"  # The paused cards (were "Hints", before that "Heartwood whispers")
+	hints_label.text = "Show lessons" if _phone else "Lessons"  # The paused cards (were "Hints", before that "Heartwood whispers"); phones: under a "Lessons" heading
 	hints_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hints_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	hints.add_child(hints_label)
@@ -160,6 +167,7 @@ func _replay_guides() -> void:
 # fills the rest: This run (facts, families, Lessons, Replay lessons), the Codex or Settings, each in one solid pane.
 const PHONE_RAIL_W := 200.0  # (250 left the Codex's Families tree, 790 wide, past a 1100-wide phone view)
 const PHONE_MARGIN := 16
+const PANE_RUN_W := 460.0  # Phones: This run's page width (it hugs its content)
 var _phone := false
 var _phone_root: HBoxContainer
 var _status_line := HBoxContainer.new()  # Two icon + number pairs: the drift ("0/100") and the leaves ("15")
@@ -169,6 +177,7 @@ var _run_page := VBoxContainer.new()
 var _pane_buttons := {}  # Page -> its rail toggle
 var _pane := &"run"
 var _pane_box: PanelContainer
+var _sheet: PanelContainer = null  # Phones: the one panel the rail and the page share
 var _pending_pane := &""  # Settings asked "Apply your changes?" first: the page to show once it closes
 
 func _build_phone() -> void:
@@ -179,14 +188,20 @@ func _build_phone() -> void:
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		margin.add_theme_constant_override(side, PHONE_MARGIN)
 	add_child(margin)
+	# One sheet (user 2026-10-21, "how about the menu": two boxes floating over the map read as two windows): the rail
+	# and the page share one solid panel, a thin divider between them; the rail and the page draw no panel of their own.
+	_sheet = PanelContainer.new()
+	_sheet.name = "Sheet"
+	_solid(_sheet)
+	margin.add_child(_sheet)
 	_phone_root = HBoxContainer.new()
-	_phone_root.add_theme_constant_override("separation", 12)
-	margin.add_child(_phone_root)
+	_phone_root.add_theme_constant_override("separation", 14)
+	_sheet.add_child(_phone_root)
 
 	var rail := PanelContainer.new()
 	rail.name = "Rail"
 	rail.custom_minimum_size.x = PHONE_RAIL_W
-	_solid(rail)
+	rail.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # On the sheet (no box of its own)
 	_phone_root.add_child(rail)
 	var rail_scroll := ScrollContainer.new()  # Short phones: the rail scrolls rather than leave the screen
 	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -216,7 +231,8 @@ func _build_phone() -> void:
 		_pane_buttons[pane[0]] = toggle
 	_save_button = _add_button("Save & quit…", ask_quit)  # Secondary, Resume's size (the theme's plain frame)
 	_save_button.name = "Quit"
-	_add_copy_save()
+	if not _phone:
+		_add_copy_save()  # (Phones: on This run's page, added after it is filled)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_menu.add_child(spacer)
@@ -231,10 +247,10 @@ func _build_phone() -> void:
 	var pane_box := PanelContainer.new()
 	pane_box.name = "Pane"
 	pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_solid(pane_box)
-	var pane_fill := pane_box.get_theme_stylebox("panel")
-	if pane_fill is MoonStyleBox:
-		(pane_fill as MoonStyleBox).diamond = false  # Nested beside the rail: only the outermost panel has the sprout
+	pane_box.add_theme_stylebox_override("panel", StyleBoxEmpty.new())  # On the sheet (no box of its own)
+	var divider := VSeparator.new()  # The thin line between the rail and the page
+	divider.name = "RailDivider"
+	_phone_root.add_child(divider)
 	_phone_root.add_child(pane_box)
 	_pane_box = pane_box
 	var run_scroll := ScrollContainer.new()
@@ -247,6 +263,7 @@ func _build_phone() -> void:
 	_run_page.add_theme_constant_override("separation", 12)
 	run_scroll.add_child(_run_page)
 	_fill_run_side(_run_page)
+	_add_copy_save()
 	codex = CodexPanel.new()
 	codex.embedded = true
 	pane_box.add_child(codex)
@@ -277,6 +294,10 @@ func _show_pane(pane: StringName) -> void:
 	_run_page.get_parent().visible = pane == &"run"
 	# This run hugs its content (user 2026-10-17: a lot of unfilled space); the Codex and Settings fill the pane.
 	_pane_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_FILL
+	# …and only as wide as it needs (user 2026-10-21: the Lessons toggle sat across a screen of nothing); PANE_RUN_W at least.
+	_pane_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_EXPAND_FILL
+	_pane_box.custom_minimum_size.x = PANE_RUN_W if pane == &"run" else 0.0
+	_sheet.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if pane == &"run" else Control.SIZE_FILL  # The sheet hugs This run, fills for the rest
 	_settings.visible = pane == &"settings"
 	if pane == &"codex":
 		if not codex.visible:
@@ -289,7 +310,7 @@ func _show_pane(pane: StringName) -> void:
 # open page adds the Glow underline (the active-tab look) with Glow text.
 func _page_toggle_look(toggle: Button) -> void:
 	for state in ["pressed", "hover_pressed"]:  # Moon-glass: the open page is a tab, in brass (not the pushed-in plate)
-		toggle.add_theme_stylebox_override(state, UiStyle.plate_box(14.0, 6.0, &"plate_yours"))
+		toggle.add_theme_stylebox_override(state, UiStyle.plate_box(14.0, 6.0, &"plate" if _phone else &"plate_yours"))  # Phones: a plain plate with Gold text, never Resume's brass (user 2026-10-21)
 	for state in ["font_pressed_color", "font_hover_pressed_color"]:
 		toggle.add_theme_color_override(state, UiStyle.GOLD)
 
@@ -491,11 +512,16 @@ func _add_copy_save() -> void:
 	var button := _add_button(COPY_SAVE_TEXT, _copy_save)
 	button.name = "CopySave"
 	button.add_theme_font_size_override("font_size", 14)
+	if _phone:  # Phones (user 2026-10-21: the rail scrolled): on This run's page, after Replay lessons
+		_menu.remove_child(button)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		button.custom_minimum_size.x = 200.0
+		_run_page.add_child(button)
 
 const COPY_SAVE_TEXT := "Copy save (dev)"
 
 func _copy_save() -> void:
-	var button := _menu.get_node_or_null("CopySave") as Button
+	var button := find_child("CopySave", true, false) as Button
 	if button == null:
 		return
 	var path := RunSaver.file_path
@@ -531,10 +557,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		open()
 	get_viewport().set_input_as_handled()
 
+# Phones: a punch hole mid-side (hud.gd side_holes) moves the menu's content in by its margin; the menu itself stays
+# full screen (user 2026-10-21: shifted whole, it left a strip of map and the Warden drawer showing at the left).
+func _fit_phone_hole() -> void:
+	var margin := get_node_or_null("PhoneLayout") as MarginContainer
+	var holes: Variant = get_parent().get("side_holes") if get_parent() != null else null
+	if margin == null or not holes is Vector2:
+		return
+	margin.add_theme_constant_override("margin_left", PHONE_MARGIN + int((holes as Vector2).x))
+	margin.add_theme_constant_override("margin_right", PHONE_MARGIN + int((holes as Vector2).y))
+
 func open() -> void:
 	if not visible:  # Open already (Esc twice, the Menu button): keep the pause it found the first time
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
+	_fit_phone_hole()
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
 	_fill_facts()
@@ -561,6 +598,14 @@ func _fill_facts() -> void:
 		_fact(&"omen", "omen", omens.active.display_name)
 	var seconds := int(run_state.play_time)
 	_fact(&"", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	if _phone:  # Phones (user 2026-10-21: a lone bell icon under the facts): the families as a fact row like the rest
+		var names: Array[String] = []
+		for data in tower_placer.towers:
+			if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
+				names.append(data.display_name)
+		if not names.is_empty():
+			_fact(&"", "families", ", ".join(names))
+		return
 	for data in tower_placer.towers:
 		if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
 			var art := BranchEmblem.family(data)
@@ -612,6 +657,9 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 		_pane = &"codex"
 		_run_page.get_parent().visible = false
 		_pane_box.size_flags_vertical = Control.SIZE_FILL  # The Codex fills the pane (only This run hugs its content)
+		_pane_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_pane_box.custom_minimum_size.x = 0.0
+		_sheet.size_flags_horizontal = Control.SIZE_FILL
 		_settings.visible = false
 		codex.open(tab, entry)
 		_sync_pane_buttons()
@@ -623,12 +671,25 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 # opened (user 2026-10-17, phone: "pressing Resume on a pause doesn't resume it"). Esc keeps close(): the pause as it was.
 func resume_game() -> void:
 	close()
+	dismiss_lessons(get_tree())  # Resume always resumes (user 2026-10-21, again): an open Lesson is taken as "Got it"
 	if not _choice_waiting():  # A Dream, Omen, family pick, Lesson or Remember underneath keeps its own pause
 		game_speed.set_paused(false)
 
 const CHOICE_SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "LessonCard"]
 
 # Whether a choice screen is open under the menu (peeking at the map counts: the choice still waits).
+# Closes any Lesson card on screen, as its "Got it" does (a Lesson holds the pause while it shows; on a phone it was easy
+# to miss behind the menu, so Resume seemed broken: user 2026-10-17, 10-20, 10-21).
+static func dismiss_lessons(tree: SceneTree) -> void:
+	for _round in 4:  # A closed Lesson may hand straight over to the next one queued
+		var open := false
+		for card in tree.get_nodes_in_group(LessonCard.GROUP):
+			if card is CanvasItem and (card as CanvasItem).visible and card.has_method("close"):
+				card.close()
+				open = true
+		if not open:
+			return
+
 func _choice_waiting() -> bool:
 	var hud := get_parent()
 	if hud == null:

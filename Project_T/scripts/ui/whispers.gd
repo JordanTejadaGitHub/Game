@@ -183,7 +183,7 @@ func _clear_top() -> float:
 	for node in hud.get_children():
 		if not (node is Control) or not node.visible or node == self:
 			continue
-		if node is ComingStrip or node.name == "DriftBanner":
+		if (node is ComingStrip and not UiStyle.is_phone()) or node.name == "DriftBanner":  # (Phones: the strip is bottom right)
 			top = maxf(top, _lowest(node) - hud.global_position.y + 8.0)
 	var reminder := hud.find_child("BossReminder", true, false) as Control
 	if reminder != null and reminder.is_visible_in_tree():

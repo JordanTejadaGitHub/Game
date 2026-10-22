@@ -1529,7 +1529,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	var world := _world(enemy)
 	if world != null:
 		var node := Fx.reaction(id, enemy.global_position, world,
-			towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower))
+			towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower), 0.0, enemy)  # Rides on its nightmare (user 2026-10-21)
 		if id == &"smother" and node != null:
 			enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
 		if storm_front:

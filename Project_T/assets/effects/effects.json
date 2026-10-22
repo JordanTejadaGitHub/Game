@@ -3163,6 +3163,102 @@
 			"loop": false,
 			"note": "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."
 		},
+		"splash_ring_acorn": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_acorn.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the acorn family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_firework": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_firework.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the firework family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_frost": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_frost.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the frost family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_spore": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_spore.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the spore family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_stone": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_stone.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the stone family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_water": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_water.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the water family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
 		"spore_arc": {
 			"anchor": [
 				0,

@@ -235,7 +235,6 @@ func _process(_delta: float) -> void:
 	if _unconfirmed_wardens():
 		_start_button.text = "Confirm your Wardens first"
 	if UiStyle.is_phone():  # The status notes step aside while the damage meter or the Warden drawer is open (UI Asset review)
-		_fit_phone_start_text()
 		_status_label.visible = false  # Phones: the big button already says it (user 2026-10-18: "a lot of clutter on the right side")
 		_hide_speed_while_building(bool(tower_placer.get("build_mode")))
 		# The Warden drawer reaches down over this panel: it steps away while the drawer is open (UI Asset 2026-10-17).
@@ -268,6 +267,8 @@ func _process(_delta: float) -> void:
 		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
 			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
 	_fold_notes()
+	if UiStyle.is_phone():
+		_fit_phone_start_text()  # After every text above ("Choose a Dream", "Resume"…)
 
 # The drift panel holds only Start / Call early and the speed row (UI Asset fc82d5e8): the status line ("Rest after drift
 # N", "Resting: selling refunds 75%", "Maze bonus: +N at rest") never shows; the next drift's Dew pot, the maze bonus
@@ -300,9 +301,21 @@ var _start_min_x := 0.0
 # Auto button to the speed"): the text never widens the button past the Auto / pause / speed row; a long line ("Call
 # drift 14 early, +4") steps its size down to START_MIN_SIZE, then clips.
 const START_MIN_SIZE := 12
+const PAUSE_MENU := preload("res://scripts/ui/pause_menu.gd")  # (No class_name: its dismiss_lessons)
+
+# Phones (user 2026-10-21 screenshot: "Call drift 20 early," lost its Dew; "Rest after drift" its number): the button's
+# short wording; the drift number is on the banner above.
+static func phone_short(text: String) -> String:
+	if text.begins_with("Call drift ") and text.contains(" early, "):
+		text = "Call early, " + text.get_slice(" early, ", 1)
+	for pair in [["Rest after drift ", "Rest after "], ["Start boss drift ", "Boss drift "],
+			["Confirm your Wardens first", "Confirm Wardens"], ["Face an Omen or Clear Skies", "Omen or Clear Skies"]]:
+		text = text.replace(pair[0], pair[1])
+	return text
 var _start_fitted := ""
 
 func _fit_phone_start_text() -> void:
+	_start_button.text = phone_short(_start_button.text)
 	var key := "%s|%d" % [_start_button.text, int(_start_button.custom_minimum_size.x)]
 	if key == _start_fitted:
 		return
@@ -364,6 +377,7 @@ func _on_start_pressed() -> void:
 	# No drift start, no ghost check (ghosts stay ghosts); only an open choice screen blocks it.
 	if game_speed.paused and drift_director.pending_choice() == &"" and not drift_director.is_resting() and not run_state.is_over:
 		if not _choice_screen_open():
+			PAUSE_MENU.dismiss_lessons(get_tree())  # An open Lesson is taken as "Got it" (it held the pause: user 2026-10-21)
 			game_speed.set_paused(false)
 		return
 	if _overlay_open(&"pause_menu") or _overlay_open(LessonCard.GROUP):  # (PauseMenu has no class_name: its GROUP)

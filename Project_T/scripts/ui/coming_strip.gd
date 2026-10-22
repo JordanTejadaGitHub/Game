@@ -17,7 +17,8 @@ const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 # Phones (user 2026-10-17: "Coming this block is taking up a space"): no caption, one row of small discs on a tight fog,
 # right under the banner. A tap on a disc still opens its card.
-const PHONE_FACE := 40.0
+const PHONE_FACE := 40.0  # Phones: the tap target; the disc draws PHONE_DISC inside it, in a plate the size of the top-right buttons' visible box (user 2026-10-21)
+const PHONE_DISC := 40.0  # (Full size in the Incoming dropdown)
 const PHONE_PER_ROW := 8
 var _phone := false
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -65,6 +66,8 @@ func _ready() -> void:
 	add_child(_pad_top)
 	move_child(_pad_top, 0)
 	add_child(_pad_foot)
+	if _phone:
+		_make_phone_toggle()
 	visible = false
 	resized.connect(queue_redraw)
 
@@ -77,8 +80,10 @@ var _pad_foot := Control.new()
 func _draw() -> void:
 	if compact and not _phone:  # During a drift (user 2026-10-21: "find a better way… without taking up space in the
 		return  # middle"): no box, no caption, just the row of small discs under the drift banner's pips
-	if _phone:
-		draw_style_box(_fog, Rect2(Vector2(-6, 0), size + Vector2(12, 0)))  # Tight on phones
+	if _phone:  # The dropdown's panel, under the Incoming button, only while open
+		if phone_open:
+			var top := _phone_toggle.size.y + PHONE_DROP_GAP
+			draw_style_box(_fog, Rect2(Vector2(0, top), size - Vector2(0, top)))
 		return
 	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
 
@@ -95,7 +100,7 @@ func _process(delta: float) -> void:
 	# Hidden, steadily, while a screen covers the map (RestScreens.covering: a choice, Remember, a Lesson, the pause menu…;
 	# "Peek at the map" shows it again). Only this line sets the strip's visibility (it flickered behind the Dream screen
 	# when the phone HUD hid it too, user screenshot 2026-10-17).
-	visible = span.y >= span.x and not RestScreens.covering(get_parent())
+	visible = span.y >= span.x and not RestScreens.covering(get_parent()) and not _under_drawer()
 	if not visible:
 		_built_for = ""
 		return
@@ -111,6 +116,9 @@ func _process(delta: float) -> void:
 # then the active Omen's line (Roguelite's OmenScreen tag "ActiveOmen"), then this strip.
 const OMEN_TOP := 68.0  # Just under the banner's boss row
 func _stack() -> void:
+	if _phone:
+		_stack_phone()
+		return
 	var top := TOP
 	var omen := get_parent().get_node_or_null("ActiveOmen") as Control if get_parent() != null else null
 	if omen != null and omen.visible:
@@ -270,7 +278,7 @@ func _build_kind_words(_span: Vector2i) -> void:
 		words.add_theme_font_size_override("font_size", 14 if _phone else 15)
 		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		_kind_words.add_child(words)
-	_kind_words.visible = _kind_words.get_child_count() > 0
+	_kind_words.visible = _kind_words.get_child_count() > 0 and (not _phone or phone_open)  # Phones: in the open Incoming dropdown
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
 		_caption.visible = not _kind_words.visible and not compact  # In a drift: no caption (its words are the tip)
 	tooltip_text = _caption.text if compact else ""
@@ -334,6 +342,15 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	face.add_theme_constant_override("icon_max_width", int(side - 10))
 	face.tooltip_text = "%s · ×%d" % [data.display_name, count]
 	UiStyle.moon_disc_button(face, BOSS_COLOR if data.is_boss else UiStyle.OFF)  # Pale disc: readable on the night sky
+	if _phone:  # A 40 px tap target, the disc drawn PHONE_DISC inside it (it sits in a plate the buttons' size)
+		var inset := (side - PHONE_DISC) / 2.0
+		for state in ["normal", "pressed", "disabled", "hover", "hover_pressed"]:
+			var disc := face.get_theme_stylebox(state).duplicate() as StyleBox
+			if "expand_margin_left" in disc:
+				for side_name in ["expand_margin_left", "expand_margin_right", "expand_margin_top", "expand_margin_bottom"]:
+					disc.set(side_name, -inset)
+			face.add_theme_stylebox_override(state, disc)
+		face.add_theme_constant_override("icon_max_width", int(PHONE_DISC - 8))
 	if data.is_boss:
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
 	else:  # One centred card for every nightmare (its name, what it does)
@@ -401,3 +418,108 @@ func _more_chip(rest: Array) -> Control:
 	var kinds: Array = rest.filter(func(k: Array) -> bool: return not k[0].is_boss).map(func(k: Array) -> EnemyData: return k[0])
 	chip.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), kinds, drift_director.drifts_started + 1))
 	return chip
+
+# Phones (user 2026-10-21 screenshot: the strip's "Drift 16 · Swarm" line drew over the Warden drawer): hidden while the
+# drawer is open, as the drift panel is.
+func _under_drawer() -> bool:
+	if not _phone:
+		return false
+	var hud := get_parent()
+	while hud != null and hud.get_node_or_null("WardenPanel") == null:
+		hud = hud.get_parent()
+	var drawer := hud.get_node_or_null("WardenPanel") as CanvasItem if hud != null else null
+	return drawer != null and drawer.visible
+
+# Phones (user 2026-10-21: "move the drifts coming somewhere else, takes too much space", "put the incoming drift to the
+# top right between the buttons and middle title", "a smaller bar that fits the theme", then "instead of the picture,
+# have a word: Incoming"): an "Incoming" button like the top-right ones (HudButton), just left of them and level with
+# them; Gold when a never-met kind comes. A tap drops the discs and the "Drift N · …" lines down under it, on the panel;
+# a tap again (or on a disc's card) folds it. Without room beside the buttons it sits just under them.
+const PHONE_GAP := 0.0  # HudButtons sit edge to edge (their visible boxes are inset)
+const PHONE_DROP_GAP := 0.0  # (The button's inset plate leaves 6 px under it already)
+const PHONE_BOX_INSET := 6.0  # As hud.gd BUTTON_BOX_INSET
+const PHONE_DROP_W := 420.0  # The dropdown's "Drift N · …" lines wrap at this
+var phone_open := false
+var _phone_toggle := Button.new()
+
+func _make_phone_toggle() -> void:
+	_phone_toggle.name = "Incoming"
+	_phone_toggle.text = "Incoming"
+	_phone_toggle.theme_type_variation = &"HudButton"
+	_phone_toggle.toggle_mode = true
+	_phone_toggle.focus_mode = Control.FOCUS_NONE
+	_phone_toggle.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_phone_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_phone_toggle.tooltip_text = "The nightmares of the next drifts. Tap to see them."
+	# The same visible height as the icon buttons beside it (user 2026-10-21): their plate inset 6 px inside the 48 px hit
+	# area (hud.gd _place_top_button, BUTTON_BOX_INSET).
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := _phone_toggle.get_theme_stylebox(state, &"HudButton")
+		if box is MoonStyleBox and "inset" in box:
+			box = box.duplicate()
+			box.set("inset", Vector2(PHONE_BOX_INSET, PHONE_BOX_INSET))
+			_phone_toggle.add_theme_stylebox_override(state, box)
+		elif box != null and "expand_margin_left" in box:
+			box = box.duplicate()
+			for side_name in ["expand_margin_left", "expand_margin_right", "expand_margin_top", "expand_margin_bottom"]:
+				box.set(side_name, -PHONE_BOX_INSET)
+			_phone_toggle.add_theme_stylebox_override(state, box)
+	_phone_toggle.add_theme_font_size_override("font_size", 14)  # Fits the 36 px box
+	var font := _phone_toggle.get_theme_font("font")
+	_phone_toggle.custom_minimum_size.x = ceilf(font.get_string_size(_phone_toggle.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x) \
+		+ 2.0 * (PHONE_BOX_INSET + 12.0)  # 12 px of air inside the plate on each side
+	_phone_toggle.toggled.connect(func(on: bool) -> void:
+		phone_open = on
+		_built_for = ""  # Rebuild with or without the dropdown's lines
+		_stack_phone()
+		queue_redraw())
+	add_child(_phone_toggle)
+	move_child(_phone_toggle, 0)
+	var gap := Control.new()
+	gap.name = "DropGap"
+	gap.custom_minimum_size.y = PHONE_DROP_GAP
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(gap)
+	move_child(gap, 1)
+
+func _stack_phone() -> void:
+	for node in [_row, _kind_words, _pad_top, _pad_foot, get_node_or_null("DropGap")]:
+		if node != null:
+			node.visible = phone_open and (node != _kind_words or _kind_words.get_child_count() > 0)
+	var fresh := false
+	for item in items():
+		if bool(item.get_meta(&"breaks_rules", false)) or NightmareCard.is_new(item.get_meta(&"kind")):
+			fresh = true
+	for state in ["font_color", "font_hover_color"]:
+		_phone_toggle.add_theme_color_override(state, UiStyle.GOLD if fresh else UiStyle.INK)
+	for words in _kind_words.get_children():
+		(words as Control).custom_minimum_size.x = PHONE_DROP_W
+	var hud := get_parent()
+	if hud == null:
+		return
+	var buttons_left := get_parent_area_size().x - 16.0
+	var buttons_top := 12.0
+	var buttons_bottom := 12.0
+	var names: Array = hud.call("_top_row_names") if hud.has_method("_top_row_names") else []
+	for name in names:
+		var button := hud.get_node_or_null(name) as Control
+		if button != null and button.visible:
+			buttons_left = minf(buttons_left, button.get_rect().position.x)
+			buttons_top = button.get_rect().position.y
+			buttons_bottom = maxf(buttons_bottom, button.get_rect().end.y)
+	var banner_right := 0.0
+	var banner := hud.get_node_or_null("DriftBanner") as Control
+	if banner != null and banner.visible and banner.has_method("drawn_rect"):
+		banner_right = banner.drawn_rect().end.x - (hud.global_position.x if hud is Control else 0.0)
+	var need := get_combined_minimum_size()
+	var toggle_w := _phone_toggle.get_combined_minimum_size().x
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	grow_vertical = Control.GROW_DIRECTION_END
+	var right := buttons_left - PHONE_GAP
+	var top := buttons_top
+	if right - toggle_w < banner_right + 8.0:  # No room beside the buttons: just under them, right-aligned
+		right = get_parent_area_size().x - 16.0
+		top = buttons_bottom + 4.0
+	position = Vector2(right - need.x, top)
+	size = need

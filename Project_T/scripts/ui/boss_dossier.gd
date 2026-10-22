@@ -333,7 +333,7 @@ func _place_reminder() -> void:
 		return
 	var top := 96.0
 	for node in hud.get_children():
-		if node is Control and (node as Control).visible and (node is ComingStrip or node.name == "DriftBanner"):
+		if node is Control and (node as Control).visible and ((node is ComingStrip and not UiStyle.is_phone()) or node.name == "DriftBanner"):  # (Phones: the strip is bottom right)
 			top = maxf(top, lowest(node) - _origin_y(hud) + REMINDER_GAP)
 	var view := get_viewport_rect().size
 	_compact_reminder(false)
@@ -362,7 +362,7 @@ static func column_bottom(hud: Node) -> float:
 	var bottom := 0.0
 	for node in hud.get_children():
 		if node is Control and (node as Control).is_visible_in_tree() \
-				and (node is ComingStrip or node.name == "DriftBanner" or node.name == "BossReminder"):
+				and ((node is ComingStrip and not UiStyle.is_phone()) or node.name == "DriftBanner" or node.name == "BossReminder"):
 			bottom = maxf(bottom, lowest(node) - _origin_y(hud))
 	return bottom
 
@@ -868,7 +868,7 @@ func _ability_row(ability: Dictionary) -> Control:
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
 		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0, &"plate_dim"))  # Moon-glass
+		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(12.0, 6.0, &"plate_dim"))  # Moon-glass, clear of its rim (Mobile UI 2026-10-21)
 		head.add_child(chip)
 	var label := StatusLinks.make_label("", 14, UiStyle.INK_DIM)
 	label.text = _links_keep_tags(String(ability.get("text", "")))

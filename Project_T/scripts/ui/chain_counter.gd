@@ -89,7 +89,7 @@ func _place() -> void:
 	var parent := get_parent()
 	if parent != null:
 		for child in parent.get_children():
-			if child is ComingStrip and (child as Control).visible:
+			if child is ComingStrip and (child as Control).visible and not UiStyle.is_phone():  # (Phones: the strip is bottom right)
 				top = maxf(top, (child as Control).offset_top + (child as Control).size.y + STRIP_GAP)
 	offset_top = top
 

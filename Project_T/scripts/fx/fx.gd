@@ -310,7 +310,8 @@ static func _accent(node, shown) -> void:
 
 # A named Reaction went off at `at`: its effect (budgeted), its callout in its colour, and a light
 # thread from each Warden that set it up. Smother loops: pass `seconds` or free the returned node.
-static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Array = [], seconds: float = 0.0) -> Node2D:
+static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Array = [], seconds: float = 0.0,
+		follow: Node2D = null) -> Node2D:
 	var row: Array = REACTIONS.get(reaction, [reaction, ""])
 	var effect: StringName = row[0]
 	# At least 1.5 cells across (screens_ui.md 5f7852e2): a 64 px burst is drawn x2, bigger ones as they are.
@@ -318,6 +319,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var widest := maxf(float(frame_size[0]), float(frame_size[1])) * float(DEFAULT_SCALE.get(effect, 1.0))  # As play() draws it
 	var burst_scale := ceilf(REACTION_MIN_PX / widest) if widest > 0.0 and widest < REACTION_MIN_PX else 1.0
 	var node := play(effect, at, parent, burst_scale, true, seconds)
+	_attach(node, follow)  # (Smother's loop too: Reactions keeps it on the nightmare's meta)
 	# The base Reactions' ground part (Tower Assets 74b11108, effects.json "ground"): with the full sheet only (not a _lite
 	# swap), at the same spot, scale and length, started this same frame, under the nightmares (z -1 in the world).
 	if node is FxSprite and node.effect == effect and info(effect).has("ground"):
@@ -325,6 +327,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 		var ground := play(StringName(info(effect)["ground"]), at, ground_world if ground_world != null else parent, burst_scale, false, seconds)
 		if ground != null:
 			ground.z_index = -1
+			_attach(ground, follow)
 	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if node != null and not reduce_flashes() and small_flash_ok():  # Its own budget (the big moments keep bright_flash_ok)
@@ -345,7 +348,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			var boosted: String = dreams.reaction_build_text(reaction)
 			if boosted != "":
 				words = boosted
-		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction), String(effect).begins_with("crowned_"))
+		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction), String(effect).begins_with("crowned_"), follow)
 		accent_shown = shown
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
@@ -368,21 +371,46 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			_recent_reactions.append([now, at, weakref(node), weakref(accent_shown)])
 	return node
 
+# Reactions stay on their nightmare (user screenshot 2026-10-21: "the ignite doesn't happen on top of the enemy"): an
+# effect or callout given `follow` moves with it every frame (its position = the nightmare's + the offset it started
+# with); once the nightmare is freed or dispelled it stays where it was last and finishes there.
+static func _attach(node: Node2D, follow: Node2D) -> void:
+	if node == null or not is_instance_valid(follow):
+		return
+	if node is FxSprite or node is FxCallout:
+		node.follow = weakref(follow)
+		node.follow_offset = node.global_position - follow.global_position
+
+# The nightmare a follower still follows (null: none, freed or dispelled).
+static func _followed(ref: WeakRef) -> Node2D:
+	var target = ref.get_ref() if ref != null else null
+	if not is_instance_valid(target) or not (target is Node2D) or target.get(&"is_cleansed") == true:
+		return null
+	return target
+
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
 # Returns the callout, or null when it was throttled.
 static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"", icon: Texture2D = null,
-		crowned: bool = false) -> Node2D:
+		crowned: bool = false, follow: Node2D = null) -> Node2D:
 	var now := Time.get_ticks_msec()
 	_callouts_alive = _callouts_alive.filter(func(c): return is_instance_valid(c))
-	# The same Reaction on the same nightmare while its word still holds: "×2" on that word, no second word.
+	var target := follow if is_instance_valid(follow) else null
+	# The same Reaction on the same nightmare while its word still holds: "×2" on that word, no second word. With a
+	# nightmare to follow, "the same nightmare" is that nightmare (a different one gets its own word); without one, a
+	# live word's CURRENT spot within CALLOUT_SAME_PX.
 	if key != &"":
 		for c in _callouts_alive:
-			if c is FxCallout and c.key == key and c.spot.distance_to(at) < CALLOUT_SAME_PX and c.holding():
+			if not (c is FxCallout) or c.key != key or not c.holding():
+				continue
+			var theirs: Node2D = Fx._followed(c.follow)
+			var same: bool = (theirs == target) if target != null or theirs != null else c.spot.distance_to(at) < CALLOUT_SAME_PX
+			if same:
 				c.bump()
 				return c
-	if now < _callout_cooldown.get(key, 0):
+	var cooldown_key: Variant = key if target == null else "%s:%d" % [key, target.get_instance_id()]  # Per nightmare when it follows one
+	if now < _callout_cooldown.get(cooldown_key, 0):
 		return null
-	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
+	_callout_cooldown[cooldown_key] = now + int(CALLOUT_COOLDOWN * 1000)
 	if _callouts_alive.size() >= MAX_CALLOUTS:  # A fourth replaces the oldest
 		var oldest = _callouts_alive.pop_front()
 		if is_instance_valid(oldest):
@@ -398,6 +426,7 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	node.spot = spot
 	parent.add_child(node)
 	node.global_position = at
+	_attach(node, target)
 	_callouts_alive.append(node)
 	return node
 
@@ -1082,6 +1111,8 @@ class FxSprite extends Node2D:
 	var _scale: float
 	var _seconds: float
 	var _age := 0.0
+	var follow: WeakRef = null  # A Reaction's nightmare it rides on (Fx._attach), with its offset
+	var follow_offset := Vector2.ZERO
 
 	func _init(entry: Dictionary, tex: Texture2D, scale: float, seconds: float) -> void:
 		_tex = tex
@@ -1096,6 +1127,12 @@ class FxSprite extends Node2D:
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	func _process(delta: float) -> void:
+		if follow != null:
+			var target := Fx._followed(follow)
+			if target != null:
+				global_position = target.global_position + follow_offset
+			else:
+				follow = null  # Stays where it was last
 		_age += delta
 		var done := _age >= _seconds if (_loop and _seconds > 0.0) else (not _loop and _age * _fps >= _frames)
 		if done:
@@ -1265,7 +1302,9 @@ class FxCallout extends Node2D:
 	var _size := TEXT_SIZE
 	var card_pip := false  # Reaction accent (C5): a small warm card pip before the word
 	var key: StringName = &""
-	var spot := Vector2.ZERO  # Where it was called (before stacking): the nightmare it belongs to
+	var spot := Vector2.ZERO  # Where it was called (before stacking): the nightmare it belongs to (kept current while it follows)
+	var follow: WeakRef = null  # The nightmare it rides on (Fx._attach), with its offset
+	var follow_offset := Vector2.ZERO
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
@@ -1299,6 +1338,10 @@ class FxCallout extends Node2D:
 		queue_redraw()
 
 	func _process(delta: float) -> void:
+		var target := Fx._followed(follow)
+		if target != null:  # On its nightmare; once it's gone, where it was last
+			global_position = target.global_position + follow_offset
+			spot = target.global_position
 		_age += delta
 		if _age >= _life():
 			queue_free()

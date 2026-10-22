@@ -658,8 +658,17 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		head.name = "OfferLine"
 		head.mouse_filter = Control.MOUSE_FILTER_PASS
 		head.tooltip_text = OFFER_TIP % UiStyle.dreamlight_amount(dream_state.call_back_cost(data))
+	var lanes: Container = box
+	if _layout != null:  # Phones (user 2026-10-21: "too big at drift 25"): the forms side by side, icon + name; the role is in each tip
+		var flow := HFlowContainer.new()
+		flow.name = "Routes"
+		flow.add_theme_constant_override("h_separation", 14)
+		flow.add_theme_constant_override("v_separation", 4)
+		flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(flow)
+		lanes = flow
 	for branch: TowerData in offered:
-		box.add_child(_route_lane(branch))
+		lanes.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
 	if not missing.is_empty():
 		var row := HBoxContainer.new()
@@ -702,8 +711,9 @@ func _route_lane(branch: TowerData) -> Control:
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove's hidden branch" + (", " + role if role != "" else "")
-	if role != "" and _layout != null:
-		words.add_child(_role_chips(role))  # Phones: a small chip per tag (UI review: no " · " runs)
+	if _layout != null:
+		words.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		words.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Phones: the name only, beside its icon (the role: the lane's tip)
 	elif role != "":
 		var role_label := StatusLinks.make_role_label(role, _fs(11), UiStyle.GOLD, UiStyle.is_phone())  # Its glossary words are links (user: "Silences")
 		role_label.name = "Role"
@@ -716,6 +726,10 @@ func _route_lane(branch: TowerData) -> Control:
 		tip += "\n" + counters_text(branch)
 	elif role_text(branch) != "" and branch.role_line == "":
 		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead (a role line is on the lane already)
+	if _layout != null and role != "":  # Phones: the lane shows only the name, so the tip carries its role
+		tip = branch.display_name + "\n" + role.left(1).to_upper() + role.substr(1)
+		if counters_text(branch) != "":
+			tip += "\n" + counters_text(branch)
 	lane.tooltip_text = tip
 	return lane
 
@@ -755,7 +769,7 @@ func _lane_line(text: String, size: int, colour: Color, node_name: String) -> La
 	var label := Label.new()
 	label.name = node_name
 	label.text = text
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF if _layout != null else TextServer.AUTOWRAP_WORD_SMART  # Phones: a name beside its icon, one line
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", colour)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE

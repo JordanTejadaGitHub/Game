@@ -67,7 +67,7 @@ var _phone := false
 var _phone_stats := HBoxContainer.new()  # Phones: one icon row (damage, speed, reach, Potency) under the header (the other stat rows follow it)
 var _inner := 0.0  # The content width (the panel less its margins and the scroll bar)
 const PHONE_WIDTH := 350.0  # In the phone layout base (UiStyle.PHONE_LAYOUT_MIN, 1100 × 540)
-const PHONE_FOOTER_H := UiStyle.HUD_BUTTON_H  # Sell and Nurture: the same 48 px as a grow option (no primary on the panel)
+const PHONE_FOOTER_H := 60.0  # Sell and Nurture: the same height as a grow option (PHONE_ROW_H; no primary on the panel)
 const PHONE_SELL_W := 112.0  # Sell stays small beside Nurture
 const PHONE_CENTER_ALPHA := 0.92  # card_bg, ~90% (ui_style.md)
 const PHONE_EDGE_ALPHA := 0.88
@@ -1408,7 +1408,7 @@ const GROW_GRID := false
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	_as_choice(button)
-	if (GROW_GRID and count > MAX_ROWS) or (_phone and count >= 2):  # Phones: two to a row, the price under the name
+	if GROW_GRID and count > MAX_ROWS:  # (Phones: one full-width row each since the drawer is full height, user 2026-10-21)
 		var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
 		if grid == null or grid.is_queued_for_deletion():
 			grid = GridContainer.new()
@@ -1730,13 +1730,15 @@ func _apply_price(button: Button) -> void:
 # The button's own text keeps the whole line ("Chime Stone · 180 Dew (Q)"), transparent, for tests and screen readers.
 const ROW_NAME_SIZE := 16
 const ROW_NOTE_SIZE := 13
+const PHONE_ROW_H := 60.0  # Phones (user 2026-10-21: "the buttons can be bigger… rows instead of columns"): one full-width row each
+const PHONE_ROW_BUMP := 2  # …with their text 2 px bigger
 
 # Grow options and Nurture are equal choices (user, via Marketing: "Nurture to rank looks like the optimal choice;
 # upgrading to Sporeling should have the same weight"): the same plain 48 px button, no primary on the panel.
 func _as_choice(button: Button) -> void:
 	button.set_meta(&"row", true)
 	button.theme_type_variation = &""
-	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, PHONE_ROW_H if _phone else UiStyle.HUD_BUTTON_H)
 
 # A price for the right-hand column ("<dew>180", "<dreamlight>1", "free"); anything longer is a note under the name.
 static func _is_price(text: String) -> bool:
@@ -1777,12 +1779,12 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 			part.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			part.clip_text = true
 			part.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			part.add_theme_font_size_override("font_size", ROW_NAME_SIZE if i == 0 else ROW_NOTE_SIZE)
+			part.add_theme_font_size_override("font_size", (ROW_NAME_SIZE if i == 0 else ROW_NOTE_SIZE) + (PHONE_ROW_BUMP if _phone else 0))
 			lines.add_child(part)
 		var cost_label := Label.new()  # The price, right-aligned before the key
 		cost_label.name = "Price"
 		cost_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cost_label.add_theme_font_size_override("font_size", ROW_NOTE_SIZE + 1)
+		cost_label.add_theme_font_size_override("font_size", ROW_NOTE_SIZE + 1 + (PHONE_ROW_BUMP if _phone else 0))
 		row.add_child(cost_label)
 		var chip := UiStyle.key_chip("")
 		chip.name = "Key"
@@ -1794,6 +1796,8 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	var note_label := row.get_node("Lines").get_child(1) as Label
 	var price_label := row.get_node("Price") as Label
 	name_label.text = parts[0]
+	if _phone and not name_label.has_meta(&"fit_sizes"):
+		name_label.set_meta(&"fit_sizes", [ROW_NAME_SIZE + PHONE_ROW_BUMP, ROW_NAME_SIZE, 14, 13])  # Phones: a step bigger first
 	if not name_label.has_meta(&"fitting"):  # Never cut a form's name (_fit_name), again whenever the row resizes
 		name_label.set_meta(&"fitting", true)
 		name_label.resized.connect(_fit_name.bind(name_label), CONNECT_DEFERRED)
@@ -2126,12 +2130,11 @@ func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
-	var hole: float = (get_parent().get("side_holes") as Vector2).x if get_parent() != null and get_parent().get("side_holes") is Vector2 else 0.0
 	# Flush to the left edge as the right drawer is to the right (user 2026-10-21: inset it "looks weird"); a punch hole
-	# in the middle of that side widens it and pads its content instead (hud.gd side_holes).
+	# on that side is ignored here (a full-height band to clear one dot looked broken, user 2026-10-21).
 	offset_left = 0.0
-	offset_right = PHONE_WIDTH + hole
-	_pad_left(hole)
+	offset_right = PHONE_WIDTH  # The same as the right drawer (a hole band down its whole side looked wrong, user 2026-10-21)
+	_pad_left(0.0)  # (No hole band: the camera dot is a spot mid-side; a full-height gap read as a broken layout)
 	grow_horizontal = Control.GROW_DIRECTION_END
 
 var _frame_left := -1.0  # The panel's own left content margin (before any hole padding)

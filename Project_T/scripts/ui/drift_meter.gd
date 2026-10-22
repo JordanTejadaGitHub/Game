@@ -326,7 +326,7 @@ const GAP := 8.0
 const ROW_GUESS := 28.0  # A Warden row's height when none is listed to measure
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
 const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
-const PHONE_STATUS_ROOM := 56.0  # Phones: the drift panel's status lines above its box ("Resting: …", "Maze bonus: …")
+const PHONE_STATUS_ROOM := 8.0  # Phones: the drift panel shows no status lines any more (2026-10-18), only a gap
 const OPEN_RESERVE := 408.0  # The open card's height with TOP_ROWS rows, "Last drift" and "and N more" (404 at 1280×800)
 var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
 var _user_open := false  # The player's open / closed choice (the header toggles it)
@@ -390,7 +390,17 @@ func _fit() -> void:
 			offset_top = top - screen_mid
 	var row_count := _rows.get_child_count()
 	# With no rows listed (all squeezed out under the info) a row's height is guessed, so they can grow back.
-	if not block_summary and (row_count > 0 or _max_rows < TOP_ROWS):
+	if not block_summary and arrow_hidden and row_count > 0:
+		# Phones (user 2026-10-21: "goes from 1 Warden to 5 then back to 1"): the rows that fit, worked out at once from
+		# a steady row height and the room the rest of the card leaves (no step up / step down chasing a lagging size).
+		var row_h := maxf((_rows.get_child(0) as Control).get_combined_minimum_size().y + float(_rows.get_theme_constant("separation")), 1.0)
+		var chrome := height - _rows.get_combined_minimum_size().y
+		if not _more.visible:
+			chrome += _more.get_combined_minimum_size().y + 4.0  # Counted either way, so "and N more" appearing can't flip the count
+		var fit_rows := clampi(floori((bottom - top - chrome) / row_h), 0 if info_open else 1, TOP_ROWS)
+		if fit_rows != _max_rows:
+			_max_rows = fit_rows
+	elif not block_summary and (row_count > 0 or _max_rows < TOP_ROWS):
 		var row_h := _rows.size.y / row_count if row_count > 0 else ROW_GUESS
 		var spare := bottom - (top + height)
 		if spare < 0.0:
