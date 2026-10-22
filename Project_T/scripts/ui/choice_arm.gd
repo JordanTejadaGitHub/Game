@@ -20,6 +20,7 @@ signal armed_now
 
 var fade_target: CanvasItem = null
 var _left := 0.0
+var _total := ARM_TIME  # This arm's whole delay
 var _ready_left := 0.0
 
 # A shield over `screen` (the last child, so on top), fading `fade_target` in on each arm().
@@ -37,9 +38,11 @@ func _ready() -> void:
 	visible = false
 	set_process(false)
 
-# Starts (or restarts) the delay: call when the screen shows choices.
-func arm() -> void:
-	_left = ARM_TIME
+# Starts (or restarts) the delay: call when the screen shows choices. `seconds` longer than ARM_TIME keeps the shield
+# up until a staggered reveal has finished (UI council 2026-10-22: a late card could be clicked mid-turn).
+func arm(seconds: float = ARM_TIME) -> void:
+	_total = maxf(seconds, ARM_TIME)
+	_left = _total
 	_ready_left = 0.0
 	visible = true
 	get_parent().move_child(self, -1)  # Over anything added since
@@ -55,7 +58,7 @@ func _process(delta: float) -> void:
 		_left -= real
 		if _left > 0.0:
 			if not _still():
-				var t := 1.0 - _left / ARM_TIME
+				var t := 1.0 - _left / _total
 				_set_look(lerpf(START_ALPHA, 1.0, 1.0 - pow(1.0 - t, 3.0)), 1.0)
 			return
 		_left = 0.0

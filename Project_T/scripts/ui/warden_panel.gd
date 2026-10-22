@@ -492,7 +492,7 @@ func _refresh() -> void:
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
-	_key_on(close, "Esc")
+	close.tooltip_text = "Close (Esc)"  # No chip: it squeezed "Close" to "Clos" in its third of the row (UI council 2026-10-22)
 	close.pressed.connect(tower_seller.select.bind(null))
 	_phone_arrange()
 
@@ -651,7 +651,7 @@ func _refresh_group() -> void:
 		sell.disabled = true
 	var close := _add_footer_button("Close")
 	close.set_meta(&"close", true)
-	_key_on(close, "Esc")
+	close.tooltip_text = "Close (Esc)"  # No chip: it squeezed "Close" to "Clos" in its third of the row (UI council 2026-10-22)
 	close.pressed.connect(tower_seller.select.bind(null))
 	_phone_stats.visible = false  # One Warden's numbers only
 	_phone_arrange()

@@ -304,7 +304,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_looked = null
 	_looked_card = null
 	_update_phone_bar()
-	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
+	arm.arm(_reveal_time(cards))  # Every new set of cards, rerolls too, until the last has turned in
 	_flip_in(_cards.get_children(), cards)  # One by one, each with its rarity flare
 
 func _make_card(card: UpgradeData) -> Button:
@@ -494,7 +494,7 @@ func _add_opens_clearing(box: VBoxContainer) -> void:
 	UiStyle.caps(line, 16, UiStyle.GOLD)
 	row.add_child(line)
 	box.add_child(row)
-	_add_line(box, DreamState.OPENS_CLEARING_TEXT, UiStyle.INK, _fs(14))
+	# (No OPENS_CLEARING_TEXT line: the card's own text says it; UI council 2026-10-22 saw the rule twice.)
 	if _phone:  # Nested in a card: a plain fading Gold line, no sprout (UI Asset 2026-10-17)
 		var fade := Control.new()
 		fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -785,6 +785,14 @@ static func is_legendary(card: UpgradeData) -> bool:
 const FLIP_TIME := 0.22
 const FLIP_STAGGER := 0.12
 const FLY_TIME := 0.5
+
+# Real seconds until the last card of `cards` has turned in (_flip_in's timing), plus a beat.
+static func _reveal_time(cards: Array) -> float:
+	var legendary := false
+	for card in cards:
+		legendary = legendary or is_legendary(card)
+	var time := maxf(cards.size() - 1, 0) * FLIP_STAGGER + (LEGENDARY_PAUSE + LEGENDARY_FLIP if legendary else FLIP_TIME)
+	return time + 0.1
 var _picking := false
 
 func _flip_in(columns: Array, cards: Array) -> void:

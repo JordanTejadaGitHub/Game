@@ -214,6 +214,8 @@ func _ready() -> void:
 	TapTip.attach(dew_label, IconInfo.resource_tooltip(&"dew"))
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
 	_path_tip = TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
+	if _leaves_max != null:  # The "/15" half of the leaves explains itself too (UI council 2026-10-22)
+		TapTip.attach(_leaves_max, IconInfo.resource_tooltip(&"leaves"))
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Unlocked: %s" % card.display_name))
 	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
 	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
@@ -672,17 +674,20 @@ func _on_damage_button(on: bool) -> void:
 # the dock and the drift panel are hidden, not dimmed (none can be used then; they bled through behind Peek and Take).
 # Their visibility is put back as it was when the screen closes.
 const PHONE_CHOICE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen"]
+# PC too (UI council 2026-10-22: the lit HUD, its glowing Start/Resume and the drift title showed through every screen),
+# and under the other full screens as well.
+const COVER_SCREENS := ["RememberScreen", "BossDossier", "PauseMenu", "ResultsScreen"]
 var _choice_hidden := {}  # Node -> its visibility before
 
 func _phone_choice_open() -> bool:
-	for screen_name in PHONE_CHOICE_SCREENS:
+	for screen_name in PHONE_CHOICE_SCREENS + COVER_SCREENS:
 		var screen := get_node_or_null(screen_name) as CanvasItem
 		if screen != null and screen.visible:
 			return true
 	return false
 
 func _hud_under_choice() -> Array:
-	var nodes: Array = [tower_bar, clear_tool, _bar_toggle, dew_label, leaves_label, _leaves_max, _clears_label, _maze_reward_label]
+	var nodes: Array = [tower_bar, clear_tool, _bar_toggle, dew_label, leaves_label, _leaves_max, _clears_label, _maze_reward_label, toast_label]
 	nodes.append_array(_bar_arrows)
 	nodes.append_array(_counter_icons.values())
 	if sell_slot != null:
@@ -1297,6 +1302,10 @@ func _style_resources() -> void:
 		label.add_theme_constant_override("outline_size", 4)
 	UiStyle.title(toast_label, 22)
 	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	# On a glass plate, never bare over the map (ui_style.md "No floating text over the map"; UI council 2026-10-22).
+	toast_label.add_theme_stylebox_override("normal", UiStyle.plate_box(18.0, 8.0))
+	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 # Shows a message at the top of the screen for a few seconds.
 var impact_label: Label  # The card toast's own label (UiStyle.impact_toast), in the toast's place
@@ -1329,6 +1338,9 @@ func show_toast(text: String) -> void:
 		impact_label.modulate.a = 0.0
 	toast_label.text = text
 	toast_label.modulate.a = 1.0
+	var plate_w := toast_label.get_minimum_size().x  # The plate fits its words, centred
+	toast_label.offset_left = -roundf(plate_w / 2.0)
+	toast_label.offset_right = roundf(plate_w / 2.0)
 	# The top-centre column: under the banner, Coming strip and boss reminder, never over them (TOAST_TOP at the least)
 	var toast_top := maxf(TOAST_TOP, BossDossier.column_bottom(self) + 12.0)
 	toast_label.offset_bottom = toast_top + (toast_label.offset_bottom - toast_label.offset_top)
@@ -1833,8 +1845,7 @@ func _update_maze_income() -> void:
 	_path_tip._label.text = road_tip
 
 func _process(delta: float) -> void:
-	if phone():
-		_hide_under_choice()
+	_hide_under_choice()
 	var real := delta / maxf(Engine.time_scale, 0.001)
 	_remember_check -= real
 	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
@@ -1902,7 +1913,7 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	if tag == null:
 		tag = Label.new()
 		tag.name = "SproutRise"
-		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.mouse_filter = Control.MOUSE_FILTER_PASS  # It explains itself (UI council 2026-10-22: "↑ 6/10" read as nothing)
 		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.number(tag, 12, UiStyle.INK_DIM)
 		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
@@ -1913,6 +1924,8 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	tag.visible = per > 0 and cost > 0
 	if per > 0:
 		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+		tag.tooltip_text = "%d Sprouts on the map. At %d the Sprout price rises by %s." % [count, (count / per + 1) * per,
+			UiStyle.dew_amount(tower_placer.sprout_step_dew(), true)]
 	tag.reset_size()
 	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y - 4.0)  # Clear of the slot's hotkey
 	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line

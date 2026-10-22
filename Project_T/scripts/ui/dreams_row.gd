@@ -114,7 +114,7 @@ func _refresh_calling() -> void:
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_calling_frame.add_child(face)
-	TapTip.attach(_calling_frame, "Calling · %s\n%s" % [info.path, IconInfo.format(info.text)])  # Its path as it grows
+	TapTip.attach(_calling_frame, "Calling: %s\n%s" % [info.path, IconInfo.format(info.text)])  # Its path as it grows
 	_row.add_child(_calling_frame)
 	_row.move_child(_calling_frame, 0)  # Before the Dream cards
 	if _list.visible:

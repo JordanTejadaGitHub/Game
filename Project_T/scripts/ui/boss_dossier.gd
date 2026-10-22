@@ -144,9 +144,9 @@ func _ready() -> void:
 	_close_button.focus_mode = Control.FOCUS_NONE
 	_close_button.pressed.connect(close_dossier)
 	UiStyle.primary(_close_button)  # Light pass: the one primary, with its key
-	var enter := UiStyle.key_chip("⏎")
+	var enter := UiStyle.key_chip("Enter")  # Spelled out: no UI font has ⏎ (UI council 2026-10-22: the chip showed empty)
 	enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	enter.offset_left = -38
+	enter.offset_left = -64
 	enter.offset_right = -14
 	_close_button.add_child(enter)
 	# "What's coming" at an act's start (user, 2026-10-03): forced, with Peek at the map and Continue.

@@ -21,6 +21,7 @@ var _boss: Node2D = null
 # Tappable spots (screens_ui.md "Boss dossier"): "Boss in N" opens the dossier; during the boss drift
 # the bar's markers (50%, or the Oak's 67% / 33%) show the ability that starts there. Everything else lets clicks through.
 var _countdown_rect := Rect2()
+var _pips_rect := Rect2()  # The block pips, for their tooltip
 var _markers: Array = []  # [[Rect2, line], …] on the boss bar
 var _marker_tip := TapTip.new()
 
@@ -113,6 +114,7 @@ func _draw() -> void:
 	_drawn_half = maxf(_drawn_half, full_w / 2.0 + 6.0)
 
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
+		_pips_rect = Rect2()
 		_draw_boss_bar(font, center_x)
 		return
 	# The second row, centred as a whole: the block's pips, then the next boss (portrait on its disc +
@@ -127,6 +129,7 @@ func _draw() -> void:
 	var boss_width := (BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + text_width) if boss_text != "" else 0.0
 	var row_y := 48.0
 	var x := center_x - (pips_width + boss_width) / 2.0 + PIP_RADIUS
+	_pips_rect = Rect2(x - PIP_RADIUS - 4.0, row_y - PIP_RADIUS - 4.0, pips_width + 8.0, PIP_RADIUS * 2.0 + 8.0)
 	for i in drift_director.drifts_per_block:
 		var number := first + i
 		var at := Vector2(x + i * step, row_y)
@@ -192,7 +195,7 @@ func _boss_at_heartwood() -> bool:
 	return is_instance_valid(_boss) and bool(_boss.get("at_heartwood"))
 
 func _has_point(point: Vector2) -> bool:
-	return _marker_at(point) != "" or _countdown_rect.has_point(point)
+	return _marker_at(point) != "" or _countdown_rect.has_point(point) or _pips_rect.has_point(point)
 
 func _marker_at(point: Vector2) -> String:
 	for marker in _markers:
@@ -204,6 +207,8 @@ func _get_tooltip(at: Vector2) -> String:
 	var line := _marker_at(at)
 	if line != "":
 		return line
+	if _pips_rect.has_point(at):
+		return "This block's %d drifts: a filled dot has started. A rest follows the last one." % drift_director.drifts_per_block
 	var data := _next_boss_data(drift_director.drifts_started)
 	if data == null or not _countdown_rect.has_point(at):
 		return ""
@@ -264,8 +269,7 @@ func _next_boss_text(latest: int) -> String:
 	var number := _next_boss_drift(latest)
 	if number == 0:
 		return ""
-	var data := _boss_of(number)
-	return str(number - latest)
+	return "Boss in %d" % (number - latest)  # Says what the number counts (UI council 2026-10-22: a bare "22" read as anything)
 
 func _next_boss_data(latest: int) -> EnemyData:
 	var number := _next_boss_drift(latest)

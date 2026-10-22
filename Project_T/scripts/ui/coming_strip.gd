@@ -336,7 +336,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.add_theme_color_override("icon_normal_color", data.tint)
 	face.add_theme_constant_override("icon_max_width", int(side - 10))
-	face.tooltip_text = "%s · ×%d" % [data.display_name, count]
+	face.tooltip_text = "%s, ×%d" % [data.display_name, count]  # No " · " (ui_style.md)
 	UiStyle.moon_disc_button(face, BOSS_COLOR if data.is_boss else UiStyle.OFF)  # Pale disc: readable on the night sky
 	if _phone:  # A 40 px tap target, the disc drawn PHONE_DISC inside it (it sits in a plate the buttons' size)
 		var inset := (side - PHONE_DISC) / 2.0
@@ -361,6 +361,11 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	# Hung off the disc's corner, not over the nightmare's face (UI council 2026-10-22: "×57" covered the art)
+	badge.offset_left += 10.0
+	badge.offset_right += 10.0
+	badge.offset_top += 7.0
+	badge.offset_bottom += 7.0
 	holder.add_child(badge)
 	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold tab over the disc's top edge (a new rule-breaker: always)
 		var tag := Label.new()
@@ -371,7 +376,8 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		_badge_look(tag)
 		tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 		tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		tag.offset_top = -6.0
+		tag.offset_top = -12.0  # Above the disc's rim, off the face
+		tag.offset_bottom = tag.offset_top + 14.0
 		holder.add_child(tag)
 	if not compact:
 		var icons := NightmareIcons.make_rows(data, 14.0, true)

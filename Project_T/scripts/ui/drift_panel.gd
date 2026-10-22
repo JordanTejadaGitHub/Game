@@ -135,6 +135,10 @@ func _ready() -> void:
 	_auto_toggle.focus_mode = Control.FOCUS_NONE
 	_auto_toggle.button_pressed = drift_director.auto_drift
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
+	# Says whether it is on, not by colour alone (UI council 2026-10-22: "is Auto on?")
+	_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto on" if on else "Auto")
+	_auto_toggle.text = "Auto on" if drift_director.auto_drift else "Auto"
+	_on_look(_auto_toggle)
 	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
 	_pause_button.tooltip_text = "Pause%s. You can still build while paused." % UiStyle.key_suffix(InputMode.key(&"pause_game", "Space"))
@@ -181,7 +185,16 @@ func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(44, UiStyle.HUD_BUTTON_H)
 	button.theme_type_variation = &"HudButton"
+	_on_look(button)
 	row.add_child(button)
+
+# A toggle that is on (Auto, the chosen speed, pause): a brass rim with pale text and no glow, so only the next action
+# (Start / Call early) is gold and glowing (UI council 2026-10-22: Auto, 1x and Start were three golds side by side).
+func _on_look(button: Button) -> void:
+	for state in [&"pressed", &"hover_pressed"]:
+		button.add_theme_stylebox_override(state, UiStyle.plate_box(10.0, 6.0, &"plate_yours"))
+	for state in [&"font_pressed_color", &"font_hover_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.INK)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("start_drift"):

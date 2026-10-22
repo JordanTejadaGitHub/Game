@@ -867,7 +867,7 @@ func _description_and_stats(data: TowerData) -> void:
 		what.custom_minimum_size = Vector2(_text_width(), 0)
 		_side_box.add_child(what)
 	if data.can_attack:
-		var damage_text := String.num(data.damage, 1) if phone_layout() else str(data.damage)  # Phones: "6.5", not "6.48"
+		var damage_text := String.num(data.damage, 1)  # "6.5", not "6.48", everywhere (UI council 2026-10-22)
 		var stats: Array = [[&"damage", damage_text], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
 			[&"range", "%.1f" % data.attack_range]]
 		var uses := Tower.potency_uses(data)

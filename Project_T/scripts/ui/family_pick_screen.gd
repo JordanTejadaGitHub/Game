@@ -500,8 +500,9 @@ func _make_card(data: TowerData) -> Button:
 	box.add_child(costs)
 	for pair in [["Sprout into it", _sprout_into_cost(data)], ["Plant", data.cost]]:
 		costs.add_child(_cost_part(pair[0], int(pair[1])))
-	_add_routes(box, data)
+	# The Calling first: the run-long rule is the pick's biggest stake (UI council 2026-10-22: it was buried under the branches)
 	var calling_on_foot := _add_calling(box, data)  # A short screen: the Calling's name goes on the Wake button
+	_add_routes(box, data)
 	var spare := Control.new()
 	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -961,7 +962,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 	else:
 		var title := Label.new()
 		title.name = "CallingName"
-		title.text = "Calling · %s" % DreamState.CALLINGS.title(data.get_id())
+		title.text = "Calling: %s" % DreamState.CALLINGS.title(data.get_id())  # No " · " (ui_style.md)
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(title, _fs(14))

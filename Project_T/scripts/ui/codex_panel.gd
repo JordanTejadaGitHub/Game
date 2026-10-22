@@ -1405,7 +1405,7 @@ func _family_header(root: TowerData) -> Control:
 	if calling_name != "":
 		var calling := Label.new()
 		calling.name = "Calling"
-		calling.text = "Calling · %s" % calling_name
+		calling.text = "Calling: %s" % calling_name
 		UiStyle.caps(calling, 14, UiStyle.GOLD)
 		calling.tooltip_text = "The rule your run keeps when this is the first family you pick."
 		calling.mouse_filter = Control.MOUSE_FILTER_PASS

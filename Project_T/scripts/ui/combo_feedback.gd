@@ -213,9 +213,9 @@ func _ready() -> void:
 		if pair[0] == "Continue":
 			UiStyle.primary(button)  # The default (Space / Enter; button rule)
 			_plain_primary(button)  # One sprout per card: the panel's; the primary keeps only its thread
-			var enter := UiStyle.key_chip("⏎")
+			var enter := UiStyle.key_chip("Enter")  # Spelled out: no UI font has ⏎ (UI council 2026-10-22: the chip showed empty)
 			enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-			enter.offset_left = -38
+			enter.offset_left = -64
 			enter.offset_right = -14
 			button.add_child(enter)
 		_buttons.add_child(button)
