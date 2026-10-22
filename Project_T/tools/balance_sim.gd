@@ -975,8 +975,11 @@ func _cheapest_growth_price(tier: int) -> int:
 	return best
 
 func _pick_family_now(kind: StringName) -> void:
-	# Dreamlight: the first pick's comes with sim_family_pick / _forced_family_pick, the act breaks' (+3) with sim_rest. The
-	# later picks (&"second": drifts 10 / 35 / 60) give none (owner 2026-10-22, option A; Balancing Discussion).
+	# Dreamlight as the game (a787dc53): the first pick's comes with sim_family_pick / _forced_family_pick, the boss rests'
+	# with sim_rest (25: +2, 50 / 75: +3). The drift 10 pick gives SECOND_PICK_DREAMLIGHT (+1; DreamState's own listener
+	# for it is one the bot disconnects); the picks at 35 / 60 give none until the owner says (Balancing Discussion 2026-10-22).
+	if kind == &"second" and director.drifts_started == int(director.get("second_family_pick_drift")):
+		dreams.add_dreamlight(dreams.sim_dreamlight_for(&"second"), &"first_pick")
 	if forced_families.is_empty():
 		policy.family_pick(kind)
 	else:

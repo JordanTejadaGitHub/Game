@@ -430,7 +430,7 @@ func _test_sim_entry() -> void:
 	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +3 Dreamlight")
+	_check(dreams.dreamlight == light + DreamState.ACT1_BOSS_DREAMLIGHT, "…act 1's boss rest gives +2 Dreamlight (a787dc53)")
 	light = dreams.dreamlight
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
 	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 3, "…the drift 50 boss rest: +3 too")

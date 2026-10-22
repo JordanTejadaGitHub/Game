@@ -4887,7 +4887,7 @@ func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[Upgrade
 	_early_calls = 0
 	_rest_rules(perfect)
 	if drift_director.is_boss_drift(drift):
-		add_dreamlight(sim_dreamlight_for(&"boss"))
+		add_dreamlight(ACT1_BOSS_DREAMLIGHT if drift <= drift_director.drifts_per_act else sim_dreamlight_for(&"boss"))  # As _on_rest_started: drift 25 +2, later bosses +3
 	var unique_raised: Array = []
 	if has_rule(&"sunlit_rest"):
 		unique_raised = sunlit_rest()
