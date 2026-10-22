@@ -27,6 +27,10 @@ UserDirMigration="*res://scripts/run/user_dir_migration.gd"
 Sound="*res://scripts/audio/sound.gd"
 UiHider="*res://scripts/ui/ui_hider.gd"
 
+[display]
+
+window/handheld/orientation=4
+
 [file_customization]
 
 folder_colors={

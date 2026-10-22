@@ -113,6 +113,12 @@ func _ready() -> void:
 	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty() or UiStyle.test_safe_sides != Vector2.ZERO:  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
 		get_viewport().size_changed.connect(_fit_safe_area)
 		_fit_safe_area()
+		var flip_check := Timer.new()  # Turned upside down (sensor landscape, user 2026-10-21): same size, the camera side moved
+		flip_check.wait_time = 1.0
+		flip_check.process_mode = Node.PROCESS_MODE_ALWAYS
+		flip_check.timeout.connect(_refit_if_flipped)
+		add_child(flip_check)
+		flip_check.start()
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
@@ -370,6 +376,18 @@ const HOLE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScr
 var side_holes := Vector2.ZERO  # (left, right) in view units
 
 var _holes_applied := false
+var _fit_key := ""
+
+# The screen turned over: the unsafe side moved, so the pages' padding swaps sides.
+func _refit_if_flipped() -> void:
+	var view := get_viewport().get_visible_rect().size
+	var key := "%s|%s|%s" % [UiStyle.safe_insets(view), UiStyle.side_holes(view), UiStyle.safe_sides(view)]
+	if key != _fit_key:
+		_fit_key = key
+		_fit_safe_area()
+		var drawer := get_node_or_null("WardenPanel")
+		if drawer != null and drawer.visible and drawer.get("_docked_left") == true and drawer.has_method("_dock_left"):
+			drawer._dock_left()
 
 func _fit_side_holes() -> void:
 	if side_holes == Vector2.ZERO and not _holes_applied:

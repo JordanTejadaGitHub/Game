@@ -868,7 +868,7 @@ func _ability_row(ability: Dictionary) -> Control:
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
 		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0, &"plate_dim"))  # Moon-glass
+		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(12.0, 6.0, &"plate_dim"))  # Moon-glass, clear of its rim (Mobile UI 2026-10-21)
 		head.add_child(chip)
 	var label := StatusLinks.make_label("", 14, UiStyle.INK_DIM)
 	label.text = _links_keep_tags(String(ability.get("text", "")))
