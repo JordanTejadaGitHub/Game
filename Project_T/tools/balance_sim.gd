@@ -521,10 +521,7 @@ func _take_over_choices() -> void:
 
 func _on_family_pick(kind: StringName) -> void:
 	_busy = true
-	if forced_families.is_empty():
-		policy.family_pick(kind)
-	else:
-		_forced_family_pick(kind)
+	_pick_family_now(kind)
 	paused = false
 	director.family_picked()
 	_busy = false
@@ -819,8 +816,10 @@ func _synthetic_start() -> void:
 			_pick_family_now(&"first")
 		dew += director.get_dew_pot(r) * director.get_dew_pot_multiplier(r, false, false) * START_POT_SHARE
 		if r % director.drifts_per_block == 0:
-			if director.is_boss_drift(r):
-				_pick_family_now(&"boss")
+			if _pick_drifts().has(r):
+				_pick_family_now(&"second")  # The picks inside each act (owner 2026-10-22)
+			elif director.is_boss_drift(r) and not director.has_method("family_pick_drifts") and r > director.drifts_per_act:
+				_pick_family_now(&"boss")  # Older builds: acts 2-3 boss rests picked (act 1's moved to drift 10 in 8598b350)
 			dew += director.get_rest_bonus(director.get_block(r))
 			policy.rest(r, true)
 	director.blocks_rested = rest_drift / director.drifts_per_block
@@ -976,10 +975,23 @@ func _cheapest_growth_price(tier: int) -> int:
 	return best
 
 func _pick_family_now(kind: StringName) -> void:
+	if kind != &"first" and kind != &"boss":
+		# A later pick inside an act (&"second": drifts 10 / 35 / 60, owner 2026-10-22). Its Dreamlight comes from DreamState's
+		# own family_pick_requested listener, which _take_over_choices disconnects, so the bot adds it here. The first pick's
+		# comes with sim_family_pick / _forced_family_pick, a boss rest's with sim_rest (+3 at each act break).
+		dreams.add_dreamlight(dreams.sim_dreamlight_for(kind), &"first_pick")
 	if forced_families.is_empty():
 		policy.family_pick(kind)
 	else:
 		_forced_family_pick(kind)
+
+# The drifts whose rest is a family pick past the first (DriftDirector.family_pick_drifts: 10, 35, 60 since 2026-10-22).
+# Builds before it picked at the boss rests instead (_synthetic_start).
+func _pick_drifts() -> Array:
+	if director.has_method("family_pick_drifts"):
+		return director.call("family_pick_drifts")
+	var second = director.get("second_family_pick_drift")
+	return [] if second == null else [int(second)]
 
 func _spend() -> void:
 	for guard in 60:

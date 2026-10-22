@@ -26,8 +26,9 @@ func _run() -> void:
 		_check(int(row.get("start_dreamlight", 0)) >= 9, "Dreamlight topped up to the human mean (%s)" % row.get("start_dreamlight"))
 		_check(int(row.get("survived", 0)) >= 50, "the run starts past drift 50 (survived %s)" % row.get("survived"))
 		var choices := "\n".join(output)
-		_check(choices.contains("family pick (first)") and choices.count("family pick (boss)") == 2,
-			"the first pick and the boss picks at 25 / 50 were made")
+		var later := choices.count("family pick (second)") + choices.count("family pick (boss)")
+		_check(choices.contains("family pick (first)") and later == 2,
+			"the first pick and the two later picks before 51 were made (drifts 10 and 35 since 2026-10-22; %d)" % later)
 		_check(choices.count(": Dream ") + choices.count("Dream passed") >= 9, "a Dream offer at each skipped rest")
 	_clean(out_abs)
 	print("balance start-at test: %s" % ("PASS" if failures == 0 else "FAIL (%d)" % failures))
