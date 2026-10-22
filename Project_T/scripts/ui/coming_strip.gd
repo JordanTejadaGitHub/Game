@@ -432,7 +432,8 @@ func _under_drawer() -> bool:
 # them; Gold when a never-met kind comes. A tap drops the discs and the "Drift N · …" lines down under it, on the panel;
 # a tap again (or on a disc's card) folds it. Without room beside the buttons it sits just under them.
 const PHONE_GAP := 0.0  # HudButtons sit edge to edge (their visible boxes are inset)
-const PHONE_DROP_GAP := 6.0
+const PHONE_DROP_GAP := 0.0  # (The button's inset plate leaves 6 px under it already)
+const PHONE_BOX_INSET := 6.0  # As hud.gd BUTTON_BOX_INSET
 const PHONE_DROP_W := 420.0  # The dropdown's "Drift N · …" lines wrap at this
 var phone_open := false
 var _phone_toggle := Button.new()
@@ -446,6 +447,23 @@ func _make_phone_toggle() -> void:
 	_phone_toggle.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
 	_phone_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_phone_toggle.tooltip_text = "The nightmares of the next drifts. Tap to see them."
+	# The same visible height as the icon buttons beside it (user 2026-10-21): their plate inset 6 px inside the 48 px hit
+	# area (hud.gd _place_top_button, BUTTON_BOX_INSET).
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := _phone_toggle.get_theme_stylebox(state, &"HudButton")
+		if box is MoonStyleBox and "inset" in box:
+			box = box.duplicate()
+			box.set("inset", Vector2(PHONE_BOX_INSET, PHONE_BOX_INSET))
+			_phone_toggle.add_theme_stylebox_override(state, box)
+		elif box != null and "expand_margin_left" in box:
+			box = box.duplicate()
+			for side_name in ["expand_margin_left", "expand_margin_right", "expand_margin_top", "expand_margin_bottom"]:
+				box.set(side_name, -PHONE_BOX_INSET)
+			_phone_toggle.add_theme_stylebox_override(state, box)
+	_phone_toggle.add_theme_font_size_override("font_size", 14)  # Fits the 36 px box
+	var font := _phone_toggle.get_theme_font("font")
+	_phone_toggle.custom_minimum_size.x = ceilf(font.get_string_size(_phone_toggle.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x) \
+		+ 2.0 * (PHONE_BOX_INSET + 12.0)  # 12 px of air inside the plate on each side
 	_phone_toggle.toggled.connect(func(on: bool) -> void:
 		phone_open = on
 		_built_for = ""  # Rebuild with or without the dropdown's lines
