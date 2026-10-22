@@ -1585,15 +1585,16 @@ func sprout_per_step() -> int:
 func sprout_step_dew() -> int:
 	return SEEDFALL_STEP_DEW if sprout_price_halved() else SPROUT_STEP_DEW
 
-# Paid Sprouts still on the map in any form: Sprouts, and Wardens grown from a paid Sprout (Tower.evolve marks them
-# "sprout_line"; the user: "growing Sprouts shouldn't restart its interest cost"). Selling one lowers it; Seedling
-# Gift Sprouts never count.
+# Paid Sprouts still standing as Sprouts on the map (Balancing 2026-10-21, owner run 07:22: "I can't place any more Wardens";
+# grown ones used to count too, so ~60 grown Wardens priced the next Sprout at ~70 Dew by drift 50). Growing one into a
+# Warden or selling it takes it off the count; Seedling Gift Sprouts never count. (The "sprout_line" mark Tower.evolve
+# sets is no longer read here; the run save keeps it.)
 func count_sprout_line() -> int:
 	var count := 0
 	for tower in tower_container.get_children():
 		if not tower is Tower or tower.is_queued_for_deletion() or tower.get_meta(&"gift_sprout", false):
 			continue
-		if tower.tower_data.get_id() == "sprout" or tower.get_meta(&"sprout_line", false):
+		if tower.tower_data.get_id() == "sprout":
 			count += 1
 	return count
 
@@ -1603,10 +1604,10 @@ func count_sprout_line() -> int:
 # Wardens of that tier stand on the map, across all families. The first grow_tax_*_free at base; each past them adds
 # grow_tax_*_step to the next grow's base price, up to grow_tax_cap. A step of 0 = off. Ascended: no tax.
 @export var grow_tax_branch_free := 3
-@export var grow_tax_branch_step := 0.10
+@export var grow_tax_branch_step := 0.07  # Balancing 2026-10-21: was +10% / x3; the cap was reached at ~26 branches and Dew sat unspent
 @export var grow_tax_final_free := 2
 @export var grow_tax_final_step := 0.15
-@export var grow_tax_cap := 3.0
+@export var grow_tax_cap := 2.5  # Balancing 2026-10-21: was 3.0 (see grow_tax_branch_step)
 
 # Wardens of `tier` on the map now (a Warden sold or grown on leaves the count).
 func count_tier(tier: int) -> int:

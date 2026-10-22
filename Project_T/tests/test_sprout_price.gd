@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for "Sprouts cost more, walls do the maze" (warden_stats.md): every 5 Sprouts on the map
-# add +4 Dew to the next one's price (10 for the first 5, 14 at 5-9, …); selling one lowers it (a grown one still counts);
+# add +4 Dew to the next one's price (10 for the first 5, 14 at 5-9, …); selling or growing one lowers it (only Sprouts standing as Sprouts count: Balancing 2026-10-21);
 # Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the ones before it;
 # Seedfall: Sprouts always cost 10, the price never climbs. Run:
 #   godot --headless --path . --script res://tests/test_sprout_price.gd --fixed-fps 60
@@ -40,14 +40,15 @@ func _run() -> void:
 	seller.sell(planted[per - 1].cell)
 	_check(placer.get_cost(sprout) == 10, "selling one lowers it")
 	planted[per - 2].evolve(sprout.evolves_to[0], 0)
-	_check(placer.count_paid_sprouts() == per - 1 and placer.get_cost(sprout) == 10, "a Sprout that grows still counts (the user: \"growing Sprouts shouldn't restart its interest cost\")")
+	_check(placer.count_paid_sprouts() == per - 2 and placer.get_cost(sprout) == 10, "a Sprout that grows leaves the count (Balancing 2026-10-21: grown ones priced Sprouts out by drift 50)")
 
 	# Seedling Gift: a charge plants one free, and it doesn't raise the price
 	run_state.add_sprout_charges(1)
 	var gift := _build(placer, map, sprout)
 	_check(gift.invested_dew == 0 and gift.get_meta(&"gift_sprout", false), "a gift Sprout is free")
-	_check(placer.count_paid_sprouts() == per - 1, "and doesn't count toward the price")
-	_build(placer, map, sprout)  # One more paid Sprout: `per` counted again (with the grown one)
+	_check(placer.count_paid_sprouts() == per - 2, "and doesn't count toward the price")
+	_build(placer, map, sprout)  # Two more paid Sprouts: `per` standing again (the grown one no longer counts)
+	_build(placer, map, sprout)
 
 	# A drag stroke: each Sprout priced after the ones before it (`per` counted: 15, 15, 15)
 	var cells := _row_of_three(map, placer)
