@@ -1938,8 +1938,7 @@ func _raise_overlays() -> void:
 # --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
 # Every TowerPlacer.sprout_per_step() Sprouts standing on the map as Sprouts add sprout_step_dew() to the price (Seedfall:
 # a slower rise). The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise,
-# and the first rise in a run gets a one-line toast.
-var _sprout_rise_told := false
+# and the first rise is taught by the "Sprouts cost more" Lesson card (no toast).
 var _sprout_last_cost := -1
 
 func sprout_rule_text(cost: int) -> String:
@@ -1971,11 +1970,8 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	tag.reset_size()
 	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y - 4.0)  # Clear of the slot's hotkey
 	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
-	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
-		_sprout_rise_told = true
-		var lessons := get_node_or_null("LessonCard") as LessonCard
-		if lessons == null or not lessons.enabled:  # The "Sprouts cost more" Lesson says it, as a card (user)
-			show_toast("Sprouts now cost %s: the more you have, the more they cost." % UiStyle.dew_amount(cost))
+	# No toast when the price rises (user 2026-10-22: "sprout cost more should be a tutorial card"): the "Sprouts cost
+	# more" Lesson card teaches it; with Lessons off, the slot's price and "↑ N/M" tag show it.
 	_sprout_last_cost = cost
 
 # --- The Warden bar's hover card (screens_ui.md, the bullets above "Readable tooltips") --------------
