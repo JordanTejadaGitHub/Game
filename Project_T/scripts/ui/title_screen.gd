@@ -64,6 +64,7 @@ func _ready() -> void:
 	column.anchor_bottom = 1.0
 	column.offset_left = MENU_LEFT
 	column.offset_right = MENU_LEFT + MENU_WIDTH  # Widened to the logo by _fit_logo
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Layout only: full height over Settings / the Codex, it ate their clicks ("can't click on Display", user 2026-10-22)
 	add_child(column)
 	_menu.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu.add_theme_constant_override("separation", 14)
