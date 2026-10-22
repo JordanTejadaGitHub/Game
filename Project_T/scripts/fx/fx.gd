@@ -68,7 +68,6 @@ const REACTION_FLASH_SECONDS := 0.05  # The burst's 1-frame bright flash (off un
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
 const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
-const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
 const HITSTOP_SCALE := 0.05  # Speed during a hitstop
 const SURGE_SECONDS := 0.5
@@ -81,7 +80,6 @@ static var _settings := {}
 static var _settings_at := -SETTINGS_REFRESH_MS
 static var _callout_cooldown := {}  # reaction -> msec it may pop again
 static var _callouts_alive: Array = []
-static var _badge: Node2D
 static var longest_chain := 0  # This run's longest chain (reset with reset_run())
 
 # --- Data ---------------------------------------------------------------------------------------
@@ -459,7 +457,7 @@ static func rain_sweep(center: Vector2, radius: float, parent: Node, seconds: fl
 
 # --- Chains -------------------------------------------------------------------------------------
 
-# A chain reached `count` at `where`. x2+: badge; x5: hitstop + warm surge; x10: Dawnburst and
+# A chain reached `count` at `where`. x2+: "×N" on the newest Reaction word; x5: hitstop + warm surge; x10: Dawnburst and
 # every Warden in `towers` flares. Call once per step of the chain.
 static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) -> void:
 	if parent == null or not is_instance_valid(parent) or count < 2:
@@ -473,16 +471,8 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 			newest = c
 	if newest != null:
 		newest.set_count(count)
-	# One badge, updated in place (the callout redo); a new one only when there's none here.
-	if is_instance_valid(_badge) and _badge.get_parent() == parent and _badge is FxBadge:
-		(_badge as FxBadge).set_count(count)
-		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
-	else:
-		if is_instance_valid(_badge):
-			_badge.queue_free()
-		_badge = FxBadge.new(count)
-		parent.add_child(_badge)
-		_badge.global_position = WorldLabel.callout_slot(where + BADGE_OFFSET, &"chain_badge", 1.2)
+	# No chain badge on the field (user screenshot: "CHAIN ×5" and its dashed timer sat on a Sprout in Mushrooming clouds):
+	# a chain never draws on a Warden. The count rides on the Reaction's word above; the run's chain lives in the HUD counter.
 	if count == 5 or count == 10:
 		_hitstop(parent)
 		add_trauma(TRAUMA_CHAIN_10 if count == 10 else TRAUMA_CHAIN_5, parent)
@@ -1420,91 +1410,4 @@ class FxCallout extends Node2D:
 			var cx := x + text_w + GAP
 			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 2, Color(Palette.DREAD, alpha))
 			draw_string(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Color(Palette.GLOW, alpha))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-# The chain badge (the user's pick, the callout redo): no box, the same soft halo as the callout words. "chain" in
-# Cormorant SC 12.5 (Mist) then "×N" (number font 21, 24 from ×5) in Glow, over a row of 5 pips: up to ×5 they fill
-# Gold, at ×5 all five go bright Glow, from ×6 they count on toward 10. At ×10 the Dawnbreak icon ×1.5 and
-# "Dawnbreak" (display 20, Glow). One badge, updated in place (set_count), fading 1 s after the last link.
-class FxBadge extends Node2D:
-	const HOLD := 1.0  # After the last link
-	const FADE := 0.3
-	const POP_TIME := 0.12
-	const WORD_SIZE := 12.5
-	const COUNT_SIZE := 21
-	const COUNT_SIZE_BIG := 24  # From ×5
-	const DAWN_SIZE := 20
-	const PIP := Vector2(6.0, 3.0)
-	const PIP_GAP := 3.0
-	const HALO_PAD := Vector2(24.0, 12.0)
-	var _count := 0
-	var _age := 0.0
-	var _dawn: Texture2D
-
-	func _exit_tree() -> void:
-		if Fx._badge == self:
-			Fx._badge = null  # (See FxCallout._exit_tree)
-
-	func _init(count: int) -> void:
-		z_index = Fx.Z + 3
-		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_dawn = IconInfo.icon(&"dawnbreak")
-		set_count(count)
-
-	# A new link: the count goes up and the hold starts again (one badge, updated in place).
-	func set_count(count: int) -> void:
-		_count = count
-		_age = 0.0
-		queue_redraw()
-
-	func _process(delta: float) -> void:
-		_age += delta
-		if _age >= HOLD + FADE:
-			queue_free()
-			return
-		queue_redraw()
-
-	func _draw() -> void:
-		var alpha := clampf((HOLD + FADE - _age) / FADE, 0.0, 1.0)
-		var pop := lerpf(1.15, 1.0, clampf(_age / POP_TIME, 0.0, 1.0))
-		var s := WorldLabel.text_scale(self) * pop
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(s, s))
-		var caps := UiStyle.caps_font()
-		var numbers := UiStyle.number_font()
-		var display := UiStyle.display_font()
-		var dawn := _count >= 10
-		var word := "Dawnbreak" if dawn else "chain"
-		var word_font := display if dawn else caps
-		var word_size := DAWN_SIZE if dawn else int(round(WORD_SIZE))
-		var word_w := word_font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size).x
-		var count_text := "" if dawn else "×%d" % _count
-		var count_size := COUNT_SIZE_BIG if _count >= 5 else COUNT_SIZE
-		var count_w := numbers.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size).x if count_text != "" else 0.0
-		var icon_w := 24.0 + 6.0 if dawn and _dawn != null else 0.0  # Dawnbreak's icon at ×1.5
-		var line_w := icon_w + word_w + (6.0 + count_w if count_text != "" else 0.0)
-		var pips_w := PIP.x * 5 + PIP_GAP * 4
-		var total := maxf(line_w, pips_w)
-		Fx.draw_halo(self, Vector2.ZERO, s, Vector2(0.0, 2.0), Vector2(total / 2.0 + HALO_PAD.x, 14.0 + HALO_PAD.y), alpha)
-		var x := -line_w / 2.0
-		var baseline := 4.0
-		if icon_w > 0.0:
-			draw_texture_rect(_dawn, Rect2(x, baseline - 20.0, 24.0, 24.0), false, Color(1, 1, 1, alpha))  # multiplier
-			x += icon_w
-		var word_colour := Palette.GLOW if dawn else Palette.MIST
-		draw_string_outline(word_font, Vector2(x, baseline), word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size, 2, Color(Palette.DREAD, alpha))
-		draw_string(word_font, Vector2(x, baseline), word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size, Color(word_colour, alpha))
-		if count_text != "":
-			var cx := x + word_w + 6.0
-			draw_string_outline(numbers, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size, 2, Color(Palette.DREAD, alpha))
-			draw_string(numbers, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size, Color(Palette.GLOW, alpha))
-		# The pips: Gold up to ×5, all Glow at ×5, then counting on toward 10.
-		var lit := mini(_count, 5) if _count <= 5 else mini(_count - 5, 5)
-		var px := -pips_w / 2.0
-		for i in 5:
-			var on := i < lit
-			var colour := Palette.GLOW if _count == 5 or (_count > 5 and on) or dawn else (Palette.GOLD if on else Palette.DUSK)
-			if _count > 5 and not on and not dawn:
-				colour = Palette.GOLD  # The first five stay full under the second count
-			draw_rect(Rect2(px + i * (PIP.x + PIP_GAP), baseline + 6.0, PIP.x, PIP.y), Color(colour, alpha))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

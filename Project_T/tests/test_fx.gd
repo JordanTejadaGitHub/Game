@@ -93,15 +93,11 @@ func _run() -> void:
 	# --- Chains ---
 	Fx.reset_run()
 	_use_settings({"reduce_flashes": false, "hitstop": true, "reduced_motion": true})
-	if is_instance_valid(Fx._badge):
-		Fx._badge.free()
+	var field_before := world.get_child_count()
 	Fx.chain(1, Vector2.ZERO, world)
-	_check(not is_instance_valid(Fx._badge), "no badge for a single Reaction")
 	Fx.chain(2, Vector2(100, 100), world)
-	_check(is_instance_valid(Fx._badge) and Fx._badge._count == 2, "a 2-link chain shows the badge (\"chain ×2\")")
-	var badge := Fx._badge
 	Fx.chain(3, Vector2(100, 100), world)
-	_check(Fx._badge == badge and badge._count == 3, "one badge, updated in place (×3)")
+	_check(world.get_child_count() == field_before, "a chain draws no badge on the field (its count rides on the Reaction word; the HUD counts the chain)")
 	Engine.time_scale = 1.0
 	layers_before = _canvas_layers()
 	Fx.chain(5, Vector2(100, 100), world)
