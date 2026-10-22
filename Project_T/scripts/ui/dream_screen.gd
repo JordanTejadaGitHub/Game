@@ -46,7 +46,7 @@ const PHONE_CHOICE_SIZE := Vector2(188, 56)  # Take and Let it pass: both real c
 const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word, not the card
 const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")  # The shared phone choice helpers (threads, widths, Peek)
 var _phone := false
-var _subtitle: Label = null  # Phones: "after drift 10 · take one"
+var _subtitle: Label = null  # "after drift 10, take one" (PC too since UI council round 3)
 var _phone_hint: Label = null  # Phones: "Tap a card to look at it" / "Take it, or tap another"
 var _take: Button = null  # Phones: "Take <card>"
 var _phone_bottom: HBoxContainer = null  # Phones: the bottom row (Peek, Let it pass … · hint · Take)
@@ -90,7 +90,17 @@ func _ready() -> void:
 		center.add_child(box)
 		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.title(_title, UiStyle.CHOICE_TITLE_SIZE)
-		box.add_child(_title)
+		var heading := VBoxContainer.new()  # "A Dream" and, close under it, "after drift 5, take one" in small caps
+		heading.add_theme_constant_override("separation", 2)
+		heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(heading)
+		heading.add_child(_title)
+		_subtitle = Label.new()
+		_subtitle.name = "Subtitle"
+		_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(_subtitle, 15, UiStyle.INK_DIM)
+		heading.add_child(_subtitle)
 		_cards.add_theme_constant_override("separation", 16)
 		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 		box.add_child(_cards)
@@ -240,22 +250,22 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	if not visible:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
-	_title.text = "A Dream, after drift %d" % drift_number
+	# "A Dream" with "after drift 10, take one" beside it, in small caps: PC too (UI council round 3: Pixelify's 5 read as
+	# S in "A Dream, after drift 5"; the number is in Vollkorn SC now).
+	_title.text = "A Dream"
+	var take := "take one"
 	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
-		_title.text += " · take %d" % dream_state.picks_left if dream_state.picks_left > 1 else " · take 1 more"
-	if _phone:  # "A Dream" with "after drift 10 · take one" beside it
-		_title.text = "A Dream"
-		var take := "take one"
-		if dream_state.has_rule(&"lucid_dreaming"):
-			take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
-		_subtitle.text = ("after drift %d, %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps); no " · "
+		take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
+	_subtitle.text = ("after drift %d, %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps); no " · "
 	_skip.text = "Let it pass, %s" % UiStyle.dew_amount(dream_state.skip_dew, true) if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams (and never on a Calling pick: can_skip)
 	var growing: bool = dream_state.is_calling_offer()  # Calling evolutions (Roguelite Code 2026-10-16): no reroll or let-go
 	if growing:
-		_title.text = "Your Calling grows" if _phone else "Your Calling grows, after drift %d" % drift_number
+		_title.text = "Your Calling grows"
 		if _phone:
 			_subtitle.text = dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style"
+		else:
+			_subtitle.text = "after drift %d" % drift_number
 	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
 	_reroll.text = dream_state.reroll_label()

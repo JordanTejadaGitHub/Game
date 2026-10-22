@@ -141,6 +141,7 @@ func _fill_run_side(side: VBoxContainer) -> void:
 	_whispers_toggle.focus_mode = Control.FOCUS_NONE
 	_whispers_toggle.tooltip_text = "Short lessons the first time a rule matters."
 	_whispers_toggle.toggled.connect(_set_whispers)
+	_whispers_toggle.toggled.connect(_say_lessons_state)
 	hints.add_child(_whispers_toggle)
 	side.add_child(hints)
 	var guides := Button.new()
@@ -573,6 +574,7 @@ func open() -> void:
 	game_speed.set_paused(true)
 	_fit_phone_hole()
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
+	_say_lessons_state(_whispers_toggle.button_pressed)
 	_summary.text = get_run_summary()
 	_fill_facts()
 	if _phone:
@@ -745,6 +747,10 @@ func _show_settings() -> void:
 		return
 	(_settings.get_meta("row") as Control).visible = false
 	_settings.visible = true
+
+# The switch says its state in words, not by colour alone (UI council round 3, accessibility).
+func _say_lessons_state(on: bool) -> void:
+	_whispers_toggle.text = "On" if on else "Off"
 
 func _set_whispers(on: bool) -> void:
 	var settings := HeartwoodMemory.get_settings()

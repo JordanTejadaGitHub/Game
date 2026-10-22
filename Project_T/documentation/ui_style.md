@@ -43,11 +43,11 @@ section wins**; layouts, sizes, the 48 px rule, one primary per choice, the butt
   uses exactly one of these; nothing else (no Alegreya Sans, no Cormorant, no engine default font):
   | What | Font |
   |---|---|
-  | Screen and panel titles, Warden / card / nightmare names, toasts | **Pixelify Sans** SemiBold |
-  | Body: descriptions, card text, tooltips, sub-lines, whispers | **Vollkorn** Regular (italic for whispers), min 14 px at 1280x720, line height 1.4, never bold |
+  | Screen and panel titles, Warden / card / nightmare names | **Pixelify Sans** SemiBold |
+  | Body: descriptions, card text, tooltips, sub-lines, whispers; toasts in its Medium | **Vollkorn** Regular (italic for whispers), min 14 px at 1280x720, line height 1.4, never bold |
   | Every button label (primaries too), tab, label, chip, key hint | **Vollkorn SC** SemiBold |
   | Numbers: counters, costs, stats, DPS, timers | **Vollkorn** Medium, lining + tabular figures |
-  Pixelify is never used for numbers (its "2 looks too much like an 8"; UI Code 50bf8d0d) and never for button labels.
+  Pixelify is never used for numbers (its "2 looks too much like an 8"; UI Code 50bf8d0d; its 5 reads as S, UI council round 3) and never for button labels. A title drawn in code that holds a number (the drift banner) sets the digits in the number face (`UiStyle.draw_display`); a Label title keeps numbers out (the Dream: "A Dream" + "after drift 5, take one" in small caps). Toasts carry prices, so they are Vollkorn Medium. Key hints are a chip on the button's right edge (`UiStyle.key_chip_on`), never "(Enter)" in the label.
   All OFL, Google Fonts. Text colour is Moonlight / Mist; links underline in Wraithlight.
 - **Counters and icons** stay as they are (leaf, Dew, Dreamlight, Seeds). HUD button glyphs are pale (moon ramp) at
   rest and gold on hover / press: each has a pale twin `<id>_moon` in `hud_glyphs.png` (hud_icons.json).

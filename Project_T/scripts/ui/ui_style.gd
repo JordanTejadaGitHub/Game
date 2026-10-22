@@ -457,7 +457,7 @@ static func glyph_font() -> Font:
 		_fonts["glyphs"] = load(GLYPH_FONT_PATH) if ResourceLoader.exists(GLYPH_FONT_PATH) else null
 	return _fonts["glyphs"]
 
-# Pixelify Sans SemiBold: titles, names, toasts. Never numbers or button labels.
+# Pixelify Sans SemiBold: titles and names. Never numbers (draw_display swaps in the number face), button labels or toasts.
 static func display_font() -> Font:
 	return _face("display", "PixelifySans-Variable.ttf", 600)
 
@@ -1079,6 +1079,71 @@ static func key_chip(text: String) -> Label:
 		if InputMode.touch():
 			chip.hide.call_deferred())
 	return chip
+
+# A key chip on a button's right edge, KEY_CHIP_GAP in from it, with the centred label kept clear of it (UI council round 3:
+# "Face it" ran into its chip, "Face itEnter"). Every primary's key hint is this chip, never "(Enter)" in the label. The
+# room the label + chip need is the button's meta "key_room" (0 under touch, where the chip hides); with `grow` the
+# button's minimum width rises to it, else its owner reads the meta (DriftPanel's Start fits the speed row too).
+const KEY_CHIP_GAP := 12.0
+static func key_chip_on(button: Button, key: String, grow := true) -> Label:
+	var chip := key_chip(key)
+	chip.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	button.add_child(chip)
+	var fit := func() -> void: _fit_key_chip(button, chip, grow)
+	button.draw.connect(func() -> void: fit.call_deferred())  # Text changes redraw the button
+	fit.call()
+	return chip
+
+static func _fit_key_chip(button: Button, chip: Label, grow: bool) -> void:
+	if not is_instance_valid(button) or not is_instance_valid(chip):
+		return
+	var chip_size := chip.get_combined_minimum_size()
+	chip.offset_left = -KEY_CHIP_GAP - chip_size.x
+	chip.offset_right = -KEY_CHIP_GAP
+	chip.offset_top = -chip_size.y / 2.0
+	chip.offset_bottom = chip_size.y / 2.0
+	var room := 0.0
+	if chip.visible and not InputMode.touch():
+		var font := button.get_theme_font("font")
+		var text_w := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, button.get_theme_font_size("font_size")).x
+		room = ceilf(text_w + 2.0 * (chip_size.x + KEY_CHIP_GAP * 2.0))  # Centred text: a chip's room on both sides
+	button.set_meta(&"key_room", room)
+	if grow and button.custom_minimum_size.x < room:
+		button.custom_minimum_size.x = room
+
+# Pixelify's 5 reads as S ("Boss in 2S", UI council round 3): text drawn in the display face sets its digits in the
+# number face (Vollkorn Medium, ui_style.md type table). For _draw code; returns the width drawn.
+static func draw_display(canvas: CanvasItem, at: Vector2, text: String, font_size: int, colour: Color,
+		outline := 0, outline_colour := Color()) -> float:
+	var runs := _digit_runs(text)
+	for pass_outline in ([true, false] if outline > 0 else [false]):
+		var x := at.x
+		for run: Array in runs:
+			var font: Font = number_font() if run[1] else display_font()
+			if pass_outline:
+				canvas.draw_string_outline(font, Vector2(x, at.y), run[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, outline, outline_colour)
+			else:
+				canvas.draw_string(font, Vector2(x, at.y), run[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+			x += font.get_string_size(run[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	return display_width(text, font_size)
+
+static func display_width(text: String, font_size: int) -> float:
+	var width := 0.0
+	for run: Array in _digit_runs(text):
+		var font: Font = number_font() if run[1] else display_font()
+		width += font.get_string_size(run[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	return width
+
+# [[text, is_digits], …] in order.
+static func _digit_runs(text: String) -> Array:
+	var runs: Array = []
+	for i in text.length():
+		var digit := text[i] >= "0" and text[i] <= "9"
+		if runs.is_empty() or runs[-1][1] != digit:
+			runs.append([text[i], digit])
+		else:
+			runs[-1][0] += text[i]
+	return runs
 
 # A button label's keyboard hint (" (Enter)"), dropped under touch controls (InputMode): "Start drift 3" + key_suffix("Enter").
 static func key_suffix(key: String) -> String:

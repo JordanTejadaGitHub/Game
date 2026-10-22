@@ -213,11 +213,7 @@ func _ready() -> void:
 		if pair[0] == "Continue":
 			UiStyle.primary(button)  # The default (Space / Enter; button rule)
 			_plain_primary(button)  # One sprout per card: the panel's; the primary keeps only its thread
-			var enter := UiStyle.key_chip("Enter")  # Spelled out: no UI font has ⏎ (UI council 2026-10-22: the chip showed empty)
-			enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-			enter.offset_left = -64
-			enter.offset_right = -14
-			button.add_child(enter)
+			UiStyle.key_chip_on(button, "Enter")  # Spelled out (no UI font has ⏎), clear of the label (UI council round 3)
 		_buttons.add_child(button)
 	# The foot: "Added to the Codex" on the left, Peek at the map as quiet text on the right.
 	_foot_label.text = "Added to the Codex"

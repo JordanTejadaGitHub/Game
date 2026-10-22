@@ -62,6 +62,7 @@ const CODEX_SLOT := [-318.0, 48.0]
 const LEAF_LOST_COLOR := UiStyle.POOR
 const TOAST_TIME := 2.5
 const TOAST_TOP := 254.0  # The toast's place in main.tscn; lower when the top-centre column reaches past it
+const TOAST_GAP := 8.0  # Between a showing whisper's plate and the toast under it
 
 @onready var dream_state: DreamState = %DreamState
 var bark_shield: DreamMarks.BarkShield = null  # Thick Bark (DreamMarks)
@@ -705,15 +706,49 @@ func _hide_under_choice() -> void:
 	var open := _phone_choice_open()
 	if open:
 		var lifted: Node = get_node_or_null("DreamsRow") if _dreams_over_choice() != null else null  # Its page is open over the screen
+		var kept := _resources_over_screen()
 		for node: CanvasItem in _hud_under_choice():
 			if not _choice_hidden.has(node):
 				_choice_hidden[node] = node.visible
-			node.visible = node == lifted  # Every frame: panels that refresh themselves (the damage meter) stay hidden
+			if kept.has(node):
+				node.visible = _choice_hidden[node]
+				if not _resources_z.has(node):
+					_resources_z[node] = node.z_index
+				node.z_index = RESOURCES_OVER_Z
+			else:
+				node.visible = node == lifted  # Every frame: panels that refresh themselves (the damage meter) stay hidden
+				if _resources_z.has(node):
+					node.z_index = _resources_z[node]
+					_resources_z.erase(node)
 	elif not _choice_hidden.is_empty():
 		for node in _choice_hidden:
 			if is_instance_valid(node):
 				node.visible = _choice_hidden[node]
 		_choice_hidden.clear()
+		for node in _resources_z:
+			if is_instance_valid(node):
+				node.z_index = _resources_z[node]
+		_resources_z.clear()
+
+# The screens you spend on (Dew: Let it pass, the family's prices; Dreamlight: Remember; leaves: the run's state on Pause)
+# keep the resource counters, top right above the screen (UI council round 3: hiding the whole HUD hid the money you
+# spend there). PC only: phone choice screens have their own header there.
+const RESOURCE_SCREENS := ["DreamScreen", "OmenScreen", "FamilyPickScreen", "GiftScreen", "PauseMenu"]  # Not Remember: its panel reaches the top, and it shows its Dreamlight
+const RESOURCES_OVER_Z := 40  # Above the screens' own z (phone overlays use 10–30)
+var _resources_z := {}  # Node -> its z_index before
+
+func _resources_over_screen() -> Array:
+	if UiStyle.is_phone():
+		return []
+	for screen_name in COVER_SCREENS + PHONE_CHOICE_SCREENS:
+		var screen := get_node_or_null(screen_name) as CanvasItem
+		if screen != null and screen.visible and not RESOURCE_SCREENS.has(screen_name):
+			return []  # The boss dossier or the results are up too: they cover everything
+	var nodes: Array = [dew_label, leaves_label, _leaves_max, get_node_or_null("DreamlightLabel"), get_node_or_null("ResourcesFog")]
+	for label in nodes.duplicate():
+		if _counter_icons.has(label):
+			nodes.append(_counter_icons[label])  # Their icons too (hidden with the rest otherwise)
+	return nodes.filter(func(n) -> bool: return n is CanvasItem and is_instance_valid(n))
 
 # Phones: a choice screen's "Your Dreams" (PhoneChoice.add_extras, user 2026-10-18) opens "Dreams this run" above that
 # screen: the row stays shown while its page is open, goes right after the screen in the HUD (and above the screen's
@@ -1300,7 +1335,10 @@ func _style_resources() -> void:
 	for label: Label in [dew_label, leaves_label, %PathLabel]:
 		label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 		label.add_theme_constant_override("outline_size", 4)
-	UiStyle.title(toast_label, 22)
+	# Vollkorn Medium (UI council round 3): toasts carry prices ("Sprouts now cost 18") and Pixelify's 5 reads as S
+	toast_label.add_theme_font_override("font", UiStyle.body_medium_font())
+	toast_label.add_theme_font_size_override("font_size", 20)
+	toast_label.add_theme_color_override("font_color", UiStyle.INK)
 	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	# On a glass plate, never bare over the map (ui_style.md "No floating text over the map"; UI council 2026-10-22).
 	toast_label.add_theme_stylebox_override("normal", UiStyle.plate_box(18.0, 8.0))
@@ -1343,6 +1381,10 @@ func show_toast(text: String) -> void:
 	toast_label.offset_right = roundf(plate_w / 2.0)
 	# The top-centre column: under the banner, Coming strip and boss reminder, never over them (TOAST_TOP at the least)
 	var toast_top := maxf(TOAST_TOP, BossDossier.column_bottom(self) + 12.0)
+	# A whisper showing in the same column: the toast goes under its plate with a gap (UI council round 3: they touched)
+	var whisper := get_node_or_null("Whispers") as Control
+	if whisper != null and whisper.is_visible_in_tree() and whisper.modulate.a > 0.0:
+		toast_top = maxf(toast_top, whisper.get_global_rect().end.y + TOAST_GAP)  # The HUD is a CanvasLayer: global = its own space
 	toast_label.offset_bottom = toast_top + (toast_label.offset_bottom - toast_label.offset_top)
 	toast_label.offset_top = toast_top
 	_toast_tween = UiTime.tween(self, false)
@@ -1829,7 +1871,7 @@ func _update_maze_income() -> void:
 	var amount: int = drift_director.get_maze_reward_projection()
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
 	_maze_short = UiStyle.dew_amount(amount, true)  # The row shows this when "at rest" doesn't fit (_layout_top_row)
-	_maze_full = "%s at rest" % _maze_short
+	_maze_full = "%s at rest" % _maze_short if amount > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	# Path length only (maze_economy.md, user 2026-10-11: "the maze bonus is confusing"): cells over the forest's path.
 	var explanation := "Your path is %d cells longer than the starting path: %s at this block's rest (%s per %d cells)." % [

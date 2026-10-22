@@ -64,6 +64,7 @@ var kind := Kind.TRAIT
 var id := ""  # Line, status id or trait id
 var mode := &""  # STATUS: &"immune" / &"short"
 var tip := ""
+var word := ""  # Its name, shown beside it in the captioned rows (UI council round 3: icons alone read as nothing)
 
 # --- Builders --------------------------------------------------------------------------------------
 
@@ -107,6 +108,7 @@ static func status(status_id: StringName, how: StringName, multiplier: float = 1
 	icon.id = String(status_id)
 	icon.mode = how
 	var name := IconInfo.status_name(status_id)
+	icon.word = name
 	if how == &"immune" and condition != "":
 		icon.tip = "Immune to %s %s: the status does nothing to it then." % [name, condition]
 	elif how == &"immune":
@@ -123,6 +125,7 @@ static func trait_icon(trait_id: StringName, side: float = 28.0) -> NightmareIco
 	icon.id = String(trait_id)
 	var entry: Array = TRAITS.get(trait_id, [String(trait_id).capitalize(), ""])
 	icon.tip = IconInfo.format("%s: %s" % entry)
+	icon.word = IconInfo.format(String(entry[0]))
 	return icon._sized(side)
 
 func _sized(side: float) -> NightmareIcons:
@@ -248,9 +251,24 @@ static func _row(caption: String, colour: Color, icons: Array[Control], font: in
 	row.add_child(label)
 	var flow := HFlowContainer.new()
 	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	flow.add_theme_constant_override("h_separation", 3)
+	flow.add_theme_constant_override("h_separation", 10)
 	for icon in icons:
-		flow.add_child(icon)
+		var named := icon as NightmareIcons
+		if named == null or named.word == "":
+			flow.add_child(icon)
+			continue
+		var pair := HBoxContainer.new()  # The icon and its name ("Trample"), the tip on both
+		pair.add_theme_constant_override("separation", 4)
+		pair.add_child(icon)
+		var word := Label.new()
+		word.text = named.word
+		word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		word.add_theme_font_size_override("font_size", font)
+		word.add_theme_color_override("font_color", UiStyle.INK)
+		word.mouse_filter = Control.MOUSE_FILTER_PASS
+		TapTip.attach(word, named.tip)
+		pair.add_child(word)
+		flow.add_child(pair)
 	row.add_child(flow)
 	return row
 

@@ -159,7 +159,7 @@ func _build(won: bool) -> void:
 	seeds.add_theme_constant_override("separation", 4)
 	box.add_child(seeds)
 	for line in breakdown:
-		if line[0] == "Total":
+		if line[0] == "Total" or int(line[1]) == 0:  # No "+0" rows (UI council round 3): only what earned Seeds
 			continue
 		var row := HBoxContainer.new()
 		var name_label := _label(row, line[0], 15, UiStyle.INK_DIM)
@@ -176,7 +176,7 @@ func _build(won: bool) -> void:
 	UiStyle.number(_label(total, str(breakdown[-1][1]) if not breakdown.is_empty() else "0", 24, UiStyle.LIVE), 24, UiStyle.LIVE)
 	seeds.add_child(total)
 	_label(seeds, "Seeds grow permanent unlocks in the Memory Grove.", 14, UiStyle.INK_DIM, true)  # What Seeds are for (wording review 2026-10-13)
-	if not is_demo():
+	if not is_demo() and (breakdown.is_empty() or banked != int(breakdown[-1][1])):  # Not a repeat of the total (UI council round 3)
 		_label(box, "%d in the bank" % banked, 14, UiStyle.INK_DIM).name = "SeedsBanked"
 	if not_banked and not CaptureDirector.capturing():  # Captures force Test Grove: no dev line on screen
 		_label(box, "%s: nothing was banked." % ("Test Grove" if TestGrove.is_active() else "Developer run"), 15,
