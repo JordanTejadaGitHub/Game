@@ -601,10 +601,14 @@ func _run() -> void:
 	# a row opens the full face.
 	grove_screen._select(_unlock(grove, "sharpened"))
 	var card_rows: GroveCardList = grove_screen._card_list
-	_check(grove_screen._card_list_scroll.visible and card_rows.get_child_count() == 5 and card_rows.has_node("still_target") and card_rows.has_node("opening_fracture")
-		and not card_rows.has_node("still_target_ii"), "Sharpened lists its 5 cards, including Opening Fracture (%d rows)" % card_rows.get_child_count())
+	_check(grove_screen._card_list_scroll.visible and card_rows.get_child_count() == 3 and card_rows.has_node("shattering_blow") and card_rows.has_node("hunters_moon"),
+		"Sharpened lists its 3 cards, including Hunter's Moon (%d rows)" % card_rows.get_child_count())
 	_check(not card_rows.get_node("shattering_blow").find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text == "+ II"),
 		"retired II is not advertised as a Grove upgrade")
+	# Bundles trimmed (meta_design.md 47bdc6b3): Still Target and Opening Fracture moved to Full Moon.
+	grove_screen._select(_unlock(grove, "full_moon"))
+	_check(card_rows.get_child_count() == 3 and card_rows.has_node("still_target") and card_rows.has_node("opening_fracture")
+		and not card_rows.has_node("still_target_ii"), "Full Moon lists its 3 cards, including Opening Fracture (%d rows)" % card_rows.get_child_count())
 	(card_rows.get_node("still_target") as Button).pressed.emit()
 	await process_frame
 	_check(grove_screen.card_face.visible and grove_screen._backdrop.visible, "tapping a row opens the full card face")
