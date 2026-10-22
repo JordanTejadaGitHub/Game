@@ -167,7 +167,7 @@ function drawFacet(kind, {g, put, t, k, w, h, edge}){
   const q = t + 2;
   if (kind === 'line'){ for (let i=0;i<5;i++) put(t+4+i, t+k+5-i, C.dusk); put(t+4, t+k+5, C.slate); }
   if (kind === 'double'){ for (let i=0;i<6;i++) a(q+2+i, q+8-i, C.moon, .32); for (let i=0;i<3;i++) a(q+5+i, q+8-i, C.moon, .22); }
-  if (kind === 'corner'){ for (let y=q; y<q+12; y++) for (let x=q; x<q+16; x++){ if (edge(x,y)[0] <= t) continue; const d = Math.hypot((x-q)/16, (y-q)/12); if (d < 1) a(x, y, C.moon, .30 * (1-d) * (1-d)); } }
+  if (kind === 'corner'){ for (let y=q; y<q+15; y++) for (let x=q; x<q+17; x++){ if (edge(x,y)[0] <= t) continue; const d = Math.hypot((x-q+3)/20, (y-q+3)/18); if (d < 1) a(x, y, C.moon, .17 * Math.pow(1-d, 2.4)); } }
   if (kind === 'cut'){ for (let i=0;i<=k+2;i++){ const x = t+1+i, y = t+1+k+2-i; if (edge(x,y)[0] > t) a(x, y, C.moon, .5); }
     for (let i=0;i<10;i++) a(t+k+3+i, t+1, C.moon, .3*(1-i/10)); for (let i=0;i<8;i++) a(t+1, t+k+3+i, C.moon, .3*(1-i/8)); }
   if (kind === 'pair'){ for (let i=0;i<5;i++) a(t+4+i, t+k+5-i, C.moon, .28); for (let i=0;i<5;i++) a(w-1-(t+4+i), h-1-(t+k+5-i), C.moon, .14); }
