@@ -465,10 +465,17 @@ func _refresh() -> void:
 					_rank_preview_on(button, [_tower], which)
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
+		# Not a dead button (user 2026-10-22, Inkcap: "Rank V: fully nurt…" looked out of place): the header says its rank
+		# and the Nurtured line its picks, so a fully nurtured Warden shows nothing more; the Eldest rule is a quiet note.
 		if others_can and not _is_eldest(_tower):
-			_add_button("Rank %s: only the Eldest grows further" % Tower.rank_name(_tower.rank)).disabled = true
-		else:
-			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
+			var note := Label.new()
+			note.name = "EldestNote"
+			note.text = "Only the Eldest grows past rank %s." % Tower.rank_name(_tower.rank)
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			note.custom_minimum_size.x = 1.0  # Wraps to the panel's width
+			note.add_theme_font_size_override("font_size", 13)
+			note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+			_buttons.add_child(note)
 	_add_glow_button()  # Fireflies in the Grass (Firefly class prototype): a Sprout the player chooses to glow
 	_add_swap_button()  # The Walking Wood (Legendary): swap places with another Warden
 	var refund := tower_seller.get_refund(_tower)
