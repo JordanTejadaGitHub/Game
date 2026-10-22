@@ -1745,6 +1745,13 @@ static func _is_price(text: String) -> bool:
 	return text == "free" or text.begins_with(UiStyle.DEW_GLYPH) or text.begins_with(UiStyle.DREAMLIGHT_GLYPH) or text.ends_with(" Dew") or text.ends_with(" Dreamlight")
 
 func _row_look(button: Button, short: bool, poor_price: bool) -> void:
+	# Unchanged since the last look: nothing to redo (user 2026-10-21: "sometimes the buttons' letters flash"; every Dew
+	# change in a drift re-applied every row's text, colours and frame)
+	var look := "%s|%s|%s|%s|%s|%s" % [short, poor_price, button.get_meta(&"label", ""), button.get_meta(&"price", ""),
+		button.get_meta(&"key", ""), button.get_meta(&"narrow", false)]
+	if button.get_meta(&"look", "") == look and button.get_node_or_null("Row") != null:
+		return
+	button.set_meta(&"look", look)
 	button.set_meta(&"short", short)
 	button.set_meta(&"poor_price", poor_price)  # Phones: a grow row moved back to one column redraws with it
 	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
