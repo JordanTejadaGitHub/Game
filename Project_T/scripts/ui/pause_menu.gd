@@ -671,12 +671,25 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 # opened (user 2026-10-17, phone: "pressing Resume on a pause doesn't resume it"). Esc keeps close(): the pause as it was.
 func resume_game() -> void:
 	close()
+	dismiss_lessons(get_tree())  # Resume always resumes (user 2026-10-21, again): an open Lesson is taken as "Got it"
 	if not _choice_waiting():  # A Dream, Omen, family pick, Lesson or Remember underneath keeps its own pause
 		game_speed.set_paused(false)
 
 const CHOICE_SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "LessonCard"]
 
 # Whether a choice screen is open under the menu (peeking at the map counts: the choice still waits).
+# Closes any Lesson card on screen, as its "Got it" does (a Lesson holds the pause while it shows; on a phone it was easy
+# to miss behind the menu, so Resume seemed broken: user 2026-10-17, 10-20, 10-21).
+static func dismiss_lessons(tree: SceneTree) -> void:
+	for _round in 4:  # A closed Lesson may hand straight over to the next one queued
+		var open := false
+		for card in tree.get_nodes_in_group(LessonCard.GROUP):
+			if card is CanvasItem and (card as CanvasItem).visible and card.has_method("close"):
+				card.close()
+				open = true
+		if not open:
+			return
+
 func _choice_waiting() -> bool:
 	var hud := get_parent()
 	if hud == null:

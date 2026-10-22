@@ -301,6 +301,7 @@ var _start_min_x := 0.0
 # Auto button to the speed"): the text never widens the button past the Auto / pause / speed row; a long line ("Call
 # drift 14 early, +4") steps its size down to START_MIN_SIZE, then clips.
 const START_MIN_SIZE := 12
+const PAUSE_MENU := preload("res://scripts/ui/pause_menu.gd")  # (No class_name: its dismiss_lessons)
 
 # Phones (user 2026-10-21 screenshot: "Call drift 20 early," lost its Dew; "Rest after drift" its number): the button's
 # short wording; the drift number is on the banner above.
@@ -376,6 +377,7 @@ func _on_start_pressed() -> void:
 	# No drift start, no ghost check (ghosts stay ghosts); only an open choice screen blocks it.
 	if game_speed.paused and drift_director.pending_choice() == &"" and not drift_director.is_resting() and not run_state.is_over:
 		if not _choice_screen_open():
+			PAUSE_MENU.dismiss_lessons(get_tree())  # An open Lesson is taken as "Got it" (it held the pause: user 2026-10-21)
 			game_speed.set_paused(false)
 		return
 	if _overlay_open(&"pause_menu") or _overlay_open(LessonCard.GROUP):  # (PauseMenu has no class_name: its GROUP)
