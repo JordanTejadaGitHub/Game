@@ -110,7 +110,7 @@ func _ready() -> void:
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
-	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty():  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
+	if OS.has_feature("mobile") or not UiStyle.test_cutouts.is_empty() or UiStyle.test_safe_sides != Vector2.ZERO:  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
 		get_viewport().size_changed.connect(_fit_safe_area)
 		_fit_safe_area()
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
@@ -359,7 +359,7 @@ var _bar_arrows: Array[Button] = []
 func _fit_safe_area() -> void:
 	var view := get_viewport().get_visible_rect().size
 	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
-	side_holes = UiStyle.side_holes(view)
+	side_holes = UiStyle.side_holes(view).max(UiStyle.safe_sides(view))  # A hole, or the device's unsafe sides (user 2026-10-21: pages cut off on the left)
 	_fit_side_holes()
 
 # Phones: a punch hole in the middle of a side (UiStyle.side_holes) keeps the HUD's corners on the screen's edge; only
@@ -383,6 +383,36 @@ func _fit_side_holes() -> void:
 		screen.offset_right = -side_holes.y
 		if not screen.visibility_changed.is_connected(_fit_side_holes):
 			screen.visibility_changed.connect(_fit_side_holes)  # Re-applied when it opens (a page may reset its anchors)
+	_shade_hole_strips()
+
+# The strips a moved-in page leaves at the screen's sides get the dim the page would have drawn there, so the map never
+# shows bright beside a full-screen page.
+var _hole_shades: Array[ColorRect] = []
+
+func _shade_hole_strips() -> void:
+	if _hole_shades.is_empty():
+		for i in 2:
+			var shade := ColorRect.new()
+			shade.name = "HoleShade%d" % i
+			shade.color = Color(UiStyle.FOG, 0.85)
+			shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(shade)
+			_hole_shades.append(shade)
+	var open: Control = null
+	for screen_name in HOLE_SCREENS:
+		var screen := get_node_or_null(screen_name) as Control
+		if screen != null and screen.visible and screen.anchor_left == 0.0 and screen.anchor_right == 1.0:
+			open = screen
+	var view := get_viewport().get_visible_rect().size
+	for i in 2:
+		var shade := _hole_shades[i]
+		var width := side_holes.x if i == 0 else side_holes.y
+		shade.visible = open != null and width > 0.0
+		if not shade.visible:
+			continue
+		shade.position = Vector2(0.0 if i == 0 else view.x - width, 0.0)
+		shade.size = Vector2(width, view.y)
+		move_child(shade, open.get_index())  # Right under the page
 
 # --- Phones (Mobile UI, the "Heartwood Phone HUD" prototype; user 2026-10-15) ---------------------------------------------
 # The Warden bar is a dock at the bottom LEFT (the left thumb) with a Sell slot at its end; the bottom centre stays free

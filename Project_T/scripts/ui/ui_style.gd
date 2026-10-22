@@ -207,6 +207,23 @@ static func _cutout_insets(view: Vector2) -> Dictionary:
 			far.y = maxf(far.y, (screen.y - r.position.y) * k)
 	return {"corners": Rect2(near, far), "side": side}
 
+# The safe area's left and right insets in view units, from the device alone (a phone's camera side, rounded corners),
+# whatever the cutout rects say: full-screen pages keep clear of them (hud.gd page_pad). Vector2.ZERO off phones.
+static var test_safe_sides := Vector2.ZERO  # Captures and tests
+
+static func safe_sides(view: Vector2) -> Vector2:
+	if test_safe_sides != Vector2.ZERO:
+		return test_safe_sides
+	if not OS.has_feature("mobile"):
+		return Vector2.ZERO
+	var window := Vector2(DisplayServer.window_get_size())
+	var safe := DisplayServer.get_display_safe_area()
+	var screen := Vector2(DisplayServer.screen_get_size())
+	if window.x <= 0.0 or safe.size.x <= 0 or window.x < screen.x - 1.0:
+		return Vector2.ZERO  # Android already keeps the window clear (letterboxed)
+	var k := view.x / window.x
+	return Vector2(maxf(0.0, safe.position.x) * k, maxf(0.0, screen.x - safe.end.x) * k)
+
 # The mid-side holes (left, right) in view units: Vector2.ZERO without any.
 static func side_holes(view: Vector2) -> Vector2:
 	var cut := _cutout_insets(view)

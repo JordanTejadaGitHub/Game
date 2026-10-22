@@ -90,6 +90,12 @@ func _ready() -> void:
 	_active_tag.add_theme_color_override("font_color", Color(OMEN_COLOR, 0.0))  # The overlay (_tag_rich) draws the text
 	_active_tag.add_theme_constant_override("outline_size", 0)
 	_active_tag.add_theme_stylebox_override("normal", UiStyle.fog_patch())  # A backing: reads on the pale path too
+	if UiStyle.is_phone():  # Phones (user 2026-10-21: "remove the box that's in for Omen"): no box, its outlined text only
+		var bare := StyleBoxEmpty.new()
+		var patch := _active_tag.get_theme_stylebox("normal")
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			bare.set_content_margin(side, patch.get_margin(side))
+		_active_tag.add_theme_stylebox_override("normal", bare)
 	_active_tag.visible = false
 	var tag_style := _active_tag.get_theme_stylebox("normal")
 	_tag_rich.bbcode_enabled = true
