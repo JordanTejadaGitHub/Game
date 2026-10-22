@@ -288,11 +288,17 @@ func zoom_by_step(direction: float, toward_pointer := false) -> void:
 const MODAL_SCREENS := ["HUD/PauseMenu", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen",
 	"HUD/FamilyPickScreen", "HUD/ResultsScreen", "HUD/BossDossier", "HUD/NightmareIntro"]
 
+# "Peek at the map" (ChoicePeek) leaves its screen visible with the content hidden: the map is the player's then (user
+# 2026-10-22: "peeking at the map should let you move still and click Wardens"): pan, zoom, and on phones tap Wardens.
+static func _peeking(screen: Object) -> bool:
+	var peek = screen.get("peek")
+	return peek is ChoicePeek and (peek as ChoicePeek).peeking
+
 func modal_open() -> bool:
 	var main := owner if owner != null else get_parent()
 	for path in MODAL_SCREENS:
 		var screen := main.get_node_or_null(path) as CanvasItem
-		if screen != null and screen.visible:
+		if screen != null and screen.visible and not _peeking(screen):
 			return true
 	var dreams := main.get_node_or_null("HUD/DreamsRow")  # Phones: "Dreams this run" is a full-screen page (Mobile UI)
 	if dreams != null and bool(dreams.get("strip_hidden")):

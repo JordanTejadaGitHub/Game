@@ -120,6 +120,15 @@ func _ready() -> void:
 		for button: Control in [_reroll, _skip, peek_button]:
 			button.custom_minimum_size = Vector2(maxf(button.custom_minimum_size.x, PC_BUTTON_W), UiStyle.HUD_BUTTON_H)
 		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		# Glossary (the Codex over the screen) and Your Dreams ("Dreams this run" above it), as on phones (user
+		# 2026-10-22: "should have a way to check Dreams and Codex while picking Dreams"); the choice waits underneath.
+		var extras := HBoxContainer.new()
+		extras.name = "Extras"
+		extras.alignment = BoxContainer.ALIGNMENT_CENTER
+		extras.add_theme_constant_override("separation", 12)
+		extras.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PhoneChoice.add_extras(self, extras)
+		box.add_child(extras)
 	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
