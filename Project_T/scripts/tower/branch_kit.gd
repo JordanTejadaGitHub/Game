@@ -1549,6 +1549,36 @@ static func brood_walk(route: PackedVector2Array, at: Vector2, speed_cells: floa
 		i -= 1
 	return out
 
+# Brood Cap's reach is its walk (tower_design.md "Brood Cap's reach is its walk", ef9ceffd; the user: "I should be able to
+# see Brood Cap's range in terms of how far the mushrooms travel"). The route points (route coordinates) its sprites walk
+# over, from the drop spot back toward the start, as brood_walk measures them (a point the walk reaches part of the way
+# to counts).
+static func brood_walk_points(route: PackedVector2Array, at: Vector2, speed_cells: float) -> Array:
+	var out: Array = []
+	if route.is_empty():
+		return out
+	var i := brood_spawn_index(route, at)
+	var left := speed_cells * SPRITE_LIFE * CELL
+	out.append(route[i])
+	while i > 0 and left > 0.0:
+		left -= Tower.MAP_GRID.calculate_map_position(route[i]).distance_to(Tower.MAP_GRID.calculate_map_position(route[i - 1]))
+		i -= 1
+		out.append(route[i])
+	return out
+
+# How many path tiles (whole cells) a Brood Cap / Hatchery's sprites walk over from where it stands (Main's panel line).
+static func brood_walk_tiles(tower: Tower) -> int:
+	if tower == null or tower.attack_data == null or tower.attack_data.special != BROOD:
+		return 0
+	var cells := {}
+	for point in brood_walk_points(tower._route(), tower.global_position, p(tower, "sprite_speed", 3.0)):
+		cells[Tower.MAP_GRID.calculate_grid_coordinates(Tower.MAP_GRID.calculate_map_position(point))] = true
+	return cells.size()
+
+# Whether a form's previews and selection show a range ring: Brood forms show their walk instead.
+static func shows_range(data: TowerData) -> bool:
+	return data != null and data.can_attack and data.special != BROOD
+
 # Draws the walk on `canvas` (`walk` already in its local space): the stretch faint when `stretch`, and the end mark
 # (Tower Assets' brood_end when it exists, else a ring with a small cap). `alpha` scales it (subtle while sprites walk).
 static func draw_brood_walk(canvas: CanvasItem, walk: PackedVector2Array, stretch: bool, alpha: float = 1.0) -> void:

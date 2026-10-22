@@ -5493,7 +5493,8 @@ func _draw() -> void:
 	if blossoms_on(self):
 		_draw_blossom()
 	if attack_data != null and attack_data.special == BranchKit.BROOD and BranchKit.BroodSprite.alive_for(self) > 0:
-		# Brood Cap with sprites out: where they give up, subtly (TowerSeller shows the whole stretch when selected).
+		# Brood Cap with sprites out: where they give up, subtly (selected or hovered, TowerSeller draws the whole walk through
+		# TowerPlacer.draw_placement).
 		var walk := BranchKit.brood_walk(_route(), global_position, BranchKit.p(self, "sprite_speed", 3.0))
 		for i in walk.size():
 			walk[i] = to_local(walk[i])

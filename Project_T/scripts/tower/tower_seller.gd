@@ -73,6 +73,7 @@ signal nurture_asked
 signal grow_refused(index: int, text: String)
 
 func _ready() -> void:
+	map_generator.path_changed.connect(queue_redraw)  # A selected Brood Cap's walk follows the route (tower_design.md ef9ceffd)
 	Tower.seller_ref = weakref(self)  # Tall Wardens fade when the cell behind them is hovered / selected
 	FxCache.find.call_deferred(self)  # Load the effect sheets at the run's start, not mid-fight on the first effect (a one-off ~70 ms hitch)
 	# Build mode owns the mouse; selling is available the rest of the time.
@@ -953,7 +954,7 @@ func _draw() -> void:
 		tower_placer.draw_placement(self, selected.attack_data, selected.global_position, selected.cell, selected.get_range_pixels(), selected, true)  # Where it places (screens_ui.md 3991322b)
 		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
-		if selected.tower_data.can_attack:
+		if BranchKit.shows_range(selected.attack_data):  # (Brood Cap / Hatchery: the walk, drawn by draw_placement, is the reach)
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
 		var ability := BranchKit.ability_reach(selected)
 		if ability > 0.0:
