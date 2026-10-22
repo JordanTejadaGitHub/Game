@@ -258,6 +258,34 @@ static func apply_ui_scale(root: Window, share: float) -> void:
 		root.content_scale_factor = 1.0
 		return
 	_set_factor(root)  # Godot re-fits on every resize by itself
+	install_cursor(root)
+
+# The mouse cursor in the Moon-glass style (user 2026-10-21: "update the cursor to match the theme"): a pixel arrow in
+# Moonlight with a lit Heartlight edge, Mist on its tail, a Glow glint at the tip and a crisp Void outline (reads on the
+# path and the dark ground), drawn in whole art pixels at ×2, ×3 or ×4 with the UI. The pointing hand gets the same
+# arrow (no stray system hand over buttons). Phones and headless runs keep none. A new texture each time: Input holds
+# it, nothing static.
+const CURSOR := ["k...........", "kk..........", "kYk.........", "kWwk........", "kWwwk.......", "kWwwwk......",
+	"kWwwwwk.....", "kWwwwwwk....", "kWwwwwwwk...", "kWwwwwwwwk..", "kWwwwwwwwwk.", "kWwwwGkkkkkk", "kWwwGGk.....",
+	"kWwkkGwk....", "kWk.kGwk....", "kk...kGwk...", "k....kGwk...", "......kk...."]
+const CURSOR_INKS := {"k": Palette.VOID, "W": Palette.HEARTLIGHT, "w": Palette.MOONLIGHT, "G": Palette.MIST, "Y": Palette.GLOW}
+static var _cursor_scale := 0
+static func install_cursor(root: Window) -> void:
+	if root == null or DisplayServer.get_name() == "headless" or TouchBuild.mobile_controls():
+		return
+	var px := clampi(roundi(2.0 * maxf(ui_factor(root), 1.0)), 2, 4)
+	if px == _cursor_scale:
+		return
+	_cursor_scale = px
+	var image := Image.create_empty(CURSOR[0].length() * px, CURSOR.size() * px, false, Image.FORMAT_RGBA8)
+	for y in CURSOR.size():
+		var row: String = CURSOR[y]
+		for x in row.length():
+			if CURSOR_INKS.has(row[x]):
+				image.fill_rect(Rect2i(x * px, y * px, px, px), CURSOR_INKS[row[x]])
+	var texture := ImageTexture.create_from_image(image)
+	for shape in [Input.CURSOR_ARROW, Input.CURSOR_POINTING_HAND]:
+		Input.set_custom_mouse_cursor(texture, shape, Vector2.ZERO)  # The hotspot is the tip, top left
 
 # Text draws with a linear filter, pixel art keeps the project's Nearest. At a fractional UI scale the
 # glyphs (rasterized at the oversampled size) never match the screen exactly, and Nearest dropped thin
