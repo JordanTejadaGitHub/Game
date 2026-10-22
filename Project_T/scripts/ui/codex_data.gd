@@ -528,7 +528,8 @@ static func signature_entries() -> Array:
 		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "matching"
 		var text: String = Signatures.TEXT.get(sig, "")
 		var answers: String = SIGNATURE_ANSWERS.get(sig, "")
-		out.append([String(Signatures.NAMES[sig]), "Four %s ranks: %s.%s" % [by, text.left(1).to_upper() + text.substr(1),
+		var details: String = Signatures.DETAILS.get(sig, "")  # The exceptions (Tower Code, screens_ui.md 44fe84d9)
+		out.append([String(Signatures.NAMES[sig]), "Four %s ranks: %s%s%s" % [by, text, (" " + details) if details != "" else "",
 			(" Good against %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
 	return out
 

@@ -178,7 +178,7 @@ func _on_signature(tower: Tower, id: StringName) -> void:
 	discovered.append(id)
 	var hud := owner.get_node_or_null("HUD") if owner != null else null
 	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast("Signature discovered: %s (%s): %s." % [Signatures.NAMES.get(id, id), tower.tower_data.display_name,
+		hud.show_toast("Signature discovered: %s (%s): %s" % [Signatures.NAMES.get(id, id), tower.tower_data.display_name,
 			Signatures.TEXT.get(id, "")])
 	signature_discovered.emit(id, tower)
 	if owner == null or get_tree().current_scene != owner:

@@ -25,18 +25,33 @@ const BY_CHOICE := {Tower.Focus.POWER: CRUSHING, Tower.Focus.SWIFT: RELENTLESS, 
 	Tower.Focus.WIDE: SHELTER, Tower.Focus.STRONG: SURGE}
 const NAMES := {CRUSHING: "Crushing", RELENTLESS: "Relentless", WATCHTOWER: "Watchtower", SPREADING: "Spreading",
 	EXECUTIONER: "Executioner", FIRSTBORN: "Firstborn", SHELTER: "Shelter", SURGE: "Surge", ALL_ROUNDER: "All-Rounder", MASTERY: "Mastery"}
+# One plain sentence each, effect first (screens_ui.md 44fe84d9); the exceptions live in DETAILS (the Codex shows them).
 const TEXT := {
-	CRUSHING: "every 5th hit on an armoured nightmare deals ×2 damage and strips 25% of its Dread Shell",
-	RELENTLESS: "when it dispels a nightmare, its next attack is ready at once (at most every 0.5 s)",
-	WATCHTOWER: "reveals Hidden nightmares in its range",
-	SPREADING: "when a nightmare carrying its statuses is dispelled, half the stacks jump to the nearest one within 2 cells",
-	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and Deeply Blighted: the crit deals ×1.5 damage); every hit it lands deals 15% less",
-	FIRSTBORN: "what it makes starts one step stronger",
-	SHELTER: "Wardens it boosts can't be withered, dimmed or trampled",
-	SURGE: "every 10 s its aura is twice as strong for 2 s",
-	ALL_ROUNDER: "mixed ranks: what it does best is 20% stronger",
-	MASTERY: "four ranks of one choice: what it does best is 20% stronger",
+	CRUSHING: "Every 5th hit on an armoured nightmare hits twice as hard and cracks its shell.",
+	RELENTLESS: "When it dispels a nightmare, it attacks again at once.",
+	WATCHTOWER: "Hidden nightmares in its range can be seen and hit.",
+	SPREADING: "When a nightmare carrying its statuses is dispelled, half of them jump to the nearest nightmare.",
+	EXECUTIONER: "Its crits finish off nightmares below 20% health, but its hits are 15% weaker.",
+	FIRSTBORN: "What it creates starts one step stronger.",
+	SHELTER: "Wardens it boosts can't be withered, dimmed or trampled.",
+	SURGE: "Every 10 s its aura doubles for 2 s.",
+	ALL_ROUNDER: "Mixed ranks: its main job is 20% stronger.",
+	MASTERY: "Four ranks of the same choice: its main job is 20% stronger.",
 }
+# The exceptions and limits, kept off the one-line text (the Codex shows them under it).
+const DETAILS := {
+	CRUSHING: "The crack strips 25% of its dread shell.",
+	RELENTLESS: "At most once every 0.5 s.",
+	SPREADING: "The nearest nightmare within 2 cells.",
+	EXECUTIONER: "Bosses and Deeply Blighted nightmares aren't finished off: the crit deals ×1.5 damage instead.",
+}
+
+# TEXT as a phrase to go inside a sentence ("Signature: every 5th hit…"): first letter lower, no full stop.
+static func phrase(sig: StringName) -> String:
+	var text: String = TEXT.get(sig, "")
+	if text == "":
+		return ""
+	return (text.left(1).to_lower() + text.substr(1)).trim_suffix(".")
 
 # Existing behaviours excluded where they cannot work; these paths now use role mastery.
 const NONE_FOR := {
@@ -174,7 +189,7 @@ static func text_for(tower: Tower) -> String:
 			BranchKit.DREAM_OAK:
 				return "it gathers 50% more shards"
 	if sig != ALL_ROUNDER and sig != MASTERY:
-		return TEXT.get(sig, "")
+		return phrase(sig)
 	var descriptions := {
 		&"damage": "it deals 20% more damage", &"speed": "it attacks 20% faster",
 		&"range": "its range is 20% longer", &"catch": "it catches 20% more Dew",
@@ -185,7 +200,7 @@ static func text_for(tower: Tower) -> String:
 		&"aura_crit": "its crit aura is 20% stronger",
 		&"shards": "it gathers 20% more shards (the same limit a run)",
 	}
-	return descriptions.get(bonus_job(tower), TEXT.get(sig, ""))
+	return descriptions.get(bonus_job(tower), phrase(sig))
 
 # The rank this Warden's signature arrives at (4 with Shared Training and a matching kin, else 5).
 static func signature_rank(tower: Tower) -> int:
