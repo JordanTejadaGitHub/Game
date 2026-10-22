@@ -4283,9 +4283,19 @@ func _toadstool(img: Image, f: int, n: int) -> void:
 
 func _toadstool_pop(img: Image, f: int) -> void:
 	var c := Vector2(12, 11)
-	if f == 0:  # the cap at full glow, its first spores leaving
-		_toadstool(img, 1, 24)
-		for p: Vector2i in [Vector2i(3, 6), Vector2i(20, 5), Vector2i(6, 1), Vector2i(17, 0)]:  # the first spores leaving it
+	if f == 0:  # the resting 20 px cap itself, squashed as it is stepped on (never a bigger cap: user 2026-10-22, "the big
+		# one spawns in when it hits an enemy"), its foot on the anchor like spore_mushroom's, its first spores leaving
+		var rest := Image.create_empty(20, 20, false, Image.FORMAT_RGBA8)
+		_toadstool(rest, 0, 20)
+		var foot := Vector2(12, 20)
+		for y in 24:
+			for x in 24:
+				var src := Vector2(10, 18) + (Vector2(x + 0.5, y + 0.5) - foot) / Vector2(1.15, 0.8)
+				if src.x >= 0 and src.y >= 0 and src.x < 20 and src.y < 20:
+					var col := rest.get_pixel(int(src.x), int(src.y))
+					if col.a > 0.0:
+						img.set_pixel(x, y, col)
+		for p: Vector2i in [Vector2i(4, 9), Vector2i(19, 8), Vector2i(8, 5), Vector2i(16, 4)]:  # the first spores leaving it
 			_px(img, p.x, p.y, SHROOM_CAP[3])
 		return
 	var r: float = [0.0, 6.0, 9.5][f]
