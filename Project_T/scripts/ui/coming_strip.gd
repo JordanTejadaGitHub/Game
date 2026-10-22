@@ -17,7 +17,7 @@ const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 # Phones (user 2026-10-17: "Coming this block is taking up a space"): no caption, one row of small discs on a tight fog,
 # right under the banner. A tap on a disc still opens its card.
-const PHONE_FACE := 40.0
+const PHONE_FACE := 30.0  # Phones: one plate the size of the top-right buttons' visible box (36 inside a 48 row, user 2026-10-21)
 const PHONE_PER_ROW := 8
 var _phone := false
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -68,7 +68,7 @@ func _ready() -> void:
 	visible = false
 	resized.connect(queue_redraw)
 
-const PHONE_PAD := 8.0
+const PHONE_PAD := 9.0
 const SIDE_PAD := 16.0  # The frame's sides beyond the widest row (6 on phones)
 var _pad_top := Control.new()
 var _pad_foot := Control.new()
@@ -76,7 +76,8 @@ var _pad_foot := Control.new()
 # The strip sits on its panel, the padding inside its own rect (the spacers above): portraits and badges stay inside.
 func _draw() -> void:
 	if _phone:
-		draw_style_box(_fog, Rect2(Vector2(-6, 0), size + Vector2(12, 0)))  # Tight on phones
+		var plate := get_theme_stylebox("normal", &"HudButton")  # The top-right buttons' own plate (user 2026-10-21: "fits the theme")
+		draw_style_box(plate if plate != null else _fog, Rect2(Vector2(-6, 6), size + Vector2(12, -12)))  # Inset as the buttons' (BUTTON_BOX_INSET 6)
 		return
 	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
 
@@ -425,12 +426,14 @@ func _stack_phone() -> void:
 		return
 	var buttons_left := get_parent_area_size().x - 16.0
 	var buttons_bottom := 12.0
+	var buttons_top := 12.0
 	var names: Array = hud.call("_top_row_names") if hud.has_method("_top_row_names") else []
 	for name in names:
 		var button := hud.get_node_or_null(name) as Control
 		if button != null and button.visible:
 			buttons_left = minf(buttons_left, button.get_rect().position.x)
 			buttons_bottom = maxf(buttons_bottom, button.get_rect().end.y)
+			buttons_top = button.get_rect().position.y
 	var banner_right := 0.0
 	var banner := hud.get_node_or_null("DriftBanner") as Control
 	if banner != null and banner.visible and banner.has_method("drawn_rect"):
@@ -439,8 +442,8 @@ func _stack_phone() -> void:
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	grow_horizontal = Control.GROW_DIRECTION_END
 	grow_vertical = Control.GROW_DIRECTION_END
-	var right := buttons_left - PHONE_GAP
-	var top := 4.0
+	var right := buttons_left - 12.0  # The buttons' own 12 px gap between their visible boxes (the plate draws 6 px past the discs)
+	var top := buttons_top  # Level with the buttons
 	if right - need.x < banner_right + PHONE_GAP:  # No room beside the buttons: under them, right-aligned
 		right = get_parent_area_size().x - 16.0
 		top = buttons_bottom + PHONE_GAP
