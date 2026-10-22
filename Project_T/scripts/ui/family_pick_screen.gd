@@ -30,6 +30,7 @@ const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered af
 const TITLES := {
 	&"first": "Oh. I know you.",
 	&"boss": "It's gone, and something I'd forgotten came back.",
+	&"second": "Something I'd forgotten came back.",  # The rest after drift 10 (user 2026-10-22)
 }
 
 # Families that can be offered (the starting four, the demo's too: Bellflower joined 2026-10-01, meta_design.md
@@ -145,7 +146,7 @@ func show_pick(reason: StringName = &"first") -> void:
 	var available := get_available()
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else pick_count()
-	if reason == &"boss" and first_boss_pick_fewer > 0 and drift_director.drifts_started <= drift_director.drifts_per_act:
+	if reason != &"first" and first_boss_pick_fewer > 0 and drift_director.drifts_started <= drift_director.drifts_per_act:
 		count = maxi(count - first_boss_pick_fewer, 2)  # Never below 2 (Meta Game Discussion: Early Bloom needs Wider Choice)
 	_keep_an_attacker(available, count)
 	# The first pick never repeats the previous run's offer exactly (when there's a choice), so runs
@@ -159,7 +160,7 @@ func show_pick(reason: StringName = &"first") -> void:
 	# Picks follow only their own rules: no card puts a family into them (user, "make it predictable"; dream_design.md
 	# half-dreamed "Picks stay pure"). A half-dreamed card sleeps until a pick happens to offer its family.
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
-	if reason == &"boss" and not foretold.is_empty():  # Kin Foretold: the families shown last time, as promised
+	if reason != &"first" and not foretold.is_empty():  # Kin Foretold: the families shown last time, as promised
 		var promised := available.filter(func(d: TowerData) -> bool: return foretold.has(d.get_id()))
 		promised.sort_custom(func(a: TowerData, b: TowerData) -> bool: return foretold.find(a.get_id()) < foretold.find(b.get_id()))
 		available.assign(promised + available.filter(func(d: TowerData) -> bool: return not promised.has(d)))  # Typed: assign
@@ -167,7 +168,7 @@ func show_pick(reason: StringName = &"first") -> void:
 		_keep_an_attacker(available, count)  # A promised family taken some other way since: still never only support
 	foretold = []
 	offer.append_array(available.slice(0, count))
-	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
+	if reason != &"first" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
 		if offer.size() >= pick_count():
 			offer.pop_back()
 		offer.push_front(pending_memory_warden)
@@ -176,7 +177,7 @@ func show_pick(reason: StringName = &"first") -> void:
 		_remember_first_offer()
 	# Only real new families: no Blessing filler (user, meta_design.md "Replaced 2026-09-30"). With no
 	# family left, a boss pick is skipped for +2 Dreamlight ("The Heartwood remembers deeper.").
-	if offer.is_empty() and reason == &"boss":
+	if offer.is_empty() and reason != &"first":
 		var line := dream_state.grant_no_family_pick()
 		var hud := get_parent()
 		if hud != null and hud.has_method("show_toast"):
