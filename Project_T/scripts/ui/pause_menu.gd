@@ -79,7 +79,7 @@ func _ready() -> void:
 		codex.open())
 	# One way out (user: "Save and quit and Quit game seem similar, also Abandon run"): Quit… asks where to, says what's
 	# saved, and keeps Abandon a step further in.
-	_save_button = _add_button("Quit…", ask_quit)
+	_save_button = _add_button("Save & quit…", ask_quit)  # As on phones (user 2026-10-22: "update the quit to quit and save buttons")
 	_save_button.name = "Quit"
 	_add_copy_save()
 
@@ -389,10 +389,10 @@ func _build_quit_box(center: Control, row: Control) -> void:
 	_quit_body.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_quit_page.add_child(_quit_body)
 	_gap(_quit_page)  # The text never touches the primary's thread
-	var to_title := _dialog_button(_quit_page, "Quit to title", _quit_to.bind(false))
+	var to_title := _dialog_button(_quit_page, "Save & quit to title", _quit_to.bind(false))  # _quit_to saves first
 	to_title.name = "QuitToTitle"
 	UiStyle.primary(to_title)
-	_dialog_button(_quit_page, "Quit to desktop", _quit_to.bind(true)).name = "QuitToDesktop"
+	_dialog_button(_quit_page, "Save & quit to desktop", _quit_to.bind(true)).name = "QuitToDesktop"
 	var cancel := _dialog_button(_quit_page, "Cancel", cancel_quit)
 	cancel.name = "Cancel"
 	_key_chip_on(cancel, "Esc")  # Inside its frame, like every key chip

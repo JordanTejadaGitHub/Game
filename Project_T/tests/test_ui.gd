@@ -1049,8 +1049,8 @@ func _run() -> void:
 	_check(WorldLabel.covers.has(&"pause_menu"), "no world tags over the pause menu (a whole-screen cover)")
 	# One way out (user: "Save and quit and Quit game seem similar, also Abandon run"): Quit… opens the dialog.
 	var menu_texts: Array = pause._menu.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text)
-	_check(menu_texts.has("Quit…") and not menu_texts.has("Save and quit") and not menu_texts.has("Quit game") and not menu_texts.has("Abandon run"),
-		"the menu has Quit…, not three ways out (%s)" % [menu_texts])
+	_check(menu_texts.has("Save & quit…") and not menu_texts.has("Quit…") and not menu_texts.has("Quit game") and not menu_texts.has("Abandon run"),
+		"the menu has Save & quit…, one way out (%s)" % [menu_texts])  # Renamed from "Quit…" (user 2026-10-22)
 	pause.ask_quit()
 	var quit_box: Control = pause.find_child("QuitBox", true, false)
 	_check(pause.is_asking_quit() and quit_box.find_child("QuitToTitle", true, false) != null and quit_box.find_child("QuitToDesktop", true, false) != null,
