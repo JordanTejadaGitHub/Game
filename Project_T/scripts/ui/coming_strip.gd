@@ -45,7 +45,7 @@ func _ready() -> void:
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
 	_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_row.add_theme_constant_override("separation", 18)  # Room for each count plate hung past its disc (UI council round 5)
+	_row.add_theme_constant_override("separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
 	_kind_words.name = "KindWords"
@@ -68,6 +68,8 @@ func _ready() -> void:
 	add_child(_pad_foot)
 	if _phone:
 		_make_phone_toggle()
+	else:
+		_make_pc_chip()
 	visible = false
 	resized.connect(queue_redraw)
 
@@ -83,6 +85,8 @@ func _draw() -> void:
 			var top := _phone_toggle.size.y + PHONE_DROP_GAP
 			draw_style_box(_fog, Rect2(Vector2(0, top), size - Vector2(0, top)))
 		return
+	if not pc_open and not _kind_words.visible:
+		return  # PC, shut: the chip on the banner row stands in for it
 	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
 
 const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
@@ -99,8 +103,13 @@ func _process(delta: float) -> void:
 	# "Peek at the map" shows it again). Only this line sets the strip's visibility (it flickered behind the Dream screen
 	# when the phone HUD hid it too, user screenshot 2026-10-17).
 	visible = span.y >= span.x and not RestScreens.covering(get_parent()) and not _under_drawer()
+	if _chip != null:
+		_chip.visible = visible
+		if not visible and pc_open:
+			_chip.button_pressed = false
 	if not visible:
 		_built_for = ""
+		_chip_for = ""
 		return
 	var key := "%s:%d:%d" % [compact, span.x, span.y]
 	if key != _built_for:
@@ -109,6 +118,10 @@ func _process(delta: float) -> void:
 		_lit_for = -1  # New items: light them again
 	if compact:
 		_light_next()
+	if _chip != null:  # PC: the chip shows what comes; the strip opens from it
+		_fill_chip(span)
+		_apply_pc()
+		_place_chip()
 
 # The top-centre stack (playtest 2026-09-30: the strip overlapped the Omen line): the drift banner,
 # then the active Omen's line (Roguelite's OmenScreen tag "ActiveOmen"), then this strip.
@@ -217,7 +230,7 @@ func _build(span: Vector2i) -> void:
 		if i % per_row == 0:
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", 6)
+			line.add_theme_constant_override("separation", 18)  # Room for each count plate hung past its disc (UI council round 5)
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
@@ -424,6 +437,119 @@ func _more_chip(rest: Array) -> Control:
 
 # Phones (user 2026-10-21 screenshot: the strip's "Drift 16 · Swarm" line drew over the Warden drawer): hidden while the
 # drawer is open, as the drift panel is.
+# PC (user 2026-10-22, mock-up https://claude.ai/artifact/D52C8XkKfUk8MHZVN9W6Gt: "Coming this block" took a 110 px box
+# under the banner for one icon): a chip on the banner's second row, left of the drift pips: the first kinds' faces and
+# counts ("×57"), "+N" for more, a gold dot when a never-met kind or a new rule-breaker comes. A click opens the strip
+# (as it was) under the banner; a click again or anywhere else folds it. The "Drift N · Flying: …" warning line
+# (owner 2026-10-19) never folds: it shows on its own when the strip is shut.
+const CHIP_FACE := 22.0
+const CHIP_KINDS := 2  # Faces with counts; the rest as "+N"
+const CHIP_GAP := 10.0  # Between the chip and the pips
+var pc_open := false
+var _chip: Button = null
+var _chip_row := HBoxContainer.new()
+var _chip_for := ""
+
+func _make_pc_chip() -> void:
+	_chip = Button.new()
+	_chip.name = "ComingChip"
+	_chip.toggle_mode = true
+	_chip.focus_mode = Control.FOCUS_NONE
+	_chip.tooltip_text = "Coming this block. Click to see them."
+	_chip.visible = false
+	for pair in [[&"normal", &"plate"], [&"hover", &"plate_hover"], [&"pressed", &"plate_pressed"], [&"hover_pressed", &"plate_pressed"]]:
+		_chip.add_theme_stylebox_override(pair[0], UiStyle.plate_box(6.0, 2.0, pair[1]))
+	_chip_row.name = "Kinds"
+	_chip_row.add_theme_constant_override("separation", 6)
+	_chip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chip_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_chip.add_child(_chip_row)
+	_chip.toggled.connect(func(on: bool) -> void:
+		pc_open = on
+		_apply_pc()
+		_place_chip())
+	get_parent().add_child.call_deferred(_chip)
+
+# The chip's faces for `span` (rebuilt only when the span changes).
+func _fill_chip(span: Vector2i) -> void:
+	var key := "%d:%d" % [span.x, span.y]
+	if key == _chip_for:
+		return
+	_chip_for = key
+	for child in _chip_row.get_children():
+		_chip_row.remove_child(child)
+		child.queue_free()
+	var kinds := kinds_in_range(drift_director, span.x, span.y)
+	var fresh := not RuleBreakers.new_in(drift_director, span.x, span.y).is_empty()
+	for i in mini(kinds.size(), CHIP_KINDS):
+		var data: EnemyData = kinds[i][0]
+		fresh = fresh or NightmareCard.is_new(data)
+		var face := TextureRect.new()
+		face.texture = NightmareCard.portrait(data)
+		face.custom_minimum_size = Vector2(CHIP_FACE, CHIP_FACE)
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		face.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		face.modulate = data.tint  # multiplier: placeholder art's recolour, as the strip's discs
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_chip_row.add_child(UiStyle.on_moon_disc(face))  # On the strip's pale disc: the dark art vanished on the plate
+		var count := Label.new()
+		count.text = "×%d" % int(kinds[i][2])
+		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.number(count, 14, UiStyle.GOLD)
+		_chip_row.add_child(count)
+	for i in range(CHIP_KINDS, kinds.size()):
+		fresh = fresh or NightmareCard.is_new(kinds[i][0])
+	if kinds.size() > CHIP_KINDS:
+		var more := Label.new()
+		more.text = "+%d" % (kinds.size() - CHIP_KINDS)
+		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.number(more, 14, UiStyle.INK_DIM)
+		_chip_row.add_child(more)
+	if fresh:  # A never-met kind or a new rule-breaker: a small gold dot
+		var dot := Control.new()
+		dot.custom_minimum_size = Vector2(8, 8)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.draw.connect(func() -> void: dot.draw_circle(dot.size / 2.0, 3.5, UiStyle.GOLD))
+		_chip_row.add_child(dot)
+	_chip.tooltip_text = "Coming this block%s. Click to see them." % (", something new" if fresh else "")
+	var need := _chip_row.get_combined_minimum_size()
+	_chip.custom_minimum_size = Vector2(need.x + 16.0, maxf(need.y + 6.0, 30.0))
+	_chip.size = _chip.custom_minimum_size
+
+# The strip's own parts follow the chip: shut, only the warning line shows (on its fog); open, the whole strip.
+func _apply_pc() -> void:
+	if _phone:
+		return
+	_row.visible = pc_open
+	_caption.visible = pc_open and not _kind_words.visible
+	for pad: Control in [_pad_top, _pad_foot]:
+		pad.visible = pc_open or _kind_words.visible
+	mouse_filter = Control.MOUSE_FILTER_STOP if (pc_open or _kind_words.visible) else Control.MOUSE_FILTER_IGNORE
+	queue_redraw()
+
+# Left of the banner's drift pips, centred on their row.
+func _place_chip() -> void:
+	if _chip == null or not _chip.is_inside_tree():
+		return
+	var banner := get_parent().get_node_or_null("DriftBanner") as Control
+	var pips: Rect2 = banner.get("_pips_rect") if banner != null else Rect2()
+	if banner == null or not banner.visible or pips.size == Vector2.ZERO:
+		_chip.visible = false
+		return
+	var at := banner.global_position + pips.position
+	_chip.position = Vector2(roundf(at.x - CHIP_GAP - _chip.size.x), roundf(at.y + pips.size.y / 2.0 - _chip.size.y / 2.0))
+
+func _input(event: InputEvent) -> void:
+	if _chip == null or not pc_open or not (event is InputEventMouseButton and event.pressed):
+		return
+	var at := get_global_mouse_position()  # Canvas space, as the rects (the UI scale changes the event's)
+	if not _chip.get_global_rect().has_point(at) and not get_global_rect().has_point(at):
+		_chip.button_pressed = false  # A click anywhere else folds it (the click still goes on to the map)
+
 func _under_drawer() -> bool:
 	if not _phone:
 		return false
