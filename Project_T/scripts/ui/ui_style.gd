@@ -987,7 +987,9 @@ static func _fit_words_later(label: Label) -> void:
 		var tries := int(label.get_meta(&"fit_words_tries", 0))
 		if tries < 5:
 			label.set_meta(&"fit_words_tries", tries + 1)
-			label.get_tree().process_frame.connect(_fit_words_later.bind(label), CONNECT_ONE_SHOT)
+			var retry := _fit_words_later.bind(label)
+			if not label.get_tree().process_frame.is_connected(retry):  # Fitted twice before it had a width: one retry
+				label.get_tree().process_frame.connect(retry, CONNECT_ONE_SHOT)
 		return
 	_fit_words_to_width(label)
 
