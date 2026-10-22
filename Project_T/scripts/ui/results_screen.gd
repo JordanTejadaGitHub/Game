@@ -157,7 +157,11 @@ func _build(won: bool) -> void:
 	var seeds := VBoxContainer.new()
 	seeds.name = "Seeds"
 	seeds.add_theme_constant_override("separation", 4)
-	box.add_child(seeds)
+	var inset := MarginContainer.new()  # The Seeds block sits in from the panel's rim like the buttons (UI council round 4)
+	inset.add_theme_constant_override("margin_left", 8)
+	inset.add_theme_constant_override("margin_right", 8)
+	box.add_child(inset)
+	inset.add_child(seeds)
 	for line in breakdown:
 		if line[0] == "Total" or int(line[1]) == 0:  # No "+0" rows (UI council round 3): only what earned Seeds
 			continue

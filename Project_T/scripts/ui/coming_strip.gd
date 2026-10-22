@@ -358,6 +358,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.number(badge, 13, UiStyle.GOLD)
 	_badge_look(badge)
+	badge.add_theme_stylebox_override("normal", UiStyle.plate_box(4.0, 0.0))  # On a small glass plate (UI council round 4: hard to read bare)
 	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN

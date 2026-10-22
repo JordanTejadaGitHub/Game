@@ -77,12 +77,11 @@ func drawn_width() -> float:
 	var total := drift_director.get_total_drifts()
 	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
 	var act := drift_director.get_act(shown)
-	var top := "%s%s%s" % [drift_director.get_act_name(act), TOP_GAP, get_drift_text()]
-	var width := UiStyle.display_width(top, FONT_SIZE)  # Digits in the number face (UiStyle.draw_display)
+	var width := UiStyle.display_width(drift_director.get_act_name(act) + TOP_GAP, FONT_SIZE) + _phrase_width(get_drift_text(), FONT_SIZE)
 	var pips := (drift_director.drifts_per_block - 1) * PIP_RADIUS * 3.0 + PIP_RADIUS * 2.0
 	var boss_text := _next_boss_text(latest)
 	if boss_text != "":
-		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + UiStyle.display_width(boss_text, BOSS_FONT_SIZE)
+		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + _phrase_width(boss_text, BOSS_FONT_SIZE)
 	return maxf(maxf(width, pips) + 12.0, _drawn_half * 2.0)  # What it last drew, if wider (+ outlines)
 
 # Its drawn area in global coordinates (centred in the rect).
@@ -105,10 +104,13 @@ func _draw() -> void:
 	var place: String = drift_director.get_act_name(act) + TOP_GAP
 	var count := get_drift_text()
 	var place_w := UiStyle.display_width(place, FONT_SIZE)
-	var full_w := place_w + UiStyle.display_width(count, FONT_SIZE)
+	var full_w := place_w + _phrase_width(count, FONT_SIZE)
 	var top_left := center_x - full_w / 2.0
 	for part in [[place, top_left, TEXT_COLOR], [count, top_left + place_w, UiStyle.MOON_MIST]]:
-		UiStyle.draw_display(self, Vector2(part[1], 20), part[0], FONT_SIZE, part[2], 6, Palette.DREAD)  # Pixelify's 5 read as S (UI council round 3)
+		if part[0] == place:
+			UiStyle.draw_display(self, Vector2(part[1], 20), part[0], FONT_SIZE, part[2], 6, Palette.DREAD)
+		else:
+			_draw_phrase(part[0], Vector2(part[1], 20), FONT_SIZE, part[2])
 	_drawn_half = maxf(_drawn_half, full_w / 2.0 + 6.0)
 
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
@@ -123,7 +125,7 @@ func _draw() -> void:
 	var pips_width := (drift_director.drifts_per_block - 1) * step + PIP_RADIUS * 2.0
 	var boss_text := _next_boss_text(latest)
 	var boss_data := _next_boss_data(latest)
-	var text_width := UiStyle.display_width(boss_text, BOSS_FONT_SIZE) if boss_text != "" else 0.0
+	var text_width := _phrase_width(boss_text, BOSS_FONT_SIZE) if boss_text != "" else 0.0
 	var boss_width := (BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + text_width) if boss_text != "" else 0.0
 	var row_y := 48.0
 	var x := center_x - (pips_width + boss_width) / 2.0 + PIP_RADIUS
@@ -149,7 +151,7 @@ func _draw() -> void:
 			false, boss_data.tint)
 	var text_x := disc.x + DISC_RADIUS + 8.0
 	var base := row_y + BOSS_FONT_SIZE * 0.35
-	UiStyle.draw_display(self, Vector2(text_x, base), boss_text, BOSS_FONT_SIZE, UiStyle.GOLD, 6, Palette.DREAD)
+	_draw_phrase(boss_text, Vector2(text_x, base), BOSS_FONT_SIZE, UiStyle.GOLD)
 	# Underlined: it (and the portrait) opens the dossier.
 	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
 	_countdown_rect = Rect2(left - 4.0, row_y - DISC_RADIUS - 4.0, text_x + text_width - left + 8.0, DISC_RADIUS * 2.0 + 8.0)
@@ -290,6 +292,16 @@ func _boss_of(number: int) -> EnemyData:
 					found = entry.enemy
 		_bosses[number] = [boss_drift, found]
 	return _bosses[number][1]
+
+# A phrase that holds a number ("Drift 1 of 100", "Boss in 25"), whole in the number face (UI council round 4: a
+# Pixelify word beside Vollkorn digits read patchy; round 3: Pixelify's 5 read as S). The act's name stays Pixelify.
+func _phrase_width(text: String, font_size: int) -> float:
+	return UiStyle.number_font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+
+func _draw_phrase(text: String, at: Vector2, font_size: int, colour: Color) -> void:
+	var font := UiStyle.number_font()
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colour: Color) -> void:
 	var width := UiStyle.display_width(text, font_size) if font == UiStyle.display_font() else font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x

@@ -8,6 +8,7 @@ const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
+const PC_BUTTON_W := 220.0  # Reroll, Let it pass and Peek share this width (PC)
 const SIDE_MARGIN := 16.0  # Left and right of the card row when many cards (5) narrow it
 const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
@@ -115,6 +116,10 @@ func _ready() -> void:
 		var peek_button := peek.make_peek_button()
 		UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
 		box.add_child(peek_button)
+		# The stacked buttons share one size, edges lined up (UI council round 4: Let it pass and Peek differed)
+		for button: Control in [_reroll, _skip, peek_button]:
+			button.custom_minimum_size = Vector2(maxf(button.custom_minimum_size.x, PC_BUTTON_W), UiStyle.HUD_BUTTON_H)
+		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false

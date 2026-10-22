@@ -600,7 +600,7 @@ func _fill_facts() -> void:
 	if omens != null and omens.get("active") != null:
 		_fact(&"omen", "omen", omens.active.display_name)
 	var seconds := int(run_state.play_time)
-	_fact(&"", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	_fact(&"clock", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
 	if _phone:  # Phones (user 2026-10-21: a lone bell icon under the facts): the families as a fact row like the rest
 		var names: Array[String] = []
 		for data in tower_placer.towers:

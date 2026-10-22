@@ -807,12 +807,12 @@ func _header(data: EnemyData, _drift: int) -> Control:
 	name_row.add_child(name)
 	_name_label = name
 	if NightmareCard.is_new(data):
-		var chip := Label.new()  # "New: never faced": a pewter plate, Wraithlight words (UI council round 3: brass is for
+		var chip := Label.new()  # "New: never faced": a pewter plate, Mist words (UI council round 3: brass is for
 		chip.name = "NewChip"  # yours / hover / press, and this chip can't be pressed)
 		chip.text = "New: never faced"
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.add_theme_font_size_override("font_size", 13)
-		chip.add_theme_color_override("font_color", Palette.WRAITHLIGHT)
+		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)  # Not Wraithlight: too dim on the plate (UI council round 4)
 		chip.add_theme_stylebox_override("normal", UiStyle.plate_box(8.0, 1.0))  # Moon-glass (UI Code 8ecd7fb4)
 		name_row.add_child(chip)
 	var title: String = data.title

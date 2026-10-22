@@ -744,7 +744,7 @@ func _resources_over_screen() -> Array:
 		var screen := get_node_or_null(screen_name) as CanvasItem
 		if screen != null and screen.visible and not RESOURCE_SCREENS.has(screen_name):
 			return []  # The boss dossier or the results are up too: they cover everything
-	var nodes: Array = [dew_label, leaves_label, _leaves_max, get_node_or_null("DreamlightLabel"), get_node_or_null("ResourcesFog")]
+	var nodes: Array = [dew_label, leaves_label, _leaves_max, get_node_or_null("DreamlightLabel"), get_node_or_null("PathLabel"), get_node_or_null("ResourcesFog")]
 	for label in nodes.duplicate():
 		if _counter_icons.has(label):
 			nodes.append(_counter_icons[label])  # Their icons too (hidden with the rest otherwise)
@@ -1521,7 +1521,7 @@ func _layout_top_row() -> void:
 	var buttons: Array = []
 	for name in _top_row_names():
 		var button := get_node_or_null(name) as Button
-		if button != null and button.visible:
+		if button != null and (button.visible or _choice_hidden.get(button, false)):  # Hidden only by a screen: still laid out (UI council round 4: the kept counters jumped)
 			buttons.append(button)
 	if phone():
 		_icon_gap = COUNTER_ICON_GAP
@@ -1531,7 +1531,7 @@ func _layout_top_row() -> void:
 	var screen_w := get_viewport().get_visible_rect().size.x
 	var banner := get_node_or_null("DriftBanner") as Control
 	var banner_right := 0.0
-	if banner != null and banner.has_method("drawn_rect") and banner.visible:
+	if banner != null and banner.has_method("drawn_rect") and (banner.visible or _choice_hidden.get(banner, false)):
 		banner_right = banner.drawn_rect().end.x
 	# One row (user: "all the icons and buttons should fit in one row on the top right"): before wrapping, the counter
 	# numbers step down and the gaps tighten (ROW_STEPS); the buttons keep their 48 px hit area. Wraps only if even

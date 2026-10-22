@@ -123,7 +123,12 @@ func _ready() -> void:
 	_side.custom_minimum_size = Vector2(SIDE_WIDTH, 0)
 	_side_box.add_theme_constant_override("separation", 6)
 	_side.add_child(_side_box)
+	_side.size_flags_vertical = Control.SIZE_SHRINK_BEGIN  # As tall as its content: its foot rim shows (UI council round 4: it ran under Done)
 	_body.add_child(_side)
+	var bar_gap := Control.new()  # The middle's scrollbar keeps off the panel's rim
+	bar_gap.custom_minimum_size.x = 10
+	bar_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_body.add_child(bar_gap)
 	_misty.name = "NotInDream"  # Branch expansion: this family's branches not in this run, apart from the tree
 	_misty.add_theme_constant_override("separation", 4)
 	_middle_box.add_child(_misty)

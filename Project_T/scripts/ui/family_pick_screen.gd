@@ -103,7 +103,7 @@ func _ready() -> void:
 		center.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(center)
 		var box := VBoxContainer.new()
-		box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Tablets: the cards and Peek fit
+		box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 12)  # Tablets: the cards and Peek fit
 		center.add_child(box)
 		_pc_box = box
 		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -218,21 +218,42 @@ func show_pick(reason: StringName = &"first") -> void:
 	_fit_to_view()
 
 # The PC screen fits the window with FIT_MARGIN to spare (UI council round 3: the cards ran off a 720 px screen, the
-# Wake buttons on its edge). Step by step, until it fits: the branch roles and "N not in this run" move into their
-# tips; then the Calling's rule into its name's tip; then the family's job into its name's tip. Each step waits a frame
+# Wake buttons on its edge). Step by step, until it fits: the branch roles go into their lanes' tips and the faded "not in this
+# run" row goes (the "2 of 5" line's tip says it); then the job into the name's tip; last the Calling's rule. Each step waits a frame
 # so the cards' heights (_fit_card) have caught up.
 const FIT_MARGIN := 24.0
 func _fit_to_view() -> void:
 	if _layout != null or _pc_box == null:
 		return
-	for step in 3:
-		await get_tree().process_frame
+	# Measured from the laid-out column, never its minimum size: a wrapping label's minimum is huge before its width is
+	# set (UI council round 4: every step ran and cut text that fitted).
+	for step in 4:
+		for i in 2:
+			await get_tree().process_frame
 		if not visible or _pc_box == null:
 			return
-		if _pc_box.get_combined_minimum_size().y <= get_viewport_rect().size.y - 2.0 * FIT_MARGIN:
+		if step == 0:
+			_line_up_jobs()
+			continue
+		var rect := _pc_box.get_global_rect()
+		var view := get_viewport_rect().size.y
+		if rect.position.y >= FIT_MARGIN and rect.end.y <= view - FIT_MARGIN:
 			return
 		for card in _cards.get_children():
-			_compact_card(card, step)
+			_compact_card(card, step - 1)
+
+# The cards' rows line up: every job line block as tall as the tallest (UI council round 4: a 4-line blurb pushed one
+# card's Calling and branches 25 px below the other's).
+func _line_up_jobs() -> void:
+	var tallest := 0.0
+	for card in _cards.get_children():
+		var job := card.find_child("Job", true, false) as Control
+		if job != null and job.visible:
+			tallest = maxf(tallest, job.size.y)
+	for card in _cards.get_children():
+		var job := card.find_child("Job", true, false) as Control
+		if job != null and job.visible:
+			job.custom_minimum_size.y = tallest
 
 func _compact_card(card: Node, step: int) -> void:
 	match step:
@@ -246,13 +267,11 @@ func _compact_card(card: Node, step: int) -> void:
 						(lane as Control).tooltip_text += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)
 			var missing := card.find_child("NotInDream", true, false)
 			if missing != null:
-				for words in missing.get_children():
-					if words is Label:
-						words.visible = false  # The row's icons and tip stay
+				(missing as Control).visible = false  # Faded icons without their words read as broken (UI council round 4)
 		1:
-			_tip_onto(card, "CallingRule", "CallingName")
+			_tip_onto(card, "Job", "FamilyName")  # The blurb before the Calling: the run-long rule is the bigger stake (UI council round 4)
 		2:
-			_tip_onto(card, "Job", "FamilyName")
+			_tip_onto(card, "CallingRule", "CallingName")
 
 # Hides `hidden_name` and puts its words in `onto_name`'s tip (hover / tap; the card still picks on a click).
 func _tip_onto(card: Node, hidden_name: String, onto_name: String) -> void:
@@ -262,7 +281,7 @@ func _tip_onto(card: Node, hidden_name: String, onto_name: String) -> void:
 		return
 	hidden.visible = false
 	onto.mouse_filter = Control.MOUSE_FILTER_PASS
-	onto.tooltip_text = hidden.text if onto.tooltip_text == "" else onto.tooltip_text + "\n" + hidden.text
+	TapTip.attach(onto, hidden.text if onto.tooltip_text == "" else onto.tooltip_text + "\n" + hidden.text)  # Hover and tap (touch rule)
 
 static func wider_choice_owned() -> bool:
 	return force_wider_choice or HeartwoodMemory.carries(WIDER_CHOICE_ID)  # A carried perk (meta_design.md 0931c55f), the demo too

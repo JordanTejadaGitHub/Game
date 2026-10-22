@@ -446,6 +446,12 @@ static func with_glyphs(font: Font) -> Font:
 		var variation := FontVariation.new()
 		variation.base_font = font
 		variation.fallbacks = [glyphs]
+		if font is FontVariation:  # A wrapper drops its base's features: Vollkorn's old-style 1 read as a small-caps "I"
+			var inner := font as FontVariation  # (UI council round 4, Remember's "Dreamlight ♦ I")
+			variation.opentype_features = inner.opentype_features
+			variation.variation_opentype = inner.variation_opentype
+			variation.spacing_space = inner.spacing_space
+			variation.spacing_glyph = inner.spacing_glyph
 		_fonts[key] = variation
 	return _fonts[key]
 
@@ -1103,13 +1109,45 @@ static func _fit_key_chip(button: Button, chip: Label, grow: bool) -> void:
 	chip.offset_top = -chip_size.y / 2.0
 	chip.offset_bottom = chip_size.y / 2.0
 	var room := 0.0
+	var shift := 0.0
 	if chip.visible and not InputMode.touch():
 		var font := button.get_theme_font("font")
 		var text_w := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, button.get_theme_font_size("font_size")).x
-		room = ceilf(text_w + 2.0 * (chip_size.x + KEY_CHIP_GAP * 2.0))  # Centred text: a chip's room on both sides
+		shift = chip_size.x + KEY_CHIP_GAP
+		room = ceilf(text_w + shift + KEY_CHIP_GAP * 3.0)
+	_shift_label(button, shift)
 	button.set_meta(&"key_room", room)
 	if grow and button.custom_minimum_size.x < room:
 		button.custom_minimum_size.x = room
+
+# The label centres in the room left of the chip (UI council round 4: it sat centred on the whole button, off-centre
+# beside the chip): every state's box gets `shift` more right content margin. Boxes the button had overridden before
+# are kept as the base; the rest follow its theme variation (Start swaps HudPrimary / HudButton).
+const KEY_STATES := [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]
+static func _shift_label(button: Button, shift: float) -> void:
+	if not button.has_meta(&"key_base"):
+		var base := {}
+		for state in KEY_STATES:
+			base[state] = button.get_theme_stylebox(state) if button.has_theme_stylebox_override(state) else null
+		button.set_meta(&"key_base", base)
+	if is_equal_approx(float(button.get_meta(&"key_shift", -1.0)), shift) \
+			and button.get_meta(&"key_variation", &"") == button.theme_type_variation:
+		return
+	button.set_meta(&"key_shift", shift)
+	button.set_meta(&"key_variation", button.theme_type_variation)
+	var bases: Dictionary = button.get_meta(&"key_base")
+	for state in KEY_STATES:
+		var box: StyleBox = bases[state]
+		if box == null:
+			button.remove_theme_stylebox_override(state)
+			box = button.get_theme_stylebox(state)
+		if box == null or shift <= 0.0:
+			if bases[state] != null:
+				button.add_theme_stylebox_override(state, bases[state])
+			continue
+		var shifted := box.duplicate() as StyleBox
+		shifted.content_margin_right = box.get_content_margin(SIDE_RIGHT) + shift
+		button.add_theme_stylebox_override(state, shifted)
 
 # Pixelify's 5 reads as S ("Boss in 2S", UI council round 3): text drawn in the display face sets its digits in the
 # number face (Vollkorn Medium, ui_style.md type table). For _draw code; returns the width drawn.
