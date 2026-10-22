@@ -1451,7 +1451,16 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 	echo_tower.echoed.emit(echo_tower, id, spot)
 	if world:
 		Fx.play(&"echo", spot, world)  # Lilac rings, then the Reaction's own effect again
-		Fx.reaction(id, spot, world, [echo_tower])
+		# On the nightmare it reaches nearest the spot (user 2026-10-21: a word floated on the path with no nightmare under
+		# it); with none there, only the effect, no word.
+		var on: Node2D = null
+		for e in nearby:
+			if is_instance_valid(e) and not e.is_cleansed and (on == null or e.global_position.distance_to(spot) < on.global_position.distance_to(spot)):
+				on = e
+		if on != null:
+			Fx.reaction(id, on.global_position, world, [echo_tower], 0.0, on)
+		else:
+			Fx.play(Fx.REACTIONS.get(id, [id])[0], spot, world)
 	var strength: float = ECHO_DAMAGE.get(id, 0.0) * (applier.get_damage() if is_instance_valid(applier) else echo_tower.get_damage())
 	for enemy in nearby:
 		if not is_instance_valid(enemy) or enemy.is_cleansed:

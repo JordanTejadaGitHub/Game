@@ -3816,6 +3816,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		_kin_fired(&"spotter")
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
+		_splash_ring(where, splash)  # (Tower Assets 159222cf: it had no ring)
 		hit(target, hand, false, crit)
 		set_area_count(get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size(), where)
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
@@ -3883,11 +3884,29 @@ func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
 # pulse ripples' throttle (GroundRipple.may_start), so a volley of splashes never stacks into a tangle.
 const SPLASH_RING_COLOURS := {"water": Palette.MOONLIGHT, "stone": Palette.MIST}  # Lines whose family colour hides on the ground
 
+# The splash ring sheet for a form ("" = none: the drawn ring): Hoarfrost frost, then by line (Sparkler / Starburst's
+# fireworks are the light line's only splash).
+const SPLASH_RING_STYLES := {"stone": "stone", "acorn": "acorn", "water": "water", "spore": "spore", "light": "firework"}
+static func splash_ring_style(data: TowerData) -> String:
+	if data == null:
+		return ""
+	if data.get_id() == "hoarfrost":
+		return "frost"
+	return SPLASH_RING_STYLES.get(data.line, "")
+
 func _splash_ring(where: Vector2, radius: float) -> void:
 	if radius < MAP_GRID.cell_size.x * 0.25:
 		return  # Too small to read as a radius
 	var world := Reactions._world(self)
 	if world == null or (Fx.reduced() and not Fx.on_screen(where, radius)) or not GroundRipple.may_start(where):
+		return
+	# Tower Assets 159222cf (user-approved): the family's own ring sheet, splash_ring_<style> (drawn for a 1-cell radius:
+	# scaled radius / 64), on the ground under the nightmares. Other lines: the drawn GroundRipple ring below.
+	var style := splash_ring_style(tower_data)
+	if style != "" and Fx.has_effect(StringName("splash_ring_" + style)):
+		var sheet := Fx.play(StringName("splash_ring_" + style), where, world, radius / MAP_GRID.cell_size.x)
+		if sheet != null:
+			sheet.z_index = -1
 		return
 	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
 	# Stone's family colour (Deadwood) is the sand path's own colour: stone splashes ring in pale Mist instead.

@@ -1,8 +1,8 @@
 extends SceneTree
 
-# The Sprout price counts paid Sprouts still on the map in any form (story chat; the user: "growing Sprouts shouldn't
-# restart its interest cost"): growing one keeps its step, selling one (Sprout or grown) lowers it, and only when the
-# count crosses a step. Seedling Gift Sprouts never count.
+# The Sprout price counts only paid Sprouts still standing as Sprouts (Balancing 2026-10-21, owner run 07:22): growing one
+# into a Warden or selling it takes it off the count, and the price steps only when the count crosses a step. Seedling
+# Gift Sprouts never count.
 #   godot --headless --path . --script res://tests/test_sprout_line.gd --fixed-fps 60
 
 var failures := 0
@@ -46,10 +46,10 @@ func _run() -> void:
 		placer.evolve(tower, sporeling)
 	await process_frame
 	_check(planted.all(func(t: Tower) -> bool: return t.tower_data == sporeling), "all %d grown into Sporelings" % per)
-	_check(placer.count_paid_sprouts() == per, "grown, they still count (%d)" % placer.count_paid_sprouts())
-	_check(placer.get_cost(sprout) == stepped, "growing doesn't reset the price (%d)" % placer.get_cost(sprout))
+	_check(placer.count_paid_sprouts() == 0, "grown, they leave the count (%d)" % placer.count_paid_sprouts())
+	_check(placer.get_cost(sprout) == base, "growing them brings the price back to base (%d)" % placer.get_cost(sprout))
 
-	# One more Sprout: still in the same step; selling a grown one doesn't cross back below it.
+	# One more Sprout counts; selling grown Wardens doesn't change the count.
 	var extra: Tower = null
 	for y in Tower.MAP_GRID.size.y:
 		for x in Tower.MAP_GRID.size.x:
@@ -58,12 +58,13 @@ func _run() -> void:
 				placer.tower_data = sprout
 				if placer._try_build(cell):
 					extra = _tower_at(placer, cell)
+	_check(placer.count_paid_sprouts() == 1 and placer.get_cost(sprout) == base, "one standing Sprout: 1 counted, base price (%d)" % placer.get_cost(sprout))
 	seller.sell_tower(planted[0])
 	await process_frame
-	_check(placer.count_paid_sprouts() == per and placer.get_cost(sprout) == stepped, "6 → 5: still a step up (%d)" % placer.get_cost(sprout))
-	seller.sell_tower(planted[1])
+	_check(placer.count_paid_sprouts() == 1, "selling a grown Warden leaves the Sprout count alone (%d)" % placer.count_paid_sprouts())
+	seller.sell_tower(extra)
 	await process_frame
-	_check(placer.get_cost(sprout) == base, "5 → 4 by selling a grown one: the step drops (%d)" % placer.get_cost(sprout))
+	_check(placer.count_paid_sprouts() == 0 and placer.get_cost(sprout) == base, "selling the Sprout takes it off (%d)" % placer.count_paid_sprouts())
 
 	# The mark rides the run save.
 	_check(bool(planted[2].get_meta(&"sprout_line", false)), "a grown Sprout carries the mark the run save keeps")

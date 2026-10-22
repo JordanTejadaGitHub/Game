@@ -4,8 +4,8 @@ class_name NightmareIntro
 # New nightmare introduction (screens_ui.md "New nightmare introduction", 2026-09-28: "new enemies
 # should have a display window in the middle like bosses"): the first time ever a nightmare kind is
 # about to appear, the rest before its block opens a centred card, the boss dossier's style but
-# smaller: animated portrait, name, its trait line, what it does (EnemyData.get_intro_lines()), its
-# resist / weak / immune icons, and one hint (EnemyData.hint). Several new kinds: one card each, with
+# smaller: animated portrait, name, its trait line, its Kind badge and line, what it does (EnemyData.get_intro_lines()),
+# its health at that drift, and one hint (EnemyData.hint). Several new kinds: one card each, with
 # "Next" (a kind's split / follower kinds right after it). After the Dream / Omen, before the boss
 # dossier. Dismissed by the button, a tap outside or Esc; reopened from its portrait in the Coming
 # strip (open_for); never by clicking the nightmare on the map (removed 2026-10-17, screens_ui.md 52f91100). A
@@ -135,13 +135,24 @@ func _ready() -> void:
 			spawner.child_entered_tree.connect(_on_spawned)
 
 func _gui_input(event: InputEvent) -> void:
-	# A tap outside the card dismisses it (the whole queue).
-	if event is InputEventMouseButton and event.pressed and not _panel.get_global_rect().has_point(event.global_position):
+	# A tap outside the card dismisses it (the whole queue); a right-click anywhere too.
+	if event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_RIGHT
+			or not _panel.get_global_rect().has_point(event.global_position)):
 		close()
 		accept_event()
 
-func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("cancel_build"):
+# Esc / RMB first, before the pause menu or the build tools take them (user 2026-10-21: a card that couldn't be
+# dismissed). _input, not _unhandled_input: anything else listening for Esc would open over the card instead.
+# Nothing on the map opens or closes a card (no selecting nightmares since 2026-10-17); kept so callers and tests that
+# pass it map clicks still find it.
+func _unhandled_input(_event: InputEvent) -> void:
+	pass
+
+func _input(event: InputEvent) -> void:
+	if not visible or _held:
+		return
+	if event.is_action_pressed("cancel_build") or event.is_action_pressed("ui_cancel") \
+			or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):
 		close()
 		get_viewport().set_input_as_handled()
 	# (No selecting nightmares on the map since 2026-10-17, screens_ui.md 52f91100: a click there belongs to the
@@ -197,6 +208,7 @@ func is_busy() -> bool:
 
 func _process(delta: float) -> void:
 	var real := delta / maxf(Engine.time_scale, 0.001)
+	_keep_alone()
 	if visible:
 		_update_live()
 	if _pending.is_empty():
@@ -214,6 +226,40 @@ func _process(delta: float) -> void:
 		var kinds := _pending
 		_pending = []
 		open_list(kinds, _drift)  # One page for the block's new kinds (user, 2026-10-03)
+
+# --- One screen at a time (user 2026-10-21: the card sometimes couldn't be dismissed) ---------------------------------
+# Nothing draws over an open card: while another covering screen is up (a Lesson, the pause menu, a choice, Remember,
+# the dossier, the results) the card steps behind it, held with its queue, and comes back when that screen closes.
+# Pause: the card pauses only a running game (_paused_it) and unpauses only what it paused; if something else unpauses
+# the game while the card is up (Space, Resume), the card closes instead of fighting it.
+var _held := false  # Behind another screen; shown again once it's gone
+
+func _other_screen_up() -> bool:
+	var hud := get_parent()
+	if hud == null:
+		return false
+	for screen_name in RestScreens.SCREENS:
+		var screen := hud.get_node_or_null(screen_name) as CanvasItem
+		if screen != null and screen != self and screen.visible:
+			return true
+	return false
+
+func _keep_alone() -> void:
+	if not visible and not _held:
+		return
+	var other := _other_screen_up()
+	if visible and other:
+		_held = true
+		visible = false
+		return
+	if _held and not other:
+		_held = false
+		visible = true
+	if visible and _paused_it:
+		var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed if drift_director else null
+		if speed != null and not speed.paused:  # Another system took the pause back: leave it to them
+			_paused_it = false
+			close()
 
 # --- Open / next / close -------------------------------------------------------------------------
 
@@ -265,6 +311,7 @@ func _show_next() -> void:
 
 func close() -> void:
 	visible = false
+	_held = false
 	queue.clear()
 	shown = null
 	live = null
@@ -313,12 +360,22 @@ func _build(data: EnemyData) -> void:
 	corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(corner)
 	_content.add_child(head)
+	# Nightmare Kinds (enemy_design.md ed6f573b): the Kind badge and its line, what it does, its health at this drift;
+	# no Resists / Weak to rows (every Warden deals full damage to every nightmare).
+	var kind := NightmareIcons.kind_row(data, 28.0, 15)
+	if kind != null:
+		_content.add_child(kind)
 	var lines: Array = data.get_intro_lines(NightmareCard.text_values(data, drift_director, _drift))  # Shell numbers at that drift
 	if not lines.is_empty():
 		_content.add_child(StatusLinks.make_label("\n".join(lines), 16, UiStyle.INK))
-	var rows := NightmareIcons.make_rows(data, 30.0)
-	if rows.get_child_count() > 0:
-		_content.add_child(rows)
+	var numbers := Label.new()
+	numbers.name = "Numbers"
+	var at_drift := _drift
+	if at_drift <= 0:
+		at_drift = maxi(drift_director.drifts_started, 1) if drift_director != null else 1
+	numbers.text = NightmareCard.numbers_text(data, at_drift, drift_director)  # Health at this drift, speed, leaves
+	UiStyle.number(numbers, 15, UiStyle.INK_DIM)
+	_content.add_child(numbers)
 	var hint := String(data.get("hint")) if data.get("hint") != null else ""
 	if hint != "":
 		var tip := StatusLinks.make_label("", 15, UiStyle.WHISPER)
@@ -391,11 +448,9 @@ static func make_row(data: EnemyData, values: Dictionary = {}) -> Control:  # va
 		details.add_child(StatusLinks.make_label("\n".join(lines), 15, UiStyle.INK))
 	elif data.trait_text != "":
 		details.add_child(StatusLinks.make_label(data.trait_text, 15, UiStyle.INK))
-	var resists := NightmareIcons.make_rows(data, 24.0)
-	if resists.get_child_count() > 0:
-		details.add_child(resists)
-	else:
-		resists.free()
+	var kind := NightmareIcons.kind_row(data, 24.0, 14)  # The Kind badge and its line (no Resists / Weak to rows)
+	if kind != null:
+		details.add_child(kind)
 	row.add_child(details)
 	head.pressed.connect(func() -> void: details.visible = not details.visible)
 	var fit := func() -> void:  # The button grows with its row (a Button doesn't size to its children)

@@ -40,7 +40,7 @@ func _run() -> void:
 	var tag := button.get_node_or_null("SproutRise") as Label
 	_check(tag != null and tag.visible and tag.text == "↑ %d/%d" % [TowerPlacer.SPROUTS_PER_STEP + 1, TowerPlacer.SPROUTS_PER_STEP * 2], "the tag counts to the next rise (%s)" % (tag.text if tag else "none"))
 	var price_line := String(button.get_meta(&"price_line", ""))
-	_check(price_line.contains("Every %d Sprouts you plant add %s" % [TowerPlacer.SPROUTS_PER_STEP, UiStyle.dew_amount(TowerPlacer.SPROUT_STEP_DEW, true)]) and price_line.contains("next rise at %d Sprouts" % (TowerPlacer.SPROUTS_PER_STEP * 2)),
+	_check(price_line.contains("Every %d Sprouts on the map add %s" % [TowerPlacer.SPROUTS_PER_STEP, UiStyle.dew_amount(TowerPlacer.SPROUT_STEP_DEW, true)]) and price_line.contains("next rise at %d Sprouts" % (TowerPlacer.SPROUTS_PER_STEP * 2)),
 		"the hover card's price line states the rule (%s)" % price_line)
 	_check(toasts.size() >= 1 and hud._sprout_rise_told, "the first rise toasts (%s)" % [toasts])
 	_check(button.text == str(placer.get_cost(sprout)), "the button shows the current price")

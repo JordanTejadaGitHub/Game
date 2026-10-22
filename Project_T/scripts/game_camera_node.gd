@@ -243,10 +243,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		_zoom_anchor_set = false
 	# Wheel zoom here, not polled: a wheel over a panel (the Codex, Dreams this run, settings …) is
 	# used by the UI and never reaches this (screens_ui.md: UI scrolling never moves the map).
-	elif event.is_action_pressed("zoom_in") and not modal_open():
+	elif event.is_action_pressed("zoom_in") and not modal_open() and not pointer_on_ui():
 		zoom_by_step(1.0, true)
-	elif event.is_action_pressed("zoom_out") and not modal_open():
+	elif event.is_action_pressed("zoom_out") and not modal_open() and not pointer_on_ui():
 		zoom_by_step(-1.0, true)
+
+# The wheel (and a trackpad's scroll) zooms only over the map itself (user 2026-10-21: scrolling past the end of a panel
+# zoomed the map: a ScrollContainer at its limit stops taking the wheel, which then reached here). Any HUD control under
+# the pointer that takes the mouse counts as UI.
+func pointer_on_ui() -> bool:
+	return get_viewport().gui_get_hovered_control() != null
+
+# Whether a HUD control that takes input is at `screen_pos` (touch: a pinch that starts or moves over a panel never zooms
+# the map). Walks the HUD's visible controls; only called for two-finger drags.
+func ui_at(screen_pos: Vector2) -> bool:
+	var hud := (owner if owner != null else get_parent()).get_node_or_null("HUD")
+	return hud != null and _control_at(hud, screen_pos)
+
+func _control_at(node: Node, at: Vector2) -> bool:
+	for child in node.get_children():
+		if child is CanvasItem and not (child as CanvasItem).visible:
+			continue
+		if child is Control:
+			var control := child as Control
+			if control.mouse_filter != Control.MOUSE_FILTER_IGNORE and control.get_global_rect().has_point(at):
+				return true
+		if _control_at(child, at):
+			return true
+	return false
 
 # `toward_pointer` (the wheel): the map point under the pointer stays under it while the zoom eases.
 func zoom_by_step(direction: float, toward_pointer := false) -> void:

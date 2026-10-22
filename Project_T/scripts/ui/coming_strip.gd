@@ -278,7 +278,7 @@ func _build_kind_words(_span: Vector2i) -> void:
 		words.add_theme_font_size_override("font_size", 14 if _phone else 15)
 		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		_kind_words.add_child(words)
-	_kind_words.visible = _kind_words.get_child_count() > 0 and (not _phone or phone_open)  # Phones: in the open Incoming dropdown
+	_kind_words.visible = _kind_words.get_child_count() > 0 and not _phone  # Phones: no "Drift N · …" line (user 2026-10-21: "remove the drift hint"; a disc's tap card says it)
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
 		_caption.visible = not _kind_words.visible and not compact  # In a drift: no caption (its words are the tip)
 	tooltip_text = _caption.text if compact else ""
@@ -485,7 +485,7 @@ func _make_phone_toggle() -> void:
 func _stack_phone() -> void:
 	for node in [_row, _kind_words, _pad_top, _pad_foot, get_node_or_null("DropGap")]:
 		if node != null:
-			node.visible = phone_open and (node != _kind_words or _kind_words.get_child_count() > 0)
+			node.visible = phone_open and node != _kind_words
 	var fresh := false
 	for item in items():
 		if bool(item.get_meta(&"breaks_rules", false)) or NightmareCard.is_new(item.get_meta(&"kind")):

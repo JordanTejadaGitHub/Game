@@ -274,13 +274,13 @@ func _build_phone() -> void:
 	pane_box.add_child(_settings)
 	_settings.fill_pane()
 	_settings.closed.connect(_on_phone_settings_closed)
-	_settings.set_meta("row", _phone_root)
+	_settings.set_meta("row", _sheet)  # The whole sheet (hiding only its row left an empty bar behind dialogs, user 2026-10-21)
 
 	var center := CenterContainer.new()  # The Quit dialog, over everything
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
-	_build_quit_box(center, _phone_root)
+	_build_quit_box(center, _sheet)
 	_show_pane(&"run")
 
 # Phones: one page in the pane. Leaving Settings with unapplied changes asks first (Apply / Discard / Keep editing).
@@ -578,6 +578,7 @@ func open() -> void:
 	if _phone:
 		_fill_phone_status()
 		_phone_root.visible = true
+		_sheet.visible = true
 		_show_pane(&"run")
 	visible = true
 
