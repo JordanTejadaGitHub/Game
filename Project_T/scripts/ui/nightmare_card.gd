@@ -64,7 +64,9 @@ static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxC
 		lines.append(data.trait_text)
 	lines.append(numbers_text(data, drift, director))
 	box.add_child(StatusLinks.make_label("\n".join(lines), 15))
-	box.add_child(NightmareIcons.make_rows(data, 26.0))
+	var kind := NightmareIcons.kind_row(data, 24.0, 14)  # Nightmare Kinds: the badge and its line, no Resists / Weak to rows
+	if kind != null:
+		box.add_child(kind)
 	return box
 
 # "Health 240 · Speed 1.2 tiles/s · Leaves 1" as it would arrive in drift `drift` (this run's growth,
