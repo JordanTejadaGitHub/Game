@@ -4242,13 +4242,14 @@ func _shroom_effects() -> void:
 # Redrawn 2026-10-22 (owner: "can you create a better looking mushroom for the spore calling"): a bell cap with a
 # slight droop, shaded through the whole Blossom ramp with a dithered terminator and a highlight crescent, spots of
 # mixed sizes, a bowed stem with a bulb and the cap's shadow on it, a moss tuft at the foot. Same sizes and anchors.
-func _toadstool(img: Image, f: int, n: int) -> void:
+# ground: the moss tuft and cast shadow (false for the pop's squashed cap: owner 2026-10-22, "the grass comes with it").
+func _toadstool(img: Image, f: int, n: int, ground: bool = true) -> void:
 	var k := n / 20.0
 	var breath: int = [0, 0, 1, 0][f]  # the cap lifts a pixel on the in-breath (big sizes only)
 	var foot := Vector2(n / 2.0, n - 2.0)
 	var cap_c := Vector2(n / 2.0, n * 0.42 - (breath if n >= 20 else 0))
 	var cap_r := Vector2(8.8 * k, 5.8 * k)
-	_shroom_part(img, foot, cap_c, cap_r, 1.5 * k + 0.3, SHROOM_CAP, true, 0.12, f == 1 or f == 2, true, true)
+	_shroom_part(img, foot, cap_c, cap_r, 1.5 * k + 0.3, SHROOM_CAP, true, 0.12, f == 1 or f == 2, ground, ground)
 	_shroom_motes(img, f, cap_c, cap_r)  # The glow: a few soft motes over the cap on the breath (never a ring of fog)
 
 func _toadstool_pop(img: Image, f: int) -> void:
@@ -4256,7 +4257,7 @@ func _toadstool_pop(img: Image, f: int) -> void:
 	if f == 0:  # the resting 20 px cap itself, squashed as it is stepped on (never a bigger cap: user 2026-10-22, "the big
 		# one spawns in when it hits an enemy"), its foot on the anchor like spore_mushroom's, its first spores leaving
 		var rest := Image.create_empty(20, 20, false, Image.FORMAT_RGBA8)
-		_toadstool(rest, 0, 20)
+		_toadstool(rest, 0, 20, false)  # The cap and stem only: the moss and shadow stay on the path, never squashed
 		var foot := Vector2(12, 20)
 		for y in 24:
 			for x in 24:
