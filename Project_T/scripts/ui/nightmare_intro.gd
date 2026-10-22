@@ -143,6 +143,11 @@ func _gui_input(event: InputEvent) -> void:
 
 # Esc / RMB first, before the pause menu or the build tools take them (user 2026-10-21: a card that couldn't be
 # dismissed). _input, not _unhandled_input: anything else listening for Esc would open over the card instead.
+# Nothing on the map opens or closes a card (no selecting nightmares since 2026-10-17); kept so callers and tests that
+# pass it map clicks still find it.
+func _unhandled_input(_event: InputEvent) -> void:
+	pass
+
 func _input(event: InputEvent) -> void:
 	if not visible or _held:
 		return
