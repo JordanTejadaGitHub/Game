@@ -116,6 +116,8 @@ func _ready() -> void:
 			if resting:
 				clear_settling())  # A rest settles the ground at once
 		director.drift_started.connect(_on_drift_reach_rings)
+		director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+			Fx.sweep(owner if owner != null else get_tree().current_scene))  # No combat effect survives into a rest
 	if dream_state != null and dream_state.has_signal(&"card_cue"):
 		dream_state.card_cue.connect(_on_card_cue)
 		dream_state.card_taken.connect(_on_card_taken_rings)

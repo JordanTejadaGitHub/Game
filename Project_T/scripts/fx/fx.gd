@@ -323,6 +323,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var burst_scale := ceilf(REACTION_MIN_PX / widest) if widest > 0.0 and widest < REACTION_MIN_PX else 1.0
 	var node := play(effect, at, parent, burst_scale, true, seconds)
 	_attach(node, follow)  # (Smother's loop too: Reactions keeps it on the nightmare's meta)
+	_own_loop(node, follow)
 	# The base Reactions' ground part (Tower Assets 74b11108, effects.json "ground"): with the full sheet only (not a _lite
 	# swap), at the same spot, scale and length, started this same frame, under the nightmares (z -1 in the world).
 	if node is FxSprite and node.effect == effect and info(effect).has("ground"):
@@ -331,6 +332,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 		if ground != null:
 			ground.z_index = -1
 			_attach(ground, follow)
+			_own_loop(ground, follow)
 	var accent_shown: Node2D = null  # Its callout, for the Reaction accent (C5)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if node != null and not reduce_flashes() and small_flash_ok():  # Its own budget (the big moments keep bright_flash_ok)
@@ -393,6 +395,24 @@ static func _attach(node: Node2D, follow: Node2D) -> void:
 	if node is FxSprite or node is FxCallout:
 		node.follow = weakref(follow)
 		node.follow_offset = node.global_position - follow.global_position
+
+# An endless loop on a nightmare (looping, no life of its own: Smother's) belongs to it: it frees itself when the nightmare
+# is dispelled or freed (user screenshot 2026-10-23: a spore swirl left circling at a rest). Its owner may free it sooner.
+static func _own_loop(node: Node2D, follow: Node2D) -> void:
+	if node is FxSprite and is_instance_valid(follow) and node._loop and node._seconds <= 0.0:
+		node.free_with_follow = true
+
+# A rest begins (TowerPlacer, on DriftDirector.rest_started): every combat effect still in `world` goes, so nothing from a
+# drift survives into the rest (bursts, loops, arcs, rings, flashes, words, overlays, bolts). Gameplay nodes (clouds,
+# pools, rings on the path, scree) keep their own lifetimes.
+static func sweep(world: Node) -> void:
+	if world == null or not is_instance_valid(world):
+		return
+	for child in world.get_children():
+		if child is FxSprite or child is FxSegment or child is FxSustain or child is FxCallout or child is FxRing \
+				or child is FxFlash or child is FxExposedMark or child is ChainBolt or child is ChargedBolt \
+				or child is DrowsyRing or child is PullDragFx:
+			child.queue_free()
 
 # The nightmare a follower still follows (null: none, freed or dispelled).
 static func _followed(ref: WeakRef) -> Node2D:
@@ -939,6 +959,8 @@ class FxSustain extends Node2D:
 
 	func _ready() -> void:
 		Fx._sustains += 1
+		if is_instance_valid(enemy):  # Owned by its nightmare (user screenshot 2026-10-23: a swirl left circling at a rest)
+			enemy.tree_exiting.connect(end, CONNECT_ONE_SHOT)
 		_follow()
 		_fit_art()
 
@@ -1112,8 +1134,8 @@ class FxExposedMark extends Node2D:
 			enemy.remove_meta(Fx.EXPOSED_META)
 
 	func _process(delta: float) -> void:
-		if not ending and (not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.statuses.is_exposed()):
-			ending = true  # The stacks dropped, or it was dispelled
+		if not ending and (not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.is_inside_tree() or not enemy.statuses.is_exposed()):
+			ending = true  # The stacks dropped, or it was dispelled (or left the field)
 		if ending:
 			_fade -= delta / FADE
 			if _fade <= 0.0:
@@ -1180,6 +1202,7 @@ class FxSprite extends Node2D:
 	var _age := 0.0
 	var follow: WeakRef = null  # A Reaction's nightmare it rides on (Fx._attach), with its offset
 	var follow_offset := Vector2.ZERO
+	var free_with_follow := false  # An endless loop on a nightmare (Smother's): it goes when the nightmare does
 
 	func _init(entry: Dictionary, tex: Texture2D, scale: float, seconds: float) -> void:
 		_tex = tex
@@ -1198,6 +1221,9 @@ class FxSprite extends Node2D:
 			var target := Fx._followed(follow)
 			if target != null:
 				global_position = target.global_position + follow_offset
+			elif free_with_follow:
+				queue_free()  # Its nightmare was dispelled or freed: an endless loop never outlives it
+				return
 			else:
 				follow = null  # Stays where it was last
 		_age += delta
