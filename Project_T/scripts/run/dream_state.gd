@@ -291,7 +291,13 @@ var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 
 	set(value):
 		final_cost_multiplier = value
 		TowerData.grow_cost_multipliers[3] = value
-@export var ascended_cost_multiplier: float = 1.0:
+# Hit finals (TowerData.is_hit_form) 540 Dew, Ascended 600 (owner 2026-10-22, dream_council_review.md 30: they hit
+# harder, Tower.HIT_FORM_MULTIPLIER); support / status finals keep final_cost_multiplier (450).
+@export var hit_final_cost_multiplier: float = 1.8:  # Balancing 2026-10-22: 540 Dew (council said 2.1 = 630; x1.4 damage at x1.4 the price gave no more damage per Dew)
+	set(value):
+		hit_final_cost_multiplier = value
+		TowerData.grow_cost_multipliers[TowerData.HIT_FINAL] = value
+@export var ascended_cost_multiplier: float = 1.0:  # Balancing 2026-10-22: 600 Dew, unchanged (council said 1.25 = 750)
 	set(value):
 		ascended_cost_multiplier = value
 		TowerData.grow_cost_multipliers[4] = value
@@ -741,7 +747,8 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	Tower._frost_drift = -1  # First Frost's count is static: a new run never inherits the last run's drift
 	# The price statics outlive a run (a sim or test may have changed them): each run starts from its own exports.
-	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier}
+	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier,
+		TowerData.HIT_FINAL: hit_final_cost_multiplier}
 	Tower.rank_costs = rank_costs.duplicate()
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
@@ -4857,6 +4864,13 @@ func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", 
 	if id == &"dawnbreak":
 		return _rx_base
 	return _rx_base * get_reaction_card_multiplier(enemy, id, tower)
+
+# The hit cards' multiplier on one direct hit (dream_council_review.md 30; Tower._hit's `dealt` stage, the one shared hook):
+# never a status, a Reaction or a follow-on spill (Tower calls it only on a direct hit that isn't Pinned / Shatter, after
+# the statuses' potency was taken). `combo` = &"" or &"conducted" (a chain's jump). 1.0 until Roguelite Code adds the cards
+# (credit them with DamageLog.note_card_bonus so card_cap_factor counts them).
+func hit_card_multiplier(_tower: Node, _enemy: Node2D, _is_area: bool, _is_crit: bool, _combo: StringName) -> float:
+	return 1.0
 
 # The Reaction cards' part alone. Reactions uses it bare for the bonus parts of Pinned's crit, Shatter's main hit and the
 # Ignite / Tempest burn. Card pass 2026-10-16 (slice 4 A): Homesick (x2 on the Reaction after a pull) and Mother's Hand

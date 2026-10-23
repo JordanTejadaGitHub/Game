@@ -1044,6 +1044,29 @@ func _compute_damage() -> float:
 		* _final_damage_multiplier()  # Gift Spring: water Wardens beside it; Rampart: its walls
 	# (Kindred / Whole Tree, Kinship cards; Bramble Oath; Lullaby Bell's Chorus; Hummingheart: bonus speed as damage)
 
+# Wardens keep up without Reactions (owner 2026-10-22, dream_council_review.md 30): a hit form's direct hits by tier
+# (TowerData.is_hit_form: final x1.4; Ascended x1.25, any that hits directly). A form stat, outside CARD_CAP_ON, applied
+# at _hit's `dealt` stage only. HIT_FORM_SKIP: tags that aren't the Warden's own direct hit (Lightning Fence's fence…).
+const HIT_FORM_MULTIPLIER := {3: 1.4, 4: 1.25}
+const HIT_FORM_SKIP: Array[StringName] = [&"cloud", &"fence", &"echo", &"great_ripple", &"spillover", &"flurry_copy"]
+# A big direct hit's Reaction-style callout and flash (Fx.big_hit) from this big-hit tier up (Enemy.BIG_HIT_SHARES).
+const BIG_HIT_CALLOUT_TIER := 2
+
+func _form_hit_multiplier() -> float:
+	if tower_data.tier >= 4:
+		return HIT_FORM_MULTIPLIER[4]
+	return HIT_FORM_MULTIPLIER[3] if tower_data.tier == 3 and tower_data.is_hit_form() else 1.0
+
+# A big direct hit looks as loud as a Reaction (dream_council_review.md 30 "Feel"): from BIG_HIT_CALLOUT_TIER of the
+# nightmare's big-hit shares, Fx.big_hit's callout and flash (the nightmare's own recoil / crack and the number's tier are
+# Enemy's and DamageLog's, already).
+func _big_hit_feedback(enemy: Node2D, dealt: float, is_crit: bool) -> void:
+	if not is_instance_valid(enemy) or int(Fx.setting("big_hits", 0)) == 2:
+		return
+	var tier: int = enemy.big_hit_tier_of(dealt / maxf(float(enemy.max_health), 1.0), enemy.enemy_data.is_boss)
+	if tier >= BIG_HIT_CALLOUT_TIER:
+		Fx.big_hit(self, enemy, tier, is_crit)
+
 # Balancing's A/B on final forms (tier 3 only; Ascended keeps its own): DreamState.final_damage_multiplier, 1.0 = off.
 func _final_damage_multiplier() -> float:
 	if tower_data.tier != 3 or _dream_state == null or not ("final_damage_multiplier" in _dream_state):
@@ -3367,6 +3390,16 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	if _dream_state:
 		dealt *= _commons_hit_multiplier(enemy, is_area, is_crit)  # Ripples, Edge of Sight, Steady Aim
 	dealt *= float(role_hit[0])  # Card pass 2026-10-16: synergy, outside the plain cap
+	# Wardens keep up without Reactions (owner 2026-10-22, dream_council_review.md 30): the hit form's multiplier and the
+	# hit cards (DreamState.hit_card_multiplier, the one shared hook) land here only, so statuses (they took `soothe`)
+	# and Reactions never see them; never on a Pinned / Shatter hit; the follow-on spills below read `spill`, the number
+	# before them (Shatter splash, Pinned pierce, Starfall, Harmony, Callings, Millstone, the current, overkill).
+	var spill := dealt
+	var hit_bonus: bool = not effect_tick and reaction.tag == &"" and combo not in HIT_FORM_SKIP
+	if hit_bonus:
+		dealt *= _form_hit_multiplier()
+		if _dream_state != null:
+			dealt *= _dream_state.hit_card_multiplier(self, enemy, is_area, is_crit, combo)
 	if reaction.tag != &"":
 		combo = reaction.tag
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
@@ -3379,25 +3412,27 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	_clear_minds_hit = previous_clean
 	var actual_dealt: float = float(health_before - enemy.health) + enemy._soothe_carry - carry_before
+	if hit_bonus and actual_dealt > 0.0:
+		_big_hit_feedback(enemy, dealt, is_crit)
 	if roles != null:
-		roles.after_hit(self, enemy, dealt, health_before, damage_line, effect_tick, role_hit)  # Millstone's splash, Towering's carry, Called from Afar
+		roles.after_hit(self, enemy, spill, health_before, damage_line, effect_tick, role_hit)  # Millstone's splash, Towering's carry, Called from Afar
 	if was_exposed and actual_dealt > 0.0:
 		# Exposed at full stacks is visible (screens_ui.md, last section): a warm spark where the hit landed, once per
 		# nightmare per hit (an area attack calls hit() once for each nightmare). The event is tagged "marked" by Enemy.
 		exposed_struck.emit(self, enemy)
 		Fx.exposed_hit(enemy, aim_at(enemy))
 	if build_rules != null and dealt > 0.0 and actual_dealt > 0.0:
-		build_rules.direct_damage(self, enemy, dealt, original_primary, actual_dealt)
+		build_rules.direct_damage(self, enemy, spill, original_primary, actual_dealt)
 		if _dream_state != null:
 			_dream_state.on_original_attack_hit(self, enemy)
 		if original_primary and _dream_state != null:
 			_dream_state.on_original_primary_hit(self, enemy)
 	if attack_data.special != &"" and enemy.is_cleansed:
-		BranchKit.on_finish(self, enemy, dealt - health_before)  # Edgestone's Clean cut: the overkill spills on
+		BranchKit.on_finish(self, enemy, spill - health_before)  # Edgestone's Clean cut: the overkill spills on
 	if sig != &"":
 		_signature_after_hit(enemy, sig, is_crit)  # Executioner, Relentless
 	if enemy.has_meta(BranchKit.LINK_META):
-		BranchKit.share_hit(enemy, dealt, self)  # Undercurrent's current: a share reaches the other linked nightmares
+		BranchKit.share_hit(enemy, spill, self)  # Undercurrent's current: a share reaches the other linked nightmares
 	if _dream_state and is_instance_valid(enemy) and not enemy.is_cleansed:
 		# Costs of two crit cards (dream_design.md 83c40cd7): Rain on Glass's light hits dry a Soaked nightmare;
 		# Starlit Aim's crit spends half the required Exposed stacks.
@@ -3408,13 +3443,13 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	if _dream_state and not is_area and _has_rule(&"momentum"):
 		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
 	if _dream_state and is_area and combo != &"spillover" and enemy.is_cleansed and _has_rule(&"spillover"):
-		GroveRules.spillover(self, enemy, dealt - health_before)  # Spillover: the leftover splashes on
+		GroveRules.spillover(self, enemy, spill - health_before)  # Spillover: the leftover splashes on
 	if reaction.shatter:
-		Reactions.shatter_splash(enemy, self, dealt)
+		Reactions.shatter_splash(enemy, self, spill)
 	if reaction.get("pierce", false) or reaction.get("starfall", false):
-		Reactions.after_pinned_hit(enemy, self, dealt, reaction)  # Pinned's pierce, Starfall's stars (owner 2026-10-17, council reactions_unique.md)
+		Reactions.after_pinned_hit(enemy, self, spill, reaction)  # Pinned's pierce, Starfall's stars (owner 2026-10-17, council reactions_unique.md)
 	if is_crit:
-		_shattering_blow(enemy, dealt)
+		_shattering_blow(enemy, spill)
 	if _dream_state and _has_rule(&"thousand_cuts") and is_instance_valid(enemy):
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
 	if unique_coop:
@@ -3435,9 +3470,9 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	_legendary_hit_rules(enemy, soothe)
 	if is_instance_valid(_kin):
 		_kin_night_chimes(enemy)
-		_kin.note_hit(self, enemy, dealt)  # Harmony strike when its kin hit this nightmare within 1 s
+		_kin.note_hit(self, enemy, spill)  # Harmony strike when its kin hit this nightmare within 1 s
 	if _dream_state != null and _dream_state.calling != "":
-		CALLINGS.after_hit(self, enemy, dealt, is_area, effect_tick, combo)  # Lantern Ring, Splashback, Ringing, Perches
+		CALLINGS.after_hit(self, enemy, spill, is_area, effect_tick, combo)  # Lantern Ring, Splashback, Ringing, Perches
 	if is_crit:
 		crit_landed.emit(self, enemy)
 	return is_crit

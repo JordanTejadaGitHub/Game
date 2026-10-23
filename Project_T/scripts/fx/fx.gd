@@ -507,6 +507,26 @@ static func _end_hitstop() -> void:
 		Engine.time_scale = _hitstop_base  # (If the player changed speed meanwhile, keep theirs)
 	_hitstop_base = -1.0
 
+# A big direct hit (Tower._big_hit_feedback; dream_council_review.md 30 "Feel": a hit build looks as loud as a Reaction
+# one): a Reaction-style word on the nightmare (BIG_HIT_WORDS by its big-hit tier) with the Warden's name under it in its
+# family colour, and a flash in that colour. Throttled like Reaction words (one per nightmare per CALLOUT_COOLDOWN).
+const BIG_HIT_WORDS := {2: "Heavy blow", 3: "Crushing blow"}
+static func big_hit(tower: Node2D, enemy: Node2D, tier: int, crit: bool = false) -> void:
+	var parent := Reactions._world(tower) if is_instance_valid(tower) else null
+	if parent == null or not is_instance_valid(enemy) or not on_screen(enemy.global_position):
+		return
+	var colour: Color = Kinships.FAMILY_COLORS.get(tower.tower_data.line, Palette.GLOW) if tower is Tower else Palette.GLOW
+	var at := enemy.global_position
+	var follow: Node2D = enemy if not enemy.is_cleansed else null
+	var shown := callout(BIG_HIT_WORDS.get(mini(tier, 3), "Heavy blow"), Palette.GLOW if crit else colour, at, parent,
+		&"big_hit", null, tier >= 3, follow)
+	if shown != null and tower is Tower and shown.has_method(&"set_sub"):
+		shown.call(&"set_sub", tower.tower_data.display_name, colour, "")  # The Warden's name under the word
+	if not reduce_flashes() and small_flash_ok():
+		var flash := FxFlash.new(colour, REACTION_MIN_PX * (0.35 if tier < 3 else 0.5))
+		parent.add_child(flash)
+		flash.global_position = at
+
 # The first grow into a final form each run: two swelling gold rings and the form's name over it.
 static func final_bloom(tower: Node2D, title: String) -> void:
 	var parent := Reactions._world(tower)

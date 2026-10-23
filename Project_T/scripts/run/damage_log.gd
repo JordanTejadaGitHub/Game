@@ -341,6 +341,7 @@ func _combo_share(event: Event, tag: StringName) -> float:
 # The event's big-hit tier for its number (Enemy.big_tier_now, set while it reports this event; Subtle already caps it
 # at 1): 0 for anything but a hit or a bolt, and with "Big hit feedback" Off (setting big_hits 2).
 const BIG_NUMBER_PUNCH := 0.12  # Seconds a T3 number's scale punch lasts
+const HIT_FORM_NUMBER_EXTRA := 4  # Px more on a hit form's T2 / T3 direct hit (owner 2026-10-22)
 static func big_tier(event: Event) -> int:
 	if (event.kind != &"hit" and event.kind != &"bolt") or not is_instance_valid(event.enemy):
 		return 0
@@ -395,6 +396,9 @@ func _show_number(event: Event) -> void:
 			outline = Palette.VOID
 			color = Palette.GLOW
 			punch = BIG_NUMBER_PUNCH
+	if tier >= 2 and event.tag == &"" and event.source is Tower and event.source.tower_data.is_hit_form():
+		size += HIT_FORM_NUMBER_EXTRA  # A hit form's big direct hit reads as loud as a Reaction (dream_council_review.md 30)
+		punch = maxf(punch, BIG_NUMBER_PUNCH)
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
