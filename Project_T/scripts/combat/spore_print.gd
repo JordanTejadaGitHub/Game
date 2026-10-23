@@ -765,9 +765,10 @@ func _stepped(point: Vector2, enemy) -> void:
 	# teleports on the enemy"): its anchor (the stem's foot) on the mushroom's own foot (it was 8 px up, so the cap
 	# jumped and its stub floated over the path), and in the mushrooms' y-sort (_layer), not over everything (a world Fx
 	# is at Fx.Z, over the nightmares, so the cap seemed to land on the one stepping on it).
-	var pop := Fx.play(MUSHROOM_POP, to_global(_spot(point)[0]), _layer if is_instance_valid(_layer) else self, 1.0)
-	if pop != null:
-		pop.z_index = 0
+	# The dose lands now; the cap stays drawn and its pop waits until the nightmare's feet reach it (HeldCap; owner
+	# 2026-10-23: "the mushrooms teleport to the enemy when hit": the step counts from the route point, the cap is drawn on
+	# the path's middle line up to half a cell away)
+	_hold_pop(point, m, enemy)
 	m.caps = int(m.caps) - 1
 	if int(m.caps) > 0:
 		queue_redraw()
@@ -1947,13 +1948,17 @@ func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
 		return
 	if not mushrooms.has(point):
 		return
-	var caps := int(mushrooms[point].caps)
+	var caps := int(mushrooms[point].caps) + int(_held_caps.get(point, 0))  # Eaten caps still on their way (HeldCap)
 	if season_on():
 		c.draw_circle(Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
 	var m: Dictionary = mushrooms[point]
 	if bool(m.get("throne", false)):  # Toadstool Throne: a gold rim under the toadstool that never goes away (sp_throne_rim)
 		if not evo_mark(c, ART_THRONE, Vector2.ZERO):
 			c.draw_arc(Vector2(0.0, -2.0), THRONE_RIM, 0.0, TAU, 20, Color(Palette.GOLD, 0.9), 1.5)
+	_draw_caps(c, point, m, caps)
+
+# A mushroom's look (by its evolution and caps), its foot at the canvas origin: the stand's, and a HeldCap's last cap.
+func _draw_caps(c: CanvasItem, point: Vector2, m: Dictionary, caps: int) -> void:
 	var phase := int(point.x * 2.0 + point.y * 2.0)
 	var flip := int(point.x * 2.0) % 2 == 1
 	var mother: Array = m.get("mother", [])
@@ -1972,6 +1977,74 @@ func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
 		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), CROP_ALPHA, flip, phase)
 	else:
 		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), 1.0, flip, phase)
+
+# An eaten cap waits for the feet (Roguelite asset chat, owner 2026-10-23): the step and its dose count from the route
+# point, but the cap is drawn at _spot (up to half a cell away), so it vanished and popped before the nightmare got there.
+# Now it stays drawn (a clump keeps its count in _held_caps; a last cap is drawn by its HeldCap) and pops on its foot,
+# in the mushrooms' y-sort, once the stepper's feet are within HOLD_REACH px, start to walk away, or HOLD_MAX s pass.
+# Gone or dead first, or reduced motion: at once.
+const HOLD_REACH := 4.0
+const HOLD_MAX := 0.25
+var _held_caps := {}  # Route point -> eaten caps of a clump still drawn
+
+func _hold_pop(point: Vector2, m: Dictionary, enemy) -> void:
+	var at := to_global(_spot(point)[0])
+	var parent: Node = _layer if is_instance_valid(_layer) else self
+	var last := int(m.caps) <= 1
+	if motion_still() or not living(enemy):
+		_pop_at(at, parent)
+		return
+	if not last:
+		_held_caps[point] = int(_held_caps.get(point, 0)) + 1
+	var held := HeldCap.new(self, point, m.duplicate() if last else {}, enemy, at)
+	parent.add_child(held)
+
+func _release_held(point: Vector2, clump: bool, at: Vector2, parent: Node) -> void:
+	if clump and _held_caps.has(point):
+		_held_caps[point] = int(_held_caps[point]) - 1
+		if int(_held_caps[point]) <= 0:
+			_held_caps.erase(point)
+		var stand = _stands.get(point)
+		if is_instance_valid(stand):
+			stand.queue_redraw()
+	_pop_at(at, parent)
+
+func _pop_at(at: Vector2, parent: Node) -> void:
+	var pop := Fx.play(MUSHROOM_POP, at, parent, 1.0)
+	if pop != null:
+		pop.z_index = 0
+
+class HeldCap extends Node2D:
+	var _print
+	var _point: Vector2
+	var _look: Dictionary  # A last cap's mushroom (drawn here); empty for a clump's (the stand draws it)
+	var _enemy: WeakRef
+	var _left := HOLD_MAX
+	var _gap := INF
+
+	func _init(print_node, point: Vector2, look: Dictionary, enemy: Node2D, at: Vector2) -> void:
+		_print = print_node
+		_point = point
+		_look = look
+		_enemy = weakref(enemy)
+		name = "HeldCap"
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		global_position = at
+
+	func _process(delta: float) -> void:
+		var enemy = _enemy.get_ref()
+		_left -= delta
+		var gap: float = global_position.distance_to(enemy.global_position) if is_instance_valid(enemy) else INF
+		if _left <= 0.0 or not is_instance_valid(_print) or not _print.living(enemy) or gap <= HOLD_REACH or gap > _gap + 0.01:
+			if is_instance_valid(_print):
+				_print._release_held(_point, _look.is_empty(), global_position, get_parent())
+			queue_free()
+			return
+		_gap = gap
+
+	func _draw() -> void:
+		if not _look.is_empty() and is_instance_valid(_print):
+			_print._draw_caps(self, _point, _look, 1)
 
 class Stand extends Node2D:
 	var regrowing := false
