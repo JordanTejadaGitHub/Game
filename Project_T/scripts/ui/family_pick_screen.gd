@@ -477,11 +477,11 @@ func _show_sapling() -> void:
 
 # A card's content sits in `box` inside the button (a Button doesn't size to its children), so the
 # card grows to fit it, at least CARD_SIZE tall; the row then gives every card the tallest's height.
-func _fit_card(button: Button, box: Control) -> void:
+func _fit_card(button: Button, box: Control, thread: Color = UiStyle.GOLD) -> void:
 	if _layout != null:
 		_layout.fill(button)  # Phones: the column's width; the row shares the tallest's height
 		_layout.watch_links(button)
-		PhoneChoice.card_thread(button, UiStyle.GOLD)  # One sprout per screen (Take's): a plain Gold thread, full width
+		PhoneChoice.card_thread(button, thread)  # One sprout per screen (Take's): a plain thread, full width (a family's card: its colour)
 		box.offset_left = PhoneChoice.CARD_PAD.x  # The Dream card's padding
 		box.offset_top = PhoneChoice.CARD_PAD.y
 		box.offset_right = -PhoneChoice.CARD_PAD.z
@@ -513,13 +513,21 @@ func _press(button: Button, data: Resource, take_text: String) -> void:
 		return
 	choose(data)
 
+# A family's colour (Kinships.FAMILY_COLORS by its line, the colour its Calling evolution cards, vines and sparks use).
+static func _family_colour(data: TowerData) -> Color:
+	return Kinships.FAMILY_COLORS.get(data.line, Palette.SPRIG)
+
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = _card_size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(func() -> void: _press(button, data, "Wake %s" % data.display_name))
-	UiStyle.card_button(button, Palette.SPRIG)  # Moonlit Thread card (ui_style.md)
+	# The family look, shared with Calling evolution cards and not with Dreams (owner 2026-10-23): the family's colour for
+	# the thread, a wash of it at the top of the glass and a bracket in each corner (ChoiceCard.family_marks).
+	var colour := _family_colour(data)
+	UiStyle.card_button(button, colour)
 	ChoiceCard.solid(button)  # Hides the map behind it, as the Dream and Omen cards
+	ChoiceCard.family_marks(button, colour)  # Under the text: added before the box
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -530,7 +538,7 @@ func _make_card(data: TowerData) -> Button:
 	box.add_theme_constant_override("separation", 6 if UiStyle.is_phone() else 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
-	_fit_card(button, box)
+	_fit_card(button, box, colour)  # Phones: the thread in the family's colour, as evolution cards
 	# Light pass: the emblem beside the name and its status chips; the job; the costs as an icon row; "dreams into, 2 of 5
 	# this run" and the lanes; the framed "Wake …" at the foot (drawn: the whole card is the hit area).
 	var header := HBoxContainer.new()
@@ -731,7 +739,7 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	var head := Label.new()
 	head.name = "RoutesHead"
 	head.text = "Dreams into" if regular <= size else OFFER_LINE % [size, regular]
-	UiStyle.caps(head, _fs(13), UiStyle.WHISPER)
+	UiStyle.caps(head, _fs(13), _family_colour(data))  # The family's colour, as an evolution card's header
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Phones: the "not in this run" silhouettes sit beside the head (it already says "2 of 5"), a row shorter; a flow, so
 	# a narrow card wraps them under it instead of widening.
@@ -1124,7 +1132,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		calling_name.text = DreamState.CALLINGS.title(data.get_id())
 		calling_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		calling_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.title(calling_name, _fs(16), UiStyle.GOLD)
+		UiStyle.title(calling_name, _fs(16), _family_colour(data))
 		box.add_child(calling_name)
 	else:
 		var title := Label.new()
@@ -1133,7 +1141,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.plain(title, _fs(14))
-		title.add_theme_color_override("font_color", UiStyle.GOLD)
+		title.add_theme_color_override("font_color", _family_colour(data))  # The family's colour (owner 2026-10-23)
 		box.add_child(title)
 	if short:
 		return ""  # Phones (no Wake button on the card): the Calling's name on the card, its rule in the Dreams row after

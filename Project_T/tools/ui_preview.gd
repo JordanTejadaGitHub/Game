@@ -59,6 +59,22 @@ func _run() -> void:
 	dreams.open_remember()
 	await _frames(20)
 	_save("remember")
+	main.get_node("HUD/RememberScreen").visible = false
+	# A Calling evolution offer and the family pick: they share the family look (owner 2026-10-23), the Dream cards don't
+	dreams.set_calling("sporeling")
+	var grow := dreams._calling_offer_for(5)
+	if not grow.is_empty():
+		dreams.offering_calling = true
+		dreams.current_offer = grow
+		dreams.picks_left = 1
+		dreams.offer_ready.emit(grow, 5)
+		await _frames(60)  # The cards flip in
+		_save("calling")
+		main.get_node("HUD/DreamScreen").visible = false
+	dreams.unlock_everything = false  # Unlocked everything, the family pick skips itself (Test Grove)
+	main.get_node("%DriftDirector").family_pick_requested.emit(&"first")
+	await _frames(60)
+	_save("family_pick")
 	main.queue_free()
 	await _frames(2)
 

@@ -362,7 +362,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing). A Calling evolution is not a Dream (owner 2026-10-22: "make the evolution path cards
 	# different than the dream cards"): its family's colour everywhere the rarity colour would be, the Calling's leaf mark
-	# for the gem, the path's steps, a wash of its colour in the glass and corner brackets (_evolution_marks).
+	# for the gem, the path's steps, a wash of its colour in the glass and corner brackets (ChoiceCard.family_marks).
 	var evolution := card.tags.has("calling_evolution")
 	var accent: Color = _calling_colour() if evolution else (ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
 	UiStyle.card_button(button, accent, is_legendary(card))
@@ -378,7 +378,7 @@ func _make_card(card: UpgradeData) -> Button:
 	if _phone:  # One sprout per screen (UI review; Take's): the thread runs full width in the rarity colour, no mark
 		PhoneChoice.card_thread(button, accent)
 	if evolution:
-		_evolution_marks(button, accent)  # Under the text: added before the box
+		ChoiceCard.family_marks(button, accent)  # Under the text: added before the box (shared with the family pick)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -509,12 +509,9 @@ func _one_tip(button: Button) -> void:
 # --- Calling evolution cards (owner 2026-10-22: "make the evolution path cards different than the dream cards") ------
 # Same moon-glass card, but nothing about it reads as a Dream: the Calling's family colour (Kinships.FAMILY_COLORS, the
 # colour its vines and sparks already use) instead of a rarity, the Calling's leaf mark instead of the rarity gem, the
-# header "<Calling>", the path's four steps and the step's name under it, a wash of the colour at the top of the glass and a
-# bracket in each corner.
+# header "<Calling>", the path's four steps and the step's name under it, and the family look the family pick shares
+# (ChoiceCard.family_marks: a wash of the colour at the top of the glass and a bracket in each corner).
 const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Follow-up"]  # CallingPaths.DRIFTS order
-const EVOLUTION_WASH := 0.16  # The colour's alpha at the top of the glass, fading out halfway down
-const EVOLUTION_INSET := 7.0  # The wash and brackets sit this far inside the card (inside the frame's rim)
-const EVOLUTION_BRACKET := 12.0  # Each corner bracket's arm
 
 func _calling_colour() -> Color:
 	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
@@ -525,26 +522,6 @@ func _evolution_step() -> int:
 
 func _evolution_stage_name() -> String:
 	return EVOLUTION_STAGES[_evolution_step()]
-
-func _evolution_marks(button: Button, colour: Color) -> void:
-	var marks := Control.new()
-	marks.name = "EvolutionMarks"
-	marks.set_anchors_preset(Control.PRESET_FULL_RECT)
-	marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	marks.draw.connect(_draw_evolution_marks.bind(marks, colour))
-	button.add_child(marks)
-
-func _draw_evolution_marks(marks: Control, colour: Color) -> void:
-	var r := Rect2(Vector2.ONE * EVOLUTION_INSET, marks.size - Vector2.ONE * EVOLUTION_INSET * 2.0)
-	var mid := r.position.y + r.size.y * 0.5
-	marks.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), Vector2(r.end.x, mid), Vector2(r.position.x, mid)]),
-		PackedColorArray([Color(colour, EVOLUTION_WASH), Color(colour, EVOLUTION_WASH), Color(colour, 0.0), Color(colour, 0.0)]))
-	var arm := EVOLUTION_BRACKET
-	for corner: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
-		var sx := 1.0 if corner.x < r.get_center().x else -1.0
-		var sy := 1.0 if corner.y < r.get_center().y else -1.0
-		marks.draw_polyline(PackedVector2Array([corner + Vector2(0, sy * arm), corner, corner + Vector2(sx * arm, 0)]), Color(colour, 0.85), 2.0)
-		marks.draw_rect(Rect2(corner + Vector2(sx * 3.0 - 1.0, sy * 3.0 - 1.0), Vector2(2, 2)), Color(colour, 0.85))  # A bud inside it
 
 # The Calling's mark (owner 2026-10-22: "remove the Warden portrait, it should be something else"; chose the Calling
 # glyph): the glyph its family's Dream cards use (UiStyle.dream_glyph on its line's tag: water, spore, light, song…), 2x,
