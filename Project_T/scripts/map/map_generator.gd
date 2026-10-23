@@ -50,6 +50,7 @@ var start_gate: StartGate  # The rope bridge on the lane and the nightmare fog i
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 const MAP_LANDMARK := preload("res://scripts/map/map_landmark.gd")
 var landmark: MAP_LANDMARK  # The map's one landmark (or none): Old Waystone / Dew Pool (environment_assets.md "Landmarks")
+var dew_pool_cells := {}  # {cell: true}: the Dew Pool's walkable water (Enemy slows walkers on it); empty without a pool
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
 
@@ -126,6 +127,10 @@ func _ready() -> void:
 	add_child(landmark)
 	move_child(landmark, path_layer.get_index() + 1)  # Ground, just over the path
 	landmark.build(_demo_first_map())
+	dew_pool_cells.clear()  # Set fresh with every map
+	if landmark.kind == MAP_LANDMARK.Kind.DEW_POOL:
+		for cell in landmark.cells:
+			dew_pool_cells[cell] = true
 	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
 	ground_patches.build(self)
 	ground_layer.add_child(ground_patches)
