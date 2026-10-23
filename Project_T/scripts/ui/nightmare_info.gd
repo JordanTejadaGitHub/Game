@@ -103,7 +103,7 @@ func _process(delta: float) -> void:
 	var restless := restless_text(_target)
 	if restless != "":
 		numbers.append(restless)
-	# The Nightshade Legendary: effect damage ×2 at 4+ statuses (Reactions.nightshade_bonus).
+	# The Nightshade Legendary: effect damage ×2 with 3 statuses from 3 families (Reactions.nightshade_bonus).
 	var nightshade := Reactions.nightshade_bonus(_target)
 	if nightshade > 0.0:
 		numbers.append("Nightshade ×%s effect damage" % str(snappedf(1.0 + nightshade, 0.01)))

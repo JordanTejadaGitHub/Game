@@ -18,7 +18,14 @@ signal bolt_struck(at: Vector2, damage: float)
 # when the Root ends (size 1), Pinned's hit piercing the line behind (size = nightmares pierced).
 signal reaction_payoff(id: StringName, at: Vector2, size: int)
 
+# A Crowned Reaction went off on `enemy` (owner 2026-10-22, dream_council_review.md 29: an event of its own), for Sound.
+# `late` = a late crown (its third status landed within Reactions.CROWN_WINDOW after the base Reaction).
+signal crowned_fired(id: StringName, enemy: Node2D, towers: Array, late: bool)
+
 var counts := {}  # Reaction id -> times it fired this run
+var crowned_block := 0  # Crowned Reactions this block / run (rest report, run summary); late_run = how many were late crowns
+var crowned_run := 0
+var late_run := 0
 var longest_chain := 0
 # > 0 while an echo (Echo Hollow) is going off: Hollows don't echo echoes (Encore: once more).
 var echo_depth := 0
@@ -29,6 +36,7 @@ var _clock := 0.0
 func _ready() -> void:
 	add_to_group(GROUP)
 	Fx.reset_run()  # A new run's first Reaction: fresh longest chain and settings
+	Reactions._crown_field.clear()  # …and late crowns' field cooldowns
 
 func _process(delta: float) -> void:
 	_clock += delta
@@ -55,6 +63,18 @@ func record(id: StringName, enemy: Node2D, chain: int, towers: Array) -> void:
 		# Badge from ×2, hitstop + surge at ×5, Dawnburst at ×10 (Fx), then anyone else listening.
 		Fx.chain(chain, enemy.global_position, get_parent(), towers)
 		chain_reached.emit(chain, enemy.global_position, towers)
+
+# A Crowned one (Reactions calls it after record(), instant or late).
+func record_crowned(id: StringName, enemy: Node2D, towers: Array, late: bool) -> void:
+	crowned_block += 1
+	crowned_run += 1
+	if late:
+		late_run += 1
+	crowned_fired.emit(id, enemy, towers, late)
+
+# The rest starts a new block's count (RestReport reads crowned_block first).
+func reset_block() -> void:
+	crowned_block = 0
 
 func total() -> int:
 	var sum := 0

@@ -283,6 +283,8 @@ func _refresh() -> void:
 		if run > 0.0:
 			lines.append("This run: %s damage · %.0f/s · from combos %d%%" % [BossDossier.thousands(roundi(run)),
 				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
+	if _tower.reactions_set_off + _tower.reactions_fed > 0:  # Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29)
+		lines.append("Reactions: set off %d · fed %d" % [_tower.reactions_set_off, _tower.reactions_fed])
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	# Combos with: the shared combo links (hover / tap = its tip, ??? until found; a click opens the Codex).
 	var combo_ids: Array[String] = []

@@ -68,6 +68,8 @@ const REACTION_FLASH_SECONDS := 0.05  # The burst's 1-frame bright flash (off un
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
 const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
+const CROWN_HITSTOP_GAP_MS := 1500  # Crowned Reactions' hitstop (owner 2026-10-22): at most one this often
+static var _crown_stop_msec := -100000
 const HITSTOP_SECONDS := 0.07
 const HITSTOP_SCALE := 0.05  # Speed during a hitstop
 const SURGE_SECONDS := 0.5
@@ -308,8 +310,11 @@ static func _accent(node, shown) -> void:
 
 # A named Reaction went off at `at`: its effect (budgeted), its callout in its colour, and a light
 # thread from each Warden that set it up. Smother loops: pass `seconds` or free the returned node.
+# `author` (owner 2026-10-22, dream_council_review.md 29): the Warden that set it off, named under the word in its family's
+# colour with the Reaction pool's "+N%" (`pool_bonus`, 0.4 = +40%). A Crowned one: `marks` = its three Wardens' colours,
+# `big` = its name larger and longer (its first few times a run), and a short hitstop.
 static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Array = [], seconds: float = 0.0,
-		follow: Node2D = null) -> Node2D:
+		follow: Node2D = null, author: Node2D = null, pool_bonus: float = 0.0, marks: Array = [], big: bool = false) -> Node2D:
 	var row: Array = REACTIONS.get(reaction, [reaction, ""])
 	var effect: StringName = row[0]
 	# At least 1.5 cells across (screens_ui.md 5f7852e2): a 64 px burst is drawn x2, bigger ones as they are.
@@ -339,15 +344,21 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	if row[1] != "":
 		# The name without its "!" and the reaction's icon (the callout redo; the crowned ones by their own id).
 		var words := String(row[1]).trim_suffix("!")
-		# Power budget (owner review 2026-10-16, "can be seen working"; Roguelite Code 73c2f686): a Reaction the build
-		# boosts says so, "Ignite x2.1 from your build", in place of its bare name.
-		var dreams := parent.get_tree().get_first_node_in_group(DreamState.GROUP) if parent != null and parent.is_inside_tree() else null
-		if dreams != null and dreams.has_method("reaction_build_text"):
-			var boosted: String = dreams.reaction_build_text(reaction)
-			if boosted != "":
-				words = boosted
+		# (owner 2026-10-22, dream_council_review.md 29: the bare name, its author and the pool's "+N%" under it, in place of
+		# "Ignite x2.1 from your build".)
 		var shown := callout(words, colour, at, parent, reaction, IconInfo.icon(reaction), String(effect).begins_with("crowned_"), follow)
 		accent_shown = shown
+		if shown is FxCallout:
+			var by := ""
+			var by_colour := Palette.MOONLIGHT
+			if is_instance_valid(author) and author is Tower:
+				by = author.tower_data.display_name
+				by_colour = Kinships.FAMILY_COLORS.get(author.tower_data.line, Palette.MOONLIGHT)
+			shown.set_sub(by, by_colour, ("+%d%%" % roundi(pool_bonus * 100.0)) if pool_bonus >= 0.005 else "")
+			if not marks.is_empty():
+				shown.marks = marks
+			if big:
+				shown.make_big()
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
@@ -360,6 +371,10 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 			ring.global_position = tower.global_position
 	if String(effect).begins_with("crowned_"):
 		add_trauma(TRAUMA_CROWNED, parent)  # Only Crowned Reactions shake (game-feel pass: ordinary ones don't)
+		var now := Time.get_ticks_msec()
+		if parent != null and parent.is_inside_tree() and now - _crown_stop_msec >= CROWN_HITSTOP_GAP_MS:
+			_crown_stop_msec = now  # A Crowned one is an event (owner 2026-10-22): a short hitstop, at most one a CROWN_HITSTOP_GAP_MS
+			_hitstop(parent)
 	if _take_accent(at):  # A card's cue came first: accent now
 		_accent(node, accent_shown)
 	else:  # Else a cue just after it may still accent it
@@ -1360,6 +1375,34 @@ class FxCallout extends Node2D:
 	var line := 0  # Words stacked on the same nightmare: 0 = just above it, 1 = one line higher…
 	var _head := -1.0  # World px from the nightmare's feet up to the top of its status row (-1: not following, LIFT)
 	const STATUS_ROW_PX := 20.0  # The status badges over the health bar, and a little air
+	# A Reaction's author and pool (owner 2026-10-22): a small line under the word; a Crowned one's three Wardens' colours.
+	const SUB_SIZE := 13
+	const MARK_R := 3.0
+	const BIG_SCALE := 1.4  # A Crowned one's first few times a run: its name larger…
+	const BIG_HOLD := 0.6  # …and longer
+	var _sub := ""
+	var _sub_colour := Palette.MOONLIGHT
+	var _sub_tail := ""
+	var marks: Array = []
+
+	func set_sub(text: String, colour: Color, tail: String) -> void:
+		_sub = text
+		_sub_colour = colour
+		_sub_tail = tail
+		queue_redraw()
+
+	func make_big() -> void:
+		_size = roundi(_size * BIG_SCALE)
+		_hold += BIG_HOLD
+
+	# Px under the word's line the sub line and marks take (0: none).
+	func _below() -> float:
+		var h := 0.0
+		if _sub != "" or _sub_tail != "":
+			h += SUB_SIZE + 4.0
+		if not marks.is_empty():
+			h += MARK_R * 2.0 + 4.0
+		return h
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
@@ -1440,7 +1483,13 @@ class FxCallout extends Node2D:
 		var x := -total / 2.0
 		var baseline := font.get_ascent(_size) / 2.0 - 2.0  # The word centred on the line
 		var origin := Vector2(0.0, -_lift(fading))
-		Fx.draw_halo(self, origin, s, Vector2.ZERO, Vector2(total / 2.0 + HALO_PAD.x, ICON_PX / 2.0 + HALO_PAD.y), alpha)
+		var below := _below()
+		var sub_font := UiStyle.body_font()
+		var sub_w := sub_font.get_string_size(_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE).x if _sub != "" else 0.0
+		var tail_w := count_font.get_string_size(_sub_tail, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE).x if _sub_tail != "" else 0.0
+		var sub_total := sub_w + (GAP + tail_w if _sub_tail != "" and _sub != "" else tail_w)
+		Fx.draw_halo(self, origin, s, Vector2(0.0, below / 2.0), Vector2(maxf(total, sub_total) / 2.0 + HALO_PAD.x,
+			ICON_PX / 2.0 + HALO_PAD.y + below / 2.0), alpha)
 		if card_pip:  # A diamond, ember-edged so it reads on the pale path
 			var c := Vector2(x - 8.0, 0.0)
 			var outer := PackedVector2Array([c + Vector2(0, -6), c + Vector2(5, 0), c + Vector2(0, 6), c + Vector2(-5, 0)])
@@ -1456,4 +1505,20 @@ class FxCallout extends Node2D:
 			var cx := x + text_w + GAP
 			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 2, Color(Palette.DREAD, alpha))
 			draw_string(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Color(Palette.GLOW, alpha))
+		var y := ICON_PX / 2.0 + 2.0
+		if _sub != "" or _sub_tail != "":
+			var sx := -sub_total / 2.0
+			var sy := y + SUB_SIZE * 0.8
+			if _sub != "":
+				draw_string_outline(sub_font, Vector2(sx, sy), _sub, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE, 2, Color(Palette.DREAD, alpha))
+				draw_string(sub_font, Vector2(sx, sy), _sub, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE, Color(_sub_colour, alpha))
+				sx += sub_w + GAP
+			if _sub_tail != "":
+				draw_string_outline(count_font, Vector2(sx, sy), _sub_tail, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE, 2, Color(Palette.DREAD, alpha))
+				draw_string(count_font, Vector2(sx, sy), _sub_tail, HORIZONTAL_ALIGNMENT_LEFT, -1, SUB_SIZE, Color(Palette.GLOW, alpha))
+			y += SUB_SIZE + 4.0
+		for i in marks.size():  # The three Wardens' colours, small gems in a row
+			var c := Vector2((i - (marks.size() - 1) / 2.0) * (MARK_R * 2.0 + 4.0), y + MARK_R)
+			draw_circle(c, MARK_R + 1.0, Color(Palette.DREAD, alpha))
+			draw_circle(c, MARK_R, Color(marks[i], alpha))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

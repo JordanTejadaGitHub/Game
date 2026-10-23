@@ -240,6 +240,8 @@ func report(event: Event) -> void:
 		event.source_name = tower.tower_data.display_name if tower else str(event.source.name)
 		var split := _spore_split(event)
 		if split.is_empty():
+			split = _reaction_split(event)
+		if split.is_empty():
 			var all := NO_WEIGHTS  # Most hits have no combo: no new dictionary each (perf, 2026-10-17)
 			if not event.combos.is_empty():
 				all = {}
@@ -556,6 +558,22 @@ func _credit(source: Node, event: Event, share: float, weights: Dictionary) -> v
 	combo *= effective
 	row.run_combo += combo
 	row.drift_combo += combo
+
+# A Reaction's damage (owner 2026-10-22, dream_council_review.md 29): half to its author (the Warden whose application
+# completed it, the event's source), half to the strongest applier of the other status. Reactions.rx_credit holds the
+# pair while that Reaction deals its damage; [] = the whole event to its source.
+func _reaction_split(event: Event) -> Array:
+	var pair: Array = Reactions.rx_credit
+	if pair.size() < 2 or pair[0][0] != event.source or not is_instance_valid(pair[1][0]) or event.amount <= 0.0 \
+			or not event.tag in Reactions.CHAIN_FALLOFF_TAGS:  # (Reaction damage only: not a Charged bolt dealt meanwhile)
+		return []
+	var out := []
+	for part in pair:
+		var weights := {}
+		for tag in event.combos:
+			weights[tag] = part[1]
+		out.append([part[0], part[1], weights])
+	return out
 
 # A Spored tick's credit (balance_simulation.md "Human run 2"): the fog-boosted part to the fog's Warden,
 # the rest split by each applier's share of the stacks. [[source, share, {combo tag: weight}], …];

@@ -120,6 +120,10 @@ var _stag_time := 0.0:  # Seconds left inside the White Stag's aura
 # a zone now (mushroom_time below, read by Reactions.effect_multiplier); Smother stores its Poisoned while Rooted and
 # Reactions.on_smother_ended bursts it.)
 var reaction_cooldowns := {}  # Reaction id -> seconds before it can fire here again
+# Late crown (owner 2026-10-22, dream_council_review.md 29): base Reaction id -> {"t": seconds left, …} after it fired
+# here, while its Crowned one can still form (Reactions.CROWN_WINDOW; Reactions opens and reads it). Gone at the Waymark.
+var crown_window := {}
+var crowned_late := 0  # Late crowns on this nightmare (Reactions: once, a boss once per 25% health)
 # The latest Reaction whose output touched this nightmare, while it can still start a chain.
 var chain_count := 0
 var chain_time := 0.0:
@@ -522,6 +526,7 @@ func shed_all() -> int:
 	for id in _active.keys():
 		remove(id)
 	pending_linger.clear()
+	crown_window.clear()  # (Late crown: a shed nightmare starts over)
 	marked_forever = false
 	static_forever = false
 	marked_extra = 0.0
@@ -750,6 +755,11 @@ func tick(delta: float) -> float:
 			reaction_cooldowns[reaction] -= delta
 			if reaction_cooldowns[reaction] <= 0.0:
 				reaction_cooldowns.erase(reaction)
+	if not crown_window.is_empty():
+		for base in crown_window.keys():
+			crown_window[base].t -= delta
+			if crown_window[base].t <= 0.0:
+				crown_window.erase(base)
 	var spore_damage := 0.0
 	spore_tick_source = null
 	spore_tick_line = ""

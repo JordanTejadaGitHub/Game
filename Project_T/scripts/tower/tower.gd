@@ -1067,6 +1067,12 @@ func _big_hit_feedback(enemy: Node2D, dealt: float, is_crit: bool) -> void:
 	if tier >= BIG_HIT_CALLOUT_TIER:
 		Fx.big_hit(self, enemy, tier, is_crit)
 
+# The damage without this Warden's Dream card rows (owner 2026-10-22, dream_council_review.md 29): Reactions scale with
+# it, so a card isn't counted twice (in the Warden's damage and again in the Reaction pool).
+func get_bare_damage() -> float:
+	var rows := _dream_bonus(&"soothe")
+	return get_damage() / rows if rows > 0.0 else get_damage()
+
 # Balancing's A/B on final forms (tier 3 only; Ascended keeps its own): DreamState.final_damage_multiplier, 1.0 = off.
 func _final_damage_multiplier() -> float:
 	if tower_data.tier != 3 or _dream_state == null or not ("final_damage_multiplier" in _dream_state):
@@ -1137,6 +1143,8 @@ func get_attacks_per_second() -> float:
 	return total
 
 var speed_capped := false  # Its Dream attack-speed bonus is at the +150% cap (the Warden panel can say "capped")
+var reactions_set_off := 0  # Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29): times this Warden's
+var reactions_fed := 0  # application completed one / fed the other status of one (Warden panel "Set off N / Fed N")
 var reaction_haste := 0.0  # Wide Awake (Crowned Reaction; owner 2026-10-17, council reactions_unique.md): attack speed bonus, set by Reactions.WardenWake
 var _speed_top := 0.0  # Attacks a second at the Dream cap (set by _compute_attacks_per_second)
 

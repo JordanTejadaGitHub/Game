@@ -2967,7 +2967,7 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
 	if source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
-		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+		amount *= Reactions.effect_multiplier(self, source, tag)  # Potency (and Seeping, not on a Reaction: its pool has it)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
 	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
