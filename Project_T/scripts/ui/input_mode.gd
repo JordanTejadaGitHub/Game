@@ -34,5 +34,5 @@ static func key(action: StringName, fallback := "") -> String:
 
 # Words that only make sense with a mouse or keyboard (a touch variant must not use them), and the reverse.
 const PC_WORDS := ["Esc", "Right-click", "right-click", "click", "Click", "hover", "Hover", "Shift", "Ctrl", "Space",
-	"Enter", "Delete", "(Q)", "(R)", "(X)", "(T)", "(G)", "(B)", "(C)"]
+	"Enter", "Delete", "(Q)", "(E)", "(R)", "(T)", "(N)", "(X)", "(Z)", "(I)", "(G)", "(B)", "(C)"]
 const TOUCH_WORDS := ["touch", "Touch", "tap", "Tap", "swipe", "pinch"]

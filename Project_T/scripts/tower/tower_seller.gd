@@ -11,7 +11,7 @@ class_name TowerSeller
 #                          Alt: any rank)
 #   Shift + click / drag   add to / remove from the selection
 #   Esc                    clear
-# The Warden panel shows the selection and grows, nurtures (R) or sells it as a group.
+# The Warden panel shows the selection and grows, nurtures (N) or sells it as a group.
 # Refund = a share of all Dew invested in it (build, growth, ranks): 75% while resting, 50% during a
 # drift (run_design.md difficulty pass v1).
 # Selling only ever opens paths, so it's always allowed; creatures re-route right away.
@@ -59,14 +59,14 @@ var _press_view := Transform2D()  # The camera when the press began: a pan befor
 var _box_blocked := false  # This press can't become a box (the view panned under it)
 var _blooms: Array = []  # [[tower, seconds until it starts]]; negative = seconds since it started
 
-# Q / E / Z (screens_ui.md hotkeys): grow the selection into the Warden panel's 1st / 2nd / 3rd option.
-# Registered here with these defaults when project.godot doesn't list them yet (rebindable once it does).
-const GROW_OPTION_ACTIONS: Array[StringName] = [&"grow_option_1", &"grow_option_2", &"grow_option_3"]
-const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
+# Q / E / R / T (screens_ui.md hotkeys, e0c58cf9): grow the selection into the Warden panel's 1st–4th option, left to
+# right like the panel. Registered here with these defaults when project.godot doesn't list them yet (rebindable once it does).
+const GROW_OPTION_ACTIONS: Array[StringName] = [&"grow_option_1", &"grow_option_2", &"grow_option_3", &"grow_option_4"]
+const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_R, KEY_T]
 
 # A grow key went down / up: the panel previews that option while it's held.
 signal grow_option_held(index: int, held: bool)
-# R (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
+# N (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
 signal nurture_asked
 # A grow couldn't be paid for (refuse_if_short): option `index` (-1 = G), and the toast's text. The Warden
 # panel shakes that button and shows the toast.
@@ -642,7 +642,7 @@ func sell_selection() -> int:
 	set_selection([])
 	return total
 
-# Q / E / Z: grows the selection into its `index`th option (the Warden panel's order; each kind in a
+# Q / E / R / T: grows the selection into its `index`th option (the Warden panel's order; each kind in a
 # group its own). A locked option opens the Remember tree on that form instead; a 2×2 form asks for its
 # square like the panel's button. Returns true if anything grew or opened.
 func grow_option(index: int) -> bool:
@@ -691,7 +691,7 @@ func grow_selected() -> bool:
 # Growing `towers` into `next` (option `index`; `unlocked` = the form is already unlocked) can't be paid for:
 # a locked form short of Dreamlight (or not open yet), or an unlocked one nobody can pay Dew for. Then the
 # refusal plays (dew_short / dreamlight_short and grow_refused: the panel's button shakes, a toast) and this
-# returns true; nothing opens and nothing is spent. Q / E / Z, G and the Warden panel's buttons all use it.
+# returns true; nothing opens and nothing is spent. Q / E / R / T, grow_warden (no default key) and the Warden panel's buttons all use it.
 func refuse_if_short(towers: Array, next: TowerData, unlocked: bool, index: int) -> bool:
 	var dreams := _dreams()
 	if dreams == null or towers.is_empty():
@@ -756,19 +756,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("cancel_build") and not selection.is_empty():
 		select(null)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("nurture_warden") and not selection.is_empty():
+	elif event.is_action_pressed("nurture_warden") and not selection.is_empty() and not _typing():
 		nurture_asked.emit()  # Every rank is a choice: the panel's 1–4 pick it
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
-		grow_selected()
+	elif event.is_action_pressed("grow_warden") and not selection.is_empty() and not _typing():
+		grow_selected()  # No default key since e0c58cf9 (the panel's Q / E / R / T); a player's own bind still works
 		get_viewport().set_input_as_handled()
 	elif _grow_option_event(event):
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("cycle_target") and not selection.is_empty():
+	elif event.is_action_pressed("cycle_target") and not selection.is_empty() and not _typing():
 		cycle_target_group(selection)
 		get_viewport().set_input_as_handled()
 
-# Q / E / Z: a press previews the option (held), the release grows it; the preview ends either way.
+# Q / E / R / T: a press previews the option (held), the release grows it; the preview ends either way.
 func _grow_option_event(event: InputEvent) -> bool:
 	if not (event is InputEventKey) or selection.is_empty() or _typing():
 		return false
@@ -1029,14 +1029,14 @@ func cycle_target_group(towers: Array) -> void:
 	var index := modes.find(aimed[0].get_target_mode())
 	set_target_group(aimed, modes[(index + 1) % modes.size()])
 
-# The T key's action. It belongs in project.godot's input map (and the settings' keybind list); until
+# The Z key's action. It belongs in project.godot's input map (and the settings' keybind list); until
 # it's there, it's made here so the key works.
 static func _ensure_target_action() -> void:
 	if InputMap.has_action("cycle_target"):
 		return
 	InputMap.add_action("cycle_target")
 	var key := InputEventKey.new()
-	key.physical_keycode = KEY_T
+	key.physical_keycode = KEY_Z
 	InputMap.action_add_event("cycle_target", key)
 
 # Nothing could be paid for: the "can't buy" feedback (RunState.dew_short: the Dew counter's shake and the

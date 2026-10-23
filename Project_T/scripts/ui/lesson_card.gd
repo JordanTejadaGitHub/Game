@@ -428,7 +428,7 @@ func discovery(id: StringName) -> void:
 			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose a form in its panel. Growing costs Dew and changes what it does.")
 		&"nurture":
 			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", InputMode.text(
-				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "R"),
+				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "N"),
 				"Select a Warden and tap Nurture to make it stronger for Dew. Each rank lets you choose one improvement. Tap a choice to read it."))
 		&"dream":
 			lesson(&"discover_dream", &"dreamlight", "A Dream", "Pick one card. You don't have to take one. Dreams last the whole run.")

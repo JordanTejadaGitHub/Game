@@ -426,15 +426,15 @@ func _refresh() -> void:
 				dream_state.make_eldest(_tower)  # Then the rank VI choices show
 				_refresh())
 		else:
-			# Nurture v3 (warden_stats.md "Playtest fix"): one Nurture button; it (or R) opens the rank's choices
-			# in place, 1–4 pick, Esc / R close. (The Heartwood Sapling's ranks only raise its yield: the
+			# Nurture v3 (warden_stats.md "Playtest fix"): one Nurture button; it (or N) opens the rank's choices
+			# in place, 1–4 pick, Esc / N close. (The Heartwood Sapling's ranks only raise its yield: the
 			# button nurtures at once.)
 			if not _choosing or not _tower.needs_focus():
 				_nurture_gap()  # Apart from the grow rows (user: "a little separation")
 				var nurture := _add_button("")
 				nurture.set_meta(&"nurture_main", true)  # Phones move it into the footer (_phone_arrange)
 				_as_choice(nurture)  # The same weight as the grow rows (no primary)
-				nurture.set_meta(&"key", UiStyle.key_suffix("R"))
+				nurture.set_meta(&"key", _nurture_key())
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
@@ -604,7 +604,7 @@ func _refresh_group() -> void:
 		var open := _add_button("")
 		open.set_meta(&"nurture_main", true)  # Phones move it into the footer (_phone_arrange)
 		_as_choice(open)
-		open.set_meta(&"key", UiStyle.key_suffix("R"))
+		open.set_meta(&"key", _nurture_key())
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
 		open.tooltip_text = "Choose the rank each one gains."  # Before _priced: it keeps the tip
 		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # A choice like the grow rows; short: R refuses
@@ -699,7 +699,7 @@ func _sell_group() -> void:
 	tower_seller.sell_selection()
 
 # The targeting chip on the name's line (user: "there's no more attack targeting, bring it back"): the current mode
-# (a group's when they agree, else "Mixed") with T as a key chip; a click (or T) cycles every attacker given, its tip
+# (a group's when they agree, else "Mixed") with Z as a key chip; a click (or Z) cycles every attacker given, its tip
 # lists the modes. The full switch stays in Details.
 func _target_chip(towers: Array) -> Button:
 	var modes := {}
@@ -711,14 +711,16 @@ func _target_chip(towers: Array) -> Button:
 	chip.focus_mode = Control.FOCUS_NONE
 	chip.custom_minimum_size = Vector2(0, 36)
 	chip.add_theme_font_size_override("font_size", 14)
-	var lines: Array[String] = ["Targeting (click or T cycles):"]
+	var target_key := TowerSeller.key_name(&"cycle_target")
+	var lines: Array[String] = ["Targeting (click or %s cycles):" % target_key if target_key != "" else "Targeting (click cycles):"]
 	for mode in Tower.PLAYER_TARGET_MODES:
 		lines.append("%s%s: %s" % ["▸ " if modes.size() == 1 and modes.has(mode) else "   ", Tower.TARGET_MODE_NAMES[mode], TARGET_TIPS[mode]])
 	chip.tooltip_text = "\n".join(lines)
 	chip.pressed.connect(func() -> void:
 		tower_seller.cycle_target_group(towers)
 		_refresh())
-	var key := UiStyle.key_chip("T")
+	var key := UiStyle.key_chip(target_key)
+	key.visible = target_key != ""
 	key.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
 	key.offset_left = -24
 	key.offset_right = -6
@@ -731,7 +733,7 @@ func _target_chip(towers: Array) -> Button:
 	return chip
 
 # Targeting (screens_ui.md): a 4-way switch First / Last / Strongest / Closest for `towers` (one Warden or a
-# group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).
+# group). A group with mixed modes shows none pressed; a press sets them all. Z cycles (TowerSeller).
 func _add_target_switch(towers: Array) -> void:
 	# Light pass: one quiet segmented group, the word "Targeting" in each tip (the row fits the 280 px panel).
 	var row := HBoxContainer.new()
@@ -760,7 +762,7 @@ func _add_target_switch(towers: Array) -> void:
 		button.add_theme_stylebox_override("pressed", UiStyle.plate_box(6.0, 4.0, &"plate_yours"))
 		button.add_theme_stylebox_override("hover_pressed", UiStyle.plate_box(6.0, 4.0, &"plate_yours"))
 	row.add_theme_constant_override("separation", 4)
-	_extra.add_child(row)  # In Details (light pass): a setting, not the next step; T cycles it from anywhere
+	_extra.add_child(row)  # In Details (light pass): a setting, not the next step; Z cycles it from anywhere
 
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
@@ -855,15 +857,33 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
 		_touch = false
 
-# Q / E / Z: the Grow button's key badge, like Sell (X) and Nurture (R).
+# Q / E / R / T: the Grow button's key badge, like Sell (X) and Nurture (N). Phones show none.
 func _grow_key(button: Button, index: int) -> void:
 	if index >= TowerSeller.GROW_OPTION_ACTIONS.size():
 		return
 	button.set_meta(&"grow_index", index)  # TowerSeller.grow_refused shakes it
 	var key := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
-	if key != "":
-		button.set_meta(&"key", " (%s)" % key)  # Added by _set_short after the price / missing part
-		button.text += " (%s)" % key
+	if key != "" and not _phone:
+		var suffix := UiStyle.key_suffix(key)
+		button.set_meta(&"key", suffix)  # Added by _set_short after the price / missing part
+		button.text += suffix
+
+# Nurture's badge: its bound key (N by default), none on phones or when unbound.
+func _nurture_key() -> String:
+	var key := TowerSeller.key_name(&"nurture_warden")
+	return "" if key == "" or _phone else UiStyle.key_suffix(key)
+
+# I (warden_details): the footer's Details toggle, as if clicked. Not while typing or on phones (no toggle there).
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not visible or _phone or not InputMap.has_action(&"warden_details") or not event.is_action_pressed(&"warden_details"):
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return
+	var toggle := find_child("DetailsToggle", true, false) as Button
+	if toggle != null and toggle.is_visible_in_tree():
+		toggle.pressed.emit()
+		get_viewport().set_input_as_handled()
 
 # A form not unlocked yet: "Grow into Beacon · 2 Dreamlight (Q)" opens the Remember tree on it; short of
 # Dreamlight it's the can't-afford style (the cost in POOR) and a press refuses; not open yet (Memory Grove,
@@ -1440,6 +1460,9 @@ func _details_toggle() -> void:
 	var toggle := _add_footer_button("Hide" if _buffs_open else "Details")
 	toggle.name = "DetailsToggle"
 	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # One of three even plates
+	var details_key := TowerSeller.key_name(&"warden_details")
+	if details_key != "":
+		toggle.tooltip_text = "Details (%s)" % details_key  # No chip, like Close: it squeezed the word in its third of the row
 	toggle.pressed.connect(func() -> void:
 		_buffs_open = not _buffs_open
 		details_choice = _buffs_open
@@ -1510,7 +1533,7 @@ func _pointer_inside() -> bool:
 
 func _process(delta: float) -> void:
 	_animate_portrait(UiTime.delta(delta))  # The HUD panel: real time
-	# A Warden grown or nurtured by a hotkey (Q / E / Z, G, R) or a group bloom: show its new form.
+	# A Warden grown or nurtured by a hotkey (Q / E / R / T, N) or a group bloom: show its new form.
 	_watch_left -= UiTime.delta(delta)
 	if visible and _watch_left <= 0.0:
 		_watch_left = WATCH_EVERY
@@ -1697,7 +1720,7 @@ func _place_from_bottom() -> void:
 
 # --- Prices on action buttons (screens_ui.md "can't buy", user 2026-10-01) ---------------------------------
 # Every action the player can't pay for looks the same: the plain frame, a dim INK_DIM label, and only the
-# cost in POOR ("Nurture rank III · 120 Dew (R)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
+# cost in POOR ("Nurture rank III · 120 Dew (N)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
 # needed": user, "a bit too much hand holding"). Still pressable: the press plays the refusal
 # (TowerSeller.refuse_if_short / _refuse_nurture: the button shakes, "Not enough Dew", the counter flashes).
 # Dew / Dreamlight changes update it in place (_update_prices), back to the normal look the moment it's affordable.
@@ -1952,7 +1975,7 @@ func _toast(text: String) -> void:
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast(text)
 
-# TowerSeller refused a grow (Q / E / Z, G, or one of these buttons): shake its button(s), say why.
+# TowerSeller refused a grow (Q / E / R / T, or one of these buttons): shake its button(s), say why.
 func _on_grow_refused(index: int, text: String) -> void:
 	grow_refused += 1
 	_toast(text)
