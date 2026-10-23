@@ -2045,5 +2045,5 @@ func _draw_mushroom(c: CanvasItem, at: Vector2, tex: Texture2D, alpha: float, fl
 	var frame := (maxi(_breathe_frame, 0) + phase) % MUSHROOM_FRAMES
 	var rect := Rect2((at - Vector2(w / 2.0, h - 2.0)).round(), Vector2(w, h))  # The stem's foot at (w/2, h-2) on the spot, 1x
 	if flip:
-		rect = Rect2(rect.position + Vector2(w, 0.0), Vector2(-w, h))
+		rect = Rect2(rect.position, Vector2(-w, h))  # A negative width mirrors the art in place (Godot keeps the left edge)
 	c.draw_texture_rect_region(tex, rect, Rect2(w * frame, 0.0, w, h), Color(tint, alpha))  # multiplier

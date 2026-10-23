@@ -648,7 +648,7 @@ static func draw_evo_art(cache: Dictionary, c: CanvasItem, mark: StringName, at:
 	var source := Rect2(w * frame, 0.0, w, h)
 	var rect := Rect2((at - anchor).round(), Vector2(w, h))
 	if flip:  # Mirrored about the anchor: the anchor's x counts from the right edge
-		rect = Rect2((at - Vector2(w - anchor.x, anchor.y)).round() + Vector2(w, 0.0), Vector2(-w, h))
+		rect = Rect2((at - Vector2(w - anchor.x, anchor.y)).round(), Vector2(-w, h))  # A negative width mirrors the art in place (Godot keeps the left edge)
 	c.draw_texture_rect_region(tex, rect, source, Color(1.0, 1.0, 1.0, alpha))  # multiplier: alpha only
 	return true
 
