@@ -1679,6 +1679,11 @@ func mark_stamp(state: Array) -> int:
 	return CLASS_KIT.evo_art_stamp(evo_art, marks)
 
 class LanternMark extends Node2D:
+	const BAR_DEFAULT := Vector2(0, -38)  # Enemy.HEALTH_BAR_OFFSET, when the nightmare is gone
+	const WAITING_FLAME_AT := Vector2(-25, 17)  # From the bar centre: the gap under the bar's left end
+	const MOTH_FLAME_AT := Vector2(26, 20)  # ...and its right end
+	const STAR_AT := Vector2(0, -30)  # Above the status row
+	const STAR_CHARGES: Array[Vector2] = [Vector2(-13, 0), Vector2(13, 0), Vector2(0, -13)]
 	var _enemy: WeakRef
 	var _lights: WeakRef
 	var _state: Array = []
@@ -1718,36 +1723,43 @@ class LanternMark extends Node2D:
 			if ring_on and _ring.frame_changed():
 				_ring.queue_redraw()
 
+	# Placed from the nightmare's health-bar centre B (Enemy._bar_offset; Roguelite asset chat, owner 2026-10-23,
+	# placement_mock.png): the marks sit in the gap between the bar and the head, never on the bar or the status row.
 	func _draw() -> void:
 		if _state.is_empty():
 			return
 		var lights = _lights.get_ref()
 		var art: bool = lights != null
-		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered (lf_strung_pip)
-			var pip := Vector2(-12 + 6 * i, -40)
+		var enemy = _enemy.get_ref()
+		var bar: Vector2 = enemy._bar_offset if enemy != null and "_bar_offset" in enemy else BAR_DEFAULT
+		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered, hung just under the bar (lf_strung_pip)
+			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 4)
 			if not (art and lights.evo_mark(self, &"lf_strung_pip", pip)):
 				draw_circle(pip, 1.5, Palette.GLOW)
-		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit (lf_waiting_flame, its base at (-10, -27))
-			if not (art and lights.evo_mark(self, &"lf_waiting_flame", Vector2(-10, -27))):
-				draw_circle(Vector2(-10, -30), 3.0, Color(Palette.EMBER, 0.85))
-				draw_circle(Vector2(-10, -31), 1.5, Palette.GOLD)
-		if int(_state[2]) >= 0:  # Moth to Flame: a larger flame, white once its 4 hits are in (lf_moth_flame / _ready)
+		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit (lf_waiting_flame), at the bar's left
+			var base: Vector2 = bar + WAITING_FLAME_AT
+			if not (art and lights.evo_mark(self, &"lf_waiting_flame", base)):
+				draw_circle(base + Vector2(0, -3), 3.0, Color(Palette.EMBER, 0.85))
+				draw_circle(base + Vector2(0, -4), 1.5, Palette.GOLD)
+		if int(_state[2]) >= 0:  # Moth to Flame: a larger flame, white once its 4 hits are in, at the bar's right
 			var sheet: StringName = &"lf_moth_flame_ready" if int(_state[2]) > 0 else &"lf_moth_flame"
-			if not (art and lights.evo_mark(self, sheet, Vector2(10, -27))):
+			var base: Vector2 = bar + MOTH_FLAME_AT
+			if not (art and lights.evo_mark(self, sheet, base)):
 				var core: Color = Palette.HEARTLIGHT if int(_state[2]) > 0 else Palette.GLOW
-				draw_circle(Vector2(10, -32), 4.5, Color(Palette.GOLD, 0.7))
-				draw_circle(Vector2(10, -33), 2.5, core)
-		for i in int(_state[4]):  # Constellation: a pip per Warden counted (lf_constellation_pip)
-			var pip := Vector2(-6 + 6 * i, -46)
+				draw_circle(base + Vector2(0, -5), 4.5, Color(Palette.GOLD, 0.7))
+				draw_circle(base + Vector2(0, -6), 2.5, core)
+		var star: Vector2 = bar + STAR_AT
+		for i in int(_state[4]):  # Constellation: a pip per Warden counted, where the star will appear
+			var pip: Vector2 = star + Vector2(-8 + 8 * i, 0)
 			if not (art and lights.evo_mark(self, &"lf_constellation_pip", pip)):
 				draw_circle(pip, 1.5, Palette.MOONLIGHT)
-		if int(_state[3]) > 0:  # The star (lf_constellation_star), one pip per hit left
-			var at := Vector2(0, -50)
-			if not (art and lights.evo_mark(self, &"lf_constellation_star", at)):
+		if int(_state[3]) > 0:  # The star (lf_constellation_star) and its charges round it, a dotted thread to each
+			if not (art and lights.evo_mark(self, &"lf_constellation_star", star)):
 				for k in 4:
-					draw_line(at, at + Vector2(6, 0).rotated(PI * 0.5 * k), Color(Palette.HEARTLIGHT, 0.8), 1.5)
-			for i in int(_state[3]):
-				var dot := at + Vector2(-6 + 6 * i, -6)
+					draw_line(star, star + Vector2(6, 0).rotated(PI * 0.5 * k), Color(Palette.HEARTLIGHT, 0.8), 1.5)
+			for i in mini(int(_state[3]), STAR_CHARGES.size()):  # Spent from the last
+				var dot: Vector2 = star + STAR_CHARGES[i]
+				draw_dashed_line(star, dot, Color(Palette.GOLD, 0.4), 1.0, 1.0)
 				if not (art and lights.evo_mark(self, &"lf_constellation_pip", dot)):
 					draw_circle(dot, 1.2, Palette.HEARTLIGHT)
 		if bool(_state[5]) and not (art and lights.has_evo_mark(&"lf_full_glow_ring")):  # Full Glow: the light it carries

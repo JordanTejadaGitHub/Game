@@ -397,9 +397,12 @@ func _draw_pips() -> void:
 		var roster: Array = enemy.get_meta(FILLERS_META, []) if colours else []
 		var swell := mini(int(enemy.get_meta(CRESC_META, 0)), CRESC_GLOW_STEPS) if cresc else 0
 		var wall_pip := int(enemy.get_meta(WALL_PIP_META, -1)) if walls else -1
-		# The clapper the rings spread from; Down the Line / Both Ways: a primed nightmare's bronze bell, its lip on it
-		if not (primed and evo_mark(_pip_layer, ART_PRIME, at)):
-			_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))
+		_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))  # The clapper the rings spread from
+		# Down the Line / Both Ways: a primed nightmare's bronze bell, its lip at PRIME_AT from the health-bar centre
+		# (Roguelite asset chat, 2026-10-23: in the gap left of the rings, clear of the bar and the status row)
+		if primed:
+			var bar = enemy.get("_bar_offset")
+			evo_mark(_pip_layer, ART_PRIME, enemy.global_position + (bar if bar is Vector2 else Vector2(0, -38)) + PRIME_AT)
 		for k in need:
 			var radius := RING_FIRST + RING_STEP * k
 			if k < filled:
@@ -452,6 +455,7 @@ func _draw_pips() -> void:
 
 # Calling evolution marks (assets/effects/calling_evo/, class_kit.evo_mark); each falls back to the drawn shape
 const ART_PRIME := &"kt_bronze_prime"
+const PRIME_AT := Vector2(-26, 15)  # kt_bronze_prime's lip, from the health-bar centre
 const ART_ALLEGRO := &"kt_allegro_note"
 const ART_HUM := &"kt_humming_pip"
 const BRONZE_RAMP: Array[Color] = [Palette.OAK, Palette.EMBER, Palette.GOLD]  # Primed / Steady Beat rings, inside out
