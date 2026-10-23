@@ -78,7 +78,7 @@ const EFFECTS := {
 	"shared_light": {"text": "+25%", "damage": 1.25},
 	"solitude": {"text": "+45%", "damage": 1.45, "range": 0.5},
 	"sprout_chorus": {"text": "+30% speed", "speed": 1.3},
-	"straightaway": {"text": "+30%", "damage": 1.3, "range": 0.5},
+	"straightaway": {"text": "+0.5 range", "damage": 1.0, "range": 0.5},  # Range only since 2026-10-23
 	"straightaway_ii": {"text": "+50%", "damage": 1.5, "range": 0.5},
 	"tended_stumps": {"text": "+25%", "damage": 1.25},
 	"tended_stumps_ii": {"text": "+40%", "damage": 1.4},

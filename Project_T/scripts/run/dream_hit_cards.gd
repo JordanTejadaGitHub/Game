@@ -26,6 +26,7 @@ const RULES: Array[StringName] = [FINISHING_BLOW, BEARING_DOWN, OPEN_ROAD, CLEAN
 # Hits these never touch: area effects and copies that only look like hits (Clear Minds' list, council finals_td.md 1).
 const SKIP_COMBOS: Array[StringName] = [&"cloud", &"fence", &"echo", &"great_ripple", &"spillover", &"flurry_copy",
 	&"conducted", &"run_through", &"measured_blow", &"tallest_tree"]
+const CLASS_KIT := preload("res://scripts/combat/class_kit.gd")  # (its CLASS_TAGS: a Calling row's hits are damage only, R1)
 const CARRIED_TAG := &"run_through"  # Run Through's carried hits: damage only (DreamState.batch_damage_multiplier skips it)
 const MEASURED_TAG := &"measured_blow"  # Measured Blow's added damage
 const TALLEST_TAG := &"tallest_tree"  # The Tallest Tree's spent store
@@ -147,6 +148,43 @@ func hit_multiplier(tower, enemy, is_area: bool, combo: StringName) -> float:
 	_remember(tower, enemy, is_area, m)
 	return m
 
+# The same bonuses as hit_multiplier with no side effects (evo_shared_spec.md 4): no credit or cap notes, no _remember (no
+# Measured Blow, Tallest spend or Run Through after), Bearing Down and Nowhere to Run only read. class_kit.calling_hit
+# scales a Calling row's hit by it (its standing bonuses; R1: the hit never counts for these cards' own records).
+func preview_multiplier(tower, enemy, is_area: bool) -> float:
+	if not live() or _skip(tower, &"") or enemy == null or not is_instance_valid(enemy):
+		return 1.0
+	var m := 1.0
+	var tier: int = tower.tower_data.tier
+	if _on.has(FINISHING_BLOW) and tower.rank >= FINISHING_MIN_RANK and enemy.health < enemy.max_health * FINISHING_SHARE:
+		m *= 1.0 + FINISHING_BONUS
+	if _on.has(BEARING_DOWN) and not is_area and tower.attack_data.attack_kind != TowerData.AttackKind.BEAM:
+		m *= 1.0 + minf(BEARING_PER * _bearing_peek(tower, enemy), BEARING_PER_RANK * tower.rank)
+	if _on.has(OPEN_ROAD) and not enemy.is_flying() and _straight_cells(enemy) >= OPEN_ROAD_CELLS:
+		m *= 1.0 + OPEN_ROAD_BONUS
+	if _on.has(CLEAN_STRIKE) and _clean(tower, enemy):
+		m *= 1.0 + (CLEAN_FINAL_BONUS if tier >= 3 else CLEAN_BONUS)
+	if _on.has(NOWHERE_TO_RUN) and tier >= 2:
+		m *= 1.0 + minf(NOWHERE_PER_SECOND * _nowhere_peek(tower, enemy), NOWHERE_MAX)
+	if _on.has(STANDING_TALL) and tier >= 3:
+		m *= 1.0 + STANDING_PER * standing_count(tower)
+	if _on.has(TROPHIES):
+		m *= 1.0 + trophy_bonus(tower)
+	return m
+
+func _bearing_peek(tower, enemy) -> int:
+	var row: Array = _bearing.get(tower.get_instance_id(), [0, -1, 0])
+	return int(row[2]) if int(row[0]) == enemy.get_instance_id() else 0
+
+func _nowhere_peek(tower, enemy) -> float:
+	var key := "%s:%d" % [cell_key(tower.cell), enemy.get_instance_id()]
+	if not _nowhere.has(key):
+		return 0.0
+	var row: Array = _nowhere[key]
+	var now: float = dreams._game_clock
+	var gap := maxf(NOWHERE_GAP, 1.5 / maxf(tower.get_attacks_per_second(), 0.1))
+	return 0.0 if now - float(row[1]) > gap else now - float(row[0])
+
 func _note(rule: StringName, multiplier: float) -> float:
 	DamageLog.note_card_bonus(String(rule), multiplier)
 	return multiplier
@@ -236,7 +274,7 @@ func _remember(tower, enemy, is_area: bool, multiplier: float) -> void:
 	_ctx = [tower, enemy, is_area, multiplier]
 
 func on_damage_event(event) -> void:
-	if _ctx.is_empty() or event.source != _ctx[0] or event.enemy != _ctx[1] or event.tag in DAMAGE_ONLY_TAGS:
+	if _ctx.is_empty() or event.source != _ctx[0] or event.enemy != _ctx[1] or event.tag in DAMAGE_ONLY_TAGS or event.tag in CLASS_KIT.CLASS_TAGS:
 		return
 	var tower = _ctx[0]
 	var enemy = _ctx[1]

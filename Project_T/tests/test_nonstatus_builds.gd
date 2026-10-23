@@ -162,7 +162,8 @@ func _run() -> void:
 	n = _spawn(spot + Vector2(0, CELL))
 	before = n.health
 	dreams.keeping_time._midnight(n, bell)
-	_check(before - n.health >= bell.get_damage() * dreams.keeping_time.MIDNIGHT_TRIPLE * 0.5,
+	# A Calling hit since section 33: the free-hit base min(hit, one second of damage), so slow bells deal less than 3 hits
+	_check(before - n.health >= minf(bell.get_damage(), dreams.keeping_time.second_of(bell)) * dreams.keeping_time.MIDNIGHT_TRIPLE * 0.5,
 		"Midnight Toll: the bell hits for triple with no status on the nightmare (%.1f)" % (before - n.health))
 	await _clean()
 
@@ -176,7 +177,8 @@ func _run() -> void:
 	_check(dreams.card_needs_met(slow_burn), "Slow Burn is offered with Riverside")
 	dreams.calling = "firefly_jar"
 	dreams.calling_path.assign([&"lf_bonfire", &"lf_moth_to_flame"])
-	_check(dreams._requires_met(load("res://resource/dream/bright_marks.tres")), "Bright Marks is offered with Moth to Flame")
+	_check(dreams.owns("lanternmoth") or not dreams._requires_met(load("res://resource/dream/bright_marks.tres")),
+		"Bright Marks no longer comes with Moth to Flame (it builds crits, not Exposure, since the 2026-10-23 rebuild)")
 	await _clean()
 
 	print("test_nonstatus_builds: %s" % ("PASS" if failures == 0 else "FAIL (%d)" % failures))
