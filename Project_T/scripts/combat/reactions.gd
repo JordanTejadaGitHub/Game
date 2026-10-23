@@ -303,13 +303,15 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	var landing_source_before := _landing_source
 	_landing_id = _id
 	_landing_source = source
+	var own := _in_reaction == 0  # A Warden's own application (not a Reaction's arc, burn, fear…)
 	_in_reaction += 1
-	_check_pairs(enemy, source)
+	_check_pairs(enemy, source, own)
 	_in_reaction -= 1
 	_landing_id = landing_before
 	_landing_source = landing_source_before
 
-static func _check_pairs(enemy: Node2D, source: Node) -> void:
+# `own`: the landing is a Warden's own application (the Tempest fix only reads it).
+static func _check_pairs(enemy: Node2D, source: Node, own: bool = true) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var crowned_first := _crowned_waiting(enemy)  # Read before anything here spends a status (Crowned precedence, below)
 	var static_needed := thunderclap_threshold(s)
@@ -320,7 +322,9 @@ static func _check_pairs(enemy: Node2D, source: Node) -> void:
 	# Tempest fix (owner 2026-10-22, dream_council_review.md 29): Ignite fires at 8 Charged and spends it, so Thunderclap's 10
 	# (and its Tempest) never came on a Poisoned nightmare. An Ignite on a Soaked nightmare is the Tempest instead: the clap at
 	# its 8 Charged, and the nightmare burns as the Ignite would have (TEMPEST_FROM_IGNITE). Never a boss (its clap needs 15).
-	if TEMPEST_FROM_IGNITE and not s.is_boss and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) \
+	# Only on a Warden's own landing: a Reaction's Charged (a Tempest's arc on its Soaked, Poisoned neighbour) keeps the
+	# old order, so the arc sets off Ignite as Tempest means it to (one Tempest, not a cascade; test_crowned).
+	if TEMPEST_FROM_IGNITE and own and not s.is_boss and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) \
 			and s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.tempest_time <= 0.0 and not s.is_on_cooldown(&"thunderclap") \
 			and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source, true)
