@@ -649,6 +649,33 @@ func _lay_pale() -> void:
 					_pale[cell] = true
 					break
 
+# The pale path for the UI (UI Code, 2026-10-23): today's cells, or with a build ghost the cells it would make: a ghost
+# `ghost_data` at whole cell `ghost_cell` counts as one more Warden in range (its base range in cells) unless it is a Firefly
+# or a wall. Empty without Sightline. Not cached: TowerPlacer asks on hover change only.
+func pale_cells(ghost_data: TowerData = null, ghost_cell := Vector2i(-1, -1)) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if not evo(EVO_SIGHT):
+		return out
+	var counts_ghost := ghost_data != null and ghost_cell != Vector2i(-1, -1) and ghost_data.line != LINE and ghost_data.line != "wall"
+	if not counts_ghost:
+		for cell in _pale:
+			out.append(Vector2i(cell))
+		return out
+	var ghost_at: Vector2 = Tower.MAP_GRID.calculate_map_position(Vector2(ghost_cell))
+	var ghost_reach: float = ghost_data.attack_range * Tower.MAP_GRID.cell_size.x
+	var others: Array = _towers().filter(is_other)
+	for cell in _glow:
+		var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
+		var count := 1 if ghost_at.distance_to(at) <= ghost_reach else 0
+		for tower in others:
+			if count >= PALE_WARDENS:
+				break
+			if tower.global_position.distance_to(at) <= tower.get_range_pixels():
+				count += 1
+		if count >= PALE_WARDENS:
+			out.append(Vector2i(cell))
+	return out
+
 # Moth to Flame's holder: the highest-rank attacking Warden whose range covers a gold step (ties: the higher form).
 func _find_moth_holder() -> void:
 	var best = null
