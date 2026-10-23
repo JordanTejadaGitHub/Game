@@ -107,7 +107,7 @@ func _f1_checks(far: Vector2, route: Array) -> void:
 	dreams.stacks.clear()
 	dreams.calling = "firefly_jar"
 	_take("seeping_in")
-	_check(load("res://resource/dream/seeping_in.tres").description.begins_with("For 12 {steps} after a spore Warden hits"), "F7: the new face")
+	_check(load("res://resource/dream/seeping_in.tres").description.begins_with("For 12 {steps} after a Sporeling hits"), "F7: the new face")
 	var start := 8
 	if route.size() > start + 40:
 		var ss := _plant("sporeling", route[start] + Vector2(CELL, 0))
