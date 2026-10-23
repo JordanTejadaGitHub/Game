@@ -1,5 +1,28 @@
 # Maze income
 
+## The maze grows the Dew pot (user, 2026-10-22: "let's increase the maze payout for Dew"; replaces "Path length only" below)
+The economy council (game_council rounds 2026-10-22) found the maze paid about 1% of income (+45 cells ≈ 15 Dew a block
+against ≈ 1,500 from pots), so building it was never an economic choice.
+
+**The rule a player reads:** *A longer maze makes every drift pay more: +1% Dew for every 2 cells your route is longer
+than the forest's own path, up to +30%.*
+- **Added cells** as before: your route's length in whole cells minus the generated baseline (saved with the run).
+- **Paid every drift, as a share of that drift's Dew pot** (on each dispel's share, like the other pot multipliers in
+  `get_dew_pot_multiplier`), so it grows with the acts instead of staying a flat trickle. 45 added cells = +22% ≈ +55
+  Dew a drift in act 2, ≈ +280 a block.
+- **Measured at the route's shortest while that drift's nightmares walk** (the same anti-farming rule: lengthening it
+  mid-drift or selling walls after doesn't pay that drift).
+- **Cap +30%** (60 added cells). Deep Sleep still forfeits it; Winding Path multiplies the maze share (×3 → +90% cap is
+  too much: Balancing sets the card's new number).
+- **Shown** on the Dew counter's forecast ("+22% maze") and the Path counter's tip ("Your route is 45 cells longer than
+  the forest's path: drifts pay +22% Dew"); the build ghost's "+N path" also shows the % it would add. The rest
+  report lists "Maze +280".
+- **Inflation check (Balancing):** Dew is already in surplus (council: banks of 2,000-3,000). A good maze now adds up
+  to +30%; consider trimming the act 2 base pots about 10-15% so a strong maze ends near today's income and a lazy one
+  below it. That makes the maze matter without adding more idle Dew. Balancing decides.
+
+The block-rest flat payout below is retired; its snapshot ledger and save fields stay for old saves.
+
 ## Path length only (user, 2026-10-11: "the maze bonus is confusing"; replaces the defended-cells rule below)
 
 **The rule a player reads:** *+1 Dew for every 4 cells your route is longer than the forest's own path.* (No cap since 2026-10-12, user: the map's size is the limit; it was 20 a block.)
