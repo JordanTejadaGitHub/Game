@@ -87,7 +87,8 @@ func _draw() -> void:
 		return
 	if not pc_open and not _kind_words.visible:
 		return  # PC, shut: the chip on the banner row stands in for it
-	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
+	var box := size.max(get_combined_minimum_size())  # Never smaller than what it holds (user 2026-10-22: opened from the chip, the
+	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), box + Vector2(SIDE_PAD * 2.0, 0)))  # faces showed on no panel)
 
 const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
 var _clock := 0.0
@@ -529,7 +530,7 @@ func _apply_pc() -> void:
 	for pad: Control in [_pad_top, _pad_foot]:
 		pad.visible = pc_open or _kind_words.visible
 	mouse_filter = Control.MOUSE_FILTER_STOP if (pc_open or _kind_words.visible) else Control.MOUSE_FILTER_IGNORE
-	queue_redraw()
+	queue_redraw.call_deferred()
 
 # Left of the banner's drift pips, centred on their row.
 func _place_chip() -> void:
