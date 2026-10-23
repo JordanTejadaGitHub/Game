@@ -93,7 +93,7 @@ func get_block_finale_elites(number: int) -> int:
 # Acts 2 and 3 bosses ("Human runs 7-9": 0 of 3 killed the act 2 boss once act 2 ended at x4.5; was 2.25, from "Human
 # run 3": the Lamplighter died in 29 s); act 1 and the Oak keep theirs. Split from mid_boss_health_multiplier so the
 # shared-curve retune can move act 2's boss alone (Balancing Discussion, 2026-10-06).
-@export var act2_boss_health_multiplier: float = 1.75
+@export var act2_boss_health_multiplier: float = 1.4  # Balancing 2026-10-22: was 1.75; the act 2 boss beat every run that reached it
 @export var act3_boss_health_multiplier: float = 1.75
 @export var act1_boss_health_multiplier: float = 1.45  # Act 1's boss (drift 25) instead. Balancing 2026-10-18: was 1.75; the power-budget base cut made the act 1 boss ~x1.2-1.3 harder (Night Mare 161 s, Hollow Stag not dispelled)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
