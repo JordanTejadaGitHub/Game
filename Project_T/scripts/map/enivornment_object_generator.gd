@@ -28,8 +28,8 @@ const BRIDGE_CELLS := StartGate.BRIDGE_CELLS  # Rope bridge from the start out i
 @export var frame_band: int = 4  # Cells of frame between the island's edge and the bowl (the old rim ring + 3)
 @export var bowl_obstacles_min: int = 3  # Lone decision obstacles in the bowl (user 2026-10-06: "a bit more obstacles")
 @export var bowl_obstacles_max: int = 6
-@export var target_obstacles_min: int = 48  # Island edge B: +10 for the old rim ring at the frame band's density (13.1% of 78 cells)
-@export var target_obstacles_max: int = 58
+@export var target_obstacles_min: int = 38  # Smaller map (20x16, 2026-10-23): the old 48–58 by the area share (320 / 414)
+@export var target_obstacles_max: int = 46
 @export_group("Ridges")
 # Ridges are tapered spurs of rocks and trees reaching in from the frame, from alternating walls. They give
 # the opening route its bend; clearing one of their cells opens a shortcut.

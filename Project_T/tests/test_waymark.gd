@@ -135,8 +135,18 @@ func _pick_cell() -> Vector2:
 			var plain := finder.calculate_point_path(map.startPath, map.endPath)
 			for h in closed:
 				finder.set_half_blocked(h, false)
+			closed.clear()
+			for c in sides.slice(0, 3):  # Three sides shut (the stub): both legs must still reach the stone's open side
+				for h in FindPath.halves_of_cell(c):
+					if not finder.is_half_blocked(h):
+						finder.set_half_blocked(h, true)
+						closed.append(h)
+			var stub_ok := not finder.calculate_point_path(map.startPath, cell).is_empty() \
+				and not finder.calculate_point_path(cell, map.endPath).is_empty()
+			for h in closed:
+				finder.set_half_blocked(h, false)
 			map.probe_end(version)
-			if not plain.is_empty():
+			if not plain.is_empty() and stub_ok:
 				best = cell
 				best_d = d
 	return best
@@ -299,7 +309,9 @@ func _test_maze(cell: Vector2) -> void:
 	print("  maze: route %d cells (%d unique), baseline %d (%d unique), added %d" % [map.route_length(now), map.unique_route_length(now),
 		map.route_length(base), map.unique_route_length(base), added])
 	_check(added == maxi(0, map.unique_route_length(now) - map.unique_route_length(base)), "added cells are unique(now) - unique(baseline)")
-	_check(map.route_length(now) - map.route_length(base) > added, "the stub walked out and back is not counted twice (%d raw vs %d unique)" % [map.route_length(now) - map.route_length(base), added])
+	# The raw growth over the baseline depends on the map (the baseline may already turn at the stone), so check the stub
+	# itself: walked out and back, its cells are on the route twice but counted once.
+	_check(map.route_length(now) > map.unique_route_length(now), "the stub walked out and back is not counted twice (%d raw vs %d unique)" % [map.route_length(now), map.unique_route_length(now)])
 	var moved := Vector2(-1, -1)
 	economy.sample(1, 1, map)
 	var sampled: int = int(economy.to_save().blocks["1"].samples["1"])
