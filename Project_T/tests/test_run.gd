@@ -232,7 +232,12 @@ func _test_blocks_and_rests() -> void:
 	await _frames(300)
 	_check(director.drifts_started == 7, "Auto-drift off: the next drift waits for the button")
 	director.set_auto_drift(true)
-	await _play_until(main, func() -> bool: return rests.size() >= 2, 0, 9000)
+	# The rest after drift 10 opens with the second family pick since 2026-10-22 (picks after drifts 1, 10, 35, 60)
+	await _play_until(main, func() -> bool: return director.awaiting_family_pick or rests.size() >= 2, 0, 9000)
+	_check(director.awaiting_family_pick and picks == [&"first", &"second"], "after drift 10: the second family pick (%s)" % [picks])
+	if director.awaiting_family_pick:
+		family.choose(family.offer[0])
+	await _play_until(main, func() -> bool: return rests.size() >= 2, 0, 600)
 	_check(rests[1] == [2, false, roundi(38 * director.trial_dew_multiplier), false], "leaky block: (30 + 4×2) × the trial's Dew, no perfect bonus (%s)" % [rests[1]])
 	main.queue_free()
 	await process_frame
@@ -268,7 +273,8 @@ func _test_boss_rest_and_win() -> void:
 	_check(rests == [[1, true]], "the boss rest comes at once")
 	# A waiting choice holds the drift (user bug: "I can hide the Dream choice and start the wave").
 	var rest_dreams: DreamState = main.get_node("%DreamState")
-	_check(director.pending_choice() == &"dream" and not director.can_start_next_drift(), "the Dream waiting behind the boss rest's Remember screen holds the drift too")
+	_check(director.pending_choice() == &"dream" and not director.can_start_next_drift(), "the Dream waiting behind the boss rest's Remember screen holds the drift too (pending %s, offering %s, queued %s)"
+		% [director.pending_choice(), rest_dreams.is_offering(), rest_dreams.has_pending_offer()])
 	rest_dreams.remember_closed()  # The player closes Remember: the Dream shows
 	for i in 30:
 		if rest_dreams.is_offering():

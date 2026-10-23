@@ -983,7 +983,7 @@ func _make_deepen_card(base: TowerData) -> Button:
 	for form in dream_state.not_offered_branches(base).slice(0, DEEPEN_SHOWN):
 		lines.append([form.display_name, 16, UiStyle.INK])
 		lines.append([form.role_line if form.role_line != "" else IconInfo.format(form.description), 13, UiStyle.INK_DIM])
-	lines.append(["+%d Dreamlight now. Call one of these back for %d." % [DreamState.DEEPEN_DREAMLIGHT, DreamState.BRANCH_DREAMLIGHT], 13, UiStyle.GOLD])
+	lines.append(["%s now. Call one of these back for %s." % [UiStyle.dreamlight_amount(DreamState.DEEPEN_DREAMLIGHT, true), UiStyle.dreamlight_amount(DreamState.BRANCH_DREAMLIGHT)], 13, UiStyle.GOLD])
 	for line in lines:
 		var label := Label.new()
 		label.text = line[0]

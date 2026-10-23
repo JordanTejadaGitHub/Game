@@ -230,9 +230,9 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": "",
 	# Fewer, bigger cards (dream_design.md de439ea8): cut or folded
 	"family_ties": "", "broad_splash": "far_reach", "acorn_cache": "warm_hearth"}
-const SECOND_PICK_DREAMLIGHT := 1  # The second family pick, after drift 10 (user 2026-10-22: "only give 1 dreamlight on drift 10")
+const SECOND_PICK_DREAMLIGHT := 1  # The second family pick, after drift 10 (user 2026-10-22: 1 Dreamlight on drift 10)
 const ACT1_BOSS_DREAMLIGHT := 2  # Act 1's boss rest (drift 25): the same as every boss now (kept for callers)
-const BOSS_DREAMLIGHT := 2  # Every boss rest (user 2026-10-22: "+2 dreamlight every boss and +1 for every pick"; was 3)
+const BOSS_DREAMLIGHT := 2  # Every boss rest (user 2026-10-22: +2 Dreamlight every boss, +1 every pick; was 3)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.

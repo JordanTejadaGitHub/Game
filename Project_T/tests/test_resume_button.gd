@@ -48,7 +48,7 @@ func _run() -> void:
 	# Mid-drift, paused: Resume only, never a call early.
 	speed.set_paused(true)
 	await _frames(2)
-	_check(start.text == "Resume (Enter)" and not start.disabled, "paused mid-drift: Resume (%s)" % start.text)
+	_check(start.text == "Resume" and not start.disabled and panel._start_chip != null and panel._start_chip.visible, "paused mid-drift: Resume, Enter as its key chip (%s)" % start.text)
 	started = director.drifts_started
 	panel._on_start_pressed()
 	await _frames(2)
