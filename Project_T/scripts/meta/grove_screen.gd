@@ -261,7 +261,7 @@ func _build_footer() -> void:
 	footer.add_theme_constant_override("separation", 10)
 	_start_button = _button(footer, "Start run", _start_run)
 	UiStyle.primary(_start_button)  # The screen's one primary (ui_style.md); framed while a node card is open
-	_button(footer, "Carry", func() -> void: _open_loadout(false))
+	_button(footer, "Carry perk", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
 	if not DemoGrove.is_active():  # Keepsakes come from milestones, which the demo doesn't record
 		_button(footer, "Keepsakes", open_keepsakes)
