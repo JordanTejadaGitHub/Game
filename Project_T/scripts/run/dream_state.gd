@@ -3139,24 +3139,24 @@ static func _left_this_run(n: int) -> String:
 	return "%d left this run" % n
 
 func reroll_label() -> String:
-	return ("Dream again · " + _left_this_run(rerolls_left)) if rerolls_left > 0 else "No rerolls left this run"
+	return ("Reroll · " + _left_this_run(rerolls_left)) if rerolls_left > 0 else "No rerolls left this run"
 
 func reroll_tip() -> String:
 	return "Shows three new cards. Rerolls don't refill: this run has %d left. More come from Second Thoughts (Memory Grove) and the Wandering Mind card." % rerolls_left
 
 func banish_label() -> String:
-	return ("Let go · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No let-gos left this run"
+	return ("Banish · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No banishes left this run"
 
 func banish_tip() -> String:
-	return "This card won't come back this run; another takes its place. Let-gos don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
+	return "This card won't come back this run; another takes its place. Banishes don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
 
-# "Rerolls left: 2 · Let-gos left: 1" (only the ones above 0; "" when none).
+# "Rerolls left: 2 · Banishes left: 1" (only the ones above 0; "" when none).
 func supply_line() -> String:
 	var bits: Array[String] = []
 	if rerolls_left > 0:
 		bits.append("Rerolls left: %d" % rerolls_left)
 	if banishes_left > 0:
-		bits.append("Let-gos left: %d" % banishes_left)
+		bits.append("Banishes left: %d" % banishes_left)
 	return " · ".join(bits)
 
 # Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.

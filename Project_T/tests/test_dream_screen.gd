@@ -333,7 +333,7 @@ func _run() -> void:
 	dreams.current_offer = offer
 	dreams.current_offer_drift = 35
 	screen._show_offer(offer, 35)
-	_check(screen._reroll.visible and not screen._reroll.disabled and screen._reroll.text == "Dream again · 1 left this run",
+	_check(screen._reroll.visible and not screen._reroll.disabled and screen._reroll.text == "Reroll · 1 left this run",
 		"the reroll says it's for the run (\"%s\")" % screen._reroll.text)
 	_check(screen._reroll.tooltip_text.contains("don't refill") and screen._reroll.tooltip_text.contains("Second Thoughts")
 		and screen._reroll.tooltip_text.contains("Wandering Mind"), "…and its tooltip says rerolls don't refill and where more come from")
@@ -353,8 +353,8 @@ func _run() -> void:
 	dreams.banishes_left = 2
 	screen._show_offer(dreams.current_offer, 45)
 	var let_go := screen._cards.get_child(0).get_child(1) as Button if screen._cards.get_child(0).get_child_count() > 1 else null
-	_check(let_go != null and let_go.text == "Let go · 2 left this run" and let_go.tooltip_text.contains("don't refill"),
-		"let-gos say the same (\"%s\")" % (let_go.text if let_go else "none"))
+	_check(let_go != null and let_go.text == "Banish · 2 left this run" and let_go.tooltip_text.contains("don't refill"),
+		"banishes say the same (\"%s\")" % (let_go.text if let_go else "none"))
 	dreams.banishes_left = 0
 	await _test_arm_delay(dreams, screen, main)
 	dreams.current_offer = []

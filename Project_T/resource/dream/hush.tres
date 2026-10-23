@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "hush"
 display_name = "Hush"
-description = "Pulsing bells get 50% more range."
+description = "Pulsing {family:bellflower} Wardens get 50% more range."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "sleep"])
 requires = Array[String](["bellflower"])
 max_stacks = 1
 rule_id = &"hush"
-tip = "Works for: {warden:bellflower}, {warden:lullaby_bell} and other bells that pulse. Safe."
+tip = "Works for: {warden:bellflower}, {warden:lullaby_bell} and other {family:bellflower} Wardens that pulse. Safe."
 uses = Array[StringName]([&"area"])

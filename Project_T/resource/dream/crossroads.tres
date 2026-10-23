@@ -14,6 +14,6 @@ max_stacks = 1
 min_act = 2
 rule_id = &"crossroads"
 diagram = "..1W7..\n..2w6..\n..345..\n.......\n......."
-diagram_caption = "Touches the path at steps 1 and 7, 6+ apart: +40%. ✗ steps 2 and 6 are only 4 apart."
+diagram_caption = "Touches the path at steps 1 and 7, 6+ apart: +100%. ✗ steps 2 and 6 are only 4 apart."
 in_start_pool = false
 uses = Array[StringName]([&"maze"])
