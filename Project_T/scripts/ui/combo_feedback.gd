@@ -570,6 +570,22 @@ func showing() -> bool:
 func _process(_delta: float) -> void:
 	if not _queue.is_empty() and not showing():
 		_try_show()
+	_follow_nightmare()
+
+# The camera pans while the card is up (building works while paused): the lit hole, the card and its thread stay on the
+# nightmare (user 2026-10-22: "if I move the camera while a 1st reaction screen comes, it doesn't follow where it
+# actually happened"). Only when it moved on screen.
+var _followed_at := Vector2.INF
+func _follow_nightmare() -> void:
+	if not _dim.visible or not _card.visible or not is_instance_valid(_card_enemy) or not _card_enemy.is_inside_tree():
+		_followed_at = Vector2.INF
+		return
+	var at: Vector2 = (_card_enemy as Node2D).get_global_transform_with_canvas().origin
+	if at.distance_squared_to(_followed_at) < 0.25:
+		return
+	_followed_at = at
+	_show_dim(_card_enemy)
+	_place_card()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (showing() and _pausing):
