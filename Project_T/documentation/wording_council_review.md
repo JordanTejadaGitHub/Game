@@ -218,7 +218,7 @@ DOUBLE IV / 2, ALLEGRO V / 3 / cleared when a drift ends, SYMPHONY 4 / 6 s, CODA
 
 | # | Row | Problem | Rewrite |
 |---|---|---|---|
-| 1 | Tier name **"Deepen"** (drift 75) | "Deepen" now names three things: Deepened cards, the drift 60 Deepen pick (a glossary entry since b4c17b1a) and this stage. | Owner call: a different stage name (recommended **Finale**: "Finale or Cross over"). |
+| 1 | Tier name **"Deepen"** (drift 75) | "Deepen" now names three things: Deepened cards, the drift 60 Deepen pick (a glossary entry since b4c17b1a) and this stage. | **Decided (owner 2026-10-23): Finale.** The drift 75 screen reads "Finale or Cross over"; code ids (DEEPEN, the "deepen" tag) may stay. |
 | 2 | Carrying Tune | "Only a {toll} deals damage" reads as if the bell's own hits stop damaging. The shot cap (TUNE_MAX 4) left the tip. | "…rings nightmares up to 6 {steps} further down the path. Carried rings deal no damage; a {toll} they make does." Tip: "A shot carries to up to 4 nightmares." |
 | 3 | Humming Walls, Carrying Tune tip | "pips" in player text; every other row says rings. | "Every 4 {steps} a nightmare walks beside Thornwalls counts as 1 ring: no damage, never the ring that makes its {toll}, once between {tolls}." Tip: "Not flyers." Carrying Tune tip: "Carried rings can make a {toll}; it lands like any other." |
 | 4 | Steady Beat | One 30-word sentence; "since its last {toll} {tolls} every 3rd ring" needs a re-read. | "If one bell, or one group of {touching} bells, has done all the ringing on a nightmare since its last {toll}, it {tolls} every 3rd ring instead of every 4th, in full instead of at half." |
