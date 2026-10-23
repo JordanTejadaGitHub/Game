@@ -513,6 +513,41 @@ just outside the grid.
 - **Balancing (Balancing Discussion):** +~74 buildable cells, mostly in the frame band. Sim act 1 before merging.
 - **Freeze:** Theme Discussion clears it against the marketing freeze. Marketing holds whole-island shots until it
   lands.
+
+## Smaller map (spec, Environment Discussion, 2026-10-23)
+
+The user: *"reduce the map size by 1/4"*, meaning **a quarter less area**. `map_grid.tres` goes from **23×18 → 20×16**
+(320 cells, was 414; half grid 46×36 → 40×32).
+- Everything that's sized by the grid scales with it: the frame band stays 4 rows (rim + 3), so the bowl becomes about
+  12×8 cells. Spur reach caps stay shares of the width, the Heartwood's inland and far-half rules are unchanged, and the
+  bend rule (Manhattan + 10) stays.
+- The opening route shrinks with the map (about 26–41 → roughly 22–36). Obstacles drop by the same share (about 48–58
+  → about 38–46). `test_map_density`'s bands follow, and Balancing sets the final bands.
+- **Balance:** a smaller map means shorter mazes. Drifts 1–10 were tuned on the old opening, so Balancing Discussion
+  must re-check act 1. Sims are on hold until the user says so, so Balancing gets the numbers and decides when.
+- Camera, overscroll, lip, start bridge and fog, previews and marketing captures all follow the new size. Theme
+  Discussion clears it against the art freeze.
+
+## Landmarks (spec, Environment Discussion, 2026-10-23)
+
+The user: *"add map landmarks where placing a Warden there or enemies going through does something"*, *"not every map
+has it"*, *"building on it does something, slow if on path if built through it"*.
+- **How often:** about **1 map in 3** gets one landmark, rolled from the map seed (saves rebuild it). Never in the
+  demo's first map. It sits in the open bowl, not on the opening route's first cells, not in the glade, at least 3
+  cells from the start and the Heartwood. Tap or hover shows what it does (touch-friendly).
+- **Never moves, blocks or re-routes the maze** (the route is the player's plan): the player decides whether to build on
+  it or route the path through it.
+- **Old Waystone** (build on it; art `waystone.png`): a one-cell site. A Warden planted on it (any one-cell Warden, not a
+  wall) earns **+1 Dew for each nightmare it dispels** (the killing blow). The bonus shows on the Warden panel and a
+  small "+1" pops on its kills. Sell or move the Warden and the stone is free again.
+- **Dew Pool** (path through it; art `dew_pool.png`, frozen in act 4): a 2-cell shallow pool of walkable water, never
+  buildable. Nightmares wading through it are **slowed 25%** while in it (flyers are not). The player chooses whether
+  the maze runs through it. Its look must read as shallow and walkable (reeds, ripples), not the deep unbuildable pond
+  feature.
+- One landmark per map at most. The first set is these two, picked evenly; more kinds can join later (parked ideas:
+  Blight Patch, Fallen Warden, Bone Arch).
+- Code: placement in generation (Environment Code), the Dew Pool slow (Enemy Code, as a terrain slow on its cells),
+  the Waystone bonus on a Warden's dispels (Tower Code). Numbers are Balancing's to confirm.
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
