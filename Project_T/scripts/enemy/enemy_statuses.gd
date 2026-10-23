@@ -381,7 +381,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if fresh and status.stacks > 0:
 		_grand_tour_new_status(id, source)
 	# When both buildup gates are met, Thunderclap goes first (Reactions), so no bolt here then.
-	if id == STATIC and status.stacks >= cap and not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC])):
+	if id == STATIC and status.stacks >= cap and (DreamState.undiluted_on or not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC]))):  # (Undiluted: no Thunderclap to wait for, so it bolts)
 		static_lingered = is_lingering(STATIC)  # Keyword chips 2026-10-16: the bolt below reads it (Slow Burn)
 		_active.erase(STATIC)
 		changes += 1
@@ -1142,6 +1142,27 @@ func note_stretched(id: StringName, seconds: float) -> void:
 func is_lingering(id: StringName) -> bool:
 	return _active.has(id) and (float(_active[id].get("lingered", 0.0)) > 0.0 or float(_active[id].get("stretched", 0.0)) > 0.0 \
 		or float(_active[id].get("calling_lingered", 0.0)) > 0.0)  # (F2: the Calling's own linger counts too)
+
+# Overtime (evo_shared_spec.md 8, Low Tide): `id` is past its normal time, its time left no more than what the lent cards
+# and the Calling added (is_lingering is true as soon as any time was added).
+func is_overtime(id: StringName) -> bool:
+	if not _active.has(id):
+		return false
+	var status: Dictionary = _active[id]
+	var added := float(status.get("lingered", 0.0)) + float(status.get("calling_lingered", 0.0)) + float(status.get("stretched", 0.0))
+	return added > 0.0 and float(status.time) <= added
+
+# Kept (evo_fixed_dewdrop.md "Kept"): a Dewdrop Support row stopped or slowed `id` running down this poll (mark_kept), or
+# it is in overtime. Low Tide, Slow Burn and the kept bar read it, never is_lingering.
+const KEPT_FOR := 0.15  # Seconds a mark_kept holds (a class poll is 0.1 s)
+func mark_kept(id: StringName, seconds: float = KEPT_FOR) -> void:
+	if _active.has(id):
+		_active[id]["kept_until"] = float(_active[id].get("age", 0.0)) + seconds  # On the status's own age (game time)
+
+func is_kept(id: StringName) -> bool:
+	if not _active.has(id):
+		return false
+	return float(_active[id].get("age", 0.0)) <= float(_active[id].get("kept_until", -1.0)) or is_overtime(id)
 
 # How long `id` has been on the nightmare without wearing off, and the most stacks it has had in that time.
 func age(id: StringName) -> float:

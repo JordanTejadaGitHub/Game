@@ -280,6 +280,8 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if _id == MARKED:
 		Fx.exposed_check(enemy)  # Exposed just filled: its flare, mark and callout (screens_ui.md, last section)
+	if DreamState.undiluted_on:
+		return  # Undiluted (Legendary, finals_td.md 4): no Reaction ever triggers; each status's own effect grows instead
 	var s: EnemyStatuses = enemy.statuses
 	if not s.crown_window.is_empty():
 		_try_late_crown(enemy, _id, source)  # First: a late crown takes its status before a pair check spends it
@@ -420,6 +422,8 @@ static func need(base: int) -> int:
 # For the status row's Reaction-ready frame (screens_ui.md "Status row: Reaction-ready marks and falling asleep";
 # Enemy Code 2026-10-18). Keep it in step when a Reaction's threshold changes.
 static func ready_need(id: StringName, s: EnemyStatuses) -> int:
+	if DreamState.undiluted_on:
+		return 0  # Undiluted: no Reaction to be ready for (the status row's ready marks go)
 	match id:
 		EnemyStatuses.DAMP:
 			return need(SOAKED_NEEDED)
@@ -458,8 +462,8 @@ const HALF_SET_OFF_DAMAGE := 0.5
 static var _half_share := 1.0
 
 static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0) -> void:
-	if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.count() < 2:
-		return
+	if DreamState.undiluted_on or not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.count() < 2:
+		return  # (Undiluted: no Reaction, half need or not)
 	var s: EnemyStatuses = enemy.statuses
 	_half_need = true
 	_in_reaction += 1  # (What the Reactions it sets off add never crowns late)
@@ -491,7 +495,7 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"smother", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop"]  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
+	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop", &"deathcap", &"haze"]  # deathcap, haze: Sporeling Calling evolutions (evo_shared_spec.md 7, Additions 2026-10-23)  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -530,10 +534,26 @@ static func effect_multiplier(enemy: Node2D, source: Tower, tag: StringName = &"
 	var reaction: bool = dreams != null and tag != &"" and dreams.has_method(&"reaction_pool_tag") and bool(dreams.call(&"reaction_pool_tag", tag))
 	if dreams and dreams.has_method("get_effect_bonus") and not reaction:
 		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)  # Seeping
+	if dreams != null and not reaction:
+		multiplier *= _host_grove(dreams, source, tag)
 	multiplier *= 1.0 + nightshade_bonus(enemy)  # Nightshade multiplies with Potency and Seeping (Balancing 738088c3)
 	if enemy.statuses.mushroom_time > 0.0:  # Inside a Mushrooming cloud (owner 2026-10-17, council reactions_unique.md)
 		multiplier *= 1.0 + MUSHROOM_ZONE_BONUS * enemy.statuses.mushroom_payoff  # The cloud's own Brimming payoff (council rx review 2026-10-17)
 	return multiplier
+
+# Host Grove (Sporeling Support capstone; owner 2026-10-23, evo_shared_spec.md 7): DreamState.calling_potency(source, tag)
+# (1.30 for a qualifying source, else 1.0), on effect damage only, never a Reaction's (the caller skips those). With
+# Undiluted on the tag it is the larger of the two, never their product: max(host, undiluted) / undiluted (Undiluted's own
+# x2 is applied where the tick or bolt is made). Damage only: it never lengthens statuses.
+static var force_host_potency := 0.0  # Tests only (test_host_grove): > 0 stands in for calling_potency
+static func _host_grove(dreams: DreamState, source: Tower, tag: StringName) -> float:
+	var host := force_host_potency if force_host_potency > 0.0 else dreams.calling_potency(source, tag)
+	if host <= 1.0:
+		return 1.0
+	var undiluted := 1.0
+	if DreamState.undiluted_on:
+		undiluted = DreamState.UNDILUTED_POISONED if tag == &"spored" else (DreamState.UNDILUTED_CHARGED if tag == &"static" else 1.0)
+	return maxf(host, undiluted) / undiluted
 
 # Nightshade (Legendary #112; dream_design.md e1e39b56): effect damage ×2 on a nightmare carrying 3 statuses from 3 families (DreamState.nightshade_met; was 4 or more statuses)
 # (one per status, not per stack; the one dealing the damage counts too). Multiplies with Potency and Seeping. The
@@ -557,6 +577,9 @@ static func is_crowned(id: StringName) -> bool:
 # at once, and adjacent nightmares get Spored + Drowsy (a sleep plague).
 static func on_smother_ended(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	if DreamState.undiluted_on:
+		_smother_burst(enemy, true)  # Undiluted: what it stored lands as plain Poisoned ticks (no x2 burst, no Fever Dream)
 		return
 	_smother_burst(enemy)
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
@@ -599,7 +622,9 @@ static func on_smother_ended(enemy: Node2D) -> void:
 # Smother's burst (owner 2026-10-17, council reactions_unique.md): when Smother ends (the Root broke, or its Poisoned fell
 # below the need), every Poisoned tick it stored while Rooted (EnemyStatuses.smother_stored) lands at once, x SMOTHER_BURST,
 # credited to the Warden whose ticks they were. An effect (tag "smother": Potency, Seeping and the Mushrooming zone count).
-static func _smother_burst(enemy: Node2D) -> void:
+# `plain` (Undiluted): the stored Poisoned lands as its own ticks, tag "spored" (x the tick multiplier, Undiluted's x2 in it),
+# with no burst, no x SMOTHER_BURST, no Reaction pool and no Sound burst.
+static func _smother_burst(enemy: Node2D, plain: bool = false) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var stored := s.smother_stored
 	var source: Node = s.smother_source if is_instance_valid(s.smother_source) else null
@@ -609,6 +634,14 @@ static func _smother_burst(enemy: Node2D) -> void:
 	s.smother_source = null
 	s.smother_credit.clear()
 	if stored <= 0.0:
+		return
+	if plain:
+		var dreams_plain := _dreams(enemy)
+		var ticks: float = stored * (dreams_plain.get_spored_tick_multiplier(enemy) if dreams_plain != null else 1.0)
+		s.spore_tick_credit = credit
+		s.delivering_spore_tick = true
+		enemy.take_damage(ticks, line, true, false, source, &"spored")
+		s.delivering_spore_tick = false
 		return
 	var world := _world(enemy)
 	var tracker := ReactionTracker.find(enemy)
@@ -681,7 +714,7 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 	# One "heavy" (card pass 2026-10-16, card_pass_td.md 1d): the heavy cards' role (TowerData.heavy) or Shatter's old
 	# rule (the stone line, a target-priority sniper), so no Warden that Shattered before stops, and every heavy card's Warden can.
 	var heavy: bool = WardenRoles.has_role(tower.attack_data, WardenRoles.HEAVY) or tower.tower_data.line == "stone" or tower.attack_data.has_target_priority
-	if s.stacks(HELD) >= need(ROOTED_NEEDED) and s.stacks(DAMP) >= need(SOAKED_NEEDED) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
+	if not DreamState.undiluted_on and s.stacks(HELD) >= need(ROOTED_NEEDED) and s.stacks(DAMP) >= need(SOAKED_NEEDED) and (result.crit or heavy) and grown(s, [HELD, DAMP]):
 		# Crowned: a lob's Shatter becomes an Avalanche, a charged one a Prismstorm.
 		var id := &"shatter"
 		if tower.attack_data.lob:
@@ -865,7 +898,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		var dreams := _dreams(target)
 		if dreams != null and dreams.has_method("get_bolt_multiplier"):
 			damage *= dreams.get_bolt_multiplier()  # Live Wire (Dream): Charged bolts +15% per stack
-	var rod := _find_rod(target)
+	var rod: Node2D = null if DreamState.undiluted_on else _find_rod(target)  # Undiluted: no Lightning Rod (a Reaction); the bolt itself strikes
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
@@ -1961,13 +1994,6 @@ static func _pool(dreams: DreamState, near: Node, id: StringName, tower: Node = 
 		return 1.0
 	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower)
 
-# The pool's bonus for the callout's "+N%" (0.4 = +40%): the last one Reaction `id` read (reading the pool again here would
-# credit its cards a second time).
-static func _pool_shown(dreams: DreamState, id: StringName) -> float:
-	if dreams == null or not ("reaction_pool_last" in dreams):
-		return 0.0
-	var last: Array = (dreams.get(&"reaction_pool_last") as Dictionary).get(id, [])
-	return float(last[0]) - 1.0 if not last.is_empty() else 0.0
 
 # --- Late crown (owner 2026-10-22, dream_council_review.md 29, reactions_td.md 1) ------------------------
 
@@ -2115,7 +2141,7 @@ static func _show(enemy: Node2D, id: StringName, towers: Array, chain: int, auth
 	var crowned := is_crowned(id)
 	if world != null:
 		var dreams := _dreams(enemy)
-		var pool := _pool_shown(dreams, id)
+		var pool := dreams.get_reaction_card_multiplier(enemy, id, author) - 1.0 if dreams != null else 0.0  # This Reaction's own pool (cached per frame: no second credit)
 		var big := crowned and tracker != null and int(tracker.counts.get(id, 0)) < CROWN_TITLE_TIMES
 		node = Fx.reaction(id, enemy.global_position, world, towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower),
 			0.0, enemy, author, pool, _crown_marks(enemy, id) if crowned else [], big)  # Rides on its nightmare (user 2026-10-21)
