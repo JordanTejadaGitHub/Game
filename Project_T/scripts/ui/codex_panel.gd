@@ -1110,7 +1110,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		box.add_child(hint)
 		box.add_child(StatusLinks.make_label(c.text, 15))  # Status names are links
 		var count := Label.new()
-		count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
+		count.text = "Triggered %d time%s" % [times, "" if times == 1 else "s"]
 		count.add_theme_font_size_override("font_size", 13)
 		box.add_child(count)
 		_add_dreams_line(box, c)
@@ -1152,7 +1152,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	by.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(by)
 	var count := Label.new()
-	count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
+	count.text = "Triggered %d time%s" % [times, "" if times == 1 else "s"]
 	count.add_theme_font_size_override("font_size", 13)
 	box.add_child(count)
 	_add_dreams_line(box, combo)
@@ -1162,7 +1162,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 # "Damp: Dewdrop, Rain Lily · Static: Firefly Jar" (Reactions).
 static func get_sources_text(combo: Dictionary) -> String:
 	if combo.get("by", "") != "":
-		return "Set off by: " + combo.by
+		return "Triggered by: " + combo.by
 	var parts: Array[String] = []
 	var done: Array = []
 	for status in combo.statuses:

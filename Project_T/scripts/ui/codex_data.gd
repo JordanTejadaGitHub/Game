@@ -24,7 +24,8 @@ const GLOSSARY_SOURCE := [
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. A full run has four.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings Dreamlight and a rare Dream.", ["Dreamlight", "Dream"]],
-		["Family pick", "After drifts 1, 10, 35 and 60: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead.", ["Family", "Dreamlight"]],
+		["Family pick", "After drifts 1, 10 and 35: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead. After drift 60 you deepen a family you have.", ["Family", "Deepen", "Dreamlight"]],
+		["Deepen", "The family pick after drift 60: choose a family you already have. It gives {const:deepen_dreamlight} and lets you call back one of that family's branches not in this run, at the branch price, on the Remember screen.", ["Family pick", "Branch", "Remember screen"]],
 		["Dream", "A card you choose at a rest. It changes your run until it ends.", ["Rarity", "Let it pass"]],
 		["Omen", "A harder next block that you may accept for a reward at the rest after it. Offered from drift 10.", ["Rest"]],
 		["Call early", "Starting the next drift before the current one has finished arriving pays a little Dew.", ["Auto-drift"]],
@@ -73,7 +74,7 @@ const GLOSSARY_SOURCE := [
 		["Mushroom", "A small mushroom on the path, grown by the Spore Print Calling. The next walking nightmare to step on it takes a dose; flyers pass over. Mushrooms stay through rests, 40 at most.", ["Dose", "Calling"]],
 		["Dose", "3 {spored} at once: what a mushroom gives the nightmare that steps on it.", ["Mushroom"]],
 		["Lit", "A nightmare inside a Firefly Warden's glow (the path within 1.5 cells of it, more as its range grows). The Lantern Light Calling jumps damage between Lit nightmares.", ["Jump"]],
-		["Jump", "Damage passing from one nightmare to another as a spark. A jump sets off another jump only when a card says so.", ["Lit"]],
+		["Jump", "Damage passing from one nightmare to another as a spark. A jump triggers another jump only when a card says so.", ["Lit"]],
 		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
 		["Dewdrop splash", "A Dewdrop's hit on nightmares in its {water}: nightmares within 4 {steps} in that {water} gain {damp}. Each nightmare at most once a second. The Puddles Calling's splash, not a splash attack.", ["Water", "Splash"]],  # (owner 2026-10-20)
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],
@@ -87,7 +88,7 @@ const GLOSSARY_SOURCE := [
 	["Branch effects", [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
 		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
-		["Arc", "Two Jarlinks within {field:jarlink.special_params.link_range:cells} join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
+		["Arc", "Two Jarlinks within {field:jarlink.special_params.link_range:cells} join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches flyers gliding through.", ["{static}"]],
 		["Ink", "An Inkcap shot on a nightmare with {spored} inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
@@ -109,7 +110,7 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		# (council rx review 2026-10-17) The one-full-Drowsy order, once, here.
-		["{drowsy}", "{tip:drowsy} At {full} {drowsy}, a nightmare sets off one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
+		["{drowsy}", "{tip:drowsy} At {full} {drowsy}, a nightmare triggers one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
@@ -123,14 +124,15 @@ const GLOSSARY_SOURCE := [
 		["Crit", "A critical hit: a hit that deals extra damage. Only some Wardens can crit.", ["Pinned", "Potency"]],
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm", "Splash"]],
 		["Splash", "A shot that bursts where it lands, hitting its target and every nightmare close by. A pulse hits everything in the Warden's range instead. Splash hits count as area attacks.", ["Area attack", "Swarm"]],
+		["Direct hit", "A Warden's own attack landing. Not statuses, Reactions, clouds or echoes.", ["Effect", "Crit"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],
 		["Full", "A status at its most stacks. Some statuses do nothing until they are full.", ["Stack"]],
-		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction goes off.", ["Reaction mark", "Reaction", "Stack"]],
+		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction triggers.", ["Reaction mark", "Reaction", "Stack"]],
 		["Reaction mark", "The small slash on a status's stack bar or pips: where its stacks become enough for a Reaction. Past it the status is Reaction-ready. Brimming makes the bar longer, but the mark stays at the same number of stacks, so it sits further left.", ["Reaction-ready", "Stack", "Reaction"]],
-		["Reaction", "When a nightmare carries enough stacks of two different statuses, they set each other off for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
-		["Crowned Reaction", "A stronger Reaction, set off on a nightmare that also carries a third status.", ["Reaction", "Woven"]],
+		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
+		["Crowned Reaction", "A stronger Reaction, triggered on a nightmare that also carries a third status.", ["Reaction", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],
@@ -143,6 +145,7 @@ const GLOSSARY_SOURCE := [
 		["Reroll", "Swap the Dream cards on offer for different ones. Limited per run.", ["Perks"]],
 		["Banish", "Remove a Dream card from this run's offers.", ["Perks"]],
 		["Woven", "A Dream card that needs three particular Wardens.", ["Crowned Reaction", "Legendary"]],
+		["Card bonuses", "Damage bonuses from your cards add together; a few multiply instead, and their tips say so. All card bonuses on one hit stop at {const:card_cap}. Reaction bonuses from cards add into one pool, up to {const:reaction_pool}. Attack speed from Dreams stops at {const:dream_speed}.", ["Dream", "Reaction"]],
 	]],
 	["The Memory Grove", [
 		["Memory Grove", "The tree between runs where Seeds unlock families, Dream cards and perks for later runs.", ["Seeds", "Perks"]],
@@ -175,7 +178,7 @@ const SYNERGIES := {
 # gold crown frame, "???"), not in the demo, and not part of the 15 combos' count.
 const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
-		"Arcs can set off Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto those with {damp}: new Thunderclaps follow."],
+		"Arcs can trigger Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto those with {damp}: new Thunderclaps follow."],
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
 		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it falls {asleep} for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
@@ -185,7 +188,7 @@ const CROWNED := {
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
 		"A Cairn or Rockslide lob leaves scree on the path under it: walkers are slowed and gain {held}."],
 	&"prismstorm": ["Prismstorm", &"shatter", &"static", ["dewdrop", "rootling", "firefly_jar"],
-		"The ice shards spark: each nightmare they hit with 8 {static} sets off its bolt at once."],
+		"The ice shards spark: each nightmare they hit with 8 {static} releases its bolt at once."],
 	&"nightbloom": ["Nightbloom", &"mushrooming", &"drowsy", ["sporeling", "dewdrop", "bellflower"],
 		"The spore cloud glows violet and nothing inside can wake."],
 	&"fairy_circle": ["Fairy Circle", &"mushrooming", &"held", ["sporeling", "dewdrop", "rootling"],
@@ -276,13 +279,13 @@ const KINSHIP_TEXT := {
 	&"storm_beacon": "Stormcap's jumps give nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to nightmares with {marked}.",
 	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
-	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 12 stacks.",
+	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads release the {static} bolt at 12 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
 	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and gives nightmares {damp}.",
-	&"fireworks_fence": "Every 2 s a nightmare on the Jarlinks' {arc} sets off a 2-spark burst at half spark damage; a Sparkler burst landing on an {arc} bursts once more, at half.",
+	&"fireworks_fence": "Every 2 s a nightmare on the Jarlinks' {arc} triggers a 2-spark burst at half spark damage; a Sparkler burst landing on an {arc} bursts once more, at half.",
 	&"vespers": "Silver Bell's toll also leaves its target {silenced} for 2 s; a nightmare a Hushbell leaves {silenced} gains 1 {drowsy}.",
 	&"fault_line": "Rampart's blows and Bastion's rocks crack the path (no sprints there for 3 s); Quaker's slam runs along the stone walls touching the Rampart, hitting the path beside each.",
 	&"bramble_bed": "Flyers Groundroot drags down land in thorns (one thorn tick); Thorncoil's thorns reach flyers passing over its range.",
@@ -293,7 +296,7 @@ const KINSHIP_TEXT := {
 	&"sunspot": "Sunpetal's beam gives its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
-	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
+	&"resonant_hollow": "Echo Hollow's echoes release {static} bolts like a chime; Chime Stone's pulses echo once at 30%.",
 	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbour's status.",
 	&"jewel_thieves": "Every 6th peck steals a nightmare's boost ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
@@ -466,6 +469,16 @@ static var _glossary_stacks := 0  # A live stack number when it was built: Brimm
 
 # The glossary with today's status names and IconInfo's definitions filled in (built once, again
 # if the Sapling is switched on or off).
+# "{const:card_cap}" and the like: rule numbers read from the code, so the Codex can't drift from it (Wording Council
+# round 2: "read the constants, don't type them").
+static func _fill_constants(text: String) -> String:
+	if not text.contains("{const:"):
+		return text
+	return text.replace("{const:card_cap}", "×" + String.num(DreamState.CARD_PRODUCT_CAP)) \
+		.replace("{const:reaction_pool}", "+%d%%" % roundi(DreamState.REACTION_POOL_CAP * 100.0)) \
+		.replace("{const:dream_speed}", "+%d%%" % roundi(DreamState.DREAM_SPEED_CAP * 100.0)) \
+		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT)
+
 static func glossary() -> Array:
 	var stacks := IconInfo.stack_number("need_damp")
 	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on() or _glossary_stacks != stacks:
@@ -481,7 +494,7 @@ static func glossary() -> Array:
 					continue
 				if not _glossary_expansion and EXPANSION_TERMS.has(entry[0]):
 					continue  # The demo keeps today's branches: no branch-expansion terms
-				var text: String = entry[1]
+				var text: String = _fill_constants(entry[1])
 				if text.begins_with("{tip:"):  # (council rx review 2026-10-17: text may follow the tip, as on Drowsy)
 					var close := text.find("}")
 					text = IconInfo.STATUSES.get(StringName(text.substr(5, close - 5)), ["", ""])[1] + text.substr(close + 1)

@@ -249,7 +249,7 @@ func _run() -> void:
 	var sleepy := _spawn(honey.global_position + Vector2(CELL, 0))
 	honey.apply_status_to(sleepy, 0.0)
 	_check(slog.get_stats(honey).drowsy > 0.0, "SupportLog: Honeysuckle's Drowsy applied")
-	_check(slog.get_panel_line(honey).begins_with("Sleep applied:"), "wall panel line (%s)" % slog.get_panel_line(honey))
+	_check(slog.get_panel_line(honey).begins_with(IconInfo.status_name(&"drowsy") + " applied:"), "wall panel line (%s)" % slog.get_panel_line(honey))
 	var wall := _plant("thornwall", Vector2(9, 14))
 	_check(wall.is_quiet() and not bramble.is_quiet(), "Thornwall is quiet, Bramble isn't")
 	_take("the_quiet_ones")

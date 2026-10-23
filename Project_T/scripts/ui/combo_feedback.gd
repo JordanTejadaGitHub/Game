@@ -432,7 +432,7 @@ static func recipe_free(text: String) -> String:
 	return rest.left(1).to_upper() + rest.substr(1) if rest.left(1) != "×" else rest
 
 # The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
-const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
+const CHAIN_LINE := "A Reaction can spread its statuses and trigger another. Past the fifth link each one hits a little softer, but the chain keeps counting."
 
 static func chain_text(tier: int, order: Array, longest: int = 0) -> String:
 	var text := "Chain discovered: Chain %d\n" % tier
@@ -837,7 +837,7 @@ func _show_dim(enemy: Node2D) -> void:
 
 const SUB_LINES := {"Reaction": "a Reaction: two statuses meet on one nightmare",
 	"Kinship": "a Kinship: two branches of one family, planted close"}
-const CHAIN_SUB := "one Reaction setting off the next"
+const CHAIN_SUB := "one Reaction triggering the next"
 
 func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 	for child in _card_icons.get_children():

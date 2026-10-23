@@ -198,7 +198,7 @@ static func combo_tip_text(id: StringName) -> String:
 		parts.append(CodexData.ingredients_text(combo) + ".")
 	parts.append(IconInfo.format(String(combo.get("text", ""))))
 	var times := combo_times(id)
-	parts.append("Set off %d time%s." % [times, "" if times == 1 else "s"] if times > 0 else "Not set off yet on this profile.")
+	parts.append("Triggered %d time%s." % [times, "" if times == 1 else "s"] if times > 0 else "Not triggered yet on this profile.")
 	return " ".join(parts)
 
 static func combo_times(id: StringName) -> int:

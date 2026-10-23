@@ -16,12 +16,12 @@ class_name IconInfo
 const STATUSES := {
 	# Nouns since 2026-10-17 (owner: "rename all"; they match the keyword chips and read as stack counts: "8 Soak"). Text
 	# says "nightmares with {damp}", never "{damp} nightmares".
-	&"damp": ["Soak", "Water hits deal 20% more damage to a nightmare with it. At {stacks:need_damp} stacks it can set off {reactions}."],
-	&"drowsy": ["Drowsy", "A nightmare with it walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) the nightmare can fall {asleep} and set off {reactions}."],
-	&"spored": ["Poison", "A nightmare with it takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
-	&"marked": ["Exposure", "Does nothing until {stacks:need_marked} stacks; then a nightmare with it takes 25% more damage from every Warden and can set off {reactions}."],
-	&"static": ["Charge", "Lightning built up on a nightmare. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored Charge). At {stacks:need_static} stacks it can set off {reactions}."],
-	&"held": ["Root", "Builds up to {stacks:cap_held} stacks; a nightmare with Root can't move while it lasts. At {stacks:need_held} stacks it can set off {reactions}."],
+	&"damp": ["Soak", "Water hits deal 20% more damage to a nightmare with it. At {stacks:need_damp} stacks it can trigger {reactions}."],
+	&"drowsy": ["Drowsy", "A nightmare with it walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) the nightmare can fall {asleep} and trigger {reactions}."],
+	&"spored": ["Poison", "A nightmare with it takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can trigger {reactions}."],
+	&"marked": ["Exposure", "Does nothing until {stacks:need_marked} stacks; then a nightmare with it takes 25% more damage from every Warden and can trigger {reactions}."],
+	&"static": ["Charge", "Lightning built up on a nightmare. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it releases a strong bolt (16× the stored Charge). At {stacks:need_static} stacks it can trigger {reactions}."],
+	&"held": ["Root", "Builds up to {stacks:cap_held} stacks; a nightmare with Root can't move while it lasts. At {stacks:need_held} stacks it can trigger {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep}, or at {full} {drowsy}, near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
