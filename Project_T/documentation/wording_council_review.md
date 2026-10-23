@@ -55,8 +55,8 @@ and orders. Numbers in rewrites are the data's; where a seat wrote "(check)", th
 
 | # | Topic | Positions | Ruling |
 |---|---|---|---|
-| 1 | Sleep vs Asleep | P: rename the Sleep status (Drowse). C: one name for the status, keep Asleep. N: confusing, no fix offered. | **Owner call.** I recommend **Sleep → Drowse** (the stacking status); **Asleep** stays the stopped state. The role verb "Drowses" already matches, and the noun rule of 2026-10-17 holds. |
-| 2 | US or UK spelling | text_style.md says US; text_pass.md and wording_review_2026-10-13 (both later) say UK; the text mixes both. | **UK** (neighbour, colour, grey), as the two later decisions say. text_style.md gets corrected. Owner to confirm. |
+| 1 | Sleep vs Asleep | P: rename the Sleep status (Drowse). C: one name for the status, keep Asleep. N: confusing, no fix offered. | **Decided (owner 2026-10-22): Sleep → Drowsy.** {drowsy} shows "Drowsy" ("8 Drowsy", "a nightmare with Drowsy"); **Asleep** stays the stopped state. Role lines keep "Drowses". Plain "sleep" in rules text means Asleep and says {asleep}; flavour lines may keep "sleep". |
+| 2 | US or UK spelling | text_style.md said US; text_pass.md and wording_review_2026-10-13 (both later) say UK; the text mixes both. | **Decided (owner 2026-10-22): UK** (neighbour, colour, grey, centre). text_style.md corrected. |
 | 3 | Stating the ×4 card cap and +150% speed cap | V: on every damage card's tip and in the glossary. S: card faces are already long. | **Glossary and Codex entry ("Dream damage", "Dream speed"), linked from tips.** Each damage card's tip ends "Adds to" or "Multiplies with your other Dream damage." Not on card faces. This is a rule, not advice, so the no-hand-holding rule allows it. |
 | 4 | "set off / go off" | P: "trigger" everywhere. S: fine if short. | **"trigger" in rules text** (Reactions, bolts, traps, "Crowned" lines). "goes off" stays in flavour only. |
 | 5 | Lent cards that say "a Sporeling", "a Firefly" for the whole family | V: use the `{family:}` token. S: adds words. | **Use the token.** It is one word on screen and removes the wrong reading. |
@@ -140,5 +140,5 @@ the Heartwood's "I" lines; Omen text (1 of 27 over 25 words); the "(bosses N)" p
 ## 9. Next
 
 1. Section 4 owners apply the wrong-text fixes (prompts in this chat's hand-off; owners paste them).
-2. Owner calls: Sleep → Drowse? UK spelling? "Reroll"?
+2. Owner calls: Sleep → Drowsy and UK spelling decided 2026-10-22 (section 3, rows 1-2). Still open: "Reroll"?
 3. Section 5 rules go into text_style.md once the owner agrees, then a second pass over the seat reports' tables.
