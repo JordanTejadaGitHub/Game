@@ -16,8 +16,11 @@ func _init() -> void:
 		if arg.begins_with("--seed="):
 			main.get_node("MapGenerator").map_seed = int(arg.trim_prefix("--seed="))
 		_sheet_landmarks = _sheet_landmarks or arg == "--landmarks"
+		if arg.begins_with("--landmark="):  # The preview's map with landmark kind N (1 Old Waystone, 2 Dew Pool)
+			main.get_node("MapGenerator").MAP_LANDMARK.force_kind = int(arg.trim_prefix("--landmark="))
 	root.add_child(main)
 	await process_frame
+	main.get_node("MapGenerator").MAP_LANDMARK.force_kind = -1
 	var map = main.get_node("%MapGenerator")
 	var ground: TileMapLayer = main.get_node("%GroundTileMapLayer")
 	var path: TileMapLayer = main.get_node("%PathTileMapLayer")
@@ -191,7 +194,7 @@ func _init() -> void:
 				_stagger(main)
 			if OS.get_cmdline_user_args().has("--nightmares"):  # Shades along the route
 				await _nightmares(main)
-			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
+			_render(main, [ground, path, map.landmark, env], arg.trim_prefix("--preview="))
 		if arg.begins_with("--layouts="):
 			await _layout_sheet(arg.trim_prefix("--layouts="))
 

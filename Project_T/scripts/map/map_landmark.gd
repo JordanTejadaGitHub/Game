@@ -49,9 +49,12 @@ func build(skip_roll: bool) -> void:
 		return
 	cells.assign(spots[rng.randi_range(0, spots.size() - 1)])
 	kind = rolled
-	var source := EnvironmentTiles.WAYSTONE if kind == Kind.WAYSTONE else EnvironmentTiles.DEW_POOL
-	for cell in cells:
-		set_cell(Vector2i(cell), source, Vector2i(0, 0))
+	# One tile on the first cell: the Waystone's 64x64, or the pool's two-cell art (dew_pool.png across W-E,
+	# dew_pool_v.png down N-S) drawn over both cells.
+	var source := EnvironmentTiles.WAYSTONE
+	if kind == Kind.DEW_POOL:
+		source = EnvironmentTiles.DEW_POOL if cells[1].y == cells[0].y else EnvironmentTiles.DEW_POOL_V
+	set_cell(Vector2i(cells[0]), source, Vector2i(0, 0))
 
 # Every place the landmark fits: [cells] lists (one cell, or two side by side for the pool).
 func _spots(of: Kind) -> Array:
