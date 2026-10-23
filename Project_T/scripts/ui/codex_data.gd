@@ -132,7 +132,7 @@ const GLOSSARY_SOURCE := [
 		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction triggers.", ["Reaction mark", "Reaction", "Stack"]],
 		["Reaction mark", "The small slash on a status's stack bar or pips: where its stacks become enough for a Reaction. Past it the status is Reaction-ready. Brimming makes the bar longer, but the mark stays at the same number of stacks, so it sits further left.", ["Reaction-ready", "Stack", "Reaction"]],
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
-		["Crowned Reaction", "A stronger Reaction, triggered on a nightmare that also carries a third status.", ["Reaction", "Woven"]],
+		["Crowned Reaction", "A Reaction on a nightmare that also carries a third status. It replaces the base Reaction, shares its cooldown and counts as 2 links in a Chain.", ["Reaction", "Chain", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
 		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],

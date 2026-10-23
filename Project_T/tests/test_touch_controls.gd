@@ -54,7 +54,7 @@ func _run() -> void:
 	_close_screens()  # The boss dossier opens itself a few seconds into the first rest
 	await process_frame
 	touch._refresh()
-	_check(touch.visible and touch._plant.visible and touch._plant.text == "Confirm (3)", "Confirm shows the count (%s)" % touch._plant.text)
+	_check(touch.visible and touch._plant.visible and touch._plant.text == "Plant 3", "the plant button shows the count, Plant N as on PC (%s)" % touch._plant.text)
 	await _tap(_screen_of(MAP_GRID_CELL(cells[1])))
 	_check(placer.get_stroke_cells().size() == 2, "a tap on a pending Warden takes it back")
 

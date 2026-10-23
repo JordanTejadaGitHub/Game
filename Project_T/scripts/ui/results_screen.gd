@@ -225,7 +225,7 @@ func _build(won: bool) -> void:
 			UiTime.timer(self, 1.5).timeout.connect(func() -> void:
 				if is_instance_valid(copy):
 					copy.text = "Copy run report"))
-	var to_title := _small(quiet, "Title")
+	var to_title := _small(quiet, "Title screen")
 	to_title.name = "ToTitle"
 	to_title.pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 

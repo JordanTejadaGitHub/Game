@@ -131,7 +131,7 @@ func _ready() -> void:
 	speed_row.alignment = BoxContainer.ALIGNMENT_END
 	speed_row.add_theme_constant_override("separation", 6)
 	add_child(speed_row)
-	_auto_toggle.text = "Auto"
+	_auto_toggle.text = "Auto-drift"
 	_auto_toggle.toggle_mode = true
 	_auto_toggle.custom_minimum_size = Vector2(64, UiStyle.HUD_BUTTON_H)
 	_auto_toggle.theme_type_variation = &"HudButton"
@@ -140,8 +140,8 @@ func _ready() -> void:
 	_auto_toggle.button_pressed = drift_director.auto_drift
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
 	# Says whether it is on, not by colour alone (UI council 2026-10-22: "is Auto on?")
-	_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto on" if on else "Auto")
-	_auto_toggle.text = "Auto on" if drift_director.auto_drift else "Auto"
+	_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto-drift on" if on else "Auto-drift")
+	_auto_toggle.text = "Auto-drift on" if drift_director.auto_drift else "Auto-drift"
 	_on_look(_auto_toggle)
 	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
@@ -346,7 +346,7 @@ static func phone_short(text: String) -> String:
 	if text.begins_with("Call drift ") and text.contains(" early, "):
 		text = "Call early, " + text.get_slice(" early, ", 1)
 	for pair in [["Rest after drift ", "Rest after "], ["Start boss drift ", "Boss drift "],
-			["Confirm your Wardens first", "Confirm Wardens"], ["Face an Omen or Clear Skies", "Omen or Clear Skies"]]:
+			["Confirm your Wardens first", "Confirm Wardens"], ["Choose an Omen", "Omen"]]:
 		text = text.replace(pair[0], pair[1])
 	return text
 var _start_fitted := ""
@@ -401,7 +401,7 @@ func _phone_panel_open() -> bool:
 const MIST_FULL := "Nightmares still arriving: the mist holds them back until there is room on the path. You can call the next drift early once they are out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
-const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Choose an Omen",
 	&"gift": "Choose a gift", &"waymark": "Place the Waymark"}  # Heartwood's Gifts (Spire); Waymark (Legendary Dream)
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 

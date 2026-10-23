@@ -365,7 +365,7 @@ func _refresh() -> void:
 			if free_ranks > 0:  # Free ranks stay free through growth (Tower Code 221af5d7)
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
-			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
+			var label := "Grow into %s" % next.display_name if _confirm_grow == next else next.display_name
 			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
 			if tax_line != "" and _phone:
 				note = tax_line  # Phones (user screenshot: "585" in orange, no reason): the tax in the role words' place
@@ -794,7 +794,7 @@ func _fill_buffs(tower: Tower) -> void:
 	_buffs.visible = true
 	var head := HBoxContainer.new()  # "Buffs" (the whole section sits behind the footer's Details, light pass)
 	var header := Label.new()
-	header.text = "Buffs"
+	header.text = "Boosts"
 	UiStyle.caps(header)
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(header)

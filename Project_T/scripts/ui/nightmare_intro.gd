@@ -306,7 +306,7 @@ func _show_next() -> void:
 		_content.remove_child(child)
 		child.queue_free()
 	_build(shown)
-	_next.text = "Next" if not queue.is_empty() else "Got it"
+	_next.text = "Next" if not queue.is_empty() else "Continue"
 	visible = true
 
 func close() -> void:
