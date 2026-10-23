@@ -9,7 +9,7 @@ const GROWTH_RINGS_MAX_RANK := 3  # The free rank never lifts a Warden past rank
 const GROWTH_RINGS_CONFIRM_SECONDS := 6.0  # A second plant within this long confirms giving the rank up
 const REACH_RANK := 1  # Heartwood's Reach: the first Warden planted on each cleared cell arrives with this many free ranks
 const SEEDFALL_PRICE := 10  # Seedfall: every Sprout costs this; the price never climbs
-const WINDING_PATH_MULTIPLIER := 2.0  # Winding Path: the maze's rest Dew, doubled (power budget 2026-10-16: was 3.0)
+const WINDING_PATH_MULTIPLIER := 1.5  # Winding Path: the maze's share of every pot x1.5, cap included (+30%). Balancing 2026-10-22 (was x2 of the rest Dew)
 # The six run-shaping redesigns (stake_redesign.md with dream_council_review.md 26's numbers, owner 2026-10-14): no
 # card keeps a stake. Wager and Price lines are gone; Clipped Wings is not built (Dark Skies retires).
 const CALL_OF_THE_WILD_PER_SECOND := 0.01  # Call of the Wild: a drift called early holds +1% Dew per second of arrival skipped…
@@ -619,11 +619,11 @@ func answer_line(dreams: DreamState, card: UpgradeData) -> String:
 			return "Lash now: %d damage." % roundi(thorny_now(dreams))
 		&"growth_rings":
 			return rings_line(dreams)
-		&"winding_path":  # The player's own number, in the HUD's words (the forecast is already tripled once the card is held)
+		&"winding_path":  # The player's own number, in the HUD's words (the share already includes the card once held)
 			var owned: bool = dreams.has_rule(&"winding_path")
-			var now_dew: int = dreams.drift_director.get_maze_reward_projection()
-			var base := roundi(now_dew / WINDING_PATH_MULTIPLIER) if owned else now_dew
-			return "Your maze now: {dew:+%d} at the {rest}. With this: {dew:+%d}." % [base, roundi(base * WINDING_PATH_MULTIPLIER)]
+			var now_share: float = dreams.drift_director.get_maze_pot_share()
+			var base := now_share / WINDING_PATH_MULTIPLIER if owned else now_share
+			return "Your maze now: +%d%% Dew a {drift}. With this: +%d%%." % [roundi(base * 100.0), roundi(base * WINDING_PATH_MULTIPLIER * 100.0)]
 		&"front_line":
 			return "Gauntlet path on your route now: %d steps." % gauntlet_count(dreams)
 		&"press_on":

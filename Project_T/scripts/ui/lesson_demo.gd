@@ -50,9 +50,11 @@ func _draw() -> void:
 		_text(font, Vector2(left, 92.0), "Mixed ranks → All-Rounder: 20% stronger", 14, UiStyle.GOLD)
 	elif topic == &"maze":
 		# Path length only (maze_economy.md, user 2026-10-11): no Wardens in the picture. The forest's straight path
-		# (faint), then a wall each second bending the path around it: each bend is CELLS_PER_DEW cells longer. The
-		# path spans the rect's width; the two counters sit on one line under it, the rate under that.
-		var cells: int = DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW
+		# (faint), then a wall each second bending the path around it: each bend adds 2 x POT_CELLS_PER_PERCENT cells, +2%
+		# of every drift's Dew (the maze grows the pot, maze_economy.md 8353f6cc). The path spans the rect's width; the two
+		# counters sit on one line under it, the rate under that.
+		var per_percent: int = DriftDirector.MAZE_ECONOMY.POT_CELLS_PER_PERCENT
+		var cells: int = per_percent * 2
 		var walls := mini(int(clock), 2)  # 0, 1, then 2 walls (held for the loop's last 2 s)
 		var span := right - left
 		draw_line(Vector2(left, 20), Vector2(right, 20), Color(UiStyle.INK_DIM, 0.3), 2.0)
@@ -76,8 +78,8 @@ func _draw() -> void:
 				break
 			distance -= segment
 		_text(font, Vector2(left, 76.0), "+%d cells" % (walls * cells), 14, UiStyle.INK)
-		_text(font, Vector2(right, 76.0), "Maze bonus %s" % UiStyle.dew_amount(walls, true), 14, UiStyle.GOLD if walls > 0 else UiStyle.INK_DIM, true)
-		_text(font, Vector2(left, 100.0), "%s per %d extra cells" % [UiStyle.dew_amount(1, true), cells], 13, UiStyle.INK_DIM)
+		_text(font, Vector2(right, 76.0), "Maze bonus %s+%d%%" % [UiStyle.DEW_GLYPH, walls * 2], 14, UiStyle.GOLD if walls > 0 else UiStyle.INK_DIM, true)
+		_text(font, Vector2(left, 100.0), "%s+1%% a drift per %d extra cells" % [UiStyle.DEW_GLYPH, per_percent], 13, UiStyle.INK_DIM)
 	elif topic == &"catch":
 		var steps := ["Dispelled", "Dew collected", "Paid at rest", "Wellsprings"]
 		var gap := 6.0

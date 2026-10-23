@@ -138,7 +138,7 @@ func _hook() -> void:
 			lesson(&"rests", &"dew", "Rests", "The forest is resting. Nothing moves until you press Start, and selling a Warden gives %s. After this, a rest comes every %d drifts." % [
 				"all its Dew back" if tower_seller == null or tower_seller.build_phase_refund >= 1.0 else "%d%% of its Dew back" % roundi(tower_seller.build_phase_refund * 100.0),
 				drift_director.drifts_per_block])
-			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also pays a Maze bonus at each rest: the small number beside your Dew shows how much."))
+			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also makes every drift pay more Dew: the small number beside your Dew shows how much."))
 		drift_director.drift_started.connect(func(_number: int) -> void:  # Speed and pause: as the first drift starts
 			var keys := "%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")]
 			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(keys, "The pause and speed buttons are beside Start. You can plant while paused.")))
@@ -672,6 +672,6 @@ func replay_guides() -> void:
 	_replaying = true
 	queue.clear()
 	queue.append([&"rank_rules", &"rank", "Rank V", RANK_TEXT])
-	queue.append([&"dew_maze", &"path_length", "Maze bonus", "Every %d cells your walls add to the path earn +1 Maze bonus, counted while nightmares walk. The number beside your Dew shows what the rest ending this block will pay." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW])
+	queue.append([&"dew_maze", &"path_length", "Maze bonus", "Every %d cells your walls add to the path make every drift pay +1%% more Dew, up to +%d%%. The number beside your Dew shows it." % [DriftDirector.MAZE_ECONOMY.POT_CELLS_PER_PERCENT, roundi(DriftDirector.MAZE_ECONOMY.POT_SHARE_CAP * 100.0)]])
 	queue.append([&"guide_catch", &"dew", "Catchers", CATCH_TEXT])
 	_show(queue.pop_front())

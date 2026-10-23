@@ -28,7 +28,7 @@ const GLOSSARY_SOURCE := [
 		["Dream", "A card you choose at a rest. It changes your run until it ends.", ["Rarity", "Let it pass"]],
 		["Omen", "A harder next block that you may accept for a reward at the rest after it. Offered from drift 10.", ["Rest"]],
 		["Call early", "Starting the next drift before the current one has finished arriving pays a little Dew.", ["Auto-drift"]],
-		["Maze bonus", "Dew paid at each block's rest for a path longer than the starting path.", ["Dew", "Rest"]],
+		["Maze bonus", "A path longer than the starting path makes every drift pay more Dew: +1% for every 2 extra cells, up to +20%.", ["Dew", "Drift"]],
 		["Gift", "Terrain the Heartwood offers after a boss. You place it on the map and it gives a bonus.", ["Boss"]],
 		["Auto-drift", "Drifts in a block start by themselves a few seconds after the last one arrived.", ["Call early", "Block"]],
 		["Mist", "Where nightmares enter. With the path full it holds the rest back until there's room; a \"+N\" over it counts them. While it holds any, the next drift can't be called early.", ["Call early"]],

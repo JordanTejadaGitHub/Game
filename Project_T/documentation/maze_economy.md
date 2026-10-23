@@ -5,23 +5,33 @@ The economy council (game_council rounds 2026-10-22) found the maze paid about 1
 against ≈ 1,500 from pots), so building it was never an economic choice.
 
 **The rule a player reads:** *A longer maze makes every drift pay more: +1% Dew for every 2 cells your route is longer
-than the forest's own path, up to +30%.*
+than the forest's own path, up to +20%.*
 - **Added cells** as before: your route's length in whole cells minus the generated baseline (saved with the run).
 - **Paid every drift, as a share of that drift's Dew pot** (on each dispel's share, like the other pot multipliers in
   `get_dew_pot_multiplier`), so it grows with the acts instead of staying a flat trickle. 45 added cells = +22% ≈ +55
   Dew a drift in act 2, ≈ +280 a block.
 - **Measured at the route's shortest while that drift's nightmares walk** (the same anti-farming rule: lengthening it
   mid-drift or selling walls after doesn't pay that drift).
-- **Cap +30%** (60 added cells). Deep Sleep still forfeits it; Winding Path multiplies the maze share (×3 → +90% cap is
-  too much: Balancing sets the card's new number).
+- **Cap +20%** (40 added cells; Balancing 2026-10-22, was +30%). Deep Sleep still forfeits it; bosses' pots count too.
+  **Winding Path multiplies the maze share by 1.5** (cap +30%; Balancing 2026-10-22, was x3 of the old rest Dew).
 - **Shown** on the Dew counter's forecast ("+22% maze") and the Path counter's tip ("Your route is 45 cells longer than
   the forest's path: drifts pay +22% Dew"); the build ghost's "+N path" also shows the % it would add. The rest
   report lists "Maze +280".
 - **Inflation check (Balancing):** Dew is already in surplus (council: banks of 2,000-3,000). A good maze now adds up
-  to +30%; consider trimming the act 2 base pots about 10-15% so a strong maze ends near today's income and a lazy one
+  to +20%; consider trimming the act 2 base pots about 10-15% so a strong maze ends near today's income and a lazy one
   below it. That makes the maze matter without adding more idle Dew. Balancing decides.
 
-The block-rest flat payout below is retired; its snapshot ledger and save fields stay for old saves.
+**Built (2026-10-22, Roguelite Code; parse-checked, untested):** `MazeEconomy.pot_share(map, multiplier)` with
+`POT_CELLS_PER_PERCENT` 2, `POT_PERCENT` 0.01, `POT_SHARE_CAP` 0.20; `DriftDirector.get_maze_pot_share()` (x Winding Path's
+`WINDING_PATH_MULTIPLIER` 1.5 via `DreamState.get_maze_multiplier`; 0 with Deep Sleep) multiplies `get_dew_pot_multiplier`,
+so every drift's pot, bosses' included, and the Drift panel's pot forecast carry it. Shown as "+12% a drift" by the Dew
+counter (HUD), on the Drift panel, the Path counter's tip, the lessons, the Codex and the Replay guide. **The share is
+read when a drift starts** (its pot is split then), so lengthening mid-drift pays from the next drift; shortening
+mid-drift does not lower the running drift's pot (selling mid-drift refunds only 50%). Not yet built: the build ghost's
+"% it would add", the rest report's "Maze +280" line, and Balancing's `maze_act1_dew_bonus` 0.15 -> 0.0.
+
+The block-rest flat payout below is retired (DriftDirector pays nothing from `claim()` since 2026-10-22); its snapshot
+ledger and save fields stay for old saves.
 
 ## Path length only (user, 2026-10-11: "the maze bonus is confusing"; replaces the defended-cells rule below)
 

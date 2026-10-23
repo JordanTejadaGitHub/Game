@@ -243,6 +243,19 @@ func get_maze_reward_preview() -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	return _maze_preview if dreams == null or dreams.keeps_rest_bonus() else 0
 
+# The maze's share of every drift's Dew pot now (0.12 = +12%; maze_economy.md 8353f6cc, Balancing 2026-10-22):
+# MazeEconomy.pot_share x Winding Path (DreamState.get_maze_multiplier). 0 with Deep Sleep (it forfeits the maze too).
+func get_maze_pot_share() -> float:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if dreams != null and not dreams.keeps_rest_bonus():
+		return 0.0
+	return maze_economy.pot_share(_maze_map(), dreams.get_maze_multiplier() if dreams != null else 1.0)
+
+# The same as a whole percent (the HUD, the drift panel, Winding Path's line).
+func get_maze_pot_percent() -> int:
+	return roundi(get_maze_pot_share() * 100.0)
+
+# (The flat block-rest payout's forecast: retired with it, 2026-10-22; nothing shows it.)
 func get_maze_reward_projection() -> int:
 	var number := maxi(1, drifts_started + (1 if resting else 0))
 	var block := get_block(number)
@@ -760,6 +773,7 @@ func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: 
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
 	multiplier *= blight_dew_multiplier
+	multiplier *= 1.0 + get_maze_pot_share()  # The maze grows the pot (maze_economy.md 8353f6cc; bosses' pots too)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)
@@ -944,14 +958,9 @@ func _pay_rest_bonus() -> Array:
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
 	maze_economy.observe(_maze_map())
-	# Paid at block rests only, never at the short rest after drift 1 (maze_economy.md 2026-10-12: with no cap, walls
-	# built before drift 1 and sold at that rest kept their payout). The samples stay for the block's own rest.
-	var block_rest := drifts_started % drifts_per_block == 0 or drifts_started >= drifts.size()
-	var maze_claim: int = maze_economy.claim(block) if block_rest else 0
-	if dreams:
-		maze_claim = roundi(maze_claim * dreams.get_maze_multiplier())  # Winding Path: tripled
-	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
-	bonus += maze_reward_last
+	# The flat block-rest maze payout is retired (2026-10-22): the maze grows every drift's pot instead
+	# (get_maze_pot_share). The ledger keeps sampling for old saves; nothing is claimed.
+	maze_reward_last = 0
 	run_state.add_dew(bonus)
 	_block_leaked = false
 	return [bonus, perfect]

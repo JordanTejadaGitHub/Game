@@ -297,11 +297,12 @@ func _process(_delta: float) -> void:
 
 	# Phones: no Maze bonus line here; the HUD shows the forecast by Dew. The tooltip below still explains the bonus.
 	var maze_line: bool = not UiStyle.is_phone()  # Phones: the "+N at rest" sits by the Dew counter, top right, as on PC (user 2026-10-17)
-	if not run_state.is_over and maze_line:
-		_status_label.text += "\nMaze bonus: %s at rest" % UiStyle.dew_amount(drift_director.get_maze_reward_projection(), true)
+	var maze_percent: int = drift_director.get_maze_pot_percent()  # The maze grows every pot (maze_economy.md 8353f6cc)
+	if not run_state.is_over and maze_line and maze_percent > 0:
+		_status_label.text += "\nMaze bonus: %s+%d%% a drift" % [UiStyle.DEW_GLYPH, maze_percent]
 	if not run_state.is_over:
-		_status_label.tooltip_text += "\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path. Counted while nightmares walk." % [
-			UiStyle.dew_amount(1, true), DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW]
+		_status_label.tooltip_text += "\nMaze bonus: every drift pays +1%% Dew for every %d cells your path is longer than the starting path, up to +%d%%." % [
+			DriftDirector.MAZE_ECONOMY.POT_CELLS_PER_PERCENT, roundi(DriftDirector.MAZE_ECONOMY.POT_SHARE_CAP * 100.0)]
 	_fold_notes()
 	if UiStyle.is_phone():
 		_fit_phone_start_text()  # After every text above ("Choose a Dream", "Resume"…)
