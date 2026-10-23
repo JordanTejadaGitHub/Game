@@ -1,0 +1,304 @@
+{
+	"marks": {
+		"dw_footprints": {
+			"anchor": [
+				7,
+				5
+			],
+			"file": "dw_footprints.png",
+			"fps": 0.0,
+			"frame_size": [
+				14,
+				10
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Wet Footprints: a pair of wet prints; frame 0 and 1 alternate down the path; fade them with alpha over PRINT_SECONDS. Anchor = the route point."
+		},
+		"dw_mud": {
+			"anchor": [
+				17,
+				10
+			],
+			"file": "dw_mud.png",
+			"fps": 0.0,
+			"frame_size": [
+				34,
+				20
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Mudflats: a mud patch on each mud step (on the ground, under the water's damp band); two variants, pick by route index. Anchor = the route point."
+		},
+		"dw_reeds": {
+			"anchor": [
+				5,
+				15
+			],
+			"file": "dw_reeds.png",
+			"fps": 3.0,
+			"frame_size": [
+				11,
+				16
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Reed Bed: a reed clump where a wall or Sprout carries the water (stands on the bank: y-sort it or draw over the water). Anchor = its foot."
+		},
+		"dw_still_sheen": {
+			"anchor": [
+				11,
+				3
+			],
+			"file": "dw_still_sheen.png",
+			"fps": 3.0,
+			"frame_size": [
+				22,
+				6
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Still Water: the glassy sheen sliding slowly over still water (on the water surface). Anchor = the route point."
+		},
+		"dw_wave_flash": {
+			"anchor": [
+				13,
+				11
+			],
+			"file": "dw_wave_flash.png",
+			"fps": 14.0,
+			"frame_size": [
+				26,
+				14
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Breaking Wave / Flash Flood: a white crest that rises, curls and breaks into spray (one shot, ~0.35 s). Anchor = the water's middle."
+		},
+		"kt_allegro_note": {
+			"anchor": [
+				3,
+				9
+			],
+			"file": "kt_allegro_note.png",
+			"fps": 3.0,
+			"frame_size": [
+				8,
+				11
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Allegro: a kept Toll, a bronze note circling the bell (up to 3). Anchor = the note's head."
+		},
+		"kt_bronze_prime": {
+			"anchor": [
+				5,
+				10
+			],
+			"file": "kt_bronze_prime.png",
+			"fps": 3.0,
+			"frame_size": [
+				11,
+				11
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Down the Line / Both Ways: a primed nightmare's mark, a small bronze bell with a glint (over its pips). Its ring arcs can use the same ramp: Oak, Ember, Gold. Anchor = the bell's lip."
+		},
+		"kt_humming_pip": {
+			"anchor": [
+				5,
+				3
+			],
+			"file": "kt_humming_pip.png",
+			"fps": 4.0,
+			"frame_size": [
+				11,
+				7
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Humming Walls: the pip a wall filled, a leaf-green bead with hum lines either side. Anchor = centre."
+		},
+		"lf_constellation_pip": {
+			"anchor": [
+				3,
+				3
+			],
+			"file": "lf_constellation_pip.png",
+			"fps": 3.0,
+			"frame_size": [
+				7,
+				7
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Constellation: one silver pip per different Warden counted toward the star. Anchor = centre."
+		},
+		"lf_constellation_star": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "lf_constellation_star.png",
+			"fps": 6.0,
+			"frame_size": [
+				17,
+				17
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Constellation: the star lit over a nightmare (its 3 charges stay as constellation pips under it). Anchor = centre."
+		},
+		"lf_full_glow_ring": {
+			"anchor": [
+				17,
+				7
+			],
+			"file": "lf_full_glow_ring.png",
+			"fps": 6.0,
+			"frame_size": [
+				34,
+				14
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Full Glow: the carried light round a lit nightmare's feet, a banded gold ring (on the ground, under it). Anchor = centre."
+		},
+		"lf_moth_flame": {
+			"anchor": [
+				7,
+				15
+			],
+			"file": "lf_moth_flame.png",
+			"fps": 6.0,
+			"frame_size": [
+				15,
+				16
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Moth to Flame: the kept crit, a larger flame with a moth circling it (LanternMark, was circles at (10, -32)). Anchor = its base."
+		},
+		"lf_moth_flame_ready": {
+			"anchor": [
+				7,
+				15
+			],
+			"file": "lf_moth_flame_ready.png",
+			"fps": 8.0,
+			"frame_size": [
+				15,
+				16
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Moth to Flame: the same flame once its 4 hits are in, burning white. Same frames and anchor as lf_moth_flame."
+		},
+		"lf_pale_path_dot": {
+			"anchor": [
+				4,
+				3
+			],
+			"file": "lf_pale_path_dot.png",
+			"fps": 4.0,
+			"frame_size": [
+				9,
+				7
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Sightline: the silver glint on each pale-path step (on the ground). Anchor = centre of the step."
+		},
+		"lf_strung_pip": {
+			"anchor": [
+				3,
+				3
+			],
+			"file": "lf_strung_pip.png",
+			"fps": 3.0,
+			"frame_size": [
+				7,
+				7
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Strung Lights: one spark pip per glow entered, in a row 6 px apart over the health bar. Anchor = centre."
+		},
+		"lf_waiting_flame": {
+			"anchor": [
+				4,
+				11
+			],
+			"file": "lf_waiting_flame.png",
+			"fps": 8.0,
+			"frame_size": [
+				9,
+				12
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Bonfire: the small flame over a nightmare holding a waiting crit (LanternMark, was two circles at (-10, -30)). Anchor = its base."
+		},
+		"sp_cap_badge": {
+			"anchor": [
+				6,
+				9
+			],
+			"file": "sp_cap_badge.png",
+			"fps": 0.0,
+			"frame_size": [
+				13,
+				10
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Host Trees: the cap a Warden of another family wears. Frame 0 its own cap (Blossom), frame 1 a passed-on cap (Spreading Caps: Mist). Anchor = the stem's foot, on the Warden's head."
+		},
+		"sp_fed_ground": {
+			"anchor": [
+				9,
+				5
+			],
+			"file": "sp_fed_ground.png",
+			"fps": 2.0,
+			"frame_size": [
+				18,
+				10
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Feeding Ground: a fed patch on each route point for 8 s, two little shoots in it; fade it with alpha as it runs out. Anchor = the route point."
+		},
+		"sp_rot_ring": {
+			"anchor": [
+				14,
+				7
+			],
+			"file": "sp_rot_ring.png",
+			"fps": 1.5,
+			"frame_size": [
+				28,
+				14
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Rot Ground: the rot ring on a Sprout bed's step that never goes out (on the ground). Anchor = the step's route point."
+		},
+		"sp_throne_rim": {
+			"anchor": [
+				14,
+				7
+			],
+			"file": "sp_throne_rim.png",
+			"fps": 2.0,
+			"frame_size": [
+				28,
+				12
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Toadstool Throne: the gold plinth under a throne clump, three crown points at its back (on the ground, under the clump). Anchor = the clump's foot."
+		}
+	}
+}
