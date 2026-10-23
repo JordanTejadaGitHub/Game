@@ -202,6 +202,7 @@ func _dense_row(main: Node, tags: DpsTags) -> void:
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
 	var map = main.get_node("MapGenerator")
 	placer.tower_data = load("res://resource/tower/sporeling.tres")
+	main.get_node("%RunState").dew = 100000  # The broken rows on the way keep their Wardens (and their cost)
 	var row: Array = []
 	for y in range(1, Tower.MAP_GRID.size.y - 1):
 		row.clear()
