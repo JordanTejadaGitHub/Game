@@ -204,7 +204,7 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 # deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
 # a "+N" chip that opens the rest on tap. About 90 px tall at rests.
 const PER_ROW := 6
-const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
+const CAPTION_GAP := 18  # 6 px clear between the caption and a "New" tab (12 px over its disc), the disc row 18 below (user)
 
 func _build(span: Vector2i) -> void:
 	_caption.text = ("After the rest" if next_after_rest else "Still to come this block") if compact else "Coming this block"
@@ -232,7 +232,7 @@ func _build(span: Vector2i) -> void:
 		if i % per_row == 0:
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", 18)  # Room for each count plate hung past its disc (UI council round 5)
+			line.add_theme_constant_override("separation", 22)  # Room for each count plate hung 20 px past its disc (UI council round 5), +2 clear
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
