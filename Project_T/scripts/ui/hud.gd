@@ -2001,7 +2001,7 @@ func _ensure_hover_card() -> void:
 	hover_card.add_child(_hover_box)
 	_hover_price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hover_price.custom_minimum_size = Vector2(WardenHeaderView.WIDTH, 0)
-	UiStyle.caps(_hover_price, 14, UiStyle.GOLD)
+	UiStyle.plain(_hover_price, 14, UiStyle.GOLD)
 	add_child(hover_card)
 
 func _show_hover_card(button: Button, data: TowerData) -> void:

@@ -41,7 +41,7 @@ func _ready() -> void:
 	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	warning_label.visible = false
-	UiStyle.caps(warning_label, 14, UiStyle.GOLD)
+	UiStyle.plain(warning_label, 14, UiStyle.GOLD)
 	warning_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	warning_label.add_theme_constant_override("outline_size", 5)
 	add_child(warning_label)
@@ -50,14 +50,14 @@ func _ready() -> void:
 	finale_label.name = "FinaleLine"
 	finale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	finale_label.visible = false
-	UiStyle.caps(finale_label, 14, UiStyle.GOLD)
+	UiStyle.plain(finale_label, 14, UiStyle.GOLD)
 	finale_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	finale_label.add_theme_constant_override("outline_size", 5)
 	add_child(finale_label)
 	moonflip_label.name = "MoonflipLine"
 	moonflip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	moonflip_label.visible = false
-	UiStyle.caps(moonflip_label, 14, UiStyle.GOLD)
+	UiStyle.plain(moonflip_label, 14, UiStyle.GOLD)
 	moonflip_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	moonflip_label.add_theme_constant_override("outline_size", 5)
 	add_child(moonflip_label)
@@ -65,7 +65,7 @@ func _ready() -> void:
 	impatient_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	impatient_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	impatient_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(impatient_label, 14, UiStyle.GOLD)
+	UiStyle.plain(impatient_label, 14, UiStyle.GOLD)
 	impatient_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	impatient_label.add_theme_constant_override("outline_size", 5)
 	add_child(impatient_label)
@@ -513,7 +513,7 @@ func _update_moonflip() -> void:
 	var text: String = dream_state.moonflip_text() if dream_state.has_method("moonflip_text") and not run_state.is_over else ""
 	moonflip_label.visible = text != ""
 	if text != "":
-		moonflip_label.text = text.replace(" · ", "  ").to_lower()  # Light pass: no " · "; small caps lower it anyway
+		moonflip_label.text = text.replace(" · ", ", ")  # No " · " (ui_style.md); as written, plain Vollkorn now
 
 # The rule-breaker warning (screens_ui.md "New rule-breaker warning"): rebuilt only when the drift count or
 # the rest changes (the scan reads the drift tables).
@@ -532,6 +532,6 @@ func _update_warning() -> void:
 # Driven by actual arrivals/resolutions, including split children; no scheduled-only activation.
 func _refresh_impatient() -> void:
 	impatient_label.visible = not run_state.is_over and dream_state.has_rule(&"restless_night") and drift_director.early_drifts_on_field() >= 2
-	impatient_label.text = "Impatient Night +%d%% · early calls overlap" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)
+	impatient_label.text = "Impatient Night +%d%%, early calls overlap" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)
 	if UiStyle.is_phone():
 		impatient_label.text = "Impatient Night +%d%%" % roundi(DreamState.IMPATIENT_OVERLAP_DAMAGE * 100.0)  # Phones: short, no " · "

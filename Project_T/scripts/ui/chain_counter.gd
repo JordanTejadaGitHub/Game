@@ -16,7 +16,7 @@ const MIN_LINKS := 2
 
 var _row := HBoxContainer.new()
 var _icon := TextureRect.new()
-var _word := Label.new()  # "Chain" in the display face
+var _word := Label.new()  # "Chain", in the count's face
 var _count := Label.new()  # "×213" in the number face (UI council: no digits in Pixelify)
 var _best := Label.new()
 var _tracker: ReactionTracker
@@ -53,7 +53,7 @@ func _ready() -> void:
 	_row.add_child(_icon)
 	_word.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_word.text = "Chain"
-	UiStyle.display(_word, 20 if _phone else 26)
+	UiStyle.number(_word, 20 if _phone else 26, UiStyle.GOLD)  # One face for the phrase (user 2026-10-23: too many fonts)
 	_word.add_theme_color_override("font_color", UiStyle.GOLD)
 	_word.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	_word.add_theme_constant_override("outline_size", 6)

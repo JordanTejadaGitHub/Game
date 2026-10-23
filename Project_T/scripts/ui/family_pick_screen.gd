@@ -1007,7 +1007,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		none.text = "No Calling. Adds %s family cards to your Dreams." % data.display_name
 		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		none.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(none, _fs(13))
+		UiStyle.plain(none, _fs(13))
 		none.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		box.add_child(none)
 		return ""
@@ -1035,7 +1035,7 @@ func _add_calling(box: VBoxContainer, data: TowerData) -> String:
 		title.text = "Calling: %s" % DreamState.CALLINGS.title(data.get_id())  # No " · " (ui_style.md)
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps; it never widens the card
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(title, _fs(14))
+		UiStyle.plain(title, _fs(14))
 		title.add_theme_color_override("font_color", UiStyle.GOLD)
 		box.add_child(title)
 	if short:

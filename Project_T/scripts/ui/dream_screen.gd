@@ -310,7 +310,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			hint.name = "TapHint"
 			hint.text = " "  # Holds its line from the start, so the row never shifts
 			hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			UiStyle.caps(hint, 15, UiStyle.GOLD)
+			UiStyle.plain(hint, 15, UiStyle.GOLD)
 			column.add_child(hint)
 		_cards.add_child(column)
 	_show_reach(null)  # New cards (a reroll too): no outline until one is hovered (distance words, owner 2026-10-19)
@@ -506,7 +506,7 @@ func _add_opens_clearing(box: VBoxContainer) -> void:
 	var line := Label.new()
 	line.text = DreamState.OPENS_CLEARING_LINE
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(line, 16, UiStyle.GOLD)
+	UiStyle.plain(line, 16, UiStyle.GOLD)
 	row.add_child(line)
 	box.add_child(row)
 	# (No OPENS_CLEARING_TEXT line: the card's own text says it; UI council 2026-10-22 saw the rule twice.)
