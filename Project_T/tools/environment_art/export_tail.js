@@ -68,7 +68,9 @@ for (const A of ACTS) {
   emit(d + "bog_path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("bog:" + m))));
   emit(d + "ancient_stump.png", strip([0, 1, 2].map(v => getImg("astump:" + v))));
   emit(d + "border_wall.png", strip([getImg("wall:0"), getImg("wall:1")]));
-  emit(d + "dew_pool.png", frames("pool:0"));
+  // dew_pool.png: the 2-cell Dew Pool landmark, 4 frames of 128×64 (two cells side by side); dew_pool_v.png: 4 frames of 64×128 (stacked).
+  emit(d + "dew_pool.png", frames("dpool:0"));
+  emit(d + "dew_pool_v.png", frames("dpool:1"));
   emit(d + "blight_patch.png", frames("blight:0"));
   // Rows 0-2: the original Withered Tree; rows 3-8: split trunk, snag, willow, pine, birch, thorn.
   emit(d + "withered_tree.png", stack([...[0, 1, 2].map(v => frames("withered:" + v)), ...[0, 1, 2, 3, 4, 5].map(t => frames("dead:" + t))]));
