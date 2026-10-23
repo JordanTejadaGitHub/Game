@@ -123,8 +123,8 @@ as raw words (use tokens).
 ## 6. Terms: one name each
 
 Decided in wording_review_2026-10-13 §1 and still leaking (C §1 has counts and places): tiles / square / route → cells
-/ path; Phantoms → flyers; Rooted, Exposed Blow, Drowses → tokens; "Let go" → Banish; "Dream again" / "New cards" →
-one name (**Reroll**, recommended: it's the genre word); Hints → Lessons.
+/ path; Phantoms → flyers; Rooted, Exposed Blow → tokens; "Let go" / "let-go" → Banish; Hints → Lessons.
+**Reroll** (owner 2026-10-22) is the one name for redrawing the Dream cards: never "Dream again" or "New cards".
 
 ## 7. Localisation risks (later, before translation)
 
@@ -140,5 +140,5 @@ the Heartwood's "I" lines; Omen text (1 of 27 over 25 words); the "(bosses N)" p
 ## 9. Next
 
 1. Section 4 owners apply the wrong-text fixes (prompts in this chat's hand-off; owners paste them).
-2. Owner calls: Sleep → Drowsy and UK spelling decided 2026-10-22 (section 3, rows 1-2). Still open: "Reroll"?
+2. Owner calls: Sleep → Drowsy and UK spelling decided 2026-10-22 (section 3, rows 1-2). Reroll decided 2026-10-22 (section 6).
 3. Section 5 rules go into text_style.md once the owner agrees, then a second pass over the seat reports' tables.
