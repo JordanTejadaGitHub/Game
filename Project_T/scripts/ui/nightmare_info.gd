@@ -48,6 +48,7 @@ var _dispelled_left := 0.0
 var _last_mouse := Vector2(-1000, -1000)
 var _numbers := Label.new()
 var _await_move := false  # Cleared after a dispel: the next nightmare needs a pointer move
+var test_pin: Node2D = null  # Tests only: the nightmare shown as if the pointer were on it (PC; null = the real hover)
 const IDLE_TIME := 3.0  # Real seconds without a pointer move (phones: since the tap) before it hides
 var _idle := 0.0
 
@@ -77,6 +78,8 @@ func _process(delta: float) -> void:
 		if _target != null and _idle > IDLE_TIME:
 			_phone_pick = null
 			_target = null
+	elif is_instance_valid(test_pin) and not test_pin.is_cleansed:
+		_target = test_pin  # Tests: held as if hovered, whatever the (headless) pointer does
 	else:
 		if moved:
 			_await_move = false

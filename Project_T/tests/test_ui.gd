@@ -286,7 +286,7 @@ func _run() -> void:
 		var info_node := main.get_node("%NightmareInfo") as Control
 		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 		pinned.set_process(false)
-		info_node._target = pinned
+		info_node.test_pin = pinned
 		for f in 8:
 			await process_frame
 			meter._fit()
@@ -295,8 +295,8 @@ func _run() -> void:
 		var meter_info_rect := meter.get_global_rect()
 		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 		_check(info_node.visible and not meter.collapsed and meter._body.visible and meter._user_open and not meter_info_rect.intersects(panel_info_rect),
-			"with the nightmare info open the meter stays open, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
-		info_node._target = null
+			"with the nightmare info open the meter stays open, clear of the DriftPanel at %s (%s vs %s; info %s, collapsed %s, body %s, open %s)" % [screen, meter_info_rect, panel_info_rect, info_node.visible, meter.collapsed, meter._body.visible, meter._user_open])
+		info_node.test_pin = null
 		pinned.queue_free()
 		for f in 3:
 			await process_frame
@@ -709,13 +709,14 @@ func _run() -> void:
 	var info = main.get_node("%NightmareInfo")
 	var shade: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	shade.set_process(false)
-	info._target = shade
+	info.test_pin = shade
 	info._known.clear()  # As if never met before
 	await process_frame
 	_check(info.visible and info._title.text.begins_with(shade.enemy_data.display_name), "hover panel shows the nightmare")
 	_check(info._title.text.contains("New"), "a never-met nightmare gets the New tag")
 	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._numbers.text.contains("Health"),
 		"hover panel shows the trait and health")
+	info.test_pin = null
 
 	# --- Leak feedback ---
 	var leak = main.get_node("LeakEffect")
@@ -918,7 +919,7 @@ func _run() -> void:
 	for e in [watched, other]:
 		e.set_process(false)
 	watched.apply_status(&"damp", 1, 30.0)
-	hov_info._target = watched
+	hov_info.test_pin = watched
 	for i in 3:
 		await process_frame
 	var hov_popup: StatusLinks = hov_info._body.get_children().filter(func(c: Node) -> bool: return c is StatusLinks).front()

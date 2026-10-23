@@ -87,7 +87,7 @@ func _run() -> void:
 	var enemy: Node2D = spawner.spawn_enemy(stag)
 	enemy.set_process(false)
 	var info = main.get_node("%NightmareInfo")
-	info._target = enemy
+	info.test_pin = enemy
 	await process_frame
 	_check(info.visible and _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty()
 		and (stag.kind == EnemyData.Kind.PLAIN or info._rows_box.find_child("KindBadge", true, false) != null),
