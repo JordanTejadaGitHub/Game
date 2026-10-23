@@ -51,8 +51,9 @@ two trees pulse in step.
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
 | `mossy_boulder.png` | 576×64 | 9 rocks: **0, 5 and 6 are BIG boulders** (~54–56 × 40–42 px, low on a wide shadow, a one-step-heavier stone ramp; 2026-10-06, so spurs read as trees and rocks: about 1 roll in 3), the rest about 68% of their first size (clearly smaller than the trees): 0–1 Mossy Boulder, 2 slab stone, 3 cairn, 4 rock cluster, 5 split boulder, 6 lichen boulder, 7 carved boulder, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
-| `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
-| `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
+| `waystone.png` | 256×64 | 4 frames: the Old Waystone landmark, the soil slab a Warden grows from (the Sprout's base, same footprint) with the carved symbol glowing | landmark (2026-10-23) |
+| `dew_pool.png` | 512×64 | the Dew Pool landmark across two cells: 4 frames of 128×64, transparent outside its bank (frozen crust in act 4) | landmark (2026-10-23) |
+| `dew_pool_v.png` | 256×128 | the same pool on two stacked cells: 4 frames of 64×128 | landmark (2026-10-23) |
 | `pond.png` | 1024×256 | **column = neighbour mask** of pond cells (N=1, E=2, S=4, W=8, like `path.png`), **row = animation frame** (4 frames). Transparent outside the banks | the pond feature (2×2 to 3×3 cells of still water): earth-and-moss banks on its outer edges, teal water darkening toward the middle (depth = distance to the shore, so cells join into one body), moonlight glints that shimmer over the frames, the odd lily pad; ice with cracks in Heartwood Glade. Assumes a rectangle: where two sides join, the diagonal cell is pond too (no inner corners) |
 | `pond_inner.png` | 256×64 | 4 overlay tiles, columns **NE, SE, SW, NW**; static, transparent except one corner | for ponds that aren't rectangles: draw over the pond tile of a cell whose two neighbours on that corner's sides are pond but whose diagonal isn't (1–2 per cell). A small rounded point of land with its bank (lines up with the two neighbouring cells' banks) and shallows round it; ice in Heartwood Glade |
 | `blight_patch.png` | 256×64 | 4 frames | proposed special tile |

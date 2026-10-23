@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "hunters_patience"
 display_name = "Hunter's Patience"
-description = "Wardens deal 50% more damage to {deeply_blighted} nightmares and bosses."
+description = "Wardens deal 50% more damage to {deeply_blighted} nightmares and bosses, and 40% more to flyers."
 rarity = 2
 kind = 3
 tags = Array[String](["precision", "defining"])
 max_stacks = 1
 min_act = 2
 rule_id = &"hunters_patience"
-tip = "Hits only, not statuses. Wardens' hits also deal 40% more to flyers."
+tip = "Hits only, not statuses."
 extra_rules = Array[StringName]([&"skyward_gaze"])

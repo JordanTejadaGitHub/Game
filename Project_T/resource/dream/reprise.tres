@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "reprise"
 display_name = "Reprise"
-description = "A {reaction} on a nightmare in a bell's range goes off again 1 s later at half damage. Each nightmare once every 8 s."
-tip = "Its damage again, not its statuses. Every {reaction} counts, {crowned_reactions} too, but never an {warden:echo_hollow}'s echo. Works for: every family's {reactions} inside a bell's range. A bet: needs {reactions}."
+description = "A {reaction} on a nightmare in a {family:bellflower} Warden's range goes off again 1 s later at half damage. Each nightmare once every 8 s."
+tip = "Its damage again, not its statuses. Every {reaction} counts, {crowned_reactions} too, but never an {warden:echo_hollow}'s echo. Works for: every family's {reactions} inside a {family:bellflower} Warden's range. A bet: needs {reactions}."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "lent"])

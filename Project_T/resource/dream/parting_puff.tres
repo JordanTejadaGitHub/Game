@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "parting_puff"
 display_name = "Parting Puff"
-description = "When Sporelings or Wardens {near} them dispel a nightmare with a hit, nightmares within 1 cell take a quarter of that hit."
+description = "When {family:sporeling} Wardens or Wardens {near} them dispel a nightmare with a hit, nightmares within 1 cell take a quarter of that hit."
 tip = "At most 4 nightmares; bosses take half. A puff that dispels doesn't puff again. Works for: crowded stretches of path. Safe."
 rarity = 1
 kind = 3

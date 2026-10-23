@@ -11,7 +11,7 @@ class_name CodexData
 const GLOSSARY_SOURCE := [
 	["Resources", [
 		["Dew", "The run's currency: earned by dispelling nightmares and at rests, spent on Wardens, growth, Nurture and clearing.", ["Rest", "Nurture"]],
-		["Dreamlight", "Freed by great nightmares (bosses, the first family pick): unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
+		["Dreamlight", "Comes with every family pick and every boss rest, and from some Wardens' shards: unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
 		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from Caught nightmares make at most {dreamlight:2} a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
@@ -20,11 +20,11 @@ const GLOSSARY_SOURCE := [
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
 		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
-		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+10}.", ["Block", "Rest", "Leaves"]],
+		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+20}.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. A full run has four.", ["Boss", "Leaves"]],
-		["Boss", "A great nightmare at the end of each act. Dispelling it brings a family pick, Dreamlight and a rare Dream.", ["Family pick", "Dreamlight"]],
-		["Family pick", "After drift 1 and after each boss: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead.", ["Family", "Dreamlight"]],
+		["Boss", "A great nightmare at the end of each act. Dispelling it brings Dreamlight and a rare Dream.", ["Dreamlight", "Dream"]],
+		["Family pick", "After drifts 1, 10, 35 and 60: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead.", ["Family", "Dreamlight"]],
 		["Dream", "A card you choose at a rest. It changes your run until it ends.", ["Rarity", "Let it pass"]],
 		["Omen", "A harder next block that you may accept for a reward at the rest after it. Offered from drift 10.", ["Rest"]],
 		["Call early", "Starting the next drift before the current one has finished arriving pays a little Dew.", ["Auto-drift"]],
@@ -45,11 +45,11 @@ const GLOSSARY_SOURCE := [
 		["Grove branch", "An extra branch of a family, opened in the Memory Grove. It is offered on top of the run's two.", ["Memory Grove"]],
 		["Grow", "Pay Dew to turn a Warden into a stronger form of its family.", ["Branch", "Nurture"]],
 		["Nurture", "Pay Dew to raise a Warden's rank. Each rank lets you choose one improvement.", ["Rank", "Nurture choice"]],
-		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage and attack speed.", ["Nurture", "Eldest"]],
+		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
 		["Eldest", "A Legendary Dream lets one Warden a run grow past rank V; it wears a crown.", ["Rank", "Nurture"]],
 		["Sprout", "The cheapest Warden. It can grow into any family you have picked this run.", ["Family pick", "Warden"]],
 		["Aura", "A bonus a support Warden gives to the Wardens around it.", ["Boosts"]],
-		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 130 a rest for all Wellsprings together.", ["Dew", "Rest"]],
+		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 260 a rest for all Wellsprings together.", ["Dew", "Rest"]],
 		["Nurture choice", "Each rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
 		["Wide, Strong, Attuned", "The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full.", ["Nurture choice", "Aura"]],
 		["Signature", "A special rule a Warden gains at rank V when four of its ranks took the same choice.", ["Nurture choice", "Rank"]],
@@ -87,7 +87,7 @@ const GLOSSARY_SOURCE := [
 	["Branch effects", [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
 		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
-		["Arc", "Two Jarlinks within 4 cells join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
+		["Arc", "Two Jarlinks within {field:jarlink.special_params.link_range:cells} join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
 		["Ink", "An Inkcap shot on a nightmare with {spored} inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
@@ -140,7 +140,7 @@ const GLOSSARY_SOURCE := [
 		["Bittersweet", "A strong Dream card with a cost.", ["Dream"]],
 		["Legendary", "The rarest Dreams, grown in the Memory Grove.", ["Memory Grove"]],
 		["Let it pass", "Skip a Dream offer for a little Dew.", ["Dream"]],
-		["New cards", "Swap the Dream cards on offer for different ones. Limited per run.", ["Perks"]],
+		["Reroll", "Swap the Dream cards on offer for different ones. Limited per run.", ["Perks"]],
 		["Banish", "Remove a Dream card from this run's offers.", ["Perks"]],
 		["Woven", "A Dream card that needs three particular Wardens.", ["Crowned Reaction", "Legendary"]],
 	]],
@@ -164,8 +164,8 @@ const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between nightmares with {damp}.", "Stormcap"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
-	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with 3 or more {static} (4 for Lullaby Bell) release its bolt at once.", "Chime Stone, Lullaby Bell"],
-	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on nightmares with {marked}.", "Mossback, Boulderback"],
+	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with {field:chime_stone.sets_off_static_at} or more {static} ({field:lullaby_bell.sets_off_static_at} for Lullaby Bell) release its bolt at once.", "Chime Stone, Lullaby Bell"],
+	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on nightmares with full {marked}.", "Mossback, Boulderback"],
 	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep}, or at {full} {drowsy}, near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
 
@@ -177,9 +177,9 @@ const CROWNED := {
 	&"tempest": ["Tempest", &"thunderclap", &"spored", ["dewdrop", "firefly_jar", "sporeling"],
 		"Arcs can set off Ignite once targets reach 12 {spored} and 8 {static}, and the spores carry {static} onto those with {damp}: new Thunderclaps follow."],
 	&"still_pool": ["Still Pool", &"drown", &"held", ["dewdrop", "bellflower", "rootling"],
-		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it sleeps for a moment."],
+		"The nightmare sinks and leaves a still pool for 5 s: every walker that enters it falls {asleep} for a moment."],
 	&"fever_dream": ["Fever Dream", &"smother", &"drowsy", ["sporeling", "rootling", "bellflower"],
-		"When {combo:smother} bursts on a nightmare at {full} {drowsy}, it falls {asleep} and its neighbors catch {spored} + {drowsy}: a sleep plague."],
+		"When {combo:smother} bursts on a nightmare at {full} {drowsy}, it falls {asleep} and its neighbours catch {spored} + {drowsy}: a sleep plague."],
 	&"starfall": ["Starfall", &"pinned", &"static", ["firefly_jar", "rootling", "bellflower"],
 		"The crit splits into stars: nightmares within 3 cells with {stacks:need_marked} {marked} take a crit for half the hit."],
 	&"avalanche": ["Avalanche", &"shatter", &"held", ["dewdrop", "rootling", "pebbling"],
@@ -276,8 +276,8 @@ const KINSHIP_TEXT := {
 	&"storm_beacon": "Stormcap's jumps give nightmares {marked} for 2 s; Lanternmoth's shots add 1 {static}.",
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to nightmares with {marked}.",
 	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
-	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
-	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
+	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 12 stacks.",
+	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
@@ -294,7 +294,7 @@ const KINSHIP_TEXT := {
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
-	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
+	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbour's status.",
 	&"jewel_thieves": "Every 6th peck steals a nightmare's boost ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
@@ -573,7 +573,7 @@ const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between nightmares with {damp} (the Conducted combo).", ["Conducted"]],
-	[&"asleep", "Asleep", "At {full} {drowsy}, the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
+	[&"asleep", "Asleep", "At {full} {drowsy}, the nightmare falls {asleep} for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 ]
 const ALWAYS_SHOWN: Array[StringName] = []  # (Weak and Resisted went with damage types: Nightmare Kinds)
 

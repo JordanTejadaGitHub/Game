@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "thunderstruck"
 display_name = "Thunderstruck"
-description = "When a {heavy} Warden {near} a Firefly hits, a quarter of the hit {jumps} to up to 4 other nightmares within 2 cells."
-tip = "Only nightmares a Warden hit in the last 2 s. Fireflies' own {heavy} forms count too. Each {jump} adds 1 {stack} of {static} from the Firefly; bosses get none. Once per attack. At most 1.5 s of the Firefly's damage in all. Works for: {heavy} Wardens among other attacking Wardens. Safe."
+description = "When a {heavy} Warden {near} a {family:firefly_jar} Warden hits, a quarter of the hit {jumps} to up to 4 other nightmares within 2 cells."
+tip = "Only nightmares a Warden hit in the last 2 s. {family:firefly_jar} Wardens' own {heavy} forms count too. Each {jump} adds 1 {stack} of {static} from the {family:firefly_jar} Warden; bosses get none. Once per attack. At most 1.5 s of the {family:firefly_jar} Warden's damage in all. Works for: {heavy} Wardens among other attacking Wardens. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["storm", "lent"])

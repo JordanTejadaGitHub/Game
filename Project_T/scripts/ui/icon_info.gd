@@ -17,7 +17,7 @@ const STATUSES := {
 	# Nouns since 2026-10-17 (owner: "rename all"; they match the keyword chips and read as stack counts: "8 Soak"). Text
 	# says "nightmares with {damp}", never "{damp} nightmares".
 	&"damp": ["Soak", "Water hits deal 20% more damage to a nightmare with it. At {stacks:need_damp} stacks it can set off {reactions}."],
-	&"drowsy": ["Sleep", "A nightmare with it walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) the nightmare can fall {asleep} and set off {reactions}."],
+	&"drowsy": ["Drowsy", "A nightmare with it walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) the nightmare can fall {asleep} and set off {reactions}."],
 	&"spored": ["Poison", "A nightmare with it takes damage every second, more per stack. Every new stack keeps the whole pile going; it wears off 5 s after the last one. At {stacks:need_spored} stacks it can set off {reactions}."],
 	&"marked": ["Exposure", "Does nothing until {stacks:need_marked} stacks; then a nightmare with it takes 25% more damage from every Warden and can set off {reactions}."],
 	&"static": ["Charge", "Lightning built up on a nightmare. At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it goes off as a strong bolt (16× the stored Charge). At {stacks:need_static} stacks it can set off {reactions}."],
@@ -39,10 +39,10 @@ const STATS := {
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
 	&"potency": ["Potency", "How strong this Warden's statuses are. Higher Potency: harder {spored} and {static}, stronger slows, longer {held}. Raise it with the Deep choice."],
-	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest). Each rank adds damage and attack speed, and you choose one improvement."],
+	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest). Each rank adds damage, attack speed and 0.1 cells of range, and you choose one improvement."],
 	&"focus": ["Nurture choice", "Each rank you choose one improvement. Attacking Wardens: Power, Swift, Reach or Deep. Support Wardens have their own."],
 	&"focus_power": ["Power", "Hits harder: deals 18% more damage."],
-	&"focus_swift": ["Swift", "Attacks faster: +12%."],
+	&"focus_swift": ["Swift", "Attacks faster: +15%."],
 	&"focus_reach": ["Reach", "More range: +0.3 cells."],
 	&"focus_deep": ["Deep", "Stronger statuses: +25% Potency."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
@@ -287,7 +287,7 @@ const TERMS := {
 	&"bittersweet": ["Bittersweet", "Bittersweet", "Bittersweet"],
 	&"upgrade": ["Upgrade", "Upgrades", "Upgrade"],
 	&"woven": ["Woven", "Woven", "Woven"],
-	&"new_cards": ["New cards", "New cards", "New cards", "new_cardss"],
+	&"new_cards": ["Reroll", "Rerolls", "Reroll", "rerolls"],
 	&"banish": ["Banish", "Banishes", "Banish", "banishes"],
 	&"omen": ["Omen", "Omens", "Omen"],
 	&"gift": ["gift", "gifts", "Gift"],
@@ -376,6 +376,10 @@ static func stack_number(key: String) -> int:
 	var status := StringName(key.substr(kind.length() + 1))
 	if kind == "need":  # The lowest Reaction need for that status, the number the status row's blue frame uses (Enemy Code 725f18fc)
 		return Reactions.ready_need(status, EnemyStatuses.new())
+	if kind == "clap" or kind == "bossclap":  # "clap_static": Thunderclap's / Lightning Rod's own Charged need (higher than need_static's Ignite)
+		var clap := EnemyStatuses.new()
+		clap.is_boss = kind == "bossclap"
+		return Reactions.thunderclap_threshold(clap)
 	if kind == "cap" or kind == "bosscap":
 		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
 		probe.is_boss = kind == "bosscap"

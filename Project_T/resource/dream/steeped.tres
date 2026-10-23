@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "steeped"
 display_name = "Steeped"
-description = "Statuses last 40% longer when added by a Warden {touching} a Dewdrop, or to a nightmare in range of two Dewdrops."
-tip = "Dewdrops always count. A nightmare leaving a Dewdrop's range keeps its statuses 2 s longer. At most 4 s past the last landing ({static} 2 s). Doesn't lengthen {held} or {drowsy}. Works for: every family's statuses. Safe."
+description = "Statuses last 40% longer when added by a Warden {touching} a {family:dewdrop} Warden, or to a nightmare in range of two {family:dewdrop} Wardens."
+tip = "{family:dewdrop} Wardens always count. A nightmare leaving a {family:dewdrop} Warden's range keeps its statuses 2 s longer. At most 4 s past the last landing ({static} 2 s). Doesn't lengthen {held} or {drowsy}. Works for: every family's statuses. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])
