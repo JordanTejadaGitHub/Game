@@ -48,6 +48,7 @@ func _lent_rules() -> Array:
 
 func _ready() -> void:
 	z_index = -1  # With the ground: under Wardens and nightmares
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The Calling evolution marks: 1x crisp pixels
 	if dream_state != null and dream_state.get("drift_director") != null:
 		dream_state.drift_director.rest_started.connect(_rest_started.unbind(4))
 
@@ -566,6 +567,95 @@ static func loop_frame(fps: float, frames: int) -> int:
 	if motion_still():
 		return 0
 	return int(Time.get_ticks_msec() / 1000.0 * fps) % maxi(frames, 1)
+
+# --- Calling evolution marks (assets/effects/calling_evo/, Roguelite asset 6389429b) ---------------------------------
+# One sheet per mark, frames side by side; calling_evo.json gives frame_size, frames, fps, anchor, loop. Static helpers
+# so a node that is not a class kit (firefly_lights.gd) can use them: the caller passes its own cache Dictionary (a
+# per-node var, never static: static textures crash at exit). A missing sheet draws nothing and returns false, so the
+# caller keeps its palette placeholder. 1x only: the rect starts at (point - anchor) rounded.
+const EVO_ART_DIR := "res://assets/effects/calling_evo/"
+const EVO_ART_MARKS := "_marks"
+var evo_art := {}  # This node's cache: "_marks" -> the json's marks, mark name -> Texture2D (null when missing)
+
+static func evo_art_meta(cache: Dictionary, mark: StringName) -> Dictionary:
+	if not cache.has(EVO_ART_MARKS):
+		var marks := {}
+		var file := FileAccess.open(EVO_ART_DIR + "calling_evo.json", FileAccess.READ)
+		if file != null:
+			var parsed: Variant = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary and (parsed as Dictionary).get("marks") is Dictionary:
+				marks = (parsed as Dictionary)["marks"]
+		cache[EVO_ART_MARKS] = marks
+	var all: Dictionary = cache[EVO_ART_MARKS]
+	var meta: Variant = all.get(String(mark))
+	return meta if meta is Dictionary else {}
+
+static func evo_art_tex(cache: Dictionary, mark: StringName) -> Texture2D:
+	var key := String(mark)
+	if not cache.has(key):
+		var tex: Texture2D = null
+		var meta := evo_art_meta(cache, mark)
+		if not meta.is_empty():
+			var path := EVO_ART_DIR + str(meta.get("file", key + ".png"))
+			if ResourceLoader.exists(path):
+				tex = load(path) as Texture2D
+		cache[key] = tex
+	return cache[key]
+
+# The mark's frame now: a loop by the clock (+ `phase` frames, so neighbours don't move in step); `age` >= 0: a one-shot
+# `age` s in, holding its last frame. Reduced motion, or a sheet with no fps: frame 0.
+static func evo_art_frame(cache: Dictionary, mark: StringName, age: float = -1.0, phase: int = 0) -> int:
+	var meta := evo_art_meta(cache, mark)
+	var frames := maxi(int(meta.get("frames", 1)), 1)
+	var fps := float(meta.get("fps", 0.0))
+	if fps <= 0.0 or motion_still():
+		return 0
+	if age >= 0.0:
+		return clampi(int(age * fps), 0, frames - 1)
+	if not bool(meta.get("loop", false)):
+		return 0
+	return (int(Time.get_ticks_msec() / 1000.0 * fps) + maxi(phase, 0)) % frames
+
+# A stamp of the marks' clock frames: redraw when it changes (only for the marks on show).
+static func evo_art_stamp(cache: Dictionary, marks: Array) -> int:
+	var stamp := 0
+	for mark in marks:
+		stamp = stamp * 8 + evo_art_frame(cache, StringName(mark))
+	return stamp
+
+# Draws `mark` on `c` with its anchor on `at` (frame -1: the clock's frame + `phase`). `flip` mirrors it about the
+# anchor. Returns false when the sheet is missing (the caller draws its placeholder).
+static func draw_evo_art(cache: Dictionary, c: CanvasItem, mark: StringName, at: Vector2, alpha: float = 1.0,
+		flip: bool = false, frame: int = -1, phase: int = 0) -> bool:
+	var tex := evo_art_tex(cache, mark)
+	if tex == null:
+		return false
+	var meta := evo_art_meta(cache, mark)
+	var frames := maxi(int(meta.get("frames", 1)), 1)
+	var size_v: Variant = meta.get("frame_size")
+	var anchor_v: Variant = meta.get("anchor")
+	var w := float(tex.get_width()) / frames
+	var h := float(tex.get_height())
+	if size_v is Array and (size_v as Array).size() >= 2:
+		w = float(size_v[0])
+		h = float(size_v[1])
+	var anchor := Vector2(floorf(w / 2.0), floorf(h / 2.0))
+	if anchor_v is Array and (anchor_v as Array).size() >= 2:
+		anchor = Vector2(float(anchor_v[0]), float(anchor_v[1]))
+	if frame < 0:
+		frame = evo_art_frame(cache, mark, -1.0, phase)
+	frame = clampi(frame, 0, frames - 1)
+	var source := Rect2(w * frame, 0.0, w, h)
+	var rect := Rect2((at - anchor).round(), Vector2(w, h))
+	if flip:  # Mirrored about the anchor: the anchor's x counts from the right edge
+		rect = Rect2((at - Vector2(w - anchor.x, anchor.y)).round() + Vector2(w, 0.0), Vector2(-w, h))
+	c.draw_texture_rect_region(tex, rect, source, Color(1.0, 1.0, 1.0, alpha))  # multiplier: alpha only
+	return true
+
+# draw_evo_art with this node's cache (inner draw nodes call it on their class node).
+func evo_mark(c: CanvasItem, mark: StringName, at: Vector2, alpha: float = 1.0, flip: bool = false, frame: int = -1,
+		phase: int = 0) -> bool:
+	return draw_evo_art(evo_art, c, mark, at, alpha, flip, frame, phase)
 
 # --- The loop -------------------------------------------------------------------------------------------------------
 

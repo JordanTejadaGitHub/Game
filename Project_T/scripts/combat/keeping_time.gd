@@ -165,6 +165,7 @@ const WALL_STEPS := 4  # Humming Walls: each 4 steps walked beside Thornwalls fi
 const WALL_SEEN_META := &"kt_evo_wall_seen"  # On a nightmare: the furthest route index counted (forward only)
 const WALL_COUNT_META := &"kt_evo_wall_count"  # On a nightmare: wall-side route points walked toward the next pip
 const WALL_DONE_META := &"kt_evo_wall_done"  # On a nightmare: a wall pip filled since its last Toll
+const WALL_PIP_META := &"kt_evo_wall_pip"  # On a nightmare: the ring index the walls filled (kt_humming_pip; drawing only)
 const WALL_LAPS_META := &"kt_evo_wall_laps"  # On a nightmare: its laps when last counted (a new lap starts the count over)
 const EVO_DOWN := &"kt_evo_down_the_line"
 const EVO_BOTH := &"kt_evo_both_ways"
@@ -322,6 +323,7 @@ func _ready() -> void:
 	_pip_layer = Node2D.new()
 	_pip_layer.name = "TollPips"
 	_pip_layer.z_index = PIP_Z  # Over the nightmares (this node lies with the ground)
+	_pip_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The Calling evolution marks: 1x crisp pixels
 	_pip_layer.draw.connect(_draw_pips)
 	add_child(_pip_layer)
 	if dream_state != null and dream_state.get("drift_director") != null:
@@ -379,6 +381,7 @@ func _draw_pips() -> void:
 	var cresc := evo(EVO_CRESCENDO)  # Crescendo: the pips grow bigger and brighter
 	var midnight := evo(EVO_MIDNIGHT)  # Midnight Bell: a dial over the pips counts to 12
 	var notes := evo(EVO_COUNTER)  # Counterpoint: each joined Warden's note hangs over the nightmare
+	var walls := evo(EVO_WALLS)  # Humming Walls: the wall's ring hums
 	for enemy in enemies():
 		if not enemy.has_meta(PIPS_META) and start <= 0:
 			continue
@@ -393,7 +396,10 @@ func _draw_pips() -> void:
 		var at: Vector2 = _ring_anchor(enemy)
 		var roster: Array = enemy.get_meta(FILLERS_META, []) if colours else []
 		var swell := mini(int(enemy.get_meta(CRESC_META, 0)), CRESC_GLOW_STEPS) if cresc else 0
-		_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))  # The clapper the rings spread from
+		var wall_pip := int(enemy.get_meta(WALL_PIP_META, -1)) if walls else -1
+		# The clapper the rings spread from; Down the Line / Both Ways: a primed nightmare's bronze bell, its lip on it
+		if not (primed and evo_mark(_pip_layer, ART_PRIME, at)):
+			_pip_layer.draw_circle(at, RING_CORE, Color(Palette.MOONLIGHT, 0.6))
 		for k in need:
 			var radius := RING_FIRST + RING_STEP * k
 			if k < filled:
@@ -403,8 +409,10 @@ func _draw_pips() -> void:
 				elif swell >= CRESC_GLOW_STEPS:
 					colour = Palette.GLOW
 				elif steady or primed:
-					colour = Palette.EMBER  # Bronze
+					colour = BRONZE_RAMP[mini(k, BRONZE_RAMP.size() - 1)]  # Bronze: Oak, Ember, Gold from the inside out
 				_pip_layer.draw_arc(at, radius, RING_ARC_FROM, RING_ARC_TO, 12, colour, RING_WIDTH + 0.25 * swell, true)
+				if k == wall_pip:  # Humming Walls: the ring the walls filled hums (kt_humming_pip on its lowest point)
+					evo_mark(_pip_layer, ART_HUM, at + Vector2(0.0, radius))
 			else:
 				var empty := Color(Palette.EMBER, 0.6) if steady or primed else Color(Palette.MOONLIGHT, 0.3)
 				_pip_layer.draw_arc(at, radius, RING_ARC_FROM, RING_ARC_TO, 12, empty, 1.0, true)
@@ -438,7 +446,15 @@ func _draw_pips() -> void:
 			var bank := int(bell.get_meta(ALLEGRO_META, 0))
 			for k in bank:
 				var angle := TAU * float(k) / float(ALLEGRO_BANK) + now() * ALLEGRO_SPIN
-				_draw_note_glyph(bell.global_position + CODA_NOTE_OFFSET * 0.5 + Vector2(cos(angle), sin(angle)) * ALLEGRO_ORBIT, Palette.EMBER)
+				var note: Vector2 = bell.global_position + CODA_NOTE_OFFSET * 0.5 + Vector2(cos(angle), sin(angle)) * ALLEGRO_ORBIT
+				if not evo_mark(_pip_layer, ART_ALLEGRO, note + Vector2(-1.5, 2.0), 1.0, false, -1, k):
+					_draw_note_glyph(note, Palette.EMBER)  # (kt_allegro_note: its head where the drawn note's head was)
+
+# Calling evolution marks (assets/effects/calling_evo/, class_kit.evo_mark); each falls back to the drawn shape
+const ART_PRIME := &"kt_bronze_prime"
+const ART_ALLEGRO := &"kt_allegro_note"
+const ART_HUM := &"kt_humming_pip"
+const BRONZE_RAMP: Array[Color] = [Palette.OAK, Palette.EMBER, Palette.GOLD]  # Primed / Steady Beat rings, inside out
 
 const NOTE_GAP := 7.0  # Counterpoint's notes over a nightmare, side by side
 const CODA_NOTE_OFFSET := Vector2(0.0, -56.0)  # Coda's note over a Warden
@@ -709,6 +725,7 @@ func _toll(enemy, bell, amount: float, overture: bool, counted: bool = false, fi
 		full = evo(EVO_STEADY) and int(enemy.get_meta(TOLL_NEED_META, TOLL_EVERY)) < TOLL_EVERY  # Steady Beat: in full
 		enemy.remove_meta(GROUP_META)
 		enemy.remove_meta(WALL_DONE_META)  # Humming Walls: one wall pip between Tolls
+		enemy.remove_meta(WALL_PIP_META)
 		chain = enemy.get_meta(CHAIN_META, {})
 		enemy.remove_meta(CHAIN_META)
 		if evo(EVO_CRESCENDO):
@@ -1901,6 +1918,7 @@ func _walk_walls(enemy) -> void:
 	if count >= need and _add_pip(enemy, null, EVO_WALLS):
 		count = 0
 		enemy.set_meta(WALL_DONE_META, true)
+		enemy.set_meta(WALL_PIP_META, int(enemy.get_meta(PIPS_META, 1)) - 1)  # Which ring the wall filled (drawn only)
 		Reactions._effect(&"toll_ring", enemy.global_position, self, 0.4)  # The walls hum
 		credit(EVO_WALLS, enemy.global_position)
 	enemy.set_meta(WALL_COUNT_META, mini(count, need))

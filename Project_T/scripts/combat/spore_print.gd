@@ -1458,6 +1458,12 @@ func _process(delta: float) -> void:
 		_breathe_frame = breathe
 		if not mushrooms.is_empty() or not _regrow.is_empty():
 			queue_redraw()
+	var rot_on := evo(EVO_ROT_GROUND) and not _fairy.is_empty()
+	if rot_on or not _fed.is_empty():  # The rot ring and fed ground sheets loop on their own clocks
+		var stamp := evo_art_stamp(evo_art, [ART_ROT if rot_on else &"", ART_FED if not _fed.is_empty() else &""])
+		if stamp != _art_stamp:
+			_art_stamp = stamp
+			queue_redraw()
 	# The regrow clocks run only during a drift
 	if not resting() and not _regrow.is_empty():
 		for point in _regrow.keys():
@@ -1803,15 +1809,19 @@ func _draw() -> void:
 	if not place_on() or _route_px.is_empty():
 		return
 	# Feeding Ground: fed ground glows green on the path and fades as its 8 s run out (flat on the ground, under the caps)
+	# (sp_fed_ground on each fed point, every other one flipped, alpha = the time left; the soft dot without the sheet)
 	for stretch in _fed:
 		var left := clampf((float(stretch[2]) - now()) / FEED_SECONDS, 0.0, 1.0)
 		for k in range(int(stretch[0]), mini(int(stretch[1]), _route_px.size() - 1) + 1):
-			draw_circle(_route_px[k], FED_RADIUS, Color(Palette.SPRIG, FED_ALPHA * left))
-	# Rot Ground: a dark rot ring on each Sprout bed's step that never goes out
+			if not evo_mark(self, ART_FED, _route_px[k], left, k % 2 == 1):
+				draw_circle(_route_px[k], FED_RADIUS, Color(Palette.SPRIG, FED_ALPHA * left))
+	# Rot Ground: a dark rot ring on each Sprout bed's step that never goes out (sp_rot_ring; the drawn ring without it)
 	if evo(EVO_ROT_GROUND):
 		for point in _fairy:
 			if _index.has(point):
-				draw_arc(_route_px[int(_index[point])], ROT_RING_RADIUS, 0.0, TAU, 16, Color(Palette.DEEPMOSS, 0.8), 2.0)
+				var at: Vector2 = _route_px[int(_index[point])]
+				if not evo_mark(self, ART_ROT, at):
+					draw_arc(at, ROT_RING_RADIUS, 0.0, TAU, 16, Color(Palette.DEEPMOSS, 0.8), 2.0)
 	# Host Grove: spore threads join the capped Wardens while 3 or more wear caps
 	if evo(EVO_HOST_GROVE) and capped_count() >= HOST_GROVE_AT:
 		var feet: Array = []
@@ -1830,6 +1840,11 @@ func _draw() -> void:
 const FED_RADIUS := 7.0  # Fed ground: a soft green dot on each route point…
 const FED_ALPHA := 0.28  # …this strong when fresh
 const ROT_RING_RADIUS := 9.0
+# Calling evolution marks (assets/effects/calling_evo/, class_kit.evo_mark); each falls back to the drawn shape
+const ART_FED := &"sp_fed_ground"
+const ART_ROT := &"sp_rot_ring"
+const ART_THRONE := &"sp_throne_rim"
+var _art_stamp := -1  # The ground marks' frames last drawn (redraw only when they change)
 
 func _exit_tree() -> void:
 	if is_instance_valid(_layer):
@@ -1893,6 +1908,7 @@ func _sync_stands() -> void:
 		var badge: CapBadge = _badges.get(id)
 		if badge == null:
 			badge = CapBadge.new()
+			badge.art = self
 			_layer.add_child(badge)
 			_badges[id] = badge
 		var until := float(_capped[id][1])
@@ -1912,12 +1928,15 @@ class CapBadge extends Node2D:
 	var alpha := 1.0
 	var glow := false
 	var passed := false
+	var art = null  # The SporePrint node: its evo_mark draws sp_cap_badge (frame 0 its own cap, 1 a passed-on one)
 	func _init() -> void:
 		name = "CapBadge"
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	func _draw() -> void:
 		if glow:
 			draw_circle(Vector2(0.0, -4.0), 6.0, Color(Palette.SPRIG, 0.35 * alpha))
+		if is_instance_valid(art) and art.evo_mark(self, &"sp_cap_badge", Vector2.ZERO, alpha, false, 1 if passed else 0):
+			return  # The stem's foot on the badge's origin, where the drawn cap stands
 		draw_rect(Rect2(-1.0, -3.0, 2.0, 3.0), Color(Palette.DEADWOOD, alpha))  # The stem
 		draw_circle(Vector2(0.0, -4.0), 3.0, Color(Palette.BLOSSOM if not passed else Palette.MIST, alpha))  # The cap
 
@@ -1932,8 +1951,9 @@ func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
 	if season_on():
 		c.draw_circle(Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
 	var m: Dictionary = mushrooms[point]
-	if bool(m.get("throne", false)):  # Toadstool Throne: a gold rim under the toadstool that never goes away
-		c.draw_arc(Vector2(0.0, -2.0), THRONE_RIM, 0.0, TAU, 20, Color(Palette.GOLD, 0.9), 1.5)
+	if bool(m.get("throne", false)):  # Toadstool Throne: a gold rim under the toadstool that never goes away (sp_throne_rim)
+		if not evo_mark(c, ART_THRONE, Vector2.ZERO):
+			c.draw_arc(Vector2(0.0, -2.0), THRONE_RIM, 0.0, TAU, 20, Color(Palette.GOLD, 0.9), 1.5)
 	var phase := int(point.x * 2.0 + point.y * 2.0)
 	var flip := int(point.x * 2.0) % 2 == 1
 	var mother: Array = m.get("mother", [])

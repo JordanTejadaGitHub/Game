@@ -1265,6 +1265,7 @@ func _flash_flood(enemy, w: int, from: int) -> void:
 		far = maxi(far, absi(index_of(other) - from))
 	if far > 0 or not reached.is_empty():
 		_water_fx(w, from - FLASH_STEPS * 2, from + FLASH_STEPS * 2, 2.0)  # The wave racing down the river
+		_wave_crest(from, from + 1)  # Its crest breaking where the splash started (dw_wave_flash)
 		credit(EVO_FLASH, enemy.global_position)
 
 # A timed Calling slow (Flash Flood, Sinking Mud): `amount` (bosses half) for `seconds`, kept on TIMED_META; the stronger or
@@ -1476,6 +1477,10 @@ func _wave_tick() -> void:
 			enemy.pierce_coat_once = false  # (Spent by its take_damage; never left for a later hit)
 	for w in _pond_waters:
 		_water_fx(int(w), int(waters[int(w)].first), int(waters[int(w)].last), 3.0)  # A white wave crossing the pond
+		var wet: Array = (waters[int(w)].points as Dictionary).keys()
+		if not wet.is_empty():
+			wet.sort()
+			_wave_crest(int(wet[wet.size() >> 1]), int(waters[int(w)].last))  # Its crest breaking mid-pond (dw_wave_flash)
 	if king:
 		credit(EVO_KING, dewdrop.global_position, dewdrop)
 		if boss_counted:
@@ -2210,15 +2215,31 @@ var _surface_frame := -1
 var _splashes: Array = []  # [local position, age]
 var _pulses: Array = []  # [route index, reach in route points, start time]
 var _wade_wait := 0.0
+# Calling evolution marks (assets/effects/calling_evo/, class_kit.evo_mark); each falls back to the drawn shape
+const ART_MUD := &"dw_mud"
+const ART_PRINTS := &"dw_footprints"
+const ART_REEDS := &"dw_reeds"
+const ART_SHEEN := &"dw_still_sheen"
+const ART_WAVE := &"dw_wave_flash"
+var _mud_art: Node2D  # Mudflats' mud sheets: on the path layer, under the damp band (only with the dw_mud sheet)
+var _reed_layer: Node2D  # Reed Bed's reeds stand in the map's y-sort (only with the dw_reeds sheet)
+var _reed_stands := {}  # Vector2i(route index, side) -> its ReedStand
+var _reed_key := ""
+var _reed_frame := -1
 
 func _exit_tree() -> void:
-	for node in [_damp, _body, _surface]:
+	for node in [_damp, _body, _surface, _mud_art]:
 		if is_instance_valid(node) and node.get_parent() != self:
 			node.queue_free()  # They live on the path layer, not under this node
+	if is_instance_valid(_reed_layer):
+		_reed_layer.queue_free()  # It lives in the map, not under this node
+	_reed_layer = null
+	_reed_stands.clear()
 
 func _ensure_water_nodes() -> void:
 	if is_instance_valid(_surface):
 		return
+	_mud_art = WaterArt.new(self, 4)
 	_damp = CanvasGroup.new()
 	_damp.self_modulate = Color(1, 1, 1, DAMP_ALPHA)  # multiplier: how dark the damp band is
 	_damp_art = WaterArt.new(self, 0)
@@ -2235,7 +2256,7 @@ func _ensure_water_nodes() -> void:
 	# Lantern Light glow before it); the wading layer stays here, over the nightmares.
 	var map = dream_state.get("map_generator") if dream_state != null else null
 	var layer: Node2D = map.path_layer if map != null and "path_layer" in map and is_instance_valid(map.path_layer) else self
-	for node in [_damp, _body, _surface]:
+	for node in [_mud_art, _damp, _body, _surface]:  # Mud first: under the damp band
 		layer.add_child(node)
 		node.position = layer.to_local(global_position) if layer != self else Vector2.ZERO
 	add_child(_wading)
@@ -2243,15 +2264,19 @@ func _ensure_water_nodes() -> void:
 func _tick_water(delta: float) -> void:
 	if not place_on():
 		if is_instance_valid(_surface):
-			for node in [_damp, _body, _surface, _wading]:
+			for node in [_mud_art, _damp, _body, _surface, _wading]:
 				node.visible = false
+		if is_instance_valid(_reed_layer):
+			_reed_layer.visible = false
 		return
 	_ensure_water_nodes()
-	for node in [_damp, _body, _surface, _wading]:
+	for node in [_mud_art, _damp, _body, _surface, _wading]:
 		node.visible = true
+	_sync_reeds()
 	var key := _make_water_key()
 	if key != _water_map_key:
 		_water_map_key = key
+		_mud_art.queue_redraw()
 		_damp_art.queue_redraw()
 		_body_art.queue_redraw()
 		_surface.queue_redraw()
@@ -2365,7 +2390,7 @@ func _draw_water_layer(c: CanvasItem, kind: int) -> void:
 				_band(c, samples, WATER_HALF, 0.0, Palette.POOL if deep else Palette.DEW, 1)
 				var shallows: Color = Palette.POOL if deep else Palette.DEW
 				_deep_patches(c, samples, shallows.lerp(Palette.NIGHT if deep else Palette.POOL, WATER_DEEP_MIX))
-			if not _mud.is_empty():  # Mudflats: brown mud filling the gaps between the waters (not water)
+			if not _mud.is_empty() and evo_art_tex(evo_art, ART_MUD) == null:  # Mudflats: brown mud filling the gaps between the waters (not water; the dw_mud sheets in kind 4 when they exist)
 				var mud_samples := _water_samples(_water_runs(_mud))
 				_band(c, mud_samples, WATER_HALF - 2.0, 0.0, Palette.BARK, 5)
 				_deep_patches(c, mud_samples, Palette.ROOT)
@@ -2373,6 +2398,10 @@ func _draw_water_layer(c: CanvasItem, kind: int) -> void:
 			_draw_water_surface(c)
 		3:
 			_draw_wading(c)
+		4:  # Mudflats: a dw_mud patch on each mud step (two variants by route index), under the damp band
+			for i in _mud:
+				if int(i) >= 0 and int(i) < _route_px.size():
+					evo_mark(c, ART_MUD, _route_px[int(i)], 1.0, false, int(i) % 2)
 
 func _draw_water_surface(c: CanvasItem) -> void:
 	var still: bool = motion_still()
@@ -2424,10 +2453,12 @@ func _draw_water_surface(c: CanvasItem) -> void:
 			continue
 		var at: Vector2 = _route_px[int(i)]
 		var fade := clampf((float(_prints[i]) - now()) / PRINT_SECONDS, 0.0, 1.0)
-		c.draw_circle(at + Vector2(-5.0, 0.0), 3.0, Color(Palette.DEW, 0.45 * fade))
-		c.draw_circle(at + Vector2(5.0, -4.0), 3.0, Color(Palette.DEW, 0.45 * fade))
+		if not evo_mark(c, ART_PRINTS, at, fade, false, int(i) % 2):  # dw_footprints, the pair alternating down the path
+			c.draw_circle(at + Vector2(-5.0, 0.0), 3.0, Color(Palette.DEW, 0.45 * fade))
+			c.draw_circle(at + Vector2(5.0, -4.0), 3.0, Color(Palette.DEW, 0.45 * fade))
+	var reed_art: bool = evo_art_tex(evo_art, ART_REEDS) != null  # With the sheet the reeds stand in the y-sort (_sync_reeds)
 	for i in _reeds:  # Reed Bed: reeds where a wall or Sprout carries the water
-		if int(i) >= _route_px.size():
+		if reed_art or int(i) >= _route_px.size():
 			continue
 		var at: Vector2 = _route_px[int(i)]
 		var sway := 0.0 if still else sin(now() * 2.0 + float(i)) * 1.5
@@ -2435,10 +2466,10 @@ func _draw_water_surface(c: CanvasItem) -> void:
 			var foot: Vector2 = at + Vector2(side * 15.0, 4.0)
 			c.draw_line(foot, foot + Vector2(sway, -9.0), Color(Palette.MOSS, 0.85), 1.0)
 			c.draw_line(foot + Vector2(2.0, 0.0), foot + Vector2(2.0 + sway, -6.0), Color(Palette.SPRIG, 0.7), 1.0)
-	for w in _still:  # Still Water: the water turns glassy
+	for w in _still:  # Still Water: the water turns glassy (dw_still_sheen, each point a frame apart so they don't march in step)
 		if int(w) < waters.size():
 			for i in waters[int(w)].points:
-				if int(i) % 2 == 0:
+				if int(i) % 2 == 0 and not evo_mark(c, ART_SHEEN, _route_px[int(i)], 1.0, false, -1, int(i) >> 1):
 					c.draw_line(_route_px[int(i)] + Vector2(-8.0, -2.0), _route_px[int(i)] + Vector2(8.0, -2.0), Color(Palette.MOONLIGHT, 0.3), 1.0)
 	if evo(EVO_RIVERSIDE):  # Riverside: a dewdrop mark at the base of every Warden that counts
 		for tower in _support_marks():
@@ -2498,7 +2529,121 @@ func _draw_wading(c: CanvasItem) -> void:
 			c.draw_line(feet, feet + back * 7.0 + side * 4.0, Color(Palette.DEWLIGHT, 0.35), 1.0)
 			c.draw_line(feet, feet + back * 7.0 - side * 4.0, Color(Palette.DEWLIGHT, 0.35), 1.0)
 
-# A water layer: draws through the Puddles node (`kind`: 0 damp, 1 body, 2 surface, 3 wading).
+# Reed Bed's reeds (dw_reeds): a clump on each bank of a reed point, its foot where the drawn reeds stood, in a y-sorted
+# layer under the MapGenerator (like Spore Print's mushroom Stands) so Wardens and nightmares lower on screen draw in
+# front. Without the sheet: no layer, the surface draws the old reed lines.
+const REED_BANK := Vector2(15.0, 4.0)  # A clump's foot from its route point (x by side)
+
+func _sync_reeds() -> void:
+	var want: bool = not _reeds.is_empty() and evo_art_tex(evo_art, ART_REEDS) != null
+	if not want:
+		if is_instance_valid(_reed_layer):
+			_reed_layer.visible = false
+		return
+	if not is_instance_valid(_reed_layer):
+		var map = dream_state.get("map_generator") if dream_state != null else null
+		if map == null or not is_instance_valid(map) or not map is Node2D:
+			return  # A bare DreamState (tools, some tests): no map to stand in
+		_reed_layer = Node2D.new()
+		_reed_layer.name = "Reeds"
+		_reed_layer.y_sort_enabled = true
+		map.add_child(_reed_layer)
+		_reed_stands.clear()
+		_reed_key = ""
+	_reed_layer.visible = is_visible_in_tree()
+	var key := "%d:%d:%d:%s" % [_reeds.hash(), _route_serial, _route_px.size(), global_position]
+	if key != _reed_key:
+		_reed_key = key
+		var keep := {}
+		for i in _reeds:
+			if int(i) < 0 or int(i) >= _route_px.size():
+				continue
+			for side in [-1, 1]:
+				var id := Vector2i(int(i), side)
+				keep[id] = true
+				var stand: ReedStand = _reed_stands.get(id)
+				if stand == null or not is_instance_valid(stand):
+					stand = ReedStand.new(self)
+					_reed_layer.add_child(stand)
+					_reed_stands[id] = stand
+				stand.phase = int(i)
+				stand.flip = side < 0
+				stand.global_position = to_global(_route_px[int(i)] + Vector2(REED_BANK.x * side, REED_BANK.y))
+				stand.queue_redraw()
+		for id in _reed_stands.keys():
+			if not keep.has(id):
+				if is_instance_valid(_reed_stands[id]):
+					_reed_stands[id].queue_free()
+				_reed_stands.erase(id)
+	if get_tree().paused:
+		return
+	var frame := evo_art_frame(evo_art, ART_REEDS)  # They sway on the sheet's clock (each a frame apart by its phase)
+	if frame != _reed_frame:
+		_reed_frame = frame
+		for id in _reed_stands:
+			if is_instance_valid(_reed_stands[id]):
+				_reed_stands[id].queue_redraw()
+
+class ReedStand extends Node2D:
+	var phase := 0
+	var flip := false
+	var _puddles
+	func _init(puddles) -> void:
+		_puddles = puddles
+		name = "Reeds"
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 1x crisp pixels
+	func _draw() -> void:
+		if is_instance_valid(_puddles):
+			_puddles.evo_mark(self, &"dw_reeds", Vector2.ZERO, 1.0, flip, -1, phase)
+
+# Breaking Wave / Flash Flood: a white crest (dw_wave_flash, one shot) on the water's middle at route index `i`, flipped
+# when the wave runs right to left (toward route index `toward`). On the ground over the water, under the nightmares.
+func _wave_crest(i: int, toward: int) -> void:
+	if i < 0 or i >= _route_px.size() or evo_art_tex(evo_art, ART_WAVE) == null:
+		return
+	var world := Reactions._world(self)
+	if world == null:
+		return
+	var meta := evo_art_meta(evo_art, ART_WAVE)
+	var fps := maxf(float(meta.get("fps", 14.0)), 1.0)
+	var life := float(maxi(int(meta.get("frames", 1)), 1)) / fps
+	var flip: bool = (_route_px[clampi(toward, 0, _route_px.size() - 1)] - _route_px[i]).x < 0.0
+	var crest := WaveCrest.new(self, flip, life)
+	world.add_child(crest)  # Never under %EnemyContainer
+	crest.global_position = to_global(_route_px[i])
+
+# The crest's frame `age` s in (holds its last; reduced motion: frame 0).
+func wave_frame(age: float) -> int:
+	return evo_art_frame(evo_art, ART_WAVE, age)
+
+class WaveCrest extends Node2D:
+	var _puddles
+	var _flip := false
+	var _life := 0.36
+	var _age := 0.0
+	var _frame := -1
+	func _init(puddles, flip: bool, life: float) -> void:
+		_puddles = puddles
+		_flip = flip
+		_life = life
+		name = "WaveCrest"
+		z_as_relative = false
+		z_index = -1  # With the ground: on the water, under the nightmares
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= _life or not is_instance_valid(_puddles):
+			queue_free()
+			return
+		var frame: int = _puddles.wave_frame(_age)
+		if frame != _frame:
+			_frame = frame
+			queue_redraw()
+	func _draw() -> void:
+		if is_instance_valid(_puddles):
+			_puddles.evo_mark(self, &"dw_wave_flash", Vector2.ZERO, 1.0, _flip, maxi(_frame, 0))
+
+# A water layer: draws through the Puddles node (`kind`: 0 damp, 1 body, 2 surface, 3 wading, 4 mud sheets).
 class WaterArt extends Node2D:
 	var _puddles
 	var _kind := 0

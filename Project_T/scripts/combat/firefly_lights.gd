@@ -258,6 +258,7 @@ var _lit_by_step: Array = []  # [[step, nightmare], …] Lit walkers at the last
 var _event_seen := {}  # Event id -> {nightmare id: true}: struck by it (EVENT_MAX across a recursive chain)
 var _wake_ids := {}  # Lantern Wake: a glowing Warden's instance id -> its source
 var _pale := {}  # Sightline: route cell -> true (pale path, cached per rebuild)
+var _pale_frame := -1  # Sightline's glint frame last drawn
 var _grown := {}  # Spreading Flame: route cell -> true (grown gold, never white)
 var _gold_runs: Array = []  # [first step, last step] of each gold stretch (Firefly glows only)
 var _gold_grow := {}  # Spreading Flame: a stretch's first step -> [steps grown, until]
@@ -268,6 +269,7 @@ var _kit_node: Node2D = null  # A bare class kit: class_kit.calling_hit and the 
 func _ready() -> void:
 	add_to_group(GROUP)
 	z_index = -1  # With the ground: the glow lies on the path, under Wardens and nightmares
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The Calling evolution marks: 1x crisp pixels
 	var jar: TowerData = load("res://resource/tower/firefly_jar.tres")
 	if jar != null:
 		_base_jar_dps = jar.damage * jar.attacks_per_second
@@ -453,6 +455,11 @@ func _process(delta: float) -> void:
 		_flush()  # Guiding Light forks on any start
 		return
 	_tick_glow_sheets()
+	if not _pale.is_empty() and not get_tree().paused:  # Sightline's glints loop on their own clock
+		var pale_frame := mark_stamp_of(&"lf_pale_path_dot")
+		if pale_frame != _pale_frame:
+			_pale_frame = pale_frame
+			queue_redraw()
 	_rebuild_in -= delta
 	if _rebuild_in <= 0.0 or _board != int(dream_state.board_version):
 		_rebuild()
@@ -1640,15 +1647,49 @@ func mark_state(enemy) -> Array:
 		return []
 	return [glows, wait, moth, stars, roster, carried]
 
+# The Calling evolution marks (assets/effects/calling_evo/; class_kit's static helpers with this node's own cache, never
+# static). evo_mark returns false when the sheet is missing: the caller draws its palette placeholder.
+var evo_art := {}
+
+func evo_mark(c: CanvasItem, mark: StringName, at: Vector2, alpha: float = 1.0, flip: bool = false, frame: int = -1,
+		phase: int = 0) -> bool:
+	return CLASS_KIT.draw_evo_art(evo_art, c, mark, at, alpha, flip, frame, phase)
+
+func has_evo_mark(mark: StringName) -> bool:
+	return CLASS_KIT.evo_art_tex(evo_art, mark) != null
+
+func mark_stamp_of(mark: StringName) -> int:
+	return CLASS_KIT.evo_art_frame(evo_art, mark)
+
+# The frames of the sheets a LanternMark with `state` (mark_state) shows: it redraws when this changes.
+func mark_stamp(state: Array) -> int:
+	if state.size() < 6:
+		return 0
+	var marks: Array = []
+	if int(state[0]) > 0:
+		marks.append(&"lf_strung_pip")
+	if bool(state[1]):
+		marks.append(&"lf_waiting_flame")
+	if int(state[2]) >= 0:
+		marks.append(&"lf_moth_flame_ready" if int(state[2]) > 0 else &"lf_moth_flame")
+	if int(state[4]) > 0 or int(state[3]) > 0:
+		marks.append(&"lf_constellation_pip")
+	if int(state[3]) > 0:
+		marks.append(&"lf_constellation_star")
+	return CLASS_KIT.evo_art_stamp(evo_art, marks)
+
 class LanternMark extends Node2D:
 	var _enemy: WeakRef
 	var _lights: WeakRef
 	var _state: Array = []
+	var _stamp := -1  # The sheets' frames last drawn
+	var _ring: GlowRing = null  # Full Glow's ring on the ground, made on first need
 
 	func _init(enemy: Node2D, lights: Node) -> void:
 		_enemy = weakref(enemy)
 		_lights = weakref(lights)
 		z_index = 20  # Over the nightmares
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 1x crisp marks
 		global_position = enemy.global_position
 
 	func _process(_delta: float) -> void:
@@ -1662,29 +1703,81 @@ class LanternMark extends Node2D:
 		if state != _state:
 			_state = state
 			queue_redraw()
+		# The sheets loop on their own clocks: redraw when a shown one's frame changes
+		var stamp: int = lights.mark_stamp(_state)
+		if stamp != _stamp:
+			_stamp = stamp
+			queue_redraw()
+		# Full Glow's ring lies on the ground under the nightmare (its own node at z -1); the drawn arc without the sheet
+		var ring_on: bool = bool(_state[5]) and lights.has_evo_mark(&"lf_full_glow_ring")
+		if ring_on and _ring == null:
+			_ring = GlowRing.new(lights)
+			add_child(_ring)
+		if _ring != null:
+			_ring.visible = ring_on
+			if ring_on and _ring.frame_changed():
+				_ring.queue_redraw()
 
 	func _draw() -> void:
 		if _state.is_empty():
 			return
-		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered
-			draw_circle(Vector2(-12 + 6 * i, -40), 1.5, Palette.GLOW)
-		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit
-			draw_circle(Vector2(-10, -30), 3.0, Color(Palette.EMBER, 0.85))
-			draw_circle(Vector2(-10, -31), 1.5, Palette.GOLD)
-		if int(_state[2]) >= 0:  # Moth to Flame: a larger flame, white once its 4 hits are in
-			var core: Color = Palette.HEARTLIGHT if int(_state[2]) > 0 else Palette.GLOW
-			draw_circle(Vector2(10, -32), 4.5, Color(Palette.GOLD, 0.7))
-			draw_circle(Vector2(10, -33), 2.5, core)
-		for i in int(_state[4]):  # Constellation: a pip per Warden counted
-			draw_circle(Vector2(-6 + 6 * i, -46), 1.5, Palette.MOONLIGHT)
-		if int(_state[3]) > 0:  # The star: its points, one bright dot per hit left
+		var lights = _lights.get_ref()
+		var art: bool = lights != null
+		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered (lf_strung_pip)
+			var pip := Vector2(-12 + 6 * i, -40)
+			if not (art and lights.evo_mark(self, &"lf_strung_pip", pip)):
+				draw_circle(pip, 1.5, Palette.GLOW)
+		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit (lf_waiting_flame, its base at (-10, -27))
+			if not (art and lights.evo_mark(self, &"lf_waiting_flame", Vector2(-10, -27))):
+				draw_circle(Vector2(-10, -30), 3.0, Color(Palette.EMBER, 0.85))
+				draw_circle(Vector2(-10, -31), 1.5, Palette.GOLD)
+		if int(_state[2]) >= 0:  # Moth to Flame: a larger flame, white once its 4 hits are in (lf_moth_flame / _ready)
+			var sheet: StringName = &"lf_moth_flame_ready" if int(_state[2]) > 0 else &"lf_moth_flame"
+			if not (art and lights.evo_mark(self, sheet, Vector2(10, -27))):
+				var core: Color = Palette.HEARTLIGHT if int(_state[2]) > 0 else Palette.GLOW
+				draw_circle(Vector2(10, -32), 4.5, Color(Palette.GOLD, 0.7))
+				draw_circle(Vector2(10, -33), 2.5, core)
+		for i in int(_state[4]):  # Constellation: a pip per Warden counted (lf_constellation_pip)
+			var pip := Vector2(-6 + 6 * i, -46)
+			if not (art and lights.evo_mark(self, &"lf_constellation_pip", pip)):
+				draw_circle(pip, 1.5, Palette.MOONLIGHT)
+		if int(_state[3]) > 0:  # The star (lf_constellation_star), one pip per hit left
 			var at := Vector2(0, -50)
-			for k in 4:
-				draw_line(at, at + Vector2(6, 0).rotated(PI * 0.5 * k), Color(Palette.HEARTLIGHT, 0.8), 1.5)
+			if not (art and lights.evo_mark(self, &"lf_constellation_star", at)):
+				for k in 4:
+					draw_line(at, at + Vector2(6, 0).rotated(PI * 0.5 * k), Color(Palette.HEARTLIGHT, 0.8), 1.5)
 			for i in int(_state[3]):
-				draw_circle(at + Vector2(-6 + 6 * i, -6), 1.2, Palette.HEARTLIGHT)
-		if bool(_state[5]):  # Full Glow: the lantern light it carries
+				var dot := at + Vector2(-6 + 6 * i, -6)
+				if not (art and lights.evo_mark(self, &"lf_constellation_pip", dot)):
+					draw_circle(dot, 1.2, Palette.HEARTLIGHT)
+		if bool(_state[5]) and not (art and lights.has_evo_mark(&"lf_full_glow_ring")):  # Full Glow: the light it carries
 			draw_arc(Vector2(0, -8), 14.0, 0.0, TAU, 20, Color(Palette.GLOW, 0.45), 2.0)
+
+# Full Glow's carried light under a lit nightmare: lf_full_glow_ring centred on its feet (the LanternMark's origin), on
+# the ground (z -1, absolute: under the nightmares, over the path).
+class GlowRing extends Node2D:
+	var _lights: WeakRef
+	var _frame := -1
+
+	func _init(lights: Node) -> void:
+		_lights = weakref(lights)
+		name = "FullGlowRing"
+		z_as_relative = false
+		z_index = -1
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	func frame_changed() -> bool:
+		var lights = _lights.get_ref()
+		var frame: int = lights.mark_stamp_of(&"lf_full_glow_ring") if lights != null else 0
+		if frame == _frame:
+			return false
+		_frame = frame
+		return true
+
+	func _draw() -> void:
+		var lights = _lights.get_ref()
+		if lights != null:
+			lights.evo_mark(self, &"lf_full_glow_ring", Vector2.ZERO)
 
 # --- Calling evolutions: the helpers --------------------------------------------------------------------------------
 
@@ -2358,9 +2451,11 @@ func _draw() -> void:
 	for source in _sources:
 		if (source.get("worm", false) or source.get("wake", false)) and is_instance_valid(source.tower):
 			draw_circle(to_local(source.tower.global_position) + Vector2(14, 18), 4.0, Color(Palette.GLOW, 0.9))
-	# Sightline: pale path, a soft moonlit dot on each pale step (re-laid with the light map)
+	# Sightline: pale path, a silver glint on each pale step (lf_pale_path_dot; the soft moonlit dot without the sheet)
 	for cell in _pale:
-		draw_circle(to_local(Tower.MAP_GRID.calculate_map_position(cell)), 6.0, Color(Palette.MOONLIGHT, 0.45))
+		var step := to_local(Tower.MAP_GRID.calculate_map_position(cell))
+		if not evo_mark(self, &"lf_pale_path_dot", step):
+			draw_circle(step, 6.0, Color(Palette.MOONLIGHT, 0.45))
 
 func _exit_tree() -> void:
 	_clear_gold_marks()
