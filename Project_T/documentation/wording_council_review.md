@@ -255,3 +255,69 @@ Footprints' text says 2 s while its tip says the shared 4 s room: make them agre
 - **Rule 14:** Pile-On and several Firefly rows say "hit" where they mean a direct hit.
 - **Thick Haze** (`sp_thick_haze`) is still live with its old text although the owner sent it back to the designer:
   retire it from offers until the new version exists.
+
+---
+
+# Gap round (2026-10-23): text the council had not read
+
+User: *"run a Wording Council gap round on the text it hasn't read yet."* Round 1's extraction went one folder deep and
+skipped `scripts/combat/` and short strings. This round read 329 lines of nested data (95 Grove nodes, 10 Crowned
+Reactions, other nested `.tres`), 259 lines of `scripts/combat/` (Callings and their small print, Reaction / Kinship /
+class strings; the evolution rows were done in 2b/2c) and 507 short UI strings (buttons, labels, headings). The Family
+Blessings are all retired and the boss-pool files hold no text (boss text was in round 1), so neither needed reading.
+Five seats; reports in `wording_council/gap/`. `briefs/extract_corpus.sh` now reads nested folders and `scripts/combat/`.
+
+## G.1 Text that is wrong (spot-checked)
+
+| Where | Says | Game does | Owner |
+|---|---|---|---|
+| Grove node Venom (`meta/grove/venom.tres`) | statuses and Reactions deal double damage | its card Venom Bloom: +40% Potency | Meta |
+| The Heartwood's Crown | "Every other {node} is Grown." (reads as every 2nd node, and as an effect) | the unlock condition: every other node at its top level (`heartwood_memory.gd:437`) | Meta |
+| Moon Moth node | reveals every Lurker; Wardens "in range" | reveals Hidden nightmares in its range; the range boost is for Wardens within 3 cells (check) | Meta |
+| Crowned Nightbloom | triggered on an {asleep} nightmare | at full {drowsy} (`reactions.gd:1158`); leaves out its 4 s and the boss rule | Tower Code |
+| Crowned Tempest | "Needs"; leaves out Ignite's 12 {spored}; raw "arc", "Ignite", "Thunderclaps" | also fires from Ignite's numbers on a Soaked nightmare at 8 {static} (`reactions.gd:324`) | Tower Code |
+| Prismstorm, Starfall | a typed "8 {static}" | halves to 4 under the half-need rule: use `{stacks:…}` | Tower Code |
+| Changeling | "within 3 cells" | measured along the path: {steps} | Tower Code |
+| Acorn Calling, Volley (`callings.gd:21`) | "all Wardens next to the Acorn" | any Acorn-line aura Warden counts; the Wardens in its aura attack (`callings.gd:203-222`) | Roguelite |
+| Whirligig Calling, Tailwind | no damage number | 60% damage within 2 cells (check) | Roguelite |
+| Venom / Sporemother / Rootlight branch nodes | describe effects their Warden text doesn't (C §3, check) | | Meta |
+
+Dropped after the spot-check: "Lodged Stone has no code" (veteran) is wrong: it is built in
+`scripts/tower/dream_build_rules.gd:97` (`calling == "pebbling"`), just never named "lodge".
+
+## G.2 Wording
+
+- **Crowned Reactions** (9 of 10 over 25 words): open with "It …" before any nightmare is named; Tempest says "Needs"
+  where the others say "Triggered by"; bosses and flyers handled five different ways (Still Pool, Changeling, Fever Dream,
+  Fairy Circle unsaid). **No player text says what a Crowned Reaction is** (it replaces its base Reaction, shares its
+  cooldown, counts as 2 chain links): add a Codex / glossary entry.
+- **Grove Ascension and Memory Warden nodes** (14 over 25 words): 18-20 words of unlock and cost before what the Warden
+  does. Effect first; the route as a fixed last line. They also glue "s" / "'s" onto tokens (`{warden:acorn}s`),
+  which won't translate.
+- **Callings small print:** "Every 5th acorn" reads as an Acorn Warden; Rootling's "turns to a nightmare" reads as
+  "becomes one"; the Sporeling tip gives advice ("so it is weak against flyers"); all four tips over 40 words.
+- **"Rooted"** (sell tag, `tower_seller.gd:192, :1007`) reads as the Root status: "Can't be sold".
+- **"seed"** in the seed picker ("A seed", "Type a seed", "Dream it", "Which dream?") clashes with the Seeds currency and
+  with "dream" = run: call it the **map seed** ("Map seed", "Type a map seed", "Use this map").
+- **Old names:** the "Let Go" node (ruling: Banish), "Buffs" header (boosts), "path tiles" (cells), "Elite hunt" (Deeply
+  Blighted), "Caught this run" (a status name). Node vs card names: One Line / Monoculture, Quickening / Hunt's Rush II;
+  the card Forest's Edge shares Act 1's name.
+
+## G.3 Buttons: one word per action
+
+| Action | Now | Use |
+|---|---|---|
+| Close a panel | Close, Done | **Close** |
+| Move past an info screen | Continue, Got it, Next | **Next** inside a sequence, **Continue** at its end |
+| Start a run | Start, Start run, New run | **New run** on the title, **Start run** in the Grove |
+| Confirm a group plant | Plant N (PC), Confirm (N) (phone) | **Plant N** on both |
+| Grow | Grow into, Grows into | **Grow into X** on buttons; "grows into" in prose |
+| Boss screen's one button | Face it, Continue, Prepare, Hunt it | **Continue**; "Hunt it" → **Hunt the X** (the object named) |
+| Omen offer | Face an Omen or Clear Skies (6 words); phone: Omen or Clear Skies | **Choose an Omen** |
+| Buttons with no object | Carry, Add, Auto, Title | **Carry perk**, **Add branch**, **Auto-drift**, **Title screen** |
+
+## G.4 Localisation (later)
+
+About 45 places build sentences in code: `%d time%s` plurals, `.capitalize()` (`coming_strip.gd:410`), verb agreement
+(`gift_screen.gd:271`), string replace (`hud.gd:2018`), code comparing on-screen text ("Not enough Dreamlight"), tokens
+with glued plurals. Full list: `gap/plain_english.md` §4. Plan before the first translation.
