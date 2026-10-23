@@ -69,6 +69,8 @@ func _run() -> void:
 		strip._built_for = ""
 		strip._clock = 0.0
 		strip._process(0.0)
+		if strip._chip != null and not strip._chip.button_pressed:  # PC: open the folded strip (its chip, 77fe78c4)
+			strip._chip.button_pressed = true
 		for f in 3:
 			await process_frame
 		var fog := strip.get_global_rect().grow_individual(14, 8, 14, 4)

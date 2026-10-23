@@ -126,6 +126,9 @@ func _run() -> void:
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
 	if strip != null and strip.visible:
+		if strip._chip != null:  # PC: the strip folds into its chip on the banner row since 77fe78c4; measure it open
+			strip._chip.button_pressed = true
+			await process_frame
 		await process_frame
 		var caption_rect: Rect2 = strip._caption.get_global_rect()
 		var clear := strip.items().all(func(item: Control) -> bool:
