@@ -121,7 +121,7 @@ func _detail(img: Image, sheet: String) -> void:
 	# Ground tiles in the pass's calm mode (Theme Code 3426257d; the AI-look audit, 2026-10-04): no random
 	# grain, no seam dither, nothing isolated left behind. Props keep the full pass (they passed the audit).
 	# The landmarks take the calm pass too (heartwood_gifts.md: "calm DetailPass").
-	DetailPass.apply_sheet(img, frame, kind, 0, texture, kind == DetailPass.Kind.TILE or sheet.begins_with("landmark_"))
+	DetailPass.apply_sheet(img, frame, kind, 0, texture, kind == DetailPass.Kind.TILE or sheet.begins_with("landmark_") or sheet == "waystone")
 
 # Mean OKLab lightness of the opaque pixels.
 func _mean_l(img: Image) -> float:

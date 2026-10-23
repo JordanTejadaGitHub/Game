@@ -887,28 +887,49 @@ function dent(A) {
   return out;
 }
 
+// Old Waystone landmark (environment_assets.md "Landmarks"): the base a Warden grows from (the Sprout's soil slab
+// in tools/tower_art_generator.gd, as plant/sprout.png frame 0 shows it), standing empty with the waystone's carved
+// symbol glowing in its soil, so it reads as "a Warden goes here". Same footprint as a Warden's slab at the bottom
+// of the cell (top face (0,40)-(32,24)-(64,40)-(32,56), sides 8 px), so a Warden planted on it lines up with it.
 function waystone(A, f) {
-  const out = new Img(), L = new Img(), g = A.grass;
-  ellipse(out, 32, 58, 29, 5, SHADOW(.28));
-  poly(L, [[3,42],[32,56],[32,62],[3,48]], (x, y) => pick([ST.d1, ST.m], .5 + (hash(x, y, 5) - .5) * .5, x, y));
-  poly(L, [[32,56],[61,42],[61,48],[32,62]], (x, y) => pick([ST.d2, ST.d1], .55 + (hash(x, y, 6) - .5) * .5, x, y));
-  poly(L, [[3,42],[32,28],[61,42],[32,56]], (x, y) => { const n = pnoise(x, y, 6, 9); return n < .3 ? ST.l1 : n > .74 ? ST.hi : ST.l2; });
-  for (const [x0, y0, x1, y1] of [[14, 40, 20, 44], [44, 46, 49, 43]]) stroke(L, x0, y0, x1, y1, 1, 1, ST.l1);
-  const rune = [];
-  for (let y = 36; y <= 48; y++) for (let x = 20; x <= 44; x++) {
-    const dx = (x + .5 - 32) / 9, dy = (y + .5 - 42) / 4.6, r = Math.hypot(dx, dy);
-    if (Math.abs(r - 1) < .15 && !(dx > .35 && dy < -.1)) rune.push([x, y]);
+  const out = new Img(), L = new Img(), s = SEED + 77;
+  const SOIL = { dark: "#241c14", mid: "#5c3c24", lit: "#8c5c34", lip: "#b4a494" };
+  const SIDE = { lit: "#6c5c5c", dark: "#3c3c5c", moss: "#1c3c2c", mossLit: "#34643c" };
+  // Side faces: the lit left face in loam, the right one in shadow, moss hanging down from the top edge.
+  poly(L, [[0, 40], [32, 56], [32, 64], [0, 48]], (x, y) => {
+    const drip = 1 + Math.floor(hash(x, 1, s) * 5), top = 40 + x / 2;
+    return y - top < drip ? (y - top < 1 && hash(x, 2, s) < .5 ? SIDE.mossLit : SIDE.moss) : (y > top + 6 ? SIDE.dark : SIDE.lit);
+  });
+  poly(L, [[32, 56], [64, 40], [64, 48], [32, 64]], (x, y) => {
+    const drip = 2 + Math.floor(hash(x, 3, s) * 5), top = 56 - (x - 32) / 2;
+    return y - top < drip ? SIDE.moss : (hash(x >> 1, y >> 1, s + 4) < .3 ? SIDE.lit : SIDE.dark);
+  });
+  // The top: tilled soil in furrows along the slab, a pale lip on the back edges where the light catches.
+  poly(L, [[0, 40], [32, 24], [64, 40], [32, 56]], (x, y) => {
+    const back = y - (40 - Math.min(x, 64 - x) / 2);
+    if (back < 1.2) return x < 32 ? SOIL.lip : SOIL.lit;
+    const k = ((Math.round(y * 2 - x) % 6) + 6) % 6;
+    if (k === 0) return SOIL.dark;
+    if (k === 2) return SOIL.lit;
+    return SOIL.mid;
+  });
+  // The carved symbol: a ring with a gap and a cross stroke, cut dark into the soil, glowing below.
+  const rune = [], cx = 30, cy = 41;
+  for (let y = cy - 7; y <= cy + 7; y++) for (let x = cx - 13; x <= cx + 13; x++) {
+    const dx = (x + .5 - cx) / 10, dy = (y + .5 - cy) / 5, r = Math.hypot(dx, dy);
+    if (Math.abs(r - 1) < .13 && !(dx > .35 && dy < -.1)) rune.push([x, y]);
   }
-  for (const p of [[32,39],[31,40],[33,40],[31,41],[32,41],[33,41],[32,42],[32,43],[32,44]]) rune.push(p);
-  for (const [x, y] of rune) L.set(x, y, ST.d1);
-  blob(L, 9, 44, 5, 3, [g[1], g[2], g[3]], { tex: .2 });
-  blob(L, 54, 43, 4, 2.6, [g[1], g[2], g[3]], { tex: .2 });
-  blob(L, 30, 31, 4, 2.2, [g[1], g[2], g[3], g[4]], { tex: .2 });
+  for (const [dx, dy] of [[0, -3], [-1, -2], [1, -2], [-1, -1], [0, -1], [1, -1], [0, 0], [0, 1], [0, 2]]) rune.push([cx + dx, cy + dy]);
+  for (const [x, y] of rune) L.set(x, y, SOIL.dark);
+  // Two rocks on the slab and a little moss, as on the Wardens' slabs.
+  blob(L, 12, 37, 5.5, 3.8, STONE_RAMP, { tex: .1, seed: 3, lump: .12 });
+  blob(L, 52, 38, 6.5, 4.4, STONE_RAMP, { tex: .1, seed: 8, lump: .12 });
+  for (const [x, y, c] of [[50, 36, "#5c944c"], [51, 36, "#34643c"], [12, 34, "#34643c"], [44, 47, "#34643c"], [45, 47, "#5c944c"], [20, 46, "#34643c"]]) L.set(x, y, c);
   out.stamp(L, ST.out);
-  const a = [.3, .55, .85, .55][f];
+  const a = [.35, .6, .9, .6][f];
   for (const [x, y] of rune) out.set(x, y, CA("#a8f0dc", a));
-  out.set(32, 41, CA("#f0fff8", a));
-  for (let k = 0; k < 2; k++) { const ph = ((f / 4) + k / 2) % 1; out.set(29 + k * 6, 38 - ph * 12, CA("#c8fff0", Math.sin(ph * Math.PI) * .9)); }
+  out.set(cx, cy - 1, CA("#f0fff8", a));
+  for (let k = 0; k < 2; k++) { const ph = ((f / 4) + k / 2) % 1; out.set(cx - 3 + k * 6, cy - 4 - ph * 12, CA("#c8fff0", Math.sin(ph * Math.PI) * .9)); }
   return out;
 }
 
@@ -3083,7 +3104,7 @@ const CARDS = {
   ],
   special: [
     { name: "Waystone", meta: "64×64 · 4 frames · bonus build spot", isNew: "proposed rule", anim: true, scale: 3,
-      note: "An empty waystone with a glowing carving. It's the same slab the Wardens sit on, so it reads as 'a Warden goes here'. Suggested rule: a Warden rooted here gets +1 range.",
+      note: "The Old Waystone landmark: the soil slab a Warden grows from (the Sprout's base), standing empty with the waystone's carved symbol glowing in it, so it reads as 'a Warden goes here'. A Warden planted on it earns +1 Dew per dispel.",
       build: f => onGrass("waystone", f) },
     { name: "Dew Pool", meta: "64×64 tile · 4 frames · not buildable", isNew: "proposed rule", anim: true, scale: 3,
       note: "Suggested rule: creatures walking past it are Damp for 2 s, which gives Storm Grid builds a spot to set up around. It freezes over in winter.",
