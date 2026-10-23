@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_starling_murmuration"
 display_name = "Starling Murmuration"
-description = "{warden:wrens_nest}s can now {grow} into {warden:starling_murmuration}s ({dew:{grow_cost:starling_murmuration}}): {field:starling_murmuration.multi_targets:count} starlings each hunt one of the fastest nightmares in range; extra damage to Phantoms and sprinting Night Hounds."
+description = "{warden:wrens_nest}s can now {grow} into {warden:starling_murmuration}s ({dew:{grow_cost:starling_murmuration}}): {field:starling_murmuration.multi_targets:count} starlings each hunt one of the fastest nightmares in range; extra damage to {nightmare:dandelion_seed}s and sprinting Night Hounds."
 rarity = 2
 kind = 1
 tags = Array[String](["wing"])

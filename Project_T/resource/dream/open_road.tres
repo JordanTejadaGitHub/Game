@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "open_road"
 display_name = "Open Road"
-description = "Direct hits deal 25% more to nightmares walking a straight of 4 or more path cells."
+description = "Direct hits deal 25% more to nightmares on a straight stretch of 4+ path cells."
 tip = "Hits only: never statuses or {reaction} damage. Flyers don't count."
 rarity = 0
 kind = 3

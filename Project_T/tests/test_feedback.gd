@@ -380,7 +380,7 @@ func _run() -> void:
 			juggled.statuses.immune.append(&"drowsy")
 			juggled.modifiers["always_status"] = &"damp"
 			var omen_line: String = info_script.omen_text(juggled)
-			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Sleep") and omen_line.contains("always has Soak"),
+			_check(omen_line.begins_with("Omen") and omen_line.contains("immune to Drowsy") and omen_line.contains("always has Soak"),
 				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.

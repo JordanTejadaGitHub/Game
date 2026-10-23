@@ -142,3 +142,68 @@ the Heartwood's "I" lines; Omen text (1 of 27 over 25 words); the "(bosses N)" p
 1. Section 4 owners apply the wrong-text fixes (prompts in this chat's hand-off; owners paste them).
 2. Owner calls: Sleep → Drowsy and UK spelling decided 2026-10-22 (section 3, rows 1-2). Reroll decided 2026-10-22 (section 6).
 3. Section 5 rules go into text_style.md once the owner agrees, then a second pass over the seat reports' tables.
+
+---
+
+# Round 2 (2026-10-23): new cards, changed text, fix check
+
+User, 2026-10-23: *"did you go over the new cards as well and changes?"* Round 1 read the text as of 2026-10-22 21:30.
+Round 2 read only what is new or changed since a419102b: 11 new Dream cards (the ten hit cards and Undiluted), the
+Dream / Calling text edits (3aafe1aa), the deepen pick, the Waystone line, the Reaction pool callouts, and the round 1
+fixes (e31d8b8e, cef44886, ce75281f). Same five seats; reports in `wording_council/round2/`. Read-only; nothing run.
+
+## R2.1 Round 1 fixes: 28 of 32 done
+
+Not done (each spot-checked):
+- **D1 Drowsy, partial:** `scripts/combat/support_log.gd:181` "Sleep applied: %d" and `:209` "applied %d Sleep".
+- **M3 family picks, now wrong:** `codex_data.gd:27` says drift 60 brings a new family; since 2fcae6f4 it is the deepen
+  pick. "Deepen" itself is never explained to the player.
+- **R5 "every second", partial:** `tower/bellflower.tres` "Every second ring on a nightmare gives it {drowsy}" (the card
+  was fixed, the Warden was not).
+- **R6 family tokens, partial:** Settling Spores, Spore Huddle "a Sporeling"; Rude Awakening tip "Each bell".
+
+Still wrong from section 4 and not yet sent: **Beacon** (`dream_beacon.tres`) says its bonus is "on top of" Exposure;
+`enemy_statuses.gd:414` takes the larger of the two (`maxf(MARKED_EXTRA, marked_extra)`), so it replaces it. **Waking
+Dreams** "can't be let pass". **Charged Bloom** adds Drowsy, not Charge. **Great Bell ascension node**
+(`meta/grove/bellflower_ascension.tres`) "sets off all their Charged" (it strikes nightmares with 4+ Charged, half
+damage). Old terms: "tiles" (straightaway_ii, weary_feet, fallen_log, rock), "Phantoms" for flyers (lightning fence,
+nestling, starling murmuration, wren's nest, Codex).
+
+## R2.2 New problems
+
+| # | Where | Problem | Seats |
+|---|---|---|---|
+| 1 | **Undiluted** | "No {reaction} ever goes off", but no code blocks Reactions: only Last Chord, the offer filter and the two ×2 read `undiluted_on` (checked: nothing in `reactions.gd` or `scripts/enemy/`). "Each status's own effect grows" promises all six; only Poisoned ticks and the Charged bolt change. "goes off", "pay off". | V, N, P, S |
+| 2 | **The Tallest Tree** | "the store", "add the store on top", three different "it"s; the per-attack and store caps sit in a 44-word tip; button "Make it the Tallest Tree" is 5 words. | N, P, S, V |
+| 3 | **Hit cards don't share a shape** | Six shapes; the rank / form gate in four places; 8 of 10 drop "damage" from "deal N% more"; caps say "up to 40%" where older cards say "up to +30%". | S, C |
+| 4 | **"Direct hit"** | New term, no glossary entry; five different "Hits only" tips. | S, C |
+| 5 | **Stacking tips now wrong** | Ember Count, Grand Design, Crown of Leaves, The Long Walk say "Multiplies with your other Dream damage"; their Reaction parts now add into the Reaction pool (cap +300%, `REACTION_POOL_CAP`). No player text names the pool cap or the ×4 per-hit card cap. | V |
+| 6 | **Invented words on hit cards** | Trophies "killing blows" (= dispels), Run Through "carries on" (Pinned says "pierces") and "within 2 cells along the path" (= {steps}), Standing Tall "court" / "base", Open Road "a straight", Measured Blow "its maximum health" (whose?), Clean Strike "your own family" (the hitter's). | N, P, C |
+| 7 | **Finishing Blow tip** | "Best on the Wardens near the Heartwood" is strategy advice (no-hand-holding rule). | N, V, S, C |
+| 8 | **"set off / go off"** | About 84 strings still, including new ones: Drowsy tooltip, Poison lesson, Warden panel "Reactions: set off N · fed N", Gone to Seed, Reprise, Nod Off, Mountain's Fall. | all |
+| 9 | **A Calling evolution lost its trigger** | "A clump gives a {dose}…" no longer says who or when. | N, S |
+| 10 | **Reaction callout "+N%"** (veteran, not spot-checked) | Shows the previous Reaction's pool (read before the new pool is computed), goes stale, never clears at rests; "+N% from K cards" counts pool parts, not cards. Code, not wording. | V |
+
+## R2.3 Ruling: family names (3aafe1aa)
+
+The user's text edits made the plain family name mean the whole family, with small print ("A Firefly is any Firefly Jar
+form."). This replaces round 1 ruling 5 where the name differs from the base Warden: **Firefly** (base: Firefly Jar)
+is clear as is. **Sporeling** and **Dewdrop** are also base Wardens' names, so a card meaning any form says "a
+{family:sporeling} Warden" or keeps the Calling's small print in its tip; a card meaning only the base uses
+{warden:sporeling}. "Bell" means any Bellflower form, as the small print says.
+
+## R2.4 New phrasing rules (add to section 5)
+
+14. **Direct hit:** a glossary entry, "A Warden's own attack landing: not statuses, Reactions, clouds or echoes." Tips
+    then say "Direct hits only" in that one form.
+15. **Hit cards use one shape** (S template T7): "[Gate] Wardens' direct hits deal N% more damage [condition], up to +cap."
+16. **Card bonuses glossary / Codex entry:** how card damage adds and multiplies, the ×4 cap on one hit, the +300%
+    Reaction pool, the +150% Dream speed cap. Stacking lines in tips must match it.
+17. "dispel", never "kill" or "killing blow".
+
+## R2.5 Next
+
+Fix prompts go to Main Merger (Codex family pick, support log, glossary entries), Roguelite Code (new cards, stacking
+tips, Calling text, Undiluted's rule hook), Tower Code (Bellflower Warden, Beacon, Charged Bloom, Phantoms / tiles in
+Warden cards, Great Bell node if theirs) and Meta (Great Bell node). The "set off" sweep (84 strings) goes out as its
+own prompt per owner.

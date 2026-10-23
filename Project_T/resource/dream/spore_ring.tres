@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "spore_ring"
 display_name = "Spore Huddle"
-description = "A Sporeling's hits add 1 more {stack} of {spored} for each other Sporeling {touching} it, up to 3 more."
-tip = "Adds with other cards that add {stacks}, never past {full}. Works for: Sporelings packed together. Safe."
+description = "A {family:sporeling} Warden's hits add 1 more {stack} of {spored} for each other {family:sporeling} Warden {touching} it, up to 3 more."
+tip = "Adds with other cards that add {stacks}, never past {full}. Works for: {family:sporeling} Wardens packed together. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "lent"])

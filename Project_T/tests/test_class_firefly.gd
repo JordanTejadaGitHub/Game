@@ -374,10 +374,10 @@ func _self_sufficiency(far: Vector2) -> void:
 	# Texts and gates
 	var nw: UpgradeData = load("res://resource/dream/nothing_wasted.tres")
 	_check(nw.min_act == 1, "Nothing Wasted is offered from act 1")
-	_check(nw.description.contains("from Fireflies and Wardens {near} them"), "Nothing Wasted: the approved face")
+	_check(nw.description.contains("from {family:firefly_jar} Wardens and Wardens {near} them"), "Nothing Wasted: the approved face")
 	var st: UpgradeData = load("res://resource/dream/struck_twice.tres")
 	_check(st != null and st.rarity == UpgradeData.Rarity.COMMON and st.min_act == 1 and st.in_start_pool, "Struck Twice: a Common from act 1, in the start pool")
-	_check(st.description.contains("Fireflies or Wardens {near} them deals 30% more"), "Struck Twice: the approved face")
+	_check(st.description.contains("{family:firefly_jar} Wardens or Wardens {near} them deals 30% more"), "Struck Twice: the approved face")
 	_check(st.uses.has(&"jump") and st.makes.size() + st.uses.size() <= 2, "Struck Twice: uses jump, at most 2 chips")
 	var paths: Dictionary = DreamState.CALLING_PATHS.PATHS
 	_check(String(paths[&"lf_bonfire"].text).contains("Fireflies deal 25% more there"), "Bonfire: the tough-target line")

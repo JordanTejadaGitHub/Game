@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "grand_design"
 display_name = "Grand Design"
-description = "Each different {reaction} set off this {block} makes all {reactions} 10% stronger, up to +80%."
-tip = "Starts again at each {rest}. Offered after 3 different {reactions} have each gone off 20 times this run. Multiplies with your other Dream damage."
+description = "Each different {reaction} triggered this {block} makes all {reactions} 10% stronger, up to +80%."
+tip = "Starts again at each {rest}. Offered after 3 different {reactions} have each triggered 20 times this run. Adds to the {reaction} pool."
 rarity = 3
 kind = 3
 tags = Array[String](["reaction", "scaler"])

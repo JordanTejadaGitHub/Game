@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "bearing_down"
 display_name = "Bearing Down"
-description = "Each attack in a row on the same nightmare deals 4% more, up to 10% for each {rank} the Warden holds."
-tip = "Wardens that aim at one nightmare; not area attacks or beams. A new target starts again. Hits only."
+description = "Single-target Wardens' direct hits deal 4% more for each attack in a row on one nightmare, up to +10% per {rank}."
+tip = "Not area attacks or beams. A new target starts the count again."
 rarity = 0
 kind = 3
 tags = Array[String](["precision", "hits"])

@@ -1110,7 +1110,7 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 		box.add_child(hint)
 		box.add_child(StatusLinks.make_label(c.text, 15))  # Status names are links
 		var count := Label.new()
-		count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
+		count.text = "Triggered %d time%s" % [times, "" if times == 1 else "s"]
 		count.add_theme_font_size_override("font_size", 13)
 		box.add_child(count)
 		_add_dreams_line(box, c)
@@ -1152,7 +1152,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	by.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(by)
 	var count := Label.new()
-	count.text = "Set off %d time%s" % [times, "" if times == 1 else "s"]
+	count.text = "Triggered %d time%s" % [times, "" if times == 1 else "s"]
 	count.add_theme_font_size_override("font_size", 13)
 	box.add_child(count)
 	_add_dreams_line(box, combo)
@@ -1162,7 +1162,7 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 # "Damp: Dewdrop, Rain Lily · Static: Firefly Jar" (Reactions).
 static func get_sources_text(combo: Dictionary) -> String:
 	if combo.get("by", "") != "":
-		return "Set off by: " + combo.by
+		return "Triggered by: " + combo.by
 	var parts: Array[String] = []
 	var done: Array = []
 	for status in combo.statuses:
@@ -1406,7 +1406,7 @@ func _family_header(root: TowerData) -> Control:
 		var calling := Label.new()
 		calling.name = "Calling"
 		calling.text = "Calling: %s" % calling_name
-		UiStyle.caps(calling, 14, UiStyle.GOLD)
+		UiStyle.plain(calling, 14, UiStyle.GOLD)
 		calling.tooltip_text = "The rule your run keeps when this is the first family you pick."
 		calling.mouse_filter = Control.MOUSE_FILTER_PASS
 		box.add_child(calling)
@@ -1513,8 +1513,8 @@ func _show_form_card(data: TowerData) -> void:
 		UiStyle.display(name, 22)
 		box.add_child(name)
 	var costs := Label.new()
-	costs.text = form_costs(data) + ("" if shown else " · in the Memory Grove")
-	UiStyle.caps(costs, 14, UiStyle.GOLD if shown else GROVE_COLOR)
+	costs.text = form_costs(data) + ("" if shown else ", in the Memory Grove")
+	UiStyle.plain(costs, 14, UiStyle.GOLD if shown else GROVE_COLOR)
 	box.add_child(costs)
 	var role := IconInfo.role_text(data)  # Its job against the roster, from its counter tags (the family pick says the same)
 	if role != "":
@@ -1915,8 +1915,8 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	for tag in card.tags:
 		facts.append(NightmareIcons.family_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())  # A family tag by its family
 	var tags := Label.new()
-	tags.text = " · ".join(facts)
-	UiStyle.caps(tags, 14)  # Plain small caps separated by " · " (ui_style.md "Dream card")
+	tags.text = ", ".join(facts)
+	UiStyle.plain(tags, 14)  # Plain Vollkorn, commas (ui_style.md: no " · ")
 	box.add_child(tags)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("needs_text"):

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_chime_stone"
 display_name = "Chime Stone"
-description = "{warden:bellflower}s can now {grow} into {warden:chime_stone}s ({dew:{grow_cost:chime_stone}}): a weak pulse that gives everything around it {static}, and sets off a bolt on nightmares with {field:chime_stone.sets_off_static_at:count} or more {stacks}."
+description = "{warden:bellflower}s can now {grow} into {warden:chime_stone}s ({dew:{grow_cost:chime_stone}}): a weak pulse that gives everything around it {static}, and triggers a bolt on nightmares with {field:chime_stone.sets_off_static_at:count} or more {stacks}."
 rarity = 1
 kind = 1
 tags = Array[String](["song"])

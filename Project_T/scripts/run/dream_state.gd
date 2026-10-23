@@ -464,9 +464,21 @@ func reaction_pool_tag(tag: StringName) -> bool:
 	return tag in _CAP_KIT.REACTION_BURSTS or Reactions.REACTION_STATUSES.has(tag)
 
 # The pool for Reaction `id` on `enemy`, set off by `tower` (null: unknown). 1.0 with no card.
+# Read once per frame for each Reaction and nightmare: Reactions reads it for the callout (before the damage) and again for
+# the damage; the second read returns the same pool without crediting the cards twice (Wording Council round 2, veteran).
+var _pool_frame := -1
+var _pool_cache := {}  # "id:enemy id" -> pool, this frame
+
 func reaction_pool(enemy: Node2D, id: StringName, tower: Node = null) -> float:
 	if id in NO_POOL_IDS:
 		return 1.0
+	var frame := Engine.get_process_frames()
+	if frame != _pool_frame:
+		_pool_frame = frame
+		_pool_cache.clear()
+	var key := "%s:%d" % [id, enemy.get_instance_id() if enemy != null and is_instance_valid(enemy) else 0]
+	if _pool_cache.has(key):
+		return float(_pool_cache[key])
 	var parts := reaction_pool_parts(enemy, id, tower)
 	var total := 0.0
 	for part in parts:
@@ -482,9 +494,23 @@ func reaction_pool(enemy: Node2D, id: StringName, tower: Node = null) -> float:
 		var data := Reactions.get_data(id)
 		_note_past_cap(data.display_name if data != null else String(id).capitalize(), 1.0 + total)
 	if not parts.is_empty():
-		reaction_pool_last[id] = [pool, total, parts.size()]
+		reaction_pool_last[id] = [pool, total, _pool_cards(parts)]
 	note_reaction_factors(id, {"pool": pool, "pool_sum": total})
+	_pool_cache[key] = pool
 	return pool
+
+# How many cards the pool's parts come from: each named card once, each unnamed per-hit card part once; nothing that adds 0.
+static func _pool_cards(parts: Array) -> int:
+	var named := {}
+	var unnamed := 0
+	for part in parts:
+		if float(part[1]) <= 0.0:
+			continue
+		if String(part[0]) == "":
+			unnamed += 1
+		else:
+			named[String(part[0])] = true
+	return named.size() + unnamed
 
 # The pool's parts: [rule or card id (&"" = unnamed), what it adds]. Only parts that add (or take) something.
 func reaction_pool_parts(enemy: Node2D, id: StringName, tower: Node = null) -> Array:
@@ -905,6 +931,7 @@ func _ready() -> void:
 		world.add_child.call_deferred(firefly_lights)
 	_make_class_nodes(world)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
+	drift_director.rest_ended.connect(func(_block: int) -> void: reaction_pool_last.clear())  # The rest report showed it; a new block starts fresh
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":

@@ -217,12 +217,12 @@ const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a 
 const RANK_RULES_AT := 4  # Rank IV: the next rank is the one the rules are about
 var _after: Array = []  # The status Lesson that follows "Statuses stack"
 const STATUS_LINES := {
-	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}.",
-	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}.",
-	&"spored": "It takes damage every second, more per stack. The whole pile wears off 5 s after the last stack, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}.",
-	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}.",
+	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can trigger {reactions}.",
+	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and trigger {reactions}.",
+	&"spored": "It takes damage every second, more per stack. The whole pile wears off 5 s after the last stack, so keep hitting it. At {stacks:need_spored} stacks it can trigger {reactions}.",
+	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can trigger {reactions}.",
 	&"static": "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it is struck by a bolt for heavy damage. Other statuses can set it off early as a {reaction}.",
-	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}.",
+	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can trigger {reactions}.",
 }
 const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
 const SPOT_GAP := 56.0  # Between the nightmare and the card

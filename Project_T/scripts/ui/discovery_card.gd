@@ -49,6 +49,7 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Real time; it shows over a paused game too
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	z_index = 20  # Over the HUD's panels at the right edge (the damage meter drew over it); under choice screens' overlays
 	visible = false
 	add_theme_stylebox_override("panel", UiStyle.panel(14.0, 12.0))
 	custom_minimum_size.x = WIDTH
@@ -149,6 +150,18 @@ func _finish() -> void:
 	_next()
 
 func _place() -> void:
+	_place_now()
+	_refit.call_deferred()  # Again once its wrapping lines know their width
+
+# Measured at the card's own width (user 2026-10-22 screenshot: measured before its wrapping lines had a width, every
+# word counted as a line and the card ran down the whole screen, under the damage meter).
+func _refit() -> void:
+	await get_tree().process_frame
+	if is_instance_valid(self) and visible:
+		size = Vector2(WIDTH, 0.0)  # Shrinks to its content
+		_place_now()
+
+func _place_now() -> void:
 	var view := get_viewport_rect().size
 	var height := get_combined_minimum_size().y
 	var top := view.y * PC_TOP_SHARE
