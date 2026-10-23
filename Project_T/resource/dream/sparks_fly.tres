@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "sparks_fly"
 display_name = "Sparks Fly"
-description = "After a Firefly Warden hits a nightmare, every 3rd hit another Warden lands on it within 2 s {jumps} half to the nearest other nightmare."
-tip = "Counted for each Warden and nightmare; an area attack counts once. Other Firefly Wardens and Sprouts count. At most 3 s of the Firefly Warden's damage. Works for: fast Wardens of any family. Safe."
+description = "After a Firefly hits a nightmare, every 3rd hit another Warden lands on it within 2 s {jumps} half to the nearest other nightmare."
+tip = "Counted for each Warden and nightmare; an area attack counts once. Other Fireflies and Sprouts count. At most 3 s of the Firefly's damage. Works for: fast Wardens of any family. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])

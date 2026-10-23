@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "last_drop"
 display_name = "Last Drop"
-description = "When {damp} that Dewdrop Wardens and Wardens {near} them added runs out, the nightmare takes 40% of their hit for each {stack}, up to 3 hits."
-tip = "Runs out: wears off with time; a {reaction} that spends it doesn't count. The Warden that added it deals it, as one new hit. Each nightmare once every 6 s. Works for: {warden:dewdrop}s and any Warden {near} one, early on the path. Safe."
+description = "When {damp} from Dewdrops or Wardens {near} them runs out, the nightmare takes 40% of their hit per {stack}, up to 3 hits."
+tip = "Runs out: wears off with time; a {reaction} that spends it doesn't count. The Warden that added it deals it, as one new hit. Each nightmare once every 6 s. Works for: Dewdrops and any Warden {near} one, early on the path. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])

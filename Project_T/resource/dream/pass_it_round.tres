@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "pass_it_round"
 display_name = "Pass It Round"
-description = "Wardens {touching} a spore Warden add 3 more {stacks} of their own status with their first hit on each nightmare."
-tip = "A spore Warden counts as touching itself. Any family's status counts. Once for each Warden and nightmare. Never {held}, never past {full}. Works for: status Wardens of any family packed around a spore Warden. Safe."
+description = "Wardens {touching} a Sporeling add 3 more {stacks} of their own status with their first hit on each nightmare."
+tip = "A Sporeling counts as touching itself. Any family's status counts. Once for each Warden and nightmare. Doesn't add {held}; never past {full}. Works for: status Wardens of any family packed around a Sporeling. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["spore", "lent"])

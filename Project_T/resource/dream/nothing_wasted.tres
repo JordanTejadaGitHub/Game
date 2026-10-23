@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "nothing_wasted"
 display_name = "Nothing Wasted"
-description = "Damage a {dread_shell} stops from Firefly Wardens and Wardens {near} them {jumps} to the nearest nightmare without a {dread_shell}."
+description = "Damage a {dread_shell} stops from Fireflies and Wardens {near} them {jumps} to the nearest nightmare without a {dread_shell}."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])
 max_stacks = 1
 rule_id = &"nothing_wasted"
 requires = Array[String](["firefly_jar"])
-tip = "{dread_shell}: a crust that blocks part of each hit until it breaks. Nearest: within 2 cells. Once per hit. Another family's {jump} deals at most 3 s of that Firefly Warden's damage. Works for: {warden:firefly_jar}s and Sprouts against shelled nightmares in a pack. Safe."
+tip = "{dread_shell}: a crust that blocks part of each hit until it breaks. Nearest: within 2 cells. Once per hit. Another family's {jump} deals at most 3 s of that Firefly's damage. Works for: Fireflies and Sprouts against shelled nightmares in a pack. Safe."
 makes = Array[StringName]([&"jump"])

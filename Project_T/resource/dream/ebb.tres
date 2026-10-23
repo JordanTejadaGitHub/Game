@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "ebb"
 display_name = "Ebb"
-description = "When a status runs out on a nightmare in a Dewdrop Warden's range, it comes back with half its highest {stacks} for 3 s."
-tip = "Only a status that ran out of time comes back; one a {reaction} spent never does. Once for each status and nightmare. Never {held} or {drowsy}; {static} stops 1 short of a bolt. Works for: every family's statuses. Safe."
+description = "When a status runs out on a nightmare in a Dewdrop's range, it comes back with half its highest {stacks} for 3 s."
+tip = "Only a status that ran out of time comes back; one a {reaction} spent never does. Once for each status and nightmare. Doesn't bring back {held} or {drowsy}; {static} stops 1 short of a bolt. Works for: every family's statuses. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])
