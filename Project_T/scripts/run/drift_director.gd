@@ -213,7 +213,7 @@ const DEMO_LAST_DRIFT := 50
 
 # Fund maze expansion without increasing the opening or the existing Act2 health ramp.
 @export var maze_act1_health_bonus := 0.05
-@export var maze_act1_dew_bonus := 0.15
+@export var maze_act1_dew_bonus := 0.0  # Balancing 2026-10-22: was 0.15; the maze share of the pot replaces it
 @export var maze_act2_dew_bonus := 0.20
 
 const MAZE_ECONOMY := preload("res://scripts/run/maze_economy.gd")
