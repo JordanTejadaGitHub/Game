@@ -227,3 +227,31 @@ DOUBLE IV / 2, ALLEGRO V / 3 / cleared when a drift ends, SYMPHONY 4 / 6 s, CODA
 | 7 | Allegro | "the 1 s wait" is never explained on the card. | "A nightmare can {toll} only once a second. When that stops a rank V+ bell's {toll}, the bell keeps it (up to 3) and spends it on the next ready nightmare it hits." |
 | 8 | Accompaniment → Counterpoint, Tenor Bell, Sounding Board | "joined Warden" is used but never defined. | Accompaniment: "Other Wardens {touching} a bell join its song: their hits ring nightmares. When one of them makes a {toll}, the bell's {toll} lands and that Warden's hit repeats at half." |
 | 9 | Counterpoint vs Coda | "note" means two things (a mark hung on a nightmare; a kept repeat on a Warden). | Coda: "After a Symphony, each Warden in it has its next hit within 4 s, on any nightmare, land again at half." |
+
+## Round 2c (2026-10-23): Sporeling, Firefly and Dewdrop evolutions
+
+User: *"review the rebuilt Sporeling, Firefly and Dewdrop Calling evolutions the same way as Bellflower's."* One reader
+per Calling on the uncommitted `calling_paths.gd` (21 live rows each) against its class script. Full tables with a
+rewrite per row: `wording_council/round2/evo_sporeling.md`, `evo_firefly.md`, `evo_dewdrop.md`.
+
+**Numbers.** Sporeling 59 of 59 match. Firefly 54 of 55 (Bonfire's tip "at least double": a forced crit uses the
+Warden's own `crit_multiplier` and only values at or below 1.0 become 2.0, `tower.gd:3391`; true only if no Firefly form
+has a multiplier between 1 and 2, check). **Dewdrop is still being rebuilt** (`puddles.gd` changed during the review: the
+new `EVO_*` constants landed, `WET_SECONDS` is gone), so its numbers are checked again once it is committed. Two Dewdrop
+points hold either way: "Bosses half" on Stream, Long Current and Mudflats is untrue as written: `class_kit.gd:490` halves
+the **cap** (0.35 → 0.175), not the slow, so a boss gets Stream's full 15%. Say "Bosses: at most 17.5% slower." Wet
+Footprints' text says 2 s while its tip says the shared 4 s room: make them agree with the code.
+
+**Wording, across all three:**
+- **Undefined or doubled words:** Sporeling "limit" (four meanings), "Sprout bed"; Firefly "flare" (define once: "one hit
+  from that glow's Firefly, damage only"), "glow" (the merged light vs one Firefly's own), "the usual {jump} limit" (the
+  3 s cap is stated nowhere); Windfall's "pale cap" vs Host Trees' worn caps.
+- **Text that says more or less than the code:** Toadstool Throne (text: every clump touching a final form; code: one per
+  final form), Host Grove (only Poisoned and Charged damage), Sporefall (Sprouts count, unsaid), Retinue's "other", Circling
+  Light (only on a return Marsh Lights counts).
+- **"Bosses take half" missing** on Far Lights, Marsh Lights, Drawn In, Borrowed Light, Sightline (every flare and jump
+  halves on bosses: `firefly_lights.gd:1064`, `:1080`, `:2197`).
+- **Garbled:** Drifting Spores "a dose planted plants".
+- **Rule 14:** Pile-On and several Firefly rows say "hit" where they mean a direct hit.
+- **Thick Haze** (`sp_thick_haze`) is still live with its old text although the owner sent it back to the designer:
+  retire it from offers until the new version exists.
