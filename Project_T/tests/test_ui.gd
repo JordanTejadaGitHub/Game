@@ -571,7 +571,7 @@ func _run() -> void:
 	spore_card.tags.assign(["spore", "maze"])
 	_check(UiStyle.dream_glyph(spore_card) not in [&"", &"generic"], "a Spore card has its own glyph (%s)" % UiStyle.dream_glyph(spore_card))
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
-	_check(IconInfo.status_name(&"damp") == "Soak" and IconInfo.status_name(&"static") == "Charge" and IconInfo.status_name(&"drowsy") == "Sleep"
+	_check(IconInfo.status_name(&"damp") == "Soak" and IconInfo.status_name(&"static") == "Charge" and IconInfo.status_name(&"drowsy") == "Drowsy"
 		and IconInfo.status_name(&"held") == "Root" and IconInfo.format("{spored} + {marked}") == "Poison + Exposure",
 		"the new status names")
 	# Every status word is a link: underlined, with a popup (icon, definition, More in the Codex).
