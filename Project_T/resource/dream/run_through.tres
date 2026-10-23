@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "run_through"
 display_name = "Run Through"
-description = "A {final_form} or {ascended} Warden's direct hit carries on to the next 2 nightmares behind its target, each taking half."
-tip = "Only nightmares within 2 cells along the path; flyers don't count. The carried hits are damage only: no statuses, no other cards."
+description = "{final_form} and {ascended} Wardens' direct hits also pierce the next 2 nightmares behind the target, for half damage."
+tip = "Only nightmares within 4 {steps} behind it; flyers don't count. The pierced nightmares take damage only: no statuses, no other cards."
 rarity = 2
 kind = 3
 tags = Array[String](["tall", "hits"])

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "standing_tall"
 display_name = "Standing Tall"
-description = "A {final_form} or {ascended} Warden's direct hits deal 15% more for each attacking base or {branch} Warden {touching} it, up to 45%."
-tip = "Sprouts and walls don't count; its court can be any family. Hits only."
+description = "{final_form} and {ascended} Wardens' direct hits deal 15% more per attacking Warden below a {final_form} {touching} them, up to +45%."
+tip = "Any family counts; Sprouts and walls don't. Hits only."
 rarity = 2
 kind = 3
 tags = Array[String](["tall", "hits"])

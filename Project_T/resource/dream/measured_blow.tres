@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "measured_blow"
 display_name = "Measured Blow"
-description = "From {rank} III, a Warden's first direct hit on each nightmare also deals 1% of its maximum health for each {rank}."
-tip = "At most 10% of a nightmare's health from this card in all. Not bosses."
+description = "{rank} III+ Wardens' first direct hit on each nightmare also deals 1% of the nightmare's maximum health per {rank}. Not bosses."
+tip = "At most 10% of a nightmare's health from this card, all Wardens together."
 rarity = 2
 kind = 3
 tags = Array[String](["tall", "hits"])
