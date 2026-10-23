@@ -127,7 +127,7 @@ func _boulderback() -> void:
 		boulder.projectile_landed(target, target.global_position)
 	_check(_lost(behind) == 0, "no boulder for the first 3 hits")
 	boulder.projectile_landed(target, target.global_position)
-	_check(_lost(behind) > 0 and absi(_lost(behind) - int(boulder.get_damage() * FinalTwists.LANDSLIDE_SHARE)) <= 1,
+	_check(_lost(behind) > 0 and absi(_lost(behind) - int(boulder.get_damage() * FinalTwists.LANDSLIDE_SHARE * boulder._form_hit_multiplier())) <= 1,  # x1.4: a hit final (e57b2a99)
 		"the 4th rolls a boulder: 60%% to a nightmare 2 tiles back (%d)" % _lost(behind))
 	_check(_lost(ahead) == 0, "only toward the start")
 	boulder.queue_free()

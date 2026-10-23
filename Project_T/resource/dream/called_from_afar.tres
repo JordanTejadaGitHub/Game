@@ -6,8 +6,9 @@
 script = ExtResource("1_card")
 id = "called_from_afar"
 display_name = "Called from Afar"
-description = "A hit from a Warden 4 or more cells away lets the nightmare's next {reaction} go off at once. Each nightmare once every 3 s."
+description = "A hit from a Warden 4 or more cells away lets the nightmare's next {reaction} trigger at once. Each nightmare once every 3 s."
 tip = "A star glints on the nightmare when it is called. Offered once you have a long-range Warden. Works for: {warden:moonstone}, {warden:standing_stone}, {warden:cairn}, {warden:rockslide}."
+retired = true
 rarity = 2
 kind = 3
 tags = Array[String](["role", "sniper", "reaction"])
@@ -15,4 +16,3 @@ max_stacks = 1
 min_act = 2
 rule_id = &"called_from_afar"
 requires_role = &"sniper"
-makes = Array[StringName]([&"reaction"])

@@ -165,7 +165,9 @@ func _ring(enemy: Node2D) -> void:
 		effect.queue_free()
 	_effects.erase(cell)
 	Reactions._touch(enemy, chain, [source] if is_instance_valid(source) else [])
+	Reactions._in_reaction += 1  # A ring's statuses are a Reaction's: they never crown late (owner 2026-10-22)
 	enemy.apply_status(EnemyStatuses.SPORED, ring_stacks, 0.0, potency, 0, line,
 		source if is_instance_valid(source) else null)
 	if is_instance_valid(enemy) and not enemy.is_cleansed:
 		enemy.apply_status(EnemyStatuses.DAMP, 1, 0.0, 0.0, 0, "water", source if is_instance_valid(source) else null)
+	Reactions._in_reaction -= 1

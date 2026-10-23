@@ -333,14 +333,30 @@ func get_attack_origin() -> Vector2:
 # Global grow-cost multipliers by tier (user via Balancing 2026-10-04: "make growing more expensive, rely on making
 # more Wardens early instead of saving"): finals ×1.5 (branches back to ×1.0, be7b5a94), Ascended ×1.0. DreamState's exports set them
 # (branch_ / final_ / ascended_cost_multiplier) so the sims can A/B; 1.0 = the old prices.
-static var grow_cost_multipliers := {2: 1.0, 3: 1.5, 4: 1.0}
+# Wardens keep up without Reactions (owner 2026-10-22, dream_council_review.md 30): a hit final (is_hit_form) costs the
+# HIT_FINAL key's multiplier (1.8 = 540 Dew), support / status finals tier 3's (1.5 = 450), Ascended tier 4's (1.0 = 600). Balancing 2026-10-22.
+const HIT_FINAL := &"hit_final"
+static var grow_cost_multipliers := {2: 1.0, 3: 1.5, 4: 1.0, HIT_FINAL: 1.8}
 
 # Dew to grow into this form before Dream discounts: evolve_cost × its tier's multiplier. Every price read goes here.
 # The wall line (Thornwall's growths) keeps its price: walls are the maze, and "more maze early" is the point.
 func get_grow_price() -> int:
 	if line == "wall":
 		return evolve_cost
-	return roundi(evolve_cost * float(grow_cost_multipliers.get(tier, 1.0)))
+	var key: Variant = HIT_FINAL if tier == 3 and grow_cost_multipliers.has(HIT_FINAL) and is_hit_form() else tier
+	return roundi(evolve_cost * float(grow_cost_multipliers.get(key, 1.0)))
+
+# A hit form (dream_council_review.md 30): a final or Ascended form whose job is hitting directly. Not a support, aura,
+# catch, yield or Dreamcatcher form, not a cloud / aura / copy attack, nor one without damage of its own (those are the
+# "support / status" forms). Its direct hits get Tower.HIT_FORM_MULTIPLIER, and a final costs the HIT_FINAL price.
+func is_hit_form() -> bool:
+	if tier < 3 or not can_attack or damage <= 0.0 or line == "wall" or support or role_tag == &"support":
+		return false
+	if aura_radius > 0.0 or aura_damage_bonus > 0.0 or aura_speed_bonus > 0.0 or aura_crit_bonus > 0.0:
+		return false
+	if caught_bonus > 0.0 or caught_shards or catch_share > 0.0 or dew_per_rank > 0:
+		return false
+	return attack_kind not in [AttackKind.CLOUD, AttackKind.AURA, AttackKind.COPY]
 
 func get_sprite_offset() -> Vector2:
 	if sprite_offset != Vector2.ZERO or texture == null:

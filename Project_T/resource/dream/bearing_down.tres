@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bearing_down"
+display_name = "Bearing Down"
+description = "Single-target Wardens' direct hits deal 4% more for each attack in a row on one nightmare, up to +10% per {rank}."
+tip = "Not area attacks or beams. A new target starts the count again."
+rarity = 0
+kind = 3
+tags = Array[String](["precision", "hits"])
+max_stacks = 1
+rule_id = &"bearing_down"
+uses = Array[StringName]([&"rank"])

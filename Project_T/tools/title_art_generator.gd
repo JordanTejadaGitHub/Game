@@ -220,7 +220,8 @@ func _mist_strip(h: int, value: float, salt: int) -> Image:
 		var band := maxf(0.0, 1.0 - absf(y - h * 0.5) / (h * 0.5))
 		for x in W:
 			var ang := TAU * x / W
-			var m := noise.get_noise_3d(cos(ang) * radius + salt * 50.0, y * 2.4, sin(ang) * radius)
+			var wave := noise.get_noise_3d(cos(ang) * radius * 1.7, salt * 9.0, sin(ang) * radius * 1.7) * 5.0  # undulating, seamless
+			var m := noise.get_noise_3d(cos(ang) * radius * 1.7 + salt * 50.0, (y + wave) * 1.5, sin(ang) * radius * 1.7)
 			var a := (m + 0.15) * band
 			if a > 0.4 or (a > 0.28 and (x + y) % 2 == 0) or (a > 0.18 and bayer(x, y) < 0.2):
 				strip.set_pixel(x, y, pick(FOG, value, x, y))
@@ -484,7 +485,8 @@ func _mist(y0: int, y1: int, value: float) -> void:
 	# A drifting fog band, as dithered palette pixels (a blend would snap to muddy colours).
 	for y in range(y0, y1):
 		for x in W:
-			var m := noise.get_noise_2d(x * 0.35 + y0, y * 2.4)
+			var wave := noise.get_noise_1d(x * 0.9 + y0 * 3.0) * 5.0  # the band undulates: wisps, never ruled streaks
+			var m := noise.get_noise_2d(x * 0.6 + y0, (y + wave) * 1.5)
 			var band := maxf(0.0, 1.0 - absf(y - (y0 + y1) * 0.5) / ((y1 - y0) * 0.5))
 			var a := (m + 0.3) * band
 			if a > 0.42:
@@ -570,10 +572,15 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 			behind = true
 	if id == 4 or id == 5:
 		v += 0.03  # the arms stand a little forward of the body
+	if id == 6 or id == 7:
+		v += 0.06  # the shoulder boulders are the arms' own stone, never darker holes
 	if behind:
 		if id == 8:
 			return col("void")  # the chin keeps a hard line under the head
-		v -= 0.2  # elsewhere a soft shadowed crease: the arms and knees grow out of the body
+		if (id == 6 or id == 7) and q.y < 0.35:
+			pass  # a boulder only creases where it sits on the arm, never round its whole edge
+		else:
+			v -= 0.2  # elsewhere a soft shadowed crease: the arms and knees grow out of the body
 	if id == 1:
 		# The body darkens where an arm hangs beside it (a shadow, not an outline).
 		for dx in [-4, -3, -2, 2, 3, 4]:
@@ -614,15 +621,24 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 		below_edge += 1
 	var clump := noise.get_noise_2d(x * 0.35 + 13.0, 7.0)  # one value per column: clumps, not blotches
 	var depth := 2.0 + maxf(0.0, clump + 0.1) * 24.0 + maxf(0.0, lit) * 4.0 + (9.0 if hash01(x, 3) > 0.86 else 0.0)  # a few longer drips
-	if id in [1, 6, 7]:
-		depth += 7.0  # the shoulders and the body's top hold the thickest moss
+	depth += (hash01(x, 9) - 0.5) * 5.0 + (hash01(x / 2, 11) - 0.5) * 3.0  # a ragged lower edge, never a ruled line
+	if id == 1:
+		depth += 7.0  # the body's top holds the thickest moss
+	elif id == 6 or id == 7:
+		depth += 2.0  # a moss cap on the shoulder boulders, not a flat green slab
 	var from_sky := _part_at(x, y - below_edge - 1) == 0 and q.y < -0.25  # only under the true top silhouette
 	var face := id == 8 and absf(q.x) < 0.72 and q.y > -0.5
 	if not face and from_sky and below_edge < 16 and below_edge < depth and y < 250:
+		# Tufts, not a painted band: two greens in small patches, a broken lip, a frayed dark fringe.
+		var tuft := blocky(x, y, 2, 77)
 		var c := col("leaf") if below_edge < depth * 0.5 else col("moss")  # lighter near the top, darker down the clump
-		if below_edge <= 1:
-			c = col("sprig") if lit > 0.1 else col("leaf")  # the lip, catching the light
-		elif below_edge >= depth - 2.0:
+		if tuft > 0.72:
+			c = col("moss") if c == col("leaf") else col("deepmoss")
+		elif tuft < 0.12 and below_edge < depth * 0.6:
+			c = col("sprig")
+		if below_edge <= 1 and hash01(x, 13) > 0.3:
+			c = col("sprig") if lit > 0.1 else col("leaf")  # the lip, catching the light, here and there
+		elif below_edge >= depth - 2.0 and hash01(x, y) > 0.35:
 			c = col("deepmoss")  # the fringe
 		return c
 	if rim == 2:
@@ -779,13 +795,22 @@ func _hanging_moss() -> void:
 
 
 func _crown_tree(base: Vector2, scale: float) -> void:
-	# A small tree growing out of the titan, backlit.
+	# A small tree growing out of the titan, backlit. A straight trunk, thick at a flared root and
+	# tapering up, its lit edge on the light's side: a trunk, never a wavy vine.
 	var trunk_h := 22.0 * scale
+	var lean := 1.0 if base.x < MOON.x else -1.0  # leaning a touch toward the Heartwood's light
+	for drop in 16:  # stand on the stone: drop to the first pixel of the titan under the root
+		if _part_at(int(base.x), int(base.y) + 1) != 0:
+			break
+		base.y += 1.0
+	base.y += 1.0  # the root sinks a pixel into the moss
 	for k in int(trunk_h):
-		var x := int(base.x + sin(k * 0.2) * 1.5)
-		put(x, int(base.y) - k, col("night"))
-		put(x + 1, int(base.y) - k, col("night"))
-		put(x + 2, int(base.y) - k, col("slate") if k % 3 else col("night"))
+		var t := k / trunk_h
+		var cx := base.x + lean * t * 2.0
+		var half := lerpf(2.6, 1.0, t) * maxf(scale, 0.6) + (1.5 if k < 2 else 0.0)  # the root flare
+		for x in range(int(floor(cx - half)), int(ceil(cx + half)) + 1):
+			var lit_side := (x - cx) * signf(MOON.x - cx) > half - 1.2
+			put(x, int(base.y) - k, col("slate") if lit_side else (col("night") if (x + k) % 5 else col("root")))
 	var clumps := [Vector3(-7, -26, 9), Vector3(4, -29, 8), Vector3(-14, -20, 6), Vector3(10, -21, 6), Vector3(-3, -35, 6)]
 	for cl: Vector3 in clumps:
 		var c := base + Vector2(cl.x, cl.y) * scale
@@ -1083,8 +1108,7 @@ func _frame_trees() -> void:
 	_trunk(Vector2(140, 360), 60, 8.0, 3)
 	# The canopy fringe along the top, leaves hanging in clumps.
 	for x in W:
-		var depth := 14.0 + noise.get_noise_1d(x * 1.2) * 12.0 + (40.0 if x < 180 else 0.0) * (1.0 - x / 180.0)
-		depth += (30.0 if x > 560 else 0.0) * ((x - 560) / 80.0)
+		var depth := float(_canopy_depth(x))
 		for y in range(0, int(depth)):
 			var leaf := grain.get_noise_2d(x * 2.0, y * 2.0)
 			var c := pick(DARK_MOSS, 0.08 + (0.3 if leaf > 0.4 else 0.0) * (1.0 - y / depth), x, y)
@@ -1096,9 +1120,10 @@ func _frame_trees() -> void:
 	r.seed = 404
 	for i in 30:
 		var x := r.randi_range(0, W - 1)
-		if x > 330 and x < 550:
-			continue  # keep the titan's head clear
-		var top := 20 + r.randi_range(0, 30)
+		if x > 300 and x < 560:
+			continue  # keep the titan's head and the floating isle by it clear
+		r.randi_range(0, 30)  # was a random top; still drawn so the other vines keep their randoms
+		var top := _canopy_depth(x) - 3  # hangs from the canopy fringe itself, never from the sky
 		var length := r.randi_range(20, 90)
 		var phase := r.randf_range(0.0, TAU)
 		for k in length:
@@ -1116,6 +1141,13 @@ func _frame_trees() -> void:
 	_root_arch(Vector2(140, 330), Vector2(176, 320), Vector2(206, 362), 3.0, 2.0)
 	for reed in [Vector2(96, 362), Vector2(196, 364), Vector2(470, 364), Vector2(600, 362), Vector2(372, 366)]:
 		_reeds(reed, 9, 46.0, int(reed.x) + 90)
+
+
+## How far the dark canopy fringe hangs down at column x (the vines hang from it).
+func _canopy_depth(x: int) -> int:
+	var depth := 14.0 + noise.get_noise_1d(x * 1.2) * 12.0 + (40.0 if x < 180 else 0.0) * (1.0 - x / 180.0)
+	depth += (30.0 if x > 560 else 0.0) * ((x - 560) / 80.0)
+	return int(depth)
 
 
 func _trunk(foot: Vector2, lean: int, half: float, salt: int) -> void:

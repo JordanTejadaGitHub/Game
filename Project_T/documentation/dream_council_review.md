@@ -2709,3 +2709,369 @@ same commit as its rewrites; class-only revivals; stakes separately.
 4. Hard-Won Rings: **80 dispels per rank, up to rank IV.**
 5. **Clipped Wings is cut;** Snag stays the flyer answer.
 6. Stack cards on one hit **add together**, within the existing caps.
+
+---
+
+## 27. Wording check of the new cards (2026-10-19)
+
+Checked: the 36 live lent cards, the 12 generic batch cards and the reworked stake and Rare cards
+(57 in all, `D:\Projects\logs\dream_council\wording_audit_cards.tsv`), and the 60 Calling
+evolutions in `scripts/combat/calling_paths.gd`. Text only; nothing run.
+
+**Passes:**
+- No lent card names the Calling's setup (Lit, light, glow, water, lone, Toll, ring, pip,
+  mushroom, dose).
+- "Jumps" everywhere, never "fork". No "for half" on damage.
+- No Wager or Price lines.
+- No "Combos with", "Leads to" or style lines.
+- Player names are right throughout (nightmares, Wardens, Dew, leaves, dispel).
+
+**Fails, with fixes:**
+- **Over 25 words:** Breathe It In (28), Gone to Seed (28), Chain of Lanterns (26), Last Drop
+  (26); evolutions Lapping Water (27), Clump (26), Spring Flood (26).
+- **No "Works for" line:** Flashover, Gathering Storm, Gone to Seed (every other lent card has one).
+- **The base Warden named where the family is meant:** `{warden:dewdrop}` and
+  `{warden:firefly_jar}` link to the base form, but the code counts the whole family. Steeped's text
+  and the tips of High Tide, Last Drop, Nothing Wasted, Sodden, Struck Twice and Wash Away, plus 8
+  Dewdrop evolution texts and tips. Every sibling card says "Dewdrop Warden" or "Firefly Warden".
+
+**Rule corrected:** sections 20 and 25 listed "reach" as the word for a Warden's own range. The
+game's Warden panel says "Range: N cells", and the cards say "range" and "cells". "Range" is the
+word; the four distance words are touching, near (within 2 cells), steps, range.
+
+**Open for the owner:**
+- **Hot on Their Heels** still ends on a lost leaf ("Losing a leaf ends it"), the one stake left on a
+  Dream card.
+- **"Never {held} or {drowsy}"** in about 20 tips means "doesn't lengthen or add those"; the player
+  review read it as "doesn't work on Drowsy nightmares".
+
+**Fixed (2026-10-19), text only, uncommitted, not parse-checked by a Godot run:** the seven
+over-length texts, the three missing "Works for" lines, Show the Way's "at half" (now "at half
+damage"), and every family-meaning base-Warden link in the new cards, the Puddles Calling and its
+evolutions.
+- **Owner, on "Dewdrop Wardens and Wardens near them":** *"shouldnt it just be dewdrop and
+  wardens?"* Dewdrop-family Wardens are now plain **"Dewdrop" / "Dewdrops"** on cards, the Calling
+  and its evolutions. The Calling's small print opens "A Dewdrop is any Dewdrop form", as Keeping
+  Time's says "A bell is any Bellflower form".
+- Changed files: `resource/dream/` breathe_it_in, gone_to_seed, chain_of_lanterns, last_drop,
+  flashover, gathering_storm, steeped, high_tide, nothing_wasted, sodden, struck_twice, wash_away,
+  ebb, mountains_fall, never_quite_dry, old_rain, topped_up, waterlogged; `scripts/combat/
+  calling_paths.gd` and `callings.gd` (string literals only; quotes checked balanced).
+
+**Owner said yes to all three (2026-10-19):**
+- **Family names on cards:** Dewdrops (above), **Fireflies** ("A Firefly is any Firefly Jar form")
+  and **Sporelings** ("A Sporeling is any Sporeling form"); bells stay bells. Applied to every live
+  card, the four Callings' small print and the evolutions.
+- **Hot on Their Heels has no stake:** "Losing a leaf ends it" is gone from the text and from the
+  code (`dream_batch_rules.gd`: early calls count with or without a lost leaf; still cleared at the
+  rest; `leaves_changed` is now empty).
+- **"Never Rooted / Drowsy" in tips** now says what is meant: "Doesn't add {held}" on cards that add
+  stacks, "Doesn't lengthen {held} or {drowsy}" on cards that make statuses last, "Doesn't bring
+  back" on Ebb.
+
+**Next, from the owner:** *"still confused on cell, should have an image or video on it because we
+don't know how whats the measurement."* Distance words need a picture.
+
+**Hard-Won Rings (owner 2026-10-20: "don't know who gets the free rank").** Each Warden counts the
+nightmares it dispels itself (the hit that brings a nightmare to 0 health); at 80 that Warden banks a
+rank, and again every 80, up to IV. Text now says so: "Each Warden that dispels 80 nightmares gets a
+free Nurture {rank}, and again every 80 after, up to {rank} IV." Still missing: the count on each
+Warden's panel (`batch.hard_won_of(tower)` exists, nothing shows it).
+
+---
+
+## 28. Legendaries that feel legendary (owner 2026-10-21)
+
+**Owner:** *"feel like the legendary cards arent legendary in feeling"*, then *"do that,
+legendaries should feel like a new build by its self."*
+
+**Found:** only 5 Legendaries are in the start pool (the other 27 are Grove unlocks). Four are small
+numbers on one mechanic: The Long Walk (+2% Reaction damage per 4 steps, up to +25%), Grand Design
+(+10% per different Reaction, up to +80%), Unbroken Chain (a chain keeps full strength to its 12th
+link), Old Heart (needs an Ascended Warden: drift 51+, never in the demo). Dawnbreak is the best.
+The rule-breaking Legendaries (Lucid Dreaming, Monoculture, The Last Light, Whirlwind Heart,
+Rootbound, Last Leaf, Eternal Charge) are all Grove-only. The Dream screen shows a Legendary like any
+other card: no frame, sound, reveal or mark on the map.
+
+**The rule for a Legendary:** it is a build by itself. It breaks one rule of the game, the player can
+see it change the run, it is never a percentage on something else, and the player builds around it.
+A drawback is allowed; a stake or challenge is not (those are Omens). Every class can use it.
+
+**Plan:** new start-pool Legendaries to that rule replace the weak four (Grove Legendaries stay
+Grove-only); a council pass; Legendary presentation (frame, sound, reveal, a mark on the map) to the
+UI owner.
+
+### Council pass on the Legendary drafts (2026-10-21; nothing built)
+
+Draft: `legendaries_draft.md`; reviews `legendaries_roguelite.md`, `legendaries_td.md`,
+`legendaries_player.md` (work folder).
+
+| Card | Roguelite | Tower defence | Player | Verdict |
+|---|---|---|---|---|
+| Waymark (nightmares must reach a stone you plant before the Heartwood) | Keep, best; add a drawback | Keep, build last; bosses must obey it | Keep, #1 | **Ship** |
+| Headlong (an early-called drift arrives at once and pays its Dew up front) | Keep, two rules | Keep, new trigger | Keep, #3 | **Ship** |
+| Wild Growth (no Grow for Dew; Wardens grow themselves by dispels) | Keep, exclude Hard-Won Rings | Keep, cap who counts | Cut: confusing | **Ship, rewritten** |
+| Single File (nightmares can't overtake) | Change | Keep, rewrite | Keep, #5 | Owner call |
+| The Little Folk (tiny Sprouts, four to a cell) | Ship | Cut: footprint refactor, phone taps, Dew farm | Keep with an upside | Owner call |
+| Ley Lines (range becomes a cross) | Cut for now | Cut for now | Keep, #2 | Later |
+| Many Become One (Sprout onto a Warden for a rank) | Cut | Keep with a price fix | Alternate | Cut |
+| Recurring Dream (offers only cards you hold) | Cut | Cut | Cut | Cut |
+
+**Current five:** keep Dawnbreak; retire Grand Design, The Long Walk and Unbroken Chain; take Old
+Heart out of the start pool (ids kept).
+
+**Fixes the shipped cards need:**
+- Waymark: bosses obey it too (a hidden second route at drift 25 and 50 is a trap); the route is
+  stored per leg; the maze-economy baseline includes it (or it farms the 20 Dew cap); a dead-end spur
+  must not double-count. Roguelite asks for a drawback: nightmares that reach the stone lose every
+  status, so each leg needs its own kill zone. Largest build of the set: last.
+- Headlong: trigger "start a drift while nightmares from the last one are still on the field"; the
+  up-front Dew is the normal pot, multipliers applied once; Call of the Wild counts skipped arrival
+  against the normal schedule.
+- Wild Growth: lead with the free growth; a dispel counts for the Warden that landed it plus at most
+  2 others in range; walls, the Sapling and Ascended forms excluded; excludes Hard-Won Rings.
+
+**Timing:** most demo runs never see a Legendary (act 1 offers none; the drift 25 boss slot shows one
+about 1 run in 6). Roguelite's fix, with no guarantee and about the same overall count: drift 25
+boss-rest slot to about 1 in 3, ordinary act 2 slots from the drift 35 rest down to about 1.5%.
+
+**New idea from the roguelite reviewer:** Gravestones, dispelled nightmares leave wall stones until
+the rest, so the maze changes every drift.
+
+### Council's final pass on the Legendaries (2026-10-21; nothing built)
+
+Final texts: `legendaries_final.md`; reviews `legfinal_roguelite.md`, `legfinal_td.md`,
+`legfinal_player.md`.
+
+**The five, unanimous:** Waymark, Headlong, Wild Growth, **Gravestones** (the fifth: dispelled
+nightmares leave stones that block like walls until the rest, so the maze changes every drift),
+Dawnbreak. Single File is not a Legendary; The Little Folk is parked (the full footprint refactor and
+phone taps). The roguelite reviewer flags Dawnbreak as the next to replace (a percentage on chains).
+
+**Decided by the council:**
+- Waymark keeps its drawback (nightmares lose every status at the stone): without it the card is a
+  free longer route everyone takes; with it the build is a kill zone on each leg.
+- Wild Growth charges the rank difference when growing (waiving it was a Dew exploit: Nurture a
+  Sprout, then grow free); "any Warden but walls" counts.
+- Gravestones: its own stone registry (not obstacles, so the Clear tool and clearing cards ignore
+  them); a stone waits at the dispel point up to 2 s rather than being pushed off the route; no stones
+  during a drag stroke; the maze economy measures with stones open at `sample` and `observe`, and
+  stones stay out of the longest-path record; a "light" route change and at most 4 placement probes a
+  frame; class owners rule on stones over mushrooms and water before it is built. The tip says it
+  wants more than one way through the kill zone. Reuses the Hollow Oak's thorn-sapling placement.
+- At drift 25 the Dream comes before the Calling follow-up, so the Legendary isn't the third of five
+  screens.
+
+**Timing:** the earlier "1 in 6" was a misread; drift 25 already shows a Legendary in about 31% of
+runs. Roguelite and player both say about half of demo runs is too few. Proposal: only the boss-rest
+defining slot can be Legendary, at Rare 1 : Legendary 1 (drift 25 about 50%); ordinary act 2 slots
+from the drift 35 rest at about 1.5%. About **60%** of demo runs see one, in one fixed slot, never
+guaranteed. The player would guarantee one at drift 25 (passing allowed); that conflicts with the
+owner's "nothing handed out". Code notes: Blight's `lean_common` halving needs weights [0,0,20,10];
+the fallback draws must not bring Legendaries back into the other boss slots; Grove Legendaries
+become rarer (tell the Meta owner).
+
+**Build order:** retire Grand Design, The Long Walk, Unbroken Chain and take Old Heart out of the
+start pool, plus the timing change; Headlong; Wild Growth; Dawnbreak (presentation only);
+Gravestones; Waymark last and alone.
+
+**Owner, 2026-10-21: Gravestones is out.** *"Gravestone doesnt feel good because you want a fixed
+route you put since you plan it."* Rule for every card: the route is the player's plan. A card may
+reward or reshape how the player builds it, but never moves or blocks the route on its own during play.
+(Waymark passes: the player places the stone and the route stays fixed.)
+
+**Owner, 2026-10-21: "Let's go with A and do your suggestion."**
+- Timing A: only the boss-rest defining slot can be Legendary, Rare 1 : Legendary 1; ordinary act 2
+  slots from the drift 35 rest at about 1.5%; about 60% of demo runs see one; never guaranteed.
+- Ship four now: Waymark, Headlong, Wild Growth, Dawnbreak. A fifth is designed separately under the
+  route rule (2-3 new candidates and Ley Lines with a fix for taking it mid-run).
+
+**Owner, 2026-10-21: the fifth start-pool Legendary is The Walking Wood** ("Swap any two Wardens'
+places, free, even during a drift. Both wait 2 s before attacking; you can swap again after 10 s.";
+`legendary_fifth.md`). Both cells stay walls, so the route never changes.
+
+**Wording check 2 (2026-10-21):** 59 live new cards plus the Callings and evolutions re-checked against
+the agreed wording. All lent cards have "Works for", none names the Calling's setup, family names and
+"Doesn't add / lengthen" are consistent. Fixed: Fruiting (26 → 25 words); Headlong's trigger now
+reads "Start a drift before the last one is cleared". For the unbuilt Legendaries: Waymark's text
+passes; The Walking Wood's tip should say "Works for: every family" (not "every class"), like the
+other cards.
+
+**Owner, 2026-10-22: "2nd family pick should have a lent card on drift 10."** The family picks moved
+from the boss rests to the rests after drifts 10, 35 and 60, but the new family's lent card was still
+gated on a boss rest, so it never showed. `dream_state.gd` now adds that card to the Dream at the rest
+right after any family pick (`_new_family_lent_card` checks the pick's drift); one card, drawn evenly,
+any rarity, counting toward the two family cards. Uncommitted; not parse-checked by a Godot run.
+
+---
+
+## 29. Late crown and "Reaction slop" (owner 2026-10-22; council: reactions_roguelite.md, reactions_td.md, reactions_player.md)
+
+**Owner:** chose late crown ("do A"). Balancing Discussion, after the owner's run to drift 75: Reactions
+dealt 68% of all damage (75-86% in act 3); "towers are just there to put statuses on enemies".
+
+**Cause, found in code:** about ten bonuses multiply on one Reaction hit (the Warden's damage with its
+card rows, Brimming, Ember Count / Grand Design / Crown of Leaves up to x5.8, the uncapped feeder
+product `reaction_build_multiplier` which also counts every stack and linger card, Potency, Seeping,
+Nightshade, the Mushrooming zone, Old Rain, Gauntlet, Passing Thread, class nodes, Exposed, Soaked).
+Cards are counted twice (in the Warden's damage and again as feeders). Plausibly x60 on one hit.
+
+**Council recommendation (all three agree on the shape):**
+1. **One Reaction pool:** every card bonus to Reaction damage adds into one sum, capped at +300%
+   (x4), and is shown on the Reaction's callout. Stack and linger cards speed Reactions up and add
+   nothing to it. Only Warden and nightmare factors still multiply (bare damage, rank, Potency,
+   Brimming, Exposed, chain falloff). Crowned and a Legendary may be true multipliers.
+2. **Every Reaction has an author:** its size comes from the bare damage (no Dream rows) and tier of
+   the Warden whose status completed the pair, credit split 50/50 with the strongest applier of the
+   other status; the callout shows its name and colour; the Warden panel shows "Set off / Fed".
+3. **Late crown (A), with safeguards:** a 1 s window after a base Reaction; the Crowned extra only (no
+   damage top-up); only a Warden's own status crowns; once per nightmare (bosses once per 25% health);
+   a field-wide cooldown per Crowned kind; its own sound, hit-stop and name; counted in reports. **Plus
+   fix Tempest losing to Ignite** (Ignite at 8 Charged spends it before Thunderclap's 10), or late
+   crown barely moves the count.
+4. **Card fixes:** Mixed Company loses its build-multiplier role; Soaked Rot's x2 becomes +50% or a
+   rule; Venom Bloom +100% -> +40% Potency; Nightshade needs 3 statuses from different families.
+5. **A second end-game shape (after re-measuring):** finals and Ascended forms get a payoff that is
+   not a status (roguelite proposal "Clean Strike": more damage on nightmares carrying no other
+   family's status); ranks back to +8%.
+6. A per-factor breakdown of Reaction damage in the run report; re-measure, then expect to lower
+   `late_acts_health_multiplier` (tuned against the x60 stack).
+
+**Targets for Balancing:** act 3 Reaction share 45-60% for a committed Reaction build, 5-25% for others;
+the top Warden at most 55% of its damage from combos; Crowned 1-3% of Reactions on a three-family board.
+The player reviewer objects to a hidden share cap; the pool's cap is visible on the callout instead.
+
+**Built, Roguelite side (owner 2026-10-22: items 1, 4 (the card fixes), and the data for 6; parse-checked, untested):**
+- `DreamState.reaction_pool(enemy, id, tower)` = 1 + min(sum of parts, `REACTION_POOL_CAP` 3.0); parts from
+  `reaction_pool_parts`: build feeders (Makes a status of the Reaction, `CARD_BUDGET` x stacks; never Stacks / Linger,
+  never `NO_BUILD_ROLE` = Mixed Company), Ember Count, Grand Design, The Long Walk, Crown of Leaves
+  (`dream_reaction_cards.reaction_parts`), Seeping, Soaked Rot (`SOAKED_ROT_REACTION` +50%), and every per-hit card
+  multiplier (`_batch_factors`: batch cards, Gauntlet, Passing Thread, Old Rain, the class nodes). It goes live through the
+  existing calls: `get_reaction_damage_multiplier` / `get_reaction_card_multiplier` return Quick Reactions x the Crowned card
+  (`crowned_multiplier`, a true multiplier) x the pool; `reaction_build_multiplier` is 1.0; `batch_damage_multiplier` and
+  `card_cap_factor` skip Reaction tags (`reaction_pool_tag`). Echo, Carried Storm and Dawnbreak get no pool.
+- True multipliers outside it: the Crowned card, Nightshade, Brimming, and the Quick Reactions cut.
+- Callout and rest report: "Ignite +180% from 4 cards" ("(capped)" past the cap).
+- Cards: Venom Bloom +40% Potency; Soaked Rot +50% (ticks, and a pool part on Reactions with Poisoned); Nightshade's
+  condition `DreamState.nightshade_met` (3 statuses from 3 families, `NIGHTSHADE_MIN_STATUSES` / `_FAMILIES`).
+- Breakdown: `note_reaction_factors(id, {factor: value})`, `reaction_breakdown()` / `reaction_breakdown_lines()` (averages
+  per Reaction; this side notes pool, pool_sum, quick, crowned).
+- Left for Tower Code: Reactions read bare Warden damage (the double count), Seeping out of `effect_multiplier` on
+  Reaction tags, `get_spored_tick_multiplier(enemy, true)` at Smother, `nightshade_bonus` -> `nightshade_met`, delete
+  `_build`, the bare / rank / Brimming / half factors into `note_reaction_factors`. Main Merger: the breakdown into the run
+  report.
+
+## 30. Wardens keep up without Reactions (owner 2026-10-22; council: finals_draft.md, finals_player.md, finals_roguelite.md, finals_td.md; nothing built)
+
+Owner asks: final forms hit harder and cost more, with a way to grow their damage that is not a status; cards that keep
+Wardens' own damage up all run, not only Reactions; a Legendary that turns Reactions off and makes statuses much
+stronger; retire some cards.
+
+**Council verdict.** A hit build can stand beside Reactions only if the Rare pool changes too: today about 17
+Reaction-only Rares meet 2 hit Rares, so the shop sells Reactions whatever the cards say (roguelite). Wardens' own hits
+keep up at drifts 25 and 50 with the changes below; at drift 75 they are 2-3x short, so if Reactions fall to a small
+share, Balancing must lower `late_acts_health_multiplier` (code review).
+
+**Corrections to the draft (code review):** finals cost 450 today (300 x `final_cost_multiplier` 1.5), not 300; card hit
+multipliers in `Tower._hit` also feed Poisoned / Charged potency, so every new multiplier goes at the `dealt` stage, is
+skipped on Pinned / Shatter hits, and passes the pre-card number to follow-on effects; family resistances no longer exist
+(Full Force has nothing to skip); Towering is already hit-only; late health is x6.0.
+
+### Recommendation
+**Final forms:** hit finals (attacking forms that hit directly) deal x1.4 direct-hit damage at `dealt`; price through the
+exports, hit finals 450 -> 630, support / status finals stay 450; Ascended x1.25, 600 -> 750. The x1.4 is a form stat,
+outside `CARD_CAP_ON`. Reactions keep their existing tier factor.
+
+**New cards (hit only, never statuses or Reactions):**
+| Card | Rarity | Change from draft |
+|---|---|---|
+| Finishing Blow | Common | as drafted (+40% below a third of health, rank II+) |
+| Bearing Down | Common | streak counted per attack, not per hit (beams) |
+| Open Road | Common | as drafted (+25% on straights of 4+) |
+| Clean Strike | Uncommon | as drafted (+25% / +50% for finals on nightmares with no other family's status) |
+| Nowhere to Run | Uncommon | counts only seconds inside that Warden's range, cap +40% |
+| Standing Tall | Rare (was Uncommon) | as drafted (+15% per grown attacker touching a final) |
+| Trophies | Rare (was Uncommon) | Proven folded in, cap +40% |
+| Run Through | Rare | carried hits are damage only: no statuses, no on-hit cards |
+| Measured Blow | Rare | rank III+, cap 10% of max health, no bosses, keyed by cell |
+| Towering | Rare | number change only (hit-only already) |
+| The Tallest Tree | Legendary | text says the stored fifth is added on top; store capped by the tree's bare hit |
+| Undiluted | Legendary | see below |
+
+**Cut from the draft:** Full Force, Long Standing, Against the Odds, Stubborn Sprouts, Gaining Ground, No Way Through,
+Proven (into Trophies).
+
+**Undiluted** ("Reactions never go off. Each status's own effect grows instead"): Poisoned and Charged x2 (Balancing may
+go to x2.5), control statuses get real payoffs, the card lists what goes quiet. Code: turn off only Lightning Rod in
+`strike_bolt` (the Charged bolt stays), let Charged bolt while Soaked, keep Smother storing Poisoned, gate
+`check_at_half`, Shatter in `before_hit`, `on_smother_ended`, `ready_need` = 0; a one-way `reaction_only` tag check
+instead of `excludes`; only Last Chord (Keeping Time capstone) needs a quiet version.
+
+**Retire:** Crown of Leaves, Heavy Heart, Graft of Dreams, Called from Afar (not to the Grove), Ember Count; Sparking
+Spores to Uncommon; then a Reaction-Rare audit: Rares whose whole text is "+N% Reaction damage" retire, Rares that
+change where / who / what a Reaction spends stay, target Reaction-only Rares about a fifth of the Rares. Kept: Rolling
+Thunder II (earlier ruling, test_unique_dream_catalogue), Thin Bark and Chosen Few (Grove nodes), Old Heart unchanged.
+
+**Feel:** big hits get Reaction-style feedback (callout, flash, damage number size), so a hit build looks as loud as a
+Reaction one.
+
+**Build order:** price exports + x1.4 at `dealt`; one shared hit-card hook; the Commons / Uncommons; Rares; The Tallest
+Tree; Undiluted (about 200 lines); turn on `CARD_CAP_ON` and re-measure.
+
+**Owner decisions open:** approve the list; the Reaction-Rare audit list (Roguelite Code drafts, owner approves).
+
+**Built, Roguelite side (owner-approved 2026-10-22; parse-checked, nothing run, not committed):**
+- `scripts/run/dream_hit_cards.gd` (DreamState.HIT_CARDS / `hit_cards`, saved as "hit_cards"): Finishing Blow, Bearing Down
+  (per attack, never beams or area), Open Road, Clean Strike (walls and Sprouts never count), Nowhere to Run (seconds in that
+  Warden's range: a gap of 1.5 s or 1.5 attacks restarts it, cap +40%), Standing Tall, Trophies (Proven folded in: 10 killing
+  blows in a drift, elites / bosses count 5, +4% once a drift, cap +40%, by cell), Run Through (damage only: tag
+  `run_through`, skipped by `batch_damage_multiplier`), Measured Blow (rank III+, 1% max health per rank on the first hit,
+  10% cap, no bosses, keyed by cell), The Tallest Tree (Warden panel "Make it the Tallest Tree"; others store a fifth of
+  their actual damage, store capped at 40x the tree's bare hit, one attack adds at most 6x its hit and never past a dispel).
+  Every number a named constant. The hook is Tower Code's `DreamState.hit_card_multiplier` at `dealt` (-> `hit_multiplier`);
+  Measured Blow, the Tallest Tree's spend / store and Run Through come right after the hit through its own DamageLog event
+  (`on_damage_event`), as damage-only hits (`DAMAGE_ONLY_TAGS`, skipped by `batch_damage_multiplier`).
+- Towering: +10% per rank above II (`TOWERING_PER_RANK`), hits only. Retired from offers: Crown of Leaves, Heavy Heart, Graft of
+  Dreams, Called from Afar, Ember Count. Sparking Spores Uncommon. `CARD_CAP_ON` = true.
+- Undiluted, DreamState side: rule `undiluted`, static `DreamState.undiluted_on`, Poisoned ticks and the Charged bolt x2
+  (`UNDILUTED_POISONED` / `UNDILUTED_CHARGED`), one-way offers (`REACTION_ONLY` / tag `reaction_only`), Last Chord's quiet
+  version (tops statuses up). The Reaction gates (strike_bolt's Lightning Rod, Charged while Soaked, Smother,
+  check_at_half, before_hit's Shatter, on_smother_ended, ready_need) are Tower Code's files. The other statuses' payoffs
+  (Soaked for every family, Exposed at half, Drowsy / Asleep, Rooted release) are not built.
+- Open Road sits close to Straightaway (Uncommon: Wardens touching a straight of 5+ deal 30% more): owner to confirm both stay.
+- The Reaction-Rare audit draft: `D:\Projects\logs\dream_council\reaction_rare_audit.md`.
+
+## 31. The drift 60 pick deepens a family (owner 2026-10-22; nothing built)
+
+Owner: a fourth family let a board reach every Reaction (each new family's status roughly doubles the pairs). Ruling:
+- **Drift 60 is no longer a new family.** The pick shows one card per family the run owns; each card lists that family's
+  three branches "not in this dream" and what each does. Taking a card gives **1 Dreamlight** and opens the Remember
+  page with that family's misty branches callable at the normal branch price (1 Dreamlight), outside the once-per-family
+  call-back rule. The player picks the branch there. Its final form is **not** opened (it still costs 2 Dreamlight).
+- **Drift 75 rest: +2 Dreamlight** (on top of what that boss rest already gives), so the new branch's final is reachable.
+- The Heartwood Sapling stays with the drift 60 pick. A family with no misty branch left gets no card. The demo (ends at
+  50) is untouched. A run keeps 3 families; tower_design.md's "A run still gets 4 families" changes.
+- Open: closing the Remember page without picking keeps the Dreamlight and the open call-back for the rest of the run.
+
+## 32. What to take from Tower Dominion (owner 2026-10-23; council: D:\Projects\logs\dream_council\dominion_brief.md, dominion_roguelite.md, dominion_td.md, dominion_player.md; nothing built)
+
+- **Board-gated cards already exist.** `grown_needs_met` (a card naming a Warden waits until it stood on the map this run;
+  kept after selling, saved) and `branch_cards_open` (branches not drawn this run). What crowds a build out is the ~60
+  sampled generics. Only possible addition: branch-level `requires` on cards tied to one branch's attack (roguelite's narrow
+  shape: filter only, no slot, no weighting, no UI).
+- **The build-odds test is the wrong baseline.** Its player never plants or grows: grown-form cards are offered but never
+  taken (Thunderstruck offered 61%, taken 0%), and live-board generics stay out. Fix: a player who plants and grows
+  (Balancing Code, S). Then try the existing `run_pool_share` (0.6) at 0.5 / 0.4: a smaller pool, not a weighted offer.
+- **Preview:** the Coming strip already shows the whole next block and the boss. Missing: a plain health-jump line from
+  `DriftDirector.ordinary_scale` (act 2 start, drift 37, drift 51 x6, guaranteed elites from 31), facts only (Main Merger, S).
+- **Landmarks:** built and switched off by the owner 2026-10-15 ("felt useless", came after the maze was built). Idea: the
+  map's existing feature (pond, ruin, grove, log) is a landmark from drift 1 via `GiftGround.add_mark`; never on or moving
+  the route; no Reaction pool. Needs the owner to lift the ruling.
+- **Callings:** budget says x1.69 on its own condition vs x2.7-3.7 for a full hand; measure with a Calling credit-share
+  column in the run report (Main Merger, S).
+- **Complaints checklist:** selling at a rest refunds 100% only for Dew spent this rest (older 75%; CLAUDE.md's line is
+  stale); a 3 s mid-drift undo for a misclick (full refund if the Warden hasn't attacked) is proposed; boards without Firefly
+  Jars have no early answer to hidden nightmares; the Codex has no "What helps" line (`EnemyData.tips` filled for 12 of 35).
+- **Player extras:** reward bundles (a card with Dew or Dreamlight attached; roguelite says skip), an earned reroll (e.g. a
+  perfect block), a shareable end-of-run build card.
+- Skipped, all three agree: terrain tiles, limited tower counts, battlefronts (maybe a later Blight level or Forest).

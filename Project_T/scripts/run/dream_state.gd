@@ -11,6 +11,10 @@ var role_cards = ROLE_CARDS.new(self)
 # Card pass 2026-10-16 (slice 4 B): the Reaction scalers, form payoffs and Reaction reworks; also counts Reactions (saved).
 const REACTION_CARDS := preload("res://scripts/run/dream_reaction_cards.gd")
 var reaction_cards = REACTION_CARDS.new(self)
+# Wardens keep up without Reactions (owner 2026-10-22, dream_council_review.md 30): the hit cards at Tower._hit's `dealt`
+# stage (Finishing Blow to The Tallest Tree; saved).
+const HIT_CARDS := preload("res://scripts/run/dream_hit_cards.gd")
+var hit_cards = HIT_CARDS.new(self)
 # Visual feedback spec (owner 2026-10-18): the card -> cue table, and the boost tier / badge pop data (cue_for, boost_tier).
 const CARD_CUES := preload("res://scripts/run/card_cues.gd")
 const VISUALS := preload("res://scripts/run/dream_visuals.gd")
@@ -186,7 +190,7 @@ const STRAIGHT_TILES := 5
 const STRAIGHTAWAY := [[0.30, 0.5], [0.50, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 1.00
 # Half-dreamed Commons (189–191, stack to 3)
-const DAMP_ROT_PER := 1.00  # Poisoned (Spored) ticks on Soaked nightmares (one copy: balance_simulation.md e32b882d)
+const DAMP_ROT_PER := 0.50  # Poisoned (Spored) ticks on Soaked nightmares: +50% (owner 2026-10-22, was x2; on a Reaction it is a pool part, SOAKED_ROT_REACTION)
 const SPARKING_SPORES_PER := 1.00  # Ignite detonations (one copy)
 const RAIN_ON_GLASS_PER := 0.70  # Light Wardens vs Soaked (one copy)
 # Seed cards (dream_design.md "Seed cards", 169–176)
@@ -226,7 +230,9 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": "",
 	# Fewer, bigger cards (dream_design.md de439ea8): cut or folded
 	"family_ties": "", "broad_splash": "far_reach", "acorn_cache": "warm_hearth"}
-const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: three Dreamlight every 25 drifts; was four, plus one a rest from drift 51)
+const SECOND_PICK_DREAMLIGHT := 1  # The second family pick, after drift 10 (user 2026-10-22: 1 Dreamlight on drift 10)
+const ACT1_BOSS_DREAMLIGHT := 2  # Act 1's boss rest (drift 25): the same as every boss now (kept for callers)
+const BOSS_DREAMLIGHT := 2  # Every boss rest (user 2026-10-22: +2 Dreamlight every boss, +1 every pick; was 3)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -289,7 +295,13 @@ var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 
 	set(value):
 		final_cost_multiplier = value
 		TowerData.grow_cost_multipliers[3] = value
-@export var ascended_cost_multiplier: float = 1.0:
+# Hit finals (TowerData.is_hit_form) 540 Dew, Ascended 600 (owner 2026-10-22, dream_council_review.md 30: they hit
+# harder, Tower.HIT_FORM_MULTIPLIER); support / status finals keep final_cost_multiplier (450).
+@export var hit_final_cost_multiplier: float = 1.8:  # Balancing 2026-10-22: 540 Dew (council said 2.1 = 630; x1.4 damage at x1.4 the price gave no more damage per Dew)
+	set(value):
+		hit_final_cost_multiplier = value
+		TowerData.grow_cost_multipliers[TowerData.HIT_FINAL] = value
+@export var ascended_cost_multiplier: float = 1.0:  # Balancing 2026-10-22: 600 Dew, unchanged (council said 1.25 = 750)
 	set(value):
 		ascended_cost_multiplier = value
 		TowerData.grow_cost_multipliers[4] = value
@@ -377,7 +389,7 @@ const SETUP := preload("res://scripts/run/setup_credit.gd")  # Setup credit 2026
 # Cards are sized by value, not text: what a card adds to a board running its build (the run report's card_damage). Two
 # systems here; the numbers are Balancing's.
 const CARD_PRODUCT_CAP := 4.0  # The x4 line: all non-Reaction card power on one hit (and a Reaction's build multiplier)
-const CARD_CAP_ON := false  # The caps are OFF but measuring (owner + Balancing 2026-10-16): hits past the line are recorded (past_cap); true = cap again
+const CARD_CAP_ON := true  # ON (owner 2026-10-22, dream_council_review.md 30, with the hit cards); was off but measuring since 2026-10-16 (past_cap still records)
 const CARD_BUDGET: Array[float] = [0.12, 0.20, 0.35, 0.60]  # Common / Uncommon / Rare / Legendary: what one card adds (a second stack adds again)
 const _CAP_KIT := preload("res://scripts/combat/class_kit.gd")  # (its REACTION_BURSTS: what counts as a Reaction)
 const _STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &"soaked", &"drowsy": &"drowsy",
@@ -386,7 +398,7 @@ const _STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &
 # The factor Enemy.take_damage applies so this hit's non-Reaction card power (the Warden's Dream rows x every per-hit
 # card multiplier noted to DamageLog) never passes CARD_PRODUCT_CAP. 1.0 under the cap and for Reaction damage.
 func card_cap_factor(source: Node, tag: StringName) -> float:
-	if tag in _CAP_KIT.REACTION_BURSTS:
+	if reaction_pool_tag(tag):  # (Reactions: their own pool, REACTION_POOL_CAP)
 		return 1.0
 	var rows: float = source._dream_bonus(&"soothe") if source is Tower and is_instance_valid(source) else 1.0
 	var total: float = rows * DamageLog.pending_card_product()
@@ -426,50 +438,196 @@ func past_cap_top(count: int = 5) -> Array[String]:
 		out.append("Drift %d: %s x%.1f, %d hits" % [row[0], row[1], row[2], row[3]])
 	return out
 
-# Reactions are the road to overpowered: a Reaction's damage x the product of what the held cards that feed it add (its
-# feeders: cards whose Makes chips name one of `statuses`, or Stacks / Linger), each at its rarity's CARD_BUDGET, held
-# twice = twice the add; at most CARD_PRODUCT_CAP. Tower Code multiplies Reaction damage by it (reactions.gd). The last
-# value per Reaction is kept for the callout and the rest report (reaction_build_text, reaction_build_lines).
-var _reaction_build_cache := {}  # [rules_stamp, statuses key] -> multiplier
-var reaction_build_last := {}  # Reaction id -> its last multiplier (the rest report)
+# --- One Reaction pool (owner 2026-10-22; dream_council_review.md 29, council reactions_td.md 2) ------------------------
+# Every Dream card bonus to a Reaction's damage ADDS into one pool: 1 + min(sum of (m - 1), REACTION_POOL_CAP). Its parts:
+# the build feeders (held cards whose Makes chips name one of the Reaction's statuses, each its rarity's CARD_BUDGET x its
+# stacks), the Reaction cards (Ember Count, Grand Design, The Long Walk, Crown of Leaves), Seeping, Soaked Rot, and every
+# per-hit card multiplier (batch cards, Gauntlet, Passing Thread, Old Rain, the class nodes, Slow Burn, Shared Light),
+# read once here for the Reaction (batch_damage_multiplier skips them on Reaction damage). Stack and linger cards are no
+# feeders any more: they only change how fast statuses build. Mixed Company has no build role (NO_BUILD_ROLE).
+# True multipliers left OUTSIDE the pool (named for Balancing): REACTION_TRUE_CROWNED (a Crowned Reaction's own card),
+# Reactions.NIGHTSHADE_MULTIPLIER (the Legendary), Brimming's EnemyStatuses.charged_payoff_multiplier(), and the
+# QUICK_REACTIONS_DAMAGE trade (a cut). Echo Hollow echoes, Carried Storm and Dawnbreak are not Reactions: no pool.
+# Reactions read the pool through get_reaction_damage_multiplier / get_reaction_card_multiplier (unchanged call sites;
+# reaction_build_multiplier is 1.0 now). The callout and rest report read reaction_build_text / reaction_build_lines.
+const REACTION_POOL_CAP := 3.0  # +300% (x4) at most from every card together, Reactions only
+const REACTION_TRUE_CROWNED := &"crowned"  # dream_reaction_cards.crowned_multiplier (Reactions.CROWNED_CARD_BONUS)
+const SOAKED_ROT_REACTION := 0.50  # Soaked Rot's part: +50% on a Reaction made with Poisoned, on a Soaked nightmare (was x2)
+const NO_BUILD_ROLE: Array[StringName] = [&"mixed_company"]  # Cards that never feed the build part (owner 2026-10-22)
+const NO_POOL_IDS: Array[StringName] = [&"echo", &"carried_storm", &"dawnbreak"]
 
-func reaction_build_multiplier(reaction_id: StringName, statuses: Array) -> float:
-	var words: Array[StringName] = [&"stacks", &"linger"]
+var _feeder_cache := {}  # "stamp:statuses" -> [[card id, add], ...]
+var reaction_pool_last := {}  # Reaction id -> [pool, sum before the cap, parts] (the callout, the rest report)
+
+# Is damage tagged `tag` a Reaction's (its pool was paid in Reactions._rx)?
+func reaction_pool_tag(tag: StringName) -> bool:
+	return tag in _CAP_KIT.REACTION_BURSTS or Reactions.REACTION_STATUSES.has(tag)
+
+# The pool for Reaction `id` on `enemy`, set off by `tower` (null: unknown). 1.0 with no card.
+# Read once per frame for each Reaction and nightmare: Reactions reads it for the callout (before the damage) and again for
+# the damage; the second read returns the same pool without crediting the cards twice (Wording Council round 2, veteran).
+var _pool_frame := -1
+var _pool_cache := {}  # "id:enemy id" -> pool, this frame
+
+func reaction_pool(enemy: Node2D, id: StringName, tower: Node = null) -> float:
+	if id in NO_POOL_IDS:
+		return 1.0
+	var frame := Engine.get_process_frames()
+	if frame != _pool_frame:
+		_pool_frame = frame
+		_pool_cache.clear()
+	var key := "%s:%d" % [id, enemy.get_instance_id() if enemy != null and is_instance_valid(enemy) else 0]
+	if _pool_cache.has(key):
+		return float(_pool_cache[key])
+	var parts := reaction_pool_parts(enemy, id, tower)
+	var total := 0.0
+	for part in parts:
+		total += float(part[1])
+	var pool := maxf(1.0 + minf(total, REACTION_POOL_CAP), 0.0)
+	if total > 0.0:  # Credit: each card's share of what the pool really added
+		var scale := (pool - 1.0) / total
+		var by_rule := _credit_rule_map()
+		for part in parts:
+			if float(part[1]) > 0.0 and String(part[0]) != "":
+				DamageLog.note_card_bonus(String(by_rule.get(StringName(part[0]), String(part[0]))), 1.0 + float(part[1]) * scale)
+	if total > REACTION_POOL_CAP:
+		var data := Reactions.get_data(id)
+		_note_past_cap(data.display_name if data != null else String(id).capitalize(), 1.0 + total)
+	if not parts.is_empty():
+		reaction_pool_last[id] = [pool, total, _pool_cards(parts)]
+	note_reaction_factors(id, {"pool": pool, "pool_sum": total})
+	_pool_cache[key] = pool
+	return pool
+
+# How many cards the pool's parts come from: each named card once, each unnamed per-hit card part once; nothing that adds 0.
+static func _pool_cards(parts: Array) -> int:
+	var named := {}
+	var unnamed := 0
+	for part in parts:
+		if float(part[1]) <= 0.0:
+			continue
+		if String(part[0]) == "":
+			unnamed += 1
+		else:
+			named[String(part[0])] = true
+	return named.size() + unnamed
+
+# The pool's parts: [rule or card id (&"" = unnamed), what it adds]. Only parts that add (or take) something.
+func reaction_pool_parts(enemy: Node2D, id: StringName, tower: Node = null) -> Array:
+	var parts := []
+	var statuses: Array = Reactions.REACTION_STATUSES.get(id, [])
+	parts.append_array(_feeders(statuses))
+	if reaction_cards.reaction_live():
+		parts.append_array(reaction_cards.reaction_parts(enemy, id, tower))
+	if role_cards.reaction_live():
+		var role: float = role_cards.reaction_multiplier(enemy, id, tower)
+		if role != 1.0:
+			parts.append([&"", role - 1.0])
+	if enemy != null and is_instance_valid(enemy):
+		var seeping := get_effect_bonus(enemy)
+		if seeping != 0.0:
+			parts.append([&"seeping", seeping])
+		var rot := rule_stacks(&"damp_rot")
+		if rot > 0 and statuses.has(EnemyStatuses.SPORED) and enemy.statuses.has(EnemyStatuses.DAMP):
+			parts.append([&"damp_rot", SOAKED_ROT_REACTION * rot])
+		for factor in _batch_factors(enemy, tower, id):
+			if float(factor) != 1.0:
+				parts.append([&"", float(factor) - 1.0])
+	return parts
+
+# The build feeders for a Reaction made of `statuses`: [card id, CARD_BUDGET x stacks] per held card whose Makes chips
+# name one of them (not Stacks or Linger, not NO_BUILD_ROLE). Cached per rules_stamp.
+func _feeders(statuses: Array) -> Array:
+	var words: Array[StringName] = []
 	for id in statuses:
 		if _STATUS_WORD.has(StringName(id)):
 			words.append(_STATUS_WORD[StringName(id)])
+	if words.is_empty():
+		return []
 	var key := "%d:%s" % [rules_stamp, ",".join(words)]
-	if not _reaction_build_cache.has(key):
-		if _reaction_build_cache.size() > 64:
-			_reaction_build_cache.clear()
-		var product := 1.0
+	if not _feeder_cache.has(key):
+		if _feeder_cache.size() > 64:
+			_feeder_cache.clear()
+		var found := []
 		for card in _taken_cards():
+			if StringName(card.id) in NO_BUILD_ROLE:
+				continue
 			if card.makes.any(func(w: StringName) -> bool: return words.has(w)):
-				product *= 1.0 + CARD_BUDGET[clampi(card.rarity, 0, CARD_BUDGET.size() - 1)] * maxi(card_stacks(card.id), 1)
-		_reaction_build_cache[key] = minf(product, CARD_PRODUCT_CAP) if CARD_CAP_ON else product
-	var m: float = _reaction_build_cache[key]
-	if m > CARD_PRODUCT_CAP:
-		var data := Reactions.get_data(reaction_id)
-		_note_past_cap(data.display_name if data != null else String(reaction_id).capitalize(), m)
-	if m > 1.0:
-		reaction_build_last[reaction_id] = m
-	return m
+				found.append([StringName(card.id), CARD_BUDGET[clampi(card.rarity, 0, CARD_BUDGET.size() - 1)] * maxi(card_stacks(card.id), 1)])
+		_feeder_cache[key] = found
+	return _feeder_cache[key]
 
-# The callout's line: "Ignite x2.1 from your build" ("" at x1.0).
+# Kept for Reactions._build (the old product): the feeders are in the pool now, so 1.0.
+func reaction_build_multiplier(_reaction_id: StringName, _statuses: Array) -> float:
+	return 1.0
+
+# The callout's line: "Ignite +180% from 4 cards" ("" with no card); "(capped)" past REACTION_POOL_CAP.
 func reaction_build_text(reaction_id: StringName) -> String:
-	var m: float = float(reaction_build_last.get(reaction_id, 1.0))
-	if m <= 1.0:
+	var row: Array = reaction_pool_last.get(reaction_id, [])
+	if row.is_empty() or float(row[0]) <= 1.0:
 		return ""
-	return "%s x%.1f from your build" % [Reactions.get_data(reaction_id).display_name if Reactions.get_data(reaction_id) != null else String(reaction_id).capitalize(), m]
+	var data := Reactions.get_data(reaction_id)
+	var label := data.display_name if data != null else String(reaction_id).capitalize()
+	var cards := int(row[2])
+	return "%s +%d%% from %d card%s%s" % [label, roundi((float(row[0]) - 1.0) * 100.0), cards, "" if cards == 1 else "s",
+		" (capped)" if float(row[1]) > REACTION_POOL_CAP else ""]
 
-# Rest-report lines: each Reaction your build boosts, strongest first ("Ignite x2.1 from your build").
+# Rest-report lines: each Reaction your cards boost, strongest first ("Ignite +180% from 4 cards").
 func reaction_build_lines() -> Array[String]:
-	var ids: Array = reaction_build_last.keys()
-	ids.sort_custom(func(a, b) -> bool: return float(reaction_build_last[a]) > float(reaction_build_last[b]))
+	var ids: Array = reaction_pool_last.keys()
+	ids.sort_custom(_stronger_pool)
 	var out: Array[String] = []
 	for id in ids:
-		out.append(reaction_build_text(id))
+		var line := reaction_build_text(id)
+		if line != "":
+			out.append(line)
 	return out
+
+func _stronger_pool(a, b) -> bool:
+	return float(reaction_pool_last[a][0]) > float(reaction_pool_last[b][0])
+
+# --- Reaction damage by factor (owner 2026-10-22, item 4: the run report, for Balancing) ---------------------------------
+# Per Reaction id: how many pool reads and the sum of each factor, so the report shows averages. This side notes the pool
+# (after and before the cap: "pool", "pool_sum"), "quick" and "crowned". Reactions._rx can add its own (bare Warden damage,
+# rank, Brimming, half set-off, Nightshade…) with note_reaction_factors(id, {name: value}) right after the pool read; any
+# key shows up in the report. "n" counts pool reads (one per Reaction hit).
+var reaction_factors := {}  # id -> {"n": count, factor: sum}
+
+func note_reaction_factors(id: StringName, factors: Dictionary) -> void:
+	var row: Dictionary = reaction_factors.get(id, {"n": 0})
+	if factors.has("pool"):
+		row["n"] = int(row["n"]) + 1
+	for key in factors:
+		row[key] = float(row.get(key, 0.0)) + float(factors[key])
+	reaction_factors[id] = row
+
+# {id: {"n": count, factor: average}}, for RunHistory.
+func reaction_breakdown() -> Dictionary:
+	var out := {}
+	for id in reaction_factors:
+		var row: Dictionary = reaction_factors[id]
+		var n := maxi(int(row.get("n", 0)), 1)
+		var avg := {"n": int(row.get("n", 0))}
+		for key in row:
+			if key != "n":
+				avg[key] = snappedf(float(row[key]) / n, 0.001)
+		out[String(id)] = avg
+	return out
+
+# "thunderclap x412: pool 2.8, pool_sum 3.6, quick 1.0, …", most frequent first.
+func reaction_breakdown_lines() -> Array[String]:
+	var data := reaction_breakdown()
+	var ids: Array = data.keys()
+	ids.sort_custom(func(a, b) -> bool: return int(data[a]["n"]) > int(data[b]["n"]))
+	var out: Array[String] = []
+	for id in ids:
+		var bits: Array[String] = []
+		for key in data[id]:
+			if key != "n":
+				bits.append("%s %s" % [key, str(data[id][key])])
+		out.append("%s x%d: %s" % [id, int(data[id]["n"]), ", ".join(bits)])
+	return out
+
 signal calling_grew(id: StringName)
 var calling_path: Array[StringName] = []
 var offering_calling := false
@@ -739,7 +897,8 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	Tower._frost_drift = -1  # First Frost's count is static: a new run never inherits the last run's drift
 	# The price statics outlive a run (a sim or test may have changed them): each run starts from its own exports.
-	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier}
+	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier,
+		TowerData.HIT_FINAL: hit_final_cost_multiplier}
 	Tower.rank_costs = rank_costs.duplicate()
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
@@ -772,12 +931,15 @@ func _ready() -> void:
 		world.add_child.call_deferred(firefly_lights)
 	_make_class_nodes(world)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
+	drift_director.rest_ended.connect(func(_block: int) -> void: reaction_pool_last.clear())  # The rest report showed it; a new block starts fresh
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
 			_first_pick_open = true  # Wider Roots: this pick's family offers one more branch
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # One branch early (run_design.md "Dreamlight")
+			add_dreamlight(first_pick_dreamlight, &"first_pick")  # One branch early (run_design.md "Dreamlight")
+		elif reason == &"second":
+			add_dreamlight(SECOND_PICK_DREAMLIGHT, &"first_pick"))  # The second family's pick after drift 10 (user 2026-10-22)
 	map_generator.path_changed.connect(_update_bends)
 	var damage_log := get_node_or_null("%DamageLog")
 	if damage_log != null and damage_log.has_signal("damage_dealt"):
@@ -1036,6 +1198,31 @@ var called_families := {}  # Base id -> the branch id called back with Dreamligh
 var free_calls := 0  # Remembered Path: calls back without Dreamlight or the once-per-family limit
 var _last_branch_offer_written := {}  # What this run wrote to the profile (tests read it)
 
+# --- The drift 60 pick deepens a family (owner 2026-10-22, dream_council_review.md 31) -----------------------------------
+# DriftDirector.family_pick_kind(60) is &"deepen": FamilyPickScreen shows one card per family the run owns that still has
+# a branch "not in this dream". Taking one (deepen) gives DEEPEN_DREAMLIGHT and opens one call-back for that family at the
+# branch price (BRANCH_DREAMLIGHT), outside the once-per-family rule (called_families); calling a branch back spends it
+# and never opens its final. Not calling keeps it (saved as "deepen_family"). The drift 75 rest gives
+# DEEPEN_FINAL_DREAMLIGHT more, so the new branch's final is reachable.
+const DEEPEN_DREAMLIGHT := 1
+const DEEPEN_FINAL_DREAMLIGHT := 2
+const DEEPEN_FINAL_DRIFT := 75
+var deepen_family := ""  # Base id with an open deepen call ("" = none or spent)
+
+func is_deepen_open(base: TowerData) -> bool:
+	return base != null and deepen_family != "" and base.get_id() == deepen_family
+
+# The deepen pick took `base`: the Dreamlight, the open call, and the Remember page on that family (the rest's Dream waits
+# for it, as at a boss rest). `open_now` false: the screen opens it later (after the Sapling's card).
+func deepen(base: TowerData, open_now: bool = true) -> void:
+	if base == null:
+		return
+	deepen_family = base.get_id()
+	add_dreamlight(DEEPEN_DREAMLIGHT, &"deepen")
+	_remember_open = true
+	if open_now:
+		open_remember(base)
+
 static func branch_expansion_on() -> bool:
 	return true  # The demo plays by the current rules too (demo_scope.md "Decisions 2026-10-06", e5ce233d): the old branch set retired
 
@@ -1181,6 +1368,8 @@ func branch_offer_size(base: TowerData) -> int:
 	return BRANCH_OFFER_SIZE
 
 func call_back_cost(base: TowerData) -> int:
+	if is_deepen_open(base):
+		return BRANCH_DREAMLIGHT  # The deepen pick's call: the branch price (dream_council_review.md 31)
 	return WIDER_ROOTS_CALL_BACK if wider_roots and base != null and base.get_id() == wider_roots_family else CALL_BACK_DREAMLIGHT
 
 func _compute_branch_offer(base: TowerData) -> Array:
@@ -1318,6 +1507,8 @@ func call_back_problem(form: TowerData) -> String:
 	var base := _parent_in_tree(form)
 	if free_calls > 0:
 		return ""
+	if is_deepen_open(base):
+		return "" if dreamlight >= call_back_cost(base) else "Not enough Dreamlight"  # Outside the once-per-family rule
 	if base != null and called_families.has(base.get_id()):
 		return "already called one back for %s" % base.display_name
 	if dreamlight < call_back_cost(base):
@@ -1332,6 +1523,9 @@ func call_back(form: TowerData) -> bool:
 	var free := free_calls > 0
 	if free:
 		free_calls -= 1
+	elif is_deepen_open(base):
+		add_dreamlight(-call_back_cost(base))
+		deepen_family = ""  # The deepen call is spent (its final is not opened)
 	else:
 		add_dreamlight(-call_back_cost(base))
 		called_families[base.get_id()] = form.get_id()
@@ -2042,6 +2236,25 @@ func get_effect_bonus(enemy: Node2D) -> float:
 	DamageLog.note_card_bonus("seeping", 1.0 + bonus)  # Card credit (Main Merger df7010bb)
 	return bonus
 
+# Nightshade's condition (owner 2026-10-22, dream_council_review.md 29; was "4 or more statuses"): the nightmare carries
+# NIGHTSHADE_MIN_STATUSES statuses put on by Wardens of NIGHTSHADE_MIN_FAMILIES different families (each status's
+# applier, EnemyStatuses.source). Reactions.nightshade_bonus asks.
+const NIGHTSHADE_MIN_STATUSES := 3
+const NIGHTSHADE_MIN_FAMILIES := 3
+
+func nightshade_met(enemy: Node2D) -> bool:
+	if enemy == null or not is_instance_valid(enemy) or not ("statuses" in enemy):
+		return false
+	var ids: Array = enemy.statuses.active_ids()
+	if ids.size() < NIGHTSHADE_MIN_STATUSES:
+		return false
+	var families := {}
+	for id in ids:
+		var who: Node = enemy.statuses.source(id)
+		if who is Tower and who.tower_data != null and who.tower_data.line != "":
+			families[who.tower_data.line] = true
+	return families.size() >= NIGHTSHADE_MIN_FAMILIES
+
 # Venom Bloom (bittersweet): every hit (not effects) deals this much of its damage.
 func get_hit_damage_multiplier() -> float:
 	var multiplier := 1.0 - VENOM_HIT_PENALTY if has_rule(&"venom_bloom") else 1.0
@@ -2116,6 +2329,7 @@ func _rule_map() -> Dictionary:
 		for extra in card.extra_rules:
 			rules[extra] = int(rules.get(extra, 0)) + stacks[card.id]
 	_rules_of = [taken, rules]
+	undiluted_on = rules.has(UNDILUTED)  # Reactions / EnemyStatuses read the static (no tree lookup per status)
 	_any_hit_rule = HIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
 	_any_crit_rule = CRIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
 	return rules
@@ -2222,6 +2436,19 @@ func shell_multiplier(enemy: Node2D, source: Node) -> float:
 	return puddles.shell_multiplier(enemy, source)
 
 func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> float:
+	if reaction_pool_tag(tag):
+		return 1.0  # A Reaction's card multipliers are parts of its pool, paid in Reactions._rx (reaction_pool; owner 2026-10-22)
+	if tag in HIT_CARDS.DAMAGE_ONLY_TAGS:
+		return 1.0  # Run Through, Measured Blow, the Tallest Tree: damage only, no on-hit cards (owner 2026-10-22)
+	var multiplier := 1.0
+	for factor in _batch_factors(enemy, source, tag):
+		multiplier *= factor
+	return multiplier
+
+# Every per-hit card multiplier on this hit, one entry each (batch_damage_multiplier multiplies them; a Reaction's pool
+# adds them up). Empty with none taken.
+func _batch_factors(enemy: Node2D, source: Node, tag: StringName) -> Array[float]:
+	var out: Array[float] = []
 	var frame := Engine.get_process_frames()
 	if frame != _hook_frame:
 		_hook_frame = frame
@@ -2233,28 +2460,29 @@ func batch_damage_multiplier(enemy: Node2D, source: Node, tag: StringName) -> fl
 		_hook_spore = spore_print != null and spore_print.is_inside_tree() and spore_print.wants_damage_hook()
 		_hook_shared = has_rule(&"shared_light")
 	if not _hook_batch and not _hook_water and not _hook_bells and not _hook_linger and not _hook_light and not _hook_spore and not _hook_shared:
-		return 1.0
-	var multiplier: float = batch.damage_multiplier(self, enemy, source, tag) if _hook_batch else 1.0
-	if _hook_batch and multiplier != 1.0 and source is Tower and is_instance_valid(source):
-		multiplier = source.plain_hit_factor(multiplier)  # Plain per-hit cards: clamped with the Warden's plain rows (card pass 1c)
+		return out
 	if _hook_batch:
-		multiplier *= batch.synergy_multiplier(self, enemy, source)  # Card pass 2026-10-16: Gauntlet, Passing Thread multiply (outside the clamp)
+		var plain: float = batch.damage_multiplier(self, enemy, source, tag)
+		if plain != 1.0 and source is Tower and is_instance_valid(source):
+			plain = source.plain_hit_factor(plain)  # Plain per-hit cards: clamped with the Warden's plain rows (card pass 1c)
+		out.append(plain)
+		out.append(batch.synergy_multiplier(self, enemy, source))  # Card pass 2026-10-16: Gauntlet, Passing Thread (outside the clamp)
 	if _hook_water:
-		multiplier *= puddles.damage_multiplier(enemy, source, tag)
+		out.append(puddles.damage_multiplier(enemy, source, tag))
 	if _hook_bells:
-		multiplier *= keeping_time.damage_multiplier(enemy, source, tag)
+		out.append(keeping_time.damage_multiplier(enemy, source, tag))
 	if _hook_linger:
-		multiplier *= slow_burn_multiplier(enemy, tag)
+		out.append(slow_burn_multiplier(enemy, tag))
 	if _hook_light:
-		multiplier *= firefly_lights.damage_multiplier(enemy, source, tag)
+		out.append(firefly_lights.damage_multiplier(enemy, source, tag))
 	if _hook_spore:
-		multiplier *= spore_print.damage_multiplier(enemy, source, tag)
+		out.append(spore_print.damage_multiplier(enemy, source, tag))
 	if _hook_shared and tag == &"":
 		var shared: float = GroveRules.shared_light_multiplier(source)
 		if shared > 1.0:
-			multiplier *= shared
 			DamageLog.note_card_bonus("shared_light", shared)
-	return multiplier
+			out.append(shared)
+	return out
 
 # --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
 # Linger = EnemyStatuses.is_lingering only. Slow Burn (the Linger payoff): Poisoned ticks and Charged bolts of a status a
@@ -2794,7 +3022,10 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_rest_rules(_perfect)
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
-		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
+		var act1 := drift_director != null and drift_director.drifts_started <= drift_director.drifts_per_act
+		add_dreamlight(ACT1_BOSS_DREAMLIGHT if act1 else BOSS_DREAMLIGHT, &"boss")  # +2 at every boss rest
+		if drift_director != null and drift_director.drifts_started == DEEPEN_FINAL_DRIFT:
+			add_dreamlight(DEEPEN_FINAL_DREAMLIGHT, &"boss")  # The deepened branch's final is reachable (section 31)
 		_remember_open = true
 		remember_requested.emit(null)
 	var unique_raised: Array = []
@@ -2935,24 +3166,24 @@ static func _left_this_run(n: int) -> String:
 	return "%d left this run" % n
 
 func reroll_label() -> String:
-	return ("Dream again · " + _left_this_run(rerolls_left)) if rerolls_left > 0 else "No rerolls left this run"
+	return ("Reroll · " + _left_this_run(rerolls_left)) if rerolls_left > 0 else "No rerolls left this run"
 
 func reroll_tip() -> String:
 	return "Shows three new cards. Rerolls don't refill: this run has %d left. More come from Second Thoughts (Memory Grove) and the Wandering Mind card." % rerolls_left
 
 func banish_label() -> String:
-	return ("Let go · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No let-gos left this run"
+	return ("Banish · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No banishes left this run"
 
 func banish_tip() -> String:
-	return "This card won't come back this run; another takes its place. Let-gos don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
+	return "This card won't come back this run; another takes its place. Banishes don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
 
-# "Rerolls left: 2 · Let-gos left: 1" (only the ones above 0; "" when none).
+# "Rerolls left: 2 · Banishes left: 1" (only the ones above 0; "" when none).
 func supply_line() -> String:
 	var bits: Array[String] = []
 	if rerolls_left > 0:
 		bits.append("Rerolls left: %d" % rerolls_left)
 	if banishes_left > 0:
-		bits.append("Let-gos left: %d" % banishes_left)
+		bits.append("Banishes left: %d" % banishes_left)
 	return " · ".join(bits)
 
 # Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.
@@ -3210,6 +3441,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # Reads like the Firefly Calling: left out on a Firefly start
 	if is_excluded(card):
 		return false  # An exclusive pair: its partner was taken (Charged Feathers / Pollen Beaks)
+	if undiluted_on and is_reaction_only(card):
+		return false  # Undiluted is held: a card that only pays off through Reactions would do nothing (one-way)
 	if not in_run_pool(card):
 		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
@@ -3798,9 +4031,9 @@ func _line_of(tower_id: String) -> String:
 # Everything a resumed run needs (saved at a rest, so there's no open offer to keep).
 func to_save() -> Dictionary:
 	return {
-		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "reaction_cards": reaction_cards.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
+		"unlocked": unlocked.keys(), "unique_growth": unique_growth.to_save(), "batch": batch.to_save(), "hit_cards": hit_cards.to_save(), "reaction_cards": reaction_cards.to_save(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "deepen_family": deepen_family, "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"canopy_peak": _canopy_peak, "dreamlight": dreamlight,
@@ -3828,6 +4061,7 @@ func to_save() -> Dictionary:
 func load_save(data: Dictionary) -> void:
 	unique_growth.load_save(data.get("unique_growth", {}))
 	batch.load_save(data.get("batch", {}))
+	hit_cards.load_save(data.get("hit_cards", {}))
 	reaction_cards.load_save(data.get("reaction_cards", {}))  # Card pass 2026-10-16: Reactions this run (the Needs)
 	clear_build_role_state()
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
@@ -3874,6 +4108,7 @@ func load_save(data: Dictionary) -> void:
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
 	unlock_discounts = int(data.get("unlock_discounts", 0))
 	called_families = data.get("called_families", {}).duplicate()
+	deepen_family = String(data.get("deepen_family", ""))
 	free_calls = int(data.get("free_calls", 0))
 	var finale: Dictionary = data.get("finale", {})
 	finale_results.clear()
@@ -4016,6 +4251,7 @@ func sunlit_line() -> String:
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
 	batch.hard_won_sold(tower)  # Hard-Won Rings: selling resets its count
+	hit_cards.sold(tower)  # Trophies and the Tallest Tree are kept by cell: selling ends them
 	batch.wild_sold(tower)  # Wild Growth: so does its count
 	if is_eldest(tower):
 		set_eldest(null)  # The title is free again; its ranks above V are lost
@@ -4220,8 +4456,7 @@ func half_dreamed_missing(card: UpgradeData) -> Array[String]:
 			missing.append(family)
 	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
 	var next_pick := next_family_pick_drift()
-	var last_pick := maxi(drift_director.drifts.size(), 4 * drift_director.drifts_per_act) - drift_director.drifts_per_act
-	var picks_left := 0 if next_pick < 0 else 1 + (last_pick - next_pick) / drift_director.drifts_per_act
+	var picks_left := new_family_picks_after(_now_drift()).size()
 	if not owned_any or next_pick < 0 or missing.size() > picks_left or next_pick - _now_drift() > HALF_DREAMED_WITHIN \
 			or missing.any(func(family: String) -> bool: return not pickable.has(family)):
 		missing.clear()
@@ -4234,13 +4469,19 @@ func is_half_dreamed(card: UpgradeData) -> bool:
 func is_dormant(card: UpgradeData) -> bool:
 	return card_stacks(card.id) > 0 and _is_asleep(card)
 
-# The drift whose boss is followed by the next family pick (-1 = none left: never after drift 75's).
+# The drift after which the next new-family pick comes (-1 = none left).
 func next_family_pick_drift() -> int:
-	var per: int = drift_director.drifts_per_act
-	var now := _now_drift()
-	var next := (now / per + 1) * per
-	var last := maxi(drift_director.drifts.size(), 4 * per) - per
-	return next if next <= last else -1
+	var later := new_family_picks_after(_now_drift())
+	return later[0] if not later.is_empty() else -1
+
+# The picks still to come that bring a new family: after drifts 10 and 35 (DriftDirector.family_pick_drifts, owner
+# 2026-10-22; no longer the boss rests). Drift 60's pick deepens a family you have, so it brings none.
+func new_family_picks_after(now: int) -> Array[int]:
+	var out: Array[int] = []
+	for drift in drift_director.family_pick_drifts():
+		if drift > now and drift <= drift_director.drifts.size() and drift_director.family_pick_kind(drift) == &"second":
+			out.append(drift)
+	return out
 
 func _now_drift() -> int:
 	return _offer_drift if is_offering() or _offer_drift > drift_director.drifts_started else drift_director.drifts_started
@@ -4811,13 +5052,18 @@ func owns_range_at_most(reach: float) -> bool:
 			return true
 	return false
 
-# Soaked Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
-func get_spored_tick_multiplier(enemy: Node2D) -> float:
+# Soaked Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it). `reaction`: the tick is
+# a Reaction's (Smother's burst): 1.0, Soaked Rot is a part of its pool there (SOAKED_ROT_REACTION).
+func get_spored_tick_multiplier(enemy: Node2D, reaction: bool = false) -> float:
+	var m := 1.0
+	if undiluted_on and not reaction:
+		m = UNDILUTED_POISONED  # Undiluted: Poisoned ticks x2
+		DamageLog.note_card_bonus(String(UNDILUTED), m)
 	var n := rule_stacks(&"damp_rot")
-	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
-		return 1.0
+	if reaction or n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
+		return m
 	DamageLog.note_card_bonus("damp_rot", 1.0 + DAMP_ROT_PER * n)  # Card credit: the tick that follows (visual feedback spec C2, owner 2026-10-18)
-	return 1.0 + DAMP_ROT_PER * n
+	return m * (1.0 + DAMP_ROT_PER * n)
 
 # Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it), only on a nightmare carrying
 # SPARKING_SPORES_MIN_POISONED+ Poisoned (dream_design.md "Combo cards are choices": a condition). Without `enemy`
@@ -4851,18 +5097,25 @@ func get_reaction_damage_multiplier(enemy: Node2D = null, id: StringName = &"", 
 		_rx_base = QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
 	if id == &"dawnbreak":
 		return _rx_base
+	if _rx_base != 1.0:
+		note_reaction_factors(id, {"quick": _rx_base})
 	return _rx_base * get_reaction_card_multiplier(enemy, id, tower)
 
-# The Reaction cards' part alone. Reactions uses it bare for the bonus parts of Pinned's crit, Shatter's main hit and the
-# Ignite / Tempest burn. Card pass 2026-10-16 (slice 4 A): Homesick (x2 on the Reaction after a pull) and Mother's Hand
-# (+25% for a setter touching a support Warden), in dream_role_cards.gd; both multiply (the synergy lane).
+# The hit cards' multiplier on one direct hit (dream_council_review.md 30; Tower._hit's `dealt` stage, the one shared hook):
+# never a status, a Reaction or a follow-on spill (Tower calls it only on a direct hit that isn't Pinned / Shatter, after
+# the statuses' potency was taken). `combo` = &"" or &"conducted" (a chain's jump). 1.0 until Roguelite Code adds the cards
+# (credit them with DamageLog.note_card_bonus so card_cap_factor counts them).
+func hit_card_multiplier(tower: Node, enemy: Node2D, is_area: bool, _is_crit: bool, combo: StringName) -> float:
+	return hit_cards.hit_multiplier(tower, enemy, is_area, combo) if hit_cards.live() else 1.0  # Roguelite Code: dream_hit_cards.gd
+
+# The cards' part alone: the one Reaction pool (reaction_pool) x a Crowned Reaction's own card (a true multiplier,
+# REACTION_TRUE_CROWNED). Reactions uses it bare for the bonus parts of Pinned's crit, Shatter's main hit and the
+# Ignite / Tempest burn.
 func get_reaction_card_multiplier(enemy: Node2D = null, id: StringName = &"", tower: Node = null) -> float:
-	var m := 1.0
-	if role_cards.reaction_live():
-		m = role_cards.reaction_multiplier(enemy, id, tower)
-	if reaction_cards.reaction_live():
-		m *= reaction_cards.reaction_multiplier(enemy, id, tower)  # Card pass 2026-10-16 (4 B): scalers, Crown of Leaves, Crowned +50%
-	return m
+	var crowned: float = reaction_cards.crowned_multiplier(id) if reaction_cards.reaction_live() else 1.0
+	if crowned != 1.0:
+		note_reaction_factors(id, {"crowned": crowned})
+	return crowned * reaction_pool(enemy, id, tower)
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
@@ -4871,7 +5124,9 @@ func get_reaction_card_multiplier(enemy: Node2D = null, id: StringName = &"", to
 
 # Dreamlight a run earns at `kind`: &"first" (the first family pick) or &"boss" (a boss rest).
 func sim_dreamlight_for(kind: StringName) -> int:
-	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
+	if kind == &"second":
+		return SECOND_PICK_DREAMLIGHT
+	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)  # (The sims' act 1 boss: see _on_rest_started, ACT1_BOSS_DREAMLIGHT)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
 # the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
@@ -4880,7 +5135,9 @@ func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[Upgrade
 	_early_calls = 0
 	_rest_rules(perfect)
 	if drift_director.is_boss_drift(drift):
-		add_dreamlight(sim_dreamlight_for(&"boss"))
+		add_dreamlight(ACT1_BOSS_DREAMLIGHT if drift <= drift_director.drifts_per_act else sim_dreamlight_for(&"boss"))  # As _on_rest_started (+2 at every boss rest since 3d7ed528)
+		if drift == DEEPEN_FINAL_DRIFT:
+			add_dreamlight(DEEPEN_FINAL_DREAMLIGHT, &"boss")  # As _on_rest_started (section 31)
 	var unique_raised: Array = []
 	if has_rule(&"sunlit_rest"):
 		unique_raised = sunlit_rest()
@@ -5283,6 +5540,11 @@ func _on_damage_dealt(event) -> void:
 		note_discovery(EVENT_CRIT_MARKED)
 	if not stacks.is_empty() or not calling_path.is_empty():  # (Evolutions too: setup credit 2026-10-16)
 		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
+	hit_cards.on_damage_event(event)  # Measured Blow, the Tallest Tree, Run Through: right after the hit (dream_hit_cards.gd)
+	# Trophies (owner 2026-10-22): a killing blow from a direct hit counts for its Warden, once per nightmare
+	if event.kind == &"hit" and is_instance_valid(event.enemy) and event.enemy.health <= 0 and event.source is Tower and has_rule(HIT_CARDS.TROPHIES) and event.tag != HIT_CARDS.CARRIED_TAG and not event.enemy.get_meta(&"hc_trophy", false) and not event.enemy.get("is_echo"):
+		event.enemy.set_meta(&"hc_trophy", true)
+		hit_cards.trophy_dispel(event.source, event.enemy)
 	# Hard-Won Rings: the event that takes a nightmare's health to 0 counts for its Warden (exact kills too), once
 	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and has_rule(&"clean_night") and event.source is Tower \
 			and not event.enemy.get_meta(&"batch_won", false) and not event.enemy.get("is_echo"):
@@ -5548,7 +5810,31 @@ func _hurried_harvest(enemy: Node2D) -> void:
 	run_state.earn_dew_at(HURRIED_HARVEST_DEW, enemy.global_position)
 
 # Live Wire: Charged bolts multiplier (Enemy / Reactions bolt code; 1.0 without the card).
+# --- Undiluted (Legendary; owner 2026-10-22, dream_council_review.md 30, council finals_td.md 4) ---------------------
+# "Reactions never go off. Each status's own effect grows instead." DreamState holds the rule and the numbers; Reactions /
+# EnemyStatuses / Enemy read `DreamState.undiluted_on` (a static, set whenever the rule map is rebuilt: no tree lookup per
+# status) at the gates finals_td.md section 4 lists: only Lightning Rod off in strike_bolt (the Charged bolt stays),
+# Charged bolts while Soaked, Smother still stores Poisoned, check_at_half / before_hit's Shatter / on_smother_ended
+# gated, ready_need 0. Poisoned ticks and the Charged bolt x2 here (get_spored_tick_multiplier, get_bolt_multiplier).
+# Offers: one-way. While it is held no card in REACTION_ONLY is offered (a card tagged "reaction_only" counts too); holding
+# such cards never blocks Undiluted (never `excludes`, which is symmetric). Keeping Time's Last Chord has a quiet version.
+const UNDILUTED := &"undiluted"
+const UNDILUTED_POISONED := 2.0  # Poisoned ticks (Balancing may go to 2.5)
+const UNDILUTED_CHARGED := 2.0  # The Charged bolt
+static var undiluted_on := false
+# Cards that only pay off through Reactions (finals_draft.md 5, the retired ones left out): never offered with Undiluted.
+const REACTION_ONLY: Array[String] = ["sparking_spores", "afterglow", "chain_of_lanterns", "deep_water", "mushroom_rain",
+	"rolling_thunder", "rolling_thunder_ii", "spent_light", "wildfire_spores", "witching_bend", "alarm_bells",
+	"deep_stillness", "endless_night", "eye_of_the_tempest", "falling_stars", "fever_pitch", "mountains_fall", "old_rain",
+	"prism_heart", "quick_reactions", "reprise", "ring_of_rings", "stolen_away", "dawnbreak"]
+
+func is_reaction_only(card: UpgradeData) -> bool:
+	return REACTION_ONLY.has(card.id) or card.tags.has("reaction_only")
+
 func get_bolt_multiplier() -> float:
+	if undiluted_on:
+		DamageLog.note_card_bonus(String(UNDILUTED), UNDILUTED_CHARGED)
+		return UNDILUTED_CHARGED
 	return 1.0  # Live Wire is a jump now (Tower Code), not a bigger bolt
 
 # Families you own (Patchwork, Mixed Grove's Need).

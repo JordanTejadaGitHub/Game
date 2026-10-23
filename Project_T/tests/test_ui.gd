@@ -286,7 +286,7 @@ func _run() -> void:
 		var info_node := main.get_node("%NightmareInfo") as Control
 		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 		pinned.set_process(false)
-		info_node._target = pinned
+		info_node.test_pin = pinned
 		for f in 8:
 			await process_frame
 			meter._fit()
@@ -295,8 +295,8 @@ func _run() -> void:
 		var meter_info_rect := meter.get_global_rect()
 		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 		_check(info_node.visible and not meter.collapsed and meter._body.visible and meter._user_open and not meter_info_rect.intersects(panel_info_rect),
-			"with the nightmare info open the meter stays open, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
-		info_node._target = null
+			"with the nightmare info open the meter stays open, clear of the DriftPanel at %s (%s vs %s; info %s, collapsed %s, body %s, open %s)" % [screen, meter_info_rect, panel_info_rect, info_node.visible, meter.collapsed, meter._body.visible, meter._user_open])
+		info_node.test_pin = null
 		pinned.queue_free()
 		for f in 3:
 			await process_frame
@@ -571,7 +571,7 @@ func _run() -> void:
 	spore_card.tags.assign(["spore", "maze"])
 	_check(UiStyle.dream_glyph(spore_card) not in [&"", &"generic"], "a Spore card has its own glyph (%s)" % UiStyle.dream_glyph(spore_card))
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
-	_check(IconInfo.status_name(&"damp") == "Soak" and IconInfo.status_name(&"static") == "Charge" and IconInfo.status_name(&"drowsy") == "Sleep"
+	_check(IconInfo.status_name(&"damp") == "Soak" and IconInfo.status_name(&"static") == "Charge" and IconInfo.status_name(&"drowsy") == "Drowsy"
 		and IconInfo.status_name(&"held") == "Root" and IconInfo.format("{spored} + {marked}") == "Poison + Exposure",
 		"the new status names")
 	# Every status word is a link: underlined, with a popup (icon, definition, More in the Codex).
@@ -709,13 +709,14 @@ func _run() -> void:
 	var info = main.get_node("%NightmareInfo")
 	var shade: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	shade.set_process(false)
-	info._target = shade
+	info.test_pin = shade
 	info._known.clear()  # As if never met before
 	await process_frame
 	_check(info.visible and info._title.text.begins_with(shade.enemy_data.display_name), "hover panel shows the nightmare")
 	_check(info._title.text.contains("New"), "a never-met nightmare gets the New tag")
 	_check(info._body.text.contains(shade.enemy_data.trait_text) and info._numbers.text.contains("Health"),
 		"hover panel shows the trait and health")
+	info.test_pin = null
 
 	# --- Leak feedback ---
 	var leak = main.get_node("LeakEffect")
@@ -918,7 +919,7 @@ func _run() -> void:
 	for e in [watched, other]:
 		e.set_process(false)
 	watched.apply_status(&"damp", 1, 30.0)
-	hov_info._target = watched
+	hov_info.test_pin = watched
 	for i in 3:
 		await process_frame
 	var hov_popup: StatusLinks = hov_info._body.get_children().filter(func(c: Node) -> bool: return c is StatusLinks).front()
@@ -956,15 +957,15 @@ func _run() -> void:
 	var sapling_placer = main.get_node("%TowerPlacer")
 	if sapling_placer.has_method("can_take_sapling"):
 		var started_before := director.drifts_started
-		director.drifts_started = 50
+		director.drifts_started = family.SAPLING_DRIFT  # 60 since the picks moved (2026-10-22)
 		director.awaiting_family_pick = true
 		var offered := []
 		family.sapling_offered.connect(func() -> void: offered.append(true))
-		family.show_pick(&"boss")
+		family.show_pick(&"second")
 		if not family.offer.is_empty():
 			family.choose(family.offer[0])
 		_check(family.visible and family._title.text == "The Heartwood offers a seedling of itself",
-			"the Sapling's card follows the drift 50 family pick")
+			"the Sapling's card follows the drift 60 family pick")
 		_check(offered.size() == 1, "sapling_offered fires once (for its sound)")
 		var not_now: Button = family._cards.get_child(0).get_child(-1).get_child(1)
 		not_now.pressed.emit()
@@ -1049,8 +1050,8 @@ func _run() -> void:
 	_check(WorldLabel.covers.has(&"pause_menu"), "no world tags over the pause menu (a whole-screen cover)")
 	# One way out (user: "Save and quit and Quit game seem similar, also Abandon run"): Quit… opens the dialog.
 	var menu_texts: Array = pause._menu.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text)
-	_check(menu_texts.has("Quit…") and not menu_texts.has("Save and quit") and not menu_texts.has("Quit game") and not menu_texts.has("Abandon run"),
-		"the menu has Quit…, not three ways out (%s)" % [menu_texts])
+	_check(menu_texts.has("Save & quit…") and not menu_texts.has("Quit…") and not menu_texts.has("Quit game") and not menu_texts.has("Abandon run"),
+		"the menu has Save & quit…, one way out (%s)" % [menu_texts])  # Renamed from "Quit…" (user 2026-10-22)
 	pause.ask_quit()
 	var quit_box: Control = pause.find_child("QuitBox", true, false)
 	_check(pause.is_asking_quit() and quit_box.find_child("QuitToTitle", true, false) != null and quit_box.find_child("QuitToDesktop", true, false) != null,

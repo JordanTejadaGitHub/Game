@@ -176,6 +176,32 @@ const WOVEN_RULE := {&"tempest": &"eye_of_the_tempest", &"still_pool": &"deep_st
 	&"fairy_circle": &"ring_of_rings", &"changeling": &"stolen_away", &"wide_awake": &"alarm_bells"}
 const WOVEN_COOLDOWN := 2.0
 
+# Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29, reactions_td.md 4): the Warden whose own
+# application completed the pair. Its damage = the author's bare damage (Tower.get_bare_damage: no Dream rows) x
+# AUTHOR_TIER by its tier x the Reaction pool x the true multipliers; the credit is split AUTHOR_SHARE to it, the rest to
+# the strongest applier of the other status (rx_credit, read by DamageLog while the Reaction deals its damage).
+const AUTHOR_TIER: Array[float] = [1.0, 1.0, 1.0, 1.25, 1.5]  # By tier: Sprout, base, branch, final, Ascended
+const AUTHOR_SHARE := 0.5
+static var rx_credit: Array = []  # [[author, share], [partner, share]] while a Reaction deals damage
+static var _landing_id := &""  # The status whose landing is being checked (on_status), and who applied it
+static var _landing_source: Node = null
+
+# Late crown (owner 2026-10-22, dream_council_review.md 29, reactions_td.md 1): after a base Reaction fires, a window of
+# CROWN_WINDOW s on that nightmare (EnemyStatuses.crown_window). If the Crowned one's third status lands from a Warden's
+# own application within it, only the Crowned extra fires (no damage top-up), on the base's cooldown key (stretched to the
+# Crowned cooldown x WOVEN_COOLDOWN with the Woven card), +1 chain link. Once per nightmare (a boss once per
+# CROWN_BOSS_HEALTH_STEP of its health); each Crowned kind at most once every CROWN_FIELD_COOLDOWN s on the field.
+# Statuses a Reaction's own effects add (arcs, burns, scree, fear, rings) never crown (_in_reaction).
+const CROWN_WINDOW := 1.0
+const CROWN_FIELD_COOLDOWN := 6.0
+const CROWN_BOSS_HEALTH_STEP := 0.25
+static var _in_reaction := 0  # > 0 while a Reaction (or its effect) is applying statuses
+static var _crown_field := {}  # Crowned id -> DamageLog clock (or msec / 1000) of its last late crown
+# A Crowned Reaction is an event (owner 2026-10-22): a short hitstop, its big name the first CROWN_TITLE_TIMES of each
+# kind per run (Fx.crown_title), the three Wardens' colours.
+const CROWN_TITLE_TIMES := 3
+const TEMPEST_FROM_IGNITE := true  # The Tempest fix (_check_pairs); false = the old order (Ignite first)
+
 # Reaction id -> its resource path (not the resource: a static holding Resources at exit can crash the
 # engine's teardown, the exit-crash hunt). load() hits ResourceLoader's cache after the first time.
 static var _data := {}
@@ -255,6 +281,10 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if _id == MARKED:
 		Fx.exposed_check(enemy)  # Exposed just filled: its flare, mark and callout (screens_ui.md, last section)
 	var s: EnemyStatuses = enemy.statuses
+	if not s.crown_window.is_empty():
+		_try_late_crown(enemy, _id, source)  # First: a late crown takes its status before a pair check spends it
+		if enemy.is_cleansed:
+			return
 	if s.count() < 2:
 		return
 	var frame := Engine.get_process_frames()
@@ -267,10 +297,37 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 	if _checked.has(key):
 		return
 	_checked[key] = true
+	# The landing being checked (its Warden authors what it completes), and inside a Reaction from here on: what Reactions
+	# add while they fire never crowns late.
+	var landing_before := _landing_id
+	var landing_source_before := _landing_source
+	_landing_id = _id
+	_landing_source = source
+	var own := _in_reaction == 0  # A Warden's own application (not a Reaction's arc, burn, fear…)
+	_in_reaction += 1
+	_check_pairs(enemy, source, own)
+	_in_reaction -= 1
+	_landing_id = landing_before
+	_landing_source = landing_source_before
+
+# `own`: the landing is a Warden's own application (the Tempest fix only reads it).
+static func _check_pairs(enemy: Node2D, source: Node, own: bool = true) -> void:
+	var s: EnemyStatuses = enemy.statuses
 	var crowned_first := _crowned_waiting(enemy)  # Read before anything here spends a status (Crowned precedence, below)
 	var static_needed := thunderclap_threshold(s)
 	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.stacks(STATIC) >= static_needed and grown(s, [DAMP, STATIC]):
 		_thunderclap(enemy, source)
+	if enemy.is_cleansed:
+		return
+	# Tempest fix (owner 2026-10-22, dream_council_review.md 29): Ignite fires at 8 Charged and spends it, so Thunderclap's 10
+	# (and its Tempest) never came on a Poisoned nightmare. An Ignite on a Soaked nightmare is the Tempest instead: the clap at
+	# its 8 Charged, and the nightmare burns as the Ignite would have (TEMPEST_FROM_IGNITE). Never a boss (its clap needs 15).
+	# Only on a Warden's own landing: a Reaction's Charged (a Tempest's arc on its Soaked, Poisoned neighbour) keeps the
+	# old order, so the arc sets off Ignite as Tempest means it to (one Tempest, not a cascade; test_crowned).
+	if TEMPEST_FROM_IGNITE and own and not s.is_boss and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) \
+			and s.stacks(DAMP) >= need(SOAKED_NEEDED) and s.tempest_time <= 0.0 and not s.is_on_cooldown(&"thunderclap") \
+			and grown(s, [DAMP, STATIC]):
+		_thunderclap(enemy, source, true)
 	if enemy.is_cleansed:
 		return
 	if s.stacks(SPORED) >= need(IGNITE_MIN_SPORES) and s.stacks(STATIC) >= need(IGNITE_MIN_STATIC) and grown(s, [SPORED, STATIC]):
@@ -405,6 +462,9 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 		return
 	var s: EnemyStatuses = enemy.statuses
 	_half_need = true
+	_in_reaction += 1  # (What the Reactions it sets off add never crowns late)
+	var landing_before := _landing_id
+	_landing_id = &""  # No landing: a bell's hit sets these off, so each author is its strongest applier
 	var waiting := _crowned_waiting(enemy)  # Crowned precedence (owner 2026-10-17), at the half need too
 	var share_before := _half_share
 	_half_share = damage_share
@@ -422,6 +482,8 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 	_check_drowsy_pairs(enemy, source, waiting)  # Sleepwalk / Night Terror: Poisoned / Charged at half, Drowsy still full
 	_half_need = false
 	_half_share = share_before
+	_landing_id = landing_before
+	_in_reaction -= 1
 
 # --- Potency (tower_design.md "Potency: effect damage") ---------------------------------------------
 
@@ -460,17 +522,20 @@ static func chain_falloff_at(chain: int) -> float:
 	return maxf(1.0 - CHAIN_FALLOFF_STEP * (chain - chain_falloff_from + 1), CHAIN_FALLOFF_FLOOR)
 
 # Effect damage × the source's Potency × Seeping (1 + 5% per status the nightmare carries).
-static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
+# `tag`: the damage's tag. A Reaction's (DreamState.reaction_pool_tag) skips Seeping: it is in the Reaction pool already
+# (Roguelite Code 2026-10-22); Nightshade stays a true multiplier.
+static func effect_multiplier(enemy: Node2D, source: Tower, tag: StringName = &"") -> float:
 	var multiplier := source.get_potency()
 	var dreams := _dreams(enemy)
-	if dreams and dreams.has_method("get_effect_bonus"):
+	var reaction: bool = dreams != null and tag != &"" and dreams.has_method(&"reaction_pool_tag") and bool(dreams.call(&"reaction_pool_tag", tag))
+	if dreams and dreams.has_method("get_effect_bonus") and not reaction:
 		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)  # Seeping
 	multiplier *= 1.0 + nightshade_bonus(enemy)  # Nightshade multiplies with Potency and Seeping (Balancing 738088c3)
 	if enemy.statuses.mushroom_time > 0.0:  # Inside a Mushrooming cloud (owner 2026-10-17, council reactions_unique.md)
 		multiplier *= 1.0 + MUSHROOM_ZONE_BONUS * enemy.statuses.mushroom_payoff  # The cloud's own Brimming payoff (council rx review 2026-10-17)
 	return multiplier
 
-# Nightshade (Legendary #112; dream_design.md e1e39b56): effect damage ×2 on a nightmare carrying 4 or more statuses
+# Nightshade (Legendary #112; dream_design.md e1e39b56): effect damage ×2 on a nightmare carrying 3 statuses from 3 families (DreamState.nightshade_met; was 4 or more statuses)
 # (one per status, not per stack; the one dealing the damage counts too). Multiplies with Potency and Seeping. The
 # bonus part (1.0 = ×2), 0 without the card or under 4 statuses. Also shown on the nightmare's info card.
 const NIGHTSHADE_MIN_STATUSES := 4
@@ -480,7 +545,10 @@ static func nightshade_bonus(enemy: Node2D) -> float:
 	var dreams := _dreams(enemy)
 	if dreams == null or not dreams.has_rule(&"nightshade"):
 		return 0.0
-	return NIGHTSHADE_MULTIPLIER - 1.0 if enemy.statuses.active_ids().size() >= NIGHTSHADE_MIN_STATUSES else 0.0
+	# (Roguelite Code 2026-10-22: 3 statuses from 3 families, DreamState.nightshade_met; was 4+ statuses of any kind.)
+	var met: bool = bool(dreams.call(&"nightshade_met", enemy)) if dreams.has_method(&"nightshade_met") \
+		else enemy.statuses.active_ids().size() >= NIGHTSHADE_MIN_STATUSES
+	return NIGHTSHADE_MULTIPLIER - 1.0 if met else 0.0
 
 static func is_crowned(id: StringName) -> bool:
 	return CROWNED_BASE.has(id)
@@ -513,6 +581,7 @@ static func on_smother_ended(enemy: Node2D) -> void:
 		var singer := _tower_of(s.source(DROWSY), spore_source)
 		if singer != null and not was_asleep:
 			singer.put_to_sleep.emit(singer, enemy)  # Sound: the sleep drone
+	_in_reaction += 1  # (The fever's statuses never crown late)
 	for other in neighbours:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -525,6 +594,7 @@ static func on_smother_ended(enemy: Node2D) -> void:
 		# fever fall Asleep FEVER_PITCH_SLEEP s too (once each per Fever Dream; never bosses).
 		if pitch and is_instance_valid(other) and not other.is_cleansed and not other.statuses.is_boss:
 			other.statuses.sleep(FEVER_PITCH_SLEEP)
+	_in_reaction -= 1
 
 # Smother's burst (owner 2026-10-17, council reactions_unique.md): when Smother ends (the Root broke, or its Poisoned fell
 # below the need), every Poisoned tick it stored while Rooted (EnemyStatuses.smother_stored) lands at once, x SMOTHER_BURST,
@@ -556,7 +626,7 @@ static func _smother_burst(enemy: Node2D) -> void:
 	var amount := _rx(enemy, stored * SMOTHER_BURST, &"smother")
 	var dreams := _dreams(enemy)
 	if dreams != null:
-		amount *= dreams.get_spored_tick_multiplier(enemy)  # Soaked Rot
+		amount *= float(dreams.call(&"get_spored_tick_multiplier", enemy, true)) if dreams.has_method(&"reaction_pool") else dreams.get_spored_tick_multiplier(enemy)  # Soaked Rot (a Reaction: its pool part, Roguelite 2026-10-22)
 	BranchKit.on_spore_tick(enemy)  # Lichenling
 	s.spore_tick_credit = credit
 	s.delivering_spore_tick = true
@@ -619,7 +689,7 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 		elif s.stacks(STATIC) >= need(CROWNED_MIN_STATIC):
 			id = &"prismstorm"
 		var crowned := id != &"shatter"
-		if _fire(enemy, id, [tower], false, CROWNED_LINKS if crowned else 1, &"shatter") > 0:
+		if _fire(enemy, id, [tower], false, CROWNED_LINKS if crowned else 1, &"shatter", tower, _partner(enemy, [HELD, DAMP], tower)) > 0:
 			s.remove(HELD)
 			result.multiplier = 1.0 + (SHATTER_MULTIPLIER * s.reaction_payoff(id) - 1.0) * _rx_cards(enemy, id, tower)  # Bonus part (Shatter / Prismstorm / Avalanche)
 			result.shatter = true
@@ -633,7 +703,7 @@ static func before_hit(enemy: Node2D, tower: Tower, is_crit: bool) -> Dictionary
 # stars fall after the hit, from that hit's damage (after_pinned_hit). True if it fired.
 static func _starfall(enemy: Node2D, tower: Tower) -> bool:
 	var s: EnemyStatuses = enemy.statuses
-	return _fire(enemy, &"starfall", _towers(tower, s.source(STATIC)), false, CROWNED_LINKS) > 0
+	return _fire(enemy, &"starfall", _towers(tower, s.source(STATIC)), false, CROWNED_LINKS, &"", tower, _partner(enemy, [MARKED, STATIC], tower)) > 0
 
 # After a Pinned hit that dealt `dealt` (Tower.hit, owner 2026-10-17, council reactions_unique.md):
 # - Pinned's pierce: every nightmare in a PIN_PIERCE_CELLS line behind the target, away from the Warden, takes
@@ -671,11 +741,20 @@ static func after_pinned_hit(enemy: Node2D, tower: Tower, dealt: float, reaction
 			if tracker != null:
 				tracker.reaction_payoff.emit(&"pinned", at, pierced)  # Sound's pierce
 	if not reaction.get("starfall", false):
+		if reaction.get("pierce", false) and is_instance_valid(enemy) and not enemy.is_cleansed:
+			# Late crown: Pinned's window opens at the Pin hit (its Starfall needs this hit's damage).
+			_open_crown(enemy, &"pinned", chain, [tower], tower, {"dealt": dealt, "at": at, "pin_payoff": reaction.get("pin_payoff", 1.0)})
 		return
+	_in_reaction += 1
+	_stars(enemy, tower, dealt, at, float(reaction.get("pin_payoff", 1.0)), chain)
+	_in_reaction -= 1
+
+# Starfall's stars from a Pin hit that dealt `dealt` at `at` (after_pinned_hit, or a late crown).
+static func _stars(enemy: Node2D, tower: Tower, dealt: float, at: Vector2, pin_payoff: float, chain: int) -> void:
 	var dreams := _dreams(tower)
 	var pins := dreams != null and dreams.has_rule(&"falling_stars")
 	var star_payoff: float = enemy.statuses.reaction_payoff(&"starfall") if is_instance_valid(enemy) else 1.0
-	var star_damage: float = dealt * STARFALL_SHARE / maxf(float(reaction.get("pin_payoff", 1.0)), 0.001) * star_payoff
+	var star_damage: float = dealt * STARFALL_SHARE / maxf(pin_payoff, 0.001) * star_payoff
 	var reach := (STARFALL_REACH + (_storm_front(enemy) if is_instance_valid(enemy) else 0.0)) * CELL
 	for other in Tower.nightmares_near(tower.get_tree(), at, reach):
 		if other == enemy or not is_instance_valid(other) or other.is_cleansed or other.global_position.distance_to(at) > reach:
@@ -732,6 +811,9 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 		targets = _along_route(enemy, PRISM_ROUTE_CELLS + _storm_front(enemy))
 	else:
 		targets = _others_within(enemy, 1.0 + _storm_front(enemy))
+	if not prism and not tower.attack_data.lob and is_instance_valid(enemy) and not enemy.is_cleansed:
+		_open_crown(enemy, &"shatter", chain, [tower], tower, {"shards": targets.map(func(t) -> WeakRef: return weakref(t))})  # Late crown: Prismstorm
+	_in_reaction += 1  # (The shards' bolts are a Reaction's)
 	for other in targets:
 		_touch(other, chain, [tower])
 		# (council rx review 2026-10-17) `dealt` already carries the cards, build multiplier and payoff: no second _rx.
@@ -741,6 +823,7 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 			var charger: Node = other.statuses.source(STATIC) if is_instance_valid(other.statuses.source(STATIC)) else tower
 			other.statuses.remove(STATIC)
 			strike_bolt(other, bolt, charger, &"static")  # The shard sparks its bolt
+	_in_reaction -= 1
 
 # (council rx review 2026-10-17) The first whole path cell ahead of `enemy` on its route that isn't `cell` (`cell` if none:
 # a flyer, or the route's end). Mushrooming's zone reaches it.
@@ -786,7 +869,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
-		target.take_damage(damage if tag == &"static" else _rx(target, damage, rx_id if rx_id != &"" else tag), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
+		target.take_damage(damage if tag == &"static" else _rx(target, damage, rx_id if rx_id != &"" else tag, tower), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
@@ -870,18 +953,21 @@ static func _find_rod(near: Node2D) -> Node2D:
 
 # 8 Damp + 10 Static (15 bosses): discharges for 12× the applier's damage and arcs to every Damp nightmare nearby for
 # 6×, each arc adding Static (so wet crowds chain). Uses up the Static.
-static func _thunderclap(enemy: Node2D, source: Node) -> void:
+# `from_ignite`: the Tempest fix's clap at Ignite's 8 Charged (_check_pairs); the nightmare burns too.
+static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false) -> void:
 	var s: EnemyStatuses = enemy.statuses
-	var tower := _tower_of(source, s.source(STATIC))
+	var tower := _author(enemy, [DAMP, STATIC], source)  # Its author (owner 2026-10-22)
+	var partner := _partner(enemy, [DAMP, STATIC], tower)
 	# Crowned: a Spored nightmare's Thunderclap is a Tempest (not again within 2 s of the last one).
-	var tempest := s.stacks(SPORED) >= need(CROWNED_MIN_SPORES) and s.tempest_time <= 0.0
+	var tempest := from_ignite or (s.stacks(SPORED) >= need(CROWNED_MIN_SPORES) and s.tempest_time <= 0.0)
 	var chain := _fire(enemy, &"tempest" if tempest else &"thunderclap", _towers(tower, s.source(DAMP)), false,
-		CROWNED_LINKS if tempest else 1, &"thunderclap")
+		CROWNED_LINKS if tempest else 1, &"thunderclap", tower, partner)
 	if chain <= 0:
 		return
 	if tempest:
 		s.tempest_time = TEMPEST_LOCK
-	var base := _applier_damage(tower, s.potency(STATIC))
+	var spore_source := s.source(SPORED)  # (The Tempest fix's burn: read before anything here spends it)
+	var base := _author_damage(tower, s.potency(STATIC))
 	var potency := s.potency(STATIC)
 	s.remove(STATIC)
 	var dreams := _dreams(enemy)
@@ -904,7 +990,14 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 		arcs = arcs.slice(0, max_arcs)
-	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE, &"tempest" if tempest else &"thunderclap"), _line(tower, "light"), false, false, tower, &"thunderclap")
+	var credit_before := rx_credit
+	rx_credit = _credit_pair(tower, partner)  # Half to its author, half to its partner (the main hit and the arcs)
+	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE, &"tempest" if tempest else &"thunderclap", tower), _line(tower, "light"), false, false, tower, &"thunderclap")
+	if not tempest:
+		var refs := arcs.map(func(a) -> WeakRef: return weakref(a))
+		_open_crown(enemy, &"thunderclap", chain, _towers(tower, s.source(DAMP)), tower, {"arcs": refs, "potency": potency})
+	elif from_ignite and is_instance_valid(enemy) and not enemy.is_cleansed and s.stacks(SPORED) >= need(IGNITE_MIN_SPORES):
+		burn(enemy, spore_source, chain, maxf(potency, 0.01), 0, tower)  # The Ignite it replaced: its Poisoned burns, carrying Charged
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -921,6 +1014,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 				and not other.statuses.is_boss:
 			other.statuses.tempest_time = TEMPEST_LOCK
 			_ignite(other, tower, potency)
+	rx_credit = credit_before
 
 # 3+ Spored + any Static: every Spored stack goes off at once (×1.5 of what it had left) and a stack
 # spreads to neighbours, who may Ignite in turn. Uses up the Spored.
@@ -929,7 +1023,9 @@ static func _ignite(enemy: Node2D, source: Node, carry_static: float = 0.0, spre
 	if s.stacks(SPORED) < need(IGNITE_MIN_SPORES) or s.stacks(STATIC) < need(IGNITE_MIN_STATIC):
 		return
 	var spore_source := s.source(SPORED)
-	var chain := _fire(enemy, &"ignite", _towers(spore_source, _tower_of(source, s.source(STATIC))))
+	var author := _author(enemy, [SPORED, STATIC], source)
+	var chain := _fire(enemy, &"ignite", _towers(spore_source, _tower_of(source, s.source(STATIC))), false, 1, &"",
+		author, _partner(enemy, [SPORED, STATIC], author))
 	if chain <= 0:
 		return
 	# Status jobs (2026-09-29): no detonation. The spores burn for BURN_TIME s (Spored ticks
@@ -999,6 +1095,7 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 	var spread_any := false
 	# Tempest's Reach (owner 2026-10-17, council reactions_unique.md): a Tempest's burns also spread Soaked, so the arcs never run dry.
 	var soak := carry_static > 0.0 and dreams != null and dreams.has_rule(&"eye_of_the_tempest")
+	_in_reaction += 1  # (A burn's spread never crowns late)
 	for other in _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy)):
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -1012,6 +1109,7 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 		if is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(SPORED, stacks, 0.0, potency, 0, line, spore_source)
 			spread_any = true
+	_in_reaction -= 1
 	if level > 0 and spread_any and is_instance_valid(enemy) and not enemy.is_cleansed:
 		s.remove(SPORED)  # Wildfire Spores' cost (dream_design.md 83c40cd7): spreading 2 burns away its own Poisoned
 
@@ -1027,8 +1125,9 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	elif s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY):
 		id = &"nightbloom"
 	var crowned := id != &"mushrooming"
+	var author := _author(enemy, [SPORED, DAMP], source)
 	var chain := _fire(enemy, id, _towers(spore_source, _tower_of(source, s.source(DAMP))), false,
-		CROWNED_LINKS if crowned else 1, &"mushrooming")
+		CROWNED_LINKS if crowned else 1, &"mushrooming", author, _partner(enemy, [SPORED, DAMP], author))
 	if chain <= 0:
 		return
 	s.remove(DAMP)
@@ -1037,37 +1136,11 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	s.mushroom_payoff = zone_payoff
 	var cell: Vector2 = enemy.get_current_cell()
 	var dreams := _dreams(enemy)
-	var ground_parent := _world(enemy)  # Ground effects: in the world at z -1 (under the y-sorted map)
 	if id == &"fairy_circle":
-		# Mushroom rings on the path tiles among the 8 around it, instead of the one cloud.
-		var ring_of_rings := dreams != null and dreams.has_rule(&"ring_of_rings")
-		var route: Array = _route_cells(enemy)
-		var cells: Array[Vector2] = []
-		for dy in [-1, 0, 1]:
-			for dx in [-1, 0, 1]:
-				var c := cell + Vector2(dx, dy)
-				if c != cell and route.has(c) and cells.size() < FAIRY_RING_MAX:
-					cells.append(c)
-		var rings := CrownedGround.new(CrownedGround.Kind.FAIRY_RING, cells, FAIRY_RING_TIME)
-		rings.until_stepped = ring_of_rings
-		if ring_of_rings:
-			rings.ring_stacks = ceili(CrownedGround.RING_STACKS * (1.0 + CROWNED_CARD_BONUS))  # Ring of Rings: +50% Poisoned (card pass 2026-10-16)
-		rings.potency = s.potency(SPORED)
-		rings.line = s.spore_line()
-		rings.source = spore_source
-		rings.chain = chain
-		ground_parent.add_child(rings)
+		_fairy_rings(enemy, cell, chain, spore_source)
 		return
 	if id == &"nightbloom":
-		# Endless Night (owner 2026-10-17, council reactions_unique.md; was longer and wider): a sleeper dispelled inside
-		# leaves a new Nightbloom on its cell, once per cloud (CrownedGround.chains).
-		var bloom := CrownedGround.new(CrownedGround.Kind.NIGHTBLOOM, [], NIGHTBLOOM_TIME,
-			Tower.MAP_GRID.calculate_map_position(cell),
-			(MUSHROOM_CLOUD_RADIUS * NIGHTBLOOM_WIDTH + _storm_front(enemy)) * CELL)
-		bloom.chains = dreams != null and dreams.has_rule(&"endless_night")
-		ground_parent.add_child(bloom)
-		# Crowned precedence (owner 2026-10-17): the cloud holds it asleep, so no Sleepwalk on it while the cloud lasts.
-		s.start_cooldown(&"sleepwalk", maxf(NIGHTBLOOM_TIME, float(s.reaction_cooldowns.get(&"sleepwalk", 0.0))))
+		_nightbloom(enemy, cell)
 	var time := MUSHROOM_CLOUD_TIME
 	var radius := (MUSHROOM_CLOUD_RADIUS + _storm_front(enemy)) * CELL
 	if dreams and dreams.has_rule(&"mushroom_rain"):
@@ -1083,6 +1156,44 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	# In the world at z -1 (ReactionCloud), so it draws on the ground under the y-sorted map (never in the
 	# nightmares' container: its children are all nightmares).
 	_world(enemy).add_child(cloud)
+	if id == &"mushrooming":
+		_open_crown(enemy, &"mushrooming", chain, _towers(spore_source, author), author, {"cloud": weakref(cloud), "cell": cell})
+
+# Fairy Circle: mushroom rings on the path tiles among the 8 around `cell`, instead of the one cloud.
+static func _fairy_rings(enemy: Node2D, cell: Vector2, chain: int, spore_source: Node) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	var dreams := _dreams(enemy)
+	var ring_of_rings := dreams != null and dreams.has_rule(&"ring_of_rings")
+	var route: Array = _route_cells(enemy)
+	var cells: Array[Vector2] = []
+	for dy in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			var c := cell + Vector2(dx, dy)
+			if c != cell and route.has(c) and cells.size() < FAIRY_RING_MAX:
+				cells.append(c)
+	var rings := CrownedGround.new(CrownedGround.Kind.FAIRY_RING, cells, FAIRY_RING_TIME)
+	rings.until_stepped = ring_of_rings
+	if ring_of_rings:
+		rings.ring_stacks = ceili(CrownedGround.RING_STACKS * (1.0 + CROWNED_CARD_BONUS))  # Ring of Rings: +50% Poisoned (card pass 2026-10-16)
+	rings.potency = s.potency(SPORED)
+	rings.line = s.spore_line()
+	rings.source = spore_source
+	rings.chain = chain
+	_world(enemy).add_child(rings)  # Ground effects: in the world at z -1 (under the y-sorted map)
+
+# Nightbloom: the sleeping cloud on `cell` (beside the Mushrooming cloud).
+static func _nightbloom(enemy: Node2D, cell: Vector2) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	var dreams := _dreams(enemy)
+	# Endless Night (owner 2026-10-17, council reactions_unique.md; was longer and wider): a sleeper dispelled inside
+	# leaves a new Nightbloom on its cell, once per cloud (CrownedGround.chains).
+	var bloom := CrownedGround.new(CrownedGround.Kind.NIGHTBLOOM, [], NIGHTBLOOM_TIME,
+		Tower.MAP_GRID.calculate_map_position(cell),
+		(MUSHROOM_CLOUD_RADIUS * NIGHTBLOOM_WIDTH + _storm_front(enemy)) * CELL)
+	bloom.chains = dreams != null and dreams.has_rule(&"endless_night")
+	_world(enemy).add_child(bloom)
+	# Crowned precedence (owner 2026-10-17): the cloud holds it asleep, so no Sleepwalk on it while the cloud lasts.
+	s.start_cooldown(&"sleepwalk", maxf(NIGHTBLOOM_TIME, float(s.reaction_cooldowns.get(&"sleepwalk", 0.0))))
 
 # Damp + full Drowsy: falls asleep for 2 s, once per nightmare (bosses and nightmares that can't be
 
@@ -1102,39 +1213,52 @@ static func _drown(enemy: Node2D, source: Node) -> void:
 		level = 1 + dreams.rule_level(&"deep_water")
 	if s.drowned >= DROWN_TIMES[level]:
 		return
-	var applier := _tower_of(source, s.source(DROWSY))
+	var applier := _author(enemy, [DAMP, DROWSY], source)  # Its author (owner 2026-10-22; was the landing's or Drowsy's Warden)
+	var partner := _partner(enemy, [DAMP, DROWSY], applier)
 	# Crowned: a Held nightmare's Drown is a Still Pool (it sinks, and a pool stays on its tile).
 	var still := s.stacks(HELD) >= need(ROOTED_NEEDED)
-	if _fire(enemy, &"still_pool" if still else &"drown", _towers(applier, s.source(DAMP)), false,
-			CROWNED_LINKS if still else 1, &"drown") <= 0:
+	var towers := _towers(applier, s.source(DAMP))
+	var chain := _fire(enemy, &"still_pool" if still else &"drown", towers, false, CROWNED_LINKS if still else 1, &"drown",
+		applier, partner)
+	if chain <= 0:
 		return
 	s.remove(DROWSY)
 	s.drowned += 1
 	if still:
-		var cells: Array[Vector2] = [enemy.get_current_cell()]
-		var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME)
-		pool.sleep_seconds = STILL_POOL_SLEEP  # Seconds a walker entering is pulled under
-		# Deep Stillness (owner 2026-10-17, council reactions_unique.md; was longer pools): each nightmare pulled under
-		# widens the pool onto the next path cell, up to STILL_POOL_MAX_CELLS (CrownedGround.grows).
-		pool.grows = dreams != null and dreams.has_rule(&"deep_stillness")
-		pool.route = _route_cells(enemy) if pool.grows else []
-		pool.source = applier
-		_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
+		_still_pool(enemy, applier)
+	else:
+		_open_crown(enemy, &"drown", chain, towers, applier)
 	# Status jobs (2026-09-29): no sleep. Pulled under: slowed and drowning for a few seconds.
-	pull_under(enemy, applier, PULL_UNDER_TIME[1 if level > 0 else 0], level > 0)
+	pull_under(enemy, applier, PULL_UNDER_TIME[1 if level > 0 else 0], level > 0, partner)
+
+# Still Pool: the pool left on its tile.
+static func _still_pool(enemy: Node2D, applier: Node) -> void:
+	var dreams := _dreams(enemy)
+	var cells: Array[Vector2] = [enemy.get_current_cell()]
+	var pool := CrownedGround.new(CrownedGround.Kind.STILL_POOL, cells, STILL_POOL_TIME)
+	pool.sleep_seconds = STILL_POOL_SLEEP  # Seconds a walker entering is pulled under
+	# Deep Stillness (owner 2026-10-17, council reactions_unique.md; was longer pools): each nightmare pulled under
+	# widens the pool onto the next path cell, up to STILL_POOL_MAX_CELLS (CrownedGround.grows).
+	pool.grows = dreams != null and dreams.has_rule(&"deep_stillness")
+	pool.route = _route_cells(enemy) if pool.grows else []
+	pool.source = applier
+	_world(enemy).add_child(pool)  # z -1: on the ground, under the y-sorted map
 
 # Drown (and a Still Pool's walkers): for `seconds`, −60% speed (bosses −30%, Deep Water −40%; Heavy Air
-# makes it stronger) and drowning damage each second rising 0.5×, 1×, 1.5× the applier's damage (Deep
-# Water: 50% faster). Effect damage, tag "drown".
-static func pull_under(enemy: Node2D, applier: Node, seconds: float, deep: bool = false) -> void:
+# makes it stronger) and drowning damage each second rising 0.5×, 1×, 1.5× the author's damage (Deep
+# Water: 50% faster). Effect damage, tag "drown"; `partner` gets half the credit (owner 2026-10-22).
+static func pull_under(enemy: Node2D, applier: Node, seconds: float, deep: bool = false, partner: Node = null) -> void:
 	var world := _world(enemy)
 	if world == null or not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	world.add_child(PullUnder.new(enemy, applier, seconds, deep))
+	var under := PullUnder.new(enemy, applier, seconds, deep)
+	under.partner = partner
+	world.add_child(under)
 
 class PullUnder extends Node:
 	var enemy: Node2D
 	var applier: Node
+	var partner: Node = null
 	var seconds := 3.0
 	var deep := false
 	var _age := 0.0
@@ -1164,7 +1288,11 @@ class PullUnder extends Node:
 		_next += 1.0
 		_second += 1
 		var step: float = Reactions.PULL_UNDER_STEP * (Reactions.DEEP_WATER_GROWTH if deep else 1.0)
-		enemy.take_damage(Reactions._rx(enemy, applier.get_damage() * step * _second, &"drown"), applier.tower_data.line, true, false, applier, &"drown")
+		var credit_before := Reactions.rx_credit
+		Reactions.rx_credit = Reactions._credit_pair(applier, partner)
+		enemy.take_damage(Reactions._rx(enemy, Reactions._author_damage(applier, 0.0) * step * _second, &"drown", applier), applier.tower_data.line,
+			true, false, applier, &"drown")
+		Reactions.rx_credit = credit_before
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 # (2026-10-17, one full Drowsy, one Reaction: when the full Drowsy was what let it fire, it uses that up too.)
@@ -1173,7 +1301,9 @@ static func _pinned(enemy: Node2D, source: Node) -> void:
 	if s.pinned:
 		return
 	var by_drowsy := s.stacks(HELD) < need(ROOTED_NEEDED) and not is_asleep(enemy)
-	if _fire(enemy, &"pinned", _towers(s.source(MARKED), _tower_of(source, s.source(HELD)))) <= 0:
+	var author := _author(enemy, [MARKED, HELD, DROWSY], source)
+	if _fire(enemy, &"pinned", _towers(s.source(MARKED), _tower_of(source, s.source(HELD))), false, 1, &"",
+			author, _partner(enemy, [MARKED, HELD, DROWSY], author)) <= 0:
 		return
 	s.remove(MARKED)
 	if by_drowsy:
@@ -1184,7 +1314,9 @@ static func _pinned(enemy: Node2D, source: Node) -> void:
 # Root breaks (_smother_burst, from on_smother_ended; owner 2026-10-17, council reactions_unique.md). Only the event is here.
 static func _smother(enemy: Node2D, source: Node) -> void:
 	var s: EnemyStatuses = enemy.statuses
-	_fire(enemy, &"smother", _towers(s.source(SPORED), _tower_of(source, s.source(HELD))))
+	var author := _author(enemy, [HELD, SPORED], source)
+	_fire(enemy, &"smother", _towers(s.source(SPORED), _tower_of(source, s.source(HELD))), false, 1, &"", author,
+		_partner(enemy, [HELD, SPORED], author))
 
 # --- Sleepwalk / Night Terror (Roguelite Code for the owner, 2026-10-17) -------------------------------------------------
 
@@ -1199,13 +1331,17 @@ static func _sleepwalk(enemy: Node2D, source: Node) -> void:
 	# Crowned (owner 2026-10-17, council reactions_unique.md): on an Exposed nightmare it is a Changeling (_changeling).
 	# Never on a boss (council rx review 2026-10-17): a boss only Sleepwalks.
 	var changeling := not s.is_boss and s.stacks(MARKED) >= need(EXPOSED_NEEDED)
-	var chain := _fire(enemy, &"changeling" if changeling else &"sleepwalk", _towers(s.source(SPORED), _tower_of(source, s.source(DROWSY))),
-		false, CROWNED_LINKS if changeling else 1, &"sleepwalk")
+	var author := _author(enemy, [SPORED, DROWSY], source)
+	var towers := _towers(s.source(SPORED), _tower_of(source, s.source(DROWSY)))
+	var chain := _fire(enemy, &"changeling" if changeling else &"sleepwalk", towers,
+		false, CROWNED_LINKS if changeling else 1, &"sleepwalk", author, _partner(enemy, [SPORED, DROWSY], author))
 	if chain <= 0:
 		return
 	s.remove(DROWSY)
 	if changeling:
 		_changeling(enemy, chain, _tower_of(s.source(MARKED), source))
+	else:
+		_open_crown(enemy, &"sleepwalk", chain, towers, author)
 	start_sleepwalk(enemy, chain)
 
 # Changeling (Crowned Sleepwalk on an Exposed nightmare; owner 2026-10-17, design in this chat's report): before it
@@ -1331,12 +1467,15 @@ static func _night_terror(enemy: Node2D, source: Node) -> void:
 	var applier := _tower_of(s.source(STATIC), source)
 	# Crowned (owner 2026-10-17, council reactions_unique.md): on a Rooted nightmare it is Wide Awake (_wide_awake).
 	var awake := s.stacks(HELD) >= need(ROOTED_NEEDED)
+	var author := _author(enemy, [STATIC, DROWSY], source)
 	var chain := _fire(enemy, &"wide_awake" if awake else &"night_terror", _towers(applier, s.source(DROWSY)), false,
-		CROWNED_LINKS if awake else 1, &"night_terror")
+		CROWNED_LINKS if awake else 1, &"night_terror", author, _partner(enemy, [STATIC, DROWSY], author))
 	if chain <= 0:
 		return
 	if awake:
 		_wide_awake(enemy)
+	else:
+		_open_crown(enemy, &"night_terror", chain, _towers(applier, s.source(DROWSY)), author)
 	var bolt := s.stored_bolt_damage()
 	var charger: Node = s.source(STATIC) if is_instance_valid(s.source(STATIC)) else applier
 	s.remove(STATIC)
@@ -1461,7 +1600,8 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 			Fx.reaction(id, on.global_position, world, [echo_tower], 0.0, on)
 		else:
 			Fx.play(Fx.REACTIONS.get(id, [id])[0], spot, world)
-	var strength: float = ECHO_DAMAGE.get(id, 0.0) * (applier.get_damage() if is_instance_valid(applier) else echo_tower.get_damage())
+	var strength: float = ECHO_DAMAGE.get(id, 0.0) * _author_damage(applier if is_instance_valid(applier) else echo_tower, 0.0)  # Its author's (owner 2026-10-22)
+	_in_reaction += 1  # (What an echo adds never crowns late)
 	for enemy in nearby:
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
@@ -1481,6 +1621,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 						echo_tower, &"echo")
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			echo_tower.resonant_set_off(enemy)  # Resonant Hollow: the echo rings like a chime
+	_in_reaction -= 1
 	if id == &"mushrooming" and not nearby.is_empty():
 		var first: Node2D = nearby[0]
 		var cloud := ReactionCloud.new(spot, MUSHROOM_CLOUD_RADIUS * CELL, MUSHROOM_CLOUD_TIME * share,
@@ -1500,8 +1641,10 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 # (Lightning Rod redirects every bolt) but only the first in a cooldown shows.
 # `links`: chain links it counts as (Crowned Reactions: 2). `cooldown_id`: the cooldown it shares (a
 # Crowned Reaction uses its base Reaction's).
+# `author`: the Warden whose own application completed it, `partner`: the strongest applier of the other status (owner
+# 2026-10-22: the callout names the author; the Warden panel counts "Set off N / Fed N").
 static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown: bool = false, links: int = 1,
-		cooldown_id: StringName = &"") -> int:
+		cooldown_id: StringName = &"", author: Tower = null, partner: Tower = null) -> int:
 	var s: EnemyStatuses = enemy.statuses
 	var key := cooldown_id if cooldown_id != &"" else id
 	if s.is_on_cooldown(key):
@@ -1520,6 +1663,10 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 		cooldown *= WOVEN_COOLDOWN  # A Woven card's cost (dream_design.md 83c40cd7): its Crowned Reaction fires half as often
 	s.start_cooldown(key, cooldown)
 	_decide_payoff(enemy, id)
+	if is_instance_valid(author):
+		author.reactions_set_off += 1
+	if is_instance_valid(partner) and partner != author:
+		partner.reactions_fed += 1
 	# Storm Front: a Reaction a Gust-copied status completed counts one more link.
 	var storm_front := s.gust_time > 0.0
 	if storm_front:
@@ -1534,18 +1681,17 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	all_towers = all_towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower)
 	# Its own output marks this nightmare too, so a second Reaction here right away links on.
 	s.mark_chain(chain, all_towers, CHAIN_WINDOW)
-	# The effect, its callout, a light thread from each Warden that set it up, and a small shake.
+	# The effect, its callout, a light thread from each Warden that set it up, and a small shake; the tracker's count.
+	if not is_instance_valid(author):
+		author = _tower_of(towers[0] if not towers.is_empty() else null, null)
+	var node := _show(enemy, id, towers, chain, author, false, all_towers)
+	if id == &"smother" and node != null:
+		enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
 	var world := _world(enemy)
-	if world != null:
-		var node := Fx.reaction(id, enemy.global_position, world,
-			towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower), 0.0, enemy)  # Rides on its nightmare (user 2026-10-21)
-		if id == &"smother" and node != null:
-			enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
-		if storm_front:
-			Fx.play(&"storm_front", enemy.global_position, world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
+	if storm_front and world != null:
+		Fx.play(&"storm_front", enemy.global_position, world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
 	var tracker := ReactionTracker.find(enemy)
 	if tracker:
-		tracker.record(id, enemy, chain, all_towers)
 		tracker.note_spot(id, enemy.global_position, _tower_of(towers[0] if not towers.is_empty() else null, null))
 	if dreams:
 		dreams.reaction_cards.reaction_fired(enemy, id, chain, links, all_towers)  # Card pass 2026-10-16 (4 B): counts, scalers, Afterglow
@@ -1603,6 +1749,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 		return
 	var s: EnemyStatuses = enemy.statuses
 	var base: StringName = CROWNED_BASE.get(id, id)
+	_in_reaction += 1  # (What a carried Reaction adds never crowns late)
 	match base:
 		&"drown":
 			pull_under(enemy, applier if is_instance_valid(applier) else seed_tower, PULL_UNDER_TIME[0] * CARRIED_SHARE)
@@ -1614,9 +1761,10 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 			terror_root(enemy, applier if is_instance_valid(applier) else seed_tower, 1, CARRIED_SHARE)  # Night Terror (2026-10-17): a shorter fear
 		_:
 			var strength: float = ECHO_DAMAGE.get(base, 2.0)
-			var damage := (applier.get_damage() if is_instance_valid(applier) else seed_tower.get_damage())
+			var damage := _author_damage(applier if is_instance_valid(applier) else seed_tower, 0.0)  # Its author's (owner 2026-10-22)
 			enemy.take_damage(_rx(enemy, strength * damage * CARRIED_SHARE, &"carried_storm"), _line(applier if is_instance_valid(applier) else seed_tower,
 				seed_tower.tower_data.line), true, false, seed_tower, &"carried_storm")
+	_in_reaction -= 1
 
 static func _field(near: Node2D) -> Array:
 	return near.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP)
@@ -1648,7 +1796,17 @@ static func _towers(a = null, b = null) -> Array:
 # Reactions' cut, never the cards'; a Charged bolt (tag static) never comes here.
 static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return amount * _payoff(near, id) * _half_share * (dreams.get_reaction_damage_multiplier(near as Node2D, id, tower) * _build(dreams, id) if dreams != null else 1.0)
+	if dreams == null:
+		return amount * _payoff(near, id) * _half_share
+	# Quick Reactions' cut x a Crowned card x the one Reaction pool (DreamState, owner 2026-10-22, dream_council_review.md 29)
+	var multiplier := dreams.get_reaction_damage_multiplier(near as Node2D, id, tower)
+	var payoff := _payoff(near, id)
+	if dreams.has_method("note_reaction_factors") and id != &"dawnbreak":  # The per-factor breakdown for Balancing
+		var bare: float = tower.get_bare_damage() if is_instance_valid(tower) and tower is Tower else 0.0
+		var rank: float = tower.get_rank_damage_multiplier() if is_instance_valid(tower) and tower is Tower else 1.0
+		dreams.call(&"note_reaction_factors", id, {"bare": bare, "rank": rank, "brimming": payoff, "half": _half_share,
+			"nightshade": 1.0 + (nightshade_bonus(near) if near is Node2D and "statuses" in near else 0.0)})
+	return amount * payoff * _half_share * multiplier
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
 # Shatter's main hit) and the Ignite / Tempest burn, so those sites stay as they were until a card says otherwise.
@@ -1736,22 +1894,6 @@ const REACTION_STATUSES := {&"thunderclap": [DAMP, STATIC], &"tempest": [DAMP, S
 	&"sleepwalk": [SPORED, DROWSY], &"night_terror": [STATIC, DROWSY],  # (2026-10-17)
 	&"changeling": [SPORED, DROWSY, MARKED], &"wide_awake": [STATIC, DROWSY, HELD]}  # (owner 2026-10-17, council reactions_unique.md)
 
-# Power budget (Balancing Discussion, owner review 2026-10-16): Reaction damage x DreamState.reaction_build_multiplier (the
-# product of what the held cards feeding this Reaction's statuses add, capped there). Only the Reactions above (base and
-# Crowned); Echo, Carried Storm and Dawnbreak stay x1. Per Reaction per frame.
-static var _build_frame := -1
-static var _build_cache := {}
-static func _build(dreams: DreamState, id: StringName) -> float:
-	if not REACTION_STATUSES.has(id) or not dreams.has_method("reaction_build_multiplier"):
-		return 1.0
-	var frame := Engine.get_process_frames()
-	if frame != _build_frame:
-		_build_frame = frame
-		_build_cache.clear()
-	if not _build_cache.has(id):
-		_build_cache[id] = dreams.reaction_build_multiplier(id, REACTION_STATUSES[id])
-	return _build_cache[id]
-
 # (council rx review 2026-10-17) A spill of a hit that already went through _rx_cards (Pinned's pierce, Starfall's
 # stars, Shatter / Prismstorm shards): only Quick Reactions' cut (get_reaction_damage_multiplier's dawnbreak case) and a
 # half set-off's share, never the cards, the build multiplier or the Brimming payoff a second time.
@@ -1761,10 +1903,236 @@ static func _rx_spill(near: Node, amount: float) -> float:
 
 static func _rx_cards(near: Node, id: StringName, tower: Node = null) -> float:
 	var dreams := _dreams(near)
-	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower) * _build(dreams, id) if dreams != null else 1.0
+	return _pool(dreams, near, id, tower) if dreams != null else 1.0
 
-static func _applier_damage(tower: Tower, fallback: float) -> float:
-	return tower.get_damage() if tower != null else fallback
+# --- Authors (owner 2026-10-22, dream_council_review.md 29) ----------------------------------------------
+
+# A Warden that can author a Reaction: an attacking Warden past a Sprout (walls and Sprouts never do).
+static func _can_author(who) -> bool:
+	return is_instance_valid(who) and who is Tower and who.tower_data.can_attack and who.tower_data.tier >= 1
+
+# The author of a Reaction made of `ids` on `enemy`: the Warden whose own application just completed it (the landing
+# on_status is checking, when it is one of `ids`); else the strongest applier of `ids` (by bare damage); else any
+# Warden behind it (`source` first).
+static func _author(enemy: Node2D, ids: Array, source: Node) -> Tower:
+	var s: EnemyStatuses = enemy.statuses
+	if _landing_id in ids and _landing_source == source and _can_author(source):
+		return source
+	var best: Tower = null
+	for id in ids:
+		var who = s.source(id)
+		if _can_author(who) and (best == null or who.get_bare_damage() > best.get_bare_damage()):
+			best = who
+	if best != null:
+		return best
+	var any := _tower_of(source, null)
+	for id in ids:
+		if any == null:
+			any = _tower_of(s.source(id), null)
+	return any
+
+# Its partner: the strongest applier of another of its statuses (null: none, or the author fed them all).
+static func _partner(enemy: Node2D, ids: Array, author: Tower) -> Tower:
+	var s: EnemyStatuses = enemy.statuses
+	for id in ids:
+		if id == _landing_id and _landing_source == author:
+			continue
+		var who = s.source(id)
+		if is_instance_valid(who) and who is Tower and who != author:
+			return who
+	return null
+
+# What a Reaction's damage scales with: the author's bare damage x AUTHOR_TIER by its tier (`fallback` with no author).
+static func _author_damage(tower: Node, fallback: float) -> float:
+	if not (is_instance_valid(tower) and tower is Tower):
+		return fallback
+	return tower.get_bare_damage() * AUTHOR_TIER[clampi(tower.tower_data.tier, 0, AUTHOR_TIER.size() - 1)]
+
+# The credit pair DamageLog splits a Reaction's damage by ([] = the whole to its source).
+static func _credit_pair(author: Node, partner: Node) -> Array:
+	if not (is_instance_valid(author) and is_instance_valid(partner)) or author == partner:
+		return []
+	return [[author, AUTHOR_SHARE], [partner, 1.0 - AUTHOR_SHARE]]
+
+# The cards' part of a Reaction's damage (Roguelite Code, dream_council_review.md 29 "Built"): the one Reaction pool (every
+# card bonus added into one capped sum, DreamState.reaction_pool) x a Crowned Reaction's own card. Dawnbreak takes none.
+static func _pool(dreams: DreamState, near: Node, id: StringName, tower: Node = null) -> float:
+	if dreams == null or id == &"dawnbreak":
+		return 1.0
+	return dreams.get_reaction_card_multiplier(near as Node2D, id, tower)
+
+# The pool's bonus for the callout's "+N%" (0.4 = +40%): the last one Reaction `id` read (reading the pool again here would
+# credit its cards a second time).
+static func _pool_shown(dreams: DreamState, id: StringName) -> float:
+	if dreams == null or not ("reaction_pool_last" in dreams):
+		return 0.0
+	var last: Array = (dreams.get(&"reaction_pool_last") as Dictionary).get(id, [])
+	return float(last[0]) - 1.0 if not last.is_empty() else 0.0
+
+# --- Late crown (owner 2026-10-22, dream_council_review.md 29, reactions_td.md 1) ------------------------
+
+# Base Reaction -> [[its Crowned one, the third status that crowns it late], …]. Not Avalanche (it comes from the hitter's
+# kind) nor Fever Dream (already a late check, on_smother_ended).
+const LATE_CROWNS := {&"thunderclap": [[&"tempest", SPORED]], &"drown": [[&"still_pool", HELD]],
+	&"mushrooming": [[&"fairy_circle", HELD], [&"nightbloom", DROWSY]], &"pinned": [[&"starfall", STATIC]],
+	&"shatter": [[&"prismstorm", STATIC]], &"sleepwalk": [[&"changeling", MARKED]], &"night_terror": [[&"wide_awake", HELD]]}
+
+# Base Reaction `base` just fired on `enemy` (chain link `chain`, by `author`): its crown window opens. `extra`: what its
+# Crowned extra needs later (Thunderclap's arcs, Mushrooming's cloud, the Pin hit's damage, Shatter's shards).
+static func _open_crown(enemy: Node2D, base: StringName, chain: int, towers: Array, author: Tower, extra: Dictionary = {}) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed or not LATE_CROWNS.has(base):
+		return
+	enemy.statuses.crown_window[base] = {"t": CROWN_WINDOW, "chain": chain, "towers": towers.duplicate(),
+		"author": weakref(author) if author != null else null, "share": _half_share, "extra": extra}
+
+static func _crown_clock() -> float:
+	return DamageLog.instance._clock if DamageLog.instance != null else Time.get_ticks_msec() / 1000.0
+
+# Whether `crowned` may crown `enemy` late now: once per nightmare (a boss once per CROWN_BOSS_HEALTH_STEP of its health),
+# and each Crowned kind at most once every CROWN_FIELD_COOLDOWN s on the field.
+static func _crown_allowed(enemy: Node2D, crowned: StringName) -> bool:
+	var s: EnemyStatuses = enemy.statuses
+	var allowed := 1
+	if s.is_boss and enemy.max_health > 0.0:
+		allowed += floori((1.0 - float(enemy.health) / enemy.max_health) / CROWN_BOSS_HEALTH_STEP)
+	if s.crowned_late >= allowed:
+		return false
+	var now := _crown_clock()
+	var last: float = float(_crown_field.get(crowned, -INF))
+	return now < last or now - last >= CROWN_FIELD_COOLDOWN  # (now < last: a new run's clock)
+
+# The Crowned one's third status is at its need on `enemy` (as its instant check reads it).
+static func _crown_met(enemy: Node2D, crowned: StringName) -> bool:
+	var s: EnemyStatuses = enemy.statuses
+	match crowned:
+		&"tempest":
+			return s.stacks(SPORED) >= need(CROWNED_MIN_SPORES) and s.tempest_time <= 0.0
+		&"still_pool", &"fairy_circle", &"wide_awake":
+			return s.stacks(HELD) >= need(ROOTED_NEEDED)
+		&"nightbloom":
+			return s.has(DROWSY) and s.stacks(DROWSY) >= s.normal_cap(DROWSY)
+		&"starfall", &"prismstorm":
+			return s.stacks(STATIC) >= need(CROWNED_MIN_STATIC)
+		&"changeling":
+			return not s.is_boss and s.stacks(MARKED) >= need(EXPOSED_NEEDED)
+	return false
+
+# Status `id` just landed on `enemy` from `source`: crowns an open window late if `id` is its Crowned one's third status.
+# Only a Warden's own application (never a Reaction's effect: _in_reaction).
+static func _try_late_crown(enemy: Node2D, id: StringName, source: Node) -> void:
+	if _in_reaction > 0 or not (is_instance_valid(source) and source is Tower):
+		return
+	var s: EnemyStatuses = enemy.statuses
+	for base in s.crown_window.keys():
+		for pair in LATE_CROWNS.get(base, []):
+			if pair[1] != id or not _crown_met(enemy, pair[0]) or not _crown_allowed(enemy, pair[0]):
+				continue
+			var window: Dictionary = s.crown_window[base]
+			s.crown_window.erase(base)
+			_late_crown(enemy, base, pair[0], window, source)
+			return
+
+static func _late_crown(enemy: Node2D, base: StringName, crowned: StringName, window: Dictionary, source: Tower) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	s.crowned_late += 1
+	_crown_field[crowned] = _crown_clock()
+	var dreams := _dreams(enemy)
+	# The base's cooldown key; with the Woven card the whole wait becomes the Crowned one's x WOVEN_COOLDOWN, as instant.
+	if dreams != null and WOVEN_RULE.has(crowned) and dreams.has_rule(WOVEN_RULE[crowned]):
+		var data := get_data(base)
+		var cooldown: float = data.cooldown if data else 1.5
+		if dreams.has_rule(&"quick_reactions"):
+			cooldown = minf(cooldown, QUICK_COOLDOWN)
+		var waited := CROWN_WINDOW - float(window.t)
+		s.start_cooldown(base, maxf(float(s.reaction_cooldowns.get(base, 0.0)), cooldown * WOVEN_COOLDOWN - waited))
+	var chain: int = int(window.chain) + CROWNED_LINKS - 1  # The base counted 1 link; a Crowned one counts CROWNED_LINKS
+	var towers: Array = (window.towers as Array).filter(func(t) -> bool: return is_instance_valid(t) and t is Tower)
+	if not towers.has(source):
+		towers.append(source)
+	s.mark_chain(chain, towers, CHAIN_WINDOW)  # Before the extra's damage, so falloff reads the new link
+	if EnemyStatuses.cap_multiplier() > 1:
+		s.brim_payoff[crowned] = EnemyStatuses.charged_payoff_multiplier() if _carries_double(enemy, crowned) else 1.0  # Its own key only
+	var ref: WeakRef = window.get("author")
+	var author: Tower = ref.get_ref() as Tower if ref != null and is_instance_valid(ref.get_ref()) else source
+	_show(enemy, crowned, towers, chain, author, true)
+	if dreams != null and dreams.reaction_cards.has_method("reaction_crowned"):
+		dreams.reaction_cards.reaction_crowned(enemy, base, crowned)  # Grand Design's kind, the Woven card's credit (never reaction_fired again)
+	if floori(float(chain - 1) / DAWNBURST_CHAIN) < floori(float(chain) / DAWNBURST_CHAIN):
+		_dawnburst(enemy)
+	var share_before := _half_share
+	_half_share = float(window.get("share", 1.0))  # A half set-off's crown pays half too
+	_in_reaction += 1
+	_crown_extra(enemy, crowned, chain, author, window.get("extra", {}))
+	_in_reaction -= 1
+	_half_share = share_before
+
+# Only the Crowned extra (its damage is the base's, already paid: no top-up).
+static func _crown_extra(enemy: Node2D, crowned: StringName, chain: int, author: Tower, extra: Dictionary) -> void:
+	var s: EnemyStatuses = enemy.statuses
+	match crowned:
+		&"tempest":
+			s.tempest_time = TEMPEST_LOCK
+			var potency: float = maxf(float(extra.get("potency", 1.0)), 0.01)
+			burn(enemy, s.source(SPORED), chain, potency, 0, author)
+			for arc in extra.get("arcs", []):
+				var other = arc.get_ref()
+				if is_instance_valid(other) and not other.is_cleansed and not other.statuses.is_boss \
+						and other.statuses.stacks(SPORED) >= need(IGNITE_MIN_SPORES):
+					other.statuses.tempest_time = TEMPEST_LOCK
+					_ignite(other, author, potency)
+		&"still_pool":
+			_still_pool(enemy, author)
+		&"fairy_circle":
+			var cloud = extra.get("cloud").get_ref() if extra.get("cloud") != null else null
+			if is_instance_valid(cloud):
+				cloud.queue_free()  # The rings replace the cloud, as an instant Fairy Circle
+			_fairy_rings(enemy, extra.get("cell", enemy.get_current_cell()), chain, s.source(SPORED))
+		&"nightbloom":
+			_nightbloom(enemy, extra.get("cell", enemy.get_current_cell()))
+		&"starfall":
+			if is_instance_valid(author):
+				_stars(enemy, author, float(extra.get("dealt", 0.0)), extra.get("at", enemy.global_position),
+					float(extra.get("pin_payoff", 1.0)), chain)
+		&"prismstorm":
+			for shard in extra.get("shards", []):
+				var other = shard.get_ref()
+				if is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(STATIC) >= need(CROWNED_MIN_STATIC):
+					var bolt: float = other.statuses.stored_bolt_damage()
+					var charger: Node = other.statuses.source(STATIC) if is_instance_valid(other.statuses.source(STATIC)) else author
+					other.statuses.remove(STATIC)
+					strike_bolt(other, bolt, charger, &"static")
+		&"changeling":
+			_changeling(enemy, chain, _tower_of(s.source(MARKED), author))
+		&"wide_awake":
+			_wide_awake(enemy)
+
+# A Reaction (or a late crown) shows: its effect and callout (author, pool, a Crowned one's colours), the tracker's count.
+static func _show(enemy: Node2D, id: StringName, towers: Array, chain: int, author: Tower, late: bool = false,
+		chain_towers: Array = []) -> Node2D:
+	var node: Node2D = null
+	var tracker := ReactionTracker.find(enemy)
+	var world := _world(enemy)
+	var crowned := is_crowned(id)
+	if world != null:
+		var dreams := _dreams(enemy)
+		var pool := _pool_shown(dreams, id)
+		var big := crowned and tracker != null and int(tracker.counts.get(id, 0)) < CROWN_TITLE_TIMES
+		node = Fx.reaction(id, enemy.global_position, world, towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower),
+			0.0, enemy, author, pool, _crown_marks(enemy, id) if crowned else [], big)  # Rides on its nightmare (user 2026-10-21)
+	if tracker:
+		tracker.record(id, enemy, chain, chain_towers if not chain_towers.is_empty() else towers)
+		if crowned:
+			tracker.record_crowned(id, enemy, towers, late)
+	return node
+
+# A Crowned one's three Wardens' colours (the appliers of its three statuses, by family).
+static func _crown_marks(enemy: Node2D, id: StringName) -> Array:
+	var marks := []
+	for status in REACTION_STATUSES.get(id, []):
+		var who = enemy.statuses.source(status)
+		if is_instance_valid(who) and who is Tower:
+			marks.append(Kinships.FAMILY_COLORS.get(who.tower_data.line, Palette.MOONLIGHT))
+	return marks
 
 static func _line(tower: Tower, fallback: String) -> String:
 	return tower.tower_data.line if tower != null else fallback

@@ -3,7 +3,7 @@ extends Control
 # "Flyers next block" (Balancing Discussion, owner 2026-10-22: "don't highlight, just have a UI screen pop up that says
 # something about flyers coming next block"; flyers decided 4 of the owner's last 6 runs and text hints get skimmed).
 # At the rest before a block whose drifts bring a flyer (EnemyData.Trait.FLYING; a boss's summons count, so the boss
-# block's Crows do), one centred card, once per block: the first flyer's portrait, "Flyers next block", and one line.
+# block's Crows do), one centred card, only before the run's first flyer block: the first flyer's portrait, "Flyers next block", and one line.
 # One tap or click anywhere (or Esc) closes it. It pauses like the choice screens (only a running game, and only what it
 # paused) and waits for the rest's other screens (family pick, Dream, gift, Omen, the boss dossier, the new-nightmare
 # card), so it's the last thing before Start. The Coming strip's line stays. Made by the HUD (name "FlyerWarning", in
@@ -102,6 +102,10 @@ func _queue_block(block: int) -> void:
 			or not NightmareIntro.auto_open_ok():
 		return
 	var span := _block_span(block)
+	# Only the run's first flyer block (owner 2026-10-22: "don't have to show me the next flyer block every time, just
+	# the first time a flyer would come"): an earlier block that brought one means it was shown (or a Continue skips it)
+	if first_flyer(drift_director, 1, span.x - 1) != null:
+		return
 	if first_flyer(drift_director, span.x, span.y) != null:
 		_pending_block = block
 		_wait = OPEN_DELAY

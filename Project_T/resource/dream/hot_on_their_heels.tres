@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "hot_on_their_heels"
 display_name = "Hot on Their Heels"
-description = "Each {drift} you call early makes Wardens deal 10% more damage until the {rest}, up to +40%. Losing a {leaf} ends it."
+description = "Each {drift} you call early makes Wardens deal 10% more damage until the {rest}, up to +40%."
 rarity = 2
 kind = 3
 tags = Array[String](["tempo", "daring", "defining"])
 max_stacks = 1
 min_drift = 10
 rule_id = &"hot_on_their_heels"
-tip = "Called early: at least 10 s of the last {drift}'s arrival skipped. After a lost {leaf}, calls in that {block} add nothing."
+tip = "Called early: at least 10 s of the last {drift}'s arrival skipped."

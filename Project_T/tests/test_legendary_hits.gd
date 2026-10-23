@@ -66,16 +66,19 @@ func _run() -> void:
 	_check(c.statuses.is_held(), "Rooted Nightmares: the 8th hit Roots it")
 	await _clean()
 
-	# --- Nightshade (dream_design.md e1e39b56): effect damage ×2 on a nightmare with 4+ statuses (hits get nothing) ---
+	# --- Nightshade (owner 2026-10-22, dream_council_review.md 29): effect damage ×2 on a nightmare carrying statuses from
+	# 3 different families (DreamState.nightshade_met; hits get nothing) ---
 	_take("nightshade")
+	var spore := _plant("sporeling", Vector2(2, 4))
+	var jar := _plant("firefly_jar", Vector2(4, 2))
+	var drop := _plant("dewdrop", Vector2(4, 4))
 	var d := _spawn(sprout.global_position + Vector2(CELL, 0))
-	d.apply_status(EnemyStatuses.SPORED, 2, 5.0, 1.0, 0, "spore", sprout)
-	d.apply_status(EnemyStatuses.DAMP)
-	d.apply_status(EnemyStatuses.STATIC, 1, 0.0, 1.0, 0, "light", sprout)
-	_check(Reactions.nightshade_bonus(d) == 0.0, "Nightshade: nothing under 4 statuses (%d)" % d.statuses.active_ids().size())
-	d.apply_status(EnemyStatuses.DROWSY, 1, 5.0, 1.0, 0, "song", sprout)  # A 4th status that changes no damage
+	d.apply_status(EnemyStatuses.SPORED, 2, 5.0, 1.0, 0, "spore", spore)
+	d.apply_status(EnemyStatuses.STATIC, 1, 0.0, 1.0, 0, "light", jar)
+	_check(Reactions.nightshade_bonus(d) == 0.0, "Nightshade: nothing with 2 families' statuses")
+	d.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0, 0, "water", drop)
 	var count: int = d.statuses.active_ids().size()
-	_check(count >= 4 and is_equal_approx(Reactions.nightshade_bonus(d), 1.0), "Nightshade: ×2 at 4+ statuses (%d statuses)" % count)
+	_check(count >= 3 and is_equal_approx(Reactions.nightshade_bonus(d), 1.0), "Nightshade: ×2 with 3 families' statuses (%d statuses)" % count)
 	var before: int = d.health
 	d.take_damage(100.0, "", true, false, sprout, &"static")
 	var expected := int(100.0 * sprout.get_potency() * Reactions.NIGHTSHADE_MULTIPLIER)
@@ -83,6 +86,8 @@ func _run() -> void:
 	before = d.health
 	d.take_damage(100.0, "", false, false, sprout, &"")
 	_check(before - d.health == 100, "a hit gets nothing (%d)" % (before - d.health))
+	for t in [spore, jar, drop]:
+		t.queue_free()  # Only this block needs other families
 	await _clean()
 
 	# --- Generic Rares: First Light (×3 first hit, via on_hit_multiplier) and Root Network's glow ---

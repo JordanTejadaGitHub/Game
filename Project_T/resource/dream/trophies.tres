@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "trophies"
+display_name = "Trophies"
+description = "Each {drift} a Warden {dispels} 10 nightmares, its direct hits deal 4% more for the rest of the run, up to +40%."
+tip = "{deeply_blighted} nightmares and bosses count 5. Kept when it grows, lost if sold."
+rarity = 2
+kind = 3
+tags = Array[String](["tall", "hits"])
+max_stacks = 1
+min_act = 2
+rule_id = &"trophies"

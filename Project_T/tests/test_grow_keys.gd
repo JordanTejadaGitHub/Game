@@ -25,8 +25,8 @@ func _run() -> void:
 	await process_frame
 	run_state.dew = 10000
 	_check(InputMap.has_action(&"grow_option_1") and TowerSeller.key_name(&"grow_option_1") == "Q"
-		and TowerSeller.key_name(&"grow_option_2") == "E" and TowerSeller.key_name(&"grow_option_3") == "Z",
-		"grow_option_1..3 exist, on Q / E / Z by default")
+		and TowerSeller.key_name(&"grow_option_2") == "E" and TowerSeller.key_name(&"grow_option_3") == "R" and TowerSeller.key_name(&"grow_option_4") == "T",
+		"grow_option_1..4 exist, on Q / E / R / T by default")
 
 	# Locked: E opens the Remember tree on the 2nd option.
 	dreams.unlock_everything = false
@@ -44,7 +44,7 @@ func _run() -> void:
 	var refusals: int = panel.grow_refused
 	# The form a Dreamlight unlock opens (E, unless the 2nd is Grove-locked: the branch expansion lists the Grove's
 	# hidden branch among this run's, then its key is the next free one).
-	var keys := [KEY_Q, KEY_E, KEY_Z]
+	var keys := [KEY_Q, KEY_E, KEY_R, KEY_T]
 	var pick := 1
 	for i in [1, 2, 0]:
 		if i < options.size() and not options[i][1] and dreams.get_unlock_blocker(options[i][0]) == "":
@@ -182,15 +182,15 @@ func _run() -> void:
 		await process_frame
 	var nurture_buttons: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 		return b.text.begins_with("Nurture rank"))
-	_check(nurture_buttons.size() == 1 and nurture_buttons[0].text.ends_with("(R)"), "one Nurture button (%s)" % [nurture_buttons.map(func(b: Button) -> String: return b.text)])
+	_check(nurture_buttons.size() == 1 and nurture_buttons[0].text.ends_with("(N)"), "one Nurture button (%s)" % [nurture_buttons.map(func(b: Button) -> String: return b.text)])
 	_check(not panel.find_children("*", "Button", true, false).any(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0),
 		"the choices stay closed until asked")
 	var bar_before: TowerData = placer.tower_data
 	var building_before := placer.build_mode
-	_push(KEY_R)
+	_push(KEY_N)
 	await process_frame
 	var rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0)
-	_check(rows.size() == 4, "R opens the four choices (%d)" % rows.size())
+	_check(rows.size() == 4, "N opens the four choices (%d)" % rows.size())
 	if rows.size() == 4:
 		# Brood Cap fix (user: "fix"): one line each, the name and a short change ("+5 damage") with its key as a chip; the
 		# price said once, on the "Nurture to rank II" heading, never on a row.
@@ -214,7 +214,7 @@ func _run() -> void:
 	_check(nursling.rank == 1 and nursling.rank_choices.back() == options_now[1] and options_now[1] == Tower.Focus.SWIFT,
 		"2 picks Swift (rank %d, %s)" % [nursling.rank, nursling.rank_choices])
 	_check(placer.tower_data == bar_before and placer.build_mode == building_before, "the Warden bar didn't take the 2")
-	_push(KEY_R)
+	_push(KEY_N)
 	await process_frame
 	_push(KEY_ESCAPE)
 	await process_frame
@@ -229,10 +229,10 @@ func _run() -> void:
 	seller.select(null)
 	seller.select(nursling)
 	await process_frame
-	_push(KEY_R)
+	_push(KEY_N)
 	await process_frame
 	var poor_rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0)
-	_check(poor_rows.is_empty() and shorts.size() == 1, "R short of Dew opens no choices and plays the refusal (%d rows, %s)" % [poor_rows.size(), shorts])
+	_check(poor_rows.is_empty() and shorts.size() == 1, "N short of Dew opens no choices and plays the refusal (%d rows, %s)" % [poor_rows.size(), shorts])
 	_check(run_state.dew == 1 and nursling.rank == rank_before, "Dew and the rank unchanged (%d Dew, rank %d)" % [run_state.dew, nursling.rank])
 	shorts.clear()
 	run_state.dew = 10000
@@ -254,7 +254,7 @@ func _run() -> void:
 		and grow_button.text.ends_with("%s%s (Q)" % [UiStyle.DEW_GLYPH, BossDossier.thousands(want)])
 		and grow_button.get_meta(&"short") and grow_button.has_node("Row"), "a short Grow shows its cost (%s)" % grow_button.text)
 	var nurture_button: Button = panel._all_buttons().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
-	_check(nurture_button.text.ends_with("· %s (R)" % UiStyle.dew_amount(poor.get_nurture_price())) and nurture_button.get_meta(&"short"),
+	_check(nurture_button.text.ends_with("· %s (N)" % UiStyle.dew_amount(poor.get_nurture_price())) and nurture_button.get_meta(&"short"),
 		"a short Nurture reads the same way (%s)" % nurture_button.text)
 	_check(grow_button.tooltip_text.begins_with("Not enough Dew.") and (grow_button.get_node("Row/Price") as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
 	run_state.dew = want

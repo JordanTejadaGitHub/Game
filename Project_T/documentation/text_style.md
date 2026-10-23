@@ -13,7 +13,8 @@ list at the end tracks the first sweep.
 - No parenthetical explanations on buttons: not "(you have 0)", "(half during a drift)",
   "(and +40 when it grows into Moonstone)". Those go in the tooltip, or are cut.
 - Whispers and flavour lines are the only places for mood; everything else is information.
-- US or UK spelling: **US** throughout (color, gray… in data; the UI never shows either much).
+- Spelling: **UK** in all player text (colour, grey, neighbour, centre, favourite, armour; owner 2026-10-22,
+  wording_council_review.md). Code identifiers keep whatever they use (`color`, `center`).
 
 ## Capitalisation
 

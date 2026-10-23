@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "topped_up"
 display_name = "Topped Up"
-description = "A Dewdrop Warden's hit resets every status on the nightmare to its starting time. Each nightmare once a second."
-tip = "Never longer than when it landed, and at most 4 s extra in all ({static} 2 s). Never {held} or {drowsy}. Works for: every family's statuses, with a Dewdrop Warden after your status Wardens. Safe."
+description = "A {family:dewdrop} Warden's hit resets every status on the nightmare to its starting time. Each nightmare once a second."
+tip = "Never longer than when it landed, and at most 4 s extra in all ({static} 2 s). Doesn't lengthen {held} or {drowsy}. Works for: every family's statuses, with a {family:dewdrop} Warden after your status Wardens. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])

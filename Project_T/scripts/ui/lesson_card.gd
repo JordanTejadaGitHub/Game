@@ -138,7 +138,7 @@ func _hook() -> void:
 			lesson(&"rests", &"dew", "Rests", "The forest is resting. Nothing moves until you press Start, and selling a Warden gives %s. After this, a rest comes every %d drifts." % [
 				"all its Dew back" if tower_seller == null or tower_seller.build_phase_refund >= 1.0 else "%d%% of its Dew back" % roundi(tower_seller.build_phase_refund * 100.0),
 				drift_director.drifts_per_block])
-			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also pays a Maze bonus at each rest: the small number beside your Dew shows how much."))
+			lesson(&"dew_maze", &"dew", "Dew and the Maze bonus", "Dispelling nightmares earns Dew. Spend it to plant more Wardens. A longer path also makes every drift pay more Dew: the small number beside your Dew shows how much."))
 		drift_director.drift_started.connect(func(_number: int) -> void:  # Speed and pause: as the first drift starts
 			var keys := "%s pauses, %s changes speed. You can plant while paused." % [InputMode.key(&"pause_game", "Space"), InputMode.key(&"cycle_speed", "Tab")]
 			lesson(&"speed_pause", &"rank", "Speed and pause", InputMode.text(keys, "The pause and speed buttons are beside Start. You can plant while paused.")))
@@ -213,16 +213,16 @@ func _watch_field(delta: float) -> void:
 # --- Status Lessons point at the nightmare (onboarding.md, user 2026-10-12) ----------------------------------------
 # One plain sentence per status: live numbers, the Reactions link, no internals (the exact figures stay in the status
 # tooltip and the Codex).
-const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a stack; the icon above a nightmare shows how many. Two full statuses on one nightmare set off a {reaction}. Blue corner brackets round a status: enough stacks for a Reaction."
+const STACK_TEXT := "Some Wardens leave a status on nightmares. Each hit adds a stack; the icon above a nightmare shows how many. When two statuses on one nightmare each reach enough stacks, they trigger a {reaction}. Blue corner brackets round a status: enough stacks for a Reaction."
 const RANK_RULES_AT := 4  # Rank IV: the next rank is the one the rules are about
 var _after: Array = []  # The status Lesson that follows "Statuses stack"
 const STATUS_LINES := {
-	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can set off {reactions}.",
-	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and set off {reactions}.",
-	&"spored": "It takes damage every second, more per stack. Each stack lasts 5 s, so keep hitting it. At {stacks:need_spored} stacks it can set off {reactions}.",
-	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can set off {reactions}.",
+	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can trigger {reactions}.",
+	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and trigger {reactions}.",
+	&"spored": "It takes damage every second, more per stack. The whole pile wears off 5 s after the last stack, so keep hitting it. At {stacks:need_spored} stacks it can trigger {reactions}.",
+	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can trigger {reactions}.",
 	&"static": "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it is struck by a bolt for heavy damage. Other statuses can set it off early as a {reaction}.",
-	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can set off {reactions}.",
+	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can trigger {reactions}.",
 }
 const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
 const SPOT_GAP := 56.0  # Between the nightmare and the card
@@ -428,7 +428,7 @@ func discovery(id: StringName) -> void:
 			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose a form in its panel. Growing costs Dew and changes what it does.")
 		&"nurture":
 			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", InputMode.text(
-				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "R"),
+				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "N"),
 				"Select a Warden and tap Nurture to make it stronger for Dew. Each rank lets you choose one improvement. Tap a choice to read it."))
 		&"dream":
 			lesson(&"discover_dream", &"dreamlight", "A Dream", "Pick one card. You don't have to take one. Dreams last the whole run.")
@@ -672,6 +672,6 @@ func replay_guides() -> void:
 	_replaying = true
 	queue.clear()
 	queue.append([&"rank_rules", &"rank", "Rank V", RANK_TEXT])
-	queue.append([&"dew_maze", &"path_length", "Maze bonus", "Every %d cells your walls add to the path earn +1 Maze bonus, counted while nightmares walk. The number beside your Dew shows what the rest ending this block will pay." % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW])
+	queue.append([&"dew_maze", &"path_length", "Maze bonus", "Every %d cells your walls add to the path make every drift pay +1%% more Dew, up to +%d%%. The number beside your Dew shows it." % [DriftDirector.MAZE_ECONOMY.POT_CELLS_PER_PERCENT, roundi(DriftDirector.MAZE_ECONOMY.POT_SHARE_CAP * 100.0)]])
 	queue.append([&"guide_catch", &"dew", "Catchers", CATCH_TEXT])
 	_show(queue.pop_front())

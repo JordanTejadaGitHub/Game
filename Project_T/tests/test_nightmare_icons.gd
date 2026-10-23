@@ -87,7 +87,7 @@ func _run() -> void:
 	var enemy: Node2D = spawner.spawn_enemy(stag)
 	enemy.set_process(false)
 	var info = main.get_node("%NightmareInfo")
-	info._target = enemy
+	info.test_pin = enemy
 	await process_frame
 	_check(info.visible and _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty()
 		and (stag.kind == EnemyData.Kind.PLAIN or info._rows_box.find_child("KindBadge", true, false) != null),
@@ -126,6 +126,9 @@ func _run() -> void:
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
 	if strip != null and strip.visible:
+		strip.pc_open = true  # PC: shut behind its chip since 77fe78c4; the caption only shows open
+		strip._apply_pc()
+		await process_frame
 		await process_frame
 		var caption_rect: Rect2 = strip._caption.get_global_rect()
 		var clear := strip.items().all(func(item: Control) -> bool:
@@ -135,7 +138,7 @@ func _run() -> void:
 				if badge is Label:
 					top = minf(top, (badge as Label).get_global_rect().position.y)
 			return top - caption_rect.end.y >= 6.0)
-		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it)")
+		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it; caption %s, first item %s)" % [caption_rect, strip.items()[0].get_global_rect() if not strip.items().is_empty() else Rect2()])
 	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():

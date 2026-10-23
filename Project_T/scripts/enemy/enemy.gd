@@ -2626,6 +2626,21 @@ func _is_walkable(cell: Vector2, map_generator: Node) -> bool:
 	return grid.is_within_bounds(cell) and map_generator.path_layer.get_finder().is_walkable(cell)  # (A body fits there)
 
 # The map (through the EnemyContainer), or null outside the main scene.
+# Dew Pool landmark (environment_assets.md "Landmarks", 6fd3dccf): a walker on one of its cells (MapGenerator
+# `dew_pool_cells`: {cell: true} or an Array of whole cells; Environment Code places it) is slowed DEW_POOL_SLOW while in
+# it. A timed slow refreshed each presence tick, so it ends a moment after it wades out; slows never add up (the largest
+# of it, the Mire gift and the rest counts) and the slow floors hold. Flyers, leaps and burrows pass over.
+const DEW_POOL_SLOW := 0.25  # Balancing to confirm
+func _wade_dew_pool() -> void:
+	if is_flying() or _leaping:
+		return
+	var map := _map_generator()
+	var cells = map.get("dew_pool_cells") if map != null else null
+	if cells == null or cells.is_empty():
+		return
+	if cells.has(grid.calculate_grid_coordinates(position)):
+		statuses.add_slow(DEW_POOL_SLOW, PRESENCE_TICK * 1.6)
+
 func _map_generator() -> Node:
 	return get_parent().get("map_generator") if get_parent() else null
 
@@ -2668,6 +2683,7 @@ func _update_presence(delta: float) -> void:
 	_speed_stale = true  # Timed slows (the Stag's aura, charges) may have run out
 	if not statuses.smothering:
 		_end_smother_fx()
+	_wade_dew_pool()
 
 	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
@@ -2967,7 +2983,7 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
 	if source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
-		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+		amount *= Reactions.effect_multiplier(self, source, tag)  # Potency (and Seeping, not on a Reaction: its pool has it)
 	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
 	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).

@@ -53,6 +53,8 @@ func _run() -> void:
 
 	# Nothing clipped (user screenshot: "EW" for New, "×1?" for counts): at 1280×720 virtual (the largest UI
 	# size) and 1920×1080 at 100%, every badge sits inside the strip's fog panel and clear of the next disc.
+	strip.pc_open = true  # PC: the strip sits shut behind its chip since 77fe78c4; measure it open, as a click shows it
+	strip._apply_pc()
 	var scale_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor, root.size]
 	for case in [[Vector2i(2560, 1440), 1.0], [Vector2i(1920, 1080), 0.0]]:
 		if case[1] > 0.0:
@@ -87,10 +89,10 @@ func _run() -> void:
 						hits_other = true
 				if not fog.encloses(r) or hits_other:
 					clean = false
-					where = "%s on %s" % [badge.name, strip.items()[i].get_meta(&"kind").display_name]
+					where = "%s on %s: %s, fog %s, other %s" % [badge.name, strip.items()[i].get_meta(&"kind").display_name, r, fog, hits_other]
 		_check(clean, "at %s (UI share %s) every New tab and count is inside the strip and clear of the next disc (%s)" % [case[0], case[1], where])
-		# 140 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (2 × CAPTION_GAP)
-		_check(strip.get_combined_minimum_size().y <= 140.0 + 2.0 * ComingStrip.CAPTION_GAP, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+		# 140 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (3 × CAPTION_GAP: pad, caption, disc row, pad)
+		_check(strip.get_combined_minimum_size().y <= 140.0 + 3.0 * ComingStrip.CAPTION_GAP, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
 	root.content_scale_mode = scale_was[0]
 	root.content_scale_size = scale_was[1]
 	root.content_scale_aspect = scale_was[2]

@@ -80,6 +80,8 @@ var _pad_foot := Control.new()
 
 # The strip sits on its panel, the padding inside its own rect (the spacers above): portraits and badges stay inside.
 func _draw() -> void:
+	if compact and not _phone:  # During a drift (user 2026-10-21: "find a better way… without taking up space in the
+		return  # middle"): no box, no caption, just the row of small discs under the drift banner's pips
 	if _phone:  # The dropdown's panel, under the Incoming button, only while open
 		if phone_open:
 			var top := _phone_toggle.size.y + PHONE_DROP_GAP
@@ -203,7 +205,7 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 # deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
 # a "+N" chip that opens the rest on tap. About 90 px tall at rests.
 const PER_ROW := 6
-const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
+const CAPTION_GAP := 18  # 6 px clear between the caption and a "New" tab (12 px over its disc), the disc row 18 below (user)
 
 func _build(span: Vector2i) -> void:
 	_caption.text = ("After the rest" if next_after_rest else "Still to come this block") if compact else "Coming this block"
@@ -231,7 +233,7 @@ func _build(span: Vector2i) -> void:
 		if i % per_row == 0:
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", 18)  # Room for each count plate hung past its disc (UI council round 5)
+			line.add_theme_constant_override("separation", 22)  # Room for each count plate hung 20 px past its disc (UI council round 5), +2 clear
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
@@ -292,7 +294,9 @@ func _build_kind_words(_span: Vector2i) -> void:
 		_kind_words.add_child(words)
 	_kind_words.visible = _kind_words.get_child_count() > 0 and not _phone  # Phones: no "Drift N · …" line (user 2026-10-21: "remove the drift hint"; a disc's tap card says it)
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
-		_caption.visible = not _kind_words.visible
+		_caption.visible = not _kind_words.visible and not compact  # In a drift: no caption (its words are the tip)
+	tooltip_text = _caption.text if compact else ""
+	queue_redraw()  # The box comes and goes with a rest
 
 # The kind items, whichever row they're on.
 func items() -> Array:

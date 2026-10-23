@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "fruiting"
 display_name = "Fruiting"
-description = "Sporelings and Wardens {near} them deal 6% more to a nightmare for each other Warden that hit it in the last 2 s, up to +30%."
+description = "{family:sporeling} Wardens and Wardens {near} them deal 6% more for each other Warden that hit the same nightmare in the last 2 s, up to +30%."
 tip = "Any Warden counts, Sprouts too. Hits only, not status damage. Works for: packed stretches where several Wardens hit the same nightmares. Safe."
 rarity = 0
 kind = 3

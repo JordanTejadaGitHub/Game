@@ -178,7 +178,7 @@ func get_panel_line(tower: Tower) -> String:
 			if tower.tower_data.get_id() == "thornwall":
 				return "Adds %d path tiles" % s.path_tiles
 			if tower.tower_data.get_id() == "honeysuckle":
-				return "Sleep applied: %d" % roundi(s.drowsy)
+				return "%s applied: %d" % [IconInfo.status_name(&"drowsy"), roundi(s.drowsy)]
 			return ""
 		&"control":
 			return "%s %d s · pulled back %d cells this run" % [IconInfo.status_name(EnemyStatuses.HELD), roundi(s.held_seconds), roundi(s.tiles_pulled)]
@@ -206,7 +206,7 @@ func get_support_rows(period: String = "block") -> Array:
 				text = "%s added %s damage to %d Wardens" % [row.name, _big(s.aura_damage), s.wardens_boosted]
 			&"wall":
 				value = s.drowsy
-				text = "%s applied %d Sleep" % [row.name, roundi(s.drowsy)]
+				text = "%s applied %d %s" % [row.name, roundi(s.drowsy), IconInfo.status_name(&"drowsy")]
 			&"control":
 				value = s.held_seconds + s.tiles_pulled
 				text = "%s: %s %d s, pulled back %d cells" % [row.name, IconInfo.status_name(EnemyStatuses.HELD), roundi(s.held_seconds), roundi(s.tiles_pulled)]

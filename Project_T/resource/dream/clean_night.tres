@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "clean_night"
 display_name = "Hard-Won Rings"
-description = "Every 40 nightmares a Warden dispels give it a free Nurture {rank}, up to {rank} V."
+description = "Each Warden that dispels 40 nightmares gets a free Nurture {rank}, and again every 40 after, up to {rank} V."
 rarity = 2
 kind = 3
 tags = Array[String](["tending", "defining"])
 max_stacks = 1
 min_drift = 10
 rule_id = &"clean_night"
-tip = "Counted when its damage brings a nightmare to 0 health. Echoes don't count. Selling resets the count; growing keeps it. The {rank} waits until you Nurture."
+tip = "Each Warden counts its own: the one whose hit brings a nightmare to 0 health gets it. Echoes don't count. Selling resets the count; growing keeps it. The {rank} waits until you Nurture."
 makes = Array[StringName]([&"rank"])

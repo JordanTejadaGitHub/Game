@@ -1027,8 +1027,9 @@ func _sync_link_fx() -> void:
 #   Rockslide (and any lob with rubble): the rubble tiles (Tower.rubble_cells)
 #   Inkcap / Deliquescent: the path in range, where the ink trails start (BranchKit InkField.mark on hit)
 #   Jarlink / Lightning Fence: the link (link_preview: partner segment)
-#   the Calling's places when the run has them: Dewdrop puddles and Spore Print mushroom steps (the path a Warden of
-#     the family touches, ClassKit.touches_point), Lantern Light (the path within the glow, FireflyLights.glow_reach)
+#   the Calling's places when the run has them: Dewdrop puddles (the path a Warden of the family touches,
+#     ClassKit.touches_point), Lantern Light (the path within the glow, FireflyLights.glow_reach). Not Spore Print's
+#     mushroom steps (owner 2026-10-22)
 # Live (a selected planted Warden): its lit tiles and the Calling's places are already drawn on the map, so only the
 # rest shows.
 
@@ -1073,7 +1074,9 @@ func placement_points(data: TowerData, from: Vector2, reach_px: float, live: boo
 		for at in Tower.rubble_cells(route, [target_cell], data.splash_radius * cell_px):
 			cells[at] = true
 	if not live and data.can_attack and dream_state != null:
-		for pair in [[dream_state.puddles, DreamState.PUDDLES.LINE], [dream_state.spore_print, DreamState.SPORE_PRINT.LINE]]:
+		# (Spore Print's mushroom steps are not shown: owner 2026-10-22, "spore line doesn't need to show highlights on the
+		# route if you picked their calling")
+		for pair in [[dream_state.puddles, DreamState.PUDDLES.LINE]]:
 			var node = pair[0]
 			if node != null and node.place_on() and data.line == pair[1]:
 				for point in route:

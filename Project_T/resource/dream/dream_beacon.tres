@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_beacon"
 display_name = "Beacon"
-description = "{warden:lanternmoth}s can now {grow} into {warden:beacon}s ({dew:{grow_cost:beacon}}): every {field:beacon.ability_every:seconds} it adds 1 {stack} of {marked} to every nightmare in range, and nightmares at {full} {marked} take +{pct:beacon.marked_bonus} damage on top of what {marked} gives."
+description = "{warden:lanternmoth}s can now {grow} into {warden:beacon}s ({dew:{grow_cost:beacon}}): every {field:beacon.ability_every:seconds} it adds 1 {stack} of {marked} to every nightmare in range, and nightmares at {full} {marked} take {pct:beacon.marked_bonus} more damage instead of {marked}'s usual 25%."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

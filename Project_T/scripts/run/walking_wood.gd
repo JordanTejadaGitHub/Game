@@ -117,6 +117,7 @@ func swap(a: Tower, b: Tower) -> bool:
 	b.position = a_pos
 	if dream_state != null and dream_state.get("batch") != null:
 		dream_state.batch.swap_counts(a_cell, b_cell)
+		dream_state.hit_cards.swap_cells(a_cell, b_cell)  # Trophies and the Tallest Tree go with their Warden
 	var kin = Kinships.find(a)
 	if kin != null:
 		kin.forget(a)

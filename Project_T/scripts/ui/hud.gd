@@ -1868,20 +1868,20 @@ var _remember_ready := false
 func _update_maze_income() -> void:
 	if _maze_reward_label == null:
 		return
-	var amount: int = drift_director.get_maze_reward_projection()
+	# The maze grows every drift's Dew pot (maze_economy.md 8353f6cc, Balancing 2026-10-22): "+12%" by the Dew counter.
+	var percent: int = drift_director.get_maze_pot_percent()
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
-	_maze_short = UiStyle.dew_amount(amount, true)  # The row shows this when "at rest" doesn't fit (_layout_top_row)
-	_maze_full = "%s at rest" % _maze_short if amount > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
+	var cap := roundi(economy.POT_SHARE_CAP * 100.0)
+	_maze_short = UiStyle.DEW_GLYPH + "+%d%%" % percent if percent > 0 else ""  # The row shows this when "a drift" doesn't fit (_layout_top_row)
+	_maze_full = "%s a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
-	# Path length only (maze_economy.md, user 2026-10-11: "the maze bonus is confusing"): cells over the forest's path.
-	var explanation := "Your path is %d cells longer than the starting path: %s at this block's rest (%s per %d cells)." % [
-		drift_director.get_maze_added_cells(), UiStyle.dew_amount(amount, true), UiStyle.dew_amount(1, true),
-		economy.CELLS_PER_DEW]  # No cap (user 2026-10-12): the map's size is the limit
+	var explanation := "Your path is %d cells longer than the starting path: every drift pays +%d%% Dew (+1%% per %d cells, up to +%d%%)." % [
+		drift_director.get_maze_added_cells(), percent, economy.POT_CELLS_PER_PERCENT, cap]
 	if not _maze_reward_tip.visible:  # A pinned tip keeps the hover tooltip off (TapTip)
 		_maze_reward_label.tooltip_text = explanation
 	_maze_reward_tip._label.text = explanation
-	var road_tip := "%s\nMaze bonus: %s at each block's rest for every %d cells your path is longer than the starting path." % [
-		IconInfo.resource_tooltip(&"path"), UiStyle.dew_amount(1, true), economy.CELLS_PER_DEW]
+	var road_tip := "%s\nMaze bonus: every drift pays +1%% Dew for every %d cells your path is longer than the starting path, up to +%d%%." % [
+		IconInfo.resource_tooltip(&"path"), economy.POT_CELLS_PER_PERCENT, cap]
 	if not _path_tip.visible:
 		%PathLabel.tooltip_text = road_tip
 	_path_tip._label.text = road_tip

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_bellflower"
 display_name = "Bellflower"
-description = "Sprouts can now {grow} into {warden:bellflower}s ({dew:{grow_cost:bellflower}}), or plant one directly ({dew:{plant_cost:bellflower}}). A soft ringing pulse; every second pulse gives the nightmares around it {drowsy}."
+description = "Sprouts can now {grow} into {warden:bellflower}s ({dew:{grow_cost:bellflower}}), or plant one directly ({dew:{plant_cost:bellflower}}). A soft ringing pulse; one pulse in {field:bellflower.status_every} gives the nightmares around it {drowsy}."
 rarity = 0
 kind = 0
 tags = Array[String](["song"])

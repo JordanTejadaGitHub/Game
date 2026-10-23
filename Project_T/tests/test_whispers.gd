@@ -148,9 +148,9 @@ func _run() -> void:
 	_clear(whispers)
 	run_state.lose_leaves(1)
 	_check(not whispers._queue.has(&"leaf") and whispers.shown.count(&"leaf") == 1, "…once a run, not for every leaf")
-	# A boss dispelled (the family pick it brings) already showed above; a second one this run says nothing more.
-	director.family_pick_requested.emit(&"boss")
-	_check(not whispers._queue.has(&"after_boss") and whispers.shown.count(&"after_boss") == 1, "a boss dispelled: once a run")
+	# No boss brings a family since 2026-10-22: a later family pick never whispers "after_boss" (its own screen says it).
+	director.family_pick_requested.emit(&"second")
+	_check(not whispers._queue.has(&"after_boss") and whispers.shown.count(&"after_boss") == 1, "a family pick whispers nothing more")
 	# A boss's toll at the Heartwood.
 	var stag: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"), 1.0, {}, false)
 	await process_frame

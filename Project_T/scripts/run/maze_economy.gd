@@ -6,6 +6,18 @@ extends RefCounted
 # (path_changed, and while nightmares walk) lowers the unpaid snapshots, so lengthening just before the rest or
 # selling walls mid-block doesn't pay.
 const CELLS_PER_DEW := 3  # Power budget (owner review 2026-10-16): was 2 (4 before the Dew x2 second pass, 2026-10-13)
+# The maze grows the Dew pot (maze_economy.md 8353f6cc, user 2026-10-22; numbers balance_simulation.md "The maze grows
+# the Dew pot: numbers"): every drift's pot, bosses' too, pays +POT_PERCENT for every POT_CELLS_PER_PERCENT added cells,
+# up to POT_SHARE_CAP; Winding Path multiplies the share (DreamState.get_maze_multiplier), cap included. It replaces the
+# flat block-rest payout above (DriftDirector no longer pays claim(); the ledger stays for old saves).
+const POT_CELLS_PER_PERCENT := 2  # Balancing 2026-10-22: +1% per 2 added cells (kept, easy to read)
+const POT_PERCENT := 0.01
+const POT_SHARE_CAP := 0.20  # Balancing 2026-10-22: +20% at most (40 added cells; was +30%)
+
+# The share of a drift's pot the route earns now (0.12 = +12%), x `multiplier` (Winding Path), cap included.
+func pot_share(map, multiplier: float = 1.0) -> float:
+	var share := floorf(float(added_cells(map)) / POT_CELLS_PER_PERCENT) * POT_PERCENT
+	return minf(share, POT_SHARE_CAP) * multiplier
 var _baseline := PackedVector2Array()
 var _blocks: Dictionary = {}
 

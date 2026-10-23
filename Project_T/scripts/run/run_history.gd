@@ -622,6 +622,11 @@ func _on_run_ended(won: bool) -> void:
 	_flush_rows()
 	run["calling"] = dream_state.calling_title() if dream_state != null else ""  # "" on dev runs and old saves
 	run["past_cap_top"] = dream_state.past_cap_top(5) if dream_state != null else []  # The hits furthest past the x4 card line (power budget 2026-10-16)
+	# Reaction damage by factor (Roguelite Code, dream_council_review.md 29 item 6): {reaction id: {"n": hits, factor:
+	# average}}; the lines are kept too, so a past run's report prints them without the run's DreamState
+	var breaks := dream_state != null and dream_state.has_method(&"reaction_breakdown")
+	run["reaction_breakdown"] = dream_state.reaction_breakdown() if breaks else {}
+	run["reaction_breakdown_lines"] = dream_state.reaction_breakdown_lines() if breaks else []
 	if _route_block.leaked > 0 or _route_block.dispels.any(func(n: int) -> bool: return n > 0):  # A block cut short
 		_flush_route_block(ceili(drift_director.drifts_started / float(drift_director.drifts_per_block)))
 	if _may_write() and not _saved:
@@ -866,6 +871,8 @@ static func report_text(record: Dictionary) -> String:
 			lines.append("Drift %d leaked: %s" % [int(row.drift), leaked_text(row.leaked)])
 	for line in record.get("past_cap_top", []):  # Above the table, which stays the last block for the readers
 		lines.append("Past the x4 card line: " + String(line))
+	for line in record.get("reaction_breakdown_lines", []):  # For Balancing: Reaction damage by factor (pool before / after the cap…)
+		lines.append("Reaction factors: " + String(line))
 	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage,past_cap")  # New columns last: older readers keep theirs
 	for row in record.get("drifts", []):
 		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),

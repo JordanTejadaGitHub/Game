@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "sodden"
 display_name = "Sodden"
-description = "Dewdrop Wardens and Wardens {near} them deal 10% more to a nightmare for each second since it was first given {damp}, up to +40%."
-tip = "A gap of 3 s or less without {damp} doesn't reset it. Hits only, not status damage. {warden:dewdrop}s count. Works for: {warden:dewdrop}s and any Warden {near} one, along a long stretch of path. Safe."
+description = "{family:dewdrop} Wardens and Wardens {near} them deal 10% more to a nightmare for each second since it was first given {damp}, up to +40%."
+tip = "A gap of 3 s or less without {damp} doesn't reset it. Hits only, not status damage. {family:dewdrop} Wardens count. Works for: {family:dewdrop} Wardens and any Warden {near} one, along a long stretch of path. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])

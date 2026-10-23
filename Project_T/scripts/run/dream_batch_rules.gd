@@ -9,7 +9,7 @@ const GROWTH_RINGS_MAX_RANK := 3  # The free rank never lifts a Warden past rank
 const GROWTH_RINGS_CONFIRM_SECONDS := 6.0  # A second plant within this long confirms giving the rank up
 const REACH_RANK := 1  # Heartwood's Reach: the first Warden planted on each cleared cell arrives with this many free ranks
 const SEEDFALL_PRICE := 10  # Seedfall: every Sprout costs this; the price never climbs
-const WINDING_PATH_MULTIPLIER := 2.0  # Winding Path: the maze's rest Dew, doubled (power budget 2026-10-16: was 3.0)
+const WINDING_PATH_MULTIPLIER := 1.5  # Winding Path: the maze's share of every pot x1.5, cap included (+30%). Balancing 2026-10-22 (was x2 of the rest Dew)
 # The six run-shaping redesigns (stake_redesign.md with dream_council_review.md 26's numbers, owner 2026-10-14): no
 # card keeps a stake. Wager and Price lines are gone; Clipped Wings is not built (Dark Skies retires).
 const CALL_OF_THE_WILD_PER_SECOND := 0.01  # Call of the Wild: a drift called early holds +1% Dew per second of arrival skipped…
@@ -40,7 +40,7 @@ const LONG_WAY_PER_BEND := 0.02  # Long Way Round: bosses and Deeply Blighted ta
 const LONG_WAY_MAX := 0.40  # …up to this
 const DARK_SKIES_DEW := 50  # Dark Skies (retired 2026-10-14; an old save keeps it): every Omen seen through pays this much more
 const HEELS_PER_CALL := 0.10  # Hot on Their Heels: per drift called early this block…
-const HEELS_MAX := 0.40  # …up to this, until the rest; a leaf lost clears it
+const HEELS_MAX := 0.40  # …up to this, until the rest
 const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
 const LONG_WALK_MAX := 0.25  # The Long Walk's cap (unused since the card pass; kept in step: power budget 2026-10-16)
 # The batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted. Call of the Wild is
@@ -55,7 +55,7 @@ var leaves_mark := 0  # RunState.leaves_lost when the block began: leaves lost t
 var press_on_calls := 0  # Press On: drifts called early so far (never resets; every 5th regrows a leaf)
 var reach_cells := {}  # Heartwood's Reach: cleared cells whose free rank is used ("x,y" -> true)
 var hard_won := {}  # Hard-Won Rings: a Warden's cell ("x,y") -> nightmares it dispelled (selling resets it)
-var heels := 0  # Hot on Their Heels: early calls counted this block (cleared by a lost leaf)
+var heels := 0  # Hot on Their Heels: early calls counted this block (cleared at the rest)
 var _gauntlet := {}  # Gauntlet: route point -> true, between two attacking Wardens (rebuilt with the board or the route)
 var _gauntlet_key := ""
 # Not saved (a save is made at a rest, with nothing on the field):
@@ -286,7 +286,7 @@ func drift_started(dreams: DreamState, number: int, early: bool) -> void:
 	# drift must not take a second "first" hit (council full_review 2026-10-17)
 	if not early:
 		return
-	if dreams.has_rule(&"hot_on_their_heels") and clean_block(dreams):
+	if dreams.has_rule(&"hot_on_their_heels"):  # No stake (owner 2026-10-19): a lost leaf no longer clears it
 		heels += 1
 		dreams.bump_board()
 	if dreams.has_rule(&"press_on"):
@@ -381,10 +381,8 @@ func gauntlet_count(dreams: DreamState) -> int:
 		_build_gauntlet(dreams)
 	return _gauntlet.size()
 
-func leaves_changed(dreams: DreamState) -> void:
-	if heels > 0 and not clean_block(dreams):
-		heels = 0  # Hot on Their Heels: a lost leaf clears it
-		dreams.bump_board()
+func leaves_changed(_dreams: DreamState) -> void:
+	pass  # Hot on Their Heels no longer clears on a lost leaf (owner 2026-10-19); kept for its callers
 
 func heels_bonus(dreams: DreamState) -> float:
 	return minf(HEELS_PER_CALL * heels, HEELS_MAX) if dreams.has_rule(&"hot_on_their_heels") else 0.0
@@ -619,11 +617,11 @@ func answer_line(dreams: DreamState, card: UpgradeData) -> String:
 			return "Lash now: %d damage." % roundi(thorny_now(dreams))
 		&"growth_rings":
 			return rings_line(dreams)
-		&"winding_path":  # The player's own number, in the HUD's words (the forecast is already tripled once the card is held)
+		&"winding_path":  # The player's own number, in the HUD's words (the share already includes the card once held)
 			var owned: bool = dreams.has_rule(&"winding_path")
-			var now_dew: int = dreams.drift_director.get_maze_reward_projection()
-			var base := roundi(now_dew / WINDING_PATH_MULTIPLIER) if owned else now_dew
-			return "Your maze now: {dew:+%d} at the {rest}. With this: {dew:+%d}." % [base, roundi(base * WINDING_PATH_MULTIPLIER)]
+			var now_share: float = dreams.drift_director.get_maze_pot_share()
+			var base := now_share / WINDING_PATH_MULTIPLIER if owned else now_share
+			return "Your maze now: +%d%% Dew a {drift}. With this: +%d%%." % [roundi(base * 100.0), roundi(base * WINDING_PATH_MULTIPLIER * 100.0)]
 		&"front_line":
 			return "Gauntlet path on your route now: %d steps." % gauntlet_count(dreams)
 		&"press_on":

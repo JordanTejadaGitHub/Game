@@ -139,6 +139,18 @@ player text it is underlined; hovering or tapping it shows the entry (TapTip: on
   can't hold a link: there the keyword stays plain and the tip itself is the explanation.
 - `test_text_style` fails when a keyword is written as a plain word in player text instead of its token.
 
+**Revised 2026-10-22 (owner: "too many underlined words on cards").** On **Dream cards, Calling cards and Calling
+evolution cards** (look and text only; no rule changes):
+1. **Basic words are never underlined there:** Dew, leaf / leaves, drift, block, rest, Warden, nightmare, Sprout,
+   Thornwall, Dream, rank, Nurture, grow, cell. Their tokens render as plain words on cards (they keep their Codex
+   glossary entries) and they leave `StatusLinks.PLAIN_TERMS`.
+2. **Statuses render as their coloured name with a small status icon** instead of an underline; still hover / tap for
+   the tip. The icon carries the meaning for colour-blind players.
+3. **Everything else special to the game stays underlined, first appearance only**, as above: Reaction, jumps, heavy,
+   touching, near, the Calling's own words, and card / Omen / nightmare / Warden names.
+4. `test_text_style` checks this card rule (basic words plain on cards; statuses as icon + name; other keywords
+   still tokens). Other screens (Lessons, panels, Codex) keep the original rule.
+
 **Keywords that already have an entry:** the statuses (Soaked, Drowsy, Poisoned, Exposed, Charged, Rooted, Asleep,
 Caught, Frozen, Hidden, Silenced), Deeply Blighted, Potency, rank, Nurture choice (Power, Swift, Reach, Deep), Dew,
 Dreamlight, leaves, Seeds, drift, block, rest, perfect block, family pick, dread shell, Kinship, Harmony strike,

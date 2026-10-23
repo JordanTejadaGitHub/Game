@@ -407,8 +407,8 @@ func _test_hit_rules() -> void:
 	_check(dreams.on_hit_multiplier(tower, soaked) == dreams.on_hit_multiplier(tower, soaked), "…not other lines")
 	dreams.take(_card("damp_rot"))
 	dreams.take(_card("sparking_spores"))
-	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 2.0) and is_equal_approx(dreams.get_ignite_multiplier(), 2.0),
-		"Soaked Rot: Poisoned ticks double on Soaked; Sparking Spores: Ignite twice as hot")
+	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 1.0 + DreamState.DAMP_ROT_PER) and is_equal_approx(dreams.get_ignite_multiplier(), 2.0),
+		"Soaked Rot: Poisoned ticks +50%% on Soaked (owner 2026-10-22, was double); Sparking Spores: Ignite twice as hot")
 	_free_enemies()
 	_clear()
 
@@ -430,10 +430,10 @@ func _test_sim_entry() -> void:
 	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +3 Dreamlight")
+	_check(dreams.dreamlight == light + DreamState.ACT1_BOSS_DREAMLIGHT, "…act 1's boss rest gives +2 Dreamlight (a787dc53)")
 	light = dreams.dreamlight
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 3, "…the drift 50 boss rest: +3 too")
+	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 2, "…the drift 50 boss rest: +2 too (3d7ed528)")
 	light = dreams.dreamlight
 	dreams.sim_rest(55, func(offer: Array) -> UpgradeData:
 		var plain := offer.filter(func(c: UpgradeData) -> bool: return c.dreamlight_now == 0)  # Not a card that gives Dreamlight
@@ -1007,7 +1007,7 @@ func _test_live_lines() -> void:
 	_reset()
 	var fx := dreams.effects()
 	var line: String = fx.preview_line(_card("winding_path"))
-	_check(line == "The Dew your maze pays at each rest: x%d" % roundi(DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path's live line (%s)" % line)
+	_check(line == "Your maze's share of every Dew pot: x%s" % str(DreamState.BATCH.WINDING_PATH_MULTIPLIER), "Winding Path's live line (%s)" % line)  # The maze grows the pot (a419102b)
 	var dew := run_state.dew
 	run_state.dew = 275
 	line = fx.preview_line(_card("deep_well"))

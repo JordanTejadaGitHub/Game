@@ -15,6 +15,11 @@ Why and the runs behind it: balance_simulation.md "Health ×2, Dew ×2".
 **2026-10-15 (user):** act 1 health ramps to ×1.4 (was 1.2) and act 2's steep point at drift 37 is ×3.2 (was 3.45):
 act 1 had become trivial under ×2 (2,000–4,100 Dew banked by drift 25) while drifts 34–40 felt hard. Balance_simulation.md
 "Human run 38".
+**2026-10-18 (user):** act 2's peak at drift 45 is ×3.6 (was 4.5): runs kept dying at drifts 38–45 and drift 50 was rarely
+reached. Balance_simulation.md "Act 2's peak lowered".
+**2026-10-22 (user):** family picks after drifts 1, 10, 35 and 60 (were 1 and the act 1–3 boss rests); Dreamlight +3 at
+each act break (25, 50, 75) instead of with the picks; the first pick keeps +1. Balance_simulation.md "Second family at
+drift 10".
 
 | Question | Decision |
 |---|---|

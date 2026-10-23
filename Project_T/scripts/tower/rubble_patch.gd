@@ -72,10 +72,14 @@ func _scree(enemy: Node2D) -> void:
 		if s.scree_given >= rooted_max:
 			s.scree_given = 0
 			s.start_cooldown(&"scree", _duration + EnemyStatuses.HOLD_COOLDOWN)
+		Reactions._in_reaction += 1  # Scree is a Reaction's (Avalanche): its statuses never crown late (owner 2026-10-22)
 		enemy.apply_status(EnemyStatuses.HELD, 1, rooted_time, 0.0, 0, "stone", by)
+		Reactions._in_reaction -= 1
 	if soak_every > 0.0 and float(row[1]) <= 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 		row[1] = soak_every
+		Reactions._in_reaction += 1
 		enemy.apply_status(EnemyStatuses.DAMP, soak_stacks, 0.0, 0.0, 0, "water", by)
+		Reactions._in_reaction -= 1
 	_given[key] = row
 
 # Without the effects player's rubble tile: a scatter of stones.

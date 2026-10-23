@@ -7,6 +7,13 @@ func _check(ok: bool, message: String) -> void:
 	if not ok:
 		failures += 1
 		printerr("FAIL: " + message)
+# What the HUD's maze forecast may read now: "+N% a drift" (or "+N%" when the row is tight), "" at 0.
+func _maze_forms(director) -> Array:
+	var percent: int = director.get_maze_pot_percent()
+	if percent <= 0:
+		return [""]
+	var short := UiStyle.DEW_GLYPH + "+%d%%" % percent
+	return [short, "%s a drift" % short]
 func _run() -> void:
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = 42
@@ -69,8 +76,11 @@ func _run() -> void:
 	_check(forecast != null, "HUD has a top-right maze Dew forecast")
 	if forecast != null:
 		hud._update_maze_income()
-		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(director.get_maze_reward_projection(), true), "the HUD shows the block rest's forecast from the start")
-		_check(main.get_node("%PathLabel").tooltip_text.contains("every %d cells" % DriftDirector.MAZE_ECONOMY.CELLS_PER_DEW) and main.get_node("%PathLabel").tooltip_text.contains("longer than the starting path") and not main.get_node("%PathLabel").tooltip_text.contains("up to 20"), "road tooltip explains the maze reward rate, with no cap")
+		# The maze grows every drift's Dew pot (maze_economy.md 8353f6cc, a419102b): "+N% a drift" by the Dew counter
+		_check(forecast.text in _maze_forms(director), "the HUD shows the maze's share of the pot (%s)" % forecast.text)
+		var road: String = main.get_node("%PathLabel").tooltip_text
+		_check(road.contains("every %d cells" % DriftDirector.MAZE_ECONOMY.POT_CELLS_PER_PERCENT) and road.contains("longer than the starting path")
+			and road.contains("up to +%d%%" % roundi(DriftDirector.MAZE_ECONOMY.POT_SHARE_CAP * 100.0)), "road tooltip explains the maze's pot share and its cap")
 	var reset: Dictionary = director.maze_economy.to_save()
 	reset["blocks"] = {}
 	director.maze_economy.load_save(reset)
@@ -80,27 +90,20 @@ func _run() -> void:
 	director.set_process(false)
 	if forecast != null:
 		hud._update_maze_income()
-		_check(forecast.text == "%s at rest" % UiStyle.dew_amount(expected, true), "forecast follows the next-rest reward")
+		_check(forecast.text in _maze_forms(director), "the forecast follows the route (%s)" % forecast.text)
 	var before := run.dew
-	# The rest pays its whole bonus at once (DriftDirector computes the base: Dew x2 pass and Dream multipliers); the maze part
-	# is what this checks, and that it is included in what was paid.
+	# The flat block-rest maze payout is retired (2026-10-22, a419102b): the maze grows every drift's Dew pot instead.
 	var paid: Array = director._pay_rest_bonus()
-	_check(director.maze_reward_last == expected and run.dew - before == int(paid[0]) and int(paid[0]) >= expected, "actual rest pays the separate maze bonus (maze %d of %d expected, Dew +%d, paid %d)" % [director.maze_reward_last, expected, run.dew - before, int(paid[0])])
-	director._pay_rest_bonus()
-	_check(director.maze_reward_last == 0, "repeating rest cannot duplicate maze payment")
-	var saved: Dictionary = director.maze_economy.to_save()
-	director.maze_economy.load_save(saved)
-	_check(director.maze_economy.claim(1) == 0, "saved ledger cannot repay a claimed reward")
-	# Universal income cannot bypass Deep Sleep's forfeited rest reward.
+	_check(director.maze_reward_last == 0 and run.dew - before == int(paid[0]), "a rest pays no separate maze bonus any more (Dew +%d, paid %d)" % [run.dew - before, int(paid[0])])
+	var share: float = director.get_maze_pot_share()
+	_check(share > 0.0 and is_equal_approx(share, director.maze_economy.pot_share(map)), "the longer route earns a share of every pot (+%d%%)" % roundi(share * 100.0))
+	# Deep Sleep forfeits the maze share too.
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.stacks["deep_sleep"] = 1
-	director.maze_economy.sample(6, 2, map, [attacker])
-	director.drifts_started = 10
-	before = run.dew
-	director._pay_rest_bonus()
-	_check(director.maze_reward_last == 0 and run.dew == before, "Deep Sleep forfeits universal maze income")
+	dreams.bump_board()
+	_check(director.get_maze_pot_share() == 0.0, "Deep Sleep forfeits the maze's pot share")
 	dreams.stacks.erase("deep_sleep")
-	_check(director.maze_economy.claim(2) == 0, "forfeited income cannot be reclaimed")
+	dreams.bump_board()
 	main.queue_free()
 	await process_frame
 	print("maze economy integration: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

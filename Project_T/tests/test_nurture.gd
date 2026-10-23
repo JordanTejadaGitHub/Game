@@ -149,10 +149,10 @@ func _run() -> void:
 	_check(seller.nurture_group(group) == 2 and run_state.dew == 2, "group Nurture raises 2 of 3")
 	_check(nearest.all(func(t: Tower) -> bool: return t.rank == 1), "the 2 nearest the Heartwood")
 
-	# R arms the Warden panel's rank choices (1–4); it doesn't nurture on its own any more.
+	# N arms the Warden panel's rank choices (1–4); it doesn't nurture on its own any more.
 	var r_events := InputMap.action_get_events("nurture_warden")
-	_check(r_events.any(func(e: InputEvent) -> bool: return e is InputEventKey and e.physical_keycode == KEY_R),
-		"R is the Nurture hotkey")
+	_check(r_events.any(func(e: InputEvent) -> bool: return e is InputEventKey and e.physical_keycode == KEY_N),
+		"N is the Nurture hotkey")
 	run_state.dew = 1000
 	var asked := [0]
 	seller.nurture_asked.connect(func() -> void: asked[0] += 1)

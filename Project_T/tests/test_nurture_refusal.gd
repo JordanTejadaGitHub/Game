@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Nurture / grow hotkeys while short of Dew (user: "still able to press the hotkey for nurture when I don't
-# have enough Dew"): R opens no rank choices and spends nothing, 1–4 do nothing, the "can't buy" refusal
+# have enough Dew"): N opens no rank choices and spends nothing, 1–4 do nothing, the "can't buy" refusal
 # plays instead (dew_short: toast, Dew counter, sound; the Nurture button shakes). Group nurture too; G
 # while short spends nothing.
 
@@ -38,13 +38,13 @@ func _run() -> void:
 	var shorts := []
 	run_state.dew_short.connect(func(cost: int) -> void: shorts.append(cost))
 
-	# One Warden, too little Dew: R refuses, no menu, nothing spent; 1–4 do nothing.
+	# One Warden, too little Dew: N refuses, no menu, nothing spent; 1–4 do nothing.
 	seller.select(a)
 	await process_frame
 	run_state.free_nurtures = 0
 	run_state.dew = a.get_nurture_price() - 1
 	var dew_before := run_state.dew
-	_press(main, KEY_R)
+	_press(main, KEY_N)
 	await process_frame
 	_check(not panel._choosing and a.rank == 0 and run_state.dew == dew_before, "R short of Dew opens no rank choices and spends nothing")
 	_check(not shorts.is_empty() and shorts[-1] == a.get_nurture_price() and panel.nurture_refused == 1,
@@ -57,12 +57,12 @@ func _run() -> void:
 	seller.select(a)
 	await process_frame
 
-	# With the Dew, R opens the choices again (and 1 picks a rank).
+	# With the Dew, N opens the choices again (and 1 picks a rank).
 	run_state.dew = a.get_nurture_price() + 5
-	_press(main, KEY_R)
+	_press(main, KEY_N)
 	await process_frame
 	var opened: bool = panel._choosing or a.rank == 1  # A single-choice Warden nurtures at once
-	_check(opened, "with the Dew, R opens the rank choices")
+	_check(opened, "with the Dew, N opens the rank choices")
 	if panel._choosing:
 		_press(main, KEY_1)
 		await process_frame
@@ -74,10 +74,10 @@ func _run() -> void:
 	run_state.dew = mini(a.get_nurture_price(), b.get_nurture_price()) - 1
 	dew_before = run_state.dew
 	var refused_before: int = panel.nurture_refused
-	_press(main, KEY_R)
+	_press(main, KEY_N)
 	await process_frame
 	_check(not panel._choosing and a.rank == 1 and b.rank == 0 and run_state.dew == dew_before and panel.nurture_refused == refused_before + 1,
-		"group R short of Dew: no choices, nothing ranks, the refusal plays")
+		"group N short of Dew: no choices, nothing ranks, the refusal plays")
 
 	# G (grow) while short spends nothing.
 	seller.select(a)

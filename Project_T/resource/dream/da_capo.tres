@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "da_capo"
 display_name = "Da Capo"
-description = "Every 6 s, a bell's next attack happens twice in a row."
-tip = "The second is a whole attack, statuses too. Never more often than every 3 of its own attacks. The clock only runs during a {drift}. Works for: every bell, slow heavy ones most. Safe."
+description = "Every 6 s, a {family:bellflower} Warden's next attack happens twice in a row."
+tip = "The second is a whole attack, statuses too. Never more often than every 3 of its own attacks. The clock only runs during a {drift}. Works for: every {family:bellflower} Warden, slow heavy ones most. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

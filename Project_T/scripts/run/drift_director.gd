@@ -34,7 +34,28 @@ signal rest_started(block_number: int, is_boss_rest: bool, bonus: int, perfect: 
 # The player pressed Start after a rest.
 signal rest_ended(block_number: int)
 # A family pick is due: the family-pick screen should show and then call family_picked().
-signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or &"boss"
+signal family_pick_requested(reason: StringName)  # &"first" (after drift 1), &"second" (after drifts 10, 35) or &"deepen" (after 60)
+# The later family picks (Balancing Discussion, owner 2026-10-22 option A: "a new family about ten drifts into each act";
+# balance_simulation.md "Second family at drift 10"): at the rests after these drifts, reason &"second" (the old boss
+# pick's rules: Kin Foretold, the new family's lent card in that rest's Dream). The boss rests (25 / 50 / 75) bring no
+# pick now; they keep their Rare+ Dream, the Calling follow-up and their Dreamlight. Each must end a block (a multiple of 5).
+@export var second_family_pick_drift := 10
+@export var third_family_pick_drift := 35
+@export var fourth_family_pick_drift := 60
+
+func family_pick_drifts() -> Array[int]:
+	return [second_family_pick_drift, third_family_pick_drift, fourth_family_pick_drift]
+
+# The pick at the rest after `drift`: &"first" (drift 1), &"second" (a new family: drifts 10 and 35), &"deepen" (drift 60:
+# a family the run owns calls back one more branch, dream_council_review.md 31, owner 2026-10-22), &"" (none).
+func family_pick_kind(drift: int) -> StringName:
+	if drift == 1:
+		return &"first"
+	if drift == fourth_family_pick_drift:
+		return &"deepen"
+	if drift == second_family_pick_drift or drift == third_family_pick_drift:
+		return &"second"
+	return &""
 
 const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
@@ -83,7 +104,7 @@ func get_block_finale_elites(number: int) -> int:
 # Acts 2 and 3 bosses ("Human runs 7-9": 0 of 3 killed the act 2 boss once act 2 ended at x4.5; was 2.25, from "Human
 # run 3": the Lamplighter died in 29 s); act 1 and the Oak keep theirs. Split from mid_boss_health_multiplier so the
 # shared-curve retune can move act 2's boss alone (Balancing Discussion, 2026-10-06).
-@export var act2_boss_health_multiplier: float = 1.75
+@export var act2_boss_health_multiplier: float = 1.4  # Balancing 2026-10-22: was 1.75; the act 2 boss beat every run that reached it
 @export var act3_boss_health_multiplier: float = 1.75
 @export var act1_boss_health_multiplier: float = 1.45  # Act 1's boss (drift 25) instead. Balancing 2026-10-18: was 1.75; the power-budget base cut made the act 1 boss ~x1.2-1.3 harder (Night Mare 161 s, Hollow Stag not dispelled)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
@@ -203,7 +224,7 @@ const DEMO_LAST_DRIFT := 50
 
 # Fund maze expansion without increasing the opening or the existing Act2 health ramp.
 @export var maze_act1_health_bonus := 0.05
-@export var maze_act1_dew_bonus := 0.15
+@export var maze_act1_dew_bonus := 0.0  # Balancing 2026-10-22: was 0.15; the maze share of the pot replaces it
 @export var maze_act2_dew_bonus := 0.20
 
 const MAZE_ECONOMY := preload("res://scripts/run/maze_economy.gd")
@@ -233,6 +254,19 @@ func get_maze_reward_preview() -> int:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	return _maze_preview if dreams == null or dreams.keeps_rest_bonus() else 0
 
+# The maze's share of every drift's Dew pot now (0.12 = +12%; maze_economy.md 8353f6cc, Balancing 2026-10-22):
+# MazeEconomy.pot_share x Winding Path (DreamState.get_maze_multiplier). 0 with Deep Sleep (it forfeits the maze too).
+func get_maze_pot_share() -> float:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if dreams != null and not dreams.keeps_rest_bonus():
+		return 0.0
+	return maze_economy.pot_share(_maze_map(), dreams.get_maze_multiplier() if dreams != null else 1.0)
+
+# The same as a whole percent (the HUD, the drift panel, Winding Path's line).
+func get_maze_pot_percent() -> int:
+	return roundi(get_maze_pot_share() * 100.0)
+
+# (The flat block-rest payout's forecast: retired with it, 2026-10-22; nothing shows it.)
 func get_maze_reward_projection() -> int:
 	var number := maxi(1, drifts_started + (1 if resting else 0))
 	var block := get_block(number)
@@ -750,6 +784,7 @@ func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: 
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
 	multiplier *= blight_dew_multiplier
+	multiplier *= 1.0 + get_maze_pot_share()  # The maze grows the pot (maze_economy.md 8353f6cc; bosses' pots too)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)
@@ -893,8 +928,8 @@ func _check_cleared(number: int) -> void:
 	elif drifts_started == 1 and drifts_started == number:
 		_request_family_pick(&"first")
 	elif drifts_started % drifts_per_block == 0:
-		if is_boss_drift(drifts_started):
-			_request_family_pick(&"boss")
+		if family_pick_drifts().has(drifts_started):
+			_request_family_pick(family_pick_kind(drifts_started))  # A new family at 10 and 35; drift 60 deepens one (section 31)
 		else:
 			_begin_rest()
 
@@ -934,14 +969,9 @@ func _pay_rest_bonus() -> Array:
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)
 	bonus = maxi(bonus, 0)
 	maze_economy.observe(_maze_map())
-	# Paid at block rests only, never at the short rest after drift 1 (maze_economy.md 2026-10-12: with no cap, walls
-	# built before drift 1 and sold at that rest kept their payout). The samples stay for the block's own rest.
-	var block_rest := drifts_started % drifts_per_block == 0 or drifts_started >= drifts.size()
-	var maze_claim: int = maze_economy.claim(block) if block_rest else 0
-	if dreams:
-		maze_claim = roundi(maze_claim * dreams.get_maze_multiplier())  # Winding Path: tripled
-	maze_reward_last = maze_claim if dreams == null or dreams.keeps_rest_bonus() else 0
-	bonus += maze_reward_last
+	# The flat block-rest maze payout is retired (2026-10-22): the maze grows every drift's pot instead
+	# (get_maze_pot_share). The ledger keeps sampling for old saves; nothing is claimed.
+	maze_reward_last = 0
 	run_state.add_dew(bonus)
 	_block_leaked = false
 	return [bonus, perfect]

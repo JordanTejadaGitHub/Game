@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "quick_reactions"
 display_name = "Quick Reactions"
-description = "{reactions} can go off on the same nightmare again after 0.75 s instead of 1.5 s."
+description = "{reactions} can trigger on the same nightmare again after 0.75 s instead of 1.5 s."
 cost_description = "{reactions} deal 35% less."
 rarity = 2
 kind = 3

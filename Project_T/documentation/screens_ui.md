@@ -1132,7 +1132,7 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Pause | Space |
 | Speed | Tab (cycle) |
 | Sell selected Warden | **X** or Delete (added 2026-09-28: Delete is hard to reach on many keyboards; rebindable), or the panel's Sell button. During a drift the first press shows the half refund and a second press within 2 s sells (unless `confirm_sell` is off). **Right-click never sells** (decided 2026-09-28; it only cancels / deselects) |
-| Grow selected Warden | **Q / E / Z** grow into the 1st / 2nd / 3rd option in the Warden panel (e.g. Mossback / Standing Stone / Cairn), each Grow button showing its key badge like Sell (X) and Nurture (R); **G** still grows into the first option (2026-09-30, user: "add hotkeys when growing into"). All rebindable in Settings → Controls. A locked option's key opens the Remember tree on it, like clicking |
+| Grow selected Warden | **Revised 2026-10-22** (user: "redo the hotkeys to make it make sense"; the panel had Q / E / Z for options 1-3, nothing for a 4th, R for Nurture, T for targeting): the Warden panel's keys follow the keyboard, left to right: **Q / E / R / T** grow into the 1st / 2nd / 3rd / 4th option in list order (W is skipped: it moves the camera); a Sprout's four families all get a key. **N** = Nurture, **X** = Sell (Delete too), **Z** = cycle targeting (First / Last / Strongest / Closest), **I** = Details, **Esc** = Close. G is retired (Q is the first option). Every button shows its key badge. All rebindable in Settings → Controls; a player's own rebinds are kept, default bindings move to the new keys. A locked option's key opens the Remember tree on it, like clicking |
 | Centre on the Heartwood / on the start | H / F (proposed) |
 | Camera | WASD, mouse wheel zoom |
 

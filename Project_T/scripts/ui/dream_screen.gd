@@ -120,6 +120,15 @@ func _ready() -> void:
 		for button: Control in [_reroll, _skip, peek_button]:
 			button.custom_minimum_size = Vector2(maxf(button.custom_minimum_size.x, PC_BUTTON_W), UiStyle.HUD_BUTTON_H)
 		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		# Glossary (the Codex over the screen) and Your Dreams ("Dreams this run" above it), as on phones (user
+		# 2026-10-22: "should have a way to check Dreams and Codex while picking Dreams"); the choice waits underneath.
+		var extras := HBoxContainer.new()
+		extras.name = "Extras"
+		extras.alignment = BoxContainer.ALIGNMENT_CENTER
+		extras.add_theme_constant_override("separation", 12)
+		extras.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PhoneChoice.add_extras(self, extras)
+		box.add_child(extras)
 	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
@@ -351,8 +360,13 @@ func _make_card(card: UpgradeData) -> Button:
 				return
 			hide_diagram())
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
-	# vine green; Woven: glowing).
-	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity), is_legendary(card))
+	# vine green; Woven: glowing). A Calling evolution is not a Dream (owner 2026-10-22: "make the evolution path cards
+	# different than the dream cards"): its family's colour everywhere the rarity colour would be, the Calling's leaf mark
+	# for the gem, the path's steps, a wash of its colour in the glass and corner brackets (_evolution_marks).
+	var evolution := card.tags.has("calling_evolution")
+	var accent: Color = _calling_colour() if evolution else (ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+	UiStyle.card_button(button, accent, is_legendary(card))
+	var label_colour: Color = accent if evolution else UpgradeData.rarity_color(card.rarity)  # Header, kind line, chips
 	if card.tip != "":  # The card's detail on hover (Sunlit Rest: which rank, who gets it)
 		button.tooltip_text = IconInfo.format(card.tip)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
@@ -362,7 +376,9 @@ func _make_card(card: UpgradeData) -> Button:
 	if MetaRun.starlit_backs():
 		_add_starlit_back(button, card)
 	if _phone:  # One sprout per screen (UI review; Take's): the thread runs full width in the rarity colour, no mark
-		PhoneChoice.card_thread(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+		PhoneChoice.card_thread(button, accent)
+	if evolution:
+		_evolution_marks(button, accent)  # Under the text: added before the box
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -373,11 +389,13 @@ func _make_card(card: UpgradeData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	var rarity := Label.new()
-	rarity.text = UpgradeData.rarity_name(card.rarity) if not card.tags.has("calling_evolution") else "Calling"
+	rarity.text = UpgradeData.rarity_name(card.rarity)
+	if evolution:  # The Calling's name ("Puddles"); its step is named beside the path's beads below
+		rarity.text = dream_state.calling_title()
 	var stack_count := dream_state.card_stacks(card.id)
 	if card.max_stacks == 0 and stack_count > 0:
 		rarity.text += (" " if _phone else " · ") + _roman(stack_count + 1)  # Phones: no " · " (UI review)
-	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
+	UiStyle.caps(rarity, 16, label_colour)
 	rarity.text = rarity.text.to_upper().left(1) + rarity.text.substr(1)  # Small caps with a capital
 	# Wraps instead of widening the card (owner screenshot 2026-10-14: a long header pushed the body text past the edge)
 	rarity.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -393,11 +411,13 @@ func _make_card(card: UpgradeData) -> Button:
 	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var glyph := UiStyle.dream_glyph(card)  # The card's glyph inside its rarity gem (UI Asset)
 	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
-	gem_row.add_child(gem)
+	gem_row.add_child(_calling_mark(accent) if evolution else gem)  # An evolution: its Calling's leaf mark, not a rarity gem
 	gem_row.add_child(rarity)
 	# No build-defining mark on the card (user 2026-10-07: "remove the build-around-it icon"); the tag stays in the data
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
+	if evolution:
+		box.add_child(_evolution_steps(accent))
 	# "Calling: Spore Print" / "Sporeling family" on its own line under the rarity, wrapping at the card's width
 	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
 	if kind != "":
@@ -406,7 +426,7 @@ func _make_card(card: UpgradeData) -> Button:
 		kind_label.text = kind
 		kind_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		kind_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(kind_label, _fs(15), UpgradeData.rarity_color(card.rarity))
+		UiStyle.caps(kind_label, _fs(15), label_colour)
 		box.add_child(kind_label)
 	var name_label := Label.new()
 	name_label.text = card.display_name
@@ -463,7 +483,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# glossary lines. A Calling evolution reads its path's chips.
 	var chips: Array = DreamState.KEYWORDS.chips_for_calling(StringName(card.id)) if card.tags.has("calling_evolution") \
 		else DreamState.KEYWORDS.chips_for_card(card)
-	var keyword_row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UpgradeData.rarity_color(card.rarity), CARD_CHIP_TEXT)
+	var keyword_row := KeywordRow.make(chips, UiStyle.CHIP_ICON, label_colour, CARD_CHIP_TEXT)
 	if keyword_row != null:
 		box.add_child(keyword_row)
 		_keep_card_hover(button, keyword_row, card)
@@ -485,6 +505,132 @@ func _one_tip(button: Button) -> void:
 			continue
 		label.meta_hover_started.connect(func(_meta: Variant) -> void: button.tooltip_text = "")
 		label.meta_hover_ended.connect(func(_meta: Variant) -> void: button.tooltip_text = tip)
+
+# --- Calling evolution cards (owner 2026-10-22: "make the evolution path cards different than the dream cards") ------
+# Same moon-glass card, but nothing about it reads as a Dream: the Calling's family colour (Kinships.FAMILY_COLORS, the
+# colour its vines and sparks already use) instead of a rarity, the Calling's leaf mark instead of the rarity gem, the
+# header "<Calling>", the path's four steps and the step's name under it, a wash of the colour at the top of the glass and a
+# bracket in each corner.
+const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Follow-up"]  # CallingPaths.DRIFTS order
+const EVOLUTION_WASH := 0.16  # The colour's alpha at the top of the glass, fading out halfway down
+const EVOLUTION_INSET := 7.0  # The wash and brackets sit this far inside the card (inside the frame's rim)
+const EVOLUTION_BRACKET := 12.0  # Each corner bracket's arm
+
+func _calling_colour() -> Color:
+	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
+	return Kinships.FAMILY_COLORS.get(line, UiStyle.GOLD)
+
+func _evolution_step() -> int:
+	return clampi(dream_state.calling_path.size(), 0, EVOLUTION_STAGES.size() - 1)
+
+func _evolution_stage_name() -> String:
+	return EVOLUTION_STAGES[_evolution_step()]
+
+func _evolution_marks(button: Button, colour: Color) -> void:
+	var marks := Control.new()
+	marks.name = "EvolutionMarks"
+	marks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marks.draw.connect(_draw_evolution_marks.bind(marks, colour))
+	button.add_child(marks)
+
+func _draw_evolution_marks(marks: Control, colour: Color) -> void:
+	var r := Rect2(Vector2.ONE * EVOLUTION_INSET, marks.size - Vector2.ONE * EVOLUTION_INSET * 2.0)
+	var mid := r.position.y + r.size.y * 0.5
+	marks.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), Vector2(r.end.x, mid), Vector2(r.position.x, mid)]),
+		PackedColorArray([Color(colour, EVOLUTION_WASH), Color(colour, EVOLUTION_WASH), Color(colour, 0.0), Color(colour, 0.0)]))
+	var arm := EVOLUTION_BRACKET
+	for corner: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
+		var sx := 1.0 if corner.x < r.get_center().x else -1.0
+		var sy := 1.0 if corner.y < r.get_center().y else -1.0
+		marks.draw_polyline(PackedVector2Array([corner + Vector2(0, sy * arm), corner, corner + Vector2(sx * arm, 0)]), Color(colour, 0.85), 2.0)
+		marks.draw_rect(Rect2(corner + Vector2(sx * 3.0 - 1.0, sy * 3.0 - 1.0), Vector2(2, 2)), Color(colour, 0.85))  # A bud inside it
+
+# The Calling's mark (owner 2026-10-22: "remove the Warden portrait, it should be something else"; chose the Calling
+# glyph): the glyph its family's Dream cards use (UiStyle.dream_glyph on its line's tag: water, spore, light, song…), 2x,
+# in a leaf, a shape no rarity gem has (circle, diamond, hexagon, star), with a short stalk at its lower tip.
+const MARK_SIZE := 32.0  # The leaf's box in the header
+const LEAF_HALF := Vector2(15.0, 10.0)  # Half its length (tip to tip, along the diagonal) and half its width
+
+func _calling_mark(colour: Color) -> Control:
+	var probe := UpgradeData.new()
+	probe.tags = [String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))]
+	var glyph := UiStyle.dream_glyph_texture(UiStyle.dream_glyph(probe))  # Held by the draw binding: never freed early
+	var mark := Control.new()
+	mark.name = "CallingMark"
+	mark.custom_minimum_size = Vector2.ONE * MARK_SIZE
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mark.draw.connect(_draw_calling_mark.bind(mark, glyph, colour))
+	return mark
+
+func _draw_calling_mark(mark: Control, glyph: Texture2D, colour: Color) -> void:
+	var centre := (mark.size / 2.0).round()
+	# A leaf: two circle arcs meeting at pointed tips, its long axis on the diagonal (lower left to upper right)
+	var l := LEAF_HALF.x
+	var w := LEAF_HALF.y
+	var c := (l * l - w * w) / (2.0 * w)
+	var r := c + w
+	var axis := Vector2(1, -1).normalized()
+	var normal := Vector2(axis.y * -1.0, axis.x)
+	var points := PackedVector2Array()
+	for i in 17:
+		var x := lerpf(-l, l, i / 16.0)
+		points.append(centre + axis * x + normal * (sqrt(maxf(r * r - x * x, 0.0)) - c))
+	for i in 17:
+		var x := lerpf(l, -l, i / 16.0)
+		points.append(centre + axis * x - normal * (sqrt(maxf(r * r - x * x, 0.0)) - c))
+	var tip := centre - axis * l
+	mark.draw_line(tip, tip - axis * 4.0 + Vector2(-1, 0), colour, 2.0)  # The stalk
+	mark.draw_colored_polygon(points, UiStyle.CARD_BG)
+	points.append(points[0])
+	mark.draw_polyline(points, colour, 2.0, true)
+	mark.draw_line(centre - axis * (l - 3.0), centre + axis * (l - 3.0), Color(colour, 0.3), 1.0)  # The midrib, faint
+	if glyph != null:
+		var side := glyph.get_size() * 2.0
+		mark.draw_texture_rect(glyph, Rect2((centre - side / 2.0).round(), side), false)
+
+# The path's four steps as beads on a line: taken ones filled, this one a bright ring, later ones hollow and dim; then
+# this step's name ("Style", "Follow-up", "Capstone") beside them, so the header keeps to the Calling's name.
+const STEPS_WIDTH := 80.0  # The beads' room: MARK_SIZE / 2 + 3 gaps of 18 + the last bead's ring
+
+func _evolution_steps(colour: Color) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "EvolutionSteps"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 4)
+	var steps := Control.new()
+	steps.custom_minimum_size = Vector2(STEPS_WIDTH, 14)
+	steps.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	steps.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	steps.draw.connect(_draw_evolution_steps.bind(steps, colour))
+	row.add_child(steps)
+	var stage := Label.new()
+	stage.text = _evolution_stage_name()
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.caps(stage, _fs(14), UiStyle.INK_DIM)
+	row.add_child(stage)
+	return row
+
+func _draw_evolution_steps(steps: Control, colour: Color) -> void:
+	var count := EVOLUTION_STAGES.size()
+	var gap := 18.0
+	var y := floorf(steps.size.y / 2.0)
+	var x0 := MARK_SIZE / 2.0
+	var now := _evolution_step()
+	steps.draw_line(Vector2(x0, y), Vector2(x0 + gap * (count - 1), y), Color(colour, 0.35), 2.0)
+	for i in count:
+		var at := Vector2(x0 + gap * i, y)
+		if i < now:
+			steps.draw_circle(at, 3.5, colour)
+		elif i == now:
+			steps.draw_circle(at, 5.0, UiStyle.CARD_BG)
+			steps.draw_arc(at, 5.0, 0.0, TAU, 16, colour, 2.0, true)
+			steps.draw_circle(at, 2.0, UiStyle.INK)
+		else:
+			steps.draw_circle(at, 3.5, UiStyle.CARD_BG)
+			steps.draw_arc(at, 3.5, 0.0, TAU, 12, Color(colour, 0.45), 1.5, true)
 
 # While clearing is locked, a clearing card leads with what it unlocks (dream_design.md "Clearing
 # cards" / "Make the unlock obvious"): the Clear tool icon + "Unlocks clearing", what clearing is, a

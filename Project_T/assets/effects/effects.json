@@ -3277,46 +3277,46 @@
 		},
 		"spore_mushroom": {
 			"anchor": [
-				10,
-				18
+				12,
+				22
 			],
 			"file": "spore_mushroom.png",
 			"fps": 4.0,
 			"frame_size": [
-				20,
-				20
+				24,
+				24
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (20 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+			"note": "Spore Print: a glowing toadstool on the path with its halo and shadow, a slow breathe loop (20 px toadstool in a 24 px frame; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
 		},
 		"spore_mushroom_big": {
 			"anchor": [
-				13,
-				24
+				15,
+				28
 			],
 			"file": "spore_mushroom_big.png",
 			"fps": 4.0,
 			"frame_size": [
-				26,
-				26
+				30,
+				30
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (26 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+			"note": "Spore Print: a glowing toadstool on the path with its halo and shadow, a slow breathe loop (26 px toadstool in a 30 px frame; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
 		},
 		"spore_mushroom_clump_2": {
 			"anchor": [
-				11,
-				20
+				13,
+				24
 			],
 			"file": "spore_mushroom_clump_2.png",
 			"fps": 4.0,
 			"frame_size": [
-				22,
-				22
+				26,
+				26
 			],
 			"frames": 4,
 			"kind": "ground",
@@ -3325,14 +3325,14 @@
 		},
 		"spore_mushroom_clump_3": {
 			"anchor": [
-				13,
-				24
+				15,
+				28
 			],
 			"file": "spore_mushroom_clump_3.png",
 			"fps": 4.0,
 			"frame_size": [
-				26,
-				26
+				30,
+				30
 			],
 			"frames": 4,
 			"kind": "ground",
@@ -3341,14 +3341,14 @@
 		},
 		"spore_mushroom_clump_4": {
 			"anchor": [
-				14,
-				26
+				16,
+				30
 			],
 			"file": "spore_mushroom_clump_4.png",
 			"fps": 4.0,
 			"frame_size": [
-				28,
-				28
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
@@ -3357,14 +3357,14 @@
 		},
 		"spore_mushroom_mother": {
 			"anchor": [
-				10,
-				18
+				12,
+				22
 			],
 			"file": "spore_mushroom_mother.png",
 			"fps": 4.0,
 			"frame_size": [
-				20,
-				20
+				24,
+				24
 			],
 			"frames": 4,
 			"kind": "ground",
@@ -3373,14 +3373,14 @@
 		},
 		"spore_mushroom_mother_specks": {
 			"anchor": [
-				10,
-				18
+				12,
+				22
 			],
 			"file": "spore_mushroom_mother_specks.png",
 			"fps": 4.0,
 			"frame_size": [
-				20,
-				20
+				24,
+				24
 			],
 			"frames": 4,
 			"kind": "ground",
@@ -3417,39 +3417,39 @@
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Spore Print, Windblown: a planted seedling (doesn't plant again), thin and pale. Breathe loop, anchor = its foot."
+			"note": "Spore Print, Windblown: a planted seedling (doesn't plant again), thin and pale, no glow. Breathe loop, anchor = its foot."
 		},
 		"spore_mushroom_small": {
 			"anchor": [
-				7,
-				12
+				9,
+				16
 			],
 			"file": "spore_mushroom_small.png",
 			"fps": 4.0,
 			"frame_size": [
-				14,
-				14
+				18,
+				18
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Spore Print: a glowing toadstool on the path, a slow breathe loop (14 px; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
+			"note": "Spore Print: a glowing toadstool on the path with its halo and shadow, a slow breathe loop (14 px toadstool in a 18 px frame; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26."
 		},
 		"spore_mushroom_sticky": {
 			"anchor": [
-				10,
-				18
+				12,
+				22
 			],
 			"file": "spore_mushroom_sticky.png",
 			"fps": 4.0,
 			"frame_size": [
-				20,
-				20
+				24,
+				24
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Spore Print, Sticky Caps: a drooping, glistening cap dripping onto the path (slows walkers). Breathe loop, anchor = its foot."
+			"note": "Spore Print, Sticky Caps: a drooping, glistening cap dripping onto the path (slows walkers); wet, so no glow. Breathe loop, anchor = its foot."
 		},
 		"spore_sprite_burst": {
 			"anchor": [

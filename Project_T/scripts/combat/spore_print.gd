@@ -616,7 +616,13 @@ func _stepped(point: Vector2, enemy) -> void:
 		if partner != null and living(enemy):
 			setup_apply(EVERYTHING_GROWS, partner, enemy, status_of(partner), EVERYTHING_STACKS, partner.get_damage())
 	m.last = enemy.get_instance_id()
-	Reactions._effect(MUSHROOM_POP, _spot(point)[0] + Vector2(0.0, -8.0), self, 1.0)  # The eaten cap pops (Tower Assets eaed6c74)
+	# The eaten cap pops (Tower Assets eaed6c74) where it stood and under the nightmare's feet (owner 2026-10-22: "it
+	# teleports on the enemy"): its anchor (the stem's foot) on the mushroom's own foot (it was 8 px up, so the cap
+	# jumped and its stub floated over the path), and in the mushrooms' y-sort (_layer), not over everything (a world Fx
+	# is at Fx.Z, over the nightmares, so the cap seemed to land on the one stepping on it).
+	var pop := Fx.play(MUSHROOM_POP, to_global(_spot(point)[0]), _layer if is_instance_valid(_layer) else self, 1.0)
+	if pop != null:
+		pop.z_index = 0
 	m.caps = int(m.caps) - 1
 	if int(m.caps) > 0:
 		queue_redraw()
@@ -1209,49 +1215,115 @@ func _load_saved() -> void:
 
 # --- Drawing: mushrooms are objects you can count, never a tint on the path -------------------------------------------
 
+# Each mushroom stands in the map's y-sort (owner 2026-10-22: "make sure all the assets make sense like the ink should
+# be on the ground, therefore below the mushroom"; and a mushroom further down the path had the one above's stem drawn
+# over it). They were all drawn by this node at z -1 with the ground, so ground marks added later (Inkcap's ink, wet
+# trails, whirlpools: z -1 too) landed on top of them. Now each one is a small Stand on a y-sorted layer in the
+# MapGenerator (with the trees, rocks, Wardens and nightmares), its origin on its foot: everything flat on the ground
+# stays under it, and whatever is lower on screen (a Warden, a nightmare, another mushroom) draws in front. This node's
+# own _draw only has the stands catch up (deferred: never changes the tree while drawing).
+var _layer: Node2D = null  # The y-sorted "Mushrooms" layer in the MapGenerator
+var _stands := {}  # Route point -> its Stand
+
 func _draw() -> void:
-	if not place_on():
+	_sync_stands.call_deferred()
+
+func _exit_tree() -> void:
+	if is_instance_valid(_layer):
+		_layer.queue_free()  # It lives in the map, not under this node
+	_layer = null
+	_stands.clear()
+
+func _sync_stands() -> void:
+	if not is_inside_tree():
 		return
+	if not place_on():
+		if is_instance_valid(_layer):
+			_layer.visible = false
+		return
+	if not is_instance_valid(_layer):
+		var map = dream_state.get("map_generator") if dream_state != null else null
+		if map == null or not is_instance_valid(map) or not map is Node2D:
+			return  # A bare DreamState (tools, some tests): no map to stand in
+		_layer = Node2D.new()
+		_layer.name = "Mushrooms"
+		_layer.y_sort_enabled = true
+		map.add_child(_layer)
+		_stands.clear()
+	_layer.visible = is_visible_in_tree()
+	var want := {}  # Route point -> regrowing
 	for point in mushrooms:
-		if not _index.has(point):
-			continue
-		var spot: Array = _spot(point)
-		var caps := int(mushrooms[point].caps)
-		if season_on():
-			draw_circle(spot[0] + Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
-		var m: Dictionary = mushrooms[point]
-		var phase := int(point.x * 2.0 + point.y * 2.0)
-		var flip := int(point.x * 2.0) % 2 == 1
-		var mother: Array = m.get("mother", [])
-		if not mother.is_empty():  # Mother Spore: its cap, the speckles in the stored statuses' colours (one a frame)
-			_draw_mushroom(spot[0], _sheet("spore_mushroom_mother"), 1.0, flip, phase)
-			var status: StringName = mother[(maxi(_breathe_frame, 0) + phase) % mother.size()][0]
-			_draw_mushroom(spot[0], _sheet("spore_mushroom_mother_specks"), 1.0, flip, phase,
-				EnemyStatuses.COLORS.get(status, Palette.HEARTLIGHT))
-		elif bool(m.get("seeded", false)):  # Windblown's planted ones: a thin seedling (they don't plant again)
-			_draw_mushroom(spot[0], _sheet("spore_mushroom_seedling"), 1.0, flip, phase)
-		elif caps >= 2:  # A clump: 2-4 caps grown together in one stack, one fewer per bite
-			_draw_mushroom(spot[0], _sheet("spore_mushroom_clump_%d" % mini(caps, 4)), 1.0, flip, phase)
-		elif evo(EVO_STICKY):  # Sticky Caps: a drooping, dripping cap (it slows walkers)
-			_draw_mushroom(spot[0], _sheet("spore_mushroom_sticky"), 1.0, flip, phase)
-		elif bool(m.get("crop", false)):  # Second Crop's: a pale cap
-			_draw_mushroom(spot[0], _sheet("spore_mushroom"), CROP_ALPHA, flip, phase)
-		else:
-			_draw_mushroom(spot[0], _sheet("spore_mushroom"), 1.0, flip, phase)
-	for point in _regrow:  # A small, faint one where a mushroom is growing back
+		if _index.has(point):
+			want[point] = false
+	for point in _regrow:
 		if _index.has(point) and not mushrooms.has(point):
-			_draw_mushroom(_spot(point)[0], _sheet("spore_mushroom_small"), 0.5, false)
+			want[point] = true
+	for point in _stands.keys():
+		if not want.has(point) or not is_instance_valid(_stands[point]):
+			if is_instance_valid(_stands[point]):
+				_stands[point].queue_free()
+			_stands.erase(point)
+	for point in want:
+		var stand: Stand = _stands.get(point)
+		if stand == null:
+			stand = Stand.new(self, point)
+			_layer.add_child(stand)
+			_stands[point] = stand
+		stand.regrowing = bool(want[point])
+		stand.global_position = to_global(_spot(point)[0])
+		stand.queue_redraw()
+
+# One mushroom (or a regrowing sprout), drawn by its Stand with the foot at the Stand's origin.
+func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
+	if regrowing:  # A small, faint one where a mushroom is growing back
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_small"), 0.5, false)
+		return
+	if not mushrooms.has(point):
+		return
+	var caps := int(mushrooms[point].caps)
+	if season_on():
+		c.draw_circle(Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
+	var m: Dictionary = mushrooms[point]
+	var phase := int(point.x * 2.0 + point.y * 2.0)
+	var flip := int(point.x * 2.0) % 2 == 1
+	var mother: Array = m.get("mother", [])
+	if not mother.is_empty():  # Mother Spore: its cap, the speckles in the stored statuses' colours (one a frame)
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_mother"), 1.0, flip, phase)
+		var status: StringName = mother[(maxi(_breathe_frame, 0) + phase) % mother.size()][0]
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_mother_specks"), 1.0, flip, phase,
+			EnemyStatuses.COLORS.get(status, Palette.HEARTLIGHT))
+	elif bool(m.get("seeded", false)):  # Windblown's planted ones: a thin seedling (they don't plant again)
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_seedling"), 1.0, flip, phase)
+	elif caps >= 2:  # A clump: 2-4 caps grown together in one stack, one fewer per bite
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_clump_%d" % mini(caps, 4)), 1.0, flip, phase)
+	elif evo(EVO_STICKY):  # Sticky Caps: a drooping, dripping cap (it slows walkers)
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom_sticky"), 1.0, flip, phase)
+	elif bool(m.get("crop", false)):  # Second Crop's: a pale cap
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), CROP_ALPHA, flip, phase)
+	else:
+		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), 1.0, flip, phase)
+
+class Stand extends Node2D:
+	var regrowing := false
+	var _print
+	var _point: Vector2
+	func _init(print_node, point: Vector2) -> void:
+		_print = print_node
+		_point = point
+		name = "Mushroom"
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # 1x crisp pixels
+	func _draw() -> void:
+		if is_instance_valid(_print):
+			_print._draw_stand(self, _point, regrowing)
 
 # Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner,
-# saves). Route points are half-cell lane centres, while the drawn path fills the whole corridor between the Wardens, so
-# where the walking line runs along one side of a corridor the mushrooms did too, pressed against the Wardens' bases
-# (user screenshots 2026-10-14 and 15, v0.1.5). The drawn spot is the middle of the open corridor across the route's
-# direction: the open half cells between the nearest blocked half (Warden, obstacle, border) on each side, looking up
-# to SPOT_SEARCH_HALVES each way. If one side finds no block that close (open ground), the route point stays. A bend
-# keeps its point. [px, along], `along` the route's direction (Twin Caps line up on it). Worked out for every route
-# point in on_board (when the board or the route changes), never per frame.
-# (The first version looked one half each way only, so corridors wider than one cell came out a quarter cell short.)
-const SPOT_SEARCH_HALVES := 4
+# saves). The drawn path is a ribbon about 40 px wide along the route's points, not the whole corridor between the
+# Wardens (the corridor centring of 2026-10-15 pushed mushrooms off it), so the spot is the ribbon's middle there
+# (PathGenerator.ribbon_centre: a bend's is pulled into the turn), then the foot moves down (and at a bend in) until the
+# whole cap fits inside the ribbon (fit_on_ribbon; a cap on the top edge of a stretch would stick out otherwise). [px, along],
+# `along` the route's direction (Twin Caps line up on it). Worked out for every route point in on_board (when the board
+# or the route changes), never per frame.
+const SPOT_ART_SIZE := Vector2(22.0, 25.0)  # The largest cap's visible width and height above its foot (clump_4)
 var _spots := {}
 
 func _spot(point: Vector2) -> Array:
@@ -1262,23 +1334,16 @@ func _spot(point: Vector2) -> Array:
 func _work_out_spot(i: int) -> Array:
 	var at: Vector2 = _route_px[i]
 	var along: Vector2 = (_route_px[mini(i + 1, _route_px.size() - 1)] - _route_px[maxi(i - 1, 0)]).normalized()
-	var map = dream_state.map_generator if dream_state != null else null
-	if map == null or along == Vector2.ZERO or not (is_zero_approx(along.x) or is_zero_approx(along.y)):
-		return [at, Vector2.RIGHT if along == Vector2.ZERO else along]  # A bend (or no map): its point
-	var across := Vector2(-along.y, along.x).round()
-	var h: Vector2 = map.pixels_to_half(at)
-	var open := [0, 0]  # Open half cells beside the route's own half, each side
-	for side in 2:
-		var dir: Vector2 = across if side == 0 else -across
-		var walled := false
-		for k in range(1, SPOT_SEARCH_HALVES + 1):
-			if map.path_layer.is_half_blocked(h + dir * k):
-				walled = true
-				break
-			open[side] = k
-		if not walled:
-			return [at, along]  # Open ground on this side: no corridor to centre in
-	return [at + across * (open[0] - open[1]) * 0.5 * cell() * 0.5, along]
+	if along == Vector2.ZERO:
+		along = Vector2.RIGHT
+	var path := PathGenerator.find(self)
+	if path == null:
+		return [at, along]
+	var at_global := to_global(at)
+	# A straight keeps the middle line: only a horizontal stretch moves the foot down so the cap fits (user screenshot
+	# 2026-10-22 19:44: mushrooms on the path's edges in one-cell corridors)
+	var straight := path.ribbon_axis(at_global) != Vector2.ZERO
+	return [to_local(path.fit_on_ribbon(path.ribbon_centre(at_global), SPOT_ART_SIZE, straight)), along]
 
 # The mushroom art (Tower Assets eaed6c74, owner 2026-10-18: "change the mushroom to a new asset"): its own breathing
 # toadstool, drawn at 1x (crisp pixels) with the stem's foot on the drawn spot; size by clump (one or two caps: normal;
@@ -1299,11 +1364,11 @@ func _sheet(sheet: String) -> Texture2D:
 		_sheets[sheet] = load(path) if ResourceLoader.exists(path) else null
 	return _sheets[sheet]
 
-func _draw_mushroom(at: Vector2, tex: Texture2D, alpha: float, flip: bool, phase: int = 0, tint: Color = Color(1, 1, 1)) -> void:
+func _draw_mushroom(c: CanvasItem, at: Vector2, tex: Texture2D, alpha: float, flip: bool, phase: int = 0, tint: Color = Color(1, 1, 1)) -> void:
 	if tex == null:
 		tex = _sheet("spore_mushroom")
 	if tex == null:
-		draw_circle(at + Vector2(0.0, -4.0), 5.0, Color(Palette.BLOSSOM, alpha))
+		c.draw_circle(at + Vector2(0.0, -4.0), 5.0, Color(Palette.BLOSSOM, alpha))
 		return
 	var w: float = tex.get_width() / float(MUSHROOM_FRAMES)
 	var h: float = tex.get_height()
@@ -1311,4 +1376,4 @@ func _draw_mushroom(at: Vector2, tex: Texture2D, alpha: float, flip: bool, phase
 	var rect := Rect2((at - Vector2(w / 2.0, h - 2.0)).round(), Vector2(w, h))  # The stem's foot at (w/2, h-2) on the spot, 1x
 	if flip:
 		rect = Rect2(rect.position + Vector2(w, 0.0), Vector2(-w, h))
-	draw_texture_rect_region(tex, rect, Rect2(w * frame, 0.0, w, h), Color(tint, alpha))  # multiplier
+	c.draw_texture_rect_region(tex, rect, Rect2(w * frame, 0.0, w, h), Color(tint, alpha))  # multiplier

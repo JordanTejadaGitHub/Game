@@ -933,7 +933,7 @@ func _state_line(rule: StringName, power: float) -> String:
 		&"sunlit_rest":
 			return ds.sunlit_line()
 		&"winding_path":
-			return "The Dew your maze pays at each rest: x%d" % roundi(DreamState.BATCH.WINDING_PATH_MULTIPLIER)
+			return "Your maze's share of every Dew pot: x%s" % str(DreamState.BATCH.WINDING_PATH_MULTIPLIER)
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]
 		&"canopy":

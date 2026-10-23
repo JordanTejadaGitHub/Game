@@ -40,6 +40,12 @@ func _run() -> void:
 	# Playtest fixes 2026-09-30: the needed-DPS estimate is dev-only; no loose line by Start.
 	_check(during.contains("Maze ") and not during.contains("needs ~"), "in a drift: the maze's DPS, no estimate outside dev runs (" + during + ")")
 	_check(not "benchmark" in main.get_node("HUD/DriftPanel"), "the DriftPanel has no loose benchmark line")
+	# The family pick after drift 1 covers the HUD, and the meter stays hidden under covering screens (7bb66508): pick first
+	var family = main.get_node("%FamilyPickScreen")
+	if director.awaiting_family_pick and family.visible:
+		family.choose(family.offer[0])
+		for f in 4:
+			await process_frame
 
 	# The first click on the header (user 2026-10-12: "first clicking the maze DPS bugs out": opening moved the whole
 	# card up, so the header left the pointer): it opens with its rows drawn, pins no tip, and the header stays put.

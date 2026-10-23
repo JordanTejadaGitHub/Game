@@ -241,7 +241,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			range_text = "%.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
 		if attack.special == BranchKit.BROOD:  # Its reach is its walk (tower_design.md ef9ceffd): tiles, not an attack range
 			var walk := BranchKit.brood_walk_tiles(tower) if is_instance_valid(tower) else 0
-			range_text = ("%d tiles" % walk) if walk > 0 else "up the path"
+			range_text = ("%d cells" % walk) if walk > 0 else "up the path"
 		var main_row: Array = [[BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
@@ -531,7 +531,7 @@ func stat_tip(stat: StringName) -> String:
 			meaning = "Attack speed: %.2f attacks a second" % _tower.get_attacks_per_second()
 		&"range" when attack.special == BranchKit.BROOD:  # Brood Cap / Hatchery: the walk, not the attack range
 			var walk := BranchKit.brood_walk_tiles(_tower) if is_instance_valid(_tower) and _tower.is_inside_tree() else 0
-			return ("Sprites walk %d tiles up the path." % walk) if walk > 0 else "Sprites walk up the path toward the start."
+			return ("Sprites walk %d cells up the path." % walk) if walk > 0 else "Sprites walk up the path toward the start."
 		&"range":
 			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
 				else "Range: %.1f cells" % _tower.get_range_cells()

@@ -62,7 +62,8 @@ func _run() -> void:
 	var near := _spawn(target.global_position + Vector2(0.8, 0) * CELL)
 	var far := _spawn(target.global_position + Vector2(2, 0) * CELL)
 	boulder.projectile_landed(target, target.global_position)
-	_check(is_equal_approx(_lost(target), boulderback.damage) and is_equal_approx(_lost(near), boulderback.damage * boulderback.splash_share) and _lost(far) == 0,
+	var form: float = boulder._form_hit_multiplier()  # x1.4: Boulderback is a hit final (e57b2a99); its splash is its own direct hit
+	_check(is_equal_approx(_lost(target), boulderback.damage * form) and is_equal_approx(_lost(near), boulderback.damage * boulderback.splash_share * form) and _lost(far) == 0,
 		"Boulderback: its damage on the target, splash_share within 1 cell (%d / %d / %d)" % [_lost(target), _lost(near), _lost(far)])
 	var sleepy := _spawn(boulder.global_position + Vector2(CELL, 0))
 	sleepy.statuses.apply(EnemyStatuses.DROWSY)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "undiluted"
+display_name = "Undiluted"
+description = "{reactions} never trigger. Instead, {spored} ticks and {static} bolts deal double damage."
+tip = "Cards that only work through {reactions} are no longer offered. {named_combo:lightning_rod} doesn't trigger either."
+rarity = 3
+kind = 3
+tags = Array[String](["status", "defining"])
+max_stacks = 1
+min_act = 2
+rule_id = &"undiluted"

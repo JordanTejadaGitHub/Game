@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "wash_away"
 display_name = "Wash Away"
-description = "Hits from Dewdrop Wardens and Wardens {near} them on a nightmare with {damp} wear its {dread_shell} down twice as fast. Not bosses."
-tip = "{dread_shell}: a crust that takes part of each hit until it breaks. The first hit, before any {damp}, doesn't count. {warden:dewdrop}s count. Works for: {warden:dewdrop}s and any Warden {near} one, against shelled nightmares. Safe."
+description = "Hits from {family:dewdrop} Wardens and Wardens {near} them on a nightmare with {damp} wear its {dread_shell} down twice as fast. Not bosses."
+tip = "{dread_shell}: a crust that takes part of each hit until it breaks. The first hit, before any {damp}, doesn't count. {family:dewdrop} Wardens count. Works for: {family:dewdrop} Wardens and any Warden {near} one, against shelled nightmares. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["water", "lent"])

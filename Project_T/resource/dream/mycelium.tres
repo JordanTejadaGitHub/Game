@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "mycelium"
 display_name = "Mycelium"
-description = "Sprouts {touching} a spore Warden add 1 {stack} of {spored} with each hit, and 1 more {stack} to every other status on the nightmare."
+description = "Sprouts {touching} a {family:sporeling} Warden add 1 {stack} of {spored} with each hit, and 1 more {stack} to every other status on the nightmare."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "sprout", "lent"])
 requires = Array[String](["sporeling"])
 max_stacks = 1
 rule_id = &"mycelium"
-tip = "At most 3 Sprouts feed one nightmare a second. Never {held}, never past {full}; {static} stops 1 short of a bolt. Works for: Sprouts packed around a spore Warden. Safe."
+tip = "At most 3 Sprouts feed one nightmare a second. Doesn't add {held}; never past {full}; {static} stops 1 short of a bolt. Works for: Sprouts packed around a {family:sporeling} Warden. Safe."
 makes = Array[StringName]([&"stacks"])
 uses = Array[StringName]([&"cluster"])

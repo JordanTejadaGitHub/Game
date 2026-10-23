@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "high_tide"
 display_name = "High Tide"
-description = "Hits from Wardens {near} a Dewdrop Warden deal 10% more for each status on the nightmare, up to +30%."
-tip = "Hits only, not status damage. {warden:dewdrop}s count. Works for: any Warden {near} a Dewdrop Warden. A bet: needs several statuses on the same nightmares."
+description = "Hits from Wardens {near} a {family:dewdrop} Warden deal 10% more for each status on the nightmare, up to +30%."
+tip = "Hits only, not status damage. {family:dewdrop} Wardens count. Works for: any Warden {near} a {family:dewdrop} Warden. A bet: needs several statuses on the same nightmares."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "lent"])

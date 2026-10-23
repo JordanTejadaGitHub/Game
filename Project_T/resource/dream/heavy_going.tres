@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_going"
 display_name = "Heavy Going"
-description = "Dewdrops and Wardens {near} them deal 25% more to nightmares walking slowed."
+description = "{family:dewdrop} Wardens and Wardens {near} them deal 25% more to nightmares walking slowed."
 tip = "Any slow counts except {drowsy}'s; {held} and {asleep} nightmares stand still, so they don't. Hits only, not status damage. A slowed nightmare drips while it counts. Works for: Wardens beside slows. Safe."
 rarity = 1
 kind = 3
