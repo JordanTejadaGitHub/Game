@@ -1731,7 +1731,7 @@ class LanternMark extends Node2D:
 		var lights = _lights.get_ref()
 		var art: bool = lights != null
 		var enemy = _enemy.get_ref()
-		var bar: Vector2 = enemy._bar_offset if enemy != null and "_bar_offset" in enemy else BAR_DEFAULT
+		var bar: Vector2 = enemy._body_offset() + enemy._bar_offset if enemy != null and "_bar_offset" in enemy else BAR_DEFAULT  # Where its HUD draws the bar
 		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered, hung just under the bar (lf_strung_pip)
 			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 4)
 			if not (art and lights.evo_mark(self, &"lf_strung_pip", pip)):

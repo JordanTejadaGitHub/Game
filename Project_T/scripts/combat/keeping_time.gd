@@ -371,6 +371,8 @@ func _process(delta: float) -> void:
 func _ring_anchor(enemy) -> Vector2:
 	var bar = enemy.get("_bar_offset")
 	var y: float = (bar.y if bar is Vector2 else PIP_OFFSET.y) + BAR_HALF_HEIGHT + RING_GAP
+	if enemy.has_method("_body_offset"):
+		y += enemy._body_offset().y  # The HUD draws the bar on the body (its foot lift), not the origin
 	return enemy.global_position + Vector2(0.0, y)
 
 func _draw_pips() -> void:
@@ -402,7 +404,7 @@ func _draw_pips() -> void:
 		# (Roguelite asset chat, 2026-10-23: in the gap left of the rings, clear of the bar and the status row)
 		if primed:
 			var bar = enemy.get("_bar_offset")
-			evo_mark(_pip_layer, ART_PRIME, enemy.global_position + (bar if bar is Vector2 else Vector2(0, -38)) + PRIME_AT)
+			evo_mark(_pip_layer, ART_PRIME, enemy.global_position + enemy._body_offset() + (bar if bar is Vector2 else Vector2(0, -38)) + PRIME_AT)
 		for k in need:
 			var radius := RING_FIRST + RING_STEP * k
 			if k < filled:
