@@ -1047,10 +1047,18 @@ func preserve_other_statuses(new_id: StringName) -> void:
 		changes += 1
 
 # --- Lingering (Dewdrop's lent cards, owner 2026-10-15: "statuses linger") ---------------------------------------------
-# Every Dewdrop card that makes a status last longer goes through linger(): all of them together add at most LINGER_MAX s
-# to one status's life (LINGER_MAX_STATIC for Charged), so nothing stays up for ever. Never Rooted or Drowsy.
-const LINGER_MAX := 4.0
-const LINGER_MAX_STATIC := 2.0
+# Every Dewdrop card that makes a status last longer goes through linger(), the Calling and its evolutions (Wet Footprints
+# included) through linger_calling(): all of them together add at most LINGER_MAX s past the status's last landing
+# (LINGER_MAX_STATIC for Charged), so nothing stays up for ever (linger_room). Never Rooted or Drowsy.
+const LINGER_MAX := 6.0  # Balancing 2026-10-23: one total for every source (was 4 s for the lent cards + 4 s for the Calling)
+const LINGER_MAX_STATIC := 3.0  # Balancing 2026-10-23: Charged's total (was 2 s + 2 s)
+
+# The seconds `id` may still linger, every source together (the lent cards' "lingered" and the Calling's "calling_lingered").
+func linger_room(id: StringName) -> float:
+	if not _active.has(id):
+		return 0.0
+	var status: Dictionary = _active[id]
+	return (LINGER_MAX_STATIC if id == STATIC else LINGER_MAX) - float(status.get("lingered", 0.0)) - float(status.get("calling_lingered", 0.0))
 signal status_ran_out(id: StringName, peak: int, source: Node, potency: float, line: String)  # Ran out of time (not spent)
 # A status just reached its most stacks (owner 2026-10-16: "make these dream cards more noticeable"): the nightmare flashes
 # it, so every card that stacks or keeps statuses shows its payoff.
@@ -1064,7 +1072,7 @@ func linger(id: StringName, seconds: float) -> float:
 	if seconds <= 0.0 or not can_linger(id) or not _active.has(id) or (id == MARKED and marked_forever) or (id == STATIC and static_forever):
 		return 0.0
 	var status: Dictionary = _active[id]
-	var room: float = (LINGER_MAX_STATIC if id == STATIC else LINGER_MAX) - float(status.get("lingered", 0.0))
+	var room: float = linger_room(id)
 	var added := minf(seconds, room)
 	if added <= 0.0:
 		return 0.0
@@ -1080,8 +1088,8 @@ func linger(id: StringName, seconds: float) -> float:
 	return added
 
 # (F2 lent × Calling, owner 2026-10-18; f1_spec.md) The Calling's own linger (Riverside, Stagnant Water): as linger(), but
-# with its own cap past the last landing (CALLING_LINGER_MAX; Charged CALLING_LINGER_MAX_STATIC), so the lent linger cards
-# add their LINGER_MAX on top instead of sharing one room (at most 8 s past landing, Charged 4 s).
+# with its own cap past the last landing (CALLING_LINGER_MAX; Charged CALLING_LINGER_MAX_STATIC), inside the one total
+# (linger_room: LINGER_MAX past landing for every source together, Charged LINGER_MAX_STATIC; Balancing 2026-10-23).
 const CALLING_LINGER_MAX := 4.0
 const CALLING_LINGER_MAX_STATIC := 2.0
 
@@ -1089,7 +1097,8 @@ func linger_calling(id: StringName, seconds: float) -> float:
 	if seconds <= 0.0 or not can_linger(id) or not _active.has(id) or (id == MARKED and marked_forever) or (id == STATIC and static_forever):
 		return 0.0
 	var status: Dictionary = _active[id]
-	var room: float = (CALLING_LINGER_MAX_STATIC if id == STATIC else CALLING_LINGER_MAX) - float(status.get("calling_lingered", 0.0))
+	var room: float = minf((CALLING_LINGER_MAX_STATIC if id == STATIC else CALLING_LINGER_MAX) - float(status.get("calling_lingered", 0.0)),
+		linger_room(id))
 	var added := minf(seconds, room)
 	if added <= 0.0:
 		return 0.0
