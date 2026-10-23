@@ -376,6 +376,8 @@ static func stack_number(key: String) -> int:
 	var status := StringName(key.substr(kind.length() + 1))
 	if kind == "need":  # The lowest Reaction need for that status, the number the status row's blue frame uses (Enemy Code 725f18fc)
 		return Reactions.ready_need(status, EnemyStatuses.new())
+	if kind == "crown":  # "crown_spored" / "crown_static": a Crowned Reaction's third status need (Tempest 6, Prismstorm / Starfall 8)
+		return Reactions.need(Reactions.CROWNED_MIN_SPORES if status == EnemyStatuses.SPORED else Reactions.CROWNED_MIN_STATIC)
 	if kind == "clap" or kind == "bossclap":  # "clap_static": Thunderclap's / Lightning Rod's own Charged need (higher than need_static's Ignite)
 		var clap := EnemyStatuses.new()
 		clap.is_boss = kind == "bossclap"

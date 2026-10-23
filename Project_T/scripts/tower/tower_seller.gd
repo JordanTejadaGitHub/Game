@@ -189,7 +189,7 @@ func sell_refusal(tower: Tower) -> String:
 	if not can_sell():
 		return sell_block_reason()
 	if tower.tower_data.rooted:
-		return "Rooted: it can't be sold"
+		return "Can't be sold"
 	return ""
 
 func _toast(text: String) -> void:
@@ -1004,7 +1004,7 @@ func _draw() -> void:
 	if sell_mode:
 		# Sell mode: the POOR outline and what it gives back now (the live rest / drift rate), or why it can't be sold.
 		draw_rect(rect, UiStyle.POOR, false, 3.0)
-		var tag := "Rooted" if _hover_tower.tower_data.rooted else ("+%d Dew" % get_refund(_hover_tower) if can_sell() else sell_block_reason())
+		var tag := "Can't be sold" if _hover_tower.tower_data.rooted else ("+%d Dew" % get_refund(_hover_tower) if can_sell() else sell_block_reason())
 		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, tag, UiStyle.POOR)
 		return
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
