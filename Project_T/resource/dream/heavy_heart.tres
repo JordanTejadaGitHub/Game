@@ -17,4 +17,3 @@ min_act = 2
 rule_id = &"heavy_heart"
 requires_role = &"heavy"
 min_owned_statuses = 2
-makes = Array[StringName]([&"reaction"])

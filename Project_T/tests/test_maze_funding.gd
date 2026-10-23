@@ -26,7 +26,8 @@ func _run() -> void:
 	_check(is_equal_approx(director.get_health_scale(shade, 26), director.get_growth(26) * director.get_early_multiplier(26) * director.trial_health_multiplier), "Act2 health has no additional increase")
 	_check(is_equal_approx(director.get_health_scale(boss, 25), director.act1_boss_health_multiplier * director.trial_health_multiplier), "boss health remains unchanged")
 	_check(is_equal_approx(director.get_dew_pot(10), lerpf(30.0,115.0,9.0/23.0) * director.trial_dew_multiplier), "opening drift income remains unchanged")
-	_check(is_equal_approx(director.get_dew_pot(11), lerpf(30.0,115.0,10.0/23.0)*1.15 * director.trial_dew_multiplier), "Act1 kill pot increases fifteen percent from drift11")
+	_check(is_equal_approx(director.get_dew_pot(11), lerpf(30.0,115.0,10.0/23.0) * (1.0 + director.maze_act1_dew_bonus) * director.trial_dew_multiplier) and director.maze_act1_dew_bonus == 0.0,
+		"Act1 kill pots get no funding bonus from drift11: the maze's pot share replaced it (Balancing 2026-10-22, 20b8c06a)")
 	_check(is_equal_approx(director.get_dew_pot(26),103.5*1.2 * director.trial_dew_multiplier), "Act2 kill pot increases twenty percent")
 	_check(is_equal_approx(director.get_dew_pot(51),121.5 * director.trial_dew_multiplier), "later-act kill income remains unchanged")
 	_check(is_equal_approx(director.get_dew_pot(25),220.0 * director.trial_dew_multiplier), "boss pot remains unchanged")
