@@ -759,6 +759,36 @@ water bonus on Damp makes it about 21.6/s against groups: the best early answer 
 Creeps, Wraiths). Control returns late through Frostfern and the Tidecaller. Watch Dewdrop's pick
 rate.
 
+## Reactions grow with the Wardens that set them off (2026-10-22)
+
+User, after a run to drift 75 (Sporeling, Dewdrop, Firefly Jar, Bellflower): *"Feels challenging, but
+something feels off. I built for a Reaction build, but at the end game it's just Reaction slop and
+towers are just there to put statuses on enemies."* Reactions dealt 68% of the run's damage (75–86% in
+act 3), and card products reached ×11 on single hits. The cause: a Reaction's size came from the cards
+(`DreamState.reaction_build_multiplier` multiplies every matching card together, with the cap off),
+not from the Warden, so growing and ranking Wardens hardly changed it. **Goal:** Reaction builds may be
+the strongest route, but a Warden stays a Warden, and the end game isn't one kind of build.
+
+1. **A Reaction's size comes from the Warden that sets it off.** Its damage is that Warden's own hit
+   (`get_damage()`: tier, ranks, Power, family bonuses) × the Reaction's factor (Balancing re-expresses
+   each Reaction's numbers as a share of a hit). "Sets it off" = the Warden whose hit or status landing
+   completed the Reaction; a Reaction completed by a status tick uses that status's applier. The whole
+   Reaction is credited to that Warden (DamageLog source; the meter's "from combos" share shows it). So
+   growing a strong Warden grows its Reactions, and which Warden finishes the combo is a placement choice.
+2. **Reactions spend what they use.** Each Reaction removes the stacks it needed (Thunderclap its 3
+   Charged, Ignite its Poisoned, etc.; a Crowned Reaction also spends its third status); statuses past
+   the requirement stay. Wardens keep re-applying, and their own hits carry the gaps between Reactions.
+   Balancing lists any Reaction that should keep its statuses (e.g. one whose status is a long setup).
+3. **Cards that feed Reactions add together, then multiply once.** `reaction_build_multiplier` becomes
+   1 + the sum of the matching cards' shares, not their product, and the cap is on again for Reactions
+   (start ×4; Balancing sets it). Cards still make Reaction builds strong; they can't compound to ×11.
+4. **No new final-form payoffs now.** Finals already have their twists (Logjam, Landslide, Momentum…)
+   and Ascended forms are their own engines; with 1–3 a grown Warden's hit is what Reactions are made of.
+   Revisit after the next long run if finals still feel like dispensers.
+
+Rules kept: random Dreams, no hand-holding, the route is the player's plan, conditional boosts allowed,
+no flat damage.
+
 ## Reactions: combos you can see
 
 **Reactions need a grown Warden** (2026-09-30, user: the starting three discovered all 7 of their
