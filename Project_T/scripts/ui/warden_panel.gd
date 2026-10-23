@@ -268,6 +268,8 @@ func _refresh() -> void:
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
+	if Tower.WAYSTONE.on_stone(_tower):
+		lines.append(Tower.WAYSTONE.PANEL_LINE)  # Old Waystone landmark (environment_assets.md "Landmarks")
 	_notes.text = "\n".join(lines)  # The header's own notes stay in view; the rest goes behind Details
 	_notes.visible = not lines.is_empty()
 	lines.clear()

@@ -805,6 +805,7 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	_apply_data()
 	_sync_count_tracker()  # The attack tracker over its head, for forms with an every-Nth or timed trigger
+	WAYSTONE.ensure(self)  # Old Waystone landmark: the run's +1 Dew per dispel listener, on a map that has one
 	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
 	_anim_time = randf() * tower_data.frame_count / tower_data.animation_fps
 
@@ -2610,6 +2611,7 @@ const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")  # Boosted-attack 
 # a beam starts): projectiles, ripples, bolts, clouds and rings read it as they are made.
 var dream_glow_tier := 0
 const CALLINGS := preload("res://scripts/combat/callings.gd")  # The first family's built-in rule (dream_council_review.md 11)
+const WAYSTONE := preload("res://scripts/tower/waystone.gd")  # Old Waystone landmark (environment_assets.md "Landmarks")
 var _volley_target: WeakRef = null  # Volley (Acorn's Calling): the nightmare this Warden's forced attack aims at
 
 # Volley: attack now, at `target` if this Warden aims and can reach it.
