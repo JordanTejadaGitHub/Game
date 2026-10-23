@@ -59,7 +59,7 @@ func _initialize() -> void:
 		"the price tokens read the Warden (\"%s\")" % IconInfo.format(acorn.description))
 	# {pct:warden.field} reads the Warden's share field (Beacon's Mark, Grafted Elder's copy), so the text can't drift
 	var beacon: UpgradeData = load("res://resource/dream/dream_beacon.tres")
-	var mark := "+%d%%" % roundi((load("res://resource/tower/beacon.tres") as TowerData).marked_bonus * 100.0)
+	var mark := "%d%% more damage" % roundi((load("res://resource/tower/beacon.tres") as TowerData).marked_bonus * 100.0)  # (Round 2: "N% more damage instead of Exposure's usual 25%")
 	_check(IconInfo.format(beacon.description).contains(mark), "Beacon's text shows its marked_bonus (%s): \"%s\"" % [mark, IconInfo.format(beacon.description)])
 	# An offered card always names what it's about (story chat, Mushroom Rain read "???'s spore cloud"): no "???" from a
 	# combo or nightmare not yet found, in any card's or Omen's text ({named_combo:x} on cards).
