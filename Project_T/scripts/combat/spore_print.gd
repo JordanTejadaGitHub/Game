@@ -1319,8 +1319,8 @@ class Stand extends Node2D:
 # Where a mushroom on route point `point` is DRAWN (the gameplay point stays the route point: touches, doses, owner,
 # saves). The drawn path is a ribbon about 40 px wide along the route's points, not the whole corridor between the
 # Wardens (the corridor centring of 2026-10-15 pushed mushrooms off it), so the spot is the ribbon's middle there
-# (PathGenerator.ribbon_centre: a bend's is pulled into the turn), then the foot moves down and in until the whole cap
-# fits inside the ribbon (fit_on_ribbon; a cap on the top edge of a stretch would stick out otherwise). [px, along],
+# (PathGenerator.ribbon_centre: a bend's is pulled into the turn), then the foot moves down (and at a bend in) until the
+# whole cap fits inside the ribbon (fit_on_ribbon; a cap on the top edge of a stretch would stick out otherwise). [px, along],
 # `along` the route's direction (Twin Caps line up on it). Worked out for every route point in on_board (when the board
 # or the route changes), never per frame.
 const SPOT_ART_SIZE := Vector2(22.0, 25.0)  # The largest cap's visible width and height above its foot (clump_4)
@@ -1339,8 +1339,11 @@ func _work_out_spot(i: int) -> Array:
 	var path := PathGenerator.find(self)
 	if path == null:
 		return [at, along]
-	var centre := path.ribbon_centre(to_global(at))
-	return [to_local(path.fit_on_ribbon(centre, SPOT_ART_SIZE)), along]
+	var at_global := to_global(at)
+	# A straight keeps the middle line: only a horizontal stretch moves the foot down so the cap fits (user screenshot
+	# 2026-10-22 19:44: mushrooms on the path's edges in one-cell corridors)
+	var straight := path.ribbon_axis(at_global) != Vector2.ZERO
+	return [to_local(path.fit_on_ribbon(path.ribbon_centre(at_global), SPOT_ART_SIZE, straight)), along]
 
 # The mushroom art (Tower Assets eaed6c74, owner 2026-10-18: "change the mushroom to a new asset"): its own breathing
 # toadstool, drawn at 1x (crisp pixels) with the stem's foot on the drawn spot; size by clump (one or two caps: normal;

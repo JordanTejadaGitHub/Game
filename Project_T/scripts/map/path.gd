@@ -355,42 +355,59 @@ func on_ribbon(global_px: Vector2) -> bool:
 	var x := column * DUAL_SIZE.x + clampi(inside.x, 0, DUAL_SIZE.x - 1)
 	return x < art.get_width() and art.get_pixel(x, clampi(inside.y, 0, DUAL_SIZE.y - 1)).a > 0.4
 
-# The middle of the drawn ribbon at `global_px`: the centroid of the drawn route halves joined to the nearest one (a
-# straight: its point; a bend: pulled into the inside of the turn, where the ribbon is). Off the ribbon: unchanged.
+# The middle of the drawn ribbon at `global_px`: the centroid of the nearest drawn route half and its drawn 4-neighbours
+# (a straight: its point, exactly; a bend: pulled into the inside of the turn, where the ribbon is). Diagonals never
+# count: they pulled the point next to every bend ~8 px toward the turn (user screenshot 2026-10-22 19:44). Off the
+# ribbon: unchanged.
+const RIBBON_STEPS: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
+const NO_RIBBON_NODE := Vector2i(-100000, -100000)
+
 func ribbon_centre(global_px: Vector2) -> Vector2:
-	if _dual_halves.is_empty():
+	var n := _ribbon_node(global_px)
+	if n == NO_RIBBON_NODE:
 		return global_px
-	var half := Vector2(DUAL_SIZE)
-	var n := Vector2i(((to_local(global_px) - half / 2.0) / half).round())
-	if not _dual_halves.has(n):
-		var found := false
-		for step: Vector2i in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
-			if _dual_halves.has(n + step):
-				n += step
-				found = true
-				break
-		if not found:
-			return global_px
 	var sum := Vector2(n)
 	var count := 1
-	var joined := {n: true}
-	for step: Vector2i in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+	for step in RIBBON_STEPS:
 		if _dual_halves.has(n + step):
-			joined[n + step] = true
 			sum += Vector2(n + step)
 			count += 1
-	for dy in [-1, 1]:  # A diagonal counts only through a drawn neighbour (a parallel stretch nearby never does)
-		for dx in [-1, 1]:
-			var d := n + Vector2i(dx, dy)
-			if _dual_halves.has(d) and (joined.has(n + Vector2i(dx, 0)) or joined.has(n + Vector2i(0, dy))):
-				sum += Vector2(d)
-				count += 1
+	var half := Vector2(DUAL_SIZE)
 	return to_global(sum / count * half + half / 2.0)
 
+# The ribbon's direction at `global_px`: Vector2.DOWN on a vertical straight, Vector2.RIGHT on a horizontal one,
+# Vector2.ZERO at a bend, a crossing, an end or off the ribbon.
+func ribbon_axis(global_px: Vector2) -> Vector2:
+	var n := _ribbon_node(global_px)
+	if n == NO_RIBBON_NODE:
+		return Vector2.ZERO
+	var vertical := _dual_halves.has(n + Vector2i.UP) and _dual_halves.has(n + Vector2i.DOWN)
+	var level := _dual_halves.has(n + Vector2i.LEFT) and _dual_halves.has(n + Vector2i.RIGHT)
+	if vertical and not level:
+		return Vector2.DOWN
+	if level and not vertical:
+		return Vector2.RIGHT
+	return Vector2.ZERO
+
+# The drawn route half under `global_px`, else a drawn 4-neighbour (the walking route can run one lane over from the
+# drawn one), else NO_RIBBON_NODE.
+func _ribbon_node(global_px: Vector2) -> Vector2i:
+	if _dual_halves.is_empty():
+		return NO_RIBBON_NODE
+	var half := Vector2(DUAL_SIZE)
+	var n := Vector2i(((to_local(global_px) - half / 2.0) / half).round())
+	if _dual_halves.has(n):
+		return n
+	for step in RIBBON_STEPS:
+		if _dual_halves.has(n + step):
+			return n + step
+	return NO_RIBBON_NODE
+
 # Where art standing on its foot fits inside the ribbon: `foot` global, `size` the art's visible width and height above
-# the foot. Tries nudges up to RIBBON_FIT_REACH px (down and in first); none fits: the nudge that leaves the least
-# outside.
-func fit_on_ribbon(foot: Vector2, size: Vector2) -> Vector2:
+# the foot. Tries nudges up to RIBBON_FIT_REACH px (down and in first). `straight` (ribbon_axis not ZERO): up or down
+# only, never sideways, so the art stays on the middle line. None fits: `foot` unchanged (a partial fit was always a
+# nudge toward an edge).
+func fit_on_ribbon(foot: Vector2, size: Vector2, straight: bool = false) -> Vector2:
 	if _dual_tiles.is_empty():
 		return foot
 	if _fit_offsets.is_empty():
@@ -402,21 +419,17 @@ func fit_on_ribbon(foot: Vector2, size: Vector2) -> Vector2:
 	var w := size.x / 2.0
 	var probes: Array[Vector2] = [Vector2(-w, 0), Vector2(w, 0), Vector2(0, 0), Vector2(-w * 0.7, -size.y),
 		Vector2(0, -size.y), Vector2(w * 0.7, -size.y), Vector2(-w, -size.y / 2.0), Vector2(w, -size.y / 2.0)]
-	var best := foot
-	var best_out := probes.size() + 1
 	for nudge in _fit_offsets:
-		var out := 0
+		if straight and nudge.x != 0.0:
+			continue
+		var fits := true
 		for probe in probes:
 			if not on_ribbon(foot + nudge + probe):
-				out += 1
-				if out >= best_out:
-					break
-		if out == 0:
+				fits = false
+				break
+		if fits:
 			return foot + nudge
-		if out < best_out:
-			best_out = out
-			best = foot + nudge
-	return best
+	return foot
 
 func _nearer_nudge(a: Vector2, b: Vector2) -> bool:
 	return a.length() - 0.25 * a.y < b.length() - 0.25 * b.y  # Down a little before up
