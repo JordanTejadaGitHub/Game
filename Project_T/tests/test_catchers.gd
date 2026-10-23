@@ -107,7 +107,7 @@ func _run() -> void:
 	var log := SupportLog.find(catcher)
 	_check(log != null and log.get_stats(catcher).dew_caught > 0.0 and log.get_stats(well).dew_paid > 0.0,
 		"SupportLog: Dew caught and paid per catcher")
-	_check(log.get_panel_line(catcher).begins_with("Caught this run: "), "panel line (%s)" % log.get_panel_line(catcher))
+	_check(log.get_panel_line(catcher).begins_with("Dew caught this run: "), "panel line (%s)" % log.get_panel_line(catcher))
 
 	# Interest caps: 120 each, DewCatch.INTEREST_CAP together (260; 60 and 130 before the Dew x2 second pass)
 	var well2 := _plant("wellspring", Vector2(8, 5))

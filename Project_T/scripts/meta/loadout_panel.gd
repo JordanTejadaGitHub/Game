@@ -73,7 +73,7 @@ func open(memory: Dictionary, start_run: bool) -> void:
 	_memory = memory
 	starting = start_run
 	_carried = HeartwoodMemory.get_loadout(memory)
-	_go.text = "Start run" if start_run else "Done"
+	_go.text = "Start run" if start_run else "Close"
 	_go.theme_type_variation = &"PrimaryButton" if start_run else &""  # Start run is the panel's one primary
 	_rebuild()
 	visible = true

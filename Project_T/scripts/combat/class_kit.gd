@@ -24,7 +24,8 @@ static func is_reaction_burst(event) -> bool:
 # Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
 	&"riptide", &"last_drop", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
-	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff"]  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
+	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff",  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
+	&"deathcap", &"pond_spill", &"breaker", &"churn", &"flare", &"haze"]  # Calling evolution hits (section 33; class_kit.calling_hit)
 
 var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
 var _hooked := false
@@ -47,6 +48,7 @@ func _lent_rules() -> Array:
 
 func _ready() -> void:
 	z_index = -1  # With the ground: under Wardens and nightmares
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The Calling evolution marks: 1x crisp pixels
 	if dream_state != null and dream_state.get("drift_director") != null:
 		dream_state.drift_director.rest_started.connect(_rest_started.unbind(4))
 
@@ -423,6 +425,77 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 func calling_free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
 	return free_hit(tower, enemy, scale, tag, cap, own, true)
 
+
+# --- Calling evolutions that split into builds (owner 2026-10-23, dream_council_review.md 33; evo_shared_spec.md 3) ----
+# The one damage-only hit a Calling row deals (a free hit, flare, spill, wave or Toll): that nightmare only, never a status,
+# never a crit, never HEAVY, never an F1 Calling output (no arm()). It gets the Warden's form x1.4 and the hit cards' standing
+# bonuses (dream_hit_cards.preview_multiplier, side-effect free), held with the Warden's Dream rows inside the x4 card cap,
+# and is noted as one product (X1). It is damage only for every other card (R1): its tag is in CLASS_TAGS.
+# `scale`: share of the free-hit base (min(hit, one second of damage)); `scaled = false`: `scale` is the final amount.
+# `budget`: one per Warden per CALLING_HIT_EVERY on that meta (&"" = the caller throttles itself). Returns what it dealt.
+const CALLING_HIT_EVERY := 1.0
+const CALLING_META := &"ck_calling_next"  # Never FREE_META: a base free hit and a Calling hit never eat each other
+
+func calling_hit(tower, enemy, scale: float, tag: StringName, own: StringName = &"", is_area := false,
+		scaled := true, budget: StringName = CALLING_META, boss_share := 1.0) -> float:
+	if not (tower is Tower) or not is_instance_valid(tower) or tower.attack_data == null or not living(enemy):
+		return 0.0
+	assert(tag in CLASS_TAGS, "calling_hit: %s must be a class tag" % tag)
+	if budget != &"":
+		if now() < float(tower.get_meta(budget, -INF)):
+			return 0.0
+		tower.set_meta(budget, now() + CALLING_HIT_EVERY)
+	var amount := scale
+	if scaled:
+		amount = minf(tower.get_damage(), second_of(tower)) * scale * tower._form_hit_multiplier()
+		var p: float = dream_state.hit_cards.preview_multiplier(tower, enemy, is_area) if dream_state != null else 1.0
+		var rows: float = maxf(tower._dream_bonus(&"soothe"), 1.0)
+		var s := maxf(scale, 1.0)
+		p = minf(p * s, DreamState.CARD_PRODUCT_CAP / rows) / s  # The x4 line with the Warden's own rows
+		amount *= p
+		DamageLog.note_card_bonus(String(own) if own != &"" else String(tag), p)  # One cap per hit (X1)
+	if enemy.enemy_data != null and enemy.enemy_data.is_boss:
+		amount *= boss_share
+	if amount <= 0.0:
+		return 0.0
+	_own_begin(own, enemy)
+	enemy.take_damage(amount, tower.tower_data.line, is_area, false, tower, tag)
+	_own_end(own)
+	if own != &"":  # (The base Calling's Toll has no evolution to credit)
+		credit(own, enemy.global_position, tower)
+	return amount
+
+# The one capped Calling slow (Dewdrop rows; evo_shared_spec.md 7): rows add requests during a poll; at its end each
+# nightmare gets one timed slow of their sum, at most CALLING_SLOW_MAX (bosses half), rounded to 5% so add_slow's list stays
+# short. It never stacks with itself: rows raise it within the cap.
+const CALLING_SLOW_MAX := 0.35
+var _slow_requests := {}  # Enemy instance id -> [enemy, sum, own]
+
+func calling_slow(enemy, amount: float, own: StringName = &"") -> void:
+	if amount <= 0.0 or not living(enemy):
+		return
+	var key: int = enemy.get_instance_id()
+	var row: Array = _slow_requests.get(key, [enemy, 0.0, own])
+	row[1] = float(row[1]) + amount
+	_slow_requests[key] = row
+
+static func snap5(amount: float) -> float:
+	return snappedf(amount, 0.05)
+
+func _apply_calling_slows() -> void:
+	for key in _slow_requests:
+		var row: Array = _slow_requests[key]
+		var enemy = row[0]
+		if not living(enemy):
+			continue
+		var top := CALLING_SLOW_MAX * (0.5 if enemy.statuses.is_boss else 1.0)
+		var amount := minf(snap5(float(row[1])), top)  # Rounded, then capped: a boss gets exactly half (0.175)
+		if amount > 0.0:
+			enemy.statuses.add_slow(amount, POLL + 0.05)
+			if StringName(row[2]) != &"":
+				control_slow(StringName(row[2]), amount, POLL + 0.05)
+	_slow_requests.clear()
+
 # Damage a card deals in a Warden's name (never a hit for anything else: `tag` is one of CLASS_TAGS).
 # `own` (setup credit 2026-10-16): the evolution or card id this damage is credited to as its own (DreamState.begin_own_hit).
 func strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false, own: StringName = &"") -> void:
@@ -495,6 +568,95 @@ static func loop_frame(fps: float, frames: int) -> int:
 		return 0
 	return int(Time.get_ticks_msec() / 1000.0 * fps) % maxi(frames, 1)
 
+# --- Calling evolution marks (assets/effects/calling_evo/, Roguelite asset 6389429b) ---------------------------------
+# One sheet per mark, frames side by side; calling_evo.json gives frame_size, frames, fps, anchor, loop. Static helpers
+# so a node that is not a class kit (firefly_lights.gd) can use them: the caller passes its own cache Dictionary (a
+# per-node var, never static: static textures crash at exit). A missing sheet draws nothing and returns false, so the
+# caller keeps its palette placeholder. 1x only: the rect starts at (point - anchor) rounded.
+const EVO_ART_DIR := "res://assets/effects/calling_evo/"
+const EVO_ART_MARKS := "_marks"
+var evo_art := {}  # This node's cache: "_marks" -> the json's marks, mark name -> Texture2D (null when missing)
+
+static func evo_art_meta(cache: Dictionary, mark: StringName) -> Dictionary:
+	if not cache.has(EVO_ART_MARKS):
+		var marks := {}
+		var file := FileAccess.open(EVO_ART_DIR + "calling_evo.json", FileAccess.READ)
+		if file != null:
+			var parsed: Variant = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary and (parsed as Dictionary).get("marks") is Dictionary:
+				marks = (parsed as Dictionary)["marks"]
+		cache[EVO_ART_MARKS] = marks
+	var all: Dictionary = cache[EVO_ART_MARKS]
+	var meta: Variant = all.get(String(mark))
+	return meta if meta is Dictionary else {}
+
+static func evo_art_tex(cache: Dictionary, mark: StringName) -> Texture2D:
+	var key := String(mark)
+	if not cache.has(key):
+		var tex: Texture2D = null
+		var meta := evo_art_meta(cache, mark)
+		if not meta.is_empty():
+			var path := EVO_ART_DIR + str(meta.get("file", key + ".png"))
+			if ResourceLoader.exists(path):
+				tex = load(path) as Texture2D
+		cache[key] = tex
+	return cache[key]
+
+# The mark's frame now: a loop by the clock (+ `phase` frames, so neighbours don't move in step); `age` >= 0: a one-shot
+# `age` s in, holding its last frame. Reduced motion, or a sheet with no fps: frame 0.
+static func evo_art_frame(cache: Dictionary, mark: StringName, age: float = -1.0, phase: int = 0) -> int:
+	var meta := evo_art_meta(cache, mark)
+	var frames := maxi(int(meta.get("frames", 1)), 1)
+	var fps := float(meta.get("fps", 0.0))
+	if fps <= 0.0 or motion_still():
+		return 0
+	if age >= 0.0:
+		return clampi(int(age * fps), 0, frames - 1)
+	if not bool(meta.get("loop", false)):
+		return 0
+	return (int(Time.get_ticks_msec() / 1000.0 * fps) + maxi(phase, 0)) % frames
+
+# A stamp of the marks' clock frames: redraw when it changes (only for the marks on show).
+static func evo_art_stamp(cache: Dictionary, marks: Array) -> int:
+	var stamp := 0
+	for mark in marks:
+		stamp = stamp * 8 + evo_art_frame(cache, StringName(mark))
+	return stamp
+
+# Draws `mark` on `c` with its anchor on `at` (frame -1: the clock's frame + `phase`). `flip` mirrors it about the
+# anchor. Returns false when the sheet is missing (the caller draws its placeholder).
+static func draw_evo_art(cache: Dictionary, c: CanvasItem, mark: StringName, at: Vector2, alpha: float = 1.0,
+		flip: bool = false, frame: int = -1, phase: int = 0) -> bool:
+	var tex := evo_art_tex(cache, mark)
+	if tex == null:
+		return false
+	var meta := evo_art_meta(cache, mark)
+	var frames := maxi(int(meta.get("frames", 1)), 1)
+	var size_v: Variant = meta.get("frame_size")
+	var anchor_v: Variant = meta.get("anchor")
+	var w := float(tex.get_width()) / frames
+	var h := float(tex.get_height())
+	if size_v is Array and (size_v as Array).size() >= 2:
+		w = float(size_v[0])
+		h = float(size_v[1])
+	var anchor := Vector2(floorf(w / 2.0), floorf(h / 2.0))
+	if anchor_v is Array and (anchor_v as Array).size() >= 2:
+		anchor = Vector2(float(anchor_v[0]), float(anchor_v[1]))
+	if frame < 0:
+		frame = evo_art_frame(cache, mark, -1.0, phase)
+	frame = clampi(frame, 0, frames - 1)
+	var source := Rect2(w * frame, 0.0, w, h)
+	var rect := Rect2((at - anchor).round(), Vector2(w, h))
+	if flip:  # Mirrored about the anchor: the anchor's x counts from the right edge
+		rect = Rect2((at - Vector2(w - anchor.x, anchor.y)).round() + Vector2(w, 0.0), Vector2(-w, h))
+	c.draw_texture_rect_region(tex, rect, source, Color(1.0, 1.0, 1.0, alpha))  # multiplier: alpha only
+	return true
+
+# draw_evo_art with this node's cache (inner draw nodes call it on their class node).
+func evo_mark(c: CanvasItem, mark: StringName, at: Vector2, alpha: float = 1.0, flip: bool = false, frame: int = -1,
+		phase: int = 0) -> bool:
+	return draw_evo_art(evo_art, c, mark, at, alpha, flip, frame, phase)
+
 # --- The loop -------------------------------------------------------------------------------------------------------
 
 # Perf (Enemy Code's probe6, 2026-10-17): the DamageLog dispatch per damage event cost ~0.15 ms a frame for each idle
@@ -529,6 +691,7 @@ func _process(delta: float) -> void:
 	if _poll_in <= 0.0:
 		_poll_in = POLL
 		on_poll()
+		_apply_calling_slows()  # The one capped Calling slow, once per nightmare a poll
 
 func _on_damage(event) -> void:
 	if dream_state == null or not active() or not is_instance_valid(event.enemy):

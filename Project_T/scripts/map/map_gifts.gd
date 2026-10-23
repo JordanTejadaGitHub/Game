@@ -527,7 +527,7 @@ func can_place(gift: StringName, pieces: Array) -> bool:
 	var glade: PackedVector2Array = map.get_glade_cells()
 	for origin: Vector2 in pieces:
 		for h in piece_halves(origin):
-			if not map.is_buildable_half(h) or glade.has((h / 2.0).floor()) or halves.has(h):
+			if not map.is_buildable_half(h) or glade.has((h / 2.0).floor()) or map.is_landmark_cell((h / 2.0).floor()) or halves.has(h):
 				_refusal = &"occupied"
 				return false
 			halves.append(h)

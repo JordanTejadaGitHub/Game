@@ -197,18 +197,23 @@ func _sell(placer: TowerPlacer, seller: TowerSeller, origins: Array) -> void:
 			seller.sell(tw.cell)
 
 # Wall rows 2 halves thick with 1-half corridors, the gap at alternating ends; the goal at the far end of
-# the last corridor (cell row 16).
+# the last corridor (the cell under the last wall row, at the end away from its gap). From the grid's size.
 func _serpentine(size: Vector2i) -> Dictionary:
 	var slots: Array[Vector2] = []
 	var row := 0
-	for y in range(3, size.y - 5, 3):  # Rows 3..30
+	var last_y := 0
+	var last_gap_right := false
+	for y in range(3, size.y - 5, 3):  # Rows 3..24 on 40×32 halves
 		var gap_right := row % 2 == 0
 		var x0 := 2 if gap_right else 4
 		var x1 := size.x - 6 if gap_right else size.x - 4
 		for x in range(x0, x1 + 1, 2):
 			slots.append(Vector2(x, y))
 		row += 1
-	return {slots = slots, goal = Vector2(20, 16)}
+		last_y = y
+		last_gap_right = gap_right
+	var goal_half := Vector2(2 if last_gap_right else size.x - 6, last_y + 2)
+	return {slots = slots, goal = (goal_half / 2.0).floor()}
 
 # Square rings 4 halves apart (2-half walls, 2-half corridors). Each ring's gap is on its top side, and a
 # spoke in the corridor inside it sits just past the gap, so the way in goes all round the corridor to the

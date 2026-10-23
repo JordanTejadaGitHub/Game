@@ -87,7 +87,7 @@ func _ready() -> void:
 	add_child(_sell_marks)
 	move_child(_sell_marks, _cancel.get_index())  # Confirm / Sell N, then Cancel
 	# Build mode stays on after each placement (user 2026-10-06, the one-shot reversed): touch stops it here.
-	_done.text = "Done"
+	_done.text = "Close"
 	_done.focus_mode = Control.FOCUS_NONE
 	_done.custom_minimum_size = Vector2(110, BUTTON_HEIGHT)
 	_done.add_theme_font_size_override("font_size", 18)
@@ -161,7 +161,7 @@ func _refresh() -> void:
 	if visible and tower_placer.has_method("get_stroke_tag"):
 		var plan: Dictionary = tower_placer.get_stroke_plan()
 		var count: int = plan.values().count("")
-		_plant.text = ("Confirm (%d)" if mobile_controls() else "Plant %d") % count
+		_plant.text = "Plant %d" % count
 		_plant.tooltip_text = tower_placer.get_stroke_tag()
 		_plant.disabled = plan.values().count("") == 0
 

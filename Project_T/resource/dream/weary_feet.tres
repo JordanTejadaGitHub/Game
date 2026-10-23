@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "weary_feet"
 display_name = "Weary Feet"
-description = "Nightmares take 1% more damage for every 4 path tiles they've walked (up to +25%)."
+description = "Nightmares take 1% more damage for every 4 path cells they've walked (up to +25%)."
 rarity = 0
 kind = 3
 tags = Array[String](["maze"])

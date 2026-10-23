@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_tpl")
 id = &"elite_hunt"
-display_name = "Elite hunt"
+display_name = "Deeply Blighted"
 weights = Array[float]([0.0, 1.0, 1.0, 1.5])
 lead_share_min = 0.4
 lead_share_max = 0.7

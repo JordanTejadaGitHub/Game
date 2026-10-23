@@ -1,0 +1,304 @@
+{
+	"marks": {
+		"dw_footprints": {
+			"anchor": [
+				8,
+				5
+			],
+			"file": "dw_footprints.png",
+			"fps": 0.0,
+			"frame_size": [
+				16,
+				11
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Wet Footprints: the nightmare's wet dragging trail, two ragged smears with a cold wet shine (frames alternate down the path); fade them with alpha over PRINT_SECONDS. Anchor = the route point."
+		},
+		"dw_mud": {
+			"anchor": [
+				17,
+				10
+			],
+			"file": "dw_mud.png",
+			"fps": 0.0,
+			"frame_size": [
+				34,
+				20
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Mudflats: a wet mud patch on each mud step, a small puddle eye in it (frame 1 a bubble instead); pick by route index; on the ground under the water's damp band. Anchor = the route point."
+		},
+		"dw_reeds": {
+			"anchor": [
+				6,
+				16
+			],
+			"file": "dw_reeds.png",
+			"fps": 3.0,
+			"frame_size": [
+				13,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Reed Bed: a reed clump standing in the carried water, a cattail on the tallest, swaying (stands on the bank: y-sort it, or draw it over the water). Anchor = its foot at the water line."
+		},
+		"dw_still_sheen": {
+			"anchor": [
+				9,
+				4
+			],
+			"file": "dw_still_sheen.png",
+			"fps": 2.0,
+			"frame_size": [
+				18,
+				9
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Still Water: the water goes mirror-still and a pale crescent moon shows in it, wavering a little (on the water surface, one every few steps). Anchor = the route point."
+		},
+		"dw_wave_flash": {
+			"anchor": [
+				13,
+				11
+			],
+			"file": "dw_wave_flash.png",
+			"fps": 14.0,
+			"frame_size": [
+				26,
+				14
+			],
+			"frames": 6,
+			"loop": false,
+			"use": "Breaking Wave / Flash Flood: a wave that rises, curls a white lip and breaks into foam and spray, then fades (one shot, ~0.43 s). Flip it when the wave runs right to left. Anchor = the water's middle."
+		},
+		"kt_allegro_note": {
+			"anchor": [
+				6,
+				10
+			],
+			"file": "kt_allegro_note.png",
+			"fps": 3.0,
+			"frame_size": [
+				13,
+				12
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Allegro: a kept Toll, two beamed quick notes in bronze with a motion streak, circling the bell (up to 3). Anchor = between the note heads."
+		},
+		"kt_bronze_prime": {
+			"anchor": [
+				5,
+				9
+			],
+			"file": "kt_bronze_prime.png",
+			"fps": 3.0,
+			"frame_size": [
+				11,
+				12
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Down the Line / Both Ways: a primed nightmare's mark, a small bronze bell lit from the upper left, its clapper swinging (over its pips). Its ring arcs can use the same ramp: Oak, Ember, Gold. Anchor = the bell's lip."
+		},
+		"kt_humming_pip": {
+			"anchor": [
+				12,
+				4
+			],
+			"file": "kt_humming_pip.png",
+			"fps": 6.0,
+			"frame_size": [
+				25,
+				9
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Humming Walls: the pip a wall filled, a thorn-wrapped bead in Thornwall colours with hum arcs pulsing outward. Anchor = centre."
+		},
+		"lf_constellation_pip": {
+			"anchor": [
+				4,
+				4
+			],
+			"file": "lf_constellation_pip.png",
+			"fps": 3.0,
+			"frame_size": [
+				9,
+				9
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Constellation: one small warm star per different Warden counted (and the star's charges). Draw faint dotted Gold lines (alpha 0.4) from each pip to the star so it reads as a star chart. Anchor = centre."
+		},
+		"lf_constellation_star": {
+			"anchor": [
+				10,
+				10
+			],
+			"file": "lf_constellation_star.png",
+			"fps": 6.0,
+			"frame_size": [
+				21,
+				21
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Constellation: the star lit over a nightmare, warm (Heartlight core, Glow and Gold rays, a banded halo). Anchor = centre."
+		},
+		"lf_full_glow_ring": {
+			"anchor": [
+				18,
+				8
+			],
+			"file": "lf_full_glow_ring.png",
+			"fps": 6.0,
+			"frame_size": [
+				36,
+				16
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Full Glow: eight firefly motes circling a lit nightmare's feet in a faint pool of light (on the ground, under it). Anchor = centre."
+		},
+		"lf_moth_flame": {
+			"anchor": [
+				9,
+				18
+			],
+			"file": "lf_moth_flame.png",
+			"fps": 6.0,
+			"frame_size": [
+				19,
+				19
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Moth to Flame: the kept crit, a tall flame with a moth circling and dipping to it (LanternMark; was circles at (10, -32)). Anchor = the flame's foot."
+		},
+		"lf_moth_flame_ready": {
+			"anchor": [
+				9,
+				18
+			],
+			"file": "lf_moth_flame_ready.png",
+			"fps": 9.0,
+			"frame_size": [
+				19,
+				19
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Moth to Flame, ready (its 4 hits are in): the flame burns hotter with a denser halo and the moth's wings catch fire. Same frames and anchor as lf_moth_flame."
+		},
+		"lf_pale_path_dot": {
+			"anchor": [
+				4,
+				3
+			],
+			"file": "lf_pale_path_dot.png",
+			"fps": 4.0,
+			"frame_size": [
+				9,
+				7
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Sightline: a warm eye-shaped gleam on each pale-path step that blinks slowly (on the ground). Anchor = the step's centre."
+		},
+		"lf_strung_pip": {
+			"anchor": [
+				3,
+				1
+			],
+			"file": "lf_strung_pip.png",
+			"fps": 4.0,
+			"frame_size": [
+				7,
+				9
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Strung Lights: one fairy-light bulb per glow entered, hung 6 px apart: their strings join into one line. Anchor = the string at the bulb's top."
+		},
+		"lf_waiting_flame": {
+			"anchor": [
+				6,
+				14
+			],
+			"file": "lf_waiting_flame.png",
+			"fps": 8.0,
+			"frame_size": [
+				13,
+				15
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Bonfire: a little bonfire, a two-tongued flame on crossed sticks, over a nightmare holding a waiting crit (LanternMark; was two circles at (-10, -30)). Anchor = the sticks' foot."
+		},
+		"sp_cap_badge": {
+			"anchor": [
+				8,
+				11
+			],
+			"file": "sp_cap_badge.png",
+			"fps": 0.0,
+			"frame_size": [
+				17,
+				12
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Host Trees: the cap a Warden of another family wears. Frame 0 its own cap (Blossom), frame 1 a passed-on cap (Spreading Caps: pale). Anchor = the stem's foot, on the Warden's head."
+		},
+		"sp_fed_ground": {
+			"anchor": [
+				10,
+				7
+			],
+			"file": "sp_fed_ground.png",
+			"fps": 3.0,
+			"frame_size": [
+				20,
+				12
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Feeding Ground: a fed patch on each route point, pink spore dust settling and two curled shoots swaying; fade it with alpha as its 8 s run out. Anchor = the route point."
+		},
+		"sp_rot_ring": {
+			"anchor": [
+				15,
+				8
+			],
+			"file": "sp_rot_ring.png",
+			"fps": 3.0,
+			"frame_size": [
+				30,
+				16
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Rot Ground: a rotten ring on a Sprout bed's step, fallen grey cap stubs on it and a pink spore wisp rising (on the ground). Anchor = the step's route point."
+		},
+		"sp_throne_rim": {
+			"anchor": [
+				16,
+				33
+			],
+			"file": "sp_throne_rim.png",
+			"fps": 3.0,
+			"frame_size": [
+				32,
+				37
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Toadstool Throne: a mushroom throne, a broad cap seat with a tall cap backrest and gold trim and crown studs, drawn under the clump (before the mushroom sheet; the clump stands in front of the backrest). Anchor = the clump's foot."
+		}
+	}
+}

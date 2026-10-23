@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower_ascension"
 display_name = "Ascension: The Great Bell"
-description = "Unlocks {warden:great_bell}, the {family:bellflower} {family}'s strongest form. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}. Its toll puts every nightmare to sleep and sets off all their {static}."
+description = "Unlocks {warden:great_bell}, the strongest form of the {family:bellflower} {family}. Every 8 s every nightmare falls {asleep}, and each nightmare with 4 or more {static} is struck by its bolt for half damage. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}."
 root = 0
 costs = Array[int]([120])
 order = 35

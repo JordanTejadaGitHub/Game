@@ -32,16 +32,19 @@ func _run() -> void:
 			_check(PATHS.children(f).size() == 1, "%s has 1 capstone" % f)
 	for family in ["sporeling", "firefly_jar", "dewdrop", "bellflower"]:
 		_check(PATHS.next_ids(family, []).size() == 3, "%s has 3 styles" % family)
-	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]) == [&"sp_sticky"], "Drift 75: the style's other follow-up")
+	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_trampled", &"sp_pile_on"]) == [&"sp_trodden", &"sp_throne"],
+		"Drift 75: the capstone's Deepen first, then the style's other follow-up (Spore Print rebuilt 2026-10-23)")
+	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]).is_empty(), "An old save's retired Spore Print path offers nothing")
 	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(45) == 2 and PATHS.stage_of(50) < 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 45, 75")
 	# Owner 2026-10-17: Riverside, Stagnant Water, Show the Way and Chime of Many use their own family's trait; faces stay short
 	# and their capstones keep their parents.
-	for id in [&"dw_riverside", &"dw_stagnant_water", &"lf_show_the_way", &"kt_evo_chime_of_many"]:
+	for id in [&"dw_riverside", &"dw_stagnant_water", &"lf_show_the_way"]:  # (Chime of Many retired with the Keeping Time rebuild, section 33)
 		var row: Dictionary = PATHS.PATHS[id]
 		_check(String(row.text).split(" ", false).size() <= 25 and String(row.tip).split(" ", false).size() <= 30, "%s: face at most 25 words, tip at most 30" % id)
 		_check(not row.makes.has(&"stacks"), "%s no longer makes stacks" % id)
-	_check(PATHS.children(&"dw_stagnant_water") == [&"dw_drowned_hands"] and PATHS.children(&"lf_lantern_wake") == [&"lf_show_the_way"]
-		and PATHS.children(&"kt_evo_chime_of_many") == [&"kt_evo_last_chord"], "the reworked follow-ups keep their capstones")
+	_check(PATHS.children(&"lf_lantern_wake") == [&"lf_show_the_way"], "the reworked follow-ups keep their capstones")
+	# Puddles rebuilt 2026-10-23 (evo_fixed_dewdrop.md): Stagnant Water and Drowned Hands are retired (children skip them)
+	_check(PATHS.children(&"dw_stagnant_water").is_empty() and not PATHS.is_live(&"dw_stagnant_water"), "Stagnant Water is retired")
 	# F3 (owner 2026-10-18; lent_evolution_builds.md): Lantern Wake is Borrowed Light's follow-up (drift 25), Show the Way
 	# its capstone (drift 45), so Firefly's status link arrives inside the demo.
 	_check(int(PATHS.PATHS[&"lf_lantern_wake"].tier) == PATHS.FOLLOW_UP and PATHS.PATHS[&"lf_lantern_wake"].parent == &"lf_borrowed_light",
@@ -52,11 +55,23 @@ func _run() -> void:
 	_check(borrowed_next.size() == 2 and borrowed_next.has(&"lf_lantern_wake") and borrowed_next.has(&"lf_sightline"),
 		"F3: drift 25 after Borrowed Light offers Lantern Wake and Sightline")
 	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake"]) == [&"lf_show_the_way"], "F3: drift 50 then offers Show the Way")
-	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake", &"lf_show_the_way"]) == [&"lf_sightline"],
-		"F3: drift 75 the style's other follow-up (Sightline)")
-	for id in [&"dw_riverside", &"dw_stagnant_water"]:
-		_check(String(PATHS.PATHS[id].tip).contains("on top of cards that do the same"), "F2: %s's tip says its linger adds on top" % id)
+	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake", &"lf_show_the_way"]) == [&"lf_full_glow", &"lf_sightline"],
+		"F3: drift 75 Show the Way's Deepen (Full Glow) first, then the style's other follow-up (Sightline) (rebuilt 2026-10-23)")
+	_check(String(PATHS.PATHS[&"dw_stagnant_water"].tip).contains("on top of cards that do the same"), "F2: Stagnant Water's tip (retired, kept) says its linger adds on top")
+	_check(String(PATHS.PATHS[&"dw_riverside"].tip).contains("Up to 4 s past landing in all"), "Riverside's tip says the one room")
 	_check(String(PATHS.PATHS[&"dw_rain_on_the_bank"].tip).contains("{drowsy} stops 1 short of {full}"), "F5: Rain on the Bank's tip")
+	# Puddles (rebuilt 2026-10-23): 21 live rows; the three lines; keeps_out per the spec's final list
+	var dw_live := PATHS.PATHS.keys().filter(func(i) -> bool: return PATHS.PATHS[i].calling == "dewdrop" and PATHS.is_live(i))
+	_check(dw_live.size() == 21, "Puddles has 21 live rows (%d)" % dw_live.size())
+	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_reed_bed", &"dw_flash_flood"], 3) == [&"dw_long_current", &"dw_backwaters"],
+		"Puddles drift 75: Long Current (Deepen) first, then Backwaters (Cross over)")
+	_check(PATHS.next_ids("dewdrop", [&"dw_black_pond", &"dw_twin_springs", &"dw_churning_water"], 3) == [&"dw_three_springs", &"dw_deep_end"],
+		"Puddles drift 75: Three Springs, then Deep End")
+	_check(PATHS.next_ids("dewdrop", [&"dw_riverside", &"dw_wet_footprints", &"dw_low_tide"], 3) == [&"dw_outflow", &"dw_open_water"],
+		"Puddles drift 75: Outflow, then Open Water")
+	_check(PATHS.keeps_out(&"dw_riverside") == [&"steeped"] and PATHS.keeps_out(&"dw_still_water") == [&"topped_up"]
+		and PATHS.keeps_out(&"dw_low_tide") == [&"high_tide"], "Puddles keeps_out: Steeped, Topped Up, High Tide")
+	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_millrace"], 2).is_empty(), "An old save's retired Puddles path offers nothing")
 
 	# The offer at the drift 5 rest replaces the Dream; at 25 it comes first and the Dream follows
 	dreams.calling = "sporeling"
@@ -87,5 +102,59 @@ func _run() -> void:
 	_check(dreams._calling_offer_for(25).is_empty(), "A run holding class cards never evolves")
 	dreams.stacks.erase("mushroom_bed")
 
+	_split_builds()
 	print("test_calling_path: %d failures" % failures)
 	quit(failures)
+
+# Calling evolutions that split into builds (owner 2026-10-23, dream_council_review.md 33; evo_shared_spec.md 1, 7, 9).
+func _split_builds() -> void:
+	var styles := PATHS.next_ids("sporeling", [], 0)
+	_check(not styles.is_empty(), "Stage 0 offers the styles")
+	_check(PATHS.next_ids("sporeling", [], 1).is_empty(), "A stage that doesn't match the path's length offers nothing")
+	_check(PATHS.next_ids("sporeling", [styles[0]], 0).is_empty(), "A repeated stage offers nothing")
+	_check(PATHS.next_ids("sporeling", [&"not_a_row"], 1).is_empty(), "An unknown id in the path offers nothing")
+	# Every live row: its parent is live and one tier up; the styles' makes are disjoint per Calling
+	var makes_by_calling := {}
+	for id in PATHS.PATHS:
+		if not PATHS.is_live(id):
+			continue
+		var row: Dictionary = PATHS.PATHS[id]
+		if int(row.tier) == PATHS.STYLE:
+			var seen: Dictionary = makes_by_calling.get(row.calling, {})
+			for m in row.get("makes", []):
+				_check(not seen.has(m), "%s: styles share no makes chip (%s)" % [id, m])
+				seen[m] = true
+			makes_by_calling[row.calling] = seen
+			continue
+		_check(PATHS.is_live(row.parent), "%s: its parent %s is live" % [id, row.parent])
+		if PATHS.PATHS.has(row.parent):
+			_check(int(row.tier) == int(PATHS.PATHS[row.parent].tier) + 1, "%s: one tier below its parent" % id)
+	# Drift 75: a capstone's Deepen first, then the style's other follow-up
+	for style in styles:
+		var follow := PATHS.children(style)
+		if follow.is_empty() or PATHS.children(follow[0]).is_empty():
+			continue
+		var cap: StringName = PATHS.children(follow[0])[0]
+		var at_75 := PATHS.next_ids("sporeling", [style, follow[0], cap], 3)
+		var deepens := PATHS.children(cap).filter(func(i: StringName) -> bool: return int(PATHS.PATHS[i].tier) == PATHS.DEEPEN)
+		_check(at_75.slice(0, deepens.size()) == deepens, "%s: Deepen first at drift 75" % style)
+		_check(follow.size() < 2 or at_75.has(follow[1]), "%s: the other follow-up is the Cross over" % style)
+	# A save keeps every id, an unknown one as a placeholder (no effect, length kept)
+	dreams.calling_path.assign([styles[0], &"retired_or_unknown", &"another_unknown"])
+	var saved := dreams.to_save()
+	dreams.calling_path.clear()
+	dreams.load_save(saved)
+	_check(dreams.calling_path.size() == 3 and dreams.calling_path[1] == &"retired_or_unknown", "Unknown ids survive a save, length kept")
+	_check(PATHS.next_ids("sporeling", dreams.calling_path, 3).is_empty(), "…and the path offers nothing after them")
+	_check(not dreams.calling_evolutions_text().contains("retired_or_unknown"), "…and never shows")
+	# keeps_out: a held row keeps a card out of offers and the new family's lent slot; a card already taken stays
+	var card: UpgradeData = dreams.pool[0]
+	dreams._calling_keeps_out[card.id] = true
+	_check(not dreams.can_offer(card), "keeps_out blocks can_offer")
+	_check(not dreams._new_family_can_show(card, 3), "…and the new family's lent card")
+	dreams.stacks[card.id] = 1
+	_check(dreams.has_card(card.id), "…never retroactive: a held card stays")
+	dreams.stacks.erase(card.id)
+	dreams.calling_path.clear()
+	dreams._rebuild_calling_flags()
+	_check(not dreams._calling_keeps_out.has(card.id), "Rebuilt from the path: nothing kept out with no rows held")

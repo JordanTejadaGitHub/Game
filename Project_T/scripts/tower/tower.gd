@@ -1144,6 +1144,7 @@ func get_attacks_per_second() -> float:
 	return total
 
 var speed_capped := false  # Its Dream attack-speed bonus is at the +150% cap (the Warden panel can say "capped")
+static var force_calling_crit := false  # Tests only (test_forced_crit): the forced-crit hook forces every eligible hit
 var reactions_set_off := 0  # Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29): times this Warden's
 var reactions_fed := 0  # application completed one / fed the other status of one (Warden panel "Set off N / Fed N")
 var reaction_haste := 0.0  # Wide Awake (Crowned Reaction; owner 2026-10-17, council reactions_unique.md): attack speed bonus, set by Reactions.WardenWake
@@ -3373,14 +3374,26 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	var reaction := {"crit": false, "crit_multiplier": attack_data.crit_multiplier,
 		"multiplier": 1.0, "shatter": false, "tag": &""} if effect_tick else Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
+	# A forced crit (Calling evolutions, owner 2026-10-23, evo_shared_spec.md 5): the Calling may turn a direct hit that
+	# didn't crit into one (DreamState.calling_crit, behind the cached calling_crit_on). Pinned / Shatter already saw the
+	# real roll (before_hit). It deals the Warden's own crit multiplier and nothing else (no Prism aura, Keen, Hammer and
+	# Anvil, overflow, Executioner); on-crit cards and after-hits read real_crit (Steady Aim, Hobble, Opening Fracture,
+	# signatures, Starlit Aim, Shattering Blow). The "Critical!" callout and crit_landed still come (is_crit).
+	var real_crit := is_crit
+	var forced := false
+	if (DreamState.calling_crit_on or force_calling_crit) and not is_crit and not effect_tick and reaction.tag == &"" and _dream_state != null:
+		forced = force_calling_crit or _dream_state.calling_crit(self, enemy)
+	is_crit = is_crit or forced
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
-		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
+		if not forced:
+			crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
 		if crit_multiplier <= 1.0:
 			crit_multiplier = 2.0  # A Warden that never crits but did (Gift Fallen Giant's Lookout): the usual multiplier (TowerData's default)
-		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
+		if not forced:
+			crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
-	if hammer > 0.0:
+	if hammer > 0.0 and not forced:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
 	if _kin_roll(kin_share(&"flock_together", "a")):
 		# Flock Together A (status jobs): the wren strips a buff like a magpie, and the robbed nightmare
@@ -3389,16 +3402,16 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 			enemy.strip_buff(self)
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
 		_kin_fired(&"flock_together")
-	if is_crit and _dream_state and _frame_hit_scalars(_dream_state)[2]:
+	if is_crit and not forced and _dream_state and _frame_hit_scalars(_dream_state)[2]:
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon, Sharpened Light
-	if is_crit and sig == Signatures.EXECUTIONER and (enemy.enemy_data.is_boss or enemy.elite):
+	if is_crit and not forced and sig == Signatures.EXECUTIONER and (enemy.enemy_data.is_boss or enemy.elite):
 		crit_multiplier *= Signatures.EXECUTE_BIG  # Executioner: bosses and elites take the crit x1.5 instead
 	var non_crit := 1.0
 	if not is_crit and _dream_state:
 		non_crit = _frame_hit_scalars(_dream_state)[1]  # Reckless Bloom
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if _dream_state:
-		dealt *= _commons_hit_multiplier(enemy, is_area, is_crit)  # Ripples, Edge of Sight, Steady Aim
+		dealt *= _commons_hit_multiplier(enemy, is_area, real_crit)  # Ripples, Edge of Sight, Steady Aim (a real crit only)
 	dealt *= float(role_hit[0])  # Card pass 2026-10-16: synergy, outside the plain cap
 	# Wardens keep up without Reactions (owner 2026-10-22, dream_council_review.md 30): the hit form's multiplier and the
 	# hit cards (DreamState.hit_card_multiplier, the one shared hook) land here only, so statuses (they took `soothe`)
@@ -3440,7 +3453,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	if attack_data.special != &"" and enemy.is_cleansed:
 		BranchKit.on_finish(self, enemy, spill - health_before)  # Edgestone's Clean cut: the overkill spills on
 	if sig != &"":
-		_signature_after_hit(enemy, sig, is_crit)  # Executioner, Relentless
+		_signature_after_hit(enemy, sig, real_crit)  # Executioner, Relentless (never a forced crit)
 	if enemy.has_meta(BranchKit.LINK_META):
 		BranchKit.share_hit(enemy, spill, self)  # Undercurrent's current: a share reaches the other linked nightmares
 	if _dream_state and is_instance_valid(enemy) and not enemy.is_cleansed:
@@ -3448,7 +3461,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		# Starlit Aim's crit spends half the required Exposed stacks.
 		if tower_data.line == "light" and enemy.statuses.has(EnemyStatuses.DAMP) and _has_rule(&"rain_on_glass"):
 			enemy.statuses.remove(EnemyStatuses.DAMP)
-		if is_crit and enemy.statuses.is_exposed() and _has_rule(&"starlit_aim"):
+		if real_crit and enemy.statuses.is_exposed() and _has_rule(&"starlit_aim"):
 			enemy.statuses.spend_exposed_crit()
 	if _dream_state and not is_area and _has_rule(&"momentum"):
 		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
@@ -3458,12 +3471,12 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		Reactions.shatter_splash(enemy, self, spill)
 	if reaction.get("pierce", false) or reaction.get("starfall", false):
 		Reactions.after_pinned_hit(enemy, self, spill, reaction)  # Pinned's pierce, Starfall's stars (owner 2026-10-17, council reactions_unique.md)
-	if is_crit:
+	if real_crit:
 		_shattering_blow(enemy, spill)
 	if _dream_state and _has_rule(&"thousand_cuts") and is_instance_valid(enemy):
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
 	if unique_coop:
-		DreamState.UNIQUE_COOP.after_hit(self, enemy, is_crit, unique_direct, _dream_state._game_clock)
+		DreamState.UNIQUE_COOP.after_hit(self, enemy, real_crit, unique_direct, _dream_state._game_clock)  # (Opening Fracture: never a forced crit)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	var previous_native_direct := _unique_native_direct
 	_unique_native_direct = unique_direct

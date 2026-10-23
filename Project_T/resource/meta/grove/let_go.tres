@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "let_go"
-display_name = "Let Go"
+display_name = "Banish"
 description = "While carried: {banish} 1 {dream} card per run. A card you {banish} is not offered again that run."
 root = 2
 costs = Array[int]([60])

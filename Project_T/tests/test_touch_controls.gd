@@ -54,13 +54,20 @@ func _run() -> void:
 	_close_screens()  # The boss dossier opens itself a few seconds into the first rest
 	await process_frame
 	touch._refresh()
-	_check(touch.visible and touch._plant.visible and touch._plant.text == "Confirm (3)", "Confirm shows the count (%s)" % touch._plant.text)
+	_check(touch.visible and touch._plant.visible and touch._plant.text == "Plant 3", "the plant button shows the count, Plant N as on PC (%s)" % touch._plant.text)
 	await _tap(_screen_of(MAP_GRID_CELL(cells[1])))
 	_check(placer.get_stroke_cells().size() == 2, "a tap on a pending Warden takes it back")
 
 	# One finger pans (and adds nothing); two fingers pinch zoom (and keep the pending ones)
 	var cam_before: Vector2 = camera.target_position
-	await _drag(_screen_of(MAP_GRID_CELL(cells[1])), Vector2(-120, -60))
+	# From open map with room for the drag up and left (the top-centre strip stops the finger by y ~254), away from the
+	# pending Wardens (a press on one moves it).
+	var pan_from := Vector2(900, 440)
+	for spot: Vector2 in [Vector2(900, 440), Vector2(420, 440), Vector2(640, 480), Vector2(900, 360)]:
+		pan_from = spot
+		if not [cells[0], cells[2]].any(func(c: Vector2) -> bool: return _screen_of(MAP_GRID_CELL(c)).distance_to(spot) < 90.0):
+			break
+	await _drag(pan_from, Vector2(-120, -60))
 	var moved: Vector2 = camera.target_position - cam_before
 	_check(moved.x > 20.0 and moved.y > 10.0, "one finger drags the map the other way, as a page (%s → %s)" % [cam_before, camera.target_position])
 	_check(placer.get_stroke_cells().size() == 2, "…and a pan never adds a pending Warden")
@@ -390,6 +397,10 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 				continue
 			var last: Vector2 = map_generator.MAP_GRID.size - Vector2.ONE  # Island edge B: the edge cells are ground, but taps there can land on the HUD
 			if cell.x <= 0 or cell.y <= 0 or cell.x >= last.x or cell.y >= last.y:
+				continue
+			# On screen and clear of the HUD (top bar, the Warden bar and the touch buttons at the bottom): taps there would go
+			# to the HUD (on the 20x16 map more of the route is on screen at once, under it too).
+			if not Rect2(160, 160, 960, 380).has_point(_screen_of(MAP_GRID_CELL(cell))):
 				continue
 			if found.any(func(f: Vector2) -> bool: return f.distance_to(cell) < 2.5):
 				continue

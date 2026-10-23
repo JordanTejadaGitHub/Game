@@ -62,7 +62,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
 	var title := Label.new()
-	title.text = "Which dream?"
+	title.text = "Which map?"
 	UiStyle.display(title, 30)
 	box.add_child(title)
 	var fresh := _button(box, "A new map")
@@ -91,14 +91,14 @@ func _ready() -> void:
 		row.pressed.connect(_choose.bind(int(map.seed)))
 	# A typed seed (digits; any whole number from 1 up).
 	var typed_head := Label.new()
-	typed_head.text = "A seed"
+	typed_head.text = "Map seed"
 	UiStyle.caps(typed_head, 14)
 	box.add_child(typed_head)
 	var typed_row := HBoxContainer.new()
 	typed_row.add_theme_constant_override("separation", 8)
 	box.add_child(typed_row)
 	_typed.name = "TypedSeed"
-	_typed.placeholder_text = "Type a seed"
+	_typed.placeholder_text = "Type a map seed"
 	_typed.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER  # Touch: the number pad
 	_typed.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_typed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -107,7 +107,7 @@ func _ready() -> void:
 		if typed_seed() != 0:
 			_choose(typed_seed()))
 	typed_row.add_child(_typed)
-	_typed_go.text = "Dream it"
+	_typed_go.text = "Use this map"
 	_typed_go.name = "TypedGo"
 	_typed_go.disabled = true
 	_typed_go.focus_mode = Control.FOCUS_NONE

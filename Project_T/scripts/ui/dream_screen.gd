@@ -417,7 +417,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
 	if evolution:
-		box.add_child(_evolution_steps(accent))
+		box.add_child(_evolution_steps(accent, card))
 	# "Calling: Spore Print" / "Sporeling family" on its own line under the rarity, wrapping at the card's width
 	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
 	if kind != "":
@@ -511,7 +511,7 @@ func _one_tip(button: Button) -> void:
 # colour its vines and sparks already use) instead of a rarity, the Calling's leaf mark instead of the rarity gem, the
 # header "<Calling>", the path's four steps and the step's name under it, and the family look the family pick shares
 # (ChoiceCard.family_marks: a wash of the colour at the top of the glass and a bracket in each corner).
-const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Follow-up"]  # CallingPaths.DRIFTS order
+const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Finale"]  # CallingPaths.DRIFTS order. Drift 75 (owner 2026-10-23): its line's Finale (tag "deepen") or a Cross over to the style's other follow-up (tag "cross_over")
 
 func _calling_colour() -> Color:
 	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
@@ -520,7 +520,9 @@ func _calling_colour() -> Color:
 func _evolution_step() -> int:
 	return clampi(dream_state.calling_path.size(), 0, EVOLUTION_STAGES.size() - 1)
 
-func _evolution_stage_name() -> String:
+func _evolution_stage_name(card: UpgradeData = null) -> String:
+	if card != null and card.tags.has("cross_over"):
+		return "Cross over"
 	return EVOLUTION_STAGES[_evolution_step()]
 
 # The Calling's mark (owner 2026-10-22: "remove the Warden portrait, it should be something else"; chose the Calling
@@ -572,7 +574,7 @@ func _draw_calling_mark(mark: Control, glyph: Texture2D, colour: Color) -> void:
 # this step's name ("Style", "Follow-up", "Capstone") beside them, so the header keeps to the Calling's name.
 const STEPS_WIDTH := 80.0  # The beads' room: MARK_SIZE / 2 + 3 gaps of 18 + the last bead's ring
 
-func _evolution_steps(colour: Color) -> Control:
+func _evolution_steps(colour: Color, card: UpgradeData = null) -> Control:
 	var row := HBoxContainer.new()
 	row.name = "EvolutionSteps"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -584,7 +586,7 @@ func _evolution_steps(colour: Color) -> Control:
 	steps.draw.connect(_draw_evolution_steps.bind(steps, colour))
 	row.add_child(steps)
 	var stage := Label.new()
-	stage.text = _evolution_stage_name()
+	stage.text = _evolution_stage_name(card)
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.caps(stage, _fs(14), UiStyle.INK_DIM)
 	row.add_child(stage)

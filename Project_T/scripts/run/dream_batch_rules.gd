@@ -493,11 +493,11 @@ func _prune_first() -> void:
 
 # Enemy.take_damage asks once per damage event: what the batch cards and the Rares multiply it by. `source` is the
 # Warden credited (ticks and clouds keep their applier), so status damage counts like hits.
-func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, _tag: StringName) -> float:
+func damage_multiplier(dreams: DreamState, enemy: Node2D, source: Node, tag: StringName) -> float:
 	var multiplier := 1.0
 	var tower := source as Tower
 	if tower != null and tower.tower_data.can_attack:
-		if dreams.has_rule(&"first_light"):
+		if dreams.has_rule(&"first_light") and not (tag in DreamState._CAP_KIT.CLASS_TAGS):  # A Calling row's hit is never "first" (X4)
 			# Keyed by the Warden's cell, not its node: selling and replanting mid-drift does not re-arm it
 			var key := "%s:%d" % [tower.cell, enemy.get_instance_id()]
 			if not _first.has(key):

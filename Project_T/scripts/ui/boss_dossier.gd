@@ -138,7 +138,7 @@ func _ready() -> void:
 	_content.custom_minimum_size = Vector2(WIDTH - 16, 0)
 	_content.add_theme_constant_override("separation", 10)
 	_scroll.add_child(_content)
-	_close_button.text = "Face it"
+	_close_button.text = "Continue"
 	_close_button.tooltip_text = "Reopen it from the boss name at the top."
 	_close_button.custom_minimum_size = Vector2(200, UiStyle.HUD_BUTTON_H)
 	_close_button.focus_mode = Control.FOCUS_NONE
@@ -416,7 +416,7 @@ func open(drift: int = 0) -> void:
 	_build(data, drift)
 	if not whats_coming.is_empty():
 		_add_coming_rows()
-	_close_button.text = "Continue" if not whats_coming.is_empty() else "Face it"
+	_close_button.text = "Continue"
 	visible = true
 	_entrance(data)
 	_scroll.scroll_vertical = 0
@@ -532,7 +532,7 @@ func _hunt_choice(boss: BossData, act: int, drift: int, drawn: bool) -> Control:
 	column.add_child(spacer)
 	var pick := Button.new()
 	pick.name = "Hunt_" + boss.get_id()
-	pick.text = "Hunt it"
+	pick.text = "Hunt %s" % IconInfo.the_name(data.display_name)
 	pick.tooltip_text = "The Heartwood's draw this run" if drawn else ""
 	pick.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
 	pick.focus_mode = Control.FOCUS_NONE
@@ -592,7 +592,7 @@ func close_dossier() -> void:
 			if intro != null:
 				intro._remember(data)
 		whats_coming = []
-	_close_button.text = "Prepare"
+	_close_button.text = "Continue"
 	if _paused_it:
 		_paused_it = false
 		var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed

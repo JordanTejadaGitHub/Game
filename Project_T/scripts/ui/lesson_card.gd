@@ -92,7 +92,7 @@ func _ready() -> void:
 	_demo.visible = false
 	box.add_child(_demo)
 	_ok.name = "GotIt"
-	_ok.text = "Got it"
+	_ok.text = "Continue"
 	_ok.focus_mode = Control.FOCUS_NONE
 	_ok.custom_minimum_size = Vector2(160, UiStyle.HUD_BUTTON_H)
 	_ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -604,7 +604,7 @@ func _show(entry: Array) -> void:
 	_icon.visible = _icon.texture != null
 	_title.text = entry[2]
 	_skip.visible = not _replaying and INTRO_IDS.has(shown_id)
-	_ok.text = "Next" if (_replaying and not queue.is_empty()) or (_skip.visible and shown_id != INTRO_IDS[-1]) else "Got it"
+	_ok.text = "Next" if (_replaying and not queue.is_empty()) or (_skip.visible and shown_id != INTRO_IDS[-1]) else "Continue"
 	_body.text = StatusLinks.bbcode(entry[3])  # Status names and glossary terms ({reactions} …) as links
 	_demo.topic = &"nurture" if shown_id == &"rank_rules" else (&"maze" if shown_id == &"dew_maze" else (&"catch" if shown_id == &"guide_catch" and _replaying else &""))
 	_demo.clock = 0.0

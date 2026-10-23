@@ -59,7 +59,7 @@ func _init() -> void:
 	gap.custom_minimum_size.y = 12
 	box.add_child(gap)
 	_start.name = "Start"
-	_start.text = "Start"
+	_start.text = "Start run"
 	_start.focus_mode = Control.FOCUS_NONE
 	_start.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	UiStyle.primary(_start)

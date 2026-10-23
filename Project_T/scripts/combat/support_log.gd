@@ -169,14 +169,14 @@ func get_panel_line(tower: Tower) -> String:
 	var s := get_stats(tower, "run")
 	match kind_of(tower):
 		&"catcher":
-			var line := "Caught this run: %d Dew" % roundi(s.dew_caught)
+			var line := "Dew caught this run: %d" % roundi(s.dew_caught)
 			return line + (" · paid back ✓" if s.get("paid_back", false) else " · %d Dew to pay back" % s.get("to_pay_back", 0)) \
 				if s.has("paid_back") else line
 		&"aura":
 			return "Added this run: %s damage (to %d Wardens)" % [_big(s.aura_damage), s.wardens_boosted]
 		&"wall":
 			if tower.tower_data.get_id() == "thornwall":
-				return "Adds %d path tiles" % s.path_tiles
+				return "Adds %d path cells" % s.path_tiles
 			if tower.tower_data.get_id() == "honeysuckle":
 				return "%s applied: %d" % [IconInfo.status_name(&"drowsy"), roundi(s.drowsy)]
 			return ""

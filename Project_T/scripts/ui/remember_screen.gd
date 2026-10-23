@@ -138,7 +138,7 @@ func _ready() -> void:
 	footer.add_theme_constant_override("separation", 12)
 	box.add_child(footer)
 	var done := Button.new()
-	done.text = "Done"
+	done.text = "Close"
 	done.focus_mode = Control.FOCUS_NONE
 	done.custom_minimum_size = Vector2(160, 48)
 	done.pressed.connect(close)
@@ -327,7 +327,7 @@ func _build_phone() -> void:
 	bar.add_child(peek_button)
 	var done := Button.new()
 	done.name = "DoneButton"
-	done.text = "Done"
+	done.text = "Close"
 	done.focus_mode = Control.FOCUS_NONE
 	done.custom_minimum_size = Vector2(120, 48)
 	done.pressed.connect(close)

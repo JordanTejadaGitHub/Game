@@ -28,7 +28,7 @@ const USES := &"uses"
 const MAX_CHIPS := 2
 
 const KEYWORDS: Array[StringName] = [&"stacks", &"linger", &"jump", &"repeat", &"reaction", &"layered", &"slow", &"crit",
-	&"area", &"heavy", &"cluster", &"rank", &"maze"]
+	&"area", &"heavy", &"cluster", &"rank", &"maze", &"hit", &"potency"]  # hit: the Focus Calling evolutions; potency: Host Grove (section 33)
 # Status words -> EnemyStatuses ids (&"asleep" is a state, not a status id: EnemyStatuses.is_asleep()).
 const STATUSES := {&"poisoned": &"spored", &"charged": &"static", &"soaked": &"damp", &"drowsy": &"drowsy",
 	&"exposed": &"marked", &"rooted": &"held", &"asleep": &"asleep"}
@@ -42,7 +42,7 @@ const WORDS := {
 	&"linger": {"name": "Duration", "text": "Statuses last longer, or come back after they end."},
 	&"jump": {"name": "Jumps", "text": "Damage {jumps} from one nightmare to others nearby."},
 	&"repeat": {"name": "Repeats", "text": "A hit, attack or effect happens again."},
-	&"reaction": {"name": "Reactions", "text": "Two statuses on one nightmare go off together. Any two can."},
+	&"reaction": {"name": "Reactions", "text": "Two statuses on one nightmare trigger together. Any two can."},
 	&"layered": {"name": "Mixed statuses", "text": "One nightmare carrying several different statuses at once."},
 	&"slow": {"name": "Slows", "text": "A nightmare is slowed, stopped or pulled back: {held}, {asleep}, {frozen}, {caught}."},
 	&"crit": {"name": "Crits", "text": "Hits that sometimes deal much more damage."},
@@ -50,6 +50,8 @@ const WORDS := {
 	&"heavy": {"name": "Heavy hits", "text": "{heavy} Wardens: slow attacks with big single hits."},
 	&"cluster": {"name": "Clusters", "text": "Your Wardens close together: touching, kin, Sprout clusters, auras."},
 	&"rank": {"name": "Ranks", "text": "Nurture {ranks}: higher-rank Wardens."},
+	&"hit": {"name": "Hits", "text": "A Warden's own hits, not statuses, effects or {reactions}."},
+	&"potency": {"name": "Potency", "text": "How hard a Warden's statuses and effects hit."},
 	&"maze": {"name": "Maze", "text": "The path's length and bends, and the Thornwalls that shape it."},
 	&"poisoned": {"name": "Poison", "text": "{spored}: the nightmare takes damage every second."},
 	&"charged": {"name": "Charge", "text": "{static}: at {full}, a bolt strikes the nightmare."},

@@ -106,9 +106,10 @@ func _f1_checks(_at: Vector2, spot: Vector2) -> void:
 	await process_frame
 	klass._later.clear()
 	var plain := _toll_loss(dry, bell, 1000.0)
-	var sodden := _toll_loss(wet, bell, 1000.0)
-	var most: float = 1.0 + dreams.puddles.SODDEN_MAX
-	_check(plain > 0.0 and absf(sodden - plain * most) <= 2.0, "F1: a Toll is its bell's hit for Sodden (%.0f vs %.0f, x%.2f)" % [sodden, plain, most])
+	_toll_loss(wet, bell, 1000.0)
+	# evo_shared_spec.md 2-3 and R1 (2026-10-23): the Toll is a Calling hit, damage only, never an F1 output (was "a Toll is
+	# its bell's hit for Sodden"; Sodden's own reading of a Calling hit is Dewdrop's to check).
+	_check(plain > 0.0, "a Toll lands (%.0f)" % plain)
 	_check(int(wet.get_meta(klass.IN_TIME_META, {}).get(bell.get_instance_id(), 0)) == 0 and klass._later.is_empty(),
 		"F1: never for its own family (a Toll is no hit for In Time)")
 	_check(DamageLog.calling_next == &"" and DamageLog.calling_now == &"", "F1: nothing stays armed after a Toll")
@@ -134,6 +135,200 @@ func _f1_checks(_at: Vector2, spot: Vector2) -> void:
 	_check(load("res://resource/dream/rude_awakening.tres").tip.contains("Wardens and cards that make nightmares {asleep} or {held}")
 		and not load("res://resource/dream/rude_awakening.tres").tip.contains("{card:"), "F8: Rude Awakening's tip names no card")
 	_check(not load("res://resource/dream/old_rain.tres").tip.contains("{card:"), "F8: Old Rain's tip names no card")
+
+# Sets the Calling path and rebuilds what reads it (keeps_out, the bell groups, walls, joined Wardens).
+func _path(ids: Array) -> void:
+	dreams.calling = "bellflower"
+	dreams.calling_path.assign(ids)
+	dreams._rebuild_calling_flags()
+	klass.on_board()
+
+func _ready_to_ring(enemy) -> void:
+	enemy.set_meta(klass.RING_META, -INF)
+	enemy.set_meta(klass.TOLL_META, -INF)
+
+# Calling evolutions rebuilt 2026-10-23 (dream_council_review.md 33; evo_fixed_bellflower.md, evo_shared_spec.md 2 and 9):
+# one "old effect gone" check per kept id whose meaning changed, and a check per new row where practical.
+func _evolution_checks(spot: Vector2) -> void:
+	dreams.stacks.clear()
+	var route: Array = klass._route_px
+	var bell := _plant("bellflower", spot)  # Far from the route: it reaches no route point
+	await _frames(2)
+
+	# Carrying Tune (old: the carried ring also struck at half): the ring only, the bell's whole hit
+	_path([&"kt_evo_carrying_tune"])
+	var target = _spawn(route[20])
+	var ahead = _spawn(route[24])
+	var ahead0: float = ahead.health
+	klass._carry_from(bell, target, 100.0)
+	_check(is_equal_approx(float(ahead.health), ahead0), "Carrying Tune: the carried ring deals nothing (old half strike gone)")
+	_check(int(ahead.get_meta(klass.PIPS_META, 0)) == klass.PIPS_FILLED + 1, "...and fills a pip")
+	_check(klass.TUNE_STEPS == 6 and String(DreamState.CALLING_PATHS.PATHS[&"kt_evo_carrying_tune"].text).contains("6 {steps}"), "Carrying Tune: 6 steps (Balancing 2026-10-23)")
+	await _clean()
+
+	# Steady Beat (old: 3 starting pips where 2+ bells' ranges overlap, full Tolls there): one group, need 3, in full
+	bell = _plant("bellflower", spot)
+	var far_bell := _plant("bellflower", spot + Vector2(CELL * 6, 0))  # Not touching: another group
+	await _frames(2)
+	_path([&"kt_evo_steady_beat"])
+	_check(not klass.has_method("_bells_reaching") and klass._start_for(null) == klass.PIPS_FILLED, "Steady Beat: the old overlap start pips are gone")
+	var s = _spawn(spot + Vector2(0, CELL))
+	var tolls0: int = klass.tolls
+	klass.ring(s, bell, 10.0)
+	_check(klass.tolls == tolls0 + 1, "Steady Beat: one group's first ring Tolls (2 starting pips + 1 = %d)" % klass.STEADY_NEED)
+	var mixed = _spawn(spot + Vector2(0, CELL * 1.5))
+	klass.ring(mixed, far_bell, 10.0)  # A Toll at once (its group's first ring)…
+	_ready_to_ring(mixed)
+	klass.ring(mixed, far_bell, 10.0)
+	_ready_to_ring(mixed)
+	klass.ring(mixed, bell, 10.0)  # …then a second group rings it
+	_check(klass._toll_need(mixed) == klass.TOLL_EVERY, "...another group's ring puts it back to every %dth" % klass.TOLL_EVERY)
+	await _clean()
+
+	# Deep Tone / Double Time: a rank III bell's own hit rings twice; a rank IV bell's Toll leaves 2 rings
+	bell = _plant("bellflower", spot)
+	await _frames(2)
+	_path([&"kt_evo_steady_beat", &"kt_evo_deep_tone", &"kt_evo_double_time"])
+	var other_group := _plant("bellflower", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	klass.on_board()
+	var d = _spawn(spot + Vector2(0, CELL))
+	d.set_meta(klass.GROUP_META, -1)  # Mixed: the need stays 4
+	d.set_meta(klass.PIPS_META, 0)
+	bell.rank = 3
+	klass._groups[bell.get_instance_id()] = 99  # (its own group, so _note_group keeps it mixed)
+	klass.ring(d, bell, 10.0)
+	_check(int(d.get_meta(klass.PIPS_META)) == klass.DEEP_PIPS, "Deep Tone: a rank III bell's hit fills %d pips" % klass.DEEP_PIPS)
+	bell.rank = 4
+	var dt = _spawn(spot + Vector2(0, CELL * 1.5))
+	dt.set_meta(klass.GROUP_META, -1)
+	dt.set_meta(klass.PIPS_META, klass.TOLL_EVERY - 1)
+	_ready_to_ring(dt)
+	tolls0 = klass.tolls
+	klass.ring(dt, bell, 10.0)
+	_check(klass.tolls == tolls0 + 1 and int(dt.get_meta(klass.PIPS_META)) == klass.DOUBLE_PIPS, "Double Time: a rank IV Toll leaves %d rings" % klass.DOUBLE_PIPS)
+	other_group.queue_free()
+	await _clean()
+
+	# Midnight Bell (old: Poisoned / Charged / Soaked paid out too): only the bell's triple
+	bell = _plant("bellflower", spot)
+	var spore := _plant("sporeling", spot + Vector2(CELL * 6, 0))
+	await _frames(2)
+	_path([&"kt_evo_steady_beat", &"kt_evo_crescendo", &"kt_evo_midnight_bell"])
+	var plain = _spawn(spot + Vector2(0, CELL))
+	var poisoned = _spawn(spot + Vector2(0, CELL * 1.5))
+	spore._apply_one_status(poisoned, EnemyStatuses.SPORED, 10, spore.get_damage())
+	var p0: float = plain.health
+	var q0: float = poisoned.health
+	klass._midnight(plain, bell)
+	klass._midnight(poisoned, bell)
+	_check(p0 - plain.health > 0.0 and absf((q0 - poisoned.health) - (p0 - plain.health)) <= 2.0,
+		"Midnight Bell: a Poisoned nightmare takes the same Midnight (status payoffs gone: %.0f vs %.0f)" % [q0 - poisoned.health, p0 - plain.health])
+
+	# Twelfth Hour: a Midnight sets off up to TWELFTH_OTHERS others in the bell's range with TWELFTH_RINGS rings
+	_path([&"kt_evo_steady_beat", &"kt_evo_crescendo", &"kt_evo_midnight_bell", &"kt_evo_twelfth_hour"])
+	var first = _spawn(spot + Vector2(0, CELL))
+	var crowd: Array = []
+	for k in klass.TWELFTH_OTHERS + 1:
+		var c = _spawn(spot + Vector2(CELL * 0.2 * k, CELL))
+		c.set_meta(klass.RINGS_META, klass.TWELFTH_RINGS)
+		crowd.append(c)
+	var short = _spawn(spot + Vector2(0, CELL * 0.8))
+	short.set_meta(klass.RINGS_META, klass.TWELFTH_RINGS - 1)
+	klass._later.clear()
+	klass._midnight(first, bell)
+	var queued: int = klass._later.filter(func(row) -> bool: return bool(row.get("midnight", false))).size()
+	_check(queued == klass.TWELFTH_OTHERS and klass.TWELFTH_OTHERS == 3, "Twelfth Hour: %d others strike their Midnight (%d)" % [klass.TWELFTH_OTHERS, queued])
+	_check(not short.has_meta(klass.MIDNIGHT_META), "...not one with fewer than %d rings" % klass.TWELFTH_RINGS)
+	klass._later.clear()
+	await _clean()
+
+	# Accompaniment (old: the partner struck the Toll and its status came again): the bell's Toll + a damage-only repeat
+	bell = _plant("bellflower", spot)
+	var partner := _plant("sporeling", spot + Vector2(CELL, 0))
+	var bell_b := _plant("bellflower", spot + Vector2(CELL * 3, 0))
+	await _frames(2)
+	_path([&"kt_evo_accompaniment", &"kt_evo_counterpoint"])
+	var a = _spawn(spot + Vector2(0, CELL))
+	a.set_meta(klass.PIPS_META, klass.TOLL_EVERY - 1)
+	_ready_to_ring(a)
+	klass._last_hit_of[partner.get_instance_id()] = 50.0
+	var a0: float = a.health
+	tolls0 = klass.tolls
+	klass.ring(a, bell, klass._bell_base(bell), true, partner)
+	_check(klass.tolls == tolls0 + 1 and a.health < a0, "Accompaniment: the partner's ring makes the bell's Toll")
+	_check(not a.statuses.has(EnemyStatuses.SPORED), "...and its status never comes again (old calling_apply gone)")
+	# Counterpoint (old: the nearest bell answered with a free hit): no other bell strikes
+	_check(not bell_b.has_meta(klass.FREE_META), "Counterpoint: no bell answers with a free hit (old branch gone)")
+	_check(dreams.calling_keeps_out(load("res://resource/dream/in_time.tres")) and dreams.calling_keeps_out(load("res://resource/dream/refrain.tres")),
+		"Accompaniment keeps In Time and Refrain out of the offers")
+	# Tenor Bell: a slow form repeats in full
+	_path([&"kt_evo_accompaniment", &"kt_evo_tenor_bell"])
+	var slow: bool = partner.attack_data.attacks_per_second <= klass.TENOR_RATE
+	var t = _spawn(spot + Vector2(0, CELL * 1.5))
+	var t0: float = t.health
+	var dealt: float = klass._repeat(partner, t, klass.EVO_ACCOMP, klass.ACCOMP_SHARE)
+	var full_hit: float = minf(50.0, klass.second_of(partner))
+	_check(is_equal_approx(dealt, full_hit if slow else full_hit * klass.ACCOMP_SHARE) and t.health < t0,
+		"Tenor Bell: %s (%.1f of %.1f)" % ["a slow form repeats in full" if slow else "a fast form repeats at half", dealt, full_hit])
+	await _clean()
+
+	# Symphony (now a Calling hit, never armed) and Coda
+	bell = _plant("bellflower", spot)
+	await _frames(2)
+	_path([&"kt_evo_accompaniment", &"kt_evo_counterpoint", &"kt_evo_symphony", &"kt_evo_coda"])
+	var roster: Array = []
+	var singers: Array = []
+	for k in klass.SYMPHONY_WARDENS:
+		var w := _plant("sprout", spot + Vector2(CELL * (k - 1), CELL * 2))
+		klass._last_hit_of[w.get_instance_id()] = 20.0
+		roster.append([w.get_instance_id(), true])
+		singers.append(w)
+	var y = _spawn(spot + Vector2(0, CELL))
+	var y0: float = y.health
+	klass._symphony(y, roster, y.global_position)
+	_check(y.health < y0 and DamageLog.calling_next == &"" and DamageLog.calling_now == &"", "Symphony: the repeats land, never armed")
+	_check(singers.all(func(w) -> bool: return w.has_meta(klass.CODA_META)), "Coda: each Warden in the Symphony keeps its note")
+	var z = _spawn(spot + Vector2(0, CELL * 1.5))
+	var z0: float = z.health
+	klass._coda(singers[0], z, 20.0)
+	_check(z.health < z0 and not singers[0].has_meta(klass.CODA_META), "...its next hit lands again, once")
+	_check(dreams.calling_keeps_out(load("res://resource/dream/rude_awakening.tres")) and dreams.calling_keeps_out(load("res://resource/dream/refrain.tres")),
+		"Symphony keeps Rude Awakening out, Coda Refrain")
+	await _clean()
+
+	# Down the Line: a Toll primes the walker behind it; that one's next ring counts 2
+	bell = _plant("bellflower", spot)
+	await _frames(2)
+	_path([&"kt_evo_carrying_tune", &"kt_evo_humming_walls", &"kt_evo_down_the_line"])
+	var lead = _spawn(route[24])
+	var behind = _spawn(route[22])
+	var i_lead: int = klass.index_of(lead)
+	var i_behind: int = klass.index_of(behind)
+	if i_lead >= 0 and i_behind >= 0 and i_lead - i_behind <= klass.PRIME_STEPS * 2 and i_behind < i_lead:
+		klass._prime(lead, lead.global_position, {})
+		_check((behind.get_meta(klass.PRIMED_META, {}) as Dictionary).get(klass.BACK, 0) == 1, "Down the Line: the walker behind is primed")
+		behind.set_meta(klass.PIPS_META, 0)
+		_ready_to_ring(behind)
+		klass.ring(behind, bell, 10.0)
+		_check(int(behind.get_meta(klass.PIPS_META)) == 2 and not behind.has_meta(klass.PRIMED_META), "...its next ring counts 2")
+	# Humming Walls: each WALL_STEPS steps beside walls fills one pip, once between Tolls
+	var walker = _spawn(route[12])
+	klass._wall_side.clear()
+	for k in 30:
+		klass._wall_side[k] = true
+	walker.set_meta(klass.WALL_SEEN_META, 0)
+	walker.set_meta(klass.WALL_LAPS_META, int(walker.laps))
+	walker.set_meta(klass.PIPS_META, 0)
+	if klass.index_of(walker) >= klass.WALL_STEPS * 2:
+		klass._walk_walls(walker)
+		_check(int(walker.get_meta(klass.PIPS_META)) == 1 and walker.has_meta(klass.WALL_DONE_META), "Humming Walls: %d wall-side steps fill a pip" % klass.WALL_STEPS)
+		walker.global_position = route[mini(28, route.size() - 1)]
+		klass._walk_walls(walker)
+		_check(int(walker.get_meta(klass.PIPS_META)) == 1, "...once between its Tolls")
+	await _clean()
+	dreams.calling_path.clear()
+	dreams._rebuild_calling_flags()
 
 func _run() -> void:
 	await _setup()
@@ -445,6 +640,7 @@ func _run() -> void:
 	_check(not near_a.statuses.has(EnemyStatuses.DROWSY), "...and never repeats Drowsy")
 	dreams.calling_path.clear()
 	await _clean()
+	await _evolution_checks(spot)
 	await _f1_checks(at, spot)
 	print("test_class_bellflower: %d failures" % failures)
 	quit(failures)
