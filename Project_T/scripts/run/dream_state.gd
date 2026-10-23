@@ -4429,8 +4429,7 @@ func half_dreamed_missing(card: UpgradeData) -> Array[String]:
 			missing.append(family)
 	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
 	var next_pick := next_family_pick_drift()
-	var last_pick := maxi(drift_director.drifts.size(), 4 * drift_director.drifts_per_act) - drift_director.drifts_per_act
-	var picks_left := 0 if next_pick < 0 else 1 + (last_pick - next_pick) / drift_director.drifts_per_act
+	var picks_left := new_family_picks_after(_now_drift()).size()
 	if not owned_any or next_pick < 0 or missing.size() > picks_left or next_pick - _now_drift() > HALF_DREAMED_WITHIN \
 			or missing.any(func(family: String) -> bool: return not pickable.has(family)):
 		missing.clear()
@@ -4443,13 +4442,19 @@ func is_half_dreamed(card: UpgradeData) -> bool:
 func is_dormant(card: UpgradeData) -> bool:
 	return card_stacks(card.id) > 0 and _is_asleep(card)
 
-# The drift whose boss is followed by the next family pick (-1 = none left: never after drift 75's).
+# The drift after which the next new-family pick comes (-1 = none left).
 func next_family_pick_drift() -> int:
-	var per: int = drift_director.drifts_per_act
-	var now := _now_drift()
-	var next := (now / per + 1) * per
-	var last := maxi(drift_director.drifts.size(), 4 * per) - per
-	return next if next <= last else -1
+	var later := new_family_picks_after(_now_drift())
+	return later[0] if not later.is_empty() else -1
+
+# The picks still to come that bring a new family: after drifts 10 and 35 (DriftDirector.family_pick_drifts, owner
+# 2026-10-22; no longer the boss rests). Drift 60's pick deepens a family you have, so it brings none.
+func new_family_picks_after(now: int) -> Array[int]:
+	var out: Array[int] = []
+	for drift in drift_director.family_pick_drifts():
+		if drift > now and drift <= drift_director.drifts.size() and drift_director.family_pick_kind(drift) == &"second":
+			out.append(drift)
+	return out
 
 func _now_drift() -> int:
 	return _offer_drift if is_offering() or _offer_drift > drift_director.drifts_started else drift_director.drifts_started

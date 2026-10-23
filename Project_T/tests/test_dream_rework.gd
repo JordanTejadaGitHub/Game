@@ -341,11 +341,12 @@ func _council_corrections() -> void:
 	var woven := UpgradeData.new()
 	woven.id = "test_three_families"
 	woven.requires.assign(["stormcap", "rain_lily", "driftspore"])
-	dreams._offer_drift = 60
+	# New-family picks come after drifts 10 and 35 (drift 60 deepens; owner 2026-10-22): at 20 one is left, at 5 both.
+	dreams._offer_drift = 20
 	_check(dreams.half_dreamed_missing(woven).is_empty(), "Half-Dreamed: two missing families with one pick left is impossible")
-	dreams._offer_drift = 35
+	dreams._offer_drift = 5
 	_check(dreams.half_dreamed_missing(woven).size() == 2, "Half-Dreamed: two remaining picks preserve the two-family gamble")
-	dreams._offer_drift = 60
+	dreams._offer_drift = 20
 	dreams.unlocked["dewdrop"] = true
 	_check(dreams.half_dreamed_missing(woven).size() == 1, "Half-Dreamed: one missing family and one pick remains speculative")
 	dreams.unlocked = old_unlocked

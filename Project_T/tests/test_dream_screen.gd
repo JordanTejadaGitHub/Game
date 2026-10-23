@@ -23,7 +23,7 @@ func _run() -> void:
 	# cards with the longest text.
 	dreams.unlocked["firefly_jar"] = true
 	dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))
-	dreams._offer_drift = 10
+	dreams._offer_drift = 5  # The drift 10 family pick is next (owner 2026-10-22: new families at 10 and 35)
 	var bloom: UpgradeData = null
 	for card in dreams.pool:
 		if card.id == "static_bloom":
