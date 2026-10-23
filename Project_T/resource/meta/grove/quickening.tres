@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "quickening"
-display_name = "Quickening"
+display_name = "Hunt's Rush II"
 description = "Adds the {dream} card {card:quickening_ii}: it upgrades the start pool's {card:quickening}, offered once you hold it."
 root = 1
 costs = Array[int]([30])

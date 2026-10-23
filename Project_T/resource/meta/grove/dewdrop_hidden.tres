@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dewdrop_hidden"
 display_name = "Grove branch: Frostfern"
-description = "{warden:dewdrop}s can grow into {warden:frostfern}s, then {warden:hoarfrost}s: they freeze nightmares with {damp}. Also adds the {card:deep_frost} card."
+description = "The {warden:dewdrop} can grow into the {warden:frostfern}, then the {warden:hoarfrost}: it freezes nightmares that have {damp}. Also adds the {card:deep_frost} card."
 root = 0
 costs = Array[int]([40])
 order = 22
