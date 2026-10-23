@@ -3351,8 +3351,10 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 			var drawn: UpgradeData = class_cards[_rng.randi_range(0, class_cards.size() - 1)]
 			offer.append(drawn)
 			class_cards.erase(drawn)
-	# A boss rest after a new family: one slot is that family's lent card (it counts toward the two family cards)
-	if boss_rest and offer.size() < size:
+	# The rest right after a new family pick (drifts 10, 35, 60; owner 2026-10-22: "2nd family pick should have a lent card
+	# on drift 10"): one slot is that family's lent card (it counts toward the two family cards). _new_family_lent_card
+	# checks the pick happened at this drift.
+	if offer.size() < size:
 		var lent_card := _new_family_lent_card(drift_number, act, offer)
 		if lent_card != null:
 			offer.append(lent_card)
