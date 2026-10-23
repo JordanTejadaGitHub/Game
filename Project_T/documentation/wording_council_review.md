@@ -207,3 +207,23 @@ Fix prompts go to Main Merger (Codex family pick, support log, glossary entries)
 tips, Calling text, Undiluted's rule hook), Tower Code (Bellflower Warden, Beacon, Charged Bloom, Phantoms / tiles in
 Warden cards, Great Bell node if theirs) and Meta (Great Bell node). The "set off" sweep (84 strings) goes out as its
 own prompt per owner.
+
+## Round 2b (2026-10-23): the rebuilt Keeping Time evolutions
+
+User: *"check the new evolution changes."* The lead read the uncommitted `scripts/combat/calling_paths.gd` (Keeping Time
+rebuilt per dream_council_review.md 33: 20 live rows, 8 retired, the new drift 75 tier) against `keeping_time.gd`. No seat
+agents (20 rows). Every number in the text matches its constant (TUNE_STEPS 6, WALL_STEPS 4, PRIME_STEPS 2 / DEPTH 3,
+PEAL 4 / 8, STEADY_NEED 3, CRESC 25% / ×2, MIDNIGHT 12 / ×3 / bosses half, TWELFTH 6 rings / 3 others, DEEP III,
+DOUBLE IV / 2, ALLEGRO V / 3 / cleared when a drift ends, SYMPHONY 4 / 6 s, CODA 4 s, TENOR 1 / s, ENSEMBLE 2 / 1 s).
+
+| # | Row | Problem | Rewrite |
+|---|---|---|---|
+| 1 | Tier name **"Deepen"** (drift 75) | "Deepen" now names three things: Deepened cards, the drift 60 Deepen pick (a glossary entry since b4c17b1a) and this stage. | Owner call: a different stage name (recommended **Finale**: "Finale or Cross over"). |
+| 2 | Carrying Tune | "Only a {toll} deals damage" reads as if the bell's own hits stop damaging. The shot cap (TUNE_MAX 4) left the tip. | "…rings nightmares up to 6 {steps} further down the path. Carried rings deal no damage; a {toll} they make does." Tip: "A shot carries to up to 4 nightmares." |
+| 3 | Humming Walls, Carrying Tune tip | "pips" in player text; every other row says rings. | "Every 4 {steps} a nightmare walks beside Thornwalls counts as 1 ring: no damage, never the ring that makes its {toll}, once between {tolls}." Tip: "Not flyers." Carrying Tune tip: "Carried rings can make a {toll}; it lands like any other." |
+| 4 | Steady Beat | One 30-word sentence; "since its last {toll} {tolls} every 3rd ring" needs a re-read. | "If one bell, or one group of {touching} bells, has done all the ringing on a nightmare since its last {toll}, it {tolls} every 3rd ring instead of every 4th, in full instead of at half." |
+| 5 | Midnight Bell tip | "With Crescendo." is a fragment. | "Crescendo makes it stronger too. Starting rings don't count. Bosses take half." |
+| 6 | Deep Tone tip | "Rings closer than half a second still count as one" reads as a new limit. | "Two rings on one nightmare within half a second count as one ring, doubled or not." |
+| 7 | Allegro | "the 1 s wait" is never explained on the card. | "A nightmare can {toll} only once a second. When that stops a rank V+ bell's {toll}, the bell keeps it (up to 3) and spends it on the next ready nightmare it hits." |
+| 8 | Accompaniment → Counterpoint, Tenor Bell, Sounding Board | "joined Warden" is used but never defined. | Accompaniment: "Other Wardens {touching} a bell join its song: their hits ring nightmares. When one of them makes a {toll}, the bell's {toll} lands and that Warden's hit repeats at half." |
+| 9 | Counterpoint vs Coda | "note" means two things (a mark hung on a nightmare; a kept repeat on a Warden). | Coda: "After a Symphony, each Warden in it has its next hit within 4 s, on any nightmare, land again at half." |
