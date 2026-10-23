@@ -107,7 +107,7 @@ func _f1_checks(far: Vector2, route: Array) -> void:
 	dreams.stacks.clear()
 	dreams.calling = "firefly_jar"
 	_take("seeping_in")
-	_check(load("res://resource/dream/seeping_in.tres").description.begins_with("For 12 {steps} after a Sporeling hits"), "F7: the new face")
+	_check(load("res://resource/dream/seeping_in.tres").description.begins_with("For 12 {steps} after a {family:sporeling} Warden hits"), "F7: the new face")
 	var start := 8
 	if route.size() > start + 40:
 		var ss := _plant("sporeling", route[start] + Vector2(CELL, 0))
@@ -132,7 +132,7 @@ func _f1_checks(far: Vector2, route: Array) -> void:
 	# F9: Gone to Seed also pays when a Warden's stamped application sets off a Reaction near a spore Warden
 	dreams.stacks.clear()
 	_take("gone_to_seed")
-	_check(load("res://resource/dream/gone_to_seed.tres").description.contains("or sets off a {reaction}"), "F9: the new face")
+	_check(load("res://resource/dream/gone_to_seed.tres").description.contains("or triggers a {reaction}"), "F9: the new face")
 	var g_spore := _plant("sporeling", far)
 	await _frames(2)
 	var gs = _spawn(far + Vector2(CELL, 0))
