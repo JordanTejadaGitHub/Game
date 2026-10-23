@@ -18,19 +18,19 @@ const TEXTS := {
 	"firefly_jar": "Nightmares in a Firefly's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit {jumps} to the nearest other {lit} nightmare.",
 	"dewdrop": "The path {touching} your Dewdrops is {water}. A Dewdrop's hit there {dew_splashes}: nightmares within 4 {steps} in that {water} gain {damp}.",
 	"bellflower": "Each bell hit rings the nightmare; at 4 rings it is a {toll}: the hit lands again at half damage. Nightmares start with 2 rings.",
-	"acorn": "Every 5th acorn, all Wardens next to the {warden:acorn} attack its target at once.",
+	"acorn": "Every 5th attack of a {family:acorn} aura Warden, the Wardens in its aura attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
-	"rootling": "Every Warden in range turns to a nightmare with {held}, and their hits on it add twice as much status.",
-	"whirligig": "Attacks that pass through a {warden:whirligig}'s range go further: shots fly on to a second nightmare, and pulses and splashes spread 1 cell wider.",
+	"rootling": "Every Warden in range turns to face a nightmare with {held}, and its hits on it add twice as much status.",
+	"whirligig": "Attacks through a {warden:whirligig}'s range go further. Shots hit a second nightmare within 2 cells for 60%. Pulses and splashes reach 1 cell wider.",
 }
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "A Firefly is any Firefly Jar form. Glow: the path within 1.5 cells of a Firefly, wider as its range grows. Any dispel counts: by a hit, a {spored} tick or a cloud, but not by a {reaction}. Only this Calling and its evolutions use {lit} nightmares; Firefly Dream cards work from Fireflies themselves, for any family.",
-	"sporeling": "A Sporeling is any Sporeling form. Any Warden's dispel counts. {Mushrooms} stay through a {rest}; 40 at most. Flyers pass over them, so it is weak against flyers. Only this Calling and its evolutions grow or use {mushrooms} and {doses}; Sporeling Dream cards work without them, for any family.",
-	"dewdrop": "A Dewdrop is any Dewdrop form. Dewdrops hit nightmares with {damp} harder. {Touching}: within 1.25 cells of the Warden. A {step} is one cell of path. A {dew_splash} gives each nightmare {damp} at most once a second. Only this Calling and its evolutions use {water}; Dewdrop Dream cards work from where Dewdrops stand and {damp}, for any family.",
-	"bellflower": "A bell is any Bellflower form. Hits less than 0.5 s apart count as one ring. After a {toll} the rings start over; each nightmare takes one {toll} a second at most. Only this Calling and its evolutions use rings and {tolls}; Bellflower Dream cards work from bells and {drowsy}, for any family.",
+	"firefly_jar": "A Firefly is any {family:firefly_jar} form. Glow: the path within 1.5 cells of a Firefly, wider as its range grows. A {reaction}'s dispel doesn't count. Only this Calling uses {lit} nightmares.",
+	"sporeling": "A Sporeling is any {family:sporeling} form. Any Warden's dispel counts. {Mushrooms} stay through a {rest}, 40 at most. Flyers pass over them. Only this Calling grows {mushrooms} and gives {doses}.",
+	"dewdrop": "A Dewdrop is any {family:dewdrop} form, and hits nightmares with {damp} harder. A {dew_splash} gives each nightmare {damp} at most once a second. Only this Calling makes {water}.",
+	"bellflower": "A bell is any {family:bellflower} form. Hits less than 0.5 s apart count as one ring. After a {toll} the rings go back to 0. Each nightmare takes one {toll} a second at most.",
 }
 
 # Starting numbers (Balancing sets the final ones).
