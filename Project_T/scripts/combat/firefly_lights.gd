@@ -1680,8 +1680,8 @@ func mark_stamp(state: Array) -> int:
 
 class LanternMark extends Node2D:
 	const BAR_DEFAULT := Vector2(0, -38)  # Enemy.HEALTH_BAR_OFFSET, when the nightmare is gone
-	const WAITING_FLAME_AT := Vector2(-25, 17)  # From the bar centre: the gap under the bar's left end
-	const MOTH_FLAME_AT := Vector2(26, 20)  # ...and its right end
+	const WAITING_FLAME_AT := Vector2(-9, 20)  # From the bar centre: tucked under the bar's middle, inside its width
+	const MOTH_FLAME_AT := Vector2(10, 22)  # ...beside it (Bonfire and Moth are both Focus; asset chat 2026-10-23)
 	const STAR_AT := Vector2(0, -30)  # Above the status row
 	const STAR_CHARGES: Array[Vector2] = [Vector2(-13, 0), Vector2(13, 0), Vector2(0, -13)]
 	var _enemy: WeakRef
@@ -1733,7 +1733,7 @@ class LanternMark extends Node2D:
 		var enemy = _enemy.get_ref()
 		var bar: Vector2 = enemy._body_offset() + enemy._bar_offset if enemy != null and "_bar_offset" in enemy else BAR_DEFAULT  # Where its HUD draws the bar
 		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered, hung just under the bar (lf_strung_pip)
-			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 4)
+			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 6)
 			if not (art and lights.evo_mark(self, &"lf_strung_pip", pip)):
 				draw_circle(pip, 1.5, Palette.GLOW)
 		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit (lf_waiting_flame), at the bar's left
