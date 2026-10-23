@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "measured_blow"
+display_name = "Measured Blow"
+description = "From {rank} III, a Warden's first direct hit on each nightmare also deals 1% of its maximum health for each {rank}."
+tip = "At most 10% of a nightmare's health from this card in all. Not bosses."
+rarity = 2
+kind = 3
+tags = Array[String](["tall", "hits"])
+max_stacks = 1
+min_act = 2
+rule_id = &"measured_blow"
+uses = Array[StringName]([&"rank"])

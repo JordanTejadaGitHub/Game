@@ -212,6 +212,26 @@ var _reacted := {}  # Spent Light: nightmare instance id -> the clock its last R
 var _long_walk_next := -1.0
 
 # Reaction `id` went off on `enemy` as link `chain` (it counts as `links` links); `towers` = the Wardens that took part.
+# A late crown (Tower Code, dream_council_review.md 29 item 3): base Reaction `base` on `enemy` became Crowned `crowned`
+# after it fired. Only what a Crowned kind adds: the run count, Grand Design's new kind, the Woven card's credit. Never a
+# second reaction_fired (no extra Ember Count Reaction, no extra Afterglow link).
+func reaction_crowned(enemy, _base: StringName, crowned: StringName) -> void:
+	run_counts[crowned] = int(run_counts.get(crowned, 0)) + 1
+	var new_kind := not _block_kinds.has(crowned)
+	_block_kinds[crowned] = true
+	_refresh()
+	if _on.is_empty() or not is_instance_valid(enemy):
+		return
+	var at: Vector2 = enemy.global_position
+	if _on.has(GRAND_DESIGN) and new_kind:
+		var world := Reactions._world(enemy)
+		if world != null:
+			Fx.callout("Grand Design +%d%%" % roundi(_grand_design() * 100.0), Palette.GLOW, at, world, GRAND_DESIGN)
+		_credit(GRAND_DESIGN, at)
+	var woven: StringName = Reactions.WOVEN_RULE.get(crowned, &"")
+	if woven != &"" and dreams.has_rule(woven):
+		_credit(woven, at)
+
 func reaction_fired(enemy, id: StringName, chain: int, links: int, towers: Array) -> void:
 	run_counts[id] = int(run_counts.get(id, 0)) + 1
 	longest_chain = maxi(longest_chain, chain)
@@ -255,39 +275,39 @@ func reaction_fired(enemy, id: StringName, chain: int, links: int, towers: Array
 		if not gifts.is_empty():
 			_afterglow.call_deferred(enemy.get_instance_id(), at, gifts)
 
-# The Reaction cards' part of Reaction damage (DreamState.get_reaction_card_multiplier; multiplies with role_cards').
-func reaction_multiplier(enemy, id: StringName, tower) -> float:
-	var m := 1.0
+# The Reaction cards' parts of Reaction damage for DreamState.reaction_pool (owner 2026-10-22, dream_council_review.md 29:
+# one capped pool): [rule, what it adds], each added into the pool, never multiplied. DreamState credits them (share of
+# the pool). A Crowned Reaction's own card is not here: crowned_multiplier, a true multiplier.
+func reaction_parts(enemy, id: StringName, tower) -> Array:
+	var parts := []
 	if _on.has(EMBER_COUNT) and _block_count > 0:
-		var ember := 1.0 + minf(EMBER_PER * _block_count, EMBER_MAX)
-		m *= ember
-		_note_bonus(EMBER_COUNT, ember)
+		parts.append([EMBER_COUNT, minf(EMBER_PER * _block_count, EMBER_MAX)])
 		_quiet_credit(EMBER_COUNT)
 	if _on.has(GRAND_DESIGN) and not _block_kinds.is_empty():
-		m *= 1.0 + _grand_design()
-		_note_bonus(GRAND_DESIGN, 1.0 + _grand_design())
+		parts.append([GRAND_DESIGN, _grand_design()])
 		_quiet_credit(GRAND_DESIGN)
-	var crowned: StringName = CROWNED_DAMAGE.get(id, &"")
-	if crowned != &"" and _on.has(crowned):
-		m *= 1.0 + Reactions.CROWNED_CARD_BONUS
-		_note_bonus(crowned, 1.0 + Reactions.CROWNED_CARD_BONUS)
 	if enemy == null or not is_instance_valid(enemy):
-		return m
+		return parts
 	if _on.has(LONG_WALK):
 		var walk := _long_walk_bonus(enemy)
 		if walk > 0.0:
-			m *= 1.0 + walk
-			_note_bonus(LONG_WALK, 1.0 + walk)
+			parts.append([LONG_WALK, walk])
 			_quiet_credit(LONG_WALK)
 	if _on.has(CROWN_OF_LEAVES):
 		var tier := _crown_tier(enemy.statuses.chain_towers, tower)
 		if tier >= CROWN_ASCENDED_TIER:
-			m *= 1.0 + CROWN_ASCENDED
-			_note_bonus(CROWN_OF_LEAVES, 1.0 + CROWN_ASCENDED)
+			parts.append([CROWN_OF_LEAVES, CROWN_ASCENDED])
 		elif tier >= CROWN_FINAL_TIER:
-			m *= 1.0 + CROWN_FINAL
-			_note_bonus(CROWN_OF_LEAVES, 1.0 + CROWN_FINAL)
-	return m
+			parts.append([CROWN_OF_LEAVES, CROWN_FINAL])
+	return parts
+
+# A Crowned Reaction's own card (CROWNED_DAMAGE, Reactions.CROWNED_CARD_BONUS): a true multiplier outside the pool.
+func crowned_multiplier(id: StringName) -> float:
+	var crowned: StringName = CROWNED_DAMAGE.get(id, &"")
+	if crowned == &"" or not _on.has(crowned):
+		return 1.0
+	_note_bonus(crowned, 1.0 + Reactions.CROWNED_CARD_BONUS)
+	return 1.0 + Reactions.CROWNED_CARD_BONUS
 
 # Card credit (Main Merger df7010bb): what a card's multiplier really added, by its card id (rule id -> card id).
 func _note_bonus(rule: StringName, multiplier: float) -> void:

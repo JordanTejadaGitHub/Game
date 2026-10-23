@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "the_tallest_tree"
+display_name = "The Tallest Tree"
+description = "Choose one Warden. Every other Warden's direct hits also store a fifth of their damage in it, and its direct hits add the store on top."
+tip = "Choose it on its panel: any time first, then only at a {rest} (moving it empties the store). One attack adds at most 6 times its own hit, never more than a {dispel} needs; the store holds 40 of its hits. Sold: choose again."
+rarity = 3
+kind = 3
+tags = Array[String](["tall", "hits", "defining"])
+max_stacks = 1
+min_act = 2
+rule_id = &"the_tallest_tree"

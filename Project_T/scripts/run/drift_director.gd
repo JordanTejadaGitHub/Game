@@ -34,7 +34,7 @@ signal rest_started(block_number: int, is_boss_rest: bool, bonus: int, perfect: 
 # The player pressed Start after a rest.
 signal rest_ended(block_number: int)
 # A family pick is due: the family-pick screen should show and then call family_picked().
-signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or &"second" (after drifts 10, 35, 60)
+signal family_pick_requested(reason: StringName)  # &"first" (after drift 1), &"second" (after drifts 10, 35) or &"deepen" (after 60)
 # The later family picks (Balancing Discussion, owner 2026-10-22 option A: "a new family about ten drifts into each act";
 # balance_simulation.md "Second family at drift 10"): at the rests after these drifts, reason &"second" (the old boss
 # pick's rules: Kin Foretold, the new family's lent card in that rest's Dream). The boss rests (25 / 50 / 75) bring no
@@ -45,6 +45,17 @@ signal family_pick_requested(reason: StringName)  # &"first" (after drift 1) or 
 
 func family_pick_drifts() -> Array[int]:
 	return [second_family_pick_drift, third_family_pick_drift, fourth_family_pick_drift]
+
+# The pick at the rest after `drift`: &"first" (drift 1), &"second" (a new family: drifts 10 and 35), &"deepen" (drift 60:
+# a family the run owns calls back one more branch, dream_council_review.md 31, owner 2026-10-22), &"" (none).
+func family_pick_kind(drift: int) -> StringName:
+	if drift == 1:
+		return &"first"
+	if drift == fourth_family_pick_drift:
+		return &"deepen"
+	if drift == second_family_pick_drift or drift == third_family_pick_drift:
+		return &"second"
+	return &""
 
 const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 
@@ -918,7 +929,7 @@ func _check_cleared(number: int) -> void:
 		_request_family_pick(&"first")
 	elif drifts_started % drifts_per_block == 0:
 		if family_pick_drifts().has(drifts_started):
-			_request_family_pick(&"second")  # A new family about ten drifts into each act (no boss rest brings one any more)
+			_request_family_pick(family_pick_kind(drifts_started))  # A new family at 10 and 35; drift 60 deepens one (section 31)
 		else:
 			_begin_rest()
 

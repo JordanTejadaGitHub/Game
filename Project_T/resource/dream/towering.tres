@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "towering"
 display_name = "Towering"
-description = "Your 3 highest-{rank} Wardens deal 50% more damage."
-tip = "Only attacking Wardens with a {rank}; ties go to the higher form. Offered once a {final_form} reaches {rank} IV. Multiplies with your other Dream damage."
+description = "Your 3 highest-{rank} Wardens' direct hits deal 10% more for each {rank} above II."
+tip = "Rank V: +30%; rank VII: +50%. Only attacking Wardens with a {rank}; ties go to the higher form. Offered once a {final_form} reaches {rank} IV. Hits only."
 rarity = 2
 kind = 3
 tags = Array[String](["nurture", "tall"])

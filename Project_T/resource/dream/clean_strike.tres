@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "clean_strike"
+display_name = "Clean Strike"
+description = "Direct hits deal 25% more to nightmares carrying no other family's status, or 50% more from a {final_form} or {ascended} form."
+tip = "Your own family's statuses don't count, and neither do walls or Sprouts. Hits only."
+rarity = 1
+kind = 3
+tags = Array[String](["hits"])
+max_stacks = 1
+rule_id = &"clean_strike"

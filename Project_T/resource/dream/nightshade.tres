@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nightshade"
 display_name = "Nightshade"
-description = "Status, cloud and {reaction} damage is doubled on nightmares with 4 or more statuses."
+description = "Status, cloud and {reaction} damage is doubled on nightmares carrying statuses from 3 different families."
 rarity = 3
 kind = 3
 tags = Array[String](["potency", "affliction"])

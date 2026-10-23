@@ -32,6 +32,7 @@ const TITLES := {
 	&"first": "Oh. I know you.",
 	&"boss": "It's gone, and something I'd forgotten came back.",
 	&"second": "Something I'd forgotten came back.",  # The rest after drift 10 (user 2026-10-22)
+	&"deepen": "One of yours could have grown another way.",  # The drift 60 pick (dream_council_review.md 31)
 }
 
 # Families that can be offered (the starting four, the demo's too: Bellflower joined 2026-10-01, meta_design.md
@@ -145,6 +146,11 @@ var _reason: StringName = &"first"  # The pick on screen (the first pick brings 
 
 func show_pick(reason: StringName = &"first") -> void:
 	_reason = reason
+	var wake := "Choose a family to deepen" if reason == &"deepen" else "Choose a family to wake"
+	_subtitle.text = wake.to_lower() if _layout != null else wake  # (Phones: lower case in the header)
+	if reason == &"deepen":
+		_show_deepen()
+		return
 	var available := get_available()
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else pick_count()
@@ -375,6 +381,16 @@ func _blessing_for(data: TowerData) -> UpgradeData:
 func choose(data: Resource) -> void:
 	if not offer.has(data) or LessonCard.covering(self):  # No pick while "Wake a family" explains the screen
 		return
+	if _reason == &"deepen" and data is TowerData:  # The drift 60 pick: no new family, no Calling (section 31)
+		offer = []
+		var sapling := should_offer_sapling()
+		dream_state.deepen(data, not sapling)
+		if sapling:
+			_remember_after = data  # Its Remember page opens once the Sapling's card is done
+			_show_sapling()
+			return
+		_finish()
+		return
 	dream_state.note_family_pick(_ids(offer), data.get_id() if data is TowerData else "")  # Declined families (half-dreamed)
 	family_chosen.emit(offer.duplicate(), data)
 	offer = []
@@ -396,6 +412,9 @@ func _finish() -> void:
 	visible = false
 	game_speed.set_paused(_was_paused)
 	drift_director.family_picked()
+	if _remember_after != null:
+		dream_state.open_remember(_remember_after)  # The deepen pick's Remember page, after the Sapling's card
+		_remember_after = null
 
 # The Heartwood Sapling's own card follows the first family pick after act 2's boss (drift 60), once.
 func should_offer_sapling() -> bool:
@@ -889,6 +908,83 @@ func _make_blessing_card(card: UpgradeData) -> Button:
 	button.add_child(box)
 	_fit_card(button, box)
 	for line in [["Blessing", 14, UiStyle.GOLD], [card.display_name, 22, UiStyle.INK], [IconInfo.format(card.description), 15, UiStyle.INK]]:
+		var label := Label.new()
+		label.text = line[0]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_size_override("font_size", _fs(line[1]))
+		label.add_theme_color_override("font_color", line[2])
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(label)
+	return button
+
+# --- The drift 60 pick deepens a family (owner 2026-10-22, dream_council_review.md 31) -----------------------------------
+# One card per family the run owns that still has a branch "not in this dream", listing up to three of them; taking one
+# gives DreamState.DEEPEN_DREAMLIGHT and opens its call-back at the branch price (DreamState.deepen). No Blessings, no Kin
+# Foretold. A family with no such branch gets no card; with none at all only the Sapling's card (if due) shows.
+const DEEPEN_SHOWN := 3
+var _remember_after: TowerData = null  # The deepened family: its Remember page opens after the Sapling's card
+
+func deepen_offer() -> Array:
+	var out: Array = []
+	for base in dream_state._roster():
+		if base is TowerData and base.tier == 1 and base.buildable_directly and base.line != "wall" and base.line != "memory" \
+				and dream_state.is_unlocked(base.get_id()) and not dream_state.not_offered_branches(base).is_empty():
+			out.append(base)
+	return out
+
+func _show_deepen() -> void:
+	offer = deepen_offer()
+	_foretold_line.visible = false
+	if offer.is_empty():
+		if should_offer_sapling():
+			if not visible:
+				_was_paused = game_speed.paused
+			game_speed.set_paused(true)
+			visible = true
+			_show_sapling()
+			arm.arm()
+			return
+		drift_director.family_picked()  # Nothing to deepen
+		return
+	if not visible:
+		_was_paused = game_speed.paused
+	game_speed.set_paused(true)
+	_title.text = TITLES[&"deepen"]
+	_subtitle.visible = true
+	for child in _cards.get_children():
+		_cards.remove_child(child)
+		child.queue_free()
+	if _layout != null:
+		_layout.reset()
+		_layout.set_choices_visible(true)
+	for data in offer:
+		_cards.add_child(_make_deepen_card(data))
+	visible = true
+	arm.arm()
+	_fit_to_view()
+
+func _make_deepen_card(base: TowerData) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = _card_size()
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func() -> void: _press(button, base, "Deepen %s" % base.display_name))
+	UiStyle.card_button(button, Palette.SPRIG)
+	ChoiceCard.solid(button)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	_fit_card(button, box)
+	var lines := [["Not in this dream", 14, UiStyle.GOLD], [base.display_name, 22, UiStyle.INK]]
+	for form in dream_state.not_offered_branches(base).slice(0, DEEPEN_SHOWN):
+		lines.append([form.display_name, 16, UiStyle.INK])
+		lines.append([form.role_line if form.role_line != "" else IconInfo.format(form.description), 13, UiStyle.INK_DIM])
+	lines.append(["+%d Dreamlight now. Call one of these back for %d." % [DreamState.DEEPEN_DREAMLIGHT, DreamState.BRANCH_DREAMLIGHT], 13, UiStyle.GOLD])
+	for line in lines:
 		var label := Label.new()
 		label.text = line[0]
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -45,6 +45,10 @@ const CUES := {
 	&"last_stand": DREAM_FLECK, &"murmur": DREAM_FLECK, &"steady_aim": DREAM_FLECK, &"sharpened_light": DREAM_FLECK,
 	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"ill_wind": DREAM_FLECK, &"damp_rot": DREAM_FLECK,
 	&"first_light": DREAM_FLECK, &"front_line": DREAM_FLECK, &"passing_thread": DREAM_FLECK,
+	# The hit cards (owner 2026-10-22, dream_council_review.md 30): a fleck on the hit they boost
+	&"finishing_blow": DREAM_FLECK, &"bearing_down": DREAM_FLECK, &"open_road": DREAM_FLECK, &"clean_strike": DREAM_FLECK,
+	&"nowhere_to_run": DREAM_FLECK, &"standing_tall": DREAM_GLOW, &"trophies": RANK_SHIMMER, &"run_through": DREAM_THREAD,
+	&"measured_blow": DREAM_FLECK, &"the_tallest_tree": DREAM_THREAD, &"undiluted": STATUS_POP,
 	&"shared_light": DREAM_FLECK, &"fruiting": DREAM_FLECK, &"heavy_going": DREAM_FLECK, &"parting_puff": DREAM_THREAD,  # Non-status builds 2026-10-19
 	&"long_way_round": DREAM_FLECK, &"high_tide": DREAM_FLECK, &"seeping": DREAM_FLECK, &"slow_burn": DREAM_FLECK,
 	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK, &"head_start": DREAM_FLECK,
@@ -53,19 +57,18 @@ const CUES := {
 	# Reaction modifiers -> C5
 	&"brimming": REACTION_ACCENT, &"sparking_spores": REACTION_ACCENT, &"wildfire_spores": REACTION_ACCENT,
 	&"rolling_thunder": REACTION_ACCENT, &"rolling_thunder_ii": REACTION_ACCENT, &"deep_water": REACTION_ACCENT,
-	&"sweet_harmony": REACTION_ACCENT, &"kin_and_kindling": REACTION_ACCENT, &"crown_of_leaves": REACTION_ACCENT,
-	&"ember_count": REACTION_ACCENT,
+	&"sweet_harmony": REACTION_ACCENT, &"kin_and_kindling": REACTION_ACCENT,
 	&"old_rain": REACTION_ACCENT, &"never_quite_dry": REACTION_ACCENT,
 	&"eye_of_the_tempest": REACTION_ACCENT, &"mountains_fall": REACTION_ACCENT, &"endless_night": REACTION_ACCENT,
 	&"alarm_bells": REACTION_ACCENT, &"old_heart": REACTION_ACCENT, &"ring_of_rings": REACTION_ACCENT,
-	&"quick_reactions": REACTION_ACCENT, &"called_from_afar": REACTION_ACCENT,
+	&"quick_reactions": REACTION_ACCENT,
 	# Extra stacks or statuses -> C3 (pop)
 	&"breathe_it_in": STATUS_POP, &"mixed_company": STATUS_POP, &"pass_it_round": STATUS_POP,
 	&"spore_ring": STATUS_POP, &"mothers_hand": STATUS_POP, &"deep_grain": STATUS_POP, &"resonance": STATUS_POP,
 	&"static_bloom": STATUS_POP, &"windborne_rain": STATUS_POP, &"mycelium": STATUS_POP, &"overnight": STATUS_POP,
 	&"seeping_in": STATUS_POP, &"gone_to_seed": STATUS_POP, &"eternal_static": STATUS_POP,
 	&"heavy_eyelids": STATUS_POP, &"dream_residue": STATUS_POP, &"afterroot": STATUS_POP,
-	&"graft_of_dreams": STATUS_POP, &"charged_feathers": STATUS_POP, &"pollen_beaks": STATUS_POP,
+	&"charged_feathers": STATUS_POP, &"pollen_beaks": STATUS_POP,
 	&"shared_fever": STATUS_POP, &"snare_line": STATUS_POP, &"bad_dreams": STATUS_POP, &"many_threads": STATUS_POP,
 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
 	&"lingering_ground": STATUS_POP, &"long_light": STATUS_POP, &"lullaby": STATUS_POP,
@@ -125,7 +128,7 @@ const SURGE: Array[StringName] = [&"thinning_the_herd", &"hot_on_their_heels", &
 
 # Already visible by nature (spec C2): no cue, only the badge pop (credit with the source Warden).
 const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", &"seed_storm", &"sharp_beaks",
-	&"homing_instinct", &"ring_dance", &"encore", &"witching_bend", &"heavy_heart", &"reprise", &"chain_bloom",
+	&"homing_instinct", &"ring_dance", &"encore", &"witching_bend", &"reprise", &"chain_bloom",
 	&"thorny_walls", &"twig_walls", &"living_walls", &"tangled_release", &"nod_off", &"fever_pitch", &"hunters_moon",
 	&"spore_cascade", &"prism_heart", &"mushroom_rain", &"deep_stillness", &"old_hand", &"full_moon",
 	&"still_target", &"patient_aim", &"falling_stars", &"called_shot", &"starlit_aim",

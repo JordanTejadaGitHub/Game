@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "standing_tall"
+display_name = "Standing Tall"
+description = "A {final_form} or {ascended} Warden's direct hits deal 15% more for each attacking base or {branch} Warden {touching} it, up to 45%."
+tip = "Sprouts and walls don't count; its court can be any family. Hits only."
+rarity = 2
+kind = 3
+tags = Array[String](["tall", "hits"])
+max_stacks = 1
+min_act = 2
+rule_id = &"standing_tall"

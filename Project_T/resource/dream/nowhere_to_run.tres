@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "nowhere_to_run"
+display_name = "Nowhere to Run"
+description = "A {branch} or {final_form} Warden's direct hits deal 5% more for each second the nightmare has been in its range, up to 40%."
+tip = "Leaving its range starts the count again. Area Wardens too. Hits only."
+rarity = 1
+kind = 3
+tags = Array[String](["maze", "hits"])
+max_stacks = 1
+rule_id = &"nowhere_to_run"

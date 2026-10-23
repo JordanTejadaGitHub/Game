@@ -8,6 +8,7 @@ id = "ember_count"
 display_name = "Ember Count"
 description = "Every {reaction} this {block} makes {reactions} 1% stronger, up to +60%."
 tip = "Starts again at each {rest}; the Dreams row shows it. Offered after 20 {reactions} this run. Multiplies with your other Dream damage."
+retired = true
 rarity = 2
 kind = 3
 tags = Array[String](["reaction", "scaler"])

@@ -956,6 +956,15 @@ func _last_chord(enemy, bell) -> void:
 	if count < CHORD_STATUSES:
 		return
 	var at: Vector2 = enemy.global_position
+	if DreamState.undiluted_on:
+		# Undiluted holds every Reaction back (owner 2026-10-22, dream_council_review.md 30): the quiet Last Chord tops
+		# each status it carries back up to its landing time instead, on the same 8 s wait
+		for id in enemy.statuses.active_ids():
+			enemy.statuses.top_up(id)
+		enemy.set_meta(CHORD_META, now() + CHORD_EVERY)
+		Reactions._effect(&"chorus_note", at, self, 1.0)
+		credit(EVO_CHORD, at, bell)
+		return
 	var health: float = enemy.health
 	var changes: int = enemy.statuses.changes
 	Reactions.check_at_half(enemy, bell)

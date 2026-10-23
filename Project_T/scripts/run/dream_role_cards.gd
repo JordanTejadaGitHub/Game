@@ -67,7 +67,9 @@ const OLD_HAND_III := 8  # (TD renumber: was 6 behind the full-status gate)
 const OLD_HAND_FAST_RANK := 5  # …and from this rank every OLD_HAND_V-th (counted per attack, never per target)
 const OLD_HAND_V := 5  # (TD renumber: was 4)
 const TOWERING_COUNT := 3  # Towering: the Wardens with the highest ranks (ties: the higher form, then the older)…
-const TOWERING_BONUS := 0.50  # …deal this much more (synergy)…
+const TOWERING_BONUS := 0.50  # (Retired number: was a flat +50%; the bonus is now per rank, TOWERING_PER_RANK)
+const TOWERING_PER_RANK := 0.10  # …deal 10% more for each rank above TOWERING_FROM_RANK (rank V +30%, VII +50%; owner 2026-10-22, section 30)…
+const TOWERING_FROM_RANK := 2
 const TOWERING_REACH := 3.0  # (Unused since keyword chips 2026-10-16: the leftover jump is gone)
 const TOWERING_MIN_TIER := 3  # Its Need: a final form (tier 3+)…
 const TOWERING_MIN_RANK := 4  # …at rank IV or higher, on the map
@@ -187,8 +189,10 @@ func hit_multiplier(tower, enemy, effect_tick: bool) -> Array:
 		millstone = true  # Keyword chips 2026-10-16 (TD): every heavy hit splashes; no full-status gate, no +60%
 	var towering := _on.has(TOWERING) and _towering_set().has(tower.get_instance_id())
 	if towering:
-		m *= 1.0 + TOWERING_BONUS
-		DamageLog.note_card_bonus("towering", 1.0 + TOWERING_BONUS)  # Card credit (Main Merger df7010bb)
+		var tall := 1.0 + TOWERING_PER_RANK * maxi(tower.rank - TOWERING_FROM_RANK, 0)
+		m *= tall
+		if tall > 1.0:
+			DamageLog.note_card_bonus("towering", tall)  # Card credit (Main Merger df7010bb)
 	return [m, millstone, towering]
 
 func begin_hit(tower, enemy) -> Array:

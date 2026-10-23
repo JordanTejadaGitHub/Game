@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bearing_down"
+display_name = "Bearing Down"
+description = "Each attack in a row on the same nightmare deals 4% more, up to 10% for each {rank} the Warden holds."
+tip = "Wardens that aim at one nightmare; not area attacks or beams. A new target starts again. Hits only."
+rarity = 0
+kind = 3
+tags = Array[String](["precision", "hits"])
+max_stacks = 1
+rule_id = &"bearing_down"
+uses = Array[StringName]([&"rank"])
