@@ -1385,7 +1385,7 @@ func _add_hit_card_rows() -> void:
 	if line != "":
 		_add_button(line).disabled = true
 	if cards.can_choose(_tower):
-		var button := _add_button("Make it the Tallest Tree")
+		var button := _add_button("Choose as Tallest")
 		button.tooltip_text = "The Tallest Tree: every other Warden's direct hits store damage in this one." + ("" if cards.tallest() == null else " Moving it empties the store.")
 		button.pressed.connect(_choose_tallest)
 
