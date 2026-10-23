@@ -874,6 +874,11 @@ class FxSustain extends Node2D:
 	const HOLD := {&"link": 0.4, &"beam": 0.3, &"poison": 0.8, &"zone": 0.6}  # Seconds without a tick before it goes anyway
 	const FRESH_MS := 60
 	const ROLL := 0.07  # The arcs re-roll this often
+	# A status at its most flashes once (EnemyStatuses.status_filled -> Enemy.flash_status), then its overlay settles:
+	# a slower, fainter loop for as long as it stays full (user 2026-10-22: capped Poisoned orbs circled on and on).
+	const CALM_SPEED := 0.35
+	const CALM_ALPHA := 0.55
+	const STILL_ALPHA := 0.45  # Reduced motion: one still frame, a faint tint
 	var enemy: Node2D
 	var kind: StringName
 	var source: Node
@@ -887,6 +892,8 @@ class FxSustain extends Node2D:
 	var _stamp := 0
 	var _art: Node2D = null
 	var _art_shown := &"-"
+	var _art_fps := 0.0  # The sheet's own speed (CALM_SPEED slows it)
+	var _calm := false
 
 	func _init(target: Node2D, of_kind: StringName, is_quiet: bool = false) -> void:
 		enemy = target
@@ -922,6 +929,24 @@ class FxSustain extends Node2D:
 		if _art != null and is_instance_valid(_art):
 			_art.queue_free()
 		_art = Fx.play(id, global_position, self, 1.0, true, 9999.0) if id != &"" else null  # Loops until this node goes
+		_art_fps = float(_art._fps) if _art is FxSprite else 0.0
+		_settle(true)
+
+	# Full stacks = the calm loop; reduced motion = a still tint. Refreshing never restarts the sheet.
+	func _settle(force: bool = false) -> void:
+		var calm: bool = kind == Fx.SUSTAIN_POISON and is_instance_valid(enemy) \
+			and enemy.statuses.stacks(EnemyStatuses.SPORED) >= enemy.statuses.get_max_stacks(EnemyStatuses.SPORED)
+		if calm == _calm and not force:
+			return
+		_calm = calm
+		if not (_art is FxSprite) or not is_instance_valid(_art):
+			return
+		var still := bool(Fx.setting("reduced_motion", false))
+		_art.still = 0 if still else -1
+		var fps := _art_fps * (CALM_SPEED if calm else 1.0)
+		_art._age = _art._age * _art._fps / fps  # Same frame at the new speed: no jump
+		_art._fps = fps
+		_art.modulate.a = STILL_ALPHA if still else (CALM_ALPHA if calm else 1.0)
 
 	func _exit_tree() -> void:
 		Fx._sustains = maxi(Fx._sustains - 1, 0)
@@ -954,7 +979,7 @@ class FxSustain extends Node2D:
 
 	# Whether its source still reaches the nightmare.
 	func _still() -> bool:
-		if not is_instance_valid(enemy) or enemy.is_cleansed or _left <= 0.0:
+		if not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.is_inside_tree() or _left <= 0.0:
 			return false
 		if kind == Fx.SUSTAIN_POISON:
 			return enemy.statuses.has(EnemyStatuses.SPORED)
@@ -973,12 +998,13 @@ class FxSustain extends Node2D:
 			end()
 			return
 		_follow()
-		_age += delta
+		_age += delta * (CALM_SPEED if _calm else 1.0)
 		_roll -= delta
 		if _roll <= 0.0:
 			_roll = ROLL * (4.0 if Fx.reduce_flashes() else 1.0)  # Reduce flashes: the arcs barely jitter
 			_seed += 1
 			_fit_art()  # The stacks or the ramp may have moved to the next sheet
+			_settle()
 		if not quiet and _art == null:
 			queue_redraw()
 
