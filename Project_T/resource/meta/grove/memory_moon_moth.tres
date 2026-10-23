@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "memory_moon_moth"
 display_name = "Memory Warden: The Moon Moth"
-description = "Grows the first time you dispel the Moth Queen. After that it can be your reward for dispelling that boss. Reveals every Lurker, and Wardens in range attack from further away."
+description = "Long-range shots that give {marked}. Reveals {hidden} nightmares in its range, and Wardens within 3 cells get +1 range. Grows the first time you dispel the Moth Queen. After that, it can be offered as a reward when you dispel that boss."
 root = 0
 costs = Array[int]([])
 order = 42

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "one_line"
-display_name = "One Line"
+display_name = "Monoculture"
 description = "Adds the {legendary} {dream} card {card:monoculture} to the cards your runs can offer."
 root = 1
 costs = Array[int]([80])
