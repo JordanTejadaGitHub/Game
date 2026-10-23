@@ -947,6 +947,110 @@ function pool(A, f) {
   return L;
 }
 
+// Dew Pool landmark (environment_assets.md "Landmarks", 2026-10-23): a 2-cell SHALLOW pool nightmares wade
+// through (slowed), never built on. Same materials as the pond feature (its earth-and-moss bank, Dew-to-Pool water,
+// level moonlight dashes) so it belongs to the same world, but read as shallow and walkable: the light shore band
+// fills most of it, the bottom shows through (sand bars, shaded pebbles), stepping stones break the surface with
+// ripples round them, and reeds grow at both ends. Act 4: the same pool under a thin cracked crust, snow on the
+// stones, rimed reeds. Transparent outside its bank, so it lies over grass or over a path run through it.
+// vert = the 64×128 piece (two cells stacked); otherwise 128×64.
+function dewPool(A, f, vert) {
+  const W = vert ? T : T * 2, H = vert ? T * 2 : T, L = new Img(W, H), s = SEED + 401 + (vert ? 9 : 0);
+  const frozen = A.frozen, g = A.grass, Wt = frozen ? POND_ICE : POND_WATER;
+  const cx = W / 2, cy = H / 2, rx = W / 2 - (vert ? 5 : 4), ry = H / 2 - (vert ? 4 : 6), rmin = Math.min(rx, ry);
+  const shape = (x, y) => {
+    const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry, a = Math.atan2(dy, dx);
+    return Math.hypot(dx, dy) / (1 + .07 * Math.sin(3 * a + 1.3) + .05 * Math.sin(5 * a + .4) + (pnoise(x, y, 6, s + 1) - .5) * .08);
+  };
+  const depth = (x, y) => (1 - shape(x, y)) * rmin;  // px in from the shore
+  // Stepping stones along the long axis, where a nightmare would wade.
+  const stones = (vert ? [[cx - 4, 36, 6.5, 4.2], [cx + 4, 88, 6, 4]] : [[46, cy - 1, 7, 4.4], [86, cy + 4, 6.2, 4]])
+    .map(([x, y, a, b], i) => [x + (hash(i, 1, s) - .5) * 4, y + (hash(i, 2, s) - .5) * 3, a, b]);
+  const nearStone = (x, y, k) => stones.some(([sx, sy, a, b]) => Math.hypot((x + .5 - sx) / (a + k), (y + .5 - sy) / (b + k * .7)) < 1);
+  const wet = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = depth(x, y);
+    if (d < -1.5) continue;
+    if (d < 1.5) {  // the bank: dark earth with moss creeping over its lip (the pond's bank)
+      const lip = d < 0;
+      L.set(x, y, frozen && lip ? "#dce8f4" : hash(x, y, s + 3) < .4 ? g[2] : lip ? "#241c14" : "#140f26");
+      continue;
+    }
+    // Shallow: the light shore band reaches far in; only the middle goes darker, and there the bottom shows.
+    const t = clamp((d - 1.5) / (rmin * .95) + (pnoise(x, y, 16, s + 5) - .5) * .12 - (nearStone(x, y, 3) ? .3 : 0), 0, 1);
+    const col = frozen ? pick([Wt[3], Wt[2], Wt[1]], t * .8, x, y, 0) : pick([Wt[2], Wt[2], Wt[2], Wt[1]], t, x, y, 0);  // clean bands, no dither fringe
+    L.set(x, y, col); wet.push([x, y, d]);
+  }
+  const inWater = (x, y) => x >= 0 && y >= 0 && x < W && y < H && depth(x, y) > 3 && !nearStone(x, y, 1);
+  // Pebbles on the bottom, small shaded clusters seen through the water.
+  for (let i = 0; i < (vert ? 9 : 10); i++) {
+    const x0 = Math.floor(8 + hash(i, 4, s) * (W - 16)), y0 = Math.floor(6 + hash(i, 5, s) * (H - 12));
+    for (let j = 0; j < 3; j++) {
+      const x = x0 + Math.floor((hash(i, j + 10, s) - .5) * 6), y = y0 + Math.floor((hash(i, j + 20, s) - .5) * 4);
+      if (!inWater(x, y) || !inWater(x + 2, y + 1)) continue;
+      const big = hash(i, j + 30, s) > .5;
+      L.set(x, y + 1, Wt[0]); L.set(x + 1, y + 1, Wt[0]);
+      L.set(x, y, frozen ? "#8c8cac" : "#5c5a78"); L.set(x + 1, y, frozen ? "#b4b0c8" : "#8c8cac");
+      if (big) { L.set(x + 2, y, frozen ? "#8c8cac" : "#5c5a78"); L.set(x + 2, y + 1, Wt[0]); L.set(x + 1, y - 1, frozen ? "#b4b0c8" : "#8c8cac"); }
+    }
+  }
+  if (frozen) {
+    // Cracks in the crust, kept off the bank.
+    for (let k = 0; k < (vert ? 4 : 4); k++) {
+      const x0 = 14 + hash(k, 41, s) * (W - 28), y0 = 10 + hash(k, 42, s) * (H - 20), a = hash(k, 43, s) * Math.PI;
+      for (let i = 0; i < 10; i++) { const x = Math.round(x0 + Math.cos(a) * i), y = Math.round(y0 + Math.sin(a) * i * .7); if (inWater(x, y)) L.set(x, y, Wt[4]); }
+    }
+  } else {
+    // Ripples spreading from each stepping stone (the upper arc, as the pond's light falls), and moonlight dashes.
+    stones.forEach(([sx, sy, a, b], i) => {
+      const grow = [1.5, 3, 4.5, 6][(f + i * 2) % 4];
+      for (const [x, y] of wet) {
+        const e = Math.hypot((x + .5 - sx) / (a + grow), (y + .5 - sy) / (b + grow * .6));
+        if (Math.abs(e - 1) < .09 && y < sy - b * .2 && inWater(x, y)) L.set(x, y, grow > 4 ? Wt[2] : Wt[3]);
+      }
+    });
+    for (let k = 0; k < (vert ? 6 : 7); k++) {
+      const x0 = 8 + Math.floor(hash(k, 51, s) * (W - 20)), y = 8 + Math.floor(hash(k, 52, s) * (H - 16)), len = 2 + Math.floor(hash(k, 53, s) * 3);
+      const ph = (f + k) % 4, shift = ph - 1;
+      for (let i = 0; i < len; i++) { const x = x0 + shift + i; if (inWater(x, y)) L.set(x, y, ph === 3 ? Wt[2] : ph === 0 ? Wt[4] : Wt[3]); }
+    }
+  }
+  // The stepping stones: the boulders' stone, lit from the upper left, a wet dark waterline and an outline.
+  for (const [sx, sy, a, b] of stones) {
+    const S = new Img(W, H);
+    blob(S, sx, sy, a, b, STONE_RAMP, { tex: .15, seed: Math.floor(sx) });
+    for (let x = Math.floor(sx - a); x <= Math.ceil(sx + a); x++) {  // the waterline: the lowest rows sit in the water
+      for (let y = Math.floor(sy + b * .6); y <= Math.ceil(sy + b); y++) if (S.alpha(x, y)) S.set(x, y, ST.d2);
+    }
+    if (frozen) for (let x = Math.floor(sx - a + 1); x < sx + a - 1; x++) { const y = Math.floor(sy - b * .6 + Math.abs(x - sx) * .25); if (S.alpha(x, y)) S.set(x, y, "#f0faff"); if (S.alpha(x, y + 1) && hash(x, 3, s) < .5) S.set(x, y + 1, "#dce8f4"); }
+    else if (hash(Math.floor(sx), 6, s) < .6) { S.set(sx - 1, sy - 1, g[3]); S.set(sx, sy - 1, g[4]); S.set(sx - 2, sy, g[3]); }  // a little moss
+    L.stamp(S, ST.out);
+    if (!frozen) for (let x = Math.floor(sx - a + 1); x < sx + a; x++) if (hash(x, 7, s) < .55) L.set(x, Math.round(sy + b + 1), Wt[3]);  // wet shine where it meets the water
+  }
+  // Reed clumps at the two ends, rooted in the bank with a dark base; a few bulrush heads (rimed in act 4).
+  const reed = [A.canopy[2], A.canopy[3], A.canopy[4], A.canopy[4]];
+  const clumps = vert ? [[cx - 8, 18, -1], [cx + 8, H - 9, 1]] : [[11, cy - 2, -1], [W - 11, cy + 5, 1]];
+  for (const [x0, y0, side] of clumps) {
+    const R = new Img(W, H);
+    for (let k = 0; k < 11; k++) {
+      const x = x0 + (k - 5) * 1.3 + (hash(k, 7, s + x0) - .5) * 1.5, h = 9 + Math.floor(hash(k, 8, s + x0) * 9);
+      const lean = (hash(k, 9, s + x0) - .5) * 4 + side * 1.2 + (k - 5) * .35;
+      for (let j = 0; j < h; j++) {
+        const px = Math.round(x + lean * (j / h) * (j / h)), py = y0 + 3 - j;
+        const lit = (k + (j > h / 2 ? 1 : 0)) % 3 === 0;
+        R.set(px, py, frozen && j > h - 4 ? "#dce8f4" : j < 2 ? reed[0] : lit ? reed[3] : j > h - 3 ? reed[2] : reed[1]);
+      }
+      if (k % 4 === 1) {  // a bulrush head
+        const px = Math.round(x + lean), py = y0 + 3 - h;
+        R.set(px, py - 1, frozen ? "#b4b0c8" : "#5c3c24"); R.set(px, py - 2, frozen ? "#dce8f4" : "#8c5c34"); R.set(px, py - 3, frozen ? "#f0faff" : "#5c3c24"); R.set(px, py - 4, reed[2]);
+      }
+    }
+    for (let k = -4; k <= 4; k++) if (depth(x0 + k, y0 + 4) > 0) L.set(x0 + k, y0 + 4, CA("#05050d", .55));  // contact shadow, kept inside the bank
+    L.stamp(R, ST.out);
+  }
+  return L;
+}
+
 // Pond (2026-10-01, the map's pond feature): one body of still water over a 2×2 to 3×3 patch, by
 // neighbour mask like the path (N=1 E=2 S=4 W=8), transparent outside its banks. Ponds are rectangles,
 // so where two sides join the diagonal cell is pond too (no inner corners). Earth-and-moss banks,
@@ -2558,6 +2662,7 @@ const BUILD = {
   dent: A => dent(A),
   waystone: (A, v, f) => waystone(A, f),
   pool: (A, v, f) => pool(A, f),
+  dpool: (A, v, f) => dewPool(A, f, v === 1),
   pond: (A, v, f) => pondTile(A, v, f),
   pondin: (A, v) => pondInner(A, v),
   pdual: (A, k) => pathDual(A, k),  // k = corner mask 0..15, 16..18 = more full tiles
@@ -2605,8 +2710,8 @@ const BUILD = {
   astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["lmspring", "lmtree", "lmbell", "lmring", "lmwell", "rrise", "nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
-const TILES = new Set(["lmring", "lmroots", "rrun", "rrise", "lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
+const ANIM = new Set(["dpool", "lmspring", "lmtree", "lmbell", "lmring", "lmwell", "rrise", "nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["dpool", "lmring", "lmroots", "rrun", "rrise", "lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

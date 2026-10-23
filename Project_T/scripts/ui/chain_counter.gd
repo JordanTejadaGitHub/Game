@@ -16,7 +16,8 @@ const MIN_LINKS := 2
 
 var _row := HBoxContainer.new()
 var _icon := TextureRect.new()
-var _count := Label.new()
+var _word := Label.new()  # "Chain", in the count's face
+var _count := Label.new()  # "×213" in the number face (UI council: no digits in Pixelify)
 var _best := Label.new()
 var _tracker: ReactionTracker
 var _left := 0.0  # Seconds until the fade starts
@@ -50,20 +51,34 @@ func _ready() -> void:
 	_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_child(_icon)
+	_word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_word.text = "Chain"
+	UiStyle.number(_word, 20 if _phone else 26, UiStyle.GOLD)  # One face for the phrase (user 2026-10-23: too many fonts)
+	_word.add_theme_color_override("font_color", UiStyle.GOLD)
+	_word.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	_word.add_theme_constant_override("outline_size", 6)
+	_row.add_child(_word)
 	_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.display(_count, 20 if _phone else 26)
+	UiStyle.number(_count, 20 if _phone else 26, UiStyle.GOLD)
 	_count.add_theme_color_override("font_color", UiStyle.GOLD)
 	_count.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	_count.add_theme_constant_override("outline_size", 6)
 	_row.add_child(_count)
 	_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_best.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.number(_best, 12 if _phone else 14, UiStyle.INK_DIM)
+	UiStyle.number(_best, 14 if _phone else 16, UiStyle.INK)  # Readable (user 2026-10-22: "can't see best")
 	_best.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	_best.add_theme_constant_override("outline_size", 4)
 	add_child(_best)
 	visible = false
 	resized.connect(func() -> void: pivot_offset = size / 2.0)
+	resized.connect(queue_redraw)
+
+# On a glass plate, never bare on the map (ui_style.md "No floating text over the map"; user 2026-10-22: "can't see best").
+const PLATE_PAD := Vector2(16.0, 6.0)
+var _plate := UiStyle.plate_box(PLATE_PAD.x, PLATE_PAD.y)
+func _draw() -> void:
+	draw_style_box(_plate, Rect2(-PLATE_PAD, size + PLATE_PAD * 2.0))
 
 func _process(delta: float) -> void:
 	if _tracker == null or not is_instance_valid(_tracker):
@@ -106,7 +121,7 @@ func _on_chain(count: int, _where: Vector2, _towers: Array) -> void:
 		return
 	var grew := count > _shown or not visible
 	_shown = count if (count > _shown or _left <= 0.0) else _shown  # A second chain going on doesn't drop the number
-	_count.text = "Chain ×%d" % _shown
+	_count.text = "×%d" % _shown
 	_best.text = "Best ×%d" % maxi(_tracker.longest_chain if _tracker != null else count, _shown)
 	visible = true
 	modulate.a = 1.0  # multiplier

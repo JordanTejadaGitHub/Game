@@ -183,8 +183,12 @@ func _run() -> void:
 		walker.set_path(from)
 		walker._path_index = 1
 		walker._try_wander()
-		_check(walker._path.size() >= 2 and walker._path[0] == pocket.cell + from[0] - _cell_of(from[0]) and walker._path[1] == from[0],
-			"the Sleepwalker steps into the dead end and back")
+		# It picks a dead end beside it at random: the one built here, or one the map already had (the 20x16 map is tight).
+		var into: Vector2 = _cell_of(walker._path[0]) if walker._path.size() >= 2 else Vector2(-99, -99)
+		var back: int = walker._path.find(from[0])
+		_check(walker._path.size() >= 2 and into.distance_to(_cell_of(from[0])) == 1.0 and not _on_route(into) and back >= 1
+			and walker._path[0] - into == from[0] - _cell_of(from[0]),
+			"the Sleepwalker steps into a dead end beside it, in its lane, and back (into %s, back at %d)" % [into, back])
 		_check((walker._path[walker._path.size() - 1] + Vector2(0.5, 0.5)).floor() == map_generator.endPath, "then goes on to the Heartwood")
 		_clear_enemies()
 
@@ -1142,7 +1146,15 @@ func _dead_end_setup() -> Dictionary:
 			var ok := true
 			for step in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				var around: Vector2 = side + step
-				if around == _cell_of(route[i]) or _on_route(around) or not map_generator.is_buildable(around):
+				if around == _cell_of(route[i]):
+					continue
+				if _on_route(around):  # A second way in from the route: not a dead end
+					ok = false
+					break
+				if not map_generator.is_buildable(around):
+					if map_generator.MAP_GRID.is_within_bounds(around) and map_generator.path_layer.get_finder().is_walkable(around):
+						ok = false  # Walkable but no wall can go there (the start, the glade's edge…): a second way in
+						break
 					continue
 				if not map_generator.can_block(around):
 					ok = false

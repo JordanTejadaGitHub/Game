@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "knell"
 display_name = "Knell"
-description = "A bell's hit lands again once for each status on the nightmare, up to 3 times. Each nightmare once every 6 s."
-tip = "{held} doesn't count; the bell's own status does. The repeats come 0.2 s apart, each adding 1 of the bell's status. A pulsing bell's repeats deal half. Works for: bells behind status Wardens of any family. Safe."
+description = "A {family:bellflower} Warden's hit lands again once for each status on the nightmare, up to 3 times. Each nightmare once every 6 s."
+tip = "{held} doesn't count; the {family:bellflower} Warden's own status does. The repeats come 0.2 s apart, each adding 1 of the {family:bellflower} Warden's status. A pulsing {family:bellflower} Warden's repeats deal half. Works for: {family:bellflower} Wardens behind status Wardens of any family. Safe."
 rarity = 1
 kind = 3
 tags = Array[String](["song", "lent"])

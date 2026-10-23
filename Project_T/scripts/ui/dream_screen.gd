@@ -319,7 +319,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			hint.name = "TapHint"
 			hint.text = " "  # Holds its line from the start, so the row never shifts
 			hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			UiStyle.caps(hint, 15, UiStyle.GOLD)
+			UiStyle.plain(hint, 15, UiStyle.GOLD)
 			column.add_child(hint)
 		_cards.add_child(column)
 	_show_reach(null)  # New cards (a reroll too): no outline until one is hovered (distance words, owner 2026-10-19)
@@ -362,7 +362,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing). A Calling evolution is not a Dream (owner 2026-10-22: "make the evolution path cards
 	# different than the dream cards"): its family's colour everywhere the rarity colour would be, the Calling's leaf mark
-	# for the gem, the path's steps, a wash of its colour in the glass and corner brackets (_evolution_marks).
+	# for the gem, the path's steps, a wash of its colour in the glass and corner brackets (ChoiceCard.family_marks).
 	var evolution := card.tags.has("calling_evolution")
 	var accent: Color = _calling_colour() if evolution else (ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
 	UiStyle.card_button(button, accent, is_legendary(card))
@@ -378,7 +378,7 @@ func _make_card(card: UpgradeData) -> Button:
 	if _phone:  # One sprout per screen (UI review; Take's): the thread runs full width in the rarity colour, no mark
 		PhoneChoice.card_thread(button, accent)
 	if evolution:
-		_evolution_marks(button, accent)  # Under the text: added before the box
+		ChoiceCard.family_marks(button, accent)  # Under the text: added before the box (shared with the family pick)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -417,7 +417,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# for the act 2+ offer rule (dream_design.md de439ea8).
 	box.add_child(gem_row)
 	if evolution:
-		box.add_child(_evolution_steps(accent))
+		box.add_child(_evolution_steps(accent, card))
 	# "Calling: Spore Print" / "Sporeling family" on its own line under the rarity, wrapping at the card's width
 	var kind: String = dream_state.card_kind_line(card) if dream_state.has_method("card_kind_line") else ""
 	if kind != "":
@@ -509,12 +509,9 @@ func _one_tip(button: Button) -> void:
 # --- Calling evolution cards (owner 2026-10-22: "make the evolution path cards different than the dream cards") ------
 # Same moon-glass card, but nothing about it reads as a Dream: the Calling's family colour (Kinships.FAMILY_COLORS, the
 # colour its vines and sparks already use) instead of a rarity, the Calling's leaf mark instead of the rarity gem, the
-# header "<Calling>", the path's four steps and the step's name under it, a wash of the colour at the top of the glass and a
-# bracket in each corner.
-const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Follow-up"]  # CallingPaths.DRIFTS order
-const EVOLUTION_WASH := 0.16  # The colour's alpha at the top of the glass, fading out halfway down
-const EVOLUTION_INSET := 7.0  # The wash and brackets sit this far inside the card (inside the frame's rim)
-const EVOLUTION_BRACKET := 12.0  # Each corner bracket's arm
+# header "<Calling>", the path's four steps and the step's name under it, and the family look the family pick shares
+# (ChoiceCard.family_marks: a wash of the colour at the top of the glass and a bracket in each corner).
+const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Finale"]  # CallingPaths.DRIFTS order. Drift 75 (owner 2026-10-23): its line's Finale (tag "deepen") or a Cross over to the style's other follow-up (tag "cross_over")
 
 func _calling_colour() -> Color:
 	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
@@ -523,28 +520,10 @@ func _calling_colour() -> Color:
 func _evolution_step() -> int:
 	return clampi(dream_state.calling_path.size(), 0, EVOLUTION_STAGES.size() - 1)
 
-func _evolution_stage_name() -> String:
+func _evolution_stage_name(card: UpgradeData = null) -> String:
+	if card != null and card.tags.has("cross_over"):
+		return "Cross over"
 	return EVOLUTION_STAGES[_evolution_step()]
-
-func _evolution_marks(button: Button, colour: Color) -> void:
-	var marks := Control.new()
-	marks.name = "EvolutionMarks"
-	marks.set_anchors_preset(Control.PRESET_FULL_RECT)
-	marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	marks.draw.connect(_draw_evolution_marks.bind(marks, colour))
-	button.add_child(marks)
-
-func _draw_evolution_marks(marks: Control, colour: Color) -> void:
-	var r := Rect2(Vector2.ONE * EVOLUTION_INSET, marks.size - Vector2.ONE * EVOLUTION_INSET * 2.0)
-	var mid := r.position.y + r.size.y * 0.5
-	marks.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), Vector2(r.end.x, mid), Vector2(r.position.x, mid)]),
-		PackedColorArray([Color(colour, EVOLUTION_WASH), Color(colour, EVOLUTION_WASH), Color(colour, 0.0), Color(colour, 0.0)]))
-	var arm := EVOLUTION_BRACKET
-	for corner: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
-		var sx := 1.0 if corner.x < r.get_center().x else -1.0
-		var sy := 1.0 if corner.y < r.get_center().y else -1.0
-		marks.draw_polyline(PackedVector2Array([corner + Vector2(0, sy * arm), corner, corner + Vector2(sx * arm, 0)]), Color(colour, 0.85), 2.0)
-		marks.draw_rect(Rect2(corner + Vector2(sx * 3.0 - 1.0, sy * 3.0 - 1.0), Vector2(2, 2)), Color(colour, 0.85))  # A bud inside it
 
 # The Calling's mark (owner 2026-10-22: "remove the Warden portrait, it should be something else"; chose the Calling
 # glyph): the glyph its family's Dream cards use (UiStyle.dream_glyph on its line's tag: water, spore, light, song…), 2x,
@@ -595,7 +574,7 @@ func _draw_calling_mark(mark: Control, glyph: Texture2D, colour: Color) -> void:
 # this step's name ("Style", "Follow-up", "Capstone") beside them, so the header keeps to the Calling's name.
 const STEPS_WIDTH := 80.0  # The beads' room: MARK_SIZE / 2 + 3 gaps of 18 + the last bead's ring
 
-func _evolution_steps(colour: Color) -> Control:
+func _evolution_steps(colour: Color, card: UpgradeData = null) -> Control:
 	var row := HBoxContainer.new()
 	row.name = "EvolutionSteps"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -607,7 +586,7 @@ func _evolution_steps(colour: Color) -> Control:
 	steps.draw.connect(_draw_evolution_steps.bind(steps, colour))
 	row.add_child(steps)
 	var stage := Label.new()
-	stage.text = _evolution_stage_name()
+	stage.text = _evolution_stage_name(card)
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.caps(stage, _fs(14), UiStyle.INK_DIM)
 	row.add_child(stage)
@@ -652,7 +631,7 @@ func _add_opens_clearing(box: VBoxContainer) -> void:
 	var line := Label.new()
 	line.text = DreamState.OPENS_CLEARING_LINE
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(line, 16, UiStyle.GOLD)
+	UiStyle.plain(line, 16, UiStyle.GOLD)
 	row.add_child(line)
 	box.add_child(row)
 	# (No OPENS_CLEARING_TEXT line: the card's own text says it; UI council 2026-10-22 saw the rule twice.)

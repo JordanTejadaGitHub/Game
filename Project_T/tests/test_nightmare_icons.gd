@@ -126,9 +126,9 @@ func _run() -> void:
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
 	if strip != null and strip.visible:
-		if strip._chip != null:  # PC: the strip folds into its chip on the banner row since 77fe78c4; measure it open
-			strip._chip.button_pressed = true
-			await process_frame
+		strip.pc_open = true  # PC: shut behind its chip since 77fe78c4; the caption only shows open
+		strip._apply_pc()
+		await process_frame
 		await process_frame
 		var caption_rect: Rect2 = strip._caption.get_global_rect()
 		var clear := strip.items().all(func(item: Control) -> bool:
@@ -138,7 +138,7 @@ func _run() -> void:
 				if badge is Label:
 					top = minf(top, (badge as Label).get_global_rect().position.y)
 			return top - caption_rect.end.y >= 6.0)
-		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it)")
+		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it; caption %s, first item %s)" % [caption_rect, strip.items()[0].get_global_rect() if not strip.items().is_empty() else Rect2()])
 	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():

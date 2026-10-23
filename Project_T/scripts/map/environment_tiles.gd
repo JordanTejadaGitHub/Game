@@ -21,8 +21,8 @@ const MOSSY_BOULDER := 5  # 9 rocks
 const MOVED_HOLLOW := 6
 const EDGE_MIST := 7  # Animated overlay
 const GROUND_DETAILS := 11  # Mushrooms, ferns, pebbles, leaf litter
-const WAYSTONE := 12  # Special tiles (design plan §9): art only, no rules yet
-const DEW_POOL := 13
+const WAYSTONE := 12  # The Old Waystone landmark (map_landmark.gd): 64x64, 4 frames
+const DEW_POOL := 13  # The Dew Pool landmark across two cells (W, E): 4 frames of 128x64, drawn on the west cell
 const BLIGHT_PATCH := 14
 const ISLAND_EDGE := 15  # The island's rim: column = neighbour mask of island cells (N=1, E=2, S=4, W=8)
 const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit 2 = to the east; rows = variants
@@ -32,6 +32,7 @@ const POND := 19  # Column = neighbour mask of pond cells (N=1, E=2, S=4, W=8); 
 const POND_INNER := 20  # Inside-corner overlays for ponds that aren't rectangles: columns NE, SE, SW, NW (static)
 const FALLEN_LOG := 21  # The log feature: 6 static pieces, 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
 const LOG_FURROW := 22  # Where a log was tended: the same 6 pieces, each on its log piece's cell (walkable mark)
+const DEW_POOL_V := 23  # The Dew Pool down two cells (N, S): dew_pool_v.png, 4 frames of 64x128, drawn on the north cell
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
@@ -39,14 +40,16 @@ const SHEETS := {
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
 	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond", POND_INNER: "pond_inner",
-	FALLEN_LOG: "fallen_log", LOG_FURROW: "log_furrow",
+	FALLEN_LOG: "fallen_log", LOG_FURROW: "log_furrow", DEW_POOL_V: "dew_pool_v",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"
 const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
-const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
+const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, DEW_POOL_V, BLIGHT_PATCH]
 # Sheets whose cells are bigger than a map cell (withered_tree.png: 96×128, overhanging the cell above and its sides).
-const TALL := {WITHERED_TREE: Vector2i(96, 128)}
+const TALL := {WITHERED_TREE: Vector2i(96, 128), DEW_POOL: Vector2i(128, 64), DEW_POOL_V: Vector2i(64, 128)}
+# Two-cell tiles drawn from their first cell (west / north) over both: texture_origin moves the art right / down by half a cell.
+const TWO_CELL := {DEW_POOL: Vector2i(-32, 0), DEW_POOL_V: Vector2i(0, -32)}
 # Animated tiles start at a random point per cell (so a field of them never pulses in step), and
 # each dead-tree type (row) runs at its own pace with uneven frame timing: one frame held, one quick.
 const TREE_SPEEDS: Array[float] = [0.8, 0.95, 0.7, 0.85, 0.6, 1.1, 0.75, 0.9, 0.65]
@@ -107,7 +110,10 @@ static func create_tile_set(act: int = 1) -> TileSet:
 					source.set_tile_animation_frame_duration(coords, frame, weight / FPS)
 				if id == WITHERED_TREE:
 					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
-				_anchor_bottom(source, coords, region)
+				if TWO_CELL.has(id):
+					source.get_tile_data(coords, 0).texture_origin = TWO_CELL[id]
+				else:
+					_anchor_bottom(source, coords, region)
 				if id == WITHERED_TREE:
 					source.get_tile_data(coords, 0).y_sort_origin = TREE_SORT_BIAS
 					_add_fade_alternatives(source, coords, region, grid.y)

@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "undiluted"
 display_name = "Undiluted"
-description = "No {reaction} ever goes off. Each status's own effect grows instead: {spored} ticks and {static} bolts deal double damage."
-tip = "Cards that only pay off through a {reaction} aren't offered while you hold it. Lightning Rod stays quiet; a {static} bolt still fires."
+description = "{reactions} never trigger. Instead, {spored} ticks and {static} bolts deal double damage."
+tip = "Cards that only work through {reactions} are no longer offered. {named_combo:lightning_rod} doesn't trigger either."
 rarity = 3
 kind = 3
 tags = Array[String](["status", "defining"])

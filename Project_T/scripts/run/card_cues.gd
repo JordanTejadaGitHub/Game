@@ -58,7 +58,7 @@ const CUES := {
 	&"brimming": REACTION_ACCENT, &"sparking_spores": REACTION_ACCENT, &"wildfire_spores": REACTION_ACCENT,
 	&"rolling_thunder": REACTION_ACCENT, &"rolling_thunder_ii": REACTION_ACCENT, &"deep_water": REACTION_ACCENT,
 	&"sweet_harmony": REACTION_ACCENT, &"kin_and_kindling": REACTION_ACCENT,
-	&"old_rain": REACTION_ACCENT, &"never_quite_dry": REACTION_ACCENT,
+	&"never_quite_dry": REACTION_ACCENT,
 	&"eye_of_the_tempest": REACTION_ACCENT, &"mountains_fall": REACTION_ACCENT, &"endless_night": REACTION_ACCENT,
 	&"alarm_bells": REACTION_ACCENT, &"old_heart": REACTION_ACCENT, &"ring_of_rings": REACTION_ACCENT,
 	&"quick_reactions": REACTION_ACCENT,

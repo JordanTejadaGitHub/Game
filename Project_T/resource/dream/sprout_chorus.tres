@@ -15,5 +15,5 @@ count_warden = ""
 min_warden_count = 0
 rule_id = &"sprout_chorus"
 diagram = "....P..\n.PP.P..\n.PW.P..\n.Pa.P..\n.PPPP.."
-diagram_caption = "W touches another Sprout and at least 2 distinct route cells: +30% attack speed."
+diagram_caption = "W touches at least 2 distinct path cells: +20% attack speed."
 uses = Array[StringName]([&"maze"])

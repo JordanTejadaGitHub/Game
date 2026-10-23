@@ -89,7 +89,8 @@ func _draw() -> void:
 		return
 	if not pc_open and not _kind_words.visible:
 		return  # PC, shut: the chip on the banner row stands in for it
-	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), size + Vector2(SIDE_PAD * 2.0, 0)))
+	var box := size.max(get_combined_minimum_size())  # Never smaller than what it holds (user 2026-10-22: opened from the chip, the
+	draw_style_box(_fog, Rect2(Vector2(-SIDE_PAD, 0), box + Vector2(SIDE_PAD * 2.0, 0)))  # faces showed on no panel)
 
 const REFRESH := 0.2  # Seconds (real time) between checks: the span, the boss scan and the stack (perf)
 var _clock := 0.0
@@ -204,7 +205,7 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 # deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
 # a "+N" chip that opens the rest on tap. About 90 px tall at rests.
 const PER_ROW := 6
-const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
+const CAPTION_GAP := 18  # 6 px clear between the caption and a "New" tab (12 px over its disc), the disc row 18 below (user)
 
 func _build(span: Vector2i) -> void:
 	_caption.text = ("After the rest" if next_after_rest else "Still to come this block") if compact else "Coming this block"
@@ -232,7 +233,7 @@ func _build(span: Vector2i) -> void:
 		if i % per_row == 0:
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", FACE_GAP)  # Room for each count plate hung past its disc (UI council round 5)
+			line.add_theme_constant_override("separation", 22)  # Room for each count plate hung 20 px past its disc (UI council round 5), +2 clear
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
@@ -394,7 +395,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		_badge_look(tag)
 		tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 		tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		tag.offset_top = -8.0  # Above the disc's rim, off the face, 6 px clear of the caption (test_nightmare_icons; was -12)
+		tag.offset_top = -12.0  # Above the disc's rim, off the face
 		tag.offset_bottom = tag.offset_top + 14.0
 		holder.add_child(tag)
 	if not compact:
@@ -447,9 +448,6 @@ func _more_chip(rest: Array) -> Control:
 # (as it was) under the banner; a click again or anywhere else folds it. The "Drift N · Flying: …" warning line
 # (owner 2026-10-19) never folds: it shows on its own when the strip is shut.
 const CHIP_FACE := 22.0
-# Between faces in a row: the count plate hangs 20 px past its disc's right edge (and is ~35 px wide), so the gap must beat
-# that or "×22" sits on the next disc (test_rule_breakers; it was 18).
-const FACE_GAP := 24
 const CHIP_KINDS := 2  # Faces with counts; the rest as "+N"
 const CHIP_GAP := 10.0  # Between the chip and the pips
 var pc_open := false
@@ -536,7 +534,7 @@ func _apply_pc() -> void:
 	for pad: Control in [_pad_top, _pad_foot]:
 		pad.visible = pc_open or _kind_words.visible
 	mouse_filter = Control.MOUSE_FILTER_STOP if (pc_open or _kind_words.visible) else Control.MOUSE_FILTER_IGNORE
-	queue_redraw()
+	queue_redraw.call_deferred()
 
 # Left of the banner's drift pips, centred on their row.
 func _place_chip() -> void:

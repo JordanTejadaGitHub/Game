@@ -980,20 +980,21 @@ func _test_half_dreamed(main: Node) -> void:
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
 	var thunder := _card(dreams, "rolling_thunder")  # Needs Stormcap (Firefly Jar's) + Dewdrop
-	dreams._offer_drift = 10
+	# New-family picks come after drifts 10 and 35; drift 60's pick deepens (owner 2026-10-22)
+	dreams._offer_drift = 5
 	_check(Array(dreams.half_dreamed_missing(thunder)) == ["dewdrop"], "half-dreamed: owns Firefly Jar (Stormcap counts), Dewdrop pickable")
 	_check(dreams.can_offer(thunder) and not dreams.is_eligible(thunder), "…can be offered, but isn't whole")
 	var text := dreams.half_dreamed_text(thunder)
 	print("half-dreamed text: " + text)
-	_check(text.begins_with("Needs Soak: a family that brings it may come after") and "(drift 25)" in text and not text.contains("Dewdrop"),
+	_check(text.begins_with("Needs Soak: a family that brings it may come at the family pick after drift 10") and not text.contains("Dewdrop"),
 		"…says the missing status and when, never the Warden")
-	dreams._offer_drift = 80
-	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 75 family pick")
-	dreams._offer_drift = 25  # The boss rest: the next pick (drift 50) is 25 drifts away
+	dreams._offer_drift = 40
+	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 35 family pick (60 deepens, brings no family)")
+	dreams._offer_drift = 12  # The next pick (drift 35) is 23 drifts away
 	_check(not dreams.is_half_dreamed(thunder), "…only when the next family pick is at most 20 drifts away")
-	dreams._offer_drift = 30
-	_check(dreams.is_half_dreamed(thunder), "…(drift 30: 20 away, yes)")
-	dreams._offer_drift = 10
+	dreams._offer_drift = 15
+	_check(dreams.is_half_dreamed(thunder), "…(drift 15: 20 away, yes)")
+	dreams._offer_drift = 5
 	var soil := _card(dreams, "conductive_soil")  # Rare, half-dreamed here too (Stormcap + Rain Lily)
 	var forced_soil := 0
 	for i in 300:
@@ -1031,7 +1032,7 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(dreams.not_active_reason(thunder) == "", "…and no longer says it's waiting")
 	_reset_dreams(main)
 
-	# How often one is offered per run, for each starting family, with the family picks at 25 and 50:
+	# How often one is offered per run, for each starting family, with the new-family picks at 10 and 35:
 	# half the time the player takes a half-dreamed card, and takes the owed family at the next pick
 	# half the time (else a random offered one).
 	var rng := RandomNumberGenerator.new()
@@ -1049,9 +1050,9 @@ func _test_half_dreamed(main: Node) -> void:
 			dreams._declined_families.clear()
 			dreams.unlocked[start] = true
 			for drift in range(5, 75, 5):
-				if drift % 25 == 0:  # The boss's family pick comes before its rest
+				if dreams.drift_director.family_pick_kind(drift) == &"second":  # A new-family pick comes before its rest
 					var owed: Array = []  # Picks no longer include a half-dreamed card's family
-					screen.show_pick(&"boss")
+					screen.show_pick(&"second")
 					var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
 					if not families.is_empty():
 						var pick: TowerData = families[rng.randi_range(0, families.size() - 1)]
@@ -1065,7 +1066,7 @@ func _test_half_dreamed(main: Node) -> void:
 				dreams._offer_drift = drift
 				var offer := dreams.make_offer(drift)
 				var half := offer.filter(func(c: UpgradeData) -> bool: return dreams.is_half_dreamed(c))
-				before_pick += half.size() if drift < 25 else 0
+				before_pick += half.size() if drift < 35 else 0
 				through_70 += half.size()
 				var other := offer.filter(func(c: UpgradeData) -> bool: return not dreams.is_half_dreamed(c))
 				if not half.is_empty() and (other.is_empty() or rng.randf() < 0.5):
@@ -1073,9 +1074,11 @@ func _test_half_dreamed(main: Node) -> void:
 				elif not other.is_empty():
 					dreams.take(other[0])
 		main.get_node("%GameSpeed").set_paused(false)
-		print("half-dreamed (start %s): %.2f offered per run before the drift 25 pick, %.2f through drift 70" % [
+		print("half-dreamed (start %s): %.2f offered per run before the drift 35 pick, %.2f through drift 70" % [
 			start, float(before_pick) / RUNS, float(through_70) / RUNS])
-		_check(float(before_pick) / RUNS >= 0.4, "half-dreamed cards: at least 0.4 per run before the drift 25 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
+		# A floor, not a target: 60 runs give about ±0.08 of noise, and the map (its size and route) changes which cards can be
+		# drawn, so 0.43 on one map is 0.38 on the 20x16 one. Broken half-dreaming shows as about 0.
+		_check(float(before_pick) / RUNS >= 0.3, "half-dreamed cards: at least 0.3 per run before the drift 35 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
 	_reset_dreams(main)
 
 
@@ -1140,7 +1143,7 @@ func _test_discovery(main: Node) -> void:
 		"building an Acorn lets its cards in at once")
 	# Half-dreamed cards skip the Warden gate (keep a Reaction gate); whole again, it applies.
 	dreams.unlocked["firefly_jar"] = true
-	dreams._offer_drift = 10
+	dreams._offer_drift = 5  # The drift 10 family pick is next
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
 	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
 	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)

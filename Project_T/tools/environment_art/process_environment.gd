@@ -12,7 +12,7 @@ const OUT := "res://assets/environment"
 const KINDS := {
 	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
 	"island_edge": DetailPass.Kind.TILE, "island_lip": DetailPass.Kind.TILE, "island_underside": DetailPass.Kind.TILE,
-	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE,
+	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "dew_pool_v": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE,
 	"heartwood_roots": DetailPass.Kind.TILE, "bog_path": DetailPass.Kind.TILE,
 	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE, "rope_bridge_lane": DetailPass.Kind.TILE,
@@ -31,6 +31,7 @@ const KINDS := {
 }
 # Frame sizes of the landmark sheets (each step bottom-centred in step III's cell).
 const LANDMARK_FRAMES := {
+	"dew_pool": Vector2i(128, 64), "dew_pool_v": Vector2i(64, 128),  # the 2-cell Dew Pool landmark
 	"landmark_spring": Vector2i(160, 160), "landmark_lightning_tree": Vector2i(128, 176),
 	"landmark_bell_stone": Vector2i(96, 128), "landmark_moonwell": Vector2i(128, 128),
 }
@@ -41,7 +42,7 @@ const SNAP_ONLY := ["nightmare_fog", "edge_mist", "void_sky", "void_stars", "clo
 	"landmark_mushroom_ring", "root_run", "root_rise"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "island_lip", "island_underside", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
+const NO_GRAIN := ["grass", "island_edge", "island_lip", "island_underside", "dew_pool", "dew_pool_v", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
 const TILE_GRAIN := 0.0  # was 0.3; the AI-look audit (2026-10-04): grain on ground tiles read as generated
 
 func _init() -> void:

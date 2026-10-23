@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "heavy_heart"
 display_name = "Heavy Heart"
-description = "A {heavy} Warden's hit sets off a {reaction} if the nightmare carries both of the {reaction}'s statuses. Each nightmare once every 3 s."
-tip = "It needs half the usual {stacks} of each ({drowsy} still {full}). A {named_combo:thunderclap} set off this way deals half. {named_combo:thunderclap}, {named_combo:ignite}, {named_combo:mushrooming} and {named_combo:drown} only. Bosses once every 6 s. Works for: {heavy} Wardens like {warden:jetreed} and {warden:silver_bell}."
+description = "A {heavy} Warden's hit triggers a {reaction} if the nightmare carries both of the {reaction}'s statuses. Each nightmare once every 3 s."
+tip = "It needs half the usual {stacks} of each ({drowsy} still {full}). A {named_combo:thunderclap} triggered this way deals half. {named_combo:thunderclap}, {named_combo:ignite}, {named_combo:mushrooming} and {named_combo:drown} only. Bosses once every 6 s. Works for: {heavy} Wardens like {warden:jetreed} and {warden:silver_bell}."
 retired = true
 rarity = 2
 kind = 3

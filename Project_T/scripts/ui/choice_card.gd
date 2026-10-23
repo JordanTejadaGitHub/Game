@@ -59,3 +59,30 @@ static func danger(button: Button) -> void:
 			button.add_theme_stylebox_override(state, box)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, UiStyle.POOR)
+
+# The family look (owner 2026-10-22 for Calling evolutions; 2026-10-23: family pick cards share it, Dream cards don't): a
+# wash of the family's colour at the top of the glass, fading out halfway down, and a bracket with a bud in each corner.
+# Added to the card before its text box, so it sits under the words.
+const FAMILY_WASH := 0.16  # The colour's alpha at the top of the glass
+const FAMILY_INSET := 7.0  # The wash and brackets sit this far inside the card (inside the frame's rim)
+const FAMILY_BRACKET := 12.0  # Each corner bracket's arm
+
+static func family_marks(button: Button, colour: Color) -> void:
+	var marks := Control.new()
+	marks.name = "FamilyMarks"
+	marks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marks.draw.connect(_draw_family_marks.bind(marks, colour))
+	button.add_child(marks)
+
+static func _draw_family_marks(marks: Control, colour: Color) -> void:
+	var r := Rect2(Vector2.ONE * FAMILY_INSET, marks.size - Vector2.ONE * FAMILY_INSET * 2.0)
+	var mid := r.position.y + r.size.y * 0.5
+	marks.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), Vector2(r.end.x, mid), Vector2(r.position.x, mid)]),
+		PackedColorArray([Color(colour, FAMILY_WASH), Color(colour, FAMILY_WASH), Color(colour, 0.0), Color(colour, 0.0)]))
+	var arm := FAMILY_BRACKET
+	for corner: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
+		var sx := 1.0 if corner.x < r.get_center().x else -1.0
+		var sy := 1.0 if corner.y < r.get_center().y else -1.0
+		marks.draw_polyline(PackedVector2Array([corner + Vector2(0, sy * arm), corner, corner + Vector2(sx * arm, 0)]), Color(colour, 0.85), 2.0)
+		marks.draw_rect(Rect2(corner + Vector2(sx * 3.0 - 1.0, sy * 3.0 - 1.0), Vector2(2, 2)), Color(colour, 0.85))  # A bud inside it

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nowhere_to_run"
 display_name = "Nowhere to Run"
-description = "A {branch} or {final_form} Warden's direct hits deal 5% more for each second the nightmare has been in its range, up to 40%."
+description = "{branch}, {final_form} and {ascended} Wardens' direct hits deal 5% more per second the nightmare has been in range, up to +40%."
 tip = "Leaving its range starts the count again. Area Wardens too. Hits only."
 rarity = 1
 kind = 3

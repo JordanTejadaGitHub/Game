@@ -268,6 +268,8 @@ func _refresh() -> void:
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
+	if Tower.WAYSTONE.on_stone(_tower):
+		lines.append(Tower.WAYSTONE.PANEL_LINE)  # Old Waystone landmark (environment_assets.md "Landmarks")
 	_notes.text = "\n".join(lines)  # The header's own notes stay in view; the rest goes behind Details
 	_notes.visible = not lines.is_empty()
 	lines.clear()
@@ -284,7 +286,7 @@ func _refresh() -> void:
 			lines.append("This run: %s damage · %.0f/s · from combos %d%%" % [BossDossier.thousands(roundi(run)),
 				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
 	if _tower.reactions_set_off + _tower.reactions_fed > 0:  # Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29)
-		lines.append("Reactions: set off %d · fed %d" % [_tower.reactions_set_off, _tower.reactions_fed])
+		lines.append("Reactions: triggered %d · fed %d" % [_tower.reactions_set_off, _tower.reactions_fed])
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
 	# Combos with: the shared combo links (hover / tap = its tip, ??? until found; a click opens the Codex).
 	var combo_ids: Array[String] = []
@@ -467,10 +469,17 @@ func _refresh() -> void:
 					_rank_preview_on(button, [_tower], which)
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
+		# Not a dead button (user 2026-10-22, Inkcap: "Rank V: fully nurt…" looked out of place): the header says its rank
+		# and the Nurtured line its picks, so a fully nurtured Warden shows nothing more; the Eldest rule is a quiet note.
 		if others_can and not _is_eldest(_tower):
-			_add_button("Rank %s: only the Eldest grows further" % Tower.rank_name(_tower.rank)).disabled = true
-		else:
-			_add_button("Rank %s: fully nurtured" % Tower.rank_name(_tower.rank)).disabled = true
+			var note := Label.new()
+			note.name = "EldestNote"
+			note.text = "Only the Eldest grows past rank %s." % Tower.rank_name(_tower.rank)
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			note.custom_minimum_size.x = 1.0  # Wraps to the panel's width
+			note.add_theme_font_size_override("font_size", 13)
+			note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+			_buttons.add_child(note)
 	_add_glow_button()  # Fireflies in the Grass (Firefly class prototype): a Sprout the player chooses to glow
 	_add_swap_button()  # The Walking Wood (Legendary): swap places with another Warden
 	_add_hit_card_rows()  # Trophies, The Tallest Tree (owner 2026-10-22, dream_council_review.md 30)
@@ -1383,7 +1392,7 @@ func _add_hit_card_rows() -> void:
 	if line != "":
 		_add_button(line).disabled = true
 	if cards.can_choose(_tower):
-		var button := _add_button("Make it the Tallest Tree")
+		var button := _add_button("Choose as Tallest")
 		button.tooltip_text = "The Tallest Tree: every other Warden's direct hits store damage in this one." + ("" if cards.tallest() == null else " Moving it empties the store.")
 		button.pressed.connect(_choose_tallest)
 

@@ -10,7 +10,7 @@ class_name RunSaver
 # counters, drift progress, Dreams and Omens (their own to_save()/load_save()).
 
 const PATH := "user://run.json"
-const VERSION := 11  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend; 6: layouts; 7: features near the route; 8: organic ponds; 9: inland Heartwood (same seed, different map); 10: the log is one obstacle; 11: the Spire merge (gifts, branch offers, finales in the save)
+const VERSION := 12  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend; 6: layouts; 7: features near the route; 8: organic ponds; 9: inland Heartwood (same seed, different map); 10: the log is one obstacle; 11: the Spire merge (gifts, branch offers, finales in the save); 12: map 20x16 and landmarks (same seed, different map)
 
 # Where the save lives (tests point this elsewhere so they never touch the player's run).
 static var file_path := PATH

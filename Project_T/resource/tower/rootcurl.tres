@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Rootcurl"
 role_line = "Short range, area damage, pulls back"
-description = "Its roots damage every nightmare in range. Every {field:rootcurl.ability_every:seconds} it pulls the nightmare furthest along the path back {field:rootcurl.pull_tiles:count} cell."
+description = "It damages every nightmare in range. Every {field:rootcurl.ability_every:seconds} it pulls the nightmare furthest along the path back {field:rootcurl.pull_tiles:count} cell."
 cost = 0
 role_tag = &"control"
 line = "root"

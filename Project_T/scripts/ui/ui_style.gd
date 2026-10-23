@@ -971,6 +971,12 @@ static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = IN
 	if label is Label:
 		label.text = label.text.to_lower()
 
+# A short line that isn't a heading or a button (a Calling's name, a price, a status note, a chip's word): Vollkorn
+# Medium, as written (user 2026-10-23: "too much text different fonts"; small caps stays for buttons, section headings
+# and key hints).
+static func plain(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
+	_font(label, body_medium_font(), font_size, colour)
+
 # A wrapping label whose longest word always fits its width (Moon-glass's Pixelify names are wider than Cormorant was: the
 # user saw "Undercurren / t", 2026-10-20): the font steps down from `max_size` to `min_size` until it does, again whenever
 # the label resizes. Call fit_words_now after changing its text.
@@ -1284,7 +1290,7 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	word.text = label if label != "" else KeywordIcons.word(id)
 	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	word.add_theme_font_override("font", caps_font())  # Chips: Vollkorn SC
+	word.add_theme_font_override("font", body_medium_font())  # Chips: Vollkorn Medium, as written (user 2026-10-23: fewer small caps)
 	word.add_theme_font_size_override("font_size", font_size)
 	word.add_theme_color_override("font_color", INK_DIM if quiet else (FOG if makes else GOLD))
 	row.add_child(word)

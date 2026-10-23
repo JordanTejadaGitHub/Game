@@ -179,12 +179,31 @@ func _self_help_checks(spot: Vector2) -> void:
 	await _clean()
 	dreams.stacks.clear()
 
-# Riverside and Stagnant Water use Dewdrop's own trait, Duration (owner 2026-10-17; was +1 stack).
+# The rebuilt Puddles evolutions (owner 2026-10-23, dream_council_review.md 33; evo_fixed_dewdrop.md). One "old effect
+# gone" check for each kept id whose meaning changed (Stream, Black Pond, Riverside, Wet Footprints; evo_shared_spec.md 2),
+# and the new rows where a headless check is practical. Written 2026-10-23 and NOT RUN.
+func _path(ids: Array) -> void:
+	dreams.calling_path.clear()
+	for id in ids:
+		dreams.calling_path.append(StringName(id))
+	dreams._rebuild_calling_flags()
+
+func _has_const(name: String) -> bool:
+	return klass.get_script().get_script_constant_map().has(name)
+
+# The one Calling slow this node asked for on `enemy` (0 = none): a poll's requests, applied as class_kit does.
+func _calling_slow_on(enemy) -> float:
+	enemy.statuses.timed_slows.clear()
+	klass._evolutions_poll()
+	klass._apply_calling_slows()
+	return enemy.statuses.timed_slow()
+
 func _evolution_checks(at: Vector2, route: Array) -> void:
 	dreams.stacks.clear()
 	dreams.calling = "dewdrop"
-	dreams.calling_path.clear()
-	dreams.calling_path.append(&"dw_riverside")
+	# --- Riverside (kept id, new meaning): other families' statuses in water last SIDE_SECONDS longer; Dewdrops add no time;
+	# the old Sprout +25% is gone
+	_path([&"dw_riverside"])
 	var drop := _plant("dewdrop", at + Vector2(CELL, 0))
 	var spore := _plant("sporeling", at + Vector2(-CELL, 0))
 	var sprout := _plant("sprout", at + Vector2(0, CELL))
@@ -197,81 +216,152 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	spore._apply_one_status(r, EnemyStatuses.SPORED, 1, spore.get_damage())
 	spore._apply_one_status(dry, EnemyStatuses.SPORED, 1, spore.get_damage())
 	var gained: float = r.statuses.time_left(EnemyStatuses.SPORED) - dry.statuses.time_left(EnemyStatuses.SPORED)
-	_check(absf(gained - klass.SIDE_SECONDS) < 0.01, "Riverside: a status added in the water lasts %.0f s longer (%.2f)" % [klass.SIDE_SECONDS, gained])
-	_check(r.statuses.is_lingering(EnemyStatuses.SPORED) and not dry.statuses.is_lingering(EnemyStatuses.SPORED), "...it is Duration (lingering); out of the water nothing")
+	_check(absf(gained - klass.SIDE_SECONDS) < 0.01, "Riverside: another family's status added in the water lasts %.0f s longer (%.2f)" % [klass.SIDE_SECONDS, gained])
 	_check(r.statuses.stacks(EnemyStatuses.SPORED) == dry.statuses.stacks(EnemyStatuses.SPORED), "...and adds no stack")
+	var soak_dry = _spawn(dry.global_position)
+	drop._apply_one_status(soak_dry, EnemyStatuses.DAMP, 1, drop.get_damage())
+	var soak_wet = _spawn(at)
+	drop._apply_one_status(soak_wet, EnemyStatuses.DAMP, 1, drop.get_damage())
+	_check(absf(soak_wet.statuses.time_left(EnemyStatuses.DAMP) - soak_dry.statuses.time_left(EnemyStatuses.DAMP)) < 0.01,
+		"Riverside, old effect gone: a Dewdrop's own status gets no time")
 	r.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
 	var drowsy_left: float = r.statuses.time_left(EnemyStatuses.DROWSY)
 	klass._evo_status(spore, r, EnemyStatuses.DROWSY)
 	_check(is_equal_approx(r.statuses.time_left(EnemyStatuses.DROWSY), drowsy_left), "...never Drowsy")
-	# Riverside's damage (owner 2026-10-18): Sprouts touching water deal 25% more to Soaked nightmares in it
-	_check(klass.touches_water(sprout, klass.water_of(r)), "(the Sprout touches the water)")
-	_check(is_equal_approx(klass.damage_multiplier(r, sprout), 1.0), "Riverside: no Soaked, no Sprout bonus")
 	r.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", drop)
-	dry.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", drop)
-	_check(is_equal_approx(klass.damage_multiplier(r, sprout), klass.SIDE_SPROUT_BONUS),
-		"Riverside: a Sprout touching water deals +%d%% to a Soaked nightmare in it" % roundi((klass.SIDE_SPROUT_BONUS - 1.0) * 100.0))
-	_check(is_equal_approx(klass.damage_multiplier(r, spore), 1.0) and is_equal_approx(klass.damage_multiplier(r, drop), 1.0),
-		"...only Sprouts (not other families, not Dewdrops)")
-	_check(is_equal_approx(klass.damage_multiplier(dry, sprout), 1.0), "...out of the water nothing")
-	_check(is_equal_approx(klass.damage_multiplier(r, sprout, &"spored"), 1.0), "...hits only")
+	_check(klass.touches_water(sprout, klass.water_of(r)), "(the Sprout touches the water)")
+	_check(is_equal_approx(klass.damage_multiplier(r, sprout), 1.0), "Riverside, old effect gone: no +25% for Sprouts on a Soaked nightmare")
+	# The Sprout part: a Sprout's hit there adds SIDE_SPROUT_SECONDS to each status another Warden put on it, once a second
+	var sp_before: float = r.statuses.time_left(EnemyStatuses.SPORED)
+	klass._sprout_side(sprout, r, klass.water_of(r))
+	_check(absf(r.statuses.time_left(EnemyStatuses.SPORED) - sp_before - klass.SIDE_SPROUT_SECONDS) < 0.01, "Riverside: a Sprout's hit adds %.0f s to Poisoned" % klass.SIDE_SPROUT_SECONDS)
+	var sp_after: float = r.statuses.time_left(EnemyStatuses.SPORED)
+	klass._sprout_side(sprout, r, klass.water_of(r))
+	_check(is_equal_approx(r.statuses.time_left(EnemyStatuses.SPORED), sp_after), "...once a second for each Sprout")
+	_check(DreamState.CALLING_PATHS.keeps_out(&"dw_riverside").has(&"steeped") and dreams._calling_keeps_out.has("steeped"), "Riverside keeps Steeped out of the offers")
+	# Open Water: a Warden far from the water counts too
+	var far_spore := _plant("sporeling", at + Vector2(CELL * 6, CELL * 6))
+	await _frames(1)
+	klass.on_board()
+	var o = _spawn(at)
+	var o_dry = _spawn(dry.global_position)
+	far_spore._apply_one_status(o, EnemyStatuses.SPORED, 1, far_spore.get_damage())
+	far_spore._apply_one_status(o_dry, EnemyStatuses.SPORED, 1, far_spore.get_damage())
+	_check(is_equal_approx(o.statuses.time_left(EnemyStatuses.SPORED), o_dry.statuses.time_left(EnemyStatuses.SPORED)), "Riverside alone: a Warden off the bank adds no time")
+	_path([&"dw_riverside", &"dw_open_water"])
+	var o2 = _spawn(at)
+	far_spore._apply_one_status(o2, EnemyStatuses.SPORED, 1, far_spore.get_damage())
+	_check(absf(o2.statuses.time_left(EnemyStatuses.SPORED) - o_dry.statuses.time_left(EnemyStatuses.SPORED) - klass.SIDE_SECONDS) < 0.05,
+		"Open Water: a status from a Warden anywhere lasts %.0f s longer in the water" % klass.SIDE_SECONDS)
 	await _clean()
 
-	# Stream (owner 2026-10-18): a splash reaching 3 or more nightmares makes that Dewdrop's next hit deal 30% more.
-	dreams.calling_path.clear()
-	dreams.calling_path.append(&"dw_stream")
+	# --- Stream (kept id, new meaning): 15% slower in water (the one capped Calling slow); the old +30% next hit is gone
+	_path([&"dw_stream"])
 	var s_drop := _plant("dewdrop", at + Vector2(CELL, 0))
 	await _frames(2)
 	klass.on_board()
 	var sa = _spawn(at)
 	var sb = _spawn(at)
-	s_drop.hit(sa, 1.0, false, Tower.NO_CRIT)
-	await _frames(2)
-	_check(not s_drop.get_meta(klass.STREAM_META, false), "Stream: a splash reaching 2 nightmares readies nothing")
 	var sc = _spawn(at)
-	var sd = _spawn(at)
 	s_drop.hit(sa, 1.0, false, Tower.NO_CRIT)
 	await _frames(2)
-	_check(sc.statuses.has(EnemyStatuses.DAMP) and sd.statuses.has(EnemyStatuses.DAMP), "(the splash reached the two new nightmares)")
-	_check(s_drop.get_meta(klass.STREAM_META, false), "Stream: a splash reaching 3 nightmares readies the Dewdrop's next hit")
-	_check(is_equal_approx(klass.damage_multiplier(sb, s_drop), klass.STREAM_BONUS), "...which deals +%d%%" % roundi((klass.STREAM_BONUS - 1.0) * 100.0))
-	_check(is_equal_approx(klass.damage_multiplier(sb, s_drop), 1.0), "...only the next hit")
-	dreams.batch_damage_multiplier(sb, s_drop, &"")
-	_check(dreams._hook_water, "...DreamState hooks the evolution hit bonuses")
+	_check(is_equal_approx(klass.damage_multiplier(sb, s_drop), 1.0), "Stream, old effect gone: a splash reaching 3 nightmares readies no +30% hit")
+	_check(not _has_const("STREAM_META") and not _has_const("STREAM_BONUS"), "...its old constants are gone")
+	_check(is_equal_approx(_calling_slow_on(sc), klass.STREAM_SLOW), "Stream: a nightmare in water walks %d%% slower (%.2f)" % [roundi(klass.STREAM_SLOW * 100.0), sc.statuses.timed_slow()])
+	var s_dry = _spawn(route[mini(60, route.size() - 1)])
+	_check(klass.water_of(s_dry) < 0 and is_zero_approx(_calling_slow_on(s_dry)), "...out of the water no slow")
+	sc.statuses.is_boss = true
+	var boss_slow := _calling_slow_on(sc)
+	_check(boss_slow > 0.0 and boss_slow <= klass.CALLING_SLOW_MAX * 0.5 + 0.001, "...bosses half (%.3f)" % boss_slow)
+	sc.statuses.is_boss = false
+	# Heavy Going counts only slows not from the Calling
+	sc.statuses.timed_slows.clear()
+	klass._evolutions_poll()
+	klass._apply_calling_slows()
+	_check(not klass.walking_slowed(sc), "Heavy Going: the Calling slow alone doesn't count")
+	sc.statuses.add_slow(0.2, 2.0)
+	_check(klass.walking_slowed(sc), "...another slow does")
+	# Flash Flood (one Calling slow, never a second): the splash reaches far nightmares in the water, 30% for 2 s
+	_path([&"dw_stream", &"dw_reed_bed", &"dw_flash_flood"])
+	klass.on_board()
+	var ff = _spawn(at)
+	klass._set_timed_slow(ff, klass.CAPSTONE_SLOW, klass.FLASH_SECONDS, klass.EVO_FLASH)
+	_check(is_equal_approx(_calling_slow_on(ff), klass.CAPSTONE_SLOW), "Flash Flood: its slow replaces Stream's, never adds (%.2f)" % ff.statuses.timed_slow())
+	_check(ff.statuses.timed_slows.size() == 1, "...one Calling slow entry per nightmare")
 	await _clean()
 
-	# Stagnant Water: in a pond (water touching 2 Dewdrops) statuses don't run down; bosses at half speed; out of it, they do.
-	dreams.calling_path.clear()
-	dreams.calling_path.append(&"dw_black_pond")
-	dreams.calling_path.append(&"dw_stagnant_water")
+	# --- Black Pond (kept id, new meaning): the highest-rank Dewdrop's water is the pond; its hits spill 25% onto up to 4
+	# others there. The old pond slow and +25% Dewdrop hits are gone.
+	_path([&"dw_black_pond"])
 	var pond_drop := _plant("dewdrop", at + Vector2(CELL, 0))
-	_plant("dewdrop", at + Vector2(-CELL, 0))
 	await _frames(2)
 	klass.on_board()
 	var p = _spawn(at)
-	_check(klass._is_pond(klass.water_of(p)), "(the nightmare stands in a pond)")
-	# Black Pond (owner 2026-10-18): Dewdrop hits on a nightmare in a pond deal 25% more; its splash stays 4 steps
-	var out_of_pond = _spawn(route[mini(60, route.size() - 1)])
-	_check(is_equal_approx(klass.damage_multiplier(p, pond_drop), klass.POND_BONUS), "Black Pond: Dewdrop hits in a pond deal +%d%%" % roundi((klass.POND_BONUS - 1.0) * 100.0))
-	_check(is_equal_approx(klass.damage_multiplier(out_of_pond, pond_drop), 1.0), "...out of the pond nothing")
-	_check(is_equal_approx(klass.damage_multiplier(p, pond_drop, &"spored"), 1.0), "...hits only")
-	_check(klass._ripple_steps(klass.water_of(p)) == klass.RIPPLE_STEPS, "...the splash stays %d steps" % klass.RIPPLE_STEPS)
-	out_of_pond.queue_free()
-	p.apply_status(EnemyStatuses.MARKED, 2, 0.0, 1.0, 0, "light", null)
-	p.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
-	klass._in_pond(p)
-	var landed: float = p.statuses.time_left(EnemyStatuses.MARKED)
-	var drowsy_was: float = p.statuses.time_left(EnemyStatuses.DROWSY)
-	p.statuses.tick(1.0)
-	klass._in_pond(p)
-	_check(absf(p.statuses.time_left(EnemyStatuses.MARKED) - landed) < 0.01, "Stagnant Water: a status in a pond does not run down")
-	_check(p.statuses.time_left(EnemyStatuses.DROWSY) < drowsy_was - 0.5, "...Drowsy still does")
-	_check(p.statuses.time_left(EnemyStatuses.MARKED) <= landed + 0.001, "...never longer than it landed for")
-	p.statuses.is_boss = true
-	p.statuses.tick(1.0)
-	klass._in_pond(p)
-	_check(absf(p.statuses.time_left(EnemyStatuses.MARKED) - (landed - 1.0 + klass.STILL_BOSS_SHARE)) < 0.01, "...a boss's runs down at half speed")
-	p.statuses.is_boss = false
+	var q = _spawn(at)
+	_check(klass._is_pond(klass.water_of(p)) and klass._pond_dewdrops == [pond_drop], "Black Pond: one Dewdrop's water is the pond (no second Dewdrop needed)")
+	_check(is_equal_approx(klass.damage_multiplier(p, pond_drop), 1.0), "Black Pond, old effect gone: no +25% on Dewdrop hits")
+	_check(is_zero_approx(_calling_slow_on(p)), "Black Pond, old effect gone: no pond slow")
+	_check(not _has_const("POND_BONUS") and not _has_const("POND_SLOW"), "...its old constants are gone")
+	var q_before: int = q.health
+	pond_drop.hit(p, 1.0, false, Tower.NO_CRIT)
+	await _frames(2)
+	_check(q.health < q_before, "Black Pond: the hit spills onto another nightmare in the pond (%d)" % (q_before - q.health))
+	_check(not q.statuses.has(EnemyStatuses.MARKED) and not q.statuses.has(EnemyStatuses.SPORED), "...damage only")
+	_check(klass.CLASS_TAGS.has(&"pond_spill") and DreamState.REPEAT_TAGS.has(&"pond_spill"), "...a class tag that skips the batch cards")
+	_check(is_equal_approx(klass._spill_amount(pond_drop, 100.0), 100.0 * klass.SPILL_SHARE), "...25%% of the hit (%.1f)" % klass._spill_amount(pond_drop, 100.0))
+	_path([&"dw_black_pond", &"dw_deep_end"])
+	pond_drop.rank = 5
+	_check(is_equal_approx(klass._spill_amount(pond_drop, 100.0), 100.0 * (klass.SPILL_SHARE + klass.DEEP_END_PER_RANK * 5)), "Deep End: +3% a rank")
+	pond_drop.rank = 0
+	await _clean()
+
+	# --- Wet Footprints (kept id, new meaning): footprints are never water; for 2 s after leaving water other families'
+	# statuses don't run down (Poisoned within the shared room)
+	_path([&"dw_riverside", &"dw_wet_footprints"])
+	_check(not ("_wet" in klass) and not ("_wet_touch" in klass), "Wet Footprints, old effect gone: no wet steps that count as water")
+	var w_spore := _plant("sporeling", at + Vector2(CELL * 6, CELL * 6))
+	await _frames(1)
+	var wf = _spawn(route[mini(60, route.size() - 1)])
+	w_spore._apply_one_status(wf, EnemyStatuses.SPORED, 1, w_spore.get_damage())
+	wf.set_meta(klass.WET_FOOT_META, klass.now() + klass.WET_FOOT_SECONDS)
+	klass._wet_footprints(wf)
+	var wf_left: float = wf.statuses.time_left(EnemyStatuses.SPORED)
+	wf.statuses.tick(0.5)
+	klass._wet_footprints(wf)
+	_check(absf(wf.statuses.time_left(EnemyStatuses.SPORED) - wf_left) < 0.01, "Wet Footprints: just out of the water, Poisoned doesn't run down")
+	_check(wf.statuses.is_kept(EnemyStatuses.SPORED), "...and is kept (Low Tide counts it)")
+	# Low Tide: other families' direct hits +10% for each kept status; never a Dewdrop's; via DreamState's Calling branch
+	_path([&"dw_riverside", &"dw_wet_footprints", &"dw_low_tide"])
+	_check(DreamState.calling_mult_on and DreamState.calling_tide_on, "Low Tide switches the Calling hit branch on")
+	_check(is_equal_approx(klass.hit_multiplier(w_spore, wf, false, false, &""), 1.0 + klass.LOW_TIDE_PER), "Low Tide: +10% for 1 kept status")
+	_check(is_equal_approx(dreams._calling_hit_multiplier(w_spore, wf, false, false, &""), 1.0 + klass.LOW_TIDE_PER), "...through DreamState._calling_hit_multiplier")
+	var wf_drop := _plant("dewdrop", at + Vector2(CELL * 7, CELL * 6))
+	await _frames(1)
+	_check(is_equal_approx(klass.hit_multiplier(wf_drop, wf, false, false, &""), 1.0), "...never a Dewdrop's hit")
+	_check(is_equal_approx(klass.hit_multiplier(w_spore, wf, false, false, &"shatter"), 1.0), "...direct hits only")
+	var plain = _spawn(at + Vector2(CELL * 9, CELL * 9))
+	w_spore._apply_one_status(plain, EnemyStatuses.SPORED, 1, w_spore.get_damage())
+	_check(is_equal_approx(klass.hit_multiplier(w_spore, plain, false, false, &""), 1.0), "...a status nothing keeps counts for nothing")
+	_path([])
+	_check(not DreamState.calling_tide_on, "(no Calling hit branch without the rows)")
+	await _clean()
+
+	# --- Stagnant Water (retired 2026-10-23, kept for an old save's path): a status in the pond does not run down
+	_path([&"dw_black_pond", &"dw_stagnant_water"])
+	_plant("dewdrop", at + Vector2(CELL, 0))
+	await _frames(2)
+	klass.on_board()
+	var st = _spawn(at)
+	_check(klass._is_pond(klass.water_of(st)), "(the nightmare stands in the pond)")
+	st.apply_status(EnemyStatuses.MARKED, 2, 0.0, 1.0, 0, "light", null)
+	klass._in_pond(st)
+	var landed: float = st.statuses.time_left(EnemyStatuses.MARKED)
+	st.statuses.tick(1.0)
+	klass._in_pond(st)
+	_check(absf(st.statuses.time_left(EnemyStatuses.MARKED) - landed) < 0.01, "Stagnant Water (old save): a status in the pond does not run down")
+	_check(not DreamState.CALLING_PATHS.is_live(&"dw_stagnant_water") and DreamState.CALLING_PATHS.next_ids("dewdrop", dreams.calling_path, 2).is_empty(),
+		"...it is retired: that path offers nothing more")
+	_path([])
 	await _clean()
 
 # F1 lent × Calling, F2 and F5 (owner 2026-10-18; D:\Projects\logs\dream_council\f1_spec.md).

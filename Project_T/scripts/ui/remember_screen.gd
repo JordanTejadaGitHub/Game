@@ -1128,7 +1128,7 @@ func _add_unlock(data: TowerData) -> void:
 		button.pressed.connect(unlock.bind(data))
 
 # The short button's hover / tap: no count (user: "too much hand-holding"), just where Dreamlight comes from.
-const SHORT_TIP := "Not enough Dreamlight. It comes at {rests} and from bosses."
+const SHORT_TIP := "Not enough Dreamlight. It comes with every family pick and every boss rest."
 
 # Pressed while short: the shake, the toast, the Dreamlight counter flashing (and Sound's refusal via unlock_rejected).
 func _refuse_unlock(data: TowerData, button: Button) -> void:

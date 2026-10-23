@@ -1,0 +1,81 @@
+# New player seat — round 2 (2026-10-23)
+
+Seat: never played a tower defence or a roguelite. One read, about 5 seconds: do I know what happens, to what, when,
+and how much? Scope: only text new or changed since round 1 (corpus_resources.txt, "+" lines of corpus_ui_diff.txt).
+Round 1 rulings applied (wording_council_review.md section 5: "trigger" not "set off / go off", "every 2nd", Drowsy,
+Reroll, Banish, UK spelling, "it" rule, no strategy advice).
+
+## 1. Top 10 problems
+
+| # | Where | Now | Problem | Rewrite |
+|---|---|---|---|---|
+| 1 | the_tallest_tree.tres (NEW) description + tip | "Choose one Warden. Every other Warden's direct hits also store a fifth of their damage in it, and its direct hits add the store on top." / tip "...never more than a {dispel} needs; the store holds 40 of its hits. Sold: choose again." | "the store" is a new noun with no explanation; "add the store on top" doesn't say the store is spent; "never more than a dispel needs" and "holds 40 of its hits" need two reads; "Sold: choose again" is telegraphic. I could not say what happens after one read. | Description: "Choose one Warden as the Tallest Tree. A fifth of every other Warden's direct-hit damage is saved up in it. Each of its direct hits adds damage from what is saved and uses it up." Tip: "Choose it on its Warden panel: any time the first time, then only at a {rest}. Moving it empties what is saved. One attack uses at most 6 times its own hit, and never more than the nightmare's remaining health. It saves up to 40 times its own hit. If it is sold, choose a new one." |
+| 2 | undiluted.tres (NEW) description | "No {reaction} ever goes off. Each status's own effect grows instead: {spored} ticks and {static} bolts deal double damage." | "goes off" is banned (rule 10). "Each status's own effect grows" promises all statuses grow; the code (DreamState UNDILUTED_POISONED / UNDILUTED_CHARGED) doubles only Poison ticks and the Charge bolt. A new player picks it expecting Soak / Drowsy / Exposure / Root to grow too. | "{reactions} never trigger. Instead, {spored} ticks and {static} bolts deal double damage." |
+| 3 | undiluted.tres (NEW) tip | "Cards that only pay off through a {reaction} aren't offered while you hold it. Lightning Rod stays quiet; a {static} bolt still fires." | "pay off" is on the avoid list; "Lightning Rod stays quiet" is flavour that hides the rule (and is a raw name, not a token); "a {static} bolt still fires" repeats the description. | "Cards that only work through {reactions} are no longer offered. {named_combo:lightning_rod} doesn't trigger either." |
+| 4 | codex_data.gd glossary "Family pick" (+ line) | "After drifts 1, 10, 35 and 60: choose a new Warden family for this run." | Wrong now: drift 60 is the "deepen" pick (family_pick_screen.gd: "Choose a family to deepen"; 2fcae6f4: drift 60 brings no new family). A new player will expect a 4th family. | "After drifts 1, 10 and 35: choose a new Warden family for this run. After drift 60: deepen one of your families instead. With none left, the Heartwood gives Dreamlight instead." (check what "deepen" gives) |
+| 5 | standing_tall.tres (NEW) | "A {final_form} or {ascended} Warden's direct hits deal 15% more for each attacking base or {branch} Warden {touching} it, up to 45%." / tip "...its court can be any family." | "base" Warden is not a glossary term; "court" is a made-up word with no hint (I thought of a tennis court). | "A {final_form} or {ascended} Warden's direct hits deal 15% more for each attacking first-form or {branch} Warden {touching} it, up to +45%." Tip: "Sprouts and walls don't count. The Wardens around it can be any family. Hits only." |
+| 6 | measured_blow.tres (NEW) | "From {rank} III, a Warden's first direct hit on each nightmare also deals 1% of its maximum health for each {rank}." | "its maximum health": the Warden's or the nightmare's? Warden and nightmare are both in the sentence (rule 13). | "From {rank} III, a Warden's first direct hit on each nightmare also deals 1% of the nightmare's maximum health for each {rank} the Warden has." Tip: "At most 10% of a nightmare's maximum health from this card, from all Wardens together. Not bosses." |
+| 7 | bearing_down.tres (NEW) | "Each attack in a row on the same nightmare deals 4% more, up to 10% for each {rank} the Warden holds." | Subject is "each attack" but the Warden appears only at the end; "4% more" doesn't say it builds up; "up to 10% for each rank" reads like a second bonus, not a cap that grows with rank. Description says "attack", tip says "Hits only"; siblings say "direct hits". | "A Warden's direct hits deal 4% more for each hit in a row on the same nightmare, up to +10% for each {rank} it has." Tip: "Only Wardens that hit one nightmare at a time; not area attacks or beams. Switching target starts again from 0." |
+| 8 | finishing_blow.tres (NEW) tip | "Hits only: never statuses or {reaction} damage. Best on the Wardens near the Heartwood." | "Best on..." is strategy advice (owner's no-hand-holding rule). Also plain "near" next to the {near} token in other cards reads like the keyword. | "Hits only: never statuses or {reaction} damage." |
+| 9 | trophies.tres (NEW) | "A Warden that lands 10 killing blows in one {drift} deals 4% more with its direct hits for the rest of the run, up to 40%." / tip "...count 5. Once a {drift}." | "killing blows" is a second name for {dispel} (Hard-Won Rings says "dispels"). "Once a drift" is unclear: once a drift what? | "A Warden that dispels 10 nightmares in one {drift} deals 4% more with its direct hits for the rest of the run, up to +40%." Tip: "{deeply_blighted} nightmares and bosses count as 5. At most +4% a {drift}. Kept when it grows, lost if sold. Hits only." |
+| 10 | warden_panel.gd + "Reactions: set off %d · fed %d" | "Reactions: set off 3 · fed 5" | "set off" is banned in rules text (rule 10) and "fed" is jargon: a new player can't tell what a Warden "fed". | "Reactions: triggered %d · helped %d" (tooltip: "Helped: added a status that another Warden's hit then used in a {reaction}.") (check exact meaning of reactions_fed) |
+
+## 2. Every other flagged string
+
+| Where | Now | Problem | Rewrite |
+|---|---|---|---|
+| open_road.tres (NEW) | "...nightmares walking a straight of 4 or more path cells." | "a straight" as a noun is unclear. | "Direct hits deal 25% more to nightmares walking a straight stretch of path at least 4 cells long." |
+| run_through.tres (NEW) | "...direct hit carries on to the next 2 nightmares behind its target, each taking half." | "carries on" is a phrasal verb; "behind" could mean further from or nearer to the Heartwood. | "A {final_form} or {ascended} Warden's direct hit also hits the next 2 nightmares behind its target on the path (within 2 cells) for half damage each." (check direction) |
+| run_through.tres (NEW) tip | "The carried hits are damage only: no statuses, no other cards." | "carried hits" is an invented noun. | "These extra hits deal damage only: no statuses, and other cards don't boost them." |
+| clean_strike.tres (NEW) | "Direct hits deal 25% more to nightmares carrying no other family's status, or 50% more from a {final_form} or {ascended} form." | "other family's": other than whose? | "Direct hits deal 25% more to nightmares with no status from another family than the Warden's own; 50% more from a {final_form} or {ascended} Warden." |
+| clean_strike.tres (NEW) tip | "Your own family's statuses don't count, and neither do walls or Sprouts." | "Your own family" (player) vs the Warden's family; walls/Sprouts "don't count" as what? | "The Warden's own family's statuses don't matter, and neither do statuses from walls or Sprouts. Hits only." (check) |
+| nowhere_to_run.tres (NEW) | "...up to 40%." | Siblings write "up to +30%"; the "+" tells me it's the total bonus. Same in Standing Tall, Trophies. | "...up to +40%." |
+| bearing_down.tres tip | "...not area attacks or beams." | "beams" never explained elsewhere for me. | "...not area attacks or beam Wardens." (or name them with {warden:} tokens) |
+| family_pick_screen.gd + | "Choose a family to deepen" / "One of yours could have grown another way." | "deepen" is a new verb with no explanation on first sight. | "Choose one of your families to grow another way" (title can stay as flavour if the button/subtitle says what happens) |
+| family_pick_screen.gd + | "Not in this dream" | Fine as a label only if the card below explains why; alone it reads like an error. | "Not in this run" (check context) |
+| codex_data.gd Dreamlight + | "...and from some Wardens' shards: unlocks branches..." | "shards" is unexplained. | "...and from some Wardens (check which): unlocks branches..." or link the shard term |
+| remember_screen.gd SHORT_TIP + | "It comes with every family pick and every boss rest." | If the drift 60 deepen pick gives none (Dreamlight is +2 at drift 75), "every family pick" overpromises. | (check) "It comes with each new family and every boss rest." |
+| codex_data.gd KINSHIP night_chimes + | "Chime Stone's pulses Catch nightmares ... Dreamcatcher's threads set off {static} at 12 stacks." | "set off" (rule 10); capital "Catch" mid-sentence looks like a typo, not a term. | "...Dreamcatcher's threads trigger {static} at 12 stacks." and "{caught}" token or lower-case "catch". |
+| icon_info.gd drowsy (+ line), also damp/held/marked | "...can fall {asleep} and set off {reactions}." | "set off" (rule 10), in the status glossary every new player reads first. | "...can fall {asleep} and trigger {reactions}." |
+| gone_to_seed.tres | "...fills a status or sets off a {reaction}..." | rule 10. | "...fills a status or triggers a {reaction}..." |
+| nod_off.tres tip | "...don't set it off." | rule 10; "it" unclear. | "...don't trigger this card." |
+| never_quite_dry.tres tip | "Only {reactions} set off by a status landing count..." | rule 10. | "Only {reactions} triggered by a status landing count..." |
+| reprise.tres | "...goes off again 1 s later at half damage." | rule 10. | "...triggers again 1 s later at half damage." |
+| mountains_fall.tres cost | "{named_combo:avalanche} can go off only half as often." | rule 10. | "{named_combo:avalanche} triggers only half as often." |
+| calling_paths.gd line 39 + | "A clump gives a {dose} for each {mushroom} in it." | The trigger was lost: gives to whom, and when? (old text: "Stepping on a clump"). | "A nightmare stepping on a clump gets a {dose} for each {mushroom} in it." |
+| calling_paths.gd line 174 + | "...hits a nightmare with {damp} there, nightmares within 2 {steps} of it in that {water} get {damp} too." | "there" and "it" both vague. | "When a Warden {touching} {water} hits a nightmare with {damp} in that {water}, nightmares within 2 {steps} of the hit nightmare in the same {water} get {damp} too." |
+| dream_keywords.gd Soak chip + / icon_info damp | "water hits deal 20% more damage to the nightmare." | "water hits" isn't a defined thing: {water} is the Puddles path, but here it means hits from Dewdrops (the water family). | "{damp}: {family:dewdrop} Wardens' hits deal 20% more damage to the nightmare." (check which hits count) |
+| callings.gd firefly_jar / dewdrop / sporeling + vs. cards | Callings: "a Firefly", "Dewdrops", "A Firefly is any Firefly Jar form."; cards: "{family:firefly_jar} Warden" | Same idea, two names on two screens. "Firefly Jar Warden" on a card reads like the one Warden called Firefly Jar, not the whole family. | Pick one: "a Firefly Jar Warden (any form)" in the glossary of the {family:} token, or use "Firefly" everywhere and define it once in the family tooltip. |
+| seeping_in.tres / spore_ring.tres | "after a Sporeling hits", "A Sporeling's hits ... each other Sporeling" | Sibling cards now say "{family:sporeling} Warden"; these still use the plain word. | "{family:sporeling} Warden" (or the single name chosen above). |
+| great_bell.tres | "...every nightmare with 4 or more {static} is struck by its bolt for half damage." | "its bolt": the bell's or the nightmare's? | "...every nightmare with 4 or more {static} releases its {static} bolt at half damage." |
+| thunderclap.tres | "A Thunderclap hits it hard and arcs to nightmares with {damp} in range. ... ×12 damage, ×6 per arc" | "it" and "in range" (of what?) unclear; ×12 with no base (rule 5). | "Strikes the nightmare hard and arcs to nightmares with {damp} within N cells (check). ×12 the damage of the Warden that triggered it, ×6 for each arc, and each arc adds 1 {static}. Needs ..." |
+| lightning_rod.tres | "It draws lightning: {static} bolts from nightmares within 3 cells strike it instead, for ×2 damage." | Opens with flavour; "it" is the nightmare but reads like the Warden. | "{static} bolts from nightmares within 3 cells strike this nightmare instead, for ×2 damage. Needs ..." |
+| thorncoil.tres (Warden) | "...while one with {held} is in its range, it takes thorn damage each second." | rule 13: "it" could be the Thorncoil. The card version is clear. | "It damages every nightmare in range. Each second, every nightmare with {held} in its range also takes thorn damage." |
+| dream_boulderback.tres / boulderback.tres | "splashes ... of its damage; ... always crits on those with {drowsy}" | "splashes" and "crits" are gamer words with no gloss for me. | "...a crushing hit that also deals N% of its damage to nightmares around the target; ...always a critical hit on nightmares with {drowsy}." |
+| deeproot / earthbind / rootling / snugroot / tangleroot | "gains 1 {held} and can't move for N s"; "the nightmare furthest along the path" | Long form; rule 11 asks for "1 {held} for N s" and "the leader". | e.g. Tangleroot: "It damages every nightmare in range. Every N s the leader gets 1 {held} for N s." (needs "the leader" in the glossary first) |
+| rootcurl.tres | "...back {count} cell." | Fixed singular breaks if the number is ever above 1. | "...back {count:cells}" (as Groundroot's {field:...:cells}) |
+| dream_bellflower.tres | "every 2nd pulse gives the nightmares around it {drowsy}." | "around it" vague. | "every 2nd pulse gives nightmares in its range {drowsy}." |
+| honeysuckle.tres / dream_honeysuckle.tres | "slowly gives nightmares walking past it {drowsy}" | "slowly" hides the rate. | "gives nightmares walking past it {drowsy} over time, up to 12 {stacks} from walls alone." |
+| heartwood_sapling.tres | "...Each {leaf} lost withers the yield 5% until the next {rest}." | "withers the yield" is flavour for "lowers its Dew". | "...Each {leaf} you lose cuts its Dew by 5% until the next {rest}." |
+| run_history.gd + | "Reaction factors: ..." | "factors" means nothing to me. | "Reaction bonuses: ..." |
+
+## 3. Patterns
+
+- New hit cards invent nouns (store, court, straight, carried hits, killing blows): use existing glossary words or say it plainly.
+- "set off / go off / pay off" still in ~10 changed strings (statuses, cards, Warden panel, kinships): replace with "trigger" / "work".
+- "it/its" with a Warden and a nightmare in one sentence (Measured Blow, Thorncoil, Great Bell, Lightning Rod): name the nightmare.
+- Family names: cards say "{family:x} Warden", Callings now say "Firefly / Dewdrop / Sporeling", two cards still say "Sporeling": choose one form.
+- Caps written "up to 40%" on new cards vs "up to +30%" on old ones: always "up to +N%".
+- Tips that carry the real rule (Tallest Tree, Undiluted): the description must work alone; the tip only adds limits.
+- Flavour in rules position ("Lightning Rod stays quiet", "withers the yield", "It draws lightning"): move flavour after the rule or cut it.
+
+## 4. What already works
+
+- Finishing Blow, Open Road and Hunter's Patience descriptions: one number, one condition, readable in one go.
+- Towering's tip with worked examples ("Rank V: +30%; rank VII: +50%") answers "how much" instantly; copy this for Bearing Down.
+- "Doesn't add {held}" replacing "Never {held}" in calling_paths is clearer.
+- The lesson's "When two statuses on one nightmare each reach enough stacks, they trigger a {reaction}" is the clearest Reaction rule in the game.
+- Reroll / Banish labels and "Banishes left: N" are instantly understood.
+- "Old Waystone: +1 Dew per dispel" and "Make it the Tallest Tree" are model short UI strings.
+
+Flagged: 10 top + 33 table rows = 43.

@@ -24,7 +24,8 @@ static func is_reaction_burst(event) -> bool:
 # Damage tags the class cards deal with. Nothing tagged with one of these sets a class rule off again.
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
 	&"riptide", &"last_drop", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
-	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff"]  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
+	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff",  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
+	&"deathcap", &"pond_spill", &"breaker", &"churn", &"flare", &"haze"]  # Calling evolution hits (section 33; class_kit.calling_hit)
 
 var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
 var _hooked := false
@@ -423,6 +424,77 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 func calling_free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
 	return free_hit(tower, enemy, scale, tag, cap, own, true)
 
+
+# --- Calling evolutions that split into builds (owner 2026-10-23, dream_council_review.md 33; evo_shared_spec.md 3) ----
+# The one damage-only hit a Calling row deals (a free hit, flare, spill, wave or Toll): that nightmare only, never a status,
+# never a crit, never HEAVY, never an F1 Calling output (no arm()). It gets the Warden's form x1.4 and the hit cards' standing
+# bonuses (dream_hit_cards.preview_multiplier, side-effect free), held with the Warden's Dream rows inside the x4 card cap,
+# and is noted as one product (X1). It is damage only for every other card (R1): its tag is in CLASS_TAGS.
+# `scale`: share of the free-hit base (min(hit, one second of damage)); `scaled = false`: `scale` is the final amount.
+# `budget`: one per Warden per CALLING_HIT_EVERY on that meta (&"" = the caller throttles itself). Returns what it dealt.
+const CALLING_HIT_EVERY := 1.0
+const CALLING_META := &"ck_calling_next"  # Never FREE_META: a base free hit and a Calling hit never eat each other
+
+func calling_hit(tower, enemy, scale: float, tag: StringName, own: StringName = &"", is_area := false,
+		scaled := true, budget: StringName = CALLING_META, boss_share := 1.0) -> float:
+	if not (tower is Tower) or not is_instance_valid(tower) or tower.attack_data == null or not living(enemy):
+		return 0.0
+	assert(tag in CLASS_TAGS, "calling_hit: %s must be a class tag" % tag)
+	if budget != &"":
+		if now() < float(tower.get_meta(budget, -INF)):
+			return 0.0
+		tower.set_meta(budget, now() + CALLING_HIT_EVERY)
+	var amount := scale
+	if scaled:
+		amount = minf(tower.get_damage(), second_of(tower)) * scale * tower._form_hit_multiplier()
+		var p: float = dream_state.hit_cards.preview_multiplier(tower, enemy, is_area) if dream_state != null else 1.0
+		var rows: float = maxf(tower._dream_bonus(&"soothe"), 1.0)
+		var s := maxf(scale, 1.0)
+		p = minf(p * s, DreamState.CARD_PRODUCT_CAP / rows) / s  # The x4 line with the Warden's own rows
+		amount *= p
+		DamageLog.note_card_bonus(String(own) if own != &"" else String(tag), p)  # One cap per hit (X1)
+	if enemy.enemy_data != null and enemy.enemy_data.is_boss:
+		amount *= boss_share
+	if amount <= 0.0:
+		return 0.0
+	_own_begin(own, enemy)
+	enemy.take_damage(amount, tower.tower_data.line, is_area, false, tower, tag)
+	_own_end(own)
+	if own != &"":  # (The base Calling's Toll has no evolution to credit)
+		credit(own, enemy.global_position, tower)
+	return amount
+
+# The one capped Calling slow (Dewdrop rows; evo_shared_spec.md 7): rows add requests during a poll; at its end each
+# nightmare gets one timed slow of their sum, at most CALLING_SLOW_MAX (bosses half), rounded to 5% so add_slow's list stays
+# short. It never stacks with itself: rows raise it within the cap.
+const CALLING_SLOW_MAX := 0.35
+var _slow_requests := {}  # Enemy instance id -> [enemy, sum, own]
+
+func calling_slow(enemy, amount: float, own: StringName = &"") -> void:
+	if amount <= 0.0 or not living(enemy):
+		return
+	var key: int = enemy.get_instance_id()
+	var row: Array = _slow_requests.get(key, [enemy, 0.0, own])
+	row[1] = float(row[1]) + amount
+	_slow_requests[key] = row
+
+static func snap5(amount: float) -> float:
+	return snappedf(amount, 0.05)
+
+func _apply_calling_slows() -> void:
+	for key in _slow_requests:
+		var row: Array = _slow_requests[key]
+		var enemy = row[0]
+		if not living(enemy):
+			continue
+		var top := CALLING_SLOW_MAX * (0.5 if enemy.statuses.is_boss else 1.0)
+		var amount := minf(snap5(float(row[1])), top)  # Rounded, then capped: a boss gets exactly half (0.175)
+		if amount > 0.0:
+			enemy.statuses.add_slow(amount, POLL + 0.05)
+			if StringName(row[2]) != &"":
+				control_slow(StringName(row[2]), amount, POLL + 0.05)
+	_slow_requests.clear()
+
 # Damage a card deals in a Warden's name (never a hit for anything else: `tag` is one of CLASS_TAGS).
 # `own` (setup credit 2026-10-16): the evolution or card id this damage is credited to as its own (DreamState.begin_own_hit).
 func strike(tower, enemy, amount: float, tag: StringName, is_area: bool = false, own: StringName = &"") -> void:
@@ -529,6 +601,7 @@ func _process(delta: float) -> void:
 	if _poll_in <= 0.0:
 		_poll_in = POLL
 		on_poll()
+		_apply_calling_slows()  # The one capped Calling slow, once per nightmare a poll
 
 func _on_damage(event) -> void:
 	if dream_state == null or not active() or not is_instance_valid(event.enemy):

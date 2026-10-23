@@ -8,7 +8,7 @@
 script = ExtResource("1_tdata")
 display_name = "Honeysuckle"
 role_line = "Wall, Drowses"
-description = "Its sweet scent slowly gives nightmares walking past it {drowsy}. A wall's scent alone can't put a nightmare to sleep."
+description = "Its sweet scent slowly gives nightmares walking past it {drowsy}. A wall's scent alone can't make a nightmare {asleep}."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "old_rain"
 display_name = "Old Rain"
-description = "A {reaction} {near} a Dewdrop deals 40% more if it spends a status a card made last longer."
+description = "A {reaction} {near} a {family:dewdrop} Warden deals 40% more if it spends a status a card made last longer."
 tip = "Last longer: kept on past its own time by a card or a Calling evolution. Its burst only, not the damage over time after it. Works for: every family's {reactions}. A bet: needs {reactions} and such a card."
+retired = true
 rarity = 2
 kind = 3
 tags = Array[String](["water", "lent"])
 max_stacks = 1
 rule_id = &"old_rain"
 requires = Array[String](["dewdrop"])
-uses = Array[StringName]([&"linger"])

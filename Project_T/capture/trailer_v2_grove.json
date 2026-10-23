@@ -1,0 +1,15 @@
+{
+	"title": "Trailer v2 60-70 s: the Memory Grove grows (the finale).",
+	"note": "Trailer chat, v2 cut (2026-10-21). A fresh Grove (capture profile, never the player's): close on Rootling as it's planted (the branch grows, the bud opens), then an eased pull-back while the whole tree grows to 'full', holding on the full tree into the end card.",
+	"scene": "grove",
+	"grove": "fresh",
+	"size": [1920, 1080],
+	"length": 11.0,
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "focus", "node": "rootling", "zoom": 2.5, "duration": 0.1},
+		{"t": 0.6, "plant": "rootling"},
+		{"t": 3.5, "camera": "fit", "duration": 3.0},
+		{"t": 3.5, "grove_grow": "full", "duration": 5.0}
+	]
+}

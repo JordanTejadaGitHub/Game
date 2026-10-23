@@ -338,7 +338,8 @@ func _make_sfx() -> void:
 	_mix(plant, _tone(r, 0.45, glide(45.0, 70.0, 0.45), swell(0.05, 0.25, 0.45)), r, 0.0, 0.5)
 	_mix(plant, _creak(r, 0.4, 35.0, 90.0, 700.0), r, 0.2, 0.7)
 	_mix(plant, _pluck(r, hz(62), 0.4, 0.5, 0.7), r, 0.45)
-	_sfx("plant", plant)
+	# The old "plant" is still drawn (keeps the shared RNG) but no longer saved: plant_01..03 replace it
+	# (_make_warden_place, the user 2026-10-21: "they don't sound good").
 
 	var evolve := _seg(1.4, r)
 	for i in 4:  # D F# A D: a rising bloom
@@ -855,7 +856,7 @@ func _make_nurture() -> void:
 		"spore": func() -> PackedFloat32Array: return _air(0.5, 600.0, 0.35, 0.15),  # A spore breath
 		"stone": func() -> PackedFloat32Array: return _rumble(0.5, 160.0, 0.35, 0.15),  # Stone settling
 		"water": func() -> PackedFloat32Array: return _wobble(_rumble(0.5, 250.0, 0.35, 0.15), 4.0),  # Water welling
-		"light": func() -> PackedFloat32Array: return _glow_swell(0.5),  # A warm glow
+		"light": func() -> PackedFloat32Array: return _light_glow(0.5),  # A warm glow of tuned air (2026-10-21)
 		"root": func() -> PackedFloat32Array: return _layers([[_rumble(0.5, 120.0, 0.35, 0.15), 1.0], [_lowpass(_creak(SFX_RATE, 0.5, 10.0, 20.0, 260.0), 700.0), 0.5]]),
 		"song": func() -> PackedFloat32Array: return _soft_hum([50, 57], 0.5),  # A low bell hum
 		"acorn": func() -> PackedFloat32Array: return _air(0.5, 300.0, 0.35, 0.15, 0.6),  # Bark
@@ -2426,17 +2427,20 @@ const TRAILER_CHORDS := [[50, 3], [50, 3], [50, 3], [50, 3], [50, 3], [46, 4], [
 
 func _make_marketing(out_dir: String, only: Array) -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
-	var cues := {"trailer": _cue_trailer, "trailer_v3": _cue_trailer_v3, "endcard_button": _cue_endcard}
+	var cues := {"trailer": _cue_trailer, "trailer_v22": _cue_trailer.bind(true), "trailer_v3": _cue_trailer_v3,
+		"endcard_button": _cue_endcard}
 	for bed in BED_CUES:
 		cues[bed] = _cue_bed.bind(bed)
 	for cue in cues:
 		if only.is_empty() or only.has(cue):
+			# v2.2 is v2.1 with a new opening: same seed, saved as trailer_<stem>_v22 beside v2.1's files.
+			var base: String = "trailer" if cue == "trailer_v22" else cue
 			var main := rng  # Each cue its own seeded RNG (like _own)
 			rng = RandomNumberGenerator.new()
-			rng.seed = hash("cue_" + cue)
+			rng.seed = hash("cue_" + base)
 			var stems: Dictionary = cues[cue].call()
 			rng = main
-			_save_cue(out_dir, cue, stems)
+			_save_cue(out_dir, base, stems, "_v22" if cue == "trailer_v22" else "")
 			print("  ", cue)
 
 # The end-card button: the Hope form D-A-F# on harp + music box, ~0.4 s apart, landing on a warm D
@@ -2458,7 +2462,10 @@ func _cue_endcard() -> Dictionary:
 	_endcard_into(stems, 0.0, 0.7)
 	return stems
 
-func _cue_trailer() -> Dictionary:
+# v22 (trailer v2.2, the user's re-cut opening on a Shade's eyes): bar 1 is a cold held low note, the melody
+# and snap pulse start at 2.5 under a fast maze build. v2.1's own 0–5 motif and pulse are still drawn (into a
+# throwaway) so the shared RNG runs the same and everything from 7.5 on comes out sample-identical to v2.1.
+func _cue_trailer(v22 := false) -> Dictionary:
 	# Section map (Trailer, 2026-10-04 re-map; cuts on 2.5 s bars). Every change flows: a bar of lead-in
 	# (a swell, a held note, a fill) and no hard stop or style switch on a cut unless it's a hit; the boss
 	# dispelled resolves over a bar into the warm Grove (the user: "it cuts off and changes at weird parts").
@@ -2467,9 +2474,10 @@ func _cue_trailer() -> Dictionary:
 	var stems := _mk_stems(TRAILER_LENGTH)
 
 	# 0–5: the maze being built; the motif on music box, a felt pulse for the Warden snaps.
-	_mk_motif(stems, 0.0, 0)
+	var opening := _mk_stems(TRAILER_LENGTH) if v22 else stems
+	_mk_motif(opening, 0.0, 0)
 	for k in 6:
-		_mix(stems.perc, _mk_felt(r, 110.0), r, k * MK_BEAT, 0.45)
+		_mix(opening.perc, _mk_felt(r, 110.0), r, k * MK_BEAT, 0.45)
 	_mix(stems.mid, _mk_pad_chord([50, 3], 10.5), r, 0.0, 0.5)  # Carries through the hit into the walk
 	# 5–7.5 (v2.1, the user: "the beginning cut to dispelled also cuts the music weird"): no hush. The
 	# music carries straight through the cut to the Shade: the pulse goes on, a touch softer, the motif
@@ -2650,6 +2658,8 @@ func _cue_trailer() -> Dictionary:
 
 	# 70–75: the end card; the button and a held warm D major chord.
 	_endcard_into(stems, TRAILER_HITS.endcard, TRAILER_LENGTH - TRAILER_HITS.endcard - 1.2)
+	if v22:
+		_trailer_v22_opening(stems)
 	_mk_trim(stems, TRAILER_LENGTH, 1.5)  # Exactly 75 s for the edit; the held chord fades out at the very end
 	return stems
 
@@ -2990,6 +3000,27 @@ func _print_hits(hits: PackedFloat32Array, times: Array) -> void:
 			onset += 1
 		print("    hit %.2f -> onset %.3f s, peak %.3f s" % [t, float(onset) / SFX_RATE, float(best) / SFX_RATE])
 
+# Trailer v2.2's opening, on its own RNG (the rest of the cue keeps v2.1's draws).
+# 0–2.5, the Shade's eyes: a cold held low note (bowed D under a dark, filtered drone) waking up, nothing warm
+# yet, never silent; a slow breath rising into the downbeat. 2.5: the motif and the Warden snaps start, the
+# pulse in eighths for a fast maze build, easing into v2.1's own 5–7.5 (which is unchanged).
+func _trailer_v22_opening(stems: Dictionary) -> void:
+	var r := SFX_RATE
+	var main := rng
+	rng = RandomNumberGenerator.new()
+	rng.seed = hash("trailer_v22_opening")
+	var wake := MK_BAR
+	_mix(stems.low, _env(_mk_drone(wake + 1.0), r, swell(0.4, 0.9, wake + 1.0)), r, 0.0, 0.55)
+	_mix(stems.low, _env(_bowed(r, 38, wake + 0.8, 320.0), r, swell(0.6, 0.6, wake + 0.8)), r, 0.0, 0.45)
+	_mix(stems.mid, _env(_bowed(r, 44, wake, 600.0), r, swell(1.6, 0.5, wake)), r, 0.3, 0.12)  # A cold A-flat stirring
+	_mix(stems.top, _env(_air(wake + 0.2, 500.0, 0.1, 0.2, 0.7), r, swell(wake - 0.3, 0.3, wake + 0.2)), r, 0.1, 0.22)
+	for k in 2:  # A soft fill into the downbeat
+		_mix(stems.perc, _tom(r, [76.0, 68.0][k]), r, wake - (2 - k) * MK_EIGHTH, 0.22 + 0.06 * k)
+	_mk_motif(stems, wake, 0)
+	for k in 6:  # 2.5–5: the snaps in eighths, building (v2.1 carries on from 5.0 in quarters)
+		_mix(stems.perc, _mk_felt(r, 110.0), r, wake + k * MK_EIGHTH, 0.36 + 0.03 * k)
+	rng = main
+
 # Cuts every stem to `length` s, fading the last `fade` s.
 func _mk_trim(stems: Dictionary, length: float, fade: float) -> void:
 	var n := int(length * SFX_RATE)
@@ -3066,7 +3097,7 @@ func _mk_motif(stems: Dictionary, at: float, up: int) -> void:  # The warm form 
 
 # Writes <cue>_low/_mid/_top/_perc, _full and _voice (stereo, 44.1 kHz), scaled by one shared gain.
 const CUE_PAN := {"low": 0.5, "mid": 0.42, "top": 0.58, "perc": 0.5, "hits": 0.5}
-func _save_cue(out_dir: String, cue: String, stems: Dictionary) -> void:
+func _save_cue(out_dir: String, cue: String, stems: Dictionary, tag := "") -> void:
 	var r := SFX_RATE
 	var length := 0
 	for k in stems:
@@ -3082,13 +3113,13 @@ func _save_cue(out_dir: String, cue: String, stems: Dictionary) -> void:
 		top = maxf(top, absf(v))
 	var gain := 0.8 / top if top > 0.0 else 1.0
 	for k in stems:
-		_save_stereo(stems[k], CUE_PAN[k], gain, out_dir + "%s_%s.wav" % [cue, k])
-	_save_stereo(full, 0.5, gain, out_dir + cue + "_full.wav")
+		_save_stereo(stems[k], CUE_PAN[k], gain, out_dir + "%s_%s%s.wav" % [cue, k, tag])
+	_save_stereo(full, 0.5, gain, out_dir + cue + "_full" + tag + ".wav")
 	# The voice mix: the full mix with 300 Hz–3 kHz thinned by ~6 dB.
 	var band := _filter(_filter(full, r, 300.0, 0.7, "hp"), r, 3000.0, 0.7)
 	var voice := full.duplicate()
 	_mix(voice, band, r, 0.0, -0.5)
-	_save_stereo(voice, 0.5, gain, out_dir + cue + "_voice.wav")
+	_save_stereo(voice, 0.5, gain, out_dir + cue + "_voice" + tag + ".wav")
 
 func _save_stereo(seg: PackedFloat32Array, pan: float, gain: float, path: String) -> void:
 	var both := PackedFloat32Array()
@@ -3326,13 +3357,15 @@ func _make_seventh_pass() -> void:
 		return _wobble(_exhale(0.9, 300.0), 2.5))
 	_ws("status_rooted", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A soft low root clench
 		return _layers([[_lowpass(_creak(SFX_RATE, 0.4, 25.0, 45.0, 480.0), 800.0), 1.0], [_thump(0.25, 110.0, 0.05), 0.6, 0.25]]))
-	# Evolve: a bloom of the family's own material, a warm swell, a low full settle (no chime).
+	# Evolve (the user 2026-10-21: growing should sound like growing): the Warden unfurls (a leafy rise, a stem
+	# creak for the wooden families), blooms in its family's own material with a warm harp strum (the score's
+	# instrument), and settles low. No chime.
 	for line in MATERIAL_LINES:
 		_ws("evolve_" + line, 1, 0.55, func(_v: int) -> PackedFloat32Array:
-			return _layers([[_material(line, 1.0), 1.0], [_soft_hum([50, 57], 1.4), 0.35, 0.1], [_thump(0.4, 90.0, 0.1), 0.6, 0.95],
-				[_rumble(0.8, 110.0, 0.05, 0.6), 0.3, 0.9]]))
+			return _grow_bloom(_material(line, 1.0), line in ["acorn", "wall", "root", "heartwood", "sprout"]))
 	_ws("evolve", 1, 0.55, func(_v: int) -> PackedFloat32Array:  # The fallback: a warm bloom
-		return _layers([[_air(1.0, 450.0, 0.6, 0.3), 0.8], [_soft_hum([50, 57], 1.4), 0.4, 0.1], [_thump(0.4, 90.0, 0.1), 0.6, 0.95]]))
+		return _grow_bloom(_air(1.0, 450.0, 0.6, 0.3), false))
+	_make_warden_place()
 	_ws("path_shimmer", 1, 0.25, func(_v: int) -> PackedFloat32Array:  # A faint low earth shift (the id keeps its old name)
 		return _layers([[_rumble(0.6, 200.0, 0.12, 0.4), 1.0], [_lowpass(_scrape(0.5, 300.0), 600.0), 0.3, 0.05]]))
 	_ws("drift_start", 1, 0.45, func(_v: int) -> PackedFloat32Array:  # The breath in on Start
@@ -3351,6 +3384,36 @@ func _tuned_note(midi: int, length: float) -> PackedFloat32Array:
 	var n := _noise(SFX_RATE, length, swell(length * 0.3, length * 0.6, length))
 	return _normalize(_lowpass(_filter(n, SFX_RATE, hz(midi), 0.03, "bp"), 1500.0), 1.0)
 
+# Placing a Warden (the user 2026-10-21): it presses into the earth (a soft low thump, a little soil settling),
+# then a sprout unfurls from it (a leafy rise) and a soft harp note answers. Three variants, all in key.
+func _make_warden_place() -> void:
+	_ws("plant", 3, 0.5, func(v: int) -> PackedFloat32Array:
+		var out := _layers([[_thump(0.28, 110.0 + 12.0 * v, 0.06), 1.0], [_lowpass(_scrape(0.2, 380.0), 700.0), 0.3, 0.02],
+			[_sprout_unfurl(0.36), 0.4, 0.1], [_pluck(SFX_RATE, hz([57, 62, 57][v]), 0.4, 0.7, 0.7, 0.997), 0.38, 0.42]])
+		return _lowpass(out, 2200.0))
+
+# A sprout unfurling: a soft leafy breath rising in pitch, no hiss (lowpassed).
+func _sprout_unfurl(length: float) -> PackedFloat32Array:
+	var rise := _filter(_noise(SFX_RATE, length, swell(length * 0.7, length * 0.3, length)), SFX_RATE, glide(350.0, 1100.0, length), 0.5, "bp")
+	return _lowpass(rise, 1600.0)
+
+# A Warden growing: the unfurl, the family's `bloom` with a warm D-A-D strum, a low settle.
+func _grow_bloom(bloom: PackedFloat32Array, wooden: bool) -> PackedFloat32Array:
+	var parts := [[_sprout_unfurl(0.7), 0.6], [bloom, 1.0, 0.45], [_soft_hum([50, 57], 1.3), 0.3, 0.5],
+		[_thump(0.35, 90.0, 0.1), 0.4, 0.5]]
+	if wooden:  # A stem stretching
+		parts.append([_lowpass(_creak(SFX_RATE, 0.6, 20.0, 45.0, 420.0), 900.0), 0.35, 0.05])
+	var out := _layers(parts)
+	for k in 3:
+		_mix(out, _pluck(SFX_RATE, hz([50, 57, 62][k]), 0.4, 1.4, 0.7, 0.998), SFX_RATE, 0.5 + k * 0.05, 0.45)
+	return _lowpass(out, 2400.0)
+
+# The Firefly Jar's light as it grows (the user 2026-10-21: "fix the firefly one"): glowing tuned air on D, A
+# and the octave over a low hum, the dispel's breath of light, never a plain synth tone.
+func _light_glow(length: float) -> PackedFloat32Array:
+	return _lowpass(_layers([[_tuned_note(62, length), 1.0], [_tuned_note(69, length), 0.7], [_tuned_note(74, length * 0.8), 0.35, length * 0.1],
+		[_soft_hum([50], length), 0.3]]), 1800.0)
+
 # A family's material swelling over `length` s (Nurture's swells, longer, for Evolve).
 func _material(line: String, length: float) -> PackedFloat32Array:
 	var a := length * 0.6
@@ -3359,7 +3422,7 @@ func _material(line: String, length: float) -> PackedFloat32Array:
 		"spore": return _air(length, 600.0, a, rel)
 		"stone": return _rumble(length, 160.0, a, rel)
 		"water": return _wobble(_rumble(length, 250.0, a, rel), 4.0)
-		"light": return _glow_swell(length)
+		"light": return _light_glow(length)
 		"root": return _layers([[_rumble(length, 120.0, a, rel), 1.0], [_lowpass(_creak(SFX_RATE, length, 10.0, 20.0, 260.0), 700.0), 0.5]])
 		"song": return _soft_hum([50, 57], length)
 		"acorn", "wall": return _air(length, 300.0, a, rel, 0.6)

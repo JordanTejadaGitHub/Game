@@ -14,12 +14,12 @@ const SEEDS := 50
 const LAYOUT_SEEDS := 20
 const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
-const ROUTE_RANGE := Vector2i(24, 44)  # Opening route, full cells (Room to maze with the +10 bend; island edge B adds the edge row)
-const ROUTE_MAX_BLIGHT_9 := 46  # Its extra spur can stretch the opening a little
-const OBSTACLES_BLIGHT_0 := Vector2i(48, 60)  # Island edge B (2026-10-07): +10 on the old rim ring (was 38-48), +2 for an edge shortcut closed
-const OBSTACLES_BLIGHT_9 := Vector2i(48, 66)  # The extra spur is a deliberate step: less open floor
+const ROUTE_RANGE := Vector2i(22, 38)  # Opening route, full cells. Smaller map (20x16, 2026-10-23): measured 23-36 over 50 seeds (was 24-44 on 23x18)
+const ROUTE_MAX_BLIGHT_9 := 40  # Its extra spur can stretch the opening a little
+const OBSTACLES_BLIGHT_0 := Vector2i(36, 50)  # Smaller map (2026-10-23): measured 38-48, mean 44.6 (was 48-60 on 23x18)
+const OBSTACLES_BLIGHT_9 := Vector2i(36, 54)  # Measured 40-49 on the smaller map. The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(3, 6)  # Lone decision obstacles in the bowl (not spur or feature cells)
-const BUILDABLE_MIN := 275  # ~291 median with 38-48 obstacles (was ~275 before the bowl opened)
+const BUILDABLE_MIN := 255  # Smaller map (2026-10-23): measured 264-280, median ~272 (was ~291 on 23x18)
 
 var failures := 0
 

@@ -1528,6 +1528,639 @@ Unchanged on purpose: Warden, grow, Nurture and clear prices (and cards that set
 Weathered Walls, Endless Rings; Weed Puller's 6 refunds part of a price); Rich Dew, Dew Line, Wild Dew and every other
 percentage; Seeds.
 
+## Sprout tax back up (user, 2026-10-16: "placing sprouts is still better than walls")
+
+A Sprout is a wall, 12 damage a second (9 once the power budget lands) and a grow slot; a Thornwall is a wall for 3 Dew.
+At 10 Dew a Sprout is the best damage per Dew in the game (~1.2 a second per Dew; a Jar ~1.1, a Prism Jar ~0.8), and
+the Dew ×2 trial eased the tax at the same time (+4 every 10 Sprouts, was every 5). Boards ran 35–65 Sprouts; 65 cost
+~1,370 Dew of ~11,000 earned.
+**Recommendation: +5 Dew every 5 Sprouts** (`SPROUTS_PER_STEP` 10 → 5, `SPROUT_STEP_DEW` 4 → 5). The 20th Sprout costs 30
+(was 18), the 30th 40 (22), the 40th 50 (26), the 65th 75 (34); 35 Sprouts ~875 Dew in all (was ~470), 65 ~2,600 (was
+~1,370). Past ~25 Sprouts a wall becomes the better maze piece and a Sprout has to be worth its damage. Seedfall keeps
+its half rate (+2 every 5) and becomes the Sprout-build card. Thornwall stays 3.
+
+## Branch check to drift 25 (2026-10-18; owner asked; Balancing Code's bot, 3 maps, all Dew spent)
+
+`D:\Projects\logs\balancing\branch_check_2026-10-18.md` (tools/branch_check.sh, ca659b46). **10 of 20 starting-family
+branches pass** (Old Stag dispelled with 5+ leaves on 2 of 3 maps).
+- Pass: Brood Cap, Driftspore, Inkcap, Lichenling; Prism Jar, Sparkler, Stormcap; Jetreed; Silver Bell, Thrum.
+- Fail early (drifts 9–14): Bloomcap, Mistveil, Dreamcatcher, Jarlink, Lanternmoth, Chime Stone. Fail late (15–25,
+  mostly the Stag): Cloudlet, Rain Lily, Undercurrent, Hushbell.
+**Read.** The early fails are mostly the bot's board, not the branch: its room plan has ~9 attackers at drift 10 (the
+passes end at ~19 base + ~18 branch), half of them a control form. A player plants more base Wardens first. **Dewdrop is
+the real signal:** 4 of 5 branches fail, only Jetreed passes, the same as the human Dewdrop run 50 (dead at 15) and
+two earlier Dewdrop act 1 deaths. The Dewdrop is the starters' weakest hitter (16.2 × 1.2 = ~19 a second, a Jar ~25,
+a Sporeling ~30 with its Poison).
+**Decisions:**
+- **Dewdrop damage 16.2 → 20** (~24 a second, a Jar's level; Tower Code). Its branches unchanged for now. Built:
+  Tower Code 62d4cc57 (no tests run).
+- **Rerun the 10 fails** after it, with a fuller bot board (plant base Wardens with all spare Dew, no room cap; grow at
+  most a third of attackers into a Support-tagged branch, half into a damage branch). What still fails then is a real
+  candidate. Human Stag fights (14–42 s since ×1.45) say the late Stag fails are the bot's.
+
+### Rerun (2026-10-19, 62d4cc57: Dewdrop 20; bot with a player's board: no room cap, branch ≤ ⅓ of attackers if Support, ≤ ½ if damage)
+
+`D:\Projects\logs\balancing\branch_check_2026-10-18_rerun.md`. **3 of 11 pass:** Lanternmoth and Cloudlet newly pass,
+Jetreed again (boss in 23–38 s). Still failing: Bloomcap, Mistveil, Dreamcatcher (Support; die at drifts 9–10 even at a
+third of the board), Jarlink (drift 9), Rain Lily (drift 20), Undercurrent and Hushbell (the Stag), Chime Stone (15).
+**Read:**
+- **The Support forms are real fails:** at a third of the board they still sink drift 9–10, and the human Bloomcap run
+  (46) died at 10 the same way. Growing them *lowers* the Warden's own damage: Bloomcap ~10 a second against the
+  Sporeling's ~30 (hits + its Poison), Mistveil ~8 against the Dewdrop's 24, Dreamcatcher ~12 against the Bellflower's
+  ~18. **Rule (Tower Code): no branch deals less damage a second than the base Warden it grows from** (the grow-row
+  formula, e67b13d9, at rank 0: hits + own Poison + own Charge). Raise each Support branch's own damage to at least its
+  base form's; their control stays the reason to grow them. Applies to Bloomcap, Mistveil, Dreamcatcher, Jarlink and any
+  other branch under its base.
+  Built: Tower Code 8045f80d (list in warden_stats.md "A grow never lowers damage"). **Correction the same day:** the
+  one-nightmare measure undervalues forms that hit everything in an area against a single-target base, and raising
+  those to the base's single-target figure multiplies them in crowds (Undercurrent's whirlpool 45 → 120 a second on
+  everything in it, Cloudlet's rain 9 → 40, Sparkler ×2.3 after it was already cut for being too strong). **Rule refined:
+  an area form counts 2 nightmares against a single-target base** (like for like when the base is itself area, e.g.
+  Acorn's pulse); an arc or line counts too. Result: Undercurrent back to 54 / whirlpool 45; Cloudlet rain 9 → 12 (not 40);
+  Sparkler back to 39; Mistveil back to 16.2 (×2 = 32 ≥ 24); Bloomcap 30 (not 60.5: 15 a nightmare × 2 ≥ its base);
+  Jarlink back to 9.75 (its 157-a-second arc counts). Kept: Inkcap, Dreamcatcher, Gust, Magpie Perch, Hummingbird Bower and
+  the Acorn branches (pulse against pulse). Finals under their branch: reported, unchanged for now. Built: Tower Code
+  2b47f577 (no tests run); warden_stats.md states the refined rule; its finals list is from the first pass, to recheck.
+- **Rerun 2 (2b47f577, `branch_check_2026-10-19_rerun2.md`): 2 of 9 pass** (Hushbell newly, Jetreed); Bloomcap and
+  Dreamcatcher gained a map each. The floor helped later drifts; **the early collapses didn't move: drifts 9–10 with
+  11–21 attackers**, whatever the branch, and two owner runs died there too (46 at 10, 50 at 15). **Drift 10 is the
+  choke:** "Deadwood" is 10 Shades + 6 Husks + the finale's Deeply Blighted (a Husk), ×1.2, and the ×2 health ease-in
+  completes at 10. Since 1c659ed3 every Husk wears a shell, so ~¾ of drift 10's health is shelled: the pool (a third of a
+  Husk's health, ×3 on the elite) adds ~+24% to the drift, and the per-hit soak (~15 at drift 10) eats a Sporeling's
+  6.8 hit, a Jar's 16 and every Poisoned tick almost whole. **Decision: Husk shell 10 / 100 → 8 / 60** (a fifth of its
+  health; Enemy Code, built ed9720df, data only): Armoured still teaches at drift 6, drift 10 drops ~10%. Shellbound and Barrow Wight unchanged.
+  Dewdrop's Rain Lily / Undercurrent fails partly the bot (it sat on 160–250 Dew saving for grows); left for owner runs.
+- Rain Lily, Undercurrent, Chime Stone, Hushbell: area forms that lose to the Old Stag or a late block in the bot's hands;
+  the owner's area boards have beaten the act 1 boss since ×1.45 (14–42 s). Not changed; rechecked after the rule lands.
+- Drifts 6–10 are where every bot fail breaks; owner runs clear them (closest ≤ 0.5). The bot's opening, not the curve.
+
+## Smaller map and landmarks (2026-10-23; user-approved, environment_assets.md 6fd3dccf; waiting on Environment Code's ranges)
+
+20×16 instead of 23×18 (a quarter less area); a landmark on about 1 map in 3 (Old Waystone: +1 Dew per dispel for the
+Warden on it; Dew Pool: walkers crossing it slowed 25%). Act 1 was tuned on the bigger map. To re-check when Environment
+Code reports the opening-route and obstacle ranges, and with sims once the user allows them:
+- **Maze pot share cap (+20% at 40 added cells):** set from routes of 100–157 cells. With less room, recheck that a
+  committed maze still reaches the cap; if typical added cells fall under 40, lower the cells per 1% (not the cap).
+- **Opening (`test_opening`, starting Dew 120, ease-in to drift 10):** a shorter opening route means less time in range;
+  act 1 health (`act1_health_multiplier` 1.3) may need to come down a step.
+- **Old Waystone:** +1 Dew a dispel is about 5–10% of an act 1 drift's pot for a busy Warden, less later (fixed, pots
+  grow): fine as a map perk. **Dew Pool:** a 25% slow is a free Dewdrop-style tile; watch maps with one in the first two
+  blocks (leaks, bank at 25) against maps without.
+
+## Waiting on council section 30 (2026-10-22, not built yet)
+
+Council 30 (dream_council_review.md): final forms whose damage is their own hits ×1.4 at 630 Dew, Ascended ×1.25 at 750,
+hit-only cards, the Undiluted Legendary (Poisoned / Charged ×2, maybe ×2.5), `CARD_CAP_ON` on. Code review
+(finals_td.md): Wardens' own hits are 2–3× short at drift 75. Balancing sets the numbers once it is built:
+- **`late_acts_health_multiplier` (6.0):** superseded by section 31 (three families): a first step to 4.0 once the
+  Reaction pool and section 31 are in (see "Second family at drift 10"), then set from two runs into act 3 with the
+  per-factor breakdown. The council's 2.5–3.0 is the
+  expected range, not a decision.
+- **Undiluted: ×2 first;** ×2.5 only if its runs' Reaction share stays under the committed-build target (45–60%).
+- **`CARD_CAP_ON`:** turning it on ends the `past_cap` measurement; read the last runs' `past_cap_top` first and set the
+  cap from them (×4 still the working number).
+- **Built by Tower Code (uncommitted):** hit finals ×1.4 direct hits, Ascended ×1.25, outside the card cap; prices
+  `hit_final_cost_multiplier` 2.1 (630), `ascended_cost_multiplier` 1.25 (750). **Balancing: prices lowered** so the raise
+  shows per Dew, the constraint in act 2–3 (banks 200–900): a ×1.4 hit for ×1.4 the price gives the same damage per Dew
+  as before. **`hit_final_cost_multiplier` 1.8 (540: ×1.4 damage for ×1.2 the price), `ascended_cost_multiplier` 1.0
+  (600, unchanged).** Support / status finals stay 450 (1.5). Wild Growth then saves 540 per hit final.
+- **Dew check:** finals at 540 and Ascended at 600 come out of act 2–3 banks. Read them with the maze pot share (above)
+  before raising any price or pot.
+
+## The maze grows the Dew pot: numbers (2026-10-22; maze_economy.md 8353f6cc, owner "increase the maze payout")
+
+From the last ten run records: banks peak at **1,700–3,000 around drifts 20–25** (late act 1) and fall to **200–900 in act
+2** once the tier 2 grows are paid (run 57: 2,369 at 25, 550 at 30). The surplus the economy council found is a late act 1
+surplus; act 2 is thin, which is where runs end and where the owner said "I can't build anymore Wardens". Every run's
+route reached 100–157 cells, so most mazes will sit at the cap: the cap is the real number.
+- **+1% of the drift's pot per 2 added cells (kept, easy to read), cap +20%** (40 added cells; was +30%). A capped maze
+  earns about +250 Dew a block in act 2, against about 15 under the old flat rule.
+- **Act 2 base pots: no trim.** Act 2 is where Dew runs short; the maze share is the raise there.
+- **Instead, drop the act 1 maze funding bonus** (`maze_act1_dew_bonus` 0.15 -> 0.0, drifts 11–24): the maze share now
+  does that job. A capped maze ends act 1 about +4% over today, a lazy one about -15%, which takes the edge off the drift 25
+  bank. `maze_act2_dew_bonus` 0.20 stays.
+- **Winding Path: the maze share ×1.5** (cap +30%; ×3 would be +60% to +90% of every pot).
+- Deep Sleep still forfeits the maze share. Bosses' pots count too (they are a drift's pot).
+- Watch: banks at drift 25 (aim 1,000–1,800) and at drifts 40–50 (aim 400+ at a rest); total `earned` of a run to drift 50
+  about +10%.
+
+## Reaction pool numbers (2026-10-22; design: dream_council_review.md section 29, Roguelite Mechanic Discussion)
+
+The design: one Reaction pool (card bonuses add, capped), stack / linger cards no longer feed Reaction damage, a Reaction
+scales with the bare damage and tier of the Warden that completed it (credited 50 / 50 with the other applier, shown by
+name), true multipliers only Crowned, a Legendary and Brimming. Numbers (first pass, to be re-measured with the new
+per-factor breakdown):
+- **`POOL_CAP` 3.0** (card bonuses up to +300%, ×4), as proposed.
+- **A Reaction's base = 1.0 × the completing Warden's bare hit × its tier factor.** Tier factor small, because the hit
+  already grows with tier: **tier 1 ×1.0, tier 2 ×1.1, tier 3 ×1.2, Ascended ×1.3.** Coefficients by how easily a
+  Reaction is put together: the two-status pairs that fire often (Thunderclap, Shatter, Lightning Rod) **0.8**; the rest of
+  the base eight **1.0**; the harder ones (Smother, Drown, Pinned) **1.2**; Crowned keeps its own ×2. So a bare Reaction is
+  about one hit of its Warden, and a committed build's full pool (+150% to +300%) makes it **2.5–4× a rank III tier 2
+  hit**, the target.
+- **Ranks +6% → +8% damage a rank** (speed stays +3%): Reactions now follow the Warden's hit, so its growth matters again.
+  Rank V ×1.40.
+- **Targets:** act 3 Reaction share 45–60% for a committed Reaction build, 5–25% for others; the top Warden at most 55% of
+  its damage from combos; Crowned 1–3% of Reactions on a three-family board.
+- **Act 3 health (`late_acts_health_multiplier` 6.0): unchanged until measured.** Act 3's easy ordinary drifts in run 57 were
+  tuned against the ×60 stack; with the pool, expect act 3 to get much harder. Decide after two runs into act 3 on it.
+
+## Human run 57 (2026-10-22 15:53, ee771c15: picks at 1 / 10 / 35 / 60): the first run into act 3
+
+Sporeling start (Spore Print → Borrowed Spores → Stomping Ground → Second Crop), Dewdrop at 10, Firefly Jar at 35, Bellflower
+at 60. 17 Inkcaps, 18 Bellflowers, 10 Dewdrops, 5 Jetreeds, 4 Torrents, 6 Sparklers, 38 Thornwalls; ranks 5,859 Dew.
+**Reactions 68% of damage**; Mixed Company credited 12.1M own + 18.1M set up, Soaked Rot 9.7M. Lost at **drift 75**.
+- **Every ordinary drift held:** 3 leaves lost before 50 (2 of the Scarecrow's Crows), **none in drifts 51–73** (closest ≤ 0.82).
+- **Both later bosses survived:** the Huntsman at 50 (bit 8) and the Mourning Mother at 75 (dead there).
+- **The act 2 boss has now beaten every run that reached it** (runs 33, 55, 57; none dispelled it since 10-11), while those
+  boards held the drifts around it. A boss cliff: **`act2_boss_health_multiplier` 1.75 → 1.4** (Tower Code), in line with
+  act 1's 1.45. Act 3's boss: one run, watch; act 3's ordinary drifts look easy for a four-family Reaction board, so the
+  fix there may be the drifts, not the boss.
+- **Past ×4: up to ×11.2** (Inkcap, 20 hits at 64; Torrent ×9.0). Run 3 of 3 for the cap call: two runs barely touched it,
+  this one went far past it on a Reaction build (Reactions themselves are never capped). Kept off: the owner wants broken
+  builds, and act 3's bosses still stopped it.
+- **User: "feels challenging, but something feels off… at the end game it's just Reaction slop and towers are just there
+  to put statuses on enemies."** Sent to the design chats (Roguelite Mechanic Discussion, Tower Discussion) as a design
+  question; Balancing's numbers (base cut, ranks +6%, Reactions × the uncapped build multiplier) are part of the cause.
+
+## Second family at drift 10 (user, 2026-10-22; Main Merger 8598b350)
+
+The second family pick moved from act 1's boss rest (25) to the rest after drift 10; the act 2 and 3 bosses still pick.
+**Dreamlight gap found:** `DreamState` gives Dreamlight only with the first pick (+1) and boss picks (+3); the new "second"
+pick gives 0, and act 1's boss rest now has no pick, so its +3 is gone: a run had 1 Dreamlight until drift 50, so one
+branch for 49 drifts. **Decision: the act 1 boss rest (25) keeps its +3 Dreamlight** (it stays the act break's reward;
+the drift 10 pick stays at 0, so act 1 is still one branch, as the user asked on 10-18). Expected otherwise: act 1 gets a
+second base Warden family from 11 (stronger; it was already the easy act) and the "save Dew for the 25 pick" habit
+goes; the family's lent card now lands in the drift 10 Dream. Bot policies that pick at the act 1 boss move to after 10
+(Balancing Code).
+**Decision (user, same day, option A): a new family about ten drifts into each act.** Picks after drift 1, 10, **35**
+and **60** (were act 2's and act 3's boss rests). **Dreamlight comes from the act breaks, not the picks:** +3 at the
+drift 25, 50 and 75 rests; the first pick keeps its +1; the later picks give 0. Same four families, sooner; the demo
+(to 50) shows three. Watch: act 2 around 38–45 gets the third family just before its hardest stretch; if it turns
+easy, act 2's peak health goes back up rather than the pick moving again.
+**User's own Dreamlight rule for act 1 (a787dc53, "only give 1 Dreamlight on drift 10 then 2 on drift 25") replaces the
+act 1 part:** first pick +1, drift 10 pick +1, act 1 boss rest +2; later boss rests +3 (`SECOND_PICK_DREAMLIGHT`,
+`ACT1_BOSS_DREAMLIGHT`, `BOSS_DREAMLIGHT`). Asked the user whether the 35 / 60 picks follow the same pattern (+1 at the
+pick, +2 at the act break) or give 0 with +3 at 50 / 75. Sims to match the game (Balancing Code).
+**User's final rule (2026-10-22, built by the user): every family pick +1 (1, 10, 35, 60), every boss rest +2 (25, 50,
+75).** 3 Dreamlight per act, split across the pick and the act break. Game: the user's 3d7ed528 (`BOSS_DREAMLIGHT` 2);
+sims match in Balancing Code ee771c15 (read from DreamState's constants).
+**Owner ruling (2026-10-22, dream_council_review.md 31): runs end with three families.** Picks stay at drifts 1 / 10 /
+35 / 60, but the drift 60 pick brings no new family: the player picks one of their own families for +1 Dreamlight plus a
+call-back, one of its branches "not in this dream" at 1 Dreamlight (finals stay locked). The drift 75 rest gives +2 extra
+(4 in all). Reason: the fourth status about doubled the status pairs, and with them the Reactions a board could reach.
+Dreamlight by act: act 1 3 (1 + 1 + 2), act 2 3 (1 + 2), act 3 5 (1 at 60, 4 at 75; net 4 if the call-back is taken).
+**Act 3 health: yes, another look, and a step now.** Three changes all make act 3 harder and land together: the Reaction
+pool (the ×60 stack capped near ×4), three families instead of four (about half the pairs), and section 30 (hit finals,
+which only partly fill the gap). Run 57's easy act 3 ordinary drifts were a four-family ×60 board. Leaving ×6.0 until two
+runs reach act 3 risks a wall at 51 that ends every run before it can be measured. **Decision: `late_acts_health_multiplier`
+6.0 -> 4.0 when the Reaction pool and section 31 are both in** (a first step, not the final number; the council's 2.5–3.0
+stays the expected range), then set it from two runs into act 3 with the per-factor breakdown. Act 3's boss and the
+Hollow Oak keep their own multipliers on top. Sims: the bot's fourth family pick goes (Balancing Code).
+
+## Human run 56 (2026-10-22 08:22, 1d7b84d4: grow tax 7% / ×2.5, standing-Sprout count)
+
+Dewdrop start (Puddles → Riverside → Rain on the Bank), Sporeling at 25. 10 Dewdrops, 6 Jetreeds, 10 Inkcaps, 3
+Sporelings, 2 Brood Caps, 27 Thornwalls; **ranks 3,516 Dew** (the first board to put real Dew into ranks), Dew banked
+under 900 all run. Riverside credited 469k. Leaks: drifts 18–19 (2 Husks, 5 Shades, a Mourner: 8 leaves), then **Phantoms
+at 31 (3) and 38 (2 + a Deeply Blighted one)**; dead at 39. Flyers in act 2 again (runs 48, 51, 54, 56). No change; asked
+the user whether it's clear which Wardens can hit flyers.
+**User: "I need a visual, not a verbal hint; I tend to ignore verbal hints. A visual that flyers are coming next
+block."** Spec for Main Merger (UI behaviour; look with UI Code): at the rest before a block with flyers, draw the
+flight line on the map (start to Heartwood, the straight path they take) with Phantom silhouettes drifting along it,
+and ring the Wardens that can reach the line (range covers it and they can hit flyers); the ones that can't stay
+plain. It shows again before each flyer drift during the block. No balance change.
+**Revised (user): "don't highlight, just have a UI screen pop up that says something about flyers coming next block."**
+A pop-up panel at the rest before a block with flyers (the Phantom's portrait, "Flyers next block", one line that they
+fly over the maze); no map line or rings. Built: Main Merger 3fcb55b8 (untested): last screen before Start, once
+per block, summons count (the boss block's Crows trigger it); one tap / Esc / Enter closes it.
+
+## Human run 55 (2026-10-21 07:22): the first run to the act 2 boss on the power budget
+
+Firefly Jar start (Lantern Light → Bonfire → Moth to Flame → Pyre), Sporeling at 25. 14 Sparklers, 11 Lanternmoths, 11
+Honeysuckles, 8 Lichenlings (44 branch Wardens), 62 attackers. **15 / 15 through drift 47**; First Light 1.9M,
+Thunderstruck 881k, Bonfire 382k; combos 28% (Reactions 15%). Night Mare 89 s. Then drift 48's Deeply Blighted Lantern
+Bearer, and **drift 49 leaked 8 Night Hounds, 2 Mourners, 2 Sobs: 12**; the Mire Hag wasn't dispelled; dead at 50.
+The user: **"the tax gets too high around 50, I feel like I can't build any more Wardens."**
+- **Grow tax eased (Tower Code):** with 44 branches the tax sat at its ×3 cap from about the 26th (360 Dew a grow), and
+  ~2,800 Dew sat banked at drift 43 waiting for it. **Branch step +10% → +7%, cap ×3.0 → ×2.5** (the lever named when it
+  was set). The 20th branch costs 263 (was 324); every grow past ~24 costs 300 (was 360). Finals unchanged.
+- **Drift 49 cliff (Enemy Code):** 32 Shades, 12 Husks, 8 Night Hounds, 3 Lantern Bearers, 4 Phantoms is ~1M health,
+  twice drift 48 and the heaviest drift before the boss; runs 28, 39 and 55 all broke at 47–49. **Trim: Shades 32 → 24,
+  Husks 12 → 8** (~25% lighter); the rest unchanged. **On hold (user: "let's do the tax decrease first").**
+- **User: "I can't place any more Wardens and I can't grow the maze around that point."** The Sprout price counts every
+  Sprout ever planted, grown ones included (+5 every 5): with ~60 Wardens grown from Sprouts, the next Sprout costs ~70
+  Dew at drift 50. That rule was set to stop plant-and-grow loops, which the grow tax now prices. **Change (Tower Code):
+  the Sprout price counts only Sprouts still standing as Sprouts**; growing one takes it off the count. With this board's
+  11 Sprouts the next costs 20. **Dropped (user: "counting grown ones is fine, I should just build walls but I have no
+  Dew after growing them").** The grow tax easing is the fix: grows at 300 instead of 360 leave Dew for Thornwalls (3).
+  **Reinstated (user, same day: "actually let's do your change"):** the Sprout price counts only standing Sprouts, with
+  the grow tax easing too. Both built: Tower Code 88d2f0f8 (untested); the Sprout button, ghost price, HUD tooltip and
+  the Lesson now say "Growing or selling one lowers it".
+
+## Calling early pays a share of the pot (user, 2026-10-20: "feel like calling Dews ain't worth it")
+
+Run records: **0 early calls in the last 12 PC runs**; the phone runs called 0–4 drifts for at most 18 Dew in runs that
+earned 4,600–13,000. A flat +1 a second (cap 20) is a few percent of an act 1 pot and nothing against act 2's 200+
+pots, for the risk of two drifts on the field at once. **Decision:**
+- **Base: +1% of the called drift's pot per second of arrival skipped, at most +20%** (from `call_early_min_seconds` 10,
+  as now; replaces `call_early_seconds_per_dew` / `call_early_cap`; paid into the pot, so a leak still loses its share).
+  A 15 s call in act 2 is ~+30–40 Dew, a full one ~+50; calling every drift is at most +20% income, and only a board
+  strong enough to hold two drifts earns it. Shown live on the Start / call-early button ("+14%").
+- **Call of the Wild: +2% a second, at most +40%** (instead of the base, not on top; today +1%/s to 30%).
+Owners: Tower Code (DriftDirector), Main Merger (the button), Roguelite Code (Call of the Wild).
+
+## Human run 54 (2026-10-20 22:25, 55066117; act 1 finales at 1 elite are in)
+
+Firefly Jar start (Lantern Light → Bonfire → Moth to Flame), Sporeling at 25. 16 Jarlinks, 4 Driftspores, 3 Sparklers, 3
+Jars, 8 Thornwalls (28 attackers). The user: **"feels better, didn't deal with flyers correctly."** Act 1 cost 11: one
+Deeply Blighted at the finales (10, 20, 23: 2 each) and **the Scarecrow's 5 Crows at 25** (the boss down in 51 s); then
+drift 31's 4 Phantoms took 4 of the last 5. Dead at 35. First Light credited 233k. Flyers ended it (the Crows fly too);
+the user's call, no change. The drift 31 Kind warning was in this build (Main Merger 4f1f23ef).
+
+## Human run 53 (2026-10-20 21:37, d1275798: boss bite 6 / 8 / 10, Jarlink 22)
+
+Dewdrop start (Puddles → Black Pond → Stagnant Water), Firefly Jar at 25. 20 Dewdrops, 16 Jars, 11 Jarlinks, 3 Lightning
+Fences, 10 Undercurrents, 14 Thornwalls (65 attackers); no Omens taken. **Reactions 30% of the run's damage**, card
+damage up to 337k a drift; Stagnant Water credited 638k as setup, Heavy Going 226k, Black Pond 202k. 15 / 15 through 24;
+**the Night Mare took 180 s and 5 leaves** (the bite at 6 now); act 2 lost to one Deeply Blighted at a time again (Phantoms
+37, 38, Night Hound 40, Husk 42, Lantern Bearer 43; the user keeps them), then two Phantoms at 45: dead at 45.
+1,808 Dew at 25 (down from 3,000+). **Read:** the power budget is doing its job (Reactions and evolutions carry);
+no change. Watch the Night Mare: 161 s (run 44) and 180 s (here) against 14–42 s for the other act 1 bosses.
+
+## Boss bite lowered (user, 2026-10-19: "maybe bosses take too much leaves")
+
+The flat bite (10 / 10 / 12 for the act 1–3 bosses) ended runs 45 and 52 on the spot at the Hollow Stag, and it was
+set before the base damage cut made bosses harder to finish. **Decision (user, revised the same hour): 6 / 8 / 10, and
+the Hollow Oak takes all** (`boss_bite_leaves` [10, 10, 12] → [6, 8, 10]; the act 4 boss keeps staying and draining
+until the Heartwood is gone; Enemy Code). Still flat. Built: Enemy Code 8a630bc8 (dossier and Codex read it).
+
+## Human run 52 (2026-10-19 21:40, 9564ff7e + uncommitted card work)
+
+Firefly Jar start (Lantern Light → Strung Lights). **12 Jars, 14 Jarlinks**, 4 Sprouts, 9 Thornwalls; card damage ~1k a
+drift. 13 / 15 through 24 (a Deeply Blighted Husk at 23, two Sobs at 20), then **the Old Stag wasn't dispelled and bit 9**:
+dead at 25. Jarlink's job is its arc between partners (157 a second on what crosses the line); a lone boss walks through
+the arcs and leaves them, and its own hit is 9.75 (×14 = 137 a second). The bot check failed Jarlink too (drift 9).
+**Change: Jarlink hit 9.75 → 22, Lightning Fence (its final) the same factor** (Tower Code): the arc now counts half in
+the "a grow never lowers damage" rule, since it misses whatever doesn't cross it, bosses most of all. The arc unchanged.
+
+## Human run 51 (2026-10-19 13:15, ed9720df: Dewdrop 20, branch floor, Husk shell 8 / 60)
+
+Dewdrop start (Puddles → Black Pond → Stagnant Water), Sporeling at 25. 5 Dewdrops, 8 Jetreeds, 5 Torrents, 5 Inkcaps,
+18 Thornwalls (27 attackers); cards and evolutions carried it (Black Pond 197k, Sodden 164k, Stagnant Water 130k).
+**15 / 15 through drift 30**, drift 10 at closest 0.48 (no choke), the Stag in 24 s; 3,038 Dew banked at 25. Then
+**Phantoms at 31, 32, 33 (4 each) and 34 (2): 14 leaves**, dead at 35: no anti-air. The second run in a row (48, 51)
+to die to the drift 31–34 flyers. Drift 31's 4 → 2 (Enemy Code) and the Coming-strip warning (Main Merger) are not
+built yet. Dewdrop at 20 reads fine in act 1.
+
+## Human run 50 (2026-10-18 18:24, 0.1.53: before the act 1 finale-elite change)
+
+Dewdrop start (Puddles → Black Pond). By drift 15: 5 Dewdrops, 7 Rain Lilies, 6 Sprouts (**18 attackers**) and 44
+Thornwalls, route 70; 1,332 of 1,705 Dew grown. Closest climbed from 0.35 to 0.72 by drift 9; drift 10's Deeply
+Blighted Husk took 2, drift 13 three Husks, drift 15 eight Shades: dead at 15. A small board for act 1 (runs that cleared
+it had ~25–35 attackers by 13), its Dew in grows: a Dewdrop is ~19 a second for 25 Dew, a Rain Lily ~32 (area) for
+120+ to grow. The Husks also wear a shell now (10 a hit × growth, ~17 at drift 13), which a 16-damage Dewdrop hit
+barely passes until the pool is gone. No change yet; asked the user whether the Dewdrop start felt weak.
+
+## Human run 49 (2026-10-18 17:20, 0.1.53; Balancing Code's read)
+
+Bellflower + Firefly Jar, lost at 35. Ordinary drifts held (closest 0.2–0.4); every block finale (10–35) reached 1.00 and
+cost 1–2 leaves (the finale elites); drift 31's Phantoms took 4. Bellflower's damage was mostly group hits (Lullaby Bell
+35%, Chime Stones).
+- **Finale elites vs group-hitting classes: no change.** The answer is in the family: Silver Bell and Vesper Bell toll
+  the toughest nightmare in range at range 6 (and the user keeps elites as the single-target test). This board grew none.
+- **Drift 31, the Phantom intro (4 Phantoms, 2 s apart): 4 → 2** (Enemy Code; it was 6 before). Two of the last three act 2
+  runs lost 4 leaves there to a board with no anti-air; the first flyer drift should teach for 2 leaves, then drifts
+  with flyers as now. Plus a warning at the drift 30 rest: the Coming strip names "Flying: flies over your maze" for 31
+  (Main Merger). **User, 2026-10-19 (after run 51): "warning 1 drift earlier is better"**: the warning only; drift 31
+  stays 4 Phantoms (the 4 → 2 change is dropped; it had never landed). Built: Main Merger 02ef07f7 (untested): every
+  Kind the next block brings for the first time gets a gold line on the Coming strip ("Drift 31 · Flying: flies over your
+  maze"), Armoured / Flying / Hidden / Swarm / Fast, one drift ahead during a block too. **User: "should just be the 1
+  drift earlier"**: no block-wide look-ahead at rests; a Kind's line shows only for the very next drift, at a rest or
+  mid-block alike. Built: Main Merger 4f1f23ef (untested).
+- Report gap: 9 leaves (drifts 10, 15, 20, 30, 35) lost with no leak on any row (Main Merger).
+- **User: "hard to get the single damage Warden in act 1."** Right: act 1 gives 1 Dreamlight (the first pick), so one
+  branch; the next 3 come at the drift 25 family pick. A Bellflower player who opens Chime Stone has no Silver Bell
+  until 25, while the finales from 10 bring elites. **Decision: +1 Dreamlight at the drift 10 rest** (Roguelite Code),
+  so act 1 can unlock a second branch: a group form and a single-target one. Branch price stays 1, finals 2.
+  **User: "don't like that option since it's random."** The randomness is upstream: each run offers only 2 of a family's
+  branches (`BRANCH_OFFER_SIZE`, one must be a damage branch, `CARRY_BRANCHES`), so Silver Bell may not be on offer at
+  all, and calling another back costs 3 Dreamlight. Revised proposal (pending the user): **one of the 2 offered branches
+  is always the family's single-target one** (its Heavy branch: Silver Bell, Prism Jar or Lanternmoth, Frostfern or
+  Jetreed, a stone heavy; Sporeling's single-target poisoners); the other slot stays random under the damage rule; with
+  the +1 Dreamlight at 10, act 1 can have both.
+  **User: "you should be able to pick any branch in act 1 and not be punished too much."** Final decision:
+  - ~~The first family offers every branch~~ **reversed by the user ("go back to the random 2"):** built in 8b04197b,
+    reverted in 9498fec0. Every family pick, the first included, draws 2 branches again (damage rule, not last run's
+    set); Wider Roots widens the first family to 3 as before, so the Wider Roots re-job is moot.
+  - ~~+1 Dreamlight at the drift 10 rest~~ **dropped (user: "don't want to offer another branch")**: act 1 stays one
+    branch, freely chosen from all of them.
+  What stands from this: act 1 finales take 1 Deeply Blighted each (Tower Code); no extra Dreamlight.
+  - **Act 1 finales take 1 Deeply Blighted each** (`block_finale_elites` {10: 1, 15: 2, 30: 2, 60: 3} → {10: 1, 30: 2,
+    60: 3}: drifts 15 and 20 lose one), so a group-only act 1 board pays a leaf or two, not a block's worth (Tower Code).
+- The new act 1 / act 2 numbers read right: no wall in act 2.
+
+## Human run 48 (2026-10-18 16:36, 0.1.53: act 2 peak ×3.6 in)
+
+Bellflower start (Keeping Time → Carrying Tune → Lingering Note), Dewdrop at 25. 14 Bellflowers, 13 Thrums, 4 Torrents,
+15 Thornwalls (31 attackers), ranks 0. 15 / 15 through drift 30 (the Night Mare in 30 s); then **14 Phantoms leaked over
+drifts 31–35** (4, 4, 4, 2), dead at 35. The user: "my fault on flyers, the maze isn't available": a board with no
+anti-air, the Flying kind doing its job. No change. Didn't reach the lowered 38–45 stretch, so no read on it yet.
+
+## Act 2's peak lowered (user, 2026-10-18: "most my runs have been failing around these drifts")
+
+The last week's runs past drift 20 ended at 30–50, mostly 38–45; one reached the act 2 boss, none beat it since 10-11, and
+the demo ends at 50. Drifts 37–45 rise ~10% a drift (×3.2 → ×4.5 plus growth), take the Deeply Blighted from 36 and the
+heaviest line-ups (38, 41, 44); since the power budget even strong builds stall there (run 47: cards over 1M damage,
+dead at 42). **Decision (option A): `early_acts_health_multiplier` 4.5 → 3.6** (the drift 45 value; drift 37 stays 3.2,
+so 37–45 climbs ~7% a drift instead of ~10%: drift 41 ~10% lighter, 45 ~20%). Weak boards still fail around 40; a lined-up
+build should reach the boss at 50. Act 2 boss multiplier unchanged (it rides on the drift 50 value, now lighter too).
+Built: Tower Code 294e8f66 (parse-checked only).
+
+## Human run 47 (2026-10-18 09:22, 0.1.50)
+
+Bellflower start (Keeping Time → Steady Beat → Crescendo), Dewdrop at 25. 14 Bellflowers, 11 Silver Bells, 7 Vesper Bells,
+6 Mistveils, 25 Thornwalls, 8 Sprouts; 11,098 Dew grown (the tax at work: ~24 branch / 7 final for the whole income);
+ranks 0. Cards carried it: Refrain 455k, Da Capo 191k, Steady Beat 154k, High Tide 137k. **15 / 15 through drift 37**,
+the Scarecrow in 14 s, act 1 closest ≤ 0.47. Then **drift 39 leaked 10 Night Hounds for 10 leaves**; dead at 42.
+**The one-drift wipe again** (runs 23, 24, 28, 30, 39, 47): a full Heartwood gone to one stream the board has no answer
+for (here Fast; the bells pick the strongest, not the quickest). Proposed: at most 5 leaves lost to one drift.
+**User, 2026-10-18: option B, no cap.** One stream the board can't answer may end a run; a blind spot is meant to be
+deadly. Not to be raised again unless the pattern changes.
+
+## Human run 46 (2026-10-18 03:12, 0.1.49: act 1 boss ×1.45 in)
+
+Sporeling start (Spore Print → Borrowed Spores). By drift 8: **6 Sporelings, 3 Bloomcaps, 2 Sprouts, 2 Thornwalls** (11
+attackers), route 45; 556 Dew grown, of it ~360 into the three Bloomcaps. Drift 8 (14 Shades, 3 Husks, ~6,000 health in
+12 s) leaked 10; dead at 10 in 4 minutes. A Sporeling is ~30 a second for 25 Dew (hits + its poison); a Bloomcap
+(120 to grow) is a slow Drowsy cloud doing less than that. Same shape as the Lanternmoth runs: a support form bought
+as the upgrade, in act 1, when the board needs damage. Not a number fix (the form does its job, and act 1 boards with
+~20 attackers clear drift 8); the grow button should say what a grow does to the Warden's damage ("−12 a second,
++Drowsy cloud") so the trade is visible (Main Merger / UI).
+**User: "bit unfair, maybe add a support tag."** Agreed: a hand-set **Support** tag like Heavy, on every form whose main
+job isn't its own damage, shown on the Warden bar, the panel and the grow list (where it also says the grow lowers
+damage). Rule for the list (Tower Code, checked with Tower Discussion): role line led by support, economy, sets up /
+spreads statuses, Exposes, Drowses, Silences, reveals, links or copies. Starting list: Lanternmoth, Beacon, Jarlink,
+Lightning Fence; Bloomcap, Dreamshroom; Cloudlet, Nimbus, Mistveil, Morning Fog; Dreamcatcher, Great Dreamcatcher,
+Hushbell, Lullaby Bell; Gust, Zephyr; Rootlight, Elder Stump, Grove Heart, Nurse Log, Mother Log; Dream Oak, Dreamroot,
+Seedbearer, Grove Keeper, Dewcatcher, Magpie Perch; Graftling, Grafted Elder. Not Prism Jar / Rainbow Prism (support in
+the role line, but heavy damage dealers). No number change.
+Grow rows show the change: Main Merger b38148ff + e67b13d9 (parse-checked only): hit × rate + own Poison (applications ×
+stacks × 5 s, capped, × 20% hit × Potency) + own Charge (stacks a second × 0.8 hit × Potency), e.g. "−20 a second,
++Drowsy, hits an area". The "Support:" lead waits for Tower Code's tag.
+**User, 2026-10-18: "remove this from the grow button, you should know what it does before unlocking the Warden."** The
+line moves from the grow rows to the unlock: the Dreamlight unlock offer and the form-unlock Dream cards show the
+Support tag and the same comparison against the form it grows from. The grow rows go back to price only.
+Support tag built: Tower Code 28f9b7df (29 forms, not the Prisms; list with Tower Discussion to confirm). Its grow-list
+line "Support: less damage, <its job>" moves to the unlock as well (same owner rule); the tag stays on the bar and
+panel. **Side effect to watch:** the tag also counts as WardenRoles' support role, so cards that need a support Warden
+now see 29 forms (their Needs and effects). Lanternmoth, Beacon and Magpie Perch are Heavy and Support both.
+
+## Human run 45 (2026-10-17 23:05, 0.1.44) and the act 1 boss
+
+Bellflower start (Keeping Time), Firefly Jar at 25. 17 Bellflowers, 14 Chime Stones, 1 Lullaby Bell, 4 Stormcaps, 38
+Thornwalls; no heavy Warden; ranks 0; combos 38%. 13 / 15 through 24, then **the Hollow Stag wasn't dispelled (157 s) and
+bit 10 leaves**; dead at 32.
+**The act 1 boss since the power budget:** run 44 the Night Mare took 161 s and 5 leaves, run 45 the Stag survived; before
+it, the act 1 bosses went down in 16–56 s. The boss ignores the act 1 ramp (its own ×1.75), so the ×1.30 ramp didn't
+touch it, but the base cut (tier 1 ×0.90, tier 2–3 ×0.75) did: it is ~×1.2–1.3 harder than when ×1.75 was set.
+**Cliff fix (my call): `act1_boss_health_multiplier` 1.75 → 1.45** (≈ 1.75 × 0.8 + the tier 1 share), back to where it
+was in effect (built: Tower Code 8c92b6c5, parse-checked only). The boss bite stays a flat 10. Act 2's boss: no run has reached it on the budget yet; check at the first.
+Report: `card_damage` stayed 0 all run while Chime of Many (a Calling evolution) was credited 56k: evolutions credit the
+Dream credit line but not the column (Main Merger). Fixed in Main Merger 7ff3ab67 (parse-checked only): `card_damage`
+= every card's and evolution's own + setup credit (no double count: a payoff keeps half as own, half goes to setup);
+stragglers' credit can land on the next drift's row.
+
+## Human run 44 (2026-10-17 19:44, 0.1.42: power budget, ease-in, grow tax) — the first full read of the power budget
+
+Firefly Jar start (Lantern Light), Dewdrop at 25. 21 Firefly Jars, 7 Sparklers, 5 Torrents, 2 Jetreeds, 17 Thornwalls,
+11 Sprouts; ranks 1,908 Dew. Lost at 40. Act 1: 15 / 15 to 24, then the Night Mare took 161 s and 4 leaves (+1 at 25).
+**The budget works:** card damage was 38–54% of each act 2 drift's damage (drift 34: 152k of 283k), Reactions 20% of the
+run (0 in 10 of 12 runs before), combos 28%. First Light alone was credited 824k (≈ ×1.38 on the run: right on the Rare
+value). **Past ×4:** ×4.7 at drifts 35–40, 100–400 hits a drift, a small share of all hits: run 1 of 3 for the cap call,
+nothing to clip so far.
+Act 2 losses: **four Deeply Blighted Husks** (33, 35 ×2, 39). The Husk's shell scales with its health, so a Deeply
+Blighted one carries three times the pool, and this board's 21 Jars (16 a hit) and Sparklers (39) deal 1 a hit through a
+~38 per-hit soak at drift 35: the Armoured test as designed (heavy Wardens answer it; this board had 7). No change.
+Report bug again: both Calling evolution offers show "passed", yet Torchbearers is credited. **A report bug, not real
+passes** (the credit was right): fixed in Main Merger e65c409a (the evolution is recorded as the offer's pick, the run
+keeps "calling_path"); runs 43 and 44 and earlier still read "passed".
+
+## Human run 43 (2026-10-17 03:20, 0.1.29: power budget, health ease-in; grow tax uncertain)
+
+Bellflower start (Keeping Time), Firefly Jar at 25. 12 Bellflowers, 11 Thrums, 11 Beacons, 2 Lanternmoths, 31 Thornwalls,
+2 Sprouts; 0 Dew on ranks; combos 13% (Reactions 8%); card_damage ~9% of act 2 damage. Act 1 easy again (closest ≤ 0.31,
+**3,420 Dew banked at 25**). Lost at 44: **every act 2 leak but one was a Deeply Blighted nightmare** (Phantom 37, Husk 38,
+Mourner 39, Night Hound 40), the first one drift after the guaranteed elite starts at 36. The elite pattern is now in
+runs 31, 33, 35, 36, 40, 43, and moving its start to 36 only moved it. Proposed: Deeply Blighted health ×3 → ×2.5.
+**User, 2026-10-17: "keep them for now"**: ×3 stays; Deeply Blighted are the intended act 2 test for boards with no
+single-target answer.
+Report oddity: both Calling evolution offers show "passed", yet Hush-a-bye and Steady Beat are credited 139k / 125k
+(Roguelite Code / Main Merger to check). Ranks: 0 Dew again; at +6% a rank they may now never be worth buying (watch).
+
+## Grow tax (user, 2026-10-17: "I fill the whole map with Warden upgrades when it should feel more tactical")
+
+Run records: boards grew **20–30 branch forms and 5–8 finals** (run 33: 30 branch / 6 final; 35: 27 / 5; 36: 22 / 8; 39:
+21 / 5), and growing took 6,000–7,700 Dew of 10,000–13,000 earned. Growing never beats planting per Dew, yet the doubled
+Dew buys enough of it to grow nearly everything.
+**Grow tax (Tower Code), like the Sprout tax:** each Warden of a tier already on the map, past the first few, makes the
+next grow into that tier dearer; selling or growing it on lowers the count again.
+| Tier | Base | Free before the tax | Step per Warden past them | Cap |
+|---|---|---|---|---|
+| Branch (tier 2) | 120 | 3 | +10% | ×3.0 (reached at the 23rd past the free three) |
+| Final (tier 3) | 300 | 2 | +15% | ×3.0 |
+| Ascended | 600 | (one per run already) | none | — |
+Counted across families (every tier 2 Warden on the map counts toward the next tier 2 grow). Only the form's own grow
+price is taxed; the rank difference a ranked Warden pays on growing is not. **Nurture ranks stay out**: going deep on
+few Wardens is the tactical answer the tax should push toward, and ranks are already the least-bought thing in the
+records. Dew income unchanged.
+**Effect on paper:** the Dew that grew 27 branches today grows ~16; the 10th branch costs 204 (was 120), the 20th 324;
+8 finals cost ~3,000 in all (was 2,400). Interaction to watch: this lands on top of the power-budget base cut, so boards
+get both fewer and weaker growths; if act 2 turns into a wall rather than a choice, ease the branch step to +7%.
+Built: Tower Code 8a92cc8d (parse-checked only; `TowerPlacer.grow_tax_*` exports; group grows count the ones grown
+earlier in the group; tooltip "Grow tax +40%: 7 branch Wardens on the map").
+
+## Human run 42 (2026-10-16 16:22, 0.1.28: the whole power budget in)
+
+Sporeling start, but **only 12 Sprouts on the map and no Sporeling planted**; 186 Dew unspent at drift 5. Drift 4 leaked
+10 Shades, drift 5 four more: dead at 5 in 2 minutes. 12 Sprouts at 9 damage = 108 a second against drift 4's ~140 a
+second arriving (at 12 damage they'd have held it). The user: **"a bit too hard in the beginning, shouldn't lose that
+much."** The ×2 health has applied from drift 1, while the first drifts are played on starting Sprouts (now 9 damage).
+**Fix (user, 2026-10-16): the ×2 health eases in.** Revised the same day after Tower Code's `test_opening` (the opening
+rule: the starting Dew's Sprouts hold drift 1 without a leaf lost; 120 Dew = 9 Sprouts × 9 a second = 81 a second, and
+drift 1 at ×2 leaked on all three test maps; at ×1.5 (900 health) it is still ~11 s of fire against the rule's ~10):
+**×1.0 at drift 1, rising evenly to ×2.0 at drift 10** (+0.11 a drift), ×2.0 after. Drift 1 = 600 health (7 s for 9
+Sprouts: the rule holds); drift 4 ×1.33 ≈ 95 a second arriving, under 12 Sprouts' 108. Dew unchanged. The rule stays.
+
+## Human run 41 (2026-10-16 12:38, 0.1.22, seed 1119603189; Balancing Code's read)
+
+Firefly Jar + Sporeling, lost at 45. The user: "felt like I had a broken build early, then I can't do any damage the
+next round." Drifts 21–36 trivial (closest 0.06–0.32, the Stag in 16 s, Lanternmoth Reactions ~35% of damage); **Brimming
+taken at the 35 rest**; from 37 closest climbs to 1.00 at 40; board output flat at ~6k/s from 38 to 45 while drift health
+went from ~275k (38–39) to 510–930k (41–44); Thick Blight (+30% health) was the last Omen.
+**Read:**
+- **The act 2 ramp is already even:** 2.0 → 3.2 over drifts 26–37 and 3.2 → 4.5 over 37–45 are both ~4.4% a drift (that was
+  the point of 3.2), ×1.10 a drift with growth on both sides. The 38–39 → 41–44 jump is the drift line-ups (38 and 39 are
+  lighter than 41 and 44 in every run) plus four drifts of ramp plus Thick Blight. No respread.
+- **Brimming switched the build off.** It doubles every Reaction's stack requirement at once; a build whose Reactions were
+  35% of its damage stopped firing them right after, and output stopped growing while health kept its ×1.10 a drift.
+  A Rare that turns the player's working build off for a block or more is a trap. Proposed (reverses part of the
+  2026-10-10 Brimming rule, so the user's call): **Reactions keep firing at their normal requirement; one set off at
+  twice the requirement or more hits ×2.2.** Caps still double.
+- **Decision (user, 2026-10-16): option A.** With Brimming, every Reaction (Crowned too) fires at its normal requirement
+  (`buildup_threshold` without the doubling; "full Drowsy" in a Reaction check means the normal cap, 20, not Brimming's
+  40); a Reaction set off with at least twice its normal requirement on the nightmare hits ×2.2. Status caps still
+  double. Charged's bolt and Exposed's completion keep Brimming's doubled count for now (not the complaint; watch them).
+- **Thick Blight on 41–45: allowed.** It's a chosen risk with a reward (two extra Dream cards). The Omen offer should show
+  which drifts it covers.
+- Run report: name the block each Omen covered (Main Merger).
+
+## Power budget: builds weak or overpowered (proposal, 2026-10-16; owner: "no matter what card I take, I can just build a good maze and it works")
+
+**The run history agrees.** Blocks 6–8 (drifts 26–40), last 12 runs:
+| Run | Survived | Combo share | Reaction damage | Act 2 kills in the route's first third |
+|---|---|---|---|---|
+| 10-13 14:23 (run 33, bells charging everything) | 50 | 71% | 96k | 96% |
+| 10-15 09:17 (run 39) | 49 | 4% | 0 | 52% |
+| 10-14 12:35 (run 35) | 45 | 3% | 0 | 37% |
+| 10-14 14:25 (run 36) | 40 | 26% | 3k | 23% |
+| 10-13 12:40 | 39 | 2% | 0 | 30% |
+| 10-14 12:00 | 35 | 7% | 0 | 55% |
+| 10-14 15:15 (run 37) | 32 | 13% | 0 | 33% |
+Boards with almost no synergy (2–7% combos, no Reactions) reach drifts 35–49; the one synergy board reached 50 with 96%
+of its kills in the first third. So the strong target already happens; **weak boards live 5–15 drifts too long**, and
+**Reactions are not a route at all today: 0 in 10 of 12 runs.**
+**Size of the shift.** Act 2 health grows about ×1.10 a drift (×1.055 growth on the ×2.0 → ×4.5 ramp), so moving a weak
+board's wall from ~45 to ~37 means about ×0.55 of today's damage at drifts 30–45, and a full build has to earn back
+×1.8 just to stand still and ×2.5–3 to reach "dispels in the first third".
+
+**Proposed budget**
+1. Base damage, cut by tier so act 1 (tier 1, Sprouts) moves least and grown boards most: Sprout 12 → 9; tier 1 forms
+   −15%; tier 2 −35%; tier 3 −45%; Ascended −40%. Thornwall unchanged.
+2. Ranks: +10% damage / +4% speed per rank → **+6% / +3%** (rank V ×1.56 → ×1.33). Rank prices unchanged.
+3. **Corrected 2026-10-16 (user: cards must not become straight multipliers; the council's rule, dream_council_review.md
+   §22: a card changes where you build or how you play and can be seen working; conditional damage allowed, plain
+   numbers out).** The values below are a **power budget**, not card text: what a card is worth when its build is on
+   the board, measured by `card_damage`. Mechanic cards (jumps, mushrooms, Tolls, water) stay mechanics and are sized so
+   their effect lands near their rarity's value; the existing conditional damage cards are the only ones written as a
+   multiplier. Values: **Common ×1.12, Uncommon ×1.20, Rare ×1.35, Legendary ×1.6.** Different
+   cards multiply together; a second stack of the same card adds (×1.12 → ×1.24), never multiplies. Off-archetype cards
+   rarely meet their condition, so they're worth ~×1.02–1.05 in practice. Flat damage stays out.
+4. Calling evolutions: the drift 5 style is the mechanic (no multiplier); the drift 25 follow-up **×1.25** and the drift 50
+   capstone **×1.35** on the style's own condition; drift 75's second follow-up ×1.15.
+   A build (Common + 2 Uncommons + Rare + follow-up) = 1.12 × 1.2 × 1.2 × 1.35 × 1.25 ≈ **×2.7**; with the capstone ≈ ×3.7.
+   Non-Reaction card product capped at ×4 so the top end is Reactions.
+5. Reactions the route to overpowered: a Reaction's damage is multiplied by the product of the cards that feed its
+   statuses (the build's own multiplier), so a Reaction build gets ×2.7 on its main payoff and Reactions stack on top.
+   Before tuning numbers they have to fire: 0 Reaction damage in 10 of 12 runs is a rate problem (thresholds doubled by
+   the October status rework, the status drain only just specced). First step: a Reaction count per drift in the run
+   report, then the thresholds.
+6. Maze as skill: The Long Walk cap 60% → **25%**; maze rest Dew +1 per 2 added cells → per 3; Winding Path ×3 → ×2. A long
+   maze still means more time under fire, which is the skill; it stops multiplying damage and Dew for free.
+**Decision (user, 2026-10-16): option A, as proposed.** Owners: Tower Code (1, 2, the Reaction hook in 5, the maze
+reward in 6), Roguelite Code (3, 4, the card product for 5, The Long Walk and Winding Path in 6), Main Merger (the
+Reaction count per drift).
+**Owner review via Roguelite Code (2026-10-16), changes before building:**
+- **Base cut evened out** (growing never beats planting per Dew, so a steeper cut on grown forms pushed Sprout spam and
+  undercut Towering and the branch-role cards): **Sprout 12 → 9 (×0.75), tier 1 ×0.90, tier 2 ×0.75, tier 3 ×0.75,
+  Ascended ×0.80.** Ranks +6% / +3% stand. This moves a weak board's wall ~3 drifts, not ~8; the rest waits for
+  `card_damage` from real runs (the next lever would be act 2 health, not a deeper cut).
+- **Early pacing (click by about drift 25):** `act1_health_multiplier` **1.30, not 1.40** (still unbuilt), since tier 1 and
+  Sprouts now lose 10% / 25%: act 1 ends about +45% harder than today in effect, from a point where it was trivial.
+- **Order:** systems first (base cut, the ×4 cap, `reaction_build_multiplier`, The Long Walk → 0.25, Winding Path → 2);
+  card and evolution sizing only after a few runs record `card_damage`.
+- **`reaction_build_multiplier` shown:** on the Reaction callout ("Ignite ×2.1 from your build") and a rest-report line.
+  Feeders: cards whose Makes chips include the Reaction's statuses, or Stacks / Linger.
+- **Gathering Storm (+200%) and Towering (+50%) stay as the two broken builds without Reactions,** exceptions to the
+  Rare value, but inside the ×4 cap, which is what bounds them.
+
+**Built (all parse-checked only):** Roguelite Code 73c2f686 (the ×4 cap `DreamState.card_cap_factor` in
+`Enemy.take_damage`, Reaction bursts exempt; `reaction_build_multiplier` = product over feeders of 1 + rarity value ×
+stacks, capped ×4; The Long Walk 0.80 → 0.25 (it was 0.80 live, not 0.60); Winding Path ×2); Tower Code 89cb0864 (Reaction
+damage × it). **×4 cap off for now (owner question, agreed 2026-10-16):** the cap stays in code at a no-op value and only measures:
+every hit whose card product would have passed ×4 is recorded (Warden, how far past, drift), and the same for
+`reaction_build_multiplier`. Card sizing needs unclipped `card_damage`, and the cap mostly bit the big-Warden / Towering
+road. Decide a real cap (maybe acts 3–4 only) or none after three runs on the base cut. Built: Roguelite Code
+d76a0329 (`DreamState.CARD_CAP_ON` false, `CARD_PRODUCT_CAP` 4.0 kept; `past_cap` column last; top 5 above the table).
+Shown since Main Merger 0aa43893 (the Reaction callout reads "Ignite ×2.1 from your build") and 39b67156 (rest-report
+lines under "Reactions:"), parse-checked only. Tower Code, all parse-checked only: d3fa7745 (base cut on 117 Warden files, flat special_params damage by tier, ranks
++6% / +3%), 2db3e184 (act 1 ×1.30; steep 3.2 was already in from 7718dd62; 1 maze Dew per 3 cells), 89cb0864 (Reactions ×
+the build multiplier; Dawnbreak, Echo, Carried Storm stay ×1). **Lanternmoth 70 → 52.5 under the tier 2 factor: no
+exemption** (every tier 2 form took the same ×0.75, so it keeps the place the fix gave it, about half a Prism Jar).
+The whole power budget is in from these commits: the next runs test it.
+**Setup cards (owner question, agreed 2026-10-16):** a card's own `card_damage` misreads setup cards (Makes stacks,
+Linger, Holds, Exposed, Charged) as ~0 and over-credits payoffs and Reactions. So:
+- **The rarity values budget a build, not a card:** a build's cards together (Common + 2 Uncommons + Rare + follow-up)
+  should come to about ×2.7; that's judged on build outcomes (leaks, drift reached, the share of kills in the route's
+  first third, the strength gauge).
+- **Shared credit:** when a payoff card or a Reaction deals damage, half goes to it and half to the cards that set it
+  up, split by the stacks each added (Reactions: their feeders, as `reaction_build_multiplier` lists them). Roguelite Code
+  + Main Merger, with the jump / dose / Toll crediting.
+- **Per-card value from "with vs without"** across runs (human runs are few; sims when the user allows them).
+- Control, maze and economy cards on their own measures: seconds of slow or hold on nightmares, route cells covered,
+  Dew gained.
+- **Never resize a setup card from its own `card_damage` alone.**
+- Report side built: Main Merger 2dd98beb (one line per card: own, set up, control, maze, Dew); "set up", control and
+  maze fill in once Roguelite Code's credit rules write them. Credit rules built: Roguelite Code 479278a3 (payoffs and
+  Reactions 50 / 50 as agreed; Poisoned ticks and Charged bolts credit whoever added the stacks; evolution jumps / doses
+  / Tolls / ripples to their evolution ids; control = full-stop seconds, slow strength × seconds counted as such).
+Measuring it: Main Merger df7010bb (untested) adds `card_damage` to every drift row (each hit minus the hit without
+its Dream cards) and a run total; the per-card credit fills in as Roguelite Code wires each multiplier card to report.
+Today's measured card share was 2–20% of a run's damage (mostly The Long Walk).
+**Expected:** a weak board (base × ~×1.1 from stray cards) at about 0.55–0.6 of today from drift 30: leaks around 35–40.
+A full build at ~×1.5 of today by drift 30 and ~×2 by 50 with the capstone: most dispels in the first third. Health and
+Dew stay as they are. Untested: the first human runs on it decide the second pass.
+
+## Human run 40 (2026-10-15 12:51, APK 0.1.12 = b34d0b76: none of 2026-10-15's curve / drift 46 / Barrow King changes built)
+
+Firefly Jar start, Dewdrop at 25. 9 Jars, 9 Lanternmoths, 5 Beacons, 9 Cloudlets, 38 Sprouts, route 117, combos 14%.
+15 / 15 and closest ≤ 0.36 through act 1 (the Scarecrow in 42 s), **2,442 Dew banked at 25**; act 2 lost to Deeply
+Blighted nightmares (a Husk at 35, Lantern Bearers at 39 and 41), then five Sobs and a Night Hound at 42; dead at 45.
+**Read:** the same two patterns the unbuilt changes answer (act 1 trivial with Dew piling up; act 2 leaks one elite at a
+time). Nothing new to decide until they're in.
+
+## Human run 39 (2026-10-15 09:17, build 6377e9 / 4c62ca2d: before the act 1 ×1.4 / steep 3.2 change and the shells)
+
+Sporeling start (Spore Print), Firefly Jar at 25. 21 Lichenlings, 5 Old Lichen, 8 Sparklers, 65 Sprouts: **101 attackers**,
+route 157, Poisoned ticks 34%. **15 / 15 through drift 44** (the Night Mare in 33 s), act 1 closest ≤ 0.43. Drift 46
+(833k health) cleared at 0.98 with 27% of its health still walking when drift 47 began; **drift 47 leaked 11 Shades and a
+Deeply Blighted Shade for 13 leaves**, dead at 49.
+**The drift 46–47 wall:** run 28 also went from 14 leaves to nothing at drift 47. Drift 46 (30 Shades, 10 Husks, 8
+Mourners) is the heaviest drift before the boss and doesn't finish before 47's stream (28 Shades, 8 Night Hounds) is on
+top of it. The new Husk shells make 46 heavier still. **Cliff fix (my call): drift 46's Husks 10 → 6** (Enemy Code), so
+46 clears before 47 arrives; drift 47 unchanged. The act 1 / steep change doesn't reach 45+.
+
+## Dread shells after Nightmare Kinds (2026-10-15; enemy_design.md ed6f573b; paper, no sim)
+
+How the shell works (`Enemy.take_damage`): each hit loses up to `coat_per_hit` (keeping at least 1) until `coat_total` is
+spent. So it costs a Warden about one `coat_per_hit` per hit, never more than `coat_total` in all: a Warden that needs
+many hits pays the whole pool and deals 1 a hit meanwhile; a heavy pays one chunk and the nightmare is gone.
+**Scaling fix first (Enemy Code):** both numbers are multiplied by the nightmare's health scale, which rises ~×38 from
+drift 1 to 45 (act multipliers and the ×2 included) while a heavy Warden's hit rises ~×3–8 over the same drifts. Any per-
+hit number that suits drift 10 then eats every heavy hit by 45. **`coat_per_hit` scales with `DriftDirector.get_growth(n)`
+only** (×1 at 1, ×1.5 at 10, ×2.9 at 25, ×8.8 at 45); `coat_total` keeps the health scale (it's a share of health).
+**Numbers (base, before scaling):**
+| Nightmare | Health | `coat_per_hit` | `coat_total` (share of health) |
+|---|---|---|---|
+| Husk | 300 | 10 | 100 (a third) |
+| Shellbound | 250 | 15 | 150 (60%) |
+| Barrow Wight | 600 | 20 | 300 (half) |
+What gets through a Shellbound's shell: drift 10 (22 a hit): Sprout 12 and Jar 18 → 1, Poisoned ticks → 1, Pebbling 55
+→ 60%, Prism Jar / Silver Bell → 84–88%. Drift 45 (132): Sparkler 52 → 1, ticks → 1, Rainbow Prism 312 → 58%, Vesper
+420 → 69%, Mossback 446 + ranks → 70%+. Husk is lighter because it walks act 1 against Sprout boards: there a Sprout
+board pays a third more health on Husks, no more. Lichenling strips 10% of the shell a hit (Old Lichen 15%), so it is
+bare in 7–10 hits whatever the drift: it wins as intended.
+**Health trim for acts 1–2: no.** The removed ×0.5 / ×1.5 were zero-sum on average (each kind resisted one line and was
+weak to one), and the Shade, most of every drift's health, had neither. It moves per board instead: stone boards gain
+on Husks, Night Hounds and the Hollow Stag (which resisted stone and root); water boards lose their bonus on Phantoms,
+Night Hounds and the Stag; root boards on Lantern Bearers. The run records can't give a resisted-damage share (no tag
+for it), so this is the read from the kinds table. Watch the Stag fights with the act 1 ×1.4 change landing too.
+
+Built: Enemy Code 1c659ed3 (parse-checked only). **The Barrow King (act 3 boss, 16,000 health) keeps a shell: 10 per hit,
+1,600 in all (10% of his health), and his health 16,000 → 14,400** so the total to chew through is the same as before
+the shell. On a lone boss every Warden ends up paying the whole pool, so the shell only shapes the fight (small hits
+do nothing until it's gone, ~315 a hit soaked at drift 75); it should not make the act 3 boss harder. Acts 3–4 have no
+human runs yet: revisit with the first ones.
+
 ## Silver Bell / Vesper Bell check (user, 2026-10-15: "seemed really good"; paper, `branch_kit._toll`)
 
 Each toll hits the nightmare with the **most health** in range and fills its Drowsy to the cap (−40% speed, down to the

@@ -432,7 +432,7 @@ static func recipe_free(text: String) -> String:
 	return rest.left(1).to_upper() + rest.substr(1) if rest.left(1) != "×" else rest
 
 # The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
-const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
+const CHAIN_LINE := "A Reaction can spread its statuses and trigger another. Past the fifth link each one hits a little softer, but the chain keeps counting."
 
 static func chain_text(tier: int, order: Array, longest: int = 0) -> String:
 	var text := "Chain discovered: Chain %d\n" % tier
@@ -570,6 +570,22 @@ func showing() -> bool:
 func _process(_delta: float) -> void:
 	if not _queue.is_empty() and not showing():
 		_try_show()
+	_follow_nightmare()
+
+# The camera pans while the card is up (building works while paused): the lit hole, the card and its thread stay on the
+# nightmare (user 2026-10-22: "if I move the camera while a 1st reaction screen comes, it doesn't follow where it
+# actually happened"). Only when it moved on screen.
+var _followed_at := Vector2.INF
+func _follow_nightmare() -> void:
+	if not _dim.visible or not _card.visible or not is_instance_valid(_card_enemy) or not _card_enemy.is_inside_tree():
+		_followed_at = Vector2.INF
+		return
+	var at: Vector2 = (_card_enemy as Node2D).get_global_transform_with_canvas().origin
+	if at.distance_squared_to(_followed_at) < 0.25:
+		return
+	_followed_at = at
+	_show_dim(_card_enemy)
+	_place_card()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (showing() and _pausing):
@@ -837,7 +853,7 @@ func _show_dim(enemy: Node2D) -> void:
 
 const SUB_LINES := {"Reaction": "a Reaction: two statuses meet on one nightmare",
 	"Kinship": "a Kinship: two branches of one family, planted close"}
-const CHAIN_SUB := "one Reaction setting off the next"
+const CHAIN_SUB := "one Reaction triggering the next"
 
 func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 	for child in _card_icons.get_children():

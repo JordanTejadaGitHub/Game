@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Hits on a nightmare {near} a Sporeling add 1 more {stack} for each status it carries, up to 4. Each Warden once a second."
-tip = "Count: statuses on it before the hit, any family's. {held} never counts. {static} and {marked} get at most 2 more, {drowsy} 1. Never past {full}; {static} stops 1 short of a bolt. Works for: status Wardens behind a Sporeling. Safe."
+description = "Hits on a nightmare {near} a {family:sporeling} Warden add 1 more {stack} for each status it carries, up to 4. Each Warden once a second."
+tip = "Count: statuses on it before the hit, any family's. {held} never counts. {static} and {marked} get at most 2 more, {drowsy} 1. Never past {full}; {static} stops 1 short of a bolt. Works for: status Wardens behind a {family:sporeling} Warden. Safe."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "lent"])
