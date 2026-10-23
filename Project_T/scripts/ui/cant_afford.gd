@@ -46,10 +46,21 @@ static func is_shown(button: Button) -> bool:
 static func shake(control: Control) -> void:
 	if not is_instance_valid(control) or bool(Fx.setting("reduced_motion", false)):
 		return
-	var home := control.position
+	# A press during a shake restarts it from where the control belongs, never from mid-shake (user 2026-10-22: pressed
+	# fast, the Lichenling row walked sideways with each refusal).
+	var running = control.get_meta(&"shake_tween", null)
+	if running is Tween and (running as Tween).is_valid():
+		(running as Tween).kill()
+	var home: Vector2 = control.get_meta(&"shake_home", control.position)
+	control.set_meta(&"shake_home", home)
 	var tween := UiTime.tween(control, false)
+	control.set_meta(&"shake_tween", tween)
 	for offset in [-6.0, 6.0, -4.0, 4.0, 0.0]:
 		tween.tween_property(control, "position", home + Vector2(offset, 0), 0.04)
+	tween.tween_callback(func() -> void:
+		if is_instance_valid(control):
+			control.remove_meta(&"shake_home")
+			control.remove_meta(&"shake_tween"))
 
 # Flashes a resource counter (a Label) in POOR with a small wobble, then back to `normal` colour.
 static func flash_counter(label: Label, normal: Color) -> void:
