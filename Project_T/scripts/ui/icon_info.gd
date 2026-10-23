@@ -376,6 +376,10 @@ static func stack_number(key: String) -> int:
 	var status := StringName(key.substr(kind.length() + 1))
 	if kind == "need":  # The lowest Reaction need for that status, the number the status row's blue frame uses (Enemy Code 725f18fc)
 		return Reactions.ready_need(status, EnemyStatuses.new())
+	if kind == "clap" or kind == "bossclap":  # "clap_static": Thunderclap's / Lightning Rod's own Charged need (higher than need_static's Ignite)
+		var clap := EnemyStatuses.new()
+		clap.is_boss = kind == "bossclap"
+		return Reactions.thunderclap_threshold(clap)
 	if kind == "cap" or kind == "bosscap":
 		var probe := EnemyStatuses.new()  # Its caps, as a nightmare (or a boss) carries them
 		probe.is_boss = kind == "bosscap"
