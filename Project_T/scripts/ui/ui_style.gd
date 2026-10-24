@@ -609,9 +609,12 @@ static func panel_in(colour: Color, margin_x: float = 10.0, margin_y: float = 10
 	box.accent = colour  # Moon-glass: a line in the colour across the top of the glass
 	return box
 
-# Fog only, no thread: the resources and Dreams rows at the screen edge, Warden bar slots.
+# Fog only: no frame, no thread, a soft Void patch fading to nothing at its edges (owner 2026-10-24: "do the frameless";
+# built on panel() it had silently become a framed plate). The whisper mist, the title menu backing, the Sell hint, the
+# Omen tag, the Grove node panel and the FogPatch type.
 static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyleBox:
 	var box := panel(margin_x, margin_y)
+	box.frame = &""  # MoonStyleBox draws its old soft fog
 	box.thread = MoonStyleBox.TopLine.NONE
 	box.center_alpha = 0.7
 	box.edge_alpha = 0.0
