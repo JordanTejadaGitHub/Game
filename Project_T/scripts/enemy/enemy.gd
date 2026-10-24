@@ -264,18 +264,31 @@ var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer wal
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
 # Walking lanes (enemy_design.md "Walking lanes", owner 2026-10-24: visual only): the drawn body walks a lane beside
 # the centre line, across the travel direction; the node (position, cell, targeting, ranges) stays on the line.
-const LANE_MAX := 0.3  # Cells either side (Stream and Packs)
-const LANE_BIG := 0.15  # Bosses and big nightmares (sprite_scale >= LANE_BIG_SCALE)
+# Retune (council 2026-10-24b, enemy_council_review.md): narrower, no skating (each move eased in and out, sideways
+# never faster than LANE_SLIDE_SHARE of its own walk), measured across the rounded corner's curve, closed in gaps.
+const LANE_MAX := 0.2  # Cells either side (Stream and Packs)
+const LANE_BIG := 0.1  # Bosses and big nightmares (sprite_scale >= LANE_BIG_SCALE), Few and tough's Deeply Blighted
 const LANE_BIG_SCALE := 1.4
 const LANE_FLYER := 0.15  # Flyers sway on their own line
-const LANE_WANDER := Vector2(3.0, 6.0)  # Seconds between new target lanes
-const LANE_EASE := 3.0  # Easing rate to the target lane (about 1 s)
-const LANE_TURN_EASE := 5.0  # Easing rate of the travel direction the lane is measured from (a crowd swings round bends)
-const LANE_SNAP_PX := 0.25  # The drawn offset is pushed to the sprite and HUD only when it moved this far
+const LANE_WANDER := Vector2(4.0, 8.0)  # Seconds between new target lanes
+const LANE_STEP := Vector2(0.3, 0.7)  # A new target: the current lane ± this (random side), within ±1
+const LANE_MOVE_MIN := 0.8  # Seconds a move takes at least (smoothstep in and out)
+const LANE_SLIDE_SHARE := 0.25  # Sideways speed at most this share of its own walk speed
+const LANE_TURN_EASE := 10.0  # Easing rate of the direction the lane is measured across (the rounded curve's tangent)
+const LANE_TURN_NEAR := 0.5  # Cells from a turn's centre where the lane narrows…
+const LANE_TURN_SHARE := 0.5  # …to this share at the centre
+const LANE_GAP_EASE := 14.0  # A narrow half-cell gap closes the lane at this rate (past the speed cap)
+const LANE_JOSTLE_MAX := 0.85  # Jostling never pushes a lane past this
+const LANE_SNAP_PX := 1.0  # The drawn offset (whole pixels) is pushed to the sprite and HUD only when it moved this far
 var lane_width := -1.0  # Cells either side; < 0 = by its kind (DriftShapes sets Single file / Few and tough's)
 var lane := 0.0  # Current lane, -1..1 of lane_width (the spawner's jostle reads and nudges it)
 var lane_target := 0.0
 var _lane_left := 0.0
+var _lane_from := 0.0  # The move in progress: from this lane to lane_target over _lane_move s
+var _lane_t := 1.0
+var _lane_move := 1.0
+var _lane_gap := 1.0  # 0 in a narrow gap, 1 elsewhere (eased)
+var _lane_last := Vector2.INF  # Last frame's drawn route position (position + corner offset): the curve's tangent
 var _lane_dir := Vector2.ZERO
 var _lane_offset := Vector2.ZERO  # The drawn offset in px
 var _lane_drawn := Vector2.ZERO  # The offset last pushed to the sprite / HUD
@@ -980,7 +993,7 @@ func flash_status(id: StringName) -> void:
 		queue_redraw()
 		var world := Reactions._world(self)
 		if world:
-			Fx.status_flash(id, global_position, world)
+			Fx.status_flash(id, get_body_position(), world)  # (On the drawn body: walking lanes)
 
 # Comes in along `points` (the fog, the bridge, the start's lane point; MapGenerator pixels) before its route.
 func enter_along(points: PackedVector2Array) -> void:
@@ -1959,37 +1972,53 @@ func get_lane_width() -> float:
 func _is_big_for_lanes() -> bool:
 	return enemy_data.is_boss or enemy_data.sprite_scale >= LANE_BIG_SCALE
 
-# Walking lanes: wander to a new lane every LANE_WANDER s (eased), measured across the eased travel direction; the lane
-# opens over the first cell walked and closes over the last before the Heartwood. Reduced motion: a fixed lane.
+# Walking lanes: every LANE_WANDER s a new lane a step from the current one, the move eased in and out and never
+# sideways faster than LANE_SLIDE_SHARE of its walk; measured across the rounded corner's curve, narrower near a turn's
+# centre, closed in a narrow half-cell gap; it opens over the first cell walked and closes over the last route cell.
+# Reduced motion: a fixed lane.
 func _update_lane(delta: float) -> void:
 	if _spawner != null and not _spawner.walking_lanes:
 		return  # Dev flag --no-lanes
 	var still := bool(Fx.setting("reduced_motion", false))
+	var cell: float = grid.cell_size.x
 	if _lane_rng == null:
 		_lane_rng = RandomNumberGenerator.new()
 		_lane_rng.seed = randi()  # (The global RNG: a capture reseeds it, so its lanes replay)
 		lane_target = _lane_rng.randf_range(-1.0, 1.0)
 		lane = lane_target
+		_lane_from = lane
 		_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
 	if not still:
 		_lane_left -= delta
 		if _lane_left <= 0.0:
 			_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
-			lane_target = _lane_rng.randf_range(-1.0, 1.0)
-		lane = lerpf(lane, lane_target, 1.0 - exp(-LANE_EASE * delta))
-	var dir := Vector2.ZERO
-	if _path_index < _path.size():
-		dir = grid.calculate_map_position(_path[_path_index]) - position
-	if dir.length_squared() > 1.0:
-		dir = dir.normalized()
-		_lane_dir = dir if _lane_dir == Vector2.ZERO else _lane_dir.lerp(dir, 1.0 - exp(-LANE_TURN_EASE * delta)).normalized()
-	var cell: float = grid.cell_size.x
+			var step := _lane_rng.randf_range(LANE_STEP.x, LANE_STEP.y) * (1.0 if _lane_rng.randf() < 0.5 else -1.0)
+			if absf(lane + step) > 1.0:
+				step = -step  # (The other side has room)
+			_start_lane_move(clampf(lane + step, -1.0, 1.0))
+		if _lane_t < 1.0:
+			# Paused while it stands still (held, asleep): the move keeps to its walk
+			var walking := clampf(_speed_cache / maxf(speed, 1.0), 0.0, 1.0)
+			_lane_t = minf(_lane_t + delta * walking / _lane_move, 1.0)
+			lane = lerpf(_lane_from, lane_target, smoothstep(0.0, 1.0, _lane_t))
+	# The direction: the drawn route position's motion (the rounded corner's curve), eased
+	var drawn := position + _corner_offset
+	if _lane_last != Vector2.INF:
+		var moved := drawn - _lane_last
+		if moved.length_squared() > 0.0025:
+			var dir := moved.normalized()
+			_lane_dir = dir if _lane_dir == Vector2.ZERO else _lane_dir.lerp(dir, 1.0 - exp(-LANE_TURN_EASE * delta)).normalized()
+	elif _path_index < _path.size():
+		var ahead := grid.calculate_map_position(_path[_path_index]) - position
+		if ahead.length_squared() > 1.0:
+			_lane_dir = ahead.normalized()
+	_lane_last = drawn
+	_lane_gap = lerpf(_lane_gap, 0.0 if _gap_answer else 1.0, 1.0 - exp(-LANE_GAP_EASE * delta))
 	_lane_age += delta
 	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
-	if not _path.is_empty():
-		open = minf(open, clampf(position.distance_to(grid.calculate_map_position(_path[_path.size() - 1])) / cell, 0.0, 1.0))
+	open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
 	var side := Vector2(-_lane_dir.y, _lane_dir.x)
-	_lane_offset = side * lane * get_lane_width() * cell * open
+	_lane_offset = (side * lane * get_lane_width() * cell * open * _lane_gap * _turn_share()).round()
 	if _lane_offset.distance_squared_to(_lane_drawn) < LANE_SNAP_PX * LANE_SNAP_PX:
 		return
 	_lane_drawn = _lane_offset
@@ -1998,6 +2027,36 @@ func _update_lane(delta: float) -> void:
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 	if elite or _hit_mark_time > 0.0 or _bolt_flash > 0.0 or unbound:
 		queue_redraw()  # The haze and marks drawn in _draw follow the lane
+
+# A move to lane `to`, from where the lane is now: smoothstep over at least LANE_MOVE_MIN s, long enough that its
+# fastest moment (1.5 × the average) stays under LANE_SLIDE_SHARE of its walk speed.
+func _start_lane_move(to: float) -> void:
+	var cell: float = grid.cell_size.x
+	var px := absf(to - lane) * get_lane_width() * cell
+	_lane_from = lane
+	lane_target = to
+	_lane_t = 0.0
+	_lane_move = maxf(LANE_MOVE_MIN, 1.5 * px / maxf(LANE_SLIDE_SHARE * speed, 1.0))
+
+# The spawner's jostle: ease the lane `amount` lane units away (never past LANE_JOSTLE_MAX), through the same cap.
+func nudge_lane(amount: float) -> void:
+	if _lane_rng == null:
+		return
+	var to := clampf(lane_target + amount, -LANE_JOSTLE_MAX, LANE_JOSTLE_MAX)
+	if absf(to - lane_target) > 0.001:
+		_start_lane_move(to)
+
+# The lane's share near a turn: LANE_TURN_SHARE at the turn's centre, back to 1 at LANE_TURN_NEAR cells.
+func _turn_share() -> float:
+	if not _near_turn():
+		return 1.0
+	var near := INF
+	for i in [_path_index - 1, _path_index]:
+		if i >= 0 and i < _turns.size() and _turns[i] == 1:
+			near = minf(near, position.distance_to(grid.calculate_map_position(_path[i])))
+	if near == INF:
+		return 1.0
+	return lerpf(LANE_TURN_SHARE, 1.0, clampf(near / (LANE_TURN_NEAR * grid.cell_size.x), 0.0, 1.0))
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0 and not dropped  # (Groundroot: not while grounded)
@@ -3282,7 +3341,7 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)
 		if world:
-			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
+			Fx.crit(get_body_position(), world)  # The crit_flare glint, on the drawn body (drawn by the effects player)
 	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
 	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)

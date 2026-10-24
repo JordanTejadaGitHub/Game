@@ -135,8 +135,8 @@ static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator
 	return shape
 
 # Walking lanes (enemy_design.md): an arrival's lane width in cells, arrival[5] (Enemy.lane_width via tag_enemy).
-const LANE_SINGLE := 0.1  # Single file walks close to the centre line
-const LANE_TOUGH := 0.15  # Few and tough's Deeply Blighted
+const LANE_SINGLE := 0.06  # Single file walks close to the centre line (council 2026-10-24b)
+const LANE_TOUGH := 0.1  # Few and tough's Deeply Blighted (council 2026-10-24b)
 
 static func _set_lane(arrival: Array, width: float) -> void:
 	while arrival.size() < 6:

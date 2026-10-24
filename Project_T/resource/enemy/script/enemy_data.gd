@@ -22,7 +22,7 @@ const KIND_NAMES := {Kind.ARMOURED: "Armoured", Kind.FLYING: "Flying", Kind.HIDD
 	Kind.FAST: "Fast", Kind.PLAIN: "Plain"}
 const KIND_LINES := {
 	Kind.ARMOURED: "Armoured: heavy hits and armour breakers crack its shell.",
-	Kind.FLYING: "Flying: it skips the maze; only Wardens that hit flyers can reach it.",
+	Kind.FLYING: "Flying: it flies over your walls, some along the path; only Wardens that hit flyers can reach it.",
 	Kind.HIDDEN: "Hidden: it can't be targeted until a Warden reveals it.",
 	Kind.SWARM: "Swarm: it comes as a crowd of small bodies; area attacks catch them all.",
 	Kind.FAST: "Fast: it outruns a thin maze; slows and holds keep it in reach.",
