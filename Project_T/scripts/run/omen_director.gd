@@ -935,7 +935,10 @@ func _block_has_coat(drifts: Vector2i) -> bool:
 					return true
 	return false
 
-# The flying nightmares scheduled in drifts `drifts.x`..`drifts.y` (Hollow Wind turns others into them).
+# The ROUTE flyers scheduled in drifts `drifts.x`..`drifts.y` (Hollow Wind turns others into them, and is only offered with
+# one): flyers that fly along the route (Crow, Night Kite, Gloamwing), never the Phantom (straight over the maze), the Pall or
+# a boss, so Hollow Wind never breaks the flyer caps (enemy_design.md "Flyers", council 2026-10-24).
+const HOLLOW_NEVER: Array[String] = ["pall"]  # Route flyers Hollow Wind never draws (resource file names)
 func _block_flyers(drifts: Vector2i) -> Array[EnemyData]:
 	var flyers: Array[EnemyData] = []
 	for number in range(drifts.x, drifts.y + 1):
@@ -943,9 +946,13 @@ func _block_flyers(drifts: Vector2i) -> Array[EnemyData]:
 			break
 		for group in drift_director.drifts[number - 1].groups:
 			for entry in group.entries:
-				if entry.enemy != null and entry.enemy.trait_kind == EnemyData.Trait.FLYING and not flyers.has(entry.enemy):
+				if entry.enemy != null and _route_flyer(entry.enemy) and not flyers.has(entry.enemy):
 					flyers.append(entry.enemy)
 	return flyers
+
+static func _route_flyer(data: EnemyData) -> bool:
+	return data.trait_kind == EnemyData.Trait.FLYING and data.flies_along_route and not data.is_boss \
+		and not HOLLOW_NEVER.has(data.resource_path.get_file().get_basename())
 
 
 # --- Save ------------------------------------------------------------------------------------------
