@@ -352,7 +352,7 @@ func _process(delta: float) -> void:
 			var next: Array = schedule.pop_front()
 			var shares: Array = arrival.get("shares", [])
 			var share: float = shares.pop_front() if not shares.is_empty() else -1.0
-			_spawn(next[1], number, next[2] if next.size() > 2 else false, share)
+			_spawn(next[1], number, next[2] if next.size() > 2 else false, share, next)
 		if schedule.is_empty():
 			_arriving.erase(number)
 			_active[number].arriving = false
@@ -575,11 +575,8 @@ func _start_drift() -> void:
 			mods.get("spacing", 1.0), get_extra_nightmares(number)),
 		"clock": 0.0,
 	}
-	add_guaranteed_elite(_arriving[number].schedule, number)
-	_add_blight_elites(_arriving[number].schedule)
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if omens:
-		omens.shape_schedule(_arriving[number].schedule, number)  # Elder Night, Hollow Wind
+	_active[number]["shape"] = _shape_schedule(_arriving[number].schedule, number, mods, omens)
 	var headlong := _headlong_next
 	_headlong_next = false
 	if headlong:
@@ -590,6 +587,54 @@ func _start_drift() -> void:
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
 	_process(0.0)
+
+# --- Drift shapes (enemy_design.md "Drift shapes", owner 2026-10-24; Enemy Code's DriftShapes) ------------------------
+# A drift's schedule after the elites and the Omen, shaped: guaranteed elites on the drift's seeded rng, Blight elites,
+# the Omen's own reshaping (Elder Night, Hollow Wind), then DriftShapes.apply (re-times it, places the Deeply Blighted;
+# keeps the first and last arrival). Headlong's _compress and pot_shares come after. Returns the shape it played as.
+func _shape_schedule(schedule: Array, number: int, mods: Dictionary, omens: OmenDirector) -> StringName:
+	var rng := DriftShapes.drift_rng(_map_seed(), number)
+	add_guaranteed_elite(schedule, number, rng)
+	_add_blight_elites(schedule)
+	if omens:
+		omens.shape_schedule(schedule, number)  # Elder Night, Hollow Wind
+	var shape := shape_of(number)
+	if omens and omens.has_method("shape_for"):
+		shape = omens.shape_for(number, shape)  # Giants' Walk / Hollow Wind play some shapes as a Stream
+	DriftShapes.apply(schedule, shape, rng, get_act(number), mods)
+	return shape
+
+# The shape DriftRoller rolled for drift `number` (DriftData.shape; &"stream" for a fixed or unrolled drift).
+func shape_of(number: int) -> StringName:
+	if number < 1 or number > drifts.size() or drifts[number - 1] == null:
+		return DriftShapes.STREAM
+	var shape = drifts[number - 1].get("shape")
+	return StringName(shape) if shape != null and StringName(shape) != &"" else DriftShapes.STREAM
+
+# The shape drift `number` is playing (started) or will play (the Omen applied), for the banner and the run history.
+func drift_shape(number: int) -> StringName:
+	if _active.has(number) and _active[number].has("shape"):
+		return _active[number].shape
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector if is_inside_tree() else null
+	var shape := shape_of(number)
+	return omens.shape_for(number, shape) if omens and omens.has_method("shape_for") else shape
+
+# Drift `number`'s schedule as it will arrive, built now on a copy (the Coming strip at a rest, after the Omen pick):
+# {"shape", "schedule" ([[time, EnemyData, elite, pack], …]), "facts" (DriftShapes.describe)}. The drift's seeded rng makes
+# it the same as when it starts (the Blight elites' places may differ; their count doesn't).
+func preview_schedule(number: int) -> Dictionary:
+	if number < 1 or number > drifts.size():
+		return {}
+	var mods := get_schedule_modifiers(number)
+	var schedule: Array = drifts[number - 1].get_schedule(mods.get("count", 1.0), mods.get("flyers", 1.0),
+		mods.get("spacing", 1.0), get_extra_nightmares(number))
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector if is_inside_tree() else null
+	var shape := _shape_schedule(schedule, number, mods, omens)
+	return {"shape": shape, "schedule": schedule, "facts": DriftShapes.describe(schedule, shape)}
+
+func _map_seed() -> int:
+	var map := _maze_map()
+	return int(map.map_seed) if map != null else 0
 
 # The next drift belongs to the current block (no rest in between).
 func _next_is_in_block() -> bool:
@@ -691,7 +736,9 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 # Blight Level 5: `blight_elites_per_drift` random non-boss arrivals become Deeply Blighted.
 # From drift 31, a drift that lists no elites gets one (two from drift 76): each time a random
 # non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
-func add_guaranteed_elite(schedule: Array, number: int) -> void:
+# `rng`: the drift's seeded rng (DriftShapes.drift_rng), so a replay of the seed picks the same nightmare; null (tests,
+# old callers) = the global random.
+func add_guaranteed_elite(schedule: Array, number: int, rng: RandomNumberGenerator = null) -> void:
 	var listed := schedule.filter(func(a: Array) -> bool: return a.size() > 2 and a[2]).size()
 	var wanted := 0
 	var finale := get_block_finale_elites(number)
@@ -708,8 +755,9 @@ func add_guaranteed_elite(schedule: Array, number: int) -> void:
 				by_kind.get_or_add(schedule[i][1], []).append(i)
 		if by_kind.is_empty():
 			return  # Only the new kind (or bosses) here: no guaranteed elite this drift
-		var arrivals: Array = by_kind[by_kind.keys().pick_random()]
-		var index: int = arrivals.pick_random()
+		var keys: Array = by_kind.keys()
+		var arrivals: Array = by_kind[keys[rng.randi_range(0, keys.size() - 1)] if rng != null else keys.pick_random()]
+		var index: int = arrivals[rng.randi_range(0, arrivals.size() - 1)] if rng != null else arrivals.pick_random()
 		if schedule[index].size() > 2:
 			schedule[index][2] = true
 		else:
@@ -729,12 +777,13 @@ func _add_blight_elites(schedule: Array) -> void:
 		else:
 			schedule[i].append(true)
 
-func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1.0) -> void:
+func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1.0, arrival: Array = []) -> void:
 	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number, elite),
 		get_spawn_modifiers(data, number), elite, get_growth(number))  # Growth: the dread shell's per-hit soak
 	if enemy == null:
 		return  # No route (shouldn't happen: building never fully blocks the path)
 	_drift_of[enemy] = number
+	DriftShapes.tag_enemy(enemy, number, arrival)  # Its pack (the 3-leaf pack cap; split children and followers inherit it)
 	_active[number].remaining += 1
 	_refresh_early_overlap()
 	if share >= 0.0 and enemy.has_method("set_dew_share"):

@@ -124,6 +124,7 @@ func show_report(block: int) -> void:
 	dreams_label.visible = not entries.is_empty()
 	text += support_text(self, "block")
 	text += templates_text(drift_director, block)
+	text += shape_leaves_text(self, drift_director.get_act(block * drift_director.drifts_per_block))
 	var close_calls := CloseCalls.find(self)
 	if close_calls != null and close_calls.block_count > 0:
 		text += "\nClose calls: %d" % close_calls.block_count
@@ -330,13 +331,33 @@ static func auto_show() -> bool:
 static func templates_text(director: DriftDirector, block: int) -> String:
 	if director == null:
 		return ""
+	# The drifts' shapes (enemy_design.md "Drift shapes", owner 2026-10-24: they replace the template names here), only when
+	# the block had a shaped drift: "This block: Stream, Packs, Single file, Stream, Few and tough".
 	var names: Array[String] = []
+	var shaped := false
 	var first := (block - 1) * director.drifts_per_block + 1
 	for number in range(first, mini(first + director.drifts_per_block, director.get_total_drifts() + 1)):
-		var name := DriftRoller.template_name(director, number)
-		if name != "":
-			names.append(name)
-	return "" if names.is_empty() else "\nThis block: " +", ".join(names)
+		var shape: StringName = director.drift_shape(number) if director.has_method("drift_shape") else DriftShapes.STREAM
+		shaped = shaped or shape != DriftShapes.STREAM
+		names.append(DriftShapes.display_name(shape))
+	return "\nThis block: " + ", ".join(names) if shaped else ""
+
+# "Leaves lost by shape this act: Packs 3, Single file 0, Few and tough 1" (owner 2026-10-24), only when the act lost a
+# leaf to a shaped drift. From RunHistory's rows (a leak counts on its own drift's row, so on that drift's shape).
+static func shape_leaves_text(near: Node, act: int) -> String:
+	var history := near.get_tree().get_first_node_in_group(RunHistory.GROUP) if near != null and near.is_inside_tree() else null
+	if history == null or not history.has_method("leaves_by_shape"):
+		return ""
+	var lost: Dictionary = history.leaves_by_shape(act)
+	var total := 0
+	for shape in [DriftShapes.PACKS, DriftShapes.SINGLE_FILE, DriftShapes.FEW_AND_TOUGH]:
+		total += int(lost.get(String(shape), 0))
+	if total <= 0:
+		return ""
+	var parts: Array[String] = []
+	for shape in [DriftShapes.PACKS, DriftShapes.SINGLE_FILE, DriftShapes.FEW_AND_TOUGH]:
+		parts.append("%s %d" % [DriftShapes.display_name(shape), int(lost.get(String(shape), 0))])
+	return "\nLeaves lost by shape this act: " + ", ".join(parts)
 
 # Support and economy (screens_ui.md "Support and economy feedback", Tower Code's SupportLog): the
 # Harvest, the top supporter, what the walls and the control Wardens did. "block" for the rest

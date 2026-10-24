@@ -18,7 +18,8 @@ const GLOSSARY_SOURCE := [
 		["The Dew pot", "Each drift pays a set pot of Dew, shared out among its nightmares as they are dispelled. A nightmare that reaches the Heartwood takes its share with it.", ["Dew", "Act"]],
 	]],
 	["The run", [
-		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
+		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act", "Drift shape"]],
+		["Drift shape", "How a drift arrives. Stream: an even mix. Packs: tight groups of one kind, spaced apart. Single file: one at a time, fewer and heavier. Few and tough: a handful led by Deeply Blighted. Shapes are rolled with the map. A pack that gets through takes at most {const:pack_leaves} leaves.", ["Drift", "Coming this block"]],
 		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
 		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+20}.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
@@ -483,7 +484,8 @@ static func _fill_constants(text: String) -> String:
 	return text.replace("{const:card_cap}", "×" + String.num(DreamState.CARD_PRODUCT_CAP)) \
 		.replace("{const:reaction_pool}", "+%d%%" % roundi(DreamState.REACTION_POOL_CAP * 100.0)) \
 		.replace("{const:dream_speed}", "+%d%%" % roundi(DreamState.DREAM_SPEED_CAP * 100.0)) \
-		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT)
+		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT) \
+		.replace("{const:pack_leaves}", str(DriftShapes.PACK_LEAVES))
 
 static func glossary() -> Array:
 	var stacks := IconInfo.stack_number("need_damp")
