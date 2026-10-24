@@ -709,6 +709,25 @@ gains an optional "Shape" column if a fixed drift should ever be pinned.
 - **Balancing Discussion:** pack size and gap, the Single file floor, Few and tough's elite share and
   count, the 3-leaf pack cap, template weights.
 
+**More of the group wipe (Enemy Design Council round 2026-10-24c; owner: "like the feel of a big group being
+wiped and them bunched up like that"; numbers marked * are Balancing Discussion's to confirm)**
+- Keep 6-8 a pack (act 1: 4-5) and one Packs drift a block; **always a Packs drift in drifts 11-15**.
+- **Big packs:** clamp(ceil(nightmares / 14), 6, 8) packs, so a pack stays at most 14 up to 112 nightmares;
+  `PACK_SPAN_MAX` 2.6 s*; splitter children count toward the big-pack test.
+- **A leaked pack takes at most 6 leaves** (it was 3 per 8 members: a pack of 40 cost 15).
+- **Tighter clumps along the route, not wider lanes:** in-pack gap 0.5 → **0.4 cell from act 2*** (act 1 keeps
+  0.5); lanes stay ±0.2. The compact crowd icons land first; y-sort moves to the drawn body.
+- **Single file plays more often:** gap by act **1.5 / 1.2 / 1.0 / 1.0 s***, a failed roll retries once with the
+  Heavy template before becoming a Stream; target at least 60% of planned Single file slots played. The 25%
+  thinning cap stays.
+- **The Pall never settles on a pack member.**
+- **The payoff, one moment and one fact, never a reward:** a pack is *wiped* when every walking member of a pack
+  of 4+ is dispelled, none leaked, first to last within 3 s. Then: one "+N Dew" popup that counts up (in place of
+  the members'), damage numbers merged per pack, a small "Pack ×N" callout, a soft warm bloom at the pack's centre,
+  and the rest report line "Packs wiped: 5 of 6" with the Warden that dealt the most. No bonus Dew. Any crowd
+  of 5+ dispels within 700 ms gets the **dispel swell** (fuller, at most +1.5 dB, no pitch climb, no chime, no
+  music duck) in place of a stack of sighs, as `audio_direction.md` already asks.
+
 **Decided (owner 2026-10-24, "do your recommendation")**
 1. **The four shapes and the mix** as written above.
 2. **A leaked pack takes at most 3 leaves** (not leaf cost by health share: a cap is one rule the

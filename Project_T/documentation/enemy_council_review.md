@@ -2,6 +2,88 @@
 
 Skill: `.claude/skills/enemy-design-council`. Seat reports per round in `documentation/enemy_council/<date>/`. Newest round first; earlier rulings that still hold stay.
 
+## Enemy Design Council, round 2026-10-24c: more of the group-wipe moment
+
+Owner: "I like it ... Also like the feel of a big group being wiped and them bunched up like that." Question: how
+do we get more of that moment without making every drift a crowd or making one board answer everything? Seats B
+W T S P (P: pacing plus the payoff). Reports `seat_<letter>.md`. Read-only; nothing run. Footage: the v3 board
+videos (seed 4242). Limit: the drift 70 board dispelled nothing, so no late wipe was seen (T S).
+
+### Verdict: feels good with fixes (all five)
+Packs already make the moment: one kind per pack walks at one speed and stays together, flyers and loose kinds
+stay out, leak caps hold (S W). One Packs drift per block from act 2 is 3-6 wipe chances a block: often enough;
+**don't add a second Packs drift** (B P). What's missing is the **payoff**: nothing knows a pack was wiped, and
+a wipe sounds smaller than one dispel (all five). And the **counter-shape is too rare**: Single file plays in
+about 14% of its planned slots, so area boards are seldom tested (B T W S).
+
+### Spot-checked by the lead
+- `sound.gd:54-58`: the comment promises dispels that "blend into one softer swell", but the code only makes each
+  clustered dispel 1.5 dB quieter (down to -6 dB), with 4 voices and a start throttle; a wiped pack of 8 is ~2 dB
+  over one dispel (P S).
+- `drift_shapes.gd`: `PACK_CELLS` 0.5, `PACK_SPAN_MAX` 3.0, `PACK_LEAVES_PER` 8 (a big pack of 40 can cost 15
+  leaves), `SINGLE_GAP` 1.5; `drift_roller.gd` `SINGLE_THIN_MAX` 0.25 with a Stream fallback.
+- The Pall refuses bosses and Deeply Blighted but not pack members (`enemy.gd` `_update_pall`).
+
+### Rulings
+**Q1 Packs and big packs**
+- Keep **6-8 a pack, 4-5 in act 1** (all five: they match the Wardens' count caps, 4-8: W).
+- **Big packs:** pack count = clamp(ceil(nightmares / 14), 6, 8), so a pack stays at most 14 up to 112 nightmares
+  (T 14, S 6-8 packs); `PACK_SPAN_MAX` 3.0 → 2.6 so 8 packs still fit the window with 2 s gaps (S P). Fix the
+  big-pack test counting arrivals, not splitter children (S).
+- **Any pack takes at most 6 leaves** (was 3 per 8 members: a pack of 40 cost 15, a whole run), the same 6 as Few
+  and tough (P).
+- Wardens' target caps (Firefly jumps 6, Maelstrom 8, chains 4…) stay; a ×1.5 raise on packs over 12 (W) goes to
+  Balancing's sim, not shipped (B against).
+- **Always a Packs drift in drifts 11-15** (P: ~12.5% of runs see none before drift 26).
+
+**Q2 Tighter clumps**
+- Lanes stay **±0.2** (all). Bunch along the route instead: **`PACK_CELLS` 0.5 → 0.4 from act 2** (act 1 keeps
+  0.5) (B W; T S asked 0.35; P against any). Gate: Balancing's wipe-rate sim (below) before going to 0.35.
+- Land the compact crowd icons (enemy_design.md "Status icons in crowds") **before** tightening (S).
+- **Y-sort by the drawn body:** the lane moves `sprite.position` and each enemy y-sorts on it (S P6), since
+  tighter clumps make node-order flicker visible.
+
+**Q3 Single file**
+- Keep `SINGLE_THIN_MAX` 0.25 (P S: thinning can't rescue late drifts of 75-240). Instead:
+  - **`SINGLE_GAP` by act: 1.5 / 1.2 / 1.0 / 1.0 s.** In acts 3-4 a Stream arrives 0.1-0.4 s apart, so 1.0 s
+    still reads as single file.
+  - **Retry once with the Heavy template** before falling back to a Stream (P W).
+  - Target: at least **60% of planned Single file slots play** in the roller test (B; T's 250 per 1,000 Packs).
+
+**Q4 The payoff** (one moment, one fact, no reward: W P; audio_direction.md: a dispel ends a nightmare, never a
+reward sound)
+- **"Pack wiped"** = every walking member of a pack of 4+ dispelled, none leaked, first to last within 3 s
+  (B T W S definitions merged). Enemy Code: signal `pack_wiped(key, size, centre, top_source)`.
+- **Sound Code: `dispel_swell`** (the swell audio_direction.md already asks for): from the 5th dispel within 700
+  ms and 3 cells it takes the place of dispel voices past the 2nd; tuned air on the D chord, wider, ~1.2 s, no
+  pitch climb, no chime, no music duck; at most **+1.5 dB** over one dispel's peak, so it is fuller, not louder
+  (P S; T's longer tail folds into it). It works for any crowd, not only packs.
+- **Main Merger:** one **"+N Dew" popup per wipe** that counts up, in place of the members' popups; damage numbers
+  merged per pack every 0.25 s; a small **"Pack ×N"** callout once per wipe; rest report **"Packs wiped: 5 of 6"**,
+  with the Warden that dealt the most. **No bonus Dew** (W P).
+- **Enemy Assets:** one soft warm bloom at the pack's centre, ~1.5 cells, 0.6 s (a still flash under reduced
+  motion) (T).
+- **Enemy Code (phone budget):** halve dispel motes past 8 dispels in 0.5 s (S).
+
+**Q5 What fights it**
+- **The Pall never settles on a pack member** (B W P; S: acceptable either way): one shielded straggler spoils the
+  wipe.
+- Flyers stay out of packs (all). Y-sort and icons: above.
+
+**Who gets the moment** (B W): Lantern Light's Support line, Puddles' Black Pond and Wave, Keeping Time's Peal and
+Sleeping Hall, Spore Print's Windfall and Rot Bloom, Headlong; Focus lines rarely, and that's right (Few and tough
+and bosses are theirs). Sporeling's base Wardens get no wipe unless it's the Calling: Balancing checks Fairy
+Ring's ring cap holds a pack of 8 (W).
+
+### Sims for Balancing (P S W)
+Wipe rate per Calling line at drifts 30 / 60 / 85 (crowd lines >= 60%, Focus lines 15-35%) at `PACK_CELLS` 0.5 /
+0.4 / 0.35; worst single-pack leaf loss; planned vs played shapes per act; the ×1.5 target-cap raise on packs over
+12; Fairy Ring on a pack of 8.
+
+### Open owner calls
+1. A re-capture of a late wipe (drift 70 with a board strong enough to wipe it): it runs Godot, so it waits for the
+   owner's go-ahead (T S).
+
 ## Enemy Design Council, round 2026-10-24b: enemy movement
 
 Owner: "Enemy movement looks off." Seats B (build player), W (Warden roster keeper), T (tower defense veteran),
