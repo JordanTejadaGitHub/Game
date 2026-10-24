@@ -478,7 +478,7 @@ func refresh() -> void:
 	# Same Wardens in the same order: update the rows in place (a click mid-refresh still lands).
 	var same := _rows.get_child_count() == rows.size()
 	for i in rows.size() if same else 0:
-		if _rows.get_child(i).get_meta(&"tower", null) != rows[i].tower:
+		if (_rows.get_child(i).get_meta(&"tower") if _rows.get_child(i).has_meta(&"tower") else null) != rows[i].tower:
 			same = false
 			break
 	if not same:

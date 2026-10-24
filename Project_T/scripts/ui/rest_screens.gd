@@ -17,6 +17,9 @@ const SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen",
 # the results always cover. `hud` = the HUD node; `except` = a screen not to count (the caller itself). One place, so
 # nothing else sets those pieces' visibility (user phone screenshot 2026-10-17: the strip flickered behind a choice).
 const ALWAYS_COVER := ["PauseMenu", "ResultsScreen"]
+# Covering screens that block the map but keep the selection: Remember opens from the Warden panel's Unlock and the
+# panel's next step is growing into what was unlocked; a Lesson can open after a grow or a Nurture. Both draw over the panel.
+const KEEP_SELECTION := ["RememberScreen", "LessonCard"]
 static func covering(hud: Node, except: Node = null, choices_only := false) -> bool:
 	if hud == null:
 		return false
@@ -25,8 +28,8 @@ static func covering(hud: Node, except: Node = null, choices_only := false) -> b
 		var screen := hud.get_node_or_null(screen_name) as CanvasItem
 		if screen == null or screen == except or not screen.visible:
 			continue
-		if choices_only and ALWAYS_COVER.has(screen_name):
-			continue  # The pause menu and the results aren't choices (choice_locked)
+		if choices_only and (ALWAYS_COVER.has(screen_name) or KEEP_SELECTION.has(screen_name)):
+			continue  # Not a choice that closes the Warden panel (choice_locked)
 		if peeking and not ALWAYS_COVER.has(screen_name):
 			continue
 		return true

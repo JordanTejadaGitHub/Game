@@ -1620,7 +1620,7 @@ class StruckSpark extends Node2D:
 func _mark(enemy) -> void:
 	if not _living(enemy):
 		return
-	var held = enemy.get_meta(MARK_META, null)
+	var held = enemy.get_meta(MARK_META) if enemy.has_meta(MARK_META) else null  # (A null default is no default: it errors)
 	if held is WeakRef and is_instance_valid(held.get_ref()):
 		return
 	var world := Reactions._world(self)

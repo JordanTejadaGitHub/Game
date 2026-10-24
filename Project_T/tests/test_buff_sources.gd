@@ -88,7 +88,7 @@ func _run() -> void:
 		toggle.pressed.emit()
 	_check(panel._details.is_visible_in_tree() and toggle != null and toggle.text == "Hide", "Details opens them")
 	var texts: Array = buffs.find_children("*", "", true, false).map(func(c: Node) -> String: return c.text if "text" in c else "")
-	_check(buffs.visible and texts.any(func(t: String) -> bool: return t.to_lower() == "buffs") and texts.any(func(t: String) -> bool: return t.begins_with("Total:")),
+	_check(buffs.visible and texts.any(func(t: String) -> bool: return t.to_lower() == "boosts") and texts.any(func(t: String) -> bool: return t.begins_with("Total:")),
 		"the panel lists the buffs and a total (%s)" % [texts])
 	_check(buffs.get_children().any(func(c: Control) -> bool: return c is Button and c.text.begins_with("Elder Stump")),
 		"a Warden source is a button")

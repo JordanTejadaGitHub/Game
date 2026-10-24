@@ -875,8 +875,8 @@ func _input(event: InputEvent) -> void:
 	else:
 		select(tower)
 
-# Opening a choice screen (or peeking from one) closes the Warden panel / drawer: the selection clears, sell mode and
-# build mode end (user 2026-10-23: the Calling choice's "Take" landed on the drawer's "Nurture rank I" under it).
+# Opening a choice screen (or peeking from one) closes the Warden panel / drawer: the selection clears.
+# Opening one ends sell mode; build mode stays, blocked (user 2026-10-23: the Calling choice's "Take" landed on the drawer's "Nurture rank I").
 var _choice_was_open := false
 
 func _watch_choice_screens() -> void:
@@ -890,8 +890,8 @@ func _watch_choice_screens() -> void:
 		select(null)
 	if sell_mode:
 		set_sell_mode(false)
-	if tower_placer != null and tower_placer.build_mode:
-		tower_placer.set_build_mode(false)
+	# Build mode stays (a self-opening screen, the boss dossier, would drop a phone's pending Wardens): TowerPlacer
+	# takes no input meanwhile (RestScreens.map_locked).
 
 # The selection box in world space: the press's screen point and the pointer, both through today's camera (the user's
 # "124 Wardens selected", v0.1.5: the box was pinned to the map where the press began, so an edge scroll during a drag
