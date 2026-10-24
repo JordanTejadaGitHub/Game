@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "monoculture"
 display_name = "Monoculture"
-description = "If every attacking Warden is from one {family}, those Wardens deal 100% more damage."
+description = "If one {family} has more attacking Wardens than all other families together, its Wardens deal 100% more damage."
 rarity = 3
 kind = 3
 tags = Array[String](["narrow", "tall"])
@@ -14,4 +14,4 @@ max_stacks = 1
 min_act = 2
 rule_id = &"monoculture"
 in_start_pool = false
-tip = "Sprouts and walls don't count and get no bonus."
+tip = "Sprouts and walls don't count and get no bonus. A tie gives nothing."

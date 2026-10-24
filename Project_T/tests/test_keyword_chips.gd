@@ -88,7 +88,7 @@ func _data_checks() -> void:
 			else:
 				users[chip.id] = String(id)
 		rows += 1
-	_check(rows == 115, "115 Calling evolution rows (%d)" % rows)  # Section 33: Finale (Deepen) and cross-over rows
+	_check(rows == 137, "137 Calling evolution rows (%d)" % rows)  # Section 33: Finale (Deepen) and cross-over rows; final pass 2026-10-24: 22 new ids
 	# Warden roles and statuses count as makers.
 	var dir := DirAccess.open("res://resource/tower")
 	for file in dir.get_files():

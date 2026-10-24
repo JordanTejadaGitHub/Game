@@ -164,6 +164,14 @@ func _test_nurture_rules() -> void:
 	_check(dreams.sunlit_rest() == [ranked_far] and ranked_far.banked_ranks == 1 and ranked_far.rank == 2,
 		"…at max rank it passes to the next-nearest")
 	_check(dreams.preview_card_impact(_card("sunlit_rest")).towers.size() == 1, "its impact counts the one Warden it raises")
+	# Final pass 2026-10-24 (final_pass_shared.md 2): the Warden with the most dispels this block goes first
+	_reset()
+	dreams.take(_card("sunlit_rest"))
+	var killer := _plant_at("sporeling", _beside(path, 5), 0)
+	var idle_near := _plant_at("sporeling", _beside(path, path.size() - 4), 0)
+	dreams._block_dispels[killer.get_instance_id()] = 3
+	dreams._block_dispel_stamp += 1
+	_check(dreams.sunlit_rest() == [killer] and idle_near.banked_ranks == 0, "most dispels this block beats nearest the Heartwood")
 	_clear_towers()
 
 func _test_wide_and_narrow() -> void:
@@ -463,7 +471,9 @@ func _test_grove_cards() -> void:
 	dreams.take(_card("monoculture"))
 	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "Monoculture: one line = +100%")
 	_plant("dewdrop", 10, 0)
-	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.0), "…not with two lines")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 1.0), "…2 vs 1: still the majority (final pass 2026-10-24)")
+	_plant("dewdrop", 15, 0)
+	_check(is_equal_approx(dreams.get_soothe_multiplier(a) - base, 0.0), "…not on a tie (2 vs 2)")
 	_reset()
 	var hub := _plant_at("sporeling", Vector2(100, 100), 0)
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP]:

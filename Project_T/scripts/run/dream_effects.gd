@@ -74,7 +74,8 @@ class Board:
 	var roots := {}  # Root Network, worked out on first ask (DreamEffects.root_networks)
 	var attackers := 0
 	var walls := 0.0  # Thornwall line Wardens; a twig wall (Twig Walls) counts half
-	var lines := {}  # Attacking Wardens' lines
+	var lines := {}  # Attacking Wardens' lines (a set)
+	var line_counts := {}  # Attacking Wardens' lines -> how many (Monoculture's majority; final_pass_shared.md 3)
 	var kinds := {}  # Attacking Wardens' ids
 
 	func _init(spots: Array) -> void:
@@ -85,6 +86,7 @@ class Board:
 			if data.can_attack:
 				attackers += 1
 				lines[data.line] = true
+				line_counts[data.line] = int(line_counts.get(data.line, 0)) + 1
 				kinds[data.get_id()] = true
 			if data.line == "wall":
 				walls += DreamState.wall_weight(o.node)
@@ -386,14 +388,16 @@ func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 	if not spot.data.can_attack:
 		return {}
 	var nearest: Dictionary = {}
-	for o in board.near(spot, DreamState.NEARBY_CELLS):
-		if DreamEffects._data(o).can_attack and (nearest.is_empty() or _cheb(o.cell, spot.cell) < _cheb(nearest.cell, spot.cell)):
+	for o in board.near(spot, DreamState.NEARBY_CELLS):  # Only its own family counts (final pass 2026-10-24); walls and Sprouts never
+		var od: TowerData = DreamEffects._data(o)
+		if od.can_attack and od.line == spot.data.line and od.line != "sprout" and od.line != "wall" \
+				and (nearest.is_empty() or _cheb(o.cell, spot.cell) < _cheb(nearest.cell, spot.cell)):
 			nearest = o
 	var on := nearest.is_empty()
 	return {"positional": true, "radius": float(DreamState.NEARBY_CELLS), "active": on,
 		"damage": DreamState.SOLITUDE_BONUS, "range": DreamState.SOLITUDE_RANGE,
-		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [DreamEffects._data(nearest).display_name,
-			_cells_word(_cheb(nearest.cell, spot.cell)), DreamState.NEARBY_CELLS]}
+		"reason": "" if on else "%s is %s away (needs no other %s Warden within %d)" % [DreamEffects._data(nearest).display_name,
+			_cells_word(_cheb(nearest.cell, spot.cell)), NightmareIcons.family_name(spot.data.line), DreamState.NEARBY_CELLS]}
 
 # Helper Commons 270-285 (dream_design.md c15d05ac / b6c1c199; balance_simulation.md 605a8ea7)
 func _switchback(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -487,14 +491,23 @@ func _deep_sleep(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack or spot.data.line == "sprout" or spot.data.line == "wall":
 		return {}
-	var lines := board.lines.duplicate()
-	lines.erase("sprout")
-	lines.erase("wall")  # Brambles / Honeysuckles never switch it off, as with Canopy (council full_review 2026-10-17)
-	lines[spot.data.line] = true
-	var on := lines.size() == 1
+	# Final pass 2026-10-24 (final_pass_shared.md 3): on when the spot's family has more attacking Wardens than all other
+	# families together (a tie gives nothing); a ghost counts itself
+	var counts := board.line_counts.duplicate()
+	counts.erase("sprout")
+	counts.erase("wall")  # Brambles / Honeysuckles never count, as with Canopy (council full_review 2026-10-17)
+	if not board.holds(spot):
+		counts[spot.data.line] = int(counts.get(spot.data.line, 0)) + 1
+	var mine := int(counts.get(spot.data.line, 0))
+	var others := 0
+	for line in counts:
+		if line != spot.data.line:
+			others += int(counts[line])
+	var on := mine > others
+	var family := NightmareIcons.family_name(spot.data.line)
 	return {"run_wide": true, "active": on, "damage": DreamState.MONOCULTURE_BONUS,
-		"note": count_text(lines.size(), "non-Sprout Warden line"),
-		"reason": "" if on else "%d non-Sprout Warden lines (needs one)" % lines.size()}
+		"note": "%s %d vs others %d" % [family, mine, others],
+		"reason": "" if on else "%s %d vs others %d (needs more than all others)" % [family, mine, others]}
 
 func _crossroads(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:

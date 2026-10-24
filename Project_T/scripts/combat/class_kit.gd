@@ -25,7 +25,8 @@ static func is_reaction_burst(event) -> bool:
 const CLASS_TAGS: Array[StringName] = [&"free_hit", &"fork", &"toll", &"spore_haze", &"swell", &"both_banks", &"breakwater",
 	&"riptide", &"last_drop", &"carried_ring", &"rounds", &"hanging_note", &"sleep_no_more", &"refrain", &"chorus_repeat", &"knell",
 	&"in_time", &"reprise", &"rude_replay", &"da_capo", &"parting_puff",  # (Bellflower repeats, 2026-10-15; Parting Puff 2026-10-19)
-	&"deathcap", &"pond_spill", &"breaker", &"churn", &"flare", &"haze"]  # Calling evolution hits (section 33; class_kit.calling_hit)
+	&"deathcap", &"pond_spill", &"breaker", &"churn", &"flare", &"haze",  # Calling evolution hits (section 33; class_kit.calling_hit)
+	&"rot_bloom", &"beat"]  # Final pass 2026-10-24: Rot Bloom's burst; On the Beat's repeat (never rings, stores or counts as a hit)
 
 var dream_state: Node  # DreamState (untyped: DreamState preloads the class scripts)
 var _hooked := false
@@ -251,6 +252,20 @@ func is_other(tower) -> bool:
 func is_other_family(tower) -> bool:
 	return is_other(tower) and tower.tower_data.get_id() != "sprout"
 
+# "How many Wardens" conditions (final_pass_shared.md 6): an attacking Warden, not a wall, and not a Sprout unless this
+# Calling counts Sprouts (only Spore Print does: spore_print sets sprouts_count). Per-Warden payouts keep their own rule.
+var sprouts_count := false
+func counts_as_warden(tower) -> bool:
+	return tower is Tower and tower.tower_data != null and tower.tower_data.can_attack and not is_wall(tower) \
+		and (sprouts_count or tower.tower_data.get_id() != "sprout")
+
+# The rank a Calling's rank gate reads (final_pass_shared.md 3): The Old Ones' 2 higher when held (DreamState.get_effective_rank),
+# else the real rank. Only at gates (a comparison with a *_RANK constant); amounts and orderings read tower.rank.
+func gate_rank(tower) -> int:
+	if dream_state != null and tower is Tower:
+		return int(dream_state.get_effective_rank(tower))
+	return int(tower.rank) if tower is Tower else 0
+
 static func is_wall(tower) -> bool:
 	return tower is Tower and tower.tower_data != null and tower.tower_data.line == "wall"
 
@@ -390,18 +405,44 @@ func points_in_reach(tower) -> Array:
 func second_of(tower) -> float:
 	return tower.get_damage() * tower.get_attacks_per_second()
 
+# The per-output cap (final_pass_shared.md 5, final_check.md D): a scaled Calling hit deals the Warden's damage x
+# min(1, attacks per second x `period`): a Warden slower than the output's clock deals a share. `period` INF = per own
+# attack (no cap). Unfettered (Legendary, rule unfettered) lifts it to 1.0, unless `unfettered` is false (On the Beat, a lent
+# card; the base free hit). min(hit, second_of) is period 1.
+const UNFETTERED := &"unfettered"
+func output_share(tower, period: float, unfettered := true) -> float:
+	if is_inf(period):
+		return 1.0
+	var share := minf(1.0, tower.get_attacks_per_second() * period)
+	if share < 1.0 and unfettered and dream_state != null and dream_state.has_rule(UNFETTERED):
+		if share <= 0.5:
+			_unfettered_cue(tower)
+		return 1.0
+	return share
+
+# Unfettered shows itself when a lifted hit deals 2x+ what the cap allowed: the card's callout and Dreams-panel count, and
+# the Warden's boost glow for a moment (note_past_cap). Once per Warden every UNFETTERED_CUE_EVERY s.
+const UNFETTERED_CUE_EVERY := 2.0
+const UNFETTERED_META := &"ck_unfettered_cue"
+func _unfettered_cue(tower) -> void:
+	if now() < float(tower.get_meta(UNFETTERED_META, -INF)):
+		return
+	tower.set_meta(UNFETTERED_META, now() + UNFETTERED_CUE_EVERY)
+	dream_state.note_card(UNFETTERED, tower.global_position, 1, tower)
+	dream_state.visuals.note_past_cap(dream_state, tower)
+
 # The one free-hit rule: that nightmare only; the Warden's hit, never more than one second of its damage (x `scale`);
 # its status once, as its own application; one per Warden a second across every card (extra ones are dropped). It is
 # not a hit for anything else: its tag keeps it out of every count.
 # `cap`: the most it may deal (Caught Wading: the Dewdrop's own hit).
 func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"",
-		calling: bool = false) -> bool:  # calling (F1): a Calling output: one hit and one application for other families' lent cards
+		calling: bool = false, period: float = 1.0) -> bool:  # calling (F1): a Calling output: one hit and one application for other families' lent cards. period: output_share (Unfettered only for a Calling one)
 	if not (tower is Tower) or not is_instance_valid(tower) or not living(enemy) or tower.attack_data == null:
 		return false
 	if now() < float(tower.get_meta(FREE_META, -INF)):
 		return false
 	tower.set_meta(FREE_META, now() + FREE_HIT_EVERY)
-	var amount: float = minf(minf(tower.get_damage(), second_of(tower)) * scale, cap)
+	var amount: float = minf(tower.get_damage() * output_share(tower, period, calling) * scale, cap)
 	if amount <= 0.0:
 		return false
 	_line_fx(tower.global_position, enemy.global_position, 3.0)
@@ -422,8 +463,9 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 	return true
 
 # The free hit as a Calling output (F1: Counterpoint, Midnight's Dewdrops, Drowning Deep).
-func calling_free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"") -> bool:
-	return free_hit(tower, enemy, scale, tag, cap, own, true)
+func calling_free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, cap: float = INF, own: StringName = &"",
+		period: float = 1.0) -> bool:
+	return free_hit(tower, enemy, scale, tag, cap, own, true, period)
 
 
 # --- Calling evolutions that split into builds (owner 2026-10-23, dream_council_review.md 33; evo_shared_spec.md 3) ----
@@ -437,7 +479,7 @@ const CALLING_HIT_EVERY := 1.0
 const CALLING_META := &"ck_calling_next"  # Never FREE_META: a base free hit and a Calling hit never eat each other
 
 func calling_hit(tower, enemy, scale: float, tag: StringName, own: StringName = &"", is_area := false,
-		scaled := true, budget: StringName = CALLING_META, boss_share := 1.0) -> float:
+		scaled := true, budget: StringName = CALLING_META, boss_share := 1.0, period := 1.0) -> float:  # period: output_share (final_check.md D)
 	if not (tower is Tower) or not is_instance_valid(tower) or tower.attack_data == null or not living(enemy):
 		return 0.0
 	assert(tag in CLASS_TAGS, "calling_hit: %s must be a class tag" % tag)
@@ -447,9 +489,9 @@ func calling_hit(tower, enemy, scale: float, tag: StringName, own: StringName = 
 		tower.set_meta(budget, now() + CALLING_HIT_EVERY)
 	var amount := scale
 	if scaled:
-		amount = minf(tower.get_damage(), second_of(tower)) * scale * tower._form_hit_multiplier()
+		amount = tower.get_damage() * output_share(tower, period) * scale * tower._form_hit_multiplier()
 		var p: float = dream_state.hit_cards.preview_multiplier(tower, enemy, is_area) if dream_state != null else 1.0
-		var rows: float = maxf(tower._dream_bonus(&"soothe"), 1.0)
+		var rows: float = maxf(tower.card_rows(), 1.0)  # The Warden's Dream rows and kin bonuses (Tower Code, final_pass_shared.md 4)
 		var s := maxf(scale, 1.0)
 		p = minf(p * s, DreamState.CARD_PRODUCT_CAP / rows) / s  # The x4 line with the Warden's own rows
 		amount *= p
@@ -479,8 +521,11 @@ func calling_slow(enemy, amount: float, own: StringName = &"") -> void:
 	row[1] = float(row[1]) + amount
 	_slow_requests[key] = row
 
+# Slows round to SLOW_SNAP so add_slow's list stays short. 2.5%, not 5%: a boss's halved 15% is 7.5%, which a 5% step
+# rounded down to 5% (Tower Code, 2026-10-24). The name stays (puddles reads it).
+const SLOW_SNAP := 0.025
 static func snap5(amount: float) -> float:
-	return snappedf(amount, 0.05)
+	return snappedf(amount, SLOW_SNAP)
 
 func _apply_calling_slows() -> void:
 	for key in _slow_requests:

@@ -222,8 +222,8 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	drop._apply_one_status(soak_dry, EnemyStatuses.DAMP, 1, drop.get_damage())
 	var soak_wet = _spawn(at)
 	drop._apply_one_status(soak_wet, EnemyStatuses.DAMP, 1, drop.get_damage())
-	_check(absf(soak_wet.statuses.time_left(EnemyStatuses.DAMP) - soak_dry.statuses.time_left(EnemyStatuses.DAMP)) < 0.01,
-		"Riverside, old effect gone: a Dewdrop's own status gets no time")
+	_check(absf(soak_wet.statuses.time_left(EnemyStatuses.DAMP) - soak_dry.statuses.time_left(EnemyStatuses.DAMP) - klass.SIDE_DAMP_SECONDS) < 0.01,
+		"Riverside (final pass 2026-10-24): a Dewdrop's own Soaked in water lasts %.0f s longer" % klass.SIDE_DAMP_SECONDS)
 	r.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 1.0, 0, "song", null)
 	var drowsy_left: float = r.statuses.time_left(EnemyStatuses.DROWSY)
 	klass._evo_status(spore, r, EnemyStatuses.DROWSY)
@@ -231,13 +231,8 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	r.apply_status(EnemyStatuses.DAMP, 1, 10.0, 1.0, 0, "water", drop)
 	_check(klass.touches_water(sprout, klass.water_of(r)), "(the Sprout touches the water)")
 	_check(is_equal_approx(klass.damage_multiplier(r, sprout), 1.0), "Riverside, old effect gone: no +25% for Sprouts on a Soaked nightmare")
-	# The Sprout part: a Sprout's hit there adds SIDE_SPROUT_SECONDS to each status another Warden put on it, once a second
-	var sp_before: float = r.statuses.time_left(EnemyStatuses.SPORED)
-	klass._sprout_side(sprout, r, klass.water_of(r))
-	_check(absf(r.statuses.time_left(EnemyStatuses.SPORED) - sp_before - klass.SIDE_SPROUT_SECONDS) < 0.01, "Riverside: a Sprout's hit adds %.0f s to Poisoned" % klass.SIDE_SPROUT_SECONDS)
-	var sp_after: float = r.statuses.time_left(EnemyStatuses.SPORED)
-	klass._sprout_side(sprout, r, klass.water_of(r))
-	_check(is_equal_approx(r.statuses.time_left(EnemyStatuses.SPORED), sp_after), "...once a second for each Sprout")
+	# The Sprout part is gone (final pass 2026-10-24, S1): Sprouts count toward no Dewdrop Warden count
+	_check(not _has_const("SIDE_SPROUT_SECONDS") and not klass.has_method("_sprout_side"), "Riverside, old effect gone: no Sprout part")
 	_check(DreamState.CALLING_PATHS.keeps_out(&"dw_riverside").has(&"steeped") and dreams._calling_keeps_out.has("steeped"), "Riverside keeps Steeped out of the offers")
 	# Open Water: a Warden far from the water counts too
 	var far_spore := _plant("sporeling", at + Vector2(CELL * 6, CELL * 6))
@@ -288,6 +283,22 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	klass._set_timed_slow(ff, klass.CAPSTONE_SLOW, klass.FLASH_SECONDS, klass.EVO_FLASH)
 	_check(is_equal_approx(_calling_slow_on(ff), klass.CAPSTONE_SLOW), "Flash Flood: its slow replaces Stream's, never adds (%.2f)" % ff.statuses.timed_slow())
 	_check(ff.statuses.timed_slows.size() == 1, "...one Calling slow entry per nightmare")
+	# Final pass 2026-10-24: Mudflats' own STEADY_SLOW; Floodgate's surge (a timed slow, each water once in SURGE_COOLDOWN)
+	_path([&"dw_stream", &"dw_backwaters", &"dw_mudflats"])
+	klass.on_board()
+	var mf = _spawn(at)
+	_check(is_equal_approx(_calling_slow_on(mf), klass.STEADY_SLOW), "Mudflats: %d%% in water (%.2f)" % [roundi(klass.STEADY_SLOW * 100.0), mf.statuses.timed_slow()])
+	_path([&"dw_stream", &"dw_floodgate"])
+	klass.on_board()
+	var fg_dead = _spawn(at)
+	var fg = _spawn(at)
+	klass._floodgate(fg_dead)
+	var surge: Array = fg.get_meta(klass.TIMED_META, [])
+	_check(surge.size() >= 3 and is_equal_approx(float(surge[1]), klass.SURGE_SLOW) and StringName(surge[2]) == klass.EVO_FLOODGATE,
+		"Floodgate: a dispel in water slows every nightmare in it %d%%" % roundi(klass.SURGE_SLOW * 100.0))
+	fg.remove_meta(klass.TIMED_META)
+	klass._floodgate(fg_dead)
+	_check(not fg.has_meta(klass.TIMED_META), "...each water once every %.0f s" % klass.SURGE_COOLDOWN)
 	await _clean()
 
 	# --- Black Pond (kept id, new meaning): the highest-rank Dewdrop's water is the pond; its hits spill 25% onto up to 4
@@ -313,6 +324,16 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	pond_drop.rank = 5
 	_check(is_equal_approx(klass._spill_amount(pond_drop, 100.0), 100.0 * (klass.SPILL_SHARE + klass.DEEP_END_PER_RANK * 5)), "Deep End: +3% a rank")
 	pond_drop.rank = 0
+	_check(not _has_const("KING_BOSS_COUNT"), "King Tide, old effect gone: no boss count or shell pass")
+	# Final pass 2026-10-24, Focus line B: Undertow (+10% per missing spill target) and Fathoms (+10% a second waded) add
+	_path([&"dw_black_pond", &"dw_undertow", &"dw_fathoms"])
+	klass.on_board()
+	q.queue_free()
+	await _frames(1)
+	p.set_meta(klass.POND_SINCE_META, klass.now() - 3.0)
+	var deep: float = klass.hit_multiplier(pond_drop, p, false, false, &"")
+	_check(absf(deep - (1.0 + klass.UNDERTOW_PER * klass.SPILL_MAX + klass.FATHOM_PER * 3.0)) < 0.02,
+		"Undertow + Fathoms: alone in the pond after 3 s (%.2f)" % deep)
 	await _clean()
 
 	# --- Wet Footprints (kept id, new meaning): footprints are never water; for 2 s after leaving water other families'
@@ -342,6 +363,22 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	var plain = _spawn(at + Vector2(CELL * 9, CELL * 9))
 	w_spore._apply_one_status(plain, EnemyStatuses.SPORED, 1, w_spore.get_damage())
 	_check(is_equal_approx(klass.hit_multiplier(w_spore, plain, false, false, &""), 1.0), "...a status nothing keeps counts for nothing")
+	# Final pass 2026-10-24, River Mouth: the first other-family direct hit within 6 steps of leaving water, +20% per
+	# lingering status (Soaked left out, owner pick), once per nightmare per water; Sprouts neither take nor spend it
+	_path([&"dw_riverside", &"dw_river_mouth"])
+	_check(DreamState.calling_tide_on, "River Mouth switches the Calling hit branch on")
+	var rm = _spawn(route[mini(60, route.size() - 1)])
+	w_spore._apply_one_status(rm, EnemyStatuses.SPORED, 1, w_spore.get_damage())
+	rm.statuses.linger(EnemyStatuses.SPORED, 1.0)
+	rm.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0, 0, "water", null)
+	rm.statuses.linger(EnemyStatuses.DAMP, 1.0)
+	rm.set_meta(klass.MOUTH_WIN_META, [klass.index_of(rm), bool(rm.get("passed_waymark")), "test"])
+	var rm_sprout := _plant("sprout", at + Vector2(CELL * 8, CELL * 6))
+	await _frames(1)
+	_check(is_equal_approx(klass.hit_multiplier(rm_sprout, rm, false, false, &""), 1.0), "River Mouth: a Sprout's hit takes nothing...")
+	_check(is_equal_approx(klass.hit_multiplier(w_spore, rm, false, false, &""), 1.0 + klass.MOUTH_PER),
+		"...and spends nothing: the first other-family hit gets +20% for 1 lingering status (Soaked doesn't count)")
+	_check(is_equal_approx(klass.hit_multiplier(w_spore, rm, false, false, &""), 1.0), "...once per nightmare per water")
 	_path([])
 	_check(not DreamState.calling_tide_on, "(no Calling hit branch without the rows)")
 	await _clean()
