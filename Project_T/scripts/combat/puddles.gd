@@ -791,7 +791,7 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 				continue
 			var front = _front_in(int(other_w))
 			if front != null:
-				_line_fx(source.global_position, front.global_position, 2.0, Palette.DEWLIGHT)
+				_line_fx(body(source), body(front), 2.0, Palette.DEWLIGHT)
 				strike(source, front, event.base * BOTH_BANKS_SHARE, &"both_banks")
 				if living(front):
 					source._apply_one_status(front, EnemyStatuses.DAMP, maxi(int(source.attack_data.status_stacks), 1), source.get_damage(), false)
@@ -1170,7 +1170,7 @@ func _millrace(enemy, soaked: Array) -> void:
 				landed = true
 		if landed:
 			given += 1
-			_line_fx(enemy.global_position, other.global_position, 1.0, Palette.DEWLIGHT)
+			_line_fx(body(enemy), body(other), 1.0, Palette.DEWLIGHT)
 	if given > 0:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)
 		credit(EVO_MILLRACE, enemy.global_position)
@@ -1197,7 +1197,7 @@ func _rain(w: int, soaked: Array) -> void:
 			Reactions._effect(&"landing_dust", other.global_position, self, 0.35)
 	if rained:
 		for tower in bank:
-			_line_fx(tower.global_position, soaked[0].global_position, 1.0, Palette.DEWLIGHT)
+			_line_fx(body(tower), body(soaked[0]), 1.0, Palette.DEWLIGHT)
 		credit(EVO_RAIN, soaked[0].global_position)
 
 # Downpour: a ripple soaking 4 or more makes every bank Warden attack one of them at once (each Warden once in 4 s).
@@ -1212,7 +1212,7 @@ func _downpour(enemy, w: int, soaked: Array) -> void:
 		tower.set_meta(BURST_META, now() + BURST_EVERY)
 		tower.volley_now(target)
 		tower.set_meta(DOWNPOUR_HIT_META, [target.get_instance_id(), now() + DOWNPOUR_HIT_WAIT])  # (damage credit, owner 2026-10-19)
-		_line_fx(tower.global_position, target.global_position, 2.0, Palette.DEWLIGHT)
+		_line_fx(body(tower), body(target), 2.0, Palette.DEWLIGHT)
 		fired += 1
 	if fired > 0:
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.6)
@@ -1235,14 +1235,14 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 				source.set_meta(LAP_META, now() + LAP_EVERY)
 				Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)
 				for other in soaked:
-					_line_fx(enemy.global_position, other.global_position, 1.0, Palette.DEWLIGHT)
+					_line_fx(body(enemy), body(other), 1.0, Palette.DEWLIGHT)
 				credit(EVO_LAPPING, enemy.global_position, source)
 				_ripple_extras(enemy, w, soaked)
 	if evo(EVO_REFLECTION) and living(enemy) and now() >= float(source.get_meta(MIRROR_META, -INF)):
 		var last = _back_in(w, enemy)
 		if last != null:
 			source.set_meta(MIRROR_META, now() + MIRROR_EVERY)
-			_line_fx(enemy.global_position, last.global_position, 2.0, Palette.DEWLIGHT)
+			_line_fx(body(enemy), body(last), 2.0, Palette.DEWLIGHT)
 			Reactions._effect(&"landing_dust", last.global_position, self, 0.5)
 			calling_strike(source, last, float(event.base) * MIRROR_SHARE, MIRROR_TAG, false, EVO_REFLECTION)  # (own: setup credit 2026-10-16)
 			credit(EVO_REFLECTION, last.global_position, source)
@@ -1275,7 +1275,7 @@ func _evo_status(tower, enemy, status: StringName) -> void:
 	SETUP.note_linger(enemy, card_id(row), status, side)  # (setup credit 2026-10-16)
 	if side > 0.0 and now() >= float(enemy.get_meta(SIDE_FX_META, -INF)):
 		enemy.set_meta(SIDE_FX_META, now() + SIDE_FX_EVERY)
-		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
+		_line_fx(body(tower), body(enemy), 1.5, Palette.DEWLIGHT)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 		credit(row, enemy.global_position, tower)
 
@@ -1806,7 +1806,7 @@ func _drowning_deep(enemy, w: int, pixels: float) -> void:
 			SETUP.control_pull(dream_state, card_id(EVO_DEEP), other, dragged_px)  # (setup credit 2026-10-16)
 			dragged += 1
 			dream_state.role_cards.pulled_back(null, other)  # (Homesick)
-			_line_fx(enemy.global_position, other.global_position, 2.0, Palette.DEWLIGHT)
+			_line_fx(body(enemy), body(other), 2.0, Palette.DEWLIGHT)
 	var hits := 0
 	for tower in (waters[w].dewdrops as Array) + _bank_of(w):
 		if _tower_ok(tower) and calling_free_hit(tower, enemy, 1.0, FREE_HIT_TAG, INF, EVO_DEEP):  # (own: setup credit 2026-10-16)
@@ -2021,7 +2021,7 @@ func _last_drop(id: StringName, peak: int, source: Node, enemy) -> void:
 	enemy.set_meta(LAST_DROP_META, now() + LAST_DROP_EVERY)
 	var amount: float = source.get_damage() * minf(LAST_DROP_SHARE * float(peak), LAST_DROP_HITS)  # Potency comes from EFFECT_TAGS in take_damage (Tower Code 25c686df)
 	Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)  # A single falling drop
-	_line_fx(source.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
+	_line_fx(body(source), body(enemy), 1.5, Palette.DEWLIGHT)
 	credit(LAST_DROP, enemy.global_position, source)
 	strike(source, enemy, amount, LAST_DROP_TAG, false, LAST_DROP)
 
@@ -2155,7 +2155,7 @@ func _run_off(enemy) -> void:
 			target = other
 	if target == null:
 		return
-	_line_fx(at, target.global_position, 2.0, Palette.DEWLIGHT)
+	_line_fx(at, body(target), 2.0, Palette.DEWLIGHT)
 	for id in carried:
 		var row: Array = carried[id]
 		var statuses: EnemyStatuses = target.statuses
