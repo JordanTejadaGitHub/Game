@@ -1297,6 +1297,21 @@ func _older_holder(tower, at: Vector2, m: Dictionary, best, best_point) -> bool:
 	var best_at: Vector2 = _route_px[int(_index[best_point])]
 	return tower.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(best_at)
 
+# The would-be throne holder before any throne exists (UI's age ring fills toward THRONE_AGE): [Warden, drifts of age] for
+# the Warden _refresh_thrones would pick with no age gate, or [] with no clump Warden. (UI Code, CallingCues.)
+func throne_progress() -> Array:
+	if not evo(EVO_THRONE):
+		return []
+	var best_tower = null
+	var best_point = null
+	for point in mushrooms:
+		var at: Vector2 = _route_px[int(_index[point])]
+		for tower in _focus_wardens(at).slice(0, CLUMP_WARDENS):
+			if best_tower == null or _older_holder(tower, at, mushrooms[point], best_tower, best_point):
+				best_tower = tower
+				best_point = point
+	return [best_tower, _current_drift() - _planted_drift(best_tower)] if best_tower != null else []
+
 # Shared Caps (Support style): a dose also adds 2 stacks (Charged / Exposed 1) to the status the highest-rank other-family
 # Warden touching that mushroom (Sprouts count; ties to the nearest) already put on the nightmare; for a Sprout, the
 # Poisoned the dose just put on. Quietly: never starts or copies a status, never Rooted, Drowsy within its limit.

@@ -107,7 +107,7 @@ func _data_checks() -> void:
 		for member in KW.MEMBERS.get(id, []):
 			made = made or makers.has(member)
 			used = used or users.has(member)  # Slow: its users name the exact state (decisions: "Uses Rooted", "Uses Asleep")
-		_check(made, "keyword %s has a maker (cards, evolutions or Warden roles)" % id)
+		_check(made or id in [&"age", &"order"], "keyword %s has a maker (cards, evolutions or Warden roles)" % id)  # age, order: uses-only words (a Warden's age, its place along the path)
 		_check(used or id == &"potency", "keyword %s has a user" % id)  # Potency: a stat every effect reads, so no card "uses" it (Host Grove makes it)
 	for id in KW.WORDS:
 		var words := String(KW.glossary(id).text).split(" ", false).size()

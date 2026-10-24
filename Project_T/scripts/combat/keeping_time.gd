@@ -406,7 +406,6 @@ func _draw_pips() -> void:
 	var midnight := evo(EVO_MIDNIGHT)  # Midnight Bell: a dial over the pips counts to 12
 	var notes := evo(EVO_COUNTER)  # Counterpoint: each joined Warden's note hangs over the nightmare
 	var walls := evo(EVO_WALLS)  # Humming Walls: the wall's ring hums
-	var tally := evo(EVO_LAST)  # Last Bell: the rings a nightmare remembers
 	for enemy in enemies():
 		if not enemy.has_meta(PIPS_META) and start <= 0:
 			continue
@@ -450,10 +449,7 @@ func _draw_pips() -> void:
 			var share := clampf(float(enemy.get_meta(RINGS_META)) / MIDNIGHT_RINGS, 0.0, 1.0)
 			var dial: Vector2 = at + Vector2(0.0, RING_FIRST + RING_STEP * need + 5.0)  # Under the outermost ring
 			_pip_layer.draw_arc(dial, 4.0, -PI / 2.0, -PI / 2.0 + TAU * share, 16, Color(Palette.MOONLIGHT, 0.7), 1.0)
-		if tally and enemy.has_meta(REMEMBER_META) and not enemy.has_meta(LAST_DONE_META):  # Last Bell: the remembered rings, a bronze tally toward 30
-			var count := clampf(float(enemy.get_meta(REMEMBER_META)) / LAST_RINGS, 0.0, 1.0)
-			var mark: Vector2 = at + Vector2(-RING_FIRST - RING_STEP * need - 4.0, 2.0)
-			_pip_layer.draw_arc(mark, 3.0, -PI / 2.0, -PI / 2.0 + TAU * count, 12, Palette.EMBER, 1.5)
+		# (Last Bell's tally and Halfway Bell's notch: UI Code's CallingCues draws them beside the rings)
 	for f in _toll_flashes:  # A Toll: the four rings light gold and burst outward, fading
 		var age := clampf((now() - float(f.start)) / TOLL_FLASH, 0.0, 1.0)
 		var who = f.enemy.get_ref()
