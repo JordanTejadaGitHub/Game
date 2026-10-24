@@ -57,6 +57,11 @@ func _run() -> void:
 	var real := _spawn(jar.global_position + Vector2(0, -CELL))
 	jar.hit(real, 1.0, false, Tower.CRIT)
 	Tower.force_calling_crit = true
+	# Keen's +10% crit chance made this hit a real crit about 1 run in 10 (it rolls before the forced crit, and a real crit
+	# rightly gets Keen: "34 vs 32"). No roll here: the crit chance sits below zero for this one hit.
+	jar.attack_data = jar.attack_data.duplicate()
+	jar.attack_data.crit_chance = -1.0
+	jar.clear_dream_cache()
 	var keen_forced := _spawn(jar.global_position + Vector2(CELL, CELL))
 	jar.hit(keen_forced, 1.0, false, Tower.ROLL_CRIT)
 	_check(_lost(real) > keen_base * own_crit + 1.0, "a real crit gets the Keen rank's crit damage (%d)" % _lost(real))
