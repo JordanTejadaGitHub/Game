@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_tallest_tree"
 display_name = "The Tallest Tree"
-description = "Choose one Warden: the Tallest Tree. Other Wardens' direct hits add 20% of their damage to its stored damage, up to 40 of its hits. Each of its attacks spends up to 6."
+description = "Choose one Warden: the Tallest Tree. Other Wardens' direct hits add 20% of their damage to its stored damage, up to 40 of its hits. Each of its attacks spends up to 6 of its own hits' worth."
 tip = "Choose it on its panel, first any time, then only at a {rest}. Moving it empties the stored damage. An attack never spends more than a {dispel} needs. Sold: choose again."
 rarity = 3
 kind = 3

@@ -27,7 +27,7 @@ const TEXTS := {
 
 # Small print a card leaves out: shown after the text in tooltips (tooltip()).
 const DETAILS := {
-	"firefly_jar": "A Firefly is any {family:firefly_jar} form. Glow: the path within 1.5 cells of a Firefly, wider as its range grows. A {reaction}'s dispel doesn't count. Only this Calling uses {lit} nightmares.",
+	"firefly_jar": "A Firefly is any {family:firefly_jar} form. Glow: the path within 1.5 cells of a Firefly, wider as its range grows. A {reaction}'s dispel doesn't count. Only this Calling uses {lit} nightmares. A crit this Calling saves or forces counts as a crit for nothing else.",
 	"sporeling": "A Sporeling is any {family:sporeling} form. Any Warden's dispel counts. {Mushrooms} stay through a {rest}, 40 at most. Flyers pass over them. Only this Calling grows {mushrooms} and gives {doses}.",
 	"dewdrop": "A Dewdrop is any {family:dewdrop} form, and hits nightmares with {damp} harder. A {dew_splash} gives each nightmare {damp} at most once a second. Only this Calling makes {water}.",
 	"bellflower": "A bell is any {family:bellflower} form. Hits less than 0.5 s apart count as one ring. After a {toll} the rings go back to 0. Each nightmare takes one {toll} a second at most.",

@@ -442,5 +442,5 @@ func panel_line(tower) -> String:
 		var steps: int = int(trophies.get(cell_key(tower.cell), {}).get("steps", 0))
 		parts.append("Trophies +%d%%" % roundi(minf(TROPHY_STEP * steps, TROPHY_MAX) * 100.0))
 	if live() and _on.has(TALLEST_TREE) and is_tallest(tower):
-		parts.append("The Tallest Tree: %d stored" % roundi(tallest_store))
+		parts.append("The Tallest Tree: %d stored damage" % roundi(tallest_store))
 	return " · ".join(parts)
