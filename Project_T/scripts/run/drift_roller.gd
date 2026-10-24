@@ -118,8 +118,11 @@ const SHAPE_TEMPLATES := {  # The templates each shape is rolled with (Stream: a
 }
 const META_SHAPE := &"roll_shape"
 const FEW_ELITES := Vector2i(3, 5)  # Few and tough: this many Deeply Blighted of a heavy kind…
-const FEW_SHARE := Vector2(0.4, 0.7)  # …holding this share of the budget
-const FEW_ELITE_CAP := 0.7  # The roller's elite cap for Few and tough (others: 0.5)
+const FEW_SHARE := Vector2(0.4, 0.6)  # …holding this share of the budget (Balancing 2026-10-24: 0.7 left too few bodies)
+const FEW_ELITE_CAP := 0.6  # The roller's elite cap for Few and tough (others: 0.5)
+# Single file thins at most this share of the bodies (after extra nightmares) into the heavy lead; a
+# drift that still can't arrive SINGLE_GAP apart plays as a Stream (Balancing 2026-10-24).
+const SINGLE_THIN_MAX := 0.25
 
 # {drift: shape} for the run, on its own salted rng (the kinds keep theirs). Fixed drifts (1–5,
 # intro drifts, bosses, the drift before a boss) are Streams and count as their block's Streams.
@@ -300,9 +303,11 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 		if mix.is_empty():
 			continue
 		if shape == DriftShapes.SINGLE_FILE:
-			mix = _fit_single_file(mix, drift, kept_elites, director.get_extra_nightmares(number))
-			if mix.is_empty() or absf(_mix_cost(mix) - budget) > budget * BUDGET_TOLERANCE:
-				continue
+			var fitted := _fit_single_file(mix.duplicate(true), drift, kept_elites, director.get_extra_nightmares(number))
+			if not fitted.is_empty() and absf(_mix_cost(fitted) - budget) <= budget * BUDGET_TOLERANCE:
+				mix = fitted
+			else:
+				shape = DriftShapes.STREAM  # Can't fit 1.5 s apart without thinning past SINGLE_THIN_MAX: a Stream
 		# Fairness judges the rolled part: the hand-made elites are a fixed design choice (drift 23's
 		# first elites are Husks on purpose).
 		if get_leaves(mix) > maxi(ceili(hand_leaves * LEAVES_SCALE), hand_leaves + LEAVES_EXTRA):
@@ -522,7 +527,11 @@ static func _fit_single_file(mix: Array, drift: DriftData, kept_elites: Array, e
 		count += slot[1]
 	var lead: EnemyData = mix[0][0]
 	var spare := 0.0
+	var thin_left := floori(count * SINGLE_THIN_MAX)
 	while count > most:
+		if thin_left <= 0:
+			return []  # Thinning further would make it a Few and tough without its safeguards
+		thin_left -= 1
 		var cheapest := -1
 		for i in range(1, mix.size()):
 			if not mix[i][2] and mix[i][1] > 1 and (cheapest < 0 or mix[i][0].get_roll_weight() < mix[cheapest][0].get_roll_weight()):
