@@ -83,7 +83,7 @@ static func fact_line(facts: Dictionary) -> String:
 			return "Few and tough: %d, %d Deeply Blighted" % [count, int(facts.elites)]
 	return "Stream: %d" % count
 
-# Act `act`'s rolled shapes as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
+# Act `act`'s shapes as they will arrive, as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
 # 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough". Finales = each ordinary block's 5th drift.
 # "" before any shape is rolled.
 static func act_line(director: DriftDirector, act: int) -> String:
@@ -97,7 +97,7 @@ static func act_line(director: DriftDirector, act: int) -> String:
 	for number in range(first, last + 1):
 		if director.is_boss_drift(number):
 			continue
-		var shape := director.shape_of(number)
+		var shape := StringName(director.preview_schedule(number).get("shape", DriftShapes.STREAM))  # As it really arrives (Enemy Code c7bde1ee: a Packs drift too crowded for packs is a Stream)
 		if shape != DriftShapes.STREAM:
 			counts[shape] = int(counts.get(shape, 0)) + 1
 		if number % director.drifts_per_block == 0:  # An ordinary block's 5th drift (boss drifts are skipped above)
