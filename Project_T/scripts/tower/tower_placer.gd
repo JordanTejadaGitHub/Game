@@ -1455,6 +1455,7 @@ func _try_build(cell: Vector2) -> bool:
 	var tower: Tower = tower_scene.instantiate()
 	tower.tower_data = tower_data
 	tower.cell = cell
+	tower.planted_drift = _drift_now()
 	tower.invested_dew = cost
 	tower.plant_dew = cost  # What it was planted for (a Sprout growing into a base: the copy floor)
 	if tower_data.get_id() == "sprout" and cost == 0:
@@ -1503,6 +1504,7 @@ func _try_build_half(origin: Vector2) -> bool:
 	tower.tower_data = tower_data
 	tower.half_cell = origin
 	tower.cell = home
+	tower.planted_drift = _drift_now()
 	tower.invested_dew = cost
 	tower.plant_dew = cost  # What it was planted for (a Sprout growing into a base: the copy floor)
 	if tower_data.get_id() == "sprout" and cost == 0:
@@ -1994,6 +1996,13 @@ func seed_cells_open(seedbearer: Tower) -> Array[Vector2]:
 			out.append(cell)
 	return out
 
+# The drift now (the one playing, or at a rest the next; 1 without a director): a new Warden's planted_drift (section 33).
+func _drift_now() -> int:
+	var director := get_node_or_null("%DriftDirector")
+	if director == null:
+		return 1
+	return maxi(1, int(director.drifts_started) + (1 if director.resting else 0))
+
 # Plants `seedbearer`'s Sprout on `cell` (free; never raises the Sprout price). Returns the Sprout, or null.
 func plant_seed(seedbearer: Tower, cell: Vector2) -> Tower:
 	if BranchKit.seeds_ready(seedbearer) <= 0 or not seed_cells_open(seedbearer).has(cell):
@@ -2002,6 +2011,7 @@ func plant_seed(seedbearer: Tower, cell: Vector2) -> Tower:
 	var tower: Tower = tower_scene.instantiate()
 	tower.tower_data = _sprout_data
 	tower.cell = cell
+	tower.planted_drift = _drift_now()
 	tower.invested_dew = 0
 	tower.set_meta(&"gift_sprout", true)
 	tower.position = Tower.footprint_centre(cell, 1)

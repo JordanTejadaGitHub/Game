@@ -212,7 +212,8 @@ func save_now() -> bool:
 				"unique_plant_order": int(tower.get_meta(&"unique_plant_order", 0)),
 				"unique_plant_rest": int(tower.get_meta(&"unique_plant_rest", -1)),
 				"underdog": bool(tower.get_meta(&"underdog", false)),  # Underdog's mark (set at each rest)
-				"fence_bond": BranchKit.saved_bond(tower)})  # A Jarlink's partner, by its cells (Tower Code 2026-10-24)
+				"fence_bond": BranchKit.saved_bond(tower),  # A Jarlink's partner, by its cells (Tower Code 2026-10-24)
+				"planted_drift": tower.planted_drift})  # The drift it was planted in (Sporeling Throne's age; section 33)
 	var data := {
 		"version": VERSION,
 		"app_version": String(ProjectSettings.get_setting("application/config/version", "")),  # Which build wrote it (route repair log)
@@ -478,6 +479,7 @@ func _restore(data: Dictionary) -> void:
 		tower.set_meta(&"unique_plant_rest", int(saved.get("unique_plant_rest", -1)))
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
+		tower.planted_drift = int(saved.get("planted_drift", 1))  # An older save: drift 1
 		if not (saved.get("fence_bond", []) as Array).is_empty():
 			tower.set_meta(BranchKit.FENCE_BOND_SAVED, saved.fence_bond)  # Re-bonded below, once every Warden is back
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.

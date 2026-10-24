@@ -1035,9 +1035,11 @@ func get_damage() -> float:
 	return _stats[&"damage"]
 
 func _compute_damage() -> float:
+	var kin := 1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)
+	_stats[&"kin_rows"] = maxf(kin, 1.0)  # card_rows (dream_council_review.md 33): a Blood Is Thicker penalty never makes room
 	return Signatures.multiplier(self, &"damage") * attack_data.damage * _damage_share * get_rank_damage_multiplier() * (1.0 + _aura_damage) \
 		* _dream_bonus(&"soothe") \
-		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
+		* kin \
 		* get_wall_multiplier() * (1.0 + _chorus) \
 		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0)) \
 		* (1.0 + _gift_bonus(&"damage")) \
@@ -1067,6 +1069,13 @@ func _big_hit_feedback(enemy: Node2D, dealt: float, is_crit: bool) -> void:
 	var tier: int = enemy.big_hit_tier_of(dealt / maxf(float(enemy.max_health), 1.0), enemy.enemy_data.is_boss)
 	if tier >= BIG_HIT_CALLOUT_TIER:
 		Fx.big_hit(self, enemy, tier, is_crit)
+
+# The card rows inside this Warden's damage, for the x4 card cap (owner 2026-10-24, dream_council_review.md 33,
+# final_pass_shared.md 4): its Dream rows x its kinship bonuses (Kindred / Whole Tree, Generic Kin, Family Ties, Blood Is
+# Thicker, Grove of Kin; at least 1, so a penalty never makes room). DreamState.card_cap_factor and class_kit.calling_hit read it.
+func card_rows() -> float:
+	get_damage()  # (Fills kin_rows with the damage, both cached on the same stats)
+	return _dream_bonus(&"soothe") * float(_stats.get(&"kin_rows", 1.0))
 
 # The damage without this Warden's Dream card rows (owner 2026-10-22, dream_council_review.md 29): Reactions scale with
 # it, so a card isn't counted twice (in the Warden's damage and again in the Reaction pool).
@@ -1145,6 +1154,7 @@ func get_attacks_per_second() -> float:
 
 var speed_capped := false  # Its Dream attack-speed bonus is at the +150% cap (the Warden panel can say "capped")
 static var force_calling_crit := false  # Tests only (test_forced_crit): the forced-crit hook forces every eligible hit
+var planted_drift := 1  # The drift it was planted in (TowerPlacer; growing, a grown Sprout and a Walking Wood swap keep it; RunSaver saves it): Sporeling Throne's age (section 33)
 var reactions_set_off := 0  # Every Reaction has an author (owner 2026-10-22, dream_council_review.md 29): times this Warden's
 var reactions_fed := 0  # application completed one / fed the other status of one (Warden panel "Set off N / Fed N")
 var reaction_haste := 0.0  # Wide Awake (Crowned Reaction; owner 2026-10-17, council reactions_unique.md): attack speed bonus, set by Reactions.WardenWake
