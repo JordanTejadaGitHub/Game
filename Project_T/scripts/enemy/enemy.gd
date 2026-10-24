@@ -2437,6 +2437,7 @@ func _update_pall(delta: float) -> bool:
 func _can_cover(walker: Node, mine: bool = false) -> bool:
 	return walker != self and not walker.is_cleansed and walker.has_method("on_route") and not walker.is_flying() \
 		and not walker.enemy_data.is_boss and not walker.elite and walker.is_in_group(GROUP) \
+		and not walker.has_meta(DriftShapes.PACK_META) \
 		and (walker.covered_by == null or (mine and walker.covered_by == self))
 
 # The nearest walker ahead of it (nearer the Heartwood) within PALL_REACH cells.
@@ -3518,6 +3519,8 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 			_mark_hit(-1)  # The crust crumbles off in a puff (Dew-light when Wash Away broke it)
 			if enemy_data.cracked_frames != null:
 				_swap_frames(enemy_data.cracked_frames)
+	if soothe > 0.0 and _spawner != null and has_meta(DriftShapes.PACK_META):
+		_spawner.note_pack_damage(self, source, soothe)  # (pack_wiped's top Warden)
 	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
 		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
 			var half := soothe * PALL_SHARE
@@ -3796,6 +3799,7 @@ func _shriek() -> void:
 # appear (no burst outward, no drift). A boss (never an echo) gets its own beat (screens_ui.md a8471922): Tower Assets'
 # boss_burst if it exists (else twice the motes, wider), and in the real game a hitstop and the largest camera rumble.
 const BOSS_DISPEL_TRAUMA := 1.0
+const MOTE_BURST_MAX := 8  # More dispels than this within EnemySpawner.DISPEL_BURST_WINDOW s: half the motes each (phone budget)
 const BOSS_BURST := &"boss_burst"
 func _burst_into_motes() -> void:
 	var boss := enemy_data.is_boss and not is_echo
@@ -3816,7 +3820,8 @@ func _burst_into_motes() -> void:
 	var motes := CPUParticles2D.new()
 	motes.one_shot = true
 	motes.explosiveness = 0.9
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0))
+	var burst_share := 0.5 if _spawner != null and _spawner.dispel_burst() > MOTE_BURST_MAX else 1.0  # A pack wiped at once: half each (phones)
+	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share)
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)

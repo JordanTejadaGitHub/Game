@@ -530,6 +530,77 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_snuff_lanterns_of(enemy)
 	_split(enemy)
 	enemy_cleansed.emit(enemy)
+	_pack_member_gone(enemy, false)
+
+# --- Pack wipes (enemy_design.md "Drift shapes", "More of the group wipe", council 2026-10-24c) ----------------------
+# pack_formed(key, size): a pack's first member arrived (size = the arrivals it was shaped with; for "Packs wiped: N of
+# M"). pack_wiped(key, size, centre, top_source): every member (its splitters' children and followers too) was
+# dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
+# at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
+# damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
+# Phone budget: dispels counted over DISPEL_BURST_WINDOW s (Enemy halves its motes past MOTE_BURST_MAX).
+const DISPEL_BURST_WINDOW := 0.5
+var _dispel_times: Array[float] = []
+
+# A dispel now: how many landed within DISPEL_BURST_WINDOW s, this one included.
+func dispel_burst() -> int:
+	while not _dispel_times.is_empty() and crowd_clock - _dispel_times[0] > DISPEL_BURST_WINDOW:
+		_dispel_times.pop_front()
+	_dispel_times.append(crowd_clock)
+	return _dispel_times.size()
+
+signal pack_formed(key: int, size: int)
+signal pack_wiped(key: int, size: int, centre: Vector2, top_source: Node)
+const PACK_WIPE_MIN := 4
+const PACK_WIPE_WINDOW := 3.0
+var _pack_book := {}  # key -> {"needed", "arrived", "alive", "dispelled", "leaked", "first", "last", "sum", "damage"}
+
+# A pack member arrived (DriftShapes.tag_enemy: `arrival` true for the shaped arrival, false for a follower) or popped
+# out of one (a split child).
+func note_pack_member(enemy: Node, needed: int, arrival: bool) -> void:
+	var key: int = enemy.get_meta(DriftShapes.PACK_META, -1)
+	if key < 0 or key % 1000 == DriftShapes.TOUGH_PACK:
+		return
+	var book: Dictionary = _pack_book.get(key, {})
+	if book.is_empty():
+		book = {"needed": needed, "arrived": 0, "alive": 0, "dispelled": 0, "leaked": false, "first": -1.0, "last": -1.0,
+			"sum": Vector2.ZERO, "damage": {}}
+		_pack_book[key] = book
+		pack_formed.emit(key, needed)
+	book.alive += 1
+	if arrival:
+		book.arrived += 1
+
+# A hit on a pack member (Enemy._take_damage): who dealt it, for pack_wiped's top_source.
+func note_pack_damage(enemy: Node, source: Node, amount: float) -> void:
+	var book: Dictionary = _pack_book.get(enemy.get_meta(DriftShapes.PACK_META, -1), {})
+	if not book.is_empty() and source is Tower:
+		book.damage[source] = float(book.damage.get(source, 0.0)) + amount
+
+func _pack_member_gone(enemy: Node, leaked: bool) -> void:
+	var key: int = enemy.get_meta(DriftShapes.PACK_META, -1)
+	var book: Dictionary = _pack_book.get(key, {})
+	if book.is_empty():
+		return
+	book.alive -= 1
+	if leaked:
+		book.leaked = true
+	else:
+		book.dispelled += 1
+		book.sum += enemy.global_position
+		if book.first < 0.0:
+			book.first = crowd_clock
+		book.last = crowd_clock
+	if book.alive > 0 or book.arrived < book.needed:
+		return
+	_pack_book.erase(key)
+	if book.leaked or book.dispelled < PACK_WIPE_MIN or book.last - book.first > PACK_WIPE_WINDOW:
+		return
+	var top: Node = null
+	for source in book.damage:
+		if is_instance_valid(source) and (top == null or book.damage[source] > book.damage[top]):
+			top = source
+	pack_wiped.emit(key, book.dispelled, book.sum / book.dispelled, top)
 
 # Pops `split_count` `split_into` creatures out where `parent` was, lined up behind it on its route.
 func _split(parent: Node2D) -> void:
@@ -554,6 +625,7 @@ func _split(parent: Node2D) -> void:
 		if parent.has_meta(DriftShapes.PACK_META):
 			child.set_meta(DriftShapes.PACK_META, parent.get_meta(DriftShapes.PACK_META))  # Its leak counts toward the pack's cap
 			child.set_meta(DriftShapes.PACK_LIMIT_META, parent.get_meta(DriftShapes.PACK_LIMIT_META, DriftShapes.PACK_LEAVES))
+			note_pack_member(child, 0, false)  # Its pack waits for it too (pack_wiped)
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
 		if child_share >= 0.0:
 			child.dew_share = child_share
@@ -706,6 +778,7 @@ func _on_enemy_reached_goal(enemy: Node2D) -> void:
 		if stolen > 0:
 			run_state.spend_dew(stolen)
 	enemy_reached_goal.emit(enemy)
+	_pack_member_gone(enemy, true)
 
 # A flyer's line from the forest's edge to the Heartwood (grid coordinates), weaving up to weave
 # cells either side (the Moth Queen), gently at the ends so it still starts and ends on target.

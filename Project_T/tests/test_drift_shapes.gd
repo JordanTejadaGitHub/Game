@@ -49,7 +49,7 @@ func _run() -> void:
 		var members: Array = packs[pack]
 		_check(members.all(func(a: Array) -> bool: return a[1] == members[0][1]), "pack %d is one kind" % pack)
 		_check(members.size() <= 8 and members.size() <= ceili(schedule.size() / 3.0), "pack %d: at most 8 and a third of the drift" % pack)
-		var gap: float = DriftShapes.PACK_CELLS * DriftShapes.CELL_PX / members[0][1].speed
+		var gap: float = DriftShapes.PACK_CELLS_LATE * DriftShapes.CELL_PX / members[0][1].speed
 		for i in range(1, members.size()):
 			_check(absf(members[i][0] - members[i - 1][0] - maxf(gap, DriftShapes.PACK_GAP_FLOOR)) < 0.001, "pack %d: half a cell apart" % pack)
 		pack_times.append(Vector2(members[0][0], members[-1][0]))
@@ -132,20 +132,20 @@ func _run() -> void:
 		crowd.append(shade)
 	for i in 30:
 		crowd.append(husk)
-	var big := _even(crowd, 30.0)
+	var big := _even(crowd, 40.0)  # (8 packs of 2.6 s and 7 gaps of 2 s need ~35 s)
 	var big_shape := DriftShapes.apply(big, DriftShapes.PACKS, DriftShapes.drift_rng(9, 70), 3)
 	var big_facts := DriftShapes.describe(big, DriftShapes.PACKS)
-	_check(big_shape == DriftShapes.PACKS and big_facts.packs == DriftShapes.PACKS_BIG_COUNT and big_facts.gap_s >= 2.0,
-		"a 120-nightmare Packs drift makes 6 packs, >= 2 s apart (%s)" % [big_facts])
+	_check(big_shape == DriftShapes.PACKS and big_facts.packs == DriftShapes.PACKS_BIG_MAX and big_facts.gap_s >= 2.0,
+		"a 120-nightmare Packs drift makes clamp(ceil(120 / 14), 6, 8) = 8 packs, >= 2 s apart (%s)" % [big_facts])
 	var spans := {}
 	for arrival in big:
 		var pack := DriftShapes.pack_of(arrival)
 		if pack >= 0:
 			spans[pack] = Vector2(minf(spans[pack].x, arrival[0]), maxf(spans[pack].y, arrival[0])) if spans.has(pack) else Vector2(arrival[0], arrival[0])
-	_check(spans.values().all(func(s: Vector2) -> bool: return s.y - s.x <= DriftShapes.PACK_SPAN_MAX + 0.001), "each big pack arrives within 3 s")
-	_check(is_equal_approx(big[0][0], 0.0) and is_equal_approx(big[-1][0], 30.0), "a big drift keeps its window")
-	_check(DriftShapes.pack_leaf_limit(20) == 9 and DriftShapes.pack_leaf_limit(8) == 3 and DriftShapes.pack_leaf_limit(40) == 15,
-		"pack leaf limit: 3 per 8, rounded up")
+	_check(spans.values().all(func(s: Vector2) -> bool: return s.y - s.x <= DriftShapes.PACK_SPAN_MAX + 0.001), "each big pack arrives within PACK_SPAN_MAX (2.6 s)")
+	_check(is_equal_approx(big[0][0], 0.0) and is_equal_approx(big[-1][0], 40.0), "a big drift keeps its window")
+	_check(DriftShapes.pack_leaf_limit(20) == 6 and DriftShapes.pack_leaf_limit(8) == 6 and DriftShapes.pack_leaf_limit(40) == 6,
+		"pack leaf limit: 6 in all (council 2026-10-24c)")
 
 	# A boss drift is left alone
 	var boss_drift := _even([boss, shade, shade, shade, shade, shade, shade], 10.0)

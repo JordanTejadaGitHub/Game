@@ -28,20 +28,33 @@ const PACK_SIZE_ACT1 := Vector2i(4, 5)
 const PACK_MIN := 3  # Fewer of a kind than this ride loose, as in a Stream
 const PACK_SHARE := 1.0 / 3.0  # A pack is at most a third of the drift
 const PACK_GAP := 5.0  # At least this many seconds between packs (Restless Wind: × pack_gap)
-const PACK_CELLS := 0.5  # In-pack gap: half a cell at the kind's speed
+const PACK_CELLS := 0.5  # In-pack gap in act 1: half a cell at the kind's speed…
+const PACK_CELLS_LATE := 0.4  # …from act 2 (council 2026-10-24c *; Balancing to confirm)
 const PACK_GAP_FLOOR := 0.2
 const CELL_PX := 64.0
 const CROWD_MAX := 8  # Never more than this many arrivals inside CROWD_SECONDS (only Headlong)
 const CROWD_SECONDS := 3.0
-const SINGLE_GAP := 1.5  # Single file: at least this far apart (the roll makes it fit)
-const PACK_LEAVES := 3  # A leaked pack costs at most this many leaves in all…
-const PACK_LEAVES_PER := 8  # …per this many nightmares in it, rounded up (a pack of 40: 15; Balancing 2026-10-24)
-# Big late drifts (Balancing 2026-10-24): a Packs drift with more than PACKS_BIG_COUNT × PACK_SIZE.y nightmares
-# makes PACKS_BIG_COUNT packs of about count / PACKS_BIG_COUNT, each arriving within PACK_SPAN_MAX s, at least
-# PACK_GAP_BIG_FLOOR s apart (× Restless Wind's pack_gap); the CROWD_MAX rule is waived for them.
+const SINGLE_GAP := 1.5  # Single file in act 1: at least this far apart (the roll makes it fit); single_gap(act)
+const SINGLE_GAPS := [1.5, 1.2, 1.0, 1.0]  # By act (council 2026-10-24c *)
+const PACK_LEAVES := 6  # A leaked pack costs at most this many leaves in all (council 2026-10-24c; was 3 per 8)
+const PACK_LEAVES_PER := 8  # (Unused since 2026-10-24c: the glossary's old "for every N" line reads it until Main Merger's update)
+# Big late drifts (Balancing 2026-10-24; council 2026-10-24c): a Packs drift bringing more than PACKS_BIG_COUNT ×
+# PACK_SIZE.y nightmares (splitters' children counted) makes clamp(ceil(nightmares / BIG_PER_PACK), PACKS_BIG_COUNT,
+# PACKS_BIG_MAX) packs, each arriving within PACK_SPAN_MAX s, at least PACK_GAP_BIG_FLOOR s apart (× Restless Wind's
+# pack_gap); the CROWD_MAX rule is waived for them.
 const PACKS_BIG_COUNT := 6
-const PACK_SPAN_MAX := 3.0
+const PACKS_BIG_MAX := 8
+const BIG_PER_PACK := 14
+const PACK_SPAN_MAX := 2.6  # (council 2026-10-24c *; was 3.0)
 const PACK_GAP_BIG_FLOOR := 2.0
+static var _big_count := PACKS_BIG_COUNT  # This apply's big-pack count
+static var _act_now := 2  # This apply's act (the in-pack gap)
+
+static func single_gap(act: int) -> float:
+	return float(SINGLE_GAPS[clampi(act, 1, SINGLE_GAPS.size()) - 1])
+
+static func _pack_cells() -> float:
+	return PACK_CELLS if _act_now <= 1 else PACK_CELLS_LATE
 const PACK_LIMIT_META := &"drift_pack_leaves"
 const PACK_META := &"drift_pack"
 # Kinds that leave a pack by design: never packed.
@@ -83,10 +96,13 @@ static func tag_enemy(enemy: Node, number: int, arrival: Array) -> void:
 	if pack_of(arrival) < 0:
 		return
 	var limit := pack_leaf_limit(pack_size_of(arrival))
+	var spawner := enemy.get_parent()
 	for node in tagged:
 		if is_instance_valid(node):
 			node.set_meta(PACK_META, pack_key(number, pack_of(arrival)))
 			node.set_meta(PACK_LIMIT_META, limit)
+			if spawner != null and spawner.has_method("note_pack_member"):
+				spawner.note_pack_member(node, pack_size_of(arrival), node == enemy)  # (pack_wiped's book)
 
 # Leaves a leak of `enemy` costs once its pack's cap is counted: `charged` (RunState) holds the leaves
 # each pack lost so far; the cap is PACK_LEAVES per PACK_LEAVES_PER nightmares in the pack. Outside a pack:
@@ -276,28 +292,33 @@ static func _weight(data: EnemyData) -> int:
 static func _pack_step(pack: Array, big: bool) -> float:
 	var step := _in_pack_gap(pack[0][1])
 	if big:
-		step = minf(PACK_CELLS * CELL_PX / maxf(pack[0][1].speed, 1.0), PACK_SPAN_MAX / maxf(pack.size() - 1, 1))
+		step = minf(_pack_cells() * CELL_PX / maxf(pack[0][1].speed, 1.0), PACK_SPAN_MAX / maxf(pack.size() - 1, 1))
 	return step
 
 # Leaves a pack of `size` may cost when it leaks.
 static func pack_leaf_limit(size: int) -> int:
-	return PACK_LEAVES * maxi(ceili(float(size) / PACK_LEAVES_PER), 1)
+	return PACK_LEAVES  # (Flat since council 2026-10-24c: a pack of 40 cost 15)
 
 # The size of the pack an arrival rides in (0 = none).
 static func pack_size_of(arrival: Array) -> int:
 	return int(arrival[4]) if arrival.size() > 4 and pack_of(arrival) >= 0 else 0
 
 static func _in_pack_gap(data: EnemyData) -> float:
-	return maxf(PACK_CELLS * CELL_PX / maxf(data.speed, 1.0), PACK_GAP_FLOOR)
+	return maxf(_pack_cells() * CELL_PX / maxf(data.speed, 1.0), PACK_GAP_FLOOR)
 
 # Packs: one kind each, half a cell apart, PACK_GAP between packs; loose kinds (flyers, Rolling, Leap,
 # Burrow, Wander, and kinds too few to pack) ride between the packs as in a Stream.
 static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: Dictionary) -> void:
+	_act_now = act
 	var original: Array = []
 	for arrival in schedule:
 		original.append(arrival.duplicate())
 	var span := _first_last(schedule)
-	var big := schedule.size() > PACKS_BIG_COUNT * PACK_SIZE.y  # A big late drift: PACKS_BIG_COUNT bigger packs
+	var weight := 0  # Nightmares it brings, a splitter's children and a leader's followers counted
+	for arrival in schedule:
+		weight += _weight(arrival[1])
+	var big := weight > PACKS_BIG_COUNT * PACK_SIZE.y  # A big late drift: more, bigger packs
+	_big_count = clampi(ceili(float(weight) / BIG_PER_PACK), PACKS_BIG_COUNT, PACKS_BIG_MAX)
 	var size := PACK_SIZE_ACT1 if act <= 1 else PACK_SIZE
 	var fill := int(mods.get("pack_fill", 0))
 	if fill > 0:
@@ -363,7 +384,7 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 		if smallest < 0:
 			break
 		loose.append_array(packs.pop_at(smallest))
-	if packs.size() < (PACKS_BIG_COUNT if big else 2) or _pack_gap(packs, span, big) < gap_floor:
+	if packs.size() < (_big_count if big else 2) or _pack_gap(packs, span, big) < gap_floor:
 		return  # Doesn't fit: a Stream
 	_order_packs(packs, rng)
 	loose.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
@@ -411,7 +432,7 @@ static func _big_pack_counts(kinds: Array, by_kind: Dictionary) -> Dictionary:
 	for kind in kinds:
 		if by_kind[kind].size() >= PACK_MIN:
 			total += by_kind[kind].size()
-	if total < PACKS_BIG_COUNT * PACK_MIN:
+	if total < _big_count * PACK_MIN:
 		return {}
 	var counts := {}
 	var remainders := []
@@ -420,19 +441,19 @@ static func _big_pack_counts(kinds: Array, by_kind: Dictionary) -> Dictionary:
 		var n: int = by_kind[kind].size()
 		if n < PACK_MIN:
 			continue
-		var share := float(PACKS_BIG_COUNT) * n / total
+		var share := float(_big_count) * n / total
 		counts[kind] = mini(floori(share), n / PACK_MIN)
 		given += counts[kind]
 		remainders.append([share - counts[kind], kind])
 	remainders.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 	var i := 0
-	while given < PACKS_BIG_COUNT and i < remainders.size() * 4:
+	while given < _big_count and i < remainders.size() * 4:
 		var kind: EnemyData = remainders[i % remainders.size()][1]
 		if (counts[kind] + 1) * PACK_MIN <= by_kind[kind].size():
 			counts[kind] += 1
 			given += 1
 		i += 1
-	return counts if given == PACKS_BIG_COUNT else {}
+	return counts if given == _big_count else {}
 
 static func _has_elite(pack: Array) -> bool:
 	return pack.any(func(a: Array) -> bool: return a[2])
