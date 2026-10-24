@@ -315,8 +315,8 @@ var _shared_hit := false  # A Pall's half of a blow: no multipliers again
 # nightmare, bosses, Deeply Blighted and anything not crowded. Setting "status_icons": 0 Full, 1 Compact in crowds
 # (default), 2 Off (the row only on hover / tap). Eased over CROWD_EASE s (instant under reduced motion); a look holds
 # CROWD_HOLD s at least.
-const CROWD_PIP := 5.0  # px
-const CROWD_PIP_GAP := 2.0
+const CROWD_PIP := 7.0  # px (UI Code's pip: 5 px of colour in a 1 px outline)
+const CROWD_PIP_GAP := 1.0  # (A step of 8)
 const CROWD_PIP_ALPHA := 0.7
 const CROWD_BAR_H := 3.0
 const CROWD_EASE := 0.15
@@ -1249,7 +1249,17 @@ func _build_pips() -> void:
 	for i in order.size():
 		_draw_pip(centre + Vector2(step * i, 0.0), order[i])
 
+static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip (76da10ff): 1 once it's on main, 0 before (looked up once)
+
 func _draw_pip(at: Vector2, id: StringName) -> void:
+	if _ui_pips < 0:
+		_ui_pips = 0
+		for method in (KeywordIcons as Script).get_script_method_list():
+			if method.name == "draw_pip":
+				_ui_pips = 1
+	if _ui_pips == 1:
+		(KeywordIcons as Script).call("draw_pip", _hud_pips, id, at, 1.0, 1.0)  # (The 70% is the pips item's modulate)
+		return
 	var colour: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
 	var r := CROWD_PIP / 2.0
 	var outline := Color(Palette.VOID, 0.8)
