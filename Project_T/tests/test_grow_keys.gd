@@ -101,6 +101,10 @@ func _run() -> void:
 	dreams.unlocked.erase(open_form.get_id())
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.
+	var remember := main.get_node_or_null("HUD/RememberScreen")
+	if remember != null and remember.visible:
+		remember.close()  # The Dreamlight unlock above opened it; a choice screen up keeps the map's keys (RestScreens.map_locked)
+		await process_frame
 	dreams.unlock_everything = true
 	seller.select(null)
 	seller.select(spore)
@@ -214,11 +218,18 @@ func _run() -> void:
 	_check(nursling.rank == 1 and nursling.rank_choices.back() == options_now[1] and options_now[1] == Tower.Focus.SWIFT,
 		"2 picks Swift (rank %d, %s)" % [nursling.rank, nursling.rank_choices])
 	_check(placer.tower_data == bar_before and placer.build_mode == building_before, "the Warden bar didn't take the 2")
-	_push(KEY_N)
-	await process_frame
+	# The choices stay open after a rank (Tower Discussion, owner 2026-10-23), with a Close row; Esc or N closes them.
+	_check(panel._choosing and panel.find_child("CloseChoices", true, false) != null, "the choices stay open for the next rank, with Close")
 	_push(KEY_ESCAPE)
 	await process_frame
 	_check(not panel._choosing and seller.selected == nursling, "Esc closes the choices and keeps the selection")
+	run_state.dew = 10000
+	_push(KEY_N)
+	await process_frame
+	var reopened: bool = panel._choosing
+	_push(KEY_N)
+	await process_frame
+	_check(reopened and not panel._choosing and seller.selected == nursling, "N opens the choices and N again closes them")
 
 	# Can't afford (user, 2026-10-01: "still able to press the hotkey for nurture when I don't have enough
 	# Dew"): R opens no choices; it plays the refusal (dew_short) and changes nothing. Same for a grow key.
@@ -256,7 +267,7 @@ func _run() -> void:
 	var nurture_button: Button = panel._all_buttons().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
 	_check(nurture_button.text.ends_with("· %s (N)" % UiStyle.dew_amount(poor.get_nurture_price())) and nurture_button.get_meta(&"short"),
 		"a short Nurture reads the same way (%s)" % nurture_button.text)
-	_check(grow_button.tooltip_text.begins_with("Not enough Dew.") and (grow_button.get_node("Row/Price") as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
+	_check(grow_button.tooltip_text.begins_with("Not enough Dew") and (grow_button.get_node("Row/Price") as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
 	run_state.dew = want
 	run_state.dew_changed.emit(want)
 	_check(not grow_button.get_meta(&"short") and not grow_button.has_node("Short") and grow_button.text.ends_with("%s%s (Q)" % [UiStyle.DEW_GLYPH, BossDossier.thousands(want)])

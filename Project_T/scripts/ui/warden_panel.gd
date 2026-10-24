@@ -467,6 +467,7 @@ func _refresh() -> void:
 						continue
 					button.pressed.connect(_nurture_with.bind(which))  # Short: the press plays the refusal (spend_dew)
 					_rank_preview_on(button, [_tower], which)
+				_close_choices_row()
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		# Not a dead button (user 2026-10-22, Inkcap: "Rank V: fully nurt…" looked out of place): the header says its rank
@@ -644,9 +645,12 @@ func _refresh_group() -> void:
 		var spend: int = cost[1] if all_of_them else (plan_focus[1] if not plan_focus[0].is_empty() else run_state.dew + 1)
 		_priced(button, "%s · %s" % [Tower.FOCUS_NAMES[which], count], _price(cost[1] if all_of_them else plan_focus[1]), spend, &"dew", false)
 		button.pressed.connect(func() -> void:
-			_choosing = false
-			tower_seller.nurture_group(tower_seller.selection, which))
+			var group: Array = tower_seller.selection.duplicate()
+			tower_seller.nurture_group(tower_seller.selection, which)
+			_after_choice_rank(group))  # Stays open for the next rank (owner 2026-10-23)
 		_rank_preview_on(button, selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()), which)
+	if _choosing and not rank_options.is_empty():
+		_close_choices_row()
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	_details_toggle()
@@ -1044,8 +1048,7 @@ func _pick_choice(index: int) -> void:
 	var choices := _buttons.get_children().filter(func(b) -> bool:
 		return b is Button and b.get_meta(&"choice", -1) == index)
 	if not choices.is_empty() and not choices[0].disabled:
-		_choosing = false
-		choices[0].pressed.emit()
+		choices[0].pressed.emit()  # The choices stay open after the rank (Tower Discussion, owner 2026-10-23): N / Close shut them
 
 # The Nurture button / R: open the rank's choices in place, or close them. A Warden with a single choice
 # (the Sapling) nurtures at once.
@@ -1217,10 +1220,31 @@ func _free_rank() -> bool:
 	return int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0
 var nurture_refused := 0  # Refusals so far (tests)
 
+# A rank bought from the open choices keeps them open (Tower Discussion, owner 2026-10-23: "don't leave the nurture screen
+# when you upgrade, so you don't have to keep pressing N"): they refresh in place for the next rank, and close on N, the
+# Close row, Esc, a deselect, or the top rank ("Top rank"). Short of Dew they stay open, greyed with the price.
 func _nurture_with(which: Tower.Focus) -> void:
-	_choosing = false
 	if tower_placer.nurture(_tower, which):
-		_refresh()
+		_after_choice_rank([_tower])
+
+func _after_choice_rank(towers: Array) -> void:
+	if _choosing and not towers.any(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()):
+		_choosing = false
+		if towers.any(func(t) -> bool: return is_instance_valid(t) and t.rank >= t.get_max_rank()):
+			_toast("Top rank")
+	_refresh()
+
+# The open choices' way out (touch has no key): "Close" with N as its chip, last in the list.
+func _close_choices_row() -> void:
+	var close := _add_button("")
+	close.name = "CloseChoices"
+	_as_choice(close)
+	close.set_meta(&"key", _nurture_key())
+	close.tooltip_text = "Close the Nurture choices%s." % (" (%s)" % TowerSeller.key_name(&"nurture_warden") if not _phone else "")
+	_priced(close, "Close", "", 0, &"dew", false)
+	close.pressed.connect(func() -> void:
+		_choosing = false
+		_refresh())
 
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:
@@ -1774,7 +1798,8 @@ func _apply_price(button: Button) -> void:
 	var short := int(button.get_meta(&"cost", 0)) > have
 	var tip: String = button.get_meta(&"tip", "")
 	if short:
-		var why := "Not enough Dreamlight: it's unlocked on the Remember screen." if currency == &"dreamlight" else "Not enough Dew."
+		var why := "Not enough Dreamlight: it's unlocked on the Remember screen." if currency == &"dreamlight" \
+			else "Not enough Dew: need %s." % UiStyle.dew_amount(int(button.get_meta(&"cost", 0)))  # Wait for it, or close (Nurture stays open)
 		button.tooltip_text = why + ("\n\n" + tip if tip != "" else "")
 	else:
 		button.tooltip_text = tip
