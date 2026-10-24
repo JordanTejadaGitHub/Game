@@ -105,7 +105,7 @@ static func _first_frame(data: EnemyData) -> Texture2D:
 	var frames := data.sprite_frames
 	if frames == null:
 		return null
-	for animation in [&"idle", &"walk_down", &"walk_side"]:
+	for animation in [&"idle", &"walk_down", &"walk_side", &"fly"]:  # (Night Kite, Pall: only "fly")
 		if frames.has_animation(animation) and frames.get_frame_count(animation) > 0:
 			return frames.get_frame_texture(animation, 0)
 	var names := frames.get_animation_names()

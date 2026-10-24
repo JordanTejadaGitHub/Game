@@ -947,7 +947,7 @@ class BossPortrait extends Control:
 		add_child(_sprite)
 		if data.sprite_frames == null:
 			return
-		for animation in [&"idle", &"walk_down", &"walk_side"]:
+		for animation in [&"idle", &"walk_down", &"walk_side", &"fly"]:  # (Night Kite, Pall: only "fly")
 			if data.sprite_frames.has_animation(animation):
 				_sprite.play(animation)
 				break
