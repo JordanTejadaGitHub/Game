@@ -170,6 +170,8 @@ func _ready() -> void:
 	var drift_meter := DriftMeter.new(drift_director)
 	drift_meter.name = "DriftMeter"
 	add_child(drift_meter)
+	if not UiStyle.is_phone():  # What the Dreams did, on the left under their icons (user 2026-10-24, "split by side")
+		add_child(DreamsMeter.new(dream_state))
 	var lessons := LessonCard.new()  # onboarding.md "Lessons": a paused card for a rule the player can't guess
 	lessons.name = "LessonCard"
 	add_child(lessons)
