@@ -180,6 +180,9 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
+	var cues := CallingCues.new()  # The rebuilt Calling evolutions' world cues: Shared Caps, the pale path while building (world)
+	cues.name = "CallingCues"
+	owner.add_child.call_deferred(cues)
 	var crests := LegendaryCrests.new()  # One crest over the Heartwood per Legendary held, all run (dream_council_review.md 28; world)
 	crests.name = "LegendaryCrests"
 	owner.add_child.call_deferred(crests)

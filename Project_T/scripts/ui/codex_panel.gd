@@ -1909,6 +1909,8 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		head.add_child(fresh)
 	box.add_child(head)
 	box.add_child(StatusLinks.make_label(card.description, 15))
+	if card.tip != "":  # Its small print, inline (owner 2026-10-21: card details are never hover-only)
+		box.add_child(StatusLinks.make_label(card.tip, 14, UiStyle.INK_DIM))
 	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
 		box.add_child(CardDiagram.make(card))
 	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]

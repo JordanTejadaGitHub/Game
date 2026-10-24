@@ -57,6 +57,8 @@ func _ready() -> void:
 	add_child(_card_tip)
 	dream_state.card_taken.connect(func(_card: UpgradeData) -> void: refresh())
 	dream_state.calling_changed.connect(func(_family: String) -> void: refresh())
+	if dream_state.has_signal("card_fired"):  # A card's first fire in the run: its icon here pulses once (section 33)
+		dream_state.card_fired.connect(_on_card_fired_pulse.unbind(2))
 	if dream_state.has_signal("calling_grew"):  # A Calling evolution taken: the badge shows the new path
 		dream_state.calling_grew.connect(func(_id: StringName) -> void: refresh())
 	refresh.call_deferred()  # After a resumed run has loaded its Dreams
@@ -67,6 +69,59 @@ func _process(delta: float) -> void:
 		return
 	_clock = 0.0
 	refresh()
+	_update_season_count()
+
+# A card's first fire in the run (dream_council_review.md 33, owner 2026-10-24): its icon in the row pulses once, a quick
+# swell (reduced motion: a brief brighten), with the longer gold name over the map (CombatCallouts).
+const PULSE_SCALE := 1.3
+const PULSE_TIME := 0.35
+func _on_card_fired_pulse(id: StringName) -> void:
+	var runs = dream_state.get("card_counts_run")
+	if not runs is Dictionary or int((runs as Dictionary).get(id, 0)) > 1:
+		return
+	for icon in _icons:
+		if is_instance_valid(icon) and icon.card != null and StringName(icon.card.id) == id:
+			var tween := UiTime.tween(icon)
+			if bool(Fx.setting("reduced_motion", false)):
+				tween.tween_property(icon, "modulate", Color(1.5, 1.4, 1.15, 1.0), PULSE_TIME * 0.4)  # multiplier: a brighten
+				tween.tween_property(icon, "modulate", Color.WHITE, PULSE_TIME * 0.6)
+			else:
+				icon.pivot_offset = icon.size / 2.0
+				tween.tween_property(icon, "scale", Vector2.ONE * PULSE_SCALE, PULSE_TIME * 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+				tween.tween_property(icon, "scale", Vector2.ONE, PULSE_TIME * 0.6)
+			return
+
+# Spore Season (Roguelite Code's Calling rebuild, 2026-10-23): "13/15" on the Calling's frame while the evolution is held,
+# mushrooms growing toward the 15 it needs (spore_print.season_count / SEASON_AT); gold once it's on. Inert until that API
+# is in (has_method).
+func _update_season_count() -> void:
+	var spores: Node = dream_state.get("spore_print") if dream_state != null else null
+	var show: bool = _calling_frame != null and spores != null and spores.has_method(&"season_count") \
+		and spores.has_method(&"evo") and bool(spores.evo(spores.get("EVO_SEASON")))
+	var badge := _calling_frame.get_node_or_null("SeasonCount") as Label if _calling_frame != null else null
+	if not show:
+		if badge != null:
+			badge.visible = false
+		return
+	if badge == null:
+		badge = Label.new()
+		badge.name = "SeasonCount"
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		UiStyle.number(badge, 12, UiStyle.INK)
+		badge.add_theme_color_override("font_outline_color", Palette.VOID)
+		badge.add_theme_constant_override("outline_size", 4)
+		badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+		badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		badge.offset_top += 8.0  # Hung off the frame's corner, under the face
+		badge.offset_bottom += 8.0
+		_calling_frame.add_child(badge)
+	var need := int(spores.get("SEASON_AT")) if spores.get("SEASON_AT") != null else 15
+	var count := int(spores.season_count())
+	badge.visible = true
+	badge.text = "%d/%d" % [mini(count, need), need]
+	badge.add_theme_color_override("font_color", UiStyle.GOLD if count >= need else UiStyle.INK)
+	badge.tooltip_text = "Spore Season: %d of %d mushrooms growing" % [count, need]
 
 # Rebuilds the icons when the cards changed, and updates every live bonus.
 # "Lantern Ring" / "Firefly Jar" / the rule with its tokens as words: {} when the run has no Calling. "path" = the
@@ -328,6 +383,11 @@ func _card_row(source: DreamIcon) -> Control:
 	var body := StatusLinks.make_label(card.description, PHONE_BODY_SIZE if _phone_page else 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
+	if card.tip != "":  # Its small print, always shown (owner 2026-10-21: card details are never hover-only)
+		var details := StatusLinks.make_label(card.tip, PHONE_BODY_SIZE - 2 if _phone_page else 14, UiStyle.INK_DIM)
+		details.name = "CardDetails"
+		details.mouse_filter = Control.MOUSE_FILTER_PASS
+		text.add_child(details)
 	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
 		text.add_child(CardDiagram.make(card))
 	if source.credit != "":  # Feeling the cards: what it did this run

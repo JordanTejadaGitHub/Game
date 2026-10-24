@@ -12,7 +12,9 @@ const SIZE := 16  # Art pixels per side
 # Keyword id -> the word on its chip.
 const WORDS := {&"stacks": "Stacks", &"linger": "Linger", &"jump": "Jump", &"repeat": "Repeat", &"reaction": "Reaction",
 	&"layered": "Layered", &"slow": "Slow", &"crit": "Crit", &"area": "Area", &"heavy": "Heavy", &"cluster": "Cluster",
-	&"rank": "Rank", &"maze": "Maze"}
+	&"rank": "Rank", &"maze": "Maze", &"lingering": "Lingering", &"age": "Age", &"order": "Order"}
+# Keywords drawn with another's icon: {lingering} (a status a card keeps from running down; section 33) is Linger's hourglass.
+const ALIASES := {&"lingering": &"linger"}
 # Status chips: the player's word -> IconInfo's status id (the sheet icon). Asleep is drawn in GRIDS.
 const STATUSES := {&"poisoned": &"spored", &"charged": &"static", &"soaked": &"damp", &"drowsy": &"drowsy",
 	&"exposed": &"marked", &"rooted": &"held", &"asleep": &"asleep"}
@@ -297,11 +299,51 @@ const GRIDS := {
 		"....kkkkkk......",
 		"................",
 	],
+	# Age (section 33 final pass: Toadstool Throne's "planted 10+ drifts ago"): a cut stump: Deadwood rim, Bark and Oak
+	# rings, a crack from the dark pith to the rim (art council 2026-10-24: not a coin or a target, apart from Area).
+	&"age": [
+		"......kkkk......",
+		"....kkkttkkk....",
+		"..kktttootttkk..",
+		"..kttoBBBBotkk..",
+		".kttBBooooBkktk.",
+		".ktoBoBBBBkBotk.",
+		"kktBoBBookBoBtkk",
+		"ktoBoBokkoBoBotk",
+		"ktoBoBokkoBoBotk",
+		"kktBoBBooBBoBtkk",
+		".ktoBoBBBBoBotk.",
+		".kttBBooooBBttk.",
+		"..kttoBBBBottk..",
+		"..kktttootttkk..",
+		"....kkkttkkk....",
+		"......kkkk......",
+	],
+	# Order (Host Trees / Shared Caps: who is picked first): three 3 px steps rising left to right on one Void base;
+	# the first Glow with a notch (shape, not colour alone), the others Mist (art council 2026-10-24).
+	&"order": [
+		"................",
+		"................",
+		"..........kkkkk.",
+		"..........kGGGk.",
+		"..........kGGGk.",
+		"......kkkkkGGGk.",
+		"......kGGGkGGGk.",
+		"......kGGGkGGGk.",
+		"..kkkkkGGGkGGGk.",
+		"..kYkYkGGGkGGGk.",
+		"..kYYYkGGGkGGGk.",
+		"..kYYYkGGGkGGGk.",
+		"..kYYYkGGGkGGGk.",
+		"..kkkkkkkkkkkkk.",
+		"................",
+		"................",
+	],
 }
 
 # Whether `id` has a chip icon (a keyword, a status word or a status id).
 static func has(id: StringName) -> bool:
-	return GRIDS.has(id) or IconInfo.icon(_status_id(id)) != null
+	return GRIDS.has(ALIASES.get(id, id)) or IconInfo.icon(_status_id(id)) != null
 
 # The chip's word: the keyword's, or the status's own name ("Poisoned").
 static func word(id: StringName) -> String:
@@ -313,9 +355,14 @@ static func word(id: StringName) -> String:
 # a few 2-px rows, still crisp). `alpha` for world flashes that fade.
 static func draw(canvas: CanvasItem, id: StringName, centre: Vector2, size: float = 16.0, alpha: float = 1.0) -> void:
 	var origin := (centre - Vector2(size, size) / 2.0).round()
+	id = ALIASES.get(id, id)
 	if not GRIDS.has(id):
-		var sheet := IconInfo.icon(_status_id(id))
+		# The texture is kept on the canvas: one only held by this call was freed before the frame drew (white squares on
+		# every status chip; the art council caught it 2026-10-24). On the canvas, not in a static (exit crash).
+		var key := StringName("_keyword_icon_" + String(id))
+		var sheet: Texture2D = canvas.get_meta(key) if canvas.has_meta(key) else IconInfo.icon(_status_id(id))
 		if sheet != null:
+			canvas.set_meta(key, sheet)
 			canvas.draw_texture_rect(sheet, Rect2(origin, Vector2(size, size)), false, Color(1, 1, 1, alpha))  # multiplier
 		return
 	var step := size / SIZE
@@ -338,6 +385,7 @@ static func draw(canvas: CanvasItem, id: StringName, centre: Vector2, size: floa
 
 # The 16×16 image of a drawn icon (null for a sheet status: use IconInfo.icon).
 static func make_image(id: StringName) -> Image:
+	id = ALIASES.get(id, id)
 	if not GRIDS.has(id):
 		return null
 	var image := Image.create_empty(SIZE, SIZE, false, Image.FORMAT_RGBA8)

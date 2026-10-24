@@ -62,6 +62,9 @@ class Event:
 	# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) The Calling family whose output this damage is (&"" = none):
 	# other families' lent cards read it as a hit by `source`; the Calling's own family never does.
 	var calling: StringName = &""
+	# Unfettered (dream_council_review.md 33, owner 2026-10-24): a lifted Calling hit dealt 2x or more of what its cap
+	# allowed (Roguelite sets it with note_card(&"unfettered")); its number reads Heartlight, a size above a crit.
+	var unfettered := false
 
 	func describe() -> String:
 		var text := "%s: %.1f" % [source_name, base / crit_multiplier]
@@ -343,6 +346,7 @@ func _combo_share(event: Event, tag: StringName) -> float:
 # The event's big-hit tier for its number (Enemy.big_tier_now, set while it reports this event; Subtle already caps it
 # at 1): 0 for anything but a hit or a bolt, and with "Big hit feedback" Off (setting big_hits 2).
 const BIG_NUMBER_PUNCH := 0.12  # Seconds a T3 number's scale punch lasts
+const UNFETTERED_NUMBER_SIZE := 24  # A size above a crit's 20 (the 17 / 20 / 24 ladder)
 const HIT_FORM_NUMBER_EXTRA := 4  # Px more on a hit form's T2 / T3 direct hit (owner 2026-10-22)
 static func big_tier(event: Event) -> int:
 	if (event.kind != &"hit" and event.kind != &"bolt") or not is_instance_valid(event.enemy):
@@ -362,10 +366,10 @@ func _show_number(event: Event) -> void:
 		or event.combos.has(&"popped") or event.kind == &"reaction" or event.kind == &"bolt" \
 		or event.amount >= event.enemy.max_health * 0.1
 	var tier := big_tier(event)
-	big = big or tier > 0
+	big = big or tier > 0 or event.unfettered  # An Unfettered hit always shows, never merged
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
-	var color := Palette.HEARTLIGHT
+	var color := Palette.MOONLIGHT  # A plain hit (art council 2026-10-24: Moonlight; Heartlight is kept for Unfettered and T2)
 	var size := 14
 	if event.combos.has(&"crit"):
 		color = Palette.GLOW
@@ -400,6 +404,11 @@ func _show_number(event: Event) -> void:
 			punch = BIG_NUMBER_PUNCH
 	if tier >= 2 and event.tag == &"" and event.source is Tower and event.source.tower_data.is_hit_form():
 		size += HIT_FORM_NUMBER_EXTRA  # A hit form's big direct hit reads as loud as a Reaction (dream_council_review.md 30)
+		punch = maxf(punch, BIG_NUMBER_PUNCH)
+	if event.unfettered:  # Unfettered: Heartlight on a Void outline, one size above a crit (24), with the punch
+		size = maxi(size, UNFETTERED_NUMBER_SIZE)
+		color = Palette.HEARTLIGHT
+		outline = Palette.VOID
 		punch = maxf(punch, BIG_NUMBER_PUNCH)
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
@@ -480,6 +489,7 @@ class FloatingNumber:
 	var bolt := false  # A Charged bolt's number: a small bolt glyph before it
 	var outline := Palette.DREAD  # Big-hit T2 / T3: VOID
 	var punch := 0.0  # Big-hit T3: seconds of a scale punch (1.3× easing to 1×)
+	const NUMBER_OUTLINE := 2  # A 1 px dark edge each side (art council 2026-10-24)
 
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
@@ -497,7 +507,7 @@ class FloatingNumber:
 
 	# The drawn text's box, local (the text sits on the baseline at y 0, centred).
 	func get_rect() -> Rect2:
-		var width := ThemeDB.fallback_font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
+		var width := UiStyle.number_font().get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x
 		var s := WorldLabel.text_scale(self)  # Drawn at screen size when zoomed in
 		return Rect2(-width / 2 * s, -_size * s, width * s, (_size + 4) * s)
 
@@ -510,13 +520,13 @@ class FloatingNumber:
 
 	func _draw() -> void:
 		var alpha := 1.0 - _age / LIFE
-		var font := ThemeDB.fallback_font
+		var font := UiStyle.number_font()  # Vollkorn Medium, lining figures (ui_style.md type table)
 		var size := _size
 		if punch > 0.0 and _age < punch:  # The T3 punch: a little bigger, easing back
 			size = roundi(_size * lerpf(1.3, 1.0, _age / punch))
 		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size past 1× zoom
-		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4,
+		draw_string_outline(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, NUMBER_OUTLINE,
 			Color(outline, alpha))
 		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 			Color(_color, alpha))
