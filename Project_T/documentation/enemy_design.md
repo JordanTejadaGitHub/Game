@@ -84,7 +84,7 @@ skips the maze and became a leaf drain; it is capped at 4 a drift). Kind: **Flyi
 
 | Nightmare | Looks like | Trait | Tests | Counter |
 |---|---|---|---|---|
-| **Night Kite** (act 2) | a ragged black kite with a tail of knotted string, two cold eyes on the cross-spar | quick and light; flies the route above the path | flyer coverage spread through the maze, not one anti-air spot | Wardens that hit flyers, placed along the whole route; Groundroot |
+| **Night Kite** (act 2) | a ragged black kite with a tail of knotted string, two cold eyes on the cross-spar | quick and light; flies the route above the path | flyer coverage spread through the maze, not one anti-air spot | Wardens that hit flyers, placed along the whole route (every starting family has them from its base Warden up) |
 | **Gloamwing** (act 3) | a big, slow moth of grey dust, wings too heavy for it | flies the route, but **its wings get heavy**: once it's {soaked} or has 3 {drowsy}, it **drops to the path and walks** the rest of the way (a walker from that cell: the maze, ground effects and holds all apply) | control builds as an answer to flyers | Soaked and Drowsy Wardens, then anything; or plain anti-air |
 | **Pall** (act 4) | a floating funeral cloth with a face pressed through it | flies the route at walking pace and **settles over the nearest walker ahead of it**: while it covers one, that nightmare takes half damage; it moves on when that one is dispelled | target priority and anti-air together | shoot the Pall first (Wardens that hit flyers, target priority), or area damage that hits both |
 
@@ -97,19 +97,31 @@ skips the maze and became a leaf drain; it is capped at 4 a drift). Kind: **Flyi
 | Pall | 160 | follows its walker (72 alone) | 1 | drift 92 (act 4) | `special` |
 
 **Rules that keep flyers fair** (the Phantom lesson):
-- **At most 6 flyers of any kind in one rolled drift** in acts 2–4 (Phantoms still at most 4 within that).
+- **Flyers of all kinds: at most 4 / 5 / 6 in a drift in acts 2 / 3 / 4, and never more than a third of its arrivals** (Phantoms still at most 4 within that), checked after the Omens; a flyer is never a guaranteed or Blight elite (council 2026-10-24).
 - Tagged `special`, so a flyer leads a drift only in a Special drift, once a block; elsewhere it's a
   small share. Never in a Packs drift's packs (Drift shapes); fine in Single file and Stream.
 - One Pall covers one walker at a time; a covered nightmare shows the Pall's cloth over it, and the
-  half damage is said on both cards.
+  effect is said on both cards. It **never covers a boss or a Deeply Blighted**, its effect applies **after
+  the dread shell**, and **no Pall rolls into a Few and tough drift** (council 2026-10-24).
+- **A grounded route flyer rises back onto its own route** (the route index it held, two legs if a Waymark
+  stands); being grounded never counts as passing the Waymark. Only through-wall flyers (the Phantom) rise
+  straight at the Heartwood. This fixes a live bug: today Groundroot, Earthbind and Snag send a Crow straight
+  home (`enemy.gd` `ground()` / `_rise_from_ground()`; council 2026-10-24).
+- **Hollow Wind draws route flyers only** (Crow, Night Kite, Gloamwing; never the Phantom or the Pall), and the
+  flyer caps are checked after it (council 2026-10-24).
+- **Open owner calls** (council 2026-10-24, `enemy_council_review.md`): the Pall shares each blow half and half
+  with the walker it covers (council lead's pick) or halves the walker's damage with Wardens aiming at the Pall
+  first; the Gloamwing drops at 3 stacks of Soaked and Drowsy counted together, never raised by Brimming (lead's
+  pick) or at any Soaked for 2 s; route flyers count on the route they fly over for maze and Calling route cards
+  (lead's pick) or stay invisible to them.
 - Waymark: route flyers take the route they spawned with, two legs if a stone stands, and shed their
   statuses at the stone like walkers.
 - Walking lanes: they sway ±0.15 cell on their line; a Gloamwing that drops takes a walker's lane.
 - Nothing here is aimed at a build: they are rolled like any nightmare.
 
 **Teaching drifts** (their introductions are fixed drifts, so these rows would be what plays; the act
-tables change only after approval): 41 "Night Kite intro: 6 Night Kites (2 s apart), then 16 Shades";
-69 "Gloamwing intro: 4 Gloamwings among 20 Shades"; 92 "Pall intro: 3 Palls over a line of 12 Husks".
+tables change only after approval): 41 "Night Kite intro: 4 Night Kites (2 s apart), then 16 Shades";
+69 "Gloamwing intro: 4 Gloamwings among 20 Shades"; 92 "Pall intro: 3 Palls over a line of 12 Shades (Husks have a dread shell)".
 
 **To build after approval:** Enemy Code (three `EnemyData`, the drop-to-walk and the cover rules, the
 6-flyer cap in the roller), Enemy Assets (flying sheets for each, the Gloamwing's landing and walk, the
@@ -649,7 +661,7 @@ builds and feared by 6+, nothing loves all three):
   Few and tough needs to be rarer for act 3 status lines.
 - Boss capstones that halve on bosses (Long Rot, Lantern Parade, Grave Field) need full value on
   Deeply Blighted, or they read as traps on Few and tough.
-- "3+ nightmares" cards (Crowded Ground, Pile-On) never fire on Single file: acceptable once a block.
+- "3+ nightmares" cards (Crowded Ground) never fire on Single file: acceptable once a block. (Pile-On is a free-hit card at a clump, not a crowd card: council 2026-10-24.)
 - Spore Season (15 caps alive) on Packs: check it isn't working against itself.
 
 **Gate (Balancing):** for each build, its worst shape leaks **1.5–3×** its best; no build has the
