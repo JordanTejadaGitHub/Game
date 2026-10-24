@@ -633,7 +633,7 @@ saved with the run)
 
 **Don't ship (the rules that keep shapes fair)**
 - **A pack takes at most 3 leaves** when it leaks (proposed number), so one slipped pack can't end a
-  run; the glossary says so. Few and tough already costs 2 leaves per Deeply Blighted.
+  run; the glossary says so. **A Few and tough drift's Deeply Blighted take at most 6 leaves together** (owner 2026-10-24, council round 2026-10-24: 3-5 of them at 2 each were an uncapped 8-12-leaf cliff), on the same rule as a pack.
 - **No flyer packs:** Hollow Wind's flyer swaps are pulled out of packs and spaced as in a Stream.
 - **Headlong stays special:** never more than ~8 arrivals within 3 s in any shape; only Headlong
   brings a whole drift at once (`_compress` runs after the shape).
@@ -670,7 +670,7 @@ builds and feared by 6+, nothing loves all three):
 
 **Card fixes shapes need (Roguelite chats; proposed, not decided):**
 - Dispel-count engines stall on Few and tough (Wild Growth, Hard-Won Rings, Lantern Light's dispel
-  jump, Starfield): a Deeply Blighted could count as 3 dispels (its health share), said in the glossary.
+  jump, Starfield): **decided and built: a Deeply Blighted counts as 3 dispels** (owner 2026-10-24; `DreamState.dispel_count`, 7573c842), said in the glossary.
 - Per-nightmare status caps (Poisoned 32–80) cap out on a few tough bodies: Balancing checks whether
   Few and tough needs to be rarer for act 3 status lines.
 - Boss capstones that halve on bosses (Long Rot, Lantern Parade, Grave Field) need full value on

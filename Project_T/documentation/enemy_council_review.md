@@ -139,10 +139,8 @@ over 41-100, Few and tough worst decile <= 6 leaves, drifts 51-60 per shape, the
 / Moth Night / Leaf Fall blocks (P).
 
 ### Owner calls
-1. **Few and tough leaks:** cap a Few and tough drift's elites at 6 leaves together (lead's pick), or keep 2 each.
-2. **Pall:** share damage (lead's pick) or half damage with Wardens aiming at it first.
-3. **Gloamwing:** 3 Soaked + Drowsy counted together (lead's pick) or any Soaked for 2 s.
-4. **Route flyers and maze / Calling route cards:** count a route flyer on the route it flies over (lead's pick:
+2. **Pall: DECIDED (owner 2026-10-24, ddd7c619): it shares each blow half and half with the walker it covers.**
+3. **Gloamwing: DECIDED (ddd7c619): it drops at 3 stacks of Soaked and Drowsy counted together.**
+4. **Route flyers: DECIDED (ddd7c619): they count on the route they fly over for maze and Calling route cards.**
    it's above the path, so Passing Thread, Gauntlet and Calling route rules see it), or keep them blind to flyers.
-5. **Dispel-count Legendaries:** a Deeply Blighted counts as 3 dispels for Wild Growth and Hard-Won Rings (lead's
-   pick), or leave them as they are.
+5. **Dispel-count Legendaries: DECIDED (owner 2026-10-24) and already built (7573c842): a Deeply Blighted counts as 3 dispels.**
