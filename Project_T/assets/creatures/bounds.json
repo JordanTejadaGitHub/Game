@@ -214,6 +214,11 @@
 		"top": -25,
 		"bottom": 17
 	},
+	"pack_bloom": {
+		"frame": 96,
+		"top": -36,
+		"bottom": 37
+	},
 	"cold_lantern": {
 		"frame": 64,
 		"top": -32,

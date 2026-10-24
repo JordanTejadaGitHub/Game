@@ -83,6 +83,10 @@ const CREATURES := {
 	"gloamwing": {fps = 5.0, anims = ["fly", "land", "walk_side", "walk_down", "walk_up"], once = ["land"],
 		rates = {land = 8.0, walk_side = 6.0, walk_down = 6.0, walk_up = 6.0}},
 	"pall": {fps = 6.0, anims = ["fly", "settled"], rates = {settled = 4.0}},
+	# Not a nightmare: the soft warm bloom where a whole pack was dispelled at once (Enemy Code's
+	# pack_wiped; enemy_design.md "The payoff"). 1.5 cells, "bloom" 0.6 s once; "still" = the reduced-
+	# motion flash (one held frame). Stolen-light warm, laid on after the cold pass like the Dream Thief's.
+	"pack_bloom": {fps = 10.0, size = 96, anims = ["bloom", "still"], once = ["bloom", "still"]},
 	# The Lamplighter's cold lantern (scripts/enemy/cold_lantern.gd): no walks, just its own rows.
 	"cold_lantern": {fps = 8.0, anims = ["ignite", "burn", "snuff"], extra_fps = 10.0, once = ["ignite", "snuff"]},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
@@ -3528,3 +3532,40 @@ func _pall_face(cloth: Image, c: Vector2i) -> void:
 			Vector2i(-1, 8), Vector2i(0, 8)]:
 		_px(cloth, c.x + p.x, c.y + p.y, _c("Void"))  # the mouth, stretched open
 	_px(cloth, c.x - 2, c.y + 6, lit)
+
+# --- Pack bloom (pack_bloom) --------------------------------------------------------------------
+# A whole pack dispelled at once: a soft warm bloom opens where the pack stood and fades, the dream's
+# light let back in. Banded Heartwood warm light (Heartlight core, Glow, Gold, an Ember rim) in a
+# rounded six-lobed flower shape lying a little flat on the ground; no sparks, nothing flies out.
+# "bloom": open at 60% on frame 0, full by frame 1, held on 2-3 while it cools, then it cools and
+# shrinks away a band at a time (never thinned to a screen-door: no band under half density).
+# "still": the open bloom a little smaller (1.2 cells), for reduced motion (the game fades it out).
+
+const BLOOM_BANDS := ["Heartlight", "Glow", "Gold", "Ember"]
+const BLOOM_DENSITY := [1.0, 1.0, 1.0, 0.5]  # by colour: the Ember rim is the only dithered band
+
+func _draw_pack_bloom(_canvas: Image, st: Dictionary) -> void:
+	var warm: Image = st.warm
+	var still: bool = st.anim == "still"
+	var f: int = st.f
+	var r: float = 38.0 if still else [26.0, 40.0, 44.0, 45.0, 46.0, 46.0][f]
+	var cool: int = 0 if still else [0, 0, 0, 1, 2, 2][f]  # each step shifts every band one colour cooler
+	var haze: bool = not still and f == 5  # the last frame: f4's shape as a thin Ember haze, no pop at the end
+	var c := Vector2(S, S) * 0.5
+	for y in S:
+		for x in S:
+			var d := (Vector2(x + 0.5, y + 0.5) - c) / Vector2(r, r * 0.82)
+			var a := atan2(d.y, d.x)
+			var q := d.length() / (1.0 + 0.1 * cos(6.0 * a + 0.4) + 0.04 * cos(3.0 * a + 1.3))
+			if q > 1.0:
+				continue
+			var band := 0 if q < 0.24 else (1 if q < 0.5 else (2 if q < 0.78 else 3))
+			if f == 0 and not still and band == 3:
+				continue  # the first frame is all heart, no rim yet
+			var i := band + cool
+			if i > 3:
+				continue  # the outer bands go first as it cools
+			if haze:
+				i = 3
+			if _keep(x, y, BLOOM_DENSITY[i]):
+				warm.set_pixel(x, y, _c(BLOOM_BANDS[i]))
