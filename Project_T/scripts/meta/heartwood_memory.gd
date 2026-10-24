@@ -69,6 +69,7 @@ static func defaults() -> Dictionary:
 			"reduced_motion": false,  # No camera glide, shakes or hops in the UI
 			"dps_tags": 0,  # Warden DPS tags: 0 with the damage meter open, 2 off (an old 1, always, reads as 0)
 			"damage_numbers": 0,  # 0 off (default: DPS tags and the drift meter say more), 1 big hits, 2 all
+			"status_icons": 1,  # 0 full, 1 compact pips in crowds (default), 2 off (hover / tap shows them; Enemy Code's enemy.gd)
 			"reduce_flashes": false,  # Reactions: softer, shorter flashes (accessibility)
 			"hitstop": true,  # Reactions: a tiny freeze on big hits
 			"vsync": true,

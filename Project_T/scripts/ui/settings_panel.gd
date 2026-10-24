@@ -215,6 +215,10 @@ func _ready() -> void:
 	_toggle(box, "Brief freeze on big hits", "hitstop")
 	_toggle(box, "High-contrast path line", RouteLine.SETTING, false)
 	_toggle(box, "Outline Deeply Blighted nightmares", "blight_outline", false, "Marks them by shape, not by colour alone.")
+	# Status icons in crowds (owner 2026-10-24, enemy_design.md "Status icons in crowds"; Enemy Code reads status_icons in
+	# enemy.gd): 0 Full, 1 Compact in crowds (pips; default), 2 Off (a nightmare's icons still show on hover or tap).
+	var status_icons := _choice(box, "Status icons", "status_icons", ["Full", "Compact in crowds", "Off"], 1)
+	status_icons.tooltip_text = "Full: every nightmare's status icons.\nCompact in crowds: small pips when nightmares bunch up.\nOff: none over the field; hover or tap a nightmare to see its statuses."
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
