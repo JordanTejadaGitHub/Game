@@ -74,6 +74,7 @@ static func roll_run(director: Node, seed: int) -> void:
 		var state: Dictionary = blocks.get_or_add(director.get_block(n), {"limited": false, "leans": {}})
 		var rolled := _roll_drift(director, n, hand_made[n - 1], hand_made, rng, previous, state, shapes.get(n, &""))
 		if rolled != null:
+			rolled.set_meta(META_PLANNED, shapes.get(n, DriftShapes.STREAM))  # (A shape that found no fit rolled a Stream)
 			director.drifts[n - 1] = rolled
 			previous = rolled.get_meta(META_TEMPLATE)
 		else:
@@ -117,6 +118,7 @@ const SHAPE_TEMPLATES := {  # The templates each shape is rolled with (Stream: a
 	&"few_and_tough": [&"heavy", &"elite_hunt"],
 }
 const META_SHAPE := &"roll_shape"
+const META_PLANNED := &"roll_shape_planned"  # The block plan's shape (META_SHAPE / DriftData.shape: what it rolled as)
 const FEW_ELITES := Vector2i(3, 5)  # Few and tough: this many Deeply Blighted of a heavy kind…
 const FEW_SHARE := Vector2(0.4, 0.6)  # …holding this share of the budget (Balancing 2026-10-24: 0.7 left too few bodies)
 const FEW_ELITE_CAP := 0.6  # The roller's elite cap for Few and tough (others: 0.5)
@@ -321,6 +323,8 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 		if template.limited:
 			state.limited = true
 		return _build(drift, mix, template, act, shape)
+	if shape != &"" and shape != DriftShapes.STREAM:
+		return _roll_drift(director, number, drift, hand_made, rng, previous, state)  # The shape found no fit: a Stream, not the hand-made drift
 	return null
 
 static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[EnemyData], previous: StringName,
@@ -521,10 +525,8 @@ static func _mix_cost(mix: Array) -> float:
 static func _fit_single_file(mix: Array, drift: DriftData, kept_elites: Array, extra: float) -> Array:
 	var schedule := drift.get_schedule()
 	var window: float = schedule[schedule.size() - 1][0] if schedule.size() > 1 else DEFAULT_WINDOW
-	var most := floori((floori(window / DriftShapes.SINGLE_GAP) + 1) / maxf(extra, 1.0))
-	var count := 0
-	for slot in mix + kept_elites:
-		count += slot[1]
+	var most := floori(window / DriftShapes.SINGLE_GAP) + 1
+	var count := _mix_arrivals(mix, kept_elites, extra)
 	var lead: EnemyData = mix[0][0]
 	var spare := 0.0
 	var thin_left := floori(count * SINGLE_THIN_MAX)
@@ -539,19 +541,33 @@ static func _fit_single_file(mix: Array, drift: DriftData, kept_elites: Array, e
 		if cheapest < 0:
 			return []
 		mix[cheapest][1] -= 1
-		count -= 1
+		count = _mix_arrivals(mix, kept_elites, extra)
 		spare += mix[cheapest][0].get_roll_weight()
-		if spare >= lead.get_roll_weight():
-			if count + 1 > most:
-				continue  # No room for another lead yet: keep thinning
-			mix[0][1] += 1
-			count += 1
+		if spare >= lead.get_roll_weight() and _adds_lead(mix, kept_elites, extra, most):
+			count = _mix_arrivals(mix, kept_elites, extra)
 			spare -= lead.get_roll_weight()
-	while spare >= lead.get_roll_weight() * 0.5 and count < most:  # The rest of the spare budget, rounded
-		mix[0][1] += 1
-		count += 1
+	while spare >= lead.get_roll_weight() * 0.5 and _adds_lead(mix, kept_elites, extra, most):  # The rest, rounded
 		spare -= lead.get_roll_weight()
 	return mix
+
+# Arrivals `mix` + `kept` bring once the difficulty's extra nightmares round each entry up (DriftEntry.get_count).
+static func _mix_arrivals(mix: Array, kept: Array, extra: float) -> int:
+	var total := 0
+	for slot in mix + kept:
+		var entry := DriftEntry.new()
+		entry.enemy = slot[0]
+		entry.count = slot[1]
+		entry.elite = slot[2]
+		total += entry.get_count(1.0, 1.0, extra)
+	return total
+
+# One more of the lead (mix[0]) if the arrivals still fit `most`; true if it was added.
+static func _adds_lead(mix: Array, kept: Array, extra: float, most: int) -> bool:
+	mix[0][1] += 1
+	if _mix_arrivals(mix, kept, extra) <= most:
+		return true
+	mix[0][1] -= 1
+	return false
 
 static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: int = 2, shape: StringName = &"") -> DriftData:
 	var schedule := drift.get_schedule()

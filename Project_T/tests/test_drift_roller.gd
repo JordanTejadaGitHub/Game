@@ -172,7 +172,7 @@ func _run() -> void:
 				if block_limited.has(block):
 					bad.limited += 1
 				block_limited[block] = true
-			if template == previous:
+			if template == previous and drift.shape in [&"", DriftShapes.STREAM]:  # A shape's few templates may repeat (DriftRoller._pick_template)
 				bad.repeat += 1
 			previous = template
 	var over_cap: Array = []  # Hand-made drifts too (random_drifts off, sims, the budget reference): at most drift_max
@@ -310,8 +310,8 @@ func _check_shapes(director: DriftDirector) -> void:
 			if director.get_act(first) <= 1:
 				if shaped > 1:
 					bad.act1 += 1
-			elif not boss_block and DriftRoller.is_rollable(director, last) and shape_at.call(last) == DriftShapes.STREAM \
-					and director.drifts[last - 1].shape != &"":
+			elif not boss_block and DriftRoller.is_rollable(director, last) \
+					and director.drifts[last - 1].get_meta(DriftRoller.META_PLANNED, &"") == DriftShapes.STREAM:  # (A planned shape may roll as a Stream when no template fits)
 				bad.finale += 1
 			elif boss_block:
 				for n in range(first + 3, last + 1):
