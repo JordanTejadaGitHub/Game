@@ -338,7 +338,7 @@ static func templates_text(director: DriftDirector, block: int) -> String:
 	var first := (block - 1) * director.drifts_per_block + 1
 	for number in range(first, mini(first + director.drifts_per_block, director.get_total_drifts() + 1)):
 		var shape: StringName = director.drift_shape(number) if director.has_method("drift_shape") else DriftShapes.STREAM
-		shaped = shaped or shape != DriftShapes.STREAM
+		shaped = shaped or shape != DriftShapes.STREAM or DriftRoller.template_name(director, number) != ""  # A rolled block lists them, Streams too
 		names.append(DriftShapes.display_name(shape))
 	return "\nThis block: " + ", ".join(names) if shaped else ""
 

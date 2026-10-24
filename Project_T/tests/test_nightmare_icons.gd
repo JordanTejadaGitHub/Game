@@ -151,7 +151,7 @@ func _run() -> void:
 			and face.size.x == face.size.y, "one row of up to 6 round discs (no wide pills)")
 		await process_frame
 		# 100 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (bbccb649)
-		_check(strip.get_combined_minimum_size().y <= 100.0 + 2.0 * ComingStrip.CAPTION_GAP, "the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+		_check(strip.get_combined_minimum_size().y - _shape_rows_h(strip) <= 100.0 + 2.0 * ComingStrip.CAPTION_GAP, "the strip stays low, its drift-shape rows aside (%.0f px)" % (strip.get_combined_minimum_size().y - _shape_rows_h(strip)))
 	var d10 := ComingStrip.kinds_in_range(director, 10, 10)
 	var listed := 0
 	for group in director.drifts[9].groups:
@@ -363,3 +363,9 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The Coming strip's drift-shape rows (shape_rows.gd, a row per drift of the next block): left out of the "stays low"
+# check, which is about the kinds row and its badges.
+func _shape_rows_h(strip: Node) -> float:
+	var rows := strip.get_node_or_null("ShapeRows") as Control
+	return rows.get_combined_minimum_size().y + ComingStrip.CAPTION_GAP if rows != null and rows.visible else 0.0  # (Its gap in the strip too)
