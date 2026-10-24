@@ -90,6 +90,35 @@ Dew.
 | **Shell Wall** | Shellbound + support | heavy hits |
 | **The Long Night** | everything at once | the whole build |
 
+### Drift shapes (APPROVED 2026-10-24, not built yet; rules in `enemy_design.md` "Drift shapes")
+
+Shapes are rolled per block from the map seed; the tables below keep listing kinds and counts (each
+rolled drift's health budget), and `tools/drift_generator.gd` needs no change for them. What this
+section fixes is **which drifts may take a shape**. Fixed drifts (introduction drifts, boss drifts and
+the drift right before each boss) are always Streams and count as the block's Streams. Every ordinary
+block from act 2 has two Streams and Packs, Single file and Few and tough once each; with two
+introductions in a block, all three free drifts are shaped.
+
+| Block | Drifts | Fixed Streams | Shaped drifts (one of each shape, rolled order) |
+|---|---|---|---|
+| 11 | 51–55 | 52 (Lurker), 54 (Will-o'-Wisp) | 51, 53, 55 |
+| 12 | 56–60 | 56 (Gravecrawler), 58 (Sleepwalker) | 57, 59, 60 |
+| 13 | 61–65 | 61 (Drowned One), 63 (Barrow Wight) | 62, 64, 65 |
+| 14 | 66–70 | 66 (Watcher), 68 (Ash Crawler) | 67, 69, 70 |
+| 15 (boss) | 71–75 | 74 (before the boss), 75 (the act 3 boss's escort) | 71, 72, 73 |
+| 16 | 76–80 | 77 (Widow), 79 (Shellbound) | 76, 78, 80 |
+| 17 | 81–85 | 81 (Whisper Swarm), 83 (Dream Thief) | 82, 84, 85 |
+| 18 | 86–90 | 86 (Weeper) | three of 87–90 (one more Stream); 90 is shaped |
+| 19 | 91–95 | — | two Streams + one of each; 95 is shaped |
+| 20 (boss) | 96–100 | 99 (before the Hollow Oak), 100 (its escort) | 96, 97, 98 |
+
+Packs are 6–8 strong here. Never two Few and tough in a row, across a block boundary too.
+
+**Finding for the owner:** the named drifts in these tables (Lament 90, Shell Wall 95, The Long
+Night 96, Swarm 98 and the others) are rolled over like any other drift today; the roller keeps only
+their budget, window and elites. If one should always play as written ("Swarm: 80 SH" as Packs, say),
+pin its shape and kinds (`DriftData.shape`, and the generator's optional "Shape" column).
+
 ## Act 3: Misty Hollow (drifts 51–75)
 
 SH Shade, HU Husk, MO Mourner, PH Phantom, NH Night Hound, PR Procession, LU Lurker, WW
