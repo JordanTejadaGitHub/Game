@@ -264,6 +264,8 @@ func select_tower(data: TowerData) -> void:
 
 # While picking a square for a 2×2 growth, clicks go to the choice first (before selection handles them).
 func _input(event: InputEvent) -> void:
+	if RestScreens.map_locked(self):
+		return  # A choice screen is up (or peeking): no building, no seed or square picks (RestScreens.map_locked)
 	if tap_to_place:
 		_touch_input(event)  # Phones: moving a pending Warden, drawing a line
 	if stroking:
@@ -295,6 +297,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if RestScreens.map_locked(self):
+		return
 	if event.is_action_pressed("toggle_build_mode"):
 		set_build_mode(not build_mode)
 		get_viewport().set_input_as_handled()

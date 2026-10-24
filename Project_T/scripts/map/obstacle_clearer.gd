@@ -88,6 +88,8 @@ func is_tool_active() -> bool:
 	return tool_active
 
 func _unhandled_input(event: InputEvent) -> void:
+	if RestScreens.map_locked(self):
+		return  # A choice screen is up (or peeking): no clearing (RestScreens.map_locked)
 	if not active or not tool_active:
 		return  # Without the tool, obstacles only show their name; clicks pass through
 	if event.is_action_pressed("cancel_build"):
@@ -152,8 +154,8 @@ func _process(_delta: float) -> void:
 	if not active:
 		return
 	var cell: Vector2 = _cell_at(get_global_mouse_position())
-	if get_viewport().gui_get_hovered_control() != null:
-		cell = NO_CELL  # Under a HUD panel: no world tag drawn through it (user screenshot: "Mossy Boulder" by the Coming strip)
+	if get_viewport().gui_get_hovered_control() != null or RestScreens.map_blocked(self):
+		cell = NO_CELL  # Under a HUD panel or a choice screen: no world tag drawn through it (user screenshot: "Mossy Boulder" by the Coming strip)
 	if cell != _hover_cell:
 		_hover_cell = cell
 		_refresh_hover()

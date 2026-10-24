@@ -223,6 +223,8 @@ func _nightmare_near(world: Vector2, radius: float) -> Node2D:
 	return best
 
 func _hovered_nightmare() -> Node2D:
+	if RestScreens.map_blocked(self):
+		return null  # Under a choice screen nothing on the map is hovered (peeking: it is)
 	if TouchBuild.mobile_controls():
 		if _tool_active() or not is_instance_valid(_phone_pick) or _phone_pick.is_cleansed:
 			return null
