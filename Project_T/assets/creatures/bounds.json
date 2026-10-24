@@ -199,6 +199,21 @@
 		"top": -82,
 		"bottom": 35
 	},
+	"night_kite": {
+		"frame": 64,
+		"top": -31,
+		"bottom": 16
+	},
+	"gloamwing": {
+		"frame": 64,
+		"top": -32,
+		"bottom": 27
+	},
+	"pall": {
+		"frame": 64,
+		"top": -25,
+		"bottom": 17
+	},
 	"cold_lantern": {
 		"frame": 64,
 		"top": -32,

@@ -75,6 +75,14 @@ const CREATURES := {
 	"mourning_mother": {fps = 4.0, size = 144, extra = ["sorrow"], extra_fps = 6.0},
 	"hollow_oak_withering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "withering", extra = ["wither"], extra_fps = 8.0, once = ["wither"]},
 	"hollow_oak_remembering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "remembering", extra = ["echo"], extra_fps = 6.0, once = ["echo"]},
+	# Flyers (enemy_design.md "Flyers"): they fly the route above the path, so their own rows, no walks.
+	# "fly" faces right (flipped to fly left). Gloamwing: "land" (wings fold, it drops to the path, plays
+	# once) and the walks it drags its wings through for good. Pall: "settled" = draped over a walker,
+	# drawn above it.
+	"night_kite": {fps = 10.0, anims = ["fly"]},
+	"gloamwing": {fps = 5.0, anims = ["fly", "land", "walk_side", "walk_down", "walk_up"], once = ["land"],
+		rates = {land = 8.0, walk_side = 6.0, walk_down = 6.0, walk_up = 6.0}},
+	"pall": {fps = 6.0, anims = ["fly", "settled"], rates = {settled = 4.0}},
 	# The Lamplighter's cold lantern (scripts/enemy/cold_lantern.gd): no walks, just its own rows.
 	"cold_lantern": {fps = 8.0, anims = ["ignite", "burn", "snuff"], extra_fps = 10.0, once = ["ignite", "snuff"]},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
@@ -104,9 +112,21 @@ var S := 64  # frame size of the nightmare being drawn
 func _init() -> void:
 	for dir: String in [OUT, ANIM_OUT]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	# `-- --only=night_kite,pall` makes just those sheets (the others' bounds are kept, no preview).
+	var only := PackedStringArray()
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--only="):
+			only = arg.trim_prefix("--only=").split(",", false)
+	if not only.is_empty() and FileAccess.file_exists(OUT + "bounds.json"):
+		var kept: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OUT + "bounds.json"))
+		for creature: String in kept:  # JSON numbers load as floats; the file keeps whole numbers
+			var b: Dictionary = kept[creature]
+			bounds[creature] = {frame = int(b.frame), top = int(b.top), bottom = int(b.bottom)}
 	for creature: String in CREATURES:
-		_make(creature, CREATURES[creature])
-	_save_preview()
+		if only.is_empty() or only.has(creature):
+			_make(creature, CREATURES[creature])
+	if only.is_empty():
+		_save_preview()
 	_save_bounds()
 	quit()
 
@@ -114,8 +134,12 @@ func _init() -> void:
 # the walks, in px from the frame's centre (the sprite's origin in game; negative = above). The
 # game can hang health bars and status icons just above `top` instead of at a fixed height.
 func _save_bounds() -> void:
+	var ordered := {}  # roster order, whichever sheets were made this run
+	for creature: String in CREATURES:
+		if bounds.has(creature):
+			ordered[creature] = bounds[creature]
 	var file := FileAccess.open(OUT + "bounds.json", FileAccess.WRITE)
-	file.store_string(JSON.stringify(bounds, "\t", false) + "\n")
+	file.store_string(JSON.stringify(ordered, "\t", false) + "\n")
 
 func _measure(creature: String, sheet: Image, rows: int) -> void:
 	var top := S
@@ -161,10 +185,10 @@ func _make(creature: String, info: Dictionary) -> void:
 	sheet.save_png(OUT + creature + ".png")
 	sheets.append(sheet)
 	_measure(creature, sheet, WALKS.size() if walks else anims.size())
-	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps), info.get("once", []))
+	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps), info.get("once", []), info.get("rates", {}))
 
 # Writes animation/enemy/<creature>.tres: one AtlasTexture per frame, one animation per row.
-func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: float, once: Array) -> void:
+func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: float, once: Array, rates: Dictionary) -> void:
 	var path := ANIM_OUT + creature + ".tres"
 	var png := OUT + creature + ".png"
 	var uid := _read_uid(path, true)
@@ -180,7 +204,7 @@ func _save_sprite_frames(creature: String, anims: Array, fps: float, extra_fps: 
 		var frames: Array[String] = []
 		for f in FRAMES:
 			frames.append("{\n\"duration\": 1.0,\n\"texture\": SubResource(\"frame_%d_%d\")\n}" % [row, f])
-		var speed := extra_fps if row >= WALKS.size() or once.has(anims[row]) else fps
+		var speed: float = rates.get(anims[row], extra_fps if row >= WALKS.size() or once.has(anims[row]) else fps)
 		var loop := "false" if once.has(anims[row]) else "true"
 		entries.append("{\n\"frames\": [%s],\n\"loop\": %s,\n\"name\": &\"%s\",\n\"speed\": %s\n}" % [", ".join(frames), loop, anims[row], str(speed)])
 	text += "[resource]\nanimations = [%s]\n" % ", ".join(entries)
@@ -3145,3 +3169,362 @@ func _lantern_dark(canvas: Image, q: Vector2i, f: int) -> void:
 	for x in range(q.x - 2, q.x + 3):
 		_px(canvas, x, q.y + 2, metal)
 	_smoke_trail(canvas, [Vector2(q) + Vector2(0, -5), Vector2(q) + Vector2(1, -9), Vector2(q) + Vector2(-1, -13)], f, 1.4, _c("Dusk", 0.7))
+
+# --- Flyers (enemy_design.md "Flyers") ----------------------------------------------------------
+# They fly the route above the path: drawn high in the frame, a soft cold shadow on the ground under
+# them (a clear gap between the two) so the eye can tell where they are along the maze.
+
+# Two dithered steps of shadow, no hard contact edge: nothing touches the ground.
+func _soft_shadow(canvas: Image, c: Vector2, w: float, strength: float = 1.0) -> void:
+	_blend_ellipse(canvas, c, Vector2(w + 3.0, 3.2), _c("Void", 0.16 * strength))
+	_blend_ellipse(canvas, c, Vector2(w, 2.0), _c("Void", 0.3 * strength))
+
+# --- Night Kite (night_kite) --------------------------------------------------------------------
+# Act 2, quick and light: a ragged black kite nobody is flying, two cold eyes on its cross-spar, a
+# long tail of knotted string whipping behind it. It faces the viewer like a real kite, so the one
+# "fly" row reads in every direction; it bobs and rocks in the wind and the tail lags behind it.
+
+func _draw_night_kite(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	var ph: float = st.ph
+	var h := roundi(sin(ph) * 3.0)
+	var tilt := 0.42 + sin(ph + 0.8) * 0.15  # leaning into the wind, rocking
+	var c := Vector2(38, 22 + h)
+	_soft_shadow(canvas, Vector2(34, 52), 7.0 + sin(ph) * 1.0)
+	var p: Array[Vector2] = []  # top, right (front), bottom, left (back)
+	for q: Vector2 in [Vector2(0, -17), Vector2(12, -4), Vector2(0, 18), Vector2(-12, -4)]:
+		p.append(c + q.rotated(tilt))
+	var cross := c + Vector2(0, -4).rotated(tilt)
+	# The tail: knotted string whipping back from the bottom point, a beat behind the kite.
+	var tail: Array[Vector2] = []
+	for i in 15:
+		var t := i / 14.0
+		tail.append(p[2] + Vector2(-i * 2.0, i * 0.3) + Vector2(0, sin(ph * 2.0 - 1.2 - i * 0.75) * (0.4 + t * 4.0)))
+	for i in tail.size() - 1:
+		if i > 11 and not _keep(int(tail[i].x), int(tail[i].y), 1.0 - (i - 11) / 3.0, f):
+			continue
+		_line(canvas, [tail[i].round(), tail[i + 1].round()], _c("Slate"))
+		if i < 6:  # thicker near the kite
+			_line(canvas, [tail[i].round() + Vector2(0, 1), tail[i + 1].round() + Vector2(0, 1)], _c("Dusk"))
+	for i: int in [3, 6, 9, 12]:  # knots: a dark lump with a glint of string on top
+		var k := Vector2i(tail[i].round())
+		for d: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+			_px(canvas, k.x + d.x, k.y + d.y, _c("Dusk"))
+		_px(canvas, k.x, k.y - 1, _c("Stone"))
+	for i: int in [4, 10]:  # rag bows tied along it, flapping
+		var k := Vector2i(tail[i].round())
+		var flap := 1 if (f + i) % 2 == 0 else 0
+		for d: Vector2i in [Vector2i(-2, -1 - flap), Vector2i(-1, 0), Vector2i(2, -1 + flap), Vector2i(-2, 1), Vector2i(2, 1), Vector2i(1, 0)]:
+			_px(canvas, k.x + d.x, k.y + d.y, _c("Shade"))
+	# The cloth: four panels shaded from the upper left, a lit rim, ragged edges, torn through.
+	var cloth := _layer()
+	_poly_fill(cloth, PackedVector2Array([p[0], cross, p[3]]), _c("Shade"))
+	_poly_fill(cloth, PackedVector2Array([p[0], p[1], cross]), _c("Dread"))
+	_poly_fill(cloth, PackedVector2Array([p[3], cross, p[2]]), _c("Dread"))
+	_poly_fill(cloth, PackedVector2Array([cross, p[1], p[2]]), _c("Night"))
+	var rim := _layer()
+	for y in range(1, S - 1):
+		for x in range(1, S - 1):
+			if cloth.get_pixel(x, y).a > 0.0 and (cloth.get_pixel(x - 1, y).a == 0.0 or cloth.get_pixel(x, y - 1).a == 0.0) \
+					and Vector2(x, y).y < cross.y + 6:
+				rim.set_pixel(x, y, _c("Bruise"))  # the edge facing the light
+	for y in range(1, S - 1):  # ragged: nicks out of the edges
+		for x in range(1, S - 1):
+			if cloth.get_pixel(x, y).a > 0.0 and (x * 5 + y * 3) % 7 == 0 \
+					and (cloth.get_pixel(x - 1, y).a == 0.0 or cloth.get_pixel(x + 1, y).a == 0.0 or cloth.get_pixel(x, y + 1).a == 0.0):
+				cloth.set_pixel(x, y, Color(0, 0, 0, 0))
+				rim.set_pixel(x, y, Color(0, 0, 0, 0))
+	cloth.blend_rect(rim, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	for tear: Array in [[Vector2(-7, 5), Vector2(-4, 10)], [Vector2(5, 3), Vector2(4, 8)], [Vector2(-3, -12), Vector2(-5, -8)]]:
+		var a: Vector2 = c + (tear[0] as Vector2).rotated(tilt)
+		var b: Vector2 = c + (tear[1] as Vector2).rotated(tilt)
+		_line(cloth, [a.round(), b.round()], Color(0, 0, 0, 0))
+	for k in 3:  # rags hanging off the lower edges, streaming back
+		var root := p[3].lerp(p[2], 0.35 + k * 0.25)
+		_stroke(cloth, [root, root + Vector2(-2.0 - k, 3.0 + sin(ph * 2.0 - 1.0 + k) * 1.5)], 0.5, _c("Dread"))
+	var fig := _layer()
+	_stamp(fig, cloth, NIGHT_O)
+	_merge(canvas, fig, 0.88)
+	# The spars: bone-grey sticks, past the cloth at the ends.
+	_line(canvas, [(p[0] + (p[0] - c) * 0.08).round(), (p[2] + (p[2] - c) * 0.06).round()], _c("Slate"))
+	_line(canvas, [(p[3] + (p[3] - cross) * 0.1).round(), (p[1] + (p[1] - cross) * 0.1).round()], _c("Slate"))
+	for side: int in [-1, 1]:  # two cold eyes on the cross-spar, and nothing else lit
+		_glow(canvas, Vector2i((cross + Vector2(side * 4.5, 0).rotated(tilt)).round()), EYE, EYE_HALO)
+
+# --- Gloamwing (gloamwing) ----------------------------------------------------------------------
+# Act 3: a big, slow moth of grey dust, its wings too heavy for it. "fly" labours: a quick hard
+# downstroke lifts it, then the wings drag slowly up while the body sinks, dust sifting off. "land":
+# the wings close over it, fold down and it drops onto the path. The walks: grounded for good, it
+# lurches along on stubby legs with its wings raised and their ragged ends dragging behind.
+
+const MOTH_DUST := ["Night", "Dusk", "Slate", "Stone"]
+const MOTH_FUR := ["Night", "Dusk", "Slate", "Slate"]
+const MOTH_GROUND := 47  # nothing of a grounded Gloamwing goes below the path line
+
+func _draw_gloamwing(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	match st.anim:
+		"fly":
+			var open: float = [1.0, 0.92, 0.76, 0.58, 0.4, 0.8][f]  # slow up over four frames, slammed down in one
+			var sag: int = [0, 1, 2, 3, 4, 2][f]  # it only rises on the downstroke
+			_soft_shadow(canvas, Vector2(32, 54), 12.0 + 7.0 * open)
+			_gloam_front(canvas, Vector2(32, 21 + sag), open, 0.0, f)
+			_gloam_dust(canvas, 31 + sag, f)
+		"land":
+			var open: float = [1.0, 0.5, 0.04, 0.0, 0.0, 0.0][f]
+			var fold: float = [0.0, 0.0, 0.0, 0.45, 0.75, 1.0][f]
+			var drop: float = [0.0, 1.0, 3.0, 8.0, 13.0, 15.0][f]
+			if f == 5:
+				_gloam_walk(canvas, {anim = "walk_down", f = 0, ph = 0.0})  # the walk's first frame
+			else:
+				_soft_shadow(canvas, Vector2(32, 54 - drop * 0.4), 18.0 - drop * 0.4, 1.0 + drop / 20.0)
+				_gloam_front(canvas, Vector2(32, 21 + drop), open, fold, f)
+				_gloam_dust(canvas, 31 + int(drop), f)
+			if f >= 4:  # dust thrown up where it lands
+				for side: int in [-1, 1]:
+					for k in 3:
+						_blend_ellipse(canvas, Vector2(32 + side * (14 + k * 5 + (f - 4) * 3), 46 - k - (f - 4)), Vector2(2.4 - k * 0.4, 1.5), _c("Stone", 0.5 - (f - 4) * 0.2))
+		_:
+			_gloam_walk(canvas, st)
+
+# Dust sifting off its wings while it flies.
+func _gloam_dust(canvas: Image, y0: int, f: int) -> void:
+	for k in 6:
+		var y: int = y0 + posmod(f * 3 + k * 7, 18)
+		var x: int = [-17, -10, -4, 6, 13, 19][k] + 32
+		_px(canvas, x, y, _c("Stone", 0.8 if (y + k) % 3 != 0 else 0.45))
+
+# Front view (head up; flying away from the viewer reads the same): forewings and hindwings from the
+# shoulders, raised by (1 - open), drooping with `fold` (0 = spread, 1 = folded down over the body).
+func _gloam_front(canvas: Image, c: Vector2, open: float, fold: float, f: int) -> void:
+	for hind: bool in [true, false]:
+		for side: int in [-1, 1]:
+			var shoulder := c + Vector2(side * 3, 4 if hind else 0)
+			var theta := (0.75 if hind else 0.28) - (1.0 - open) * (0.95 if hind else 1.45) + fold * (1.55 if hind else 1.75)
+			var r := Vector2(10.0 - fold * 2.0, 7.0) if hind else Vector2(15.0 - fold * 3.5, 8.5)
+			var dir := Vector2(cos(theta) * side, sin(theta))
+			_dust_wing(canvas, shoulder + dir * r.x * 0.85, r, atan2(dir.y, dir.x), side, not hind, f)
+	_gloam_body(canvas, c, true)
+
+# The furred body seen from above, head up: a banded heavy abdomen, thorax, head, feathery antennae
+# and two cold eyes (just the two pixels: no halo, so it never reads as a Wisp).
+func _gloam_body(canvas: Image, c: Vector2, eyes: bool) -> void:
+	var body := _layer()
+	var fur := _ramp(MOTH_FUR)
+	_ellipse(body, c + Vector2(0, 10), Vector2(4.2, 8.5), fur)  # heavy abdomen
+	for y in S:
+		for x in S:
+			if body.get_pixel(x, y).a > 0.0 and posmod(y - int(c.y), 4) == 0:
+				body.set_pixel(x, y, _darker(fur, body.get_pixel(x, y)))
+	_ellipse(body, c, Vector2(5.5, 5), fur)  # furred thorax
+	_ellipse(body, c + Vector2(0, -6), Vector2(3.5, 3), fur)
+	_stamp(canvas, body, NIGHT_O)
+	for side: int in [-1, 1]:
+		_feather_antenna(canvas, c + Vector2(side * 1.5, -8), c + Vector2(side * 9, -17), _c("Slate"), _c("Dusk"))
+		if eyes:
+			_px(canvas, int(c.x) + side * 2 - (1 if side < 0 else 0), int(c.y) - 6, EYE)
+
+# A dusty moth wing: a rotated ellipse, scalloped at the hem, dark veins, a muted ring of an eyespot
+# (only the eyes glow), and the outer edge breaking up into dust. `side` < 0 = the lit (left) wing.
+func _dust_wing(canvas: Image, c: Vector2, r: Vector2, angle: float, side: int, fore: bool, f: int, max_y: int = 64) -> void:
+	var ramp := _ramp(MOTH_DUST)
+	var layer := _layer()
+	var motes := _layer()
+	var reach := ceili(maxf(r.x, r.y)) + 1
+	for y in range(maxi(0, floori(c.y) - reach), mini(mini(S, max_y), ceili(c.y) + reach + 1)):
+		for x in range(maxi(0, floori(c.x) - reach), mini(S, ceili(c.x) + reach + 1)):
+			var d := (Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r
+			var q := d.length()
+			var scallop := 0.08 * absf(sin(atan2(d.y, d.x) * 5.0))
+			if q > 1.0 - scallop:
+				continue
+			var col: Color = ramp[2] if side < 0 else ramp[1]
+			if not fore:
+				col = ramp[1] if side < 0 else ramp[0]
+			if q > 0.8 - scallop:  # the edge comes apart into dust
+				if _keep(x, y, 0.45, f):
+					motes.set_pixel(x, y, Color(ramp[3] if (x + y + f) % 3 == 0 else ramp[2], 0.75))
+				continue
+			elif posmod(roundi(atan2(d.y, d.x) * 7.0), 3) == 0 and q > 0.3:
+				col = ramp[0]  # veins
+			if fore:
+				var e := (d - Vector2(0.38, 0.12)).length()
+				if e < 0.28 and e > 0.16:
+					col = ramp[0]  # a muted ring
+			layer.set_pixel(x, y, col)
+	_stamp(canvas, layer, NIGHT_O)
+	canvas.blend_rect(motes, Rect2i(0, 0, S, S), Vector2i.ZERO)  # loose dust, no outline round each mote
+
+# Grounded for good, the wings too heavy to lift: held up over its back like a roof of dust and
+# dragged along the path behind it, their ragged ends a beat late. It lurches on stubby legs with its
+# head and feathered antennae raised. Down / up: a wing tented up on either side, dragging outwards.
+func _gloam_walk(canvas: Image, st: Dictionary) -> void:
+	var f: int = st.f
+	var step := sin(st.ph)
+	var lag := sin(st.ph - 1.0) * 2.0  # the dragged wing ends follow a beat late
+	var b := roundi(absf(step))
+	var lurch := 1 if step > 0.3 else 0
+	var fur := _ramp(MOTH_FUR)
+	_shadow(canvas, Vector2(32, 46), Vector2(21, 2.5))
+	match st.anim:
+		"walk_side":
+			var x0 := lurch
+			# far wing (darker), then the near one: a tent from the shoulder back to the ground
+			_tent_wing(canvas, [Vector2(40 + x0, 19 + b), Vector2(4 + lag, 44), Vector2(30 + x0, 44)], 1, f)
+			for k in 3:  # stubby legs, stepping
+				var root := Vector2(38 + x0 + k * 3, 39 + b)
+				var s := step * (1 if k % 2 == 0 else -1)
+				_stroke(canvas, [root, root + Vector2(1 + s * 2, 7 - b)], 0.7, fur[0])
+			var body := _layer()
+			_ellipse(body, Vector2(40 + x0, 35 + b), Vector2(5, 5.5), fur)  # thorax, raised
+			_ellipse(body, Vector2(46 + x0, 29 + b), Vector2(3.5, 3.5), fur)  # the head held up
+			_stamp(canvas, body, NIGHT_O)
+			_tent_wing(canvas, [Vector2(38 + x0, 22 + b), Vector2(8 + lag, 45), Vector2(33 + x0, 45)], -1, f)
+			_feather_antenna(canvas, Vector2(47 + x0, 26 + b), Vector2(55 + x0, 16 + b), _c("Slate"), _c("Dusk"))
+			_feather_antenna(canvas, Vector2(45 + x0, 26 + b), Vector2(50 + x0, 15 + b), _c("Dusk"), _c("Night"))
+			_px(canvas, 48 + x0, 29 + b, EYE)
+		"walk_down", "walk_up":
+			var down: bool = st.anim == "walk_down"
+			var bodies := _layer()
+			if down:
+				for side: int in [-1, 1]:  # the wings first, the body in front of them
+					_tent_wing(canvas, [Vector2(32 + side * 3, 18 + b), Vector2(32 + side * (26 + lag * side), 44), Vector2(32 + side * 5, 44)], side, f)
+				_ellipse(bodies, Vector2(32, 30 + b), Vector2(6, 6), fur)
+				_ellipse(bodies, Vector2(32, 37 + b), Vector2(4.5, 4), fur)
+			else:
+				_ellipse(bodies, Vector2(32, 26 + b), Vector2(5.5, 5), fur)
+				_ellipse(bodies, Vector2(32, 36 + b), Vector2(5, 8), fur)
+				for y in S:
+					for x in S:
+						if bodies.get_pixel(x, y).a > 0.0 and y > 31 + b and posmod(y, 3) == 0:
+							bodies.set_pixel(x, y, _darker(fur, bodies.get_pixel(x, y)))
+			for side: int in [-1, 1]:
+				var s := step * side
+				_stroke(canvas, [Vector2(32 + side * 3, 39 + b), Vector2(32 + side * 6, 46 - maxf(s, 0.0) * 2.0)], 0.7, fur[0])
+			_stamp(canvas, bodies, NIGHT_O)
+			if not down:  # seen from behind, the wings tent over the back
+				for side: int in [-1, 1]:
+					_tent_wing(canvas, [Vector2(32 + side * 2, 20 + b), Vector2(32 + side * (26 + lag * side), 44), Vector2(32 + side * 4, 44)], side, f)
+			for side: int in [-1, 1]:
+				var root := Vector2(32 + side * 1.5, (33 if down else 21) + b)
+				_feather_antenna(canvas, root, root + Vector2(side * 8, -11), _c("Slate"), _c("Dusk"))
+			if down:
+				_px(canvas, 30, 37 + b, EYE)
+				_px(canvas, 34, 37 + b, EYE)
+	for k in 3:  # dust scraped up behind the dragged wings
+		var t := fposmod(float(f) / FRAMES + k / 3.0, 1.0)
+		var at := Vector2(5 - t * 5.0, 44 - t * 3.0) if st.anim == "walk_side" else Vector2(32 + (k - 1) * 25, 46 - t * 4.0)
+		_blend_ellipse(canvas, at, Vector2(1.6 + t, 1.0 + t * 0.6), _c("Stone", 0.45 * (1.0 - t)))
+
+# A wing held up and dragged: a triangle from the top (the shoulder) down to two ground points, the
+# veins fanning from the top, a ragged hem along the ground coming apart into dust. side < 0 = lit.
+func _tent_wing(canvas: Image, pts: Array, side: int, f: int) -> void:
+	var ramp := _ramp(MOTH_DUST)
+	var top: Vector2 = pts[0]
+	var layer := _layer()
+	_poly_fill(layer, PackedVector2Array(pts), ramp[2] if side < 0 else ramp[1])
+	var motes := _layer()
+	for y in S:
+		for x in S:
+			if layer.get_pixel(x, y).a == 0.0:
+				continue
+			var d := Vector2(x + 0.5, y + 0.5) - top
+			if posmod(roundi(atan2(d.y, d.x) * 14.0), 3) == 0 and d.length() > 4.0:
+				layer.set_pixel(x, y, ramp[0])  # veins from the shoulder
+			if y >= 42 and (x * 3 + y) % 4 == 0:  # the dragged hem frays
+				layer.set_pixel(x, y, Color(0, 0, 0, 0))
+				if _keep(x, y, 0.6, f):
+					motes.set_pixel(x, y + 1, Color(ramp[3], 0.7))
+	for i in 9:  # a lit edge along the top line of the near wing
+		var p := top.lerp(pts[1], i / 9.0).round()
+		if side < 0 and layer.get_pixelv(Vector2i(p) + Vector2i(0, 1)).a > 0.0:
+			layer.set_pixelv(Vector2i(p) + Vector2i(0, 1), ramp[3])
+	_stamp(canvas, layer, NIGHT_O)
+	canvas.blend_rect(motes, Rect2i(0, 0, S, S), Vector2i.ZERO)
+
+# --- Pall (pall) --------------------------------------------------------------------------------
+# Act 4: an ash-grey funeral cloth hanging from one point, the face pushing up through it from
+# beneath: the cloth peaks at the brow and pulls taut over cheekbones, nose and an open mouth, two
+# cold eyes showing through the weave. No head of its own. "fly": wide at the top, falling to
+# uneven ragged tails (the longest trailing behind), one corner curling up; the lower cloth thins
+# to see-through. "settled": a low tent over the walker it covers (drawn above it), its hem cut short
+# and notched so the walker's legs show and the walker reads through the thin middle.
+
+const PALL_CLOTH := ["Night", "Dusk", "Slate", "Stone"]
+
+func _draw_pall(canvas: Image, st: Dictionary) -> void:
+	var ph: float = st.ph
+	var settled: bool = st.anim == "settled"
+	var h := roundi(sin(ph) * (0.6 if settled else 2.0))
+	var top := (10 if settled else 9) + h
+	var pts: Array[Vector2] = []
+	if settled:
+		_soft_shadow(canvas, Vector2(32, 47), 20.0, 0.9)
+		for q: Vector2 in [Vector2(32, 0), Vector2(40, 3), Vector2(47, 9), Vector2(54, 17), Vector2(55, 25), Vector2(51, 25),
+				Vector2(52, 31), Vector2(47, 27), Vector2(44, 30), Vector2(40, 27), Vector2(35, 29), Vector2(31, 26), Vector2(27, 30),
+				Vector2(23, 27), Vector2(19, 31), Vector2(13, 25), Vector2(9, 25), Vector2(10, 17), Vector2(17, 9), Vector2(24, 3)]:
+			pts.append(q + Vector2(0, top))
+	else:
+		_soft_shadow(canvas, Vector2(32, 54), 12.0 + sin(ph) * 1.0)
+		for q: Vector2 in [Vector2(32, 0), Vector2(39, 3), Vector2(45, 9), Vector2(53, 12 - _flutter(ph, 0.5)), Vector2(50, 17),
+				Vector2(48, 25), Vector2(46, 33 + _flutter(ph, 1.0)), Vector2(42, 28), Vector2(38, 32 + _flutter(ph, 2.0)),
+				Vector2(34, 28), Vector2(29, 34 + _flutter(ph, 3.0)), Vector2(25, 29), Vector2(20, 40 + _flutter(ph, 4.0) * 1.6),
+				Vector2(17, 27), Vector2(13, 17), Vector2(19, 9), Vector2(25, 3)]:
+			pts.append(q + Vector2(0, top))
+	var cloth := _layer()
+	_poly_fill(cloth, PackedVector2Array(pts), _c("Slate"))
+	var ramp := _ramp(PALL_CLOTH)
+	var hem_y := top + (31.0 if settled else 38.0)
+	for y in S:  # drapery: lit on the left, folds hanging from the peak
+		for x in S:
+			if cloth.get_pixel(x, y).a == 0.0:
+				continue
+			var i := (2 if x < 30 else 1) + (1 if settled and y > top + 10 else 0)  # settled: paler, so the walker reads darker under it
+			var v := sin((x - 32) * 0.85 + (y - top) * 0.1 + ph * 0.5)
+			if y > top + 11:
+				if v > 0.78:
+					i += 1
+				elif v < -0.72:
+					i -= 1
+			cloth.set_pixel(x, y, ramp[clampi(i, 0, 3)])
+	_pall_face(cloth, Vector2i(32, top + 6))
+	var fig := _layer()
+	_stamp(fig, cloth, NIGHT_O)
+	for y in S:  # the lower cloth thins to see-through; settled, so does the middle over the walker
+		for x in S:
+			var col := fig.get_pixel(x, y)
+			if col.a == 0.0:
+				continue
+			var a := lerpf(1.0, 0.55, clampf((y - top - 16.0) / (hem_y - top - 16.0), 0.0, 1.0))
+			if settled and y > top + 13:
+				a = minf(a, lerpf(0.3, 1.0, pow(absf(x + 0.5 - 32.0) / 20.0, 2.0)))
+			col.a *= a
+			fig.set_pixel(x, y, col)
+	_merge(canvas, fig, 0.92)
+	for side: int in [-1, 1]:  # two cold eyes showing through the weave
+		_px(canvas, 32 + side * 3 - (1 if side < 0 else 0), top + 7, _c("Dewlight"))
+
+# A hem point's flutter, a little out of step with its neighbours.
+func _flutter(ph: float, k: float) -> float:
+	return sin(ph + k) * 1.5
+
+# The face pushing through the cloth (no outline of its own): a lit brow and cheekbones (light from
+# the upper left), deep sockets, a ridge of nose and a mouth stretched open.
+func _pall_face(cloth: Image, c: Vector2i) -> void:
+	var lit := _c("Stone")
+	var deep := _c("Night")
+	for x in range(c.x - 5, c.x + 4):  # brow
+		_px(cloth, x, c.y - 1, lit if x < c.x + 1 else _c("Slate"))
+	for side: int in [-1, 1]:
+		var e := Vector2i(c.x + side * 3 - (1 if side < 0 else 0), c.y + 1)
+		for d: Vector2i in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, 0)]:
+			_px(cloth, e.x + d.x, e.y + d.y, deep)
+		_px(cloth, e.x - 1 + side, e.y + 3, lit if side < 0 else _c("Slate"))  # cheekbone
+		_px(cloth, e.x + side, e.y + 3, _c("Dusk"))
+	for y in range(c.y + 1, c.y + 4):  # the nose
+		_px(cloth, c.x - 1, y, lit)
+		_px(cloth, c.x, y, _c("Dusk"))
+	for p: Vector2i in [Vector2i(-1, 6), Vector2i(0, 6), Vector2i(-2, 7), Vector2i(1, 7), Vector2i(-1, 7), Vector2i(0, 7),
+			Vector2i(-1, 8), Vector2i(0, 8)]:
+		_px(cloth, c.x + p.x, c.y + p.y, _c("Void"))  # the mouth, stretched open
+	_px(cloth, c.x - 2, c.y + 6, lit)
