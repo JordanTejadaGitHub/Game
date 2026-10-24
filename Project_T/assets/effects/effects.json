@@ -3389,19 +3389,19 @@
 		},
 		"spore_mushroom_pop": {
 			"anchor": [
-				12,
-				20
+				18,
+				31
 			],
 			"file": "spore_mushroom_pop.png",
 			"fps": 12.0,
 			"frame_size": [
-				24,
-				24
+				36,
+				36
 			],
-			"frames": 3,
+			"frames": 6,
 			"kind": "ground",
 			"loop": false,
-			"note": "Spore Print: a mushroom eaten, its cap bursting into spores, ~0.25 s (anchor = the stem's foot, like spore_mushroom)."
+			"note": "Spore Print: a mushroom eaten as a nightmare's feet reach it: squashed, cracked, then its cap bursts up into three pieces and a pink spore cloud with a dust ring, a torn stub left; ~0.5 s (anchor = the stem's foot, like spore_mushroom)."
 		},
 		"spore_mushroom_seedling": {
 			"anchor": [
