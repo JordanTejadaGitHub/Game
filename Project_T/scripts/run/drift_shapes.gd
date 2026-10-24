@@ -65,11 +65,18 @@ static func pack_key(number: int, pack: int) -> int:
 # Tag a spawned nightmare with its pack (DriftDirector._spawn) and the pack's leaf limit; split children and
 # followers inherit both.
 static func tag_enemy(enemy: Node, number: int, arrival: Array) -> void:
-	if enemy == null or pack_of(arrival) < 0:
+	if enemy == null:
 		return
-	var limit := pack_leaf_limit(pack_size_of(arrival))
 	var tagged: Array = [enemy]
 	tagged.append_array(enemy.get("dew_followers") if enemy.get("dew_followers") != null else [])  # Spawned with it, before the tag
+	var width := lane_of(arrival)
+	if width >= 0.0:
+		for node in tagged:
+			if is_instance_valid(node) and node.get("lane_width") != null:
+				node.lane_width = width  # Walking lanes: Single file close to the line
+	if pack_of(arrival) < 0:
+		return
+	var limit := pack_leaf_limit(pack_size_of(arrival))
 	for node in tagged:
 		if is_instance_valid(node):
 			node.set_meta(PACK_META, pack_key(number, pack_of(arrival)))
@@ -115,11 +122,28 @@ static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator
 			return PACKS if schedule.any(func(a: Array) -> bool: return pack_of(a) >= 0) else STREAM
 		SINGLE_FILE:
 			_single_file(schedule, rng)
+			for arrival in schedule:
+				_set_lane(arrival, LANE_SINGLE)
 		FEW_AND_TOUGH:
 			_few_and_tough(schedule, rng)
+			for arrival in schedule:
+				if arrival[2]:
+					_set_lane(arrival, LANE_TOUGH)
 		_:
 			return STREAM
 	return shape
+
+# Walking lanes (enemy_design.md): an arrival's lane width in cells, arrival[5] (Enemy.lane_width via tag_enemy).
+const LANE_SINGLE := 0.1  # Single file walks close to the centre line
+const LANE_TOUGH := 0.15  # Few and tough's Deeply Blighted
+
+static func _set_lane(arrival: Array, width: float) -> void:
+	while arrival.size() < 6:
+		arrival.append(0)
+	arrival[5] = width
+
+static func lane_of(arrival: Array) -> float:
+	return float(arrival[5]) if arrival.size() > 5 else -1.0
 
 # A drift's seeded rng for apply / add_guaranteed_elite: same map seed + drift = same placement.
 static func drift_rng(map_seed: int, number: int) -> RandomNumberGenerator:

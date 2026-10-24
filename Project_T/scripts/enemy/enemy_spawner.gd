@@ -306,6 +306,52 @@ func _process(delta: float) -> void:
 	_update_rooted_cells(dreams)
 	_update_reveal_lookup(delta)
 	_update_lantern_light()
+	_jostle_lanes(delta)
+
+# Walking lanes (enemy_design.md, visual only): walkers within JOSTLE_REACH cell of each other on close lanes ease their
+# target lanes apart. Buckets by the cell each stands on; a nightmare is compared only with the others on its cell and
+# on the cell it walks to, every JOSTLE_EVERY frames. Reduced motion: none.
+const JOSTLE_REACH := 0.4  # Cells
+const JOSTLE_LANES := 0.25  # Cells: lanes closer than this push
+const JOSTLE_PUSH := 1.2  # Lane units a second
+const JOSTLE_EVERY := 2
+var _jostle_time := 0.0
+
+func _jostle_lanes(delta: float) -> void:
+	_jostle_time += delta
+	if Engine.get_process_frames() % JOSTLE_EVERY != 0:
+		return
+	var step := _jostle_time
+	_jostle_time = 0.0
+	if bool(Fx.setting("reduced_motion", false)):
+		return
+	var buckets := {}  # Cell -> [nightmares on it]
+	for enemy in get_children():
+		if enemy.has_method("get_lane_width") and not enemy.is_cleansed and not enemy._culled and not enemy.is_flying():
+			buckets.get_or_add(enemy._last_cell, []).append(enemy)
+	if buckets.is_empty():
+		return
+	var cell_px: float = buckets.values()[0][0].grid.cell_size.x
+	var reach := JOSTLE_REACH * cell_px
+	for cell in buckets:
+		var here: Array = buckets[cell]
+		for a in here:
+			var near: Array = here
+			var ahead = buckets.get(a.get_target_cell())
+			if ahead != null and ahead != here:
+				near = here + ahead
+			for b in near:
+				if b == a or (near == here and b.get_instance_id() < a.get_instance_id()):
+					continue  # (Same cell: each pair once)
+				if a.position.distance_squared_to(b.position) > reach * reach:
+					continue
+				var wa: float = a.lane * a.get_lane_width()
+				var wb: float = b.lane * b.get_lane_width()
+				if absf(wa - wb) > JOSTLE_LANES:
+					continue
+				var away := signf(wa - wb) if wa != wb else (1.0 if a.get_instance_id() > b.get_instance_id() else -1.0)
+				a.lane_target = clampf(a.lane_target + away * JOSTLE_PUSH * step, -1.0, 1.0)
+				b.lane_target = clampf(b.lane_target - away * JOSTLE_PUSH * step, -1.0, 1.0)
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
 # others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
