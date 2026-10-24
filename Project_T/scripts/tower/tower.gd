@@ -3228,7 +3228,7 @@ func _release_attack() -> void:
 			for enemy in in_range:
 				if attack_data.hit_effect_texture != null:  # Tidecaller's wave, World Root's grasp
 					play_sheet(attack_data.hit_effect_texture, attack_data.hit_effect_frames,
-						attack_data.hit_effect_anchor, enemy.global_position,
+						attack_data.hit_effect_anchor, aim_at(enemy),  # On the drawn body (walking lanes)
 						enemy.global_position.x < global_position.x)
 				hit(enemy, 1.0, true)
 				_push(enemy)
@@ -3884,7 +3884,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		_kin_fired(&"spotter")
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
-		_splash_ring(where, splash)  # (Tower Assets 159222cf: it had no ring)
+		_splash_ring(_ring_at(target, where), splash)  # (Tower Assets 159222cf: it had no ring)
 		hit(target, hand, false, crit)
 		set_area_count(get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size(), where)
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
@@ -3894,7 +3894,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		if _twist == &"landslide":
 			FinalTwists.landslide(self, target)  # Every 4th hit rolls a boulder back along the path
 	else:
-		_splash(where, splash, hand, crit)
+		_splash(where, splash, hand, crit, _ring_at(target, where))
 		var rainfog := kin_share(&"rainfog", "a")
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
@@ -3939,8 +3939,9 @@ func _skip_landed(target, _where: Vector2, share: float) -> void:
 	if target != null and is_instance_valid(target):
 		hit(target, share)
 
-func _splash(where: Vector2, radius: float, share: float, crit: int) -> void:
-	_splash_ring(where, radius)
+# `ring_at`: where its ring is drawn (the struck nightmare's drawn body; INF = `where`). The splash itself reaches from `where`.
+func _splash(where: Vector2, radius: float, share: float, crit: int, ring_at: Vector2 = Vector2.INF) -> void:
+	_splash_ring(where if ring_at == Vector2.INF else ring_at, radius)
 	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
 		GroveRules.area_attack(self, where, radius, share)  # Lingering Splash, Great Ripple
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
@@ -3961,6 +3962,11 @@ static func splash_ring_style(data: TowerData) -> String:
 	if data.get_id() == "hoarfrost":
 		return "frost"
 	return SPLASH_RING_STYLES.get(data.line, "")
+
+# Walking lanes (enemy_council_review.md 2026-10-24b): a ring around a struck nightmare is drawn on its body (up to ~13 px
+# beside its route point), or it reads as a miss; the splash's reach stays on the route point.
+func _ring_at(target, where: Vector2) -> Vector2:
+	return aim_at(target) if target != null and is_instance_valid(target) and not target.is_cleansed else where
 
 func _splash_ring(where: Vector2, radius: float) -> void:
 	if radius < MAP_GRID.cell_size.x * 0.25:

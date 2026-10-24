@@ -910,12 +910,16 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
 			var reach := _static_field(target, at, damage, tower)
-			_bolt_seen(target, at, damage, reach, tracker)
+			_bolt_seen(target, _drawn(target, at), damage, reach, tracker)  # Drawn on the body; the field reaches from `at`
 			_live_wire(target, at, damage, tower)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
 	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER / (EnemyStatuses.charged_payoff_multiplier() if tag == &"static" else 1.0), &"lightning_rod"), "light", false, false, tower, &"lightning_rod")
 	return rod
+
+# Where a nightmare's effect is drawn: its body (Tower.aim_at, walking lanes), or `fallback` once it is gone.
+static func _drawn(enemy, fallback: Vector2) -> Vector2:
+	return Tower.aim_at(enemy) if enemy != null and is_instance_valid(enemy) and not enemy.is_cleansed else fallback
 
 # Live Wire ("Fewer, bigger cards" de439ea8; Balancing: full damage): a Charged bolt jumps once to the nearest other
 # nightmare within LIVE_WIRE_REACH, at the same damage. A plain hit, so it never sets off more bolts or Reactions.
@@ -936,7 +940,7 @@ static func _live_wire(target: Node2D, at: Vector2, damage: float, tower: Node) 
 			next = other
 	if next == null:
 		return
-	var points := PackedVector2Array([at, next.global_position])
+	var points := PackedVector2Array([_drawn(target, at), Tower.aim_at(next)])  # Body to body (walking lanes); the jump's reach stays on `at`
 	var world := _world(tower if is_instance_valid(tower) else next)
 	if world != null and not Fx.reduce_flashes():
 		var bolt := ChainBolt.new(points)
