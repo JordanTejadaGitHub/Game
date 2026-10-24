@@ -319,19 +319,26 @@ const JOSTLE_LANES := 0.15  # Cells: lanes closer than this push
 const JOSTLE_PUSH := 0.8  # Lane units a second
 const JOSTLE_EVERY := 2
 var _jostle_time := 0.0
+# Status icons in crowds (enemy_design.md, owner 2026-10-24): the jostle's neighbour pass also marks nightmares whose
+# drawn bodies are within CROWD_REACH cell of another (Enemy.crowd_seen = crowd_clock); hud_focus = the nightmare the
+# info panel shows (hovered / tapped: it keeps its full row; NightmareInfo sets it).
+const CROWD_REACH := 0.5
+var crowd_clock := 0.0
+var hud_focus: Node2D = null
 
 func _jostle_lanes(delta: float) -> void:
 	_jostle_time += delta
-	if not walking_lanes or Engine.get_process_frames() % JOSTLE_EVERY != 0:
+	crowd_clock += delta
+	if Engine.get_process_frames() % JOSTLE_EVERY != 0:
 		return
 	var step := _jostle_time
 	_jostle_time = 0.0
-	if bool(Fx.setting("reduced_motion", false)):
-		return
+	# Jostle pushes only with lanes on and no reduced motion; the crowd marks (compact status rows) always
+	var push := walking_lanes and not bool(Fx.setting("reduced_motion", false))
 	var cell_px := 0.0
 	var buckets := {}  # floor(distance left / reach) -> [[nightmare, distance left], …]
 	for enemy in get_children():
-		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled or enemy.is_flying():
+		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled:
 			continue
 		if cell_px == 0.0:
 			cell_px = enemy.grid.cell_size.x
@@ -346,13 +353,19 @@ func _jostle_lanes(delta: float) -> void:
 		for i in here.size():
 			for j in range(i + 1, here.size() + next.size()):
 				var other: Array = here[j] if j < here.size() else next[j - here.size()]
-				_jostle_pair(here[i], other, reach, cell_px, step)
+				_jostle_pair(here[i], other, reach, cell_px, step, push)
 
-func _jostle_pair(one: Array, two: Array, reach: float, cell_px: float, step: float) -> void:
+func _jostle_pair(one: Array, two: Array, reach: float, cell_px: float, step: float, push: bool) -> void:
 	if absf(float(one[1]) - float(two[1])) > reach:
 		return
 	var a = one[0]
 	var b = two[0]
+	# Crowded (status icons in crowds): another drawn body within CROWD_REACH cell
+	if a.get_body_position().distance_squared_to(b.get_body_position()) < (CROWD_REACH * cell_px) ** 2:
+		a.crowd_seen = crowd_clock
+		b.crowd_seen = crowd_clock
+	if not push or a.is_flying() or b.is_flying():
+		return
 	var wa: float = a.lane * a.get_lane_width()
 	var wb: float = b.lane * b.get_lane_width()
 	if absf(wa - wb) > JOSTLE_LANES:

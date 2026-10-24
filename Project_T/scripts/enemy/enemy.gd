@@ -310,6 +310,27 @@ var dropped := false  # Gloamwing: down on the path for good
 var _air_route := PackedVector2Array()  # A route flyer's own route, in the air
 var _air_held := 0  # Its index there when it was grounded
 var _shared_hit := false  # A Pall's half of a blow: no multipliers again
+# Status icons in crowds (enemy_design.md "Status icons in crowds", owner 2026-10-24): a crowded nightmare's badge row
+# becomes one small pip per status (no numbers, 70%) and its health bar 3 px; full rows stay for the hovered / tapped
+# nightmare, bosses, Deeply Blighted and anything not crowded. Setting "status_icons": 0 Full, 1 Compact in crowds
+# (default), 2 Off (the row only on hover / tap). Eased over CROWD_EASE s (instant under reduced motion); a look holds
+# CROWD_HOLD s at least.
+const CROWD_PIP := 5.0  # px
+const CROWD_PIP_GAP := 2.0
+const CROWD_PIP_ALPHA := 0.7
+const CROWD_BAR_H := 3.0
+const CROWD_EASE := 0.15
+const CROWD_HOLD := 0.5
+const CROWD_SEEN := 0.2  # s: a crowd mark this fresh still counts (the spawner marks every 2 frames)
+enum RowLook { FULL, COMPACT, OFF }
+# The pip's shape per status (UI Code may replace them): 0 circle, 1 square, 2 diamond, 3 triangle, 4 bar
+const PIP_SHAPES := {&"damp": 0, &"drowsy": 0, &"asleep": 4, &"spored": 1, &"marked": 3, &"static": 2, &"held": 4}
+var crowd_seen := -1.0  # EnemySpawner.crowd_clock when another drawn body was last within CROWD_REACH cell
+var _row_look: RowLook = RowLook.FULL
+var _row_hold := 0.0
+var _row_alpha := Vector2(1.0, 0.0)  # Drawn alpha of (the full row, the pips)
+var _hud_pips := RID()
+var _pips_changes := -1
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
 # _in_narrow_gap's last answer and what it depended on (perf: re-checked only when the half cells under and
 # just ahead of the body, the step or the map's blocking change, not every frame)
@@ -817,6 +838,8 @@ func _process(delta: float) -> void:
 		_hud_dirty = false
 		statuses.hud_dirty = false
 		_update_hud(delta)
+	if not _culled:
+		_update_row_look(delta)  # Status icons in crowds: pips or the full row
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -1166,6 +1189,93 @@ func _update_hud(delta: float) -> void:
 		_build_hud_marks(_hud_items[HUD_MARKS], overlay)
 		hud_builds += 1
 
+# The badge row's look now (RowLook): full for the hovered / tapped nightmare, bosses, Deeply Blighted and anything not
+# crowded; compact pips in a crowd; nothing under "Off" (but the hovered / tapped one).
+func _wanted_row_look() -> RowLook:
+	if _spawner != null and _spawner.hud_focus == self:
+		return RowLook.FULL
+	var mode := int(Fx.setting("status_icons", 1))
+	if mode == 2:
+		return RowLook.OFF
+	if mode == 0 or enemy_data.is_boss or elite:
+		return RowLook.FULL
+	if _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN:
+		return RowLook.COMPACT
+	return RowLook.FULL
+
+# Every frame it's on screen: switch the row's look (held CROWD_HOLD s at least) and ease the full row and the pips'
+# alphas toward it; only touches the server when something moves.
+func _update_row_look(delta: float) -> void:
+	if not _hud_root.is_valid() or _hud_items.is_empty():
+		return
+	_row_hold -= delta
+	var want := _wanted_row_look()
+	if want != _row_look and (_row_hold <= 0.0 or want == RowLook.FULL and _spawner != null and _spawner.hud_focus == self):
+		_row_look = want
+		_row_hold = CROWD_HOLD
+		_hud_health = -2  # The health bar rebuilds at its new height
+		_hud_dirty = true
+	var target := Vector2(1.0, 0.0)
+	if _row_look == RowLook.COMPACT:
+		target = Vector2(0.0, CROWD_PIP_ALPHA)
+	elif _row_look == RowLook.OFF:
+		target = Vector2.ZERO
+	if target.y > 0.0 and _pips_changes != statuses.changes:
+		_build_pips()
+	if _row_alpha == target:
+		return
+	if bool(Fx.setting("reduced_motion", false)):
+		_row_alpha = target
+	else:
+		_row_alpha = _row_alpha.move_toward(target, delta / CROWD_EASE)
+	for kind in [HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]:
+		RenderingServer.canvas_item_set_modulate(_hud_items[kind], Color(1, 1, 1, _row_alpha.x))
+	if _hud_pips.is_valid():
+		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
+
+# One pip per status, centred on the badge row's anchor: the status colour in its shape (PIP_SHAPES), no numbers.
+func _build_pips() -> void:
+	_pips_changes = statuses.changes
+	if not _hud_pips.is_valid():
+		_hud_pips = RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(_hud_pips, _hud_root)
+		RenderingServer.canvas_item_set_z_as_relative_to_parent(_hud_pips, false)
+		RenderingServer.canvas_item_set_z_index(_hud_pips, NightmareOverlay.Z + HUD_ICONS)
+		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
+	RenderingServer.canvas_item_clear(_hud_pips)
+	var order := get_status_order()
+	var step := CROWD_PIP + CROWD_PIP_GAP
+	var centre := _hud_anchor() + Vector2(-step * (order.size() - 1) / 2.0, -CROWD_PIP / 2.0 - 1.0)
+	for i in order.size():
+		_draw_pip(centre + Vector2(step * i, 0.0), order[i])
+
+func _draw_pip(at: Vector2, id: StringName) -> void:
+	var colour: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
+	var r := CROWD_PIP / 2.0
+	var outline := Color(Palette.VOID, 0.8)
+	match int(PIP_SHAPES.get(id, 0)):
+		1:  # Square
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0).grow(1.0), outline)
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), colour)
+		2:  # Diamond
+			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, 0), Vector2(0, r + 1), Vector2(-r - 1, 0)], outline, 1.0)
+			_pip_polygon(at, [Vector2(0, -r), Vector2(r, 0), Vector2(0, r), Vector2(-r, 0)], colour, 0.0)
+		3:  # Triangle
+			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, r + 1), Vector2(-r - 1, r + 1)], outline, 1.0)
+			_pip_polygon(at, [Vector2(0, -r), Vector2(r, r), Vector2(-r, r)], colour, 0.0)
+		4:  # Bar
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)).grow(1.0), outline)
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)), colour)
+		_:  # Circle
+			RenderingServer.canvas_item_add_circle(_hud_pips, at, r + 1.0, outline)
+			RenderingServer.canvas_item_add_circle(_hud_pips, at, r, colour)
+
+func _pip_polygon(at: Vector2, points: Array, colour: Color, _grow: float) -> void:
+	var polygon := PackedVector2Array()
+	for p in points:
+		polygon.append(at + p)
+	RenderingServer.canvas_item_add_polygon(_hud_pips, polygon, PackedColorArray([colour]))
+
 func _make_hud() -> void:
 	_hud_root = RenderingServer.canvas_item_create()
 	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
@@ -1203,6 +1313,9 @@ func _free_hud() -> void:
 		if item.is_valid():
 			RenderingServer.free_rid(item)
 	_hud_items.clear()
+	if _hud_pips.is_valid():  # (A child of the root: freed first)
+		RenderingServer.free_rid(_hud_pips)
+	_hud_pips = RID()
 	RenderingServer.free_rid(_hud_root)
 	_hud_root = RID()
 
@@ -1286,7 +1399,8 @@ func _build_hud_bars(item: RID) -> void:
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([UNBOUND_GLOW if unbound else RESTLESS_COLOR]), 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(_bar_offset - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar_size := HEALTH_BAR_SIZE if _row_look != RowLook.COMPACT else Vector2(HEALTH_BAR_SIZE.x, CROWD_BAR_H)  # (3 px in a crowd)
+	var bar := Rect2(_bar_offset - bar_size / 2, bar_size)
 	if health < max_health or _bars_always:
 		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
