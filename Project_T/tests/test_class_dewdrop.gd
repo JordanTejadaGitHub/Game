@@ -292,7 +292,10 @@ func _evolution_checks(at: Vector2, route: Array) -> void:
 	klass.on_board()
 	var fg_dead = _spawn(at)
 	var fg = _spawn(at)
+	var was_resting: bool = dreams.drift_director.resting
+	dreams.drift_director.resting = false  # Floodgate surges only during a drift (the test runs at the opening rest)
 	klass._floodgate(fg_dead)
+	dreams.drift_director.resting = was_resting
 	var surge: Array = fg.get_meta(klass.TIMED_META, [])
 	_check(surge.size() >= 3 and is_equal_approx(float(surge[1]), klass.SURGE_SLOW) and StringName(surge[2]) == klass.EVO_FLOODGATE,
 		"Floodgate: a dispel in water slows every nightmare in it %d%%" % roundi(klass.SURGE_SLOW * 100.0))

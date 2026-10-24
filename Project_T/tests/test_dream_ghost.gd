@@ -29,7 +29,8 @@ func _run() -> void:
 	_check(dreams.has_rule(&"solitude"), "Solitude taken")
 
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
-	placer.select_tower(sprout)
+	var warden: TowerData = load("res://resource/tower/sporeling.tres")  # Solitude counts only its own family, never Sprouts or walls (final pass 2026-10-24)
+	placer.select_tower(warden)
 	var open := _open_cell(main.get_node("%MapGenerator"), container)
 	placer._hover_cell = open
 	placer._refresh_hover()
@@ -41,7 +42,7 @@ func _run() -> void:
 	# Plant a Warden right there, then hover next to it: the ghost's chip is off, with the reason, and
 	# the planted Warden would lose Solitude.
 	var planted: Tower = placer.tower_scene.instantiate()
-	planted.tower_data = sprout
+	planted.tower_data = warden
 	planted.cell = open
 	planted.position = Tower.MAP_GRID.calculate_map_position(open)
 	container.add_child(planted)
@@ -51,12 +52,12 @@ func _run() -> void:
 	placer._hover_cell = open + Vector2(1, 0)
 	placer._refresh_hover()
 	chips = placer.get_ghost_chips()
-	_check(chips.size() == 1 and not chips[0][1] and chips[0][0].contains("Sprout"),
-		"next to it: a grey chip saying why (%s)" % [chips])
+	_check(chips.size() == 1 and not chips[0][1] and chips[0][0].contains("Sporeling"),
+		"next to another Sporeling: a grey chip saying why (%s)" % [chips])
 	_check(is_equal_approx(placer._range_gain, 0.0), "and no range gain")
 	var changes := placer.get_neighbour_changes()
 	_check(changes.size() == 1 and changes[0][0] == planted and changes[0][1] == "Solitude" and not changes[0][2],
-		"the planted Sprout would lose Solitude (%s)" % [changes])
+		"the planted Sporeling would lose Solitude (%s)" % [changes])
 
 	# Badges: the planted Sprout has Solitude on; its badge shows in build mode or while selected.
 	_check(planted.get_badge_cards().size() == 1, "the planted Warden's active position card is known")
