@@ -109,15 +109,15 @@ func get_block_finale_elites(number: int) -> int:
 @export var act1_boss_health_multiplier: float = 1.45  # Act 1's boss (drift 25) instead. Balancing 2026-10-18: was 1.75; the power-budget base cut made the act 1 boss ~x1.2-1.3 harder (Night Mare 161 s, Hollow Stag not dispelled)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 6.0  # Acts 3–4, bosses included ("Human run 7"; was 4.8, 4.0, 3.5, 1.6)
+@export var late_acts_health_multiplier: float = 4.0  # Balancing 2026-10-24 (human run 58): was 6.0. Acts 3–4, bosses included ("Human run 7"; was 4.8, 4.0, 3.5, 1.6)
 @export var act4_health_multiplier: float = 1.2  # Spire: act 4 on top of the late multiplier, bosses and the Oak too
 @export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
 # Act 3's ramp in (Balancing Discussion, shared curve: an eased act 2 ending ~1.9 would meet a x6 cliff at drift 51):
 # from act3_start_health_multiplier at act 3's first drift up to late_acts_health_multiplier at act3_ramp_to, linear.
-# Defaults (6.0, 51) = no ramp, today's curve. The final boss keeps final_boss_late_multiplier.
-@export var act3_start_health_multiplier: float = 6.0
-@export var act3_ramp_to: int = 51
+# Balancing 2026-10-24 (human run 58): 3.6 at 51 up to 4.0 at 60 (start = late, or ramp_to 51 = no ramp). The final boss keeps final_boss_late_multiplier.
+@export var act3_start_health_multiplier: float = 3.6  # Balancing 2026-10-24 (human run 58): was 6.0; act 3 ramps 3.6 at 51 -> 4.0 at 60
+@export var act3_ramp_to: int = 60  # Balancing 2026-10-24 (human run 58): was 51
 
 # The late-acts multiplier for drift `number` (acts 3–4): act 3's ramp, then late_acts_health_multiplier.
 func get_late_multiplier(number: int) -> float:
