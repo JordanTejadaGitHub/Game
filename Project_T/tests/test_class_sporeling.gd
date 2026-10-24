@@ -231,10 +231,10 @@ func _evolution_checks(route: Array) -> void:
 	_path([&"sp_windblown", &"sp_drifting", &"sp_season"])
 	spore = _plant("sporeling", at + Vector2(CELL * 2, CELL * 2))
 	await _frames(2)
-	for i in range(0, mini(klass._route.size(), 80), 4):
+	for i in range(0, mini(klass._route.size(), 80), 2):  # Every 2nd step: the test map's route is 56 points (every 4th grew only 14)
 		if i != k:
 			klass._grow(klass._route[i], false, spore)
-	_check(klass.season_on(), "Spore Season is on with %d mushrooms" % klass.SEASON_AT)
+	_check(klass.season_on(), "Spore Season is on with %d mushrooms (%d)" % [klass.SEASON_AT, klass.mushrooms.size()])
 	var s = _spawn(at)
 	klass._grow(p, false, spore)
 	klass._stepped(p, s)
