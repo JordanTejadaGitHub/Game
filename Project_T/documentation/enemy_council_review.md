@@ -138,9 +138,9 @@ gate's leak count to include bodies and health leaked, not only leaves (P); sims
 over 41-100, Few and tough worst decile <= 6 leaves, drifts 51-60 per shape, the intros 41 / 69 / 92, Hollow Wind
 / Moth Night / Leaf Fall blocks (P).
 
-### Owner calls
+### Owner calls (all decided)
+1. **Few and tough leaks: DECIDED (owner 2026-10-24): a Few and tough drift's Deeply Blighted take at most 6 leaves together.**
 2. **Pall: DECIDED (owner 2026-10-24, ddd7c619): it shares each blow half and half with the walker it covers.**
 3. **Gloamwing: DECIDED (ddd7c619): it drops at 3 stacks of Soaked and Drowsy counted together.**
 4. **Route flyers: DECIDED (ddd7c619): they count on the route they fly over for maze and Calling route cards.**
-   it's above the path, so Passing Thread, Gauntlet and Calling route rules see it), or keep them blind to flyers.
 5. **Dispel-count Legendaries: DECIDED (owner 2026-10-24) and already built (7573c842): a Deeply Blighted counts as 3 dispels.**
