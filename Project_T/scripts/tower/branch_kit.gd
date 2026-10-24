@@ -701,6 +701,48 @@ static func _bond_holds(tower: Tower, other, reach: float) -> bool:
 		and other.attack_data != null and other.attack_data.special == JARLINK \
 		and area_distance(tower, other) <= reach and link_spans(link_end(tower), link_end(other))
 
+# Bonds survive Continue (user 2026-10-24: "I continued my game and the Jarlinks created new links"). RunSaver saves each
+# jar's partner by its cells ("fence_bond": [cell x, y, half x, y], [] = none); on load the jar carries it as
+# FENCE_BOND_SAVED, and restore_bonds re-bonds the saved pairs once every Warden is back, before any jar looks for one.
+const FENCE_BOND_SAVED := &"fence_bond_saved"
+
+static func saved_bond(tower: Tower) -> Array:
+	var other = tower.get_meta(FENCE_BOND) if tower.has_meta(FENCE_BOND) else null
+	if tower.attack_data == null or tower.attack_data.special != JARLINK or not _bond_holds(tower, other, link_range(tower)):
+		return []
+	return [other.cell.x, other.cell.y, other.half_cell.x, other.half_cell.y]
+
+# After a load: each saved pair bonds again if its partner still stands on those cells, is a Jarlink / Lightning Fence and
+# the bond holds (in reach, an arc). A broken one falls back to the nearest rule (fence_partner_at) on the jar's next check.
+static func restore_bonds(container: Node) -> void:
+	var jars: Array = container.get_children().filter(func(t) -> bool: return t is Tower and t.attack_data != null and t.attack_data.special == JARLINK)
+	for jar in jars:
+		if not jar.has_meta(FENCE_BOND_SAVED):
+			continue
+		var key: Array = jar.get_meta(FENCE_BOND_SAVED)
+		jar.remove_meta(FENCE_BOND_SAVED)
+		if key.size() < 4 or (jar.has_meta(FENCE_BOND) and _bond_holds(jar, jar.get_meta(FENCE_BOND), link_range(jar))):
+			continue  # Nothing saved, or its partner already bonded it back
+		for other in jars:
+			if other == jar or Vector2(other.cell) != Vector2(key[0], key[1]) or Vector2(other.half_cell) != Vector2(key[2], key[3]):
+				continue
+			if _bonded_elsewhere(other, jar) or not _bond_holds(jar, other, link_range(jar)):
+				break
+			jar.set_meta(FENCE_BOND, other)
+			other.set_meta(FENCE_BOND, jar)
+			break
+
+# Distance ties go to the jar on the earlier cell (row, then column, then half), never to load or instance order.
+static func _cell_before(a: Tower, b: Tower) -> bool:
+	if b == null:
+		return true
+	var ka := [a.cell.y, a.cell.x, a.half_cell.y, a.half_cell.x]
+	var kb := [b.cell.y, b.cell.x, b.half_cell.y, b.half_cell.x]
+	for i in ka.size():
+		if not is_equal_approx(float(ka[i]), float(kb[i])):
+			return float(ka[i]) < float(kb[i])
+	return false
+
 # Whether `jar` is linked to a jar other than `except` (its bond still holding).
 static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
 	if not jar.has_meta(FENCE_BOND):
@@ -720,8 +762,9 @@ static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node
 			continue
 		if _bonded_elsewhere(other, skip):
 			continue  # Sticky: never steals a jar from its arc
-		var d := area_distance_at(here, other)  # Rule 1: by distance
-		if d <= reach and d < best_d and link_spans(here, link_end(other)):
+		var d := area_distance_at(here, other)  # Rule 1: by distance (a tie: the earlier cell, _cell_before)
+		var nearer := d < best_d - 0.01 or (absf(d - best_d) <= 0.01 and _cell_before(other, best))
+		if d <= reach and nearer and link_spans(here, link_end(other)):
 			best_d = d
 			best = other
 	return best

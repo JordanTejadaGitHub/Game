@@ -211,7 +211,8 @@ func save_now() -> bool:
 				"twig": tower.twig,  # Twig Walls: a one-half Thornwall (walls planted before the card stay 2×2)
 				"unique_plant_order": int(tower.get_meta(&"unique_plant_order", 0)),
 				"unique_plant_rest": int(tower.get_meta(&"unique_plant_rest", -1)),
-				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
+				"underdog": bool(tower.get_meta(&"underdog", false)),  # Underdog's mark (set at each rest)
+				"fence_bond": BranchKit.saved_bond(tower)})  # A Jarlink's partner, by its cells (Tower Code 2026-10-24)
 	var data := {
 		"version": VERSION,
 		"app_version": String(ProjectSettings.get_setting("application/config/version", "")),  # Which build wrote it (route repair log)
@@ -477,6 +478,8 @@ func _restore(data: Dictionary) -> void:
 		tower.set_meta(&"unique_plant_rest", int(saved.get("unique_plant_rest", -1)))
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
+		if not (saved.get("fence_bond", []) as Array).is_empty():
+			tower.set_meta(BranchKit.FENCE_BOND_SAVED, saved.fence_bond)  # Re-bonded below, once every Warden is back
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
 		var size := int(saved.get("size", 1 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 0))
 		if size > 0 and size != tower.tower_data.footprint:
@@ -497,6 +500,7 @@ func _restore(data: Dictionary) -> void:
 				map_generator.path_layer.set_cell_blocked(c, true)
 		if tower.tower_data.get_id() == TowerPlacer.SAPLING_ID:
 			tower_placer.sapling_taken = true
+	BranchKit.restore_bonds(tower_container)  # Jarlinks keep their saved partners (before any jar picks a new one)
 	map_generator.path_layer.draw()
 	map_generator.path_changed.emit()
 	# Waymark (Legendary Dream): the stone back on its cell (if its legs still exist; else the player places it again).
