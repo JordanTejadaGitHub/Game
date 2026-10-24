@@ -655,6 +655,39 @@ gains an optional "Shape" column if a fixed drift should ever be pinned.
    and the rest report adds "Leaves lost by shape this act: Packs 3, Single file 0, Few and tough 1"
    when any leaf was lost. Neither says which build answers which shape.
 
+### Walking lanes: nightmares use the path's width (owner 2026-10-24, "mostly visual, and subtle"; not built yet)
+
+Owner: *"make the enemies feel more dynamic, they don't have to follow 1 single line on the path and
+can be a bunched up."* Today every nightmare walks the exact centre line, so a crowd reads as beads
+on a string. Now each one walks its own **lane**, a small sideways offset from the centre line, so
+packs (see Drift shapes) read as clumps side by side.
+
+**Visual only.** The nightmare's node stays on the centre line and keeps every rule: its cell, route
+index, targeting, range checks, area hits, building validation, Waymark, laps, pulls, the Huntsman's
+pack, close calls. Only the drawn body moves: the sprite, its shadow, the health and shell bars,
+status icons and the elite haze, all by the same offset. Nothing in combat changes.
+
+**Numbers (subtle):**
+- Lane: up to **±0.3 cell** (about 19 px) across the direction of travel, rolled at spawn.
+- The lane wanders slowly: a new target lane every **3–6 s**, eased toward over about a second.
+- Corners: the offset turns with the travel direction, eased, so a crowd swings round a bend instead
+  of snapping.
+- Light jostling: two nightmares within about 0.4 cell of each other along the path ease their lanes
+  apart. Cheap: only nightmares on the same or the next route cell are compared, never the whole field.
+- Shape-aware: Packs use the full ±0.3; Single file keeps within ±0.1 so it still reads as a line;
+  big bodies (bosses, `sprite_scale` 1.4 and above) and Few and tough's Deeply Blighted within ±0.15.
+- Fade-in and fade-out: the lane grows over the first cell after the start and shrinks to the centre
+  over the last cell before the Heartwood, so nothing appears or leaks off the path's edge.
+- Flyers keep their own line with a gentle sway (±0.15 cell).
+- **Reduced motion:** a fixed lane per nightmare, no wandering and no jostling.
+
+**Where the eye looks.** Projectiles, beams, chain bolts and hit effects aim at the drawn body
+(`Enemy.get_visual_position()`: node position + lane offset), so a shot never lands 19 px off the
+sprite. Damage is still dealt to the node, so nothing about hits changes.
+
+**Watch:** y-sort follows the node, so on a horizontal path two nightmares in different lanes can sort
+a frame wrong. Acceptable at ±0.3 cell; sort by the drawn position if it shows.
+
 ## Art
 
 Final art is original (brief above). Placeholders from the Foozle enemy pack are in use until then;
