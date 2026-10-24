@@ -10,7 +10,7 @@ var dreams: DreamState
 var klass  # The class node (DreamState.puddles)
 const CELL := 64.0
 const LENT := ["steeped", "topped_up", "ebb", "heavy_going", "high_tide",
-	"old_rain", "never_quite_dry", "sodden", "wash_away", "last_drop"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16). Dewdrop helping itself (owner 2026-10-18): Sodden, Wash Away (revived), Last Drop
+	"never_quite_dry", "sodden", "wash_away", "last_drop"]  # Card pass 2026-10-16: Dripping and Pooling folded into Steeped; The Tide Remembers retired (hard cards 2026-10-16). Dewdrop helping itself (owner 2026-10-18): Sodden, Wash Away (revived), Last Drop. Old Rain retired (dream_council_review.md 33)
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -415,15 +415,17 @@ func _f1_checks(at: Vector2, route: Array, spot: Vector2) -> void:
 	_check(is_equal_approx(tagged, 1.0), "...an unmarked tagged strike gets nothing")
 	await _clean()
 
-	# F2: the Calling's linger (Riverside, Stagnant Water) has its own cap, on top of the lent cards'
+	# F2: one linger total for every source (LINGER_MAX 6 s, Balancing 2026-10-23); the Calling's linger (Riverside,
+	# Stagnant Water) keeps its own CALLING_LINGER_MAX inside it, and the lent cards fill the rest
 	var lg = _spawn(spot + Vector2(CELL * 3, 0))
 	lg.apply_status(EnemyStatuses.DAMP, 1, 0.0, 1.0, 0, "water", null)
 	var left0: float = lg.statuses.time_left(EnemyStatuses.DAMP)
-	_check(is_equal_approx(lg.statuses.linger(EnemyStatuses.DAMP, 100.0), EnemyStatuses.LINGER_MAX), "(the lent cards' %.0f s)" % EnemyStatuses.LINGER_MAX)
 	_check(is_equal_approx(lg.statuses.linger_calling(EnemyStatuses.DAMP, 100.0), EnemyStatuses.CALLING_LINGER_MAX),
-		"F2: the Calling's linger adds its own %.0f s on top" % EnemyStatuses.CALLING_LINGER_MAX)
-	_check(is_zero_approx(lg.statuses.linger(EnemyStatuses.DAMP, 1.0)) and is_zero_approx(lg.statuses.linger_calling(EnemyStatuses.DAMP, 1.0)), "...each cap holds")
-	_check(is_equal_approx(lg.statuses.time_left(EnemyStatuses.DAMP), left0 + EnemyStatuses.LINGER_MAX + EnemyStatuses.CALLING_LINGER_MAX), "...at most 8 s past landing")
+		"F2: the Calling's linger takes its own %.0f s" % EnemyStatuses.CALLING_LINGER_MAX)
+	_check(is_equal_approx(lg.statuses.linger(EnemyStatuses.DAMP, 100.0), EnemyStatuses.LINGER_MAX - EnemyStatuses.CALLING_LINGER_MAX),
+		"...the lent cards fill the rest of the %.0f s total" % EnemyStatuses.LINGER_MAX)
+	_check(is_zero_approx(lg.statuses.linger(EnemyStatuses.DAMP, 1.0)) and is_zero_approx(lg.statuses.linger_calling(EnemyStatuses.DAMP, 1.0)), "...the total holds")
+	_check(is_equal_approx(lg.statuses.time_left(EnemyStatuses.DAMP), left0 + EnemyStatuses.LINGER_MAX), "...at most %.0f s past landing" % EnemyStatuses.LINGER_MAX)
 	lg.apply_status(EnemyStatuses.STATIC, 1, 2.0, 1.0, 0, "light", null)
 	_check(is_equal_approx(lg.statuses.linger_calling(EnemyStatuses.STATIC, 100.0), EnemyStatuses.CALLING_LINGER_MAX_STATIC), "...Charged %.0f s" % EnemyStatuses.CALLING_LINGER_MAX_STATIC)
 	_check(is_zero_approx(lg.statuses.linger_calling(EnemyStatuses.DROWSY, 5.0)), "...never Drowsy")
