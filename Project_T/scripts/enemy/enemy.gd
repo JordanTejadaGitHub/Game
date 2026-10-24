@@ -1220,6 +1220,8 @@ func _update_hud_layout() -> void:
 # room under each for its time bar.
 func _badge_centre(i: int) -> Vector2:
 	var r := get_badge_size() / 2.0
+	if i < 0 or i >= _hud_badge_widths.size():
+		return Vector2(0.0, -r - TIME_BAR_GAP)  # Not laid out (the row was cleared or is being rebuilt): the row's centre
 	var width := STATUS_BADGE_GAP * maxi(_hud_ids.size() - 1, 0)
 	for cell_width in _hud_badge_widths:
 		width += cell_width
