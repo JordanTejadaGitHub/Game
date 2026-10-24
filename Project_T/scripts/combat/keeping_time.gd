@@ -1079,9 +1079,9 @@ func _change_ring(other, tolling) -> void:
 
 # Down the Line / Both Ways: a Toll primes the nearest walker behind it (Both Ways: and ahead) within PRIME_STEPS on its
 # leg; its next ring counts 1 more. A Toll whose own prime it spent continues only that way, PRIME_DEPTH in a row; an
-# unprimed Toll starts each way at 1. Forward and back never feed each other. Never flyers.
+# unprimed Toll starts each way at 1. Forward and back never feed each other. Route flyers count; the Phantom never.
 func _prime(enemy, at: Vector2, chain: Dictionary) -> void:
-	if not is_instance_valid(enemy) or enemy.is_flying():
+	if not is_instance_valid(enemy) or not enemy.on_route():  # Route flyers count (enemy_design.md "Flyers"); Phantoms never
 		return
 	var i0 := index_of(enemy)
 	if i0 < 0:
@@ -1118,7 +1118,7 @@ func _next_on_route(enemy, at: Vector2, i0: int, passed: bool, ahead: bool):
 	var best = null
 	var best_gap := PRIME_STEPS * 2 + 1
 	for other in Tower.nightmares_near(get_tree(), at, (PRIME_STEPS + 1) * cell()):
-		if other == enemy or not living(other) or other.is_flying() or bool(other.get("passed_waymark")) != passed:
+		if other == enemy or not living(other) or not other.on_route() or bool(other.get("passed_waymark")) != passed:
 			continue
 		var j := index_of(other)
 		if j < 0:

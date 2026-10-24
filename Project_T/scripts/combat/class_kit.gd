@@ -362,7 +362,7 @@ var _split := -1  # Waymark: the index where leg 2 begins (-1: one leg)
 
 # A walking nightmare's place on the route (-1: a flyer, or off the route). Waymark: on its own leg.
 func index_of(enemy) -> int:
-	if enemy.is_flying():
+	if not enemy.on_route():  # Walkers and route flyers (a route flyer counts at the route point below it; Enemy Code 1770f105)
 		return -1
 	var second: bool = _split >= 0 and bool(enemy.get("passed_waymark"))
 	var i := int((_index2 if second else _index).get(enemy.get_target_cell(), -1))

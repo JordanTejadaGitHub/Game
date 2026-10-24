@@ -1017,7 +1017,7 @@ func _walk_on() -> bool:
 	return evo(EVO_DRIFTING) or evo(EVO_SEASON) or evo(EVO_THICK_HAZE)
 
 func _season_start(enemy) -> void:  # Its first dose
-	if enemy.is_flying():
+	if not enemy.on_route():  # Route flyers count at the route point below them (Phantoms never)
 		return
 	var i := index_of(enemy)
 	if i < 0:
@@ -1033,7 +1033,7 @@ func _season_start(enemy) -> void:  # Its first dose
 	enemy.set_meta(SEASON_META, walk)
 
 func _season_walk(enemy) -> void:
-	if enemy.is_flying():
+	if not enemy.on_route():
 		return
 	var i := index_of(enemy)
 	if i < 0:
@@ -1072,7 +1072,7 @@ func _season_cap(enemy) -> float:
 # The walk bonus on this nightmare's Poisoned (0.25 = +25%): Drifting Spores' up to +30%, or Spore Season's up to +60%
 # while 15+ mushrooms grow. The status-dot row's "+N%" tag reads it.
 func season_bonus(enemy) -> float:
-	if not (evo(EVO_DRIFTING) or season_on()) or not is_instance_valid(enemy) or enemy.is_flying():
+	if not (evo(EVO_DRIFTING) or season_on()) or not is_instance_valid(enemy) or not enemy.on_route():
 		return 0.0
 	return minf(season_steps(enemy) * (SEASON_PER_STEP if season_on() else DRIFT_PER_STEP), _season_cap(enemy))
 
@@ -1676,7 +1676,7 @@ func _process(delta: float) -> void:
 		return
 	var reach := (STEP_CELLS * cell()) ** 2
 	for enemy in enemies():
-		if enemy.is_flying():
+		if not enemy.on_route():  # A route flyer steps on the mushrooms under its route (enemy_design.md "Flyers")
 			continue
 		var point: Vector2 = enemy.get_target_cell()
 		if not _index.has(point) or enemy.global_position.distance_squared_to(_route_px[int(_index[point])]) > reach:

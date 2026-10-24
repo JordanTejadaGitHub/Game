@@ -166,14 +166,14 @@ func bend_count() -> int:
 func route_share(enemy: Node2D) -> float:
 	var left: float = enemy.get_remaining_distance()
 	var total := route_px
-	if enemy.is_flying() or total <= 0.0:
+	if not enemy.on_route() or total <= 0.0:  # Route flyers walk the route above it (Flyers, 2026-10-24); the Phantom its own line
 		total = maxf(float(enemy.get_meta(&"batch_route_total", 0.0)), left)
 		enemy.set_meta(&"batch_route_total", total)
 	return clampf(1.0 - left / total, 0.0, 1.0) if total > 0.0 else 0.0
 
 # Bends of the route behind a walking nightmare, read from where it stands (pull-backs and laps cannot farm it).
 func bends_behind(enemy: Node2D) -> int:
-	if enemy.is_flying():
+	if not enemy.on_route():
 		return 0
 	var left: float = enemy.get_remaining_distance()
 	var count := 0
@@ -336,7 +336,7 @@ func hard_won_of(tower: Tower) -> int:
 # Gauntlet: route points with an attacking Warden (not a Sprout or a wall) on each side of the path. Rebuilt when the
 # board or the route changes.
 func gauntlet_at(dreams: DreamState, enemy: Node2D) -> bool:
-	if enemy.is_flying():
+	if not enemy.on_route():
 		return false
 	var key := "%d:%d" % [int(dreams.board_version), route_serial]
 	if key != _gauntlet_key:
@@ -472,7 +472,7 @@ func thread_passes(dreams: DreamState, tower: Tower) -> int:
 # Whether `enemy` is on its second or later pass of `tower`: it stands on a later stretch than the first. Read from
 # its place on the route, so a pull-back cannot farm it; a flyer on its straight line never passes twice.
 func on_later_pass(dreams: DreamState, tower: Tower, enemy: Node2D) -> bool:
-	if enemy.is_flying():
+	if not enemy.on_route():
 		return false
 	var stretches := thread_stretches(dreams, tower)
 	if stretches.size() < 2:
