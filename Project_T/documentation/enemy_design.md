@@ -20,6 +20,12 @@ unchanged from the cozy version; only names, fiction and art direction changed.
   one should feel like a small victory.
 - **Never break the path rule.** Nightmares that change the maze (Hollow Stag, Hollow Oak) must
   never leave the start without a route to the Heartwood.
+- **Protect the crowd feel** (owner 2026-10-24, after the walking-lanes board videos: *"I like it ... Also
+  like the feel of a big group being wiped and them bunched up like that"*). Packs that arrive bunched
+  across the path and get wiped together by area Wardens are a feel to keep. A later change to lanes,
+  shapes, spacing, field caps or effects must not thin packs back into single file or make a group wipe
+  read as one-at-a-time dispels; if a change risks it, check it against the v3 board videos
+  (`D:\Projects\logs\enemy_code\shapes_video\v3\`).
 
 ## Art direction
 
@@ -716,7 +722,7 @@ gains an optional "Shape" column if a fixed drift should ever be pinned.
    and the rest report adds "Leaves lost by shape this act: Packs 3, Single file 0, Few and tough 1"
    when any leaf was lost. Neither says which build answers which shape.
 
-### Walking lanes: nightmares use the path's width (owner 2026-10-24, "mostly visual, and subtle"; built, retuned by the council)
+### Walking lanes: nightmares use the path's width (owner 2026-10-24, "mostly visual, and subtle"; built, retuned by the council 614ec352, owner: "I like it")
 
 **Retune (Enemy Design Council round 2026-10-24b, owner: "Enemy movement looks off"; `enemy_council_review.md`).
 These numbers replace the first draft's below.**
