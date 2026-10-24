@@ -74,6 +74,12 @@ static func tag_enemy(enemy: Node, number: int, arrival: Array) -> void:
 		for node in tagged:
 			if is_instance_valid(node) and node.get("lane_width") != null:
 				node.lane_width = width  # Walking lanes: Single file close to the line
+	if is_tough(arrival):  # Few and tough's Deeply Blighted: one shared cap for the drift
+		for node in tagged:
+			if is_instance_valid(node):
+				node.set_meta(PACK_META, pack_key(number, TOUGH_PACK))
+				node.set_meta(PACK_LIMIT_META, TOUGH_LEAVES)
+		return
 	if pack_of(arrival) < 0:
 		return
 	var limit := pack_leaf_limit(pack_size_of(arrival))
@@ -130,6 +136,7 @@ static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator
 			for arrival in schedule:
 				if arrival[2]:
 					_set_lane(arrival, LANE_TOUGH)
+					_set_tough(arrival)  # At most TOUGH_LEAVES leaves together
 		_:
 			return STREAM
 	return shape
@@ -142,6 +149,20 @@ static func _set_lane(arrival: Array, width: float) -> void:
 	while arrival.size() < 6:
 		arrival.append(0)
 	arrival[5] = width
+
+# Few and tough's leak cap (council 2026-10-24, owner yes; enemy_design.md "Drift shapes"): the drift's Deeply
+# Blighted share one pack key (TOUGH_PACK) and take at most TOUGH_LEAVES leaves together, on the pack cap's mechanism
+# (cap_pack_leak, after Leaf Fall / Giants' Walk). arrival[6] = true marks them; its other nightmares leak normally.
+const TOUGH_LEAVES := 6
+const TOUGH_PACK := 999  # Their pack index in pack_key (real packs count from 0)
+
+static func _set_tough(arrival: Array) -> void:
+	while arrival.size() < 7:
+		arrival.append(0)
+	arrival[6] = true
+
+static func is_tough(arrival: Array) -> bool:
+	return arrival.size() > 6 and bool(arrival[6])
 
 static func lane_of(arrival: Array) -> float:
 	return float(arrival[5]) if arrival.size() > 5 else -1.0
