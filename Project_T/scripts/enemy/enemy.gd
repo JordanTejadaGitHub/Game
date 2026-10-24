@@ -1441,8 +1441,10 @@ func _build_hud_text(item: RID) -> void:
 			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + font_size * 0.35)
 			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT, font_size)
+	if _hud_badge_widths.is_empty() or _hud_ids.is_empty():
+		return  # No badge laid out (cleared this frame): nothing to put "+N" after
 	var extra := _hud_total - _hud_ids.size()
-	var after := _badge_centre(maxi(_hud_ids.size() - 1, 0)) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
+	var after := _badge_centre(mini(_hud_ids.size(), _hud_badge_widths.size()) - 1) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 	if extra > 0:
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
 		after.x += _stack_font_face().get_string_size("+%d" % extra, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x + 4.0
