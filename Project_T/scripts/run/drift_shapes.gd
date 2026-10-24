@@ -58,6 +58,9 @@ static func pack_key(number: int, pack: int) -> int:
 static func tag_enemy(enemy: Node, number: int, arrival: Array) -> void:
 	if enemy != null and pack_of(arrival) >= 0:
 		enemy.set_meta(PACK_META, pack_key(number, pack_of(arrival)))
+		for follower in enemy.get("dew_followers") if enemy.get("dew_followers") != null else []:
+			if is_instance_valid(follower):
+				follower.set_meta(PACK_META, pack_key(number, pack_of(arrival)))  # Spawned with it, before the tag
 
 # Leaves a leak of `enemy` costs once its pack's cap is counted: `charged` (RunState) holds the leaves
 # each pack lost so far. Outside a pack: `leaves` unchanged.
@@ -153,7 +156,8 @@ static func _few_and_tough(schedule: Array, rng: RandomNumberGenerator) -> void:
 
 # Nightmares a packed arrival counts as (a splitter brings its children).
 static func _weight(data: EnemyData) -> int:
-	return 1 + (maxi(data.split_count, 0) if data.split_into != null else 0)
+	return 1 + (maxi(data.split_count, 0) if data.split_into != null else 0) \
+		+ (maxi(data.follower_count, 0) if data.followers != null else 0)  # …and a leader its followers
 
 static func _in_pack_gap(data: EnemyData) -> float:
 	return maxf(PACK_CELLS * CELL_PX / maxf(data.speed, 1.0), PACK_GAP_FLOOR)

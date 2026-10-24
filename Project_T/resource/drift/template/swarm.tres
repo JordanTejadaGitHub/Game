@@ -13,4 +13,3 @@ lead_share_max = 1.0
 min_types = 1
 max_types = 2
 limited = true
-spacing_multiplier = 0.5

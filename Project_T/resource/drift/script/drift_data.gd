@@ -4,6 +4,9 @@ class_name DriftData
 # One drift (wave): groups of creatures arriving one after another.
 
 @export var groups: Array[DriftGroup] = []
+# How it arrives (DriftShapes: &"stream", &"packs", &"single_file", &"few_and_tough"). &"" = rolled with the
+# map (DriftRoller sets it on rolled drifts; a hand-made drift left empty is a Stream); set by hand = pinned.
+@export var shape: StringName = &""
 
 # When each creature arrives, in seconds from the drift's start: [[time, EnemyData, elite], ...]
 # sorted by time.

@@ -63,6 +63,7 @@ static func roll_run(director: Node, seed: int) -> void:
 	var hand_made: Array = director.get_meta(META_HAND_MADE)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([seed, "drifts"])
+	var shapes := plan_shapes(director, seed, hand_made)
 	var previous := &""
 	var blocks := {}  # block -> {"limited": bool, "leans": {family: drifts}}
 	for n in range(1, hand_made.size() + 1):
@@ -71,7 +72,7 @@ static func roll_run(director: Node, seed: int) -> void:
 			previous = &""
 			continue
 		var state: Dictionary = blocks.get_or_add(director.get_block(n), {"limited": false, "leans": {}})
-		var rolled := _roll_drift(director, n, hand_made[n - 1], hand_made, rng, previous, state)
+		var rolled := _roll_drift(director, n, hand_made[n - 1], hand_made, rng, previous, state, shapes.get(n, &""))
 		if rolled != null:
 			director.drifts[n - 1] = rolled
 			previous = rolled.get_meta(META_TEMPLATE)
@@ -99,6 +100,108 @@ static func template_of(director: Node, number: int) -> StringName:
 	if number < 1 or number > director.drifts.size():
 		return &""
 	return director.drifts[number - 1].get_meta(META_TEMPLATE, &"")
+
+# Drift `number`'s shape (DriftShapes ids; a hand-made or unshaped drift is a Stream).
+static func shape_of(director: Node, number: int) -> StringName:
+	if number < 1 or number > director.drifts.size():
+		return DriftShapes.STREAM
+	var shape: StringName = director.drifts[number - 1].shape
+	return shape if shape != &"" else DriftShapes.STREAM
+
+# --- Shapes (enemy_design.md "Drift shapes") ----------------------------------------------------------
+
+const SHAPE_FROM := 11  # Drifts 1–10 are Streams
+const SHAPE_TEMPLATES := {  # The templates each shape is rolled with (Stream: any)
+	&"packs": [&"mixed", &"swarm", &"fast"],
+	&"single_file": [&"mixed", &"heavy", &"special"],
+	&"few_and_tough": [&"heavy", &"elite_hunt"],
+}
+const META_SHAPE := &"roll_shape"
+const FEW_ELITES := Vector2i(3, 5)  # Few and tough: this many Deeply Blighted of a heavy kind…
+const FEW_SHARE := Vector2(0.4, 0.7)  # …holding this share of the budget
+const FEW_ELITE_CAP := 0.7  # The roller's elite cap for Few and tough (others: 0.5)
+
+# {drift: shape} for the run, on its own salted rng (the kinds keep theirs). Fixed drifts (1–5,
+# intro drifts, bosses, the drift before a boss) are Streams and count as their block's Streams.
+static func plan_shapes(director: Node, seed: int, hand_made: Array) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed, "shapes"])
+	var plan := {}
+	var per_block: int = director.drifts_per_block
+	var finales_seen := {}  # act -> {shape: true}
+	for first in range(1, hand_made.size() + 1, per_block):
+		var last := mini(first + per_block - 1, hand_made.size())
+		var act: int = director.get_act(first)
+		var boss_block := false
+		var free: Array = []
+		for n in range(first, last + 1):
+			plan[n] = DriftShapes.STREAM
+			if director.is_boss_drift(n):
+				boss_block = true
+		for n in range(first, last + 1):
+			if n >= SHAPE_FROM and is_rollable(director, n) and not director.is_boss_drift(n + 1):
+				free.append(n)
+		if act <= 1:
+			# Act 1, blocks 3–5: one Packs or Single file a block (the boss block: drifts 21–23 only)
+			if first < SHAPE_FROM or free.is_empty():
+				continue
+			if boss_block:
+				free = free.filter(func(n: int) -> bool: return n - first < 3)
+				if free.is_empty():
+					continue
+			plan[free[rng.randi_range(0, free.size() - 1)]] = DriftShapes.PACKS if rng.randf() < 0.5 else DriftShapes.SINGLE_FILE
+		elif boss_block:
+			# The first three drifts: one of each shape; the drift before the boss and the boss: Streams
+			free = free.filter(func(n: int) -> bool: return n - first < 3)
+			var shapes := _shapes_fitting(free.size())
+			_shuffle(shapes, rng)
+			for i in shapes.size():
+				plan[free[i]] = shapes[i]
+		else:
+			# Two Streams plus each shape once; the finale is never a Stream
+			var shapes := _shapes_fitting(free.size())
+			var slots: Array = shapes.duplicate()
+			while slots.size() < free.size():
+				slots.append(DriftShapes.STREAM)
+			_shuffle(slots, rng)
+			if free.has(last) and not shapes.is_empty():
+				var seen: Dictionary = finales_seen.get_or_add(act, {})
+				var unseen := shapes.filter(func(s: StringName) -> bool: return not seen.has(s))
+				var pool: Array = unseen if not unseen.is_empty() else shapes
+				var finale: StringName = pool[rng.randi_range(0, pool.size() - 1)]
+				slots.erase(finale)
+				slots.insert(free.find(last), finale)
+				seen[finale] = true
+			for i in free.size():
+				plan[free[i]] = slots[i]
+		# Never two Few and tough in a row (across blocks too): swap with another free drift, or a Stream
+		for n in free:
+			if plan[n] == DriftShapes.FEW_AND_TOUGH and plan.get(n - 1, &"") == DriftShapes.FEW_AND_TOUGH:
+				var fixed := false
+				for other in free:
+					if other != n and plan[other] != DriftShapes.FEW_AND_TOUGH and plan.get(other - 1, &"") != DriftShapes.FEW_AND_TOUGH \
+							and plan.get(other + 1, &"") != DriftShapes.FEW_AND_TOUGH and not (n == last and plan[other] == DriftShapes.STREAM):
+						plan[n] = plan[other]
+						plan[other] = DriftShapes.FEW_AND_TOUGH
+						fixed = true
+						break
+				if not fixed:
+					plan[n] = DriftShapes.STREAM
+	for n in plan.keys():  # A shape set by hand on a drift is pinned
+		if hand_made[n - 1].shape != &"":
+			plan[n] = hand_made[n - 1].shape
+	return plan
+
+# The block's shapes for `free` drifts: each once, dropping Few and tough, then Single file.
+static func _shapes_fitting(free: int) -> Array:
+	var shapes: Array = [DriftShapes.PACKS, DriftShapes.SINGLE_FILE, DriftShapes.FEW_AND_TOUGH]
+	if free < 3:
+		shapes.erase(DriftShapes.FEW_AND_TOUGH)
+	if free < 2:
+		shapes.erase(DriftShapes.SINGLE_FILE)
+	if free < 1:
+		shapes.clear()
+	return shapes
 
 # The template's display name ("Swarm"), or "" for a hand-made drift.
 static func template_name(director: Node, number: int) -> String:
@@ -163,7 +266,7 @@ static func get_templates() -> Array[DriftTemplate]:
 # --- One drift ---------------------------------------------------------------------------------
 
 static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made: Array, rng: RandomNumberGenerator,
-		previous: StringName, state: Dictionary) -> DriftData:
+		previous: StringName, state: Dictionary, shape: StringName = &"") -> DriftData:
 	var act: int = director.get_act(number)
 	var pool := get_pool(number)
 	var budget := get_budget(drift)
@@ -187,12 +290,19 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 			if entry.enemy != null and entry.elite and not entry.enemy.is_boss:
 				kept_elites.append([entry.enemy, entry.count, true])
 	for attempt in ATTEMPTS:
-		var template := _pick_template(rng, act, pool, previous, state)
+		var template := _pick_template(rng, act, pool, previous, state, shape)
+		if template == null and shape != &"":
+			shape = &""  # No template fits the planned shape: a Stream
+			template = _pick_template(rng, act, pool, previous, state)
 		if template == null:
 			return null
-		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP, act, fresh_caps)
+		var mix := _mix(rng, template, pool, budget, RESIST_CAP_ACT1 if act <= 1 else RESIST_CAP, act, fresh_caps, shape)
 		if mix.is_empty():
 			continue
+		if shape == DriftShapes.SINGLE_FILE:
+			mix = _fit_single_file(mix, drift, kept_elites, director.get_extra_nightmares(number))
+			if mix.is_empty() or absf(_mix_cost(mix) - budget) > budget * BUDGET_TOLERANCE:
+				continue
 		# Fairness judges the rolled part: the hand-made elites are a fixed design choice (drift 23's
 		# first elites are Husks on purpose).
 		if get_leaves(mix) > maxi(ceili(hand_leaves * LEAVES_SCALE), hand_leaves + LEAVES_EXTRA):
@@ -205,20 +315,26 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 			state.leans[family] = state.leans.get(family, 0) + 1
 		if template.limited:
 			state.limited = true
-		return _build(drift, mix, template, act)
+		return _build(drift, mix, template, act, shape)
 	return null
 
 static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[EnemyData], previous: StringName,
-		state: Dictionary) -> DriftTemplate:
+		state: Dictionary, shape: StringName = &"") -> DriftTemplate:
 	var candidates: Array[DriftTemplate] = []
 	var total := 0.0
-	for template in get_templates():
-		if template.get_weight(act) <= 0.0 or template.id == previous or (template.limited and state.limited):
-			continue
-		if not pool.any(template.can_lead):
-			continue
-		candidates.append(template)
-		total += template.get_weight(act)
+	var fits: Array = SHAPE_TEMPLATES.get(shape, [])
+	for repeat in [false, true]:  # A shape's few templates may repeat the last drift's rather than fail
+		for template in get_templates():
+			if template.get_weight(act) <= 0.0 or (template.id == previous and not repeat) or (template.limited and state.limited):
+				continue
+			if not fits.is_empty() and not fits.has(template.id):
+				continue
+			if not pool.any(func(data: EnemyData) -> bool: return template.can_lead(data) and _leads_shape(data, shape)):
+				continue
+			candidates.append(template)
+			total += template.get_weight(act)
+		if not candidates.is_empty() or fits.is_empty():
+			break
 	if candidates.is_empty():
 		return null
 	var pick := rng.randf() * total
@@ -230,10 +346,10 @@ static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[Ene
 
 # [[EnemyData, count, elite], …] sharing `budget`, or [] if the counts can't land close enough.
 static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Array[EnemyData], budget: float,
-		cap: float, act: int = 2, fresh_caps: Dictionary = {}) -> Array:
+		cap: float, act: int = 2, fresh_caps: Dictionary = {}, shape: StringName = &"") -> Array:
 	# A capped kind (drift_max: the Phantom) leads only Special drifts; elsewhere it's a minority type
 	var leads := pool.filter(func(data: EnemyData) -> bool:
-		return template.can_lead(data) and (data.drift_max <= 0 or &"special" in template.lead_tags))
+		return template.can_lead(data) and (data.drift_max <= 0 or &"special" in template.lead_tags) and _leads_shape(data, shape))
 	if leads.is_empty():
 		return []
 	var lead: EnemyData = leads[rng.randi() % leads.size()]
@@ -266,7 +382,18 @@ static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Arra
 	# Elite hunt: some of the lead come Deeply Blighted, paid for out of the budget.
 	var elites := 0
 	var elite_cost := 0.0
-	if template.extra_elites > 0 and template.extra_elites * lead.get_roll_weight() * ELITE_COST <= budget * 0.5:
+	if shape == DriftShapes.FEW_AND_TOUGH:
+		# 3–5 Deeply Blighted of the (heavy) lead holding 40–70% of the budget; none fits = this lead doesn't
+		var fitting: Array[int] = []
+		for n in range(FEW_ELITES.x, FEW_ELITES.y + 1):
+			var share := n * lead.get_roll_weight() * ELITE_COST / budget
+			if share >= FEW_SHARE.x and share <= minf(FEW_SHARE.y, FEW_ELITE_CAP):
+				fitting.append(n)
+		if fitting.is_empty():
+			return []
+		elites = fitting[rng.randi_range(0, fitting.size() - 1)]
+		elite_cost = elites * lead.get_roll_weight() * ELITE_COST
+	elif template.extra_elites > 0 and template.extra_elites * lead.get_roll_weight() * ELITE_COST <= budget * 0.5:
 		elites = template.extra_elites
 		elite_cost = elites * lead.get_roll_weight() * ELITE_COST
 	var normal := budget - elite_cost
@@ -365,7 +492,59 @@ static func _leans_if_fair(mix: Array, _act: int, _state: Dictionary) -> Variant
 	return []
 
 # One group, the kinds mixed evenly over the hand-made drift's arrival window.
-static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: int = 2) -> DriftData:
+# Whether `data` may lead a drift of `shape`: Packs a packable kind, Single file and Few and tough a heavy
+# kind (Few and tough never a splitter: a hidden crowd).
+static func _leads_shape(data: EnemyData, shape: StringName) -> bool:
+	match shape:
+		DriftShapes.PACKS:
+			return DriftShapes.is_packable(data)
+		DriftShapes.SINGLE_FILE:
+			return &"heavy" in data.roll_tags
+		DriftShapes.FEW_AND_TOUGH:
+			return &"heavy" in data.roll_tags and not (data.split_into != null and data.split_count > 0)
+	return true
+
+# Health budget of a mix (elites at ELITE_COST).
+static func _mix_cost(mix: Array) -> float:
+	var total := 0.0
+	for slot in mix:
+		total += slot[1] * slot[0].get_roll_weight() * (ELITE_COST if slot[2] else 1.0)
+	return total
+
+# Single file: at most window / SINGLE_GAP + 1 arrivals (after the difficulty's extra nightmares), so the
+# lighter kinds give their budget to the (heavy) lead, first slot of `mix`. [] if it can't fit.
+static func _fit_single_file(mix: Array, drift: DriftData, kept_elites: Array, extra: float) -> Array:
+	var schedule := drift.get_schedule()
+	var window: float = schedule[schedule.size() - 1][0] if schedule.size() > 1 else DEFAULT_WINDOW
+	var most := floori((floori(window / DriftShapes.SINGLE_GAP) + 1) / maxf(extra, 1.0))
+	var count := 0
+	for slot in mix + kept_elites:
+		count += slot[1]
+	var lead: EnemyData = mix[0][0]
+	var spare := 0.0
+	while count > most:
+		var cheapest := -1
+		for i in range(1, mix.size()):
+			if not mix[i][2] and mix[i][1] > 1 and (cheapest < 0 or mix[i][0].get_roll_weight() < mix[cheapest][0].get_roll_weight()):
+				cheapest = i
+		if cheapest < 0:
+			return []
+		mix[cheapest][1] -= 1
+		count -= 1
+		spare += mix[cheapest][0].get_roll_weight()
+		if spare >= lead.get_roll_weight():
+			if count + 1 > most:
+				continue  # No room for another lead yet: keep thinning
+			mix[0][1] += 1
+			count += 1
+			spare -= lead.get_roll_weight()
+	while spare >= lead.get_roll_weight() * 0.5 and count < most:  # The rest of the spare budget, rounded
+		mix[0][1] += 1
+		count += 1
+		spare -= lead.get_roll_weight()
+	return mix
+
+static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: int = 2, shape: StringName = &"") -> DriftData:
 	var schedule := drift.get_schedule()
 	var window: float = schedule[schedule.size() - 1][0] if schedule.size() > 1 else DEFAULT_WINDOW
 	var arrivals := 0
@@ -384,6 +563,8 @@ static func _build(drift: DriftData, mix: Array, template: DriftTemplate, act: i
 	var rolled := DriftData.new()
 	rolled.groups.append(group)
 	rolled.set_meta(META_TEMPLATE, template.id)
+	rolled.shape = shape if shape != &"" else DriftShapes.STREAM
+	rolled.set_meta(META_SHAPE, rolled.shape)
 	return rolled
 
 # Leaves at stake in [[EnemyData, count, elite], …] if all of it reached the Heartwood (an elite
