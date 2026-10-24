@@ -1594,6 +1594,35 @@ third of the board), Jarlink (drift 9), Rain Lily (drift 20), Undercurrent and H
   the owner's area boards have beaten the act 1 boss since ×1.45 (14–42 s). Not changed; rechecked after the rule lands.
 - Drifts 6–10 are where every bot fail breaks; owner runs clear them (closest ≤ 0.5). The bot's opening, not the curve.
 
+## Calling evolutions rebuilt: paper numbers (2026-10-23; dream_council_review.md 33, logs\dream_council\evo_fixed_*.md)
+
+No sims allowed yet (user); these are paper calls, the sim list below waits for the user's go.
+- **Linger total: cap at 6 s past the last landing** (Charged 3 s), all sources together (Calling, lent cards, Wet
+  Footprints' room). The rebuild reaches 8–10 s, more than double the 4 s the Reaction pool and section 31 were set
+  against; long-lived statuses multiply the Reaction rate on a three-family board. Wet Footprints' 6 s from drift 75 fits
+  inside it.
+- **Sporeling Support's extra-stack slot: 2 per hit (Charged / Exposed 1)**, inside the per-hit extra cap (max(2 × the
+  hit's stacks, 3); Charged / Exposed 2).
+- **Carrying Tune: 6 steps now** (was 4), rings only, no damage back. It is the weakest drift-5 style row on paper, and a
+  weak first choice is the one players remember.
+- **Twelfth Hour: 3 nightmares from the start** (was 4; 6+ rings unchanged): up to 5 Midnights a strike in act 3–4
+  swarms is a swarm-clear on its own.
+- **Rot Ground: 2 s kept**, 1 s only if it measures above the other capstones. **Deep End 0.46 kept**; with Towering on
+  the same Dewdrop the two add, never multiply (confirmed as built: spill = 0.25 × the un-Towered hit × (Towering's
+multiplier + Deep End's bonus)). Churning Water as built: the two Dewdrops together hit up to 4 pond nightmares for half
+every 3 s (~0.67 hits/s, the number the paper call used). **Churning Water vs Breaking Wave:** on paper Breaking Wave gives ~1.5
+  extra hits/s in a swarm against Churning's ~0.67; the sim decides, and the raise goes to Churning (`CHURN_SCALE`
+  0.5 -> 0.75) if it is behind.
+- **Sims when the user allows (in this order):** (1) the drift-5 style rows of all four Callings, drift 5–25 (Strung
+  Lights, Clump, Black Pond / Stream, Steady Beat, Carrying Tune at 6); (2) the Reaction rate with Still Water and with
+  Sporeling Support against section 29's targets; (3) Twelfth Hour, Breaking Wave, Churning Water on act 3–4 swarms;
+  (4) Rot Ground 2 s vs 1 s; (5) Deep End with Towering.
+- **Possible must-take cards** (Heavy Going, Seedfall, Standing Tall, Gathering Storm, Nightshade, Headlong): measured
+  from human runs first: offer-to-take rate in `dream_offers` and `card_damage` share. A card taken over 70% of the
+  times it is offered, or above 25% of its run's damage, gets a look. The last 50 real runs are too thin to judge (offered
+  / taken: Seedfall 9 / 3, Gathering Storm 6 / 2, Heavy Going 1 / 1, Headlong 1 / 0, Standing Tall and Nightshade never
+  offered), and most came before the rebuild: no must-take shows yet.
+
 ## Smaller map and landmarks (2026-10-23; user-approved, environment_assets.md 6fd3dccf; waiting on Environment Code's ranges)
 
 20×16 instead of 23×18 (a quarter less area); a landmark on about 1 map in 3 (Old Waystone: +1 Dew per dispel for the
