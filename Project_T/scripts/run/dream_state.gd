@@ -590,27 +590,33 @@ func _stronger_pool(a, b) -> bool:
 # Per Reaction id: how many pool reads and the sum of each factor, so the report shows averages. This side notes the pool
 # (after and before the cap: "pool", "pool_sum"), "quick" and "crowned". Reactions._rx can add its own (bare Warden damage,
 # rank, Brimming, half set-off, Nightshade…) with note_reaction_factors(id, {name: value}) right after the pool read; any
-# key shows up in the report. "n" counts pool reads (one per Reaction hit).
+# key shows up in the report. "n" counts pool reads (one per Reaction hit). Each factor averages over its own samples
+# (reaction_factor_counts): a factor noted on only some hits (Reactions._rx's, not on every pool read) was divided by
+# every pool read and read as one diluted value for all (Balancing, human run 58: smother's 0.473 x4).
 var reaction_factors := {}  # id -> {"n": count, factor: sum}
+var reaction_factor_counts := {}  # id -> {factor: samples}
 
 func note_reaction_factors(id: StringName, factors: Dictionary) -> void:
 	var row: Dictionary = reaction_factors.get(id, {"n": 0})
+	var counts: Dictionary = reaction_factor_counts.get(id, {})
 	if factors.has("pool"):
 		row["n"] = int(row["n"]) + 1
 	for key in factors:
 		row[key] = float(row.get(key, 0.0)) + float(factors[key])
+		counts[key] = int(counts.get(key, 0)) + 1
 	reaction_factors[id] = row
+	reaction_factor_counts[id] = counts
 
 # {id: {"n": count, factor: average}}, for RunHistory.
 func reaction_breakdown() -> Dictionary:
 	var out := {}
 	for id in reaction_factors:
 		var row: Dictionary = reaction_factors[id]
-		var n := maxi(int(row.get("n", 0)), 1)
+		var counts: Dictionary = reaction_factor_counts.get(id, {})
 		var avg := {"n": int(row.get("n", 0))}
 		for key in row:
 			if key != "n":
-				avg[key] = snappedf(float(row[key]) / n, 0.001)
+				avg[key] = snappedf(float(row[key]) / maxi(int(counts.get(key, 1)), 1), 0.001)
 		out[String(id)] = avg
 	return out
 

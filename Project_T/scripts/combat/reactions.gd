@@ -1835,10 +1835,12 @@ static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = n
 	var multiplier := dreams.get_reaction_damage_multiplier(near as Node2D, id, tower)
 	var payoff := _payoff(near, id)
 	if dreams.has_method("note_reaction_factors") and id != &"dawnbreak":  # The per-factor breakdown for Balancing
-		var bare: float = tower.get_bare_damage() if is_instance_valid(tower) and tower is Tower else 0.0
-		var rank: float = tower.get_rank_damage_multiplier() if is_instance_valid(tower) and tower is Tower else 1.0
-		dreams.call(&"note_reaction_factors", id, {"bare": bare, "rank": rank, "brimming": payoff, "half": _half_share,
-			"nightshade": 1.0 + (nightshade_bonus(near) if near is Node2D and "statuses" in near else 0.0)})
+		var factors := {"brimming": payoff, "half": _half_share,
+			"nightshade": 1.0 + (nightshade_bonus(near) if near is Node2D and "statuses" in near else 0.0)}
+		if is_instance_valid(tower) and tower is Tower:  # No Warden behind it (smother's own ticks): no bare / rank sample
+			factors["bare"] = tower.get_bare_damage()
+			factors["rank"] = tower.get_rank_damage_multiplier()
+		dreams.call(&"note_reaction_factors", id, factors)
 	return amount * payoff * _half_share * multiplier
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,
