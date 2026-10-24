@@ -120,6 +120,10 @@ func _process(delta: float) -> void:
 	var omen_line := omen_text(_target)
 	if omen_line != "":
 		lines.append(omen_line)
+	# A walker a Pall flies over (Enemy.covered_by; enemy_design.md "Flyers"): the Pall's rule shows on both cards
+	var pall = _target.get("covered_by")
+	if pall != null and is_instance_valid(pall):
+		lines.append("Covered by a Pall: blows at it are shared half and half.")
 	var statuses: Array[String] = []
 	for id in _target.get_status_order():  # The badge row's order, most important first
 		statuses.append(_target.statuses.describe(id))

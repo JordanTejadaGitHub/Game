@@ -11,6 +11,7 @@ extends Control
 
 const TITLE := "Flyers next block"
 const LINE := "They fly straight over your maze to the Heartwood."
+const ROUTE_LINE := "They fly along your path, above your walls."  # Route flyers (EnemyData.flies_along_route: Crow, Night Kite, Gloamwing, Pall)
 const OPEN_DELAY := 0.4
 
 var drift_director: DriftDirector
@@ -20,6 +21,7 @@ var _wait := 0.0
 var _paused_it := false
 var _portrait_slot := CenterContainer.new()
 var _panel := PanelContainer.new()
+var _line: Label = null
 
 func _init(director: DriftDirector = null) -> void:
 	drift_director = director
@@ -55,7 +57,8 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.title(title, 28)
 	box.add_child(title)
-	var line := Label.new()
+	_line = Label.new()
+	var line := _line
 	line.text = LINE
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -136,6 +139,7 @@ func open(block: int) -> void:
 	for child in _portrait_slot.get_children():
 		child.queue_free()
 	_portrait_slot.add_child(BossDossier.BossPortrait.new(flyer, 88.0))
+	_line.text = ROUTE_LINE if bool(flyer.get("flies_along_route")) else LINE  # Which way the first flyer flies
 	visible = true
 	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed
 	if speed != null and not speed.paused:
