@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/will_o_wisp.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/pall.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -10,8 +10,6 @@ kind = 1
 display_name = "Pall"
 health = 160
 speed = 72.0
-sprite_scale = 1.25
-tint = Color(0.5, 0.48, 0.6, 1)
 dew_reward = 4
 leaf_cost = 1
 trait_kind = 1

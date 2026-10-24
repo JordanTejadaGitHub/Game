@@ -620,7 +620,7 @@ func _ready() -> void:
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
-	sprite.play("walk_side")
+	sprite.play(_base_animation())  # (walk_side; the three route flyers: "fly")
 
 	# Nightmare look: one material shared by every nightmare (so their sprites batch into few draw
 	# calls); one cracking apart gets its own copy (_set_crack), outlined elites share a second one.
@@ -1645,13 +1645,26 @@ func _draw_hit_mark(t: float) -> void:
 		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
 		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
 
+# Its sheet's everyday row: walk_side, or "fly" for flyers drawn with a fly row only (Night Kite, Pall; Enemy Assets
+# d8b0631a). Bounds and the bar height read its frame 0.
+func _base_animation() -> StringName:
+	var frames := sprite.sprite_frames
+	if frames != null and frames.has_animation(&"fly") and (not frames.has_animation(&"walk_side") \
+			or (enemy_data != null and enemy_data.trait_kind == EnemyData.Trait.FLYING and not dropped)):
+		return &"fly"  # (The Gloamwing has both: it flies until it drops)
+	return &"walk_side"
+
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
 	if velocity.is_zero_approx() or _pose_left > 0.0:
 		return
 	var animation := &"walk_up"
 	var flip := false
-	if rolling and sprite.sprite_frames.has_animation(&"roll"):
+	if is_flying() and sprite.sprite_frames.has_animation(&"fly"):
+		# Route flyers with a fly row (one row faces every way: right, flipped to fly left); a settled Pall drapes
+		animation = &"settled" if _settled and sprite.sprite_frames.has_animation(&"settled") else &"fly"
+		flip = velocity.x < 0 if absf(velocity.x) > 0.01 else sprite.flip_h
+	elif rolling and sprite.sprite_frames.has_animation(&"roll"):
 		animation = &"roll"
 		flip = velocity.x < 0
 	elif _charge_left > 0.0 and sprite.sprite_frames.has_animation(&"gallop"):
@@ -2249,6 +2262,13 @@ func _drop_for_good() -> void:
 	_leaping = true  # No walking during the drop
 	var tween := create_tween()
 	_leap_tween = tween
+	var frames := sprite.sprite_frames
+	if frames != null and frames.has_animation(&"land") and frames.get_animation_speed(&"land") > 0.0:
+		# Its "land" row: the wings close and fold in the air, then it drops (the last frame is walk_down's first)
+		var land := frames.get_frame_count(&"land") / frames.get_animation_speed(&"land")
+		sprite.play(&"land")
+		_pose_left = land
+		tween.tween_interval(maxf(land - GROUND_DROP_TIME, 0.0))
 	tween.tween_property(self, "position", grid.calculate_map_position(cell), GROUND_DROP_TIME) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
@@ -2281,6 +2301,8 @@ func _update_pall(delta: float) -> bool:
 		if to.length() <= maxf(step, PALL_SETTLE):
 			position = target
 			_settled = true
+			if sprite.sprite_frames.has_animation(&"settled"):
+				sprite.play(&"settled")  # Drawn over the walker (see-through in the middle)
 		else:
 			position += to / to.length() * step
 	if not _culled:
@@ -2316,6 +2338,8 @@ func _uncover() -> void:
 		covering.covered_by = null
 	covering = null
 	_settled = false
+	if sprite.sprite_frames != null and sprite.sprite_frames.has_animation(&"fly") and not is_cleansed:
+		sprite.play(&"fly")
 	if not is_cleansed and not _air_route.is_empty():
 		_rejoin_air_route(_air_held)
 
@@ -2548,9 +2572,9 @@ func _play_pose(animation: StringName, seconds: float, backwards: bool = false) 
 func _measure_bar_offset() -> void:
 	_bar_offset = HEALTH_BAR_OFFSET
 	var frames := sprite.sprite_frames
-	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+	if frames == null or not frames.has_animation(_base_animation()) or frames.get_frame_count(_base_animation()) == 0:
 		return
-	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var texture := frames.get_frame_texture(_base_animation(), 0)
 	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
 	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
 	if bounds.has("top"):
@@ -2565,9 +2589,9 @@ func _measure_foot_lift() -> void:
 	if enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		return
 	var frames := sprite.sprite_frames
-	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+	if frames == null or not frames.has_animation(_base_animation()) or frames.get_frame_count(_base_animation()) == 0:
 		return
-	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var texture := frames.get_frame_texture(_base_animation(), 0)
 	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
 	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
 	if bounds.has("bottom"):
@@ -2696,7 +2720,7 @@ func _swap_frames(frames: SpriteFrames) -> void:
 	if frames.has_animation(animation):
 		sprite.play(animation)
 	else:
-		sprite.play(&"walk_side")
+		sprite.play(_base_animation())
 
 # Magpie Perch / Magpie's Hoard (and Wrens with Flock Together) strip nightmare buffs on a hit,
 # called before the hit lands (tower_design.md "status jobs"):

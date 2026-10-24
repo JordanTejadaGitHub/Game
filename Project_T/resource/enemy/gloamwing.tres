@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/dusk_moth.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/gloamwing.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -10,8 +10,6 @@ kind = 1
 display_name = "Gloamwing"
 health = 220
 speed = 80.0
-sprite_scale = 1.35
-tint = Color(0.7, 0.7, 0.72, 1)
 dew_reward = 5
 leaf_cost = 1
 trait_kind = 1

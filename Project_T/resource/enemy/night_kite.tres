@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/crow.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/night_kite.tres" id="2_frames"]
 
 [resource]
 script = ExtResource("1_edata")
@@ -10,8 +10,6 @@ kind = 1
 display_name = "Night Kite"
 health = 80
 speed = 115.0
-sprite_scale = 1.15
-tint = Color(0.55, 0.55, 0.75, 1)
 dew_reward = 3
 leaf_cost = 1
 trait_kind = 1
