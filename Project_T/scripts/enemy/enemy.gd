@@ -1102,8 +1102,12 @@ func _update_hud(delta: float) -> void:
 	var marks_key := _hud_changes << 16  # Below that: 4 bits of time-bar steps per icon (up to 4 icons)
 	for i in _hud_ids.size():
 		marks_key += _time_steps(i) << (i * 4)
-		if statuses.is_lingering(_hud_ids[i]):
-			marks_key += 1 << (12 + i)  # (The linger rim; bits 12-14 are free: at most 3 icons use 0-11)
+		if statuses.is_lingering(_hud_ids[i]) or _is_kept(_hud_ids[i]):
+			marks_key += 1 << (12 + i)  # (The linger / kept rim; bits 12-14 are free: at most 3 icons use 0-11)
+	var season := _season_percent()  # Grows as it walks: looked at on the time-bar frames
+	if season != _hud_season:
+		_hud_season = season
+		_build_hud_text(_hud_items[HUD_TEXT])
 	if changed or marks_key != _hud_marks_key or flashing or _hud_flashing:
 		_hud_marks_key = marks_key
 		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
@@ -1303,11 +1307,12 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 		else:
 			var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
 			# A card keeps it from running down: the bar's rim in Dew-light ("lasts longer", spec C3), else dark
-			atlas.draw_rect_region(item, bar.grow(1.0), solid, LINGER_RIM_COLOR if statuses.is_lingering(id) else Color(Palette.VOID, 0.75))
+			var kept := _is_kept(id)  # A Dewdrop Support row keeps it from running down: the bar in Dew-light
+			atlas.draw_rect_region(item, bar.grow(1.0), solid, LINGER_RIM_COLOR if statuses.is_lingering(id) or kept else Color(Palette.VOID, 0.75))
 			var steps := _time_steps(i)
 			if steps > 0:
 				bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
-				atlas.draw_rect_region(item, bar, solid, color)
+				atlas.draw_rect_region(item, bar, solid, Palette.DEWLIGHT if kept else color)
 		if i < _hud_primed.size() and _hud_primed[i]:  # Reaction-ready: corner brackets on their own pulsing item
 			_draw_ready_brackets(centre, r)
 			ready_any = true
@@ -1437,9 +1442,12 @@ func _build_hud_text(item: RID) -> void:
 			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + font_size * 0.35)
 			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT, font_size)
 	var extra := _hud_total - _hud_ids.size()
+	var after := _badge_centre(maxi(_hud_ids.size() - 1, 0)) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 	if extra > 0:
-		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
+		after.x += _stack_font_face().get_string_size("+%d" % extra, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x + 4.0
+	if _hud_season > 0 and not _hud_ids.is_empty():  # Spore Season: "+25%" on its Poisoned, in spore green
+		_add_stack_text(item, after, "+%d%%" % _hud_season, SEASON_TAG_COLOR)
 
 # Icon i's stack-count pill: on the lower-right corner, with row space for its exact number.
 func _stack_pill(i: int) -> Rect2:
@@ -1520,6 +1528,23 @@ func get_status_order() -> Array:
 static func _badge_rank(id: StringName) -> int:
 	var rank := BADGE_ORDER.find(id)
 	return rank if rank >= 0 else BADGE_ORDER.size()
+
+# Calling evolution cues (Roguelite Code's rebuild, 2026-10-23), both inert until its API is in (has_method):
+# a status a Dewdrop Support row keeps from running down (EnemyStatuses.is_kept) fills its time bar in Dew-light, and
+# Spore Season's bonus on this nightmare's Poisoned (spore_print.season_bonus) shows as "+N%" at the badge row's end.
+const SEASON_TAG_COLOR := Palette.SPRIG
+var _hud_season := 0  # The "+N%" drawn now (a whole percent; 0 = none)
+
+func _is_kept(id: StringName) -> bool:
+	return statuses.has_method(&"is_kept") and statuses.is_kept(id)
+
+func _season_percent() -> int:
+	if _batch_dreams == null and is_inside_tree():
+		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	var spores: Node = _batch_dreams.spore_print if _batch_dreams != null else null
+	if spores == null or not spores.has_method(&"season_bonus") or statuses.stacks(EnemyStatuses.SPORED) <= 0:
+		return 0
+	return roundi(float(spores.season_bonus(self)) * 100.0)
 
 func get_badge_size() -> float:
 	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE

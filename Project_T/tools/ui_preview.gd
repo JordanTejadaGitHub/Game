@@ -78,10 +78,136 @@ func _run() -> void:
 	main.queue_free()
 	await _frames(2)
 
-	root.add_child(_sheet())
+	var sheet := _sheet()
+	root.add_child(sheet)
 	await _frames(10)
 	_save("components")
+	sheet.queue_free()
+	var feedback := _feedback_sheet()
+	root.add_child(feedback)
+	await _frames(10)
+	_save("feedback")
+	var strip := feedback.find_child("CueStrip", true, false) as Control
+	if strip != null:  # The Calling cues at ×3, nearest: the art council checks their pixels
+		var shot := root.get_texture().get_image().get_region(Rect2i(strip.get_global_rect()))
+		shot.resize(shot.get_width() * 3, shot.get_height() * 3, Image.INTERPOLATE_NEAREST)
+		shot.save_png(out_dir.path_join("feedback_cues_x3.png"))
 	quit()
+
+# The section 33 final pass's Calling cues (CallingCues) on fake nightmares and Wardens: Deathcap pips, the lantern and
+# streak, the Last Bell tally with Halfway Bell's notch, the throne's growth rings, gold-dispel badges, the halfway bell.
+func _calling_cue_strip() -> Control:
+	var holder := Control.new()
+	holder.name = "CueStrip"
+	holder.custom_minimum_size = Vector2(900, 230)
+	var cues := CallingCues.new()
+	cues.set("_clock", 1.0e9)  # Never looks at the (absent) run: the samples below stay as set
+	holder.add_child(cues)
+	# [bar centre, Deathcap bursts, lantern level, streak, tally share (-1 none), halfway, caption]
+	var foes := [[Vector2(70, 50), 3, 0.0, 0, -1.0, 0, "Deathcap 3 left"], [Vector2(240, 50), 0, 1.0, 3, -1.0, 0, "lantern, streak ×3"],
+		[Vector2(410, 50), 0, 0.4, 0, -1.0, 0, "fading lantern"], [Vector2(580, 50), 0, 0.0, 0, 0.5, 1, "Last Bell half, notch waiting"],
+		[Vector2(750, 50), 0, 0.0, 0, 1.0, 2, "full, halfway taken"]]
+	var wardens: Array = []
+	for x in [70, 210, 350, 490, 630, 770]:
+		var w := Node2D.new()
+		w.position = Vector2(x, 160)
+		cues.add_child(w)
+		wardens.append(w)
+	cues.set("_capped", [wardens[0]])
+	cues.set("_thrones", [[wardens[0], 2, 1.0], [wardens[5], 0, 0.6]])
+	cues.set("_gold", [[wardens[1], "12", true, false], [wardens[2], "50", false, true], [wardens[3], "23/50", false, false]])
+	cues.set("_halfway_bell", wardens[4])
+	var over: Node2D = cues.get("_over")
+	over.draw.connect(func() -> void:
+		for f: Array in foes:
+			var c: Vector2 = f[0]
+			over.draw_rect(Rect2(c - Vector2(20, 2.5), Vector2(40, 5)), Palette.VOID)
+			over.draw_rect(Rect2(c - Vector2(19, 1.5), Vector2(30, 3)), Palette.EMBER)
+			CallingCues.draw_deathcap(over, c, f[1])
+			if float(f[2]) > 0.0 or int(f[3]) >= 2:
+				cues.draw_lantern_cue(over, c, f[2], f[3])
+			if float(f[4]) >= 0.0:
+				CallingCues.draw_tally(over, c, f[4], f[5]))
+	holder.draw.connect(func() -> void:
+		var font := UiStyle.body_font()
+		for f: Array in foes:
+			holder.draw_string(font, f[0] + Vector2(-60, 30), String(f[6]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK_DIM)
+		var names := ["throne + cap", "Moth holder", "Pyre lit", "Pyre 23/50", "halfway bell", "throne in 4 drifts"]
+		for i in wardens.size():
+			var at: Vector2 = (wardens[i] as Node2D).position
+			holder.draw_rect(Rect2(at - Vector2(32, 32), Vector2(64, 64)), Color(Palette.MOONLIGHT, 0.12), false, 1.0)
+			holder.draw_string(font, at + Vector2(-40, 50), names[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.INK_DIM))
+	return holder
+
+# Section 33's look (owner-approved 2026-10-24): a card's first-fire callout beside a later fire's, an Unfettered number
+# beside a plain and a crit one, the {lingering} chip, and "Your Dreams this block" with sample rows.
+func _feedback_sheet() -> Control:
+	var page := ColorRect.new()
+	page.color = Palette.DEEPMOSS  # A map-ish ground under the world cues
+	page.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var box := VBoxContainer.new()
+	box.position = Vector2(40, 40)
+	box.add_theme_constant_override("separation", 28)
+	page.add_child(box)
+	var world := Control.new()  # The callouts and numbers as drawn over the map
+	world.custom_minimum_size = Vector2(900, 150)
+	world.draw.connect(func() -> void:
+		var font := UiStyle.display_font()
+		var glyph := UiStyle.dream_glyph_texture(&"spore")
+		for pair in [[Vector2(150, 40), null, "Later fire: per drift"], [Vector2(520, 40), glyph, "First fire in the run (held 1.5x)"]]:
+			var text := "Mycelium"
+			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+			var x: float = pair[0].x - (width + (22.0 if pair[1] != null else 0.0)) / 2.0
+			if pair[1] != null:
+				for d: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:  # As CombatCallouts draws a card glyph
+					world.draw_texture_rect(pair[1], Rect2(Vector2(x, pair[0].y - 8.0) + d, Vector2(16.0, 16.0)), false, Palette.DREAD)
+				world.draw_texture_rect(pair[1], Rect2(x, pair[0].y - 8.0, 16.0, 16.0), false, UiStyle.GOLD)
+				x += 22.0
+			world.draw_string_outline(font, Vector2(x, pair[0].y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, 2, Palette.DREAD)
+			world.draw_string(font, Vector2(x, pair[0].y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, UiStyle.GOLD)
+			world.draw_string(UiStyle.body_font(), pair[0] + Vector2(-90, 34), String(pair[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK_DIM)
+		var numbers := [["86", 14, Palette.MOONLIGHT, Palette.DREAD, "a hit"], ["640", 20, Palette.GLOW, Palette.DREAD, "a crit"],
+			["1280", DamageLog.UNFETTERED_NUMBER_SIZE, Palette.HEARTLIGHT, Palette.VOID, "Unfettered (2x+ the cap)"]]
+		for i in numbers.size():
+			var n: Array = numbers[i]
+			var at := Vector2(110 + i * 230, 118)
+			world.draw_string_outline(UiStyle.number_font(), at, n[0], HORIZONTAL_ALIGNMENT_LEFT, -1, n[1], 2, n[3])  # As FloatingNumber draws it
+			world.draw_string(UiStyle.number_font(), at, n[0], HORIZONTAL_ALIGNMENT_LEFT, -1, n[1], n[2])
+			world.draw_string(UiStyle.body_font(), at + Vector2(0, 22), String(n[4]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK_DIM))
+	box.add_child(world)
+	var chips := HBoxContainer.new()
+	chips.add_theme_constant_override("separation", 8)
+	for kind in [&"makes", &"uses"]:
+		chips.add_child(UiStyle.chip(&"lingering", kind, "", UiStyle.CHIP_ICON, 12, UiStyle.GOLD))
+	for id in [&"age", &"order"]:
+		chips.add_child(UiStyle.chip(id, &"uses", "", UiStyle.CHIP_ICON, 12, UiStyle.GOLD))
+	box.add_child(chips)
+	box.add_child(_calling_cue_strip())
+	var meter := _dreams_meter_sample()
+	meter.position = Vector2(560, 420)  # Beside the cue strip: the page is one window tall
+	page.add_child(meter)
+	return page
+
+# DreamsMeter (Main Merger's b2ff8c99, UI Code's look) open on Last block, from a loose DreamState with sample credit.
+func _dreams_meter_sample() -> Control:
+	var state := DreamState.new()  # Never in the tree: only its tables are read
+	var cards: Array[UpgradeData] = []
+	for id in ["mycelium", "morning_dew", "thick_bark", "quick_step"]:
+		cards.append(load("res://resource/dream/%s.tres" % id) as UpgradeData)
+	state.pool = cards
+	state.stacks = {"mycelium": 1, "morning_dew": 1, "thick_bark": 1, "quick_step": 1}
+	var credit := {"mycelium": {"damage": 1240.0}, "sp_throne": {"damage": 880.0}, "morning_dew": {"dew": 12.0}}
+	state.card_credit = {"block": credit, "last_block": credit, "run": credit}
+	state.card_counts_last_block = {"mycelium": 14, "sp_throne": 31}
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(340, 250)
+	holder.tree_exited.connect(state.free)
+	var meter := DreamsMeter.new(state)
+	holder.add_child(meter)
+	meter.ready.connect(func() -> void:
+		meter.set("_period", &"last_block")
+		meter.set_open(true))
+	return holder
 
 func _sheet() -> Control:
 	var page := ColorRect.new()
@@ -105,7 +231,7 @@ func _sheet() -> Control:
 		b.custom_minimum_size.y = 48
 		b.disabled = text == "Locked"
 		buttons.add_child(b)
-	for text in ["1×", "2×", "Auto"]:
+	for text in ["1×", "2×", "Auto-drift"]:
 		var b := Button.new()
 		b.text = text
 		b.toggle_mode = true
@@ -185,11 +311,11 @@ func _sheet() -> Control:
 		rows.add_child(r)
 	light.add_child(rows)
 	var speeds := HBoxContainer.new()
-	for t in ["Auto", "II", "1×", "2×", "3×"]:
+	for t in ["Auto-drift on", "II", "1×", "2×", "3×"]:
 		var b := Button.new()
 		b.text = t
 		b.toggle_mode = true
-		b.button_pressed = t in ["Auto", "1×"]
+		b.button_pressed = t in ["Auto-drift on", "1×"]
 		b.custom_minimum_size = Vector2(46, 40)
 		speeds.add_child(b)
 	light.add_child(speeds)

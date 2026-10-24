@@ -61,19 +61,31 @@ func _card_callout(event: DamageLog.Event) -> void:
 
 func _on_card_fired(id: StringName, at: Vector2, _source: Node = null) -> void:  # source: visual feedback spec (Roguelite, 2026-10-18)
 	if at.is_finite():
-		_pop_card(String(id), at, null)
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+		var runs: Dictionary = dreams.get("card_counts_run") if dreams != null and dreams.get("card_counts_run") is Dictionary else {}
+		_pop_card(String(id), at, null, int(runs.get(id, 0)) <= 1)  # Its first fire in the run (note_card counts it first)
 	# No discovery card for a Dream card's or Calling evolution's first fire (user 2026-10-22: picking Borrowed Spores, "the
 	# card appeared again on the right side"): the player just chose it and read it; the puff above names it where it fires.
 	# Signatures, combos, Reactions and Kinships still post theirs.
 
-func _pop_card(id: String, at: Vector2, enemy: Node2D) -> void:
+# `first` (its first fire in the run; dream_council_review.md 33, owner 2026-10-24): the gold name holds FIRST_HOLD × longer
+# with the card's glyph before it (DreamsRow pulses its icon). Later fires keep the plain per-drift pop.
+const FIRST_HOLD := 1.5
+func _pop_card(id: String, at: Vector2, enemy: Node2D, first := false) -> void:
 	var drift := _drift_now()
 	if int(_card_drift.get(id, -1)) == drift or _alive.size() >= (REDUCED_MAX_ALIVE if Fx.reduced() else MAX_ALIVE):
 		return
 	_card_drift[id] = drift
 	var name := card_name(id)
-	_alive.append([0.0, name, UiStyle.GOLD, enemy, _slot(at, name), &""])
+	var life := LIFE * (FIRST_HOLD if first else 1.0)
+	_alive.append([0.0, name, UiStyle.GOLD, enemy, _slot(at, name, life), &"", life, _card_icon(id) if first else null])
 	card_called.emit(id, at)
+
+# A card's glyph (UI Asset's dream glyph sheet, 16 px), or null (a Calling evolution has none).
+func _card_icon(id: String) -> Texture2D:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+	var card: UpgradeData = dreams.call("_card_by_id", id) if dreams != null and dreams.has_method("_card_by_id") else null
+	return UiStyle.dream_glyph_texture(UiStyle.dream_glyph(card)) if card != null else null
 
 # A card's or a Calling evolution's name (DreamState.CALLING_PATHS for evolutions).
 func card_name(id: String) -> String:
@@ -214,7 +226,7 @@ func _process(delta: float) -> void:
 		callout[0] += delta
 		if is_instance_valid(callout[3]):
 			callout[4] = callout[3].global_position
-		if callout[0] >= LIFE:
+		if callout[0] >= _life(callout):
 			_alive.remove_at(i)
 	if not _alive.is_empty() or _drawn:  # Once more after the last word goes, then idle
 		queue_redraw()
@@ -236,8 +248,12 @@ var _icons := {}  # Icon id -> Texture2D (or null)
 
 # Where a word's anchor goes: the shared column (WorldLabel.callout_slot), so it never lands on a Reaction callout,
 # the chain badge or another word at the same spot.
-func _slot(at: Vector2, word: String) -> Vector2:
-	return WorldLabel.callout_slot(at + Vector2(0.0, -LIFT), StringName(word), LIFE) + Vector2(0.0, LIFT)
+func _slot(at: Vector2, word: String, life: float = LIFE) -> Vector2:
+	return WorldLabel.callout_slot(at + Vector2(0.0, -LIFT), StringName(word), life) + Vector2(0.0, LIFT)
+
+# A callout's life: its own (a first fire holds longer), else LIFE.
+func _life(callout: Array) -> float:
+	return float(callout[6]) if callout.size() > 6 else LIFE
 
 func _word_icon(text: String) -> Texture2D:
 	var id: StringName = WORD_ICONS.get(text, &"")
@@ -253,23 +269,30 @@ func _draw() -> void:
 	var screen_scale := WorldLabel.text_scale(self)  # Keeps its screen size when zoomed in (as begin_screen_size)
 	for callout in _alive:
 		var age: float = callout[0]
-		var t := age / LIFE
+		var t := age / _life(callout)
 		var alpha := 1.0 - t * t
 		var pop := lerpf(POP_FROM, 1.0, clampf(age / POP_TIME, 0.0, 1.0))
 		var anchor: Vector2 = callout[4]
 		var centre := anchor + Vector2(0.0, -LIFT - RISE * t)  # The word's middle, in world px
 		# Screen size around the nightmare, then the pop around the word's own middle.
 		draw_set_transform(anchor + (centre - anchor) * screen_scale, 0.0, Vector2.ONE * screen_scale * pop)
-		_draw_word(String(callout[1]).trim_suffix("!"), _word_icon(callout[1]), callout[2], alpha)
+		var icon: Texture2D = callout[7] if callout.size() > 7 and callout[7] != null else _word_icon(callout[1])
+		_draw_word(String(callout[1]).trim_suffix("!"), icon, callout[2], alpha, callout.size() > 7 and callout[7] != null)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-# A combo word centred on the origin: its status icon, then the word.
-func _draw_word(text: String, icon: Texture2D, colour: Color, alpha: float) -> void:
+# A combo word centred on the origin: its status icon, then the word. `glyph`: the icon is a card glyph (a white mask,
+# the first-fire callout), drawn in the word's colour on a 1 px Dread outline like the chip icons (art council 2026-10-24).
+func _draw_word(text: String, icon: Texture2D, colour: Color, alpha: float, glyph := false) -> void:
 	var font := _display_font
 	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE).x
 	var icon_w := 16.0 + ICON_GAP if icon != null else 0.0
 	var x := -(width + icon_w) / 2.0
-	if icon != null:
+	if icon != null and glyph:
+		for d: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			draw_texture_rect(icon, Rect2(Vector2(x, -8.0) + d, Vector2(16.0, 16.0)), false, Color(Palette.DREAD, alpha))
+		draw_texture_rect(icon, Rect2(x, -8.0, 16.0, 16.0), false, Color(colour, alpha))
+		x += icon_w
+	elif icon != null:
 		draw_texture_rect(icon, Rect2(x, -8.0, 16.0, 16.0), false, Color(Color.WHITE, alpha))  # multiplier (modulate)
 		x += icon_w
 	var baseline := font.get_ascent(WORD_SIZE) - font.get_height(WORD_SIZE) / 2.0

@@ -261,13 +261,13 @@ static func apply_ui_scale(root: Window, share: float) -> void:
 	install_cursor(root)
 
 # The mouse cursor in the Moon-glass style (user 2026-10-21: "update the cursor to match the theme"): a pixel arrow in
-# Moonlight with a lit Heartlight edge, Mist on its tail, a Glow glint at the tip and a crisp Void outline (reads on the
-# path and the dark ground), drawn in whole art pixels at ×2, ×3 or ×4 with the UI. The pointing hand gets the same
-# arrow (no stray system hand over buttons). Phones and headless runs keep none. A new texture each time: Input holds
-# it, nothing static.
+# Moonlight with a lit Heartlight edge, a clean 2 px Mist stalk for its tail (art council 2026-10-24), a Glow glint at
+# the tip and a crisp Void outline (reads on the path and the dark ground), drawn in whole art pixels at ×2, ×3 or ×4
+# with the UI. The pointing hand gets the same arrow (no stray system hand over buttons). Phones and headless runs keep
+# none. A new texture each time: Input holds it, nothing static.
 const CURSOR := ["k...........", "kk..........", "kYk.........", "kWwk........", "kWwwk.......", "kWwwwk......",
-	"kWwwwwk.....", "kWwwwwwk....", "kWwwwwwwk...", "kWwwwwwwwk..", "kWwwwwwwwwk.", "kWwwwGkkkkkk", "kWwwGGk.....",
-	"kWwkkGwk....", "kWk.kGwk....", "kk...kGwk...", "k....kGwk...", "......kk...."]
+	"kWwwwwk.....", "kWwwwwwk....", "kWwwwwwwk...", "kWwwwwwwwk..", "kWwwwwwwwwk.", "kWwwwkkkkkkk", "kWwwkGk.....",
+	"kWwkkGGk....", "kWk.kGGk....", "kk...kGGk...", "k....kGGk...", "......kGGk..", ".......kk..."]
 const CURSOR_INKS := {"k": Palette.VOID, "W": Palette.HEARTLIGHT, "w": Palette.MOONLIGHT, "G": Palette.MIST, "Y": Palette.GLOW}
 static var _cursor_scale := 0
 static func install_cursor(root: Window) -> void:
@@ -609,9 +609,12 @@ static func panel_in(colour: Color, margin_x: float = 10.0, margin_y: float = 10
 	box.accent = colour  # Moon-glass: a line in the colour across the top of the glass
 	return box
 
-# Fog only, no thread: the resources and Dreams rows at the screen edge, Warden bar slots.
+# Fog only: no frame, no thread, a soft Void patch fading to nothing at its edges (owner 2026-10-24: "do the frameless";
+# built on panel() it had silently become a framed plate). The whisper mist, the title menu backing, the Sell hint, the
+# Omen tag, the Grove node panel and the FogPatch type.
 static func fog_patch(margin_x: float = 12.0, margin_y: float = 6.0) -> MoonStyleBox:
 	var box := panel(margin_x, margin_y)
+	box.frame = &""  # MoonStyleBox draws its old soft fog
 	box.thread = MoonStyleBox.TopLine.NONE
 	box.center_alpha = 0.7
 	box.edge_alpha = 0.0

@@ -556,6 +556,9 @@ func _place_beside_panel(host: Control, mouse: Vector2) -> void:
 		return
 	var panel := (node as Control).get_global_rect()
 	var screen := get_viewport_rect().size
+	if node.get_meta(&"tips_beside") == &"above":  # A Dream card (owner 2026-10-21): centred above it, never over the next card
+		global_position = UiStyle.tip_beside(panel, size, screen)
+		return
 	if panel.end.x + 8.0 + size.x <= screen.x - 4.0:
 		global_position = Vector2(panel.end.x + 8.0, clampf(mouse.y - size.y / 2.0, 4.0, screen.y - size.y - 4.0))
 	elif panel.position.x - 8.0 - size.x >= 4.0:  # A drawer docked right (phones): to its left

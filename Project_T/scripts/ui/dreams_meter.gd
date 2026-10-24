@@ -13,7 +13,11 @@ const GAP := 8.0  # Under the Dream icons, and clear of the Warden drawer below
 const REFRESH := 0.5  # Seconds (real time)
 const ROWS := 6
 const HEAD_SIZE := 20  # As DriftMeter.HEAD_SIZE
-const GEM_R := 6.0
+const GLYPH := 16.0  # A card's glyph (8 px art at x2) in its rarity colour on a 1 px Dread outline (UI Code, art council 2026-10-24)
+const COUNT_W := 40.0  # Fixed columns: "×N" right-aligned and lined up whatever the value says
+const VALUE_W := 84.0
+const FOOTER_GAP := 4.0  # Above the "Quiet" line
+const COUNTS := {&"block": "card_counts_block", &"last_block": "card_counts_last_block", &"run": "card_counts_run"}
 const OPEN_SETTING := "dreams_meter_open"
 const TABS: Array[Array] = [[&"block", "Block"], [&"last_block", "Last block"], [&"run", "Run"]]
 const OTHER_KEYS: Array[Array] = [["dew", "Dew"], ["leaves", "leaves saved"], ["clears", "clears"]]
@@ -26,6 +30,8 @@ var _header := Button.new()
 var _body := VBoxContainer.new()
 var _rows := VBoxContainer.new()
 var _more := Label.new()
+var _footer_gap := Control.new()
+var _quiet := Label.new()  # The taken cards that neither fired nor earned credit in the period, on one dim line
 var _tabs := {}
 
 func _init(state: DreamState = null) -> void:
@@ -81,6 +87,12 @@ func _ready() -> void:
 	_more.add_theme_font_size_override("font_size", 13)
 	_more.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_body.add_child(_more)
+	_footer_gap.custom_minimum_size.y = FOOTER_GAP - 4.0  # (the body adds its 2 px separation on each side)
+	_body.add_child(_footer_gap)
+	_quiet.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_quiet.add_theme_font_size_override("font_size", 13)
+	_quiet.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_body.add_child(_quiet)
 	_open = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
 	_body.visible = _open
 
@@ -135,34 +147,73 @@ func refresh() -> void:
 		_rows.add_child(_row(entry))
 	_more.visible = entries.size() > ROWS or entries.is_empty()
 	_more.text = "and %d more" % (entries.size() - ROWS) if entries.size() > ROWS else "Nothing yet this %s." % ("run" if _period == &"run" else "block")
+	_quiet.text = _quiet_line(table)
+	_quiet.visible = _quiet.text != ""
+	_footer_gap.visible = _quiet.visible
 
 func _row(entry: Dictionary) -> Control:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size = Vector2(0, 26)
 	row.add_theme_constant_override("separation", 8)
 	var card := _card(entry.id)
-	var gem := Control.new()  # The card's rarity gem (a Calling evolution: its family's colour, as its card)
-	gem.custom_minimum_size = Vector2(GEM_R * 2.0 + 2.0, GEM_R * 2.0 + 2.0)
-	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var glyph := Control.new()  # The card's glyph in its rarity colour (a Calling evolution: its card's)
+	glyph.custom_minimum_size = Vector2(GLYPH + 2.0, GLYPH + 2.0)
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var rarity: int = card.rarity if card != null else 0
-	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, GEM_R, rarity))
-	row.add_child(gem)
+	var texture := UiStyle.dream_glyph_texture(UiStyle.dream_glyph(card) if card != null else &"generic")
+	glyph.draw.connect(_draw_glyph.bind(glyph, texture, UpgradeData.rarity_color(rarity), rarity))
+	row.add_child(glyph)
 	var name := Label.new()
 	name.text = _name(entry.id)
 	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.clip_text = true
 	name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name.add_theme_font_size_override("font_size", 15)
-	name.add_theme_color_override("font_color", UiStyle.INK)
+	name.add_theme_color_override("font_color", UiStyle.INK)  # Moon-pale; only the value is gold
 	row.add_child(name)
+	var fired := _fired(entry.id)
+	var count := Label.new()
+	count.text = "×%d" % fired if fired > 0 else ""
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count.custom_minimum_size.x = COUNT_W
+	UiStyle.number(count, 15, UiStyle.INK_DIM)
+	row.add_child(count)
 	var value := Label.new()
 	value.text = _value(entry)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value.custom_minimum_size.x = VALUE_W
 	UiStyle.number(value, 15, UiStyle.GOLD)
 	row.add_child(value)
 	row.tooltip_text = card.description if card != null else ""
 	return row
+
+# A white-mask glyph on a 1 px Dread outline, then in `colour` (like the chip icons); the rarity gem when it has none.
+static func _draw_glyph(canvas: Control, texture: Texture2D, colour: Color, rarity: int) -> void:
+	var at := ((canvas.size - Vector2(GLYPH, GLYPH)) / 2.0).round()
+	if texture == null:
+		UiStyle.draw_gem(canvas, canvas.size / 2.0, GLYPH / 2.0 - 2.0, rarity)
+		return
+	for d: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+		canvas.draw_texture_rect(texture, Rect2(at + d, Vector2(GLYPH, GLYPH)), false, Palette.DREAD)
+	canvas.draw_texture_rect(texture, Rect2(at, Vector2(GLYPH, GLYPH)), false, colour)
+
+# Times `id` fired in the shown period (DreamState.card_counts_*; 0 when it keeps none).
+func _fired(id: String) -> int:
+	var counts = dream_state.get(COUNTS.get(_period, "card_counts_block"))
+	return int((counts as Dictionary).get(id, (counts as Dictionary).get(StringName(id), 0))) if counts is Dictionary else 0
+
+# "Quiet this block: Thick Bark, Quick Step": taken cards with no credit and no fire in the period ("" for none).
+func _quiet_line(table: Dictionary) -> String:
+	var quiet: Array[String] = []
+	for card in dream_state.get_taken_cards():
+		if card != null and not table.has(card.id) and not table.has(StringName(card.id)) and _fired(card.id) <= 0:
+			quiet.append(_name(card.id))
+	if quiet.is_empty():
+		return ""
+	var when := {&"block": "this block", &"last_block": "last block", &"run": "this run"}
+	return "Quiet %s: %s" % [when.get(_period, "this block"), ", ".join(quiet)]
 
 func _value(entry: Dictionary) -> String:
 	if entry.damage > 0.0:

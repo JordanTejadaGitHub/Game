@@ -28,6 +28,13 @@ var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 var _rerolled_in := -1  # The Dream (its drift) a reroll was used in: its last one stays shown, disabled, until it closes
 var _let_go_in := -1  # Same for Let Go
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
+# Card details (owner 2026-10-21: "is hovering over the card the most intuitive? Should there be a button instead?"): the
+# small print (card.tip, a Calling's DETAILS) unfolds inside every card at once, so the cards compare side by side. PC:
+# the Details toggle or Shift, remembered in settings (card_details). Phones: the looked card shows its own. No card tip
+# on hover any more; an underlined word still shows its meaning, above the card (meta tips_beside "above").
+const DETAILS_SETTING := "card_details"
+var _details := Button.new()
+var _details_on := bool(HeartwoodMemory.get_settings().get(DETAILS_SETTING, false))
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
 var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
@@ -109,6 +116,14 @@ func _ready() -> void:
 		var skip_row := HBoxContainer.new()
 		skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
 		skip_row.add_theme_constant_override("separation", 16)
+		_details.text = "Details" + UiStyle.key_suffix("Shift")
+		_details.name = "DetailsToggle"
+		_details.toggle_mode = true
+		_details.focus_mode = Control.FOCUS_NONE
+		_details.tooltip_text = "Show every card's small print, side by side"
+		_details.button_pressed = _details_on
+		_details.toggled.connect(_set_details)
+		skip_row.add_child(_details)
 		skip_row.add_child(_reroll)
 		skip_row.add_child(_skip)
 		skip_row.add_child(_dev_any)
@@ -373,8 +388,7 @@ func _make_card(card: UpgradeData) -> Button:
 	var accent: Color = _calling_colour() if evolution else (ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
 	UiStyle.card_button(button, accent, is_legendary(card))
 	var label_colour: Color = accent if evolution else UpgradeData.rarity_color(card.rarity)  # Header, kind line, chips
-	if card.tip != "":  # The card's detail on hover (Sunlit Rest: which rank, who gets it)
-		button.tooltip_text = IconInfo.format(card.tip)
+	button.set_meta(&"tips_beside", &"above")  # A word's meaning opens above the card, never over its neighbours
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
 	if card.woven:
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -489,6 +503,10 @@ func _make_card(card: UpgradeData) -> Button:
 	# glossary lines. A Calling evolution reads its path's chips.
 	var chips: Array = DreamState.KEYWORDS.chips_for_calling(StringName(card.id)) if card.tags.has("calling_evolution") \
 		else DreamState.KEYWORDS.chips_for_card(card)
+	if card.tip != "":  # The small print (Sunlit Rest: which rank, who gets it), folded until Details (or a phone's look)
+		var details := _add_linked_line(box, card.tip, UiStyle.INK_DIM, _fs(14))
+		details.name = "CardDetails"
+		details.visible = _details_on and not _phone
 	var keyword_row := KeywordRow.make(chips, UiStyle.CHIP_ICON, label_colour, CARD_CHIP_TEXT)
 	if keyword_row != null:
 		box.add_child(keyword_row)
@@ -497,20 +515,26 @@ func _make_card(card: UpgradeData) -> Button:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL  # The row gives every card the tallest's height
 	_fit_card(button, box, secondary)
-	_one_tip(button)
 	return button
 
-# One tip at a time (user via UI Code: a Calling card's own tip showed on top of an underlined word's glossary
-# popup): while the pointer is on a link, the card's tooltip steps aside; it comes back when the pointer leaves it.
-func _one_tip(button: Button) -> void:
-	if button.tooltip_text == "":
+# Details on / off: every card's small print unfolds or folds (PC), remembered for next time.
+func _set_details(on: bool) -> void:
+	_details_on = on
+	var settings := HeartwoodMemory.get_settings()
+	if bool(settings.get(DETAILS_SETTING, false)) != on:
+		settings[DETAILS_SETTING] = on
+		HeartwoodMemory.save_settings(settings)
+	for column in _cards.get_children():
+		var details := _card_box(column).find_child("CardDetails", true, false) as Control
+		if details != null:
+			details.visible = on and not _phone
+
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not visible or _phone or not key.pressed or key.echo or key.keycode != KEY_SHIFT:
 		return
-	var tip := button.tooltip_text
-	for label in button.find_children("*", "RichTextLabel", true, false):
-		if not label.has_meta(&"status_popup"):
-			continue
-		label.meta_hover_started.connect(func(_meta: Variant) -> void: button.tooltip_text = "")
-		label.meta_hover_ended.connect(func(_meta: Variant) -> void: button.tooltip_text = tip)
+	_details.button_pressed = not _details.button_pressed  # Shift: the same toggle (its toggled signal does the rest)
+	get_viewport().set_input_as_handled()
 
 # --- Calling evolution cards (owner 2026-10-22: "make the evolution path cards different than the dream cards") ------
 # Same moon-glass card, but nothing about it reads as a Dream: the Calling's family colour (Kinships.FAMILY_COLORS, the
@@ -833,6 +857,9 @@ func _look_at(card: UpgradeData, button: Button) -> void:
 		var hint := column.get_node_or_null("TapHint") as Label
 		if hint != null:
 			hint.text = "Tap again to take" if looked else " "
+		var details := face.find_child("CardDetails", true, false) as Control if face != null else null
+		if details != null and _phone:
+			details.visible = looked  # Phones: the looked card shows its small print (no hover anywhere)
 	_update_phone_bar()
 	_show_reach(card)  # (distance words, owner 2026-10-19)
 	if CardDiagram.has_diagram(card):
