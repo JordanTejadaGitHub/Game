@@ -74,6 +74,47 @@ unchanged from the cozy version; only names, fiction and art direction changed.
 | **Dream Thief** | a quick, grinning shape clutching stolen light | steals Dew; reaching the Heartwood costs Dew + a leaf; dispelling it gives double Dew | risk/reward target priority | fast single-target |
 | **Weeper** | a hunched figure crying black tears | mends nearby nightmares | target priority | Beacon, Mossback |
 
+### Flyers (PROPOSED 2026-10-24, owner: "add more flyer types as well, just a bit"; not approved, not built)
+
+Three new flying nightmares. All three **fly along the route, above it** (like the Crows and the Moth
+Queen): walls never block or re-route them, ground effects (Rooted, Held, traps, rubble, puddles)
+don't touch them, but every Warden along the maze that can hit flyers gets its turn. None flies
+straight to the Heartwood: that is the Phantom's alone, and the Phantom is why (a straight flyer
+skips the maze and became a leaf drain; it is capped at 4 a drift). Kind: **Flying**.
+
+| Nightmare | Looks like | Trait | Tests | Counter |
+|---|---|---|---|---|
+| **Night Kite** (act 2) | a ragged black kite with a tail of knotted string, two cold eyes on the cross-spar | quick and light; flies the route above the path | flyer coverage spread through the maze, not one anti-air spot | Wardens that hit flyers, placed along the whole route; Groundroot |
+| **Gloamwing** (act 3) | a big, slow moth of grey dust, wings too heavy for it | flies the route, but **its wings get heavy**: once it's {soaked} or has 3 {drowsy}, it **drops to the path and walks** the rest of the way (a walker from that cell: the maze, ground effects and holds all apply) | control builds as an answer to flyers | Soaked and Drowsy Wardens, then anything; or plain anti-air |
+| **Pall** (act 4) | a floating funeral cloth with a face pressed through it | flies the route at walking pace and **settles over the nearest walker ahead of it**: while it covers one, that nightmare takes half damage; it moves on when that one is dispelled | target priority and anti-air together | shoot the Pall first (Wardens that hit flyers, target priority), or area damage that hits both |
+
+**Proposed numbers** (for Balancing Discussion; drift-1 values like the Stats table):
+
+| Nightmare | Health | Speed | Leaves | Introduced | roll_tags |
+|---|---|---|---|---|---|
+| Night Kite | 80 | 115 | 1 | drift 41 (act 2) | `special` |
+| Gloamwing | 220 | 80 (walking after it drops: 60) | 1 | drift 69 (act 3, before the Moth Queen) | `special` |
+| Pall | 160 | follows its walker (72 alone) | 1 | drift 92 (act 4) | `special` |
+
+**Rules that keep flyers fair** (the Phantom lesson):
+- **At most 6 flyers of any kind in one rolled drift** in acts 2–4 (Phantoms still at most 4 within that).
+- Tagged `special`, so a flyer leads a drift only in a Special drift, once a block; elsewhere it's a
+  small share. Never in a Packs drift's packs (Drift shapes); fine in Single file and Stream.
+- One Pall covers one walker at a time; a covered nightmare shows the Pall's cloth over it, and the
+  half damage is said on both cards.
+- Waymark: route flyers take the route they spawned with, two legs if a stone stands, and shed their
+  statuses at the stone like walkers.
+- Walking lanes: they sway ±0.15 cell on their line; a Gloamwing that drops takes a walker's lane.
+- Nothing here is aimed at a build: they are rolled like any nightmare.
+
+**Teaching drifts** (their introductions are fixed drifts, so these rows would be what plays; the act
+tables change only after approval): 41 "Night Kite intro: 6 Night Kites (2 s apart), then 16 Shades";
+69 "Gloamwing intro: 4 Gloamwings among 20 Shades"; 92 "Pall intro: 3 Palls over a line of 12 Husks".
+
+**To build after approval:** Enemy Code (three `EnemyData`, the drop-to-walk and the cover rules, the
+6-flyer cap in the roller), Enemy Assets (flying sheets for each, the Gloamwing's landing and walk, the
+Pall's settled pose), Main Merger (the teaching-drift files and the act tables, the Kind badge lines).
+
 ### Bosses: a pool of 3 per act (added 2026-09-29, like Slay the Spire)
 
 Acts 1–3 each have a **pool of 3 great nightmares**; each run draws **one per act**. Act 4 is always
@@ -282,7 +323,7 @@ chart to learn.
 | Kind | What it does | Answered by (existing Warden tags) | Nightmares |
 |---|---|---|---|
 | **Armoured** | a dread shell takes a flat amount off every hit until it breaks (the Shellbound's rule, "Dread shell" below) | **heavy** Wardens (`TowerData.heavy`: the Pebbling line, Torrent, Prism Jar, Moonstone…), **Breaks armour** (Lichenling), the **Crushing** signature | Husk, Shellbound, Barrow Wight; boss: the Barrow King |
-| **Flying** | skips the maze | any Warden that hits flyers (not "Can't hit flyers"), Groundroot pulling them down; only the Lightning Fence's link touches a Phantom | Crow, Phantom; boss: the Moth Queen |
+| **Flying** | skips the maze | any Warden that hits flyers (not "Can't hit flyers"), Groundroot pulling them down; only the Lightning Fence's link touches a Phantom | Crow, Phantom (proposed: Night Kite, Gloamwing, Pall); boss: the Moth Queen |
 | **Hidden** | can't be targeted until revealed (a Burrower is Hidden while underground) | **Reveals Hidden** (Brood Cap, Quaker) | Lurker, Gravecrawler |
 | **Swarm** | splits or arrives as a crowd of small bodies | **area** attacks (pulses, clouds, splash, chains) | Whisper Swarm, Widow (→ Creeps), Mourner (→ Sobs), Lantern Bearer (→ Wraiths); bosses: the Huntsman (pack), the Scarecrow (crows) |
 | **Fast** | outruns a thin maze (sprints, rolls, wanders) | **slows and holds** (Soaked, Drowsy, Rooted) | Night Hound, Sleepwalker |
