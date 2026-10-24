@@ -281,6 +281,22 @@ var _lane_offset := Vector2.ZERO  # The drawn offset in px
 var _lane_drawn := Vector2.ZERO  # The offset last pushed to the sprite / HUD
 var _lane_age := 0.0  # Seconds walked: the lane opens over the first cell
 var _lane_rng: RandomNumberGenerator = null
+# Route flyers (enemy_design.md "Flyers", 2026-10-24): the route they spawned with (to rise back onto after a grounding),
+# the Gloamwing's drop and the Pall's cover.
+const PALL_SHARE := 0.5  # Of each blow aimed at a covered walker, after its dread shell
+const PALL_REACH := 2.5  # Cells: a walker ahead within this is one it settles over
+const PALL_SWOOP := 150.0  # px/s: gliding over to it
+const PALL_SETTLE := 6.0  # px: close enough to settle
+const PALL_SEEK_EVERY := 0.25  # s between looks for a walker
+const PALL_ABOVE := Vector2(0, 1)  # Its node sits a pixel below the walker's, so the cloth sorts in front
+var covered_by: Node2D = null  # The Pall over this walker (blows are shared with it)
+var covering: Node2D = null  # Pall: the walker it covers or glides to
+var _settled := false
+var _pall_seek := 0.0
+var dropped := false  # Gloamwing: down on the path for good
+var _air_route := PackedVector2Array()  # A route flyer's own route, in the air
+var _air_held := 0  # Its index there when it was grounded
+var _shared_hit := false  # A Pall's half of a blow: no multipliers again
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
 # _in_narrow_gap's last answer and what it depended on (perf: re-checked only when the half cells under and
 # just ahead of the body, the step or the map's blocking change, not every frame)
@@ -836,6 +852,8 @@ func _process(delta: float) -> void:
 		waiting = false
 	if unbound:
 		_trample_ahead()
+	if enemy_data.covers_walkers and _update_pall(delta):
+		return  # Pall: over (or gliding to) its walker, at its pace
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
@@ -884,8 +902,8 @@ func _process(delta: float) -> void:
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
 			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
 			_steady_serial = _path_serial
-	if not _culled and not _leaping and not _dragging:
-		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line
+	if not _culled and not _leaping and not _dragging and covering == null:
+		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -1982,7 +2000,16 @@ func _update_lane(delta: float) -> void:
 		queue_redraw()  # The haze and marks drawn in _draw follow the lane
 
 func is_flying() -> bool:
-	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0 and not dropped  # (Groundroot: not while grounded)
+
+# A route flyer (Crow, Night Kite, Gloamwing, Pall, Moth Queen): it flies the nightmares' route, above it.
+func is_route_flyer() -> bool:
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and enemy_data.flies_along_route
+
+# Whether it counts on the route for route cards (Passing Thread, Gauntlet, bends, the Callings' route): walkers and
+# route flyers at the route point below them. Ground effects still ask is_flying() (they miss every flyer).
+func on_route() -> bool:
+	return not is_flying() or enemy_data.flies_along_route
 
 # Rounded corners (user-approved, 2026-10-04): the route stays square and the logical position walks
 # it exactly (speed, ETA, progress unchanged); only the drawn sprite and HUD ease through a turn, on a
@@ -2055,14 +2082,22 @@ func ground(seconds: float) -> void:
 	if _grounded_left > 0.0:
 		_grounded_left = maxf(_grounded_left, seconds)  # Already down: just longer
 		return
-	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	if route.is_empty():
-		return
-	var nearest: Vector2 = route[0]
-	for cell in route:
-		if grid.calculate_map_position(cell).distance_squared_to(position) \
-				< grid.calculate_map_position(nearest).distance_squared_to(position):
-			nearest = cell
+	var nearest: Vector2
+	var route_flyer := is_route_flyer()
+	if route_flyer and not _path.is_empty():
+		# A route flyer comes down on its own route, at the point below it (it rises back onto that route later)
+		_air_route = _path
+		_air_held = _route_point_below()
+		nearest = _path[_air_held]
+	else:
+		var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+		if route.is_empty():
+			return
+		nearest = route[0]
+		for cell in route:
+			if grid.calculate_map_position(cell).distance_squared_to(position) \
+					< grid.calculate_map_position(nearest).distance_squared_to(position):
+				nearest = cell
 	_grounded_left = seconds
 	_end_drag(false)
 	_leaping = true  # No walking during the drop
@@ -2072,22 +2107,164 @@ func ground(seconds: float) -> void:
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
 	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
-	tween.tween_callback(func() -> void:
-		_leaping = false
-		passed_waymark = true  # Waymark: a grounded flyer counts as having passed the stone (legendaries_final.md 1.1)
-		set_path(map_generator.get_path_from(nearest, true))
-		_speed_stale = true)
+	tween.tween_callback(_landed_from_air.bind(nearest, route_flyer))
+
+# The drop finished: it walks the maze from `cell`. A route flyer keeps the Waymark leg it really is on; a through-wall
+# flyer (the Phantom) counts as past the stone (legendaries_final.md 1.1).
+func _landed_from_air(cell: Vector2, route_flyer: bool) -> void:
+	_leaping = false
+	var map_generator = _map_generator()
+	if map_generator == null or is_cleansed:
+		return
+	if not route_flyer:
+		passed_waymark = true
+	set_path(map_generator.get_path_from(cell, passed_waymark))
+	_speed_stale = true
+
+# The index of the route point below it on its path (the nearer of the points either side of it).
+func _route_point_below() -> int:
+	if _path.is_empty():
+		return 0
+	var i := clampi(_path_index, 0, _path.size() - 1)
+	if i > 0 and grid.calculate_map_position(_path[i - 1]).distance_squared_to(position) \
+			<= grid.calculate_map_position(_path[i]).distance_squared_to(position):
+		return i - 1
+	return i
 
 func is_grounded() -> bool:
 	return _grounded_left > 0.0
 
-# Its time on the ground ran out: it rises and flies straight at the Heartwood from here.
+# Its time on the ground ran out: a route flyer rises back onto its own route (the point nearest it from where it was
+# grounded on, within the Waymark leg it is on); a through-wall flyer flies straight at the Heartwood from here.
 func _rise_from_ground() -> void:
 	_grounded_left = 0.0
 	var map_generator = _map_generator()
-	if map_generator != null and not is_cleansed:
-		set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
-		_speed_stale = true
+	if map_generator == null or is_cleansed:
+		return
+	if is_route_flyer() and not _air_route.is_empty():
+		_rejoin_air_route(_air_held)
+		return
+	set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
+	_speed_stale = true
+
+# Back onto its own route in the air: the point nearest it at or after `from` (not past the Waymark while it hasn't
+# passed it), and on from there.
+func _rejoin_air_route(from: int) -> void:
+	var map_generator = _map_generator()
+	var last := _air_route.size()
+	if not passed_waymark and map_generator != null and map_generator.has_method("waymark_split") and map_generator.has_waymark():
+		var split: int = map_generator.waymark_split(_air_route)
+		if split >= 0:
+			last = split + 1
+	var best := clampi(from, 0, _air_route.size() - 1)
+	var best_d := INF
+	for i in range(clampi(from, 0, _air_route.size() - 1), last):
+		var d := grid.calculate_map_position(_air_route[i]).distance_squared_to(position)
+		if d < best_d:
+			best_d = d
+			best = i
+	var rest := _air_route.slice(best)
+	set_path(rest)
+	_air_route = rest
+	_air_held = 0
+	_speed_stale = true
+
+# Gloamwing: with drop_stacks of Soaked and Drowsy together (Brimming never raises it), its wings are too heavy.
+func _check_wings() -> void:
+	if dropped or is_cleansed or enemy_data.drop_stacks <= 0 or _leaping:
+		return
+	if statuses.stacks(EnemyStatuses.DAMP) + statuses.stacks(EnemyStatuses.DROWSY) >= enemy_data.drop_stacks:
+		_drop_for_good()
+
+# It drops to the path at the route point below it and walks the rest, for good: a walker from that cell (the maze,
+# ground effects and holds all apply), at drop_walk_speed. Its own landing, not ground() (which rises again).
+func _drop_for_good() -> void:
+	var map_generator = _map_generator()
+	if map_generator == null or _path.is_empty():
+		return
+	var cell: Vector2 = _path[_route_point_below()]
+	_grounded_left = 0.0
+	dropped = true
+	speed *= enemy_data.drop_walk_speed / maxf(enemy_data.speed, 1.0)  # (Its Omen / Dream speed share stays)
+	_end_drag(false)
+	_leaping = true  # No walking during the drop
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(self, "position", grid.calculate_map_position(cell), GROUND_DROP_TIME) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
+	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
+	tween.tween_callback(_landed_from_air.bind(cell, true))
+
+# Pall: glides to the nearest walker ahead within PALL_REACH and settles over it, moving at its pace; when it is
+# dispelled the Pall flies on along its route. True while it covers (or glides to) one: its own walk is skipped.
+func _update_pall(delta: float) -> bool:
+	if covering != null and (not is_instance_valid(covering) or covering.is_cleansed or not _can_cover(covering, true)):
+		_uncover()
+	if covering == null:
+		_pall_seek -= delta
+		if _pall_seek > 0.0 or not is_flying():
+			return false
+		_pall_seek = PALL_SEEK_EVERY
+		covering = _walker_to_cover()
+		if covering == null:
+			return false
+		_settled = false
+		_air_held = _path_index  # Where it leaves its route (it flies on from about here)
+		covering.covered_by = self
+	var before := position
+	var target: Vector2 = covering.position + covering._lane_drawn + PALL_ABOVE
+	if _settled:
+		position = target
+	else:
+		var to := target - position
+		var step := PALL_SWOOP * delta
+		if to.length() <= maxf(step, PALL_SETTLE):
+			position = target
+			_settled = true
+		else:
+			position += to / to.length() * step
+	if not _culled:
+		update_animation(position - before)
+	return true
+
+# A walker it may cover: on the ground, not a boss or a Deeply Blighted, targetable, not under another Pall.
+func _can_cover(walker: Node, mine: bool = false) -> bool:
+	return walker != self and not walker.is_cleansed and walker.has_method("on_route") and not walker.is_flying() \
+		and not walker.enemy_data.is_boss and not walker.elite and walker.is_in_group(GROUP) \
+		and (walker.covered_by == null or (mine and walker.covered_by == self))
+
+# The nearest walker ahead of it (nearer the Heartwood) within PALL_REACH cells.
+func _walker_to_cover() -> Node2D:
+	if _spawner == null:
+		return null
+	var mine := get_remaining_distance()
+	var reach := PALL_REACH * grid.cell_size.x
+	var best: Node2D = null
+	var best_d := reach * reach
+	for other in _spawner.get_enemies():
+		if not _can_cover(other) or other.get_remaining_distance() >= mine:
+			continue
+		var d: float = other.position.distance_squared_to(position)
+		if d < best_d:
+			best_d = d
+			best = other
+	return best
+
+# Its walker is gone (dispelled, flown up or now a boss's): the Pall flies on along its own route from here.
+func _uncover() -> void:
+	if covering != null and is_instance_valid(covering) and covering.covered_by == self:
+		covering.covered_by = null
+	covering = null
+	_settled = false
+	if not is_cleansed and not _air_route.is_empty():
+		_rejoin_air_route(_air_held)
+
+# A Pall's half of a blow at the walker it covers: no multipliers or shell again (they were the walker's).
+func take_shared(amount: float, source: Node, tag: StringName) -> void:
+	_shared_hit = true
+	_take_damage(amount, "", false, false, source, tag)
+	_shared_hit = false
 
 # Earthbind / Deeproot on what Held can't stop (Phantoms): a plain stop for `seconds`, no status, no Reactions.
 func pause(seconds: float) -> void:
@@ -3088,15 +3265,17 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, source: Node, tag: StringName) -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
-	if source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
+	var shared := _shared_hit  # A Pall's half of its walker's blow: the walker's multipliers already counted
+	if not shared and source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
 		amount *= Reactions.effect_multiplier(self, source, tag)  # Potency (and Seeping, not on a Reaction: its pool has it)
-	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
+	if not shared:
+		amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
 	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
 	if _batch_dreams == null and is_inside_tree():
 		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # Looked up once, not per hit
 	var batch_dreams := _batch_dreams if is_instance_valid(_batch_dreams) else null
-	if batch_dreams != null:
+	if batch_dreams != null and not shared:
 		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
 		amount *= batch_dreams.card_cap_factor(source, tag)  # Power budget (2026-10-16): non-Reaction card power on one hit stops at x4 (Roguelite Code)
 	if is_crit:
@@ -3108,10 +3287,10 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
-	var taken := statuses.get_damage_taken_multiplier()
-	if statuses.marked_bonus > 0.0:  # Bright Marks' share of this hit, for the Dream damage panel and the boost tiers
+	var taken := statuses.get_damage_taken_multiplier() if not shared else 1.0
+	if not shared and statuses.marked_bonus > 0.0:  # Bright Marks' share of this hit, for the Dream damage panel and the boost tiers
 		DamageLog.note_card_bonus("bright_marks", statuses.bright_marks_multiplier())
-	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
+	var soothe := amount * family * taken * (get_pack_multiplier() if not shared else 1.0)  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	_quiet_for = 0.0  # (Far LOD: a hit puts it back on every frame)
@@ -3132,6 +3311,13 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 			_mark_hit(-1)  # The crust crumbles off in a puff (Dew-light when Wash Away broke it)
 			if enemy_data.cracked_frames != null:
 				_swap_frames(enemy_data.cracked_frames)
+	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
+		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
+			var half := soothe * PALL_SHARE
+			soothe -= half
+			covered_by.take_shared(half, source, tag)
+		else:
+			covered_by = null
 	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
@@ -3191,6 +3377,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if stacks > 0 and is_instance_valid(_batch_dreams):
 		stacks += _batch_dreams.role_cards.bound_stacks(self, id)  # Card pass 2026-10-16, Bound and Burning: +2 while Rooted (never Drowsy)
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
+	if enemy_data.drop_stacks > 0 and (id == EnemyStatuses.DAMP or id == EnemyStatuses.DROWSY):
+		_check_wings()  # Gloamwing: heavy wings
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
 	if bolt > 0.0:
@@ -3344,6 +3532,9 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	if covering != null and is_instance_valid(covering) and covering.covered_by == self:
+		covering.covered_by = null  # A dispelled Pall lets its walker go
+	covering = null
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_visible(_hud_root, false)  # No bars or badges on the way out
 		_hud_shown = false
@@ -3451,6 +3642,8 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
+	if is_route_flyer() and is_flying():
+		_air_route = points  # Its route in the air (a grounding rises back onto it, a Pall flies on along it)
 	_waymark_index = _find_waymark_index()
 	_path_serial += 1  # Per-route caches (turns, the walk target) rebuild
 	_cells_left = PackedFloat32Array()

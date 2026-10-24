@@ -78,6 +78,13 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # FLYING along the nightmares' route instead of straight over the maze (the Moth Queen): it keeps
 # the route it spawned with, above it, so walls never block or re-route it.
 @export var flies_along_route: bool = false
+# Gloamwing (enemy_design.md "Flyers"): once it carries this many stacks of Soaked and Drowsy together (0 = never;
+# Brimming never raises it) it drops to the path for good and walks at `drop_walk_speed`.
+@export var drop_stacks: int = 0
+@export var drop_walk_speed: float = 60.0
+# Pall: settles over the nearest walker ahead of it (never a boss or a Deeply Blighted) and shares each blow aimed at
+# that walker half and half, after the dread shell; never rolled into a Few and tough drift.
+@export var covers_walkers: bool = false
 
 @export_group("Presence")
 # Hidden in fog (Lurker): untargetable unless a Warden is within 1.5 cells, a Marking Warden has
