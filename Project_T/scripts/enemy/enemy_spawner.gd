@@ -486,6 +486,7 @@ func _split(parent: Node2D) -> void:
 		child.passed_waymark = parent.passed_waymark  # Waymark: it carries on the leg its parent was on
 		if parent.has_meta(DriftShapes.PACK_META):
 			child.set_meta(DriftShapes.PACK_META, parent.get_meta(DriftShapes.PACK_META))  # Its leak counts toward the pack's cap
+			child.set_meta(DriftShapes.PACK_LIMIT_META, parent.get_meta(DriftShapes.PACK_LIMIT_META, DriftShapes.PACK_LEAVES))
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
 		if child_share >= 0.0:
 			child.dew_share = child_share

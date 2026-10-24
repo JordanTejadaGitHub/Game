@@ -126,6 +126,27 @@ func _run() -> void:
 	_check(few[0][2] and few[1][2] and few[2][2] and not few[3][2], "few and tough: the Deeply Blighted come first")
 	_check(DriftShapes.describe(few, DriftShapes.FEW_AND_TOUGH).elite_place == "first", "describe: first")
 
+	# A big late drift (Balancing 2026-10-24): 6 bigger packs, each within 3 s, at least 2 s apart; leaf limit per 8
+	var crowd := []
+	for i in 90:
+		crowd.append(shade)
+	for i in 30:
+		crowd.append(husk)
+	var big := _even(crowd, 30.0)
+	var big_shape := DriftShapes.apply(big, DriftShapes.PACKS, DriftShapes.drift_rng(9, 70), 3)
+	var big_facts := DriftShapes.describe(big, DriftShapes.PACKS)
+	_check(big_shape == DriftShapes.PACKS and big_facts.packs == DriftShapes.PACKS_BIG_COUNT and big_facts.gap_s >= 2.0,
+		"a 120-nightmare Packs drift makes 6 packs, >= 2 s apart (%s)" % [big_facts])
+	var spans := {}
+	for arrival in big:
+		var pack := DriftShapes.pack_of(arrival)
+		if pack >= 0:
+			spans[pack] = Vector2(minf(spans[pack].x, arrival[0]), maxf(spans[pack].y, arrival[0])) if spans.has(pack) else Vector2(arrival[0], arrival[0])
+	_check(spans.values().all(func(s: Vector2) -> bool: return s.y - s.x <= DriftShapes.PACK_SPAN_MAX + 0.001), "each big pack arrives within 3 s")
+	_check(is_equal_approx(big[0][0], 0.0) and is_equal_approx(big[-1][0], 30.0), "a big drift keeps its window")
+	_check(DriftShapes.pack_leaf_limit(20) == 9 and DriftShapes.pack_leaf_limit(8) == 3 and DriftShapes.pack_leaf_limit(40) == 15,
+		"pack leaf limit: 3 per 8, rounded up")
+
 	# A boss drift is left alone
 	var boss_drift := _even([boss, shade, shade, shade, shade, shade, shade], 10.0)
 	var boss_copy := boss_drift.duplicate(true)
