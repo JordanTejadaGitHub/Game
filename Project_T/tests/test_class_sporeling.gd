@@ -170,19 +170,19 @@ func _path(ids: Array) -> void:
 
 func _evolution_checks(route: Array) -> void:
 	var paths: Dictionary = DreamState.CALLING_PATHS.PATHS
-	for id in [&"sp_windblown", &"sp_drifting", &"sp_season", &"sp_fairy_path", &"sp_deathcap", &"sp_witch_ground",
+	for id in [&"sp_windblown", &"sp_drifting", &"sp_season", &"sp_deathcap_field", &"sp_rot_bloom", &"sp_heavy_air", &"sp_sprout_beds",
 			&"sp_clump", &"sp_trampled", &"sp_throne", &"sp_pile_on", &"sp_elder_cap", &"sp_trodden", &"sp_retinue",
 			&"sp_borrowed", &"sp_feeding", &"sp_host_trees", &"sp_windfall", &"sp_host_grove", &"sp_sporefall", &"sp_spreading_caps"]:
 		_check(DreamState.CALLING_PATHS.is_live(id), "%s is a live Spore Print row" % id)
 		var face: String = String(paths[id].text) + " " + String(paths[id].tip)
 		_check(not face.contains("set off") and not face.contains("go off"), "%s says trigger, never set off / go off" % id)
 	for id in [&"sp_witch_ring", &"sp_sticky", &"sp_mire_mouth", &"sp_rot", &"sp_rotburst", &"sp_stomping", &"sp_second_crop", &"sp_mother",
-			&"sp_thick_haze"]:  # Thick Haze: back to the designer (owner 2026-10-23)
+			&"sp_thick_haze", &"sp_fairy_path", &"sp_deathcap", &"sp_witch_ground"]:  # Final pass 2026-10-24: Fairy Path, Deathcap, Rot Ground
 		_check(paths.has(id) and not DreamState.CALLING_PATHS.is_live(id), "%s is retired (kept for an old save)" % id)
 	_check(String(paths[&"sp_spreading_caps"].name) == "Spreading Caps" and String(paths[&"sp_borrowed"].name) == "Shared Caps", "the renames")
 	_check(DreamState.CALLING_PATHS.keeps_out(&"sp_borrowed") == [&"breathe_it_in", &"mycelium", &"overnight"]
-		and DreamState.CALLING_PATHS.keeps_out(&"sp_feeding") == [&"overnight"] and DreamState.CALLING_PATHS.keeps_out(&"sp_host_trees") == [&"pass_it_round"],
-		"keeps_out: the final list")
+		and DreamState.CALLING_PATHS.keeps_out(&"sp_feeding") == [&"overnight", &"pass_it_round"] and DreamState.CALLING_PATHS.keeps_out(&"sp_host_trees").is_empty(),
+		"keeps_out: the final list (final_check.md H)")
 	var k := 10
 	if route.size() < k + 30:
 		return
@@ -204,7 +204,7 @@ func _evolution_checks(route: Array) -> void:
 	_check(klass.mushrooms.has(klass._route[seed_i]) and klass._gen_of(klass.mushrooms[klass._route[seed_i]]) == klass.GEN_PLANTED, "Windblown: a gen-1 seedling 3 steps on")
 	await _clean()
 
-	# Drifting Spores: old +2 stacks to other statuses gone; a planted one plants once more (gen 2); the limit 40 to 80
+	# Drifting Spores (final pass 2026-10-24): Poisoned +1% a step since the first dose, up to +30%; no second plant; 40 at most
 	_path([&"sp_windblown", &"sp_drifting"])
 	spore = _plant("sporeling", at + Vector2(CELL * 2, CELL * 2))
 	await _frames(2)
@@ -218,58 +218,68 @@ func _evolution_checks(route: Array) -> void:
 	if klass.mushrooms.has(seeded):
 		klass._stepped(seeded, d2)
 		var again: Vector2 = klass._route[mini(klass.index_of(d2) + klass.SEED_STEPS * 2, klass._route.size() - 1)]
-		_check(klass.mushrooms.has(again) and klass._gen_of(klass.mushrooms[again]) == klass.GEN_AGAIN, "Drifting Spores: the seedling plants once more (gen 2)")
-		var saved: Array = klass.to_save()
-		klass.mushrooms.clear()
-		klass.saved = saved
-		klass.on_board()
-		_check(klass.mushrooms.has(again) and klass._gen_of(klass.mushrooms[again]) == klass.GEN_AGAIN, "the mushroom's gen survives the save")
-	_check(klass.mushroom_max() >= klass.DRIFT_MAX_LOW and klass.mushroom_max() <= klass.DRIFT_MAX_HIGH, "Drifting Spores: the limit is 40 to 80")
+		_check(not klass.mushrooms.has(again), "Drifting Spores: a seedling no longer plants again")
+	_check(klass.mushroom_max() == klass.MUSHROOM_MAX, "...at most %d mushrooms" % klass.MUSHROOM_MAX)
+	_check(d.has_meta(klass.SEASON_META), "...the first dose starts the walk")
+	d.set_meta(klass.SEASON_META, [0, 40, false, 0, 0])  # 20 steps since its first dose
+	_check(is_equal_approx(klass.season_bonus(d), 20 * klass.DRIFT_PER_STEP), "...20 steps walked: +20%")
+	_check(is_equal_approx(klass.damage_multiplier(d, spore, &"spored"), 1.0 + 20 * klass.DRIFT_PER_STEP), "...on its Poisoned ticks")
+	d.set_meta(klass.SEASON_META, [0, 400, false, 0, 0])
+	_check(is_equal_approx(klass.season_bonus(d), klass.DRIFT_MAX), "...up to +30%")
+	d.set_meta(klass.SEASON_META, [0, 400, false, 0, -1])
+	_check(is_zero_approx(klass.season_bonus(d)), "...nothing before a dose")
 	await _clean()
 
 	# Spore Season: the old x1.5 dose is gone; Poisoned grows 1% a step since the first dose, up to +60% (bosses +30%)
 	_path([&"sp_windblown", &"sp_drifting", &"sp_season"])
 	spore = _plant("sporeling", at + Vector2(CELL * 2, CELL * 2))
 	await _frames(2)
-	for i in range(0, mini(klass._route.size(), 80), 4):
+	for i in range(0, mini(klass._route.size(), 80), 2):  # Every 2nd step: the test map's route is 56 points (every 4th grew only 14)
 		if i != k:
 			klass._grow(klass._route[i], false, spore)
-	_check(klass.season_on(), "Spore Season is on with %d mushrooms" % klass.SEASON_AT)
+	_check(klass.season_on(), "Spore Season is on with %d mushrooms (%d)" % [klass.SEASON_AT, klass.mushrooms.size()])
 	var s = _spawn(at)
 	klass._grow(p, false, spore)
 	klass._stepped(p, s)
 	_check(s.statuses.stacks(EnemyStatuses.SPORED) == klass.DOSE, "Spore Season: its old x1.5 dose is gone (%d)" % s.statuses.stacks(EnemyStatuses.SPORED))
 	_check(s.has_meta(klass.SEASON_META), "...the first dose starts the walk")
-	s.set_meta(klass.SEASON_META, [0, 40, false, 0])  # 20 steps
-	_check(is_equal_approx(klass.season_bonus(s), 20 * klass.SEASON_PER_STEP), "...20 steps walked: +20%")
+	s.set_meta(klass.SEASON_META, [0, 40, false, 0, 30])  # 20 steps since its first point, 5 since its first dose
+	_check(is_equal_approx(klass.season_bonus(s), 20 * klass.SEASON_PER_STEP), "...counts from the first step: +20%")
 	_check(is_equal_approx(klass.damage_multiplier(s, spore, &"spored"), 1.0 + 20 * klass.SEASON_PER_STEP), "...on its Poisoned ticks")
 	_check(is_equal_approx(klass.damage_multiplier(s, spore), 1.0), "...never on hits")
-	s.set_meta(klass.SEASON_META, [0, 400, false, 0])
+	s.set_meta(klass.SEASON_META, [0, 400, false, 0, 0])
 	_check(is_equal_approx(klass.season_bonus(s), klass.SEASON_MAX), "...up to +60%")
 	await _clean()
 
-	# Deathcap: 2 s of the nightmare's own Poisoned at once, once a second
-	_path([&"sp_windblown", &"sp_fairy_path", &"sp_deathcap"])
+	# Deathcap (final pass): the first 3 mushrooms of a walk burst, 2 s of its Poisoned; Rot Bloom: the 3rd is 6 s
+	_path([&"sp_windblown", &"sp_deathcap_field", &"sp_rot_bloom"])
 	spore = _plant("sporeling", at + Vector2(CELL * 2, CELL * 2))
 	await _frames(2)
 	var dc = _spawn(at)
 	dc.apply_status(EnemyStatuses.SPORED, 5, 20.0, 10.0, 0, "spore", spore)
 	var before: float = dc.health
-	klass._deathcap(spore, dc)
-	_check(before - dc.health > 0.0 and klass._poison_second(dc) > 0.0, "Deathcap: 2 s of its Poisoned at once (%.1f of %.1f raw)" % [before - dc.health, klass._poison_second(dc) * klass.DEATHCAP_SECONDS])
+	klass._field_burst(spore, dc)
+	var first: float = before - dc.health
+	_check(first > 0.0 and klass.bursts_left(dc) == klass.FIELD_BURSTS - 1, "Deathcap: a burst of its Poisoned (%.1f), 2 left" % first)
 	before = dc.health
-	klass._deathcap(spore, dc)
-	_check(is_equal_approx(before, dc.health), "...each nightmare once a second")
+	klass._field_burst(spore, dc)
+	_check(before - dc.health > 0.0, "...no once-a-second throttle")
+	before = dc.health
+	klass._field_burst(spore, dc)
+	_check(before - dc.health > first * 2.0, "Rot Bloom: the 3rd burst is 6 s (%.1f)" % (before - dc.health))
+	before = dc.health
+	klass._field_burst(spore, dc)
+	_check(is_equal_approx(before, dc.health) and klass.bursts_left(dc) == 0, "...3 a walk")
 	await _clean()
 
-	# Fairy Path: a step touching 2 attacking Wardens is no longer a bed (old rule gone); a Sprout's nearest step is
-	_path([&"sp_windblown", &"sp_fairy_path"])
+	# Sprout Beds: a step touching 2 attacking Wardens is no bed; a Sprout's nearest step within 2 cells is
+	_path([&"sp_windblown", &"sp_deathcap_field", &"sp_rot_bloom", &"sp_sprout_beds"])
 	spore = _plant("sporeling", at + Vector2(CELL * 3, CELL * 3))
 	_plant("dewdrop", at + Vector2(CELL, 0))
 	_plant("firefly_jar", at + Vector2(-CELL, 0))
 	await _frames(2)
 	klass.on_board()
-	_check(klass._fairy.is_empty() and not klass._bed.has(p), "Fairy Path: 2 attacking Wardens no longer make a bed")
+	_check(klass._fairy.is_empty() and not klass._bed.has(p), "Sprout Beds: 2 attacking Wardens make no bed")
 	_plant("sprout", at + Vector2(0, CELL))
 	await _frames(2)
 	klass.on_board()
@@ -323,7 +333,8 @@ func _evolution_checks(route: Array) -> void:
 	_check(f.statuses.stacks(EnemyStatuses.DAMP) == 1 + klass.FEED_STACKS, "...another family's status hit there adds %d" % klass.FEED_STACKS)
 	await _clean()
 
-	# Host Trees / Host Grove: 3 capped Wardens of other families: their statuses' damage x1.3, never a Reaction's
+	# Host Trees / Host Grove (final pass): Shared Caps' pick at each mushroom wears a cap: +15% Potency (Grove: 30% with 3
+	# capped), or +15% hits on Poisoned for a Warden whose status deals no damage; never a Reaction's damage
 	_path([&"sp_borrowed", &"sp_host_trees", &"sp_host_grove"])
 	spore = _plant("sporeling", at + Vector2(CELL * 3, CELL * 3))
 	var h1 := _plant("dewdrop", at + Vector2(CELL, 0))
@@ -332,19 +343,28 @@ func _evolution_checks(route: Array) -> void:
 	klass._grow(p, false, spore)
 	klass._recount_caps()
 	klass._host_frame = -1
-	_check(klass.is_capped(h1) and klass.is_capped(h2) and not klass.is_capped(spore), "Host Trees: Wardens of other families touching a mushroom wear caps")
-	_check(is_equal_approx(dreams.calling_potency(h1, &"spored"), 1.0), "Host Grove: 2 caps are not enough")
-	_plant("sprout", at + Vector2(0, -CELL))
-	await _frames(1)
-	klass._recount_caps()
-	klass._host_frame = -1
-	_check(klass.capped_count() == 3, "...a Sprout wears one too (%d)" % klass.capped_count())
-	_check(is_equal_approx(dreams.calling_potency(h1, &"spored"), klass.HOST_GROVE_POTENCY), "Host Grove: 3 capped: x1.3 on its Poisoned")
-	_check(is_equal_approx(dreams.calling_potency(h1, &"thunderclap"), 1.0), "...never a Reaction's damage")
+	var host = klass._shared_pick(klass._route_px[k])
+	_check(host != null and klass.is_capped(host) and klass.capped_count() == 1 and not klass.is_capped(spore), "Host Trees: one cap a mushroom, on Shared Caps' pick")
+	_check(host == null or is_equal_approx(dreams.calling_potency(host, &"spored"), klass.HOST_TREES_POTENCY), "...+15% on its effect damage")
+	_check(host == null or is_equal_approx(dreams.calling_potency(host, &"thunderclap"), 1.0), "...never a Reaction's damage")
 	_check(is_equal_approx(dreams.calling_potency(spore, &"spored"), 1.0), "...never the spore Warden's own")
+	for t in [h1, h2]:  # Three capped (a Sprout too) for Host Grove
+		klass._capped[t.get_instance_id()] = [weakref(t), INF, false]
+	var sprout := _plant("sprout", at + Vector2(0, -CELL))
+	await _frames(1)
+	klass._capped[sprout.get_instance_id()] = [weakref(sprout), INF, false]
+	klass._host_frame = -1
+	_check(klass.capped_count() == 3 and is_equal_approx(dreams.calling_potency(h1, &"spored"), klass.HOST_GROVE_POTENCY), "Host Grove: 3 capped: 30%, not 15%")
+	var poisoned = _spawn(at)
+	poisoned.apply_status(EnemyStatuses.SPORED, 3, 20.0, 1.0, 0, "spore", spore)
+	klass._host_frame = -1
+	_check(is_equal_approx(klass.host_hit_multiplier(h1, poisoned), klass.HOST_GROVE_POTENCY), "...a Dewdrop's (no-damage status) hits on Poisoned")
+	_check(is_equal_approx(klass.host_hit_multiplier(h2, poisoned), 1.0), "...not a Firefly's (its Charged deals damage: Potency instead)")
+	klass._capped.clear()
+	klass._recount_caps()
 	klass.mushrooms.clear()
 	klass._recount_caps()
-	_check(klass.is_capped(h1), "Host Trees: the cap stays %d s after the last mushroom goes" % int(klass.HOST_LINGER))
+	_check(host == null or klass.is_capped(host), "Host Trees: the cap stays %d s after it stops being picked" % int(klass.HOST_LINGER))
 	await _clean()
 	dreams.calling_path.clear()
 	dreams._rebuild_calling_flags()

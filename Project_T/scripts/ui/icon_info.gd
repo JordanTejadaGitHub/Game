@@ -331,6 +331,9 @@ const TERMS := {
 	&"dew_splash": ["splash", "splashes", "Dewdrop splash", "dew_splashes"],  # The Puddles Calling's splash, not a splash attack (owner 2026-10-20: "don't know what splash is on the card")
 	&"toll": ["Toll", "Tolls", "Toll"],
 	&"free_hit": ["free hit", "free hits", "Free hit"],
+	&"flare": ["flare", "flares", "Flare"],  # Calling evolution words (final pass 2026-10-24, read_consistency.md R5 / R11 / R12)
+	&"ring": ["ring", "rings", "Ring"],
+	&"lingering": ["lingering", "lingering", "Lingering", "lingerings"],
 	&"heavy": ["heavy", "heavy", "Heavy Warden", "heavys"],
 	&"step": ["step", "steps", "Step"],
 	&"touching": ["touching", "touching", "Touching", "touchings"],

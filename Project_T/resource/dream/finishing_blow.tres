@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "finishing_blow"
 display_name = "Finishing Blow"
-description = "{rank} II+ Wardens' direct hits deal 40% more to nightmares below a third of their health."
-tip = "Hits only: never statuses or {reaction} damage."
+description = "{rank} II+ Wardens' direct hits deal 40% more damage to nightmares below a third of their health."
+tip = "Direct hits only."
 rarity = 0
 kind = 3
 tags = Array[String](["precision", "hits"])

@@ -77,8 +77,14 @@ const GLOSSARY_SOURCE := [
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump triggers another jump only when a card says so.", ["Lit"]],
 		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
 		["Dewdrop splash", "A Dewdrop's hit on nightmares in its {water}: nightmares within 4 {steps} in that {water} gain {damp}. Each nightmare at most once a second. The Puddles Calling's splash, not a splash attack.", ["Water", "Splash"]],  # (owner 2026-10-20)
-		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. A ring is a hit from a bell (any Bellflower form).", ["Calling"]],
-		["Free hit", "One extra hit from a Warden outside its normal attacks: on that nightmare only, at most once a second per Warden, never more than a second of its damage.", []],
+		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. Damage only. Triggers no other card.", ["Ring", "Calling hit"]],
+		["Ring", "A hit from a bell (any Bellflower form) on a nightmare. Every 4th ring makes a Toll.", ["Toll"]],
+		["Free hit", "One extra hit from a Warden outside its normal attacks: on that nightmare only, at most once a second per Warden, never more than a second of its damage. Damage only. Triggers no other card.", ["Calling hit"]],
+		["Flare", "An extra hit from a Firefly Warden on a nightmare in its glow, made by a Lantern Light evolution. Damage only. Triggers no other card.", ["Lit", "Calling hit"]],
+		["Repeat", "A Keeping Time evolution's copy of a hit: it lands again on that nightmare, often at half damage. Damage only. Triggers no other card.", ["Toll", "Calling hit"]],
+		["Spill", "Part of a Black Pond Dewdrop's hit that also lands on other nightmares in its pond. Damage only. Triggers no other card.", ["Water", "Calling hit"]],
+		["Calling hit", "Deals the Warden's damage, scaled; a Warden slower than the hit's clock deals a share.", ["Free hit", "Flare", "Toll", "Repeat", "Spill"]],
+		["Lingering", "A status kept past its time; drawn with a blue rim.", ["Water"]],
 		["Heavy Warden", "A Warden that attacks slowly and hits hard, like Pebbling, Frostfern, Lanternmoth or Silver Bell.", ["Jump"]],
 		["Step", "One cell of path, counted along the path.", []],
 		["Touching", "Within 1 cell on both sides: the 8 cells around a Warden. A Warden touches the path within 1.25 cells of its centre. Two nightmares touch when they are within 1 cell of each other.", ["Near"]],
@@ -98,7 +104,7 @@ const GLOSSARY_SOURCE := [
 	["Nightmares", [
 		["Nightmare", "What walks the path toward the Heartwood. Dispel it before it arrives.", ["Dispel"]],
 		["Dispel", "To defeat a nightmare. It pays Dew.", ["Nightmare"]],
-		["Deeply Blighted", "A stronger nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
+		["Deeply Blighted", "A stronger nightmare: three times the health, a triple share of the Dew, and it takes two leaves. A Deeply Blighted counts as 3 toward dispel counts.", ["Leaves"]],  # Dispel counts: Balancing 2026-10-24 (DreamState.ELITE_DISPEL_COUNT)
 		["Reaching the Heartwood", "A nightmare that reaches the Heartwood takes leaves (most take 1, Deeply Blighted 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
 		["Dread shell", "A shell that absorbs part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
 		["Restless", "A nightmare made faster by having its path changed while it walks: +20% speed each time. Three times and it is Unbound.", ["Unbound"]],

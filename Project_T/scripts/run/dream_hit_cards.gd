@@ -224,12 +224,17 @@ func _prune(map: Dictionary) -> void:
 			map.erase(key)
 
 # Clean Strike: no status on `enemy` was put on by another family's Warden (walls and Sprouts never count).
+# Final pass 2026-10-24 (final_pass_shared.md 3): no other family's status AND at least one of its own family's (a family
+# that puts no status never gets it). is_court skips walls and Sprouts.
 func _clean(tower, enemy) -> bool:
+	var own := false
 	for id in enemy.statuses.active_ids():
 		var who = enemy.statuses.source(id)
-		if is_court(who) and who.tower_data.line != tower.tower_data.line:
-			return false
-	return true
+		if is_court(who):
+			if who.tower_data.line != tower.tower_data.line:
+				return false
+			own = true
+	return own
 
 # Standing Tall: attacking base or branch Wardens touching `tower` (not Sprouts or walls), up to STANDING_MAX_COUNT.
 func standing_count(tower) -> int:
@@ -437,5 +442,5 @@ func panel_line(tower) -> String:
 		var steps: int = int(trophies.get(cell_key(tower.cell), {}).get("steps", 0))
 		parts.append("Trophies +%d%%" % roundi(minf(TROPHY_STEP * steps, TROPHY_MAX) * 100.0))
 	if live() and _on.has(TALLEST_TREE) and is_tallest(tower):
-		parts.append("The Tallest Tree: %d stored" % roundi(tallest_store))
+		parts.append("The Tallest Tree: %d stored damage" % roundi(tallest_store))
 	return " · ".join(parts)

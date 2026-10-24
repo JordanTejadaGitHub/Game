@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "shattering_blow"
 display_name = "Shattering Blow"
 description = "When a crit lands, 50% of its damage splashes onto nightmares within 1 cell."
+tip = "A Calling's forced crit doesn't count."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "precision", "reach"])

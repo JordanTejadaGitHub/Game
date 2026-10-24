@@ -508,6 +508,153 @@ roster's own rule above ("Rare, in its own drifts"). Picked:
 - Lurkers are not flyers (hidden, they walk the maze); their 11 leaves are a detection question, and
   Mourners + Sobs (21) a splash one. Neither is part of this change.
 
+### Drift shapes (APPROVED 2026-10-24, owner: "do your recommendation"; not built yet)
+
+Owner: *"waves come closer together instead of 1 by 1"*, *"take into consideration all builds
+currently that updating the enemy will help make building more impactful."* Brief and reviews:
+`D:\Projects\logs\dream_council\drift_shapes_brief.md`, `shapes_player.md`, `shapes_roguelite.md`,
+`shapes_td.md` (the TD review wins where the two designer reviews differ, owner 2026-10-24).
+
+**Why.** The random drifts (`DriftRoller`) already vary *what* comes (templates: Mixed, Swarm,
+Heavy, Fast, Procession, Special, Deeply Blighted), but every rolled drift is one group at one even
+spacing, so *how it arrives* never changes and one board answers every drift. A **shape** is that
+missing axis: templates keep choosing the kinds, shapes choose the arrival. Same health budget, same
+Dew pot, same route.
+
+**The four shapes**
+
+| Shape | Arrival | Glyph and fact line (Coming strip) |
+|---|---|---|
+| **Stream** | today's even mix | "Stream: 30" |
+| **Packs** | packs of **6–8** (act 1: **4–5**), each pack one kind, about 0.5 cell apart inside (in-pack gap = 0.5 cell ÷ that kind's speed), **at least 5 s between packs**; a pack is at most a third of the drift | "Packs: 4 × 7, 6 s apart" |
+| **Single file** | one at a time, **at least 1.5 s apart**, no kind twice in a row; the window stays the same, so it carries fewer, heavier nightmares (a Heavy lead) | "Single file: 18, 1.6 s apart" |
+| **Few and tough** | a Heavy lead plus **3–5 Deeply Blighted of a heavy kind holding 40–70% of the budget** (the elite flag, never a health multiplier), even spacing | "Few and tough: 9, 4 Deeply Blighted" |
+
+The old name **Procession** stays the Lantern Bearer's (its followers); no shape uses it. The
+Swarm template keeps choosing small kinds but loses its `spacing_multiplier`: the shape owns spacing.
+
+**Where the Deeply Blighted go** (this replaces "Escort" as a shape, owner 2026-10-24; seeded):
+- **Stream:** anywhere, as today.
+- **Packs:** inside the middle pack, and that pack is the elite's kind, so it keeps pace. Two elites
+  (from drift 76) ride in two packs; a finale's elites one per pack.
+- **Single file:** last in line.
+- **Few and tough:** first.
+- Elder Night's and Blight's extra elites follow the same rule. `add_guaranteed_elite` must use the
+  run's seeded rng (today it calls the global `pick_random`), so the placement is the same on a
+  replay of the seed.
+
+**The mix through a run** (rolled once in `DriftRoller.roll_run` from the map seed, on its own salted
+rng so old seeds keep their kinds and bosses; never read from the player's board, cards or leaks;
+saved with the run)
+- **Drifts 1–10: Stream only.** Shapes start at drift 11, after the second family pick at 10.
+- **Act 1, blocks 3–5 (drifts 11–24):** one shaped drift per block, Packs or Single file. No Few and
+  tough in act 1.
+- **From act 2, every ordinary block:** two Streams plus each shape once, in rolled order. The
+  block's 5th drift (the finale) is never a Stream; across an act's finales each shape appears at
+  least once.
+- **Boss blocks (drifts 21–25, 46–50, 71–75, 96–100):** no shape on the boss drift or the drift
+  right before it (24, 49, 74, 99 are Streams). From act 2 the block's first three drifts are one of
+  each shape. The boss drift keeps the boss's own escort.
+- **Never two Few and tough in a row,** across a block boundary too.
+- **Fixed drifts count as Streams:** 1–5, boss drifts and every nightmare's introduction drift (it
+  teaches the new kind; `EnemyData.intro_drift`). A block with fewer free drifts than shapes drops
+  shapes in the order Few and tough, then Single file.
+- Packs never use flyers, Rolling (Night Hound), Leap, Burrow or Wander kinds (they leave a pack by
+  design); those go in a Stream or Single file drift. Few and tough never leads with splitters (a
+  hidden crowd).
+- Blight Levels may later sharpen shapes (bigger packs from drift 51); never a shape aimed at a build.
+
+**Don't ship (the rules that keep shapes fair)**
+- **A pack takes at most 3 leaves** when it leaks (proposed number), so one slipped pack can't end a
+  run; the glossary says so. Few and tough already costs 2 leaves per Deeply Blighted.
+- **No flyer packs:** Hollow Wind's flyer swaps are pulled out of packs and spaced as in a Stream.
+- **Headlong stays special:** never more than ~8 arrivals within 3 s in any shape; only Headlong
+  brings a whole drift at once (`_compress` runs after the shape).
+- **Omens don't stack with shapes:** Swarming Night and Crowded Paths fill packs up to 8, and the rest
+  form new packs; Restless Wind shortens only the gaps between packs; under Giants' Walk a Few and
+  tough drift plays as a Stream; Hollow Wind as above. The Coming strip shows the numbers after the Omen.
+- **No shape makes a build dead, only weaker** (target: a crowd build keeps 60–70% of its output on
+  Few and tough, a single-target build on Packs).
+
+**Order** at a drift's start: shape and kinds (rolled at run start) → Omen counts, health and spacing
+→ guaranteed and Blight elites → `DriftShapes.apply` (re-times and places the elites) → Headlong's
+`_compress` → `pot_shares`. `apply` keeps the **first and last arrival times**, so `arrival_left`,
+call-early Dew, Call of the Wild, Auto-drift's 3 s and the needed-DPS meter don't change.
+
+**Readable, not advice.** At each rest the Coming strip shows the whole next block: per drift a shape
+glyph and its fact line, the kinds (as now) and where the Deeply Blighted ride ("in a pack", "last in
+line"); or a small arrival timeline, one dot per nightmare sized by health (packs read as clumps,
+Single file as a dotted line, Few and tough as a few fat dots). The banner names the shape during the
+drift; the rest report's "This block:" line lists shapes instead of template names. The glossary
+names the four shapes once and says *"shapes are rolled with the map"*. Never "good against", never a
+grade or a highlight.
+
+**What builds feel** (`shapes_roguelite.md` section 2 has the full table; each shape is loved by 6+
+builds and feared by 6+, nothing loves all three):
+- **Packs:** crowd capstones, pond spill and Breaking Wave, Firefly jumps, Toll per nightmare,
+  Reactions, Wild Growth, Dawnbreak, Sporeling's stacks-faster lent cards.
+- **Single file:** Spread lines (per-walker counts), Spore Print's doses, Midnight Bell bursts,
+  Bonfire streaks, Gauntlet and Passing Thread mazes, Dewdrop's linger, Waymark, Headlong (the longest
+  arrival to skip).
+- **Few and tough:** boss capstones, Focus lines, the hit cards (Bearing Down, Measured Blow, Finishing
+  Blow), Keeping Time's pips, Undiluted, Unfettered, Bellflower's repeats, every "boss or Deeply
+  Blighted" card (they read the elite flag, which is why Few and tough uses it).
+- **Stream:** the Support lines and the flat middle.
+
+**Card fixes shapes need (Roguelite chats; proposed, not decided):**
+- Dispel-count engines stall on Few and tough (Wild Growth, Hard-Won Rings, Lantern Light's dispel
+  jump, Starfield): a Deeply Blighted could count as 3 dispels (its health share), said in the glossary.
+- Per-nightmare status caps (Poisoned 32–80) cap out on a few tough bodies: Balancing checks whether
+  Few and tough needs to be rarer for act 3 status lines.
+- Boss capstones that halve on bosses (Long Rot, Lantern Parade, Grave Field) need full value on
+  Deeply Blighted, or they read as traps on Few and tough.
+- "3+ nightmares" cards (Crowded Ground, Pile-On) never fire on Single file: acceptable once a block.
+- Spore Season (15 caps alive) on Packs: check it isn't working against itself.
+
+**Gate (Balancing):** for each build, its worst shape leaks **1.5–3×** its best; no build has the
+fewest leaks on all three shapes. Per Calling, crowd vs boss capstone on one Packs, one Few and tough
+and one Stream drift at 30 / 60 / 85.
+
+**Data.** `DriftData.shape: StringName` (default `&""` = rolled; set = pinned, for a hand-made or
+generated drift); `DriftRoller` writes the rolled shape beside `META_TEMPLATE` and picks a template
+that fits it (Packs: Mixed, Swarm, Fast; Single file: Mixed, Heavy, Special; Few and tough: Heavy,
+Deeply Blighted; Stream: any). Few and tough's elite share is a roll-time change (counts and elites);
+Packs and Single file are a re-time in `DriftShapes.apply(schedule, shape, rng)`. Packs carry a pack
+id on each arrival for the 3-leaf cap. The hand-made drifts 1–50 and `tools/drift_generator.gd`
+(51–100) need no shape today (their drifts are rolled, or fixed and so Streams); the generator only
+gains an optional "Shape" column if a fixed drift should ever be pinned.
+
+**Who builds what** (after the owner approves)
+- **Enemy Code** (owns `DriftRoller`): the shape roll in `roll_run` (salted rng, block rules above),
+  template fit and Few and tough's elite share, seeded `add_guaranteed_elite`, `DriftShapes.apply`
+  (re-time, packs, placement, pack ids, flyer pull-out), the 3-leaf pack cap at the Heartwood,
+  `DriftData.shape`, template `.tres` edits (Swarm loses `spacing_multiplier`), `tests/test_drift_shapes.gd`
+  and the `tests/test_drift_roller.gd` updates (it expects 7 templates and checks act 1 spacing), and
+  a profile of an act 3 Packs drift (packs of 8, a full field) on the phone build.
+- **Main Merger** (owns `drift_director.gd` and the HUD): the 3-line hook in `_start_drift` (after the
+  elites and Omens, before `_compress` and `pot_shares`), the shapes in the run save, the Coming strip
+  (glyph, fact line or timeline, whole block at rests), the banner word, the rest report's "This
+  block:" line and a `shape` column in run history.
+- **Roguelite Code:** the Omen caps (Swarming Night, Crowded Paths, Restless Wind, Giants' Walk,
+  Hollow Wind) and, once decided, the card fixes above.
+- **Balancing Code:** sims of the three shapes per Calling (the bot drives the real director, so
+  nothing new is needed) and the gate. **No generator change** unless a drift is pinned.
+- **Balancing Discussion:** pack size and gap, the Single file floor, Few and tough's elite share and
+  count, the 3-leaf pack cap, template weights.
+
+**Decided (owner 2026-10-24, "do your recommendation")**
+1. **The four shapes and the mix** as written above.
+2. **A leaked pack takes at most 3 leaves** (not leaf cost by health share: a cap is one rule the
+   glossary can state, and a pack's leak still hurts). Only Packs drifts have pack ids; a Deeply
+   Blighted riding in a pack counts toward its pack's 3.
+3. **Coming strip: both.** Each drift's row shows the glyph and its fact line; tapping (or hovering)
+   the row opens its arrival timeline, one dot per nightmare sized by health. Phones get the same
+   tap. The timeline is the at-a-glance read; the line carries the exact numbers.
+4. **Both extras, as facts:** the drift 45 capstone screen shows the next act's shape counts
+   ("Act 3: 4 Packs, 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough"),
+   and the rest report adds "Leaves lost by shape this act: Packs 3, Single file 0, Few and tough 1"
+   when any leaf was lost. Neither says which build answers which shape.
+
 ## Art
 
 Final art is original (brief above). Placeholders from the Foozle enemy pack are in use until then;

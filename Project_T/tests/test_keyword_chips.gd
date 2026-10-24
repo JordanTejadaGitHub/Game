@@ -88,7 +88,7 @@ func _data_checks() -> void:
 			else:
 				users[chip.id] = String(id)
 		rows += 1
-	_check(rows == 60, "60 Calling evolution rows (%d)" % rows)
+	_check(rows == 137, "137 Calling evolution rows (%d)" % rows)  # Section 33: Finale (Deepen) and cross-over rows; final pass 2026-10-24: 22 new ids
 	# Warden roles and statuses count as makers.
 	var dir := DirAccess.open("res://resource/tower")
 	for file in dir.get_files():
@@ -107,8 +107,8 @@ func _data_checks() -> void:
 		for member in KW.MEMBERS.get(id, []):
 			made = made or makers.has(member)
 			used = used or users.has(member)  # Slow: its users name the exact state (decisions: "Uses Rooted", "Uses Asleep")
-		_check(made, "keyword %s has a maker (cards, evolutions or Warden roles)" % id)
-		_check(used, "keyword %s has a user" % id)
+		_check(made or id in [&"age", &"order"], "keyword %s has a maker (cards, evolutions or Warden roles)" % id)  # age, order: uses-only words (a Warden's age, its place along the path)
+		_check(used or id == &"potency", "keyword %s has a user" % id)  # Potency: a stat every effect reads, so no card "uses" it (Host Grove makes it)
 	for id in KW.WORDS:
 		var words := String(KW.glossary(id).text).split(" ", false).size()
 		_check(words > 0 and words <= 12, "glossary %s is 1-12 words (%d)" % [id, words])
@@ -228,7 +228,10 @@ func _hook_checks() -> void:
 	s.note_stretched(EnemyStatuses.DAMP, 3.0)
 	_check(s.is_lingering(EnemyStatuses.DAMP), "note_stretched() (Ebb) makes it lingering")
 	_take("slow_burn")
-	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0 + DreamState.SLOW_BURN_BONUS), "Slow Burn: a lingering Poisoned tick deals more")
+	# Slow Burn reads is_kept since section 33 (overtime or a Support row's mark_kept), never is_lingering
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0), "Slow Burn: lingering time not yet reached pays nothing")
+	s.mark_kept(EnemyStatuses.SPORED)
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0 + DreamState.SLOW_BURN_BONUS), "Slow Burn: a kept Poisoned tick deals more")
 	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &""), 1.0), "Slow Burn: a plain hit does not")
 	if dreams.puddles != null:
 		_check(dreams.puddles._rain_spends(&"thunderclap", [EnemyStatuses.DAMP]), "Old Rain: Thunderclap spends a lingering Soaked")

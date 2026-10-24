@@ -197,10 +197,10 @@ func need_text_for(card: UpgradeData) -> String:
 	if needs_met_for(card):
 		return ""
 	if card.requires_reaction_kinds > 0:
-		return "%d different Reactions set off %d times each (you: %d)" % [card.requires_reaction_kinds,
+		return "%d different Reactions, each triggered %d times (you: %d)" % [card.requires_reaction_kinds,
 			card.requires_reactions_seen, kinds_seen(card.requires_reactions_seen)]
 	if card.requires_reactions_seen > 0 and total_seen() < card.requires_reactions_seen:
-		return "a Reaction set off %d times this run (you: %d)" % [card.requires_reactions_seen, total_seen()]
+		return "Reactions triggered: %d this run (you: %d)" % [card.requires_reactions_seen, total_seen()]
 	if card.rule_id == UNBROKEN_CHAIN:
 		return "Dawnbreak, or a Reaction chain of %d this run (yours: %d)" % [UNBROKEN_NEED_CHAIN, longest_chain]
 	return ""

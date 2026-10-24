@@ -3386,11 +3386,39 @@ func _tuned_note(midi: int, length: float) -> PackedFloat32Array:
 
 # Placing a Warden (the user 2026-10-21): it presses into the earth (a soft low thump, a little soil settling),
 # then a sprout unfurls from it (a leafy rise) and a soft harp note answers. Three variants, all in key.
+# Replaced 2026-10-23 (user: "build sound should be something like a flower blooming"; Sound Council: the old one's
+# rising sweep and plucked harp note broke the third listen and played out of key): a flower blooming. A soft press
+# into the soil, petals unfolding (soft, low flicks of air), a warm breath of the bloom opening and settling, and a
+# faint glow of tuned air on D (in every key of the score). No pluck, no sweep. Sprouts a small bud, Thornwalls (and
+# every wall) a darker briar bloom with a thorn scrape and no glow, each family the bloom + a touch of its material.
 func _make_warden_place() -> void:
-	_ws("plant", 3, 0.5, func(v: int) -> PackedFloat32Array:
-		var out := _layers([[_thump(0.28, 110.0 + 12.0 * v, 0.06), 1.0], [_lowpass(_scrape(0.2, 380.0), 700.0), 0.3, 0.02],
-			[_sprout_unfurl(0.36), 0.4, 0.1], [_pluck(SFX_RATE, hz([57, 62, 57][v]), 0.4, 0.7, 0.7, 0.997), 0.38, 0.42]])
-		return _lowpass(out, 2200.0))
+	_ws("plant", 3, 0.5, func(v: int) -> PackedFloat32Array: return _bloom(1.0, v, 62, ""))
+	_ws("plant_sprout", 3, 0.45, func(v: int) -> PackedFloat32Array: return _bloom(0.7, v, 74, ""))
+	for id in ["plant_thornwall", "plant_wall"]:
+		_ws(id, 2, 0.5, func(v: int) -> PackedFloat32Array: return _briar_bloom(v))
+	for line in MATERIAL_LINES:
+		if line in ["sprout", "wall"]:
+			continue
+		_ws("plant_" + line, 2, 0.5, func(v: int) -> PackedFloat32Array: return _bloom(1.0, v, 62, line))
+
+# A flower blooming, `size` long-ish (1.0 ≈ 0.8 s): press, petals, the bloom's breath, a glow on `glow` (midi), and
+# an optional family `line` touch at the end.
+func _bloom(size: float, v: int, glow: int, line: String) -> PackedFloat32Array:
+	var parts := [[_thump(0.2, 115.0 + 10.0 * v, 0.045), 0.55]]
+	var petals := 4 + v
+	for k in petals:  # Petals unfolding: soft, low flicks of air, one after another
+		var at := (0.05 + k * 0.05 + rng.randf() * 0.015) * size
+		parts.append([_lowpass(_air(0.14 * size, rng.randf_range(520.0, 820.0), 0.03, 0.09 * size, 0.9), 1300.0), 0.32 - k * 0.03, at])
+	parts.append([_air(0.75 * size, 430.0 + 30.0 * v, 0.28 * size, 0.42 * size, 0.7), 0.85, 0.06 * size])  # The bloom opening
+	parts.append([_tuned_note(glow, 0.8 * size), 0.28, 0.2 * size])  # Its warm glow
+	if line != "":
+		parts.append([_material(line, 0.45), 0.28, 0.32 * size])
+	return _lowpass(_layers(parts), 2400.0)
+
+# A briar blooming (Thornwalls and every wall): a deeper press, a short, dark thorn scrape, a low bloom, no glow.
+func _briar_bloom(v: int) -> PackedFloat32Array:
+	return _lowpass(_layers([[_thump(0.24, 95.0 + 10.0 * v, 0.06), 0.8], [_lowpass(_scrape(0.25, 260.0 + 30.0 * v), 650.0), 0.4, 0.05],
+		[_air(0.6, 320.0, 0.22, 0.34, 0.65), 0.7, 0.08], [_lowpass(_creak(SFX_RATE, 0.3, 25.0, 40.0, 420.0), 800.0), 0.3, 0.12]]), 1800.0)
 
 # A sprout unfurling: a soft leafy breath rising in pitch, no hiss (lowpassed).
 func _sprout_unfurl(length: float) -> PackedFloat32Array:

@@ -311,15 +311,15 @@ func nipped_extra(dreams: DreamState, enemy: Node2D) -> float:
 
 # Hard-Won Rings: a nightmare's health reached 0 under `tower`'s damage (exact kills count). Every 80 give it a free
 # rank, banked, up to rank IV. Counted by the Warden's cell: growing keeps it, selling resets it (DreamState).
-func hard_won_dispel(dreams: DreamState, tower: Tower) -> void:
+func hard_won_dispel(dreams: DreamState, tower: Tower, count_as: int = 1) -> void:  # count_as: DreamState.dispel_count (a Deeply Blighted 3)
 	if not dreams.has_rule(&"clean_night") or tower == null or not tower.tower_data.can_attack:
 		return
 	var key := "%d,%d" % [roundi(tower.cell.x * 2.0), roundi(tower.cell.y * 2.0)]
-	var count := int(hard_won.get(key, 0)) + 1
+	var count := int(hard_won.get(key, 0)) + count_as
 	if count < HARD_WON_DISPELS:
 		hard_won[key] = count
 		return
-	hard_won[key] = 0
+	hard_won[key] = count - HARD_WON_DISPELS  # (A Deeply Blighted's 3 can pass the line: the rest carries on)
 	if tower.can_nurture() and DreamState.ranks_with_banked(tower) < mini(HARD_WON_MAX_RANK, dreams.get_max_rank_for(tower)):
 		tower.bank_rank()
 		dreams._credit("clean_night", "dew", float(Tower.RANK_COSTS[mini(tower.rank + tower.banked_ranks - 1, Tower.RANK_COSTS.size() - 1)]))
@@ -658,7 +658,7 @@ func wild_ripe(tower) -> bool:
 	return wild_applies(tower) and wild_of(tower) >= wild_need(tower)
 
 # A nightmare was dispelled at `at`; `killer` landed the blow (null: no Warden).
-func wild_dispel(dreams: DreamState, killer, at: Vector2) -> void:
+func wild_dispel(dreams: DreamState, killer, at: Vector2, count_as: int = 1) -> void:  # count_as: DreamState.dispel_count
 	var counted: Array = []
 	if wild_applies(killer):
 		counted.append(killer)
@@ -671,7 +671,7 @@ func wild_dispel(dreams: DreamState, killer, at: Vector2) -> void:
 	for tower in counted:
 		if wild_ripe(tower):
 			continue  # Ripe: it waits for the player (no banking ahead)
-		var count := wild_of(tower) + 1
+		var count := mini(wild_of(tower) + count_as, wild_need(tower))  # Never past ripe
 		wild[_cell_key(tower)] = [count, tower.tower_data.tier]
 		if count >= wild_need(tower):
 			dreams.note_card(&"wild_growth", tower.global_position, 1, tower)

@@ -70,6 +70,12 @@ const NURTURE_DB := -10.0
 const NURTURE_RANK_DB := 0.6
 const NURTURE_GROUP_DB := -1.0  # Each further Warden in a group nurture
 const NURTURE_GROUP_MIN_DB := -6.0
+# Placing (a flower blooming, Sound Council 2026-10-23): a drag's row of blooms staggers; tonal, so nearly no jitter.
+const PLANT_STAGGER := 0.12
+const PLANT_GROUP_DB := -1.5
+const PLANT_GROUP_MIN_DB := -6.0
+const PLANT_GROUP_MAX := 4  # Sound.MAX_VOICES: more would be dropped anyway
+const PLANT_JITTER := 0.01
 # Dawnwing: its calm and busy wingbeat loops crossfade over this many nightmares.
 const DAWNWING_BUSY_COUNT := 10.0
 const GREAT_BELL_BLOOM_DB := -6.0
@@ -163,6 +169,8 @@ var _withered := {}  # Tower instance id -> Sapling withered since the last rest
 var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 var _nurture_frame := -1  # Group nurtures arrive in one frame
 var _nurture_index := 0
+var _plant_frame := -1  # A drag plants a row in one frame
+var _plant_index := 0
 var _focus_heard := {}  # Tower instance id -> its Focus lean already played
 var _reaction_at := {}  # Reaction id -> msec of its last sound
 var _last_reaction_crowned := false  # The Reaction just before a chain_reached (Crowned = 2 links)
@@ -229,16 +237,13 @@ func _ready() -> void:
 		sound.play(&"trample", MAP_GRID.calculate_map_position(cell), 2.0))
 
 	tower_container.child_entered_tree.connect(_on_tower_added)
-	tower_placer.tower_built.connect(func(tower: Tower) -> void:
-		var own_plant := StringName("plant_" + warden_id(tower.tower_data))  # The Sapling's big rooting
-		sound.play(own_plant if sound.has_sound(own_plant) else &"plant", tower.global_position)
-		_event("place_", tower, tower.global_position))  # The White Stag arriving
+	tower_placer.tower_built.connect(_on_tower_built)
 	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void: sound.ui(&"invalid"))
 	tower_seller.tower_sold.connect(func(tower: Tower, _refund: int) -> void:
-		sound.play(&"sell", tower.global_position))  # Not from tower.cell: Wardens can sit at a half-cell offset
+		sound.play(&"sell", tower.global_position, 0.0, 1.0, 0.05, &"SFX", true))  # Not from tower.cell: Wardens can sit at a half-cell offset
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, data: ObstacleData) -> void:
 		var id := &"move" if data.resource_path.get_file().begins_with("rock") else &"tend"
-		sound.play(id, MAP_GRID.calculate_map_position(cell)))
+		sound.play(id, MAP_GRID.calculate_map_position(cell), 0.0, 1.0, 0.05, &"SFX", true))  # Sounds while paused
 	map_generator.path_changed.connect(_on_path_changed)
 
 	run_state.dew_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
@@ -705,6 +710,31 @@ func _on_tower_added(node: Node) -> void:
 # Nurture (a rank up): a soft swell of the family's material, ~1 semitone deeper and a touch fuller per
 # rank; choosing a Focus adds its lean. A group nurture fires these in one frame: they stagger with the
 # visual bloom (TowerSeller.BLOOM_STAGGER) and each is a little quieter, so ten read as one rolling swell.
+# Placing a Warden: a flower blooming (user 2026-10-23, Sound Council). Its own bloom (plant_sprout, plant_thornwall,
+# the Sapling's rooting), else its family's (plant_<line>), else the plain bloom. In key (the bloom glows on D), so
+# almost no pitch jitter; it sounds while paused (building is allowed then). A drag plants a row in one frame: the
+# blooms stagger with the visual, each a little quieter, the first PLANT_GROUP_MAX only.
+func _on_tower_built(tower: Tower) -> void:
+	var frame := Engine.get_process_frames()
+	_plant_index = _plant_index + 1 if frame == _plant_frame else 0
+	_plant_frame = frame
+	_event("place_", tower, tower.global_position)  # The White Stag arriving
+	if _plant_index >= PLANT_GROUP_MAX:
+		return
+	var id := StringName("plant_" + warden_id(tower.tower_data))
+	if not sound.has_sound(id):
+		id = StringName("plant_" + tower.tower_data.line)
+	if not sound.has_sound(id):
+		id = &"plant"
+	var volume := maxf(PLANT_GROUP_DB * _plant_index, PLANT_GROUP_MIN_DB)
+	if _plant_index == 0:
+		_plant_bloom(id, tower.global_position, volume)
+	else:
+		get_tree().create_timer(_plant_index * PLANT_STAGGER).timeout.connect(_plant_bloom.bind(id, tower.global_position, volume))
+
+func _plant_bloom(id: StringName, at: Vector2, volume: float) -> void:
+	sound.play(id, at, volume, 1.0, PLANT_JITTER, &"SFX", true)
+
 func _on_nurtured(tower: Tower) -> void:
 	var frame := Engine.get_process_frames()
 	_nurture_index = _nurture_index + 1 if frame == _nurture_frame else 0
@@ -1299,4 +1329,4 @@ func _on_signature_discovered(_id: StringName, _tower: Node2D = null) -> void:
 # A Heartwood gift piece placed (GiftScreen piece_placed, world position): the same planting as a Warden.
 # A refused gift click comes through TowerPlacer.build_rejected like any refused build.
 func _on_gift_piece_placed(at: Vector2) -> void:
-	sound.play(&"plant", at)
+	_plant_bloom(&"plant", at, 0.0)  # A bloom, like a Warden's

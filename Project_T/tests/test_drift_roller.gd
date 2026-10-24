@@ -199,6 +199,8 @@ func _run() -> void:
 	if not fallback_drifts.is_empty():
 		print("  fallbacks by drift: %s" % fallback_drifts)
 
+	_check_shapes(director)
+
 	# Omens still apply on top: a rolled drift's schedule scales with the count multiplier.
 	DriftRoller.roll_run(director, 5)
 	var sample := 0
@@ -254,3 +256,69 @@ func _rolled_slots(drift: DriftData, rolled_entries: int) -> Array:
 		var entry: DriftEntry = drift.groups[0].entries[i]
 		slots.append([entry.enemy, entry.count, entry.elite])
 	return slots
+
+# Drift shapes (enemy_design.md "Drift shapes"): the block rules, template fit and the Few and tough /
+# Single file rolls, over 60 seeds.
+func _check_shapes(director: DriftDirector) -> void:
+	var bad := {"early": 0, "act1": 0, "fixed": 0, "finale": 0, "boss_block": 0, "few_row": 0, "template": 0,
+		"few_roll": 0, "single_fit": 0}
+	var counts := {}
+	for s in 60:
+		DriftRoller.roll_run(director, 9000 + s)
+		var total: int = director.drifts.size()
+		var shape_at := func(n: int) -> StringName: return DriftRoller.shape_of(director, n)
+		for n in range(1, total + 1):
+			var shape: StringName = shape_at.call(n)
+			counts[shape] = counts.get(shape, 0) + 1
+			if n <= 10 and shape != DriftShapes.STREAM:
+				bad.early += 1
+			if (not DriftRoller.is_rollable(director, n) or director.is_boss_drift(n + 1)) and shape != DriftShapes.STREAM:
+				bad.fixed += 1
+			if director.get_act(n) <= 1 and shape == DriftShapes.FEW_AND_TOUGH:
+				bad.act1 += 1
+			if n > 1 and shape == DriftShapes.FEW_AND_TOUGH and shape_at.call(n - 1) == DriftShapes.FEW_AND_TOUGH:
+				bad.few_row += 1
+			var template := DriftRoller.template_of(director, n)
+			if DriftRoller.SHAPE_TEMPLATES.has(shape) and template != &"" and not DriftRoller.SHAPE_TEMPLATES[shape].has(template):
+				bad.template += 1
+			if shape == DriftShapes.FEW_AND_TOUGH:
+				var elites := 0
+				var elite_budget := 0.0
+				var heavy := true
+				for entry in director.drifts[n - 1].groups[0].entries:
+					if entry.elite:
+						elites += entry.count
+						elite_budget += entry.count * entry.enemy.get_roll_weight() * DriftRoller.ELITE_COST
+						heavy = heavy and &"heavy" in entry.enemy.roll_tags
+				var budget := DriftRoller.get_budget(director.get_meta(DriftRoller.META_HAND_MADE)[n - 1])
+				if elites < DriftRoller.FEW_ELITES.x or not heavy or elite_budget < budget * 0.35:
+					bad.few_roll += 1
+			if shape == DriftShapes.SINGLE_FILE:
+				var schedule := director.drifts[n - 1].get_schedule(1.0, 1.0, 1.0, director.get_extra_nightmares(n))
+				var hand: DriftData = director.get_meta(DriftRoller.META_HAND_MADE)[n - 1]
+				var window := float(hand.get_schedule()[-1][0])
+				if (window - 0.01) / maxf(schedule.size() - 1, 1) < DriftShapes.SINGLE_GAP - 0.01:
+					bad.single_fit += 1
+		# Block rules
+		for first in range(1, total + 1, director.drifts_per_block):
+			var last := mini(first + director.drifts_per_block - 1, total)
+			var shaped := 0
+			var boss_block := false
+			for n in range(first, last + 1):
+				shaped += 1 if shape_at.call(n) != DriftShapes.STREAM else 0
+				boss_block = boss_block or director.is_boss_drift(n)
+			if director.get_act(first) <= 1:
+				if shaped > 1:
+					bad.act1 += 1
+			elif not boss_block and DriftRoller.is_rollable(director, last) and shape_at.call(last) == DriftShapes.STREAM \
+					and director.drifts[last - 1].shape != &"":
+				bad.finale += 1
+			elif boss_block:
+				for n in range(first + 3, last + 1):
+					if shape_at.call(n) != DriftShapes.STREAM:
+						bad.boss_block += 1
+	for rule in bad:
+		_check(bad[rule] == 0, "drift shapes: rule '%s' holds (%d breaks)" % [rule, bad[rule]])
+	for shape in DriftShapes.ALL:
+		_check(counts.get(shape, 0) > 0, "shape %s gets rolled (%d)" % [shape, counts.get(shape, 0)])
+	print("  shapes over 60 seeds: %s" % counts)

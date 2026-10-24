@@ -52,6 +52,10 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that
 @export var crumble_thornwall: bool = false  # Second Path: the block's start crumbles the Thornwall that shortens the route most (full refund; no replanting until the rest)
 @export var burrow_tiles: int = 0  # Burrowers: at every bend, nightmares burrow this many path tiles ahead (Enemy Code)
 @export var burrow_time: float = 0.5  # …untargetable for this long
+# Drift shapes (enemy_design.md "Drift shapes", "Don't ship": Omens don't stack with shapes; OmenDirector.shape_for /
+# get_schedule_modifiers hand these to DriftShapes.apply and the Coming strip):
+@export var pack_fill: int = 0  # Swarming Night, Crowded Paths: packs fill up to this many before a new pack forms (0 = the shape's own size)
+@export var few_tough_as_stream: bool = false  # Giants' Walk: a Few and tough drift plays as a Stream
 
 @export_group("Reward")
 # Dew and Seeds scale with the act (OmenDirector.ACT_REWARD_SCALE).

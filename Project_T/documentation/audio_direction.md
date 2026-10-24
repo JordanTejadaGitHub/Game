@@ -754,7 +754,7 @@ soft shimmer under the card. Crowned discovery adds the crown's choir swell.
 
 | Action | Sound |
 |---|---|
-| Plant a Warden | earth rumble + wood creak as the roots rise |
+| Plant a Warden | **a flower blooming** (2026-10-23, user; replaces the plucked-harp placement): a soft press into the soil, petals unfolding (soft, low flicks of air one after another), a warm breath of the bloom opening and settling, a faint glow of tuned air on D. No pluck, no sweep, almost no pitch jitter. Sprouts: a small bud (shorter, glow an octave up). Thornwalls and every wall: a darker briar bloom (thorn scrape, no glow). Family Wardens: the bloom + a touch of the family material (`plant_<line>`). A dragged row staggers 0.12 s, each a little quieter, 4 at most. Sounds while paused, like every rest action |
 | Evolve | (was "a rising bloom chime": a chime breaks the third-listen rule) a **bloom of the family's own material** opening over ~1 s, a warm swell under it, ending in a low, full settle. Nurture's bigger sibling: the same materials, twice the body and length |
 | **Nurture** (rank up) | a soft, rising **swell of the Warden's own family material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust), ~0.6 s, ending in a gentle settle. **Each rank is a little deeper and fuller** (about −1 semitone and a touch more body per rank, rank V/VII the fullest). Quieter and shorter than Evolve: it's frequent. |
 | Nurture: choosing a Focus (rank III) | the nurture swell + a short **leaning** of the material toward the Focus: Power = heavier body, Swift = a quick double pulse, Reach = a longer airy tail, Deep = a lower, slower settle |
@@ -926,3 +926,12 @@ per act", "starting a drift abruptly starts".
 | Evolve "chime", route "shimmer", act break "rustle" break the second and third listens | a family-material bloom, a low earth shift, a wooden stretch |
 | Acts sound the same size | the act size table and a `drive` stem before each boss; master +1 dB per act |
 | A drift starts abruptly | the gathering: a held rest note, a 2-bar `gather` one-shot, staged dread, a 5 s ambience crossfade; the `drift_start` SFX becomes the breath-in on the press |
+
+**Eighth pass (2026-10-23):** the Sound Council's review (documentation/sound_council_review.md) and the user:
+"build sound should be something like a flower blooming".
+
+| Problem | Change |
+|---|---|
+| Placing a Warden "doesn't sound right": a rising sweep + a plucked harp note, pitch-jittered out of key, one sound for every Warden | the flower bloom (Building table), own blooms for Sprouts, walls and each family |
+| Building, selling and clearing were silent while paused | they sound while paused |
+| A dragged row of Wardens made one sound | the blooms stagger with the row |

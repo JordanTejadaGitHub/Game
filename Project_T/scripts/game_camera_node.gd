@@ -300,6 +300,8 @@ func modal_open() -> bool:
 		var screen := main.get_node_or_null(path) as CanvasItem
 		if screen != null and screen.visible and not _peeking(screen):
 			return true
+	if RestScreens.covering(main.get_node_or_null("HUD")):
+		return true  # Every covering screen (a Lesson, a gift, the flyer warning…), not peeking: RestScreens' one rule
 	var dreams := main.get_node_or_null("HUD/DreamsRow")  # Phones: "Dreams this run" is a full-screen page (Mobile UI)
 	if dreams != null and bool(dreams.get("strip_hidden")):
 		var list := dreams.get("_list") as CanvasItem

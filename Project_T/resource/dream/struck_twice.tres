@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "struck_twice"
 display_name = "Struck Twice"
-description = "When a {jump} lands on a nightmare, the next hit on it from {family:firefly_jar} Wardens or Wardens {near} them deals 30% more."
-tip = "Every {jump} counts, from any card or Warden. Hits only, not {jumps} or bolts. One waiting hit per nightmare; it fades after 2 s. Multiplies with your other Dream damage. Works for: {family:firefly_jar} Wardens against tough nightmares in a pack. Safe."
+description = "When a {jump} lands on a nightmare, the next hit on it from {family:firefly_jar} Wardens or Wardens {near} them deals 30% more damage."
+tip = "Any card or Warden's {jump} counts, except a Calling evolution's. Direct hits only. One waiting hit per nightmare; it fades after 2 s. Multiplies with your other Dream damage. Works for: {family:firefly_jar} Wardens against tough nightmares in a group. Safe."
 rarity = 0
 kind = 3
 tags = Array[String](["storm", "lent"])

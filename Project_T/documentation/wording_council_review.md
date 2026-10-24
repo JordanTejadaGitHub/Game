@@ -321,3 +321,67 @@ Dropped after the spot-check: "Lodged Stone has no code" (veteran) is wrong: it 
 About 45 places build sentences in code: `%d time%s` plurals, `.capitalize()` (`coming_strip.gd:410`), verb agreement
 (`gift_screen.gd:271`), string replace (`hud.gd:2018`), code comparing on-screen text ("Not enough Dreamlight"), tokens
 with glued plurals. Full list: `gap/plain_english.md` §4. Plan before the first translation.
+
+---
+
+# Round 3 (2026-10-24): changes since the gap round, Dewdrop numbers, fix check
+
+User: *"run Wording Council round 3 on everything changed since the gap round, recheck Dewdrop's numbers, and check the
+2b, 2c and gap-round fixes landed."* Read: every `.tres` changed since 4630c8c2 (176 lines: 13 Dream cards, 27 Grove
+nodes, Omens), the changed player strings in scripts (1,078 diff lines: drift shapes, Coming strip, rest report, Codex,
+button words) and the Calling evolutions after their final pass (7573c842). Five seats; reports in `wording_council/round3/`.
+
+## R3.1 Fixes: 13 of 18 done, 5 partial
+
+Done: support log Drowsy, Codex Family pick + Deepen, Bellflower "every 2nd ring", Sporeling family tokens, Undiluted
+(Reactions are now blocked in code, `reactions.gd:283`), Finishing Blow tip, stacking tips, Direct hit and Card bonuses
+glossary entries, Beacon, the Finale label, Thick Haze, Grove node fixes (most), Callings small print.
+
+Partial (spot-checked):
+- **Hit cards:** 8 of 10 still "N% more" without "damage"; "direct hits only" in five wordings. The Tallest Tree: "spends up
+  to 6" doesn't say 6 of what; tooltip "store" vs card "stored damage".
+- **"set off":** 3 left: `dream_reaction_cards.gd:200, :203` ("Reactions set off N times"), Codex combo "Set Off" (`codex_data.gd:176`).
+- **Crowned Reactions:** bosses and flyers still said four ways.
+- **Buttons / old words:** "Face it", "Add, free", "Grows into" vs "Grow into", "Seed %d", "tiles" / "square" (6 places),
+  "leak", "Pick a family" beside "Choose a Dream".
+- **The Heartwood's Crown:** now "Grows when every other {node} is at its top level", which still reads as "every 2nd node"
+  (the lead's own G.1 rewrite kept the ambiguity). Use: "Grows when all the other {nodes} are at their top level."
+- **Keeping Time:** Deep Tone tip and Accompaniment only part-fixed; Coda still "keeps its note".
+
+## R3.2 Numbers
+
+Sporeling 63 / 64, Firefly 74 / 74, Bellflower 59 / 59, **Dewdrop 65 / 65** (all 21 rows against the committed
+`puddles.gd`; boss slows now halve in code, so "(bosses 7.5%)" is true; Wet Footprints is retired). The one mismatch:
+**Retinue** tip "At most Clump's 3 Wardens", code `RETINUE_MAX 2` (`spore_print.gd:179`, `:1199`). Every checked drift
+shape and Omen number matches.
+
+## R3.3 New problems
+
+| # | Where | Problem | Seats |
+|---|---|---|---|
+| 1 | **"Finale"** | Now names two things: the Calling's drift 75 stage and the Spire block finale on screen (`drift_panel.gd:494` "Finale (drift %d): clear it clean for a Rare dream", rest report "Finale cleared clean"). The lead missed the Spire use when recommending it. | C, V |
+| 2 | **Drift shape "Stream"** | Also Dewdrop's Stream style evolution and part of the Omen "Swift Stream"; the rest screen shows the shape and "Your Dreams this block" side by side. "Packs" makes "a pack" in Gathering Storm / Struck Twice tips read as "only in Packs drifts". | N, C, P, V |
+| 3 | **Coming strip numbers** (`shape_rows.gd:79-84`) | No nouns: "Packs: 4 × 7", "Single file: 18, 1.6 s apart". Use "4 packs of 7", "18 nightmares, one every 1.6 s", "9 nightmares, 4 Deeply Blighted". "4 × 7" shows the largest pack and counts arrivals, not split bodies. The rest report lists a boss drift as "Stream". | N, V |
+| 4 | **Drift shapes unexplained** | No glossary entry for the shapes or the 3-leaf pack cap (`run_state.gd:247`); the cap silently overrides Leaf Fall, Brittle Night and Giants' Walk's +1 leaf; Giants' Walk turns Few and tough into a Stream unsaid; Omen texts leave out pack_fill 8 and Restless Wind's "between packs". | N, V |
+| 5 | **Lantern Alley** | Garbled: "A glow entered within 4 {steps} of the last {flares} the nightmare: …" | N, S, P |
+| 6 | **Token nouns used as verbs** | {tolls} shows "Tolls" where a verb goes: Steady Beat "since its last Toll Tolls every 3rd Ring", Last Bell, Halfway Bell. Also {water} can't be counted ("a water", "two water"): say "a stretch of {water}". | N, P |
+| 7 | **Glossary entries contradict rows** | Codex "Free hit" says at most once a second, but Elder Cap and Trampled Ground go past it; "Ring" says only bells ring, but Accompaniment and Carrying Tune ring without a bell hit; "Flare" says "in its glow" but Lantern Parade's flare lands outside any glow. Host Trees' {potency} promises stronger slows / longer Root; only damage rises. | C, V |
+| 8 | **Undefined speed words** | Unfettered and the Calling hit Codex entry use "clock", "share", "bonus hits", "slow Wardens"; 18 evolution tips end "Slower Wardens deal less." with nothing defining it. | N, C, P, S |
+| 9 | **Rows that scan worse than before** | Constellation, Show the Way, Full Glow; Toadstool Throne (is the Warden or the clump 10+ drifts old?); Host Trees reads as a Warden named "Shared Caps"; Moth to Flame's +50% lost "on that nightmare"; Pyre / Banked Fire "with 50 dispels on gold path crits". 6 tips over 40 words (Clump 49 … Pyre 44). | S, N |
+| 10 | **Ascension nodes** | The route moved last, but each still opens "Unlocks X, the strongest form…" (10 words) before the effect; 8 of them 43-57 words. Runtime button "Grow into The Great Bell" (capital "The", 5 words). | S |
+
+**Ruling on "Works for: … Safe / A bet" tips** (flagged by N, P, S as advice): not a break. It is the house convention
+on 127 cards, asked for on every lent card by the card council (dream_council_review.md), and is neither a "Leads to" nor
+a "Combos with" line. Kept.
+
+## R3.4 Owner calls
+
+1. **Finale clash:** keep "Finale" for the Calling stage and rename the Spire one on screen to **"Last drift"** ("Last
+   drift (drift %d): clear it clean for a Rare Dream", "Last drift cleared clean"), or rename the Calling stage again.
+   Recommended: rename the Spire one; "Last drift" is the plain description.
+2. **Stream clash:** rename the drift shape. Recommended **"Steady"** (it is the even, unclumped arrival; "Mixed" would
+   echo the card Mixed Company).
+
+**Decided (owner 2026-10-24):** 1. the Spire block finale shows as **"Last drift"**; the Calling's drift 75 stage keeps
+**Finale**. 2. the drift shape Stream is **Steady** (code id `STREAM` may stay); Dewdrop's Stream evolution and Swift
+Stream keep their names.

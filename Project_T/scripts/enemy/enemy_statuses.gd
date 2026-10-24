@@ -51,7 +51,11 @@ const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
-var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
+var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor and Poisoned cap
+# Balancing 2026-10-24 (balance_simulation.md "Drift shapes: numbers"): a Deeply Blighted nightmare's Poisoned cap is x3
+# (Few and tough drifts put half their health in 3-5 elites; a capped damage-over-time board lost about half there).
+# Only Poisoned: other caps, Charged / Exposed needs and control statuses are unchanged.
+const ELITE_POISON_CAP_MULT := 3.0
 var hud_dirty := false  # Something the nightmare's HUD shows changed here (it clears it): slow_capped, awake
 var slow_capped := false:  # All slows together hit the floor ("Slowed to the limit" in the status UI)
 	set(value):
@@ -448,6 +452,8 @@ func get_max_stacks(id: StringName, override: int = 0) -> int:
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
 	if is_boss and BOSS_MAX_STACKS.has(id):
 		cap = BOSS_MAX_STACKS[id] if id == DROWSY else maxi(cap, BOSS_MAX_STACKS[id])
+	if id == SPORED and is_elite:
+		cap = roundi(cap * ELITE_POISON_CAP_MULT)  # Deeply Blighted: 32 / 48 / 64 / 80 -> 96 / 144 / 192 / 240 (Brimming doubles on top)
 	if id in ALL:
 		cap *= cap_multiplier()  # Brimming doubles buildup caps; Charged receives a larger discharge payoff
 	if id == DROWSY:

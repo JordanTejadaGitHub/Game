@@ -733,8 +733,8 @@ func _dreams() -> DreamState:
 # --- Input ----------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not active:
-		return
+	if not active or RestScreens.map_locked(self):
+		return  # A choice screen is up (peeking: look and hover only): no selecting, selling, growing or Nurture
 	if sell_mode and event.is_action_pressed("cancel_build"):
 		set_sell_mode(false)  # Right-click / Esc: out of sell mode
 		get_viewport().set_input_as_handled()
@@ -832,6 +832,10 @@ func _on_press(event: InputEvent) -> void:
 
 # Releases arrive here even over the HUD, so a drag always ends.
 func _input(event: InputEvent) -> void:
+	if _pressing and RestScreens.map_locked(self):
+		_pressing = false  # A choice opened mid-press: its release is the screen's, never a click on the map
+		_dragging = false
+		queue_redraw()
 	if _pressing and event is InputEventScreenDrag:
 		_touch_pointer = event.position  # Select mode's box follows the finger
 	if not _pressing or not event.is_action_released("clear_obstacle"):
@@ -871,6 +875,24 @@ func _input(event: InputEvent) -> void:
 	else:
 		select(tower)
 
+# Opening a choice screen (or peeking from one) closes the Warden panel / drawer: the selection clears.
+# Opening one ends sell mode; build mode stays, blocked (user 2026-10-23: the Calling choice's "Take" landed on the drawer's "Nurture rank I").
+var _choice_was_open := false
+
+func _watch_choice_screens() -> void:
+	var open := RestScreens.choice_locked(self)
+	if open == _choice_was_open:
+		return
+	_choice_was_open = open
+	if not open:
+		return
+	if not selection.is_empty():
+		select(null)
+	if sell_mode:
+		set_sell_mode(false)
+	# Build mode stays (a self-opening screen, the boss dossier, would drop a phone's pending Wardens): TowerPlacer
+	# takes no input meanwhile (RestScreens.map_locked).
+
 # The selection box in world space: the press's screen point and the pointer, both through today's camera (the user's
 # "124 Wardens selected", v0.1.5: the box was pinned to the map where the press began, so an edge scroll during a drag
 # stretched it across the map; now it is the rectangle on screen).
@@ -898,7 +920,14 @@ func _process(delta: float) -> void:
 			bloom[1] -= delta
 		_blooms = _blooms.filter(func(b: Array) -> bool: return is_instance_valid(b[0]) and b[1] > -BLOOM_TIME)
 		queue_redraw()
+	_watch_choice_screens()
 	if not active:
+		return
+	if RestScreens.map_blocked(self):
+		if _hover_tower != null:
+			_hover_tower = null  # Under a choice screen nothing on the map is hovered (peeking: hovering is fine)
+			queue_redraw()
+		_hover_cell = Vector2(-1, -1)
 		return
 	if _pressing and not TouchBuild.is_touch() and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_pressing = false  # Its release never reached us (focus lost): a later release must not finish this press as a box

@@ -389,6 +389,12 @@ const SETUP := preload("res://scripts/run/setup_credit.gd")  # Setup credit 2026
 # Cards are sized by value, not text: what a card adds to a board running its build (the run report's card_damage). Two
 # systems here; the numbers are Balancing's.
 const CARD_PRODUCT_CAP := 4.0  # The x4 line: all non-Reaction card power on one hit (and a Reaction's build multiplier)
+# Drift shapes: a Deeply Blighted nightmare counts as this many dispels for every dispel COUNTER (Wild Growth, Hard-Won Rings,
+# Pyre / Banked Fire's gold dispels and Moth to Flame's holder, Sunlit Rest); dispel-triggered jumps and effects stay one
+# per dispel. Balancing 2026-10-24 (balance_simulation.md "Drift shapes: numbers"). Trophies keeps its own TROPHY_BIG.
+const ELITE_DISPEL_COUNT := 3
+static func dispel_count(enemy) -> int:
+	return ELITE_DISPEL_COUNT if is_instance_valid(enemy) and bool(enemy.get("elite")) else 1
 const CARD_CAP_ON := true  # ON (owner 2026-10-22, dream_council_review.md 30, with the hit cards); was off but measuring since 2026-10-16 (past_cap still records)
 const CARD_BUDGET: Array[float] = [0.12, 0.20, 0.35, 0.60]  # Common / Uncommon / Rare / Legendary: what one card adds (a second stack adds again)
 const _CAP_KIT := preload("res://scripts/combat/class_kit.gd")  # (its REACTION_BURSTS: what counts as a Reaction)
@@ -400,7 +406,7 @@ const _STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &
 func card_cap_factor(source: Node, tag: StringName) -> float:
 	if reaction_pool_tag(tag):  # (Reactions: their own pool, REACTION_POOL_CAP)
 		return 1.0
-	var rows: float = source._dream_bonus(&"soothe") if source is Tower and is_instance_valid(source) else 1.0
+	var rows: float = source.card_rows() if source is Tower and is_instance_valid(source) else 1.0  # Dream rows and kin bonuses (Tower Code, final_pass_shared.md 4)
 	var total: float = rows * DamageLog.pending_card_product()
 	if total <= CARD_PRODUCT_CAP:
 		return 1.0
@@ -590,27 +596,33 @@ func _stronger_pool(a, b) -> bool:
 # Per Reaction id: how many pool reads and the sum of each factor, so the report shows averages. This side notes the pool
 # (after and before the cap: "pool", "pool_sum"), "quick" and "crowned". Reactions._rx can add its own (bare Warden damage,
 # rank, Brimming, half set-off, Nightshade…) with note_reaction_factors(id, {name: value}) right after the pool read; any
-# key shows up in the report. "n" counts pool reads (one per Reaction hit).
+# key shows up in the report. "n" counts pool reads (one per Reaction hit). Each factor averages over its own samples
+# (reaction_factor_counts): a factor noted on only some hits (Reactions._rx's, not on every pool read) was divided by
+# every pool read and read as one diluted value for all (Balancing, human run 58: smother's 0.473 x4).
 var reaction_factors := {}  # id -> {"n": count, factor: sum}
+var reaction_factor_counts := {}  # id -> {factor: samples}
 
 func note_reaction_factors(id: StringName, factors: Dictionary) -> void:
 	var row: Dictionary = reaction_factors.get(id, {"n": 0})
+	var counts: Dictionary = reaction_factor_counts.get(id, {})
 	if factors.has("pool"):
 		row["n"] = int(row["n"]) + 1
 	for key in factors:
 		row[key] = float(row.get(key, 0.0)) + float(factors[key])
+		counts[key] = int(counts.get(key, 0)) + 1
 	reaction_factors[id] = row
+	reaction_factor_counts[id] = counts
 
 # {id: {"n": count, factor: average}}, for RunHistory.
 func reaction_breakdown() -> Dictionary:
 	var out := {}
 	for id in reaction_factors:
 		var row: Dictionary = reaction_factors[id]
-		var n := maxi(int(row.get("n", 0)), 1)
+		var counts: Dictionary = reaction_factor_counts.get(id, {})
 		var avg := {"n": int(row.get("n", 0))}
 		for key in row:
 			if key != "n":
-				avg[key] = snappedf(float(row[key]) / n, 0.001)
+				avg[key] = snappedf(float(row[key]) / maxi(int(counts.get(key, 1)), 1), 0.001)
 		out[String(id)] = avg
 	return out
 
@@ -757,16 +769,18 @@ static var calling_pile_on := false
 static var calling_tide_on := false
 const CALLING_CRIT_ROWS: Array[StringName] = [&"lf_bonfire", &"lf_moth_to_flame", &"lf_pyre", &"lf_banked_fire",
 	&"lf_flint_and_steel", &"lf_tinderbox"]  # The rows that force crits (Lantern Light's Focus line, 2026-10-23)
-const CALLING_MULT_ROWS: Array[StringName] = [&"lf_strung_lights", &"lf_moth_to_flame", &"dw_low_tide", &"dw_outflow"]  # …that multiply direct hits (Strung Lights, Moth's kept crit; Puddles' Low Tide and Outflow)
+const CALLING_MULT_ROWS: Array[StringName] = [&"lf_strung_lights", &"lf_moth_to_flame", &"dw_low_tide", &"dw_outflow",
+	&"sp_host_trees", &"sp_host_grove", &"dw_undertow", &"dw_fathoms", &"dw_river_mouth", &"dw_delta", &"dw_rapids"]  # …that multiply direct hits (Strung Lights, Moth's kept crit; Host Trees' hits on Poisoned; Puddles' rows; final pass 2026-10-24, final_check.md H)
 const CALLING_PILE_ROWS: Array[StringName] = []
-const CALLING_TIDE_ROWS: Array[StringName] = [&"dw_low_tide", &"dw_outflow"]  # Puddles' kept-status hit bonus (puddles.hit_multiplier)
+const CALLING_TIDE_ROWS: Array[StringName] = [&"dw_low_tide", &"dw_outflow", &"dw_river_mouth", &"dw_delta", &"dw_rapids",
+	&"dw_undertow", &"dw_fathoms"]  # Puddles' hit bonus (puddles.hit_multiplier): the Puddles branch only runs behind this (final_check.md A1)
 var _calling_keeps_out := {}  # Card id -> true while a held row keeps it out (never retroactive: a held card stays)
 
 func _rebuild_calling_flags() -> void:
 	_calling_keeps_out.clear()
 	var held := {}
-	for id in calling_path:
-		if CALLING_PATHS.is_live(StringName(id)):
+	for id in calling_path:  # Every known row, retired too: evo() plays a held retired row on an old save, so its flags must be on (final_pass_shared.md 8)
+		if CALLING_PATHS.PATHS.has(StringName(id)):
 			held[StringName(id)] = true
 			for card_id in CALLING_PATHS.keeps_out(StringName(id)):
 				_calling_keeps_out[String(card_id)] = true
@@ -791,6 +805,10 @@ func calling_crit(tower: Node, enemy: Node2D) -> bool:
 # Strung Lights and Moth to Flame's kept crit (firefly_lights.hit_multiplier). Puddles: Low Tide and Outflow, behind
 # calling_tide_on (puddles.hit_multiplier). Other Callings don't use it (1.0).
 func _calling_hit_multiplier(tower: Node, enemy: Node2D, is_area: bool, is_crit: bool, combo: StringName) -> float:
+	if calling == SPORE_PRINT.FAMILY:  # Host Trees / Host Grove: a capped no-damage-status Warden's direct hits on Poisoned (final_check.md A2)
+		if spore_print == null or not spore_print.is_inside_tree():
+			return 1.0
+		return spore_print.host_hit_multiplier(tower, enemy)
 	if calling == PUDDLES.FAMILY:
 		if not calling_tide_on or puddles == null or not puddles.is_inside_tree():
 			return 1.0
@@ -976,6 +994,7 @@ func _ready() -> void:
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_credit_rest.unbind(4))  # Before the rest report reads the block
+	drift_director.rest_started.connect(_snapshot_block_credit.unbind(4))  # "Your Dreams this block" (final_pass_shared.md 7)
 	drift_director.rest_started.connect(_judge_finale.unbind(4))  # Before the offer is built (spire_difficulty.md)
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_started.connect(_save_discoveries.unbind(4))
@@ -996,6 +1015,7 @@ func _ready() -> void:
 		world.add_child.call_deferred(firefly_lights)
 	_make_class_nodes(world)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
+	drift_director.rest_ended.connect(func(_block: int) -> void: _block_dispels.clear())  # Sunlit Rest counts each block afresh
 	drift_director.rest_ended.connect(func(_block: int) -> void: reaction_pool_last.clear())  # The rest report showed it; a new block starts fresh
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
@@ -1834,18 +1854,29 @@ func is_solitary_at(data: TowerData, cell: Vector2, ghost: Dictionary = {}) -> b
 	if not data.can_attack:
 		return false
 	var spot := DreamEffects.spot_at(data, cell)
-	for other in effects()._others(spot, ghost):
-		if other.data.can_attack and DreamEffects._cheb(other.cell, cell) <= NEARBY_CELLS:
+	for other in effects()._others(spot, ghost):  # Only its own family counts (final pass 2026-10-24); walls and Sprouts never
+		if other.data.can_attack and other.data.line == data.line and data.line != "sprout" and data.line != "wall" \
+				and DreamEffects._cheb(other.cell, cell) <= NEARBY_CELLS:
 			return false
 	return true
 
 # Monoculture: every attacking Warden is of one line.
-func is_monoculture() -> bool:
-	var lines := {}
+# Final pass 2026-10-24 (final_pass_shared.md 3): the family with more attacking Wardens than all others together, or ""
+# (a tie gives nothing). Sprouts and walls never count.
+func majority_line() -> String:
+	var counts := {}
+	var total := 0
 	for tower in _towers():
 		if tower.tower_data.can_attack and tower.tower_data.line != "sprout" and tower.tower_data.line != "wall":
-			lines[tower.tower_data.line] = true  # Walls skipped like Canopy's (council full_review 2026-10-17)
-	return lines.size() == 1
+			counts[tower.tower_data.line] = int(counts.get(tower.tower_data.line, 0)) + 1  # Walls skipped like Canopy's (council full_review 2026-10-17)
+			total += 1
+	for line in counts:
+		if int(counts[line]) * 2 > total:
+			return line
+	return ""
+
+func is_monoculture() -> bool:
+	return majority_line() != ""
 
 # --- Crits from Dreams (Tower adds these in its crit roll) --------------------------------------------
 
@@ -1893,7 +1924,7 @@ func get_non_crit_multiplier() -> float:
 func get_tower_range_bonus(tower: Tower) -> float:
 	return _tower_rule_total(tower, "range")
 
-# Solitude: an attacking Warden with no other attacking Warden within 2 cells.
+# Solitude: an attacking Warden with no other Warden of its family within 2 cells (walls and Sprouts never count).
 func is_solitary(tower: Tower) -> bool:
 	return is_solitary_at(tower.tower_data, tower.cell) if tower.tower_data.can_attack else false
 
@@ -3524,6 +3555,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # Double or Nothing: from drift 10, when Omens begin
 	if card.rule_id == &"mystery_dream" and mystery_spent:
 		return false  # One copy: it became another card
+	if card.rule_id == &"unfettered" and calling == "":
+		return false  # Unfettered lifts Calling hits: only in a run with a Calling (final_pass_shared.md 9)
 	if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
 		return false  # Branches and final forms are unlocked with Dreamlight now
 	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
@@ -4191,7 +4224,8 @@ func load_save(data: Dictionary) -> void:
 	_finale_lost_at = int(finale.get("lost_at", 0))
 	_finale_rare_next = int(finale.get("rare_next", 0))
 	var credit: Dictionary = data.get("card_credit", {})
-	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true)}
+	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true),
+		"last_block": credit.get("last_block", {}).duplicate(true)}  # (The rest panel's snapshot: a save is made at a rest)
 	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
 		rerolls_left = int(data.rerolls_left)
 		banishes_left = int(data.banishes_left)
@@ -4294,7 +4328,7 @@ func sunlit_targets(count: int = -1) -> Array[Tower]:
 	var ranks := 0
 	for tower in _towers():
 		ranks += ranks_with_banked(tower)
-	var key := [Engine.get_process_frames(), board_version, ranks, rule_level(&"sunlit_rest")]
+	var key := [Engine.get_process_frames(), board_version, ranks, rule_level(&"sunlit_rest"), _block_dispel_stamp]
 	if count < 0 and _sunlit_cache.size() == 2 and _sunlit_cache[0] == key:
 		var cached: Array[Tower] = []
 		for tower in _sunlit_cache[1]:
@@ -4305,7 +4339,15 @@ func sunlit_targets(count: int = -1) -> Array[Tower]:
 	var open: Array = _towers().filter(func(t: Tower) -> bool:
 		return t.can_nurture() and ranks_with_banked(t) < mini(FREE_RANK_MAX, get_max_rank_for(t)))  # Free ranks stop at V (VII: the Eldest)
 	if seller and seller.has_method("sort_by_heartwood"):
-		open = seller.sort_by_heartwood(open)  # Same order as group Nurture
+		open = seller.sort_by_heartwood(open)  # Same order as group Nurture: the last tie-break
+	# Most dispels this block first (final_pass_shared.md 2), then most damage this block, then nearest the Heartwood;
+	# zero dispels never beats one
+	_sunlit_order.clear()
+	for i in open.size():
+		var t: Tower = open[i]
+		var stats: Dictionary = DamageLog.instance.get_tower_stats(t) if DamageLog.instance != null else {}
+		_sunlit_order[t.get_instance_id()] = [int(_block_dispels.get(t.get_instance_id(), 0)), float(stats.get("block", 0.0)), i]
+	open.sort_custom(_sunlit_before)
 	var out: Array[Tower] = []
 	for tower in open.slice(0, count if count >= 0 else SUNLIT_WARDENS[rule_level(&"sunlit_rest")]):
 		out.append(tower)
@@ -4313,13 +4355,37 @@ func sunlit_targets(count: int = -1) -> Array[Tower]:
 		_sunlit_cache = [key, out]
 	return out
 
-# "Next rest: your Monsoon by the Heartwood" (the Dreams row and the card's live line).
+var _block_dispels := {}  # Tower instance id -> killing blows this block (Sunlit Rest; rest-boundary only, never saved)
+var _block_dispel_stamp := 0  # Bumped on each count: sunlit_targets' cache key
+var _sunlit_order := {}  # Tower instance id -> [dispels, block damage, Heartwood order] (sunlit_targets' sort)
+
+func _sunlit_before(a: Tower, b: Tower) -> bool:
+	var x: Array = _sunlit_order[a.get_instance_id()]
+	var y: Array = _sunlit_order[b.get_instance_id()]
+	if int(x[0]) != int(y[0]):
+		return int(x[0]) > int(y[0])
+	if not is_equal_approx(float(x[1]), float(y[1])):
+		return float(x[1]) > float(y[1])
+	return int(x[2]) < int(y[2])
+
+# "Next rest: your Monsoon (4 dispels)" (the Dreams row and the card's live line).
 func sunlit_line() -> String:
 	var targets := sunlit_targets()
 	if targets.is_empty():
 		return "Next rest: no Warden to raise"
-	var names: Array = targets.map(func(t: Tower) -> String: return t.tower_data.display_name)
-	return "Next rest: your %s by the Heartwood" % " and ".join(names)
+	var names: Array = []
+	for t in targets:
+		var n := int(_block_dispels.get(t.get_instance_id(), 0))
+		names.append("%s (%d %s)" % [t.tower_data.display_name, n, "dispel" if n == 1 else "dispels"])
+	return "Next rest: your %s" % " and ".join(names)
+
+# "Your Dreams this block" (final_pass_shared.md 7; Main Merger's rest panel): the block's card credit, copied when the
+# rest starts (card_credit["block"] is reset at rest_ended). Read rows with get_card_credit(id, &"last_block").
+func _snapshot_block_credit() -> void:
+	card_credit["last_block"] = card_credit.get("block", {}).duplicate(true)
+
+func card_credit_last_block() -> Dictionary:
+	return card_credit.get("last_block", {})
 
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
@@ -5622,11 +5688,20 @@ func _on_damage_dealt(event) -> void:
 	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and has_rule(&"clean_night") and event.source is Tower \
 			and not event.enemy.get_meta(&"batch_won", false) and not event.enemy.get("is_echo"):
 		event.enemy.set_meta(&"batch_won", true)
-		batch.hard_won_dispel(self, event.source)
+		batch.hard_won_dispel(self, event.source, dispel_count(event.enemy))
+	# Sunlit Rest (final_pass_shared.md 2): killing blows per Warden this block, once per nightmare (Calling hits and Tolls
+	# credit their source, so they count)
+	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and event.source is Tower and has_rule(&"sunlit_rest") \
+			and not event.enemy.get_meta(&"sunlit_counted", false) and not event.enemy.get("is_echo"):
+		event.enemy.set_meta(&"sunlit_counted", true)
+		var sid: int = event.source.get_instance_id()
+		_block_dispels[sid] = int(_block_dispels.get(sid, 0)) + dispel_count(event.enemy)  # A Deeply Blighted counts 3
+		_block_dispel_stamp += 1
 	# Wild Growth (Legendary): the killing blow and up to 2 Wardens with the spot in range count toward growing, once
 	if is_instance_valid(event.enemy) and event.enemy.health <= 0 and has_rule(&"wild_growth") and not event.enemy.get_meta(&"wild_counted", false) and not event.enemy.get("is_echo"):
 		event.enemy.set_meta(&"wild_counted", true)
-		batch.wild_dispel(self, event.source if is_instance_valid(event.source) and event.source is Tower else null, event.enemy.global_position)
+		batch.wild_dispel(self, event.source if is_instance_valid(event.source) and event.source is Tower else null, event.enemy.global_position,
+			dispel_count(event.enemy))
 
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).

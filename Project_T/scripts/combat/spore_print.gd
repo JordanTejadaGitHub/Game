@@ -109,19 +109,23 @@ const SPORE_RING_MAX := 3  # Spore Ring (replaced Narrows, council 2026-10-15): 
 # Potency. Rows dropped from the table are "retired" there; their code below stays for an old save's path.
 const EVO_WINDBLOWN := &"sp_windblown"
 const SEED_STEPS := 3  # Windblown: the seed lands this many steps further down the walker's own leg
-const EVO_DRIFTING := &"sp_drifting"
-const DRIFT_MAX_LOW := 40  # Drifting Spores: up to 1 mushroom per 2 steps of path, at least this many…
-const DRIFT_MAX_HIGH := 80  # …at most this many
+const EVO_DRIFTING := &"sp_drifting"  # Final pass 2026-10-24: a nightmare's Poisoned +1% per step since its first dose…
+const DRIFT_PER_STEP := 0.01
+const DRIFT_MAX := 0.30  # …up to +30%…
+const DRIFT_BOSS_MAX := 0.15  # …bosses +15% (its old "more mushrooms" limit is gone: MUSHROOM_MAX 40 always)
 const GEN_FELL := 0  # A mushroom's "gen": left where a nightmare fell (or regrown)…
 const GEN_PLANTED := 1  # …planted by a dose (Windblown), Windfall or Sporefall…
 const GEN_AGAIN := 2  # …planted again by a planted one (Drifting Spores). Higher gens go first when there are too many.
 const EVO_SEASON := &"sp_season"
-const SEASON_AT := 15  # Spore Season: while this many mushrooms grow (planted ones too)…
-const SEASON_PER_STEP := 0.01  # …a nightmare's Poisoned deals this much more per step walked since its first dose…
+const SEASON_AT := 15  # Spore Season: while this many mushrooms grow (planted ones too), Drifting Spores counts from the
+const SEASON_PER_STEP := 0.01  # nightmare's first step on its route, not its first dose…
 const SEASON_MAX := 0.60  # …up to this…
 const SEASON_BOSS_MAX := 0.30  # …bosses up to this
 const SEASON_LAP_POINTS := 24  # A nightmare this many route points behind its furthest has started its route again: it counts again
-const SEASON_META := &"sp_season_walk"  # On a nightmare: [start index, furthest index, passed_waymark, haze bursts paid]
+const SEASON_META := &"sp_season_walk"  # On a nightmare: [first index seen, furthest index, passed_waymark, haze bursts paid, first dose index (-1: none)]
+const EVO_HEAVY_AIR := &"sp_heavy_air"  # Heavy Air (Spore Season's Deepen): a nightmare at Season's +60% doses without eating
+const HEAVY_SEEN := "heavy_seen"  # On a mushroom it left: {nightmare id: true}, each nightmare dosed there once
+const HEAVY_GLOW := "heavy_glow"  # On a mushroom: when its glow (a full-haze nightmare on it) ends
 const SEASON_CREDIT_META := &"sp_season_credit"  # On a nightmare: when Spore Season may be credited again (once a second)
 const EVO_THICK_HAZE := &"sp_thick_haze"
 const HAZE_EVERY_POINTS := 20  # Thick Haze: past Spore Season's limit, every 10 steps (20 route points)…
@@ -137,6 +141,16 @@ const DEATHCAP_BOSS := 0.5  # …bosses take half
 const DEATHCAP_TAG := &"deathcap"  # In CLASS_TAGS and Reactions.EFFECT_TAGS
 const DEATHCAP_META := &"sp_deathcap_next"  # On a nightmare
 const EVO_ROT_GROUND := &"sp_witch_ground"  # Rot Ground (id kept from the draft "Witch Ground"): a bed step bursts without its cap
+# Final pass 2026-10-24 (evo_fixed_sporeling.md): Fairy Path, Deathcap and Rot Ground retired (code above kept for old saves)
+const EVO_DEATHCAP_FIELD := &"sp_deathcap_field"  # Deathcap (follow-up): each of the first 3 mushrooms a nightmare steps on bursts…
+const FIELD_BURSTS := 3  # …this many a walk (laps and the Waymark start it again), after the dose, no throttle…
+const FIELD_SECONDS := 2.0  # …this many seconds of its Poisoned at once (bosses DEATHCAP_BOSS)
+const BURSTS_META := &"sp_field_bursts"  # On a nightmare: [bursts this walk, furthest index, passed_waymark]
+const EVO_ROT_BLOOM := &"sp_rot_bloom"  # Rot Bloom (capstone): the 3rd burst of a walk…
+const ROT_BLOOM_SECONDS := 6.0  # …is this many seconds…
+const ROT_BLOOM_TAG := &"rot_bloom"  # …tagged rot_bloom (CLASS_TAGS, Reactions.EFFECT_TAGS)
+const EVO_SPROUT_BEDS := &"sp_sprout_beds"  # Sprout Beds (Rot Bloom's Deepen): Fairy Path's beds on the nearest step within…
+const BED_CELLS := 2.0  # …this many cells of the Sprout (FAIRY_EVERY to grow back)
 # Focus (every free hit: class_kit.calling_hit, tag free_hit, damage only; its own budget, never FREE_META)
 const EVO_CLUMP := &"sp_clump"
 const CLUMP_STEPS := 3  # Clump: a new mushroom joins one within this many steps…
@@ -148,7 +162,8 @@ const EVO_TRAMPLED := &"sp_trampled"
 const TRAMPLE_RANK := 3  # Trampled Ground: a rank III+ Warden touching a clump…
 const TRAMPLE_HITS := 2  # …gives this many free hits to each stepper, up to this many a second…
 const TRAMPLE_SECOND := 0.5  # …the second at half
-const EVO_THRONE := &"sp_throne"  # Toadstool Throne: a clump touching a final form keeps its last mushroom
+const EVO_THRONE := &"sp_throne"  # Toadstool Throne (final pass 2026-10-24): one throne, the clump of the Warden at a clump
+const THRONE_AGE := 10  # planted earliest, once it was planted this many drifts ago; it keeps its last mushroom
 const FINAL_TIER := 3  # A final form (Ascended too)
 const EVO_PILE_ON := &"sp_pile_on"
 const PILE_RANK := 3  # Pile-On: a rank III+ Warden's hit within 2 steps of a clump it touches…
@@ -160,8 +175,7 @@ const TRODDEN_POINTS := 2  # Trodden Path: the route points up to 1 step either 
 const TRODDEN_EVERY := 1.0  # …with its own +1 free hit a second per Warden there…
 const TRODDEN_META := &"sp_trodden_next"  # …(on a Warden: when the next may land)
 const TRODDEN_SEEN_META := &"sp_trodden_seen"  # On a nightmare: {"point:side": true}: each side of each clump once
-const EVO_RETINUE := &"sp_retinue"
-const RETINUE_RANK := 5  # Retinue: up to 2 rank V+ Wardens that aren't final forms, touching a throne…
+const EVO_RETINUE := &"sp_retinue"  # Retinue (final pass 2026-10-24): the other Wardens at a throne (Clump's set), any rank…
 const RETINUE_MAX := 2
 const RETINUE_SHARE := 0.5  # …at half their hit, once for each of their own attacks
 # Support (their extra stacks: one slot of their own in _stack_cards)
@@ -179,19 +193,19 @@ const FEED_POINTS := 12  # Feeding Ground: a dose turns the next 6 steps (12 rou
 const FEED_SECONDS := 8.0  # …for this long…
 const FEED_STACKS := 1  # …other families' status hits on nightmares there add this many more
 const FEED_MAX_STRETCHES := 40  # (at most this many stretches of fed ground at once; the oldest go first)
-const EVO_HOST_TREES := &"sp_host_trees"
-const HOST_STACKS := 1  # Host Trees: a capped Warden's status hits add this many…
-const HOST_LINGER := 8.0  # …and its cap stays this long after the last mushroom it touched goes
+const EVO_HOST_TREES := &"sp_host_trees"  # Host Trees (final pass 2026-10-24): the Warden Shared Caps picks at each mushroom wears a cap…
+const HOST_TREES_POTENCY := 1.15  # …its effect damage this much (or its direct hits on Poisoned, if its status deals none)…
+const HOST_LINGER := 8.0  # …and its cap stays this long after it stops being picked
 const EVO_WINDFALL := &"sp_windfall"  # Windfall: a dispel on fed ground leaves a (pale) mushroom, Poisoned or not
 const EVO_HOST_GROVE := &"sp_host_grove"
 const HOST_GROVE_AT := 3  # Host Grove: while this many Wardens of other families wear caps…
-const HOST_GROVE_POTENCY := 1.30  # …their statuses deal this much (DreamState.calling_potency)
-const HOST_GROVE_TAGS: Array[StringName] = [&"spored", &"static"]  # Their statuses' damage: Poisoned ticks and Charged bolts
+const HOST_GROVE_POTENCY := 1.30  # …Host Trees' part is this instead of 1.15 (DreamState.calling_potency; every Reactions.EFFECT_TAGS tag)
 const HOST_CREDIT_META := &"sp_host_credit"  # On a Warden: when Host Grove may be credited again (once a second)
 const EVO_SPOREFALL := &"sp_sporefall"
 const SPOREFALL_POINTS := 6  # Sporefall: a status another family's Warden fills on fed ground plants a mushroom 3 steps ahead…
 const SPOREFALL_META := &"sp_sporefall"  # …once per status per nightmare (on a nightmare: {status: true})
-const EVO_SPREADING := &"sp_spreading_caps"  # Spreading Caps: a Warden touching a capped Warden wears a cap too (one link)
+const EVO_SPREADING := &"sp_spreading_caps"  # Spreading Caps: another family's Warden within SPREAD_CELLS of a capped Warden wears a cap too (one link)
+const SPREAD_CELLS := 2.0
 # Retired 2026-10-23 (old saves only)
 const EVO_WITCH_RING := &"sp_witch_ring"
 const RING_STEPS := 3  # Witch Ring: this many mushrooms…
@@ -293,6 +307,21 @@ func _legacy_rules() -> Array:
 func _ready() -> void:
 	super._ready()
 	add_to_group(GROUP)
+	sprouts_count = true  # Sporeling lines count Sprouts as Wardens (final_pass_shared.md 6)
+	if dream_state != null and dream_state.get("drift_director") != null:
+		dream_state.drift_director.drift_started.connect(_on_drift_started.unbind(1))
+
+# Toadstool Throne reads drifts since planting: recount at each drift start too.
+func _on_drift_started() -> void:
+	_dirty = true
+
+# The drift a Warden was planted on (Tower.planted_drift, Tower Code; a Warden without one counts from drift 1).
+static func _planted_drift(tower) -> int:
+	var drift = tower.get("planted_drift")
+	return int(drift) if drift != null else 1
+
+func _current_drift() -> int:
+	return int(dream_state.drift_director.drifts_started) if dream_state != null and dream_state.get("drift_director") != null else 0
 
 func _caps() -> int:
 	return TWIN_CAPS if rule(TWIN) else 1
@@ -314,9 +343,9 @@ func on_board() -> void:
 	var others: Array = towers().filter(is_other_family)
 	var old_fairy := _fairy
 	_fairy = {}
-	if evo(EVO_FAIRY_PATH):  # Fairy Path: each Sprout's bed is the nearest step touching it (only while it stays a Sprout)
+	if evo(EVO_FAIRY_PATH) or evo(EVO_SPROUT_BEDS):  # Fairy Path (old saves): the nearest step touching each Sprout; Sprout Beds: the nearest within 2 cells (only while it stays a Sprout)
 		for sprout in towers().filter(_is_sprout):
-			var bed := _nearest_touched(sprout)
+			var bed := _nearest_touched(sprout) if evo(EVO_FAIRY_PATH) else _nearest_within(sprout, BED_CELLS * cell())
 			if bed >= 0:
 				_fairy[_route[bed]] = true
 	for i in _route.size():
@@ -344,7 +373,7 @@ func on_board() -> void:
 		if not _index.has(point) or (old_fairy.has(point) and not _bed.has(point)):
 			_regrow.erase(point)  # (A Fairy Path bed whose Sprout was grown, sold or moved stops regrowing)
 	_dirty = true  # Caps (Host Trees) and thrones follow the board
-	if evo(EVO_ELDER) or evo(EVO_RETINUE):
+	if evo(EVO_ELDER) or evo(EVO_RETINUE):  # Their per-attack free hits
 		_hook_attacks()
 	# Bed steps with no mushroom and no clock start one (regrow clocks start empty: nothing for selling and replanting)
 	for point in _bed:
@@ -410,6 +439,17 @@ func _nearest_touched(tower) -> int:
 				best = i
 	return best
 
+# The route index nearest `tower` within `reach` px (-1: none). Sprout Beds' bed step.
+func _nearest_within(tower, reach: float) -> int:
+	var best := -1
+	var best_d := reach * reach
+	for i in _route_px.size():
+		var d: float = tower.global_position.distance_squared_to(_route_px[i])
+		if d <= best_d:
+			best_d = d
+			best = i
+	return best
+
 # How many mushrooms grow (Spore Season). Windblown's seeded ones count since the builds doc (owner 2026-10-19): Spore
 # Season is the capstone of Windblown's own line, so its seedlings fill the count.
 func _rooted_count() -> int:
@@ -422,10 +462,8 @@ func season_on() -> bool:
 func season_count() -> int:
 	return _rooted_count()
 
-# The most mushrooms on the map: 40, or with Drifting Spores 1 per 2 steps of path, 40 to 80.
+# The most mushrooms on the map: 40 (Drifting Spores' old 40-80 limit is gone, final pass 2026-10-24).
 func mushroom_max() -> int:
-	if evo(EVO_DRIFTING):
-		return clampi(int(_route.size() / 4), DRIFT_MAX_LOW, DRIFT_MAX_HIGH)  # 2 points = 1 step; 1 mushroom per 2 steps
 	return MUSHROOM_MAX
 
 func _evict() -> void:
@@ -711,6 +749,8 @@ func _stepped(point: Vector2, enemy) -> void:
 	var m: Dictionary = mushrooms[point]
 	if int(m.last) == enemy.get_instance_id():
 		return  # Twin Caps: two different nightmares
+	if (m.get(HEAVY_SEEN, {}) as Dictionary).has(enemy.get_instance_id()):
+		return  # Heavy Air: a mushroom it left doses each nightmare once (laps, Waymark legs, bends)
 	var tower = m.tower.get_ref()
 	if (not is_own(tower) or not is_instance_valid(tower)) and bool(m.get("throne", false)):
 		tower = _owner_for(_route_px[int(_index[point])])  # A throne's dose comes from the nearest spore Warden
@@ -736,11 +776,14 @@ func _stepped(point: Vector2, enemy) -> void:
 	var placed := _placed_by(point, m)  # A planted seedling or Fairy Path's regrowth: the dose's base is its (owner 2026-10-19)
 	if placed != &"":
 		_setup_part(enemy, placed, EnemyStatuses.SPORED, DOSE)
+	var heavy := evo(EVO_HEAVY_AIR) and _at_haze_cap(enemy)  # Before the dose: Season's +60% reached
 	_apply_dose(tower, enemy, amount)
 	_dose_serial += 1
-	if evo(EVO_SEASON) or evo(EVO_THICK_HAZE):
+	if _walk_on():
 		_season_start(enemy)
-	_evolved_step(point, m, tower, enemy, amount, caps_here)
+	if evo(EVO_DEATHCAP_FIELD):
+		_field_burst(tower, enemy)  # After the dose (the built sp_deathcap above stays before it, for old saves)
+	_evolved_step(point, m, tower, enemy, amount, caps_here, not heavy)
 	if rule(KICKED_UP):  # Up to 4 touching it take a fresh dose of 3; a received dose counts for nothing else
 		for other in nightmares_touching(enemy, KICKED_OTHERS):
 			_apply_dose(tower, other, DOSE, KICKED_UP)
@@ -758,6 +801,14 @@ func _stepped(point: Vector2, enemy) -> void:
 		if partner != null and living(enemy):
 			setup_apply(EVERYTHING_GROWS, partner, enemy, status_of(partner), EVERYTHING_STACKS, partner.get_damage())
 	m.last = enemy.get_instance_id()
+	if heavy:  # Heavy Air: the dose landed, the mushroom stays (and planted no seedling); each nightmare once here
+		var seen: Dictionary = m.get(HEAVY_SEEN, {})
+		seen[enemy.get_instance_id()] = true
+		m[HEAVY_SEEN] = seen
+		m[HEAVY_GLOW] = now() + 0.5
+		credit(EVO_HEAVY_AIR, enemy.global_position, tower)
+		queue_redraw()
+		return
 	if bool(m.get("throne", false)) and int(m.caps) <= 1:
 		queue_redraw()
 		return  # Toadstool Throne: its last mushroom is never eaten
@@ -765,9 +816,10 @@ func _stepped(point: Vector2, enemy) -> void:
 	# teleports on the enemy"): its anchor (the stem's foot) on the mushroom's own foot (it was 8 px up, so the cap
 	# jumped and its stub floated over the path), and in the mushrooms' y-sort (_layer), not over everything (a world Fx
 	# is at Fx.Z, over the nightmares, so the cap seemed to land on the one stepping on it).
-	var pop := Fx.play(MUSHROOM_POP, to_global(_spot(point)[0]), _layer if is_instance_valid(_layer) else self, 1.0)
-	if pop != null:
-		pop.z_index = 0
+	# The dose lands now; the cap stays drawn and its pop waits until the nightmare's feet reach it (HeldCap; owner
+	# 2026-10-23: "the mushrooms teleport to the enemy when hit": the step counts from the route point, the cap is drawn on
+	# the path's middle line up to half a cell away)
+	_hold_pop(point, m, enemy)
 	m.caps = int(m.caps) - 1
 	if int(m.caps) > 0:
 		queue_redraw()
@@ -787,20 +839,22 @@ func _stepped(point: Vector2, enemy) -> void:
 # (a bed step on FAIRY_EVERY). Damage credit (owner 2026-10-19): the dose's base stacks are that evolution's.
 func _placed_by(point: Vector2, m: Dictionary) -> StringName:
 	if bool(m.get("seeded", false)):
-		if _gen_of(m) >= GEN_AGAIN and evo(EVO_DRIFTING):
-			return EVO_DRIFTING
 		if bool(m.get("sporefall", false)) and evo(EVO_SPOREFALL):
 			return EVO_SPOREFALL
 		if evo(EVO_WINDBLOWN):
 			return EVO_WINDBLOWN
 	if bool(m.get("crop", false)) and evo(EVO_WINDFALL):
 		return EVO_WINDFALL
-	if bool(m.get("grown", false)) and evo(EVO_FAIRY_PATH) and _fairy.has(point):
-		return EVO_FAIRY_PATH
+	if bool(m.get("grown", false)) and _fairy.has(point):
+		if evo(EVO_SPROUT_BEDS):
+			return EVO_SPROUT_BEDS
+		if evo(EVO_FAIRY_PATH):
+			return EVO_FAIRY_PATH
 	return &""
 
 # Everything an evolution adds to a step on a mushroom (after its dose). `caps_here`: the mushrooms in it before one is eaten.
-func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, caps_here: int) -> void:
+# `plant` false: Heavy Air's uneaten dose plants no Windblown seedling.
+func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, caps_here: int, plant: bool = true) -> void:
 	if not class_on() or dream_state.calling_path.is_empty() or not living(enemy):
 		return
 	var at: Vector2 = _route_px[int(_index[point])]
@@ -846,16 +900,16 @@ func _evolved_step(point: Vector2, m: Dictionary, tower, enemy, amount: int, cap
 				SETUP.apply(enemy, card_id(EVO_MOTHER), id, MOTHER_STACKS, 0.0, float(row[1]), 0, String(row[2]), null)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.7)
 		credit(EVO_MOTHER, enemy.global_position, tower)
-	# Windblown: a fallen (or regrown) mushroom's dose plants one 3 steps on; Drifting Spores: a planted one plants once more
+	# Windblown: a fallen (or regrown) mushroom's dose plants one 3 steps on (Drifting Spores' second plant is gone, final pass)
 	var gen := _gen_of(m)
-	if evo(EVO_WINDBLOWN) and (gen == GEN_FELL or (gen == GEN_PLANTED and evo(EVO_DRIFTING) and not bool(m.get("crop", false)))):
+	if plant and evo(EVO_WINDBLOWN) and gen == GEN_FELL:
 		var from := index_of(enemy)  # Along the walker's own leg (Waymark)
 		if from < 0:
 			from = int(_index[point])
 		var i := from + SEED_STEPS * 2
 		if _plant(i, tower, gen + 1, enemy):
 			_line_fx(at, _route_px[i], 1.5, Palette.MOSS)
-			credit(EVO_DRIFTING if gen == GEN_PLANTED else EVO_WINDBLOWN, _route_px[i], tower)
+			credit(EVO_WINDBLOWN, _route_px[i], tower)
 
 # A planted mushroom at route index `i` (Windblown, Drifting Spores, Sporefall): a seedling of `gen`, never for `walker`
 # (the nightmare that planted it). False when the step is taken or off the route.
@@ -956,21 +1010,40 @@ func _rot_step(point: Vector2, enemy) -> void:
 	if tower != null:
 		_deathcap(tower, enemy, EVO_ROT_GROUND)
 
-# Spore Season / Thick Haze: the steps a nightmare walks from its first dose, counted forward on its own leg.
-func _season_start(enemy) -> void:
-	if enemy.has_meta(SEASON_META) or enemy.is_flying():
-		return
-	var i := index_of(enemy)
-	if i >= 0:
-		enemy.set_meta(SEASON_META, [i, i, bool(enemy.get("passed_waymark")), 0])
+# Drifting Spores / Spore Season / Thick Haze (final pass 2026-10-24): the walk is counted forward on the nightmare's own
+# leg from the first route point it is seen on (the poll), with its first dose's index; Drifting counts from that dose,
+# Spore Season (15+ mushrooms) from the first point. Never flyers. Laps and a Waymark leg change start it again.
+func _walk_on() -> bool:
+	return evo(EVO_DRIFTING) or evo(EVO_SEASON) or evo(EVO_THICK_HAZE)
 
-func _season_walk(enemy) -> void:
-	var walk: Array = enemy.get_meta(SEASON_META)
+func _season_start(enemy) -> void:  # Its first dose
+	if enemy.is_flying():
+		return
 	var i := index_of(enemy)
 	if i < 0:
 		return
+	if not enemy.has_meta(SEASON_META):
+		enemy.set_meta(SEASON_META, [i, i, bool(enemy.get("passed_waymark")), 0, i])
+		return
+	var walk: Array = enemy.get_meta(SEASON_META)
+	if walk.size() < 5:
+		walk.append(i)
+	elif int(walk[4]) < 0:
+		walk[4] = i
+	enemy.set_meta(SEASON_META, walk)
+
+func _season_walk(enemy) -> void:
+	if enemy.is_flying():
+		return
+	var i := index_of(enemy)
+	if i < 0:
+		return
+	if not enemy.has_meta(SEASON_META):
+		enemy.set_meta(SEASON_META, [i, i, bool(enemy.get("passed_waymark")), 0, -1])
+		return
+	var walk: Array = enemy.get_meta(SEASON_META)
 	if i + SEASON_LAP_POINTS < int(walk[1]) or (bool(walk[2]) and not bool(enemy.get("passed_waymark"))):
-		enemy.remove_meta(SEASON_META)  # It started its route again: it counts again from its next dose
+		enemy.set_meta(SEASON_META, [i, i, bool(enemy.get("passed_waymark")), 0, -1])  # It started its route again: it counts again
 		return
 	if i > int(walk[1]):
 		walk[1] = i
@@ -979,22 +1052,75 @@ func _season_walk(enemy) -> void:
 	if evo(EVO_THICK_HAZE):
 		_thick_haze(enemy, walk)
 
-# Steps walked since its first dose (0 without one).
+# Steps the active count has (Spore Season on: since the first point seen; else Drifting: since the first dose; 0 without).
 func season_steps(enemy) -> float:
 	if not is_instance_valid(enemy) or not enemy.has_meta(SEASON_META):
 		return 0.0
 	var walk: Array = enemy.get_meta(SEASON_META)
-	return maxf(float(int(walk[1]) - int(walk[0])) * 0.5, 0.0)
+	var start := int(walk[0])
+	if not season_on():
+		start = int(walk[4]) if walk.size() > 4 else int(walk[0])
+		if start < 0:
+			return 0.0
+	return maxf(float(int(walk[1]) - start) * 0.5, 0.0)
 
-static func _season_cap(enemy) -> float:
-	return SEASON_BOSS_MAX if enemy.statuses.is_boss else SEASON_MAX
+func _season_cap(enemy) -> float:
+	if season_on():
+		return SEASON_BOSS_MAX if enemy.statuses.is_boss else SEASON_MAX
+	return DRIFT_BOSS_MAX if enemy.statuses.is_boss else DRIFT_MAX
 
-# Spore Season's bonus on this nightmare's Poisoned (0.25 = +25%; 0 while fewer than 15 mushrooms grow). The status-dot
-# row's "+N%" tag reads it.
+# The walk bonus on this nightmare's Poisoned (0.25 = +25%): Drifting Spores' up to +30%, or Spore Season's up to +60%
+# while 15+ mushrooms grow. The status-dot row's "+N%" tag reads it.
 func season_bonus(enemy) -> float:
-	if not season_on() or not is_instance_valid(enemy) or enemy.is_flying():
+	if not (evo(EVO_DRIFTING) or season_on()) or not is_instance_valid(enemy) or enemy.is_flying():
 		return 0.0
-	return minf(season_steps(enemy) * SEASON_PER_STEP, _season_cap(enemy))
+	return minf(season_steps(enemy) * (SEASON_PER_STEP if season_on() else DRIFT_PER_STEP), _season_cap(enemy))
+
+# Heavy Air's gate: Spore Season on and this nightmare at its +60% (bosses +30%).
+func _at_haze_cap(enemy) -> bool:
+	return season_on() and is_instance_valid(enemy) and season_bonus(enemy) >= _season_cap(enemy) - 0.0001
+
+# Deathcap (Spread follow-up, final pass): each of the first 3 mushrooms a nightmare steps on bursts, after the dose: 2 s
+# of its Poisoned at once (Rot Bloom: the 3rd is 6 s, tag rot_bloom). Bosses half. Counted only when it dealt damage; laps
+# and the Waymark start the count again (_burst_walk). Unscaled, damage only (R1); at most 3 a walk, no throttle.
+func _field_burst(tower, enemy) -> void:
+	if not living(enemy) or not is_instance_valid(tower):
+		return
+	var row: Array = enemy.get_meta(BURSTS_META, [0, index_of(enemy), bool(enemy.get("passed_waymark"))])
+	if int(row[0]) >= FIELD_BURSTS:
+		return
+	var bloom: bool = int(row[0]) == FIELD_BURSTS - 1 and evo(EVO_ROT_BLOOM)
+	var amount := _poison_second(enemy) * (ROT_BLOOM_SECONDS if bloom else FIELD_SECONDS)
+	if amount <= 0.0:
+		return
+	var at: Vector2 = enemy.global_position
+	var dealt := calling_hit(tower, enemy, amount, ROT_BLOOM_TAG if bloom else DEATHCAP_TAG, EVO_ROT_BLOOM if bloom else EVO_DEATHCAP_FIELD,
+		false, false, &"", DEATHCAP_BOSS)
+	if dealt <= 0.0:
+		return
+	row[0] = int(row[0]) + 1
+	if is_instance_valid(enemy):
+		enemy.set_meta(BURSTS_META, row)
+	Reactions._effect(&"landing_dust", at, self, 1.6 if bloom else 1.0)  # The dark burst under its foot (a rot flower: bigger)
+
+# Laps and the Waymark start Deathcap's count of 3 again (polled).
+func _burst_walk(enemy) -> void:
+	var row: Array = enemy.get_meta(BURSTS_META)
+	var i := index_of(enemy)
+	if i < 0:
+		return
+	var passed := bool(enemy.get("passed_waymark"))
+	if i + SEASON_LAP_POINTS < int(row[1]) or passed != bool(row[2]):
+		enemy.set_meta(BURSTS_META, [0, i, passed])
+	elif i > int(row[1]):
+		row[1] = i
+		enemy.set_meta(BURSTS_META, row)
+
+# Deathcap's bursts left this walk (UI: the three pips over the nightmare). 0 without the row.
+func bursts_left(enemy) -> int:
+	if not evo(EVO_DEATHCAP_FIELD) or not is_instance_valid(enemy):
+		return 0
+	return FIELD_BURSTS - int((enemy.get_meta(BURSTS_META, [0]) as Array)[0])
 
 # Thick Haze (Spore Season's Deepen): once a nightmare reaches the limit, every further 10 steps 1 s of its Poisoned at once.
 func _thick_haze(enemy, walk: Array) -> void:
@@ -1021,7 +1147,7 @@ func _thick_haze(enemy, walk: Array) -> void:
 
 # Focus: how many of `want` free hits `tower` may give now (Clump 1 a second; Trampled Ground 2 for a rank III+ Warden).
 func _focus_take(tower, want: int) -> int:
-	var limit := TRAMPLE_HITS if evo(EVO_TRAMPLED) and int(tower.rank) >= TRAMPLE_RANK else 1
+	var limit := TRAMPLE_HITS if evo(EVO_TRAMPLED) and gate_rank(tower) >= TRAMPLE_RANK else 1
 	var row: Array = tower.get_meta(FOCUS_META, [-INF, 0])
 	if now() - float(row[0]) >= 1.0:
 		row = [now(), 0]
@@ -1030,15 +1156,20 @@ func _focus_take(tower, want: int) -> int:
 	tower.set_meta(FOCUS_META, row)
 	return granted
 
-func _focus_wardens(at: Vector2) -> Array:
+# The attacking Wardens touching `at`, the strongest first; `king` (a throne's Warden) always first.
+func _focus_wardens(at: Vector2, king = null) -> Array:
 	var out: Array = towers().filter(func(t) -> bool: return t is Tower and t.tower_data.can_attack and touches_point(t, at))
 	out.sort_custom(func(a, b) -> bool: return second_of(a) > second_of(b))
+	if king != null and out.has(king):
+		out.erase(king)
+		out.push_front(king)
 	return out
 
-# Clump (Focus style): a step on a clump draws a free hit from each attacking Warden touching it (the 3 strongest, each
-# once a second); Trampled Ground: a rank III+ one gives 2, the second at half; Elder Cap: the throne's final form one
-# for each of its own attacks instead; Retinue: 2 rank V+ attendants at half, one for each of their attacks. `trodden`
-# (Trodden Path): a step beside the clump, with its own +1 a second per Warden.
+# Clump (Focus style): a step on a clump draws a free hit from each attacking Warden touching it (the 3 strongest, a
+# throne's Warden first, each once a second; period 1 s); Trampled Ground: a rank III+ one gives 2, the second at half
+# (period 1 s); Elder Cap: the throne's Warden one for each of its own attacks instead (per own attack: no cap); Retinue:
+# the other Wardens at the throne, any rank, at half, one for each of their attacks (no cap). `trodden` (Trodden Path): a
+# step beside the clump, with its own +1 a second per Warden (period 1 s). Rank gates read gate_rank (The Old Ones).
 func _clump_hits(point: Vector2, enemy, trodden: bool = false) -> void:
 	if not mushrooms.has(point):
 		return
@@ -1046,15 +1177,16 @@ func _clump_hits(point: Vector2, enemy, trodden: bool = false) -> void:
 	var at: Vector2 = _route_px[int(_index[point])]
 	var king = m.get("king").get_ref() if m.get("king") is WeakRef else null
 	var struck := false
-	for tower in _focus_wardens(at).slice(0, CLUMP_WARDENS):
+	var picks: Array = _focus_wardens(at, king).slice(0, CLUMP_WARDENS)
+	for tower in picks:
 		if not living(enemy):
 			return
 		if tower == king and evo(EVO_ELDER):
 			if bool(tower.get_meta(ATTACK_META, false)):
 				tower.set_meta(ATTACK_META, false)
-				struck = calling_hit(tower, enemy, 1.0, FREE_HIT_TAG, EVO_ELDER, false, true, &"", FOCUS_BOSS) > 0.0 or struck
+				struck = calling_hit(tower, enemy, 1.0, FREE_HIT_TAG, EVO_ELDER, false, true, &"", FOCUS_BOSS, INF) > 0.0 or struck
 		else:
-			var want := TRAMPLE_HITS if evo(EVO_TRAMPLED) and int(tower.rank) >= TRAMPLE_RANK else 1
+			var want := TRAMPLE_HITS if evo(EVO_TRAMPLED) and gate_rank(tower) >= TRAMPLE_RANK else 1
 			var given := _focus_take(tower, want)
 			for k in given:
 				var own := EVO_CLUMP if k == 0 else EVO_TRAMPLED
@@ -1062,14 +1194,14 @@ func _clump_hits(point: Vector2, enemy, trodden: bool = false) -> void:
 		if trodden and living(enemy) and now() >= float(tower.get_meta(TRODDEN_META, -INF)):
 			tower.set_meta(TRODDEN_META, now() + TRODDEN_EVERY)
 			struck = calling_hit(tower, enemy, 1.0, FREE_HIT_TAG, EVO_TRODDEN, false, true, &"", FOCUS_BOSS) > 0.0 or struck
-	if evo(EVO_RETINUE) and bool(m.get("throne", false)):
-		var attendants: Array = _focus_wardens(at).filter(func(t) -> bool: return int(t.rank) >= RETINUE_RANK and not _is_final(t))
+	if evo(EVO_RETINUE) and bool(m.get("throne", false)):  # The ring round the throne: Clump's set without its holder
+		var attendants: Array = picks.filter(func(t) -> bool: return t != king)
 		for tower in attendants.slice(0, RETINUE_MAX):
 			if living(enemy) and bool(tower.get_meta(ATTACK_META, false)):
 				tower.set_meta(ATTACK_META, false)
-				struck = calling_hit(tower, enemy, RETINUE_SHARE, FREE_HIT_TAG, EVO_RETINUE, false, true, &"", FOCUS_BOSS) > 0.0 or struck
+				struck = calling_hit(tower, enemy, RETINUE_SHARE, FREE_HIT_TAG, EVO_RETINUE, false, true, &"", FOCUS_BOSS, INF) > 0.0 or struck
 	if struck:
-		for tower in _focus_wardens(at).slice(0, CLUMP_WARDENS):
+		for tower in picks:
 			_line_fx(tower.global_position, enemy.global_position, 3.0)
 
 # Trodden Path (Pile-On's Deepen): a walker on the step just before or after a clump (1 step = 2 route points) counts as
@@ -1092,7 +1224,7 @@ func _trodden_step(point: Vector2, enemy) -> void:
 # Pile-On (Trampled Ground's capstone): a direct hit by a rank III+ Warden touching a clump, on a nightmare within 2 steps
 # of it, calls a free hit from each other rank III+ Warden touching that clump (Trampled's 2 a second). Never from a free hit.
 func _pile_on(source, enemy) -> void:
-	if not (source is Tower) or int(source.rank) < PILE_RANK or not living(enemy):
+	if not (source is Tower) or gate_rank(source) < PILE_RANK or not living(enemy):
 		return
 	var i := index_of(enemy)
 	if i < 0:
@@ -1102,7 +1234,7 @@ func _pile_on(source, enemy) -> void:
 			continue
 		var struck := false
 		for tower in _focus_wardens(_route_px[k]):
-			if tower == source or int(tower.rank) < PILE_RANK or not living(enemy):
+			if tower == source or gate_rank(tower) < PILE_RANK or not living(enemy):
 				continue
 			if _focus_take(tower, 1) > 0:
 				struck = calling_hit(tower, enemy, 1.0, FREE_HIT_TAG, EVO_PILE_ON, false, true, &"", FOCUS_BOSS) > 0.0 or struck
@@ -1123,41 +1255,68 @@ func _on_attack_released(tower) -> void:
 	if is_instance_valid(tower) and (evo(EVO_ELDER) or evo(EVO_RETINUE)):
 		tower.set_meta(ATTACK_META, true)
 
-# Toadstool Throne: one throne for each final form, on a mushroom it touches (the fullest, then the nearest). Worked out
-# from positions (a Walking Wood swap moves it) whenever the board or the mushrooms change.
+# Toadstool Throne (final pass 2026-10-24: by age, not form): one throne on the board. Its Warden is the attacking Warden
+# at a clump (Clump's set: the 3 strongest touching it) planted earliest, once THRONE_AGE drifts ago (ties: the higher rank,
+# then the nearest to its clump); the throne is that Warden's clump (the fullest, then the nearest). Worked out from
+# positions (a Walking Wood swap moves it) whenever the board or the mushrooms change, and at each drift start.
 func _refresh_thrones() -> void:
 	for point in mushrooms:
 		mushrooms[point].erase("throne")
 		mushrooms[point].erase("king")
 	if not evo(EVO_THRONE):
 		return
-	for tower in towers():
-		if not _is_final(tower):
-			continue
-		var best = null
-		for point in mushrooms:
-			var m: Dictionary = mushrooms[point]
-			var at: Vector2 = _route_px[int(_index[point])]
-			if bool(m.get("throne", false)) or not touches_point(tower, at):
+	var drift := _current_drift()
+	var best_tower = null
+	var best_point = null
+	for point in mushrooms:
+		var m: Dictionary = mushrooms[point]
+		var at: Vector2 = _route_px[int(_index[point])]
+		for tower in _focus_wardens(at).slice(0, CLUMP_WARDENS):
+			if drift - _planted_drift(tower) < THRONE_AGE:
 				continue
-			if best == null or int(m.caps) > int(mushrooms[best].caps) or (int(m.caps) == int(mushrooms[best].caps) \
-					and tower.global_position.distance_squared_to(at) < tower.global_position.distance_squared_to(_route_px[int(_index[best])])):
-				best = point
-		if best != null:
-			mushrooms[best]["throne"] = true
-			mushrooms[best]["king"] = weakref(tower)
+			if best_tower == null or _older_holder(tower, at, m, best_tower, best_point):
+				best_tower = tower
+				best_point = point
+	if best_point != null:
+		mushrooms[best_point]["throne"] = true
+		mushrooms[best_point]["king"] = weakref(best_tower)
+
+# Whether `tower` at the clump on `at` beats the holder found so far: planted earlier, then the higher rank, then (the same
+# Warden at two clumps) the fuller clump, then the nearer.
+func _older_holder(tower, at: Vector2, m: Dictionary, best, best_point) -> bool:
+	var a := _planted_drift(tower)
+	var b := _planted_drift(best)
+	if a != b:
+		return a < b
+	if tower != best:
+		if int(tower.rank) != int(best.rank):
+			return int(tower.rank) > int(best.rank)
+	var o: Dictionary = mushrooms[best_point]
+	if int(m.caps) != int(o.caps):
+		return int(m.caps) > int(o.caps)
+	var best_at: Vector2 = _route_px[int(_index[best_point])]
+	return tower.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(best_at)
+
+# The would-be throne holder before any throne exists (UI's age ring fills toward THRONE_AGE): [Warden, drifts of age] for
+# the Warden _refresh_thrones would pick with no age gate, or [] with no clump Warden. (UI Code, CallingCues.)
+func throne_progress() -> Array:
+	if not evo(EVO_THRONE):
+		return []
+	var best_tower = null
+	var best_point = null
+	for point in mushrooms:
+		var at: Vector2 = _route_px[int(_index[point])]
+		for tower in _focus_wardens(at).slice(0, CLUMP_WARDENS):
+			if best_tower == null or _older_holder(tower, at, mushrooms[point], best_tower, best_point):
+				best_tower = tower
+				best_point = point
+	return [best_tower, _current_drift() - _planted_drift(best_tower)] if best_tower != null else []
 
 # Shared Caps (Support style): a dose also adds 2 stacks (Charged / Exposed 1) to the status the highest-rank other-family
 # Warden touching that mushroom (Sprouts count; ties to the nearest) already put on the nightmare; for a Sprout, the
 # Poisoned the dose just put on. Quietly: never starts or copies a status, never Rooted, Drowsy within its limit.
 func _shared_caps(at: Vector2, tower, enemy) -> void:
-	var best = null
-	for other in towers():
-		if not is_other(other) or not touches_point(other, at):
-			continue
-		if best == null or int(other.rank) > int(best.rank) or (int(other.rank) == int(best.rank) \
-				and other.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(at)):
-			best = other
+	var best = _shared_pick(at)
 	if best == null or not living(enemy):
 		return
 	var status := EnemyStatuses.SPORED if _is_sprout(best) else status_of(best)
@@ -1171,6 +1330,18 @@ func _shared_caps(at: Vector2, tower, enemy) -> void:
 		setup_quiet(enemy, EVO_BORROWED, status, added)
 		_line_fx(best.global_position, enemy.global_position, 1.5, EnemyStatuses.COLORS.get(status, Palette.MOSS))
 		credit(EVO_BORROWED, enemy.global_position, tower)
+
+# Shared Caps' pick at a mushroom on `at` (also Host Trees' host): the highest-rank other-family Warden touching it
+# (Sprouts count), ties to the nearest; null if none.
+func _shared_pick(at: Vector2):
+	var best = null
+	for other in towers():
+		if not is_other(other) or not touches_point(other, at):
+			continue
+		if best == null or int(other.rank) > int(best.rank) or (int(other.rank) == int(best.rank) \
+				and other.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(at)):
+			best = other
+	return best
 
 # Feeding Ground (Support follow-up): each dose turns the next 6 steps of the walker's own leg into fed ground for 8 s.
 func _feed_ground(enemy, point: Vector2) -> void:
@@ -1223,23 +1394,20 @@ func _sporefall(tower, enemy, status: StringName) -> void:
 		Reactions._effect(&"landing_dust", _route_px[i + SPOREFALL_POINTS], self, 0.6)
 		credit(EVO_SPOREFALL, _route_px[i + SPOREFALL_POINTS], tower)
 
-# Host Trees (Support follow-up): another family's Warden touching a mushroom wears a cap until 8 s after the last one
-# goes (Sprouts too); Spreading Caps: one touching a capped Warden wears one too, as long as that one's (one link only).
-# Worked out when mushrooms grow or go and when the board changes, never polled.
+# Host Trees (Support follow-up, final pass 2026-10-24): the Warden Shared Caps picks at each mushroom wears a cap (Sprouts
+# too); one no longer picked keeps it HOST_LINGER s. Spreading Caps: another family's Warden within SPREAD_CELLS of a capped
+# Warden wears one too, as long as that one's (one link only). Worked out when mushrooms grow or go and when the board
+# changes, never polled.
 func _recount_caps() -> void:
 	if not evo(EVO_HOST_TREES):
 		_capped.clear()
 		return
-	var points: Array = []
-	for point in mushrooms:
-		points.append(_route_px[int(_index[point])])
 	var next := {}
 	var others: Array = towers().filter(is_other)
-	for tower in others:
-		for at in points:
-			if touches_point(tower, at):
-				next[tower.get_instance_id()] = [weakref(tower), INF, false]
-				break
+	for point in mushrooms:
+		var host = _shared_pick(_route_px[int(_index[point])])
+		if host != null:
+			next[host.get_instance_id()] = [weakref(host), INF, false]
 	for id in _capped:  # Lost its mushroom: the cap stays 8 s more
 		var row: Array = _capped[id]
 		if next.has(id) or bool(row[2]) or row[0].get_ref() == null:
@@ -1256,7 +1424,7 @@ func _recount_caps() -> void:
 			var until := -INF
 			for row in sources:
 				var from = row[0].get_ref()
-				if from != null and touching(from, tower):
+				if from != null and from.global_position.distance_to(tower.global_position) <= SPREAD_CELLS * cell():
 					until = maxf(until, float(row[1]))
 			if until > now():
 				next[id] = [weakref(tower), until, true]
@@ -1278,32 +1446,61 @@ func capped_count() -> int:
 			n += 1
 	return n
 
-# Host Grove (Host Trees' capstone; DreamState.calling_potency): while 3 or more Wardens of other families wear caps, a
-# capped Warden's statuses deal 30% more (Poisoned ticks, Charged bolts; never a Reaction's damage: the caller checks).
-func host_potency(source, tag: StringName) -> float:
-	if not evo(EVO_HOST_GROVE) or not tag in HOST_GROVE_TAGS or not is_capped(source) or is_own(source):
-		return 1.0
+# Host Trees' part (1.15) or, while Host Grove's 3+ capped Wardens stand, 1.30: a replacement, never a product.
+func _host_part() -> float:
 	var frame := Engine.get_process_frames()
 	if frame != _host_frame:
 		_host_frame = frame
-		_host_on = capped_count() >= HOST_GROVE_AT
-	if not _host_on:
-		return 1.0
-	DamageLog.note_card_bonus(String(EVO_HOST_GROVE), HOST_GROVE_POTENCY)  # X5: inside the x4 card cap, credited
+		_host_on = evo(EVO_HOST_GROVE) and capped_count() >= HOST_GROVE_AT
+	return HOST_GROVE_POTENCY if _host_on else HOST_TREES_POTENCY
+
+func _host_credit(source) -> void:
 	if now() >= float(source.get_meta(HOST_CREDIT_META, -INF)):
 		source.set_meta(HOST_CREDIT_META, now() + 1.0)
-		credit(EVO_HOST_GROVE, source.global_position, source)
-	return HOST_GROVE_POTENCY
+		credit(EVO_HOST_GROVE if _host_on else EVO_HOST_TREES, source.global_position, source)
 
-# Sporeling Support's extra stacks (Feeding Ground, Host Trees): their own slot, outside the lent cards' (Balancing
-# 2026-10-23): at most 2 a hit together (Charged / Exposed 1, once a second per Warden), within max(2 x the hit's stacks, 3)
-# (Charged / Exposed 2). Other families' Wardens only, Sprouts too; never Rooted.
+# Host Trees' direct-hit part (DreamState._calling_hit_multiplier's Spore Print branch): a capped Warden of another family
+# whose own status deals no damage (not Poisoned or Charged, or none) hitting a Poisoned nightmare: 1.15 (Host Grove 1.30).
+# A Warden's real hit only (never a Calling output, R1). Noted inside the x4 card cap (X5).
+func host_hit_multiplier(source, enemy) -> float:
+	if not evo(EVO_HOST_TREES) or DamageLog.calling_now != &"" or not is_capped(source) or is_own(source) \
+			or not is_instance_valid(enemy) or not enemy.statuses.has(EnemyStatuses.SPORED):
+		return 1.0
+	var status := status_of(source)
+	if _is_sprout(source) or status == EnemyStatuses.SPORED or status == EnemyStatuses.STATIC:
+		return 1.0  # Its status deals damage: Host Trees raises that instead (host_potency)
+	var part := _host_part()
+	DamageLog.note_card_bonus(String(EVO_HOST_GROVE if _host_on else EVO_HOST_TREES), part)
+	_host_credit(source)
+	return part
+
+# Host Trees / Host Grove's Potency part (DreamState.calling_potency): a capped Warden of another family's effect damage, every
+# Reactions.EFFECT_TAGS tag (never a Reaction's damage: the caller checks), 1.15 (Host Grove 1.30). Reactions._host_grove takes
+# max(host, undiluted) / undiluted with Undiluted on the tag.
+func host_potency(source, tag: StringName) -> float:
+	if not evo(EVO_HOST_TREES) or not Reactions.is_effect(tag) or not is_capped(source) or is_own(source):
+		return 1.0
+	var part := _host_part()
+	# X5: inside the x4 card cap, noted and credited only for the factor actually used: a larger Undiluted leaves Host
+	# Trees nothing (build_review_td.md 3: it noted 1.30 into the cap anyway).
+	var undiluted := 1.0
+	if DreamState.undiluted_on:
+		undiluted = DreamState.UNDILUTED_POISONED if tag == &"spored" else (DreamState.UNDILUTED_CHARGED if tag == &"static" else 1.0)
+	var used := maxf(part, undiluted) / undiluted
+	if used <= 1.0:
+		return part
+	DamageLog.note_card_bonus(String(EVO_HOST_GROVE if _host_on else EVO_HOST_TREES), used)
+	_host_credit(source)
+	return part
+
+# Sporeling Support's extra stacks (Feeding Ground; Host Trees' +1 is gone, final pass 2026-10-24): their own slot, outside
+# the lent cards' (Balancing 2026-10-23): at most 2 a hit (Charged / Exposed 1, once a second per Warden), within max(2 x the
+# hit's stacks, 3) (Charged / Exposed 2). Other families' Wardens only, Sprouts too; never Rooted.
 func _support_stacks(tower, enemy, status: StringName, base: int) -> int:
-	if not is_other(tower) or not _stackable(status) or not (evo(EVO_FEEDING) or evo(EVO_HOST_TREES)):
+	if not is_other(tower) or not _stackable(status) or not evo(EVO_FEEDING):
 		return 0
-	var fed := evo(EVO_FEEDING) and _fed_at(index_of(enemy))
-	var host := evo(EVO_HOST_TREES) and is_capped(tower)
-	var extra := (FEED_STACKS if fed else 0) + (HOST_STACKS if host else 0)
+	var fed := _fed_at(index_of(enemy))
+	var extra := FEED_STACKS if fed else 0
 	if extra <= 0:
 		return 0
 	var small := status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
@@ -1314,13 +1511,9 @@ func _support_stacks(tower, enemy, status: StringName, base: int) -> int:
 		tower.set_meta(SUPPORT_SMALL_META, now() + SUPPORT_SMALL_EVERY)
 		extra = mini(extra, SUPPORT_SMALL)
 	extra = mini(extra, SUPPORT_HIT_SMALL if small else maxi(2 * base, SUPPORT_HIT_FLOOR))
-	var fed_part := mini(extra, FEED_STACKS if fed else 0)
-	if fed_part > 0:
-		_setup_part(enemy, EVO_FEEDING, status, fed_part)
+	if extra > 0:
+		_setup_part(enemy, EVO_FEEDING, status, extra)
 		credit(EVO_FEEDING, enemy.global_position, tower)
-	if extra - fed_part > 0:
-		_setup_part(enemy, EVO_HOST_TREES, status, extra - fed_part)
-		credit(EVO_HOST_TREES, enemy.global_position, tower)
 	return extra
 
 # Stomping Ground (non-status builds, owner 2026-10-19): a step on a mushroom takes a free hit from each attacking Warden
@@ -1374,25 +1567,27 @@ func _fruit_count(source, enemy) -> int:
 	return n
 
 func wants_damage_hook() -> bool:
-	return rule(FRUITING) or evo(EVO_SEASON)
+	return rule(FRUITING) or evo(EVO_DRIFTING) or evo(EVO_SEASON)
 
-# DreamState.batch_damage_multiplier: Spore Season on Poisoned ticks, Fruiting on hits (1.0 with neither).
+# DreamState.batch_damage_multiplier: Drifting Spores / Spore Season on Poisoned ticks, Fruiting on hits (1.0 with neither).
 func damage_multiplier(enemy, source, tag: StringName = &"") -> float:
 	var out := 1.0
-	if tag == &"spored" and evo(EVO_SEASON) and is_instance_valid(enemy):
+	if tag == &"spored" and (evo(EVO_DRIFTING) or evo(EVO_SEASON)) and is_instance_valid(enemy):
 		out *= _season_multiplier(enemy)
 	return out * _fruiting_multiplier(enemy, source, tag)
 
-# Spore Season (Drifting Spores' capstone): while 15 or more mushrooms grow, a nightmare's Poisoned deals 1% more for each
-# step it has walked since its first dose, up to +60% (bosses +30%). Damage only; noted inside the x4 card cap (X5).
+# Drifting Spores: a nightmare's Poisoned deals 1% more for each step it has walked since its first dose, up to +30%
+# (bosses +15%); Spore Season (15+ mushrooms): from its first step, up to +60% (bosses +30%). Damage only; noted inside
+# the x4 card cap (X5) under the row that set it.
 func _season_multiplier(enemy) -> float:
 	var bonus := season_bonus(enemy)
 	if bonus <= 0.0:
 		return 1.0
-	DamageLog.note_card_bonus(String(EVO_SEASON), 1.0 + bonus)
+	var row := EVO_SEASON if season_on() else EVO_DRIFTING
+	DamageLog.note_card_bonus(String(row), 1.0 + bonus)
 	if now() >= float(enemy.get_meta(SEASON_CREDIT_META, -INF)):
 		enemy.set_meta(SEASON_CREDIT_META, now() + 1.0)
-		credit(EVO_SEASON, enemy.global_position)
+		credit(row, enemy.global_position)
 	return 1.0 + bonus
 
 func _fruiting_multiplier(enemy, source, tag: StringName) -> float:
@@ -1493,13 +1688,13 @@ func _process(delta: float) -> void:
 		if trodden and living(enemy):
 			_trodden_step(point, enemy)
 
-# Fairy Path shows itself: a puff and its credit when its clock grows a mushroom (council full_review 2026-10-17).
+# Sprout Beds (Fairy Path on an old save) shows itself: a puff and its credit when its clock grows a mushroom.
 func _fairy_grew(point: Vector2) -> void:
-	if not evo(EVO_FAIRY_PATH) or not mushrooms.has(point) or not _fairy.has(point):
+	if not (evo(EVO_SPROUT_BEDS) or evo(EVO_FAIRY_PATH)) or not mushrooms.has(point) or not _fairy.has(point):
 		return
 	var at: Vector2 = _route_px[int(_index[point])]
 	Reactions._effect(&"landing_dust", at, self, 0.5)
-	credit(EVO_FAIRY_PATH, at)
+	credit(EVO_SPROUT_BEDS if evo(EVO_SPROUT_BEDS) else EVO_FAIRY_PATH, at)
 
 func on_poll() -> void:
 	if rule(GONE_TO_SEED):
@@ -1508,10 +1703,13 @@ func on_poll() -> void:
 		_dirty = false
 		_recount_caps()
 		_refresh_thrones()
-	if evo(EVO_SEASON) or evo(EVO_THICK_HAZE):
+	if _walk_on():  # Every walker's walk (Spore Season counts from its first point seen)
 		for enemy in enemies():
-			if enemy.has_meta(SEASON_META):
-				_season_walk(enemy)
+			_season_walk(enemy)
+	if evo(EVO_DEATHCAP_FIELD):
+		for enemy in enemies():
+			if enemy.has_meta(BURSTS_META):
+				_burst_walk(enemy)
 	if not _fed.is_empty():
 		_fed = _fed.filter(func(stretch) -> bool: return now() < float(stretch[2]))
 		queue_redraw()  # Fed ground fades as its 8 s run out
@@ -1947,13 +2145,19 @@ func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
 		return
 	if not mushrooms.has(point):
 		return
-	var caps := int(mushrooms[point].caps)
+	var caps := int(mushrooms[point].caps) + int(_held_caps.get(point, 0))  # Eaten caps still on their way (HeldCap)
 	if season_on():
 		c.draw_circle(Vector2(0.0, -6.0), 9.0, Color(Palette.MOSS, 0.35))  # Spore Season: the mushrooms glow
 	var m: Dictionary = mushrooms[point]
+	if now() < float(m.get(HEAVY_GLOW, -INF)):  # Heavy Air: a full-haze nightmare on it; the cap glows instead of going
+		c.draw_circle(Vector2(0.0, -8.0), 11.0, Color(Palette.GLOW, 0.4))
 	if bool(m.get("throne", false)):  # Toadstool Throne: a gold rim under the toadstool that never goes away (sp_throne_rim)
 		if not evo_mark(c, ART_THRONE, Vector2.ZERO):
 			c.draw_arc(Vector2(0.0, -2.0), THRONE_RIM, 0.0, TAU, 20, Color(Palette.GOLD, 0.9), 1.5)
+	_draw_caps(c, point, m, caps)
+
+# A mushroom's look (by its evolution and caps), its foot at the canvas origin: the stand's, and a HeldCap's last cap.
+func _draw_caps(c: CanvasItem, point: Vector2, m: Dictionary, caps: int) -> void:
 	var phase := int(point.x * 2.0 + point.y * 2.0)
 	var flip := int(point.x * 2.0) % 2 == 1
 	var mother: Array = m.get("mother", [])
@@ -1972,6 +2176,74 @@ func _draw_stand(c: CanvasItem, point: Vector2, regrowing: bool) -> void:
 		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), CROP_ALPHA, flip, phase)
 	else:
 		_draw_mushroom(c, Vector2.ZERO, _sheet("spore_mushroom"), 1.0, flip, phase)
+
+# An eaten cap waits for the feet (Roguelite asset chat, owner 2026-10-23): the step and its dose count from the route
+# point, but the cap is drawn at _spot (up to half a cell away), so it vanished and popped before the nightmare got there.
+# Now it stays drawn (a clump keeps its count in _held_caps; a last cap is drawn by its HeldCap) and pops on its foot,
+# in the mushrooms' y-sort, once the stepper's feet are within HOLD_REACH px, start to walk away, or HOLD_MAX s pass.
+# Gone or dead first, or reduced motion: at once.
+const HOLD_REACH := 4.0
+const HOLD_MAX := 0.25
+var _held_caps := {}  # Route point -> eaten caps of a clump still drawn
+
+func _hold_pop(point: Vector2, m: Dictionary, enemy) -> void:
+	var at := to_global(_spot(point)[0])
+	var parent: Node = _layer if is_instance_valid(_layer) else self
+	var last := int(m.caps) <= 1
+	if motion_still() or not living(enemy):
+		_pop_at(at, parent)
+		return
+	if not last:
+		_held_caps[point] = int(_held_caps.get(point, 0)) + 1
+	var held := HeldCap.new(self, point, m.duplicate() if last else {}, enemy, at)
+	parent.add_child(held)
+
+func _release_held(point: Vector2, clump: bool, at: Vector2, parent: Node) -> void:
+	if clump and _held_caps.has(point):
+		_held_caps[point] = int(_held_caps[point]) - 1
+		if int(_held_caps[point]) <= 0:
+			_held_caps.erase(point)
+		var stand = _stands.get(point)
+		if is_instance_valid(stand):
+			stand.queue_redraw()
+	_pop_at(at, parent)
+
+func _pop_at(at: Vector2, parent: Node) -> void:
+	var pop := Fx.play(MUSHROOM_POP, at, parent, 1.0)
+	if pop != null:
+		pop.z_index = 0
+
+class HeldCap extends Node2D:
+	var _print
+	var _point: Vector2
+	var _look: Dictionary  # A last cap's mushroom (drawn here); empty for a clump's (the stand draws it)
+	var _enemy: WeakRef
+	var _left := HOLD_MAX
+	var _gap := INF
+
+	func _init(print_node, point: Vector2, look: Dictionary, enemy: Node2D, at: Vector2) -> void:
+		_print = print_node
+		_point = point
+		_look = look
+		_enemy = weakref(enemy)
+		name = "HeldCap"
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		global_position = at
+
+	func _process(delta: float) -> void:
+		var enemy = _enemy.get_ref()
+		_left -= delta
+		var gap: float = global_position.distance_to(enemy.global_position) if is_instance_valid(enemy) else INF
+		if _left <= 0.0 or not is_instance_valid(_print) or not _print.living(enemy) or gap <= HOLD_REACH or gap > _gap + 0.01:
+			if is_instance_valid(_print):
+				_print._release_held(_point, _look.is_empty(), global_position, get_parent())
+			queue_free()
+			return
+		_gap = gap
+
+	func _draw() -> void:
+		if not _look.is_empty() and is_instance_valid(_print):
+			_print._draw_caps(self, _point, _look, 1)
 
 class Stand extends Node2D:
 	var regrowing := false
@@ -2045,5 +2317,5 @@ func _draw_mushroom(c: CanvasItem, at: Vector2, tex: Texture2D, alpha: float, fl
 	var frame := (maxi(_breathe_frame, 0) + phase) % MUSHROOM_FRAMES
 	var rect := Rect2((at - Vector2(w / 2.0, h - 2.0)).round(), Vector2(w, h))  # The stem's foot at (w/2, h-2) on the spot, 1x
 	if flip:
-		rect = Rect2(rect.position + Vector2(w, 0.0), Vector2(-w, h))
+		rect = Rect2(rect.position, Vector2(-w, h))  # A negative width mirrors the art in place (Godot keeps the left edge)
 	c.draw_texture_rect_region(tex, rect, Rect2(w * frame, 0.0, w, h), Color(tint, alpha))  # multiplier

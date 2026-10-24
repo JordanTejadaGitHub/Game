@@ -28,7 +28,7 @@ const USES := &"uses"
 const MAX_CHIPS := 2
 
 const KEYWORDS: Array[StringName] = [&"stacks", &"linger", &"jump", &"repeat", &"reaction", &"layered", &"slow", &"crit",
-	&"area", &"heavy", &"cluster", &"rank", &"maze", &"hit", &"potency"]  # hit: the Focus Calling evolutions; potency: Host Grove (section 33)
+	&"area", &"heavy", &"cluster", &"rank", &"maze", &"hit", &"potency", &"age", &"order"]  # hit: the Focus Calling evolutions; potency: Host Grove (section 33); age, order: uses-only (Throne line, Host Trees line; UI KeywordIcons 2026-10-24)
 # Status words -> EnemyStatuses ids (&"asleep" is a state, not a status id: EnemyStatuses.is_asleep()).
 const STATUSES := {&"poisoned": &"spored", &"charged": &"static", &"soaked": &"damp", &"drowsy": &"drowsy",
 	&"exposed": &"marked", &"rooted": &"held", &"asleep": &"asleep"}
@@ -52,6 +52,8 @@ const WORDS := {
 	&"rank": {"name": "Ranks", "text": "Nurture {ranks}: higher-rank Wardens."},
 	&"hit": {"name": "Hits", "text": "A Warden's own hits, not statuses, effects or {reactions}."},
 	&"potency": {"name": "Potency", "text": "How hard a Warden's statuses and effects hit."},
+	&"age": {"name": "Age", "text": "A Warden kept on the map for many {drifts}."},
+	&"order": {"name": "Order", "text": "Where your Wardens stand along the path, first to last."},
 	&"maze": {"name": "Maze", "text": "The path's length and bends, and the Thornwalls that shape it."},
 	&"poisoned": {"name": "Poison", "text": "{spored}: the nightmare takes damage every second."},
 	&"charged": {"name": "Charge", "text": "{static}: at {full}, a bolt strikes the nightmare."},

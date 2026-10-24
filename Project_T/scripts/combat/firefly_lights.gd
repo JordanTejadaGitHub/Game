@@ -142,6 +142,33 @@ const MARSH_RETURNS := 4  # …at most this many times per glow and nightmare
 const EVO_CIRCLING := &"lf_circling_light"  # On a Marsh return every other remembered glow's Firefly flares too
 const EVO_DRAWN := &"lf_drawn_in"
 const DRAWN_SCALE := 0.25  # Drawn In: each Warden touching a flaring Firefly flares for a quarter of its own hit
+# (Far Lights, Lantern Road, Parting Light, Marsh Lights, Circling Light and Drawn In retired 2026-10-24: code kept for saves.)
+# Final pass 2026-10-24 (owner; evo_fixed_firefly.md, final_check.md). Steps here are route points / 2.
+# Spread A: a lantern that carries Strung Lights outside glows, fading past each glow and relit in the next.
+const EVO_EARLY := &"lf_early_lamps"
+const EARLY_GLOWS := 3  # Early Lamps: the 3rd glow entered in the path's first half lights a lantern…
+const LANTERN_FADE_STEPS := 20.0  # …that carries Strung Lights outside glows, fading over this many steps past the last glow left
+const LANTERN_META := &"lf_lantern"  # On a nightmare: true once it carries one (all its walk; the Waymark keeps it)
+const EVO_CARRIED := &"lf_carried_lights"
+const CARRIED_PER_GLOW := 0.08  # Carried Lights: on a lantern carrier, Strung Lights is 8% per glow…
+const CARRIED_MAX := 0.40  # …up to +40%, inside glows and out (the same fade outside)
+const EVO_LATE := &"lf_late_lanterns"
+const LATE_GLOWS := 5  # Late Lanterns: the 5th glow entered anywhere lights a lantern too
+# Spread B: Firefly-only flares along a streak of separate glows (a flare: period 1 s, class_kit.output_share)
+const EVO_ALLEY := &"lf_lantern_alley"
+const STREAK_GAP := 4  # Lantern Alley: a glow entered at most this many steps after leaving the streak's last one carries it on…
+const ALLEY_STEP := 0.25  # …and flares the nightmare from that glow's Firefly: 25% of its damage per glow in the streak…
+const ALLEY_MAX := 1.5  # …up to 150% (FLARE_META: each Firefly once a second)
+const STREAK_META := &"lf_streak"  # On a nightmare: {count, last_exit (route index), lights: [light ids], passed}
+const STREAK_SEEN_META := &"lf_streak_seen"  # On a nightmare: {light id: true}: each glow counts in one streak per nightmare
+const EVO_PARADE := &"lf_lantern_parade"
+const PARADE_MIN := 4  # Lantern Parade: when a streak of this many glows ends (not on a dispel)…
+const PARADE_BASE := 0.25  # …each of its Fireflies flares the nightmare: 25% of its damage…
+const PARADE_PER_FORM := 0.25  # …+25% for each other Firefly form in the streak…
+const PARADE_MAX := 1.0  # …at most 100%
+const PARADE_CLOCK_META := &"lf_parade_next"  # On a Firefly Warden: Lantern Parade's own clock (never shares Lantern Alley's)
+const EVO_PASSED := &"lf_passed_torch"
+const PASSED_CELLS := 2.0  # Passed Torch: a nightmare dispelled mid-streak hands it to the nearest walker within 2 cells, once
 # Retired 2026-10-23 (never offered; their code stays for an old save's path)
 const EVO_TORCH := &"lf_torchbearers"
 const RELAY_SHARE := 0.5  # Torchbearers: half the dispelling hit jumps to the nearest Lit nightmare further along the path
@@ -177,7 +204,8 @@ const MOTH_HITS := 4  # Moth to Flame: after this many other hits the kept crit�
 const MOTH_BONUS := 1.5  # …deals 50% more
 const EVO_PYRE := &"lf_pyre"
 const WHITE_JARS := 3  # White path: inside this many Firefly glows
-const PYRE_RANK := 5  # Pyre / Banked Fire: Wardens of rank V or higher (the real rank)
+const PYRE_DISPELS := 50  # Pyre / Banked Fire: Wardens with this many gold dispels (final pass 2026-10-24; was rank V+)
+const GOLD_COUNTED_META := &"lf_gold_counted"  # On a nightmare: its gold dispel was counted (once)
 const PYRE_META := &"lf_pyre_count"  # On a Warden: {"white" / "white_boss" / "gold" / "gold_boss": direct hits counted}
 const PYRE_EVERY := 2  # Pyre: every 2nd direct hit on white path crits…
 const PYRE_BOSS_EVERY := 3  # …bosses every 3rd
@@ -193,19 +221,22 @@ const EVO_TINDERBOX := &"lf_tinderbox"
 const TINDER_PASSES := 2  # Tinderbox: a passed crit passes once more (never a fourth Warden)
 # Support
 const EVO_BORROWED := &"lf_borrowed_light"
-const LAMP_SHARE := 0.33  # Borrowed Light: another Warden's hit on a Lit nightmare jumps this share (Sprouts count)…
+const LAMP_SHARE := 0.33  # Borrowed Light: another family's Warden's hit on a Lit nightmare jumps this share (no Sprouts; Fireflies until a second family)…
 const LAMP_EVERY := 1.0  # …once a second per Warden
 const LAMP_META := &"lf_lamp_next"  # On a Warden
 const EVO_WAKE := &"lf_lantern_wake"
-const WAKE_PER_JAR := 2  # Lantern Wake: other families' Wardens (Sprouts count) touching each Firefly glow too, nearest the Heartwood first
+const WAKE_PER_JAR := 2  # Lantern Wake: the 2 nearest other families' Wardens (no Sprouts) within WAKE_CELLS of each Firefly glow too…
+const WAKE_CELLS := 2.0  # …centre to centre, on both axes (ties: nearest the Heartwood)…
+const WAKE_LIT_CELLS := 1.0  # …lighting the path within this many cells of them (final pass 2026-10-24: was touching)
 const EVO_SHOW := &"lf_show_the_way"
 const SHOW_SHARE := 0.5  # Show the Way: a Borrowed Light jump carries on once more at half (in full from a glowing Warden)
 const EVO_FULL_GLOW := &"lf_full_glow"
 const FULL_GLOW_TIME := 3.0  # Full Glow: a nightmare hit by a glowing Warden stays Lit this long, anywhere
 const LIT_UNTIL_META := &"lf_lit_until"  # On a nightmare: [until, WeakRef glowing Warden, its light id]
 const EVO_SIGHT := &"lf_sightline"
-const PALE_WARDENS := 3  # Sightline: Lit path in range of this many Wardens that aren't Fireflies is pale…
-const SIGHT_SHARE := 0.5  # …and Borrowed Light jumps half of a hit there, not a third
+const PALE_WARDENS := 3  # Sightline: Lit path in range of this many other families' Wardens (no Sprouts) is pale…
+const SIGHT_SHARE := 0.5  # …and Borrowed Light jumps half of a hit there, not a third, to the healthiest other Lit nightmare…
+const SIGHT_POOL := 6  # …of the nearest this many (the usual jump reach; final pass 2026-10-24)
 const EVO_CONSTELLATION := &"lf_constellation"
 const STAR_WARDENS := 3  # Constellation: this many different Wardens hitting one nightmare on pale path…
 const STAR_WINDOW := 2.0  # …within this long light a star over it…
@@ -263,7 +294,13 @@ var _grown := {}  # Spreading Flame: route cell -> true (grown gold, never white
 var _gold_runs: Array = []  # [first step, last step] of each gold stretch (Firefly glows only)
 var _gold_grow := {}  # Spreading Flame: a stretch's first step -> [steps grown, until]
 var _gold_cells: Array = []  # Gold route cells, grown ones too ("gold path in range", Moth to Flame's holder)
-var _moth_holder: WeakRef = null  # Moth to Flame: the highest-rank Warden covering gold path (cached per rebuild)
+var _moth_holder: WeakRef = null  # Moth to Flame: the Warden with most gold dispels covering gold path (cached per rebuild and gold dispel)
+var _moth_last: WeakRef = null  # …the last holder, kept while no candidate has a gold dispel this block
+var _gold_block := {}  # Gold dispels (Focus A): Warden instance id -> nightmares it dispelled on gold path this block (reset at rest start)
+var _gold_total := {}  # …while it stands (evolving and Nurture keep the node; selling frees it; a Walking Wood swap moves the node)
+var saved_gold: Array = []  # From the run save ([cell x, cell y, block, total] rows), applied once the Wardens are back
+var _one_family := true  # Borrowed Light's bridge: until the second family pick, Firefly hits count too (worked out per rebuild)
+var _wake_from := Vector2.ZERO  # Lantern Wake's sort: the Firefly whose carriers are being picked
 var _kit_node: Node2D = null  # A bare class kit: class_kit.calling_hit and the route by steps (flares)
 
 func _ready() -> void:
@@ -279,6 +316,7 @@ func _ready() -> void:
 func _on_rest() -> void:
 	_sparks.clear()  # Waiting sparks go out when a rest starts
 	_embers.clear()  # So do embers (nothing waits through a rest)
+	_gold_block.clear()  # A new block's gold dispels (Moth to Flame's last holder keeps it until someone has one)
 	if not _gold_grow.is_empty():
 		_gold_grow.clear()  # Spreading Flame's grown gold too
 		_rebuild_in = 0.0
@@ -489,6 +527,10 @@ func _rebuild() -> void:
 		var cells := saved_sprouts
 		saved_sprouts = []
 		load_save(cells)
+	if not saved_gold.is_empty() and not _towers().is_empty():
+		_apply_saved_gold()
+	_prune_gold()
+	_one_family = dream_state.has_method("_families_owned") and int(dream_state._families_owned()) <= 1
 	_board = int(dream_state.board_version)
 	_sources.clear()
 	_glow.clear()
@@ -584,31 +626,47 @@ func _rebuild() -> void:
 		_find_moth_holder()
 	queue_redraw()
 
-# Lantern Wake: up to WAKE_PER_JAR other Wardens (not Fireflies, not walls; Sprouts count) touching each Firefly Warden glow
-# with that Firefly's light: the path touching them is Lit. Nearest the Heartwood first. Never reveals hidden nightmares.
-func _lantern_wake(jars: Array, taken: Array, path: Dictionary, touch: float) -> void:
+# Lantern Wake (final pass 2026-10-24): the WAKE_PER_JAR nearest other families' Wardens (not Fireflies, Sprouts or walls)
+# within WAKE_CELLS of each Firefly Warden (both axes, centre to centre; ties nearest the Heartwood) carry its light: the path
+# within WAKE_LIT_CELLS of them is Lit with that Firefly's light id. Never reveals hidden nightmares.
+func _lantern_wake(jars: Array, taken: Array, path: Dictionary, _touch: float) -> void:
 	var used := {}
 	for tower in taken:
 		used[tower.get_instance_id()] = true
-	var candidates: Array = _towers().filter(is_other)
+	var candidates: Array = _towers().filter(is_other_family)
+	var reach := WAKE_CELLS * _cell() + 1.0
+	var lit := WAKE_LIT_CELLS * _cell() + 1.0
 	for jar_source in _sources.duplicate():
 		if jar_source.sprout or not jars.has(jar_source.tower):
 			continue
 		var jar = jar_source.tower
 		var near: Array = []
 		for tower in candidates:
-			if not used.has(tower.get_instance_id()) and _touching(jar, tower):
+			if not used.has(tower.get_instance_id()) and _within(jar, tower, reach):
 				near.append(tower)
-		near.sort_custom(_nearer_heartwood)
+		_wake_from = jar.global_position
+		near.sort_custom(_nearer_wake)
 		for tower in near.slice(0, WAKE_PER_JAR):
 			used[tower.get_instance_id()] = true
-			var source := {"tower": tower, "sprout": true, "light": int(jar_source.light), "wake": true, "jar": jar}
+			var source := {"tower": tower, "sprout": true, "light": int(jar_source.light), "wake": true, "jar": jar, "reach": lit}
 			_sources.append(source)
 			_wake_ids[tower.get_instance_id()] = source
 			for cell in path:
 				var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
-				if absf(at.x - tower.global_position.x) <= touch and absf(at.y - tower.global_position.y) <= touch:
+				if absf(at.x - tower.global_position.x) <= lit and absf(at.y - tower.global_position.y) <= lit:
 					_note(cell, int(jar_source.light), false)
+
+# Within `reach` px of each other on both axes (centre to centre).
+static func _within(a, b, reach: float) -> bool:
+	return absf(a.global_position.x - b.global_position.x) <= reach and absf(a.global_position.y - b.global_position.y) <= reach
+
+# Lantern Wake's order: nearest the Firefly (_wake_from), then nearest the Heartwood.
+func _nearer_wake(a, b) -> bool:
+	var da: float = a.global_position.distance_squared_to(_wake_from)
+	var db: float = b.global_position.distance_squared_to(_wake_from)
+	if not is_equal_approx(da, db):
+		return da < db
+	return _nearer_heartwood(a, b)
 
 func _nearer_heartwood(a, b) -> bool:
 	return a.global_position.distance_squared_to(_end_px) < b.global_position.distance_squared_to(_end_px)
@@ -641,9 +699,9 @@ func _lay_gold_runs(path: Dictionary) -> void:
 						_grown[cell] = true
 						_gold_cells.append(cell)
 
-# Sightline: Lit route cells in range of PALE_WARDENS or more Wardens that aren't Fireflies (Sprouts count, walls don't).
+# Sightline: Lit route cells in range of PALE_WARDENS or more other families' Wardens (no Sprouts or walls; final pass 2026-10-24).
 func _lay_pale() -> void:
-	var others: Array = _towers().filter(is_other)
+	var others: Array = _towers().filter(is_other_family)
 	if others.size() < PALE_WARDENS:
 		return
 	for cell in _glow:
@@ -663,14 +721,15 @@ func pale_cells(ghost_data: TowerData = null, ghost_cell := Vector2i(-1, -1)) ->
 	var out: Array[Vector2i] = []
 	if not evo(EVO_SIGHT):
 		return out
-	var counts_ghost := ghost_data != null and ghost_cell != Vector2i(-1, -1) and ghost_data.line != LINE and ghost_data.line != "wall"
+	var counts_ghost := ghost_data != null and ghost_cell != Vector2i(-1, -1) and ghost_data.line != LINE and ghost_data.line != "wall" \
+		and ghost_data.get_id() != "sprout" and ghost_data.can_attack
 	if not counts_ghost:
 		for cell in _pale:
 			out.append(Vector2i(cell))
 		return out
 	var ghost_at: Vector2 = Tower.MAP_GRID.calculate_map_position(Vector2(ghost_cell))
 	var ghost_reach: float = ghost_data.attack_range * Tower.MAP_GRID.cell_size.x
-	var others: Array = _towers().filter(is_other)
+	var others: Array = _towers().filter(is_other_family)
 	for cell in _glow:
 		var at: Vector2 = Tower.MAP_GRID.calculate_map_position(cell)
 		var count := 1 if ghost_at.distance_to(at) <= ghost_reach else 0
@@ -683,15 +742,87 @@ func pale_cells(ghost_data: TowerData = null, ghost_cell := Vector2i(-1, -1)) ->
 			out.append(Vector2i(cell))
 	return out
 
-# Moth to Flame's holder: the highest-rank attacking Warden whose range covers a gold step (ties: the higher form).
+# Moth to Flame's holder (final pass 2026-10-24: gold dispels, not rank): the attacking Warden (no Sprouts or walls) whose range
+# covers a gold step with the most gold dispels this block; while none has one this block, the last holder keeps it if it
+# still stands, else the most gold dispels in all. Ties: the higher form. Recomputed per rebuild and on each gold dispel.
 func _find_moth_holder() -> void:
-	var best = null
+	var kit = _kit()
+	var candidates: Array = []
+	var any_block := false
 	for tower in _towers():
-		if not _attacker(tower) or not _gold_in_range(tower):
+		if not kit.counts_as_warden(tower) or not _gold_in_range(tower):
 			continue
-		if best == null or tower.rank > best.rank or (tower.rank == best.rank and int(tower.tower_data.tier) > int(best.tower_data.tier)):
+		candidates.append(tower)
+		if int(_gold_block.get(tower.get_instance_id(), 0)) > 0:
+			any_block = true
+	var last = _moth_last.get_ref() if _moth_last != null else null
+	if not any_block and _tower_ok(last) and kit.counts_as_warden(last):
+		_moth_holder = weakref(last)
+		return
+	var best = null
+	var best_score := -1
+	for tower in candidates:
+		var id: int = tower.get_instance_id()
+		var score := int(_gold_block.get(id, 0)) if any_block else int(_gold_total.get(id, 0))
+		if best == null or score > best_score or (score == best_score and int(tower.tower_data.tier) > int(best.tower_data.tier)):
 			best = tower
+			best_score = score
 	_moth_holder = weakref(best) if best != null else null
+	if best != null:
+		_moth_last = weakref(best)
+
+# Gold dispels (Focus A): a nightmare dispelled on gold or white path (grown gold too) counts once for the Warden whose
+# damage dispelled it (DamageLog's source; no Sprouts or walls). Pyre / Banked Fire read the total, Moth to Flame the block.
+func _note_gold_dispel(source, enemy) -> void:
+	if enemy.has_meta(GOLD_COUNTED_META) or not _kit().counts_as_warden(source) or gold_level(enemy) == 0:
+		return
+	enemy.set_meta(GOLD_COUNTED_META, true)
+	var id: int = source.get_instance_id()
+	var counted := DreamState.dispel_count(enemy)  # A Deeply Blighted counts 3 (Balancing 2026-10-24)
+	_gold_block[id] = int(_gold_block.get(id, 0)) + counted
+	_gold_total[id] = int(_gold_total.get(id, 0)) + counted
+	if evo(EVO_MOTH):
+		_find_moth_holder()
+
+func gold_dispels_block(tower) -> int:
+	return int(_gold_block.get(tower.get_instance_id(), 0)) if is_instance_valid(tower) else 0
+
+func gold_dispels_total(tower) -> int:
+	return int(_gold_total.get(tower.get_instance_id(), 0)) if is_instance_valid(tower) else 0
+
+# A sold Warden's counts go with it.
+func _prune_gold() -> void:
+	if _gold_total.is_empty() and _gold_block.is_empty():
+		return
+	var standing := {}
+	for tower in _towers():
+		standing[tower.get_instance_id()] = true
+	for counts in [_gold_total, _gold_block]:
+		for id in counts.keys():
+			if not standing.has(id):
+				counts.erase(id)
+
+# Saved with the run (Main Merger's RunSaver, beside "batch"): [cell x, cell y, block, total] per Warden with any.
+func gold_to_save() -> Array:
+	var rows: Array = []
+	for tower in _towers():
+		var id: int = tower.get_instance_id()
+		if _gold_total.has(id) or _gold_block.has(id):
+			rows.append([tower.cell.x, tower.cell.y, int(_gold_block.get(id, 0)), int(_gold_total.get(id, 0))])
+	return rows
+
+func gold_load_save(rows: Array) -> void:
+	saved_gold = rows.duplicate()
+	_rebuild_in = 0.0
+
+func _apply_saved_gold() -> void:
+	var rows := saved_gold
+	saved_gold = []
+	for tower in _towers():
+		for row in rows:
+			if row is Array and row.size() == 4 and tower.cell.is_equal_approx(Vector2(row[0], row[1])):
+				_gold_block[tower.get_instance_id()] = int(row[2])
+				_gold_total[tower.get_instance_id()] = int(row[3])
 
 # Whether gold path (grown gold too) lies inside `tower`'s range.
 func _gold_in_range(tower) -> bool:
@@ -765,7 +896,8 @@ func sources_at(at: Vector2) -> Array:
 		if not is_instance_valid(tower):
 			continue
 		if source.sprout:
-			if absf(at.x - tower.global_position.x) <= touch and absf(at.y - tower.global_position.y) <= touch:
+			var reach: float = source.get("reach", touch)  # (A Lantern Wake carrier's 1 cell)
+			if absf(at.x - tower.global_position.x) <= reach and absf(at.y - tower.global_position.y) <= reach:
 				out.append(source)
 		elif tower.global_position.distance_to(at) <= glow_reach(tower):
 			out.append(source)
@@ -863,6 +995,15 @@ func nearest_lit(at: Vector2, skip: Array, count: int = 1) -> Array:
 	found.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 	return found.slice(0, count)
 
+# Sightline / Constellation on pale path: of the SIGHT_POOL nearest other Lit nightmares, the one with the most health left
+# (ties: the nearer), as a one-item list ([] = none).
+func _healthiest_lit(at: Vector2, skip: Array) -> Array:
+	var best = null
+	for enemy in nearest_lit(at, skip, SIGHT_POOL):
+		if best == null or float(enemy.health) > float(best.health):
+			best = enemy
+	return [best] if best != null else []
+
 # The nearest Lit nightmares that event `id` has not struck yet (recursive hops).
 func _fresh_lit(at: Vector2, id: int, skip: Array, count: int = 1) -> Array:
 	var seen: Dictionary = _event_seen.get(id, {})
@@ -925,11 +1066,14 @@ func _poll() -> void:
 		return
 	var lit := 0
 	_lit_by_step = []
+	var streaks := evo(EVO_ALLEY)
 	for enemy in container.get_children():
 		if not _living(enemy) or not enemy.has_method("get_current_cell"):
 			continue
 		var sources := _lit_sources(enemy)
 		var lights: Array = lights_of(sources)
+		if streaks and enemy.has_meta(STREAK_META):
+			_streak_tick(enemy, lights)  # Lantern Alley / Parade: a streak ends 4 steps past its last glow or at the Heartwood
 		var before: Array = enemy.get_meta(GROUPS_META, [])
 		if not lights.is_empty():
 			lit += 1
@@ -1045,6 +1189,14 @@ func _spread_entered(enemy, light: int) -> void:
 	_mark(enemy)
 	var at := _front(enemy)
 	var flyer := at < 0
+	if first and evo(EVO_EARLY) and not enemy.has_meta(LANTERN_META):
+		var early := glows.size() >= EARLY_GLOWS and _route_share(enemy, at) < 0.5
+		var late := evo(EVO_LATE) and glows.size() >= LATE_GLOWS
+		if early or late:
+			enemy.set_meta(LANTERN_META, true)  # Early Lamps / Late Lanterns: it carries a lantern the rest of its walk
+			credit(EVO_EARLY if early else EVO_LATE, enemy.global_position)
+	if evo(EVO_ALLEY):
+		_streak_entered(enemy, light, at)
 	if evo(EVO_ROAD) and glows.size() >= ROAD_FROM:
 		_flare(light, enemy, ROAD_SCALE, EVO_ROAD)  # From the 4th glow every entry, near or far, at double
 	elif evo(EVO_FAR) and (flyer or at - int(enemy.get_meta(LAST_EXIT_META, 0)) >= FAR_STEPS * 2):
@@ -1073,6 +1225,9 @@ func _left(enemy, light: int) -> void:
 		if glows.has(light):
 			glows[light][1] = at
 			enemy.set_meta(GLOWS_META, glows)
+		var streak: Dictionary = enemy.get_meta(STREAK_META, {})
+		if not streak.is_empty() and (streak.lights as Array).has(light):
+			streak.last_exit = at  # Lantern Alley's gap counts from leaving the streak's glow
 	if evo(EVO_PARTING) and glows.size() >= ROAD_FROM:
 		_flare(light, enemy, PART_SCALE, EVO_PARTING, PART_META)  # Its own clock: never into a spent budget
 
@@ -1092,16 +1247,146 @@ func _flare(light: int, enemy, scale: float, own: StringName, budget: StringName
 	if not _living(enemy):
 		return false
 	var jar = _jar_of(light, enemy.global_position)
-	if jar == null or jar.attack_data == null:
+	if not _flare_from(jar, enemy, scale, own, budget):
 		return false
-	var from: Vector2 = jar.global_position
-	var dealt: float = _kit().calling_hit(jar, enemy, scale, FLARE_TAG, own, false, true, budget, BOSS_SHARE)
-	if dealt <= 0.0:
-		return false
-	_line_fx(from, enemy.global_position, 3.0, Palette.GLOW)
 	if evo(EVO_DRAWN) and _living(enemy):
 		_drawn_in(jar, enemy)
 	return true
+
+# One flare from Firefly Warden `jar` (period 1 s: calling_hit's default output share). True when it dealt damage (the
+# clock on `budget` is spent only then).
+func _flare_from(jar, enemy, scale: float, own: StringName, budget: StringName) -> bool:
+	if jar == null or not is_instance_valid(jar) or jar.attack_data == null or not _living(enemy):
+		return false
+	if _now() < float(jar.get_meta(budget, -INF)):
+		return false
+	var dealt: float = _kit().calling_hit(jar, enemy, scale, FLARE_TAG, own, false, true, &"", BOSS_SHARE)
+	if dealt <= 0.0:
+		return false
+	jar.set_meta(budget, _now() + CLASS_KIT.CALLING_HIT_EVERY)
+	_line_fx(jar.global_position, enemy.global_position, 3.0, Palette.GLOW)
+	return true
+
+# How far along its route a nightmare is (0 start, 1 Heartwood): a walker by route index over the joined route's length; a
+# flyer by its straight flight (start to Heartwood).
+func _route_share(enemy, at: int) -> float:
+	var kit = _kit()
+	if at >= 0 and kit._route.size() > 1:
+		return float(at) / float(kit._route.size() - 1)
+	var start: Vector2 = _step_px.get(0, Vector2.ZERO)
+	var whole := start.distance_to(_end_px)
+	if whole <= 0.0:
+		return 0.0
+	return clampf(1.0 - enemy.global_position.distance_to(_end_px) / whole, 0.0, 1.0)
+
+# The lantern's strength on `enemy` for Early Lamps / Carried Lights (0: none): 1 inside any Firefly glow (relit), else
+# fading to 0 over LANTERN_FADE_STEPS past the last glow it left. Flyers have no steps: theirs never fades. For the UI too.
+func lantern_level(enemy) -> float:
+	if not _living(enemy) or not enemy.has_meta(LANTERN_META) or not evo(EVO_EARLY):
+		return 0.0
+	if jars_at(_lit_sources(enemy)) >= 1:
+		return 1.0
+	var at := _front(enemy)
+	if at < 0:
+		return 1.0
+	var since := float(at - int(enemy.get_meta(LAST_EXIT_META, at))) / 2.0
+	return maxf(0.0, 1.0 - since / LANTERN_FADE_STEPS)
+
+# The glows in `enemy`'s open streak (0: none), for the UI's streak counter.
+func streak_of(enemy) -> int:
+	return int((enemy.get_meta(STREAK_META, {}) as Dictionary).get("count", 0)) if is_instance_valid(enemy) else 0
+
+# Lantern Alley: a nightmare entered glow `light` (route index `at`). A glow not yet in any of its streaks, entered at most
+# STREAK_GAP steps after it left the streak's last glow (or while it still stands in one), carries the streak on and flares
+# it from that glow's Firefly at ALLEY_STEP per glow in the streak; else a new streak starts there (no flare). Each glow
+# counts in one streak per nightmare (bends and laps never refire). Flyers have no steps: no streaks.
+func _streak_entered(enemy, light: int, at: int) -> void:
+	if at < 0:
+		return
+	var seen: Dictionary = enemy.get_meta(STREAK_SEEN_META, {})
+	if seen.has(light):
+		return
+	seen[light] = true
+	enemy.set_meta(STREAK_SEEN_META, seen)
+	var streak: Dictionary = enemy.get_meta(STREAK_META, {})
+	var inside := false
+	if not streak.is_empty():
+		for other in enemy.get_meta(GROUPS_META, []):
+			if int(other) != light and (streak.lights as Array).has(other):
+				inside = true
+	if not streak.is_empty() and (inside or at - int(streak.last_exit) <= STREAK_GAP * 2):
+		streak.count = int(streak.count) + 1
+		(streak.lights as Array).append(light)
+		_flare_from(_jar_of(light, enemy.global_position), enemy, minf(ALLEY_STEP * float(streak.count), ALLEY_MAX), EVO_ALLEY, FLARE_META)
+		return
+	if not streak.is_empty():
+		_end_streak(enemy, streak)  # (One that ran out between polls)
+	enemy.set_meta(STREAK_META, {"count": 1, "last_exit": at, "lights": [light], "passed": false})
+
+# Each poll: a streak ends STREAK_GAP steps past its last glow with no new one, or at the Heartwood (never on a dispel).
+func _streak_tick(enemy, lights: Array) -> void:
+	var streak: Dictionary = enemy.get_meta(STREAK_META)
+	for light in lights:
+		if (streak.lights as Array).has(light):
+			return  # Still in one of its glows
+	var at := _front(enemy)
+	if at < 0:
+		return
+	var kit = _kit()
+	if at - int(streak.last_exit) > STREAK_GAP * 2 or at >= kit._route.size() - 2:
+		enemy.remove_meta(STREAK_META)
+		_end_streak(enemy, streak)
+
+# Lantern Parade: a streak of PARADE_MIN+ glows that ended flares the nightmare from each of its Fireflies: PARADE_BASE plus
+# PARADE_PER_FORM per other Firefly form among them, at most PARADE_MAX; its own clock per Firefly (PARADE_CLOCK_META).
+func _end_streak(enemy, streak: Dictionary) -> void:
+	if not evo(EVO_PARADE) or int(streak.get("count", 0)) < PARADE_MIN or not _living(enemy):
+		return
+	var jars: Array = []
+	var forms := {}
+	for light in streak.lights:
+		var jar = _jar_of(int(light), enemy.global_position)
+		if jar != null and not jars.has(jar):
+			jars.append(jar)
+			forms[jar.tower_data.get_id()] = true
+	var scale := minf(PARADE_BASE + PARADE_PER_FORM * float(forms.size() - 1), PARADE_MAX)
+	var any := false
+	for jar in jars:
+		if _flare_from(jar, enemy, scale, EVO_PARADE, PARADE_CLOCK_META):
+			any = true
+	if any:
+		Reactions._effect(&"spark_burst", enemy.global_position, self, 0.8)
+
+# Passed Torch: a nightmare dispelled with an open streak hands it to the nearest walker within PASSED_CELLS that isn't
+# already in a streak as long; its glows already counted stay counted (seen sets joined). A streak passes once.
+func _pass_streak(enemy) -> void:
+	var streak: Dictionary = enemy.get_meta(STREAK_META, {})
+	if streak.is_empty() or bool(streak.get("passed", false)):
+		return
+	enemy.remove_meta(STREAK_META)  # A dispel never ends a streak into a Parade
+	var at: Vector2 = enemy.global_position
+	var reach := PASSED_CELLS * _cell()
+	var best = null
+	for other in _enemies():
+		if other == enemy or other.is_flying() or other.global_position.distance_to(at) > reach:
+			continue
+		var theirs: Dictionary = other.get_meta(STREAK_META, {})
+		if not theirs.is_empty() and int(theirs.count) >= int(streak.count):
+			continue
+		if best == null or other.global_position.distance_squared_to(at) < best.global_position.distance_squared_to(at):
+			best = other
+	if best == null:
+		return
+	var front := _front(best)
+	var copy := streak.duplicate(true)
+	copy.passed = true
+	copy.last_exit = maxi(front, 0)
+	best.set_meta(STREAK_META, copy)
+	var seen: Dictionary = best.get_meta(STREAK_SEEN_META, {})
+	seen.merge(enemy.get_meta(STREAK_SEEN_META, {}))
+	best.set_meta(STREAK_SEEN_META, seen)
+	_line_fx(at, best.global_position, 2.0, Palette.GLOW)
+	credit(EVO_PASSED, best.global_position)
 
 # Drawn In: each attacking Warden touching a flaring Firefly (Sprouts count, walls don't) flares the nightmare for a
 # quarter of its own hit, once a second each (its own clock). These flares never call Drawn In again.
@@ -1175,6 +1460,10 @@ func _on_damage(event) -> void:
 	if on and _evolved():
 		if is_hit and evo(EVO_FULL_GLOW) and _wake_ids.has(source.get_instance_id()):
 			_glow_on(enemy, source)  # Full Glow: before the Lit check, so the nightmare it hits is Lit at once
+		if dispel and evo(EVO_BONFIRE):
+			_note_gold_dispel(source, enemy)  # Focus A's gold dispels (Moth to Flame, Pyre, Banked Fire), before the crit rows read them
+		if dispel and evo(EVO_PASSED):
+			_pass_streak(enemy)  # Passed Torch: the streak goes on in the nearest walker
 		if evo(EVO_BONFIRE):
 			_focus_event(event, source, enemy, dispel, is_hit)  # Gold path by grown steps too: before the Lit check
 	if on:
@@ -1444,11 +1733,25 @@ func hit_multiplier(tower, enemy, _is_area: bool, is_crit: bool, combo: StringNa
 	var m := 1.0
 	if combo == &"" and evo(EVO_STRUNG):  # Not jumps, bolts, flares or statuses
 		var glows := (enemy.get_meta(GLOWS_META, {}) as Dictionary).size()
-		if glows > 0 and jars_at(_lit_sources(enemy)) >= 1:
-			var strung := 1.0 + minf(STRUNG_PER_GLOW * glows, STRUNG_MAX)
-			m *= strung
-			DamageLog.note_card_bonus(String(EVO_STRUNG), strung)
-			credit(EVO_STRUNG, enemy.global_position, tower)
+		if glows > 0:
+			# Early Lamps' lantern carries it outside glows, fading (lantern_level); Carried Lights: 8% a glow, to +40%, for a carrier
+			var lantern := lantern_level(enemy)
+			var carried := lantern > 0.0 and evo(EVO_CARRIED)
+			var share := 0.0
+			var row := EVO_STRUNG
+			if carried:
+				share = minf(CARRIED_PER_GLOW * glows, CARRIED_MAX) * lantern
+				row = EVO_CARRIED
+			elif jars_at(_lit_sources(enemy)) >= 1:
+				share = minf(STRUNG_PER_GLOW * glows, STRUNG_MAX)
+			elif lantern > 0.0:
+				share = minf(STRUNG_PER_GLOW * glows, STRUNG_MAX) * lantern
+				row = EVO_EARLY
+			if share > 0.0:
+				var strung := 1.0 + share
+				m *= strung
+				DamageLog.note_card_bonus(String(row), strung)
+				credit(row, enemy.global_position, tower)
 	if is_crit and evo(EVO_MOTH) and tower.has_meta(FORCED_META):
 		var forced: Array = tower.get_meta(FORCED_META)
 		if int(forced[0]) == Engine.get_process_frames() and bool(forced[3]) and int(forced[4]) == enemy.get_instance_id():
@@ -1493,10 +1796,10 @@ func calling_crit(tower, enemy) -> bool:
 	credit(cause, enemy.global_position, tower)
 	return true
 
-# Pyre (white path) and Banked Fire (gold, not white): this rank V+ Warden's direct hits there, counted per Warden; true on
-# every PYRE_EVERY-th (BANKED_EVERY-th; bosses one more). Returns the row whose beat this is, or &"".
+# Pyre (white path) and Banked Fire (gold, not white): direct hits there by a Warden with PYRE_DISPELS gold dispels, counted per
+# Warden; true on every PYRE_EVERY-th (BANKED_EVERY-th; bosses one more). Returns the row whose beat this is, or &"".
 func _beat(tower, enemy, level: int) -> StringName:
-	if tower.rank < PYRE_RANK or level == 0:
+	if level == 0 or gold_dispels_total(tower) < PYRE_DISPELS:
 		return &""
 	var white := level == 2
 	if not evo(EVO_PYRE) or (not white and not evo(EVO_BANKED)):
@@ -1543,7 +1846,7 @@ func _focus_event(event, source, enemy, dispel: bool, is_hit: bool) -> void:
 		if evo(EVO_MOTH) and not enemy.has_meta(MOTH_META) and _moth_holder != null:
 			var holder = _moth_holder.get_ref()
 			if _attacker(holder):
-				enemy.set_meta(MOTH_META, [holder.get_instance_id(), 0])  # Kept for the highest-rank Warden there
+				enemy.set_meta(MOTH_META, [holder.get_instance_id(), 0])  # Kept for the Warden with most gold dispels
 				_mark(enemy)
 	if not event.combos.has(&"crit"):
 		return
@@ -1569,9 +1872,12 @@ func _spread_gold(enemy, source) -> void:
 		return
 
 # Flint and Steel: a crit on gold passes to the nearest Warden touching the critting one with gold path in range (Sprouts
-# count, walls never): its next direct hit on gold crits. One waiting pass per Warden; a passed crit never passes on, except
-# with Tinderbox once more (to a Warden touching the second, never back along the chain, never a fourth).
+# and walls never take or pass one: final pass 2026-10-24): its next direct hit on gold crits. One waiting pass per Warden; a
+# passed crit never passes on, except with Tinderbox once more (to a Warden touching the second, never back, never a fourth).
 func _pass_crit(source, forced: Array) -> void:
+	var kit = _kit()
+	if not kit.counts_as_warden(source):
+		return
 	var passes := int(forced[0]) if not forced.is_empty() else 0
 	var chain: Array = (forced[1] as Array).duplicate() if not forced.is_empty() else []
 	if passes >= TINDER_PASSES or (passes >= 1 and not evo(EVO_TINDERBOX)):
@@ -1579,7 +1885,7 @@ func _pass_crit(source, forced: Array) -> void:
 	chain.append(source.get_instance_id())
 	var best = null
 	for tower in _towers():
-		if not _attacker(tower) or chain.has(tower.get_instance_id()) or tower.has_meta(PASS_META) or not _touching(source, tower):
+		if not kit.counts_as_warden(tower) or chain.has(tower.get_instance_id()) or tower.has_meta(PASS_META) or not _touching(source, tower):
 			continue
 		if not _gold_in_range(tower):
 			continue
@@ -1620,7 +1926,7 @@ class StruckSpark extends Node2D:
 func _mark(enemy) -> void:
 	if not _living(enemy):
 		return
-	var held = enemy.get_meta(MARK_META, null)
+	var held = enemy.get_meta(MARK_META) if enemy.has_meta(MARK_META) else null  # (A null default is no default: it errors)
 	if held is WeakRef and is_instance_valid(held.get_ref()):
 		return
 	var world := Reactions._world(self)
@@ -1680,8 +1986,8 @@ func mark_stamp(state: Array) -> int:
 
 class LanternMark extends Node2D:
 	const BAR_DEFAULT := Vector2(0, -38)  # Enemy.HEALTH_BAR_OFFSET, when the nightmare is gone
-	const WAITING_FLAME_AT := Vector2(-25, 17)  # From the bar centre: the gap under the bar's left end
-	const MOTH_FLAME_AT := Vector2(26, 20)  # ...and its right end
+	const WAITING_FLAME_AT := Vector2(-9, 20)  # From the bar centre: tucked under the bar's middle, inside its width
+	const MOTH_FLAME_AT := Vector2(10, 22)  # ...beside it (Bonfire and Moth are both Focus; asset chat 2026-10-23)
 	const STAR_AT := Vector2(0, -30)  # Above the status row
 	const STAR_CHARGES: Array[Vector2] = [Vector2(-13, 0), Vector2(13, 0), Vector2(0, -13)]
 	var _enemy: WeakRef
@@ -1733,7 +2039,7 @@ class LanternMark extends Node2D:
 		var enemy = _enemy.get_ref()
 		var bar: Vector2 = enemy._body_offset() + enemy._bar_offset if enemy != null and "_bar_offset" in enemy else BAR_DEFAULT  # Where its HUD draws the bar
 		for i in int(_state[0]):  # Strung Lights: a spark pip per glow entered, hung just under the bar (lf_strung_pip)
-			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 4)
+			var pip: Vector2 = bar + Vector2(-12 + 6 * i, 6)
 			if not (art and lights.evo_mark(self, &"lf_strung_pip", pip)):
 				draw_circle(pip, 1.5, Palette.GLOW)
 		if bool(_state[1]):  # Bonfire: a small flame holding a waiting crit (lf_waiting_flame), at the bar's left
@@ -1809,14 +2115,18 @@ func _can_hop(request: Dictionary) -> bool:
 
 # --- Support: borrowed light (Borrowed Light, Lantern Wake, Show the Way, Full Glow, Sightline, Constellation, North Star) --
 
-# Borrowed Light: another Warden's direct hit on a Lit nightmare (Sprouts count) jumps a third to the nearest other Lit
-# nightmare, once a second per Warden. Sightline: half, on pale path. Constellation: a nightmare under a star jumps its next
-# STAR_HITS hits in full, from any Warden (Fireflies too), within the same once-a-second clock. Capped by the light's
-# brightness, except a Sprout's. Evolution jumps are damage only for every other card ("row", R1).
+# Borrowed Light (final pass 2026-10-24): another family's Warden's direct hit on a Lit nightmare (no Sprouts or walls; until
+# the second family pick, Firefly Wardens' too) jumps a third to the nearest other Lit nightmare, once a second per Warden.
+# Sightline: half, on pale path, to the healthiest other Lit nightmare of the nearest SIGHT_POOL. Constellation: a nightmare
+# under a star jumps its next STAR_HITS hits in full, from any Warden, within the same clock (on pale path to the healthiest).
+# Jumps are a share of the real hit (per own attack: no per-output cap), capped by the light's brightness (3 s of the
+# lighting Firefly). Evolution jumps are damage only for every other card ("row", R1).
 func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> void:
 	var stars := int(enemy.get_meta(STAR_META, 0)) if evo(EVO_CONSTELLATION) else 0
-	if (stars > 0 or is_other(source)) and _now() >= float(source.get_meta(LAMP_META, -INF)):
-		var targets := nearest_lit(at, [enemy])
+	var lends := is_other_family(source) or (_one_family and is_firefly(source))
+	if (stars > 0 or lends) and _now() >= float(source.get_meta(LAMP_META, -INF)):
+		var pale := evo(EVO_SIGHT) and is_pale(enemy)
+		var targets := _healthiest_lit(at, [enemy]) if pale else nearest_lit(at, [enemy])
 		if not targets.is_empty():
 			source.set_meta(LAMP_META, _now() + LAMP_EVERY)
 			var share := LAMP_SHARE
@@ -1828,10 +2138,10 @@ func _borrowed_light(id: int, event, source, enemy, at: Vector2, cap: float) -> 
 					enemy.set_meta(STAR_META, stars - 1)
 				else:
 					enemy.remove_meta(STAR_META)
-			elif evo(EVO_SIGHT) and is_pale(enemy):
+			elif pale:
 				share = SIGHT_SHARE
 				own = EVO_SIGHT
-			var limit := INF if source.tower_data.get_id() == "sprout" else cap
+			var limit := cap
 			_fork(id, source, at, targets[0], event.base * share, limit, {"origin": enemy, "color": Palette.GLOW,
 				"width": 3.0 if stars > 0 else 2.0, "credit": own, "row": true, "borrowed": stars <= 0,
 				"glowing": _wake_ids.has(source.get_instance_id())})
@@ -1867,8 +2177,8 @@ func _glow_on(enemy, source) -> void:
 # over it (its next STAR_HITS hits jump in full); North Star: a boss or a Deeply Blighted nightmare on any Lit path, from
 # NORTH_WARDENS. Each nightmare once every STAR_LOCK s.
 func _star_note(source, enemy) -> void:
-	if not evo(EVO_CONSTELLATION) or not _living(enemy):
-		return
+	if not evo(EVO_CONSTELLATION) or not _living(enemy) or not _kit().counts_as_warden(source):
+		return  # (Different Wardens: never Sprouts or walls; final pass 2026-10-24)
 	var now := _now()
 	if now < float(enemy.get_meta(STAR_NEXT_META, -INF)) or int(enemy.get_meta(STAR_META, 0)) > 0:
 		return

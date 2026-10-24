@@ -4236,8 +4236,8 @@ func _shroom_effects() -> void:
 		_sheet("spore_mushroom" + suffix, Vector2i(m, m), 4, 4, Vector2i(m / 2, m - 2), true, "ground",
 			_shroom_frame.bind(_toadstool.bind(n), Vector2i(n, n), SHROOM_CAP),
 			{note = "Spore Print: a glowing toadstool on the path with its halo and shadow, a slow breathe loop (%d px toadstool in a %d px frame; anchor = the stem's foot, on the route point). Sizes: spore_mushroom_small 14, spore_mushroom 20, spore_mushroom_big 26." % [n, m]})
-	_sheet("spore_mushroom_pop", Vector2i(24, 24), 3, 12, Vector2i(12, 20), false, "ground", _toadstool_pop,
-		{note = "Spore Print: a mushroom eaten, its cap bursting into spores, ~0.25 s (anchor = the stem's foot, like spore_mushroom)."})
+	_sheet("spore_mushroom_pop", POP_SIZE, 6, 12, Vector2i(POP_FOOT), false, "ground", _toadstool_pop,
+		{note = "Spore Print: a mushroom eaten as a nightmare's feet reach it: squashed, cracked, then its cap bursts up into three pieces and a pink spore cloud with a dust ring, a torn stub left; ~0.5 s (anchor = the stem's foot, like spore_mushroom)."})
 
 # Redrawn 2026-10-22 (owner: "can you create a better looking mushroom for the spore calling"): a bell cap with a
 # slight droop, shaded through the whole Blossom ramp with a dithered terminator and a highlight crescent, spots of
@@ -4252,37 +4252,160 @@ func _toadstool(img: Image, f: int, n: int, ground: bool = true) -> void:
 	_shroom_part(img, foot, cap_c, cap_r, 1.5 * k + 0.3, SHROOM_CAP, true, 0.12, f == 1 or f == 2, ground, ground)
 	_shroom_motes(img, f, cap_c, cap_r)  # The glow: a few soft motes over the cap on the breath (never a ring of fog)
 
+# The pop, redrawn 2026-10-23 (owner: "redraw the pop so it clearly bursts where the mushroom stands"): it now plays as
+# the nightmare's feet reach the cap (Roguelite Code a1dc45c6), so a nightmare is usually standing on it. It bursts UP
+# and OUT, over the nightmare's back: a squash, the cap cracking with a flash, the cap bursting into three pieces and a
+# pink spore cloud with a dust ring round the foot, the pieces falling, the cloud thinning, a torn stub left. Six
+# frames at 12 fps (~0.5 s), one shot, its anchor the stem's foot like spore_mushroom's.
+const POP_SIZE := Vector2i(36, 36)
+const POP_FOOT := Vector2(18.0, 31.0)
+const HEART_PX := Color("#fff4dc")  # Heartlight: the crack's flash, the burst's core
+const GLOW_PX := Color("#fcd47c")
+
+func _empty_px(img: Image, x: int, y: int) -> bool:
+	return x < 0 or y < 0 or x >= img.get_width() or y >= img.get_height() or img.get_pixel(x, y).a == 0.0
+
+# A pixel grid: one string per row, `keys` maps each character to a colour ('.' is empty).
+func _grid(img: Image, rows: Array, keys: Dictionary, at: Vector2i) -> void:
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if keys.has(row[x]):
+				_px(img, at.x + x, at.y + y, keys[row[x]])
+
+# A 1 px SHROOM_O outline round everything opaque in `img`.
+func _outline_ink(img: Image) -> void:
+	var add: Array = []
+	for y in img.get_height():
+		for x in img.get_width():
+			if not _empty_px(img, x, y):
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				if not _empty_px(img, x + d.x, y + d.y):
+					add.append(Vector2i(x, y))
+					break
+	for p: Vector2i in add:
+		img.set_pixelv(p, SHROOM_O)
+
+func _over_px(dst: Image, src: Image) -> void:
+	for y in src.get_height():
+		for x in src.get_width():
+			var c := src.get_pixel(x, y)
+			if c.a > 0.0:
+				dst.set_pixel(x, y, c)
+
+# The resting mushroom (cap and stem, no moss or shadow), squashed by `scale` about its foot.
+func _pop_squash(img: Image, scale: Vector2) -> void:
+	var rest := Image.create_empty(20, 20, false, Image.FORMAT_RGBA8)
+	_toadstool(rest, 0, 20, false)
+	for y in img.get_height():
+		for x in img.get_width():
+			var src := Vector2(10, 18) + (Vector2(x + 0.5, y + 0.5) - POP_FOOT) / scale
+			if src.x >= 0 and src.y >= 0 and src.x < 20 and src.y < 20:
+				var col := rest.get_pixel(int(src.x), int(src.y))
+				if col.a > 0.0:
+					img.set_pixel(x, y, col)
+
 func _toadstool_pop(img: Image, f: int) -> void:
-	var c := Vector2(12, 11)
-	if f == 0:  # the resting 20 px cap itself, squashed as it is stepped on (never a bigger cap: user 2026-10-22, "the big
-		# one spawns in when it hits an enemy"), its foot on the anchor like spore_mushroom's, its first spores leaving
-		var rest := Image.create_empty(20, 20, false, Image.FORMAT_RGBA8)
-		_toadstool(rest, 0, 20, false)  # The cap and stem only: the moss and shadow stay on the path, never squashed
-		var foot := Vector2(12, 20)
-		for y in 24:
-			for x in 24:
-				var src := Vector2(10, 18) + (Vector2(x + 0.5, y + 0.5) - foot) / Vector2(1.15, 0.8)
-				if src.x >= 0 and src.y >= 0 and src.x < 20 and src.y < 20:
-					var col := rest.get_pixel(int(src.x), int(src.y))
-					if col.a > 0.0:
-						img.set_pixel(x, y, col)
-		for p: Vector2i in [Vector2i(4, 9), Vector2i(19, 8), Vector2i(8, 5), Vector2i(16, 4)]:  # the first spores leaving it
-			_px(img, p.x, p.y, SHROOM_CAP[3])
-		return
-	var r: float = [0.0, 6.0, 9.5][f]
-	var a: float = [1.0, 1.0, 0.4][f]
-	for i in 8:  # spores flying out
-		var d := Vector2.from_angle(i * TAU / 8.0 + 0.2)
-		var p := c + Vector2(d.x * r, d.y * r * 0.7) + Vector2(0, -f)
-		_px(img, roundi(p.x), roundi(p.y), Color(SHROOM_CAP[2] if i % 2 == 0 else SHROOM_STEM[1], a))
+	var foot := Vector2i(POP_FOOT)
+	var cap := POP_FOOT + Vector2(0, -10)  # Where the cap was
+	if f <= 1:  # Stepped on: squashed, then flatter with a crack; the moss tuft stays at its foot (council: it jumped)
+		_pop_squash(img, Vector2(1.15, 0.8) if f == 0 else Vector2(1.3, 0.62))
+		# (Where the resting mushroom draws it: _shroom_part's tuft at reach 4 round a 20 px toadstool's foot)
+		for p: Array in [[-5, 0, SHROOM_MOSS[1]], [-4, 0, SHROOM_MOSS[2]], [-4, -1, SHROOM_MOSS[1]], [4, 0, SHROOM_MOSS[1]], [5, 0, SHROOM_MOSS[0]], [3, 0, SHROOM_MOSS[0]]]:
+			if _empty_px(img, foot.x + int(p[0]), foot.y + int(p[1])):
+				_px(img, foot.x + int(p[0]), foot.y + int(p[1]), p[2])
 		if f == 1:
-			_px(img, roundi(p.x) + 1, roundi(p.y), Color(SHROOM_CAP[1], a))
-	if f == 1:  # the stem's stub left on the path
-		for y in range(17, 21):
-			_px(img, 11, y, SHROOM_STEM[1])
-			_px(img, 12, y, SHROOM_STEM[0])
-		_px(img, 10, 20, SHROOM_O)
-		_px(img, 13, 20, SHROOM_O)
+			for p: Vector2i in [Vector2i(17, 22), Vector2i(18, 22), Vector2i(19, 23)]:
+				_px(img, p.x, p.y, HEART_PX)
+			_px(img, 18, 21, Color(GLOW_PX, 0.75))
+			for p: Vector2i in [Vector2i(8, 21), Vector2i(28, 20), Vector2i(13, 17), Vector2i(23, 16)]:
+				_px(img, p.x, p.y, Color(SHROOM_CAP[2], 0.75))
+		return
+	# Frames 2-5: the torn stub stays on the path, outlined, shrinking at the end so the pop never blinks out
+	var stub := Image.create_empty(POP_SIZE.x, POP_SIZE.y, false, Image.FORMAT_RGBA8)
+	var stub_rows: int = [0, 0, 4, 4, 3, 2][f]
+	for y in range(foot.y - stub_rows + 1, foot.y + 1):
+		_px(stub, foot.x - 1, y, SHROOM_STEM[1])
+		_px(stub, foot.x, y, SHROOM_STEM[0])
+	if f <= 3:  # Torn gills on its top
+		_px(stub, foot.x - 1, foot.y - 4, SHROOM_CAP[1])
+		_px(stub, foot.x + 1, foot.y - 4, SHROOM_CAP[0])
+		_px(stub, foot.x, foot.y - 4, SHROOM_CAP[1])
+	_outline_ink(stub)
+	_over_px(img, stub)
+	if f <= 4:  # The dust ring round the foot, spreading (gone in the last frame)
+		var ring_r: float = [0.0, 0.0, 6.0, 9.0, 11.0, 12.0][f]
+		for i in 24:
+			var a := TAU * i / 24.0
+			var p := Vector2(foot) + Vector2(cos(a) * ring_r, sin(a) * ring_r * 0.3)
+			if i % 2 == 0 and _empty_px(img, int(p.x), int(p.y)):
+				_px(img, int(p.x), int(p.y), Color(SHROOM_STEM[0], 0.75 if f <= 3 else 0.4))
+	# The spore cloud (council pass 1): banded like spore_sprite_burst / crit_flare. At the burst a solid bright core,
+	# a solid band, then checker, wider than the squashed cap; it rises, its bands thin out, and the last frame is
+	# only a sparse haze.
+	var cloud_r: float = [0.0, 0.0, 11.0, 11.0, 12.0, 12.5][f]
+	var cloud_c := cap + Vector2(0, -float(f - 2) * 1.5)
+	for y in POP_SIZE.y:
+		for x in POP_SIZE.x:
+			if not _empty_px(img, x, y):
+				continue
+			var d := Vector2(x + 0.5 - cloud_c.x, (y + 0.5 - cloud_c.y) * 1.25).length() / cloud_r
+			if d > 1.0:
+				continue
+			match f:
+				2:
+					if d < 0.3:
+						_px(img, x, y, SHROOM_CAP[3])
+					elif d < 0.6:
+						_px(img, x, y, Color(SHROOM_CAP[2], 0.75))
+					elif (x + y) % 2 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[2], 0.4))
+				3:
+					if d < 0.3:
+						_px(img, x, y, Color(SHROOM_CAP[2], 0.75))
+					elif d < 0.6 and (x + y + f) % 2 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[2], 0.75))
+					elif (x + 2 * y + f) % 4 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[1], 0.4))
+				4:
+					if d < 0.35 and (x + y + f) % 2 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[2], 0.75))
+					elif (x + 2 * y + f) % 4 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[1], 0.4))
+				5:
+					if (x + 2 * y + f) % 8 == 0:
+						_px(img, x, y, Color(SHROOM_CAP[1], 0.4))
+	if f == 2:  # The burst's core: a 3x3 plus with a pixel on top, and a broken ring of cap bits where the cap was
+		for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i(0, -2)]:
+			_px(img, int(cap.x) + d.x, int(cap.y) + d.y, HEART_PX)
+		for i in 8:
+			if i % 4 == 3:
+				continue  # Broken
+			var a := TAU * i / 8.0
+			_px(img, roundi(cap.x + cos(a) * 7.5), roundi(cap.y + sin(a) * 4.0), SHROOM_CAP[2])
+	if f == 3 or f == 4:  # Bright spore specks in the cloud, so it holds over a dark nightmare (council pass 1)
+		for p: Vector2i in [Vector2i(-6, -3), Vector2i(-2, -6), Vector2i(3, -4), Vector2i(7, -1), Vector2i(-8, 2), Vector2i(1, 1), Vector2i(5, 4), Vector2i(-3, 5), Vector2i(-5, -8), Vector2i(6, -7)]:
+			var at := cloud_c + Vector2(p) * (1.0 if f == 3 else 1.15)
+			_px(img, roundi(at.x), roundi(at.y), SHROOM_CAP[2] if (p.x + p.y) % 2 == 0 else HEART_PX)
+	# Three cap pieces flung up and out, then falling (outlined: they are bits of the cap)
+	var pieces := Image.create_empty(POP_SIZE.x, POP_SIZE.y, false, Image.FORMAT_RGBA8)
+	var out: float = [0.0, 0.0, 5.0, 9.0, 12.0, 13.0][f]
+	var drop: float = [0.0, 0.0, 0.0, 1.0, 4.0, 8.0][f]
+	if f <= 4:
+		for k in 3:
+			var dir: Vector2 = [Vector2(-1.0, -0.7), Vector2(1.0, -0.9), Vector2(0.15, -1.3)][k]
+			var at := (cap + dir * out + Vector2(0, drop)).round()
+			var shard: Array = [["mh.", "ms."], [".hm", "ssm"], ["hm", "ms"]][k]
+			_grid(pieces, shard, {"m": SHROOM_CAP[2], "s": SHROOM_CAP[1], "h": SHROOM_STEM[1]}, Vector2i(at) - Vector2i(1, 1))
+		_outline_ink(pieces)
+		_over_px(img, pieces)
+	# Spores thrown furthest, single bright pixels, fading
+	var spore_r: float = [0.0, 0.0, 10.0, 13.0, 15.0, 16.0][f]
+	for i in 7:
+		var a := TAU * i / 7.0 + 0.4
+		var p := cap + Vector2(cos(a) * spore_r, sin(a) * spore_r * 0.75 - float(f - 2))
+		_px(img, roundi(p.x), roundi(p.y), Color(SHROOM_STEM[1] if i % 2 == 0 else SHROOM_CAP[2], 0.75 if f <= 3 else 0.4))
 
 # --- Spore Print's evolved mushrooms (owner 2026-10-18, via Roguelite Code) ------------------------------
 # Same toadstool, changed where an evolution changes what the mushroom is: Clump (2-4 caps grown together in

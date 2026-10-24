@@ -66,6 +66,11 @@ var forced_families: Array[String] = []
 # unlocks it with the first-pick Dreamlight and grows into nothing else past the base; --spend-all spends to under
 # SPEND_ALL_KEEP at every rest and mid-drift check (grow, plant, walls; ranks only when nothing else is affordable).
 var forced_branch := ""
+# The planting player (Balancing 2026-10-24, for the drift-shapes gate and the build odds): with --families + --branch,
+# --final=<id> also grows that final of the branch (its Dreamlight is saved for: DreamSimPolicy.wish_forms), and
+# --calling-path=<id,id,…> takes those Calling evolutions when offered (else the first offered).
+var forced_final := ""
+var calling_wish: Array[StringName] = []
 var branch_status := ""  # RUN JSON branch_status: "unlocked", "unlocked+forced" (the draw left it out), or why not
 var spend_all := false
 var player_board := false  # --player-board (with --spend-all): no room cap on planting; the branch share capped (_allowed_form)
@@ -226,6 +231,10 @@ func _run() -> void:
 			"--card": start_cards.append(value)  # e.g. --card=seedfall: taken at the start of the run
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 			"--branch": forced_branch = value
+			"--final": forced_final = value
+			"--calling-path":
+				for id in value.split(",", false):
+					calling_wish.append(StringName(id))
 			"--spend-all": spend_all = true
 			"--player-board": player_board = true
 			"--hand-drifts": hand_drifts = true
@@ -410,6 +419,7 @@ func _run() -> void:
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
 	policy.score_overrides = card_scores
+	policy.calling_wish = calling_wish
 	policy.card_value = card_value
 	if even_archetypes:
 		for tag in ["affliction", "daring", "kinship", "maze", "overgrowth", "precision", "support", "tall", "tending", "swift", "reach"]:
@@ -1851,6 +1861,8 @@ func _finish() -> void:
 	# The branch check (tools/branch_check.sh): the forced branch, the leaves left, Dew left after each rest's spending,
 	# the furthest approach per block of 5 and the board at the end.
 	summary.branch = forced_branch
+	summary.final = forced_final
+	summary.calling_path = "+".join(dreams.calling_path)  # The evolutions taken (the bot offers them since the planting player)
 	summary.branch_status = branch_status
 	summary.spend_all = spend_all
 	summary.player_board = player_board
@@ -2042,11 +2054,21 @@ func _force_branch(base_id: String) -> void:
 		branch_status = "unlocked+forced" if forced else "unlocked"
 	else:
 		branch_status = "no unlock (Dreamlight %d, price %d, blocker %s)" % [dreams.dreamlight, dreams.get_unlock_price(form), dreams.get_unlock_blocker(form)]
+	policy.wish_forms.clear()
+	policy.wish_forms.append(form)  # Kept first, so the policy never spends the branch's Dreamlight elsewhere
+	if forced_final != "":
+		for f in form.evolves_to:
+			if f is TowerData and f.get_id() == forced_final:
+				policy.wish_forms.append(f)  # --final: saved for at the rests and picks that bring Dreamlight
+		if policy.wish_forms.size() < 2:
+			branch_status += "; %s is not a final of %s" % [forced_final, forced_branch]
 
 # --branch: past the base Warden, only the forced branch is grown into.
 func _allowed_form(form: TowerData) -> bool:
 	if forced_branch == "" or form.tier < 2:
 		return true
+	if forced_final != "" and form.get_id() == forced_final:
+		return true  # A branch Warden growing into the final: the share of the board doesn't change
 	if form.get_id() != forced_branch:
 		return false
 	return not player_board or _branch_grown() + 1 <= _branch_share(form) * _attackers().size()
@@ -2057,7 +2079,7 @@ func _branch_share(form: TowerData) -> float:
 	return 1.0 / 3.0 if form.get("support") == true else 0.5
 
 func _branch_grown() -> int:
-	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == forced_branch).size()
+	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() in [forced_branch, forced_final]).size()
 
 # A Sprout on the map grows into an unlocked family base Warden, if one is affordable (the one with the
 # most path in range).

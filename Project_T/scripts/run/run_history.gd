@@ -197,7 +197,8 @@ static func dev_tag() -> String:
 	return ", ".join(tags)
 
 func _process(delta: float) -> void:
-	_clock += delta
+	if not get_tree().paused:
+		_clock += delta  # Game time: never a pause (Balancing, human run 58: drift 41's seconds read 3,402, a paused game)
 	_sample -= delta
 	if _sample > 0.0:
 		return
@@ -619,6 +620,18 @@ func _sort_spends() -> void:
 	_frame_events.clear()
 
 func _on_run_ended(won: bool) -> void:
+	# Lost to a leak: RunState ends the run inside lose_leaves, before the spawner's enemy_reached_goal for that same
+	# nightmare reaches us, so the closing leak (and its leaves' row) would miss the record (Balancing, human run 58: the
+	# last leaf on drift 55's row with no leak). Wait for the end of the frame then; a win or an abandon closes at once.
+	if not won and run_state != null and run_state.leaves <= 0 and not bool(run_state.get("abandoned")) and not _closing_late:
+		_closing_late = true
+		_finish_run.call_deferred(won)
+		return
+	_finish_run(won)
+
+var _closing_late := false
+
+func _finish_run(won: bool) -> void:
 	_flush_rows()
 	run["calling"] = dream_state.calling_title() if dream_state != null else ""  # "" on dev runs and old saves
 	run["past_cap_top"] = dream_state.past_cap_top(5) if dream_state != null else []  # The hits furthest past the x4 card line (power budget 2026-10-16)

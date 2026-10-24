@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "sunlit_rest"
 display_name = "Sunlit Rest"
-description = "At each {rest}, the Warden nearest the Heartwood gets a free Nurture {rank}."
-tip = "It repeats that Warden's last Nurture choice (Power if it has none). A Warden at its highest {rank} is skipped for the next-nearest. Only Wardens that can be Nurtured, never Thornwalls."
+description = "At each {rest}, the Warden that dispelled the most nightmares this block gets a free Nurture {rank}."
+tip = "Ties: more damage this block, then nearest the Heartwood. A Warden at its highest {rank} passes it to the next. It repeats its last Nurture choice (Power if none). Never Thornwalls."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall", "defining"])

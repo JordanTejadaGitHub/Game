@@ -35,6 +35,20 @@ func _run() -> void:
 	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_trampled", &"sp_pile_on"]) == [&"sp_trodden", &"sp_throne"],
 		"Drift 75: the capstone's Deepen first, then the style's other follow-up (Spore Print rebuilt 2026-10-23)")
 	_check(PATHS.next_ids("sporeling", [&"sp_clump", &"sp_rot", &"sp_rotburst"]).is_empty(), "An old save's retired Spore Print path offers nothing")
+	# Keeping Time final pass 2026-10-24 (evo_fixed_bellflower.md): Humming Walls' line retired, Last Bell -> Curfew -> Halfway Bell
+	_check(not PATHS.is_live(&"kt_evo_humming_walls") and not PATHS.is_live(&"kt_evo_down_the_line") and not PATHS.is_live(&"kt_evo_both_ways"),
+		"Keeping Time: the Humming Walls line is retired")
+	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune"]) == [&"kt_evo_hand_to_hand", &"kt_evo_last_bell"] \
+			or PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune"]) == [&"kt_evo_last_bell", &"kt_evo_hand_to_hand"],
+		"Keeping Time: drift 25 after Carrying Tune offers Hand to Hand and Last Bell")
+	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune", &"kt_evo_last_bell", &"kt_evo_curfew"]) == [&"kt_evo_halfway_bell", &"kt_evo_hand_to_hand"],
+		"Keeping Time: drift 75 Curfew's Deepen (Halfway Bell) first, then Hand to Hand")
+	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune", &"kt_evo_humming_walls"]).is_empty(), "...an old save holding Humming Walls is offered nothing more")
+	var bell_live := 0
+	for id in PATHS.PATHS:
+		if PATHS.PATHS[id].calling == "bellflower" and PATHS.is_live(id):
+			bell_live += 1
+	_check(bell_live == 21, "Keeping Time: 21 live rows (%d)" % bell_live)
 	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(45) == 2 and PATHS.stage_of(50) < 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 45, 75")
 	# Owner 2026-10-17: Riverside, Stagnant Water, Show the Way and Chime of Many use their own family's trait; faces stay short
 	# and their capstones keep their parents.
@@ -63,14 +77,22 @@ func _run() -> void:
 	# Puddles (rebuilt 2026-10-23): 21 live rows; the three lines; keeps_out per the spec's final list
 	var dw_live := PATHS.PATHS.keys().filter(func(i) -> bool: return PATHS.PATHS[i].calling == "dewdrop" and PATHS.is_live(i))
 	_check(dw_live.size() == 21, "Puddles has 21 live rows (%d)" % dw_live.size())
-	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_reed_bed", &"dw_flash_flood"], 3) == [&"dw_long_current", &"dw_backwaters"],
-		"Puddles drift 75: Long Current (Deepen) first, then Backwaters (Cross over)")
-	_check(PATHS.next_ids("dewdrop", [&"dw_black_pond", &"dw_twin_springs", &"dw_churning_water"], 3) == [&"dw_three_springs", &"dw_deep_end"],
-		"Puddles drift 75: Three Springs, then Deep End")
-	_check(PATHS.next_ids("dewdrop", [&"dw_riverside", &"dw_wet_footprints", &"dw_low_tide"], 3) == [&"dw_outflow", &"dw_open_water"],
-		"Puddles drift 75: Outflow, then Open Water")
+	# Final pass 2026-10-24: Spread burst (Floodgate), Focus bosses (Undertow), Support mouth (River Mouth) lines
+	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_floodgate", &"dw_spate"], 3) == [&"dw_silt", &"dw_backwaters"],
+		"Puddles drift 75: Silt (Deepen) first, then Backwaters (Cross over)")
+	_check(PATHS.next_ids("dewdrop", [&"dw_black_pond", &"dw_undertow", &"dw_fathoms"], 3) == [&"dw_crushing_depth", &"dw_deep_end"],
+		"Puddles drift 75: Crushing Depth, then Deep End")
+	_check(PATHS.next_ids("dewdrop", [&"dw_riverside", &"dw_river_mouth", &"dw_delta"], 3) == [&"dw_rapids", &"dw_open_water"],
+		"Puddles drift 75: Rapids, then Open Water")
+	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_backwaters", &"dw_mudflats"], 3) == [&"dw_sinking_mud", &"dw_floodgate"],
+		"Puddles drift 75: Sinking Mud, then Floodgate")
+	for old in [&"dw_reed_bed", &"dw_flash_flood", &"dw_long_current", &"dw_twin_springs", &"dw_churning_water", &"dw_three_springs",
+			&"dw_wet_footprints", &"dw_low_tide", &"dw_outflow"]:
+		_check(PATHS.PATHS.has(old) and not PATHS.is_live(old), "%s is retired, kept for old saves" % old)
+	_check(PATHS.next_ids("dewdrop", [&"dw_riverside", &"dw_wet_footprints", &"dw_low_tide"], 3).is_empty(), "An old Wet Footprints path offers nothing")
 	_check(PATHS.keeps_out(&"dw_riverside") == [&"steeped"] and PATHS.keeps_out(&"dw_still_water") == [&"topped_up"]
-		and PATHS.keeps_out(&"dw_low_tide") == [&"high_tide"], "Puddles keeps_out: Steeped, Topped Up, High Tide")
+		and PATHS.keeps_out(&"dw_river_mouth") == [&"high_tide"] and PATHS.keeps_out(&"dw_low_tide") == [&"high_tide"],
+		"Puddles keeps_out: Steeped, Topped Up, High Tide (River Mouth; retired Low Tide still for old saves)")
 	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_millrace"], 2).is_empty(), "An old save's retired Puddles path offers nothing")
 
 	# The offer at the drift 5 rest replaces the Dream; at 25 it comes first and the Dream follows

@@ -199,7 +199,7 @@ func _run() -> void:
 		for i in 4:
 			await process_frame
 		var panel_rect: Rect2 = screen._frame.get_global_rect()
-		var done: Control = screen.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Done").front()
+		var done: Control = screen.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Close").front()  # "Close" since the gap round (76335c93)
 		var shown := Rect2(Vector2.ZERO, Vector2(view))
 		_check(shown.encloses(panel_rect) and shown.encloses(done.get_global_rect()),
 			"Remember fits %s: the panel %s and Done on screen" % [view, panel_rect])

@@ -495,7 +495,7 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"smother", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop", &"deathcap", &"haze"]  # deathcap, haze: Sporeling Calling evolutions (evo_shared_spec.md 7, Additions 2026-10-23)  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
+	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop", &"deathcap", &"haze", &"rot_bloom"]  # deathcap, haze, rot_bloom: Sporeling Calling evolutions (evo_shared_spec.md 7; final_check.md, 2026-10-24)  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -536,7 +536,10 @@ static func effect_multiplier(enemy: Node2D, source: Tower, tag: StringName = &"
 		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)  # Seeping
 	if dreams != null and not reaction:
 		multiplier *= _host_grove(dreams, source, tag)
-	multiplier *= 1.0 + nightshade_bonus(enemy)  # Nightshade multiplies with Potency and Seeping (Balancing 738088c3)
+	var nightshade := nightshade_bonus(enemy)
+	if nightshade > 0.0 and not reaction:
+		DamageLog.note_card_bonus("nightshade", 1.0 + nightshade)  # Inside the x4 card cap (section 33; a Reaction's stays in its pool)
+	multiplier *= 1.0 + nightshade  # Nightshade multiplies with Potency and Seeping (Balancing 738088c3)
 	if enemy.statuses.mushroom_time > 0.0:  # Inside a Mushrooming cloud (owner 2026-10-17, council reactions_unique.md)
 		multiplier *= 1.0 + MUSHROOM_ZONE_BONUS * enemy.statuses.mushroom_payoff  # The cloud's own Brimming payoff (council rx review 2026-10-17)
 	return multiplier
@@ -1835,10 +1838,12 @@ static func _rx(near: Node, amount: float, id: StringName = &"", tower: Node = n
 	var multiplier := dreams.get_reaction_damage_multiplier(near as Node2D, id, tower)
 	var payoff := _payoff(near, id)
 	if dreams.has_method("note_reaction_factors") and id != &"dawnbreak":  # The per-factor breakdown for Balancing
-		var bare: float = tower.get_bare_damage() if is_instance_valid(tower) and tower is Tower else 0.0
-		var rank: float = tower.get_rank_damage_multiplier() if is_instance_valid(tower) and tower is Tower else 1.0
-		dreams.call(&"note_reaction_factors", id, {"bare": bare, "rank": rank, "brimming": payoff, "half": _half_share,
-			"nightshade": 1.0 + (nightshade_bonus(near) if near is Node2D and "statuses" in near else 0.0)})
+		var factors := {"brimming": payoff, "half": _half_share,
+			"nightshade": 1.0 + (nightshade_bonus(near) if near is Node2D and "statuses" in near else 0.0)}
+		if is_instance_valid(tower) and tower is Tower:  # No Warden behind it (smother's own ticks): no bare / rank sample
+			factors["bare"] = tower.get_bare_damage()
+			factors["rank"] = tower.get_rank_damage_multiplier()
+		dreams.call(&"note_reaction_factors", id, factors)
 	return amount * payoff * _half_share * multiplier
 
 # The Reaction cards' part alone (no Quick Reactions' cut): for the bonus parts of hits that land anyway (Pinned's crit,

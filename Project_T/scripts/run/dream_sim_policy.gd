@@ -52,6 +52,9 @@ const FAMILIES := {
 var dreams: DreamState
 var style: Style
 var choices: Array[String] = []  # What the bot chose, one line each (for the runner's CSV / summary)
+# The planting player (Balancing 2026-10-24; tools/balance_sim.gd --branch / --final / --calling-path):
+var calling_wish: Array[StringName] = []  # Calling evolution ids to take when offered, in any order; else the first offered
+var wish_forms: Array[TowerData] = []  # Forms Dreamlight goes to first, in order (saved for); nothing else until all are owned
 
 func _init(dream_state: DreamState, play_style: Style = Style.BALANCED) -> void:
 	dreams = dream_state
@@ -334,11 +337,37 @@ func pick_dream(offer: Array) -> UpgradeData:
 # The rest after `drift`: its Dream, then Dreamlight. Returns the cards taken.
 func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 	_last_block_clean = perfect
-	var taken := dreams.sim_rest(drift, pick_dream, perfect)
+	var grow := dreams._calling_offer_for(drift)
+	var taken: Array[UpgradeData] = []
+	if not grow.is_empty() and drift <= DreamState.CLASS_OFFER_UNTIL_DRIFT:
+		# Drift 5: the style pick replaces that rest's Dream (DreamState._show_next_offer). The rest rules still run;
+		# the empty pick passes the Dream without its "Let it pass" Dew.
+		var skip_dew := dreams.skip_dew
+		dreams.skip_dew = 0
+		dreams.sim_rest(drift, func(_offer: Array) -> UpgradeData: return null, perfect)
+		dreams.skip_dew = skip_dew
+	else:
+		taken = dreams.sim_rest(drift, pick_dream, perfect)
 	for card in taken:
 		choices.append("drift %d: Dream %s" % [drift, card.id])
+	if not grow.is_empty():
+		_grow_calling(drift, grow)
 	spend_dreamlight()
 	return taken
+
+# The Calling's evolution at its rest (drifts 5 / 25 / 45 / 75; the game's own offer, DreamState._show_next_offer, which
+# sim_rest never asks for): the wished id if offered, else the first. Through DreamState.choose, as the Dream screen does.
+func _grow_calling(drift: int, grow: Array[UpgradeData]) -> void:
+	var pick: UpgradeData = grow[0]
+	for card in grow:
+		if calling_wish.has(StringName(card.id)):
+			pick = card
+	dreams._calling_offered[drift] = true
+	dreams.offering_calling = true
+	dreams.current_offer = grow
+	dreams.picks_left = 1
+	dreams.choose(pick)
+	choices.append("drift %d: Calling %s" % [drift, pick.id])
 
 # --- Family picks -----------------------------------------------------------------------------------
 
@@ -386,6 +415,13 @@ func _combo_cards_with(family: String) -> int:
 # Unlocks forms while Dreamlight lasts: the next form of the family with the most Wardens on the map
 # (ties: the first owned family in the Remember order).
 func spend_dreamlight() -> void:
+	for form in wish_forms:  # The planting player saves for its build's forms first
+		if dreams.get_unlock_cost(form) == 0:
+			continue  # Owned
+		if dreams.get_unlock_blocker(form) != "" or dreams.dreamlight < dreams.get_unlock_price(form) \
+				or not dreams.unlock_with_dreamlight(form):
+			return  # Not open yet or short: save for it
+		choices.append("Dreamlight: %s" % form.get_id())
 	var trees := dreams.get_remember_trees().filter(func(tree: Array) -> bool:
 		return dreams.family_of(tree[0].get_id()) != "" \
 			or (style in [Style.WIDE, Style.SPROUT] and tree[0].get_id() == "thornwall"))  # Families; Wide / Sprout also grow walls

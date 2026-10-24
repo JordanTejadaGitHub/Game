@@ -3075,3 +3075,55 @@ Owner: a fourth family let a board reach every Reaction (each new family's statu
 - **Player extras:** reward bundles (a card with Dew or Dreamlight attached; roguelite says skip), an earned reroll (e.g. a
   perfect block), a shareable end-of-run build card.
 - Skipped, all three agree: terrain tiles, limited tower counts, battlefronts (maybe a later Blight level or Forest).
+
+## 33. Calling evolutions that split into different builds (owner 2026-10-23; nothing built)
+
+Owner: "all the evolutions do pretty much the same thing". Every style of a Calling tuned the same mechanic (Sporeling's
+6 of 15 rows "+2 stacks to the other statuses"; Firefly 11 of 15 rows a jump) and fed the status pile.
+- **Rules** (D:\Projects\logs\dream_council\evo_split_brief.md): Spread = the long maze (walls, Sprouts), Focus = one
+  killbox of tall Wardens (damage-only hits), Support = the run's other families do the work (Sprouts count, so it works
+  at drift 5). Each family owns one effect per style, with rows reserved for the five later families (owner: "make sure
+  there is room for the other families"): Rootling Held, Acorn volley, Nestling pick-off, Pebbling knock-on, Whirligig
+  pierce / spread statuses / range, and so on.
+- **Path shape (owner: option A):** 5 style, 25 one of two follow-ups (different boards), 45 its capstone (no choice), 75
+  Deepen (a second capstone for your line) or Cross over (the other follow-up). 21 rows per Calling.
+- **Rows:** evo_final_sporeling.md, evo_final_firefly.md, evo_final_dewdrop.md, evo_final_bellflower.md; reviews
+  evo_split_roguelite.md / _td.md / _player.md; cross-check and fix list evo_final_check.md (one damage-only helper
+  `class_kit.calling_hit`, `DEEPEN := 3`, one `next_ids`, retired rows kept with "retired": true and never offered,
+  `keeps_out` for the lent twins, renames, Bellflower rows that borrowed knock-on / jump fixed).
+- **Council on the final set (evo_review_roguelite.md, _td.md, _player.md):** drift 5 and 25 now lead to distinct builds
+  and the four Callings feel different; drift 75 is weak (many Deepens only raise a number; some Cross overs dead, traps or
+  copies). Rule added: a Deepen adds a new trigger or place, never a bigger number; a Cross over is never a restriction and
+  never lands under a cap the line already fills. Must-fix rows: Dewdrop Spread late rows (slow cap full by 45), Coda (=
+  Ensemble), Bellflower Focus line A's board, Moth to Flame vs a crossing pair, Trodden Path budget, Witch Ground, Wet
+  Footprints' real 2 s, Carrying Tune text, Accompaniment (Sprout pips halve it), Low Tide near-flat, Standing Water cap 4 s,
+  Down the Line can't toll, unseen lines (Wet Footprints, Sightline, Feeding Ground, Counterpoint), weak Deepens (Banked
+  Fire, First Lamps, Twelfth Hour, Sinking Mud); too strong on paper: Firefly Focus, Strung Lights, Dewdrop pond spill,
+  Mudflats + Deep Mud. Shared code gaps: kept ids lose their old branches; next_ids takes the stage; load_save keeps unknown
+  ids as retired placeholders; calling_hit keeps the free-hit cap and budget, a side-effect-free preview, counts in the x4
+  card cap; forced crits get a `forced` flag (no Shattering Blow / Starlit / overflow / Keen / Executioner); Calling branch in
+  hit_card_multiplier. Not built; a fix pass follows.
+- **Fix pass done (2026-10-23):** evo_fixed_sporeling.md, _firefly.md, _dewdrop.md, _bellflower.md and the shared code
+  spec evo_shared_spec.md; check evo_fixed_check.md: every review must-fix answered, no reserved effects used, every Deepen
+  adds a trigger or place. Where a set's code notes differ from evo_shared_spec.md (calling_hit argument order and
+  budgets, forced-crit return, Toll helper, Dewdrop's own slow / linger helper, Host Grove read), the spec wins. Rename
+  Undergrowth (clashes with the live card). Host Grove = +30% Potency for capped other-family Wardens (owner), never on
+  Reactions, max with Undiluted.
+- **Card-pool sweep (owner asked; evo_pool_td.md, evo_pool_roguelite.md):** the rows had been checked against an older
+  lent set (3 of 12 keeps_out targets already retired). Added to the shared spec: (R1) a Calling row's hits are damage only
+  for every other card: they get standing bonuses (Towering, Standing Tall, Trophies, Clean Strike, Gauntlet, Kinship, form
+  x1.4) but never count as a hit / jump / chain link / store for another card, and only real attacks ring bells; (X1) one x4
+  cap per hit (the preview product joins the pending product); (X2) pond_spill / chorus_repeat skip the batch cards a second
+  time; (X3) forced crits also skip Steady Aim's on-crit, Hobble, Opening Fracture, Falling Stars and signature after-hits;
+  (X4) First Light skips CLASS_TAGS; (X5) Spore Season and Host Grove note into the cap; Accompaniment's repeat gets the
+  second_of cap; Slow Burn / Old Rain read is_kept, not is_lingering; rank gates read the real rank. keeps_out now:
+  Shared Caps: Breathe It In, Mycelium, Overnight; Feeding Ground: Overnight; Host Trees: Pass It Round; Borrowed Light:
+  Sparks Fly, Hammerfall (Crossfire retired); Pyre: Old Hand; Riverside: Steeped; Still Water: Topped Up; Low Tide: High
+  Tide; Accompaniment: In Time, Refrain; Coda: Refrain; Symphony: Rude Awakening; Ensemble: Reprise. Watch (Balancing):
+  Heavy Going, Seedfall, Standing Tall, Gathering Storm, Nightshade, Headlong as must-takes; linger totals 8-10 s; Rot Ground.
+- **Owner rulings 2026-10-23 ("yes to all"):** Undergrowth -> Spreading Caps; Wet Footprints keeps the 4 s cap for
+  Poisoned / Exposed; Bellflower's Toll moves to class_kit.calling_hit; Elder Cap keeps the per-second free-hit cap;
+  Thick Haze back to the designer for a new place; "silver path" -> "pale path" (Parting Light, Full Glow, Low Tide stay);
+  Coda keeps Refrain out. R1 damage-only rule for every other card; rank gates read the real rank; Old Rain retired; Open
+  Road kept, Straightaway cut to its range part; Heavy Going counts only slows not from the Calling; Sporeling Support's
+  extra stacks get their own small slot outside the per-hit extra-stack cap; Slow Burn counts the Calling as a card.

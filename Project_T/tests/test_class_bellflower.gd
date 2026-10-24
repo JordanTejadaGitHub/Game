@@ -166,23 +166,25 @@ func _evolution_checks(spot: Vector2) -> void:
 	_check(klass.TUNE_STEPS == 6 and String(DreamState.CALLING_PATHS.PATHS[&"kt_evo_carrying_tune"].text).contains("6 {steps}"), "Carrying Tune: 6 steps (Balancing 2026-10-23)")
 	await _clean()
 
-	# Steady Beat (old: 3 starting pips where 2+ bells' ranges overlap, full Tolls there): one group, need 3, in full
+	# Steady Beat (old: 3 starting pips where 2+ bells' ranges overlap; then one group of touching bells): one bell, need 3,
+	# in full (final pass 2026-10-24: the touching group is gone)
 	bell = _plant("bellflower", spot)
-	var far_bell := _plant("bellflower", spot + Vector2(CELL * 6, 0))  # Not touching: another group
+	var far_bell := _plant("bellflower", spot + Vector2(CELL * 6, 0))  # Another bell
+	_check(not klass.has_method("_board_groups") and not ("_groups" in klass), "Steady Beat: the touching-group cache is gone")
 	await _frames(2)
 	_path([&"kt_evo_steady_beat"])
 	_check(not klass.has_method("_bells_reaching") and klass._start_for(null) == klass.PIPS_FILLED, "Steady Beat: the old overlap start pips are gone")
 	var s = _spawn(spot + Vector2(0, CELL))
 	var tolls0: int = klass.tolls
 	klass.ring(s, bell, 10.0)
-	_check(klass.tolls == tolls0 + 1, "Steady Beat: one group's first ring Tolls (2 starting pips + 1 = %d)" % klass.STEADY_NEED)
+	_check(klass.tolls == tolls0 + 1, "Steady Beat: one bell's first ring Tolls (2 starting pips + 1 = %d)" % klass.STEADY_NEED)
 	var mixed = _spawn(spot + Vector2(0, CELL * 1.5))
-	klass.ring(mixed, far_bell, 10.0)  # A Toll at once (its group's first ring)…
+	klass.ring(mixed, far_bell, 10.0)  # A Toll at once (its bell's first ring)…
 	_ready_to_ring(mixed)
 	klass.ring(mixed, far_bell, 10.0)
 	_ready_to_ring(mixed)
-	klass.ring(mixed, bell, 10.0)  # …then a second group rings it
-	_check(klass._toll_need(mixed) == klass.TOLL_EVERY, "...another group's ring puts it back to every %dth" % klass.TOLL_EVERY)
+	klass.ring(mixed, bell, 10.0)  # …then a second bell rings it
+	_check(klass._toll_need(mixed) == klass.TOLL_EVERY, "...another bell's ring puts it back to every %dth" % klass.TOLL_EVERY)
 	await _clean()
 
 	# Deep Tone / Double Time: a rank III bell's own hit rings twice; a rank IV bell's Toll leaves 2 rings
@@ -196,7 +198,6 @@ func _evolution_checks(spot: Vector2) -> void:
 	d.set_meta(klass.GROUP_META, -1)  # Mixed: the need stays 4
 	d.set_meta(klass.PIPS_META, 0)
 	bell.rank = 3
-	klass._groups[bell.get_instance_id()] = 99  # (its own group, so _note_group keeps it mixed)
 	klass.ring(d, bell, 10.0)
 	_check(int(d.get_meta(klass.PIPS_META)) == klass.DEEP_PIPS, "Deep Tone: a rank III bell's hit fills %d pips" % klass.DEEP_PIPS)
 	bell.rank = 4
@@ -262,25 +263,45 @@ func _evolution_checks(spot: Vector2) -> void:
 	_check(not bell_b.has_meta(klass.FREE_META), "Counterpoint: no bell answers with a free hit (old branch gone)")
 	_check(dreams.calling_keeps_out(load("res://resource/dream/in_time.tres")) and dreams.calling_keeps_out(load("res://resource/dream/refrain.tres")),
 		"Accompaniment keeps In Time and Refrain out of the offers")
-	# Tenor Bell: a slow form repeats in full
+	# Accompaniment (final pass 2026-10-24): a Sprout rings once a second like any Warden (old: with every hit)
+	var acc_sprout := _plant("sprout", spot + Vector2(-CELL, 0))
+	await _frames(2)
+	var a2 = _spawn(spot + Vector2(0, CELL * 1.2))
+	klass._accompany(acc_sprout, a2, 10.0)
+	_check(acc_sprout.has_meta(klass.JOIN_META), "Accompaniment: a Sprout's ring starts its once-a-second wait (old every-hit branch gone)")
+	# Tenor Bell (final pass 2026-10-24: strictly slower than 1 attack a second): a slow form repeats in full
 	_path([&"kt_evo_accompaniment", &"kt_evo_tenor_bell"])
-	var slow: bool = partner.attack_data.attacks_per_second <= klass.TENOR_RATE
+	var slow: bool = partner.attack_data.attacks_per_second < klass.TENOR_RATE
+	_check(not klass._is_slow(acc_sprout), "Tenor Bell: a Sprout (1 attack a second) is never slow")
 	var t = _spawn(spot + Vector2(0, CELL * 1.5))
 	var t0: float = t.health
 	var dealt: float = klass._repeat(partner, t, klass.EVO_ACCOMP, klass.ACCOMP_SHARE)
-	var full_hit: float = minf(50.0, klass.second_of(partner))
+	var full_hit: float = 50.0 * klass.output_share(partner, 1.0)
 	_check(is_equal_approx(dealt, full_hit if slow else full_hit * klass.ACCOMP_SHARE) and t.health < t0,
 		"Tenor Bell: %s (%.1f of %.1f)" % ["a slow form repeats in full" if slow else "a fast form repeats at half", dealt, full_hit])
+	var t_inf: float = klass._repeat(partner, _spawn(spot + Vector2(0, CELL * 1.8)), klass.EVO_ACCOMP, klass.ACCOMP_SHARE, INF)
+	_check(is_equal_approx(t_inf, 50.0 * (1.0 if slow else klass.ACCOMP_SHARE)), "...the hit that made the Toll repeats per own attack: no cap (%.1f)" % t_inf)
 	await _clean()
 
 	# Symphony (now a Calling hit, never armed) and Coda
 	bell = _plant("bellflower", spot)
 	await _frames(2)
 	_path([&"kt_evo_accompaniment", &"kt_evo_counterpoint", &"kt_evo_symphony", &"kt_evo_coda"])
+	# Final pass 2026-10-24: 4 different KINDS of Warden; Sprouts never count (old: 4 different Wardens, 4 Sprouts did)
+	var sprout_roster: Array = []
+	for k in klass.SYMPHONY_WARDENS:
+		var sp := _plant("sprout", spot + Vector2(CELL * (k - 1), CELL * 3))
+		klass._last_hit_of[sp.get_instance_id()] = 20.0
+		sprout_roster.append([sp.get_instance_id(), true])
+	var x = _spawn(spot + Vector2(0, CELL * 0.6))
+	var x0: float = x.health
+	klass._symphony(x, sprout_roster, x.global_position)
+	_check(is_equal_approx(float(x.health), x0), "Symphony: 4 Sprouts make no Symphony (Sprouts never count)")
 	var roster: Array = []
 	var singers: Array = []
+	var kinds := ["sporeling", "firefly_jar", "dewdrop", "acorn"]
 	for k in klass.SYMPHONY_WARDENS:
-		var w := _plant("sprout", spot + Vector2(CELL * (k - 1), CELL * 2))
+		var w := _plant(kinds[k], spot + Vector2(CELL * (k - 1), CELL * 2))
 		klass._last_hit_of[w.get_instance_id()] = 20.0
 		roster.append([w.get_instance_id(), true])
 		singers.append(w)
@@ -295,6 +316,52 @@ func _evolution_checks(spot: Vector2) -> void:
 	_check(z.health < z0 and not singers[0].has_meta(klass.CODA_META), "...its next hit lands again, once")
 	_check(dreams.calling_keeps_out(load("res://resource/dream/rude_awakening.tres")) and dreams.calling_keeps_out(load("res://resource/dream/refrain.tres")),
 		"Symphony keeps Rude Awakening out, Coda Refrain")
+	await _clean()
+
+	# On the Beat (final pass 2026-10-24, final_pass_shared.md 1): a repeat on the bell's target; it no longer resets the
+	# touching Warden's attack, and the repeat (tag beat) never rings
+	bell = _plant("bellflower", spot)
+	var beater := _plant("sporeling", spot + Vector2(CELL, 0))
+	await _frames(2)
+	_path([&"kt_evo_steady_beat"])
+	var ob = _spawn(spot + Vector2(0, CELL))
+	beater._cooldown = 5.0
+	var ob0: float = ob.health
+	var ob_pips := int(ob.get_meta(klass.PIPS_META, -1))
+	klass._beat(bell, ob)
+	_check(is_equal_approx(beater._cooldown, 5.0), "On the Beat: the touching Warden's attack is not reset (old cooldown reset gone)")
+	_check(ob.health < ob0 and int(ob.get_meta(klass.PIPS_META, -1)) == ob_pips, "...it hits the bell's target again, and the repeat rings nothing")
+	_check(&"beat" in klass.CLASS_TAGS, "...its tag is a class tag (damage only)")
+	await _clean()
+
+	# Last Bell / Curfew (final pass 2026-10-24): the closing bell's first own hit Tolls once, +7% per remembered ring (up to
+	# 30); a dispelling release arms Curfew, spent as a second Toll at half on the next nightmare
+	bell = _plant("bellflower", spot)
+	await _frames(2)
+	_path([&"kt_evo_carrying_tune", &"kt_evo_last_bell", &"kt_evo_curfew"])
+	klass._closing_id = bell.get_instance_id()
+	var lb = _spawn(spot + Vector2(0, CELL))
+	lb.set_meta(klass.REMEMBER_META, 40)  # Past the 30-ring cap
+	var lb0: float = lb.health
+	klass._releases(bell, lb)
+	var lb_dealt: float = lb0 - lb.health
+	_check(lb_dealt > 0.0 and lb.has_meta(klass.LAST_DONE_META), "Last Bell: the closing bell's first hit Tolls (%.0f)" % lb_dealt)
+	var lb1: float = lb.health
+	klass._releases(bell, lb)
+	_check(is_equal_approx(float(lb.health), lb1), "...once per nightmare")
+	var dying = _spawn(spot + Vector2(0, CELL * 1.4))
+	dying.set_meta(klass.REMEMBER_META, 10)
+	dying.health = 1.0
+	klass._releases(bell, dying)
+	_check(klass._curfew_count == 10, "Curfew: a dispelling Last Bell Toll arms it with that nightmare's own count (%d)" % klass._curfew_count)
+	var cf = _spawn(spot + Vector2(0, CELL * 1.8))
+	cf.set_meta(klass.LAST_DONE_META, true)
+	var cf0: float = cf.health
+	klass._releases(bell, cf)
+	_check(cf.health < cf0 and cf.has_meta(klass.CURFEW_DONE_META) and klass._curfew_count == -1, "...the next nightmare takes the second Toll, and the count is spent")
+	klass._drift_cleared()
+	_check(klass._curfew_count == -1, "...and a drift's end empties it")
+	klass._closing_id = 0
 	await _clean()
 
 	# Down the Line: a Toll primes the walker behind it; that one's next ring counts 2

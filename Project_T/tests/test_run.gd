@@ -98,14 +98,14 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_growth(51), director.get_growth(50) * 1.045) and absf(director.get_growth(75) - 33.0) < 1.5
 		and absf(director.get_growth(100) - 100.0) < 3.0, "growth eases to ×1.045 from 51 (×%.0f at 75, ×%.0f at 100)" % [
 		director.get_growth(75), director.get_growth(100)])
-	# Acts 3–4: late_acts_health_multiplier on top of growth, bosses included (interim ×2.4).
+	# Acts 3–4: get_late_multiplier on top of growth, bosses included (act 3 ramps from act3_start_health_multiplier at 51, 4d4f96c4).
 	var late := director.late_acts_health_multiplier
 	var act2_end := director.early_acts_health_multiplier
 	var act2_start := director.act2_start_health_multiplier
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
 	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * act2_end * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 50))
-		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 51))
+		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * director.get_late_multiplier(51) * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.act4_health_multiplier * director.trial_health_multiplier * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
 	_check(is_equal_approx(director.get_health_scale(shade_data, 76), director.get_growth(76) * late * director.act4_health_multiplier * director.trial_health_multiplier * director.get_health_multiplier(shade_data, 76)),

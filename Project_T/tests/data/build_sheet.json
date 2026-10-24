@@ -2,7 +2,7 @@
  "version": 2,
  "updated": "2026-10-22, council changes applied (build_sheet_roguelite.md, build_sheet_td.md)",
  "generic_cards": ["passing_thread", "mixed_grove", "quickening", "thinning_the_herd"],
- "pair_cards": ["never_quite_dry", "old_rain", "reprise", "chain_of_lanterns", "gone_to_seed"],
+ "pair_cards": ["never_quite_dry", "reprise", "chain_of_lanterns", "gone_to_seed"],
  "grown_cards": ["thunderstruck"],
  "builds": [
   {
@@ -99,7 +99,7 @@
    "second_family": null,
    "cards": ["heavy_going", "steeped", "high_tide", "topped_up"],
    "core": ["heavy_going"],
-   "pair_cards": ["never_quite_dry", "old_rain"],
+   "pair_cards": ["never_quite_dry"],
    "grown_cards": [],
    "needed": 3
   },
@@ -112,7 +112,7 @@
    "cards": ["steeped", "topped_up", "ebb", "sodden", "mixed_grove", "high_tide"],
    "core": [],
    "core_gap": "Design gap (new): with topped_up added to dew_spread and old_rain moved to pair_cards, every Dewdrop card here is on another Dewdrop build. Exempt from the core rule.",
-   "pair_cards": ["old_rain"],
+   "pair_cards": [],
    "grown_cards": [],
    "needed": 3
   },
@@ -173,7 +173,7 @@
    "start_family": "firefly_jar",
    "style": "lf_bonfire",
    "second_family": "dewdrop",
-   "cards": ["high_tide", "sodden", "steeped", "never_quite_dry", "old_rain"],
+   "cards": ["high_tide", "sodden", "steeped", "never_quite_dry"],
    "start_from": "firefly_focus",
    "core": [],
    "pair_cards": [],

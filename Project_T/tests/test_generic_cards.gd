@@ -1092,7 +1092,7 @@ func _test_map_rules() -> void:
 	if not straight.is_empty():
 		var beside: Vector2 = straight[0] + Vector2(1, 1)
 		var row := _row(sporeling, beside, "straightaway")
-		_check(row.active and is_equal_approx(row.damage, 0.30) and is_equal_approx(row.range, 0.5), "Straightaway: +30% and +0.5 range")
+		_check(row.active and is_zero_approx(row.damage) and is_equal_approx(row.range, 0.5), "Straightaway: +0.5 range, no damage (range only since section 33)")
 	# Heart of the Maze: furthest along the path from the others
 	dreams.take(_card("heart_of_the_maze"))
 	var route: Array = dreams._path_index.keys()

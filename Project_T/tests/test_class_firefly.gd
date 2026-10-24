@@ -484,13 +484,20 @@ func _rebuilt_rows(far: Vector2) -> void:
 		if String(id).begins_with("lf_") and DreamState.CALLING_PATHS.is_live(id):
 			lf_live.append(id)
 	_check(lf_live.size() == 21, "Lantern Light: 21 live rows (%d)" % lf_live.size())
-	for id in [&"lf_torchbearers", &"lf_bale_fires", &"lf_glowworms", &"lf_swarm_night", &"lf_embers", &"lf_witchfire"]:
+	for id in [&"lf_torchbearers", &"lf_bale_fires", &"lf_glowworms", &"lf_swarm_night", &"lf_embers", &"lf_witchfire",
+			&"lf_far_lights", &"lf_lantern_road", &"lf_parting_light", &"lf_marsh_lights", &"lf_circling_light", &"lf_drawn_in"]:  # (The last six: final pass 2026-10-24)
 		_check(paths.has(id) and not DreamState.CALLING_PATHS.is_live(id), "%s is kept, retired (old saves)" % id)
+	for id in [&"lf_early_lamps", &"lf_carried_lights", &"lf_late_lanterns", &"lf_lantern_alley", &"lf_lantern_parade", &"lf_passed_torch"]:
+		_check(DreamState.CALLING_PATHS.is_live(id), "%s is a live row (final pass 2026-10-24)" % id)
 	for id in lf_live:
 		var words := (String(paths[id].text) + " " + String(paths[id].tip)).to_lower()
 		_check(not words.contains("silver") and not words.contains("set off") and not words.contains("go off"), "%s: 'pale path', 'trigger'" % id)
-	_check(int(paths[&"lf_parting_light"].tier) == DreamState.CALLING_PATHS.DEEPEN and int(paths[&"lf_banked_fire"].tier) == DreamState.CALLING_PATHS.DEEPEN,
+		_check(String(paths[id].text).split(" ", false).size() <= 25, "%s: 25 words or fewer on its face" % id)
+		_check(not String(paths[id].tip).contains("Sprouts count"), "%s: Sprouts never count in Lantern Light" % id)
+	_check(int(paths[&"lf_late_lanterns"].tier) == DreamState.CALLING_PATHS.DEEPEN and int(paths[&"lf_banked_fire"].tier) == DreamState.CALLING_PATHS.DEEPEN,
 		"Deepens are DEEPEN rows")
+	for id in [&"lf_lantern_alley", &"lf_lantern_parade"]:
+		_check(String(paths[id].tip).ends_with("Slower Wardens deal less."), "%s: a capped flare row says so" % id)
 	_check(Array(paths[&"lf_borrowed_light"].keeps_out) == [&"sparks_fly", &"hammerfall"] and Array(paths[&"lf_pyre"].keeps_out) == [&"old_hand"],
 		"keeps_out: Borrowed Light keeps Sparks Fly and Hammerfall out, Pyre Old Hand")
 	_path([&"lf_bonfire"])
@@ -522,6 +529,50 @@ func _rebuilt_rows(far: Vector2) -> void:
 		lights._entered(inside, light)
 	_check(is_equal_approx(lights.hit_multiplier(jar, inside, false, false, &""), 1.0 + lights.STRUNG_MAX), "...up to +20%")
 	_check(is_equal_approx(dreams._calling_hit_multiplier(jar, inside, false, false, &""), 1.0 + lights.STRUNG_MAX), "...through DreamState's Calling branch")
+	await _clean()
+
+	# Early Lamps / Carried Lights (final pass 2026-10-24): a lantern carries Strung Lights outside glows (off the route a
+	# nightmare has no steps, like a flyer: its lantern never fades); Carried Lights makes it 8% a glow.
+	_path([&"lf_strung_lights", &"lf_early_lamps"])
+	jar = _plant("firefly_jar", far)
+	await _frames(2)
+	var carrier = _spawn(far + Vector2(CELL * 6, 0))
+	carrier.set_meta(lights.GLOWS_META, {1: [1, 0], 2: [1, 0]})
+	_check(is_equal_approx(lights.hit_multiplier(jar, carrier, false, false, &""), 1.0), "Early Lamps: no lantern, nothing outside glows")
+	carrier.set_meta(lights.LANTERN_META, true)
+	_check(is_equal_approx(lights.hit_multiplier(jar, carrier, false, false, &""), 1.0 + 2.0 * lights.STRUNG_PER_GLOW), "...a lantern carries Strung Lights outside glows")
+	_path([&"lf_strung_lights", &"lf_early_lamps", &"lf_carried_lights"])
+	_check(is_equal_approx(lights.hit_multiplier(jar, carrier, false, false, &""), 1.0 + 2.0 * lights.CARRIED_PER_GLOW), "Carried Lights: 8% a glow on a lantern carrier")
+	await _clean()
+
+	# Lantern Alley / Lantern Parade / Passed Torch: a streak of glows flares from each glow's Firefly; a streak of 4+ that ends
+	# flares from all of them; a dispelled nightmare hands its streak on.
+	_path([&"lf_strung_lights", &"lf_lantern_alley", &"lf_lantern_parade", &"lf_passed_torch"])
+	jar = _plant("firefly_jar", mid + Vector2(0, CELL))
+	await _frames(2)
+	var streaker = _spawn(mid)
+	var at: int = lights._front(streaker)
+	_check(at >= 0, "(the nightmare stands on the route)")
+	if at >= 0:
+		lights._streak_entered(streaker, 9001, at)
+		_check(lights.streak_of(streaker) == 1, "Lantern Alley: the first glow starts a streak")
+		lights._streak_entered(streaker, 9001, at)
+		_check(lights.streak_of(streaker) == 1, "...each glow counts once per nightmare")
+		var hp: float = streaker.health
+		lights._streak_entered(streaker, _light_of(jar), at + 2)
+		_check(lights.streak_of(streaker) == 2 and streaker.health < hp, "...a glow within 4 steps carries it on and flares (%.1f)" % (hp - streaker.health))
+		var streak: Dictionary = streaker.get_meta(lights.STREAK_META)
+		streak.count = lights.PARADE_MIN
+		streak.last_exit = at - lights.STREAK_GAP * 2 - 4
+		hp = streaker.health
+		lights._streak_tick(streaker, [])
+		_check(not streaker.has_meta(lights.STREAK_META) and streaker.health < hp, "Lantern Parade: a streak of 4+ that ends flares from its Fireflies")
+	var donor = _spawn(mid)
+	var taker = _spawn(mid + Vector2(CELL * 0.5, 0))
+	donor.set_meta(lights.STREAK_META, {"count": 3, "last_exit": 0, "lights": [9001, 9002, 9003], "passed": false})
+	lights._pass_streak(donor)
+	_check(lights.streak_of(taker) == 3 and bool(taker.get_meta(lights.STREAK_META).passed) and not donor.has_meta(lights.STREAK_META),
+		"Passed Torch: a dispelled nightmare's streak goes to the nearest walker, once")
 	await _clean()
 
 	# Far Lights (kept id, new meaning): a far entry is a flare, never 2 glows for Strung (old effect gone). Off the route a
@@ -589,21 +640,22 @@ func _rebuilt_rows(far: Vector2) -> void:
 	g3.queue_free()
 	await _clean()
 
-	# Moth to Flame (kept id, new meaning): no Exposed from jumps on gold (old effect gone); the highest-rank Warden over the
-	# gold gets its own kept crit, +50% after 4 other hits; the shared waiting crit still goes to anyone.
+	# Moth to Flame (final pass 2026-10-24: gold dispels, not rank): the Warden over the gold with most gold dispels this
+	# block gets its own kept crit, +50% after 4 other hits; the shared waiting crit still goes to anyone.
 	_path([&"lf_bonfire", &"lf_moth_to_flame"])
 	jar = _plant("firefly_jar", mid)
 	_plant("firefly_jar", mid + Vector2(CELL, 0))
 	var tall := _plant("pebbling", mid + Vector2(0, CELL))
-	tall.rank = 3
 	rock = _plant("pebbling", mid + Vector2(CELL, CELL))
 	await _frames(3)
+	lights._gold_block[tall.get_instance_id()] = 2
+	lights._find_moth_holder()
 	gold = _spawn(mid + Vector2(CELL * 0.5, CELL * 0.5))
 	lights._strike({"event": lights._next_event(), "source": jar, "from": jar.global_position, "target": gold, "amount": 5.0, "cap": INF})
 	_check(gold.statuses.stacks(EnemyStatuses.MARKED) == 0, "Moth to Flame: old effect gone (a jump on gold adds no Exposed)")
 	_hit_loss(jar, gold)
 	await process_frame
-	_check(gold.has_meta(lights.MOTH_META) and int(gold.get_meta(lights.MOTH_META)[0]) == tall.get_instance_id(), "...a Firefly's hit keeps a crit for the highest-rank Warden")
+	_check(gold.has_meta(lights.MOTH_META) and int(gold.get_meta(lights.MOTH_META)[0]) == tall.get_instance_id(), "...a Firefly's hit keeps a crit for the Warden with most gold dispels")
 	_check(lights.calling_crit(rock, gold) and gold.has_meta(lights.MOTH_META), "...another Warden takes only the shared waiting crit")
 	for i in lights.MOTH_HITS:
 		_hit_loss(rock, gold)
@@ -612,8 +664,8 @@ func _rebuilt_rows(far: Vector2) -> void:
 	_check(is_equal_approx(lights.hit_multiplier(tall, gold, false, true, &""), lights.MOTH_BONUS), "...for 50% more after 4 other hits")
 	await _clean()
 
-	# Pyre (kept id, new meaning): no re-jump from a jump that dispels on gold (old effect gone); on white path every 2nd
-	# direct hit from a rank V+ Warden crits.
+	# Pyre (final pass 2026-10-24): on white path every 2nd direct hit from a Warden with 50 gold dispels crits; a dispel on
+	# gold counts once for the Warden that dealt it.
 	_path([&"lf_bonfire", &"lf_moth_to_flame", &"lf_pyre"])
 	jar = _plant("firefly_jar", far)
 	_plant("firefly_jar", far + Vector2(CELL, 0))
@@ -622,10 +674,16 @@ func _rebuilt_rows(far: Vector2) -> void:
 	await _frames(3)
 	var white = _spawn(far + Vector2(CELL * 0.5, CELL * 0.5))
 	_check(lights.gold_level(white) == 2, "(the nightmare stands on white path)")
-	_check(not lights.calling_crit(tall, white) and not lights.calling_crit(tall, white), "Pyre: a Warden below rank V never crits")
-	tall.rank = 5
+	_check(not lights.calling_crit(tall, white) and not lights.calling_crit(tall, white), "Pyre: a Warden short of 50 gold dispels never crits")
+	var counted = _spawn(far + Vector2(CELL * 0.4, CELL * 0.5))
+	counted.health = 1
+	tall.hit(counted, 1.0, false, Tower.NO_CRIT)
+	await process_frame
+	_check(lights.gold_dispels_total(tall) == 1 and lights.gold_dispels_block(tall) == 1, "...a dispel on gold counts once for its Warden (%d)" % lights.gold_dispels_total(tall))
+	lights._gold_total[tall.get_instance_id()] = lights.PYRE_DISPELS
+	tall.remove_meta(lights.PYRE_META)
 	var beats := [lights.calling_crit(tall, white), lights.calling_crit(tall, white), lights.calling_crit(tall, white), lights.calling_crit(tall, white)]
-	_check(beats == [false, true, false, true], "...rank V: every 2nd direct hit on white crits (%s)" % [beats])
+	_check(beats == [false, true, false, true], "...at 50: every 2nd direct hit on white crits (%s)" % [beats])
 	var frail_w = _spawn(far + Vector2(CELL * 0.5, CELL * 0.6))
 	frail_w.health = 1
 	_spawn(far + Vector2(CELL * 0.6, CELL * 0.5))
@@ -649,14 +707,17 @@ func _rebuilt_rows(far: Vector2) -> void:
 	_check(lights.calling_crit(partner, gold) and not partner.has_meta(lights.PASS_META), "...its next direct hit on gold crits")
 	await _clean()
 
-	# Lantern Wake (kept id, new meaning): other families' Wardens touching a Firefly glow too; old effect gone (no carried statuses).
+	# Lantern Wake (final pass 2026-10-24): the 2 nearest other families' Wardens within 2 cells of a Firefly glow too, lighting
+	# the path within 1 cell of them; Sprouts never; old effect gone (no carried statuses).
 	_path([&"lf_borrowed_light", &"lf_lantern_wake"])
 	jar = _plant("firefly_jar", far)
 	var hugger := _plant("sporeling", far + Vector2(CELL, 0))
+	var wake_sprout := _plant("sprout", far + Vector2(0, CELL))
 	await _frames(3)
-	_check(lights._wake_ids.has(hugger.get_instance_id()), "Lantern Wake: a Warden touching the Firefly glows")
-	var by_hugger = _spawn(far + Vector2(CELL * 2.2, 0))
-	_check(lights.is_lit(by_hugger) and lights.jars_at(lights._lit_sources(by_hugger)) == 0, "...the path touching it is Lit (not a Firefly's own glow)")
+	_check(lights._wake_ids.has(hugger.get_instance_id()), "Lantern Wake: another family's Warden within 2 cells glows")
+	_check(not lights._wake_ids.has(wake_sprout.get_instance_id()), "...a Sprout never does")
+	var by_hugger = _spawn(far + Vector2(CELL * 1.9, 0))
+	_check(lights.is_lit(by_hugger) and lights.jars_at(lights._lit_sources(by_hugger)) == 0, "...the path within 1 cell of it is Lit (not a Firefly's own glow)")
 	var wake_light: int = lights._wake_ids[hugger.get_instance_id()].light if lights._wake_ids.has(hugger.get_instance_id()) else -1
 	_check(wake_light == _light_of(jar), "...with the Firefly's own light id")
 	_check(not lights._reveals(lights._lit_sources(by_hugger)), "...it never reveals hidden nightmares")
@@ -678,8 +739,8 @@ func _rebuilt_rows(far: Vector2) -> void:
 	# Sightline / Constellation (kept ids, new meaning): pale path; old effects gone (no 3-hit quarter jumps, no Exposed fill).
 	_path([&"lf_borrowed_light", &"lf_sightline", &"lf_constellation"])
 	jar = _plant("firefly_jar", far)
-	var hitters: Array = [_plant("sprout", far + Vector2(CELL * 3, 0)), _plant("sprout", far + Vector2(CELL * 3, CELL)),
-		_plant("sprout", far + Vector2(CELL * 3, -CELL))]
+	var hitters: Array = [_plant("pebbling", far + Vector2(CELL * 3, 0)), _plant("pebbling", far + Vector2(CELL * 3, CELL)),
+		_plant("pebbling", far + Vector2(CELL * 3, -CELL))]  # (Sprouts no longer count: final pass 2026-10-24)
 	await _frames(3)
 	var target = _spawn(far + Vector2(CELL, 0))
 	var other = _spawn(far + Vector2(CELL, CELL))

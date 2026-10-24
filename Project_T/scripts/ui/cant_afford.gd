@@ -48,7 +48,7 @@ static func shake(control: Control) -> void:
 		return
 	# A press during a shake restarts it from where the control belongs, never from mid-shake (user 2026-10-22: pressed
 	# fast, the Lichenling row walked sideways with each refusal).
-	var running = control.get_meta(&"shake_tween", null)
+	var running = control.get_meta(&"shake_tween") if control.has_meta(&"shake_tween") else null  # (A null default is no default: it errors)
 	if running is Tween and (running as Tween).is_valid():
 		(running as Tween).kill()
 	var home: Vector2 = control.get_meta(&"shake_home", control.position)

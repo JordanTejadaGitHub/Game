@@ -90,6 +90,34 @@ A bent bog witch wrapped in reeds and black water.
 | **Funeral** | Processions back to back | chokepoints and chains |
 | **Deeply Blighted** | a few elites + an escort | burst on tough targets |
 
+### Drift shapes (APPROVED 2026-10-24, not built yet; rules in `enemy_design.md` "Drift shapes")
+
+Shapes are rolled per block from the map seed, so the tables below keep listing kinds and counts
+(each rolled drift's health budget). What this section fixes is **which drifts may take a shape**.
+Stream = today's even mix. Fixed drifts (1–5, every nightmare's introduction drift, the boss drifts
+and the drift right before each boss) are always Streams and count as a block's Streams.
+
+| Block | Drifts | Fixed Streams | Shapes |
+|---|---|---|---|
+| 1 | 1–5 | all (hand-made) | none |
+| 2 | 6–10 | 6 (Husk intro); 7–10 Stream too | none (shapes start at 11) |
+| 3 | 11–15 | — | **one** of Packs / Single file, rolled into 11–15 |
+| 4 | 16–20 | 16 (Mourner intro) | **one** of Packs / Single file, in 17–20 |
+| 5 (boss) | 21–25 | 24 (before the boss), 25 (the Hollow Stag's own escort) | **one** of Packs / Single file, in 21–23 |
+| 6 | 26–30 | 27 (Night Hound intro) | Packs, Single file, Few and tough once each in 26 / 28 / 29 / 30; 30 (finale) is shaped |
+| 7 | 31–35 | 31 (Phantom intro) | one of each in 32–35; 35 is shaped |
+| 8 | 36–40 | 36 (Lantern Bearer intro) | one of each in 37–40; 40 is shaped |
+| 9 | 41–45 | — | two Streams + one of each; 45 is shaped |
+| 10 (boss) | 46–50 | 49 (before the boss), 50 (the act 2 boss's escort) | one of each in 46–48 |
+
+Act 1 packs are 4–5 strong and act 1 has no Few and tough (the act 1 density and fairness rules).
+Never two Few and tough in a row, across a block boundary too.
+
+**Finding for the owner:** the named drifts here (Haunting 43 and the other specials) are rolled
+over like any other drift today; the roller keeps only their budget, window and elites. If one should
+always look the same, pin its shape (`DriftData.shape`) and its kinds; otherwise its name is only a
+table label.
+
 ## Act 1: Forest's Edge (drifts 1–25)
 
 SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** after every 5th.

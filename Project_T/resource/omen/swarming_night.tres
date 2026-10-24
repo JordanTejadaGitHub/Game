@@ -13,3 +13,4 @@ kind = 2
 count_multiplier = 2.0
 health_multiplier = 0.6
 reward_seeds = 5
+pack_fill = 8

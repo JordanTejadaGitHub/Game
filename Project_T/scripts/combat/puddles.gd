@@ -198,7 +198,43 @@ const BACKWATER_GAP := 6  # Backwaters: two waters of one Dewdrop this many step
 const EVO_MUDFLATS := &"dw_mudflats"
 const MUD_GAP := 4  # Mudflats: path between two waters this many steps apart or less is mud (never more mud than water)
 const EVO_SINKING := &"dw_sinking_mud"
-const SINK_SECONDS := 2.0  # Sinking Mud: a flyer over mud or water is slowed CAPSTONE_SLOW this long
+const SINK_SECONDS := 2.0  # Sinking Mud: a flyer over mud or water is slowed STEADY_SLOW this long
+# Final pass 2026-10-24 (owner "yes to all"; evo_fixed_dewdrop.md, final_check.md). Balancing 2026-10-24: every number here.
+const STEADY_SLOW := 0.20  # Mudflats and Sinking Mud (bosses 0.10). CAPSTONE_SLOW stays for an old save's Flash Flood
+const CLING_STEPS := 4  # Sinking Mud: leaving mud or water, STEADY_SLOW clings this many forward steps (Long Current keeps LONG_STEPS)
+const WET_LAST_META := &"pd_wet_last"  # On a nightmare: it was in water or on mud at the last poll (Sinking Mud's walk-out)
+const EVO_FLOODGATE := &"dw_floodgate"  # (EVO_FLOOD is the retired dw_flood)
+const SURGE_SLOW := 0.35  # Floodgate: a dispel in water surges it: everything in it walks this much slower…
+const SURGE_SECONDS := 3.0  # …for this long…
+const SURGE_COOLDOWN := 6.0  # …each water at most once in this long
+const EVO_SPATE := &"dw_spate"
+const SPATE_STEPS := 12  # Spate: a surge also runs this many steps on down the path past its water (path only, never water)
+const EVO_SILT := &"dw_silt"
+const SILT_SECONDS := 4.0  # Silt: a surge's path stays silt this long…
+const SILT_SLOW_SECONDS := 2.0  # …and a nightmare stepping onto it walks SURGE_SLOW slower this long (once per surge)
+const KING_UPSTREAM_STEPS := 6  # King Tide: the steps before each pond water count toward its wave…
+const KING_UPSTREAM := 4  # …and up to this many nightmares there take a wave hit too
+const EVO_UNDERTOW := &"dw_undertow"
+const UNDERTOW_PER := 0.10  # Undertow: a pond hit deals this much more for each spill target short of SPILL_MAX
+const EVO_FATHOMS := &"dw_fathoms"
+const FATHOM_PER := 0.10  # Fathoms: this much more for each second the nightmare has waded the pond (bosses twice as fast)…
+const FATHOM_MAX := 0.50  # …up to this
+const POND_SINCE_META := &"pd_pond_since"  # On a nightmare: when it entered the pond (leaving clears it)
+const EVO_CRUSH := &"dw_crushing_depth"
+const CRUSH_EVERY := 1.0  # Crushing Depth: at Fathoms' cap the pond Dewdrop's direct hit passes the shell, once a second per nightmare
+const CRUSH_META := &"pd_crush_next"  # On a nightmare
+const SIDE_DAMP_SECONDS := 2.0  # Riverside: a Dewdrop's own Soaked landing on a nightmare in water lasts this much longer
+const EVO_MOUTH := &"dw_river_mouth"
+const MOUTH_PER := 0.20  # River Mouth: the first other-family direct hit after leaving water, +20% per lingering status (not Soaked)…
+const MOUTH_MAX := 0.60  # …up to this…
+const MOUTH_STEPS := 6  # …within this many steps of the water's exit
+const MOUTH_WIN_META := &"pd_mouth_win"  # On a nightmare: [exit route index, leg, water key] of the water it last left
+const MOUTH_META := &"pd_mouth_seen"  # On a nightmare: {water key: true}: River Mouth spent (never re-armed by weaving)
+const EVO_DELTA := &"dw_delta"
+const DELTA_META := &"pd_delta_seen"  # On a nightmare: {water key: {Warden id: true}}
+const EVO_RAPIDS := &"dw_rapids"
+const RAPIDS_STEPS := 3  # Rapids: River Mouth's bonus also in a water's last this many steps…
+const RAPIDS_META := &"pd_rapids_seen"  # …once per nightmare per water: {water key: true}
 const SLOW_FX_EVERY := 1.0  # A slow's credit and puff: once a second per nightmare
 const SLOW_FX_META := &"pd_slow_fx"
 const SLOW_SEEN_META := &"pd_calling_slow"  # On a nightmare: [amount applied, poll time] (Heavy Going leaves it out)
@@ -213,19 +249,16 @@ const WAVE_RANK := 5  # Breaking Wave: the pond's Dewdrop at this rank or more�
 const WAVE_CROWD := 4  # …with this many nightmares in the pond at once…
 const WAVE_COOLDOWN := 4.0  # …hits each of them in full, at most once in this long…
 const WAVE_MAX := 6  # …up to this many (furthest along first)
-const EVO_KING := &"dw_king_tide"
-const KING_BOSS_COUNT := 4  # King Tide: a boss counts as this many; waves pass every non-boss's shell
+const EVO_KING := &"dw_king_tide"  # (Final pass: the queue before the pond; the boss count and shell pass are gone)
 const EVO_TWIN := &"dw_twin_springs"
 const EVO_CHURN := &"dw_churning_water"
 const CHURN_EVERY := 3.0  # Churning Water: drift time between churns…
 const CHURN_SCALE := 0.5  # …each a half hit (Balancing 2026-10-23: 0.75 if a sim shows it behind Breaking Wave)…
 const CHURN_MAX := 4  # …on up to this many nightmares in the pond, shared between its two highest-rank Dewdrops
 const EVO_THREE := &"dw_three_springs"
-# Support: other families' statuses (Sprouts count; Dewdrops never) linger by the water (EnemyStatuses.linger_calling, the
+# Support: other families' statuses (a Sprout's statuses linger too; Sprouts count toward no Warden count and never take River
+# Mouth / Delta / Rapids; Dewdrops never) linger by the water (EnemyStatuses.linger_calling, the
 # Calling's room; Poisoned / Exposed / Charged share one room with the lent cards); the rows that stop the clock mark_kept.
-const SIDE_SPROUT_SECONDS := 1.0  # Riverside: a Sprout's hit on a nightmare in water adds this to each status from another Warden…
-const SIDE_SPROUT_EVERY := 1.0  # …once a second per Sprout and nightmare
-const SIDE_SPROUT_META := &"pd_side_sprout"  # On a nightmare: {Sprout id: next time}
 const EVO_OPEN := &"dw_open_water"
 const EVO_STILL := &"dw_still_water"
 const STILL_WARDENS := 3  # Still Water: other Wardens on a water's bank for it to be still
@@ -294,6 +327,8 @@ var _spills := {}  # Dewdrop id -> {tower, base, hit: {enemy id: true}, at}: thi
 var _wave_next := -INF
 var _churn_in := 0.0
 var _still := {}  # Water index -> true: Still Water's still waters this poll
+var _surge_next := {}  # Water key -> when it may surge again (Floodgate)
+var _silt: Array = []  # Silt: [{points: {route index: true}, until, seen: {nightmare id: true}}]
 
 func _family() -> String:
 	return FAMILY
@@ -687,6 +722,8 @@ func dewdrop_near(tower):
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -> void:
 	if dispel and rule(RUN_OFF):
 		_run_off(enemy)
+	if dispel and evo(EVO_FLOODGATE):
+		_floodgate(enemy)  # Any family's dispel, any damage (echoes and split children too)
 	if tagged or source == null or not is_hit:
 		return
 	if rule(SOMETHING) and is_own(source) and living(enemy):
@@ -707,8 +744,6 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 			var bank_w := water_of(enemy)
 			if bank_w >= 0:
 				_bank_hit(event, source, enemy, bank_w)  # Lapping Water, Reflection (retired: old saves)
-				if evo(EVO_RIVERSIDE) and source.tower_data.get_id() == "sprout" and not _in_calling_event:
-					_sprout_side(source, enemy, bank_w)  # Riverside's Sprout part
 		return
 	var w := water_of(enemy)
 	if evo(EVO_WHIRLPOOL) and w >= 0 and _is_pond(w) and living(enemy) and not enemy.statuses.is_boss and not enemy.is_flying():
@@ -902,7 +937,7 @@ func _left(enemy, water: Dictionary) -> void:
 	if not living(enemy):
 		return
 	if class_on() and not dream_state.calling_path.is_empty():
-		_left_water(enemy)  # Long Current, Wet Footprints, Outflow
+		_left_water(enemy, water)  # Long Current, Wet Footprints, Outflow, River Mouth
 	# Backwash: a Soaked nightmare leaving water is hit once, free, by each Dewdrop touching that water (up to 4)
 	if rule(BACKWASH) and _soaked(enemy):
 		var fired := 0
@@ -925,7 +960,11 @@ func _left(enemy, water: Dictionary) -> void:
 # A nightmare walked out of water (the poll's walk-out, before _evolutions_poll): Long Current keeps its last in-water slow
 # for LONG_STEPS forward steps; Wet Footprints keeps other families' statuses for WET_FOOT_SECONDS; Outflow readies its first
 # other-family direct hit (once for each water left).
-func _left_water(enemy) -> void:
+func _left_water(enemy, water: Dictionary = {}) -> void:
+	if (evo(EVO_MOUTH) or evo(EVO_DELTA)) and not water.is_empty():
+		var exit := index_of(enemy)
+		if exit >= 0:  # River Mouth / Delta: the window past this water's exit (spent per water key, never re-armed)
+			enemy.set_meta(MOUTH_WIN_META, [exit, bool(enemy.get("passed_waymark")), _mouth_key(enemy, water)])
 	if evo(EVO_LONG):
 		var amount := float(enemy.get_meta(LAST_SLOW_META, 0.0))
 		var i := index_of(enemy)
@@ -939,8 +978,8 @@ func _left_water(enemy) -> void:
 		enemy.set_meta(OUT_META, true)
 
 func _entered(enemy, water: Dictionary) -> void:
-	if class_on():  # Back in water: no footprints, no Outflow hit waiting, no Long Current wake
-		for meta in [WET_FOOT_META, WET_KEEP_META, OUT_META, LONG_META]:
+	if class_on():  # Back in water: no footprints, no Outflow hit waiting, no Long Current / Sinking Mud wake, no mouth window
+		for meta in [WET_FOOT_META, WET_KEEP_META, OUT_META, LONG_META, MOUTH_WIN_META]:
 			if enemy.has_meta(meta):
 				enemy.remove_meta(meta)
 	var seen: Dictionary = enemy.get_meta(SEEN_META, {})
@@ -1214,7 +1253,19 @@ func _bank_hit(event, source, enemy, w: int) -> void:
 # cards). Every landing; the room bounds it. Never Drowsy or Held (can_linger).
 func _evo_status(tower, enemy, status: StringName) -> void:
 	var w := water_of(enemy)
-	if w < 0 or not EnemyStatuses.can_linger(status) or not evo(EVO_RIVERSIDE) or not is_other(tower):
+	if w < 0 or not EnemyStatuses.can_linger(status) or not evo(EVO_RIVERSIDE):
+		return
+	if is_own(tower):
+		# Final pass 2026-10-24 (owner pick: as drafted): a Dewdrop's own Soaked landing on a nightmare in water lasts
+		# SIDE_DAMP_SECONDS longer, so Riverside works at drift 5 with no second family (replaces the Sprout part, S1)
+		if status == EnemyStatuses.DAMP:
+			var wet: float = enemy.statuses.linger_calling(status, SIDE_DAMP_SECONDS)
+			SETUP.note_linger(enemy, card_id(EVO_RIVERSIDE), status, wet)
+			if wet > 0.0 and now() >= float(enemy.get_meta(SIDE_FX_META, -INF)):
+				enemy.set_meta(SIDE_FX_META, now() + SIDE_FX_EVERY)
+				credit(EVO_RIVERSIDE, enemy.global_position, tower)
+		return
+	if not is_other(tower):
 		return
 	var bank := _on_bank(tower, w)
 	if not bank and not evo(EVO_OPEN):
@@ -1227,29 +1278,6 @@ func _evo_status(tower, enemy, status: StringName) -> void:
 		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.DEWLIGHT)
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 		credit(row, enemy.global_position, tower)
-
-# Riverside's Sprout part: a Sprout's own hit on a nightmare in water (on its bank, or anywhere with Open Water) adds
-# SIDE_SPROUT_SECONDS to each status on it that no Dewdrop put there; once a second per Sprout and nightmare.
-func _sprout_side(sprout, enemy, w: int) -> void:
-	if not _on_bank(sprout, w) and not evo(EVO_OPEN):
-		return
-	var next: Dictionary = enemy.get_meta(SIDE_SPROUT_META, {})
-	var key: int = sprout.get_instance_id()
-	if now() < float(next.get(key, -INF)):
-		return
-	var added := false
-	for id in enemy.statuses.active_ids():
-		if not EnemyStatuses.can_linger(id) or is_own(enemy.statuses.source(id)):
-			continue
-		var got: float = enemy.statuses.linger_calling(id, SIDE_SPROUT_SECONDS)
-		SETUP.note_linger(enemy, card_id(EVO_RIVERSIDE), id, got)
-		if got > 0.0:
-			added = true
-	if added:
-		next[key] = now() + SIDE_SPROUT_EVERY
-		enemy.set_meta(SIDE_SPROUT_META, next)
-		_line_fx(sprout.global_position, enemy.global_position, 1.0, Palette.DEWLIGHT)
-		credit(EVO_RIVERSIDE, enemy.global_position, sprout)
 
 # Flash Flood: a Dewdrop's splash runs down its whole water, up to FLASH_STEPS each way; every nightmare it reaches (the
 # hit one too) walks CAPSTONE_SLOW slower for FLASH_SECONDS (bosses half), each nightmare once a second. No Soaked past 4
@@ -1376,13 +1404,21 @@ func _evolutions_poll() -> void:
 	var wet_on := evo(EVO_WET)
 	if still_on:
 		_find_still_waters()
+	var fathoms := evo(EVO_FATHOMS)
+	var silt := evo(EVO_SILT) and not _silt.is_empty()
+	if silt:
+		_age_silt()
 	for enemy in enemies():
 		if not living(enemy):
 			continue
+		if silt and not enemy.is_flying():
+			_silt_step(enemy)  # (Before the slow: its timed slow is read this poll)
 		if spread:
 			_spread_slow(enemy)
 		if enemy.is_flying():
 			continue  # Flyers are never in water
+		if fathoms:
+			_pond_time(enemy)
 		if old_pond:
 			_in_pond(enemy)
 		if still_on:
@@ -1397,8 +1433,10 @@ func _evolutions_poll() -> void:
 		_spring_tick()
 
 # Spread's one Calling slow for `enemy` this poll (class_kit.calling_slow; at most CALLING_SLOW_MAX, bosses half): Stream
-# 15% in water; Mudflats 30% in water and on mud; Flash Flood's and Sinking Mud's timed 30%; Long Current keeps the in-water
-# slow for LONG_STEPS forward steps past the water. The strongest counts: one request, never a second slow.
+# 15% in water; Mudflats STEADY_SLOW 20% in water and on mud; the timed slows (Floodgate / Spate / Silt 35%, Sinking Mud's
+# flyers 20%, an old save's Flash Flood 30%); Sinking Mud's cling (STEADY_SLOW for CLING_STEPS forward steps after leaving
+# water or mud) and an old save's Long Current (its in-water slow for LONG_STEPS) on LONG_META. The strongest counts: one
+# request, never a second slow.
 func _spread_slow(enemy) -> void:
 	var half := SLOW_BOSS_SHARE if enemy.statuses.is_boss else 1.0
 	var amount := 0.0
@@ -1406,16 +1444,28 @@ func _spread_slow(enemy) -> void:
 	var flying: bool = enemy.is_flying()
 	var i := -1 if flying else index_of(enemy)
 	var in_water := i >= 0 and _water_at.has(i)
+	var on_mud := i >= 0 and _mud.has(i) and evo(EVO_MUDFLATS)
 	if in_water:
-		amount = (CAPSTONE_SLOW if evo(EVO_MUDFLATS) else STREAM_SLOW) * half
+		amount = (STEADY_SLOW if evo(EVO_MUDFLATS) else STREAM_SLOW) * half
 		row = EVO_MUDFLATS if evo(EVO_MUDFLATS) else EVO_STREAM
-	elif i >= 0 and _mud.has(i) and evo(EVO_MUDFLATS):
-		amount = CAPSTONE_SLOW * half
+	elif on_mud:
+		amount = STEADY_SLOW * half
 		row = EVO_MUDFLATS
 	if flying and evo(EVO_SINKING):
 		var over := nearest_point(enemy.global_position, 0.5)
 		if over >= 0 and (_water_at.has(over) or _mud.has(over)):
-			_set_timed_slow(enemy, CAPSTONE_SLOW, SINK_SECONDS, EVO_SINKING)  # Refreshed while over it
+			_set_timed_slow(enemy, STEADY_SLOW, SINK_SECONDS, EVO_SINKING)  # Refreshed while over it
+	elif evo(EVO_SINKING) and i >= 0:
+		# Sinking Mud's cling: walking out of water or mud, STEADY_SLOW stays for CLING_STEPS forward steps (re-entering
+		# clears it: _entered for water, here for mud)
+		var wet := in_water or on_mud
+		if wet:
+			var held: Array = enemy.get_meta(LONG_META, [])
+			if held.size() >= 5 and StringName(held[4]) == EVO_SINKING:
+				enemy.remove_meta(LONG_META)
+		elif bool(enemy.get_meta(WET_LAST_META, false)):
+			enemy.set_meta(LONG_META, [i, STEADY_SLOW * half, bool(enemy.get("passed_waymark")), CLING_STEPS, EVO_SINKING])
+		enemy.set_meta(WET_LAST_META, wet)
 	var timed: Array = enemy.get_meta(TIMED_META, [])
 	if timed.size() >= 3:
 		if float(timed[0]) <= now():
@@ -1428,11 +1478,12 @@ func _spread_slow(enemy) -> void:
 	elif enemy.has_meta(LONG_META):
 		var wake: Array = enemy.get_meta(LONG_META)
 		var walked := i - int(wake[0])
-		if i < 0 or walked < 0 or walked > LONG_STEPS * 2 or bool(enemy.get("passed_waymark")) != bool(wake[2]):
-			enemy.remove_meta(LONG_META)  # Past its 6 steps, a lap started again, or the other leg of a Waymark route
+		var steps: int = int(wake[3]) if wake.size() >= 5 else LONG_STEPS  # Sinking Mud's cling carries its own steps and row
+		if i < 0 or walked < 0 or walked > steps * 2 or bool(enemy.get("passed_waymark")) != bool(wake[2]):
+			enemy.remove_meta(LONG_META)  # Past its steps, a lap started again, or the other leg of a Waymark route
 		elif float(wake[1]) > amount:
 			amount = float(wake[1])
-			row = EVO_LONG
+			row = StringName(wake[4]) if wake.size() >= 5 else EVO_LONG
 	if amount <= 0.0:
 		return
 	calling_slow(enemy, amount, row)
@@ -1444,47 +1495,57 @@ func _spread_slow(enemy) -> void:
 		if row == EVO_LONG or row == EVO_SINKING:
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)  # The current streaking on / mud dripping
 
-# Breaking Wave: from rank V, with WAVE_CROWD nightmares in the pond at once (King Tide: a boss counts as KING_BOSS_COUNT),
-# the pond's Dewdrop hits each of them in full (up to WAVE_MAX, furthest along first), at most once every WAVE_COOLDOWN.
-# Damage only (class_kit.calling_hit, tag breaker), never a crit or HEAVY. King Tide: the wave passes every non-boss's
-# shell (Enemy.pierce_coat_once); bosses keep their coat.
+# Breaking Wave: at rank V+ (class_kit.gate_rank: The Old Ones counts), with WAVE_CROWD nightmares in the pond at once, the
+# pond's Dewdrop hits each of them (up to WAVE_MAX, furthest along first), at most once every WAVE_COOLDOWN. Damage only
+# (class_kit.calling_hit, tag breaker), never a crit or HEAVY. Per-output cap period WAVE_COOLDOWN 4 s (final_check.md D):
+# a Dewdrop slower than one attack per 4 s hits for a share. King Tide (final pass 2026-10-24): nightmares on the
+# KING_UPSTREAM_STEPS steps before each pond water count toward the crowd, and up to KING_UPSTREAM of them take a wave hit too
+# (same call, same period). The boss count and the shell pass are gone (S1).
 func _wave_tick() -> void:
 	if _pond_dewdrops.is_empty() or now() < _wave_next:
 		return
 	var dewdrop = _pond_dewdrops[0]
-	if not _tower_ok(dewdrop) or int(dewdrop.rank) < WAVE_RANK:
+	if not _tower_ok(dewdrop) or gate_rank(dewdrop) < WAVE_RANK:
 		return
 	var inside := _pond_enemies()
 	var king := evo(EVO_KING)
-	var count := 0
-	var boss_counted := false
-	for enemy in inside:
-		if king and enemy.statuses.is_boss:
-			count += KING_BOSS_COUNT
-			boss_counted = true
-		else:
-			count += 1
-	if count < WAVE_CROWD:
+	var queue: Array = _upstream_enemies() if king else []
+	if inside.size() + queue.size() < WAVE_CROWD:
 		return
 	_wave_next = now() + WAVE_COOLDOWN
 	inside.sort_custom(func(a, b) -> bool: return index_of(a) > index_of(b))
 	for enemy in inside.slice(0, WAVE_MAX):
-		var pierce: bool = king and not enemy.statuses.is_boss
-		if pierce:
-			enemy.pierce_coat_once = true
-		calling_hit(dewdrop, enemy, 1.0, &"breaker", EVO_WAVE, true, true, &"")
-		if pierce and is_instance_valid(enemy):
-			enemy.pierce_coat_once = false  # (Spent by its take_damage; never left for a later hit)
+		calling_hit(dewdrop, enemy, 1.0, &"breaker", EVO_WAVE, true, true, &"", 1.0, WAVE_COOLDOWN)
+	if not queue.is_empty():
+		queue.sort_custom(func(a, b) -> bool: return index_of(a) > index_of(b))
+		for enemy in queue.slice(0, KING_UPSTREAM):
+			calling_hit(dewdrop, enemy, 1.0, &"breaker", EVO_KING, true, true, &"", 1.0, WAVE_COOLDOWN)
 	for w in _pond_waters:
 		_water_fx(int(w), int(waters[int(w)].first), int(waters[int(w)].last), 3.0)  # A white wave crossing the pond
 		var wet: Array = (waters[int(w)].points as Dictionary).keys()
 		if not wet.is_empty():
 			wet.sort()
 			_wave_crest(int(wet[wet.size() >> 1]), int(waters[int(w)].last))  # Its crest breaking mid-pond (dw_wave_flash)
-	if king:
-		credit(EVO_KING, dewdrop.global_position, dewdrop)
-		if boss_counted:
-			Reactions._effect(&"landing_dust", dewdrop.global_position, self, 1.6)
+		if not queue.is_empty():  # King Tide: the wave runs back up the path against the queue
+			var first := int(waters[int(w)].first)
+			_water_fx(int(w), first - KING_UPSTREAM_STEPS * 2, first, 2.0)
+			_wave_crest(first, maxi(first - 1, 0))
+
+# King Tide: the living walkers on the KING_UPSTREAM_STEPS steps before a pond water's first point (not in water).
+func _upstream_enemies() -> Array:
+	var out: Array = []
+	for enemy in enemies():
+		if enemy.is_flying():
+			continue
+		var i := index_of(enemy)
+		if i < 0 or _water_at.has(i):
+			continue
+		for w in _pond_waters:
+			var first := int(waters[int(w)].first)
+			if i < first and first - i <= KING_UPSTREAM_STEPS * 2:
+				out.append(enemy)
+				break
+	return out
 
 # Churning Water: while 2 Dewdrops share the pond, every CHURN_EVERY s of drift time its two highest-rank Dewdrops hit up
 # to CHURN_MAX nightmares in it (furthest along first, shared between them in turn) for CHURN_SCALE. Damage only; never
@@ -1506,14 +1567,109 @@ func _churn_tick() -> void:
 	inside.sort_custom(func(a, b) -> bool: return index_of(a) > index_of(b))
 	var k := 0
 	for enemy in inside.slice(0, CHURN_MAX):
-		calling_hit(two[k % 2], enemy, CHURN_SCALE, &"churn", EVO_CHURN, true, true, &"")
+		calling_hit(two[k % 2], enemy, CHURN_SCALE, &"churn", EVO_CHURN, true, true, &"", 1.0, CHURN_EVERY)  # Old saves: period 3 s
 		k += 1
 		Reactions._effect(&"landing_dust", enemy.global_position, self, 0.5)  # The pond swirls white
 
-# Still Water: the waters with STILL_WARDENS or more other Wardens on their bank (Sprouts count; Wide Banks: 2 cells).
+# --- Final pass 2026-10-24 (evo_fixed_dewdrop.md, final_check.md) -------------------------------------------------------
+
+# Floodgate: a nightmare dispelled in water surges it: every walker in that water walks SURGE_SLOW slower for SURGE_SECONDS
+# (_set_timed_slow: bosses half, the one capped Calling slow). Each water at most once every SURGE_COOLDOWN. Spate: the surge
+# also runs SPATE_STEPS on down the path past the water (path steps only, never water). Silt: the surged path stays silt for
+# SILT_SECONDS; a nightmare stepping onto it walks SURGE_SLOW slower for SILT_SLOW_SECONDS, once per surge.
+func _floodgate(enemy) -> void:
+	if not is_instance_valid(enemy) or enemy.is_flying() or resting():
+		return
+	var w := water_of(enemy)
+	if w < 0 or w >= waters.size():
+		return
+	var water: Dictionary = waters[w]
+	var key := "%d" % int(water.last)
+	if now() < float(_surge_next.get(key, -INF)):
+		return
+	_surge_next[key] = now() + SURGE_COOLDOWN
+	var points := {}
+	for i in water.points:
+		points[int(i)] = true
+	var row: StringName = EVO_FLOODGATE
+	if evo(EVO_SPATE):
+		row = EVO_SPATE
+		for k in range(1, SPATE_STEPS * 2 + 1):
+			var j: int = int(water.last) + k
+			if j >= _route_px.size():
+				break
+			points[j] = true
+	var seen := {}
+	for other in enemies():
+		if other.is_flying() or not living(other):
+			continue
+		var i := index_of(other)
+		if i >= 0 and points.has(i):
+			_set_timed_slow(other, SURGE_SLOW, SURGE_SECONDS, row)
+			seen[other.get_instance_id()] = true
+	if evo(EVO_SILT):
+		_silt.append({"points": points, "until": now() + SILT_SECONDS, "seen": seen})
+	_water_fx(w, int(water.first), int(water.last), 3.0)  # The water heaves white
+	if row == EVO_SPATE:
+		_water_fx(w, int(water.last), int(water.last) + SPATE_STEPS * 2, 2.0)  # The wave racing on down the path
+	_wave_crest(int(water.last), int(water.last) + 1)
+	credit(row, enemy.global_position)
+
+func _age_silt() -> void:
+	for k in range(_silt.size() - 1, -1, -1):
+		if float(_silt[k].until) <= now():
+			_silt.remove_at(k)
+
+func _silt_step(enemy) -> void:
+	var i := index_of(enemy)
+	if i < 0:
+		return
+	var id: int = enemy.get_instance_id()
+	for zone in _silt:
+		if zone.points.has(i) and not zone.seen.has(id):
+			zone.seen[id] = true
+			_set_timed_slow(enemy, SURGE_SLOW, SILT_SLOW_SECONDS, EVO_SILT)
+			credit(EVO_SILT, enemy.global_position)
+			return
+
+# Fathoms: when a walker entered the pond (leaving it clears the clock).
+func _pond_time(enemy) -> void:
+	if _is_pond(water_of(enemy)):
+		if not enemy.has_meta(POND_SINCE_META):
+			enemy.set_meta(POND_SINCE_META, now())
+	elif enemy.has_meta(POND_SINCE_META):
+		enemy.remove_meta(POND_SINCE_META)
+
+# Fathoms' part for `enemy`: FATHOM_PER for each second it has waded the pond (bosses twice as fast), up to FATHOM_MAX.
+func _fathoms_part(enemy) -> float:
+	if not enemy.has_meta(POND_SINCE_META):
+		return 0.0
+	var seconds: float = maxf(now() - float(enemy.get_meta(POND_SINCE_META)), 0.0)
+	return minf(FATHOM_MAX, FATHOM_PER * seconds * (2.0 if enemy.statuses.is_boss else 1.0))
+
+# A water's key for River Mouth / Delta / Rapids' once-per-water records: its downstream end, the Waymark leg, the lap (a lap
+# restart arms them again; re-entering, pulls and weaving never do).
+func _mouth_key(enemy, water: Dictionary) -> String:
+	return "%d:%d:%d" % [int(water.last), int(bool(enemy.get("passed_waymark"))), int(enemy.get("laps"))]
+
+# Still Water's bank count: other families' Wardens (counts_as_warden: no Sprouts, no walls).
+func _counts_on_bank(tower) -> bool:
+	return is_other(tower) and counts_as_warden(tower)
+
+# How many statuses on `enemy` are lingering (EnemyStatuses.is_lingering, the Dew-light rim), Soaked left out (owner pick
+# 2026-10-24): River Mouth, Delta and Rapids.
+func _lingering_count(enemy) -> int:
+	var found := 0
+	for id in enemy.statuses.active_ids():
+		if id != EnemyStatuses.DAMP and enemy.statuses.is_lingering(id):
+			found += 1
+	return found
+
+# Still Water: the waters with STILL_WARDENS or more other families' Wardens on their bank (final pass 2026-10-24: Sprouts and
+# walls don't count, class_kit.counts_as_warden; Wide Banks: 2 cells).
 func _find_still_waters() -> void:
 	_still.clear()
-	var others: Array = towers().filter(is_other)
+	var others: Array = towers().filter(_counts_on_bank)
 	for w in waters.size():
 		var count := 0
 		for tower in others:
@@ -2012,13 +2168,28 @@ func _run_off(enemy) -> void:
 # --- What the other systems ask (through DreamState) --------------------------------------------------------------------
 
 # The Calling branch of DreamState.hit_card_multiplier (evo_shared_spec.md 6; direct hits only: Tower skips Pinned / Shatter /
-# effects): Low Tide, another family's direct hit (Sprouts count) +10% for each status the water is keeping on the nightmare
-# (EnemyStatuses.is_kept: a Support row stopped its clock this poll, or it is past its normal time), up to +30%; Outflow,
-# the first such hit after the nightmare left a water, +20% each, up to +60%, instead of Low Tide. Each part noted with
-# DamageLog.note_card_bonus, so card_cap_factor holds it inside the x4 card cap.
+# effects). Every part is per own attack (no per-output cap) and noted with DamageLog.note_card_bonus, so card_cap_factor
+# holds it inside the x4 card cap. Final pass 2026-10-24:
+# - the pond Dewdrop's own hit on a pond nightmare: Undertow (+UNDERTOW_PER for each spill target short of SPILL_MAX) and
+#   Fathoms (+FATHOM_PER a second waded, bosses twice as fast, up to FATHOM_MAX) add; at Fathoms' cap, Crushing Depth makes
+#   the hit pass the shell (pierce_coat_once), once a second per nightmare. Neither raises the spill.
+# - another family's direct hit (never a Sprout's, which neither takes nor spends it): River Mouth, the first one within
+#   MOUTH_STEPS of leaving a water, +MOUTH_PER for each lingering status (not Soaked), up to MOUTH_MAX, once per nightmare per
+#   water; Delta, each Warden's first one there; Rapids, the first one on a nightmare in a water's last RAPIDS_STEPS, once per
+#   nightmare per water, on top of the mouth's.
+# - an old save's Low Tide / Outflow (retired): as built.
 func hit_multiplier(tower, enemy, _is_area: bool, _is_crit: bool, combo: StringName) -> float:
-	if not class_on() or combo != &"" or not is_other(tower) or not living(enemy):
+	if not class_on() or combo != &"" or not living(enemy) or not (tower is Tower):
 		return 1.0
+	if is_own(tower):
+		return _pond_hit_multiplier(tower, enemy)
+	if not is_other(tower):
+		return 1.0
+	var mouth := 1.0
+	if is_other_family(tower) and (evo(EVO_MOUTH) or evo(EVO_DELTA) or evo(EVO_RAPIDS)):
+		mouth = _mouth_multiplier(tower, enemy)
+	if mouth > 1.0:
+		return mouth
 	var kept := _kept_count(enemy)
 	if evo(EVO_OUTFLOW) and enemy.has_meta(OUT_META):
 		enemy.remove_meta(OUT_META)  # Once for each water it leaves, kept statuses or not
@@ -2037,6 +2208,86 @@ func hit_multiplier(tower, enemy, _is_area: bool, _is_crit: bool, combo: StringN
 			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.6)  # The blue splash
 		return tide
 	return 1.0
+
+# Undertow, Fathoms and Crushing Depth on the pond Dewdrop's own direct hit on a nightmare in the pond.
+func _pond_hit_multiplier(tower, enemy) -> float:
+	if _pond_dewdrops.is_empty() or _pond_dewdrops[0] != tower or not _is_pond(water_of(enemy)):
+		return 1.0
+	var part := 0.0
+	var row := &""
+	if evo(EVO_UNDERTOW):
+		var others := 0
+		for other in _pond_enemies():
+			if other != enemy:
+				others += 1
+		var missing := SPILL_MAX - mini(others, SPILL_MAX)
+		if missing > 0:
+			part += UNDERTOW_PER * missing
+			row = EVO_UNDERTOW
+	var deep := 0.0
+	if evo(EVO_FATHOMS):
+		deep = _fathoms_part(enemy)
+		if deep > 0.0:
+			part += deep
+			row = EVO_FATHOMS
+	if evo(EVO_CRUSH) and deep >= FATHOM_MAX - 0.0001 and now() >= float(enemy.get_meta(CRUSH_META, -INF)):
+		enemy.set_meta(CRUSH_META, now() + CRUSH_EVERY)
+		enemy.pierce_coat_once = true  # Spent by this hit's take_damage
+		credit(EVO_CRUSH, enemy.global_position, tower)
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)  # The shell cracks under the water line
+	if part <= 0.0:
+		return 1.0
+	DamageLog.note_card_bonus(String(row), 1.0 + part)
+	credit(row, enemy.global_position, tower)
+	return 1.0 + part
+
+# River Mouth, Delta and Rapids on another family's direct hit (not a Sprout's). 1.0 when none applies.
+func _mouth_multiplier(tower, enemy) -> float:
+	var i := index_of(enemy)
+	if i < 0:
+		return 1.0
+	var w := _water_at_i(i)
+	var row := &""
+	if w >= 0 and w < waters.size():
+		# Rapids: inside a water's last RAPIDS_STEPS steps
+		if evo(EVO_RAPIDS) and int(waters[w].last) - i < RAPIDS_STEPS * 2:
+			var key := _mouth_key(enemy, waters[w])
+			var seen: Dictionary = enemy.get_meta(RAPIDS_META, {})
+			if not seen.has(key):
+				seen[key] = true
+				enemy.set_meta(RAPIDS_META, seen)
+				row = EVO_RAPIDS
+	elif enemy.has_meta(MOUTH_WIN_META):
+		var win: Array = enemy.get_meta(MOUTH_WIN_META)
+		var walked := i - int(win[0])
+		if walked < 0 or walked > MOUTH_STEPS * 2 or bool(enemy.get("passed_waymark")) != bool(win[1]):
+			enemy.remove_meta(MOUTH_WIN_META)  # Past the window, a lap started again, or the other leg of a Waymark route
+		else:
+			var key := String(win[2])
+			if evo(EVO_DELTA):  # Delta: each Warden's first hit there
+				var all: Dictionary = enemy.get_meta(DELTA_META, {})
+				var done: Dictionary = all.get(key, {})
+				if not done.has(tower.get_instance_id()):
+					done[tower.get_instance_id()] = true
+					all[key] = done
+					enemy.set_meta(DELTA_META, all)
+					row = EVO_DELTA
+			elif evo(EVO_MOUTH):
+				var seen: Dictionary = enemy.get_meta(MOUTH_META, {})
+				if not seen.has(key):
+					seen[key] = true  # Spent by the first hit there, lingering statuses or not
+					enemy.set_meta(MOUTH_META, seen)
+					row = EVO_MOUTH
+	if row == &"":
+		return 1.0
+	var count := _lingering_count(enemy)
+	if count <= 0:
+		return 1.0
+	var bonus := 1.0 + minf(MOUTH_PER * count, MOUTH_MAX)
+	DamageLog.note_card_bonus(String(row), bonus)
+	credit(row, enemy.global_position, tower)
+	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)  # The big blue splash
+	return bonus
 
 # How many statuses on `enemy` the water is keeping (EnemyStatuses.is_kept; never is_lingering).
 func _kept_count(enemy) -> int:

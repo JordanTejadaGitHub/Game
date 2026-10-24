@@ -17,7 +17,10 @@ const SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen",
 # the results always cover. `hud` = the HUD node; `except` = a screen not to count (the caller itself). One place, so
 # nothing else sets those pieces' visibility (user phone screenshot 2026-10-17: the strip flickered behind a choice).
 const ALWAYS_COVER := ["PauseMenu", "ResultsScreen"]
-static func covering(hud: Node, except: Node = null) -> bool:
+# Covering screens that block the map but keep the selection: Remember opens from the Warden panel's Unlock and the
+# panel's next step is growing into what was unlocked; a Lesson can open after a grow or a Nurture. Both draw over the panel.
+const KEEP_SELECTION := ["RememberScreen", "LessonCard"]
+static func covering(hud: Node, except: Node = null, choices_only := false) -> bool:
 	if hud == null:
 		return false
 	var peeking := ChoicePeek.any_peeking()
@@ -25,10 +28,38 @@ static func covering(hud: Node, except: Node = null) -> bool:
 		var screen := hud.get_node_or_null(screen_name) as CanvasItem
 		if screen == null or screen == except or not screen.visible:
 			continue
+		if choices_only and (ALWAYS_COVER.has(screen_name) or KEEP_SELECTION.has(screen_name)):
+			continue  # Not a choice that closes the Warden panel (choice_locked)
 		if peeking and not ALWAYS_COVER.has(screen_name):
 			continue
 		return true
 	return false
+
+# The map's input under a choice screen (user 2026-10-23: "able to hover and select Wardens when the Dream screen is up,
+# while not peeking at the map"; a phone tap on "Take" reached "Nurture rank I" under the Calling choice). One rule for
+# every world tool (TowerSeller, TowerPlacer, ObstacleClearer, NightmareInfo, the camera), PC and phones:
+# - map_blocked: a covering screen is open and not peeking: the map takes no input at all, not even hover.
+# - map_locked: that, or a choice is peeking: look and hover only; no selecting, buying, selling, building or Nurture
+#   until "Back to …".
+static func map_blocked(node: Node) -> bool:
+	return covering(hud_of(node))
+
+static func map_locked(node: Node) -> bool:
+	return ChoicePeek.any_peeking() or map_blocked(node)
+
+# A choice screen (not the pause menu or the results) is open, peeking or not: TowerSeller closes the Warden panel then.
+static func choice_locked(node: Node) -> bool:
+	return ChoicePeek.any_peeking() or covering(hud_of(node), null, true)
+
+# The run's HUD from any node in the run's scene (a world tool or a HUD piece), or null.
+static func hud_of(node: Node) -> Node:
+	var at := node
+	while at != null:
+		var hud := at.get_node_or_null("HUD")
+		if hud != null:
+			return hud
+		at = at.get_parent()
+	return null
 
 # Whether a covering screen other than `caller` is open (a choice screen waits for it before opening).
 static func any_open(caller: Node, director: DriftDirector) -> bool:
