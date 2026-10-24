@@ -262,6 +262,25 @@ var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
+# Walking lanes (enemy_design.md "Walking lanes", owner 2026-10-24: visual only): the drawn body walks a lane beside
+# the centre line, across the travel direction; the node (position, cell, targeting, ranges) stays on the line.
+const LANE_MAX := 0.3  # Cells either side (Stream and Packs)
+const LANE_BIG := 0.15  # Bosses and big nightmares (sprite_scale >= LANE_BIG_SCALE)
+const LANE_BIG_SCALE := 1.4
+const LANE_FLYER := 0.15  # Flyers sway on their own line
+const LANE_WANDER := Vector2(3.0, 6.0)  # Seconds between new target lanes
+const LANE_EASE := 3.0  # Easing rate to the target lane (about 1 s)
+const LANE_TURN_EASE := 5.0  # Easing rate of the travel direction the lane is measured from (a crowd swings round bends)
+const LANE_SNAP_PX := 0.25  # The drawn offset is pushed to the sprite and HUD only when it moved this far
+var lane_width := -1.0  # Cells either side; < 0 = by its kind (DriftShapes sets Single file / Few and tough's)
+var lane := 0.0  # Current lane, -1..1 of lane_width (the spawner's jostle reads and nudges it)
+var lane_target := 0.0
+var _lane_left := 0.0
+var _lane_dir := Vector2.ZERO
+var _lane_offset := Vector2.ZERO  # The drawn offset in px
+var _lane_drawn := Vector2.ZERO  # The offset last pushed to the sprite / HUD
+var _lane_age := 0.0  # Seconds walked: the lane opens over the first cell
+var _lane_rng: RandomNumberGenerator = null
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
 # _in_narrow_gap's last answer and what it depended on (perf: re-checked only when the half cells under and
 # just ahead of the body, the step or the map's blocking change, not every frame)
@@ -865,6 +884,8 @@ func _process(delta: float) -> void:
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
 			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
 			_steady_serial = _path_serial
+	if not _culled and not _leaping and not _dragging:
+		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -1007,7 +1028,7 @@ func _draw() -> void:
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	draw_set_transform(Vector2(0, -_foot_lift))
+	draw_set_transform(_lane_drawn + Vector2(0, -_foot_lift))  # (Walking lanes: with the drawn body)
 	if unbound:  # Cold ghost-fire glow behind the sprite, pulsing (no warm colour on nightmares)
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
 		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
@@ -1902,6 +1923,60 @@ func _update_sustained(delta: float) -> void:
 		_sustained.erase(ended)
 		sustained_changed.emit(self, ended, false)
 
+# Where the nightmare is drawn (its lane, rounded corner and foot lift included): aim visuals here; game logic keeps
+# global_position. Same as get_body_position (Tower Code's aim, walking lanes 2026-10-24).
+func get_visual_position() -> Vector2:
+	return get_body_position()
+
+# This nightmare's lane width in cells (either side of the centre line).
+func get_lane_width() -> float:
+	if lane_width >= 0.0:
+		return minf(lane_width, LANE_BIG) if _is_big_for_lanes() else lane_width
+	if is_flying():
+		return LANE_FLYER
+	return LANE_BIG if _is_big_for_lanes() else LANE_MAX
+
+func _is_big_for_lanes() -> bool:
+	return enemy_data.is_boss or enemy_data.sprite_scale >= LANE_BIG_SCALE
+
+# Walking lanes: wander to a new lane every LANE_WANDER s (eased), measured across the eased travel direction; the lane
+# opens over the first cell walked and closes over the last before the Heartwood. Reduced motion: a fixed lane.
+func _update_lane(delta: float) -> void:
+	var still := bool(Fx.setting("reduced_motion", false))
+	if _lane_rng == null:
+		_lane_rng = RandomNumberGenerator.new()
+		_lane_rng.seed = randi()  # (The global RNG: a capture reseeds it, so its lanes replay)
+		lane_target = _lane_rng.randf_range(-1.0, 1.0)
+		lane = lane_target
+		_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
+	if not still:
+		_lane_left -= delta
+		if _lane_left <= 0.0:
+			_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
+			lane_target = _lane_rng.randf_range(-1.0, 1.0)
+		lane = lerpf(lane, lane_target, 1.0 - exp(-LANE_EASE * delta))
+	var dir := Vector2.ZERO
+	if _path_index < _path.size():
+		dir = grid.calculate_map_position(_path[_path_index]) - position
+	if dir.length_squared() > 1.0:
+		dir = dir.normalized()
+		_lane_dir = dir if _lane_dir == Vector2.ZERO else _lane_dir.lerp(dir, 1.0 - exp(-LANE_TURN_EASE * delta)).normalized()
+	var cell: float = grid.cell_size.x
+	_lane_age += delta
+	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
+	if not _path.is_empty():
+		open = minf(open, clampf(position.distance_to(grid.calculate_map_position(_path[_path.size() - 1])) / cell, 0.0, 1.0))
+	var side := Vector2(-_lane_dir.y, _lane_dir.x)
+	_lane_offset = side * lane * get_lane_width() * cell * open
+	if _lane_offset.distance_squared_to(_lane_drawn) < LANE_SNAP_PX * LANE_SNAP_PX:
+		return
+	_lane_drawn = _lane_offset
+	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
+	if elite or _hit_mark_time > 0.0 or _bolt_flash > 0.0 or unbound:
+		queue_redraw()  # The haze and marks drawn in _draw follow the lane
+
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
 
@@ -2265,7 +2340,7 @@ func get_body_position() -> Vector2:
 
 # The drawn body's offset from the logical position: the rounded corner plus the foot lift (and asleep, its sink).
 func _body_offset() -> Vector2:
-	return _corner_offset + Vector2(0, -_foot_lift + _sleep_sink)
+	return _corner_offset + _lane_drawn + Vector2(0, -_foot_lift + _sleep_sink)
 
 # Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): when Sleep fills into Asleep
 # (statuses.sleep_time from 0), the Sleep icon flashes once and turns into the Asleep badge; the nightmare settles
