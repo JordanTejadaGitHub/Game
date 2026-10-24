@@ -651,11 +651,11 @@ static func _smother_burst(enemy: Node2D, plain: bool = false) -> void:
 	if tracker != null:
 		tracker.reaction_payoff.emit(&"smother", enemy.global_position, 1)  # Sound's burst
 	if world != null:
-		_effect(&"hit_spore", enemy.global_position, enemy, 1.75)  # Stand-in for a burst sheet (open item for Fx)
+		_effect(&"hit_spore", Tower.aim_at(enemy), enemy, 1.75)  # Stand-in for a burst sheet (open item for Fx)
 		var data := get_data(&"smother")
 		var ring := Fx.FxRing.new(data.callout_color if data else Palette.SPRIG, 10.0, 44.0, 0.4)
 		world.add_child(ring)
-		ring.global_position = enemy.global_position
+		ring.global_position = Tower.aim_at(enemy)  # (Walking lanes: on the drawn body)
 	# (council rx review 2026-10-17) The burst goes through the normal Poisoned tick hooks: Soaked Rot, Lichenling and the
 	# cohort credit split (DamageLog reads spore_tick_credit while delivering_spore_tick); only its x SMOTHER_BURST bonus
 	# counts as Reaction damage (Enemy.REACTION_BONUS_ONLY).
@@ -797,7 +797,7 @@ static func _stars(enemy: Node2D, tower: Tower, dealt: float, at: Vector2, pin_p
 			continue
 		if other.statuses.stacks(MARKED) < need(EXPOSED_NEEDED):
 			continue  # Exposed at a Reaction's need (as Pinned); Charged alone draws no star
-		_segment(&"thunderclap_arc", at, other.global_position, tower, 0.3)  # A star falls on it
+		_segment(&"thunderclap_arc", at, Tower.aim_at(other), tower, 0.3)  # A star falls on it
 		_touch(other, chain, [tower])
 		other.take_damage(_rx_spill(other, star_damage), "light", false, true, tower, &"starfall")
 		if pins and is_instance_valid(other) and not other.is_cleansed and not other.statuses.pinned:
@@ -1037,7 +1037,7 @@ static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false)
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
-		_segment(&"thunderclap_arc", enemy.global_position, other.global_position, enemy, 0.25)
+		_segment(&"thunderclap_arc", Tower.aim_at(enemy), Tower.aim_at(other), enemy, 0.25)
 		_touch(other, chain, _towers(tower))
 		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap", &"tempest" if tempest else &"")
 		if is_instance_valid(other) and dreams and dreams.has_rule(&"conductive_soil"):
@@ -1482,7 +1482,7 @@ class Sleepwalker extends Node:
 		_trail -= Reactions.SLEEPWALK_SEARCH_EVERY
 		if _trail <= 0.0:
 			_trail = Reactions.SLEEPWALK_TRAIL_EVERY
-			Reactions._effect(&"hit_spore", enemy.global_position, enemy, 0.75)  # The spore trail behind it
+			Reactions._effect(&"hit_spore", Tower.aim_at(enemy), enemy, 0.75)  # The spore trail behind it
 		for other in Reactions._others_within(enemy, Reactions.SLEEPWALK_REACH):
 			var key: int = other.get_instance_id()
 			if _touched.has(key):
@@ -1633,7 +1633,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 			if is_instance_valid(e) and not e.is_cleansed and (on == null or e.global_position.distance_to(spot) < on.global_position.distance_to(spot)):
 				on = e
 		if on != null:
-			Fx.reaction(id, on.global_position, world, [echo_tower], 0.0, on)
+			Fx.reaction(id, Tower.aim_at(on), world, [echo_tower], 0.0, on)
 		else:
 			Fx.play(Fx.REACTIONS.get(id, [id])[0], spot, world)
 	var strength: float = ECHO_DAMAGE.get(id, 0.0) * _author_damage(applier if is_instance_valid(applier) else echo_tower, 0.0)  # Its author's (owner 2026-10-22)
@@ -1725,7 +1725,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 		enemy.set_meta(&"smother_fx", node)  # Loops while held; the nightmare frees it after
 	var world := _world(enemy)
 	if storm_front and world != null:
-		Fx.play(&"storm_front", enemy.global_position, world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
+		Fx.play(&"storm_front", Tower.aim_at(enemy), world, 1.0, true, STORM_FRONT_SECONDS)  # A wind swirl (it loops: give it a life)
 	var tracker := ReactionTracker.find(enemy)
 	if tracker:
 		tracker.note_spot(id, enemy.global_position, _tower_of(towers[0] if not towers.is_empty() else null, null))
@@ -2148,7 +2148,7 @@ static func _show(enemy: Node2D, id: StringName, towers: Array, chain: int, auth
 		var dreams := _dreams(enemy)
 		var pool := dreams.get_reaction_card_multiplier(enemy, id, author) - 1.0 if dreams != null else 0.0  # This Reaction's own pool (cached per frame: no second credit)
 		var big := crowned and tracker != null and int(tracker.counts.get(id, 0)) < CROWN_TITLE_TIMES
-		node = Fx.reaction(id, enemy.global_position, world, towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower),
+		node = Fx.reaction(id, Tower.aim_at(enemy), world, towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Tower),
 			0.0, enemy, author, pool, _crown_marks(enemy, id) if crowned else [], big)  # Rides on its nightmare (user 2026-10-21)
 	if tracker:
 		tracker.record(id, enemy, chain, chain_towers if not chain_towers.is_empty() else towers)

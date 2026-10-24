@@ -2889,7 +2889,7 @@ func _area_pulse_fx(in_range: Array) -> void:
 	for i in mini(in_range.size(), PULSE_SPARKS_MAX):
 		var enemy: Node2D = in_range[i]
 		if is_instance_valid(enemy):
-			Fx.play(spark, enemy.global_position, world)
+			Fx.play(spark, aim_at(enemy), world)
 
 # Muted ground colours per pulse family (warm for the root / grove lines).
 const RIPPLE_COLOURS := {"root": Palette.DEADWOOD, "grove": Palette.OAK, "song": Palette.MOONPATH, "water": Palette.DEW,
@@ -3364,7 +3364,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		var overlap := _dream_state.overlap_multiplier(self, enemy)  # Another Warden's area hit within 1 s
 		soothe *= overlap
 		if overlap > 1.0:
-			DREAM_BURST.play(&"overlap", enemy.global_position, 18.0, Reactions._world(self))
+			DREAM_BURST.play(&"overlap", aim_at(enemy), 18.0, Reactions._world(self))
 	if _dream_state and _has_rule(&"lantern_glow"):
 		soothe *= 1.0 + LANTERN_GLOW  # Lantern Glow: a nightmare in a Warden's reach glows and takes +15%
 	if _dream_state:
@@ -4315,7 +4315,7 @@ func pull(enemy: Node2D, tiles: float) -> void:
 		if world:
 			var wrap := Kinships.KinBurst.new(look, 0.4, 14.0)
 			world.add_child(wrap)
-			wrap.global_position = enemy.global_position
+			wrap.global_position = aim_at(enemy)
 
 func _push(enemy: Node2D) -> void:
 	if attack_data.push_back_tiles <= 0.0 or not is_instance_valid(enemy) or enemy.is_cleansed \
@@ -4350,7 +4350,7 @@ func _chain_strike(first: Node2D) -> void:
 
 	var storm := attack_data.storm_every > 0 and _attack_count % attack_data.storm_every == 0
 	if storm:
-		Reactions._effect(&"thunderhead_strike", first.global_position, self)  # Signature: a bolt from the sky
+		Reactions._effect(&"thunderhead_strike", aim_at(first), self)  # Signature: a bolt from the sky
 	if storm or (_dream_state and _has_rule(&"conductive_soil")):
 		for enemy in get_enemies_in_range():
 			if enemy.statuses.has(EnemyStatuses.DAMP) and not hits.has(enemy):

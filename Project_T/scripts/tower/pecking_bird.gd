@@ -41,12 +41,12 @@ func _process(delta: float) -> void:
 		_state = 2
 	match _state:
 		0:
-			var to: Vector2 = _target.global_position + HOVER
+			var to: Vector2 = Tower.aim_at(_target) + HOVER
 			global_position = global_position.move_toward(to, SPEED * delta)
 			if global_position.distance_to(to) < 2.0:
 				_state = 1
 		1:
-			global_position = _target.global_position + HOVER
+			global_position = Tower.aim_at(_target) + HOVER
 			_peck_timer += delta
 			while _peck_timer >= _peck_every and _pecks_left > 0:
 				_peck_timer -= _peck_every
