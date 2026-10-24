@@ -775,6 +775,25 @@ sprite. Damage is still dealt to the node, so nothing about hits changes.
 **Watch:** y-sort follows the node, so on a horizontal path two nightmares in different lanes can sort
 a frame wrong. Acceptable at ±0.3 cell; sort by the drawn position if it shows.
 
+### Status icons in crowds (owner 2026-10-24, "yeah that works"; not built yet)
+
+In the v3 board videos each nightmare's row of 16 px status icons (with stack numbers) and its health bar stacked
+into one strip above a pack and hid the bodies, which fights the crowd feel above. Now the row is **compact in a
+crowd**:
+- **Crowded = another nightmare's drawn body within 0.5 cell** (by route index ±1, the jostle's neighbours, so it
+  costs nothing extra). A crowded nightmare's row becomes **one pip per status**: about 5 px, the status colour
+  **plus a distinct shape per status** (colour-blind safe), no stack numbers, at **70% opacity**. Its health bar
+  becomes **3 px tall** (still shown only once it's been hit, unless the "Always" setting is on).
+- **Full icons stay** on the nightmare under the cursor or tapped (phones), on bosses and Deeply Blighted, and on
+  any nightmare walking alone. Switching between the two eases over 0.15 s (instant under reduced motion), and a
+  nightmare keeps its look for at least 0.5 s so rows don't flicker at a pack's edge.
+- **Setting** (Accessibility): "Status icons: Full / Compact in crowds / Off", default Compact in crowds. Off still
+  shows them on hover / tap.
+- The pips read a pack at a glance (a pack of soaked nightmares is a band of the same colour); exact stacks are on
+  the one you hover or tap. No per-pack summary label: it hides which nightmare carries what.
+- **Owners:** Enemy Code (the crowd test and the two rows in `enemy.gd`'s HUD canvas item), UI Code (the pip shapes
+  and colours from the palette), Main Merger (the setting).
+
 ## Art
 
 Final art is original (brief above). Placeholders from the Foozle enemy pack are in use until then;
