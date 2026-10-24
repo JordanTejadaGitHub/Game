@@ -107,11 +107,37 @@ func is_active_for(drift_number: int) -> bool:
 func get_multiplier(drift_number: int, property: String) -> float:
 	return float(active.get(property)) if is_active_for(drift_number) else 1.0
 
+# Also the drift-shape limits (enemy_design.md "Drift shapes", "Don't ship": Omens don't stack with shapes), read by
+# DriftShapes.apply (Enemy Code) and the Coming strip, so both show the numbers after the Omen pick:
+#   "pack_fill": packs fill up to this many before a new pack forms (Swarming Night, Crowded Paths: 8); absent = the shape's
+#     own size. "pack_gap": Restless Wind's spacing on the gaps BETWEEN packs only, never inside one (in-pack gaps come from
+#     each kind's speed). Stream and Single file drifts use "spacing" as before.
 func get_schedule_modifiers(drift_number: int) -> Dictionary:
 	if not is_active_for(drift_number):
 		return {}
-	return {"count": active.count_multiplier, "flyers": active.flyer_count_multiplier,
+	var mods := {"count": active.count_multiplier, "flyers": active.flyer_count_multiplier,
 		"spacing": active.arrival_spacing_multiplier}
+	if active.pack_fill > 0:
+		mods["pack_fill"] = active.pack_fill
+	if active.arrival_spacing_multiplier != 1.0:
+		mods["pack_gap"] = active.arrival_spacing_multiplier
+	return mods
+
+# The shape drift `number` plays with the Omen on it (DriftShapes.apply and the Coming strip ask before shaping; shape ids
+# as DriftRoller writes them): under Giants' Walk a Few and tough drift plays as a Stream; in Hollow Wind's all-flyer drifts
+# a Packs drift does too (flyers never ride in packs). Everything else is unchanged. Bosses never reach here (fixed drifts
+# are Streams).
+const SHAPE_STREAM := &"stream"
+const SHAPE_PACKS := &"packs"
+const SHAPE_FEW_TOUGH := &"few_and_tough"
+func shape_for(number: int, shape: StringName) -> StringName:
+	if not is_active_for(number):
+		return shape
+	if shape == SHAPE_FEW_TOUGH and active.few_tough_as_stream:
+		return SHAPE_STREAM
+	if shape == SHAPE_PACKS and active.all_flyer_drifts > 0 and number - get_block_range(active_block).x < active.all_flyer_drifts:
+		return SHAPE_STREAM
+	return shape
 
 # The Dew pot (run_design.md "The Dew pot"): the active Omen multiplies drift `number`'s pot (Bountiful Night ×2,
 # Blood Moon ×1.75, Dry Spell ×0). Added nightmares (Crowded Paths, Elder Night…) share the pot, so they add nothing.
