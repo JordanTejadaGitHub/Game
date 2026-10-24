@@ -81,24 +81,30 @@ static func is_packable(data: EnemyData) -> bool:
 # so a replay of the seed places everything the same. `act` sets the pack size; `mods` =
 # DriftDirector.get_schedule_modifiers (Omens: "pack_fill", "pack_gap"). A schedule with a boss is left
 # alone (the boss keeps its own escort); a shape that can't fit falls back to a Stream (unchanged).
-static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator, act: int, mods: Dictionary = {}) -> void:
+# Returns the shape the drift really arrives in: STREAM when it fell back (a boss drift, packs that don't fit),
+# so the banner and the Coming strip never name a shape the drift doesn't have.
+static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator, act: int, mods: Dictionary = {}) -> StringName:
 	for arrival in schedule:
 		while arrival.size() < 3:
 			arrival.append(false)
 		if arrival.size() < 4:
 			arrival.append(-1)
 	if schedule.size() < 2 or shape == STREAM or shape == &"":
-		return
+		return STREAM
 	for arrival in schedule:
 		if arrival[1].is_boss:
-			return
+			return STREAM
 	match shape:
 		PACKS:
 			_packs(schedule, rng, act, mods)
+			return PACKS if schedule.any(func(a: Array) -> bool: return pack_of(a) >= 0) else STREAM
 		SINGLE_FILE:
 			_single_file(schedule, rng)
 		FEW_AND_TOUGH:
 			_few_and_tough(schedule, rng)
+		_:
+			return STREAM
+	return shape
 
 # A drift's seeded rng for apply / add_guaranteed_elite: same map seed + drift = same placement.
 static func drift_rng(map_seed: int, number: int) -> RandomNumberGenerator:

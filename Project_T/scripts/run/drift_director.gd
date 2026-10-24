@@ -601,8 +601,7 @@ func _shape_schedule(schedule: Array, number: int, mods: Dictionary, omens: Omen
 	var shape := shape_of(number)
 	if omens and omens.has_method("shape_for"):
 		shape = omens.shape_for(number, shape)  # Giants' Walk / Hollow Wind play some shapes as a Stream
-	DriftShapes.apply(schedule, shape, rng, get_act(number), mods)
-	return shape
+	return DriftShapes.apply(schedule, shape, rng, get_act(number), mods)  # Stream when the shape didn't fit (packs too many)
 
 # The shape DriftRoller rolled for drift `number` (DriftData.shape; &"stream" for a fixed or unrolled drift).
 func shape_of(number: int) -> StringName:
