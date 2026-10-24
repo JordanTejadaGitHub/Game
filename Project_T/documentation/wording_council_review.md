@@ -381,3 +381,7 @@ a "Combos with" line. Kept.
    Recommended: rename the Spire one; "Last drift" is the plain description.
 2. **Stream clash:** rename the drift shape. Recommended **"Steady"** (it is the even, unclumped arrival; "Mixed" would
    echo the card Mixed Company).
+
+**Decided (owner 2026-10-24):** 1. the Spire block finale shows as **"Last drift"**; the Calling's drift 75 stage keeps
+**Finale**. 2. the drift shape Stream is **Steady** (code id `STREAM` may stay); Dewdrop's Stream evolution and Swift
+Stream keep their names.
