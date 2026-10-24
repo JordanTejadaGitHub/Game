@@ -422,7 +422,7 @@ func _show_number(event: Event) -> void:
 			return
 		if get_child_count() >= (REDUCED_MAX_NUMBERS if reduced else MAX_NUMBERS):
 			return
-	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
+	var number := FloatingNumber.new(_body_at(event.enemy) + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)
 	number.source = event.source
 	number.bolt = event.kind == &"bolt"
@@ -610,3 +610,8 @@ func _spore_split(event: Event) -> Array:
 				weights[tag] = part[1]
 		out.append([part[0], part[1] * (1.0 - fog_share), weights])
 	return out
+
+# Where a nightmare's number or word goes: its drawn body (Enemy.get_body_position; walking lanes draw a body beside its
+# logical spot, so in a pack the logical one can read as the neighbour's; Enemy Design Council 2026-10-24b). Others: their position.
+static func _body_at(node: Node2D) -> Vector2:
+	return node.get_body_position() if node.has_method("get_body_position") else node.global_position
