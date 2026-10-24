@@ -107,7 +107,7 @@ and the drift right before each boss) are always Streams and count as a block's 
 | 6 | 26–30 | 27 (Night Hound intro) | Packs, Single file, Few and tough once each in 26 / 28 / 29 / 30; 30 (finale) is shaped |
 | 7 | 31–35 | 31 (Phantom intro) | one of each in 32–35; 35 is shaped |
 | 8 | 36–40 | 36 (Lantern Bearer intro) | one of each in 37–40; 40 is shaped |
-| 9 | 41–45 | — | two Streams + one of each; 45 is shaped |
+| 9 | 41–45 | 41 (Night Kite intro) | one of each in 42–45 (one more Stream); 45 is shaped |
 | 10 (boss) | 46–50 | 49 (before the boss), 50 (the act 2 boss's escort) | one of each in 46–48 |
 
 Act 1 packs are 4–5 strong and act 1 has no Few and tough (the act 1 density and fairness rules).
@@ -152,7 +152,7 @@ SH = Shade, HU = Husk, MO = Mourner. ★ = elite (Deeply Blighted). **Rest** aft
 
 ## Act 2: Deep Wood (drifts 26–50)
 
-PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
+PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths), NK = Night Kite.
 
 | Drift | Contents | Notes |
 |---|---|---|
@@ -171,7 +171,7 @@ PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
 | 38 | 24 SH, 8 HU, 6 NH | |
 | 39 | 20 SH, 6 MO, 4 PH | |
 | 40 | **Funeral:** 4 PR back to back, 10 SH | rest |
-| 41 | 28 SH, 8 HU, 6 NH, 1 PR | |
+| 41 | **Night Kite intro:** 4 NK (2 s apart, first), then 28 SH, 8 HU, 6 NH | first route flyer; budget for Balancing |
 | 42 | 26 SH, 8 MO, 4 PH | |
 | 43 | **Haunting:** 4 PH, then 10 SH (was 20 PH; the cap 2026-10-07, freed health refilled with Shades) | |
 | 44 | 30 SH, 10 HU, 6 NH, 2 PR | |
