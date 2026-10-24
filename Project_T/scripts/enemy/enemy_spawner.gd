@@ -284,6 +284,7 @@ func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: N
 var half_rate_logic := false
 var force_lane := false
 var in_game := false  # main.tscn is the running scene (not a test): the boss beats' hitstop and camera rumble
+var walking_lanes := not OS.get_cmdline_user_args().has("--no-lanes")  # Dev flag (before/after captures): bodies on the centre line
 
 func _process(delta: float) -> void:
 	in_game = owner != null and get_tree().current_scene == owner
@@ -319,7 +320,7 @@ var _jostle_time := 0.0
 
 func _jostle_lanes(delta: float) -> void:
 	_jostle_time += delta
-	if Engine.get_process_frames() % JOSTLE_EVERY != 0:
+	if not walking_lanes or Engine.get_process_frames() % JOSTLE_EVERY != 0:
 		return
 	var step := _jostle_time
 	_jostle_time = 0.0

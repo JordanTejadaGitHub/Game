@@ -1942,6 +1942,8 @@ func _is_big_for_lanes() -> bool:
 # Walking lanes: wander to a new lane every LANE_WANDER s (eased), measured across the eased travel direction; the lane
 # opens over the first cell walked and closes over the last before the Heartwood. Reduced motion: a fixed lane.
 func _update_lane(delta: float) -> void:
+	if _spawner != null and not _spawner.walking_lanes:
+		return  # Dev flag --no-lanes
 	var still := bool(Fx.setting("reduced_motion", false))
 	if _lane_rng == null:
 		_lane_rng = RandomNumberGenerator.new()
