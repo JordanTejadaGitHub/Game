@@ -274,6 +274,10 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 		previous: StringName, state: Dictionary, shape: StringName = &"") -> DriftData:
 	var act: int = director.get_act(number)
 	var pool := get_pool(number)
+	if shape == DriftShapes.FEW_AND_TOUGH:
+		for data in pool.duplicate():
+			if data.covers_walkers:
+				pool.erase(data)  # No Pall in a Few and tough drift (council 2026-10-24): it would shield the Deeply Blighted's escort
 	var budget := get_budget(drift)
 	if pool.is_empty() or budget <= 0.0:
 		return null

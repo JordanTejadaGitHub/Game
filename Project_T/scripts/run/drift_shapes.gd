@@ -111,6 +111,7 @@ static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator
 			arrival.append(false)
 		if arrival.size() < 4:
 			arrival.append(-1)
+	cap_flyers(schedule, rng, act)
 	if schedule.size() < 2 or shape == STREAM or shape == &"":
 		return STREAM
 	for arrival in schedule:
@@ -144,6 +145,52 @@ static func _set_lane(arrival: Array, width: float) -> void:
 
 static func lane_of(arrival: Array) -> float:
 	return float(arrival[5]) if arrival.size() > 5 else -1.0
+
+# Flyer caps (enemy_design.md "Flyers", council 2026-10-24), checked after the Omens: flyers of every kind at most
+# FLYER_CAPS[act] a drift and never more than a third of its arrivals, Phantoms (through-wall flyers) at most
+# PHANTOM_CAP within that; the extra ones become the drift's most common walker. A flyer is never Deeply Blighted:
+# its elite flag moves to a walker. Bosses (the Moth Queen) never count.
+const FLYER_CAPS := {1: 4, 2: 4, 3: 5, 4: 6}
+const PHANTOM_CAP := 4
+
+static func cap_flyers(schedule: Array, rng: RandomNumberGenerator, act: int) -> void:
+	var walkers := {}  # EnemyData -> count
+	var flyers: Array = []
+	var phantoms: Array = []
+	for arrival in schedule:
+		var data: EnemyData = arrival[1]
+		if data.is_boss:
+			continue
+		if data.trait_kind == EnemyData.Trait.FLYING:
+			flyers.append(arrival)
+			if not data.flies_along_route:
+				phantoms.append(arrival)
+		else:
+			walkers[data] = walkers.get(data, 0) + 1
+	if flyers.is_empty():
+		return
+	var common: EnemyData = null
+	for data in walkers:
+		if common == null or walkers[data] > walkers[common]:
+			common = data
+	if common != null:
+		var most: int = mini(FLYER_CAPS.get(clampi(act, 1, 4), 4), floori(schedule.size() / 3.0))
+		_shuffle(phantoms, rng)
+		while phantoms.size() > PHANTOM_CAP:
+			var extra: Array = phantoms.pop_back()
+			extra[1] = common
+			flyers.erase(extra)
+		_shuffle(flyers, rng)
+		while flyers.size() > most:
+			flyers.pop_back()[1] = common
+	# Never a Deeply Blighted flyer: the flag goes to a walker that isn't one yet
+	for arrival in flyers:
+		if arrival.size() > 2 and arrival[2]:
+			arrival[2] = false
+			var plain: Array = schedule.filter(func(a: Array) -> bool: return not a[1].is_boss and not a[2] \
+				and a[1].trait_kind != EnemyData.Trait.FLYING)
+			if not plain.is_empty():
+				plain[rng.randi_range(0, plain.size() - 1)][2] = true
 
 # A drift's seeded rng for apply / add_guaranteed_elite: same map seed + drift = same placement.
 static func drift_rng(map_seed: int, number: int) -> RandomNumberGenerator:

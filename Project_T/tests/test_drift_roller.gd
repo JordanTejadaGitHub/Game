@@ -68,7 +68,7 @@ func _run() -> void:
 	_check(_describe(director) == at_start, "rolling the run's seed again (a resume) gives the same drifts")
 	DriftRoller.restore(director)
 	var hand_made: Array = director.drifts.duplicate()
-	_check(DriftRoller.get_roster().size() == 19, "19 rollable nightmare types (%d)" % DriftRoller.get_roster().size())
+	_check(DriftRoller.get_roster().size() == 22, "22 rollable nightmare types (Night Kite, Gloamwing, Pall: 2026-10-24) (%d)" % DriftRoller.get_roster().size())
 	_check(DriftRoller.get_templates().size() == 7, "7 templates")
 
 	# Same seed, same drifts; another seed, other drifts.
