@@ -148,7 +148,7 @@ func _process(delta: float) -> void:
 # is on screen and quieter far away. Returns the player, or null if missing, throttled or out of
 # voices. `jitter` randomises pitch (off for sounds that must stay in key).
 func play(id: StringName, at: Variant = null, volume_db := 0.0, pitch := 1.0, jitter := PITCH_JITTER,
-		bus := &"SFX") -> Node:
+		bus := &"SFX", unpaused := false) -> Node:
 	var variants: Array = _streams.get(id, [])
 	if _softer and (SOFTER_IDS.has(id) or String(id).begins_with("sig_")):
 		volume_db += SOFTER_DB  # Softer nightmares: quieter and muffled
@@ -174,6 +174,8 @@ func play(id: StringName, at: Variant = null, volume_db := 0.0, pitch := 1.0, ji
 		player_2d.attenuation = 1.0
 		player_2d.position = at
 		player = player_2d
+		if unpaused:  # The player's own actions at a rest (build, sell, grow) sound while paused too (Sound Council 2026-10-23)
+			player_2d.process_mode = Node.PROCESS_MODE_ALWAYS
 		_scene.add_child(player_2d)  # In the world, so it pauses with the game
 	else:
 		var flat := AudioStreamPlayer.new()
