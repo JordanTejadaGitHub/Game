@@ -41,7 +41,7 @@
 	},
 	"spiderling": {
 		"frame": 64,
-		"top": -2,
+		"top": -3,
 		"bottom": 13
 	},
 	"hedgehog": {
@@ -66,8 +66,8 @@
 	},
 	"duckling": {
 		"frame": 64,
-		"top": -8,
-		"bottom": 14
+		"top": -12,
+		"bottom": 12
 	},
 	"old_stag": {
 		"frame": 112,
@@ -131,8 +131,8 @@
 	},
 	"whisper_swarm": {
 		"frame": 64,
-		"top": -18,
-		"bottom": 8
+		"top": -19,
+		"bottom": 9
 	},
 	"dream_thief": {
 		"frame": 64,
@@ -141,7 +141,7 @@
 	},
 	"weeper": {
 		"frame": 64,
-		"top": -13,
+		"top": -16,
 		"bottom": 16
 	},
 	"hollow_oak": {
@@ -186,8 +186,8 @@
 	},
 	"mourning_mother": {
 		"frame": 144,
-		"top": -60,
-		"bottom": 26
+		"top": -61,
+		"bottom": 29
 	},
 	"hollow_oak_withering": {
 		"frame": 176,

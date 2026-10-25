@@ -513,6 +513,20 @@ func _crawl(canvas: Image, pixels: Array[Vector2i], f: int, count: int = 2, core
 				_px(canvas, pixels[i + j].x, pixels[i + j].y, edge)
 		_px(canvas, pixels[i].x, pixels[i].y, core)
 
+# A one-pixel lit rim along a figure's top edge, on the side facing the light (upper left), so small dark
+# bodies keep their outline on dark ground (art council 2026-10-24).
+func _top_rim(layer: Image, color: Color, right_of: float = INF, thick: int = 1) -> void:
+	var rim: Array[Vector2i] = []
+	for y in range(1, S - 1):
+		for x in S:
+			# One pixel inside the top edge: the edge pixel itself becomes the outline when the layer is stamped.
+			if layer.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y - 1).a == 0.0 and x < right_of and layer.get_pixel(x, y + 1).a > 0.0:
+				for t in thick:
+					if layer.get_pixel(x, y + 1 + t).a > 0.0:
+						rim.append(Vector2i(x, y + 1 + t))
+	for p in rim:
+		layer.set_pixelv(p, color)
+
 # Little ragged tufts sticking up off a shadow's back.
 func _ragged(canvas: Image, pts: Array, dy: int) -> void:
 	for p: Vector2i in pts:
@@ -540,6 +554,7 @@ func _draw_leaf_bug(canvas: Image, st: Dictionary) -> void:
 				_line(fig, [Vector2(x, 38 + bob), Vector2(x + 1 + roundi(s * 1.5), 40 + bob), Vector2(x + roundi(s * 2.0), 43 - (1 if s > 0.5 else 0))], body[0])
 			_ellipse(fig, Vector2(30, 35 + bob), Vector2(9, 6.5), body)
 			_ellipse(fig, Vector2(37 + twitch, 37 + bob), Vector2(5, 4), body)
+			_top_rim(fig, _c("Bruise"), 36.0)  # lit edge so it keeps its shape on dark ground
 			_stamp(canvas, fig, NIGHT_O)
 			_ragged(canvas, [Vector2i(24, 30), Vector2i(27, 29), Vector2i(30, 28), Vector2i(33, 29)], bob)
 			_glow(canvas, Vector2i(38 + twitch, 36 + bob))
@@ -554,6 +569,7 @@ func _draw_leaf_bug(canvas: Image, st: Dictionary) -> void:
 					_line(fig, [Vector2(32 + side * 6, y), Vector2(32 + side * (9 + i), y - 1), Vector2(32 + side * (10 + i) + roundi(s), 42 + i - (1 if s > 0.5 else 0))], body[0])
 			_ellipse(fig, Vector2(32, 34 + bob), Vector2(9, 7), body)
 			_ellipse(fig, Vector2(32 + twitch, 38 + bob if down else 29 + bob), Vector2(5.5, 4.5) if down else Vector2(4.5, 3.5), body)
+			_top_rim(fig, _c("Bruise"), 36.0)  # lit edge so it keeps its shape on dark ground
 			_stamp(canvas, fig, NIGHT_O)
 			_ragged(canvas, [Vector2i(26, 29), Vector2i(30, 27), Vector2i(34, 27), Vector2i(37, 29)], bob)
 			if down:
@@ -701,9 +717,11 @@ func _armour(canvas: Image, plates: Array, off: Vector2, o: Color) -> void:
 
 # Cracked variants: the same plates, shattered. Each loses a jagged half along a different line, its
 # broken edge bright Moonlight, and a chip of it falls away as the nightmare walks (`f`).
-func _armour_broken(canvas: Image, plates: Array, off: Vector2, f: int, o: Color) -> void:
+func _armour_broken(canvas: Image, plates: Array, off: Vector2, f: int, o: Color, lost: int = -1) -> void:
 	var ramp := _ramp(DREAD_SHELL)
 	for i in plates.size():
+		if i == lost:
+			continue  # this plate fell off whole: the outline itself changes (art council)
 		var pts: Array = []
 		var c := Vector2.ZERO
 		for q: Vector2 in plates[i]:
@@ -718,10 +736,10 @@ func _armour_broken(canvas: Image, plates: Array, off: Vector2, f: int, o: Color
 			for x in S:
 				if layer.get_pixel(x, y).a == 0.0:
 					continue
-				var d := (Vector2(x + 0.5, y + 0.5) - c).dot(n) + ((x * 7 + y * 3) % 3 - 1) * 0.8
-				if d > 0.0:
-					layer.set_pixel(x, y, Color(0, 0, 0, 0))  # snapped off
-				elif d > -1.4:
+				var d := (Vector2(x + 0.5, y + 0.5) - c).dot(n)  # one clean break line, not a scatter of flecks
+				if d > -1.2:
+					layer.set_pixel(x, y, Color(0, 0, 0, 0))  # snapped off: over half of it, so the outline changes
+				elif d > -2.8:
 					layer.set_pixel(x, y, _c("Moonlight"))  # the fresh break
 		_merge(canvas, layer)
 		var t := (f + i * 2) % FRAMES
@@ -730,14 +748,6 @@ func _armour_broken(canvas: Image, plates: Array, off: Vector2, f: int, o: Color
 			_px(canvas, p.x, p.y, _c("Wraithlight"))
 			_px(canvas, p.x + 1, p.y, _c("Bruise"))
 			_px(canvas, p.x, p.y + 1, _c("Shade"))
-
-# Cracked variants: thin seams of cold light where the plates broke off.
-func _shell_scars(canvas: Image, scars: Array, off: Vector2) -> void:
-	for sc: Array in scars:
-		var pts: Array = []
-		for p: Vector2 in sc:
-			pts.append(p + off)
-		_line(canvas, pts, _c("Wraithlight"))
 
 # The cold thing living inside the Husk, bared once its shell breaks: a shadow with light crawling
 # through its veins.
@@ -776,6 +786,7 @@ func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
 	var h := roundi(sin(ph))
 	var step := sin(ph)
 	var fig := _layer()
+	var core := _layer()  # its torso and head stay solid, so it reads as a figure; only the limbs flicker (art council)
 	_shadow(canvas, Vector2(32, 45), Vector2(6, 1.5))
 	match st.dir:
 		SIDE:
@@ -783,6 +794,8 @@ func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
 			_stroke(fig, [Vector2(34, 20 + h), Vector2(30, 27 + h), Vector2(27, 34 + h)], 0.7, body[0])
 			_lens(fig, Vector2(36, 16 + h), Vector2(31, 36 + h), 3.4, body[2], body[1])
 			_ellipse(fig, Vector2(37, 14 + h), Vector2(3, 4.5), body)
+			_lens(core, Vector2(36, 17 + h), Vector2(32, 33 + h), 1.6, body[2], body[1])
+			_ellipse(core, Vector2(37, 14 + h), Vector2(2.2, 3.2), body)
 			_stroke(fig, [Vector2(31, 33 + h), Vector2(31 + step * 3, 39), Vector2(30 + step * 5, 45)], 0.8, body[1])
 			_stroke(fig, [Vector2(35, 20 + h), Vector2(40, 24 + h), Vector2(45, 25 + h)], 0.7, body[1])
 			for d: Vector2 in [Vector2(3, 1), Vector2(3, 3)]:
@@ -795,11 +808,13 @@ func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
 				_stroke(fig, [Vector2(32 + side * 3.5, 21 + h), Vector2(32 + side * 6 + sway, 30 + h), Vector2(32 + side * 7 + sway, 39 + h)], 0.7, body[1])
 			_lens(fig, Vector2(32, 17 + h), Vector2(32, 37 + h), 3.8, body[2], body[1])
 			_ellipse(fig, Vector2(32, 14 + h), Vector2(3.5, 5), body)
+			_lens(core, Vector2(32, 18 + h), Vector2(32, 34 + h), 1.6, body[2], body[1])
+			_ellipse(core, Vector2(32, 14 + h), Vector2(2.5, 3.5), body)
 	var ghost := _layer()
 	_stamp(ghost, fig, NIGHT_O)
 	for y in S:
 		for x in S:
-			if ghost.get_pixel(x, y).a > 0.0 and not _keep(x, y, keep, f):
+			if ghost.get_pixel(x, y).a > 0.0 and core.get_pixel(x, y).a == 0.0 and not _keep(x, y, keep, f):
 				ghost.set_pixel(x, y, Color(0, 0, 0, 0))
 	if f == 1 or f == 3:  # a band of it slips sideways
 		var band := ghost.get_region(Rect2i(0, 24, S, 3))
@@ -818,7 +833,7 @@ func _draw_dusk_moth(canvas: Image, st: Dictionary) -> void:
 # mouth, arms reaching ahead, its tail streaming behind and a faint after-image where it just was.
 
 func _draw_dandelion_seed(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(["Dew", "Stone", "Dewlight", "Moonlight"])
+	var body := _ramp(["Slate", "Stone", "Dewlight", "Moonlight"])  # one step less saturated: the cyan stays in its face (art council)
 	var o := _c("Dusk")
 	var f: int = st.f
 	var ph: float = st.ph
@@ -879,14 +894,20 @@ func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var top := ground - 36.0 * k + h
 	var side_view: bool = st.dir == SIDE
 	var fig := _layer()
+	var sob := k <= 0.8  # a Sob hunches forward under a drooping hood point, so it never reads as a Wraith
+	var lean := (3.0 if side_view else 0.0) if sob else 0.0
 	_robe(fig, 32.0, top + 8.0 * k, 6.0 * k, ground - 2.0 * k + h, 11.0 * k, -3.0 * k if side_view else 0.0, ph, veil)
-	_ellipse(fig, Vector2(32.0 + (1.0 * k if side_view else 0.0), top + 8.0 * k), Vector2(7.0, 8.0) * k, veil)
+	_ellipse(fig, Vector2(32.0 + (1.0 * k if side_view else 0.0) + lean, top + 8.0 * k + lean * 0.5), Vector2(7.0, 8.0) * k, veil)
+	if sob:  # the hood's tip flops back over its head
+		var tip := Vector2(32.0 + lean - (4.0 if side_view else -2.0), top + 2.0 * k)  # flopped to one side in every view
+		_stroke(fig, [Vector2(32.0 + lean, top + 4.0 * k), tip, tip + Vector2(-2.0 if side_view else 0.0, 3.0)], 0.8, veil[1])
+		_top_rim(fig, _c("Dusk"), 32.0 + lean + 1.0)  # dim: only the Wraith gets a bright rim
 	var ghost := _layer()
 	_stamp(ghost, fig, o)
 	_dissolve(ghost, Vector2(0, ground - 7.0 * k + h), Vector2(0, ground + 1.0 + h))
 	if st.dir != UP:
-		var fx := roundi(32.0 + (2.5 * k if side_view else 0.0))
-		var hc := Vector2(fx, top + 9.0 * k)
+		var fx := roundi(32.0 + (2.5 * k if side_view else 0.0) + lean)
+		var hc := Vector2(fx, top + 9.0 * k + roundf(lean * 0.5))
 		_flat_ellipse(ghost, hc, Vector2(4.5, 4.2) * k, HOLLOW)
 		var ey := roundi(hc.y - 0.5 * k)
 		var drop := ey + 5 + (f % 3) * 2
@@ -914,8 +935,8 @@ func _draw_mother_spider(canvas: Image, st: Dictionary) -> void:
 	var o := NIGHT_O
 	var body := _ramp(["Void", "Dread", "Shade", "Dusk"])
 	var f: int = st.f
-	var ph: float = st.ph
-	var bob: float = 0.0 if thin else float([0, -1, 0, 0, -1, 0][f])
+	var ph: float = st.ph + PI / 6.0  # offset so the six leg poses all differ
+	var bob: float = float([0, -1, 0, 0, -1, 0][f])  # a Creep skitters too (it was static)
 	var a := Vector2(32, 43)
 	var veins: Array = [[Vector2(-0.6, -0.4), Vector2(-0.2, -0.1), Vector2(0.0, -0.6)], [Vector2(0.1, 0.1), Vector2(0.5, -0.2), Vector2(0.7, 0.2)],
 		[Vector2(-0.3, 0.5), Vector2(0.1, 0.3), Vector2(0.2, 0.6)]]
@@ -931,6 +952,9 @@ func _draw_mother_spider(canvas: Image, st: Dictionary) -> void:
 				_line(canvas, [root, (root + foot) / 2 + Vector2(0, -10) * k, foot], o)
 			var ac := a + Vector2(-8, -13) * k + Vector2(0, bob)
 			_ellipse(abdomen, ac, Vector2(11, 9.5) * k, body)
+			if thin:  # a Creep: a lit edge and one glowing vein, the Widow's mark
+				_top_rim(abdomen, _c("Bruise"))
+				abdomen.set_pixelv(Vector2i(ac.round()), _c("Wraithlight"))
 			if not thin:
 				glow = _crack(abdomen, ac, Vector2(11, 9.5) * k, veins, HOLLOW)
 			_stamp(canvas, abdomen, o)
@@ -960,6 +984,9 @@ func _draw_mother_spider(canvas: Image, st: Dictionary) -> void:
 					var foot := a + Vector2(side * (15 + i * 0.5) + s, -11 + i * 3.5 - (1.5 if s > 0.5 else 0.0)) * k
 					_spider_leg(canvas, [root, (root + foot) / 2 + Vector2(side * 2, -9) * k, foot], o, thin)
 			_ellipse(abdomen, ac, Vector2(12, 10) * k, body)
+			if thin:  # a Creep: a lit edge and one glowing vein, the Widow's mark
+				_top_rim(abdomen, _c("Bruise"))
+				abdomen.set_pixelv(Vector2i(ac.round()), _c("Wraithlight"))
 			if not thin:
 				glow = _crack(abdomen, ac, Vector2(12, 10) * k, veins, HOLLOW)
 			_stamp(canvas, abdomen, o)
@@ -1068,7 +1095,7 @@ func _hound_leg(layer: Image, top: Vector2, phase: float, hind: bool, color: Col
 	_flat_ellipse(layer, paw + Vector2(1, 0), Vector2(1.5, 1), color)
 
 func _hound_sprint(canvas: Image, f: int, ph: float, body: Array[Color], o: Color) -> void:
-	var ext := sin(ph)  # 1 = legs stretched out, -1 = gathered under
+	var ext := sin(ph + PI / 6.0)  # 1 = legs stretched out, -1 = gathered under; offset so all 6 poses differ
 	var lift := roundi(maxf(-ext, 0.0) * 2.0)
 	var y := 35 - lift
 	_shadow(canvas, Vector2(32, 44), Vector2(18, 2.5))
@@ -1236,21 +1263,35 @@ func _draw_duckling(canvas: Image, st: Dictionary) -> void:
 	var robe := _ramp(["Void", "Dread", "Shade", "Bruise"])
 	var f: int = st.f
 	var ph: float = st.ph
-	var h := roundi(sin(ph))
+	var h := roundi(sin(ph) * 1.5) - 4  # it floats clear of the path (a Sob stands on it)
 	var twitch: int = [0, 0, 0, 0, 1, 0][f]
 	var side_view: bool = st.dir == SIDE
-	_shadow(canvas, Vector2(32, 45), Vector2(6, 1.8))
+	_soft_shadow(canvas, Vector2(32, 46), 4.5)
 	var fig := _layer()
 	var fx := 32 + (2 if side_view else 0) + twitch
 	_robe(fig, 32.0, 31.0 + h, 3.5, 44.0 + h, 6.5, -2.0 if side_view else 0.0, ph, robe)
 	_ellipse(fig, Vector2(32 + (1 if side_view else 0) + twitch, 29 + h), Vector2(4, 4.5), robe)
+	for k in 3:  # ragged tatters trailing behind and below, swaying
+		var root := Vector2(28.0 + k * 3.0 - (2.0 if side_view else 0.0), 42.0 + h)
+		var sway := sin(ph * 2.0 + k * 1.7) * 1.5
+		_stroke(fig, [root, root + Vector2((-4.0 if side_view else (k - 1) * 2.0) + sway, 4.0 + k % 2)], 0.6, robe[1])
+	# A Wraithlight edge along its top and down its lit (left) side, one pixel inside the outline: it must read
+	# apart from a Sob on dark ground (a thicker top rim read as a lid).
+	var lit: Array[Vector2i] = []
+	for y in range(1, 40 + h):
+		for x in range(1, S - 2):
+			if fig.get_pixel(x, y).a > 0.0 and fig.get_pixel(x - 1, y).a == 0.0 and fig.get_pixel(x + 2, y).a > 0.0:
+				lit.append(Vector2i(x + 1, y))
+	_top_rim(fig, _c("Wraithlight"))
+	for p in lit:
+		fig.set_pixelv(p, _c("Wraithlight"))
 	var ghost := _layer()
 	_stamp(ghost, fig, NIGHT_O)
-	_dissolve(ghost, Vector2(0, 39 + h), Vector2(0, 46 + h))
+	_dissolve(ghost, Vector2(0, 40 + h), Vector2(0, 49 + h))
 	if st.dir != UP:
 		_flat_ellipse(ghost, Vector2(fx, 30.5 + h), Vector2(2.4, 2.2), HOLLOW)
 		for x: int in ([fx + 1] if side_view else [fx - 2, fx + 1]):
-			_px(ghost, x, 30 + h, _c("Dewlight"))
+			_px(ghost, x, 30 + h, _c("Wraithlight"))
 	_merge(canvas, ghost, 0.85)
 
 # --- The Hollow Stag (old_stag) -----------------------------------------------------------------
@@ -1464,7 +1505,7 @@ func _hag_pose(canvas: Image, dir: int, f: int, ph: float, b: int) -> void:
 				_line(canvas, [_hv(x, 90), _hv(x + 1, 95.5), _hv(x + 3, 96.5)], skin[0])
 			var hem := _hv(66, 95)
 			var waist := _hv(66, 60 + b)
-			_robe(fig, waist.x, waist.y, 12.0 * k, hem.y, 18.0 * k, -3.0, ph * 0.5, robe)
+			_robe(fig, waist.x, waist.y, 12.0 * k, hem.y, 18.0 * k, -3.0, ph, robe)
 			_ellipse(fig, _hv(68, 58 + b), Vector2(15, 12) * k, robe)  # the bent back
 			_ellipse(fig, _hv(60, 50 + b), Vector2(12, 11) * k, robe)  # the hump
 			_ellipse(fig, _hv(70, 49 + b), Vector2(11, 8) * k, robe)  # one curve of back from hump to hood
@@ -1501,7 +1542,7 @@ func _hag_pose(canvas: Image, dir: int, f: int, ph: float, b: int) -> void:
 			if not down:  # seen from behind, her arms hang on the far side of the hump
 				_stamp(canvas, arms, o)
 			var waist := _hv(72, 60 + b)
-			_robe(fig, waist.x, waist.y, 14.0 * k, _hv(72, 95).y, 20.0 * k, 0.0, ph * 0.5, robe)
+			_robe(fig, waist.x, waist.y, 14.0 * k, _hv(72, 95).y, 20.0 * k, 0.0, ph, robe)
 			_ellipse(fig, _hv(72, (55 if down else 51) + b), Vector2(19, 12 if down else 14) * k, robe)
 			_ellipse(fig, _hv(72, (46 if down else 43) + b), Vector2(9.5, 9.5) * k, robe)
 			_reed_strands(fig, int(_hv(52, 0).x), int(_hv(93, 0).x), 80)
@@ -1785,15 +1826,15 @@ func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
 		_line(canvas, [Vector2(staff_x, 10 + h), Vector2(staff_x + 1, 45)], iron)
 	match st.dir:
 		SIDE:
-			_robe(fig, 32.0, 18.0 + h, 6.0, 45.0, 11.0, -2.0, ph * 0.3, cloak)
+			_robe(fig, 32.0, 18.0 + h, 6.0, 45.0, 11.0, -2.0, ph, cloak)
 			_ellipse(fig, Vector2(34, 13 + h), Vector2(4.5, 5), bone)
 			_stroke(fig, [Vector2(35, 20 + h), Vector2(39, 25 + h), Vector2(41, 25 + h)], 1.2, cloak[2])
 		DOWN:
-			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph * 0.3, cloak)
+			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph, cloak)
 			_ellipse(fig, Vector2(32, 13 + h), Vector2(4.5, 5), bone)
 			_stroke(fig, [Vector2(36, 20 + h), Vector2(39, 24 + h), Vector2(41, 25 + h)], 1.2, cloak[2])
 		UP:
-			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph * 0.3, cloak)
+			_robe(fig, 32.0, 18.0 + h, 6.5, 45.0, 11.0, 0.0, ph, cloak)
 			_ellipse(fig, Vector2(32, 13 + h), Vector2(4.5, 5), bone)
 	_stamp(canvas, fig, o)
 	# The dread shell: a pauldron and breastplate of faceted dread over the cloak (gone once cracked: seams
@@ -1805,10 +1846,8 @@ func _draw_barrow_wight(canvas: Image, st: Dictionary) -> void:
 		else [[Vector2(23, 21), Vector2(25, 17), Vector2(30, 17), Vector2(30, 22), Vector2(26, 24)],
 		[Vector2(41, 21), Vector2(39, 17), Vector2(34, 17), Vector2(34, 22), Vector2(38, 24)],
 		[Vector2(28, 24), Vector2(32, 22), Vector2(36, 24), Vector2(35, 31), Vector2(29, 31)]]
-	if st.variant == "cracked":
-		_shell_scars(canvas, [[Vector2(32, 19), Vector2(35, 22), Vector2(34, 26)], [Vector2(35, 24), Vector2(37, 27), Vector2(35, 30)]] if front
-			else [[Vector2(26, 20), Vector2(28, 23)], [Vector2(38, 20), Vector2(36, 23)], [Vector2(30, 25), Vector2(32, 28), Vector2(34, 26), Vector2(33, 31)]], off)
-		_armour_broken(canvas, plates, off, st.f, o)
+	if st.variant == "cracked":  # the pauldron is gone whole (a lopsided outline), the rest snapped
+		_armour_broken(canvas, plates, off, st.f, o, 0)
 	else:
 		_armour(canvas, plates, off, o)
 	match st.dir:
@@ -2102,14 +2141,8 @@ func _draw_shellbound(canvas: Image, st: Dictionary) -> void:
 				if cracked:
 					_glow(canvas, Vector2i(30, 39 + b), EYE, EYE_HALO)
 					_glow(canvas, Vector2i(33, 39 + b), EYE, EYE_HALO)
-	if cracked:
-		for sc: Array in scars:
-			var pts: Array = []
-			for p: Vector2 in sc:
-				pts.append(p + off)
-			_line(canvas, pts, _c("Wraithlight"))
-		var shard: Array = plates[1]
-		_plate(canvas, [shard[0] + off, shard[1] + off, (shard[1] + shard[2]) / 2 + off], shell, o)
+	if cracked:  # the same broken plates as the Husk, Wight and King: snapped, a bright fresh break, chips falling
+		_armour_broken(canvas, plates, off, f, o)
 		return
 	for p: Array in plates:
 		var moved: Array = []
@@ -2157,9 +2190,9 @@ func _draw_whisper_swarm(canvas: Image, st: Dictionary) -> void:
 	var dir: Vector2 = Vector2(1, 0) if st.dir == SIDE else (Vector2(0, 1) if st.dir == DOWN else Vector2(0, -1))
 	var c := Vector2(32, 27 + roundi(sin(ph)))
 	_shadow(canvas, Vector2(32, 46), Vector2(10, 2))
-	var haze := _c(NIGHT[1])
+	var haze := _c("Bruise")  # Bruise, not Dread: on dark ground the swarm needs a body to be seen against
 	for k in 3:
-		haze.a = 0.28 - k * 0.08  # thin: the detail pass adds its own smoke
+		haze.a = 0.45 - k * 0.1  # the detail pass adds its own smoke
 		_blend_ellipse(canvas, c - dir * k * 4.0, Vector2(12, 9) - Vector2.ONE * k * 2.0, haze)
 	for i in 24:
 		var a := i * 2.39996 + ph * (0.5 + (i % 3) * 0.35) * (1.0 if i % 2 == 0 else -1.0)
@@ -2169,7 +2202,7 @@ func _draw_whisper_swarm(canvas: Image, st: Dictionary) -> void:
 		if i % 6 == 0:  # a glinting mote
 			_glow(canvas, q, _c("Moonlight"))
 			continue
-		_px(canvas, q.x, q.y, _c(NIGHT[3]))
+		_px(canvas, q.x, q.y, _c("Wraithlight") if i % 4 == 1 else _c(NIGHT[3]))  # a quarter catch the light
 		_px(canvas, q.x + 1, q.y, _c(NIGHT[1]))
 		_px(canvas, q.x, q.y + 1, _c(NIGHT[1]))
 		_px(canvas, q.x + 1, q.y + 1, NIGHT_O)
@@ -2269,15 +2302,17 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 	var side_view: bool = st.dir == SIDE
 	_shadow(canvas, Vector2(32, 45), Vector2(11, 2.5))
 	var fig := _layer()
-	_robe(fig, 31.0, 27.0 + h, 7.0, 45.0, 11.0, -2.0 if side_view else 0.0, ph, shroud)
-	_ellipse(fig, Vector2(29 if side_view else 32, 26 + h), Vector2(9, 7), shroud)
-	var hc := Vector2(39, 28 + h) if side_view else Vector2(32, 27 + h)
+	_robe(fig, 31.0, 27.0 + h, 8.0, 45.0, 13.0, -2.0 if side_view else 0.0, ph, shroud)
+	_ellipse(fig, Vector2(29 if side_view else 32, 24 + h), Vector2(10 if side_view else 11, 8), shroud)  # the hunched hump of its shoulders
+	var hc := Vector2(41, 31 + h) if side_view else Vector2(32, 31 + h)  # the bald head hangs low, in front of the hump
 	match st.dir:
 		SIDE:
-			_stroke(fig, [Vector2(36, 29 + h), Vector2(40, 36 + h), Vector2(41, 43)], 1.0, skin[1])
+			_stroke(fig, [Vector2(37, 30 + h), Vector2(41, 37 + h), Vector2(42, 44)], 1.0, skin[1])
 		DOWN, UP:
 			for side: int in [-1, 1]:
-				_stroke(fig, [Vector2(32 + side * 7, 29 + h), Vector2(32 + side * 9, 36 + h), Vector2(32 + side * 8, 43)], 1.0, skin[1])
+				_stroke(fig, [Vector2(32 + side * 8, 28 + h), Vector2(32 + side * 10, 36 + h), Vector2(32 + side * 9, 44)], 1.0, skin[1])
+	if st.dir == UP:  # from behind, a pale rim along the hump keeps it apart from a Mourner's back
+		_top_rim(fig, _c("Stone"))
 	if st.dir != UP:
 		_ellipse(fig, hc, Vector2(4.5, 4.5), skin)
 	var ghost := _layer()
@@ -2286,16 +2321,16 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 	var drip := (f % 3) * 2
 	match st.dir:
 		SIDE:
-			_px(canvas, 41, 27 + h, EYE)
-			_line(canvas, [Vector2(41, 28 + h), Vector2(41, 32 + h)], tear)
-			_px(canvas, 41, 34 + h + drip, tear)
-			_blend_ellipse(canvas, Vector2(42, 44), Vector2(3, 1), _c("Void", 0.8))
+			_px(canvas, 43, 30 + h, EYE)
+			_line(canvas, [Vector2(43, 31 + h), Vector2(43, 35 + h)], tear)
+			_px(canvas, 43, 37 + h + drip, tear)
+			_blend_ellipse(canvas, Vector2(44, 44), Vector2(3, 1), _c("Void", 0.8))
 		DOWN:
 			for x: int in [29, 30, 33, 34]:
-				_px(canvas, x, 27 + h, EYE)
+				_px(canvas, x, 31 + h, EYE)
 			for x: int in [29, 34]:
-				_line(canvas, [Vector2(x, 28 + h), Vector2(x, 31 + h + (1 if x == 29 else 0))], tear)
-				_px(canvas, x, 33 + h + drip, tear)
+				_line(canvas, [Vector2(x, 32 + h), Vector2(x, 35 + h + (1 if x == 29 else 0))], tear)
+				_px(canvas, x, 37 + h + drip, tear)
 			_blend_ellipse(canvas, Vector2(32, 44), Vector2(4, 1.2), _c("Void", 0.8))
 
 # --- The Hollow Oak -----------------------------------------------------------------------------
@@ -2386,7 +2421,7 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 		_px(canvas, roundi(p.x + d.x * 3), roundi(p.y + d.y * 3), thorn)
 	# The trunk.
 	var trunk := _layer()
-	_robe(trunk, cx, 46.0 + b, 14.0, 112.0 + b, 23.0, 0.0, ph * 0.2, bark)
+	_robe(trunk, cx, 46.0 + b, 14.0, 112.0 + b, 23.0, 0.0, ph, bark)
 	var mouth_r := Vector2(10, 15) if grief else Vector2(8, 11)
 	var glow: Array[Vector2i] = []
 	if dir == UP:
@@ -2543,7 +2578,7 @@ func _horse(canvas: Image, st: Dictionary, gallop: bool) -> Vector2:
 	var dir: int = SIDE if gallop else st.dir
 	match dir:
 		SIDE:
-			var ext := sin(ph)
+			var ext := sin(ph + (PI / 6.0 if gallop else 0.0))  # the gallop offset so all 6 poses differ
 			var b: float = (2.0 + maxf(-ext, 0.0) * 2.0) if gallop else float([0, -1, -2, -1, 0, -1][f])
 			var tail: Array = [Vector2(26, 44 + b), Vector2(14, 44 + b), Vector2(2, 46 + b)] if gallop else [Vector2(26, 44 + b), Vector2(16, 48 + b), Vector2(6, 56 + b)]
 			_smoke_trail(canvas, tail, f, 4.5, smoke)
@@ -2880,19 +2915,19 @@ func _huntsman_rider(canvas: Image, seat: Vector2, dir: int, st: Dictionary, hor
 func _draw_lamplighter(canvas: Image, st: Dictionary) -> void:
 	var robe := _ramp(["Void", "Dread", "Night", "Dusk"])
 	var face := _ramp(["Slate", "Stone", "Mist"])
-	var wood := _c("Night")
+	var wood := _c("Slate")  # Night vanished on dark ground; the pole is what tells it from the Lantern Bearer
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
 	var lighting: bool = st.anim == "light"
 	var dir: int = DOWN if lighting else st.dir
-	var h := 0 if lighting else roundi(sin(ph) * 1.5)
+	var h := 0 if lighting else roundi(sin(ph + PI / 6.0) * 1.5)
 	var bow: float = [0.0, 2.0, 4.0, 5.0, 5.0, 4.0][f] if lighting else 0.0
 	var side_view := dir == SIDE
 	_shadow(canvas, Vector2(56, 78), Vector2(12, 3))
 	var fig := _layer()
 	var hood := Vector2(62, 28 + h) if side_view else Vector2(56, 24 + h + bow)
-	_robe(fig, 54.0 if side_view else 56.0, 30.0 + h, 5.0, 76.0, 11.0, -4.0 if side_view else 0.0, ph * 0.6, robe)
+	_robe(fig, 54.0 if side_view else 56.0, 30.0 + h, 5.0, 76.0, 11.0, -4.0 if side_view else sin(ph + PI / 6.0) * 1.5, ph, robe)  # whole cycles only: a fraction of ph popped at the loop seam
 	_ellipse(fig, Vector2(52, 30 + h) if side_view else Vector2(56, 30 + h + bow * 0.5), Vector2(8, 7), robe)  # the stoop
 	_ellipse(fig, hood, Vector2(5.5, 6), robe)
 	var ghost := _layer()
@@ -2948,7 +2983,7 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 	var ph: float = st.ph
 	var shrug: bool = st.anim == "shrug"
 	var dir: int = DOWN if shrug else st.dir
-	var h: int = ([0, -2, -3, -1, 0, 0][f] if shrug else [0, 0, 0, 1, 1, 0][f])
+	var h: int = ([0, 2, 3, -3, -1, 0][f] if shrug else [0, 2, 1, 0, 2, 1][f])  # two heavy footfalls a loop
 	var side_view := dir == SIDE
 	var cx := 72.0
 	_shadow(canvas, Vector2(72, 98), Vector2(20, 4))
@@ -2965,7 +3000,7 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 	if behind:
 		_stamp(canvas, sword, o)
 	var fig := _layer()
-	_robe(fig, cx, 34.0 + h, 9.0, 97.0, 17.0, -3.0 if side_view else 0.0, ph * 0.3, cloak)
+	_robe(fig, cx, 34.0 + h, 9.0, 97.0, 17.0, -3.0 if side_view else 0.0, ph, cloak)
 	var torso := _layer()
 	_ellipse(torso, Vector2(cx + (2 if side_view else 0), 50 + h), Vector2(7 if side_view else 9, 12), mail)
 	for y in S:  # chainmail: rings in a staggered grid
@@ -2989,11 +3024,7 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 		[Vector2(86, 40), Vector2(84, 33), Vector2(77, 32), Vector2(75, 38), Vector2(80, 43)],
 		[Vector2(64, 42), Vector2(72, 38), Vector2(80, 42), Vector2(79, 56), Vector2(72, 60), Vector2(65, 56)],
 		[Vector2(62, 60), Vector2(72, 62), Vector2(82, 60), Vector2(83, 67), Vector2(72, 69), Vector2(61, 67)]]
-	if st.variant == "cracked":
-		_shell_scars(canvas, [[Vector2(70, 35), Vector2(74, 37), Vector2(77, 35)], [Vector2(76, 44), Vector2(79, 49), Vector2(77, 54)],
-			[Vector2(68, 61), Vector2(73, 63), Vector2(78, 61)]] if side_view
-			else [[Vector2(60, 37), Vector2(64, 35), Vector2(67, 39)], [Vector2(84, 37), Vector2(80, 35), Vector2(77, 39)],
-			[Vector2(68, 44), Vector2(72, 48), Vector2(70, 52), Vector2(74, 56)], [Vector2(65, 63), Vector2(72, 65), Vector2(79, 63)]], off)
+	if st.variant == "cracked":  # snapped plates only: one bright break per plate, no extra streaks (art council)
 		_armour_broken(canvas, plates, off, f, o)
 	else:
 		_armour(canvas, plates, off, o)
@@ -3004,7 +3035,7 @@ func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
 			_glow(canvas, Vector2i(e.round()), EYE, EYE_HALO)
 		for k in 6:  # the long grey beard
 			var x := head.x + (k - 2.5) * (1.0 if not side_view else 0.6) + (2 if side_view else 0)
-			_line(canvas, [Vector2(x, head.y + 5), Vector2(x + sin(k + ph * 0.3) * 1.2, head.y + 14 + k % 3 * 2)], bone[1] if k % 2 else bone[0])
+			_line(canvas, [Vector2(x, head.y + 5), Vector2(x + sin(k + ph) * 1.2, head.y + 14 + k % 3 * 2)], bone[1] if k % 2 else bone[0])
 	_big_crown(canvas, head + Vector2(0, -7), 7, crown, o)
 	if not behind:
 		_stamp(canvas, sword, o)
@@ -3041,7 +3072,7 @@ func _big_crown(canvas: Image, c: Vector2, half: int, ramp: Array[Color], o: Col
 # to her face and the black tears pour (she's mending). 144px frame.
 
 func _draw_mourning_mother(canvas: Image, st: Dictionary) -> void:
-	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var veil := _ramp(["Night", "Shade", "Shade", "Bruise"])  # indigo nightmare ramp, mostly Shade, lit only to Bruise: her face, tears and hands are the light
 	var skin := _ramp(["Slate", "Stone", "Mist"])
 	var shroud := _ramp(["Night", "Dusk", "Slate"])
 	var tear := HOLLOW
@@ -3050,16 +3081,14 @@ func _draw_mourning_mother(canvas: Image, st: Dictionary) -> void:
 	var ph: float = st.ph
 	var sorrow: bool = st.anim == "sorrow"
 	var dir: int = DOWN if sorrow else st.dir
-	var h := roundi(sin(ph) * 1.5)
+	var h := roundi(sin(ph + PI / 6.0) * 1.5)  # offset: plain sin(ph) repeats frames 1-2 and 4-5
 	var side_view := dir == SIDE
 	_shadow(canvas, Vector2(72, 98), Vector2(30, 4.5))
-	# The Weepers clinging to her skirts, behind the hem.
-	var clingers: Array = [Vector2(40, 84), Vector2(104, 86)] if not side_view else [Vector2(46, 86)]
-	for i in clingers.size():
-		_clinging_weeper(canvas, clingers[i] + Vector2(0, roundi(sin(ph + i * 2.0))), shroud, skin, o, i == 0)
 	var fig := _layer()
-	_robe(fig, 72.0, 34.0 + h, 11.0, 97.0, 30.0 if not side_view else 22.0, -4.0 if side_view else 0.0, ph * 0.5, veil)
-	var head := Vector2(72 + (3 if side_view else 0), 26 + h)
+	var lean := (-4.0 if side_view else 0.0) + sin(ph + PI / 6.0) * 2.0  # she sways as she drifts
+	# Her veil falls from the crown of her head in one great bell, far wider than any hooded ghost.
+	_robe(fig, 72.0, 32.0 + h, 15.0, 97.0, 42.0 if not side_view else 30.0, lean, ph, veil)
+	var head := Vector2(72 + (3 if side_view else 0) + roundi(sin(ph + 0.6) * 1.5), 26 + h + ([0, 1, 3, 3, 3, 1][f] if sorrow else 0))  # her head lolls; in sorrow it sinks into her hands
 	_ellipse(fig, head, Vector2(12, 13), veil)
 	var ghost := _layer()
 	_stamp(ghost, fig, o)
@@ -3082,6 +3111,10 @@ func _draw_mourning_mother(canvas: Image, st: Dictionary) -> void:
 			if sorrow:
 				ghost.set_pixel(int(e.x) + 1, int(e.y) + 6 + ((f + 1) % 3) * 3, tear)
 	_merge(canvas, ghost, 0.92)
+	# The Weepers clinging to her skirts, at the edges of her hem in front of her.
+	var clingers: Array = [Vector2(36, 88), Vector2(108, 90)] if not side_view else [Vector2(46, 90)]
+	for i in clingers.size():
+		_clinging_weeper(canvas, clingers[i] + Vector2(0, roundi(sin(ph + i * 2.0))), shroud, skin, o, i == 0)
 	# Her long pale hands: folded at her chest, or lifted to her face in sorrow.
 	if dir != UP:
 		var t: float = [0.3, 0.7, 1.0, 1.0, 1.0, 0.7][f] if sorrow else 0.0
@@ -3484,7 +3517,7 @@ func _draw_pall(canvas: Image, st: Dictionary) -> void:
 			if cloth.get_pixel(x, y).a == 0.0:
 				continue
 			var i := (2 if x < 30 else 1) + (1 if settled and y > top + 10 else 0)  # settled: paler, so the walker reads darker under it
-			var v := sin((x - 32) * 0.85 + (y - top) * 0.1 + ph * 0.5)
+			var v := sin((x - 32) * 0.85 + (y - top) * 0.1 + ph)
 			if y > top + 11:
 				if v > 0.78:
 					i += 1
