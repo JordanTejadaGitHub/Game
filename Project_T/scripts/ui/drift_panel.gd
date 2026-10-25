@@ -103,7 +103,7 @@ func _ready() -> void:
 	_rush_toggle.name = "RushToggle"
 	_rush_toggle.text = "Rush"
 	_rush_toggle.toggle_mode = true
-	_rush_toggle.tooltip_text = "Headlong: the next drift arrives in a third of its time and pays all its Dew as it starts. Not boss drifts."
+	_rush_toggle.tooltip_text = "Headlong: the next drift arrives in a third of its time and gives all its Dew as it starts. Not boss drifts."
 	_rush_toggle.focus_mode = Control.FOCUS_NONE
 	_rush_toggle.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
 	_rush_toggle.theme_type_variation = &"HudButton"
@@ -532,7 +532,7 @@ func _update_rush() -> void:
 	if _rush_toggle.button_pressed != armed:
 		_rush_toggle.set_pressed_no_signal(armed)
 		_rush_toggle.queue_redraw()  # Its on-mark
-	_rush_toggle.text = "Rush on" if armed else "Rush"  # Says whether it is on, not by colour alone (as Auto-drift)
+	_rush_toggle.text = "Rush: on" if armed else "Rush"  # Says whether it is on, not by colour alone (as Auto-drift)
 
 func _on_rush_toggled(on: bool) -> void:
 	if drift_director.has_method("set_rush"):
