@@ -92,7 +92,14 @@ func _ready() -> void:
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
 		if not clearing_without_seeds:
 			obstacles_tended += 1
+			_pop_seed(cell)
 		tended_cells.append(cell))
+
+# A clear's Seed for the run (obstacles_tended): "+1" with the Seed icon, a little below where a clear-paying card's Dew
+# pops, so the two read apart (user 2026-10-24: "what's the +1 after I clear an obstacle").
+func _pop_seed(cell: Vector2) -> void:
+	var at: Vector2 = map_generator.MAP_GRID.calculate_map_position(cell) + Vector2(0, 18)
+	get_parent().add_child(DewPopup.new(1, at, DewPopup.COLOR, "", &"seeds"))
 
 # The run's Seeds: [[label, seeds], …] ending with ["Total", n]. `drifts_cleared` and `bosses`
 # come from the DriftDirector; `_first_run` is kept for callers (the first-run bonus is gone).
@@ -160,13 +167,14 @@ func add_dew(amount: int) -> void:
 	dew_changed.emit(dew)
 
 # Adds Dew and shows a "+N Dew" popup at `world_position`.
-func earn_dew_at(amount: int, world_position: Vector2, color: Color = DewPopup.COLOR) -> void:
+# `card`: the Dream card that paid it (its glyph shows on the popup: Weed Puller, Groundskeeper…).
+func earn_dew_at(amount: int, world_position: Vector2, color: Color = DewPopup.COLOR, card: UpgradeData = null) -> void:
 	if amount <= 0:
 		return
 	add_dew(amount)
 	dew_earned.emit(amount, world_position)
 	# Popup lives in the world (the main scene), not on whatever earned it, which may be freed.
-	get_parent().add_child(DewPopup.new(amount, world_position, color))
+	get_parent().add_child(DewPopup.new(amount, world_position, color, "", &"dew", card))
 
 func lose_leaves(amount: int) -> void:
 	if is_over or amount <= 0 or invulnerable:
