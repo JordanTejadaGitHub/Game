@@ -323,6 +323,8 @@ var _jostle_time := 0.0
 # drawn bodies are within CROWD_REACH cell of another (Enemy.crowd_seen = crowd_clock); hud_focus = the nightmare the
 # info panel shows (hovered / tapped: it keeps its full row; NightmareInfo sets it).
 const CROWD_REACH := 0.5
+const CROWD_ROW_W := 28.0  # px: a crowd row (3 pips and the "more" dot)…
+const CROWD_ROW_H := 8.0  # …and its height
 var crowd_clock := 0.0
 var hud_focus: Node2D = null
 
@@ -361,9 +363,14 @@ func _jostle_pair(one: Array, two: Array, reach: float, cell_px: float, step: fl
 	var a = one[0]
 	var b = two[0]
 	# Crowded (status icons in crowds): another drawn body within CROWD_REACH cell
-	if a.get_body_position().distance_squared_to(b.get_body_position()) < (CROWD_REACH * cell_px) ** 2:
+	var body_a: Vector2 = a.get_body_position()
+	var body_b: Vector2 = b.get_body_position()
+	if body_a.distance_squared_to(body_b) < (CROWD_REACH * cell_px) ** 2:
 		a.crowd_seen = crowd_clock
 		b.crowd_seen = crowd_clock
+		# Two crowd rows overlapping by more than half (UI council round 8): only the front nightmare's shows
+		if absf(body_a.x - body_b.x) < CROWD_ROW_W / 2.0 and absf(body_a.y - body_b.y) < CROWD_ROW_H:
+			(a if body_a.y < body_b.y else b).pips_hidden_seen = crowd_clock
 	if not push or a.is_flying() or b.is_flying():
 		return
 	var wa: float = a.lane * a.get_lane_width()
