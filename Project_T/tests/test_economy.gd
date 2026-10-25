@@ -69,8 +69,8 @@ func _run() -> void:
 	enemy.take_damage(enemy.max_health)
 	var act_1_pay: int = leaf_bug.dew_reward  # Outside a drift (no pot share): its plain dew_reward
 	_check(run_state.dew == act_1_pay, "cleansing a Leaf Bug earns %d Dew (got %d)" % [act_1_pay, run_state.dew])
-	var popups := main.get_children().filter(func(n: Node) -> bool: return n is DewPopup)
-	_check(popups.size() == 1, "a +Dew popup appears")
+	var popups := main.get_children().filter(func(n: Node) -> bool: return n is DewPopup and n._resource == &"dew")  # (A clear's "+1 Seed" is a DewPopup too)
+	_check(popups.size() == 1, "a +Dew popup appears (%d: %s)" % [popups.size(), popups.map(func(p: DewPopup) -> String: return "%s+%d" % [p._resource, p._amount])])
 	# UI Asset's Dew popups (2026-10-07): normal Dew in Dewlight, caught Dew in Glow, the Harvest with its word.
 	var caught := DewPopup.new(5, Vector2.ZERO, DewCatch.GOLD)
 	var harvest := DewPopup.new(40, Vector2.ZERO, DewCatch.GOLD, "Harvest +40 Dew")
