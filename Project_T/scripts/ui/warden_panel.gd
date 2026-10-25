@@ -366,15 +366,16 @@ func _refresh() -> void:
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow into %s" % next.display_name if _confirm_grow == next else next.display_name
-			var note := _grow_note(next)  # "Heavy, Area · wakes Hammerfall" under the name
-			if tax_line != "" and _phone:
-				note = tax_line  # Phones (user screenshot: "585" in orange, no reason): the tax in the role words' place
-			var dps_change := _grow_dps_change(next)  # "+86 a second" / "-12 a second, +Drowsy": first, on the button
+			# Nothing under the name (user 2026-10-24: "remove the information underneath a growth upgrade"): the role words
+			# and the damage change are in the tip; phones keep only the tax's reason (user screenshot: "585" in orange, no reason).
+			var role := _grow_note(next)  # "Heavy, Area · wakes Hammerfall"
+			if role != "":
+				button.tooltip_text += "\n\n" + role.replace(" · ", ", ")
+			var dps_change := _grow_dps_change(next)  # "+86 a second" / "-12 a second, +Drowsy"
 			if dps_change != "":
-				note = dps_change + (" · " + note if note != "" else "")
 				button.tooltip_text += "\n\n%s (damage a second on one nightmare at its rank now: hits plus its own Poison or Charge; extra area or chain targets not counted)." % dps_change
-			if note != "":
-				label += " · " + note
+			if tax_line != "" and _phone:
+				label += " · " + tax_line
 			var wakes := _wakes(next)
 			if not wakes.is_empty():
 				button.tooltip_text += "\n\nWakes: " + ", ".join(wakes) + " (Dream cards you hold that wait for this job)"
