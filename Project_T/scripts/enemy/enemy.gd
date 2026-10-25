@@ -267,7 +267,7 @@ var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded 
 # the centre line, across the travel direction; the node (position, cell, targeting, ranges) stays on the line.
 # Retune (council 2026-10-24b, enemy_council_review.md): narrower, no skating (each move eased in and out, sideways
 # never faster than LANE_SLIDE_SHARE of its own walk), measured across the rounded corner's curve, closed in gaps.
-const LANE_MAX := 0.2  # Cells either side (Stream and Packs)
+const LANE_MAX := 0.25  # Cells either side (Stream and Packs; variation trial 2026-10-24: was 0.2, back to 0.2 if outer bodies touch the sand's edge)
 const LANE_BIG := 0.1  # Bosses and big nightmares (sprite_scale >= LANE_BIG_SCALE), Few and tough's Deeply Blighted
 const LANE_BIG_SCALE := 1.4
 const LANE_FLYER := 0.15  # Flyers sway on their own line
@@ -290,6 +290,18 @@ var _lane_t := 1.0
 var _lane_move := 1.0
 var _lane_gap := 1.0  # 0 in a narrow gap, 1 elsewhere (eased)
 var _lane_last := Vector2.INF  # Last frame's drawn route position (position + corner offset): the curve's tangent
+# Variation trial (owner 2026-10-24, enemy_design.md "Walking lanes"): a narrow half-cell gap keeps a small lane (what
+# the gap leaves beside the squeezed body, at most LANE_GAP_MAX), and every body drifts a little along its travel too.
+const LANE_GAP_MAX := 0.1  # Cells either side in a one-half gap, at most
+const LANE_BODY_PX := 24.0  # A body's drawn width at scale 1 (× its drawn x scale: squeezed in a gap)
+const ALONG_MAX := 0.1  # Cells forward / back along its travel
+const ALONG_WANDER := Vector2(2.0, 4.0)  # Seconds between new targets
+var _along := 0.0  # -1..1 of ALONG_MAX
+var _along_from := 0.0
+var _along_target := 0.0
+var _along_t := 1.0
+var _along_move := 1.0
+var _along_left := 0.0
 var _lane_dir := Vector2.ZERO
 var _lane_offset := Vector2.ZERO  # The drawn offset in px
 var _lane_drawn := Vector2.ZERO  # The offset last pushed to the sprite / HUD
@@ -2202,7 +2214,14 @@ func _update_lane(delta: float) -> void:
 	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
 	open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
 	var side := Vector2(-_lane_dir.y, _lane_dir.x)
-	_lane_offset = (side * lane * get_lane_width() * cell * open * _lane_gap * _turn_share()).round()
+	# In a one-half gap the lane narrows (eased) to what the gap leaves beside the squeezed body, never into a Warden
+	var lane_px := lane * get_lane_width() * cell
+	var gap_cap := clampf((cell / FindPath.HALF - LANE_BODY_PX * absf(sprite.scale.x)) / 2.0, 0.0, LANE_GAP_MAX * cell)
+	lane_px = lerpf(clampf(lane_px, -gap_cap, gap_cap), lane_px, _lane_gap)
+	if not still and not enemy_data.is_boss:
+		_update_along(delta)
+	var along_px := _along * ALONG_MAX * cell if not enemy_data.is_boss else 0.0
+	_lane_offset = ((side * lane_px * _turn_share() + _lane_dir * along_px) * open).round()
 	if _lane_offset.distance_squared_to(_lane_drawn) < LANE_SNAP_PX * LANE_SNAP_PX:
 		return
 	_lane_drawn = _lane_offset
@@ -2211,6 +2230,21 @@ func _update_lane(delta: float) -> void:
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 	if elite or _hit_mark_time > 0.0 or _bolt_flash > 0.0 or unbound:
 		queue_redraw()  # The haze and marks drawn in _draw follow the lane
+
+# Along-path drift: a new target every ALONG_WANDER s, eased in and out like the lane and under the same speed cap.
+func _update_along(delta: float) -> void:
+	_along_left -= delta
+	if _along_left <= 0.0:
+		_along_left = _lane_rng.randf_range(ALONG_WANDER.x, ALONG_WANDER.y)
+		_along_from = _along
+		_along_target = _lane_rng.randf_range(-1.0, 1.0)
+		_along_t = 0.0
+		var px := absf(_along_target - _along) * ALONG_MAX * grid.cell_size.x
+		_along_move = maxf(LANE_MOVE_MIN, 1.5 * px / maxf(LANE_SLIDE_SHARE * speed, 1.0))
+	if _along_t < 1.0:
+		var walking := clampf(_speed_cache / maxf(speed, 1.0), 0.0, 1.0)
+		_along_t = minf(_along_t + delta * walking / _along_move, 1.0)
+		_along = lerpf(_along_from, _along_target, smoothstep(0.0, 1.0, _along_t))
 
 # A move to lane `to`, from where the lane is now: smoothstep over at least LANE_MOVE_MIN s, long enough that its
 # fastest moment (1.5 × the average) stays under LANE_SLIDE_SHARE of its walk speed.
