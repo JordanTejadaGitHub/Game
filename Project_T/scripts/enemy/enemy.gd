@@ -1276,6 +1276,8 @@ func _update_row_look(delta: float) -> void:
 # pips and a "more" dot. Hidden while a front nightmare's row covers it (EnemySpawner marks pips_hidden_seen).
 const CROWD_PIPS_MAX := 3
 const PIP_ART := 7  # UI Code's pip: 7 art px (5 of colour in a 1 px Void outline); a step of 8
+const PIP_OUTLINE_ALPHA := 1.0  # = KeywordIcons.PIP_OUTLINE_ALPHA / PIP_FILL_ALPHA (not readable before UI Code's branch is on main)
+const PIP_FILL_ALPHA := 0.85
 var pips_hidden_seen := -1.0
 var _pips_scale := -1.0
 var _pips_px := 0
@@ -1315,19 +1317,28 @@ func _place_pips() -> void:
 	var left := (_bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2.0, -bar_h / 2.0 - 2.0)).round()
 	RenderingServer.canvas_item_set_transform(_hud_pips, Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, left))
 
-static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip_rid: 1 once it's on main, 0 before (looked up once)
+static var _ui_methods := {}  # UI Code's KeywordIcons draw helpers: name -> their argument count, -1 while not on main (looked up once)
+
+# How many arguments KeywordIcons' `name` takes (-1: not on main yet), so a call can wait for (or match) UI Code's branch.
+func _ui_method_args(method_name: String) -> int:
+	if not _ui_methods.has(method_name):
+		_ui_methods[method_name] = -1
+		for method in (KeywordIcons as Script).get_script_method_list():
+			if method.name == method_name:
+				_ui_methods[method_name] = (method.args as Array).size()
+	return int(_ui_methods[method_name])
 
 func _ui_pip_rid() -> bool:
-	if _ui_pips < 0:
-		_ui_pips = 0
-		for method in (KeywordIcons as Script).get_script_method_list():
-			if method.name == "draw_pip_rid":
-				_ui_pips = 1
-	return _ui_pips == 1
+	return _ui_method_args("draw_pip_rid") >= 0
 
 # One pip at `at` (its centre), `px` screen px per art px. UI Code's art once KeywordIcons.draw_pip_rid is on main (its
 # own outline / fill alpha: the item's modulate is then only the ease); until then a plain square in the status colour.
 func _draw_pip(at: Vector2, id: StringName, px: int) -> void:
+	if _ui_method_args("draw_pip_rid") >= 7:  # Section 35: a full status lights its outline (Heartlight)
+		var cap := statuses.get_max_stacks(id)
+		var full := cap > 1 and statuses.stacks(id) >= cap
+		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px), PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA, full)
+		return
 	if _ui_pip_rid():
 		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px))  # Its own outline 1.0 / fill 0.85 (ab79e6e4)
 		return
@@ -1496,7 +1507,9 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 		var centre := _badge_centre(i)
 		var color: Color = _hud_colors[i]
 		var id: StringName = _hud_ids[i]
-		if _hud_full[i]:  # At max stacks: a warm glow behind the icon
+		if _hud_full[i] and _ui_method_args("draw_full_dot_rid") >= 0:  # UI Code section 35: the full dot under the icon
+			(KeywordIcons as Script).call("draw_full_dot_rid", item, centre, r, color)
+		elif _hud_full[i]:  # At max stacks: a warm glow behind the icon
 			var g := r * 1.7
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
