@@ -1317,7 +1317,7 @@ func _ui_pip_rid() -> bool:
 # own outline / fill alpha: the item's modulate is then only the ease); until then a plain square in the status colour.
 func _draw_pip(at: Vector2, id: StringName, px: int) -> void:
 	if _ui_pip_rid():
-		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px), CROWD_PIP_ALPHA)
+		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px))  # Its own outline 1.0 / fill 0.85 (ab79e6e4)
 		return
 	var colour: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
 	var corner := (at - Vector2(PIP_ART, PIP_ART) * px / 2.0).round()
