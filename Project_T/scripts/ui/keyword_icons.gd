@@ -409,42 +409,61 @@ static func _status_id(id: StringName) -> StringName:
 	return STATUSES.get(id, id)
 
 # --- Crowd pips (enemy_design.md "Status icons in crowds", owner 2026-10-24) ------------------------------------
-# A crowded nightmare's status row: one pip per status, 7×7 art px (5 px of the status colour inside a 1 px Void
-# outline), each status its own shape so it reads without colour: Soaked a drop, Drowsy a crescent, Asleep a closed
-# bar, Poisoned a triangle, Exposed a diamond, Charged a plus, Rooted a square, Caught a ring. Enemy Code draws them
-# (draw_pip) at 70% opacity; no stack numbers. Drawn as rects: no texture to keep alive.
+# A crowded nightmare's status row: one pip per status, 7×7 art px (the status colour inside a 1 px Void outline), each
+# status its own shape so it reads without colour (UI council round 8 redrew the pairs that merged): Soaked a drop,
+# Drowsy a thick half-moon, Asleep a deep violet "z", Poisoned a triangle, Exposed a hollow diamond (a colour ring round
+# a Void middle), Charged a zigzag bolt, Rooted a solid square, Caught an X. No stack numbers. The outline and the fill
+# take their own alpha (outline 1.0, fill 0.85: one modulate over both smudged the outline). Drawn as rects, on a
+# CanvasItem (draw_pip) or straight into a RenderingServer canvas item (draw_pip_rid: Enemy's HUD rows): no texture.
 const PIP_SIZE := 7
+const PIP_OUTLINE_ALPHA := 1.0
+const PIP_FILL_ALPHA := 0.85
 const PIPS := {
 	&"damp": ["...k...", "..kck..", ".kccck.", "kccccck", "kccccck", ".kccck.", "..kkk.."],
-	&"drowsy": ["..kkkk.", ".kcck..", "kcck...", "kcck...", "kcck...", ".kcck..", "..kkkk."],
-	&"asleep": [".......", ".......", "kkkkkkk", "kccccck", "kccccck", "kkkkkkk", "......."],
+	&"drowsy": ["...kkk.", "..kcck.", ".kccck.", ".kccck.", ".kccck.", "..kcck.", "...kkk."],
+	&"asleep": ["kkkkkkk", "kccccck", "kkkkcck", ".kcckk.", "kcckkkk", "kccccck", "kkkkkkk"],
 	&"spored": ["...k...", "..kck..", "..kck..", ".kccck.", ".kccck.", "kccccck", "kkkkkkk"],
-	&"marked": ["...k...", "..kck..", ".kccck.", "kccccck", ".kccck.", "..kck..", "...k..."],
-	&"static": ["..kkk..", "..kck..", "kkkckkk", "kccccck", "kkkckkk", "..kck..", "..kkk.."],
+	&"marked": ["...k...", "..kck..", ".kckck.", "kckkkck", ".kckck.", "..kck..", "...k..."],
+	&"static": ["...kkk.", "..kcck.", ".kcck..", "kcccckk", "kkkcck.", "..kck..", "..kk..."],
 	&"held": ["kkkkkkk", "kccccck", "kccccck", "kccccck", "kccccck", "kccccck", "kkkkkkk"],
-	&"caught": [".kkkkk.", "kccccck", "kckkkck", "kck.kck", "kckkkck", "kccccck", ".kkkkk."],
+	&"caught": ["kk...kk", "kck.kck", ".kckck.", "..kck..", ".kckck.", "kck.kck", "kk...kk"],
 }
 const PIP_ALIASES := {&"soaked": &"damp", &"poisoned": &"spored", &"exposed": &"marked", &"charged": &"static",
 	&"rooted": &"held"}
-const PIP_CAUGHT_COLOR := Palette.WRAITHLIGHT  # Caught has no status colour of its own (the Dreamcatchers' thread)
+# Pips whose colour isn't the status colour: Asleep deep violet (Drowsy keeps the pink), Poisoned a paler, yellower
+# green than the health bar's, Caught the Dreamcatchers' thread (no status colour of its own).
+const PIP_COLORS := {&"asleep": Palette.BRUISE, &"spored": Palette.NEWLEAF, &"caught": Palette.WRAITHLIGHT}
 
 # Whether `id` (a status id or the player's word: "damp" / "soaked") has a crowd pip.
 static func has_pip(id: StringName) -> bool:
 	return PIPS.has(PIP_ALIASES.get(id, id))
 
-# The pip's colour: EnemyStatuses.COLORS (the Warden's status colour), Caught's own.
+# The pip's colour: PIP_COLORS, else EnemyStatuses.COLORS (the Warden's status colour).
 static func pip_color(id: StringName) -> Color:
 	id = PIP_ALIASES.get(id, id)
-	return PIP_CAUGHT_COLOR if id == &"caught" else EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
+	return PIP_COLORS.get(id, EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
 
-# Draws `id`'s pip centred on `centre`, `px` screen px per art px (whole numbers keep it crisp), at `alpha`.
-static func draw_pip(canvas: CanvasItem, id: StringName, centre: Vector2, px: float = 1.0, alpha: float = 1.0) -> void:
+# Draws `id`'s pip centred on `centre` on a CanvasItem, `px` screen px per art px (whole numbers keep it crisp).
+static func draw_pip(canvas: CanvasItem, id: StringName, centre: Vector2, px: float = 1.0,
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha):
+		canvas.draw_rect(part[0], part[1])
+
+# The same into a RenderingServer canvas item (Enemy's HUD rows draw into an RID, not a CanvasItem).
+static func draw_pip_rid(item: RID, id: StringName, centre: Vector2, px: float = 1.0,
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha):
+		RenderingServer.canvas_item_add_rect(item, part[0], part[1])
+
+# [[Rect2, Color], …]: one rect per run of one ink (outline first, then fill).
+static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha: float, fill_alpha: float) -> Array:
 	id = PIP_ALIASES.get(id, id)
 	if not PIPS.has(id):
-		return
-	var inks := {"k": Color(Palette.VOID, alpha), "c": Color(pip_color(id), alpha)}
+		return []
+	var inks := {"k": Color(Palette.VOID, outline_alpha), "c": Color(pip_color(id), fill_alpha)}
 	var origin := (centre - Vector2(PIP_SIZE, PIP_SIZE) * px / 2.0).round()
 	var rows: Array = PIPS[id]
+	var out: Array = []
 	for y in PIP_SIZE:
 		var row: String = rows[y]
 		var x := 0
@@ -452,22 +471,15 @@ static func draw_pip(canvas: CanvasItem, id: StringName, centre: Vector2, px: fl
 			var ink := row[x]
 			var run := x + 1
 			while run < PIP_SIZE and row[run] == ink:
-				run += 1  # One rect per run of one ink
+				run += 1
 			if inks.has(ink):
-				canvas.draw_rect(Rect2(origin + Vector2(x, y) * px, Vector2(run - x, 1) * px), inks[ink])
+				out.append([Rect2(origin + Vector2(x, y) * px, Vector2(run - x, 1) * px), inks[ink]])
 			x = run
+	return out
 
-# The pip as a 7×7 image (previews, docs).
+# The pip as a 7×7 image (previews, docs), at the in-game alphas.
 static func pip_image(id: StringName) -> Image:
-	id = PIP_ALIASES.get(id, id)
 	var image := Image.create_empty(PIP_SIZE, PIP_SIZE, false, Image.FORMAT_RGBA8)
-	if not PIPS.has(id):
-		return image
-	for y in PIP_SIZE:
-		for x in PIP_SIZE:
-			var ink := String(PIPS[id][y])[x]
-			if ink == "k":
-				image.set_pixel(x, y, Palette.VOID)
-			elif ink == "c":
-				image.set_pixel(x, y, pip_color(id))
+	for part in _pip_rects(id, Vector2(PIP_SIZE, PIP_SIZE) / 2.0, 1.0, PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA):
+		image.fill_rect(Rect2i(part[0]), part[1])
 	return image
