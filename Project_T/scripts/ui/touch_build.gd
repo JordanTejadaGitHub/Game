@@ -21,10 +21,15 @@ const PAN_SLOP := 14.0  # Screen pixels a finger moves before a touch is a pan i
 static var _touch := false
 static var _moved := false
 static var force_mobile := false  # Tests; a desktop run takes the launch flag `-- --mobile` instead
+static var _mobile_flag := -1  # The launch flag, read once (perf: every nightmare's pips ask each frame; the args array is built per call)
 
 # The phone controls: Android / iOS builds (or force_mobile / `--mobile` for testing on a PC).
 static func mobile_controls() -> bool:
-	return force_mobile or OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--mobile")
+	if force_mobile:
+		return true
+	if _mobile_flag < 0:
+		_mobile_flag = 1 if OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--mobile") else 0
+	return _mobile_flag == 1
 
 # Whether the phone controls are in use right now (a touch on mobile; a real mouse turns it off).
 static func is_touch() -> bool:

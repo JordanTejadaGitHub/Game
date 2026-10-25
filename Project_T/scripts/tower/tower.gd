@@ -6055,11 +6055,12 @@ func get_enemies_in_range() -> Array[Node2D]:
 		return kept
 	var result: Array[Node2D] = []
 	var reach := sqrt(maxf(range_squared, sky_squared))
-	for bucket in _buckets_near(global_position, reach):  # The buckets themselves: no merged array built
+	var at := global_position  # (Read once: each read works out the global transform; perf)
+	for bucket in _buckets_near(at, reach):  # The buckets themselves: no merged array built
 		for enemy in bucket:
 			if not is_instance_valid(enemy) or enemy.is_cleansed:
 				continue
-			var distance_squared := global_position.distance_squared_to(enemy.global_position)
+			var distance_squared := at.distance_squared_to(enemy.global_position)
 			var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
 			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 				result.append(enemy)
@@ -6299,11 +6300,12 @@ func has_enemy_in_range() -> bool:
 		sky_squared = sky * sky
 		reach = maxf(reach, sky)
 	var min_squared := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
-	for bucket in _buckets_near(global_position, reach):
+	var at := global_position  # (Read once: perf)
+	for bucket in _buckets_near(at, reach):
 		for enemy in bucket:
 			if not is_instance_valid(enemy) or enemy.is_cleansed:
 				continue
-			var distance_squared := global_position.distance_squared_to(enemy.global_position)
+			var distance_squared := at.distance_squared_to(enemy.global_position)
 			var flying: bool = enemy.enemy_data != null and enemy.enemy_data.trait_kind == EnemyData.Trait.FLYING
 			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 				return true

@@ -340,6 +340,7 @@ var _focus_drawn := false
 var _row_look: RowLook = RowLook.FULL
 var _row_hold := 0.0
 var _row_alpha := Vector2(1.0, 0.0)  # Drawn alpha of (the full row, the pips)
+var _row_stale := false  # The full row was faded out and skipped drawing: rebuilt whole before it shows again (perf)
 var _hud_pips := RID()
 var _pips_changes := -1
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
@@ -695,6 +696,7 @@ const LOD_QUIET := 1.5
 var _lod_acc := 0.0  # Seconds skipped, still to run
 var _quiet_for := 0.0  # Seconds since a hit or a status landed on it
 var _logic_acc := 0.0  # Half-rate logic: seconds since its statuses, badges and presence last ran
+var _look_acc := 0.0  # Half-rate looks: seconds since its lane and crowd row last ran
 var _lod_slot := -1  # Its frame in the LOD_EVERY cycle (from its instance id: neighbours spread out)
 
 func _far_lod() -> bool:
@@ -706,7 +708,8 @@ func _process(delta: float) -> void:
 		return
 	if _waymark_index >= 0 and not passed_waymark and _path_index > _waymark_index:
 		_touch_waymark()  # (Also after a leap or a burrow carried it past the stone)
-	if _far_lod():
+	var far := _far_lod()
+	if far:
 		_lod_acc += delta
 		if _lod_slot < 0:
 			_lod_slot = get_instance_id() % LOD_EVERY
@@ -731,6 +734,19 @@ func _process(delta: float) -> void:
 		if logic_now:
 			ld = _logic_acc
 			_logic_acc = 0.0
+	# Half-rate looks (perf trial 2026-10-24, EnemySpawner.half_rate_looks; reverses "the looks every frame" above for two
+	# of them): the walking lane and the crowd row's look and fade run on the other frames from the logic, with the time
+	# between. Walking, the badges and the rest stay every frame; a far-LOD frame does both.
+	var look_now := true
+	var look_delta := delta
+	if _spawner != null and _spawner.half_rate_looks and not far:
+		_look_acc += delta
+		if _lod_slot < 0:
+			_lod_slot = get_instance_id() % LOD_EVERY
+		look_now = (Engine.get_process_frames() + _lod_slot) % 2 == 1
+		if look_now:
+			look_delta = _look_acc
+			_look_acc = 0.0
 	if logic_now:
 		# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
 		var thin: bool = _spawner != null and _spawner.thin_cards
@@ -856,8 +872,8 @@ func _process(delta: float) -> void:
 		_hud_dirty = false
 		statuses.hud_dirty = false
 		_update_hud(delta)
-	if not _culled:
-		_update_row_look(delta)  # Status icons in crowds: pips or the full row
+	if not _culled and look_now:
+		_update_row_look(look_delta)  # Status icons in crowds: pips or the full row
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -956,8 +972,8 @@ func _process(delta: float) -> void:
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
 			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
 			_steady_serial = _path_serial
-	if not _culled and not _leaping and not _dragging and covering == null:
-		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
+	if look_now and not _culled and not _leaping and not _dragging and covering == null:
+		_update_lane(look_delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -1179,6 +1195,20 @@ func _update_hud(delta: float) -> void:
 				break
 	if changed:
 		_update_hud_layout()
+	if _row_alpha.x <= 0.0 and _row_look != RowLook.FULL:
+		# (Perf 2026-10-24) In a crowd the full row is faded out (its pips show): the layout above keeps up, but its
+		# badges, numbers and time bars aren't drawn until it shows again (_update_row_look rebuilds them, _row_stale)
+		_row_stale = true
+		for id in _hud_pops.keys():  # (Pops still play out, unseen)
+			_hud_pops[id] -= delta
+			if _hud_pops[id] <= 0.0:
+				_hud_pops.erase(id)
+				_dream_pops.erase(id)
+		_hud_popping = false
+		_hud_flashing = false
+		_hud_ready_on = false
+		return
+	if changed:
 		_build_hud_pills(_hud_items[HUD_PILLS], overlay)
 		_build_hud_text(_hud_items[HUD_TEXT])
 	# A stack was just added: that icon pops (a quick scale bump), rebuilt each frame while it plays.
@@ -1219,7 +1249,7 @@ func _update_hud(delta: float) -> void:
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
 		return RowLook.FULL
-	var mode := int(Fx.setting("status_icons", 1))
+	var mode: int = _spawner.status_icons_now if _spawner != null else int(Fx.setting("status_icons", 1))  # (Read once a frame: perf)
 	if mode == 2:
 		return RowLook.OFF
 	if mode == 0 or enemy_data.is_boss or elite:
@@ -1260,6 +1290,10 @@ func _update_row_look(delta: float) -> void:
 		_build_pips()
 	elif _hud_pips.is_valid():
 		_place_pips()  # (The text scale or touch mode moved)
+	if _row_stale and target.x > 0.0:  # Showing again: everything the faded-out row skipped, drawn before it fades in
+		_row_stale = false
+		_hud_changes = -1
+		_update_hud(0.0)
 	if _row_alpha == target:
 		return
 	if bool(Fx.setting("reduced_motion", false)):
@@ -2188,7 +2222,7 @@ func _is_big_for_lanes() -> bool:
 func _update_lane(delta: float) -> void:
 	if _spawner != null and not _spawner.walking_lanes:
 		return  # Dev flag --no-lanes
-	var still := bool(Fx.setting("reduced_motion", false))
+	var still: bool = _spawner.reduced_motion_now if _spawner != null else bool(Fx.setting("reduced_motion", false))  # (Once a frame: perf)
 	var cell: float = grid.cell_size.x
 	if _lane_rng == null:
 		_lane_rng = RandomNumberGenerator.new()
@@ -2225,7 +2259,8 @@ func _update_lane(delta: float) -> void:
 	_lane_gap = lerpf(_lane_gap, 0.0 if _gap_answer else 1.0, 1.0 - exp(-LANE_GAP_EASE * delta))
 	_lane_age += delta
 	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
-	open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
+	if _path_index + 4 >= _path.size():  # (Perf: 4+ steps of at least half a cell left are over a cell: the full lane)
+		open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
 	var side := Vector2(-_lane_dir.y, _lane_dir.x)
 	# In a one-half gap the lane narrows (eased) to what the gap leaves beside the squeezed body, never into a Warden
 	var lane_px := lane * get_lane_width() * cell
