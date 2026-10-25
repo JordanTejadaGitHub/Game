@@ -1,6 +1,8 @@
 extends SceneTree
 var failures := 0
-const RETIRED = ["small_hands", "many_talents", "first_among_equals", "menagerie", "seasoned", "many_hands", "golden_harvest", "tended_forest", "nimble_twigs", "restless_roots", "hummingheart", "grove_of_kin", "kindred_roots", "thornheart", "deep_grip", "blessing_acorn", "blessing_bellflower", "blessing_firefly_jar", "blessing_nestling", "blessing_rootling", "blessing_whirligig"]
+const RETIRED = ["small_hands", "many_talents", "first_among_equals", "menagerie", "seasoned", "many_hands", "golden_harvest", "tended_forest", "nimble_twigs", "restless_roots", "hummingheart", "grove_of_kin", "kindred_roots", "thornheart", "deep_grip", "blessing_acorn", "blessing_bellflower", "blessing_firefly_jar", "blessing_nestling", "blessing_rootling", "blessing_whirligig",
+	# Section 36 (owner card pass 2026-10-25)
+	"close_shave", "deep_roots", "quick_step", "cheap_seeds", "fresh_growth", "head_start", "press_on", "hot_on_their_heels", "heavy_eyelids", "kindled_gaze", "ring_of_rings", "stolen_away", "reclaimed_earth", "desperate_bloom", "restless_night", "second_wind", "alarm_bells", "deep_stillness", "endless_night", "eye_of_the_tempest", "falling_stars", "fever_pitch", "mountains_fall", "prism_heart"]
 func _initialize() -> void:
 	_run.call_deferred()
 func _run() -> void:
@@ -26,7 +28,7 @@ func _run() -> void:
 		_check(not dreams.can_offer(card, 2), "retired role never offered, even after its family grows: " + pair[0])
 		_check(not dreams.can_offer(card, 1) and not dreams.can_offer(card, 4), "retired role never offered in any act: " + pair[0])
 		_check(card.soothe_bonus == 0.0 and card.evolve_discount == 0.0, "no passive family package: " + pair[0])
-	for id in ["full_moon", "chosen_few", "falling_weight", "cheap_seeds", "seedfall", "sprout_chorus", "switchback"]:  # (deeper_calm retired 2026-10-13)
+	for id in ["full_moon", "chosen_few", "falling_weight", "seedfall", "sprout_chorus", "switchback"]:  # (deeper_calm retired 2026-10-13; cheap_seeds section 36)
 		_check(not dreams._card_by_id(id).retired, "preserved meaningful choice: " + id)
 	for id in ["canopy", "grand_tour"]:
 		var card = dreams._card_by_id(id)

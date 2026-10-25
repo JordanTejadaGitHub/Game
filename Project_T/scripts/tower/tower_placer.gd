@@ -450,8 +450,8 @@ func _draw() -> void:
 		var art := get_build_preview_art()
 		draw_texture_rect_region(art.texture, art.rect, art.frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
-	if run_state.fertile_cells.has(_hover_cell):
-		tag += " (fertile)"
+	if run_state.fertile_cells.has(_hover_cell) or dream_state.reach_half_price(tower_data, _footprint(_hover_cell)):
+		tag += " (cleared: half price)"
 	var growth := get_hover_path_growth()
 	if frozen_ground():  # (No "the dream's edge" tag: the outer ring is buildable ground since the island edge moved outside the grid)
 		tag += " · Frozen Ground: plant at the rest"
@@ -1552,8 +1552,11 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if cost > 0 and warden.get_id() == "sprout" and dream_state != null and dream_state.has_rule(&"bountiful") \
 			and (dream_state.sprouts_planted + 1 + planned_sprouts) % DreamState.BOUNTIFUL_EVERY == 0:
 		cost = 0
-	if cost > 0 and cell != NO_CELL and run_state.fertile_cells.has(cell):
-		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)  # Reclaimed Earth halves the final price, including escalation.
+	# Heartwood's Reach (and an old save's Reclaimed Earth) halves the final price, including escalation: the first
+	# Warden on a cleared cell, the same one that arrives at rank I. Walls and Sprouts pay full and leave the cell.
+	if cost > 0 and cell != NO_CELL and (run_state.fertile_cells.has(cell) \
+			or dream_state.reach_half_price(warden, Tower.footprint_cells(cell, warden.footprint))):
+		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)
 	return cost
 
 @export var copy_cost_step := 0.04  # +4% per copy on the map ("Health x2, Dew x2 trial": more Wardens; was 0.08, be7b5a94. 0 = off, the sims' A/B)

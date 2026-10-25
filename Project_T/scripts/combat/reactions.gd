@@ -36,7 +36,8 @@ const THUNDERCLAP_STATIC_BOSS := 15
 const THUNDERCLAP_DAMAGE := 12.0  # × the applier's damage, to the nightmare that discharges
 const THUNDERCLAP_ARC_DAMAGE := 6.0  # × the applier's damage, to each wet nightmare it arcs to
 const THUNDERCLAP_MAX_ARCS := 8
-const ROLLING_THUNDER_ARCS := 3  # Rolling Thunder: its longer arcs strike at most this many
+const ROLLING_THUNDER_ARCS := 3  # (Unused since section 36, 2026-10-25: see THUNDERCLAP_ARCS_BY_LEVEL)
+const THUNDERCLAP_ARCS_BY_LEVEL: Array[int] = [THUNDERCLAP_MAX_ARCS, 5, THUNDERCLAP_MAX_ARCS]  # Arc cap: base, Rolling Thunder, II (Balancing 2026-10-25)
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 3.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 2, 3]
 const IGNITE_MIN_SPORES := 12
@@ -289,6 +290,8 @@ static func _on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 			return
 	if s.count() < 2:
 		return
+	if s.fed_locked():
+		return  # No self-feeding (section 36): a Reaction card's own stacks can't complete a Reaction here for 2 s
 	var frame := Engine.get_process_frames()
 	if frame != _checked_frame:
 		_checked_frame = frame
@@ -1023,8 +1026,9 @@ static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false)
 			arcs.append(other)
 	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
 	# chain's cost). Chains still continue from those.
-	# Rolling Thunder's cost (dream_design.md 83c40cd7): its longer arcs strike at most ROLLING_THUNDER_ARCS nightmares.
-	var max_arcs := ROLLING_THUNDER_ARCS if level > 0 else THUNDERCLAP_MAX_ARCS
+	# Rolling Thunder's cost (section 36, 2026-10-25; was "at most ROLLING_THUNDER_ARCS arcs"): nightmares its arcs strike
+	# lose their Soaked (the loop below), so the next Thunderclap there needs a fresh soak. The usual arc cap still holds.
+	var max_arcs: int = THUNDERCLAP_ARCS_BY_LEVEL[level]
 	if arcs.size() > max_arcs:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
@@ -1043,6 +1047,8 @@ static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false)
 		_segment(&"thunderclap_arc", Tower.aim_at(enemy), Tower.aim_at(other), enemy, 0.25)
 		_touch(other, chain, _towers(tower))
 		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap", &"tempest" if tempest else &"")
+		if level > 0 and not tempest and is_instance_valid(struck) and not struck.is_cleansed:
+			struck.statuses.remove(DAMP)  # Rolling Thunder's cost: before its Charged lands, so the arc can't clap it again
 		if is_instance_valid(struck) and not struck.is_cleansed:
 			struck.apply_status(STATIC, THUNDERCLAP_ARC_STATIC[level], 0.0, potency, 0, "light", tower)
 		# Tempest: every arc also sets off Ignite on a Spored target (not bosses), whose spread spores

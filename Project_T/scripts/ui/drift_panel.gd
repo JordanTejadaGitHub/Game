@@ -22,6 +22,7 @@ var moonflip_label := Label.new()  # Strange Dreams' Moonflip: "Moonflip +25%" f
 var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
+var _rush_toggle := Button.new()  # Headlong (Legendary): rush the next drift (Roguelite Code's DriftDirector.can_rush / set_rush)
 var _start_button := Button.new()
 var _start_chip: Label = null  # Its "Enter" chip (UiStyle.key_chip_on, UI council round 3: one hotkey style), at a rest and on Resume
 var _speed_row: Control = null
@@ -96,6 +97,20 @@ func _ready() -> void:
 	_sapling_button.visible = false
 	_sapling_button.pressed.connect(plant_sapling)
 	status_row.add_child(_sapling_button)
+	# Headlong (owner 2026-10-25, dream_council_review.md 36): a per-drift choice, not every drift. On, the next non-boss
+	# drift comes in one rush (its shape squeezed to a third of its time) and pays its Dew pot as it starts. The director
+	# owns the rule (can_rush, rush_armed, set_rush); the button only arms it and says so.
+	_rush_toggle.name = "RushToggle"
+	_rush_toggle.text = "Rush"
+	_rush_toggle.toggle_mode = true
+	_rush_toggle.tooltip_text = "Headlong: the next drift arrives in a third of its time and pays all its Dew as it starts. Not boss drifts."
+	_rush_toggle.focus_mode = Control.FOCUS_NONE
+	_rush_toggle.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_rush_toggle.theme_type_variation = &"HudButton"
+	_rush_toggle.visible = false
+	_rush_toggle.toggled.connect(_on_rush_toggled)
+	_on_look(_rush_toggle)
+	status_row.add_child(_rush_toggle)
 	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -224,6 +239,7 @@ func _process(_delta: float) -> void:
 	_update_warning()
 	_update_finale()
 	_update_moonflip()
+	_update_rush()
 	_status_label.tooltip_text = ""
 	var latest := drift_director.drifts_started
 	var next := latest + 1
@@ -403,7 +419,7 @@ const MIST_FULL := "Nightmares still arriving: the mist holds them back until th
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
 const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Choose an Omen",
-	&"gift": "Choose a gift", &"waymark": "Place the Waymark"}  # Heartwood's Gifts (Spire); Waymark (Legendary Dream)
+	&"gift": "Choose a gift", &"waymark": "Place the Waymark", &"boulders": "Place the boulders"}  # Heartwood's Gifts (Spire); Waymark (Legendary Dream); Forest Floor
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
 # Phones (tap to place, Mobile UI; user 2026-10-15): ghost Wardens waiting for Confirm hold the drift back. Starting one
@@ -462,6 +478,11 @@ func reopen_choice(pending: StringName) -> void:
 		if stone != null:
 			stone.reopen()
 		return
+	if pending == &"boulders":  # Forest Floor: no screen either, the boulders' placement opens again
+		var boulders = drift_director.owner.get_node_or_null("MapGenerator/BoulderPlacement") if drift_director.owner != null else null
+		if boulders != null:
+			boulders.reopen()
+		return
 	var screen_name := String(PENDING_SCREENS[pending])
 	if pending == &"dream" and not dream_state.is_offering():
 		screen_name = "RememberScreen"  # A boss rest: the Dream waits behind the Remember screen
@@ -501,6 +522,22 @@ static func coming_finale(director: DriftDirector) -> int:
 	if last < at or not director.has_method("get_block_finale_elites") or director.get_block_finale_elites(last) <= 0:
 		return 0
 	return last
+
+# Headlong's Rush: shown while the next drift can be rushed (Headlong held, not a boss drift, not started yet); pressed
+# while it is armed (the director clears it once that drift starts).
+func _update_rush() -> void:
+	var can: bool = drift_director.has_method("can_rush") and drift_director.can_rush() and not run_state.is_over
+	_rush_toggle.visible = can
+	var armed: bool = can and bool(drift_director.get("rush_armed"))
+	if _rush_toggle.button_pressed != armed:
+		_rush_toggle.set_pressed_no_signal(armed)
+		_rush_toggle.queue_redraw()  # Its on-mark
+	_rush_toggle.text = "Rush on" if armed else "Rush"  # Says whether it is on, not by colour alone (as Auto-drift)
+
+func _on_rush_toggled(on: bool) -> void:
+	if drift_director.has_method("set_rush"):
+		drift_director.set_rush(on)
+	_update_rush()
 
 func _update_finale() -> void:
 	var finale := coming_finale(drift_director) if not run_state.is_over else 0

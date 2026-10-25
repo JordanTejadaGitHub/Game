@@ -6,11 +6,10 @@
 script = ExtResource("1_card")
 id = "slow_burn"
 display_name = "Slow Burn"
-description = "{spored} ticks and {static} bolts deal 30% more while a card is making that status last longer."
-tip = "Last longer: kept on by {card:steeped}, {card:topped_up}, {card:ebb}, {card:waterlogged}, another such card, or a Calling evolution such as Riverside. Not {reactions}. A bet: needs a card that makes statuses last longer."
+description = "{spored} ticks deal 30% more on a nightmare that has carried {spored} for 4 s, and {static} bolts once its {static} is 1.5 s old."
+tip = "Carried: on with no gap. A new batch that lands before the last one ends keeps the count. Not {reactions}."
 rarity = 1
 kind = 3
 tags = Array[String](["affliction"])
 max_stacks = 1
 rule_id = &"slow_burn"
-uses = Array[StringName]([&"linger"])

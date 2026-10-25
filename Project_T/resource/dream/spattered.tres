@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "spattered"
+display_name = "Spattered"
+description = "Every splash gives its Warden's status to the nightmares it reaches. Splashes from Dream cards give 1 {stack}."
+tip = "Splashes from Dream cards: each nightmare at most once a second per Warden, never from echoes or {reactions}. Their {stacks} set off a {reaction} on a nightmare at most once every 2 s."
+rarity = 1
+kind = 3
+tags = Array[String](["area", "affliction"])
+max_stacks = 1
+rule_id = &"spattered"
+uses = Array[StringName]([&"area"])

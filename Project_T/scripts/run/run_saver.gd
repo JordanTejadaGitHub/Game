@@ -187,6 +187,8 @@ func can_save_now() -> bool:
 		return false
 	if dream_state.waymark_needed():
 		return false  # Waymark: saved once the stone is placed (a Continue never starts with it missing)
+	if dream_state.has_method("boulders_needed") and dream_state.boulders_needed() > 0:
+		return false  # Forest Floor: saved once its boulders are placed
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	var gifts := HeartwoodGifts.find(self)
 	if gifts != null and gifts.is_offering():
@@ -256,6 +258,9 @@ func save_now() -> bool:
 	}
 	if map_generator.get("waymark_cell") != null and map_generator.has_waymark():
 		data["waymark"] = [map_generator.waymark_cell.x, map_generator.waymark_cell.y]  # Waymark (Legendary Dream): the stone's cell
+	if map_generator.get("placed_obstacles") != null:  # Forest Floor: the placed boulders still standing, and how many were placed
+		data["placed_boulders"] = map_generator.placed_obstacles.keys().map(func(c: Vector2) -> Array: return [c.x, c.y])
+		data["boulders_placed"] = map_generator.boulders_placed
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.has_method("to_save"):
 		data["omens"] = omens.to_save()
@@ -514,6 +519,13 @@ func _restore(data: Dictionary) -> void:
 		var stone_cell := Vector2(float(stone[0]), float(stone[1]))
 		if map_generator.is_waymark_ground(stone_cell) and not map_generator.get_path_if_waymark_at(stone_cell).is_empty():
 			map_generator.set_waymark(stone_cell)
+	# Forest Floor: its boulders back on their cells (one that no longer fits is left out; the count stays, so it isn't asked again).
+	if map_generator.get("placed_obstacles") != null:
+		for c in data.get("placed_boulders", []):
+			var boulder_cell := Vector2(float(c[0]), float(c[1]))
+			if map_generator.can_place_boulder(boulder_cell):
+				map_generator.place_boulder(boulder_cell)
+		map_generator.boulders_placed = int(data.get("boulders_placed", map_generator.boulders_placed))
 
 	run_state.dew = int(data.dew)
 	run_state.max_leaves = int(data.max_leaves)

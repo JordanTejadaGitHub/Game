@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rain_lily"
 display_name = "Rain Lily"
-description = "{warden:dewdrop}s can now {grow} into Rain Lilies ({dew:{grow_cost:rain_lily}}): a bigger splash that keeps {damp} on nightmares for longer."
+description = "{warden:dewdrop}s can now {grow} into Rain Lilies ({dew:{grow_cost:rain_lily}}): a bigger splash; the nightmare hit gains {field:rain_lily.status_stacks:count} {damp}."
 rarity = 1
 kind = 1
 tags = Array[String](["water"])

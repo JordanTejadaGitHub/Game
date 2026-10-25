@@ -22,3 +22,4 @@ tip = "A crit on a nightmare with {marked} can start another {named_combo:starfa
 uses = Array[StringName]([&"reaction"])
 makes = Array[StringName]([&"crit"])
 requires_statuses = Array[StringName]([&"marked", &"held", &"static"])
+retired = true

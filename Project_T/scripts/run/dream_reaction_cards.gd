@@ -394,12 +394,15 @@ func _afterglow(skip_id: int, at: Vector2, gifts: Array) -> void:
 		_credit(AFTERGLOW, at)
 
 static func _give(other, gifts: Array, stacks: int) -> void:
+	var feeding_before := EnemyStatuses.feeding
+	EnemyStatuses.feeding = true  # No self-feeding (section 36): these stacks can't complete a Reaction for 2 s
 	for gift in gifts:
 		if not is_instance_valid(other) or other.is_cleansed:
-			return
+			break
 		var ref = gift[2]
 		var source: Node = ref.get_ref() if ref != null else null
 		other.apply_status(gift[0], stacks, 0.0, float(gift[1]), 0, String(gift[3]), source if is_instance_valid(source) else null)
+	EnemyStatuses.feeding = feeding_before
 
 # --- Spent Light ------------------------------------------------------------------------------------------------------
 var _stains: Array = []
@@ -477,12 +480,15 @@ class SpentStain extends Node2D:
 			if enemy.get_current_cell() != cell:
 				continue
 			_seen[enemy.get_instance_id()] = true
+			var feeding_before := EnemyStatuses.feeding
+			EnemyStatuses.feeding = true  # No self-feeding (section 36), as _give
 			for gift in gifts:  # (As the outer _give: an inner class can't call it)
 				if not is_instance_valid(enemy) or enemy.is_cleansed:
 					break
 				var ref = gift[2]
 				var source: Node = ref.get_ref() if ref != null else null
 				enemy.apply_status(gift[0], SPENT_STACKS, 0.0, float(gift[1]), 0, String(gift[3]), source if is_instance_valid(source) else null)
+			EnemyStatuses.feeding = feeding_before
 			if cards != null:
 				cards._credit(SPENT_LIGHT, global_position)
 

@@ -878,12 +878,12 @@ func _restless_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dic
 	return {"active": on, "speed": DreamState.RESTLESS_ROOTS_SPEED,
 		"reason": "" if on else "attacks %.2f times a second (needs under 1)" % spot.data.attacks_per_second}
 
-# Wide Petals (absorbed Far Reach, card pass 2026-10-16): area Wardens also reach a little further.
+# Wide Petals (section 37, 2026-10-25): pulses and clouds 0.75 cells wider; no range and no splash width any more.
 func _wide_petals(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
 		return {}
-	var on := DreamState.has_area_attack(spot.data)
-	return {"active": on, "range": DreamState.WIDE_PETALS_RANGE, "reason": "" if on else "no area attack"}
+	var on: bool = spot.data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD]
+	return {"active": on, "effect": "%.2f cells wider" % DreamState.WIDE_PETALS_RADIUS, "reason": "" if on else "no pulse or cloud"}
 
 func _far_reach(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:

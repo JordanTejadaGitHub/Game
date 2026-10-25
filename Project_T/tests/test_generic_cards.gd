@@ -275,6 +275,14 @@ func _test_pool() -> void:
 		if card:
 			_check(card.in_start_pool == (id != "wandering_mind" and not LEAN_GROVE.has(id)), "%s: pool" % id)
 	_check(_card("glimmering_hunt").min_act == 2, "Glimmering Hunt from act 2")
+	# Section 36 (owner 2026-10-25): retired from offers (ids and rule code kept), out of the basics and the batch
+	for id in ["close_shave", "deep_roots", "quick_step", "cheap_seeds", "fresh_growth", "head_start", "press_on",
+			"hot_on_their_heels", "heavy_eyelids", "kindled_gaze", "ring_of_rings", "stolen_away", "reclaimed_earth",
+			"desperate_bloom", "restless_night", "second_wind"]:
+		_check(_card(id) != null and _card(id).retired and not DreamState.RUN_POOL_BASICS.has(id) and not DreamState.BATCH.BATCH.has(id),
+			"%s: retired, not a basic or a batch card" % id)
+	_check(DreamState.RUN_POOL_BASICS.size() == 4 and ["longer_roots", "thick_bark", "morning_dew", "tender_care"].all(
+		func(id: String) -> bool: return DreamState.RUN_POOL_BASICS.has(id)), "four basics (section 36)")
 	_reset()
 	_check(not dreams.is_eligible(_card("heavy_air")), "Heavy Air needs a Warden that slows")
 	dreams.unlocked["dewdrop"] = true

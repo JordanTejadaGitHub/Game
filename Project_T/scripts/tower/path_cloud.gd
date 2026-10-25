@@ -43,7 +43,7 @@ func _init(tower: Tower, center: Vector2) -> void:
 	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
 	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
-	var broad: float = tower._dream_state.get_area_radius_add() if tower._dream_state and tower._dream_state.has_method("get_area_radius_add") else 0.0
+	var broad: float = tower._dream_state.get_cloud_radius_add() if tower._dream_state and tower._dream_state.has_method("get_cloud_radius_add") else 0.0  # Wide Petals (section 37: pulses and clouds)
 	_radius = (_data.cloud_radius + broad + tower.area_bonus()) * Tower.MAP_GRID.cell_size.x  # Broad Splash and Reach widen clouds too
 	_duration = ShapeCards.ground_time(_data.cloud_duration)  # Lingering Ground: x1.5 (each tick keeps its share of the base, so damage grows too)
 	_tick_share = TICK / maxf(_data.cloud_duration, 0.01)

@@ -32,9 +32,9 @@ const CUES := {
 	&"the_quiet_ones": DREAM_GLOW, &"crowd_breaker": DREAM_GLOW, &"root_network": DREAM_GLOW,
 	&"root_network_ii": DREAM_GLOW, &"one_bough": DREAM_GLOW,
 	# Timed damage or speed boosts -> C1 surge (SURGE below: tier +1 while on)
-	&"thinning_the_herd": DREAM_GLOW, &"hot_on_their_heels": DREAM_GLOW, &"restless_night": DREAM_GLOW,
-	&"quickening": DREAM_GLOW, &"quickening_ii": DREAM_GLOW, &"close_shave": DREAM_GLOW, &"fresh_growth": DREAM_GLOW,
-	&"quick_step": DREAM_GLOW, &"desperate_bloom": DREAM_GLOW, &"momentum": DREAM_GLOW,
+	&"thinning_the_herd": DREAM_GLOW,
+	&"quickening": DREAM_GLOW, &"quickening_ii": DREAM_GLOW,
+	&"momentum": DREAM_GLOW,
 	# Attack speed -> C1
 	&"the_last_light": DREAM_GLOW, &"rootbound": DREAM_GLOW, &"sprout_chorus": DREAM_GLOW,
 	&"spinning_corners": DREAM_GLOW, &"hairpin_winds": DREAM_GLOW, &"close_quarters": DREAM_GLOW,
@@ -51,25 +51,24 @@ const CUES := {
 	&"measured_blow": DREAM_FLECK, &"the_tallest_tree": DREAM_THREAD, &"undiluted": STATUS_POP,
 	&"shared_light": DREAM_FLECK, &"fruiting": DREAM_FLECK, &"heavy_going": DREAM_FLECK, &"parting_puff": DREAM_THREAD,  # Non-status builds 2026-10-19
 	&"long_way_round": DREAM_FLECK, &"high_tide": DREAM_FLECK, &"seeping": DREAM_FLECK, &"slow_burn": DREAM_FLECK,
-	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK, &"head_start": DREAM_FLECK,
-	&"kindled_gaze": DREAM_FLECK, &"millstone": DREAM_FLECK, &"needle_point": DREAM_FLECK,
+	&"rain_on_glass": DREAM_FLECK, &"thousand_cuts": DREAM_FLECK,
+	&"millstone": DREAM_FLECK, &"needle_point": DREAM_FLECK,
 	&"opening_fracture": DREAM_FLECK, &"sap_rising": DREAM_FLECK, &"wash_away": DREAM_FLECK, &"last_drop": DREAM_FLECK,
 	# Reaction modifiers -> C5
 	&"brimming": REACTION_ACCENT, &"sparking_spores": REACTION_ACCENT, &"wildfire_spores": REACTION_ACCENT,
 	&"rolling_thunder": REACTION_ACCENT, &"rolling_thunder_ii": REACTION_ACCENT, &"deep_water": REACTION_ACCENT,
 	&"sweet_harmony": REACTION_ACCENT, &"kin_and_kindling": REACTION_ACCENT,
 	&"never_quite_dry": REACTION_ACCENT,
-	&"eye_of_the_tempest": REACTION_ACCENT, &"mountains_fall": REACTION_ACCENT, &"endless_night": REACTION_ACCENT,
-	&"alarm_bells": REACTION_ACCENT, &"old_heart": REACTION_ACCENT, &"ring_of_rings": REACTION_ACCENT,
+	&"old_heart": REACTION_ACCENT,
 	&"quick_reactions": REACTION_ACCENT,
 	# Extra stacks or statuses -> C3 (pop)
 	&"breathe_it_in": STATUS_POP, &"mixed_company": STATUS_POP, &"pass_it_round": STATUS_POP,
 	&"spore_ring": STATUS_POP, &"mothers_hand": STATUS_POP, &"deep_grain": STATUS_POP, &"resonance": STATUS_POP,
 	&"mycelium": STATUS_POP, &"overnight": STATUS_POP,
 	&"seeping_in": STATUS_POP, &"gone_to_seed": STATUS_POP, &"eternal_static": STATUS_POP,
-	&"heavy_eyelids": STATUS_POP, &"afterroot": STATUS_POP,
+	&"afterroot": STATUS_POP, &"spattered": STATUS_POP,
 	&"charged_feathers": STATUS_POP, &"pollen_beaks": STATUS_POP,
-	&"shared_fever": STATUS_POP, &"snare_line": STATUS_POP, 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
+	&"snare_line": STATUS_POP, 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
 	&"lingering_ground": STATUS_POP, 	&"bound_and_burning": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
 	&"homesick": STATUS_POP, &"topped_up": STATUS_POP, &"patient_roots": STATUS_POP, &"sodden": STATUS_POP,
 	# Slow, hold, sleep, pull -> C4
@@ -87,18 +86,18 @@ const CUES := {
 	&"guiding_light": DREAM_THREAD, &"guiding_light_ii": DREAM_THREAD, &"sparks_fly": DREAM_THREAD,
 	&"hammerfall": DREAM_THREAD, &"thunderstruck": DREAM_THREAD, &"chain_of_lanterns": DREAM_THREAD,
 	&"brushfire": DREAM_THREAD, &"flashover": DREAM_THREAD, &"gathering_storm": DREAM_THREAD,
-	&"nothing_wasted": DREAM_THREAD, &"struck_twice": DREAM_FLECK, &"conductive_soil": DREAM_THREAD, &"stolen_away": DREAM_THREAD,
+	&"nothing_wasted": DREAM_THREAD, &"struck_twice": DREAM_FLECK, &"conductive_soil": DREAM_THREAD,
 	&"briar_crown": DREAM_THREAD,  # (Not in the spec's tables: a wall relay, as Hedgerow Roots)
 	# Dew and Dreamlight -> C7
 	&"winding_path": DEW_SPARKLE, &"scarred_bark": DEW_SPARKLE, &"held_breath": DEW_SPARKLE,
-	&"wild_dew": DEW_SPARKLE, &"cheap_seeds": DEW_SPARKLE,
+	&"wild_dew": DEW_SPARKLE,
 	&"evergreen": DEW_SPARKLE, &"morning_dew": DEW_SPARKLE, &"seedfall": DEW_SPARKLE, &"dew_bowl": DEW_SPARKLE,
-	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE, &"reclaimed_earth": DEW_SPARKLE,
+	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE,
 	&"kins_keepsake": DEW_SPARKLE, &"headlong": DEW_SPARKLE,
 	&"unfettered": DREAM_GLOW,  # Its lifted Calling hit: the Warden's boost glow (class_kit._unfettered_cue -> note_past_cap)
 	&"glimmering_hunt": DEW_SPARKLE, &"sudden_insight": DEW_SPARKLE,
 	# Leaves -> C8
-	&"deep_roots": LEAF_REGROW, &"thick_bark": LEAF_REGROW, &"press_on": LEAF_REGROW,
+	&"thick_bark": LEAF_REGROW,
 	# Ranks and Nurture -> C9
 	&"clean_night": RANK_SHIMMER, &"wild_growth": RANK_SHIMMER, &"walking_wood": REACH_RING, &"tender_care": RANK_SHIMMER, &"tender_care_ii": RANK_SHIMMER,
 	&"nursery": RANK_SHIMMER, &"specialist": RANK_SHIMMER, &"shared_training": RANK_SHIMMER,
@@ -110,7 +109,7 @@ const CUES := {
 # A second cue the same moment also shows ("+C3", "+C10", "+C9" in the spec).
 const EXTRA_CUES := {
 	&"thousand_cuts": [STATUS_POP], &"brimming": [STATUS_POP], &"kin_and_kindling": [STATUS_POP],
-	&"never_quite_dry": [STATUS_POP], &"shared_fever": [DREAM_THREAD], &"spent_light": [STATUS_POP],
+	&"never_quite_dry": [STATUS_POP], &"spent_light": [STATUS_POP],
 	&"living_walls": [RANK_SHIMMER], &"hunters_moon": [STATUS_POP], &"spore_cascade": [STATUS_POP],
 	&"one_bough": [RANK_SHIMMER], &"sodden": [DREAM_FLECK],
 }
@@ -125,10 +124,10 @@ const SURGE: Array[StringName] = [&"thinning_the_herd", &"hot_on_their_heels", &
 
 # Already visible by nature (spec C2): no cue, only the badge pop (credit with the source Warden).
 const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", 	&"homing_instinct", &"witching_bend", &"reprise", &"chain_bloom",
-	&"thorny_walls", &"twig_walls", &"living_walls", &"tangled_release", &"nod_off", &"fever_pitch", &"hunters_moon",
-	&"spore_cascade", &"prism_heart", &"mushroom_rain", &"deep_stillness", &"old_hand", &"full_moon",
-	&"still_target", &"patient_aim", &"falling_stars", &"starlit_aim",
-	&"lingering_splash",
+	&"thorny_walls", &"twig_walls", &"living_walls", &"tangled_release", &"nod_off", &"hunters_moon",
+	&"spore_cascade", &"mushroom_rain", &"old_hand", &"full_moon",
+	&"still_target", &"patient_aim", &"starlit_aim",
+	&"lingering_splash", &"hailfall",
 	# Bell repeats keep their own chime / double flash / pulse (d168b7e6) and add the badge pop
 	&"in_time", &"refrain", &"knell", &"on_the_beat", &"da_capo", &"second_verse", &"rude_awakening",
 	# Signature looks (DreamBurst colours: the card's look is the card)
@@ -138,7 +137,7 @@ const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", 	&"homing_
 
 # Dream-screen only: they change offers / rerolls / the Dew roll (the Dream screen or HUD already shows it).
 const OFFER_ONLY: Array[StringName] = [&"wandering_mind", &"lucid_dreaming", &"lucid_dream", &"mystery_dream",
-	&"restless_dreams", &"second_wind", &"double_or_nothing"]
+	&"restless_dreams", &"double_or_nothing"]
 
 # Rule ids that differ from their card id (callers may credit by rule id).
 const ALIASES := {&"back_row_roots": &"longer_roots", &"last_light": &"the_last_light", &"old_ones": &"the_old_ones"}

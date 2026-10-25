@@ -90,6 +90,8 @@ func _ready() -> void:
 	map_generator.path_changed.connect(track_path)
 	track_path.call_deferred()  # The map builds its path after RunState is ready
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
+		if map_generator.has_method("is_placed_obstacle") and map_generator.is_placed_obstacle(cell):
+			return  # Forest Floor's own boulder: no Seed, not a tended cell (Tended Forest, Heartwood's Reach, the clear surcharge)
 		if not clearing_without_seeds:
 			obstacles_tended += 1
 			_pop_seed(cell)

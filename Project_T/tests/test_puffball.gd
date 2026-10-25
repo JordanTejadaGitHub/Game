@@ -1,7 +1,8 @@
 extends SceneTree
 
 # Headless test for the Puffball (tower_design.md "Spores don't pop"): its puff bursts on landing over 1
-# tile, 2 Poisoned to every nightmare there, nightmares it hits hold up to 32 Poisoned, and nothing pops.
+# tile; since the splash rework (dream_council_review.md 37) only the nightmare hit takes its Poisoned (3), the others
+# nearby take its damage. Nightmares it hits hold up to its cap, and nothing pops.
 # Sporemother breathes 2 Poisoned a second over everything in range.
 # Run from the project folder:
 #   godot --headless --path . --script res://tests/test_puffball.gd --fixed-fps 60
@@ -64,10 +65,11 @@ func _run() -> void:
 	tower.projectile_landed(target, target.global_position)
 	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 9 + data.status_stacks, "no pop: its stacks keep building (%d)" % target.statuses.stacks(EnemyStatuses.SPORED))
 	_check(target.health < health, "the puff soothes its target")
-	_check(close.statuses.stacks(EnemyStatuses.SPORED) == data.status_stacks and close.health < close.max_health,
-		"the burst Poisons (2) and soothes a nightmare within 1 tile")
-	_check(not b.statuses.has(EnemyStatuses.SPORED) and not c.statuses.has(EnemyStatuses.SPORED) and not d.statuses.has(EnemyStatuses.SPORED) \
-		and not far.statuses.has(EnemyStatuses.SPORED), "and nothing further away")
+	_check(data.status_stacks == 3 and data.splash_status_stacks == 1, "Puffball's hit gives 3 Poisoned; its splash 1 with Spattered")
+	_check(not close.statuses.has(EnemyStatuses.SPORED) and close.health < close.max_health,
+		"the burst soothes a nightmare within 1 tile, damage only (section 37)")
+	_check(b.health == b.max_health and c.health == c.max_health and d.health == d.max_health and far.health == far.max_health,
+		"and nothing further away")
 	target.health = 1000000
 	target.max_health = 1000000
 	for i in data.status_max_stacks:
@@ -79,9 +81,11 @@ func _run() -> void:
 
 	# Chain Bloom (section 35, Tower Code): a splash landing on a nightmare carrying 2+ statuses reaches half again as far
 	# (CHAIN_BLOOM_RADIUS 1.5); no fog needed any more (it was Puffball in Mistveil's fog).
+	# (Section 37: the outer nightmare takes damage only, so the reach is read from its health.)
 	var outer := _spawn(spawner, target.global_position + Vector2(0, 1.3) * CELL)
 	tower.projectile_landed(target, target.global_position)
-	_check(not outer.statuses.has(EnemyStatuses.SPORED), "without Chain Bloom, 1.3 tiles away is outside the puff")
+	await process_frame
+	_check(outer.health == outer.max_health, "without Chain Bloom, 1.3 tiles away is outside the puff")
 	for bloom in dreams.pool:
 		if bloom.id == "chain_bloom":
 			dreams.take(bloom)
@@ -89,10 +93,13 @@ func _run() -> void:
 	tower.clear_dream_cache()
 	target.statuses.remove(EnemyStatuses.DAMP)
 	tower.projectile_landed(target, target.global_position)
-	_check(target.statuses.count() < 2 and not outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom on a nightmare with 1 status: still 1 tile")
+	await process_frame
+	_check(target.statuses.count() < 2 and outer.health == outer.max_health, "Chain Bloom on a nightmare with 1 status: still 1 tile")
 	target.apply_status(EnemyStatuses.DAMP, 2)
 	tower.projectile_landed(target, target.global_position)
-	_check(outer.statuses.has(EnemyStatuses.SPORED), "…on one with 2+ statuses: half again as far (1.5 tiles)")
+	await process_frame
+	_check(outer.health < outer.max_health and not outer.statuses.has(EnemyStatuses.SPORED),
+		"…on one with 2+ statuses: half again as far (1.5 tiles), still damage only")
 
 	# Sporemother: 2 Poisoned a second to everything in range, refreshed every breath so it never wears off there.
 	var mother_data: TowerData = load("res://resource/tower/sporemother.tres")

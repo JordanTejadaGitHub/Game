@@ -22,3 +22,4 @@ tip = "Each nightmare once per {named_combo:fever_dream}. Never bosses."
 makes = Array[StringName]([&"asleep"])
 uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"held", &"spored", &"drowsy"])
+retired = true

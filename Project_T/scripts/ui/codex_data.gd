@@ -65,7 +65,7 @@ const GLOSSARY_SOURCE := [
 		["Ascended", "A family's strongest form, from the Memory Grove, late in a run.", ["Final form", "Ascension"]],
 		["Kinship", "Two branches of the same family within 2 cells of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
 		["Blooming and Old Kin", "A Kinship's stages: it bonds young, is Blooming after 5 drifts together and Old Kin after 10, each stage stronger.", ["Kinship"]],
-		["Harmony strike", "When two Wardens in a Kinship hit the same nightmare within 1 s, petals burst on it for extra damage (at most every 2 s per pair).", ["Kinship"]],
+		["Harmony strike", "Both Wardens of a Kinship hit one nightmare within 1 s: it takes a bonus hit, the weaker one's damage (at most every 2 s per pair).", ["Kinship"]],
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
 		["Kindred", "Two different branches of one family on the map: that family's Wardens deal 10% more damage.", ["Whole Tree", "Kinship"]],
 		["Whole Tree", "Three different branches of one family on the map at once (a branch or its final form each): that family's Wardens deal 20% more damage, in place of Kindred's 10%. Announced at the next rest.", ["Kindred"]],
@@ -130,7 +130,7 @@ const GLOSSARY_SOURCE := [
 	["Combat", [
 		["Crit", "A critical hit: a hit that deals extra damage. Only some Wardens can crit.", ["Pinned", "Potency"]],
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm", "Splash"]],
-		["Splash", "A shot that bursts where it lands, hitting its target and every nightmare close by. A pulse hits everything in the Warden's range instead. Splash hits count as area attacks.", ["Area attack", "Swarm"]],
+		["Splash", "A splash hurts nightmares near the one hit. Only the nightmare hit gets the Warden's status. A pulse hits everything in the Warden's range instead. Splash hits count as area attacks.", ["Area attack", "Swarm"]],
 		["Direct hit", "A Warden's own attack landing. Not statuses, Reactions, clouds or echoes.", ["Effect", "Crit"]],
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],

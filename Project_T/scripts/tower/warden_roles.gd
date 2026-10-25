@@ -38,7 +38,8 @@ static func has_role(data: TowerData, role: StringName) -> bool:
 		HEAVY:
 			return data.heavy  # (Shatter's own "heavy" still reads stone line / target priority: Tower Code to unify)
 		AREA:  # (keyword audit 2026-10-17) + attacks whose own code hits many through Tower.hit(is_area = true)
-			return HelperCommons.is_area_attack(data) or (data.can_attack and (data.attack_kind in AREA_KINDS or data.special in AREA_SPECIALS))
+			return HelperCommons.is_area_attack(data) or (data.can_attack and (data.attack_kind in AREA_KINDS or data.special in AREA_SPECIALS)) \
+				or (DreamState.hailfall_on and data.can_attack and data.line != "wall")  # Hailfall (section 37): every attacking Warden is Area
 		CHAIN:
 			return data.attack_kind == TowerData.AttackKind.CHAIN  # (chain_targets defaults to 3 on every form)
 		BEAM:

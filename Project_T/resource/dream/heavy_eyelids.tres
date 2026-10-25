@@ -14,3 +14,4 @@ max_stacks = 1
 requires_status = &"drowsy"
 rule_id = &"heavy_eyelids"
 tip = "More {drowsy} {stacks} slow a nightmare more. Works for: {warden:bellflower} and its forms."
+retired = true

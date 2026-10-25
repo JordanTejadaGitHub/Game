@@ -133,7 +133,7 @@ func _run() -> void:
 # "Dreams this run" on phones (user 2026-10-17: "make it a whole screen UI"): opened from the HUD's Dreams button it fills
 # the screen above the HUD's top-right row and dock (under the pause menu), every button on screen and 44+ tall; Close
 # and Android Back close it.
-const DREAM_CARDS := ["morning_dew", "longer_roots", "deep_roots", "thick_bark", "quick_step", "tender_care"]
+const DREAM_CARDS := ["morning_dew", "longer_roots", "growth_rings", "thick_bark", "seedfall", "tender_care"]  # (Deep Roots, Quick Step retired: section 36)
 
 func _check_dreams_page(view: Vector2i, dreams: DreamState) -> void:
 	var hud := main.get_node("HUD")

@@ -1341,6 +1341,8 @@ func _flush_spills() -> void:
 		for other in targets:
 			if calling_hit(tower, other, amount, &"pond_spill", EVO_POND, true, false, &"") > 0.0:
 				landed += 1
+				if tower is Tower and is_instance_valid(other) and not other.is_cleansed:
+					tower.spatter(other, true)  # Spattered (section 37): the pond spill is a card splash, 1 stack
 		if landed > 0:
 			Reactions._effect(&"landing_dust", at, self, 0.8 + 0.2 * landed)  # The ring of spray crossing the pond
 			_splashes.append([to_local(at), 0.0])

@@ -22,3 +22,4 @@ tip = "Only nightmares a {named_combo:tempest} set burning. Safe."
 makes = Array[StringName]([&"soaked"])
 uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"damp", &"static", &"spored"])
+retired = true

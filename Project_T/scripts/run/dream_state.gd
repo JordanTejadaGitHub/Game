@@ -2428,6 +2428,7 @@ func _rule_map() -> Dictionary:
 			rules[extra] = int(rules.get(extra, 0)) + stacks[card.id]
 	_rules_of = [taken, rules]
 	undiluted_on = rules.has(UNDILUTED)  # Reactions / EnemyStatuses read the static (no tree lookup per status)
+	hailfall_on = rules.has(HAILFALL)  # WardenRoles reads it: every attacking Warden takes the Area role
 	_any_hit_rule = HIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
 	_any_crit_rule = CRIT_RULES.any(func(r: StringName) -> bool: return rules.has(r))
 	return rules
@@ -2511,6 +2512,10 @@ func get_rest_bonus_multiplier() -> float:
 func get_maze_multiplier() -> float:
 	return batch.maze_multiplier(self)
 
+# TowerPlacer.get_cost: Heartwood's Reach halves the first Warden planted on a cleared cell (the Warden that also gets rank I).
+func reach_half_price(data: TowerData, cells: Array[Vector2]) -> bool:
+	return batch.reach_fresh_for(self, data, cells)
+
 # Leaves actually lost this block (never the rest's `perfect` flag: a leak Hardened Bark absorbs breaks that).
 func leaves_lost_in_block() -> int:
 	return batch.leaves_lost(self)
@@ -2587,16 +2592,19 @@ func _batch_factors(enemy: Node2D, source: Node, tag: StringName) -> Array[float
 	return out
 
 # --- Keyword chips 2026-10-16 (keyword_chips_td.md 2 and 5): one code event per keyword ------------------------------
-# Linger = EnemyStatuses.is_lingering only. Slow Burn (the Linger payoff): Poisoned ticks and Charged bolts of a status a
-# card is making last longer deal SLOW_BURN_BONUS more (a bolt reads the Charged it spent: EnemyStatuses.static_lingered).
+# Linger = EnemyStatuses.is_lingering only. Slow Burn (reworked, section 36 2026-10-25: no Linger card needed): Poisoned
+# ticks and Charged bolts deal SLOW_BURN_BONUS more once that status has been on the nightmare SLOW_BURN_AGE seconds with
+# no gap (EnemyStatuses.age; a bolt reads the age of the Charged it spent: static_age_at_bolt).
 const SLOW_BURN := &"slow_burn"
 const SLOW_BURN_BONUS := 0.30
+const SLOW_BURN_AGE := 4.0  # Poisoned (Balancing 2026-10-25)
+const SLOW_BURN_AGE_CHARGED := 1.5  # Charged lasts 2 s and its bolt spends it, so 4 s would never fire (Balancing 2026-10-25)
 
 func slow_burn_multiplier(enemy: Node2D, tag: StringName) -> float:
 	if not is_instance_valid(enemy) or not ("statuses" in enemy):
 		return 1.0
 	var s: EnemyStatuses = enemy.statuses
-	if (tag == &"spored" and s.is_kept(EnemyStatuses.SPORED)) or (tag == &"static" and s.static_lingered):  # is_kept: kept by a card or the Calling (section 33)
+	if (tag == &"spored" and s.age(EnemyStatuses.SPORED) >= SLOW_BURN_AGE) or (tag == &"static" and s.static_age_at_bolt >= SLOW_BURN_AGE_CHARGED):
 		note_card(SLOW_BURN, enemy.global_position)
 		DamageLog.note_card_bonus(String(SLOW_BURN), 1.0 + SLOW_BURN_BONUS)
 		return 1.0 + SLOW_BURN_BONUS
@@ -3343,8 +3351,8 @@ const CARD_NEEDS := {
 		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (keyword chips 2026-10-16)
 	"struck_twice": [&"hammerfall", &"sparks_fly", &"flashover", &"chain_of_lanterns", &"nothing_wasted", &"thunderstruck",
 		&"brushfire", &"guiding_light", &"guiding_light_ii", &"conductive_soil", &"tangled_lightning"],  # Any jump (as Shared Spark; self-sufficiency audit 2026-10-18)
-	"slow_burn": [&"steeped", &"topped_up", &"ebb", &"waterlogged", &"homesick", &"bound_and_burning"],  # A Linger card (keyword chips 2026-10-16)
 	"overnight": [],  # Needs a second family (card_needs_met), 2026-10-19
+	"spattered": [],  # An Area Warden and a status splash form, or Hailfall (card_needs_met: spattered_open), section 37
 }
 
 func card_needs_met(card: UpgradeData) -> bool:
@@ -3354,8 +3362,8 @@ func card_needs_met(card: UpgradeData) -> bool:
 		return true  # Lantern Light jumps on every dispel; chain Wardens' hops are jumps too (keyword chips 2026-10-16)
 	if card.id == "overnight":
 		return _families_owned() >= 2  # It pays other families' statuses: never a dead pick before a second family (2026-10-19)
-	if card.id == "slow_burn" and (has_evolution(&"dw_riverside") or has_evolution(&"dw_stagnant_water")):
-		return true  # Riverside / Stagnant Water make statuses last longer too (EnemyStatuses.is_lingering counts them; builds doc 2026-10-19)
+	if card.id == "spattered":
+		return spattered_open()  # Splash rework (section 37)
 	for id in CARD_NEEDS[card.id]:
 		if has_rule(id):
 			return true
@@ -3750,8 +3758,8 @@ const SWITCHBACK_TIME := 1.0
 const SWITCHBACK_COOLDOWN := 3.0
 const CLOSE_GUARD_RANGE := 0.5  # Range <= CLOSE_GUARD_MAX_RANGE: more range
 const CLOSE_GUARD_MAX_RANGE := 3.0
-const WIDE_PETALS_RADIUS := 0.75  # Splashes, pulses and clouds wider (pulses: HelperCommons.pulse_extra)
-const WIDE_PETALS_RANGE := 0.5  # …and area Wardens reach this many cells further (Far Reach folded in, card pass 2026-10-16)
+const WIDE_PETALS_RADIUS := 0.75  # Pulses and clouds wider (section 37: no longer splashes; pulses: HelperCommons.pulse_extra)
+const WIDE_PETALS_RANGE := 0.5  # (Unused since section 37, 2026-10-25: Wide Petals gives no range)
 const CHEAP_SEEDS_SHARE := 0.5  # Scattered Seedlings: a Sprout planted away from other Sprouts costs half
 const LIGHT_STEPS_SPEED := 0.30  # At each drift's start…
 const LIGHT_STEPS_TIME := 8.0  # …for this long
@@ -3888,8 +3896,6 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return _towers().any(func(t: Tower) -> bool: return HelperCommons.is_area_attack(t.tower_data))  # Tower Code's own set (lobbers too)
 		&"first_among_equals":
 			return _towers().any(func(t: Tower) -> bool: return t.rank >= 1)
-		&"forest_floor":
-			return count_obstacles() > 0
 		&"groundskeeper":
 			return can_clear()
 		&"twin_strike", &"close_quarters":
@@ -4448,6 +4454,10 @@ func _on_tower_built(tower: Tower) -> void:
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
+	if map_generator.has_method("is_placed_obstacle") and map_generator.is_placed_obstacle(cell):
+		last_clear_paid = 0  # Forest Floor's own boulder (section 36): no clearing credit, no Dew from clear cards
+		bump_board()
+		return
 	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
 	_clears_this_block += 1  # Groundskeeper
 	bump_board()  # Neighbours' card rows read it
@@ -6097,6 +6107,33 @@ const UNDILUTED := &"undiluted"
 const UNDILUTED_POISONED := 2.0  # Poisoned ticks (Balancing may go to 2.5)
 const UNDILUTED_CHARGED := 2.0  # The Charged bolt
 static var undiluted_on := false
+
+# --- Splash rework (dream_council_review.md 37, owner 2026-10-25) ----------------------------------------------------
+# Spattered (Uncommon): splashes give their Warden's status to every nightmare they reach. Hailfall (Legendary): every
+# attacking Warden splashes and takes the Area role (WardenRoles reads hailfall_on); its direct hit keeps its own
+# resistance shape. Tower Code owns the splash code and their numbers (tower.gd SPATTERED_* / HAILFALL_*).
+const SPATTERED := &"spattered"
+const HAILFALL := &"hailfall"
+static var hailfall_on := false
+
+# Spattered's gate (eligibility, not weight): Hailfall held, or an Area Warden grown plus a splash form that gives a
+# status open this run (the Dewdrop line, Puffball).
+func spattered_open() -> bool:
+	if has_rule(HAILFALL):
+		return true
+	if not has_grown_role(WardenRoles.AREA):
+		return false
+	for form in _roster():
+		if form is TowerData and form.can_attack and form.splash_radius > 0.0 and _owns_line(form.line) \
+				and is_branch_offered(form) and not Tower.statuses_applied(form).is_empty():
+			return true
+	return false
+
+func _owns_line(line: String) -> bool:
+	for root in _family_roots():
+		if root is TowerData and root.line == line and is_unlocked(root.get_id()):
+			return true
+	return unlock_everything
 # Cards that only pay off through Reactions (finals_draft.md 5, the retired ones left out): never offered with Undiluted.
 const REACTION_ONLY: Array[String] = ["sparking_spores", "afterglow", "chain_of_lanterns", "deep_water", "mushroom_rain",
 	"rolling_thunder", "rolling_thunder_ii", "spent_light", "wildfire_spores", "witching_bend", "alarm_bells",
@@ -6219,9 +6256,13 @@ func hummingheart_bonus(bonus_speed: float) -> float:
 
 # Far Reach (absorbed Broad Splash, dream_design.md de439ea8): cells added to every area attack's radius.
 func get_area_radius_add() -> float:
-	if has_rule(&"wide_petals"):
-		return WIDE_PETALS_RADIUS  # Wide Petals absorbed Far Reach (card pass 2026-10-16): one 0.75, never both
+	# Splash rework (section 37): Wide Petals no longer widens splashes (splash width is Tailwind's); clouds read
+	# get_cloud_radius_add, pulses HelperCommons.pulse_extra. An old save's Far Reach still widens.
 	return FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0
+
+# Clouds' extra radius: Wide Petals (pulses and clouds 0.75 cells wider), else get_area_radius_add.
+func get_cloud_radius_add() -> float:
+	return WIDE_PETALS_RADIUS if has_rule(&"wide_petals") else get_area_radius_add()
 
 # Momentum's per-hit step and cap (Tower keeps the streak per Warden and target).
 func momentum_step() -> Vector2:
@@ -6270,10 +6311,10 @@ func in_hollow(cell: Vector2) -> bool:
 # 60% of each held family's cards (and at each later family pick: _sample_family), plus 60% per rarity of everything else available
 # (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
 # nothing; a card discovered mid-run joins at once; an Entwined card only if it was drawn. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
-# One plain anchor per job (dream_council_review.md 23 to 24): maze longer_roots, economy morning_dew, tempo quick_step,
-# risk thick_bark (deep_roots a second), tending tender_care. Evergreen moved to the random pool. The 12 run-shaping
-# batch cards (BATCH.BATCH) are always in the pool too: never guaranteed, never weighted.
-const RUN_POOL_BASICS: Array[String] = ["longer_roots", "deep_roots", "thick_bark", "morning_dew", "quick_step", "tender_care"]
+# One plain anchor per job (dream_council_review.md 23 to 24): maze longer_roots, economy morning_dew, risk thick_bark,
+# tending tender_care. Evergreen moved to the random pool; Deep Roots and Quick Step retired (section 36, 2026-10-25: no
+# tempo basic). The run-shaping batch cards (BATCH.BATCH) are always in the pool too: never guaranteed, never weighted.
+const RUN_POOL_BASICS: Array[String] = ["longer_roots", "thick_bark", "morning_dew", "tender_care"]
 
 func _always_in_pool(card: UpgradeData) -> bool:
 	if card.id == "heartwoods_reach":
@@ -6992,3 +7033,13 @@ func wild_growth_text(tower) -> String:
 func waymark_needed() -> bool:
 	return has_rule(&"waymark") and map_generator != null and map_generator.has_method("has_waymark") \
 		and not map_generator.has_waymark()
+
+# Forest Floor (owner 2026-10-25, dream_council_review.md 36): the Mossy Boulders still to place (0: none). Taken at a
+# rest, the next drift's Start waits for them (DriftDirector.pending_choice &"boulders"), as RunSaver does; the map's
+# BoulderPlacement opens the placement. Once placed they are the map's (placed_obstacles); clearing one asks for no other.
+const FOREST_FLOOR_BOULDERS := 2
+
+func boulders_needed() -> int:
+	if not has_rule(&"forest_floor") or map_generator == null or map_generator.get("boulders_placed") == null:
+		return 0
+	return maxi(FOREST_FLOOR_BOULDERS - int(map_generator.boulders_placed), 0)

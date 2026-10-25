@@ -228,10 +228,16 @@ func _hook_checks() -> void:
 	s.note_stretched(EnemyStatuses.DAMP, 3.0)
 	_check(s.is_lingering(EnemyStatuses.DAMP), "note_stretched() (Ebb) makes it lingering")
 	_take("slow_burn")
-	# Slow Burn reads is_kept since section 33 (overtime or a Support row's mark_kept), never is_lingering
-	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0), "Slow Burn: lingering time not yet reached pays nothing")
+	# Slow Burn reads the status's age since section 36 (4 s on with no gap), never is_lingering or is_kept
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0), "Slow Burn: a young Poisoned pays nothing, even lingering")
 	s.mark_kept(EnemyStatuses.SPORED)
-	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0 + DreamState.SLOW_BURN_BONUS), "Slow Burn: a kept Poisoned tick deals more")
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0), "Slow Burn: kept but young still pays nothing")
+	s._active[EnemyStatuses.SPORED]["age"] = DreamState.SLOW_BURN_AGE
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"spored"), 1.0 + DreamState.SLOW_BURN_BONUS), "Slow Burn: a Poisoned carried 4 s deals more")
+	s.static_age_at_bolt = DreamState.SLOW_BURN_AGE_CHARGED - 0.5
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"static"), 1.0), "Slow Burn: a bolt from young Charged pays nothing")
+	s.static_age_at_bolt = DreamState.SLOW_BURN_AGE_CHARGED
+	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &"static"), 1.0 + DreamState.SLOW_BURN_BONUS), "Slow Burn: a bolt from 1.5 s old Charged deals more")
 	_check(is_equal_approx(dreams.slow_burn_multiplier(e, &""), 1.0), "Slow Burn: a plain hit does not")
 	if dreams.puddles != null:
 		_check(dreams.puddles._rain_spends(&"thunderclap", [EnemyStatuses.DAMP]), "Old Rain: Thunderclap spends a lingering Soaked")

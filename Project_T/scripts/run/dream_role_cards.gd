@@ -44,7 +44,9 @@ const SHARED_FEVER_MIN := 3  # Shared Fever: an area hit on at least this many n
 const SHARED_FEVER_STATUSES := 2  # …shares up to this many of the worst-hit one's statuses…
 const SHARED_FEVER_STACKS := 1  # …this many stacks each…
 const SHARED_FEVER_WAIT := 2.0  # …once every this many seconds per Warden (never Drowsy or Rooted)
-const TANGLED_EXTRA_JUMPS := 2  # Tangled Lightning: chain attacks jump this many more times (statused nightmares only)…
+const TANGLED_EXTRA_JUMPS := 1  # Tangled Lightning (section 36): every Firefly Jar Warden's direct hit jumps once more…
+const TANGLED_REACH := 2.0  # …to a Charged nightmare within this many cells (Conductive Soil's reach)…
+const TANGLED_SPEND := 3  # …spending this many of its Charged
 const TANGLED_STACK := 1  # (Unused since keyword chips 2026-10-16: the jumps go to Charged nightmares and add no stack)
 const MOTHERS_HAND_STACK := 1  # Mother's Hand: a Warden touching a support Warden adds this many more stacks…
 const MOTHERS_HAND_REACTION := 0.25  # (Unused since keyword chips 2026-10-16: the Reaction bonus is gone)
@@ -57,8 +59,8 @@ const KINDLED_RAMP := 2.0  # Kindled Gaze: beams ramp this many times as fast…
 const KINDLED_MIN_STATUSES := 2  # …on a nightmare carrying at least this many statuses
 const SNARE_STACKS := 3  # Snare Line: a trap going off gives nightmares within…
 const SNARE_RADIUS := 1.0  # …this many cells this many stacks of each of the stepper's statuses (never Rooted)
-const ONE_BOUGH_COUNT := 3  # One Bough: at least this many grown Wardens of one family, all the same branch…
-const ONE_BOUGH_SPEED := 0.20  # …attack this much faster (inside the Dream speed cap)…
+const ONE_BOUGH_COUNT := 2  # One Bough (section 36, 2026-10-25): a grown Warden touching at least this many of its own branch…
+const ONE_BOUGH_SPEED := 0.25  # …attacks this much faster (inside the Dream speed cap)…
 const ONE_BOUGH_STACK := 1  # (Unused since keyword chips 2026-10-16: One Bough is speed only)
 const DEEP_GRAIN_STACK := 1  # Deep Grain: each Deep rank choice adds this many more stacks…
 const DEEP_GRAIN_MAX := 3  # …counting at most this many Deep ranks
@@ -150,7 +152,7 @@ func needs_met(rule: StringName) -> bool:
 func need_text(rule: StringName) -> String:
 	match rule:
 		ONE_BOUGH:
-			return "%d Wardens of the same branch" % ONE_BOUGH_COUNT
+			return "a Warden touching %d of its own branch" % ONE_BOUGH_COUNT
 		DEEP_GRAIN:
 			return "a Warden with a Deep rank"
 		TOWERING:
@@ -211,10 +213,8 @@ func after_hit(tower, enemy, dealt: float, _health_before: int, line: String, ef
 		return
 	var at: Vector2 = enemy.global_position
 	if bool(role_hit[1]) and dealt > 0.0:
-		var reach := MILLSTONE_RADIUS * CELL
-		for other in Tower.nightmares_near(tower.get_tree(), at, reach):
-			if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
-				other.take_damage(dealt * MILLSTONE_SPLASH, line, true, false, tower, MILLSTONE)
+		# Through the landing splash pipeline (section 36): splash cards widen it and see it (Tower.millstone_splash)
+		var reach: float = tower.millstone_splash(enemy, at, MILLSTONE_RADIUS, dealt * MILLSTONE_SPLASH, line, MILLSTONE, dealt)  # (+ Hailfall's share: section 37)
 		DREAM_BURST.play(MILLSTONE, at, reach, Reactions._world(tower))  # A dust ring
 		_credit(MILLSTONE, at, tower)
 	# (Towering's leftover jump is gone: keyword chips 2026-10-16. role_hit[2] still marks its bonus hits.)
@@ -443,37 +443,30 @@ func area_attack(tower, hit: Array) -> void:
 		DREAM_TRANSFER.play(world, from, other.global_position, ids[0])  # A thread from the worst-hit one
 	_credit(SHARED_FEVER, from, tower)
 
-# Tangled Lightning: up to TANGLED_EXTRA_JUMPS more jumps, onto nightmares carrying a status. Appends them to `hits`;
-# returns how many it added (Tower._chain_strike calls tangled_hit on each).
-func tangle(tower, hits: Array[Node2D]) -> int:
-	if not on(TANGLED_LIGHTNING) or hits.is_empty():
-		return 0
-	var added := 0
-	for n in TANGLED_EXTRA_JUMPS:
-		var best: Node2D = null
-		var best_distance := INF
-		for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
-			if hits.has(enemy) or enemy.is_cleansed or not enemy.statuses.has(EnemyStatuses.STATIC):  # Keyword chips 2026-10-16: Charged ones only
-				continue
-			for from in hits:
-				var reach: float = tower.attack_data.chain_jump_range + tower.area_bonus()
-				if from.statuses.has(EnemyStatuses.DAMP) and enemy.statuses.has(EnemyStatuses.DAMP):
-					reach += Tower.CHAIN_DAMP_EXTRA_RANGE
-				var distance: float = from.global_position.distance_to(enemy.global_position)
-				if distance <= reach * CELL and distance < best_distance:
-					best_distance = distance
-					best = enemy
-		if best == null:
-			break
-		hits.append(best)
-		added += 1
-	return added
+# Tangled Lightning (section 36, owner 2026-10-25: the whole Firefly Jar family, no longer chain forms only): a Firefly
+# Warden's original direct hit also jumps to the nearest other nightmare carrying Charged within TANGLED_REACH cells
+# (Tower._tangled_jump). The jump spends TANGLED_SPEND of that nightmare's Charged, so it competes with Thunderclap.
+# Jumps are "conducted" hits: never original, so they never jump on. null = no target.
+func tangle(tower, from: Node2D) -> Node2D:
+	if not on(TANGLED_LIGHTNING) or not is_instance_valid(from):
+		return null
+	var reach := TANGLED_REACH * CELL
+	var best: Node2D = null
+	var best_distance := INF
+	for enemy in Tower.nightmares_near(tower.get_tree(), from.global_position, reach):
+		if enemy == from or not is_instance_valid(enemy) or enemy.is_cleansed or not enemy.statuses.has(EnemyStatuses.STATIC):
+			continue
+		var distance: float = from.global_position.distance_to(enemy.global_position)
+		if distance <= reach and distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
 
-# One of Tangled Lightning's jumps landed (keyword chips 2026-10-16: one keyword, Jump; it no longer adds a stack): its
-# Charged flashes and the card is credited.
+# One of Tangled Lightning's jumps landed: it spends that nightmare's Charged, flashes it, and the card is credited.
 func tangled_hit(_tower, enemy) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
+	enemy.statuses.spend_stacks(EnemyStatuses.STATIC, TANGLED_SPEND)
 	enemy.flash_status(EnemyStatuses.STATIC)  # The arc takes Charged's colour
 	_credit(TANGLED_LIGHTNING, enemy.global_position)
 
@@ -550,23 +543,24 @@ func _one_bough_set(fresh: bool) -> Dictionary:
 	_bough_board = dreams.board_version
 	var before := _bough
 	_bough = {}
-	# Keyword chips 2026-10-16: grouped by branch (Kinships.branch_for: finals and Ascended count as theirs); 3 or more on
-	# one branch is enough, other branches of the family no longer turn it off
-	var by_branch := {}
+	# Section 36 (2026-10-25): per Warden, the grown Wardens touching it on its own branch (Kinships.branch_for: finals and
+	# Ascended count as theirs; Sprouts and walls never). Clustering one branch is the price.
+	var branches := {}  # Instance id -> branch ("" = doesn't count)
 	for tower in _towers():
-		if tower.tower_data.tier < 2 or tower.tower_data.line == "" or tower.tower_data.line == "wall":
-			continue
-		var branch := Kinships.branch_for(tower)
+		var branch := ""
+		if tower.tower_data.tier >= 2 and tower.tower_data.line != "" and tower.tower_data.line != "wall":
+			branch = Kinships.branch_for(tower)
+		branches[tower.get_instance_id()] = branch
+	for tower in _towers():
+		var branch: String = branches[tower.get_instance_id()]
 		if branch == "":
 			continue
-		if not by_branch.has(branch):
-			by_branch[branch] = []
-		by_branch[branch].append(tower)
-	for branch in by_branch:
-		var list: Array = by_branch[branch]
-		if list.size() >= ONE_BOUGH_COUNT:
-			for tower in list:
-				_bough[tower.get_instance_id()] = true
+		var count := 0
+		for other in dreams._touching(tower):
+			if branches.get(other.get_instance_id(), "") == branch:
+				count += 1
+		if count >= ONE_BOUGH_COUNT:
+			_bough[tower.get_instance_id()] = true
 	if on(ONE_BOUGH):
 		for tower in _towers():
 			if _bough.has(tower.get_instance_id()) and not before.has(tower.get_instance_id()):

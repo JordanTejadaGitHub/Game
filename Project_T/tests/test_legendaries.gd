@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_lucid_dreaming()
 	_test_damage_legendaries()
 	_test_hunters_and_briar()
+	_test_headlong_rush()
 	print("legendaries test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -40,8 +41,8 @@ func _test_card_changes() -> void:
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
 			and not card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
 			"%s: a Grove Legendary with no Needs (Hunter's Moon back on the Sharpened node, Grove card council 2026-10-20)" % id)
-		if id == "menagerie":
-			_check(card.retired and not dreams.is_eligible(card, 2), "Menagerie keeps its legacy identity but cannot enter new offers")
+		if id == "menagerie" or id == "restless_night":  # (Impatient Night retired: section 36, no call-early cards)
+			_check(card.retired and not dreams.is_eligible(card, 2), "%s keeps its legacy identity but cannot enter new offers" % id)
 		else:
 			_check(dreams.is_eligible(card, 2) and not dreams.is_eligible(card, 1), "%s is offered from act 2" % id)
 	for id in ["thousand_cuts", "seed_storm", "eye_of_the_tempest", "ring_of_rings"]:
@@ -149,7 +150,8 @@ func _test_damage_legendaries() -> void:
 	run_state.leaves = 15
 	_clear_towers()
 
-	# Impatient Night: live overlap from distinct early-called drifts, not accumulated calls.
+	# Impatient Night (retired in section 36; an old save's stack still plays): live overlap from distinct early-called
+	# drifts, not accumulated calls.
 	_reset()
 	a = _plant("sporeling", Vector2(100, 100), 0)
 	base = dreams.get_soothe_multiplier(a)
@@ -266,6 +268,39 @@ func _find_crossroads_cell(path: PackedVector2Array) -> Vector2:
 			if high - low >= 6:
 				return cell
 	return Vector2(-1, -1)
+
+# Headlong (section 36, owner 2026-10-25): a per-drift Rush on the DriftPanel, not a call-early trigger. The armed drift's
+# shape is squeezed to a third of its time (at least 1 s); never a boss drift.
+func _test_headlong_rush() -> void:
+	_reset()
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	_check(not director.can_rush(), "Headlong: no Rush without the card")
+	director.set_rush(true)
+	_check(not director.rush_armed, "…and set_rush can't arm it")
+	dreams.take(_card("headlong"))
+	var next := director.drifts_started + 1
+	_check(director.can_rush() == not director.is_boss_drift(next), "Headlong: Rush offered for the next non-boss drift")
+	var boss := 25
+	_check(director.is_boss_drift(boss) and not director._rush_ok(boss), "…never for a boss drift")
+	if director.can_rush():
+		director.set_rush(true)
+		_check(director.rush_armed, "set_rush(true) arms the next drift")
+		director.set_rush(false)
+		_check(not director.rush_armed, "set_rush(false) disarms it")
+	var kept_drifts := director.headlong_drifts
+	director._arriving[999] = {"schedule": [[0.0], [6.0], [30.0]]}
+	director._active[999] = {}
+	director._compress(999)
+	var times: Array = director._arriving[999].schedule.map(func(e: Array) -> float: return float(e[0]))
+	_check(is_equal_approx(times[2], 10.0) and is_equal_approx(times[1], 2.0) and is_equal_approx(director._active[999].normal_end, 30.0),
+		"Rush: a 30 s drift arrives in 10 s, its order kept, its normal end kept (%s)" % [times])
+	director._arriving[999] = {"schedule": [[0.0], [1.5]]}
+	director._compress(999)
+	_check(is_equal_approx(float(director._arriving[999].schedule[1][0]), 1.0), "Rush: never shorter than 1 s")
+	director._arriving.erase(999)
+	director._active.erase(999)
+	director.headlong_drifts = kept_drifts
+	dreams.stacks.erase("headlong")
 
 func _reset() -> void:
 	dreams.stacks.clear()
