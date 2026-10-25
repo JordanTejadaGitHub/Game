@@ -445,3 +445,66 @@ drift on the DPS meter and in card bonus lines.
 **Lead ruling on {full}:** {full} keeps the Codex meaning (a status's most, doubled by Brimming). The cards whose code
 checks 75% of the base cap (Starlit Aim, Called Shot, Guiding Light I / II) say **"nearly {full}"**, and the Codex gets
 one line: "Nearly full: at least 3/4 of a status's usual most (before Brimming)." No second meaning for the token.
+
+---
+
+# Round 2026-10-25: everything since the Roguelite round, and the Frost texts (section 37)
+
+User: *"Section 37 (Frost): review the new texts … "* then *"actually review all the changes so far."* Read: 92 changed
+`.tres` texts since 53ca7192 (card pass 36, splash rework 37), 610 changed UI string lines, the Frost texts in
+`frost_draft.md` / `frost_review_player.md`, and the half-built, uncommitted Frost in the working tree. Five seats; reports
+in `wording_council/r1025/`.
+
+## F.1 Frost: use the built numbers, through tokens
+
+Four number sets disagree: the draft (cap 10, burst 5x, Cold Snap 2 s), the council (cap 10, 3x, 1.5 s), the owner's
+ruling (cap 15, bosses 22, burst **4.5x / 2.25x**, chain and copied Frost stop 2 short) and the working tree
+(`enemy_statuses.gd:14-66`: cap 15 / 22, **FROST_BURST 3.0**, COLD_SNAP 1.5 / 0.5 s, once per 6 s / 10 s, stops 2 short).
+**Check FROST_BURST against the owner's 4.5x.** Frost text never types a number: `{stacks:cap_frost}`,
+`{stacks:bosscap_frost}`, `{const:…}` for the burst and Cold Snap, `{field:…}` for Warden stacks.
+
+**{frozen} must go:** "Frost stops it for a moment" (`icon_info.gd:27`) contradicts Frost (it doesn't slow). Still on
+Still Target I / II, the dewdrop Ascension node, the Codex and dream_keywords. Old Mountain and World Root keep their Hold
+and say {held}; the Frozen status name and tooltip retire.
+
+## F.2 Final Frost texts (lead's pick; seats N V C S P)
+
+| Item | Text |
+|---|---|
+| Codex / tooltip **Frost** | "Builds up on a nightmare. It doesn't slow. At {stacks:cap_frost} ({stacks:bosscap_frost} on bosses) it bursts in a {frostburst}: it and up to 4 nightmares within 1 cell take damage, those 4 gain 1 {frost}, and it gets a {cold_snap}." |
+| Codex **Cold Snap** | "After a {frostburst}, the nightmare's other statuses stop running down for {const:cold_snap} s (bosses {const:cold_snap_boss} s). Not {held}, sleep or slows." |
+| **Frostfern** | "Its hits give {field:frostfern.status_stacks:count} {frost}. At {full} {frost} a nightmare bursts, hurting it and up to 4 others within 1 cell." |
+| **Hoarfrost** | "Its hits splash; the nightmare it hits gains {field:hoarfrost.status_stacks:count} {frost}. +20% crit chance against nightmares with 5 {frost} or more." (check 5 against the cap of 15) |
+| **Tidecaller** | "Every 6 s a great wave gives {damp}, drags nightmares back 1 cell, and gives {field:tidecaller.frost_if_frosted:count} {frost} to those that already have {frost}." |
+| **Windmill** | "+35% damage for each path cell past 2 among the 8 around it. Every 2nd spin gives 1 {frost} to each nightmare on those cells." Tip: "Its {frost} alone never makes a {frostburst}." |
+| **Hoar Fog** (Kinship) | "The fog gives 1 {frost} a second to nightmares inside, never enough for a {frostburst} on its own." |
+| **Brittle** | "For 3 s the nightmare resists nothing and its {dread_shell} blocks half as much (elites 2 s, bosses 1 s). Triggered by a {frostburst} on a nightmare with {stacks:need_marked} {marked}. Uses up the {marked}." |
+| **Frostbite** | "It loses 2% of its max health (elites 1.5%, bosses 0.5%). Triggered by a {frostburst} on a nightmare with {stacks:need_spored} {spored}. Uses up the oldest half of its {spored}." |
+| **Flash Freeze** (owner's name for Rime) | "That burst reaches 2 cells, hits up to 6, and gives each 2 {frost}. Triggered by a {frostburst} on a nightmare with {stacks:need_damp} {damp}. Uses up the {damp}." |
+| **First Grip** (was First Frost) | Approved as built: "The first 5 nightmares of each {drift} to enter an attacking Warden's range gain 1 {held}: they can't move for 1.5 s." |
+| **Deep Frost** | Retired from offers (council); if it stays live, it is a Root card: rename it so no cold word remains. |
+| **Long Winter** | Parked; no text. |
+
+Rulings: Reaction shape is effect, then "Triggered by …", then "Uses up …", as the Crowned Reactions (S). "Shell" is the
+on-screen {dread_shell}, never "blight coat" (C, P). Flash Freeze stays the owner's name; the Frost entry's "It doesn't
+slow." carries the meaning (N, P preferred Blizzard). Chains say "in a row", never "chain" ({chain} is a Reaction-chain
+glossary word). Brittle vs the Omen Brittle Night: different kinds, kept.
+
+## F.3 Not Frost: what else is wrong
+
+- **Splash rework (37) text vs code:** the Dewdrop Warden text says its splash gives {damp} to everything hit
+  (`dewdrop.tres:31`; section 37 gives the status to the nightmare hit only); Old Mountain, Rain Lily and Tidecaller Warden
+  texts no longer match their Dream cards; Hailfall says "every attacking Warden" but only Wardens without their own
+  splash get it, on direct hits; Tangled Lightning leaves out its 2-cell reach and full-hit damage; Spattered's once a
+  second covers every splash, not only cards' (`tower.gd:3771-3790`); Eddy copies only one step either side on the route
+  (`tower.gd:5597-5630`). "the nightmare hit" reads as "a single hit": say **"the nightmare it hits"** (Dewdrop, Old
+  Mountain, Puffball, Rain Lily, Hoarfrost, Codex Splash). The Codex Splash entry uses "near", a defined term (2 cells).
+- **"set off" back** in Afterglow, Spent Light, Spattered; "the rest", "pays", "leak", "Opens clearing", "Rush on".
+- **Fix check: 19 of 25 done.** Missing: Main Merger's M5 (Set Off combo name, Face it, Add free, Seed %d, pick a square,
+  tiles, leak, Pick a family, Grows into, "Grow into The Great Bell") and M6 (Free hit / Ring / Flare entries, glow, the
+  speed rule behind 18 "Slower Wardens deal less."). Partial: `shape_rows.gd:110` "finales"; Single file "1.6 s apart";
+  Hailfall's raw "Area"; Trophies "the rest of this run". The Codex "Nearly full" line names the retired Called Shot.
+- Grandfather Stump's "4% stronger" is a flat +4% attack speed; Clean Strike's face and tip disagree; The Tallest Tree
+  hides a 2-proc limit. Undiluted's text reads as a list of telegrams.
+- **Localisation bugs:** `warden_header_view.gd:129, :131` filter chips by their English label; `drift_panel.gd`
+  `phone_short()` rewrites English substrings. Both break on the first translation.
