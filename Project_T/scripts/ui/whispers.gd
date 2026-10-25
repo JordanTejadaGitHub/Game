@@ -125,7 +125,7 @@ func whisper(id: StringName, _args: Array = []) -> void:
 # hovering or tapping holds it, tapping again dismisses it (a hint naming a Codex term opens it instead); one at a time.
 const HINT_SIZE := 26
 const HINT_MAX_WIDTH := 760.0
-const TOP := 214.0  # Under the drift banner and the Coming strip (as before)
+const TOP := 72.0  # Pinned under the top HUD (UI council round 8: at 214 it floated over the map and hid crowds); _clear_top lowers it under the banner, Coming strip and boss reminder
 const MIN_TIME := 7.0
 const BASE_TIME := 3.0
 const PER_CHAR := 0.07

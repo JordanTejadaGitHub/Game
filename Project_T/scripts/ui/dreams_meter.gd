@@ -108,7 +108,7 @@ func set_open(open: bool) -> void:
 	refresh()
 
 func _process(delta: float) -> void:
-	_place()
+	_place(delta)
 	_clock -= delta / maxf(Engine.time_scale, 0.001)
 	if _clock > 0.0:
 		return
@@ -246,7 +246,7 @@ static func _damage_total(table: Dictionary) -> float:
 	return total
 
 # Under the Dream icons on the left edge; while the Warden drawer is open below and would be crossed, only the header.
-func _place() -> void:
+func _place(delta: float = 0.0) -> void:
 	var hud := get_parent()
 	if hud == null:
 		return
@@ -268,12 +268,18 @@ func _place() -> void:
 	custom_minimum_size.x = width
 	size = Vector2(width, 0.0)  # Shrinks to what shows
 	# Open over the map's left edge, where the path can come in (council round 7): half see-through while a nightmare is
-	# under it, so it never hides one
-	var target := UNDER_ALPHA if _body.visible and _nightmare_under() else 1.0
-	modulate.a = move_toward(modulate.a, target, 0.08)  # multiplier
+	# under it, so it never hides one. Real time: FADE_TIME each way, held UNDER_HOLD after the last one leaves (no flicker
+	# as a pack walks through)
+	var real := delta / maxf(Engine.time_scale, 0.001)
+	_under_hold = UNDER_HOLD if _body.visible and _nightmare_under() else maxf(_under_hold - real, 0.0)
+	var target := UNDER_ALPHA if _under_hold > 0.0 else 1.0
+	modulate.a = move_toward(modulate.a, target, (1.0 - UNDER_ALPHA) / FADE_TIME * real)  # multiplier
 
 const ARROW_ROOM := 22.0  # The header's fold arrow at its right end, a gap left of it
 const UNDER_ALPHA := 0.5
+const FADE_TIME := 0.2  # Seconds (real time)
+const UNDER_HOLD := 0.5  # Seconds (real time)
+var _under_hold := 0.0
 func _nightmare_under() -> bool:
 	var rect := get_global_rect().grow(12.0)
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):

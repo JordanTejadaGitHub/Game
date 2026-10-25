@@ -871,7 +871,7 @@ static func _effects() -> int:
 	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
-	return FAMILY_COLORS.get(line_of(pair), Palette.NEWLEAF)
+	return ChoiceCard.family_colour(line_of(pair), Palette.NEWLEAF)  # As its family's cards (UI council round 8)
 
 
 # --- Drawing -----------------------------------------------------------------------------------------

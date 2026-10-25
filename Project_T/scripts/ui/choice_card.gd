@@ -89,7 +89,7 @@ static func _draw_family_marks(marks: Control, colour: Color) -> void:
 
 # A family's colour on its cards (family pick, Calling evolutions): Kinships.FAMILY_COLORS by its line, except where that
 # colour read as another family's on a card (UI council round 7: Sporeling's pale Newleaf read gold beside Firefly Jar).
-# Cards only: kinship vines and sparks keep FAMILY_COLORS.
+# Kinship vines and the "Forms Kinship" preview use it too, so a bond reads as its card; sparks keep FAMILY_COLORS.
 const CARD_COLOURS := {"spore": Palette.SPRIG, "root": Palette.LEAF}
 static func family_colour(line: String, fallback: Color = Palette.SPRIG) -> Color:
 	return CARD_COLOURS.get(line, Kinships.FAMILY_COLORS.get(line, fallback))

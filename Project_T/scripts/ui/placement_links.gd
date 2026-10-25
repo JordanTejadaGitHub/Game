@@ -38,7 +38,7 @@ func _process(_delta: float) -> void:
 			var bond: Dictionary = kin.preview(_data, _cell)
 			if not bond.is_empty() and is_instance_valid(bond.get("partner")):
 				var kin_name: String = bond.get("name", "") if CodexData.is_discovered(bond.get("id", &"")) else "???"
-				_links.append([bond.partner, "Forms Kinship: %s" % kin_name, KIN_VINE])  # "???" until discovered
+				_links.append([bond.partner, "Forms Kinship: %s" % kin_name, ChoiceCard.family_colour(_data.line, KIN_VINE)])  # "???" until discovered
 		queue_redraw()
 
 func _draw() -> void:
