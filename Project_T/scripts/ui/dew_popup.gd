@@ -22,13 +22,25 @@ const OUTLINE := 2  # draw_string_outline's width: 1 px each side
 var _amount: int
 var _word := ""  # "harvest" / "interest": a rest payout
 var _number_color := COLOR
+var _resource := &"dew"  # &"dew", or &"seeds" ("+1" Seed at a clear)
+var _card: UpgradeData = null  # The Dream card that paid it (its small glyph first: Weed Puller, Groundskeeper…)
+# The icons, kept on the popup: IconInfo.icon makes a temporary AtlasTexture, and one made inside _draw was freed before the
+# frame drew, so every popup read as a bare "+1" (user 2026-10-24: "what's the +1 after I clear an obstacle").
+var _drop: Texture2D = null
+var _card_icon: Texture2D = null
 
 # `color` / `text`: caught Dew is gold (DewCatch.GOLD); the Harvest and Interest pass their line ("Harvest +40 Dew").
-func _init(amount: int, world_position: Vector2, color: Color = COLOR, text: String = "") -> void:
+# `resource`: &"seeds" for a clear's Seed. `card`: the Dream card that paid it, if one did.
+func _init(amount: int, world_position: Vector2, color: Color = COLOR, text: String = "", resource: StringName = &"dew",
+		card: UpgradeData = null) -> void:
 	_amount = amount
+	_resource = resource
+	_card = card
 	if text != "":
 		_word = text.get_slice(" +", 0).strip_edges().to_lower()
 	_number_color = Palette.GLOW if _word != "" or color.is_equal_approx(Palette.GLOW) else COLOR
+	if resource == &"seeds":
+		_number_color = Palette.SPRIG  # Seeds read green, apart from Dew's blue
 	position = world_position
 	z_index = 10  # Above creatures and Wardens
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The drop at ×1, crisp
@@ -36,6 +48,9 @@ func _init(amount: int, world_position: Vector2, color: Color = COLOR, text: Str
 var _tween: Tween
 
 func _ready() -> void:
+	_drop = IconInfo.icon(_resource)
+	if _card != null:
+		_card_icon = UiStyle.dream_glyph_texture(UiStyle.dream_glyph(_card))
 	_rise()
 
 func _rise() -> void:
@@ -67,18 +82,24 @@ func _draw() -> void:
 	var number_font := UiStyle.number_font()
 	var number_size := WORD_NUMBER_SIZE if _word != "" else NUMBER_SIZE
 	var number := "+%d" % _amount
+	if _drop == null:  # No icon to draw: the word says what it is ("+1 Dew", "+1 Seed")
+		number += " Seed" if _resource == &"seeds" else " Dew"
 	var number_width := number_font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, number_size).x
 	var word_font := UiStyle.caps_font()
 	var word_width := word_font.get_string_size(_word, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE).x if _word != "" else 0.0
-	var width := (word_width + WORD_GAP if _word != "" else 0.0) + ICON + GAP + number_width
+	var card_w := ICON + GAP if _card_icon != null else 0.0
+	var drop_w := ICON + GAP if _drop != null else 0.0
+	var width := (word_width + WORD_GAP if _word != "" else 0.0) + card_w + drop_w + number_width
 	var x := -width / 2.0
 	if _word != "":
 		_outlined(word_font, Vector2(x, BASELINE), _word, WORD_SIZE, Palette.GLOW)
 		x += word_width + WORD_GAP
-	var drop := IconInfo.icon(&"dew")
-	if drop != null:
-		draw_texture_rect(drop, Rect2(Vector2(x, BASELINE - ICON + 2.0), Vector2(ICON, ICON)), false)
-	x += ICON + GAP
+	if _card_icon != null:  # The paying card's glyph, small, before the drop
+		draw_texture_rect(_card_icon, Rect2(Vector2(x, BASELINE - ICON + 2.0), Vector2(ICON, ICON)), false)
+		x += card_w
+	if _drop != null:
+		draw_texture_rect(_drop, Rect2(Vector2(x, BASELINE - ICON + 2.0), Vector2(ICON, ICON)), false)
+		x += drop_w
 	_outlined(number_font, Vector2(x, BASELINE), number, number_size, _number_color)
 	WorldLabel.end_screen_size(self)
 

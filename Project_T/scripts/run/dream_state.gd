@@ -4438,16 +4438,24 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	if run_state.clearing_without_seeds:
 		return
 	var dew := 0
+	var payer: UpgradeData = null  # The card shown on the popup (the first that paid; Main's DewPopup glyph)
 	for card in _taken_cards():
-		dew += card.dew_per_obstacle_clear * stacks[card.id]
+		if card.dew_per_obstacle_clear > 0:
+			dew += card.dew_per_obstacle_clear * stacks[card.id]
+			if payer == null:
+				payer = card
 	if has_rule(&"weed_puller") and data != null and data.resource_path.get_file().begins_with("rock"):
 		dew += WEED_PULLER_DEW  # Weed Puller: a Mossy Boulder's clear refunds a little
+		if payer == null:
+			payer = _card_by_id("weed_puller")
 	if has_rule(&"groundskeeper"):
 		dew += floori(paid * GROUNDSKEEPER_REFUND)  # Groundskeeper: half of what the clear cost, at once, every kind (card_review_2026-10-12.md 10)
+		if payer == null and floori(paid * GROUNDSKEEPER_REFUND) > 0:
+			payer = _card_by_id("groundskeeper")
 	if has_rule(&"reclaimed_earth"):
 		run_state.fertile_cells[cell] = true
 	if dew > 0:
-		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
+		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell), DewPopup.COLOR, payer)
 
 # Passing Dream (card 258, balance_simulation.md e32b882d): a dispelled nightmare's statuses jump, with their stacks and
 # time left, to the nearest nightmare within PASSING_DREAM_CELLS.
