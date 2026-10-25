@@ -750,7 +750,7 @@ wiped and them bunched up like that"; numbers marked * are Balancing Discussion'
 
 **Retune (Enemy Design Council round 2026-10-24b, owner: "Enemy movement looks off"; `enemy_council_review.md`).
 These numbers replace the first draft's below.**
-- **Width:** ±0.2 cell for Stream and Packs (was 0.3: bodies hung off the 0.55-0.6-cell sand band onto dark grass);
+- **Width (TRIAL 2026-10-24, owner "try" after seeing a straight line in play):** **±0.25 cell for Stream and Packs** (the council ruled ±0.2 so bodies stay on the 0.55-0.6-cell sand band; ±0.25 may let outer bodies touch the edge: judge it in play, revert to 0.2 if it does). Before the retune: 0.3, when bodies hung off the 0.55-0.6-cell sand band onto dark grass);
   ±0.1 for bosses, big kinds and Few and tough's Deeply Blighted; ±0.06 for Single file; flyers ±0.15.
 - **No skating:** a new target lane is the current one ± 0.3-0.7 (clamped to ±1), every 4-8 s; each move eases in
   and out (smoothstep), takes at least 0.8 s, and never slides sideways faster than **0.25 × the nightmare's own
