@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "dewdrop_ascension"
 display_name = "Ascension: Tidecaller"
-description = "{warden:tidecaller}: every 6 s a wave gives everything in range {damp} and drags it back 1 cell; at 8 {damp} it is {frozen} for 1 s. In a run, from {drift} 51: 3 {dreamlight} unlocks it, then 600 {dew} grows a {final_form} into it."
+description = "{warden:tidecaller}: every {field:tidecaller.attacks_per_second:every} a great wave gives {damp}, drags nightmares back {field:tidecaller.push_back_tiles:cells}, and gives {field:tidecaller.frost_if_frosted:count} {frost} to those that already have {frost}. In a run, from {drift} 51: 3 {dreamlight} unlocks it, then 600 {dew} grows a {final_form} into it."
 root = 0
 costs = Array[int]([120])
 order = 32
