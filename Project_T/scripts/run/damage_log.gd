@@ -92,10 +92,11 @@ static var calling_now: StringName = &""
 
 var numbers_mode := NumbersMode.OFF
 const NUMBER_MERGE_WINDOW := 0.25  # Seconds (game): a nightmare's hits within it share one number
+const PACK_MERGE_WINDOW := 0.25  # Seconds (game): a pack's members' small hits within it share one number (drift shapes)
 const MAX_NUMBERS := 48  # Ordinary numbers alive at once (big ones always show)
 const REDUCED_MERGE_WINDOW := 0.6  # Effects quality Reduced: longer merges…
 const REDUCED_MAX_NUMBERS := 16  # …and fewer ordinary numbers alive
-var _last_number := {}  # Nightmare id -> [its last number, clock] (merging)
+var _last_number := {}  # Nightmare id (or "pack:<key>" for a pack member) -> [its last number, clock] (merging)
 # Per Warden: {tower instance id: {"name", "tower", "run", "run_combo", "drift", "drift_status",
 # "drift_combo", "combos": {tag: amount}}}.
 var _stats := {}
@@ -414,10 +415,16 @@ func _show_number(event: Event) -> void:
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
 	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: thinner still
-	var enemy_id: int = event.enemy.get_instance_id()
+	var enemy_id = event.enemy.get_instance_id()
+	# A pack member's small numbers merge with the whole pack's (one number per PACK_MERGE_WINDOW; drift shapes,
+	# enemy_council_review.md 2026-10-24c), so a bunched pack reads as one fight, not a spray
+	var in_pack: bool = event.enemy.has_meta(DriftShapes.PACK_META)
+	if in_pack:
+		enemy_id = "pack:%d" % int(event.enemy.get_meta(DriftShapes.PACK_META))
 	if not big:
 		var last_any: Array = _last_number.get(enemy_id, [])
-		if not last_any.is_empty() and is_instance_valid(last_any[0]) and _clock - last_any[1] <= (REDUCED_MERGE_WINDOW if reduced else NUMBER_MERGE_WINDOW):
+		var window := PACK_MERGE_WINDOW if in_pack else (REDUCED_MERGE_WINDOW if reduced else NUMBER_MERGE_WINDOW)
+		if not last_any.is_empty() and is_instance_valid(last_any[0]) and _clock - last_any[1] <= window:
 			last_any[0].add(event.amount, color)
 			return
 		if get_child_count() >= (REDUCED_MAX_NUMBERS if reduced else MAX_NUMBERS):

@@ -240,6 +240,7 @@ var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
 var _haze_phase := 0.0
+var _body_fx: Node2D = null  # The glows and marks round the body (haze, bolt flash, hit marks), sorted with the sprite
 # Cached display settings (Fx.setting): health bars at full health too ("health_bars" 1), and the
 # elite outline ("blight_outline"). Re-read on the presence tick so the settings panel applies live.
 var _bars_always := false:
@@ -637,7 +638,14 @@ func _ready() -> void:
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	_measure_bar_offset()
 	_measure_foot_lift()
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	# Y-sort by the drawn body (council 2026-10-24c): the sprite (at its lane) and _body_fx sort on their own positions
+	_body_fx = Node2D.new()
+	_body_fx.name = &"BodyFx"
+	add_child(_body_fx)
+	move_child(_body_fx, sprite.get_index())  # Just before the sprite: the same y, so it draws behind it
+	_body_fx.draw.connect(_draw_body)
+	y_sort_enabled = true
+	_apply_sprite_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
@@ -1082,22 +1090,29 @@ func _draw() -> void:
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	draw_set_transform(_lane_drawn + Vector2(0, -_foot_lift))  # (Walking lanes: with the drawn body)
+	if _body_fx != null:
+		_body_fx.queue_redraw()  # Round the body: _draw_body, on a child sorted with the sprite (y-sort by drawn body)
+	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
+
+# The glows and marks round the drawn body, on _body_fx (a child just before the sprite, at the sprite's position, so
+# the y-sort keeps them right behind it: council 2026-10-24c), raised with the foot lift.
+func _draw_body() -> void:
+	if is_cleansed or _hidden:
+		return
+	_body_fx.draw_set_transform(Vector2(0, -_foot_lift))
 	if unbound:  # Cold ghost-fire glow behind the sprite, pulsing (no warm colour on nightmares)
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
-		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
-		draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(Palette.MOONLIGHT, 0.22 + 0.12 * pulse))
+		_body_fx.draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
+		_body_fx.draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(Palette.MOONLIGHT, 0.22 + 0.12 * pulse))
 	if elite:
-		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
+		_draw_elite_haze()  # Drawn before the sprite (the next child), so it sits behind it
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
-		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
+		_body_fx.draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
 	if enemy_data.pack_shield < 1.0 and get_pack_multiplier() < 1.0:  # Huntsman: the faint ring while the pack shields him
-		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
+		_body_fx.draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
-	draw_set_transform(Vector2.ZERO)
-	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
 
 # The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
 # items of its own under this node's (so they move with it, and the renderer culls them off screen):
@@ -1738,23 +1753,23 @@ func _draw_elite_haze() -> void:
 		var at := Vector2(cos(a) * r, sin(a) * r * 0.5 - 8.0).round()  # Flattened ring round the body
 		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
 		for band: float in ELITE_HAZE_BANDS:
-			draw_circle(at, roundf(size * band), ELITE_HAZE_COLOR, true, -1.0, false)
+			_body_fx.draw_circle(at, roundf(size * band), ELITE_HAZE_COLOR, true, -1.0, false)
 	for i in ELITE_MOTES:
 		var a := -_haze_phase * 1.3 + TAU * i / ELITE_MOTES
 		var at := Vector2(cos(a) * r * 0.8, sin(a) * r * 0.4 - 10.0).round()
 		var twinkle := 0.5 + 0.5 * sin(_haze_phase * 4.0 + i * 2.1)
-		draw_rect(Rect2(at, Vector2(2, 2)), Color(ELITE_MOTE_COLOR, 0.35 + 0.5 * twinkle))
+		_body_fx.draw_rect(Rect2(at, Vector2(2, 2)), Color(ELITE_MOTE_COLOR, 0.35 + 0.5 * twinkle))
 	var centre := _bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
 	var mark := _status_icon(&"elite")
 	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
-		draw_texture(mark, (centre - mark.get_size() / 2.0).round())
+		_body_fx.draw_texture(mark, (centre - mark.get_size() / 2.0).round())
 		return
 	var swirl := PackedVector2Array()
 	for s in 14:
 		var t := s / 13.0
 		swirl.append(centre + Vector2.from_angle(t * TAU * 1.6 + _haze_phase) * (1.0 + 4.0 * t))
-	draw_circle(centre, 6.0, Color(Palette.VOID, 0.8))
-	draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
+	_body_fx.draw_circle(centre, 6.0, Color(Palette.VOID, 0.8))
+	_body_fx.draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
 
 # A small grey puff for a resisted hit, a little sparkle for a weak one. `t` fades 1 -> 0.
 func _draw_hit_mark(t: float) -> void:
@@ -1762,12 +1777,12 @@ func _draw_hit_mark(t: float) -> void:
 	if _hit_mark < 0:
 		for i in 3:
 			var puff := at + Vector2.from_angle(TAU * i / 3.0) * 4.0 * (1.6 - t)
-			draw_circle(puff, 3.5 * t + 1.0, Color(Palette.DEWLIGHT if _hit_mark_wash else Palette.MIST, 0.7 * t))
+			_body_fx.draw_circle(puff, 3.5 * t + 1.0, Color(Palette.DEWLIGHT if _hit_mark_wash else Palette.MIST, 0.7 * t))
 	else:
 		var r := 7.0 * (1.4 - t)
 		var col := Color(Palette.GLOW, t)  # A Warden's hit: warm light
-		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
-		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
+		_body_fx.draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
+		_body_fx.draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
 
 # Its sheet's everyday row: walk_side, or "fly" for flyers drawn with a fly row only (Night Kite, Pall; Enemy Assets
 # d8b0631a). Bounds and the bar height read its frame 0.
@@ -1860,7 +1875,7 @@ func _update_squeeze(delta: float) -> void:
 		return
 	sprite.scale.x = sprite.scale.x / _squeeze * next
 	_squeeze = next
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale  # The rounded-corner offset and foot lift stay in world pixels
+	_apply_sprite_offset()  # The rounded-corner offset and foot lift stay in world pixels
 
 # Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
 # across its walking direction blocked.
@@ -2039,7 +2054,7 @@ func _update_big_hit(real_delta: float) -> void:
 		var squash := Vector2.ONE.lerp(BIG_HIT_SQUASH, t * t) if not _leaping else Vector2.ONE  # (A leap's tween owns the scale)
 		sprite.scale = sprite.scale / _stagger_scale * squash
 		_stagger_scale = squash
-		sprite.offset = (_body_offset() + _recoil) / sprite.scale
+		_apply_sprite_offset()
 
 # Plays the flinch out (real seconds: game speed doesn't shorten it), plus the arc twitch; back at rest it
 # leaves the sprite's offset and the shader's flash exactly where they were.
@@ -2054,7 +2069,7 @@ func _update_flinch(real_delta: float) -> void:
 	if flash != _flash_shown:
 		_flash_shown = flash
 		sprite.set_instance_shader_parameter(&"hit_flash", flash)
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	_apply_sprite_offset()
 
 # Continuous damage (arcs, beams, clouds, Poisoned ticks): no flinch per tick. `tag`'s source holds the state
 # (on = true until it clears it), and every tick of a SUSTAINED_TAGS source refreshes it for SUSTAIN_HOLD s
@@ -2159,7 +2174,7 @@ func _update_lane(delta: float) -> void:
 	if _lane_offset.distance_squared_to(_lane_drawn) < LANE_SNAP_PX * LANE_SNAP_PX:
 		return
 	_lane_drawn = _lane_offset
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	_apply_sprite_offset()
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 	if elite or _hit_mark_time > 0.0 or _bolt_flash > 0.0 or unbound:
@@ -2228,7 +2243,7 @@ func _round_corners() -> void:
 	if offset == _corner_offset:
 		return
 	_corner_offset = offset
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	_apply_sprite_offset()
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 
@@ -2437,6 +2452,7 @@ func _update_pall(delta: float) -> bool:
 func _can_cover(walker: Node, mine: bool = false) -> bool:
 	return walker != self and not walker.is_cleansed and walker.has_method("on_route") and not walker.is_flying() \
 		and not walker.enemy_data.is_boss and not walker.elite and walker.is_in_group(GROUP) \
+		and not walker.has_meta(DriftShapes.PACK_META) \
 		and (walker.covered_by == null or (mine and walker.covered_by == self))
 
 # The nearest walker ahead of it (nearer the Heartwood) within PALL_REACH cells.
@@ -2730,6 +2746,18 @@ func get_body_position() -> Vector2:
 func _body_offset() -> Vector2:
 	return _corner_offset + _lane_drawn + Vector2(0, -_foot_lift + _sleep_sink)
 
+# The sprite follows the drawn body: the walking lane goes in sprite.position (so the y-sort, which reads the sprite's
+# position with the enemy's y_sort_enabled, sorts a clump by where each body is drawn: council 2026-10-24c), the rest
+# (corner, foot lift, sink, recoil) in sprite.offset. A burrow's sink tween owns position.y while it runs.
+func _apply_sprite_offset() -> void:
+	sprite.offset = (_body_offset() - _lane_drawn + _recoil) / sprite.scale
+	if not _leaping:
+		sprite.position = _lane_drawn
+	else:
+		sprite.position.x = _lane_drawn.x
+	if _body_fx != null:
+		_body_fx.position = sprite.position
+
 # Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): when Sleep fills into Asleep
 # (statuses.sleep_time from 0), the Sleep icon flashes once and turns into the Asleep badge; the nightmare settles
 # (sinks, leans, its eyes dim to SLEEP_EYES) and a "z" (sleep_z) rises every SLEEP_MOTE_EVERY s. Waking: a short hop, the
@@ -2772,7 +2800,7 @@ func _update_sleep(delta: float) -> void:
 	var sink := SLEEP_SINK * _settle - (0.0 if still else WAKE_HOP * jolt)
 	if sink != _sleep_sink:
 		_sleep_sink = sink
-		sprite.offset = (_body_offset() + _recoil) / sprite.scale
+		_apply_sprite_offset()
 	var lean := 0.0 if still else SLEEP_LEAN * _settle * (-1.0 if sprite.flip_h else 1.0)
 	if lean != _sleep_lean and not _dragging:  # (A drag wobbles the sprite itself)
 		_sleep_lean = lean
@@ -3518,6 +3546,8 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 			_mark_hit(-1)  # The crust crumbles off in a puff (Dew-light when Wash Away broke it)
 			if enemy_data.cracked_frames != null:
 				_swap_frames(enemy_data.cracked_frames)
+	if soothe > 0.0 and _spawner != null and has_meta(DriftShapes.PACK_META):
+		_spawner.note_pack_damage(self, source, soothe)  # (pack_wiped's top Warden)
 	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
 		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
 			var half := soothe * PALL_SHARE
@@ -3796,6 +3826,7 @@ func _shriek() -> void:
 # appear (no burst outward, no drift). A boss (never an echo) gets its own beat (screens_ui.md a8471922): Tower Assets'
 # boss_burst if it exists (else twice the motes, wider), and in the real game a hitstop and the largest camera rumble.
 const BOSS_DISPEL_TRAUMA := 1.0
+const MOTE_BURST_MAX := 8  # More dispels than this within EnemySpawner.DISPEL_BURST_WINDOW s: half the motes each (phone budget)
 const BOSS_BURST := &"boss_burst"
 func _burst_into_motes() -> void:
 	var boss := enemy_data.is_boss and not is_echo
@@ -3816,7 +3847,8 @@ func _burst_into_motes() -> void:
 	var motes := CPUParticles2D.new()
 	motes.one_shot = true
 	motes.explosiveness = 0.9
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0))
+	var burst_share := 0.5 if _spawner != null and _spawner.dispel_burst() > MOTE_BURST_MAX else 1.0  # A pack wiped at once: half each (phones)
+	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share)
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)

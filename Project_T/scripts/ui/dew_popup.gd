@@ -33,12 +33,31 @@ func _init(amount: int, world_position: Vector2, color: Color = COLOR, text: Str
 	z_index = 10  # Above creatures and Wardens
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # The drop at ×1, crisp
 
+var _tween: Tween
+
 func _ready() -> void:
-	var tween := create_tween()
-	tween.tween_property(self, "position:y", position.y - RISE, DURATION) \
+	_rise()
+
+func _rise() -> void:
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	modulate.a = 1.0
+	_tween = create_tween()
+	_tween.tween_property(self, "position:y", position.y - RISE, DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "modulate:a", 0.0, DURATION * 0.5).set_delay(DURATION * 0.5)
-	tween.tween_callback(queue_free)
+	_tween.parallel().tween_property(self, "modulate:a", 0.0, DURATION * 0.5).set_delay(DURATION * 0.5)
+	_tween.tween_callback(queue_free)
+
+# A pack's one popup (owner 2026-10-24, enemy_council_review.md 2026-10-24c: "the feel of a big group being wiped"):
+# another member's Dew counts up on it, from that member's spot, and it rises again. Never bonus Dew: just one number.
+func add_more(amount: int, world_position: Vector2) -> void:
+	_amount += amount
+	position = world_position
+	_rise()
+	queue_redraw()
+
+func is_live() -> bool:
+	return is_inside_tree() and not is_queued_for_deletion() and modulate.a > 0.05
 
 func _process(_delta: float) -> void:
 	queue_redraw()  # Its screen size follows the camera's zoom

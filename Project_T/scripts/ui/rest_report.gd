@@ -125,6 +125,9 @@ func show_report(block: int) -> void:
 	text += support_text(self, "block")
 	text += templates_text(drift_director, block)
 	text += shape_leaves_text(self, drift_director.get_act(block * drift_director.drifts_per_block))
+	var pack_history := get_tree().get_first_node_in_group(RunHistory.GROUP)  # "Packs wiped: 5 of 6 · most by Driftspore"
+	if pack_history != null and pack_history.has_method("packs_line") and pack_history.packs_line() != "":
+		text += "\n" + pack_history.packs_line()
 	var close_calls := CloseCalls.find(self)
 	if close_calls != null and close_calls.block_count > 0:
 		text += "\nClose calls: %d" % close_calls.block_count
