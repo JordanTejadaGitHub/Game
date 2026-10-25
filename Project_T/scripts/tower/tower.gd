@@ -408,7 +408,7 @@ static func rank_name(value: int) -> String:
 	return out
 const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from here on
 const FOCUS_TOP_RANK := 5  # The Focus bonus stops here (Endless Rings: ranks past it only add damage)
-const CHAIN_BLOOM_SPLASH := 2.0  # Chain Bloom: Puffball puffs landing in fog cover 2 tiles instead of 1
+const CHAIN_BLOOM_RADIUS := 1.5  # Chain Bloom: a splash on a nightmare with 2+ statuses is this much wider (Balancing 2026-10-24; was x2)
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED, KEEN, YIELD }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
@@ -2286,7 +2286,7 @@ func get_aura_extra() -> float:
 	var extra := 0.0
 	if tower_data.aura_per_warden > 0.0:
 		extra = clampf(tower_data.aura_per_warden * _aura_count, 0.0, maxf(tower_data.aura_max - base, 0.0))
-	if tower_data.get_id() == "elder_stump" and _rule_stacks(&"grandfather_stump") > 0:
+	if tower_data.line == "acorn" and tower_data.aura_speed_bonus > 0.0 and _rule_stacks(&"grandfather_stump") > 0:  # Speed auras only (section 35)
 		extra = maxf(extra, clampf(GRANDFATHER_PER_WARDEN * _aura_count, 0.0, maxf(GRANDFATHER_MAX - base, 0.0)))
 	return extra
 
@@ -2687,7 +2687,32 @@ func _release() -> void:
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
 # (the Magpie's stolen buffs).
 const HIT_CARD_RULES: Array[StringName] = [&"crush", &"crowd_breaker", &"shiny_things"]  # (Patient Aim is crit chance now: DreamState.get_crit_chance_bonus)
-const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
+const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass"]
+# Family-wide hit cards (owner 2026-10-24, dream_council_review.md 35: no card upgrades one branch only; branch_review_td.md):
+# one branch in _hit by the Warden's family line. Nestling (wing): Charged Feathers, Pollen Beaks, Needle Point; Bellflower
+# (song): Thunder Chimes (id resonance); Firefly (light): Static Bloom's Drowsy; Pebbling (stone): Loose Stones; Whirligig
+# (wind): Eddy. "Every Nth hit" counts only the Warden's own original direct hits (never splash, pieces, jumps, copies or
+# effect ticks), so pieces never make pieces; status adds skip effect ticks and repeats and go through _apply_one_status
+# (native = false: class hooks run, never a native cohort).
+const FAMILY_HIT_RULES: Array[StringName] = [&"charged_feathers", &"pollen_beaks", &"needle_point", &"resonance",
+	&"static_bloom", &"loose_stones", &"eddy", &"conductive_soil"]
+const FAMILY_EVERY := 3  # Needle Point, Loose Stones: every 3rd original direct hit
+const EDDY_COOLDOWN := 1.0  # Eddy: once a second per Warden
+# Balancing 2026-10-24 (balance_simulation.md "No branch-only cards: status pass on paper"): a card that makes a family's
+# hits add a status (Thunder Chimes, Charged Feathers, Pollen Beaks; Static Bloom for saved runs) adds 1 stack, at most
+# CROSS_STATUS_PER_SECOND per nightmare per Warden per card, on direct hits only; no Reaction pool share.
+const CROSS_STATUS_PER_SECOND := 1.0
+const CROSS_STATUS_META := &"cross_status_next"  # On a nightmare: {"<Warden id>:<card>": game time it may take another}
+# Conductive Soil (section 35, capped; Balancing to confirm the numbers): a Firefly Warden's original direct hit on a Soaked
+# nightmare jumps to the Soaked nightmares within CONDUCTIVE_REACH, at most CONDUCTIVE_MAX_JUMPS, each for CONDUCTIVE_SHARE of
+# its damage, once every CONDUCTIVE_COOLDOWN s per Warden; each jump uses up that nightmare's Soaked. Jumps never jump on.
+const CONDUCTIVE_REACH := 2.0  # Cells
+const CONDUCTIVE_MAX_JUMPS := 4  # Balancing 2026-10-24
+const CONDUCTIVE_SHARE := 0.5
+const CONDUCTIVE_COOLDOWN := 1.0
+var _conductive_ready_at := -INF
+var _family_hits := 0  # This Warden's original direct hits (FAMILY_EVERY)
+var _eddy_ready_at := -INF
 const UNIQUE_NATIVE_RULES: Array[StringName] = [&"shared_mycelium", &"crossed_sparks", &"corner_sign"]  # DreamCooperation / DreamPathRules.native_status (performance: skipped without them)
 # Whether one of UNIQUE_NATIVE_RULES is held, asked of DreamState itself (live: a test that sets dreams.stacks directly
 # isn't seen by this Warden's rule cache when the card count stays the same; the cached _any_rule answered stale).
@@ -3433,9 +3458,19 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		dealt *= _form_hit_multiplier()
 		if _dream_state != null:
 			dealt *= _dream_state.hit_card_multiplier(self, enemy, is_area, is_crit, combo)
+	# Family-wide hit cards (FAMILY_HIT_RULES): an original direct hit, and a status-carrying hit (jumps count, repeats don't).
+	var family_on: bool = _dream_state != null and _any_rule(&"__family_hit", FAMILY_HIT_RULES)
+	var family_status: bool = family_on and not effect_tick and not _build_derived_attack and combo == &""  # Direct hits only (Balancing 2026-10-24)
+	var family_every := false
+	var family_original: bool = family_on and not effect_tick and not _build_derived_attack and combo == &"" and not is_area
+	if family_original:
+		_family_hits += 1
+		family_every = _family_hits % FAMILY_EVERY == 0
+	if family_every and tower_data.line == "wing" and _has_rule(&"needle_point"):
+		enemy.pierce_coat_once = true  # Needle Point: every 3rd hit from a Nestling Warden ignores the Dread Shell
 	if reaction.tag != &"":
 		combo = reaction.tag
-	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
+	var damage_line := tower_data.line  # (Thunder Chimes no longer swaps a bell's damage to light: section 35)
 	# (Fifth Beat's 10% price on every direct hit is gone: owner decision, dream_council_review.md 9.1.)
 	var health_before: int = enemy.health
 	var carry_before: float = enemy._soothe_carry
@@ -3471,8 +3506,10 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		# Starlit Aim's crit spends half the required Exposed stacks.
 		if tower_data.line == "light" and enemy.statuses.has(EnemyStatuses.DAMP) and _has_rule(&"rain_on_glass"):
 			enemy.statuses.remove(EnemyStatuses.DAMP)
-		if real_crit and enemy.statuses.is_exposed() and _has_rule(&"starlit_aim"):
-			enemy.statuses.spend_exposed_crit()
+		if real_crit and attack_data.heavy and _has_rule(&"starlit_aim"):
+			var full: StringName = enemy.statuses.any_full()  # Section 35: any status at full (FULL_SHARE of its base cap), not only Exposed
+			if full != &"":
+				enemy.statuses.spend_half(full)  # (Poisoned through its batches; never Rooted or Drowsy)
 	if _dream_state and not is_area and _has_rule(&"momentum"):
 		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
 	if _dream_state and is_area and combo != &"spillover" and enemy.is_cleansed and _has_rule(&"spillover"):
@@ -3500,6 +3537,8 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		BranchKit.on_hit(self, enemy)  # The expansion branches' on-hit effects (Inkcap's ink, Crusted Brood)
 	_after_hit(enemy, is_crit)
 	_catalogue_hit(enemy)
+	if family_status:
+		_family_hit(enemy, family_every, family_original)
 	_legendary_hit_rules(enemy, soothe)
 	if is_instance_valid(_kin):
 		_kin_night_chimes(enemy)
@@ -3862,9 +3901,10 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 			splash += CALLINGS.tailwind_wider(self) * MAP_GRID.cell_size.x  # Tailwind: a splash thrown from inside a wind Warden's reach
 	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
 			and PathCloud.fog_at(get_tree(), where, "mistveil"):
-		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool
-		if _has_rule(&"chain_bloom"):
-			splash *= CHAIN_BLOOM_SPLASH  # Chain Bloom: a puff inside Mistveil's fog covers 2 tiles
+		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool (Roguelite Code: its discovery)
+	if splash > 0.0 and _dream_state and _has_rule(&"chain_bloom") and target != null and is_instance_valid(target) \
+			and target.statuses.count() >= 2:
+		splash *= CHAIN_BLOOM_RADIUS  # Chain Bloom (section 35): a splash landing on a nightmare with 2+ statuses, wider
 	_kin_on_landing(target, where)
 	if splash <= 0.0:
 		hit(target, hand)
@@ -3994,14 +4034,7 @@ func _splash_ring(where: Vector2, radius: float) -> void:
 # Rockslide leaves rubble on the path tiles it hit.
 func _lob_landed(where: Vector2, splash: float) -> void:
 	Reactions._effect(&"landing_dust", where, self, splash / MAP_GRID.cell_size.x)
-	var hit_spots: Array[Vector2] = [where]
-	if _dream_state and _has_rule(&"loose_stones"):
-		for i in 3:
-			var spot := where + Vector2.from_angle(randf() * TAU) * randf_range(0.5, 1.5) * MAP_GRID.cell_size.x
-			spot = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(spot))  # A tile centre
-			_splash(spot, MAP_GRID.cell_size.x * 0.5, LOOSE_STONE_SHARE, NO_CRIT)
-			Reactions._effect(&"crit_flare", spot, self, 0.6)
-			hit_spots.append(spot)
+	var hit_spots: Array[Vector2] = [where]  # (Loose Stones is a Pebbling family card in _hit now: section 35)
 	if attack_data.rubble_slow <= 0.0:
 		return
 	var cells := rubble_cells(_route(), hit_spots, splash)  # Whole cells: rubble lies on path tiles
@@ -4357,18 +4390,14 @@ func _chain_strike(first: Node2D) -> void:
 	var storm := attack_data.storm_every > 0 and _attack_count % attack_data.storm_every == 0
 	if storm:
 		Reactions._effect(&"thunderhead_strike", aim_at(first), self)  # Signature: a bolt from the sky
-	if storm or (_dream_state and _has_rule(&"conductive_soil")):
+	if storm:  # (Conductive Soil's old every-Soaked-in-range pull is gone: section 35, _conductive_jumps)
 		for enemy in get_enemies_in_range():
 			if enemy.statuses.has(EnemyStatuses.DAMP) and not hits.has(enemy):
 				hits.append(enemy)
 
 	# Jumps past the normal count only happened through Damp (DamageLog: "conducted").
 	var points := PackedVector2Array([global_position + tower_data.get_attack_origin()])
-	# Static Bloom: every nightmare the chain strikes also gets Drowsy (II: 2 stacks).
-	var conductive := _dream_state != null and _has_rule(&"conductive_soil")
-	var bloom := 0
-	if _dream_state and _has_rule(&"static_bloom"):
-		bloom = 2 if _rule_level(&"static_bloom") > 0 else 1
+	# (Static Bloom's Drowsy lands from _family_hit on every Firefly hit; its cost stays here: one fewer jump.)
 	for i in hits.size():
 		var enemy := hits[i]
 		points.append(aim_at(enemy))  # The bolt strikes the body
@@ -4385,10 +4414,6 @@ func _chain_strike(first: Node2D) -> void:
 		var beacon := kin_share(&"storm_beacon", "a")
 		if beacon > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
-		if bloom > 0 and is_instance_valid(enemy) and not enemy.is_cleansed:
-			enemy.apply_status(EnemyStatuses.DROWSY, bloom, 0.0, 0.0, 0, tower_data.line, self)
-		if i > 0 and conductive and is_instance_valid(enemy) and not enemy.is_cleansed:
-			enemy.statuses.remove(EnemyStatuses.DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 	if attack_data.tier >= 4:
 		ascended_event.emit(self, first.global_position, hits.size())
 	var bolt := ChainBolt.new(points)
@@ -5072,8 +5097,6 @@ func peck(enemy: Node2D) -> void:
 	var crit := ROLL_CRIT
 	if attack_data.flurry_every > 0 and _pecks_landed % attack_data.flurry_every == 0:
 		crit = CRIT
-	if _dream_state and _has_rule(&"needle_point"):
-		enemy.pierce_coat_once = true
 	Reactions._effect(&"peck_spark", aim_at(enemy) + Vector2(randf_range(-6, 6), 0), self)
 	hit(enemy, ShapeCards.hands(self), false, crit)  # Small Hands: +35%
 	if kin_share(&"jewel_thieves", "a") > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
@@ -5083,12 +5106,7 @@ func peck(enemy: Node2D) -> void:
 			if not stripped:
 				enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Nothing to steal: +1 Dew instead
 			_kin_fired(&"jewel_thieves")
-	if not is_instance_valid(enemy) or enemy.is_cleansed or _dream_state == null:
-		return
-	if _has_rule(&"charged_feathers"):
-		enemy.apply_status(EnemyStatuses.STATIC, 1, 0.0, get_damage(), 0, "light", self)
-	if _has_rule(&"pollen_beaks"):
-		enemy.apply_status(EnemyStatuses.SPORED, 1, 0.0, get_damage() * SPORE_POTENCY, 0, "spore", self)
+	# (Charged Feathers, Pollen Beaks and Needle Point are family cards in _hit now: section 35.)
 
 # Samara / Autumn Gale: seeds fly out along a straight line and back through everything.
 func _throw_seeds() -> void:
@@ -5264,11 +5282,95 @@ func _catalogue_hit(enemy: Node2D) -> void:
 			_firefly_hits += 1
 			if _firefly_hits % DreamState.FIREFLIES_EVERY == 0 and is_instance_valid(enemy):
 				_apply_one_status(enemy, EnemyStatuses.STATIC, 2, get_damage(), false)
-	if _resonance() and is_instance_valid(enemy) and not enemy.is_cleansed:
-		_apply_one_status(enemy, EnemyStatuses.STATIC, roundi(DreamState.RESONANCE_CHARGED * _rule_power(&"resonance")), get_damage(), false)
 
-func _resonance() -> bool:
-	return _dream_state != null and tower_data.get_id() == "chime_stone" and _has_rule(&"resonance")
+# The family-wide hit cards (FAMILY_HIT_RULES) on one landed hit; `every`: it was this Warden's FAMILY_EVERY-th original hit.
+func _family_hit(enemy: Node2D, every: bool, original: bool = false) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	match tower_data.line:
+		"wing":
+			if _has_rule(&"charged_feathers") and _cross_ready(enemy, &"charged_feathers"):
+				_apply_one_status(enemy, EnemyStatuses.STATIC, 1, get_damage(), false)  # Charged Feathers
+			if _has_rule(&"pollen_beaks") and is_instance_valid(enemy) and not enemy.is_cleansed and _cross_ready(enemy, &"pollen_beaks"):
+				_apply_one_status(enemy, EnemyStatuses.SPORED, 1, get_damage(), false)  # Pollen Beaks
+		"song":
+			if _has_rule(&"resonance") and _cross_ready(enemy, &"resonance"):  # Thunder Chimes: every Bellflower Warden's hit adds Charged (a feeder: nothing to the Reaction pool)
+				_apply_one_status(enemy, EnemyStatuses.STATIC, 1, get_damage(), false)
+		"light":
+			if _has_rule(&"static_bloom") and _cross_ready(enemy, &"static_bloom"):  # Static Bloom (retired from offers; saved runs): Drowsy on Firefly hits
+				_apply_one_status(enemy, EnemyStatuses.DROWSY, 1, get_damage(), false)
+			if original and _has_rule(&"conductive_soil") and is_instance_valid(enemy) and not enemy.is_cleansed \
+					and enemy.statuses.has(EnemyStatuses.DAMP):
+				_conductive_jumps(enemy)
+		"stone":
+			if every and _has_rule(&"loose_stones"):
+				_loose_stones(enemy.global_position)
+		"wind":
+			if _rule_stacks(&"eddy") > 0 and attack_data.attack_kind != TowerData.AttackKind.SPREAD:  # (Gust copies in its own spread)
+				_eddy_copy(enemy)
+
+# Conductive Soil: the capped jump to nearby Soaked nightmares (see CONDUCTIVE_*). Its jumps are "conducted" hits, which
+# are never original hits, so they never jump on.
+func _conductive_jumps(from: Node2D) -> void:
+	var now: float = _dream_state._game_clock
+	if now < _conductive_ready_at:
+		return
+	var reach := CONDUCTIVE_REACH * MAP_GRID.cell_size.x
+	var soaked: Array = nightmares_near(get_tree(), from.global_position, reach).filter(func(e) -> bool:
+		return e != from and is_instance_valid(e) and not e.is_cleansed and e.statuses.has(EnemyStatuses.DAMP) \
+			and e.global_position.distance_to(from.global_position) <= reach)
+	if soaked.is_empty():
+		return
+	_conductive_ready_at = now + CONDUCTIVE_COOLDOWN
+	soaked.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(from.global_position) < b.global_position.distance_squared_to(from.global_position))
+	for other in soaked.slice(0, CONDUCTIVE_MAX_JUMPS):
+		if not is_instance_valid(other) or other.is_cleansed:
+			continue
+		add_child(ChainBolt.new(PackedVector2Array([aim_at(from) if is_instance_valid(from) else other.global_position, aim_at(other)])))
+		hit(other, CONDUCTIVE_SHARE, false, NO_CRIT, &"conducted")
+		if is_instance_valid(other) and not other.is_cleansed:
+			other.statuses.remove(EnemyStatuses.DAMP)  # Each jump uses up that nightmare's Soaked
+
+# Whether `card` may add its status to `enemy` from this Warden now (CROSS_STATUS_PER_SECOND, game time); if so, books it.
+func _cross_ready(enemy: Node2D, card: StringName) -> bool:
+	var now: float = _dream_state._game_clock
+	var next: Dictionary = enemy.get_meta(CROSS_STATUS_META, {})
+	var key := "%d:%s" % [get_instance_id(), card]
+	if now < float(next.get(key, -INF)):
+		return false
+	next[key] = now + 1.0 / CROSS_STATUS_PER_SECOND
+	enemy.set_meta(CROSS_STATUS_META, next)
+	return true
+
+# Loose Stones (Pebbling family): the hit breaks into 3 pieces, each LOOSE_STONE_SHARE on a cell within 1.5 cells. Area hits:
+# they never count as original hits, so pieces never make pieces.
+func _loose_stones(where: Vector2) -> void:
+	for i in 3:
+		var spot := where + Vector2.from_angle(randf() * TAU) * randf_range(0.5, 1.5) * MAP_GRID.cell_size.x
+		spot = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(spot))  # A tile centre
+		_splash(spot, MAP_GRID.cell_size.x * 0.5, LOOSE_STONE_SHARE, NO_CRIT)
+		Reactions._effect(&"crit_flare", spot, self, 0.6)
+
+# Eddy (Whirligig family): half of each status on the hit nightmare copies to 1 nightmare 1 step either side on the path
+# (Carried on the Wind: all its stacks). Once every EDDY_COOLDOWN s per Warden (game time).
+func _eddy_copy(source: Node2D) -> void:
+	var now: float = _dream_state._game_clock
+	if now < _eddy_ready_at or source.statuses.total_stacks() == 0:
+		return
+	var near: Array = _eddy_targets([source], source).filter(func(e) -> bool: return e != source and is_instance_valid(e) and not e.is_cleansed)
+	if near.is_empty():
+		return
+	_eddy_ready_at = now + EDDY_COOLDOWN
+	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(source.global_position) < b.global_position.distance_squared_to(source.global_position))
+	var other: Node2D = near[0]
+	var full_copy := _rule_stacks(&"carried_on_the_wind") > 0
+	for status in source.statuses.snapshot():
+		if status.id == EnemyStatuses.HELD:
+			continue  # Never Rooted (Balancing 2026-10-24; sleep and Caught aren't statuses, so they never copy)
+		# A quiet add (EnemyStatuses.copy_quiet): within the cap, no Reaction check, no status_filled from the copy.
+		other.statuses.copy_quiet(status.id, status.stacks if full_copy else maxi(ceili(status.stacks * 0.5), 1), status.time,
+			status.potency, status.line, status.source)
+	add_child(ChainBolt.new(PackedVector2Array([aim_at(source), aim_at(other)]), WIND_COLOR, 3.0))
 
 # Eddy: `targets` plus the nightmares on the route tiles next to each (2 along where the path bends).
 func _eddy_targets(targets: Array, source: Node2D) -> Array:

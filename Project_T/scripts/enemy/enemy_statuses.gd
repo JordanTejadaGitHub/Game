@@ -378,8 +378,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status["peak"] = maxi(int(status.get("peak", 0)), int(status.stacks))  # Ebb brings half of this back
 	pending_linger.erase(id)
 	_active[id] = status
-	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC:
-		status_filled.emit(id)  # (Charged at its most is a bolt instead)
+	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC and not _copying:
+		status_filled.emit(id)  # (Charged at its most is a bolt instead; never from a quiet copy)
 	applications += 1
 	changes += 1
 	if fresh and status.stacks > 0:
@@ -513,6 +513,67 @@ func spend_exposed_crit() -> void:
 	if not is_exposed():
 		return
 	_active[MARKED].stacks -= ceili(float(get_max_stacks(MARKED)) / 2.0)
+	changes += 1
+
+# Eddy's copy (Balancing 2026-10-24, dream_council_review.md 35): a quiet add of `stacks` of `id`, never past its cap, with
+# no Reaction check (it goes through apply(), not Enemy.apply_status) and no status_filled. Never Rooted (Hold), Drowsy's
+# sleep or Caught (those aren't copied: the caller skips HELD; sleep and Caught aren't statuses). Returns the stacks added.
+var _copying := false
+func copy_quiet(id: StringName, stacks: int, duration: float, potency: float, line: String, source: Node) -> int:
+	if id == STATIC:
+		stacks = mini(stacks, get_max_stacks(STATIC) - 1 - self.stacks(STATIC))  # A copy never fills Charged into a bolt nobody deals
+	if stacks <= 0 or id == HELD or id in immune:
+		return 0
+	var before := self.stacks(id)
+	_copying = true
+	apply(id, stacks, duration, potency, 0, line, source)
+	_copying = false
+	return maxi(self.stacks(id) - before, 0)
+
+# "A status at full" for Called Shot / Starlit Aim / Guiding Light (Balancing 2026-10-24): stacks at FULL_SHARE of the
+# status's base cap (before Brimming's doubling and ELITE_POISON_CAP_MULT; a boss's own cap). The first such id, or &"".
+const FULL_SHARE := 0.75
+func base_cap(id: StringName) -> int:
+	if not DEFAULT_MAX_STACKS.has(id):
+		return 1
+	var cap: int = DEFAULT_MAX_STACKS[id]
+	if is_boss and BOSS_MAX_STACKS.has(id):
+		cap = BOSS_MAX_STACKS[id] if id == DROWSY else maxi(cap, BOSS_MAX_STACKS[id])
+	return cap
+
+func any_full() -> StringName:
+	for id in active_ids():
+		if id in ALL and stacks(id) >= ceili(base_cap(id) * FULL_SHARE):
+			return id
+	return &""
+
+# Starlit Aim's spend, for any status (dream_council_review.md 35): half of `id`'s stacks go (rounded up). Poisoned spends
+# its oldest batches first, so its timers and credit stay true; Rooted and Drowsy never (what half a Hold or a sleep is
+# isn't defined). The status ends if nothing is left.
+func spend_half(id: StringName) -> void:
+	if not has(id) or id == HELD or id == DROWSY:
+		return
+	var take := ceili(float(stacks(id)) / 2.0)
+	if id == SPORED:
+		while take > 0 and not _spore_batches.is_empty():
+			var batch: Array = _spore_batches[0]
+			var used := mini(int(batch[1]), take)
+			batch[1] = int(batch[1]) - used
+			take -= used
+			if int(batch[1]) <= 0:
+				_spore_batches.remove_at(0)
+		var left := _spore_count()
+		if left <= 0:
+			remove(SPORED)
+			return
+		_active[SPORED].stacks = left
+		_active[SPORED].time = _spore_remaining()
+		_rebuild_spore_credit()
+	else:
+		_active[id].stacks = int(_active[id].stacks) - take
+		if int(_active[id].stacks) <= 0:
+			remove(id)
+			return
 	changes += 1
 
 func remove(id: StringName) -> void:
