@@ -16,3 +16,4 @@ requires_any = Array[String](["standing_stone", "lanternmoth"])
 in_start_pool = false
 rule_id = &"long_shadows"
 tip = "Counts the Warden's own range, before Nurture and Dreams."
+retired = true

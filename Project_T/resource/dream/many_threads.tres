@@ -16,3 +16,4 @@ rule_id = &"many_threads"
 tip = "32 {stacks} with {card:brimming}."
 makes = Array[StringName]([&"slow"])
 uses = Array[StringName]([&"drowsy"])
+retired = true

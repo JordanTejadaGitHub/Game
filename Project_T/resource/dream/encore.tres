@@ -18,3 +18,4 @@ rule_id = &"encore"
 in_start_pool = false
 makes = Array[StringName]([&"repeat"])
 tip = "Safe."
+retired = true

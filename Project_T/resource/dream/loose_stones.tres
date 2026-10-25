@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "loose_stones"
 display_name = "Loose Stones"
-description = "{warden:cairn} and {warden:rockslide} stones break into 3 when they land. Each piece deals 35% of the stone's damage on a random cell within 1.5 cells."
+description = "Every 3rd hit from a {family:pebbling} Warden breaks into 3 stones, each hitting a nearby cell for 35% of the hit."
 rarity = 1
 kind = 3
 tags = Array[String](["stone"])
-requires = Array[String](["cairn"])
+requires = Array[String](["pebbling"])
 max_stacks = 1
 rule_id = &"loose_stones"
 in_start_pool = false
 makes = Array[StringName]([&"area"])
-tip = "Safe."
+tip = "Direct hits only: the stones never break again. Nearby: within 1 cell, corners too. Safe."

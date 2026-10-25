@@ -292,10 +292,10 @@ func _remaining_design_fixes() -> void:
 	_check(not dreams.is_monoculture(), "Monoculture: Sprouts alone are not a qualifying line")
 	var guide: UpgradeData = load("res://resource/dream/guiding_light.tres")
 	dreams.unlocked["firefly_jar"] = true
-	dreams.unlocked["lanternmoth"] = true
-	_plant("lanternmoth", Vector2(86, 80))
+	dreams.grown_wardens["firefly_jar"] = true
+	_plant("firefly_jar", Vector2(86, 80))
 	dreams.stacks.erase("cozy_corners")
-	_check(dreams.can_offer(guide, 2), "Guiding Light: Lanternmoth qualifies without Cozy Corners")
+	_check(dreams.can_offer(guide, 2), "Guiding Light: any Firefly Warden qualifies (section 35), without Cozy Corners")
 
 func _impatient_overlap() -> void:
 	for tower in main.get_node("%TowerContainer").get_children():

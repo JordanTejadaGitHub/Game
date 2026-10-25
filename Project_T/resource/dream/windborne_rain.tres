@@ -17,3 +17,4 @@ entwined = true
 rule_id = &"windborne_rain"
 in_start_pool = false
 makes = Array[StringName]([&"soaked"])
+retired = true

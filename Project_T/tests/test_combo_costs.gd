@@ -53,13 +53,15 @@ func _run() -> void:
 	_check(bloom_hits == plain_hits - 1, "Charged Bloom: the chain jumps one fewer time (%d vs %d)" % [bloom_hits, plain_hits])
 	await _clean()
 
-	# Conductive Soil: each lightning jump uses up that nightmare's Soaked.
+	# Conductive Soil (section 35, Tower Code's capped jump): a Firefly Warden's direct hit on a Soaked nightmare jumps to the
+	# Soaked nightmares within 2 cells (at most 4, half damage, once a second per Warden); each jump uses up its Soaked.
 	_take("conductive_soil")
-	storm = _plant("stormcap", Vector2(4, 4))
+	var soil_jar := _plant("firefly_jar", Vector2(4, 4))
 	var lead = _spawn(Vector2(6, 4))
 	var wet = _spawn(Vector2(6, 5))
+	lead.apply_status(EnemyStatuses.DAMP, 8)
 	wet.apply_status(EnemyStatuses.DAMP, 8)
-	storm._chain_strike(lead)
+	soil_jar.hit(lead, 1.0, false, Tower.NO_CRIT)
 	_check(wet.health < wet.max_health and not wet.statuses.has(EnemyStatuses.DAMP), "Conductive Soil: a jump uses up the Soaked it jumped through")
 	await _clean()
 
@@ -74,11 +76,14 @@ func _run() -> void:
 	helper._catalogue_hit(sparks)
 	# (Fireflies in the Grass is retired from offers since the Firefly class prototype: lit Sprouts, no charges.)
 	await _clean()
+	# Thunder Chimes (section 35): every Bellflower Warden's direct hit adds 1 Charged, once a second per nightmare per Warden
 	_take("resonance")
-	var chimes := _plant("chime_stone", Vector2(3, 3))
+	var chimes := _plant("bellflower", Vector2(3, 3))
 	var chime_target = _spawn(Vector2(5, 3))
-	chimes._catalogue_hit(chime_target)
-	_check(chime_target.statuses.stacks(EnemyStatuses.STATIC) == 2, "Thunder Chimes adds two charges per pulse target")
+	chimes.hit(chime_target, 1.0, false, Tower.NO_CRIT)
+	_check(chime_target.statuses.stacks(EnemyStatuses.STATIC) == 1, "Thunder Chimes: a Bellflower hit adds 1 Charged (%d)" % chime_target.statuses.stacks(EnemyStatuses.STATIC))
+	chimes.hit(chime_target, 1.0, false, Tower.NO_CRIT)
+	_check(chime_target.statuses.stacks(EnemyStatuses.STATIC) == 1, "…once a second per nightmare for each Warden")
 	await _clean()
 	# Rolling Thunder: Thunderclap arcs strike at most 3 nightmares.
 	_take("rolling_thunder")
@@ -167,16 +172,22 @@ func _run() -> void:
 		"Eye of the Tempest: Tempest fires half as often (cooldown %.2f of %.2f)" % [crowned.statuses.reaction_cooldowns.get(&"thunderclap", 0.0), base])
 	await _clean()
 
-	# Starlit Aim: a crit at full Exposed spends half the completion threshold.
+	# Starlit Aim (section 35): a Heavy Warden's crit on a nightmare with a full status (3/4 of its base cap) uses up half of
+	# that status's stacks; a status below full is untouched, and a non-heavy Warden's crit spends nothing
 	_take("starlit_aim")
-	spore = _plant("sporeling", Vector2(2, 4))
+	var heavy := _plant("cairn", Vector2(2, 4))
+	spore = _plant("sporeling", Vector2(2, 8))
 	var star = _spawn(Vector2(4, 4))
-	star.apply_status(EnemyStatuses.MARKED, 10, 0.0, 0.0, 0, "light", spore)
+	var full_poison := ceili(star.statuses.base_cap(EnemyStatuses.SPORED) * EnemyStatuses.FULL_SHARE)
+	star.apply_status(EnemyStatuses.SPORED, full_poison, 0.0, 1.0, 0, "spore", spore)
 	spore.hit(star, 1.0, false, Tower.CRIT)
-	_check(star.statuses.stacks(EnemyStatuses.MARKED) == 5, "Starlit Aim: completed crit leaves five stacks")
-	_check(not star.statuses.is_exposed(), "Starlit Aim: vulnerability ends until rebuilt")
-	spore.hit(star, 1.0, false, Tower.CRIT)
-	_check(star.statuses.stacks(EnemyStatuses.MARKED) == 5, "Starlit Aim: partial buildup is not consumed")
+	_check(star.statuses.stacks(EnemyStatuses.SPORED) >= full_poison, "Starlit Aim: a non-heavy Warden's crit spends nothing")
+	heavy.hit(star, 1.0, false, Tower.CRIT)
+	_check(star.statuses.stacks(EnemyStatuses.SPORED) <= ceili(full_poison / 2.0), "Starlit Aim: a Heavy crit uses up half of the full status (%d left)" % star.statuses.stacks(EnemyStatuses.SPORED))
+	var partial = _spawn(Vector2(4, 6))
+	partial.apply_status(EnemyStatuses.SPORED, 4, 0.0, 1.0, 0, "spore", spore)
+	heavy.hit(partial, 1.0, false, Tower.CRIT)
+	_check(partial.statuses.stacks(EnemyStatuses.SPORED) >= 4, "Starlit Aim: a status below full is not spent")
 	await _clean()
 
 	# Rain on Glass: a light Warden's hit dries a Soaked nightmare; other families' don't.

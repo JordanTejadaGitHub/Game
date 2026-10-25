@@ -17,3 +17,4 @@ in_start_pool = false
 rule_id = &"ring_dance"
 tip = "Ring: a trap set by {warden:fairy_ring} and its forms."
 makes = Array[StringName]([&"area"])
+retired = true

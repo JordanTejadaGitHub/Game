@@ -1028,7 +1028,7 @@ func _hedgerow(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 		"reason": "" if on else "no Thornwall touching it"}
 
 func _spinning_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	if not DreamState.SPINNING_WARDENS.has(spot.data.get_id()):
+	if spot.data.line != DreamState.SPINNING_LINE:
 		return {}
 	var on := ds.is_beside_bend(spot.cell, 1)
 	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SPINNING_CORNERS_SPEED,

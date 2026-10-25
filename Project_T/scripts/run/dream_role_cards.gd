@@ -605,9 +605,12 @@ static func _towering_order(a, b) -> bool:
 
 # --- Helpers ---------------------------------------------------------------------------------------------------------------
 # The first status at its most on these statuses (&"" if none). Charged at its most is a bolt, so it never counts.
+# "A status at full" (section 35; Balancing 2026-10-24): stacks at EnemyStatuses.FULL_SHARE (0.75) of the status's USUAL
+# most, EnemyStatuses.base_cap (before Brimming's doubling and the Deeply Blighted Poisoned raise). The same rule as
+# EnemyStatuses.any_full(), but Charged never counts here (Guiding Light reads Charged itself). The first such id, or &"".
 static func full_status(s: EnemyStatuses) -> StringName:
 	for id in s.active_ids():
-		if id in EnemyStatuses.ALL and s.stacks(id) >= s.get_max_stacks(id):
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.STATIC and s.stacks(id) >= ceili(s.base_cap(id) * EnemyStatuses.FULL_SHARE):
 			return id
 	return &""
 

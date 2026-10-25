@@ -177,10 +177,10 @@ func _test_tools(main: Node, grove: TestGrove) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	var bloom: UpgradeData = null
 	for card in dreams.pool:
-		if card.id == "chain_bloom":
+		if card.id == "hairpin_winds":  # (Section 35: Chain Bloom is start pool now, behind a splash-Warden board gate)
 			bloom = card
 	_check(bloom != null and dreams.is_eligible(bloom, 2), "Grove-only Dreams can be offered in Test Grove")
-	_check(grove.take_dream(bloom) and dreams.has_rule(&"chain_bloom"), "Take any Dream applies it now")
+	_check(grove.take_dream(bloom) and dreams.has_rule(&"hairpin_winds"), "Take any Dream applies it now")
 	_check(not grove.take_dream(bloom), "a once-only Dream can't be taken twice")
 
 # Kinship's Harmony strikes join their hit's damage number (green), never a number of their own.

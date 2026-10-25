@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"bright_marks"
 tip = "Adds 30% to whatever {marked} gives, so {warden:beacon} and Potency still raise it. Works for: {warden:lanternmoth} and its forms, or the Moth to Flame evolution. Safe."
 uses = Array[StringName]([&"exposed"])
+retired = true
