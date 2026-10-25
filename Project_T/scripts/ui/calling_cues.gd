@@ -276,7 +276,7 @@ func _draw() -> void:
 			var corner_lit: Vector2 = to_local((row[0] as Node2D).global_position) + side / 2.0 - Vector2(2, 2)
 			var box_lit := Vector2(16.0, 16.0)
 			var in_lit := _plate_at(self, corner_lit - box_lit - PLATE_PAD * 2.0, box_lit, true)
-			draw_rect(Rect2(in_lit - Vector2(1, 0), box_lit + Vector2(2, 0)), Palette.OAK)  # Filled: warm glass behind the flame
+			draw_rect(Rect2(in_lit - Vector2(1, 0), box_lit + Vector2(2, 0)), Color(UiStyle.GOLD, 0.3))  # Filled: gold glass (UI council r8: Oak read as wood)
 			draw_set_transform((in_lit + box_lit / 2.0).round(), 0.0, Vector2(2, 2))  # The flame at ×2, whole pixels
 			_flame(self, Vector2.ZERO, Palette.GLOW, true)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -373,5 +373,8 @@ static func draw_tally(c: CanvasItem, centre: Vector2, share: float, halfway: in
 			c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 9)), Palette.MOONLIGHT)
 			c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 2)), Palette.HEARTLIGHT)
 			x += TICK_STEP + 1.0
-		elif halfway == 2 and i == notch_after - 1:  # Taken: the post is gone, a plain gap (UI council: told apart by shape)
-			x += 2.0
+		elif halfway == 2 and i == notch_after - 1:  # Taken: a short Slate stub, no taller than the ticks (UI council r8: a gap read as nothing)
+			x += 1.0
+			c.draw_rect(Rect2(Vector2(x, top + 1), Vector2(3, 4)), Palette.VOID)
+			c.draw_rect(Rect2(Vector2(x + 1, top + 2), Vector2(1, 2)), Palette.SLATE)
+			x += TICK_STEP + 1.0
