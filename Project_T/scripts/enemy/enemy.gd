@@ -1265,10 +1265,11 @@ func _wanted_row_look() -> RowLook:
 # sort one by one (about three items a nightmare); apart, the node's own position sorts it the same. On at once when
 # crowded, off CROWD_HOLD s after the crowd thins (so a pack's edge doesn't flip it).
 var _sort_hold := 0.0
+var sort_seen := -1.0  # EnemySpawner.crowd_clock when another drawn body was last within SORT_REACH (its own mark: crowd_seen is the status rows')
 
 func _update_sort_look(delta: float) -> void:
 	_sort_hold -= delta
-	var crowded: bool = _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN
+	var crowded: bool = _spawner != null and sort_seen >= 0.0 and _spawner.crowd_clock - sort_seen <= CROWD_SEEN
 	if crowded:
 		_sort_hold = CROWD_HOLD
 	if crowded != y_sort_enabled and (crowded or _sort_hold <= 0.0):

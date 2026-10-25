@@ -328,6 +328,7 @@ const JOSTLE_REACH := 0.55  # Cells along the route
 const JOSTLE_LANES := 0.15  # Cells: lanes closer than this push
 const JOSTLE_PUSH := 0.8  # Lane units a second
 const JOSTLE_EVERY := 2
+const SORT_REACH := 0.5  # Cells: drawn bodies this close y-sort by their drawn position (Enemy.sort_seen; perf 2026-10-25)
 var _jostle_time := 0.0
 # Status icons in crowds (enemy_design.md, owner 2026-10-24): a nightmare is crowded (Enemy.crowd_seen = crowd_clock) when
 # its FULL status row would overlap another's full row or drawn body (owner question 2026-10-25, "what's the minimum
@@ -369,9 +370,8 @@ func _jostle_lanes(delta: float) -> void:
 	if buckets.is_empty():
 		return
 	_mark_crowds(walkers, cell_px)  # The crowd marks (compact status rows) always, jostle or not
-	if not push:
-		return  # (No pushes: the pair pass below only jostles now)
 	var reach := JOSTLE_REACH * cell_px
+	var sort_reach := SORT_REACH * cell_px
 	for key in buckets:
 		var here: Array = buckets[key]
 		var next: Array = buckets.get(key + 1, [])
@@ -381,7 +381,12 @@ func _jostle_lanes(delta: float) -> void:
 			for j in range(i + 1, here.size() + next.size()):
 				var other: Array = here[j] if j < here.size() else next[j - here.size()]
 				if absf(left - float(other[1])) <= reach:
-					_jostle_pair(one, other, cell_px, step, push)
+					# Two drawn bodies this close sort by where they're drawn (Enemy._update_sort_look), statuses or not
+					if (one[2] as Vector2).distance_squared_to(other[2]) < sort_reach * sort_reach:
+						one[0].sort_seen = crowd_clock
+						other[0].sort_seen = crowd_clock
+					if push:
+						_jostle_pair(one, other, cell_px, step, push)
 
 # Crowd marks from the walkers of this pass ([[nightmare, distance left, drawn body, …], …]): a spatial hash on the drawn
 # bodies, buckets as wide as the widest full row (and two cells tall: a row sits above its body), each pair compared
