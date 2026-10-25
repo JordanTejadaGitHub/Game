@@ -185,7 +185,7 @@ func _run() -> void:
 		seller.select(nursling)
 		await process_frame
 	var nurture_buttons: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
-		return b.text.begins_with("Nurture rank"))
+		return b.text.begins_with("Nurture Rank"))
 	_check(nurture_buttons.size() == 1 and nurture_buttons[0].text.ends_with("(N)"), "one Nurture button (%s)" % [nurture_buttons.map(func(b: Button) -> String: return b.text)])
 	_check(not panel.find_children("*", "Button", true, false).any(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0),
 		"the choices stay closed until asked")

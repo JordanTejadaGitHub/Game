@@ -442,7 +442,7 @@ func _refresh() -> void:
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
-				_priced(nurture, "Nurture rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
+				_priced(nurture, "Nurture Rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
@@ -1016,7 +1016,7 @@ func _nurture_heading(text: String, cost: int) -> void:
 	price.text = ("free" if cost == 0 else str(cost)) if cost >= 0 else ""
 	price.set_meta(&"cost", cost)
 	price.visible = price.text != ""
-	UiStyle.number(price, ROW_NOTE_SIZE + 1, UiStyle.POOR if not run_state.can_afford(cost) else UiStyle.GOLD)
+	UiStyle.number(price, ROW_NAME_SIZE, UiStyle.POOR if not run_state.can_afford(cost) else UiStyle.GOLD)
 	line.add_child(price)
 	_buttons.add_child(line)
 
@@ -1776,7 +1776,7 @@ func _place_from_bottom() -> void:
 
 # --- Prices on action buttons (screens_ui.md "can't buy", user 2026-10-01) ---------------------------------
 # Every action the player can't pay for looks the same: the plain frame, a dim INK_DIM label, and only the
-# cost in POOR ("Nurture rank III · 120 Dew (N)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
+# cost in POOR ("Nurture Rank III · 120 Dew (N)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
 # needed": user, "a bit too much hand holding"). Still pressable: the press plays the refusal
 # (TowerSeller.refuse_if_short / _refuse_nurture: the button shakes, "Not enough Dew", the counter flashes).
 # Dew / Dreamlight changes update it in place (_update_prices), back to the normal look the moment it's affordable.
@@ -1873,7 +1873,7 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 		var cost_label := Label.new()  # The price, right-aligned before the key
 		cost_label.name = "Price"
 		cost_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cost_label.add_theme_font_size_override("font_size", ROW_NOTE_SIZE + 1 + (PHONE_ROW_BUMP if _phone else 0))
+		cost_label.add_theme_font_size_override("font_size", ROW_NAME_SIZE + (PHONE_ROW_BUMP if _phone else 0))  # As the name (user 2026-10-24: "different text size"; it was 14)
 		row.add_child(cost_label)
 		var chip := UiStyle.key_chip("")
 		chip.name = "Key"
@@ -1887,10 +1887,11 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	name_label.text = parts[0]
 	if _phone and not name_label.has_meta(&"fit_sizes"):
 		name_label.set_meta(&"fit_sizes", [ROW_NAME_SIZE + PHONE_ROW_BUMP, ROW_NAME_SIZE, 14, 13])  # Phones: a step bigger first
-	if not name_label.has_meta(&"fitting"):  # Never cut a form's name (_fit_name), again whenever the row resizes
+	if not name_label.has_meta(&"fitting"):  # Never cut a form's name (_even_names), again whenever the row resizes
 		name_label.set_meta(&"fitting", true)
-		name_label.resized.connect(_fit_name.bind(name_label), CONNECT_DEFERRED)
-	_fit_name.call_deferred(name_label)
+		name_label.name = "RowName"
+		name_label.resized.connect(_even_names, CONNECT_DEFERRED)
+	_even_names.call_deferred()
 	var notes: Array[String] = []
 	if parts.size() > 1:
 		notes.append(parts[1])
@@ -1942,6 +1943,32 @@ static func _fit_name(label: Label) -> void:
 	# Only a real change: a new size resizes the label, which asks again (deferred; the same answer then stops it).
 	if label.get_theme_font_size("font_size") != fit:
 		label.add_theme_font_size_override("font_size", fit)
+
+# Every row's name in one size (user 2026-10-24: "different text size": "Unlock Chime Stone" stepped down to 14 beside
+# "Unlock Hushbell" at 16): the biggest step every shown name fits at.
+func _even_names() -> void:
+	var labels: Array[Label] = []
+	for button in _all_buttons():
+		var label := (button as Node).find_child("RowName", true, false) as Label if button is Node else null
+		if label != null and label.is_visible_in_tree() and label.size.x > 0.0:
+			labels.append(label)
+	if labels.is_empty():
+		return
+	var sizes: Array = labels[0].get_meta(&"fit_sizes", ROW_NAME_SIZES)
+	var fit: int = sizes.back()
+	for font_size in sizes:
+		if labels.all(func(l: Label) -> bool: return _fits(l, font_size)):
+			fit = font_size
+			break
+	for label in labels:  # Only a real change: a new size resizes the label, which asks again (the same answer stops it)
+		if label.get_theme_font_size("font_size") != fit:
+			label.add_theme_font_size_override("font_size", fit)
+		var price := label.get_parent().get_parent().get_node_or_null("Price") as Label  # Row/Lines/RowName → Row/Price
+		if price != null and not price.has_meta(&"fit_sizes") and price.get_theme_font_size("font_size") != fit:
+			price.add_theme_font_size_override("font_size", fit)  # The price as its name (a Nurture change keeps its own steps)
+
+static func _fits(label: Label, font_size: int) -> bool:
+	return label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= label.size.x
 
 func _row_note(button: Button, form_name: String, reason: String) -> void:
 	button.set_meta(&"label", form_name)
