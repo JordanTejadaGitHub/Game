@@ -11,6 +11,8 @@ class_name EnemyStatuses
 #   marked  (Exposed) builds to 10 stacks, then +25% damage taken, 5 s (20 with Brimming)
 #   static  (Charged) charges; at 20 (bosses 30) a free bolt of 16× the charge potency, then reset; −1 stack per 2 s
 #   held    (Rooted) can't move (Frostfern's freeze), 1 s       (reaction buildup counted)
+#   frost   (Frost) builds to 15 (bosses 22); full = a Frostburst (4.5× the strongest applier's potency to it, Reactions spreads it)
+#           and Cold Snap (its other statuses stop running down 1.5 s); 5 s, then it drains (section 37)
 # All slows together stop at SLOW_FLOOR of a nightmare's speed (elites / bosses higher); sleep and Hold
 # have cooldowns. Potency (the applier's) multiplies only effect damage (Poisoned ticks, Charged bolts,
 # Reactions: Reactions.EFFECT_TAGS in Enemy.take_damage); Soaked, Drowsy, Exposed and Rooted deal none.
@@ -21,14 +23,15 @@ const SPORED := &"spored"
 const MARKED := &"marked"
 const STATIC := &"static"
 const HELD := &"held"
-const ALL: Array[StringName] = [DAMP, DROWSY, SPORED, MARKED, STATIC, HELD]
+const FROST := &"frost"  # The 7th status (dream_council_review.md section 37, owner 2026-10-25)
+const ALL: Array[StringName] = [DAMP, DROWSY, SPORED, MARKED, STATIC, HELD, FROST]
 
-const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STATIC: 2.0, HELD: 1.0}
-const DEFAULT_MAX_STACKS := {DAMP: 8, DROWSY: 20, SPORED: 32, MARKED: 10, STATIC: 20, HELD: 4}
-const BOSS_MAX_STACKS := {DROWSY: 12, STATIC: 30}
+const DEFAULT_DURATION := {DAMP: 4.0, DROWSY: 3.0, SPORED: 5.0, MARKED: 5.0, STATIC: 2.0, HELD: 1.0, FROST: 5.0}
+const DEFAULT_MAX_STACKS := {DAMP: 8, DROWSY: 20, SPORED: 32, MARKED: 10, STATIC: 20, HELD: 4, FROST: 15}
+const BOSS_MAX_STACKS := {DROWSY: 12, STATIC: 30, FROST: 22}
 const COLORS := {  # Marks the Wardens put on nightmares, so they keep the Wardens' colours (one each)
 	DAMP: Palette.DEWLIGHT, DROWSY: Palette.BLOSSOM, &"asleep": Palette.BLOSSOM, SPORED: Palette.SPRIG,
-	MARKED: Palette.GOLD, STATIC: Palette.GLOW, HELD: Palette.MOONLIGHT,
+	MARKED: Palette.GOLD, STATIC: Palette.GLOW, HELD: Palette.MOONLIGHT, FROST: Palette.MIST,
 }
 # The White Stag's aura (a Memory Warden): nightmares inside are slower and take more damage.
 const STAG_SLOW := 0.15
@@ -46,7 +49,44 @@ const STATIC_DECAY_TIME := 2.0  # Seconds per lost Static stack
 # Seconds per lost stack once a status's timer runs out (balance_simulation.md "Statuses vanish whole: drain one stack
 # at a time"; owner playtest 2026-10-13). The others (Poisoned's own batches, Rooted) end as before. Lasting Dreams,
 # Deep ranks and Potency lengthen the timer only, never the drain.
-const DECAY_TIME := {DAMP: 0.5, DROWSY: 0.5, MARKED: 1.0, STATIC: STATIC_DECAY_TIME}
+const DECAY_TIME := {DAMP: 0.5, DROWSY: 0.5, MARKED: 1.0, STATIC: STATIC_DECAY_TIME, FROST: FROST_DECAY_TIME}
+# Frost (section 37; numbers frost_balance.md, Balancing to confirm): full Frost bursts like Charged bolts. The burst's
+# damage is FROST_BURST x the strongest applier's potency (bosses FROST_BURST_BOSS; Brimming's 2.2 payoff), left in
+# burst_pending for Enemy to hand to Reactions (which hits the nightmares around and spreads Frost; never recursive),
+# with burst_source its credit; the nightmare gets a Cold Snap. Copies and quiet adds stop FROST_QUIET_SHORT short.
+const FROST_DECAY_TIME := 1.0  # Seconds per lost Frost stack once its 5 s run out
+const FROST_BURST := 4.5  # Balancing 2026-10-25 (balance_simulation.md "Frost: numbers")
+const FROST_BURST_BOSS := 2.25  # Balancing 2026-10-25
+const FROST_CHAIN := 2.25  # Balancing 2026-10-25: what Reactions.frostburst deals each nightmare around (x the same potency)
+const FROST_CHAIN_BOSS := 1.125  # …a boss hit by a chain (half)
+const FROST_QUIET_SHORT := 2  # Copied / Windmill / Hoar Fog / chain Frost stops at the cap - 2 (13), never a burst nobody dealt
+# Cold Snap: its other statuses stop running down (never Rooted, sleep, Caught, slows or Frost itself; no linger booked),
+# COLD_SNAP s (bosses COLD_SNAP_BOSS), at most once per COLD_SNAP_EVERY s (bosses COLD_SNAP_EVERY_BOSS).
+const COLD_SNAP := 1.5
+const COLD_SNAP_BOSS := 0.5
+const COLD_SNAP_EVERY := 6.0
+const COLD_SNAP_EVERY_BOSS := 10.0
+var burst_pending := 0.0  # A Frostburst's damage waiting for Enemy.apply_status (0: none)
+var burst_source: Node = null
+var cold_snap_time := 0.0:
+	set(value):
+		cold_snap_time = value
+		if value > 0.0:
+			_timers_live = true
+var cold_snap_cooldown := 0.0:
+	set(value):
+		cold_snap_cooldown = value
+		if value > 0.0:
+			_timers_live = true
+
+# A Cold Snap on this nightmare unless one came too recently. True if it started.
+func cold_snap() -> bool:
+	if cold_snap_cooldown > 0.0:
+		return false
+	cold_snap_time = maxf(cold_snap_time, COLD_SNAP_BOSS if is_boss else COLD_SNAP)
+	cold_snap_cooldown = COLD_SNAP_EVERY_BOSS if is_boss else COLD_SNAP_EVERY
+	hud_dirty = true
+	return true
 const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
@@ -380,8 +420,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	if feeding and int(status.stacks) > 0:
 		status["fed_until"] = float(status.get("age", 0.0)) + FED_LOCK  # No self-feeding (section 36): hollow for FED_LOCK s
 	_active[id] = status
-	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC and not _copying:
-		status_filled.emit(id)  # (Charged at its most is a bolt instead; never from a quiet copy)
+	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC and id != FROST and not _copying:
+		status_filled.emit(id)  # (Charged and Frost at their most burst instead; never from a quiet copy)
 	applications += 1
 	changes += 1
 	if fresh and status.stacks > 0:
@@ -397,6 +437,14 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
 		bolt_source = status.get("source")  # The bolt is the strongest applier's charge: its credit too
 		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
+	# Frost full: a Frostburst (section 37). The damage waits in burst_pending (apply's return stays the bolt: its callers
+	# read it); Enemy.apply_status hands it to Reactions. A copy never gets here (copy_quiet / add_quiet stop short).
+	if id == FROST and status.stacks >= cap and not _copying:
+		_active.erase(FROST)
+		changes += 1
+		burst_source = status.get("source")
+		burst_pending += status.potency * (FROST_BURST_BOSS if is_boss else FROST_BURST) * charged_payoff_multiplier()
+		cold_snap()
 	return 0.0
 
 # Caps on what Potency can make of a status (Balancing Discussion, 2026-10-01). A cap never lowers a
@@ -525,6 +573,8 @@ var _copying := false
 func copy_quiet(id: StringName, stacks: int, duration: float, potency: float, line: String, source: Node) -> int:
 	if id == STATIC:
 		stacks = mini(stacks, get_max_stacks(STATIC) - 1 - self.stacks(STATIC))  # A copy never fills Charged into a bolt nobody deals
+	elif id == FROST:
+		stacks = mini(stacks, get_max_stacks(FROST) - FROST_QUIET_SHORT - self.stacks(FROST))  # …nor Frost into a burst (stops at 13)
 	if stacks <= 0 or id == HELD or id in immune:
 		return 0
 	var before := self.stacks(id)
@@ -630,6 +680,10 @@ func shed_all() -> int:
 		burn_time = 0.0
 	chain_count = 0
 	held_bonus = 0.0
+	if cold_snap_time > 0.0:
+		cold_snap_time = 0.0  # (Frost: the Waymark ends a Cold Snap; a waiting burst goes too)
+	burst_pending = 0.0
+	burst_source = null
 	changes += 1
 	hud_dirty = true
 	return shed
@@ -728,7 +782,6 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 func is_exposed() -> bool:
 	return has(MARKED) and stacks(MARKED) >= get_max_stacks(MARKED)
 
-
 # Bright Marks' part of the damage taken (DamageLog.note_card_bonus: the Dream damage panel and DreamState.boost_tier read
 # it; Roguelite 451495cb): the taken multiplier with its bonus over the one without, the rest cancelling. 1.0 when it
 # adds nothing (not Exposed, or no Bright Marks).
@@ -766,6 +819,10 @@ func _tick_timers(delta: float) -> void:
 	# frame for every nightmare).
 	if tempest_time > 0.0:
 		tempest_time = maxf(tempest_time - delta, 0.0)
+	if cold_snap_time > 0.0:
+		cold_snap_time = maxf(cold_snap_time - delta, 0.0)
+	if cold_snap_cooldown > 0.0:
+		cold_snap_cooldown = maxf(cold_snap_cooldown - delta, 0.0)
 	if ground_taken_time > 0.0:
 		ground_taken_time = maxf(ground_taken_time - delta, 0.0)
 	if gust_time > 0.0:
@@ -871,6 +928,7 @@ func tick(delta: float) -> float:
 	if not _active.is_empty() and caught_time <= 0.0:
 		var expired: Array = _EMPTY  # Shared until something expires (perf: no new array every frame)
 		var bound_now := bound_pause and _active.has(HELD)  # Card pass 2026-10-16, Bound and Burning
+		var snap_now := cold_snap_time > 0.0  # Frost's Cold Snap (section 37)
 		for id in _active:
 			var status: Dictionary = _active[id]
 			status["age"] = float(status.get("age", 0.0)) + delta  # Old Rain
@@ -878,6 +936,8 @@ func tick(delta: float) -> float:
 				if can_linger(id):
 					status["stretched"] = float(status.get("stretched", 0.0)) + delta  # Keyword chips 2026-10-16: the pause is Linger (is_lingering)
 				continue  # Bound and Burning: while Rooted its other statuses don't run down (Rooted itself still does)
+			if snap_now and id != HELD and id != FROST and not (is_boss and id == DROWSY):  # (Balancing 2026-10-25: never a boss's Drowsy)
+				continue  # Cold Snap: the others stop running down (Poisoned's batches too; it still ticks); no linger booked
 			if id == SPORED:
 				_tick_spore_batches(delta)
 				status.stacks = _spore_count()
@@ -1050,6 +1110,8 @@ func add_quiet(id: StringName, amount: int) -> int:
 	var cap := get_max_stacks(id)
 	if id == STATIC:
 		cap -= 1
+	elif id == FROST:
+		cap -= FROST_QUIET_SHORT  # A quiet add never fills Frost into a burst nobody dealt (stops at 13)
 	var added := clampi(cap - int(status.stacks), 0, amount)
 	if added <= 0:
 		return 0

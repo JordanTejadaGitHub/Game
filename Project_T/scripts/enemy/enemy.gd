@@ -137,7 +137,7 @@ const STATUS_BADGE := 28.0
 const STATUS_BADGE_BIG := 32.0
 const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
-const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"asleep", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
+const BADGE_ORDER: Array[StringName] = [&"static", &"frost", &"held", &"asleep", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
 const HUD_TIME_FRAMES := 6  # The time bars under the icons are looked at every this many frames (_update_hud; was 4: perf 2026-10-19)
 const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
@@ -1247,6 +1247,34 @@ func _update_hud(delta: float) -> void:
 
 # The badge row's look now (RowLook): full for the hovered / tapped nightmare, bosses, Deeply Blighted and anything not
 # crowded; compact pips in a crowd; nothing under "Off" (but the hovered / tapped one).
+# A Frostburst (dream_council_review.md section 37): Reactions.frostburst(enemy, amount, source) deals it, hits the
+# nightmares around and queues their Frost (reactions.gd's owner builds it). Until it exists, the burst hits this one
+# only, tagged FROSTBURST_TAG (an effect: it goes in Reactions.EFFECT_TAGS). The Cold Snap started in EnemyStatuses.
+const FROSTBURST_TAG := &"frostburst"
+# Brittle (Frost + Exposed, a Frost Reaction in reactions.gd): while its timer runs (Reactions.BRITTLE_ON, a status
+# cooldown key) the dread shell soaks BRITTLE_SHELL as much (= Reactions.BRITTLE_SHELL_SHARE; mirrored so this file never
+# needs reactions.gd's Frost code to parse). Resisted families / shape penalties: none left since Nightmare Kinds.
+const BRITTLE_KEY := &"brittle_on"
+const BRITTLE_SHELL := 0.5
+signal frost_burst(enemy: Node2D, amount: float, source: Node)  # For Fx / Sound (before the damage lands)
+static var _reactions_frostburst := -1  # 1 once Reactions.frostburst exists (looked up once by name)
+
+func _frostburst() -> void:
+	var amount := statuses.burst_pending
+	var by := statuses.burst_source if is_instance_valid(statuses.burst_source) else null
+	statuses.burst_pending = 0.0
+	statuses.burst_source = null
+	frost_burst.emit(self, amount, by)
+	if _reactions_frostburst < 0:
+		_reactions_frostburst = 0
+		for method in (Reactions as Script).get_script_method_list():
+			if method.name == "frostburst":
+				_reactions_frostburst = 1
+	if _reactions_frostburst == 1:
+		(Reactions as Script).call("frostburst", self, amount, by)
+	else:
+		take_damage(amount, "", true, false, by, FROSTBURST_TAG)
+
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
 		return RowLook.FULL
@@ -3663,7 +3691,8 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	pierce_coat_once = false
 	if coat > 0.0 and soothe > 0.0 and not pierce:
 		# Each hit loses up to _coat_per_hit (always keeping at least 1), never more than the coat has left.
-		var soaked := minf(minf(_coat_per_hit, coat), soothe - minf(soothe, 1.0))
+		var per_hit := _coat_per_hit * (BRITTLE_SHELL if statuses.is_on_cooldown(BRITTLE_KEY) else 1.0)  # Brittle: the shell soaks half
+		var soaked := minf(minf(per_hit, coat), soothe - minf(soothe, 1.0))
 		var shell := batch_dreams.shell_multiplier(self, source) if batch_dreams != null else 1.0  # Wash Away: the shell takes double (Roguelite Code)
 		coat -= minf(soaked * shell, coat)
 		soothe -= soaked
@@ -3753,6 +3782,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		# whose charge it was (EnemyStatuses.bolt_source), not the last stack's.
 		var charger: Node = statuses.bolt_source if is_instance_valid(statuses.bolt_source) else source
 		Reactions.strike_bolt(self, bolt, charger, &"static")
+	if statuses.burst_pending > 0.0 and not is_cleansed:
+		_frostburst()  # Frost filled (section 37)
 	if not is_cleansed and id in statuses.ALL:
 		if is_instance_valid(_batch_dreams) and _batch_dreams.wants_reaction_hook():
 			_batch_dreams.class_reaction(self, id, source)  # Old Rain / Never Quite Dry wrap the check (Roguelite Code)
