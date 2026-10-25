@@ -160,7 +160,7 @@ static func kind_of(tower: Tower) -> StringName:
 	if WALLS.has(id):
 		return &"wall"
 	var data := tower.tower_data
-	if data.hold_targets > 0 or data.pull_tiles > 0.0 or data.pulse_hold_every > 0 or data.freeze_duration > 0.0:
+	if data.hold_targets > 0 or data.pull_tiles > 0.0 or data.pulse_hold_every > 0 or data.hold_on_hit > 0.0:
 		return &"control"
 	return &""
 

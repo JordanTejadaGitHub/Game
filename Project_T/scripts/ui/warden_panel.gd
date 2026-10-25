@@ -1429,7 +1429,7 @@ func _add_hit_card_rows() -> void:
 		_add_button(line).disabled = true
 	if cards.can_choose(_tower):
 		var button := _add_button("Choose as Tallest")
-		button.tooltip_text = "The Tallest Tree: Wardens touching it stop attacking, and each gives it one more attack every time it attacks (up to 8). Sprouts and walls don't count." + ("" if cards.tallest() == null else " Moves the Tallest Tree here.")
+		button.tooltip_text = "The Tallest Tree: Wardens touching it stop attacking, and each one gives the Tree an extra attack whenever it attacks (up to 8). Only 2 of each volley's extra attacks trigger on-hit cards. Sprouts and walls don't count." + ("" if cards.tallest() == null else " Moves the Tallest Tree here.")
 		button.pressed.connect(_choose_tallest)
 
 func _choose_tallest() -> void:

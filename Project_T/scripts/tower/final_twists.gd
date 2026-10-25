@@ -11,7 +11,7 @@ extends RefCounted
 
 const TWISTS := {
 	"snugroot": &"logjam", "dreamshroom": &"dream_spores", "boulderback": &"landslide",
-	"lullaby_bell": &"chorus", "morning_fog": &"veil", "hoarfrost": &"shatter_chain", "beacon": &"flare",
+	"lullaby_bell": &"chorus", "morning_fog": &"veil", "beacon": &"flare",
 	"midsummer": &"solstice", "starcave": &"starlit_snare", "great_dreamcatcher": &"mended_leaves",
 	"grafted_elder": &"double_graft", "starling_murmuration": &"dark_swirl", "zephyr": &"gale_lane",
 	"windmill": &"momentum", "elf_circle": &"fairy_dance"}
@@ -367,8 +367,8 @@ static func gale(tower: Tower) -> void:
 		if enemy == source or not tiles.has(enemy.get_current_cell()):
 			continue
 		for status in copied:
-			enemy.apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time, status.potency, 0,
-				status.line, status.source)
+			Tower.copy_status_onto(enemy, status.id, maxi(ceili(status.stacks / 2.0), 1), status.time, status.potency,
+				status.line, status.source)  # (Copied Frost stops short of a burst: Balancing 2026-10-25)
 	if tiles.size() >= 2:  # A gust streaks along the lane
 		var streak := Fx.segment(&"gale_lane", Tower.MAP_GRID.calculate_map_position(tiles[-1]),
 			Tower.MAP_GRID.calculate_map_position(tiles[0]), Reactions._world(tower), 0.6)

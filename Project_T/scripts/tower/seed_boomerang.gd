@@ -135,8 +135,8 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 		elif not _carried.is_empty():
 			var full := Tower._kin_roll(_tower.kin_share(&"tailwind", "a")) if is_instance_valid(_tower) else false  # Tailwind: full stacks
 			for status in _carried:
-				enemy.apply_status(status.id, status.stacks if full else maxi(ceili(status.stacks / 2.0), 1), status.time, status.potency, 0,
-					status.line, status.get("source"))
+				Tower.copy_status_onto(enemy, status.id, status.stacks if full else maxi(ceili(status.stacks / 2.0), 1), status.time, status.potency,
+					status.line, status.get("source"))  # (Copied Frost stops short of a burst: Balancing 2026-10-25)
 		var crit := Tower.ROLL_CRIT
 		if _returning and dreams and dreams.has_rule(&"backspin") \
 				and randf() < _tower.get_crit_chance(enemy) + BACKSPIN_CRIT * dreams.rule_power(&"backspin"):

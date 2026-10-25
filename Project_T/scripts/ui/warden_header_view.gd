@@ -476,7 +476,7 @@ static func root_seconds(attack: TowerData) -> float:
 			return FinalTwists.SNARE_HOLD
 		&"fairy_dance":
 			return FinalTwists.DANCE_HOLD
-	return attack.freeze_duration
+	return attack.hold_on_hit
 
 static func status_strength_text(status: StringName, potency: float, duration: float = 0.0, held_extra: float = 0.0) -> String:
 	if not Tower.status_potency_on:

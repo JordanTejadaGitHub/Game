@@ -1,8 +1,7 @@
 extends Node2D
 class_name PathCloud
 
-const HOAR_FOG_STAY := 2.0  # Hoar Fog (Kinship): seconds in the fog before it freezes…
-const HOAR_FOG_FREEZE := 0.75  # …for this long (Frostfern's freeze), x the bond's share
+const HOAR_FOG_FROST_EVERY := 1.0  # Hoar Fog (Kinship, section 37): 1 Frost each this many seconds in the fog (x the bond's share). Balancing 2026-10-25
 
 # A lingering cloud on a path tile (Bloomcap's sleepy cloud, Mistveil's fog). Every TICK seconds
 # it soothes the creatures inside a little and applies the Warden's status; fog clouds also make
@@ -31,7 +30,6 @@ var _tick_timer := 0.0
 var _drowsy_time := {}  # Morning Fog: nightmare instance id -> seconds inside since its last Drowsy
 var _seen := {}  # Nightmares that have been inside (instance ids): "entering" for Rainfog
 var _stay := {}  # Hoar Fog: nightmare instance id -> seconds inside
-var _frozen := {}  # Hoar Fog: nightmares this cloud froze
 var flecks := Color(0, 0, 0, 0)  # Borrowed looks: a bonded Warden's cloud carries flecks of its kin's colour
 const DREAM_GLOW := preload("res://scripts/fx/dream_glow.gd")
 # Boosted-attack glow (visual feedback spec B2; Tower.dream_glow_tier): 2 warm motes drifting in it, edge glints from
@@ -87,15 +85,18 @@ func _tick() -> void:
 			if _drowsy_time[id] >= 1.0 / data.cloud_drowsy_per_second:
 				_drowsy_time[id] = 0.0
 				enemy.apply_status(EnemyStatuses.DROWSY, 1, 0.0, 0.0, 0, data.line, _tower)
-		# Hoar Fog B: a Mistveil's fog freezes a nightmare that stays in it 2 s (once per cloud).
-		if _fog and is_instance_valid(_tower) and not _frozen.has(enemy.get_instance_id()):
-			var stay: float = _stay.get(enemy.get_instance_id(), 0.0) + TICK
-			_stay[enemy.get_instance_id()] = stay
+		# Hoar Fog B (section 37): a Mistveil's fog gives 1 Frost a second (x the bond's share) to what's inside, stopping
+		# at 8 (a quiet add: never a burst).
+		if _fog and is_instance_valid(_tower):
 			var hoar := _tower.kin_share(&"hoar_fog", "b")
-			if hoar > 0.0 and stay >= HOAR_FOG_STAY:
-				_frozen[enemy.get_instance_id()] = true
-				_tower.hold(enemy, HOAR_FOG_FREEZE * hoar)
-				_tower._kin_fired(&"hoar_fog")
+			if hoar > 0.0:
+				var stay: float = _stay.get(enemy.get_instance_id(), 0.0) + TICK * hoar
+				if stay >= HOAR_FOG_FROST_EVERY:
+					stay -= HOAR_FOG_FROST_EVERY
+					if enemy.statuses.copy_quiet(EnemyStatuses.FROST, 1, 0.0, _tower.get_damage() * minf(_tower.get_attacks_per_second(), Tower.FROST_POTENCY_APS_CAP),
+							"water", _tower) > 0:
+						_tower._kin_fired(&"hoar_fog")
+				_stay[enemy.get_instance_id()] = stay
 		# Kinships: Slumber Rot adds Spored per tick, Rainfog's fog hits nightmares entering it.
 		var entered := not _seen.has(enemy.get_instance_id())
 		_seen[enemy.get_instance_id()] = true

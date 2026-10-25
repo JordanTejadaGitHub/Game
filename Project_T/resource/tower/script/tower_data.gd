@@ -83,7 +83,11 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var crit_chance: float = 0.0  # 0.05 = 5% of hits deal crit_multiplier × damage
 @export var crit_multiplier: float = 2.0
 @export var potency: float = 1.0  # Effect damage (Spored, bolts, clouds, pops, Reactions, echoes) ×this; 1.15 = 115%
-@export var crit_bonus_vs_held: float = 0.0  # Extra crit chance against Held nightmares (Hoarfrost)
+@export var crit_bonus_vs_held: float = 0.0  # Extra crit chance against Held nightmares
+@export var crit_bonus_vs_frost: float = 0.0  # Extra crit chance against nightmares with crit_frost_at+ Frost (Hoarfrost, section 37)
+@export var crit_frost_at: int = 0  # …this much Frost or more (0 = Tower.FROST_CRIT_AT); a field so texts read it ({field:…})
+# Tidecaller (section 37): its hit also gives this many Frost to a nightmare that already has Frost (0 = none).
+@export var frost_if_frosted: int = 0
 @export var first_hit_crits: bool = false  # First hit on each nightmare always crits (Moonstone)
 @export var target_mode: TargetMode = TargetMode.FIRST
 @export var has_target_priority: bool = false  # Player can change target_mode (snipers)
@@ -230,12 +234,11 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 
 @export_group("Pop")
 
-@export_group("Freeze")
-# Hits on nightmares with `freeze_needs` (empty = any) Hold them for freeze_duration s, at most
-# once per freeze_cooldown s each (Frostfern, Hoarfrost).
-@export var freeze_duration: float = 0.0
-@export var freeze_needs: StringName = &"damp"
-@export var freeze_needs_stacks: int = 1  # Hoarfrost: freezes at 2 Soaked
+@export_group("Hold on hit")
+# Hits Hold the nightmare for hold_on_hit s, at most once per hold_on_hit_cooldown s each (Old Mountain, World Root).
+# (Was freeze_duration / freeze_cooldown / freeze_needs: Frost is a status now, dream_council_review.md 37, and the
+# Frost forms give it instead of a Hold.)
+@export var hold_on_hit: float = 0.0
 # Rootling (status jobs, 2026-09-29): every `pulse_hold_every`-th pulse Holds the nightmare furthest along
 # in range for `pulse_hold_time` s.
 @export var pulse_hold_every: int = 0
@@ -245,7 +248,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # Whirligig (status jobs): every `copy_status_every` s, one status (half its stacks) of the most afflicted
 # nightmare in range goes onto one neighbour within 1.5 cells.
 @export var copy_status_every: float = 0.0
-@export var freeze_cooldown: float = 4.0
+@export var hold_on_hit_cooldown: float = 4.0
 
 @export_group("Trap")
 @export var trap_max: int = 4  # Rings out at once
@@ -281,6 +284,8 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var spread_targets: int = 2  # Gust: nightmares that get the copied statuses
 @export var spread_radius: float = 1.5  # Cells from the most-afflicted nightmare
 @export var spin_free_path_tiles: int = 2  # Pinwheel: +spin_bonus per adjacent path tile beyond this
+@export var spin_frost_every: int = 0  # Windmill (section 37): every Nth spin gives spin_frost Frost to what it hits (a quiet add: stops short of a burst)…
+@export var spin_frost: int = 1
 @export var spin_bonus: float = 0.2
 @export var spin_bonus_max: float = 1.0
 

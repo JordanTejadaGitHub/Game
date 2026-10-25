@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_hoarfrost"
 display_name = "Hoarfrost"
-description = "{warden:frostfern}s can now {grow} into {warden:hoarfrost}s ({dew:{grow_cost:hoarfrost}}): splashing frost shards; the nightmare hit gains {damp}, up to {field:hoarfrost.status_max_stacks:count} {stacks}; at {field:hoarfrost.freeze_needs_stacks:count} {stacks} it is {frozen}: it gains 1 {held} and can't move for {field:hoarfrost.freeze_duration:seconds}. More crits on nightmares with {held}."
+description = "{warden:frostfern}s can now {grow} into {warden:hoarfrost}s ({dew:{grow_cost:hoarfrost}}): its hits splash and give {field:hoarfrost.status_stacks:count} {frost} to the nightmare hit; +{field:hoarfrost.crit_bonus_vs_frost:pct} crit chance against nightmares with {field:hoarfrost.crit_frost_at:count} {frost} or more."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])
