@@ -437,3 +437,11 @@ Not Roguelite's and not yet applied: Steady (drift shape) and the Spire finale r
 **The Spire finale name.** "Last drift" (decided 2026-10-24 on the lead's advice) already means *the previous drift* on
 the DPS meter ("Last drift 62 DPS", `drift_meter.gd:454`) and in card bonus lines (`dream_effects.gd:991-1004`). Not yet
 applied. Recommended instead: **"Closing drift"** ("Closing drift (drift 30): clear it clean for a Rare Dream").
+
+**Decided (owner 2026-10-24):** the Spire block finale shows as **"Closing drift"** ("Closing drift (drift %d): clear it
+clean for a Rare Dream", "Closing drift cleared clean"). This replaces "Last drift" (R3.4), which stays the previous
+drift on the DPS meter and in card bonus lines.
+
+**Lead ruling on {full}:** {full} keeps the Codex meaning (a status's most, doubled by Brimming). The cards whose code
+checks 75% of the base cap (Starlit Aim, Called Shot, Guiding Light I / II) say **"nearly {full}"**, and the Codex gets
+one line: "Nearly full: at least 3/4 of a status's usual most (before Brimming)." No second meaning for the token.
