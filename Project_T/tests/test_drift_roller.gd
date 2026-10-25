@@ -297,7 +297,7 @@ func _check_shapes(director: DriftDirector) -> void:
 				var schedule := director.drifts[n - 1].get_schedule(1.0, 1.0, 1.0, director.get_extra_nightmares(n))
 				var hand: DriftData = director.get_meta(DriftRoller.META_HAND_MADE)[n - 1]
 				var window := float(hand.get_schedule()[-1][0])
-				if (window - 0.01) / maxf(schedule.size() - 1, 1) < DriftShapes.SINGLE_GAP - 0.01:
+				if (window - 0.01) / maxf(schedule.size() - 1, 1) < DriftShapes.single_gap(director.get_act(n)) - 0.01:
 					bad.single_fit += 1
 		# Block rules
 		for first in range(1, total + 1, director.drifts_per_block):
