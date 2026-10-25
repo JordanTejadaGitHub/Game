@@ -514,7 +514,7 @@ func _crossroads(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 		return {}
 	var on := ds.crossroads_at(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.CROSSROADS_BONUS,
-		"reason": "" if on else "needs two path tiles %d+ steps apart beside it" % DreamState.CROSSROADS_STEPS}
+		"reason": "" if on else "needs two path cells %d+ steps apart beside it" % DreamState.CROSSROADS_STEPS}
 
 func _menagerie(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
@@ -787,7 +787,7 @@ func _straightaway(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 	var numbers: Array = DreamState.STRAIGHTAWAY[ds.rule_level(&"straightaway")]
 	var on := ds.beside_straight(spot.cell)
 	return {"positional": true, "radius": 1.0, "active": on, "damage": numbers[0], "range": numbers[1],
-		"reason": "" if on else "no straight stretch of %d+ path tiles beside it" % DreamState.STRAIGHT_TILES}
+		"reason": "" if on else "no straight stretch of %d+ path cells beside it" % DreamState.STRAIGHT_TILES}
 
 func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if not spot.data.can_attack:
@@ -840,7 +840,7 @@ func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 	var tiles := ds.walls_added_tiles()
 	var bonus := minf(DreamState.BRAMBLE_OATH_PER * (tiles / DreamState.BRAMBLE_OATH_TILES), DreamState.BRAMBLE_OATH_MAX)
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d cells of path" % tiles,
-		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
+		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path cells"}
 
 # Golden Harvest: every GOLDEN_HARVEST_STEP Dew earned this run (catchers' and interest Dew counting double) gives all
 # Wardens 2% more damage, up to 30%; no catcher needed (it was a Seed card waiting for one: never dead now).

@@ -207,9 +207,9 @@ func _make_face_down_card() -> Button:
 	var points: Array = [_add_bullet(box, "A secret twist on the next %d drifts" % drift_director.drifts_per_block, UiStyle.INK, body),
 		_add_bullet(box, "A reward at the next rest, smaller for each leaf you lose", UiStyle.INK, body),
 		_add_bullet(box, "Once revealed, you must take one", UiStyle.INK_DIM, body)]
-	_card_action(box, "Face it", false)  # Secondary: no card is the default (story chat)
+	_card_action(box, "Continue", false)  # Secondary ("Face it" until Wording Council 2026-10-25): no card is the default (story chat)
 	_fit_card(button, box, points)
-	button.pressed.connect(func() -> void: _press(button, func() -> void: _reveal(omens.face(), button), "Face it"))
+	button.pressed.connect(func() -> void: _press(button, func() -> void: _reveal(omens.face(), button), "Continue"))
 	return button
 
 # The top of a front card: the 64 px emblem, then a column for the name and its whisper (returned).

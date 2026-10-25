@@ -418,7 +418,7 @@ func _phone_panel_open() -> bool:
 const MIST_FULL := "Nightmares still arriving: the mist holds them back until there is room on the path. You can call the next drift early once they are out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
-const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Choose an Omen",
+const PENDING_TEXT := {&"family": "Choose a family", &"dream": "Choose a Dream", &"omen": "Choose an Omen",
 	&"gift": "Choose a gift", &"waymark": "Place the Waymark", &"boulders": "Place the boulders"}  # Heartwood's Gifts (Spire); Waymark (Legendary Dream); Forest Floor
 const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 

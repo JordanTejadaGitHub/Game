@@ -254,7 +254,7 @@ static func gauge(history: Node, director: DriftDirector, dreams: Node, close_ca
 		if counts.is_empty():
 			why.append("no Dream card fired")
 		if leaked > 0:
-			why.append("%d leak%s" % [leaked, "" if leaked == 1 else "s"])
+			why.append("%d reached the Heartwood" % leaked)
 	elif tag == "Overpowered" and not order.is_empty():
 		why.append("%s %d%%" % [order[0], roundi(float(shares[order[0]]) * 100.0)])
 	var next := -1.0

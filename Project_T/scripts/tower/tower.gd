@@ -290,7 +290,12 @@ static func not_in_dream(dreams: DreamState, data: TowerData) -> Array[TowerData
 			forms.append(option[0])
 	return forms
 
-const NO_FAMILY_YET := "Pick a family after the first drift to grow Sprouts."
+const NO_FAMILY_YET := "Choose a family after the first drift to grow Sprouts."
+
+# A form's name inside a sentence ("Grow into the Great Bell"): a leading "The" goes lower case (Wording Council 2026-10-25).
+static func grow_name(data: TowerData) -> String:
+	var title: String = data.display_name
+	return "the " + title.substr(4) if title.begins_with("The ") else title
 
 const GROUP := &"wardens"
 const BADGE_COLORS: Array[Color] = [Palette.MIST, Palette.SPRIG, Palette.DEWLIGHT, Palette.GOLD]  # Common … Legendary (UiStyle.RARITY)

@@ -128,8 +128,8 @@ func _run() -> void:
 	_check(not whispers._queue.has(&"chain") and not whispers.TEXT.has(&"chain"), "the first chain whispers nothing any more (teaching whispers removed, user 2026-10-12)")
 	_check(not shown.has(&"chain"), "…and no chain line is shown (%s)" % [shown])
 	whispers.set_enabled(false)
-	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Set Off"),
-		"the first Set Off shows a discovery card (%s)" % feedback.card_text)
+	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Pulse Bolt"),
+		"the first Pulse Bolt shows a discovery card (%s)" % feedback.card_text)
 	# Beside the ringed nightmare, never over it, above the HUD (headless views are 64 px: no on-screen check) (UI Asset's "Combo moments", 2026-10-07).
 	var card_layer := feedback._card.get_canvas_layer_node()
 	var card_rect := feedback._card.get_global_rect()
@@ -138,7 +138,7 @@ func _run() -> void:
 			and not card_rect.grow(20.0).has_point(foe_at),
 		"the discovery card sits beside the nightmare, never over it, above the HUD (%s vs %s)" % [card_rect, foe_at])
 	_check(feedback._card.size.x >= ComboFeedback.CARD_WIDTH - 1.0 and feedback._card_caps.text == "combo discovered"
-		and feedback._card_title.text == "Set Off", "…~470 wide: 'combo discovered', then the name (%s)" % feedback._card_title.text)
+		and feedback._card_title.text == "Pulse Bolt", "…~470 wide: 'combo discovered', then the name (%s)" % feedback._card_title.text)
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
 	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soak + Charge") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")

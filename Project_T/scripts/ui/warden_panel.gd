@@ -365,7 +365,7 @@ func _refresh() -> void:
 			if free_ranks > 0:  # Free ranks stay free through growth (Tower Code 221af5d7)
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
-			var label := "Grow into %s" % next.display_name if _confirm_grow == next else next.display_name
+			var label := "Grow into %s" % Tower.grow_name(next) if _confirm_grow == next else next.display_name
 			# Nothing under the name (user 2026-10-24: "remove the information underneath a growth upgrade"): the role words
 			# and the damage change are in the tip; phones keep only the tax's reason (user screenshot: "585" in orange, no reason).
 			var role := _grow_note(next)  # "Heavy, Area · wakes Hammerfall"

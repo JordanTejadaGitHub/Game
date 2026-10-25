@@ -86,7 +86,7 @@ func _ready() -> void:
 	for map in maps:
 		var row := _button(_list, "%s   drift %d, %s" % [String(map.date).replace("T", " ").left(16), map.survived, map.result])
 		row.name = "Map_%d" % map.seed
-		row.tooltip_text = "Seed %d" % map.seed  # Framed: each a real choice (button rule)
+		row.tooltip_text = "Map seed %d" % map.seed  # Framed: each a real choice (button rule)
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.pressed.connect(_choose.bind(int(map.seed)))
 	# A typed seed (digits; any whole number from 1 up).

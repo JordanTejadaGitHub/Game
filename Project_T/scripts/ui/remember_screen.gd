@@ -629,7 +629,7 @@ func _fill_misty(root: TowerData) -> void:
 		call.focus_mode = Control.FOCUS_NONE
 		var problem := dream_state.call_back_problem(form)
 		var free := dream_state.free_calls > 0
-		call.text = "Add, free" if free else "Add  %d" % dream_state.call_back_cost(root)  # The Dreamlight glyph after it (no " · ")
+		call.text = "Add branch (free)" if free else "Add  %d" % dream_state.call_back_cost(root)  # The Dreamlight glyph after it (no " · ")
 		if not free:
 			call.icon = IconInfo.icon(&"dreamlight")
 			call.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT

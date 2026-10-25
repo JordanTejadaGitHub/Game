@@ -3,7 +3,7 @@ extends VBoxContainer
 # Drift shapes in the Coming strip (enemy_design.md "Drift shapes", owner 2026-10-24; Enemy Code's DriftShapes): at a
 # rest, one row per drift of the next block: the shape's glyph, its fact line and where the Deeply Blighted ride:
 #   "Drift 31 · Packs: 4 × 7, 6 s apart · Deeply Blighted in a pack"
-#   "Drift 32 · Single file: 18, 1.6 s apart · Deeply Blighted last in line"
+#   "Drift 32 · Single file: 18 nightmares, one every 1.6 s · Deeply Blighted last in line"
 # Numbers only once the rest's Omen is picked (the Omen changes them); before that just the shape. Hover a row (PC) or
 # tap it (phones) for its arrival timeline: one dot per nightmare, sized by health. Facts only: never "good against",
 # grades or build hints. Built by ComingStrip (preloaded: no class_name).
@@ -71,20 +71,20 @@ func build(director: DriftDirector, span: Vector2i, compact: bool) -> void:
 		add_child(_row(number, StringName(preview.shape) if not boss else &"", text))
 	move_child(_timeline, get_child_count() - 1)
 
-# "Steady: 30", "Packs: 4 × 7, 6 s apart", "Single file: 18, 1.6 s apart", "Few and tough: 9, 4 Deeply Blighted".
+# "Steady: 30 nightmares", "Packs: 4 packs of 7, 6 s apart", "Single file: 18 nightmares, one every 1.6 s", "Few and tough: 9 nightmares, 4 Deeply Blighted".
 static func fact_line(facts: Dictionary) -> String:
 	var count := int(facts.get("count", 0))
 	match StringName(facts.get("shape", DriftShapes.STREAM)):
 		DriftShapes.PACKS:
 			return "Packs: %d packs of %d, %d s apart" % [int(facts.packs), int(facts.pack_size), roundi(float(facts.gap_s))]
 		DriftShapes.SINGLE_FILE:
-			return "Single file: %d nightmares, %.1f s apart" % [count, float(facts.gap_s)]
+			return "Single file: %d nightmares, one every %.1f s" % [count, float(facts.gap_s)]
 		DriftShapes.FEW_AND_TOUGH:
 			return "Few and tough: %d nightmares, %d Deeply Blighted" % [count, int(facts.elites)]
 	return "%s: %d nightmares" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30 nightmares" (Mobile UI council 2026-10-25: a bare count read as nothing)
 
 # Act `act`'s shapes as they will arrive, as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
-# 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough". Finales = each ordinary block's 5th drift.
+# 4 Single file, 4 Few and tough, closing drifts Packs / Single file / Few and tough". Closing drifts = each ordinary block's 5th drift.
 # "" before any shape is rolled.
 static func act_line(director: DriftDirector, act: int) -> String:
 	if director == null or not director.has_method("shape_of"):
@@ -107,7 +107,7 @@ static func act_line(director: DriftDirector, act: int) -> String:
 	var parts: Array[String] = []
 	for shape in [DriftShapes.PACKS, DriftShapes.SINGLE_FILE, DriftShapes.FEW_AND_TOUGH]:
 		parts.append("%d %s" % [int(counts.get(shape, 0)), DriftShapes.display_name(shape)])
-	return "Act %d: %s%s" % [act, ", ".join(parts), (", finales " + " / ".join(finales)) if not finales.is_empty() else ""]
+	return "Act %d: %s%s" % [act, ", ".join(parts), (", closing drifts " + " / ".join(finales)) if not finales.is_empty() else ""]
 
 # Where the Deeply Blighted ride: "Deeply Blighted in a pack" / "last in line" / "first"; "" with none (or anywhere).
 static func elite_line(facts: Dictionary) -> String:

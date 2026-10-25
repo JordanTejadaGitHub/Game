@@ -20,7 +20,7 @@ const MILESTONE_SEEDS := {
 	"first_boss": [20, "Dispel your first boss"],
 	"first_win": [60, "Win a run"],
 	"shades_500": [25, "Dispel 3,000 Shades"],
-	"path_300": [30, "Build a 130-tile path"],
+	"path_300": [30, "Build a 130-cell path"],
 	"tend_100": [25, "Tend 120 obstacles"],
 	"flawless_win": [100, "Win without losing a leaf"],
 	"one_line_win": [80, "Win with only one Warden family"],

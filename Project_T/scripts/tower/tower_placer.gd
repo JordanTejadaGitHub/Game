@@ -1946,7 +1946,7 @@ func _draw_grow_choice() -> void:
 	var tower: Tower = _grow_choice.tower
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
-			"Grow into %s: pick a square (Esc to cancel)" % into.display_name, WorldLabel.cost_color(true))
+			"Grow into %s: choose a cell (Esc to cancel)" % Tower.grow_name(into), WorldLabel.cost_color(true))
 
 # --- Seedbearer's Sprout (branch expansion Phase 2): the player picks any legal cell, at a rest ---
 

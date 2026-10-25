@@ -351,7 +351,7 @@ func get_stats_text() -> String:
 		for data in (%TowerPlacer as TowerPlacer).towers:
 			if data.tier == 1 and dream_state.is_unlocked(data.get_id()):
 				families.append(data.display_name)
-	return "Drift %d reached · %d survived\nNightmares dispelled: %d · Leaves lost: %d\nLongest path: %d tiles · Dreams: %d\nFamilies: %s" % [
+	return "Drift %d reached · %d survived\nNightmares dispelled: %d · Leaves lost: %d\nLongest path: %d cells · Dreams: %d\nFamilies: %s" % [
 		drift_director.drifts_started, drift_director.drifts_cleared, run_state.creatures_cleansed,
 		run_state.leaves_lost, run_state.longest_path, dreams,
 		", ".join(families) if not families.is_empty() else "none"]
