@@ -894,7 +894,7 @@ func _spawn_walker(distance: float = 0.0) -> void:
 	sprite.sprite_frames = NIGHTMARE.sprite_frames
 	sprite.speed_scale = 1.0 / maxf(Engine.time_scale, 0.001)  # Real time
 	sprite.scale = Vector2.ONE * NIGHTMARE.sprite_scale
-	sprite.play(&"walk_side")
+	sprite.play(_walk_anim(sprite.sprite_frames, &"walk_side"))
 	sprite.position = _along(distance)[0]
 	_world.add_child(sprite)
 	_walkers.append({"sprite": sprite, "distance": distance, "hits": 0.0, "fade": -1.0, "procs": {}})
@@ -931,7 +931,7 @@ func _move_walkers(delta: float) -> void:
 		sprite.position.y += CELL / 4.0 * squeeze
 		sprite.scale = Vector2.ONE * NIGHTMARE.sprite_scale * lerpf(1.0, NARROW_SQUEEZE, squeeze)
 		var dir: Vector2 = at[1]
-		var animation := &"walk_side" if absf(dir.x) >= absf(dir.y) else (&"walk_down" if dir.y > 0 else &"walk_up")
+		var animation := _walk_anim(sprite.sprite_frames, &"walk_side" if absf(dir.x) >= absf(dir.y) else (&"walk_down" if dir.y > 0 else &"walk_up"))
 		if sprite.animation != animation:
 			sprite.play(animation)
 		sprite.flip_h = dir.x < 0
@@ -1112,3 +1112,12 @@ func _float_text(text: String, at: Vector2, gold: bool, life: float = NUMBER_TIM
 		for w in _walkers:
 			if w.fade < 0.0 and w.hits >= HITS_TO_DISPEL:
 				w.fade = 0.0
+
+# `want` if the frames have it, else "fly" (Night Kite, Pall: no walk rows, Enemy Code 42626120), else their first row.
+static func _walk_anim(frames: SpriteFrames, want: StringName) -> StringName:
+	if frames == null or frames.has_animation(want):
+		return want
+	if frames.has_animation(&"fly"):
+		return &"fly"
+	var names := frames.get_animation_names()
+	return StringName(names[0]) if not names.is_empty() else want

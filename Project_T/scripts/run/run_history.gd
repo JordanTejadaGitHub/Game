@@ -71,6 +71,9 @@ func _ready() -> void:
 		spawner.child_entered_tree.connect(_on_spawned)
 		spawner.enemy_cleansed.connect(_on_dispelled)
 		spawner.enemy_reached_goal.connect(_on_leaked)
+		if spawner.has_signal("pack_wiped"):  # Drift shapes: packs formed and wiped (Enemy Code d235a512)
+			spawner.pack_formed.connect(_on_pack_formed)
+			spawner.pack_wiped.connect(_on_pack_wiped)
 	drift_director.drift_arrived.connect(func(number: int) -> void:
 		if _open.has(number) and not _arrived.has(number):
 			_arrived[number] = true
@@ -250,7 +253,8 @@ func _on_drift_started(number: int) -> void:
 		run.seed = int(map.map_seed) if map != null else 0
 	_drift = {"drift": number, "act": drift_director.get_act(number), "seconds": 0.0, "health_spawned": 0,
 		"damage": 0, "leaks": 0, "leaves_lost": 0, "leaves_left": run_state.leaves if run_state else 0, "banked": 0, "closest": 0.0,
-		"called_early": drift_director.is_calling_early()}  # Started while the previous one was still arriving
+		"called_early": drift_director.is_calling_early(),  # Started while the previous one was still arriving
+		"shape": String(drift_director.drift_shape(number)) if drift_director.has_method("drift_shape") else "stream"}  # Drift shapes (Balancing)
 	_open[number] = _drift
 	_started[number] = _clock
 	if DamageLog.instance != null and not DamageLog.instance.damage_dealt.is_connected(_on_damage):
@@ -287,7 +291,48 @@ func _flush_rows() -> void:
 	_arrived.clear()
 	_origin.clear()
 
+# {shape: leaves lost} on act `act`'s drift rows, flushed and still open ({} with none lost). A leak counts on its own
+# drift's row, so on that drift's shape (the rest report's "Leaves lost by shape this act", the record for Balancing).
+func leaves_by_shape(act: int) -> Dictionary:
+	var out := {}
+	for row in run.drifts + _open.values():
+		if int(row.get("act", 0)) != act or int(row.get("leaves_lost", 0)) <= 0:
+			continue
+		var shape := String(row.get("shape", "stream"))
+		out[shape] = int(out.get(shape, 0)) + int(row.leaves_lost)
+	return out
+
+# Packs formed and wiped (drift shapes; owner 2026-10-24, enemy_council_review.md 2026-10-24c: a moment and a fact, never a
+# reward). This block's, last block's (the rest report reads them: "Packs wiped: 5 of 6 · most by Driftspore") and the run's.
+var packs_block := {"formed": 0, "wiped": 0, "top": {}}  # top: Warden name -> packs it did the most damage to
+var packs_last_block := {"formed": 0, "wiped": 0, "top": {}}
+
+func _on_pack_formed(_key: int, _size: int) -> void:
+	packs_block.formed += 1
+	run["packs_formed"] = int(run.get("packs_formed", 0)) + 1
+
+func _on_pack_wiped(_key: int, _size: int, _centre: Vector2, top_source: Node) -> void:
+	packs_block.wiped += 1
+	run["packs_wiped"] = int(run.get("packs_wiped", 0)) + 1
+	var tower := top_source as Tower
+	if is_instance_valid(tower) and tower.tower_data != null:
+		var name := tower.tower_data.display_name
+		packs_block.top[name] = int(packs_block.top.get(name, 0)) + 1
+
+# "Packs wiped: 5 of 6 · most by Driftspore" for the block just ended ("" when it formed none).
+func packs_line() -> String:
+	if int(packs_last_block.formed) <= 0:
+		return ""
+	var line := "Packs wiped: %d of %d" % [int(packs_last_block.wiped), int(packs_last_block.formed)]
+	var best := ""
+	for name in packs_last_block.top:
+		if best == "" or int(packs_last_block.top[name]) > int(packs_last_block.top[best]):
+			best = name
+	return line + (" · most by %s" % best if best != "" else "")
+
 func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	packs_last_block = packs_block
+	packs_block = {"formed": 0, "wiped": 0, "top": {}}
 	_flush_rows()
 	_flush_route_block(block)
 	run.dew.banked_at_rest.append([block, run_state.dew if run_state else 0])
@@ -640,6 +685,12 @@ func _finish_run(won: bool) -> void:
 	var breaks := dream_state != null and dream_state.has_method(&"reaction_breakdown")
 	run["reaction_breakdown"] = dream_state.reaction_breakdown() if breaks else {}
 	run["reaction_breakdown_lines"] = dream_state.reaction_breakdown_lines() if breaks else []
+	var by_shape := {}  # Drift shapes (Balancing measures them): {act: {shape: leaves lost}}
+	for act in range(1, drift_director.get_act(maxi(drift_director.drifts_started, 1)) + 1):
+		var lost := leaves_by_shape(act)
+		if not lost.is_empty():
+			by_shape[str(act)] = lost
+	run["leaves_by_shape"] = by_shape
 	if _route_block.leaked > 0 or _route_block.dispels.any(func(n: int) -> bool: return n > 0):  # A block cut short
 		_flush_route_block(ceili(drift_director.drifts_started / float(drift_director.drifts_per_block)))
 	if _may_write() and not _saved:
@@ -886,12 +937,18 @@ static func report_text(record: Dictionary) -> String:
 		lines.append("Past the x4 card line: " + String(line))
 	for line in record.get("reaction_breakdown_lines", []):  # For Balancing: Reaction damage by factor (pool before / after the cap…)
 		lines.append("Reaction factors: " + String(line))
-	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage,past_cap")  # New columns last: older readers keep theirs
+	var by_shape: Dictionary = record.get("leaves_by_shape", {})  # Drift shapes: {act: {shape: leaves}} (Balancing)
+	for act in by_shape:
+		lines.append("Leaves lost by shape, act %s: %s" % [act, JSON.stringify(by_shape[act])])
+	if int(record.get("packs_formed", 0)) > 0:  # Drift shapes: packs wiped whole of those formed (Balancing)
+		lines.append("Packs wiped: %d of %d" % [int(record.get("packs_wiped", 0)), int(record.packs_formed)])
+	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage,past_cap,shape")  # New columns last: older readers keep theirs
 	for row in record.get("drifts", []):
-		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
+		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d,%d,%s" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
 			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest),
 			1 if row.get("called_early", false) else 0, int(row.get("combo_damage", 0)), int(row.get("reaction_damage", 0)),
-			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0)), int(row.get("card_damage", 0)), int(row.get("past_cap", 0))])
+			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0)), int(row.get("card_damage", 0)), int(row.get("past_cap", 0)),
+			String(row.get("shape", "stream"))])
 	return "\n".join(lines)
 
 static func _time_text(seconds: float) -> String:

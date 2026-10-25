@@ -240,6 +240,7 @@ var modifiers := {}
 
 var elite := false  # Deeply Blighted (set before adding to the tree)
 var _haze_phase := 0.0
+var _body_fx: Node2D = null  # The glows and marks round the body (haze, bolt flash, hit marks), sorted with the sprite
 # Cached display settings (Fx.setting): health bars at full health too ("health_bars" 1), and the
 # elite outline ("blight_outline"). Re-read on the presence tick so the settings panel applies live.
 var _bars_always := false:
@@ -262,6 +263,75 @@ var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
+# Walking lanes (enemy_design.md "Walking lanes", owner 2026-10-24: visual only): the drawn body walks a lane beside
+# the centre line, across the travel direction; the node (position, cell, targeting, ranges) stays on the line.
+# Retune (council 2026-10-24b, enemy_council_review.md): narrower, no skating (each move eased in and out, sideways
+# never faster than LANE_SLIDE_SHARE of its own walk), measured across the rounded corner's curve, closed in gaps.
+const LANE_MAX := 0.2  # Cells either side (Stream and Packs)
+const LANE_BIG := 0.1  # Bosses and big nightmares (sprite_scale >= LANE_BIG_SCALE), Few and tough's Deeply Blighted
+const LANE_BIG_SCALE := 1.4
+const LANE_FLYER := 0.15  # Flyers sway on their own line
+const LANE_WANDER := Vector2(4.0, 8.0)  # Seconds between new target lanes
+const LANE_STEP := Vector2(0.3, 0.7)  # A new target: the current lane ± this (random side), within ±1
+const LANE_MOVE_MIN := 0.8  # Seconds a move takes at least (smoothstep in and out)
+const LANE_SLIDE_SHARE := 0.25  # Sideways speed at most this share of its own walk speed
+const LANE_TURN_EASE := 10.0  # Easing rate of the direction the lane is measured across (the rounded curve's tangent)
+const LANE_TURN_NEAR := 0.5  # Cells from a turn's centre where the lane narrows…
+const LANE_TURN_SHARE := 0.5  # …to this share at the centre
+const LANE_GAP_EASE := 14.0  # A narrow half-cell gap closes the lane at this rate (past the speed cap)
+const LANE_JOSTLE_MAX := 0.85  # Jostling never pushes a lane past this
+const LANE_SNAP_PX := 1.0  # The drawn offset (whole pixels) is pushed to the sprite and HUD only when it moved this far
+var lane_width := -1.0  # Cells either side; < 0 = by its kind (DriftShapes sets Single file / Few and tough's)
+var lane := 0.0  # Current lane, -1..1 of lane_width (the spawner's jostle reads and nudges it)
+var lane_target := 0.0
+var _lane_left := 0.0
+var _lane_from := 0.0  # The move in progress: from this lane to lane_target over _lane_move s
+var _lane_t := 1.0
+var _lane_move := 1.0
+var _lane_gap := 1.0  # 0 in a narrow gap, 1 elsewhere (eased)
+var _lane_last := Vector2.INF  # Last frame's drawn route position (position + corner offset): the curve's tangent
+var _lane_dir := Vector2.ZERO
+var _lane_offset := Vector2.ZERO  # The drawn offset in px
+var _lane_drawn := Vector2.ZERO  # The offset last pushed to the sprite / HUD
+var _lane_age := 0.0  # Seconds walked: the lane opens over the first cell
+var _lane_rng: RandomNumberGenerator = null
+# Route flyers (enemy_design.md "Flyers", 2026-10-24): the route they spawned with (to rise back onto after a grounding),
+# the Gloamwing's drop and the Pall's cover.
+const PALL_SHARE := 0.5  # Of each blow aimed at a covered walker, after its dread shell
+const PALL_REACH := 2.5  # Cells: a walker ahead within this is one it settles over
+const PALL_SWOOP := 150.0  # px/s: gliding over to it
+const PALL_SETTLE := 6.0  # px: close enough to settle
+const PALL_SEEK_EVERY := 0.25  # s between looks for a walker
+const PALL_ABOVE := Vector2(0, 1)  # Its node sits a pixel below the walker's, so the cloth sorts in front
+var covered_by: Node2D = null  # The Pall over this walker (blows are shared with it)
+var covering: Node2D = null  # Pall: the walker it covers or glides to
+var _settled := false
+var _pall_seek := 0.0
+var dropped := false  # Gloamwing: down on the path for good
+var _air_route := PackedVector2Array()  # A route flyer's own route, in the air
+var _air_held := 0  # Its index there when it was grounded
+var _shared_hit := false  # A Pall's half of a blow: no multipliers again
+# Status icons in crowds (enemy_design.md "Status icons in crowds", owner 2026-10-24): a crowded nightmare's badge row
+# becomes one small pip per status (no numbers, 70%) and its health bar 3 px; full rows stay for the hovered / tapped
+# nightmare, bosses, Deeply Blighted and anything not crowded. Setting "status_icons": 0 Full, 1 Compact in crowds
+# (default), 2 Off (the row only on hover / tap). Eased over CROWD_EASE s (instant under reduced motion); a look holds
+# CROWD_HOLD s at least.
+const CROWD_PIP := 7.0  # px (UI Code's pip: 5 px of colour in a 1 px outline)
+const CROWD_PIP_GAP := 1.0  # (A step of 8)
+const CROWD_PIP_ALPHA := 0.7
+const CROWD_BAR_H := 3.0
+const CROWD_EASE := 0.15
+const CROWD_HOLD := 0.5
+const CROWD_SEEN := 0.2  # s: a crowd mark this fresh still counts (the spawner marks every 2 frames)
+enum RowLook { FULL, COMPACT, OFF }
+# The pip's shape per status (UI Code may replace them): 0 circle, 1 square, 2 diamond, 3 triangle, 4 bar
+const PIP_SHAPES := {&"damp": 0, &"drowsy": 0, &"asleep": 4, &"spored": 1, &"marked": 3, &"static": 2, &"held": 4}
+var crowd_seen := -1.0  # EnemySpawner.crowd_clock when another drawn body was last within CROWD_REACH cell
+var _row_look: RowLook = RowLook.FULL
+var _row_hold := 0.0
+var _row_alpha := Vector2(1.0, 0.0)  # Drawn alpha of (the full row, the pips)
+var _hud_pips := RID()
+var _pips_changes := -1
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
 # _in_narrow_gap's last answer and what it depended on (perf: re-checked only when the half cells under and
 # just ahead of the body, the step or the map's blocking change, not every frame)
@@ -568,11 +638,18 @@ func _ready() -> void:
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	_measure_bar_offset()
 	_measure_foot_lift()
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	# Y-sort by the drawn body (council 2026-10-24c): the sprite (at its lane) and _body_fx sort on their own positions
+	_body_fx = Node2D.new()
+	_body_fx.name = &"BodyFx"
+	add_child(_body_fx)
+	move_child(_body_fx, sprite.get_index())  # Just before the sprite: the same y, so it draws behind it
+	_body_fx.draw.connect(_draw_body)
+	y_sort_enabled = true
+	_apply_sprite_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
-	sprite.play("walk_side")
+	sprite.play(_base_animation())  # (walk_side; the three route flyers: "fly")
 
 	# Nightmare look: one material shared by every nightmare (so their sprites batch into few draw
 	# calls); one cracking apart gets its own copy (_set_crack), outlined elites share a second one.
@@ -769,6 +846,8 @@ func _process(delta: float) -> void:
 		_hud_dirty = false
 		statuses.hud_dirty = false
 		_update_hud(delta)
+	if not _culled:
+		_update_row_look(delta)  # Status icons in crowds: pips or the full row
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -817,6 +896,8 @@ func _process(delta: float) -> void:
 		waiting = false
 	if unbound:
 		_trample_ahead()
+	if enemy_data.covers_walkers and _update_pall(delta):
+		return  # Pall: over (or gliding to) its walker, at its pace
 
 	var previous_position := position
 	# Walk toward the next cell centre; carry leftover distance into the following cell so speed
@@ -865,6 +946,8 @@ func _process(delta: float) -> void:
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
 			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
 			_steady_serial = _path_serial
+	if not _culled and not _leaping and not _dragging and covering == null:
+		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -941,7 +1024,7 @@ func flash_status(id: StringName) -> void:
 		queue_redraw()
 		var world := Reactions._world(self)
 		if world:
-			Fx.status_flash(id, global_position, world)
+			Fx.status_flash(id, get_body_position(), world)  # (On the drawn body: walking lanes)
 
 # Comes in along `points` (the fog, the bridge, the start's lane point; MapGenerator pixels) before its route.
 func enter_along(points: PackedVector2Array) -> void:
@@ -1007,22 +1090,29 @@ func _draw() -> void:
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	draw_set_transform(Vector2(0, -_foot_lift))
+	if _body_fx != null:
+		_body_fx.queue_redraw()  # Round the body: _draw_body, on a child sorted with the sprite (y-sort by drawn body)
+	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
+
+# The glows and marks round the drawn body, on _body_fx (a child just before the sprite, at the sprite's position, so
+# the y-sort keeps them right behind it: council 2026-10-24c), raised with the foot lift.
+func _draw_body() -> void:
+	if is_cleansed or _hidden:
+		return
+	_body_fx.draw_set_transform(Vector2(0, -_foot_lift))
 	if unbound:  # Cold ghost-fire glow behind the sprite, pulsing (no warm colour on nightmares)
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
-		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
-		draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(Palette.MOONLIGHT, 0.22 + 0.12 * pulse))
+		_body_fx.draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
+		_body_fx.draw_circle(Vector2(0, -8), 15.0 * sprite.scale.x, Color(Palette.MOONLIGHT, 0.22 + 0.12 * pulse))
 	if elite:
-		_draw_elite_haze()  # Drawn before the sprite (a child), so it sits behind it
+		_draw_elite_haze()  # Drawn before the sprite (the next child), so it sits behind it
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
-		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
+		_body_fx.draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
 	if enemy_data.pack_shield < 1.0 and get_pack_multiplier() < 1.0:  # Huntsman: the faint ring while the pack shields him
-		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
+		_body_fx.draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
-	draw_set_transform(Vector2.ZERO)
-	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
 
 # The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
 # items of its own under this node's (so they move with it, and the renderer culls them off screen):
@@ -1114,6 +1204,103 @@ func _update_hud(delta: float) -> void:
 		_build_hud_marks(_hud_items[HUD_MARKS], overlay)
 		hud_builds += 1
 
+# The badge row's look now (RowLook): full for the hovered / tapped nightmare, bosses, Deeply Blighted and anything not
+# crowded; compact pips in a crowd; nothing under "Off" (but the hovered / tapped one).
+func _wanted_row_look() -> RowLook:
+	if _spawner != null and _spawner.hud_focus == self:
+		return RowLook.FULL
+	var mode := int(Fx.setting("status_icons", 1))
+	if mode == 2:
+		return RowLook.OFF
+	if mode == 0 or enemy_data.is_boss or elite:
+		return RowLook.FULL
+	if _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN:
+		return RowLook.COMPACT
+	return RowLook.FULL
+
+# Every frame it's on screen: switch the row's look (held CROWD_HOLD s at least) and ease the full row and the pips'
+# alphas toward it; only touches the server when something moves.
+func _update_row_look(delta: float) -> void:
+	if not _hud_root.is_valid() or _hud_items.is_empty():
+		return
+	_row_hold -= delta
+	var want := _wanted_row_look()
+	if want != _row_look and (_row_hold <= 0.0 or want == RowLook.FULL and _spawner != null and _spawner.hud_focus == self):
+		_row_look = want
+		_row_hold = CROWD_HOLD
+		_hud_health = -2  # The health bar rebuilds at its new height
+		_hud_dirty = true
+	var target := Vector2(1.0, 0.0)
+	if _row_look == RowLook.COMPACT:
+		target = Vector2(0.0, CROWD_PIP_ALPHA)
+	elif _row_look == RowLook.OFF:
+		target = Vector2.ZERO
+	if target.y > 0.0 and _pips_changes != statuses.changes:
+		_build_pips()
+	if _row_alpha == target:
+		return
+	if bool(Fx.setting("reduced_motion", false)):
+		_row_alpha = target
+	else:
+		_row_alpha = _row_alpha.move_toward(target, delta / CROWD_EASE)
+	for kind in [HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]:
+		RenderingServer.canvas_item_set_modulate(_hud_items[kind], Color(1, 1, 1, _row_alpha.x))
+	if _hud_pips.is_valid():
+		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
+
+# One pip per status, centred on the badge row's anchor: the status colour in its shape (PIP_SHAPES), no numbers.
+func _build_pips() -> void:
+	_pips_changes = statuses.changes
+	if not _hud_pips.is_valid():
+		_hud_pips = RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(_hud_pips, _hud_root)
+		RenderingServer.canvas_item_set_z_as_relative_to_parent(_hud_pips, false)
+		RenderingServer.canvas_item_set_z_index(_hud_pips, NightmareOverlay.Z + HUD_ICONS)
+		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
+	RenderingServer.canvas_item_clear(_hud_pips)
+	var order := get_status_order()
+	var step := CROWD_PIP + CROWD_PIP_GAP
+	var centre := _hud_anchor() + Vector2(-step * (order.size() - 1) / 2.0, -CROWD_PIP / 2.0 - 1.0)
+	for i in order.size():
+		_draw_pip(centre + Vector2(step * i, 0.0), order[i])
+
+static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip (76da10ff): 1 once it's on main, 0 before (looked up once)
+
+func _draw_pip(at: Vector2, id: StringName) -> void:
+	if _ui_pips < 0:
+		_ui_pips = 0
+		for method in (KeywordIcons as Script).get_script_method_list():
+			if method.name == "draw_pip":
+				_ui_pips = 1
+	if _ui_pips == 1:
+		(KeywordIcons as Script).call("draw_pip", _hud_pips, id, at, 1.0, 1.0)  # (The 70% is the pips item's modulate)
+		return
+	var colour: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
+	var r := CROWD_PIP / 2.0
+	var outline := Color(Palette.VOID, 0.8)
+	match int(PIP_SHAPES.get(id, 0)):
+		1:  # Square
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0).grow(1.0), outline)
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), colour)
+		2:  # Diamond
+			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, 0), Vector2(0, r + 1), Vector2(-r - 1, 0)], outline, 1.0)
+			_pip_polygon(at, [Vector2(0, -r), Vector2(r, 0), Vector2(0, r), Vector2(-r, 0)], colour, 0.0)
+		3:  # Triangle
+			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, r + 1), Vector2(-r - 1, r + 1)], outline, 1.0)
+			_pip_polygon(at, [Vector2(0, -r), Vector2(r, r), Vector2(-r, r)], colour, 0.0)
+		4:  # Bar
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)).grow(1.0), outline)
+			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)), colour)
+		_:  # Circle
+			RenderingServer.canvas_item_add_circle(_hud_pips, at, r + 1.0, outline)
+			RenderingServer.canvas_item_add_circle(_hud_pips, at, r, colour)
+
+func _pip_polygon(at: Vector2, points: Array, colour: Color, _grow: float) -> void:
+	var polygon := PackedVector2Array()
+	for p in points:
+		polygon.append(at + p)
+	RenderingServer.canvas_item_add_polygon(_hud_pips, polygon, PackedColorArray([colour]))
+
 func _make_hud() -> void:
 	_hud_root = RenderingServer.canvas_item_create()
 	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
@@ -1151,6 +1338,9 @@ func _free_hud() -> void:
 		if item.is_valid():
 			RenderingServer.free_rid(item)
 	_hud_items.clear()
+	if _hud_pips.is_valid():  # (A child of the root: freed first)
+		RenderingServer.free_rid(_hud_pips)
+	_hud_pips = RID()
 	RenderingServer.free_rid(_hud_root)
 	_hud_root = RID()
 
@@ -1199,6 +1389,8 @@ func _update_hud_layout() -> void:
 # room under each for its time bar.
 func _badge_centre(i: int) -> Vector2:
 	var r := get_badge_size() / 2.0
+	if i < 0 or i >= _hud_badge_widths.size():
+		return Vector2(0.0, -r - TIME_BAR_GAP)  # Not laid out (the row was cleared or is being rebuilt): the row's centre
 	var width := STATUS_BADGE_GAP * maxi(_hud_ids.size() - 1, 0)
 	for cell_width in _hud_badge_widths:
 		width += cell_width
@@ -1232,7 +1424,8 @@ func _build_hud_bars(item: RID) -> void:
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
 		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([UNBOUND_GLOW if unbound else RESTLESS_COLOR]), 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(_bar_offset - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar_size := HEALTH_BAR_SIZE if _row_look != RowLook.COMPACT else Vector2(HEALTH_BAR_SIZE.x, CROWD_BAR_H)  # (3 px in a crowd)
+	var bar := Rect2(_bar_offset - bar_size / 2, bar_size)
 	if health < max_health or _bars_always:
 		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
@@ -1441,8 +1634,10 @@ func _build_hud_text(item: RID) -> void:
 			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + font_size * 0.35)
 			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT, font_size)
+	if _hud_badge_widths.is_empty() or _hud_ids.is_empty():
+		return  # No badge laid out (cleared this frame): nothing to put "+N" after
 	var extra := _hud_total - _hud_ids.size()
-	var after := _badge_centre(maxi(_hud_ids.size() - 1, 0)) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
+	var after := _badge_centre(mini(_hud_ids.size(), _hud_badge_widths.size()) - 1) + Vector2(r + 2.0 + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 	if extra > 0:
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
 		after.x += _stack_font_face().get_string_size("+%d" % extra, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x + 4.0
@@ -1558,23 +1753,23 @@ func _draw_elite_haze() -> void:
 		var at := Vector2(cos(a) * r, sin(a) * r * 0.5 - 8.0).round()  # Flattened ring round the body
 		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
 		for band: float in ELITE_HAZE_BANDS:
-			draw_circle(at, roundf(size * band), ELITE_HAZE_COLOR, true, -1.0, false)
+			_body_fx.draw_circle(at, roundf(size * band), ELITE_HAZE_COLOR, true, -1.0, false)
 	for i in ELITE_MOTES:
 		var a := -_haze_phase * 1.3 + TAU * i / ELITE_MOTES
 		var at := Vector2(cos(a) * r * 0.8, sin(a) * r * 0.4 - 10.0).round()
 		var twinkle := 0.5 + 0.5 * sin(_haze_phase * 4.0 + i * 2.1)
-		draw_rect(Rect2(at, Vector2(2, 2)), Color(ELITE_MOTE_COLOR, 0.35 + 0.5 * twinkle))
+		_body_fx.draw_rect(Rect2(at, Vector2(2, 2)), Color(ELITE_MOTE_COLOR, 0.35 + 0.5 * twinkle))
 	var centre := _bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
 	var mark := _status_icon(&"elite")
 	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
-		draw_texture(mark, (centre - mark.get_size() / 2.0).round())
+		_body_fx.draw_texture(mark, (centre - mark.get_size() / 2.0).round())
 		return
 	var swirl := PackedVector2Array()
 	for s in 14:
 		var t := s / 13.0
 		swirl.append(centre + Vector2.from_angle(t * TAU * 1.6 + _haze_phase) * (1.0 + 4.0 * t))
-	draw_circle(centre, 6.0, Color(Palette.VOID, 0.8))
-	draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
+	_body_fx.draw_circle(centre, 6.0, Color(Palette.VOID, 0.8))
+	_body_fx.draw_polyline(swirl, ELITE_SWIRL_COLOR, 1.5)
 
 # A small grey puff for a resisted hit, a little sparkle for a weak one. `t` fades 1 -> 0.
 func _draw_hit_mark(t: float) -> void:
@@ -1582,12 +1777,21 @@ func _draw_hit_mark(t: float) -> void:
 	if _hit_mark < 0:
 		for i in 3:
 			var puff := at + Vector2.from_angle(TAU * i / 3.0) * 4.0 * (1.6 - t)
-			draw_circle(puff, 3.5 * t + 1.0, Color(Palette.DEWLIGHT if _hit_mark_wash else Palette.MIST, 0.7 * t))
+			_body_fx.draw_circle(puff, 3.5 * t + 1.0, Color(Palette.DEWLIGHT if _hit_mark_wash else Palette.MIST, 0.7 * t))
 	else:
 		var r := 7.0 * (1.4 - t)
 		var col := Color(Palette.GLOW, t)  # A Warden's hit: warm light
-		draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
-		draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
+		_body_fx.draw_line(at + Vector2(-r, 0), at + Vector2(r, 0), col, 2.0)
+		_body_fx.draw_line(at + Vector2(0, -r), at + Vector2(0, r), col, 2.0)
+
+# Its sheet's everyday row: walk_side, or "fly" for flyers drawn with a fly row only (Night Kite, Pall; Enemy Assets
+# d8b0631a). Bounds and the bar height read its frame 0.
+func _base_animation() -> StringName:
+	var frames := sprite.sprite_frames
+	if frames != null and frames.has_animation(&"fly") and (not frames.has_animation(&"walk_side") \
+			or (enemy_data != null and enemy_data.trait_kind == EnemyData.Trait.FLYING and not dropped)):
+		return &"fly"  # (The Gloamwing has both: it flies until it drops)
+	return &"walk_side"
 
 func update_animation(velocity: Vector2) -> void:
 	# Keep the current animation when not moving (e.g. end of path) or while a pose plays
@@ -1595,7 +1799,11 @@ func update_animation(velocity: Vector2) -> void:
 		return
 	var animation := &"walk_up"
 	var flip := false
-	if rolling and sprite.sprite_frames.has_animation(&"roll"):
+	if is_flying() and sprite.sprite_frames.has_animation(&"fly"):
+		# Route flyers with a fly row (one row faces every way: right, flipped to fly left); a settled Pall drapes
+		animation = &"settled" if _settled and sprite.sprite_frames.has_animation(&"settled") else &"fly"
+		flip = velocity.x < 0 if absf(velocity.x) > 0.01 else sprite.flip_h
+	elif rolling and sprite.sprite_frames.has_animation(&"roll"):
 		animation = &"roll"
 		flip = velocity.x < 0
 	elif _charge_left > 0.0 and sprite.sprite_frames.has_animation(&"gallop"):
@@ -1667,7 +1875,7 @@ func _update_squeeze(delta: float) -> void:
 		return
 	sprite.scale.x = sprite.scale.x / _squeeze * next
 	_squeeze = next
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale  # The rounded-corner offset and foot lift stay in world pixels
+	_apply_sprite_offset()  # The rounded-corner offset and foot lift stay in world pixels
 
 # Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
 # across its walking direction blocked.
@@ -1846,7 +2054,7 @@ func _update_big_hit(real_delta: float) -> void:
 		var squash := Vector2.ONE.lerp(BIG_HIT_SQUASH, t * t) if not _leaping else Vector2.ONE  # (A leap's tween owns the scale)
 		sprite.scale = sprite.scale / _stagger_scale * squash
 		_stagger_scale = squash
-		sprite.offset = (_body_offset() + _recoil) / sprite.scale
+		_apply_sprite_offset()
 
 # Plays the flinch out (real seconds: game speed doesn't shorten it), plus the arc twitch; back at rest it
 # leaves the sprite's offset and the shader's flash exactly where they were.
@@ -1861,7 +2069,7 @@ func _update_flinch(real_delta: float) -> void:
 	if flash != _flash_shown:
 		_flash_shown = flash
 		sprite.set_instance_shader_parameter(&"hit_flash", flash)
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	_apply_sprite_offset()
 
 # Continuous damage (arcs, beams, clouds, Poisoned ticks): no flinch per tick. `tag`'s source holds the state
 # (on = true until it clears it), and every tick of a SUSTAINED_TAGS source refreshes it for SUSTAIN_HOLD s
@@ -1900,8 +2108,119 @@ func _update_sustained(delta: float) -> void:
 		_sustained.erase(ended)
 		sustained_changed.emit(self, ended, false)
 
+# Where the nightmare is drawn (its lane, rounded corner and foot lift included): aim visuals here; game logic keeps
+# global_position. Same as get_body_position (Tower Code's aim, walking lanes 2026-10-24).
+func get_visual_position() -> Vector2:
+	return get_body_position()
+
+# This nightmare's lane width in cells (either side of the centre line).
+func get_lane_width() -> float:
+	if lane_width >= 0.0:
+		return minf(lane_width, LANE_BIG) if _is_big_for_lanes() else lane_width
+	if is_flying():
+		return LANE_FLYER
+	return LANE_BIG if _is_big_for_lanes() else LANE_MAX
+
+func _is_big_for_lanes() -> bool:
+	return enemy_data.is_boss or enemy_data.sprite_scale >= LANE_BIG_SCALE
+
+# Walking lanes: every LANE_WANDER s a new lane a step from the current one, the move eased in and out and never
+# sideways faster than LANE_SLIDE_SHARE of its walk; measured across the rounded corner's curve, narrower near a turn's
+# centre, closed in a narrow half-cell gap; it opens over the first cell walked and closes over the last route cell.
+# Reduced motion: a fixed lane.
+func _update_lane(delta: float) -> void:
+	if _spawner != null and not _spawner.walking_lanes:
+		return  # Dev flag --no-lanes
+	var still := bool(Fx.setting("reduced_motion", false))
+	var cell: float = grid.cell_size.x
+	if _lane_rng == null:
+		_lane_rng = RandomNumberGenerator.new()
+		_lane_rng.seed = randi()  # (The global RNG: a capture reseeds it, so its lanes replay)
+		lane_target = _lane_rng.randf_range(-1.0, 1.0)
+		lane = lane_target
+		_lane_from = lane
+		_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
+	if not still:
+		_lane_left -= delta
+		if _lane_left <= 0.0:
+			_lane_left = _lane_rng.randf_range(LANE_WANDER.x, LANE_WANDER.y)
+			var step := _lane_rng.randf_range(LANE_STEP.x, LANE_STEP.y) * (1.0 if _lane_rng.randf() < 0.5 else -1.0)
+			if absf(lane + step) > 1.0:
+				step = -step  # (The other side has room)
+			_start_lane_move(clampf(lane + step, -1.0, 1.0))
+		if _lane_t < 1.0:
+			# Paused while it stands still (held, asleep): the move keeps to its walk
+			var walking := clampf(_speed_cache / maxf(speed, 1.0), 0.0, 1.0)
+			_lane_t = minf(_lane_t + delta * walking / _lane_move, 1.0)
+			lane = lerpf(_lane_from, lane_target, smoothstep(0.0, 1.0, _lane_t))
+	# The direction: the drawn route position's motion (the rounded corner's curve), eased
+	var drawn := position + _corner_offset
+	if _lane_last != Vector2.INF:
+		var moved := drawn - _lane_last
+		if moved.length_squared() > 0.0025:
+			var dir := moved.normalized()
+			_lane_dir = dir if _lane_dir == Vector2.ZERO else _lane_dir.lerp(dir, 1.0 - exp(-LANE_TURN_EASE * delta)).normalized()
+	elif _path_index < _path.size():
+		var ahead := grid.calculate_map_position(_path[_path_index]) - position
+		if ahead.length_squared() > 1.0:
+			_lane_dir = ahead.normalized()
+	_lane_last = drawn
+	_lane_gap = lerpf(_lane_gap, 0.0 if _gap_answer else 1.0, 1.0 - exp(-LANE_GAP_EASE * delta))
+	_lane_age += delta
+	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
+	open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
+	var side := Vector2(-_lane_dir.y, _lane_dir.x)
+	_lane_offset = (side * lane * get_lane_width() * cell * open * _lane_gap * _turn_share()).round()
+	if _lane_offset.distance_squared_to(_lane_drawn) < LANE_SNAP_PX * LANE_SNAP_PX:
+		return
+	_lane_drawn = _lane_offset
+	_apply_sprite_offset()
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
+	if elite or _hit_mark_time > 0.0 or _bolt_flash > 0.0 or unbound:
+		queue_redraw()  # The haze and marks drawn in _draw follow the lane
+
+# A move to lane `to`, from where the lane is now: smoothstep over at least LANE_MOVE_MIN s, long enough that its
+# fastest moment (1.5 × the average) stays under LANE_SLIDE_SHARE of its walk speed.
+func _start_lane_move(to: float) -> void:
+	var cell: float = grid.cell_size.x
+	var px := absf(to - lane) * get_lane_width() * cell
+	_lane_from = lane
+	lane_target = to
+	_lane_t = 0.0
+	_lane_move = maxf(LANE_MOVE_MIN, 1.5 * px / maxf(LANE_SLIDE_SHARE * speed, 1.0))
+
+# The spawner's jostle: ease the lane `amount` lane units away (never past LANE_JOSTLE_MAX), through the same cap.
+func nudge_lane(amount: float) -> void:
+	if _lane_rng == null:
+		return
+	var to := clampf(lane_target + amount, -LANE_JOSTLE_MAX, LANE_JOSTLE_MAX)
+	if absf(to - lane_target) > 0.001:
+		_start_lane_move(to)
+
+# The lane's share near a turn: LANE_TURN_SHARE at the turn's centre, back to 1 at LANE_TURN_NEAR cells.
+func _turn_share() -> float:
+	if not _near_turn():
+		return 1.0
+	var near := INF
+	for i in [_path_index - 1, _path_index]:
+		if i >= 0 and i < _turns.size() and _turns[i] == 1:
+			near = minf(near, position.distance_to(grid.calculate_map_position(_path[i])))
+	if near == INF:
+		return 1.0
+	return lerpf(LANE_TURN_SHARE, 1.0, clampf(near / (LANE_TURN_NEAR * grid.cell_size.x), 0.0, 1.0))
+
 func is_flying() -> bool:
-	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0 and not dropped  # (Groundroot: not while grounded)
+
+# A route flyer (Crow, Night Kite, Gloamwing, Pall, Moth Queen): it flies the nightmares' route, above it.
+func is_route_flyer() -> bool:
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and enemy_data.flies_along_route
+
+# Whether it counts on the route for route cards (Passing Thread, Gauntlet, bends, the Callings' route): walkers and
+# route flyers at the route point below them. Ground effects still ask is_flying() (they miss every flyer).
+func on_route() -> bool:
+	return not is_flying() or enemy_data.flies_along_route
 
 # Rounded corners (user-approved, 2026-10-04): the route stays square and the logical position walks
 # it exactly (speed, ETA, progress unchanged); only the drawn sprite and HUD ease through a turn, on a
@@ -1924,7 +2243,7 @@ func _round_corners() -> void:
 	if offset == _corner_offset:
 		return
 	_corner_offset = offset
-	sprite.offset = (_body_offset() + _recoil) / sprite.scale
+	_apply_sprite_offset()
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 
@@ -1974,14 +2293,22 @@ func ground(seconds: float) -> void:
 	if _grounded_left > 0.0:
 		_grounded_left = maxf(_grounded_left, seconds)  # Already down: just longer
 		return
-	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	if route.is_empty():
-		return
-	var nearest: Vector2 = route[0]
-	for cell in route:
-		if grid.calculate_map_position(cell).distance_squared_to(position) \
-				< grid.calculate_map_position(nearest).distance_squared_to(position):
-			nearest = cell
+	var nearest: Vector2
+	var route_flyer := is_route_flyer()
+	if route_flyer and not _path.is_empty():
+		# A route flyer comes down on its own route, at the point below it (it rises back onto that route later)
+		_air_route = _path
+		_air_held = _route_point_below()
+		nearest = _path[_air_held]
+	else:
+		var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+		if route.is_empty():
+			return
+		nearest = route[0]
+		for cell in route:
+			if grid.calculate_map_position(cell).distance_squared_to(position) \
+					< grid.calculate_map_position(nearest).distance_squared_to(position):
+				nearest = cell
 	_grounded_left = seconds
 	_end_drag(false)
 	_leaping = true  # No walking during the drop
@@ -1991,22 +2318,176 @@ func ground(seconds: float) -> void:
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
 	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
-	tween.tween_callback(func() -> void:
-		_leaping = false
-		passed_waymark = true  # Waymark: a grounded flyer counts as having passed the stone (legendaries_final.md 1.1)
-		set_path(map_generator.get_path_from(nearest, true))
-		_speed_stale = true)
+	tween.tween_callback(_landed_from_air.bind(nearest, route_flyer))
+
+# The drop finished: it walks the maze from `cell`. A route flyer keeps the Waymark leg it really is on; a through-wall
+# flyer (the Phantom) counts as past the stone (legendaries_final.md 1.1).
+func _landed_from_air(cell: Vector2, route_flyer: bool) -> void:
+	_leaping = false
+	var map_generator = _map_generator()
+	if map_generator == null or is_cleansed:
+		return
+	if not route_flyer:
+		passed_waymark = true
+	set_path(map_generator.get_path_from(cell, passed_waymark))
+	_speed_stale = true
+
+# The index of the route point below it on its path (the nearer of the points either side of it).
+func _route_point_below() -> int:
+	if _path.is_empty():
+		return 0
+	var i := clampi(_path_index, 0, _path.size() - 1)
+	if i > 0 and grid.calculate_map_position(_path[i - 1]).distance_squared_to(position) \
+			<= grid.calculate_map_position(_path[i]).distance_squared_to(position):
+		return i - 1
+	return i
 
 func is_grounded() -> bool:
 	return _grounded_left > 0.0
 
-# Its time on the ground ran out: it rises and flies straight at the Heartwood from here.
+# Its time on the ground ran out: a route flyer rises back onto its own route (the point nearest it from where it was
+# grounded on, within the Waymark leg it is on); a through-wall flyer flies straight at the Heartwood from here.
 func _rise_from_ground() -> void:
 	_grounded_left = 0.0
 	var map_generator = _map_generator()
-	if map_generator != null and not is_cleansed:
-		set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
-		_speed_stale = true
+	if map_generator == null or is_cleansed:
+		return
+	if is_route_flyer() and not _air_route.is_empty():
+		_rejoin_air_route(_air_held)
+		return
+	set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
+	_speed_stale = true
+
+# Back onto its own route in the air: the point nearest it at or after `from` (not past the Waymark while it hasn't
+# passed it), and on from there.
+func _rejoin_air_route(from: int) -> void:
+	var map_generator = _map_generator()
+	var last := _air_route.size()
+	if not passed_waymark and map_generator != null and map_generator.has_method("waymark_split") and map_generator.has_waymark():
+		var split: int = map_generator.waymark_split(_air_route)
+		if split >= 0:
+			last = split + 1
+	var best := clampi(from, 0, _air_route.size() - 1)
+	var best_d := INF
+	for i in range(clampi(from, 0, _air_route.size() - 1), last):
+		var d := grid.calculate_map_position(_air_route[i]).distance_squared_to(position)
+		if d < best_d:
+			best_d = d
+			best = i
+	var rest := _air_route.slice(best)
+	set_path(rest)
+	_air_route = rest
+	_air_held = 0
+	_speed_stale = true
+
+# Gloamwing: with drop_stacks of Soaked and Drowsy together (Brimming never raises it), its wings are too heavy.
+func _check_wings() -> void:
+	if dropped or is_cleansed or enemy_data.drop_stacks <= 0 or _leaping:
+		return
+	if statuses.stacks(EnemyStatuses.DAMP) + statuses.stacks(EnemyStatuses.DROWSY) >= enemy_data.drop_stacks:
+		_drop_for_good()
+
+# It drops to the path at the route point below it and walks the rest, for good: a walker from that cell (the maze,
+# ground effects and holds all apply), at drop_walk_speed. Its own landing, not ground() (which rises again).
+func _drop_for_good() -> void:
+	var map_generator = _map_generator()
+	if map_generator == null or _path.is_empty():
+		return
+	var cell: Vector2 = _path[_route_point_below()]
+	_grounded_left = 0.0
+	dropped = true
+	speed *= enemy_data.drop_walk_speed / maxf(enemy_data.speed, 1.0)  # (Its Omen / Dream speed share stays)
+	_end_drag(false)
+	_leaping = true  # No walking during the drop
+	var tween := create_tween()
+	_leap_tween = tween
+	var frames := sprite.sprite_frames
+	if frames != null and frames.has_animation(&"land") and frames.get_animation_speed(&"land") > 0.0:
+		# Its "land" row: the wings close and fold in the air, then it drops (the last frame is walk_down's first)
+		var land := frames.get_frame_count(&"land") / frames.get_animation_speed(&"land")
+		sprite.play(&"land")
+		_pose_left = land
+		tween.tween_interval(maxf(land - GROUND_DROP_TIME, 0.0))
+	tween.tween_property(self, "position", grid.calculate_map_position(cell), GROUND_DROP_TIME) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
+	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
+	tween.tween_callback(_landed_from_air.bind(cell, true))
+
+# Pall: glides to the nearest walker ahead within PALL_REACH and settles over it, moving at its pace; when it is
+# dispelled the Pall flies on along its route. True while it covers (or glides to) one: its own walk is skipped.
+func _update_pall(delta: float) -> bool:
+	if covering != null and (not is_instance_valid(covering) or covering.is_cleansed or not _can_cover(covering, true)):
+		_uncover()
+	if covering == null:
+		_pall_seek -= delta
+		if _pall_seek > 0.0 or not is_flying():
+			return false
+		_pall_seek = PALL_SEEK_EVERY
+		covering = _walker_to_cover()
+		if covering == null:
+			return false
+		_settled = false
+		_air_held = _path_index  # Where it leaves its route (it flies on from about here)
+		covering.covered_by = self
+	var before := position
+	var target: Vector2 = covering.position + covering._lane_drawn + PALL_ABOVE
+	if _settled:
+		position = target
+	else:
+		var to := target - position
+		var step := PALL_SWOOP * delta
+		if to.length() <= maxf(step, PALL_SETTLE):
+			position = target
+			_settled = true
+			if sprite.sprite_frames.has_animation(&"settled"):
+				sprite.play(&"settled")  # Drawn over the walker (see-through in the middle)
+		else:
+			position += to / to.length() * step
+	if not _culled:
+		update_animation(position - before)
+	return true
+
+# A walker it may cover: on the ground, not a boss or a Deeply Blighted, targetable, not under another Pall.
+func _can_cover(walker: Node, mine: bool = false) -> bool:
+	return walker != self and not walker.is_cleansed and walker.has_method("on_route") and not walker.is_flying() \
+		and not walker.enemy_data.is_boss and not walker.elite and walker.is_in_group(GROUP) \
+		and not walker.has_meta(DriftShapes.PACK_META) \
+		and (walker.covered_by == null or (mine and walker.covered_by == self))
+
+# The nearest walker ahead of it (nearer the Heartwood) within PALL_REACH cells.
+func _walker_to_cover() -> Node2D:
+	if _spawner == null:
+		return null
+	var mine := get_remaining_distance()
+	var reach := PALL_REACH * grid.cell_size.x
+	var best: Node2D = null
+	var best_d := reach * reach
+	for other in _spawner.get_enemies():
+		if not _can_cover(other) or other.get_remaining_distance() >= mine:
+			continue
+		var d: float = other.position.distance_squared_to(position)
+		if d < best_d:
+			best_d = d
+			best = other
+	return best
+
+# Its walker is gone (dispelled, flown up or now a boss's): the Pall flies on along its own route from here.
+func _uncover() -> void:
+	if covering != null and is_instance_valid(covering) and covering.covered_by == self:
+		covering.covered_by = null
+	covering = null
+	_settled = false
+	if sprite.sprite_frames != null and sprite.sprite_frames.has_animation(&"fly") and not is_cleansed:
+		sprite.play(&"fly")
+	if not is_cleansed and not _air_route.is_empty():
+		_rejoin_air_route(_air_held)
+
+# A Pall's half of a blow at the walker it covers: no multipliers or shell again (they were the walker's).
+func take_shared(amount: float, source: Node, tag: StringName) -> void:
+	_shared_hit = true
+	_take_damage(amount, "", false, false, source, tag)
+	_shared_hit = false
 
 # Earthbind / Deeproot on what Held can't stop (Phantoms): a plain stop for `seconds`, no status, no Reactions.
 func pause(seconds: float) -> void:
@@ -2231,9 +2712,9 @@ func _play_pose(animation: StringName, seconds: float, backwards: bool = false) 
 func _measure_bar_offset() -> void:
 	_bar_offset = HEALTH_BAR_OFFSET
 	var frames := sprite.sprite_frames
-	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+	if frames == null or not frames.has_animation(_base_animation()) or frames.get_frame_count(_base_animation()) == 0:
 		return
-	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var texture := frames.get_frame_texture(_base_animation(), 0)
 	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
 	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
 	if bounds.has("top"):
@@ -2248,9 +2729,9 @@ func _measure_foot_lift() -> void:
 	if enemy_data.trait_kind == EnemyData.Trait.FLYING:
 		return
 	var frames := sprite.sprite_frames
-	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+	if frames == null or not frames.has_animation(_base_animation()) or frames.get_frame_count(_base_animation()) == 0:
 		return
-	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var texture := frames.get_frame_texture(_base_animation(), 0)
 	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
 	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
 	if bounds.has("bottom"):
@@ -2263,7 +2744,19 @@ func get_body_position() -> Vector2:
 
 # The drawn body's offset from the logical position: the rounded corner plus the foot lift (and asleep, its sink).
 func _body_offset() -> Vector2:
-	return _corner_offset + Vector2(0, -_foot_lift + _sleep_sink)
+	return _corner_offset + _lane_drawn + Vector2(0, -_foot_lift + _sleep_sink)
+
+# The sprite follows the drawn body: the walking lane goes in sprite.position (so the y-sort, which reads the sprite's
+# position with the enemy's y_sort_enabled, sorts a clump by where each body is drawn: council 2026-10-24c), the rest
+# (corner, foot lift, sink, recoil) in sprite.offset. A burrow's sink tween owns position.y while it runs.
+func _apply_sprite_offset() -> void:
+	sprite.offset = (_body_offset() - _lane_drawn + _recoil) / sprite.scale
+	if not _leaping:
+		sprite.position = _lane_drawn
+	else:
+		sprite.position.x = _lane_drawn.x
+	if _body_fx != null:
+		_body_fx.position = sprite.position
 
 # Falling asleep (screens_ui.md "Status row: Reaction-ready marks and falling asleep"): when Sleep fills into Asleep
 # (statuses.sleep_time from 0), the Sleep icon flashes once and turns into the Asleep badge; the nightmare settles
@@ -2307,7 +2800,7 @@ func _update_sleep(delta: float) -> void:
 	var sink := SLEEP_SINK * _settle - (0.0 if still else WAKE_HOP * jolt)
 	if sink != _sleep_sink:
 		_sleep_sink = sink
-		sprite.offset = (_body_offset() + _recoil) / sprite.scale
+		_apply_sprite_offset()
 	var lean := 0.0 if still else SLEEP_LEAN * _settle * (-1.0 if sprite.flip_h else 1.0)
 	if lean != _sleep_lean and not _dragging:  # (A drag wobbles the sprite itself)
 		_sleep_lean = lean
@@ -2379,7 +2872,7 @@ func _swap_frames(frames: SpriteFrames) -> void:
 	if frames.has_animation(animation):
 		sprite.play(animation)
 	else:
-		sprite.play(&"walk_side")
+		sprite.play(_base_animation())
 
 # Magpie Perch / Magpie's Hoard (and Wrens with Flock Together) strip nightmare buffs on a hit,
 # called before the hit lands (tower_design.md "status jobs"):
@@ -3007,30 +3500,32 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, source: Node, tag: StringName) -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
-	if source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
+	var shared := _shared_hit  # A Pall's half of its walker's blow: the walker's multipliers already counted
+	if not shared and source is Tower and Reactions.is_effect(tag) and not tag in POTENCY_EXEMPT:
 		amount *= Reactions.effect_multiplier(self, source, tag)  # Potency (and Seeping, not on a Reaction: its pool has it)
-	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
+	if not shared:
+		amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	# The run-shaping Dream cards that change damage by who deals it or where the nightmare stands (First Light,
 	# Passing Thread, Hot on Their Heels, Long Way Round, Front Line): 1.0 with none taken (Roguelite Code).
 	if _batch_dreams == null and is_inside_tree():
 		_batch_dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState  # Looked up once, not per hit
 	var batch_dreams := _batch_dreams if is_instance_valid(_batch_dreams) else null
-	if batch_dreams != null:
+	if batch_dreams != null and not shared:
 		amount *= batch_dreams.batch_damage_multiplier(self, source, tag)
 		amount *= batch_dreams.card_cap_factor(source, tag)  # Power budget (2026-10-16): non-Reaction card power on one hit stops at x4 (Roguelite Code)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)
 		if world:
-			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
+			Fx.crit(get_body_position(), world)  # The crit_flare glint, on the drawn body (drawn by the effects player)
 	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
 	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
-	var taken := statuses.get_damage_taken_multiplier()
-	if statuses.marked_bonus > 0.0:  # Bright Marks' share of this hit, for the Dream damage panel and the boost tiers
+	var taken := statuses.get_damage_taken_multiplier() if not shared else 1.0
+	if not shared and statuses.marked_bonus > 0.0:  # Bright Marks' share of this hit, for the Dream damage panel and the boost tiers
 		DamageLog.note_card_bonus("bright_marks", statuses.bright_marks_multiplier())
-	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
+	var soothe := amount * family * taken * (get_pack_multiplier() if not shared else 1.0)  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
 	_quiet_for = 0.0  # (Far LOD: a hit puts it back on every frame)
@@ -3051,6 +3546,15 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 			_mark_hit(-1)  # The crust crumbles off in a puff (Dew-light when Wash Away broke it)
 			if enemy_data.cracked_frames != null:
 				_swap_frames(enemy_data.cracked_frames)
+	if soothe > 0.0 and _spawner != null and has_meta(DriftShapes.PACK_META):
+		_spawner.note_pack_damage(self, source, soothe)  # (pack_wiped's top Warden)
+	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
+		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
+			var half := soothe * PALL_SHARE
+			soothe -= half
+			covered_by.take_shared(half, source, tag)
+		else:
+			covered_by = null
 	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
@@ -3110,6 +3614,8 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if stacks > 0 and is_instance_valid(_batch_dreams):
 		stacks += _batch_dreams.role_cards.bound_stacks(self, id)  # Card pass 2026-10-16, Bound and Burning: +2 while Rooted (never Drowsy)
 	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
+	if enemy_data.drop_stacks > 0 and (id == EnemyStatuses.DAMP or id == EnemyStatuses.DROWSY):
+		_check_wings()  # Gloamwing: heavy wings
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
 	if bolt > 0.0:
@@ -3263,6 +3769,9 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	if covering != null and is_instance_valid(covering) and covering.covered_by == self:
+		covering.covered_by = null  # A dispelled Pall lets its walker go
+	covering = null
 	if _hud_root.is_valid():
 		RenderingServer.canvas_item_set_visible(_hud_root, false)  # No bars or badges on the way out
 		_hud_shown = false
@@ -3317,6 +3826,7 @@ func _shriek() -> void:
 # appear (no burst outward, no drift). A boss (never an echo) gets its own beat (screens_ui.md a8471922): Tower Assets'
 # boss_burst if it exists (else twice the motes, wider), and in the real game a hitstop and the largest camera rumble.
 const BOSS_DISPEL_TRAUMA := 1.0
+const MOTE_BURST_MAX := 8  # More dispels than this within EnemySpawner.DISPEL_BURST_WINDOW s: half the motes each (phone budget)
 const BOSS_BURST := &"boss_burst"
 func _burst_into_motes() -> void:
 	var boss := enemy_data.is_boss and not is_echo
@@ -3337,7 +3847,8 @@ func _burst_into_motes() -> void:
 	var motes := CPUParticles2D.new()
 	motes.one_shot = true
 	motes.explosiveness = 0.9
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0))
+	var burst_share := 0.5 if _spawner != null and _spawner.dispel_burst() > MOTE_BURST_MAX else 1.0  # A pack wiped at once: half each (phones)
+	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share)
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)
@@ -3370,6 +3881,8 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
+	if is_route_flyer() and is_flying():
+		_air_route = points  # Its route in the air (a grounding rises back onto it, a Pall flies on along it)
 	_waymark_index = _find_waymark_index()
 	_path_serial += 1  # Per-route caches (turns, the walk target) rebuild
 	_cells_left = PackedFloat32Array()

@@ -98,6 +98,7 @@ const CUES := {
 	&"evergreen": DEW_SPARKLE, &"morning_dew": DEW_SPARKLE, &"seedfall": DEW_SPARKLE, &"dew_bowl": DEW_SPARKLE,
 	&"burn_back": DEW_SPARKLE, &"heartwoods_reach": DEW_SPARKLE, &"reclaimed_earth": DEW_SPARKLE,
 	&"kins_keepsake": DEW_SPARKLE, &"headlong": DEW_SPARKLE,
+	&"unfettered": DREAM_GLOW,  # Its lifted Calling hit: the Warden's boost glow (class_kit._unfettered_cue -> note_past_cap)
 	&"glimmering_hunt": DEW_SPARKLE, &"sudden_insight": DEW_SPARKLE,
 	# Leaves -> C8
 	&"deep_roots": LEAF_REGROW, &"thick_bark": LEAF_REGROW, &"press_on": LEAF_REGROW,

@@ -1264,7 +1264,7 @@ func _flare_from(jar, enemy, scale: float, own: StringName, budget: StringName) 
 	if dealt <= 0.0:
 		return false
 	jar.set_meta(budget, _now() + CLASS_KIT.CALLING_HIT_EVERY)
-	_line_fx(jar.global_position, enemy.global_position, 3.0, Palette.GLOW)
+	_line_fx(CLASS_KIT.body(jar), CLASS_KIT.body(enemy), 3.0, Palette.GLOW)
 	return true
 
 # How far along its route a nightmare is (0 start, 1 Heartwood): a walker by route index over the joined route's length; a
@@ -1385,7 +1385,7 @@ func _pass_streak(enemy) -> void:
 	var seen: Dictionary = best.get_meta(STREAK_SEEN_META, {})
 	seen.merge(enemy.get_meta(STREAK_SEEN_META, {}))
 	best.set_meta(STREAK_SEEN_META, seen)
-	_line_fx(at, best.global_position, 2.0, Palette.GLOW)
+	_line_fx(at, CLASS_KIT.body(best), 2.0, Palette.GLOW)
 	credit(EVO_PASSED, best.global_position)
 
 # Drawn In: each attacking Warden touching a flaring Firefly (Sprouts count, walls don't) flares the nightmare for a
@@ -1398,7 +1398,7 @@ func _drawn_in(jar, enemy) -> void:
 			continue
 		var dealt: float = _kit().calling_hit(tower, enemy, DRAWN_SCALE, FLARE_TAG, EVO_DRAWN, false, true, DRAWN_META, BOSS_SHARE)
 		if dealt > 0.0:
-			_line_fx(tower.global_position, enemy.global_position, 2.0, Palette.GLOW)
+			_line_fx(CLASS_KIT.body(tower), CLASS_KIT.body(enemy), 2.0, Palette.GLOW)
 
 # --- Damage events ----------------------------------------------------------------------------------------------
 
@@ -1894,7 +1894,7 @@ func _pass_crit(source, forced: Array) -> void:
 	if best == null:
 		return
 	best.set_meta(PASS_META, [passes + 1, chain])
-	_line_fx(source.global_position, best.global_position, 2.0, Palette.GOLD)  # The gold spark jumps to the partner
+	_line_fx(CLASS_KIT.body(source), CLASS_KIT.body(best), 2.0, Palette.GOLD)  # The gold spark jumps to the partner
 	credit(EVO_TINDERBOX if passes >= 1 else EVO_FLINT, best.global_position, source)
 
 # Struck Twice's mark: a small warm spark over the nightmare until its boosted hit lands or the mark fades.
@@ -2638,7 +2638,10 @@ func _strike(request: Dictionary) -> void:
 	if target.enemy_data != null and target.enemy_data.is_boss:
 		amount *= BOSS_SHARE
 	var at: Vector2 = target.global_position
-	var bolt := ChainBolt.new(PackedVector2Array([request.from, at]), request.get("color", Palette.GOLD), float(request.get("width", 4.0)))
+	var start: Vector2 = request.from  # The bolt is drawn body to body (walking lanes); the jump's logic keeps the route positions
+	if is_instance_valid(from_enemy) and start.is_equal_approx(from_enemy.global_position):
+		start = CLASS_KIT.body(from_enemy)
+	var bolt := ChainBolt.new(PackedVector2Array([start, CLASS_KIT.body(target)]), request.get("color", Palette.GOLD), float(request.get("width", 4.0)))
 	Reactions._world(self).add_child(bolt)
 	forks_thrown += 1
 	var evolved := _evolved()

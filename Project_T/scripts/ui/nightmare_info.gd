@@ -93,8 +93,10 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(_target) or _target.is_cleansed:
 		_target = null
 		visible = false
+		_set_hud_focus(null)
 		return
 	visible = true
+	_set_hud_focus(_target)
 	var data: EnemyData = _target.enemy_data
 	var kind := _kind(data)
 	_title.text = data.display_name + (" · New" if not _known.has(kind) else "")
@@ -120,6 +122,10 @@ func _process(delta: float) -> void:
 	var omen_line := omen_text(_target)
 	if omen_line != "":
 		lines.append(omen_line)
+	# A walker a Pall flies over (Enemy.covered_by; enemy_design.md "Flyers"): the Pall's rule shows on both cards
+	var pall = _target.get("covered_by")
+	if pall != null and is_instance_valid(pall):
+		lines.append("Covered by a Pall: blows at it are shared half and half.")
 	var statuses: Array[String] = []
 	for id in _target.get_status_order():  # The badge row's order, most important first
 		statuses.append(_target.statuses.describe(id))
@@ -259,3 +265,10 @@ func _on_spawned(node: Node) -> void:
 
 static func _kind(data: EnemyData) -> String:
 	return data.resource_path.get_file().get_basename()
+
+# The hovered / tapped nightmare keeps its full status row in a crowd, and is the only row under "Status icons: Off"
+# (Enemy Code 0fd6b2fb: EnemySpawner.hud_focus). Written only when it changes.
+func _set_hud_focus(enemy: Node2D) -> void:
+	var spawner := get_node_or_null("%EnemyContainer")
+	if spawner != null and "hud_focus" in spawner and spawner.hud_focus != enemy:
+		spawner.hud_focus = enemy

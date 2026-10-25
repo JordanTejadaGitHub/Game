@@ -77,7 +77,8 @@ const PULSE_SCALE := 1.3
 const PULSE_TIME := 0.35
 func _on_card_fired_pulse(id: StringName) -> void:
 	var runs = dream_state.get("card_counts_run")
-	if not runs is Dictionary or int((runs as Dictionary).get(id, 0)) > 1:
+	# Unfettered pulses every time it lifts a capped Calling hit (already once per Warden per 2 s in class_kit; section 33)
+	if id != &"unfettered" and (not runs is Dictionary or int((runs as Dictionary).get(id, 0)) > 1):
 		return
 	for icon in _icons:
 		if is_instance_valid(icon) and icon.card != null and StringName(icon.card.id) == id:

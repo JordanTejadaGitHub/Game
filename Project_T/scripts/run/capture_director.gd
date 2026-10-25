@@ -14,6 +14,7 @@ class_name CaptureDirector
 #   "bosses": ["<boss id>", …] (default: each act's default boss), "families": ["sporeling", …] (the Warden bar shows
 #   only these, Sprout and Thornwall; planting still takes any Warden),
 #   "game_music": false (the game's Music bus is muted: the export adds the music bed),
+#   "calling": "<family root id>" (the run's Calling, as the first family pick sets it),
 #   "timeline": [ {"t": 0.0, <one action>}, … ] }
 # Actions (t = seconds of the clip, unaffected by slow motion):
 #   {"plant": "<warden id or form>", "at": [hx, hy] (half cells: the 2×2 footprint's top-left) | "auto": "maze" | "cover",
@@ -232,6 +233,8 @@ func _setup() -> void:
 		for card in dreams.pool:
 			if card.id == StringName(id):
 				dreams.take(card)
+	if scene.has("calling"):  # {"calling": "firefly_jar"}: the run's Calling, as the first family pick sets it
+		dreams.set_calling(String(scene.calling))
 	if scene.has("omen"):
 		var omens = _main.get_node("%OmenDirector")
 		for omen in omens.all_omens():

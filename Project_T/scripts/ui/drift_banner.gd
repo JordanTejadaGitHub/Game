@@ -259,9 +259,15 @@ func show_marker_tip(line: String, at: Vector2) -> void:
 const TOP_GAP := "   "  # Between the act's name and the drift count (trimmed: the top-right row needs the room at 1280)
 
 # "Drift 7 of 100" (light pass, user-approved: the total is back, "Ready ·" is gone); drift 1 before the first.
+# During a shaped drift its shape follows ("Drift 31 of 100 · Packs"; a Stream says nothing: enemy_design.md "Drift shapes").
 func get_drift_text() -> String:
 	var latest := drift_director.drifts_started
-	return "Drift %d of %d" % [maxi(latest, 1), drift_director.get_total_drifts()]
+	var text := "Drift %d of %d" % [maxi(latest, 1), drift_director.get_total_drifts()]
+	if latest > 0 and not drift_director.is_resting() and drift_director.has_method("drift_shape"):
+		var shape: StringName = drift_director.drift_shape(latest)
+		if shape != DriftShapes.STREAM and shape != &"":
+			text += " · " + DriftShapes.display_name(shape)
+	return text
 
 # The next boss line after `latest`: just its countdown ("18") beside the boss portrait (design hub: the top-right row needs the room; the name and "in 18 drifts" are the tooltip, a tap opens the dossier), or "".
 func _next_boss_text(latest: int) -> String:

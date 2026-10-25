@@ -393,9 +393,7 @@ func _process(delta: float) -> void:
 func _ring_anchor(enemy) -> Vector2:
 	var bar = enemy.get("_bar_offset")
 	var y: float = (bar.y if bar is Vector2 else PIP_OFFSET.y) + BAR_HALF_HEIGHT + RING_GAP
-	if enemy.has_method("_body_offset"):
-		y += enemy._body_offset().y  # The HUD draws the bar on the body (its foot lift), not the origin
-	return enemy.global_position + Vector2(0.0, y)
+	return body(enemy) + Vector2(0.0, y)  # The HUD draws the bar on the drawn body (lane, corner, foot lift), not the origin
 
 func _draw_pips() -> void:
 	if dream_state == null or not tolls_on():
@@ -460,7 +458,7 @@ func _draw_pips() -> void:
 			_pip_layer.draw_arc(centre, (RING_FIRST + RING_STEP * k) * grow, RING_ARC_FROM, RING_ARC_TO, 12, colour, RING_WIDTH + 1.0, true)
 	for c in _clocks:  # Midnight Bell: a clock face at midnight over the nightmare
 		var who = c.enemy.get_ref()
-		var centre: Vector2 = (who.global_position if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -24.0)
+		var centre: Vector2 = (body(who) if is_instance_valid(who) else c.at) + PIP_OFFSET + Vector2(0.0, -24.0)
 		_pip_layer.draw_circle(centre, 8.0, Color(Palette.NIGHT, 0.7))
 		_pip_layer.draw_arc(centre, 8.0, 0.0, TAU, 24, Palette.GOLD, 1.5)
 		_pip_layer.draw_line(centre, centre + Vector2(0.0, -6.0), Palette.HEARTLIGHT, 1.5)
@@ -769,7 +767,7 @@ func _allegro_spend(enemy, bell, counted: bool) -> bool:
 	if bank <= 0:
 		return false
 	bell.set_meta(ALLEGRO_META, bank - 1)
-	_line_fx(bell.global_position, enemy.global_position, 1.5, Palette.EMBER)
+	_line_fx(body(bell), body(enemy), 1.5, Palette.EMBER)
 	credit(EVO_ALLEGRO, enemy.global_position, bell)
 	return true
 
@@ -1017,7 +1015,7 @@ func _carry_from(bell, target, base: float) -> void:
 		var enemy = row[1]
 		if not living(enemy):
 			continue
-		_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
+		_line_fx(from, body(enemy), 1.0, Palette.BLOSSOM)
 		ring(enemy, bell, _passed_base(bell, base), false, null, EVO_CARRYING)
 		carried += 1
 	if carried > 0:
@@ -1038,7 +1036,7 @@ func _hand_to_hand(enemy, bell, from_id: int) -> void:
 	enemy.set_meta(HAND_META, done)
 	var before = instance_from_id(from_id) if is_instance_id_valid(from_id) else null
 	if before is Node2D:
-		_line_fx(before.global_position, enemy.global_position, 1.5, Palette.GOLD)  # Handed from the last bell
+		_line_fx(body(before), body(enemy), 1.5, Palette.GOLD)  # Handed from the last bell
 	Reactions._effect(&"toll_ring", enemy.global_position, self, 0.4)
 	credit(EVO_HAND, enemy.global_position, bell)
 
@@ -1060,7 +1058,7 @@ func _peal(enemy, at: Vector2, bell = null) -> void:
 			continue
 		if _add_pip(other, null, EVO_PEAL):
 			filled += 1
-			_line_fx(at, other.global_position, 1.0, Palette.GOLD)
+			_line_fx(at, body(other), 1.0, Palette.GOLD)
 		if change:
 			_change_ring(other, bell)
 	if filled > 0:
@@ -1081,9 +1079,9 @@ func _change_ring(other, tolling) -> void:
 
 # Down the Line / Both Ways: a Toll primes the nearest walker behind it (Both Ways: and ahead) within PRIME_STEPS on its
 # leg; its next ring counts 1 more. A Toll whose own prime it spent continues only that way, PRIME_DEPTH in a row; an
-# unprimed Toll starts each way at 1. Forward and back never feed each other. Never flyers.
+# unprimed Toll starts each way at 1. Forward and back never feed each other. Route flyers count; the Phantom never.
 func _prime(enemy, at: Vector2, chain: Dictionary) -> void:
-	if not is_instance_valid(enemy) or enemy.is_flying():
+	if not is_instance_valid(enemy) or not enemy.on_route():  # Route flyers count (enemy_design.md "Flyers"); Phantoms never
 		return
 	var i0 := index_of(enemy)
 	if i0 < 0:
@@ -1112,7 +1110,7 @@ func _prime(enemy, at: Vector2, chain: Dictionary) -> void:
 			continue
 		primed[way] = depth
 		target.set_meta(PRIMED_META, primed)
-		_line_fx(at, target.global_position, 1.5, Palette.EMBER)  # A bronze spark hops down the file
+		_line_fx(at, body(target), 1.5, Palette.EMBER)  # A bronze spark hops down the file
 		credit(EVO_BOTH if way == AHEAD else EVO_DOWN, target.global_position)
 
 # The nearest walker on the same leg behind (or ahead of) route index `i0`, within PRIME_STEPS, or null.
@@ -1120,7 +1118,7 @@ func _next_on_route(enemy, at: Vector2, i0: int, passed: bool, ahead: bool):
 	var best = null
 	var best_gap := PRIME_STEPS * 2 + 1
 	for other in Tower.nightmares_near(get_tree(), at, (PRIME_STEPS + 1) * cell()):
-		if other == enemy or not living(other) or other.is_flying() or bool(other.get("passed_waymark")) != passed:
+		if other == enemy or not living(other) or not other.on_route() or bool(other.get("passed_waymark")) != passed:
 			continue
 		var j := index_of(other)
 		if j < 0:
@@ -1142,7 +1140,7 @@ func _note_heard(note: Dictionary, enemy) -> void:
 		if not is_instance_valid(tower) or not _last_hit_of.has(tower.get_instance_id()) or not living(enemy):
 			continue
 		var hit := float(_last_hit_of[tower.get_instance_id()]) * CHOIR_SHARE * output_share(tower, CHOIR_CAP_SECONDS)  # (Retired row; old saves)
-		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.HEARTLIGHT)
+		_line_fx(body(tower), body(enemy), 1.5, Palette.HEARTLIGHT)
 		calling_strike(tower, enemy, hit, &"chorus_repeat", false, EVO_CHOIR)  # (own: setup credit 2026-10-16)
 		sang += 1
 	if sang > 0:
@@ -1219,7 +1217,7 @@ func _hall(enemy, bell, at: Vector2, landing: float) -> void:
 	enemy.remove_meta(HALL_META)
 	var hit := 0
 	for other in _touching_at(at, enemy, HALL_OTHERS):
-		_line_fx(at, other.global_position, 2.0, Palette.BLOSSOM)
+		_line_fx(at, body(other), 2.0, Palette.BLOSSOM)
 		calling_strike(bell, other, landing * HALL_SHARE, &"toll", true, EVO_HALL)  # (own: setup credit 2026-10-16)
 		hit += 1
 	if hit > 0:
@@ -1229,7 +1227,7 @@ func _hall(enemy, bell, at: Vector2, landing: float) -> void:
 # Accompaniment (rebuilt 2026-10-23): another Warden filled the Toll's last pip: the bell's Toll landed, and that Warden's
 # hit repeats beside it at half (damage only: its status never comes again). Tenor Bell: in full; Ensemble: once more later.
 func _accompanied(partner, enemy, at: Vector2, bell, period: float = INF) -> void:
-	_line_fx(partner.global_position, at, 2.0, Palette.BLOSSOM)
+	_line_fx(body(partner), at, 2.0, Palette.BLOSSOM)
 	var dealt := _repeat(partner, enemy, EVO_ACCOMP, ACCOMP_SHARE, period)
 	if dealt > 0.0:
 		credit(EVO_ACCOMP, at, bell)
@@ -1316,7 +1314,7 @@ func _accompany(source, enemy, base: float) -> bool:
 	if now() < float(source.get_meta(JOIN_META, -INF)):
 		return true
 	source.set_meta(JOIN_META, now() + ACCOMP_EVERY)
-	_line_fx(source.global_position, bell.global_position, 1.0, Palette.BLOSSOM)
+	_line_fx(body(source), body(bell), 1.0, Palette.BLOSSOM)
 	ring(enemy, bell, _passed_base(bell, _bell_base(bell)), true, source)  # The Toll it makes is the bell's (rebuilt 2026-10-23)
 	return true
 
@@ -1334,7 +1332,7 @@ func _counterpoint(enemy, at: Vector2, roster: Array, partner, bell) -> void:
 		if not (tower is Tower) or now() < float(tower.get_meta(COUNTER_META, -INF)) or not _last_hit_of.has(id):
 			continue
 		tower.set_meta(COUNTER_META, now() + COUNTER_EVERY)
-		_line_fx(tower.global_position, at, 1.5, Palette.BLOSSOM)
+		_line_fx(body(tower), at, 1.5, Palette.BLOSSOM)
 		var dealt := _repeat(tower, enemy, EVO_COUNTER, COUNTER_SHARE)
 		if dealt > 0.0:
 			credit(EVO_COUNTER, at, bell)
@@ -1361,7 +1359,7 @@ func _symphony(enemy, roster: Array, at: Vector2, bell = null) -> void:
 		if not (tower is Tower) or now() < float(tower.get_meta(SYMPHONY_WARDEN_META, -INF)):
 			continue
 		tower.set_meta(SYMPHONY_WARDEN_META, now() + COUNTER_EVERY)
-		_line_fx(tower.global_position, at, 1.5, Palette.HEARTLIGHT)
+		_line_fx(body(tower), at, 1.5, Palette.HEARTLIGHT)
 		# evo_shared_spec.md 2: a Calling hit (damage only, no F1 arm); the stored hit is final, so it lands as given
 		calling_hit(tower, enemy, float(_last_hit_of[id]) * SYMPHONY_SHARE * output_share(tower, 1.0), &"chorus_repeat", EVO_SYMPHONY,
 			false, false, &"")
@@ -1389,7 +1387,7 @@ func _chime(enemy, at: Vector2) -> void:
 		if living(target) and target.statuses.applications > before:
 			rung += 1
 			target.flash_status(status)
-			_line_fx(at, target.global_position, 1.5, Palette.BLOSSOM)
+			_line_fx(at, body(target), 1.5, Palette.BLOSSOM)
 	if rung > 0:
 		Reactions._effect(&"toll_ring", at, self, 1.0)
 		credit(EVO_CHIME, at)
@@ -1439,7 +1437,7 @@ func _chorus(enemy, bell) -> void:
 	var partner = last.source.get_ref()
 	if not is_other_family(partner) or not near(partner.global_position, bell.global_position):
 		return
-	_line_fx(bell.global_position, enemy.global_position, 3.0, Palette.BLOSSOM)
+	_line_fx(body(bell), body(enemy), 3.0, Palette.BLOSSOM)
 	strike(partner, enemy, minf(float(last.base) * CHORUS_SHARE, second_of(partner) * CHORUS_SECONDS), &"chorus_repeat")
 	var status := status_of(partner)
 	if status != &"" and living(enemy):
@@ -1488,7 +1486,7 @@ func _hum_along(source, enemy) -> void:
 	if bell == null:
 		return
 	source.set_meta(HUM_META, now() + HUM_EVERY)
-	_line_fx(source.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	_line_fx(body(source), body(enemy), 1.5, Palette.BLOSSOM)
 	setup_apply(HUM_ALONG, bell, enemy, EnemyStatuses.DROWSY, 1, bell.get_damage())  # (setup credit 2026-10-16)
 
 # Ringing Ears (lent): a bell's attack's hits, gathered by frame; the next frame, an attack on 3 or more nightmares adds
@@ -1638,7 +1636,7 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 		enemy.set_meta(LAST_HIT_META, {"source": weakref(source), "base": event.base})  # Stored before defences
 	if counted != null and now() >= float(source.get_meta(JOIN_META, -INF)):
 		source.set_meta(JOIN_META, now() + JOIN_EVERY)
-		_line_fx(source.global_position, counted.global_position, 1.5, Palette.BLOSSOM)
+		_line_fx(body(source), body(counted), 1.5, Palette.BLOSSOM)
 		ring(enemy, counted, _passed_base(counted, counted.get_damage()), true)  # The Toll is always the bell's own ring; a counted hit is not a pulse (ring cap: final_pass_shared.md 5)
 
 # Coda: a Warden that played in a Symphony keeps its note CODA_SECONDS; its next hit, on any nightmare, repeats at half (a
@@ -1651,7 +1649,7 @@ func _coda(tower, enemy, base: float) -> void:
 	var amount := base * output_share(tower, 1.0) * CODA_SHARE
 	if amount <= 0.0:
 		return
-	_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+	_line_fx(body(tower), body(enemy), 1.5, Palette.BLOSSOM)
 	strike(tower, enemy, amount, &"chorus_repeat", false, EVO_CODA)
 	credit(EVO_CODA, enemy.global_position, tower)
 
@@ -1669,7 +1667,7 @@ func _releases(bell, enemy) -> void:
 			var dealt := calling_hit(bell, enemy, 1.0 + _boss_bonus(enemy, LAST_STEP * n), &"toll", EVO_LAST, false, true, &"", 1.0, INF)
 			if dealt > 0.0:
 				enemy.set_meta(LAST_DONE_META, true)
-				_line_fx(bell.global_position, enemy.global_position, 2.5, Palette.EMBER)
+				_line_fx(body(bell), body(enemy), 2.5, Palette.EMBER)
 				Reactions._effect(&"toll_ring", enemy.global_position, self, 1.3)
 				if not living(enemy) and evo(EVO_CURFEW):
 					_curfew_count = n
@@ -1681,7 +1679,7 @@ func _releases(bell, enemy) -> void:
 			if dealt > 0.0:
 				enemy.set_meta(CURFEW_DONE_META, true)
 				_curfew_count = -1
-				_line_fx(bell.global_position, enemy.global_position, 2.0, Palette.EMBER)
+				_line_fx(body(bell), body(enemy), 2.0, Palette.EMBER)
 	elif id == _halfway_id and _halfway_id != 0 and evo(EVO_HALFWAY) and not enemy.has_meta(HALFWAY_DONE_META):
 		var n := mini(int(enemy.get_meta(REMEMBER_META, 0)), LAST_RINGS)
 		var dealt := calling_hit(bell, enemy, 1.0 + _boss_bonus(enemy, HALFWAY_STEP * n), &"toll", EVO_HALFWAY, false, true, &"", 1.0, INF)
@@ -1723,7 +1721,7 @@ func _again(tower, enemy, amount: float, tag: StringName, look: StringName = &"t
 	if not is_instance_valid(tower) or not living(enemy):
 		return
 	if look == &"thread":
-		_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+		_line_fx(body(tower), body(enemy), 1.5, Palette.BLOSSOM)
 	elif look == &"double":
 		_double_flash(enemy.global_position)
 	strike(tower, enemy, amount, tag)
@@ -1790,7 +1788,7 @@ func _tick_later() -> void:
 		var own: StringName = row.get("own", &"")
 		if own != &"" and not bool(row.again):  # Change Ringing, Ensemble: an evolution's queued hit (damage only)
 			if is_instance_valid(tower) and living(enemy):
-				_line_fx(tower.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+				_line_fx(body(tower), body(enemy), 1.5, Palette.BLOSSOM)
 				strike(tower, enemy, float(row.amount), row.tag, false, own)
 				credit(own, enemy.global_position, tower)
 				if bool(row.get("ring", false)) and living(enemy):
@@ -1907,7 +1905,7 @@ func _carry_ring(bell, base: float) -> void:
 	for enemy in enemies():
 		if carried.has(index_of(enemy)) and not _in_reach(bell, enemy):
 			if tune:
-				_line_fx(from, enemy.global_position, 1.0, Palette.BLOSSOM)
+				_line_fx(from, body(enemy), 1.0, Palette.BLOSSOM)
 				ring(enemy, bell, _passed_base(bell, base), false, null, EVO_CARRYING)  # Carrying Tune: the ring only (rebuilt 2026-10-23)
 			else:
 				strike(bell, enemy, base * CARRY_SHARE, &"carried_ring", true)  # (Sound Carries: a retired class card)
@@ -1970,7 +1968,7 @@ func _second_verse(enemy, bell) -> void:
 	if verse > 0:
 		paid[bell.get_instance_id()] = true
 		enemy.set_meta(VERSE_META, paid)
-		_line_fx(bell.global_position, enemy.global_position, 1.5, Palette.BLOSSOM)
+		_line_fx(body(bell), body(enemy), 1.5, Palette.BLOSSOM)
 		enemy.flash_status(status)  # A pulse on that status's badge (bell_lent_review.md (c))
 		credit(SECOND_VERSE, enemy.global_position, bell)
 

@@ -250,6 +250,9 @@ func save_now() -> bool:
 		"auto_drift": drift_director.auto_drift,
 		"bosses": BossPool.ids(drift_director.bosses),  # Boss pools: the bosses this run drew
 		"dreams": dream_state.to_save(),
+		# Lantern Light's gold per Warden ([cell x, cell y, block, total]; section 33, firefly_lights.gold_to_save)
+		"firefly_gold": dream_state.firefly_lights.gold_to_save() if dream_state.firefly_lights != null \
+			and dream_state.firefly_lights.has_method("gold_to_save") else [],
 	}
 	if map_generator.get("waymark_cell") != null and map_generator.has_waymark():
 		data["waymark"] = [map_generator.waymark_cell.x, map_generator.waymark_cell.y]  # Waymark (Legendary Dream): the stone's cell
@@ -556,6 +559,8 @@ func _restore(data: Dictionary) -> void:
 	drift_director.build_phase_changed.emit(true)
 
 	dream_state.load_save(data.dreams)
+	if dream_state.firefly_lights != null and dream_state.firefly_lights.has_method("gold_load_save"):
+		dream_state.firefly_lights.gold_load_save(data.get("firefly_gold", []))  # Applies once the Wardens are back
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and data.has("omens") and omens.has_method("load_save"):
 		omens.load_save(data.omens)

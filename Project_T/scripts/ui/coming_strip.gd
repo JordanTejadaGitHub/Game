@@ -25,6 +25,8 @@ const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const DIM := Color(1, 1, 1, 0.4)
 
 var drift_director: DriftDirector
+const SHAPE_ROWS := preload("res://scripts/ui/shape_rows.gd")
+var _shapes := SHAPE_ROWS.new()  # Drift shapes at a rest (owner 2026-10-24, enemy_design.md "Drift shapes")
 var compact := false  # A drift is walking: the small row
 var next_after_rest := false  # Compact in a block's last drift: the next block's first drift ("After the rest")
 var _caption := Label.new()
@@ -48,6 +50,7 @@ func _ready() -> void:
 	_row.add_theme_constant_override("separation", 4)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_row)
+	add_child(_shapes)  # Drift shapes: a row per drift of the next block at a rest (shape_rows.gd)
 	_kind_words.name = "KindWords"
 	_kind_words.add_theme_constant_override("separation", 0)
 	_kind_words.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -115,6 +118,8 @@ func _process(delta: float) -> void:
 		_chip_for = ""
 		return
 	var key := "%s:%d:%d" % [compact, span.x, span.y]
+	if not compact:
+		key += ":" + SHAPE_ROWS.omen_key(drift_director)  # The shapes' numbers come once the Omen is picked
 	if key != _built_for:
 		_built_for = key
 		_build(span)
@@ -240,6 +245,7 @@ func _build(span: Vector2i) -> void:
 	if not rest.is_empty():
 		line.add_child(_more_chip(rest))
 	_build_kind_words(span)
+	_shapes.build(drift_director, span, compact)
 
 # A Kind's first drift this run, in words on the strip itself (Balancing Discussion, owner 2026-10-19: "warning 1 drift
 # earlier is better"; human run lost to drift 31's Phantoms). Only the very next drift, at a rest and mid-block alike
@@ -503,7 +509,7 @@ func _fill_chip(span: Vector2i) -> void:
 		var count := Label.new()
 		count.text = "×%d" % int(kinds[i][2])
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.number(count, 14, UiStyle.GOLD)
+		UiStyle.number(count, 16, Palette.HEARTLIGHT)  # One size up, brighter (UI council round 7: it read as dust)
 		_chip_row.add_child(count)
 	for i in range(CHIP_KINDS, kinds.size()):
 		fresh = fresh or NightmareCard.is_new(kinds[i][0])
@@ -511,14 +517,17 @@ func _fill_chip(span: Vector2i) -> void:
 		var more := Label.new()
 		more.text = "+%d" % (kinds.size() - CHIP_KINDS)
 		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.number(more, 14, UiStyle.INK_DIM)
+		UiStyle.number(more, 16, UiStyle.INK_DIM)
 		_chip_row.add_child(more)
 	if fresh:  # A never-met kind or a new rule-breaker: a small gold dot
 		var dot := Control.new()
-		dot.custom_minimum_size = Vector2(8, 8)
+		dot.custom_minimum_size = Vector2(14, 14)
 		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		dot.draw.connect(func() -> void: dot.draw_circle(dot.size / 2.0, 3.5, UiStyle.GOLD))
+		dot.draw.connect(func() -> void:  # A 5 px gold dot in a soft glow (council round 7: 3 px read as dust)
+			dot.draw_circle(dot.size / 2.0, 6.5, Color(UiStyle.GOLD, 0.22))
+			dot.draw_circle(dot.size / 2.0, 4.0, Color(UiStyle.GOLD, 0.35))
+			dot.draw_circle(dot.size / 2.0, 2.5, UiStyle.GOLD))
 		_chip_row.add_child(dot)
 	_chip.tooltip_text = "Coming this block%s. Click to see them." % (", something new" if fresh else "")
 	var need := _chip_row.get_combined_minimum_size()
@@ -530,6 +539,7 @@ func _apply_pc() -> void:
 	if _phone:
 		return
 	_row.visible = pc_open
+	_shapes.visible = pc_open and _shapes.has_rows()
 	_caption.visible = pc_open and not _kind_words.visible
 	for pad: Control in [_pad_top, _pad_foot]:
 		pad.visible = pc_open or _kind_words.visible
@@ -623,7 +633,7 @@ func _make_phone_toggle() -> void:
 	move_child(gap, 1)
 
 func _stack_phone() -> void:
-	for node in [_row, _kind_words, _pad_top, _pad_foot, get_node_or_null("DropGap")]:
+	for node in [_row, _shapes, _kind_words, _pad_top, _pad_foot, get_node_or_null("DropGap")]:
 		if node != null:
 			node.visible = phone_open and node != _kind_words
 	var fresh := false

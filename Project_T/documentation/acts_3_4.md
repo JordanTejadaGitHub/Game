@@ -104,12 +104,12 @@ introductions in a block, all three free drifts are shaped.
 | 11 | 51–55 | 52 (Lurker), 54 (Will-o'-Wisp) | 51, 53, 55 |
 | 12 | 56–60 | 56 (Gravecrawler), 58 (Sleepwalker) | 57, 59, 60 |
 | 13 | 61–65 | 61 (Drowned One), 63 (Barrow Wight) | 62, 64, 65 |
-| 14 | 66–70 | 66 (Watcher), 68 (Ash Crawler) | 67, 69, 70 |
+| 14 | 66–70 | 66 (Watcher), 68 (Ash Crawler), 69 (Gloamwing) | 67, 70 (Few and tough drops out: three introductions) |
 | 15 (boss) | 71–75 | 74 (before the boss), 75 (the act 3 boss's escort) | 71, 72, 73 |
 | 16 | 76–80 | 77 (Widow), 79 (Shellbound) | 76, 78, 80 |
 | 17 | 81–85 | 81 (Whisper Swarm), 83 (Dream Thief) | 82, 84, 85 |
 | 18 | 86–90 | 86 (Weeper) | three of 87–90 (one more Stream); 90 is shaped |
-| 19 | 91–95 | — | two Streams + one of each; 95 is shaped |
+| 19 | 91–95 | 92 (Pall) | one of each in 91 / 93 / 94 / 95 (one more Stream); 95 is shaped |
 | 20 (boss) | 96–100 | 99 (before the Hollow Oak), 100 (its escort) | 96, 97, 98 |
 
 Packs are 6–8 strong here. Never two Few and tough in a row, across a block boundary too.
@@ -121,7 +121,7 @@ pin its shape and kinds (`DriftData.shape`, and the generator's optional "Shape"
 
 ## Act 3: Misty Hollow (drifts 51–75)
 
-SH Shade, HU Husk, MO Mourner, PH Phantom, NH Night Hound, PR Procession, LU Lurker, WW
+SH Shade, HU Husk, MO Mourner, PH Phantom, NK Night Kite, GW Gloamwing, PL Pall, NH Night Hound, PR Procession, LU Lurker, WW
 Will-o'-Wisp, GC Gravecrawler, SW Sleepwalker, DO Drowned One, BW Barrow Wight, WA Watcher, AC Ash
 Crawler. One elite per drift is added automatically.
 
@@ -145,7 +145,7 @@ Crawler. One elite per drift is added automatically.
 | 66 | 3 WA (3 s apart), 10 SH | Watcher intro |
 | 67 | 34 SH, 10 HU, 4 WA, 3 PR | |
 | 68 | 3 AC (3 s apart) | Ash Crawler intro |
-| 69 | 34 SH, 6 AC, 8 MO, 6 GC | |
+| 69 | **Gloamwing intro:** 4 GW among 34 SH, 8 MO, 6 GC | the moth before the Moth Queen; budget for Balancing |
 | 70 | **Vigil:** 6 WA, 24 SH, 8 MO, 4 BW | rest |
 | 71 | 36 SH, 12 HU, 8 NH, 6 DO, 4 WA | |
 | 72 | 36 SH, 10 LU, 4 WW, 6 GC, 3 PR | |
@@ -176,7 +176,7 @@ are added automatically.
 | 89 | 42 SH, 6 WS, 8 DO, 6 AC, 4 PR | |
 | 90 | **Lament:** 6 WE, 12 MO, 10 HU | rest |
 | 91 | 44 SH, 14 HU, 10 NH, 6 WI, 6 DT | |
-| 92 | 44 SH, 8 SB, 6 WE, 6 WA, 4 PH | |
+| 92 | **Pall intro:** 3 PL, each settling over the Shades, among 44 SH, 8 SB, 6 WE | budget for Balancing |
 | 93 | 44 SH, 8 WS, 10 DO, 6 GC, 6 SW | |
 | 94 | 46 SH, 14 HU, 8 BW, 10 LU, 4 WW, 4 PR | |
 | 95 | **Shell Wall:** 10 SB, 4 WI, 6 WE | rest |

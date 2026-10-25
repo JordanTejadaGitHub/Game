@@ -210,7 +210,7 @@ static func dispelled(tower: Tower, enemy: Node2D) -> void:
 				if other != enemy and not other.is_cleansed and other.global_position.distance_to(enemy.global_position) <= reach:
 					other.set_meta(&"hoar_frozen", false)  # Shard-frozen: doesn't chain again
 					_hold(tower, other, SHATTER_FREEZE)
-			_fx(tower, &"shatter_chain_burst", enemy.global_position, Color(Palette.DEWLIGHT, 0.8))
+			_fx(tower, &"shatter_chain_burst", Tower.aim_at(enemy), Color(Palette.DEWLIGHT, 0.8))
 		&"mended_leaves":
 			if not enemy.statuses.is_caught() or enemy.global_position.distance_to(tower.global_position) \
 					> tower.get_range_cells() * Tower.MAP_GRID.cell_size.x:
@@ -404,7 +404,7 @@ static func ring_stepped(tower: Tower, enemy: Node2D) -> void:
 	if steps >= DANCE_RINGS:
 		enemy.set_meta(&"danced", true)
 		_hold(tower, enemy, DANCE_HOLD)
-		_fx(tower, &"fairy_dance", enemy.global_position, Color(Palette.BLOSSOM, 0.8), DANCE_HOLD)
+		_fx(tower, &"fairy_dance", Tower.aim_at(enemy), Color(Palette.BLOSSOM, 0.8), DANCE_HOLD)
 
 # --- Morning Fog: Veil --------------------------------------------------------------------------------
 
@@ -479,7 +479,7 @@ class BeaconRing extends Node2D:
 # Snugroot: a root knot under the jammed nightmare for the Hold.
 static func _logjam_knot(tower: Tower, enemy: Node2D) -> void:
 	var seconds: float = enemy.statuses.time_left(EnemyStatuses.HELD)
-	var knot := _fx(tower, &"logjam_knot", enemy.global_position, Color(Palette.BARK, 0.7), maxf(seconds, 0.3))
+	var knot := _fx(tower, &"logjam_knot", Tower.aim_at(enemy), Color(Palette.BARK, 0.7), maxf(seconds, 0.3))
 	if knot != null:
 		knot.z_index = -1  # On the ground, under the nightmare
 

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/pall.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+kind = 1
+display_name = "Pall"
+health = 160
+speed = 72.0
+dew_reward = 4
+leaf_cost = 1
+trait_kind = 1
+flies_along_route = true
+covers_walkers = true
+trait_text = "Flies the path and covers the nearest nightmare ahead: blows at that one are shared half and half with the Pall."
+intro_lines = Array[String](["It moves on when the one it covers is dispelled.", "It never covers a boss or a Deeply Blighted nightmare."])
+hint = "Hit the Pall first: it is lighter than what it shields, and area hits catch both."
+intro_drift = 92
+roll_tags = Array[StringName]([&"special"])

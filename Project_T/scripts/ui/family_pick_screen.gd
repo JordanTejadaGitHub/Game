@@ -513,9 +513,9 @@ func _press(button: Button, data: Resource, take_text: String) -> void:
 		return
 	choose(data)
 
-# A family's colour (Kinships.FAMILY_COLORS by its line, the colour its Calling evolution cards, vines and sparks use).
+# A family's colour on its cards (ChoiceCard.family_colour: the colour its Calling evolution cards use too).
 static func _family_colour(data: TowerData) -> Color:
-	return Kinships.FAMILY_COLORS.get(data.line, Palette.SPRIG)
+	return ChoiceCard.family_colour(data.line)
 
 func _make_card(data: TowerData) -> Button:
 	var button := Button.new()
@@ -659,7 +659,7 @@ func _status_chip(status: StringName) -> Control:
 	var label := Label.new()
 	label.text = IconInfo.status_name(status)
 	label.add_theme_font_size_override("font_size", _fs(13))
-	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	label.add_theme_color_override("font_color", UiStyle.INK)  # The label colour, not dim grey (UI council round 7: low contrast on the glass)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 	return chip

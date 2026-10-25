@@ -146,8 +146,8 @@ func _style() -> void:
 	add_theme_constant_override("shadow_offset_x", 1)
 	add_theme_constant_override("shadow_offset_y", 2)
 	add_theme_constant_override("shadow_outline_size", 8)
-	var mist := UiStyle.fog_patch(28.0, 8.0)  # Feathered: fades to nothing at its edges, no hard box
-	mist.center_alpha = 0.7  # Dark enough behind the line to read on the path and on effects
+	var mist := UiStyle.fog_patch(32.0, 12.0)  # Feathered: fades to nothing at its edges, no hard box; a wider, darker core
+	mist.center_alpha = 0.88  # A darker core (UI council round 7: frameless, it faded into the trees and ghosted over Wardens)
 	mist.edge_alpha = 0.0
 	add_theme_stylebox_override("normal", mist)
 	fit_content = true

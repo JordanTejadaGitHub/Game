@@ -71,6 +71,10 @@ var forced_branch := ""
 # --calling-path=<id,id,…> takes those Calling evolutions when offered (else the first offered).
 var forced_final := ""
 var calling_wish: Array[StringName] = []
+# --shape=30:packs,60:few_and_tough,85:stream (the drift-shapes gate): those drifts play that DriftShapes shape, set on the
+# rolled DriftData after DriftRoller.roll_run. The drift keeps the template it was rolled with, so a forced Packs on a
+# template made for another shape may form fewer packs (RUN JSON shapes_forced lists what each drift then played).
+var forced_shapes := {}  # Drift number -> shape id
 var branch_status := ""  # RUN JSON branch_status: "unlocked", "unlocked+forced" (the draw left it out), or why not
 var spend_all := false
 var player_board := false  # --player-board (with --spend-all): no room cap on planting; the branch share capped (_allowed_form)
@@ -232,6 +236,9 @@ func _run() -> void:
 			"--families": forced_families.assign(value.split(","))  # e.g. firefly_jar,dewdrop: the family picks, in order; later picks take none
 			"--branch": forced_branch = value
 			"--final": forced_final = value
+			"--shape":
+				for pair in value.split(",", false):
+					forced_shapes[int(pair.get_slice(":", 0))] = StringName(pair.get_slice(":", 1))
 			"--calling-path":
 				for id in value.split(",", false):
 					calling_wish.append(StringName(id))
@@ -366,6 +373,9 @@ func _run() -> void:
 	map = main.get_node("%MapGenerator")
 	placer = main.get_node("%TowerPlacer")
 	dreams = main.get_node("%DreamState")
+	if not _force_shapes():
+		quit(1)
+		return
 	if old_growth:  # Set after _ready (it resets the statics from its exports); the setters write them
 		for key in ["branch_cost_multiplier", "final_cost_multiplier", "ascended_cost_multiplier"]:
 			if dreams.get(key) == null:
@@ -1862,6 +1872,7 @@ func _finish() -> void:
 	# the furthest approach per block of 5 and the board at the end.
 	summary.branch = forced_branch
 	summary.final = forced_final
+	summary.shapes_forced = ";".join(forced_shapes.keys().map(func(n) -> String: return "%d:%s" % [n, director.drift_shape(n)]))
 	summary.calling_path = "+".join(dreams.calling_path)  # The evolutions taken (the bot offers them since the planting player)
 	summary.branch_status = branch_status
 	summary.spend_all = spend_all
@@ -2062,6 +2073,18 @@ func _force_branch(base_id: String) -> void:
 				policy.wish_forms.append(f)  # --final: saved for at the rests and picks that bring Dreamlight
 		if policy.wish_forms.size() < 2:
 			branch_status += "; %s is not a final of %s" % [forced_final, forced_branch]
+
+# --shape: set after the roll (DriftDirector._roll_drifts is deferred to the first frame, which has passed). False on a
+# bad drift number or shape id.
+func _force_shapes() -> bool:
+	var director_node: DriftDirector = main.get_node("%DriftDirector")
+	for n in forced_shapes:
+		var shape: StringName = forced_shapes[n]
+		if not DriftShapes.ALL.has(shape) or n < 1 or n > director_node.drifts.size():
+			printerr("--shape: no drift %d or no shape %s (%s)" % [n, shape, ", ".join(DriftShapes.ALL)])
+			return false
+		director_node.drifts[n - 1].shape = shape
+	return true
 
 # --branch: past the base Warden, only the forced branch is grown into.
 func _allowed_form(form: TowerData) -> bool:

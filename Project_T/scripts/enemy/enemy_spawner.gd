@@ -284,6 +284,7 @@ func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: N
 var half_rate_logic := false
 var force_lane := false
 var in_game := false  # main.tscn is the running scene (not a test): the boss beats' hitstop and camera rumble
+var walking_lanes := not OS.get_cmdline_user_args().has("--no-lanes")  # Dev flag (before/after captures): bodies on the centre line
 
 func _process(delta: float) -> void:
 	in_game = owner != null and get_tree().current_scene == owner
@@ -306,6 +307,72 @@ func _process(delta: float) -> void:
 	_update_rooted_cells(dreams)
 	_update_reveal_lookup(delta)
 	_update_lantern_light()
+	_jostle_lanes(delta)
+
+# Walking lanes (enemy_design.md, visual only; retune: council 2026-10-24b): walkers within JOSTLE_REACH cell of each
+# other ALONG THE ROUTE (their distance left to the Heartwood, so corners never false-trigger) on lanes closer than
+# JOSTLE_LANES cell ease their lanes apart (Enemy.nudge_lane: the same speed cap, never past ±0.85). Buckets of
+# JOSTLE_REACH by distance left; a walker is compared with its own bucket and the next, each pair once, every
+# JOSTLE_EVERY frames. Reduced motion: none.
+const JOSTLE_REACH := 0.55  # Cells along the route
+const JOSTLE_LANES := 0.15  # Cells: lanes closer than this push
+const JOSTLE_PUSH := 0.8  # Lane units a second
+const JOSTLE_EVERY := 2
+var _jostle_time := 0.0
+# Status icons in crowds (enemy_design.md, owner 2026-10-24): the jostle's neighbour pass also marks nightmares whose
+# drawn bodies are within CROWD_REACH cell of another (Enemy.crowd_seen = crowd_clock); hud_focus = the nightmare the
+# info panel shows (hovered / tapped: it keeps its full row; NightmareInfo sets it).
+const CROWD_REACH := 0.5
+var crowd_clock := 0.0
+var hud_focus: Node2D = null
+
+func _jostle_lanes(delta: float) -> void:
+	_jostle_time += delta
+	crowd_clock += delta
+	if Engine.get_process_frames() % JOSTLE_EVERY != 0:
+		return
+	var step := _jostle_time
+	_jostle_time = 0.0
+	# Jostle pushes only with lanes on and no reduced motion; the crowd marks (compact status rows) always
+	var push := walking_lanes and not bool(Fx.setting("reduced_motion", false))
+	var cell_px := 0.0
+	var buckets := {}  # floor(distance left / reach) -> [[nightmare, distance left], …]
+	for enemy in get_children():
+		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled:
+			continue
+		if cell_px == 0.0:
+			cell_px = enemy.grid.cell_size.x
+		var left: float = enemy.get_remaining_distance()
+		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append([enemy, left])
+	if buckets.is_empty():
+		return
+	var reach := JOSTLE_REACH * cell_px
+	for key in buckets:
+		var here: Array = buckets[key]
+		var next: Array = buckets.get(key + 1, [])
+		for i in here.size():
+			for j in range(i + 1, here.size() + next.size()):
+				var other: Array = here[j] if j < here.size() else next[j - here.size()]
+				_jostle_pair(here[i], other, reach, cell_px, step, push)
+
+func _jostle_pair(one: Array, two: Array, reach: float, cell_px: float, step: float, push: bool) -> void:
+	if absf(float(one[1]) - float(two[1])) > reach:
+		return
+	var a = one[0]
+	var b = two[0]
+	# Crowded (status icons in crowds): another drawn body within CROWD_REACH cell
+	if a.get_body_position().distance_squared_to(b.get_body_position()) < (CROWD_REACH * cell_px) ** 2:
+		a.crowd_seen = crowd_clock
+		b.crowd_seen = crowd_clock
+	if not push or a.is_flying() or b.is_flying():
+		return
+	var wa: float = a.lane * a.get_lane_width()
+	var wb: float = b.lane * b.get_lane_width()
+	if absf(wa - wb) > JOSTLE_LANES:
+		return
+	var away := signf(wa - wb) if wa != wb else (1.0 if a.get_instance_id() > b.get_instance_id() else -1.0)
+	a.nudge_lane(away * JOSTLE_PUSH * step)
+	b.nudge_lane(-away * JOSTLE_PUSH * step)
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
 # others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
@@ -463,6 +530,108 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_snuff_lanterns_of(enemy)
 	_split(enemy)
 	enemy_cleansed.emit(enemy)
+	_pack_member_gone(enemy, false)
+
+# --- Pack wipes (enemy_design.md "Drift shapes", "More of the group wipe", council 2026-10-24c) ----------------------
+# pack_formed(key, size): a pack's first member arrived (size = the arrivals it was shaped with; for "Packs wiped: N of
+# M"). pack_wiped(key, size, centre, top_source): every member (its splitters' children and followers too) was
+# dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
+# at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
+# damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
+# Phone budget: dispels counted over DISPEL_BURST_WINDOW s (Enemy halves its motes past MOTE_BURST_MAX).
+const DISPEL_BURST_WINDOW := 0.5
+var _dispel_times: Array[float] = []
+
+# A dispel now: how many landed within DISPEL_BURST_WINDOW s, this one included.
+func dispel_burst() -> int:
+	while not _dispel_times.is_empty() and crowd_clock - _dispel_times[0] > DISPEL_BURST_WINDOW:
+		_dispel_times.pop_front()
+	_dispel_times.append(crowd_clock)
+	return _dispel_times.size()
+
+signal pack_formed(key: int, size: int)
+signal pack_wiped(key: int, size: int, centre: Vector2, top_source: Node)
+const PACK_WIPE_MIN := 4
+const PACK_WIPE_WINDOW := 3.0
+var _pack_book := {}  # key -> {"needed", "arrived", "alive", "dispelled", "leaked", "first", "last", "sum", "damage"}
+
+# A pack member arrived (DriftShapes.tag_enemy: `arrival` true for the shaped arrival, false for a follower) or popped
+# out of one (a split child).
+func note_pack_member(enemy: Node, needed: int, arrival: bool) -> void:
+	var key: int = enemy.get_meta(DriftShapes.PACK_META, -1)
+	if key < 0 or key % 1000 == DriftShapes.TOUGH_PACK:
+		return
+	var book: Dictionary = _pack_book.get(key, {})
+	if book.is_empty():
+		book = {"needed": needed, "arrived": 0, "alive": 0, "dispelled": 0, "leaked": false, "first": -1.0, "last": -1.0,
+			"sum": Vector2.ZERO, "damage": {}}
+		_pack_book[key] = book
+		pack_formed.emit(key, needed)
+	book.alive += 1
+	if arrival:
+		book.arrived += 1
+
+# A hit on a pack member (Enemy._take_damage): who dealt it, for pack_wiped's top_source.
+func note_pack_damage(enemy: Node, source: Node, amount: float) -> void:
+	var book: Dictionary = _pack_book.get(enemy.get_meta(DriftShapes.PACK_META, -1), {})
+	if not book.is_empty() and source is Tower:
+		book.damage[source] = float(book.damage.get(source, 0.0)) + amount
+
+func _pack_member_gone(enemy: Node, leaked: bool) -> void:
+	var key: int = enemy.get_meta(DriftShapes.PACK_META, -1)
+	var book: Dictionary = _pack_book.get(key, {})
+	if book.is_empty():
+		return
+	book.alive -= 1
+	if leaked:
+		book.leaked = true
+	else:
+		book.dispelled += 1
+		book.sum += enemy.global_position
+		if book.first < 0.0:
+			book.first = crowd_clock
+		book.last = crowd_clock
+	if book.alive > 0 or book.arrived < book.needed:
+		return
+	_pack_book.erase(key)
+	if book.leaked or book.dispelled < PACK_WIPE_MIN or book.last - book.first > PACK_WIPE_WINDOW:
+		return
+	var top: Node = null
+	for source in book.damage:
+		if is_instance_valid(source) and (top == null or book.damage[source] > book.damage[top]):
+			top = source
+	_play_pack_bloom(book.sum / book.dispelled, book.dispelled)
+	pack_wiped.emit(key, book.dispelled, book.sum / book.dispelled, top)
+
+# Enemy Assets' pack_bloom (8b812626) where a pack was wiped: warm light lying on the ground, 80% (a multiplier), scale
+# 1.0 for up to 8 members and 1.5 for bigger packs (whole steps keep the pixels crisp), above the ground and under the
+# Dew popup and callouts. Reduced motion: its "still" frame fading out over PACK_BLOOM_FADE s.
+const PACK_BLOOM_FRAMES := "res://animation/enemy/pack_bloom.tres"
+const PACK_BLOOM_ALPHA := 0.8
+const PACK_BLOOM_BIG := 9  # Members from which it plays at 1.5
+const PACK_BLOOM_FADE := 0.4
+const PACK_BLOOM_Z := 2  # Above the ground and the walkers' y-sort, below popups and callouts
+
+func _play_pack_bloom(centre: Vector2, size: int) -> void:
+	var world: Node = owner if owner != null else get_parent()
+	if world == null or not ResourceLoader.exists(PACK_BLOOM_FRAMES):
+		return
+	var bloom := AnimatedSprite2D.new()
+	bloom.sprite_frames = load(PACK_BLOOM_FRAMES)
+	bloom.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	bloom.modulate = Color(1, 1, 1, PACK_BLOOM_ALPHA)  # multiplier
+	bloom.scale = Vector2.ONE * (1.5 if size >= PACK_BLOOM_BIG else 1.0)
+	bloom.z_index = PACK_BLOOM_Z
+	world.add_child(bloom)
+	bloom.global_position = centre
+	if bool(Fx.setting("reduced_motion", false)) and bloom.sprite_frames.has_animation(&"still"):
+		bloom.play(&"still")
+		var fade := bloom.create_tween()
+		fade.tween_property(bloom, "modulate:a", 0.0, PACK_BLOOM_FADE)
+		fade.tween_callback(bloom.queue_free)
+	else:
+		bloom.play(&"bloom")
+		bloom.animation_finished.connect(bloom.queue_free)
 
 # Pops `split_count` `split_into` creatures out where `parent` was, lined up behind it on its route.
 func _split(parent: Node2D) -> void:
@@ -486,6 +655,8 @@ func _split(parent: Node2D) -> void:
 		child.passed_waymark = parent.passed_waymark  # Waymark: it carries on the leg its parent was on
 		if parent.has_meta(DriftShapes.PACK_META):
 			child.set_meta(DriftShapes.PACK_META, parent.get_meta(DriftShapes.PACK_META))  # Its leak counts toward the pack's cap
+			child.set_meta(DriftShapes.PACK_LIMIT_META, parent.get_meta(DriftShapes.PACK_LIMIT_META, DriftShapes.PACK_LEAVES))
+			note_pack_member(child, 0, false)  # Its pack waits for it too (pack_wiped)
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
 		if child_share >= 0.0:
 			child.dew_share = child_share
@@ -638,6 +809,7 @@ func _on_enemy_reached_goal(enemy: Node2D) -> void:
 		if stolen > 0:
 			run_state.spend_dew(stolen)
 	enemy_reached_goal.emit(enemy)
+	_pack_member_gone(enemy, true)
 
 # A flyer's line from the forest's edge to the Heartwood (grid coordinates), weaving up to weave
 # cells either side (the Moth Queen), gently at the ends so it still starts and ends on target.

@@ -362,7 +362,7 @@ var _split := -1  # Waymark: the index where leg 2 begins (-1: one leg)
 
 # A walking nightmare's place on the route (-1: a flyer, or off the route). Waymark: on its own leg.
 func index_of(enemy) -> int:
-	if enemy.is_flying():
+	if not enemy.on_route():  # Walkers and route flyers (a route flyer counts at the route point below it; Enemy Code 1770f105)
 		return -1
 	var second: bool = _split >= 0 and bool(enemy.get("passed_waymark"))
 	var i := int((_index2 if second else _index).get(enemy.get_target_cell(), -1))
@@ -445,7 +445,7 @@ func free_hit(tower, enemy, scale: float = 1.0, tag: StringName = FREE_HIT_TAG, 
 	var amount: float = minf(tower.get_damage() * output_share(tower, period, calling) * scale, cap)
 	if amount <= 0.0:
 		return false
-	_line_fx(tower.global_position, enemy.global_position, 3.0)
+	_line_fx(body(tower), body(enemy), 3.0)
 	_own_begin(own, enemy)
 	if calling:
 		arm()
@@ -504,7 +504,7 @@ func calling_hit(tower, enemy, scale: float, tag: StringName, own: StringName = 
 	enemy.take_damage(amount, tower.tower_data.line, is_area, false, tower, tag)
 	_own_end(own)
 	if own != &"":  # (The base Calling's Toll has no evolution to credit)
-		credit(own, enemy.global_position, tower)
+		credit(own, body(enemy), tower)  # Drawn on its body
 	return amount
 
 # The one capped Calling slow (Dewdrop rows; evo_shared_spec.md 7): rows add requests during a poll; at its end each
@@ -571,6 +571,12 @@ func nap(enemy) -> bool:
 const LINE_THREAD := &"calling_thread"
 const LINE_SPARK := &"calling_spark"
 const LINE_SECONDS := 0.3
+
+# Where a nightmare is DRAWN (walking lanes put the body beside its logical position): visuals only, for anything drawn on a
+# nightmare (threads, puffs, pips). A Warden or any other node: its position. Ground effects stay on the route (Enemy Design
+# Council 2026-10-24b).
+static func body(node) -> Vector2:
+	return node.get_body_position() if node != null and node.has_method("get_body_position") else node.global_position
 
 func _line_fx(from: Vector2, to: Vector2, width: float, color: Color = Palette.HEARTLIGHT) -> void:
 	var world := Reactions._world(self)

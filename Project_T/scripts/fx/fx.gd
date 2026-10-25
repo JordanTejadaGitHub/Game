@@ -394,7 +394,7 @@ static func _attach(node: Node2D, follow: Node2D) -> void:
 		return
 	if node is FxSprite or node is FxCallout:
 		node.follow = weakref(follow)
-		node.follow_offset = node.global_position - follow.global_position
+		node.follow_offset = node.global_position - Tower.aim_at(follow)  # From the drawn body (walking lanes)
 
 # An endless loop on a nightmare (looping, no life of its own: Smother's) belongs to it: it frees itself when the nightmare
 # is dispelled or freed (user screenshot 2026-10-23: a spore swirl left circling at a rest). Its owner may free it sooner.
@@ -413,6 +413,13 @@ static func sweep(world: Node) -> void:
 				or child is FxFlash or child is FxExposedMark or child is ChainBolt or child is ChargedBolt \
 				or child is DrowsyRing or child is PullDragFx:
 			child.queue_free()
+
+# Walking lanes (enemy_design.md "Walking lanes", owner 2026-10-24): a nightmare's drawn body sits up to ~19 px off its node
+# (Enemy.get_body_position includes the lane). Words ride the lane's sideways shift with its bars; followers keep their
+# offset from the drawn body (Tower.aim_at). Gameplay keeps the node.
+static func lane_shift(target: Node2D) -> Vector2:
+	var lane = target.get(&"_lane_drawn") if is_instance_valid(target) else null
+	return lane if lane is Vector2 else Vector2.ZERO
 
 # The nightmare a follower still follows (null: none, freed or dispelled).
 static func _followed(ref: WeakRef) -> Node2D:
@@ -458,11 +465,11 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 				line = maxi(line, c.line + 1)
 		var on := FxCallout.new(text, colour, icon, crowned)
 		on.key = key
-		on.spot = target.global_position
+		on.spot = target.global_position + lane_shift(target)
 		on.line = line
 		on.follow = weakref(target)
 		parent.add_child(on)
-		on.global_position = target.global_position
+		on.global_position = target.global_position + lane_shift(target)
 		on.track()
 		_callouts_alive.append(on)
 		return on
@@ -873,7 +880,7 @@ static func _bolt_strike(enemy: Node2D) -> void:
 		return
 	_bolt_msec = now
 	last_hit_effect = &"bolt_strike" if has_effect(&"bolt_strike") else &"thunderhead_strike"  # Tower Assets f37e0b90: its anchor is the strike point
-	play(last_hit_effect, Tower.aim_at(enemy) if last_hit_effect == &"bolt_strike" else enemy.global_position, world, 1.0 if last_hit_effect == &"bolt_strike" else 0.7)
+	play(last_hit_effect, Tower.aim_at(enemy), world, 1.0 if last_hit_effect == &"bolt_strike" else 0.7)
 
 # Continuous damage on `enemy`: attaches (or refreshes) the looping overlay of `kind` and sets its sustained state.
 # The overlay goes the frame its source stops: the link when the nightmare leaves the segment (`link` = the two
@@ -1220,7 +1227,7 @@ class FxSprite extends Node2D:
 		if follow != null:
 			var target := Fx._followed(follow)
 			if target != null:
-				global_position = target.global_position + follow_offset
+				global_position = Tower.aim_at(target) + follow_offset
 			elif free_with_follow:
 				queue_free()  # Its nightmare was dispelled or freed: an endless loop never outlives it
 				return
@@ -1471,8 +1478,8 @@ class FxCallout extends Node2D:
 			follow = null
 			_age = maxf(_age, POP_TIME + _hold)  # Straight into the fade
 			return
-		global_position = target.global_position
-		spot = target.global_position
+		global_position = target.global_position + Fx.lane_shift(target)  # With its bars (walking lanes)
+		spot = global_position
 		var anchor: Vector2 = target.call(&"_hud_anchor") if target.has_method(&"_hud_anchor") else Vector2(0, -40)
 		_head = -anchor.y + STATUS_ROW_PX
 

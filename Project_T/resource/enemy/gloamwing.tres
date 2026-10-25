@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/gloamwing.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+kind = 1
+display_name = "Gloamwing"
+health = 220
+speed = 80.0
+dew_reward = 5
+leaf_cost = 1
+trait_kind = 1
+flies_along_route = true
+drop_stacks = 3
+drop_walk_speed = 60.0
+trait_text = "Flies the path, but heavy wings: 3 stacks of {soaked} and {drowsy} together bring it down to walk."
+intro_lines = Array[String](["Once down it walks the rest of the way for good: your maze, ground effects and holds all reach it.", "{soaked} and {drowsy} count together, so a splash and two tolls are enough."])
+hint = "Bring it down early and the whole maze works on it."
+intro_drift = 69
+roll_tags = Array[StringName]([&"special"])

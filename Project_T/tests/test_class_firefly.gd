@@ -358,7 +358,7 @@ func _f1_checks(far: Vector2) -> void:
 	await _frames(3)
 	_check(lights.forks_thrown == thrown + 2 and nearest.health < n0 and second.health < s0,
 		"F4: Borrowed Light and Hammerfall fan out to two nightmares (%d jumps)" % (lights.forks_thrown - thrown))
-	_check(String(DreamState.CALLING_PATHS.PATHS[&"lf_borrowed_light"].tip).contains("go to different nightmares"), "F4: Borrowed Light's tip says so")
+	_check(String(DreamState.CALLING_PATHS.PATHS[&"lf_borrowed_light"].tip).contains("Never the same nightmare"), "F4: Borrowed Light's tip says so")
 	dreams.calling_path.clear()
 	dreams.stacks.clear()
 	await _clean()
@@ -567,6 +567,8 @@ func _rebuilt_rows(far: Vector2) -> void:
 		hp = streaker.health
 		lights._streak_tick(streaker, [])
 		_check(not streaker.has_meta(lights.STREAK_META) and streaker.health < hp, "Lantern Parade: a streak of 4+ that ends flares from its Fireflies")
+		streaker.queue_free()  # It stands on the donor's spot: it would be the nearest walker
+		await process_frame
 	var donor = _spawn(mid)
 	var taker = _spawn(mid + Vector2(CELL * 0.5, 0))
 	donor.set_meta(lights.STREAK_META, {"count": 3, "last_exit": 0, "lights": [9001, 9002, 9003], "passed": false})

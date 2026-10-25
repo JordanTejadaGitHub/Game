@@ -749,7 +749,7 @@ func _resources_over_screen() -> Array:
 		var screen := get_node_or_null(screen_name) as CanvasItem
 		if screen != null and screen.visible and not RESOURCE_SCREENS.has(screen_name):
 			return []  # The boss dossier or the results are up too: they cover everything
-	var nodes: Array = [dew_label, leaves_label, _leaves_max, get_node_or_null("DreamlightLabel"), get_node_or_null("PathLabel"), get_node_or_null("ResourcesFog")]
+	var nodes: Array = [dew_label, leaves_label, _leaves_max, _maze_reward_label, get_node_or_null("DreamlightLabel"), get_node_or_null("PathLabel"), get_node_or_null("ResourcesFog")]  # The maze "+N%" too: hidden, it left a gap the row still kept (UI council round 7)
 	for label in nodes.duplicate():
 		if _counter_icons.has(label):
 			nodes.append(_counter_icons[label])  # Their icons too (hidden with the rest otherwise)

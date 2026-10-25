@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/night_kite.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_edata")
+sprite_frames = ExtResource("2_frames")
+kind = 1
+display_name = "Night Kite"
+health = 80
+speed = 115.0
+dew_reward = 3
+leaf_cost = 1
+trait_kind = 1
+flies_along_route = true
+trait_text = "Flies the path above your walls, quick and light."
+intro_lines = Array[String](["Walls never slow it: it follows the path from above.", "Wardens that hit flyers, spread along the whole path, catch it wherever it is."])
+hint = "One anti-air spot is not enough; it is past it in a moment."
+intro_drift = 41
+roll_tags = Array[StringName]([&"special"])

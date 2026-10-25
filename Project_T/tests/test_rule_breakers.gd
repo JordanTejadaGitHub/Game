@@ -92,7 +92,7 @@ func _run() -> void:
 					where = "%s on %s: %s, fog %s, other %s" % [badge.name, strip.items()[i].get_meta(&"kind").display_name, r, fog, hits_other]
 		_check(clean, "at %s (UI share %s) every New tab and count is inside the strip and clear of the next disc (%s)" % [case[0], case[1], where])
 		# 140 px of content + the panel's padding, inside the strip's rect since the Moon-glass overflow fix (3 × CAPTION_GAP: pad, caption, disc row, pad)
-		_check(strip.get_combined_minimum_size().y <= 140.0 + 3.0 * ComingStrip.CAPTION_GAP, "…and the strip stays low (%.0f px)" % strip.get_combined_minimum_size().y)
+		_check(strip.get_combined_minimum_size().y - _shape_rows_h(strip) <= 140.0 + 3.0 * ComingStrip.CAPTION_GAP, "…and the strip stays low, its drift-shape rows aside (%.0f px)" % (strip.get_combined_minimum_size().y - _shape_rows_h(strip)))
 	root.content_scale_mode = scale_was[0]
 	root.content_scale_size = scale_was[1]
 	root.content_scale_aspect = scale_was[2]
@@ -173,3 +173,9 @@ func _check(condition: bool, label: String) -> void:
 	else:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The Coming strip's drift-shape rows (shape_rows.gd, a row per drift of the next block): left out of the "stays low"
+# check, which is about the kinds row and its badges.
+func _shape_rows_h(strip: Node) -> float:
+	var rows := strip.get_node_or_null("ShapeRows") as Control
+	return rows.get_combined_minimum_size().y + ComingStrip.CAPTION_GAP if rows != null and rows.visible else 0.0  # (Its gap in the strip too)

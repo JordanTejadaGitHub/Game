@@ -28,13 +28,35 @@ const PACK_SIZE_ACT1 := Vector2i(4, 5)
 const PACK_MIN := 3  # Fewer of a kind than this ride loose, as in a Stream
 const PACK_SHARE := 1.0 / 3.0  # A pack is at most a third of the drift
 const PACK_GAP := 5.0  # At least this many seconds between packs (Restless Wind: × pack_gap)
-const PACK_CELLS := 0.5  # In-pack gap: half a cell at the kind's speed
+const PACK_CELLS := 0.5  # In-pack gap in act 1: half a cell at the kind's speed…
+const PACK_CELLS_LATE := 0.4  # …from act 2 (council 2026-10-24c *; Balancing to confirm)
 const PACK_GAP_FLOOR := 0.2
 const CELL_PX := 64.0
 const CROWD_MAX := 8  # Never more than this many arrivals inside CROWD_SECONDS (only Headlong)
 const CROWD_SECONDS := 3.0
-const SINGLE_GAP := 1.5  # Single file: at least this far apart (the roll makes it fit)
-const PACK_LEAVES := 3  # A leaked pack costs at most this many leaves in all
+const SINGLE_GAP := 1.5  # Single file in act 1: at least this far apart (the roll makes it fit); single_gap(act)
+const SINGLE_GAPS := [1.5, 1.2, 1.0, 1.0]  # By act (council 2026-10-24c *)
+const PACK_LEAVES := 6  # A leaked pack costs at most this many leaves in all (council 2026-10-24c; was 3 per 8)
+const PACK_LEAVES_PER := 8  # (Unused since 2026-10-24c: the glossary's old "for every N" line reads it until Main Merger's update)
+# Big late drifts (Balancing 2026-10-24; council 2026-10-24c): a Packs drift bringing more than PACKS_BIG_COUNT ×
+# PACK_SIZE.y nightmares (splitters' children counted) makes clamp(ceil(nightmares / BIG_PER_PACK), PACKS_BIG_COUNT,
+# PACKS_BIG_MAX) packs, each arriving within PACK_SPAN_MAX s, at least PACK_GAP_BIG_FLOOR s apart (× Restless Wind's
+# pack_gap); the CROWD_MAX rule is waived for them.
+const PACKS_BIG_COUNT := 6
+const PACKS_BIG_MAX := 8
+const PACKS_BIG_MIN := 4  # Balancing 2026-10-24: a big drift makes as many packs as its window fits (2.6 s each, gaps >= 2 s × pack_gap), from this to PACKS_BIG_MAX, aiming at ceil(nightmares / BIG_PER_PACK); fewer than this fit = a Stream
+const BIG_PER_PACK := 14
+const PACK_SPAN_MAX := 2.6  # (council 2026-10-24c *; was 3.0)
+const PACK_GAP_BIG_FLOOR := 2.0
+static var _big_count := PACKS_BIG_COUNT  # This apply's big-pack count
+static var _act_now := 2  # This apply's act (the in-pack gap)
+
+static func single_gap(act: int) -> float:
+	return float(SINGLE_GAPS[clampi(act, 1, SINGLE_GAPS.size()) - 1])
+
+static func _pack_cells() -> float:
+	return PACK_CELLS if _act_now <= 1 else PACK_CELLS_LATE
+const PACK_LIMIT_META := &"drift_pack_leaves"
 const PACK_META := &"drift_pack"
 # Kinds that leave a pack by design: never packed.
 const LOOSE_TRAITS := [EnemyData.Trait.FLYING, EnemyData.Trait.ROLLING, EnemyData.Trait.LEAP,
@@ -54,22 +76,45 @@ static func pack_of(arrival: Array) -> int:
 static func pack_key(number: int, pack: int) -> int:
 	return number * 1000 + pack
 
-# Tag a spawned nightmare with its pack (DriftDirector._spawn); split children and followers inherit it.
+# Tag a spawned nightmare with its pack (DriftDirector._spawn) and the pack's leaf limit; split children and
+# followers inherit both.
 static func tag_enemy(enemy: Node, number: int, arrival: Array) -> void:
-	if enemy != null and pack_of(arrival) >= 0:
-		enemy.set_meta(PACK_META, pack_key(number, pack_of(arrival)))
-		for follower in enemy.get("dew_followers") if enemy.get("dew_followers") != null else []:
-			if is_instance_valid(follower):
-				follower.set_meta(PACK_META, pack_key(number, pack_of(arrival)))  # Spawned with it, before the tag
+	if enemy == null:
+		return
+	var tagged: Array = [enemy]
+	tagged.append_array(enemy.get("dew_followers") if enemy.get("dew_followers") != null else [])  # Spawned with it, before the tag
+	var width := lane_of(arrival)
+	if width >= 0.0:
+		for node in tagged:
+			if is_instance_valid(node) and node.get("lane_width") != null:
+				node.lane_width = width  # Walking lanes: Single file close to the line
+	if is_tough(arrival):  # Few and tough's Deeply Blighted: one shared cap for the drift
+		for node in tagged:
+			if is_instance_valid(node):
+				node.set_meta(PACK_META, pack_key(number, TOUGH_PACK))
+				node.set_meta(PACK_LIMIT_META, TOUGH_LEAVES)
+		return
+	if pack_of(arrival) < 0:
+		return
+	var limit := pack_leaf_limit(pack_size_of(arrival))
+	var spawner := enemy.get_parent()
+	for node in tagged:
+		if is_instance_valid(node):
+			node.set_meta(PACK_META, pack_key(number, pack_of(arrival)))
+			node.set_meta(PACK_LIMIT_META, limit)
+			if spawner != null and spawner.has_method("note_pack_member"):
+				spawner.note_pack_member(node, pack_size_of(arrival), node == enemy)  # (pack_wiped's book)
 
 # Leaves a leak of `enemy` costs once its pack's cap is counted: `charged` (RunState) holds the leaves
-# each pack lost so far. Outside a pack: `leaves` unchanged.
+# each pack lost so far; the cap is PACK_LEAVES per PACK_LEAVES_PER nightmares in the pack. Outside a pack:
+# `leaves` unchanged.
 static func cap_pack_leak(enemy: Node, leaves: int, charged: Dictionary) -> int:
 	if enemy == null or not enemy.has_meta(PACK_META) or leaves <= 0:
 		return leaves
 	var key: int = enemy.get_meta(PACK_META)
 	var paid: int = charged.get(key, 0)
-	var cost := clampi(leaves, 0, maxi(PACK_LEAVES - paid, 0))
+	var limit: int = enemy.get_meta(PACK_LIMIT_META, PACK_LEAVES)
+	var cost := clampi(leaves, 0, maxi(limit - paid, 0))
 	charged[key] = paid + cost
 	return cost
 
@@ -81,24 +126,109 @@ static func is_packable(data: EnemyData) -> bool:
 # so a replay of the seed places everything the same. `act` sets the pack size; `mods` =
 # DriftDirector.get_schedule_modifiers (Omens: "pack_fill", "pack_gap"). A schedule with a boss is left
 # alone (the boss keeps its own escort); a shape that can't fit falls back to a Stream (unchanged).
-static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator, act: int, mods: Dictionary = {}) -> void:
+# Returns the shape the drift really arrives in: STREAM when it fell back (a boss drift, packs that don't fit),
+# so the banner and the Coming strip never name a shape the drift doesn't have.
+static func apply(schedule: Array, shape: StringName, rng: RandomNumberGenerator, act: int, mods: Dictionary = {}) -> StringName:
 	for arrival in schedule:
 		while arrival.size() < 3:
 			arrival.append(false)
 		if arrival.size() < 4:
 			arrival.append(-1)
+	cap_flyers(schedule, rng, act)
 	if schedule.size() < 2 or shape == STREAM or shape == &"":
-		return
+		return STREAM
 	for arrival in schedule:
 		if arrival[1].is_boss:
-			return
+			return STREAM
 	match shape:
 		PACKS:
 			_packs(schedule, rng, act, mods)
+			return PACKS if schedule.any(func(a: Array) -> bool: return pack_of(a) >= 0) else STREAM
 		SINGLE_FILE:
 			_single_file(schedule, rng)
+			for arrival in schedule:
+				_set_lane(arrival, LANE_SINGLE)
 		FEW_AND_TOUGH:
 			_few_and_tough(schedule, rng)
+			for arrival in schedule:
+				if arrival[2]:
+					_set_lane(arrival, LANE_TOUGH)
+					_set_tough(arrival)  # At most TOUGH_LEAVES leaves together
+		_:
+			return STREAM
+	return shape
+
+# Walking lanes (enemy_design.md): an arrival's lane width in cells, arrival[5] (Enemy.lane_width via tag_enemy).
+const LANE_SINGLE := 0.06  # Single file walks close to the centre line (council 2026-10-24b)
+const LANE_TOUGH := 0.1  # Few and tough's Deeply Blighted (council 2026-10-24b)
+
+static func _set_lane(arrival: Array, width: float) -> void:
+	while arrival.size() < 6:
+		arrival.append(0)
+	arrival[5] = width
+
+# Few and tough's leak cap (council 2026-10-24, owner yes; enemy_design.md "Drift shapes"): the drift's Deeply
+# Blighted share one pack key (TOUGH_PACK) and take at most TOUGH_LEAVES leaves together, on the pack cap's mechanism
+# (cap_pack_leak, after Leaf Fall / Giants' Walk). arrival[6] = true marks them; its other nightmares leak normally.
+const TOUGH_LEAVES := 6
+const TOUGH_PACK := 999  # Their pack index in pack_key (real packs count from 0)
+
+static func _set_tough(arrival: Array) -> void:
+	while arrival.size() < 7:
+		arrival.append(0)
+	arrival[6] = true
+
+static func is_tough(arrival: Array) -> bool:
+	return arrival.size() > 6 and bool(arrival[6])
+
+static func lane_of(arrival: Array) -> float:
+	return float(arrival[5]) if arrival.size() > 5 else -1.0
+
+# Flyer caps (enemy_design.md "Flyers", council 2026-10-24), checked after the Omens: flyers of every kind at most
+# FLYER_CAPS[act] a drift and never more than a third of its arrivals, Phantoms (through-wall flyers) at most
+# PHANTOM_CAP within that; the extra ones become the drift's most common walker. A flyer is never Deeply Blighted:
+# its elite flag moves to a walker. Bosses (the Moth Queen) never count.
+const FLYER_CAPS := {1: 4, 2: 4, 3: 5, 4: 6}
+const PHANTOM_CAP := 4
+
+static func cap_flyers(schedule: Array, rng: RandomNumberGenerator, act: int) -> void:
+	var walkers := {}  # EnemyData -> count
+	var flyers: Array = []
+	var phantoms: Array = []
+	for arrival in schedule:
+		var data: EnemyData = arrival[1]
+		if data.is_boss:
+			continue
+		if data.trait_kind == EnemyData.Trait.FLYING:
+			flyers.append(arrival)
+			if not data.flies_along_route:
+				phantoms.append(arrival)
+		else:
+			walkers[data] = walkers.get(data, 0) + 1
+	if flyers.is_empty():
+		return
+	var common: EnemyData = null
+	for data in walkers:
+		if common == null or walkers[data] > walkers[common]:
+			common = data
+	if common != null:
+		var most: int = mini(FLYER_CAPS.get(clampi(act, 1, 4), 4), floori(schedule.size() / 3.0))
+		_shuffle(phantoms, rng)
+		while phantoms.size() > PHANTOM_CAP:
+			var extra: Array = phantoms.pop_back()
+			extra[1] = common
+			flyers.erase(extra)
+		_shuffle(flyers, rng)
+		while flyers.size() > most:
+			flyers.pop_back()[1] = common
+	# Never a Deeply Blighted flyer: the flag goes to a walker that isn't one yet
+	for arrival in flyers:
+		if arrival.size() > 2 and arrival[2]:
+			arrival[2] = false
+			var plain: Array = schedule.filter(func(a: Array) -> bool: return not a[1].is_boss and not a[2] \
+				and a[1].trait_kind != EnemyData.Trait.FLYING)
+			if not plain.is_empty():
+				plain[rng.randi_range(0, plain.size() - 1)][2] = true
 
 # A drift's seeded rng for apply / add_guaranteed_elite: same map seed + drift = same placement.
 static func drift_rng(map_seed: int, number: int) -> RandomNumberGenerator:
@@ -159,25 +289,50 @@ static func _weight(data: EnemyData) -> int:
 	return 1 + (maxi(data.split_count, 0) if data.split_into != null else 0) \
 		+ (maxi(data.follower_count, 0) if data.followers != null else 0)  # …and a leader its followers
 
+# The in-pack gap of `pack`: half a cell at its kind's speed; a big drift's pack also arrives within PACK_SPAN_MAX.
+static func _pack_step(pack: Array, big: bool) -> float:
+	var step := _in_pack_gap(pack[0][1])
+	if big:
+		step = minf(_pack_cells() * CELL_PX / maxf(pack[0][1].speed, 1.0), PACK_SPAN_MAX / maxf(pack.size() - 1, 1))
+	return step
+
+# Leaves a pack of `size` may cost when it leaks.
+static func pack_leaf_limit(size: int) -> int:
+	return PACK_LEAVES  # (Flat since council 2026-10-24c: a pack of 40 cost 15)
+
+# The size of the pack an arrival rides in (0 = none).
+static func pack_size_of(arrival: Array) -> int:
+	return int(arrival[4]) if arrival.size() > 4 and pack_of(arrival) >= 0 else 0
+
 static func _in_pack_gap(data: EnemyData) -> float:
-	return maxf(PACK_CELLS * CELL_PX / maxf(data.speed, 1.0), PACK_GAP_FLOOR)
+	return maxf(_pack_cells() * CELL_PX / maxf(data.speed, 1.0), PACK_GAP_FLOOR)
 
 # Packs: one kind each, half a cell apart, PACK_GAP between packs; loose kinds (flyers, Rolling, Leap,
 # Burrow, Wander, and kinds too few to pack) ride between the packs as in a Stream.
 static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: Dictionary) -> void:
+	_act_now = act
 	var original: Array = []
 	for arrival in schedule:
 		original.append(arrival.duplicate())
 	var span := _first_last(schedule)
+	var weight := 0  # Nightmares it brings, a splitter's children and a leader's followers counted
+	for arrival in schedule:
+		weight += _weight(arrival[1])
+	var big := weight > PACKS_BIG_COUNT * PACK_SIZE.y  # A big late drift: more, bigger packs
+	var fit_gap := PACK_GAP_BIG_FLOOR * float(mods.get("pack_gap", 1.0))
+	var fits := floori((span.y - span.x + fit_gap) / (PACK_SPAN_MAX + fit_gap))  # Packs of PACK_SPAN_MAX the window holds
+	_big_count = clampi(mini(maxi(ceili(float(weight) / BIG_PER_PACK), PACKS_BIG_COUNT), fits), PACKS_BIG_MIN, PACKS_BIG_MAX)
+	if big and fits < PACKS_BIG_MIN:
+		return  # Not even PACKS_BIG_MIN packs fit: a Stream
 	var size := PACK_SIZE_ACT1 if act <= 1 else PACK_SIZE
 	var fill := int(mods.get("pack_fill", 0))
 	if fill > 0:
 		size = Vector2i(fill, fill)  # Swarming Night / Crowded Paths: fill each pack before the next
 	size.y = mini(size.y, int(floor(schedule.size() * PACK_SHARE)))
 	size.x = mini(size.x, size.y)
-	if size.y < PACK_MIN:
+	if size.y < PACK_MIN and not big:
 		return
-	var gap_floor := PACK_GAP * float(mods.get("pack_gap", 1.0))
+	var gap_floor := (PACK_GAP_BIG_FLOOR if big else PACK_GAP) * float(mods.get("pack_gap", 1.0))
 	var by_kind := {}
 	var loose: Array = []
 	for arrival in schedule:
@@ -188,17 +343,20 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 	var packs: Array = []  # [[arrival, …], …]
 	var kinds: Array = by_kind.keys()
 	kinds.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.resource_path < b.resource_path)
+	var big_counts := _big_pack_counts(kinds, by_kind) if big else {}
+	if big and big_counts.is_empty():
+		return  # Can't make PACKS_BIG_COUNT one-kind packs: a Stream
 	for kind in kinds:
 		var members: Array = by_kind[kind]
 		var total := 0
 		for arrival in members:
 			total += _weight(kind)
-		if total < PACK_MIN:
+		if total < PACK_MIN or (big and int(big_counts.get(kind, 0)) <= 0):
 			loose.append_array(members)
 			continue
 		var target := rng.randi_range(size.x, size.y)
 		var elites: Array = members.filter(func(a: Array) -> bool: return a[2])
-		var count := maxi(ceili(float(total) / size.y), maxi(roundi(float(total) / target), 1))
+		var count: int = big_counts[kind] if big else maxi(ceili(float(total) / size.y), maxi(roundi(float(total) / target), 1))
 		count = clampi(maxi(count, elites.size()), 1, members.size())  # One Deeply Blighted per pack
 		var kind_packs: Array = []
 		for p in count:
@@ -223,7 +381,7 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 			else:
 				loose.append_array(pack)
 	# Too many packs for the window: the smallest go loose until the gaps between packs fit.
-	while packs.size() >= 2 and _pack_gap(packs, span) < gap_floor:
+	while not big and packs.size() >= 2 and _pack_gap(packs, span) < gap_floor:
 		var smallest := -1  # A pack with a Deeply Blighted stays
 		for p in packs.size():
 			if not _has_elite(packs[p]) and (smallest < 0 or packs[p].size() < packs[smallest].size()):
@@ -231,7 +389,7 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 		if smallest < 0:
 			break
 		loose.append_array(packs.pop_at(smallest))
-	if packs.size() < 2 or _pack_gap(packs, span) < gap_floor:
+	if packs.size() < (_big_count if big else 2) or _pack_gap(packs, span, big) < gap_floor:
 		return  # Doesn't fit: a Stream
 	_order_packs(packs, rng)
 	loose.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
@@ -246,14 +404,17 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 	for e in loose_elites:
 		var middle: Array = gaps[(gaps.size() - 1) / 2]
 		middle.insert(middle.size() / 2, e)
-	var gap := _pack_gap(packs, span)
+	var gap := _pack_gap(packs, span, big)
 	var result: Array = []
 	var time := span.x
 	for p in packs.size():
-		var step := _in_pack_gap(packs[p][0][1])
+		var step := _pack_step(packs[p], big)
 		for i in packs[p].size():
 			packs[p][i][0] = time + step * i
 			packs[p][i][3] = p
+			while packs[p][i].size() < 5:
+				packs[p][i].append(0)
+			packs[p][i][4] = packs[p].size()  # Its pack's size (the pack's leaf limit)
 			result.append(packs[p][i])
 		time += step * (packs[p].size() - 1)
 		if p < gaps.size():
@@ -264,19 +425,49 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 				result.append(between[i])
 			time += gap
 	result.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	if _crowded(result):
+	if not big and _crowded(result):
 		schedule.assign(original)  # Never more than CROWD_MAX inside CROWD_SECONDS: a Stream
 		return
 	schedule.assign(result)
+
+# A big drift's packs per kind ({EnemyData: packs}, PACKS_BIG_COUNT in all, shared by size, largest remainder),
+# or {} if its packable kinds can't fill them (a kind needs PACK_MIN a pack).
+static func _big_pack_counts(kinds: Array, by_kind: Dictionary) -> Dictionary:
+	var total := 0
+	for kind in kinds:
+		if by_kind[kind].size() >= PACK_MIN:
+			total += by_kind[kind].size()
+	if total < _big_count * PACK_MIN:
+		return {}
+	var counts := {}
+	var remainders := []
+	var given := 0
+	for kind in kinds:
+		var n: int = by_kind[kind].size()
+		if n < PACK_MIN:
+			continue
+		var share := float(_big_count) * n / total
+		counts[kind] = mini(floori(share), n / PACK_MIN)
+		given += counts[kind]
+		remainders.append([share - counts[kind], kind])
+	remainders.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	var i := 0
+	while given < _big_count and i < remainders.size() * 4:
+		var kind: EnemyData = remainders[i % remainders.size()][1]
+		if (counts[kind] + 1) * PACK_MIN <= by_kind[kind].size():
+			counts[kind] += 1
+			given += 1
+		i += 1
+	return counts if given == _big_count else {}
 
 static func _has_elite(pack: Array) -> bool:
 	return pack.any(func(a: Array) -> bool: return a[2])
 
 # The gap between packs if they fill the window end to end.
-static func _pack_gap(packs: Array, span: Vector2) -> float:
+static func _pack_gap(packs: Array, span: Vector2, big: bool = false) -> float:
 	var used := 0.0
 	for pack in packs:
-		used += _in_pack_gap(pack[0][1]) * (pack.size() - 1)
+		used += _pack_step(pack, big) * (pack.size() - 1)
 	return (span.y - span.x - used) / maxf(packs.size() - 1, 1)
 
 # Seeded order; packs with a Deeply Blighted take the middle places (one: the middle pack).

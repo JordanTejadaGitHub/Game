@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "whirligig_ascension"
 display_name = "Ascension: The Whirlwind"
-description = "Unlocks {warden:tempest}, the strongest form of the {family:whirligig} {family}. A cyclone roams the path in its range, hitting everything it passes and carrying the statuses it touches on to the rest. In a run: from {drift} 51, unlock it for 3 {dreamlight}, then grow a {final_form} into it for 600 {dew}."
+description = "{warden:tempest}: a cyclone roams the path in its range, hitting all it passes and spreading the statuses it touches. In a run, from {drift} 51: 3 {dreamlight} unlocks it, then 600 {dew} grows a {final_form} into it."
 root = 0
 costs = Array[int]([120])
 order = 38

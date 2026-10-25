@@ -711,7 +711,7 @@ func _pass_it_round(source, enemy) -> void:
 		return
 	kinds[kind] = true
 	enemy.set_meta(KINDS_META, kinds)
-	_line_fx(spore.global_position, source.global_position, 2.0, Palette.MOSS)
+	_line_fx(body(spore), body(source), 2.0, Palette.MOSS)
 	_apply_dose(spore, enemy, DOSE)  # 3 Poisoned at once from the spore Warden (not a mushroom's dose: no place needed)
 
 # Spore Haze: a single-target spore Warden with 4 mushrooms near it attacks in clouds: stacks and puff damage also
@@ -951,7 +951,7 @@ func _mire(enemy, seconds: float) -> void:
 	for other in behind.slice(0, MIRE_OTHERS):
 		HelperCommons.slow(other, STICKY_SLOW, seconds)
 		control_slow(EVO_MIRE, STICKY_SLOW, seconds)  # (setup credit 2026-10-16)
-		_line_fx(enemy.global_position, other.global_position, 2.0, Palette.MOSS)
+		_line_fx(body(enemy), body(other), 2.0, Palette.MOSS)
 	if not behind.is_empty():
 		credit(EVO_MIRE, enemy.global_position)
 
@@ -1017,7 +1017,7 @@ func _walk_on() -> bool:
 	return evo(EVO_DRIFTING) or evo(EVO_SEASON) or evo(EVO_THICK_HAZE)
 
 func _season_start(enemy) -> void:  # Its first dose
-	if enemy.is_flying():
+	if not enemy.on_route():  # Route flyers count at the route point below them (Phantoms never)
 		return
 	var i := index_of(enemy)
 	if i < 0:
@@ -1033,7 +1033,7 @@ func _season_start(enemy) -> void:  # Its first dose
 	enemy.set_meta(SEASON_META, walk)
 
 func _season_walk(enemy) -> void:
-	if enemy.is_flying():
+	if not enemy.on_route():
 		return
 	var i := index_of(enemy)
 	if i < 0:
@@ -1072,7 +1072,7 @@ func _season_cap(enemy) -> float:
 # The walk bonus on this nightmare's Poisoned (0.25 = +25%): Drifting Spores' up to +30%, or Spore Season's up to +60%
 # while 15+ mushrooms grow. The status-dot row's "+N%" tag reads it.
 func season_bonus(enemy) -> float:
-	if not (evo(EVO_DRIFTING) or season_on()) or not is_instance_valid(enemy) or enemy.is_flying():
+	if not (evo(EVO_DRIFTING) or season_on()) or not is_instance_valid(enemy) or not enemy.on_route():
 		return 0.0
 	return minf(season_steps(enemy) * (SEASON_PER_STEP if season_on() else DRIFT_PER_STEP), _season_cap(enemy))
 
@@ -1202,7 +1202,7 @@ func _clump_hits(point: Vector2, enemy, trodden: bool = false) -> void:
 				struck = calling_hit(tower, enemy, RETINUE_SHARE, FREE_HIT_TAG, EVO_RETINUE, false, true, &"", FOCUS_BOSS, INF) > 0.0 or struck
 	if struck:
 		for tower in picks:
-			_line_fx(tower.global_position, enemy.global_position, 3.0)
+			_line_fx(body(tower), body(enemy), 3.0)
 
 # Trodden Path (Pile-On's Deepen): a walker on the step just before or after a clump (1 step = 2 route points) counts as
 # stepping on it: no mushroom eaten, no dose. Each side of each clump once per nightmare.
@@ -1238,9 +1238,9 @@ func _pile_on(source, enemy) -> void:
 				continue
 			if _focus_take(tower, 1) > 0:
 				struck = calling_hit(tower, enemy, 1.0, FREE_HIT_TAG, EVO_PILE_ON, false, true, &"", FOCUS_BOSS) > 0.0 or struck
-				_line_fx(tower.global_position, enemy.global_position, 3.0)
+				_line_fx(body(tower), body(enemy), 3.0)
 		if struck:
-			_line_fx(source.global_position, enemy.global_position, 3.0)
+			_line_fx(body(source), body(enemy), 3.0)
 		return  # One clump per hit
 
 # Elder Cap and Retinue: each of a Warden's own attacks readies one free hit at the throne.
@@ -1328,7 +1328,7 @@ func _shared_caps(at: Vector2, tower, enemy) -> void:
 	var added := _feed(enemy, status, SHARED_SMALL if small else SHARED_STACKS)
 	if added > 0:
 		setup_quiet(enemy, EVO_BORROWED, status, added)
-		_line_fx(best.global_position, enemy.global_position, 1.5, EnemyStatuses.COLORS.get(status, Palette.MOSS))
+		_line_fx(body(best), body(enemy), 1.5, EnemyStatuses.COLORS.get(status, Palette.MOSS))
 		credit(EVO_BORROWED, enemy.global_position, tower)
 
 # Shared Caps' pick at a mushroom on `at` (also Host Trees' host): the highest-rank other-family Warden touching it
@@ -1636,7 +1636,7 @@ func _catching() -> void:
 		enemy.remove_meta(CATCH_META)
 		var other = touching_now[0]
 		_apply_dose(tower, other, int(c[1]), EVO_OUTBREAK if int(c[2]) > 0 else EVO_CATCHING)  # (setup credit 2026-10-16)
-		_line_fx(enemy.global_position, other.global_position, 2.0, Palette.MOSS)
+		_line_fx(body(enemy), body(other), 2.0, Palette.MOSS)
 		credit(EVO_OUTBREAK if int(c[2]) > 0 else EVO_CATCHING, other.global_position)
 		var next := int(c[1]) / 2
 		if evo(EVO_OUTBREAK) and int(c[2]) < OUTBREAK_HOPS and next >= 1 and living(other):
@@ -1676,7 +1676,7 @@ func _process(delta: float) -> void:
 		return
 	var reach := (STEP_CELLS * cell()) ** 2
 	for enemy in enemies():
-		if enemy.is_flying():
+		if not enemy.on_route():  # A route flyer steps on the mushrooms under its route (enemy_design.md "Flyers")
 			continue
 		var point: Vector2 = enemy.get_target_cell()
 		if not _index.has(point) or enemy.global_position.distance_squared_to(_route_px[int(_index[point])]) > reach:

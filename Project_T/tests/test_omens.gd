@@ -437,14 +437,17 @@ func _test_new_omens(main: Node) -> void:
 func _test_offer_conditions(main: Node) -> void:
 	var omens: OmenDirector = main.get_node("%OmenDirector")
 	var dreams: DreamState = main.get_node("%DreamState")
+	# Drift shapes put a heavy (often coated) lead in Single file / Few and tough drifts, so a seed may have no bare block
+	# left (Enemy Code 2026-10-24): the bare block is hand-made by taking the coats off one coated block's nightmares.
 	var coated := -1
-	var bare := -1
 	for block in range(2, 20):
 		if omens._block_has_coat(omens.get_block_range(block)):
-			coated = block if coated < 0 else coated
-		elif bare < 0:
-			bare = block
-	_check(coated > 0 and bare > 0, "blocks with and without a coated nightmare (%d, %d)" % [coated, bare])
+			coated = block
+			break
+	var bare := coated + 1
+	_check(coated > 0 and omens._block_has_coat(omens.get_block_range(bare)), "(two coated blocks: %d, %d)" % [coated, bare])
+	var stripped := _strip_coats(omens, bare)
+	_check(not omens._block_has_coat(omens.get_block_range(bare)), "blocks with and without a coated nightmare (%d, %d)" % [coated, bare])
 	var offered := func(block: int, id: String) -> bool:
 		for i in 80:
 			omens._last_offer_ids.clear()
@@ -452,6 +455,7 @@ func _test_offer_conditions(main: Node) -> void:
 				return true
 		return false
 	_check(not offered.call(bare, "hard_bark"), "Hard Bark: never offered before a block with no coated nightmare (block %d)" % bare)
+	_restore_coats(stripped)
 	_check(offered.call(coated, "hard_bark"), "…offered before one with a coat (block %d)" % coated)
 	# Lean Season (act 2+): needs a Legendary left to give
 	var legendaries: Array = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
@@ -792,6 +796,26 @@ func _test_extra_dew_estimate(main: Node) -> void:
 func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
+
+# Takes the coats off block `block`'s non-boss nightmares (a coat-free copy on each entry): [[entry, original enemy], …].
+func _strip_coats(omens: OmenDirector, block: int) -> Array:
+	var saved: Array = []
+	var drifts := omens.get_block_range(block)
+	for number in range(drifts.x, drifts.y + 1):
+		if number - 1 >= omens.drift_director.drifts.size():
+			break
+		for group in omens.drift_director.drifts[number - 1].groups:
+			for entry in group.entries:
+				if entry.enemy != null and entry.enemy.coat_total > 0 and not entry.enemy.is_boss:
+					saved.append([entry, entry.enemy])
+					var bare: EnemyData = entry.enemy.duplicate()
+					bare.coat_total = 0
+					entry.enemy = bare
+	return saved
+
+func _restore_coats(saved: Array) -> void:
+	for row in saved:
+		row[0].enemy = row[1]
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

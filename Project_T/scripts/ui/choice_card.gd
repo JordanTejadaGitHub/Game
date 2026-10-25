@@ -86,3 +86,10 @@ static func _draw_family_marks(marks: Control, colour: Color) -> void:
 		var sy := 1.0 if corner.y < r.get_center().y else -1.0
 		marks.draw_polyline(PackedVector2Array([corner + Vector2(0, sy * arm), corner, corner + Vector2(sx * arm, 0)]), Color(colour, 0.85), 2.0)
 		marks.draw_rect(Rect2(corner + Vector2(sx * 3.0 - 1.0, sy * 3.0 - 1.0), Vector2(2, 2)), Color(colour, 0.85))  # A bud inside it
+
+# A family's colour on its cards (family pick, Calling evolutions): Kinships.FAMILY_COLORS by its line, except where that
+# colour read as another family's on a card (UI council round 7: Sporeling's pale Newleaf read gold beside Firefly Jar).
+# Cards only: kinship vines and sparks keep FAMILY_COLORS.
+const CARD_COLOURS := {"spore": Palette.SPRIG, "root": Palette.LEAF}
+static func family_colour(line: String, fallback: Color = Palette.SPRIG) -> Color:
+	return CARD_COLOURS.get(line, Kinships.FAMILY_COLORS.get(line, fallback))

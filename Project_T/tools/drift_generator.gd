@@ -22,6 +22,7 @@ const KINDS := {
 	"WA": ["watcher", "puffcap"], "AC": ["ash_crawler", "hedgehog"],
 	"SB": ["shellbound", "bark_beetle"], "WS": ["whisper_swarm", "leaf_bug"],
 	"DT": ["dream_thief", "hedgehog"], "WE": ["weeper", "puffcap"],
+	"GW": ["gloamwing", "dusk_moth"], "PL": ["pall", "will_o_wisp"],
 }
 # Boss stand-ins: [file, copy of, display name, base health, Dew, flies, speed ×, cleanse line,
 # trait text].
@@ -71,7 +72,7 @@ func _rows() -> Dictionary:
 		66: [_intro("WA", 3, 3.0), _mix([["SH", 10]], 3.0)],
 		67: [_mix([["SH", 34], ["HU", 10], ["WA", 4], ["PR", 3]])],
 		68: [_intro("AC", 3, 3.0)],
-		69: [_mix([["SH", 34], ["AC", 6], ["MO", 8], ["GC", 6]])],
+		69: [_mix([["SH", 34], ["GW", 4], ["MO", 8], ["GC", 6]])],  # Gloamwing intro (enemy_design.md "Flyers")
 		70: [_mix([["WA", 6], ["SH", 24], ["MO", 8], ["BW", 4]])],
 		71: [_mix([["SH", 36], ["HU", 12], ["NH", 8], ["DO", 6], ["WA", 4]])],
 		72: [_mix([["SH", 36], ["LU", 10], ["WW", 4], ["GC", 6], ["PR", 3]])],
@@ -94,7 +95,7 @@ func _rows() -> Dictionary:
 		89: [_mix([["SH", 42], ["WS", 6], ["DO", 8], ["AC", 6], ["PR", 4]])],
 		90: [_mix([["WE", 6], ["MO", 12], ["HU", 10]])],
 		91: [_mix([["SH", 44], ["HU", 14], ["NH", 10], ["WI", 6], ["DT", 6]])],
-		92: [_mix([["SH", 44], ["SB", 8], ["WE", 6], ["WA", 6], ["PH", 8]])],
+		92: [_mix([["SH", 44], ["PL", 3], ["SB", 8], ["WE", 6]])],  # Pall intro (hand-edited file kept in step)
 		93: [_mix([["SH", 44], ["WS", 8], ["DO", 10], ["GC", 6], ["SW", 6]])],
 		94: [_mix([["SH", 46], ["HU", 14], ["BW", 8], ["LU", 10], ["WW", 4], ["PR", 4]])],
 		95: [_mix([["SB", 10], ["WI", 4], ["WE", 6]])],

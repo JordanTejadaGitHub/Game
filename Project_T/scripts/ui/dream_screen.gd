@@ -3,6 +3,7 @@ extends Control
 # Full-screen Dream offer: pick 1 of 3 cards, or let it pass for a little Dew. Pauses the game
 # while open (restoring the previous pause state after). Built in code.
 
+const SHAPE_ROWS := preload("res://scripts/ui/shape_rows.gd")  # Drift shapes: the capstone's next-act line
 const CARD_SIZE := Vector2(250, 220)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
@@ -295,6 +296,11 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			_subtitle.text = dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style"
 		else:
 			_subtitle.text = "after drift %d" % drift_number
+		if _evolution_step() == DreamState.CALLING_PATHS.CAPSTONE:  # The capstone: the next act's shapes, as facts
+			var director := get_node_or_null("%DriftDirector") as DriftDirector
+			var act_shapes := SHAPE_ROWS.act_line(director, director.get_act(drift_number) + 1) if director != null else ""
+			if act_shapes != "":
+				_subtitle.text += " · " + act_shapes.to_lower()  # (The subtitle is small caps)
 	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
 	_reroll.text = dream_state.reroll_label()
@@ -539,7 +545,7 @@ const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Finale"]  # Callin
 
 func _calling_colour() -> Color:
 	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
-	return Kinships.FAMILY_COLORS.get(line, UiStyle.GOLD)
+	return ChoiceCard.family_colour(line, UiStyle.GOLD)  # As the family pick card (shared look)
 
 func _evolution_step() -> int:
 	return clampi(dream_state.calling_path.size(), 0, EVOLUTION_STAGES.size() - 1)

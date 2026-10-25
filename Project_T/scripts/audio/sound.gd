@@ -56,6 +56,14 @@ const MUFFLED_BUSES := {&"SFXMuffled": 1000.0, &"SFXBark": 2200.0}
 const DISPEL_CLUSTER_MS := 700
 const DISPEL_CLUSTER_DB := -1.5
 const DISPEL_CLUSTER_MAX_DB := -6.0
+# The dispel swell (Enemy Design Council 2026-10-24c, c5ca9d45): from the 5th dispel within DISPEL_CLUSTER_MS
+# and 3 cells, one wider swell of tuned air takes the place of every dispel voice past the 2nd. Fuller, not
+# louder (the file peaks like one dispel; SWELL_DB keeps it within +1.5 dB), no duck, no climb.
+const SWELL_COUNT := 5
+const SWELL_RADIUS := 192.0  # 3 cells
+const SWELL_MS := 1200  # How long a swell holds its spot (the sound's length)
+const SWELL_DB := 1.0  # Over one dispel's level
+const SWELL_KEEP_VOICES := 2  # Dispel voices that may still sound under a swell
 
 var _streams := {}  # id -> Array[AudioStream]
 var _voices := {}  # id -> Array[Node] (players still playing)
@@ -87,6 +95,8 @@ var _muffle: AudioEffectLowPassFilter
 var _muffled := false
 var _dispel_cluster := 0  # Dispels in the current cluster before this one
 var _dispel_time := -100000
+var _recent_dispels: Array = []  # [msec, world position] of the dispels within DISPEL_CLUSTER_MS
+var _swells: Array = []  # [until msec, world position] of the swells still holding their spot
 var _scene: Node
 # Headless (tests, CI) uses the dummy audio driver, which never mixes, so playbacks it starts are
 # never released and show up as leaks at exit. Everything runs the same, it just doesn't start.
@@ -216,7 +226,40 @@ func play_dispel(at: Vector2, boss := false, _size_pitch := 1.0, elite := false)
 	_dispel_cluster = _dispel_cluster + 1 if now - _dispel_time < DISPEL_CLUSTER_MS else 0
 	_dispel_time = now
 	var cluster_db := maxf(DISPEL_CLUSTER_DB * _dispel_cluster, DISPEL_CLUSTER_MAX_DB)
-	play(&"dispel_elite" if elite else &"dispel", at, -3.0 + cluster_db, 1.0, 0.0)
+	var id := &"dispel_elite" if elite else &"dispel"
+	if _swell_near(at, now):  # A swell already speaks for this crowd: only a couple of dispels under it
+		if _voice_count(&"dispel") + _voice_count(&"dispel_elite") < SWELL_KEEP_VOICES:
+			play(id, at, -3.0 + cluster_db, 1.0, 0.0)
+		return
+	_recent_dispels = _recent_dispels.filter(func(d: Array) -> bool: return now - int(d[0]) < DISPEL_CLUSTER_MS)
+	_recent_dispels.append([now, at])
+	var near: Array = _recent_dispels.filter(func(d: Array) -> bool: return (d[1] as Vector2).distance_to(at) <= SWELL_RADIUS)
+	if near.size() >= SWELL_COUNT:
+		var centre := Vector2.ZERO
+		for d in near:
+			centre += d[1]
+		play_dispel_swell(centre / near.size())
+		return
+	play(id, at, -3.0 + cluster_db, 1.0, 0.0)
+
+# One wider swell for a crowd dispelled together (also SoundHooks' hook for a wiped pack). Holds its spot
+# for SWELL_MS, so the dispels landing there meanwhile mostly fold into it.
+func play_dispel_swell(at: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	if _swell_near(at, now):
+		return
+	_swells.append([now + SWELL_MS, at])
+	play(&"dispel_swell", at, -3.0 + SWELL_DB, 1.0, 0.0)
+
+func _swell_near(at: Vector2, now: int) -> bool:
+	_swells = _swells.filter(func(s: Array) -> bool: return int(s[0]) > now)
+	for s in _swells:
+		if (s[1] as Vector2).distance_to(at) <= SWELL_RADIUS:
+			return true
+	return false
+
+func _voice_count(id: StringName) -> int:
+	return _voices.get(id, []).filter(func(p) -> bool: return is_instance_valid(p)).size()
 
 
 # --- Music and ambience ---------------------------------------------------------------------------

@@ -920,7 +920,7 @@ static func _toll_one(tower: Tower, enemy: Node2D, share: float) -> void:
 	var vespers := tower.kin_share(VESPERS, "a")
 	if vespers > 0.0 and is_instance_valid(enemy):
 		silence(enemy, 2.0 * vespers, tower)
-	Fx.play(&"toll_ring", enemy.global_position, world(tower))
+	Fx.play(&"toll_ring", Tower.aim_at(enemy), world(tower))
 	# Who it tolled (user 2026-10-18: "can't see who it attacks"): the sound rolling from the bell to the target, and the
 	# toll landing on it (Tower Assets art).
 	if is_instance_valid(enemy):
@@ -1039,8 +1039,8 @@ static func on_finish(tower: Tower, enemy: Node2D, overkill: float) -> void:
 			best_distance = distance
 	if best == null:
 		return
-	_fx_segment(&"clean_spill", enemy.global_position, best.global_position, world(tower), Palette.MOONLIGHT)
-	_fx(&"clean_cut", best.global_position, world(tower))
+	_fx_segment(&"clean_spill", Tower.aim_at(enemy), Tower.aim_at(best), world(tower), Palette.MOONLIGHT)
+	_fx(&"clean_cut", Tower.aim_at(best), world(tower))
 	best.take_damage(overkill * p(tower, "spill", 1.0), tower.tower_data.line, false, false, tower, &"clean_cut")
 
 # --- Phase 2: Rampart / Bastion, stone among stone ---------------------------------------------------------------
@@ -1208,7 +1208,7 @@ static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
 	e.ground(minf(p(tower, "ground_time", 3.0) * tower.get_potency(), NurtureChoices.GROUND_CAP))  # Deep: longer, up to 6.75 s (audit b6f44fac)
-	_fx(&"flyer_grab", e.global_position, world(tower))
+	_fx(&"flyer_grab", Tower.aim_at(e), world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands
 	var thorns := tower.kin_share(BRAMBLE_BED, "a")
@@ -1239,7 +1239,7 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 		if not e.has_meta(&"deeproot_held") and e.global_position.distance_to(heart) <= reach:
 			e.set_meta(&"deeproot_held", true)  # Once each, whichever Deeproot got there first
 			_land_hold(tower, e, p(tower, "goal_hold", 1.0))
-			_fx(&"goal_hold", e.global_position, world(tower))
+			_fx(&"goal_hold", Tower.aim_at(e), world(tower))
 
 # Deeproot's guard ring as [centre, reach in pixels] (the Watchtower signature watches it), [] for other Wardens.
 static func guard_area(tower: Tower) -> Array:
@@ -1303,7 +1303,7 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 			held.append(e)
 			_thorn(tower, e, amount)
 			if _fx_due(e, &"thorn_fx_at", 1.0):
-				_fx(&"thorns", e.global_position, e, 1.0, 1.0)  # A loop on its feet while the thorns bite
+				_fx(&"thorns", Tower.aim_at(e), e, 1.0, 1.0)  # A loop on its feet while the thorns bite
 		elif flyers > 0.0 and e.is_flying():
 			_thorn(tower, e, amount * 0.5 * flyers)
 	if not is_final(tower) or held.is_empty():
@@ -1316,7 +1316,7 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 			if is_instance_valid(h) and e.global_position.distance_to(h.global_position) <= CELL * 1.2:
 				_thorn(tower, e, spread)
 				if _fx_due(e, &"thorn_spread_at", 0.75):
-					_fx_segment(&"thorn_spread", h.global_position, e.global_position, world(tower), Palette.BLOSSOM)
+					_fx_segment(&"thorn_spread", Tower.aim_at(h), Tower.aim_at(e), world(tower), Palette.BLOSSOM)
 				break
 
 # Throttle for a looping / repeated effect on one nightmare: true once per `every` seconds (meta `key`).
@@ -2210,7 +2210,7 @@ class SilenceWatch extends Node:
 		var entry: Array = marks.get(enemy.get_instance_id(), [])
 		if not entry.is_empty() and is_instance_valid(entry[1]):
 			return
-		var node := Fx.play(&"silence_mark", enemy.global_position + Vector2(0, -30), enemy, 1.0, true, 0.0)
+		var node := Fx.play(&"silence_mark", Tower.aim_at(enemy) + Vector2(0, -30), enemy, 1.0, true, 0.0)
 		if node:
 			marks[enemy.get_instance_id()] = [enemy, node]
 

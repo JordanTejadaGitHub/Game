@@ -20,6 +20,12 @@ unchanged from the cozy version; only names, fiction and art direction changed.
   one should feel like a small victory.
 - **Never break the path rule.** Nightmares that change the maze (Hollow Stag, Hollow Oak) must
   never leave the start without a route to the Heartwood.
+- **Protect the crowd feel** (owner 2026-10-24, after the walking-lanes board videos: *"I like it ... Also
+  like the feel of a big group being wiped and them bunched up like that"*). Packs that arrive bunched
+  across the path and get wiped together by area Wardens are a feel to keep. A later change to lanes,
+  shapes, spacing, field caps or effects must not thin packs back into single file or make a group wipe
+  read as one-at-a-time dispels; if a change risks it, check it against the v3 board videos
+  (`D:\Projects\logs\enemy_code\shapes_video\v3\`).
 
 ## Art direction
 
@@ -73,6 +79,67 @@ unchanged from the cozy version; only names, fiction and art direction changed.
 | **Whisper Swarm** | a cloud of whispering motes | one unit made of many; single-target damage reduced, area damage hits fully | build variety | splash, pulses, fog |
 | **Dream Thief** | a quick, grinning shape clutching stolen light | steals Dew; reaching the Heartwood costs Dew + a leaf; dispelling it gives double Dew | risk/reward target priority | fast single-target |
 | **Weeper** | a hunched figure crying black tears | mends nearby nightmares | target priority | Beacon, Mossback |
+
+### Flyers (APPROVED 2026-10-24: owner "if the council says it's fine create the new enemy types"; council: feels good with fixes; not built yet)
+
+Three new flying nightmares. All three **fly along the route, above it** (like the Crows and the Moth
+Queen): walls never block or re-route them, ground effects (Rooted, Held, traps, rubble, puddles)
+don't touch them, but every Warden along the maze that can hit flyers gets its turn. None flies
+straight to the Heartwood: that is the Phantom's alone, and the Phantom is why (a straight flyer
+skips the maze and became a leaf drain; it is capped at 4 a drift). Kind: **Flying**.
+
+| Nightmare | Looks like | Trait | Tests | Counter |
+|---|---|---|---|---|
+| **Night Kite** (act 2) | a ragged black kite with a tail of knotted string, two cold eyes on the cross-spar | quick and light; flies the route above the path | flyer coverage spread through the maze, not one anti-air spot | Wardens that hit flyers, placed along the whole route (every starting family has them from its base Warden up) |
+| **Gloamwing** (act 3) | a big, slow moth of grey dust, wings too heavy for it | flies the route, but **its wings get heavy**: once it carries **3 stacks of {soaked} and {drowsy} together** (Brimming never raises the 3), it **drops to the path and walks** the rest of the way, for good (a walker from that cell: the maze, ground effects and holds all apply) | control builds as an answer to flyers | Soaked and Drowsy Wardens, then anything; or plain anti-air |
+| **Pall** (act 4) | a floating funeral cloth with a face pressed through it | flies the route at walking pace and **settles over the nearest walker ahead of it**: while it covers one, **each blow at that nightmare is shared half and half with the Pall**; it moves on when that one is dispelled | target priority and anti-air together | Wardens that hit flyers (the Pall dies first under fire), or area damage that hits both |
+
+**Numbers** (starting values for Balancing Discussion; drift-1 values like the Stats table):
+
+| Nightmare | Health | Speed | Leaves | Introduced | roll_tags |
+|---|---|---|---|---|---|
+| Night Kite | 80 | 115 | 1 | drift 41 (act 2) | `special` |
+| Gloamwing | 220 | 80 (walking after it drops: 60) | 1 | drift 69 (act 3, before the Moth Queen) | `special` |
+| Pall | 160 | follows its walker (72 alone) | 1 | drift 92 (act 4) | `special` |
+
+**Rules that keep flyers fair** (the Phantom lesson):
+- **Flyers of all kinds: at most 4 / 5 / 6 in a drift in acts 2 / 3 / 4, and never more than a third of its arrivals** (Phantoms still at most 4 within that), checked after the Omens; a flyer is never a guaranteed or Blight elite (council 2026-10-24).
+- Tagged `special`, so a flyer leads a drift only in a Special drift, once a block; elsewhere it's a
+  small share. Never in a Packs drift's packs (Drift shapes); fine in Single file and Stream.
+- One Pall covers one walker at a time; a covered nightmare shows the Pall's cloth over it, and the
+  effect is said on both cards. It **never covers a boss or a Deeply Blighted**, its effect applies **after
+  the dread shell**, and **no Pall rolls into a Few and tough drift** (council 2026-10-24).
+- **A grounded route flyer rises back onto its own route** (the route index it held, two legs if a Waymark
+  stands); being grounded never counts as passing the Waymark. Only through-wall flyers (the Phantom) rise
+  straight at the Heartwood. This fixes a live bug: today Groundroot, Earthbind and Snag send a Crow straight
+  home (`enemy.gd` `ground()` / `_rise_from_ground()`; council 2026-10-24).
+- **Hollow Wind draws route flyers only** (Crow, Night Kite, Gloamwing; never the Phantom or the Pall), and the
+  flyer caps are checked after it (council 2026-10-24).
+- **Decided** (owner 2026-10-24, the council lead's picks; `enemy_council_review.md`):
+  - **The Pall shares, it doesn't halve.** Each blow aimed at the covered walker deals half to it and half to
+    the Pall, after the dread shell. No second damage reduction (the Nightmare Kinds rule), hit cards and Focus
+    lines keep full value, and the Pall still dies first under fire. No target-priority button needed.
+  - **The Gloamwing drops at 3 stacks of Soaked and Drowsy counted together,** so a Dewdrop splash and two
+    Bellflower tolls count the same; Brimming never raises the 3; once down it walks for good.
+  - **Route flyers count on the route they fly over** for maze and Calling route cards (Passing Thread,
+    Gauntlet, bends, Spore Print, Puddles, Keeping Time), at the route point below them. Ground effects
+    (Rooted, Held, traps, rubble, puddles) still miss them.
+- Waymark: route flyers take the route they spawned with, two legs if a stone stands, and shed their
+  statuses at the stone like walkers.
+- Walking lanes: they sway ±0.15 cell on their line; a Gloamwing that drops takes a walker's lane.
+- Nothing here is aimed at a build: they are rolled like any nightmare.
+
+**Teaching drifts** (introductions are fixed drifts, so these rows are what plays; in the act tables, each keeps
+about the drift's old health budget): 41 "Night Kite intro: 4 NK (2 s apart, first), then 28 SH, 8 HU, 6 NH";
+69 "Gloamwing intro: 4 GW among 34 SH, 8 MO, 6 GC"; 92 "Pall intro: 3 PL settling over the Shades, among 44 SH,
+8 SB, 6 WE" (no Husks: their dread shell). The three become fixed Streams in the Drift shapes tables (block 14
+loses its Few and tough: three introductions).
+
+**To build:** Enemy Code (three `EnemyData`, the route flying, the Gloamwing's drop, the Pall's cover and shared
+blows, the flyer caps, the grounding fix, route flyers on the route for cards; the intro drift files 41 / 69 / 92),
+Roguelite Code (Hollow Wind's route-flyers-only pick; the maze and Calling route cards reading flyers), Enemy
+Assets (a fly sheet for each, the Gloamwing's landing and walk, the Pall's settled pose), Main Merger (the Kind
+badge lines and glossary).
 
 ### Bosses: a pool of 3 per act (added 2026-09-29, like Slay the Spire)
 
@@ -282,7 +349,7 @@ chart to learn.
 | Kind | What it does | Answered by (existing Warden tags) | Nightmares |
 |---|---|---|---|
 | **Armoured** | a dread shell takes a flat amount off every hit until it breaks (the Shellbound's rule, "Dread shell" below) | **heavy** Wardens (`TowerData.heavy`: the Pebbling line, Torrent, Prism Jar, Moonstone…), **Breaks armour** (Lichenling), the **Crushing** signature | Husk, Shellbound, Barrow Wight; boss: the Barrow King |
-| **Flying** | skips the maze | any Warden that hits flyers (not "Can't hit flyers"), Groundroot pulling them down; only the Lightning Fence's link touches a Phantom | Crow, Phantom; boss: the Moth Queen |
+| **Flying** | skips the maze | any Warden that hits flyers (not "Can't hit flyers"), Groundroot pulling them down; only the Lightning Fence's link touches a Phantom | Crow, Phantom, Night Kite, Gloamwing (until it drops), Pall; boss: the Moth Queen |
 | **Hidden** | can't be targeted until revealed (a Burrower is Hidden while underground) | **Reveals Hidden** (Brood Cap, Quaker) | Lurker, Gravecrawler |
 | **Swarm** | splits or arrives as a crowd of small bodies | **area** attacks (pulses, clouds, splash, chains) | Whisper Swarm, Widow (→ Creeps), Mourner (→ Sobs), Lantern Bearer (→ Wraiths); bosses: the Huntsman (pack), the Scarecrow (crows) |
 | **Fast** | outruns a thin maze (sprints, rolls, wanders) | **slows and holds** (Soaked, Drowsy, Rooted) | Night Hound, Sleepwalker |
@@ -566,7 +633,7 @@ saved with the run)
 
 **Don't ship (the rules that keep shapes fair)**
 - **A pack takes at most 3 leaves** when it leaks (proposed number), so one slipped pack can't end a
-  run; the glossary says so. Few and tough already costs 2 leaves per Deeply Blighted.
+  run; the glossary says so. **A Few and tough drift's Deeply Blighted take at most 6 leaves together** (owner 2026-10-24, council round 2026-10-24: 3-5 of them at 2 each were an uncapped 8-12-leaf cliff), on the same rule as a pack.
 - **No flyer packs:** Hollow Wind's flyer swaps are pulled out of packs and spaced as in a Stream.
 - **Headlong stays special:** never more than ~8 arrivals within 3 s in any shape; only Headlong
   brings a whole drift at once (`_compress` runs after the shape).
@@ -603,12 +670,12 @@ builds and feared by 6+, nothing loves all three):
 
 **Card fixes shapes need (Roguelite chats; proposed, not decided):**
 - Dispel-count engines stall on Few and tough (Wild Growth, Hard-Won Rings, Lantern Light's dispel
-  jump, Starfield): a Deeply Blighted could count as 3 dispels (its health share), said in the glossary.
+  jump, Starfield): **decided and built: a Deeply Blighted counts as 3 dispels** (owner 2026-10-24; `DreamState.dispel_count`, 7573c842), said in the glossary.
 - Per-nightmare status caps (Poisoned 32–80) cap out on a few tough bodies: Balancing checks whether
   Few and tough needs to be rarer for act 3 status lines.
 - Boss capstones that halve on bosses (Long Rot, Lantern Parade, Grave Field) need full value on
   Deeply Blighted, or they read as traps on Few and tough.
-- "3+ nightmares" cards (Crowded Ground, Pile-On) never fire on Single file: acceptable once a block.
+- "3+ nightmares" cards (Crowded Ground) never fire on Single file: acceptable once a block. (Pile-On is a free-hit card at a clump, not a crowd card: council 2026-10-24.)
 - Spore Season (15 caps alive) on Packs: check it isn't working against itself.
 
 **Gate (Balancing):** for each build, its worst shape leaks **1.5–3×** its best; no build has the
@@ -642,6 +709,25 @@ gains an optional "Shape" column if a fixed drift should ever be pinned.
 - **Balancing Discussion:** pack size and gap, the Single file floor, Few and tough's elite share and
   count, the 3-leaf pack cap, template weights.
 
+**More of the group wipe (Enemy Design Council round 2026-10-24c; owner: "like the feel of a big group being
+wiped and them bunched up like that"; numbers marked * are Balancing Discussion's to confirm)**
+- Keep 6-8 a pack (act 1: 4-5) and one Packs drift a block; **always a Packs drift in drifts 11-15**.
+- **Big packs:** clamp(ceil(nightmares / 14), 6, 8) packs, so a pack stays at most 14 up to 112 nightmares;
+  `PACK_SPAN_MAX` 2.6 s*; splitter children count toward the big-pack test.
+- **A leaked pack takes at most 6 leaves** (it was 3 per 8 members: a pack of 40 cost 15).
+- **Tighter clumps along the route, not wider lanes:** in-pack gap 0.5 → **0.4 cell from act 2*** (act 1 keeps
+  0.5); lanes stay ±0.2. The compact crowd icons land first; y-sort moves to the drawn body.
+- **Single file plays more often:** gap by act **1.5 / 1.2 / 1.0 / 1.0 s***, a failed roll retries once with the
+  Heavy template before becoming a Stream; target at least 60% of planned Single file slots played. The 25%
+  thinning cap stays.
+- **The Pall never settles on a pack member.**
+- **The payoff, one moment and one fact, never a reward:** a pack is *wiped* when every walking member of a pack
+  of 4+ is dispelled, none leaked, first to last within 3 s. Then: one "+N Dew" popup that counts up (in place of
+  the members'), damage numbers merged per pack, a small "Pack ×N" callout, a soft warm bloom at the pack's centre,
+  and the rest report line "Packs wiped: 5 of 6" with the Warden that dealt the most. No bonus Dew. Any crowd
+  of 5+ dispels within 700 ms gets the **dispel swell** (fuller, at most +1.5 dB, no pitch climb, no chime, no
+  music duck) in place of a stack of sighs, as `audio_direction.md` already asks.
+
 **Decided (owner 2026-10-24, "do your recommendation")**
 1. **The four shapes and the mix** as written above.
 2. **A leaked pack takes at most 3 leaves** (not leaf cost by health share: a cap is one rule the
@@ -654,6 +740,78 @@ gains an optional "Shape" column if a fixed drift should ever be pinned.
    ("Act 3: 4 Packs, 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough"),
    and the rest report adds "Leaves lost by shape this act: Packs 3, Single file 0, Few and tough 1"
    when any leaf was lost. Neither says which build answers which shape.
+
+### Walking lanes: nightmares use the path's width (owner 2026-10-24, "mostly visual, and subtle"; built, retuned by the council 614ec352, owner: "I like it")
+
+**Retune (Enemy Design Council round 2026-10-24b, owner: "Enemy movement looks off"; `enemy_council_review.md`).
+These numbers replace the first draft's below.**
+- **Width:** ±0.2 cell for Stream and Packs (was 0.3: bodies hung off the 0.55-0.6-cell sand band onto dark grass);
+  ±0.1 for bosses, big kinds and Few and tough's Deeply Blighted; ±0.06 for Single file; flyers ±0.15.
+- **No skating:** a new target lane is the current one ± 0.3-0.7 (clamped to ±1), every 4-8 s; each move eases in
+  and out (smoothstep), takes at least 0.8 s, and never slides sideways faster than **0.25 × the nightmare's own
+  walking speed**. Facing stays on the direction of travel.
+- **Corners:** the lane is measured across the rounded corner curve's tangent, not toward the next cell (no whip,
+  no backward slide), and shrinks to half within 0.5 cell of a turn's centre. Corner rounding stays 0.3.
+- **Narrow half-cell gaps:** the lane closes to 0 (quickly; this one may beat the speed cap), so no body is drawn
+  over a Warden.
+- **Jostle:** neighbours by route index (±1), within 0.55 cell along the route, each pair once; lanes closer than
+  0.15 cell push apart at 0.8 lane units a second through the same speed cap, never past ±0.85 (no rails at the
+  edges, no stacked blobs).
+- The drawn offset moves in whole pixels, at 1 px or more at a time (no pixel crawl); the lane closes over the last
+  cell of the ROUTE before the Heartwood.
+- **Everything drawn on a nightmare follows its body:** damage numbers, combo words, status flashes, the crit
+  flare, Charged bolts, Live Wire, Calling jumps and threads, splash rings, pulse hit sheets, ring pips. Everything
+  on the ground (puddles, rings, mushrooms, clouds) stays on the route. No range, radius or targeting changes.
+
+Owner: *"make the enemies feel more dynamic, they don't have to follow 1 single line on the path and
+can be a bunched up."* Today every nightmare walks the exact centre line, so a crowd reads as beads
+on a string. Now each one walks its own **lane**, a small sideways offset from the centre line, so
+packs (see Drift shapes) read as clumps side by side.
+
+**Visual only.** The nightmare's node stays on the centre line and keeps every rule: its cell, route
+index, targeting, range checks, area hits, building validation, Waymark, laps, pulls, the Huntsman's
+pack, close calls. Only the drawn body moves: the sprite, its shadow, the health and shell bars,
+status icons and the elite haze, all by the same offset. Nothing in combat changes.
+
+**Numbers (subtle):**
+- Lane: up to **±0.3 cell** (about 19 px) across the direction of travel, rolled at spawn.
+- The lane wanders slowly: a new target lane every **3–6 s**, eased toward over about a second.
+- Corners: the offset turns with the travel direction, eased, so a crowd swings round a bend instead
+  of snapping.
+- Light jostling: two nightmares within about 0.4 cell of each other along the path ease their lanes
+  apart. Cheap: only nightmares on the same or the next route cell are compared, never the whole field.
+- Shape-aware: Packs use the full ±0.3; Single file keeps within ±0.1 so it still reads as a line;
+  big bodies (bosses, `sprite_scale` 1.4 and above) and Few and tough's Deeply Blighted within ±0.15.
+- Fade-in and fade-out: the lane grows over the first cell after the start and shrinks to the centre
+  over the last cell before the Heartwood, so nothing appears or leaks off the path's edge.
+- Flyers keep their own line with a gentle sway (±0.15 cell).
+- **Reduced motion:** a fixed lane per nightmare, no wandering and no jostling.
+
+**Where the eye looks.** Projectiles, beams, chain bolts and hit effects aim at the drawn body
+(`Enemy.get_visual_position()`: node position + lane offset), so a shot never lands 19 px off the
+sprite. Damage is still dealt to the node, so nothing about hits changes.
+
+**Watch:** y-sort follows the node, so on a horizontal path two nightmares in different lanes can sort
+a frame wrong. Acceptable at ±0.3 cell; sort by the drawn position if it shows.
+
+### Status icons in crowds (owner 2026-10-24, "yeah that works"; not built yet)
+
+In the v3 board videos each nightmare's row of 16 px status icons (with stack numbers) and its health bar stacked
+into one strip above a pack and hid the bodies, which fights the crowd feel above. Now the row is **compact in a
+crowd**:
+- **Crowded = another nightmare's drawn body within 0.5 cell** (by route index ±1, the jostle's neighbours, so it
+  costs nothing extra). A crowded nightmare's row becomes **one pip per status**: about 5 px, the status colour
+  **plus a distinct shape per status** (colour-blind safe), no stack numbers, at **70% opacity**. Its health bar
+  becomes **3 px tall** (still shown only once it's been hit, unless the "Always" setting is on).
+- **Full icons stay** on the nightmare under the cursor or tapped (phones), on bosses and Deeply Blighted, and on
+  any nightmare walking alone. Switching between the two eases over 0.15 s (instant under reduced motion), and a
+  nightmare keeps its look for at least 0.5 s so rows don't flicker at a pack's edge.
+- **Setting** (Accessibility): "Status icons: Full / Compact in crowds / Off", default Compact in crowds. Off still
+  shows them on hover / tap.
+- The pips read a pack at a glance (a pack of soaked nightmares is a band of the same colour); exact stacks are on
+  the one you hover or tap. No per-pack summary label: it hides which nightmare carries what.
+- **Owners:** Enemy Code (the crowd test and the two rows in `enemy.gd`'s HUD canvas item), UI Code (the pip shapes
+  and colours from the palette), Main Merger (the setting).
 
 ## Art
 

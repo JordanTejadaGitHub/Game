@@ -36,6 +36,20 @@ func _connect() -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
 	if dreams != null and dreams.has_signal("card_fired"):
 		dreams.card_fired.connect(_on_card_fired)
+	var spawner := owner.get_node_or_null("%EnemyContainer") if owner != null else null
+	if spawner != null and spawner.has_signal("pack_wiped"):
+		spawner.pack_wiped.connect(_on_pack_wiped)
+
+# A pack wiped (Enemy Code's EnemySpawner.pack_wiped: every member dispelled, none leaked, within 3 s; owner 2026-10-24,
+# enemy_council_review.md 2026-10-24c): one small "Pack ×N" on its centre, throttled. A moment and a fact, never a reward.
+const PACK_COOLDOWN := 1.0  # Seconds (game) between two "Pack ×N" words
+func _on_pack_wiped(_key: int, size: int, centre: Vector2, _top_source: Node) -> void:
+	var reduced := Fx.reduced()
+	if _cooldowns.get(&"pack", 0.0) > 0.0 or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
+		return
+	_cooldowns[&"pack"] = PACK_COOLDOWN
+	var word := "Pack ×%d" % size
+	_alive.append([0.0, word, UiStyle.GOLD, null, _slot(centre, word), &""])
 
 # Trigger cards (screens_ui.md "Dream" ecbea61a; owner 2026-10-16: "make these dream cards and evolutions more
 # noticeable"): a taken card or Calling evolution pops its name in gold the first time it fires in a drift, no numbers,
@@ -57,7 +71,7 @@ func _card_callout(event: DamageLog.Event) -> void:
 		_card_tags = dreams.call("_credit_rule_map") if dreams != null and dreams.has_method("_credit_rule_map") else {}
 	var id: String = _card_tags.get(event.tag, "")
 	if id != "":
-		_pop_card(id, event.enemy.global_position, event.enemy)
+		_pop_card(id, _body_at(event.enemy), event.enemy)
 
 func _on_card_fired(id: StringName, at: Vector2, _source: Node = null) -> void:  # source: visual feedback spec (Roguelite, 2026-10-18)
 	if at.is_finite():
@@ -116,7 +130,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 	if _callout_for(event.enemy) != null:
 		return  # One callout per nightmare at a time
 	_cooldowns[tag] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
-	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, _slot(event.enemy.global_position, WORDS[tag]), &""])
+	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, _slot(_body_at(event.enemy), WORDS[tag]), &""])
 	_note_seen(tag)
 
 # A status just reached full strength on `enemy` (Tower Code's Fx.exposed_check: Exposed does nothing until it is
@@ -130,7 +144,7 @@ func status_complete(enemy: Node2D, status: StringName) -> bool:
 			or _combo_count() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
 		return false
 	_cooldowns[key] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
-	_alive.append([0.0, IconInfo.status_name(status), Color(EnemyStatuses.COLORS.get(status, Palette.GOLD)), enemy, _slot(enemy.global_position, IconInfo.status_name(status)), &""])
+	_alive.append([0.0, IconInfo.status_name(status), Color(EnemyStatuses.COLORS.get(status, Palette.GOLD)), enemy, _slot(_body_at(enemy), IconInfo.status_name(status)), &""])
 	status_completed.emit(status, enemy)
 	return true
 
@@ -225,7 +239,7 @@ func _process(delta: float) -> void:
 		var callout: Array = _alive[i]
 		callout[0] += delta
 		if is_instance_valid(callout[3]):
-			callout[4] = callout[3].global_position
+			callout[4] = _body_at(callout[3])  # A nightmare: its drawn body (walking lanes); a Warden: its position
 		if callout[0] >= _life(callout):
 			_alive.remove_at(i)
 	if not _alive.is_empty() or _drawn:  # Once more after the last word goes, then idle
@@ -299,3 +313,8 @@ func _draw_word(text: String, icon: Texture2D, colour: Color, alpha: float, glyp
 	var at := Vector2(x, baseline)
 	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, 2, Color(Palette.DREAD, alpha))
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, Color(colour, alpha))
+
+# Where a nightmare's number or word goes: its drawn body (Enemy.get_body_position; walking lanes draw a body beside its
+# logical spot, so in a pack the logical one can read as the neighbour's; Enemy Design Council 2026-10-24b). Others: their position.
+static func _body_at(node: Node2D) -> Vector2:
+	return node.get_body_position() if node.has_method("get_body_position") else node.global_position
