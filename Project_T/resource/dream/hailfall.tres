@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "hailfall"
 display_name = "Hailfall"
-description = "Every attacking Warden's hits splash 40% of their damage onto nightmares within 1 cell. They count as Area, not single target."
-tip = "Up to the 3 nearest. A Warden with its own splash keeps it, at least 40% within 1 cell, with no limit. Its own hit keeps its strength against nightmares that resist Area."
+description = "Wardens without a splash gain one: their direct hits splash 40% of their damage onto up to 3 nightmares within 1 cell."
+tip = "Every attacking Warden then counts as an area attacker: area cards work on it, single-target cards don't. A Warden with its own splash keeps it, at least 40% within 1 cell, on every nightmare there. Against nightmares that resist area attacks, the Warden's direct hit still deals full damage."
 rarity = 3
 kind = 3
 tags = Array[String](["area"])

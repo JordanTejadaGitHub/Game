@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "clean_strike"
 display_name = "Clean Strike"
-description = "Hits deal 25% more to nightmares whose statuses all come from the hitting Warden's family. {final_form} and {ascended}: 50%."
-tip = "Needs at least one status. A status counts if a form of the family open this run can give it. Walls and Sprouts never count. Direct hits only."
+description = "Direct hits deal 25% more damage to nightmares whose statuses all come from the hitting Warden's family. {final_form} and {ascended}: 50%."
+tip = "The nightmare needs at least one status. A status counts if any form of that family you can grow this run gives it. Walls and Sprouts never count."
 rarity = 1
 kind = 3
 tags = Array[String](["hits"])

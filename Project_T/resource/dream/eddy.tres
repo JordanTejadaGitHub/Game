@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "eddy"
 display_name = "Eddy"
-description = "{family:whirligig} Wardens' hits copy half of each of the target's statuses' {stacks} to the nearest other nightmare. Each Warden once a second."
+description = "{family:whirligig} Wardens' hits copy half the {stacks} of each status on the target to a nightmare 1 step either side on the path."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
 requires = Array[String](["whirligig"])
 max_stacks = 1
 rule_id = &"eddy"
-tip = "Never copies {held}, {asleep} or {caught}. Works for: {family:whirligig} Wardens. Safe."
+tip = "Each Warden can do this once a second. Never copies {held}, {asleep} or {caught}. Works for: {family:whirligig} Wardens. Safe."
 makes = Array[StringName]([&"layered"])
