@@ -240,7 +240,7 @@ func _build(span: Vector2i) -> void:
 				line.add_child(_hang_room())
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", BADGE_HANG + 4)  # Room for each count plate past its disc, +4 clear
+			line.add_theme_constant_override("separation", BADGE_HANG + 4)  # Room for each count plate past its disc, +4 clear (_fit_hang widens it)
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
 			line.add_child(_hang_room())  # The same room on the left keeps the discs centred
@@ -249,6 +249,7 @@ func _build(span: Vector2i) -> void:
 		line.add_child(_more_chip(rest))
 	if line != null:
 		line.add_child(_hang_room())
+	_fit_hang()
 	_build_kind_words(span)
 	_shapes.build(drift_director, span, compact)
 
@@ -437,6 +438,16 @@ const BADGE_HANG := 36.0  # How far a count plate ("×16", "×157") reaches past
 
 # An empty end of a row of discs: the row's separation beside it is the room, so the last count plate stays on the
 # panel and the discs stay centred (one at each end).
+# A long count ("×157" at the body size) reaches further than BADGE_HANG: every row of discs gets the room of the widest
+# count plate shown, measured, so it never touches the next disc (test_rule_breakers).
+func _fit_hang() -> void:
+	var hang := BADGE_HANG
+	for badge in _row.find_children("KindCount", "Label", true, false):
+		hang = maxf(hang, (badge as Label).get_combined_minimum_size().x - BADGE_ON_RIM)
+	for line in _row.get_children():
+		if line is HBoxContainer:
+			line.add_theme_constant_override("separation", int(ceilf(hang)) + 4)
+
 func _hang_room() -> Control:
 	var room := Control.new()
 	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
