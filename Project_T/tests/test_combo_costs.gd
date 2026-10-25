@@ -228,9 +228,10 @@ func _run() -> void:
 
 	_take("brimming")
 	spore = _plant("sporeling", Vector2(2, 4))
+	var brim_heavy := _plant("cairn", Vector2(2, 6))  # Section 35: only a Heavy Warden's crit spends
 	var brim_star = _spawn(Vector2(5, 4))
 	brim_star.apply_status(EnemyStatuses.MARKED, 20, 0.0, 0.0, 0, "light", spore)
-	spore.hit(brim_star, 1.0, false, Tower.CRIT)
+	brim_heavy.hit(brim_star, 1.0, false, Tower.CRIT)
 	_check(brim_star.statuses.stacks(EnemyStatuses.MARKED) == 10, "Starlit Aim: Brimming crit leaves ten stacks")
 	await _clean()
 
