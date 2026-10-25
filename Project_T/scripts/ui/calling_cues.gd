@@ -15,7 +15,7 @@ class_name CallingCues
 #   THRONE_AGE, clockwise from the top.
 # - Moth to Flame / Pyre: a gold-dispel plate in the Warden's cell (firefly_lights.gold_dispels_total): a gold flame
 #   diamond and the count; the Moth holder's flame has a white core; with Pyre "N/50" (phones: "N") until 50.
-# - Halfway Bell: the halfway bell wears a moonlit half-moon (10 px) in its cell.
+# - Halfway Bell: the halfway bell wears the bell glyph in moon tones (×2, 14 px), its lower half lit, in its cell.
 # Over each nightmare (the overhead layer, with the Toll rings):
 # - Deathcap (left of the health bar): its bursts left this walk (spore_print.bursts_left), up to 3 pips, 3×3 each.
 # - Lantern Light (right of the bar): the lantern it carries (firefly_lights.lantern_level; its glass dims as it
@@ -27,6 +27,7 @@ class_name CallingCues
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const PLATE := "res://assets/ui/moonglass/plate.png"
+const PLATE_LIT := "res://assets/ui/moonglass/plate_yours.png"  # Brass: Pyre reached (a filled plate, no number)
 const REFRESH := 0.2  # Seconds (real time) between looks
 const CAP_COLOR := Palette.SPRIG
 const PALE_COLOR := Palette.HEARTLIGHT
@@ -60,11 +61,13 @@ const RING_STEP := Vector2(5, 2)  # Each inner growth ring this much smaller
 # Pixel glyphs (k = Void outline): the lantern (G frame, w glass, W its lit middle) and the bronze bell.
 const LANTERN := ["..k..", ".kGk.", "kGGGk", "kwWwk", "kwWwk", "kwwwk", "kGGGk", ".kkk."]
 const BELL := ["...k...", "..kok..", ".korok.", ".korok.", "korrrok", "kkkkkkk", "...k..."]
+const HALF_BELL := ["...k...", "..kok..", ".koook.", ".korok.", "korrrok", "kkkkkkk", "...k..."]  # Halfway Bell: its lower half lit
 
 var _dreams: Node = null
 var _placer: Node = null
 var _over := Node2D.new()  # Over the nightmares
 var _plate: StyleBoxTexture = null  # plate.png as a ×1 nine-slice (kept on the instance: never a static texture)
+var _plate_lit: StyleBoxTexture = null  # plate_yours.png the same way
 var _capped: Array = []  # Wardens wearing a cap now
 var _pale: Array = []  # World centres of pale path cells (while building)
 var _thrones: Array = []  # [Warden, rings, share]: rings 0 = the would-be holder, share of THRONE_AGE grown
@@ -86,6 +89,10 @@ func _ready() -> void:
 		_plate = StyleBoxTexture.new()
 		_plate.texture = load(PLATE)
 		_plate.set_texture_margin_all(PLATE_MARGIN)
+	if ResourceLoader.exists(PLATE_LIT):
+		_plate_lit = StyleBoxTexture.new()
+		_plate_lit.texture = load(PLATE_LIT)
+		_plate_lit.set_texture_margin_all(PLATE_MARGIN)
 	_connect.call_deferred()
 
 func _connect() -> void:
@@ -197,13 +204,13 @@ func _find_halfway_bell() -> Node2D:
 # --- Drawing helpers (whole pixels) ---------------------------------------------------------------
 
 # A pixel glyph: `rows` of ink letters from `inks`, its top-left at `origin`.
-static func _pixels(c: CanvasItem, origin: Vector2, rows: Array, inks: Dictionary) -> void:
+static func _pixels(c: CanvasItem, origin: Vector2, rows: Array, inks: Dictionary, px := 1.0) -> void:
 	origin = origin.round()
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
 			if inks.has(row[x]):
-				c.draw_rect(Rect2(origin + Vector2(x, y), Vector2.ONE), inks[row[x]])
+				c.draw_rect(Rect2(origin + Vector2(x, y) * px, Vector2.ONE * px), inks[row[x]])
 
 # A flat ring at a Warden's foot (an ellipse, `t` of it clockwise from the top): `width` px of `colour` on a 1 px Void
 # edge each side; no antialiasing.
@@ -217,10 +224,11 @@ static func _foot_ring(c: CanvasItem, centre: Vector2, radii: Vector2, colour: C
 	c.draw_polyline(points, colour, width)
 
 # A pewter plate behind `size` px of content at `origin` (the plate's top-left); returns the content's top-left.
-func _plate_at(c: CanvasItem, origin: Vector2, size: Vector2) -> Vector2:
+func _plate_at(c: CanvasItem, origin: Vector2, size: Vector2, lit := false) -> Vector2:
 	var rect := Rect2(origin.round(), (size + PLATE_PAD * 2.0).round())
-	if _plate != null:
-		c.draw_style_box(_plate, rect)
+	var box := _plate_lit if lit and _plate_lit != null else _plate
+	if box != null:
+		c.draw_style_box(box, rect)
 	else:
 		c.draw_rect(rect, Palette.DREAD)
 	return rect.position + PLATE_PAD
@@ -260,16 +268,19 @@ func _draw() -> void:
 			continue
 		for i in int(row[1]):
 			_foot_ring(self, foot, inner - RING_STEP * i, Palette.GOLD, 2.0 if i == 0 else 1.0)
-	if is_instance_valid(_halfway_bell):  # A moonlit half-moon in the bell's cell, bottom left
-		var at: Vector2 = (to_local(_halfway_bell.global_position) + Vector2(-side.x / 2.0 + 9.0, side.y / 2.0 - 9.0)).round()
-		draw_circle(at, 5.0, Palette.VOID, true, -1.0, false)
-		draw_circle(at, 4.0, Palette.SLATE, true, -1.0, false)
-		draw_rect(Rect2(at + Vector2(-4, 0), Vector2(8, 4)), Palette.MOONLIGHT)  # The lit lower half…
-		draw_rect(Rect2(at + Vector2(-3, 3), Vector2(6, 1)), Palette.VOID)  # …cut round at its foot
-		draw_rect(Rect2(at + Vector2(-4, 3), Vector2(1, 1)), Palette.VOID)
-		draw_rect(Rect2(at + Vector2(3, 3), Vector2(1, 1)), Palette.VOID)
-	for row in _gold:  # A plate in the cell's bottom right: the flame, the count
-		if is_instance_valid(row[0]):
+	if is_instance_valid(_halfway_bell):  # The bell glyph in moon tones at ×2, half lit (its lower half), cell bottom left
+		var at: Vector2 = to_local(_halfway_bell.global_position) + Vector2(-side.x / 2.0 + 3.0, side.y / 2.0 - 17.0)
+		_pixels(self, at, HALF_BELL, {"k": Palette.VOID, "o": Palette.SLATE, "r": Palette.MOONLIGHT}, 2.0)
+	for row in _gold:  # A plate in the cell's bottom right: the flame, the count (Pyre reached: a brass plate, the flame alone)
+		if is_instance_valid(row[0]) and row[3]:  # UI council r7: lit must not read like the "23/50" counter
+			var corner_lit: Vector2 = to_local((row[0] as Node2D).global_position) + side / 2.0 - Vector2(2, 2)
+			var box_lit := Vector2(16.0, 16.0)
+			var in_lit := _plate_at(self, corner_lit - box_lit - PLATE_PAD * 2.0, box_lit, true)
+			draw_rect(Rect2(in_lit - Vector2(1, 0), box_lit + Vector2(2, 0)), Color(UiStyle.GOLD, 0.3))  # Filled: gold glass (UI council r8: Oak read as wood)
+			draw_set_transform((in_lit + box_lit / 2.0).round(), 0.0, Vector2(2, 2))  # The flame at ×2, whole pixels
+			_flame(self, Vector2.ZERO, Palette.GLOW, true)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		elif is_instance_valid(row[0]):
 			var font := UiStyle.number_font()
 			var text_w := font.get_string_size(row[1], HORIZONTAL_ALIGNMENT_LEFT, -1, NUMBER_SIZE).x
 			var size := Vector2(7.0 + 2.0 + text_w, NUMBER_SIZE)
@@ -326,8 +337,10 @@ static func draw_deathcap(c: CanvasItem, centre: Vector2, left: int) -> void:
 # Lantern Light (right of the bar): the lantern, its glass dimming with `level` (0: an empty frame); with a streak of
 # 2+ glows lantern and "×N" share one plate.
 func draw_lantern_cue(c: CanvasItem, centre: Vector2, level: float, streak: int) -> void:
-	var glass := Palette.SLATE.lerp(Palette.MOONLIGHT, level)
-	var lit := Palette.SLATE.lerp(Palette.HEARTLIGHT, level)
+	# Fading in three clear steps, not a blend (UI council: the fading lantern was unreadable): lit (glass and a Heartlight
+	# middle), dimming (glass only), nearly out (an empty Slate frame)
+	var glass := Palette.MOONLIGHT if level > 0.33 else Palette.SLATE
+	var lit := Palette.HEARTLIGHT if level > 0.66 else glass
 	var inks := {"k": Palette.VOID, "G": Palette.MIST, "w": glass, "W": lit}
 	var left := (centre + Vector2(BAR_HALF_W + SIDE_GAP, 0)).round()
 	if streak < 2:
@@ -354,8 +367,14 @@ static func draw_tally(c: CanvasItem, centre: Vector2, share: float, halfway: in
 		c.draw_rect(Rect2(Vector2(x, top), Vector2(3, 6)), Palette.VOID)
 		c.draw_rect(Rect2(Vector2(x + 1, top + 1), Vector2(1, 4)), Palette.EMBER if i < lit else Palette.OAK)
 		x += TICK_STEP
-		if halfway > 0 and i == notch_after - 1:  # The notch: one taller post between the halves
+		if halfway == 1 and i == notch_after - 1:  # Waiting: a tall Moonlight post with a Heartlight tip between the halves
 			x += 1.0
-			c.draw_rect(Rect2(Vector2(x, top - 2), Vector2(3, 10)), Palette.VOID)
-			c.draw_rect(Rect2(Vector2(x + 1, top - 1), Vector2(1, 8)), Palette.MOONLIGHT if halfway == 1 else Palette.SLATE)
+			c.draw_rect(Rect2(Vector2(x, top - 3), Vector2(3, 11)), Palette.VOID)
+			c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 9)), Palette.MOONLIGHT)
+			c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 2)), Palette.HEARTLIGHT)
+			x += TICK_STEP + 1.0
+		elif halfway == 2 and i == notch_after - 1:  # Taken: a short Slate stub, no taller than the ticks (UI council r8: a gap read as nothing)
+			x += 1.0
+			c.draw_rect(Rect2(Vector2(x, top + 1), Vector2(3, 4)), Palette.VOID)
+			c.draw_rect(Rect2(Vector2(x + 1, top + 2), Vector2(1, 2)), Palette.SLATE)
 			x += TICK_STEP + 1.0

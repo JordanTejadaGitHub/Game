@@ -1295,7 +1295,7 @@ static func chip(id: StringName, kind: StringName, label: String = "", icon_size
 	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	word.add_theme_font_override("font", body_medium_font())  # Chips: Vollkorn Medium, as written (user 2026-10-23: fewer small caps)
 	word.add_theme_font_size_override("font_size", font_size)
-	word.add_theme_color_override("font_color", INK_DIM if quiet else (FOG if makes else GOLD))
+	word.add_theme_color_override("font_color", INK if quiet else (FOG if makes else GOLD))  # Quiet: the label colour (UI council r7: INK_DIM was lost on the glass)
 	row.add_child(word)
 	return box
 
