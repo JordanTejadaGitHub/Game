@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chain_bloom"
 display_name = "Chain Bloom"
-description = "An Area Warden's splash on a nightmare with 2 or more statuses spreads half again as wide."
+description = "Splashes on a nightmare with 2 or more statuses are ×1.5 as wide."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])

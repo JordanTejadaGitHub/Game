@@ -13,5 +13,5 @@ tags = Array[String](["crit", "stone"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"patient_aim"
-tip = "Works for: Wardens that attack slowly. Safe."
+tip = "Works for: Wardens that attack less than once a second. Safe."
 makes = Array[StringName]([&"crit"])

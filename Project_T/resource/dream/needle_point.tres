@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "needle_point"
 display_name = "Needle Point"
-description = "Every 3rd hit from a {family:nestling} Warden ignores the {dread_shell}."
+description = "Every 3rd direct hit from a {family:nestling} Warden ignores the {dread_shell}."
 rarity = 1
 kind = 3
 tags = Array[String](["wing", "on-hit"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "guiding_light_ii"
 display_name = "Guiding Light II"
-description = "A {family:firefly_jar} Warden's direct hit on a nightmare at {full} {static} also {jumps} for half to every nightmare within 2 cells."
+description = "A {family:firefly_jar} Warden's direct hit on a nightmare with {static} nearly {full} also {jumps} for half to every nightmare within 2 cells."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])
@@ -15,6 +15,6 @@ max_stacks = 1
 deepens = "guiding_light"
 rule_id = &"guiding_light"
 in_start_pool = true
-tip = "Works for: {family:firefly_jar} Wardens. Safe."
+tip = "Nearly {full}: at least 3/4 of its usual most. Works for: {family:firefly_jar} Wardens. Safe."
 makes = Array[StringName]([&"jump"])
 uses = Array[StringName]([&"exposed"])

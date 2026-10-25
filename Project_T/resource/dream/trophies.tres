@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "trophies"
 display_name = "Trophies"
-description = "Each {drift} a Warden {dispels} 10 nightmares, its direct hits deal 4% more damage for the rest of the run, up to +40%."
+description = "Each {drift} a Warden {dispels} 10 nightmares, its direct hits deal 4% more damage for the rest of this run, up to +40%."
 tip = "{deeply_blighted} nightmares and bosses count 5. Kept when it grows, lost if sold."
 rarity = 2
 kind = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grandfather_stump"
 display_name = "Grandfather Stump"
-description = "{family:acorn} Wardens' speed auras grow 4% for each Warden {touching} them, up to 45%."
+description = "{family:acorn} Wardens' speed auras are 4% stronger for each Warden in them, up to +45% faster in all."
 rarity = 1
 kind = 3
 tags = Array[String](["support", "acorn"])
@@ -14,5 +14,5 @@ max_stacks = 1
 requires = Array[String](["acorn"])
 rule_id = &"grandfather_stump"
 in_start_pool = false
-tip = "Only auras that make Wardens attack faster, not damage auras. Safe."
+tip = "Not damage auras. Safe."
 uses = Array[StringName]([&"cluster"])

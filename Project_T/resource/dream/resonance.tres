@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "resonance"
 display_name = "Thunder Chimes"
-description = "{family:bellflower} Wardens' hits add 1 {stack} of {static}."
+description = "{family:bellflower} Wardens' direct hits add 1 {stack} of {static}. Each Warden once a second per nightmare."
 rarity = 2
 kind = 3
 tags = Array[String](["song", "storm"])
 requires = Array[String](["bellflower", "firefly_jar"])
 max_stacks = 1
 rule_id = &"resonance"
-tip = "Once a second per nightmare for each Warden. Direct hits only: never repeats or ticks. Works for: {family:bellflower} Wardens with {family:firefly_jar} Wardens. Safe."
+tip = "Never repeats or ticks. Works for: {family:bellflower} Wardens with {family:firefly_jar} Wardens. Safe."
 makes = Array[StringName]([&"charged"])

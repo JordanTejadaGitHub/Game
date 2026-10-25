@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "unfettered"
 display_name = "Unfettered"
-description = "Calling hits deal the Warden's full damage, even from Wardens that attack less than once a second."
-tip = "Each Calling hit still comes only as often as its row allows. Bosses still take less."
+description = "Calling hits deal the Warden's full damage, however slowly it attacks."
+tip = "Without it, a Warden slower than a Calling hit's clock (1, 3 or 4 s) deals only a share. Calling hits come no more often. Bosses still take their share."
 rarity = 3
 kind = 3
 tags = Array[String](["calling"])

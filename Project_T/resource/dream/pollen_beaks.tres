@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "pollen_beaks"
 display_name = "Pollen Beaks"
-description = "Each hit from a {family:nestling} Warden adds 1 {stack} of {spored}."
+description = "{family:nestling} Wardens' direct hits add 1 {stack} of {spored}. Each Warden once a second per nightmare."
 cost_description = "Taking it removes {card:charged_feathers} from this run."
 rarity = 2
 kind = 3
@@ -18,4 +18,4 @@ excludes = Array[String](["charged_feathers"])
 rule_id = &"pollen_beaks"
 in_start_pool = false
 makes = Array[StringName]([&"poisoned"])
-tip = "Once a second per nightmare for each Warden. Direct hits only. Works for: {family:nestling} Wardens with {family:sporeling} Wardens. Safe."
+tip = "Works for: {family:nestling} Wardens with {family:sporeling} Wardens. Safe."
