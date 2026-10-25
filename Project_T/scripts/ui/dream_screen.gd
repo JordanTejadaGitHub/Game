@@ -778,7 +778,7 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 # a row of chips at its foot, each a real tap target; a tap opens the same tip as the word. Nothing when it has none.
 const CHIP_H := 40.0
 var _link_pattern := RegEx.create_from_string("\\[url=([^\\]]+)\\](.*?)\\[/url\\]")
-var _tag_pattern := RegEx.create_from_string("\\[[^\\]]*\\]")
+var _tag_pattern := RegEx.create_from_string("\\[img[^\\]]*\\][^\\[]*\\[/img\\]|\\[[^\\]]*\\]")  # An inline icon goes whole ([img]path[/img]: its path showed on the chip, Mobile UI 2026-10-25), then any tag
 
 func _add_keyword_chips(box: VBoxContainer) -> void:
 	var row := HFlowContainer.new()
@@ -797,7 +797,7 @@ func _add_keyword_chips(box: VBoxContainer) -> void:
 				continue
 			seen[meta] = true
 			var chip := Button.new()
-			chip.text = _tag_pattern.sub(found.get_string(2), "", true)
+			chip.text = _tag_pattern.sub(found.get_string(2), "", true).strip_edges()
 			chip.focus_mode = Control.FOCUS_NONE
 			chip.custom_minimum_size = Vector2(0, CHIP_H)
 			chip.add_theme_font_size_override("font_size", _fs(13))
