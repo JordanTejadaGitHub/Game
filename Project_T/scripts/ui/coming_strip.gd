@@ -509,7 +509,7 @@ func _fill_chip(span: Vector2i) -> void:
 		var count := Label.new()
 		count.text = "×%d" % int(kinds[i][2])
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.number(count, 14, UiStyle.GOLD)
+		UiStyle.number(count, 16, Palette.HEARTLIGHT)  # One size up, brighter (UI council round 7: it read as dust)
 		_chip_row.add_child(count)
 	for i in range(CHIP_KINDS, kinds.size()):
 		fresh = fresh or NightmareCard.is_new(kinds[i][0])
@@ -517,14 +517,17 @@ func _fill_chip(span: Vector2i) -> void:
 		var more := Label.new()
 		more.text = "+%d" % (kinds.size() - CHIP_KINDS)
 		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.number(more, 14, UiStyle.INK_DIM)
+		UiStyle.number(more, 16, UiStyle.INK_DIM)
 		_chip_row.add_child(more)
 	if fresh:  # A never-met kind or a new rule-breaker: a small gold dot
 		var dot := Control.new()
-		dot.custom_minimum_size = Vector2(8, 8)
+		dot.custom_minimum_size = Vector2(14, 14)
 		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		dot.draw.connect(func() -> void: dot.draw_circle(dot.size / 2.0, 3.5, UiStyle.GOLD))
+		dot.draw.connect(func() -> void:  # A 5 px gold dot in a soft glow (council round 7: 3 px read as dust)
+			dot.draw_circle(dot.size / 2.0, 6.5, Color(UiStyle.GOLD, 0.22))
+			dot.draw_circle(dot.size / 2.0, 4.0, Color(UiStyle.GOLD, 0.35))
+			dot.draw_circle(dot.size / 2.0, 2.5, UiStyle.GOLD))
 		_chip_row.add_child(dot)
 	_chip.tooltip_text = "Coming this block%s. Click to see them." % (", something new" if fresh else "")
 	var need := _chip_row.get_combined_minimum_size()

@@ -183,7 +183,7 @@ func _find_gold() -> Array:
 	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
 		var count := int(lights.gold_dispels_total(tower))
 		if count > 0:
-			var text := "%d/%d" % [count, need] if pyre and count < need and not phone else str(count)
+			var text := "" if pyre and count >= need else ("%d/%d" % [count, need] if pyre and not phone else str(count))  # Lit: the bright flame alone (UI council round 7: it read as a count)
 			out.append([tower, text, tower == holder, pyre and count >= need])
 	return out
 

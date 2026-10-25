@@ -53,6 +53,7 @@ func _ready() -> void:
 	UiStyle.number(_header, HEAD_SIZE, UiStyle.INK)
 	_header.tooltip_text = "What your Dreams did. Click to open or fold."
 	_header.pressed.connect(func() -> void: set_open(not _open))
+	_header.draw.connect(_draw_arrow)
 	box.add_child(_header)
 	_body.add_theme_constant_override("separation", 2)
 	box.add_child(_body)
@@ -84,7 +85,7 @@ func _ready() -> void:
 	_body.add_child(tabs)
 	_rows.add_theme_constant_override("separation", 0)
 	_body.add_child(_rows)
-	_more.add_theme_font_size_override("font_size", 13)
+	_more.add_theme_font_size_override("font_size", 15)  # The rows' size, muted (UI council round 7: it read as a footnote)
 	_more.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_body.add_child(_more)
 	_footer_gap.custom_minimum_size.y = FOOTER_GAP - 4.0  # (the body adds its 2 px separation on each side)
@@ -99,6 +100,7 @@ func _ready() -> void:
 func set_open(open: bool) -> void:
 	_open = open
 	_body.visible = open
+	_header.queue_redraw()  # The fold arrow turns
 	var settings := HeartwoodMemory.get_settings()
 	settings[OPEN_SETTING] = open
 	if dream_state != null and dream_state.drift_director != null and get_tree().current_scene == dream_state.drift_director.owner:
@@ -255,8 +257,36 @@ func _place() -> void:
 	position = Vector2(16.0, top)
 	var drawer := hud.get_node_or_null("WardenPanel") as Control
 	var crossed := drawer != null and drawer.is_visible_in_tree() and top + get_combined_minimum_size().y > drawer.get_global_rect().position.y - GAP
+	var was_open := _body.visible
 	_body.visible = _open and not crossed
-	size = Vector2(WIDTH, 0.0)  # Shrinks to what shows
+	if was_open != _body.visible:
+		_header.queue_redraw()  # The fold arrow
+	# Shut, the plate fits its line and the fold arrow (UI council round 7: 290 px of plate for one line); open, WIDTH
+	var font := _header.get_theme_font("font")
+	var line := font.get_string_size(_header.text, HORIZONTAL_ALIGNMENT_LEFT, -1, HEAD_SIZE).x if font != null else WIDTH
+	var width := WIDTH if _body.visible else minf(ceilf(line + ARROW_ROOM + 44.0), WIDTH)  # The panel and button margins, a gap before the arrow
+	custom_minimum_size.x = width
+	size = Vector2(width, 0.0)  # Shrinks to what shows
+	# Open over the map's left edge, where the path can come in (council round 7): half see-through while a nightmare is
+	# under it, so it never hides one
+	var target := UNDER_ALPHA if _body.visible and _nightmare_under() else 1.0
+	modulate.a = move_toward(modulate.a, target, 0.08)  # multiplier
+
+const ARROW_ROOM := 22.0  # The header's fold arrow at its right end, a gap left of it
+const UNDER_ALPHA := 0.5
+func _nightmare_under() -> bool:
+	var rect := get_global_rect().grow(12.0)
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if enemy is Node2D and rect.has_point((enemy as Node2D).get_global_transform_with_canvas().origin):
+			return true
+	return false
+
+# The fold arrow: ▸ shut, ▾ open (drawn: no UI font has the glyph at this size), dim, at the header's right end.
+func _draw_arrow() -> void:
+	var c := Vector2(_header.size.x - 8.0, _header.size.y / 2.0 + 1.0)
+	var points := PackedVector2Array([c + Vector2(-4, -3), c + Vector2(4, -3), c + Vector2(0, 3)]) if _body.visible \
+		else PackedVector2Array([c + Vector2(-2, -5), c + Vector2(-2, 5), c + Vector2(4, 0)])
+	_header.draw_colored_polygon(points, UiStyle.INK_DIM)
 
 static func _thousands(n: int) -> String:
 	var s := str(absi(n))

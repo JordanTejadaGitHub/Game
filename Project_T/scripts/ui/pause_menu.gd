@@ -123,10 +123,8 @@ func _fill_run_side(side: VBoxContainer) -> void:
 		lessons_head.text = "Lessons"
 		UiStyle.caps(lessons_head, 14)
 		side.add_child(lessons_head)
-	else:
-		var spacer := Control.new()
-		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		side.add_child(spacer)
+	else:  # PC too, a divider right under the facts (UI council round 7: a dead gap between the stats and Lessons)
+		side.add_child(HSeparator.new())
 	var hints := HBoxContainer.new()
 	hints.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	var hints_label := Label.new()
@@ -588,22 +586,22 @@ func _fill_facts() -> void:
 	var dreams := 0
 	for id in dream_state.stacks:
 		dreams += dream_state.stacks[id]
-	_fact(&"path_length", "drift", "%d of %d" % [drift_director.drifts_started, drift_director.get_total_drifts()])
-	_fact(&"rank", "dreams", str(dreams))
+	_fact(&"path_length", "Drift", "%d of %d" % [drift_director.drifts_started, drift_director.get_total_drifts()])
+	_fact(&"rank", "Dreams", str(dreams))
 	if calling_line() != "":
-		_fact(&"", "calling", calling_line())
+		_fact(&"", "Calling", calling_line())
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null and omens.get("active") != null:
-		_fact(&"omen", "omen", omens.active.display_name)
+		_fact(&"omen", "Omen", omens.active.display_name)
 	var seconds := int(run_state.play_time)
-	_fact(&"clock", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	_fact(&"clock", "Time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
 	if _phone:  # Phones (user 2026-10-21: a lone bell icon under the facts): the families as a fact row like the rest
 		var names: Array[String] = []
 		for data in tower_placer.towers:
 			if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
 				names.append(data.display_name)
 		if not names.is_empty():
-			_fact(&"", "families", ", ".join(names))
+			_fact(&"", "Families", ", ".join(names))
 		return
 	for data in tower_placer.towers:
 		if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):

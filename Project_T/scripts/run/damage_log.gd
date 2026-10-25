@@ -346,7 +346,7 @@ func _combo_share(event: Event, tag: StringName) -> float:
 # The event's big-hit tier for its number (Enemy.big_tier_now, set while it reports this event; Subtle already caps it
 # at 1): 0 for anything but a hit or a bolt, and with "Big hit feedback" Off (setting big_hits 2).
 const BIG_NUMBER_PUNCH := 0.12  # Seconds a T3 number's scale punch lasts
-const UNFETTERED_NUMBER_SIZE := 24  # A size above a crit's 20 (the 17 / 20 / 24 ladder)
+const UNFETTERED_NUMBER_SIZE := 24  # A size above a crit's 20 (the 16 / 17 / 18 / 20 / 24 ladder)
 const HIT_FORM_NUMBER_EXTRA := 4  # Px more on a hit form's T2 / T3 direct hit (owner 2026-10-22)
 static func big_tier(event: Event) -> int:
 	if (event.kind != &"hit" and event.kind != &"bolt") or not is_instance_valid(event.enemy):
@@ -370,20 +370,20 @@ func _show_number(event: Event) -> void:
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
 	var color := Palette.MOONLIGHT  # A plain hit (art council 2026-10-24: Moonlight; Heartlight is kept for Unfettered and T2)
-	var size := 14
+	var size := 16  # Plain hit: one step up (UI council round 7: it got lost over light ground); 16 / 17 / 18 / 20 / 24
 	if event.combos.has(&"crit"):
 		color = Palette.GLOW
 		size = 20
 	elif event.combos.has(&"conducted") or event.combos.has(&"popped"):
 		color = Palette.NEWLEAF
-		size = 17
+		size = 18
 	elif event.combos.has(&"marked"):  # (No grey "resisted" number since Nightmare Kinds)
 		color = EnemyStatuses.COLORS.get(EnemyStatuses.MARKED, Palette.GOLD)  # The hit took the Exposed bonus (screens_ui.md "Exposed at full stacks is visible"; Tower Code)
 	if event.kind == &"status":
 		size = 11
 		color = color.darkened(0.15)
 	elif event.kind == &"bolt" and not event.combos.has(&"crit"):
-		size = 16  # A Charged bolt: slightly larger, warm, with its bolt glyph (screens_ui.md "Charged bolt")
+		size = 17  # A Charged bolt: slightly larger, warm, with its bolt glyph (screens_ui.md "Charged bolt")
 		color = Palette.GLOW
 	# Big-hit number tiers (visual_feedback_spec.md A, Main Merger's part): T1 +3 px; T2 20 px HEARTLIGHT on a VOID outline;
 	# T3 24 px GLOW with a 0.12 s scale punch. With a crit the larger size wins and it stays GLOW.

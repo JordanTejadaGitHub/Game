@@ -545,7 +545,7 @@ const EVOLUTION_STAGES := ["Style", "Follow-up", "Capstone", "Finale"]  # Callin
 
 func _calling_colour() -> Color:
 	var line: String = String(DreamState.CALLINGS.LINES.get(dream_state.calling, ""))
-	return Kinships.FAMILY_COLORS.get(line, UiStyle.GOLD)
+	return ChoiceCard.family_colour(line, UiStyle.GOLD)  # As the family pick card (shared look)
 
 func _evolution_step() -> int:
 	return clampi(dream_state.calling_path.size(), 0, EVOLUTION_STAGES.size() - 1)
