@@ -260,7 +260,7 @@ func _build(span: Vector2i) -> void:
 const KIND_WORDS := {EnemyData.Kind.ARMOURED: "heavy hits crack its shell", EnemyData.Kind.FLYING: "flies over your maze",
 	EnemyData.Kind.HIDDEN: "can't be targeted until a Warden reveals it", EnemyData.Kind.SWARM: "comes as a crowd; area attacks catch them all",
 	EnemyData.Kind.FAST: "outruns a thin maze; slows and holds keep it in reach"}
-const KIND_WORDS_WIDTH := 560.0  # One line for the longest (Fast) at 15 px
+const KIND_WORDS_WIDTH := 640.0  # One line for the longest (Fast) at 16 px
 var _kind_words := VBoxContainer.new()
 
 # [[Kind, EnemyData, drift], …]: the Kinds (not Plain, never bosses) first arriving in drifts `first`..`last` this run.
@@ -300,8 +300,10 @@ func _build_kind_words(_span: Vector2i) -> void:
 		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		words.custom_minimum_size.x = minf(KIND_WORDS_WIDTH, get_viewport_rect().size.x - 32.0) if _phone else KIND_WORDS_WIDTH
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		words.add_theme_font_size_override("font_size", 14 if _phone else 15)
-		words.add_theme_color_override("font_color", UiStyle.GOLD)
+		UiStyle.plain(words, UiStyle.BODY_SIZE, UiStyle.GOLD)  # Body size, as the caption (user 2026-10-24: "different text size"; it was 15)
+		if not _phone:  # As wide as its words (the panel hugs a short line), wrapping only past KIND_WORDS_WIDTH
+			var need := UiStyle.body_medium_font().get_string_size(words.text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.BODY_SIZE).x
+			words.custom_minimum_size.x = minf(ceilf(need) + 2.0, KIND_WORDS_WIDTH)
 		_kind_words.add_child(words)
 	_kind_words.visible = _kind_words.get_child_count() > 0 and not _phone  # Phones: no "Drift N · …" line (user 2026-10-21: "remove the drift hint"; a disc's tap card says it)
 	if not _phone:  # The line takes the caption's place, so the strip stays low (test_rule_breakers: 140 px)
@@ -385,7 +387,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	badge.name = "KindCount"
 	badge.text = "×%d" % count
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.number(badge, 13, UiStyle.GOLD)
+	UiStyle.number(badge, UiStyle.BODY_SIZE, UiStyle.GOLD)  # As the chip's counts (user 2026-10-24: "different text size"; it was 13)
 	_badge_look(badge)
 	badge.add_theme_stylebox_override("normal", UiStyle.plate_box(3.0, 0.0))  # On a small glass plate (UI council round 4: hard to read bare)
 	# Hung off the disc's corner, not over the nightmare's face (UI council 2026-10-22: "×57" covered the art): its left edge
@@ -431,7 +433,7 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	return item
 
 const BADGE_ON_RIM := 6.0  # The count plate's left edge sits this far over the disc's rim
-const BADGE_HANG := 30.0  # How far a count plate ("×16", "×157") reaches past its disc
+const BADGE_HANG := 36.0  # How far a count plate ("×16", "×157") reaches past its disc
 
 # An empty end of a row of discs: the row's separation beside it is the room, so the last count plate stays on the
 # panel and the discs stay centred (one at each end).
