@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Puffball"
 role_line = "Poisons, splash damage"
-description = "Its puffs burst over a tile. The nightmare it hits takes {field:puffball.status_stacks:count} {spored}; the others nearby take its damage. Nightmares it hits can hold up to {field:puffball.status_max_stacks:count} {spored}."
+description = "Its puff bursts over {field:puffball.splash_radius:cells}, hurting every nightmare there; the nightmare it hits gains {field:puffball.status_stacks:count} {spored} and can hold {field:puffball.status_max_stacks:count}."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
