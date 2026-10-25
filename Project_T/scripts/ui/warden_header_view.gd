@@ -123,10 +123,14 @@ func _show_keywords(data: TowerData, tower: Tower) -> void:
 	var chips: Array = DreamState.KEYWORDS.chips_for_tower(tower) if is_instance_valid(tower) else DreamState.KEYWORDS.chips_for_warden(data)
 	# How it attacks leads the tags (user: "the single target icon should be a tag"), its meaning in the row's tip.
 	var shaped: TowerData = tower.attack_data if is_instance_valid(tower) and tower.attack_data != null else data
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null  # Spattered: "Splash + status"
+	var shape_word := shape_name(shaped, dreams)
+	if Tower.attack_shape(shaped) == &"splash":  # One shape word (owner 2026-10-25 "Should be splash"): its Splash chip stands for Area
+		chips = chips.filter(func(c: Dictionary) -> bool: return String(c.get("label", "")) != "Area")
 	if shaped != null and shaped.can_attack and shaped.attack_kind != TowerData.AttackKind.AURA \
-			and not chips.any(func(c: Dictionary) -> bool: return String(c.get("label", "")) == shape_name(shaped)):  # No "Area" twice (user screenshot)
+			and not chips.any(func(c: Dictionary) -> bool: return String(c.get("label", "")) == shape_word):  # No "Area" twice (user screenshot)
 		chips.push_front({"id": StringName("shape_" + String(Tower.attack_shape(shaped))), "kind": &"makes",
-			"label": shape_name(shaped), "tip": shape_tip(shaped)})
+			"label": shape_word, "tip": shape_tip(shaped, dreams)})
 	# The quiet card chip (owner, phone screenshot 2026-10-17: "doesn't look like the ones on the card"): a thin gold
 	# frame, the word in INK_DIM at the card's 12 px (DreamScreen CARD_CHIP_TEXT); Wardens have no rarity, so gold.
 	var row := KeywordRow.make(chips, UiStyle.CHIP_ICON, UiStyle.GOLD, 12)
@@ -382,8 +386,9 @@ const ROLE_TAGS_TIP := "Its jobs. Some Dream cards wake only once you have grown
 
 static func role_tags(data: TowerData) -> Array[String]:
 	var out: Array[String] = []
+	var splash := Tower.attack_shape(data) == &"splash"  # Its Area role reads "Splash" (one shape word, owner 2026-10-25); Area cards still count it
 	for role in WardenRoles.roles(data):
-		out.append(String(ROLE_TAG_NAMES.get(role, String(role).capitalize())))
+		out.append("Splash" if splash and role == WardenRoles.AREA else String(ROLE_TAG_NAMES.get(role, String(role).capitalize())))
 	return out
 
 func _show_damage_type(data: TowerData) -> void:
@@ -500,8 +505,15 @@ const SHAPE_TIPS := {&"single": "hits one nightmare at a time", &"splash": "hits
 	&"light": "lights cells of path that hurt nightmares", &"pull": "pulls nightmares back along the path",
 	&"spread": "spreads statuses between nightmares", &"aura": "boosts the Wardens in range", &"none": "doesn't attack: a wall"}
 
-static func shape_name(data: TowerData) -> String:
+# A splash Warden reads "Splash + status" while Spattered is held and it has a status to give (section 37, owner
+# 2026-10-25); "Splash" otherwise.
+static func shape_name(data: TowerData, dreams: DreamState = null) -> String:
+	if _splash_spreads(data, dreams):
+		return "Splash + status"
 	return String(Tower.ATTACK_SHAPE_NAMES.get(Tower.attack_shape(data), ""))
+
+static func _splash_spreads(data: TowerData, dreams: DreamState) -> bool:
+	return Tower.attack_shape(data) == &"splash" and Tower.splash_status(data) != &"" and Tower.spattered(dreams)
 
 # The Potency tip for one Warden (user, 2026-10-07: "Potency hover over Wardens should describe what it does for that
 # Warden"): "Potency 1.3 (why)", "On this Warden: Rooted lasts longer.", then the general line. `uses` = Tower Code's
@@ -512,8 +524,10 @@ static func potency_tip(potency: float, uses: Array[String], why := "") -> Strin
 	return "Potency %s%s\nOn this Warden: %s.\nHigher Potency strengthens its statuses and effects." % [
 		str(snappedf(potency, 0.01)), " (%s)" % why if why != "" else "", on_it.left(1).to_upper() + on_it.substr(1)]
 
-static func shape_tip(data: TowerData) -> String:
+static func shape_tip(data: TowerData, dreams: DreamState = null) -> String:
 	var shape := Tower.attack_shape(data)
+	if _splash_spreads(data, dreams):
+		return "Splash + status: hits one nightmare and splashes the ones beside it, giving them its status too (Spattered)."
 	return "%s: %s." % [Tower.ATTACK_SHAPE_NAMES.get(shape, "Attack"), SHAPE_TIPS.get(shape, "")]
 
 const LOCAL_BUFF_STATS :={&"damage": "damage", &"attack_speed": "attack_speed", &"range": "range"}
@@ -536,9 +550,9 @@ func stat_tip(stat: StringName) -> String:
 			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
 				else "Range: %.1f cells" % _tower.get_range_cells()
 		&"attack_shape":
-			return shape_tip(attack)
+			return shape_tip(attack, _tower._dream_state if is_instance_valid(_tower) else null)
 		_ when String(stat).begins_with("shape_"):
-			return shape_tip(attack)
+			return shape_tip(attack, _tower._dream_state if is_instance_valid(_tower) else null)
 		&"grab_reach":
 			return "Grab range: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
 		&"crit_chance":

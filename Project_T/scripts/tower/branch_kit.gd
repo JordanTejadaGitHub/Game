@@ -811,8 +811,9 @@ static func firework_landed(tower: Tower, at: Vector2) -> void:
 	var w := world(tower)
 	var scale := (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL / FIREWORK_POP_RADIUS
 	# The burst's real reach on the ground, like every splash (user 2026-10-21: "all splash damage should have a circle
-	# to tell where it splashes, the sparkler doesn't show"); Tower._splash_ring keeps its own throttle and family colour.
-	tower._splash_ring(at, (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL)
+	# to tell where it splashes, the sparkler doesn't show"); Tower._splash_ring keeps its own throttle and family colour
+	# (an area burst that gives its status to all: always its family's ring, never the generic one, section 37).
+	tower._splash_ring(at, (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL, true)
 	if w != null and _streaks_ok(at):
 		Fx.play(FIREWORK_POP, at, w, scale)
 		if doubled:

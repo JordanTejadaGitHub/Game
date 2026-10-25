@@ -3211,6 +3211,22 @@
 			"loop": false,
 			"note": "A splash's reach where it lands, in the frost family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
 		},
+		"splash_ring_generic": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_generic.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "A splash's reach where it lands, in the generic family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
 		"splash_ring_spore": {
 			"anchor": [
 				80,

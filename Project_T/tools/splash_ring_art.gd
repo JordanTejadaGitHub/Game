@@ -11,7 +11,7 @@ extends RefCounted
 const R := 64.0
 const FS := 160
 const CC := Vector2(80, 80)
-const STYLES := ["stone", "acorn", "water", "frost", "spore", "firework"]
+const STYLES := ["stone", "acorn", "water", "frost", "spore", "firework", "generic"]
 
 const NIGHT := Color("24243c")
 const LOAM := Color("6c5c5c")
@@ -177,6 +177,42 @@ func _spore(img: Image, f: int) -> void:
 	for k in 8:
 		var p := _on_ring(k, 8, r * 0.8, 0.3) + Vector2(sin(f + k) * 2.0, -f * 2.0)
 		_px(img, int(p.x), int(p.y), Color(BLOSSOM if k % 2 == 0 else HEART, al))
+
+# --- Generic: every splash's ring (splash rework, owner 2026-10-25: "1 generic splash ring"; the family rings above show
+# only once Spattered makes splashes carry their status). Damage, not a family (UI council 2026-10-25): a pale Mist edge
+# no family uses, broken every 16 px so it never reads as a range circle, a stronger Night rim for the sand path, 8 short
+# impact streaks thrown just past the edge; it fades first (the commonest ring on the map).
+const GENERIC_FADE: Array[float] = [0.75, 0.75, 0.75, 0.75, 0.55, 0.35, 0.2, 0.08]
+const GENERIC_STREAK: Array[int] = [4, 4, 4, 3, 3, 2, 1, 1]  # Length by frame
+func _generic(img: Image, f: int) -> void:
+	var r := R * GROW[f]
+	var al := GENERIC_FADE[f]
+	_edge(img, r, MIST, al, 16)
+	for y in range(int(CC.y - r) - 2, int(CC.y + r) + 3):  # A stronger Night rim than _edge's, this style only
+		for x in range(int(CC.x - r) - 2, int(CC.x + r) + 3):
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(CC)
+			if d > r and d <= r + 1.0:
+				_px(img, x, y, Color(NIGHT, 0.5 * al))
+	var u := minf((f + 1) / 4.0, 1.0)
+	for k in 8:  # streaks: 2 px wide, outlined, flung just past the edge in a small arc
+		var out := Vector2.from_angle(k * TAU / 8.0 + 0.26)
+		var head := CC + out * (R + 3.0) * u + Vector2(0, -sin(u * PI) * 4.0)
+		var side := out.orthogonal().round()
+		var cells := {}
+		for d in GENERIC_STREAK[f]:
+			var p := (head - out * d).round()
+			var ink: Color = (GLOW if f <= 2 else HEART) if d == 0 else (MIST if d < GENERIC_STREAK[f] - 1 else STONE)
+			for q: Vector2 in [p, p + side]:
+				if f < 5 or (int(q.x) + int(q.y)) % 2 == 0:
+					cells[Vector2i(int(q.x), int(q.y))] = ink
+		for c: Vector2i in cells:
+			for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				if not cells.has(c + n):
+					_px(img, c.x + n.x, c.y + n.y, Color(NIGHT, 0.75 * al))
+		for c: Vector2i in cells:
+			_px(img, c.x, c.y, Color(cells[c], al))
+	if f <= 1:  # the landing's own small flash
+		_blob(img, CC, 2.5, HEART, MIST, NIGHT, 0.9)
 
 # --- Firework: a gold dotted edge, sparks blinking on it ------------------------------------------------------------
 func _firework(img: Image, f: int) -> void:

@@ -3192,7 +3192,8 @@ static func attack_shape(data: TowerData) -> StringName:
 	# Branch specials that fire as a projectile in data but hit something else (user: "the jetreed should have the
 	# splash tag"): the jet hits every nightmare along it, rain and the whirlpool make a zone, Thrum a cone. Sparkler /
 	# Starburst (user: "can see Sparkler's splash damage and it says single target"): the firework bursts over its target
-	# and throws sparks at the nightmares round it.
+	# and throws sparks at the nightmares round it. (Section 37 proposed "Area" for jet / sparkler; owner 2026-10-25:
+	# "Should be splash".)
 	match data.special:
 		&"jet", &"sparkler":
 			return &"splash"
@@ -4013,15 +4014,39 @@ static func splash_ring_style(data: TowerData) -> String:
 func _ring_at(target, where: Vector2) -> Vector2:
 	return aim_at(target) if target != null and is_instance_valid(target) and not target.is_cleansed else where
 
-func _splash_ring(where: Vector2, radius: float) -> void:
+# Splash rework (dream_council_review.md section 37, owner 2026-10-25: "1 generic splash ring … once you unlock the card
+# that gives status splash you add the per family ring"): a splash hurts the nightmares beside the hit but gives its
+# status only to the one hit, so every splash shows the one generic ring (damage). With Spattered held (rule
+# &"spattered", Roguelite Code) a Warden with a status to give spreads it, and its splash shows its family's own ring.
+# Area-by-design bursts (Sparkler / Starburst, `area`) always give their status: always the family ring.
+const GENERIC_RING := "generic"
+
+# The status a splash of `data` would spread (&"" = none): its own status, or Held for a freezing form (freeze counts).
+static func splash_status(data: TowerData) -> StringName:
+	if data == null:
+		return &""
+	if data.applies_status != &"":
+		return data.applies_status
+	return EnemyStatuses.HELD if data.freeze_duration > 0.0 else &""
+
+# Whether `dreams` holds Spattered (its splashes carry their status).
+static func spattered(dreams: DreamState) -> bool:
+	return dreams != null and dreams.has_rule(&"spattered")
+
+# Whether this Warden's splashes give their status to all they reach (its family ring), else damage only (the generic).
+func splash_spreads_status() -> bool:
+	return splash_status(attack_data) != &"" and spattered(_dream_state)
+
+func _splash_ring(where: Vector2, radius: float, area := false) -> void:
 	if radius < MAP_GRID.cell_size.x * 0.25:
 		return  # Too small to read as a radius
 	var world := Reactions._world(self)
 	if world == null or (Fx.reduced() and not Fx.on_screen(where, radius)) or not GroundRipple.may_start(where):
 		return
-	# Tower Assets 159222cf (user-approved): the family's own ring sheet, splash_ring_<style> (drawn for a 1-cell radius:
-	# scaled radius / 64), on the ground under the nightmares. Other lines: the drawn GroundRipple ring below.
-	var style := splash_ring_style(tower_data)
+	# Tower Assets 159222cf (user-approved): the ring sheets, splash_ring_<style> (drawn for a 1-cell radius: scaled
+	# radius / 64), on the ground under the nightmares. Family lines without a sheet: the drawn GroundRipple ring below.
+	var family := area or splash_spreads_status()
+	var style := splash_ring_style(tower_data) if family else GENERIC_RING
 	if style != "" and Fx.has_effect(StringName("splash_ring_" + style)):
 		var sheet := Fx.play(StringName("splash_ring_" + style), where, world, radius / MAP_GRID.cell_size.x)
 		if sheet != null:

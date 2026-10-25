@@ -2386,7 +2386,7 @@ func _name_phone_stat(target: Node) -> void:
 			(child as Label).size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var word := ""
 	if id.begins_with("shape_") and _tower.attack_data != null:
-		word = WardenHeaderView.shape_name(_tower.attack_data)
+		word = WardenHeaderView.shape_name(_tower.attack_data, _tower._dream_state)  # "Splash + status" with Spattered
 	elif PHONE_STAT_WORDS.has(StringName(id)):
 		word = PHONE_STAT_WORDS[StringName(id)]
 	if word == "":
