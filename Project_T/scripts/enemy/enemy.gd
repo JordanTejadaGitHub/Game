@@ -1235,6 +1235,8 @@ func _update_hud(delta: float) -> void:
 		marks_key += _time_steps(i) << (i * 4)
 		if statuses.is_lingering(_hud_ids[i]) or _is_kept(_hud_ids[i]):
 			marks_key += 1 << (12 + i)  # (The linger / kept rim; bits 12-14 are free: at most 3 icons use 0-11)
+		if statuses.is_fed(_hud_ids[i]):
+			marks_key += 1 << (48 + i)  # Its stacks drawn hollow (section 36 fed lock; above _hud_changes' bits)
 	var season := _season_percent()  # Grows as it walks: looked at on the time-bar frames
 	if season != _hud_season:
 		_hud_season = season
@@ -1329,7 +1331,7 @@ func _update_row_look(delta: float) -> void:
 		target = Vector2(0.0, 0.0 if hidden else (1.0 if _ui_pip_rid() else CROWD_PIP_ALPHA))
 	elif _row_look == RowLook.OFF:
 		target = Vector2.ZERO
-	if target.y > 0.0 and _pips_changes != statuses.changes:
+	if target.y > 0.0 and (_pips_changes != statuses.changes or _pips_fed != _fed_mask()):  # (A fed lock ends with no status change)
 		_build_pips()
 	elif _hud_pips.is_valid():
 		_place_pips()  # (The text scale or touch mode moved)
@@ -1362,8 +1364,21 @@ var _pips_px := 0
 func _pip_px() -> int:
 	return 2 if TouchBuild.mobile_controls() else 1
 
+var _pips_fed := 0  # Bit i: the i-th shown status is locked (drawn hollow)
+
+func _fed_mask() -> int:
+	if not statuses.fed_locked():
+		return 0
+	var mask := 0
+	var order := get_status_order()
+	for i in mini(order.size(), CROWD_PIPS_MAX):
+		if statuses.is_fed(order[i]):
+			mask |= 1 << i
+	return mask
+
 func _build_pips() -> void:
 	_pips_changes = statuses.changes
+	_pips_fed = _fed_mask()
 	if not _hud_pips.is_valid():
 		_hud_pips = RenderingServer.canvas_item_create()
 		RenderingServer.canvas_item_set_parent(_hud_pips, _hud_root)
@@ -1411,6 +1426,11 @@ func _ui_pip_rid() -> bool:
 # One pip at `at` (its centre), `px` screen px per art px. UI Code's art once KeywordIcons.draw_pip_rid is on main (its
 # own outline / fill alpha: the item's modulate is then only the ease); until then a plain square in the status colour.
 func _draw_pip(at: Vector2, id: StringName, px: int) -> void:
+	if _ui_method_args("draw_pip_rid") >= 8:  # Section 36: stacks a card gave that can't complete its Reaction yet draw hollow
+		var cap := statuses.get_max_stacks(id)
+		var full := cap > 1 and statuses.stacks(id) >= cap
+		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px), PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA, full, statuses.is_fed(id))
+		return
 	if _ui_method_args("draw_pip_rid") >= 7:  # Section 35: a full status lights its outline (Heartlight)
 		var cap := statuses.get_max_stacks(id)
 		var full := cap > 1 and statuses.stacks(id) >= cap
@@ -1591,12 +1611,20 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
 		var cap := statuses.get_max_stacks(id)
+		# A card's stacks that can't complete its own Reaction for FED_LOCK s (section 36, owner 2026-10-25): drawn hollow
+		var fed := statuses.is_fed(id)
 		if cap > STACK_PIP_CAP:
 			var progress := Rect2(centre + Vector2(-r, -r - 6.0), Vector2(r * 2.0, 3.0))
 			atlas.draw_rect_region(item, progress.grow(1.0), solid, Color(Palette.VOID, 0.8))
 			atlas.draw_rect_region(item, progress, solid, Color(color, 0.25))
 			progress.size.x *= clampf(float(_hud_stacks[i]) / cap, 0.0, 1.0)
-			if progress.size.x > 0.0:
+			if progress.size.x > 0.0 and fed:  # Hollow, inside its own 3 px track (UI council 2026-10-25): its colour on the
+				var lit_bar: Color = Palette.GOLD if _hud_full[i] else color  # top and bottom rows and the leading edge, the track tint between
+				var w := maxf(floorf(progress.size.x), 3.0)
+				atlas.draw_rect_region(item, Rect2(progress.position, Vector2(w, 1.0)), solid, lit_bar)
+				atlas.draw_rect_region(item, Rect2(progress.position + Vector2(0.0, 2.0), Vector2(w, 1.0)), solid, lit_bar)
+				atlas.draw_rect_region(item, Rect2(progress.position + Vector2(w - 1.0, 1.0), Vector2(1.0, 1.0)), solid, lit_bar)
+			elif progress.size.x > 0.0:
 				atlas.draw_rect_region(item, progress, solid, Palette.GOLD if _hud_full[i] else color)
 			var need := Reactions.ready_need(id, statuses)  # Brimming doubles the cap, never the need: the slash moves left
 			if need > 0:  # A Reaction that needs it full: the slash at the bar's end (owner 2026-10-19)
@@ -1617,8 +1645,14 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 				var x := centre.x - (in_row * pip + (in_row - 1)) / 2.0
 				var y := centre.y - r - pip - 2.0 - row * (pip + 1.0)
 				var at := Rect2(x + (k - row * per_row) * (pip + 1.0), y, pip, pip)
+				if fed and k < shown_stacks and pip < 3.0:  # Hollow at under 3 px (UI council 2026-10-25): colours swapped, its colour round a Void body
+					atlas.draw_rect_region(item, at.grow(1.0), dot, lit)
+					atlas.draw_rect_region(item, at, dot, Color(Palette.VOID, 0.8))
+					continue
 				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
 				atlas.draw_rect_region(item, at, dot, lit if k < shown_stacks else Color(color, 0.25))
+				if fed and k < shown_stacks:  # Hollow: its colour round a Void middle
+					atlas.draw_rect_region(item, at.grow(-1.0), dot, Color(Palette.VOID, 0.8))
 			# The slash before the first pip at the Reaction's need (pip k lights at (k + 1) / shown_cap of the cap)
 			var need := Reactions.ready_need(id, statuses)
 			# A Reaction that needs it full: the slash after the last pip (owner 2026-10-19), as `first` = one past the end

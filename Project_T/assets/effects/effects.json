@@ -3224,8 +3224,25 @@
 			],
 			"frames": 8,
 			"kind": "ground",
+			"lite": "splash_ring_generic_lite",
 			"loop": false,
-			"note": "A splash's reach where it lands, in the generic family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+			"note": "Every splash's damage ring (not a family; the family rings show with Spattered). Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."
+		},
+		"splash_ring_generic_lite": {
+			"anchor": [
+				80,
+				80
+			],
+			"file": "splash_ring_generic_lite.png",
+			"fps": 18.0,
+			"frame_size": [
+				160,
+				160
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "splash_ring_generic for Reduce flashes: no landing flash, the streak heads Mist."
 		},
 		"splash_ring_spore": {
 			"anchor": [

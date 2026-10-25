@@ -179,29 +179,49 @@ func _spore(img: Image, f: int) -> void:
 		_px(img, int(p.x), int(p.y), Color(BLOSSOM if k % 2 == 0 else HEART, al))
 
 # --- Generic: every splash's ring (splash rework, owner 2026-10-25: "1 generic splash ring"; the family rings above show
-# only once Spattered makes splashes carry their status). Damage, not a family (UI council 2026-10-25): a pale Mist edge
-# no family uses, broken every 16 px so it never reads as a range circle, a stronger Night rim for the sand path, 8 short
-# impact streaks thrown just past the edge; it fades first (the commonest ring on the map).
+# only once Spattered makes splashes carry their status). Damage, not a family (UI councils 2026-10-25): a pale Mist edge
+# no family uses, broken at uneven places (an even dash read as a range / targeting ring), a Night rim either side of it
+# for the sand path (both broken with it), 8 outlined impact streaks flung just past the edge, each a little off-angle
+# and its own length; it fades first (the commonest ring on the map). `lite` (Reduce flashes): no landing flash, the
+# streak heads Mist, not Glow / Heartlight.
 const GENERIC_FADE: Array[float] = [0.75, 0.75, 0.75, 0.75, 0.55, 0.35, 0.2, 0.08]
 const GENERIC_STREAK: Array[int] = [4, 4, 4, 3, 3, 2, 1, 1]  # Length by frame
-func _generic(img: Image, f: int) -> void:
+const GENERIC_BREAKS := [[0.45, 4.0], [1.35, 3.0], [2.05, 2.0], [2.95, 4.0], [3.7, 3.0], [4.6, 2.0], [5.5, 4.0]]  # [angle, px wide]
+const GENERIC_TURN: Array[float] = [0.1, -0.12, 0.05, -0.15, 0.13, -0.04, 0.15, -0.09]  # Each streak's angle off even
+const GENERIC_LONGER: Array[int] = [0, 1, -1, 0, 1, 0, -1, 1]
+func _generic_gap(q: Vector2, r: float) -> bool:
+	var a := fposmod(atan2(q.y, q.x), TAU)
+	for b in GENERIC_BREAKS:
+		var off := absf(angle_difference(a, float(b[0]))) * r
+		if off < float(b[1]) / 2.0:
+			return true
+	return false
+
+func _generic(img: Image, f: int, lite := false) -> void:
 	var r := R * GROW[f]
 	var al := GENERIC_FADE[f]
-	_edge(img, r, MIST, al, 16)
-	for y in range(int(CC.y - r) - 2, int(CC.y + r) + 3):  # A stronger Night rim than _edge's, this style only
-		for x in range(int(CC.x - r) - 2, int(CC.x + r) + 3):
-			var d := Vector2(x + 0.5, y + 0.5).distance_to(CC)
-			if d > r and d <= r + 1.0:
-				_px(img, x, y, Color(NIGHT, 0.5 * al))
+	for y in range(int(CC.y - r) - 4, int(CC.y + r) + 5):
+		for x in range(int(CC.x - r) - 4, int(CC.x + r) + 5):
+			var q := Vector2(x + 0.5, y + 0.5) - CC
+			var d := q.length()
+			if d < r - 3.0 or d > r + 1.0 or _generic_gap(q, r):
+				continue
+			if d > r or d < r - 2.0:  # The Night rims, outside and inside the edge
+				_px(img, x, y, Color(NIGHT, 0.45 * al))
+			else:  # The 2 px edge: 0.75 and 0.4 pixels alternating, as _edge
+				_px(img, x, y, Color(MIST, al * (1.0 if (x + y) % 2 == 0 else 0.55)))
 	var u := minf((f + 1) / 4.0, 1.0)
-	for k in 8:  # streaks: 2 px wide, outlined, flung just past the edge in a small arc
-		var out := Vector2.from_angle(k * TAU / 8.0 + 0.26)
+	for k in 8:  # streaks: 2 px wide (side by side along the axis they cross), outlined, flung just past the edge in a small arc
+		if f >= 3 and (k + f) % 3 == 0:
+			continue  # A few blink out as it settles
+		var out := Vector2.from_angle(k * TAU / 8.0 + 0.26 + GENERIC_TURN[k])
 		var head := CC + out * (R + 3.0) * u + Vector2(0, -sin(u * PI) * 4.0)
-		var side := out.orthogonal().round()
+		var side := Vector2(0, 1) if absf(out.x) > absf(out.y) else Vector2(1, 0)
+		var length := maxi(GENERIC_STREAK[f] + GENERIC_LONGER[k], 1)
 		var cells := {}
-		for d in GENERIC_STREAK[f]:
+		for d in length:
 			var p := (head - out * d).round()
-			var ink: Color = (GLOW if f <= 2 else HEART) if d == 0 else (MIST if d < GENERIC_STREAK[f] - 1 else STONE)
+			var ink: Color = (MIST if lite else (GLOW if f <= 2 else HEART)) if d == 0 else (MIST if d < length - 1 else STONE)
 			for q: Vector2 in [p, p + side]:
 				if f < 5 or (int(q.x) + int(q.y)) % 2 == 0:
 					cells[Vector2i(int(q.x), int(q.y))] = ink
@@ -211,8 +231,11 @@ func _generic(img: Image, f: int) -> void:
 					_px(img, c.x + n.x, c.y + n.y, Color(NIGHT, 0.75 * al))
 		for c: Vector2i in cells:
 			_px(img, c.x, c.y, Color(cells[c], al))
-	if f <= 1:  # the landing's own small flash
+	if f <= 1 and not lite:  # the landing's own small flash
 		_blob(img, CC, 2.5, HEART, MIST, NIGHT, 0.9)
+
+func _generic_lite(img: Image, f: int) -> void:
+	_generic(img, f, true)
 
 # --- Firework: a gold dotted edge, sparks blinking on it ------------------------------------------------------------
 func _firework(img: Image, f: int) -> void:

@@ -83,31 +83,42 @@ static func fact_line(facts: Dictionary) -> String:
 			return "Few and tough: %d nightmares, %d Deeply Blighted" % [count, int(facts.elites)]
 	return "%s: %d nightmares" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30 nightmares" (Mobile UI council 2026-10-25: a bare count read as nothing)
 
-# Act `act`'s shapes as they will arrive, as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
-# 4 Single file, 4 Few and tough, closing drifts Packs / Single file / Few and tough". Closing drifts = each ordinary block's 5th drift.
-# "" before any shape is rolled.
+# The next act's facts on the drift 45 capstone screen (owner 2026-10-25, dream_council_review.md 34: one plain line, an
+# elite every drift and the act's finale shapes; facts only, no advice): "Act 3: a Deeply Blighted every drift. Closing
+# drifts: Packs, Few and tough, Single file, Packs." Closing drifts = each ordinary block's 5th drift, as they will
+# really arrive. "" before any shape is rolled.
 static func act_line(director: DriftDirector, act: int) -> String:
 	if director == null or not director.has_method("shape_of"):
 		return ""
 	var per_act := director.drifts_per_act
 	var first := (act - 1) * per_act + 1
 	var last := mini(act * per_act, director.get_total_drifts())
-	var counts := {}
+	var drifts := 0
+	var with_elite := 0
 	var finales: Array[String] = []
 	for number in range(first, last + 1):
 		if director.is_boss_drift(number):
 			continue
-		var shape := StringName(director.preview_schedule(number).get("shape", DriftShapes.STREAM))  # As it really arrives (Enemy Code c7bde1ee: a Packs drift too crowded for packs is a Stream)
-		if shape != DriftShapes.STREAM:
-			counts[shape] = int(counts.get(shape, 0)) + 1
+		var preview: Dictionary = director.preview_schedule(number)
+		if preview.is_empty():
+			return ""
+		drifts += 1
+		if int((preview.get("facts", {}) as Dictionary).get("elites", 0)) > 0:
+			with_elite += 1
 		if number % director.drifts_per_block == 0:  # An ordinary block's 5th drift (boss drifts are skipped above)
-			finales.append(DriftShapes.display_name(shape))
-	if counts.is_empty():
+			finales.append(DriftShapes.display_name(StringName(preview.get("shape", DriftShapes.STREAM))))  # As it really arrives (Enemy Code c7bde1ee)
+	if drifts == 0:
 		return ""
-	var parts: Array[String] = []
-	for shape in [DriftShapes.PACKS, DriftShapes.SINGLE_FILE, DriftShapes.FEW_AND_TOUGH]:
-		parts.append("%d %s" % [int(counts.get(shape, 0)), DriftShapes.display_name(shape)])
-	return "Act %d: %s%s" % [act, ", ".join(parts), (", closing drifts " + " / ".join(finales)) if not finales.is_empty() else ""]
+	if with_elite == 0 and finales.is_empty():
+		return ""
+	var line := "Act %d:" % act
+	if with_elite == drifts:
+		line += " a Deeply Blighted every drift."
+	elif with_elite > 0:
+		line += " a Deeply Blighted in %d of %d drifts." % [with_elite, drifts]
+	if not finales.is_empty():
+		line += " Closing drifts: %s." % ", ".join(finales)
+	return line
 
 # Where the Deeply Blighted ride: "Deeply Blighted in a pack" / "last in line" / "first"; "" with none (or anywhere).
 static func elite_line(facts: Dictionary) -> String:

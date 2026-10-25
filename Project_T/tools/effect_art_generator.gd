@@ -230,9 +230,14 @@ func _reactions() -> void:
 		{callout = "#fff27a", reaction = "Marked + Static"})
 	# The splash rings by family (tools/splash_ring_art.gd, user-approved 2026-10-21), drawn at a 1-cell radius.
 	for style: String in sr.STYLES:
+		var ring_extra := {note = "A splash's reach where it lands, in the %s family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once." % style}
+		if style == "generic":  # Every splash's damage ring (not a family), with a lite variant (UI council 2026-10-25)
+			ring_extra = {lite = "splash_ring_generic_lite", note = "Every splash's damage ring (not a family; the family rings show with Spattered). Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once."}
 		_sheet("splash_ring_" + style, Vector2i(160, 160), 8, 18, Vector2i(80, 80), false, "ground",
-			func(img: Image, f: int) -> void: sr.draw(img, f, style),
-			{note = "A splash's reach where it lands, in the %s family's style. Drawn for a 64 px (1 cell) radius: play it at the landing spot scaled by radius / 64, on the ground (z -1), once." % style})
+			func(img: Image, f: int) -> void: sr.draw(img, f, style), ring_extra)
+	_sheet("splash_ring_generic_lite", Vector2i(160, 160), 8, 18, Vector2i(80, 80), false, "ground",
+		func(img: Image, f: int) -> void: sr.draw(img, f, "generic_lite"),
+		{note = "splash_ring_generic for Reduce flashes: no landing flash, the streak heads Mist."})
 
 # One redrawn Reaction: `name` over the nightmare and `name`_ground under it, drawn by reaction_art.gd's `art`.
 func _rx_sheet(name: String, art: String, frames: int, fps: float, loop: bool, kind: String, extra: Dictionary) -> void:

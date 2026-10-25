@@ -428,6 +428,16 @@ const PIPS := {
 	&"held": ["kkkkkkk", "kccccck", "kccccck", "kccccck", "kccccck", "kccccck", "kkkkkkk"],
 	&"caught": ["kk...kk", "kck.kck", ".kckck.", "..kck..", ".kckck.", "kck.kck", "kk...kk"],
 }
+# Locked pips (section 36: a card's stacks that can't complete its own Reaction yet), drawn by hand (UI council
+# 2026-10-25): the status colour on the shape's edge, its inside emptied to Void (v). One look on every shape, never a
+# lower alpha. Asleep and Caught carry no card stacks; Exposed's pip is hollow already (owner's call pending).
+const HOLLOW_PIPS := {
+	&"damp": ["...k...", "..kck..", ".kcvck.", "kcvvvck", "kcvvvck", ".kccck.", "..kkk.."],
+	&"drowsy": ["...kkk.", "..kcck.", ".kcvck.", ".kcvvk.", ".kcvck.", "..kcck.", "...kkk."],
+	&"spored": ["...k...", "..kck..", "..kck..", ".kcvck.", ".kcvck.", "kcvvvck", "kkkkkkk"],
+	&"static": ["...kkk.", "..kcck.", ".kcvk..", "kccvckk", "kkkcck.", "..kck..", "..kk..."],
+	&"held": ["kkkkkkk", "kccccck", "kcvvvck", "kcvvvck", "kcvvvck", "kccccck", "kkkkkkk"],
+}
 const PIP_ALIASES := {&"soaked": &"damp", &"poisoned": &"spored", &"exposed": &"marked", &"charged": &"static",
 	&"rooted": &"held"}
 # Pips whose colour isn't the status colour: Asleep deep violet (Drowsy keeps the pink), Poisoned a paler, yellower
@@ -445,20 +455,21 @@ static func pip_color(id: StringName) -> Color:
 
 # Draws `id`'s pip centred on `centre` on a CanvasItem, `px` screen px per art px (whole numbers keep it crisp).
 # `full`: the status is at its most (Brimming doubles the most): the outline lights Heartlight instead of Void, which
-# reads on every shape (section 35, owner 2026-10-24).
+# reads on every shape (section 35, owner 2026-10-24). `hollow`: stacks a card gave that can't complete its own Reaction yet
+# (EnemyStatuses.is_fed, section 36, owner 2026-10-25): the colour only on the shape's edge, its inside Void.
 static func draw_pip(canvas: CanvasItem, id: StringName, centre: Vector2, px: float = 1.0,
-		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false) -> void:
-	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full):
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false, hollow := false) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full, hollow):
 		canvas.draw_rect(part[0], part[1])
 
 # The same into a RenderingServer canvas item (Enemy's HUD rows draw into an RID, not a CanvasItem).
 static func draw_pip_rid(item: RID, id: StringName, centre: Vector2, px: float = 1.0,
-		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false) -> void:
-	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full):
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false, hollow := false) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full, hollow):
 		RenderingServer.canvas_item_add_rect(item, part[0], part[1])
 
 # [[Rect2, Color], …]: one rect per run of one ink (outline first, then fill).
-static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha: float, fill_alpha: float, full := false) -> Array:
+static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha: float, fill_alpha: float, full := false, hollow := false) -> Array:
 	id = PIP_ALIASES.get(id, id)
 	if not PIPS.has(id):
 		return []
@@ -466,6 +477,12 @@ static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha
 	var origin := (centre - Vector2(PIP_SIZE, PIP_SIZE) * px / 2.0).round()
 	var rows: Array = PIPS[id]
 	var out: Array = []
+	inks["v"] = Color(Palette.VOID, fill_alpha)  # A hollow pip's emptied inside
+	if hollow and HOLLOW_PIPS.has(id):  # Hand-drawn (UI council 2026-10-25)
+		rows = HOLLOW_PIPS[id]
+		hollow = false
+	elif hollow and not _pip_has_inside(rows):  # No hollow art and too thin to empty: drawn as it is
+		hollow = false
 	for y in PIP_SIZE:
 		var row: String = rows[y]
 		var x := 0
@@ -474,10 +491,26 @@ static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha
 			var run := x + 1
 			while run < PIP_SIZE and row[run] == ink:
 				run += 1
-			if inks.has(ink):
+			if hollow and ink == "c":  # Hollow: pixel by pixel, a fill pixel with fill on all four sides goes Void
+				for h in range(x, run):
+					var inside := _pip_ink(rows, h - 1, y) == "c" and _pip_ink(rows, h + 1, y) == "c" and _pip_ink(rows, h, y - 1) == "c" and _pip_ink(rows, h, y + 1) == "c"
+					out.append([Rect2(origin + Vector2(h, y) * px, Vector2(px, px)), Color(Palette.VOID, fill_alpha) if inside else inks[ink]])
+			elif inks.has(ink):
 				out.append([Rect2(origin + Vector2(x, y) * px, Vector2(run - x, 1) * px), inks[ink]])
 			x = run
 	return out
+
+static func _pip_has_inside(rows: Array) -> bool:  # 5+ inside pixels: the automatic hollow reads (fallback for new pips)
+	var inside := 0
+	for y in PIP_SIZE:
+		for x in PIP_SIZE:
+			if _pip_ink(rows, x, y) == "c" and _pip_ink(rows, x - 1, y) == "c" and _pip_ink(rows, x + 1, y) == "c" \
+					and _pip_ink(rows, x, y - 1) == "c" and _pip_ink(rows, x, y + 1) == "c":
+				inside += 1
+	return inside >= 5
+
+static func _pip_ink(rows: Array, x: int, y: int) -> String:
+	return String(rows[y])[x] if x >= 0 and y >= 0 and x < PIP_SIZE and y < PIP_SIZE else "."
 
 # The pip as a 7×7 image (previews, docs), at the in-game alphas.
 static func pip_image(id: StringName) -> Image:

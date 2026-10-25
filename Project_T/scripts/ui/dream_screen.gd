@@ -57,6 +57,7 @@ const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap 
 const PhoneChoice := preload("res://scripts/ui/phone_choice.gd")  # The shared phone choice helpers (threads, widths, Peek)
 var _phone := false
 var _subtitle: Label = null  # "after drift 10, take one" (PC too since UI council round 3)
+var _act_facts: Label = null  # PC: the capstone's next-act facts under the subtitle (phones: a line of the subtitle)
 var _phone_hint: Label = null  # Phones: "Tap a card to look at it" / "Take it, or tap another"
 var _take: Button = null  # Phones: "Take <card>"
 var _phone_bottom: HBoxContainer = null  # Phones: the bottom row (Peek, Let it pass … · hint · Take)
@@ -111,6 +112,15 @@ func _ready() -> void:
 		_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UiStyle.caps(_subtitle, 15, UiStyle.INK_DIM)
 		heading.add_child(_subtitle)
+		_act_facts = Label.new()
+		_act_facts.name = "ActFacts"  # The capstone's next-act facts: plain case, its own line (owner 2026-10-25)
+		_act_facts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_act_facts.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_act_facts.add_theme_font_override("font", UiStyle.body_font())
+		_act_facts.add_theme_font_size_override("font_size", 16)
+		_act_facts.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		_act_facts.visible = false
+		heading.add_child(_act_facts)
 		_cards.add_theme_constant_override("separation", 16)
 		_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 		box.add_child(_cards)
@@ -299,11 +309,15 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			_subtitle.text = PhoneChoice.sentence(dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style")
 		else:
 			_subtitle.text = PhoneChoice.sentence("after drift %d" % drift_number)
-		if _evolution_step() == DreamState.CALLING_PATHS.CAPSTONE:  # The capstone: the next act's shapes, as facts
-			var director := get_node_or_null("%DriftDirector") as DriftDirector
-			var act_shapes := SHAPE_ROWS.act_line(director, director.get_act(drift_number) + 1) if director != null else ""
-			if act_shapes != "":
-				_subtitle.text += " · " + act_shapes.to_lower()  # (The subtitle is small caps)
+	var act_facts := ""
+	if growing and _evolution_step() == DreamState.CALLING_PATHS.CAPSTONE:  # The capstone: the next act's facts, one plain line
+		var director := get_node_or_null("%DriftDirector") as DriftDirector
+		act_facts = SHAPE_ROWS.act_line(director, director.get_act(drift_number) + 1) if director != null else ""
+		if _phone and act_facts != "":
+			_subtitle.text += "\n" + act_facts  # (Phones: the subtitle is plain case already)
+	if _act_facts != null:
+		_act_facts.text = act_facts
+		_act_facts.visible = act_facts != "" and not _phone
 	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
 	_reroll.text = dream_state.reroll_label()
