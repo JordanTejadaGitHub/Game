@@ -15,4 +15,3 @@ max_stacks = 1
 rule_id = &"tangled_release"
 tip = "Flyers never."
 makes = Array[StringName]([&"slow"])
-uses = Array[StringName]([&"rooted"])

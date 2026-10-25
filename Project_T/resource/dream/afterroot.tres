@@ -15,4 +15,3 @@ max_stacks = 1
 rule_id = &"afterroot"
 tip = "Another Warden: not the one that added the {held}. Direct hits only. {card:brimming} makes it 10. Works for: Wardens that add {held}, with a second Warden. Safe."
 makes = Array[StringName]([&"exposed"])
-uses = Array[StringName]([&"rooted"])

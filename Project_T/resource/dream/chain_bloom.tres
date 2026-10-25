@@ -17,4 +17,3 @@ entwined = false
 rule_id = &"chain_bloom"
 discovered_by = Array[String](["event:splash_layered"])
 tip = "Safe."
-makes = Array[StringName]([&"area"])

@@ -340,7 +340,7 @@ func _council_corrections() -> void:
 	# A three-family card (the Crowned cards were one, but they gate on statuses since 2026-10-17): built here
 	var woven := UpgradeData.new()
 	woven.id = "test_three_families"
-	woven.requires.assign(["stormcap", "rain_lily", "driftspore"])
+	woven.requires.assign(["stormcap", "dewdrop", "sporeling"])  # Missing families named by their roots: section 35 drops a card naming an unowned family's branch
 	# New-family picks come after drifts 10 and 35 (drift 60 deepens; owner 2026-10-22): at 20 one is left, at 5 both.
 	dreams._offer_drift = 20
 	_check(dreams.half_dreamed_missing(woven).is_empty(), "Half-Dreamed: two missing families with one pick left is impossible")

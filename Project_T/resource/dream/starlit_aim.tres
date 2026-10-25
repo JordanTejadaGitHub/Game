@@ -19,4 +19,3 @@ in_start_pool = true
 discovered_by = Array[String]([])
 tip = "Nearly {full}: at least 3/4 of a status's usual most. Direct hits only."
 makes = Array[StringName]([&"crit"])
-uses = Array[StringName]([&"exposed"])

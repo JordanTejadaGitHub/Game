@@ -75,7 +75,7 @@ func _data_checks() -> void:
 				makers[chip.id] = card.id
 			else:
 				users[chip.id] = card.id
-	_check(live >= 250, "the live power cards are read (%d)" % live)
+	_check(live >= 230, "the live power cards are read (%d)" % live)  # Section 35 retired 19 (2026-10-24)
 	var rows := 0
 	for id in PATHS.PATHS:
 		var row: Dictionary = PATHS.PATHS[id]

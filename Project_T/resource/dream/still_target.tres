@@ -16,4 +16,3 @@ rule_id = &"still_target"
 in_start_pool = false
 tip = "{frozen} nightmares count: frost adds 1 {held}."
 makes = Array[StringName]([&"crit"])
-uses = Array[StringName]([&"drowsy"])

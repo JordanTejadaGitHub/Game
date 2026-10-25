@@ -14,4 +14,3 @@ requires_status = &"spored"
 max_stacks = 1
 entwined = false
 rule_id = &"spore_cascade"
-uses = Array[StringName]([&"poisoned"])

@@ -17,5 +17,4 @@ entwined = true
 rule_id = &"static_bloom"
 in_start_pool = true
 discovered_by = Array[String](["event:charged_drowsy"])
-makes = Array[StringName]([&"drowsy"])
 retired = true

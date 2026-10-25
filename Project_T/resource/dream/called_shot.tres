@@ -14,6 +14,4 @@ requires = Array[String](["lanternmoth"])
 max_stacks = 1
 rule_id = &"called_shot"
 tip = "Once for each Warden and nightmare. Works for: {warden:lanternmoth} and its forms with other hitting Wardens. Safe."
-makes = Array[StringName]([&"crit"])
-uses = Array[StringName]([&"exposed"])
 retired = true

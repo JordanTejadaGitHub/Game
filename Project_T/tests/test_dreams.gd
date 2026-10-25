@@ -1014,10 +1014,8 @@ func _test_half_dreamed(main: Node) -> void:
 	# made to include its missing family
 	_check(dreams.is_dormant(thunder), "…still asleep after a save")
 	_check(not dreams.has_method("take_owed_families"), "…and no family is owed to the next pick")
-	dreams.unlocked["dewdrop"] = true
-	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
-	dreams.unlocked["stormcap"] = true
-	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
+	dreams.unlocked["dewdrop"] = true  # Section 35: Conductive Soil needs the families, never a branch (no Stormcap wait)
+	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once its missing family is yours")
 	_check(dreams.not_active_reason(thunder) == "", "…and no longer says it's waiting")
 	_reset_dreams(main)
 

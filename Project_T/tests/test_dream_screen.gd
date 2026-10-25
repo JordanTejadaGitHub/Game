@@ -26,9 +26,9 @@ func _run() -> void:
 	dreams._offer_drift = 5  # The drift 10 family pick is next (owner 2026-10-22: new families at 10 and 35)
 	var bloom: UpgradeData = null
 	for card in dreams.pool:
-		if card.id == "static_bloom":
+		if card.id == "resonance":  # Section 35 retired Storm Lull: Thunder Chimes (Bellflower + Firefly Jar, families only) is the half-dreamed Rare here
 			bloom = card
-	_check(bloom != null and dreams.is_half_dreamed(bloom), "Charged Bloom is half-dreamed here")
+	_check(bloom != null and dreams.is_half_dreamed(bloom), "Thunder Chimes is half-dreamed here")
 	var longest: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
 		return c != bloom and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and c.kind != UpgradeData.Kind.UNLOCK_WARDEN)
 	longest.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return _text_length(a) > _text_length(b))
@@ -111,7 +111,7 @@ func _run() -> void:
 		"…named by family (damage types are gone, 2026-10-15) (%s)" % dreams.missing_families_text(bloom))
 	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
 	# Both families owned (the user's screenshot: "Needs: Firefly Jar + Sporeling families"): no Needs line at all
-	for family in ["firefly_jar", "sporeling", "bloomcap", "stormcap"]:
+	for family in ["firefly_jar", "bellflower", "sporeling", "bloomcap", "stormcap"]:
 		dreams.unlocked[family] = true
 	screen._show_offer(cards, 25)
 	for i in 3:
