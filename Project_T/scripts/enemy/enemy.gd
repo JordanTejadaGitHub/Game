@@ -334,7 +334,7 @@ const CROWD_EASE := 0.15
 const CROWD_HOLD := 0.5
 const CROWD_SEEN := 0.2  # s: a crowd mark this fresh still counts (the spawner marks every 2 frames)
 enum RowLook { FULL, COMPACT, OFF }
-var crowd_seen := -1.0  # EnemySpawner.crowd_clock when its full row last overlapped another's row or body (_mark_crowds)
+var crowd_seen := -1.0  # EnemySpawner.crowd_clock when it was last in a cluster (_mark_crowds)
 const FOCUS_Z := 8  # The hovered / tapped nightmare's HUD draws this many z steps higher, with a focus ring
 var _focus_drawn := false
 var _row_look: RowLook = RowLook.FULL
@@ -1479,30 +1479,6 @@ func _update_hud_layout() -> void:
 		if icon == null and id == EnemyStatuses.ASLEEP:
 			icon = _status_icon(EnemyStatuses.DROWSY)  # No Asleep icon in the sheet yet: Sleep's, with a "z" (_build_hud_marks)
 		_hud_icons.append(icon)
-	_cache_row_width()
-
-# The full badge row's width in screen px (unscaled), cached when it's laid out: the spawner's crowd test reads it
-# every pass (full_row_rect), so it never walks the badges itself.
-var full_row_w := 0.0
-const FULL_ROW_TOP := 8.0  # Stack pips / the progress bar above the icons
-
-func _cache_row_width() -> void:
-	var width := STATUS_BADGE_GAP * maxi(_hud_ids.size() - 1, 0)
-	for cell_width in _hud_badge_widths:
-		width += cell_width
-	var extra := _hud_total - _hud_ids.size()
-	if extra > 0:
-		width += STATUS_BADGE_GAP + _stack_font_face().get_string_size("+%d" % extra, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
-	full_row_w = width if not _hud_ids.is_empty() else 0.0
-
-# Where the FULL row would draw, in world px (badges keep their screen size: × `text_scale` round the anchor); empty
-# without badges or while the HUD is hidden. Drawn whatever the look is: a compact nightmare still has its full row's room.
-func full_row_rect(text_scale: float) -> Rect2:
-	if full_row_w <= 0.0 or not _hud_shown:
-		return Rect2()
-	var anchor := get_body_position() + _hud_anchor()
-	var size := Vector2(full_row_w, get_badge_size() + TIME_BAR_GAP + FULL_ROW_TOP) * text_scale
-	return Rect2(anchor - Vector2(size.x / 2.0, size.y), size)
 
 # Status icon i's centre in the badge items' space (screen px round the anchor): a row of icons with
 # room under each for its time bar.
