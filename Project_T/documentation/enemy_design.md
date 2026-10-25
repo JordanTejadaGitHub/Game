@@ -750,6 +750,16 @@ wiped and them bunched up like that"; numbers marked * are Balancing Discussion'
 
 **Retune (Enemy Design Council round 2026-10-24b, owner: "Enemy movement looks off"; `enemy_council_review.md`).
 These numbers replace the first draft's below.**
+- **Variation trial (owner 2026-10-24, after a screenshot of a half-cell corridor: "aren't enemies still walking in a
+  straight line?" ... "I don't see variation in terms of them walking in a single file").** All visual only; the node
+  and every rule stay on the centre line:
+  - **Narrow half-cell gaps keep a small lane** instead of closing to 0: the room that's really there, (gap width −
+    the body's drawn width) ÷ 2, at most ±0.1 cell (about ±6 px for a Shade in a half-cell corridor), so a body never
+    overlaps a Warden.
+  - **Along-path drift:** each body also drifts a little forward and back along its travel, up to ±0.1 cell, a new
+    target every 2-4 s, eased like the lane (the speed cap applies). Spacing in a line stops looking metronome-even.
+  - **Single file** lanes ±0.06 → **±0.12**: still reads as a line, no longer a ruler.
+  - **Open paths ±0.25** (the next line).
 - **Width (TRIAL 2026-10-24, owner "try" after seeing a straight line in play):** **±0.25 cell for Stream and Packs** (the council ruled ±0.2 so bodies stay on the 0.55-0.6-cell sand band; ±0.25 may let outer bodies touch the edge: judge it in play, revert to 0.2 if it does). Before the retune: 0.3, when bodies hung off the 0.55-0.6-cell sand band onto dark grass);
   ±0.1 for bosses, big kinds and Few and tough's Deeply Blighted; ±0.06 for Single file; flyers ±0.15.
 - **No skating:** a new target lane is the current one ± 0.3-0.7 (clamped to ±1), every 4-8 s; each move eases in
