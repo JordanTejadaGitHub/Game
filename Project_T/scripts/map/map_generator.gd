@@ -193,6 +193,10 @@ func _ready() -> void:
 	waymark_stone.name = "WaymarkStone"
 	waymark_stone.map = self
 	add_child(waymark_stone)  # Under the y-sort root: it stands on its cell like a Warden
+	boulder_placement = BOULDER_PLACEMENT.new()  # Forest Floor's boulders: opens its placement when the card wants them
+	boulder_placement.name = "BoulderPlacement"
+	boulder_placement.map = self
+	add_child(boulder_placement)
 
 # A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
 # per corner, sorted with the pond cell and drawn just after it (a cell can need two).
@@ -736,7 +740,8 @@ func clear_obstacle(cell: Vector2) -> bool:
 		return false
 	_remove_obstacle(cell)
 	path_layer.draw()
-	obstacle_cleared.emit(cell, data)
+	obstacle_cleared.emit(cell, data)  # A placed boulder is still marked here (is_placed_obstacle): listeners skip its credit
+	placed_obstacles.erase(cell)
 	path_changed.emit()
 	return true
 
@@ -760,8 +765,40 @@ func remove_obstacle(cell: Vector2) -> void:
 	if not obstacles.has(cell):
 		return
 	_remove_obstacle(cell, false)
+	placed_obstacles.erase(cell)
 	path_layer.draw()
 	path_changed.emit()
+
+# --- Forest Floor's boulders (Dream card; owner 2026-10-25, dream_council_review.md 36) ------------------------------
+# "Now: place 2 Mossy Boulders on open ground": the player places them at a rest, like the Waymark (BoulderPlacement,
+# DriftDirector.pending_choice &"boulders"). A placed boulder is a normal obstacle (it blocks, can be cleared, counts
+# for "touching an obstacle"), but clearing it gives no clearing credit: no Seeds, no Weed Puller / Groundskeeper Dew,
+# no Tended Forest or Heartwood's Reach credit, no fertile cell (RunState / DreamState check is_placed_obstacle while
+# obstacle_cleared runs). RunSaver keeps them under their own key ("placed_boulders").
+
+const BOULDER := preload("res://resource/obstacle/rock.tres")
+const BOULDER_PLACEMENT := preload("res://scripts/map/boulder_placement.gd")
+var placed_obstacles := {}  # {cell: true}: the placed boulders still standing
+var boulders_placed := 0  # Placed this run, cleared ones too (Forest Floor asks for 2 once)
+var boulder_placement: Node2D  # scripts/map/boulder_placement.gd
+
+func is_placed_obstacle(cell: Vector2) -> bool:
+	return placed_obstacles.has(cell)
+
+# Open ground for a boulder (the Waymark's rules: not the start's mist, the glade, a landmark or a gift; nothing on it),
+# and blocking it keeps the start and every walker in `also_from` (route points) on a way to the Heartwood.
+func can_place_boulder(cell: Vector2, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
+	return is_waymark_ground(cell) and can_block(cell, also_from)
+
+# The route if a boulder stood on `cell` (empty: it would close the way), without changing anything.
+func get_path_if_boulder_at(cell: Vector2, drawn := false) -> PackedVector2Array:
+	return get_path_if_blocked(cell, drawn)
+
+# Places one of Forest Floor's boulders (call can_place_boulder first); re-routes like any placed obstacle.
+func place_boulder(cell: Vector2) -> void:
+	place_obstacle(cell, BOULDER)
+	placed_obstacles[cell] = true
+	boulders_placed += 1
 
 # True if a nightmare at route point `point` still has a way to the Heartwood (get_path_from would find one),
 # without building the path: one flood fill per grid change, then a lookup. For checks over every walker. (A Waymark

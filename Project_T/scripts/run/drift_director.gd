@@ -452,6 +452,8 @@ func pending_choice() -> StringName:
 		return &"omen"
 	if dreams != null and dreams.has_method("waymark_needed") and dreams.waymark_needed():
 		return &"waymark"  # Waymark (Legendary Dream): its stone is placed before the next drift (WaymarkStone)
+	if dreams != null and dreams.has_method("boulders_needed") and dreams.boulders_needed() > 0:
+		return &"boulders"  # Forest Floor: its 2 Mossy Boulders are placed before the next drift (BoulderPlacement)
 	return &""
 
 # Seconds of the current drift's arrival that starting the next one right now would skip (0: nothing is arriving).

@@ -3888,8 +3888,6 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return _towers().any(func(t: Tower) -> bool: return HelperCommons.is_area_attack(t.tower_data))  # Tower Code's own set (lobbers too)
 		&"first_among_equals":
 			return _towers().any(func(t: Tower) -> bool: return t.rank >= 1)
-		&"forest_floor":
-			return count_obstacles() > 0
 		&"groundskeeper":
 			return can_clear()
 		&"twin_strike", &"close_quarters":
@@ -4448,6 +4446,10 @@ func _on_tower_built(tower: Tower) -> void:
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
+	if map_generator.has_method("is_placed_obstacle") and map_generator.is_placed_obstacle(cell):
+		last_clear_paid = 0  # Forest Floor's own boulder (section 36): no clearing credit, no Dew from clear cards
+		bump_board()
+		return
 	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
 	_clears_this_block += 1  # Groundskeeper
 	bump_board()  # Neighbours' card rows read it
@@ -6992,3 +6994,13 @@ func wild_growth_text(tower) -> String:
 func waymark_needed() -> bool:
 	return has_rule(&"waymark") and map_generator != null and map_generator.has_method("has_waymark") \
 		and not map_generator.has_waymark()
+
+# Forest Floor (owner 2026-10-25, dream_council_review.md 36): the Mossy Boulders still to place (0: none). Taken at a
+# rest, the next drift's Start waits for them (DriftDirector.pending_choice &"boulders"), as RunSaver does; the map's
+# BoulderPlacement opens the placement. Once placed they are the map's (placed_obstacles); clearing one asks for no other.
+const FOREST_FLOOR_BOULDERS := 2
+
+func boulders_needed() -> int:
+	if not has_rule(&"forest_floor") or map_generator == null or map_generator.get("boulders_placed") == null:
+		return 0
+	return maxi(FOREST_FLOOR_BOULDERS - int(map_generator.boulders_placed), 0)
