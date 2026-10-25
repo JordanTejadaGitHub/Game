@@ -253,6 +253,9 @@ var hud_frame := 0  # Engine.get_process_frames(), once a frame (the badges' sta
 # Low detail (EnvironmentTiles.low_detail: phones, or the setting), read once a frame: off-screen nightmares
 # pause their cosmetics (animation, HUD, rounded corners); gameplay never. Desktop Full: always false.
 var low_detail_now := false
+# The settings every nightmare's lane and status row read each frame, read here once a frame (Fx.setting's own cache).
+var reduced_motion_now := false
+var status_icons_now := 1
 
 # C4 "slow ripple" (visual_feedback_spec.md C1 / C4; Roguelite's DreamState.card_cue, 451495cb): when a card slows, holds,
 # sleeps or pulls, a low ground ripple where it happened: the landing_dust sheet, small and tinted Heartlight (Dream's
@@ -282,6 +285,10 @@ func _on_card_cue(_card_id: StringName, cue: StringName, at: Vector2, _source: N
 # every other frame (staggered, with the time between); walking, badges and looks every frame (Enemy._process). Tests get
 # every frame unless they set force_lane (test_perf_stress does, to measure the game as it runs).
 var half_rate_logic := false
+# Half-rate looks (perf trial 2026-10-24, needs the owner's look in a real run): with the half-rate logic, each nightmare's
+# walking lane and crowd row run on the frames between its logic frames. Dev flag `--full-rate-looks` turns it off.
+var half_rate_looks := false
+var _full_rate_looks := OS.get_cmdline_user_args().has("--full-rate-looks")
 var force_lane := false
 var in_game := false  # main.tscn is the running scene (not a test): the boss beats' hitstop and camera rumble
 var walking_lanes := not OS.get_cmdline_user_args().has("--no-lanes")  # Dev flag (before/after captures): bodies on the centre line
@@ -289,9 +296,12 @@ var walking_lanes := not OS.get_cmdline_user_args().has("--no-lanes")  # Dev fla
 func _process(delta: float) -> void:
 	in_game = owner != null and get_tree().current_scene == owner
 	half_rate_logic = force_lane or in_game
+	half_rate_looks = half_rate_logic and not _full_rate_looks
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
 	hud_frame = Engine.get_process_frames()
 	low_detail_now = EnvironmentTiles.low_detail()
+	reduced_motion_now = bool(Fx.setting("reduced_motion", false))  # (Once a frame for every nightmare's lane and row: perf)
+	status_icons_now = int(Fx.setting("status_icons", 1))
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and not dreams.card_cue.is_connected(_on_card_cue):
@@ -336,16 +346,21 @@ func _jostle_lanes(delta: float) -> void:
 	var step := _jostle_time
 	_jostle_time = 0.0
 	# Jostle pushes only with lanes on and no reduced motion; the crowd marks (compact status rows) always
-	var push := walking_lanes and not bool(Fx.setting("reduced_motion", false))
+	var push := walking_lanes and not reduced_motion_now
 	var cell_px := 0.0
-	var buckets := {}  # floor(distance left / reach) -> [[nightmare, distance left], …]
+	# floor(distance left / reach) -> [[nightmare, distance left, drawn body, lane × width, flying], …]: each walker's
+	# values once a pass, not once a pair (perf 2026-10-24: ~440 pairs a pass; nudge_lane moves only lane_target, so
+	# the lane read here stays what every pair saw before)
+	var buckets := {}
 	for enemy in get_children():
 		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled:
 			continue
 		if cell_px == 0.0:
 			cell_px = enemy.grid.cell_size.x
 		var left: float = enemy.get_remaining_distance()
-		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append([enemy, left])
+		var flying: bool = enemy.is_flying()
+		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append([enemy, left, enemy.get_body_position(),
+			enemy.lane * enemy.get_lane_width() if push and not flying else 0.0, flying])
 	if buckets.is_empty():
 		return
 	var reach := JOSTLE_REACH * cell_px
@@ -353,28 +368,29 @@ func _jostle_lanes(delta: float) -> void:
 		var here: Array = buckets[key]
 		var next: Array = buckets.get(key + 1, [])
 		for i in here.size():
+			var one: Array = here[i]
+			var left: float = one[1]
 			for j in range(i + 1, here.size() + next.size()):
 				var other: Array = here[j] if j < here.size() else next[j - here.size()]
-				_jostle_pair(here[i], other, reach, cell_px, step, push)
+				if absf(left - float(other[1])) <= reach:
+					_jostle_pair(one, other, cell_px, step, push)
 
-func _jostle_pair(one: Array, two: Array, reach: float, cell_px: float, step: float, push: bool) -> void:
-	if absf(float(one[1]) - float(two[1])) > reach:
-		return
+func _jostle_pair(one: Array, two: Array, cell_px: float, step: float, push: bool) -> void:
 	var a = one[0]
 	var b = two[0]
 	# Crowded (status icons in crowds): another drawn body within CROWD_REACH cell
-	var body_a: Vector2 = a.get_body_position()
-	var body_b: Vector2 = b.get_body_position()
+	var body_a: Vector2 = one[2]
+	var body_b: Vector2 = two[2]
 	if body_a.distance_squared_to(body_b) < (CROWD_REACH * cell_px) ** 2:
 		a.crowd_seen = crowd_clock
 		b.crowd_seen = crowd_clock
 		# Two crowd rows overlapping by more than half (UI council round 8): only the front nightmare's shows
 		if absf(body_a.x - body_b.x) < CROWD_ROW_W / 2.0 and absf(body_a.y - body_b.y) < CROWD_ROW_H:
 			(a if body_a.y < body_b.y else b).pips_hidden_seen = crowd_clock
-	if not push or a.is_flying() or b.is_flying():
+	if not push or one[4] or two[4]:
 		return
-	var wa: float = a.lane * a.get_lane_width()
-	var wb: float = b.lane * b.get_lane_width()
+	var wa: float = one[3]
+	var wb: float = two[3]
 	if absf(wa - wb) > JOSTLE_LANES:
 		return
 	var away := signf(wa - wb) if wa != wb else (1.0 if a.get_instance_id() > b.get_instance_id() else -1.0)
@@ -545,6 +561,37 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 # dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
 # at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
 # damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
+# Pooled dispel motes (perf 2026-10-25): a dispel used to make a CPUParticles2D of its own (a wiped pack: up to 20 at
+# once); the emitters are kept in the map (beside this container, never in it) and reused once their burst has played,
+# keyed by particle count (changing `amount` reallocates). At most MOTE_POOL_MAX of a count are kept.
+const MOTE_POOL_MAX := 24
+var _mote_pool := {}  # amount -> [CPUParticles2D, …]
+var _mote_ramp: Gradient = null
+
+# A mote emitter of `amount` that isn't playing (new if none is free), in the map, ready for Enemy to set up and fire.
+func take_motes(amount: int, colour: Color) -> CPUParticles2D:
+	var pool: Array = _mote_pool.get_or_add(amount, [])
+	for motes in pool:
+		if is_instance_valid(motes) and not motes.emitting:
+			return motes
+	var world: Node = get_parent()
+	if world == null:
+		return null
+	var made := CPUParticles2D.new()
+	made.one_shot = true
+	made.amount = amount
+	if _mote_ramp == null:
+		_mote_ramp = Gradient.new()
+		_mote_ramp.set_color(0, colour)
+		_mote_ramp.set_color(1, Color(colour, 0.0))
+	made.color_ramp = _mote_ramp
+	world.add_child(made)
+	if pool.size() < MOTE_POOL_MAX:
+		pool.append(made)
+	else:
+		made.finished.connect(made.queue_free)  # Past the pool's size: a one-off
+	return made
+
 # Phone budget: dispels counted over DISPEL_BURST_WINDOW s (Enemy halves its motes past MOTE_BURST_MAX).
 const DISPEL_BURST_WINDOW := 0.5
 var _dispel_times: Array[float] = []

@@ -71,7 +71,7 @@ func build(director: DriftDirector, span: Vector2i, compact: bool) -> void:
 		add_child(_row(number, StringName(preview.shape) if not boss else &"", text))
 	move_child(_timeline, get_child_count() - 1)
 
-# "Stream: 30", "Packs: 4 × 7, 6 s apart", "Single file: 18, 1.6 s apart", "Few and tough: 9, 4 Deeply Blighted".
+# "Steady: 30", "Packs: 4 × 7, 6 s apart", "Single file: 18, 1.6 s apart", "Few and tough: 9, 4 Deeply Blighted".
 static func fact_line(facts: Dictionary) -> String:
 	var count := int(facts.get("count", 0))
 	match StringName(facts.get("shape", DriftShapes.STREAM)):
@@ -81,7 +81,7 @@ static func fact_line(facts: Dictionary) -> String:
 			return "Single file: %d, %.1f s apart" % [count, float(facts.gap_s)]
 		DriftShapes.FEW_AND_TOUGH:
 			return "Few and tough: %d, %d Deeply Blighted" % [count, int(facts.elites)]
-	return "Stream: %d" % count
+	return "%s: %d" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30"
 
 # Act `act`'s shapes as they will arrive, as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
 # 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough". Finales = each ordinary block's 5th drift.

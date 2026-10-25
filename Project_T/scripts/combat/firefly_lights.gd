@@ -1534,12 +1534,17 @@ func _lent_cap(source, jar) -> float:
 		return jar.get_damage() * jar.get_attacks_per_second() * BRIGHTNESS_SECONDS
 	return _base_jar_dps * BRIGHTNESS_SECONDS
 
-# Guiding Light (owner ruling 2026-10-12, dream_council_review.md 21): a hit on a fully Exposed nightmare forks to the
-# nightmares within 1 cell of it (II: 2 cells), for half. It no longer spreads Exposed stacks.
+# Guiding Light (owner ruling 2026-10-12, dream_council_review.md 21; family-wide since section 35, 2026-10-24): a
+# Firefly Warden's direct hit on a nightmare at full Charged forks to the nightmares within 1 cell of it (II: 2 cells), for
+# half. Full Charged = EnemyStatuses.FULL_SHARE (0.75) of Charged's base cap, the "full" every section 35 card uses (it
+# comes before the bolt at Charged's most). (Was full Exposed: Exposed comes from one branch.)
 func _guiding_light(id: int, event, source) -> void:
 	var enemy = event.enemy
-	if not enemy.statuses.is_exposed():
-		return  # Full Exposed: 10 stacks, 20 with Brimming
+	if not is_firefly(source):
+		return
+	var s: EnemyStatuses = enemy.statuses
+	if s.stacks(EnemyStatuses.STATIC) < ceili(s.base_cap(EnemyStatuses.STATIC) * EnemyStatuses.FULL_SHARE):
+		return
 	var at: Vector2 = enemy.global_position
 	var reach: float = GUIDING_CELLS[mini(dream_state.rule_level(GUIDING_LIGHT), GUIDING_CELLS.size() - 1)] * _cell()
 	for other in _enemies():

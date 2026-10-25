@@ -292,12 +292,12 @@ func _test_direction_weighting() -> void:
 func _test_reaction_cards() -> void:
 	_reset()
 	var rolling := _card("rolling_thunder")
-	_check(not dreams.is_eligible(rolling), "Rolling Thunder needs Stormcap + Dewdrop")
+	_check(not dreams.is_eligible(rolling), "Rolling Thunder needs Wardens that add Charged and Soaked")
 	_own("dewdrop")
 	_own("firefly_jar")
 	_check(dreams.count_reaction_pairs() == 1, "Dewdrop + Firefly Jar: one Reaction pair (Thunderclap)")
+	_check(dreams.is_eligible(rolling), "…the two families are enough (section 35: requires_statuses, no Stormcap)")
 	_own("stormcap")
-	_check(dreams.is_eligible(rolling), "…offered once Stormcap is unlocked too")
 	dreams.take(rolling)
 	_check(dreams.has_rule(&"rolling_thunder") and dreams.rule_level(&"rolling_thunder") == 0, "Rolling Thunder switches on its rule")
 	dreams.take(_card("rolling_thunder_ii"))
@@ -336,28 +336,19 @@ func _test_family_review_cards() -> void:
 	_own("bloomcap")
 	_check(dreams.is_eligible(eyelids), "…Bloomcap makes nightmares Drowsy")
 
+	# Section 35 (no branch-only cards): Sharp Beaks, Encore, Heavy Seed, Seed Storm and Windborne Rain are retired; a
+	# saved stack still plays its rule
 	var beaks := _card("sharp_beaks")
-	_check(not dreams.is_eligible(beaks), "Sharp Beaks needs Hummingbird Bower or Wren's Nest")
 	_own("wrens_nest")
-	_check(dreams.is_eligible(beaks), "…Wren's Nest is enough")
+	_check(beaks.retired and not dreams.is_eligible(beaks), "Sharp Beaks is retired (never offered)")
 	dreams.take(beaks)
 	dreams.take(beaks)
-	_check(dreams.rule_stacks(&"sharp_beaks") == 2, "stacking rule cards report their stacks")
-	dreams.take(beaks)
-	_check(not dreams.is_eligible(beaks), "Sharp Beaks stops at +3")
-
-	var encore := _card("encore")
-	_own("echo_hollow")
-	_check(not dreams.is_eligible(encore), "Encore needs a Reaction card as well as Echo Hollow")
-	_own("stormcap")  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
-	_own("dewdrop")
-	dreams.take(_card("rolling_thunder"))
-	_check(dreams.is_eligible(encore), "…then Entwined: offered at normal odds")
-
-	_own("samara")
-	_own("rain_lily")
-	_check(dreams.is_eligible(_card("windborne_rain")) and not dreams.is_eligible(_card("seed_storm"), 1)
-		and dreams.is_eligible(_card("seed_storm"), 2), "Windborne Rain (Samara + Rain Lily); Seed Storm is act 2+")
+	_check(dreams.rule_stacks(&"sharp_beaks") == 2, "a retired card's saved stacks still report (old saves)")
+	for retired_id in ["encore", "heavy_seed", "seed_storm", "windborne_rain"]:
+		_check(_card(retired_id).retired and not dreams.is_eligible(_card(retired_id), 2), "%s is retired (section 35)" % retired_id)
+	# The Nestling cards are family-wide now
+	_own("nestling")
+	_check(dreams.is_eligible(_card("needle_point")), "Needle Point: any Nestling Warden (section 35)")
 
 # Seedling Gift (#33): a free Sprout charge each rest, used before Dew; Nursery (Entwined with Tender
 # Care) makes those Sprouts rank II. Also the Great Dreamcatcher's Dreamlight shards.
@@ -432,10 +423,11 @@ func _test_grove_cards() -> void:
 
 	# Needs
 	_own("stormcap")
-	_check(not dreams.is_eligible(_card("static_bloom")), "Static Bloom: Entwined, needs Bloomcap too")
 	_own("bloomcap")
-	_check(dreams.is_eligible(_card("static_bloom")), "…then offered at normal odds")
-	_check(dreams.is_eligible(_card("still_target")), "Still Target: a Drowsy / Held Warden (Bloomcap)")
+	_check(_card("static_bloom").retired and not dreams.is_eligible(_card("static_bloom")), "Static Bloom (Storm Lull) is retired (section 35)")
+	_check(not dreams.is_eligible(_card("still_target")), "Still Target: needs a Warden that Holds (section 35), not only Drowsy")
+	_own("tangleroot")
+	_check(dreams.is_eligible(_card("still_target")), "…Tangleroot Holds")
 	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
 		"Full Moon: a Legendary with no Needs, act 2+")
 	dreams.take(_card("still_target"))

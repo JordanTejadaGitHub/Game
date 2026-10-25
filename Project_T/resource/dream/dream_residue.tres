@@ -14,4 +14,4 @@ requires = Array[String](["dreamcatcher"])
 max_stacks = 1
 rule_id = &"dream_residue"
 tip = "Once for each {warden:dreamcatcher} and nightmare every 3 s. Works for: {warden:dreamcatcher} and its forms. Safe."
-makes = Array[StringName]([&"drowsy"])
+retired = true

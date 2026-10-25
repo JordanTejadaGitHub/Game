@@ -77,46 +77,22 @@ func _run() -> void:
 		data.status_max_stacks, target.statuses.stacks(EnemyStatuses.SPORED)])
 	_check(not "pop_at_stacks" in data, "the pop is gone from the data")
 
-	# Chain Bloom: a puff landing inside Mistveil's fog covers 2 tiles instead of 1.
-	var outer := _spawn(spawner, target.global_position + Vector2(0, 1.6) * CELL)
+	# Chain Bloom (section 35, Tower Code): a splash landing on a nightmare carrying 2+ statuses reaches half again as far
+	# (CHAIN_BLOOM_RADIUS 1.5); no fog needed any more (it was Puffball in Mistveil's fog).
+	var outer := _spawn(spawner, target.global_position + Vector2(0, 1.3) * CELL)
 	tower.projectile_landed(target, target.global_position)
-	_check(not outer.statuses.has(EnemyStatuses.SPORED), "without Chain Bloom, 1.6 tiles away is outside the puff")
-	dreams.grove_cards.assign(["chain_bloom"])  # A Grove card, Entwined: Puffball + Mistveil owned this run
-	for id in ["puffball", "mistveil"]:
-		dreams.unlocked[id] = true
-		dreams.grown_wardens[id] = true
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "without Chain Bloom, 1.3 tiles away is outside the puff")
 	for bloom in dreams.pool:
 		if bloom.id == "chain_bloom":
 			dreams.take(bloom)
 	_check(dreams.has_rule(&"chain_bloom"), "Chain Bloom taken")
 	tower.clear_dream_cache()
+	target.statuses.remove(EnemyStatuses.DAMP)
 	tower.projectile_landed(target, target.global_position)
-	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom outside a fog: still 1 tile")
-	var veil: Tower = placer.tower_scene.instantiate()
-	veil.tower_data = load("res://resource/tower/mistveil.tres")
-	veil.cell = Vector2(2, 2)
-	container.add_child(veil)
-	veil.set_process(false)
-	var fog := PathCloud.new(veil, target.global_position)
-	main.add_child(fog)
-	await process_frame
+	_check(target.statuses.count() < 2 and not outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom on a nightmare with 1 status: still 1 tile")
+	target.apply_status(EnemyStatuses.DAMP, 2)
 	tower.projectile_landed(target, target.global_position)
-	_check(outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom in Mistveil's fog: the puff covers 2 tiles")
-	fog.queue_free()
-	await process_frame
-	# Only Mistveil's own fog (the card and its Entwined ingredients), not Morning Fog's.
-	outer.statuses.remove(EnemyStatuses.SPORED)
-	var morning: Tower = placer.tower_scene.instantiate()
-	morning.tower_data = load("res://resource/tower/morning_fog.tres")
-	morning.cell = Vector2(3, 2)
-	container.add_child(morning)
-	morning.set_process(false)
-	var morning_fog := PathCloud.new(morning, target.global_position)
-	main.add_child(morning_fog)
-	await process_frame
-	tower.projectile_landed(target, target.global_position)
-	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Morning Fog's fog doesn't count for Chain Bloom")
-	morning_fog.queue_free()
+	_check(outer.statuses.has(EnemyStatuses.SPORED), "…on one with 2+ statuses: half again as far (1.5 tiles)")
 
 	# Sporemother: 2 Poisoned a second to everything in range, refreshed every breath so it never wears off there.
 	var mother_data: TowerData = load("res://resource/tower/sporemother.tres")

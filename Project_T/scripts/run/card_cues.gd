@@ -33,17 +33,17 @@ const CUES := {
 	&"root_network_ii": DREAM_GLOW, &"one_bough": DREAM_GLOW,
 	# Timed damage or speed boosts -> C1 surge (SURGE below: tier +1 while on)
 	&"thinning_the_herd": DREAM_GLOW, &"hot_on_their_heels": DREAM_GLOW, &"restless_night": DREAM_GLOW,
-	&"shiny_things": DREAM_GLOW, &"quickening": DREAM_GLOW, &"quickening_ii": DREAM_GLOW, &"close_shave": DREAM_GLOW, &"fresh_growth": DREAM_GLOW,
+	&"quickening": DREAM_GLOW, &"quickening_ii": DREAM_GLOW, &"close_shave": DREAM_GLOW, &"fresh_growth": DREAM_GLOW,
 	&"quick_step": DREAM_GLOW, &"desperate_bloom": DREAM_GLOW, &"momentum": DREAM_GLOW,
 	# Attack speed -> C1
 	&"the_last_light": DREAM_GLOW, &"rootbound": DREAM_GLOW, &"sprout_chorus": DREAM_GLOW,
 	&"spinning_corners": DREAM_GLOW, &"hairpin_winds": DREAM_GLOW, &"close_quarters": DREAM_GLOW,
 	&"whirlwind_heart": DREAM_GLOW, &"quick_draw": DREAM_GLOW,
 	# Conditional per-hit damage -> C2 (each calls DamageLog.note_card_bonus)
-	&"bright_marks": DREAM_FLECK, &"crosswind": DREAM_FLECK, &"deep_frost": DREAM_FLECK, &"deep_sleep": DREAM_FLECK,
-	&"falling_weight": DREAM_FLECK, &"heavy_seed": DREAM_FLECK, &"hunters_patience": DREAM_FLECK,
+	&"deep_frost": DREAM_FLECK, &"deep_sleep": DREAM_FLECK,
+	&"falling_weight": DREAM_FLECK, &"hunters_patience": DREAM_FLECK,
 	&"last_stand": DREAM_FLECK, &"murmur": DREAM_FLECK, &"steady_aim": DREAM_FLECK, &"sharpened_light": DREAM_FLECK,
-	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"ill_wind": DREAM_FLECK, &"damp_rot": DREAM_FLECK,
+	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"damp_rot": DREAM_FLECK,
 	&"first_light": DREAM_FLECK, &"front_line": DREAM_FLECK, &"passing_thread": DREAM_FLECK,
 	# The hit cards (owner 2026-10-22, dream_council_review.md 30): a fleck on the hit they boost
 	&"finishing_blow": DREAM_FLECK, &"bearing_down": DREAM_FLECK, &"open_road": DREAM_FLECK, &"clean_strike": DREAM_FLECK,
@@ -65,14 +65,12 @@ const CUES := {
 	# Extra stacks or statuses -> C3 (pop)
 	&"breathe_it_in": STATUS_POP, &"mixed_company": STATUS_POP, &"pass_it_round": STATUS_POP,
 	&"spore_ring": STATUS_POP, &"mothers_hand": STATUS_POP, &"deep_grain": STATUS_POP, &"resonance": STATUS_POP,
-	&"static_bloom": STATUS_POP, &"windborne_rain": STATUS_POP, &"mycelium": STATUS_POP, &"overnight": STATUS_POP,
+	&"mycelium": STATUS_POP, &"overnight": STATUS_POP,
 	&"seeping_in": STATUS_POP, &"gone_to_seed": STATUS_POP, &"eternal_static": STATUS_POP,
-	&"heavy_eyelids": STATUS_POP, &"dream_residue": STATUS_POP, &"afterroot": STATUS_POP,
+	&"heavy_eyelids": STATUS_POP, &"afterroot": STATUS_POP,
 	&"charged_feathers": STATUS_POP, &"pollen_beaks": STATUS_POP,
-	&"shared_fever": STATUS_POP, &"snare_line": STATUS_POP, &"bad_dreams": STATUS_POP, &"many_threads": STATUS_POP,
-	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
-	&"lingering_ground": STATUS_POP, &"long_light": STATUS_POP, &"lullaby": STATUS_POP,
-	&"bound_and_burning": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
+	&"shared_fever": STATUS_POP, &"snare_line": STATUS_POP, 	# Statuses last longer or don't wear off -> C3 linger rim (LINGER below)
+	&"lingering_ground": STATUS_POP, 	&"bound_and_burning": STATUS_POP, &"steeped": STATUS_POP, &"ebb": STATUS_POP,
 	&"homesick": STATUS_POP, &"topped_up": STATUS_POP, &"patient_roots": STATUS_POP, &"sodden": STATUS_POP,
 	# Slow, hold, sleep, pull -> C4
 	&"switchback": SLOW_RIPPLE, &"hobble": SLOW_RIPPLE, &"root_web": SLOW_RIPPLE, &"snag": SLOW_RIPPLE,
@@ -80,11 +78,10 @@ const CUES := {
 	&"sweet_scent": SLOW_RIPPLE, &"first_frost": SLOW_RIPPLE, &"old_growth": SLOW_RIPPLE,
 	&"rooted_nightmares": SLOW_RIPPLE,
 	# Range and aura reach -> C6
-	&"long_shadows": REACH_RING, &"longer_roots": REACH_RING, &"undergrowth": REACH_RING, &"hush": REACH_RING,
+	&"longer_roots": REACH_RING, &"undergrowth": REACH_RING, &"hush": REACH_RING,
 	&"wide_petals": REACH_RING, &"hollow_ground": REACH_RING, &"close_kin": REACH_RING,
 	&"grandfather_stump": REACH_RING, &"warm_hearth": REACH_RING, &"canopy": REACH_RING,
-	&"dew_trail": REACH_RING,
-	# Links between things -> C10
+		# Links between things -> C10
 	&"tangled_lightning": DREAM_THREAD, &"carried_on_the_wind": DREAM_THREAD, &"eddy": DREAM_THREAD,
 	&"hedgerow_roots": DREAM_THREAD, &"extended_family": DREAM_THREAD, &"spent_light": DREAM_THREAD,
 	&"guiding_light": DREAM_THREAD, &"guiding_light_ii": DREAM_THREAD, &"sparks_fly": DREAM_THREAD,
@@ -119,20 +116,18 @@ const EXTRA_CUES := {
 }
 
 # STATUS_POP cards that hold a status: the linger rim variant (DEWLIGHT rim on the time bar; never_quite_dry's extra too).
-const LINGER: Array[StringName] = [&"lingering_ground", &"long_light", &"lullaby", &"bound_and_burning",
+const LINGER: Array[StringName] = [&"lingering_ground", &"bound_and_burning",
 	&"steeped", &"ebb", &"homesick", &"topped_up", &"patient_roots", &"never_quite_dry", &"sodden"]
 
 # Timed speed / damage cards: while one is on for a Warden its boost tier is +1 (spec B1 dream_surge; DreamState.boost_tier).
 # Rule ids (the Dream rows carry card.rule_id).
-const SURGE: Array[StringName] = [&"thinning_the_herd", &"hot_on_their_heels", &"restless_night", &"shiny_things",
-	&"quickening", &"close_shave", &"fresh_growth", &"quick_step", &"desperate_bloom", &"momentum"]
+const SURGE: Array[StringName] = [&"thinning_the_herd", &"hot_on_their_heels", &"restless_night", 	&"quickening", &"close_shave", &"fresh_growth", &"quick_step", &"desperate_bloom", &"momentum"]
 
 # Already visible by nature (spec C2): no cue, only the badge pop (credit with the source Warden).
-const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", &"seed_storm", &"sharp_beaks",
-	&"homing_instinct", &"ring_dance", &"encore", &"witching_bend", &"reprise", &"chain_bloom",
+const NATURAL: Array[StringName] = [&"great_ripple", &"loose_stones", 	&"homing_instinct", &"witching_bend", &"reprise", &"chain_bloom",
 	&"thorny_walls", &"twig_walls", &"living_walls", &"tangled_release", &"nod_off", &"fever_pitch", &"hunters_moon",
 	&"spore_cascade", &"prism_heart", &"mushroom_rain", &"deep_stillness", &"old_hand", &"full_moon",
-	&"still_target", &"patient_aim", &"falling_stars", &"called_shot", &"starlit_aim",
+	&"still_target", &"patient_aim", &"falling_stars", &"starlit_aim",
 	&"lingering_splash",
 	# Bell repeats keep their own chime / double flash / pulse (d168b7e6) and add the badge pop
 	&"in_time", &"refrain", &"knell", &"on_the_beat", &"da_capo", &"second_verse", &"rude_awakening",

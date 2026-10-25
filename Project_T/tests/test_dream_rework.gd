@@ -292,10 +292,10 @@ func _remaining_design_fixes() -> void:
 	_check(not dreams.is_monoculture(), "Monoculture: Sprouts alone are not a qualifying line")
 	var guide: UpgradeData = load("res://resource/dream/guiding_light.tres")
 	dreams.unlocked["firefly_jar"] = true
-	dreams.unlocked["lanternmoth"] = true
-	_plant("lanternmoth", Vector2(86, 80))
+	dreams.grown_wardens["firefly_jar"] = true
+	_plant("firefly_jar", Vector2(86, 80))
 	dreams.stacks.erase("cozy_corners")
-	_check(dreams.can_offer(guide, 2), "Guiding Light: Lanternmoth qualifies without Cozy Corners")
+	_check(dreams.can_offer(guide, 2), "Guiding Light: any Firefly Warden qualifies (section 35), without Cozy Corners")
 
 func _impatient_overlap() -> void:
 	for tower in main.get_node("%TowerContainer").get_children():
@@ -340,7 +340,7 @@ func _council_corrections() -> void:
 	# A three-family card (the Crowned cards were one, but they gate on statuses since 2026-10-17): built here
 	var woven := UpgradeData.new()
 	woven.id = "test_three_families"
-	woven.requires.assign(["stormcap", "rain_lily", "driftspore"])
+	woven.requires.assign(["stormcap", "dewdrop", "sporeling"])  # Missing families named by their roots: section 35 drops a card naming an unowned family's branch
 	# New-family picks come after drifts 10 and 35 (drift 60 deepens; owner 2026-10-22): at 20 one is left, at 5 both.
 	dreams._offer_drift = 20
 	_check(dreams.half_dreamed_missing(woven).is_empty(), "Half-Dreamed: two missing families with one pick left is impossible")

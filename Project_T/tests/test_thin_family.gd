@@ -47,8 +47,8 @@ func _test_data() -> void:
 		_check(dreams.discovery_met(card), "%s: …then it can come" % id)
 		dreams.discovery_profile = null
 	var release := _card("tangled_release")  # Council full_review 2026-10-17: base Rootling never Holds
-	_check(release.in_start_pool and release.requires.is_empty() and Array(release.requires_any) == ["tangleroot", "snugroot"],
-		"tangled_release: needs a Holding form (Tangleroot or Snugroot)")
+	_check(release.in_start_pool and release.requires.is_empty() and release.requires_any.is_empty() and release.requires_role == WardenRoles.HOLD,
+		"tangled_release: needs a Warden that Holds, any family (section 35)")
 	_check(_card("deep_grip").max_stacks == 1 and _card("bright_marks").max_stacks == 1,
 		"Deep Grip and Bright Marks once (power pass)")
 	for pair in [["tangled_release_ii", "tangled_release"], ["lullaby_ii", "lullaby"],

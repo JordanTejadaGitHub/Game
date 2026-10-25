@@ -39,7 +39,7 @@ func _run() -> void:
 	var bolts: Array = world.get_children().filter(func(n: Node) -> bool: return n is ChargedBolt)
 	_check(bolts.size() == 1 and bolts[0]._bolt, "a strike shows a bolt in the world (%d)" % bolts.size())
 	_check(not spawner.get_children().any(func(n: Node) -> bool: return n is ChargedBolt), "never under the EnemyContainer")
-	_check(struck.size() == 1 and struck[0][0].is_equal_approx(enemy.global_position), "bolt_struck fires for Sound (%s)" % [struck])
+	_check(struck.size() == 1 and struck[0][0].is_equal_approx(Tower.aim_at(enemy)), "bolt_struck fires for Sound, at the drawn body (walking lanes, d8c3ffc2) (%s)" % [struck])
 	var numbers: Array = damage_log.get_children().filter(func(n: Node) -> bool: return n is DamageLog.FloatingNumber)
 	_check(numbers.any(func(n) -> bool: return n.bolt and n._size >= 16), "its damage number is the larger bolt kind")
 	for i in 9:

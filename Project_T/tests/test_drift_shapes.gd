@@ -161,12 +161,13 @@ func _run() -> void:
 	var loose := Node.new()
 	a.set_meta(DriftShapes.PACK_META, DriftShapes.pack_key(60, 1))
 	b.set_meta(DriftShapes.PACK_META, DriftShapes.pack_key(60, 1))
-	var lost := DriftShapes.cap_pack_leak(a, 2, charged) + DriftShapes.cap_pack_leak(b, 2, charged) + DriftShapes.cap_pack_leak(b, 1, charged)
-	_check(lost == 3, "a leaked pack costs at most 3 leaves (%d)" % lost)
+	var lost := DriftShapes.cap_pack_leak(a, 2, charged) + DriftShapes.cap_pack_leak(b, 2, charged) \
+		+ DriftShapes.cap_pack_leak(b, 2, charged) + DriftShapes.cap_pack_leak(a, 2, charged)
+	_check(lost == DriftShapes.PACK_LEAVES, "a leaked pack costs at most %d leaves (%d)" % [DriftShapes.PACK_LEAVES, lost])
 	_check(DriftShapes.cap_pack_leak(loose, 2, charged) == 2, "outside a pack a leak costs its full price")
 	for node in [a, b, loose]:
 		node.free()
-	_check(DriftShapes.display_name(&"") == "Stream" and DriftShapes.display_name(DriftShapes.FEW_AND_TOUGH) == "Few and tough",
+	_check(DriftShapes.display_name(&"") == "Steady" and DriftShapes.display_name(DriftShapes.FEW_AND_TOUGH) == "Few and tough",
 		"display names")
 
 	if failures == 0:

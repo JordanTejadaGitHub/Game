@@ -59,15 +59,17 @@ func _run() -> void:
 	moth.apply_status_to(target, moth.get_damage())
 	_check(not beside.statuses.has(EnemyStatuses.MARKED) and not away.statuses.has(EnemyStatuses.MARKED),
 		"Guiding Light no longer spreads Exposed")
-	target.apply_status(EnemyStatuses.MARKED, target.statuses.get_max_stacks(EnemyStatuses.MARKED), 5.0, 0.0, 0, "light", moth)
+	# Section 35: a Firefly Warden's direct hit on a nightmare at full Charged (FULL_SHARE of Charged's base cap; was full Exposed)
+	var full_charge := ceili(target.statuses.base_cap(EnemyStatuses.STATIC) * EnemyStatuses.FULL_SHARE)
+	target.apply_status(EnemyStatuses.STATIC, full_charge, 5.0, 0.0, 0, "light", moth)
 	await process_frame  # FireflyLights hooks the DamageLog
 	var beside_health: int = beside.health
 	var away_health: int = away.health
 	moth.hit(target, 1.0, false, Tower.NO_CRIT)
 	await process_frame
 	await process_frame
-	_check(target.statuses.is_exposed() and beside.health < beside_health and away.health == away_health,
-		"Guiding Light: a hit on a fully Exposed nightmare forks to those within 1 cell (%d -> %d)" % [beside_health, beside.health])
+	_check(beside.health < beside_health and away.health == away_health,
+		"Guiding Light: a Firefly hit on a nightmare at full Charged forks to those within 1 cell (%d -> %d)" % [beside_health, beside.health])
 	_check(not beside.statuses.has(EnemyStatuses.MARKED), "...and the fork adds no status")
 	await _clean()
 

@@ -19,7 +19,7 @@ const GLOSSARY_SOURCE := [
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act", "Drift shape"]],
-		["Drift shape", "How a drift arrives. Stream: an even mix. Packs: tight groups of one kind, spaced apart. Single file: one at a time, fewer and heavier. Few and tough: a handful led by Deeply Blighted. Shapes are rolled with the map. A pack that gets through takes at most {const:pack_leaves} leaves in all. A Few and tough drift's Deeply Blighted take at most {const:tough_leaves} leaves together.", ["Drift", "Coming this block"]],
+		["Drift shape", "How a drift arrives. Steady: an even mix. Packs: tight groups of one kind, spaced apart. Single file: one at a time, fewer and heavier. Few and tough: a handful led by Deeply Blighted. Shapes are rolled with the map. A pack that gets through takes at most {const:pack_leaves} leaves in all. A Few and tough drift's Deeply Blighted take at most {const:tough_leaves} leaves together.", ["Drift", "Coming this block"]],
 		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
 		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+20}.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
@@ -135,7 +135,8 @@ const GLOSSARY_SOURCE := [
 		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],
-		["Full", "A status at its most stacks. Some statuses do nothing until they are full.", ["Stack"]],
+		["Full", "A status at its most stacks: each status has its own most, and Brimming doubles them. Some statuses do nothing until they are full. A full status's dot fills with its colour, ringed in light; in a crowd, its pip's outline lights up.", ["Stack", "Nearly full"]],
+		["Nearly full", "At least 3/4 of a status's usual most (before Brimming). Starlit Aim, Called Shot and Guiding Light use it.", ["Full"]],
 		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction triggers.", ["Reaction mark", "Reaction", "Stack"]],
 		["Reaction mark", "The small slash on a status's stack bar or pips: where its stacks become enough for a Reaction. Past it the status is Reaction-ready. Brimming makes the bar longer, but the mark stays at the same number of stacks, so it sits further left.", ["Reaction-ready", "Stack", "Reaction"]],
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],

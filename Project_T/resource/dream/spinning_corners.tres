@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "spinning_corners"
 display_name = "Spinning Corners"
-description = "{warden:pinwheel}s and {warden:windmill}s {touching} a bend in the path attack 45% faster."
+description = "{family:whirligig} Wardens {touching} a bend in the path attack 35% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
-requires = Array[String](["pinwheel"])
+requires = Array[String](["whirligig"])
 max_stacks = 1
 rule_id = &"spinning_corners"
 uses = Array[StringName]([&"maze"])

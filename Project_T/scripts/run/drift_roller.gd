@@ -93,6 +93,8 @@ static func _move_single_file(director: Node, n: int, shapes: Dictionary, hand_m
 	var boss_block := false
 	for m in range(first, last + 1):
 		boss_block = boss_block or director.is_boss_drift(m)
+	if n == last and not boss_block:
+		return  # The finale keeps its planned shape (it rolled a Stream: no fit)
 	var candidates: Array = []
 	for m in range(first, last + 1):
 		if m != n and shapes.get(m, &"") == DriftShapes.STREAM and m >= SHAPE_FROM and is_rollable(director, m) \
@@ -107,7 +109,7 @@ static func _move_single_file(director: Node, n: int, shapes: Dictionary, hand_m
 	for m in candidates:  # Earlier: rolled again
 		var before := template_of(director, m - 1) if m > 1 else &""
 		var again := _roll_drift(director, m, hand_made[m - 1], hand_made, rng, before, state, DriftShapes.SINGLE_FILE)
-		if again != null and again.shape == DriftShapes.SINGLE_FILE:
+		if again != null and again.shape == DriftShapes.SINGLE_FILE and again.get_meta(META_TEMPLATE, &"") != template_of(director, m + 1):
 			again.set_meta(META_PLANNED, DriftShapes.SINGLE_FILE)
 			director.drifts[m - 1] = again
 			shapes[m] = DriftShapes.SINGLE_FILE
@@ -369,6 +371,8 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 			if not fitted.is_empty():
 				mix = fitted
 			else:
+				if template.id == previous:
+					continue  # (Only a shape may repeat the last template: as a Stream it rolls again)
 				shape = DriftShapes.STREAM  # Can't fit single_gap(act) apart without thinning past SINGLE_THIN_MAX: a Stream
 		# Fairness judges the rolled part: the hand-made elites are a fixed design choice (drift 23's
 		# first elites are Husks on purpose).

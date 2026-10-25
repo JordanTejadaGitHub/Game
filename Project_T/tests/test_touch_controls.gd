@@ -307,9 +307,9 @@ func _close_screens() -> void:
 	var pause_menu := main.get_node_or_null("HUD/PauseMenu")
 	if pause_menu != null and pause_menu.visible:
 		pause_menu.close()
-	var whispers := main.get_node_or_null("HUD/Whispers") as CanvasItem
+	var whispers := main.get_node_or_null("HUD/Whispers")
 	if whispers != null:
-		whispers.visible = false  # The first run's whisper card takes taps (a tap opens the Codex)
+		whispers.mute()  # A whisper naming a Codex term takes taps (a tap opens the Codex); hiding it lasted one frame
 	# Every screen that covers the map (RestScreens.SCREENS: a Lesson, a gift or the flyer warning block the map's taps too)
 	for screen_name in RestScreens.SCREENS:
 		if RestScreens.ALWAYS_COVER.has(screen_name):

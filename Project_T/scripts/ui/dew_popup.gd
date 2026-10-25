@@ -82,8 +82,9 @@ func _draw() -> void:
 	var number_font := UiStyle.number_font()
 	var number_size := WORD_NUMBER_SIZE if _word != "" else NUMBER_SIZE
 	var number := "+%d" % _amount
-	if _drop == null:  # No icon to draw: the word says what it is ("+1 Dew", "+1 Seed")
-		number += " Seed" if _resource == &"seeds" else " Dew"
+	if _drop == null:  # No icon texture: the resource's font glyph before the number instead (text_pass.md: icon and number)
+		number_font = UiStyle.with_glyphs(number_font)
+		number = (UiStyle.SEEDS_GLYPH if _resource == &"seeds" else UiStyle.DEW_GLYPH) + number
 	var number_width := number_font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, number_size).x
 	var word_font := UiStyle.caps_font()
 	var word_width := word_font.get_string_size(_word, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE).x if _word != "" else 0.0

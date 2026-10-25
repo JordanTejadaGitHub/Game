@@ -340,6 +340,7 @@ var _focus_drawn := false
 var _row_look: RowLook = RowLook.FULL
 var _row_hold := 0.0
 var _row_alpha := Vector2(1.0, 0.0)  # Drawn alpha of (the full row, the pips)
+var _row_stale := false  # The full row was faded out and skipped drawing: rebuilt whole before it shows again (perf)
 var _hud_pips := RID()
 var _pips_changes := -1
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
@@ -654,7 +655,7 @@ func _ready() -> void:
 	add_child(_body_fx)
 	move_child(_body_fx, sprite.get_index())  # Just before the sprite: the same y, so it draws behind it
 	_body_fx.draw.connect(_draw_body)
-	y_sort_enabled = true
+	y_sort_enabled = false  # On only while crowded (_update_sort_look): one sorted item per nightmare elsewhere (perf 2026-10-25)
 	_apply_sprite_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
@@ -695,6 +696,7 @@ const LOD_QUIET := 1.5
 var _lod_acc := 0.0  # Seconds skipped, still to run
 var _quiet_for := 0.0  # Seconds since a hit or a status landed on it
 var _logic_acc := 0.0  # Half-rate logic: seconds since its statuses, badges and presence last ran
+var _look_acc := 0.0  # Half-rate looks: seconds since its lane and crowd row last ran
 var _lod_slot := -1  # Its frame in the LOD_EVERY cycle (from its instance id: neighbours spread out)
 
 func _far_lod() -> bool:
@@ -706,7 +708,8 @@ func _process(delta: float) -> void:
 		return
 	if _waymark_index >= 0 and not passed_waymark and _path_index > _waymark_index:
 		_touch_waymark()  # (Also after a leap or a burrow carried it past the stone)
-	if _far_lod():
+	var far := _far_lod()
+	if far:
 		_lod_acc += delta
 		if _lod_slot < 0:
 			_lod_slot = get_instance_id() % LOD_EVERY
@@ -731,6 +734,19 @@ func _process(delta: float) -> void:
 		if logic_now:
 			ld = _logic_acc
 			_logic_acc = 0.0
+	# Half-rate looks (perf trial 2026-10-24, EnemySpawner.half_rate_looks; reverses "the looks every frame" above for two
+	# of them): the walking lane and the crowd row's look and fade run on the other frames from the logic, with the time
+	# between. Walking, the badges and the rest stay every frame; a far-LOD frame does both.
+	var look_now := true
+	var look_delta := delta
+	if _spawner != null and _spawner.half_rate_looks and not far:
+		_look_acc += delta
+		if _lod_slot < 0:
+			_lod_slot = get_instance_id() % LOD_EVERY
+		look_now = (Engine.get_process_frames() + _lod_slot) % 2 == 1
+		if look_now:
+			look_delta = _look_acc
+			_look_acc = 0.0
 	if logic_now:
 		# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
 		var thin: bool = _spawner != null and _spawner.thin_cards
@@ -856,8 +872,9 @@ func _process(delta: float) -> void:
 		_hud_dirty = false
 		statuses.hud_dirty = false
 		_update_hud(delta)
-	if not _culled:
-		_update_row_look(delta)  # Status icons in crowds: pips or the full row
+	if not _culled and look_now:
+		_update_row_look(look_delta)  # Status icons in crowds: pips or the full row
+		_update_sort_look(look_delta)  # Y-sort by the drawn body, only in a crowd
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -956,8 +973,8 @@ func _process(delta: float) -> void:
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
 			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
 			_steady_serial = _path_serial
-	if not _culled and not _leaping and not _dragging and covering == null:
-		_update_lane(delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
+	if look_now and not _culled and not _leaping and not _dragging and covering == null:
+		_update_lane(look_delta)  # Walking lanes: the drawn body beside the centre line (a Pall takes its walker's)
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -1179,6 +1196,20 @@ func _update_hud(delta: float) -> void:
 				break
 	if changed:
 		_update_hud_layout()
+	if _row_alpha.x <= 0.0 and _row_look != RowLook.FULL:
+		# (Perf 2026-10-24) In a crowd the full row is faded out (its pips show): the layout above keeps up, but its
+		# badges, numbers and time bars aren't drawn until it shows again (_update_row_look rebuilds them, _row_stale)
+		_row_stale = true
+		for id in _hud_pops.keys():  # (Pops still play out, unseen)
+			_hud_pops[id] -= delta
+			if _hud_pops[id] <= 0.0:
+				_hud_pops.erase(id)
+				_dream_pops.erase(id)
+		_hud_popping = false
+		_hud_flashing = false
+		_hud_ready_on = false
+		return
+	if changed:
 		_build_hud_pills(_hud_items[HUD_PILLS], overlay)
 		_build_hud_text(_hud_items[HUD_TEXT])
 	# A stack was just added: that icon pops (a quick scale bump), rebuilt each frame while it plays.
@@ -1219,7 +1250,7 @@ func _update_hud(delta: float) -> void:
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
 		return RowLook.FULL
-	var mode := int(Fx.setting("status_icons", 1))
+	var mode: int = _spawner.status_icons_now if _spawner != null else int(Fx.setting("status_icons", 1))  # (Read once a frame: perf)
 	if mode == 2:
 		return RowLook.OFF
 	if mode == 0 or enemy_data.is_boss or elite:
@@ -1230,6 +1261,19 @@ func _wanted_row_look() -> RowLook:
 
 # Every frame it's on screen: switch the row's look (held CROWD_HOLD s at least) and ease the full row and the pips'
 # alphas toward it; only touches the server when something moves.
+# Y-sort by the drawn body only in a crowd (perf 2026-10-25): y_sort_enabled makes the sprite, BodyFx and other children
+# sort one by one (about three items a nightmare); apart, the node's own position sorts it the same. On at once when
+# crowded, off CROWD_HOLD s after the crowd thins (so a pack's edge doesn't flip it).
+var _sort_hold := 0.0
+
+func _update_sort_look(delta: float) -> void:
+	_sort_hold -= delta
+	var crowded: bool = _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN
+	if crowded:
+		_sort_hold = CROWD_HOLD
+	if crowded != y_sort_enabled and (crowded or _sort_hold <= 0.0):
+		y_sort_enabled = crowded
+
 func _update_row_look(delta: float) -> void:
 	if not _hud_root.is_valid() or _hud_items.is_empty():
 		return
@@ -1260,6 +1304,10 @@ func _update_row_look(delta: float) -> void:
 		_build_pips()
 	elif _hud_pips.is_valid():
 		_place_pips()  # (The text scale or touch mode moved)
+	if _row_stale and target.x > 0.0:  # Showing again: everything the faded-out row skipped, drawn before it fades in
+		_row_stale = false
+		_hud_changes = -1
+		_update_hud(0.0)
 	if _row_alpha == target:
 		return
 	if bool(Fx.setting("reduced_motion", false)):
@@ -1276,6 +1324,8 @@ func _update_row_look(delta: float) -> void:
 # pips and a "more" dot. Hidden while a front nightmare's row covers it (EnemySpawner marks pips_hidden_seen).
 const CROWD_PIPS_MAX := 3
 const PIP_ART := 7  # UI Code's pip: 7 art px (5 of colour in a 1 px Void outline); a step of 8
+const PIP_OUTLINE_ALPHA := 1.0  # = KeywordIcons.PIP_OUTLINE_ALPHA / PIP_FILL_ALPHA (not readable before UI Code's branch is on main)
+const PIP_FILL_ALPHA := 0.85
 var pips_hidden_seen := -1.0
 var _pips_scale := -1.0
 var _pips_px := 0
@@ -1315,19 +1365,28 @@ func _place_pips() -> void:
 	var left := (_bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2.0, -bar_h / 2.0 - 2.0)).round()
 	RenderingServer.canvas_item_set_transform(_hud_pips, Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, left))
 
-static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip_rid: 1 once it's on main, 0 before (looked up once)
+static var _ui_methods := {}  # UI Code's KeywordIcons draw helpers: name -> their argument count, -1 while not on main (looked up once)
+
+# How many arguments KeywordIcons' `name` takes (-1: not on main yet), so a call can wait for (or match) UI Code's branch.
+func _ui_method_args(method_name: String) -> int:
+	if not _ui_methods.has(method_name):
+		_ui_methods[method_name] = -1
+		for method in (KeywordIcons as Script).get_script_method_list():
+			if method.name == method_name:
+				_ui_methods[method_name] = (method.args as Array).size()
+	return int(_ui_methods[method_name])
 
 func _ui_pip_rid() -> bool:
-	if _ui_pips < 0:
-		_ui_pips = 0
-		for method in (KeywordIcons as Script).get_script_method_list():
-			if method.name == "draw_pip_rid":
-				_ui_pips = 1
-	return _ui_pips == 1
+	return _ui_method_args("draw_pip_rid") >= 0
 
 # One pip at `at` (its centre), `px` screen px per art px. UI Code's art once KeywordIcons.draw_pip_rid is on main (its
 # own outline / fill alpha: the item's modulate is then only the ease); until then a plain square in the status colour.
 func _draw_pip(at: Vector2, id: StringName, px: int) -> void:
+	if _ui_method_args("draw_pip_rid") >= 7:  # Section 35: a full status lights its outline (Heartlight)
+		var cap := statuses.get_max_stacks(id)
+		var full := cap > 1 and statuses.stacks(id) >= cap
+		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px), PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA, full)
+		return
 	if _ui_pip_rid():
 		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px))  # Its own outline 1.0 / fill 0.85 (ab79e6e4)
 		return
@@ -1496,7 +1555,9 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 		var centre := _badge_centre(i)
 		var color: Color = _hud_colors[i]
 		var id: StringName = _hud_ids[i]
-		if _hud_full[i]:  # At max stacks: a warm glow behind the icon
+		if _hud_full[i] and _ui_method_args("draw_full_dot_rid") >= 0:  # UI Code section 35: the full dot under the icon
+			(KeywordIcons as Script).call("draw_full_dot_rid", item, centre, r, color)
+		elif _hud_full[i]:  # At max stacks: a warm glow behind the icon
 			var g := r * 1.7
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
@@ -2175,7 +2236,7 @@ func _is_big_for_lanes() -> bool:
 func _update_lane(delta: float) -> void:
 	if _spawner != null and not _spawner.walking_lanes:
 		return  # Dev flag --no-lanes
-	var still := bool(Fx.setting("reduced_motion", false))
+	var still: bool = _spawner.reduced_motion_now if _spawner != null else bool(Fx.setting("reduced_motion", false))  # (Once a frame: perf)
 	var cell: float = grid.cell_size.x
 	if _lane_rng == null:
 		_lane_rng = RandomNumberGenerator.new()
@@ -2212,7 +2273,8 @@ func _update_lane(delta: float) -> void:
 	_lane_gap = lerpf(_lane_gap, 0.0 if _gap_answer else 1.0, 1.0 - exp(-LANE_GAP_EASE * delta))
 	_lane_age += delta
 	var open := clampf(_lane_age * maxf(speed, 1.0) / cell, 0.0, 1.0)  # Over the first cell
-	open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
+	if _path_index + 4 >= _path.size():  # (Perf: 4+ steps of at least half a cell left are over a cell: the full lane)
+		open = minf(open, clampf(get_remaining_distance() / cell, 0.0, 1.0))  # …and closed over the last route cell
 	var side := Vector2(-_lane_dir.y, _lane_dir.x)
 	# In a one-half gap the lane narrows (eased) to what the gap leaves beside the squeezed body, never into a Warden
 	var lane_px := lane * get_lane_width() * cell
@@ -3910,11 +3972,15 @@ func _burst_into_motes() -> void:
 	if boss and world != null and _spawner != null and _spawner.in_game:
 		Fx._hitstop(world)
 		NightmareOverlay.rumble(world, BOSS_DISPEL_TRAUMA)
-	var motes := CPUParticles2D.new()
-	motes.one_shot = true
-	motes.explosiveness = 0.9
 	var burst_share := 0.5 if _spawner != null and _spawner.dispel_burst() > MOTE_BURST_MAX else 1.0  # A pack wiped at once: half each (phones)
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share)
+	var amount := maxi(roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share), 1)
+	var motes: CPUParticles2D = _spawner.take_motes(amount, MOTE_COLOR) if _spawner != null else null  # (Pooled: perf 2026-10-25)
+	var pooled := motes != null
+	if not pooled:
+		motes = CPUParticles2D.new()
+		motes.one_shot = true
+		motes.amount = amount
+	motes.explosiveness = 0.9
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)
@@ -3927,11 +3993,15 @@ func _burst_into_motes() -> void:
 	motes.damping_max = 60.0
 	motes.scale_amount_min = 2.0
 	motes.scale_amount_max = 3.5
-	var fade := Gradient.new()
-	fade.set_color(0, MOTE_COLOR)
-	fade.set_color(1, Color(MOTE_COLOR, 0.0))
-	motes.color_ramp = fade
-	add_child(motes)
+	if pooled:
+		motes.global_position = global_position
+		motes.restart()  # (Fires the burst again from here)
+	else:
+		var fade := Gradient.new()
+		fade.set_color(0, MOTE_COLOR)
+		fade.set_color(1, Color(MOTE_COLOR, 0.0))
+		motes.color_ramp = fade
+		add_child(motes)
 	motes.emitting = true
 
 # 0 = whole, 1 = cracked through with light (see shaders/blight.gdshader).

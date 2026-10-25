@@ -279,11 +279,11 @@ func _test_new_cards(main: Node) -> void:
 	# Entwined: drawn at normal odds once the ingredients come together (no guaranteed slot)
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
-	dreams.unlocked["dewdrop"] = true
 	var soil := _card(dreams, "conductive_soil")
-	_check(not dreams.is_eligible(soil), "Conductive Soil needs Stormcap + Rain Lily")
-	dreams.take(_card(dreams, "dream_stormcap"))
-	dreams.take(_card(dreams, "dream_rain_lily"))
+	_check(not dreams.is_eligible(soil), "Conductive Soil needs Firefly Jar + Dewdrop (section 35: families, not branches)")
+	dreams.unlocked["dewdrop"] = true
+	dreams.grown_wardens["firefly_jar"] = true
+	dreams.grown_wardens["dewdrop"] = true
 	_check(dreams.is_eligible(soil), "Entwined: Conductive Soil offered at normal odds once both are owned (no guaranteed slot)")
 	var seen_again := 0
 	for i in 30:
@@ -515,23 +515,12 @@ func _test_meta_hooks(main: Node) -> void:
 	_check(dreams.is_eligible(grove_card), "grove_cards puts it in the pool")
 	dreams.grove_cards.clear()
 
-	# Chain Bloom: a Grove card, Entwined (Puffball + Mistveil)
+	# Chain Bloom (section 35): attack-wide, for Area Wardens' splashes; no longer Entwined (was Puffball + Mistveil)
 	var bloom := _card(dreams, "chain_bloom")
-	dreams.unlocked["puffball"] = true
-	dreams.unlocked["mistveil"] = true
-	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
-	dreams.grown_wardens["mistveil"] = true
-	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and Array(bloom.discovered_by) == ["event:puff_in_fog"],
-		"Chain Bloom: start pool, discovered by a Puffball puff in Mistveil's fog")
-	dreams.unlocked.erase("mistveil")
-	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
-	dreams.unlocked["mistveil"] = true
-	# No guaranteed slot (dream_design.md "Combo cards are choices, not musts"): eligible, drawn at normal odds
-	var bloom_offers := 0
-	for i in 30:
-		if dreams.make_offer(10).has(bloom):
-			bloom_offers += 1
-	_check(dreams.is_eligible(bloom) and bloom_offers < 30, "Chain Bloom is offered at normal odds once Puffball and Mistveil are owned (%d of 30 offers)" % bloom_offers)
+	_check(not bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and bloom.requires.is_empty()
+		and bloom.requires_role == WardenRoles.AREA and Array(bloom.discovered_by) == ["event:splash_layered"],
+		"Chain Bloom: start pool, an Area Warden's card, discovered by a splash on a nightmare with 2+ statuses")
+	_check(not dreams.board_can_use(bloom), "…offered only once a splashing Warden stands on the map")
 	dreams.take(bloom)
 	_check(dreams.has_rule(&"chain_bloom"), "taking it switches on the chain_bloom rule")
 	dreams.stacks.erase("chain_bloom")
@@ -904,7 +893,7 @@ func _test_stray_dream(main: Node) -> void:
 	# No Entwined slot any more (dream_design.md "Combo cards are choices, not musts"): an offer with Conductive Soil
 	# eligible is still Stray + normal cards, Soil not forced first
 	_reset_dreams(main)
-	dreams.unlocked = {"sprout": true, "thornwall": true, "stormcap": true, "rain_lily": true}
+	dreams.unlocked = {"sprout": true, "thornwall": true, "firefly_jar": true, "dewdrop": true}
 	var soil := _card(dreams, "conductive_soil")
 	var soil_first := 0
 	for i in 20:
@@ -979,11 +968,11 @@ func _test_half_dreamed(main: Node) -> void:
 	var screen = main.get_node("%FamilyPickScreen")
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
-	var thunder := _card(dreams, "rolling_thunder")  # Needs Stormcap (Firefly Jar's) + Dewdrop
+	var thunder := _card(dreams, "conductive_soil")  # Needs Firefly Jar + Dewdrop (section 35: Rolling Thunder gates on statuses now, never half-dreamed)
 	# New-family picks come after drifts 10 and 35; drift 60's pick deepens (owner 2026-10-22)
 	dreams._offer_drift = 5
-	_check(Array(dreams.half_dreamed_missing(thunder)) == ["dewdrop"], "half-dreamed: owns Firefly Jar (Stormcap counts), Dewdrop pickable")
-	_check(dreams.can_offer(thunder) and not dreams.is_eligible(thunder), "…can be offered, but isn't whole")
+	_check(Array(dreams.half_dreamed_missing(thunder)) == ["dewdrop"], "half-dreamed: owns Firefly Jar, Dewdrop pickable")
+	_check((dreams.can_offer(thunder) or not dreams.in_run_pool(thunder)) and not dreams.is_eligible(thunder), "…can be offered (when drawn into the run pool), but isn't whole")
 	var text := dreams.half_dreamed_text(thunder)
 	print("half-dreamed text: " + text)
 	_check(text.begins_with("Needs Soak: a family that brings it may come at the family pick after drift 10") and not text.contains("Dewdrop"),
@@ -995,7 +984,7 @@ func _test_half_dreamed(main: Node) -> void:
 	dreams._offer_drift = 15
 	_check(dreams.is_half_dreamed(thunder), "…(drift 15: 20 away, yes)")
 	dreams._offer_drift = 5
-	var soil := _card(dreams, "conductive_soil")  # Rare, half-dreamed here too (Stormcap + Rain Lily)
+	var soil := _card(dreams, "conductive_soil")  # Rare, half-dreamed here (Firefly Jar + Dewdrop)
 	var forced_soil := 0
 	for i in 300:
 		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
@@ -1025,10 +1014,8 @@ func _test_half_dreamed(main: Node) -> void:
 	# made to include its missing family
 	_check(dreams.is_dormant(thunder), "…still asleep after a save")
 	_check(not dreams.has_method("take_owed_families"), "…and no family is owed to the next pick")
-	dreams.unlocked["dewdrop"] = true
-	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
-	dreams.unlocked["stormcap"] = true
-	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
+	dreams.unlocked["dewdrop"] = true  # Section 35: Conductive Soil needs the families, never a branch (no Stormcap wait)
+	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once its missing family is yours")
 	_check(dreams.not_active_reason(thunder) == "", "…and no longer says it's waiting")
 	_reset_dreams(main)
 
@@ -1124,17 +1111,17 @@ func _test_discovery(main: Node) -> void:
 	dreams._events_this_run.clear()
 	var starlit := _card(dreams, "starlit_aim")
 	var fog_card := _card(dreams, "chain_bloom")
-	_check(starlit.in_start_pool and not dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
-		"Starlit Aim and Chain Bloom are start pool, waiting for their moments")
+	_check(starlit.in_start_pool and dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
+		"Starlit Aim needs no moment now (Heavy Wardens, section 35); Chain Bloom waits for its")
 	var crit := DamageLog.Event.new()
 	crit.combos.assign([&"crit"])
 	dreams._on_damage_dealt(crit)
 	_check(not dreams.event_discovered("crit_marked"), "a plain crit isn't it")
 	crit.combos.assign([&"crit", &"marked"])
 	dreams._on_damage_dealt(crit)
-	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
-	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
-	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
+	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare is still a discovery moment")
+	dreams.note_discovery(DreamState.EVENT_SPLASH_LAYERED)  # DreamState notes it when a splashing Warden hits a nightmare with 2+ statuses
+	_check(dreams.event_discovered("splash_layered") and dreams.discovery_met(fog_card), "a splash on a nightmare with 2+ statuses discovers Chain Bloom (section 35)")
 	var cache := _card(dreams, "warm_hearth")  # Needs an Acorn (Acorn Cache was cut)
 	_check(not dreams.discovery_met(cache), "Warm Hearth waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
@@ -1144,13 +1131,16 @@ func _test_discovery(main: Node) -> void:
 	# Half-dreamed cards skip the Warden gate (keep a Reaction gate); whole again, it applies.
 	dreams.unlocked["firefly_jar"] = true
 	dreams._offer_drift = 5  # The drift 10 family pick is next
+	# Section 35: a card naming a BRANCH of a family you don't have (Static Bloom: Bloomcap, a Sporeling branch) is never
+	# half-dreamed with branch expansion on: the pick may draw that family's branches without it (the Thunder Chimes bug)
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
-	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
 	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)
-	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
-	for family in dreams.half_dreamed_missing(beaks):
-		dreams.unlocked[family] = true
-	_check(not dreams.is_half_dreamed(beaks) and not dreams.discovery_met(beaks), "…whole again, it waits for its Wardens")
+	if dreams.branch_expansion_on():
+		_check(not dreams.is_half_dreamed(beaks), "a missing family's branch is never promised: not half-dreamed (%s)" % [dreams.half_dreamed_missing(beaks)])
+	else:
+		_check(dreams.is_half_dreamed(beaks), "branch expansion off: every branch comes, so it stays half-dreamed")
+	# A card naming only family roots still is (Conductive Soil: Firefly Jar + Dewdrop)
+	_check(dreams.is_half_dreamed(_card(dreams, "conductive_soil")), "a card naming family roots stays half-dreamed")
 	dreams._offer_drift = 0
 	acorn.queue_free()
 	dreams.discovery_profile = null
@@ -1323,29 +1313,28 @@ func _test_grown_needs(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	_reset_dreams(main)
 	dreams.grown_wardens.clear()
-	dreams.unlocked["firefly_jar"] = true
-	dreams.unlocked["stormcap"] = true  # Unlocked with Dreamlight, not grown yet
+	dreams.unlocked["firefly_jar"] = true  # Unlocked by the family picks, not built yet
 	dreams.unlocked["dewdrop"] = true
 	dreams.unlocks_changed.emit()
-	var thunder := _card(dreams, "rolling_thunder")  # Stormcap + any Dewdrop
-	_check(dreams.is_unlocked("stormcap") and not dreams.grown_needs_met(thunder) and not dreams.can_offer(thunder, 2),
-		"a Stormcap card isn't offered after the first pick (Stormcap only unlocked)")
+	var thunder := _card(dreams, "conductive_soil")  # Firefly Jar + Dewdrop (section 35: no card names a branch any more)
+	_check(dreams.is_unlocked("firefly_jar") and not dreams.grown_needs_met(thunder) and not dreams.can_offer(thunder, 2),
+		"a card naming Firefly Jar isn't offered before one is built")
 	var planted: Array[Tower] = []
-	for id in ["stormcap", "dewdrop"]:
+	for id in ["firefly_jar", "dewdrop"]:
 		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
 		tower.tower_data = load("res://resource/tower/%s.tres" % id)
 		tower.cell = Vector2(120 + planted.size() * 3, 120)
 		main.get_node("%TowerContainer").add_child(tower)
 		tower.set_process(false)
 		planted.append(tower)
-	_check(dreams.grown_needs_met(thunder), "…once a Stormcap (and a Dewdrop) has stood on the map it is")
+	_check(dreams.grown_needs_met(thunder), "…once a Firefly Jar (and a Dewdrop) has stood on the map it is")
 	for tower in planted:
 		tower.free()
 	_check(dreams.grown_needs_met(thunder), "…and stays offered after they're sold")
 	var saved := dreams.to_save()
 	dreams.grown_wardens.clear()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(dreams.grown_wardens.has("stormcap"), "grown Wardens survive a save")
+	_check(dreams.grown_wardens.has("firefly_jar"), "grown Wardens survive a save")
 	dreams.unlock_everything = true
 	dreams.grown_wardens.clear()
 	_check(dreams.grown_needs_met(thunder), "Test Grove: no need to grow anything")
@@ -1360,8 +1349,8 @@ func _test_offer_shape(main: Node) -> void:
 	for family in ["sporeling", "dewdrop", "firefly_jar", "pebbling", "rootling", "acorn"]:
 		dreams.unlocked[family] = true
 	dreams.unlocks_changed.emit()
-	_check(dreams.is_family_card(_card(dreams, "spore_cascade")) and not dreams.is_family_card(_card(dreams, "deeper_calm")),
-		"a family card needs a Warden (Spore Cascade); Deeper Calm doesn't")
+	_check(dreams.is_family_card(_card(dreams, "guiding_light")) and not dreams.is_family_card(_card(dreams, "deeper_calm")),
+		"a family card needs a Warden (Guiding Light: Firefly Jar); Deeper Calm doesn't")
 	var most_family := 0
 	var most_plain := 0
 	for i in 120:

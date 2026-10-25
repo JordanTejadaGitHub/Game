@@ -14,3 +14,4 @@ requires = Array[String]([])
 requires_any = Array[String](["gust", "zephyr"])
 max_stacks = 1
 rule_id = &"ill_wind"
+retired = true

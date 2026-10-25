@@ -68,12 +68,13 @@ func is_returning() -> bool:
 
 func _process(delta: float) -> void:
 	var step := speed * delta
+	var here := global_position  # (Read once: each read works out the global transform; perf, ~70 in flight)
 	if trail.a > 0.0:
-		_trail.append(global_position + Vector2(0, -_lob_lift()))
+		_trail.append(here + Vector2(0, -_lob_lift()))
 		if _trail.size() > TRAIL_POINTS:
 			_trail.pop_front()
 	if _returning:
-		if global_position.distance_to(_home) <= step:
+		if here.distance_to(_home) <= step:
 			queue_free()
 			return
 		_fly_toward(_home, step * return_multiplier, delta)
@@ -83,7 +84,7 @@ func _process(delta: float) -> void:
 	if target_alive and not _lob:
 		_target_position = Tower.aim_at(_target)  # Fly at the drawn body (feet on the route point)
 
-	if global_position.distance_to(_target_position) <= step:
+	if here.distance_to(_target_position) <= step:
 		_on_land.call(_target if target_alive else null, _target.global_position if target_alive and not _lob else _target_position)  # Lands at the logical spot (splash)
 		if _returns and reswoops > 0 and target_alive and (not is_instance_valid(_target) or _target.is_cleansed):
 			var next := _nearest_nightmare()
@@ -111,17 +112,18 @@ func _nearest_nightmare() -> Node2D:
 
 func _fly_toward(to: Vector2, step: float, delta: float) -> void:
 	_anim_time += delta
-	if dream_tier > 0 and global_position != to:
-		_dream_dir = global_position.direction_to(to)
+	var from := global_position
+	if dream_tier > 0 and from != to:
+		_dream_dir = from.direction_to(to)
 	if texture != null and not _lob:
-		rotation = global_position.direction_to(to).angle()
+		rotation = from.direction_to(to).angle()
 	# Performance: redraw only when the drawing changes (a new sheet frame, a lob's arc, a trail); moving and
 	# rotating the node doesn't need one.
 	var frame := int(_anim_time * ANIMATION_FPS)
 	if _lob or not _trail.is_empty() or frame != _drawn_frame:
 		_drawn_frame = frame
 		queue_redraw()
-	global_position = global_position.move_toward(to, step)
+	global_position = from.move_toward(to, step)
 
 # How high a lobbed stone is above the ground right now (0 at both ends of the arc).
 func _lob_lift() -> float:

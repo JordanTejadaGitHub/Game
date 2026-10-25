@@ -26,9 +26,9 @@ func _run() -> void:
 	dreams._offer_drift = 5  # The drift 10 family pick is next (owner 2026-10-22: new families at 10 and 35)
 	var bloom: UpgradeData = null
 	for card in dreams.pool:
-		if card.id == "static_bloom":
+		if card.id == "resonance":  # Section 35 retired Storm Lull: Thunder Chimes (Bellflower + Firefly Jar, families only) is the half-dreamed Rare here
 			bloom = card
-	_check(bloom != null and dreams.is_half_dreamed(bloom), "Charged Bloom is half-dreamed here")
+	_check(bloom != null and dreams.is_half_dreamed(bloom), "Thunder Chimes is half-dreamed here")
 	var longest: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
 		return c != bloom and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and c.kind != UpgradeData.Kind.UNLOCK_WARDEN)
 	longest.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return _text_length(a) > _text_length(b))
@@ -88,7 +88,8 @@ func _run() -> void:
 	screen._show_offer(cards, 25)
 	for i in 3:
 		await process_frame
-	# No Needs line on the card face (dream_design.md 2026-10-01, user: "can remove the Needs Water"), even half-dreamed
+	# A Half-Dreamed card shows its Needs line (dream_council_review.md 35, owner 2026-10-24): dream_state.half_dreamed_text,
+	# under the effect and the answer line; still no "Half-Dreamed" label and no missing-Warden row
 	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
 	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \
 		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
@@ -96,16 +97,21 @@ func _run() -> void:
 	var joined := " | ".join(bloom_texts)
 	var needs := dreams.missing_needs(bloom)
 	var row := bloom_button.find_child("MissingRow", true, false)
-	_check(not needs.is_empty() and row == null and not bloom_texts.any(func(t: String) -> bool: return t.begins_with("Needs"))
-		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
-		"a half-dreamed card: no \"Needs …\" line, no label (%s)" % joined)
+	var needs_text := dreams.half_dreamed_text(bloom)
+	var needs_line := bloom_button.find_child("HalfDreamed", true, false) as RichTextLabel
+	_check(not needs.is_empty() and row == null and needs_text.begins_with("Needs") and needs_line != null
+		and needs_line.get_parsed_text().begins_with("Needs") and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
+		"a half-dreamed card: its \"Needs …\" line (half_dreamed_text), no label (%s)" % joined)
+	if needs_line != null:
+		_check(needs_line.get_index() > 2 and Rect2(bloom_button.get_global_rect()).grow(0.5).encloses(needs_line.get_global_rect()),
+			"…after the name and the effect, inside the card")
 	_check(dreams.not_active_reason(bloom).begins_with("Not active yet: needs a"),
 		"…the reason lives on for the Dreams this run hover (%s)" % dreams.not_active_reason(bloom))
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].name and needs[0].name == IconInfo.family_data(needs[0].family).display_name,
 		"…named by family (damage types are gone, 2026-10-15) (%s)" % dreams.missing_families_text(bloom))
 	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
 	# Both families owned (the user's screenshot: "Needs: Firefly Jar + Sporeling families"): no Needs line at all
-	for family in ["firefly_jar", "sporeling", "bloomcap", "stormcap"]:
+	for family in ["firefly_jar", "bellflower", "sporeling", "bloomcap", "stormcap"]:
 		dreams.unlocked[family] = true
 	screen._show_offer(cards, 25)
 	for i in 3:

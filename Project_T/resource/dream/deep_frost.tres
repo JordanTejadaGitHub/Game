@@ -6,12 +6,13 @@
 script = ExtResource("1_card")
 id = "deep_frost"
 display_name = "Deep Frost"
-description = "{frozen} nightmares take 45% more damage from hits."
+description = "{family:dewdrop} Wardens' hits deal 45% more damage to nightmares with {held}."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "crit"])
-requires = Array[String](["frostfern"])
+requires = Array[String](["dewdrop"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"deep_frost"
-tip = "{frozen}: a nightmare whose {held} came from a {family:dewdrop}-{family} Warden. Works for: {warden:frostfern} and its forms. Safe."
+tip = "Any {held}, from any Warden. Works for: {family:dewdrop} Wardens with Wardens that add {held}. Safe."
+requires_role = &"hold"

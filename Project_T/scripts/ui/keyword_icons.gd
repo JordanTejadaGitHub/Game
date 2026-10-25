@@ -444,23 +444,25 @@ static func pip_color(id: StringName) -> Color:
 	return PIP_COLORS.get(id, EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
 
 # Draws `id`'s pip centred on `centre` on a CanvasItem, `px` screen px per art px (whole numbers keep it crisp).
+# `full`: the status is at its most (Brimming doubles the most): the outline lights Heartlight instead of Void, which
+# reads on every shape (section 35, owner 2026-10-24).
 static func draw_pip(canvas: CanvasItem, id: StringName, centre: Vector2, px: float = 1.0,
-		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA) -> void:
-	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha):
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full):
 		canvas.draw_rect(part[0], part[1])
 
 # The same into a RenderingServer canvas item (Enemy's HUD rows draw into an RID, not a CanvasItem).
 static func draw_pip_rid(item: RID, id: StringName, centre: Vector2, px: float = 1.0,
-		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA) -> void:
-	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha):
+		outline_alpha: float = PIP_OUTLINE_ALPHA, fill_alpha: float = PIP_FILL_ALPHA, full := false) -> void:
+	for part in _pip_rects(id, centre, px, outline_alpha, fill_alpha, full):
 		RenderingServer.canvas_item_add_rect(item, part[0], part[1])
 
 # [[Rect2, Color], …]: one rect per run of one ink (outline first, then fill).
-static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha: float, fill_alpha: float) -> Array:
+static func _pip_rects(id: StringName, centre: Vector2, px: float, outline_alpha: float, fill_alpha: float, full := false) -> Array:
 	id = PIP_ALIASES.get(id, id)
 	if not PIPS.has(id):
 		return []
-	var inks := {"k": Color(Palette.VOID, outline_alpha), "c": Color(pip_color(id), fill_alpha)}
+	var inks := {"k": Color(Palette.HEARTLIGHT if full else Palette.VOID, outline_alpha), "c": Color(pip_color(id), fill_alpha)}
 	var origin := (centre - Vector2(PIP_SIZE, PIP_SIZE) * px / 2.0).round()
 	var rows: Array = PIPS[id]
 	var out: Array = []
@@ -483,3 +485,22 @@ static func pip_image(id: StringName) -> Image:
 	for part in _pip_rects(id, Vector2(PIP_SIZE, PIP_SIZE) / 2.0, 1.0, PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA):
 		image.fill_rect(Rect2i(part[0]), part[1])
 	return image
+
+# --- A full status's dot (dream_council_review.md 35, owner 2026-10-24) -------------------------------------------
+# A status at its most (Brimming doubles the most) fills its dot: the badge sits on a disc of its own colour inside a
+# 1 px Heartlight ring and a Void edge (it was a soft gold glow, easy to miss). Enemy's status row draws it under the
+# icon, into its marks canvas item, in place of the glow; `r` is the badge's half size.
+const FULL_FILL_ALPHA := 0.6  # The colour under the icon, dark enough that the icon still reads on it
+static func draw_full_dot_rid(item: RID, centre: Vector2, r: float, color: Color) -> void:
+	var rs := RenderingServer
+	rs.canvas_item_add_circle(item, centre, r + 2.0, Color(Palette.VOID, 0.9))
+	rs.canvas_item_add_circle(item, centre, r + 1.0, Palette.HEARTLIGHT)
+	rs.canvas_item_add_circle(item, centre, r, Palette.VOID)
+	rs.canvas_item_add_circle(item, centre, r, Color(color, FULL_FILL_ALPHA))
+
+# The same on a CanvasItem (previews).
+static func draw_full_dot(canvas: CanvasItem, centre: Vector2, r: float, color: Color) -> void:
+	canvas.draw_circle(centre, r + 2.0, Color(Palette.VOID, 0.9))
+	canvas.draw_circle(centre, r + 1.0, Palette.HEARTLIGHT)
+	canvas.draw_circle(centre, r, Palette.VOID)
+	canvas.draw_circle(centre, r, Color(color, FULL_FILL_ALPHA))

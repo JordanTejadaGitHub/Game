@@ -15,6 +15,7 @@ const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
 const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
 const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
+const HALF_DREAMED_COLOR := Palette.WRAITHLIGHT  # A Half-Dreamed card's "Needs …" line: not yours yet, but coming
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -477,6 +478,13 @@ func _make_card(card: UpgradeData) -> Button:
 		var answer: String = dream_state.answer_line(card)
 		if answer != "":
 			_add_linked_line(box, answer, UiStyle.INK_DIM, _fs(14))
+	# A Half-Dreamed card says what it waits for and when that can come (dream_council_review.md 35, owner 2026-10-24: the
+	# screen never showed it, so Thunder Chimes came to a run that could never wake it): "Needs Dewdrop: a family you can
+	# pick after the Hollow Stag (drift 25)".
+	if dream_state != null and dream_state.has_method("half_dreamed_text"):
+		var needs: String = dream_state.half_dreamed_text(card)
+		if needs != "":
+			_add_linked_line(box, needs, HALF_DREAMED_COLOR, _fs(14)).name = "HalfDreamed"
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
 		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, _fs(14))
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
@@ -494,8 +502,9 @@ func _make_card(card: UpgradeData) -> Button:
 		secondary.append(_add_line(box, "Upgrade: replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet: has a cost", BITTERSWEET_COLOR, SECONDARY_SIZE))
-	# No "Needs …" line (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the card text names what it
-	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
+	# No "Needs …" line for a card you can wake now (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the
+	# card text names what it uses; Dreams this run dims a card that isn't active yet and says why on hover
+	# (DreamState.not_active_reason). Only a Half-Dreamed card shows its Needs line, under the answer line (section 35).
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
 	# Keyword chips (2026-10-16; Roguelite Code b4ff3d08) at the card's foot, one line, small, outlined in the rarity
@@ -769,7 +778,7 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 # a row of chips at its foot, each a real tap target; a tap opens the same tip as the word. Nothing when it has none.
 const CHIP_H := 40.0
 var _link_pattern := RegEx.create_from_string("\\[url=([^\\]]+)\\](.*?)\\[/url\\]")
-var _tag_pattern := RegEx.create_from_string("\\[[^\\]]*\\]")
+var _tag_pattern := RegEx.create_from_string("\\[img[^\\]]*\\][^\\[]*\\[/img\\]|\\[[^\\]]*\\]")  # An inline icon goes whole ([img]path[/img]: its path showed on the chip, Mobile UI 2026-10-25), then any tag
 
 func _add_keyword_chips(box: VBoxContainer) -> void:
 	var row := HFlowContainer.new()
@@ -788,7 +797,7 @@ func _add_keyword_chips(box: VBoxContainer) -> void:
 				continue
 			seen[meta] = true
 			var chip := Button.new()
-			chip.text = _tag_pattern.sub(found.get_string(2), "", true)
+			chip.text = _tag_pattern.sub(found.get_string(2), "", true).strip_edges()
 			chip.focus_mode = Control.FOCUS_NONE
 			chip.custom_minimum_size = Vector2(0, CHIP_H)
 			chip.add_theme_font_size_override("font_size", _fs(13))

@@ -613,8 +613,8 @@ func _test_eleven_cards() -> void:
 		var card := _card(id)
 		if card:
 			_check(card.in_start_pool != (grove.has(id) or LEAN_GROVE.has(id)) and not card.tags.is_empty(), "%s: pool and tags" % id)
-	_check(_card("ring_dance").entwined and _card("carried_on_the_wind").entwined and _card("sharpened_light_ii").deepens == "sharpened_light",
-		"Ring Dance and Carried on the Wind are Entwined; Sharpened Light II deepens")
+	_check(_card("ring_dance").entwined and not _card("carried_on_the_wind").entwined and _card("sharpened_light_ii").deepens == "sharpened_light",
+		"Ring Dance is Entwined (retired); Carried on the Wind is family-wide (section 35); Sharpened Light II deepens")
 	var pebble := _plant("pebbling", Vector2(100, 100))
 	var spore := _plant("sporeling", Vector2(104, 100))
 	var base := dreams.get_crit_chance_bonus(spore)
@@ -625,17 +625,17 @@ func _test_eleven_cards() -> void:
 	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 0.5), "Sharpened Light: crits +0.5×")
 	dreams.take(_card("sharpened_light_ii"))
 	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 1.0), "…II: +1.0×")
-	# Deep Frost: Held by a water Warden (frozen), not by a Rootling
-	var frostfern := _plant("frostfern", Vector2(108, 100))
+	# Deep Frost (section 35): a Dewdrop Warden's hit on any Rooted nightmare (was Frostfern's freeze only)
+	var dew := _plant("dewdrop", Vector2(108, 100))
 	var rootling := _plant("rootling", Vector2(112, 100))
 	var cold := _spawn(Vector2(5, 5))
-	var plain := dreams.on_hit_multiplier(spore, cold)
+	var plain := dreams.on_hit_multiplier(dew, cold)
+	var plain_spore := dreams.on_hit_multiplier(spore, cold)
 	dreams.take(_card("deep_frost"))
+	_check(is_equal_approx(dreams.on_hit_multiplier(dew, cold), plain), "Deep Frost: nothing without Root")
 	cold.statuses.apply(EnemyStatuses.HELD, 1, 5.0, 1.0, 0, "root", rootling)
-	_check(is_equal_approx(dreams.on_hit_multiplier(spore, cold), plain), "Deep Frost: nothing on a Rootling hold")
-	cold.statuses.remove(EnemyStatuses.HELD)
-	cold.statuses.apply(EnemyStatuses.HELD, 1, 5.0, 1.0, 0, "water", frostfern)
-	_check(is_equal_approx(dreams.on_hit_multiplier(spore, cold), plain + 0.45), "…+45% on a frozen one")
+	_check(is_equal_approx(dreams.on_hit_multiplier(dew, cold), plain + 0.45), "…+45% on a Rootling's hold, from a Dewdrop Warden")
+	_check(is_equal_approx(dreams.on_hit_multiplier(spore, cold), plain_spore), "…never from another family's hit")
 	cold.free()
 	# Long Shadows: range 5+ reach 2 further
 	dreams.take(_card("long_shadows"))
@@ -1044,7 +1044,7 @@ func _test_live_lines() -> void:
 func _test_needs_text() -> void:
 	_reset()
 	_check(dreams.needs_text(_card("rolling_thunder")) == "Needs: Soak + Charge", "Rolling Thunder: %s" % dreams.needs_text(_card("rolling_thunder")))
-	_check(dreams.needs_text(_card("starlit_aim")) == "Needs: Pebbling + Firefly Jar families", "Starlit Aim: %s" % dreams.needs_text(_card("starlit_aim")))
+	_check(not dreams.needs_text(_card("starlit_aim")).contains("famil"), "Starlit Aim: Heavy Wardens, no families (section 35): %s" % dreams.needs_text(_card("starlit_aim")))
 	_check(dreams.needs_text(_card("nursery")) == "Needs: Tender Care + Seedling Gift", "Nursery: %s" % dreams.needs_text(_card("nursery")))
 	var family_names := {}
 	for id in DreamState._every_family().values():

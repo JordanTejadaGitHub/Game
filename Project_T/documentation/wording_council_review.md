@@ -385,3 +385,63 @@ a "Combos with" line. Kept.
 **Decided (owner 2026-10-24):** 1. the Spire block finale shows as **"Last drift"**; the Calling's drift 75 stage keeps
 **Finale**. 2. the drift shape Stream is **Steady** (code id `STREAM` may stay); Dewdrop's Stream evolution and Swift
 Stream keep their names.
+
+---
+
+# Roguelite round (2026-10-24): Roguelite Code's changes since round 3
+
+User: *"Go over the council with roguelite changes."* Read: Roguelite Code's round 3 fixes (1f130f45) and its uncommitted
+"no branch-only cards" rework (dream_council_review.md 35): 48 Dream cards with changed text (OLD vs NEW), 19 newly
+retired, and the changed Calling / Dream script strings. Five seats; reports in `wording_council/roguelite/`.
+
+## RR.1 Round 3 fixes: 8 of 9 Roguelite items done
+
+Partial: {water} still counted in the River Mouth, Delta and Rapids tips (`calling_paths.gd:434, :438, :441` "per
+{water}"); the new {flares} token used as a verb in Lantern Parade (`:159`). Towering still "10% more" and "Hits only."
+Not Roguelite's and not yet applied: Steady (drift shape) and the Spire finale rename (Main Merger's prompt).
+
+## RR.2 Text that is wrong (spot-checked)
+
+| Card | Says | Code does |
+|---|---|---|
+| **{full}** on Starlit Aim, Called Shot, Guiding Light I / II | "a {full} status", and the Codex "Full" entry says a status's most (doubled by Brimming) | full = 75% of the base cap, before Brimming (`enemy_statuses.gd:533` FULL_SHARE 0.75). One word, two thresholds. |
+| Starlit Aim tip | "Not {static} or {held}." | `any_full()` counts every status, Charge and Root included (`dream_state.gd:1901`); a full Root is never spent |
+| Eddy | copies half the statuses "to the next nightmare ahead and behind" | one nearest nightmare (`tower.gd:5365`); "half" = half of each status's stacks |
+| Loose Stones | lands "within 1 cell" | up to 1.5 cells (`tower.gd:5347`); area hits skip the count (`:3465`), so Cairn, Rockslide, Old Mountain never trigger it (check) |
+| Conductive Soil | no number | each jump deals half the hit (`tower.gd:2711`); its jumps skip `note_jump`, so Gathering Storm / Struck Twice never count them |
+| Grandfather Stump | Wardens "touching" it; "up to 45%" | counts Wardens in its aura (`tower.gd:2496`); 45% is the aura's total |
+| Moth to Flame | the crit waits for 4 hits | only the +50% waits (`firefly_lights.gd:1786`) |
+| "gold dispels" | one meaning | per block for Moth to Flame, in total for Pyre (`firefly_lights.gd:787`) |
+| Host Trees | {potency} | raises effect damage only (`spore_print.gd:1481`) |
+| Unfettered | "less than once a second", "row" | output clocks of 3 s and 4 s too (`class_kit.gd:413`); "row" is undefined |
+| Clean Strike | the owner's new condition (section 35) | in neither text nor code (`dream_hit_cards.gd:229`) |
+
+## RR.3 Wording
+
+- Limits only in tips: Charged Feathers, Pollen Beaks, Resonance say "each hit" on the card; the tip says direct hits,
+  once a second. Card shape T9: "[Who]'s direct hits [do X]. Each Warden once a second."
+- Status names as adjectives: "a {damp} nightmare" (Conductive Soil), "{spored} nightmares" (Host Trees): "nightmares
+  with {damp}".
+- Raw words: "Heavy" (Starlit Aim: say what makes a Warden heavy, or link it), "sleep" (Eddy), "Area" (Chain Bloom),
+  "Phantom"; "half again as wide" (= ×1.5, check); Grandfather Stump "up to +45%".
+- Avoid-list words back: Clump "eats" and a plain "step" beside {steps}; Toadstool Throne "eaten", "go on"; Still Water
+  "wear off"; Trophies "the rest of the run". "lit" means a Warden lit by Lantern Wake and a {lit} nightmare.
+- Pyre / Banked Fire "a Warden with 50+ gold dispels crits" reads as a verb phrase: "a Warden that has made 50 gold
+  dispels".
+- The Tallest Tree grew from 33 to 38 words. "Reactions triggered: %d (you: %d)" reads as a count, not a need.
+- Most changed cards read better than before; worse: the Unfettered tip and the Clump tip ("Each step eats one" lost
+  "on a clump").
+
+## RR.4 Owner call
+
+**The Spire finale name.** "Last drift" (decided 2026-10-24 on the lead's advice) already means *the previous drift* on
+the DPS meter ("Last drift 62 DPS", `drift_meter.gd:454`) and in card bonus lines (`dream_effects.gd:991-1004`). Not yet
+applied. Recommended instead: **"Closing drift"** ("Closing drift (drift 30): clear it clean for a Rare Dream").
+
+**Decided (owner 2026-10-24):** the Spire block finale shows as **"Closing drift"** ("Closing drift (drift %d): clear it
+clean for a Rare Dream", "Closing drift cleared clean"). This replaces "Last drift" (R3.4), which stays the previous
+drift on the DPS meter and in card bonus lines.
+
+**Lead ruling on {full}:** {full} keeps the Codex meaning (a status's most, doubled by Brimming). The cards whose code
+checks 75% of the base cap (Starlit Aim, Called Shot, Guiding Light I / II) say **"nearly {full}"**, and the Codex gets
+one line: "Nearly full: at least 3/4 of a status's usual most (before Brimming)." No second meaning for the token.

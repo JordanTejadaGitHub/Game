@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "hairpin_winds"
 display_name = "Hairpin Winds"
-description = "A {warden:pinwheel} or {warden:windmill} with 6 or more path cells {touching} it attacks 30% faster."
+description = "A {family:whirligig} Warden with 6 or more path cells {touching} it attacks 30% faster."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
-requires = Array[String](["pinwheel"])
+requires = Array[String](["whirligig"])
 max_stacks = 1
 in_start_pool = false
 rule_id = &"hairpin_winds"
-tip = "Path cells: the cells around it that the path runs through. Works for: {warden:pinwheel} and {warden:windmill} wrapped in a tight bend. A bet: needs the path folded around them."
+tip = "Path cells: the cells around it that the path runs through. Works for: {family:whirligig} Wardens wrapped in a tight bend. A bet: needs the path folded around them."
 uses = Array[StringName]([&"maze"])

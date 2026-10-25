@@ -123,6 +123,7 @@ static var _scale_share := 1.0
 # Every screen is checked at those (tests/test_phone_layout.gd). Tablets (short side ≥ TABLET_INCHES) keep the PC base.
 const PHONE_LAYOUT_MIN := Vector2(1100.0, 540.0)
 const TABLET_INCHES := 4.5
+const PHONE_ASPECT := 1.85  # Long side over short side: at or past it, a phone
 
 static func is_phone() -> bool:
 	if not TouchBuild.mobile_controls():
@@ -132,6 +133,11 @@ static func is_phone() -> bool:
 	var dpi := DisplayServer.screen_get_dpi()
 	var screen := DisplayServer.screen_get_size()
 	var short_side := minf(screen.x, screen.y)
+	# A phone's long screen (19.5:9 and the like) is a phone whatever DPI Android reports: at start-up it can report a
+	# placeholder, which made a phone look like a tablet when the HUD was built (Mobile UI 2026-10-25: no Sell / Select /
+	# Start, the Dream icons on the leaves). Tablets are 4:3 to 16:10.
+	if short_side > 0.0 and maxf(screen.x, screen.y) / short_side >= PHONE_ASPECT:
+		return true
 	if dpi <= 72:
 		return short_side <= 1200.0  # Some Android builds report 0 or 72: judge by pixels (UI Code)
 	return short_side / float(dpi) < TABLET_INCHES

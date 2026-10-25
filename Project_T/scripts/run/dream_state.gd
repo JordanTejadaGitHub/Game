@@ -1896,7 +1896,9 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 	if enemy != null and is_instance_valid(enemy):
 		if has_rule(&"still_target") and (enemy.statuses.has(EnemyStatuses.DROWSY) or enemy.statuses.is_held()):
 			bonus += STILL_TARGET_CRIT[rule_level(&"still_target")]
-		if has_rule(&"starlit_aim") and enemy.statuses.is_exposed():
+		# Starlit Aim (section 35): Heavy Wardens (attack_data: a Graftling's copy counts) against a status at full
+		if has_rule(&"starlit_aim") and _tower != null and _tower.attack_data != null and _tower.attack_data.heavy \
+				and enemy.statuses.any_full() != &"":  # The same full Tower spends (EnemyStatuses.FULL_SHARE of the base cap)
 			bonus += STARLIT_AIM_CRIT
 		# Full Moon (owner 2026-10-17, "rework it": an unconditional crit chance was flat damage): only against a nightmare
 		# carrying FULL_MOON_STATUSES or more different statuses
@@ -2072,7 +2074,7 @@ func path_cells_touching(cell: Vector2) -> int:
 # Hairpin Winds (hard cards 2026-10-16): the attack speed share a Pinwheel or Windmill gets with HAIRPIN_PATH_CELLS or
 # more path cells touching it.
 func hairpin_speed(tower: Tower) -> float:
-	if tower == null or not has_rule(&"hairpin_winds") or not tower.tower_data.get_id() in ["pinwheel", "windmill"]:
+	if tower == null or not has_rule(&"hairpin_winds") or tower.tower_data.line != SPINNING_LINE:
 		return 0.0
 	return HAIRPIN_SPEED * rule_power(&"hairpin_winds") if path_cells_touching(tower.cell) >= HAIRPIN_PATH_CELLS else 0.0
 
@@ -3549,6 +3551,10 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # Undiluted is held: a card that only pays off through Reactions would do nothing (one-way)
 	if not in_run_pool(card):
 		return false  # Not in this run's drawn pool
+	if not _status_card_ok(card):
+		return false  # Section 35: a status card's status must come from 2+ families
+	if not _entwined_pair_ok(card):
+		return false  # Section 35: one Entwined Rare per family pair
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
 	if card.min_drift > 0 and maxi(_offer_drift, drift_director.drifts_started if drift_director != null else 0) < card.min_drift:
@@ -3866,6 +3872,8 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 			return kinship_possible()
 		&"small_hands":
 			return _towers().any(func(t: Tower) -> bool: return ShapeCards.sends_things_out(t.tower_data))
+		&"chain_bloom":
+			return _towers().any(func(t: Tower) -> bool: return t.get_splash_cells() > 0.0)  # Section 35: a splashing Warden stands
 		&"lingering_ground":
 			return _towers().any(func(t: Tower) -> bool: return ShapeCards.makes_ground_effects(t.tower_data))
 		&"sap_rising":
@@ -3895,13 +3903,25 @@ func board_can_use(card: UpgradeData, act: int = -1) -> bool:
 	return true
 
 # Close Kin's door: a family with 2 of its branches unlocked this run, so a Kinship (two branches within reach) can form.
+# A Heavy Warden on the map (its attack_data: a Graftling's copy counts) or an unlocked Heavy form.
+func _heavy_possible() -> bool:
+	for tower in _towers():
+		if tower.attack_data != null and tower.attack_data.heavy:
+			return true
+	for data in _roster():
+		if data is TowerData and data.heavy and is_unlocked(data.get_id()):
+			return true
+	return false
+
 # Whether anything in the run can crit: a Warden on the map with crit chance (its form's or from Dreams), or an
 # unlocked form that has some. The crit cards' Need.
 func crit_possible() -> bool:
 	if unlock_everything:
 		return true
-	if has_rule(&"still_target") or has_rule(&"starlit_aim"):
-		return true  # These give every Warden crit chance, but only against a nightmare (get_crit_chance_bonus): no enemy to ask here
+	if has_rule(&"still_target"):
+		return true  # It gives every Warden crit chance, but only against a nightmare (get_crit_chance_bonus): no enemy to ask here
+	if has_rule(&"starlit_aim") and _heavy_possible():
+		return true  # Starlit Aim (section 35): Heavy Wardens only
 	for tower in _towers():
 		if tower.tower_data.can_attack and tower.get_raw_crit_chance() > 0.0:
 			return true
@@ -4606,7 +4626,99 @@ func half_dreamed_missing(card: UpgradeData) -> Array[String]:
 	if not owned_any or next_pick < 0 or missing.size() > picks_left or next_pick - _now_drift() > HALF_DREAMED_WITHIN \
 			or missing.any(func(family: String) -> bool: return not pickable.has(family)):
 		missing.clear()
+	# Section 35: every Warden it names from a missing family must be one the run can promise (Thunder Chimes once named
+	# Chime Stone to a Firefly run: Bellflower's pick may draw 2 branches without it, and the card slept forever)
+	for id in card.requires:
+		if missing.has(family_of(id)) and not _promised_warden(id, family_of(id)):
+			missing.clear()
+			break
 	return missing
+
+# --- Section 35 offer rules (no branch-only cards, owner 2026-10-24; dream_council_review.md 35) ---------------------------
+# A status card (gated by requires_status / requires_any_status) needs its status to come from 2+ families, Wardens or
+# cards, game-wide: Poisoned (Sporeling; Pollen Beaks, Mycelium), Drowsy, Soaked, Charged and Root do. Exposed
+# (Lanternmoth / Beacon / Moon Moth) and Caught (the Dreamcatcher) come from one branch each, so a card gated only on them
+# is never offered. Reaction and Crowned gates (requires_statuses: combinations) are not status cards.
+const STATUS_CARD_STATUSES: Array[StringName] = [&"spored", &"drowsy", &"damp", &"static", &"held"]
+func _status_card_ok(card: UpgradeData) -> bool:
+	if card.requires_status != &"" and not STATUS_CARD_STATUSES.has(card.requires_status):
+		return false
+	if not card.requires_any_status.is_empty() \
+			and not card.requires_any_status.any(func(s: StringName) -> bool: return STATUS_CARD_STATUSES.has(s)):
+		return false
+	return true
+
+# One Entwined Rare per family pair (the families its requires name): the one offered is the first of
+# ENTWINED_PAIR_FIRST holding that pair, else the lowest hash of the map seed and its id (the same all run, and on a
+# replay of the seed). Worked out once per pool and map.
+const ENTWINED_PAIR_FIRST: Array[String] = ["conductive_soil"]  # Firefly + Dewdrop's Rare (section 35)
+var _entwined_pick := {}  # "familyA|familyB" -> the card offered for that pair
+var _entwined_pick_key := 0
+func _entwined_pair_ok(card: UpgradeData) -> bool:
+	if not card.entwined or card.rarity != UpgradeData.Rarity.RARE:
+		return true
+	var pair := _family_pair(card)
+	if pair == "":
+		return true
+	var seed_value: int = int(map_generator.map_seed) if map_generator != null else 0
+	var key := hash([pool.size(), grove_cards.size(), seed_value, _family_roots().size()])
+	if key != _entwined_pick_key:
+		_entwined_pick_key = key
+		_entwined_pick.clear()
+		for other in pool:
+			if other.retired or not other.entwined or other.rarity != UpgradeData.Rarity.RARE \
+					or not (other.in_start_pool or grove_cards.has(other.id)):
+				continue
+			var p := _family_pair(other)
+			if p != "" and (not _entwined_pick.has(p) or _entwined_first(other, _entwined_pick[p], seed_value)):
+				_entwined_pick[p] = other
+	return not _entwined_pick.has(pair) or _entwined_pick[pair].id == card.id
+
+func _entwined_first(a: UpgradeData, b: UpgradeData, seed_value: int) -> bool:
+	var ia := ENTWINED_PAIR_FIRST.find(a.id)
+	var ib := ENTWINED_PAIR_FIRST.find(b.id)
+	if ia != ib:
+		return ia >= 0 and (ib < 0 or ia < ib)
+	return hash([seed_value, a.id]) < hash([seed_value, b.id])
+
+# "familyA|familyB" (sorted) for the families `card`'s requires name; "" with fewer than 2.
+func _family_pair(card: UpgradeData) -> String:
+	var families: Array[String] = []
+	for id in card.requires:
+		var family := family_of(id)
+		if family != "" and not families.has(family):
+			families.append(family)
+	if families.size() < 2:
+		return ""
+	families.sort()
+	return "|".join(families)
+
+# A Warden of `family` (not yet yours) a family pick can promise: the family's root; any form when branch expansion is off
+# (every branch comes); or a hidden branch planted in the Grove (always in the offer, _add_planted_hidden). Never draws
+# a branch offer for an unowned family (get_branch_offer draws and writes the profile).
+func _promised_warden(id: String, family: String) -> bool:
+	if id == family or not branch_expansion_on():
+		return true
+	var form := _family_form(family, id)
+	if form == null or form.tier != 2 or not is_hidden_branch(form):
+		return false
+	var unlock := _unlock_card_for(form)
+	return unlock != null and grove_cards.has(unlock.id)
+
+# The form `id` in `family`'s evolution tree (from its root), or null.
+func _family_form(family: String, id: String) -> TowerData:
+	var stack: Array = []
+	for root in _family_roots():
+		if root is TowerData and root.get_id() == family:
+			stack.append(root)
+	while not stack.is_empty():
+		var data: TowerData = stack.pop_back()
+		if data.get_id() == id:
+			return data
+		for next in data.evolves_to:
+			if next is TowerData:
+				stack.append(next)
+	return null
 
 func is_half_dreamed(card: UpgradeData) -> bool:
 	return not half_dreamed_missing(card).is_empty()
@@ -5612,7 +5724,8 @@ const EVENTS_KEY := "discovery_events"  # Profile: one-off discovery moments (ev
 # Bloom), a Puffball puff landing in Mistveil's fog (Chain Bloom; Tower Code calls note_discovery), a crit
 # on a Marked nightmare (Starlit Aim).
 const EVENT_CHARGED_DROWSY := &"charged_drowsy"
-const EVENT_PUFF_IN_FOG := &"puff_in_fog"
+const EVENT_PUFF_IN_FOG := &"puff_in_fog"  # (Chain Bloom's old discovery: kept for old profiles)
+const EVENT_SPLASH_LAYERED := &"splash_layered"  # Chain Bloom (section 35): a splash Warden's hit on a nightmare with 2+ statuses
 const EVENT_CRIT_MARKED := &"crit_marked"
 const EVENT_SIGNATURE := &"signature"  # A Warden gained its rank signature (Tower Code calls note_discovery): lets Shared Training in
 var _events_this_run := {}
@@ -5685,6 +5798,12 @@ func _toast_new_dreams(before: Array[UpgradeData]) -> void:
 func _on_damage_dealt(event) -> void:
 	if event.combos.has(&"crit") and event.combos.has(&"marked") and not _events_this_run.has(String(EVENT_CRIT_MARKED)):
 		note_discovery(EVENT_CRIT_MARKED)
+	# Chain Bloom's discovery (section 35; was Puffball in Mistveil's fog): a splashing Warden's direct hit on a nightmare
+	# carrying 2+ statuses
+	if event.kind == &"hit" and event.tag == &"" and not _events_this_run.has(String(EVENT_SPLASH_LAYERED)) \
+			and event.source is Tower and is_instance_valid(event.source) and is_instance_valid(event.enemy) \
+			and event.enemy.statuses.count() >= 2 and event.source.get_splash_cells() > 0.0:
+		note_discovery(EVENT_SPLASH_LAYERED)
 	if not stacks.is_empty() or not calling_path.is_empty():  # (Evolutions too: setup credit 2026-10-16)
 		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
 	hit_cards.on_damage_event(event)  # Measured Blow, the Tallest Tree, Run Through: right after the hit (dream_hit_cards.gd)
@@ -5840,7 +5959,7 @@ func _thin_family_hit_bonus(tower: Tower, enemy: Node2D, parts = null) -> float:
 		bonus += _part(parts, &"deep_grip", DEEP_GRIP_PER * rule_stacks(&"deep_grip") * rule_power(&"deep_grip"))
 	if has_rule(&"head_start") and float(enemy.get_meta(&"head_start_until", -1.0)) > _game_clock:
 		bonus += _part(parts, &"head_start", HEAD_START_BONUS[rule_level(&"head_start")] * rule_power(&"head_start"))  # Head Start
-	if has_rule(&"deep_frost") and _is_frozen(enemy):  # Deep Frost: Frostfern's freeze (Held by a water Warden)
+	if has_rule(&"deep_frost") and line == "water" and enemy.statuses.is_held():  # Deep Frost (section 35): a Dewdrop Warden's hit on any Rooted nightmare (was Frostfern's freeze only)
 		bonus += _part(parts, &"deep_frost", DEEP_FROST_BONUS * rule_power(&"deep_frost"))
 	if line == "stone" and has_rule(&"falling_weight") and (enemy.statuses.is_held() or enemy.statuses.is_asleep()):
 		bonus += _part(parts, &"falling_weight", FALLING_WEIGHT_BONUS * rule_power(&"falling_weight"))
@@ -5931,8 +6050,8 @@ const RESONANCE_CHARGED := 2  # Chime Stone pulses count as lightning: +2 Charge
 const THORNHEART_PER := 0.05  # Bramble thorns, per Bramble you own
 const THORNHEART_MAX := 1.0
 const ILL_WIND_BONUS := 0.45  # Effect damage of statuses Gust / Zephyr copied
-const SPINNING_CORNERS_SPEED := 0.45  # Pinwheel / Windmill beside a bend
-const SPINNING_WARDENS: Array[String] = ["pinwheel", "windmill"]
+const SPINNING_CORNERS_SPEED := 0.35  # A Whirligig Warden beside a bend (section 35: family-wide, so 45% -> 35%)
+const SPINNING_LINE := "wind"  # Spinning Corners and Hairpin Winds: any Whirligig form (section 35; was Pinwheel / Windmill)
 const FALLING_WEIGHT_BONUS := 0.45  # Pebbling line vs Held or Asleep
 const WARM_HEARTH_SPROUTS := 0.50  # Aura bonuses on Sprouts
 const FRESH_SOIL_BONUS := 0.20  # Reclaimed Earth (absorbed Fresh Soil)  # A Sprout on a cleared cell

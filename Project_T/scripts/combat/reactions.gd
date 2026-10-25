@@ -1016,8 +1016,7 @@ static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false)
 		level = 1 + dreams.rule_level(&"rolling_thunder")
 	# (Tempest's Reach no longer widens the arcs: owner 2026-10-17; its burns spread Soaked instead, _burn_spread.)
 	var reach: float = (THUNDERCLAP_REACH[level] + _storm_front(enemy)) * CELL
-	if dreams and dreams.has_rule(&"conductive_soil") and tower:
-		reach = maxf(reach, tower.get_range_pixels())  # The Storm Grid capstone
+	# (Conductive Soil no longer widens Thunderclap to the Warden's range: section 35, a capped Firefly jump in Tower._family_hit.)
 	var arcs: Array = []
 	for other in Tower.nightmares_near(enemy.get_tree(), enemy.global_position, reach):
 		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.statuses.stacks(DAMP) >= need(SOAKED_NEEDED) and other.global_position.distance_to(enemy.global_position) <= reach:
@@ -1044,8 +1043,6 @@ static func _thunderclap(enemy: Node2D, source: Node, from_ignite: bool = false)
 		_segment(&"thunderclap_arc", Tower.aim_at(enemy), Tower.aim_at(other), enemy, 0.25)
 		_touch(other, chain, _towers(tower))
 		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap", &"tempest" if tempest else &"")
-		if is_instance_valid(other) and dreams and dreams.has_rule(&"conductive_soil"):
-			other.statuses.remove(DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 		if is_instance_valid(struck) and not struck.is_cleansed:
 			struck.apply_status(STATIC, THUNDERCLAP_ARC_STATIC[level], 0.0, potency, 0, "light", tower)
 		# Tempest: every arc also sets off Ignite on a Spored target (not bosses), whose spread spores

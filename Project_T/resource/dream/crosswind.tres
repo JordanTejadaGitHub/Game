@@ -15,3 +15,4 @@ max_stacks = 1
 rule_id = &"crosswind"
 in_start_pool = false
 tip = "Direct hits only. Once per throw on each nightmare. Safe."
+retired = true
