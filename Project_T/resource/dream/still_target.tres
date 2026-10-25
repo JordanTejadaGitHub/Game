@@ -14,5 +14,5 @@ requires_role = &"hold"
 max_stacks = 1
 rule_id = &"still_target"
 in_start_pool = false
-tip = "{frozen} nightmares count: frost adds 1 {held}."
+tip = "Any {held} counts, from any Warden."
 makes = Array[StringName]([&"crit"])

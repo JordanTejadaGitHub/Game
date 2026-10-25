@@ -44,7 +44,7 @@ const WORDS := {
 	&"repeat": {"name": "Repeats", "text": "A hit, attack or effect happens again."},
 	&"reaction": {"name": "Reactions", "text": "Two statuses on one nightmare trigger together. Any two can."},
 	&"layered": {"name": "Mixed statuses", "text": "One nightmare carrying several different statuses at once."},
-	&"slow": {"name": "Slows", "text": "A nightmare is slowed, stopped or pulled back: {held}, {asleep}, {frozen}, {caught}."},
+	&"slow": {"name": "Slows", "text": "A nightmare is slowed, stopped or pulled back: {held}, {asleep}, {caught}."},
 	&"crit": {"name": "Crits", "text": "Hits that sometimes deal much more damage."},
 	&"area": {"name": "Area", "text": "Pulses, splashes and clouds: attacks that hit many nightmares."},
 	&"heavy": {"name": "Heavy hits", "text": "{heavy} Wardens: slow attacks with big single hits."},
