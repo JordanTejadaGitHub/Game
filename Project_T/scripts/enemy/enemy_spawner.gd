@@ -561,6 +561,37 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 # dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
 # at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
 # damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
+# Pooled dispel motes (perf 2026-10-25): a dispel used to make a CPUParticles2D of its own (a wiped pack: up to 20 at
+# once); the emitters are kept in the map (beside this container, never in it) and reused once their burst has played,
+# keyed by particle count (changing `amount` reallocates). At most MOTE_POOL_MAX of a count are kept.
+const MOTE_POOL_MAX := 24
+var _mote_pool := {}  # amount -> [CPUParticles2D, …]
+var _mote_ramp: Gradient = null
+
+# A mote emitter of `amount` that isn't playing (new if none is free), in the map, ready for Enemy to set up and fire.
+func take_motes(amount: int, colour: Color) -> CPUParticles2D:
+	var pool: Array = _mote_pool.get_or_add(amount, [])
+	for motes in pool:
+		if is_instance_valid(motes) and not motes.emitting:
+			return motes
+	var world: Node = get_parent()
+	if world == null:
+		return null
+	var made := CPUParticles2D.new()
+	made.one_shot = true
+	made.amount = amount
+	if _mote_ramp == null:
+		_mote_ramp = Gradient.new()
+		_mote_ramp.set_color(0, colour)
+		_mote_ramp.set_color(1, Color(colour, 0.0))
+	made.color_ramp = _mote_ramp
+	world.add_child(made)
+	if pool.size() < MOTE_POOL_MAX:
+		pool.append(made)
+	else:
+		made.finished.connect(made.queue_free)  # Past the pool's size: a one-off
+	return made
+
 # Phone budget: dispels counted over DISPEL_BURST_WINDOW s (Enemy halves its motes past MOTE_BURST_MAX).
 const DISPEL_BURST_WINDOW := 0.5
 var _dispel_times: Array[float] = []

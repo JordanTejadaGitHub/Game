@@ -655,7 +655,7 @@ func _ready() -> void:
 	add_child(_body_fx)
 	move_child(_body_fx, sprite.get_index())  # Just before the sprite: the same y, so it draws behind it
 	_body_fx.draw.connect(_draw_body)
-	y_sort_enabled = true
+	y_sort_enabled = false  # On only while crowded (_update_sort_look): one sorted item per nightmare elsewhere (perf 2026-10-25)
 	_apply_sprite_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
@@ -874,6 +874,7 @@ func _process(delta: float) -> void:
 		_update_hud(delta)
 	if not _culled and look_now:
 		_update_row_look(look_delta)  # Status icons in crowds: pips or the full row
+		_update_sort_look(look_delta)  # Y-sort by the drawn body, only in a crowd
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -1260,6 +1261,19 @@ func _wanted_row_look() -> RowLook:
 
 # Every frame it's on screen: switch the row's look (held CROWD_HOLD s at least) and ease the full row and the pips'
 # alphas toward it; only touches the server when something moves.
+# Y-sort by the drawn body only in a crowd (perf 2026-10-25): y_sort_enabled makes the sprite, BodyFx and other children
+# sort one by one (about three items a nightmare); apart, the node's own position sorts it the same. On at once when
+# crowded, off CROWD_HOLD s after the crowd thins (so a pack's edge doesn't flip it).
+var _sort_hold := 0.0
+
+func _update_sort_look(delta: float) -> void:
+	_sort_hold -= delta
+	var crowded: bool = _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN
+	if crowded:
+		_sort_hold = CROWD_HOLD
+	if crowded != y_sort_enabled and (crowded or _sort_hold <= 0.0):
+		y_sort_enabled = crowded
+
 func _update_row_look(delta: float) -> void:
 	if not _hud_root.is_valid() or _hud_items.is_empty():
 		return
@@ -3958,11 +3972,15 @@ func _burst_into_motes() -> void:
 	if boss and world != null and _spawner != null and _spawner.in_game:
 		Fx._hitstop(world)
 		NightmareOverlay.rumble(world, BOSS_DISPEL_TRAUMA)
-	var motes := CPUParticles2D.new()
-	motes.one_shot = true
-	motes.explosiveness = 0.9
 	var burst_share := 0.5 if _spawner != null and _spawner.dispel_burst() > MOTE_BURST_MAX else 1.0  # A pack wiped at once: half each (phones)
-	motes.amount = roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share)
+	var amount := maxi(roundi(14 * maxf(sprite.scale.x, 1.0) * (2.0 if boss and not big_art else 1.0) * burst_share), 1)
+	var motes: CPUParticles2D = _spawner.take_motes(amount, MOTE_COLOR) if _spawner != null else null  # (Pooled: perf 2026-10-25)
+	var pooled := motes != null
+	if not pooled:
+		motes = CPUParticles2D.new()
+		motes.one_shot = true
+		motes.amount = amount
+	motes.explosiveness = 0.9
 	motes.lifetime = MOTE_LIFETIME
 	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 	motes.emission_sphere_radius = 12.0 * sprite.scale.x * (1.5 if boss and not big_art else 1.0)
@@ -3975,11 +3993,15 @@ func _burst_into_motes() -> void:
 	motes.damping_max = 60.0
 	motes.scale_amount_min = 2.0
 	motes.scale_amount_max = 3.5
-	var fade := Gradient.new()
-	fade.set_color(0, MOTE_COLOR)
-	fade.set_color(1, Color(MOTE_COLOR, 0.0))
-	motes.color_ramp = fade
-	add_child(motes)
+	if pooled:
+		motes.global_position = global_position
+		motes.restart()  # (Fires the burst again from here)
+	else:
+		var fade := Gradient.new()
+		fade.set_color(0, MOTE_COLOR)
+		fade.set_color(1, Color(MOTE_COLOR, 0.0))
+		motes.color_ramp = fade
+		add_child(motes)
 	motes.emitting = true
 
 # 0 = whole, 1 = cracked through with light (see shaders/blight.gdshader).
