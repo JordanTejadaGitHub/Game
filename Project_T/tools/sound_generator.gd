@@ -299,6 +299,13 @@ func _make_sfx() -> void:
 	for v in 2:
 		_sfx("dispel_elite_%02d" % (v + 1), _own("dispel_elite%d" % v, func() -> PackedFloat32Array:
 			return _light_burst(0.25, 0.55, DISPEL_CHORD + [45, 50])), 0.5)
+	# The dispel swell (Enemy Design Council 2026-10-24c): a crowd dispelled together is one wider glow, not
+	# eight stacked bursts. The same tuned air on the D chord, spread from D3 to F#5, two blooms a breath
+	# apart for width, ~1.2 s; no pitch climb, no chime. Peaks like one dispel (Sound plays it +1 dB).
+	_sfx("dispel_swell", _own("dispel_swell", func() -> PackedFloat32Array:
+		var out := _light_burst(0.3, 0.75, [50, 57, 62, 66, 69, 74, 78])
+		_mix(out, _normalize(_light_burst(0.25, 0.7, [45, 54, 62, 69, 74]), 1.0), SFX_RATE, 0.06, 0.6)
+		return out), 0.5)
 
 	# The boss: its dispel, then a large, slow bloom of tuned air across the chord (D3–A5, ~4 s) into
 	# the Memory moment. No choir, no bell, no boom.

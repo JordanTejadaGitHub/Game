@@ -221,6 +221,9 @@ func _ready() -> void:
 			_on_boss_bit())
 	# A boss at the Heartwood drains a leaf every 2 s until dispelled (Enemy Code cfd21fe5): the leaf-lost
 	# sound, lower and heavier, with a lighter duck so the music doesn't pump every 2 s.
+	if enemy_container.has_signal("pack_wiped"):  # A whole pack dispelled together (Enemy Code d235a512): one swell
+		enemy_container.pack_wiped.connect(func(_key: int, _size: int, centre: Vector2, _top: Node) -> void:
+			sound.play_dispel_swell(centre))
 	if enemy_container.has_signal("boss_drained"):
 		enemy_container.boss_drained.connect(func(_enemy: Node2D, _leaves: int) -> void:
 			sound.duck(4.0, 0.6)
