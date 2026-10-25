@@ -223,7 +223,33 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 		share *= 1.0 + dreams.dew_line_extra(enemy)  # Last Collection: a share more near the Heartwood
 	if prepaid:
 		share = enemy.get_dew_share() * (dreams.dew_line_extra(enemy) if dreams != null else 0.0) if enemy.has_method("get_dew_share") else 0.0
-	earn_dew_at(_carried_dew(share), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
+	var at: Vector2 = enemy.get_body_position() if enemy.has_method("get_body_position") else enemy.global_position
+	if enemy.has_meta(DriftShapes.PACK_META) and not caught:
+		_earn_pack_dew(_carried_dew(share), at, int(enemy.get_meta(DriftShapes.PACK_META)))
+	else:
+		earn_dew_at(_carried_dew(share), at, DewCatch.GOLD if caught else DewPopup.COLOR)
+
+# A pack member's Dew (drift shapes, enemy_council_review.md 2026-10-24c): the same Dew as anyone's, shown on the pack's one
+# popup, which counts up as members fall (a new one once it has faded). Caught Dew keeps its own gold popup.
+var _pack_popups := {}  # Pack key -> WeakRef to its DewPopup
+
+func _earn_pack_dew(amount: int, world_position: Vector2, key: int) -> void:
+	if amount <= 0:
+		return
+	add_dew(amount)
+	dew_earned.emit(amount, world_position)
+	var ref: WeakRef = _pack_popups.get(key)
+	var popup := ref.get_ref() as DewPopup if ref != null else null
+	if popup != null and popup.is_live():
+		popup.add_more(amount, world_position)
+		return
+	popup = DewPopup.new(amount, world_position)
+	get_parent().add_child(popup)
+	_pack_popups[key] = weakref(popup)
+	if _pack_popups.size() > 64:  # Old packs' faded popups
+		for old in _pack_popups.keys():
+			if _pack_popups[old].get_ref() == null:
+				_pack_popups.erase(old)
 
 # Pays whole Dew and carries the fraction to the next dispel (small shares aren't rounded away).
 func _carried_dew(amount: float) -> int:

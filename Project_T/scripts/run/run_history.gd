@@ -71,6 +71,9 @@ func _ready() -> void:
 		spawner.child_entered_tree.connect(_on_spawned)
 		spawner.enemy_cleansed.connect(_on_dispelled)
 		spawner.enemy_reached_goal.connect(_on_leaked)
+		if spawner.has_signal("pack_wiped"):  # Drift shapes: packs formed and wiped (Enemy Code d235a512)
+			spawner.pack_formed.connect(_on_pack_formed)
+			spawner.pack_wiped.connect(_on_pack_wiped)
 	drift_director.drift_arrived.connect(func(number: int) -> void:
 		if _open.has(number) and not _arrived.has(number):
 			_arrived[number] = true
@@ -299,7 +302,37 @@ func leaves_by_shape(act: int) -> Dictionary:
 		out[shape] = int(out.get(shape, 0)) + int(row.leaves_lost)
 	return out
 
+# Packs formed and wiped (drift shapes; owner 2026-10-24, enemy_council_review.md 2026-10-24c: a moment and a fact, never a
+# reward). This block's, last block's (the rest report reads them: "Packs wiped: 5 of 6 · most by Driftspore") and the run's.
+var packs_block := {"formed": 0, "wiped": 0, "top": {}}  # top: Warden name -> packs it did the most damage to
+var packs_last_block := {"formed": 0, "wiped": 0, "top": {}}
+
+func _on_pack_formed(_key: int, _size: int) -> void:
+	packs_block.formed += 1
+	run["packs_formed"] = int(run.get("packs_formed", 0)) + 1
+
+func _on_pack_wiped(_key: int, _size: int, _centre: Vector2, top_source: Node) -> void:
+	packs_block.wiped += 1
+	run["packs_wiped"] = int(run.get("packs_wiped", 0)) + 1
+	var tower := top_source as Tower
+	if is_instance_valid(tower) and tower.tower_data != null:
+		var name := tower.tower_data.display_name
+		packs_block.top[name] = int(packs_block.top.get(name, 0)) + 1
+
+# "Packs wiped: 5 of 6 · most by Driftspore" for the block just ended ("" when it formed none).
+func packs_line() -> String:
+	if int(packs_last_block.formed) <= 0:
+		return ""
+	var line := "Packs wiped: %d of %d" % [int(packs_last_block.wiped), int(packs_last_block.formed)]
+	var best := ""
+	for name in packs_last_block.top:
+		if best == "" or int(packs_last_block.top[name]) > int(packs_last_block.top[best]):
+			best = name
+	return line + (" · most by %s" % best if best != "" else "")
+
 func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
+	packs_last_block = packs_block
+	packs_block = {"formed": 0, "wiped": 0, "top": {}}
 	_flush_rows()
 	_flush_route_block(block)
 	run.dew.banked_at_rest.append([block, run_state.dew if run_state else 0])
@@ -907,6 +940,8 @@ static func report_text(record: Dictionary) -> String:
 	var by_shape: Dictionary = record.get("leaves_by_shape", {})  # Drift shapes: {act: {shape: leaves}} (Balancing)
 	for act in by_shape:
 		lines.append("Leaves lost by shape, act %s: %s" % [act, JSON.stringify(by_shape[act])])
+	if int(record.get("packs_formed", 0)) > 0:  # Drift shapes: packs wiped whole of those formed (Balancing)
+		lines.append("Packs wiped: %d of %d" % [int(record.get("packs_wiped", 0)), int(record.packs_formed)])
 	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share,card_damage,past_cap,shape")  # New columns last: older readers keep theirs
 	for row in record.get("drifts", []):
 		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f,%d,%d,%s" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),

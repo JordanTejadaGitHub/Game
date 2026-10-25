@@ -36,6 +36,20 @@ func _connect() -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
 	if dreams != null and dreams.has_signal("card_fired"):
 		dreams.card_fired.connect(_on_card_fired)
+	var spawner := owner.get_node_or_null("%EnemyContainer") if owner != null else null
+	if spawner != null and spawner.has_signal("pack_wiped"):
+		spawner.pack_wiped.connect(_on_pack_wiped)
+
+# A pack wiped (Enemy Code's EnemySpawner.pack_wiped: every member dispelled, none leaked, within 3 s; owner 2026-10-24,
+# enemy_council_review.md 2026-10-24c): one small "Pack ×N" on its centre, throttled. A moment and a fact, never a reward.
+const PACK_COOLDOWN := 1.0  # Seconds (game) between two "Pack ×N" words
+func _on_pack_wiped(_key: int, size: int, centre: Vector2, _top_source: Node) -> void:
+	var reduced := Fx.reduced()
+	if _cooldowns.get(&"pack", 0.0) > 0.0 or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
+		return
+	_cooldowns[&"pack"] = PACK_COOLDOWN
+	var word := "Pack ×%d" % size
+	_alive.append([0.0, word, UiStyle.GOLD, null, _slot(centre, word), &""])
 
 # Trigger cards (screens_ui.md "Dream" ecbea61a; owner 2026-10-16: "make these dream cards and evolutions more
 # noticeable"): a taken card or Calling evolution pops its name in gold the first time it fires in a drift, no numbers,
