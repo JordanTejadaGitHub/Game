@@ -154,15 +154,22 @@ func _process(_delta: float) -> void:
 	if not active:
 		return
 	var cell: Vector2 = _cell_at(get_global_mouse_position())
-	if get_viewport().gui_get_hovered_control() != null or RestScreens.map_blocked(self):
+	var blocked := RestScreens.map_blocked(self)
+	if blocked != _was_blocked:
+		_was_blocked = blocked
+		queue_redraw()  # A choice screen or menu opened / closed: its tag goes / comes back now (UI council round 8)
+	if get_viewport().gui_get_hovered_control() != null or blocked:
 		cell = NO_CELL  # Under a HUD panel or a choice screen: no world tag drawn through it (user screenshot: "Mossy Boulder" by the Coming strip)
 	if cell != _hover_cell:
 		_hover_cell = cell
 		_refresh_hover()
+		queue_redraw()
+
+var _was_blocked := false
 
 func _draw() -> void:
-	if _hover_obstacle == null:
-		return
+	if _hover_obstacle == null or RestScreens.map_blocked(self):
+		return  # Nothing hovered, or a choice screen / menu covers the map (UI council round 8: it showed under the Dream dim)
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	var cells: Array[Vector2] = map_generator.get_obstacle_cells(_hover_cell)  # The whole log lights up
@@ -170,7 +177,8 @@ func _draw() -> void:
 		rect = _cells_rect(cells)
 		center = rect.get_center()
 	if not tool_active:
-		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, _hover_obstacle.display_name, NAME_COLOR)
+		var name_at := _tag_spot(_hover_obstacle.display_name, center.x, rect)
+		WorldLabel.draw_tag(self, name_at.x, name_at.y, _hover_obstacle.display_name, NAME_COLOR)
 		return
 	var half := run_state.free_clears > 0
 	var cost := get_next_clear_cost_at(_hover_cell)
@@ -186,7 +194,24 @@ func _draw() -> void:
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
 	if _same_obstacle(pending_cell, _hover_cell):
 		label += " · tap ✓ to clear"
-	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
+	var at := _tag_spot(label, center.x, rect)
+	WorldLabel.draw_tag(self, at.x, at.y, label, WorldLabel.cost_color(affordable))
+
+# Where a tag over `rect` goes: centred above it, or, when that would run past the screen's left or right edge, beside
+# the cell on the side with room, level with its middle (UI council round 8: "5 Dew" was cut at the left edge).
+const TAG_EDGE := 8.0  # Screen px kept clear of the edge
+func _tag_spot(text: String, center_x: float, rect: Rect2) -> Vector2:
+	var above := Vector2(center_x, rect.position.y - 8)
+	var font := UiStyle.with_glyphs(UiStyle.body_font())  # As WorldLabel.draw_tag measures it
+	var half := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, WorldLabel.FONT_SIZE).x / 2.0 * WorldLabel.text_scale(self)
+	var view := get_canvas_transform().affine_inverse() * get_viewport_rect()
+	var margin := TAG_EDGE * WorldLabel.text_scale(self)
+	var level := rect.get_center().y + 6.0
+	if center_x - half < view.position.x + margin:
+		return Vector2(rect.end.x + 6.0 + half, level)  # Off the left edge: to the cell's right
+	if center_x + half > view.end.x - margin:
+		return Vector2(rect.position.x - 6.0 - half, level)  # Off the right edge: to its left
+	return above
 
 # True until the run's first clearing Dream (then clearing works for the rest of the run).
 func is_locked() -> bool:
