@@ -281,7 +281,7 @@ func _on_dispelled(enemy: Node2D) -> void:
 		var full := STATUS_IN_FULL.has(id)  # A hold's time left jumps whole (Thorncoil, Tangleroot…)
 		var stacks: int = enemy.statuses.stacks(id) if full else maxi(enemy.statuses.stacks(id) / 2, 1)
 		var seconds: float = enemy.statuses.time_left(id) * (1.0 if full else 0.5)
-		nearest.apply_status(id, stacks, seconds, enemy.statuses.potency(id), 0, source.tower_data.line, source)
+		Tower.copy_status_onto(nearest, id, stacks, seconds, enemy.statuses.potency(id), source.tower_data.line, source)  # (Frost: a quiet copy)
 		var marks: Array = nearest.get_meta(JUMPED, [])
 		marks.append(id)
 		nearest.set_meta(JUMPED, marks)

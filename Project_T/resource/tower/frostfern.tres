@@ -9,9 +9,9 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Frostfern"
-role_line = "Roots, single target"
+role_line = "Frost, single target"
 heavy = true
-description = "A hit on a nightmare with {field:frostfern.freeze_needs_stacks:count} {damp} leaves it {frozen}: it gains 1 {held} and can't move for {field:frostfern.freeze_duration:seconds}. Pair it with Wardens that Soak."
+description = "Its hits give {field:frostfern.status_stacks:count} {frost}. At {full} {frost} a nightmare bursts, hurting it and up to 4 others within 1 cell."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -25,10 +25,8 @@ damage = 64.8
 attacks_per_second = 1.0
 projectile_speed = 450
 crit_chance = 0.05
-freeze_duration = 0.75
-freeze_needs = &"damp"
-freeze_needs_stacks = 8
-freeze_cooldown = 4.0
+applies_status = &"frost"
+status_stacks = 1
 projectile_texture = ExtResource("3_proj")
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

@@ -138,25 +138,20 @@ func _test_frost() -> void:
 	var frost: TowerData = load("res://resource/tower/frostfern.tres").duplicate()
 	frost.crit_chance = 0.0
 	var tower := _plant(frost, Vector2(3, 3))
+	# Section 37 (owner 2026-10-25): Frost is a status. Frostfern's hit gives 1 Frost, needs no Soaked and Holds nothing.
 	var dry := _spawn_at(tower.global_position + Vector2(CELL, 0))
 	var damp := _spawn_at(tower.global_position + Vector2(0, CELL))
-	for enemy in [dry, damp]:  # Frostfern's hits (72 since 2ef6d56f) would dispel a Shade before the freeze wears off
+	for enemy in [dry, damp]:
 		enemy.max_health = 100000
 		enemy.health = 100000
-	damp.apply_status(EnemyStatuses.DAMP, Reactions.buildup_threshold(frost.freeze_needs_stacks))
+	damp.apply_status(EnemyStatuses.DAMP, 8)
 	await process_frame
 	tower.hit(dry)
 	tower.hit(damp)
-	_check(not dry.statuses.is_held(), "Frostfern doesn't freeze dry nightmares")
-	_check(damp.statuses.is_held(), "Frostfern freezes Damp nightmares (Held)")
-	damp.set_process(true)
-	var at: Vector2 = damp.position
-	await _wait(0.3)
-	_check(damp.position == at, "a Held nightmare doesn't move")
-	await _wait(0.7)
-	_check(not damp.statuses.is_held(), "the freeze wears off")
-	tower.hit(damp)
-	_check(not damp.statuses.is_held(), "the same nightmare can't be frozen again right away")
+	_check(dry.statuses.stacks(EnemyStatuses.FROST) == 1 and damp.statuses.stacks(EnemyStatuses.FROST) == 1,
+		"Frostfern's hit gives 1 Frost, Soaked or not")
+	_check(not dry.statuses.is_held() and not damp.statuses.is_held(), "Frostfern Holds nothing")
+	_check(is_equal_approx(frost.damage, 64.8), "Frostfern's damage is kept (64.8)")
 	await _clean()
 
 

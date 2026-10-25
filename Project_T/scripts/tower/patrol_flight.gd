@@ -131,8 +131,8 @@ func _leave_on(enemy: Node2D) -> void:
 		if enemy.statuses.has(id):
 			continue
 		var status: Dictionary = _carried[id]
-		enemy.apply_status(id, maxi(ceili(status.stacks / 2.0), 1), maxf(status.time, 1.0), status.potency, 0,
-			status.line, status.get("source"))
+		Tower.copy_status_onto(enemy, id, maxi(ceili(status.stacks / 2.0), 1), maxf(status.time, 1.0), status.potency,
+			status.line, status.get("source"))  # (Copied Frost stops short of a burst: Balancing 2026-10-25)
 
 func _draw() -> void:
 	if is_instance_valid(_tower) and _tower.attack_data.patrol_texture != null:

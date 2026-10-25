@@ -387,7 +387,9 @@ static func statuses_applied(data: TowerData) -> Array[StringName]:
 		out.append(data.applies_status)
 	if data.extra_status != &"":
 		out.append(data.extra_status)
-	if (data.freeze_duration > 0.0 or DreamState.HELD_SOURCES.has(data.get_id())) and not out.has(EnemyStatuses.HELD):
+	if (data.spin_frost_every > 0 or data.frost_if_frosted > 0) and not out.has(EnemyStatuses.FROST):
+		out.append(EnemyStatuses.FROST)  # Windmill, Tidecaller (section 37)
+	if (data.hold_on_hit > 0.0 or DreamState.HELD_SOURCES.has(data.get_id())) and not out.has(EnemyStatuses.HELD):
 		out.append(EnemyStatuses.HELD)
 	for status in BranchKit.SPECIAL_STATUSES.get(data.special, []):
 		if not out.has(status):
@@ -2239,6 +2241,9 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
+	if enemy != null and attack_data.crit_bonus_vs_frost > 0.0 \
+			and enemy.statuses.stacks(EnemyStatuses.FROST) >= (attack_data.crit_frost_at if attack_data.crit_frost_at > 0 else FROST_CRIT_AT):
+		chance += attack_data.crit_bonus_vs_frost  # Hoarfrost (section 37: moved from Held)
 	return chance
 
 # Range in cells for `data` including Dreams (shared with the build ghost).
@@ -3744,6 +3749,20 @@ func _twin_puff() -> bool:
 	var every := 2 if _rule_level(&"twin_puff") > 0 else 3
 	return _attack_count % every == 0
 
+const FROST_CRIT_AT := 8  # Hoarfrost's crit bonus: nightmares with this much Frost or more, about half the 15 cap (Wording Council F.1, Roguelite Mechanic Discussion 2026-10-25; was 5)
+const FROST_POTENCY_APS_CAP := 1.0  # Frost's potency = soothe x min(attacks per second, this) (Balancing 2026-10-25)
+
+# A copied status (Gust's spread, Zephyr's gale, Samara's seed, the Whirlwind, Dust Devil, a signature's jump): Frost goes
+# on as a quiet add, stopping at the cap - EnemyStatuses.FROST_QUIET_SHORT, so a copy never bursts it (Balancing
+# 2026-10-25); every other status lands as before.
+static func copy_status_onto(enemy: Node2D, id: StringName, stacks: int, time: float, potency: float, line: String, source: Node) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	if id == EnemyStatuses.FROST:
+		enemy.statuses.copy_quiet(id, stacks, time, potency, line, source)
+	else:
+		enemy.apply_status(id, stacks, time, potency, 0, line, source)
+
 # Splash rework (owner 2026-10-25, dream_council_review.md 37; splash_td.md, splash_review_roguelite.md). A splash's
 # hits on nightmares other than the one struck are damage only (hit(..., carries_status = false)).
 # Spattered (Dream card): those splashes give the Warden's own status after all. A form's own splash gives
@@ -3876,10 +3895,9 @@ func _damage_against(enemy: Node2D) -> float:
 
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
 func _after_hit(enemy: Node2D, is_crit: bool, carries_status: bool = true) -> void:
-	if carries_status and attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
-			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= Reactions.buildup_threshold(attack_data.freeze_needs_stacks)):
-		enemy.freeze_cooldown = attack_data.freeze_cooldown
-		hold(enemy, attack_data.freeze_duration)
+	if carries_status and attack_data.hold_on_hit > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed:
+		enemy.freeze_cooldown = attack_data.hold_on_hit_cooldown  # (Enemy's timer keeps its old name: Enemy Code's file)
+		hold(enemy, attack_data.hold_on_hit)  # Old Mountain, World Root
 		FinalTwists.frozen(self, enemy)  # Shatter chain: a real freeze can chain when it's dispelled
 		if attack_data.held_damage_bonus > 0.0:
 			enemy.statuses.held_bonus = maxf(enemy.statuses.held_bonus, attack_data.held_damage_bonus)  # World Root
@@ -3913,6 +3931,8 @@ func apply_status_to(enemy: Node2D, soothe: float) -> void:
 			_status_pulse_hits.append(enemy.global_position)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
+	if attack_data.frost_if_frosted > 0 and is_instance_valid(enemy) and not enemy.is_cleansed and enemy.statuses.has(EnemyStatuses.FROST):
+		_apply_one_status(enemy, EnemyStatuses.FROST, attack_data.frost_if_frosted, soothe)  # Tidecaller: more Frost where there is some
 	if _kin_roll(kin_share(&"slumber_rot", "a")):
 		_apply_one_status(enemy, EnemyStatuses.DROWSY, 1, soothe)  # Slumber Rot: puffs add Drowsy
 		_kin_fired(&"slumber_rot")
@@ -3981,6 +4001,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency = soothe * SPORE_POTENCY
 	elif status == EnemyStatuses.DAMP:
 		potency = 1.0  # Damp's potency is its strength: it scales the water-hit bonus in Enemy.take_damage, not soothe
+	elif status == EnemyStatuses.FROST:
+		potency = soothe * minf(get_attacks_per_second(), FROST_POTENCY_APS_CAP)  # Section 37: a slow, huge hit (Tidecaller) doesn't make a huge burst
 	var duration := attack_data.status_duration
 	var max_stacks := attack_data.status_max_stacks
 	var setup_sap := 0  # setup credit 2026-10-16: Bitter Sap's stack, for the ledger
@@ -5475,8 +5497,8 @@ func _spread() -> void:
 	for i in copies:
 		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:
-			others[i].apply_status(status.id, status.stacks if full_copy else maxi(ceili(status.stacks * (0.5 + NurtureChoices.GUST_STACKS * choice_count(Focus.DEEP))), 1), status.time,
-				status.potency * ill_wind, 0, status.line, status.source)
+			copy_status_onto(others[i], status.id, status.stacks if full_copy else maxi(ceili(status.stacks * (0.5 + NurtureChoices.GUST_STACKS * choice_count(Focus.DEEP))), 1), status.time,
+				status.potency * ill_wind, status.line, status.source)
 		var devil := kin_share(&"dust_devil", "a")
 		var blade := _kin_partner()
 		if devil > 0.0 and blade and is_instance_valid(others[i]):
@@ -5647,6 +5669,11 @@ func _spin() -> void:
 	var struck := _enemies_on_adjacent_tiles()
 	for enemy in struck:
 		hit(enemy, 1.0 + bonus, true)
+	if attack_data.spin_frost_every > 0 and _attack_count % attack_data.spin_frost_every == 0:
+		for enemy in struck:  # Windmill (section 37): every other spin, Frost as a quiet add (stops short of a burst: copy_quiet)
+			if is_instance_valid(enemy) and not enemy.is_cleansed:
+				enemy.statuses.copy_quiet(EnemyStatuses.FROST, attack_data.spin_frost, 0.0,
+					get_damage() * minf(get_attacks_per_second(), FROST_POTENCY_APS_CAP), tower_data.line, self)
 	# Dust Devil (Pinwheel line): the blades copy the most-afflicted nightmare's statuses (half stacks)
 	# onto the others they hit.
 	if _kin_roll(kin_share(&"dust_devil", "b")) and struck.size() > 1:
@@ -5657,8 +5684,8 @@ func _spin() -> void:
 			for other in alive.slice(1):
 				for status in copied:
 					if is_instance_valid(other) and not other.is_cleansed:
-						other.apply_status(status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
-							status.potency, 0, status.line, status.source)
+						copy_status_onto(other, status.id, maxi(ceili(status.stacks / 2.0), 1), status.time,
+							status.potency, status.line, status.source)
 
 func _enemies_on_adjacent_tiles() -> Array[Node2D]:
 	var result: Array[Node2D] = []
@@ -5970,7 +5997,7 @@ func _is_underdog() -> bool:
 # within COPY_REACH cells. The copy keeps the original's strength and applier.
 const COPY_REACH := 1.5
 const COPYABLE: Array[StringName] = [EnemyStatuses.DAMP, EnemyStatuses.DROWSY, EnemyStatuses.SPORED,
-	EnemyStatuses.MARKED, EnemyStatuses.STATIC]
+	EnemyStatuses.MARKED, EnemyStatuses.STATIC, EnemyStatuses.FROST]  # (Frost: section 37, a copy stops at 8)
 var _copy_timer := 0.0
 
 func _update_status_copy(delta: float) -> void:
@@ -6005,6 +6032,10 @@ func _update_status_copy(delta: float) -> void:
 	var applier: Node = s.source(status)
 	# Deep: Gust's copy formula (half + GUST_STACKS a rank; signature audit a09297af: Whirligig's Deep was dead).
 	var share := 0.5 + NurtureChoices.GUST_STACKS * choice_count(Focus.DEEP)
+	if status == EnemyStatuses.FROST:
+		to.statuses.copy_quiet(status, maxi(ceili(s.stacks(status) * share), 1), s.copy_duration(status), s.potency(status),
+			applier.tower_data.line if applier is Tower else tower_data.line, applier if applier is Tower else self)  # Stops short of a burst
+		return
 	to.apply_status(status, maxi(ceili(s.stacks(status) * share), 1), s.copy_duration(status), s.potency(status), 0,
 		applier.tower_data.line if applier is Tower else tower_data.line, applier if applier is Tower else self)
 

@@ -174,33 +174,20 @@ func _morning_fog() -> void:
 	fog_warden.queue_free()
 	await _clean()
 
-# Hoarfrost, Shatter chain: a frozen nightmare dispelled freezes those within 1 cell for 0.5 s; those
-# shard-frozen don't chain again.
+# Hoarfrost (section 37, owner 2026-10-25): Shatter chain retired (Frost's own burst is the chain); its hit gives 2 Frost
+# and no Hold, and a dispel freezes nobody.
 func _hoarfrost() -> void:
 	var frost := _plant("hoarfrost", Vector2(5, 5))
 	frost.set_process(true)
 	await process_frame
+	_check(frost._twist == &"", "Hoarfrost has no twist any more (Shatter chain retired)")
 	var victim := _spawn(frost.global_position + Vector2(CELL, 0))
 	var neighbour := _spawn(victim.global_position + Vector2(0.8 * CELL, 0))
-	var second := _spawn(neighbour.global_position + Vector2(0.8 * CELL, 0))
-	var far := _spawn(victim.global_position + Vector2(0, 3 * CELL))
-	var freeze_threshold := Reactions.buildup_threshold(frost.attack_data.freeze_needs_stacks)
-	victim.statuses.apply(EnemyStatuses.DAMP, freeze_threshold - 2)
-	victim.freeze_cooldown = 0.0
 	frost.hit(victim, 1.0, false, Tower.NO_CRIT)
-	_check(not victim.statuses.is_held() and not victim.get_meta(&"hoar_frozen", false),
-		"Hoarfrost does not freeze one stack below its Soaked threshold")
-	frost.hit(victim, 1.0, false, Tower.NO_CRIT)
-	_check(victim.statuses.is_held() and victim.get_meta(&"hoar_frozen", false),
-		"Hoarfrost freezes exactly at its Soaked threshold")
+	_check(victim.statuses.stacks(EnemyStatuses.FROST) == 2 and not victim.statuses.is_held(), "Hoarfrost's hit: 2 Frost, no Hold")
 	victim.dispel()
 	await process_frame
-	_check(neighbour.statuses.is_held(), "Shatter chain: its shards freeze a nightmare within 1 cell")
-	_check(neighbour.statuses.time_left(EnemyStatuses.HELD) <= FinalTwists.SHATTER_FREEZE + 0.01, "for 0.5 s")
-	_check(not far.statuses.is_held(), "not further away")
-	neighbour.dispel()
-	await process_frame
-	_check(not second.statuses.is_held(), "a shard-frozen nightmare doesn't chain again")
+	_check(not neighbour.statuses.is_held(), "a dispel freezes nobody")
 	frost.queue_free()
 	await _clean()
 
