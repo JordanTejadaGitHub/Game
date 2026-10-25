@@ -24,7 +24,12 @@ const STATUSES := {
 	&"held": ["Root", "Builds up to {stacks:cap_held} stacks; a nightmare with Root can't move while it lasts. At {stacks:need_held} stacks it can trigger {reactions}."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep}, or at {full} {drowsy}, near a Dreamcatcher: its statuses stop wearing off."],
+	# Retiring (Wording Council F.1, 2026-10-25: Frost doesn't slow): kept only until the Frostfern / Hoarfrost / Tidecaller
+	# Wardens, their Dream cards and the dewdrop_ascension node stop saying {frozen}; then this line goes.
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
+	# Frost (section 37, owner 2026-10-25): the 7th status; Frostburst and Cold Snap are TERMS below. Its text is Wording
+	# Council F.2 (2026-10-25); numbers only through tokens.
+	&"frost": ["Frost", "Builds up on a nightmare. It doesn't slow. At {stacks:cap_frost} ({stacks:bosscap_frost} on bosses) it bursts in a {frostburst}: it and up to 4 nightmares within 1 cell take damage, those 4 gain 1 {frost}, and it gets a {cold_snap}."],
 	&"elite": ["Deeply Blighted", "A stronger nightmare: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
@@ -241,6 +246,8 @@ const TERMS := {
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
 	&"dread_shell": ["dread shell", "dread shells", "Dread shell"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
+	&"frostburst": ["Frostburst", "Frostbursts", "Frostburst"],  # Frost at {full} (section 37)
+	&"cold_snap": ["Cold Snap", "Cold Snaps", "Cold Snap"],  # After a Frostburst, the other statuses pause
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
 	&"reaction": ["Reaction", "Reactions", "Reaction"],  # {reaction} / {reactions}: always a capital, always a link (user 2026-10-12); also a plain word

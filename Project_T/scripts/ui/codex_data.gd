@@ -122,10 +122,12 @@ const GLOSSARY_SOURCE := [
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Pulse Bolt", "Thunderclap"]],
-		["{held}", "{tip:held}", ["Shatter", "Smother", "{frozen}"]],
+		["{held}", "{tip:held}", ["Shatter", "Smother"]],
 		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
-		["{frozen}", "Frost's {held}: a {family:dewdrop}-{family} Warden's freeze adds 1 {stack} of {held}, and the nightmare can't move while it lasts.", ["{held}", "{damp}"]],
+		["{frost}", "{tip:frost}", ["Frostburst", "Cold Snap"]],
+		["Frostburst", "At {full} {frost} a nightmare bursts: it and up to 4 nightmares within 1 cell take damage, and those 4 gain 1 {frost}. Up to 3 bursts in a row.", ["{frost}", "Cold Snap"]],
+		["Cold Snap", "After a {frostburst}, the nightmare's other statuses stop running down for {const:cold_snap} s (bosses {const:cold_snap_boss} s). Not {held}, sleep or slows.", ["{frost}", "Frostburst"]],
 		["{silenced}", "{tip:silenced}", []],
 	]],
 	["Combat", [
@@ -301,7 +303,7 @@ const KINSHIP_TEXT := {
 	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at rank I; Wardens beside the Nurse Log also grow 10% cheaper.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
-	&"hoar_fog": "Frostfern's shots leave a fog puff; a nightmare that stays 2 s in Mistveil's fog is {frozen}: it gains 1 {held} (0.75 s), once per cloud.",
+	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog gives 1 {frost} a second to nightmares inside, never enough for a {frostburst} on its own.",
 	&"sunspot": "Sunpetal's beam gives its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
@@ -488,7 +490,8 @@ static func _fill_constants(text: String) -> String:
 		.replace("{const:dream_speed}", "+%d%%" % roundi(DreamState.DREAM_SPEED_CAP * 100.0)) \
 		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT) \
 		.replace("{const:pack_leaves}", str(DriftShapes.PACK_LEAVES)).replace("{const:pack_per}", str(DriftShapes.PACK_LEAVES_PER)) \
-		.replace("{const:tough_leaves}", str(DriftShapes.TOUGH_LEAVES))
+		.replace("{const:tough_leaves}", str(DriftShapes.TOUGH_LEAVES)) \
+		.replace("{const:cold_snap}", String.num(EnemyStatuses.COLD_SNAP)).replace("{const:cold_snap_boss}", String.num(EnemyStatuses.COLD_SNAP_BOSS))
 
 static func glossary() -> Array:
 	var stacks := IconInfo.stack_number("need_damp")
