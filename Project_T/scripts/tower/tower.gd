@@ -3899,9 +3899,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		splash += HelperCommons.area_attack_extra(self) * MAP_GRID.cell_size.x  # Wide Swing: every 3rd splash wider
 		if _dream_state.calling == "whirligig":
 			splash += CALLINGS.tailwind_wider(self) * MAP_GRID.cell_size.x  # Tailwind: a splash thrown from inside a wind Warden's reach
-	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
-			and PathCloud.fog_at(get_tree(), where, "mistveil"):
-		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool (Roguelite Code: its discovery)
+	# (Chain Bloom's discovery is DreamState.EVENT_SPLASH_LAYERED now, noted by DreamState: Roguelite Code 3b20f266.)
 	if splash > 0.0 and _dream_state and _has_rule(&"chain_bloom") and target != null and is_instance_valid(target) \
 			and target.statuses.count() >= 2:
 		splash *= CHAIN_BLOOM_RADIUS  # Chain Bloom (section 35): a splash landing on a nightmare with 2+ statuses, wider
