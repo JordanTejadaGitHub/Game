@@ -1867,6 +1867,8 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 			part.clip_text = true
 			part.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			part.add_theme_font_size_override("font_size", (ROW_NAME_SIZE if i == 0 else ROW_NOTE_SIZE) + (PHONE_ROW_BUMP if _phone else 0))
+			if i == 0:  # The action's name: a button label, so Vollkorn SC like every button (UI council r7, type table)
+				part.add_theme_font_override("font", UiStyle.caps_font())
 			lines.add_child(part)
 		var cost_label := Label.new()  # The price, right-aligned before the key
 		cost_label.name = "Price"

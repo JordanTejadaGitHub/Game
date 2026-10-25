@@ -166,8 +166,8 @@ func _feedback_sheet() -> Control:
 			world.draw_string_outline(font, Vector2(x, pair[0].y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, 2, Palette.DREAD)
 			world.draw_string(font, Vector2(x, pair[0].y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, UiStyle.GOLD)
 			world.draw_string(UiStyle.body_font(), pair[0] + Vector2(-90, 34), String(pair[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK_DIM)
-		var numbers := [["86", 14, Palette.MOONLIGHT, Palette.DREAD, "a hit"], ["640", 20, Palette.GLOW, Palette.DREAD, "a crit"],
-			["1280", DamageLog.UNFETTERED_NUMBER_SIZE, Palette.HEARTLIGHT, Palette.VOID, "Unfettered (2x+ the cap)"]]
+		var numbers := [["86", 17, Palette.MOONLIGHT, Palette.DREAD, "a hit"], ["640", 20, Palette.GLOW, Palette.DREAD, "a crit"],
+			["1,280", DamageLog.UNFETTERED_NUMBER_SIZE, Palette.HEARTLIGHT, Palette.VOID, "Unfettered (2x+ the cap)"]]
 		for i in numbers.size():
 			var n: Array = numbers[i]
 			var at := Vector2(110 + i * 230, 118)

@@ -207,7 +207,7 @@ func _input(event: InputEvent) -> void:
 		_phone_pick = null
 		return
 	var world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (event as InputEventScreenTouch).position
-	_phone_pick = _nightmare_near(world, PHONE_TAP_RADIUS)
+	_phone_pick = _cycle_pick(world)
 
 func _tool_active() -> bool:
 	var main := owner
@@ -217,6 +217,29 @@ func _tool_active() -> bool:
 	var seller := main.get_node_or_null("%TowerSeller")
 	return (placer != null and bool(placer.get("build_mode"))) or (seller != null and (bool(seller.get("sell_mode")) \
 		or bool(seller.get("select_mode"))))
+
+# Phones in a crowd (UI council round 8, item 5): a tap picks the nightmare nearest the finger by its drawn body; tapping
+# the same crowd again steps to the next one under the finger, nearest first, then round again.
+const CYCLE_RADIUS := 28.0  # World px: a second tap this close to the first stays in the same crowd
+var _cycle_at := Vector2.INF
+
+func _cycle_pick(world: Vector2) -> Node2D:
+	var under: Array = []
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		var body: Vector2 = enemy.get_body_position() if enemy.has_method("get_body_position") else enemy.global_position
+		var distance := body.distance_to(world)
+		if distance < PHONE_TAP_RADIUS:
+			under.append([distance, enemy])
+	under.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	var same_crowd := _cycle_at.is_finite() and world.distance_to(_cycle_at) <= CYCLE_RADIUS
+	_cycle_at = world
+	if under.is_empty():
+		return null
+	if same_crowd and is_instance_valid(_phone_pick):
+		for i in under.size():
+			if under[i][1] == _phone_pick:
+				return under[(i + 1) % under.size()][1]  # The next one in the crowd
+	return under[0][1]
 
 func _nightmare_near(world: Vector2, radius: float) -> Node2D:
 	var best: Node2D = null

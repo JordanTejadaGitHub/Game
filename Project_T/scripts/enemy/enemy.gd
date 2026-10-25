@@ -316,17 +316,15 @@ var _shared_hit := false  # A Pall's half of a blow: no multipliers again
 # nightmare, bosses, Deeply Blighted and anything not crowded. Setting "status_icons": 0 Full, 1 Compact in crowds
 # (default), 2 Off (the row only on hover / tap). Eased over CROWD_EASE s (instant under reduced motion); a look holds
 # CROWD_HOLD s at least.
-const CROWD_PIP := 7.0  # px (UI Code's pip: 5 px of colour in a 1 px outline)
-const CROWD_PIP_GAP := 1.0  # (A step of 8)
 const CROWD_PIP_ALPHA := 0.7
 const CROWD_BAR_H := 3.0
 const CROWD_EASE := 0.15
 const CROWD_HOLD := 0.5
 const CROWD_SEEN := 0.2  # s: a crowd mark this fresh still counts (the spawner marks every 2 frames)
 enum RowLook { FULL, COMPACT, OFF }
-# The pip's shape per status (UI Code may replace them): 0 circle, 1 square, 2 diamond, 3 triangle, 4 bar
-const PIP_SHAPES := {&"damp": 0, &"drowsy": 0, &"asleep": 4, &"spored": 1, &"marked": 3, &"static": 2, &"held": 4}
 var crowd_seen := -1.0  # EnemySpawner.crowd_clock when another drawn body was last within CROWD_REACH cell
+const FOCUS_Z := 8  # The hovered / tapped nightmare's HUD draws this many z steps higher, with a focus ring
+var _focus_drawn := false
 var _row_look: RowLook = RowLook.FULL
 var _row_hold := 0.0
 var _row_alpha := Vector2(1.0, 0.0)  # Drawn alpha of (the full row, the pips)
@@ -1230,13 +1228,26 @@ func _update_row_look(delta: float) -> void:
 		_row_hold = CROWD_HOLD
 		_hud_health = -2  # The health bar rebuilds at its new height
 		_hud_dirty = true
+	var focus: bool = _spawner != null and _spawner.hud_focus == self
+	if focus != _focus_drawn:  # Its row draws over the crowd's, with a ring (UI council round 8)
+		_focus_drawn = focus
+		for kind in HUD_PASSES:
+			RenderingServer.canvas_item_set_z_index(_hud_items[kind], NightmareOverlay.Z + kind + (FOCUS_Z if focus else 0))
+		if _hud_pips.is_valid():
+			RenderingServer.canvas_item_set_z_index(_hud_pips, NightmareOverlay.Z + HUD_ICONS + (FOCUS_Z if focus else 0))
+		_hud_health = -2  # The ring is drawn with the bars
+		_hud_dirty = true
 	var target := Vector2(1.0, 0.0)
 	if _row_look == RowLook.COMPACT:
-		target = Vector2(0.0, CROWD_PIP_ALPHA)
+		# UI Code's pips carry their own 70%; the placeholders take it from the item. Hidden under a front row.
+		var hidden: bool = _spawner != null and pips_hidden_seen >= 0.0 and _spawner.crowd_clock - pips_hidden_seen <= CROWD_SEEN
+		target = Vector2(0.0, 0.0 if hidden else (1.0 if _ui_pip_rid() else CROWD_PIP_ALPHA))
 	elif _row_look == RowLook.OFF:
 		target = Vector2.ZERO
 	if target.y > 0.0 and _pips_changes != statuses.changes:
 		_build_pips()
+	elif _hud_pips.is_valid():
+		_place_pips()  # (The text scale or touch mode moved)
 	if _row_alpha == target:
 		return
 	if bool(Fx.setting("reduced_motion", false)):
@@ -1248,58 +1259,70 @@ func _update_row_look(delta: float) -> void:
 	if _hud_pips.is_valid():
 		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
 
-# One pip per status, centred on the badge row's anchor: the status colour in its shape (PIP_SHAPES), no numbers.
+# The crowd row (UI council round 8): left-aligned on its own health bar's left end, 1 px above it, scaled like the
+# badge rows (hud_text_scale) and drawn in whole pixels (PIP_PX art px: x1 on PC, x2 on phones), at most CROWD_PIPS_MAX
+# pips and a "more" dot. Hidden while a front nightmare's row covers it (EnemySpawner marks pips_hidden_seen).
+const CROWD_PIPS_MAX := 3
+const PIP_ART := 7  # UI Code's pip: 7 art px (5 of colour in a 1 px Void outline); a step of 8
+var pips_hidden_seen := -1.0
+var _pips_scale := -1.0
+var _pips_px := 0
+
+func _pip_px() -> int:
+	return 2 if TouchBuild.mobile_controls() else 1
+
 func _build_pips() -> void:
 	_pips_changes = statuses.changes
 	if not _hud_pips.is_valid():
 		_hud_pips = RenderingServer.canvas_item_create()
 		RenderingServer.canvas_item_set_parent(_hud_pips, _hud_root)
 		RenderingServer.canvas_item_set_z_as_relative_to_parent(_hud_pips, false)
-		RenderingServer.canvas_item_set_z_index(_hud_pips, NightmareOverlay.Z + HUD_ICONS)
+		RenderingServer.canvas_item_set_z_index(_hud_pips, NightmareOverlay.Z + HUD_ICONS + (FOCUS_Z if _focus_drawn else 0))
 		RenderingServer.canvas_item_set_modulate(_hud_pips, Color(1, 1, 1, _row_alpha.y))
+		_pips_scale = -1.0
+	_place_pips()
 	RenderingServer.canvas_item_clear(_hud_pips)
+	var px := _pip_px()
 	var order := get_status_order()
-	var step := CROWD_PIP + CROWD_PIP_GAP
-	var centre := _hud_anchor() + Vector2(-step * (order.size() - 1) / 2.0, -CROWD_PIP / 2.0 - 1.0)
-	for i in order.size():
-		_draw_pip(centre + Vector2(step * i, 0.0), order[i])
+	var shown := mini(order.size(), CROWD_PIPS_MAX)
+	for i in shown:  # Centres in whole art pixels: a pip's top-left lands on a whole pixel
+		_draw_pip(Vector2(px * (PIP_ART / 2.0 + (PIP_ART + 1) * i), -px * (PIP_ART / 2.0)), order[i], px)
+	if order.size() > CROWD_PIPS_MAX:  # "More": a small dot after the last pip
+		var at := Vector2(px * ((PIP_ART + 1) * shown + 1), -px * 4)
+		RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(px, px), Vector2(px, px) * 3.0), Color(Palette.VOID, 0.8))
+		RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at, Vector2(px, px)), Palette.MOONLIGHT)
 
-static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip (76da10ff): 1 once it's on main, 0 before (looked up once)
+# The pips item's transform: the health bar's left end, 1 px above it, at the badge rows' scale (rounded to whole px).
+func _place_pips() -> void:
+	var text_scale: float = _spawner.hud_text_scale if _spawner != null else 1.0
+	if text_scale == _pips_scale and _pips_px == _pip_px():
+		return
+	_pips_scale = text_scale
+	_pips_px = _pip_px()
+	var bar_h := CROWD_BAR_H if _row_look == RowLook.COMPACT else HEALTH_BAR_SIZE.y
+	var left := (_bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2.0, -bar_h / 2.0 - 2.0)).round()
+	RenderingServer.canvas_item_set_transform(_hud_pips, Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, left))
 
-func _draw_pip(at: Vector2, id: StringName) -> void:
+static var _ui_pips := -1  # UI Code's KeywordIcons.draw_pip_rid: 1 once it's on main, 0 before (looked up once)
+
+func _ui_pip_rid() -> bool:
 	if _ui_pips < 0:
 		_ui_pips = 0
 		for method in (KeywordIcons as Script).get_script_method_list():
-			if method.name == "draw_pip":
+			if method.name == "draw_pip_rid":
 				_ui_pips = 1
-	if _ui_pips == 1:
-		(KeywordIcons as Script).call("draw_pip", _hud_pips, id, at, 1.0, 1.0)  # (The 70% is the pips item's modulate)
+	return _ui_pips == 1
+
+# One pip at `at` (its centre), `px` screen px per art px. UI Code's art once KeywordIcons.draw_pip_rid is on main (its
+# own outline / fill alpha: the item's modulate is then only the ease); until then a plain square in the status colour.
+func _draw_pip(at: Vector2, id: StringName, px: int) -> void:
+	if _ui_pip_rid():
+		(KeywordIcons as Script).call("draw_pip_rid", _hud_pips, id, at, float(px))  # Its own outline 1.0 / fill 0.85 (ab79e6e4)
 		return
 	var colour: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
-	var r := CROWD_PIP / 2.0
-	var outline := Color(Palette.VOID, 0.8)
-	match int(PIP_SHAPES.get(id, 0)):
-		1:  # Square
-			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0).grow(1.0), outline)
-			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), colour)
-		2:  # Diamond
-			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, 0), Vector2(0, r + 1), Vector2(-r - 1, 0)], outline, 1.0)
-			_pip_polygon(at, [Vector2(0, -r), Vector2(r, 0), Vector2(0, r), Vector2(-r, 0)], colour, 0.0)
-		3:  # Triangle
-			_pip_polygon(at, [Vector2(0, -r - 1), Vector2(r + 1, r + 1), Vector2(-r - 1, r + 1)], outline, 1.0)
-			_pip_polygon(at, [Vector2(0, -r), Vector2(r, r), Vector2(-r, r)], colour, 0.0)
-		4:  # Bar
-			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)).grow(1.0), outline)
-			RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(at - Vector2(r, r * 0.5), Vector2(r * 2.0, r)), colour)
-		_:  # Circle
-			RenderingServer.canvas_item_add_circle(_hud_pips, at, r + 1.0, outline)
-			RenderingServer.canvas_item_add_circle(_hud_pips, at, r, colour)
-
-func _pip_polygon(at: Vector2, points: Array, colour: Color, _grow: float) -> void:
-	var polygon := PackedVector2Array()
-	for p in points:
-		polygon.append(at + p)
-	RenderingServer.canvas_item_add_polygon(_hud_pips, polygon, PackedColorArray([colour]))
+	var corner := (at - Vector2(PIP_ART, PIP_ART) * px / 2.0).round()
+	RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(corner, Vector2(PIP_ART, PIP_ART) * px), Color(Palette.VOID, 0.8))
+	RenderingServer.canvas_item_add_rect(_hud_pips, Rect2(corner + Vector2(px, px), Vector2(PIP_ART - 2, PIP_ART - 2) * px), colour)
 
 func _make_hud() -> void:
 	_hud_root = RenderingServer.canvas_item_create()
@@ -1426,12 +1449,21 @@ func _build_hud_bars(item: RID) -> void:
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
 	var bar_size := HEALTH_BAR_SIZE if _row_look != RowLook.COMPACT else Vector2(HEALTH_BAR_SIZE.x, CROWD_BAR_H)  # (3 px in a crowd)
 	var bar := Rect2(_bar_offset - bar_size / 2, bar_size)
+	var compact := _row_look == RowLook.COMPACT
+	if _focus_drawn:  # The hovered / tapped one: a ring round its body (UI council round 8)
+		var ring := PackedVector2Array()
+		for i in AWAKE_RING_POINTS + 1:
+			ring.append(Vector2(0, -8) + Vector2.from_angle(TAU * i / AWAKE_RING_POINTS) * 22.0 * sprite.scale.x)
+		RenderingServer.canvas_item_add_polyline(item, ring, PackedColorArray([Color(Palette.MOONLIGHT, 0.7)]), 1.5)
 	if health < max_health or _bars_always:
 		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
+		if compact:  # A 1 px Void line under it, so stacked crowd bars separate
+			RenderingServer.canvas_item_add_rect(item, Rect2(bar.position + Vector2(-1, bar.size.y + 1), Vector2(bar.size.x + 2, 1)), Color(Palette.VOID, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
-		RenderingServer.canvas_item_add_rect(item, fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
-	if coat > 0.0:
+		# The health bar is HUD, not the nightmare: green reads as health. In a crowd a dread shell tints it instead of its own bar.
+		RenderingServer.canvas_item_add_rect(item, fill, Palette.SPRIG.lerp(COAT_COLOR, 0.5) if compact and coat > 0.0 else Palette.SPRIG)
+	if coat > 0.0 and not compact:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
 		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
 		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)

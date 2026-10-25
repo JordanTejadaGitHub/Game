@@ -371,7 +371,7 @@ func _show_number(event: Event) -> void:
 	if numbers_mode == NumbersMode.BIG and not big:
 		return
 	var color := Palette.MOONLIGHT  # A plain hit (art council 2026-10-24: Moonlight; Heartlight is kept for Unfettered and T2)
-	var size := 14
+	var size := 17  # One step up the 14 / 17 / 20 / 24 ladder (UI council r7: a plain hit was lost over light ground)
 	if event.combos.has(&"crit"):
 		color = Palette.GLOW
 		size = 20
@@ -501,14 +501,14 @@ class FloatingNumber:
 	# Adds `amount` to the number, tinting it toward `tint` (Harmony).
 	func add(amount: float, tint: Color) -> void:
 		_amount += amount
-		_text = str(roundi(_amount))
+		_text = BossDossier.thousands(roundi(_amount))
 		_color = _color.lerp(tint, 0.7)
 		queue_redraw()
 
 	func _init(at: Vector2, amount: float, color: Color, size: int) -> void:
 		global_position = at
 		_amount = amount
-		_text = str(roundi(amount))
+		_text = BossDossier.thousands(roundi(amount))  # "1,280" (UI council: thousands commas)
 		_color = color
 		_size = size
 

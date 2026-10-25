@@ -189,7 +189,7 @@ Queen an act 3 boss.
 
 **A boss that reaches the Heartwood: only the Hollow Oak stays** (2026-10-01, user: *"most bosses just lose a lot of leaves and have 1 boss that sticks"*; balance_simulation.md 538b85b7). The lingering rule below made a cliff: a Hollow Stag with 38 health (0.7%) left cost all 18 leaves when nothing covered the Heartwood. Now:
 - **The Hollow Oak (drift 100, every form: Thorned, Withering, Remembering) stays and drains** until dispelled, 1 leaf every 2 s, still hittable: the run's last stand.
-- **Every other act boss takes a flat bite and leaves:** **10 leaves in act 1, 10 in act 2, 12 in act 3** (act 1 was 8 until 2026-10-01: a fresh bot taking Dreams survived the act 1 boss 90% against a ~75% target; `boss_bite_leaves` [10, 10, 12], 899193f7) (Hollow Stag, Scarecrow; Mire Hag, Huntsman, Lamplighter; Moth Queen, Barrow King, Mourning Mother). This replaces their `leaf_cost` 5.
+- **Every other act boss takes a flat bite and leaves:** **6 leaves in act 1, 8 in act 2, 10 in act 3** (Balancing 2026-10-19: a flat 10 ended runs at the act 1 boss after the base damage cut; `EnemyContainer.boss_bite_leaves` [6, 8, 10]. Before that 10 / 10 / 12, and act 1 was 8 until 2026-10-01: a fresh bot taking Dreams survived the act 1 boss 90% against a ~75% target; `boss_bite_leaves` [10, 10, 12], 899193f7) (Hollow Stag, Scarecrow; Mire Hag, Huntsman, Lamplighter; Moth Queen, Barrow King, Mourning Mother). This replaces their `leaf_cost` 5.
 - **The Night Mare keeps its own laps** as decided below (untouchable lingers that drain, then another, faster lap).
 - Echoes (Remembering Oak) and escorts leak normally.
 
@@ -495,6 +495,11 @@ nightmares moved to make room):
   families exist in code.
 ## Stats
 
+**History (council round 2026-10-24d):** the numbers in `resource/enemy/*.tres` are the source; this table is the
+original design and is out of date on about 13 values (Husk leaves are 1 in the data; boss bites are 6 / 8 / 10,
+above). The Resists / Weak to columns are history: damage types were removed (Nightmare Kinds, 2026-10-15). The
+Night Mare's and the Hollow Oak's `leaf_cost` is never charged: they drain at the Heartwood.
+
 Drift 1 values; health then grows per drift (×1.045, ×1.055 from drift 26, ×1.045 from 51; bosses fixed per act × 1.5; see `run_design.md`).
 Speed in px/s (64 px = 1 cell; Shade 100 ≈ 1.6 cells/s). Dew ≈ 3 per 100 health, a little more
 for nightmares with a nasty trait. Values already in the game (`.tres`, under their old file names)
@@ -632,7 +637,7 @@ saved with the run)
 - Blight Levels may later sharpen shapes (bigger packs from drift 51); never a shape aimed at a build.
 
 **Don't ship (the rules that keep shapes fair)**
-- **A pack takes at most 3 leaves** when it leaks (proposed number), so one slipped pack can't end a
+- **A pack takes at most 6 leaves** when it leaks (was 3, then 3 per 8 members; council round 2026-10-24c), so one slipped pack can't end a
   run; the glossary says so. **A Few and tough drift's Deeply Blighted take at most 6 leaves together** (owner 2026-10-24, council round 2026-10-24: 3-5 of them at 2 each were an uncapped 8-12-leaf cliff), on the same rule as a pack.
 - **No flyer packs:** Hollow Wind's flyer swaps are pulled out of packs and spaced as in a Stream.
 - **Headlong stays special:** never more than ~8 arrivals within 3 s in any shape; only Headlong

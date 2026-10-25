@@ -9,7 +9,9 @@ Created 2026-10-24 (user: "Create a council for enemy design, then let the counc
 the current game in mind in terms of making wardens and dream builds feel good"). Five agents each read a lot
 (~50-80k tokens apiece), so run it when the user asks, after a batch of enemy or drift design.
 
-**Files** (all on D:, never C:): briefs in `D:\Projects\logs\enemy_council\briefs\` (`_common.md`, `seats.md`);
+**Files** (all on D:, never C:): briefs in `D:\Projects\logs\enemy_council\briefs\` (`_common.md`, `seats.md`,
+`standards.md`: the council standards A design, B Kinds and defences, C fairness, D builds and Wardens, E text,
+F look, collected 2026-10-24; keep it current when a round or the owner changes a rule);
 each round in `D:\Projects\logs\enemy_council\rounds\<YYYY-MM-DD>\` (`subject.md`, `seat_<B|W|T|S|P>.md`,
 `verdict.md`). The lead review lands in the repo as `documentation/enemy_council_review.md` (a newer round adds a
 section; earlier rulings that still hold stay) with the seat reports in `documentation/enemy_council/<date>/`.
@@ -18,7 +20,12 @@ section; earlier rulings that still hold stay) with the seat reports in `documen
 1. **Subject:** write `subject.md` in the round folder: what changed (doc sections and commits), what the owner
    asked, and earlier reviews the seats should read.
 2. **Five seats in parallel** (general-purpose agents, background): each prompt = `_common.md` + its seat from
-   `seats.md` + the round folder path. Read-only: no edits, no Godot, no tests, no sims.
+   `seats.md` + `standards.md` + the round folder path. Read-only: no edits, no Godot, no tests, no sims. A round
+   may give a seat a different lens (e.g. P as the motion animator or the wording keeper); say so in
+   `subject.md`. **Videos:** seats extract frames with ffmpeg
+   (`D:\Projects\ffmpeg\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe`) into their own folder in the round and read
+   the PNGs; no new captures without the owner. **Roster audits:** dump every field of `resource/enemy/*.tres` into
+   the round's `roster.md` once, so every seat judges the same data.
 3. **Spot-check before ruling:** every code or data claim that reaches the fix-first list gets one grep against the
    script / .tres yourself. Seats are sometimes wrong.
 4. **Lead review** (`verdict.md`, copied to `documentation/enemy_council_review.md`): verdict; where the seats agree
