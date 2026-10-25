@@ -3797,6 +3797,7 @@ func _hailfall(enemy: Node2D, dealt: float) -> void:
 	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 	near = near.slice(0, HAILFALL_TARGETS)
 	set_area_count(near.size() + 1, at)  # Crowd Breaker counts the crowd it splashed
+	_splash_ring(_ring_at(enemy, at), reach)  # Its reach, as every splash (UI council 2026-10-25)
 	var share := HAILFALL_SHARE * dealt / maxf(get_damage(), 0.001)
 	for other in near:
 		hit(other, share, true, NO_CRIT, HAILFALL_TAG, true, -1, false)
@@ -4167,6 +4168,7 @@ func millstone_splash(target: Node2D, at: Vector2, base_cells: float, damage: fl
 		damage += HAILFALL_SHARE * dealt
 		reach = maxf(reach, HAILFALL_RADIUS * MAP_GRID.cell_size.x)
 	var share := damage / maxf(get_damage(), 0.001)  # Lingering Splash / Great Ripple take a share of a hit
+	_splash_ring(_ring_at(target, at), reach)  # Every splash shows its reach (UI council 2026-10-25: Millstone had none)
 	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
 		GroveRules.area_attack(self, at, reach, share, true)  # A splash's ring: damage only
 	var splashed: Array = []
@@ -4186,7 +4188,7 @@ func millstone_splash(target: Node2D, at: Vector2, base_cells: float, damage: fl
 	return reach
 
 # The splash's reach where it lands (user 2026-10-18: "a visible radius with splash damage when it lands"): a ground
-# ring out to the real splash radius in the family's colour, with a dark edge so it reads on the sand path. Shares the
+# ring out to the real splash radius (the generic ring, or the family's with Spattered: _splash_ring). Shares the
 # pulse ripples' throttle (GroundRipple.may_start), so a volley of splashes never stacks into a tangle.
 const SPLASH_RING_COLOURS := {"water": Palette.MOONLIGHT, "stone": Palette.MIST}  # Lines whose family colour hides on the ground
 
@@ -4212,17 +4214,14 @@ func _ring_at(target, where: Vector2) -> Vector2:
 # Area-by-design bursts (Sparkler / Starburst, `area`) always give their status: always the family ring.
 const GENERIC_RING := "generic"
 
-# The status a splash of `data` would spread (&"" = none): its own status, or Held for a freezing form (freeze counts).
+# The status a splash of `data` would spread (&"" = none): its own status, as spatter() gives it. A freeze alone doesn't
+# count (Old Mountain keeps the generic ring; owner's call pending, UI council 2026-10-25).
 static func splash_status(data: TowerData) -> StringName:
-	if data == null:
-		return &""
-	if data.applies_status != &"":
-		return data.applies_status
-	return EnemyStatuses.HELD if data.freeze_duration > 0.0 else &""
+	return data.applies_status if data != null else &""
 
 # Whether `dreams` holds Spattered (its splashes carry their status).
 static func spattered(dreams: DreamState) -> bool:
-	return dreams != null and dreams.has_rule(&"spattered")
+	return dreams != null and dreams.has_rule(SPATTERED)
 
 # Whether this Warden's splashes give their status to all they reach (its family ring), else damage only (the generic).
 func splash_spreads_status() -> bool:
@@ -4237,7 +4236,7 @@ func _splash_ring(where: Vector2, radius: float, area := false) -> void:
 	# Tower Assets 159222cf (user-approved): the ring sheets, splash_ring_<style> (drawn for a 1-cell radius: scaled
 	# radius / 64), on the ground under the nightmares. Family lines without a sheet: the drawn GroundRipple ring below.
 	var family := area or splash_spreads_status()
-	var style := splash_ring_style(tower_data) if family else GENERIC_RING
+	var style := splash_ring_style(attack_data) if family else GENERIC_RING  # attack_data: a Graftling's copy
 	if style != "" and Fx.has_effect(StringName("splash_ring_" + style)):
 		var sheet := Fx.play(StringName("splash_ring_" + style), where, world, radius / MAP_GRID.cell_size.x)
 		if sheet != null:
@@ -4245,9 +4244,9 @@ func _splash_ring(where: Vector2, radius: float, area := false) -> void:
 		return
 	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
 	# Stone's family colour (Deadwood) is the sand path's own colour: stone splashes ring in pale Mist instead.
-	var colour: Color = SPLASH_RING_COLOURS.get(tower_data.line, Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GLOW))
+	var colour: Color = SPLASH_RING_COLOURS.get(attack_data.line, Kinships.FAMILY_COLORS.get(attack_data.line, Palette.GLOW))
 	var ring := GroundRipple.new(radius, colour, Color(Palette.NIGHT, 0.5))
-	ring.raindrop = tower_data.line == "water"  # Dewdrop line: ripples inside the ring, like a raindrop
+	ring.raindrop = attack_data.line == "water"  # Dewdrop line: ripples inside the ring, like a raindrop
 	world.add_child(ring)
 	ring.global_position = where
 
@@ -4471,6 +4470,7 @@ func _spotter_splash(target: Node2D, where: Vector2) -> void:
 	if share <= 0.0:
 		return
 	var reach := SPOTTER_SPLASH_RADIUS * MAP_GRID.cell_size.x
+	_splash_ring(_ring_at(target, where), reach)  # Its reach, as every splash (UI council 2026-10-25)
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy != target and enemy.global_position.distance_to(where) <= reach:
 			hit(enemy, SPOTTER_SPLASH * share, true, NO_CRIT, &"", true, -1, false)  # A splash: damage only (section 37)
