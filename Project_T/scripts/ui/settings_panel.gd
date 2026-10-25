@@ -163,6 +163,9 @@ func _ready() -> void:
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
 	# animation. Fx can also step down by itself when frames run long (Tower Code).
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
+	# The perf readout (Perf Booster 2026-10-25): PerfOverlay in a corner, in every build, so phones can report numbers.
+	_toggle(display, "Performance readout", PerfOverlay.SETTING, false,
+		"Shows the frame rate and frame time in a corner, to report how the game runs on this device.")
 	# Placement grid in build mode (Tower Code 0bc2b870, half_cells.md "Placement feel"): whole-cell lines over buildable
 	# ground, half lines near the ghost.
 	_choice(display, "Build grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
