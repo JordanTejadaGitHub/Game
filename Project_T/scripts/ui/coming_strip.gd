@@ -83,8 +83,8 @@ var _pad_foot := Control.new()
 
 # The strip sits on its panel, the padding inside its own rect (the spacers above): portraits and badges stay inside.
 func _draw() -> void:
-	if compact and not _phone:  # During a drift (user 2026-10-21: "find a better way… without taking up space in the
-		return  # middle"): no box, no caption, just the row of small discs under the drift banner's pips
+	# PC, in a drift too: opened from the chip or showing the warning line, it sits on its panel (user screenshots
+	# 2026-10-24: "Still to come this block" and "Drift 6 · Armoured: …" drew on no panel, text over the map)
 	if _phone:  # The dropdown's panel, under the Incoming button, only while open
 		if phone_open:
 			var top := _phone_toggle.size.y + PHONE_DROP_GAP
@@ -236,14 +236,19 @@ func _build(span: Vector2i) -> void:
 	var line: HBoxContainer = null
 	for i in shown.size():
 		if i % per_row == 0:
+			if line != null:
+				line.add_child(_hang_room())
 			line = HBoxContainer.new()
 			line.alignment = BoxContainer.ALIGNMENT_CENTER
-			line.add_theme_constant_override("separation", 22)  # Room for each count plate hung 20 px past its disc (UI council round 5), +2 clear
+			line.add_theme_constant_override("separation", BADGE_HANG + 4)  # Room for each count plate past its disc, +4 clear
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
+			line.add_child(_hang_room())  # The same room on the left keeps the discs centred
 		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
 	if not rest.is_empty():
 		line.add_child(_more_chip(rest))
+	if line != null:
+		line.add_child(_hang_room())
 	_build_kind_words(span)
 	_shapes.build(drift_director, span, compact)
 
@@ -290,7 +295,7 @@ func _build_kind_words(_span: Vector2i) -> void:
 	for entry in new_kinds(drift_director, next, next):
 		var words := Label.new()
 		words.name = "Kind%d" % entry[0]
-		words.text = "Drift %d · %s" % [entry[2], kind_words(entry[1])]
+		words.text = "Drift %d brings %s" % [entry[2], kind_words(entry[1])]  # No " · " (ui_style.md)
 		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		words.custom_minimum_size.x = minf(KIND_WORDS_WIDTH, get_viewport_rect().size.x - 32.0) if _phone else KIND_WORDS_WIDTH
@@ -383,14 +388,18 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	UiStyle.number(badge, 13, UiStyle.GOLD)
 	_badge_look(badge)
 	badge.add_theme_stylebox_override("normal", UiStyle.plate_box(3.0, 0.0))  # On a small glass plate (UI council round 4: hard to read bare)
-	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	# Hung off the disc's corner, not over the nightmare's face (UI council 2026-10-22: "×57" covered the art): its left edge
+	# on the rim, growing right (user screenshot 2026-10-24: a 20 px push from a guessed width still covered the small disc)
+	badge.anchor_left = 1.0
+	badge.anchor_right = 1.0
+	badge.anchor_top = 1.0
+	badge.anchor_bottom = 1.0
+	badge.offset_left = -BADGE_ON_RIM
+	badge.offset_right = -BADGE_ON_RIM
+	badge.offset_top = 4.0  # Its foot 4 px under the disc: clear of the panel's bottom rim
+	badge.offset_bottom = 4.0
+	badge.grow_horizontal = Control.GROW_DIRECTION_END
 	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	# Hung off the disc's corner, not over the nightmare's face (UI council 2026-10-22: "×57" covered the art)
-	badge.offset_left += 20.0  # Round 5: the plate hung over the face; now it sits past the disc's edge
-	badge.offset_right += 20.0
-	badge.offset_top += 9.0
-	badge.offset_bottom += 9.0
 	holder.add_child(badge)
 	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold tab over the disc's top edge (a new rule-breaker: always)
 		var tag := Label.new()
@@ -420,6 +429,16 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		item.add_child(words)
 	return item
+
+const BADGE_ON_RIM := 6.0  # The count plate's left edge sits this far over the disc's rim
+const BADGE_HANG := 30.0  # How far a count plate ("×16", "×157") reaches past its disc
+
+# An empty end of a row of discs: the row's separation beside it is the room, so the last count plate stays on the
+# panel and the discs stay centred (one at each end).
+func _hang_room() -> Control:
+	var room := Control.new()
+	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return room
 
 # A badge over a portrait ("×22", "New"): a crisp Void outline round the letters keeps it readable on the pale disc, no
 # dark pill under it (user 2026-10-21: "why is it dark underneath the 22 and 4").
