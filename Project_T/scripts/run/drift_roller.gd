@@ -79,6 +79,41 @@ static func roll_run(director: Node, seed: int) -> void:
 			previous = rolled.get_meta(META_TEMPLATE)
 		else:
 			previous = &""
+		if shapes.get(n, &"") == DriftShapes.SINGLE_FILE and (rolled == null or rolled.shape != DriftShapes.SINGLE_FILE):
+			_move_single_file(director, n, shapes, hand_made, rng, state)
+
+# Drift `n`'s planned Single file found no fit (Balancing 2026-10-24): the block's Single file goes to another drift of
+# the same block planned as a Stream that can take a shape: a later one is planned Single file instead, an earlier one
+# is rolled again as Single file (kept only if it fits). If none fits, the block has no Single file.
+static func _move_single_file(director: Node, n: int, shapes: Dictionary, hand_made: Array, rng: RandomNumberGenerator,
+		state: Dictionary) -> void:
+	var per: int = director.drifts_per_block
+	var first: int = (director.get_block(n) - 1) * per + 1
+	var last := mini(first + per - 1, hand_made.size())
+	var boss_block := false
+	for m in range(first, last + 1):
+		boss_block = boss_block or director.is_boss_drift(m)
+	var candidates: Array = []
+	for m in range(first, last + 1):
+		if m != n and shapes.get(m, &"") == DriftShapes.STREAM and m >= SHAPE_FROM and is_rollable(director, m) \
+				and not director.is_boss_drift(m + 1) and (not boss_block or m - first < 3):
+			candidates.append(m)
+	for m in candidates:
+		if m > n:  # Not rolled yet: it rolls as Single file
+			shapes[m] = DriftShapes.SINGLE_FILE
+			shapes[n] = DriftShapes.STREAM
+			director.drifts[n - 1].set_meta(META_PLANNED, DriftShapes.STREAM)
+			return
+	for m in candidates:  # Earlier: rolled again
+		var before := template_of(director, m - 1) if m > 1 else &""
+		var again := _roll_drift(director, m, hand_made[m - 1], hand_made, rng, before, state, DriftShapes.SINGLE_FILE)
+		if again != null and again.shape == DriftShapes.SINGLE_FILE:
+			again.set_meta(META_PLANNED, DriftShapes.SINGLE_FILE)
+			director.drifts[m - 1] = again
+			shapes[m] = DriftShapes.SINGLE_FILE
+			shapes[n] = DriftShapes.STREAM
+			director.drifts[n - 1].set_meta(META_PLANNED, DriftShapes.STREAM)
+			return
 
 # Puts the hand-made drifts back (tests, or turning the feature off mid-run).
 static func restore(director: Node) -> void:
@@ -124,7 +159,7 @@ const FEW_SHARE := Vector2(0.4, 0.6)  # …holding this share of the budget (Bal
 const FEW_ELITE_CAP := 0.6  # The roller's elite cap for Few and tough (others: 0.5)
 # Single file thins at most this share of the bodies (after extra nightmares) into the heavy lead; a
 # drift that still can't arrive SINGLE_GAP apart plays as a Stream (Balancing 2026-10-24).
-const SINGLE_THIN_MAX := 0.25
+const SINGLE_THIN_MAX := 0.35  # (Balancing 2026-10-24: was 0.25; past 35% the tough bodies cost DoT / counter builds too much)
 
 # {drift: shape} for the run, on its own salted rng (the kinds keep theirs). Fixed drifts (1–5,
 # intro drifts, bosses, the drift before a boss) are Streams and count as their block's Streams.

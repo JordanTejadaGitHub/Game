@@ -44,6 +44,7 @@ const PACK_LEAVES_PER := 8  # (Unused since 2026-10-24c: the glossary's old "for
 # pack_gap); the CROWD_MAX rule is waived for them.
 const PACKS_BIG_COUNT := 6
 const PACKS_BIG_MAX := 8
+const PACKS_BIG_MIN := 4  # Balancing 2026-10-24: a big drift makes as many packs as its window fits (2.6 s each, gaps >= 2 s × pack_gap), from this to PACKS_BIG_MAX, aiming at ceil(nightmares / BIG_PER_PACK); fewer than this fit = a Stream
 const BIG_PER_PACK := 14
 const PACK_SPAN_MAX := 2.6  # (council 2026-10-24c *; was 3.0)
 const PACK_GAP_BIG_FLOOR := 2.0
@@ -318,7 +319,11 @@ static func _packs(schedule: Array, rng: RandomNumberGenerator, act: int, mods: 
 	for arrival in schedule:
 		weight += _weight(arrival[1])
 	var big := weight > PACKS_BIG_COUNT * PACK_SIZE.y  # A big late drift: more, bigger packs
-	_big_count = clampi(ceili(float(weight) / BIG_PER_PACK), PACKS_BIG_COUNT, PACKS_BIG_MAX)
+	var fit_gap := PACK_GAP_BIG_FLOOR * float(mods.get("pack_gap", 1.0))
+	var fits := floori((span.y - span.x + fit_gap) / (PACK_SPAN_MAX + fit_gap))  # Packs of PACK_SPAN_MAX the window holds
+	_big_count = clampi(mini(maxi(ceili(float(weight) / BIG_PER_PACK), PACKS_BIG_COUNT), fits), PACKS_BIG_MIN, PACKS_BIG_MAX)
+	if big and fits < PACKS_BIG_MIN:
+		return  # Not even PACKS_BIG_MIN packs fit: a Stream
 	var size := PACK_SIZE_ACT1 if act <= 1 else PACK_SIZE
 	var fill := int(mods.get("pack_fill", 0))
 	if fill > 0:
