@@ -329,10 +329,13 @@ const JOSTLE_LANES := 0.15  # Cells: lanes closer than this push
 const JOSTLE_PUSH := 0.8  # Lane units a second
 const JOSTLE_EVERY := 2
 var _jostle_time := 0.0
-# Status icons in crowds (enemy_design.md, owner 2026-10-24): the jostle's neighbour pass also marks nightmares whose
-# drawn bodies are within CROWD_REACH cell of another (Enemy.crowd_seen = crowd_clock); hud_focus = the nightmare the
-# info panel shows (hovered / tapped: it keeps its full row; NightmareInfo sets it).
-const CROWD_REACH := 0.5
+# Status icons in crowds (enemy_design.md, owner 2026-10-24): a nightmare is crowded (Enemy.crowd_seen = crowd_clock) when
+# its FULL status row would overlap another's full row or drawn body (owner question 2026-10-25, "what's the minimum
+# group size until they appear?": no group size, whenever two rows would collide; Single file on a vertical path keeps
+# its rows, two side by side with wide rows go compact even past half a cell). Checked on the jostle's frames
+# (_mark_crowds); hud_focus = the nightmare the info panel shows (hovered / tapped: it keeps its full row; NightmareInfo sets it).
+const CROWD_PAD := 2.0  # px round a full row
+const CROWD_BODY := 0.6  # Cells: the drawn body's box a row may not cover
 const CROWD_ROW_W := 28.0  # px: a crowd row (3 pips and the "more" dot)…
 const CROWD_ROW_H := 8.0  # …and its height
 var crowd_clock := 0.0
@@ -352,6 +355,7 @@ func _jostle_lanes(delta: float) -> void:
 	# values once a pass, not once a pair (perf 2026-10-24: ~440 pairs a pass; nudge_lane moves only lane_target, so
 	# the lane read here stays what every pair saw before)
 	var buckets := {}
+	var walkers: Array = []
 	for enemy in get_children():
 		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled:
 			continue
@@ -359,10 +363,14 @@ func _jostle_lanes(delta: float) -> void:
 			cell_px = enemy.grid.cell_size.x
 		var left: float = enemy.get_remaining_distance()
 		var flying: bool = enemy.is_flying()
-		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append([enemy, left, enemy.get_body_position(),
-			enemy.lane * enemy.get_lane_width() if push and not flying else 0.0, flying])
+		var one := [enemy, left, enemy.get_body_position(), enemy.lane * enemy.get_lane_width() if push and not flying else 0.0, flying]
+		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append(one)
+		walkers.append(one)
 	if buckets.is_empty():
 		return
+	_mark_crowds(walkers, cell_px)  # The crowd marks (compact status rows) always, jostle or not
+	if not push:
+		return  # (No pushes: the pair pass below only jostles now)
 	var reach := JOSTLE_REACH * cell_px
 	for key in buckets:
 		var here: Array = buckets[key]
@@ -375,18 +383,58 @@ func _jostle_lanes(delta: float) -> void:
 				if absf(left - float(other[1])) <= reach:
 					_jostle_pair(one, other, cell_px, step, push)
 
+# Crowd marks from the walkers of this pass ([[nightmare, distance left, drawn body, …], …]): a spatial hash on the drawn
+# bodies, buckets as wide as the widest full row (and two cells tall: a row sits above its body), each pair compared
+# once (its own bucket and four of the eight around). Cheap: row widths are cached by each nightmare (full_row_rect).
+const _CROWD_NEXT: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]
+
+func _mark_crowds(walkers: Array, cell_px: float) -> void:
+	var items: Array = []  # [nightmare, body, full row rect grown by CROWD_PAD (or empty), body box]
+	var widest := 0.0
+	var half := CROWD_BODY * cell_px / 2.0
+	for one in walkers:
+		var row: Rect2 = one[0].full_row_rect(hud_text_scale)
+		if row.has_area():
+			row = row.grow(CROWD_PAD)
+			widest = maxf(widest, row.size.x)
+		var body: Vector2 = one[2]
+		items.append([one[0], body, row, Rect2(body - Vector2(half, half), Vector2(half, half) * 2.0)])
+	if widest <= 0.0:
+		return  # No full rows anywhere: nothing can collide (the pips need statuses too)
+	var span := Vector2(maxf(widest, cell_px), 2.0 * cell_px)
+	var grid := {}
+	for item in items:
+		var body: Vector2 = item[1]
+		grid.get_or_add(Vector2i(floori(body.x / span.x), floori(body.y / span.y)), []).append(item)
+	for key: Vector2i in grid:
+		var here: Array = grid[key]
+		for i in here.size():
+			for j in range(i + 1, here.size()):
+				_crowd_pair(here[i], here[j])
+			for step in _CROWD_NEXT:
+				for other in grid.get(key + step, []):
+					_crowd_pair(here[i], other)
+
+func _crowd_pair(one: Array, two: Array) -> void:
+	var row_a: Rect2 = one[2]
+	var row_b: Rect2 = two[2]
+	var hits := (row_a.has_area() and (row_a.intersects(two[3]) or (row_b.has_area() and row_a.intersects(row_b)))) \
+		or (row_b.has_area() and row_b.intersects(one[3]))
+	if not hits:
+		return
+	var a = one[0]
+	var b = two[0]
+	a.crowd_seen = crowd_clock
+	b.crowd_seen = crowd_clock
+	# Two crowd rows overlapping by more than half (UI council round 8): only the front nightmare's shows
+	var body_a: Vector2 = one[1]
+	var body_b: Vector2 = two[1]
+	if absf(body_a.x - body_b.x) < CROWD_ROW_W / 2.0 and absf(body_a.y - body_b.y) < CROWD_ROW_H:
+		(a if body_a.y < body_b.y else b).pips_hidden_seen = crowd_clock
+
 func _jostle_pair(one: Array, two: Array, cell_px: float, step: float, push: bool) -> void:
 	var a = one[0]
 	var b = two[0]
-	# Crowded (status icons in crowds): another drawn body within CROWD_REACH cell
-	var body_a: Vector2 = one[2]
-	var body_b: Vector2 = two[2]
-	if body_a.distance_squared_to(body_b) < (CROWD_REACH * cell_px) ** 2:
-		a.crowd_seen = crowd_clock
-		b.crowd_seen = crowd_clock
-		# Two crowd rows overlapping by more than half (UI council round 8): only the front nightmare's shows
-		if absf(body_a.x - body_b.x) < CROWD_ROW_W / 2.0 and absf(body_a.y - body_b.y) < CROWD_ROW_H:
-			(a if body_a.y < body_b.y else b).pips_hidden_seen = crowd_clock
 	if not push or one[4] or two[4]:
 		return
 	var wa: float = one[3]
