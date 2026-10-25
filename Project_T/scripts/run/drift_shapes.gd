@@ -19,7 +19,7 @@ const PACKS := &"packs"
 const SINGLE_FILE := &"single_file"
 const FEW_AND_TOUGH := &"few_and_tough"
 const ALL: Array[StringName] = [STREAM, PACKS, SINGLE_FILE, FEW_AND_TOUGH]
-const NAMES := {STREAM: "Stream", PACKS: "Packs", SINGLE_FILE: "Single file", FEW_AND_TOUGH: "Few and tough"}
+const NAMES := {STREAM: "Steady", PACKS: "Packs", SINGLE_FILE: "Single file", FEW_AND_TOUGH: "Few and tough"}
 const GLYPHS := {STREAM: &"shape_stream", PACKS: &"shape_packs", SINGLE_FILE: &"shape_single_file",
 	FEW_AND_TOUGH: &"shape_few_and_tough"}
 

@@ -30,7 +30,7 @@ func _run() -> void:
 	director.resting = true
 	_check(panel.coming_finale(director) == 10, "resting before drifts 6–10: the finale is drift 10")
 	panel._update_finale()
-	_check(panel.finale_label.visible and panel.finale_label.text == "Finale (drift 10): clear it clean for a Rare dream",
+	_check(panel.finale_label.visible and panel.finale_label.text == "Closing drift (drift 10): clear it clean for a Rare Dream",
 		"the DriftPanel says it (%s)" % panel.finale_label.text)
 	director.drifts_started = 0
 	_check(panel.coming_finale(director) == 0, "block 1 has no finale")
@@ -38,9 +38,9 @@ func _run() -> void:
 	report._finale_drift = 10
 	report._finale_lost_before = run_state.leaves_lost
 	if not main.get_node("%DreamState").has_method("finale_result"):
-		_check(report.finale_line(2) == "\nFinale cleared clean: a Rare dream waits", "a clean finale: the Rare dream waits")
+		_check(report.finale_line(2) == "\nClosing drift cleared clean: a Rare Dream waits", "a clean closing drift: the Rare Dream waits")
 		run_state.lose_leaves(2)
-		_check(report.finale_line(2) == "\nFinale cost 2 leaves", "a costly one says so (%s)" % report.finale_line(2).strip_edges())
+		_check(report.finale_line(2) == "\nClosing drift cost 2 leaves", "a costly one says so (%s)" % report.finale_line(2).strip_edges())
 	_check(report.finale_line(1) == "", "a block without a finale: no line")
 	main.queue_free()
 	await process_frame

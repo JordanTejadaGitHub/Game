@@ -166,7 +166,7 @@ func _run() -> void:
 	_check(DriftShapes.cap_pack_leak(loose, 2, charged) == 2, "outside a pack a leak costs its full price")
 	for node in [a, b, loose]:
 		node.free()
-	_check(DriftShapes.display_name(&"") == "Stream" and DriftShapes.display_name(DriftShapes.FEW_AND_TOUGH) == "Few and tough",
+	_check(DriftShapes.display_name(&"") == "Steady" and DriftShapes.display_name(DriftShapes.FEW_AND_TOUGH) == "Few and tough",
 		"display names")
 
 	if failures == 0:

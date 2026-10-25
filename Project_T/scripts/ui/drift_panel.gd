@@ -16,7 +16,7 @@ extends VBoxContainer
 
 var _status_label := Label.new()
 var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
-var finale_label := Label.new()  # Spire: "Finale (drift 10): clear it clean for a Rare dream" (tests)
+var finale_label := Label.new()  # Spire: "Closing drift (drift 10): clear it clean for a Rare Dream" (tests)
 var impatient_label := Label.new()  # Live early-call overlap; no repeated combat particles.
 var moonflip_label := Label.new()  # Strange Dreams' Moonflip: "Moonflip +25%" for the block (Roguelite's moonflip_text)
 var _warning_key := ""
@@ -491,7 +491,7 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 		_speed_buttons[i].queue_redraw()  # Its on-mark (_draw_on_mark)
 
 
-const FINALE_TEXT := "Finale (drift %d): clear it clean for a Rare dream"
+const FINALE_TEXT := "Closing drift (drift %d): clear it clean for a Rare Dream"  # Not "Last drift": that is the previous drift (drift meter, card lines)
 
 # The finale drift ahead in this block (resting: the next block's), or 0 when there's none / it has begun its rest.
 static func coming_finale(director: DriftDirector) -> int:

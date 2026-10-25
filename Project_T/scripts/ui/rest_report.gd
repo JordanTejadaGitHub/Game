@@ -472,7 +472,7 @@ static func best_dream(near: Node) -> Array:
 			return [row.text.get_slice(" · ", 0), "%d%% of your damage" % roundi(row.damage / total * 100.0)]
 	return []
 
-# Spire block finales (spire_difficulty.md Phase 2): "Finale cleared clean: a Rare dream waits" / "Finale cost 2 leaves",
+# Spire block finales (spire_difficulty.md Phase 2): "Closing drift cleared clean: a Rare Dream waits" / "Closing drift cost 2 leaves",
 # "" for a block without one. Roguelite Code's DreamState.finale_result(block) when it's there (it judges the finale), else counted here.
 func finale_line(block: int) -> String:
 	var clean := false
@@ -490,8 +490,8 @@ func finale_line(block: int) -> String:
 		lost = int(get_node("%RunState").leaves_lost) - _finale_lost_before
 		clean = lost <= 0
 	if clean:
-		return "\nFinale cleared clean: a Rare dream waits"
-	return "\nFinale cost %d %s" % [lost, "leaf" if lost == 1 else "leaves"]
+		return "\nClosing drift cleared clean: a Rare Dream waits"
+	return "\nClosing drift cost %d %s" % [lost, "leaf" if lost == 1 else "leaves"]
 
 static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 	var text := ""
