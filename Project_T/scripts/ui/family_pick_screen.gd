@@ -95,7 +95,7 @@ func _ready() -> void:
 		# Phones: the Dream screen's layout. The title and "choose a family to wake" in the header, Peek top right,
 		# Kin Foretold's line under the cards, the hint and Take in the bottom row.
 		_layout = PhoneChoice.new(self, _title, _subtitle, _cards)
-		_subtitle.text = _subtitle.text.to_lower()
+		_subtitle.text = PhoneChoice.sentence(_subtitle.text.to_lower())
 		_layout.root.add_child(_foretold_line)
 		_layout.root.move_child(_foretold_line, _layout.bottom.get_index())
 		peek = ChoicePeek.new(self, [dim, _layout.margin], "Back to the family pick")
@@ -147,7 +147,7 @@ var _reason: StringName = &"first"  # The pick on screen (the first pick brings 
 func show_pick(reason: StringName = &"first") -> void:
 	_reason = reason
 	var wake := "Choose a family to deepen" if reason == &"deepen" else "Choose a family to wake"
-	_subtitle.text = wake.to_lower() if _layout != null else wake  # (Phones: lower case in the header)
+	_subtitle.text = PhoneChoice.sentence(wake.to_lower()) if _layout != null else wake  # (Phones: lower case in the header)
 	if reason == &"deepen":
 		_show_deepen()
 		return

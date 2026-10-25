@@ -97,7 +97,7 @@ func _ready() -> void:
 	_bar_toggle.name = "TowerBarToggle"
 	_bar_toggle.focus_mode = Control.FOCUS_NONE
 	_bar_toggle.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_bar_toggle.custom_minimum_size = Vector2(BAR_TOGGLE_W, BAR_TOGGLE_W)
+	_bar_toggle.custom_minimum_size = Vector2(_bar_toggle_w(), _bar_toggle_w())
 	_bar_toggle.flat = true  # A small handle, not a HUD button (user 2026-10-12): its frame is drawn, BAR_HANDLE inside the touch target
 	_bar_toggle.mouse_entered.connect(_bar_toggle.queue_redraw)  # Its frame lights on hover
 	_bar_toggle.mouse_exited.connect(_bar_toggle.queue_redraw)
@@ -333,7 +333,7 @@ func _build_tower_bar() -> void:
 		button.button_down.connect(_on_slot_down.bind(button, data))
 		button.button_up.connect(_hide_hover_card.bind(button))
 		button.pressed.connect(_on_tower_pressed.bind(data))
-		if i < 9:
+		if i < 9 and not phone():  # Phones: no keyboard, no hotkey digits (Mobile UI council 2026-10-25)
 			var hotkey := Label.new()
 			hotkey.name = "Hotkey"
 			hotkey.text = str(i + 1)
@@ -361,13 +361,22 @@ const SLOT_MIN_WIDTH := 48.0
 const ARROW_W := 32.0  # Narrow and quiet
 const BAR_TOGGLE_W := 44.0  # The bar's hide arrow: its touch target (invisible padding, platforms.md)…
 const BAR_HANDLE := 28.0  # …and the handle drawn in its middle (about 60% of a HUD button, user 2026-10-12), as the damage meter's
+# Phones (Mobile UI council 2026-10-25: the arrow read ~22 px beside a Warden slot): a 40 px handle in a 52 px target.
+const PHONE_BAR_HANDLE := 40.0
+const PHONE_BAR_TOGGLE_W := 52.0
+
+func _bar_handle() -> float:
+	return PHONE_BAR_HANDLE if phone() else BAR_HANDLE
+
+func _bar_toggle_w() -> float:
+	return PHONE_BAR_TOGGLE_W if phone() else BAR_TOGGLE_W
 
 # A hide arrow's chevron, drawn (the ▾ ▴ glyphs aren't in the UI fonts): it points along the button's "arrow" meta.
 # The damage meter draws the same one (drift_meter.gd _draw_hide_arrow).
 func _draw_hide_arrow(button: Button) -> void:
 	var along: Vector2 = button.get_meta(&"arrow", Vector2.DOWN)
 	var centre := (button.size / 2.0).round()
-	var frame := Rect2(centre - Vector2(BAR_HANDLE, BAR_HANDLE) / 2.0, Vector2(BAR_HANDLE, BAR_HANDLE))
+	var frame := Rect2(centre - Vector2(_bar_handle(), _bar_handle()) / 2.0, Vector2(_bar_handle(), _bar_handle()))
 	UiStyle.draw_handle(button, frame, along, UiStyle.button_lit(button), UiStyle.button_down(button))  # Moon-glass plate + chevron
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
@@ -840,19 +849,19 @@ func _fit_tower_bar_phone() -> void:
 	_bar_toggle.queue_redraw()
 	var half := get_viewport().get_visible_rect().size.x / 2.0
 	var left := -half + _phone_margin()
-	_bar_toggle.offset_bottom = -16.0 + (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
-	_bar_toggle.offset_top = _bar_toggle.offset_bottom - BAR_TOGGLE_W
+	_bar_toggle.offset_bottom = -16.0 + (_bar_toggle_w() - _bar_handle()) / 2.0
+	_bar_toggle.offset_top = _bar_toggle.offset_bottom - _bar_toggle_w()
 	if bar_hidden:
 		for arrow in _bar_arrows:
 			arrow.visible = false
 		_bar_toggle.offset_left = left
-		_bar_toggle.offset_right = left + BAR_TOGGLE_W
+		_bar_toggle.offset_right = left + _bar_toggle_w()
 		return
 	if _tower_buttons.is_empty():
 		return
 	var clear_on := not _clearing_locked()  # Phones: no Clear slot until a clearing Dream unlocks clearing (user 2026-10-15)
 	clear_tool.visible = clear_on
-	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (BAR_HANDLE + UiStyle.HANDLE_GAP)
+	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (_bar_handle() + UiStyle.HANDLE_GAP)
 	var n := _tower_buttons.size()
 	var fixed := (2 if clear_on else 1) + (1 if select_slot != null else 0)  # Sell, Select, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
@@ -898,9 +907,9 @@ func _fit_tower_bar_phone() -> void:
 		x += CLEAR_TOOL_GAP
 		_place_slot(clear_tool, x, width)
 		x += width
-	x += UiStyle.HANDLE_GAP  # The handle 8 px outside the dock (Moon-glass)
-	_bar_toggle.offset_left = x - (BAR_TOGGLE_W - BAR_HANDLE) / 2.0
-	_bar_toggle.offset_right = _bar_toggle.offset_left + BAR_TOGGLE_W
+	x += UiStyle.HANDLE_GAP + 6.0  # The handle 14 px outside the dock (council 2026-10-25: it sat tight on the last slot)
+	_bar_toggle.offset_left = x - (_bar_toggle_w() - _bar_handle()) / 2.0
+	_bar_toggle.offset_right = _bar_toggle.offset_left + _bar_toggle_w()
 
 # Phones at Standard (UiStyle.phone_compact): the dock's slots and edge tighter, for more map; type never changes.
 const PHONE_COMPACT_SLOT := Vector2(56, 72)
@@ -984,6 +993,7 @@ func _fit_tower_bar() -> void:
 	_shadowed(clear_tool)
 	var clear_key := clear_tool.get_node_or_null("Hotkey") as Label
 	if clear_key != null:
+		clear_key.visible = not phone()  # No keyboard on a phone
 		UiStyle.number(clear_key, SLOT_KEY_SIZE, UiStyle.MOON_MIST)
 		clear_key.position = HOTKEY_AT
 		_shadowed(clear_key)
@@ -1448,23 +1458,24 @@ func _place_top_button(button: Button, slot: Array) -> void:
 	button.theme_type_variation = &"HudButton"
 	# Compact icon buttons (the mock; user: "the icons on the right seem too big"): the glyph / icon at
 	# BUTTON_GLYPH, the visible box inset to ~36 px, the hit area still 48 (platforms.md).
-	button.add_theme_font_size_override("font_size", BUTTON_GLYPH)
+	var glyph_px := PHONE_GLYPH if phone() else BUTTON_GLYPH  # Phones (council 2026-10-25: ~32 px, too small): bigger glyph and box
+	button.add_theme_font_size_override("font_size", glyph_px)
 	button.expand_icon = true
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.add_theme_constant_override("icon_max_width", BUTTON_GLYPH)
+	button.add_theme_constant_override("icon_max_width", glyph_px)
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		var box := button.get_theme_stylebox(state, &"HudButton")
 		if box != null and "expand_margin_left" in box:  # (A moon-glass plate has no expand margins: its frame insets itself)
 			box = box.duplicate()
-			box.expand_margin_left = -BUTTON_BOX_INSET
-			box.expand_margin_right = -BUTTON_BOX_INSET
-			box.expand_margin_top = -BUTTON_BOX_INSET
-			box.expand_margin_bottom = -BUTTON_BOX_INSET
+			box.expand_margin_left = -_box_inset()
+			box.expand_margin_right = -_box_inset()
+			box.expand_margin_top = -_box_inset()
+			box.expand_margin_bottom = -_box_inset()
 			button.add_theme_stylebox_override(state, box)
 		elif box is MoonStyleBox:  # Moon-glass: the plate draws itself BUTTON_BOX_INSET inside the hit area (UI Code)
 			box = box.duplicate()
-			(box as MoonStyleBox).inset = Vector2(BUTTON_BOX_INSET, BUTTON_BOX_INSET)
+			(box as MoonStyleBox).inset = Vector2(_box_inset(), _box_inset())
 			button.add_theme_stylebox_override(state, box)
 	if button.name == &"CodexButton":
 		button.add_theme_font_override("font", UiStyle.display_font())
@@ -1482,7 +1493,52 @@ func _place_top_button(button: Button, slot: Array) -> void:
 	button.set_meta(&"top_width", slot[1])
 	if not button.visibility_changed.is_connected(_layout_top_row):
 		button.visibility_changed.connect(_layout_top_row)
+	if phone() and not button.button_down.is_connected(_hold_label_start):
+		button.button_down.connect(_hold_label_start.bind(button))  # A long press names it (no hover on a phone)
 	_layout_top_row.call_deferred()
+
+# Phones (Mobile UI council 2026-10-25: "icon-only buttons with no label"): bigger icon buttons, and holding one
+# HOLD_LABEL_S shows its name as a toast; the press that named it does nothing when released.
+const PHONE_GLYPH := 30  # The 10 px glyphs at ×3
+const PHONE_BOX_INSET := 2.0  # A 44 px box in the 48 px hit area
+const PHONE_TOP_GAP := 6.0  # Between the top-right buttons
+const PHONE_MENU_GAP := 12.0  # Menu set apart from the rest
+const HOLD_LABEL_S := 0.45
+var _held_button: Button = null
+var _held_at := 0
+var _named: Button = null
+
+func _box_inset() -> float:
+	return PHONE_BOX_INSET if phone() else BUTTON_BOX_INSET
+
+func _hold_label_start(button: Button) -> void:
+	_held_button = button
+	_held_at = Time.get_ticks_msec()
+
+func _check_hold_label() -> void:
+	if _held_button == null or not is_instance_valid(_held_button):
+		return
+	if Time.get_ticks_msec() - _held_at >= int(HOLD_LABEL_S * 1000.0) and _named != _held_button:
+		var words := _held_button.tooltip_text.get_slice("\n", 0).get_slice(":", 0).get_slice(".", 0)
+		if words != "":
+			show_toast(words)
+		_named = _held_button
+		_held_button.set_block_signals(true)  # Its release won't open it
+
+func _input(event: InputEvent) -> void:
+	if _held_button == null or not (event is InputEventScreenTouch or event is InputEventMouseButton) or event.is_pressed():
+		return
+	var button := _held_button
+	_held_button = null
+	if _named == button and is_instance_valid(button):
+		_unblock_named.call_deferred(button)
+
+func _unblock_named(button: Button) -> void:
+	if is_instance_valid(button):
+		button.set_block_signals(false)
+		if button.toggle_mode:
+			button.set_pressed_no_signal(not button.button_pressed)  # The release toggled it with signals off: undo
+	_named = null
 
 # The row under the resources (user 2026-09-30, screens_ui.md): right-aligned with the resources'
 # right edge, packed right to left in TOP_ROW order so hidden buttons leave no gap; Remember ends up
@@ -1696,12 +1752,12 @@ func _layout_top_row_phone(counters_rtl: Array, buttons: Array) -> void:
 	counters.reverse()  # Left to right
 	# Buttons: right to left from the corner, one line, or two lines when they'd reach the banner.
 	var per_line := buttons.size()
-	while per_line > 1 and screen_w + ROW_RIGHT - per_line * ROW_BUTTON - ROW_PAD < banner_right + BANNER_CLEARANCE:
+	while per_line > 1 and screen_w + ROW_RIGHT - per_line * (ROW_BUTTON + PHONE_TOP_GAP) - PHONE_MENU_GAP - ROW_PAD < banner_right + BANNER_CLEARANCE:
 		per_line -= 1
 	row_wrapped = per_line < buttons.size()
 	for i in buttons.size():
 		var button: Button = buttons[i]
-		var x := ROW_RIGHT - (i % per_line) * (ROW_BUTTON + TOP_ROW_GAP)
+		var x := ROW_RIGHT - (i % per_line) * (ROW_BUTTON + PHONE_TOP_GAP) - (PHONE_MENU_GAP if i % per_line > 0 else 0.0)  # Menu (first) set apart
 		var top := ROW_TOP + (i / per_line) * (ROW_BUTTON + 4.0)
 		button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -1878,7 +1934,7 @@ func _update_maze_income() -> void:
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
 	var cap := roundi(economy.POT_SHARE_CAP * 100.0)
 	_maze_short = UiStyle.DEW_GLYPH + "+%d%%" % percent if percent > 0 else ""  # The row shows this when "a drift" doesn't fit (_layout_top_row)
-	_maze_full = "%s a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
+	_maze_full = "%s Dew a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	var explanation := "Your path is %d cells longer than the starting path: every drift pays +%d%% Dew (+1%% per %d cells, up to +%d%%)." % [
 		drift_director.get_maze_added_cells(), percent, economy.POT_CELLS_PER_PERCENT, cap]
@@ -1894,6 +1950,7 @@ func _update_maze_income() -> void:
 func _process(delta: float) -> void:
 	_hide_under_choice()
 	var real := delta / maxf(Engine.time_scale, 0.001)
+	_check_hold_label()
 	_remember_check -= real
 	if _remember_check <= 0.0:  # can_unlock walks every family's tree: 4 times a second is plenty
 		_remember_check = 0.25
@@ -1969,7 +2026,7 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	var count := tower_placer.count_paid_sprouts()
 	tag.visible = per > 0 and cost > 0
 	if per > 0:
-		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+		tag.text = ("Price ↑ %d/%d" if phone() else "↑ %d/%d") % [count, (count / per + 1) * per]  # Phones: says what rises (council 2026-10-25)
 		tag.tooltip_text = "%d Sprouts on the map. At %d the Sprout price rises by %s." % [count, (count / per + 1) * per,
 			UiStyle.dew_amount(tower_placer.sprout_step_dew(), true)]
 	tag.reset_size()

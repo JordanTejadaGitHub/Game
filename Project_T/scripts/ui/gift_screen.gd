@@ -123,7 +123,7 @@ func _ready() -> void:
 	if UiStyle.is_phone():
 		var subtitle := Label.new()
 		subtitle.name = "Subtitle"
-		subtitle.text = "take one, or skip them"
+		subtitle.text = PhoneChoice.sentence("take one, or skip them")
 		_layout = PhoneChoice.new(self, title, subtitle, _cards)
 		_layout.add_left(_pass)
 		_pass.clip_text = false  # "Skip the gifts, +60" and its Dew glyph: grows rather than trims

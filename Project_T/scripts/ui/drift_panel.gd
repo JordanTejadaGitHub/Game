@@ -218,7 +218,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
 	# While a choice screen peeks at the map, its Return pill is the one glow: Start steps down to the plain look
-	var look := &"HudButton" if ChoicePeek.any_peeking() else &"HudPrimary"
+	var look := &"HudButton" if ChoicePeek.any_peeking() or (UiStyle.is_phone() and _start_button.disabled) else &"HudPrimary"  # Phones: a waiting button is plain (council 2026-10-25)
 	if _start_button.theme_type_variation != look:
 		_start_button.theme_type_variation = look
 	_update_warning()
@@ -306,6 +306,7 @@ func _process(_delta: float) -> void:
 	_fold_notes()
 	if UiStyle.is_phone():
 		_fit_phone_start_text()  # After every text above ("Choose a Dream", "Resume"…)
+		_start_button.add_theme_color_override("font_disabled_color", UiStyle.INK_DIM)
 
 # The drift panel holds only Start / Call early and the speed row (UI Asset fc82d5e8): the status line ("Rest after drift
 # N", "Resting: selling refunds 75%", "Maze bonus: +N at rest") never shows; the next drift's Dew pot, the maze bonus
@@ -345,7 +346,7 @@ const PAUSE_MENU := preload("res://scripts/ui/pause_menu.gd")  # (No class_name:
 static func phone_short(text: String) -> String:
 	if text.begins_with("Call drift ") and text.contains(" early, "):
 		text = "Call early, " + text.get_slice(" early, ", 1)
-	for pair in [["Rest after drift ", "Rest after "], ["Start boss drift ", "Boss drift "],
+	for pair in [["Start boss drift ", "Boss drift "],
 			["Confirm your Wardens first", "Confirm Wardens"], ["Choose an Omen", "Omen"]]:
 		text = text.replace(pair[0], pair[1])
 	return text

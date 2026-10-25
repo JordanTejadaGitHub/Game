@@ -611,9 +611,9 @@ func _under_drawer() -> bool:
 # have a word: Incoming"): an "Incoming" button like the top-right ones (HudButton), just left of them and level with
 # them; Gold when a never-met kind comes. A tap drops the discs and the "Drift N · …" lines down under it, on the panel;
 # a tap again (or on a disc's card) folds it. Without room beside the buttons it sits just under them.
-const PHONE_GAP := 0.0  # HudButtons sit edge to edge (their visible boxes are inset)
+const PHONE_GAP := 6.0  # As hud.gd PHONE_TOP_GAP
 const PHONE_DROP_GAP := 0.0  # (The button's inset plate leaves 6 px under it already)
-const PHONE_BOX_INSET := 6.0  # As hud.gd BUTTON_BOX_INSET
+const PHONE_BOX_INSET := 2.0  # As hud.gd PHONE_BOX_INSET (a 44 px box, as the icon buttons beside it)
 const PHONE_DROP_W := 420.0  # The dropdown's "Drift N · …" lines wrap at this
 var phone_open := false
 var _phone_toggle := Button.new()

@@ -182,7 +182,7 @@ func _card_size() -> Vector2:
 func _set_subtitle(text: String, phone_take: String) -> void:
 	_subtitle.text = text
 	if _phone:
-		_subtitle.text = ("for drifts %d to %d, %s" % [_drifts.x, _drifts.y, phone_take]).to_lower()  # No " · " (UI review)
+		_subtitle.text = PhoneChoice.sentence(("for drifts %d to %d, %s" % [_drifts.x, _drifts.y, phone_take]).to_lower())  # No " · " (UI review)
 
 # A card's press: phones look first (Take, or a second tap, takes it); the PC acts at once.
 func _press(button: Button, action: Callable, take_text: String) -> void:

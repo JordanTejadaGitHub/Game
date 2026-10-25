@@ -390,7 +390,9 @@ func _build_quit_box(center: Control, row: Control) -> void:
 	var to_title := _dialog_button(_quit_page, "Save & quit to title", _quit_to.bind(false))  # _quit_to saves first
 	to_title.name = "QuitToTitle"
 	UiStyle.primary(to_title)
-	_dialog_button(_quit_page, "Save & quit to desktop", _quit_to.bind(true)).name = "QuitToDesktop"
+	var to_desktop := _dialog_button(_quit_page, "Save & quit to desktop", _quit_to.bind(true))
+	to_desktop.name = "QuitToDesktop"
+	to_desktop.visible = not _phone  # Phones leave an app from the system, not a desktop (Mobile UI council 2026-10-25)
 	var cancel := _dialog_button(_quit_page, "Cancel", cancel_quit)
 	cancel.name = "Cancel"
 	_key_chip_on(cancel, "Esc")  # Inside its frame, like every key chip

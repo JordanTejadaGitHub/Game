@@ -76,12 +76,12 @@ static func fact_line(facts: Dictionary) -> String:
 	var count := int(facts.get("count", 0))
 	match StringName(facts.get("shape", DriftShapes.STREAM)):
 		DriftShapes.PACKS:
-			return "Packs: %d × %d, %d s apart" % [int(facts.packs), int(facts.pack_size), roundi(float(facts.gap_s))]
+			return "Packs: %d packs of %d, %d s apart" % [int(facts.packs), int(facts.pack_size), roundi(float(facts.gap_s))]
 		DriftShapes.SINGLE_FILE:
-			return "Single file: %d, %.1f s apart" % [count, float(facts.gap_s)]
+			return "Single file: %d nightmares, %.1f s apart" % [count, float(facts.gap_s)]
 		DriftShapes.FEW_AND_TOUGH:
-			return "Few and tough: %d, %d Deeply Blighted" % [count, int(facts.elites)]
-	return "%s: %d" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30"
+			return "Few and tough: %d nightmares, %d Deeply Blighted" % [count, int(facts.elites)]
+	return "%s: %d nightmares" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30 nightmares" (Mobile UI council 2026-10-25: a bare count read as nothing)
 
 # Act `act`'s shapes as they will arrive, as facts (the drift 45 capstone screen; enemy_design.md "Drift shapes"): "Act 3: 4 Packs,
 # 4 Single file, 4 Few and tough, finales Packs / Single file / Few and tough". Finales = each ordinary block's 5th drift.

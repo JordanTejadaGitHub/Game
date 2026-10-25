@@ -85,7 +85,9 @@ func _init(for_screen: Control, title: Label, subtitle: Label, card_row: HBoxCon
 	subtitle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long title leaves it less room: it wraps, never pushes Peek off
-	UiStyle.caps(subtitle, SUBTITLE_SIZE, UiStyle.INK_DIM)
+	subtitle.add_theme_font_override("font", UiStyle.body_font())  # Plain case (Mobile UI council 2026-10-25: small caps drew it about 11 px)
+	subtitle.add_theme_font_size_override("font_size", SUBTITLE_SIZE + 1)
+	subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	header.add_child(subtitle)
 	add_extras(screen, header)
 	scroll = ScrollContainer.new()
@@ -474,17 +476,18 @@ func _dim_plate(face: Button, dim: bool) -> void:
 # A disabled Take draws as the normal secondary button (frame and ink text); the caller dims it to 45% (UI Asset
 # 2026-10-17: the disabled primary was almost invisible, the player couldn't see where Take would be).
 static func disabled_look(button: Button) -> void:
-	if button.has_theme_stylebox_override("disabled"):
+	if button.get_meta(&"waiting_look", false):
 		return
-	button.add_theme_stylebox_override("disabled", button.get_theme_stylebox("normal", &"Button"))
-	button.add_theme_color_override("font_disabled_color", UiStyle.INK)
+	button.set_meta(&"waiting_look", true)
+	button.add_theme_stylebox_override("disabled", UiStyle.button_box())  # The plain pewter plate (its own "normal" may be the primary's)
+	button.add_theme_color_override("font_disabled_color", UiStyle.INK_DIM)  # Waiting: dim, still readable; brass and bright once it can be pressed
 
 # Take reads `text` ("" = nothing looked at: dim, "Take"); the hint follows.
 func set_take(text: String) -> void:
 	var can := text != "" and looked != null and is_instance_valid(looked)
 	take.disabled = not can
 	disabled_look(take)
-	take.modulate.a = 1.0 if can else 0.45  # multiplier: the secondary frame at 45% until there's something to take
+	take.modulate.a = 1.0  # A clear waiting look: the plain plate, dim but readable words (Mobile UI council 2026-10-25: 45% read as broken)
 	take.text = text if can else "Take"
 	hint.text = TAKE_HINT if can else LOOK_HINT
 	fit_choices()
@@ -514,3 +517,7 @@ func _lift(face: Control, up: bool) -> void:
 	face.pivot_offset = Vector2(face.size.x / 2.0, face.size.y)
 	UiTime.tween(face).tween_property(face, "scale", Vector2.ONE * (LIFT if up else 1.0), 0.16) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# A subtitle in plain case on phones ("After drift 10, take one"): the screens write it lower case for small caps.
+static func sentence(text: String) -> String:
+	return text.left(1).to_upper() + text.substr(1) if UiStyle.is_phone() else text

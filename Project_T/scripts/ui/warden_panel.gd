@@ -497,7 +497,7 @@ func _refresh() -> void:
 	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + _refund_rule() + "\n\nKey: %s" % tower_seller.sell_key_name()  # The key and the refund in the tip
-	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
+	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell), CONNECT_DEFERRED if _phone else 0)  # Phones: after the tap's event (selling rebuilds the drawer and freed the button mid-press: a crash)
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
 		sell.disabled = true
@@ -662,7 +662,7 @@ func _refresh_group() -> void:
 	if _confirm_sell:
 		sell.text = "Sell %d Wardens? Press again" % selection.size()  # The tip says why it asks
 	_danger_footer(sell)
-	sell.pressed.connect(_sell_group)
+	sell.pressed.connect(_sell_group, CONNECT_DEFERRED if _phone else 0)  # (As the single Sell)
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
@@ -753,7 +753,18 @@ func _target_chip(towers: Array) -> Button:
 # group). A group with mixed modes shows none pressed; a press sets them all. Z cycles (TowerSeller).
 func _add_target_switch(towers: Array) -> void:
 	# Light pass: one quiet segmented group, the word "Targeting" in each tip (the row fits the 280 px panel).
-	var row := HBoxContainer.new()
+	var row: Container = HBoxContainer.new()
+	if _phone:  # Phones (Mobile UI council 2026-10-25: "Closes" cut, no label): a "Target" heading, two by two
+		var head := Label.new()
+		head.name = "TargetHeading"
+		head.text = "Target"
+		UiStyle.caps(head, 14)
+		_extra.add_child(head)
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 6)
+		grid.add_theme_constant_override("v_separation", 6)
+		row = grid
 	row.name = "Targeting"
 	var modes := {}
 	for tower in towers:
@@ -771,7 +782,7 @@ func _add_target_switch(towers: Array) -> void:
 		button.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 		button.pressed.connect(func() -> void:
 			tower_seller.set_target_group(towers, mode)
-			_refresh())
+			_refresh(), CONNECT_DEFERRED if _phone else 0)  # Phones: after the tap (the rebuild freed the button mid-press: a crash)
 		row.add_child(button)
 		# Moon-glass plates (user: the switch "used the old UI"): pewter, hover lit, the chosen mode brass
 		button.add_theme_stylebox_override("normal", UiStyle.plate_box(6.0, 4.0))
@@ -1122,7 +1133,7 @@ func _grow_dps_change(next: TowerData) -> String:
 	var change := roundi(_probe_dps(next) - _probe_dps(now_data))
 	var parts: Array[String] = []
 	if change != 0:
-		parts.append("%s%s a second" % ["+" if change > 0 else "-", BossDossier.thousands(absi(change))])
+		parts.append("%s%s %s" % ["+" if change > 0 else "-", BossDossier.thousands(absi(change)), "damage a second" if _phone else "a second"])  # Phones: says what (council 2026-10-25)
 	var had := Tower.statuses_applied(now_data)
 	for status in Tower.statuses_applied(next):
 		if not had.has(status) and status != EnemyStatuses.SPORED and status != EnemyStatuses.STATIC:
@@ -2494,9 +2505,28 @@ func _phone_arrange() -> void:
 		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		back.pressed.connect(_toggle_choices)
 		_phone_reveal_choices.call_deferred()
-	if sell != null:  # Phones: no Sell in the drawer (user 2026-10-16); the Warden dock's Sell slot sells
-		_footer.remove_child(sell)
-		sell.queue_free()
+	if sell != null:  # Phones (user 2026-10-25, council #12: the drawer covers the dock's Sell): Sell is back, a red danger
+		# plate at the footer's left, set apart from Nurture (was removed 2026-10-16)
+		var key := sell.get_node_or_null("Key")
+		if key != null:
+			key.queue_free()
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+			sell.remove_theme_stylebox_override(state)
+		for state in FONT_STATES + ["font_disabled_color"]:
+			sell.remove_theme_color_override(state)
+		UiStyle.danger(sell)
+		sell.custom_minimum_size = Vector2(PHONE_SELL_W, PHONE_FOOTER_H)
+		sell.size_flags_horizontal = Control.SIZE_FILL if _footer.get_child_count() > 1 else Control.SIZE_EXPAND_FILL
+		sell.clip_text = true
+		sell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_footer.move_child(sell, 0)
+		if _footer.get_child_count() > 1:
+			var apart := Control.new()
+			apart.name = "SellApart"
+			apart.custom_minimum_size.x = 16.0
+			apart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_footer.add_child(apart)
+			_footer.move_child(apart, 1)
 
 # Sell: a quiet text button (Mist words, no box, no key chip) with a 48 px hit area (UI owner's review); a long line
 # (a block reason, "Press again") takes half the row and says itself whole in its tip.

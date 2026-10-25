@@ -182,7 +182,9 @@ func _build_phone_layout(dim: Control) -> void:
 	_subtitle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # Wraps rather than push Glossary / Your Dreams off
-	UiStyle.caps(_subtitle, 15, UiStyle.INK_DIM)
+	_subtitle.add_theme_font_override("font", UiStyle.body_font())  # Plain case, as PhoneChoice (Mobile UI council 2026-10-25)
+	_subtitle.add_theme_font_size_override("font_size", 16)
+	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	header.add_child(_subtitle)
 	PhoneChoice.add_extras(self, header)  # Glossary and Your Dreams, top right (user 2026-10-18)
 	# The cards: three (or more) equal columns filling the width and the height between header and bottom row
@@ -258,7 +260,7 @@ func _update_phone_bar() -> void:
 	var can_take := _looked != null and is_instance_valid(_looked) and _looked_card != null
 	_take.disabled = not can_take
 	PhoneChoice.disabled_look(_take)
-	_take.modulate.a = 1.0 if can_take else 0.45  # multiplier: the secondary frame at 45% until there's something to take
+	_take.modulate.a = 1.0  # A clear waiting look (PhoneChoice.disabled_look; council 2026-10-25)
 	_take.text = "Take %s" % _looked_card.display_name if can_take else "Take"
 	_phone_hint.text = "Take it, or tap another" if can_take else "Tap a card to look at it"
 	# Let it pass and Take the same width: the wider one's text (UI review: "Take Call of the Wild")
@@ -287,16 +289,16 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	var take := "take one"
 	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
 		take = "take %d" % dream_state.picks_left if dream_state.picks_left > 1 else "take 1 more"
-	_subtitle.text = ("after drift %d, %s" % [drift_number, take]).to_lower()  # Small caps (UiStyle.caps); no " · "
+	_subtitle.text = PhoneChoice.sentence(("after drift %d, %s" % [drift_number, take]).to_lower())  # Small caps (UiStyle.caps); no " · "
 	_skip.text = "Let it pass, %s" % UiStyle.dew_amount(dream_state.skip_dew, true) if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams (and never on a Calling pick: can_skip)
 	var growing: bool = dream_state.is_calling_offer()  # Calling evolutions (Roguelite Code 2026-10-16): no reroll or let-go
 	if growing:
 		_title.text = "Your Calling grows"
 		if _phone:
-			_subtitle.text = dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style"
+			_subtitle.text = PhoneChoice.sentence(dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style")
 		else:
-			_subtitle.text = "after drift %d" % drift_number
+			_subtitle.text = PhoneChoice.sentence("after drift %d" % drift_number)
 		if _evolution_step() == DreamState.CALLING_PATHS.CAPSTONE:  # The capstone: the next act's shapes, as facts
 			var director := get_node_or_null("%DriftDirector") as DriftDirector
 			var act_shapes := SHAPE_ROWS.act_line(director, director.get_act(drift_number) + 1) if director != null else ""
