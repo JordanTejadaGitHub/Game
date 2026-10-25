@@ -855,6 +855,13 @@ func evolve(data: TowerData, cost: int) -> void:
 		legacy_data = tower_data  # It keeps its final form's attack
 	if tower_data.get_id() == "sprout" and not get_meta(&"gift_sprout", false):
 		set_meta(&"sprout_line", true)  # A paid Sprout keeps raising the Sprout price in every later form (TowerPlacer)
+	_end_plant_grow()  # (Nothing of the old form's sequences outlives the form change: user crash 2026-10-25)
+	_end_grow_sheet()
+	if data.special != BranchKit.JARLINK and has_meta(BranchKit.FENCE_BOND):
+		var partner = get_meta(BranchKit.FENCE_BOND)  # Leaving the Jarlink line: the bond goes, both sides
+		if is_instance_valid(partner) and partner is Node and partner.has_meta(BranchKit.FENCE_BOND) and partner.get_meta(BranchKit.FENCE_BOND) == self:
+			partner.remove_meta(BranchKit.FENCE_BOND)
+		remove_meta(BranchKit.FENCE_BOND)
 	tower_data = data
 	if size != data.footprint:
 		footprint_size = size
@@ -6565,7 +6572,7 @@ func _plant_grow() -> bool:
 	for step in PLANT_STEPS:
 		_plant_tween.tween_callback(func() -> void: pivot.scale = Vector2(step, step))
 		_plant_tween.tween_interval(1.0 / PLANT_FPS)
-	_plant_tween.tween_callback(_end_plant_grow)
+	_plant_tween.tween_callback(_finish_plant_grow)  # (Its own last step only lets it go: never killed from inside, as the grow sheet)
 	return true
 
 # --- Growing into the next form: the fireflies (Tower Assets 287e19f1, user-picked; "That works add it") --------------
@@ -6614,12 +6621,18 @@ func _play_grow_sheet(from_id: String, into_id: String) -> bool:
 			if is_instance_valid(_grow_sheet):
 				_grow_sheet.frame = frame)
 	_grow_tween.tween_interval(1.0 / GROW_FPS)
-	_grow_tween.tween_callback(_end_grow_sheet)
+	_grow_tween.tween_callback(_finish_grow_sheet)
 	return true
+
+# The tween's own last step: it ends by itself, so it is only let go, never killed from inside its own callback (killing a
+# Tween while it runs its step is a native use-after-free; user crash 2026-10-25 growing into Prism Jar).
+func _finish_grow_sheet() -> void:
+	_grow_tween = null
+	_end_grow_sheet()
 
 func _end_grow_sheet() -> void:
 	if _grow_tween != null and _grow_tween.is_valid():
-		_grow_tween.kill()
+		_grow_tween.kill()  # Only ever from outside the tween (a new grow, a rank, an evolve cutting it short)
 	_grow_tween = null
 	if is_instance_valid(_grow_sheet):
 		_grow_sheet.queue_free()
@@ -6628,6 +6641,10 @@ func _end_grow_sheet() -> void:
 		if is_instance_valid(node):
 			node.visible = true
 	_grow_hidden = []
+
+func _finish_plant_grow() -> void:
+	_plant_tween = null
+	_end_plant_grow()
 
 # The sequence ends (or a grow / rank / evolve cuts it short): the slab and body go, the real sprite shows.
 func _end_plant_grow() -> void:
