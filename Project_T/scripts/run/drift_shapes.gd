@@ -63,7 +63,7 @@ const LOOSE_TRAITS := [EnemyData.Trait.FLYING, EnemyData.Trait.ROLLING, EnemyDat
 	EnemyData.Trait.BURROW, EnemyData.Trait.WANDER]
 
 static func display_name(shape: StringName) -> String:
-	return NAMES.get(shape if shape != &"" else STREAM, "Stream")
+	return NAMES.get(shape if shape != &"" else STREAM, NAMES[STREAM])  # (An unknown id reads as Steady too)
 
 static func glyph(shape: StringName) -> StringName:
 	return GLYPHS.get(shape if shape != &"" else STREAM, GLYPHS[STREAM])
