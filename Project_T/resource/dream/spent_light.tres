@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "spent_light"
 display_name = "Spent Light"
 description = "When a {reaction} triggers, its statuses stay on that cell for 4 s. Each nightmare stepping there gets 1 {stack} of each."
+cost_description = "The {stacks} it gives can't set off a {reaction} for 2 s."
 tip = "Each cell once every 4 s. At most 6 cells at once. Never {held} or {drowsy}. Flyers pass over. Offered once your Wardens add 2 different statuses."
 rarity = 1
 kind = 3

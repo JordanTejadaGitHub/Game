@@ -377,6 +377,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status["cap"] = maxi(status.get("cap", 0), cap)
 	status["peak"] = maxi(int(status.get("peak", 0)), int(status.stacks))  # Ebb brings half of this back
 	pending_linger.erase(id)
+	if feeding and int(status.stacks) > 0:
+		status["fed_until"] = float(status.get("age", 0.0)) + FED_LOCK  # No self-feeding (section 36): hollow for FED_LOCK s
 	_active[id] = status
 	if was_stacks < cap and int(status.stacks) >= cap and id != STATIC and not _copying:
 		status_filled.emit(id)  # (Charged at its most is a bolt instead; never from a quiet copy)
@@ -387,6 +389,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	# When both buildup gates are met, Thunderclap goes first (Reactions), so no bolt here then.
 	if id == STATIC and status.stacks >= cap and (DreamState.undiluted_on or not (self.stacks(DAMP) >= Reactions.need(Reactions.SOAKED_NEEDED) and Reactions.grown(self, [DAMP, STATIC]))):  # (Undiluted: no Thunderclap to wait for, so it bolts)
 		static_lingered = is_lingering(STATIC)  # Keyword chips 2026-10-16: the bolt below reads it (Slow Burn)
+		static_age_at_bolt = age(STATIC)  # Slow Burn (section 36): the age of the Charged this bolt spends
 		_active.erase(STATIC)
 		changes += 1
 		if static_forever and potency > 0.0:
@@ -551,9 +554,14 @@ func any_full() -> StringName:
 # its oldest batches first, so its timers and credit stay true; Rooted and Drowsy never (what half a Hold or a sleep is
 # isn't defined). The status ends if nothing is left.
 func spend_half(id: StringName) -> void:
-	if not has(id) or id == HELD or id == DROWSY:
+	if has(id):
+		spend_stacks(id, ceili(float(stacks(id)) / 2.0))
+
+# `take` of `id`'s stacks go (Starlit Aim's half; Tangled Lightning's 3 Charged), as spend_half says. The status ends if
+# nothing is left.
+func spend_stacks(id: StringName, take: int) -> void:
+	if not has(id) or id == HELD or id == DROWSY or take <= 0:
 		return
-	var take := ceili(float(stacks(id)) / 2.0)
 	if id == SPORED:
 		while take > 0 and not _spore_batches.is_empty():
 			var batch: Array = _spore_batches[0]
@@ -579,6 +587,7 @@ func spend_half(id: StringName) -> void:
 func remove(id: StringName) -> void:
 	if id == STATIC:
 		static_lingered = is_lingering(STATIC)  # Keyword chips 2026-10-16: read by the bolt this removal is for (Slow Burn)
+		static_age_at_bolt = age(STATIC)
 	if id == SPORED:
 		_spore_batches.clear()
 		_spore_by.clear()
@@ -718,6 +727,7 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 # Soothe taken multiplier (Marked, and the White Stag's aura).
 func is_exposed() -> bool:
 	return has(MARKED) and stacks(MARKED) >= get_max_stacks(MARKED)
+
 
 # Bright Marks' part of the damage taken (DamageLog.note_card_bonus: the Dream damage panel and DreamState.boost_tier read
 # it; Roguelite 451495cb): the taken multiplier with its bonus over the one without, the rest cancelling. 1.0 when it
@@ -1198,6 +1208,7 @@ var pending_linger := {}
 # Verse) books those seconds as lingering, so is_lingering stays the one source of truth. Not the linger cap: a landing's
 # own length, like "stretched".
 var static_lingered := false  # Whether the Charged the last bolt spent was lingering (remove / the bolt in apply set it)
+var static_age_at_bolt := 0.0  # How long the Charged the last bolt spent had been on (Slow Burn, section 36; set with static_lingered)
 
 func note_stretched(id: StringName, seconds: float) -> void:
 	if seconds <= 0.0 or not can_linger(id) or not _active.has(id):
@@ -1225,6 +1236,21 @@ const KEPT_FOR := 0.15  # Seconds a mark_kept holds (a class poll is 0.1 s)
 func mark_kept(id: StringName, seconds: float = KEPT_FOR) -> void:
 	if _active.has(id):
 		_active[id]["kept_until"] = float(_active[id].get("age", 0.0)) + seconds  # On the status's own age (game time)
+
+# No self-feeding (dream_council_review.md section 36, 2026-10-25): stacks a card gives (Afterglow, Spent Light,
+# and card-added splashes under Spattered: they set `feeding` around their own apply calls, the rx_credit pattern) can't complete a Reaction on
+# this nightmare for FED_LOCK s: Reactions._on_status waits while fed_locked(). The badge draws a fed status hollow (is_fed).
+const FED_LOCK := 2.0
+static var feeding := false
+
+func is_fed(id: StringName) -> bool:
+	return _active.has(id) and float(_active[id].get("age", 0.0)) < float(_active[id].get("fed_until", -1.0))
+
+func fed_locked() -> bool:
+	for id in _active:
+		if float(_active[id].get("age", 0.0)) < float(_active[id].get("fed_until", -1.0)):
+			return true
+	return false
 
 func is_kept(id: StringName) -> bool:
 	if not _active.has(id):

@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "growth_rings"
 display_name = "Growth Rings"
-description = "At a {rest}, if you planted nothing since the last {rest}, the {block}'s top Warden gets a free Nurture {rank}, up to {rank} III."
+description = "Plant nothing for a whole {block}: at its {rest}, your top-damage Warden below {rank} III gains a {rank}."
 rarity = 0
 kind = 3
 tags = Array[String](["tall", "tending"])
 max_stacks = 1
 rule_id = &"growth_rings"
-tip = "Top Warden: the one that dealt the most damage this {block}. Planting: any new Warden or Thornwall, free ones too. The {rank} waits until you Nurture."
+tip = "Top-damage: the most damage this {block}; one already at {rank} III passes it to the next. Planting: any new Warden or Thornwall, free ones too. The {rank} waits until you Nurture."
 makes = Array[StringName]([&"rank"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "one_bough"
 display_name = "One Bough"
-description = "With 3 or more Wardens of the same {branch} on the map, they attack 20% faster."
+description = "A Warden {touching} 2 or more Wardens of its own {branch} attacks 25% faster. Sprouts don't count."
 tip = "A {final_form} or {ascended} form counts as its {branch}. Sprouts don't count."
 rarity = 1
 kind = 3

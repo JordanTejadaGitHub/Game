@@ -85,7 +85,7 @@ func _run() -> void:
 	chimes.hit(chime_target, 1.0, false, Tower.NO_CRIT)
 	_check(chime_target.statuses.stacks(EnemyStatuses.STATIC) == 1, "…once a second per nightmare for each Warden")
 	await _clean()
-	# Rolling Thunder: Thunderclap arcs strike at most 3 nightmares.
+	# Rolling Thunder (section 36): the usual arc cap (no 3-arc cap); its cost: nightmares its arcs strike lose their Soaked.
 	_take("rolling_thunder")
 	var jar := _plant("firefly_jar", Vector2(2, 2))
 	var clap = _spawn(Vector2(8, 8))
@@ -97,8 +97,9 @@ func _run() -> void:
 	clap.apply_status(EnemyStatuses.DAMP, 8)
 	clap.apply_status(EnemyStatuses.STATIC, 10, 0.0, jar.get_damage(), 0, "light", jar)
 	var struck: int = soaked.filter(func(e) -> bool: return e.health < e.max_health).size()
-	_check(struck == Reactions.ROLLING_THUNDER_ARCS, "Rolling Thunder: the arcs strike at most 3 (%d)" % struck)
-	_check(soaked.filter(func(e) -> bool: return e.statuses.stacks(EnemyStatuses.STATIC) == 2).size() == struck, "Rolling Thunder adds two charges to each of its three arc targets")
+	_check(struck == mini(soaked.size(), Reactions.THUNDERCLAP_ARCS_BY_LEVEL[1]), "Rolling Thunder: the nearest Soaked nightmares in reach are struck, up to its cap of 5 (%d)" % struck)
+	_check(soaked.filter(func(e) -> bool: return e.statuses.stacks(EnemyStatuses.STATIC) == 2).size() == struck, "Rolling Thunder adds two charges to each arc target")
+	_check(soaked.filter(func(e) -> bool: return e.statuses.stacks(EnemyStatuses.DAMP) == 0).size() == struck, "Rolling Thunder's cost: its arc targets lose their Soaked")
 	_check(Reactions.THUNDERCLAP_ARC_STATIC[2] == 3, "deepened Rolling Thunder adds three charges")
 	await _clean()
 

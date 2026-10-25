@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "headlong"
 display_name = "Headlong"
-description = "Start a {drift} before the last one is cleared: it arrives within 3 s and pays all its {dew} at once."
-tip = "Not from a {rest}, not by Auto-drift, not boss {drifts}. Its {dew} is already yours: a leak costs {leaves} only. Works for: every family; area hits and {jumps} gain most. A bet: a board that takes a whole {drift} at once."
+description = "Before any {drift} but a boss {drift}, you may Rush it: it arrives in a third of its time and pays all its {dew} as it starts."
+tip = "Rush is on the {drift} bar, one {drift} per press; Auto-drift and a {rest}'s Start use it too. A leak loses no {dew}. The next {drift} keeps its normal time. Works for: every family; area hits and {jumps} gain most."
 rarity = 3
 kind = 3
 tags = Array[String](["tempo"])

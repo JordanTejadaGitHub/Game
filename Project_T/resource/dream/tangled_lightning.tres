@@ -6,14 +6,13 @@
 script = ExtResource("1_card")
 id = "tangled_lightning"
 display_name = "Tangled Lightning"
-description = "Attacks from {warden:stormcap} and its forms {jump} to 2 more nightmares, only ones with {static}."
-tip = "Works for: {warden:stormcap} and its forms."
+description = "{family:firefly_jar} attacks also {jump} to 1 nightmare carrying {static}, spending 3 of that nightmare's {static}."
 rarity = 1
 kind = 3
-tags = Array[String](["role", "chain", "reaction"])
+tags = Array[String](["chain", "reaction"])
 max_stacks = 1
 min_act = 1
 rule_id = &"tangled_lightning"
-requires_role = &"chain"
 makes = Array[StringName]([&"jump"])
 uses = Array[StringName]([&"charged"])
+requires = Array[String](["firefly_jar"])

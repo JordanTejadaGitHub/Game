@@ -44,9 +44,10 @@ const HEELS_MAX := 0.40  # …up to this, until the rest
 const FIRST_LIGHT_MULTIPLIER := 3.0  # First Light: each Warden's first damage to a nightmare (a hit, a tick, a cloud)
 const LONG_WALK_MAX := 0.25  # The Long Walk's cap (unused since the card pass; kept in step: power budget 2026-10-16)
 # The batch cards: always in a run's pool, like RUN_POOL_BASICS; never guaranteed, never weighted. Call of the Wild is
-# retired (owner 2026-10-20: no card pays Dew for calling drifts early); its rule code stays for an old save.
+# retired (owner 2026-10-20: no card pays Dew for calling drifts early); its rule code stays for an old save. Press On and
+# Fresh Growth retired too (section 36, 2026-10-25); their rule code stays for an old save.
 const BATCH: Array[String] = ["growth_rings", "heartwoods_reach", "seedfall", "winding_path",
-	"press_on", "fresh_growth", "held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]
+	"held_breath", "thorny_walls", "cozy_corners", "passing_thread", "switchback"]
 
 # --- State (saved with the run: to_save / load_save) ----------------------------------------------------------------
 var rings_planted := false  # Growth Rings: something was planted since the last rest's start
@@ -264,19 +265,41 @@ func rings_line(dreams: DreamState) -> String:
 func planted(dreams: DreamState, tower: Tower) -> void:
 	rings_planted = true
 	tower.set_meta(&"batch_stood_at_rest", false)
-	if not dreams.has_card("heartwoods_reach") or not tower.tower_data.can_attack:
+	if not dreams.has_card("heartwoods_reach") or not reach_takes(tower.tower_data):
 		return
-	# Heartwood's Reach: the first Warden on each cleared cell arrives at rank I. One rank per Warden, however many
-	# cleared cells its footprint covers, and every covered cell is used up. A Thornwall never uses a cell up.
+	# Heartwood's Reach: the first Warden on each cleared cell costs half (TowerPlacer.get_cost via reach_fresh) and
+	# arrives at rank I. One rank per Warden, however many cleared cells its footprint covers, and every covered cell is
+	# used up. Thornwalls and Sprouts never use a cell up.
 	var fresh := false
 	for cell in tower.get_cells():
 		var key := "%d,%d" % [roundi(cell.x), roundi(cell.y)]
 		if dreams.run_state.tended_cells.has(cell) and not reach_cells.has(key):
 			reach_cells[key] = true
 			fresh = true
-	if fresh and tower.can_nurture():
+	if not fresh:
+		return
+	dreams._credit("heartwoods_reach", "dew", float(tower.plant_dew))  # Half price: what it paid is what it saved
+	if tower.can_nurture():
 		tower.bank_rank(REACH_RANK)
 		dreams._credit("heartwoods_reach", "dew", float(Tower.RANK_COSTS[0]))
+
+# Heartwood's Reach (section 36, 2026-10-25: the one clearing card, Reclaimed Earth merged in): which Wardens take a
+# cleared cell's half price and rank I. Thornwalls and Sprouts don't, and never use the cell up.
+static func reach_takes(data: TowerData) -> bool:
+	return data != null and data.can_attack and data.line != "wall" and data.get_id() != "sprout"
+
+# Whether planting `data` over `cells` is the first Warden on a cleared cell: the same test planted() uses up.
+func reach_fresh_for(dreams: DreamState, data: TowerData, cells: Array[Vector2]) -> bool:
+	return reach_takes(data) and reach_fresh(dreams, cells)
+
+# Heartwood's Reach: does a Warden on `cells` use up a cleared cell (one not used yet)?
+func reach_fresh(dreams: DreamState, cells: Array[Vector2]) -> bool:
+	if not dreams.has_card("heartwoods_reach"):
+		return false
+	for cell in cells:
+		if dreams.run_state.tended_cells.has(cell) and not reach_cells.has("%d,%d" % [roundi(cell.x), roundi(cell.y)]):
+			return true
+	return false
 
 # --- Calling early ------------------------------------------------------------------------------------------------
 

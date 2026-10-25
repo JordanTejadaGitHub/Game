@@ -16,3 +16,4 @@ min_act = 1
 rule_id = &"shared_fever"
 requires_role = &"area"
 makes = Array[StringName]([&"layered"])
+retired = true

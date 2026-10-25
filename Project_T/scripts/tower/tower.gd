@@ -920,6 +920,8 @@ func _process(delta: float) -> void:
 		_update_wall(delta)
 	if not _t_attacks:
 		return
+	if _tallest_left > 0:
+		_tick_tallest(delta)  # The Tallest Tree's volley
 	# The light path: a plain attacker (_a_light) on a wait frame (its cooldown still running, or its next look not due)
 	# with nothing timed of its own (catches, signatures, a twist, a legacy attack, Sap Rising) and no card that watches
 	# every frame (Lantern Glow, First Frost, Sap Rising, Quick Draw, Watchful Rest; Sudden Bloom, skip tokens) only counts
@@ -955,6 +957,14 @@ func _process(delta: float) -> void:
 			_nudge_neighbours()
 	if _t_catches:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
+	if _dream_state != null and _dream_state.hit_cards.tallest_cell != Vector2.INF and _dream_state.hit_cards.is_feeder(self):
+		# The Tallest Tree (section 36): a Warden touching the tree feeds it and doesn't attack. Its aura goes on (and its
+		# Kinship bonds, which aren't attacks); a beam lets go.
+		if _a_kind == TowerData.AttackKind.AURA:
+			_update_aura(delta)
+		elif _beam_target != null:
+			_stop_beam()
+		return
 	if _a_ability:
 		_update_ability(delta)
 	if _a_lit and not _lit_cells.is_empty():
@@ -1058,7 +1068,7 @@ func _compute_damage() -> float:
 # (TowerData.is_hit_form: final x1.4; Ascended x1.25, any that hits directly). A form stat, outside CARD_CAP_ON, applied
 # at _hit's `dealt` stage only. HIT_FORM_SKIP: tags that aren't the Warden's own direct hit (Lightning Fence's fence…).
 const HIT_FORM_MULTIPLIER := {3: 1.4, 4: 1.25}
-const HIT_FORM_SKIP: Array[StringName] = [&"cloud", &"fence", &"echo", &"great_ripple", &"spillover", &"flurry_copy"]
+const HIT_FORM_SKIP: Array[StringName] = [&"cloud", &"fence", &"echo", &"great_ripple", &"spillover", &"flurry_copy", &"wide_splash"]
 # A big direct hit's Reaction-style callout and flash (Fx.big_hit) from this big-hit tier up (Enemy.BIG_HIT_SHARES).
 const BIG_HIT_CALLOUT_TIER := 2
 
@@ -2646,6 +2656,10 @@ var _build_landing_context := false
 var _build_landing_primary: Node2D = null
 
 func note_primary_target(target: Node2D) -> void:
+	if is_instance_valid(target):
+		_last_primary = target.get_instance_id()
+		if _tallest_left > 0 or _tallest_volley:
+			_tallest_struck[_last_primary] = true  # The Tallest Tree's volley: new targets first
 	var build_rules = DREAM_BUILD_RULES.find(self) if is_inside_tree() else null
 	if build_rules != null:
 		build_rules.note_primary(self, target)
@@ -2684,11 +2698,66 @@ func _release() -> void:
 		_dream_state.on_original_attack_released(self)
 		if _dream_state.calling == "acorn":
 			CALLINGS.volley_release(self, _last_fired if is_instance_valid(_last_fired) and not _last_fired.is_cleansed else null)  # Volley
+	if _dream_state != null and not _build_derived_attack and _dream_state.hit_cards.tallest_cell != Vector2.INF:
+		_start_tallest_volley()
 	# Flurry (Grove card): every 5th attack fires twice; the extra shot never counts toward it.
 	if _dream_state and _has_rule(&"flurry") and _attack_count % DreamState.FLURRY_EVERY == 0:
 		_build_derived_attack = true
 		_release_attack()
 		_build_derived_attack = false
+
+# The Tallest Tree (card, dream_hit_cards.gd; section 36, owner 2026-10-25): after each of the tree's own attacks, one more
+# attack per Warden feeding it, TALLEST_GAP s apart, new targets in range first. They are real attacks through
+# _release_attack (no attack count, no Flurry, no release signal); the first TALLEST_PROCS of a volley's extras hit as
+# original attacks, the rest as derived ones (Flurry's extra shot: no family hits or build rules), the per-attack proc cap.
+var _tallest_left := 0  # Extra attacks still to come
+var _tallest_next := 0.0  # Seconds to the next one
+var _tallest_procs := 0  # Extras this volley that hit as original attacks
+var _tallest_volley := false  # Inside one of the extras (targeting reads it)
+var _tallest_struck := {}  # Nightmare instance ids this volley aimed at
+var _last_primary := 0  # The latest attack's primary target (instance id), so a volley starts past it
+
+func _start_tallest_volley() -> void:
+	var cards = _dream_state.hit_cards
+	var extras: int = cards.tree_extras(self)
+	if extras <= 0:
+		return
+	if _tallest_left <= 0:
+		_tallest_procs = 0
+		_tallest_next = DreamState.HIT_CARDS.TALLEST_GAP
+		_tallest_struck.clear()
+		if _last_primary != 0:
+			_tallest_struck[_last_primary] = true  # The attack that set it off
+	# A fast tree's next attack can come before the volley ends: the extras queue, at most two volleys' worth.
+	_tallest_left = mini(_tallest_left + extras, 2 * DreamState.HIT_CARDS.TALLEST_MAX_FEEDERS)
+	var world := Reactions._world(self)
+	for feeder in cards.feeders():
+		DreamTransfer.play(world, feeder.global_position + feeder.tower_data.get_attack_origin(), global_position + tower_data.get_attack_origin(), &"")
+	_dream_state.note_card(DreamState.HIT_CARDS.TALLEST_TREE, global_position, 1, self)
+
+func _tick_tallest(delta: float) -> void:
+	_tallest_next -= delta
+	if _tallest_next > 0.0:
+		return
+	_tallest_next += DreamState.HIT_CARDS.TALLEST_GAP
+	_tallest_left -= 1
+	if withered_left > 0.0 or not _has_work():
+		_end_tallest_volley()  # Nothing left in range: the rest of the volley is lost
+		return
+	var previous := _build_derived_attack
+	_build_derived_attack = previous or _tallest_procs >= DreamState.HIT_CARDS.TALLEST_PROCS
+	_tallest_procs += 1
+	_tallest_volley = true
+	_release_attack()
+	_tallest_volley = false
+	_build_derived_attack = previous
+	if _tallest_left <= 0:
+		_end_tallest_volley()
+
+func _end_tallest_volley() -> void:
+	_tallest_left = 0
+	_tallest_procs = 0
+	_tallest_struck.clear()
 
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
@@ -2702,7 +2771,7 @@ const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_
 # effect ticks), so pieces never make pieces; status adds skip effect ticks and repeats and go through _apply_one_status
 # (native = false: class hooks run, never a native cohort).
 const FAMILY_HIT_RULES: Array[StringName] = [&"charged_feathers", &"pollen_beaks", &"needle_point", &"resonance",
-	&"static_bloom", &"loose_stones", &"eddy", &"conductive_soil"]
+	&"static_bloom", &"loose_stones", &"eddy", &"conductive_soil", &"tangled_lightning"]
 const FAMILY_EVERY := 3  # Needle Point, Loose Stones: every 3rd original direct hit
 const EDDY_COOLDOWN := 1.0  # Eddy: once a second per Warden
 # Balancing 2026-10-24 (balance_simulation.md "No branch-only cards: status pass on paper"): a card that makes a family's
@@ -3329,17 +3398,19 @@ func _release_attack() -> void:
 var _in_hit := 0
 var _fresh_memo := false
 
+# `carries_status` (splash rework, dream_council_review.md 37): false for a splash's hit on a nightmare other than the one
+# struck: damage only (Spattered gives its status back: spatter()). Pulses, clouds and every other hit keep true.
 func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, crit: int = ROLL_CRIT,
-		combo: StringName = &"", direct_hit: bool = true, primary_override: int = -1) -> bool:
+		combo: StringName = &"", direct_hit: bool = true, primary_override: int = -1, carries_status: bool = true) -> bool:
 	_in_hit += 1
-	var landed := _hit(enemy, soothe_multiplier, is_area, crit, combo, direct_hit, primary_override)
+	var landed := _hit(enemy, soothe_multiplier, is_area, crit, combo, direct_hit, primary_override, carries_status)
 	_in_hit -= 1
 	if _in_hit == 0:
 		_fresh_memo = false
 	return landed
 
 func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, combo: StringName, direct_hit: bool,
-		primary_override: int) -> bool:
+		primary_override: int, carries_status: bool = true) -> bool:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
 	# Preserve the original/copy and primary identity across deferred area hits.
@@ -3351,7 +3422,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	if is_area and is_inside_tree():
 		if not is_instance_valid(_area_queue):
 			_area_queue = AreaHitQueue.find(self)
-		if _area_queue != null and _area_queue.defer(self, enemy, soothe_multiplier, crit, combo, direct_hit, int(captured_primary)):
+		if _area_queue != null and _area_queue.defer(self, enemy, soothe_multiplier, crit, combo, direct_hit, int(captured_primary), carries_status):
 			return false  # A dense burst: this hit lands next frame (same numbers), spreading the cost
 	var effect_tick := not direct_hit or Reactions.is_effect(combo)
 	var build_rules = DREAM_BUILD_RULES.find(self) if is_inside_tree() and not effect_tick and not _build_derived_attack and combo in [&"", &"conducted"] else null
@@ -3414,7 +3485,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		role_previous = roles.begin_hit(self, enemy)  # Heavy Heart: Reactions this hit sets off
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := {"crit": false, "crit_multiplier": attack_data.crit_multiplier,
-		"multiplier": 1.0, "shatter": false, "tag": &""} if effect_tick else Reactions.before_hit(enemy, self, is_crit)
+		"multiplier": 1.0, "shatter": false, "tag": &""} if effect_tick or not carries_status else Reactions.before_hit(enemy, self, is_crit)  # (A splash hit neither spends nor sets Pinned / Shatter: section 37)
 	is_crit = reaction.crit
 	# A forced crit (Calling evolutions, owner 2026-10-23, evo_shared_spec.md 5): the Calling may turn a direct hit that
 	# didn't crit into one (DreamState.calling_crit, behind the cached calling_crit_on). Pinned / Shatter already saw the
@@ -3467,7 +3538,7 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 			dealt *= _dream_state.hit_card_multiplier(self, enemy, is_area, is_crit, combo)
 	# Family-wide hit cards (FAMILY_HIT_RULES): an original direct hit, and a status-carrying hit (jumps count, repeats don't).
 	var family_on: bool = _dream_state != null and _any_rule(&"__family_hit", FAMILY_HIT_RULES)
-	var family_status: bool = family_on and not effect_tick and not _build_derived_attack and combo == &""  # Direct hits only (Balancing 2026-10-24)
+	var family_status: bool = family_on and carries_status and not effect_tick and not _build_derived_attack and combo == &""  # Direct hits only (Balancing 2026-10-24); never a splash's others (section 37)
 	var family_every := false
 	var family_original: bool = family_on and not effect_tick and not _build_derived_attack and combo == &"" and not is_area
 	if family_original:
@@ -3491,6 +3562,9 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		_big_hit_feedback(enemy, dealt, is_crit)
 	if roles != null:
 		roles.after_hit(self, enemy, spill, health_before, damage_line, effect_tick, role_hit)  # Millstone's splash, Towering's carry, Called from Afar
+	if _dream_state != null and unique_direct and captured_primary and combo == &"" and attack_data.splash_radius <= 0.0 \
+			and not bool(role_hit[1]) and _has_rule(HAILFALL):
+		_hailfall(enemy, spill)  # Hailfall: a Warden without a splash splashes (Millstone's own splash takes Hailfall's share instead)
 	if was_exposed and actual_dealt > 0.0:
 		# Exposed at full stacks is visible (screens_ui.md, last section): a warm spark where the hit landed, once per
 		# nightmare per hit (an area attack calls hit() once for each nightmare). The event is tagged "marked" by Enemy.
@@ -3534,7 +3608,10 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	var previous_native_direct := _unique_native_direct
 	_unique_native_direct = unique_direct
-	apply_status_to(enemy, soothe)
+	if carries_status:
+		apply_status_to(enemy, soothe)
+	elif _dream_state != null and not effect_tick and combo != &"great_ripple":
+		spatter(enemy, combo == HAILFALL_TAG)  # Spattered: a splash's others take its status after all (a splash's ring never)
 	_unique_native_direct = previous_native_direct
 	if _dream_state != null and _dream_state.reaction_cards.hit_live():
 		_dream_state.reaction_cards.after_hit(self, enemy, effect_tick)  # Card pass 2026-10-16 (4 B): Graft of Dreams, Old Heart
@@ -3542,11 +3619,12 @@ func _hit(enemy: Node2D, soothe_multiplier: float, is_area: bool, crit: int, com
 		roles.end_hit(role_previous)  # Card pass 2026-10-16: Heavy Heart's window ends
 	if attack_data.special != &"":
 		BranchKit.on_hit(self, enemy)  # The expansion branches' on-hit effects (Inkcap's ink, Crusted Brood)
-	_after_hit(enemy, is_crit)
+	_after_hit(enemy, is_crit, carries_status)
 	_catalogue_hit(enemy)
 	if family_status:
 		_family_hit(enemy, family_every, family_original)
-	_legendary_hit_rules(enemy, soothe)
+	if carries_status:
+		_legendary_hit_rules(enemy, soothe)  # (Hunter's Moon, Eternal Charge, Rooted Nightmares: statuses, never on a splash's others)
 	if is_instance_valid(_kin):
 		_kin_night_chimes(enemy)
 		_kin.note_hit(self, enemy, spill)  # Harmony strike when its kin hit this nightmare within 1 s
@@ -3660,6 +3738,72 @@ func _twin_puff() -> bool:
 	var every := 2 if _rule_level(&"twin_puff") > 0 else 3
 	return _attack_count % every == 0
 
+# Splash rework (owner 2026-10-25, dream_council_review.md 37; splash_td.md, splash_review_roguelite.md). A splash's
+# hits on nightmares other than the one struck are damage only (hit(..., carries_status = false)).
+# Spattered (Dream card): those splashes give the Warden's own status after all. A form's own splash gives
+# splash_status_stacks (0 = its status_stacks), a Dream card's splash (Hailfall, Millstone, Shattering Blow, Spillover)
+# SPATTERED_CARD_STACKS, at most once every SPATTERED_WAIT s per Warden per nightmare; never echoes or Reaction hits. A
+# card splash's stack completes a Reaction on that nightmare at most once every SPATTERED_RX_WAIT s (section 36's fed lock).
+# Hailfall (Legendary): a Warden without a splash splashes HAILFALL_SHARE of its direct hit onto the HAILFALL_TARGETS
+# nearest within HAILFALL_RADIUS cells (hit(..., HAILFALL_TAG): damage only, never splashes again, never a Great Ripple);
+# one with its own splash keeps it, at least HAILFALL_SHARE within HAILFALL_RADIUS, no target limit. Millstone adds: one
+# splash per hit (millstone_splash). Numbers: the council's, Balancing to confirm.
+const SPATTERED := &"spattered"
+const HAILFALL := &"hailfall"
+const HAILFALL_TAG := &"wide_splash"
+const SPATTERED_CARD_STACKS := 1
+const SPATTERED_WAIT := 1.0
+const SPATTERED_RX_WAIT := 2.0  # = EnemyStatuses.FED_LOCK, the lock it uses
+const SPATTERED_META := &"spattered_next"  # On a nightmare: {Warden instance id: game time it may take another}
+const HAILFALL_SHARE := 0.40
+const HAILFALL_RADIUS := 1.0
+const HAILFALL_TARGETS := 3
+
+# Spattered: `enemy` was reached by this Warden's splash (`card`: a Dream card's splash). Its native status only, through
+# _apply_one_status's splash side (no Bitter Sap, stack cards, Calling or role extras). False = nothing given.
+func spatter(enemy: Node2D, card: bool) -> bool:
+	if _dream_state == null or not _has_rule(SPATTERED) or not is_instance_valid(enemy) or enemy.is_cleansed \
+			or attack_data.applies_status == &"":
+		return false
+	var stacks := SPATTERED_CARD_STACKS if card else (attack_data.splash_status_stacks if attack_data.splash_status_stacks > 0 else attack_data.status_stacks)
+	if stacks <= 0:
+		return false
+	var now: float = _dream_state._game_clock
+	var waits: Dictionary = enemy.get_meta(SPATTERED_META) if enemy.has_meta(SPATTERED_META) else {}
+	var key := get_instance_id()
+	if now < float(waits.get(key, -INF)):
+		return false
+	waits[key] = now + SPATTERED_WAIT
+	enemy.set_meta(SPATTERED_META, waits)
+	var was_feeding := EnemyStatuses.feeding
+	EnemyStatuses.feeding = card or was_feeding  # A card splash's stack: no Reaction from it for FED_LOCK s
+	_apply_one_status(enemy, attack_data.applies_status, stacks, get_damage(), false, true)
+	EnemyStatuses.feeding = was_feeding
+	return true
+
+# Hailfall's granted splash off `enemy` (the nightmare hit, for `dealt` before the hit cards).
+func _hailfall(enemy: Node2D, dealt: float) -> void:
+	if dealt <= 0.0 or not is_instance_valid(enemy) or not is_inside_tree():
+		return
+	var at: Vector2 = enemy.global_position
+	var reach := HAILFALL_RADIUS * MAP_GRID.cell_size.x
+	var near: Array = []
+	for other in nightmares_near(get_tree(), at, reach):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
+			near.append(other)
+	if near.is_empty():
+		return
+	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	near = near.slice(0, HAILFALL_TARGETS)
+	set_area_count(near.size() + 1, at)  # Crowd Breaker counts the crowd it splashed
+	var share := HAILFALL_SHARE * dealt / maxf(get_damage(), 0.001)
+	for other in near:
+		hit(other, share, true, NO_CRIT, HAILFALL_TAG, true, -1, false)
+	if _dream_state._game_clock >= _hail_noted_at:
+		_hail_noted_at = _dream_state._game_clock + 1.0  # The card's moment, once a second per Warden (it fires on every hit)
+		_dream_state.note_card(HAILFALL, at, 1, self)
+var _hail_noted_at := -INF
+
 # Shattering Blow: a crit splashes 50% of its damage within 1 cell (II: the same share within 1.5). The splash
 # is area damage and never crits itself.
 func _shattering_blow(enemy: Node2D, dealt: float) -> void:
@@ -3676,6 +3820,7 @@ func _shattering_blow(enemy: Node2D, dealt: float) -> void:
 				DREAM_BURST.play(&"shattering_blow", at, reach, Reactions._world(self))
 				shown = true
 			other.take_damage(dealt * share, tower_data.line, true, false, self, &"shattering_blow")
+			spatter(other, true)  # Spattered: a card's splash gives 1 stack
 
 # Rolls for a crit on `enemy` (Moonstone: the first hit on each nightmare always crits).
 func roll_crit(enemy: Node2D) -> bool:
@@ -3723,8 +3868,8 @@ func _damage_against(enemy: Node2D) -> float:
 	return multiplier
 
 # On-hit rules: freeze (Frostfern), Dew from crits (Magpie's Hoard).
-func _after_hit(enemy: Node2D, is_crit: bool) -> void:
-	if attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
+func _after_hit(enemy: Node2D, is_crit: bool, carries_status: bool = true) -> void:
+	if carries_status and attack_data.freeze_duration > 0.0 and enemy.freeze_cooldown <= 0.0 and not enemy.is_cleansed \
 			and (attack_data.freeze_needs == &"" or enemy.statuses.stacks(attack_data.freeze_needs) >= Reactions.buildup_threshold(attack_data.freeze_needs_stacks)):
 		enemy.freeze_cooldown = attack_data.freeze_cooldown
 		hold(enemy, attack_data.freeze_duration)
@@ -3812,12 +3957,14 @@ func _put_to_sleep(enemy: Node2D) -> void:
 		put_to_sleep.emit(self, enemy)
 
 var _unique_native_direct := false
-func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: float, native: bool = true) -> void:
+# `splash_side` (Spattered, section 37): a splash's status on the others, its plain stacks only: no Bitter Sap, Gift Mushroom
+# Ring, Anvil, stack cards, role extras, Calling hooks or native cooperation (pass native = false with it).
+func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: float, native: bool = true, splash_side: bool = false) -> void:
 	# (F1 lent × Calling, owner 2026-10-18; f1_spec.md) A Calling output's application (armed by its class node) is taken on
 	# entry, so nothing this application sets off is marked; other families' lent cards hear it below
 	var calling := ""
 	var calling_bare := false
-	if not native and _dream_state != null:
+	if not native and not splash_side and _dream_state != null:
 		calling = _dream_state.take_calling_apply()
 		calling_bare = _dream_state.calling_apply_bare
 	if status == &"" or not is_instance_valid(enemy) or enemy.is_cleansed:
@@ -3840,7 +3987,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency *= cached[0]
 		duration = cached[1]
 		max_stacks = cached[2]
-		if stacks > 0:
+		if stacks > 0 and not splash_side:
 			setup_sap = _dream_state.get_status_stacks_bonus()  # setup credit 2026-10-16
 			stacks += setup_sap  # Bitter Sap: statuses a Warden applies start +1 stack
 	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
@@ -3850,7 +3997,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep  # Its strength side is Potency (get_potency)
-	var gifts := GiftGround.active_for(self)
+	var gifts := GiftGround.active_for(self) if not splash_side else null
 	if gifts:
 		stacks = gifts.ring_stacks(status, stacks, enemy.global_position)  # Gift Mushroom Ring: any Warden's status on a nightmare inside it lands with half again as many stacks
 	var at: Vector2 = enemy.global_position
@@ -3858,7 +4005,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone
 	var unique_before: int = enemy.statuses.applications
 	var unique_was_present: bool = enemy.statuses.has(status)
-	if _dream_state != null and _dream_state.calling == "rootling":
+	if _dream_state != null and _dream_state.calling == "rootling" and not splash_side:
 		stacks = CALLINGS.anvil_stacks(self, enemy, status, stacks)  # Anvil: double stacks on a Rooted nightmare
 	if _dream_state != null and native:
 		stacks = _dream_state.class_stacks(self, enemy, status, stacks)  # The starter classes: a Warden's own next application (Open Season, Second Helping, Overnight)
@@ -3910,6 +4057,9 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 	if splash > 0.0 and _dream_state and _has_rule(&"chain_bloom") and target != null and is_instance_valid(target) \
 			and target.statuses.count() >= 2:
 		splash *= CHAIN_BLOOM_RADIUS  # Chain Bloom (section 35): a splash landing on a nightmare with 2+ statuses, wider
+	var hail := splash > 0.0 and _dream_state != null and _has_rule(HAILFALL)
+	if hail:
+		splash = maxf(splash, HAILFALL_RADIUS * MAP_GRID.cell_size.x)  # Hailfall: its own splash stays, at least 1 cell (no 3-nearest limit)
 	_kin_on_landing(target, where)
 	if splash <= 0.0:
 		hit(target, hand)
@@ -3934,12 +4084,12 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		set_area_count(get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size(), where)
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
-				hit(enemy, attack_data.splash_share * hand, true, crit)
+				hit(enemy, maxf(attack_data.splash_share, HAILFALL_SHARE if hail else 0.0) * hand, true, crit, &"", true, -1, false)  # Damage only (section 37); Hailfall floors the share
 		_skip(target, where)  # Pebbling: the splash, then the skip
 		if _twist == &"landslide":
 			FinalTwists.landslide(self, target)  # Every 4th hit rolls a boulder back along the path
 	else:
-		_splash(where, splash, hand, crit, _ring_at(target, where))
+		_splash(where, splash, hand, crit, _ring_at(target, where), target if is_instance_valid(target) else null)
 		var rainfog := kin_share(&"rainfog", "a")
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
@@ -3985,13 +4135,54 @@ func _skip_landed(target, _where: Vector2, share: float) -> void:
 		hit(target, share)
 
 # `ring_at`: where its ring is drawn (the struck nightmare's drawn body; INF = `where`). The splash itself reaches from `where`.
-func _splash(where: Vector2, radius: float, share: float, crit: int, ring_at: Vector2 = Vector2.INF) -> void:
+# `struck`: the nightmare the projectile hit, the only one that takes the Warden's status (section 37); null = none.
+func _splash(where: Vector2, radius: float, share: float, crit: int, ring_at: Vector2 = Vector2.INF, struck: Node2D = null) -> void:
 	_splash_ring(where if ring_at == Vector2.INF else ring_at, radius)
 	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
-		GroveRules.area_attack(self, where, radius, share)  # Lingering Splash, Great Ripple
+		GroveRules.area_attack(self, where, radius, share, true)  # Lingering Splash, Great Ripple (a splash's ring: damage only)
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy.global_position.distance_to(where) <= radius:
-			hit(enemy, share, true, crit)
+			hit(enemy, share, true, crit, &"", true, -1, enemy == struck)
+
+# Millstone (card, dream_role_cards.gd after_hit): a heavy hit's splash, through the landing splash pipeline (section 36,
+# owner 2026-10-25: "it must work with splash cards"). Broad Splash / Wide Petals / Far Reach, the splash multiplier
+# (Wide Petals' sibling), Wide Swing (it shares the every-3rd counter with this Warden's own splashes), Tailwind and
+# Chain Bloom widen it; Lingering Splash / Great Ripple and Shared Fever see it. Its damage keeps the tag `tag`
+# (take_damage, never hit(): on-hit cards skip it, and it never sets off another Millstone). Section 37: with Hailfall (a
+# Warden without its own splash) Hailfall's share of `dealt` adds to it, one splash per hit, the HAILFALL_TARGETS nearest;
+# with Spattered each nightmare it reaches takes 1 stack (a card's splash).
+func millstone_splash(target: Node2D, at: Vector2, base_cells: float, damage: float, line: String, tag: StringName, dealt: float = 0.0) -> float:
+	var cells := base_cells
+	if _dream_state:
+		cells = (cells + _dream_state.get_area_radius_add()) * _dream_state.get_splash_multiplier(tower_data)
+		cells += HelperCommons.area_attack_extra(self)
+		if _dream_state.calling == "whirligig":
+			cells += CALLINGS.tailwind_wider(self)
+	var reach := cells * MAP_GRID.cell_size.x
+	if _dream_state and _has_rule(&"chain_bloom") and target != null and is_instance_valid(target) and target.statuses.count() >= 2:
+		reach *= CHAIN_BLOOM_RADIUS
+	var hail: bool = _dream_state != null and attack_data.splash_radius <= 0.0 and _has_rule(HAILFALL)
+	if hail:
+		damage += HAILFALL_SHARE * dealt
+		reach = maxf(reach, HAILFALL_RADIUS * MAP_GRID.cell_size.x)
+	var share := damage / maxf(get_damage(), 0.001)  # Lingering Splash / Great Ripple take a share of a hit
+	if _dream_state and _any_rule(&"grove_area", GROVE_AREA_RULES):
+		GroveRules.area_attack(self, at, reach, share, true)  # A splash's ring: damage only
+	var splashed: Array = []
+	for other in nightmares_near(get_tree(), at, reach):
+		if other != target and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
+			splashed.append(other)
+	if hail and splashed.size() > HAILFALL_TARGETS:
+		splashed.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+		splashed = splashed.slice(0, HAILFALL_TARGETS)
+	for other in splashed:
+		other.take_damage(damage, line, true, false, self, tag)
+		spatter(other, true)
+	if _dream_state and _dream_state.role_cards.on(&"shared_fever"):
+		if target != null and is_instance_valid(target) and not target.is_cleansed:
+			splashed.append(target)  # The struck nightmare is in the splash too, as on a landing
+		_dream_state.role_cards.area_attack(self, splashed)
+	return reach
 
 # The splash's reach where it lands (user 2026-10-18: "a visible radius with splash damage when it lands"): a ground
 # ring out to the real splash radius in the family's colour, with a dark edge so it reads on the sand path. Shares the
@@ -4257,7 +4448,7 @@ func _spotter_splash(target: Node2D, where: Vector2) -> void:
 	var reach := SPOTTER_SPLASH_RADIUS * MAP_GRID.cell_size.x
 	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 		if enemy != target and enemy.global_position.distance_to(where) <= reach:
-			hit(enemy, SPOTTER_SPLASH * share, true, NO_CRIT)
+			hit(enemy, SPOTTER_SPLASH * share, true, NO_CRIT, &"", true, -1, false)  # A splash: damage only (section 37)
 
 # Resonant Hollow B: the Chime Stone's pulse echoes once, a moment later, at 30%.
 func _resonant_echo(in_range: Array) -> void:
@@ -4382,10 +4573,7 @@ func _chain_strike(first: Node2D) -> void:
 		if next == null:
 			break
 		hits.append(next)
-	var tangled_from := hits.size()  # Card pass 2026-10-16, Tangled Lightning: 2 more jumps, statused nightmares only
-	var tangled_to := tangled_from
-	if _dream_state != null:
-		tangled_to += int(_dream_state.role_cards.tangle(self, hits))
+	# (Tangled Lightning's extra jumps moved to every Firefly Jar hit: section 36, _tangled_jump from _family_hit.)
 	if attack_data.chain_all_in_range:
 		# Stormheart: the chain goes on until every nightmare in range is struck.
 		for enemy in get_enemies_in_range():
@@ -4414,8 +4602,6 @@ func _chain_strike(first: Node2D) -> void:
 			if not is_instance_valid(enemy) or enemy.is_cleansed:
 				continue
 		hit(enemy, falloff, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets and not attack_data.chain_all_in_range else &"")
-		if i >= tangled_from and i < tangled_to:
-			_dream_state.role_cards.tangled_hit(self, enemy)  # Tangled Lightning: its moment (no stack since keyword chips 2026-10-16)
 		var beacon := kin_share(&"storm_beacon", "a")
 		if beacon > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
@@ -5056,7 +5242,8 @@ func find_targets(count: int) -> Array:
 	if _dream_state != null and _dream_state.has_rule(&"across_the_water"):
 		candidates = _dream_state.class_targets(self, candidates.duplicate())  # Across the Water: further along its water (a copy: the range list is cached)
 	for enemy in candidates:
-		scored.append([_target_score(enemy, mode) + (1e9 if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy) else 0.0), enemy])
+		scored.append([_target_score(enemy, mode) + (1e9 if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy) else 0.0)
+			- (1e12 if _tallest_volley and _tallest_struck.has(enemy.get_instance_id()) else 0.0), enemy])
 	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 	var ranked: Array = []
 	for i in mini(count, scored.size()):
@@ -5307,6 +5494,8 @@ func _family_hit(enemy: Node2D, every: bool, original: bool = false) -> void:
 			if original and _has_rule(&"conductive_soil") and is_instance_valid(enemy) and not enemy.is_cleansed \
 					and enemy.statuses.has(EnemyStatuses.DAMP):
 				_conductive_jumps(enemy)
+			if original and _has_rule(&"tangled_lightning") and is_instance_valid(enemy) and not enemy.is_cleansed:
+				_tangled_jump(enemy)
 		"stone":
 			if every and _has_rule(&"loose_stones"):
 				_loose_stones(enemy.global_position)
@@ -5336,6 +5525,21 @@ func _conductive_jumps(from: Node2D) -> void:
 		if is_instance_valid(other) and not other.is_cleansed:
 			other.statuses.remove(EnemyStatuses.DAMP)  # Each jump uses up that nightmare's Soaked
 
+# Tangled Lightning (section 36): a Firefly Warden's original direct hit jumps to one Charged nightmare nearby
+# (DreamRoleCards.tangle picks it) for TANGLED_SHARE of a hit, a Jump (DreamState.note_jump), and spends 3 of its Charged.
+const TANGLED_SHARE := 1.0  # A full hit, as a chain's hop (placeholder for Balancing)
+func _tangled_jump(from: Node2D) -> void:
+	var roles = _dream_state.role_cards
+	var other: Node2D = roles.tangle(self, from)
+	if other == null:
+		return
+	add_child(ChainBolt.new(PackedVector2Array([aim_at(from) if is_instance_valid(from) else other.global_position, aim_at(other)])))
+	var share := TANGLED_SHARE * float(_dream_state.note_jump(self, from if is_instance_valid(from) else null, other, get_damage() * TANGLED_SHARE))
+	if not is_instance_valid(other) or other.is_cleansed:
+		return
+	hit(other, share, false, NO_CRIT, &"conducted")
+	roles.tangled_hit(self, other)
+
 # Whether `card` may add its status to `enemy` from this Warden now (CROSS_STATUS_PER_SECOND, game time); if so, books it.
 func _cross_ready(enemy: Node2D, card: StringName) -> bool:
 	var now: float = _dream_state._game_clock
@@ -5353,7 +5557,7 @@ func _loose_stones(where: Vector2) -> void:
 	for i in 3:
 		var spot := where + Vector2.from_angle(randf() * TAU) * randf_range(0.5, 1.5) * MAP_GRID.cell_size.x
 		spot = MAP_GRID.calculate_map_position(MAP_GRID.calculate_grid_coordinates(spot))  # A tile centre
-		_splash(spot, MAP_GRID.cell_size.x * 0.5, LOOSE_STONE_SHARE, NO_CRIT)
+		_splash(spot, MAP_GRID.cell_size.x * 0.5, LOOSE_STONE_SHARE, NO_CRIT, Vector2.INF, null)  # (No nightmare struck: all damage only)
 		Reactions._effect(&"crit_flare", spot, self, 0.6)
 
 # Eddy (Whirligig family): half of each status on the hit nightmare copies to 1 nightmare 1 step either side on the path
@@ -6016,6 +6220,8 @@ func find_target() -> Node2D:
 		var score := _target_score(enemy, mode)
 		if calling == "rootling" and CALLINGS.aims_at_rooted(self, enemy):
 			score += 1e9  # Anvil: a Rooted nightmare in reach comes first
+		if _tallest_volley and _tallest_struck.has(enemy.get_instance_id()):
+			score -= 1e12  # The Tallest Tree's volley: a nightmare it hasn't aimed at yet first
 		if score > best_score:
 			best_score = score
 			best = enemy

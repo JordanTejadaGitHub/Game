@@ -22,3 +22,4 @@ tip = "Bosses get the {damp}, never the {held}. Works for: {warden:cairn} and {w
 uses = Array[StringName]([&"reaction"])
 makes = Array[StringName]([&"soaked"])
 requires_statuses = Array[StringName]([&"damp", &"held"])
+retired = true

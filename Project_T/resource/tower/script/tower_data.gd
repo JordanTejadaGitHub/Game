@@ -153,6 +153,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export_group("Heavy hits and sleep")
 @export var marked_multiplier: float = 1.0  # Mossback / Boulderback: ×2 damage against Marked nightmares
 @export var splash_share: float = 1.0  # Share of the hit the splash deals to the others (Boulderback: 0.5)
+# Splash rework (dream_council_review.md 37): a splash gives its status only to the nightmare hit. With Spattered its
+# splash gives the others this many stacks (0 = status_stacks: the stacks it gave before; Puffball 1).
+@export var splash_status_stacks: int = 0
 @export var crits_vs_drowsy: bool = false  # Boulderback: always crits on a Drowsy nightmare
 # Dreamshroom: a nightmare it brings to full Drowsy falls asleep for this long, once (bosses never).
 @export var sleep_at_max_drowsy: float = 0.0

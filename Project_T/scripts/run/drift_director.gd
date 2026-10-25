@@ -203,14 +203,18 @@ var _drift_of := {}
 # Arrivals still to come, per drift: {number: {"schedule": [[time, EnemyData, elite], ...], "clock": float}}.
 var _arriving := {}
 var _auto_timer := -1.0  # Counts down to the next auto drift; < 0 = not waiting
-# Headlong (Legendary, owner 2026-10-21; dream_council_review.md 28): a drift started while the last one's nightmares are
-# still on the field arrives within HEADLONG_SECONDS and pays its whole pot up front. Its "normal clock" (normal_end and
-# started in _active) outlives _arriving, so the early-call rule, its Dew, Call of the Wild, Press On and Auto-drift keep
-# reading the arrival it would have had.
-const HEADLONG_SECONDS := 3.0
+# Headlong (Legendary; reworked by dream_council_review.md 36, owner 2026-10-25: no call involved). While it is held, the
+# DriftPanel's Rush (set_rush) arms the next non-boss drift, started from a rest, by Start or by Auto-drift alike: its
+# shape (after DriftShapes.apply) is squeezed to HEADLONG_SHARE of its arrival time, at least HEADLONG_MIN_SECONDS, and
+# its pot is paid as it starts. One drift per press. Its "normal clock" (normal_end and started in _active) outlives
+# _arriving, so the early-call rule, its Dew and Auto-drift keep reading the arrival it would have had.
+const HEADLONG_SECONDS := 3.0  # (Unused since section 36: the rush is a share of the drift's own time)
+const HEADLONG_SHARE := 1.0 / 3.0
+const HEADLONG_MIN_SECONDS := 1.0
 const PREPAID_META := &"dew_prepaid"  # On a nightmare whose share was paid up front: a dispel pays only its extras
 var _clock := 0.0  # Seconds of drifts played (the normal clock's time base)
-var _headlong_next := false
+var _headlong_next := false  # (Unused since section 36: rush_armed)
+var rush_armed := false  # Headlong's Rush is on for the next drift (DriftPanel's Rush toggle; cleared when a drift starts)
 var headlong_drifts := 0  # This run (tests, run history)
 var _block_leaked := false
 # The boss drawn for each act (index 0 = act 1; BossPool), set once the run's seed is known.
@@ -514,27 +518,30 @@ func start_next_drift() -> bool:
 		return false
 	if resting:
 		return start_next_block()
-	var bonus := get_call_early_bonus()
+	var rushing := rush_armed and _rush_ok(drifts_started + 1)  # Headlong's Rush: no call-early Dew on it (Balancing 2026-10-25)
+	var bonus := 0 if rushing else get_call_early_bonus()
 	if bonus > 0:
 		run_state.add_dew(bonus)
 	var arriving := is_arriving() or get_arrival_skipped() > 0.0
-	_called_early = would_call_early()
-	_headlong_next = _headlong_ok()  # For Dream cards (and the run history's called_early column): 10 s or more skipped
+	_called_early = would_call_early() and not rushing  # For Dream cards (and the run history's called_early column): 10 s or more skipped
 	if arriving:  # Run history (balancing: "the user calls most drifts early")
 		early_calls += 1
 		call_early_dew += bonus
 	_start_drift()
 	_called_early = false
-	_headlong_next = false
 	return true
 
-# Headlong's trigger: the player starts a drift (never Auto-drift, never a block's first, never a boss drift) while
-# nightmares of the last one are still on the field (spawned, not only waiting in the mist).
-func _headlong_ok() -> bool:
+# Headlong's Rush (section 36): the DriftPanel shows it while the next drift can be rushed: Headlong held, the next drift
+# not a boss drift. Rest, Start or Auto-drift: any of them starts the armed drift rushed.
+func can_rush() -> bool:
+	return _rush_ok(drifts_started + 1)
+
+func _rush_ok(number: int) -> bool:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
-	if dreams == null or not dreams.has_rule(&"headlong") or resting or is_boss_drift(drifts_started + 1):
-		return false
-	return int((_active.get(drifts_started, {}) as Dictionary).get("remaining", 0)) > 0
+	return dreams != null and dreams.has_rule(&"headlong") and number >= 1 and number <= drifts.size() and not is_boss_drift(number)
+
+func set_rush(on: bool) -> void:
+	rush_armed = on and can_rush()
 
 # Leaves the rest and starts the next drift.
 func start_next_block() -> bool:
@@ -579,8 +586,8 @@ func _start_drift() -> void:
 	}
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	_active[number]["shape"] = _shape_schedule(_arriving[number].schedule, number, mods, omens)
-	var headlong := _headlong_next
-	_headlong_next = false
+	var headlong := rush_armed and _rush_ok(number)
+	rush_armed = false  # One drift per press
 	if headlong:
 		_compress(number)
 	_arriving[number].shares = pot_shares(_arriving[number].schedule, number, _called_early)
@@ -852,14 +859,16 @@ func get_effective_pot(number: int, called_early: bool = false) -> float:
 
 # Each schedule entry's share of the pot, in schedule order: weight = dew_reward (Deeply Blighted ×3); a
 # boss drift's bosses take POT_BOSS_SHARE between them, the escorts the rest. Adds the pot to the block's.
-# Headlong: the whole schedule (elites and Omens included) arrives within HEADLONG_SECONDS, its normal end kept.
+# Headlong's Rush: the whole schedule (elites and Omens included, the shape's order and grouping kept) arrives in
+# HEADLONG_SHARE of its time, at least HEADLONG_MIN_SECONDS; its normal end is kept, so the next drift keeps its clock.
 func _compress(number: int) -> void:
 	var schedule: Array = _arriving[number].schedule
 	var last: float = float(schedule[-1][0]) if not schedule.is_empty() else 0.0
 	_active[number].normal_end = last
 	_active[number].started = _clock
-	if last > HEADLONG_SECONDS:
-		var scale := HEADLONG_SECONDS / last
+	var window := maxf(last * HEADLONG_SHARE, HEADLONG_MIN_SECONDS)
+	if last > window:
+		var scale := window / last
 		for entry in schedule:
 			entry[0] = float(entry[0]) * scale
 	headlong_drifts += 1
@@ -960,7 +969,18 @@ func _resolve(enemy: Node2D, leaked: bool) -> void:
 	if leaked:
 		drift.leaked = true
 		_block_leaked = true
+		_take_back_prepaid(enemy)
 	_check_cleared(number)
+
+# Headlong's Rush (Balancing 2026-10-25): a nightmare of a rushed drift that leaks takes its pot share back (as much as
+# the player still has; spend_dew, never a debt).
+func _take_back_prepaid(enemy: Node2D) -> void:
+	if not is_instance_valid(enemy) or not enemy.has_meta(PREPAID_META):
+		return
+	var share = enemy.get("dew_share")
+	var back := mini(roundi(float(share)) if share != null else 0, run_state.dew)
+	if back > 0 and run_state.spend_dew(back):
+		run_state.pot_earned_block = maxf(run_state.pot_earned_block - back, 0.0)
 
 func _check_cleared(number: int) -> void:
 	var drift: Dictionary = _active.get(number, {})

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wide_petals"
 display_name = "Wide Petals"
-description = "Area attacks are 0.75 cells wider, and Wardens with an area attack get +0.5 range."
+description = "Pulses and clouds are 0.75 cells wider."
 rarity = 0
 kind = 3
 tags = Array[String](["reach"])

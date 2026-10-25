@@ -12,7 +12,7 @@ const BUDGET := 24  # Area hits per frame before the rest wait a frame
 
 var _frame := -1
 var _count := 0
-var _queue: Array = []  # [tower, enemy, multiplier, crit, combo, direct_hit, primary_override]
+var _queue: Array = []  # [tower, enemy, multiplier, crit, combo, direct_hit, primary_override, carries_status]
 var flushing := false
 var skipped_gone := 0  # Queued hits whose Warden or nightmare was freed before the flush (tests)
 
@@ -34,7 +34,8 @@ func _ready() -> void:
 	process_priority = -100  # Before the Wardens: last frame's overflow lands first
 
 # Counts an area hit this frame; true = over the budget: it was queued and the caller does nothing now.
-func defer(tower: Node, enemy: Node2D, multiplier: float, crit: int, combo: StringName, direct_hit: bool = true, primary_override: int = -1) -> bool:
+# `carries_status` (section 37): a splash's hit on the others is damage only; it must still be when it lands next frame.
+func defer(tower: Node, enemy: Node2D, multiplier: float, crit: int, combo: StringName, direct_hit: bool = true, primary_override: int = -1, carries_status: bool = true) -> bool:
 	if flushing:
 		return false
 	var frame := Engine.get_process_frames()
@@ -44,7 +45,7 @@ func defer(tower: Node, enemy: Node2D, multiplier: float, crit: int, combo: Stri
 	_count += 1
 	if _count <= BUDGET:
 		return false
-	_queue.append([tower, enemy, multiplier, crit, combo, direct_hit, primary_override])
+	_queue.append([tower, enemy, multiplier, crit, combo, direct_hit, primary_override, carries_status])
 	return true
 
 func pending() -> int:
@@ -65,7 +66,9 @@ func _process(_delta: float) -> void:
 		var tower: Node = entry[0]
 		var enemy: Node2D = entry[1]
 		if not enemy.is_cleansed:
-			if entry[6] >= 0:
+			if not entry[7]:
+				tower.hit(enemy, entry[2], true, entry[3], entry[4], entry[5], entry[6], false)
+			elif entry[6] >= 0:
 				tower.hit(enemy, entry[2], true, entry[3], entry[4], entry[5], entry[6])
 			else:
 				# Non-Tower probes keep their original six-argument hit contract.

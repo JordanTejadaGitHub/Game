@@ -332,9 +332,8 @@ func _test_family_review_cards() -> void:
 	dreams.grove_cards.assign(ids)
 
 	var eyelids := _card("heavy_eyelids")
-	_check(not dreams.is_eligible(eyelids), "Heavy Eyelids needs a Drowsy Warden")
 	_own("bloomcap")
-	_check(dreams.is_eligible(eyelids), "…Bloomcap makes nightmares Drowsy")
+	_check(eyelids.retired and not dreams.is_eligible(eyelids), "Heavy Eyelids is retired (section 36): never offered, even with a Drowsy Warden")
 
 	# Section 35 (no branch-only cards): Sharp Beaks, Encore, Heavy Seed, Seed Storm and Windborne Rain are retired; a
 	# saved stack still plays its rule
@@ -581,13 +580,15 @@ func _test_woven() -> void:
 				and card.discovered_by.size() == 1 and card.discovered_by[0].begins_with("crowned:"),
 			"%s is a Woven Rare in the start pool, discovered by its Crowned Reaction" % id)
 	dreams.grove_cards.assign(ids)
+	# Section 36 (owner 2026-10-25): every woven Crowned Rare is retired (too narrow); ids and rule code kept for old saves.
 	var stars := _card("falling_stars")
 	_own("firefly_jar")
 	_own("tangleroot")
-	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third status (Charged + Rooted, no Exposed yet)")
-	_own("lanternmoth")  # Crowned cards are gated on statuses only (owner 2026-10-17): any Exposed Warden completes it
-	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…an Exposed Warden completes it, act 2+")
-	_check(dreams.is_eligible(stars, 3), "a Woven card is offered at normal odds once all three statuses are owned")
+	_own("lanternmoth")
+	for id in ids:
+		_check(_card(id).retired, "%s is retired (section 36)" % id)
+	_check(not dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 3),
+		"…so Falling Stars isn't offered even with all three statuses owned")
 
 # Potency cards 109–112 and Endless Rings (108).
 func _test_potency_and_endless() -> void:

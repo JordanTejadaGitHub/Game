@@ -76,20 +76,25 @@ static func whirlwind(tower: Tower, multiplier: float) -> float:
 # --- Wide Reach ---------------------------------------------------------------------------------------
 
 # An area attack went off at `where` with `radius` px for `share` of a hit: Lingering Splash's patch
-# every Nth, Great Ripple's aftershock a second later (never from an aftershock).
-static func area_attack(tower: Tower, where: Vector2, radius: float, share: float) -> void:
+# every Nth, Great Ripple's aftershock a second later (never from an aftershock). `splash` (section 37): the origin was a
+# splash, so the aftershock follows it: damage only (a pulse's aftershock keeps its status).
+static func area_attack(tower: Tower, where: Vector2, radius: float, share: float, splash: bool = false) -> void:
 	var dreams := tower._dream_state
 	if dreams == null or tower._grove.get(&"rippling", false):
 		return
 	var every: int = dreams.lingering_splash_every()
 	if every > 0:
 		tower._grove[&"areas"] = int(tower._grove.get(&"areas", 0)) + 1
-		if tower._grove[&"areas"] % every == 0:
+		# With Hailfall (section 37), one live patch per Warden at a time: every Warden splashes then.
+		var live_patch = tower._grove.get(&"patch")
+		var held: bool = tower._has_rule(Tower.HAILFALL) and live_patch is WeakRef and is_instance_valid(live_patch.get_ref())
+		if tower._grove[&"areas"] % every == 0 and not held:
 			var patch := LingeringPatch.new(tower, tower.get_damage() * share * DreamState.LINGERING_SPLASH_SHARE)
 			var world := Reactions._world(tower)
 			if world != null:
 				world.add_child(patch)
 				patch.global_position = where
+				tower._grove[&"patch"] = weakref(patch)
 	if tower._has_rule(&"great_ripple"):
 		var wider := radius + DreamState.GREAT_RIPPLE_WIDER * Tower.MAP_GRID.cell_size.x
 		var ripple: Node2D = null
@@ -106,7 +111,7 @@ static func area_attack(tower: Tower, where: Vector2, radius: float, share: floa
 			tower._grove[&"rippling"] = true  # The aftershock never sets off another
 			for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 				if enemy.global_position.distance_to(where) <= wider:
-					tower.hit(enemy, share * DreamState.GREAT_RIPPLE_SHARE, true, Tower.NO_CRIT, &"great_ripple")
+					tower.hit(enemy, share * DreamState.GREAT_RIPPLE_SHARE, true, Tower.NO_CRIT, &"great_ripple", true, -1, not splash)
 			tower._grove[&"rippling"] = false)
 
 # Spillover: an area hit that dispelled `enemy` splashes the `leftover` damage onto nightmares within
@@ -123,6 +128,7 @@ static func spillover(tower: Tower, enemy: Node2D, leftover: float) -> void:
 				DREAM_BURST.play(&"spillover", at, reach, Reactions._world(tower))
 				shown = true
 			other.take_damage(leftover, tower.tower_data.line, true, false, tower, &"spillover")
+			tower.spatter(other, true)  # Spattered: a card's splash gives 1 stack (section 37)
 
 # Lingering Splash's patch: 1 cell, LINGERING_SPLASH_TIME s, `per_second` effect damage to what's inside.
 class LingeringPatch extends Node2D:

@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 leaves_now = 3
 max_leaves_add = 3
+retired = true

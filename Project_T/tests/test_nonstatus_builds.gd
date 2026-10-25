@@ -173,8 +173,9 @@ func _run() -> void:
 		_check(not dreams.card_needs_met(overnight), "Overnight waits for a second family")
 	var slow_burn: UpgradeData = load("res://resource/dream/slow_burn.tres")
 	dreams.calling = "dewdrop"
-	dreams.calling_path.assign([&"dw_riverside"])
-	_check(dreams.card_needs_met(slow_burn), "Slow Burn is offered with Riverside")
+	dreams.calling_path.assign([])
+	_check(dreams.card_needs_met(slow_burn) and not DreamState.CARD_NEEDS.has("slow_burn"),
+		"Slow Burn needs no other card or evolution (section 36: it reads the status's age)")
 	dreams.calling = "firefly_jar"
 	dreams.calling_path.assign([&"lf_bonfire", &"lf_moth_to_flame"])
 	_check(dreams.owns("lanternmoth") or not dreams._requires_met(load("res://resource/dream/bright_marks.tres")),

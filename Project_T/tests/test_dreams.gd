@@ -353,7 +353,7 @@ func _test_card_effects(main: Node) -> void:
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
 	_check(run_state.dew == dew + 40 and dreams.get_dew_per_clear() == 0, "Morning Dew: +40 now, no Dew per clear")
-	run_state.max_leaves = 20  # The flow test's random pick may have been Deep Roots already
+	run_state.max_leaves = 20  # (Deep Roots retired 2026-10-25, section 36: its rule stays for an old save)
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
 	_check(run_state.max_leaves == 23 and run_state.leaves == 18, "Deep Roots: +3 max, regrow 3")
@@ -442,9 +442,23 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearer.try_clear(cell) and run_state.free_clears == 2 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
 	run_state.add_free_clears(-run_state.free_clears)
+	# Heartwood's Reach (section 36, 2026-10-25: Reclaimed Earth merged in): the first attacking Warden on a cleared cell
+	# costs half (TowerPlacer.get_cost) and uses the cell up; Sprouts and walls pay full and leave it.
+	var reach_cell: Vector2 = cell
+	if not run_state.tended_cells.has(reach_cell):
+		run_state.tended_cells.append(reach_cell)
+	run_state.fertile_cells.erase(reach_cell)
+	dreams.batch.reach_cells.clear()
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	_check(placer.get_cost(sprout, reach_cell) == placer.get_cost(sprout), "Heartwood's Reach: a Sprout pays full on a cleared cell")
+	_check(placer.get_cost(sporeling, reach_cell) == roundi(placer.get_cost(sporeling) * DreamState.FERTILE_DISCOUNT),
+		"…the first attacking Warden there pays half (%d of %d)" % [placer.get_cost(sporeling, reach_cell), placer.get_cost(sporeling)])
+	dreams.batch.reach_cells["%d,%d" % [roundi(reach_cell.x), roundi(reach_cell.y)]] = true
+	_check(placer.get_cost(sporeling, reach_cell) == placer.get_cost(sporeling), "…once the cell is used up, full price")
+	dreams.batch.reach_cells.clear()
 	dreams.stacks.erase("heartwoods_reach")
 
-	# Reclaimed Earth: no refund any more (Groundskeeper gives half back); the cell halves its first Warden
+	# Reclaimed Earth (retired 2026-10-25, merged into Heartwood's Reach; an old save keeps it): no refund any more (Groundskeeper gives half back); the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))
 	run_state.dew = 100
 	cell = map_generator.obstacles.keys()[0]

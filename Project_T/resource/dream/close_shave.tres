@@ -12,4 +12,4 @@ kind = 3
 tags = Array[String](["daring"])
 max_stacks = 1
 rule_id = &"close_shave"
-
+retired = true

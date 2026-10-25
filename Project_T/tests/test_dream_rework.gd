@@ -176,8 +176,10 @@ func _combat_and_positions(attacker: Tower) -> void:
 
 	dreams.stacks.clear()
 	dreams.build_run_pool(424242)
-	for id in ["longer_roots", "morning_dew", "tender_care", "quick_step"]:  # The basics since 2026-10-13
+	for id in ["longer_roots", "thick_bark", "morning_dew", "tender_care"]:  # The basics since section 36 (2026-10-25)
 		_check(dreams.run_pool.has(id), "core inclusion retained: " + id)
+	for id in ["deep_roots", "quick_step"]:  # Retired basics (section 36)
+		_check(not dreams.run_pool.has(id), "retired basic left the core: " + id)
 	for card in dreams.pool:
 		if card.retired:
 			_check(not dreams.can_offer(card, 4) and not dreams.run_pool.has(card.id), "retired II absent from offers and core: " + card.id)

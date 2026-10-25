@@ -1418,8 +1418,8 @@ func _add_swap_button() -> void:
 	button.tooltip_text = "The Walking Wood: then pick the Warden to trade places with. Esc or right-click cancels."
 	button.pressed.connect(func() -> void: wood.begin(_tower))
 
-# The hit cards (Roguelite Code, owner 2026-10-22): a line for Trophies and the Tallest Tree's store, and the Tallest
-# Tree's choice ("Make it the Tallest Tree": the first time any time, a move only at a rest; the store empties).
+# The hit cards (Roguelite Code, owner 2026-10-22): a line for Trophies and the Tallest Tree ("fed by N", or "Feeding the
+# Tallest Tree" on a feeder: section 36), and the Tallest Tree's choice (the first time any time, a move only at a rest).
 func _add_hit_card_rows() -> void:
 	var cards = dream_state.get("hit_cards")
 	if cards == null or _tower == null:
@@ -1429,7 +1429,7 @@ func _add_hit_card_rows() -> void:
 		_add_button(line).disabled = true
 	if cards.can_choose(_tower):
 		var button := _add_button("Choose as Tallest")
-		button.tooltip_text = "The Tallest Tree: every other Warden's direct hits store damage in this one." + ("" if cards.tallest() == null else " Moving it empties the store.")
+		button.tooltip_text = "The Tallest Tree: Wardens touching it stop attacking, and each gives it one more attack every time it attacks (up to 8). Sprouts and walls don't count." + ("" if cards.tallest() == null else " Moves the Tallest Tree here.")
 		button.pressed.connect(_choose_tallest)
 
 func _choose_tallest() -> void:

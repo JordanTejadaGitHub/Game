@@ -57,18 +57,26 @@ const RUN_THROUGH_CELLS := 2.0  # …within 2 cells along the path
 const MEASURED_PER_RANK := 0.01  # Measured Blow: a Warden's first direct hit on a nightmare adds 1% of its max health per rank…
 const MEASURED_MIN_RANK := 3  # …from rank III…
 const MEASURED_CAP := 0.10  # …at most 10% of a nightmare's max health from this card in all; never bosses
-const TALLEST_SHARE := 0.20  # The Tallest Tree: every other Warden's direct hit also stores a fifth of its damage…
-const TALLEST_STORE_CAP := 40.0  # …up to 40 times the tree's bare hit…
-const TALLEST_SPEND := 6.0  # …and each of the tree's attacks adds at most 6 times its own hit, never past a dispel
+# The Tallest Tree (section 36, owner 2026-10-25: the store and spend are gone): attacking Wardens touching the tree stop
+# attacking (auras, catches and Kinship bonds go on) and each gives it one more attack every time it attacks. Sprouts and
+# walls don't feed. The extras are real attacks, new targets in range first (Tower._tallest_volley).
+const TALLEST_MAX_FEEDERS := 8  # At most 8 extra attacks an attack (a 1-cell tree has 8 neighbours)
+const TALLEST_GAP := 0.06  # Seconds between the volley's attacks
+const TALLEST_PROCS := 2  # Of each volley's extras, this many are original attacks (their hits fire on-hit cards: family
+# hits, Flurry, build rules); the rest are derived, as Flurry's extra shot is: a per-attack cap on on-hit procs
+# Attack kinds that can't be the tree: no single aimed attack to repeat (pulses, beams, auras, clouds, traps, light, copies).
+const TALLEST_NO_KINDS: Array[int] = [TowerData.AttackKind.PULSE, TowerData.AttackKind.BEAM, TowerData.AttackKind.AURA,
+	TowerData.AttackKind.CLOUD, TowerData.AttackKind.TRAP, TowerData.AttackKind.LIGHT, TowerData.AttackKind.COPY]
 
 var dreams: Node  # DreamState (untyped: DreamState preloads this script)
 var _stamp := -1
 var _on := {}
 
-# Saved (to_save): Trophies by cell, the Tallest Tree's cell and store.
+# Saved (to_save): Trophies by cell, the Tallest Tree's cell (an old save's "store" is ignored).
 var trophies := {}  # "x,y" (half-cell key) -> {"drift": n, "kills": k, "steps": s}
 var tallest_cell := Vector2.INF
-var tallest_store := 0.0
+var _feeders := {}  # Tower instance id -> true: the Wardens feeding the tree this frame (_feed_frame)
+var _feed_frame := -1
 
 var _bearing := {}  # Tower instance id -> [target id, last attack count, attacks in a row]
 var _nowhere := {}  # "x,y:enemy id" -> [first time, last time]
@@ -77,7 +85,6 @@ var _standing := {}  # Tower instance id -> count, for _standing_board
 var _standing_board := -1
 var _straights := {}  # Route point -> length of the straight run (whole cells) it is on, for _straight_serial
 var _straight_serial := -1
-var _tallest_attack := -1  # The tree's attack count that last spent
 var _ctx := []  # The hit hit_multiplier just saw: [tower, enemy, is_area, multiplier] (on_damage_event reads it once)
 
 func _init(owner_dreams: Node = null) -> void:
@@ -95,14 +102,12 @@ func live() -> bool:
 	return not _on.is_empty()
 
 func to_save() -> Dictionary:
-	return {"trophies": trophies.duplicate(true), "tallest": [tallest_cell.x, tallest_cell.y] if tallest_cell != Vector2.INF else [],
-		"store": tallest_store}
+	return {"trophies": trophies.duplicate(true), "tallest": [tallest_cell.x, tallest_cell.y] if tallest_cell != Vector2.INF else []}
 
 func load_save(data: Dictionary) -> void:
 	trophies = Dictionary(data.get("trophies", {})).duplicate(true)
 	var tallest: Array = data.get("tallest", [])
 	tallest_cell = Vector2(float(tallest[0]), float(tallest[1])) if tallest.size() == 2 else Vector2.INF
-	tallest_store = float(data.get("store", 0.0))
 
 static func cell_key(cell: Vector2) -> String:
 	return "%d,%d" % [roundi(cell.x * 2.0), roundi(cell.y * 2.0)]
@@ -223,18 +228,39 @@ func _prune(map: Dictionary) -> void:
 		if not is_instance_id_valid(id):
 			map.erase(key)
 
-# Clean Strike: no status on `enemy` was put on by another family's Warden (walls and Sprouts never count).
-# Final pass 2026-10-24 (final_pass_shared.md 3): no other family's status AND at least one of its own family's (a family
-# that puts no status never gets it). is_court skips walls and Sprouts.
+# Clean Strike (section 36, 2026-10-25: status types, not who put them on): the nightmare carries at least one of the six
+# statuses, and every one it carries is one a form of the hitting Warden's family open this run can give (root, the
+# branches drawn or called back, their finals: is_branch_offered). A family that gives no status never gets it.
+var _family_statuses := {}  # Family line -> Array[StringName] (StringName arrays only: no Resource in a cache)
+var _family_statuses_key := ""
+
 func _clean(tower, enemy) -> bool:
-	var own := false
+	var allowed := family_statuses(tower.tower_data.line)
+	if allowed.is_empty():
+		return false
+	var any := false
 	for id in enemy.statuses.active_ids():
-		var who = enemy.statuses.source(id)
-		if is_court(who):
-			if who.tower_data.line != tower.tower_data.line:
-				return false
-			own = true
-	return own
+		if not EnemyStatuses.ALL.has(id):
+			continue  # Timed slows, Caught and the like aren't statuses here
+		if not allowed.has(id):
+			return false
+		any = true
+	return any
+
+func family_statuses(line: String) -> Array:
+	var key := "%d|%d|%d" % [dreams.rules_stamp, dreams.unlocked.size(), dreams.branch_offers.size()]
+	if key != _family_statuses_key:
+		_family_statuses_key = key
+		_family_statuses.clear()
+	if not _family_statuses.has(line):
+		var out: Array[StringName] = []
+		for form in dreams._roster():
+			if form is TowerData and form.line == line and dreams.is_branch_offered(form):
+				for status in Tower.statuses_applied(form):
+					if not out.has(status):
+						out.append(status)
+		_family_statuses[line] = out
+	return _family_statuses[line]
 
 # Standing Tall: attacking base or branch Wardens touching `tower` (not Sprouts or walls), up to STANDING_MAX_COUNT.
 func standing_count(tower) -> int:
@@ -288,22 +314,11 @@ func on_damage_event(event) -> void:
 	_ctx = []  # Once: the extra damage below reports again
 	if not is_instance_valid(tower) or not live():
 		return
-	var actual: float = event.amount
-	if _on.has(TALLEST_TREE) and actual > 0.0 and not is_tallest(tower):
-		var tree = tallest()
-		if tree != null:
-			var bare: float = tree.get_bare_damage() if tree.has_method("get_bare_damage") else tree.get_damage()
-			tallest_store = minf(tallest_store + actual * TALLEST_SHARE, TALLEST_STORE_CAP * bare)
 	if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.health > 0:
 		var extra := _measured_extra(tower, enemy)
 		if extra > 0.0:
 			enemy.take_damage(extra, tower.tower_data.line, false, false, tower, MEASURED_TAG)
 			_credit(MEASURED_BLOW, extra, enemy)
-	if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.health > 0:
-		var spend := _tallest_spend(tower, enemy)
-		if spend > 0.0:
-			enemy.take_damage(spend, tower.tower_data.line, false, false, tower, TALLEST_TAG)
-			_credit(TALLEST_TREE, spend, enemy)
 	if _on.has(RUN_THROUGH) and not is_area and tower.tower_data.tier >= 3 and is_instance_valid(enemy) and not enemy.is_flying() \
 			and before > 0.0:
 		_run_through(tower, enemy, before)
@@ -325,18 +340,6 @@ func _measured_extra(tower, enemy) -> float:
 		return 0.0
 	enemy.set_meta(&"hc_measured", given + add)
 	return add
-
-# The Tallest Tree's spend on this attack: once per attack, at most TALLEST_SPEND x its own hit, never past a dispel.
-func _tallest_spend(tower, enemy) -> float:
-	if not _on.has(TALLEST_TREE) or not is_tallest(tower) or tower._attack_count == _tallest_attack or tallest_store <= 0.0:
-		return 0.0
-	var hit: float = tower.get_bare_damage() if tower.has_method("get_bare_damage") else tower.get_damage()
-	var spend := minf(minf(tallest_store, TALLEST_SPEND * hit), float(enemy.health))
-	if spend <= 0.0:
-		return 0.0
-	_tallest_attack = tower._attack_count  # An area tree spends on one nightmare
-	tallest_store -= spend
-	return spend
 
 func _credit(rule: StringName, amount: float, enemy) -> void:
 	dreams._credit(String(rule), "damage", amount)
@@ -397,26 +400,64 @@ func tallest():
 func is_tallest(tower) -> bool:
 	return tallest_cell != Vector2.INF and tower.cell == tallest_cell
 
-# Can `tower` be chosen now? Any attacking Warden; the first choice any time, a move only at a rest (the store empties).
+# Can `tower` be the tree? An attacking Warden (not a Sprout or a wall) with one aimed attack to repeat (TALLEST_NO_KINDS).
+static func can_be_tree(tower) -> bool:
+	return is_court(tower) and not (int(tower.attack_data.attack_kind) in TALLEST_NO_KINDS) \
+		and not (int(tower.tower_data.attack_kind) in TALLEST_NO_KINDS) and tower.tower_data.footprint <= 1
+
+# Can `tower` be chosen now? The first choice any time, a move only at a rest.
 func can_choose(tower) -> bool:
-	if not live() or not _on.has(TALLEST_TREE) or not is_court(tower) or is_tallest(tower):
+	if not live() or not _on.has(TALLEST_TREE) or not can_be_tree(tower) or is_tallest(tower):
 		return false
 	return tallest() == null or dreams.drift_director == null or dreams.drift_director.is_resting()
 
 func choose(tower) -> void:
 	if not can_choose(tower):
 		return
-	if tallest() != null:
-		tallest_store = 0.0  # A move empties it
 	tallest_cell = tower.cell
+	_feed_frame = -1
 	dreams.note_card(TALLEST_TREE, tower.global_position, 1, tower)
 
-# Sold: the store is lost; choose again. Hit records kept by cell go too.
+# The Wardens feeding the tree now (by instance id): attacking Wardens touching it, Sprouts and walls never, at most
+# TALLEST_MAX_FEEDERS. Worked out once a frame (Tower asks every frame whether it may attack).
+func _feed() -> Dictionary:
+	var frame := Engine.get_process_frames()
+	if frame == _feed_frame:
+		return _feeders
+	_feed_frame = frame
+	_feeders.clear()
+	if tallest_cell == Vector2.INF or not live() or not _on.has(TALLEST_TREE):
+		return _feeders
+	var tree = tallest()
+	if tree == null or not can_be_tree(tree):
+		return _feeders
+	for other in dreams._towers():
+		if _feeders.size() >= TALLEST_MAX_FEEDERS:
+			break
+		if other != tree and is_court(other) and maxf(absf(other.cell.x - tree.cell.x), absf(other.cell.y - tree.cell.y)) == 1.0:
+			_feeders[other.get_instance_id()] = other
+	return _feeders
+
+# Whether `tower` feeds the tree (so it doesn't attack: Tower._process).
+func is_feeder(tower) -> bool:
+	return tallest_cell != Vector2.INF and _feed().has(tower.get_instance_id())
+
+# The feeders now, for the volley's threads.
+func feeders() -> Array:
+	return _feed().values().filter(func(t) -> bool: return is_instance_valid(t))
+
+# The extra attacks the tree makes after each of its attacks (0 = `tower` isn't the tree).
+func tree_extras(tower) -> int:
+	if tallest_cell == Vector2.INF or not is_tallest(tower) or not can_be_tree(tower):
+		return 0
+	return _feed().size()
+
+# Sold: choose again. Hit records kept by cell go too.
 func sold(tower) -> void:
 	trophies.erase(cell_key(tower.cell))
 	if is_tallest(tower):
 		tallest_cell = Vector2.INF
-		tallest_store = 0.0
+	_feed_frame = -1
 
 # The Walking Wood swapped two Wardens: what is kept by cell goes with its Warden.
 func swap_cells(a_cell: Vector2, b_cell: Vector2) -> void:
@@ -434,6 +475,7 @@ func swap_cells(a_cell: Vector2, b_cell: Vector2) -> void:
 		tallest_cell = b_cell
 	elif tallest_cell == b_cell:
 		tallest_cell = a_cell
+	_feed_frame = -1
 
 # The Warden panel's line for `tower` ("" = none).
 func panel_line(tower) -> String:
@@ -442,5 +484,7 @@ func panel_line(tower) -> String:
 		var steps: int = int(trophies.get(cell_key(tower.cell), {}).get("steps", 0))
 		parts.append("Trophies +%d%%" % roundi(minf(TROPHY_STEP * steps, TROPHY_MAX) * 100.0))
 	if live() and _on.has(TALLEST_TREE) and is_tallest(tower):
-		parts.append("The Tallest Tree: %d stored damage" % roundi(tallest_store))
+		parts.append("The Tallest Tree: fed by %d" % tree_extras(tower))
+	elif live() and _on.has(TALLEST_TREE) and is_feeder(tower):
+		parts.append("Feeding the Tallest Tree: doesn't attack")
 	return " · ".join(parts)

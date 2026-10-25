@@ -78,6 +78,7 @@ func _run() -> void:
 	print("    -> 3x p95 %.2f ms %s the %.1f ms budget (revisit before release)" % [result.p95,
 		"within" if result.p95 <= BUDGET_MS * SCRIPT_SHARE else "over", BUDGET_MS * SCRIPT_SHARE])
 	await _measure_stacked()
+	await _measure_splash_build()
 	Engine.time_scale = 1.0
 	print("perf stress test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -106,6 +107,38 @@ func _measure_stacked() -> void:
 	_check(result.p95 <= STACKED_PASS_MS, "stacked drifts at 3x: p95 %.2f ms within %.0f ms" % [result.p95, STACKED_PASS_MS])
 	if OS.get_cmdline_user_args().has("--breakdown"):
 		await _count_bursts()
+
+# Splash rework (dream_council_review.md 37; splash_td.md 4 "Performance"): Hailfall gives every Warden without a splash
+# one (up to 3 extra hits a direct hit), Spattered puts statuses on them, and Packs drifts Rushed by Headlong bring the
+# whole crowd at once: the worst case for the area-hit path. Drifts 91-93 as Packs, each Rushed, at 3x; the same check
+# as the stacked drifts.
+const SPLASH_CARDS := ["hailfall", "spattered", "headlong"]
+func _measure_splash_build() -> void:
+	for enemy in spawner.get_children():
+		enemy.queue_free()
+	await process_frame
+	var dreams: DreamState = main.get_node("%DreamState")
+	for id in SPLASH_CARDS:
+		var card := load("res://resource/dream/%s.tres" % id) as UpgradeData
+		_check(card != null, "%s's card exists" % id)
+		if card != null and not dreams.has_card(id):
+			dreams.take(card)
+	_check(dreams.has_rule(Tower.HAILFALL) and dreams.has_rule(Tower.SPATTERED), "Hailfall and Spattered held")
+	for t in container.get_children():
+		if t is Tower:
+			t.clear_dream_cache()
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	for n in [91, 92, 93]:
+		director.drifts[n - 1].set("shape", DriftShapes.PACKS)
+	director.drifts_started = 90
+	Engine.time_scale = STRETCH_SPEED
+	for i in 3:
+		director.set_rush(true)
+		director.start_next_drift()
+		for f in 30:
+			await process_frame
+	await _measure("Hailfall + Spattered, Packs Rushed, 3x")
+	_check(result.p95 <= STACKED_PASS_MS, "Hailfall + Spattered + Packs + Rush at 3x: p95 %.2f ms within %.0f ms" % [result.p95, STACKED_PASS_MS])
 
 # --breakdown, stacked: what the slow frames do more of. Counts per frame (hits, area hits, DamageLog events,
 # Reactions, longest chain, spawns, dispels) without touching the game's code, then compares the slowest 5%

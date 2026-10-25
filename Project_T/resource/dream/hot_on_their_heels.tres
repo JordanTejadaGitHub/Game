@@ -14,3 +14,4 @@ max_stacks = 1
 min_drift = 10
 rule_id = &"hot_on_their_heels"
 tip = "Called early: at least 10 s of the last {drift}'s arrival skipped."
+retired = true

@@ -1616,6 +1616,8 @@ func _puff(event, source, enemy) -> void:
 	var at: Vector2 = enemy.global_position
 	for other in nightmares_touching(enemy, PUFF_MAX):
 		strike(source, other, amount * (PUFF_BOSS if other.statuses.is_boss else 1.0), PUFF_TAG, true, PARTING_PUFF)
+		if source is Tower and is_instance_valid(other) and not other.is_cleansed:
+			source.spatter(other, true)  # Spattered (section 37): a card's splash gives 1 stack of the Warden's status
 	Reactions._effect(&"landing_dust", at, self, 0.8)  # The grey-green puff
 	credit(PARTING_PUFF, at, source)
 

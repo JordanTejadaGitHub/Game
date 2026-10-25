@@ -628,10 +628,11 @@ card: the route is the player's plan (no card moves, blocks or re-routes it on i
   their Rare+ fallbacks; the defining slot skips Legendary only when the offer holds one. Ordinary act 2 offers from the
   drift 35 rest: `LATE_ACT2_WEIGHTS` [100,64,30,3]. Boss rests (25, 75) show the Dream before the Calling follow-up
   (`_dream_first_shown`).
-- **Headlong** (`drift_director.gd`): pressing Start/Call while the last drift's nightmares are on the field (never Auto-drift,
-  a block's first or a boss drift; `_headlong_ok`) compresses the drift to `HEADLONG_SECONDS` after `shape_schedule`
-  (`_compress`) and pays its pot up front (`_pay_up_front`); its nightmares carry `PREPAID_META` and pay only per-dispel
-  extras (`RunState`). The normal clock (`_active[n].normal_end` / `started`, `_clock`) outlives `_arriving`:
+- **Headlong** (`drift_director.gd`; reworked by section 36, 2026-10-25): a per-drift Rush. The DriftPanel's Rush toggle
+  calls `set_rush(on)` while `can_rush()` (Headlong held, the next drift not a boss drift); `rush_armed` makes the next
+  `_start_drift` (Start, a rest's Start or Auto-drift) squeeze the shaped schedule to `HEADLONG_SHARE` (a third) of its
+  time, at least `HEADLONG_MIN_SECONDS` (`_compress`, after `shape_schedule`), then clears. It pays its pot up front
+  (`_pay_up_front`); its nightmares carry `PREPAID_META` and pay only per-dispel extras (`RunState`). The normal clock (`_active[n].normal_end` / `started`, `_clock`) outlives `_arriving`:
   `arrival_left`, `get_arrival_skipped`, `would_call_early`, `get_call_early_bonus` and the Auto-drift delay read it.
 - **Wild Growth** (`dream_batch_rules.gd` `wild_*`, saved as "wild"): `WILD_NEEDS` [20,60,150] dispels by tier; the killing
   blow plus `WILD_HELPERS` 2 nearest Wardens with the spot in range count; ripe = free growth (`DreamState.wild_growth_free`
@@ -668,3 +669,30 @@ card: the route is the player's plan (no card moves, blocks or re-routes it on i
   the two-leg route with every Warden's halves open, cached by grid hash); `MapGenerator.unique_route_length`. Moving it calls
   `observe`. **Save:** RunSaver `"waymark": [x, y]`, restored after the Wardens. `tests/test_waymark.gd`. Not done: Shifting
   Mist's gift preview (`MapGifts.route_from_start`) ignores the stone; no sound / boss-arrival flourish for it yet.
+
+## Owner card pass (2026-10-25; dream_council_review.md 36)
+- **Retired** (ids and rule code kept for old saves): Close Shave, Deep Roots, Quick Step, Scattered Seedlings, Fresh Growth,
+  Head Start, Press On, Hot on Their Heels, Heavy Eyelids, Kindled Gaze, Reclaimed Earth, Desperate Bloom, Impatient Night,
+  Second Wind and the 10 woven Crowned Rares. `RUN_POOL_BASICS` = longer_roots, thick_bark, morning_dew, tender_care;
+  `BATCH.BATCH` lost press_on / fresh_growth.
+- **Heartwood's Reach** is the one clearing card: `BATCH.reach_takes` (attackers, not walls or Sprouts) + `reach_fresh`
+  (a tended cell not in `reach_cells`); `DreamState.reach_half_price` halves `TowerPlacer.get_cost` for the same Warden
+  `planted()` gives rank I. Walls and Sprouts pay full and leave the cell. Old saves' `fertile_cells` still halve.
+- **Clean Strike** (`dream_hit_cards._clean`): every one of the six statuses on the nightmare is in `family_statuses(line)`
+  (union of `Tower.statuses_applied` over the family's forms `is_branch_offered` this run; cached on rules_stamp).
+- **Slow Burn**: `EnemyStatuses.age(SPORED)` >= `SLOW_BURN_AGE` 4 s, `static_age_at_bolt` >= `SLOW_BURN_AGE_CHARGED` 1.5 s; no CARD_NEEDS.
+- **One Bough** (`_one_bough_set`): a grown Warden touching `ONE_BOUGH_COUNT` 2 of its own branch, +25%.
+- **Rolling Thunder** (I and II): its arcs remove Soaked before their Charged lands; arc cap `THUNDERCLAP_ARCS_BY_LEVEL` (8 / 5 / 8).
+- **No self-feeding**: Afterglow and Spent Light set `EnemyStatuses.feeding` around their applies; those statuses get
+  `fed_until` (FED_LOCK 2 s; `is_fed` for the hollow look) and `Reactions._on_status` waits while `fed_locked()`.
+
+## Splash rework (2026-10-25; dream_council_review.md 37)
+- Default (Tower Code, tower.gd): a splash hurts nightmares near the one hit; only the nightmare hit gets the Warden's status.
+- **Spattered** (`spattered.tres`, rule `spattered`): splashes give their Warden's status again (own splash: the form's
+  `splash_status_stacks`; card-added splashes 1 stack, once a second per Warden per nightmare, under the section 36 fed
+  lock). Offered only when `DreamState.spattered_open()`: Hailfall held, or an Area Warden grown plus a status splash form
+  of an owned family open this run.
+- **Hailfall** (`hailfall.tres`, Legendary, rule `hailfall`): `DreamState.hailfall_on` (static, set with undiluted_on) makes
+  `WardenRoles.has_role(AREA)` true for every attacking non-wall Warden. The splash itself and its numbers are tower.gd's.
+- Shared Fever retired. Wide Petals: pulses (`HelperCommons.pulse_extra`) and clouds (`DreamState.get_cloud_radius_add`)
+  0.75 wider; `get_area_radius_add` (splashes) no longer includes it; no range.

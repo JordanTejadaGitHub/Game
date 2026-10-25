@@ -13,3 +13,4 @@ tags = Array[String](["tempo"])
 max_stacks = 1
 rule_id = &"press_on"
 tip = "Called early: at least 10 s of the last {drift}'s arrival skipped. The count carries over between {blocks}."
+retired = true

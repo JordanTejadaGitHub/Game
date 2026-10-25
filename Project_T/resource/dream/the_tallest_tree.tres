@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "the_tallest_tree"
 display_name = "The Tallest Tree"
-description = "Your Tallest Tree stores 20% of other Wardens' direct-hit damage. Each of its attacks adds up to 6 of its hits' worth."
-tip = "Choose it on its panel: first any time, then only at a {rest}. It stores at most 40 of its hits' worth. Moving it empties the store. An attack never adds more than a {dispel} needs. Sold: choose again."
+description = "Choose a Warden as your Tallest Tree. Wardens {touching} it stop attacking; each gives it one more attack every time it attacks."
+tip = "Sprouts and walls don't count; up to 8. Only Wardens that hit can be it. Choose on its panel: first any time, then at a {rest}."
 rarity = 3
 kind = 3
 tags = Array[String](["tall", "hits", "defining"])
