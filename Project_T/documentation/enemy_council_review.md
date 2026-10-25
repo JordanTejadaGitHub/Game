@@ -2,6 +2,74 @@
 
 Skill: `.claude/skills/enemy-design-council`. Seat reports per round in `documentation/enemy_council/<date>/`. Newest round first; earlier rulings that still hold stay.
 
+## Enemy Design Council, round 2026-10-24d: full roster audit (38 nightmares)
+
+Owner: "Go over all the enemies with the enemy council, make sure they fit council standards." Standards:
+`briefs/standards.md` (collected 2026-10-24). Seats B W T S, P as wording and look keeper. Reports
+`seat_<letter>.md`; roster dump `roster.md`. Read-only; nothing run.
+
+### Verdict: feels good with fixes (all five)
+The systems hold in code: no damage types read anywhere, every Armoured kind has a shell and a cracked sheet,
+flyer caps / grounding / the Gloamwing drop / the Pall's exclusions are built as ruled, the leak caps hold, intro
+drifts 41 / 69 / 92 match the act tables, and **all 38 have their own art** (F3 passes) (S W P). Every starting
+family hits every flyer from its base Warden up; only 6 forms in the roster can't hit flyers (W). Bosses meet the
+text rules (P). What fails is a handful of nightmares whose ability or Kind no longer does what its card says,
+two live balance bugs, and stale text and docs.
+
+### Spot-checked by the lead
+`enemy_spawner.gd:49` boss bites [6, 8, 10] (Balancing 2026-10-19); `enemy.gd:3265` Weeper mends every nightmare in
+reach with no cap; `whisper_swarm.tres` kind 3 (Swarm), health 180, nothing else; `gravecrawler.tres` kind 2
+(Hidden); `puddles.gd:1418` "Flyers are never in water"; `enemy_statuses.gd:640` ignores_slows; `gloamwing.tres`
+prints `{soaked}` (IconInfo knows `damp`).
+
+### A standard the lead got wrong
+**A5 (route rule):** the owner's rule "the route is the player's plan" is about Dream cards (no card moves, blocks
+or re-routes the maze on its own; Gravestones rejected). enemy_design.md explicitly allows maze-changing bosses
+(the Hollow Stag's trample, the Hollow Oak's saplings) as long as the start keeps a route. So the Stag and the Oak
+**pass**; the standard is corrected. (B T S flagged them in good faith.) Only the Thorned Oak's text is wrong: it
+says saplings "bend the path" but they're planted beside the route (T).
+
+### Fix first (no owner call needed: bugs, or text that's false)
+| # | Nightmare | Standard | Problem | Fix | Owner |
+|---|---|---|---|---|---|
+| 1 | every route flyer, the Moth Queen | D1, decision 4 | Puddles skips every flyer (`puddles.gd:1418`, 873, 1444, 1538, 1581): Fathoms, Crushing Depth, Riverside linger and the surge slows do nothing to the act 3 default boss, while Black Pond's spill does see flyers (B) | route flyers count as in the water they fly over (as decided 2026-10-24); ground slows stay ground-only by their own clause | Roguelite Code |
+| 2 | Weeper (packs of them) | C4 | mends stack with no cap (`enemy.gd:3265`): a pack of 7-8 heals each member 10-14%/s (S W) | a nightmare is mended by one source at a time (the strongest); menders don't mend menders | Enemy Code |
+| 3 | Ash Crawler | D1, C3 | tagged `heavy` and packable: it leads Single file / Few and tough or fills a pack, and its ash strips Poisoned from everything behind it, so Spore Print is off for the drift (B W) | drop `heavy` (keep `special`) and make it a loose kind (never packed, never a lead) | Enemy Code |
+| 4 | Widow, Mourner | C1, C4 | outside a pack, dispelling one late costs more leaves (6 Creeps / 3 Sobs) than letting it in (1) (T) | one parent's children share a 2-leaf cap, like a pack | Enemy Code |
+| 5 | Night Mare (echo at 100) | D1 | Keeping Time's once-per-nightmare marks (Last Bell, Halfway Bell, Midnight) never reset on a lap (`keeping_time.gd:290-296`, 1154-1160), unlike Spore Print and Puddles (B) | clear them on `lapped` | Roguelite Code |
+| 6 | Gloamwing | E1, B1 | prints a raw `{soaked}`; says "tolls" (a Keeping Time Calling word); keeps the Flying badge after it drops (P W T) | `{damp}`; "three stacks of Soak and Drowsy together"; after the drop it shows as a walker (no Flying badge) | Enemy Code (text), Main Merger (badge) |
+| 7 | Crow; Scarecrow tip 2 | E4 | "Wardens all along the path can hit it": false for "Can't hit flyers" Wardens (P) | "every Warden that hits flyers can reach them" | Enemy Code |
+| 8 | Hollow Stag tip 3 | E4 | "Rain douses the ghost-fire" is the removed water weakness (S P) | replace with a fact tip (e.g. its charge on straights of 4+) | Enemy Code |
+| 9 | Whisper Swarm | B1, E4 | Kind Swarm and all three lines promise a cloud area hits catch; it's one 180-health body since ×0.5 went (T S W P) | owner call below; until then nothing | Enemy Code |
+| 10 | Thorned Oak | E4 | "bend the path": the saplings stand beside the route (T) | say what they do: they take building room beside the path | Enemy Code |
+| 11 | Watcher, Weeper, Will-o'-Wisp | E4 | "dispel it first" asks for a target choice only Moonstone / Standing Stone can make (T W) | state the fact instead ("It wakes Drowsy nightmares within 1.5 cells"); advice after a colon may name the maze or a fact, never a Warden type, family or status (P, the no-hand-holding rule) | Enemy Code |
+| 12 | several | E2, E4 | descriptions / hints repeat the title on the Phantom, Lantern Bearer, Wraith, Drowned One, Watcher, Dream Thief, Night Kite, Ash Crawler (+ ~8 partly); missing facts: the Watcher removes all Drowsy, the Night Hound sprints after 3 cells ("long" is wrong), the Drowned One and Phantom can't gain Root, the Drowned One can't gain Drowsy, Black Tears has no rate (P) | replacement text is in `seat_P.md` | Enemy Code |
+| 13 | Kind lines | E4 | Fast says Soaked slows (it doesn't) and "holds" (old word for Root); Hidden says "until a Warden reveals it" (the Wisp reveals too) (P W) | Fast: corners and Rooted / Drowsy; Hidden: "until something reveals it" | Main Merger (Kind glossary) |
+| 14 | Night Mare, Hollow Oak | C1, E4 | the hover panel prints "Leaves 3 / 5" (`enemy.gd:1883`, `nightmare_info.gd:107`) though they drain instead (S) | show "Drains at the Heartwood" for drainers | Main Merger (+ Enemy Code's getter) |
+| 15 | icons | E4 | the Hidden icon on the Huntsman's Pack and the Lamplighter's Cold Light, Soak on Black Tears, grief shaped like Wander (P) | icons that mean their own thing | Main Merger / UI Code |
+| 16 | docs | E4 | boss bites written 10 / 10 / 12 (code 6 / 8 / 10), pack 3 leaves (code 6), Stats table out of date on ~13 values (Husk leaves 1 in data), boss resist / weak columns still shown, the Night Mare "3 leaves"; CLAUDE.md still describes ×0.5 / ×1.5 resistances (S P) | enemy_design.md and standards fixed by the lead (the .tres is the source); CLAUDE.md lines to Main Merger | lead, Main Merger |
+Word: **"heal"**, not "mend", in player text (P): the Weeper, the Mourning Mother, the icon.
+
+### Owner calls (lead's pick first)
+1. **Whisper Swarm:** make it **5 motes of 36 health that move as one pack** (a real Swarm; fits the crowd feel), or
+   re-Kind it Plain.
+2. **Gravecrawler:** keep it Hidden and **a Warden that reveals in range stops its burrow** (gives Reveals Hidden
+   Wardens a job), or make it Plain.
+3. **Drowned One:** slows work on it **at half strength** (it keeps its Drowsy and Root immunity), so Puddles'
+   Stream line and Heavy Going aren't blanked; or keep it immune to slows.
+4. **Huntsman:** its half damage while a hound is near is a second damage reduction (B2). Pick: **each blow at him
+   is shared half and half with his nearest hound** (the Pall's rule), or keep it as an approved boss exception.
+5. **Act 2's Few and tough is always Deeply Blighted Husks** (the only heavy kind before drift 63) (T): introduce the
+   Shellbound earlier (about drift 44), or accept it.
+6. **Husk leaves:** the data says 1, every doc said 2: keep 1 (lead: the data wins; docs fixed).
+
+### Near-misses (for Balancing / Tower Discussion)
+Dread shells tax fragment builds (jumps, repeats, spills): measure on a Shellbound Few and tough drift (B). Act 3
+brings three Bellflower status testers in 6 drifts while Firefly Jar has almost none; Bellflower has no reveal
+form (W). No starting base Warden is heavy, so in the demo Sporeling and Bellflower have no tagged answer to the
+Husk (W). The Dream Thief's stolen Dew has no pack cap (T). Any Warden beside the path reveals a Lurker, so it tests
+no build (B).
+
 ## Enemy Design Council, round 2026-10-24c: more of the group-wipe moment
 
 Owner: "I like it ... Also like the feel of a big group being wiped and them bunched up like that." Question: how
