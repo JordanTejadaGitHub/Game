@@ -177,7 +177,7 @@ func _test_no_dead_cards() -> void:
 	dreams.unlocked["tangleroot"] = true
 	dreams.unlocked["rootling"] = true
 	_check(dreams.board_can_use(_card("close_kin")), "…both branches of a Kinship pair unlocked: Close Kin is the door")
-	_check(_card("brimming").requires_any_status.size() == 6 and EnemyStatuses.STATIC in _card("brimming").requires_any_status, "Brimming supports all six status-producing builds")
+	_check(_card("brimming").requires_any_status.size() == 7 and DreamState.FROST in _card("brimming").requires_any_status, "Brimming supports all seven status-producing builds (Frost: section 37)")
 	_clear()
 	for id in ["rootcurl", "tangleroot", "rootling"]:
 		dreams.unlocked.erase(id)

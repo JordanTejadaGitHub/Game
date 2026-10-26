@@ -733,7 +733,7 @@ func on_damage(event, source, enemy, is_hit: bool, dispel: bool, tagged: bool) -
 	if rule(TOPPED_UP) and is_own(source) and living(enemy) and now() >= float(enemy.get_meta(TOPPED_META, -INF)):
 		# Topped Up: a Dewdrop's hit puts every status back to its time at landing (never longer). Once a second per nightmare
 		enemy.set_meta(TOPPED_META, now() + TOPPED_UP_EVERY)
-		for id in enemy.statuses.active_ids():
+		for id in enemy.statuses.active_ids().filter(func(s) -> bool: return s != DreamState.FROST):  # Never Frost (section 37)
 			var left_before := SETUP.time_left(enemy, id)  # (setup credit 2026-10-16: the seconds given back, as Linger)
 			enemy.statuses.top_up(id)
 			SETUP.note_linger(enemy, card_id(TOPPED_UP), id, SETUP.time_left(enemy, id) - left_before)
@@ -1128,7 +1128,7 @@ func _ripple_extras(enemy, w: int, soaked: Array) -> void:
 # F5 (owner 2026-10-18): Drowsy (Rain on the Bank only) stops 1 short of full, so a carry never completes Drown, Night
 # Terror, Sleepwalk or Pinned, and gets no F1 extras.
 func _carry(other, id: StringName, stacks: int, source, credit_id: StringName = &"") -> bool:
-	if not living(other) or id == EnemyStatuses.HELD or stacks <= 0:
+	if not living(other) or id == EnemyStatuses.HELD or id == DreamState.FROST or stacks <= 0:  # Never Frost (section 37)
 		return false
 	var drowsy := id == EnemyStatuses.DROWSY
 	if drowsy:
@@ -1157,7 +1157,7 @@ func _millrace(enemy, soaked: Array) -> void:
 	for id in enemy.statuses.active_ids():
 		if carried.size() >= MILL_STATUSES:
 			break
-		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD or id == EnemyStatuses.DROWSY:
+		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD or id == EnemyStatuses.DROWSY or id == DreamState.FROST:
 			continue
 		carried.append([id, enemy.statuses.source(id)])
 	if carried.is_empty():
@@ -1878,7 +1878,7 @@ func _other_statuses(enemy) -> Dictionary:
 	var out := {}
 	var statuses: EnemyStatuses = enemy.statuses
 	for id in statuses.active_ids():
-		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD:
+		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD or id == DreamState.FROST:
 			continue
 		var source = statuses.source(id)
 		if is_other_family(source):
@@ -1888,7 +1888,7 @@ func _other_statuses(enemy) -> Dictionary:
 # Puts `stacks` of `id` on `enemy` (a carried status: not a native application, never above the limit, Charged one
 # short of a bolt). A status that is there gains quietly; one that ended comes back for `seconds`.
 func _give(enemy, id: StringName, stacks: int, row: Array, seconds: float) -> void:
-	if stacks <= 0 or not living(enemy) or id == EnemyStatuses.HELD:
+	if stacks <= 0 or not living(enemy) or id == EnemyStatuses.HELD or id == DreamState.FROST:
 		return
 	var statuses: EnemyStatuses = enemy.statuses
 	if statuses.has(id):
@@ -2034,7 +2034,7 @@ func _last_drop(id: StringName, peak: int, source: Node, enemy) -> void:
 # come back (EnemyStatuses.can_linger(DAMP) is true; Last Drop's 6 s limit covers its second run-out). Charged stops one
 # short of a bolt. Spent statuses (a Reaction, a bolt) never ran out, so they never ebb.
 func _ebb(id: StringName, peak: int, source: Node, potency: float, line: String, enemy) -> void:
-	if not rule(EBB) or not living(enemy) or not EnemyStatuses.can_linger(id) or _ranges_holding(enemy, 1) < 1:
+	if not rule(EBB) or id == DreamState.FROST or not living(enemy) or not EnemyStatuses.can_linger(id) or _ranges_holding(enemy, 1) < 1:
 		return
 	if not _once(enemy, "ebb:" + String(id)):
 		return
@@ -2076,7 +2076,7 @@ func around_reaction(enemy, id: StringName, source) -> void:
 	var before := {}
 	if rule(NEVER_DRY) and now() >= float(enemy.get_meta(NEVER_DRY_META, -INF)):
 		for status in statuses.active_ids():
-			if status != EnemyStatuses.HELD:
+			if status != EnemyStatuses.HELD and status != DreamState.FROST:
 				before[status] = [statuses.stacks(status), statuses.potency(status), String(statuses._active[status].get("line", "")),
 					statuses.source(status), statuses.time_left(status)]
 	Reactions.on_status(enemy, id, source)
@@ -2115,7 +2115,7 @@ func _something(dewdrop, enemy) -> void:
 	for id in statuses.active_ids():
 		if added >= SOMETHING_STATUSES:
 			break
-		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD:
+		if id == EnemyStatuses.DAMP or id == EnemyStatuses.HELD or id == DreamState.FROST:
 			continue
 		var source = statuses.source(id)
 		if is_other_family(source) and near(source.global_position, dewdrop.global_position):

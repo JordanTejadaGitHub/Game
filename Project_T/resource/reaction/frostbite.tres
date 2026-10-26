@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"frostbite"
+display_name = "Frostbite"
+statuses = Array[StringName]([&"frost", &"spored"])
+description = "It loses 2% of its max health (elites 1.5%, bosses 0.5%). Triggered by a {frostburst} on a nightmare with {stacks:need_spored} {spored}. Uses up the oldest half of its {spored}."
+callout_color = Color(0.7058824, 0.6901961, 0.78431374, 1)
+effect = &"frostbite"
+cooldown = 6.0

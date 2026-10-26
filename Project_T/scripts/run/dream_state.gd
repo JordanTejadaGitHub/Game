@@ -2643,7 +2643,7 @@ func _shared_spark(from: Node2D, to: Node2D) -> void:
 	var fs: EnemyStatuses = from.statuses
 	var best: StringName = &""
 	for id in fs.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and (best == &"" or fs.stacks(id) > fs.stacks(best)):
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and id != DreamState.FROST and (best == &"" or fs.stacks(id) > fs.stacks(best)):
 			best = id
 	if best == &"":
 		return
@@ -6112,6 +6112,11 @@ static var undiluted_on := false
 # Spattered (Uncommon): splashes give their Warden's status to every nightmare they reach. Hailfall (Legendary): every
 # attacking Warden splashes and takes the Area role (WardenRoles reads hailfall_on); its direct hit keeps its own
 # resistance shape. Tower Code owns the splash code and their numbers (tower.gd SPATTERED_* / HAILFALL_*).
+# Frost (section 37, owner 2026-10-25): the 7th status's id. Enemy Code adds EnemyStatuses.FROST with the core; card and
+# Calling code names it here until then. Frost comes only from Frost Wardens: card and Calling code that adds "every
+# status" or copies statuses skips it ("doesn't add {frost}"), so nothing but a Frost Warden fills a Frostburst.
+const FROST := &"frost"
+const UNDILUTED_FROSTBURST := 2.0  # Undiluted: Frostbursts deal double (Frostburst's builder reads it)
 const SPATTERED := &"spattered"
 const HAILFALL := &"hailfall"
 static var hailfall_on := false

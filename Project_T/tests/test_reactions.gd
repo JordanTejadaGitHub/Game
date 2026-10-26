@@ -26,7 +26,7 @@ func _run() -> void:
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame
-	_check(Reactions.all().size() == 10, "ten Reactions are defined (Sleepwalk and Night Terror 2026-10-17) (%d)" % Reactions.all().size())
+	_check(Reactions.all().size() == 13, "thirteen Reactions are defined (Sleepwalk and Night Terror 2026-10-17; Brittle, Frostbite, Flash Freeze 2026-10-25) (%d)" % Reactions.all().size())
 
 	# Reactions need a grown Warden (tower_design.md "Reactions"): the sources here are branch forms.
 	var jar := _plant("stormcap", Vector2(2, 2))

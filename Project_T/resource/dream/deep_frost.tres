@@ -16,3 +16,4 @@ in_start_pool = false
 rule_id = &"deep_frost"
 tip = "Any {held}, from any Warden. Works for: {family:dewdrop} Wardens with Wardens that add {held}. Safe."
 requires_role = &"hold"
+retired = true

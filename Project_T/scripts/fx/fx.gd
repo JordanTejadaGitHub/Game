@@ -49,8 +49,13 @@ const REACTIONS := {
 	# own are drawn; their callout colour comes from the ReactionData (COLOUR_FROM_DATA).
 	&"changeling": [&"crowned_nightbloom", "Changeling!"],
 	&"wide_awake": [&"crowned_starfall", "Wide Awake!"],
+	# The Frost Reactions (dream_council_review.md 37, Reaction Code bd8ae9af): Shatter's sheet stands in until their own
+	# are drawn; their callout colour comes from the ReactionData (Mist).
+	&"brittle": [&"shatter", "Brittle!"],
+	&"frostbite": [&"shatter", "Frostbite!"],
+	&"flash_freeze": [&"shatter", "Flash Freeze!"],
 }
-const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake"]
+const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake", &"brittle", &"frostbite", &"flash_freeze"]
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap_lite": 1.5, &"ignite_lite": 1.5, &"crit_flare": 1.25}  # (Tower Assets 74b11108: the base Reactions are drawn at full size now)
 const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring

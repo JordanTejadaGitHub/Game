@@ -361,7 +361,7 @@ static func _snapshot(enemy, id: StringName) -> Array:
 	wanted.append_array(data.statuses)
 	wanted.append_array(data.alternatives)
 	for status in wanted:
-		if status == EnemyStatuses.HELD or not status in EnemyStatuses.ALL or not s.has(status):
+		if status == EnemyStatuses.HELD or status == DreamState.FROST or not status in EnemyStatuses.ALL or not s.has(status):  # (Never Frost: section 37)
 			continue
 		var source: Node = s.source(status)
 		var line: String = s.spore_line() if status == EnemyStatuses.SPORED else (source.tower_data.line if source is Tower else "")
@@ -550,7 +550,7 @@ func _graft_sources(tower) -> Array:
 		if is_instance_valid(dreams.tower_container):
 			for other in dreams._touching(tower):
 				var status: StringName = Tower.first_status(other.attack_data)  # (A special's status too)
-				if other.tower_data.tier >= GRAFT_MIN_TIER and status != &"" and status != EnemyStatuses.HELD \
+				if other.tower_data.tier >= GRAFT_MIN_TIER and status != &"" and status != EnemyStatuses.HELD and status != DreamState.FROST \
 						and status in EnemyStatuses.ALL and list.size() < GRAFT_MAX_SOURCES:
 					list.append(other)
 		_graft[key] = list

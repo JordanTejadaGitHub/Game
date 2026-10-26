@@ -238,7 +238,7 @@
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke, 2 px wide (its Night shadow and Heartlight cut): advance 2 px per stroke so the strokes touch; four strokes = 8 px. Frame 1 the slash, drawn at the same top left as the first stroke, covers all four. Anchor = top left."
+			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke, a 1 px Glow cut lit Heartlight at its top, 1 px in from the frame's left (the plaque's face shows between strokes): advance 2 px per stroke; four strokes span 8 px. Frame 1 the slash, a 1 px Orchid line with a Night shadow, drawn at the same top left as the first stroke, crossing all four. Anchor = top left."
 		},
 		"lf_constellation_pip": {
 			"anchor": [

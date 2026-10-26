@@ -151,7 +151,7 @@ static func _ringing(enemy) -> void:
 		return
 	var statuses: EnemyStatuses = enemy.statuses
 	for id in statuses.active_ids():
-		if id == EnemyStatuses.HELD or not _living(enemy) or not statuses.has(id):
+		if id == EnemyStatuses.HELD or id == DreamState.FROST or not _living(enemy) or not statuses.has(id):  # Never Frost (section 37)
 			continue
 		var cap: int = statuses.get_max_stacks(id)
 		if cap <= 1 or statuses.stacks(id) >= cap:

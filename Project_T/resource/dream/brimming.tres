@@ -14,7 +14,7 @@ max_stacks = 1
 rule_id = &"brimming"
 discovered_by = Array[String](["reactions:2"])
 
-requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held"])
+requires_any_status = Array[StringName]([&"spored", &"drowsy", &"static", &"damp", &"marked", &"held", &"frost"])
 min_act = 2
 min_owned_statuses = 2
 tip = "{reactions} still fire at their usual count. Offered from {act} 2 once your Wardens add 2 different statuses."

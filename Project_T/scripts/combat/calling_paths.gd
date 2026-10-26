@@ -85,11 +85,11 @@ const PATHS := {
 		"tip": "At most 2 other Wardens. Bosses take half."},
 	&"sp_borrowed": {"makes": [&"stacks"], "uses": [&"cluster"], "calling": "sporeling", "tier": STYLE, "parent": &"", "name": "Shared Caps", "style": "Support",
 		"text": "A {dose} also adds 2 {stacks} to a status another family's Warden already put on that nightmare: the highest-{rank} one {touching} the {mushroom}.",
-		"tip": "Sprouts count as another family's Warden; for a Sprout, the {spored} the {dose} just put on. {static} and {marked}: 1. Never {held}. {drowsy} can't pass its most {stacks}.",
+		"tip": "Sprouts count as another family's Warden; for a Sprout, the {spored} the {dose} just put on. {static} and {marked}: 1. Never {held} or {frost}. {drowsy} can't pass its most {stacks}.",
 		"keeps_out": [&"breathe_it_in", &"mycelium", &"overnight"]},  # Its lent twins (section 33 card-pool sweep)
 	&"sp_feeding": {"makes": [&"stacks"], "uses": [], "calling": "sporeling", "tier": FOLLOW_UP, "parent": &"sp_borrowed", "name": "Feeding Ground",
 		"text": "Each {dose} turns the 6 {steps} ahead into fed ground for 8 s. Statuses other families' Wardens put on nightmares there get 1 more {stack}.",
-		"tip": "Any Warden of another family, anywhere. Sprouts count: a Sprout's hit adds 1 {spored}. {static} and {marked}: at most 1 extra a second for each Warden.",
+		"tip": "Any Warden of another family, anywhere. Sprouts count: a Sprout's hit adds 1 {spored}. {static} and {marked}: at most 1 extra a second for each Warden. Doesn't add {frost}.",
 		"keeps_out": [&"overnight", &"pass_it_round"]},
 	&"sp_windfall": {"makes": [&"stacks"], "uses": [], "calling": "sporeling", "tier": CAPSTONE, "parent": &"sp_feeding", "name": "Windfall",
 		"text": "A nightmare dispelled on fed ground leaves a {mushroom} where it fell, even without {spored}.",
