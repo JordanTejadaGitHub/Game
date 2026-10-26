@@ -63,6 +63,7 @@ func _init() -> void:
 	_firefly_s33()
 	_dewdrop_s33()
 	_bellflower_s33()
+	_stand_in_rows_s33()
 	var file := FileAccess.open(OUT + "calling_evo.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({marks = index}, "\t") + "\n")
 	print("calling_evo: ", index.size(), " sheets")
@@ -1201,3 +1202,348 @@ func _counter_note(img: Image, f: int) -> void:
 	if f == 1:
 		_grid(img, [".GG.", "GHHG", ".GG."], {"G": GLOW, "H": HEART}, Vector2i(1, 7))
 		_halo(img, Vector2(3.0, 8.5), 4.0, GLOW, 0, 0.4)
+
+# --- Built rows still on stand-ins (owner 2026-10-25: "create these and do the pass with the council") ---------------
+# Rot Bloom, Silt, Rapids, Sinking Mud, Fathoms, Deep End, Undertow, Crushing Depth (Dewdrop), Ensemble / Sounding
+# Board (Bellflower). Same rules as calling_evo_art.gd's header. Council round 1 (all three seats) fixes in the comments.
+func _stand_in_rows_s33() -> void:
+	_sheet("sp_rot_bloom", Vector2i(32, 18), 7, 10.0, Vector2i(16, 10), false, _rot_bloom,
+		"Rot Bloom: a rot flower opening on the ground under the nightmare on its third cap: an orchid-tipped bud opens into six bruised petal lobes rimmed orchid round a plain dark centre, reaching past the body, pink spores puffing up, then it wilts (one shot, 0.7 s; the big green number is code's). It stays on the ground where it opened (it never follows the nightmare). Anchor = the nightmare's feet when it opened.")
+	_sheet("dw_silt", Vector2i(32, 10), 2, 2.0, Vector2i(16, 5), true, _silt,
+		"Silt: the pale tide line left on each surged path step, lumpy, a dark wet edge under it, glints shifting (tiles every 32 px along the path; fade it out with alpha over the 4 s). Anchor = the route point.")
+	_sheet("dw_rapids", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _rapids,
+		"Rapids: white water on the water's last 3 steps, clusters of foam racing downstream with short wakes (drawn flowing right: flip it flowing left; on water running up or down the screen rotate it 90 degrees, never scale; tiles every 32 px). Over the water surface, under the nightmares. Anchor = the route point.")
+	_sheet("dw_mud_cling", Vector2i(27, 12), 4, 6.0, Vector2i(13, 5), true, _mud_cling,
+		"Sinking Mud: clumps of mud clinging round a nightmare's feet for its 4 steps, drips lengthening and falling off. Drawn over the nightmare's feet (its front clumps cover them: that is the clinging). Anchor = its feet.")
+	_sheet("dw_mud_splash", Vector2i(17, 14), 4, 12.0, Vector2i(8, 12), false, _mud_splash,
+		"Sinking Mud: mud splashing up at a flyer's shadow on water or mud, a crown of round clods and a splat at its foot (one shot, ~0.33 s). Anchor = the shadow.")
+	_sheet("dw_fathoms", Vector2i(26, 14), 5, 0.0, Vector2i(13, 12), false, _fathoms,
+		"Fathoms: dark water climbing the nightmare's body, one frame per depth (0 = +10% ... 4 = full at +50%); code swaps the frame as the depth grows and holds it; on a nightmare shorter than about 20 px cap the frame so the water stays below its eyes. Drawn over the nightmare's lower body, never above its eyes; see-through (0.4, 0.75 at the deepest), a lit waterline with one bright crest. Anchor = its feet.")
+	_sheet("dw_spray_ring", Vector2i(37, 37), 20, 14.0, Vector2i(18, 18), false, _spray_ring,
+		"Deep End: the spray ring round the Black Pond spill, drops flung out in a ring (one shot: play the 5 frames of one tier at 14 fps). Four tiers by rank, never scaled, each wider, thicker and brighter: frames 0-4 rank 0-I, 5-9 II-III, 10-14 IV-V, 15-19 VI-VII (a solid rim flash). Anchor = the hit nightmare's centre.")
+	_sheet("dw_swirl", Vector2i(29, 29), 12, 12.0, Vector2i(14, 14), false, _swirl,
+		"Undertow: the spray folding back into the nightmare hit, three comma-tailed spiral arms turning in to the centre (one shot, 6 frames). Frames 0-5 with company around it, 6-11 dark ink (the fewer around, the darker: pick by count). Undertow only hits a nightmare in the pond, so it always plays over water (the dark ink is drawn for the water, not dry ground). Anchor = the hit nightmare's centre.")
+	_sheet("dw_shell_crack", Vector2i(17, 15), 5, 12.0, Vector2i(8, 7), false, _shell_crack,
+		"Crushing Depth: the nightmare's shell cracking just under the water line: a dark jagged crack with a lit edge and a white-hot start, branching, chips flying up (one shot, ~0.42 s). Anchor = the waterline on its body (its wading waterline point).")
+	_sheet("kt_staff_clef", Vector2i(9, 15), 2, 0.0, Vector2i(4, 14), false, _staff_clef,
+		"Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden in Oak (alpha 0.75), the top line's lit side Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.4. Anchor = the clef's foot.")
+	_sheet("kt_staff_echo", Vector2i(17, 15), 5, 10.0, Vector2i(3, 12), false, _staff_echo,
+		"Ensemble: the second repeat landing as an echo: a bronze note (head, stem, flag) with two pink echo arcs rippling off it, fading (one shot, 0.5 s). Anchor = the note head's foot, at the Warden.")
+
+func _rot_bloom(img: Image, f: int) -> void:
+	# A flower of rot opening flat on the ground (no outline, one light accent): five petals with clear gaps, Bruise, every
+	# petal rimmed Orchid (Bruise alone melted into the purple nightmares standing on it, round 1), Shade on the far side,
+	# reaching past a 24 px body; a Root centre with a Sprig fleck; spores at the full bloom; then it wilts. The bud tip is
+	# Orchid from the first frame.
+	# Round 2: thin radiating petals round a lit centre read as a purple spider or octopus: six rounded petal lobes, wider
+	# than long, round a plain Root disc (no outline, no fleck: no face).
+	var c := Vector2(16.0, 10.0)
+	var big: float = [1.5, 5.0, 9.0, 13.0, 14.5, 14.5, 14.0][f]
+	var alpha: float = [1.0, 1.0, 1.0, 1.0, 1.0, 0.75, 0.4][f]
+	var centre_r := maxf(1.6, big * 0.22)
+	var inside := func(x: float, y: float) -> bool:
+		var d := Vector2(x - c.x, (y - c.y) * 2.0)
+		if d.length() <= centre_r:
+			return true
+		if big < 3.0:
+			return false
+		for i in 6:
+			var a := TAU * i / 6.0 + 0.26
+			var along := Vector2(cos(a), sin(a))
+			var q := d - along * big * 0.62
+			var u := q.dot(along) / (big * 0.36)
+			var v := q.dot(Vector2(-along.y, along.x)) / (big * 0.26)  # Narrow enough that the six keep gaps between them
+			if u * u + v * v <= 1.0:
+				return true
+		return false
+	for y in img.get_height():
+		for x in img.get_width():
+			if not inside.call(x + 0.5, y + 0.5):
+				continue
+			var d := Vector2(x + 0.5 - c.x, (y + 0.5 - c.y) * 2.0)
+			var col: Color = BRUISE
+			if d.length() <= centre_r:
+				col = ROOT
+			else:
+				var edge := false
+				for o: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+					if not inside.call(x + o.x + 0.5, y + o.y + 0.5):
+						edge = true
+				if edge:
+					col = ORCHID if d.x + d.y < 3.0 else BRUISE
+				elif d.x + d.y > 2.0:
+					col = SHADE
+			_px(img, x, y, Color(col, alpha))
+	if f == 0:
+		_px(img, 16, 9, ORCHID)  # The bud's tip
+	if f >= 3 and f <= 5:
+		for i in 4:
+			var p := Vector2i(13 + i * 2, 8 - (f - 3) * 2 - (i % 2) * 2)
+			_px(img, p.x, p.y, Color(BLOSSOM, 0.75 if f < 5 else 0.4))
+
+func _silt(img: Image, f: int) -> void:
+	# A pale tide line wavering across the step (period 16 divides the 32 px tile), lumpy (thicker in three uneven
+	# places), a dark wet edge under it so it holds on the pale path (round 1), grains of silt glinting (shifting).
+	for x in img.get_width():
+		var y := 4 + roundi(sin(x * TAU / 16.0) * 1.0)
+		_px(img, x, y, Color(MOONPATH, 0.75))
+		_px(img, x, y + 1, Color(POOL, 0.75))
+		if x % 32 in [3, 4, 5, 6, 14, 15, 24, 25, 26]:
+			_px(img, x, y - 1, Color(MOONPATH, 0.75))  # Its lumps
+			_px(img, x, y + 2, Color(POOL, 0.4))
+	for gx: int in [5, 13, 21, 29]:
+		var g := (gx + f * 4) % 32
+		_px(img, g, 3 + roundi(sin(g * TAU / 16.0)), Color(DEADWOOD, 0.75))
+	var gl := (9 + f * 8) % 32
+	_px(img, gl, 3 + roundi(sin(gl * TAU / 16.0)), MOON)
+
+func _rapids(img: Image, f: int) -> void:
+	# White water: clusters of foam (a 3x2 Moonlight blob, a Heartlight head) with a short Dewlight wake, twice as many as
+	# the water's own glints and moving 8 px a frame (4 x 8 = the 32 px tile: no seam); no arrows (owner: no direction
+	# chevrons on the water).
+	var w := img.get_width()
+	var clusters := [Vector2i(2, 3), Vector2i(18, 4), Vector2i(10, 7), Vector2i(26, 8), Vector2i(4, 11), Vector2i(20, 12),
+		Vector2i(12, 15), Vector2i(28, 15)]
+	for cl: Vector2i in clusters:
+		var x0 := (cl.x + f * 8) % w
+		for k in 4:  # The wake behind it
+			_px(img, (x0 - 1 - k + w) % w, cl.y + 1, Color(DEWLIGHT, 0.75 if k < 2 else 0.4))
+		_px(img, x0 % w, cl.y, MOON)
+		_px(img, (x0 + 1) % w, cl.y, MOON)
+		_px(img, (x0 + 2) % w, cl.y, HEART)
+		_px(img, x0 % w, cl.y + 1, MOON)
+		_px(img, (x0 + 1) % w, cl.y + 1, MOON)
+
+func _mud_cling(img: Image, f: int) -> void:
+	# Clumps of mud clinging round the feet (four lumps with gaps, round 1: a closed ring read as a boat or Heavy Water's
+	# oval), Loam lit on top with a wet Moonpath glint, Bark under, a Root outline; drips lengthening, then falling (each
+	# on a 4-frame cycle, inside the frame).
+	# Round 2: the touching lumps still read as one log at 1x: three lumps with clear gaps between their outlines, drips in
+	# lighter Loam, lengthening further before they fall.
+	var body := _blank(img)
+	for cl: Vector3i in [Vector3i(4, 5, 3), Vector3i(13, 6, 3), Vector3i(22, 5, 3)]:  # Wider than tall: clods, not caps
+		for y in range(cl.y - 2, cl.y + 2):
+			for x in range(cl.x - cl.z, cl.x + cl.z + 1):
+				var e := Vector2((x + 0.5 - cl.x) / (cl.z + 0.5), (y + 0.5 - cl.y) / 1.8)
+				if e.length() <= 1.0:
+					_px(body, x, y, LOAM if y < cl.y else BARK)
+	_outline(body, ROOT)
+	_over(img, body)
+	for p: Vector2i in [Vector2i(3, 4), Vector2i(12, 5), Vector2i(21, 4)]:
+		_px(img, p.x, p.y, MOONPATH)  # Wet glints
+	for i in 3:
+		var dx: int = [6, 11, 24][i]  # Off to one side of each lump (a drip under its middle read as a mushroom stem)
+		var t := (f + i) % 4
+		var top: int = [7, 8, 7][i]
+		match t:
+			0:
+				_px(img, dx, top, LOAM)
+			1:
+				_px(img, dx, top, LOAM)
+				_px(img, dx, top + 1, LOAM)
+			2:
+				_px(img, dx, top, LOAM)
+				_px(img, dx, top + 1, LOAM)
+				_px(img, dx, top + 2, LOAM)
+			3:
+				_px(img, dx, top + 3, Color(LOAM, 0.75))
+
+func _mud_splash(img: Image, f: int) -> void:
+	# A crown of mud: round 2x2 clods (a Root core, Loam, a Moonpath glint) fanned out in an arc, a flat splat at its
+	# foot; then the clods fall back and the splat thins (round 1: thin stalks read as candles).
+	var c := Vector2i(8, 12)
+	var clods: Array = [[], [Vector2i(-4, -4), Vector2i(-1, -6), Vector2i(2, -6), Vector2i(4, -4)],
+		[Vector2i(-6, -6), Vector2i(-2, -8), Vector2i(2, -8), Vector2i(6, -6)],
+		[Vector2i(-7, -3), Vector2i(-3, -5), Vector2i(3, -5), Vector2i(7, -3)]][f]
+	for d: Vector2i in clods:
+		var ca := 1.0 if f < 3 else 0.75  # Round 2: the last frame's clods fade with the splat instead of popping
+		_grid(img, ["mL", "LR"], {"m": Color(MOONPATH, ca), "L": Color(LOAM, ca), "R": Color(ROOT, ca)}, c + d)
+	var splat: int = [3, 5, 6, 6][f]
+	for x in range(-splat, splat + 1):
+		_px(img, c.x + x, c.y, Color(BARK if absi(x) < splat else LOAM, 1.0 if f < 3 else 0.4))
+	if f <= 1:
+		_px(img, c.x - 1, c.y - 1, ROOT)
+		_px(img, c.x, c.y - 1, LOAM)
+		_px(img, c.x + 1, c.y - 1, ROOT)
+
+func _fathoms(img: Image, f: int) -> void:
+	# Dark water standing round the body, higher each stage but never past its eyes (8 px at the deepest, round 1: a
+	# 14 px slab hid the nightmare), its sides following the body (narrowing as it climbs), see-through Pool (0.4, 0.75 at
+	# the two deepest), a darker Pool rim only along its bottom curve, a Dewlight waterline with one Heartlight crest.
+	var h: int = [2, 4, 5, 7, 8][f]
+	var fill_a: float = 0.4 if f < 3 else 0.75
+	var c := Vector2(13.0, 12.0)
+	var top := c.y - h
+	for y in img.get_height():
+		for x in img.get_width():
+			var up := clampf((c.y - (y + 0.5)) / 9.0, 0.0, 1.0)
+			var half := 12.0 - 4.0 * up
+			var dx := (x + 0.5 - c.x) / half
+			if absf(dx) > 1.0:
+				continue
+			var bottom := c.y + 1.5 * sqrt(maxf(1.0 - dx * dx, 0.0))
+			var surface := top + 1.2 * sqrt(maxf(1.0 - dx * dx, 0.0)) - 1.2 + 0.6 * sin(x * 1.3)
+			if y + 0.5 < surface or y + 0.5 > bottom:
+				continue
+			var col: Color = Color(POOL, fill_a)
+			if y == floori(surface):
+				col = DEWLIGHT
+			elif y + 1.5 > bottom:
+				col = POOL  # The darker rim along its bottom
+			_px(img, x, y, col)
+	var crest_x := 9
+	var crest_y := floori(top + 1.2 - 1.2 + 0.6 * sin(crest_x * 1.3))
+	_px(img, crest_x, crest_y, HEART)
+	_px(img, crest_x + 1, crest_y, MOON)
+
+func _spray_ring(img: Image, f: int) -> void:
+	# Drops flung out in a ring, each tier clearly wider, thicker and brighter (round 1: the tiers were too alike):
+	# tier 0 1 px Dewlight drops; tier 1 2 px with a Moonlight head; tier 2 2 px with a Heartlight head; tier 3 3 px
+	# streaks and a solid Moonlight rim flash. A Pool pixel just inside each drop keeps it from melting into the water.
+	var tier := f / 5
+	var k := f % 5
+	var c := Vector2(18.5, 18.5)
+	var r: float = [3.0, 6.0, 9.0, 11.0, 12.0][k] + tier * 1.5
+	var n := 8 + 2 * tier
+	var alpha: float = [1.0, 1.0, 1.0, 0.75, 0.4][k]
+	var length: int = [2, 2, 3, 3][tier]  # Round 2: tier 0 (the rank seen most) 2 px with a Moonlight head, not a faint 1 px drop
+	var head: Color = [MOON, HEART, HEART, HEART][tier]
+	for i in n:
+		var a := TAU * (i + 0.5 * (tier % 2)) / n
+		var dir := Vector2(cos(a), sin(a))
+		var tip := c + dir * r
+		var dark := tip - dir * (length + 0.5)
+		_px(img, floori(dark.x), floori(dark.y), Color(POOL, alpha * 0.75))
+		for s in range(length - 1, 0, -1):
+			var t := tip - dir * s
+			_px(img, floori(t.x), floori(t.y), Color(DEWLIGHT, alpha))
+		_px(img, floori(tip.x), floori(tip.y), Color(head, alpha))
+	if k == 0:
+		_grid(img, [".d.", "dMd", ".d."], {"d": DEWLIGHT, "M": MOON}, Vector2i(17, 17))
+	if tier == 3 and (k == 1 or k == 2):  # The top tier's rim flash
+		var inner := r - 2.0
+		var m := ceili(TAU * inner)
+		for i in m:
+			var a := TAU * i / m
+			_px(img, floori(c.x + cos(a) * inner), floori(c.y + sin(a) * inner), Color(MOON, 0.75))
+
+func _swirl(img: Image, f: int) -> void:
+	# The spray folding back in: three comma-tailed spiral arms all turning the same way, closing on the centre and
+	# turning 0.3 rad a frame (0.7 wagon-wheeled against the drop spacing, round 1), a small splash at the centre, then a
+	# fade frame. Dark variant (frames 6-11): ink (Night / Shade) with one light Dewlight pixel at each head, so it still
+	# shows on water.
+	var dark := f >= 6
+	var k := f % 6
+	var c := Vector2(14.5, 14.5)
+	var r0: float = [6.5, 5.0, 3.5, 2.5, 1.5, 1.5][k]  # Round 2: tails clipped at 9; 6.5 + 6 steps x 1.0 stays inside
+	var alpha: float = 1.0 if k < 5 else 0.4
+	var head: Color = DEWLIGHT if dark else MOON
+	var body: Color = SHADE if dark else DEWLIGHT
+	var tail: Color = NIGHT if dark else DEW
+	# Round 2: from the first frame each arm is a solid curved stroke (its points joined), not dots: dots read as a
+	# second spray ring.
+	for arm in 3:
+		var base := TAU * arm / 3.0 + k * 0.3
+		var prev := Vector2i.ZERO
+		var first := Vector2i.ZERO
+		for t in 7:
+			var rr := r0 + t * 1.0
+			var a := base - t * 0.32
+			var p := c + Vector2(cos(a), sin(a)) * rr
+			var cur := Vector2i(floori(p.x), floori(p.y))
+			var col: Color = body if t < 3 else tail
+			if t == 0:
+				first = cur
+			else:
+				for q: Vector2i in _bresenham(prev, cur):
+					_px(img, q.x, q.y, Color(col, alpha * (1.0 if t < 5 else 0.75)))
+			prev = cur
+		_px(img, first.x, first.y, Color(head, alpha))
+	if k >= 4:
+		_grid(img, [".h.", "hHh", ".h."], {"h": body, "H": head}, Vector2i(13, 13))
+
+func _shell_crack(img: Image, f: int) -> void:
+	# The shell cracking just under the water line (a 1 px Dewlight water line across the top): a dark jagged gap (Night)
+	# with a lit edge above it in the shell's own light (Mist), a white-hot start (Heartlight) so it holds on water,
+	# branching; chips of shell (Bruise lit Mist) flying up into the headroom above, then it dims.
+	var c := Vector2i(8, 9)
+	var path := [Vector2i(0, 0), Vector2i(1, 1), Vector2i(2, 0), Vector2i(3, 1), Vector2i(4, 2), Vector2i(5, 1), Vector2i(6, 2),
+		Vector2i(7, 3)]
+	var reach: int = [0, 3, 8, 8, 8][f]
+	var alpha: float = [1.0, 1.0, 1.0, 0.75, 0.4][f]
+	for x in range(1, 16):
+		_px(img, x, 7, Color(DEWLIGHT, 0.75 * alpha))  # The water line, fading with the crack (round 2: it popped off)
+	if f == 0:
+		_grid(img, [".h.", "hHh", ".h."], {"h": MIST, "H": HEART}, c - Vector2i(1, 1))
+	for side: int in [-1, 1]:
+		for i in reach:
+			var p: Vector2i = path[i]
+			_px(img, c.x + side * p.x, c.y + p.y, Color(NIGHT, alpha))
+			_px(img, c.x + side * p.x, c.y + p.y - 1, Color(MIST, alpha))
+	if f >= 1:
+		_px(img, c.x, c.y, Color(HEART, alpha))
+	if f >= 2 and f <= 3:
+		for b: Vector2i in [Vector2i(-3, 2), Vector2i(-3, 3), Vector2i(4, 3), Vector2i(4, 4)]:
+			_px(img, c.x + b.x, c.y + b.y, Color(NIGHT, alpha))
+	if f >= 2:
+		var out: int = f - 2
+		for chip: Vector2i in [Vector2i(-4, -3), Vector2i(3, -4), Vector2i(-1, -5)]:
+			var p := c + chip + Vector2i(signi(chip.x) * out, -out)
+			_px(img, p.x, p.y, Color(MIST, alpha))
+			_px(img, p.x + 1, p.y, Color(BRUISE, alpha))
+
+func _staff_clef(img: Image, f: int) -> void:
+	# A small clef in bronze (Gold, lit Glow; a Blossom curl), a Night outline like the notes (a row down so its top is not
+	# clipped, round 1); lit, a Heartlight glint.
+	var clef := _blank(img)
+	_grid(clef, [
+		"...gg..",
+		"..g..g.",
+		"..g..g.",
+		"...gg..",
+		"...g...",
+		"..gg...",
+		".g.gg..",
+		"g..g.g.",
+		"g.ppg.g",
+		".g..g.g",
+		"..ggg..",
+		"....g..",
+		"..gg..."], {"g": GOLD, "p": BLOSSOM}, Vector2i(1, 1))
+	_outline(clef)
+	_rim(clef, [GOLD], GLOW, Vector2(4.0, 7.0))
+	_over(img, clef)
+	if f == 1:
+		_px(img, 4, 2, HEART)
+		_halo(img, Vector2(4.5, 5.5), 4.0, GLOW, 0, 0.4)
+
+func _staff_echo(img: Image, f: int) -> void:
+	# A bronze note (an oval head, a straight stem, a flag), a Night outline and an upper-left Glow rim like the notes,
+	# landing; two Blossom / Oak echo arcs rippling off its right side, inside the frame; it fades.
+	var note := _blank(img)
+	_grid(note, [
+		"...sf.",
+		"...s.f",
+		"...s.f",
+		"...s..",
+		"...s..",
+		".hhs..",
+		"hhhh..",
+		".hh..."], {"s": GOLD, "f": GOLD, "h": GOLD}, Vector2i(1, 3))
+	_outline(note)
+	_rim(note, [GOLD], GLOW, Vector2(3.0, 8.0))
+	var a: float = [1.0, 1.0, 1.0, 0.75, 0.4][f]
+	for y in note.get_height():
+		for x in note.get_width():
+			var px := note.get_pixel(x, y)
+			if px.a > 0.0:
+				_px(img, x, y, Color(px, a))
+	for i in 2:
+		var step := f - i
+		if step < 1 or step > 3:
+			continue
+		var r := 2.0 + step * 2.0
+		var ca := Color(BLOSSOM if i == 0 else OAK, 0.75 if step < 3 else 0.4)
+		for s in range(-3, 4):
+			var ang := s * 0.25
+			_px(img, floori(7.5 + cos(ang) * r), floori(9.5 + sin(ang) * r), ca)
