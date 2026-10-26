@@ -19,7 +19,5 @@ entwined = true
 woven = true
 rule_id = &"deep_stillness"
 tip = "Each nightmare widens it once. The new cells last as long as the pool."
-makes = Array[StringName]([&"slow"])
-uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"damp", &"drowsy", &"held"])
 retired = true

@@ -19,7 +19,5 @@ entwined = true
 woven = true
 rule_id = &"prism_heart"
 tip = "Flyers are never hit. Works for: long straight paths. Safe."
-makes = Array[StringName]([&"maze"])
-uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"damp", &"held", &"static"])
 retired = true

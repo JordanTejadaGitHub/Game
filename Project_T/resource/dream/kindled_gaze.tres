@@ -15,5 +15,4 @@ max_stacks = 1
 min_act = 1
 rule_id = &"kindled_gaze"
 requires_role = &"beam"
-uses = Array[StringName]([&"layered"])
 retired = true
