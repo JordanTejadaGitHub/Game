@@ -15,6 +15,21 @@
 			"loop": false,
 			"use": "Tidal Bore / River Mouth / Delta: the big splash on a hit, a crown of water rising with white tips, breaking into drops and falling back into a pale ring (one shot, ~0.33 s). Anchor = the hit's foot."
 		},
+		"dw_fathoms": {
+			"anchor": [
+				13,
+				12
+			],
+			"file": "dw_fathoms.png",
+			"fps": 0.0,
+			"frame_size": [
+				26,
+				14
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Fathoms: dark water climbing the nightmare's body, one frame per depth (0 = +10% ... 4 = full at +50%); code swaps the frame as the depth grows and holds it; on a nightmare shorter than about 20 px cap the frame so the water stays below its eyes. Drawn over the nightmare's lower body, never above its eyes; see-through (0.4, 0.75 at the deepest), a lit waterline with one bright crest. Anchor = its feet."
+		},
 		"dw_floodgate_froth": {
 			"anchor": [
 				16,
@@ -90,6 +105,51 @@
 			"loop": false,
 			"use": "Mudflats: a wet mud patch on each mud step, a small puddle eye in it (frame 1 a bubble instead); pick by route index; on the ground under the water's damp band. Anchor = the route point."
 		},
+		"dw_mud_cling": {
+			"anchor": [
+				13,
+				5
+			],
+			"file": "dw_mud_cling.png",
+			"fps": 6.0,
+			"frame_size": [
+				27,
+				12
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Sinking Mud: clumps of mud clinging round a nightmare's feet for its 4 steps, drips lengthening and falling off. Drawn over the nightmare's feet (its front clumps cover them: that is the clinging). Anchor = its feet."
+		},
+		"dw_mud_splash": {
+			"anchor": [
+				8,
+				12
+			],
+			"file": "dw_mud_splash.png",
+			"fps": 12.0,
+			"frame_size": [
+				17,
+				14
+			],
+			"frames": 4,
+			"loop": false,
+			"use": "Sinking Mud: mud splashing up at a flyer's shadow on water or mud, a crown of round clods and a splat at its foot (one shot, ~0.33 s). Anchor = the shadow."
+		},
+		"dw_rapids": {
+			"anchor": [
+				16,
+				9
+			],
+			"file": "dw_rapids.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Rapids: white water on the water's last 3 steps, clusters of foam racing downstream with short wakes (drawn flowing right: flip it flowing left; on water running up or down the screen rotate it 90 degrees, never scale; tiles every 32 px). Over the water surface, under the nightmares. Anchor = the route point."
+		},
 		"dw_reeds": {
 			"anchor": [
 				6,
@@ -105,6 +165,51 @@
 			"loop": true,
 			"use": "Reed Bed: a reed clump standing in the carried water, a cattail on the tallest, swaying (stands on the bank: y-sort it, or draw it over the water). Anchor = its foot at the water line."
 		},
+		"dw_shell_crack": {
+			"anchor": [
+				8,
+				7
+			],
+			"file": "dw_shell_crack.png",
+			"fps": 12.0,
+			"frame_size": [
+				17,
+				15
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Crushing Depth: the nightmare's shell cracking just under the water line: a dark jagged crack with a lit edge and a white-hot start, branching, chips flying up (one shot, ~0.42 s). Anchor = the waterline on its body (its wading waterline point)."
+		},
+		"dw_silt": {
+			"anchor": [
+				16,
+				5
+			],
+			"file": "dw_silt.png",
+			"fps": 2.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Silt: the pale tide line left on each surged path step, lumpy, a dark wet edge under it, glints shifting (tiles every 32 px along the path; fade it out with alpha over the 4 s). Anchor = the route point."
+		},
+		"dw_spray_ring": {
+			"anchor": [
+				18,
+				18
+			],
+			"file": "dw_spray_ring.png",
+			"fps": 14.0,
+			"frame_size": [
+				37,
+				37
+			],
+			"frames": 20,
+			"loop": false,
+			"use": "Deep End: the spray ring round the Black Pond spill, drops flung out in a ring (one shot: play the 5 frames of one tier at 14 fps). Four tiers by rank, never scaled, each wider, thicker and brighter: frames 0-4 rank 0-I, 5-9 II-III, 10-14 IV-V, 15-19 VI-VII (a solid rim flash). Anchor = the hit nightmare's centre."
+		},
 		"dw_still_sheen": {
 			"anchor": [
 				9,
@@ -119,6 +224,21 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Still Water: the water goes mirror-still and a pale crescent moon shows in it, wavering a little (on the water surface, one every few steps). Anchor = the route point."
+		},
+		"dw_swirl": {
+			"anchor": [
+				14,
+				14
+			],
+			"file": "dw_swirl.png",
+			"fps": 12.0,
+			"frame_size": [
+				29,
+				29
+			],
+			"frames": 12,
+			"loop": false,
+			"use": "Undertow: the spray folding back into the nightmare hit, three comma-tailed spiral arms turning in to the centre (one shot, 6 frames). Frames 0-5 with company around it, 6-11 dark ink (the fewer around, the darker: pick by count). Undertow only hits a nightmare in the pond, so it always plays over water (the dark ink is drawn for the water, not dry ground). Anchor = the hit nightmare's centre."
 		},
 		"dw_tidal_bore": {
 			"anchor": [
@@ -209,6 +329,36 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Humming Walls: the pip a wall filled, a thorn-wrapped bead in Thornwall colours with hum arcs pulsing outward. Anchor = centre."
+		},
+		"kt_staff_clef": {
+			"anchor": [
+				4,
+				14
+			],
+			"file": "kt_staff_clef.png",
+			"fps": 0.0,
+			"frame_size": [
+				9,
+				15
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden in Oak (alpha 0.75), the top line's lit side Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.4. Anchor = the clef's foot."
+		},
+		"kt_staff_echo": {
+			"anchor": [
+				3,
+				12
+			],
+			"file": "kt_staff_echo.png",
+			"fps": 10.0,
+			"frame_size": [
+				17,
+				15
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Ensemble: the second repeat landing as an echo: a bronze note (head, stem, flag) with two pink echo arcs rippling off it, fading (one shot, 0.5 s). Anchor = the note head's foot, at the Warden."
 		},
 		"kt_tally": {
 			"anchor": [
@@ -449,6 +599,21 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Feeding Ground: a fed patch on each route point, pink spore dust settling and two curled shoots swaying; fade it with alpha as its 8 s run out. Anchor = the route point."
+		},
+		"sp_rot_bloom": {
+			"anchor": [
+				16,
+				10
+			],
+			"file": "sp_rot_bloom.png",
+			"fps": 10.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 7,
+			"loop": false,
+			"use": "Rot Bloom: a rot flower opening on the ground under the nightmare on its third cap: an orchid-tipped bud opens into six bruised petal lobes rimmed orchid round a plain dark centre, reaching past the body, pink spores puffing up, then it wilts (one shot, 0.7 s; the big green number is code's). It stays on the ground where it opened (it never follows the nightmare). Anchor = the nightmare's feet when it opened."
 		},
 		"sp_rot_ring": {
 			"anchor": [

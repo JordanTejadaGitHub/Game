@@ -809,6 +809,26 @@ sprite. Damage is still dealt to the node, so nothing about hits changes.
 **Watch:** y-sort follows the node, so on a horizontal path two nightmares in different lanes can sort
 a frame wrong. Acceptable at ±0.3 cell; sort by the drawn position if it shows.
 
+### Hit reactions (owner 2026-10-25: "more enemy reactions on hit", "visually appealing to the player"; mock-up approved: "implement")
+
+Today's everyday hit is a 0.06 s pale flash and a 1-2 px recoil: barely visible at game zoom. The big-hit tiers
+(crack, squash, hold, camera nudge from 12% of health) stay as they are. Mock-up:
+`D:\Projects\logs\enemy_design\hit_reactions.html`. **All visual only:** no speed, route or rule changes; every
+part obeys Reduced motion / Reduced effects / Reduce flashes and the per-frame caps, and must not bury a pack (the
+crowd feel).
+- **Stronger flinch + squash (every damaging hit):** recoil **3 px** away from the hit (bosses half), flash
+  **0.09 s** at a brighter strength, and a **squash 1.10 × 0.90** for 0.12 s that springs back. Ticks and sustained
+  sources keep their own twitch.
+- **Stumble:** the walk cycle runs at **0.25×** for **0.1 s** after a hit (its real pace is unchanged).
+- **Shadow torn off:** **2-3 cold wisps** (Bruise with a Wraithlight core) puff out of the side away from the hit
+  and fade over **0.4-0.55 s**; at most **24 wisps a frame** across the field (fewer under Reduced effects).
+- **Shell flakes (Armoured kinds while the shell holds):** **3 bark / shell flakes** fall away with a dull pale tint
+  on the flash instead of the white; the crack and break stay the shell's own.
+- **Fraying below 25% health:** the body flickers (alpha 0.72-1.0), trails a slow smoke wisp (about 9 a second) and
+  limps (walk cycle at ~0.55×); not on bosses (their bar shows it).
+- **Health bar ghost:** the chunk a hit takes stays pale (Heartlight) for **0.3 s**, then drains at 1.6× max health
+  a second down to the real bar.
+
 ### Status icons in crowds (owner 2026-10-24, "yeah that works"; not built yet)
 
 In the v3 board videos each nightmare's row of 16 px status icons (with stack numbers) and its health bar stacked
