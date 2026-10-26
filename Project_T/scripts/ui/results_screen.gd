@@ -179,7 +179,7 @@ func _build(won: bool) -> void:
 	total.add_child(_icon(&"seeds", 24))
 	UiStyle.number(_label(total, str(breakdown[-1][1]) if not breakdown.is_empty() else "0", 24, UiStyle.LIVE), 24, UiStyle.LIVE)
 	seeds.add_child(total)
-	_label(seeds, "Seeds grow permanent unlocks in the Memory Grove.", 14, UiStyle.INK_DIM, true)  # What Seeds are for (wording review 2026-10-13)
+	_label(seeds, "Seeds plant permanent unlocks in the Memory Grove.", 14, UiStyle.INK_DIM, true)  # What Seeds are for (wording review 2026-10-13)
 	if not is_demo() and (breakdown.is_empty() or banked != int(breakdown[-1][1])):  # Not a repeat of the total (UI council round 3)
 		_label(box, "%d in the bank" % banked, 14, UiStyle.INK_DIM).name = "SeedsBanked"
 	if not_banked and not CaptureDirector.capturing():  # Captures force Test Grove: no dev line on screen

@@ -49,21 +49,21 @@ const GLOSSARY_SOURCE := [
 		["Nurture", "Pay Dew to raise a Warden's Nurture rank. Each Nurture rank lets you choose one improvement.", ["Nurture rank", "Nurture choice"]],
 		["Nurture rank", "How nurtured a Warden is (Nurture rank I and up; the Eldest goes past Nurture rank V): each Nurture rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
 		["Eldest", "A Legendary Dream lets one Warden a run go past Nurture rank V; it wears a crown.", ["Nurture rank", "Nurture"]],
-		["Sprout", "The cheapest Warden. It can grow into any family you have picked this run.", ["Family pick", "Warden"]],
+		["Sprout", "The cheapest Warden. It can {grow} into any family you have picked this run.", ["Family pick", "Warden"]],
 		["Aura", "A bonus a support Warden gives to the Wardens around it.", ["Boosts"]],
 		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 260 a rest for all Wellsprings together.", ["Dew", "Rest"]],
 		["Nurture choice", "Each Nurture rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
 		["Wide, Strong, Attuned", "The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full.", ["Nurture choice", "Aura"]],
 		["Signature", "A special rule a Warden gains at Nurture rank V when four of its Nurture ranks took the same choice.", ["Nurture choice", "Nurture rank"]],
-		["Mastery", "The rank V reward for four matching ranks on a Warden with no signature: 20% better at what it does.", ["Signature"]],
-		["All-Rounder", "The rank V reward for mixed choices: 20% better at what it does.", ["Signature"]],
+		["Mastery", "The Nurture rank V reward for four matching Nurture ranks on a Warden with no signature: 20% better at what it does.", ["Signature"]],
+		["All-Rounder", "The Nurture rank V reward for mixed choices: 20% better at what it does.", ["Signature"]],
 		["Calling", "The rule your first family brings. It lasts the whole run.", ["Family pick"]],
 		["Catcher", "A Warden that collects extra Dew from nightmares dispelled in its range.", ["Dew"]],
 		["Interest", "Dew a Wellspring pays at a rest, a share of the Dew you hold.", ["Dew"]],
-		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
+		["Thornwall", "A cheap wall that doesn't attack; {grow}s into Bramble or Honeysuckle.", ["Warden"]],
 		["Clear tool", "Clear Withered Trees and Mossy Boulders off the map to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 		["Ascended", "A family's strongest form, from the Memory Grove, late in a run.", ["Final form", "Ascension"]],
-		["Kinship", "Two branches of the same family within 2 cells of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
+		["Kinship", "Two branches of the same family within 2 cells of each other bond and get stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
 		["Blooming and Old Kin", "A Kinship's stages: it bonds young, is Blooming after 5 drifts together and Old Kin after 10, each stage stronger.", ["Kinship"]],
 		["Harmony strike", "Both Wardens of a Kinship hit one nightmare within 1 s: it takes a bonus hit, the weaker one's damage (at most every 2 s per pair).", ["Kinship"]],
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
@@ -74,10 +74,10 @@ const GLOSSARY_SOURCE := [
 	["Classes", [
 		["Mushroom", "A small mushroom on the path, grown by the Spore Print Calling. The next walking nightmare to step on it takes a dose; flyers pass over. Mushrooms stay through rests, 40 at most.", ["Dose", "Calling"]],
 		["Dose", "3 {spored} at once: what a mushroom gives the nightmare that steps on it.", ["Mushroom"]],
-		["Glow", "The path within 1.5 cells of a Firefly Warden (more as its range grows). A nightmare inside a glow is Lit.", ["Lit", "Flare"]],
-		["Lit", "A nightmare inside a Firefly Warden's glow (the path within 1.5 cells of it, more as its range grows). The Lantern Light Calling jumps damage between Lit nightmares.", ["Glow", "Jump"]],
+		["Glow", "The path within 1.5 cells of a Firefly Warden (more as its range rises). A nightmare inside a glow is Lit.", ["Lit", "Flare"]],
+		["Lit", "A nightmare inside a Firefly Warden's glow (the path within 1.5 cells of it, more as its range rises). The Lantern Light Calling jumps damage between Lit nightmares.", ["Glow", "Jump"]],
 		["Jump", "Damage passing from one nightmare to another as a spark. A jump triggers another jump only when a card says so.", ["Lit"]],
-		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions grow it.", ["Touching"]],
+		["Water", "The path touching a {warden:dewdrop} (within 1.25 cells). The Puddles Calling gives nightmares standing in it {damp}, and its evolutions widen it.", ["Touching"]],
 		["Dewdrop splash", "A Dewdrop's hit on nightmares in its {water}: nightmares within 4 {steps} in that {water} gain {damp}. Each nightmare at most once a second. The Puddles Calling's splash, not a splash attack.", ["Water", "Splash"]],  # (owner 2026-10-20)
 		["Toll", "Every 4th ring on a nightmare: the ring lands again at half damage. Damage only. Triggers no other card.", ["Ring", "Calling hit"]],
 		["Ring", "A hit from a bell (any Bellflower form) on a nightmare, or a ring a Keeping Time evolution adds with no bell hit (Accompaniment, Carrying Tune). Every 4th ring makes a Toll.", ["Toll"]],
@@ -97,7 +97,7 @@ const GLOSSARY_SOURCE := [
 	["Branch effects", [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one also hits each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others for half damage.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
 		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
-		["Arc", "Two Jarlinks within {field:jarlink.special_params.link_range:cells} join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
+		["Arc", "Two Jarlinks within {field:jarlink.special_params.link_range:cells} join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and also strikes {nightmare:dandelion_seed}s gliding through.", ["{static}"]],
 		["Ink", "An Inkcap shot on a nightmare with {spored} inks every cell of path it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 cells of path for 4 s that adds {spored} twice a second.", ["{spored}"]],
 		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
@@ -136,7 +136,7 @@ const GLOSSARY_SOURCE := [
 		["Area attack", "An attack that hits every nightmare in a space (a pulse, a splash, a cloud) rather than one target. It answers a {kind_swarm}.", ["Effect", "Swarm", "Splash"]],
 		["Splash", "A splash hurts nightmares beside the nightmare it hits. Only the nightmare it hits gets the Warden's status. A pulse hits everything in the Warden's range instead. Splash hits count as area attacks.", ["Area attack", "Swarm"]],
 		["Direct hit", "A Warden's own attack landing. Not statuses, Reactions, clouds or echoes.", ["Effect", "Crit"]],
-		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects grow with Potency and never crit.", ["Potency", "Area attack"]],
+		["Effect", "Damage that isn't a Warden's own hit: status ticks ({spored}, {static} bolts), clouds, rings, Reactions. Effects get stronger with Potency and never crit.", ["Potency", "Area attack"]],
 		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and {reactions}, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],
 		["Full", "A status at its most stacks: each status has its own most, and Brimming doubles them. Some statuses do nothing until they are full. A full status's dot fills with its colour, ringed in light; in a crowd, its pip's outline lights up.", ["Stack", "Nearly full"]],
@@ -148,13 +148,13 @@ const GLOSSARY_SOURCE := [
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
 		["Crowned Reaction", "A Reaction on a nightmare that also carries a third status. It replaces the base Reaction, shares its cooldown and counts as 2 links in a Chain.", ["Reaction", "Chain", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
-		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (grown in the Memory Grove).", ["Dawnburst", "Legendary"]],
+		["Dawnbreak", "The Legendary Dream that gives a Dawnburst its bite (planted in the Memory Grove).", ["Dawnburst", "Legendary"]],
 	]],
 	["Dreams", [
 		["Rarity", "How strong and how seldom a Dream card is: Common, Uncommon, Rare or Legendary. The gem's shape and colour show it.", ["Legendary"]],
 		["Upgrade", "A Dream card that replaces a weaker card you already have.", ["Dream"]],
 		["Bittersweet", "A strong Dream card with a cost.", ["Dream"]],
-		["Legendary", "The rarest Dreams, grown in the Memory Grove.", ["Memory Grove"]],
+		["Legendary", "The rarest Dreams, planted in the Memory Grove.", ["Memory Grove"]],
 		["Let it pass", "Skip a Dream offer for a little Dew.", ["Dream"]],
 		["Reroll", "Swap the Dream cards on offer for different ones. Limited per run.", ["Perks"]],
 		["Banish", "Remove a Dream card from this run's offers.", ["Perks"]],
@@ -295,7 +295,7 @@ const KINSHIP_TEXT := {
 	&"snare": "Rootcurl's pulls end with 1 {held} (0.5 s); each {held} from Tangleroot drags the nightmare back half a cell.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at {full} {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads release the {static} bolt at 12 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbours attack 10% faster.",
-	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"flock_together": "Wren's Nest hits strip a boost (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs {nightmare:dandelion_seed}s.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
 	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and gives nightmares {damp}.",
@@ -303,11 +303,11 @@ const KINSHIP_TEXT := {
 	&"vespers": "Silver Bell's toll also leaves its target {silenced} for 2 s; a nightmare a Hushbell leaves {silenced} gains 1 {drowsy}.",
 	&"fault_line": "Rampart's blows and Bastion's rocks crack the path (no sprints there for 3 s); Quaker's slam runs along the stone walls touching the Rampart, hitting the path beside each.",
 	&"bramble_bed": "Flyers Groundroot drags down land in thorns (one thorn tick); Thorncoil's thorns reach flyers passing over its range.",
-	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at rank I; Wardens beside the Nurse Log also grow 10% cheaper.",
+	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at Nurture rank I; Wardens beside the Nurse Log also cost 10% less to {grow}.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
 	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog gives 1 {frost} a second to nightmares inside, never enough for a {frostburst} on its own.",
-	&"sunspot": "Sunpetal's beam gives its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
+	&"sunspot": "Sunpetal's beam gives its target {marked}; Lanternmoth's shots deal +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "A nightmare stepping on Rootlight's lit tiles gains 1 {held} (0.3 s), once; each {held} from Tangleroot reveals {hidden} nightmares and stops burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes release {static} bolts like a chime; Chime Stone's pulses echo once at 30%.",
@@ -317,7 +317,7 @@ const KINSHIP_TEXT := {
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }
 const KINSHIPS_SCRIPT := "res://scripts/combat/kinships.gd"
-const KINSHIP_GROWTH := "Within 2 cells they bond; the bond grows (Blooming at 5 drifts, Old Kin at 10) and both strike in Harmony."
+const KINSHIP_GROWTH := "Within 2 cells they bond; the bond deepens (Blooming at 5 drifts, Old Kin at 10) and both strike in Harmony."
 
 # [{id, name, kind "Kinship", line, a, b (Warden names), text}], or [] before Kinships exist.
 static func kinships() -> Array[Dictionary]:
@@ -560,7 +560,7 @@ static func signature_entries() -> Array:
 		var text: String = Signatures.TEXT.get(sig, "")
 		var answers: String = SIGNATURE_ANSWERS.get(sig, "")
 		var details: String = Signatures.DETAILS.get(sig, "")  # The exceptions (Tower Code, screens_ui.md 44fe84d9)
-		out.append([String(Signatures.NAMES[sig]), "Four %s ranks: %s%s%s" % [by, text, (" " + details) if details != "" else "",
+		out.append([String(Signatures.NAMES[sig]), "Four %s Nurture ranks: %s%s%s" % [by, text, (" " + details) if details != "" else "",
 			(" Good against %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
 	return out
 

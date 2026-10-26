@@ -38,7 +38,7 @@ const KINDS: Array[StringName] = [KIND_LAND, KIND_LANDMARK, KIND_BOON]
 const ANY_FAMILY := "any"
 const MAX_STEP := 3  # Landmarks grow I -> II -> III, one step at each later act break
 const STEP_NAMES: Array[String] = ["", "I", "II", "III"]
-const GROWS_LINE := "It grows at each later {act} break."  # Shown under a landmark's text (the gift screen)
+const GROWS_LINE := "It gets stronger at each later {act} break."  # Shown under a landmark's text (the gift screen)
 
 # id -> {name, kind, family, group, text, map: changes the map, place: how it's placed (GiftPlacer), size, retired}.
 # place: &"none"; &"chain" (adjacent cells, size [min, max]); &"line" (straight, [min, max]); &"cell" (one);
@@ -58,13 +58,13 @@ const POOL := {
 	&"reshape": {"name": "Reshape", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"reshape", "size": 6,
 		"text": "Move or clear up to 6 obstacles. Each one pays {dew:60} × the {act}."},
 	&"ancient_stump": {"name": "Elder Stumps", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"cells", "size": 3,
-		"text": "Place 3 stumps. A Warden planted on one gets 2 free {ranks}, and you choose each bonus."},
+		"text": "Place 3 stumps. A Warden planted on one gets 2 free Nurture {rank}s, and you choose each bonus."},
 	&"shifting_mist": {"name": "Shifting Mist", "kind": KIND_LAND, "family": ANY_FAMILY, "group": "Shape the land", "map": true, "place": &"rim", "size": 3,
 		"text": "Move where nightmares come from: pick one of 3 spots on the edge of the map, or keep the current one. They come from there for the rest of the run. This {act}'s {drifts} give 25% more {dew}."},
 	&"spring": {"name": "Spring", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(2, 2),
 		"text": "Place a 2×2 pond. Attacking Wardens within 2 cells of it attack 25% faster."},
 	&"lightning_tree": {"name": "Lightning Tree", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
-		"text": "Place a dead tree on one empty cell. Every 4 s it strikes the strongest nightmare within 3 cells for heavy damage. The strike grows as nightmares get tougher."},
+		"text": "Place a dead tree on one empty cell. Every 4 s it strikes the strongest nightmare within 3 cells for heavy damage. The strike gets stronger as nightmares get tougher."},
 	&"bell_stone": {"name": "Bell Stone", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"cell", "size": 1,
 		"text": "Place a singing stone on one empty cell. It rings every 6 s: nightmares within 3 cells walk 30% slower for 2 s (bosses half as much)."},
 	&"mushroom_ring": {"name": "Mushroom Ring", "kind": KIND_LANDMARK, "family": ANY_FAMILY, "group": "Landmarks", "map": true, "place": &"area", "size": Vector2i(3, 3),
@@ -76,9 +76,9 @@ const POOL := {
 	&"bramble_verge": {"name": "Bramble Verge", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
 		"text": "Thornwalls {grow} into {warden:bramble} for free this run ({warden:bramble} is unlocked if it wasn't). Nightmares beside a {warden:bramble} walk 20% slower."},
 	&"old_kin": {"name": "Old Kin", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"kinship", "size": 1,
-		"text": "Pick two bonded Wardens: their bond grows one step now. Bonds formed next {act} start one step stronger."},
+		"text": "Pick two bonded Wardens: their bond deepens one step now. Bonds formed next {act} start one step stronger."},
 	&"memory_seed": {"name": "Memory Seed", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
-		"text": "This {act}, any Warden you sell and plant again keeps its {ranks} and its {kinship} age."},
+		"text": "This {act}, any Warden you sell and plant again keeps its Nurture {rank}s and its {kinship} age."},
 	&"waking_root": {"name": "Waking Root", "kind": KIND_BOON, "family": ANY_FAMILY, "group": "For the run", "map": false, "place": &"none", "size": 0,
 		"text": "The next form you unlock is free, and you gain {dreamlight:+1}."},
 	# Retired (never offered; a saved run that took one still loads and works). Reshape replaced Glade and Shift the Stones.

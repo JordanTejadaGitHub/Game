@@ -35,8 +35,8 @@ const TEXT := {
 	FIRSTBORN: "What it creates starts one step stronger.",
 	SHELTER: "Wardens it boosts can't be withered, dimmed or trampled.",
 	SURGE: "Every 10 s its aura doubles for 2 s.",
-	ALL_ROUNDER: "Mixed ranks: its main job is 20% stronger.",
-	MASTERY: "Four ranks of the same choice: its main job is 20% stronger.",
+	ALL_ROUNDER: "Mixed Nurture ranks: its main job is 20% stronger.",
+	MASTERY: "Four Nurture ranks of the same choice: its main job is 20% stronger.",
 }
 # The exceptions and limits, kept off the one-line text (the Codex shows them under it).
 const DETAILS := {

@@ -428,8 +428,8 @@ func discovery(id: StringName) -> void:
 			lesson(&"discover_grow", &"rank", "Grow your Wardens", "Select a Warden and choose a form in its panel. Growing costs Dew and changes what it does.")
 		&"nurture":
 			lesson(&"discover_nurture", &"rank", "Nurture your Wardens", InputMode.text(
-				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "N"),
-				"Select a Warden and tap Nurture to make it stronger for Dew. Each rank lets you choose one improvement. Tap a choice to read it."))
+				"Select a Warden and press Nurture (%s) to make it stronger for Dew. Each Nurture rank lets you choose one improvement. Hover a choice to read it." % InputMode.key(&"nurture_warden", "N"),
+				"Select a Warden and tap Nurture to make it stronger for Dew. Each Nurture rank lets you choose one improvement. Tap a choice to read it."))
 		&"dream":
 			lesson(&"discover_dream", &"dreamlight", "A Dream", "Pick one card. You don't have to take one. Dreams last the whole run.")
 		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
@@ -664,7 +664,7 @@ func _remember() -> void:
 
 # Explicit replay bypasses first-time/profile limits; it still owns and releases its pause.
 const CATCH_TEXT := "This Warden catches extra Dew when a nightmare is dispelled in its range. It is paid to you at the next rest."
-const RANK_TEXT := "At rank V a Warden earns a mark. Four ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does."
+const RANK_TEXT := "At Nurture rank V a Warden earns a mark. Four Nurture ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does."
 
 func replay_guides() -> void:
 	if main == null or game_speed == null:

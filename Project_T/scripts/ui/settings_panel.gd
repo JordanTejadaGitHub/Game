@@ -179,7 +179,7 @@ func _ready() -> void:
 	_toggle(gameplay, "Lessons", "whispers", true, "Short paused lessons the first time a rule matters. The Heartwood's story lines and warnings always show.")
 	# Growth marks use their own saved setting, independently of Hints.
 	_growth_marks = _toggle(gameplay, "Growth marks", GrowHints.SETTING, true,
-		"At rests, a mark on Wardens that can grow now and a dewdrop when you can afford a rank.")
+		"At rests, a mark on Wardens that can grow now and a dewdrop when you can afford a Nurture rank.")
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_tip_last(gameplay, "Numbers over nightmares when hit. Big hits shows only crits and Reactions.")
