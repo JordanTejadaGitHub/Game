@@ -525,3 +525,38 @@ triggers (`reactions.gd:293`), not only the card's own Reaction. The text says w
 - `{const:fed_lock}` = `EnemyStatuses.FED_LOCK` (codex_data.gd's const replaces, as `tough_leaves`).
 - If the design means only the card's own Reaction waits, the code (`fed_locked()`) is broader: Roguelite Code to decide;
   the text then becomes "…its own Reaction can't trigger…".
+
+## Grow vs Nurture (2026-10-25)
+
+Owner playtest: took Trampled Ground (rank III+), then picked Wild Growth expecting Nurture ranks from kills; it gives
+free growth into the next form (Hard-Won Rings is the rank card). Both trigger on dispels, and "grow" / "rank" read alike.
+
+**Rule (rules text, all cards, Calling rows, Grove nodes, Codex):**
+- **Forms:** "{grow}s into its next form" (or "into {warden:x}" when the form is named). `{grow}` shows the **bud**
+  icon (the "Can grow" mark at a Warden's base, `grow_hints.gd`).
+- **Ranks:** "Nurture {rank}" every time ("a free Nurture {rank}", "Nurture {rank} III+", "the highest Nurture {rank}",
+  "each Nurture {rank}"). `{rank}` shows the rank icon. Never a bare "{rank}" or "ranked".
+- **"grow" means forms only.** Other uses change: "grows stronger" -> "gets stronger" (Sap Rising, Thorny Walls,
+  Undiluted); Deep Water "its damage grows 50% faster" -> "builds 50% faster"; the gold path "grows 1 {step}" -> "extends
+  1 {step}"; "rings grow bigger" -> "get bigger". Mushrooms keep "grow" (a mushroom is not a Warden; never the {grow} token).
+- Icons: the bud for {grow} and the rank icon for {rank} inline on card text, like the status icons. The Boosts lens
+  button reuses the rank icon (`hud.gd:1444`): give it its own, so the rank icon means one thing.
+
+**The two cards (under 25 words):**
+- **Wild Growth:** "Wardens {grow} into their next form for free after 20, 60, then 150 {dispels} in their range. They
+  can't {grow} for {dew}."
+- **Hard-Won Rings:** "Every 40 {dispels} a Warden lands gives it a free Nurture {rank}, up to Nurture {rank} V."
+  Tips keep their small print; Wild Growth's "Nurture ranks still pay their difference" becomes "Nurture {rank}s still
+  pay their difference".
+
+**Where it changes** (live text, 2026-10-25): Dream cards Bearing Down, Chosen Few, Deep Grain, Deeper Rings, Elder Kin
+("Ranked Wardens" -> "Wardens with a Nurture {rank}"), Endless Rings, Evergreen ("Growing Wardens" -> "Growing Wardens
+into their next form"), Finishing Blow, Growth Rings, Heartwood's Reach, Measured Blow, Nursery, Old Hand, Shared Training,
+Specialist, Sunlit Rest, Tender Care I / II, The Old Ones, Towering, Living Walls (fine: names Bramble); Calling rows
+Trampled Ground, Pile-On, Deep Tone, Double Time, Allegro, Black Pond, Deep End, Breaking Wave, King Tide, the
+"highest-{rank}" tips (calling_paths.gd ~87, 383, 407, 414); the Grove nodes that say rank or grow (Meta sweeps with the
+rule); Codex Grow and Rank entries.
+
+**Owner call:** **Growth Rings** is a Nurture-rank card whose name says Growth, the exact mix-up above. Rename it (id
+kept), e.g. **Quiet Rings** (its rule: plant nothing for a block). The other "Rings" cards (Deeper, Endless, Hard-Won)
+keep tree rings as the rank image. Note "ring" is also Bellflower's {ring}; kept, different kind.
