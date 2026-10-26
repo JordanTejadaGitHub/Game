@@ -3062,7 +3062,11 @@ func _place_wade(stand) -> void:
 	# Never wider than the drawn water there: toward the pond's tapered ends the cover narrows with it, so it never shows
 	# path over the legs (owner 2026-10-25)
 	var cover := WADE_COVER * scale
-	stand.half = Vector2(minf(cover.x, stand.reach), minf(cover.y, stand.reach))
+	# Narrowed only, never shallower: where the edge is nearer than the cover's depth there is no cover and the legs show
+	# (self-check 2026-10-25: clamping both axes made a round bubble at the pond's tip, shrinking the whole oval a stripe
+	# across the body with the legs under it)
+	stand.half = Vector2(minf(cover.x, stand.reach), cover.y)
+	stand.visible = stand.reach >= cover.y
 
 # Where the drawn pond is under these feet (global): [water index, how far its drawn edge is from them], [-1, 0.0] for
 # none. It tests the same circles the water is drawn with (_water_samples: WATER_HALF, tapered to its ends), so wading
