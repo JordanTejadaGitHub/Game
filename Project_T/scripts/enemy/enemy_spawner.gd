@@ -332,11 +332,12 @@ const SORT_REACH := 0.5  # Cells: drawn bodies this close y-sort by their drawn 
 var _jostle_time := 0.0
 # Status icons in crowds (enemy_design.md, owner 2026-10-24): a nightmare is crowded (Enemy.crowd_seen = crowd_clock) in a
 # cluster (owner 2026-10-25: "more of a group then we can use pips", "it shouldn't be a row, it should only be a cluster",
-# "make it 4 enemies together"): at least CROWD_GROUP_MIN - 1 other drawn bodies within CROWD_RADIUS cell of one; it
-# and those neighbours go compact. A line in single file at its usual spacing isn't (one ahead, one behind). Checked on
+# "make it 4 enemies together"; 2026-10-25 later: "switch the group pip to 8"): at least CROWD_GROUP_MIN - 1 other drawn
+# bodies within CROWD_RADIUS cell of one; it and those neighbours go compact. A line in single file at its usual spacing
+# isn't (one ahead, one behind). Checked on
 # the jostle's frames (_mark_crowds); hud_focus = the nightmare the info panel shows (hovered / tapped: it keeps its full
 # row; NightmareInfo sets it).
-const CROWD_GROUP_MIN := 4  # Nightmares together, itself included
+const CROWD_GROUP_MIN := 8  # Nightmares together, itself included (was 4)
 const CROWD_RADIUS := 1.0  # Cells between drawn bodies
 const CROWD_ROW_W := 28.0  # px: a crowd row (3 pips and the "more" dot)…
 const CROWD_ROW_H := 8.0  # …and its height
