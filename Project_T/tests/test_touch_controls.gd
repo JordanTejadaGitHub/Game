@@ -166,7 +166,9 @@ func _run() -> void:
 		"Select mode: two taps select two different kinds (%d selected)" % seller.selection.size())
 	await _tap(_screen_of(sprout.global_position))
 	_check(seller.selection.size() == 1 and seller.selection.has(keeper), "…a tap on a selected one takes it out")
-	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
+	var ground := _open_ground_point(seller, map_generator)
+	_check(ground.x >= 0.0, "open ground on screen beside the drawer")
+	await _tap(ground)
 	_check(seller.selection.is_empty(), "…a tap on empty ground clears")
 	# Fast taps on different Wardens (the second one marked a double tap) add one each, never the whole kind (user 2026-10-18)
 	var sprout_2 := _build_on(placer, container, load("res://resource/tower/sprout.tres"), _free_cells(map_generator, 1)[0])
@@ -390,6 +392,8 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 			# to the HUD (on the 20x16 map more of the route is on screen at once, under it too).
 			if not Rect2(160, 160, 960, 380).has_point(_screen_of(MAP_GRID_CELL(cell))):
 				continue
+			if _hud_covers(_screen_of(MAP_GRID_CELL(cell))):
+				continue  # Under an open panel (the Warden drawer when a Warden is selected): the tap would be the panel's
 			if found.any(func(f: Vector2) -> bool: return f.distance_to(cell) < 2.5):
 				continue
 			found.append(cell)
@@ -397,6 +401,24 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 		if found.size() == count:
 			break
 	return found
+
+# A screen point on open map ground: no Warden there, no HUD over it (the Warden drawer open on the right covers the
+# route's free cells on the current maps), inside the map.
+func _open_ground_point(seller: TowerSeller, map_generator) -> Vector2:
+	for y in range(200, 500, 24):
+		for x in range(180, 900, 24):
+			var at := Vector2(x, y)
+			var world: Vector2 = root.get_canvas_transform().affine_inverse() * at
+			var cell: Vector2 = map_generator.MAP_GRID.calculate_grid_coordinates(world)
+			if map_generator.MAP_GRID.is_within_bounds(cell) and map_generator.can_block(cell) and seller.get_tower_at_point(world) == null and not _hud_covers(at):
+				return at
+	return Vector2(-1, -1)
+
+func _hud_covers(at: Vector2) -> bool:
+	for c in main.get_node("HUD").find_children("*", "Control", true, false):
+		if c.is_visible_in_tree() and c.mouse_filter == Control.MOUSE_FILTER_STOP and c.get_global_rect().has_point(at):
+			return true
+	return false
 
 func _towers(container: Node) -> Array:
 	return container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion())
