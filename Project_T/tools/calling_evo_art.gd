@@ -700,7 +700,7 @@ func _hum(img: Image, f: int) -> void:
 func _sporeling_s33() -> void:
 	_sheet("sp_season_haze", Vector2i(32, 14), 4, 3.0, Vector2i(16, 8), true, _season_haze,
 		"Spore Season: a low green spore haze lying over each trail step while the Season is lit, pink spores rising out of it (on the ground, over the path, under the nightmares; flip every other step's tile so the trail doesn't repeat). Anchor = the route point.")
-	_sheet("sp_spore_fleck", Vector2i(9, 9), 4, 12.0, Vector2i(4, 5), false, _spore_fleck,
+	_sheet("sp_spore_fleck", Vector2i(15, 15), 4, 12.0, Vector2i(7, 7), false, _spore_fleck,
 		"Host Trees: the pink spore fleck where a capped Warden's tick or hit lands (one shot, ~0.33 s). Anchor = the hit point.")
 	_sheet("sp_black_spot", Vector2i(13, 10), 4, 4.0, Vector2i(6, 9), true, _black_spot,
 		"Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point.")
@@ -715,7 +715,9 @@ func _season_haze(img: Image, f: int) -> void:
 	var drift: int = [0, 1, 2, 1][f]
 	# Pass 3: long low streaks, 1-2 px tall and 12 px or more, the top row leaning the way it drifts and lit only at its
 	# leading end (lit tops over dark bases read as grass tufts, narrower rows under wide ones as mushrooms).
-	var keys := {"t": Color(NEWLEAF, 0.4), "b": Color(SPRIG, 0.4)}
+	# Wiring capture (Roguelite Code, 2026-10-25): Sprig at 0.4 vanished on the light path: Leaf at 0.75 (a step under the
+	# path's value, still green on dark ground), its leading end Sprig.
+	var keys := {"t": Color(SPRIG, 0.75), "b": Color(LEAF, 0.75)}
 	_grid(img, ["....bbbbbbbbbtt", "bbbbbbbbbbbbb.."], keys, Vector2i(1 + drift, 4))
 	_grid(img, ["...bbbbbbbbbt", "bbbbbbbbbbb.."], keys, Vector2i(16 + drift, 8))
 	_grid(img, ["bbbbbbbbbbbt"], keys, Vector2i(5 + drift, 12))
@@ -723,21 +725,24 @@ func _season_haze(img: Image, f: int) -> void:
 		_px(img, m.x, m.y - f, Color(BLOSSOM, 0.75 if f < 3 else 0.4))
 
 func _spore_fleck(img: Image, f: int) -> void:
-	# A pink fleck that lands and scatters: a lit dot, five bits flying out, thinning.
-	var c := Vector2i(4, 5)
+	# A pink spore puff that lands and scatters: a lit core, then seven 2 px bits flying out on rays, thinning.
+	# Wiring capture (2026-10-25): at 9 px it read as tiny specks at 2x: now 15 px, a 5 px core, 2 px bits.
+	var c := Vector2i(7, 7)
+	var rays := [Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1), Vector2(-0.7, -0.7), Vector2(-1, 0), Vector2(-0.7, 0.7),
+		Vector2(0.7, 0.7)]
 	match f:
 		0:
-			_grid(img, [".c.", "cHc", ".c."], {"c": BLOSSOM, "H": HEART}, c - Vector2i(1, 1))
-		1:
-			for d: Vector2i in [Vector2i(-2, -1), Vector2i(2, -1), Vector2i(0, -3), Vector2i(-1, 1), Vector2i(1, 1)]:
-				_px(img, c.x + d.x, c.y + d.y, BLOSSOM)
-			_px(img, c.x, c.y - 1, HEART)
-		2:
-			for d: Vector2i in [Vector2i(-3, -2), Vector2i(3, -2), Vector2i(0, -4), Vector2i(-2, 2), Vector2i(2, 2)]:
-				_px(img, c.x + d.x, c.y + d.y, Color(BLOSSOM, 0.75))
-		3:
-			for d: Vector2i in [Vector2i(-4, -2), Vector2i(4, -3), Vector2i(0, -5)]:
-				_px(img, c.x + d.x, c.y + d.y, Color(BLOSSOM, 0.4))
+			_grid(img, ["..c..", ".cbc.", "cbHbc", ".cbc.", "..c.."], {"c": ORCHID, "b": BLOSSOM, "H": HEART}, c - Vector2i(2, 2))
+		_:
+			var reach: float = [0.0, 3.0, 5.0, 6.0][f]
+			var col: Color = [BLOSSOM, BLOSSOM, Color(BLOSSOM, 0.75), Color(ORCHID, 0.4)][f]
+			for d: Vector2 in rays:
+				var p := Vector2(c) + Vector2(0.5, 0.5) + d * reach
+				_px(img, floori(p.x), floori(p.y), col)
+				var q := p - d * 1.0  # Its tail
+				_px(img, floori(q.x), floori(q.y), Color(col, minf(col.a, 0.75)))
+			if f == 1:
+				_grid(img, [".b.", "bHb", ".b."], {"b": BLOSSOM, "H": HEART}, c - Vector2i(1, 1))
 
 func _black_spot(img: Image, f: int) -> void:
 	# A plant's black spot: a solid, ragged Night blot, a 1 px Bruise rim, lit pale (Mist) on its upper left so it shows
@@ -880,6 +885,8 @@ func _dewdrop_s33() -> void:
 		"Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet.")
 	_sheet("dw_floodgate_froth", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _floodgate_froth,
 		"Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point.")
+	_sheet("dw_floodgate_froth_end", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _floodgate_froth_end,
+		"Floodgate: the froth tile for each END of the surged water (its last drawn point; flip it for the first), the same frames as dw_floodgate_froth with its right half rounding off like the water's rounded end, so the froth never stops in a hard edge. Anchor = the route point.")
 	_sheet("dw_tidal_bore", Vector2i(30, 26), 6, 10.0, Vector2i(15, 25), true, _tidal_bore,
 		"Tidal Bore: a tidal wave rolling with the tough nightmare through the mouth, heaving, its lip curling forward in foam (drawn rolling right: flip it rolling left); drawn just behind the nightmare. Anchor = the wave's foot, under the nightmare.")
 	_sheet("dw_blue_splash", Vector2i(15, 15), 4, 12.0, Vector2i(7, 13), false, _blue_splash,
@@ -936,6 +943,18 @@ func _floodgate_froth(img: Image, f: int) -> void:
 				_px(img, x, y - 1, HEART)  # Foam catching the light, carried along
 	for p: Vector2i in [Vector2i(5, 9), Vector2i(19, 4), Vector2i(26, 13)]:
 		_px(img, (p.x + f * 8) % w, p.y + heave, Color(MOON, 0.75))  # Bubbles carried a quarter tile a frame
+
+# The froth at the water's end: the same tile, its right half cut to a rounded end (an ellipse from the tile's middle),
+# the cut edge a step of Moonlight foam (wiring capture 2026-10-25: the last tile ended in a hard vertical edge).
+func _floodgate_froth_end(img: Image, f: int) -> void:
+	_floodgate_froth(img, f)
+	for y in img.get_height():
+		for x in range(16, img.get_width()):
+			var e := Vector2((x + 0.5 - 16.0) / 14.0, (y + 0.5 - 9.0) / 6.5)
+			if e.length() > 1.0:
+				_px(img, x, y, Color(0, 0, 0, 0))
+			elif e.length() > 0.86 and img.get_pixel(x, y).a > 0.0:
+				_px(img, x, y, Color(MOON, 0.75))  # Foam along its rounded edge
 
 func _tidal_bore(img: Image, f: int) -> void:
 	# The language of dw_wave_flash (the approved breaking wave), held at its peak and rolling over 6 frames: a domed
@@ -1048,11 +1067,13 @@ func _tally(img: Image, f: int) -> void:
 		_halo(img, Vector2(9.0, 8.0), 9.0, GLOW, 1, 0.4)
 
 func _tally_mark(img: Image, f: int) -> void:
-	# Engraved: a Night cut with an Oak lit edge on its right (reads on the bronze face).
+	# Engraved: a bright Heartlight cut with a Night shadow on its left. Wiring capture (2026-10-25): a Gold edge on the
+	# bronze face merged with the plaque's Gold rim, and the slash vanished: the cuts are now the brightest thing on it.
 	if f == 0:
-		_grid(img, ["Nl", "Nl", "Nl", "Nl"], {"N": NIGHT, "l": GOLD}, Vector2i(0, 0))
+		_grid(img, ["NH", "NH", "NH", "NH"], {"N": NIGHT, "H": HEART}, Vector2i(0, 0))
 	else:
-		_grid(img, ["......Nl", "....Nl..", "..Nl....", "Nl......"], {"N": NIGHT, "l": GOLD}, Vector2i(0, 0))
+		# The slash one unbroken diagonal, 2 px thick, its Night shadow under it (council: a stair of dots vanished at 1x).
+		_grid(img, ["......HH", "....HHHN", "..HHHN..", "HHHN....", "NN......"], {"N": NIGHT, "H": HEART}, Vector2i(0, 0))
 
 func _counter_note(img: Image, f: int) -> void:
 	# An eighth note in pale tones (it takes its kind's colour as a multiplier), a Night outline and an upper-left rim of

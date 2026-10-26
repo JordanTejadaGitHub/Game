@@ -30,6 +30,21 @@
 			"loop": true,
 			"use": "Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point."
 		},
+		"dw_floodgate_froth_end": {
+			"anchor": [
+				16,
+				9
+			],
+			"file": "dw_floodgate_froth_end.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Floodgate: the froth tile for each END of the surged water (its last drawn point; flip it for the first), the same frames as dw_floodgate_froth with its right half rounding off like the water's rounded end, so the froth never stops in a hard edge. Anchor = the route point."
+		},
 		"dw_footprints": {
 			"anchor": [
 				8,
@@ -467,14 +482,14 @@
 		},
 		"sp_spore_fleck": {
 			"anchor": [
-				4,
-				5
+				7,
+				7
 			],
 			"file": "sp_spore_fleck.png",
 			"fps": 12.0,
 			"frame_size": [
-				9,
-				9
+				15,
+				15
 			],
 			"frames": 4,
 			"loop": false,
