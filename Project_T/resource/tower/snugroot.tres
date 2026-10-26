@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "Snugroot"
 role_line = "Area damage, Roots the leaders"
-description = "It damages every nightmare in range. Every {field:snugroot.ability_every:seconds} up to {field:snugroot.hold_targets:count} of the nightmares furthest along the path gain 1 {held} and can't move for {field:snugroot.hold_time:seconds}."
+description = "It damages every nightmare in range. Every {field:snugroot.ability_every:seconds} up to {field:snugroot.hold_targets:count} of the nightmares furthest along the path gain 1 {held} for {field:snugroot.hold_time:seconds}."
 cost = 0
 role_tag = &"control"
 line = "root"

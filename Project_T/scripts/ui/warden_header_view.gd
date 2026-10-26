@@ -380,7 +380,7 @@ func tower_grow_cost(next: TowerData, dreams: DreamState) -> int:
 # WardenRoles, card pass), "Heavy · Area", hidden when it has none; the Warden panel adds its rank after them. (It held
 # the damage type until Nightmare Kinds, enemy_design.md ed6f573b.)
 const ROLE_TAG_NAMES := {WardenRoles.HEAVY: "Heavy", WardenRoles.AREA: "Area", WardenRoles.CHAIN: "Chain",
-	WardenRoles.BEAM: "Beam", WardenRoles.TRAP: "Trap", WardenRoles.PULL: "Pull", WardenRoles.HOLD: "Hold",
+	WardenRoles.BEAM: "Beam", WardenRoles.TRAP: "Trap", WardenRoles.PULL: "Pull", WardenRoles.HOLD: "Root",
 	WardenRoles.SNIPER: "Long range", WardenRoles.SUPPORT: "Support"}
 const ROLE_TAGS_TIP := "Its jobs. Some Dream cards wake only once you have grown a Warden with one of them."
 
