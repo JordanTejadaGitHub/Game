@@ -1625,7 +1625,7 @@ func _floodgate(enemy) -> void:
 			seen[other.get_instance_id()] = true
 	if evo(EVO_SILT):
 		_silt.append({"points": points, "until": now() + SILT_SECONDS, "seen": seen})
-	_surges.append([water.points.duplicate(), now() + SURGE_SECONDS])  # The water heaves and froths (dw_floodgate_froth)
+	_surges.append([Array(water.points.keys()), now() + SURGE_SECONDS])  # The water heaves and froths (dw_floodgate_froth); route indices (water.points is a Dictionary)
 	if evo_art_tex(evo_art, ART_FROTH) == null:
 		_water_fx(w, int(water.first), int(water.last), 3.0)  # Stand-in without the sheet: the water flashes white
 	if row == EVO_SPATE:
