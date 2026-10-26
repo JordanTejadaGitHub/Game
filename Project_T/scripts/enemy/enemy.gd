@@ -1421,9 +1421,12 @@ func _rooted_echo() -> void:
 
 # Only the small kinds that bunch ever go to crowd pips (owner 2026-10-25: "pips only show for small health enemies that
 # usually bunch but leave it off for high health enemies", "should be enemy types"): every other kind keeps its full row
-# in a crowd, as bosses and elites (Few and tough's too) already do. Kind ids = the EnemyData file names.
-const CROWD_PIP_KINDS: Array[StringName] = [&"spiderling", &"puffcaplet", &"duckling", &"dandelion_seed", &"will_o_wisp",
-	&"dusk_moth", &"night_kite", &"dream_thief", &"leaf_bug", &"wandering_hare", &"crow", &"drowned_one", &"puffcap"]
+# in a crowd, as bosses and elites (Few and tough's too) already do. Kind ids = the EnemyData file names. The list is
+# Enemy Discussion's (2026-10-25), by how each kind really arrives: packable small walkers, splits and followers (always
+# bunched), Crow's flocks over the pack, Whisper Swarm ("a cloud of many"). Not flyers (they ride loose), Wander kinds,
+# Will-o'-Wisp (a lone helper), or kinds whose row must stay readable (Weeper, Watcher, Ash Crawler, Husk, Lantern Bearer).
+const CROWD_PIP_KINDS: Array[StringName] = [&"leaf_bug", &"spiderling", &"puffcaplet", &"duckling", &"puffcap",
+	&"dusk_moth", &"drowned_one", &"dream_thief", &"crow", &"whisper_swarm"]
 var _pip_kind := -1  # 1 = its kind can go to crowd pips, 0 = never; looked up once (-1 = not yet)
 
 func _can_crowd_pip() -> bool:
