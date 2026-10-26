@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nestling_hidden"
 display_name = "Grove branch: Hummingbird Bower"
-description = "The {warden:nestling} can grow into the {warden:hummingbird_bower}, then the {warden:jewelwing_court}: a hummingbird that hits one nightmare many times. Also adds its {dream} cards (listed below)."
+description = "The {warden:nestling} can {grow} into the {warden:hummingbird_bower}, then the {warden:jewelwing_court}: a hummingbird that hits one nightmare many times. Also adds its {dream} cards (listed below)."
 root = 0
 costs = Array[int]([80])
 order = 27
