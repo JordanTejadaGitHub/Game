@@ -5,7 +5,7 @@ extends SceneTree
 #   clearing Dream cards need 8+), at most MAX_RIDGES spurs (+1 at Blight 9), BOWL_LOOSE lone obstacles in the
 #   bowl, an opening route in ROUTE_RANGE that bends round the bend spur (>= Manhattan + MapLayout.BEND_EXTRA) on every map.
 # - Each layout forced over LAYOUT_SEEDS seeds: route in ROUTE_RANGE and bent, the bowl open (buildable cells
-#   at least BUILDABLE_MIN), the layout's median obstacle count in OBSTACLES_BLIGHT_0.
+#   BUILDABLE_MIN-BUILDABLE_MAX), the layout's median obstacle count in OBSTACLES_BLIGHT_0.
 # - Each feature forced: it's placed, keeps its distance from the start and end, sits in the frame band or
 #   straddles its inner edge, ponds block without being obstacles, ruins are stone obstacles.
 # Run:  Godot --headless --path . --script res://tests/test_map_density.gd --fixed-fps 60
@@ -14,12 +14,13 @@ const SEEDS := 50
 const LAYOUT_SEEDS := 20
 const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
-const ROUTE_RANGE := Vector2i(22, 38)  # Opening route, full cells. Smaller map (20x16, 2026-10-23): measured 23-36 over 50 seeds (was 24-44 on 23x18)
+const ROUTE_RANGE := Vector2i(22, 37)  # Opening route, full cells. Balancing 2026-10-25 (balance_simulation.md "Map frame woods + bend spur"; measured 24-35)
 const ROUTE_MAX_BLIGHT_9 := 40  # Its extra spur can stretch the opening a little
-const OBSTACLES_BLIGHT_0 := Vector2i(38, 62)  # Frame balance (2026-10-25): measured 42-58, mean 48.9 (every corner and side keeps woods; was 38-48 before)
-const OBSTACLES_BLIGHT_9 := Vector2i(40, 66)  # Measured 45-63 with the frame balance. The extra spur is a deliberate step: less open floor
+const OBSTACLES_BLIGHT_0 := Vector2i(40, 60)  # Balancing 2026-10-25 (measured 42-58, mean 48.9: every corner and side keeps woods)
+const OBSTACLES_BLIGHT_9 := Vector2i(43, 65)  # Balancing 2026-10-25 (measured 45-63). The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(3, 6)  # Lone decision obstacles in the bowl (not spur or feature cells)
-const BUILDABLE_MIN := 255  # Smaller map (2026-10-23): measured 264-280, median ~272 (was ~291 on 23x18)
+const BUILDABLE_MIN := 255  # Balancing 2026-10-25: buildable cells 255-280 (measured 260-276)
+const BUILDABLE_MAX := 280
 
 var failures := 0
 
@@ -103,7 +104,7 @@ func _layout_case(kind: int, short: int) -> void:
 		counts.append(map.obstacles.size())
 		_check(length >= ROUTE_RANGE.x and length <= ROUTE_RANGE.y, "%s seed %d: route %d cells (%d-%d)" % [name,
 			seed_value, length, ROUTE_RANGE.x, ROUTE_RANGE.y])
-		_check(cells >= BUILDABLE_MIN, "%s seed %d: %d buildable cells (at least %d)" % [name, seed_value, cells, BUILDABLE_MIN])
+		_check(cells >= BUILDABLE_MIN and cells <= BUILDABLE_MAX, "%s seed %d: %d buildable cells (%d-%d)" % [name, seed_value, cells, BUILDABLE_MIN, BUILDABLE_MAX])
 		_check(_bends(map), "%s seed %d: the route bends" % [name, seed_value])
 		_check(map.obstacles.size() >= MIN_OBSTACLES, "%s seed %d: at least %d obstacles" % [name, seed_value, MIN_OBSTACLES])
 		main.free()
