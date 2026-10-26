@@ -612,6 +612,7 @@ func _notification(what: int) -> void:
 func _ready() -> void:
 	add_to_group(GROUP)
 	statuses.status_filled.connect(flash_status)  # A status at its most flashes (Roguelite Code, 2026-10-16)
+	statuses.status_filled.connect(_undiluted_filled)
 	var parent := get_parent()
 	if parent != null and parent.has_method("route_around"):
 		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name
@@ -772,6 +773,8 @@ func _process(delta: float) -> void:
 		var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
 		var unique_caught := unique_dreams != null and statuses.is_caught()
 		var spore_soothe := statuses.tick(ld)
+		if _rooted_taken > 0.0 and not statuses.is_held():
+			_rooted_echo()  # Undiluted: a Rooted that just ended
 		if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
 			DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
 		if thin:
@@ -1249,6 +1252,15 @@ func _update_hud(delta: float) -> void:
 
 # The badge row's look now (RowLook): full for the hovered / tapped nightmare, bosses, Deeply Blighted and anything not
 # crowded; compact pips in a crowd; nothing under "Off" (but the hovered / tapped one).
+# --- Undiluted's status payoffs (dream_council_review.md section 36, owner 2026-10-25; Reactions never trigger, Poisoned
+# ticks and Charged bolts x2 live in DreamState / Reactions, Exposed from half its stacks in EnemyStatuses.exposed_need) ---
+const UNDILUTED_SOAKED := 0.25  # Soaked: every family's hits +25%
+const UNDILUTED_SLEEP := 2.0  # Full Drowsy: Asleep this long (never bosses: EnemyStatuses.sleep)
+const UNDILUTED_ECHO := 0.5  # Rooted ending: this share of the damage taken while Rooted lands again
+const UNDILUTED_ECHO_TAG := &"rooted_echo"
+var _rooted_taken := 0.0
+var _rooted_by: Node = null
+
 # A Frostburst (dream_council_review.md section 37): Reactions.frostburst(enemy, amount, source) deals it, hits the
 # nightmares around and queues their Frost (reactions.gd's owner builds it). Until it exists, the burst hits this one
 # only, tagged FROSTBURST_TAG (an effect: it goes in Reactions.EFFECT_TAGS). The Cold Snap started in EnemyStatuses.
@@ -1276,6 +1288,18 @@ func _frostburst() -> void:
 		(Reactions as Script).call("frostburst", self, amount, by)
 	else:
 		take_damage(amount, "", true, false, by, FROSTBURST_TAG)
+
+func _undiluted_filled(id: StringName) -> void:
+	if DreamState.undiluted_on and id == EnemyStatuses.DROWSY and not enemy_data.is_boss and not is_cleansed:
+		statuses.sleep(UNDILUTED_SLEEP)
+
+func _rooted_echo() -> void:
+	var amount := _rooted_taken * UNDILUTED_ECHO
+	var by := _rooted_by if is_instance_valid(_rooted_by) else null
+	_rooted_taken = 0.0
+	_rooted_by = null
+	if DreamState.undiluted_on and amount > 0.0 and not is_cleansed:
+		take_damage(amount, "", false, false, by, UNDILUTED_ECHO_TAG)
 
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
@@ -3712,7 +3736,9 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 		if world:
 			Fx.crit(get_body_position(), world)  # The crit_flare glint, on the drawn body (drawn by the effects player)
 	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
-	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
+	if DreamState.undiluted_on and not shared and statuses.has(EnemyStatuses.DAMP) and not Reactions.is_effect(tag):
+		family *= 1.0 + UNDILUTED_SOAKED  # Undiluted (section 36): Soaked makes every family's hits +25% (its water bonus widened)
+	elif line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier() if not shared else 1.0
@@ -3742,6 +3768,9 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 				_swap_frames(enemy_data.cracked_frames)
 	if soothe > 0.0 and _spawner != null and has_meta(DriftShapes.PACK_META):
 		_spawner.note_pack_damage(self, source, soothe)  # (pack_wiped's top Warden)
+	if DreamState.undiluted_on and soothe > 0.0 and tag != UNDILUTED_ECHO_TAG and statuses.is_held():
+		_rooted_taken += soothe  # Undiluted: half of it lands again when Rooted ends
+		_rooted_by = statuses.source(EnemyStatuses.HELD)
 	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
 		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
 			var half := soothe * PALL_SHARE
