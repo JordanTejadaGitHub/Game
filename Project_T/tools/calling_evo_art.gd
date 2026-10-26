@@ -195,11 +195,13 @@ func _flame_rows(f: int, two: bool) -> Array:
 	][f]
 
 func _bonfire(img: Image, f: int) -> void:
+	# Final council (readability): at 1x dark sticks vanished and it read as a moth-less Moth to Flame: the sticks lighter
+	# (Oak and Ember, lit Deadwood on top) and a pixel wider than the flame each side, so its foot is a woodpile.
 	var sticks := _blank(img)  # Two crossed sticks, outlined: a little bonfire
-	_line(sticks, Vector2i(2, 13), Vector2i(9, 10), OAK)
-	_line(sticks, Vector2i(10, 13), Vector2i(3, 10), BARK)
-	_px(sticks, 3, 12, DEADWOOD)  # The lit upper edge of the front stick
-	_px(sticks, 5, 11, DEADWOOD)
+	_line(sticks, Vector2i(1, 13), Vector2i(10, 10), OAK)
+	_line(sticks, Vector2i(11, 13), Vector2i(2, 10), EMBER)
+	for p: Vector2i in [Vector2i(2, 12), Vector2i(4, 12), Vector2i(7, 11), Vector2i(10, 12), Vector2i(8, 12)]:
+		_px(sticks, p.x, p.y, DEADWOOD)  # The lit upper edges
 	_outline(sticks)
 	_over(img, sticks)
 	_grid(img, _flame_rows(f, true), FLAME, Vector2i(2, 1))
@@ -290,14 +292,16 @@ func _glow_rim(a: float, c: Vector2, r: Vector2) -> Vector2:
 func _full_glow(img: Image, f: int) -> void:
 	var c := Vector2(18.0, 8.0)
 	var r := Vector2(16.0, 6.5)
-	for y in img.get_height():  # The pool of light (council pass 3): two bands of Glow dither, lightest in the middle
+	# Final council: the checker pool read as a mesh and greyed the nightmare's feet: a sparse 1-in-4 Ember light in the
+	# middle thinning to 1-in-8 out to the rim, so the motes stay the stars.
+	for y in img.get_height():
 		for x in img.get_width():
 			var e := Vector2((x + 0.5 - c.x) / (r.x - 1.0), (y + 0.5 - c.y) / (r.y - 1.0))
 			var d := pow(absf(e.x), 3.3) + e.y * e.y
-			if d < 0.4 and (x + y + f) % 2 == 0:
-				_px(img, x, y, Color(GLOW, 0.4))
-			elif d < 1.0 and (x + 2 * y + f) % 4 == 0:
-				_px(img, x, y, Color(GLOW, 0.4))
+			if d < 0.4 and (x + 2 * y + f) % 4 == 0:
+				_px(img, x, y, Color(EMBER, 0.4))
+			elif d < 1.0 and (x + 2 * y + f) % 8 == 0:
+				_px(img, x, y, Color(EMBER, 0.4))
 	for i in 72:  # The rim, dotted
 		var p := _glow_rim(TAU * i / 72.0, c, r)
 		if i % 2 == 0:
@@ -361,11 +365,21 @@ func _throne(img: Image, f: int) -> void:
 				_px(body, x, y, ORCHID if lit < -0.45 else (BRUISE if lit < 0.2 else SHADE))
 	for x in range(8, 26):  # The gill line under the dome
 		_px(body, x, 11, SHADE if x % 2 == 0 else BRUISE)
-	for y in range(12, 32):  # The back below it: straight sides, x 10..22
-		for x in range(10, 23):
-			_px(body, x, y, BRUISE if x < 19 else SHADE)
-	for y in range(12, 31):  # Its lit left edge
-		_px(body, 10, y, ORCHID)
+	# Final council (art direction): the straight-sided back read as a pillar or tombstone: it is the cap's stem now,
+	# narrower under the dome and flaring at its foot, with fibre lines down it, lit on its left.
+	# Recheck: straight full-height fibres and a flared foot read as a fluted stone column: the stem tapers, narrow under
+	# the cap (well inside the dome) and widening down to the seat like a mushroom's stalk, with three short broken fibre
+	# strokes on it.
+	for y in range(12, 32):
+		var t := float(y - 12) / 19.0
+		var x0 := 14 - roundi(t * 3.0)
+		var x1 := 19 + roundi(t * 3.0)
+		for x in range(x0, x1):
+			_px(body, x, y, BRUISE if x < x1 - 3 else SHADE)
+		_px(body, x0, y, ORCHID)  # Its lit left edge
+	for s: Vector3i in [Vector3i(15, 14, 2), Vector3i(17, 19, 2), Vector3i(15, 24, 2)]:  # Short fibre strokes, gaps between, stopping well above the seat
+		for k in s.z:
+			_px(body, s.x + (k / 2), s.y + k, SHADE)
 	for post: int in [6, 25]:  # The arm posts, a cap knob on each
 		for y in range(25, 33):
 			_px(body, post, y, ORCHID if post == 6 else BRUISE)
@@ -380,6 +394,8 @@ func _throne(img: Image, f: int) -> void:
 		_px(body, x, 34, SHADE if x % 2 == 0 else BRUISE)
 	for p: Vector2i in [Vector2i(11, 6), Vector2i(14, 5), Vector2i(10, 8), Vector2i(6, 23)]:  # Cap speckles, lit side
 		_px(body, p.x, p.y, BLOSSOM)
+	for p: Vector2i in [Vector2i(18, 6), Vector2i(22, 8), Vector2i(15, 8)]:  # Pale cap spots (final council), warm bone
+		_grid(body, ["dd"], {"d": DEADWOOD}, p)
 	_outline(body, SHADE)
 	_rim(body, [ORCHID, BRUISE], GOLD, Vector2(16.0, 9.0))  # Gold trim round the dome's upper-left edge
 	_over(img, body)
@@ -556,10 +572,10 @@ func _moon_reflection(img: Image, f: int) -> void:
 			elif row[x] == "m":
 				_px(img, 6 + x + int(waver[y]), y, Color(MIST, 0.75))
 	for x in range(2, 17):  # The streak: dashes of light down the still water
-		var k := (x + f) % 5
+		var k := (x + f) % 4  # A period of 4 on a 4-frame loop (5 skipped a step at the seam, final council)
 		if k < 2:
 			_px(img, x, 6, Color(MOON, 0.75 if x > 5 and x < 12 else 0.4))
-		elif k == 3 and x % 2 == 0:
+		elif k == 3:
 			_px(img, x, 7, Color(MOON, 0.4))
 
 func _drips(img: Image, f: int) -> void:
@@ -659,6 +675,8 @@ func _note(img: Image, f: int) -> void:
 		"..hgge.hgge",
 		"...eo...eo."], {"g": GOLD, "h": GLOW, "e": EMBER, "o": OAK}, Vector2i(1, 2))
 	_px(note, 4 if f == 0 else 9, 7, HEART)  # A glint moving from head to head
+	for x in range(7, 10):  # The beam's highlight in Bellflower pink (final council: all bronze read as a Firefly mark)
+		_px(note, x, 2, BLOSSOM)
 	_outline(note, OAK)  # A bronze outline, not Night (it sits with chorus_note's light notes)
 	_over(img, note)
 	var s: int = f  # A motion streak behind them: it is quick
@@ -703,7 +721,7 @@ func _sporeling_s33() -> void:
 	_sheet("sp_spore_fleck", Vector2i(15, 15), 4, 12.0, Vector2i(7, 7), false, _spore_fleck,
 		"Host Trees: the pink spore fleck where a capped Warden's tick or hit lands (one shot, ~0.33 s). Anchor = the hit point.")
 	_sheet("sp_black_spot", Vector2i(13, 10), 4, 4.0, Vector2i(6, 9), true, _black_spot,
-		"Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point.")
+		"Black Spot: a solid black (Root) rot spot over the marked nightmare's head, a Night outline lit Bruise on its upper left, three orchid pustules on it pulsing together. Anchor = its foot, at the head-mark point.")
 	_sheet("sp_spot_fleck", Vector2i(11, 11), 4, 12.0, Vector2i(3, 8), false, _spot_fleck,
 		"Black Spot: the black rot splat that lands on each Warden as it hits the marked nightmare, drops flicked off it (drawn flicking up-right: flip it toward the Warden; one shot, ~0.33 s). Anchor = the splat on the Warden.")
 	_sheet("sp_deep_rot_ring", Vector2i(44, 20), 5, 10.0, Vector2i(22, 10), false, _deep_rot_ring,
@@ -718,11 +736,19 @@ func _season_haze(img: Image, f: int) -> void:
 	# Wiring capture (Roguelite Code, 2026-10-25): Sprig at 0.4 vanished on the light path: Leaf at 0.75 (a step under the
 	# path's value, still green on dark ground), its leading end Sprig.
 	var keys := {"t": Color(SPRIG, 0.75), "b": Color(LEAF, 0.75)}
-	_grid(img, ["....bbbbbbbbbtt", "bbbbbbbbbbbbb.."], keys, Vector2i(1 + drift, 4))
-	_grid(img, ["...bbbbbbbbbt", "bbbbbbbbbbb.."], keys, Vector2i(16 + drift, 8))
-	_grid(img, ["bbbbbbbbbbbt"], keys, Vector2i(5 + drift, 12))
-	for m: Vector2i in [Vector2i(9, 9), Vector2i(26, 6)]:
-		_px(img, m.x, m.y - f, Color(BLOSSOM, 0.75 if f < 3 else 0.4))
+	# Recheck: long green strokes still led (path grass): the green is short stubs now and the spores lead.
+	_grid(img, ["..bbt", "bbbb."], keys, Vector2i(3 + drift, 4))
+	_grid(img, [".bbbt", "bbbb."], keys, Vector2i(17 + drift, 8))
+	_grid(img, ["bbbt"], keys, Vector2i(8 + drift, 12))
+	# Final council: twice the spores, each with a 2 px rising trail, so the pink reads first (the streaks alone looked
+	# like the path's own grass strokes).
+	for m: Vector2i in [Vector2i(9, 9), Vector2i(26, 6), Vector2i(4, 11), Vector2i(20, 12)]:
+		var y := m.y - f
+		var a := 1.0 if f < 3 else 0.75
+		# A round 2x2 spore lit on its upper left, its trail dotted below with a gap (a dot over a joined trail read as a
+		# tiny mushroom)
+		_grid(img, ["Hb", "bb"], {"H": Color(HEART, a), "b": Color(BLOSSOM, 0.75)}, Vector2i(m.x, y))
+		_px(img, m.x, y + 3, Color(ORCHID, 0.4))
 
 func _spore_fleck(img: Image, f: int) -> void:
 	# A pink spore puff that lands and scatters: a lit core, then seven 2 px bits flying out on rays, thinning.
@@ -754,34 +780,41 @@ func _black_spot(img: Image, f: int) -> void:
 	# cluster off centre sharing one faint pulse.
 	# Pass 4: inner bruise bits (a notch, a pustule cluster) read as grain and two side-by-side glints as eyes again: a
 	# solid Night core with a Bruise edge only, its lobes in the outline, one Mist glint off centre, one small pustule.
+	# Final council: a Night body is the nightmares' own darkest tone, so over a head only its orchid edge showed (a hollow
+	# purple outline): the body is Root, the one black darker than any nightmare, a Night outline like the other solid
+	# objects, a pale Bruise light on its upper-left edge only, and three pustules the only orchid pixels, pulsing together.
 	var spot := _blank(img)
 	_grid(spot, [
-		"...NNN.....",
-		".NNNNNN..N.",
-		"NNNNNNNNN..",
-		"NNNNNNNNNN.",
-		".NNNNNNNNNN",
-		"..NNNNNNNN.",
-		"..NN...NN..",
-		"N.........."], {"N": NIGHT}, Vector2i(1, 1))
-	_outline(spot, BRUISE)
-	_rim(spot, [BRUISE], ORCHID, Vector2(6.0, 5.0))  # Pass 5: an Orchid light on its upper-left edge so the lobes show on a dark head
+		"...RRR.....",
+		".RRRRRR..R.",
+		"RRRRRRRRR..",
+		"RRRRRRRRRR.",
+		".RRRRRRRRRR",
+		"..RRRRRRRR.",
+		"..RR...RR..",
+		"R.........."], {"R": ROOT}, Vector2i(1, 1))
+	_rim(spot, [ROOT], BRUISE, Vector2(8.5, 6.0))  # Recheck: the light runs further round the upper arc (centre moved right)
+	_outline(spot, NIGHT)
 	_over(img, spot)
-	_px(img, 3, 3, MIST)  # One wet glint, upper left
 	var pulse := f == 1 or f == 2
-	_grid(img, ["pb", "bb"], {"p": ORCHID if pulse else BRUISE, "b": BRUISE}, Vector2i(8, 5))  # One pustule, lower right
+	for p: Vector2i in [Vector2i(6, 3), Vector2i(9, 5), Vector2i(4, 6)]:  # Round 2x2 pustules, a pale centre at the pulse
+		_grid(img, ["co", "oo"], {"c": BLOSSOM if pulse else ORCHID, "o": ORCHID if pulse else BRUISE}, p)
+	_px(img, 3, 2, MIST)  # One brighter rim pixel on its upper left, so its edge shows on night ground
 
 func _spot_fleck(img: Image, f: int) -> void:
 	# A dark splat (Night core, Orchid rim on its lit side) with drops flicked off it in an arc; the lead drops stay Orchid.
 	# Pass 2: the splat 5 px, a Mist glint and Bruise edge so it shows on dark ground and on a Warden; drops 2 px.
 	var c := Vector2i(3, 8)
-	var splat := [".mb.", "mNNb", "bNNN", ".bN."] if f < 3 else [".b..", "bNb.", ".b.."]
+	# Final council: the splat a pixel larger at its peak (frame 1) and one drop a frame lit pale orchid (Blossom), so it
+	# reads on night ground.
+	var splat: Array = [[".mb.", "mNNb", "bNNN", ".bN."], [".mbb.", "mNNNb", "bNNNN", ".bNNb", "..b.."],
+		[".mb.", "mNNb", "bNNN", ".bN."], [".b..", "bNb.", ".b.."]][f]
 	_grid(img, splat, {"N": NIGHT, "b": BRUISE, "m": MIST}, c - Vector2i(1, 2))
 	var drops: Array = [[], [Vector2i(3, -3), Vector2i(2, -5)], [Vector2i(5, -4), Vector2i(3, -6), Vector2i(6, -2)],
 		[Vector2i(7, -4), Vector2i(4, -7)]][f]
 	for i in drops.size():
 		var d: Vector2i = drops[i]
-		var col: Color = ORCHID if i == 0 else BRUISE
+		var col: Color = BLOSSOM if i == 0 else BRUISE
 		_px(img, c.x + d.x, c.y + d.y, col)
 		_px(img, c.x + d.x, c.y + d.y + 1, Color(NIGHT, 1.0 if f < 3 else 0.75))
 
@@ -814,10 +847,12 @@ func _deep_rot_ring(img: Image, f: int) -> void:
 			_px(img, int(c.x) + p.x, int(c.y) + p.y - f, Color(BLOSSOM, 0.75))
 
 func _firefly_s33() -> void:
-	_sheet("lf_lantern", Vector2i(17, 18), 5, 6.0, Vector2i(8, 17), true, _lantern,
-		"Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing (loop the pair: the flame flickers, the halo shimmers). Anchor = its base's middle.")
-	_sheet("lf_streak_flare", Vector2i(21, 21), 15, 14.0, Vector2i(10, 10), false, _streak_flare,
-		"Lantern Alley: the lantern's flare each time its streak grows, a warm ring with ember sparks (one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame).")
+	# Final council: loop false (a plain loop would play blazing straight into dim): code loops 1-2 or 3-4 itself; the
+	# anchor on the base's outline (y 15; at 17 it floated 2 px above its point).
+	_sheet("lf_lantern", Vector2i(17, 18), 5, 6.0, Vector2i(8, 15), false, _lantern,
+		"Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing: code loops the pair itself at the sheet's fps (the flame flickers, the halo shimmers); not a plain looping animation. Anchor = its base's foot.")
+	_sheet("lf_streak_flare", Vector2i(27, 27), 15, 14.0, Vector2i(13, 13), false, _streak_flare,
+		"Lantern Alley: the lantern's flare each time its streak grows, an ember ring bursting with sparks flying out (fire, not a bell's ring; one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame).")
 
 func _lantern(img: Image, f: int) -> void:
 	# A little oak lantern on a short hook: the flame inside dims or blazes by frame, flickering between each pair
@@ -857,16 +892,20 @@ func _lantern(img: Image, f: int) -> void:
 func _streak_flare(img: Image, f: int) -> void:
 	# The lantern's own flare (not the crit's four-point star): a hot core that bursts into a warm ring, ember sparks
 	# flying out of it, the ring breaking and fading. Tier t (0-2): the ring 1 px wider and 2 more sparks a tier.
+	# Final council: a 27 px frame (tier 2's sparks fell outside 21 px as it faded); the ring sampled by its length (32
+	# samples left gaps on the big rings before they should break); it burns toward Ember with sparks streaking outward,
+	# so it reads as fire bursting, not a bell's dotted gold ring.
 	var tier := f / 5
 	var k := f % 5
-	var c := Vector2(10.5, 10.5)
+	var c := Vector2(13.5, 13.5)
 	if k <= 1:  # The core
-		_grid(img, [".G.", "GHG", ".G."] if k == 0 else ["GGG", "GHG", "GGG"], {"G": GLOW, "H": HEART}, Vector2i(9, 9))
+		_grid(img, [".G.", "GHG", ".G."] if k == 0 else ["GGG", "GHG", "GGG"], {"G": GLOW, "H": HEART}, Vector2i(12, 12))
 	var r: float = [0.0, 3.0, 5.0, 6.5, 7.5][k] + tier
 	if k >= 1:
-		var ring_col: Color = [GLOW, GLOW, GOLD, Color(GOLD, 0.75), Color(EMBER, 0.4)][k]
-		for i in 32:
-			var a := TAU * i / 32.0
+		var ring_col: Color = [GLOW, GLOW, EMBER, Color(EMBER, 0.75), Color(EMBER, 0.4)][k]
+		var n := ceili(TAU * r)
+		for i in n:
+			var a := TAU * i / n
 			if k >= 3 and i % 4 == 0:
 				continue  # Breaking up
 			var p := c + Vector2(cos(a), sin(a)) * r
@@ -875,8 +914,12 @@ func _streak_flare(img: Image, f: int) -> void:
 	if k >= 2:
 		for i in sparks:
 			var a := TAU * (i + 0.5) / sparks
-			var p := c + Vector2(cos(a), sin(a)) * (r + 1.5 + (k - 2))
-			_px(img, floori(p.x), floori(p.y), [GLOW, GOLD, Color(EMBER, 0.75)][k - 2])
+			var dir := Vector2(cos(a), sin(a))
+			var p := c + dir * minf(r + 1.5 + (k - 2) * 1.5, 12.0)
+			var col: Color = [GLOW, GOLD, Color(GOLD, 0.75)][k - 2]
+			_px(img, floori(p.x), floori(p.y), col)
+			var tail := p - dir  # A streak behind it: flying out
+			_px(img, floori(tail.x), floori(tail.y), Color(EMBER, 0.75))
 	if k == 1:  # A halo only at the burst (on later frames it filled the ring with a mesh)
 		_halo(img, c, r + 2.0, GLOW, f)
 
@@ -915,12 +958,17 @@ func _heavy_cling(img: Image, f: int) -> void:
 		var bx: int = [15, 21][b]
 		var up: int = slosh if b == 0 else -slosh
 		_grid(img, [".hm", "mmm"], {"h": HEART, "m": MOON}, Vector2i(bx, 4 - maxi(up, 0)))
-	for i in 4:  # The wake: foam dashes behind, thinning, running back a pixel a frame
-		var x := 10 - i * 3 - (f % 3)
-		var y := 8 + (i % 2)
-		var col := Color(MOON if i < 2 else DEWLIGHT, 0.75 if i < 2 else 0.4)
+	# The wake: foam dashes 4 px apart running back a pixel a frame (a period of 4 on the 4-frame loop: each dash ends
+	# where the next began, final council), each one's look taken from how far behind it is, not from its index.
+	for i in 4:
+		var x := 12 - i * 4 - f
+		if x < 0:
+			continue
+		var near := x >= 6
+		var col := Color(MOON if near else DEWLIGHT, 0.75 if near else 0.4)
+		var y := 8 if near else 9
 		_px(img, x, y, col)
-		if i < 2:
+		if near:
 			_px(img, x - 1, y, col)
 
 func _floodgate_froth(img: Image, f: int) -> void:
@@ -1028,9 +1076,9 @@ func _blue_splash(img: Image, f: int) -> void:
 
 func _bellflower_s33() -> void:
 	_sheet("kt_tally", Vector2i(19, 15), 2, 0.0, Vector2i(9, 14), false, _tally,
-		"Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (x 5..13, y 7..10): one group of five, then a count. Anchor = its bottom middle.")
+		"Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (top left of the marks at (5, 7); the face runs x 5..13, y 7..11): one group of five, then a count. Anchor = its bottom middle.")
 	_sheet("kt_tally_mark", Vector2i(8, 5), 2, 0.0, Vector2i(0, 0), false, _tally_mark,
-		"Last Bell: the tally's engraved marks. Frame 0 one stroke (2 px wide: the cut and its lit edge; place strokes 2 px apart), frame 1 the slash over a group of four. Anchor = top left.")
+		"Last Bell: the tally's engraved marks. Frame 0 one stroke, 2 px wide (its Night shadow and Heartlight cut): advance 2 px per stroke so the strokes touch; four strokes = 8 px. Frame 1 the slash, drawn at the same top left as the first stroke, covers all four. Anchor = top left.")
 	_sheet("kt_counter_note", Vector2i(9, 12), 2, 0.0, Vector2i(4, 11), false, _counter_note,
 		"Counterpoint: one small note per kind over the nightmare, modulated (multiplier) by that kind's colour; space them 6 px apart, at most 4. Frame 0 hanging, frame 1 flashing at the toll. Anchor = the note head's foot.")
 
@@ -1057,14 +1105,15 @@ func _tally(img: Image, f: int) -> void:
 	_rim(plate, [BARK], GOLD if f == 0 else GLOW, Vector2(9.0, 8.0))
 	_outline(plate)
 	_over(img, plate)
-	_line(img, Vector2i(8, 2), Vector2i(4, 4), OAK)  # The cord, up to just under its nail
-	_line(img, Vector2i(10, 2), Vector2i(14, 4), OAK)
+	# The cord, up to just under its nail, in Bellflower pink (final council: all bronze read as a Firefly mark)
+	_line(img, Vector2i(8, 2), Vector2i(4, 4), BLOSSOM)
+	_line(img, Vector2i(10, 2), Vector2i(14, 4), BLOSSOM)
 	_px(img, 9, 1, NIGHT)
 	_px(img, 9, 0, GLOW if f == 1 else GOLD)  # The nail, a pixel above the cord's peak
 	for r: Vector2i in [Vector2i(4, 6), Vector2i(14, 6)]:
 		_px(img, r.x, r.y, HEART if f == 1 else GOLD)
-	if f == 1:
-		_halo(img, Vector2(9.0, 8.0), 9.0, GLOW, 1, 0.4)
+	if f == 1:  # A short halo, above it only (r 9 was cut flat by the frame's edges, final council)
+		_halo(img, Vector2(9.0, 8.0), 7.0, GLOW, 1, 0.4, true)
 
 func _tally_mark(img: Image, f: int) -> void:
 	# Engraved: a bright Heartlight cut with a Night shadow on its left. Wiring capture (2026-10-25): a Gold edge on the

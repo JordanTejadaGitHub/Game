@@ -223,7 +223,7 @@
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (x 5..13, y 7..10): one group of five, then a count. Anchor = its bottom middle."
+			"use": "Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (top left of the marks at (5, 7); the face runs x 5..13, y 7..11): one group of five, then a count. Anchor = its bottom middle."
 		},
 		"kt_tally_mark": {
 			"anchor": [
@@ -238,7 +238,7 @@
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke (2 px wide: the cut and its lit edge; place strokes 2 px apart), frame 1 the slash over a group of four. Anchor = top left."
+			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke, 2 px wide (its Night shadow and Heartlight cut): advance 2 px per stroke so the strokes touch; four strokes = 8 px. Frame 1 the slash, drawn at the same top left as the first stroke, covers all four. Anchor = top left."
 		},
 		"lf_constellation_pip": {
 			"anchor": [
@@ -288,7 +288,7 @@
 		"lf_lantern": {
 			"anchor": [
 				8,
-				17
+				15
 			],
 			"file": "lf_lantern.png",
 			"fps": 6.0,
@@ -297,8 +297,8 @@
 				18
 			],
 			"frames": 5,
-			"loop": true,
-			"use": "Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing (loop the pair: the flame flickers, the halo shimmers). Anchor = its base's middle."
+			"loop": false,
+			"use": "Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing: code loops the pair itself at the sheet's fps (the flame flickers, the halo shimmers); not a plain looping animation. Anchor = its base's foot."
 		},
 		"lf_moth_flame": {
 			"anchor": [
@@ -347,18 +347,18 @@
 		},
 		"lf_streak_flare": {
 			"anchor": [
-				10,
-				10
+				13,
+				13
 			],
 			"file": "lf_streak_flare.png",
 			"fps": 14.0,
 			"frame_size": [
-				21,
-				21
+				27,
+				27
 			],
 			"frames": 15,
 			"loop": false,
-			"use": "Lantern Alley: the lantern's flare each time its streak grows, a warm ring with ember sparks (one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame)."
+			"use": "Lantern Alley: the lantern's flare each time its streak grows, an ember ring bursting with sparks flying out (fire, not a bell's ring; one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame)."
 		},
 		"lf_strung_pip": {
 			"anchor": [
@@ -403,7 +403,7 @@
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point."
+			"use": "Black Spot: a solid black (Root) rot spot over the marked nightmare's head, a Night outline lit Bruise on its upper left, three orchid pustules on it pulsing together. Anchor = its foot, at the head-mark point."
 		},
 		"sp_cap_badge": {
 			"anchor": [
