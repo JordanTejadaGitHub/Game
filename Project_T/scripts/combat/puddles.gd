@@ -1611,7 +1611,9 @@ func _floodgate(enemy) -> void:
 			seen[other.get_instance_id()] = true
 	if evo(EVO_SILT):
 		_silt.append({"points": points, "until": now() + SILT_SECONDS, "seen": seen})
-	_water_fx(w, int(water.first), int(water.last), 3.0)  # The water heaves white
+	_surges.append([water.points.duplicate(), now() + SURGE_SECONDS])  # The water heaves and froths (dw_floodgate_froth)
+	if evo_art_tex(evo_art, ART_FROTH) == null:
+		_water_fx(w, int(water.first), int(water.last), 3.0)  # Stand-in without the sheet: the water flashes white
 	if row == EVO_SPATE:
 		_water_fx(w, int(water.last), int(water.last) + SPATE_STEPS * 2, 2.0)  # The wave racing on down the path
 	_wave_crest(int(water.last), int(water.last) + 1)
@@ -2288,7 +2290,8 @@ func _mouth_multiplier(tower, enemy) -> float:
 	var bonus := 1.0 + minf(MOUTH_PER * count, MOUTH_MAX)
 	DamageLog.note_card_bonus(String(row), bonus)
 	credit(row, enemy.global_position, tower)
-	Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)  # The big blue splash
+	if row == EVO_RAPIDS or not _blue_splash(enemy):
+		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.2)  # The splash (River Mouth / Delta: dw_blue_splash)
 	return bonus
 
 # How many statuses on `enemy` the water is keeping (EnemyStatuses.is_kept; never is_lingering).
@@ -2479,6 +2482,10 @@ const ART_PRINTS := &"dw_footprints"
 const ART_REEDS := &"dw_reeds"
 const ART_SHEEN := &"dw_still_sheen"
 const ART_WAVE := &"dw_wave_flash"
+const ART_FROTH := &"dw_floodgate_froth"  # Floodgate's surge (0b136e06): one per water point, tiles every 32 px
+const ART_FROTH_END := &"dw_floodgate_froth_end"  # …and its two end points: the tile rounding off (995fb3b4; flipped for the far end)
+const ART_BLUE := &"dw_blue_splash"  # River Mouth / Delta: the big splash on a hit (one shot)
+var _surges: Array = []  # Floodgate: [water route indices, until (now())] while the surge froths
 var _mud_art: Node2D  # Mudflats' mud sheets: on the path layer, under the damp band (only with the dw_mud sheet)
 var _reed_layer: Node2D  # Reed Bed's reeds stand in the map's y-sort (only with the dw_reeds sheet)
 var _reed_stands := {}  # Vector2i(route index, side) -> its ReedStand
@@ -2551,12 +2558,14 @@ func _tick_water(delta: float) -> void:
 		splash[1] = float(splash[1]) + delta
 	_splashes = _splashes.filter(_splash_alive)
 	_pulses = _pulses.filter(_pulse_alive)
+	if not _surges.is_empty():
+		_surges = _surges.filter(func(s) -> bool: return float(s[1]) > now())
 	if waters.is_empty() and not _wade_stands.is_empty():
 		_sync_wading()  # The water's gone: no one wades
 	if waters.is_empty() or get_tree().paused:
 		return
 	var frame := loop_frame(WATER_FPS, 1000)
-	if frame != _surface_frame or not _splashes.is_empty() or not _pulses.is_empty():
+	if frame != _surface_frame or not _splashes.is_empty() or not _pulses.is_empty() or not _surges.is_empty():
 		_surface_frame = frame
 		_surface.queue_redraw()
 	_wade_wait -= delta
@@ -2713,6 +2722,23 @@ func _draw_water_surface(c: CanvasItem) -> void:
 	for splash in _splashes:  # A Dewdrop's hit in the water
 		var s: float = float(splash[1]) / SPLASH_TIME
 		c.draw_arc(splash[0], 4.0 + 14.0 * s, 0.0, TAU, 16, Color(Palette.DEWLIGHT, 0.8 * (1.0 - s)), 1.5)
+	for surge in _surges:  # Floodgate: the surged water froths for SURGE_SECONDS, fading over its last 0.4 s
+		var fade := clampf((float(surge[1]) - now()) / 0.4, 0.0, 1.0)
+		var points: Array = surge[0]
+		for i in points:
+			var k := int(i)
+			if k >= _route_px.size():
+				continue
+			# The water's two end points take the end tile (its right half rounds off with foam, 995fb3b4), turned to
+			# face away from the water: no hard edge, no spill past the rounded end. Plain tiles between them.
+			var has_prev: bool = points.has(k - 1) and k - 1 >= 0
+			var has_next: bool = points.has(k + 1) and k + 1 < _route_px.size()
+			if has_prev and has_next:
+				evo_mark(c, ART_FROTH, _route_px[k], fade)  # All points in step, so the 32 px tiles join along the water
+			elif has_prev or has_next:
+				var inner: Vector2 = _route_px[k - 1] if has_prev else _route_px[k + 1]
+				if not evo_mark(c, ART_FROTH_END, _route_px[k], fade, _route_px[k].x < inner.x):
+					evo_mark(c, ART_FROTH, _route_px[k], fade)
 	for pulse in _pulses:  # The Calling's ripple running both ways along the water, as a wave front
 		for dirn: int in [-1, 1]:
 			_draw_wave_front(c, pulse, dirn)
@@ -3081,36 +3107,54 @@ func _wave_crest(i: int, toward: int) -> void:
 	world.add_child(crest)  # Never under %EnemyContainer
 	crest.global_position = to_global(_route_px[i])
 
-# The crest's frame `age` s in (holds its last; reduced motion: frame 0).
-func wave_frame(age: float) -> int:
-	return evo_art_frame(evo_art, ART_WAVE, age)
+# River Mouth / Delta: the big blue splash (dw_blue_splash, one shot) at the hit's foot, in the y-sort just in front of the
+# nightmare (the crown rises over its legs). False without the sheet (the caller plays its stand-in).
+func _blue_splash(enemy) -> bool:
+	if evo_art_tex(evo_art, ART_BLUE) == null or not is_instance_valid(enemy):
+		return false
+	var world := Reactions._world(self)
+	if world == null:
+		return false
+	var meta := evo_art_meta(evo_art, ART_BLUE)
+	var life := float(maxi(int(meta.get("frames", 1)), 1)) / maxf(float(meta.get("fps", 12.0)), 1.0)
+	var splash := WaveCrest.new(self, false, life, ART_BLUE, 0)
+	world.add_child(splash)  # Never under %EnemyContainer
+	splash.global_position = enemy.global_position + Vector2(0.0, 1.0)  # (1 px lower: sorts in front of it)
+	return true
 
+# A one-shot mark's frame `age` s in (holds its last; reduced motion: frame 0).
+func wave_frame(age: float, mark: StringName = ART_WAVE) -> int:
+	return evo_art_frame(evo_art, mark, age)
+
+# A one-shot mark node: the Breaking Wave crest (on the ground, z -1) or the River Mouth / Delta splash (z 0, y-sorted).
 class WaveCrest extends Node2D:
 	var _puddles
 	var _flip := false
 	var _life := 0.36
 	var _age := 0.0
 	var _frame := -1
-	func _init(puddles, flip: bool, life: float) -> void:
+	var _mark: StringName = &"dw_wave_flash"
+	func _init(puddles, flip: bool, life: float, mark: StringName = &"dw_wave_flash", z: int = -1) -> void:
 		_puddles = puddles
 		_flip = flip
 		_life = life
+		_mark = mark
 		name = "WaveCrest"
 		z_as_relative = false
-		z_index = -1  # With the ground: on the water, under the nightmares
+		z_index = z  # -1: with the ground, on the water, under the nightmares
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	func _process(delta: float) -> void:
 		_age += delta
 		if _age >= _life or not is_instance_valid(_puddles):
 			queue_free()
 			return
-		var frame: int = _puddles.wave_frame(_age)
+		var frame: int = _puddles.wave_frame(_age, _mark)
 		if frame != _frame:
 			_frame = frame
 			queue_redraw()
 	func _draw() -> void:
 		if is_instance_valid(_puddles):
-			_puddles.evo_mark(self, &"dw_wave_flash", Vector2.ZERO, 1.0, _flip, maxi(_frame, 0))
+			_puddles.evo_mark(self, _mark, Vector2.ZERO, 1.0, _flip, maxi(_frame, 0))
 
 # A water layer: draws through the Puddles node (`kind`: 0 damp, 1 body, 2 surface, 3 wading, 4 mud sheets).
 class WaterArt extends Node2D:

@@ -536,6 +536,8 @@ func _remember(m: Dictionary, statuses: Array) -> void:
 
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, _tagged: bool) -> void:
 	if active():
+		if evo(EVO_HOST_TREES) and (is_hit or Reactions.is_effect(event.tag)):
+			_host_fleck(source, enemy)
 		if dispel:
 			if place_on():
 				_fell(enemy)
@@ -1648,6 +1650,8 @@ func _catching() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if not _flecks.is_empty() and not get_tree().paused:
+		_age_flecks(delta)
 	if dream_state == null or not place_on() or get_tree().paused:
 		return
 	var breathe := int(Time.get_ticks_msec() / 1000.0 * MUSHROOM_FPS) % MUSHROOM_FRAMES  # The mushrooms breathe (4 fps)
@@ -1661,6 +1665,10 @@ func _process(delta: float) -> void:
 		if stamp != _art_stamp:
 			_art_stamp = stamp
 			queue_redraw()
+	if season_on() != _haze_shown or (_haze_shown and evo_art_frame(evo_art, ART_HAZE) != _haze_frame):
+		_haze_shown = season_on()  # Spore Season's haze: lit or out, and its own 3 fps loop
+		_haze_frame = evo_art_frame(evo_art, ART_HAZE)
+		queue_redraw()
 	# The regrow clocks run only during a drift
 	if not resting() and not _regrow.is_empty():
 		for point in _regrow.keys():
@@ -2006,6 +2014,13 @@ var _stands := {}  # Route point -> its Stand
 
 func _draw() -> void:
 	_sync_stands.call_deferred()
+	# Spore Season: a low spore haze on every route point while it is lit (sp_season_haze, every other tile flipped so the
+	# trail doesn't repeat; on the ground, under the nightmares). No drawn stand-in: the badge already says it is lit.
+	if _haze_shown and place_on():
+		for k in _route_px.size():
+			evo_mark(self, ART_HAZE, _route_px[k], 1.0, k % 2 == 1)
+	for fleck in _flecks:  # One-shot marks (Host Trees' spore fleck), over the haze, whatever else is on
+		evo_mark(self, fleck[0], fleck[1], 1.0, bool(fleck[3]), evo_art_frame(evo_art, fleck[0], float(fleck[2])))
 	if not place_on() or _route_px.is_empty():
 		return
 	# Feeding Ground: fed ground glows green on the path and fades as its 8 s run out (flat on the ground, under the caps)
@@ -2045,6 +2060,40 @@ const ART_FED := &"sp_fed_ground"
 const ART_ROT := &"sp_rot_ring"
 const ART_THRONE := &"sp_throne_rim"
 var _art_stamp := -1  # The ground marks' frames last drawn (redraw only when they change)
+const ART_HAZE := &"sp_season_haze"
+const ART_FLECK := &"sp_spore_fleck"
+const FLECK_EVERY := 0.25  # Host Trees' fleck: at most this often per capped Warden (ticks come fast)
+const FLECKS_MAX := 32
+var _haze_shown := false
+var _haze_frame := -1
+var _flecks: Array = []  # One-shot marks: [mark, local point, age, flip]
+
+# Host Trees: a pink spore fleck where a capped Warden of another family's tick or hit lands (sp_spore_fleck, one shot).
+func _host_fleck(source, enemy) -> void:
+	if not is_capped(source) or is_own(source) or not is_instance_valid(enemy) or _flecks.size() >= FLECKS_MAX \
+			or now() < float(source.get_meta(FLECK_META, -INF)):
+		return
+	source.set_meta(FLECK_META, now() + FLECK_EVERY)
+	_flecks.append([ART_FLECK, to_local(enemy.global_position), 0.0, false])
+	queue_redraw()
+const FLECK_META := &"sp_fleck_next"  # On a Warden: when it may fleck again
+
+# Ages the one-shots; each ends after its sheet's frames (fps from calling_evo.json); redraws only on a frame change.
+func _age_flecks(delta: float) -> void:
+	var changed := false
+	for i in range(_flecks.size() - 1, -1, -1):
+		var fleck: Array = _flecks[i]
+		var meta := evo_art_meta(evo_art, fleck[0])
+		var length := float(maxi(int(meta.get("frames", 1)), 1)) / maxf(float(meta.get("fps", 12.0)), 1.0)
+		var before := evo_art_frame(evo_art, fleck[0], float(fleck[2]))
+		fleck[2] = float(fleck[2]) + delta
+		if float(fleck[2]) >= length:
+			_flecks.remove_at(i)
+			changed = true
+		elif evo_art_frame(evo_art, fleck[0], float(fleck[2])) != before:
+			changed = true
+	if changed:
+		queue_redraw()
 
 func _exit_tree() -> void:
 	if is_instance_valid(_layer):
