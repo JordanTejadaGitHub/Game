@@ -460,7 +460,7 @@ func _draw_chip(chip: Button, id: StringName) -> void:
 
 # Under a status a Dream card just added (wording_council_review.md "Hollow stacks", 981a425a; the seconds from
 # EnemyStatuses.FED_LOCK, never typed). Shown in the chip's words now (the chip itself draws hollow).
-const HOLLOW_LINE := "Hollow: a Dream card added these stacks. No Reaction can trigger on this nightmare until they fill in ({const:fed_lock} s)."
+const HOLLOW_LINE := "Settling: a Dream card added these stacks. No Reaction can trigger on this nightmare until they settle ({const:fed_lock} s)."  # Owner 2026-10-26 (wording 52c3473b): "Settling", not "Hollow"
 
 # The pointer is on the status-link text, or one of its popups is open: don't rewrite it now.
 func _body_in_use() -> bool:

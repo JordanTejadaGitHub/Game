@@ -71,7 +71,7 @@ func _run() -> void:
 	info._show_note(EnemyStatuses.STATIC)
 	await _frames(2)
 	note = info._chip_note.get_parsed_text()
-	_check(note.contains("Hollow:") and not note.contains("{"), "the locked chip's words include a filled Hollow line (%s)" % note)
+	_check(note.contains("Settling:") and not note.contains("{"), "the locked chip's words include a filled Settling line (%s)" % note)
 	info._show_note(&"")
 
 	# PC click-to-pin (after the first-run camera glide has settled: the click aims at a fixed screen point)
