@@ -101,3 +101,34 @@ Your Dreams on every choice screen. Asked in the same session: the nightmare car
 and ends above the drift panel (nightmare_info.gd `_fit_phone`); the Armoured line says what armour does (PC too,
 EnemyData.KIND_LINES); the drift button's Resume works again (PC too, 45f43db0: a per-frame disabled toggle cancelled
 the press).
+
+### Round 2 (2026-10-26): the phone drift controls (Start / Auto / II / speed)
+
+Seats K R T P F, reports in documentation/mobile_ui_council/2026-10-26b/. Captures: rest (Auto off / on), building,
+mid-drift at 2x, paused, drawer open, both UI sizes.
+
+#### Verdict
+Keep the layout (all five): one wide action above Auto, II and the speed cycle in the right thumb's corner; II and speed
+bigger than Auto; one cycling speed button (Bloons' play / fast-forward toggle is the same idea). The problems are
+state, not layout: Auto's on / off barely shows, the speed button wears the same "on" mark, paused says "resume" three
+ways, and some facts (the auto countdown, the tips) have no phone path.
+
+#### Fix first (all phone-only, drift_panel.gd unless noted; spot-checked)
+1. Speed cycle loses the on-mark (R T K P): `_on_speed_changed` presses `_phone_speed` whenever the game runs
+   (drift_panel.gd:530), so "1x" looks switched on like Auto. Only Auto (on) and II (paused) light up.
+2. Auto on / off by shape, not only colour (T K F R): keep the one word; add a small dot before it, filled when on,
+   hollow when off.
+3. Paused (T F P): II shows a play triangle while paused; a speed tap while paused cycles the speed and stays paused
+   (today its first tap resumes, :521-525), so Resume and II are the two ways back.
+4. Sizes (T K): Auto and Start 60 px tall like II / speed (Auto still the narrowest); 12 px between row-2 buttons, 14 px
+   between Start and row 2 (a mis-tap there starts a drift).
+5. Mid-drift "Rest after drift N" (K F): it can't be pressed; draw its words dim so it reads as status, not a button.
+6. Bugs (P): the Auto plate goes stale after loading a run (run_saver.gd:569 sets auto drift, nothing syncs the
+   button): sync it every frame as Rush does; the phone "Auto" label relies on handler order (gate the PC words to PC);
+   II / speed can unpause under a peeking choice (PC too: Space / Tab).
+
+#### Owner calls
+- O6 Auto countdown (R P): with Auto on, phones never show "Drift N in X s" (the status line is hidden). Put the
+  seconds on the Call early button ("Call drift 2 early, +40 · 8 s"), or as a draining bar on it?
+- O7 Pause while the Warden drawer is open (K F; was open item 13): the whole panel hides under the drawer. Add a small
+  II to the drawer's header, or leave it (close the drawer to pause)?
