@@ -508,3 +508,20 @@ glossary word). Brittle vs the Omen Brittle Night: different kinds, kept.
   hides a 2-proc limit. Undiluted's text reads as a list of telegrams.
 - **Localisation bugs:** `warden_header_view.gd:129, :131` filter chips by their English label; `drift_panel.gd`
   `phone_short()` rewrites English substrings. Both break on the first translation.
+
+## Hollow stacks (2026-10-25; dream_council_review.md 36, UI council 2026-10-25)
+
+Asked: a line for the status tooltip while a status is locked, and a Codex entry with a solid and a hollow pip. What the
+code does (checked): stacks a Dream card adds (Afterglow, Spent Light, card splashes under Spattered) mark that status
+`fed` for `EnemyStatuses.FED_LOCK` 2 s; while **any** status on the nightmare is fed, **no Reaction on that nightmare**
+triggers (`reactions.gd:293`), not only the card's own Reaction. The text says what the code does.
+
+- **Tooltip line** (status tap / hover, only while that status is hollow): "Hollow: a Dream card added these stacks. No
+  Reaction can trigger on this nightmare until they fill in ({const:fed_lock} s)."
+- **Codex glossary entry** "Hollow" (related: Stack, Reaction), with a solid pip and a hollow pip of the same status side by
+  side before the text: "Stacks a Dream card adds show hollow for {const:fed_lock} s: the colour edge stays, the inside
+  goes dark. While any status on a nightmare is hollow, no Reaction can trigger on it. Then the stacks fill in and count
+  as usual."
+- `{const:fed_lock}` = `EnemyStatuses.FED_LOCK` (codex_data.gd's const replaces, as `tough_leaves`).
+- If the design means only the card's own Reaction waits, the code (`fed_locked()`) is broader: Roguelite Code to decide;
+  the text then becomes "…its own Reaction can't trigger…".

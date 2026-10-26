@@ -3038,6 +3038,17 @@ class GroundRipple extends Node2D:
 		_recent.append([now, at])
 		return true
 
+	# Another ground ring (a splash_ring_* sheet from Fx) counts toward MAX_ALIVE / MAX_ALIVE_REDUCED until it leaves the
+	# tree (UI council 2026-10-25: Packs crowds stacked sheets past the cap; they only passed may_start).
+	static func track(node: Node) -> void:
+		if node == null or not is_instance_valid(node):
+			return
+		_alive += 1
+		node.tree_exiting.connect(_untrack, CONNECT_ONE_SHOT)
+
+	static func _untrack() -> void:
+		_alive = maxi(_alive - 1, 0)
+
 	func _init(reach: float, colour: Color, edge := Color(0, 0, 0, 0)) -> void:
 		_radius = reach
 		_colour = colour
@@ -4268,6 +4279,7 @@ func _splash_ring(where: Vector2, radius: float, area := false) -> void:
 		var sheet := Fx.play(StringName("splash_ring_" + style), where, world, radius / MAP_GRID.cell_size.x)
 		if sheet != null:
 			sheet.z_index = -1
+			GroundRipple.track(sheet)  # It counts toward the live rings' cap
 		return
 	# Pale on a dark edge: a family colour like the Dewdrop's blue vanishes into its own water on the ground.
 	# Stone's family colour (Deadwood) is the sand path's own colour: stone splashes ring in pale Mist instead.

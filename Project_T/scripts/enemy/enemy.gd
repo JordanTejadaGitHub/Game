@@ -3019,6 +3019,8 @@ func _head_top() -> Vector2:
 
 # Enough stacks of `id` for a Reaction to count it (Reactions.ready_need: its lowest need, Brimming's rule included).
 func _is_primed(id: StringName) -> bool:
+	if statuses.is_fed(id):
+		return false  # Hollow (locked) stacks can't complete their card's own Reaction yet: no ready brackets (UI council 2026-10-25)
 	var need := Reactions.ready_need(id, statuses)
 	return need > 0 and statuses.stacks(id) >= need
 
