@@ -39,7 +39,7 @@ func _initialize() -> void:
 	for id in ["rolling_thunder_ii", "root_network_ii", "guiding_light_ii", "tender_care_ii"]:
 		var card: UpgradeData = load("res://resource/dream/%s.tres" % id)
 		_check(not card.retired and card.is_deepened(), "%s remains active Deepened" % id)
-	for entry in [["whirligig_hidden", "ricochet_ii", "crosswind"], ["sharpened", "shattering_blow_ii", "shattering_blow"], ["thorn_and_bramble", "thorn_snare_ii", "hushed_hedge"]]:
+	for entry in [["sharpened", "shattering_blow_ii", "shattering_blow"], ["thorn_and_bramble", "thorn_snare_ii", "hushed_hedge"]]:
 		var grove = load("res://resource/meta/grove/%s.tres" % entry[0])
 		# The retired II left the node's list (card_review_2026-10-12.md 11 E); its card file stays loadable for old saves.
 		_check(not grove.dream_cards.has(entry[1]) and grove.dream_cards.has(entry[2]) and ResourceLoader.exists("res://resource/dream/%s.tres" % entry[1]),

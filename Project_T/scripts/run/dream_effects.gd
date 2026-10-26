@@ -817,7 +817,7 @@ func _hard_won(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionar
 func _sunlit_rest(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.node == null or not ds.sunlit_targets().has(spot.node):
 		return {}
-	return {"positional": true, "radius": 0.0, "active": true, "effect": "Next Sunlit Rest rank"}
+	return {"positional": true, "radius": 0.0, "active": true, "effect": "Next Sunlit Rest Nurture rank"}
 
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":

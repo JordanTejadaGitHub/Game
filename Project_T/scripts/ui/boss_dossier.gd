@@ -666,7 +666,7 @@ func _build(data: EnemyData, drift: int) -> void:
 	# Less on the page (user: "a lot of information on the boss page, remove health and speed and what it brings"):
 	# health lives on the boss bar in the fight, and in the portrait's tip here.
 	var health := NightmareCard.health_at(data, drift, drift_director)
-	TapTip.attach(_stage, "Health %s%s (with this run's growth, Blight and Dreams)" % [thousands(health), _compare_text(health, drift)])
+	TapTip.attach(_stage, "Health %s%s (with this run's health rise, Blight and Dreams)" % [thousands(health), _compare_text(health, drift)])
 	var eyebrow_label := eyebrow(drift_director.get_act(drift), 14)
 	eyebrow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	left.add_child(eyebrow_label)

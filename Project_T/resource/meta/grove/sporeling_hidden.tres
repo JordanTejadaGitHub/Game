@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "sporeling_hidden"
 display_name = "Grove branch: Fairy Ring"
-description = "The {warden:sporeling} can grow into the {warden:fairy_ring}, then the {warden:elf_circle}: mushroom traps on the path. Also adds the {card:ring_dance} card."
+description = "The {warden:sporeling} can {grow} into the {warden:fairy_ring}, then the {warden:elf_circle}: mushroom traps on the path."
 root = 0
 costs = Array[int]([40])
 order = 20
 icon = 0
-dream_cards = Array[String](["dream_fairy_ring", "dream_elf_circle", "ring_dance"])
+dream_cards = Array[String](["dream_fairy_ring", "dream_elf_circle"])

@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "pebbling"
 display_name = "Pebbling family"
-description = "{family:pebbling} can now appear as a choice at {family_picks}. Slow, heavy hits for tough nightmares. Also adds its {dream} cards (listed below)."
+description = "{family:pebbling} can now appear as a choice at {family_picks}. Slow, heavy hits for tough nightmares. Also adds the {card:patient_aim} card."
 root = 0
 costs = Array[int]([50])
 order = 3
 icon = 3
 families = Array[String](["pebbling"])
-dream_cards = Array[String](["long_shadows", "patient_aim"])
+dream_cards = Array[String](["patient_aim"])

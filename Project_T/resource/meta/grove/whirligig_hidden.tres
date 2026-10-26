@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "whirligig_hidden"
 display_name = "Grove branch: Samara"
-description = "The {warden:whirligig} can grow into the {warden:samara}, then the {warden:autumn_gale}: it throws a seed that flies out and comes back. Also adds its {dream} cards (listed below)."
+description = "The {warden:whirligig} can {grow} into the {warden:samara}, then the {warden:autumn_gale}: it throws a seed that flies out and comes back."
 root = 0
 costs = Array[int]([80])
 order = 28
 icon = 8
 requires_all = Array[String](["whirligig"])
-dream_cards = Array[String](["dream_samara", "dream_autumn_gale", "heavy_seed", "crosswind", "seed_storm"])
+dream_cards = Array[String](["dream_samara", "dream_autumn_gale"])

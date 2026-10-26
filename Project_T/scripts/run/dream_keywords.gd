@@ -40,7 +40,7 @@ const MEMBERS := {&"slow": [&"rooted", &"asleep"]}
 const WORDS := {
 	&"stacks": {"name": "Stacks", "text": "A status gets extra {stacks}, or fills faster."},
 	&"linger": {"name": "Duration", "text": "Statuses last longer, or come back after they end."},
-	&"jump": {"name": "Jumps", "text": "Damage {jumps} from one nightmare to others nearby."},
+	&"jump": {"name": "Jumps", "text": "Damage jumps from one nightmare to others nearby."},
 	&"repeat": {"name": "Repeats", "text": "A hit, attack or effect happens again."},
 	&"reaction": {"name": "Reactions", "text": "Two statuses on one nightmare trigger together. Any two can."},
 	&"layered": {"name": "Mixed statuses", "text": "One nightmare carrying several different statuses at once."},

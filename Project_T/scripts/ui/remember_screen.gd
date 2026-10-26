@@ -550,7 +550,7 @@ func offer_line(root: TowerData) -> String:
 		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
 
 const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Borrowed Branch card. The Heartwood may offer them next run."
-const GROVE_HINT := "One more branch grows in the Memory Grove."
+const GROVE_HINT := "Plant one more branch in the Memory Grove."
 
 # A strip emblem's tip (user: "hovering emblems gives me repeated explanations of the branch"): this branch's name and
 # what it does, never the strip's general explanation (that's on the header, once).

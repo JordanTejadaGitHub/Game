@@ -13,5 +13,5 @@ tags = Array[String](["maze", "defining"])
 max_stacks = 1
 rule_id = &"straightaway"
 diagram = ".......\n...W...\n.+++++.\n.......\n......."
-diagram_caption = "Beside a straight stretch of 5 or more path cells: +30% and +0.5 range."
+diagram_caption = "Beside a straight stretch of 5 or more path cells: +0.5 range."
 uses = Array[StringName]([&"maze"])

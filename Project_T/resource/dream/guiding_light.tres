@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "guiding_light"
 display_name = "Guiding Light"
-description = "A {family:firefly_jar} Warden's direct hit on a nightmare with {static} nearly {full} also {jumps} for half to every nightmare within 1 cell."
+description = "A {family:firefly_jar} Warden's direct hit on a nightmare with {static} nearly {full} also jumps for half to every nightmare within 1 cell."
 rarity = 2
 kind = 3
 tags = Array[String](["mark"])

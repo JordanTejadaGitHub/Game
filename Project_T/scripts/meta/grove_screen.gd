@@ -104,7 +104,7 @@ func _build_demo_done() -> void:
 	box.add_theme_constant_override("separation", 8)
 	demo_done.add_child(box)
 	var line := Label.new()
-	line.text = "Your Memory Grove keeps growing in the full game."
+	line.text = "Your Memory Grove has more to plant in the full game."
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.add_theme_font_size_override("font_size", 18)
 	line.add_theme_color_override("font_color", Palette.HEARTLIGHT)
@@ -420,17 +420,17 @@ func _update_card() -> void:
 	_card_wallet.text = "of %d Seeds" % int(_memory.seeds)
 	_plant.visible = buyable
 	_plant.disabled = problem != ""
-	_plant.text = "Grow to level %d" % (level + 1) if level > 0 else "Plant"
+	_plant.text = "Nourish to level %d" % (level + 1) if level > 0 else "Plant"  # Owner 2026-10-26: Plant, Nourish, Full
 	match problem:
 		"Dreams being reworked":
 			_card_status.text = "This node’s Dream cards are being reworked."
 		"Grown":
-			_card_status.text = "Grown" if not selected.start else "Grown from the start"
+			_card_status.text = "Full" if not selected.start else "Full from the start"
 		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
-			_card_status.text = "Grows by itself."
+			_card_status.text = "Plants itself."
 		DemoGrove.ASLEEP:  # The demo Grove: the rest of the tree sleeps until the full game
-			_card_status.text = "Not in the demo. Level %s grows in the full game." % _roman(level + 1) if level > 0 \
-				else "Not in the demo. This node grows in the full game."
+			_card_status.text = "Not in the demo. Level %s can be nourished in the full game." % _roman(level + 1) if level > 0 \
+				else "Not in the demo. This node can be planted in the full game."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
@@ -443,7 +443,7 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "All slots full"
-	if _carry.visible and not carried and _card_status.text in ["", "Grown"]:  # Perks work only while carried
+	if _carry.visible and not carried and _card_status.text in ["", "Full"]:  # Perks work only while carried
 		_card_status.text = "Perks only work while carried. Tap Carry into the run."
 		_card_status.visible = true
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
@@ -595,7 +595,7 @@ func _requirement_chips(unlock: UnlockData) -> Array:
 				else "any %d other %s nodes" % [unlock.requires_any_count, SECTION_NAMES.get(unlock.get_section(), "").to_lower()])
 		chips.append([text, owned >= unlock.requires_any_count])
 	if unlock.crown:
-		chips.append(["All other nodes at their top level", HeartwoodMemory.tree_complete(_memory)])
+		chips.append(["All other nodes Full", HeartwoodMemory.tree_complete(_memory)])
 	return chips
 
 func _chip(text: String, met: bool) -> PanelContainer:

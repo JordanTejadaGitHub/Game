@@ -304,7 +304,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_skip.visible = dream_state.can_skip()  # Restless Dreams (and never on a Calling pick: can_skip)
 	var growing: bool = dream_state.is_calling_offer()  # Calling evolutions (Roguelite Code 2026-10-16): no reroll or let-go
 	if growing:
-		_title.text = "Your Calling grows"
+		_title.text = "Your Calling deepens"
 		if _phone:
 			_subtitle.text = PhoneChoice.sentence(dream_state.calling_path_text().to_lower() if not dream_state.calling_path.is_empty() else "choose its style")
 		else:

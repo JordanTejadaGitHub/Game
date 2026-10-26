@@ -318,7 +318,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 		return
 	growth.visible = true
 	var head := Label.new()
-	head.text = "Grows into"
+	head.text = "Grow into"
 	UiStyle.caps(head, 14)
 	growth.add_child(head)
 	for option in options:

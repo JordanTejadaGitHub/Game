@@ -234,7 +234,7 @@ func _build_phone() -> void:
 	_gap(_menu, 16.0)  # Set apart even when the rail scrolls
 	var abandon := _add_button("Abandon run…", _ask_abandon)
 	abandon.name = "AbandonRun"
-	abandon.custom_minimum_size.y = 40  # Smaller than the choices above (still a tap target)
+	abandon.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # A full tap target (UI review 2026-10-26; it was 40), still narrower than the rail buttons
 	abandon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # Not a full-width rail button
 	abandon.add_theme_font_size_override("font_size", 14)
 	_ember_outline(abandon)
@@ -347,11 +347,13 @@ func _fill_phone_status() -> void:
 	_status_leaves.text = str(run_state.leaves)
 	_status_line.tooltip_text = _phone_status()
 
-# Phones: "Abandon run…" in the rail: the small Ember-rimmed danger plate (Moon-glass, UiStyle.danger), Ink text.
+# Phones: "Abandon run…" in the rail: a quiet pewter plate with its words in Poor (UI review 2026-10-26, owner "Fix":
+# UiStyle.danger's Ember rim read as Resume's gold, so the way out looked like the main action; as the drawer's Sell).
 static func _ember_outline(button: Button) -> void:
-	UiStyle.danger(button)
+	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		button.add_theme_stylebox_override(state, UiStyle.plate_box(12.0, 4.0, &"plate_hover" if state.begins_with("hover") or state == "pressed" else &"plate"))
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		button.add_theme_color_override(state, UiStyle.INK)
+		button.add_theme_color_override(state, UiStyle.POOR)
 
 # Phones: "Abandon run…" in the rail goes straight to the dialog's second page (still a confirm).
 func _ask_abandon() -> void:

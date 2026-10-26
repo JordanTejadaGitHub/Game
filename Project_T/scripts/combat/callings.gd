@@ -15,10 +15,10 @@ const NAMES := {"sporeling": "Spore Print", "firefly_jar": "Lantern Light", "dew
 	"rootling": "Anvil", "whirligig": "Tailwind"}
 const TEXTS := {
 	"sporeling": "A nightmare dispelled with {spored} leaves a {mushroom} on the path. The next nightmare to step on it takes a {dose}: 3 {stacks} of {spored}.",
-	"firefly_jar": "Nightmares in a Firefly's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit {jumps} to the nearest other {lit} nightmare.",
+	"firefly_jar": "Nightmares in a Firefly's glow are {lit}. When any Warden dispels a {lit} nightmare, half that hit jumps to the nearest other {lit} nightmare.",
 	"dewdrop": "The path {touching} your Dewdrops is {water}. A Dewdrop's hit there {dew_splashes}: nightmares within 4 {steps} in that {water} gain {damp}.",
 	"bellflower": "Each bell hit rings the nightmare; at 4 rings it is a {toll}: the hit lands again at half damage. Nightmares start with 2 rings.",
-	"acorn": "Every 5th attack of a {family:acorn} aura Warden, the Wardens in its aura attack its target at once.",
+	"acorn": "Every 5th attack of an {family:acorn} aura Warden, the Wardens in its aura attack its target at once.",
 	"nestling": "A {warden:nestling}'s bird can also swoop from any of your Wardens within 3 cells, and its hit adds that Warden's status.",
 	"pebbling": "A {warden:pebbling}'s stone lodges in its target. The next hit from another kind of Warden knocks it into the nightmare behind.",
 	"rootling": "Every Warden in range turns to face a nightmare with {held}, and its hits on it add twice as much status.",

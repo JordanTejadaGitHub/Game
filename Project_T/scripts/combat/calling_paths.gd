@@ -196,7 +196,7 @@ const PATHS := {
 		"tip": "White path keeps every 2nd hit. Bosses: every 4th on gold. Sprouts and walls don't count."},
 	&"lf_spreading_flame": {"makes": [&"crit"], "uses": [&"hit"], "calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_bonfire", "name": "Spreading Flame",
 		"text": "When a crit dispels a nightmare on gold path, that stretch extends 1 {step} at each end for 20 s, up to 4 {steps}.",
-		"tip": "Another one grows it 1 more and restarts the 20 s. Grown gold counts as gold for every card. Never white."},
+		"tip": "Another one extends it 1 more and restarts the 20 s. Extended gold counts as gold for every card. Never white."},
 	&"lf_flint_and_steel": {"makes": [&"crit"], "uses": [&"cluster"], "calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_spreading_flame", "name": "Flint and Steel",
 		"text": "When a Warden crits on gold path, the nearest Warden {touching} it with gold path in range crits on its next direct hit there.",
 		"tip": "A passed crit never passes on. Each Warden holds one passed crit at a time. Walls and Sprouts don't count."},
@@ -204,14 +204,14 @@ const PATHS := {
 		"text": "A passed crit passes once more, to a third Warden {touching} the second, with gold path in range.",
 		"tip": "Never back to a Warden it came from. It never passes to a fourth Warden."},
 	&"lf_borrowed_light": {"makes": [&"jump"], "uses": [], "calling": "firefly_jar", "tier": STYLE, "parent": &"", "name": "Borrowed Light", "style": "Support",
-		"text": "When another family's Warden lands a direct hit on a {lit} nightmare, a third of the hit {jumps} to the nearest other {lit} nightmare.",
+		"text": "When another family's Warden lands a direct hit on a {lit} nightmare, a third of the hit jumps to the nearest other {lit} nightmare.",
 		"tip": "Before your second family, Firefly hits count too. Not Sprouts or walls. Each Warden once a second. A {jump} deals at most 3 s of the glowing Firefly's damage. Bosses take half. Never the same nightmare as another card's {jump}.",  # F4 (owner 2026-10-18)
 		"keeps_out": [&"sparks_fly", &"hammerfall"]},  # Its lent twins (section 33 card-pool sweep; Crossfire is retired)
 	&"lf_lantern_wake": {"makes": [], "uses": [&"cluster"], "calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_borrowed_light", "name": "Lantern Wake",
 		"text": "Each Firefly lends its light to the 2 nearest other families' Wardens within 2 cells: the path within 1 cell of them is {lit}.",
 		"tip": "Sprouts and walls don't count. Their light counts as that Firefly's glow. It never reveals {kind_hidden} nightmares. Ties: nearest the Heartwood."},
 	&"lf_show_the_way": {"makes": [&"jump"], "uses": [&"cluster"], "calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_lantern_wake", "name": "Show the Way",
-		"text": "Each Borrowed Light {jump} also {jumps} to one more {lit} nightmare, at half damage; in full from a Warden given light by Lantern Wake.",
+		"text": "Each Borrowed Light {jump} also jumps to one more {lit} nightmare, at half damage; in full from a Warden given light by Lantern Wake.",
 		"tip": "Never to a nightmare the hit or {jump} already reached. Never a third time. Not star {jumps}. Bosses take half."},
 	&"lf_full_glow": {"makes": [&"jump"], "uses": [&"cluster"], "calling": "firefly_jar", "tier": DEEPEN, "parent": &"lf_show_the_way", "name": "Full Glow",
 		"text": "A nightmare hit directly by a Warden given light by Lantern Wake stays {lit} for 3 s wherever it walks.",
@@ -227,16 +227,16 @@ const PATHS := {
 		"tip": "Each nightmare once every 4 s, as usual."},
 	# Retired 2026-10-23 (never offered; firefly_lights.gd keeps their code for an old save's path)
 	&"lf_torchbearers": {"makes": [&"jump"], "uses": [], "calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_strung_lights", "name": "Torchbearers", "retired": true,
-		"text": "When a {lit} nightmare is dispelled, half the hit that dispelled it {jumps} to the nearest {lit} nightmare ahead of it on the path.",  # Hard cards 2026-10-16
+		"text": "When a {lit} nightmare is dispelled, half the hit that dispelled it jumps to the nearest {lit} nightmare ahead of it on the path.",  # Hard cards 2026-10-16
 		"tip": "Ahead: at most 8 {steps} further along the path. Bosses take half."},
 	&"lf_bale_fires": {"makes": [&"repeat"], "uses": [&"jump"], "calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_torchbearers", "name": "Bale-fires", "retired": true,
-		"text": "If a Torchbearers {jump} dispels its target, it {jumps} again to the next {lit} nightmare ahead, up to 4 more times.",  # Hard cards 2026-10-16
+		"text": "If a Torchbearers {jump} dispels its target, it jumps again to the next {lit} nightmare ahead, up to 4 more times.",  # Hard cards 2026-10-16
 		"tip": "Bosses take half."},
 	&"lf_glowworms": {"makes": [], "uses": [&"cluster"], "calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_strung_lights", "name": "Glowworms", "retired": true,
 		"text": "Up to 2 Sprouts {touching} each Firefly glow too, so the path next to them is {lit}.",
 		"tip": "The Sprouts nearest the Heartwood glow first. Sprout light never reveals {kind_hidden} nightmares."},
 	&"lf_swarm_night": {"makes": [], "uses": [&"jump"], "calling": "firefly_jar", "tier": CAPSTONE, "parent": &"lf_glowworms", "name": "Swarm Night", "retired": true,
-		"text": "While 6 or more nightmares are {lit}, every {jump} {jumps} one extra time.",
+		"text": "While 6 or more nightmares are {lit}, every {jump} jumps one extra time.",
 		"tip": "The extra {jump} is as strong as the first and goes to the nearest {lit} nightmare it hasn't hit. Bosses take half."},
 	&"lf_embers": {"makes": [&"repeat"], "uses": [], "calling": "firefly_jar", "tier": FOLLOW_UP, "parent": &"lf_bonfire", "name": "Embers", "retired": true,
 		"text": "A nightmare dispelled on gold path leaves an ember for 4 s. The next nightmare over it takes half the hit that dispelled it.",

@@ -590,12 +590,12 @@ func _make_card(data: TowerData) -> Button:
 	job.add_theme_font_size_override("font_size", PhoneChoice.BODY_SIZE if _layout != null else 15)  # Phones: the Dream card text's size
 	job.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(job)
-	var costs := HBoxContainer.new()  # "Sprout into it [Dew] 15   Plant [Dew] 25"
+	var costs := HBoxContainer.new()  # "Grow a Sprout into it [Dew] 15   Plant it [Dew] 25"
 	costs.name = "Costs"
 	costs.add_theme_constant_override("separation", 16)
 	costs.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(costs)
-	for pair in [["Sprout into it", _sprout_into_cost(data)], ["Plant", data.cost]]:
+	for pair in [["Grow a Sprout into it", _sprout_into_cost(data)], ["Plant it", data.cost]]:
 		costs.add_child(_cost_part(pair[0], int(pair[1])))
 	# The Calling first: the run-long rule is the pick's biggest stake (UI council 2026-10-22: it was buried under the branches)
 	var calling_on_foot := _add_calling(box, data)  # A short screen: the Calling's name goes on the Wake button
@@ -738,7 +738,7 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	var size: int = dream_state.branch_offer_size(data)
 	var head := Label.new()
 	head.name = "RoutesHead"
-	head.text = "Dreams into" if regular <= size else OFFER_LINE % [size, regular]
+	head.text = "Can grow into" if regular <= size else OFFER_LINE % [size, regular]
 	UiStyle.caps(head, _fs(13), _family_colour(data))  # The family's colour, as an evolution card's header
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Phones: the "not in this run" silhouettes sit beside the head (it already says "2 of 5"), a row shorter; a flow, so
@@ -786,7 +786,7 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		words.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
-		row.tooltip_text = "%s: not in this run. Add one on the Remember screen for %s." % [
+		row.tooltip_text = "%s: not in this run. Later you can add one with Dreamlight (%s)." % [
 			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), UiStyle.dreamlight_amount(dream_state.call_back_cost(data))]
 		if head_row != null:
 			row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -856,8 +856,8 @@ func _role_chips(role: String) -> HFlowContainer:
 	return flow
 
 # "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
-const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
-const OFFER_TIP := "The others aren't in this run. Add one on the Remember screen for %s, once per family."
+const OFFER_LINE := "Can grow into (%d of %d this run)"  # Small caps lower it (Wording Council full round 2026-10-26)
+const OFFER_TIP := "Only these branches can appear this run. Later you can add one more with Dreamlight (%s, once per family)."
 
 func _offer_line(data: TowerData, size: int, regular: int) -> Label:
 	var line := _lane_line(OFFER_LINE % [size, regular], _fs(12), UiStyle.INK_DIM, "OfferLine")

@@ -53,7 +53,7 @@ const SCENES := {
 	&"bell_stone": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...bW..\nSPPPPPH\n.......\n.......",
 		{"zone": {"letters": "b", "cells": 3.0, "word": "30% slower", "every": 1.6}}, "The Bell Stone rings: nightmares near it walk slower for a moment."],
 	&"ancient_stump": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n.u.R.u.\nSPPPPPH\n.......\n.......",
-		{"text": "rank II", "damage": 1.2}, "Plant on a stump: the Warden gets 2 free ranks."],
+		{"text": "Nurture rank II", "damage": 1.2}, "Plant on a stump: the Warden gets 2 free Nurture ranks."],
 	&"heartwood_roots": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n....W..\nSPrrrrH\n.......\n.......",
 		{"text": "+30% taken", "damage": 1.3}, "Roots before the Heartwood: nightmares gain {held} on entering and take more damage there."],
 	&"reshape": ["....OO.\n.......\nSPPPPPH\n....O..\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...",
@@ -61,13 +61,13 @@ const SCENES := {
 	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
 		{"proc": "20% slower"}, "Thornwalls grow into Bramble free; Brambles slow the nightmares beside them."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
-		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
+		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship deepens a stage at once."],  # The bond drawn (CardScene 4e14a81c)
 	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......",
 		{"chip": UiStyle.DEW_GLYPH + " +25%"}, "The start moves: a new way in, and this act's drifts give 25% more Dew."],
 	&"waking_root": [".......\n...f...\n.......\nSPPPPPH\n.......", ".......\n...f...\n.......\nSPPPPPH\n.......",
 		{"unlock": true, "price_from": 2, "price_to": 0}, "The next form you unlock is free."],
 	&"memory_seed": [".......\n.a.....\nSPPPPPH\n.......\n.......", ".......\n.....W.\nSPPPPPH\n.......\n.......",
-		{"text": "keeps its ranks"}, "This act, a Warden you sell and plant again keeps its ranks and its Kinship."],
+		{"text": "keeps its Nurture ranks"}, "This act, a Warden you sell and plant again keeps its Nurture ranks and its Kinship."],
 }
 
 var drift_director: DriftDirector
@@ -268,7 +268,7 @@ func _show_growth() -> void:
 # "The Spring grows: it now Soaks 3 stacks a second." Numbers from HeartwoodGifts at the new step.
 static func growth_line(id: StringName, step: int) -> String:
 	var gift_name: String = HeartwoodGifts.POOL[id].name if HeartwoodGifts.POOL.has(id) else String(id).capitalize()
-	var head := "The %s grows" % gift_name if not gift_name.ends_with("s") else "The %s grow" % gift_name
+	var head := "The %s gets stronger" % gift_name if not gift_name.ends_with("s") else "The %s get stronger" % gift_name
 	match id:
 		&"spring":
 			return "%s: Wardens near it now attack %d%% faster." % [head, roundi(HeartwoodGifts.stat(id, "attack_speed", step) * 100.0)]

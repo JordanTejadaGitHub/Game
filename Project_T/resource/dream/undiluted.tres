@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "undiluted"
 display_name = "Undiluted"
-description = "{reactions} never trigger. Instead, {spored} ticks and {static} bolts deal double damage."
-tip = "Cards that only work through {reactions} are no longer offered. {named_combo:lightning_rod} doesn't trigger either."
+description = "{reactions} never trigger; instead {spored}, {static} and {frostburst}s deal double damage, and every other status gets stronger."
+tip = "Nightmares with {damp} take 25% more from all hits. At {full} {drowsy}, a nightmare falls {asleep} for 2 s; bosses never do. {marked} works from 5 stacks (10 with Brimming). When {held} ends, half the damage taken while {held} hits again. Cards that only work through {reactions} are no longer offered, and {named_combo:lightning_rod} doesn't trigger."
 rarity = 3
 kind = 3
 tags = Array[String](["status", "defining"])

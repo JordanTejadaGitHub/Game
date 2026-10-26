@@ -315,8 +315,8 @@ static func install_text_filter(tree: SceneTree) -> void:
 
 # Phones (Mobile UI council 2026-10-25: secondary text under 13 px, about 9 px at Standard): no text control draws
 # smaller than PHONE_MIN_TEXT screen px at either UI size; a smaller size set on it is raised (checked after it's built).
+const PHONE_MIN_TEXT := 15.0  # Was 13 (UI review 2026-10-26, owner "Fix": ~9.5 pt, under the 11 pt platform floor)
 # PC (UI/UX review 2026-10-26): no text smaller than MIN_TEXT (LABEL_SIZE); the player's UI size still scales it.
-const PHONE_MIN_TEXT := 14.0
 const MIN_TEXT := LABEL_SIZE
 
 static func _text_floor(node: Node) -> void:

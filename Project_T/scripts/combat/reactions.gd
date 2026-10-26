@@ -2266,6 +2266,8 @@ static func frostburst(enemy: Node2D, amount: float, source: Node) -> void:
 	if gen == 0 and not DreamState.undiluted_on and not enemy.is_cleansed:
 		flash = _frost_reaction(enemy, tower)
 	var damage := amount * pow(FROST_CHAIN_FALLOFF, gen)
+	if DreamState.undiluted_on:
+		damage *= DreamState.UNDILUTED_FROSTBURST  # Undiluted: Frostbursts deal double (as Poisoned ticks and Charged bolts)
 	var per_potency := damage / (EnemyStatuses.FROST_BURST_BOSS if enemy.statuses.is_boss else EnemyStatuses.FROST_BURST)  # (Brimming's payoff kept)
 	var at: Vector2 = enemy.global_position
 	var reach := (FLASH_FREEZE_REACH if flash else FROST_REACH) * CELL

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chain_of_lanterns"
 display_name = "Chain of Lanterns"
-description = "A {reaction} on a nightmare a {family:firefly_jar} Warden hit in the last 2 s also {jumps}, at half damage, to the 2 nearest nightmares."
+description = "A {reaction} on a nightmare a {family:firefly_jar} Warden hit in the last 2 s also jumps, at half damage, to the 2 nearest nightmares."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "lent"])

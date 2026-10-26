@@ -546,7 +546,7 @@ func _entry_card(group: String, entry: Array) -> Control:
 	UiStyle.display(name, 30 if _phone else 20)  # Phones: one entry per page, its name big
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
-	if term == "Hollow":  # A solid and a hollow pip of one status side by side, before the text (wording council, 981a425a)
+	if term == "Settling":  # A solid and a hollow pip of one status side by side, before the text (wording council, 981a425a)
 		body.add_child(_hollow_pips())
 	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
 	var text := StatusLinks.make_label(entry[1], 17 if _phone else 15)  # Status names are links

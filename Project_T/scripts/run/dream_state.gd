@@ -3286,7 +3286,7 @@ func banish_label() -> String:
 	return ("Banish · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No banishes left this run"
 
 func banish_tip() -> String:
-	return "This card won't come back this run; another takes its place. Banishes don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
+	return "This card won't come back this run; another takes its place. Banishes don't refill: this run has %d left. More come from Banish (Memory Grove)." % banishes_left
 
 # "Rerolls left: 2 · Banishes left: 1" (only the ones above 0; "" when none).
 func supply_line() -> String:
@@ -4336,7 +4336,7 @@ func sunlit_rest() -> Array[Tower]:
 	if not raised.is_empty():
 		var hud := owner.get_node_or_null("HUD") if owner != null else null
 		if hud != null and hud.has_method("show_toast"):
-			hud.show_toast("Sunlit Rest: a free rank waits on %s." % " and ".join(
+			hud.show_toast("Sunlit Rest: a free Nurture rank waits on %s." % " and ".join(
 				raised.map(func(t: Tower) -> String: return t.tower_data.display_name)))
 		sunlit_granted.emit(raised)
 	_sunlit_cache = []

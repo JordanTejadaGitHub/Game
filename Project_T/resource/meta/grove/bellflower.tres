@@ -6,11 +6,11 @@
 script = ExtResource("1_unlock")
 id = "bellflower"
 display_name = "Bellflower family"
-description = "{family:bellflower} is a choice at {family_picks} from your first run. Song that gives nightmares {drowsy} until they fall asleep. Also adds its {dream} cards (listed below)."
+description = "{family:bellflower} is a choice at {family_picks} from your first run. Song that gives nightmares {drowsy}. Also adds its {dream} cards (listed below)."
 root = 0
 costs = Array[int]([])
 order = 5
 icon = 5
 start = true
 families = Array[String](["bellflower"])
-dream_cards = Array[String](["hush", "heavy_eyelids", "bad_dreams", "sweet_scent"])
+dream_cards = Array[String](["hush", "sweet_scent"])
