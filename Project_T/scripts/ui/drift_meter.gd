@@ -20,7 +20,7 @@ const FINE_COLOR := UiStyle.INK
 const UNDERUSED_COLOR := UiStyle.OFF
 const GOOD := Color("9cc46c")  # Sprig
 const CLOSE := UiStyle.BUTTON_GOLD
-const SHORT := UiStyle.POOR
+const SHORT := UiStyle.POOR_TEXT
 const OPEN_SETTING := "meter_open"
 var hidden_by_player := false
 var arrow_hidden := false:  # Phones: the HUD's Damage button opens and closes the meter, so its side handle goes (Mobile UI)
@@ -145,7 +145,7 @@ func _ready() -> void:
 	_header.flat = true
 	_header.focus_mode = Control.FOCUS_NONE
 	_header.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_header.custom_minimum_size = Vector2(0, 36)
+	_header.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H if UiStyle.is_phone() else 36.0)  # Phones: a 44 px tap
 	# Moon-glass meter (UI Asset fc82d5e8): "Maze 53 DPS" in Vollkorn Medium with the change arrow at its right (Sprig up,
 	# Ember down); open, the change on a Mist line under it ("↑18% vs last drift (45)").
 	UiStyle.number(_header, HEAD_SIZE, UiStyle.INK)
@@ -172,7 +172,7 @@ func _ready() -> void:
 	box.add_child(_body)
 	_sort.text = "Sort: DPS"
 	_sort.focus_mode = Control.FOCUS_NONE
-	_sort.custom_minimum_size = Vector2(0, 32)
+	_sort.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H if UiStyle.is_phone() else 32.0)
 	_sort.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # A third of the tab row, clipped: it can never widen the meter
 	_sort.clip_text = true
 	_sort.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -535,7 +535,7 @@ func _setup_row(button: Button, r: Dictionary) -> void:
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_force_pass_scroll_events = false
-	button.custom_minimum_size = Vector2(0, 34)
+	button.custom_minimum_size = Vector2(0, UiStyle.ROW_H if UiStyle.is_phone() else 34.0)
 	button.name = "Row"
 	var tower = r.tower
 	button.set_meta(&"tower", tower)

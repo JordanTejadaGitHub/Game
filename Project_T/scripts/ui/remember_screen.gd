@@ -1063,7 +1063,7 @@ func _cost_on(button: Button, cost: int, short: bool) -> void:
 	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	number.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	UiStyle.number(number, 18, UiStyle.POOR if short else UiStyle.GOLD)
+	UiStyle.number(number, 18, UiStyle.POOR_TEXT if short else UiStyle.GOLD)
 	price.add_child(number)
 	button.add_child(price)
 	# The label centres in the room left of the cost, as beside a key chip (UI council round 5)

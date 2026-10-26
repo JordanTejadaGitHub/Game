@@ -1004,7 +1004,7 @@ func _draw() -> void:
 		# Phones: marked to sell: the Ember outline and what it gives back now.
 		var mark := Rect2(tower.position - tower.body_size() / 2, tower.body_size()).grow(-2)
 		draw_rect(mark, UiStyle.POOR, false, 3.0)
-		WorldLabel.draw_tag(self, tower.position.x, mark.position.y - 8, UiStyle.dew_amount(get_refund(tower), true), UiStyle.POOR)
+		WorldLabel.draw_tag(self, tower.position.x, mark.position.y - 8, UiStyle.dew_amount(get_refund(tower), true), UiStyle.POOR_TEXT)
 	var armed := get_armed_sell()
 	if not armed.is_empty():
 		# First press during a drift: show the (half) refund; a second press sells.
@@ -1033,7 +1033,7 @@ func _draw() -> void:
 		# Sell mode: the POOR outline and what it gives back now (the live rest / drift rate), or why it can't be sold.
 		draw_rect(rect, UiStyle.POOR, false, 3.0)
 		var tag := "Can't be sold" if _hover_tower.tower_data.rooted else ("+%d Dew" % get_refund(_hover_tower) if can_sell() else sell_block_reason())
-		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, tag, UiStyle.POOR)
+		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, tag, UiStyle.POOR_TEXT)
 		return
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)

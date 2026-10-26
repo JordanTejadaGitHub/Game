@@ -58,7 +58,7 @@ static func danger(button: Button) -> void:
 			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
 			button.add_theme_stylebox_override(state, box)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		button.add_theme_color_override(state, UiStyle.POOR)
+		button.add_theme_color_override(state, UiStyle.POOR_TEXT)
 
 # The family look (owner 2026-10-22 for Calling evolutions; 2026-10-23: family pick cards share it, Dream cards don't): a
 # wash of the family's colour at the top of the glass, fading out halfway down, and a bracket with a bud in each corner.

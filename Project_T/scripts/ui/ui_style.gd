@@ -19,6 +19,9 @@ const BUTTON_GOLD := Color("e9a83c")  # Gold: button outlines, primary fill and 
 const GOLD_TEXT := Color("fff4dc")  # Heartlight: text on primary buttons
 const WHISPER := Color("dccdb2")  # Moonpath
 const POOR := Color("b8662c")  # Ember: unaffordable (with the 50% fade; the palette has no red)
+# Accessibility (UI/UX review 2026-10-26): Ember words were 4.5:1 on glass over Void and 3.3:1 over the path; this lighter
+# Ember is 6.5:1 / 5.6:1. Words and numbers in the "short / lost" colour use it; frames and outlines keep POOR.
+const POOR_TEXT := Color("d8845a")  # Accessibility
 const FOG := Color("05050d")  # Void: panel fog
 const CARD_BG := Color("24243c")  # Night: the lit middle of a card, over Void
 const BOSS := Color("9a84e8")  # Wraithlight: bosses (the palette has no red; the nightmares' own cold glow)
@@ -101,7 +104,7 @@ const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (
 # User 2026-10-21 ("I used 2 different UI sizes but they seem the same"): Standard now also draws everything at
 # PHONE_STANDARD_SCALE of the fitting scale, so the two read as two sizes; Large stays the full scale.
 const PHONE_UI_SIZES := [["Standard (more map)", 0.9], ["Large (roomier)", 1.0]]
-const PHONE_STANDARD_SCALE := 0.9  # (Was 0.85: buttons fell under 44 px, council 2026-10-25)
+const PHONE_STANDARD_SCALE := 0.92  # 48 × 0.92 = 44.2 px: every button stays a 44 px tap (0.9 drew 43.2; UI review 2026-10-26)
 static var _phone_compact := false
 
 # Phones at Standard: HUD layouts read this for their tighter spacing (text sizes never change).
@@ -305,15 +308,16 @@ static func install_text_filter(tree: SceneTree) -> void:
 	_text_filter_tree = tree
 	tree.node_added.connect(_linear_text)
 	tree.node_added.connect(_watch_marks)
-	if is_phone():
-		tree.node_added.connect(_text_floor)
+	tree.node_added.connect(_text_floor)  # PC too (UI review 2026-10-26: 12-13 px text on about 25 screens)
 	if tree.root != null:
 		for node in tree.root.find_children("*", "Control", true, false):
 			_linear_text(node)
 
 # Phones (Mobile UI council 2026-10-25: secondary text under 13 px, about 9 px at Standard): no text control draws
 # smaller than PHONE_MIN_TEXT screen px at either UI size; a smaller size set on it is raised (checked after it's built).
-const PHONE_MIN_TEXT := 13.0
+# PC (UI/UX review 2026-10-26): no text smaller than MIN_TEXT (LABEL_SIZE); the player's UI size still scales it.
+const PHONE_MIN_TEXT := 14.0
+const MIN_TEXT := LABEL_SIZE
 
 static func _text_floor(node: Node) -> void:
 	if node is Label or node is Button or node is RichTextLabel:
@@ -323,7 +327,7 @@ static func _apply_text_floor(node: Control) -> void:
 	if not is_instance_valid(node):
 		return
 	var key := &"normal_font_size" if node is RichTextLabel else &"font_size"
-	var floor_px := ceili(PHONE_MIN_TEXT / maxf(_scale_share, 0.5))
+	var floor_px := ceili(PHONE_MIN_TEXT / maxf(_scale_share, 0.5)) if is_phone() else MIN_TEXT
 	if node.get_theme_font_size(key) < floor_px:
 		node.add_theme_font_size_override(key, floor_px)
 

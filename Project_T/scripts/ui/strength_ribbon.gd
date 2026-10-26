@@ -80,7 +80,7 @@ func _draw_bar() -> void:
 	for i in mini(leaks, 3):  # A leaf per leak at the Heartwood end (three, then the count)
 		_draw_leaf(Vector2(width + 10.0 + i * 8.0, top + height * 0.5))
 	if leaks > 3:
-		_bar.draw_string(font, Vector2(width + 6.0, top + height + 12.0), "×%d" % leaks, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.POOR)
+		_bar.draw_string(font, Vector2(width + 6.0, top + height + 12.0), "×%d" % leaks, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.POOR_TEXT)
 	var tag := String(gauge.get("tag", ""))
 	var words := "%s · %d%% along the route" % [tag, roundi(median * 100.0)]
 	_bar.draw_string(font, Vector2(0.0, BAR_H - 3.0), words, HORIZONTAL_ALIGNMENT_LEFT, width, 14, TAG_COLORS.get(tag, UiStyle.INK))

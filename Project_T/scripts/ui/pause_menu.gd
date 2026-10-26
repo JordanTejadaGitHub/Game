@@ -430,7 +430,7 @@ func _gap(page: Control, height: float = 12.0) -> void:
 static func _danger(button: Button) -> void:
 	UiStyle.danger(button)  # Moon-glass: the small Ember-rimmed plate
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		button.add_theme_color_override(state, UiStyle.POOR)
+		button.add_theme_color_override(state, UiStyle.POOR_TEXT)
 
 static func _solid(panel: PanelContainer) -> void:
 	var fill := panel.get_theme_stylebox("panel")

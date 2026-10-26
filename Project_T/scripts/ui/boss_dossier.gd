@@ -682,7 +682,7 @@ func _build(data: EnemyData, drift: int) -> void:
 	var toll := toll_text(data, act, spawner)
 	var bite := bite_leaves(data, act, spawner)
 	if bite > 0:
-		var stakes := _stake("If it reaches the Heartwood", "−%d" % bite, &"leaves", UiStyle.POOR)
+		var stakes := _stake("If it reaches the Heartwood", "−%d" % bite, &"leaves", UiStyle.POOR_TEXT)
 		stakes.name = "Toll"
 		stakes.tooltip_text = toll
 		left.add_child(stakes)
@@ -693,7 +693,7 @@ func _build(data: EnemyData, drift: int) -> void:
 		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		words.custom_minimum_size.x = LEFT_COLUMN
 		words.add_theme_font_size_override("font_size", 14)
-		words.add_theme_color_override("font_color", UiStyle.POOR)
+		words.add_theme_color_override("font_color", UiStyle.POOR_TEXT)
 		left.add_child(words)
 	if not NightmareCard.is_new(data):  # A new one says so once, in the name's chip
 		var record := StatusLinks.make_label(record_text(data), 14, UiStyle.INK_DIM)  # Your record, one quiet line

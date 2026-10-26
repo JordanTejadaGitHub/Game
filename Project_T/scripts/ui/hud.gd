@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 const DEW_COLOR := UiStyle.GOLD
-const DEW_SHORT_COLOR := UiStyle.POOR
+const DEW_SHORT_COLOR := UiStyle.POOR_TEXT
 const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 const UNAFFORDABLE_SPRITE_ALPHA := 0.45  # An unaffordable slot: its Warden at this alpha, the tile itself full strength
 
@@ -59,7 +59,7 @@ const MENU_SLOT := [-16.0, 84.0]
 const REMEMBER_SLOT := [-106.0, 124.0]
 const BUFFS_SLOT := [-236.0, 76.0]
 const CODEX_SLOT := [-318.0, 48.0]
-const LEAF_LOST_COLOR := UiStyle.POOR
+const LEAF_LOST_COLOR := UiStyle.POOR_TEXT
 const TOAST_TIME := 2.5
 const TOAST_TOP := 254.0  # The toast's place in main.tscn; lower when the top-centre column reaches past it
 const TOAST_GAP := 8.0  # Between a showing whisper's plate and the toast under it
@@ -1127,7 +1127,7 @@ func _on_sell_mode(on: bool) -> void:
 		_sell_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var text := Label.new()
 		text.name = "Text"
-		text.add_theme_color_override("font_color", UiStyle.POOR)
+		text.add_theme_color_override("font_color", UiStyle.POOR_TEXT)
 		_sell_hint.add_child(text)
 		add_child(_sell_hint)
 		_sell_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -1195,7 +1195,7 @@ func _on_dew_changed(dew: int) -> void:
 			if affordable:
 				_tower_buttons[i].remove_theme_color_override(state)
 			else:
-				_tower_buttons[i].add_theme_color_override(state, UiStyle.POOR)
+				_tower_buttons[i].add_theme_color_override(state, UiStyle.POOR_TEXT)
 
 # Tried to spend Dew we don't have: flash the counter red and give it a little shake.
 func _on_dew_short() -> void:

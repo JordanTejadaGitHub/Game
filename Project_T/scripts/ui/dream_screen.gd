@@ -6,14 +6,14 @@ extends Control
 const SHAPE_ROWS := preload("res://scripts/ui/shape_rows.gd")  # Drift shapes: the capstone's next-act line
 const CARD_SIZE := Vector2(250, 220)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
-const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
-const SECONDARY_MIN_SIZE := 10
+const SECONDARY_SIZE := 14  # Entwined / Deepened / "Needs Dewdrop" lines
+const SECONDARY_MIN_SIZE := 14  # Never under the 14 px text floor (UI/UX review 2026-10-26; was 10)
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const PC_BUTTON_W := 220.0  # Reroll, Let it pass and Peek share this width (PC)
 const SIDE_MARGIN := 16.0  # Left and right of the card row when many cards (5) narrow it
 const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
-const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
+const BITTERSWEET_COLOR := UiStyle.POOR_TEXT  # The cost line: Ember, the palette's "bad" colour
 const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card grows into
 const HALF_DREAMED_COLOR := Palette.WRAITHLIGHT  # A Half-Dreamed card's "Needs …" line: not yours yet, but coming
 
@@ -768,7 +768,7 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 
 # Phones: card text a size class up (user 2026-10-16: "the text is too small compared" to the full-height cards).
 const PHONE_CARD_BUMP := 5
-const CARD_CHIP_TEXT := 12  # The foot chips' word, under the card text (phones too: the row stays 48 px to tap)
+const CARD_CHIP_TEXT := 14  # The foot chips' word, under the card text (phones too: the row stays 48 px to tap)
 func _fs(size: int) -> int:
 	return size + PHONE_CARD_BUMP if _phone else size
 

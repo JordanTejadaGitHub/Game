@@ -147,7 +147,7 @@ func _ready() -> void:
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
 	var speed_row := HBoxContainer.new()
 	speed_row.alignment = BoxContainer.ALIGNMENT_END
-	speed_row.add_theme_constant_override("separation", 6)
+	speed_row.add_theme_constant_override("separation", 8 if UiStyle.is_phone() else 6)  # Phones: 8 px between taps
 	add_child(speed_row)
 	_auto_toggle.text = "Auto-drift"
 	_auto_toggle.toggle_mode = true

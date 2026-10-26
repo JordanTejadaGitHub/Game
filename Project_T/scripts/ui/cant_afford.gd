@@ -25,7 +25,7 @@ static func apply(button: Button, label: String, cost: String, tip: String) -> v
 		rich.add_theme_font_size_override("normal_font_size", button.get_theme_font_size("font_size"))
 		button.add_child(rich)
 	rich.text = "[center][color=#%s]%s · [/color][color=#%s]%s[/color][/center]" % [
-		UiStyle.INK_DIM.to_html(false), label, UiStyle.POOR.to_html(false), cost]
+		UiStyle.INK_DIM.to_html(false), label, UiStyle.POOR_TEXT.to_html(false), cost]
 	button.set_meta(&"cant_afford", true)
 	# Centre the text vertically once it's laid out
 	rich.resized.connect(func() -> void: rich.offset_top = (button.size.y - rich.size.y) / 2.0, CONNECT_ONE_SHOT)
@@ -67,7 +67,7 @@ static func flash_counter(label: Label, normal: Color) -> void:
 	if not is_instance_valid(label):
 		return
 	label.pivot_offset = label.size / 2
-	label.add_theme_color_override("font_color", UiStyle.POOR)
+	label.add_theme_color_override("font_color", UiStyle.POOR_TEXT)
 	var tween := UiTime.tween(label, false)
 	if not bool(Fx.setting("reduced_motion", false)):
 		for offset in [-3.0, 3.0, -2.0, 2.0, 0.0]:

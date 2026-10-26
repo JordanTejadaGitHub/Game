@@ -185,7 +185,7 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 		if _boss.has_method("is_untouchable") and _boss.is_untouchable():  # Can't be hit while it lingers
 			at_text += " · Untouchable"
 		_draw_centered(font, at_text, Vector2(center_x, bar.end.y + 16),
-			SMALL_FONT_SIZE, UiStyle.POOR)
+			SMALL_FONT_SIZE, UiStyle.POOR_TEXT)
 		return
 	var name: String = _boss.enemy_data.display_name
 	_draw_centered(font, name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))

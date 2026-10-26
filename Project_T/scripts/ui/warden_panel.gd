@@ -1063,7 +1063,7 @@ func _nurture_heading(text: String, cost: int) -> void:
 	price.text = ("free" if cost == 0 else str(cost)) if cost >= 0 else ""
 	price.set_meta(&"cost", cost)
 	price.visible = price.text != ""
-	UiStyle.number(price, ROW_NAME_SIZE, UiStyle.POOR if not run_state.can_afford(cost) else UiStyle.GOLD)
+	UiStyle.number(price, ROW_NAME_SIZE, UiStyle.POOR_TEXT if not run_state.can_afford(cost) else UiStyle.GOLD)
 	line.add_child(price)
 	_buttons.add_child(line)
 
@@ -2006,11 +2006,11 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	note_label.visible = note_label.text != ""
 	var dim := short or button.disabled
 	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM if dim else (UiStyle.GOLD if primary else UiStyle.INK))
-	note_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price and not is_price else Color(UiStyle.MOON_MIST, 0.8))
+	note_label.add_theme_color_override("font_color", UiStyle.POOR_TEXT if short and poor_price and not is_price else Color(UiStyle.MOON_MIST, 0.8))
 	if change:  # The change in GOLD, POOR when short (user, Lichenling: "just make the +damage etc. text gold")
-		price_label.add_theme_color_override("font_color", UiStyle.POOR if short else (UiStyle.INK_DIM if button.disabled else UiStyle.GOLD))
+		price_label.add_theme_color_override("font_color", UiStyle.POOR_TEXT if short else (UiStyle.INK_DIM if button.disabled else UiStyle.GOLD))
 	else:
-		price_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
+		price_label.add_theme_color_override("font_color", UiStyle.POOR_TEXT if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
 	chip.visible = chip.text != "" and not _phone  # Phones: no keyboard, no key chips
@@ -2109,14 +2109,14 @@ func _set_short(button: Button, short: bool, poor_price := true) -> void:
 	for i in 3:
 		var part := overlay.get_child(i) as Label
 		part.text = parts[i]
-		part.add_theme_color_override("font_color", UiStyle.POOR if i == 1 and poor_price else UiStyle.INK_DIM)
+		part.add_theme_color_override("font_color", UiStyle.POOR_TEXT if i == 1 and poor_price else UiStyle.INK_DIM)
 
 # Dew or Dreamlight changed: every priced button follows at once (no rebuild: a tooltip under the pointer stays).
 func _update_prices() -> void:
 	for button in _all_buttons():
 		if button.name == &"NurtureHeading":  # The choices' price, said once: POOR while short
 			var price := button.get_node("Price") as Label
-			price.add_theme_color_override("font_color", UiStyle.POOR if not run_state.can_afford(int(price.get_meta(&"cost", 0))) else UiStyle.GOLD)
+			price.add_theme_color_override("font_color", UiStyle.POOR_TEXT if not run_state.can_afford(int(price.get_meta(&"cost", 0))) else UiStyle.GOLD)
 			continue
 		if not button is Button:
 			continue

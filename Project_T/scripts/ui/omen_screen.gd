@@ -506,7 +506,7 @@ func _refresh_tag() -> void:
 	var bar := "[color=#%s]%s[/color]" % [Color(OMEN_COLOR, 0.3).to_html(true), TAG_DIVIDER]
 	_tag_rich.text = "[center]%s[color=#%s]%s[/color]%s[color=#%s]%s[/color]%s[/center]" % [_icon_pad(), UiStyle.GOLD.to_html(false),
 		_tag_name, bar, UiStyle.INK_DIM.to_html(false), _tag_drifts,
-		(bar + "[color=#%s]%s[/color]" % [(UiStyle.POOR if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
+		(bar + "[color=#%s]%s[/color]" % [(UiStyle.POOR_TEXT if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
 	var tip := IconInfo.format(omens.active.description) + "\n" + omens.reward_sentence(omens.active,
 		drift_director.get_act(maxi(drift_director.drifts_started, 1)), omens.active_block)
 	var status := omens.get_reward_status()

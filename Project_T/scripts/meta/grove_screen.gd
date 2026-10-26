@@ -479,7 +479,7 @@ func open_card_face(card: UpgradeData) -> void:
 	_face_box.add_child(title)
 	_face_text(card.description, UiStyle.INK, 16)
 	if card.cost_description != "":
-		_face_text(card.cost_description, Palette.EMBER, 15)
+		_face_text(card.cost_description, UiStyle.POOR_TEXT, 15)
 	var deeper := GroveCardList.load_card(card.id + "_ii")
 	if deeper != null and not deeper.retired and selected != null and selected.dream_cards.has(deeper.id):
 		_face_text("%s, Deepened: %s" % [deeper.display_name, deeper.description], UiStyle.GOLD, 14)

@@ -295,7 +295,7 @@ func _ready() -> void:
 	conflict_label = Label.new()
 	conflict_label.name = "Conflicts"
 	conflict_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	conflict_label.add_theme_color_override("font_color", UiStyle.POOR)
+	conflict_label.add_theme_color_override("font_color", UiStyle.POOR_TEXT)
 	conflict_label.visible = false
 	outer.add_child(conflict_label)
 	# Footer, always on screen (touch, controller), light pass (UI Asset's last page): "Reset this tab" quiet on the left;
@@ -1112,7 +1112,7 @@ func _refresh_keys() -> void:
 		if action != _waiting_action:
 			button.text = ", ".join(names) if not names.is_empty() else "—"
 		if clashing.has(action):
-			button.add_theme_color_override("font_color", UiStyle.POOR)
+			button.add_theme_color_override("font_color", UiStyle.POOR_TEXT)
 		else:
 			button.remove_theme_color_override("font_color")
 
