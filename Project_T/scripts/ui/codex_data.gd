@@ -45,16 +45,16 @@ const GLOSSARY_SOURCE := [
 		["Branch", "A second-step form of a family. A run offers two of each family's branches.", ["Grow", "Final form"], "A Sporeling grows into a branch such as Driftspore, and Driftspore into its final form, Puffball."],
 		["Final form", "The third step of a branch, unlocked with Dreamlight.", ["Branch", "Ascended"]],
 		["Grove branch", "An extra branch of a family, opened in the Memory Grove. It is offered on top of the run's two.", ["Memory Grove"]],
-		["Grow", "Pay Dew to turn a Warden into a stronger form of its family.", ["Branch", "Nurture"]],
-		["Nurture", "Pay Dew to raise a Warden's rank. Each rank lets you choose one improvement.", ["Rank", "Nurture choice"]],
-		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
-		["Eldest", "A Legendary Dream lets one Warden a run grow past rank V; it wears a crown.", ["Rank", "Nurture"]],
+		["Grow", "A Warden grows into its next form, for {dew} (and Dreamlight for a new branch).", ["Branch", "Nurture"]],
+		["Nurture", "Pay Dew to raise a Warden's Nurture rank. Each Nurture rank lets you choose one improvement.", ["Nurture rank", "Nurture choice"]],
+		["Nurture rank", "How nurtured a Warden is (Nurture rank I and up; the Eldest goes past Nurture rank V): each Nurture rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
+		["Eldest", "A Legendary Dream lets one Warden a run go past Nurture rank V; it wears a crown.", ["Nurture rank", "Nurture"]],
 		["Sprout", "The cheapest Warden. It can grow into any family you have picked this run.", ["Family pick", "Warden"]],
 		["Aura", "A bonus a support Warden gives to the Wardens around it.", ["Boosts"]],
 		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 260 a rest for all Wellsprings together.", ["Dew", "Rest"]],
-		["Nurture choice", "Each rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
+		["Nurture choice", "Each Nurture rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
 		["Wide, Strong, Attuned", "The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full.", ["Nurture choice", "Aura"]],
-		["Signature", "A special rule a Warden gains at rank V when four of its ranks took the same choice.", ["Nurture choice", "Rank"]],
+		["Signature", "A special rule a Warden gains at Nurture rank V when four of its Nurture ranks took the same choice.", ["Nurture choice", "Nurture rank"]],
 		["Mastery", "The rank V reward for four matching ranks on a Warden with no signature: 20% better at what it does.", ["Signature"]],
 		["All-Rounder", "The rank V reward for mixed choices: 20% better at what it does.", ["Signature"]],
 		["Calling", "The rule your first family brings. It lasts the whole run.", ["Family pick"]],
@@ -543,8 +543,8 @@ static func signature_entries() -> Array:
 	var seen: Array = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, [])
 	if seen.is_empty():
 		return []
-	var out: Array = [["Your signatures", "Nurture a Warden to rank V. Four ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does.",
-		["Nurture choice", "Rank"], ""]]
+	var out: Array = [["Your signatures", "Nurture a Warden to Nurture rank V. Four Nurture ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does.",
+		["Nurture choice", "Nurture rank"], ""]]
 	for sig in Signatures.NAMES:
 		if sig == Signatures.ALL_ROUNDER or sig == Signatures.MASTERY:
 			continue  # Not hidden signatures: the "Signature" entry above already says what the others get

@@ -51,7 +51,7 @@ const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": 
 	"The Memory Grove": &"seeds", "Combat callouts": &"crit_damage", "Nightmares you've met": &"nightmare"}
 # Terms with an icon of their own (the rest use their group's).
 const TERM_ICONS := {"Dew": &"dew", "Dreamlight": &"dreamlight", "Dreamlight shard": &"dreamlight", "Leaves": &"leaves",
-	"Seeds": &"seeds", "Rank": &"rank", "Nurture": &"rank", "Potency": &"potency", "Crit": &"crit_chance",
+	"Seeds": &"seeds", "Rank": &"rank", "Nurture rank": &"rank", "Nurture": &"rank", "Potency": &"potency", "Crit": &"crit_chance",
 	"Deeply Blighted": &"deeply_blighted", "Hidden": &"hidden", "Flying": &"flying", "Dread shell": &"dread_shell",
 	"Omen": &"omen", "Armoured": &"dread_shell",
 	"Nurture choice": &"focus_power", "Clear tool": &"dew_cost", "Close call": &"leaves"}
