@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_great_bell"
 display_name = "The Great Bell"
-description = "Any {family:bellflower}-{family} final form can ascend into {warden:great_bell} ({dew:{grow_cost:great_bell}}, one per run): every 8 s it peals across a huge range: every nightmare falls {asleep}, and every nightmare with {field:great_bell.sets_off_static_at:count} or more {static} {stacks} releases its bolt at half strength."
+description = "Any {family:bellflower}-{family} final form can ascend into {warden:great_bell} ({dew:{grow_cost:great_bell}}, one per run): every 8 s it rings across a huge range: it fills every nightmare's {drowsy}, and every nightmare with {field:great_bell.sets_off_static_at:count} or more {static} takes its bolt at half damage."
 rarity = 3
 kind = 1
 tags = Array[String](["song"])
