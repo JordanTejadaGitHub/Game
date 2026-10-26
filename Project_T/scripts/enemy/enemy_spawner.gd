@@ -664,8 +664,6 @@ func dispel_burst() -> int:
 
 signal pack_formed(key: int, size: int)
 signal pack_wiped(key: int, size: int, centre: Vector2, top_source: Node)
-const PACK_WIPE_MIN := 4
-const PACK_WIPE_WINDOW := 3.0
 var _pack_book := {}  # key -> {"needed", "arrived", "alive", "dispelled", "leaked", "first", "last", "sum", "damage"}
 
 # A pack member arrived (DriftShapes.tag_enemy: `arrival` true for the shaped arrival, false for a follower) or popped
@@ -709,7 +707,7 @@ func _pack_member_gone(enemy: Node, leaked: bool) -> void:
 	_pack_book.erase(key)
 	# A count now, not a moment (user 2026-10-26: "fix the counts for wiped"; the group wipe's glow, word and swell are
 	# gone): every member dispelled and none leaked, whatever its size or how long it took, so "Packs wiped: N of M"
-	# compares like with like (formed counts every pack). PACK_WIPE_MIN / PACK_WIPE_WINDOW are no longer used here.
+	# compares like with like (formed counts every pack).
 	if book.leaked or book.dispelled <= 0:
 		return
 	var top: Node = null
@@ -717,36 +715,6 @@ func _pack_member_gone(enemy: Node, leaked: bool) -> void:
 		if is_instance_valid(source) and (top == null or book.damage[source] > book.damage[top]):
 			top = source
 	pack_wiped.emit(key, book.dispelled, book.sum / book.dispelled, top)
-
-# Enemy Assets' pack_bloom (8b812626) where a pack was wiped: warm light lying on the ground, 80% (a multiplier), scale
-# 1.0 for up to 8 members and 1.5 for bigger packs (whole steps keep the pixels crisp), above the ground and under the
-# Dew popup and callouts. Reduced motion: its "still" frame fading out over PACK_BLOOM_FADE s.
-const PACK_BLOOM_FRAMES := "res://animation/enemy/pack_bloom.tres"
-const PACK_BLOOM_ALPHA := 0.8
-const PACK_BLOOM_BIG := 9  # Members from which it plays at 1.5
-const PACK_BLOOM_FADE := 0.4
-const PACK_BLOOM_Z := 2  # Above the ground and the walkers' y-sort, below popups and callouts
-
-func _play_pack_bloom(centre: Vector2, size: int) -> void:
-	var world: Node = owner if owner != null else get_parent()
-	if world == null or not ResourceLoader.exists(PACK_BLOOM_FRAMES):
-		return
-	var bloom := AnimatedSprite2D.new()
-	bloom.sprite_frames = load(PACK_BLOOM_FRAMES)
-	bloom.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	bloom.modulate = Color(1, 1, 1, PACK_BLOOM_ALPHA)  # multiplier
-	bloom.scale = Vector2.ONE * (1.5 if size >= PACK_BLOOM_BIG else 1.0)
-	bloom.z_index = PACK_BLOOM_Z
-	world.add_child(bloom)
-	bloom.global_position = centre
-	if bool(Fx.setting("reduced_motion", false)) and bloom.sprite_frames.has_animation(&"still"):
-		bloom.play(&"still")
-		var fade := bloom.create_tween()
-		fade.tween_property(bloom, "modulate:a", 0.0, PACK_BLOOM_FADE)
-		fade.tween_callback(bloom.queue_free)
-	else:
-		bloom.play(&"bloom")
-		bloom.animation_finished.connect(bloom.queue_free)
 
 # Pops `split_count` `split_into` creatures out where `parent` was, lined up behind it on its route.
 func _split(parent: Node2D) -> void:
