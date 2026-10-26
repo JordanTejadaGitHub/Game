@@ -235,9 +235,14 @@ func _rings_target(dreams: DreamState, excluded: Array) -> Tower:
 func report_lines(dreams: DreamState) -> String:
 	var text := ""
 	if dreams.has_rule(&"growth_rings") and rings_result != "":
-		text += "\nGrowth Rings: %s" % ("lost (you planted this block)" if rings_result == "lost" else
-			(rings_result if rings_result.begins_with("no ") else "a free rank waits on %s" % rings_result))
+		text += "\n%s: %s" % [rings_name(dreams), "lost (you planted this block)" if rings_result == "lost" else
+			(rings_result if rings_result.begins_with("no ") else "a free Nurture rank waits on %s" % rings_result)]
 	return text
+
+# The card's own name (Quiet Rings since 2026-10-25; id growth_rings), so a rename reaches the report and the toast.
+func rings_name(dreams: DreamState) -> String:
+	var card: UpgradeData = dreams._card_by_id("growth_rings")
+	return card.display_name if card != null else "Quiet Rings"
 
 # --- Planting -----------------------------------------------------------------------------------------------------
 
@@ -255,7 +260,7 @@ func rings_blocks_plant(dreams: DreamState) -> bool:
 	_rings_confirm_until = now + GROWTH_RINGS_CONFIRM_SECONDS
 	var hud: Node = dreams.owner.get_node_or_null("HUD") if dreams.owner != null else null
 	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast("Growth Rings: planting gives up this block's free rank. Plant again to confirm.")
+		hud.show_toast("%s: planting gives up this block's free Nurture rank. Plant again to confirm." % rings_name(dreams))
 	return true
 
 func rings_line(dreams: DreamState) -> String:
@@ -269,7 +274,7 @@ func planted(dreams: DreamState, tower: Tower) -> void:
 		return
 	# Heartwood's Reach: the first Warden on each cleared cell costs half (TowerPlacer.get_cost via reach_fresh) and
 	# arrives at rank I. One rank per Warden, however many cleared cells its footprint covers, and every covered cell is
-	# used up. Thornwalls and Sprouts never use a cell up.
+	# used up. Thornwalls never use a cell up; a Warden that can't hold a rank (a support aura) takes the half price only.
 	var fresh := false
 	for cell in tower.get_cells():
 		var key := "%d,%d" % [roundi(cell.x), roundi(cell.y)]
@@ -284,9 +289,9 @@ func planted(dreams: DreamState, tower: Tower) -> void:
 		dreams._credit("heartwoods_reach", "dew", float(Tower.RANK_COSTS[0]))
 
 # Heartwood's Reach (section 36, 2026-10-25: the one clearing card, Reclaimed Earth merged in): which Wardens take a
-# cleared cell's half price and rank I. Thornwalls and Sprouts don't, and never use the cell up.
+# cleared cell's half price and rank I: every Warden but a Thornwall (user 2026-10-25: Sprouts count too; it was attackers only).
 static func reach_takes(data: TowerData) -> bool:
-	return data != null and data.can_attack and data.line != "wall" and data.get_id() != "sprout"
+	return data != null and data.line != "wall"
 
 # Whether planting `data` over `cells` is the first Warden on a cleared cell: the same test planted() uses up.
 func reach_fresh_for(dreams: DreamState, data: TowerData, cells: Array[Vector2]) -> bool:

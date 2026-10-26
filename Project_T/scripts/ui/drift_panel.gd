@@ -30,6 +30,9 @@ var _key_room := 0.0  # The chip's room last fitted (UiStyle "key_room")
 var _auto_toggle := Button.new()  # A toggle: on = the toggled-on look, as the active speed (never the primary; Start is)
 var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
+const PHONE_SPEED_SIDE := 60.0  # Phones: II and the speed cycle (a 48 dp target at 1200 x 540 is ~63 px)
+const PHONE_SPEED_TEXT := 22
+const PHONE_AUTO_TEXT := 15  # (The 13 px phone floor holds)
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
@@ -176,6 +179,15 @@ func _ready() -> void:
 		_add_speed_button(speed_row, button)
 		_speed_buttons.append(button)
 
+	if UiStyle.is_phone():
+		# Phones (owner 2026-10-26: "pause and speed buttons should be bigger than the auto button"): II and the speed
+		# cycle are PHONE_SPEED_SIDE squares in bigger type; Auto stays a HUD_BUTTON_H plate at the row's foot, its words short
+		for button in [_pause_button, _phone_speed]:
+			button.custom_minimum_size = Vector2(PHONE_SPEED_SIDE, PHONE_SPEED_SIDE)
+			button.add_theme_font_size_override("font_size", PHONE_SPEED_TEXT)
+		_auto_toggle.size_flags_vertical = Control.SIZE_SHRINK_END
+		_auto_toggle.add_theme_font_size_override("font_size", PHONE_AUTO_TEXT)  # Its full words ("Auto-drift on"), a step smaller
+		speed_row.add_theme_constant_override("separation", 10)  # Apart enough for thumbs (council: 8 px or more)
 	game_speed.changed.connect(_on_speed_changed)
 	_on_speed_changed(game_speed.paused, game_speed.speed)
 	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
@@ -245,7 +257,9 @@ func _process(_delta: float) -> void:
 	var next := latest + 1
 	var key_shown := false  # Enter starts the drift (at a rest) or resumes: its chip shows
 
-	_start_button.disabled = not drift_director.can_start_next_drift()
+	# Worked out first and set once at the end (owner 2026-10-26: "Pressing resume when it's paused doesn't resume"): setting
+	# disabled true, even for part of a frame, cancels a press in progress, so a tap on Resume or a waiting choice never fired.
+	var start_disabled := not drift_director.can_start_next_drift()
 	_start_button.tooltip_text = MIST_FULL if drift_director.is_mist_full() else ""
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
 	_remember_button.visible = false
@@ -298,12 +312,14 @@ func _process(_delta: float) -> void:
 		var omens := get_tree().get_first_node_in_group(&"omens")
 		if pending == &"omen" and omens != null and bool(omens.get("faced")):
 			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
-		_start_button.disabled = false
+		start_disabled = false
 	# Paused mid-drift (user: "it should resume instead of bringing the next drift wave in"): the button only resumes.
 	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
 		_start_button.text = "Resume"
-		_start_button.disabled = false
+		start_disabled = false
 		key_shown = true
+	if _start_button.disabled != start_disabled:
+		_start_button.disabled = start_disabled
 	if _start_chip != null:
 		_start_chip.visible = key_shown and not InputMode.touch()
 		if not key_shown:

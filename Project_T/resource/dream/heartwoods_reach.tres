@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heartwoods_reach"
 display_name = "Heartwood's Reach"
-description = "You can clear obstacles; the next 5 are free. The first Warden planted on each cleared cell costs half and arrives at {rank} I."
+description = "You can clear obstacles; the next 5 are free. The first Warden planted on each cleared cell costs half and arrives at Nurture {rank} I."
 rarity = 0
 kind = 4
 tags = Array[String](["clearing", "opener", "tending"])
@@ -15,5 +15,5 @@ min_obstacles = 8
 clear_discount = 0.0
 free_clears_add = 0
 free_first_clears_add = 5
-tip = "A Warden covering several cleared cells gets it once. Thornwalls, Sprouts and Wardens that don't attack pay full price, and the cell keeps its bonus for the next Warden."
+tip = "A Warden covering several cleared cells gets it once. Sprouts count; a Sprout keeps its rank when it grows. Thornwalls pay full price, and the cell keeps its bonus for the next Warden. A Warden that can't be nurtured gets only the half price."
 makes = Array[StringName]([&"maze", &"rank"])

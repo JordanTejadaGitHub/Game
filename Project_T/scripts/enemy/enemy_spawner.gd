@@ -354,11 +354,15 @@ func _jostle_lanes(delta: float) -> void:
 	# Jostle pushes only with lanes on and no reduced motion; the crowd marks (compact status rows) always
 	var push := walking_lanes and not reduced_motion_now
 	var cell_px := 0.0
-	# floor(distance left / reach) -> [[nightmare, distance left, drawn body, lane × width, flying], …]: each walker's
-	# values once a pass, not once a pair (perf 2026-10-24: ~440 pairs a pass; nudge_lane moves only lane_target, so
-	# the lane read here stays what every pair saw before)
+	# Each walker's values once a pass, not once a pair, in flat arrays by walker index (perf 2026-10-24 / 25: ~440 pairs a
+	# pass spread out, ~1,300 in Packs; nudge_lane moves only lane_target, so the lane read here stays what every pair saw
+	# before). buckets: floor(distance left / reach) -> [walker index, …], in walker order.
+	var walkers: Array = []  # (Untyped: their script members are read directly)
+	var lefts := PackedFloat64Array()
+	var bodies := PackedVector2Array()
+	var lanes := PackedFloat64Array()  # lane × width (0 for flyers, or with no push)
+	var flyers := PackedByteArray()
 	var buckets := {}
-	var walkers: Array = []
 	for enemy in get_children():
 		if not enemy.has_method("nudge_lane") or enemy.is_cleansed or enemy._culled:
 			continue
@@ -366,71 +370,91 @@ func _jostle_lanes(delta: float) -> void:
 			cell_px = enemy.grid.cell_size.x
 		var left: float = enemy.get_remaining_distance()
 		var flying: bool = enemy.is_flying()
-		var one := [enemy, left, enemy.get_body_position(), enemy.lane * enemy.get_lane_width() if push and not flying else 0.0, flying]
-		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append(one)
-		walkers.append(one)
+		buckets.get_or_add(floori(left / (JOSTLE_REACH * cell_px)), []).append(walkers.size())
+		walkers.append(enemy)
+		lefts.append(left)
+		bodies.append(enemy.get_body_position())
+		lanes.append(enemy.lane * enemy.get_lane_width() if push and not flying else 0.0)
+		flyers.append(1 if flying else 0)
 	if buckets.is_empty():
 		return
-	_mark_crowds(walkers, cell_px)  # The crowd marks (compact status rows) always, jostle or not
+	_mark_crowds(walkers, bodies, cell_px)  # The crowd marks (compact status rows) always, jostle or not
 	var reach := JOSTLE_REACH * cell_px
-	var sort_reach := SORT_REACH * cell_px
+	var sort_squared := (SORT_REACH * cell_px) ** 2
+	var push_now := JOSTLE_PUSH * step
 	for key in buckets:
 		var here: Array = buckets[key]
 		var next: Array = buckets.get(key + 1, [])
-		for i in here.size():
-			var one: Array = here[i]
-			var left: float = one[1]
-			for j in range(i + 1, here.size() + next.size()):
-				var other: Array = here[j] if j < here.size() else next[j - here.size()]
-				if absf(left - float(other[1])) <= reach:
-					# Two drawn bodies this close sort by where they're drawn (Enemy._update_sort_look), statuses or not
-					if (one[2] as Vector2).distance_squared_to(other[2]) < sort_reach * sort_reach:
-						one[0].sort_seen = crowd_clock
-						other[0].sort_seen = crowd_clock
-					if push:
-						_jostle_pair(one, other, cell_px, step, push)
+		var in_here := here.size()
+		for i in in_here:
+			var a: int = here[i]
+			var left := lefts[a]
+			var body := bodies[a]
+			for j in range(i + 1, in_here + next.size()):
+				var b: int = here[j] if j < in_here else next[j - in_here]
+				if absf(left - lefts[b]) > reach:
+					continue
+				# Two drawn bodies this close sort by where they're drawn (Enemy._update_sort_look), statuses or not
+				if body.distance_squared_to(bodies[b]) < sort_squared:
+					walkers[a].sort_seen = crowd_clock
+					walkers[b].sort_seen = crowd_clock
+				# The jostle: walkers on lanes closer than JOSTLE_LANES ease apart (never flyers)
+				if not push or flyers[a] == 1 or flyers[b] == 1:
+					continue
+				var wa := lanes[a]
+				var wb := lanes[b]
+				if absf(wa - wb) > JOSTLE_LANES:
+					continue
+				var away := signf(wa - wb) if wa != wb else (1.0 if walkers[a].get_instance_id() > walkers[b].get_instance_id() else -1.0)
+				walkers[a].nudge_lane(away * push_now)
+				walkers[b].nudge_lane(-away * push_now)
 
-# Crowd marks from the walkers of this pass ([[nightmare, distance left, drawn body, …], …]): a spatial hash on the drawn
-# bodies, buckets CROWD_RADIUS cell wide, each body against the 3 × 3 buckets round it.
-func _mark_crowds(walkers: Array, cell_px: float) -> void:
+# Crowd marks from the walkers of this pass (their drawn bodies by walker index): a spatial hash on the drawn bodies,
+# buckets CROWD_RADIUS cell wide, each body against the 3 × 3 buckets round it.
+func _mark_crowds(walkers: Array, bodies: PackedVector2Array, cell_px: float) -> void:
 	if walkers.size() < CROWD_GROUP_MIN:
 		return
 	var reach := CROWD_RADIUS * cell_px
+	var reach_squared := reach * reach
+	# Perf (2026-10-25: ~1.2 ms a pass with 150 walkers, ~2.5 in Packs): each walker's bucket key once, buckets of walker
+	# indices, the 3 × 3 looked up once each (no empty array made for a missing one), and a walker whose 3 × 3 holds too
+	# few bodies skips the distance checks (it can't be in a group)
 	var grid := {}
-	for one in walkers:
-		var body: Vector2 = one[2]
-		grid.get_or_add(Vector2i(floori(body.x / reach), floori(body.y / reach)), []).append(one)
-	for one in walkers:
-		var body: Vector2 = one[2]
-		var key := Vector2i(floori(body.x / reach), floori(body.y / reach))
-		var near: Array = []
+	var keys: Array[Vector2i] = []
+	keys.resize(walkers.size())
+	for i in walkers.size():
+		var key := Vector2i(floori(bodies[i].x / reach), floori(bodies[i].y / reach))
+		keys[i] = key
+		grid.get_or_add(key, []).append(i)
+	var around: Array[Array] = []
+	var near := PackedInt32Array()
+	for i in walkers.size():
+		var key := keys[i]
+		around.clear()
+		var count := 0
 		for dx in range(-1, 2):
 			for dy in range(-1, 2):
-				for other in grid.get(key + Vector2i(dx, dy), []):
-					if other[0] != one[0] and body.distance_squared_to(other[2]) <= reach * reach:
-						near.append(other)
+				var bucket = grid.get(key + Vector2i(dx, dy))
+				if bucket != null:
+					around.append(bucket)
+					count += bucket.size()
+		if count < CROWD_GROUP_MIN:  # (Itself included)
+			continue
+		var body := bodies[i]
+		near.clear()
+		for bucket in around:
+			for k: int in bucket:
+				if k != i and body.distance_squared_to(bodies[k]) <= reach_squared:
+					near.append(k)
 		if near.size() < CROWD_GROUP_MIN - 1:
 			continue
-		one[0].crowd_seen = crowd_clock
-		for other in near:
-			other[0].crowd_seen = crowd_clock
+		walkers[i].crowd_seen = crowd_clock
+		for k in near:
+			walkers[k].crowd_seen = crowd_clock
 			# Two crowd rows overlapping by more than half (UI council round 8): only the front nightmare's pips show
-			var there: Vector2 = other[2]
+			var there := bodies[k]
 			if absf(body.x - there.x) < CROWD_ROW_W / 2.0 and absf(body.y - there.y) < CROWD_ROW_H:
-				(one[0] if body.y < there.y else other[0]).pips_hidden_seen = crowd_clock
-
-func _jostle_pair(one: Array, two: Array, cell_px: float, step: float, push: bool) -> void:
-	var a = one[0]
-	var b = two[0]
-	if not push or one[4] or two[4]:
-		return
-	var wa: float = one[3]
-	var wb: float = two[3]
-	if absf(wa - wb) > JOSTLE_LANES:
-		return
-	var away := signf(wa - wb) if wa != wb else (1.0 if a.get_instance_id() > b.get_instance_id() else -1.0)
-	a.nudge_lane(away * JOSTLE_PUSH * step)
-	b.nudge_lane(-away * JOSTLE_PUSH * step)
+				walkers[i if body.y < there.y else k].pips_hidden_seen = crowd_clock
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
 # others ({cell: nightmare}), and walkers waiting behind one block theirs so nobody stacks up. Rebuilt
@@ -593,8 +617,8 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 # --- Pack wipes (enemy_design.md "Drift shapes", "More of the group wipe", council 2026-10-24c) ----------------------
 # pack_formed(key, size): a pack's first member arrived (size = the arrivals it was shaped with; for "Packs wiped: N of
 # M"). pack_wiped(key, size, centre, top_source): every member (its splitters' children and followers too) was
-# dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
-# at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
+# dispelled and none leaked (any size, any time: user 2026-10-26); size = members dispelled,
+# centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
 # damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
 # Pooled dispel motes (perf 2026-10-25): a dispel used to make a CPUParticles2D of its own (a wiped pack: up to 20 at
 # once); the emitters are kept in the map (beside this container, never in it) and reused once their burst has played,
@@ -640,8 +664,6 @@ func dispel_burst() -> int:
 
 signal pack_formed(key: int, size: int)
 signal pack_wiped(key: int, size: int, centre: Vector2, top_source: Node)
-const PACK_WIPE_MIN := 4
-const PACK_WIPE_WINDOW := 3.0
 var _pack_book := {}  # key -> {"needed", "arrived", "alive", "dispelled", "leaked", "first", "last", "sum", "damage"}
 
 # A pack member arrived (DriftShapes.tag_enemy: `arrival` true for the shaped arrival, false for a follower) or popped
@@ -683,44 +705,16 @@ func _pack_member_gone(enemy: Node, leaked: bool) -> void:
 	if book.alive > 0 or book.arrived < book.needed:
 		return
 	_pack_book.erase(key)
-	if book.leaked or book.dispelled < PACK_WIPE_MIN or book.last - book.first > PACK_WIPE_WINDOW:
+	# A count now, not a moment (user 2026-10-26: "fix the counts for wiped"; the group wipe's glow, word and swell are
+	# gone): every member dispelled and none leaked, whatever its size or how long it took, so "Packs wiped: N of M"
+	# compares like with like (formed counts every pack).
+	if book.leaked or book.dispelled <= 0:
 		return
 	var top: Node = null
 	for source in book.damage:
 		if is_instance_valid(source) and (top == null or book.damage[source] > book.damage[top]):
 			top = source
-	_play_pack_bloom(book.sum / book.dispelled, book.dispelled)
 	pack_wiped.emit(key, book.dispelled, book.sum / book.dispelled, top)
-
-# Enemy Assets' pack_bloom (8b812626) where a pack was wiped: warm light lying on the ground, 80% (a multiplier), scale
-# 1.0 for up to 8 members and 1.5 for bigger packs (whole steps keep the pixels crisp), above the ground and under the
-# Dew popup and callouts. Reduced motion: its "still" frame fading out over PACK_BLOOM_FADE s.
-const PACK_BLOOM_FRAMES := "res://animation/enemy/pack_bloom.tres"
-const PACK_BLOOM_ALPHA := 0.8
-const PACK_BLOOM_BIG := 9  # Members from which it plays at 1.5
-const PACK_BLOOM_FADE := 0.4
-const PACK_BLOOM_Z := 2  # Above the ground and the walkers' y-sort, below popups and callouts
-
-func _play_pack_bloom(centre: Vector2, size: int) -> void:
-	var world: Node = owner if owner != null else get_parent()
-	if world == null or not ResourceLoader.exists(PACK_BLOOM_FRAMES):
-		return
-	var bloom := AnimatedSprite2D.new()
-	bloom.sprite_frames = load(PACK_BLOOM_FRAMES)
-	bloom.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	bloom.modulate = Color(1, 1, 1, PACK_BLOOM_ALPHA)  # multiplier
-	bloom.scale = Vector2.ONE * (1.5 if size >= PACK_BLOOM_BIG else 1.0)
-	bloom.z_index = PACK_BLOOM_Z
-	world.add_child(bloom)
-	bloom.global_position = centre
-	if bool(Fx.setting("reduced_motion", false)) and bloom.sprite_frames.has_animation(&"still"):
-		bloom.play(&"still")
-		var fade := bloom.create_tween()
-		fade.tween_property(bloom, "modulate:a", 0.0, PACK_BLOOM_FADE)
-		fade.tween_callback(bloom.queue_free)
-	else:
-		bloom.play(&"bloom")
-		bloom.animation_finished.connect(bloom.queue_free)
 
 # Pops `split_count` `split_into` creatures out where `parent` was, lined up behind it on its route.
 func _split(parent: Node2D) -> void:

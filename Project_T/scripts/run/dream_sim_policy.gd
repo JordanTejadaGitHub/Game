@@ -340,7 +340,7 @@ func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 	var grow := dreams._calling_offer_for(drift)
 	var taken: Array[UpgradeData] = []
 	if not grow.is_empty() and drift <= DreamState.CLASS_OFFER_UNTIL_DRIFT:
-		# Drift 5: the style pick replaces that rest's Dream (DreamState._show_next_offer). The rest rules still run;
+		# (Only a Calling step at or before CLASS_OFFER_UNTIL_DRIFT replaced that rest's Dream; none since 2026-10-25.) The rest rules still run;
 		# the empty pick passes the Dream without its "Let it pass" Dew.
 		var skip_dew := dreams.skip_dew
 		dreams.skip_dew = 0
@@ -355,7 +355,7 @@ func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 	spend_dreamlight()
 	return taken
 
-# The Calling's evolution at its rest (drifts 5 / 25 / 45 / 75; the game's own offer, DreamState._show_next_offer, which
+# The Calling's evolution at its rest (CALLING_PATHS.DRIFTS: 20 / 45 / 60 / 75; the game's own offer, DreamState._show_next_offer, which
 # sim_rest never asks for): the wished id if offered, else the first. Through DreamState.choose, as the Dream screen does.
 func _grow_calling(drift: int, grow: Array[UpgradeData]) -> void:
 	var pick: UpgradeData = grow[0]

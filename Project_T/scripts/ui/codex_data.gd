@@ -45,16 +45,16 @@ const GLOSSARY_SOURCE := [
 		["Branch", "A second-step form of a family. A run offers two of each family's branches.", ["Grow", "Final form"], "A Sporeling grows into a branch such as Driftspore, and Driftspore into its final form, Puffball."],
 		["Final form", "The third step of a branch, unlocked with Dreamlight.", ["Branch", "Ascended"]],
 		["Grove branch", "An extra branch of a family, opened in the Memory Grove. It is offered on top of the run's two.", ["Memory Grove"]],
-		["Grow", "Pay Dew to turn a Warden into a stronger form of its family.", ["Branch", "Nurture"]],
-		["Nurture", "Pay Dew to raise a Warden's rank. Each rank lets you choose one improvement.", ["Rank", "Nurture choice"]],
-		["Rank", "How nurtured a Warden is (I and up; the Eldest goes past V): each rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
-		["Eldest", "A Legendary Dream lets one Warden a run grow past rank V; it wears a crown.", ["Rank", "Nurture"]],
+		["Grow", "A Warden grows into its next form, for {dew} (and Dreamlight for a new branch).", ["Branch", "Nurture"]],
+		["Nurture", "Pay Dew to raise a Warden's Nurture rank. Each Nurture rank lets you choose one improvement.", ["Nurture rank", "Nurture choice"]],
+		["Nurture rank", "How nurtured a Warden is (Nurture rank I and up; the Eldest goes past Nurture rank V): each Nurture rank adds damage, attack speed and 0.1 cells of range.", ["Nurture", "Eldest"]],
+		["Eldest", "A Legendary Dream lets one Warden a run go past Nurture rank V; it wears a crown.", ["Nurture rank", "Nurture"]],
 		["Sprout", "The cheapest Warden. It can grow into any family you have picked this run.", ["Family pick", "Warden"]],
 		["Aura", "A bonus a support Warden gives to the Wardens around it.", ["Boosts"]],
 		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher catches Dew from nightmares dispelled in its range and pays it at the rest; a Wellspring adds interest on your Dew at each rest, at most 260 a rest for all Wellsprings together.", ["Dew", "Rest"]],
-		["Nurture choice", "Each rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
+		["Nurture choice", "Each Nurture rank you choose one improvement: Power, Swift, Reach or Deep. Support Wardens have their own choices.", ["Nurture", "Potency"]],
 		["Wide, Strong, Attuned", "The Nurture choices of support Wardens: a wider aura, a stronger aura, or taking every boost in full.", ["Nurture choice", "Aura"]],
-		["Signature", "A special rule a Warden gains at rank V when four of its ranks took the same choice.", ["Nurture choice", "Rank"]],
+		["Signature", "A special rule a Warden gains at Nurture rank V when four of its Nurture ranks took the same choice.", ["Nurture choice", "Nurture rank"]],
 		["Mastery", "The rank V reward for four matching ranks on a Warden with no signature: 20% better at what it does.", ["Signature"]],
 		["All-Rounder", "The rank V reward for mixed choices: 20% better at what it does.", ["Signature"]],
 		["Calling", "The rule your first family brings. It lasts the whole run.", ["Family pick"]],
@@ -140,6 +140,7 @@ const GLOSSARY_SOURCE := [
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],
 		["Full", "A status at its most stacks: each status has its own most, and Brimming doubles them. Some statuses do nothing until they are full. A full status's dot fills with its colour, ringed in light; in a crowd, its pip's outline lights up.", ["Stack", "Nearly full"]],
 		["Nearly full", "At least 3/4 of a status's usual most (before Brimming). Starlit Aim and Guiding Light use it.", ["Full"]],
+		["Hollow", "Stacks a Dream card adds show hollow for {const:fed_lock} s: the colour edge stays, the inside goes dark. While any status on a nightmare is hollow, no Reaction can trigger on it. Then the stacks fill in and count as usual.", ["Stack", "Reaction"]],
 		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction triggers.", ["Reaction mark", "Reaction", "Stack"]],
 		["Reaction mark", "The small slash on a status's stack bar or pips: where its stacks become enough for a Reaction. Past it the status is Reaction-ready. Brimming makes the bar longer, but the mark stays at the same number of stacks, so it sits further left.", ["Reaction-ready", "Stack", "Reaction"]],
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
@@ -491,7 +492,8 @@ static func _fill_constants(text: String) -> String:
 		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT) \
 		.replace("{const:pack_leaves}", str(DriftShapes.PACK_LEAVES)).replace("{const:pack_per}", str(DriftShapes.PACK_LEAVES_PER)) \
 		.replace("{const:tough_leaves}", str(DriftShapes.TOUGH_LEAVES)) \
-		.replace("{const:cold_snap}", String.num(EnemyStatuses.COLD_SNAP)).replace("{const:cold_snap_boss}", String.num(EnemyStatuses.COLD_SNAP_BOSS))
+		.replace("{const:cold_snap}", String.num(EnemyStatuses.COLD_SNAP)).replace("{const:cold_snap_boss}", String.num(EnemyStatuses.COLD_SNAP_BOSS)) \
+		.replace("{const:fed_lock}", String.num(EnemyStatuses.FED_LOCK))
 
 static func glossary() -> Array:
 	var stacks := IconInfo.stack_number("need_damp")
@@ -543,8 +545,8 @@ static func signature_entries() -> Array:
 	var seen: Array = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, [])
 	if seen.is_empty():
 		return []
-	var out: Array = [["Your signatures", "Nurture a Warden to rank V. Four ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does.",
-		["Nurture choice", "Rank"], ""]]
+	var out: Array = [["Your signatures", "Nurture a Warden to Nurture rank V. Four Nurture ranks of the same choice give a signature, a special rule. Any other mix gives All-Rounder: 20% better at what it does.",
+		["Nurture choice", "Nurture rank"], ""]]
 	for sig in Signatures.NAMES:
 		if sig == Signatures.ALL_ROUNDER or sig == Signatures.MASTERY:
 			continue  # Not hidden signatures: the "Signature" entry above already says what the others get

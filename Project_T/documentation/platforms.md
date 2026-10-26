@@ -61,7 +61,7 @@ made now must not block it**. This doc is the checklist.
 | Select several | drag box, double-click | no drag box on phones (one finger pans); double-tap = same kind; "Select all of this kind" in the Warden panel |
 | Nightmare / obstacle info | hover | **tap** (shows the info card; tap elsewhere to close) |
 | Clear an obstacle | click | tap it (shows cost + route preview), then **✓** |
-| Sell, grow, nurture | panel buttons, Delete / G / R; X while building = sell mode | panel buttons; **Sell** toggle on the touch bar (a tap sells, a pan never does) |
+| Sell, grow, nurture | panel buttons, Delete / G / R; X while building = sell mode | panel buttons; tablets: **Sell** toggle on the touch bar. Phones (2026-10-26, Mobile UI council r1): no dock Sell; the drawer's Sell asks once ("Sell? +25", second tap sells), Select + the group drawer's "Sell N" sells several. Grow cells pinned above Sell / Nurture (2x2, "+N more"); the first tap on one shows its grow card and arms it (second tap grows), a hold (0.45 s) shows the card without growing |
 | Cancel | right-click / Esc | **✕** button, or tap empty ground |
 | Pause, speed, start drift | Space / Tab / Enter | on-screen buttons; phones hide every key chip and "(Enter)" |
 

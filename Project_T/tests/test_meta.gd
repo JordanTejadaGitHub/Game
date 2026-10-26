@@ -190,7 +190,7 @@ func _run() -> void:
 	# Milestones only give bonus Seeds (meta_design.md "Milestones"): one line each in the breakdown, after the Seed bonus.
 	var milestone_lines: Array = meta.milestone_seed_lines(true)
 	var line_names: Array = milestone_lines.map(func(l: Array) -> String: return l[0])
-	_check(line_names == ["Milestone · Dispel your first boss", "Milestone · Win a run", "Milestone · Build a 130-tile path",
+	_check(line_names == ["Milestone · Dispel your first boss", "Milestone · Win a run", "Milestone · Build a 130-cell path",
 		"Milestone · Win without losing a leaf", "Milestone · Reach Blight Level 5", "Milestone · Discover every combo", "Milestone · See every Dream card"],
 		"each new milestone is its own Seed line (%s)" % [line_names])
 	_check(milestone_lines.reduce(func(sum: int, l: Array) -> int: return sum + int(l[1]), 0) == 20 + 60 + 30 + 100 + 50 + 60 + 60, "with its bonus")
@@ -988,7 +988,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 95 and grove.size() == 95 - parked, "95 Grove spots, %d nodes on the tree (layout %d, data %d)" % [95 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 94 and grove.size() == 94 - parked, "94 Grove spots (Impatient Night off, section 36), %d nodes on the tree (layout %d, data %d)" % [94 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

@@ -1379,7 +1379,7 @@ func get_court_ranks() -> float:
 # nothing on this form.
 const POTENCY_STATUS_LINES := {&"spored": "{spored} ticks hit harder", &"static": "{static} bolts hit harder",
 	&"damp": "{damp} is stronger, then lasts longer", &"marked": "{marked} is stronger, then lasts longer",
-	&"drowsy": "{drowsy} lasts longer"}
+	&"drowsy": "{drowsy} lasts longer", &"frost": "its {frostburst} hits harder"}  # Frost: the burst is its potency x FROST_BURST (section 37)
 
 static func potency_uses(data: TowerData) -> Array[String]:
 	var lines: Array[String] = []
@@ -1430,6 +1430,9 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 			EnemyStatuses.STATIC:
 				line = "{static} bolts deal ×%s its hit%s" % [_potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER * p),
 					_at_potency_one(p, "×%s" % _potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER))]
+			EnemyStatuses.FROST:
+				line = "a {frostburst} deals ×%s its hit%s" % [_potency_number(EnemyStatuses.FROST_BURST * p),
+					_at_potency_one(p, "×%s" % _potency_number(EnemyStatuses.FROST_BURST))]  # (x min(attacks a second, 1): Tower._apply_one_status)
 			EnemyStatuses.DROWSY:
 				var base_time: float = data.status_duration if data.status_duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[id])
 				line = "{drowsy} lasts %s s%s" % [_potency_number(base_time * maxf(p, 1.0)), _at_potency_one(p, "%s s" % _potency_number(base_time))]
@@ -3823,14 +3826,26 @@ func _hailfall(enemy: Node2D, dealt: float) -> void:
 		return
 	var at: Vector2 = enemy.global_position
 	var reach := HAILFALL_RADIUS * MAP_GRID.cell_size.x
+	# The HAILFALL_TARGETS nearest (perf 2026-10-25, every direct hit: each distance once and a small insertion pick, not a
+	# sort whose lambda read two global positions per comparison)
 	var near: Array = []
+	var near_d: Array[float] = []
 	for other in nightmares_near(get_tree(), at, reach):
-		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
-			near.append(other)
+		if other == enemy or not is_instance_valid(other) or other.is_cleansed:
+			continue
+		var d: float = (other.global_position as Vector2).distance_squared_to(at)
+		if d > reach * reach or (near.size() == HAILFALL_TARGETS and d >= near_d[-1]):
+			continue
+		var k := near.size()
+		while k > 0 and near_d[k - 1] > d:
+			k -= 1
+		near.insert(k, other)
+		near_d.insert(k, d)
+		if near.size() > HAILFALL_TARGETS:
+			near.pop_back()
+			near_d.pop_back()
 	if near.is_empty():
 		return
-	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
-	near = near.slice(0, HAILFALL_TARGETS)
 	set_area_count(near.size() + 1, at)  # Crowd Breaker counts the crowd it splashed
 	_splash_ring(_ring_at(enemy, at), reach)  # Its reach, as every splash (UI council 2026-10-25)
 	var share := HAILFALL_SHARE * dealt / maxf(get_damage(), 0.001)

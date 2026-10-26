@@ -189,12 +189,9 @@ func _process(delta: float) -> void:
 	# (phones: since the tap), and when its nightmare is gone. A pinned nightmare (a click) stays until a click elsewhere.
 	_idle = 0.0 if moved else _idle + delta / maxf(Engine.time_scale, 0.001)
 	if TouchBuild.mobile_controls() and _dispelled_left <= 0.0:
-		_target = hovered  # Phones: the tapped nightmare (or none: a tap elsewhere closed it)
-		if _target != null and _idle > IDLE_TIME and _note_for == &"":  # (A chip's words open: kept until read)
-			_phone_pick = null
-			_target = null
+		_target = hovered  # Phones: the tapped nightmare, kept until a tap elsewhere (user 2026-10-25: no timeout, 64c30f7f)
 	elif _has_pin:
-		_target = _pinned  # Pinned (owner 2026-10-25: "stay on the pinned until you let go"): hover doesn't move it
+		_target = _pinned  # Held on the clicked nightmare (owner 2026-10-25: keep it until you let go): hover doesn't move it
 	elif is_instance_valid(test_pin) and not test_pin.is_cleansed:
 		_target = test_pin  # Tests: held as if hovered, whatever the (headless) pointer does
 	else:
@@ -284,6 +281,8 @@ func _process(delta: float) -> void:
 		if kind_row != null:
 			_rows_box.add_child(kind_row)
 		_rows_box.visible = kind_row != null  # No empty row's gap at the card's foot
+	if TouchBuild.mobile_controls():
+		_fit_phone()
 
 # The first frame of a kind's walk, cropped to its drawn pixels (a small nightmare fills the portrait, not a speck in its
 # 64 px frame); null when it has no frames. Cached per kind on this panel (never a static Texture: exit crash).
@@ -534,6 +533,8 @@ func _input(event: InputEvent) -> void:
 			if _tool_active():
 				_set_pin(null)  # Building, selling or selecting: the tool takes the click and the pin lets go
 				return
+			if RestScreens.map_blocked(self):
+				return  # A screen covers the map (64c30f7f): its clicks aren't the map's
 			if get_viewport().gui_get_hovered_control() != null:
 				return  # A click on the HUD
 			var world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (event as InputEventMouseButton).position
@@ -552,6 +553,29 @@ func _input(event: InputEvent) -> void:
 		return
 	var world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (event as InputEventScreenTouch).position
 	_phone_pick = _cycle_pick(world)
+
+func _drawer_open() -> bool:
+	var drawer := get_parent().get_node_or_null("WardenPanel") as Control if get_parent() != null else null
+	return drawer != null and drawer.visible
+
+# Phones (owner 2026-10-26: "can't read the pinned nightmare", its foot sat under Start drift and the speed buttons): the
+# card ends above the drift panel, moving up from its scene place as far as PHONE_TOP_MIN (under the top-right buttons).
+const PHONE_TOP_MIN := 72.0
+const PHONE_GAP := 8.0
+var _scene_top := NAN
+
+func _fit_phone() -> void:
+	if is_nan(_scene_top):
+		_scene_top = offset_top
+	var panel := get_parent().get_node_or_null("DriftPanel") as Control
+	var bottom := get_parent_area_size().y - PHONE_GAP
+	if panel != null and panel.is_visible_in_tree():
+		bottom = minf(bottom, panel.get_rect().position.y - PHONE_GAP)
+	var height := get_combined_minimum_size().y
+	var top := clampf(bottom - height, PHONE_TOP_MIN, _scene_top)
+	if not is_equal_approx(top, offset_top):
+		offset_top = top
+		offset_bottom = top + height
 
 func _tool_active() -> bool:
 	var main := owner
@@ -599,6 +623,8 @@ func _hovered_nightmare() -> Node2D:
 	if RestScreens.map_blocked(self):
 		return null  # Under a choice screen nothing on the map is hovered (peeking: it is)
 	if TouchBuild.mobile_controls():
+		if _drawer_open():
+			_phone_pick = null  # Phones (owner 2026-10-26: the Warden drawer hides the held nightmare's card): both sit on the right
 		if _tool_active() or not is_instance_valid(_phone_pick) or _phone_pick.is_cleansed:
 			return null
 		return _phone_pick

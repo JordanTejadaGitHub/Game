@@ -117,56 +117,37 @@ func _run() -> void:
 	await _drag(slot.get_global_rect().get_center(), Vector2(-150, 0))
 	_check(camera.target_position.distance_to(cam_before) < 1.0, "a drag that starts on the Warden bar doesn't move the map")
 
-	# Sell (phones, Tower Code's sell mode): the Warden dock's Sell slot (Mobile UI 2026-10-15); a tap sells, a pan never
-	# does; off = building again
+	# Sell (phones, owner 2026-10-26: "we can remove the sell feature on the tower bar"): no dock Sell; the Warden drawer's
+	# Sell asks once ("Sell? +N"), the second tap sells (owner: "second tap confirms")
 	_close_screens()
 	await process_frame
-	placer.select_tower(load("res://resource/tower/thornwall.tres"))
-	touch._refresh()
+	placer.set_build_mode(false)
 	var hud = main.get_node("HUD")
-	_check(hud.sell_slot != null and hud.sell_slot.is_visible_in_tree() and touch._done.visible and not touch._sell.visible,
-		"building: Sell is the Warden dock's last slot, Done on the touch bar")
-	hud.sell_slot.button_pressed = true
-	_check(seller.sell_mode and not placer.build_mode and touch.visible and hud.sell_slot.button_pressed, "Sell turns sell mode on (the bar stays)")
+	_check(hud.sell_slot == null, "no Sell slot in the Warden dock (the drawer sells)")
 	var victim: Tower = _towers(container).back()
-	var count_before: int = _towers(container).size()
-	await _drag(_screen_of(victim.global_position), Vector2(-90, 0))
-	_check(is_instance_valid(victim) and not victim.is_queued_for_deletion() and seller.get_sell_marks().is_empty(),
-		"sell mode: a pan that starts on a Warden never sells or marks it")
+	await _drag(_screen_of(victim.global_position), Vector2(-90, 0))  # The camera where the old sell-mode steps left it (the Select taps below aim at it)
 	for i in 30:
 		await process_frame  # The camera eases to a stop
 	victim = _towers(container).back()
-	await _tap(_screen_of(victim.global_position))
-	_check(_towers(container).size() == count_before and seller.get_sell_marks().size() == 1 and seller.get_sell_marks().has(victim),
-		"sell mode (phones): a tap marks the Warden, nothing sold (%d marked)" % seller.get_sell_marks().size())
-	touch._refresh()
+	var count_before: int = _towers(container).size()
 	var refund := seller.get_refund(victim)
-	_check(touch._sell_marks.visible and touch._cancel.visible and not touch._done.visible
-		and touch._sell_marks.text == "Sell 1  %s" % UiStyle.dew_amount(refund, true) and not touch._sell_marks.text.contains(" · "),
-		"…the touch bar shows Sell 1 with the refund, and Cancel (%s)" % touch._sell_marks.text)
-	_check(is_equal_approx(touch._sell_marks.custom_minimum_size.x, TouchBuild.PHONE_BUTTON_W)
-		and is_equal_approx(touch._cancel.custom_minimum_size.x, TouchBuild.PHONE_BUTTON_W), "…Sell and Cancel as wide as Confirm / Cancel")
-	await _tap(_screen_of(victim.global_position))
-	_check(seller.get_sell_marks().is_empty() and _towers(container).size() == count_before, "a second tap unmarks it")
-	await _tap(_screen_of(victim.global_position))
 	var dew_before: int = main.get_node("%RunState").dew
-	touch._sell_marks.pressed.emit()
-	var count_after: int = _towers(container).size()
-	_check(count_after == count_before - 1 and seller.get_sell_marks().is_empty() and seller.sell_mode
-		and main.get_node("%RunState").dew == dew_before + refund,
-		"Sell 1 sells the marked Warden for its refund (%d → %d Wardens)" % [count_before, count_after])
+	seller.select(victim)
+	await process_frame
+	var drawer = hud.get_node("WardenPanel")
+	(_drawer_sell(drawer) as Button).pressed.emit()
+	await process_frame  # (Phones: the press runs deferred)
+	await process_frame
+	var ask := _drawer_sell(drawer) as Button
+	_check(_towers(container).size() == count_before and ask != null and ask.text.begins_with("Sell?"),
+		"the drawer's first Sell tap only asks (%s)" % (ask.text if ask != null else "no Sell"))
+	ask.pressed.emit()
+	await process_frame
+	await process_frame
+	_check(_towers(container).size() == count_before - 1 and main.get_node("%RunState").dew == dew_before + refund,
+		"…the second tap sells it for its refund (%d → %d Wardens)" % [count_before, _towers(container).size()])
 	var keeper: Tower = _towers(container).back()
-	await _tap(_screen_of(keeper.global_position))
-	_check(seller.get_sell_marks().size() == 1, "…another tap marks again")
-	touch._cancel.pressed.emit()
-	_check(seller.get_sell_marks().is_empty() and seller.sell_mode and is_instance_valid(keeper) and not keeper.is_queued_for_deletion(),
-		"Cancel clears the marks (sell mode stays, nothing sold)")
-	await _tap(_screen_of(keeper.global_position))
-	hud.sell_slot.button_pressed = false
-	_check(not seller.sell_mode and placer.build_mode and seller.get_sell_marks().is_empty(), "Sell off: back to building, the marks go")
-	hud.sell_slot.button_pressed = true
-	touch._done.pressed.emit()
-	_check(not seller.sell_mode and not placer.build_mode, "Done in sell mode leaves it")
+	seller.select(null)
 
 	# Select (phones): the dock's Select slot; taps add / remove any kinds, one finger draws a box instead of panning
 	_close_screens()
@@ -185,7 +166,9 @@ func _run() -> void:
 		"Select mode: two taps select two different kinds (%d selected)" % seller.selection.size())
 	await _tap(_screen_of(sprout.global_position))
 	_check(seller.selection.size() == 1 and seller.selection.has(keeper), "…a tap on a selected one takes it out")
-	await _tap(_screen_of(MAP_GRID_CELL(_free_cells(map_generator, 1)[0])))
+	var ground := _open_ground_point(seller, map_generator)
+	_check(ground.x >= 0.0, "open ground on screen beside the drawer")
+	await _tap(ground)
 	_check(seller.selection.is_empty(), "…a tap on empty ground clears")
 	# Fast taps on different Wardens (the second one marked a double tap) add one each, never the whole kind (user 2026-10-18)
 	var sprout_2 := _build_on(placer, container, load("res://resource/tower/sprout.tres"), _free_cells(map_generator, 1)[0])
@@ -215,9 +198,6 @@ func _run() -> void:
 	_check(not seller.select_mode and not hud.select_slot.button_pressed, "picking a Warden to build leaves Select mode")
 	placer.set_build_mode(false)
 	hud.select_slot.button_pressed = true
-	hud.sell_slot.button_pressed = true
-	_check(seller.sell_mode and not seller.select_mode and not hud.select_slot.button_pressed, "Sell and Select exclude each other")
-	hud.sell_slot.button_pressed = false
 	hud.select_slot.button_pressed = true
 	var menu := main.get_node("HUD/PauseMenu") as CanvasItem
 	_back()
@@ -259,20 +239,17 @@ func _run() -> void:
 	_check(line.size() == 4 and line.all(func(s: Vector2) -> bool: return s.y == line[0].y), "…dragging draws a row of pending Wardens (%s)" % [placer.get_stroke_cells()])
 	_check(camera.target_position.distance_to(cam_before) < 1.0, "…and never pans the map")
 	_check(container.get_child_count() == before, "…nothing planted before Confirm")
-	# Android Back (open_menu) while building: pending Wardens, then sell mode, then build mode, never the pause menu
+	# Android Back (open_menu) while building: pending Wardens, then build mode, never the pause menu
 	var pause_menu := main.get_node("HUD/PauseMenu") as CanvasItem
 	_back()
 	_check(not placer.stroking and placer.build_mode and not pause_menu.visible, "Back drops the pending Wardens first")
-	hud.sell_slot.button_pressed = true
-	_back()
-	_check(not seller.sell_mode and placer.build_mode and not pause_menu.visible, "…then leaves sell mode")
 	_back()
 	_check(not placer.build_mode and not pause_menu.visible, "…then stops building")
 	_back()
 	_check(pause_menu.visible, "…then opens the pause menu")
 	_close_screens()
 
-	# Dream cards: the first tap looks, the second takes (phones)
+	# Dream cards (phones): the first tap looks, a second tap on it does nothing (owner 2026-10-26: no double tap), Take takes
 	_close_screens()
 	var dreams: DreamState = main.get_node("%DreamState")
 	var screen := main.get_node("HUD/DreamScreen")
@@ -287,6 +264,10 @@ func _run() -> void:
 		"first tap: looks, the others dim, Take is ready, nothing taken")
 	(faces[1] as Button).pressed.emit()
 	_check(dreams.is_offering() and screen._looked == faces[1], "a tap on another card looks at that one instead")
+	(faces[1] as Button).pressed.emit()
+	for i in 10:
+		await process_frame
+	_check(dreams.is_offering() and screen._looked == faces[1], "a second tap on the looked card takes nothing (only Take)")
 	screen._take.pressed.emit()
 	for i in 60:
 		await process_frame
@@ -296,6 +277,12 @@ func _run() -> void:
 	await process_frame
 	print("FAILURES: %d" % failures if failures > 0 else "PASS")
 	quit(failures)
+
+func _drawer_sell(drawer: Node) -> Button:
+	for b in drawer._footer.get_children():
+		if b is Button and b.get_meta(&"sell", false) and not b.is_queued_for_deletion():
+			return b
+	return null
 
 static func MAP_GRID_CELL(cell: Vector2) -> Vector2:
 	return preload("res://resource/map/map_grid.tres").calculate_map_position(cell)
@@ -405,6 +392,8 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 			# to the HUD (on the 20x16 map more of the route is on screen at once, under it too).
 			if not Rect2(160, 160, 960, 380).has_point(_screen_of(MAP_GRID_CELL(cell))):
 				continue
+			if _hud_covers(_screen_of(MAP_GRID_CELL(cell))):
+				continue  # Under an open panel (the Warden drawer when a Warden is selected): the tap would be the panel's
 			if found.any(func(f: Vector2) -> bool: return f.distance_to(cell) < 2.5):
 				continue
 			found.append(cell)
@@ -412,6 +401,24 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 		if found.size() == count:
 			break
 	return found
+
+# A screen point on open map ground: no Warden there, no HUD over it (the Warden drawer open on the right covers the
+# route's free cells on the current maps), inside the map.
+func _open_ground_point(seller: TowerSeller, map_generator) -> Vector2:
+	for y in range(200, 500, 24):
+		for x in range(180, 900, 24):
+			var at := Vector2(x, y)
+			var world: Vector2 = root.get_canvas_transform().affine_inverse() * at
+			var cell: Vector2 = map_generator.MAP_GRID.calculate_grid_coordinates(world)
+			if map_generator.MAP_GRID.is_within_bounds(cell) and map_generator.can_block(cell) and seller.get_tower_at_point(world) == null and not _hud_covers(at):
+				return at
+	return Vector2(-1, -1)
+
+func _hud_covers(at: Vector2) -> bool:
+	for c in main.get_node("HUD").find_children("*", "Control", true, false):
+		if c.is_visible_in_tree() and c.mouse_filter == Control.MOUSE_FILTER_STOP and c.get_global_rect().has_point(at):
+			return true
+	return false
 
 func _towers(container: Node) -> Array:
 	return container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion())

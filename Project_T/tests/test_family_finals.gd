@@ -195,14 +195,21 @@ func _run() -> void:
 	fog_warden.queue_free()
 	await _clean()
 
-	# --- Hoarfrost buff (design chat): each hit Soaks (up to 2); a nightmare Soaked twice freezes ---
+	# --- Hoarfrost (section 37, 2026-10-25): each hit gives 2 Frost (no Soaked, no Hold); at full Frost it bursts ---
 	var frost := _plant("hoarfrost", Vector2(16, 12))
 	var chilled := _spawn(frost.global_position + Vector2(CELL, 0))
+	var per_hit: int = frost.attack_data.status_stacks
+	var full: int = chilled.statuses.get_max_stacks(EnemyStatuses.FROST)
 	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
-	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 1 and not chilled.statuses.is_held(), "Hoarfrost: the first hit Soaks, no freeze yet")
-	for i in 7:
+	_check(chilled.statuses.stacks(EnemyStatuses.FROST) == per_hit and not chilled.statuses.has(EnemyStatuses.DAMP) \
+		and not chilled.statuses.is_held(), "Hoarfrost: the first hit gives %d Frost, no Soaked, no Hold" % per_hit)
+	var below := (full - 1) / per_hit  # Hits that stay under full
+	for i in below - 1:
 		frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
-	_check(chilled.statuses.stacks(EnemyStatuses.DAMP) == 8 and chilled.statuses.is_held(), "the eighth hit (8 Soaked) freezes it")
+	_check(chilled.statuses.stacks(EnemyStatuses.FROST) == below * per_hit, "%d hits: %d Frost, no burst yet" % [below, below * per_hit])
+	frost.hit(chilled, 1.0, false, Tower.NO_CRIT)
+	_check(chilled.statuses.stacks(EnemyStatuses.FROST) < below * per_hit and not chilled.statuses.is_held(),
+		"the hit that fills it bursts (Frost empties) and Holds nothing")
 	frost.queue_free()
 	await _clean()
 

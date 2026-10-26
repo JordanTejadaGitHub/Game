@@ -19,7 +19,5 @@ entwined = true
 woven = true
 rule_id = &"alarm_bells"
 tip = "One step only: those Wardens startle no more. Walls don't count. A bet: needs a tight cluster by the path."
-makes = Array[StringName]([&"cluster"])
-uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"static", &"drowsy", &"held"])
 retired = true

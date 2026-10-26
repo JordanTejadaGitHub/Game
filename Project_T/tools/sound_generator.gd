@@ -3334,6 +3334,16 @@ func _make_seventh_pass() -> void:
 	_ws("reaction_smother_burst", 2, 0.75, func(_v: int) -> PackedFloat32Array:  # A deep, soft fungal burst
 		return _layers([[_thump(0.8, 70.0, 0.2), 1.0], [_earth_pops(8), 0.6, 0.02], [_exhale(1.4, 380.0), 0.7, 0.05],
 			[_rumble(1.0, 130.0, 0.02, 0.7), 0.4]]))
+	# The Frost Reactions (Reaction Code bd8ae9af): cold and rounded, ice that creaks and gives, never a tinkle.
+	_ws("reaction_brittle", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # Frost on a mark: the shell tightens, then gives with a dull thunk
+		return _layers([[_lowpass(_creak(SFX_RATE, 0.35, 30.0, 70.0, 520.0), 900.0), 0.6], [_lowpass(_ring(0.45, [210.0, 470.0], [0.8, 0.35], 0.05), 850.0), 1.0, 0.3],
+			[_thump(0.3, 100.0, 0.06), 0.6, 0.3], [_lowpass(_air(0.5, 450.0, 0.02, 0.4), 900.0), 0.25, 0.32]]))
+	_ws("reaction_flash_freeze", 2, 0.7, func(_v: int) -> PackedFloat32Array:  # Frost through water: a wet slap seizing into ice, cold rushing outward
+		return _layers([[_splash(1.0, 0.2), 0.6], [_lowpass(_creak(SFX_RATE, 0.5, 20.0, 50.0, 420.0), 800.0), 0.7, 0.12],
+			[_lowpass(_air(0.9, 520.0, 0.08, 0.7), 1100.0), 0.5, 0.1], [_thump(0.35, 85.0, 0.08), 0.5, 0.12]]))
+	_ws("reaction_frostbite", 2, 0.55, func(_v: int) -> PackedFloat32Array:  # Frost on spores: a damp breath catching cold, a low bite
+		return _layers([[_exhale(0.7, 360.0), 0.7], [_thump(0.25, 110.0, 0.05), 0.8, 0.18],
+			[_lowpass(_ring(0.4, [190.0, 400.0], [0.6, 0.25], 0.07), 800.0), 0.6, 0.18]]))
 	_ws("reaction_pinned_pierce", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # A wooden thrust passing through, softer behind
 		var out := _seg(0.9, SFX_RATE)
 		for k in 3:

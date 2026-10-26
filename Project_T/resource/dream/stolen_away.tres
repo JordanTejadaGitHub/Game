@@ -19,7 +19,5 @@ entwined = true
 woven = true
 rule_id = &"stolen_away"
 tip = "Never bosses or flyers. A bet: needs a crowded path."
-makes = Array[StringName]([&"slow"])
-uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"spored", &"drowsy", &"marked"])
 retired = true

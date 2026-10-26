@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "old_hand"
 display_name = "Old Hand"
-description = "From {rank} III, every 8th attack a Warden makes is a crit; from {rank} V, every 5th."
+description = "From Nurture {rank} III, every 8th attack a Warden makes is a crit; from Nurture {rank} V, every 5th."
 tip = "Counted for each Warden, by attacks: an area attack counts once. Beams never count."
 rarity = 1
 kind = 3

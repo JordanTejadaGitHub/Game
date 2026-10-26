@@ -1625,7 +1625,7 @@ func _floodgate(enemy) -> void:
 			seen[other.get_instance_id()] = true
 	if evo(EVO_SILT):
 		_silt.append({"points": points, "until": now() + SILT_SECONDS, "seen": seen})
-	_surges.append([water.points.duplicate(), now() + SURGE_SECONDS])  # The water heaves and froths (dw_floodgate_froth)
+	_surges.append([Array(water.points.keys()), now() + SURGE_SECONDS])  # The water heaves and froths (dw_floodgate_froth); route indices (water.points is a Dictionary)
 	if evo_art_tex(evo_art, ART_FROTH) == null:
 		_water_fx(w, int(water.first), int(water.last), 3.0)  # Stand-in without the sheet: the water flashes white
 	if row == EVO_SPATE:
@@ -3059,10 +3059,11 @@ func _place_wade(stand) -> void:
 	var sort_y: float = (sprite.global_position.y if sprite != null else enemy.global_position.y) + 0.5
 	stand.global_position = Vector2(feet.x, sort_y)
 	stand.centre = feet - stand.global_position + Vector2(0.0, -WADE_DEPTH * scale)
-	# Never wider than the drawn water there: toward the pond's tapered ends the cover narrows with it, so it never shows
-	# path over the legs (owner 2026-10-25)
 	var cover := WADE_COVER * scale
-	stand.half = Vector2(minf(cover.x, stand.reach), minf(cover.y, stand.reach))
+	# Always the full oval, as it was (owner 2026-10-25: keep the old look, fix only where it starts); where the edge is
+	# nearer than its depth there is no cover and the legs show. (Narrowing it made a bubble or a stripe at the pond's tip.)
+	stand.half = cover
+	stand.visible = stand.reach >= cover.y
 
 # Where the drawn pond is under these feet (global): [water index, how far its drawn edge is from them], [-1, 0.0] for
 # none. It tests the same circles the water is drawn with (_water_samples: WATER_HALF, tapered to its ends), so wading

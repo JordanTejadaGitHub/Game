@@ -19,6 +19,5 @@ entwined = true
 woven = true
 rule_id = &"endless_night"
 tip = "The new cloud never grows another."
-uses = Array[StringName]([&"reaction"])
 requires_statuses = Array[StringName]([&"spored", &"damp", &"drowsy"])
 retired = true

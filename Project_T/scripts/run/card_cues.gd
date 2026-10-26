@@ -40,7 +40,7 @@ const CUES := {
 	&"spinning_corners": DREAM_GLOW, &"hairpin_winds": DREAM_GLOW, &"close_quarters": DREAM_GLOW,
 	&"whirlwind_heart": DREAM_GLOW, &"quick_draw": DREAM_GLOW,
 	# Conditional per-hit damage -> C2 (each calls DamageLog.note_card_bonus)
-	&"deep_frost": DREAM_FLECK, &"deep_sleep": DREAM_FLECK,
+	&"deep_sleep": DREAM_FLECK,
 	&"falling_weight": DREAM_FLECK, &"hunters_patience": DREAM_FLECK,
 	&"last_stand": DREAM_FLECK, &"murmur": DREAM_FLECK, &"steady_aim": DREAM_FLECK, &"sharpened_light": DREAM_FLECK,
 	&"bitter_hedges": DREAM_FLECK, &"nightshade": DREAM_FLECK, &"damp_rot": DREAM_FLECK,

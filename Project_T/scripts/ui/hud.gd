@@ -105,8 +105,10 @@ func _ready() -> void:
 	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
 	add_child(_bar_toggle)
 	if phone():
-		_make_sell_slot()  # Before the bar is laid out (it sits at the dock's left end)
-		_make_select_slot()  # …and Select right after it
+		# No dock Sell (owner 2026-10-26: "If we're keeping the sell button in the warden drawer, we can remove the sell
+		# feature on the tower bar"; the slot left empty): the drawer's Sell sells one (second tap confirms), Select's group
+		# drawer "Sell N" sells several. _make_sell_slot stays for a later return; sell_slot stays null.
+		_make_select_slot()  # At the dock's left end
 		var clearer := get_node_or_null("%ObstacleClearer")
 		if clearer != null and clearer.has_signal("lock_changed"):
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
@@ -863,7 +865,7 @@ func _fit_tower_bar_phone() -> void:
 	clear_tool.visible = clear_on
 	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (_bar_handle() + UiStyle.HANDLE_GAP)
 	var n := _tower_buttons.size()
-	var fixed := (2 if clear_on else 1) + (1 if select_slot != null else 0)  # Sell, Select, and the Clear tool once unlocked
+	var fixed := (1 if clear_on else 0) + (1 if sell_slot != null else 0) + (1 if select_slot != null else 0)  # Sell (if any), Select, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
 	var shown := n
 	if width < SLOT_MIN_WIDTH:
@@ -1441,7 +1443,7 @@ func _add_buff_lens_button() -> void:
 	BuffLens.set_on(get_tree(), false)  # A new run starts with the lens off
 	buff_lens_button.name = "BuffLensButton"
 	buff_lens_button.text = ""
-	buff_lens_button.icon = IconInfo.icon(&"rank")  # Boosts: an up-chevron
+	buff_lens_button.icon = IconInfo.hud_icon(&"boosts_off")  # Its own arrow from the start (the rank medal means Nurture ranks only, 2026-10-25)
 	buff_lens_button.tooltip_text = "Boosts (%s): show which Wardens are boosted, and by what." % _action_key("buff_lens")
 	buff_lens_button.toggle_mode = true
 	buff_lens_button.focus_mode = Control.FOCUS_NONE
@@ -1934,7 +1936,7 @@ func _update_maze_income() -> void:
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
 	var cap := roundi(economy.POT_SHARE_CAP * 100.0)
 	_maze_short = UiStyle.DEW_GLYPH + "+%d%%" % percent if percent > 0 else ""  # The row shows this when "a drift" doesn't fit (_layout_top_row)
-	_maze_full = "%s Dew a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
+	_maze_full = "%s a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing); the glyph is the Dew (no word too)
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	var explanation := "Your path is %d cells longer than the starting path: every drift pays +%d%% Dew (+1%% per %d cells, up to +%d%%)." % [
 		drift_director.get_maze_added_cells(), percent, economy.POT_CELLS_PER_PERCENT, cap]

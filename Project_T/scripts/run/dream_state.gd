@@ -221,7 +221,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
 	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall",
 	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
-	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
+	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "",  # ("wild_growth" was cut here; the id is the Legendary's since 2026-10-21)
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": "",
@@ -378,8 +378,9 @@ var calling := "":
 		_sync_class_hooks()  # The class nodes listen only while on (perf); tests set it directly too
 
 # --- Calling evolutions (scripts/combat/calling_paths.gd; owner 2026-10-16) ---------------------------------------------
-# The Calling grows at the drift 5, 25, 45 and 75 rests: a style, a follow-up, a capstone, the style's other follow-up.
-# The pick is an offer of its own in the Dream queue, before that rest's Dream (drift 5: instead of it), so it waits
+# The Calling grows at the drift 20, 45, 60 and 75 rests (CALLING_PATHS.DRIFTS; owner playtest 2026-10-25): a style, a
+# follow-up, a capstone, the line's Deepen or a Cross over. At 60 the family pick comes first (it runs before the rest
+# starts). The pick is an offer of its own in the Dream queue, before that rest's Dream (the boss rest at 75: after it), so it waits
 # for Remember, holds Start and autosave like a Dream. No reroll, let-go, let-it-pass, pity or Mystery.
 const CALLING_PATHS := preload("res://scripts/combat/calling_paths.gd")
 const KEYWORDS := preload("res://scripts/run/dream_keywords.gd")  # Keyword chips 2026-10-16: Makes / Uses chips and the glossary (UI reads it)
@@ -3156,7 +3157,7 @@ func _show_next_offer() -> void:
 		return
 	current_offer_drift = _pending_drifts.pop_front()
 	var grow := _calling_offer_for(current_offer_drift)
-	# A boss rest (drift 25, 75) shows its Dream before the Calling follow-up, so a Legendary in it isn't buried behind
+	# A boss rest (drift 75) shows its Dream before the Calling step, so a Legendary in it isn't buried behind
 	# other choices (owner 2026-10-21, dream_council_review.md 28)
 	var dream_first: bool = not grow.is_empty() and current_offer_drift > CLASS_OFFER_UNTIL_DRIFT and drift_director.is_boss_drift(current_offer_drift) and not _dream_first_shown.has(current_offer_drift)
 	if dream_first:
@@ -3166,7 +3167,7 @@ func _show_next_offer() -> void:
 	if not grow.is_empty():
 		_calling_offered[current_offer_drift] = true
 		if current_offer_drift > CLASS_OFFER_UNTIL_DRIFT and not _dream_first_shown.has(current_offer_drift):
-			_pending_drifts.push_front(current_offer_drift)  # That rest's Dream comes next (drift 5: the style pick is its Dream)
+			_pending_drifts.push_front(current_offer_drift)  # That rest's Dream comes next
 		offering_calling = true
 		current_offer = grow
 		picks_left = 1
@@ -4228,7 +4229,9 @@ func load_save(data: Dictionary) -> void:
 	stacks.clear()
 	var saved_stacks: Dictionary = data.get("stacks", {})
 	for id in saved_stacks:
-		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
+		# Cards cut or merged by the power pass (dream_audit.md). A card that exists now always keeps its id: a reused id
+		# (the Legendary Wild Growth, 2026-10-21, once a cut card's) was dropped on every Continue (user 2026-10-25).
+		var kept: String = id if _card_by_id(id) != null else MERGED_CARDS.get(id, id)
 		if kept != "":
 			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
 	for card in pool:  # A card that stopped stacking (Tender Care, 2026-09-30): an old save owns it once

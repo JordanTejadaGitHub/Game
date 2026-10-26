@@ -382,6 +382,9 @@ func _make_card(card: UpgradeData) -> Button:
 		if TouchBuild.mobile_controls() and _looked != button:
 			_look_at(card, button)  # Phones: the first tap looks
 			return
+		if _phone:
+			return  # Phones take only with Take (owner 2026-10-26: "Remove double tap on taking cards"); tablets keep tap again
+
 		_pick(card, button.get_parent() as Control))  # The flight first, then it's taken
 	button.mouse_entered.connect(_show_reach.bind(card))  # Its distance outline on the map: hover, or (touch) the hold
 	button.button_down.connect(_show_reach.bind(card))  # (distance words, owner 2026-10-19)

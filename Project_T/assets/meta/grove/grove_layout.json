@@ -2261,32 +2261,6 @@
    "display_level": 3
   },
   {
-   "id": "restless_night",
-   "section": "cards",
-   "name": "Impatient Night",
-   "pos": [
-    698,
-    528
-   ],
-   "parent": "last_stand",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     663,
-     465
-    ],
-    "frame_size": [
-     106,
-     98
-    ],
-    "frames": 5
-   },
-   "display_level": 3
-  },
-  {
    "id": "bitter_hedges",
    "section": "cards",
    "name": "Bitter Hedges",

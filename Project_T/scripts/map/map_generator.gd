@@ -49,8 +49,11 @@ var island_lip: IslandLip  # The island's edge and the south vines, drawn just o
 var start_gate: StartGate  # The rope bridge on the lane and the nightmare fog it comes out of
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 const MAP_LANDMARK := preload("res://scripts/map/map_landmark.gd")
-var landmark: MAP_LANDMARK  # The map's one landmark (or none): Old Waystone / Dew Pool (environment_assets.md "Landmarks")
+var landmark: MAP_LANDMARK  # The map's landmarks: an Old Waystone, sometimes a Dew Pool (environment_assets.md "Landmarks")
 var dew_pool_cells := {}  # {cell: true}: the Dew Pool's walkable water (Enemy slows walkers on it); empty without a pool
+# Read by Tower Code (tower/waystone.gd) as properties: &"waystone" when the map has a Waystone, and its cell.
+var landmark_kind: StringName = &""
+var landmark_cell := Vector2(-1, -1)
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
 
@@ -109,28 +112,29 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()  # No route extension any more: it refilled the open bowl (Room to maze)
-	if obstacles.size() < environment_object_layer.target_obstacles_min:  # Carving took some: lone band ones back, off the route
-		var on_route := {}
-		for point in path_layer.find_path_from(startPath):
-			on_route[(Vector2(FindPath.point_to_node(point)) / 2.0).floor()] = true
-		for cell in environment_object_layer.top_up(rng, skip, on_route, obstacles):
-			path_layer.set_cell_blocked(cell, true)
+	# Carving may have taken some: back up to the minimum count and every frame region's minimum, off the route
+	var on_route := {}
+	for point in path_layer.find_path_from(startPath):
+		on_route[(Vector2(FindPath.point_to_node(point)) / 2.0).floor()] = true
+	for cell in environment_object_layer.top_up(rng, skip, on_route, obstacles):
+		path_layer.set_cell_blocked(cell, true)
 	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + MapLayout.BEND_EXTRA
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 	_open_edge_ring(rng)
 
 	path_layer.draw()
-	landmark = MAP_LANDMARK.new()  # About 1 map in 3: an Old Waystone or a Dew Pool in the bowl (map_landmark.gd)
+	landmark = MAP_LANDMARK.new()  # An Old Waystone on every map, a Dew Pool on about 1 in 3 (map_landmark.gd)
 	landmark.name = "Landmark"
 	landmark.map = self
 	landmark.tile_set = tile_set
 	add_child(landmark)
 	move_child(landmark, path_layer.get_index() + 1)  # Ground, just over the path
 	landmark.build(_demo_first_map())
+	landmark_cell = landmark.waystone_cell
+	landmark_kind = &"waystone" if landmark_cell.x >= 0 else &""
 	dew_pool_cells.clear()  # Set fresh with every map
-	if landmark.kind == MAP_LANDMARK.Kind.DEW_POOL:
-		for cell in landmark.cells:
-			dew_pool_cells[cell] = true
+	for cell in landmark.pool_cells:
+		dew_pool_cells[cell] = true
 	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
 	ground_patches.build(self)
 	ground_layer.add_child(ground_patches)
@@ -442,20 +446,14 @@ func get_array_board() -> PackedVector2Array:
 
 
 # --- Landmarks (environment_assets.md "Landmarks"; map_landmark.gd) ----------------------------------------------------
-# None on the demo's first map: only in the real game (tests and tools roll normally, or set MAP_LANDMARK.force_kind).
+# Every map has an Old Waystone; about 1 in 3 also a Dew Pool, never on the demo's first map (real game only; tests and
+# tools roll normally, or set MAP_LANDMARK.force_pool). Tower Code's waystone.gd reads landmark_kind / landmark_cell.
 
 func _demo_first_map() -> bool:
 	return is_inside_tree() and get_tree().current_scene == owner and ResultsScreen.is_demo() \
 		and HeartwoodMemory.is_first_run()
 
-# MAP_LANDMARK.Kind: NONE, WAYSTONE or DEW_POOL.
-func landmark_kind() -> int:
-	return landmark.kind if landmark != null else MAP_LANDMARK.Kind.NONE
-
-# The landmark's first cell (the Waystone's site; the Dew Pool's first of two); NO_WAYMARK when there's none.
-func landmark_cell() -> Vector2:
-	return landmark.cells[0] if landmark != null and not landmark.cells.is_empty() else NO_WAYMARK
-
+# Every landmark cell (the Waystone's and the pool's).
 func landmark_cells() -> Array[Vector2]:
 	var cells: Array[Vector2] = []
 	if landmark != null:
@@ -471,7 +469,7 @@ func is_dew_pool(cell: Vector2) -> bool:
 
 # True on the Old Waystone's site (Tower Code: the bonus for the Warden planted there).
 func is_waystone(cell: Vector2) -> bool:
-	return landmark_kind() == MAP_LANDMARK.Kind.WAYSTONE and landmark.has_cell(cell)
+	return landmark != null and cell == landmark.waystone_cell
 
 # --- Building -------------------------------------------------------------------------------------
 

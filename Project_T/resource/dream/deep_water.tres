@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_water"
 display_name = "Deep Water"
-description = "{named_combo:drown} pulls nightmares under for 4 s, and its damage grows 50% faster."
+description = "{named_combo:drown} pulls nightmares under for 4 s, and its damage builds 50% faster."
 cost_description = "Only within 5 cells of the Heartwood."
 rarity = 1
 kind = 3

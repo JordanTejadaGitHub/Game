@@ -143,7 +143,7 @@ func _run() -> void:
 	var big: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"))
 	big.set_process(false)
 	big.take_damage(big.max_health * 0.2)
-	_check(is_equal_approx(big._recoil.length(), big.RECOIL_MAX * big.BOSS_FLINCH), "a boss flinches half as far (%.1f px)" % big._recoil.length())
+	_check(is_equal_approx(big._flinch_recoil.length(), big.RECOIL_MAX * big.BOSS_FLINCH), "a boss flinches half as far (%.1f px; drawn in whole pixels: %.1f)" % [big._flinch_recoil.length(), big._recoil.length()])
 	hitter.free()
 
 	print("creatures test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "measured_blow"
 display_name = "Measured Blow"
-description = "{rank} III+ Wardens' first direct hit on each nightmare also deals 1% of the nightmare's maximum health per {rank}. Not bosses."
+description = "Nurture {rank} III+ Wardens' first direct hit on each nightmare also deals 1% of the nightmare's maximum health per Nurture {rank}. Not bosses."
 tip = "At most 10% of a nightmare's health from this card, all Wardens together."
 rarity = 2
 kind = 3
