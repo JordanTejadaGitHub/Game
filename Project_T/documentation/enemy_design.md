@@ -811,6 +811,15 @@ a frame wrong. Acceptable at ±0.3 cell; sort by the drawn position if it shows.
 
 ### Hit reactions (owner 2026-10-25: "more enemy reactions on hit", "visually appealing to the player"; mock-up approved: "implement")
 
+**Built (Enemy Code bbe38c06) after an art council (theme + quality, both "ship with fixes"; notes in
+`D:\Projects\logs\enemy_code\hit_reactions\council\`). Built values replace the numbers below:** squash 1.06 × 0.94
+over 0.08 s with a 250 ms cooldown (1.10 read as a cartoon); flash strength at most 0.6 (merged with the impact
+sparks), never restarted within 120 ms; stumble at most every 400 ms; wisps as whole-pixel squares (3 / 2 / 1 px,
+Wraithlight with a Bruise edge, from the silhouette's edge, in front for 0.12 s then behind; the Bruise discs were
+invisible), 160 live bits at most; fray smoke 4 a second (not 9); the bar's ghost chunk at 0.65 alpha, not restarted
+under steady fire, 2 px at least, Moonpath on compact bars; shell flakes 3 px. Clip (real speed, seed 4242):
+`D:\Projects\logs\enemy_code\hit_reactions\hit_reactions.mp4`.
+
 Today's everyday hit is a 0.06 s pale flash and a 1-2 px recoil: barely visible at game zoom. The big-hit tiers
 (crack, squash, hold, camera nudge from 12% of health) stay as they are. Mock-up:
 `D:\Projects\logs\enemy_design\hit_reactions.html`. **All visual only:** no speed, route or rule changes; every
