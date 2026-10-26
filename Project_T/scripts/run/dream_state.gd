@@ -221,7 +221,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
 	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall",
 	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
-	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
+	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "",  # ("wild_growth" was cut here; the id is the Legendary's since 2026-10-21)
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": "",
@@ -2643,7 +2643,7 @@ func _shared_spark(from: Node2D, to: Node2D) -> void:
 	var fs: EnemyStatuses = from.statuses
 	var best: StringName = &""
 	for id in fs.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and (best == &"" or fs.stacks(id) > fs.stacks(best)):
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and id != DreamState.FROST and (best == &"" or fs.stacks(id) > fs.stacks(best)):
 			best = id
 	if best == &"":
 		return
@@ -3461,7 +3461,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 			var drawn: UpgradeData = class_cards[_rng.randi_range(0, class_cards.size() - 1)]
 			offer.append(drawn)
 			class_cards.erase(drawn)
-	# The rest right after a new family pick (drifts 10, 35, 60; owner 2026-10-22: "2nd family pick should have a lent card
+	# The rest right after a new family pick (drifts 10, 40, 60; owner 2026-10-22: "2nd family pick should have a lent card
 	# on drift 10"): one slot is that family's lent card (it counts toward the two family cards). _new_family_lent_card
 	# checks the pick happened at this drift.
 	if offer.size() < size:
@@ -4228,7 +4228,9 @@ func load_save(data: Dictionary) -> void:
 	stacks.clear()
 	var saved_stacks: Dictionary = data.get("stacks", {})
 	for id in saved_stacks:
-		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
+		# Cards cut or merged by the power pass (dream_audit.md). A card that exists now always keeps its id: a reused id
+		# (the Legendary Wild Growth, 2026-10-21, once a cut card's) was dropped on every Continue (user 2026-10-25).
+		var kept: String = id if _card_by_id(id) != null else MERGED_CARDS.get(id, id)
 		if kept != "":
 			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
 	for card in pool:  # A card that stopped stacking (Tender Care, 2026-09-30): an old save owns it once
@@ -4742,7 +4744,7 @@ func next_family_pick_drift() -> int:
 	var later := new_family_picks_after(_now_drift())
 	return later[0] if not later.is_empty() else -1
 
-# The picks still to come that bring a new family: after drifts 10 and 35 (DriftDirector.family_pick_drifts, owner
+# The picks still to come that bring a new family: after drifts 10 and 40 (DriftDirector.family_pick_drifts, owner
 # 2026-10-22; no longer the boss rests). Drift 60's pick deepens a family you have, so it brings none.
 func new_family_picks_after(now: int) -> Array[int]:
 	var out: Array[int] = []
@@ -6112,6 +6114,11 @@ static var undiluted_on := false
 # Spattered (Uncommon): splashes give their Warden's status to every nightmare they reach. Hailfall (Legendary): every
 # attacking Warden splashes and takes the Area role (WardenRoles reads hailfall_on); its direct hit keeps its own
 # resistance shape. Tower Code owns the splash code and their numbers (tower.gd SPATTERED_* / HAILFALL_*).
+# Frost (section 37, owner 2026-10-25): the 7th status's id. Enemy Code adds EnemyStatuses.FROST with the core; card and
+# Calling code names it here until then. Frost comes only from Frost Wardens: card and Calling code that adds "every
+# status" or copies statuses skips it ("doesn't add {frost}"), so nothing but a Frost Warden fills a Frostburst.
+const FROST := &"frost"
+const UNDILUTED_FROSTBURST := 2.0  # Undiluted: Frostbursts deal double (Frostburst's builder reads it)
 const SPATTERED := &"spattered"
 const HAILFALL := &"hailfall"
 static var hailfall_on := false

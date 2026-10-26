@@ -15,6 +15,21 @@
 			"loop": false,
 			"use": "Tidal Bore / River Mouth / Delta: the big splash on a hit, a crown of water rising with white tips, breaking into drops and falling back into a pale ring (one shot, ~0.33 s). Anchor = the hit's foot."
 		},
+		"dw_fathoms": {
+			"anchor": [
+				13,
+				12
+			],
+			"file": "dw_fathoms.png",
+			"fps": 0.0,
+			"frame_size": [
+				26,
+				14
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Fathoms: dark water climbing the nightmare's body, one frame per depth (0 = +10% ... 4 = full at +50%); code swaps the frame as the depth grows and holds it; on a nightmare shorter than about 20 px cap the frame so the water stays below its eyes. Drawn over the nightmare's lower body, never above its eyes; see-through (0.4, 0.75 at the deepest), a lit waterline with one bright crest. Anchor = its feet."
+		},
 		"dw_floodgate_froth": {
 			"anchor": [
 				16,
@@ -29,6 +44,21 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point."
+		},
+		"dw_floodgate_froth_end": {
+			"anchor": [
+				16,
+				9
+			],
+			"file": "dw_floodgate_froth_end.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Floodgate: the froth tile for each END of the surged water (its last drawn point; flip it for the first), the same frames as dw_floodgate_froth with its right half rounding off like the water's rounded end, so the froth never stops in a hard edge. Anchor = the route point."
 		},
 		"dw_footprints": {
 			"anchor": [
@@ -58,7 +88,7 @@
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet."
+			"use": "Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading ripple (code hides the ripple while it shows). Anchor = its feet."
 		},
 		"dw_mud": {
 			"anchor": [
@@ -75,6 +105,51 @@
 			"loop": false,
 			"use": "Mudflats: a wet mud patch on each mud step, a small puddle eye in it (frame 1 a bubble instead); pick by route index; on the ground under the water's damp band. Anchor = the route point."
 		},
+		"dw_mud_cling": {
+			"anchor": [
+				13,
+				5
+			],
+			"file": "dw_mud_cling.png",
+			"fps": 6.0,
+			"frame_size": [
+				27,
+				12
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Sinking Mud: clumps of mud clinging round a nightmare's feet for its 4 steps, drips lengthening and falling off. Drawn over the nightmare's feet (its front clumps cover them: that is the clinging). Anchor = its feet."
+		},
+		"dw_mud_splash": {
+			"anchor": [
+				8,
+				12
+			],
+			"file": "dw_mud_splash.png",
+			"fps": 12.0,
+			"frame_size": [
+				17,
+				14
+			],
+			"frames": 4,
+			"loop": false,
+			"use": "Sinking Mud: mud splashing up at a flyer's shadow on water or mud, a crown of round clods and a splat at its foot (one shot, ~0.33 s). Anchor = the shadow."
+		},
+		"dw_rapids": {
+			"anchor": [
+				16,
+				9
+			],
+			"file": "dw_rapids.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Rapids: white water on the water's last 3 steps, clusters of foam racing downstream with short wakes (drawn flowing right: flip it flowing left; on water running up or down the screen rotate it 90 degrees, never scale; tiles every 32 px). Over the water surface, under the nightmares. Anchor = the route point."
+		},
 		"dw_reeds": {
 			"anchor": [
 				6,
@@ -89,6 +164,51 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Reed Bed: a reed clump standing in the carried water, a cattail on the tallest, swaying (stands on the bank: y-sort it, or draw it over the water). Anchor = its foot at the water line."
+		},
+		"dw_shell_crack": {
+			"anchor": [
+				8,
+				7
+			],
+			"file": "dw_shell_crack.png",
+			"fps": 12.0,
+			"frame_size": [
+				17,
+				15
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Crushing Depth: the nightmare's shell cracking just under the water line: a dark jagged crack with a lit edge and a white-hot start, branching, chips flying up (one shot, ~0.42 s). Anchor = the waterline on its body (its wading waterline point)."
+		},
+		"dw_silt": {
+			"anchor": [
+				16,
+				5
+			],
+			"file": "dw_silt.png",
+			"fps": 2.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 2,
+			"loop": true,
+			"use": "Silt: the pale tide line left on each surged path step, lumpy, a dark wet edge under it, glints shifting (tiles every 32 px along the path; fade it out with alpha over the 4 s). Anchor = the route point."
+		},
+		"dw_spray_ring": {
+			"anchor": [
+				18,
+				18
+			],
+			"file": "dw_spray_ring.png",
+			"fps": 14.0,
+			"frame_size": [
+				37,
+				37
+			],
+			"frames": 20,
+			"loop": false,
+			"use": "Deep End: the spray ring round the Black Pond spill, drops flung out in a ring (one shot: play the 5 frames of one tier at 14 fps). Four tiers by rank, never scaled, each wider, thicker and brighter: frames 0-4 rank 0-I, 5-9 II-III, 10-14 IV-V, 15-19 VI-VII (a solid rim flash). Anchor = the hit nightmare's centre."
 		},
 		"dw_still_sheen": {
 			"anchor": [
@@ -105,6 +225,21 @@
 			"loop": true,
 			"use": "Still Water: the water goes mirror-still and a pale crescent moon shows in it, wavering a little (on the water surface, one every few steps). Anchor = the route point."
 		},
+		"dw_swirl": {
+			"anchor": [
+				14,
+				14
+			],
+			"file": "dw_swirl.png",
+			"fps": 12.0,
+			"frame_size": [
+				29,
+				29
+			],
+			"frames": 12,
+			"loop": false,
+			"use": "Undertow: the spray folding back into the nightmare hit, three comma-tailed spiral arms turning in to the centre (one shot, 6 frames). Frames 0-5 with company around it, 6-11 dark ink (the fewer around, the darker: pick by count). Undertow only hits a nightmare in the pond, so it always plays over water (the dark ink is drawn for the water, not dry ground). Anchor = the hit nightmare's centre."
+		},
 		"dw_tidal_bore": {
 			"anchor": [
 				15,
@@ -119,6 +254,36 @@
 			"frames": 6,
 			"loop": true,
 			"use": "Tidal Bore: a tidal wave rolling with the tough nightmare through the mouth, heaving, its lip curling forward in foam (drawn rolling right: flip it rolling left); drawn just behind the nightmare. Anchor = the wave's foot, under the nightmare."
+		},
+		"dw_wade_ripple": {
+			"anchor": [
+				15,
+				5
+			],
+			"file": "dw_wade_ripple.png",
+			"fps": 6.0,
+			"frame_size": [
+				30,
+				10
+			],
+			"frames": 6,
+			"loop": true,
+			"use": "Wading: rings spreading from a walker's feet while it stands in the water (never on flyers): two soft rings a half-cycle apart, the front arc lit, the back arc faint (the body hides most of it). Drawn just under the nightmare (before its sprite), over the water. Hide it while the nightmare wears Heavy Water (dw_heavy_cling takes the feet). With it, code tints the nightmare knee-deep: the bottom 18% of its drawn height (at least 3 px), measured up from the feet anchor (never from a frame's lowest pixel), mixed 55% toward Dew, the band's top row 50% toward Dewlight (the waterline on the body); nightmares always draw over the water. Anchor = its feet."
+		},
+		"dw_wade_splash": {
+			"anchor": [
+				15,
+				11
+			],
+			"file": "dw_wade_splash.png",
+			"fps": 14.0,
+			"frame_size": [
+				31,
+				14
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Wading: a soft, low splash as a walker steps into or out of the water: a few low drops kicked out to the sides and a ring at the feet (one shot, ~0.36 s; never on flyers; quieter than dw_blue_splash, which is a hit). Drawn under the nightmare's sprite like the ripple (the body hides the drops behind it; the ones beside it show). Anchor = its feet."
 		},
 		"dw_wave_flash": {
 			"anchor": [
@@ -195,6 +360,36 @@
 			"loop": true,
 			"use": "Humming Walls: the pip a wall filled, a thorn-wrapped bead in Thornwall colours with hum arcs pulsing outward. Anchor = centre."
 		},
+		"kt_staff_clef": {
+			"anchor": [
+				6,
+				15
+			],
+			"file": "kt_staff_clef.png",
+			"fps": 0.0,
+			"frame_size": [
+				13,
+				17
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden, solid Oak (alpha 1: at 0.75 they were faint at play zoom), the top line Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.75. Anchor = the clef's foot."
+		},
+		"kt_staff_echo": {
+			"anchor": [
+				3,
+				12
+			],
+			"file": "kt_staff_echo.png",
+			"fps": 10.0,
+			"frame_size": [
+				17,
+				15
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Ensemble: the second repeat landing as an echo: a bronze note (head, stem, flag) with two pink echo arcs rippling off it, fading (one shot, 0.5 s). Anchor = the note head's foot, at the Warden."
+		},
 		"kt_tally": {
 			"anchor": [
 				9,
@@ -208,7 +403,7 @@
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (x 5..13, y 7..10): one group of five, then a count. Anchor = its bottom middle."
+			"use": "Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (top left of the marks at (5, 7); the face runs x 5..13, y 7..11): one group of five, then a count. Anchor = its bottom middle."
 		},
 		"kt_tally_mark": {
 			"anchor": [
@@ -223,7 +418,7 @@
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke (2 px wide: the cut and its lit edge; place strokes 2 px apart), frame 1 the slash over a group of four. Anchor = top left."
+			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke, a 1 px Glow cut lit Heartlight at its top, 1 px in from the frame's left (the plaque's face shows between strokes): advance 2 px per stroke; four strokes span 8 px. Frame 1 the slash, a 1 px Orchid line with a Night shadow, drawn at the same top left as the first stroke, crossing all four. Anchor = top left."
 		},
 		"lf_constellation_pip": {
 			"anchor": [
@@ -273,7 +468,7 @@
 		"lf_lantern": {
 			"anchor": [
 				8,
-				17
+				15
 			],
 			"file": "lf_lantern.png",
 			"fps": 6.0,
@@ -282,8 +477,8 @@
 				18
 			],
 			"frames": 5,
-			"loop": true,
-			"use": "Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing (loop the pair: the flame flickers, the halo shimmers). Anchor = its base's middle."
+			"loop": false,
+			"use": "Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing: code loops the pair itself at the sheet's fps (the flame flickers, the halo shimmers); not a plain looping animation. Anchor = its base's foot."
 		},
 		"lf_moth_flame": {
 			"anchor": [
@@ -332,18 +527,18 @@
 		},
 		"lf_streak_flare": {
 			"anchor": [
-				10,
-				10
+				13,
+				13
 			],
 			"file": "lf_streak_flare.png",
 			"fps": 14.0,
 			"frame_size": [
-				21,
-				21
+				27,
+				27
 			],
 			"frames": 15,
 			"loop": false,
-			"use": "Lantern Alley: the lantern's flare each time its streak grows, a warm ring with ember sparks (one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame)."
+			"use": "Lantern Alley: the lantern's flare each time its streak grows, an ember ring bursting with sparks flying out (fire, not a bell's ring; one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame)."
 		},
 		"lf_strung_pip": {
 			"anchor": [
@@ -388,7 +583,7 @@
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point."
+			"use": "Black Spot: a solid black (Root) rot spot over the marked nightmare's head, a Night outline lit Bruise on its upper left, three orchid pustules on it pulsing together. Anchor = its foot, at the head-mark point."
 		},
 		"sp_cap_badge": {
 			"anchor": [
@@ -435,6 +630,21 @@
 			"loop": true,
 			"use": "Feeding Ground: a fed patch on each route point, pink spore dust settling and two curled shoots swaying; fade it with alpha as its 8 s run out. Anchor = the route point."
 		},
+		"sp_rot_bloom": {
+			"anchor": [
+				16,
+				10
+			],
+			"file": "sp_rot_bloom.png",
+			"fps": 10.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 7,
+			"loop": false,
+			"use": "Rot Bloom: a rot flower opening on the ground under the nightmare on its third cap: an orchid-tipped bud opens into six bruised petal lobes rimmed orchid round a plain dark centre, reaching past the body, pink spores puffing up, then it wilts (one shot, 0.7 s; the big green number is code's). It stays on the ground where it opened (it never follows the nightmare). Anchor = the nightmare's feet when it opened."
+		},
 		"sp_rot_ring": {
 			"anchor": [
 				15,
@@ -467,14 +677,14 @@
 		},
 		"sp_spore_fleck": {
 			"anchor": [
-				4,
-				5
+				7,
+				7
 			],
 			"file": "sp_spore_fleck.png",
 			"fps": 12.0,
 			"frame_size": [
-				9,
-				9
+				15,
+				15
 			],
 			"frames": 4,
 			"loop": false,
@@ -497,18 +707,18 @@
 		},
 		"sp_throne_rim": {
 			"anchor": [
-				16,
-				33
+				20,
+				42
 			],
 			"file": "sp_throne_rim.png",
 			"fps": 3.0,
 			"frame_size": [
-				32,
-				37
+				40,
+				46
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Toadstool Throne: a mushroom throne, a broad cap seat with a tall cap backrest and gold trim and crown studs, drawn under the clump (before the mushroom sheet; the clump stands in front of the backrest). Anchor = the clump's foot."
+			"use": "Toadstool Throne: a throne made of mushroom, drawn under the clump (before the mushroom sheet; the clump stands in front): a great toadstool cap tipped upright behind it, its brown gill underside fanning from a pale stem stub, a gold and Ember rim, a three-point crown on top (a glint sweeps its points), two little toadstool armrests and a squat plinth. Anchor = the clump's feet."
 		}
 	}
 }

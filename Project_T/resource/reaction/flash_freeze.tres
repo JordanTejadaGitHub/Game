@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"flash_freeze"
+display_name = "Flash Freeze"
+statuses = Array[StringName]([&"frost", &"damp"])
+description = "That burst reaches 2 cells, hits up to 6, and gives each 2 {frost}. Triggered by a {frostburst} on a nightmare with {stacks:need_damp} {damp}. Uses up the {damp}."
+callout_color = Color(0.7058824, 0.6901961, 0.78431374, 1)
+effect = &"flash_freeze"
+cooldown = 6.0

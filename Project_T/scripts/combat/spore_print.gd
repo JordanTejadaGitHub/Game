@@ -536,6 +536,8 @@ func _remember(m: Dictionary, statuses: Array) -> void:
 
 func on_damage(event, source, enemy, is_hit: bool, dispel: bool, _tagged: bool) -> void:
 	if active():
+		if evo(EVO_HOST_TREES) and (is_hit or Reactions.is_effect(event.tag)):
+			_host_fleck(source, enemy)
 		if dispel:
 			if place_on():
 				_fell(enemy)
@@ -573,7 +575,7 @@ func _fell(enemy) -> void:
 		var kept: Array = []
 		if evo(EVO_MOTHER):
 			for id in enemy.statuses.active_ids():
-				if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY:
+				if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY and id != DreamState.FROST:
 					kept.append([String(id), enemy.statuses.potency(id), String(enemy.statuses._active[id].get("line", ""))])
 		leave_mushroom(at, enemy.statuses.source(EnemyStatuses.SPORED), kept)  # Mycelium Sprouts' Poisoned counts too
 	elif class_on() and evo(EVO_WINDFALL) and _fed_at(index_of(enemy)):
@@ -622,8 +624,14 @@ func _overnight(spore, enemy) -> void:
 		enemy.set_meta(NIGHT_META, next)
 
 # Whether the stack cards may add to `id` (never Rooted; Drowsy only with STACK_DROWSY, within its normal cap).
+# Whether a held row reads a place on the path (Feeding Ground's fed steps, Fairy Path's / Sprout Beds' spots): only then
+# does a hovered or selected Sporeling-family Warden keep its path highlight (TowerPlacer.draw_placement; owner
+# 2026-10-25: Spore Print's effect is its mushrooms, which already show).
+func reads_path_places() -> bool:
+	return place_on() and (evo(EVO_FEEDING) or evo(EVO_FAIRY_PATH) or evo(EVO_SPROUT_BEDS))
+
 func _stackable(id: StringName) -> bool:
-	return id != EnemyStatuses.HELD and (STACK_DROWSY or id != EnemyStatuses.DROWSY)
+	return id != EnemyStatuses.HELD and id != DreamState.FROST and (STACK_DROWSY or id != EnemyStatuses.DROWSY)  # Frost only from Frost Wardens (section 37)
 
 # Adds `stacks` to `id` quietly (no clock, strength or source change). Charged stops one short of a bolt.
 func _feed(enemy, id: StringName, stacks: int) -> int:
@@ -960,7 +968,7 @@ func _rotburst(point: Vector2, tower, eater) -> void:
 	var at: Vector2 = _route_px[int(_index[point])]
 	var carried: Array = []
 	for id in eater.statuses.active_ids():
-		if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY:
+		if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY and id != DreamState.FROST:
 			carried.append([id, eater.statuses.source(id)])
 	var hit := 0
 	for other in Tower.nightmares_near(get_tree(), at, BURST_CELLS * cell()):
@@ -1101,6 +1109,11 @@ func _field_burst(tower, enemy) -> void:
 	row[0] = int(row[0]) + 1
 	if is_instance_valid(enemy):
 		enemy.set_meta(BURSTS_META, row)
+	# Rot Bloom's 3rd burst: sp_rot_bloom opens on the ground where its feet were (33af7bec; it stays there, never follows)
+	if bloom and _flecks.size() < FLECKS_MAX and evo_art_tex(evo_art, ART_ROT_BLOOM) != null:
+		_flecks.append([ART_ROT_BLOOM, to_local(at), 0.0, false])
+		queue_redraw()
+		return
 	Reactions._effect(&"landing_dust", at, self, 1.6 if bloom else 1.0)  # The dark burst under its foot (a rot flower: bigger)
 
 # Laps and the Waymark start Deathcap's count of 3 again (polled).
@@ -1648,6 +1661,8 @@ func _catching() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if not _flecks.is_empty() and not get_tree().paused:
+		_age_flecks(delta)
 	if dream_state == null or not place_on() or get_tree().paused:
 		return
 	var breathe := int(Time.get_ticks_msec() / 1000.0 * MUSHROOM_FPS) % MUSHROOM_FRAMES  # The mushrooms breathe (4 fps)
@@ -1661,6 +1676,10 @@ func _process(delta: float) -> void:
 		if stamp != _art_stamp:
 			_art_stamp = stamp
 			queue_redraw()
+	if season_on() != _haze_shown or (_haze_shown and evo_art_frame(evo_art, ART_HAZE) != _haze_frame):
+		_haze_shown = season_on()  # Spore Season's haze: lit or out, and its own 3 fps loop
+		_haze_frame = evo_art_frame(evo_art, ART_HAZE)
+		queue_redraw()
 	# The regrow clocks run only during a drift
 	if not resting() and not _regrow.is_empty():
 		for point in _regrow.keys():
@@ -1751,7 +1770,7 @@ func _hothouse(enemy) -> void:
 		return
 	var any := false
 	for id in statuses.active_ids():
-		if id == EnemyStatuses.SPORED:
+		if id == EnemyStatuses.SPORED or id == DreamState.FROST:
 			continue
 		var added := statuses.add_quiet(id, HOTHOUSE_ADD)
 		setup_quiet(enemy, HOTHOUSE, id, added)  # (setup credit 2026-10-16)
@@ -1831,19 +1850,19 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 		extra += NARROWS_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else NARROWS_EXTRA
 		_setup_part(enemy, NARROWS, status, extra)  # (setup credit 2026-10-16: each card's extra stacks, as asked)
 	var mixed_count := 0
-	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)):
+	if rule(MIXED_COMPANY) and (_stackable(status) or status == DreamState.FROST) and now() >= float(tower.get_meta(MIXED_META, -INF)):
 		mixed_count = _mixed(enemy)  # After the clock: strongest_near at most once a second per Warden
 	if mixed_count > 0:
 		tower.set_meta(MIXED_META, now() + STACK_EVERY)
 		# Hard cards 2026-10-16: 1 more per status it carries, up to 4 (Charged / Exposed 2, Drowsy 1)
 		var mixed_cap := MIXED_MAX
-		if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED:
+		if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED or status == DreamState.FROST:  # Frost: small (section 37)
 			mixed_cap = MIXED_SMALL_MAX
 		elif status == EnemyStatuses.DROWSY:
 			mixed_cap = MIXED_DROWSY_MAX
 		extra += mini(mixed_count * MIXED_PER_STATUS, mixed_cap)
 		_setup_part(enemy, MIXED_COMPANY, status, mini(mixed_count * MIXED_PER_STATUS, mixed_cap))
-	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
+	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED or status == DreamState.FROST  # Frost: small (section 37)
 	# Breathe It In (trait rework; was spore-on-spore Poisoned): any Warden's status landing on a nightmare inside a spore
 	# Warden's range (its own included) adds 1 more. Once a second per Warden
 	if rule(BREATHE_IN) and _stackable(status) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
@@ -1950,7 +1969,7 @@ func _seep(enemy) -> void:
 	while steps >= SEEP_STEPS:
 		steps -= SEEP_STEPS
 		for id in enemy.statuses.active_ids():
-			if id != EnemyStatuses.HELD:
+			if id != EnemyStatuses.HELD and id != DreamState.FROST:
 				setup_quiet(enemy, SEEPING_IN, id, enemy.statuses.add_quiet(id, SEEP_STACKS))  # (setup credit 2026-10-16)
 	if left <= 0.0:
 		enemy.remove_meta(SEEP_META)
@@ -2006,6 +2025,13 @@ var _stands := {}  # Route point -> its Stand
 
 func _draw() -> void:
 	_sync_stands.call_deferred()
+	# Spore Season: a low spore haze on every route point while it is lit (sp_season_haze, every other tile flipped so the
+	# trail doesn't repeat; on the ground, under the nightmares). No drawn stand-in: the badge already says it is lit.
+	if _haze_shown and place_on():
+		for k in _route_px.size():
+			evo_mark(self, ART_HAZE, _route_px[k], 1.0, k % 2 == 1)
+	for fleck in _flecks:  # One-shot marks (Host Trees' spore fleck), over the haze, whatever else is on
+		evo_mark(self, fleck[0], fleck[1], 1.0, bool(fleck[3]), evo_art_frame(evo_art, fleck[0], float(fleck[2])))
 	if not place_on() or _route_px.is_empty():
 		return
 	# Feeding Ground: fed ground glows green on the path and fades as its 8 s run out (flat on the ground, under the caps)
@@ -2045,6 +2071,41 @@ const ART_FED := &"sp_fed_ground"
 const ART_ROT := &"sp_rot_ring"
 const ART_THRONE := &"sp_throne_rim"
 var _art_stamp := -1  # The ground marks' frames last drawn (redraw only when they change)
+const ART_HAZE := &"sp_season_haze"
+const ART_FLECK := &"sp_spore_fleck"
+const ART_ROT_BLOOM := &"sp_rot_bloom"  # Rot Bloom's 3rd burst: a rot flower opening on the ground (one shot, in _flecks)
+const FLECK_EVERY := 0.25  # Host Trees' fleck: at most this often per capped Warden (ticks come fast)
+const FLECKS_MAX := 32
+var _haze_shown := false
+var _haze_frame := -1
+var _flecks: Array = []  # One-shot marks: [mark, local point, age, flip]
+
+# Host Trees: a pink spore fleck where a capped Warden of another family's tick or hit lands (sp_spore_fleck, one shot).
+func _host_fleck(source, enemy) -> void:
+	if not is_capped(source) or is_own(source) or not is_instance_valid(enemy) or _flecks.size() >= FLECKS_MAX \
+			or now() < float(source.get_meta(FLECK_META, -INF)):
+		return
+	source.set_meta(FLECK_META, now() + FLECK_EVERY)
+	_flecks.append([ART_FLECK, to_local(enemy.global_position), 0.0, false])
+	queue_redraw()
+const FLECK_META := &"sp_fleck_next"  # On a Warden: when it may fleck again
+
+# Ages the one-shots; each ends after its sheet's frames (fps from calling_evo.json); redraws only on a frame change.
+func _age_flecks(delta: float) -> void:
+	var changed := false
+	for i in range(_flecks.size() - 1, -1, -1):
+		var fleck: Array = _flecks[i]
+		var meta := evo_art_meta(evo_art, fleck[0])
+		var length := float(maxi(int(meta.get("frames", 1)), 1)) / maxf(float(meta.get("fps", 12.0)), 1.0)
+		var before := evo_art_frame(evo_art, fleck[0], float(fleck[2]))
+		fleck[2] = float(fleck[2]) + delta
+		if float(fleck[2]) >= length:
+			_flecks.remove_at(i)
+			changed = true
+		elif evo_art_frame(evo_art, fleck[0], float(fleck[2])) != before:
+			changed = true
+	if changed:
+		queue_redraw()
 
 func _exit_tree() -> void:
 	if is_instance_valid(_layer):

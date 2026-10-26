@@ -296,6 +296,7 @@ const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain
 const STATE_ICONS := ["asleep"]
 # Combat HUD marks (appended, no column moves): "chain" = the Reaction chain counter (scripts/ui/chain_counter.gd).
 const HUD_MARK_ICONS := ["chain", "clock"]  # "clock" = the Pause run summary's time row (UI council round 4)
+const FROST_ICONS := ["frost", "frostburst", "cold_snap", "frostbite", "brittle", "flash_freeze"]  # Section 37 (UI Asset 2026-10-25): last, so no other column moves
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -306,7 +307,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS + HUD_MARK_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS + HUD_MARK_ICONS + FROST_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -317,11 +318,12 @@ func _make_icons() -> void:
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
-	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS + LATE_STATUS_ICONS + STATE_ICONS, stats = STAT_ICONS,
+	var data := {frame_size = ICON, icons = index, statuses = (STATUS_ICONS + LATE_STATUS_ICONS + STATE_ICONS + ["frost"]).filter(func(s: String) -> bool: return s != "frozen"), stats = STAT_ICONS,  # Frozen retired (d21ed7db); its column stays drawn
+		frost_terms = ["frostburst", "cold_snap"],
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
-		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS, shapes = SHAPE_ICONS,
+		reactions = REACTION_ICONS + ["frostbite", "brittle", "flash_freeze"], crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS, shapes = SHAPE_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -439,16 +441,31 @@ func _dt_line(a: Vector2i, b: Vector2i, col: Color) -> void:
 # Statuses ---------------------------------------------------------------------------------------
 
 func _ic_damp() -> void:
-	# Soaked: rolling water, three waves (never a drop: a drop always means Dew).
-	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
-	for y0 in [3.6, 8.0, 12.4]:
-		var pts: Array = []
-		for i in 9:
-			var x := 1.0 + i * 1.75
-			pts.append(Vector2(x, y0 + sin(i * PI / 2.0) * 1.3))
-		_c_line(pts, 1.7, k)
-	_dt(3, 2, Color.WHITE)
-	_dt(3, 7, Color("#f0faff"))
+	# Soaked: a breaking wave, water running off it (never a drop: a drop always means Dew). Owner 2026-10-25 "redo the wet
+	# status's icon"; UI council rounds 1-4: a solid wave whose back slopes into the body, its face filled up to the curl
+	# (a tube left under the lip), two square run-off stubs in the belly's shade.
+	var k := _rpn("dewlight", "dew", "pool")
+	_c_ring(Vector2(9, 7.5), 6.0, 3.2, k)
+	_c_erase_disc(Vector2(13.5, 9.5), 3.6)
+	for y in range(7, 11):  # No hanging tip at the lip: the C stays open
+		for x in range(12, 16):
+			_cells.erase(Vector2i(x, y))
+	_c_rect(Rect2i(13, 5, 2, 2), k)  # The crest ends in a square block pointing down
+	_c_rect(Rect2i(1, 11, 14, 4), k)
+	_c_poly(PackedVector2Array([Vector2(1, 11), Vector2(3, 8.5), Vector2(5, 8.5), Vector2(6.5, 11)]), k)
+	_c_rect(Rect2i(2, 7, 1, 2), k)  # The back slopes (no upright stem: it read as a pound sign)
+	_c_rect(Rect2i(1, 9, 1, 2), k)
+	_c_rect(Rect2i(6, 9, 2, 1), k)  # The face filled up towards the curl (the auto ramp lights its stepped top edge)
+	_c_rect(Rect2i(6, 10, 5, 1), k)
+	for y in [13, 14]:  # Run-off: two flat-ended stubs under the body
+		for x in range(0, 16):
+			if not (x in [7, 8] or (x in [11, 12] and y == 13)):
+				_cells.erase(Vector2i(x, y))
+	_dt(9, 2, Palette.color("moonlight"))
+	_dt(13, 5, Palette.color("moonlight"))
+	_dt(12, 5, Palette.color("dew"))
+	for p: Vector2i in [Vector2i(7, 13), Vector2i(7, 14), Vector2i(11, 13)]:  # The run-off in the belly's shade
+		_dt(p.x, p.y, Palette.color("dew"))
 
 func _ic_drowsy() -> void:
 	var k := _rp("#f4ecff", "#c8a8f0", "#8a6ac8")
@@ -1231,12 +1248,14 @@ func _crown() -> void:
 	_dt(8, 2, Palette.color("dewlight"))
 
 func _ic_thunderclap() -> void:
-	# Soaked + Charged: a gold bolt splitting a water drop.
-	_drop(Vector2(6, 10.6), 4.0, _rpn("dewlight", "dew", "pool"))
-	_bolt(PackedVector2Array([Vector2(12.6, 0.6), Vector2(7.6, 7.2), Vector2(10.2, 7.2), Vector2(6.4, 15.2),
-		Vector2(13.6, 5.8), Vector2(11, 5.8), Vector2(14.6, 0.6)]))
-	_dt(2, 6, Palette.color("glow"))
-	_dt(14, 12, Palette.color("glow"))
+	# Soaked + Charged: Soaked's wave (Drown's water) with Charged's bolt striking from above (never a drop: a drop means
+	# Dew). Owner 2026-10-25; UI council rounds 1-3.
+	_reaction_wave(Vector2i(3, 3), _rpn("dewlight", "dew", "pool"))
+	_bolt(PackedVector2Array([Vector2(5.0, 0.6), Vector2(1.2, 5.6), Vector2(3.4, 5.6), Vector2(1.2, 10.0),
+		Vector2(6.0, 4.0), Vector2(4.0, 4.0), Vector2(7.4, 0.6)]))
+	_c_rect(Rect2i(1, 8, 1, 1), _rpn("heartlight", "glow", "gold"))  # The tail unbroken to its point
+	for p: Vector2i in [Vector2i(4, 7), Vector2i(3, 8), Vector2i(3, 9)]:  # The gap between bolt and wave: outline, not ground pinholes
+		_dt(p.x, p.y, ICON_OUTLINE)
 
 func _ic_ignite() -> void:
 	# Poisoned + Charged: spores going off in a gold burst.
@@ -1253,21 +1272,62 @@ func _ic_ignite() -> void:
 	_dt(4, 10, Palette.color("heartlight"))
 
 func _ic_mushrooming() -> void:
-	# Poisoned + Soaked: a spore mushroom swelling, a drop at its foot.
+	# Poisoned + Soaked: a spore mushroom swelling with Soaked's wave (the crowd pip, drawn by hand) at its foot (never a
+	# drop: a drop means Dew). Owner 2026-10-25; UI council rounds 1-3.
 	var cap := _rpn("newleaf", "sprig", "leaf")
-	_c_poly(PackedVector2Array([Vector2(1.4, 8.4), Vector2(3, 4), Vector2(8, 1.6), Vector2(13, 4), Vector2(14.6, 8.4)]), cap)
-	_c_rect(Rect2i(6, 8, 4, 6), _rpn("moonpath", "deadwood", "loam"))
-	_drop(Vector2(12.6, 13.2), 1.8, _rpn("dewlight", "dew", "pool"))
-	for p: Vector2i in [Vector2i(5, 4), Vector2i(10, 5), Vector2i(8, 3)]:
+	_c_poly(PackedVector2Array([Vector2(1.4, 7.4), Vector2(3, 3), Vector2(8, 0.6), Vector2(13, 3), Vector2(14.6, 7.4)]), cap)
+	_c_rect(Rect2i(5, 7, 4, 8), _rpn("moonpath", "deadwood", "loam"))
+	var water := _rpn("dewlight", "dew", "pool")
+	_c_rect(Rect2i(11, 10, 4, 1), water)
+	_c_rect(Rect2i(10, 11, 2, 1), water)
+	_c_rect(Rect2i(14, 11, 1, 1), water)
+	_c_rect(Rect2i(10, 12, 2, 1), water)
+	_c_rect(Rect2i(10, 13, 5, 2), water)
+	_dt(13, 10, Palette.color("moonlight"))
+	_dt(10, 9, ICON_OUTLINE)  # A ground pinhole between cap, stem and crest closed
+	_dt(11, 11, Palette.color("dew"))  # The wave's back two pixels thick, like Drown's
+	_dt(11, 12, Palette.color("dew"))
+	for p: Vector2i in [Vector2i(5, 3), Vector2i(10, 4), Vector2i(8, 2)]:
 		_dt(p.x, p.y, Palette.color("heartlight"))
 
+# Soaked's wave (_ic_damp) at scale `s` with its top-left at `o` (use _reaction_wave for a Reaction's water).
+func _soak_wave(o: Vector2, s: float, k: int, run_off := true) -> void:
+	var P := func(p: Vector2) -> Vector2: return o + p * s
+	_c_ring(P.call(Vector2(9, 7.5)), 6.0 * s, 3.2 * s, k)
+	_c_erase_disc(P.call(Vector2(13.5, 9.5)), 3.6 * s)
+	for y in _n:
+		for x in _n:
+			var q := (Vector2(x + 0.5, y + 0.5) - o) / s
+			if q.x >= 12.0 and q.y >= 7.0 and q.y < 11.0:
+				_cells.erase(Vector2i(x, y))
+	var R := func(r: Rect2) -> Rect2i: return Rect2i((o + r.position * s).round(), (r.size * s).round().max(Vector2.ONE))
+	_c_rect(R.call(Rect2(13, 5, 2, 2)), k)
+	_c_rect(R.call(Rect2(1, 11, 14, 2 if not run_off else 4)), k)
+	_c_poly(PackedVector2Array([P.call(Vector2(1, 11)), P.call(Vector2(3, 8.5)), P.call(Vector2(5, 8.5)), P.call(Vector2(6.5, 11))]), k)
+	_c_rect(R.call(Rect2(2, 7, 1, 2)), k)
+	_c_rect(R.call(Rect2(1, 9, 1, 2)), k)
+	_c_rect(R.call(Rect2(6, 9, 2, 1)), k)
+	_c_rect(R.call(Rect2(6, 10, 5, 1)), k)
+
+# Every Soaked Reaction's water (Drown, Thunderclap; UI council 2026-10-25): Soaked's wave at 0.8 with its top-left at
+# `o`, its crest band and face filled up to a Soaked-sized tube, the tube's two outline pinholes closed, Moonlight foam.
+func _reaction_wave(o: Vector2i, k: int) -> void:
+	var d := o - Vector2i(3, 3)
+	_soak_wave(Vector2(o), 0.8, k, false)
+	_c_rect(Rect2i(Vector2i(10, 6) + d, Vector2i(1, 1)), k)
+	_c_rect(Rect2i(Vector2i(8, 9) + d, Vector2i(3, 1)), k)
+	_c_rect(Rect2i(Vector2i(10, 10) + d, Vector2i(2, 1)), k)
+	_dt(11 + d.x, 8 + d.y, ICON_OUTLINE)
+	_dt(12 + d.x, 9 + d.y, ICON_OUTLINE)
+	_dt(10 + d.x, 4 + d.y, Palette.color("moonlight"))
+	_dt(13 + d.x, 6 + d.y, Palette.color("moonlight"))
+
 func _ic_drown() -> void:
-	# Soaked + Drowsy: a heavy drop falling asleep.
-	_drop(Vector2(6.4, 10.2), 4.4, _rpn("dewlight", "dew", "pool"))
-	_zz(10, 1, _rpn("moonlight", "wraithlight", "bruise"))
-	_dt(4, 9, Palette.color("moonlight"))
-	_dt_line(Vector2i(4, 11), Vector2i(5, 12), Palette.color("pool"))
-	_dt_line(Vector2i(8, 11), Vector2i(7, 12), Palette.color("pool"))
+	# Soaked + Drowsy: Soaked's wave with Drowsy's z dozing above it (never a drop: a drop means Dew). Owner 2026-10-25
+	# "redo Drown's icon ... to match the wave"; UI council rounds 1-5. The single ground pixel at (5,5) between the z and
+	# the wave is a deliberate notch.
+	_reaction_wave(Vector2i(3, 3), _rpn("dewlight", "dew", "pool"))
+	_zz(1, 1, _rpn("wraithlight", "wraithlight", "wraithlight"))  # Drowsy's lilac, flat (a shade pixel broke its bars)
 
 func _ic_shatter() -> void:
 	# Rooted + Soaked, then a hard hit: ice bursting into shards.
@@ -3415,3 +3475,88 @@ func _spark_frame(sheet: Image, f: int) -> void:
 		var ink := Color(Palette.color("heartlight") if i == 1 else Palette.color("moonlight"), 1.0 if i < arm or arm == 1 else 0.6)
 		for p in [c + Vector2i(i, 0), c - Vector2i(i, 0), c + Vector2i(0, i), c - Vector2i(0, i)]:
 			sheet.set_pixel(f * 7 + p.x, p.y, ink)
+
+# Frost (dream_council_review.md section 37, owner 2026-10-25: the 7th status; it builds up and never slows) ----------
+# In Frost's own colour, Mist (EnemyStatuses.COLORS), with Moonlight and Stone either side; its Reactions pair Frost's
+# rime with the other status's own motif, as Drown / Smother do. Redrawn after the UI council (2026-10-25).
+
+func _flake(c: Vector2, arm: float, w: float, k: int, barbs := true) -> void:
+	for i in 3:
+		var d := Vector2.from_angle(PI * 0.5 + i * PI / 3.0)
+		_c_line([c - d * arm, c + d * arm], w, k)
+		if barbs:
+			for s: float in [-1.0, 1.0]:
+				var p := c + d * arm * 0.7 * s
+				_c_line([p, p + d.rotated(0.7) * arm * 0.22 * s], 1.0, k)
+				_c_line([p, p + d.rotated(-0.7) * arm * 0.22 * s], 1.0, k)
+
+func _ic_frost() -> void:
+	# Frost: a rime crystal, six barbed arms round a solid hub with a dark heart (the Frostfern family's crystal; it
+	# gathers, it doesn't stop anything).
+	var k := _rpn("moonlight", "mist", "stone")
+	_flake(Vector2(8, 8), 6.6, 1.4, k)
+	_c_disc(Vector2(8, 8), 2.0, k)
+	for p: Vector2i in [Vector2i(7, 7), Vector2i(8, 7), Vector2i(7, 8), Vector2i(8, 8)]:
+		_dt(p.x, p.y, ICON_OUTLINE)
+	_dt(8, 2, Palette.color("heartlight"))
+
+func _burst(c: Vector2, core: float, inner: float, tip: float, half: float, core_k: int, shard_k: int) -> void:
+	_c_disc(c, core, core_k)
+	for i in 6:
+		var d := Vector2.from_angle(PI * 0.5 + i * PI / 3.0)
+		var side := d.orthogonal()
+		_c_poly(PackedVector2Array([c + d * inner - side * half, c + d * tip, c + d * inner + side * half]), shard_k)
+
+func _ic_frostburst() -> void:
+	# Frostburst: the crystal at its fullest breaks outwards, six shards flung clear of a small cold core.
+	var cold := _rpn("moonlight", "mist", "stone")
+	_burst(Vector2(8, 8), 2.0, 4.0, 7.6, 1.6, cold, cold)
+	_dt(7, 7, Palette.color("heartlight"))
+
+func _ic_cold_snap() -> void:
+	# Cold Snap: the other statuses stop running down. An hourglass whose sand has frozen mid-fall, all in Frost's colour
+	# (the glass a step darker so the pale sand reads in it).
+	var glass := _rpn("mist", "stone", "slate")
+	_c_rect(Rect2i(3, 1, 10, 2), glass)
+	_c_rect(Rect2i(3, 13, 10, 2), glass)
+	_c_poly(PackedVector2Array([Vector2(4, 3), Vector2(12, 3), Vector2(8.6, 8), Vector2(7.4, 8)]), glass)
+	_c_poly(PackedVector2Array([Vector2(7.4, 8), Vector2(8.6, 8), Vector2(12, 13), Vector2(4, 13)]), glass)
+	for x in range(6, 10):  # The sand, held up top (it isn't running), a little piled below
+		_dt(x, 4, Palette.color("moonlight"))
+		_dt(x, 11, Palette.color("moonlight"))
+		_dt(x, 12, Palette.color("mist"))
+	_dt(7, 5, Palette.color("mist"))
+	_dt(8, 5, Palette.color("mist"))
+	_dt(8, 6, Palette.color("mist"))
+	_dt(4, 1, Palette.color("heartlight"))
+	_dt(11, 13, Palette.color("heartlight"))
+
+func _ic_frostbite() -> void:
+	# Frostbite (Frost + Poisoned): a poison spore bitten by frost, a crystal sunk into its side.
+	_c_disc(Vector2(6.4, 9.4), 5.0, _rpn("newleaf", "sprig", "leaf"))
+	_c_erase_disc(Vector2(11.4, 4.6), 4.2)
+	_flake(Vector2(11.2, 4.8), 3.6, 1.2, _rpn("moonlight", "mist", "stone"), false)
+	_dt(4, 7, Palette.color("heartlight"))
+	_dt(5, 11, Palette.color("leaf"))
+	_dt(8, 12, Palette.color("leaf"))
+
+func _ic_brittle() -> void:
+	# Brittle (Frost + Exposed): Exposed's gold ring cracked through, a small crystal at its heart.
+	var ice := _rpn("moonlight", "mist", "stone")
+	_c_ring(Vector2(8, 8), 6.4, 4.0, _rpn("heartlight", "glow", "gold"))
+	_c_line([Vector2(10.6, 1.6), Vector2(8.4, 5.2), Vector2(10.2, 8.2), Vector2(7.4, 14.4)], 1.3, ice)
+	for p: Vector2i in [Vector2i(9, 4), Vector2i(10, 7), Vector2i(8, 12)]:
+		_cells.erase(p + Vector2i(1, 0))  # The crack opens a gap in the ring beside the rime
+		_cells.erase(p + Vector2i(2, 0))
+	_flake(Vector2(8, 8), 2.8, 1.0, ice, false)
+	_dt(3, 4, Palette.color("heartlight"))
+
+func _ic_flash_freeze() -> void:
+	# Flash Freeze (Frost + Soaked): a bigger Frostburst off soaked water.
+	var pts: Array = []
+	for i in 9:
+		pts.append(Vector2(1.0 + i * 1.75, 13.0 + sin(i * PI / 2.0) * 1.3))
+	_c_line(pts, 1.8, _rpn("dewlight", "dew", "dew"))
+	_burst(Vector2(8, 6.6), 1.8, 3.4, 6.4, 1.3, _rpn("heartlight", "moonlight", "mist"), _rpn("moonlight", "mist", "stone"))
+	_dt(8, 7, Palette.color("heartlight"))
+	_dt(4, 9, Palette.color("dewlight"))

@@ -25,7 +25,7 @@ const GLOSSARY_SOURCE := [
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. A full run has four.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings Dreamlight and a rare Dream.", ["Dreamlight", "Dream"]],
-		["Family pick", "After drifts 1, 10 and 35: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead. After drift 60 you deepen a family you have.", ["Family", "Deepen", "Dreamlight"]],
+		["Family pick", "After drifts 1, 10 and 40: choose a new Warden family for this run. With none left, the Heartwood gives Dreamlight instead. After drift 60 you deepen a family you have.", ["Family", "Deepen", "Dreamlight"]],
 		["Deepen", "The family pick after drift 60: choose a family you already have. It gives {const:deepen_dreamlight} and lets you call back one of that family's branches not in this run, at the branch price, on the Remember screen.", ["Family pick", "Branch", "Remember screen"]],
 		["Dream", "A card you choose at a rest. It changes your run until it ends.", ["Rarity", "Let it pass"]],
 		["Omen", "A harder next block that you may accept for a reward at the rest after it. Offered from drift 10.", ["Rest"]],

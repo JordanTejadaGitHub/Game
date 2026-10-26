@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Hoarfrost"
-role_line = "Frost, splash damage"
+role_line = "Frosts, splash damage"
 heavy = true
 description = "Its hits splash; the nightmare it hits gains {field:hoarfrost.status_stacks:count} {frost}. +{field:hoarfrost.crit_bonus_vs_frost:pct} crit chance against nightmares with {field:hoarfrost.crit_frost_at:count} {frost} or more."
 cost = 0

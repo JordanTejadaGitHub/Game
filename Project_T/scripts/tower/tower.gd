@@ -3000,7 +3000,7 @@ func _area_pulse_fx(in_range: Array) -> void:
 	for i in mini(in_range.size(), PULSE_SPARKS_MAX):
 		var enemy: Node2D = in_range[i]
 		if is_instance_valid(enemy):
-			Fx.play(spark, aim_at(enemy), world)
+			Fx.play(spark, feet_of(enemy) if Fx.feet_anchored(spark) else aim_at(enemy), world)  # root_lash: over its feet
 
 # Muted ground colours per pulse family (warm for the root / grove lines).
 const RIPPLE_COLOURS := {"root": Palette.DEADWOOD, "grove": Palette.OAK, "song": Palette.MOONPATH, "water": Palette.DEW,
@@ -4252,8 +4252,8 @@ func _ring_at(target, where: Vector2) -> Vector2:
 # Area-by-design bursts (Sparkler / Starburst, `area`) always give their status: always the family ring.
 const GENERIC_RING := "generic"
 
-# The status a splash of `data` would spread (&"" = none): its own status, as spatter() gives it. A freeze alone doesn't
-# count (Old Mountain keeps the generic ring; owner's call pending, UI council 2026-10-25).
+# The status a splash of `data` would spread (&"" = none): its own status, as spatter() gives it (Frost for Frostfern /
+# Hoarfrost). A Hold on hit isn't a status a splash spreads: Old Mountain keeps the generic ring (section 37 ruling).
 static func splash_status(data: TowerData) -> StringName:
 	return data.applies_status if data != null else &""
 
@@ -5841,6 +5841,13 @@ static func aim_at(enemy: Node2D) -> Vector2:
 	return enemy.get_body_position() if is_instance_valid(enemy) and enemy.has_method("get_body_position") \
 		else (enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO)
 
+# Where a nightmare's drawn feet are (its lane and rounded corner, no foot lift: Enemy.get_feet_position): the anchor for
+# effects drawn for the feet (effects.json "Anchor = its route point (the feet)": Reaction sheets, roots, rings, puffs;
+# Fx.feet_anchored). Effects drawn on the body (hits, crits, status flashes, chains) and aim keep aim_at.
+static func feet_of(enemy: Node2D) -> Vector2:
+	return enemy.get_feet_position() if is_instance_valid(enemy) and enemy.has_method("get_feet_position") \
+		else (enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO)
+
 func _draw_beam() -> void:
 	if not is_instance_valid(_beam_target):
 		return
@@ -6096,7 +6103,7 @@ func _pulse_hold(in_range: Array) -> void:
 	if furthest:
 		hold(furthest, attack_data.pulse_hold_time)
 		if tower_data.line == "root":
-			Reactions._effect(&"goal_hold", furthest.global_position, self, 1.5)  # The bigger coil (Tower Assets e5b8617b)
+			Reactions._effect(&"goal_hold", feet_of(furthest), self, 1.5)  # The bigger coil (Tower Assets e5b8617b), at its feet
 
 # Heavy Air (card, rule heavy_air): slows that aren't statuses (Rockslide's rubble, Drown's pull-under)
 # are 20% stronger too; Drowsy gets it in DreamState.get_status_strength_multiplier (fog no longer slows).

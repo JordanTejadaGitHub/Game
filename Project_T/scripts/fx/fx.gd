@@ -49,8 +49,13 @@ const REACTIONS := {
 	# own are drawn; their callout colour comes from the ReactionData (COLOUR_FROM_DATA).
 	&"changeling": [&"crowned_nightbloom", "Changeling!"],
 	&"wide_awake": [&"crowned_starfall", "Wide Awake!"],
+	# The Frost Reactions (dream_council_review.md 37, Reaction Code bd8ae9af): Shatter's sheet stands in until their own
+	# are drawn; their callout colour comes from the ReactionData (Mist).
+	&"brittle": [&"shatter", "Brittle!"],
+	&"frostbite": [&"shatter", "Frostbite!"],
+	&"flash_freeze": [&"shatter", "Flash Freeze!"],
 }
-const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake"]
+const COLOUR_FROM_DATA: Array[StringName] = [&"changeling", &"wide_awake", &"brittle", &"frostbite", &"flash_freeze"]
 # Sheets that peak small in their frame: shown bigger (screens_ui.md "Size check").
 const DEFAULT_SCALE := {&"thunderclap_lite": 1.5, &"ignite_lite": 1.5, &"crit_flare": 1.25}  # (Tower Assets 74b11108: the base Reactions are drawn at full size now)
 const RING_SECONDS := 0.45  # The contributing Wardens' pulse ring
@@ -147,6 +152,16 @@ static func _ensure_cache(near: Node) -> void:
 static func effect_ids() -> Array:
 	info(&"")  # Loads the index
 	return _index.keys()
+
+# Sheets drawn for a nightmare's feet (effects.json notes "Anchor = its route point (the feet)" / "anchor = its feet"):
+# they play at Tower.feet_of(enemy), not the body (owner 2026-10-25). The base Reactions (their *_ground parts play at the
+# same spot) and the Warden ones on a nightmare: Rootling roots, Deeproot, Snugroot, Thorncoil, Elf Circle, the bells'
+# toll ring, Dreamshroom's puffs. Route-point sheets (puddles, mushrooms, lit path) are placed on points, not nightmares.
+const FEET_EFFECTS: Array[StringName] = [&"ignite", &"thunderclap", &"shatter", &"pinned", &"smother", &"drown", &"overgrowth",
+	&"lightning_rod", &"root_grab", &"root_lash", &"root_snap", &"goal_hold", &"logjam_knot", &"thorns", &"fairy_dance",
+	&"toll_ring", &"dream_spore_puff"]
+static func feet_anchored(effect: StringName) -> bool:
+	return effect in FEET_EFFECTS
 
 static func info(effect: StringName) -> Dictionary:
 	if _index.is_empty() and FileAccess.file_exists(INDEX_PATH):
@@ -321,14 +336,17 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var frame_size: Array = info(effect).get("frame_size", [0, 0])
 	var widest := maxf(float(frame_size[0]), float(frame_size[1])) * float(DEFAULT_SCALE.get(effect, 1.0))  # As play() draws it
 	var burst_scale := ceilf(REACTION_MIN_PX / widest) if widest > 0.0 and widest < REACTION_MIN_PX else 1.0
-	var node := play(effect, at, parent, burst_scale, true, seconds)
+	# A sheet drawn for the feet plays at its nightmare's drawn feet (owner 2026-10-25: Ignite drew on the body); the
+	# callout, crown and accent stay at `at`.
+	var sheet_at := Tower.feet_of(follow) if is_instance_valid(follow) and feet_anchored(effect) else at
+	var node := play(effect, sheet_at, parent, burst_scale, true, seconds)
 	_attach(node, follow)  # (Smother's loop too: Reactions keeps it on the nightmare's meta)
 	_own_loop(node, follow)
 	# The base Reactions' ground part (Tower Assets 74b11108, effects.json "ground"): with the full sheet only (not a _lite
 	# swap), at the same spot, scale and length, started this same frame, under the nightmares (z -1 in the world).
 	if node is FxSprite and node.effect == effect and info(effect).has("ground"):
 		var ground_world := Reactions._world(parent) if parent != null else null
-		var ground := play(StringName(info(effect)["ground"]), at, ground_world if ground_world != null else parent, burst_scale, false, seconds)
+		var ground := play(StringName(info(effect)["ground"]), sheet_at, ground_world if ground_world != null else parent, burst_scale, false, seconds)
 		if ground != null:
 			ground.z_index = -1
 			_attach(ground, follow)
@@ -338,7 +356,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	if node != null and not reduce_flashes() and small_flash_ok():  # Its own budget (the big moments keep bright_flash_ok)
 		var flash := FxFlash.new(colour, maxf(widest * burst_scale * 0.35, REACTION_MIN_PX * 0.35))
 		parent.add_child(flash)
-		flash.global_position = at
+		flash.global_position = sheet_at
 	if not info(effect).has("callout") or reaction in COLOUR_FROM_DATA:  # A sheet without its own callout colour (Sleepwalk, Night Terror) or a stand-in: the Reaction's
 		var data := Reactions.get_data(reaction)
 		if data != null:
@@ -394,7 +412,11 @@ static func _attach(node: Node2D, follow: Node2D) -> void:
 		return
 	if node is FxSprite or node is FxCallout:
 		node.follow = weakref(follow)
-		node.follow_offset = node.global_position - Tower.aim_at(follow)  # From the drawn body (walking lanes)
+		if node is FxSprite and feet_anchored(node.effect):
+			node.follow_feet = true
+			node.follow_offset = node.global_position - Tower.feet_of(follow)  # From the drawn feet
+		else:
+			node.follow_offset = node.global_position - Tower.aim_at(follow)  # From the drawn body (walking lanes)
 
 # An endless loop on a nightmare (looping, no life of its own: Smother's) belongs to it: it frees itself when the nightmare
 # is dispelled or freed (user screenshot 2026-10-23: a spore swirl left circling at a rest). Its owner may free it sooner.
@@ -868,7 +890,7 @@ static func damage_feedback(event) -> void:
 	_hit_times.append(now)
 	var chosen := hit_effect(tower.tower_data.line, tag)
 	last_hit_effect = chosen[0]
-	play(chosen[0], at, world, chosen[1])
+	play(chosen[0], Tower.feet_of(enemy) if feet_anchored(chosen[0]) else at, world, chosen[1])  # (root_lash, toll_ring, thorns…: the feet)
 
 # A Charged bolt: the strike from above, the biggest single reaction.
 static func _bolt_strike(enemy: Node2D) -> void:
@@ -1209,6 +1231,7 @@ class FxSprite extends Node2D:
 	var _age := 0.0
 	var follow: WeakRef = null  # A Reaction's nightmare it rides on (Fx._attach), with its offset
 	var follow_offset := Vector2.ZERO
+	var follow_feet := false  # A sheet drawn for the feet follows them (Fx._attach), not the bobbing body
 	var free_with_follow := false  # An endless loop on a nightmare (Smother's): it goes when the nightmare does
 
 	func _init(entry: Dictionary, tex: Texture2D, scale: float, seconds: float) -> void:
@@ -1227,7 +1250,7 @@ class FxSprite extends Node2D:
 		if follow != null:
 			var target := Fx._followed(follow)
 			if target != null:
-				global_position = Tower.aim_at(target) + follow_offset
+				global_position = (Tower.feet_of(target) if follow_feet else Tower.aim_at(target)) + follow_offset
 			elif free_with_follow:
 				queue_free()  # Its nightmare was dispelled or freed: an endless loop never outlives it
 				return

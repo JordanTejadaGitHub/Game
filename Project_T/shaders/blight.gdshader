@@ -44,6 +44,12 @@ instance uniform float hit_crack : hint_range(0.0, 1.0) = 0.0;
 instance uniform float hit_crack_soft : hint_range(0.0, 1.0) = 0.0;
 // Heartwood 32 "Moonlight" #dce8f4: cold, like everything on a nightmare.
 uniform vec3 flash_color : source_color = vec3(0.863, 0.910, 0.957);
+// Hit reactions (enemy_design.md "Hit reactions", owner 2026-10-25): an Armoured kind with its shell up flashes dull pale
+// (Heartwood 32 "Deadwood" #bca48c) instead (hit_flash_shell 1), and a frayed nightmare (below 25% health) flickers
+// (fray_alpha, x the body's alpha). Per nightmare (Enemy).
+instance uniform float hit_flash_shell : hint_range(0.0, 1.0) = 0.0;
+instance uniform float fray_alpha : hint_range(0.0, 1.0) = 1.0;
+uniform vec3 shell_flash_color : source_color = vec3(0.737, 0.643, 0.549);
 
 vec2 hash2(vec2 p) {
 	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -80,7 +86,8 @@ void fragment() {
 	float alpha = mix(base_alpha - shimmer * wave, 1.0, glow);
 	vec3 lit = color.rgb * (1.0 + glow * glow_strength * eye_glow);
 	COLOR = vec4(mix(color.rgb, lit, blight), color.a * mix(1.0, alpha, blight));
-	COLOR.rgb = mix(COLOR.rgb, flash_color, hit_flash);  // The flinch: the whole body pales for a moment
+	COLOR.rgb = mix(COLOR.rgb, mix(flash_color, shell_flash_color, hit_flash_shell), hit_flash);  // The flinch: the whole body pales for a moment (a shell: dull pale)
+	COLOR.a *= fray_alpha;  // Frayed below 25% health: it flickers
 
 	if (color.a < 0.5) {
 		vec2 px = TEXTURE_PIXEL_SIZE;

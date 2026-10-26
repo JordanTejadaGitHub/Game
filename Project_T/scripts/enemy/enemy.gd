@@ -375,15 +375,130 @@ var _culled := false
 # hit's share of its health (a floor so a tap shows, a ceiling so nothing jumps; bosses less). Visual only: the
 # body, its route position and its HUD never move. Continuous sources (SUSTAINED_TAGS) don't flinch per tick:
 # they keep a "sustained" state the Wardens' overlays hook (set_sustained / is_sustained / sustained_changed).
-const FLINCH_TIME := 0.1  # The recoil settles back over this long (real seconds)
-const FLASH_TIME := 0.06
-const RECOIL_MIN := 1.0  # px, the lightest hit
-const RECOIL_MAX := 2.0  # px, a hit of RECOIL_FULL_SHARE of its max health or more
+const FLINCH_TIME := 0.12  # The recoil settles back over this long (real seconds; hit reactions 2026-10-25: was 0.1)
+const FLASH_TIME := 0.09  # (Hit reactions 2026-10-25: was 0.06)
+const RECOIL_MIN := 2.0  # px, the lightest hit (hit reactions 2026-10-25: was 1)
+const RECOIL_MAX := 3.0  # px, a hit of RECOIL_FULL_SHARE of its max health or more (was 2)
 const RECOIL_FULL_SHARE := 0.1
-const FLASH_MIN := 0.3  # Flash strength of the lightest hit…
-const FLASH_MAX := 0.6  # …and of a heavy one
+const FLASH_MIN := 0.45  # Flash strength of the lightest hit… (hit reactions 2026-10-25: was 0.3)
+const FLASH_MAX := 0.6  # …and of a heavy one (art council 2026-10-25: 0.75 merged with impact sparks into a white blob)
 const BOSS_FLINCH := 0.5  # Bosses flinch half as far and half as bright
 const NO_SOURCE := Vector2(INF, INF)  # flinch(): no hit position: back along its path
+# Hit reactions (enemy_design.md "Hit reactions", owner 2026-10-25: "more enemy reactions on hit"; visual only). On every
+# damaging hit, besides the flinch above: a squash that springs back (the big hits' stagger, lighter), a stumble (its
+# walk frames slow for a moment; its real pace doesn't), 2-3 cold wisps torn off the far side (HitWisps, a field-wide cap)
+# and, on an Armoured kind with its shell up, shell flakes and a dull pale flash. Below FRAY_SHARE health (not bosses) it
+# frays: it flickers, trails smoke and limps. The health bar shows the chunk a hit took as a pale ghost that drains.
+# Reduced motion: no squash, wisps, flakes, flicker or trail (the limp and the ghost stay).
+const HIT_WISPS := preload("res://scripts/enemy/hit_wisps.gd")
+const HIT_SQUASH := Vector2(1.06, 0.94)  # (Art council 2026-10-25: 1.10 read as a cartoon)
+const HIT_SQUASH_TIME := 0.08
+const SQUASH_EVERY_MS := 250  # A nightmare squashes at most this often (constant fire pumped it at ~8 Hz)
+const STUMBLE_EVERY_MS := 400  # …and stumbles at most this often (its walk frames otherwise stay slow and it slides)
+const FLASH_RESTART_MS := 120  # A flash isn't restarted sooner (targets under fire stayed pale)
+const STUMBLE_SCALE := 0.25  # The walk frames' speed for STUMBLE_TIME after a hit
+const STUMBLE_TIME := 0.1
+const WISPS_PER_HIT := Vector2i(2, 3)
+const FLAKES_PER_HIT := 3
+const FRAY_SHARE := 0.25
+const FRAY_ALPHA_MIN := 0.72
+const FRAY_SMOKE_EVERY := 0.25  # Seconds between its trail's wisps (art council: 9 a second starved the field cap)
+const FRAY_LIMP := 0.55  # Its walk frames' speed while frayed
+const GHOST_HOLD := 0.3  # The lost chunk stays pale this long…
+const GHOST_DRAIN := 1.6  # …then drains at this many max healths a second
+const GHOST_ALPHA := 0.65
+const GHOST_MIN_PX := 2.0  # Narrower chunks aren't drawn
+const WISP_EDGE := 12.0  # px from the body centre (x its scale): wisps start at the silhouette's edge
+var _stagger_squash := Vector2.ONE  # The squash playing (a big hit's or an everyday one's) and its length
+var _stagger_time := 0.12
+var _stumble_left := 0.0
+var _walk_scale := 1.0  # The walk frames' speed it was last given (freeze, stumble, limp)
+var _flash_shell := -1.0
+var _fray_shown := 1.0
+var _fray_smoke_left := 0.0
+var _ghost := -1.0  # The health the pale chunk reaches down from (< 0: none)
+var _ghost_hold := 0.0
+var _hud_ghost := -1  # The pale chunk's end, in whole bar px, as last drawn
+
+func _start_squash(squash: Vector2, seconds: float) -> void:
+	_stagger_squash = squash
+	_stagger_time = seconds
+	_stagger_left = seconds
+
+# The walk frames' speed: held by a big hit's freeze, slowed by a stumble, then by the fraying limp.
+func _apply_walk_scale() -> void:
+	var walk := 1.0
+	if _freeze_left > 0.0:
+		walk = 0.0
+	elif _stumble_left > 0.0:
+		walk = STUMBLE_SCALE
+	elif _is_frayed():
+		walk = FRAY_LIMP
+	if walk != _walk_scale and not _leaping:
+		_walk_scale = walk
+		sprite.speed_scale = walk
+
+func _is_frayed() -> bool:
+	return not enemy_data.is_boss and not is_cleansed and health < max_health * FRAY_SHARE
+
+# The everyday hit's extras (from flinch): squash, stumble, wisps off the far side, shell flakes and tint.
+var _squash_at := -100000  # Msec of its last everyday squash / stumble / flash (their cooldowns)
+var _stumble_at := -100000
+var _flash_at := -100000
+
+func _hit_extras(away: Vector2) -> void:
+	var still := bool(Fx.setting("reduced_motion", false))
+	var now := Time.get_ticks_msec()
+	if now - _stumble_at >= STUMBLE_EVERY_MS:
+		_stumble_at = now
+		_stumble_left = STUMBLE_TIME
+		_apply_walk_scale()
+	var shell := coat > 0.0 and enemy_data.kind == EnemyData.Kind.ARMOURED
+	var shell_tint := 1.0 if shell else 0.0
+	if shell_tint != _flash_shell:
+		_flash_shell = shell_tint
+		sprite.set_instance_shader_parameter(&"hit_flash_shell", shell_tint)
+	if still:
+		return
+	if not _leaping and _stagger_left <= 0.0 and now - _squash_at >= SQUASH_EVERY_MS:
+		_squash_at = now
+		_start_squash(HIT_SQUASH, HIT_SQUASH_TIME)
+	if not Fx.on_screen(global_position):
+		return
+	var layer := HIT_WISPS.layer(Reactions._world(self))
+	if layer == null:
+		return
+	var body := get_body_position()
+	var edge := away * WISP_EDGE * absf(sprite.scale.x)  # The silhouette's far side
+	layer.tear(body + edge, away, randi_range(WISPS_PER_HIT.x, WISPS_PER_HIT.y))
+	if shell:
+		layer.flakes(body + edge * 0.6, away, FLAKES_PER_HIT)
+
+# Every frame on screen: the fraying flicker and trail, and the health bar's pale chunk draining.
+func _update_hit_looks(delta: float) -> void:
+	var frayed := _is_frayed()
+	var still := bool(Fx.setting("reduced_motion", false))
+	var alpha := 1.0
+	if frayed and not still:
+		var now := Time.get_ticks_msec() * 0.001 + float(get_instance_id() % 97)
+		alpha = lerpf(FRAY_ALPHA_MIN, 1.0, 0.5 + 0.5 * sin(now * 19.0) * sin(now * 7.3))
+		_fray_smoke_left -= delta
+		if _fray_smoke_left <= 0.0:
+			_fray_smoke_left = FRAY_SMOKE_EVERY
+			var layer := HIT_WISPS.layer(Reactions._world(self))
+			if layer != null:
+				layer.smoke(get_body_position())
+	if absf(alpha - _fray_shown) > 0.02 or (alpha == 1.0 and _fray_shown != 1.0):
+		_fray_shown = alpha
+		sprite.set_instance_shader_parameter(&"fray_alpha", alpha)
+	if frayed != (_walk_scale == FRAY_LIMP) and _freeze_left <= 0.0 and _stumble_left <= 0.0:
+		_apply_walk_scale()
+	if _ghost > float(health):
+		if _ghost_hold > 0.0:
+			_ghost_hold -= delta
+		else:
+			_ghost = maxf(float(health), _ghost - GHOST_DRAIN * max_health * delta)
+		_hud_dirty = true  # (The bar redraws with the chunk)
 const SUSTAINED_TAGS: Array[StringName] = [&"spored", &"cloud", &"fog", &"rain", &"beam", &"fence", &"whirlpool",
 	&"lingering_splash"]
 const SUSTAIN_HOLD := 0.3  # A tick keeps its sustained state on this long (game seconds) without the source saying
@@ -612,6 +727,7 @@ func _notification(what: int) -> void:
 func _ready() -> void:
 	add_to_group(GROUP)
 	statuses.status_filled.connect(flash_status)  # A status at its most flashes (Roguelite Code, 2026-10-16)
+	statuses.status_filled.connect(_undiluted_filled)
 	var parent := get_parent()
 	if parent != null and parent.has_method("route_around"):
 		_spawner = parent  # The EnemyContainer: its per-frame flags are read straight, no lookups by name
@@ -772,6 +888,8 @@ func _process(delta: float) -> void:
 		var unique_holder := statuses.source(EnemyStatuses.HELD) if unique_held else null
 		var unique_caught := unique_dreams != null and statuses.is_caught()
 		var spore_soothe := statuses.tick(ld)
+		if _rooted_taken > 0.0 and not statuses.is_held():
+			_rooted_echo()  # Undiluted: a Rooted that just ended
 		if unique_dreams != null and unique_held and not statuses.is_held():  # Afterroot: any end of Rooted (keyword chips 2026-10-16)
 			DreamState.UNIQUE_COOP.hold_expired(unique_dreams, self, unique_holder, unique_dreams._game_clock)
 		if thin:
@@ -875,6 +993,7 @@ func _process(delta: float) -> void:
 	if not _culled and look_now:
 		_update_row_look(look_delta)  # Status icons in crowds: pips or the full row
 		_update_sort_look(look_delta)  # Y-sort by the drawn body, only in a crowd
+		_update_hit_looks(look_delta)  # Hit reactions: fraying, the health bar's pale chunk
 	if _hud_ready_on and not _culled and _hud_ready.is_valid():  # Reaction-ready brackets breathe: a modulate and a scale, no rebuild
 		_breathe_ready()
 	if logic_now:
@@ -1172,8 +1291,9 @@ func _update_hud(delta: float) -> void:
 	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
 	var coat_px := int(HEALTH_BAR_SIZE.x * coat / maxf(coat_max, 1.0)) if coat > 0.0 else -1
 	var awake := statuses.sleep_cooldown > 0.0
+	var ghost_px := int(HEALTH_BAR_SIZE.x * _ghost / max_health) if _ghost > health else -1  # (Hit reactions: the pale chunk)
 	if bar_px != _hud_health or coat_px != _hud_coat or restless != _hud_restless or unbound != _hud_unbound \
-			or _bars_always != _hud_always or statuses.slow_capped != _hud_slow_capped or awake != _hud_awake:
+			or _bars_always != _hud_always or statuses.slow_capped != _hud_slow_capped or awake != _hud_awake or ghost_px != _hud_ghost:
 		_hud_health = bar_px
 		_hud_coat = coat_px
 		_hud_restless = restless
@@ -1181,6 +1301,7 @@ func _update_hud(delta: float) -> void:
 		_hud_always = _bars_always
 		_hud_slow_capped = statuses.slow_capped
 		_hud_awake = awake
+		_hud_ghost = ghost_px
 		_build_hud_bars(_hud_items[HUD_BARS])
 		hud_builds += 1
 	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
@@ -1249,6 +1370,15 @@ func _update_hud(delta: float) -> void:
 
 # The badge row's look now (RowLook): full for the hovered / tapped nightmare, bosses, Deeply Blighted and anything not
 # crowded; compact pips in a crowd; nothing under "Off" (but the hovered / tapped one).
+# --- Undiluted's status payoffs (dream_council_review.md section 36, owner 2026-10-25; Reactions never trigger, Poisoned
+# ticks and Charged bolts x2 live in DreamState / Reactions, Exposed from half its stacks in EnemyStatuses.exposed_need) ---
+const UNDILUTED_SOAKED := 0.25  # Soaked: every family's hits +25%
+const UNDILUTED_SLEEP := 2.0  # Full Drowsy: Asleep this long (never bosses: EnemyStatuses.sleep)
+const UNDILUTED_ECHO := 0.5  # Rooted ending: this share of the damage taken while Rooted lands again
+const UNDILUTED_ECHO_TAG := &"rooted_echo"
+var _rooted_taken := 0.0
+var _rooted_by: Node = null
+
 # A Frostburst (dream_council_review.md section 37): Reactions.frostburst(enemy, amount, source) deals it, hits the
 # nightmares around and queues their Frost (reactions.gd's owner builds it). Until it exists, the burst hits this one
 # only, tagged FROSTBURST_TAG (an effect: it goes in Reactions.EFFECT_TAGS). The Cold Snap started in EnemyStatuses.
@@ -1277,13 +1407,41 @@ func _frostburst() -> void:
 	else:
 		take_damage(amount, "", true, false, by, FROSTBURST_TAG)
 
+func _undiluted_filled(id: StringName) -> void:
+	if DreamState.undiluted_on and id == EnemyStatuses.DROWSY and not enemy_data.is_boss and not is_cleansed:
+		statuses.sleep(UNDILUTED_SLEEP)
+
+func _rooted_echo() -> void:
+	var amount := _rooted_taken * UNDILUTED_ECHO
+	var by := _rooted_by if is_instance_valid(_rooted_by) else null
+	_rooted_taken = 0.0
+	_rooted_by = null
+	if DreamState.undiluted_on and amount > 0.0 and not is_cleansed:
+		take_damage(amount, "", false, false, by, UNDILUTED_ECHO_TAG)
+
+# Only the small kinds that bunch ever go to crowd pips (owner 2026-10-25: "pips only show for small health enemies that
+# usually bunch but leave it off for high health enemies", "should be enemy types"): every other kind keeps its full row
+# in a crowd, as bosses and elites (Few and tough's too) already do. Kind ids = the EnemyData file names. The list is
+# Enemy Discussion's (2026-10-25), by how each kind really arrives: packable small walkers, splits and followers (always
+# bunched), Crow's flocks over the pack, Whisper Swarm ("a cloud of many"). Not flyers (they ride loose), Wander kinds,
+# Will-o'-Wisp (a lone helper), or kinds whose row must stay readable (Weeper, Watcher, Ash Crawler, Husk, Lantern Bearer).
+const CROWD_PIP_KINDS: Array[StringName] = [&"leaf_bug", &"spiderling", &"puffcaplet", &"duckling", &"puffcap",
+	&"dusk_moth", &"drowned_one", &"dream_thief", &"crow", &"whisper_swarm"]
+var _pip_kind := -1  # 1 = its kind can go to crowd pips, 0 = never; looked up once (-1 = not yet)
+
+func _can_crowd_pip() -> bool:
+	if _pip_kind < 0:
+		var kind := StringName(enemy_data.resource_path.get_file().get_basename()) if enemy_data != null else &""
+		_pip_kind = 1 if CROWD_PIP_KINDS.has(kind) else 0
+	return _pip_kind == 1
+
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
 		return RowLook.FULL
 	var mode: int = _spawner.status_icons_now if _spawner != null else int(Fx.setting("status_icons", 1))  # (Read once a frame: perf)
 	if mode == 2:
 		return RowLook.OFF
-	if mode == 0 or enemy_data.is_boss or elite:
+	if mode == 0 or enemy_data.is_boss or elite or not _can_crowd_pip():
 		return RowLook.FULL
 	if _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN:
 		return RowLook.COMPACT
@@ -1583,6 +1741,10 @@ func _build_hud_bars(item: RID) -> void:
 		fill.size.x *= float(health) / max_health
 		# The health bar is HUD, not the nightmare: green reads as health. In a crowd a dread shell tints it instead of its own bar.
 		RenderingServer.canvas_item_add_rect(item, fill, Palette.SPRIG.lerp(COAT_COLOR, 0.5) if compact and coat > 0.0 else Palette.SPRIG)
+		var chunk_w := bar.size.x * (_ghost - health) / max_health
+		if _ghost > health and chunk_w >= GHOST_MIN_PX:  # Hit reactions: the chunk the last hits took, pale, draining to the real bar
+			var chunk := Rect2(fill.end.x, bar.position.y, chunk_w, bar.size.y)
+			RenderingServer.canvas_item_add_rect(item, chunk, Color(Palette.MOONPATH, 0.6) if compact else Color(Palette.HEARTLIGHT, GHOST_ALPHA))
 	if coat > 0.0 and not compact:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
 		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
@@ -2117,7 +2279,11 @@ func flinch(share: float, from: Vector2 = NO_SOURCE, recoil_px: float = 0.0, fla
 	if away.length_squared() < 1.0:
 		away = Vector2.UP
 	_flinch_recoil = away.normalized() * recoil
-	_flinch_flash = 0.0 if Fx.reduce_flashes() else (flash if flash >= 0.0 else lerpf(FLASH_MIN, FLASH_MAX, strength)) * scale_by
+	_hit_extras(away.normalized())  # Hit reactions: squash, stumble, wisps, shell flakes
+	var flash_now := Time.get_ticks_msec()
+	if flash_now - _flash_at >= FLASH_RESTART_MS or Fx.reduce_flashes():  # (Not restarted sooner: art council 2026-10-25)
+		_flash_at = flash_now
+		_flinch_flash = 0.0 if Fx.reduce_flashes() else (flash if flash >= 0.0 else lerpf(FLASH_MIN, FLASH_MAX, strength)) * scale_by
 	_flinch_left = FLINCH_TIME
 	_update_flinch(0.0)
 
@@ -2185,10 +2351,11 @@ func _play_big_hit(tier: int, share: float, from: Vector2, is_crit: bool, dying:
 	sprite.set_instance_shader_parameter(&"hit_crack_soft", 1.0 if soft else 0.0)
 	sprite.set_instance_shader_parameter(&"hit_crack", _crack_hit)
 	if not dying and not still and not lite and not _leaping and shown >= 2:
-		_stagger_left = BIG_HIT_SQUASH_TIME
+		_start_squash(BIG_HIT_SQUASH, BIG_HIT_SQUASH_TIME)
 		if shown >= 3:
 			_freeze_left = BIG_HIT_FREEZE
 			sprite.speed_scale = 0.0  # Its own walk frames hold; restored by _update_big_hit
+			_walk_scale = 0.0
 	if _culled or not Fx.on_screen(global_position):
 		return  # Off screen: the crack only
 	var world := Reactions._world(self)
@@ -2215,11 +2382,11 @@ func _update_big_hit(real_delta: float) -> void:
 	if _freeze_left > 0.0:
 		_freeze_left = maxf(_freeze_left - real_delta, 0.0)
 		if _freeze_left <= 0.0:
-			sprite.speed_scale = 1.0
+			_apply_walk_scale()  # (Its walk, a stumble's or the limp)
 	if _stagger_left > 0.0 or _stagger_scale != Vector2.ONE:
 		_stagger_left = maxf(_stagger_left - real_delta, 0.0)
-		var t := _stagger_left / BIG_HIT_SQUASH_TIME  # 1 -> 0
-		var squash := Vector2.ONE.lerp(BIG_HIT_SQUASH, t * t) if not _leaping else Vector2.ONE  # (A leap's tween owns the scale)
+		var t := _stagger_left / maxf(_stagger_time, 0.001)  # 1 -> 0
+		var squash := Vector2.ONE.lerp(_stagger_squash, t * t) if not _leaping else Vector2.ONE  # (A leap's tween owns the scale)
 		sprite.scale = sprite.scale / _stagger_scale * squash
 		_stagger_scale = squash
 		_apply_sprite_offset()
@@ -2228,8 +2395,12 @@ func _update_big_hit(real_delta: float) -> void:
 # leaves the sprite's offset and the shader's flash exactly where they were.
 func _update_flinch(real_delta: float) -> void:
 	_flinch_left = maxf(_flinch_left - real_delta, 0.0)
+	if _stumble_left > 0.0:
+		_stumble_left = maxf(_stumble_left - real_delta, 0.0)
+		if _stumble_left <= 0.0:
+			_apply_walk_scale()  # The stumble is over: its walk (or limp) again
 	var t := _flinch_left / FLINCH_TIME  # 1 -> 0
-	_recoil = _flinch_recoil * t
+	_recoil = (_flinch_recoil * t).round()  # (Whole pixels: art council 2026-10-25)
 	if _sustained.has(ARC_TAG):  # Wrapped in arcs: a small jitter for as long as they hold it
 		var now := Time.get_ticks_msec() * 0.001
 		_recoil += Vector2(sin(now * 83.0), cos(now * 61.0)) * ARC_TWITCH
@@ -2275,6 +2446,12 @@ func _update_sustained(delta: float) -> void:
 	if ended != &"":
 		_sustained.erase(ended)
 		sustained_changed.emit(self, ended, false)
+
+# Where its drawn feet are (global): the lane and the rounded corner, and a sleeper's sink, without the foot lift. Feet-
+# anchored effects play here (effects.json "Anchor = its route point (the feet)": Ignite, …; owner 2026-10-25: Ignite
+# showed on a Husk's body). Logic keeps global_position.
+func get_feet_position() -> Vector2:
+	return global_position + _corner_offset + _lane_drawn + Vector2(0, _sleep_sink)
 
 # Where the nightmare is drawn (its lane, rounded corner and foot lift included): aim visuals here; game logic keeps
 # global_position. Same as get_body_position (Tower Code's aim, walking lanes 2026-10-24).
@@ -2883,6 +3060,7 @@ func _burrow_to(landing: Vector2, on_risen: Callable, fit: float = 0.0) -> void:
 	tween.tween_interval(each)
 	tween.tween_callback(func() -> void:
 		sprite.speed_scale = 1.0
+		_walk_scale = 1.0  # (Hit reactions: in step with _apply_walk_scale)
 		_leaping = false
 		on_risen.call())
 
@@ -3712,7 +3890,9 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 		if world:
 			Fx.crit(get_body_position(), world)  # The crit_flare glint, on the drawn body (drawn by the effects player)
 	var family := 1.0  # No damage types since Nightmare Kinds (2026-10-15); only Soaked's water boost is left here
-	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
+	if DreamState.undiluted_on and not shared and statuses.has(EnemyStatuses.DAMP) and not Reactions.is_effect(tag):
+		family *= 1.0 + UNDILUTED_SOAKED  # Undiluted (section 36): Soaked makes every family's hits +25% (its water bonus widened)
+	elif line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier() if not shared else 1.0
@@ -3742,6 +3922,9 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 				_swap_frames(enemy_data.cracked_frames)
 	if soothe > 0.0 and _spawner != null and has_meta(DriftShapes.PACK_META):
 		_spawner.note_pack_damage(self, source, soothe)  # (pack_wiped's top Warden)
+	if DreamState.undiluted_on and soothe > 0.0 and tag != UNDILUTED_ECHO_TAG and statuses.is_held():
+		_rooted_taken += soothe  # Undiluted: half of it lands again when Rooted ends
+		_rooted_by = statuses.source(EnemyStatuses.HELD)
 	if covered_by != null and soothe > 0.0 and not shared:  # Pall: each blow shared half and half, after the shell
 		if is_instance_valid(covered_by) and not covered_by.is_cleansed:
 			var half := soothe * PALL_SHARE
@@ -3754,6 +3937,10 @@ func _take_damage(amount: float, line: String, is_area: bool, is_crit: bool, sou
 	_soothe_carry -= whole
 	var health_before := health
 	health = maxi(health - whole, 1 if unkillable else 0)
+	if health < health_before:  # Hit reactions: the chunk it lost shows pale, then drains (_update_hit_looks)
+		if _ghost <= float(health_before):  # (A chunk still showing keeps its hold: art council, the bar stayed lit under fire)
+			_ghost = float(health_before)
+			_ghost_hold = GHOST_HOLD
 	# Asleep is long but fragile: one hit (not an effect tick) of 10%+ of max health wakes it.
 	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:

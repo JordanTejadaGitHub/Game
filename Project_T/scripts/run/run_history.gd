@@ -256,6 +256,7 @@ func _on_drift_started(number: int) -> void:
 		"called_early": drift_director.is_calling_early(),  # Started while the previous one was still arriving
 		"shape": String(drift_director.drift_shape(number)) if drift_director.has_method("drift_shape") else "stream"}  # Drift shapes (Balancing)
 	_open[number] = _drift
+	_late.clear()  # This drift's leaks / leaves booked on an earlier drift's row (_book_late)
 	_started[number] = _clock
 	if DamageLog.instance != null and not DamageLog.instance.damage_dealt.is_connected(_on_damage):
 		DamageLog.instance.damage_dealt.connect(_on_damage)
@@ -406,6 +407,35 @@ var _unclaimed: Array = []  # [row they went to, leaves, frame]: leaves counted 
 const LEAVES_FIRST := 1
 const LEAK_FIRST := 2
 var _leak_order := 0  # 0 = not known yet
+# The run ends in a drift (Balancing, human run 59: drift 40 showed leaves 5 -> 0 but 1 leaf lost, 1 leak): the leaks and
+# leaves of earlier drifts' nightmares still on the field during it are booked on their own rows as usual, and noted here
+# ([row, leaks, leaves, kind]); a lost run moves them onto the final drift's row (_move_late), so that row counts all of
+# its leaks and leaves. Totals don't change. Cleared at each drift's start.
+var _late: Array = []
+
+func _book_late(row: Dictionary, leaks: int, leaves: int, kind: String = "") -> void:
+	if not row.is_empty() and not _drift.is_empty() and not is_same(row, _drift):
+		_late.append([row, leaks, leaves, kind])
+
+func _move_late() -> void:
+	if _drift.is_empty():
+		return
+	for entry in _late:
+		var row: Dictionary = entry[0]
+		row["leaks"] = int(row.get("leaks", 0)) - int(entry[1])
+		row["leaves_lost"] = int(row.get("leaves_lost", 0)) - int(entry[2])
+		_drift["leaks"] = int(_drift.get("leaks", 0)) + int(entry[1])
+		_drift["leaves_lost"] = int(_drift.get("leaves_lost", 0)) + int(entry[2])
+		var kind: String = entry[3]
+		if kind != "":
+			var from: Dictionary = row.get("leaked", {})
+			from[kind] = int(from.get(kind, 0)) - 1
+			if int(from[kind]) <= 0:
+				from.erase(kind)
+			var into: Dictionary = _drift.get("leaked", {})
+			into[kind] = int(into.get(kind, 0)) + 1
+			_drift["leaked"] = into
+	_late.clear()
 
 func _on_leaked(enemy: Node2D) -> void:
 	var row := _row_for(enemy)
@@ -416,6 +446,7 @@ func _on_leaked(enemy: Node2D) -> void:
 		var kind := leak_name(enemy)
 		kinds[kind] = int(kinds.get(kind, 0)) + 1
 		row["leaked"] = kinds
+		_book_late(row, 1, 0, kind)
 		# Which comes first is fixed for a run (the order RunState and this node connected in), so it is learned from
 		# the first leak: once the leak is known to come first, leaves counted earlier in the frame are someone
 		# else's (a boss draining) and are never moved onto this row.
@@ -427,6 +458,7 @@ func _on_leaked(enemy: Node2D) -> void:
 			if not given.is_empty():
 				given["leaves_lost"] = int(given.get("leaves_lost", 0)) - int(_unclaimed[1])
 			row["leaves_lost"] = int(row.get("leaves_lost", 0)) + int(_unclaimed[1])
+			_book_late(row, 0, int(_unclaimed[1]))
 		else:
 			_leak_row = row
 			_leak_frame = frame
@@ -636,6 +668,7 @@ func _on_leaves_changed(leaves: int, _max: int) -> void:
 	var frame := Engine.get_process_frames()
 	if not _leak_row.is_empty() and _leak_frame == frame:
 		_leak_row["leaves_lost"] = int(_leak_row.get("leaves_lost", 0)) + lost
+		_book_late(_leak_row, 0, lost)
 		_leak_row = {}
 	elif not _drift.is_empty():  # No leak this frame yet (or none at all: a boss draining, a Dream's price)
 		_drift["leaves_lost"] = int(_drift.get("leaves_lost", 0)) + lost
@@ -677,6 +710,8 @@ func _on_run_ended(won: bool) -> void:
 var _closing_late := false
 
 func _finish_run(won: bool) -> void:
+	if not won:
+		_move_late()  # The final drift counts every leak and leaf while it ran, earlier drifts' nightmares too
 	_flush_rows()
 	run["calling"] = dream_state.calling_title() if dream_state != null else ""  # "" on dev runs and old saves
 	run["past_cap_top"] = dream_state.past_cap_top(5) if dream_state != null else []  # The hits furthest past the x4 card line (power budget 2026-10-16)

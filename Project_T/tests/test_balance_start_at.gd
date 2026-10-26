@@ -28,7 +28,7 @@ func _run() -> void:
 		var choices := "\n".join(output)
 		var later := choices.count("family pick (second)") + choices.count("family pick (boss)")
 		_check(choices.contains("family pick (first)") and later == 2,
-			"the first pick and the two later picks before 51 were made (drifts 10 and 35 since 2026-10-22; %d)" % later)
+			"the first pick and the two later picks before 51 were made (drifts 10 and 40 since 2026-10-25; %d)" % later)
 		_check(choices.count(": Dream ") + choices.count("Dream passed") >= 9, "a Dream offer at each skipped rest")
 	_clean(out_abs)
 	print("balance start-at test: %s" % ("PASS" if failures == 0 else "FAIL (%d)" % failures))

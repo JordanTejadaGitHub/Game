@@ -1108,12 +1108,23 @@ func draw_placement(canvas: Node2D, data: TowerData, from: Vector2, cell: Vector
 	if data.special == BranchKit.JARLINK and canvas == self and not live:
 		_draw_link_preview(cell, float(data.special_params.get("link_range", 4.5)), skip, from)  # On the partner segment
 		return
+	# A hovered / selected Sporeling-family Warden (live): no path fill (owner 2026-10-25: Spore Print's effect is its
+	# mushrooms, which already show; the range ring and the Calling's marks are enough), unless a held Spore Print row
+	# reads a place on the path. The build ghost keeps it.
+	if live and data.line == DreamState.SPORE_PRINT.LINE and not _spore_reads_path():
+		return
 	_draw_hit_points(placement_points(data, from, reach_px, live), _family_colour(data), canvas)
 	if data.special == BranchKit.BROOD:  # The walk itself over the tiles: the drop ring, the line, where they give up
 		var walk := BranchKit.brood_walk(preview_route(), from, float(data.special_params.get("sprite_speed", 3.0)))
 		for i in walk.size():
 			walk[i] = canvas.to_local(walk[i])
 		BranchKit.draw_brood_walk(canvas, walk, true)
+
+# Spore Print holds a row that reads places on the path (Feeding Ground, Fairy Path, Sprout Beds: Roguelite Code's
+# SporePrint.reads_path_places).
+func _spore_reads_path() -> bool:
+	var spores = dream_state.spore_print if dream_state != null else null
+	return spores != null and is_instance_valid(spores) and spores.reads_path_places()
 
 # Placement marks in the path's own shape (the lit-path ribbon) on route points (route coordinates).
 func _draw_hit_points(points: Array, colour: Color, canvas: Node2D = null) -> void:

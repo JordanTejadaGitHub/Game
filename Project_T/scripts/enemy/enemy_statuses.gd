@@ -780,7 +780,14 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 
 # Soothe taken multiplier (Marked, and the White Stag's aura).
 func is_exposed() -> bool:
-	return has(MARKED) and stacks(MARKED) >= get_max_stacks(MARKED)
+	return has(MARKED) and stacks(MARKED) >= exposed_need()
+
+# Stacks of Exposed that make it work: its cap (10, 20 with Brimming); with Undiluted half of it (5 / 10: section 36).
+const UNDILUTED_EXPOSED_SHARE := 0.5
+func exposed_need() -> int:
+	var cap := get_max_stacks(MARKED)
+	return ceili(cap * UNDILUTED_EXPOSED_SHARE) if DreamState.undiluted_on else cap
+
 
 # Bright Marks' part of the damage taken (DamageLog.note_card_bonus: the Dream damage panel and DreamState.boost_tier read
 # it; Roguelite 451495cb): the taken multiplier with its bonus over the one without, the rest cancelling. 1.0 when it

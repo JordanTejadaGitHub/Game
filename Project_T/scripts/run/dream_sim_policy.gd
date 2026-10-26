@@ -6,7 +6,7 @@ class_name DreamSimPolicy
 # Tower Code's runner owns the maze and spending; this only chooses.
 #
 #   var policy := DreamSimPolicy.new(dream_state, DreamSimPolicy.Style.BALANCED)
-#   policy.family_pick(&"first")        # after drift 1, and &"second" at the rests after drifts 10, 35 and 60 (2026-10-22)
+#   policy.family_pick(&"first")        # after drift 1, and &"second" at the rests after drifts 10, 40 and 60 (2026-10-22; 40 since 2026-10-25)
 #   policy.rest(drift, perfect)         # each rest: the Dream, then Dreamlight
 #
 # Dreams: the highest style score (tag match first, then rarity); never lets one pass.

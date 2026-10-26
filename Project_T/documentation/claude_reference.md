@@ -126,8 +126,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   block's last drift arrived and the field is clear: rest bonus (20 + 10×block, +10 perfect
   block, + Dreams) → `rest_started(block, is_boss_rest, bonus, perfect)`; boss rests are act breaks
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"second")` fires after drift 1 and at
-  the rests after drifts 10 / 35 / 60 (`second_` / `third_` / `fourth_family_pick_drift`, `family_pick_drifts()`; owner
-  2026-10-22, balance_simulation.md "Second family at drift 10"); no boss rest brings a pick (they keep the Rare+ Dream,
+  the rests after drifts 10 / 40 / 60 (`second_` / `third_` / `fourth_family_pick_drift`, `family_pick_drifts()`; owner
+  2026-10-22, 40 since 2026-10-25; balance_simulation.md "Second family at drift 10"); no boss rest brings a pick (they keep the Rare+ Dream,
   the Calling follow-up and their Dreamlight); the Heartwood Sapling comes with the drift 60 pick; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
   = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`; act 2 × 1.75, `act2_boss_health_multiplier`; act 3 × 1.75, `act3_boss_health_multiplier`); acts 3–4 × 4.8 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:

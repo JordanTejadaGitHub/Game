@@ -40,6 +40,42 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	if not _frost_queue.is_empty():
+		_drain_frost()
+
+# Frostburst chains (Reactions.frostburst, section 37): the Frost a burst gives its neighbours lands next frame, in order,
+# at most FROST_QUEUE_BUDGET a frame; one that would burst waits while FROST_BURSTS_PER_SECOND chain bursts already went
+# off in the last second (never dropped). [enemy, stacks, source, gen, full]
+const FROST_QUEUE_BUDGET := 32
+var _frost_queue: Array = []
+var _chain_bursts: Array[float] = []  # Clock times of the last second's chain bursts
+
+func queue_frost(enemy: Node2D, stacks: int, source: Node, gen: int, full: bool) -> void:
+	_frost_queue.append([enemy, stacks, source, gen, full])
+
+func note_chain_burst() -> void:
+	_chain_bursts.append(_clock)
+
+func _drain_frost() -> void:
+	var now := _frost_queue.slice(0, FROST_QUEUE_BUDGET)
+	var later := _frost_queue.slice(FROST_QUEUE_BUDGET)
+	_frost_queue = []  # Bursts below queue anew (they land after these)
+	var waiting: Array = []
+	for entry in now:
+		if not is_instance_valid(entry[0]) or entry[0].is_cleansed:
+			continue
+		var enemy: Node2D = entry[0]
+		if _clock < float(enemy.get_meta(Reactions.FROST_LOCK_META, -INF)):
+			continue  # It burst a moment ago: burst-given Frost passes it by
+		var s: EnemyStatuses = enemy.statuses
+		if bool(entry[4]) and s.stacks(EnemyStatuses.FROST) + int(entry[1]) >= s.get_max_stacks(EnemyStatuses.FROST):
+			while not _chain_bursts.is_empty() and _clock - _chain_bursts[0] >= 1.0:
+				_chain_bursts.remove_at(0)
+			if _chain_bursts.size() >= Reactions.FROST_BURSTS_PER_SECOND:
+				waiting.append(entry)  # Over the field's bursts a second: it waits
+				continue
+		Reactions.apply_chain_frost(enemy, int(entry[1]), entry[2] if is_instance_valid(entry[2]) else null, int(entry[3]), bool(entry[4]))
+	_frost_queue = waiting + later + _frost_queue
 
 # Remembers where Reaction `id` went off (a Samara seed passing through within the window carries it).
 func note_spot(id: StringName, at: Vector2, applier: Node) -> void:

@@ -921,7 +921,7 @@ static func _toll_one(tower: Tower, enemy: Node2D, share: float) -> void:
 	var vespers := tower.kin_share(VESPERS, "a")
 	if vespers > 0.0 and is_instance_valid(enemy):
 		silence(enemy, 2.0 * vespers, tower)
-	Fx.play(&"toll_ring", Tower.aim_at(enemy), world(tower))
+	Fx.play(&"toll_ring", Tower.feet_of(enemy), world(tower))  # Drawn for the feet
 	# Who it tolled (user 2026-10-18: "can't see who it attacks"): the sound rolling from the bell to the target, and the
 	# toll landing on it (Tower Assets art).
 	if is_instance_valid(enemy):
@@ -1240,7 +1240,7 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 		if not e.has_meta(&"deeproot_held") and e.global_position.distance_to(heart) <= reach:
 			e.set_meta(&"deeproot_held", true)  # Once each, whichever Deeproot got there first
 			_land_hold(tower, e, p(tower, "goal_hold", 1.0))
-			_fx(&"goal_hold", Tower.aim_at(e), world(tower))
+			_fx(&"goal_hold", Tower.feet_of(e), world(tower))  # Drawn for the feet
 
 # Deeproot's guard ring as [centre, reach in pixels] (the Watchtower signature watches it), [] for other Wardens.
 static func guard_area(tower: Tower) -> Array:
@@ -1304,7 +1304,7 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 			held.append(e)
 			_thorn(tower, e, amount)
 			if _fx_due(e, &"thorn_fx_at", 1.0):
-				_fx(&"thorns", Tower.aim_at(e), e, 1.0, 1.0)  # A loop on its feet while the thorns bite
+				_fx(&"thorns", Tower.feet_of(e), e, 1.0, 1.0)  # A loop on its feet while the thorns bite
 		elif flyers > 0.0 and e.is_flying():
 			_thorn(tower, e, amount * 0.5 * flyers)
 	if not is_final(tower) or held.is_empty():
@@ -2164,15 +2164,25 @@ class InkField extends Node:
 		return cells.has(cell) and _clock < cells[cell][0]
 
 
-# Inkcap's trail, drawn: per piece a dark edge under a violet core, fading over its last second, with a few spore
-# glints (Poisoned) twinkling along it. Pieces follow the walked ribbon, so vertical legs and turns read like straight ones.
+# Inkcap's trail, drawn as a smear (user 2026-10-25: "fade better and more real, not just a straight line", then "don't
+# make a pattern of the swirls"; Tower Assets mock-up): every STEP px along a piece a disc whose width and sideways
+# drift come from noise seeded by where it lies (so it never shimmers and no wave repeats), an ink splat now and then.
+# The violet core dries away first (by DRY of its life), then the dark stain breaks up (from BREAK) and goes; alpha only
+# in the 0.75 / 0.4 steps. Edges first, then the cores, so overlapping pieces join into one smear. A few spore glints
+# (Poisoned) twinkle in the core. Pieces follow the walked ribbon, so vertical legs and turns read like straight ones.
 class InkDraw extends Node2D:
 	const EDGE := Palette.SHADE
 	const CORE := Palette.BRUISE
 	const GLINT := Palette.SPRIG
-	const EDGE_WIDTH := 16.0
-	const CORE_WIDTH := 10.0
+	const STEP := 3.0  # Px between discs along a piece
+	const WIDTH := 6.0  # A disc's radius at its fullest
+	const DRIFT := 3.6  # Px the smear drifts sideways at most
+	const DRY := 0.55  # Share of its life when the core has dried away
+	const BREAK := 0.8  # Share of its life when the stain breaks up
 	var field: InkField
+
+	static func _noise(v: Vector2) -> float:
+		return fposmod(sin(v.x * 12.9898 + v.y * 78.233) * 43758.5453, 1.0)
 
 	func _process(_delta: float) -> void:
 		if field == null or not is_instance_valid(field):
@@ -2187,17 +2197,36 @@ class InkDraw extends Node2D:
 			return
 		var now := field.clock()
 		var steady := Fx.reduce_flashes()
+		var cores: Array = []  # [spot, radius, noise]: drawn after every edge
 		for p in field.pieces:
-			var fade := clampf((p[3] - now) / 1.0, 0.0, 1.0)  # Full until its last second
-			var a: Vector2 = to_local(p[0])
-			var b: Vector2 = to_local(p[1])
-			draw_line(a, b, Color(EDGE, 0.85 * fade), EDGE_WIDTH)
-			draw_circle(b, EDGE_WIDTH / 2.0, Color(EDGE, 0.85 * fade))  # Round joins at turns
-			draw_line(a, b, Color(CORE, 0.9 * fade), CORE_WIDTH)
-			draw_circle(b, CORE_WIDTH / 2.0, Color(CORE, 0.9 * fade))
-			var seed := int(p[2] * 100.0) % 7
-			var glint := 1.0 if steady else 0.5 + 0.5 * sin(now * 4.0 + seed)
-			draw_circle(a.lerp(b, 0.3 + 0.08 * seed), 1.5, Color(GLINT, 0.6 * glint * fade))
+			var u := clampf((now - p[2]) / maxf(p[3] - p[2], 0.01), 0.0, 1.0)  # 0 fresh .. 1 gone
+			var a: Vector2 = p[0]
+			var b: Vector2 = p[1]
+			var d := b - a
+			if d.length() < 0.5:
+				continue
+			var side := d.normalized().orthogonal()
+			var n := maxi(1, int(d.length() / STEP))
+			var alpha := 0.75 if u < BREAK else 0.4
+			var dry := 1.0 if u < DRY else lerpf(1.0, 0.7, (u - DRY) / (1.0 - DRY))
+			for i in n + 1:
+				var at := a.lerp(b, i / float(n))
+				var key := (at / STEP).round()
+				var h := _noise(key)
+				if u >= BREAK and h < 0.5:
+					continue  # Breaking up
+				var drift := (_noise(key + Vector2(7, 3)) + _noise(key + Vector2(8, 3)) + _noise(key + Vector2(6, 3))) / 3.0 - 0.5
+				var spot := to_local(at + side * drift * DRIFT)
+				var w := WIDTH * (0.75 + 0.45 * h) * dry
+				draw_circle(spot, w, Color(EDGE, alpha))
+				if h > 0.82 and u < BREAK:  # A splat off to one side
+					draw_circle(spot + side * (w + 2.0) * (1.0 if h > 0.91 else -1.0), 2.0, Color(EDGE, alpha))
+				if u < DRY:
+					cores.append([spot, w * 0.55 * (1.0 - u * 0.6), h])
+		for c in cores:
+			draw_circle(c[0], c[1], Color(CORE, 0.75))
+			if c[2] > 0.93 and (steady or int(now * 4.0 + c[2] * 10.0) % 2 == 0):
+				draw_rect(Rect2((c[0] as Vector2).floor(), Vector2.ONE), GLINT)  # A spore glint
 
 # Silenced Lantern Bearers: their Wraiths are lost until the silence ends (a dispel keeps them lost for good).
 class SilenceWatch extends Node:

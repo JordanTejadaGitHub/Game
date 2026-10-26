@@ -19,8 +19,8 @@ class_name CallingCues
 # Over each nightmare (the overhead layer, with the Toll rings):
 # - Deathcap (left of the health bar): its bursts left this walk (spore_print.bursts_left), up to 3 pips, 3×3 each.
 # - Lantern Light (right of the bar): the lantern it carries (firefly_lights.lantern_level; its glass dims as it
-#   fades); from 2 glows Lantern Alley's streak (streak_of) joins it on one plate: lantern, "×N".
-# - Keeping Time (right of the bar): Last Bell's tally as a small bronze bell and 6 ticks (5 rings each); with Halfway
+#   fades; lf_lantern, the drawn glyph as fallback); from 2 glows Lantern Alley's streak (streak_of): "×N" on a plate beside it, lf_streak_flare as it grows.
+# - Keeping Time (right of the bar): Last Bell's tally on the kt_tally plaque (a group of five, then a count; drawn bell and 6 ticks as the fallback); with Halfway
 #   Bell an 8 px notch between the 3rd and 4th tick, bright until the halfway Toll has landed.
 # The Spore Season counter sits on the Calling's frame (DreamsRow) and the "+N%" / Dewdrop "kept" cues on the status
 # dots (Enemy).
@@ -75,6 +75,15 @@ var _gold: Array = []  # [Warden, text, holder, lit]
 var _halfway_bell: Node2D = null
 var _over_on := false  # Any overhead cue's evolution taken
 var _clock := 0.0
+# Calling evolution marks (assets/effects/calling_evo/, Roguelite asset 0b136e06): ClassKit.draw_evo_art's cache for this
+# node (never static: static textures crash at exit). A missing sheet falls back to the drawn glyphs below.
+const CLASS_KIT := preload("res://scripts/combat/class_kit.gd")
+var _evo_art := {}
+var _streaks := {}  # Nightmare instance id -> [streak last seen, msec it last grew] (Lantern Alley's flare)
+const LANTERN_FLAME := Vector2(0, -10)  # lf_lantern: its flame from its anchor (the base's middle)
+const FLARE_FRAMES := 5  # lf_streak_flare: each tier's one shot (frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+)
+const TALLY_FACE := Vector2(5, 7)  # kt_tally: the face's first stroke from the plaque's top-left…
+const TALLY_STROKE := 2.0  # …strokes this far apart (kt_tally_mark frame 0), a group of five = four and the slash
 
 func _ready() -> void:
 	z_index = 2  # Over the ground, under the lighting and the Wardens' tags
@@ -310,9 +319,11 @@ func _draw_over() -> void:
 	var tally := _evo(&"keeping_time", LAST_BELL)
 	var halfway := _evo(&"keeping_time", HALFWAY)
 	var last_rings := _const(time, "LAST_RINGS", 30)
+	var seen := {}
 	for enemy in get_tree().get_nodes_in_group(&"enemies"):
 		if not is_instance_valid(enemy) or not enemy.visible:
 			continue
+		seen[enemy.get_instance_id()] = true
 		var bar = enemy.get("_bar_offset")
 		var body: Vector2 = enemy._body_offset() if enemy.has_method(&"_body_offset") else Vector2.ZERO
 		var centre := _over.to_local(enemy.global_position + body + (bar if bar is Vector2 else BAR_OFFSET))
@@ -321,10 +332,29 @@ func _draw_over() -> void:
 		var level := float(lights.lantern_level(enemy)) if lamps else 0.0
 		var streak := int(lights.streak_of(enemy)) if alley else 0
 		if level > 0.0 or streak >= 2:
-			draw_lantern_cue(_over, centre, level, streak)
+			draw_lantern_cue(_over, centre, level, streak, _streak_flare_age(enemy.get_instance_id(), streak))
 		if tally and enemy.has_meta(REMEMBER_META) and not enemy.has_meta(LAST_DONE_META):
-			var share := clampf(float(enemy.get_meta(REMEMBER_META)) / maxf(last_rings, 1.0), 0.0, 1.0)
-			draw_tally(_over, centre, share, (0 if not halfway else (2 if enemy.has_meta(HALFWAY_DONE_META) else 1)))
+			var rings := int(enemy.get_meta(REMEMBER_META))
+			var share := clampf(float(rings) / maxf(last_rings, 1.0), 0.0, 1.0)
+			draw_tally(_over, centre, share, (0 if not halfway else (2 if enemy.has_meta(HALFWAY_DONE_META) else 1)), rings)
+	for id in _streaks.keys():
+		if not seen.has(id):
+			_streaks.erase(id)  # Gone or hidden: its streak starts over
+
+# Lantern Alley's flare: seconds since `id`'s streak last grew (to 2 or more), or -1 when it isn't flaring now.
+func _streak_flare_age(id: int, streak: int) -> float:
+	var now := Time.get_ticks_msec()
+	var row: Array = _streaks.get(id, [0, -1])
+	if streak > int(row[0]) and streak >= 2:
+		row = [streak, now]
+	else:
+		row[0] = streak
+	_streaks[id] = row
+	if int(row[1]) < 0:
+		return -1.0
+	var age := (now - int(row[1])) / 1000.0
+	var fps := float(CLASS_KIT.evo_art_meta(_evo_art, &"lf_streak_flare").get("fps", 14.0))
+	return age if age < FLARE_FRAMES / maxf(fps, 0.001) else -1.0
 
 # Deathcap (left of the bar `centre`): a 3×3 pip per burst left, from the bar outward.
 static func draw_deathcap(c: CanvasItem, centre: Vector2, left: int) -> void:
@@ -335,14 +365,31 @@ static func draw_deathcap(c: CanvasItem, centre: Vector2, left: int) -> void:
 		c.draw_rect(Rect2(at + Vector2.ONE, Vector2(3, 3)), Palette.NEWLEAF)
 
 # Lantern Light (right of the bar): the lantern, its glass dimming with `level` (0: an empty frame); with a streak of
-# 2+ glows lantern and "×N" share one plate.
-func draw_lantern_cue(c: CanvasItem, centre: Vector2, level: float, streak: int) -> void:
-	# Fading in three clear steps, not a blend (UI council: the fading lantern was unreadable): lit (glass and a Heartlight
-	# middle), dimming (glass only), nearly out (an empty Slate frame)
+# 2+ glows lantern and "×N" share one plate. `flare_age` >= 0: Lantern Alley's streak just grew (lf_streak_flare).
+func draw_lantern_cue(c: CanvasItem, centre: Vector2, level: float, streak: int, flare_age := -1.0) -> void:
+	var left := (centre + Vector2(BAR_HALF_W + SIDE_GAP, 0)).round()
+	# lf_lantern (Roguelite asset 0b136e06): frame 0 dim between glows; 1-2 lit and 3-4 blazing, each pair looping. The
+	# base's middle is its anchor, so the 17 x 18 lantern stands centred on the bar's line; "×N" on a plate beside it.
+	var base := left + Vector2(8, 9)
+	var pair := CLASS_KIT.loop_frame(float(CLASS_KIT.evo_art_meta(_evo_art, &"lf_lantern").get("fps", 6.0)), 2)
+	var frame := 0 if level <= 0.33 else ((3 if level > 0.66 else 1) + pair)
+	if CLASS_KIT.draw_evo_art(_evo_art, c, &"lf_lantern", base, 1.0, false, frame):
+		if flare_age >= 0.0 and streak >= 2:  # The flare at the flame, its tier by the streak; never scaled
+			var tier := 0 if streak <= 2 else (1 if streak <= 4 else 2)
+			var fps := float(CLASS_KIT.evo_art_meta(_evo_art, &"lf_streak_flare").get("fps", 14.0))
+			var step := 0 if CLASS_KIT.motion_still() else clampi(int(flare_age * fps), 0, FLARE_FRAMES - 1)
+			CLASS_KIT.draw_evo_art(_evo_art, c, &"lf_streak_flare", base + LANTERN_FLAME, 1.0, false, tier * FLARE_FRAMES + step)
+		if streak >= 2:
+			var label := "×%d" % streak
+			var label_w := UiStyle.number_font().get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, NUMBER_SIZE).x
+			var label_at := _plate_at(c, left + Vector2(19, -NUMBER_SIZE / 2.0 - PLATE_PAD.y), Vector2(label_w, NUMBER_SIZE))
+			_number(c, label_at, label, Palette.MOONLIGHT)
+		return
+	# Fallback (no sheet): fading in three clear steps, not a blend (UI council: the fading lantern was unreadable): lit
+	# (glass and a Heartlight middle), dimming (glass only), nearly out (an empty Slate frame)
 	var glass := Palette.MOONLIGHT if level > 0.33 else Palette.SLATE
 	var lit := Palette.HEARTLIGHT if level > 0.66 else glass
 	var inks := {"k": Palette.VOID, "G": Palette.MIST, "w": glass, "W": lit}
-	var left := (centre + Vector2(BAR_HALF_W + SIDE_GAP, 0)).round()
 	if streak < 2:
 		_pixels(c, left + Vector2(0, -4), LANTERN, inks)
 		return
@@ -353,12 +400,51 @@ func draw_lantern_cue(c: CanvasItem, centre: Vector2, level: float, streak: int)
 	_pixels(c, at + Vector2(0, (size.y - 8.0) / 2.0), LANTERN, inks)
 	_number(c, at + Vector2(7, 0), text, Palette.MOONLIGHT)
 
+# kt_tally + kt_tally_mark for draw_tally: false when the sheets are missing (it then draws the bell and ticks).
+func _draw_tally_plaque(c: CanvasItem, left: Vector2, full: bool, halfway: int, rings: int) -> bool:
+	var meta := CLASS_KIT.evo_art_meta(_evo_art, &"kt_tally")
+	var size_v: Variant = meta.get("frame_size", [19, 15])
+	var anchor_v: Variant = meta.get("anchor", [9, 14])
+	var w := float(size_v[0])
+	var h := float(size_v[1])
+	var anchor := Vector2(float(anchor_v[0]), float(anchor_v[1]))
+	var top_left := left + Vector2(0, -floorf(h / 2.0))  # Centred on the bar's line, from the side gap
+	if not CLASS_KIT.draw_evo_art(_evo_art, c, &"kt_tally", top_left + anchor, 1.0, false, 1 if full else 0):
+		return false
+	var face := top_left + TALLY_FACE
+	for k in mini(rings, 4):
+		CLASS_KIT.draw_evo_art(_evo_art, c, &"kt_tally_mark", face + Vector2(TALLY_STROKE * k, 0), 1.0, false, 0)
+	if rings >= 5:
+		CLASS_KIT.draw_evo_art(_evo_art, c, &"kt_tally_mark", face, 1.0, false, 1)  # The slash over the group of four
+	var x := top_left.x + w + 2.0
+	var top := left.y - 3.0
+	if halfway == 1:  # Waiting: a tall Moonlight post with a Heartlight tip (as the tick notch)
+		c.draw_rect(Rect2(Vector2(x, top - 3), Vector2(3, 11)), Palette.VOID)
+		c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 9)), Palette.MOONLIGHT)
+		c.draw_rect(Rect2(Vector2(x + 1, top - 2), Vector2(1, 2)), Palette.HEARTLIGHT)
+		x += 5.0
+	elif halfway == 2:  # Taken: a short Slate stub
+		c.draw_rect(Rect2(Vector2(x, top + 1), Vector2(3, 4)), Palette.VOID)
+		c.draw_rect(Rect2(Vector2(x + 1, top + 2), Vector2(1, 2)), Palette.SLATE)
+		x += 5.0
+	if rings > 5:  # Past one group of five: the count, on a plate
+		var label := "%d" % rings
+		var label_w := UiStyle.number_font().get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, NUMBER_SIZE).x
+		var label_at := _plate_at(c, Vector2(x, left.y - NUMBER_SIZE / 2.0 - PLATE_PAD.y), Vector2(label_w, NUMBER_SIZE))
+		_number(c, label_at, label, Palette.HEARTLIGHT if full else Palette.MOONLIGHT)  # (Gold stays the player's own marks)
+	return true
+
 # Last Bell (right of the bar): a bronze bell and TALLY_TICKS ticks lit by the share remembered (the bell lights when
 # full); halfway 1: Halfway Bell's 8 px notch after the 3rd tick, bright (its Toll still to come); 2: dim (taken).
-static func draw_tally(c: CanvasItem, centre: Vector2, share: float, halfway: int) -> void:
+# With kt_tally (Roguelite asset 0b136e06): the bronze plaque (frame 1 struck once the share is full: Last Bell rings
+# out), `rings` engraved on its face as one group of five (four strokes and the slash), then the count on a plate; the
+# Halfway Bell notch stands just right of the plaque. The same plaque serves Curfew, Passing Bell and Last Rites.
+func draw_tally(c: CanvasItem, centre: Vector2, share: float, halfway: int, rings := -1) -> void:
 	var lit := int(floor(share * TALLY_TICKS + 0.0001))
 	var full := lit >= TALLY_TICKS
 	var left := (centre + Vector2(BAR_HALF_W + SIDE_GAP, 0)).round()
+	if rings >= 0 and _draw_tally_plaque(c, left, full, halfway, rings):
+		return
 	_pixels(c, left + Vector2(0, -4), BELL, {"k": Palette.VOID, "o": Palette.OAK, "r": Palette.HEARTLIGHT if full else Palette.EMBER})
 	var x := left.x + 8.0
 	var top := left.y - 3.0

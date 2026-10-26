@@ -31,7 +31,7 @@ const KEYWORDS: Array[StringName] = [&"stacks", &"linger", &"jump", &"repeat", &
 	&"area", &"heavy", &"cluster", &"rank", &"maze", &"hit", &"potency", &"age", &"order"]  # hit: the Focus Calling evolutions; potency: Host Grove (section 33); age, order: uses-only (Throne line, Host Trees line; UI KeywordIcons 2026-10-24)
 # Status words -> EnemyStatuses ids (&"asleep" is a state, not a status id: EnemyStatuses.is_asleep()).
 const STATUSES := {&"poisoned": &"spored", &"charged": &"static", &"soaked": &"damp", &"drowsy": &"drowsy",
-	&"exposed": &"marked", &"rooted": &"held", &"asleep": &"asleep"}
+	&"exposed": &"marked", &"rooted": &"held", &"asleep": &"asleep", &"frost": &"frost"}
 # Umbrella keywords and the status words under them: a maker of a member also makes the umbrella; Slow's users are the
 # cards that name the exact state (decisions: "Uses Rooted", "Uses Asleep").
 const MEMBERS := {&"slow": [&"rooted", &"asleep"]}
@@ -62,6 +62,7 @@ const WORDS := {
 	&"exposed": {"name": "Exposure", "text": "{marked}: built up, the nightmare takes more damage."},
 	&"rooted": {"name": "Root", "text": "{held}: the nightmare cannot move for a moment."},
 	&"asleep": {"name": "Asleep", "text": "{asleep}: the nightmare stops until a hit wakes it."},
+	&"frost": {"name": "Frost", "text": "{frost}: at {full}, it bursts and chills the nightmares beside it."},  # Section 37
 }
 
 # A Warden's job (WardenRoles) -> the keyword it makes (draft rule 4; TD: chain only now that note_jump exists).
@@ -72,7 +73,7 @@ const ROLE_MAKES := {&"heavy": &"heavy", &"area": &"area", &"trap": &"area", &"c
 const ROLE_USES := {&"heavy": &"heavy", &"area": &"area", &"hold": &"rooted", &"support": &"cluster"}
 # EnemyStatuses id -> status word.
 const STATUS_WORD := {&"spored": &"poisoned", &"static": &"charged", &"damp": &"soaked", &"drowsy": &"drowsy",
-	&"marked": &"exposed", &"held": &"rooted", &"asleep": &"asleep"}
+	&"marked": &"exposed", &"held": &"rooted", &"asleep": &"asleep", &"frost": &"frost"}
 
 static func is_known(id: StringName) -> bool:
 	return WORDS.has(id)
