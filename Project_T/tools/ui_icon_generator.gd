@@ -1248,12 +1248,14 @@ func _crown() -> void:
 	_dt(8, 2, Palette.color("dewlight"))
 
 func _ic_thunderclap() -> void:
-	# Soaked + Charged: a gold bolt splitting a water drop.
-	_drop(Vector2(6, 10.6), 4.0, _rpn("dewlight", "dew", "pool"))
-	_bolt(PackedVector2Array([Vector2(12.6, 0.6), Vector2(7.6, 7.2), Vector2(10.2, 7.2), Vector2(6.4, 15.2),
-		Vector2(13.6, 5.8), Vector2(11, 5.8), Vector2(14.6, 0.6)]))
-	_dt(2, 6, Palette.color("glow"))
-	_dt(14, 12, Palette.color("glow"))
+	# Soaked + Charged: Soaked's wave (Drown's water) with Charged's bolt striking from above (never a drop: a drop means
+	# Dew). Owner 2026-10-25; UI council rounds 1-3.
+	_reaction_wave(Vector2i(3, 3), _rpn("dewlight", "dew", "pool"))
+	_bolt(PackedVector2Array([Vector2(5.0, 0.6), Vector2(1.2, 5.6), Vector2(3.4, 5.6), Vector2(1.2, 10.0),
+		Vector2(6.0, 4.0), Vector2(4.0, 4.0), Vector2(7.4, 0.6)]))
+	_c_rect(Rect2i(1, 8, 1, 1), _rpn("heartlight", "glow", "gold"))  # The tail unbroken to its point
+	for p: Vector2i in [Vector2i(4, 7), Vector2i(3, 8), Vector2i(3, 9)]:  # The gap between bolt and wave: outline, not ground pinholes
+		_dt(p.x, p.y, ICON_OUTLINE)
 
 func _ic_ignite() -> void:
 	# Poisoned + Charged: spores going off in a gold burst.
@@ -1270,15 +1272,25 @@ func _ic_ignite() -> void:
 	_dt(4, 10, Palette.color("heartlight"))
 
 func _ic_mushrooming() -> void:
-	# Poisoned + Soaked: a spore mushroom swelling, a drop at its foot.
+	# Poisoned + Soaked: a spore mushroom swelling with Soaked's wave (the crowd pip, drawn by hand) at its foot (never a
+	# drop: a drop means Dew). Owner 2026-10-25; UI council rounds 1-3.
 	var cap := _rpn("newleaf", "sprig", "leaf")
-	_c_poly(PackedVector2Array([Vector2(1.4, 8.4), Vector2(3, 4), Vector2(8, 1.6), Vector2(13, 4), Vector2(14.6, 8.4)]), cap)
-	_c_rect(Rect2i(6, 8, 4, 6), _rpn("moonpath", "deadwood", "loam"))
-	_drop(Vector2(12.6, 13.2), 1.8, _rpn("dewlight", "dew", "pool"))
-	for p: Vector2i in [Vector2i(5, 4), Vector2i(10, 5), Vector2i(8, 3)]:
+	_c_poly(PackedVector2Array([Vector2(1.4, 7.4), Vector2(3, 3), Vector2(8, 0.6), Vector2(13, 3), Vector2(14.6, 7.4)]), cap)
+	_c_rect(Rect2i(5, 7, 4, 8), _rpn("moonpath", "deadwood", "loam"))
+	var water := _rpn("dewlight", "dew", "pool")
+	_c_rect(Rect2i(11, 10, 4, 1), water)
+	_c_rect(Rect2i(10, 11, 2, 1), water)
+	_c_rect(Rect2i(14, 11, 1, 1), water)
+	_c_rect(Rect2i(10, 12, 2, 1), water)
+	_c_rect(Rect2i(10, 13, 5, 2), water)
+	_dt(13, 10, Palette.color("moonlight"))
+	_dt(10, 9, ICON_OUTLINE)  # A ground pinhole between cap, stem and crest closed
+	_dt(11, 11, Palette.color("dew"))  # The wave's back two pixels thick, like Drown's
+	_dt(11, 12, Palette.color("dew"))
+	for p: Vector2i in [Vector2i(5, 3), Vector2i(10, 4), Vector2i(8, 2)]:
 		_dt(p.x, p.y, Palette.color("heartlight"))
 
-# Soaked's wave (_ic_damp) at scale `s` with its top-left at `o`: Drown's water half.
+# Soaked's wave (_ic_damp) at scale `s` with its top-left at `o` (use _reaction_wave for a Reaction's water).
 func _soak_wave(o: Vector2, s: float, k: int, run_off := true) -> void:
 	var P := func(p: Vector2) -> Vector2: return o + p * s
 	_c_ring(P.call(Vector2(9, 7.5)), 6.0 * s, 3.2 * s, k)
@@ -1297,19 +1309,25 @@ func _soak_wave(o: Vector2, s: float, k: int, run_off := true) -> void:
 	_c_rect(R.call(Rect2(6, 9, 2, 1)), k)
 	_c_rect(R.call(Rect2(6, 10, 5, 1)), k)
 
+# Every Soaked Reaction's water (Drown, Thunderclap; UI council 2026-10-25): Soaked's wave at 0.8 with its top-left at
+# `o`, its crest band and face filled up to a Soaked-sized tube, the tube's two outline pinholes closed, Moonlight foam.
+func _reaction_wave(o: Vector2i, k: int) -> void:
+	var d := o - Vector2i(3, 3)
+	_soak_wave(Vector2(o), 0.8, k, false)
+	_c_rect(Rect2i(Vector2i(10, 6) + d, Vector2i(1, 1)), k)
+	_c_rect(Rect2i(Vector2i(8, 9) + d, Vector2i(3, 1)), k)
+	_c_rect(Rect2i(Vector2i(10, 10) + d, Vector2i(2, 1)), k)
+	_dt(11 + d.x, 8 + d.y, ICON_OUTLINE)
+	_dt(12 + d.x, 9 + d.y, ICON_OUTLINE)
+	_dt(10 + d.x, 4 + d.y, Palette.color("moonlight"))
+	_dt(13 + d.x, 6 + d.y, Palette.color("moonlight"))
+
 func _ic_drown() -> void:
 	# Soaked + Drowsy: Soaked's wave with Drowsy's z dozing above it (never a drop: a drop means Dew). Owner 2026-10-25
-	# "redo Drown's icon ... to match the wave"; UI council rounds 1-5.
-	var water := _rpn("dewlight", "dew", "pool")
-	_soak_wave(Vector2(3, 3), 0.8, water, false)
-	_c_rect(Rect2i(10, 6, 1, 1), water)  # A clean crest band (scaling left a notch)
-	_c_rect(Rect2i(8, 9, 3, 1), water)  # The face filled up to a Soaked-sized tube
-	_c_rect(Rect2i(10, 10, 2, 1), water)
-	_dt(11, 8, ICON_OUTLINE)  # The tube's two outline pinholes closed (ground showed through)
-	_dt(12, 9, ICON_OUTLINE)
+	# "redo Drown's icon ... to match the wave"; UI council rounds 1-5. The single ground pixel at (5,5) between the z and
+	# the wave is a deliberate notch.
+	_reaction_wave(Vector2i(3, 3), _rpn("dewlight", "dew", "pool"))
 	_zz(1, 1, _rpn("wraithlight", "wraithlight", "wraithlight"))  # Drowsy's lilac, flat (a shade pixel broke its bars)
-	_dt(10, 4, Palette.color("moonlight"))
-	_dt(13, 6, Palette.color("moonlight"))
 
 func _ic_shatter() -> void:
 	# Rooted + Soaked, then a hard hit: ice bursting into shards.
