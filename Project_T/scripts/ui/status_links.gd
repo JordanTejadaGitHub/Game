@@ -576,7 +576,9 @@ func _place_beside_panel(host: Control, mouse: Vector2) -> void:
 		return
 	var panel := (node as Control).get_global_rect()
 	var screen := get_viewport_rect().size
-	if node.get_meta(&"tips_beside") == &"above":  # A Dream card (owner 2026-10-21): centred above it, never over the next card
+	var beside: Variant = node.get_meta(&"tips_beside")  # true (the Warden panel) or &"above" (a Dream card)
+	if beside is StringName and beside == &"above":  # A Dream card (owner 2026-10-21): centred above it, never over the next card
+		# (bool == StringName is a script error in Godot 4: hovering a word in the Warden panel stopped the game, user 2026-10-25)
 		global_position = UiStyle.tip_beside(panel, size, screen)
 		return
 	if panel.end.x + 8.0 + size.x <= screen.x - 4.0:
