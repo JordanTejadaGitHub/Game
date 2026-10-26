@@ -11,6 +11,6 @@ display_name = "Sob"
 health = 30
 speed = 128.0
 dew_reward = 1
-trait_text = "Small and quick, left when a {nightmare:puffcap} breaks: hit them together."
+trait_text = "Small and quick, left when a {nightmare:puffcap} breaks."
 intro_lines = Array[String](["What's left of a {nightmare:puffcap}, still crying as it runs."])
 hint = "Wardens that damage an area sweep them up."
