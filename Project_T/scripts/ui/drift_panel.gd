@@ -206,13 +206,7 @@ func _ready() -> void:
 		speed_row.add_theme_constant_override("separation", 12)  # Council r2: 8 dp or more between targets
 		_start_button.custom_minimum_size.y = PHONE_SPEED_SIDE  # As tall as the row under it
 		add_theme_constant_override("separation", 14)  # Start apart from row 2 (a mis-tap there starts a drift)
-		# "Rest after drift N" and other words it can't act on: status, not a button (council r2): no plate, dim words
-		var status_box := StyleBoxEmpty.new()
-		_start_button.add_theme_stylebox_override("disabled", status_box)
-		var bases: Dictionary = _start_button.get_meta(&"key_base", {})  # The Enter chip's cached boxes (UiStyle.key_chip_on) put
-		if not bases.is_empty():  # theirs back on every look change: it keeps this one too
-			bases[&"disabled"] = status_box
-			_start_button.set_meta(&"key_shift", -1.0)
+		# ("Rest after drift N" keeps its plate: owner 2026-10-26 "Make the rest a button again", over council r2's status look)
 	game_speed.changed.connect(_on_speed_changed)
 	_on_speed_changed(game_speed.paused, game_speed.speed)
 	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
