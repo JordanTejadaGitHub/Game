@@ -1564,7 +1564,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 			and (dream_state.sprouts_planted + 1 + planned_sprouts) % DreamState.BOUNTIFUL_EVERY == 0:
 		cost = 0
 	# Heartwood's Reach (and an old save's Reclaimed Earth) halves the final price, including escalation: the first
-	# Warden on a cleared cell, the same one that arrives at rank I. Walls and Sprouts pay full and leave the cell.
+	# Warden on a cleared cell, the same one that arrives at rank I. Thornwalls pay full and leave the cell (Sprouts count).
 	if cost > 0 and cell != NO_CELL and (run_state.fertile_cells.has(cell) \
 			or dream_state.reach_half_price(warden, Tower.footprint_cells(cell, warden.footprint))):
 		cost = roundi(cost * DreamState.FERTILE_DISCOUNT)

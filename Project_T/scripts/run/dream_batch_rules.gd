@@ -274,7 +274,7 @@ func planted(dreams: DreamState, tower: Tower) -> void:
 		return
 	# Heartwood's Reach: the first Warden on each cleared cell costs half (TowerPlacer.get_cost via reach_fresh) and
 	# arrives at rank I. One rank per Warden, however many cleared cells its footprint covers, and every covered cell is
-	# used up. Thornwalls and Sprouts never use a cell up.
+	# used up. Thornwalls never use a cell up; a Warden that can't hold a rank (a support aura) takes the half price only.
 	var fresh := false
 	for cell in tower.get_cells():
 		var key := "%d,%d" % [roundi(cell.x), roundi(cell.y)]
@@ -289,9 +289,9 @@ func planted(dreams: DreamState, tower: Tower) -> void:
 		dreams._credit("heartwoods_reach", "dew", float(Tower.RANK_COSTS[0]))
 
 # Heartwood's Reach (section 36, 2026-10-25: the one clearing card, Reclaimed Earth merged in): which Wardens take a
-# cleared cell's half price and rank I. Thornwalls and Sprouts don't, and never use the cell up.
+# cleared cell's half price and rank I: every Warden but a Thornwall (user 2026-10-25: Sprouts count too; it was attackers only).
 static func reach_takes(data: TowerData) -> bool:
-	return data != null and data.can_attack and data.line != "wall" and data.get_id() != "sprout"
+	return data != null and data.line != "wall"
 
 # Whether planting `data` over `cells` is the first Warden on a cleared cell: the same test planted() uses up.
 func reach_fresh_for(dreams: DreamState, data: TowerData, cells: Array[Vector2]) -> bool:

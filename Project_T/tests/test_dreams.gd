@@ -443,14 +443,17 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
 	run_state.add_free_clears(-run_state.free_clears)
 	# Heartwood's Reach (section 36, 2026-10-25: Reclaimed Earth merged in): the first attacking Warden on a cleared cell
-	# costs half (TowerPlacer.get_cost) and uses the cell up; Sprouts and walls pay full and leave it.
+	# costs half (TowerPlacer.get_cost) and uses the cell up; Sprouts count too (user 2026-10-25), walls pay full and leave it.
 	var reach_cell: Vector2 = cell
 	if not run_state.tended_cells.has(reach_cell):
 		run_state.tended_cells.append(reach_cell)
 	run_state.fertile_cells.erase(reach_cell)
 	dreams.batch.reach_cells.clear()
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	_check(placer.get_cost(sprout, reach_cell) == placer.get_cost(sprout), "Heartwood's Reach: a Sprout pays full on a cleared cell")
+	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
+	_check(placer.get_cost(sprout, reach_cell) == roundi(placer.get_cost(sprout) * DreamState.FERTILE_DISCOUNT),
+		"Heartwood's Reach: a Sprout pays half on a cleared cell too (%d of %d)" % [placer.get_cost(sprout, reach_cell), placer.get_cost(sprout)])
+	_check(placer.get_cost(thornwall, reach_cell) == placer.get_cost(thornwall), "…a Thornwall pays full")
 	_check(placer.get_cost(sporeling, reach_cell) == roundi(placer.get_cost(sporeling) * DreamState.FERTILE_DISCOUNT),
 		"…the first attacking Warden there pays half (%d of %d)" % [placer.get_cost(sporeling, reach_cell), placer.get_cost(sporeling)])
 	dreams.batch.reach_cells["%d,%d" % [roundi(reach_cell.x), roundi(reach_cell.y)]] = true
@@ -991,12 +994,13 @@ func _test_half_dreamed(main: Node) -> void:
 	print("half-dreamed text: " + text)
 	_check(text.begins_with("Needs Soak: a family that brings it may come at the family pick after drift 10") and not text.contains("Dewdrop"),
 		"…says the missing status and when, never the Warden")
-	dreams._offer_drift = 40
-	_check(not dreams.is_half_dreamed(thunder), "…never after the drift 35 family pick (60 deepens, brings no family)")
-	dreams._offer_drift = 12  # The next pick (drift 35) is 23 drifts away
+	var third_pick: int = main.get_node("%DriftDirector").third_family_pick_drift  # 40 since 2026-10-25 (was 35)
+	dreams._offer_drift = third_pick + 5
+	_check(not dreams.is_half_dreamed(thunder), "…never after the drift %d family pick (60 deepens, brings no family)" % third_pick)
+	dreams._offer_drift = third_pick - 23  # The next pick is 23 drifts away
 	_check(not dreams.is_half_dreamed(thunder), "…only when the next family pick is at most 20 drifts away")
-	dreams._offer_drift = 15
-	_check(dreams.is_half_dreamed(thunder), "…(drift 15: 20 away, yes)")
+	dreams._offer_drift = third_pick - 20
+	_check(dreams.is_half_dreamed(thunder), "…(drift %d: 20 away, yes)" % (third_pick - 20))
 	dreams._offer_drift = 5
 	var soil := _card(dreams, "conductive_soil")  # Rare, half-dreamed here (Firefly Jar + Dewdrop)
 	var forced_soil := 0
