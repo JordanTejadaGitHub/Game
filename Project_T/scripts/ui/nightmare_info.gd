@@ -2,8 +2,9 @@ extends PanelContainer
 
 # Right-hand panel for the hovered nightmare (screens_ui.md "Nightmare info"): name, one-line trait,
 # health, speed, leaf cost and its statuses with time left, then its Kind badge and line (NightmareIcons.kind_row).
-# A small tooltip, never a screen: only while the pointer is on a nightmare (checked every frame against its live
-# position), never over a HUD panel, gone after IDLE_TIME without a move (user 2026-10-22). The full card opens only on a
+# A small tooltip, never a screen: on hover only while the pointer is on a nightmare (checked every frame against its live
+# position), never over a HUD panel, gone after IDLE_TIME without a move (user 2026-10-22). A click (phones: a tap) pins
+# it to that nightmare until a click elsewhere, a right-click or Esc (user 2026-10-25; _pc_pin_input). The full card opens only on a
 # click / tap (Coming strip, banner, Codex). A nightmare type never met before gets a "New" tag (remembered in
 # HeartwoodMemory, by the real game only). Built in code.
 
@@ -66,6 +67,7 @@ func _process(delta: float) -> void:
 			return
 		_dispelled_left = 0.0
 		_target = null
+		_pinned = null  # A pinned nightmare's dispel closes its panel
 		_await_move = true
 	var hovered := _hovered_nightmare()
 	# A small tooltip that always goes away (user 2026-10-22: "I hover and the screen pops up and never goes away"): the
@@ -74,10 +76,9 @@ func _process(delta: float) -> void:
 	# (phones: since the tap), and when its nightmare is gone.
 	_idle = 0.0 if moved else _idle + delta / maxf(Engine.time_scale, 0.001)
 	if TouchBuild.mobile_controls() and _dispelled_left <= 0.0:
-		_target = hovered  # Phones: the tapped nightmare (or none: a tap elsewhere closed it)
-		if _target != null and _idle > IDLE_TIME:
-			_phone_pick = null
-			_target = null
+		_target = hovered  # Phones: the tapped nightmare, kept until a tap elsewhere (user 2026-10-25: no timeout)
+	elif is_instance_valid(_pinned) and not _pinned.is_cleansed and _dispelled_left <= 0.0:
+		_target = _pinned  # PC: a clicked nightmare stays shown until a click elsewhere, a right-click or Esc
 	elif is_instance_valid(test_pin) and not test_pin.is_cleansed:
 		_target = test_pin  # Tests: held as if hovered, whatever the (headless) pointer does
 	else:
@@ -205,7 +206,10 @@ const PHONE_TAP_RADIUS := 44.0  # A fingertip, in world px
 var _phone_pick: Node2D = null
 
 func _input(event: InputEvent) -> void:
-	if not TouchBuild.mobile_controls() or not (event is InputEventScreenTouch) or event.pressed:
+	if not TouchBuild.mobile_controls():
+		_pc_pin_input(event)
+		return
+	if not (event is InputEventScreenTouch) or event.pressed:
 		return
 	if TouchBuild.gesture_moved() or (visible and get_global_rect().has_point(event.position)):
 		return  # A pan or pinch; or a tap on the card's own words
@@ -214,6 +218,49 @@ func _input(event: InputEvent) -> void:
 		return
 	var world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (event as InputEventScreenTouch).position
 	_phone_pick = _cycle_pick(world)
+
+# PC (user 2026-10-25: "the enemy panel should stay up until I click out or exit"): a left click on a nightmare pins its
+# panel, like a Warden's; it follows that nightmare until a click on the map away from it, a right-click, Esc, or its
+# dispel ("Dispelled", then gone). A drag (a selection box) or a click on the HUD changes nothing; while building,
+# selling or clearing the click is the tool's. Hover still shows a nightmare while nothing is pinned. Never consumed,
+# except Esc while pinned (the panel closes first, the pause menu waits for the next Esc).
+const PIN_DRAG := 8.0  # Screen px: a press that moves further is a drag, not a click
+var _pinned: Node2D = null
+var _press_at := Vector2.INF
+
+func _pc_pin_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE and is_instance_valid(_pinned):
+		_unpin()
+		get_viewport().set_input_as_handled()
+		return
+	if not (event is InputEventMouseButton):
+		return
+	var button := event as InputEventMouseButton
+	if button.button_index == MOUSE_BUTTON_RIGHT and button.pressed:
+		_unpin()
+		return
+	if button.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if button.pressed:
+		_press_at = button.position
+		return
+	var dragged := not _press_at.is_finite() or button.position.distance_to(_press_at) > PIN_DRAG
+	_press_at = Vector2.INF
+	var clearer := owner.get_node_or_null("%ObstacleClearer") if owner != null else null
+	var clearing: bool = clearer != null and clearer.has_method("is_tool_active") and clearer.is_tool_active()
+	if dragged or clearing or get_viewport().gui_get_hovered_control() != null or _tool_active() or RestScreens.map_blocked(self):
+		return
+	var clicked := _hovered_nightmare()  # The nightmare under the pointer, as hover finds it
+	if clicked == null:
+		_unpin()
+	else:
+		_pinned = clicked
+		_await_move = false
+		_idle = 0.0
+
+func _unpin() -> void:
+	_pinned = null
+	_target = null
 
 func _tool_active() -> bool:
 	var main := owner
