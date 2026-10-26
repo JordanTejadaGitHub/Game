@@ -8,7 +8,7 @@ func _check(ok: bool, label: String) -> void:
 		printerr("FAIL: " + label)
 func _run() -> void:
 	# The three retired-only nodes are gone from the tree (card_review_2026-10-12.md 11 E); their card ids stay loadable.
-	for id in ["golden_harvest", "menagerie", "light_feet"]:
+	for id in ["golden_harvest", "menagerie", "light_feet", "restless_night"]:  # + Impatient Night (section 36; owner 2026-10-25: off until a new Legendary)
 		_check(HeartwoodMemory.get_unlock(id) == null, "%s is no longer a Grove node" % id)
 	_check(GroveCardList.load_card("menagerie") != null, "legacy card ID stays loadable")
 	for node in HeartwoodMemory.load_grove():
