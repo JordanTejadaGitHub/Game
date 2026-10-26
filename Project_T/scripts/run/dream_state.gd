@@ -221,7 +221,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
 	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall",
 	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
-	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
+	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "",  # ("wild_growth" was cut here; the id is the Legendary's since 2026-10-21)
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": "",
@@ -4228,7 +4228,9 @@ func load_save(data: Dictionary) -> void:
 	stacks.clear()
 	var saved_stacks: Dictionary = data.get("stacks", {})
 	for id in saved_stacks:
-		var kept: String = MERGED_CARDS.get(id, id)  # Cards cut or merged by the power pass (dream_audit.md)
+		# Cards cut or merged by the power pass (dream_audit.md). A card that exists now always keeps its id: a reused id
+		# (the Legendary Wild Growth, 2026-10-21, once a cut card's) was dropped on every Continue (user 2026-10-25).
+		var kept: String = id if _card_by_id(id) != null else MERGED_CARDS.get(id, id)
 		if kept != "":
 			stacks[kept] = maxi(int(stacks.get(kept, 0)), 1 if kept != id else int(saved_stacks[id]))  # JSON gives floats
 	for card in pool:  # A card that stopped stacking (Tender Care, 2026-09-30): an old save owns it once
