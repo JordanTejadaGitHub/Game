@@ -2438,6 +2438,12 @@ func _update_sustained(delta: float) -> void:
 		_sustained.erase(ended)
 		sustained_changed.emit(self, ended, false)
 
+# Where its drawn feet are (global): the lane and the rounded corner, and a sleeper's sink, without the foot lift. Feet-
+# anchored effects play here (effects.json "Anchor = its route point (the feet)": Ignite, …; owner 2026-10-25: Ignite
+# showed on a Husk's body). Logic keeps global_position.
+func get_feet_position() -> Vector2:
+	return global_position + _corner_offset + _lane_drawn + Vector2(0, _sleep_sink)
+
 # Where the nightmare is drawn (its lane, rounded corner and foot lift included): aim visuals here; game logic keeps
 # global_position. Same as get_body_position (Tower Code's aim, walking lanes 2026-10-24).
 func get_visual_position() -> Vector2:
