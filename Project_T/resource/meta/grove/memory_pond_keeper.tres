@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "memory_pond_keeper"
 display_name = "Memory Warden: The Pond Keeper"
-description = "Every 4 s its tongue drags the nightmare furthest along the path back beside its pond, and gives it {damp}. Grows the first time you dispel the Mire Hag. After that, it can be offered as a reward when you dispel that boss."
+description = "Every 4 s its tongue drags the nightmare furthest along the path back beside its pond, and gives it {damp}. Plants itself when you first dispel the Mire Hag; after that, that boss can offer it as a reward."
 root = 0
 costs = Array[int]([])
 order = 41

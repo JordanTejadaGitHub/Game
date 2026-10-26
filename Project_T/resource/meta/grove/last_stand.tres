@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "last_stand"
 display_name = "Last Stand"
-description = "Adds three {dream} cards for risky play: {card:desperate_bloom}, {card:second_wind}, {card:last_stand}."
+description = "Adds the {dream} card {card:last_stand}: nightmares within 4 cells of the Heartwood take 60% more damage from hits."
 root = 1
 costs = Array[int]([50])
 order = 37
 icon = 15
 requires_all = Array[String](["scarred_bark"])
-dream_cards = Array[String](["desperate_bloom", "second_wind", "last_stand"])
+dream_cards = Array[String](["last_stand"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "acorn_ascension"
 display_name = "Ascension: Grandmother Oak"
-description = "{warden:grandmother_oak}: Wardens within 3 cells deal 60% more damage and attack 20% faster, and it gives 30 {dew} each {drift}. In a run, from {drift} 51: 3 {dreamlight} unlocks it, then 600 {dew} grows a {final_form} into it."
+description = "{warden:grandmother_oak}: Wardens within 3 cells deal 60% more damage and attack 20% faster, and it gives 30 {dew} each {drift}. From {drift} 51 in a run: 3 {dreamlight}, then 600 {dew} {grows} a {final_form} into it."
 root = 0
 costs = Array[int]([120])
 order = 36
