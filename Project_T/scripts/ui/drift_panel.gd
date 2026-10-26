@@ -159,13 +159,18 @@ func _ready() -> void:
 	_auto_toggle.button_pressed = drift_director.auto_drift
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
 	# Says whether it is on, not by colour alone (UI council 2026-10-22: "is Auto on?")
-	_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto-drift on" if on else "Auto-drift")
+	if not UiStyle.is_phone():  # (Phones say "Auto" with a dot: below)
+		_auto_toggle.toggled.connect(func(on: bool) -> void: _auto_toggle.text = "Auto-drift on" if on else "Auto-drift")
 	_auto_toggle.text = "Auto-drift on" if drift_director.auto_drift else "Auto-drift"
 	_on_look(_auto_toggle)
 	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
 	_pause_button.tooltip_text = "Pause%s. You can still build while paused." % UiStyle.key_suffix(InputMode.key(&"pause_game", "Space"))
-	_pause_button.pressed.connect(game_speed.toggle_pause)
+	_pause_button.pressed.connect(func() -> void:
+		if game_speed.paused and ChoicePeek.any_peeking():
+			_on_speed_changed(game_speed.paused, game_speed.speed)  # A choice peeks at the map: it keeps its pause (council r2)
+			return
+		game_speed.toggle_pause())
 	_add_speed_button(speed_row, _pause_button)
 	if UiStyle.is_phone():  # Phones (user 2026-10-18, the right side congested): one speed button that cycles 1× → 2× → 3×
 		_phone_speed = Button.new()
@@ -188,12 +193,26 @@ func _ready() -> void:
 		for button in [_pause_button, _phone_speed]:
 			button.custom_minimum_size = Vector2(PHONE_SPEED_W, PHONE_SPEED_SIDE)
 			button.add_theme_font_size_override("font_size", PHONE_SPEED_TEXT)
-		_auto_toggle.size_flags_vertical = Control.SIZE_SHRINK_END
-		_auto_toggle.custom_minimum_size.x = 0.0
+		_auto_toggle.custom_minimum_size = Vector2(0.0, PHONE_SPEED_SIDE)  # As tall as II (council r2: 48 dp), still the narrowest
 		_auto_toggle.add_theme_font_size_override("font_size", PHONE_AUTO_TEXT)
-		_auto_toggle.toggled.connect(func(_on: bool) -> void: _auto_toggle.text = "Auto")  # Owner 2026-10-26: "Just rename it to say auto" (on: the brass plate and its on-mark)
-		_auto_toggle.text = "Auto"
-		speed_row.add_theme_constant_override("separation", 10)  # Apart enough for thumbs (council: 8 px or more)
+		_auto_toggle.text = "Auto"  # Owner 2026-10-26: "Just rename it to say auto"
+		# Council r2: on / off by shape, not only the brass rim: a dot before the word, filled when on, hollow when off
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+			var box := _auto_toggle.get_theme_stylebox(state).duplicate() as StyleBox
+			box.content_margin_left += AUTO_DOT_ROOM
+			_auto_toggle.add_theme_stylebox_override(state, box)
+		_auto_toggle.draw.connect(_draw_auto_dot)
+		_pause_button.draw.connect(_draw_play)  # Paused: II shows a play triangle (council r2: II read as "on" while paused)
+		speed_row.add_theme_constant_override("separation", 12)  # Council r2: 8 dp or more between targets
+		_start_button.custom_minimum_size.y = PHONE_SPEED_SIDE  # As tall as the row under it
+		add_theme_constant_override("separation", 14)  # Start apart from row 2 (a mis-tap there starts a drift)
+		# "Rest after drift N" and other words it can't act on: status, not a button (council r2): no plate, dim words
+		var status_box := StyleBoxEmpty.new()
+		_start_button.add_theme_stylebox_override("disabled", status_box)
+		var bases: Dictionary = _start_button.get_meta(&"key_base", {})  # The Enter chip's cached boxes (UiStyle.key_chip_on) put
+		if not bases.is_empty():  # theirs back on every look change: it keeps this one too
+			bases[&"disabled"] = status_box
+			_start_button.set_meta(&"key_shift", -1.0)
 	game_speed.changed.connect(_on_speed_changed)
 	_on_speed_changed(game_speed.paused, game_speed.speed)
 	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
@@ -236,6 +255,23 @@ func _on_look(button: Button) -> void:
 	button.draw.connect(func() -> void: _draw_on_mark(button))
 	button.toggled.connect(func(_on: bool) -> void: button.queue_redraw())
 
+const AUTO_DOT_ROOM := 16.0  # Phones: the room left of "Auto" for its dot
+const AUTO_DOT_R := 4.5
+
+func _draw_auto_dot() -> void:
+	var at := Vector2(_auto_toggle.get_theme_stylebox("normal").content_margin_left - AUTO_DOT_ROOM + AUTO_DOT_R + 2.0, _auto_toggle.size.y / 2.0)
+	if _auto_toggle.button_pressed:
+		_auto_toggle.draw_circle(at, AUTO_DOT_R, UiStyle.GOLD)
+	else:
+		_auto_toggle.draw_arc(at, AUTO_DOT_R - 0.75, 0.0, TAU, 20, UiStyle.INK_DIM, 1.5, true)
+
+func _draw_play() -> void:
+	if not game_speed.paused:
+		return
+	var c := _pause_button.size / 2.0
+	var h := float(PHONE_SPEED_TEXT) * 0.8
+	_pause_button.draw_colored_polygon(PackedVector2Array([c + Vector2(-h * 0.4, -h / 2.0), c + Vector2(h * 0.55, 0.0), c + Vector2(-h * 0.4, h / 2.0)]), UiStyle.INK)
+
 func _draw_on_mark(button: Button) -> void:
 	if not button.button_pressed:
 		return
@@ -250,6 +286,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
+	if _auto_toggle.button_pressed != drift_director.auto_drift:  # A loaded run sets auto drift without the button (council r2)
+		_auto_toggle.set_pressed_no_signal(drift_director.auto_drift)
+		_auto_toggle.queue_redraw()
+		if not UiStyle.is_phone():
+			_auto_toggle.text = "Auto-drift on" if drift_director.auto_drift else "Auto-drift"
 	# While a choice screen peeks at the map, its Return pill is the one glow: Start steps down to the plain look
 	var look := &"HudButton" if ChoicePeek.any_peeking() or (UiStyle.is_phone() and _start_button.disabled) else &"HudPrimary"  # Phones: a waiting button is plain (council 2026-10-25)
 	if _start_button.theme_type_variation != look:
@@ -518,17 +559,23 @@ func reopen_choice(pending: StringName) -> void:
 var _phone_speed: Button = null  # Phones: the one speed button (null on PC)
 
 # Paused: the first tap resumes at the speed shown; running: the next speed.
+# Phones: the speed cycle. Paused, it changes the speed and stays paused (council r2: Resume and II are the ways back).
 func _on_phone_speed() -> void:
-	if game_speed.paused:
-		game_speed.set_speed(game_speed.speed)
-	else:
-		game_speed.cycle_speed()
+	if ChoicePeek.any_peeking():
+		return  # A choice peeks at the map: speed waits for it (council r2: it unpaused under the choice)
+	var was_paused := game_speed.paused
+	game_speed.cycle_speed()  # (Unpauses; paused again below in the same frame: nothing moves)
+	if was_paused:
+		game_speed.set_paused(true)
 
 func _on_speed_changed(paused: bool, speed: float) -> void:
 	if _phone_speed != null:
 		_phone_speed.text = "%d×" % roundi(speed)
-		_phone_speed.set_pressed_no_signal(not paused)
+		_phone_speed.set_pressed_no_signal(false)  # Its label says the speed; no "on" mark (council r2: only Auto and II light up)
+		_phone_speed.queue_redraw()
 	_pause_button.set_pressed_no_signal(paused)
+	if UiStyle.is_phone():
+		_pause_button.text = "" if paused else "II"  # Paused: the play triangle (_draw_play)
 	_pause_button.queue_redraw()
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
