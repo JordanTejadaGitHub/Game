@@ -496,6 +496,21 @@ func _add_group(title: String, entries: Array) -> void:
 
 # One glossary entry as a card: a 32 px icon, the term in the display font, the definition, one muted
 # example line, "See also" as gold chips; statuses and damage types add their own lines.
+# The Hollow entry's picture: one status's crowd pip solid, then hollow (KeywordIcons.draw_pip), at ×3.
+const HOLLOW_PIP_ID := &"damp"
+const HOLLOW_PIP_PX := 3.0
+func _hollow_pips() -> Control:
+	var pips := Control.new()
+	pips.name = "HollowPips"
+	var side := KeywordIcons.PIP_SIZE * HOLLOW_PIP_PX
+	pips.custom_minimum_size = Vector2(side * 2.0 + 12.0, side)
+	pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pips.draw.connect(func() -> void:
+		for i in 2:
+			KeywordIcons.draw_pip(pips, HOLLOW_PIP_ID, Vector2(side / 2.0 + i * (side + 12.0), side / 2.0), HOLLOW_PIP_PX,
+				KeywordIcons.PIP_OUTLINE_ALPHA, KeywordIcons.PIP_FILL_ALPHA, false, i == 1))
+	return pips
+
 func _entry_card(group: String, entry: Array) -> Control:
 	glossary_cards_built += 1
 	var term: String = entry[0]
@@ -531,6 +546,8 @@ func _entry_card(group: String, entry: Array) -> Control:
 	UiStyle.display(name, 30 if _phone else 20)  # Phones: one entry per page, its name big
 	name.add_theme_color_override("font_color", TERM_COLOR)
 	body.add_child(name)
+	if term == "Hollow":  # A solid and a hollow pip of one status side by side, before the text (wording council, 981a425a)
+		body.add_child(_hollow_pips())
 	StatusLinks.own_term = String(entry[0])  # An entry never links its own word ("Reaction" inside the Reaction entry)
 	var text := StatusLinks.make_label(entry[1], 17 if _phone else 15)  # Status names are links
 	StatusLinks.own_term = ""
