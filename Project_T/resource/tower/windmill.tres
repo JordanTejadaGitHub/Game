@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Windmill"
-role_line = "Short range, hits all around it, very fast attacks, Frost"
+role_line = "Short range, hits all around it, very fast attacks, Frosts"
 description = "Bigger, faster blades: +35% damage for each path cell past 2 among the 8 around it. Every other spin gives 1 {frost} to each nightmare there."
 cost = 0
 texture = ExtResource("2_tex")

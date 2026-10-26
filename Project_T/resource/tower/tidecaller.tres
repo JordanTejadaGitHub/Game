@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Tidecaller"
-role_line = "Pulls back, Soaks, Frost, area damage"
+role_line = "Pulls back, Soaks, Frosts, area damage"
 description = "Every 6 s a great wave gives {damp}, drags nightmares back 1 cell, and gives {field:tidecaller.frost_if_frosted:count} {frost} to those that already have {frost}."
 cost = 0
 line = "water"
