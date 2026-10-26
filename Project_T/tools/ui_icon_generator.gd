@@ -1278,13 +1278,38 @@ func _ic_mushrooming() -> void:
 	for p: Vector2i in [Vector2i(5, 4), Vector2i(10, 5), Vector2i(8, 3)]:
 		_dt(p.x, p.y, Palette.color("heartlight"))
 
+# Soaked's wave (_ic_damp) at scale `s` with its top-left at `o`: Drown's water half.
+func _soak_wave(o: Vector2, s: float, k: int, run_off := true) -> void:
+	var P := func(p: Vector2) -> Vector2: return o + p * s
+	_c_ring(P.call(Vector2(9, 7.5)), 6.0 * s, 3.2 * s, k)
+	_c_erase_disc(P.call(Vector2(13.5, 9.5)), 3.6 * s)
+	for y in _n:
+		for x in _n:
+			var q := (Vector2(x + 0.5, y + 0.5) - o) / s
+			if q.x >= 12.0 and q.y >= 7.0 and q.y < 11.0:
+				_cells.erase(Vector2i(x, y))
+	var R := func(r: Rect2) -> Rect2i: return Rect2i((o + r.position * s).round(), (r.size * s).round().max(Vector2.ONE))
+	_c_rect(R.call(Rect2(13, 5, 2, 2)), k)
+	_c_rect(R.call(Rect2(1, 11, 14, 2 if not run_off else 4)), k)
+	_c_poly(PackedVector2Array([P.call(Vector2(1, 11)), P.call(Vector2(3, 8.5)), P.call(Vector2(5, 8.5)), P.call(Vector2(6.5, 11))]), k)
+	_c_rect(R.call(Rect2(2, 7, 1, 2)), k)
+	_c_rect(R.call(Rect2(1, 9, 1, 2)), k)
+	_c_rect(R.call(Rect2(6, 9, 2, 1)), k)
+	_c_rect(R.call(Rect2(6, 10, 5, 1)), k)
+
 func _ic_drown() -> void:
-	# Soaked + Drowsy: a heavy drop falling asleep.
-	_drop(Vector2(6.4, 10.2), 4.4, _rpn("dewlight", "dew", "pool"))
-	_zz(10, 1, _rpn("moonlight", "wraithlight", "bruise"))
-	_dt(4, 9, Palette.color("moonlight"))
-	_dt_line(Vector2i(4, 11), Vector2i(5, 12), Palette.color("pool"))
-	_dt_line(Vector2i(8, 11), Vector2i(7, 12), Palette.color("pool"))
+	# Soaked + Drowsy: Soaked's wave with Drowsy's z dozing above it (never a drop: a drop means Dew). Owner 2026-10-25
+	# "redo Drown's icon ... to match the wave"; UI council rounds 1-5.
+	var water := _rpn("dewlight", "dew", "pool")
+	_soak_wave(Vector2(3, 3), 0.8, water, false)
+	_c_rect(Rect2i(10, 6, 1, 1), water)  # A clean crest band (scaling left a notch)
+	_c_rect(Rect2i(8, 9, 3, 1), water)  # The face filled up to a Soaked-sized tube
+	_c_rect(Rect2i(10, 10, 2, 1), water)
+	_dt(11, 8, ICON_OUTLINE)  # The tube's two outline pinholes closed (ground showed through)
+	_dt(12, 9, ICON_OUTLINE)
+	_zz(1, 1, _rpn("wraithlight", "wraithlight", "wraithlight"))  # Drowsy's lilac, flat (a shade pixel broke its bars)
+	_dt(10, 4, Palette.color("moonlight"))
+	_dt(13, 6, Palette.color("moonlight"))
 
 func _ic_shatter() -> void:
 	# Rooted + Soaked, then a hard hit: ice bursting into shards.
