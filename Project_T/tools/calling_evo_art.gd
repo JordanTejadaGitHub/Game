@@ -1225,8 +1225,8 @@ func _stand_in_rows_s33() -> void:
 		"Undertow: the spray folding back into the nightmare hit, three comma-tailed spiral arms turning in to the centre (one shot, 6 frames). Frames 0-5 with company around it, 6-11 dark ink (the fewer around, the darker: pick by count). Undertow only hits a nightmare in the pond, so it always plays over water (the dark ink is drawn for the water, not dry ground). Anchor = the hit nightmare's centre.")
 	_sheet("dw_shell_crack", Vector2i(17, 15), 5, 12.0, Vector2i(8, 7), false, _shell_crack,
 		"Crushing Depth: the nightmare's shell cracking just under the water line: a dark jagged crack with a lit edge and a white-hot start, branching, chips flying up (one shot, ~0.42 s). Anchor = the waterline on its body (its wading waterline point).")
-	_sheet("kt_staff_clef", Vector2i(9, 15), 2, 0.0, Vector2i(4, 14), false, _staff_clef,
-		"Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden in Oak (alpha 0.75), the top line's lit side Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.4. Anchor = the clef's foot.")
+	_sheet("kt_staff_clef", Vector2i(13, 17), 2, 0.0, Vector2i(6, 15), false, _staff_clef,
+		"Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden, solid Oak (alpha 1: at 0.75 they were faint at play zoom), the top line Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.75. Anchor = the clef's foot.")
 	_sheet("kt_staff_echo", Vector2i(17, 15), 5, 10.0, Vector2i(3, 12), false, _staff_echo,
 		"Ensemble: the second repeat landing as an echo: a bronze note (head, stem, flag) with two pink echo arcs rippling off it, fading (one shot, 0.5 s). Anchor = the note head's foot, at the Warden.")
 
@@ -1274,8 +1274,8 @@ func _rot_bloom(img: Image, f: int) -> void:
 				elif d.x + d.y > 2.0:
 					col = SHADE
 			_px(img, x, y, Color(col, alpha))
-	if f == 0:
-		_px(img, 16, 9, ORCHID)  # The bud's tip
+	if f == 0:  # The bud: 3 px with an Orchid tip (a single pixel was invisible at play zoom, wiring capture)
+		_grid(img, [".o.", "obo", ".b."], {"o": ORCHID, "b": BRUISE}, Vector2i(15, 8))
 	if f >= 3 and f <= 5:
 		for i in 4:
 			var p := Vector2i(13 + i * 2, 8 - (f - 3) * 2 - (i % 2) * 2)
@@ -1355,12 +1355,18 @@ func _mud_splash(img: Image, f: int) -> void:
 	var clods: Array = [[], [Vector2i(-4, -4), Vector2i(-1, -6), Vector2i(2, -6), Vector2i(4, -4)],
 		[Vector2i(-6, -6), Vector2i(-2, -8), Vector2i(2, -8), Vector2i(6, -6)],
 		[Vector2i(-7, -3), Vector2i(-3, -5), Vector2i(3, -5), Vector2i(7, -3)]][f]
+	# Wiring capture: 2x2 dark clods read as specks at play zoom: 3x3 clods lit Deadwood with a Moonpath glint, Loam,
+	# a Bark underside; a 2-row splat with wet Moonpath ends.
 	for d: Vector2i in clods:
 		var ca := 1.0 if f < 3 else 0.75  # Round 2: the last frame's clods fade with the splat instead of popping
-		_grid(img, ["mL", "LR"], {"m": Color(MOONPATH, ca), "L": Color(LOAM, ca), "R": Color(ROOT, ca)}, c + d)
+		_grid(img, ["md.", "dLL", ".LB"], {"m": Color(MOONPATH, ca), "d": Color(DEADWOOD, ca), "L": Color(LOAM, ca),
+			"B": Color(BARK, ca)}, c + d - Vector2i(1, 1))
 	var splat: int = [3, 5, 6, 6][f]
+	var sa := 1.0 if f < 3 else 0.4
 	for x in range(-splat, splat + 1):
-		_px(img, c.x + x, c.y, Color(BARK if absi(x) < splat else LOAM, 1.0 if f < 3 else 0.4))
+		_px(img, c.x + x, c.y, Color(LOAM if absi(x) < splat else MOONPATH, sa))
+		if absi(x) < splat - 1:
+			_px(img, c.x + x, c.y + 1, Color(BARK, sa))
 	if f <= 1:
 		_px(img, c.x - 1, c.y - 1, ROOT)
 		_px(img, c.x, c.y - 1, LOAM)
@@ -1509,13 +1515,13 @@ func _staff_clef(img: Image, f: int) -> void:
 		".g..g.g",
 		"..ggg..",
 		"....g..",
-		"..gg..."], {"g": GOLD, "p": BLOSSOM}, Vector2i(1, 1))
+		"..gg..."], {"g": GLOW if f == 1 else GOLD, "p": BLOSSOM}, Vector2i(3, 2))
 	_outline(clef)
-	_rim(clef, [GOLD], GLOW, Vector2(4.0, 7.0))
+	_rim(clef, [GOLD, GLOW], HEART if f == 1 else GLOW, Vector2(6.0, 8.0))
 	_over(img, clef)
-	if f == 1:
-		_px(img, 4, 2, HEART)
-		_halo(img, Vector2(4.5, 5.5), 4.0, GLOW, 0, 0.4)
+	if f == 1:  # Lit: the whole clef burns Glow, rimmed Heartlight, in a bigger halo (wiring capture: too like frame 0)
+		_px(img, 6, 3, HEART)
+		_halo(img, Vector2(6.5, 8.5), 6.0, GLOW, 0, 0.75)
 
 func _staff_echo(img: Image, f: int) -> void:
 	# A bronze note (an oval head, a straight stem, a flag), a Night outline and an upper-left Glow rim like the notes,

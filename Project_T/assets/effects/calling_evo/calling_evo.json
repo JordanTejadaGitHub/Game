@@ -332,18 +332,18 @@
 		},
 		"kt_staff_clef": {
 			"anchor": [
-				4,
-				14
+				6,
+				15
 			],
 			"file": "kt_staff_clef.png",
 			"fps": 0.0,
 			"frame_size": [
-				9,
-				15
+				13,
+				17
 			],
 			"frames": 2,
 			"loop": false,
-			"use": "Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden in Oak (alpha 0.75), the top line's lit side Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.4. Anchor = the clef's foot."
+			"use": "Ensemble / Sounding Board: a small bronze clef at the bell's end of the staff lines; show frame 1 (lit) for ~0.2 s when a repeat lands. Code draws the staff: three 1 px lines 2 px apart from the clef's right side to each joined Warden, solid Oak (alpha 1: at 0.75 they were faint at play zoom), the top line Blossom; Sounding Board's run-on lines Warden to Warden in Oak at 0.75. Anchor = the clef's foot."
 		},
 		"kt_staff_echo": {
 			"anchor": [
