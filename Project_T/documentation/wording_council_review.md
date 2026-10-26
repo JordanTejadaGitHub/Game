@@ -560,3 +560,76 @@ rule); Codex Grow and Rank entries.
 **Decided (owner 2026-10-25): Growth Rings shows as "Quiet Rings" (id growth_rings kept).** Was: **Growth Rings** is a Nurture-rank card whose name says Growth, the exact mix-up above. Rename it (id
 kept), e.g. **Quiet Rings** (its rule: plant nothing for a block). The other "Rings" cards (Deeper, Endless, Hard-Won)
 keep tree rings as the rank image. Note "ring" is also Bellflower's {ring}; kept, different kind.
+
+---
+
+# Full round (2026-10-26): every player text again
+
+User: *"Let the council go through everything again."* Corpus (the fixed extractor: nested folders, `scripts/combat/`,
+short strings; the Grove's `sidegrade_description` added after the veteran found it unread): 2,509 lines of `.tres` text,
+1,526 of script strings, 860 short UI strings. Five seats; reports in `wording_council/full_1026/` (about 450 flagged rows,
+with rewrites).
+
+## FR.1 Text that is wrong (spot-checked; worst first)
+
+| Where | Says | Game does | Owner |
+|---|---|---|---|
+| Grove nodes acorn, bellflower_hidden, dewdrop_hidden, nestling, sporeling_hidden, last_stand | add Dream cards | the cards are retired (dew_trail, encore, deep_frost, shiny_things, ring_dance, desperate_bloom, second_wind): Seeds for nothing | Meta (+ Roguelite: replacements) |
+| The Great Bell (card, Warden, Ascension node), Bellflower node | every nightmare "falls asleep" | adds 99 Drowsy (full); great_bell has no `sleep_at_max_drowsy`, so nothing sleeps | Tower Code, Meta |
+| Drowsy tooltip / lesson / Codex | at full it "can fall {asleep}" | full Drowsy alone never sleeps; only Dreamshroom, Undiluted, Fever Dream, Still Pool and the Calling nap call `sleep()` | Main |
+| Undiluted | "Frostbursts deal double" | `UNDILUTED_FROSTBURST` (`dream_state.gd:6122`) is never read | Roguelite |
+| Early Bloom (sidegrade) | "the family pick at drift 25" | no drift 25 pick; the code hits drift 10, never below 2 families | Meta |
+| Rolling Thunder / Thunderclap | no arc cap | Rolling Thunder cuts Thunderclap's arcs 8 -> 5 (`reactions.gd:40`); Thunderclap states no cap | Roguelite, Tower Code |
+| Run Through tip | 4 {steps} | 2 cells (`dream_hit_cards.gd:56`) | Roguelite |
+| Asleep glossary | 3 s | 1-4.5 s by source; bosses never; 4 s before it can sleep again | Main |
+| Straightaway diagram | +30% | range only since 2026-10-23 | Roguelite |
+| Codex "Up to 3 bursts in a row" | always | only with Flash Freeze | Main / Frost chat |
+| Dewdrop Grove node | Frostfern "freezes" nightmares with Soak; adds Deep Frost | Frost doesn't freeze; Deep Frost retired | Meta |
+| Drown, Frost Reactions | no limits | Drown once per nightmare; Brittle / Frostbite / Flash Freeze cooldowns 8 / 6 / 6 s (bosses 10), one per burst; Cold Snap once per 6 s | Tower Code / Frost chat |
+| Bearing Down | nothing unsaid | gives nothing without a Nurture rank | Roguelite |
+| Flyers lesson | flyers skip the maze | route flyers (Night Kite, Gloamwing, Pall) follow the path | Main |
+| Banish tip (`dream_state.gd:3289`) | "Let Go" | the Grove node / name is Banish | Roguelite |
+
+Errors: Nod Off tip "don't triggered it"; Volley renders "a Acorn" (`callings.gd:21` "a {family:acorn}").
+
+## FR.2 Fix check (consistency): 3 of 6 done (Frost texts, hollow stacks, Flashover)
+
+Partial: **Frost** (Windmill still "Every other spin", no tip; Tidecaller three ways: Warden "drags back 1 cell", card and
+node "pushes back 1 {step}"; Frostfern / Hoarfrost Dream cards don't match their Wardens; the 10 base Reactions still
+"Needs …"). **Splash** (Dewdrop, Hoarfrost, Puffball, Rain Lily Dream cards still "the nightmare hit" / "the one hit"; 6
+"set off" left: Pinned, Dawnbreak, Codex Chain, the Charge lesson, a status_links tip, the Hedgehog hint; "tiles",
+"squares", a "Grows into" heading). **Grow vs Nurture** (20 bare {rank} / "rank", 27 non-form "grow", Grove "grow into";
+the Warden panel's "Rank" and "grow past rank V").
+
+## FR.3 Term map (worst of 24 concepts named more than one way)
+
+- **Root** has six names (Root, Rooted, Held, "Hold" role tag, "can't move" written out 23 times, Frozen remnants).
+- **Distance:** raw "touching" 25 times and "near" 30 times beside the tokens; three tips define their own distance.
+- **Phantom** is one nightmare's name; 6 card / Codex lines still use it for flyers.
+- **Bellflower "ring":** the Warden's attack on its card, a counter in its Calling, a "pulse" on its family card.
+- **Charge** explained three ways (tooltip "16× the stored Charge", lesson "set it off", Potency line); "heavy" is a
+  glossary word and plain English ("a heavy hit").
+- "boost", "chain", "last drift", "pass", "carry", "cap", "note", "wake", "full" each carry two meanings (P §2).
+- **Family pick screen** (first screen of every run): "Dreams into, 2 of 5 this run", "Sprout into it".
+- Token nouns as verbs: 26 places, 21 of them {jumps}. Glued plurals `{warden:x}s`: 197 (render fine in English, block
+  translation).
+
+## FR.4 Length
+
+Dream faces 50 of 341 over 25 words (45 are form-unlock cards: lead with the form, T10 header); tips 24 of 303 over 40
+(Wild Growth 59, Second Verse 58); Warden texts 35 of 122 over 25; Reactions 20 of 23 over 25 (Sleepwalk 59); Calling rows
+1 of 137 over 30; Grove nodes 15 of 94 over 25; buttons 11 over 4 words. Two Codex entries would cut a lot: "Extra
+stacks" (small print repeated in 9 wordings on ~12 tips) and "Leader" (rule 11).
+
+## FR.5 Localisation
+
+No `tr()` anywhere in `scripts/`. New since the gap round: code comparing on-screen text (`warden_panel.gd:1132, :2183`,
+`tower.gd:1689, :1797`) and `get_slice` on displayed text in 4 files. About 150 places in 7 groups (P §6). Before any
+translation: one pass that routes every string through `tr()` and drops text comparisons.
+
+## FR.6 Owner calls
+
+1. **Grove node verbs.** The Grove says "Grow / Grown" for buying node levels; since 2026-10-25 "grow" means a Warden's
+   next form. Recommended: **Plant** (first level), **Nourish** (later levels), **In full leaf** or **Full** (done).
+2. **"Hollow" stacks.** The lead named the Codex entry "Hollow" (2026-10-25); "the Hollow" is the story's villain and the
+   Hollow Oak a boss (23 files). Recommended: **Settling** ("Settling: a Dream card added these stacks …").
