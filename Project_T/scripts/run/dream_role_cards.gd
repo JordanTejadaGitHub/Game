@@ -423,7 +423,7 @@ func area_attack(tower, hit: Array) -> void:
 	var ws: EnemyStatuses = worst.statuses
 	var ids: Array = []
 	for id in ws.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.DROWSY and id != EnemyStatuses.HELD:
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.DROWSY and id != EnemyStatuses.HELD and id != DreamState.FROST:
 			ids.append(id)
 	if ids.is_empty():
 		return
@@ -486,7 +486,7 @@ func snare_line(tower, stepper) -> void:
 	var s: EnemyStatuses = stepper.statuses
 	var ids: Array = []
 	for id in s.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD:
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.HELD and id != DreamState.FROST:  # (Never Frost: section 37)
 			ids.append(id)
 	if ids.is_empty():
 		return
@@ -598,13 +598,13 @@ static func _towering_order(a, b) -> bool:
 	return a.get_instance_id() < b.get_instance_id()
 
 # --- Helpers ---------------------------------------------------------------------------------------------------------------
-# The first status at its most on these statuses (&"" if none). Charged at its most is a bolt, so it never counts.
+# The first status at its most on these statuses (&"" if none). Charged and Frost at their most burst, so they never count.
 # "A status at full" (section 35; Balancing 2026-10-24): stacks at EnemyStatuses.FULL_SHARE (0.75) of the status's USUAL
 # most, EnemyStatuses.base_cap (before Brimming's doubling and the Deeply Blighted Poisoned raise). The same rule as
 # EnemyStatuses.any_full(), but Charged never counts here (Guiding Light reads Charged itself). The first such id, or &"".
 static func full_status(s: EnemyStatuses) -> StringName:
 	for id in s.active_ids():
-		if id in EnemyStatuses.ALL and id != EnemyStatuses.STATIC and s.stacks(id) >= ceili(s.base_cap(id) * EnemyStatuses.FULL_SHARE):
+		if id in EnemyStatuses.ALL and id != EnemyStatuses.STATIC and id != DreamState.FROST and s.stacks(id) >= ceili(s.base_cap(id) * EnemyStatuses.FULL_SHARE):
 			return id
 	return &""
 

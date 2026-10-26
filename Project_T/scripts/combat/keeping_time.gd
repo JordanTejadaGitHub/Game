@@ -1022,6 +1022,8 @@ func _touching_at(at: Vector2, skip, limit: int) -> Array:
 
 # Adds `stacks` to `id` quietly (never starts it; Charged stops one short of a bolt).
 func _quiet(enemy, id: StringName, stacks: int) -> int:
+	if id == DreamState.FROST:
+		return 0  # Never Frost (section 37: Frost only from Frost Wardens)
 	if id == EnemyStatuses.STATIC:
 		stacks = mini(stacks, enemy.statuses.get_max_stacks(id) - 1 - enemy.statuses.stacks(id))
 	return enemy.statuses.add_quiet(id, stacks) if stacks > 0 else 0
@@ -1447,7 +1449,7 @@ func _last_chord(enemy, bell) -> void:
 		# Undiluted holds every Reaction back (owner 2026-10-22, dream_council_review.md 30): the quiet Last Chord tops
 		# each status it carries back up to its landing time instead, on the same 8 s wait
 		for id in enemy.statuses.active_ids():
-			enemy.statuses.top_up(id)
+			if id != DreamState.FROST: enemy.statuses.top_up(id)  # Never Frost (section 37)
 		enemy.set_meta(CHORD_META, now() + CHORD_EVERY)
 		Reactions._effect(&"chorus_note", at, self, 1.0)
 		credit(EVO_CHORD, at, bell)
@@ -1479,7 +1481,7 @@ func _chorus(enemy, bell) -> void:
 	_line_fx(body(bell), body(enemy), 3.0, Palette.BLOSSOM)
 	strike(partner, enemy, minf(float(last.base) * CHORUS_SHARE, second_of(partner) * CHORUS_SECONDS), &"chorus_repeat")
 	var status := status_of(partner)
-	if status != &"" and living(enemy):
+	if status != &"" and status != DreamState.FROST and living(enemy):  # Never Frost (section 37)
 		setup_quiet(enemy, CHORUS, status, enemy.statuses.add_quiet(status, 1))  # (setup credit 2026-10-16)
 
 # Knell (lent; hard cards 2026-10-16, one rule for every status): a bell's hit lands again once for each status on the
@@ -1999,7 +2001,7 @@ func _second_verse(enemy, bell) -> void:
 			if kept[i] is Array and kept[i].size() >= 3 and int(kept[i][2]) != bell.get_instance_id():
 				last = kept[i]
 				break
-	if last.is_empty() or StringName(last[0]) == EnemyStatuses.HELD:
+	if last.is_empty() or StringName(last[0]) == EnemyStatuses.HELD or StringName(last[0]) == DreamState.FROST:
 		return
 	var status := StringName(last[0])
 	var verse: int = enemy.statuses.add_quiet(status, int(last[1]))

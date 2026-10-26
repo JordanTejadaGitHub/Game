@@ -575,7 +575,7 @@ func _fell(enemy) -> void:
 		var kept: Array = []
 		if evo(EVO_MOTHER):
 			for id in enemy.statuses.active_ids():
-				if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY:
+				if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY and id != DreamState.FROST:
 					kept.append([String(id), enemy.statuses.potency(id), String(enemy.statuses._active[id].get("line", ""))])
 		leave_mushroom(at, enemy.statuses.source(EnemyStatuses.SPORED), kept)  # Mycelium Sprouts' Poisoned counts too
 	elif class_on() and evo(EVO_WINDFALL) and _fed_at(index_of(enemy)):
@@ -625,7 +625,7 @@ func _overnight(spore, enemy) -> void:
 
 # Whether the stack cards may add to `id` (never Rooted; Drowsy only with STACK_DROWSY, within its normal cap).
 func _stackable(id: StringName) -> bool:
-	return id != EnemyStatuses.HELD and (STACK_DROWSY or id != EnemyStatuses.DROWSY)
+	return id != EnemyStatuses.HELD and id != DreamState.FROST and (STACK_DROWSY or id != EnemyStatuses.DROWSY)  # Frost only from Frost Wardens (section 37)
 
 # Adds `stacks` to `id` quietly (no clock, strength or source change). Charged stops one short of a bolt.
 func _feed(enemy, id: StringName, stacks: int) -> int:
@@ -962,7 +962,7 @@ func _rotburst(point: Vector2, tower, eater) -> void:
 	var at: Vector2 = _route_px[int(_index[point])]
 	var carried: Array = []
 	for id in eater.statuses.active_ids():
-		if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY:
+		if id != EnemyStatuses.SPORED and id != EnemyStatuses.HELD and id != EnemyStatuses.DROWSY and id != DreamState.FROST:
 			carried.append([id, eater.statuses.source(id)])
 	var hit := 0
 	for other in Tower.nightmares_near(get_tree(), at, BURST_CELLS * cell()):
@@ -1759,7 +1759,7 @@ func _hothouse(enemy) -> void:
 		return
 	var any := false
 	for id in statuses.active_ids():
-		if id == EnemyStatuses.SPORED:
+		if id == EnemyStatuses.SPORED or id == DreamState.FROST:
 			continue
 		var added := statuses.add_quiet(id, HOTHOUSE_ADD)
 		setup_quiet(enemy, HOTHOUSE, id, added)  # (setup credit 2026-10-16)
@@ -1839,19 +1839,19 @@ func _stack_cards(tower, enemy, status: StringName, base: int) -> int:
 		extra += NARROWS_SMALL if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED else NARROWS_EXTRA
 		_setup_part(enemy, NARROWS, status, extra)  # (setup credit 2026-10-16: each card's extra stacks, as asked)
 	var mixed_count := 0
-	if rule(MIXED_COMPANY) and _stackable(status) and now() >= float(tower.get_meta(MIXED_META, -INF)):
+	if rule(MIXED_COMPANY) and (_stackable(status) or status == DreamState.FROST) and now() >= float(tower.get_meta(MIXED_META, -INF)):
 		mixed_count = _mixed(enemy)  # After the clock: strongest_near at most once a second per Warden
 	if mixed_count > 0:
 		tower.set_meta(MIXED_META, now() + STACK_EVERY)
 		# Hard cards 2026-10-16: 1 more per status it carries, up to 4 (Charged / Exposed 2, Drowsy 1)
 		var mixed_cap := MIXED_MAX
-		if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED:
+		if status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED or status == DreamState.FROST:  # Frost: small (section 37)
 			mixed_cap = MIXED_SMALL_MAX
 		elif status == EnemyStatuses.DROWSY:
 			mixed_cap = MIXED_DROWSY_MAX
 		extra += mini(mixed_count * MIXED_PER_STATUS, mixed_cap)
 		_setup_part(enemy, MIXED_COMPANY, status, mini(mixed_count * MIXED_PER_STATUS, mixed_cap))
-	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED
+	var small: bool = status == EnemyStatuses.STATIC or status == EnemyStatuses.MARKED or status == DreamState.FROST  # Frost: small (section 37)
 	# Breathe It In (trait rework; was spore-on-spore Poisoned): any Warden's status landing on a nightmare inside a spore
 	# Warden's range (its own included) adds 1 more. Once a second per Warden
 	if rule(BREATHE_IN) and _stackable(status) and now() >= float(tower.get_meta(BREATHE_META, -INF)) \
@@ -1958,7 +1958,7 @@ func _seep(enemy) -> void:
 	while steps >= SEEP_STEPS:
 		steps -= SEEP_STEPS
 		for id in enemy.statuses.active_ids():
-			if id != EnemyStatuses.HELD:
+			if id != EnemyStatuses.HELD and id != DreamState.FROST:
 				setup_quiet(enemy, SEEPING_IN, id, enemy.statuses.add_quiet(id, SEEP_STACKS))  # (setup credit 2026-10-16)
 	if left <= 0.0:
 		enemy.remove_meta(SEEP_META)
