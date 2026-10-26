@@ -9,6 +9,22 @@ const SEED := 1207
 var failures := 0
 var _log: Array = []  # [id, cells, from, tended_before]: what HeartwoodGifts would save
 
+# A free half cell (buildable, not a landmark) at least 3 halves from every route point's half, or (-1, -1).
+func _free_half_off_route(map: Node, route: PackedVector2Array) -> Vector2:
+	var near := {}
+	for point in route:
+		var at := FindPath.point_to_node(point)
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
+				near[at + Vector2i(dx, dy)] = true
+	var size := Vector2i(map.MAP_GRID.size) * 2
+	for y in size.y:
+		for x in size.x:
+			var h := Vector2(x, y)
+			if not near.has(Vector2i(h)) and map.is_buildable_half(h) and not map.is_landmark_cell((h / 2.0).floor()):
+				return h
+	return Vector2(-1, -1)
+
 func _check(ok: bool, what: String) -> void:
 	if not ok:
 		failures += 1
@@ -306,8 +322,9 @@ func _half_pieces_case() -> void:
 	var bog: Array = [route[route.size() / 2], route[route.size() / 2 + 1]]
 	_check(gifts.can_place(MapGifts.MIRE, bog) or gifts.can_place(MapGifts.MIRE,
 		bog.map(func(p: Vector2) -> Vector2: return Vector2(FindPath.point_to_node(p)))), "route halves take a Mire")
-	_check(not gifts.can_place(MapGifts.MIRE, [Vector2(FindPath.point_to_node(route[route.size() / 2])) + Vector2(0, 9)])
-		and gifts.refusal() == &"off_route", "off the route: refused")
+	var off := _free_half_off_route(map, route)  # Open ground away from the route (the map decides where: no fixed offset)
+	_check(off.x >= 0 and not gifts.can_place(MapGifts.MIRE, [off]) and gifts.refusal() == &"off_route",
+		"off the route: refused (%s, %s)" % [off, gifts.refusal()])
 	MapGifts._effect(main, {"halves": bog}, MapGifts.MIRE)
 	_check(gifts.is_bog(bog[0]) and gifts.is_bog(bog[1]), "the bog is on those halves")
 	var walker: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))

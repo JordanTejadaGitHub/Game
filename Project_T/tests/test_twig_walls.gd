@@ -90,7 +90,7 @@ func _run() -> void:
 		placer.cancel_stroke()
 		placer.set_build_mode(false)
 
-	_check(seller.sell(twig.cell), "it sells")
+	_check(seller.sell_tower(twig), "it sells")  # By the Warden: the full wall may share its whole cell (the map decides)
 	await process_frame
 	_check(map.is_buildable_half(origin), "selling opens its half")
 	placer.force_twig = false

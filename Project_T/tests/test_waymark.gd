@@ -180,7 +180,10 @@ func _test_legs(cell: Vector2) -> void:
 	for h in FindPath.halves_of_cell(cell):
 		touches = touches or on_halves.has(Vector2i(h))
 	_check(touches, "the drawn path tiles reach the stone")
-	_check(not map.get_path_from(route[split], true).is_empty() and map.waymark_split(map.get_path_from(route[split + 1], true)) < 0,
+	var past := split + 1  # The first point off the stone (the route may cross two of its halves in a row)
+	while past < route.size() - 1 and map.is_waymark_point(route[past]):
+		past += 1
+	_check(not map.get_path_from(route[split], true).is_empty() and map.waymark_split(map.get_path_from(route[past], true)) < 0,
 		"a walker past the stone heads straight for the Heartwood")
 	var mid: Vector2 = route[maxi(split / 2, 1)]
 	_check(map.waymark_split(map.get_path_from(mid)) >= 0, "a walker on leg 1 still goes to the stone")
