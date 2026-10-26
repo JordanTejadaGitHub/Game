@@ -557,6 +557,6 @@ Trampled Ground, Pile-On, Deep Tone, Double Time, Allegro, Black Pond, Deep End,
 "highest-{rank}" tips (calling_paths.gd ~87, 383, 407, 414); the Grove nodes that say rank or grow (Meta sweeps with the
 rule); Codex Grow and Rank entries.
 
-**Owner call:** **Growth Rings** is a Nurture-rank card whose name says Growth, the exact mix-up above. Rename it (id
+**Decided (owner 2026-10-25): Growth Rings shows as "Quiet Rings" (id growth_rings kept).** Was: **Growth Rings** is a Nurture-rank card whose name says Growth, the exact mix-up above. Rename it (id
 kept), e.g. **Quiet Rings** (its rule: plant nothing for a block). The other "Rings" cards (Deeper, Endless, Hard-Won)
 keep tree rings as the rank image. Note "ring" is also Bellflower's {ring}; kept, different kind.
