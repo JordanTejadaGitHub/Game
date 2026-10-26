@@ -60,10 +60,12 @@ static func bbcode(text: String) -> String:
 	var terms: Array = []
 	if text.contains("{"):
 		for token in IconInfo.term_tokens():
-			while text.contains(token[0]):
-				text = text.replace(token[0], "\u0001%d\u0001" % terms.size())
+			while text.contains(token[0]):  # One copy at a time: only the first is linked / gets its icon (_once, _term_icon)
+				var at := text.find(token[0])
+				text = text.substr(0, at) + "\u0001%d\u0001" % terms.size() + text.substr(at + token[0].length())
 				var plain: bool = _own(token[1]) or (card_mode and CARD_PLAIN.has(token[1]))  # Cards: basic words plain
-				terms.append(token[2] if plain else _once(TERM_PREFIX + String(token[1]), token[2]))
+				var word: String = _term_icon(token[1]) + token[2]  # Cards: {grow} / {rank} lead with their icon, the first time
+				terms.append(word if plain else _once(TERM_PREFIX + String(token[1]), word))
 		for found in IconInfo.family_pattern().search_all(text):  # {family:dewdrop}
 			var id := found.get_string(1)
 			var data := IconInfo.family_data(id)
@@ -123,6 +125,24 @@ static func card_bbcode(text: String) -> String:
 	var out := bbcode(text)
 	card_mode = false
 	return out
+
+# {grow} and {rank} on a card (owner playtest 2026-10-25; wording_council_review.md "Grow vs Nurture", 257ad051): the
+# word leads with its icon, the first time in the block, as a status does: the bud (grow_hints' "Can grow" mark, its
+# open frame) and the rank medal (icon sheet "rank"; the Boosts lens no longer borrows it). "" elsewhere.
+const GROW_ICON := "res://assets/ui/grow_bud.png"
+const GROW_ICON_REGION := Rect2(32, 0, 16, 16)  # Frame 2: the bud open
+static func _term_icon(id: StringName) -> String:
+	if not card_mode or (id != &"grow" and id != &"rank") or _seen.has("icon:" + String(id)):
+		return ""
+	_seen["icon:" + String(id)] = true
+	if id == &"grow":
+		var g := GROW_ICON_REGION
+		return "[img=14x14 region=%d,%d,%d,%d]%s[/img] " % [g.position.x, g.position.y, g.size.x, g.size.y, GROW_ICON]
+	var art := IconInfo.icon(&"rank") as AtlasTexture
+	if art == null:
+		return ""
+	var r := art.region
+	return "[img=14x14 region=%d,%d,%d,%d]%s[/img] " % [r.position.x, r.position.y, r.size.x, r.size.y, IconInfo.ICON_SHEET]
 
 # A status on a card: its icon (14 px, from the icon sheet) and its name in its own colour; hover / tap opens the tip.
 static func _status_chip(id: StringName, word: String) -> String:

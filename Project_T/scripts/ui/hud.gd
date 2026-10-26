@@ -1441,7 +1441,7 @@ func _add_buff_lens_button() -> void:
 	BuffLens.set_on(get_tree(), false)  # A new run starts with the lens off
 	buff_lens_button.name = "BuffLensButton"
 	buff_lens_button.text = ""
-	buff_lens_button.icon = IconInfo.icon(&"rank")  # Boosts: an up-chevron
+	buff_lens_button.icon = IconInfo.hud_icon(&"boosts_off")  # Its own arrow from the start (the rank medal means Nurture ranks only, 2026-10-25)
 	buff_lens_button.tooltip_text = "Boosts (%s): show which Wardens are boosted, and by what." % _action_key("buff_lens")
 	buff_lens_button.toggle_mode = true
 	buff_lens_button.focus_mode = Control.FOCUS_NONE
