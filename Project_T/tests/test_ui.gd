@@ -937,6 +937,8 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_check(hov_info.visible and hov_info._title.text.contains("Dispelled"), "its own dispel reads Dispelled (" + hov_info._title.text + ")")
+	_check(hov_info._numbers.text == "Health 0 / %d" % hov_info._last_max and not hov_info._chips.visible,
+		"a dispelled hovered card shows only what is still true, as a pinned one (%s)" % hov_info._numbers.text)
 	for i in 80:
 		await process_frame
 	_check(not hov_info.visible and hov_info._target == null, "then it clears, without jumping to the nightmare under the pointer")
