@@ -207,7 +207,7 @@ func _test_helper_commons() -> void:
 	dreams.absorb_leak()
 	_check(dreams.light_steps_active() and dreams.close_shave_active() and _row(short.tower_data, short.cell, "close_shave", short).active,
 		"…a drift start / a leak turns them on")
-	_check(is_equal_approx(dreams.get_area_radius_add(), DreamState.WIDE_PETALS_RADIUS), "Wide Petals: +0.75 cells (pulses get it from HelperCommons.pulse_extra)")
+	_check(is_equal_approx(dreams.get_cloud_radius_add(), DreamState.WIDE_PETALS_RADIUS) and is_zero_approx(dreams.get_area_radius_add()), "Wide Petals: clouds +0.75 cells, splashes nothing (pulses get it from HelperCommons.pulse_extra)")
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_check(dreams.get_build_cost(sprout) == sprout.cost and dreams.get_build_cost_at(sprout, Vector2(80, 80)) == maxi(ceili(sprout.cost * DreamState.CHEAP_SEEDS_SHARE), 1), "Scattered Seedlings: an isolated planting position costs half")
 	var dew := run_state.dew
