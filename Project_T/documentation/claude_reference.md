@@ -371,6 +371,18 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `layout` (`MapLayout`, rolled first from the map rng): the start is on the rim, the Heartwood inland
   (`get_glade_cells()` kept clear); never assume either is at an edge or corner. Route band held by
   `_trim_route_if_long` / `_extend_route_if_short`. `force_layout` etc. for tests.
+  Map 20×16 (2026-10-23). Frame balance (environment_assets.md "Frame balance and the bend spur", 2026-10-25): the frame
+  band is 8 regions (`EnvironmentObjectGenerator.frame_region`: 4 corners, 4 side middles); each keeps
+  `region_minimum(r)` woods (`REGION_MIN_SHARE`, `CORNER_MIN`; small groves by `_balance_frame`, again after carving
+  in `top_up`), thinning takes the densest region first, top-ups the emptiest; the start's pocket (`START_CLEAR`)
+  stays open. The bend spur's row is `BEND_SHARE` 40–55% of the way from the start to the Heartwood
+  (`_pick_spur_rows`); an extra spur that would wall the map off with it is dropped (`_spurs_seal`). The fallen log
+  gets `LOG_ACROSS_TRIES` 300 tries to lengthen the route by `LOG_DETOUR_MIN`.
+  Landmarks (`scripts/map/map_landmark.gd`, `map.landmark`, a TileMapLayer over the path): an Old Waystone on every map
+  (`MapGenerator.landmark_kind` = &"waystone", `landmark_cell`; Tower Code's `tower/waystone.gd` pays its +1 Dew), a
+  Dew Pool on about 1 in 3, never on the demo's first map (`dew_pool_cells` {cell: true} for Enemy's 25% slow; never
+  buildable; `dew_pool.png` 128×64 / `dew_pool_v.png` 64×128 from the first cell). `is_waystone`, `is_dew_pool`,
+  `is_landmark_cell`, `landmark_cells()`; `MAP_LANDMARK.force_pool` for tests. `tests/test_landmarks.gd`.
   `obstacle_clearer.gd` (`ObstacleClearer`) is the hover/click tool; input action `clear_obstacle` (LMB).
   Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, `source_id` +
   `tiles`, and the `cleared_source_id` mark left when the player clears one: tended stump, moved hollow).

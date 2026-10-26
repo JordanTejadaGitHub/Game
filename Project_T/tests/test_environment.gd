@@ -4,7 +4,7 @@ extends SceneTree
 # Run:  Godot --headless --path . --script res://tests/test_environment.gd --fixed-fps 60
 # Pass a path after `--` (e.g. `-- --preview=C:/tmp/map.png`) to also save a flat render of the map,
 # `-- --seed=N` to preview another map, `-- --layouts=<file.png>` for a sheet of ~12 layouts (add `--landmarks` to
-# give every map one, Old Waystone and Dew Pool in turn).
+# give every map a Dew Pool as well as its Old Waystone).
 
 var failures := 0
 var _sheet_landmarks := false
@@ -16,11 +16,11 @@ func _init() -> void:
 		if arg.begins_with("--seed="):
 			main.get_node("MapGenerator").map_seed = int(arg.trim_prefix("--seed="))
 		_sheet_landmarks = _sheet_landmarks or arg == "--landmarks"
-		if arg.begins_with("--landmark="):  # The preview's map with landmark kind N (1 Old Waystone, 2 Dew Pool)
-			main.get_node("MapGenerator").MAP_LANDMARK.force_kind = int(arg.trim_prefix("--landmark="))
+		if arg.begins_with("--pool="):  # The preview's map with (1) or without (0) a Dew Pool
+			main.get_node("MapGenerator").MAP_LANDMARK.force_pool = int(arg.trim_prefix("--pool="))
 	root.add_child(main)
 	await process_frame
-	main.get_node("MapGenerator").MAP_LANDMARK.force_kind = -1
+	main.get_node("MapGenerator").MAP_LANDMARK.force_pool = -1
 	var map = main.get_node("%MapGenerator")
 	var ground: TileMapLayer = main.get_node("%GroundTileMapLayer")
 	var path: TileMapLayer = main.get_node("%PathTileMapLayer")
@@ -367,10 +367,10 @@ func _layout_sheet(file: String) -> void:
 		main.get_node("MapGenerator").map_seed = seeds[i]
 		var landmark_script = main.get_node("MapGenerator").MAP_LANDMARK
 		if _sheet_landmarks:
-			landmark_script.force_kind = 1 + i % 2  # Old Waystone, Dew Pool, ...
+			landmark_script.force_pool = 1  # A Dew Pool beside every Waystone
 		root.add_child(main)
 		await process_frame
-		landmark_script.force_kind = -1
+		landmark_script.force_pool = -1
 		var map = main.get_node("%MapGenerator")
 		var image := _flat_map(main)
 		image.resize(map_px.x, map_px.y, Image.INTERPOLATE_BILINEAR)
@@ -378,8 +378,8 @@ func _layout_sheet(file: String) -> void:
 		var at := Vector2i(8 + (i % SHEET_COLUMNS) * (tile.x + 8), 8 + (i / SHEET_COLUMNS) * (tile.y + 8))
 		sheet.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), at + Vector2i(0, LABEL_HEIGHT))
 		var label := "%d %s - %s" % [seeds[i], map.layout.get_kind_name(), map.layout.get_feature_name()]
-		if map.landmark_kind() != map.MAP_LANDMARK.Kind.NONE:  # Landmarks (about 1 map in 3)
-			label += " - " + String(map.MAP_LANDMARK.NAMES[map.landmark_kind()]).replace("Old ", "")
+		if not map.landmark.pool_cells.is_empty():  # The Dew Pool (about 1 map in 3; every map has a Waystone)
+			label += " - POOL"
 		_draw_text(sheet, label.to_upper(), at + Vector2i(2, 3), 2, Color("dce8f4"))
 		main.free()
 	sheet.save_png(file)
