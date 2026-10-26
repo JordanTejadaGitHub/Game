@@ -921,7 +921,7 @@ static func _toll_one(tower: Tower, enemy: Node2D, share: float) -> void:
 	var vespers := tower.kin_share(VESPERS, "a")
 	if vespers > 0.0 and is_instance_valid(enemy):
 		silence(enemy, 2.0 * vespers, tower)
-	Fx.play(&"toll_ring", Tower.aim_at(enemy), world(tower))
+	Fx.play(&"toll_ring", Tower.feet_of(enemy), world(tower))  # Drawn for the feet
 	# Who it tolled (user 2026-10-18: "can't see who it attacks"): the sound rolling from the bell to the target, and the
 	# toll landing on it (Tower Assets art).
 	if is_instance_valid(enemy):
@@ -1240,7 +1240,7 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 		if not e.has_meta(&"deeproot_held") and e.global_position.distance_to(heart) <= reach:
 			e.set_meta(&"deeproot_held", true)  # Once each, whichever Deeproot got there first
 			_land_hold(tower, e, p(tower, "goal_hold", 1.0))
-			_fx(&"goal_hold", Tower.aim_at(e), world(tower))
+			_fx(&"goal_hold", Tower.feet_of(e), world(tower))  # Drawn for the feet
 
 # Deeproot's guard ring as [centre, reach in pixels] (the Watchtower signature watches it), [] for other Wardens.
 static func guard_area(tower: Tower) -> Array:
@@ -1304,7 +1304,7 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 			held.append(e)
 			_thorn(tower, e, amount)
 			if _fx_due(e, &"thorn_fx_at", 1.0):
-				_fx(&"thorns", Tower.aim_at(e), e, 1.0, 1.0)  # A loop on its feet while the thorns bite
+				_fx(&"thorns", Tower.feet_of(e), e, 1.0, 1.0)  # A loop on its feet while the thorns bite
 		elif flyers > 0.0 and e.is_flying():
 			_thorn(tower, e, amount * 0.5 * flyers)
 	if not is_final(tower) or held.is_empty():

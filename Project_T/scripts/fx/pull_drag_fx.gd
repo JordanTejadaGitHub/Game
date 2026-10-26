@@ -33,7 +33,7 @@ var _front: PullDragFx
 
 # Roots grab `enemy`'s feet and hold until release(). Returns the node (Enemy keeps it).
 static func grab(enemy: Node2D) -> PullDragFx:
-	var node := _make(Kind.GRAB, &"root_grab", enemy, enemy.global_position + FEET)
+	var node := _make(Kind.GRAB, &"root_grab", enemy, Tower.feet_of(enemy) + FEET)  # Its drawn feet (lane, corner), then the ground under them
 	if node:
 		node.follow = enemy
 		node.z_index = -1  # Under the nightmares (ground effects)
@@ -101,7 +101,7 @@ func _process(delta: float) -> void:
 	match kind:
 		Kind.GRAB:
 			if follow != null and is_instance_valid(follow) and phase != Phase.RELEASE:
-				global_position = follow.global_position + FEET
+				global_position = Tower.feet_of(follow) + FEET  # Follows the drawn feet
 			elif follow == null or not is_instance_valid(follow):
 				release()
 			if phase == Phase.WRAP and _phase_age * _fps() >= _wrap_frames():

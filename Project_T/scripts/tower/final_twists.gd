@@ -144,7 +144,7 @@ static func _dream_spores(tower: Tower) -> void:
 		for other in Tower.nightmares_near(tower.get_tree(), sleeper.global_position, reach):
 			if other != sleeper and not other.is_cleansed and other.global_position.distance_to(sleeper.global_position) <= reach:
 				tower._apply_one_status(other, EnemyStatuses.SPORED, 1, tower.get_damage() * DREAM_SPORES_SOOTHE)  # Half: Puffball-level stacks
-		_fx(tower, &"dream_spore_puff", sleeper.global_position, Color(Palette.BLOSSOM, 0.5), DREAM_SPORES_EVERY)  # Pink on purpose
+		_fx(tower, &"dream_spore_puff", Tower.feet_of(sleeper), Color(Palette.BLOSSOM, 0.5), DREAM_SPORES_EVERY)  # Pink on purpose; at its feet
 
 # --- Boulderback: Landslide ---------------------------------------------------------------------------
 
@@ -404,7 +404,7 @@ static func ring_stepped(tower: Tower, enemy: Node2D) -> void:
 	if steps >= DANCE_RINGS:
 		enemy.set_meta(&"danced", true)
 		_hold(tower, enemy, DANCE_HOLD)
-		_fx(tower, &"fairy_dance", Tower.aim_at(enemy), Color(Palette.BLOSSOM, 0.8), DANCE_HOLD)
+		_fx(tower, &"fairy_dance", Tower.feet_of(enemy), Color(Palette.BLOSSOM, 0.8), DANCE_HOLD)  # Drawn for the feet
 
 # --- Morning Fog: Veil --------------------------------------------------------------------------------
 
@@ -479,7 +479,7 @@ class BeaconRing extends Node2D:
 # Snugroot: a root knot under the jammed nightmare for the Hold.
 static func _logjam_knot(tower: Tower, enemy: Node2D) -> void:
 	var seconds: float = enemy.statuses.time_left(EnemyStatuses.HELD)
-	var knot := _fx(tower, &"logjam_knot", Tower.aim_at(enemy), Color(Palette.BARK, 0.7), maxf(seconds, 0.3))
+	var knot := _fx(tower, &"logjam_knot", Tower.feet_of(enemy), Color(Palette.BARK, 0.7), maxf(seconds, 0.3))  # Drawn for the feet
 	if knot != null:
 		knot.z_index = -1  # On the ground, under the nightmare
 
