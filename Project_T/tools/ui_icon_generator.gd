@@ -441,16 +441,31 @@ func _dt_line(a: Vector2i, b: Vector2i, col: Color) -> void:
 # Statuses ---------------------------------------------------------------------------------------
 
 func _ic_damp() -> void:
-	# Soaked: rolling water, three waves (never a drop: a drop always means Dew).
-	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
-	for y0 in [3.6, 8.0, 12.4]:
-		var pts: Array = []
-		for i in 9:
-			var x := 1.0 + i * 1.75
-			pts.append(Vector2(x, y0 + sin(i * PI / 2.0) * 1.3))
-		_c_line(pts, 1.7, k)
-	_dt(3, 2, Color.WHITE)
-	_dt(3, 7, Color("#f0faff"))
+	# Soaked: a breaking wave, water running off it (never a drop: a drop always means Dew). Owner 2026-10-25 "redo the wet
+	# status's icon"; UI council rounds 1-4: a solid wave whose back slopes into the body, its face filled up to the curl
+	# (a tube left under the lip), two square run-off stubs in the belly's shade.
+	var k := _rpn("dewlight", "dew", "pool")
+	_c_ring(Vector2(9, 7.5), 6.0, 3.2, k)
+	_c_erase_disc(Vector2(13.5, 9.5), 3.6)
+	for y in range(7, 11):  # No hanging tip at the lip: the C stays open
+		for x in range(12, 16):
+			_cells.erase(Vector2i(x, y))
+	_c_rect(Rect2i(13, 5, 2, 2), k)  # The crest ends in a square block pointing down
+	_c_rect(Rect2i(1, 11, 14, 4), k)
+	_c_poly(PackedVector2Array([Vector2(1, 11), Vector2(3, 8.5), Vector2(5, 8.5), Vector2(6.5, 11)]), k)
+	_c_rect(Rect2i(2, 7, 1, 2), k)  # The back slopes (no upright stem: it read as a pound sign)
+	_c_rect(Rect2i(1, 9, 1, 2), k)
+	_c_rect(Rect2i(6, 9, 2, 1), k)  # The face filled up towards the curl (the auto ramp lights its stepped top edge)
+	_c_rect(Rect2i(6, 10, 5, 1), k)
+	for y in [13, 14]:  # Run-off: two flat-ended stubs under the body
+		for x in range(0, 16):
+			if not (x in [7, 8] or (x in [11, 12] and y == 13)):
+				_cells.erase(Vector2i(x, y))
+	_dt(9, 2, Palette.color("moonlight"))
+	_dt(13, 5, Palette.color("moonlight"))
+	_dt(12, 5, Palette.color("dew"))
+	for p: Vector2i in [Vector2i(7, 13), Vector2i(7, 14), Vector2i(11, 13)]:  # The run-off in the belly's shade
+		_dt(p.x, p.y, Palette.color("dew"))
 
 func _ic_drowsy() -> void:
 	var k := _rp("#f4ecff", "#c8a8f0", "#8a6ac8")
