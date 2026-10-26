@@ -191,7 +191,7 @@ func _process(delta: float) -> void:
 	if TouchBuild.mobile_controls() and _dispelled_left <= 0.0:
 		_target = hovered  # Phones: the tapped nightmare, kept until a tap elsewhere (user 2026-10-25: no timeout, 64c30f7f)
 	elif _has_pin:
-		_target = _pinned  # Pinned (owner 2026-10-25: "stay on the pinned until you let go"): hover doesn't move it
+		_target = _pinned  # Held on the clicked nightmare (owner 2026-10-25: keep it until you let go): hover doesn't move it
 	elif is_instance_valid(test_pin) and not test_pin.is_cleansed:
 		_target = test_pin  # Tests: held as if hovered, whatever the (headless) pointer does
 	else:
@@ -624,7 +624,7 @@ func _hovered_nightmare() -> Node2D:
 		return null  # Under a choice screen nothing on the map is hovered (peeking: it is)
 	if TouchBuild.mobile_controls():
 		if _drawer_open():
-			_phone_pick = null  # Phones (owner 2026-10-26: "Warden drawer should remove the pinned nightmare"): both sit on the right
+			_phone_pick = null  # Phones (owner 2026-10-26: the Warden drawer hides the held nightmare's card): both sit on the right
 		if _tool_active() or not is_instance_valid(_phone_pick) or _phone_pick.is_cleansed:
 			return null
 		return _phone_pick
