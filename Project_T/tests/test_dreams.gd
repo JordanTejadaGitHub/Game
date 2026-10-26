@@ -1071,7 +1071,7 @@ func _test_half_dreamed(main: Node) -> void:
 				dreams._offer_drift = drift
 				var offer := dreams.make_offer(drift)
 				var half := offer.filter(func(c: UpgradeData) -> bool: return dreams.is_half_dreamed(c))
-				before_pick += half.size() if drift < 35 else 0
+				before_pick += half.size() if drift < main.get_node("%DriftDirector").third_family_pick_drift else 0  # (40 since 2026-10-25)
 				through_70 += half.size()
 				var other := offer.filter(func(c: UpgradeData) -> bool: return not dreams.is_half_dreamed(c))
 				if not half.is_empty() and (other.is_empty() or rng.randf() < 0.5):
@@ -1079,11 +1079,11 @@ func _test_half_dreamed(main: Node) -> void:
 				elif not other.is_empty():
 					dreams.take(other[0])
 		main.get_node("%GameSpeed").set_paused(false)
-		print("half-dreamed (start %s): %.2f offered per run before the drift 35 pick, %.2f through drift 70" % [
+		print("half-dreamed (start %s): %.2f offered per run before the third family pick, %.2f through drift 70" % [
 			start, float(before_pick) / RUNS, float(through_70) / RUNS])
 		# A floor, not a target: 60 runs give about ±0.08 of noise, and the map (its size and route) changes which cards can be
 		# drawn, so 0.43 on one map is 0.38 on the 20x16 one. Broken half-dreaming shows as about 0.
-		_check(float(before_pick) / RUNS >= 0.3, "half-dreamed cards: at least 0.3 per run before the drift 35 pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
+		_check(float(before_pick) / RUNS >= 0.3, "half-dreamed cards: at least 0.3 per run before the third family pick (start %s: %.2f)" % [start, float(before_pick) / RUNS])
 	_reset_dreams(main)
 
 

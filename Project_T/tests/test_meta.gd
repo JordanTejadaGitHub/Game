@@ -190,7 +190,7 @@ func _run() -> void:
 	# Milestones only give bonus Seeds (meta_design.md "Milestones"): one line each in the breakdown, after the Seed bonus.
 	var milestone_lines: Array = meta.milestone_seed_lines(true)
 	var line_names: Array = milestone_lines.map(func(l: Array) -> String: return l[0])
-	_check(line_names == ["Milestone · Dispel your first boss", "Milestone · Win a run", "Milestone · Build a 130-tile path",
+	_check(line_names == ["Milestone · Dispel your first boss", "Milestone · Win a run", "Milestone · Build a 130-cell path",
 		"Milestone · Win without losing a leaf", "Milestone · Reach Blight Level 5", "Milestone · Discover every combo", "Milestone · See every Dream card"],
 		"each new milestone is its own Seed line (%s)" % [line_names])
 	_check(milestone_lines.reduce(func(sum: int, l: Array) -> int: return sum + int(l[1]), 0) == 20 + 60 + 30 + 100 + 50 + 60 + 60, "with its bonus")

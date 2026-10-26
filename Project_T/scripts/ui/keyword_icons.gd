@@ -12,7 +12,7 @@ const SIZE := 16  # Art pixels per side
 # Keyword id -> the word on its chip.
 const WORDS := {&"stacks": "Stacks", &"linger": "Linger", &"jump": "Jump", &"repeat": "Repeat", &"reaction": "Reaction",
 	&"layered": "Layered", &"slow": "Slow", &"crit": "Crit", &"area": "Area", &"heavy": "Heavy", &"cluster": "Cluster",
-	&"rank": "Rank", &"maze": "Maze", &"lingering": "Lingering", &"age": "Age", &"order": "Order"}
+	&"rank": "Nurture rank", &"maze": "Maze", &"lingering": "Lingering", &"age": "Age", &"order": "Order"}
 # Keywords drawn with another's icon: {lingering} (a status a card keeps from running down; section 33) is Linger's hourglass.
 const ALIASES := {&"lingering": &"linger"}
 # Status chips: the player's word -> IconInfo's status id (the sheet icon). Asleep is drawn in GRIDS.
@@ -428,7 +428,7 @@ const PIPS := {
 	&"static": ["...kkk.", "..kcck.", ".kcck..", "kcccckk", "kkkcck.", "..kck..", "..kk..."],
 	&"held": ["kkkkkkk", "kccccck", "kccccck", "kccccck", "kccccck", "kccccck", "kkkkkkk"],
 	&"caught": ["kk...kk", "kck.kck", ".kckck.", "..kck..", ".kckck.", "kck.kck", "kk...kk"],
-	&"frost": ["..kck..", ".ckckc.", "kkccckk", "ccccccc", "kkccckk", ".ckckc.", "..kck.."],  # A snowflake, Void-edged so it reads on the sand path (section 37; owner 2026-10-25: the tall crystal "isn't really scream frost")
+	&"frost": ["..kck..", ".ckckc.", "kkccckk", "ccccccc", "kkccckk", ".ckckc.", "..kck.."],  # A snowflake, Void-edged so it reads on the sand path (section 37; owner 2026-10-25: the tall crystal "isn't really scream Frost")
 }
 # Locked pips (section 36: a card's stacks that can't complete its own Reaction yet), drawn by hand (UI council
 # 2026-10-25): the status colour on the shape's edge, its inside emptied to Void (v). One look on every shape, never a

@@ -246,7 +246,7 @@ func _run() -> void:
 	_check(not feedback._card.visible and feedback._queue.is_empty(), "…once")
 	ComboFeedback.pause_in_tests = false
 	report.show_report(1)
-	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4, Ignite 1, Mushrooming 1, longest Chain 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),
+	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4, Ignite 1, Mushrooming 1, longest Chain 3") and report._label.get_parsed_text().contains("New combos: Pulse Bolt, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),
 		"the rest report shows Reactions and new combos (%s)" % report._label.get_parsed_text())
 	var profile_after: Dictionary = HeartwoodMemory.load_data()
 	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])
@@ -256,7 +256,7 @@ func _run() -> void:
 	ResultsScreen.demo_override = 0  # The full game: every combo in scope (the scope itself: test_codex_scope)
 	codex.open(&"combos")
 	_check(codex.visible and codex.tabs.current_tab == 1 and CodexData.combos().filter(CodexData.in_build).all(func(c: Dictionary) -> bool: return codex._entries.has(String(c.id)))
-		and CodexData.combos().size() == 16, "the Codex lists every combo in scope, of 16 (Popped retired; Sleepwalk and Night Terror 2026-10-17)")
+		and CodexData.combos().size() == 19, "the Codex lists every combo in scope, of 19 (Popped retired; Sleepwalk and Night Terror 2026-10-17; the three Frost Reactions 2026-10-25)")
 	ResultsScreen.demo_override = -1
 	# Locked entries are just "???": no ingredient icons or text (they'd give the answer away).
 	var seen_now := ComboFeedback.load_seen()
@@ -384,7 +384,7 @@ func _run() -> void:
 				"the Omen's extra traits (" + omen_line + ")")
 		juggled.queue_free()
 	# Crowned Reactions: their own discovery card, a hidden entry until found, outside the 15.
-	_check(CodexData.crowned().size() == 10 and CodexData.combos().size() == 16, "10 Crowned Reactions (Changeling and Wide Awake 2026-10-17), apart from the 16 combos")
+	_check(CodexData.crowned().size() == 10 and CodexData.combos().size() == 19, "10 Crowned Reactions (Changeling and Wide Awake 2026-10-17), apart from the 19 combos")
 	_check(ComboFeedback.discovery_text(&"tempest").begins_with("Crowned Reaction discovered: Tempest")
 		and ComboFeedback.discovery_text(&"tempest").contains("on a nightmare that also has Poison") and not ComboFeedback.discovery_text(&"tempest").contains("{"), "a Crowned discovery card says what happened: the two statuses and the third")
 	var was_demo = ProjectSettings.get_setting("game/demo", false)

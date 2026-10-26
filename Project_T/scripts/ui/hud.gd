@@ -1934,7 +1934,7 @@ func _update_maze_income() -> void:
 	var economy = drift_director.maze_economy  # The rate and the cap are MazeEconomy's (never hard-coded here)
 	var cap := roundi(economy.POT_SHARE_CAP * 100.0)
 	_maze_short = UiStyle.DEW_GLYPH + "+%d%%" % percent if percent > 0 else ""  # The row shows this when "a drift" doesn't fit (_layout_top_row)
-	_maze_full = "%s Dew a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing)
+	_maze_full = "%s a drift" % _maze_short if percent > 0 else ""  # Hidden at 0 (UI council round 3: "+0" read as nothing); the glyph is the Dew (no word too)
 	_maze_reward_label.text = _maze_short if _maze_form == MAZE_SHORT else _maze_full
 	var explanation := "Your path is %d cells longer than the starting path: every drift pays +%d%% Dew (+1%% per %d cells, up to +%d%%)." % [
 		drift_director.get_maze_added_cells(), percent, economy.POT_CELLS_PER_PERCENT, cap]

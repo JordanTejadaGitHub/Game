@@ -270,7 +270,7 @@ const TERMS := {
 	&"grove_branch": ["Grove branch", "Grove branches", "Grove branch", "grove_branches"],
 	&"ascended": ["Ascended", "Ascended", "Ascended", "ascendeds"],
 	&"nurture": ["Nurture", "Nurture", "Nurture"],
-	&"rank": ["rank", "ranks", "Rank"],
+	&"rank": ["rank", "ranks", "Nurture rank"],  # Its link opens the Codex "Nurture rank" (Grow vs Nurture, 2026-10-25)
 	&"nurture_choice": ["Nurture choice", "Nurture choices", "Nurture choice"],
 	&"signature": ["signature", "signatures", "Signature"],
 	&"mastery": ["Mastery", "Mastery", "Mastery", "masteries"],

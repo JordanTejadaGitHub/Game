@@ -492,7 +492,8 @@ static func _fill_constants(text: String) -> String:
 		.replace("{const:deepen_dreamlight}", "{dreamlight:%d}" % DreamState.DEEPEN_DREAMLIGHT) \
 		.replace("{const:pack_leaves}", str(DriftShapes.PACK_LEAVES)).replace("{const:pack_per}", str(DriftShapes.PACK_LEAVES_PER)) \
 		.replace("{const:tough_leaves}", str(DriftShapes.TOUGH_LEAVES)) \
-		.replace("{const:cold_snap}", String.num(EnemyStatuses.COLD_SNAP)).replace("{const:cold_snap_boss}", String.num(EnemyStatuses.COLD_SNAP_BOSS))
+		.replace("{const:cold_snap}", String.num(EnemyStatuses.COLD_SNAP)).replace("{const:cold_snap_boss}", String.num(EnemyStatuses.COLD_SNAP_BOSS)) \
+		.replace("{const:fed_lock}", String.num(EnemyStatuses.FED_LOCK))
 
 static func glossary() -> Array:
 	var stacks := IconInfo.stack_number("need_damp")
