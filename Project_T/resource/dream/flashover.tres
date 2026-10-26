@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "flashover"
 display_name = "Flashover"
-description = "When a Warden {near} a {family:firefly_jar} Warden hits 2 or more nightmares with one attack, half {jumps} to the nearest one it missed."
+description = "When a Warden {near} a {family:firefly_jar} Warden hits 2 or more nightmares with one attack, half jumps to the nearest one it missed."
 tip = "Half of the most it dealt to one nightmare. Once per attack. Not {family:firefly_jar} Wardens, except {warden:sparkler} and {warden:starburst} {near} another one. At most 3 s of the {family:firefly_jar} Warden's damage. Works for: pulse and splash Wardens of any family. A bet: needs a {family:firefly_jar} Warden {near} it."
 rarity = 0
 kind = 3

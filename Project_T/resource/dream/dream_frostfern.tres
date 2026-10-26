@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_frostfern"
 display_name = "Frostfern"
-description = "{warden:dewdrop}s can now {grow} into {warden:frostfern}s ({dew:{grow_cost:frostfern}}): its hits give {field:frostfern.status_stacks:count} {frost}. When a nightmare's {frost} is full it bursts, hurting it and those beside it."
+description = "{warden:dewdrop}s can now {grow} into {warden:frostfern}s ({dew:{grow_cost:frostfern}}): its hits give {field:frostfern.status_stacks:count} {frost}. At {full} {frost} a nightmare bursts, hurting it and up to 4 others within 1 cell."
 rarity = 1
 kind = 1
 tags = Array[String](["water"])

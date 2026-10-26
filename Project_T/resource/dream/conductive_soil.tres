@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "conductive_soil"
 display_name = "Conductive Soil"
-description = "A {family:firefly_jar} Warden's direct hit on a nightmare with {damp} also {jumps} for half to up to 4 nightmares with {damp} within 2 cells."
+description = "A {family:firefly_jar} Warden's direct hit on a nightmare with {damp} also jumps for half to up to 4 nightmares with {damp} within 2 cells."
 cost_description = "Each nightmare a {jump} reaches loses its {damp}."
 rarity = 2
 kind = 3

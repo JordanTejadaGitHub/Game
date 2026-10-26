@@ -264,7 +264,7 @@ func rings_blocks_plant(dreams: DreamState) -> bool:
 	return true
 
 func rings_line(dreams: DreamState) -> String:
-	return "Now: you planted this block, no free rank at the next rest" if rings_planted else "Now: nothing planted, a free rank at the next rest"
+	return "Now: you planted this block, no free Nurture rank at the next rest" if rings_planted else "Now: nothing planted, a free Nurture rank at the next rest"
 
 # Every plant (TowerPlacer.tower_built: free ones and ones made while paused too). Selling it does not undo this.
 func planted(dreams: DreamState, tower: Tower) -> void:

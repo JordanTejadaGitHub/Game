@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_stormheart"
 display_name = "Stormheart"
-description = "Any {family:firefly_jar}-{family} final form can ascend into {warden:stormheart} ({dew:{grow_cost:stormheart}}, one per run): its lightning {jumps} to every nightmare in range, dealing {field:stormheart.chain_falloff:pct} less with each {jump}, and leaves {field:stormheart.status_stacks:count} {stacks} of {static}."
+description = "Any {family:firefly_jar}-{family} final form can ascend into {warden:stormheart} ({dew:{grow_cost:stormheart}}, one per run): its lightning jumps to every nightmare in range, dealing {field:stormheart.chain_falloff:pct} less with each {jump}, and leaves {field:stormheart.status_stacks:count} {stacks} of {static}."
 rarity = 3
 kind = 1
 tags = Array[String](["light"])

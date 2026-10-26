@@ -35,7 +35,7 @@ func _run() -> void:
 	await _poll()
 	_check(mark.get_targets() == [far], "with the card, the sun sits on the only Warden (%s)" % [mark.get_targets()])
 	var row := _sunlit_row(far)
-	_check(not row.is_empty() and row.positional and row.active and row.effect == "Next Sunlit Rest rank",
+	_check(not row.is_empty() and row.positional and row.active and row.effect == "Next Sunlit Rest Nurture rank",
 		"its row is positional (the badge) and says so in the panel (%s)" % [row])
 	Tower.set_badges_visible(&"test", true)
 	far._refresh_badge()
@@ -50,7 +50,7 @@ func _run() -> void:
 
 	var raised := dreams.sunlit_rest()
 	var toast: String = main.get_node("%ToastLabel").text
-	_check(raised == [near] and near.banked_ranks == 1 and near.rank == 0 and toast == "Sunlit Rest: a free rank waits on %s." % near.tower_data.display_name,
+	_check(raised == [near] and near.banked_ranks == 1 and near.rank == 0 and toast == "Sunlit Rest: a free Nurture rank waits on %s." % near.tower_data.display_name,
 		"the rest toasts who got the rank (%s)" % toast)
 
 	near.free()

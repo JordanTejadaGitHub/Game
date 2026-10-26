@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tangled_lightning"
 display_name = "Tangled Lightning"
-description = "{family:firefly_jar} Wardens' direct hits also {jump} to 1 nightmare with {static} within 2 cells, a full hit that uses up 3 of its {static}."
+description = "{family:firefly_jar} Wardens' direct hits also jump to 1 nightmare with {static} within 2 cells, a full hit that uses up 3 of its {static}."
 rarity = 1
 kind = 3
 tags = Array[String](["chain", "reaction"])
