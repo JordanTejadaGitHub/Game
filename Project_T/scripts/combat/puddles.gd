@@ -877,11 +877,19 @@ func on_poll() -> void:
 		var was_water: Dictionary = waters[was] if was >= 0 and was < waters.size() else {}
 		if w != was:
 			enemy.set_meta(WATER_META, w)
+			if (w >= 0) != (was >= 0):
+				_wade_splash(enemy)  # Into the water from dry ground, or back out (one water to the next: no splash)
 			if not was_water.is_empty():
 				_left(enemy, was_water)
 			if w >= 0:
 				_entered(enemy, waters[w])
 	_evolutions_poll()
+
+# The wading cue's splash (dw_wade_splash, the asset chat's): a walker stepping into or out of the water, at its feet, in
+# front of them (z 0, sorted 1 px under the feet as the other splashes). Nothing without the sheet.
+func _wade_splash(enemy) -> void:
+	if living(enemy) and not enemy.is_flying() and place_on():
+		_one_shot(ART_WADE_SPLASH, _feet(enemy) + Vector2(0.0, 1.0), 0)
 
 func on_rest() -> void:
 	if not _prints.is_empty():  # Nothing waits through a rest: footprints dry at once
@@ -2556,12 +2564,14 @@ var _body: CanvasGroup
 var _damp_art: Node2D
 var _body_art: Node2D
 var _surface: Node2D
-var _wade_copy: BackBufferCopy  # The screen saved after the water, before the nightmares
-var _wade_material: ShaderMaterial  # Draws that saved screen (the water over the legs)
-var _wade_layer: Node2D  # The wading stands, in the map's y-sort
+var _wade_copy: BackBufferCopy  # (Unused since 2026-10-25: no water is drawn over wading nightmares any more)
+var _wade_layer: Node2D  # The wading stands (their cues), in the map's y-sort
 var _wade_stands := {}  # Nightmare instance id -> its WadeStand
-# The saved screen at this pixel: the water as it was under the nightmare.
-const WADE_SHADER_CODE := "shader_type canvas_item;\nuniform sampler2D screen : hint_screen_texture, filter_nearest;\nvoid fragment() {\n\tCOLOR = vec4(texture(screen, SCREEN_UV).rgb, COLOR.a);\n}\n"  # (Built per node, never a static: a static Shader crashes at exit)
+# Wading cues (owner bug 2026-10-25; the asset chat's sheets, each optional: without one the drawn cue stays): a ripple
+# round the feet, the knee-deep tint over the lower body, a splash on entering / leaving the water. Walkers only.
+const ART_WADE_RIPPLE := &"dw_wade_ripple"  # Loop, anchor = the feet; drawn in the WadeStand just in front of the nightmare
+const ART_WADE_TINT := &"dw_wade_tint"  # Static or loop, anchor = the feet; deep water may use frame 1
+const ART_WADE_SPLASH := &"dw_wade_splash"  # One shot, anchor = the feet; on entering and on leaving the water
 var _water_map_key := ""  # (_water_key is the Whirlpool's per-water key)
 var _surface_frame := -1
 var _splashes: Array = []  # [local position, age]
@@ -2618,24 +2628,15 @@ func _ensure_water_nodes() -> void:
 	_body_art = WaterArt.new(self, 1)
 	_body.add_child(_body_art)
 	_surface = WaterArt.new(self, 2)
-	# The water over wading nightmares' legs (owner 2026-10-24: "can see the nightmares legs so it look weird"): a
-	# BackBufferCopy right after the water on the path layer saves the screen as it is before any nightmare is drawn; each
-	# wading nightmare's WadeStand (in the map's y-sort, just in front of it: _sync_wading) draws an oval of that saved
-	# screen over its legs (WADE_SHADER_CODE), so they are under the water itself, pools and ripples, with no patch to see.
-	_wade_copy = BackBufferCopy.new()
-	_wade_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
-	var shader := Shader.new()
-	shader.code = WADE_SHADER_CODE
-	_wade_material = ShaderMaterial.new()
-	_wade_material.shader = shader
-	# Damp, body and surface go on the map's path layer, over its tiles (the trodden lane was drawn over the water, like the
-	# Lantern Light glow before it).
+	# (No more water over wading nightmares' legs: owner bug 2026-10-25, the water drew over nightmares walking into it.
+	# The water is a ground effect only; a wading nightmare gets cues instead: _draw_wade_part and _wade_splash.)
+	# Damp, body and surface go on the map's path layer (z -1, with the ground, under the nightmares' y-sort), over its
+	# tiles (the trodden lane was drawn over the water, like the Lantern Light glow before it).
 	var map = dream_state.get("map_generator") if dream_state != null else null
 	var layer: Node2D = map.path_layer if map != null and "path_layer" in map and is_instance_valid(map.path_layer) else self
 	for node in [_mud_art, _damp, _body, _surface]:  # Mud first: under the damp band
 		layer.add_child(node)
 		node.position = layer.to_local(global_position) if layer != self else Vector2.ZERO
-	layer.add_child(_wade_copy)  # Last on the path layer: after the water, before anything standing
 
 func _tick_water(delta: float) -> void:
 	if not place_on():
@@ -3021,7 +3022,7 @@ func _sync_wading() -> void:
 			keep[id] = true
 			var stand: WadeStand = _wade_stands.get(id)
 			if stand == null or not is_instance_valid(stand):
-				stand = WadeStand.new(self, _wade_material)
+				stand = WadeStand.new(self)
 				_wade_layer.add_child(stand)
 				_wade_stands[id] = stand
 			stand.enemy = enemy
@@ -3146,31 +3147,34 @@ func _drawn_water_of(enemy) -> int:
 			return w
 	return -1
 
-# A WadeStand's two parts: kind 0 the oval of saved water (its shader), kind 1 the marks over it.
+# A WadeStand's cues (kind 1; the old kind 0, saved water over the legs, is gone: owner bug 2026-10-25). Each cue is the
+# asset chat's sheet when it exists, else the drawn cue: the knee-deep tint (else the waterline arc), the feet ripple
+# (else the ring and the two side glints), Fathoms' climbing water, the wake.
 func _draw_wade_part(c: CanvasItem, stand, kind: int) -> void:
+	if kind != 1:
+		return
 	var centre: Vector2 = stand.centre
 	var half: Vector2 = stand.half
-	c.draw_set_transform(centre, 0.0, Vector2(1.0, half.y / half.x))
-	if kind == 0:
-		c.draw_circle(Vector2.ZERO, half.x, Palette.HEARTLIGHT)  # A mask: its shader draws the saved water there (only the alpha is used)
-		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
 	var still: bool = motion_still()
 	var deep: bool = stand.deep
 	var scale: float = half.x / WADE_COVER.x
+	var feet: Vector2 = centre + Vector2(0.0, WADE_DEPTH * scale)
+	var phase := int(stand.ring_phase * 10.0)  # Neighbours don't ripple in step
 	var depth := _fathoms_frame(stand.enemy)
 	if depth >= 0:  # Fathoms (dw_fathoms): the dark water climbing its body, with its own lit waterline; anchor = its feet
-		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		evo_mark(c, ART_FATHOMS, centre + Vector2(0.0, WADE_DEPTH * scale), 1.0, false, depth)
+		evo_mark(c, ART_FATHOMS, feet, 1.0, false, depth)
+	elif not evo_mark(c, ART_WADE_TINT, feet, 1.0, false, 1 if deep else 0):
 		c.draw_set_transform(centre, 0.0, Vector2(1.0, half.y / half.x))
-	else:
 		c.draw_arc(Vector2.ZERO, half.x * 0.75, PI + 0.6, TAU - 0.6, 14, Color(Palette.DEW if deep else Palette.DEWLIGHT, 0.45), 1.0)  # The waterline, across the body only (0.6 read as domes, council pass 5)
-	if not still:
-		var ring := fposmod(now() * 1.5 + float(stand.ring_phase), 1.0)
-		c.draw_arc(Vector2.ZERO, half.x + 6.0 * ring, PI + 0.5, TAU - 0.5, 16, Color(Palette.DEWLIGHT, 0.35 * (1.0 - ring)), 1.5)  # Trimmed: its ends traced the oval
-	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	for side: float in [-1.0, 1.0]:  # A bright splash where the water meets each side of the body (cold water light)
-		c.draw_rect(Rect2((centre + Vector2(side * 9.0 * scale, -half.y * 0.45)).round(), Vector2(1, 1)), Color(Palette.DEWLIGHT, 0.9))
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if not evo_mark(c, ART_WADE_RIPPLE, feet, 1.0, false, -1, phase):
+		c.draw_set_transform(centre, 0.0, Vector2(1.0, half.y / half.x))
+		if not still:
+			var ring := fposmod(now() * 1.5 + float(stand.ring_phase), 1.0)
+			c.draw_arc(Vector2.ZERO, half.x + 6.0 * ring, PI + 0.5, TAU - 0.5, 16, Color(Palette.DEWLIGHT, 0.35 * (1.0 - ring)), 1.5)  # Trimmed: its ends traced the oval
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		for side: float in [-1.0, 1.0]:  # A bright splash where the water meets each side of the body (cold water light)
+			c.draw_rect(Rect2((centre + Vector2(side * 9.0 * scale, -half.y * 0.45)).round(), Vector2(1, 1)), Color(Palette.DEWLIGHT, 0.9))
 	var move: Vector2 = stand.move
 	# No wake walking down the screen: behind it is up, over its own body (council pass 3: an arm ran up through it)
 	if not still and move.length() > 0.2 and move.normalized().y < 0.6:
@@ -3189,17 +3193,12 @@ class WadeStand extends Node2D:
 	var deep := false
 	var ring_phase := 0.0
 	var move := Vector2.ZERO
-	var _water: WadePart
 	var _marks: WadePart
-	func _init(puddles, material: Material) -> void:
+	func _init(puddles) -> void:
 		name = "Wading"
-		_water = WadePart.new(puddles, self, 0)
-		_water.material = material
-		add_child(_water)
-		_marks = WadePart.new(puddles, self, 1)
+		_marks = WadePart.new(puddles, self, 1)  # Its cues only (the water itself stays on the ground, 2026-10-25)
 		add_child(_marks)
 	func redraw() -> void:
-		_water.queue_redraw()
 		_marks.queue_redraw()
 
 class WadePart extends Node2D:
