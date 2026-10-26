@@ -624,6 +624,12 @@ func _overnight(spore, enemy) -> void:
 		enemy.set_meta(NIGHT_META, next)
 
 # Whether the stack cards may add to `id` (never Rooted; Drowsy only with STACK_DROWSY, within its normal cap).
+# Whether a held row reads a place on the path (Feeding Ground's fed steps, Fairy Path's / Sprout Beds' spots): only then
+# does a hovered or selected Sporeling-family Warden keep its path highlight (TowerPlacer.draw_placement; owner
+# 2026-10-25: Spore Print's effect is its mushrooms, which already show).
+func reads_path_places() -> bool:
+	return place_on() and (evo(EVO_FEEDING) or evo(EVO_FAIRY_PATH) or evo(EVO_SPROUT_BEDS))
+
 func _stackable(id: StringName) -> bool:
 	return id != EnemyStatuses.HELD and id != DreamState.FROST and (STACK_DROWSY or id != EnemyStatuses.DROWSY)  # Frost only from Frost Wardens (section 37)
 
