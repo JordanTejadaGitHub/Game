@@ -1,5 +1,35 @@
 {
 	"marks": {
+		"dw_blue_splash": {
+			"anchor": [
+				7,
+				13
+			],
+			"file": "dw_blue_splash.png",
+			"fps": 12.0,
+			"frame_size": [
+				15,
+				15
+			],
+			"frames": 4,
+			"loop": false,
+			"use": "Tidal Bore / River Mouth / Delta: the big splash on a hit, a crown of water rising with white tips, breaking into drops and falling back into a pale ring (one shot, ~0.33 s). Anchor = the hit's foot."
+		},
+		"dw_floodgate_froth": {
+			"anchor": [
+				16,
+				9
+			],
+			"file": "dw_floodgate_froth.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				18
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point."
+		},
 		"dw_footprints": {
 			"anchor": [
 				8,
@@ -14,6 +44,21 @@
 			"frames": 2,
 			"loop": false,
 			"use": "Wet Footprints: the nightmare's wet dragging trail, two ragged smears with a cold wet shine (frames alternate down the path); fade them with alpha over PRINT_SECONDS. Anchor = the route point."
+		},
+		"dw_heavy_cling": {
+			"anchor": [
+				19,
+				8
+			],
+			"file": "dw_heavy_cling.png",
+			"fps": 6.0,
+			"frame_size": [
+				30,
+				14
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet."
 		},
 		"dw_mud": {
 			"anchor": [
@@ -60,6 +105,21 @@
 			"loop": true,
 			"use": "Still Water: the water goes mirror-still and a pale crescent moon shows in it, wavering a little (on the water surface, one every few steps). Anchor = the route point."
 		},
+		"dw_tidal_bore": {
+			"anchor": [
+				15,
+				25
+			],
+			"file": "dw_tidal_bore.png",
+			"fps": 10.0,
+			"frame_size": [
+				30,
+				26
+			],
+			"frames": 6,
+			"loop": true,
+			"use": "Tidal Bore: a tidal wave rolling with the tough nightmare through the mouth, heaving, its lip curling forward in foam (drawn rolling right: flip it rolling left); drawn just behind the nightmare. Anchor = the wave's foot, under the nightmare."
+		},
 		"dw_wave_flash": {
 			"anchor": [
 				13,
@@ -105,6 +165,21 @@
 			"loop": true,
 			"use": "Down the Line / Both Ways: a primed nightmare's mark, a small bronze bell lit from the upper left, its clapper swinging (over its pips). Its ring arcs can use the same ramp: Oak, Ember, Gold. Anchor = the bell's lip."
 		},
+		"kt_counter_note": {
+			"anchor": [
+				4,
+				11
+			],
+			"file": "kt_counter_note.png",
+			"fps": 0.0,
+			"frame_size": [
+				9,
+				12
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Counterpoint: one small note per kind over the nightmare, modulated (multiplier) by that kind's colour; space them 6 px apart, at most 4. Frame 0 hanging, frame 1 flashing at the toll. Anchor = the note head's foot."
+		},
 		"kt_humming_pip": {
 			"anchor": [
 				12,
@@ -119,6 +194,36 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Humming Walls: the pip a wall filled, a thorn-wrapped bead in Thornwall colours with hum arcs pulsing outward. Anchor = centre."
+		},
+		"kt_tally": {
+			"anchor": [
+				9,
+				14
+			],
+			"file": "kt_tally.png",
+			"fps": 0.0,
+			"frame_size": [
+				19,
+				15
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (x 5..13, y 7..10): one group of five, then a count. Anchor = its bottom middle."
+		},
+		"kt_tally_mark": {
+			"anchor": [
+				0,
+				0
+			],
+			"file": "kt_tally_mark.png",
+			"fps": 0.0,
+			"frame_size": [
+				8,
+				5
+			],
+			"frames": 2,
+			"loop": false,
+			"use": "Last Bell: the tally's engraved marks. Frame 0 one stroke (2 px wide: the cut and its lit edge; place strokes 2 px apart), frame 1 the slash over a group of four. Anchor = top left."
 		},
 		"lf_constellation_pip": {
 			"anchor": [
@@ -165,6 +270,21 @@
 			"loop": true,
 			"use": "Full Glow: eight firefly motes circling a lit nightmare's feet in a faint pool of light (on the ground, under it). Anchor = centre."
 		},
+		"lf_lantern": {
+			"anchor": [
+				8,
+				17
+			],
+			"file": "lf_lantern.png",
+			"fps": 6.0,
+			"frame_size": [
+				17,
+				18
+			],
+			"frames": 5,
+			"loop": true,
+			"use": "Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing (loop the pair: the flame flickers, the halo shimmers). Anchor = its base's middle."
+		},
 		"lf_moth_flame": {
 			"anchor": [
 				9,
@@ -210,6 +330,21 @@
 			"loop": true,
 			"use": "Sightline: a warm eye-shaped gleam on each pale-path step that blinks slowly (on the ground). Anchor = the step's centre."
 		},
+		"lf_streak_flare": {
+			"anchor": [
+				10,
+				10
+			],
+			"file": "lf_streak_flare.png",
+			"fps": 14.0,
+			"frame_size": [
+				21,
+				21
+			],
+			"frames": 15,
+			"loop": false,
+			"use": "Lantern Alley: the lantern's flare each time its streak grows, a warm ring with ember sparks (one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame)."
+		},
 		"lf_strung_pip": {
 			"anchor": [
 				3,
@@ -240,6 +375,21 @@
 			"loop": true,
 			"use": "Bonfire: a little bonfire, a two-tongued flame on crossed sticks, over a nightmare holding a waiting crit (LanternMark; was two circles at (-10, -30)). Anchor = the sticks' foot."
 		},
+		"sp_black_spot": {
+			"anchor": [
+				6,
+				9
+			],
+			"file": "sp_black_spot.png",
+			"fps": 4.0,
+			"frame_size": [
+				13,
+				10
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point."
+		},
 		"sp_cap_badge": {
 			"anchor": [
 				8,
@@ -254,6 +404,21 @@
 			"frames": 2,
 			"loop": false,
 			"use": "Host Trees: the cap a Warden of another family wears. Frame 0 its own cap (Blossom), frame 1 a passed-on cap (Spreading Caps: pale). Anchor = the stem's foot, on the Warden's head."
+		},
+		"sp_deep_rot_ring": {
+			"anchor": [
+				22,
+				10
+			],
+			"file": "sp_deep_rot_ring.png",
+			"fps": 10.0,
+			"frame_size": [
+				44,
+				20
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Deep Rot: every 10 steps a dark green rot ring swells out from under the boss, a moss light on its front, then breaks into chunks that sink (one shot, 0.5 s, on the ground). Anchor = its feet."
 		},
 		"sp_fed_ground": {
 			"anchor": [
@@ -284,6 +449,51 @@
 			"frames": 4,
 			"loop": true,
 			"use": "Rot Ground: a rotten ring on a Sprout bed's step, fallen grey cap stubs on it and a pink spore wisp rising (on the ground). Anchor = the step's route point."
+		},
+		"sp_season_haze": {
+			"anchor": [
+				16,
+				8
+			],
+			"file": "sp_season_haze.png",
+			"fps": 3.0,
+			"frame_size": [
+				32,
+				14
+			],
+			"frames": 4,
+			"loop": true,
+			"use": "Spore Season: a low green spore haze lying over each trail step while the Season is lit, pink spores rising out of it (on the ground, over the path, under the nightmares; flip every other step's tile so the trail doesn't repeat). Anchor = the route point."
+		},
+		"sp_spore_fleck": {
+			"anchor": [
+				4,
+				5
+			],
+			"file": "sp_spore_fleck.png",
+			"fps": 12.0,
+			"frame_size": [
+				9,
+				9
+			],
+			"frames": 4,
+			"loop": false,
+			"use": "Host Trees: the pink spore fleck where a capped Warden's tick or hit lands (one shot, ~0.33 s). Anchor = the hit point."
+		},
+		"sp_spot_fleck": {
+			"anchor": [
+				3,
+				8
+			],
+			"file": "sp_spot_fleck.png",
+			"fps": 12.0,
+			"frame_size": [
+				11,
+				11
+			],
+			"frames": 4,
+			"loop": false,
+			"use": "Black Spot: the black rot splat that lands on each Warden as it hits the marked nightmare, drops flicked off it (drawn flicking up-right: flip it toward the Warden; one shot, ~0.33 s). Anchor = the splat on the Warden."
 		},
 		"sp_throne_rim": {
 			"anchor": [
