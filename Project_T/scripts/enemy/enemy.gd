@@ -1419,12 +1419,18 @@ func _rooted_echo() -> void:
 	if DreamState.undiluted_on and amount > 0.0 and not is_cleansed:
 		take_damage(amount, "", false, false, by, UNDILUTED_ECHO_TAG)
 
-# Only small nightmares, the ones that bunch, ever go to crowd pips (owner 2026-10-25: "pips only show for small health
-# enemies that usually bunch but leave it off for high health enemies"): a kind whose base health (EnemyData.health, at
-# drift 1) is above this keeps its full row in a crowd, as bosses and elites (Few and tough's too) already do. 150 =
-# Creep, Sob, Wraith, Phantom, Will-o'-Wisp, Lurker, Night Kite, Dream Thief, Shade, Sleepwalker, Crow, Drowned One,
-# Mourner; Pall, Weeper and up (160+) keep their rows.
-const CROWD_PIP_HEALTH_MAX := 150
+# Only the small kinds that bunch ever go to crowd pips (owner 2026-10-25: "pips only show for small health enemies that
+# usually bunch but leave it off for high health enemies", "should be enemy types"): every other kind keeps its full row
+# in a crowd, as bosses and elites (Few and tough's too) already do. Kind ids = the EnemyData file names.
+const CROWD_PIP_KINDS: Array[StringName] = [&"spiderling", &"puffcaplet", &"duckling", &"dandelion_seed", &"will_o_wisp",
+	&"dusk_moth", &"night_kite", &"dream_thief", &"leaf_bug", &"wandering_hare", &"crow", &"drowned_one", &"puffcap"]
+var _pip_kind := -1  # 1 = its kind can go to crowd pips, 0 = never; looked up once (-1 = not yet)
+
+func _can_crowd_pip() -> bool:
+	if _pip_kind < 0:
+		var kind := StringName(enemy_data.resource_path.get_file().get_basename()) if enemy_data != null else &""
+		_pip_kind = 1 if CROWD_PIP_KINDS.has(kind) else 0
+	return _pip_kind == 1
 
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
@@ -1432,7 +1438,7 @@ func _wanted_row_look() -> RowLook:
 	var mode: int = _spawner.status_icons_now if _spawner != null else int(Fx.setting("status_icons", 1))  # (Read once a frame: perf)
 	if mode == 2:
 		return RowLook.OFF
-	if mode == 0 or enemy_data.is_boss or elite or enemy_data.health > CROWD_PIP_HEALTH_MAX:
+	if mode == 0 or enemy_data.is_boss or elite or not _can_crowd_pip():
 		return RowLook.FULL
 	if _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN:
 		return RowLook.COMPACT
