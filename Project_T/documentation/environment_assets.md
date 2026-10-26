@@ -545,8 +545,21 @@ has it"*, *"building on it does something, slow if on path if built through it"*
   buildable. Nightmares wading through it are **slowed 25%** while in it (flyers are not). The player chooses whether
   the maze runs through it. Its look must read as shallow and walkable (reeds, ripples), not the deep unbuildable pond
   feature.
-- One landmark per map at most. The first set is these two, picked evenly; more kinds can join later (parked ideas:
-  Blight Patch, Fallen Warden, Bone Arch).
+- **Update 2026-10-25 (the user):** *"there should be a waystone, at least 1 in every map generation"*. So **every map
+  has at least one Old Waystone** (the demo's first map too). The Dew Pool stays the rarer extra, on about 1 map in 3.
+  More kinds can join later (parked ideas: Blight Patch, Fallen Warden, Bone Arch).
+
+### Frame balance and the bend spur (the user, 2026-10-25, with a screenshot)
+*"There should be more obstacles on the top right and left side … push the row of obstacles a bit farther up."* In the
+screenshot (Heartwood near the top middle, start bottom right), the top-left and top-right corners were bare ground
+and the bend spur ran across the lower half, close to the start.
+- **Even frame:** the frame band's woods (groves, rock clusters) are spread over **every side and corner**. Each of the
+  four corner regions (and each side's middle) keeps a minimum share. Thinning to the obstacle target takes from the
+  densest stretch first, never strips a corner bare. The two corners beside the Heartwood's side need groves too.
+- **Bend spur higher:** the bend spur no longer sits on the row nearest the start. It sits about **halfway (40–55%)
+  between the start and the Heartwood** along the start→Heartwood axis, so the opening run is longer before the bend
+  and the space below the spur is usable. It keeps the +10 bend, `RIDGE_END_GAP` from the start and Heartwood rows,
+  and stays clear of the glade.
 - Code: placement in generation (Environment Code), the Dew Pool slow (Enemy Code, as a terrain slow on its cells),
   the Waystone bonus on a Warden's dispels (Tower Code). Numbers are Balancing's to confirm.
 ## Notes
