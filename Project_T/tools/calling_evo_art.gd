@@ -64,6 +64,7 @@ func _init() -> void:
 	_dewdrop_s33()
 	_bellflower_s33()
 	_stand_in_rows_s33()
+	_wading_marks()
 	var file := FileAccess.open(OUT + "calling_evo.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({marks = index}, "\t") + "\n")
 	print("calling_evo: ", index.size(), " sheets")
@@ -975,7 +976,7 @@ func _streak_flare(img: Image, f: int) -> void:
 
 func _dewdrop_s33() -> void:
 	_sheet("dw_heavy_cling", Vector2i(30, 14), 4, 6.0, Vector2i(19, 8), true, _heavy_cling,
-		"Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet.")
+		"Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading ripple (code hides the ripple while it shows). Anchor = its feet.")
 	_sheet("dw_floodgate_froth", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _floodgate_froth,
 		"Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point.")
 	_sheet("dw_floodgate_froth_end", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _floodgate_froth_end,
@@ -1553,3 +1554,54 @@ func _staff_echo(img: Image, f: int) -> void:
 		for s in range(-3, 4):
 			var ang := s * 0.25
 			_px(img, floori(7.5 + cos(ang) * r), floori(9.5 + sin(ang) * r), ca)
+# --- Wading, redone (owner 2026-10-25, screenshot: a nightmare entering the Dewdrop water was drawn under it, as if it
+# walked under the path. Direction: nightmares always draw on top of the water; show wading instead: a small ripple ring
+# at the feet, the bottom few pixels of the sprite tinted with the water colour (knee-deep), a soft splash on entering
+# and leaving; flyers get no ripple). Council rounds 1-3. The tint is a shader on the nightmare (code's: dw_wade_ripple's
+# note has its numbers); these are its marks.
+func _wading_marks() -> void:
+	_sheet("dw_wade_ripple", Vector2i(30, 10), 6, 6.0, Vector2i(15, 5), true, _wade_ripple,
+		"Wading: rings spreading from a walker's feet while it stands in the water (never on flyers): two soft rings a half-cycle apart, the front arc lit, the back arc faint (the body hides most of it). Drawn just under the nightmare (before its sprite), over the water. Hide it while the nightmare wears Heavy Water (dw_heavy_cling takes the feet). With it, code tints the nightmare knee-deep: the bottom 18% of its drawn height (at least 3 px), measured up from the feet anchor (never from a frame's lowest pixel), mixed 55% toward Dew, the band's top row 50% toward Dewlight (the waterline on the body); nightmares always draw over the water. Anchor = its feet.")
+	_sheet("dw_wade_splash", Vector2i(31, 14), 5, 14.0, Vector2i(15, 11), false, _wade_splash,
+		"Wading: a soft, low splash as a walker steps into or out of the water: a few low drops kicked out to the sides and a ring at the feet (one shot, ~0.36 s; never on flyers; quieter than dw_blue_splash, which is a hit). Drawn under the nightmare's sprite like the ripple (the body hides the drops behind it; the ones beside it show). Anchor = its feet.")
+
+func _wade_ripple(img: Image, f: int) -> void:
+	# Two rings spreading from the feet, a half-cycle apart (period 6 on the 6-frame loop: no seam): squashed for the
+	# ground, the front (lower) arc Dewlight with a Moonlight lead on the young ring, the back arc faint; each fades in
+	# steps as it widens.
+	var c := Vector2(15.0, 5.0)
+	for i in 2:
+		var age := (f + 3 * i) % 6
+		var rx := 6.0 + age * 1.6
+		var ry := rx * 0.32
+		var alpha: float = [0.75, 0.75, 0.75, 0.4, 0.4, 0.4][age]  # Round 1: at 1.0 the ring outshone the nightmare
+		var n := ceili(TAU * rx)
+		for k in n:
+			var a := TAU * k / n
+			var p := c + Vector2(cos(a) * rx, sin(a) * ry)
+			var front := sin(a) > 0.0
+			var col: Color = (MOON if age < 2 and absf(cos(a)) < 0.5 else DEWLIGHT) if front else DEWLIGHT
+			_px(img, floori(p.x), floori(p.y), Color(col, alpha if front else 0.4))
+
+func _wade_splash(img: Image, f: int) -> void:
+	# A low, soft splash (knee-deep, not a crown): a flat ring at the feet widening, four Dewlight drops kicked out to the
+	# sides and falling back; then only the ring, fading.
+	var c := Vector2(15.5, 11.5)
+	var rx: float = [3.0, 5.0, 7.0, 8.5, 9.5][f]
+	var ring_a: float = [0.75, 0.75, 0.75, 0.4, 0.4][f]
+	var n := ceili(TAU * rx)
+	for k in n:
+		var a := TAU * k / n
+		if sin(a) < -0.2 and f < 2:
+			continue  # The back of the ring is behind the feet at first
+		var p := c + Vector2(cos(a) * rx, sin(a) * rx * 0.32)
+		_px(img, floori(p.x), floori(p.y), Color(DEWLIGHT, ring_a))
+	# Rounds 1-2: Dewlight only and never above 6 px (white-tipped drops rising from a ring is dw_blue_splash's hit: this
+	# is a step); drawn under the sprite and fanned out to +-14: none sit on a body; beside a Shade the drops show, a Husk
+	# (+-18) hides most of them and its splash reads mainly as the ring.
+	var drops: Array = [[Vector2i(-8, -1), Vector2i(8, -1)], [Vector2i(-11, -3), Vector2i(-8, -4), Vector2i(8, -4), Vector2i(11, -3)],
+		[Vector2i(-13, -4), Vector2i(-10, -6), Vector2i(10, -6), Vector2i(13, -4)], [Vector2i(-14, -2), Vector2i(-11, -3), Vector2i(11, -3), Vector2i(14, -2)], []][f]
+	for d: Vector2i in drops:
+		var p := Vector2i(c) + d
+		_px(img, p.x, p.y, Color(DEWLIGHT, 0.75 if f < 3 else 0.4))
+

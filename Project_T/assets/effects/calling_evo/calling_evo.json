@@ -88,7 +88,7 @@
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet."
+			"use": "Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading ripple (code hides the ripple while it shows). Anchor = its feet."
 		},
 		"dw_mud": {
 			"anchor": [
@@ -254,6 +254,36 @@
 			"frames": 6,
 			"loop": true,
 			"use": "Tidal Bore: a tidal wave rolling with the tough nightmare through the mouth, heaving, its lip curling forward in foam (drawn rolling right: flip it rolling left); drawn just behind the nightmare. Anchor = the wave's foot, under the nightmare."
+		},
+		"dw_wade_ripple": {
+			"anchor": [
+				15,
+				5
+			],
+			"file": "dw_wade_ripple.png",
+			"fps": 6.0,
+			"frame_size": [
+				30,
+				10
+			],
+			"frames": 6,
+			"loop": true,
+			"use": "Wading: rings spreading from a walker's feet while it stands in the water (never on flyers): two soft rings a half-cycle apart, the front arc lit, the back arc faint (the body hides most of it). Drawn just under the nightmare (before its sprite), over the water. Hide it while the nightmare wears Heavy Water (dw_heavy_cling takes the feet). With it, code tints the nightmare knee-deep: the bottom 18% of its drawn height (at least 3 px), measured up from the feet anchor (never from a frame's lowest pixel), mixed 55% toward Dew, the band's top row 50% toward Dewlight (the waterline on the body); nightmares always draw over the water. Anchor = its feet."
+		},
+		"dw_wade_splash": {
+			"anchor": [
+				15,
+				11
+			],
+			"file": "dw_wade_splash.png",
+			"fps": 14.0,
+			"frame_size": [
+				31,
+				14
+			],
+			"frames": 5,
+			"loop": false,
+			"use": "Wading: a soft, low splash as a walker steps into or out of the water: a few low drops kicked out to the sides and a ring at the feet (one shot, ~0.36 s; never on flyers; quieter than dw_blue_splash, which is a hit). Drawn under the nightmare's sprite like the ripple (the body hides the drops behind it; the ones beside it show). Anchor = its feet."
 		},
 		"dw_wave_flash": {
 			"anchor": [
