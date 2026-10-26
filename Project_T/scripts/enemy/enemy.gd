@@ -1419,13 +1419,20 @@ func _rooted_echo() -> void:
 	if DreamState.undiluted_on and amount > 0.0 and not is_cleansed:
 		take_damage(amount, "", false, false, by, UNDILUTED_ECHO_TAG)
 
+# Only small nightmares, the ones that bunch, ever go to crowd pips (owner 2026-10-25: "pips only show for small health
+# enemies that usually bunch but leave it off for high health enemies"): a kind whose base health (EnemyData.health, at
+# drift 1) is above this keeps its full row in a crowd, as bosses and elites (Few and tough's too) already do. 150 =
+# Creep, Sob, Wraith, Phantom, Will-o'-Wisp, Lurker, Night Kite, Dream Thief, Shade, Sleepwalker, Crow, Drowned One,
+# Mourner; Pall, Weeper and up (160+) keep their rows.
+const CROWD_PIP_HEALTH_MAX := 150
+
 func _wanted_row_look() -> RowLook:
 	if _spawner != null and _spawner.hud_focus == self:
 		return RowLook.FULL
 	var mode: int = _spawner.status_icons_now if _spawner != null else int(Fx.setting("status_icons", 1))  # (Read once a frame: perf)
 	if mode == 2:
 		return RowLook.OFF
-	if mode == 0 or enemy_data.is_boss or elite:
+	if mode == 0 or enemy_data.is_boss or elite or enemy_data.health > CROWD_PIP_HEALTH_MAX:
 		return RowLook.FULL
 	if _spawner != null and crowd_seen >= 0.0 and _spawner.crowd_clock - crowd_seen <= CROWD_SEEN:
 		return RowLook.COMPACT
