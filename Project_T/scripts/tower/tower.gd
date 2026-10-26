@@ -1379,7 +1379,7 @@ func get_court_ranks() -> float:
 # nothing on this form.
 const POTENCY_STATUS_LINES := {&"spored": "{spored} ticks hit harder", &"static": "{static} bolts hit harder",
 	&"damp": "{damp} is stronger, then lasts longer", &"marked": "{marked} is stronger, then lasts longer",
-	&"drowsy": "{drowsy} lasts longer"}
+	&"drowsy": "{drowsy} lasts longer", &"frost": "its {frostburst} hits harder"}  # Frost: the burst is its potency x FROST_BURST (section 37)
 
 static func potency_uses(data: TowerData) -> Array[String]:
 	var lines: Array[String] = []
@@ -1430,6 +1430,9 @@ static func potency_uses_at(data: TowerData, potency: float, tower: Tower = null
 			EnemyStatuses.STATIC:
 				line = "{static} bolts deal ×%s its hit%s" % [_potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER * p),
 					_at_potency_one(p, "×%s" % _potency_number(EnemyStatuses.STATIC_BOLT_MULTIPLIER))]
+			EnemyStatuses.FROST:
+				line = "a {frostburst} deals ×%s its hit%s" % [_potency_number(EnemyStatuses.FROST_BURST * p),
+					_at_potency_one(p, "×%s" % _potency_number(EnemyStatuses.FROST_BURST))]  # (x min(attacks a second, 1): Tower._apply_one_status)
 			EnemyStatuses.DROWSY:
 				var base_time: float = data.status_duration if data.status_duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[id])
 				line = "{drowsy} lasts %s s%s" % [_potency_number(base_time * maxf(p, 1.0)), _at_potency_one(p, "%s s" % _potency_number(base_time))]
