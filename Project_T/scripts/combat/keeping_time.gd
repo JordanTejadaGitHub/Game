@@ -488,14 +488,53 @@ const CODA_NOTE_OFFSET := Vector2(0.0, -56.0)  # Coda's note over a Warden
 const ALLEGRO_ORBIT := 14.0  # Allegro's kept notes circle this far from the bell…
 const ALLEGRO_SPIN := 2.0  # …at this many radians a second
 
-# Counterpoint: one small note per distinct joined (non-bell) Warden on the nightmare's pips, in that Warden's status colour.
+const ART_COUNTER := &"kt_counter_note"  # Counterpoint's note (Roguelite asset 0b136e06): frame 0 still, frame 1 the toll flash
+const COUNTER_NOTE_GAP := 6.0  # The sheet's notes sit closer than the drawn ones (NOTE_GAP)
+const COUNTER_NOTE_FOOT := Vector2(0.0, 4.0)  # The sheet's anchor (its foot) from the drawn note's point
+
+# Counterpoint: one small note per distinct joined (non-bell) Warden on the nightmare's pips, in that Warden's status
+# colour, at most COUNTER_NOTES; they flash (frame 1) while the nightmare's Toll flash plays.
 func _draw_notes(enemy, at: Vector2) -> void:
 	var noted := _noted(enemy)
-	var x0 := -NOTE_GAP * (noted.size() - 1) / 2.0
-	for k in noted.size():
+	var count := mini(noted.size(), COUNTER_NOTES)
+	var art := evo_art_tex(evo_art, ART_COUNTER) != null
+	var gap := COUNTER_NOTE_GAP if art else NOTE_GAP
+	var x0 := -gap * (count - 1) / 2.0
+	var frame := 1 if art and _tolling(enemy) else 0
+	for k in count:
 		var tower = instance_from_id(int(noted[k])) if is_instance_id_valid(int(noted[k])) else null
 		var colour: Color = EnemyStatuses.COLORS.get(status_of(tower), Palette.BLOSSOM) if tower is Tower else Palette.BLOSSOM
-		_draw_note_glyph(at + Vector2(x0 + NOTE_GAP * k, 0.0), colour)
+		var point := at + Vector2(x0 + gap * k, 0.0)
+		if not art or not _draw_counter_note(point + COUNTER_NOTE_FOOT, colour, frame):
+			_draw_note_glyph(point, colour)
+
+# Whether `enemy`'s Toll flash is playing (_toll_flashes).
+func _tolling(enemy) -> bool:
+	for f in _toll_flashes:
+		if f.enemy.get_ref() == enemy:
+			return true
+	return false
+
+# kt_counter_note on its anchor, tinted (draw_evo_art takes alpha only). False when the sheet is missing.
+func _draw_counter_note(at: Vector2, colour: Color, frame: int) -> bool:
+	var tex := evo_art_tex(evo_art, ART_COUNTER)
+	if tex == null:
+		return false
+	var meta := evo_art_meta(evo_art, ART_COUNTER)
+	var frames := maxi(int(meta.get("frames", 1)), 1)
+	var size_v: Variant = meta.get("frame_size")
+	var anchor_v: Variant = meta.get("anchor")
+	var w := float(tex.get_width()) / frames
+	var h := float(tex.get_height())
+	if size_v is Array and (size_v as Array).size() >= 2:
+		w = float(size_v[0])
+		h = float(size_v[1])
+	var anchor := Vector2(floorf(w / 2.0), h)
+	if anchor_v is Array and (anchor_v as Array).size() >= 2:
+		anchor = Vector2(float(anchor_v[0]), float(anchor_v[1]))
+	var source := Rect2(w * clampi(frame, 0, frames - 1), 0.0, w, h)
+	_pip_layer.draw_texture_rect_region(tex, Rect2((at - anchor).round(), Vector2(w, h)), source, colour)  # multiplier: the kind's status colour tints the note
+	return true
 
 func _draw_note_glyph(at: Vector2, colour: Color) -> void:
 	_pip_layer.draw_circle(at + Vector2(-1.5, 2.0), 2.0, colour)
