@@ -129,6 +129,8 @@ func _process(delta: float) -> void:
 	var statuses: Array[String] = []
 	for id in _target.get_status_order():  # The badge row's order, most important first
 		statuses.append(_target.statuses.describe(id))
+		if _target.statuses.has_method(&"is_fed") and _target.statuses.is_fed(id):  # Hollow (dream_council_review.md 36)
+			statuses.append(CodexData._fill_constants(HOLLOW_LINE))
 	if _target.has_method("get_status_notes"):  # Slow / sleep limits: "Slowed to the limit", "Awake: …"
 		statuses.append_array(_target.get_status_notes())
 	var silenced: float = _target.statuses.silence_time  # Hushbell (BranchKit): not a stacking status, its own timer
@@ -146,6 +148,10 @@ func _process(delta: float) -> void:
 		var kind_row := NightmareIcons.kind_row(data, 22.0, UiStyle.TIP_SIZE)
 		if kind_row != null:
 			_rows_box.add_child(kind_row)
+
+# Under a status a Dream card just added (wording_council_review.md "Hollow stacks", 981a425a; the seconds from
+# EnemyStatuses.FED_LOCK, never typed).
+const HOLLOW_LINE := "Hollow: a Dream card added these stacks. No Reaction can trigger on this nightmare until they fill in ({const:fed_lock} s)."
 
 # The pointer is on the status-link text, or one of its popups is open: don't rewrite it now.
 func _body_in_use() -> bool:
