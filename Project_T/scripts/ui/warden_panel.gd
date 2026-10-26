@@ -73,6 +73,10 @@ const PHONE_CENTER_ALPHA := 0.92  # card_bg, ~90% (ui_style.md)
 const PHONE_EDGE_ALPHA := 0.88
 const PHONE_STAT_ICON := 32.0  # A 16 px stat icon at 2×
 const PHONE_PORTRAIT := 48.0
+var _grow_box := VBoxContainer.new()  # Phones: "Grow into" and its GrowGrid, pinned between the scroll and the footer
+const PHONE_GROW_SHOWN := 3  # Phones: past 4 options, 3 cells and a "+N more" cell (it opens the rest)
+const PHONE_GROW_SHARE := 0.45  # Of the drawer's height: the most the pinned grow cells take before they scroll
+var _confirm_sell_one := false  # Phones: the drawer's Sell tapped once ("Sell? +25"; the next tap sells)
 
 func _ready() -> void:
 	_phone = UiStyle.is_phone()
@@ -170,6 +174,10 @@ func _ready() -> void:
 	_buttons.add_theme_constant_override("separation", 0)  # Rows: 48 px each, the hit areas touch
 	if not _phone:
 		box.add_child(_buttons)  # Actions: never scrolled away
+	else:  # Phones (owner 2026-10-26, Mobile UI council r1 ask 1): the grow options pinned above the footer, never scrolled
+		_grow_box.name = "PinnedGrow"
+		_grow_box.add_theme_constant_override("separation", 4)
+		box.add_child(_grow_box)
 	_footer.add_theme_constant_override("separation", 4)  # + the 16 px gap = 24 between Sell and Close
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
@@ -177,6 +185,9 @@ func _ready() -> void:
 	if _phone:  # The camera keeps the selected Warden clear of the drawer (_focus_selection)
 		tower_seller.selection_changed.connect(_choose_side.unbind(1))  # Right, or left for a Warden it would cover
 		visibility_changed.connect(_sync_dock)  # The dock steps away under a left drawer (and comes back when it closes)
+		visibility_changed.connect(func() -> void:
+			if not visible:
+				_hide_grow_card())
 		visibility_changed.connect(_queue_focus)
 		tower_seller.selection_changed.connect(_queue_focus.unbind(1))
 
@@ -191,6 +202,7 @@ func _ready() -> void:
 				_refresh())
 	tower_seller.selection_changed.connect(func(_towers: Array[Tower]) -> void:
 		_confirm_sell = false
+		_confirm_sell_one = false
 		_confirm_unlock = null
 		_confirm_eldest = false
 		_refresh())
@@ -323,7 +335,7 @@ func _refresh() -> void:
 	_extra.add_child(DreamBonusView.make_rows(_tower))  # "Dreams on this Warden" (the compact header leaves them out)
 	_show_details()
 
-	for child in _buttons.get_children() + _footer.get_children():
+	for child in _buttons.get_children() + _footer.get_children() + _grow_box.get_children():
 		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
@@ -366,13 +378,17 @@ func _refresh() -> void:
 				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow into %s" % Tower.grow_name(next) if _confirm_grow == next else next.display_name
+			if _phone and _confirm_grow == next:
+				label = "Tap to grow"  # Phones: a half cell cut "Grow into Spo…"; the grow card beside the drawer names the form
 			# Nothing under the name (user 2026-10-24: "remove the information underneath a growth upgrade"): the role words
 			# and the damage change are in the tip; phones keep only the tax's reason (user screenshot: "585" in orange, no reason).
 			var role := _grow_note(next)  # "Heavy, Area · wakes Hammerfall"
 			if role != "":
 				button.tooltip_text += "\n\n" + role.replace(" · ", ", ")
 			var dps_change := _grow_dps_change(next)  # "+86 a second" / "-12 a second, +Drowsy"
-			if dps_change != "":
+			if dps_change != "" and _phone:  # Phones: the grow card says it short (the PC tip's fine print made it screen-tall)
+				button.tooltip_text += "\n\n%s on one nightmare." % dps_change
+			elif dps_change != "":
 				button.tooltip_text += "\n\n%s (damage a second on one nightmare at its rank now: hits plus its own Poison or Charge; extra area or chain targets not counted)." % dps_change
 			if tax_line != "" and _phone:
 				label += " · " + tax_line
@@ -396,6 +412,8 @@ func _refresh() -> void:
 				_priced(button, label, UiStyle.DEW_GLYPH + BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
 			var tower := _tower
 			button.pressed.connect(func() -> void:
+				if _phone and _swallow_hold():
+					return  # Phones: a hold only looked at the grow card
 				if tax_line != "" and not _grow_tax_explained:  # The first taxed grow pressed: why it costs more, once
 					_grow_tax_explained = true
 					_toast(GROW_TAX_TIP)
@@ -497,7 +515,15 @@ func _refresh() -> void:
 	sell.set_meta(&"sell", true)
 	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + _refund_rule() + "\n\nKey: %s" % tower_seller.sell_key_name()  # The key and the refund in the tip
-	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell), CONNECT_DEFERRED if _phone else 0)  # Phones: after the tap's event (selling rebuilds the drawer and freed the button mid-press: a crash)
+	if _phone and _confirm_sell_one:  # Phones (owner 2026-10-26, "second tap confirms"): the dock's mark-then-Sell is gone
+		sell.text = "Sell? %s+%s" % [UiStyle.DEW_GLYPH, BossDossier.thousands(refund)]
+	sell.pressed.connect(func() -> void:
+		if _phone and not _confirm_sell_one:
+			_confirm_sell_one = true
+			_refresh()
+			return
+		_confirm_sell_one = false
+		tower_seller.sell(_tower.cell), CONNECT_DEFERRED if _phone else 0)  # Phones: after the tap's event (selling rebuilds the drawer and freed the button mid-press: a crash)
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
 		sell.disabled = true
@@ -547,7 +573,7 @@ func _refresh_group() -> void:
 	lines.append_array(DreamBonusView.group_summary(selection))  # "Solitude: 3 of 5"
 	_body.text = "\n".join(lines)
 
-	for child in _buttons.get_children() + _footer.get_children():
+	for child in _buttons.get_children() + _footer.get_children() + _grow_box.get_children():
 		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
@@ -600,6 +626,8 @@ func _refresh_group() -> void:
 			else:
 				_priced(button, label, UiStyle.DEW_GLYPH + BossDossier.thousands(price), cheapest, &"dew", false)  # Short of even one: the can't-afford style
 			button.pressed.connect(func() -> void:
+				if _phone and _swallow_hold():
+					return  # Phones: a hold only looked at the grow card
 				if not tower_seller.refuse_if_short(towers, next, true, index):
 					tower_seller.grow_group(towers, next))
 			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
@@ -791,6 +819,11 @@ func _add_target_switch(towers: Array) -> void:
 		button.add_theme_stylebox_override("hover_pressed", UiStyle.plate_box(6.0, 4.0, &"plate_yours"))
 	row.add_theme_constant_override("separation", 4)
 	_extra.add_child(row)  # In Details (light pass): a setting, not the next step; Z cycles it from anywhere
+	if _phone:  # Phones: first in Details, near the top like PC's header chip (Mobile UI council r1), not under the description
+		var head := _extra.get_node_or_null("TargetHeading")
+		if head != null:
+			_extra.move_child(head, 0)
+		_extra.move_child(row, 1 if head != null else 0)
 
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
@@ -937,6 +970,8 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 	else:
 		_priced(button, label, UiStyle.dreamlight_amount(cost) if cost > 0 else "free", cost, &"dreamlight", false)  # A row: the one primary is Nurture or a grow
 	button.pressed.connect(func() -> void:
+		if _phone and _swallow_hold():
+			return  # Phones: a hold only looked at the grow card
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):
 			return  # Short of Dreamlight (or not open yet): shake, toast, the counter flashes; nothing opens
@@ -1464,8 +1499,22 @@ func _grow_heading(count: int) -> void:
 	var head := Label.new()
 	head.text = "Grow into"
 	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiStyle.caps(head, 14)
+	UiStyle.caps(head, 16 if _phone else 14)  # Phones: small caps at 16 or more (Mobile UI council r1)
 	line.add_child(head)
+	if _phone:
+		_grow_box.add_child(line)
+		var scroll := ScrollContainer.new()  # Past PHONE_GROW_SHARE of the drawer ("+N more" opened) the cells scroll here
+		scroll.name = "GrowScroll"
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		_grow_box.add_child(scroll)
+		var grid := GridContainer.new()
+		grid.name = "GrowGrid"
+		grid.columns = 1 if count == 1 else 2  # One full width; two side by side; 3-4 two by two (owner 2026-10-26: "2x2 grid")
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 8)
+		scroll.add_child(grid)
+		return
 	_buttons.add_child(line)
 
 # One grow / unlock row (RowButton, 48 tall); past MAX_ROWS it waits behind "+N more" (its key still works).
@@ -1486,6 +1535,9 @@ func _all_buttons() -> Array:
 			out.append(child)
 	if _phone:
 		out.append_array(_footer.get_children())  # Phones: Nurture sits in the footer (prices, refusals, pulses reach it)
+		var grid := _grow_box.get_node_or_null("GrowScroll/GrowGrid")
+		if grid != null:
+			out.append_array(grid.get_children())  # The pinned grow cells
 	return out
 
 # Every option it can act on now is always shown (story chat; only not-in-this-dream forms wait, behind their Remember
@@ -1496,6 +1548,18 @@ const GROW_GRID := false
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	_as_choice(button)
+	button.set_meta(&"grow_row", true)
+	var pinned := _grow_box.get_node_or_null("GrowScroll/GrowGrid") as GridContainer if _phone else null
+	if pinned != null and not pinned.is_queued_for_deletion():  # Phones: into the pinned grid (_grow_heading made it)
+		_buttons.remove_child(button)
+		pinned.add_child(button)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size.x = 0
+		button.set_meta(&"narrow", pinned.columns > 1)  # A half-width cell: the price goes under the name
+		_hold_for_card(button)
+		if count > PHONE_GROW_SHOWN + 1 and not _more_open and index >= PHONE_GROW_SHOWN:
+			button.visible = false  # Behind "+N more" (_more_row); its key still works
+		return button
 	if GROW_GRID and count > MAX_ROWS:  # (Phones: one full-width row each since the drawer is full height, user 2026-10-21)
 		var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
 		if grid == null or grid.is_queued_for_deletion():
@@ -1516,6 +1580,20 @@ func _grow_row(index: int, count: int) -> Button:
 # Was "+N more" over the rows past MAX_ROWS; every option it can act on now always shows (story chat), so it only notes the limit.
 func _more_row(count: int) -> void:
 	_built_limit = _row_limit()
+	var grid := _grow_box.get_node_or_null("GrowScroll/GrowGrid") as GridContainer if _phone else null
+	if grid == null or grid.is_queued_for_deletion() or count <= PHONE_GROW_SHOWN + 1 or _more_open:
+		return
+	var more := Button.new()  # Phones: the fourth cell opens the rest in the grid
+	more.name = "GrowMore"
+	more.text = "+%d more" % (count - PHONE_GROW_SHOWN)
+	more.focus_mode = Control.FOCUS_NONE
+	more.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	more.custom_minimum_size.y = PHONE_ROW_H
+	more.add_theme_font_size_override("font_size", ROW_NAME_SIZE + PHONE_ROW_BUMP)
+	more.pressed.connect(func() -> void:
+		_more_open = true
+		_refresh(), CONNECT_DEFERRED)  # After the tap: the rebuild frees this button
+	grid.add_child(more)
 
 # The footer's Details toggle (light pass): Buffs, "This run", Kinship, combos and Dreams on it; open or closed is
 # remembered for the session (details_choice).
@@ -2258,22 +2336,36 @@ func _dock_left() -> void:
 	_dock_right()
 	anchor_right = 0.0
 	anchor_left = 0.0
-	# Flush to the left edge as the right drawer is to the right (user 2026-10-21: inset it "looks weird"); a punch hole
-	# on that side is ignored here (a full-height band to clear one dot looked broken, user 2026-10-21).
+	# Flush to the left edge as the right drawer is to the right (user 2026-10-21: inset it "looks weird"). A punch hole on
+	# that side (owner 2026-10-26: "make sure there is nothing in front of the camera punch out"): the frame still reaches the
+	# edge, the drawer is that much wider and its content starts past the hole, so no word or button sits under the camera.
+	_pad_side(SIDE_RIGHT, 0.0)  # (The right drawer's hole padding off)
+	var hole := _side_hole(0)
 	offset_left = 0.0
-	offset_right = PHONE_WIDTH  # The same as the right drawer (a hole band down its whole side looked wrong, user 2026-10-21)
-	_pad_left(0.0)  # (No hole band: the camera dot is a spot mid-side; a full-height gap read as a broken layout)
+	offset_right = PHONE_WIDTH + hole
+	_pad_side(SIDE_LEFT, hole)
 	grow_horizontal = Control.GROW_DIRECTION_END
 
-var _frame_left := -1.0  # The panel's own left content margin (before any hole padding)
+var _frame_margins := {}  # The panel's own content margins (before any hole padding), by side
 
 func _pad_left(hole: float) -> void:
+	_pad_side(SIDE_LEFT, hole)
+
+func _pad_side(side: Side, hole: float) -> void:
 	var frame := get_theme_stylebox("panel")
 	if frame == null or not has_theme_stylebox_override("panel"):
 		return
-	if _frame_left < 0.0:
-		_frame_left = frame.get_margin(SIDE_LEFT)
-	frame.set_content_margin(SIDE_LEFT, _frame_left + hole)
+	if not _frame_margins.has(side):
+		_frame_margins[side] = frame.get_margin(side)
+	frame.set_content_margin(side, float(_frame_margins[side]) + hole)
+
+# The HUD's punch hole width on a side (0 left, 1 right), in the drawer's space; 0 without one.
+func _side_hole(index: int) -> float:
+	var hud := get_parent()
+	if hud == null or not "side_holes" in hud:
+		return 0.0
+	var holes: Vector2 = hud.side_holes
+	return holes.x if index == 0 else holes.y
 
 # Phones: the dock (Sell, Select, the Warden slots) steps away while the drawer is open on the left, over its side.
 func _sync_dock() -> void:
@@ -2304,17 +2396,27 @@ func _dock_right() -> void:
 	anchor_bottom = 0.0  # It hugs its content (_fit_phone_height), never a gap in the middle
 	anchor_right = 1.0
 	anchor_left = 1.0
-	offset_left = -PHONE_WIDTH
+	var hole := _side_hole(1)  # A punch hole on the right (the phone turned the other way): as on the left (_dock_left)
+	offset_left = -PHONE_WIDTH - hole
 	offset_right = 0.0
 	offset_top = 0.0
 	offset_bottom = 0.0
 	grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	grow_vertical = Control.GROW_DIRECTION_END
 	_pad_left(0.0)  # (A left drawer's hole padding off)
+	_pad_side(SIDE_RIGHT, hole)
 
 # Phones (user 2026-10-17: "a lot of empty space"): the drawer is as tall as its content, up to the full screen height;
 # only past that does the middle scroll. The footer (Nurture) sits right under the content.
 func _fit_phone_height() -> void:
+	var left_hole := _side_hole(0) if _docked_left else 0.0  # The holes as the HUD sees them now (a turned phone moves them)
+	var right_hole := 0.0 if _docked_left else _side_hole(1)
+	if _docked_left:
+		offset_right = PHONE_WIDTH + left_hole
+	else:
+		offset_left = -PHONE_WIDTH - right_hole
+	_pad_side(SIDE_LEFT, left_hole)
+	_pad_side(SIDE_RIGHT, right_hole)
 	var screen := _phone_bottom() - _phone_top()
 	var frame := get_theme_stylebox("panel")
 	var box := _scroll.get_parent() as VBoxContainer
@@ -2325,6 +2427,11 @@ func _fit_phone_height() -> void:
 			footer_shown = true
 	if footer_shown:
 		chrome += _footer.get_combined_minimum_size().y + float(box.get_theme_constant("separation"))
+	var grow_scroll := _grow_box.get_node_or_null("GrowScroll") as ScrollContainer
+	if grow_scroll != null and not grow_scroll.is_queued_for_deletion():  # The pinned grow block takes its room first, up to a share
+		var grid := grow_scroll.get_child(0) as Control
+		grow_scroll.custom_minimum_size.y = minf(grid.get_combined_minimum_size().y, screen * PHONE_GROW_SHARE)
+		chrome += _grow_box.get_combined_minimum_size().y + float(box.get_theme_constant("separation"))
 	_scroll.custom_minimum_size.y = maxf(screen - chrome, MIN_INFO)  # Always the full height (one drawer size)
 	_place_phone.call_deferred()
 
@@ -2346,12 +2453,12 @@ func _phone_top() -> float:
 		return 0.0
 	return clampf(row.end.y + PHONE_TOP_GAP, 0.0, get_parent_area_size().y * 0.5)
 
-# Phones: the stat rows drop what the tiles (damage, speed, reach, Potency) and the keyword chips (its status) already say.
+# Phones: the stat rows drop what the tiles (damage, speed, reach) already say.
 func _prune_phone_stat_rows() -> void:
 	if _phone_stats.visible:
-		var shown: Array[StringName] = [&"damage", &"attack_speed", &"range", &"potency"]
-		if _tower.attack_data != null:
-			shown.append_array(Tower.statuses_applied(_tower.attack_data))  # Every status its chips show (keyword audit 2026-10-17)
+		# The status and Potency line stays, as on PC (owner 2026-10-26: "fix the details in the Warden so it matches the pc";
+		# a bare flask "1.0" tile said nothing, and the status's stack count was lost with its row)
+		var shown: Array[StringName] = [&"damage", &"attack_speed", &"range"]
 		for row in _stats.get_children():
 			if row.is_queued_for_deletion() or not row is HFlowContainer:
 				continue
@@ -2424,8 +2531,7 @@ func _fill_phone_stats() -> void:
 	_phone_stats.add_child(_phone_stat_tile(BossDossier.thousands(roundi(_tower.get_damage())), &"damage"))
 	_phone_stats.add_child(_phone_stat_tile("%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"))
 	_phone_stats.add_child(_phone_stat_tile(range_text, &"range"))
-	if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something, as in the header
-		_phone_stats.add_child(_phone_stat_tile(str(snappedf(_tower.get_potency(), 0.01)), &"potency"))
+	# (Potency: on the stat rows' line with its word, as on PC, not a tile; owner 2026-10-26)
 
 # One stat as icon + number (no caps word, no frame: UI owner's review); a tap explains it for this Warden, 48 px tall.
 func _phone_stat_tile(value: String, stat: StringName) -> HBoxContainer:
@@ -2478,6 +2584,16 @@ func _phone_arrange() -> void:
 			child.queue_free()
 	_add_phone_close()
 	_phone_grow_columns()
+	var armed: Button = null  # The grow tapped once: its card shows (owner 2026-10-26, "first tap + hold")
+	var grow_grid := _grow_box.get_node_or_null("GrowScroll/GrowGrid")
+	if grow_grid != null and _confirm_grow != null:
+		for cell in grow_grid.get_children():
+			if cell.has_meta(&"grow_form") and cell.get_meta(&"grow_form") == _confirm_grow:
+				armed = cell
+	if armed != null:
+		_show_grow_card(armed)
+	elif not _hold_fired:
+		_hide_grow_card()
 	var target_chip := _portrait.get_parent().get_node_or_null("TargetChip") as Control
 	if target_chip != null:
 		target_chip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
@@ -2514,7 +2630,12 @@ func _phone_arrange() -> void:
 			sell.remove_theme_stylebox_override(state)
 		for state in FONT_STATES + ["font_disabled_color"]:
 			sell.remove_theme_color_override(state)
-		UiStyle.danger(sell)
+		# Not gold (owner 2026-10-26: "do you think the sell should be golden?", Mobile UI council r1: no): UiStyle.danger's
+		# Ember rim read as the primary's gold, so a quiet pewter plate with the words in Poor; gold stays the one primary's
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+			sell.add_theme_stylebox_override(state, UiStyle.plate_box(12.0, 4.0, &"plate_hover" if state.begins_with("hover") or state == "pressed" else &"plate"))
+		for state in FONT_STATES:
+			sell.add_theme_color_override(state, UiStyle.POOR)
 		sell.custom_minimum_size = Vector2(PHONE_SELL_W, PHONE_FOOTER_H)
 		sell.size_flags_horizontal = Control.SIZE_FILL if _footer.get_child_count() > 1 else Control.SIZE_EXPAND_FILL
 		sell.clip_text = true
@@ -2551,6 +2672,98 @@ func _phone_sell(sell: Button, beside: bool) -> void:
 	if long:
 		sell.tooltip_text = sell.text + ("\n\n" + sell.tooltip_text if sell.tooltip_text != "" else "")
 	_footer.move_child(sell, 0)
+
+# Phones (owner 2026-10-26: "holding the grow button for a drawer should bring up details of what it will grow into"; Mobile
+# UI council r1 ask 4, the owner chose "first tap + hold"): the grow card, beside the drawer on the map side, says what
+# the PC's hover tip says (its role, key changes, damage a second, what it wakes, the price and its tax). The first tap
+# shows it and arms the grow (the second grows); a hold (HOLD_TIME) shows it too, and letting go never grows.
+const HOLD_TIME := 0.45
+const GROW_CARD_W := 300.0
+const GROW_CARD_GAP := 8.0
+var _grow_card: PanelContainer = null
+var _held_button: Button = null  # The grow cell under a finger now
+var _hold_fired := false  # Its hold showed the card: the release that follows is not a press
+
+func _hold_for_card(button: Button) -> void:
+	button.button_down.connect(func() -> void:
+		_held_button = button
+		_hold_fired = false
+		get_tree().create_timer(HOLD_TIME, true, false, true).timeout.connect(func() -> void:
+			if _held_button == button and is_instance_valid(button) and button.is_pressed():
+				_hold_fired = true
+				_show_grow_card(button)))
+	button.button_up.connect(func() -> void:
+		if _held_button == button:
+			_held_button = null
+		if _hold_fired and is_instance_valid(button) and not (button.has_meta(&"grow_form") and _confirm_grow == button.get_meta(&"grow_form")):
+			_hide_grow_card.call_deferred())  # A hold only looked: the card goes with the finger (an armed form's stays)
+
+# The press after a hold is swallowed (the hold only looked). True once, for that press.
+func _swallow_hold() -> bool:
+	if not _hold_fired:
+		return false
+	_hold_fired = false
+	return true
+
+func _show_grow_card(button: Button) -> void:
+	var hud := get_parent()  # The HUD layer: the card sits in the drawer's own space
+	if hud == null or not is_instance_valid(button):
+		return
+	if _grow_card == null or not is_instance_valid(_grow_card):
+		_grow_card = PanelContainer.new()
+		_grow_card.name = "GrowCard"
+		_grow_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_grow_card.add_theme_stylebox_override("panel", UiStyle.panel(12.0, 10.0))  # Moon-glass, as the nightmare card
+		var lines := VBoxContainer.new()
+		lines.name = "Lines"
+		lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lines.add_theme_constant_override("separation", 6)
+		_grow_card.add_child(lines)
+		var title := Label.new()
+		title.name = "Title"
+		UiStyle.caps(title, 18)
+		lines.add_child(title)
+		var body := StatusLinks.make_label("", 16)
+		body.name = "Body"
+		body.custom_minimum_size.x = GROW_CARD_W - 24.0
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lines.add_child(body)
+		hud.add_child(_grow_card)
+	var form := button.get_meta(&"grow_form") as TowerData if button.has_meta(&"grow_form") else null
+	var tip: String = button.get_meta(&"tip", button.tooltip_text)
+	var title_label := _grow_card.get_node("Lines/Title") as Label
+	title_label.text = ("Grow into " + form.display_name) if form != null else String(button.get_meta(&"label", ""))
+	var body_label := _grow_card.get_node("Lines/Body") as RichTextLabel
+	body_label.text = StatusLinks.bbcode(tip.split("\n", true, 1)[1].strip_edges() if form != null and tip.begins_with(form.display_name) else tip)  # Its name is the title
+	_grow_card.visible = true
+	_grow_card.reset_size()
+	_place_grow_card.call_deferred()
+
+func _place_grow_card() -> void:
+	if _grow_card == null or not is_instance_valid(_grow_card) or not _grow_card.visible:
+		return
+	var view := get_parent_area_size()
+	var height := _grow_card.get_combined_minimum_size().y
+	var drawer := get_rect()
+	var x := drawer.end.x + GROW_CARD_GAP if _docked_left else drawer.position.x - GROW_CARD_GAP - GROW_CARD_W
+	var bottom := _grow_box.get_global_rect().end.y if _grow_box.is_visible_in_tree() else view.y
+	var y := clampf(bottom - height, _phone_top(), maxf(view.y - height, _phone_top()))  # Its foot level with the grow cells
+	# Never over the Warden it grows (its preview shows there): then it goes to the screen's far side
+	var layer := get_parent() as CanvasLayer
+	var to_layer: Transform2D = layer.transform.affine_inverse() if layer != null else Transform2D.IDENTITY
+	for tower in tower_seller.selection:
+		if not is_instance_valid(tower):
+			continue
+		var at: Vector2 = to_layer * (get_viewport().get_canvas_transform() * (tower as Node2D).global_position)
+		if Rect2(x, y, GROW_CARD_W, height).grow(GROW_CARD_GAP * 4.0).has_point(at):
+			x = view.x - GROW_CARD_W - GROW_CARD_GAP - _side_hole(1) if _docked_left else GROW_CARD_GAP + _side_hole(0)
+			break
+	_grow_card.position = Vector2(x, y)
+	_grow_card.size = Vector2(GROW_CARD_W, height)
+
+func _hide_grow_card() -> void:
+	if _grow_card != null and is_instance_valid(_grow_card):
+		_grow_card.visible = false
 
 # Grow options two to a row only while every cell shows itself whole (name, then its price or note in Mist under it,
 # never cut: UI owner's review); otherwise one full-width column.

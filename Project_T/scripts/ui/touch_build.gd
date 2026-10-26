@@ -160,7 +160,7 @@ func _refresh() -> void:
 	_done.visible = (building or selling or selecting) and not pending and not marked
 	if marked:
 		_sell_marks.text = "Sell %d  %s" % [marks.size(), UiStyle.dew_amount(seller.get_marked_refund(), true)]
-	# (Phone layouts: Sell is the Warden dock's last slot, hud.gd sell_slot.)
+	# (Phone layouts: no sell mode since 2026-10-26; the Warden drawer sells one, Select's group drawer several.)
 	_sell.visible = mobile_controls() and not UiStyle.is_phone() and seller != null and seller.has_method("set_sell_mode") \
 		and (building or selling) and not pending
 	if visible and tower_placer.has_method("get_stroke_tag"):

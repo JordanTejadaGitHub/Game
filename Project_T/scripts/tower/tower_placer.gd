@@ -2274,10 +2274,10 @@ func toggle_pending_at(world: Vector2) -> void:
 	var spot := origin_at(world) if half_placement() else MAP_GRID.calculate_grid_coordinates(world)
 	if spot == NO_CELL or not (half_placement() or MAP_GRID.is_within_bounds(spot)):
 		return
+	# No refusal on the tap (owner 2026-10-26: "Remove the error message when trying to place down at first, should only be
+	# when you confirm"): a spot the plan skips stays pending, drawn as skipped; Confirm (plant_stroke) says why.
 	if not stroking:
 		_start_stroke(spot)
-		if _refuse_pending(spot):
-			cancel_stroke()
 		return
 	var under := _pending_under(world)
 	if under != NO_CELL:
@@ -2288,25 +2288,11 @@ func toggle_pending_at(world: Vector2) -> void:
 			return
 	else:
 		_stroke.append(spot)
-		_plan_stroke()
-		if _refuse_pending(spot):
-			_stroke.erase(spot)
-			_plan_cache = {}
 	_plan_stroke()
 	stroke_changed.emit(true)
 
-# Phones (user 2026-10-17: "shouldn't place highlighted wrong Wardens down, only ones you can place"): a tapped spot the
-# plan skips (can't plant here, closes the path, a nightmare on it, out of Dew …) never becomes a ghost; the refusal sound
-# and a toast with the reason instead. True when refused.
-func _refuse_pending(spot: Vector2) -> bool:
-	var why: String = _stroke_plan.get(spot, "")
-	if why == "":
-		return false
-	build_rejected.emit(spot)
-	var hud := owner.get_node_or_null("HUD") if owner != null else null
-	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast(why[0].to_upper() + why.substr(1))  # "Blocks the only path", "Out of Dew" …
-	return true
+# (Phones, 2026-10-17 to 10-26: a tapped spot the plan skipped was refused at once with a toast; now it stays pending,
+# drawn as skipped, and Confirm plants only the green ones and says why the rest weren't: plant_stroke.)
 
 # The pending Warden whose footprint holds `world`, or NO_CELL.
 func _pending_under(world: Vector2) -> Vector2:
@@ -2547,6 +2533,13 @@ func cancel_stroke() -> void:
 # Plants every green cell in drag order (each re-checked by _try_build). Returns how many.
 func plant_stroke() -> int:
 	var cells := _stroke.filter(func(c: Vector2) -> bool: return _stroke_plan.get(c, "x") == "")
+	var skipped_why := ""  # Phones: the first skipped spot's reason, said on Confirm (no longer on the tap, owner 2026-10-26)
+	if tap_to_place:
+		for c in _stroke:
+			if String(_stroke_plan.get(c, "")) != "":
+				skipped_why = String(_stroke_plan[c])
+				break
+	var skipped_count := _stroke.size() - cells.size()
 	stroking = false  # So the builds below refresh the preview normally
 	var planted := 0
 	# One route update for the whole stroke (Environment, maze perf budget): each wall is still checked on the live
@@ -2561,6 +2554,11 @@ func plant_stroke() -> int:
 		map_generator.release_route()
 	if planted == 0 and not _stroke.is_empty():
 		build_rejected.emit(_stroke[0])  # A click on a cell that can't take it (the sound)
+	if skipped_why != "":
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			var line := skipped_why[0].to_upper() + skipped_why.substr(1)  # "Blocks the only path", "Out of Dew" …
+			hud.show_toast(line if skipped_count <= 1 else "%s (%d not planted)" % [line, skipped_count])
 	_stroke.clear()
 	_stroke_plan.clear()
 	stroke_changed.emit(false)

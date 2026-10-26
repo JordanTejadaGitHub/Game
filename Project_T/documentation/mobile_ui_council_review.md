@@ -86,3 +86,18 @@ refund (better than PC).
 - **O3** Freed dock slot: Pause + speed (K T; closes item 13) or empty (P)?
 - **O4** Sell on phones: second-tap confirm (T P) or an undo toast?
 - **O5** Raise phone targets to 60 px and text to 15 px (T): affects every phone screen; a bigger pass.
+
+### Owner calls and what was built (2026-10-26)
+Owner: O1 2x2 grid; O2 grow card on the first tap and on hold; O3 freed dock slot left empty; O4 Sell's second tap
+confirms. O5 (60 px targets, 15 px text floor) still open.
+
+Built (Mobile UI chat, phones only unless noted): pinned grow cells (warden_panel `PinnedGrow` / `GrowScroll` /
+`GrowGrid`, "+N more" opens the rest, past 45% of the drawer they scroll); the grow card (`GrowCard`, beside the drawer,
+moves to the far side when it would cover the Warden; armed cell reads "Tap to grow"); Sell on a quiet pewter plate in
+Poor (not gold) with "Sell? +N" first; no dock Sell (hud.gd no longer makes `sell_slot`); the stat rows keep PC's status
+and Potency line (no flask tile); Target first in Details; drawer content clear of a punch hole on its side (frame
+flush, drawer wider by the hole); family cards list each branch with its role (2 columns); Remember beside Glossary and
+Your Dreams on every choice screen. Asked in the same session: the nightmare card closes when the Warden drawer opens
+and ends above the drift panel (nightmare_info.gd `_fit_phone`); the Armoured line says what armour does (PC too,
+EnemyData.KIND_LINES); the drift button's Resume works again (PC too, 45f43db0: a per-frame disabled toggle cancelled
+the press).

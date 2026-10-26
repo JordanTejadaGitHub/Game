@@ -7,7 +7,7 @@ extends RefCounted
 # content (a row shares its tallest's height), the row centred between the header and the bottom row (scrolling if one
 # runs tall); the bottom row: the screen's own skip on the left, the whisper hint centred, Take on the right, the skip
 # and Take the same width (the wider one's). One sprout per screen (UI owner's review 2026-10-17): the cards' threads
-# run full width with no mark (card_thread); only Take carries it. A tap looks at a card (it lifts, the others dim to DIM_ALPHA); Take, or a second tap, takes it.
+# run full width with no mark (card_thread); only Take carries it. A tap looks at a card (it lifts, the others dim to DIM_ALPHA); Take takes it (no second tap, owner 2026-10-26).
 # Preloaded by OmenScreen, FamilyPickScreen and GiftScreen (no class_name). DreamScreen keeps the same numbers.
 # User 2026-10-18 ("add a glossary and your dream in button in the top right and peek in the bottom left"): the header's
 # right holds Glossary (the Codex on its Glossary tab, over the screen: CodexOverlay) and Your Dreams ("Dreams this run",
@@ -39,6 +39,7 @@ const TAKE_HINT := "Take it, or tap another"
 const LINK_TAP_MS := 350  # A card tap this soon after an underlined word's tap was for the word
 const GLOSSARY_TEXT := "Glossary"
 const DREAMS_TEXT := "Your Dreams"
+const REMEMBER_TEXT := "Remember"
 const OVER_Z := 30  # The Codex / Dreams page over a choice screen: above its card diagram / scene (z 10)
 const HINT_MIN := 120.0  # The hint's least width (balance keeps the sides mirrored only while it fits)
 
@@ -235,6 +236,21 @@ static func add_extras(for_screen: Control, row: HBoxContainer) -> void:
 	row.add_child(dreams)
 	for_screen.visibility_changed.connect(func() -> void: _on_screen_visibility(for_screen, dreams))
 	dreams.visible = has_dreams(for_screen)
+	# Remember (owner 2026-10-26, the Dream screen: "Should be able to see your remember screen too here"): the HUD's
+	# Remember screen, drawn above the choice (a later HUD child); closing it returns here, the choice still waiting.
+	var remember := Button.new()
+	remember.name = "RememberButton"
+	remember.text = REMEMBER_TEXT
+	remember.focus_mode = Control.FOCUS_NONE
+	peek_style(remember)
+	remember.pressed.connect(func() -> void:
+		close_glossary(for_screen)
+		close_dreams(for_screen)
+		var hud := for_screen.get_parent()
+		if hud != null and hud.has_method("open_remember"):
+			hud.call("open_remember"), CONNECT_DEFERRED)
+	row.add_child(remember)
+	row.move_child(remember, glossary.get_index())  # Remember, Glossary, Your Dreams
 
 static func _on_screen_visibility(for_screen: Control, dreams: Button) -> void:
 	if for_screen.visible:
@@ -425,13 +441,13 @@ func reset() -> void:
 				_dim_plate(face, false)  # Nothing looked at: every card wears its own boxes again
 	set_take("")
 
-# A card's tap: true when the layout used it (it looked at the card, or the tap was on an underlined word), false
-# when the card was already looked at and the screen should take it.
+# A card's tap: true when the layout used it (it looked at the card, or the tap was on an underlined word); a tap on the
+# card already looked at does nothing (only Take takes, owner 2026-10-26). Always true now; screens keep the check.
 func tap(button: Button, take_text: String) -> bool:
 	if Time.get_ticks_msec() - _link_tap_ms < LINK_TAP_MS:
 		return true  # The tap was on an underlined word (its tip shows), not on the card
 	if looked == button and is_instance_valid(button):
-		return false
+		return true  # Already looked at: only Take takes (owner 2026-10-26: "Remove double tap on taking cards, family, and evolutions")
 	look(button, take_text)
 	return true
 

@@ -757,14 +757,17 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		head.mouse_filter = Control.MOUSE_FILTER_PASS
 		head.tooltip_text = OFFER_TIP % UiStyle.dreamlight_amount(dream_state.call_back_cost(data))
 	var lanes: Container = box
-	if _layout != null:  # Phones (user 2026-10-21: "too big at drift 25"): the forms side by side, icon + name; the role is in each tip
-		var flow := HFlowContainer.new()
-		flow.name = "Routes"
-		flow.add_theme_constant_override("h_separation", 14)
-		flow.add_theme_constant_override("v_separation", 4)
-		flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(flow)
-		lanes = flow
+	if _layout != null:  # Phones (user 2026-10-21: "too big at drift 25"): the forms two to a line, icon, name and its role under it
+		# (owner 2026-10-26: "mobile also need to show the branches it grows when choosing family"; the role was in a tip a
+		# phone can't open, Mobile UI council r1 ask 3)
+		var grid := GridContainer.new()
+		grid.name = "Routes"
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 14)
+		grid.add_theme_constant_override("v_separation", 6)
+		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(grid)
+		lanes = grid
 	for branch: TowerData in offered:
 		lanes.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
@@ -811,9 +814,8 @@ func _route_lane(branch: TowerData) -> Control:
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove's hidden branch" + (", " + role if role != "" else "")
 	if _layout != null:
-		words.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		words.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Phones: the name only, beside its icon (the role: the lane's tip)
-	elif role != "":
+		lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Phones: half the card each (Routes is a 2-column grid)
+	if role != "":
 		var role_label := StatusLinks.make_role_label(role, _fs(11), UiStyle.GOLD, UiStyle.is_phone())  # Its glossary words are links (user: "Silences")
 		role_label.name = "Role"
 		words.add_child(role_label)

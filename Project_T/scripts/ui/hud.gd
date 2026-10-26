@@ -105,8 +105,10 @@ func _ready() -> void:
 	_bar_toggle.pressed.connect(func() -> void: set_bar_hidden(not bar_hidden))
 	add_child(_bar_toggle)
 	if phone():
-		_make_sell_slot()  # Before the bar is laid out (it sits at the dock's left end)
-		_make_select_slot()  # …and Select right after it
+		# No dock Sell (owner 2026-10-26: "If we're keeping the sell button in the warden drawer, we can remove the sell
+		# feature on the tower bar"; the slot left empty): the drawer's Sell sells one (second tap confirms), Select's group
+		# drawer "Sell N" sells several. _make_sell_slot stays for a later return; sell_slot stays null.
+		_make_select_slot()  # At the dock's left end
 		var clearer := get_node_or_null("%ObstacleClearer")
 		if clearer != null and clearer.has_signal("lock_changed"):
 			clearer.lock_changed.connect(_fit_tower_bar.unbind(1))  # The Clear slot appears with the first clearing Dream
@@ -863,7 +865,7 @@ func _fit_tower_bar_phone() -> void:
 	clear_tool.visible = clear_on
 	var room := half - _phone_margin() - PHONE_CENTRE_RESERVE - (_bar_handle() + UiStyle.HANDLE_GAP)
 	var n := _tower_buttons.size()
-	var fixed := (2 if clear_on else 1) + (1 if select_slot != null else 0)  # Sell, Select, and the Clear tool once unlocked
+	var fixed := (1 if clear_on else 0) + (1 if sell_slot != null else 0) + (1 if select_slot != null else 0)  # Sell (if any), Select, and the Clear tool once unlocked
 	var width := floorf((room - fixed * CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + fixed))
 	var shown := n
 	if width < SLOT_MIN_WIDTH:

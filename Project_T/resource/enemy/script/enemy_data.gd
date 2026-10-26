@@ -21,7 +21,7 @@ enum Kind { ARMOURED, FLYING, HIDDEN, SWARM, FAST, PLAIN }
 const KIND_NAMES := {Kind.ARMOURED: "Armoured", Kind.FLYING: "Flying", Kind.HIDDEN: "Hidden", Kind.SWARM: "Swarm",
 	Kind.FAST: "Fast", Kind.PLAIN: "Plain"}
 const KIND_LINES := {
-	Kind.ARMOURED: "Armoured: heavy hits and armour breakers crack its shell.",
+	Kind.ARMOURED: "Armoured: its shell takes a flat amount off every hit until heavy hits or armour breakers crack it.",  # What armour does, then its answer (owner 2026-10-26: "Armour should also say what it does")
 	Kind.FLYING: "Flying: it flies over your walls, some along the path; only Wardens that hit flyers can reach it.",
 	Kind.HIDDEN: "Hidden: it can't be targeted until a Warden reveals it.",
 	Kind.SWARM: "Swarm: it comes as a crowd of small bodies; area attacks catch them all.",
