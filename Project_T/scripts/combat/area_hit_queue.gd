@@ -8,7 +8,11 @@ class_name AreaHitQueue
 # scene on first use (like ReactionTracker); Tower.hit asks `defer`.
 
 const GROUP := &"area_hit_queue"
-const BUDGET := 24  # Area hits per frame before the rest wait a frame
+# Area hits per frame before the rest wait a frame (Perf Booster 2026-10-26: was 24; Hailfall + Packs Rushed at 3x made bursts
+# of ~33 hits a frame at ~250 µs each, the slowest 5%). A backlog drains at least 1 / MAX_LAG_FRAMES of itself a frame, so
+# under a sustained flood no hit lands more than about MAX_LAG_FRAMES frames late.
+const BUDGET := 16
+const MAX_LAG_FRAMES := 6
 
 var _frame := -1
 var _count := 0
@@ -54,8 +58,9 @@ func pending() -> int:
 func _process(_delta: float) -> void:
 	if _queue.is_empty():
 		return
-	var now := _queue.slice(0, BUDGET)  # This frame's share; the rest waits again
-	_queue = _queue.slice(BUDGET)
+	var share := maxi(BUDGET, ceili(_queue.size() / float(MAX_LAG_FRAMES)))  # This frame's share; the rest waits again
+	var now := _queue.slice(0, share)
+	_queue = _queue.slice(share)
 	flushing = true
 	for entry in now:
 		# Checked on the raw Variants first: assigning a freed object to a typed variable is itself an error

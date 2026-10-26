@@ -221,7 +221,7 @@ const STATUS_LINES := {
 	&"drowsy": "It walks 2% slower per stack, up to {stacks:cap_drowsy} ({stacks:bosscap_drowsy} on bosses). At {full} it walks slowest; some Wardens and {reactions} put a nightmare at {full} {drowsy} {asleep}.",
 	&"spored": "It takes damage every second, more per stack. The whole pile wears off 5 s after the last stack, so keep hitting it. At {stacks:need_spored} stacks it can trigger {reactions}.",
 	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can trigger {reactions}.",
-	&"static": "At {full} ({stacks:cap_static} stacks, {stacks:bosscap_static} on bosses) it triggers a bolt of 16× the hit of the Warden that charged it. A {reaction} can use the {static} before that.",
+	&"static": "At {full} ({stacks:cap_static} stacks, {stacks:bosscap_static} on bosses) it triggers a big bolt from the Warden that charged it (its panel shows how big). A {reaction} can use the {static} before that.",
 	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can trigger {reactions}.",
 }
 const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
