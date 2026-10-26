@@ -4252,8 +4252,8 @@ func _ring_at(target, where: Vector2) -> Vector2:
 # Area-by-design bursts (Sparkler / Starburst, `area`) always give their status: always the family ring.
 const GENERIC_RING := "generic"
 
-# The status a splash of `data` would spread (&"" = none): its own status, as spatter() gives it. A freeze alone doesn't
-# count (Old Mountain keeps the generic ring; owner's call pending, UI council 2026-10-25).
+# The status a splash of `data` would spread (&"" = none): its own status, as spatter() gives it (Frost for Frostfern /
+# Hoarfrost). A Hold on hit isn't a status a splash spreads: Old Mountain keeps the generic ring (section 37 ruling).
 static func splash_status(data: TowerData) -> StringName:
 	return data.applies_status if data != null else &""
 
