@@ -1,15 +1,16 @@
 extends RefCounted
 # Calling evolutions (owner 2026-10-15/16; council D:\Projects\logs\dream_council\calling_evolution_*.md): the Calling (the
-# first family's built-in rule) grows through the run by play style, not by family. At the drift 5 rest the player picks
-# a style (Spread / Focus / Support), at the drift 25 boss rest one of its two follow-ups, at 45 that follow-up's
-# capstone (was 50; moved 2026-10-19 so the demo, which ends at 50, plays it), and at 75 (the slot Heartwood's Gifts left) the Calling also learns the style's other follow-up. Deepen only.
+# first family's built-in rule) grows through the run by play style, not by family. At the drift 20 rest the player picks
+# a style (Spread / Focus / Support), at the drift 45 rest one of its two follow-ups, at 60 (after that rest's family
+# pick) that follow-up's capstone, and at the drift 75 boss rest the line's Deepen or a Cross over (owner playtest
+# 2026-10-25: was 5 / 25 / 45 / 75; the demo, ending at 50, now stops before the capstone).
 # The picks are shown on the Dream screen as cards built here (no rarity, no reroll, let-go or let-it-pass); the path is
 # saved as ids in DreamState.calling_path. Each Calling's node reads it (class_kit.evo). Visible-event rule (owner
 # 2026-10-16): every evolution shows what it does on screen, often.
-# Preloaded as DreamState.CALLING_PATHS (no class_name). Only Callings listed in PATHS evolve; the others keep the drift 5
-# class-card Dream until theirs are built.
+# Preloaded as DreamState.CALLING_PATHS (no class_name). Only Callings listed in PATHS evolve. A saved run keeps the
+# steps it took: next_ids offers a stage only when the path holds every earlier one, so an old path simply goes on.
 
-const DRIFTS: Array[int] = [5, 25, 45, 75]  # Stage 0 style, 1 follow-up, 2 capstone, 3 the other follow-up
+const DRIFTS: Array[int] = [20, 45, 60, 75]  # Stage 0 style, 1 follow-up, 2 capstone, 3 Deepen / Cross over (owner playtest 2026-10-25: was 5 / 25 / 45 / 75)
 
 const STYLE := 0
 const FOLLOW_UP := 1

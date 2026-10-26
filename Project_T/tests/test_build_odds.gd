@@ -4,21 +4,21 @@ extends SceneTree
 # reviews build_sheet_roguelite.md and build_sheet_td.md). For each of the 16 builds in res://tests/data/build_sheet.json
 # it plays the Dream offers of many fresh-profile runs through the real DreamState (sim_rest / sim_family_pick) with a
 # player chasing that build, and prints how often the build is complete by drift 25 / 50 / 75.
-# Asserts structure only (drift 5 is the Calling style pick, the new family's lent slot, at most two family cards per
+# Asserts structure only (drift 20 is the Calling style pick, the new family's lent slot, at most two family cards per
 # offer, every counting card offered at least once); the percentages are printed, never banded.
 #   godot --headless --fixed-fps 60 --path . --script res://tests/test_build_odds.gd [-- --runs=200 --finale | --finale-only --builds=a,b]
 # Known biases: an empty board (no Wardens planted: board-gated and soft-Need generics in the other slots behave
 # differently), forms never grown, no Reactions or discoveries seen.
 
 # Second tier "optimal" (res://tests/data/optimal_tier.json, D:\Projects\logs\dream_council\optimal_tier.md): online plus a
-# defining card, `needed` distinct counting cards (1 generic counts at most), the drift 25 follow-up in `follow_up` ([] =
+# defining card, `needed` distinct counting cards (1 generic counts at most), the drift 45 follow-up in `follow_up` ([] =
 # any); cross builds 3 second-family cards with a defining one + 2 of the start build's. The simulated player tries for it.
 const SHEET_PATH := "res://tests/data/build_sheet.json"
 const OPTIMAL_PATH := "res://tests/data/optimal_tier.json"
 const TARGET := "council target (optimal, forced start family): 5-10% by 50, 15-25% by 75; no build above 35% or below 5% by 75"
 const SUITE_RUNS := 20  # Runs per build in the suite (about 0.95 s a run: ~5 min in all; common seeds across builds); --runs=N for more
 const FINALE_IN_SUITE := false  # The clean-finale Rare+ variant: off in the suite; --finale adds it, --finale-only runs only it
-const DRIFTS := [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75]  # Rests with a Dream (5 is the Calling style)
+const DRIFTS := [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75]  # Rests with a Dream (the Calling steps at 20 / 45 / 60 / 75 come with theirs)
 const PICK_DRIFTS := [10, 40, 60]  # Family picks, before that rest's Dream
 const STARTERS := ["sporeling", "firefly_jar", "dewdrop", "bellflower"]
 const NEVER := 999
@@ -112,8 +112,8 @@ func _run() -> void:
 				rows.append([b, result])
 		print("\n--- optimal tier (%s), same runs; online repeated for comparison ---" % ("finale variant" if variant else "baseline"))
 		print(TARGET)
-		print("  at25 = Dreams 10..25 incl. the drift 25 follow-up (optimal needs it, so 'by 25' is always 0); by50 / by75 / <=75 as online")
-		print("  def50 / def75 = runs where a defining card was offered by 50 / by 75; fu ok = runs whose drift 25 follow-up qualifies")
+		print("  at25 = Dreams 10..25 (the follow-up comes at drift 45 since 2026-10-25) (optimal needs it, so 'by 25' is always 0); by50 / by75 / <=75 as online")
+		print("  def50 / def75 = runs where a defining card was offered by 50 / by 75; fu ok = runs whose drift 45 follow-up qualifies")
 		print("%-16s %6s %6s | %6s %6s %6s %6s | %6s %6s | %8s %8s | %5s %5s %5s | %s" % ["build", "on50", "on75", "at25",
 			"by50", "by75", "<=75", "real50", "real75", "median", "med(ok)", "def50", "def75", "fu ok", "vs target by 75"])
 		for row in vrows:
@@ -363,12 +363,7 @@ func _measure(b: Dictionary, by_id: Dictionary, runs: int, finale: bool) -> Dict
 		d.note_family_pick([start, other], start)
 		d.set_calling(start)
 		_mark_built(start)
-		# Drift 5: the Calling style pick replaces that rest's Dream
-		var styles: Array = d._calling_offer_for(5).map(func(c: UpgradeData) -> String: return c.id)
-		_check(styles.size() == 3 and styles.has(b.style), "%s: drift 5 offers the Calling's three styles, not a Dream (%s)" % [b.id, styles])
-		d.calling_path.append(StringName(b.style))
-		d._calling_offered[5] = true
-		d.bump_board()
+		_check(d._calling_offer_for(5).is_empty(), "%s: drift 5 has no Calling offer (owner playtest 2026-10-25: style at 20)" % b.id)
 		var first := NEVER
 		var opt_first := NEVER
 		var seen_run := {}
@@ -381,7 +376,13 @@ func _measure(b: Dictionary, by_id: Dictionary, runs: int, finale: bool) -> Dict
 			if PICK_DRIFTS.has(drift):
 				seed(s * 31 + drift)  # The pick's shuffle
 				got = d.sim_family_pick(&"second", func(ids: Array) -> StringName: return _choose_family(b, ids, rng))
-			if drift == 45:  # The capstone comes before the Dream
+			if drift == 20:  # The Calling style pick, before that rest's Dream (owner playtest 2026-10-25: was drift 5)
+				var styles: Array = d._calling_offer_for(20).map(func(c: UpgradeData) -> String: return c.id)
+				_check(styles.size() == 3 and styles.has(b.style), "%s: drift 20 offers the Calling's three styles (%s)" % [b.id, styles])
+				d.calling_path.append(StringName(b.style))
+				d._calling_offered[20] = true
+				d.bump_board()
+			elif drift == 45 or drift == 60:  # The follow-up and the capstone come before the Dream
 				_grow_calling(drift, rng, opt.follow_up)
 			var boss := dd.is_boss_drift(drift)
 			if finale and drift >= 15 and not boss:
@@ -395,7 +396,7 @@ func _measure(b: Dictionary, by_id: Dictionary, runs: int, finale: bool) -> Dict
 			d.sim_rest(drift, _pick.bind(b, by_id, counting, rng, info, drift, act, String(got), lent_possible, opt))
 			offer_ms += (Time.get_ticks_usec() - t0) / 1000.0
 			offers_total += 1
-			if drift == 25 or drift == 75:  # The Dream comes first at a boss rest, then the follow-up
+			if drift == 75:  # The Dream comes first at the boss rest, then the Deepen / Cross over
 				_grow_calling(drift, rng, opt.follow_up)
 			if got != &"":
 				_mark_built(String(got))  # Built only after its pick rest's Dream
@@ -454,14 +455,14 @@ func _choose_family(b: Dictionary, ids: Array, rng: RandomNumberGenerator) -> St
 		return StringName(b.second_family)
 	return StringName(ids[rng.randi_range(0, ids.size() - 1)])
 
-# The drift 25 follow-up: one on the build's optimal list when offered (both children always are), else random.
+# The drift 45 follow-up: one on the build's optimal list when offered (both children always are), else random.
 # The random draw is made either way, so the rng stream matches the old player's.
 func _grow_calling(drift: int, rng: RandomNumberGenerator, prefer: Array = []) -> void:
 	var next: Array = DreamState.CALLING_PATHS.next_ids(d.calling, d.calling_path)
 	if next.is_empty():
 		return
 	var pick: StringName = next[rng.randi_range(0, next.size() - 1)]
-	if drift == 25 and not prefer.is_empty() and not prefer.has(String(pick)):
+	if drift == 45 and not prefer.is_empty() and not prefer.has(String(pick)):
 		for id in next:
 			if prefer.has(String(id)):
 				pick = id

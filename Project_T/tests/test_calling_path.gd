@@ -1,6 +1,6 @@
 extends SceneTree
 # Calling evolutions (scripts/combat/calling_paths.gd, DreamState.calling_path; owner 2026-10-16). Written 2026-10-16 and
-# NOT RUN (the owner runs tests on request). The offers at the drift 5 / 25 / 50 / 75 rests, the pick, no reroll or skip,
+# NOT RUN (the owner runs tests on request). The offers at the drift 20 / 45 / 60 / 75 rests, the pick, no reroll or skip,
 # the save, and old saves that took class cards.
 var failures := 0
 var main: Node
@@ -40,7 +40,7 @@ func _run() -> void:
 		"Keeping Time: the Humming Walls line is retired")
 	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune"]) == [&"kt_evo_hand_to_hand", &"kt_evo_last_bell"] \
 			or PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune"]) == [&"kt_evo_last_bell", &"kt_evo_hand_to_hand"],
-		"Keeping Time: drift 25 after Carrying Tune offers Hand to Hand and Last Bell")
+		"Keeping Time: drift 45 after Carrying Tune offers Hand to Hand and Last Bell")
 	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune", &"kt_evo_last_bell", &"kt_evo_curfew"]) == [&"kt_evo_halfway_bell", &"kt_evo_hand_to_hand"],
 		"Keeping Time: drift 75 Curfew's Deepen (Halfway Bell) first, then Hand to Hand")
 	_check(PATHS.next_ids("bellflower", [&"kt_evo_carrying_tune", &"kt_evo_humming_walls"]).is_empty(), "...an old save holding Humming Walls is offered nothing more")
@@ -49,7 +49,7 @@ func _run() -> void:
 		if PATHS.PATHS[id].calling == "bellflower" and PATHS.is_live(id):
 			bell_live += 1
 	_check(bell_live == 21, "Keeping Time: 21 live rows (%d)" % bell_live)
-	_check(PATHS.stage_of(5) == 0 and PATHS.stage_of(45) == 2 and PATHS.stage_of(50) < 0 and PATHS.stage_of(75) == 3 and PATHS.stage_of(10) < 0, "Calling drifts are 5, 25, 45, 75")
+	_check(PATHS.stage_of(20) == 0 and PATHS.stage_of(45) == 1 and PATHS.stage_of(60) == 2 and PATHS.stage_of(75) == 3 and PATHS.stage_of(5) < 0 and PATHS.stage_of(25) < 0 and PATHS.stage_of(35) < 0, "Calling drifts are 20, 45, 60, 75 (owner playtest 2026-10-25)")
 	# Owner 2026-10-17: Riverside, Stagnant Water, Show the Way and Chime of Many use their own family's trait; faces stay short
 	# and their capstones keep their parents.
 	for id in [&"dw_riverside", &"dw_stagnant_water", &"lf_show_the_way"]:  # (Chime of Many retired with the Keeping Time rebuild, section 33)
@@ -59,15 +59,15 @@ func _run() -> void:
 	_check(PATHS.children(&"lf_lantern_wake") == [&"lf_show_the_way"], "the reworked follow-ups keep their capstones")
 	# Puddles rebuilt 2026-10-23 (evo_fixed_dewdrop.md): Stagnant Water and Drowned Hands are retired (children skip them)
 	_check(PATHS.children(&"dw_stagnant_water").is_empty() and not PATHS.is_live(&"dw_stagnant_water"), "Stagnant Water is retired")
-	# F3 (owner 2026-10-18; lent_evolution_builds.md): Lantern Wake is Borrowed Light's follow-up (drift 25), Show the Way
-	# its capstone (drift 45), so Firefly's status link arrives inside the demo.
+	# F3 (owner 2026-10-18; lent_evolution_builds.md): Lantern Wake is Borrowed Light's follow-up (drift 45), Show the Way
+	# its capstone (drift 60; the demo, ending at 50, stops before it since 2026-10-25).
 	_check(int(PATHS.PATHS[&"lf_lantern_wake"].tier) == PATHS.FOLLOW_UP and PATHS.PATHS[&"lf_lantern_wake"].parent == &"lf_borrowed_light",
 		"F3: Lantern Wake is a follow-up under Borrowed Light")
 	_check(int(PATHS.PATHS[&"lf_show_the_way"].tier) == PATHS.CAPSTONE and PATHS.PATHS[&"lf_show_the_way"].parent == &"lf_lantern_wake",
 		"F3: Show the Way is the capstone under Lantern Wake")
 	var borrowed_next := PATHS.next_ids("firefly_jar", [&"lf_borrowed_light"])
 	_check(borrowed_next.size() == 2 and borrowed_next.has(&"lf_lantern_wake") and borrowed_next.has(&"lf_sightline"),
-		"F3: drift 25 after Borrowed Light offers Lantern Wake and Sightline")
+		"F3: drift 45 after Borrowed Light offers Lantern Wake and Sightline")
 	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake"]) == [&"lf_show_the_way"], "F3: drift 50 then offers Show the Way")
 	_check(PATHS.next_ids("firefly_jar", [&"lf_borrowed_light", &"lf_lantern_wake", &"lf_show_the_way"]) == [&"lf_full_glow", &"lf_sightline"],
 		"F3: drift 75 Show the Way's Deepen (Full Glow) first, then the style's other follow-up (Sightline) (rebuilt 2026-10-23)")
@@ -95,10 +95,11 @@ func _run() -> void:
 		"Puddles keeps_out: Steeped, Topped Up, High Tide (River Mouth; retired Low Tide still for old saves)")
 	_check(PATHS.next_ids("dewdrop", [&"dw_stream", &"dw_millrace"], 2).is_empty(), "An old save's retired Puddles path offers nothing")
 
-	# The offer at the drift 5 rest replaces the Dream; at 25 it comes first and the Dream follows
+	# The offer at the drift 20 rest comes first and that rest's Dream follows (owner playtest 2026-10-25: was drift 5)
 	dreams.calling = "sporeling"
-	var offer := dreams._calling_offer_for(5)
-	_check(offer.size() == 3 and offer[0].tags.has("calling_evolution"), "Drift 5 offers the 3 styles as cards")
+	_check(dreams._calling_offer_for(5).is_empty() and dreams._calling_offer_for(25).is_empty(), "Drifts 5 and 25 have no Calling offer (their normal Dreams)")
+	var offer := dreams._calling_offer_for(20)
+	_check(offer.size() == 3 and offer[0].tags.has("calling_evolution"), "Drift 20 offers the 3 styles as cards")
 	_check(dreams._calling_offer_for(10).is_empty(), "No Calling offer at drift 10")
 	dreams.current_offer = offer
 	dreams.offering_calling = true
@@ -109,7 +110,7 @@ func _run() -> void:
 	_check(dreams.stacks.size() == stacks_before, "An evolution is never taken as a card")
 	_check(not dreams.offering_calling, "The Calling offer closed")
 	_check(dreams.calling_path_text().begins_with("Spore Print → "), "The path reads 'Spore Print → …'")
-	_check(dreams._calling_offer_for(25).size() == 2, "Drift 25 offers the style's 2 follow-ups")
+	_check(dreams._calling_offer_for(45).size() == 2, "Drift 45 offers the style's 2 follow-ups")
 
 	# The save keeps the path
 	var saved: Dictionary = dreams.to_save()
@@ -121,7 +122,7 @@ func _run() -> void:
 	dreams.calling_path.clear()
 	dreams._calling_offered.clear()
 	dreams.stacks["mushroom_bed"] = 1
-	_check(dreams._calling_offer_for(25).is_empty(), "A run holding class cards never evolves")
+	_check(dreams._calling_offer_for(45).is_empty(), "A run holding class cards never evolves")
 	dreams.stacks.erase("mushroom_bed")
 
 	_split_builds()

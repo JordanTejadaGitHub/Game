@@ -83,7 +83,7 @@ static func fact_line(facts: Dictionary) -> String:
 			return "Few and tough: %d nightmares, %d Deeply Blighted" % [count, int(facts.elites)]
 	return "%s: %d nightmares" % [DriftShapes.display_name(DriftShapes.STREAM), count]  # "Steady: 30 nightmares" (Mobile UI council 2026-10-25: a bare count read as nothing)
 
-# The next act's facts on the drift 45 capstone screen (owner 2026-10-25, dream_council_review.md 34: one plain line, an
+# The next act's facts on the capstone screen (drift 60) (owner 2026-10-25, dream_council_review.md 34: one plain line, an
 # elite every drift and the act's finale shapes; facts only, no advice): "Act 3: a Deeply Blighted every drift. Closing
 # drifts: Packs, Few and tough, Single file, Packs." Closing drifts = each ordinary block's 5th drift, as they will
 # really arrive. "" before any shape is rolled.
