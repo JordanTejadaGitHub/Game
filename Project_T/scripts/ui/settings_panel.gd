@@ -365,6 +365,14 @@ func _phone_pass() -> void:
 			# Capped: the slider / switch sits near its name, not at the pane's far edge
 			row.custom_minimum_size.x = maxf(row.custom_minimum_size.x, PHONE_ROW_MAX_W)
 			row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# UI review 2026-10-26 (owner: "Fix"; tabs ~36 px, slider knobs ~16 px, Apply a gold rim with dim words): the tabs as
+	# tall as a 48 dp target, every slider a full-row hit area with a knob twice the size, and nothing to apply = a plain
+	# plate (the gold rim only when Apply does something)
+	for pair in [["tab_selected", &"plate_yours"], ["tab_unselected", &"plate"], ["tab_hovered", &"plate_hover"]]:
+		tabs.add_theme_stylebox_override(pair[0], UiStyle.plate_box(12.0, PHONE_TAB_PAD, pair[1]))
+	for slider in find_children("*", "HSlider", true, false):
+		_phone_slider(slider as HSlider)
+	apply_button.add_theme_stylebox_override("disabled", UiStyle.plate_box(12.0, 4.0, &"plate"))
 	# Footer: Cancel and "Apply and close" one size; "Reset this tab" quiet Mist text (48 px hit area)
 	cancel_button.custom_minimum_size.x = apply_button.custom_minimum_size.x
 	UiStyle.quiet(defaults_button)
@@ -373,6 +381,20 @@ func _phone_pass() -> void:
 
 const PHONE_ROW_H := 56.0
 const PHONE_ROW_MAX_W := 700.0
+const PHONE_TAB_PAD := 14.0  # Phones: a tab's top / bottom padding (~52 px tall with its 17 px name)
+const PHONE_KNOB_SCALE := 2  # Phones: the slider knob drawn twice its size (pixel art: whole steps, nearest)
+
+# Phones: a slider takes taps on its whole row height, and its knob is PHONE_KNOB_SCALE times bigger (scaled copies of the
+# theme's own knobs, held by this slider: never in a static, which crashes at exit).
+func _phone_slider(slider: HSlider) -> void:
+	slider.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	for icon_name in ["grabber", "grabber_highlight", "grabber_disabled"]:
+		var texture := slider.get_theme_icon(icon_name)
+		if texture == null or texture.get_image() == null:
+			continue
+		var image := texture.get_image()
+		image.resize(image.get_width() * PHONE_KNOB_SCALE, image.get_height() * PHONE_KNOB_SCALE, Image.INTERPOLATE_NEAREST)
+		slider.add_theme_icon_override(icon_name, ImageTexture.create_from_image(image))
 
 # The phone pause menu's pane (mobile only): no own width or height, the tabs take what the pane leaves.
 func fill_pane() -> void:
