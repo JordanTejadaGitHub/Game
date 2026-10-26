@@ -1127,7 +1127,7 @@ func _bellflower_s33() -> void:
 	_sheet("kt_tally", Vector2i(19, 15), 2, 0.0, Vector2i(9, 14), false, _tally,
 		"Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (top left of the marks at (5, 7); the face runs x 5..13, y 7..11): one group of five, then a count. Anchor = its bottom middle.")
 	_sheet("kt_tally_mark", Vector2i(8, 5), 2, 0.0, Vector2i(0, 0), false, _tally_mark,
-		"Last Bell: the tally's engraved marks. Frame 0 one stroke, 2 px wide (its Night shadow and Heartlight cut): advance 2 px per stroke so the strokes touch; four strokes = 8 px. Frame 1 the slash, drawn at the same top left as the first stroke, covers all four. Anchor = top left.")
+		"Last Bell: the tally's engraved marks. Frame 0 one stroke, a 1 px Glow cut lit Heartlight at its top, 1 px in from the frame's left (the plaque's face shows between strokes): advance 2 px per stroke; four strokes span 8 px. Frame 1 the slash, a 1 px Orchid line with a Night shadow, drawn at the same top left as the first stroke, crossing all four. Anchor = top left.")
 	_sheet("kt_counter_note", Vector2i(9, 12), 2, 0.0, Vector2i(4, 11), false, _counter_note,
 		"Counterpoint: one small note per kind over the nightmare, modulated (multiplier) by that kind's colour; space them 6 px apart, at most 4. Frame 0 hanging, frame 1 flashing at the toll. Anchor = the note head's foot.")
 
@@ -1164,14 +1164,23 @@ func _tally(img: Image, f: int) -> void:
 	if f == 1:  # A short halo, above it only (r 9 was cut flat by the frame's edges, final council)
 		_halo(img, Vector2(9.0, 8.0), 7.0, GLOW, 1, 0.4, true)
 
+# --- Last Bell's tally marks, softened (owner 2026-10-25: "soften the tally marks through the council") -------------
+# In game the 2 px strokes (a Night shadow and a Heartlight cut, touching) ran into one bright cream block on the
+# plaque at 5 and 7 rings. Now each stroke is a 1 px warm Glow cut lit Heartlight at its top, with the plaque's face
+# showing in the 1 px gap before the next (code still advances 2 px a stroke, from (5, 7)); the fifth is a 1 px slash in
+# the deeper Bellflower pink (Orchid), so it reads across the four strokes instead of merging with them (council rounds 1-2).
 func _tally_mark(img: Image, f: int) -> void:
-	# Engraved: a bright Heartlight cut with a Night shadow on its left. Wiring capture (2026-10-25): a Gold edge on the
-	# bronze face merged with the plaque's Gold rim, and the slash vanished: the cuts are now the brightest thing on it.
 	if f == 0:
-		_grid(img, ["NH", "NH", "NH", "NH"], {"N": NIGHT, "H": HEART}, Vector2i(0, 0))
+		_grid(img, ["H", "G", "G", "G"], {"H": HEART, "G": GLOW}, Vector2i(1, 0))  # 1 px in: the first stroke clear of the rim
 	else:
-		# The slash one unbroken diagonal, 2 px thick, its Night shadow under it (council: a stair of dots vanished at 1x).
-		_grid(img, ["......HH", "....HHHN", "..HHHN..", "HHHN....", "NN......"], {"N": NIGHT, "H": HEART}, Vector2i(0, 0))
+		# Council round 1: a 1 px line (one pixel a step) crossing each stroke (x 1, 3, 5, 7) at one pixel only, in the
+		# deeper Bellflower pink with a Night shadow under each step, so the five reads as a slashed bundle at 1x.
+		var line: Array = _bresenham(Vector2i(1, 3), Vector2i(7, 0))  # From 1 px in: clear of the rim
+		for p: Vector2i in line:
+			if p.x % 2 == 0:  # Its shadow only between the strokes (under a stroke it cut the stroke in two)
+				_px(img, p.x, p.y + 1, NIGHT)
+		for p: Vector2i in line:
+			_px(img, p.x, p.y, ORCHID)
 
 func _counter_note(img: Image, f: int) -> void:
 	# An eighth note in pale tones (it takes its kind's colour as a multiplier), a Night outline and an upper-left rim of
