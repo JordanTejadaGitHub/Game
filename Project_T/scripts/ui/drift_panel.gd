@@ -245,7 +245,9 @@ func _process(_delta: float) -> void:
 	var next := latest + 1
 	var key_shown := false  # Enter starts the drift (at a rest) or resumes: its chip shows
 
-	_start_button.disabled = not drift_director.can_start_next_drift()
+	# Worked out first and set once at the end (owner 2026-10-26: "Pressing resume when it's paused doesn't resume"): setting
+	# disabled true, even for part of a frame, cancels a press in progress, so a tap on Resume or a waiting choice never fired.
+	var start_disabled := not drift_director.can_start_next_drift()
 	_start_button.tooltip_text = MIST_FULL if drift_director.is_mist_full() else ""
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
 	_remember_button.visible = false
@@ -298,12 +300,14 @@ func _process(_delta: float) -> void:
 		var omens := get_tree().get_first_node_in_group(&"omens")
 		if pending == &"omen" and omens != null and bool(omens.get("faced")):
 			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
-		_start_button.disabled = false
+		start_disabled = false
 	# Paused mid-drift (user: "it should resume instead of bringing the next drift wave in"): the button only resumes.
 	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
 		_start_button.text = "Resume"
-		_start_button.disabled = false
+		start_disabled = false
 		key_shown = true
+	if _start_button.disabled != start_disabled:
+		_start_button.disabled = start_disabled
 	if _start_chip != null:
 		_start_chip.visible = key_shown and not InputMode.touch()
 		if not key_shown:
