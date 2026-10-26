@@ -996,7 +996,7 @@ func _cheapest_growth_price(tier: int) -> int:
 
 func _pick_family_now(kind: StringName) -> void:
 	# Dreamlight as the game (3d7ed528, owner 2026-10-22): the first pick's comes with sim_family_pick / _forced_family_pick,
-	# the boss rests' (+2 each) with sim_rest. Every later pick (10 / 35 / 60) gives SECOND_PICK_DREAMLIGHT (+1); the game's
+	# the boss rests' (+2 each) with sim_rest. Every later pick (10 / 40 / 60) gives SECOND_PICK_DREAMLIGHT (+1); the game's
 	# own listener for it is one the bot disconnects, so the bot adds it here.
 	if kind == &"second":
 		dreams.add_dreamlight(dreams.sim_dreamlight_for(&"second"), &"first_pick")
@@ -1005,7 +1005,7 @@ func _pick_family_now(kind: StringName) -> void:
 	else:
 		_forced_family_pick(kind)
 
-# The drifts whose rest is a family pick past the first (DriftDirector.family_pick_drifts: 10, 35, 60 since 2026-10-22).
+# The drifts whose rest is a family pick past the first (DriftDirector.family_pick_drifts: 10, 40, 60 since 2026-10-25).
 # Builds before it picked at the boss rests instead (_synthetic_start).
 func _pick_drifts() -> Array:
 	if director.has_method("family_pick_drifts"):

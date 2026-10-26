@@ -19,7 +19,7 @@ const TARGET := "council target (optimal, forced start family): 5-10% by 50, 15-
 const SUITE_RUNS := 20  # Runs per build in the suite (about 0.95 s a run: ~5 min in all; common seeds across builds); --runs=N for more
 const FINALE_IN_SUITE := false  # The clean-finale Rare+ variant: off in the suite; --finale adds it, --finale-only runs only it
 const DRIFTS := [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75]  # Rests with a Dream (5 is the Calling style)
-const PICK_DRIFTS := [10, 35, 60]  # Family picks, before that rest's Dream
+const PICK_DRIFTS := [10, 40, 60]  # Family picks, before that rest's Dream
 const STARTERS := ["sporeling", "firefly_jar", "dewdrop", "bellflower"]
 const NEVER := 999
 

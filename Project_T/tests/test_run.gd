@@ -232,7 +232,7 @@ func _test_blocks_and_rests() -> void:
 	await _frames(300)
 	_check(director.drifts_started == 7, "Auto-drift off: the next drift waits for the button")
 	director.set_auto_drift(true)
-	# The rest after drift 10 opens with the second family pick since 2026-10-22 (picks after drifts 1, 10, 35, 60)
+	# The rest after drift 10 opens with the second family pick since 2026-10-22 (picks after drifts 1, 10, 40, 60)
 	await _play_until(main, func() -> bool: return director.awaiting_family_pick or rests.size() >= 2, 0, 9000)
 	_check(director.awaiting_family_pick and picks == [&"first", &"second"], "after drift 10: the second family pick (%s)" % [picks])
 	if director.awaiting_family_pick:
@@ -266,7 +266,7 @@ func _test_boss_rest_and_win() -> void:
 	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
 	family.choose(family.offer[0])
 	director.start_next_drift()
-	# No boss rest brings a family since 2026-10-22 (owner option A: picks after drifts 1, 10, 35, 60): the boss drift
+	# No boss rest brings a family since 2026-10-22 (owner option A: picks after drifts 1, 10, 40, 60): the boss drift
 	# ends straight in its rest.
 	await _play_until(main, func() -> bool: return not rests.is_empty(), 0, 12000)
 	_check(picks == [&"first"] and director.bosses_cleansed == 1 and not director.awaiting_family_pick, "the boss drift brings no family pick (%s)" % [picks])

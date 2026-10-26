@@ -3,7 +3,7 @@ extends SceneTree
 # The drift 60 pick deepens a family (owner 2026-10-22, dream_council_review.md section 31). Written before the build:
 # it names the API Roguelite Code builds to (DriftDirector.family_pick_kind, FamilyPickScreen.show_pick(&"deepen"),
 # DreamState.DEEPEN_DREAMLIGHT / DEEPEN_FINAL_DREAMLIGHT / deepen_family / is_deepen_open).
-# - Drift 60's pick is &"deepen", not a new family; 10 and 35 still bring families.
+# - Drift 60's pick is &"deepen", not a new family; 10 and 40 still bring families.
 # - Its cards are the run's own families that have a branch "not in this dream"; a family with none gets no card.
 # - Taking one gives +1 Dreamlight, adds no family, sets no Calling.
 # - That family's misty branches call back at the branch price (1), even after the once-per-family call-back.

@@ -70,7 +70,7 @@ func _ready() -> void:
 		whisper(&"again")
 	whisper(&"start")
 	# A boss coming, a boss's toll. ("after_boss" is no longer whispered: since 2026-10-22 no boss brings a family; the
-	# later picks after drifts 10 / 35 / 60 say "Something I'd forgotten came back." on their own screen.)
+	# later picks after drifts 10 / 40 / 60 say "Something I'd forgotten came back." on their own screen.)
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
 		if drift_director.is_boss_drift(drift_director.drifts_started + drift_director.drifts_per_block):
 			whisper(&"boss")

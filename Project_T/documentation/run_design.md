@@ -20,6 +20,9 @@ reached. Balance_simulation.md "Act 2's peak lowered".
 **2026-10-22 (user):** family picks after drifts 1, 10, 35 and 60 (were 1 and the act 1–3 boss rests); Dreamlight +3 at
 each act break (25, 50, 75) instead of with the picks; the first pick keeps +1. Balance_simulation.md "Second family at
 drift 10".
+**2026-10-25 (user):** the third family pick moves from drift 35 to drift 40 (`DriftDirector.third_family_pick_drift`); picks
+now after drifts 1, 10, 40 and 60. Everything that comes with it follows the export: its Dreamlight, the new family's
+lent card at that rest's Dream, the sims.
 
 | Question | Decision |
 |---|---|
