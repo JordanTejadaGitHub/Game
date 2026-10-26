@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 display_name = "World Root"
 role_line = "Roots, area damage, slow attacks"
-description = "Every 5 s roots erupt: everything in range gains 1 {held} and can't move for 1 s. Nightmares with {held} take 30% more damage from every Warden."
+description = "Every 5 s roots erupt: everything in range gains 1 {held} for {field:world_root.hold_on_hit:seconds}. Nightmares with {held} take 30% more damage from every Warden."
 cost = 0
 line = "root"
 tier = 4
