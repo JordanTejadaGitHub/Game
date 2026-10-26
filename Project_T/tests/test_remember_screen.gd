@@ -89,7 +89,7 @@ func _run() -> void:
 			# One button layout (user, Bramble): "Unlock" centred, the Dreamlight glyph and cost at the right, POOR when short
 			var amount := buy.find_child("Amount", true, false) as Label
 			_check(buy.text == "Unlock" and amount != null and amount.text == str(cost)
-				and amount.get_theme_color("font_color") == UiStyle.POOR, "…\"Unlock\" with [Dreamlight] %d in POOR, no count" % cost)
+				and amount.get_theme_color("font_color") == UiStyle.POOR_TEXT, "…\"Unlock\" with [Dreamlight] %d in POOR, no count" % cost)
 			_check(buy.tooltip_text.begins_with("Not enough Dreamlight") and not buy.tooltip_text.contains(str(cost)), "…its hover says where Dreamlight comes from, no count (%s)" % buy.tooltip_text)
 			var refused := []
 			screen.unlock_rejected.connect(func(d: TowerData) -> void: refused.append(d), CONNECT_ONE_SHOT)

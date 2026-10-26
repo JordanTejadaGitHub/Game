@@ -323,9 +323,11 @@ static func _text_floor(node: Node) -> void:
 	if node is Label or node is Button or node is RichTextLabel:
 		_apply_text_floor.call_deferred(node)
 
-static func _apply_text_floor(node: Control) -> void:
-	if not is_instance_valid(node):
+# Untyped: a deferred call can land after the node is freed (a typed Control argument then errors before the check).
+static func _apply_text_floor(target) -> void:
+	if not is_instance_valid(target) or not (target is Control):
 		return
+	var node := target as Control
 	var key := &"normal_font_size" if node is RichTextLabel else &"font_size"
 	var floor_px := ceili(PHONE_MIN_TEXT / maxf(_scale_share, 0.5)) if is_phone() else MIN_TEXT
 	if node.get_theme_font_size(key) < floor_px:

@@ -681,11 +681,11 @@ func _test_active_tag(main: Node) -> void:
 	_check(tag.tooltip_text.contains("statuses last a third as long.") and tag.tooltip_text.contains("At the rest:") and tag.tooltip_text.contains("+40") and tag.tooltip_text.contains("10 less.")
 		and tag.tooltip_text.contains("get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
 	var rich: RichTextLabel = tag.get_node_or_null("TagText")
-	_check(rich != null and not rich.text.contains(UiStyle.POOR.to_html(false)) and tag.get_theme_stylebox("normal") is MoonStyleBox,
+	_check(rich != null and not rich.text.contains(UiStyle.POOR_TEXT.to_html(false)) and tag.get_theme_stylebox("normal") is MoonStyleBox,
 		"…drawn in the Omen colour on a fog backing")
 	main.get_node("%RunState").leaves_lost += 1
 	screen._refresh_tag()
-	_check(tag.text.strip_edges().ends_with("\uE000+30") and rich.text.contains(UiStyle.POOR.to_html(false)), "…a leaf lost: \uE000+30, in POOR (%s)" % tag.text.strip_edges())
+	_check(tag.text.strip_edges().ends_with("\uE000+30") and rich.text.contains(UiStyle.POOR_TEXT.to_html(false)), "…a leaf lost: \uE000+30, in POOR (%s)" % tag.text.strip_edges())
 	var icon: TextureRect = tag.get_node_or_null("OmenIcon")
 	await _frames(2)
 	_check(icon != null and icon.visible and icon.position.x >= 0.0 and icon.position.x + icon.size.x <= tag.size.x / 2.0,

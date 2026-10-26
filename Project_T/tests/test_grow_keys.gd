@@ -267,7 +267,7 @@ func _run() -> void:
 	var nurture_button: Button = panel._all_buttons().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
 	_check(nurture_button.text.ends_with("· %s (N)" % UiStyle.dew_amount(poor.get_nurture_price())) and nurture_button.get_meta(&"short"),
 		"a short Nurture reads the same way (%s)" % nurture_button.text)
-	_check(grow_button.tooltip_text.begins_with("Not enough Dew") and (grow_button.get_node("Row/Price") as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
+	_check(grow_button.tooltip_text.begins_with("Not enough Dew") and (grow_button.get_node("Row/Price") as Label).get_theme_color("font_color") == UiStyle.POOR_TEXT, "only the cost in POOR; its tip says why")
 	run_state.dew = want
 	run_state.dew_changed.emit(want)
 	_check(not grow_button.get_meta(&"short") and not grow_button.has_node("Short") and grow_button.text.ends_with("%s%s (Q)" % [UiStyle.DEW_GLYPH, BossDossier.thousands(want)])
