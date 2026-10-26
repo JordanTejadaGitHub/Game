@@ -59,6 +59,10 @@ func _init() -> void:
 	_sporeling()
 	_dewdrop()
 	_bellflower()
+	_sporeling_s33()
+	_firefly_s33()
+	_dewdrop_s33()
+	_bellflower_s33()
 	var file := FileAccess.open(OUT + "calling_evo.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({marks = index}, "\t") + "\n")
 	print("calling_evo: ", index.size(), " sheets")
@@ -685,3 +689,387 @@ func _hum(img: Image, f: int) -> void:
 				continue  # The faded outer arc thins to 1 px
 			_px(img, xr + p.x, cy + p.y, col)
 			_px(img, xl - p.x, cy + p.y, col)
+
+# --- Section 33 marks (2026-10-25): board visuals for the evolution rows and drift-45 capstones (owner: "draft the new
+# ones through the art council before the owner sees them"; approved after council passes 1-5). Same rules as above.
+# Council pass 1 (art direction + theme, effects peer, readability): Black Spot solid black with a pale rim; dark and
+# blue-on-blue marks get their one light accent (orchid, moss, white foam); every loop's periods divide its frames (no
+# seam pops); no dithered fades on the ground; the tally a dark bronze hanging plaque, not a bar; the streak flare its own
+# ring-and-sparks shape in stepped tiers, never scaled. ------------------------------------------------------------------
+
+func _sporeling_s33() -> void:
+	_sheet("sp_season_haze", Vector2i(32, 14), 4, 3.0, Vector2i(16, 8), true, _season_haze,
+		"Spore Season: a low green spore haze lying over each trail step while the Season is lit, pink spores rising out of it (on the ground, over the path, under the nightmares; flip every other step's tile so the trail doesn't repeat). Anchor = the route point.")
+	_sheet("sp_spore_fleck", Vector2i(9, 9), 4, 12.0, Vector2i(4, 5), false, _spore_fleck,
+		"Host Trees: the pink spore fleck where a capped Warden's tick or hit lands (one shot, ~0.33 s). Anchor = the hit point.")
+	_sheet("sp_black_spot", Vector2i(13, 10), 4, 4.0, Vector2i(6, 9), true, _black_spot,
+		"Black Spot: a solid black rot spot over the marked nightmare's head, a bruise rim lit pale on its upper left, three pustules on it lighting orchid in turn. Anchor = its foot, at the head-mark point.")
+	_sheet("sp_spot_fleck", Vector2i(11, 11), 4, 12.0, Vector2i(3, 8), false, _spot_fleck,
+		"Black Spot: the black rot splat that lands on each Warden as it hits the marked nightmare, drops flicked off it (drawn flicking up-right: flip it toward the Warden; one shot, ~0.33 s). Anchor = the splat on the Warden.")
+	_sheet("sp_deep_rot_ring", Vector2i(44, 20), 5, 10.0, Vector2i(22, 10), false, _deep_rot_ring,
+		"Deep Rot: every 10 steps a dark green rot ring swells out from under the boss, a moss light on its front, then breaks into chunks that sink (one shot, 0.5 s, on the ground). Anchor = its feet.")
+
+func _season_haze(img: Image, f: int) -> void:
+	# Low, soft wisps of spore haze 2-3 px tall, lit on top, hand-shaped (no dither), drifting along the trail and back
+	# (0, 1, 2, 1: no seam), and pink spores rising a pixel a frame.
+	var drift: int = [0, 1, 2, 1][f]
+	# Pass 3: long low streaks, 1-2 px tall and 12 px or more, the top row leaning the way it drifts and lit only at its
+	# leading end (lit tops over dark bases read as grass tufts, narrower rows under wide ones as mushrooms).
+	var keys := {"t": Color(NEWLEAF, 0.4), "b": Color(SPRIG, 0.4)}
+	_grid(img, ["....bbbbbbbbbtt", "bbbbbbbbbbbbb.."], keys, Vector2i(1 + drift, 4))
+	_grid(img, ["...bbbbbbbbbt", "bbbbbbbbbbb.."], keys, Vector2i(16 + drift, 8))
+	_grid(img, ["bbbbbbbbbbbt"], keys, Vector2i(5 + drift, 12))
+	for m: Vector2i in [Vector2i(9, 9), Vector2i(26, 6)]:
+		_px(img, m.x, m.y - f, Color(BLOSSOM, 0.75 if f < 3 else 0.4))
+
+func _spore_fleck(img: Image, f: int) -> void:
+	# A pink fleck that lands and scatters: a lit dot, five bits flying out, thinning.
+	var c := Vector2i(4, 5)
+	match f:
+		0:
+			_grid(img, [".c.", "cHc", ".c."], {"c": BLOSSOM, "H": HEART}, c - Vector2i(1, 1))
+		1:
+			for d: Vector2i in [Vector2i(-2, -1), Vector2i(2, -1), Vector2i(0, -3), Vector2i(-1, 1), Vector2i(1, 1)]:
+				_px(img, c.x + d.x, c.y + d.y, BLOSSOM)
+			_px(img, c.x, c.y - 1, HEART)
+		2:
+			for d: Vector2i in [Vector2i(-3, -2), Vector2i(3, -2), Vector2i(0, -4), Vector2i(-2, 2), Vector2i(2, 2)]:
+				_px(img, c.x + d.x, c.y + d.y, Color(BLOSSOM, 0.75))
+		3:
+			for d: Vector2i in [Vector2i(-4, -2), Vector2i(4, -3), Vector2i(0, -5)]:
+				_px(img, c.x + d.x, c.y + d.y, Color(BLOSSOM, 0.4))
+
+func _black_spot(img: Image, f: int) -> void:
+	# A plant's black spot: a solid, ragged Night blot, a 1 px Bruise rim, lit pale (Mist) on its upper left so it shows
+	# on a dark head, three pustules on it, one lighting Orchid / Blossom in turn (the fourth frame rests).
+	# Pass 2: on dark ground the Night fill vanished and only the rim showed (a hollow oval again): a 2 px Mist rim on the
+	# upper left, Bruise filling its lower third, the rim broken on the lower right, 2x2 pustules.
+	# Pass 3: it read as an EYE (an almond with a pale lid and one bright dot glancing round): now a lobed, ragged blot with
+	# a notch, three loose specks of rot beside it, the pale light broken into separate glints, and the pustules a dim
+	# cluster off centre sharing one faint pulse.
+	# Pass 4: inner bruise bits (a notch, a pustule cluster) read as grain and two side-by-side glints as eyes again: a
+	# solid Night core with a Bruise edge only, its lobes in the outline, one Mist glint off centre, one small pustule.
+	var spot := _blank(img)
+	_grid(spot, [
+		"...NNN.....",
+		".NNNNNN..N.",
+		"NNNNNNNNN..",
+		"NNNNNNNNNN.",
+		".NNNNNNNNNN",
+		"..NNNNNNNN.",
+		"..NN...NN..",
+		"N.........."], {"N": NIGHT}, Vector2i(1, 1))
+	_outline(spot, BRUISE)
+	_rim(spot, [BRUISE], ORCHID, Vector2(6.0, 5.0))  # Pass 5: an Orchid light on its upper-left edge so the lobes show on a dark head
+	_over(img, spot)
+	_px(img, 3, 3, MIST)  # One wet glint, upper left
+	var pulse := f == 1 or f == 2
+	_grid(img, ["pb", "bb"], {"p": ORCHID if pulse else BRUISE, "b": BRUISE}, Vector2i(8, 5))  # One pustule, lower right
+
+func _spot_fleck(img: Image, f: int) -> void:
+	# A dark splat (Night core, Orchid rim on its lit side) with drops flicked off it in an arc; the lead drops stay Orchid.
+	# Pass 2: the splat 5 px, a Mist glint and Bruise edge so it shows on dark ground and on a Warden; drops 2 px.
+	var c := Vector2i(3, 8)
+	var splat := [".mb.", "mNNb", "bNNN", ".bN."] if f < 3 else [".b..", "bNb.", ".b.."]
+	_grid(img, splat, {"N": NIGHT, "b": BRUISE, "m": MIST}, c - Vector2i(1, 2))
+	var drops: Array = [[], [Vector2i(3, -3), Vector2i(2, -5)], [Vector2i(5, -4), Vector2i(3, -6), Vector2i(6, -2)],
+		[Vector2i(7, -4), Vector2i(4, -7)]][f]
+	for i in drops.size():
+		var d: Vector2i = drops[i]
+		var col: Color = ORCHID if i == 0 else BRUISE
+		_px(img, c.x + d.x, c.y + d.y, col)
+		_px(img, c.x + d.x, c.y + d.y + 1, Color(NIGHT, 1.0 if f < 3 else 0.75))
+
+func _deep_rot_ring(img: Image, f: int) -> void:
+	# A broken ring of dark green rot swelling out on the ground (gaps fixed: it swells, never spins), Moss on its lit
+	# upper-left arc and a Sprig light on its front at the peak; then it stops, breaks into chunks and sinks (alpha in
+	# steps, no dither).
+	var c := Vector2(22.0, 10.0)
+	var rx: float = [6.0, 11.0, 15.0, 17.0, 17.0][f]
+	var ry := rx * 0.45
+	var alpha: float = [0.75, 0.75, 0.75, 0.75, 0.4][f]
+	var gap := 0.3 if f < 3 else 0.75  # Wider breaks: the ring falls apart into chunks
+	for y in img.get_height():
+		for x in img.get_width():
+			var e := Vector2((x + 0.5 - c.x) / rx, (y + 0.5 - c.y) / ry)
+			var r := e.length()
+			var thick := 2.2 if f < 4 else 1.2
+			if r > 1.0 or r <= 1.0 - thick / rx:
+				continue
+			var a := fposmod(atan2(e.y, e.x), TAU)
+			if fposmod(a + 0.4, 1.6) < gap:
+				continue
+			var lit := e.x + e.y < -0.4
+			var col: Color = MOSS if lit else DEEPMOSS
+			if f == 2 and e.y > 0.7 and absf(e.x) < 0.35:
+				col = SPRIG  # Its front catches the light at the peak
+			_px(img, x, y, Color(col, alpha))
+	if f < 2:
+		for p: Vector2i in [Vector2i(-6, -2), Vector2i(7, -1)]:
+			_px(img, int(c.x) + p.x, int(c.y) + p.y - f, Color(BLOSSOM, 0.75))
+
+func _firefly_s33() -> void:
+	_sheet("lf_lantern", Vector2i(17, 18), 5, 6.0, Vector2i(8, 17), true, _lantern,
+		"Early Lamps / Carried / Late Lanterns / Lantern Alley / Hunting Lantern: the small lantern over a nightmare. Frame 0 dim (between glows); frames 1-2 lit, 3-4 blazing (loop the pair: the flame flickers, the halo shimmers). Anchor = its base's middle.")
+	_sheet("lf_streak_flare", Vector2i(21, 21), 15, 14.0, Vector2i(10, 10), false, _streak_flare,
+		"Lantern Alley: the lantern's flare each time its streak grows, a warm ring with ember sparks (one shot, 5 frames, ~0.36 s). Three tiers, never scaled: frames 0-4 streak 2, 5-9 streak 3-4, 10-14 streak 5+ (bigger ring, more sparks). Anchor = centre (the lantern's flame).")
+
+func _lantern(img: Image, f: int) -> void:
+	# A little oak lantern on a short hook: the flame inside dims or blazes by frame, flickering between each pair
+	# (lights: no outline, a banded halo whose pattern moves).
+	var body := _blank(img)
+	_grid(body, [
+		"....o....",
+		"..OOOOO..",
+		".OOOOOOO.",
+		".b.....b.",
+		".b.....b.",
+		".b.....b.",
+		".b.....b.",
+		".b.....b.",
+		".b.....b.",
+		".OOOOOOO.",
+		"..bbbbb.."], {"o": OAK, "O": OAK, "b": BARK}, Vector2i(4, 4))
+	_outline(body)
+	_rim(body, [OAK, BARK], DEADWOOD, Vector2(8.5, 9.0))
+	_over(img, body)
+	var level: int = [0, 1, 1, 2, 2][f]
+	var flick: int = 0 if f % 2 == 1 else 1
+	var glass_fill: Color = [Color(DUSK, 0.75), Color(GOLD, 0.4), Color(GLOW, 0.75)][level]
+	for y in range(7, 13):
+		for x in range(6, 11):
+			_px(img, x, y, glass_fill)
+	match level:
+		0:
+			_grid(img, ["E", "E"], {"E": EMBER}, Vector2i(8, 11))
+		1:
+			_grid(img, [".y." if flick == 0 else "y..", "yGy", "yGy", ".y."], {"y": GOLD, "G": GLOW}, Vector2i(7, 8))
+		2:
+			_grid(img, [".G." if flick == 0 else "..G", "GHG", "GHG", "GHG", ".G."], {"G": GLOW, "H": HEART}, Vector2i(7, 7))
+	if level > 0:
+		_halo(img, Vector2(8.5, 10.0), 5.5 if level == 1 else 7.5, GLOW, f, 0.4 if level == 1 else 0.75)
+
+func _streak_flare(img: Image, f: int) -> void:
+	# The lantern's own flare (not the crit's four-point star): a hot core that bursts into a warm ring, ember sparks
+	# flying out of it, the ring breaking and fading. Tier t (0-2): the ring 1 px wider and 2 more sparks a tier.
+	var tier := f / 5
+	var k := f % 5
+	var c := Vector2(10.5, 10.5)
+	if k <= 1:  # The core
+		_grid(img, [".G.", "GHG", ".G."] if k == 0 else ["GGG", "GHG", "GGG"], {"G": GLOW, "H": HEART}, Vector2i(9, 9))
+	var r: float = [0.0, 3.0, 5.0, 6.5, 7.5][k] + tier
+	if k >= 1:
+		var ring_col: Color = [GLOW, GLOW, GOLD, Color(GOLD, 0.75), Color(EMBER, 0.4)][k]
+		for i in 32:
+			var a := TAU * i / 32.0
+			if k >= 3 and i % 4 == 0:
+				continue  # Breaking up
+			var p := c + Vector2(cos(a), sin(a)) * r
+			_px(img, floori(p.x), floori(p.y), ring_col)
+	var sparks := 4 + 2 * tier
+	if k >= 2:
+		for i in sparks:
+			var a := TAU * (i + 0.5) / sparks
+			var p := c + Vector2(cos(a), sin(a)) * (r + 1.5 + (k - 2))
+			_px(img, floori(p.x), floori(p.y), [GLOW, GOLD, Color(EMBER, 0.75)][k - 2])
+	if k == 1:  # A halo only at the burst (on later frames it filled the ring with a mesh)
+		_halo(img, c, r + 2.0, GLOW, f)
+
+func _dewdrop_s33() -> void:
+	_sheet("dw_heavy_cling", Vector2i(30, 14), 4, 6.0, Vector2i(19, 8), true, _heavy_cling,
+		"Heavy Water: water heaped round one nightmare's legs, a white crest sloshing on its front, foam trailing behind it in dashes as it walks (drawn walking right: flip it walking left). Under the nightmare, over the wading cover. Anchor = its feet.")
+	_sheet("dw_floodgate_froth", Vector2i(32, 18), 4, 8.0, Vector2i(16, 9), true, _floodgate_froth,
+		"Floodgate: for the surge's 3 s each water step heaves and goes pale, two ragged bands of froth rolling across it (tiles along the water every 32 px; over the water surface, under the nightmares); the nightmares' stagger is a shake in code. Anchor = the route point.")
+	_sheet("dw_tidal_bore", Vector2i(30, 26), 6, 10.0, Vector2i(15, 25), true, _tidal_bore,
+		"Tidal Bore: a tidal wave rolling with the tough nightmare through the mouth, heaving, its lip curling forward in foam (drawn rolling right: flip it rolling left); drawn just behind the nightmare. Anchor = the wave's foot, under the nightmare.")
+	_sheet("dw_blue_splash", Vector2i(15, 15), 4, 12.0, Vector2i(7, 13), false, _blue_splash,
+		"Tidal Bore / River Mouth / Delta: the big splash on a hit, a crown of water rising with white tips, breaking into drops and falling back into a pale ring (one shot, ~0.33 s). Anchor = the hit's foot.")
+
+func _heavy_cling(img: Image, f: int) -> void:
+	# A heap of water round the feet (an open ring: the body shows through): lit Dewlight on its upper-left lip, darker
+	# under, a white crest on the front rim that sloshes up and down; foam dashes trailing behind, thinning.
+	var c := Vector2(19.0, 8.0)
+	var slosh: int = [0, 1, 0, -1][f]
+	for y in img.get_height():
+		for x in img.get_width():
+			var e := Vector2((x + 0.5 - c.x) / 9.0, (y + 0.5 - c.y) / 3.6)
+			var r := e.length()  # A steady heap (a wobbling rim squared it into a log in frame 1, council pass 2): only the crest and foam move
+			if r > 1.0 or r <= 0.6:
+				continue
+			var col: Color = DEW
+			if e.y < -0.2 and e.x < 0.4:
+				col = DEWLIGHT if r > 0.84 else DEW
+			elif e.y > 0.35:
+				col = POOL
+			_px(img, x, y, col)
+	# Pass 3: one white point on its front read as a fish's snout (with the hollow as its eye): the front stays round, and
+	# the foam is two short bumps along its top rim, sloshing in turn.
+	for b in 2:
+		var bx: int = [15, 21][b]
+		var up: int = slosh if b == 0 else -slosh
+		_grid(img, [".hm", "mmm"], {"h": HEART, "m": MOON}, Vector2i(bx, 4 - maxi(up, 0)))
+	for i in 4:  # The wake: foam dashes behind, thinning, running back a pixel a frame
+		var x := 10 - i * 3 - (f % 3)
+		var y := 8 + (i % 2)
+		var col := Color(MOON if i < 2 else DEWLIGHT, 0.75 if i < 2 else 0.4)
+		_px(img, x, y, col)
+		if i < 2:
+			_px(img, x - 1, y, col)
+
+func _floodgate_froth(img: Image, f: int) -> void:
+	# The surge: a pale wash over the water with ragged edges and two froth bands heaving across it. Every period divides
+	# the tile (16 px) and the loop (4 frames): no seam between steps, no pop at the loop.
+	var w := img.get_width()
+	var heave: int = [0, 1, 0, -1][f]
+	var ph := f * PI * 0.5
+	for x in w:
+		var top := 3 + roundi(sin(x * TAU / 8.0 + ph) * 1.0)
+		var bottom := 15 + roundi(sin(x * TAU / 16.0 - ph) * 1.0)
+		for y in range(top, bottom):
+			_px(img, x, y, Color(DEWLIGHT, 0.4))
+	for band: int in [6, 11]:
+		for x in w:
+			var y := band + heave + roundi(sin(x * TAU / 16.0 + ph + band) * 1.5)
+			_px(img, x, y, Color(MOON, 0.75))
+			_px(img, x, y + 1, Color(DEWLIGHT, 0.75))
+			if (x + f * 2 + band) % 8 == 0:
+				_px(img, x, y - 1, HEART)  # Foam catching the light, carried along
+	for p: Vector2i in [Vector2i(5, 9), Vector2i(19, 4), Vector2i(26, 13)]:
+		_px(img, (p.x + f * 8) % w, p.y + heave, Color(MOON, 0.75))  # Bubbles carried a quarter tile a frame
+
+func _tidal_bore(img: Image, f: int) -> void:
+	# The language of dw_wave_flash (the approved breaking wave), held at its peak and rolling over 6 frames: a domed
+	# swell (not a ramp) that heaves, a lit face under the crest, a white lip in runs that roll forward along the crest and
+	# curl over the front, foam runs at the front's foot, spray thrown up and falling. Water: no outline. Periods of 6.
+	var base := 24
+	var peak := 19
+	var crest_h: float = [13.0, 14.0, 14.0, 13.0, 12.0, 12.0][f]
+	var tops := {}
+	for x in range(3, 24):
+		var hgt: float
+		if x <= peak:
+			var u := float(peak - x) / float(peak - 3)
+			hgt = crest_h * sqrt(maxf(1.0 - u * u, 0.0))  # A rounded dome of water
+		else:
+			hgt = crest_h - (x - peak) * 3.0  # The steep front
+		var top := base - roundi(hgt)
+		if top >= base:
+			continue
+		tops[x] = top
+		for y in range(top, base + 1):
+			var col: Color = Color(DEW, 0.75)
+			if y >= base - 1:
+				col = Color(POOL, 0.75)  # Its deep foot
+			if y == top or (y == top + 1 and x > peak - 7):
+				col = DEWLIGHT  # The lit face under the crest
+			elif x < peak - 2 and y == top + 3 and (x + f) % 3 == 0:
+				col = Color(DEWLIGHT, 0.75)  # Light rolling over its back
+			elif x > peak and y > top + 2 and (y - f) % 3 == 0:
+				col = Color(DEWLIGHT, 0.75)  # Water running down the face
+			_px(img, x, y, col)
+	for x in range(peak - 7, peak + 1):  # The white lip in runs, rolling forward a pixel a frame
+		_px(img, x, int(tops[x]), HEART if (x - f) % 6 < 3 else MOON)
+	var lip: int = tops[peak]
+	var curl := [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 1), Vector2i(4, 2), Vector2i(4, 3), Vector2i(3, 4)]
+	for i in curl.size():
+		var d: Vector2i = curl[i]
+		_px(img, peak + d.x + (1 if f >= 3 and i >= 2 else 0), lip + d.y, HEART if i < 3 else MOON)
+	_px(img, peak + 3, lip + 6 + f % 3, Color(MOON, 0.75))  # A drop falling off the curl
+	for x in range(peak - 1, 30):  # Foam in runs along the front's foot, rolling
+		if (x - f) % 6 < 4:
+			_px(img, x, base, HEART if (x - f) % 6 == 0 else MOON)
+	for i in 4:  # Spray thrown up off the lip and falling: each on a 6-frame cycle, staggered
+		var t := (f + i * 3 / 2) % 6
+		var p := Vector2i(peak + 2 + i * 2, lip - 1 - [1, 3, 4, 4, 3, 1][t])
+		_px(img, p.x, p.y, Color(MOON if i % 2 == 0 else HEART, 0.75 if t < 4 else 0.4))
+
+func _blue_splash(img: Image, f: int) -> void:
+	# A crown of water: rises in leaning, staggered columns with white tips, breaks into drops, falls back into a pale
+	# ring (a step lighter than the water, white flecks in it).
+	var c := Vector2i(7, 13)
+	match f:
+		0:
+			for col: Vector3i in [Vector3i(-4, 3, -1), Vector3i(-2, 5, 0), Vector3i(0, 4, 0), Vector3i(2, 6, 0), Vector3i(4, 3, 1)]:
+				for k in col.y:
+					var lean := col.z * (k / 2)
+					_px(img, c.x + col.x + lean, c.y - k, MOON if k == col.y - 1 else (DEWLIGHT if k > 0 else DEW))
+		1:
+			for d: Vector2i in [Vector2i(-6, -5), Vector2i(-2, -8), Vector2i(1, -9), Vector2i(3, -7), Vector2i(6, -4)]:
+				_grid(img, ["H", "D"], {"H": HEART, "D": DEWLIGHT}, c + d)
+			for x in range(-3, 4):
+				_px(img, c.x + x, c.y, DEWLIGHT)
+		2:
+			for d: Vector2i in [Vector2i(-7, -2), Vector2i(-3, -5), Vector2i(2, -6), Vector2i(5, -4), Vector2i(7, -1)]:
+				_px(img, c.x + d.x, c.y + d.y, MOON)
+			for x: int in [-5, -4, -3, 3, 4, 5]:
+				_px(img, c.x + x, c.y, Color(DEWLIGHT, 0.75))
+		3:
+			for x: int in [-6, -5, -3, 3, 5, 6]:
+				_px(img, c.x + x, c.y - (1 if absi(x) < 5 else 0), Color(MOON if absi(x) == 5 else DEWLIGHT, 0.4))
+
+func _bellflower_s33() -> void:
+	_sheet("kt_tally", Vector2i(19, 15), 2, 0.0, Vector2i(9, 14), false, _tally,
+		"Last Bell / Curfew / Passing Bell / Last Rites: a dark bronze plaque with a shield bottom hanging by a cord from a nail over the nightmare, a rivet each side. Frame 0 the plaque, frame 1 struck (rung out). Code draws kt_tally_mark on its face (x 5..13, y 7..10): one group of five, then a count. Anchor = its bottom middle.")
+	_sheet("kt_tally_mark", Vector2i(8, 5), 2, 0.0, Vector2i(0, 0), false, _tally_mark,
+		"Last Bell: the tally's engraved marks. Frame 0 one stroke (2 px wide: the cut and its lit edge; place strokes 2 px apart), frame 1 the slash over a group of four. Anchor = top left.")
+	_sheet("kt_counter_note", Vector2i(9, 12), 2, 0.0, Vector2i(4, 11), false, _counter_note,
+		"Counterpoint: one small note per kind over the nightmare, modulated (multiplier) by that kind's colour; space them 6 px apart, at most 4. Frame 0 hanging, frame 1 flashing at the toll. Anchor = the note head's foot.")
+
+func _tally(img: Image, f: int) -> void:
+	# A small hanging plaque of dark bronze (Bark face, an Oak top band, Gold rim on its upper left: metal, not wood
+	# grain), notched (swallowtail) ends so it never reads as a health bar, a rivet each side, a hook on top. Struck,
+	# it glows hot with a short halo above it.
+	# Pass 2: still read as warm wood (a chest lid): the face darker and cooler, Shade with a Bark band (dark bronze),
+	# Gold only on its rim and rivets, and a 2 px hook ring clearly hanging it.
+	# Pass 3: it still read as a chest (a top band over a wide face, a handle): no band, a narrower plaque with a shield
+	# bottom, hung by a cord running up to one nail; struck, the face stays dark and only its rim, rivets and cuts light.
+	var plate := _blank(img)
+	var widths := [11, 13, 13, 13, 13, 11, 7, 3, 1]  # Rows from y 5: a tag narrowing to a 2 px V point (pass 5: a round bottom read as a purse)
+	for i in widths.size():
+		var w: int = widths[i]
+		for x in range(9 - w / 2, 9 - w / 2 + w):
+			_px(plate, x, 5 + i, BARK)
+	# Pass 4: a Shade face matched the night ground (only the lit rim read, a bracket): a dark bronze Bark face one step
+	# above it, the Gold rim on the upper left and a dim Oak rim down the right and the point; the nail apart from the cord.
+	for y in range(5, 14):  # The dim rim, lower right (before the outline: after it nothing borders empty space)
+		for x in range(9, 17):
+			if plate.get_pixel(x, y).a > 0.0 and (_empty(plate, x + 1, y) or _empty(plate, x, y + 1)):
+				_px(plate, x, y, OAK)
+	_rim(plate, [BARK], GOLD if f == 0 else GLOW, Vector2(9.0, 8.0))
+	_outline(plate)
+	_over(img, plate)
+	_line(img, Vector2i(8, 2), Vector2i(4, 4), OAK)  # The cord, up to just under its nail
+	_line(img, Vector2i(10, 2), Vector2i(14, 4), OAK)
+	_px(img, 9, 1, NIGHT)
+	_px(img, 9, 0, GLOW if f == 1 else GOLD)  # The nail, a pixel above the cord's peak
+	for r: Vector2i in [Vector2i(4, 6), Vector2i(14, 6)]:
+		_px(img, r.x, r.y, HEART if f == 1 else GOLD)
+	if f == 1:
+		_halo(img, Vector2(9.0, 8.0), 9.0, GLOW, 1, 0.4)
+
+func _tally_mark(img: Image, f: int) -> void:
+	# Engraved: a Night cut with an Oak lit edge on its right (reads on the bronze face).
+	if f == 0:
+		_grid(img, ["Nl", "Nl", "Nl", "Nl"], {"N": NIGHT, "l": GOLD}, Vector2i(0, 0))
+	else:
+		_grid(img, ["......Nl", "....Nl..", "..Nl....", "Nl......"], {"N": NIGHT, "l": GOLD}, Vector2i(0, 0))
+
+func _counter_note(img: Image, f: int) -> void:
+	# An eighth note in pale tones (it takes its kind's colour as a multiplier), a Night outline and an upper-left rim of
+	# light like kt_allegro_note; flashing, its head is a light (Glow core, Heartlight centre) in a banded halo.
+	var note := _blank(img)
+	_grid(note, [
+		"...sf..",
+		"...s.f.",
+		"...s..f",
+		"...s...",
+		"...s...",
+		".hhs...",
+		"hhhh...",
+		".hh...."], {"s": MIST, "f": MIST, "h": MIST}, Vector2i(1, 2))
+	_outline(note)
+	_rim(note, [MIST], HEART, Vector2(4.0, 6.0))
+	_over(img, note)
+	if f == 1:
+		_grid(img, [".GG.", "GHHG", ".GG."], {"G": GLOW, "H": HEART}, Vector2i(1, 7))
+		_halo(img, Vector2(3.0, 8.5), 4.0, GLOW, 0, 0.4)
