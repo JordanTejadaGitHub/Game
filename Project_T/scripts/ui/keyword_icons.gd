@@ -512,10 +512,11 @@ static func _pip_has_inside(rows: Array) -> bool:  # 5+ inside pixels: the autom
 static func _pip_ink(rows: Array, x: int, y: int) -> String:
 	return String(rows[y])[x] if x >= 0 and y >= 0 and x < PIP_SIZE and y < PIP_SIZE else "."
 
-# The pip as a 7×7 image (previews, docs), at the in-game alphas.
-static func pip_image(id: StringName) -> Image:
+# The pip as a 7×7 image (previews, docs, the Codex and the dossier), at the in-game alphas; `full` and `hollow`
+# (locked) as draw_pip takes them (UI council 2026-10-25).
+static func pip_image(id: StringName, full := false, hollow := false) -> Image:
 	var image := Image.create_empty(PIP_SIZE, PIP_SIZE, false, Image.FORMAT_RGBA8)
-	for part in _pip_rects(id, Vector2(PIP_SIZE, PIP_SIZE) / 2.0, 1.0, PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA):
+	for part in _pip_rects(id, Vector2(PIP_SIZE, PIP_SIZE) / 2.0, 1.0, PIP_OUTLINE_ALPHA, PIP_FILL_ALPHA, full, hollow):
 		image.fill_rect(Rect2i(part[0]), part[1])
 	return image
 
