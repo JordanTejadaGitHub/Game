@@ -24,6 +24,10 @@
 		"plain"
 	],
 	"frame_size": 16,
+	"frost_terms": [
+		"frostburst",
+		"cold_snap"
+	],
 	"icons": {
 		"always_damp": 0,
 		"ash": 43,
@@ -31,6 +35,7 @@
 		"attack_speed": 11,
 		"avalanche": 74,
 		"bog_water": 31,
+		"brittle": 104,
 		"brood": 33,
 		"bulky": 47,
 		"burrows": 27,
@@ -39,6 +44,7 @@
 		"charge": 29,
 		"clear_skies": 61,
 		"clock": 99,
+		"cold_snap": 102,
 		"crit_chance": 13,
 		"crit_damage": 14,
 		"damage": 10,
@@ -56,12 +62,16 @@
 		"eclipse": 32,
 		"fairy_circle": 77,
 		"fever_dream": 72,
+		"flash_freeze": 105,
 		"flying": 23,
 		"focus_deep": 20,
 		"focus_power": 17,
 		"focus_reach": 19,
 		"focus_swift": 18,
 		"followers": 45,
+		"frost": 100,
+		"frostbite": 103,
+		"frostburst": 101,
 		"frozen": 7,
 		"grief": 35,
 		"held": 5,
@@ -176,7 +186,10 @@
 		"shatter",
 		"pinned",
 		"smother",
-		"lightning_rod"
+		"lightning_rod",
+		"frostbite",
+		"brittle",
+		"flash_freeze"
 	],
 	"resources": [
 		"leaves",
@@ -226,10 +239,10 @@
 		"static",
 		"held",
 		"caught",
-		"frozen",
 		"deeply_blighted",
 		"hidden",
 		"silenced",
-		"asleep"
+		"asleep",
+		"frost"
 	]
 }

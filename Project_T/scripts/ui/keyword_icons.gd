@@ -409,10 +409,11 @@ static func _status_id(id: StringName) -> StringName:
 	return STATUSES.get(id, id)
 
 # --- Crowd pips (enemy_design.md "Status icons in crowds", owner 2026-10-24) ------------------------------------
+# (Frost's arm tips run to the edge with no outline: a fully outlined 7x7 flake smudged; UI council 2026-10-25.)
 # A crowded nightmare's status row: one pip per status, 7×7 art px (the status colour inside a 1 px Void outline), each
 # status its own shape so it reads without colour (UI council round 8 redrew the pairs that merged): Soaked a drop,
 # Drowsy a thick half-moon, Asleep a deep violet "z", Poisoned a triangle, Exposed a solid diamond (was hollow; owner
-# 2026-10-25: solid, so its locked form hollows like the others), Charged a zigzag bolt, Rooted a solid square, Caught an X. No stack numbers. The outline and the fill
+# 2026-10-25: solid, so its locked form hollows like the others), Charged a zigzag bolt, Rooted a solid square, Caught an X, Frost a snowflake. No stack numbers. The outline and the fill
 # take their own alpha (outline 1.0, fill 0.85: one modulate over both smudged the outline). Drawn as rects, on a
 # CanvasItem (draw_pip) or straight into a RenderingServer canvas item (draw_pip_rid: Enemy's HUD rows): no texture.
 const PIP_SIZE := 7
@@ -427,6 +428,7 @@ const PIPS := {
 	&"static": ["...kkk.", "..kcck.", ".kcck..", "kcccckk", "kkkcck.", "..kck..", "..kk..."],
 	&"held": ["kkkkkkk", "kccccck", "kccccck", "kccccck", "kccccck", "kccccck", "kkkkkkk"],
 	&"caught": ["kk...kk", "kck.kck", ".kckck.", "..kck..", ".kckck.", "kck.kck", "kk...kk"],
+	&"frost": ["..kck..", ".ckckc.", "kkccckk", "ccccccc", "kkccckk", ".ckckc.", "..kck.."],  # A snowflake, Void-edged so it reads on the sand path (section 37; owner 2026-10-25: the tall crystal "isn't really scream frost")
 }
 # Locked pips (section 36: a card's stacks that can't complete its own Reaction yet), drawn by hand (UI council
 # 2026-10-25): the status colour on the shape's edge, its inside emptied to Void (v). One look on every shape, never a
@@ -436,6 +438,7 @@ const HOLLOW_PIPS := {
 	&"drowsy": ["...kkk.", "..kcck.", ".kcvck.", ".kcvvk.", ".kcvck.", "..kcck.", "...kkk."],
 	&"spored": ["...k...", "..kck..", "..kck..", ".kcvck.", ".kcvck.", "kcvvvck", "kkkkkkk"],
 	&"marked": ["...k...", "..kck..", ".kcvck.", "kcvvvck", ".kcvck.", "..kck..", "...k..."],
+	&"frost": ["..kck..", ".ckckc.", "kkcvckk", "ccvvvcc", "kkcvckk", ".ckckc.", "..kck.."],  # Its centre emptied; the arms and tips keep the colour (UI council 2026-10-25)
 	&"static": ["...kkk.", "..kcck.", ".kcvk..", "kccvckk", "kkkcck.", "..kck..", "..kk..."],
 	&"held": ["kkkkkkk", "kccccck", "kcvvvck", "kcvvvck", "kcvvvck", "kccccck", "kkkkkkk"],
 }

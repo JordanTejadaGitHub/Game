@@ -296,6 +296,7 @@ const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain
 const STATE_ICONS := ["asleep"]
 # Combat HUD marks (appended, no column moves): "chain" = the Reaction chain counter (scripts/ui/chain_counter.gd).
 const HUD_MARK_ICONS := ["chain", "clock"]  # "clock" = the Pause run summary's time row (UI council round 4)
+const FROST_ICONS := ["frost", "frostburst", "cold_snap", "frostbite", "brittle", "flash_freeze"]  # Section 37 (UI Asset 2026-10-25): last, so no other column moves
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -306,7 +307,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS + HUD_MARK_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS + STATE_ICONS + HUD_MARK_ICONS + FROST_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -317,11 +318,12 @@ func _make_icons() -> void:
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
-	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS + LATE_STATUS_ICONS + STATE_ICONS, stats = STAT_ICONS,
+	var data := {frame_size = ICON, icons = index, statuses = (STATUS_ICONS + LATE_STATUS_ICONS + STATE_ICONS + ["frost"]).filter(func(s: String) -> bool: return s != "frozen"), stats = STAT_ICONS,  # Frozen retired (d21ed7db); its column stays drawn
+		frost_terms = ["frostburst", "cold_snap"],
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
-		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS, shapes = SHAPE_ICONS,
+		reactions = REACTION_ICONS + ["frostbite", "brittle", "flash_freeze"], crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS, shapes = SHAPE_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -3415,3 +3417,88 @@ func _spark_frame(sheet: Image, f: int) -> void:
 		var ink := Color(Palette.color("heartlight") if i == 1 else Palette.color("moonlight"), 1.0 if i < arm or arm == 1 else 0.6)
 		for p in [c + Vector2i(i, 0), c - Vector2i(i, 0), c + Vector2i(0, i), c - Vector2i(0, i)]:
 			sheet.set_pixel(f * 7 + p.x, p.y, ink)
+
+# Frost (dream_council_review.md section 37, owner 2026-10-25: the 7th status; it builds up and never slows) ----------
+# In Frost's own colour, Mist (EnemyStatuses.COLORS), with Moonlight and Stone either side; its Reactions pair Frost's
+# rime with the other status's own motif, as Drown / Smother do. Redrawn after the UI council (2026-10-25).
+
+func _flake(c: Vector2, arm: float, w: float, k: int, barbs := true) -> void:
+	for i in 3:
+		var d := Vector2.from_angle(PI * 0.5 + i * PI / 3.0)
+		_c_line([c - d * arm, c + d * arm], w, k)
+		if barbs:
+			for s: float in [-1.0, 1.0]:
+				var p := c + d * arm * 0.7 * s
+				_c_line([p, p + d.rotated(0.7) * arm * 0.22 * s], 1.0, k)
+				_c_line([p, p + d.rotated(-0.7) * arm * 0.22 * s], 1.0, k)
+
+func _ic_frost() -> void:
+	# Frost: a rime crystal, six barbed arms round a solid hub with a dark heart (the Frostfern family's crystal; it
+	# gathers, it doesn't stop anything).
+	var k := _rpn("moonlight", "mist", "stone")
+	_flake(Vector2(8, 8), 6.6, 1.4, k)
+	_c_disc(Vector2(8, 8), 2.0, k)
+	for p: Vector2i in [Vector2i(7, 7), Vector2i(8, 7), Vector2i(7, 8), Vector2i(8, 8)]:
+		_dt(p.x, p.y, ICON_OUTLINE)
+	_dt(8, 2, Palette.color("heartlight"))
+
+func _burst(c: Vector2, core: float, inner: float, tip: float, half: float, core_k: int, shard_k: int) -> void:
+	_c_disc(c, core, core_k)
+	for i in 6:
+		var d := Vector2.from_angle(PI * 0.5 + i * PI / 3.0)
+		var side := d.orthogonal()
+		_c_poly(PackedVector2Array([c + d * inner - side * half, c + d * tip, c + d * inner + side * half]), shard_k)
+
+func _ic_frostburst() -> void:
+	# Frostburst: the crystal at its fullest breaks outwards, six shards flung clear of a small cold core.
+	var cold := _rpn("moonlight", "mist", "stone")
+	_burst(Vector2(8, 8), 2.0, 4.0, 7.6, 1.6, cold, cold)
+	_dt(7, 7, Palette.color("heartlight"))
+
+func _ic_cold_snap() -> void:
+	# Cold Snap: the other statuses stop running down. An hourglass whose sand has frozen mid-fall, all in Frost's colour
+	# (the glass a step darker so the pale sand reads in it).
+	var glass := _rpn("mist", "stone", "slate")
+	_c_rect(Rect2i(3, 1, 10, 2), glass)
+	_c_rect(Rect2i(3, 13, 10, 2), glass)
+	_c_poly(PackedVector2Array([Vector2(4, 3), Vector2(12, 3), Vector2(8.6, 8), Vector2(7.4, 8)]), glass)
+	_c_poly(PackedVector2Array([Vector2(7.4, 8), Vector2(8.6, 8), Vector2(12, 13), Vector2(4, 13)]), glass)
+	for x in range(6, 10):  # The sand, held up top (it isn't running), a little piled below
+		_dt(x, 4, Palette.color("moonlight"))
+		_dt(x, 11, Palette.color("moonlight"))
+		_dt(x, 12, Palette.color("mist"))
+	_dt(7, 5, Palette.color("mist"))
+	_dt(8, 5, Palette.color("mist"))
+	_dt(8, 6, Palette.color("mist"))
+	_dt(4, 1, Palette.color("heartlight"))
+	_dt(11, 13, Palette.color("heartlight"))
+
+func _ic_frostbite() -> void:
+	# Frostbite (Frost + Poisoned): a poison spore bitten by frost, a crystal sunk into its side.
+	_c_disc(Vector2(6.4, 9.4), 5.0, _rpn("newleaf", "sprig", "leaf"))
+	_c_erase_disc(Vector2(11.4, 4.6), 4.2)
+	_flake(Vector2(11.2, 4.8), 3.6, 1.2, _rpn("moonlight", "mist", "stone"), false)
+	_dt(4, 7, Palette.color("heartlight"))
+	_dt(5, 11, Palette.color("leaf"))
+	_dt(8, 12, Palette.color("leaf"))
+
+func _ic_brittle() -> void:
+	# Brittle (Frost + Exposed): Exposed's gold ring cracked through, a small crystal at its heart.
+	var ice := _rpn("moonlight", "mist", "stone")
+	_c_ring(Vector2(8, 8), 6.4, 4.0, _rpn("heartlight", "glow", "gold"))
+	_c_line([Vector2(10.6, 1.6), Vector2(8.4, 5.2), Vector2(10.2, 8.2), Vector2(7.4, 14.4)], 1.3, ice)
+	for p: Vector2i in [Vector2i(9, 4), Vector2i(10, 7), Vector2i(8, 12)]:
+		_cells.erase(p + Vector2i(1, 0))  # The crack opens a gap in the ring beside the rime
+		_cells.erase(p + Vector2i(2, 0))
+	_flake(Vector2(8, 8), 2.8, 1.0, ice, false)
+	_dt(3, 4, Palette.color("heartlight"))
+
+func _ic_flash_freeze() -> void:
+	# Flash Freeze (Frost + Soaked): a bigger Frostburst off soaked water.
+	var pts: Array = []
+	for i in 9:
+		pts.append(Vector2(1.0 + i * 1.75, 13.0 + sin(i * PI / 2.0) * 1.3))
+	_c_line(pts, 1.8, _rpn("dewlight", "dew", "dew"))
+	_burst(Vector2(8, 6.6), 1.8, 3.4, 6.4, 1.3, _rpn("heartlight", "moonlight", "mist"), _rpn("moonlight", "mist", "stone"))
+	_dt(8, 7, Palette.color("heartlight"))
+	_dt(4, 9, Palette.color("dewlight"))
