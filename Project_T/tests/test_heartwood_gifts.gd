@@ -111,7 +111,7 @@ func _run() -> void:
 	_check(bell[2].get("zone") is Dictionary and is_equal_approx(float(bell[2].zone.cells), HeartwoodGifts.zone_cells(&"bell_stone"))
 		and String(bell[2].zone.word) == "%d%% slower" % roundi(HeartwoodGifts.stat(&"bell_stone", "slow", 1) * 100.0) and float(bell[2].zone.every) > 0.0,
 		"the Bell Stone's scene rings in its zone with its step's numbers (%s)" % [bell[2]])
-	_check(GiftScreen.growth_line(&"spring", 2) == "The Spring grows: Wardens near it now attack %d%% faster." % roundi(HeartwoodGifts.stat(&"spring", "attack_speed", 2) * 100.0) and HeartwoodGifts.stat(&"spring", "attack_speed", 2) > 0.0,
+	_check(GiftScreen.growth_line(&"spring", 2) == "The Spring gets stronger: Wardens near it now attack %d%% faster." % roundi(HeartwoodGifts.stat(&"spring", "attack_speed", 2) * 100.0) and HeartwoodGifts.stat(&"spring", "attack_speed", 2) > 0.0,
 		"a landmark's growth line reads its new step (%s)" % GiftScreen.growth_line(&"spring", 2))
 	_check(RestReport.landmark_lines(null, {&"bell_stone": 212, &"lightning_tree": 38, &"moonwell": 0}) == "\nBell Stone: slowed 212 nightmares\nLightning Tree: struck 38 times",
 		"the rest report credits each landmark in one line")

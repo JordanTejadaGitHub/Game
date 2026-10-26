@@ -102,7 +102,7 @@ func _run() -> void:
 	HeartwoodMemory.save_data(profile)
 	groups = CodexData.glossary().filter(func(g: Array) -> bool: return g[0] == "Signatures")
 	var entries: Array = groups[0][1] if groups.size() == 1 else []
-	_check(entries.size() == 9 and entries[0][0] == "Your signatures" and entries.any(func(e: Array) -> bool: return e[0] == "Crushing" and e[1].begins_with("Four Power ranks") and e[1].ends_with("Good against armour."))
+	_check(entries.size() == 9 and entries[0][0] == "Your signatures" and entries.any(func(e: Array) -> bool: return e[0] == "Crushing" and e[1].begins_with("Four Power Nurture ranks") and e[1].ends_with("Good against armour."))
 		and entries.filter(func(e: Array) -> bool: return e[0] == "???").size() == 7,
 		"after Crushing: what a signature is, Crushing by name, 7 still ???")
 
