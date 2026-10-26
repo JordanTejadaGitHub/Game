@@ -633,3 +633,8 @@ translation: one pass that routes every string through `tr()` and drops text com
    next form. Recommended: **Plant** (first level), **Nourish** (later levels), **In full leaf** or **Full** (done).
 2. **"Hollow" stacks.** The lead named the Codex entry "Hollow" (2026-10-25); "the Hollow" is the story's villain and the
    Hollow Oak a boss (23 files). Recommended: **Settling** ("Settling: a Dream card added these stacks …").
+
+**Decided (owner 2026-10-26):** 1. Grove node levels: **Plant** (first level), **Nourish** (later levels), **Full** (done);
+"grow" stays for Warden forms only. 2. The locked-stacks state is **Settling** (Codex entry "Settling"; tooltip
+"Settling: a Dream card added these stacks. No Reaction can trigger on this nightmare until they settle ({const:fed_lock}
+s)."). Replaces "Hollow" from the "Hollow stacks" section; the drawn look (colour edge, dark inside) is unchanged.
