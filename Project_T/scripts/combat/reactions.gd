@@ -2276,7 +2276,8 @@ static func frostburst(enemy: Node2D, amount: float, source: Node) -> void:
 			near.append(other)
 	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 	near = near.slice(0, most)
-	_effect(FROSTBURST_TAG if Fx.has_effect(FROSTBURST_TAG) else FROSTBURST_STAND_IN, Tower.aim_at(enemy), enemy, reach / CELL)
+	var sheet := FROSTBURST_TAG if Fx.has_effect(FROSTBURST_TAG) else FROSTBURST_STAND_IN
+	_effect(sheet, Tower.feet_of(enemy) if Fx.feet_anchored(sheet) else Tower.aim_at(enemy), enemy, reach / CELL)  # A feet sheet at its feet (owner 2026-10-25)
 	if not enemy.is_cleansed:
 		enemy.take_damage(damage, line, false, false, source, FROSTBURST_TAG)
 	for other in near:
