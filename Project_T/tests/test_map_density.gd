@@ -16,8 +16,8 @@ const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
 const ROUTE_RANGE := Vector2i(22, 38)  # Opening route, full cells. Smaller map (20x16, 2026-10-23): measured 23-36 over 50 seeds (was 24-44 on 23x18)
 const ROUTE_MAX_BLIGHT_9 := 40  # Its extra spur can stretch the opening a little
-const OBSTACLES_BLIGHT_0 := Vector2i(36, 50)  # Smaller map (2026-10-23): measured 38-48, mean 44.6 (was 48-60 on 23x18)
-const OBSTACLES_BLIGHT_9 := Vector2i(36, 54)  # Measured 40-49 on the smaller map. The extra spur is a deliberate step: less open floor
+const OBSTACLES_BLIGHT_0 := Vector2i(38, 62)  # Frame balance (2026-10-25): measured 42-58, mean 48.9 (every corner and side keeps woods; was 38-48 before)
+const OBSTACLES_BLIGHT_9 := Vector2i(40, 66)  # Measured 45-63 with the frame balance. The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(3, 6)  # Lone decision obstacles in the bowl (not spur or feature cells)
 const BUILDABLE_MIN := 255  # Smaller map (2026-10-23): measured 264-280, median ~272 (was ~291 on 23x18)
 
@@ -175,7 +175,9 @@ func _feature_case(feature: int) -> void:
 	if feature == MapLayout.Feature.POND:
 		print("  feature pond: %d inside corners over 8 seeds (non-rectangular ponds)" % corners)
 	if feature != MapLayout.Feature.GROVE:
-		_check(placed_near >= 6, "%s placed near the route's band stretch on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed_near])
+		# The log: 4, as its shortcut check below (the bend spur mid-way leaves the start's ground open: fewer spots where a log
+		# lengthens the route, and a log placed elsewhere can't be near it; environment_assets.md "Frame balance and the bend spur")
+		_check(placed_near >= (4 if feature == MapLayout.Feature.LOG else 6), "%s placed near the route's band stretch on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed_near])
 		print("  feature %s: placed near the band route on %d of 8; the drawn route passes within 2 on %d (in an open bowl it may take another of the equal routes)" % [MapLayout.FEATURE_NAMES[feature], placed_near, near_route])
 	if feature == MapLayout.Feature.LOG:
 		_check(shortcuts >= 4, "Tending the log shortens the route on %d of 8 seeds" % shortcuts)  # Open bowl: the drawn route can skirt a log it was laid across

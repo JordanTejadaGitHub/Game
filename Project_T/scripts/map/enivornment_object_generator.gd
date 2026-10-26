@@ -63,7 +63,8 @@ const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and th
 const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
 const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
 const NEAR_ROUTE_TRIES := 120
-const LOG_ACROSS_TRIES := 80  # A log first tries to lie across the opening route (it gets longer round it), so Tending it is a shortcut
+const LOG_ACROSS_TRIES := 300  # A log first tries to lie across the opening route (it gets longer round it), so Tending it is a shortcut (300 of the 400 tries since the bend spur moved mid-way: fewer spots lengthen the route near the start)
+const LOG_DETOUR_MIN := 2  # Cells the log must add to the ridges-only route on those tries: with the bend spur mid-way the open ground near the start has an equal way round a 1-cell detour
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -133,6 +134,11 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 				_place_obstacle(rng, cell, rock_obstacle, obstacles)
 				scatter.append(cell)
 	_place_bowl_obstacles(rng, skip, obstacles)
+	_count_region_room(skip)
+	var off_route := skip.duplicate()  # The groves stay off the opening route the feature was laid across (the log's shortcut)
+	for cell: Vector2i in _provisional_route():
+		off_route.append(Vector2(cell))
+	_balance_frame(rng, off_route, obstacles)  # Every corner and side keeps its woods (environment_assets.md "Frame balance")
 	scatter.clear()  # Thinning takes any band grove or cluster cell, never a spur or the feature
 	for cell: Vector2 in obstacles:
 		if in_band(cell) and not ridge_cells.has(cell) and not feature_cells.has(cell):
@@ -188,8 +194,98 @@ func _touches_obstacle(cell: Vector2, obstacles: Dictionary) -> bool:
 				return true
 	return false
 
-# Over `target_obstacles_max`: takes back band scatter, the loneliest first (fewest obstacle neighbours), so
-# the groves that stay keep their shape.
+# --- Frame balance (environment_assets.md "Frame balance and the bend spur", user 2026-10-25) -----------------------
+# The frame band is 8 regions: the 4 corners (frame_band × frame_band) and the middle stretch of each side. Each keeps at
+# least REGION_MIN_SHARE of its open cells wooded (CORNER_MIN at least in a corner), so no corner is bare, the two beside
+# the Heartwood's side included. Thinning takes from the densest region first and never below its minimum; topping up
+# goes to the emptiest first. Cells within START_CLEAR of the start never count or get woods (its pocket stays open).
+enum Region { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT, TOP, BOTTOM, LEFT, RIGHT }
+const REGION_COUNT := 8
+const REGION_MIN_SHARE := 0.06  # Sides: ~3 on a top or bottom stretch, 2 on a left or right one (20x16)
+const CORNER_MIN := 2
+const START_CLEAR := 2  # Cells (Chebyshev) round the start kept out of the frame's woods
+var _region_room: Array[int] = []  # Open cells per region (set by _count_region_room)
+var _region_cells: Array = []  # Region -> Array[Vector2] of its open cells
+
+# The frame region of a band cell (-1 in the bowl or off the map).
+func frame_region(cell: Vector2) -> int:
+	if not in_band(cell):
+		return -1
+	var size := Vector2i(MAP_GRID.size)
+	var c := Vector2i(cell)
+	var left := c.x < frame_band
+	var right := c.x > size.x - 1 - frame_band
+	var top := c.y < frame_band
+	var bottom := c.y > size.y - 1 - frame_band
+	if top and left: return Region.TOP_LEFT
+	if top and right: return Region.TOP_RIGHT
+	if bottom and left: return Region.BOTTOM_LEFT
+	if bottom and right: return Region.BOTTOM_RIGHT
+	if top: return Region.TOP
+	if bottom: return Region.BOTTOM
+	return Region.LEFT if left else Region.RIGHT
+
+func _near_start(cell: Vector2) -> bool:
+	return maxi(absi(int(cell.x) - _start.x), absi(int(cell.y) - _start.y)) <= START_CLEAR
+
+# Counts each region's open cells (band, not skipped, not water, not the start's pocket).
+func _count_region_room(skip_cells: PackedVector2Array) -> void:
+	_region_room.clear()
+	_region_cells.clear()
+	for r in REGION_COUNT:
+		_region_room.append(0)
+		var cells: Array[Vector2] = []
+		_region_cells.append(cells)
+	for x in MAP_GRID.size.x:
+		for y in MAP_GRID.size.y:
+			var cell := Vector2(x, y)
+			var r := frame_region(cell)
+			if r < 0 or skip_cells.has(cell) or pond_cells.has(cell) or _near_start(cell):
+				continue
+			_region_room[r] += 1
+			_region_cells[r].append(cell)
+
+# The fewest obstacles region `r` keeps.
+func region_minimum(r: int) -> int:
+	if _region_room.is_empty():
+		return 0
+	var share := ceili(_region_room[r] * REGION_MIN_SHARE)
+	return mini(_region_room[r], maxi(share, CORNER_MIN) if r <= Region.BOTTOM_RIGHT else share)
+
+func region_count(r: int, obstacles: Dictionary) -> int:
+	var n := 0
+	if r < _region_cells.size():
+		for cell: Vector2 in _region_cells[r]:
+			if obstacles.has(cell):
+				n += 1
+	return n
+
+# Regions under their minimum get a small grove: a seed cell, then cells beside the grove so far (a clump, not dots).
+func _balance_frame(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
+	for r in REGION_COUNT:
+		var need := region_minimum(r) - region_count(r, obstacles)
+		var grove: Array[Vector2] = []
+		for attempt in 60:
+			if need <= 0:
+				break
+			var free: Array[Vector2] = []
+			for cell: Vector2 in _region_cells[r]:
+				if obstacles.has(cell) or skip_cells.has(cell):
+					continue
+				if grove.is_empty() or grove.any(func(g: Vector2) -> bool: return g.distance_to(cell) <= 1.5):
+					free.append(cell)
+			if free.is_empty():
+				if grove.is_empty():
+					break
+				grove.clear()  # The clump is boxed in: start another in this region
+				continue
+			var cell: Vector2 = free[rng.randi_range(0, free.size() - 1)]
+			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.65 else rock_obstacle, obstacles)  # Groves: mostly trees
+			grove.append(cell)
+			need -= 1
+
+# Over `target_obstacles_max`: takes back band scatter from the densest region first (never below its minimum), the
+# loneliest cell there first (fewest obstacle neighbours), so the groves that stay keep their shape.
 func _thin_to_target(scatter: Array[Vector2], obstacles: Dictionary) -> void:
 	var excess := obstacles.size() - target_obstacles_max
 	if excess <= 0:
@@ -201,29 +297,60 @@ func _thin_to_target(scatter: Array[Vector2], obstacles: Dictionary) -> void:
 				n += 1
 		return n
 	for i in excess:
-		if scatter.is_empty():
-			return
-		var best := 0
+		var best := -1
+		var best_region := -1
+		var best_density := -1.0
 		for j in scatter.size():
-			if neighbours.call(scatter[j]) < neighbours.call(scatter[best]):
+			var r := frame_region(scatter[j])
+			var count := region_count(r, obstacles)
+			if r >= 0 and count <= region_minimum(r):
+				continue  # Never strip a region past its minimum
+			var density := float(count) / maxf(_region_room[r], 1.0) if r >= 0 else 0.0
+			if density > best_density or (r == best_region and neighbours.call(scatter[j]) < neighbours.call(scatter[best])):
 				best = j
+				best_region = r
+				best_density = density
+		if best < 0:
+			return
 		var cell: Vector2 = scatter[best]
 		scatter.remove_at(best)
 		obstacles.erase(cell)
 		erase_cell(Vector2i(cell))
 
-# Tops a sparse map up to `target_obstacles_min` with lone trees and rocks on free band cells (route carving
-# still guarantees a way through).
+# Tops a sparse map up to `target_obstacles_min` with lone trees and rocks on free band cells, the emptiest region first
+# (route carving still guarantees a way through).
 func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> Array[Vector2]:
 	var placed: Array[Vector2] = []
 	for attempt in 800:
 		if obstacles.size() >= maxi(min_obstacles, target_obstacles_min):
 			return placed
 		var cell := Vector2(rng.randi_range(0, int(MAP_GRID.size.x) - 1), rng.randi_range(0, int(MAP_GRID.size.y) - 1))
-		if in_band(cell) and not skip_cells.has(cell) and not obstacles.has(cell):
+		var emptiest := _emptiest_region(skip_cells, obstacles)
+		if emptiest >= 0:
+			var free: Array = _region_cells[emptiest].filter(func(c: Vector2) -> bool: return not skip_cells.has(c) and not obstacles.has(c))
+			cell = free[rng.randi_range(0, free.size() - 1)]
+		if in_band(cell) and not skip_cells.has(cell) and not obstacles.has(cell) and not _near_start(cell):
 			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
 			placed.append(cell)
 	return placed
+
+# The region with the lowest wooded share that still has a free cell (-1: none counted yet, or all full).
+func _emptiest_region(skip_cells: PackedVector2Array, obstacles: Dictionary) -> int:
+	var best := -1
+	var best_density := INF
+	for r in _region_room.size():
+		var free := false
+		for c: Vector2 in _region_cells[r]:
+			if not skip_cells.has(c) and not obstacles.has(c):
+				free = true
+				break
+		if not free:
+			continue
+		var density := float(region_count(r, obstacles)) / maxf(_region_room[r], 1.0)
+		if density < best_density:
+			best = r
+			best_density = density
+	return best
 
 # Ridges are wobbly tapering lines of rocks and trees running in from a wall, laid out by the map's
 # layout (MapLayout, environment_assets.md "Map layouts" / "Inland Heartwood"). They're generated in a
@@ -231,7 +358,7 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 # start → Heartwood direction. Each ridge has its own rock/tree mix. Diagonal wobbles still block:
 # creatures only move up/down/left/right.
 # Room to maze (environment_assets.md a5178f53), on rows between the start and the Heartwood: first the bend
-# spur (the row nearest the start), a thin line just long enough to cut the start→Heartwood box, so the opening
+# spur (BEND_SHARE of the way from the start to the Heartwood: _pick_spur_rows), a thin line just long enough to cut the start→Heartwood box, so the opening
 # route bends round it at +MapLayout.BEND_EXTRA or more (game_design.md "The forest (map)"); then short gap-free spurs (~35% across
 # at most, from alternating walls; +1 at Blight 9, as many as fit). Roots sit in the frame band, tips reach into
 # the bowl. Rows stay RIDGE_END_GAP from the start's and the Heartwood's rows, so no spur reaches the glade.
@@ -244,9 +371,7 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	count += MetaRun.perk_extra_ridges()  # Sidegrade Clear Sight (Spire experiment): one extra ridge
 	var a := _v_of(_start)
 	var b := _v_of(_end)
-	var rows := _pick_ridge_rows(rng, count, mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP)
-	if a > b:
-		rows.reverse()  # The first ridge is the one nearest the start
+	var rows := _pick_spur_rows(rng, count, a, b)  # rows[0] = the bend spur's
 	ridge_count = rows.size()
 	if rows.is_empty():
 		return
@@ -264,7 +389,33 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	for ridge in range(1, rows.size()):  # Any others: short spurs from alternating walls
 		from_low = not from_low
 		var length := maxi(frame_band, roundi(u_inner * rng.randf_range(ridge_length_min, ridge_length_max)))
+		var before := ridge_cells.duplicate()
 		_ridge(rng, rows[ridge], from_low, length, 0, skip_cells, obstacles)  # Gaps past the root (only the bend must hold)
+		if _spurs_seal(skip_cells):  # With the bend mid-way, a spur beside it can wall the map off with it: drop that one
+			for cell: Vector2 in ridge_cells.keys():
+				if not before.has(cell):
+					ridge_cells.erase(cell)
+					obstacles.erase(cell)
+					erase_cell(Vector2i(cell))
+			ridge_count -= 1
+
+# True if the spurs alone (with the skipped cells' water and walls) leave no way from the start to the Heartwood.
+func _spurs_seal(skip_cells: PackedVector2Array) -> bool:
+	var seen := {Vector2(_start): true}
+	var queue: Array[Vector2] = [Vector2(_start)]
+	while not queue.is_empty():
+		var cell: Vector2 = queue.pop_back()
+		if cell == Vector2(_end):
+			return false
+		for step: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			var next := cell + step
+			if seen.has(next) or not MAP_GRID.is_within_bounds(next) or ridge_cells.has(next):
+				continue
+			if next != Vector2(_end) and unwalkable_cells.has(next):
+				continue
+			seen[next] = true
+			queue.append(next)
+	return true
 
 # The bend spur: a gap-free line `length` cells from its wall (clearable like any obstacle: a big shortcut
 # later). Natural, not a dotted row (user 2026-10-06: "make sure variety"): trees and boulders mixed, a ragged
@@ -414,6 +565,32 @@ func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVecto
 				# grid (user 2026-10-06: "looks a bit unnatural if it's just rocks in a line, make sure variety").
 				if rng.randf() < CLUSTER_FILL * (1.0 - distance / (radius + 1.0)):
 					_place_obstacle(rng, cell, rock_obstacle if rng.randf() < CLUSTER_ROCK_SHARE else tree_obstacle, obstacles)
+
+# The spur rows between the start's row `a` and the Heartwood's `b` (RIDGE_END_GAP from both). The bend spur's comes
+# first, BEND_SHARE of the way from the start toward the Heartwood (user 2026-10-25: "push the row of obstacles a bit
+# farther up", not the row nearest the start), so the opening runs on before it bends and the ground behind it is
+# usable. The others (up to count - 1) keep ridge_min_spacing from it and each other: toward the Heartwood first, then
+# the start's side.
+const BEND_SHARE := Vector2(0.40, 0.55)
+func _pick_spur_rows(rng: RandomNumberGenerator, count: int, a: int, b: int) -> Array[int]:
+	var rows: Array[int] = []
+	var first := mini(a, b) + RIDGE_END_GAP
+	var last := maxi(a, b) - RIDGE_END_GAP
+	if count <= 0 or last < first:
+		return rows
+	var bend := clampi(a + roundi((b - a) * rng.randf_range(BEND_SHARE.x, BEND_SHARE.y)), first, last)
+	rows.append(bend)
+	var toward := signi(b - a)
+	var sides: Array = [[bend + toward * ridge_min_spacing, b - toward * RIDGE_END_GAP],
+		[bend - toward * ridge_min_spacing, a + toward * RIDGE_END_GAP]]
+	for side: Array in sides:
+		var lo := mini(side[0], side[1])
+		var hi := maxi(side[0], side[1])
+		if rows.size() >= count or hi < lo:
+			continue
+		var more := _pick_ridge_rows(rng, count - rows.size(), lo, hi)
+		rows.append_array(more)
+	return rows
 
 # Up to `count` rows between `first` and `last`, sorted, each at least `ridge_min_spacing` apart.
 func _pick_ridge_rows(rng: RandomNumberGenerator, count: int, first: int, last: int) -> Array[int]:
@@ -587,7 +764,7 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 			continue
 		if not cells.any(in_band) or not cells.all(func(c: Vector2) -> bool: return not _deep_in_bowl(c)):
 			continue
-		if layout.feature == MapLayout.Feature.LOG and attempt < LOG_ACROSS_TRIES and _route_length(cells) <= base_length:
+		if layout.feature == MapLayout.Feature.LOG and attempt < LOG_ACROSS_TRIES and _route_length(cells) < base_length + LOG_DETOUR_MIN:
 			continue
 		if shapes_route and attempt < NEAR_ROUTE_TRIES and not _near(cells, route):
 			continue
@@ -623,7 +800,8 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 				for cell in cells:
 					_place_obstacle(rng, cell, tree_obstacle, obstacles)
 		feature_cells.assign(cells)
-		feature_near_route = shapes_route and attempt < NEAR_ROUTE_TRIES
+		# Near the route, or a log laid across it (it lengthens the opening, so it shapes it as much)
+		feature_near_route = shapes_route and (attempt < NEAR_ROUTE_TRIES or (layout.feature == MapLayout.Feature.LOG and attempt < LOG_ACROSS_TRIES))
 		return
 
 # The feature's cells around a random spot, or from `around` when given (before checking they're free).
@@ -853,4 +1031,11 @@ func top_up(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, route: D
 	for cell: Vector2 in route:
 		skip.append(cell)
 	skip.append_array(PackedVector2Array(pond_cells))
-	return _fill_to_minimum(rng, skip, obstacles)
+	var before := obstacles.duplicate()
+	_balance_frame(rng, skip, obstacles)  # Carving may have thinned a corner or side below its minimum
+	_fill_to_minimum(rng, skip, obstacles)
+	var placed: Array[Vector2] = []
+	for cell: Vector2 in obstacles:
+		if not before.has(cell):
+			placed.append(cell)
+	return placed
