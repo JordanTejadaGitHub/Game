@@ -32,6 +32,7 @@ var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
 const PHONE_SPEED_SIDE := 60.0  # Phones: II and the speed cycle (a 48 dp target at 1200 x 540 is ~63 px)
 const PHONE_SPEED_TEXT := 22
+const PHONE_SPEED_W := 96.0  # Phones: II and the speed cycle, wider than Auto (used more)
 const PHONE_AUTO_TEXT := 15  # (The 13 px phone floor holds)
 
 func _ready() -> void:
@@ -182,11 +183,16 @@ func _ready() -> void:
 	if UiStyle.is_phone():
 		# Phones (owner 2026-10-26: "pause and speed buttons should be bigger than the auto button"): II and the speed
 		# cycle are PHONE_SPEED_SIDE squares in bigger type; Auto stays a HUD_BUTTON_H plate at the row's foot, its words short
+		# Owner, again: "the pause button and speed button should be wider than the auto since its used more": II and the
+		# speed cycle PHONE_SPEED_W wide, Auto as narrow as its one word
 		for button in [_pause_button, _phone_speed]:
-			button.custom_minimum_size = Vector2(PHONE_SPEED_SIDE, PHONE_SPEED_SIDE)
+			button.custom_minimum_size = Vector2(PHONE_SPEED_W, PHONE_SPEED_SIDE)
 			button.add_theme_font_size_override("font_size", PHONE_SPEED_TEXT)
 		_auto_toggle.size_flags_vertical = Control.SIZE_SHRINK_END
-		_auto_toggle.add_theme_font_size_override("font_size", PHONE_AUTO_TEXT)  # Its full words ("Auto-drift on"), a step smaller
+		_auto_toggle.custom_minimum_size.x = 0.0
+		_auto_toggle.add_theme_font_size_override("font_size", PHONE_AUTO_TEXT)
+		_auto_toggle.toggled.connect(func(_on: bool) -> void: _auto_toggle.text = "Auto")  # Owner 2026-10-26: "Just rename it to say auto" (on: the brass plate and its on-mark)
+		_auto_toggle.text = "Auto"
 		speed_row.add_theme_constant_override("separation", 10)  # Apart enough for thumbs (council: 8 px or more)
 	game_speed.changed.connect(_on_speed_changed)
 	_on_speed_changed(game_speed.paused, game_speed.speed)
