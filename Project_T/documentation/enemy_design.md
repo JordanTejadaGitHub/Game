@@ -843,6 +843,14 @@ crowd feel).
 In the v3 board videos each nightmare's row of 16 px status icons (with stack numbers) and its health bar stacked
 into one strip above a pack and hid the bodies, which fights the crowd feel above. Now the row is **compact in a
 crowd**:
+- **Revised 2026-10-25 (owner: "pips only show for small health enemies that usually bunch but leave it off for high
+  health enemies ... should be enemy types"; UI Asset V2, 4d929bd2):** a nightmare switches to pips only in a group of
+  8 within 1 cell (`CROWD_GROUP_MIN`) and only if its kind is in `Enemy.CROWD_PIP_KINDS`: **Shade, Creep, Sob,
+  Wraith, Mourner, Lurker, Drowned One, Dream Thief, Crow, Whisper Swarm** (`leaf_bug`, `spiderling`, `puffcaplet`,
+  `duckling`, `puffcap`, `dusk_moth`, `drowned_one`, `dream_thief`, `crow`, `whisper_swarm`; enemy design chat). Not
+  listed: flyers that never pack (Phantom, Night Kite), Wander (Sleepwalker), lone helpers (Will-o'-Wisp), and kinds
+  whose row carries the decision (Weeper, Watcher, Ash Crawler, Husk's shell, Lantern Bearer), plus elites and bosses.
+  The first rule below (any neighbour within 0.5 cell) is replaced.
 - **Crowded = another nightmare's drawn body within 0.5 cell** (by route index ±1, the jostle's neighbours, so it
   costs nothing extra). A crowded nightmare's row becomes **one pip per status**: about 5 px, the status colour
   **plus a distinct shape per status** (colour-blind safe), no stack numbers, at **70% opacity**. Its health bar
