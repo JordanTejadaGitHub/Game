@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "deep_grain"
 display_name = "Deep Grain"
-description = "Each Deep {rank} a Warden took adds 1 more {stack} to every status it adds, up to 3."
-tip = "Never {held}. Offered once a Warden has a Deep {rank}."
+description = "Each Deep Nurture {rank} a Warden took adds 1 more {stack} to every status it adds, up to 3."
+tip = "Never {held}. Offered once a Warden has a Deep Nurture {rank}."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "affliction"])

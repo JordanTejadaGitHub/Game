@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "endless_rings"
 display_name = "Endless Rings"
-description = "Your {eldest} has no highest {rank}. It deals 15% more damage for each {rank} past VII."
+description = "Your {eldest} has no highest Nurture {rank}. It deals 15% more damage for each Nurture {rank} past VII."
 rarity = 3
 kind = 3
 tags = Array[String](["nurture", "tall"])
@@ -15,5 +15,5 @@ min_act = 2
 max_rank_set = 99
 rule_id = &"endless_rings"
 in_start_pool = false
-tip = "Each {rank} past VII costs 20% more than the one before: VIII {dew:216}, IX {dew:259} and so on, before its form's multiplier. Taking it names your {eldest}."
+tip = "Each Nurture {rank} past VII costs 20% more than the one before: VIII {dew:216}, IX {dew:259} and so on, before its form's multiplier. Taking it names your {eldest}."
 makes = Array[StringName]([&"rank"])

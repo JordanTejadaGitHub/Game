@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "wild_growth"
 display_name = "Wild Growth"
-description = "Wardens grow for free from dispels: a new form after 20, 60, then 150 in their range. You can't Grow for {dew}."
-tip = "A dispel counts for the Warden that lands it and the 2 nearest other Wardens with it in range. You pick the form; branches still need Dreamlight, and Nurture ranks still pay their difference. Not Thornwalls, the Sapling or Ascended forms. Can't be taken with {card:clean_night}. Works for: Sprouts and every family's Wardens. A bet: where nightmares die."
+description = "Wardens {grow} into their next form for free after 20, 60, then 150 {dispels} in their range. They can't {grow} for {dew}."
+tip = "A dispel counts for the Warden that lands it and the 2 nearest other Wardens with it in range. You pick the form; branches still need Dreamlight, and Nurture {rank}s still pay their difference. Not Thornwalls, the Sapling or Ascended forms. Can't be taken with {card:clean_night}. Works for: Sprouts and every family's Wardens. A bet: where nightmares die."
 rarity = 3
 kind = 3
 tags = Array[String](["growth"])

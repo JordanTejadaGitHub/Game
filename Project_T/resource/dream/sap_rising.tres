@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sap_rising"
 display_name = "Sap Rising"
-description = "Every 2 s, each support Warden hits every nightmare {touching} it. The hit grows stronger every {drift}."
+description = "Every 2 s, each support Warden hits every nightmare {touching} it. The hit gets stronger every {drift}."
 rarity = 1
 kind = 3
 tags = Array[String](["tending", "defining"])

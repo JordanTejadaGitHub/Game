@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "specialist"
 display_name = "Specialist"
-description = "A Warden that took the same Nurture choice at every {rank} gets double the bonus from each {rank}."
+description = "A Warden that took the same Nurture choice at every Nurture {rank} gets double the bonus from each Nurture {rank}."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall", "defining"])

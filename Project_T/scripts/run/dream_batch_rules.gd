@@ -235,9 +235,14 @@ func _rings_target(dreams: DreamState, excluded: Array) -> Tower:
 func report_lines(dreams: DreamState) -> String:
 	var text := ""
 	if dreams.has_rule(&"growth_rings") and rings_result != "":
-		text += "\nGrowth Rings: %s" % ("lost (you planted this block)" if rings_result == "lost" else
-			(rings_result if rings_result.begins_with("no ") else "a free rank waits on %s" % rings_result))
+		text += "\n%s: %s" % [rings_name(dreams), "lost (you planted this block)" if rings_result == "lost" else
+			(rings_result if rings_result.begins_with("no ") else "a free Nurture rank waits on %s" % rings_result)]
 	return text
+
+# The card's own name (Quiet Rings since 2026-10-25; id growth_rings), so a rename reaches the report and the toast.
+func rings_name(dreams: DreamState) -> String:
+	var card: UpgradeData = dreams._card_by_id("growth_rings")
+	return card.display_name if card != null else "Quiet Rings"
 
 # --- Planting -----------------------------------------------------------------------------------------------------
 
@@ -255,7 +260,7 @@ func rings_blocks_plant(dreams: DreamState) -> bool:
 	_rings_confirm_until = now + GROWTH_RINGS_CONFIRM_SECONDS
 	var hud: Node = dreams.owner.get_node_or_null("HUD") if dreams.owner != null else null
 	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast("Growth Rings: planting gives up this block's free rank. Plant again to confirm.")
+		hud.show_toast("%s: planting gives up this block's free Nurture rank. Plant again to confirm." % rings_name(dreams))
 	return true
 
 func rings_line(dreams: DreamState) -> String:

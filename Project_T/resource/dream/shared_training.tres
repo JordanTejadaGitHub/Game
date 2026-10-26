@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shared_training"
 display_name = "Shared Training"
-description = "Two Wardens in a {kinship} that each took the same Nurture choice 4 times get that choice's {rank} V reward at {rank} IV."
+description = "Two Wardens in a {kinship} that each took the same Nurture choice 4 times get that choice's Nurture {rank} V reward at Nurture {rank} IV."
 rarity = 2
 kind = 3
 tags = Array[String](["kinship", "defining"])
@@ -14,6 +14,6 @@ max_stacks = 1
 rule_id = &"shared_training"
 min_kinships = 1
 discovered_by = Array[String](["kinship:any", "event:signature"])
-tip = "{rank} V reward: the {signature} or {mastery} that choice gives. Both need {rank} IV or higher. Never gives {all_rounder}."
+tip = "Nurture {rank} V reward: the {signature} or {mastery} that choice gives. Both need Nurture {rank} IV or higher. Never gives {all_rounder}."
 makes = Array[StringName]([&"rank"])
 uses = Array[StringName]([&"cluster"])

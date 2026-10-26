@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bearing_down"
 display_name = "Bearing Down"
-description = "Single-target Wardens' direct hits deal 4% more damage for each attack in a row on one nightmare, up to +10% per {rank}."
+description = "Single-target Wardens' direct hits deal 4% more damage for each attack in a row on one nightmare, up to +10% per Nurture {rank}."
 tip = "Not area attacks or beams. A new target starts the count again."
 rarity = 0
 kind = 3
