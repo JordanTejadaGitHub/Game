@@ -440,6 +440,8 @@ static func ready_need(id: StringName, s: EnemyStatuses) -> int:
 			return need(mini(IGNITE_MIN_SPORES, mini(SMOTHER_MIN_SPORES, MUSHROOM_MIN_SPORES)))  # (Sleepwalk too)
 		EnemyStatuses.DROWSY:
 			return s.normal_cap(EnemyStatuses.DROWSY)  # Full Sleep (its normal cap, as the checks read it): Drown, Pinned, Sleepwalk, Night Terror
+		EnemyStatuses.FROST:
+			return need(FROST_NEEDED)  # Brittle, Frostbite, Flash Freeze: at a Frostburst (owner 2026-10-25: 15)
 	return 0
 
 # Brimming's doubled count, for what still doubles: card and Warden payoffs that read it (not Reactions).
@@ -498,7 +500,7 @@ static func check_at_half(enemy: Node2D, source: Node, damage_share: float = 1.0
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"smother", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop", &"deathcap", &"haze", &"rot_bloom"]  # deathcap, haze, rot_bloom: Sporeling Calling evolutions (evo_shared_spec.md 7; final_check.md, 2026-10-24)  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
+	&"lingering_splash", &"thorns", &"rain", &"sap", &"stone_relay", &"stored_rain", &"fifth_beat", &"crossfire", &"last_drop", &"deathcap", &"haze", &"rot_bloom", &"frostburst"]  # deathcap, haze, rot_bloom: Sporeling Calling evolutions (evo_shared_spec.md 7; final_check.md, 2026-10-24)  # last_drop: the Dewdrop card Last Drop (Roguelite f5f9a4b0); thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -1700,7 +1702,7 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	var data := get_data(key)
 	var dreams := _dreams(enemy)
 	var cooldown: float = data.cooldown if data else 1.5
-	if dreams and dreams.has_rule(&"quick_reactions"):
+	if dreams and dreams.has_rule(&"quick_reactions") and not key in FROST_REACTIONS:
 		cooldown = minf(cooldown, QUICK_COOLDOWN)
 	if dreams and WOVEN_RULE.has(id) and dreams.has_rule(WOVEN_RULE[id]):
 		cooldown *= WOVEN_COOLDOWN  # A Woven card's cost (dream_design.md 83c40cd7): its Crowned Reaction fires half as often
@@ -2194,3 +2196,154 @@ static func _segment(effect: StringName, from: Vector2, to: Vector2, near: Node,
 	var world := _world(near)
 	if world != null:
 		Fx.segment(effect, from, to, world, seconds)
+
+# --- Frost (dream_council_review.md 37; Balancing 2026-10-25 "Frost: numbers"; owner update 2026-10-25) ---------------
+# A Frostburst is Frost's own payoff, like the Charged bolt: not a Reaction, no Reaction pool. EnemyStatuses fills it
+# (burst_pending: FROST_BURST x the strongest applier's potency, bosses half, Brimming x2.2, and the Cold Snap) and
+# Enemy hands it here. The nightmare takes it all, its FROST_NEIGHBOURS nearest within FROST_REACH take
+# EnemyStatuses.FROST_CHAIN x the same potency (4.5x / 2.25x; a boss FROST_CHAIN_BOSS) and are queued FROST_CHAIN_STACKS Frost for the next frame (ReactionTracker's
+# queue: never inline, never recursive). Plain chain Frost is a quiet add that stops FROST_QUIET_SHORT short of the cap,
+# so a chain only goes on through Flash Freeze's Frost. A burst from queued Frost is link 1, 2, 3 (x FROST_CHAIN_FALLOFF
+# each); link 3 gives no Frost. A nightmare that burst takes no burst-given Frost for FROST_LOCK s. At most
+# FROST_BURSTS_PER_SECOND chain bursts a second (the rest wait in the queue, never dropped); a nightmare takes burst area
+# damage at most FROST_AREA_HITS times per FROST_AREA_WINDOW s.
+# The Frost Reactions fire at a Frostburst a Warden completed (link 0, never under Undiluted), one per burst, in the
+# order Brittle, Frostbite, Flash Freeze; none takes the Reaction pool, and Quick Reactions never shortens their
+# cooldowns (_fire: Brittle's 8 s is per nightmare) (Balancing 2026-10-25).
+const FROST_REACTIONS: Array[StringName] = [&"brittle", &"frostbite", &"flash_freeze"]
+const FROST := &"frost"
+const FROSTBURST_TAG := &"frostburst"  # (Enemy.FROSTBURST_TAG)
+const FROSTBURST_STAND_IN := &"shatter"  # Drawn until effects.json has a "frostburst" sheet (no art yet)
+const FROST_NEEDED := 15  # A Frost Reaction's Frost (owner 2026-10-25: the cap, 15)
+# (Each neighbour takes EnemyStatuses.FROST_CHAIN x the burst's potency, a boss FROST_CHAIN_BOSS: Enemy Code's numbers.)
+const FROST_REACH := 1.0  # Cells (Balancing 2026-10-25)
+const FROST_NEIGHBOURS := 4  # Balancing 2026-10-25
+const FROST_CHAIN_STACKS := 1  # Balancing 2026-10-25
+const FROST_CHAIN_LINKS := 3  # Balancing 2026-10-25
+const FROST_CHAIN_FALLOFF := 0.75  # Balancing 2026-10-25
+const FROST_LOCK := 2.0  # Balancing 2026-10-25
+const FROST_BURSTS_PER_SECOND := 8  # Balancing 2026-10-25
+const FROST_AREA_HITS := 2  # Balancing 2026-10-25
+const FROST_AREA_WINDOW := 0.5  # Balancing 2026-10-25
+const FROST_LOCK_META := &"frost_lock_until"  # On a nightmare: the tracker clock until which burst-given Frost passes it by
+const FROST_AREA_META := &"frost_area_hits"  # On a nightmare: tracker clock times of its recent burst area hits
+# Brittle (Frost + Exposed): spends the Exposed it needs; for BRITTLE_TIME s (elites / bosses shorter) no resistances
+# the {dread_shell} soaks BRITTLE_SHELL_SHARE as much (nightmares have no resistances since Nightmare Kinds). Mirrored as
+# Enemy.BRITTLE_KEY / BRITTLE_SHELL: keep them in step. Cooldown in brittle.tres (8 s).
+const BRITTLE_TIME := 3.0  # Balancing 2026-10-25
+const BRITTLE_ELITE_TIME := 2.0  # Balancing 2026-10-25
+const BRITTLE_BOSS_TIME := 1.0  # Balancing 2026-10-25
+const BRITTLE_SHELL_SHARE := 0.5  # Balancing 2026-10-25
+const BRITTLE_ON := &"brittle_on"  # A status cooldown key used as the "is Brittle" timer (game time)
+# Frostbite (Frost + Poisoned): spends the oldest half of its Poisoned, deals a share of its max health (no pool, no
+# Potency, no resistance). Cooldown in frostbite.tres (6 s); bosses FROSTBITE_BOSS_COOLDOWN.
+const FROSTBITE_MIN_SPORES := 12  # (The spore Reactions' need: ready_need's Poisoned row already shows it)
+const FROSTBITE_SHARE := 0.02  # Balancing 2026-10-25
+const FROSTBITE_ELITE_SHARE := 0.015  # Balancing 2026-10-25
+const FROSTBITE_BOSS_SHARE := 0.005  # Balancing 2026-10-25
+const FROSTBITE_BOSS_COOLDOWN := 10.0  # Balancing 2026-10-25
+# Flash Freeze (Frost + Soaked; was "Rime"): spends all Soaked; this burst reaches FLASH_FREEZE_REACH cells, hits up to
+# FLASH_FREEZE_NEIGHBOURS and gives each FLASH_FREEZE_FROST Frost as a real application (it can burst them: the chain).
+const FLASH_FREEZE_REACH := 2.0
+const FLASH_FREEZE_NEIGHBOURS := 6
+const FLASH_FREEZE_FROST := 2
+
+static var _frost_gen := 0  # The link of the Frost the queue is applying (0 = a Warden's own)
+
+# Enemy._frostburst hands a full Frost here (looked up by name).
+static func frostburst(enemy: Node2D, amount: float, source: Node) -> void:
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree():
+		return
+	var gen := _frost_gen
+	var tracker := ReactionTracker.find(enemy)
+	var now: float = tracker._clock if tracker != null else 0.0
+	enemy.set_meta(FROST_LOCK_META, now + FROST_LOCK)
+	if tracker != null and gen > 0:
+		tracker.note_chain_burst()
+	var tower: Tower = source as Tower if source is Tower and is_instance_valid(source) else null
+	var line := tower.tower_data.line if tower != null else "water"
+	var flash := false
+	if gen == 0 and not DreamState.undiluted_on and not enemy.is_cleansed:
+		flash = _frost_reaction(enemy, tower)
+	var damage := amount * pow(FROST_CHAIN_FALLOFF, gen)
+	var per_potency := damage / (EnemyStatuses.FROST_BURST_BOSS if enemy.statuses.is_boss else EnemyStatuses.FROST_BURST)  # (Brimming's payoff kept)
+	var at: Vector2 = enemy.global_position
+	var reach := (FLASH_FREEZE_REACH if flash else FROST_REACH) * CELL
+	var most := FLASH_FREEZE_NEIGHBOURS if flash else FROST_NEIGHBOURS
+	var near: Array = []
+	for other in Tower.nightmares_near(enemy.get_tree(), at, reach):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed and other.global_position.distance_to(at) <= reach:
+			near.append(other)
+	near.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
+	near = near.slice(0, most)
+	_effect(FROSTBURST_TAG if Fx.has_effect(FROSTBURST_TAG) else FROSTBURST_STAND_IN, Tower.aim_at(enemy), enemy, reach / CELL)
+	if not enemy.is_cleansed:
+		enemy.take_damage(damage, line, false, false, source, FROSTBURST_TAG)
+	for other in near:
+		if not is_instance_valid(other) or other.is_cleansed:
+			continue
+		if _frost_area_ok(other, now):
+			other.take_damage(per_potency * (EnemyStatuses.FROST_CHAIN_BOSS if other.statuses.is_boss else EnemyStatuses.FROST_CHAIN),
+				line, true, false, source, FROSTBURST_TAG)
+		if gen < FROST_CHAIN_LINKS and tracker != null and is_instance_valid(other) and not other.is_cleansed \
+				and now >= float(other.get_meta(FROST_LOCK_META, -INF)):
+			tracker.queue_frost(other, FLASH_FREEZE_FROST if flash else FROST_CHAIN_STACKS, source, gen + 1, flash)
+
+# Whether `enemy` may take another burst area hit now (FROST_AREA_HITS per FROST_AREA_WINDOW s); books it if so.
+static func _frost_area_ok(enemy: Node2D, now: float) -> bool:
+	var hits: Array = enemy.get_meta(FROST_AREA_META, [])
+	hits = hits.filter(func(t) -> bool: return now - float(t) < FROST_AREA_WINDOW)
+	if hits.size() >= FROST_AREA_HITS:
+		enemy.set_meta(FROST_AREA_META, hits)
+		return false
+	hits.append(now)
+	enemy.set_meta(FROST_AREA_META, hits)
+	return true
+
+# The queue (ReactionTracker) applies a burst's Frost: `full` (Flash Freeze) as a real application that can burst
+# (link `gen`), else a quiet add that stops short of a burst. Inside _in_reaction: never a Warden's own landing.
+static func apply_chain_frost(enemy: Node2D, stacks: int, source: Node, gen: int, full: bool) -> void:
+	if not is_instance_valid(enemy) or enemy.is_cleansed:
+		return
+	var tower: Tower = source as Tower if source is Tower and is_instance_valid(source) else null
+	var potency := tower.get_damage() * minf(tower.get_attacks_per_second(), Tower.FROST_POTENCY_APS_CAP) if tower != null else 1.0
+	var line := tower.tower_data.line if tower != null else "water"
+	var gen_before := _frost_gen
+	_frost_gen = gen
+	_in_reaction += 1
+	if full:
+		enemy.apply_status(FROST, stacks, 0.0, potency, 0, line, tower)
+	else:
+		enemy.statuses.copy_quiet(FROST, stacks, 0.0, potency, line, tower)
+	_in_reaction -= 1
+	_frost_gen = gen_before
+
+# One Frost Reaction at a Warden-completed Frostburst on `enemy`; true = Flash Freeze (the burst reaches further).
+static func _frost_reaction(enemy: Node2D, tower: Tower) -> bool:
+	var s: EnemyStatuses = enemy.statuses
+	if s.stacks(MARKED) >= need(EXPOSED_NEEDED) and not s.is_on_cooldown(&"brittle"):
+		var partner := _partner(enemy, [MARKED], tower)
+		if _fire(enemy, &"brittle", _towers(tower, s.source(MARKED)), false, 1, &"", tower, partner) > 0:
+			s.spend_stacks(MARKED, need(EXPOSED_NEEDED))
+			var time := BRITTLE_BOSS_TIME if s.is_boss else (BRITTLE_ELITE_TIME if enemy.elite else BRITTLE_TIME)
+			s.start_cooldown(BRITTLE_ON, time)
+			return false
+	if s.stacks(SPORED) >= need(FROSTBITE_MIN_SPORES) and not s.is_on_cooldown(&"frostbite"):
+		var partner := _partner(enemy, [SPORED], tower)
+		if _fire(enemy, &"frostbite", _towers(tower, s.source(SPORED)), false, 1, &"", tower, partner) > 0:
+			if s.is_boss:
+				s.start_cooldown(&"frostbite", FROSTBITE_BOSS_COOLDOWN)
+			s.spend_half(SPORED)
+			var share := FROSTBITE_BOSS_SHARE if s.is_boss else (FROSTBITE_ELITE_SHARE if enemy.elite else FROSTBITE_SHARE)
+			enemy.take_damage(enemy.max_health * share, "", false, false, tower, &"frostbite")
+			return false
+	if s.stacks(DAMP) >= need(SOAKED_NEEDED) and not s.is_on_cooldown(&"flash_freeze"):
+		var partner := _partner(enemy, [DAMP], tower)
+		if _fire(enemy, &"flash_freeze", _towers(tower, s.source(DAMP)), false, 1, &"", tower, partner) > 0:
+			s.remove(DAMP)
+			return true
+	return false
+
+# Brittle on `enemy` now (Enemy.take_damage: no resistances, the shell soaks BRITTLE_SHELL_SHARE).
+static func is_brittle(enemy: Node2D) -> bool:
+	return is_instance_valid(enemy) and enemy.statuses.is_on_cooldown(BRITTLE_ON)

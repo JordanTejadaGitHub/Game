@@ -28,7 +28,7 @@ func _run() -> void:
 		child.queue_free()
 	await process_frame
 
-	_check(Reactions.all().size() == 10, "the base Reactions are ten, Sleepwalk and Night Terror included (%d)" % Reactions.all().size())
+	_check(Reactions.all().size() == 13, "the base Reactions are thirteen, Sleepwalk, Night Terror and the three Frost Reactions included (%d)" % Reactions.all().size())
 	_check(Reactions.crowned().size() == 10, "ten Crowned Reactions have data, Changeling and Wide Awake included (%d)" % Reactions.crowned().size())
 	for data in Reactions.crowned():
 		_check(data.display_name != "" and data.effect != &"", "%s has a name and an effect" % data.id)

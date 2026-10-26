@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ReactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/reaction/script/reaction_data.gd" id="1_rx"]
+
+[resource]
+script = ExtResource("1_rx")
+id = &"brittle"
+display_name = "Brittle"
+statuses = Array[StringName]([&"frost", &"marked"])
+description = "For 3 s the nightmare resists nothing and its {dread_shell} blocks half as much (elites 2 s, bosses 1 s). Triggered by a {frostburst} on a nightmare with {stacks:need_marked} {marked}. Uses up the {marked}."
+callout_color = Color(0.7058824, 0.6901961, 0.78431374, 1)
+effect = &"brittle"
+cooldown = 8.0
