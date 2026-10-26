@@ -617,8 +617,8 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 # --- Pack wipes (enemy_design.md "Drift shapes", "More of the group wipe", council 2026-10-24c) ----------------------
 # pack_formed(key, size): a pack's first member arrived (size = the arrivals it was shaped with; for "Packs wiped: N of
 # M"). pack_wiped(key, size, centre, top_source): every member (its splitters' children and followers too) was
-# dispelled, none leaked, the first to the last dispel within PACK_WIPE_WINDOW s; size = members dispelled (PACK_WIPE_MIN
-# at least), centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
+# dispelled and none leaked (any size, any time: user 2026-10-26); size = members dispelled,
+# centre = the mean of their dispel spots (world), top_source = the Warden (Tower) that dealt it the most
 # damage, or null. Keys are DriftShapes.pack_key (Few and tough's shared key never counts as a pack).
 # Pooled dispel motes (perf 2026-10-25): a dispel used to make a CPUParticles2D of its own (a wiped pack: up to 20 at
 # once); the emitters are kept in the map (beside this container, never in it) and reused once their burst has played,
@@ -707,13 +707,15 @@ func _pack_member_gone(enemy: Node, leaked: bool) -> void:
 	if book.alive > 0 or book.arrived < book.needed:
 		return
 	_pack_book.erase(key)
-	if book.leaked or book.dispelled < PACK_WIPE_MIN or book.last - book.first > PACK_WIPE_WINDOW:
+	# A count now, not a moment (user 2026-10-26: "fix the counts for wiped"; the group wipe's glow, word and swell are
+	# gone): every member dispelled and none leaked, whatever its size or how long it took, so "Packs wiped: N of M"
+	# compares like with like (formed counts every pack). PACK_WIPE_MIN / PACK_WIPE_WINDOW are no longer used here.
+	if book.leaked or book.dispelled <= 0:
 		return
 	var top: Node = null
 	for source in book.damage:
 		if is_instance_valid(source) and (top == null or book.damage[source] > book.damage[top]):
 			top = source
-	_play_pack_bloom(book.sum / book.dispelled, book.dispelled)
 	pack_wiped.emit(key, book.dispelled, book.sum / book.dispelled, top)
 
 # Enemy Assets' pack_bloom (8b812626) where a pack was wiped: warm light lying on the ground, 80% (a multiplier), scale
