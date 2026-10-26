@@ -218,10 +218,10 @@ const RANK_RULES_AT := 4  # Rank IV: the next rank is the one the rules are abou
 var _after: Array = []  # The status Lesson that follows "Statuses stack"
 const STATUS_LINES := {
 	&"damp": "Water hits deal 20% more damage to it. At {stacks:need_damp} stacks it can trigger {reactions}.",
-	&"drowsy": "It walks 2% slower per stack. At {stacks:cap_drowsy} stacks ({stacks:bosscap_drowsy} on bosses) it can fall {asleep} and trigger {reactions}.",
+	&"drowsy": "It walks 2% slower per stack, up to {stacks:cap_drowsy} ({stacks:bosscap_drowsy} on bosses). At {full} it walks slowest; some Wardens and {reactions} put a nightmare at {full} {drowsy} {asleep}.",
 	&"spored": "It takes damage every second, more per stack. The whole pile wears off 5 s after the last stack, so keep hitting it. At {stacks:need_spored} stacks it can trigger {reactions}.",
 	&"marked": "Nothing until {stacks:need_marked} stacks; then it takes 25% more damage from every Warden and can trigger {reactions}.",
-	&"static": "At {stacks:cap_static} stacks ({stacks:bosscap_static} on bosses) it is struck by a bolt for heavy damage. Other statuses can set it off early as a {reaction}.",
+	&"static": "At {full} ({stacks:cap_static} stacks, {stacks:bosscap_static} on bosses) it triggers a bolt of 16× the hit of the Warden that charged it. A {reaction} can use the {static} before that.",
 	&"held": "It cannot move for a moment. At {stacks:need_held} stacks it can trigger {reactions}.",
 }
 const SPOT_MARGIN := [48.0, 96.0, 48.0, 150.0]  # Left, top, right, bottom: inside the HUD's banner and bars
@@ -435,7 +435,7 @@ func discovery(id: StringName) -> void:
 		&"damp", &"drowsy", &"spored", &"marked", &"static", &"held":
 			lesson(StringName("discover_" + String(id)), id, IconInfo.status_name(id), status_text(id))  # Asked for by name (tests, replays): no nightmare to point at
 		&"flyer":
-			lesson(&"discover_flyer", &"nightmare", "Flyers", "Flyers ignore your maze and go straight for the Heartwood. Keep attacking Wardens near it, and check which nightmares are coming before each block.")
+			lesson(&"discover_flyer", &"nightmare", "Flyers", "Flyers pass over your walls. Some fly straight to the Heartwood; others (Night Kite, Gloamwing, Pall) follow the path in the air. Each nightmare's card says which. Check what's coming before each block.")
 
 # --- Triggers ---------------------------------------------------------------------------------------------------
 

@@ -267,7 +267,7 @@ func _refresh() -> void:
 	var lines: Array[String] = _header.show_warden(data, _tower, dream_state, false)
 	if _tower.rank > 0:  # On the small line under the name (the name is never cut)
 		var sub := _damage_type.get_child(0) as Label
-		var rank_text := "Rank %s" % Tower.rank_name(_tower.rank) + (" · Eldest" if _is_eldest(_tower) else "")
+		var rank_text := "Nurture rank %s" % Tower.rank_name(_tower.rank) + (" · Eldest" if _is_eldest(_tower) else "")
 		sub.text = rank_text if not _damage_type.visible else sub.text + " · " + rank_text
 		_damage_type.visible = true
 	if _phone:
@@ -443,7 +443,7 @@ func _refresh() -> void:
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
 		var eldest_ask: bool = dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower)
 		if eldest_ask:
-			_add_button("Make this the Eldest? Only one Warden can grow past rank V").disabled = true
+			_add_button("Make this the Eldest? Only one Warden can Nurture past rank V").disabled = true
 			var yes := _add_button("Yes: make it the Eldest")
 			yes.pressed.connect(func() -> void:
 				dream_state.make_eldest(_tower)  # Then the rank VI choices show
@@ -459,9 +459,9 @@ func _refresh() -> void:
 				_as_choice(nurture)  # The same weight as the grow rows (no primary)
 				nurture.set_meta(&"key", _nurture_key())
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
-					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
+					if _tower.needs_focus() else "Nurture rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
-				_priced(nurture, "Nurture Rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
+				_priced(nurture, "Nurture rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
@@ -473,7 +473,7 @@ func _refresh() -> void:
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
 					var which: Tower.Focus = choices[index]
-					var tip := "Rank %s: %s.\n%s. Kept when it grows; can't be changed." % [Tower.rank_name(_tower.rank + 1),
+					var tip := "Nurture rank %s: %s.\n%s. Kept when it grows; can't be changed." % [Tower.rank_name(_tower.rank + 1),
 						_choice_preview(_tower, which), _tower.focus_text(which).trim_suffix(".")] + _growth_note()
 					var button := _nurture_choice(index, Tower.FOCUS_NAMES[which], _choice_delta(_tower, which), tip, price)
 					if which == Tower.Focus.DEEP and UiStyle.is_phone():  # PC: the row's hover tip says it (user 2026-10-22: "remove the detail under Potency"); phones have no hover, a tap buys

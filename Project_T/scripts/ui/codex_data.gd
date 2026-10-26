@@ -36,7 +36,7 @@ const GLOSSARY_SOURCE := [
 		["Mist", "Where nightmares enter. With the path full it holds the rest back until there's room; a \"+N\" over it counts them. While it holds any, the next drift can't be called early.", ["Call early"]],
 		["Remember screen", "The screen where Dreamlight unlocks new forms during a run. The Remember button opens it.", ["Dreamlight"]],
 		["Close call", "A nightmare past 85% of its path: the Heartwood trembles and its last stretch glows cold.", ["Leaves"], "Three close calls in a block: time to lengthen the maze."],
-		["Chain", "Reactions setting each other off within a second. The number counts them; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],
+		["Chain", "Reactions triggering each other within a second. The number counts them; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],
 	]],
 	["Wardens", [
 		["Warden", "A forest spirit you plant. It attacks nightmares, and it blocks the path like a wall.", ["Family", "Thornwall"]],
@@ -89,6 +89,7 @@ const GLOSSARY_SOURCE := [
 		["Lingering", "A status kept past its time; drawn with a blue rim.", ["Water"]],
 		["Heavy Warden", "A Warden that attacks slowly and hits hard, like Pebbling, Frostfern, Lanternmoth or Silver Bell.", ["Jump"]],
 		["Step", "One cell of path, counted along the path.", []],
+		["Leader", "The nightmare furthest along the path: the one closest to reaching the Heartwood.", ["Step"]],
 		["Touching", "Within 1 cell on both sides: the 8 cells around a Warden. A Warden touches the path within 1.25 cells of its centre. Two nightmares touch when they are within 1 cell of each other.", ["Near"]],
 		["Near", "Within 2 cells on both sides: the dashed square around a Warden while you plant it.", ["Touching"]],
 		["Cell", "The space one Warden takes up: 2×2 of the small squares you place on. Range, touching, near and steps are counted in cells, from the Warden's middle.", ["Touching", "Near", "Step"]],  # (distance words, owner 2026-10-19)
@@ -118,7 +119,7 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		# (council rx review 2026-10-17) The one-full-Drowsy order, once, here.
-		["{drowsy}", "{tip:drowsy} At {full} {drowsy}, a nightmare triggers one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
+		["{drowsy}", "{tip:drowsy} At {full} {drowsy} with a second status, a nightmare triggers one Reaction: Drown, then Night Terror, Sleepwalk, Pinned; a Crowned Reaction comes before its base.", ["{asleep}", "Drown", "Sleepwalk", "Night Terror"]],
 		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Pulse Bolt", "Thunderclap"]],
@@ -126,7 +127,7 @@ const GLOSSARY_SOURCE := [
 		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
 		["{frost}", "{tip:frost}", ["Frostburst", "Cold Snap"]],
-		["Frostburst", "At {full} {frost} a nightmare bursts: it and up to 4 nightmares within 1 cell take damage, and those 4 gain 1 {frost}. Up to 3 bursts in a row.", ["{frost}", "Cold Snap"]],
+		["Frostburst", "At {full} {frost} a nightmare bursts: it and up to 4 nightmares within 1 cell take damage, and those 4 gain 1 {frost}. With Flash Freeze, up to 3 bursts in a row.", ["{frost}", "Cold Snap", "Flash Freeze"]],
 		["Cold Snap", "After a {frostburst}, the nightmare's other statuses stop running down for {const:cold_snap} s (bosses {const:cold_snap_boss} s). Not {held}, sleep or slows.", ["{frost}", "Frostburst"]],
 		["{silenced}", "{tip:silenced}", []],
 	]],
@@ -140,7 +141,8 @@ const GLOSSARY_SOURCE := [
 		["Stack", "One layer of a status. More stacks make it stronger; the icon over a nightmare shows the count. The slash on its bar or pips is the Reaction mark; blue corner brackets round the icon mean it is Reaction-ready.", ["Reaction", "Reaction mark", "Reaction-ready"]],
 		["Full", "A status at its most stacks: each status has its own most, and Brimming doubles them. Some statuses do nothing until they are full. A full status's dot fills with its colour, ringed in light; in a crowd, its pip's outline lights up.", ["Stack", "Nearly full"]],
 		["Nearly full", "At least 3/4 of a status's usual most (before Brimming). Starlit Aim and Guiding Light use it.", ["Full"]],
-		["Hollow", "Stacks a Dream card adds show hollow for {const:fed_lock} s: the colour edge stays, the inside goes dark. While any status on a nightmare is hollow, no Reaction can trigger on it. Then the stacks fill in and count as usual.", ["Stack", "Reaction"]],
+		["Settling", "Stacks a Dream card adds are settling for {const:fed_lock} s: the colour edge stays, the inside goes dark. While any status on a nightmare is settling, no Reaction can trigger on it. Then the stacks settle and count as usual.", ["Stack", "Reaction", "Extra stacks"]],  # (Was "Hollow": owner 2026-10-26, "the Hollow" is the villain)
+		["Extra stacks", "Stacks a card adds on top of a Warden's own. They never start a status, never go past {full}, never add {held} or {frost}, and stop {static} 1 short of a bolt.", ["Stack", "Settling", "Full"]],
 		["Reaction-ready", "Blue corner brackets that gently pulse round a status icon over a nightmare: it has enough stacks for a Reaction. Add the partner status and the Reaction triggers.", ["Reaction mark", "Reaction", "Stack"]],
 		["Reaction mark", "The small slash on a status's stack bar or pips: where its stacks become enough for a Reaction. Past it the status is Reaction-ready. Brimming makes the bar longer, but the mark stays at the same number of stacks, so it sits further left.", ["Reaction-ready", "Stack", "Reaction"]],
 		["Reaction", "When a nightmare carries enough stacks of two different statuses, they trigger each other for a burst of damage or a strong effect. Each pair of statuses has its own Reaction. The ones you've found are listed in the Codex under Combos.", ["Chain", "Crowned Reaction"], "Thunderclap: {damp} + {static}."],
@@ -177,7 +179,7 @@ const GLOSSARY_SOURCE := [
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between nightmares with {damp}.", "Stormcap"],
-	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
+	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "At {full} {drowsy}, Dreamshroom puts the nightmare {asleep} (1–4.5 s by what put it to sleep; never bosses; it can't sleep again for 4 s); a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Pulse Bolt", [&"static", &"static"], "A pulse makes a nightmare with {field:chime_stone.sets_off_static_at} or more {static} ({field:lullaby_bell.sets_off_static_at} for Lullaby Bell) release its bolt at once.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on nightmares with full {marked}.", "Mossback, Boulderback"],
@@ -602,7 +604,7 @@ const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical hit", "A critical hit (crit for short): the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction.", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between nightmares with {damp} (the Conducted combo).", ["Conducted"]],
-	[&"asleep", "Asleep", "At {full} {drowsy}, the nightmare falls {asleep} for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
+	[&"asleep", "Asleep", "Some Wardens and {reactions} put a nightmare at {full} {drowsy} {asleep}; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 ]
 const ALWAYS_SHOWN: Array[StringName] = []  # (Weak and Resisted went with damage types: Nightmare Kinds)
 
