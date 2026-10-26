@@ -302,6 +302,12 @@ var _clocks: Array = []  # Midnight Bell's clock faces: [{enemy: WeakRef, at, un
 var _wall_side := {}  # Humming Walls: route index -> true where a Thornwall touches the path
 var _outer := {}  # Sounding Board: Warden instance id -> the bell its joined neighbour touches
 var _families := {}  # Ensemble: bell instance id -> other families joined to it (Sprouts never count)
+# The staff (Roguelite asset 33af7bec): Ensemble / Sounding Board draw a bronze clef by each bell and three staff lines to
+# every Warden joined to it; Sounding Board's outer ring runs on Warden to Warden. Rebuilt with the board (_board_joined).
+var _staffs: Array = []  # [bell, [joined Wardens...]]
+var _runons: Array = []  # Sounding Board: [outer Warden, the joined Warden it touches]
+var _clef_lit := {}  # Bell instance id -> now() until its clef shows frame 1 (a repeat landed)
+var _staff_echoes: Array = []  # Ensemble's echo landing: [Warden (WeakRef), start now()]
 
 func _family() -> String:
 	return FAMILY
@@ -385,6 +391,8 @@ func _process(delta: float) -> void:
 		_clocks = _clocks.filter(func(c) -> bool: return now() < float(c.until))
 	if dream_state != null and not _toll_flashes.is_empty():
 		_toll_flashes = _toll_flashes.filter(func(f) -> bool: return now() - float(f.start) < TOLL_FLASH)
+	if dream_state != null and (not _staff_echoes.is_empty() or not _clef_lit.is_empty()):
+		_staff_tick()
 	if _pip_layer != null and (tolls_on() or _pips_shown):
 		_pips_shown = tolls_on()
 		_pip_layer.queue_redraw()  # Only while Tolls are on (and once more to clear them)
@@ -648,18 +656,25 @@ func _board_walls() -> void:
 func _board_joined(all: Array) -> void:
 	_outer.clear()
 	_families.clear()
+	_staffs.clear()
+	_runons.clear()
 	if not (evo(EVO_SOUNDING) or evo(EVO_ENSEMBLE)):
 		return
 	var others: Array = towers().filter(is_other)
 	var joined := {}  # Warden id -> the bell it touches (the nearest)
+	var staff := {}  # Bell id -> [bell, [joined Wardens]] (the staff's lines)
 	for tower in others:
 		var bell = _bell_touching(tower, all)
 		if bell != null:
 			joined[tower.get_instance_id()] = bell
+			if not staff.has(bell.get_instance_id()):
+				staff[bell.get_instance_id()] = [bell, []]
+			staff[bell.get_instance_id()][1].append(tower)
 			if counts_as_warden(tower):
 				var lines: Dictionary = _families.get(bell.get_instance_id(), {})
 				lines[tower.tower_data.line] = true
 				_families[bell.get_instance_id()] = lines
+	_staffs = staff.values()
 	if not evo(EVO_SOUNDING):
 		return
 	for tower in others:
@@ -668,6 +683,7 @@ func _board_joined(all: Array) -> void:
 		for middle in others:
 			if joined.has(middle.get_instance_id()) and touching(tower, middle):
 				_outer[tower.get_instance_id()] = joined[middle.get_instance_id()]
+				_runons.append([tower, middle])
 				break
 
 # The nearest bell touching `tower`, or null.
@@ -1272,6 +1288,7 @@ func _accompanied(partner, enemy, at: Vector2, bell, period: float = INF) -> voi
 	var dealt := _repeat(partner, enemy, EVO_ACCOMP, ACCOMP_SHARE, period)
 	if dealt > 0.0:
 		credit(EVO_ACCOMP, at, bell)
+		_light_clef(bell)
 		_ensemble(partner, enemy, bell, dealt, period)
 
 # Accompaniment's stored-hit repeater: the newest Warden on the Toll's roster that is not the striking bell, is joined to
@@ -1321,7 +1338,7 @@ func _ensemble(tower, enemy, bell, dealt: float, period: float = 1.0) -> void:
 		return
 	var amount := dealt * ENSEMBLE_SHARE * (output_share(tower, 1.0) if is_inf(period) else 1.0)
 	_later.append({"at": now() + ENSEMBLE_DELAY, "tower": weakref(tower), "enemy": weakref(enemy), "amount": amount,
-		"tag": &"chorus_repeat", "again": false, "own": EVO_ENSEMBLE})
+		"tag": &"chorus_repeat", "again": false, "own": EVO_ENSEMBLE, "bell": weakref(bell)})
 
 # The base a counted ring carries: the bell's own last hit (Accompaniment's Toll is always the bell's), else its damage.
 func _bell_base(bell) -> float:
@@ -1377,6 +1394,7 @@ func _counterpoint(enemy, at: Vector2, roster: Array, partner, bell) -> void:
 		var dealt := _repeat(tower, enemy, EVO_COUNTER, COUNTER_SHARE)
 		if dealt > 0.0:
 			credit(EVO_COUNTER, at, bell)
+			_light_clef(bell)
 			_ensemble(tower, enemy, bell, dealt)
 		return
 
@@ -1832,6 +1850,11 @@ func _tick_later() -> void:
 				_line_fx(body(tower), body(enemy), 1.5, Palette.BLOSSOM)
 				strike(tower, enemy, float(row.amount), row.tag, false, own)
 				credit(own, enemy.global_position, tower)
+				if own == EVO_ENSEMBLE:  # The echo lands: the note at the Warden, the bell's clef lights
+					_staff_echoes.append([weakref(tower), now()])
+					var echo_bell = row.get("bell").get_ref() if row.get("bell") != null else null
+					if is_instance_valid(echo_bell):
+						_light_clef(echo_bell)
 				if bool(row.get("ring", false)) and living(enemy):
 					ring(enemy, tower, _passed_base(tower, tower.get_damage()), false, null, own)  # Change Ringing: then a real ring (it may Toll)
 			continue
@@ -2165,7 +2188,65 @@ func damage_multiplier(enemy, source, tag: StringName) -> float:
 
 # (Steady Beat's old gold overlap band is gone with its overlap rule, 2026-10-23: its look is the 3 bronze rings now.)
 
+# --- Drawing: Ensemble / Sounding Board's staff (Roguelite asset 33af7bec) -------------------------------------------------
+const ART_CLEF := &"kt_staff_clef"  # The bronze clef by each bell: frame 0, frame 1 for CLEF_LIT after a repeat lands
+const ART_ECHO := &"kt_staff_echo"  # Ensemble's echo landing: a one-shot note at the Warden (anchor = the note head's foot)
+const CLEF_LIT := 0.2
+const CLEF_AT := Vector2(-14.0, 6.0)  # The clef's foot from the bell's drawn body (left of the bell, its staff runs right)
+const STAFF_RISE := 4.0  # The staff's bottom line this far above the clef's foot…
+const STAFF_GAP := 2.0  # …three lines this far apart
+const STAFF_ALPHA := 1.0  # Solid (asset chat 60f850de: 0.75 was faint at z2)
+const RUNON_ALPHA := 0.75  # Sounding Board's run-on lines, Warden to Warden
+const ECHO_AT := Vector2(4.0, -14.0)  # The echo note's foot from the Warden's drawn body
+const ECHO_TIME := 0.5
+
+func _light_clef(bell) -> void:
+	if (evo(EVO_ENSEMBLE) or evo(EVO_SOUNDING)) and is_instance_valid(bell):
+		_clef_lit[bell.get_instance_id()] = now() + CLEF_LIT
+		queue_redraw()
+
+func _staff_tick() -> void:
+	var t := now()
+	_staff_echoes = _staff_echoes.filter(func(e) -> bool: return t - float(e[1]) < ECHO_TIME and e[0].get_ref() != null)
+	for id in _clef_lit.keys():
+		if t >= float(_clef_lit[id]) + 0.05:  # One frame past its end, so the last redraw clears it
+			_clef_lit.erase(id)
+	queue_redraw()
+
+# Three 1 px lines 2 px apart from `from` to `to` (the bottom line through each point, the others above it). The top
+# line's lit side in Blossom when `lit`, the rest Oak.
+func _staff_lines(from: Vector2, to: Vector2, alpha: float, lit: bool) -> void:
+	for k in 3:
+		var up := Vector2(0.0, -STAFF_GAP * k)
+		var colour: Color = Palette.BLOSSOM if lit and k == 2 else Palette.OAK
+		draw_line((from + up).round(), (to + up).round(), Color(colour, alpha), 1.0)  # multiplier: alpha only
+
+func _draw_staffs() -> void:
+	if dream_state == null or not (evo(EVO_ENSEMBLE) or evo(EVO_SOUNDING)):
+		return
+	var art := evo_art_tex(evo_art, ART_CLEF) != null
+	for row in _staffs:
+		var bell = row[0]
+		if not is_instance_valid(bell):
+			continue
+		var foot := (body(bell) + CLEF_AT).round()
+		var start := foot + Vector2(5.0, -STAFF_RISE)  # The clef's right side (its sheet is 9 px wide, anchor x 4)
+		for tower in row[1]:
+			if is_instance_valid(tower):
+				_staff_lines(start, (body(tower) + Vector2(0.0, -STAFF_RISE)).round(), STAFF_ALPHA, true)
+		if art:
+			evo_mark(self, ART_CLEF, foot, 1.0, false, 1 if now() < float(_clef_lit.get(bell.get_instance_id(), -INF)) else 0)
+	for pair in _runons:
+		if is_instance_valid(pair[0]) and is_instance_valid(pair[1]):
+			var lift := Vector2(0.0, -STAFF_RISE)
+			_staff_lines((body(pair[0]) + lift).round(), (body(pair[1]) + lift).round(), RUNON_ALPHA, false)
+	for echo in _staff_echoes:
+		var tower = echo[0].get_ref()
+		if is_instance_valid(tower):
+			evo_mark(self, ART_ECHO, (body(tower) + ECHO_AT).round(), 1.0, false, evo_art_frame(evo_art, ART_ECHO, now() - float(echo[1])))
+
 func _draw() -> void:
+	_draw_staffs()
 	for note in _notes:
 		if bool(note.get("rings", false)):  # Lingering Note: a note glyph (Night Choir's glows pale when Wardens sing in it)
 			var tint: Color = Palette.HEARTLIGHT if not (note.choir as Array).is_empty() else Palette.GOLD

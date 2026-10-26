@@ -1103,6 +1103,11 @@ func _field_burst(tower, enemy) -> void:
 	row[0] = int(row[0]) + 1
 	if is_instance_valid(enemy):
 		enemy.set_meta(BURSTS_META, row)
+	# Rot Bloom's 3rd burst: sp_rot_bloom opens on the ground where its feet were (33af7bec; it stays there, never follows)
+	if bloom and _flecks.size() < FLECKS_MAX and evo_art_tex(evo_art, ART_ROT_BLOOM) != null:
+		_flecks.append([ART_ROT_BLOOM, to_local(at), 0.0, false])
+		queue_redraw()
+		return
 	Reactions._effect(&"landing_dust", at, self, 1.6 if bloom else 1.0)  # The dark burst under its foot (a rot flower: bigger)
 
 # Laps and the Waymark start Deathcap's count of 3 again (polled).
@@ -2062,6 +2067,7 @@ const ART_THRONE := &"sp_throne_rim"
 var _art_stamp := -1  # The ground marks' frames last drawn (redraw only when they change)
 const ART_HAZE := &"sp_season_haze"
 const ART_FLECK := &"sp_spore_fleck"
+const ART_ROT_BLOOM := &"sp_rot_bloom"  # Rot Bloom's 3rd burst: a rot flower opening on the ground (one shot, in _flecks)
 const FLECK_EVERY := 0.25  # Host Trees' fleck: at most this often per capped Warden (ticks come fast)
 const FLECKS_MAX := 32
 var _haze_shown := false

@@ -1315,7 +1315,8 @@ func _queue_spill(source, enemy, base: float) -> void:
 	var key: int = source.get_instance_id()
 	if _spills.is_empty():
 		_flush_spills.call_deferred()
-	var row: Dictionary = _spills.get(key, {"tower": source, "base": 0.0, "hit": {}, "at": enemy.global_position})
+	var row: Dictionary = _spills.get(key, {"tower": source, "base": 0.0, "hit": {}, "at": enemy.global_position,
+		"centre": _centre(enemy)})  # (centre: Deep End's spray ring)
 	row.base = maxf(float(row.base), base)
 	row.hit[enemy.get_instance_id()] = true
 	_spills[key] = row
@@ -1344,7 +1345,15 @@ func _flush_spills() -> void:
 				if tower is Tower and is_instance_valid(other) and not other.is_cleansed:
 					tower.spatter(other, true)  # Spattered (section 37): the pond spill is a card splash, 1 stack
 		if landed > 0:
-			Reactions._effect(&"landing_dust", at, self, 0.8 + 0.2 * landed)  # The ring of spray crossing the pond
+			# The ring of spray crossing the pond: Deep End's dw_spray_ring, one tier's 5 frames by rank (0-I, II-III, IV-V,
+			# VI-VII), round the hit nightmare's centre; never scaled. Without Deep End or the sheet: the dust.
+			var sprayed := false
+			if evo(EVO_DEEP_END):
+				var tier := clampi(int(tower.rank) / 2, 0, 3)
+				var foot: Vector2 = at + Vector2(0.0, 1.0)
+				sprayed = _one_shot(ART_SPRAY, foot, 0, false, tier * 5, 5, Vector2(row.get("centre", at)) - foot)
+			if not sprayed:
+				Reactions._effect(&"landing_dust", at, self, 0.8 + 0.2 * landed)
 			_splashes.append([to_local(at), 0.0])
 			if evo(EVO_DEEP_END) and int(tower.rank) > 0:
 				credit(EVO_DEEP_END, at, tower)
@@ -1455,8 +1464,12 @@ func _spread_slow(enemy) -> void:
 		row = EVO_MUDFLATS
 	if flying and evo(EVO_SINKING):
 		var over := nearest_point(enemy.global_position, 0.5)
-		if over >= 0 and (_water_at.has(over) or _mud.has(over)):
+		var over_wet := over >= 0 and (_water_at.has(over) or _mud.has(over))
+		if over_wet:
 			_set_timed_slow(enemy, STEADY_SLOW, SINK_SECONDS, EVO_SINKING)  # Refreshed while over it
+			if not bool(enemy.get_meta(SINK_SPLASH_META, false)):
+				_one_shot(ART_MUD_SPLASH, _shadow_point(enemy), 1)  # Mud splashing up at its shadow, over the water surface (z 1)
+		enemy.set_meta(SINK_SPLASH_META, over_wet)
 	elif evo(EVO_SINKING) and i >= 0:
 		# Sinking Mud's cling: walking out of water or mud, STEADY_SLOW stays for CLING_STEPS forward steps (re-entering
 		# clears it: _entered for water, here for mud)
@@ -1494,8 +1507,9 @@ func _spread_slow(enemy) -> void:
 	if now() >= float(enemy.get_meta(SLOW_FX_META, -INF)):
 		enemy.set_meta(SLOW_FX_META, now() + SLOW_FX_EVERY)
 		credit(row, enemy.global_position)
-		if row == EVO_LONG or row == EVO_SINKING:
-			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)  # The current streaking on / mud dripping
+		# The current streaking on / mud dripping (Sinking Mud with its sheets: the cling and the flyer's splash instead)
+		if row == EVO_LONG or (row == EVO_SINKING and (evo_art_tex(evo_art, ART_CLING) == null or evo_art_tex(evo_art, ART_MUD_SPLASH) == null)):
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 0.35)
 
 # Breaking Wave: at rank V+ (class_kit.gate_rank: The Old Ones counts), with WAVE_CROWD nightmares in the pond at once, the
 # pond's Dewdrop hits each of them (up to WAVE_MAX, furthest along first), at most once every WAVE_COOLDOWN. Damage only
@@ -1650,6 +1664,76 @@ func _fathoms_part(enemy) -> float:
 		return 0.0
 	var seconds: float = maxf(now() - float(enemy.get_meta(POND_SINCE_META)), 0.0)
 	return minf(FATHOM_MAX, FATHOM_PER * seconds * (2.0 if enemy.statuses.is_boss else 1.0))
+
+# dw_fathoms' frame for `enemy` (-1: none): 0 at +10% ... 4 at +50%, held as the depth grows; a nightmare shorter than
+# FATHOMS_SHORT px is capped at FATHOMS_SHORT_FRAME so the water stays below its eyes. Only with the sheet and Fathoms.
+const FATHOMS_SHORT := 20.0
+const FATHOMS_SHORT_FRAME := 2
+
+func _fathoms_frame(enemy) -> int:
+	if not is_instance_valid(enemy) or not evo(EVO_FATHOMS) or evo_art_tex(evo_art, ART_FATHOMS) == null:
+		return -1
+	var steps := floori(_fathoms_part(enemy) / FATHOM_PER + 0.0001)
+	if steps < 1:
+		return -1
+	var frame := mini(steps - 1, 4)
+	if _body_height(enemy) < FATHOMS_SHORT:
+		frame = mini(frame, FATHOMS_SHORT_FRAME)
+	return frame
+
+# A nightmare's drawn feet (its body position + foot lift), its centre (about mid-height) and its wading waterline (its
+# WadeStand's when it has one: the arc across its body; else where that arc would be).
+func _feet(enemy) -> Vector2:
+	var lift: float = float(enemy.get("_foot_lift")) if enemy.get("_foot_lift") != null else 0.0
+	return body(enemy) + Vector2(0.0, lift)
+
+func _centre(enemy) -> Vector2:
+	return _feet(enemy) + Vector2(0.0, -roundf(_body_height(enemy) * 0.45))
+
+func _waterline(enemy) -> Vector2:
+	var stand = _wade_stands.get(enemy.get_instance_id())
+	if stand != null and is_instance_valid(stand):
+		return stand.global_position + stand.centre + Vector2(0.0, -stand.half.y * 0.75)
+	var sprite = enemy.get("sprite")
+	var scale: float = absf(sprite.scale.x) if sprite != null else 1.0
+	return _feet(enemy) + Vector2(0.0, -(WADE_DEPTH + WADE_COVER.y * 0.75) * scale)
+
+# The nightmare's solid art from its frame's centre, at its scale: Vector2(top, bottom) from bounds.json (the sheets
+# are padded to 64 px, so the frame's own height says nothing about the body; Enemy reads the same file for its foot
+# lift and health bar). Vector2.ZERO when its sheet has no bounds.
+func _art_rows(enemy) -> Vector2:
+	var sprite = enemy.get("sprite")
+	if not (sprite is AnimatedSprite2D) or sprite.sprite_frames == null or not enemy.has_method("_base_animation") or not enemy.has_method("_art_bounds"):
+		return Vector2.ZERO
+	var anim: StringName = enemy._base_animation()
+	if not sprite.sprite_frames.has_animation(anim) or sprite.sprite_frames.get_frame_count(anim) == 0:
+		return Vector2.ZERO
+	var tex: Texture2D = sprite.sprite_frames.get_frame_texture(anim, 0)
+	if tex == null:
+		return Vector2.ZERO
+	var sheet: String = tex.atlas.resource_path if tex is AtlasTexture else tex.resource_path
+	var bounds: Dictionary = enemy._art_bounds().get(sheet.get_file().get_basename(), {})
+	if not bounds.has("top") or not bounds.has("bottom"):
+		return Vector2.ZERO
+	return Vector2(float(bounds.top), float(bounds.bottom)) * absf(sprite.scale.y)
+
+# The nightmare's drawn body height in px (its solid rows; the frame's height x scale without bounds, 32 without a sprite).
+func _body_height(enemy) -> float:
+	var rows := _art_rows(enemy)
+	if rows != Vector2.ZERO:
+		return maxf(rows.y - rows.x, 1.0)
+	var sprite = enemy.get("sprite")
+	if sprite is AnimatedSprite2D and sprite.sprite_frames != null and sprite.sprite_frames.has_animation(sprite.animation):
+		var tex: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+		if tex != null:
+			return float(tex.get_height()) * absf(sprite.scale.y)
+	return 32.0
+
+# Where a flyer's contact shadow is drawn: its body's centre plus its art's solid bottom (the shadow line; flyers keep
+# no foot lift, so the shadow hangs under the body).
+func _shadow_point(enemy) -> Vector2:
+	var at: Vector2 = enemy.get_body_position() if enemy.has_method("get_body_position") else enemy.global_position
+	return at + Vector2(0.0, _art_rows(enemy).y)
 
 # A water's key for River Mouth / Delta / Rapids' once-per-water records: its downstream end, the Waymark leg, the lap (a lap
 # restart arms them again; re-entering, pulls and weaving never do).
@@ -2228,6 +2312,10 @@ func _pond_hit_multiplier(tower, enemy) -> float:
 		if missing > 0:
 			part += UNDERTOW_PER * missing
 			row = EVO_UNDERTOW
+			if now() >= float(enemy.get_meta(SWIRL_META, -INF)):  # dw_swirl: 0-5 with company, 6-11 (dark) with few
+				enemy.set_meta(SWIRL_META, now() + SWIRL_EVERY)
+				var foot: Vector2 = enemy.global_position + Vector2(0.0, 1.0)
+				_one_shot(ART_SWIRL, foot, 0, false, 6 if missing > SPILL_MAX / 2 else 0, 6, _waterline(enemy) - foot)  # Over the pond's water
 	var deep := 0.0
 	if evo(EVO_FATHOMS):
 		deep = _fathoms_part(enemy)
@@ -2238,7 +2326,10 @@ func _pond_hit_multiplier(tower, enemy) -> float:
 		enemy.set_meta(CRUSH_META, now() + CRUSH_EVERY)
 		enemy.pierce_coat_once = true  # Spent by this hit's take_damage
 		credit(EVO_CRUSH, enemy.global_position, tower)
-		Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)  # The shell cracks under the water line
+		# The shell cracks under the water line (dw_shell_crack on its waterline; the node 1 px under its feet sorts in front)
+		var foot: Vector2 = enemy.global_position + Vector2(0.0, 1.0)
+		if not _one_shot(ART_CRACK, foot, 0, false, 0, 0, _waterline(enemy) - foot):
+			Reactions._effect(&"landing_dust", enemy.global_position, self, 1.0)
 	if part <= 0.0:
 		return 1.0
 	DamageLog.note_card_bonus(String(row), 1.0 + part)
@@ -2485,6 +2576,19 @@ const ART_WAVE := &"dw_wave_flash"
 const ART_FROTH := &"dw_floodgate_froth"  # Floodgate's surge (0b136e06): one per water point, tiles every 32 px
 const ART_FROTH_END := &"dw_floodgate_froth_end"  # …and its two end points: the tile rounding off (995fb3b4; flipped for the far end)
 const ART_BLUE := &"dw_blue_splash"  # River Mouth / Delta: the big splash on a hit (one shot)
+# Roguelite asset 33af7bec (the built rows' landing_dust stand-ins):
+const ART_SILT := &"dw_silt"  # Silt: one tile per surged path point, fading over SILT_SECONDS (surface layer)
+const ART_RAPIDS := &"dw_rapids"  # Rapids: the water's last RAPIDS_STEPS steps, drawn flowing right (flipped / turned)
+const ART_CLING := &"dw_mud_cling"  # Sinking Mud: at a walker's feet for its cling steps, over the feet
+const ART_MUD_SPLASH := &"dw_mud_splash"  # Sinking Mud: one shot at a flyer's shadow as it comes over water or mud
+const ART_FATHOMS := &"dw_fathoms"  # Fathoms: static, frame by depth (0 = +10% ... 4 = +50%), over the lower body
+const ART_SPRAY := &"dw_spray_ring"  # Deep End: one tier's 5 frames round the spill's hit nightmare (tier by rank)
+const ART_SWIRL := &"dw_swirl"  # Undertow: 6 frames at the hit nightmare (0-5 with company, 6-11 dark with few)
+const ART_CRACK := &"dw_shell_crack"  # Crushing Depth: one shot on the waterline when the shell is pierced
+const SWIRL_EVERY := 0.5  # Undertow's swirl: at most this often per nightmare (it rides every pond hit)
+const SWIRL_META := &"pd_swirl_next"
+const SINK_SPLASH_META := &"pd_sink_over"  # On a flyer: over water or mud at the last poll (Sinking Mud's splash on coming over)
+var _cling_stands := {}  # Nightmare instance id -> its ClingStand (Sinking Mud's dw_mud_cling, in the wading layer)
 var _surges: Array = []  # Floodgate: [water route indices, until (now())] while the surge froths
 var _mud_art: Node2D  # Mudflats' mud sheets: on the path layer, under the damp band (only with the dw_mud sheet)
 var _reed_layer: Node2D  # Reed Bed's reeds stand in the map's y-sort (only with the dw_reeds sheet)
@@ -2685,6 +2789,18 @@ func _draw_water_layer(c: CanvasItem, kind: int) -> void:
 		5:
 			pass  # (The water over the legs: now each nightmare's WadeStand)
 
+# A loop mark drawn flowing right, on route point `k`, turned to flow downstream: flipped where the route runs left,
+# turned 90 degrees where it runs up or down the screen; never scaled. (Rapids.)
+func _draw_flowing(c: CanvasItem, mark: StringName, k: int) -> void:
+	var at: Vector2 = _route_px[k]
+	var ahead: Vector2 = (_route_px[k + 1] - at) if k + 1 < _route_px.size() else (at - _route_px[maxi(k - 1, 0)])
+	if absf(ahead.y) > absf(ahead.x):
+		c.draw_set_transform(at, PI / 2.0 if ahead.y > 0.0 else -PI / 2.0)
+		evo_mark(c, mark, Vector2.ZERO)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		evo_mark(c, mark, at, 1.0, ahead.x < 0.0)
+
 func _draw_water_surface(c: CanvasItem) -> void:
 	var still: bool = motion_still()
 	var frame: int = maxi(_surface_frame, 0)
@@ -2722,6 +2838,21 @@ func _draw_water_surface(c: CanvasItem) -> void:
 	for splash in _splashes:  # A Dewdrop's hit in the water
 		var s: float = float(splash[1]) / SPLASH_TIME
 		c.draw_arc(splash[0], 4.0 + 14.0 * s, 0.0, TAU, 16, Color(Palette.DEWLIGHT, 0.8 * (1.0 - s)), 1.5)
+	if evo(EVO_RAPIDS):  # Rapids: white water on each water's last RAPIDS_STEPS steps (its downstream end)
+		for w in waters.size():
+			var last := int(waters[w].last)
+			for i in waters[w].points:
+				var k := int(i)
+				if k < 0 or k >= _route_px.size() or last - k >= RAPIDS_STEPS:  # The mark: exactly the last 3 route points (asset chat 60f850de; the rule window stays 2 a step)
+					continue
+				_draw_flowing(c, ART_RAPIDS, k)
+	for zone in _silt:  # Silt: the surged path's tide line, fading out over SILT_SECONDS
+		var left := (float(zone.until) - now()) / SILT_SECONDS
+		if left <= 0.0:
+			continue
+		for i in zone.points:
+			if int(i) >= 0 and int(i) < _route_px.size():
+				evo_mark(c, ART_SILT, _route_px[int(i)], clampf(left, 0.0, 1.0))
 	for surge in _surges:  # Floodgate: the surged water froths for SURGE_SECONDS, fading over its last 0.4 s
 		var fade := clampf((float(surge[1]) - now()) / 0.4, 0.0, 1.0)
 		var points: Array = surge[0]
@@ -2909,6 +3040,7 @@ func _sync_wading() -> void:
 			if is_instance_valid(_wade_stands[id]):
 				_wade_stands[id].queue_free()
 			_wade_stands.erase(id)
+	_sync_cling()
 
 # Puts a WadeStand on its nightmare's feet: every frame (_tick_water), not at WADE_FPS (a stand 4 frames behind a
 # nightmare walking down the screen sorted behind its body and showed its legs, council pass 5).
@@ -2945,6 +3077,58 @@ func _place_wading() -> void:
 	for stand in _wade_stands.values():
 		if is_instance_valid(stand):
 			_place_wade(stand)
+	for stand in _cling_stands.values():
+		if is_instance_valid(stand):
+			_place_cling(stand)
+
+# Sinking Mud's cling (dw_mud_cling, 33af7bec): a ClingStand on each walker still clinging (LONG_META's row EVO_SINKING,
+# its CLING_STEPS forward steps), in the wading layer just in front of the nightmare, so the mud goes over its feet.
+func _sync_cling() -> void:
+	var keep := {}
+	if is_instance_valid(_wade_layer) and evo(EVO_SINKING) and evo_art_tex(evo_art, ART_CLING) != null:
+		for enemy in get_tree().get_nodes_in_group(&"enemies"):
+			if not living(enemy) or enemy.is_flying():
+				continue
+			var held: Array = enemy.get_meta(LONG_META, [])
+			if held.size() < 5 or StringName(held[4]) != EVO_SINKING:
+				continue
+			var id: int = enemy.get_instance_id()
+			keep[id] = true
+			var stand: ClingStand = _cling_stands.get(id)
+			if stand == null or not is_instance_valid(stand):
+				stand = ClingStand.new(self)
+				_wade_layer.add_child(stand)
+				_cling_stands[id] = stand
+			stand.enemy = enemy
+			_place_cling(stand)
+			stand.queue_redraw()
+	for id in _cling_stands.keys():
+		if not keep.has(id):
+			if is_instance_valid(_cling_stands[id]):
+				_cling_stands[id].queue_free()
+			_cling_stands.erase(id)
+
+func _place_cling(stand) -> void:
+	var enemy = stand.enemy
+	if not is_instance_valid(enemy):
+		return
+	var sprite = enemy.get("sprite")
+	var lift: float = float(enemy.get("_foot_lift")) if enemy.get("_foot_lift") != null else 0.0
+	var feet: Vector2 = body(enemy) + Vector2(0.0, lift)
+	stand.global_position = Vector2(feet.x, (sprite.global_position.y if sprite != null else enemy.global_position.y) + 0.5)
+	stand.feet = feet - stand.global_position
+
+class ClingStand extends Node2D:
+	var _puddles
+	var enemy
+	var feet := Vector2.ZERO  # Its nightmare's feet (local)
+	func _init(puddles) -> void:
+		_puddles = puddles
+		name = "Cling"
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	func _draw() -> void:
+		if is_instance_valid(_puddles):
+			_puddles.evo_mark(self, ART_CLING, feet)
 
 # The water a nightmare stands in AS DRAWN (-1 none): its own route point's, or a neighbour's (the drawn water reaches
 # half a step past its last point, round its ends: a nightmare there showed its legs, council pass 4). Visuals only: the
@@ -2974,7 +3158,13 @@ func _draw_wade_part(c: CanvasItem, stand, kind: int) -> void:
 	var still: bool = motion_still()
 	var deep: bool = stand.deep
 	var scale: float = half.x / WADE_COVER.x
-	c.draw_arc(Vector2.ZERO, half.x * 0.75, PI + 0.6, TAU - 0.6, 14, Color(Palette.DEW if deep else Palette.DEWLIGHT, 0.45), 1.0)  # The waterline, across the body only (0.6 read as domes, council pass 5)
+	var depth := _fathoms_frame(stand.enemy)
+	if depth >= 0:  # Fathoms (dw_fathoms): the dark water climbing its body, with its own lit waterline; anchor = its feet
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		evo_mark(c, ART_FATHOMS, centre + Vector2(0.0, WADE_DEPTH * scale), 1.0, false, depth)
+		c.draw_set_transform(centre, 0.0, Vector2(1.0, half.y / half.x))
+	else:
+		c.draw_arc(Vector2.ZERO, half.x * 0.75, PI + 0.6, TAU - 0.6, 14, Color(Palette.DEW if deep else Palette.DEWLIGHT, 0.45), 1.0)  # The waterline, across the body only (0.6 read as domes, council pass 5)
 	if not still:
 		var ring := fposmod(now() * 1.5 + float(stand.ring_phase), 1.0)
 		c.draw_arc(Vector2.ZERO, half.x + 6.0 * ring, PI + 0.5, TAU - 0.5, 16, Color(Palette.DEWLIGHT, 0.35 * (1.0 - ring)), 1.5)  # Trimmed: its ends traced the oval
@@ -3110,16 +3300,26 @@ func _wave_crest(i: int, toward: int) -> void:
 # River Mouth / Delta: the big blue splash (dw_blue_splash, one shot) at the hit's foot, in the y-sort just in front of the
 # nightmare (the crown rises over its legs). False without the sheet (the caller plays its stand-in).
 func _blue_splash(enemy) -> bool:
-	if evo_art_tex(evo_art, ART_BLUE) == null or not is_instance_valid(enemy):
+	if not is_instance_valid(enemy):
+		return false
+	return _one_shot(ART_BLUE, enemy.global_position + Vector2(0.0, 1.0), 0)  # (1 px lower: sorts in front of it)
+
+# Plays one-shot `mark` (a WaveCrest in the world, never under %EnemyContainer) with its node at `at` (z 0: y-sorted with
+# the nightmares, so put it 1 px under a nightmare's feet to draw in front; z -1: on the ground) and the art drawn at
+# `at + offset`. `count` > 0: only frames first..first+count-1 (a tier of the sheet). False without the sheet.
+func _one_shot(mark: StringName, at: Vector2, z: int, flip: bool = false, first: int = 0, count: int = 0,
+		offset: Vector2 = Vector2.ZERO) -> bool:
+	if evo_art_tex(evo_art, mark) == null:
 		return false
 	var world := Reactions._world(self)
 	if world == null:
 		return false
-	var meta := evo_art_meta(evo_art, ART_BLUE)
-	var life := float(maxi(int(meta.get("frames", 1)), 1)) / maxf(float(meta.get("fps", 12.0)), 1.0)
-	var splash := WaveCrest.new(self, false, life, ART_BLUE, 0)
-	world.add_child(splash)  # Never under %EnemyContainer
-	splash.global_position = enemy.global_position + Vector2(0.0, 1.0)  # (1 px lower: sorts in front of it)
+	var meta := evo_art_meta(evo_art, mark)
+	var frames := count if count > 0 else maxi(int(meta.get("frames", 1)), 1)
+	var life := float(frames) / maxf(float(meta.get("fps", 12.0)), 1.0)
+	var shot := WaveCrest.new(self, flip, life, mark, z, first, count, offset)
+	world.add_child(shot)
+	shot.global_position = at
 	return true
 
 # A one-shot mark's frame `age` s in (holds its last; reduced motion: frame 0).
@@ -3134,11 +3334,18 @@ class WaveCrest extends Node2D:
 	var _age := 0.0
 	var _frame := -1
 	var _mark: StringName = &"dw_wave_flash"
-	func _init(puddles, flip: bool, life: float, mark: StringName = &"dw_wave_flash", z: int = -1) -> void:
+	var _first := 0  # A tier of the sheet: frames _first.._first+_count-1 (_count 0: the whole sheet)
+	var _count := 0
+	var _offset := Vector2.ZERO  # The art drawn this far from the node (the node sorts by its own y)
+	func _init(puddles, flip: bool, life: float, mark: StringName = &"dw_wave_flash", z: int = -1, first: int = 0,
+			count: int = 0, offset: Vector2 = Vector2.ZERO) -> void:
 		_puddles = puddles
 		_flip = flip
 		_life = life
 		_mark = mark
+		_first = first
+		_count = count
+		_offset = offset
 		name = "WaveCrest"
 		z_as_relative = false
 		z_index = z  # -1: with the ground, on the water, under the nightmares
@@ -3149,12 +3356,14 @@ class WaveCrest extends Node2D:
 			queue_free()
 			return
 		var frame: int = _puddles.wave_frame(_age, _mark)
+		if _count > 0:
+			frame = _first + mini(frame, _count - 1)
 		if frame != _frame:
 			_frame = frame
 			queue_redraw()
 	func _draw() -> void:
 		if is_instance_valid(_puddles):
-			_puddles.evo_mark(self, _mark, Vector2.ZERO, 1.0, _flip, maxi(_frame, 0))
+			_puddles.evo_mark(self, _mark, _offset, 1.0, _flip, maxi(_frame, _first))
 
 # A water layer: draws through the Puddles node (`kind`: 0 damp, 1 body, 2 surface, 3 wading, 4 mud sheets).
 class WaterArt extends Node2D:
