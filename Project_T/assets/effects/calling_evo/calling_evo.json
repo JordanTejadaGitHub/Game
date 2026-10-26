@@ -512,18 +512,18 @@
 		},
 		"sp_throne_rim": {
 			"anchor": [
-				16,
-				33
+				20,
+				42
 			],
 			"file": "sp_throne_rim.png",
 			"fps": 3.0,
 			"frame_size": [
-				32,
-				37
+				40,
+				46
 			],
 			"frames": 4,
 			"loop": true,
-			"use": "Toadstool Throne: a mushroom throne, a broad cap seat with a tall cap backrest and gold trim and crown studs, drawn under the clump (before the mushroom sheet; the clump stands in front of the backrest). Anchor = the clump's foot."
+			"use": "Toadstool Throne: a throne made of mushroom, drawn under the clump (before the mushroom sheet; the clump stands in front): a great toadstool cap tipped upright behind it, its brown gill underside fanning from a pale stem stub, a gold and Ember rim, a three-point crown on top (a glint sweeps its points), two little toadstool armrests and a squat plinth. Anchor = the clump's feet."
 		}
 	}
 }

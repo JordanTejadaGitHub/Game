@@ -335,8 +335,8 @@ const CAP := {"m": BLOSSOM, "s": ORCHID, "h": HEART, "u": ORCHID, "t": MOONPATH,
 const CAP_PASSED := {"m": MOONPATH, "s": DEADWOOD, "h": HEART, "u": OAK, "t": MOONPATH, "d": DEADWOOD}  # Warm bone, never cold silver
 
 func _sporeling() -> void:
-	_sheet("sp_throne_rim", Vector2i(32, 37), 4, 3.0, Vector2i(16, 33), true, _throne,
-		"Toadstool Throne: a mushroom throne, a broad cap seat with a tall cap backrest and gold trim and crown studs, drawn under the clump (before the mushroom sheet; the clump stands in front of the backrest). Anchor = the clump's foot.")
+	_sheet("sp_throne_rim", Vector2i(40, 46), 4, 3.0, Vector2i(20, 42), true, _throne,
+		"Toadstool Throne: a throne made of mushroom, drawn under the clump (before the mushroom sheet; the clump stands in front): a great toadstool cap tipped upright behind it, its brown gill underside fanning from a pale stem stub, a gold and Ember rim, a three-point crown on top (a glint sweeps its points), two little toadstool armrests and a squat plinth. Anchor = the clump's feet.")
 	_sheet("sp_rot_ring", Vector2i(30, 16), 4, 3.0, Vector2i(15, 8), true, _rot_ring,
 		"Rot Ground: a rotten ring on a Sprout bed's step, fallen grey cap stubs on it and a pink spore wisp rising (on the ground). Anchor = the step's route point.")
 	_sheet("sp_fed_ground", Vector2i(20, 12), 4, 3.0, Vector2i(10, 7), true, _fed_ground,
@@ -344,70 +344,119 @@ func _sporeling() -> void:
 	_sheet("sp_cap_badge", Vector2i(17, 12), 2, 0.0, Vector2i(8, 11), false, _cap_badge,
 		"Host Trees: the cap a Warden of another family wears. Frame 0 its own cap (Blossom), frame 1 a passed-on cap (Spreading Caps: pale). Anchor = the stem's foot, on the Warden's head.")
 
+# A throne made of mushroom: its back is a great toadstool cap tipped upright behind the clump, seen from below: a
+# smooth round cap edge, wider than it is tall (an arch, a faceted frame or bars read as a window, a mirror or a cage,
+# council rounds 2-3), its underside a warm grey-brown with thin dark gills fanning from a pale stem stub (violet stripes
+# hid violet nightmares and read as a shell; this toadstool's underside is brown like a real one's, so a nightmare
+# behind it still shows); a flesh band of Bruise just inside the rim, Orchid only at its lit corner; the rim gold where
+# lit and Ember in shadow, a Night outline; a chunky three-point crown on top; two little toadstool armrests against the
+# cap; a squat plinth with an Ember lip. The clump in front stays the brightest pink. A glint walks the crown.
+const THRONE_C := Vector2(20.0, 27.0)  # The cap's centre (its stem stub; the clump's feet are at (20, 42))
+const THRONE_R := Vector2(15.5, 16.5)  # Its half width and height above the centre
+
+func _in_cap(p: Vector2) -> bool:
+	var d := p - THRONE_C
+	return d.y <= 0.5 and Vector2(d.x / THRONE_R.x, d.y / THRONE_R.y).length() <= 1.0
+
 func _throne(img: Image, f: int) -> void:
-	# Council pass 2: a throne that sits under the clump without swamping it. The mushroom's own darker tones (Orchid lit,
-	# Bruise in shade, a Shade outline: below the clump's brightest pink, so the clump stays the bright thing), a short
-	# backrest with three lobes and gold crown studs, two arm knobs, a flat seat lit on top with a gill line under it and
-	# gold trim on its front edge. A glint steps across the studs, one a frame.
-	# Drawn as a chair (a wide oval seat read as a hat's brim): a straight-sided back with three lobes on top, two arm
-	# posts with cap knobs, a thin seat slab. The back rises above the clump's caps (32 px; a 14 px one hid entirely
-	# behind them and left a dark box): its lobes and crown show over the clump, the arms beside its stems.
-	# Council pass 3: the back is a tall cap, a dome on top with a gill line under it, shaded in three tones a step
-	# darker than the clump (Orchid only on the lit upper left, Bruise, Shade in the lower right), so the caps in
-	# front stay the brightest pink.
-	var body := _blank(img)
-	var dome_c := Vector2(16.5, 10.0)
-	for y in range(3, 12):  # The dome: a cap, wider than the back
-		for x in range(7, 27):
-			var e := Vector2((x + 0.5 - dome_c.x) / 9.5, (y + 0.5 - dome_c.y) / 6.5)
-			if y <= dome_c.y and e.length() <= 1.0:
-				var lit := e.x * 0.6 + e.y * 0.8
-				_px(body, x, y, ORCHID if lit < -0.45 else (BRUISE if lit < 0.2 else SHADE))
-	for x in range(8, 26):  # The gill line under the dome
-		_px(body, x, 11, SHADE if x % 2 == 0 else BRUISE)
-	# Final council (art direction): the straight-sided back read as a pillar or tombstone: it is the cap's stem now,
-	# narrower under the dome and flaring at its foot, with fibre lines down it, lit on its left.
-	# Recheck: straight full-height fibres and a flared foot read as a fluted stone column: the stem tapers, narrow under
-	# the cap (well inside the dome) and widening down to the seat like a mushroom's stalk, with three short broken fibre
-	# strokes on it.
-	for y in range(12, 32):
-		var t := float(y - 12) / 19.0
-		var x0 := 14 - roundi(t * 3.0)
-		var x1 := 19 + roundi(t * 3.0)
-		for x in range(x0, x1):
-			_px(body, x, y, BRUISE if x < x1 - 3 else SHADE)
-		_px(body, x0, y, ORCHID)  # Its lit left edge
-	for s: Vector3i in [Vector3i(15, 14, 2), Vector3i(17, 19, 2), Vector3i(15, 24, 2)]:  # Short fibre strokes, gaps between, stopping well above the seat
-		for k in s.z:
-			_px(body, s.x + (k / 2), s.y + k, SHADE)
-	for post: int in [6, 25]:  # The arm posts, a cap knob on each
-		for y in range(25, 33):
-			_px(body, post, y, ORCHID if post == 6 else BRUISE)
-			_px(body, post + 1, y, BRUISE)
-		_grid(body, [".k.", "kkk"], {"k": ORCHID}, Vector2i(post - 1, 23))
-		_px(body, post + 1, 24, BRUISE)
-	for x in range(6, 27):  # The seat: a thin slab, lit on top, its front edge gold
-		_px(body, x, 31, ORCHID)
-		_px(body, x, 32, BRUISE)
-		_px(body, x, 33, GOLD if x > 7 and x < 25 else BRUISE)
-	for x in range(7, 26):  # The gill line under the seat
-		_px(body, x, 34, SHADE if x % 2 == 0 else BRUISE)
-	for p: Vector2i in [Vector2i(11, 6), Vector2i(14, 5), Vector2i(10, 8), Vector2i(6, 23)]:  # Cap speckles, lit side
-		_px(body, p.x, p.y, BLOSSOM)
-	for p: Vector2i in [Vector2i(18, 6), Vector2i(22, 8), Vector2i(15, 8)]:  # Pale cap spots (final council), warm bone
-		_grid(body, ["dd"], {"d": DEADWOOD}, p)
-	_outline(body, SHADE)
-	_rim(body, [ORCHID, BRUISE], GOLD, Vector2(16.0, 9.0))  # Gold trim round the dome's upper-left edge
-	_over(img, body)
-	var studs := _blank(img)  # Three crown studs on its lobes, 3 px wide at the base, Glow tips
-	var stud_at := [Vector2i(12, 4), Vector2i(16, 3), Vector2i(21, 4)]
-	for s: Vector2i in stud_at:
-		_grid(studs, [".h.", "ggg"], {"h": GLOW, "g": GOLD}, Vector2i(s.x - 1, s.y - 2))
-	_outline(studs, SHADE)
-	_over(img, studs)
-	if f < 3:  # The glint steps across the studs, then rests a frame
-		var s: Vector2i = stud_at[f]
-		_px(img, s.x, s.y - 2, HEART)
+	var w := img.get_width()
+	var h := img.get_height()
+	var inside := {}
+	for y in h:
+		for x in w:
+			if _in_cap(Vector2(x + 0.5, y + 0.5)):
+				inside[Vector2i(x, y)] = true
+	var rim := {}
+	for p: Vector2i in inside:
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
+			if not inside.has(p + d):
+				rim[p] = true
+	var cap := _blank(img)
+	for p: Vector2i in inside:  # The underside: warm grey-brown, a step darker toward the shadow side
+		_px(cap, p.x, p.y, LOAM if p.x < 24 else BARK)
+	for p: Vector2i in inside:  # The flesh band just inside the rim: Bruise, Orchid only at the lit upper-left corner
+		if rim.has(p):
+			continue
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
+			if rim.has(p + d):
+				var corner := p.x < THRONE_C.x - 6 and p.y < THRONE_C.y - 8 and p.x > THRONE_C.x - 13
+				_px(cap, p.x, p.y, ORCHID if corner else BRUISE)
+				break
+	for p: Vector2i in rim:  # The rim: gold where lit, Ember in shadow
+		var lit := (p.x - THRONE_C.x) * 0.8 + (p.y - THRONE_C.y) * 0.6 < 0.0
+		_px(cap, p.x, p.y, GOLD if lit else EMBER)
+	_outline(cap, NIGHT)
+	_over(img, cap)
+	var gills := _blank(img)  # Thin dark gills fanning from the stub, gaps 3x wider, stopping short of the flesh band
+	var hub := Vector2i(int(THRONE_C.x), int(THRONE_C.y))
+	for i in 11:
+		if i == 8:
+			continue  # One fewer on the shadow side, where they stair-stepped heavier (council round 4)
+		var a := lerpf(-PI * 0.9, -PI * 0.1, i / 10.0)
+		var tip := Vector2i((Vector2(hub) + Vector2(cos(a) * THRONE_R.x, sin(a) * THRONE_R.y) * 1.2).round())
+		for q: Vector2i in _bresenham(hub, tip):
+			if not inside.has(q) or rim.has(q):
+				break
+			var c := cap.get_pixel(q.x, q.y)
+			if Color(c.r, c.g, c.b) == BRUISE or Color(c.r, c.g, c.b) == ORCHID:
+				break
+			if Vector2(q - hub).length() < 3.0:
+				continue
+			_px(gills, q.x, q.y, ROOT if q.x >= 24 else BARK)
+	_grid(gills, [".d.", "ddd", "ddd"], {"d": DEADWOOD}, hub + Vector2i(-1, -2))  # The stem stub the gills fan from
+	_over(img, gills)
+	for side: int in [-1, 1]:  # The armrests: little toadstools against the cap, a domed cap with a gold rim, pale stem
+		var ax := 20 + side * 13
+		var arm := _blank(img)
+		_grid(arm, ["..bbb..", ".bobbb.", "bbbbbss", "ggggggg", "...d...", "...d...", "..ddd.."],
+			{"b": BRUISE, "o": ORCHID, "s": SHADE, "g": GOLD if side < 0 else EMBER, "d": DEADWOOD}, Vector2i(ax - 3, 31))
+		_outline(arm, NIGHT)
+		_over(img, arm)
+	var plinth := _blank(img)  # The plinth: squat, an Ember lip (gold only on the cap and armrests)
+	for y in range(39, 44):
+		for x in range(9, 32):
+			var col: Color = BRUISE if x < 24 else SHADE
+			if y == 39:
+				col = EMBER
+			elif y == 43:
+				col = SHADE
+			_px(plinth, x, y, col)
+	for x in range(10, 31, 3):  # Its gills, under the lip
+		_px(plinth, x, 42, SHADE)
+	_outline(plinth, NIGHT)
+	_over(img, plinth)
+	var crown := _blank(img)  # A chunky three-point crown on the cap's top
+	var top := int(THRONE_C.y - THRONE_R.y)
+	_grid(crown, ["G...G...G", "gG.gGg.Gg", "ggggggggg", "eeeeeeeee"], {"G": GLOW, "g": GOLD, "e": EMBER},
+		Vector2i(16, top - 3))
+	_outline(crown, NIGHT)
+	_over(img, crown)
+	var glint: Vector2i = [Vector2i(16, top - 3), Vector2i(20, top - 3), Vector2i(24, top - 3), Vector2i(-9, -9)][f]  # A sweep across the three points, then a rest
+	for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		if not _empty(crown, glint.x + d.x, glint.y + d.y):  # Only on the crown itself
+			_px(img, glint.x + d.x, glint.y + d.y, HEART if d == Vector2i.ZERO else GLOW)
+
+# A line one pixel a step (Bresenham).
+func _bresenham(a: Vector2i, b: Vector2i) -> Array:
+	var out: Array = []
+	var dx := absi(b.x - a.x)
+	var dy := -absi(b.y - a.y)
+	var sx := 1 if a.x < b.x else -1
+	var sy := 1 if a.y < b.y else -1
+	var err := dx + dy
+	var p := a
+	while true:
+		out.append(p)
+		if p == b:
+			break
+		var e2 := 2 * err
+		if e2 >= dy:
+			err += dy
+			p.x += sx
+		if e2 <= dx:
+			err += dx
+			p.y += sy
+	return out
 
 func _rot_ring(img: Image, f: int) -> void:
 	# Council pass 2: a broken oval of rot (it read as a pentagon wreath), brown and dark purple-brown, not leafy, with
