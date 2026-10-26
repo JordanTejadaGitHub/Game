@@ -886,9 +886,29 @@ selection; a "select all of this kind" button.
 
 ### Nightmare info (on hover)
 
-Name, one-line trait ("Rolls fast down straight corridors"), health, speed, leaf cost, current
-statuses with remaining time. First time a nightmare type appears: a **"New"** tag and the whisper
-from `onboarding.md`.
+First time a nightmare type appears: a **"New"** tag and the whisper from `onboarding.md`. Its layout: the
+Moon-glass card below (the older word lines are superseded).
+
+**Moon-glass card** (owner 2026-10-25: "remove any unneeded wording or info", "status icons, not words", "stays on
+click"; UI council rounds 1-5; `scripts/ui/nightmare_info.gd`, `tests/test_nightmare_card.gd`):
+
+- Header: the portrait (first walk frame cropped to its drawn pixels, whole-number scale; a sprite bigger than the 40 px disc,
+  as bosses, is shrunk by a whole fraction, ceil(longest / 40), nearest) on the moon disc; the name
+  (New / Deeply Blighted tags); one INK_DIM line "Health · Speed · Leaves"; a full-width health bar (Sprig on Void).
+- **Status chips** instead of status lines: 32×36 (phones: a 44×44 tap area, the plate centred). Void plate, the
+  status's pip colour (`KeywordIcons.pip_color`, as the row over the nightmare) filled at **PLATE_ALPHA 0.45** inside a 1 px rim in that colour; its 16 px icon; stacks bottom right
+  (INK, 3 px Void outline, baseline 8 px above the foot; the icon at y 3); the time bar 2 px tall in a dark 4 px **slot** (inset 3 px,
+  7 px above the foot), the same geometry on every chip. Full: a 2 px Heartlight frame with a 1 px Void inner line,
+  the number inset 5 px. Locked (Dream card stacks, section 36): no fill, rim kept, the bar's top row
+  only. Hover / tap a chip for its words under the row (a click keeps them).
+- Under the chips, words only an icon can't say: the trait (what it does, no advice how to beat it; key words like
+  armor stay), the Omen, a Pall overhead, the limits; then its Kind row.
+- **Pin (PC):** a click on a nightmare (a release within 6 px of its press: a drag doesn't) pins the card: it stays
+  whatever is hovered, the disc gets a 2 px Gold ring outside it, on the dark panel (a boss keeps its BOSS rim and gets
+  a Gold halo). A click elsewhere,
+  a tool, a choice screen or Esc / right click lets go (that first Esc is consumed). A pinned nightmare dispelled
+  keeps its card, "<Name> · Dispelled", Health 0, trait only, until let go; one that leaks closes it. A hovered one
+  dispelled shows the same frozen card for 1 s.
 
 **Resistances and immunities as icons** (added 2026-09-28, user request: "enemy statuses should be
 more clear with icons of their resistances"):
