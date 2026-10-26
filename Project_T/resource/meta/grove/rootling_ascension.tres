@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "rootling_ascension"
 display_name = "Ascension: World Root"
-description = "{warden:world_root}: every 5 s everything in range gains 1 {held}, and nightmares with {held} take 30% more damage. In a run, from {drift} 51: 3 {dreamlight} unlocks it, then 600 {dew} grows a {final_form} into it."
+description = "{warden:world_root}: every 5 s everything in range gains 1 {held}, and nightmares with {held} take 30% more damage. From {drift} 51 in a run: 3 {dreamlight}, then 600 {dew} {grows} a {final_form} into it."
 root = 0
 costs = Array[int]([120])
 order = 34
